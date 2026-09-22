@@ -135,13 +135,55 @@ function purgeStonesFromDeck() {
 // modifier - plus, for 'hand' bosses, a hand requirement layered ON TOP of the goal.
 function bossGoalMet() { return score >= roundGoal; }
 
+// r237: a boss-winning hand no longer ends the boss MID-playHand. It used to
+// call endBoss(true) here, synchronously, before the scoring dance had drawn a
+// frame - so the winning hand never got the finale every other goal hand gets
+// (hover, jitter, explode, fly) and the screen jumped straight to the prize
+// grid. Now the win only goes PENDING; playHand routes the hand through the
+// ordinary goal-dance path, and the dance calls bossSettleWin() at the exact
+// point it would call startInterlude.
+let bossWinPending = false;
 function checkBossObjective(handName, handFinalScore) {
   if (!bossActive || !currentBoss) return;
   const obj = currentBoss.objective;
   if (obj.type === 'hand' && handName === obj.handName) bossObjectiveProgress++;
   const handDone = (obj.type !== 'hand') || (bossObjectiveProgress >= obj.count);
-  if (handDone && bossGoalMet()) endBoss(true);
+  if (handDone && bossGoalMet()) bossWinPending = true;
   updateBossObjectiveUI();
+}
+// Called by the dance (normal completion AND the abort path) where a goal hand
+// hands off to the interlude. Returns true when it took the handoff.
+// ── Taking the boss's paint off a board that is still standing (r280) ───────
+// Two bosses change how a CARD LOOKS rather than what it does: The Fog hides
+// ranks (markup, from renderCardAppearance) and The Gradient scales and tints by
+// position (--grds plus a class). Before r280 the goal finale removed every card
+// element, so neither outlived the boss. It does not any more - the board stays
+// up through the tally and goes out in the round-end fall - so a beaten Fog would
+// otherwise drop a boardful of rankless cards.
+//
+// **render() is not the answer here and that is the whole reason this exists.**
+// gridData still holds the cards that flew into the preview (their deck
+// accounting is the fall's job, and The Pick photographs the board above it), so
+// a full repaint would put the played hand back on the board. This repaints only
+// what is actually still on it, by the same two lines render() uses.
+function repaintBoardAfterBoss() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || typeof renderCardAppearance !== 'function') return;
+  gridEl.querySelectorAll('[data-card-id]').forEach(el => {
+    const r = +el.dataset.row, c = +el.dataset.col;
+    const card = gridData?.[r]?.[c];
+    if (!card) return;
+    const { className, innerHTML } = renderCardAppearance(card, r, c);
+    el.className = className; el.innerHTML = innerHTML;
+  });
+  if (typeof bossGradientPaint === 'function') bossGradientPaint();
+}
+
+function bossSettleWin() {
+  if (!bossWinPending) return false;
+  bossWinPending = false;
+  endBoss(true, { presented: true });
+  return true;
 }
 let bossScoreAtStart = 0;
 
@@ -401,6 +443,84 @@ let bossWindowDuration = BOSS_WINDOW_DURATION;
 // refill when empty. No repeats inside a run, and every boss is reachable.
 let bossBag = [];
 
+// ── THE ACT'S BOSS IS DRAWN WHEN THE ACT OPENS, AND HELD (r238) ──────────────
+//
+// It used to be drawn from the bag at the moment the boss TRIGGERED, which made
+// every forward-looking readout a guess: peekBossPreset had to re-derive a
+// likely front-runner on each paint, and bossPresetIsLive reads how many Tricks
+// you own, so gaining your second Trick could legitimately change the answer
+// halfway through a quarter. A loadout cannot be built against a boss that may
+// not turn up.
+//
+// actBossId is the quarter's boss, dealt out of the bag by drawActBoss() the
+// moment the quarter opens. The forecast is then a PROMISE, and nextBossPreset
+// simply hands it over.
+//
+// Only ACT modes hold one. Survival and Flow fire bosses off a live-play
+// cadence rather than at the end of a structure, so there is no "this act's
+// boss" to name and they keep drawing at trigger time.
+let actBossId = null;
+
+// ── THE NEXT QUARTER'S boss, for the Advance Notice knack (r254) ────────────
+//
+// actBossId is the quarter you are IN. This is the one after it, and it is
+// drawn LAZILY - nothing in the game asks for it unless Advance Notice is
+// owned, and a boss dealt out of the bag for a player who cannot see it would
+// consume the bag for no reason.
+//
+// Once drawn it is HELD and drawActBoss CONSUMES it, which is the whole point:
+// the knack names a boss and then that boss turns up. Without that the reveal
+// would be a guess dressed as a promise.
+//
+// Selling the knack CLEARS it (forgetNextActBoss, called from updateKnackList),
+// so the next draw is a different boss. That is what stops buy -> read -> sell
+// being a free scout.
+//
+// Note on seeded runs: this draw happens when the player acquires the knack, so
+// it shifts the shared seeded stream at a player-dependent moment. That is
+// already true of every other decision-driven draw (js/seed.js) - the DECK has
+// its own isolated stream and is unaffected.
+let nextActBossId = null;
+
+function peekNextActBoss() {
+  if (typeof isActMode === 'function' && !isActMode()) return null;
+  // The last quarter has no next act, and saying so is better than naming a
+  // boss the run will never reach. QUARTERS_PER_RUN (js/quarter.js) is the one
+  // place the run's length is written down.
+  if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN) return null;
+  if (!nextActBossId) {
+    const p = nextBossPreset();
+    nextActBossId = p ? p.id : null;
+  }
+  return BOSS_PRESETS.find(p => p.id === nextActBossId) || null;
+}
+
+// The reveal is void the moment the knack leaves. Called from updateKnackList,
+// which is the one place every removal path (sell, the grid shop's sell board,
+// the Limit Break sacrifice, the event that takes a knack) already funnels
+// through - four call sites would have been four chances to miss one.
+function forgetNextActBoss() { nextActBossId = null; }
+
+// Deal the quarter's boss. Called from startGame (quarter 1) and from
+// rolloverQuarter (every quarter after it), i.e. the two places a quarter
+// begins.
+function drawActBoss() {
+  if (typeof isActMode === 'function' && !isActMode()) { actBossId = null; nextActBossId = null; return null; }
+  let p = null;
+  // A boss Advance Notice already NAMED is the one that turns up - unless it
+  // has gone dead since (The Tax Man needs credits, The Voidwright needs
+  // Tricks), in which case a fresh draw is more honest than an inert round.
+  if (nextActBossId) {
+    p = BOSS_PRESETS.find(x => x.id === nextActBossId) || null;
+    nextActBossId = null;
+    if (p && !bossPresetIsLive(p)) p = null;
+  }
+  if (!p) p = nextBossPreset();
+  actBossId = p ? p.id : null;
+  if (typeof updateActProgressUI === 'function') updateActProgressUI();
+  return p;
+}
+
 // A boss whose only modifier can't bite right now is a wasted round. The
 // Voidwright splits your owned Tricks in two and disables half; The Censor
 // suspends one at a time. With 0 or 1 Tricks owned both are literally no-ops, so
@@ -432,17 +552,47 @@ function bossPresetIsLive(preset) {
 //
 // It fills the bag when empty, exactly as nextBossPreset does, so the answer is
 // stable rather than "unknown until the moment it is dealt". It is still a
-// forecast, not a promise: `bossPresetIsLive` reads how many Tricks you own, so
-// gaining your second Trick can legitimately change which boss is next. That is
-// the same rule the deal uses, so the readout never lies about the state it was
-// asked in.
+// forecast, not a promise IN SURVIVAL AND FLOW: `bossPresetIsLive` reads how many
+// Tricks you own, so gaining your second Trick can legitimately change which boss
+// is next. That is the same rule the deal uses, so the readout never lies about
+// the state it was asked in. In an ACT mode the quarter's boss is already dealt
+// and held (r238), and the branch at the top of the function returns it.
 function peekBossPreset() {
+  // r238: an act mode has already DEALT its boss (drawActBoss), so this is a
+  // lookup, not a prediction, and the caveat above no longer applies there. The
+  // bag fallback below is for Survival and Flow, and for a save made before
+  // r238 that carries no actBossId.
+  if (actBossId) {
+    const held = BOSS_PRESETS.find(p => p.id === actBossId);
+    if (held) return held;
+  }
   if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
   const id = bossBag.find(bid => {
     const p = BOSS_PRESETS.find(x => x.id === bid);
     return p && bossPresetIsLive(p);
   }) || bossBag[0];
   return BOSS_PRESETS.find(p => p.id === id) || null;
+}
+
+// The boss that is about to START. Hands over the quarter's held boss if there
+// is one - and re-draws only if it has gone DEAD since the quarter opened,
+// which is possible in exactly one direction: The Tax Man needs credits at
+// trigger time and a player can spend them. Liveness otherwise only improves
+// (more Tricks owned), so this is a rare branch and not the normal path.
+function takeActBoss() {
+  if (!actBossId) return null;
+  const held = BOSS_PRESETS.find(p => p.id === actBossId);
+  actBossId = null;
+  return (held && bossPresetIsLive(held)) ? held : null;
+}
+
+// ── Bosses on or off (r234) ─────────────────────────────────────────────────
+// A mode may switch bosses off entirely (the dev picker asks). This is the one
+// place that question is answered, and it gates ARMING a boss, never the boss
+// code itself - a run that has somehow already started one still finishes it
+// rather than being left with bossActive and no way out.
+function bossesEnabled() {
+  return !(typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.enableBosses === false);
 }
 
 function nextBossPreset() {
@@ -467,7 +617,7 @@ function nextBossPreset() {
 function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (bossActive) return;
   bossWindowDuration = (typeof windowSeconds === 'number' && windowSeconds > 0) ? windowSeconds : BOSS_WINDOW_DURATION;
-  const preset = structuredClone(presetOverride || nextBossPreset());
+  const preset = structuredClone(presetOverride || takeActBoss() || nextBossPreset());
   currentBoss = preset;
   bossActive = true;
   bossNumber++;
@@ -583,7 +733,7 @@ function _bossTrickTilesHTML(ids) {
   if (!ids.length) return `<div class="btp-none">nothing</div>`;
   return ids.map(id => {
     const t = _bossTrickById(id);
-    const rar = t && ['common','rare','epic','legendary','mythic'].includes(t.tier) ? t.tier : 'common';
+    const rar = t && ['common','rare','epic','legendary'].includes(t.tier) ? t.tier : 'common';
     const tile = { entity: 'trick', label: t ? t.name : trickIdToName(id),
                    emoji: (t && typeof trickEmoji === 'function') ? trickEmoji(t) : '🃏' };
     return `<div class="btp-tile">${entityTileHTML(tile, rar)}</div>`;
@@ -823,9 +973,14 @@ function ensureBossGoalExtra() {
   return el;
 }
 
-function endBoss(success) {
+// opts.presented: the goal dance already showed the finale and the QUOTA
+// CLEARED banner (flashRoundEnd), so skip the re-render and the second banner.
+function endBoss(success, opts) {
   if (!bossActive) return;
   bossActive = false;
+  // Early-limit guidance ends at the first boss whether or not it was taken.
+  if (typeof earlyLimitDone !== 'undefined') earlyLimitDone = true;
+  bossWinPending = false;
   // The boss shares the round clock now (r205), so stop it here. Without this the
   // tick that ran the window out would keep firing at roundSeconds 0 and, with
   // bossActive already false, fall straight through onRoundEnd's boss guard into
@@ -861,14 +1016,20 @@ function endBoss(success) {
   }
 
   if (success) {
-    render();
-    // A cleared boss is a cleared round, and is now marked like one: the QUOTA
-    // CLEARED stamp (carrying the boss's name as its kicker) and the clock locking
-    // mint. js/goal-clear.js; `force` because Survival suppresses the banner for
-    // its pick-of-three, which a boss win does not open.
+    // Arriving from the dance (opts.presented), the board is the one the finale
+    // left standing: the winners have flown into the preview and everything else
+    // came home from the blast (r280). A render() here would pop the played
+    // cards back onto it for a frame before the interlude's fall, so it is
+    // skipped - and the banner is already up. What the board still needs is the
+    // boss's PAINT taken off it, which repaintBoardAfterBoss does without
+    // touching the cells the played hand left empty.
+    if (!opts?.presented) render(); else repaintBoardAfterBoss();
     frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
-    if (typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
+    if (!opts?.presented && typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
+    // Every mode's pick-of-three draws on one reroll pool, so the grant belongs
+    // here rather than in Survival's own post-boss path (r282).
+    if (typeof pickRerollsGrant === 'function') pickRerollsGrant();
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
@@ -931,8 +1092,11 @@ let rewardGridsSeen = 0;               // how many reward grids opened this run 
 // run-progress block (or long-pressing it on touch) now names the boss you are
 // heading for and says what it does, so a loadout can be built against it.
 //
-// It reads `peekBossPreset()`, which does NOT deal from the bag - see the note
-// there for why the forecast can legitimately change when you gain a Trick.
+// It reads `peekBossPreset()`, which does NOT deal from the bag. Since r238 an
+// act mode has already DEALT the quarter's boss (drawActBoss), so in those modes
+// this is the boss you WILL fight, not the likely one - the note below says which
+// of the two you are reading. Survival and Flow still draw at trigger time and
+// still get the forecast wording.
 // During a live boss the brief itself is the better answer, so this stands down.
 function bossPeekHTML() {
   if (typeof bossActive !== 'undefined' && bossActive) return '';
@@ -943,7 +1107,9 @@ function bossPeekHTML() {
        + `<div class="bp-name">${p.name || ''}</div>`
        + (p.flavor ? `<div class="bp-flavor">${p.flavor}</div>` : '')
        + (p.brief  ? `<div class="bp-brief">${p.brief}</div>`   : '')
-       + `<div class="bp-note">Forecast. Gaining Tricks can change which boss is next.</div>`;
+       + `<div class="bp-note">${(typeof actBossId !== 'undefined' && actBossId && p.id === actBossId)
+            ? 'Locked in for this quarter.'
+            : 'Forecast. Gaining Tricks can change which boss is next.'}</div>`;
 }
 
 function showBossPeek(anchor) {

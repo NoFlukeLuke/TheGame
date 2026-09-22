@@ -33,18 +33,100 @@ const NS_HAND_FAMILIES = {};
 Object.entries(NS_FAMILIES).forEach(([fam, names]) =>
   names.forEach(n => { (NS_HAND_FAMILIES[n] = NS_HAND_FAMILIES[n] || []).push(fam); }));
 
-// Tunable from the dev panel (Score group). Persisted, so a tuning session
-// survives a reload.
-let nsEnabled     = localStorage.getItem('nsEnabled') !== '0';        // default ON
-let nsPipsPerHand = parseFloat(localStorage.getItem('nsPipsPerHand'));
-let nsMultPerHand = parseFloat(localStorage.getItem('nsMultPerHand'));
-let nsEveryHands  = parseInt(localStorage.getItem('nsEveryHands'), 10);
-if (!isFinite(nsPipsPerHand)) nsPipsPerHand = 2;   // +pips to the hand type per qualifying hand
-if (!isFinite(nsMultPerHand)) nsMultPerHand = 0;   // +mult to the hand type (off by default)
-if (!isFinite(nsEveryHands) || nsEveryHands < 1) nsEveryHands = 1;  // buff every Nth hand of that type
+let nsEnabled = localStorage.getItem('nsEnabled') !== '0';        // default ON
+
+// ══════════════════════════════════════════════
+// THE RATE TABLE (r282) - every hand type earns at its OWN rate
+// ══════════════════════════════════════════════
+// It used to be three global sliders - pips per hand, mult per hand, every N
+// hands - applied to all nineteen hand types alike. That could not express the
+// thing the design actually needs, which is that **Natural Scaling rewards
+// FREQUENCY and short hands are by far the most frequent**, so one flat rate
+// grows the bottom of the ladder fastest and the ordering reliably inverts
+// (measured in OPEN_DECISIONS 7: eight Runs of 3 out-worth a Run of 4).
+//
+// Each hand type now carries its own row:
+//
+//   { pips, mult, every, alt }
+//
+//   every  - the grant fires on every Nth play of THAT hand type
+//   alt    - false: each grant pays the pips AND the mult
+//            true:  each grant pays ONE of them, alternating, pips first
+//
+// THE ALTERNATION NEEDS NO STORED CURSOR. A grant only fires when
+// `plays % every === 0`, so the grant NUMBER is `plays / every`, and odd/even on
+// that decides the side. `nsPlays` is already in SAVE_VARS, so the alternation
+// survives a save and a resume for free and there is no second counter that
+// could drift out of step with it.
+//
+// ── How the shipped numbers were chosen ──
+// For a pips-only rate the growth in a hand's own WORTH (base pips x base mult)
+// is simply `pipsPerPlay / basePips` - the mult term cancels - so the rates are
+// set to make **%-growth-per-play roughly inverse to how available the hand is**
+// (the r178 board survey: Pair 100%, Run of 3 73%, Straight 34%, Flush 17%...).
+// A hand you can play on every board grows at about 1% of its worth per play; a
+// hand you reach for twice a run grows at 8-10%. That is what keeps the harder
+// hand ahead of the easy one nested inside it.
+//
+// Measured on this table - plays of the SHORT hand before it out-worths the LONG
+// one it lives inside, from a standing start:
+//
+//   Run of 4 -> Straight 35 · Flush of 4 -> Flush 35 · Run of 3 -> Run of 4 40
+//   3oK -> Full House 63 · Flush of 3 -> Flush of 4 80 · Two Pair -> Full House 115
+//   Pair -> Two Pair 130 · Pair -> 3oK 165 · Pair -> Full House never
+//
+// and over a simulated 18-round run (4 hands a round, hands picked by what the
+// board offers) the hands actually played finish at **x1.0 to x1.6** of their
+// starting worth. These are DELIBERATELY LOW - a conservative floor to tune up
+// from, not a balance proposal.
+const NS_RATE_DEFAULTS = {
+  'Pair':            { pips: 1,  mult: 0,    every: 5, alt: false },
+  'Two Pair':        { pips: 2,  mult: 0,    every: 5, alt: false },
+  'Three of a Kind': { pips: 2,  mult: 0,    every: 3, alt: false },
+  'Full House':      { pips: 5,  mult: 0.3,  every: 2, alt: true  },
+  'Four of a Kind':  { pips: 6,  mult: 0.5,  every: 1, alt: true  },
+  'Five of a Kind':  { pips: 8,  mult: 0.6,  every: 1, alt: true  },
+  'Six of a Kind':   { pips: 11, mult: 0.8,  every: 1, alt: true  },
+  'Seven of a Kind': { pips: 14, mult: 1,    every: 1, alt: true  },
+  'Run of 3':        { pips: 2,  mult: 0,    every: 5, alt: false },
+  'Run of 4':        { pips: 3,  mult: 0,    every: 5, alt: false },
+  'Straight':        { pips: 4,  mult: 0.3,  every: 2, alt: true  },
+  'Run of 6':        { pips: 5,  mult: 0.4,  every: 1, alt: true  },
+  'Run of 7':        { pips: 7,  mult: 0.5,  every: 1, alt: true  },
+  'Flush of 3':      { pips: 1,  mult: 0,    every: 5, alt: false },
+  'Flush of 4':      { pips: 2,  mult: 0,    every: 5, alt: false },
+  'Flush':           { pips: 3,  mult: 0.3,  every: 2, alt: true  },
+  'Flush of 6':      { pips: 3,  mult: 0.3,  every: 1, alt: true  },
+  'Flush of 7':      { pips: 3,  mult: 0.4,  every: 1, alt: true  },
+  'Straight Flush':  { pips: 9,  mult: 0.7,  every: 1, alt: true  },
+};
+// A hand type with no row of its own (a new one added to HAND_BASE, or a mode's
+// invention) scales at the quietest rate in the table rather than at nothing -
+// silently not scaling is the harder failure to notice.
+const NS_RATE_FALLBACK = { pips: 1, mult: 0, every: 5, alt: false };
+
+// OVERRIDES ONLY, exactly as the goal tuner does it (r197): an untouched row
+// tracks whatever this file ships, and setting a field back to its shipped value
+// DELETES the override rather than pinning today's number into storage forever.
+const NS_RATES_KEY = 'lethe.nsRates.v1';
+let nsRates = {};
+(function loadNsRates() {
+  try {
+    const o = JSON.parse(localStorage.getItem(NS_RATES_KEY) || '{}');
+    if (o && typeof o === 'object') nsRates = o;
+  } catch (e) { nsRates = {}; }
+})();
+function saveNsRates() { try { localStorage.setItem(NS_RATES_KEY, JSON.stringify(nsRates)); } catch (e) {} }
+
+// The live rate for a hand type: the shipped row with any override laid on top.
+function nsRate(name) {
+  return Object.assign({}, NS_RATE_DEFAULTS[name] || NS_RATE_FALLBACK, nsRates[name] || {});
+}
+function nsRateDefault(name) { return NS_RATE_DEFAULTS[name] || NS_RATE_FALLBACK; }
 
 // Per-run state, both keyed by hand NAME ('Run of 3'), not by family. nsPlays
-// counts hands scored per type (so nsEveryHands can throttle); nsBonus holds the
+// counts hands scored per type (which is what the rate table's `every` throttles
+// against, and what the alternation is derived from); nsBonus holds the
 // granted totals. Both reset on a new game and both are in SAVE_VARS.
 let nsPlays = {};
 let nsBonus = {};
@@ -88,10 +170,15 @@ function recordNaturalScale(handName, cells) {
     // High Card has no family and must never scale - it is the escape valve.
     if (!NS_HAND_FAMILIES[name]) return;
     nsPlays[name] = (nsPlays[name] || 0) + 1;
-    if (nsPlays[name] % nsEveryHands !== 0) return;
+    const r = nsRate(name);
+    const every = Math.max(1, r.every | 0);
+    if (nsPlays[name] % every !== 0) return;
     const s = nsSlot(name);
-    s.pips += nsPipsPerHand;
-    s.mult += nsMultPerHand;
+    if (!r.alt) { s.pips += (r.pips || 0); s.mult += (r.mult || 0); return; }
+    // ALTERNATING: one side per grant, pips first. The grant number is derived
+    // from nsPlays rather than counted separately - see the note on the table.
+    const grant = nsPlays[name] / every;
+    if (grant % 2 === 1) s.pips += (r.pips || 0); else s.mult += (r.mult || 0);
   });
 }
 
@@ -126,13 +213,51 @@ function setNaturalScaleBonus(handName, field, value) {
   const s = nsSlot(handName);
   if (field === 'pips') s.pips = v; else if (field === 'mult') s.mult = v;
 }
-// Every hand type Natural Scaling can touch, with what it currently carries.
-// Drawn from HAND_BASE so a new hand type shows up in the editor for free;
-// High Card is absent because it has no family and can never scale.
+// ── The RATE editor (r282) ──
+// Writes the per-hand rate, not the accumulator: this is how fast the hand grows
+// from here, `setNaturalScaleBonus` is where it is now. A value equal to the
+// shipped one deletes the override, so a row the owner has put back is genuinely
+// back on the table's number rather than pinned to a copy of it.
+function setNaturalScaleRate(handName, field, value) {
+  if (!HAND_BASE[handName] || !NS_HAND_FAMILIES[handName]) return;
+  if (!['pips', 'mult', 'every', 'alt'].includes(field)) return;
+  let v;
+  if (field === 'alt')        v = !!value;
+  else if (field === 'every') v = Math.max(1, Math.min(99, parseInt(value, 10) || 1));
+  else                        v = Math.max(0, parseFloat(value) || 0);
+  const row = nsRates[handName] || (nsRates[handName] = {});
+  if (v === nsRateDefault(handName)[field]) delete row[field]; else row[field] = v;
+  if (!Object.keys(row).length) delete nsRates[handName];
+  saveNsRates();
+}
+// Back to the shipped table - the accumulators a run has already earned are NOT
+// touched, which is the whole reason this is separate from resetNaturalScaling.
+function resetNaturalScaleRates() { nsRates = {}; saveNsRates(); }
+
+// What one play of a hand type is worth to that hand's own (pips x mult) value,
+// as a percentage. This is the number the table is actually tuned on, and it is
+// only meaningful next to the hand's availability - see the note on the table.
+function nsGrowthPerPlay(name) {
+  const b = HAND_BASE[name]; if (!b || !b.pips || !b.mult) return 0;
+  const r = nsRate(name);
+  const every = Math.max(1, r.every | 0);
+  const span = r.alt ? every * 2 : every;     // plays it takes to pay both sides
+  const pipsPer = (r.pips || 0) / span, multPer = (r.mult || 0) / span;
+  return (pipsPer / b.pips + multPer / b.mult) * 100;
+}
+
+// Every hand type Natural Scaling can touch: its RATE, what it has EARNED, and
+// how many times it has been played. Drawn from HAND_BASE so a new hand type
+// shows up in the editor for free; High Card is absent because it has no family
+// and can never scale.
 function naturalScaleRows() {
   return Object.keys(HAND_BASE).filter(n => NS_HAND_FAMILIES[n]).map(n => {
     const b = nsBonus[n] || { pips: 0, mult: 0 };
-    return { name: n, pips: b.pips, mult: b.mult, plays: nsPlays[n] || 0 };
+    const r = nsRate(n);
+    return {
+      name: n, pips: b.pips, mult: b.mult, plays: nsPlays[n] || 0,
+      rate: r, tuned: !!nsRates[n], growth: nsGrowthPerPlay(n),
+    };
   });
 }
 

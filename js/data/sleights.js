@@ -40,7 +40,7 @@ const SLEIGHT_POOL = [
   { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim. The rank it faces replays 2x when a hand scores. Works once per round. Cannot be swapped or discarded.' },
-  { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.' },
+  { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'legendary', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.' },
   // ── Adjacency / position sleights (r120) ──
   { id:'whetstone',  name:'Whetstone',  emoji:'🔪', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult','position'], desc:'Whenever an adjacent card is swapped or discarded, Whetstone gains +2 mult permanently. Hands that score a card adjacent to Whetstone score that mult.' },
   { id:'entourage',  name:'Entourage',  emoji:'👥', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],            desc:'Hands score +10 mult for every other Sleight on the grid.' },
@@ -58,11 +58,15 @@ const SLEIGHT_POOL = [
   // deck at run start. They are NOT offered by the shop, Mart, wheel, reward grid
   // or events (see SLEIGHT_FIXTURES): the only way to have one is to draw it.
   // activation:'adjacent' - count the hands scored in a cell touching this card;
-  // at `adjacentPlays` it pays out `payout` and the counter resets.
-  { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands adjacent to this card for +2 swaps. Repeats.' },
-  { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands adjacent to this card for +2 discards. Repeats.' },
-  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ pause_seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands adjacent to this card for a 10 second pause. Repeats.' },
-  { id:'petty_cash',  name:'Petty Cash',  emoji:'💵', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ coins:5 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['coins','position'],    desc:'Score two hands adjacent to this card for +5 credits. Repeats.' },
+  // at `adjacentPlays` it pays out `payout` and then LEAVES THE BOARD (r280),
+  // cycling back into the draw pile with its charges, so it can be drawn again.
+  // Progress rides on the card (`_adjPlays`) and is carried through a deck cycle
+  // by discardToPlayed's field list - leave it out and a half-counted fixture
+  // silently resets at every round boundary.
+  { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands beside this card for +2 swaps, then it goes back into the deck.' },
+  { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands beside this card for +2 discards, then it goes back into the deck.' },
+  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ pause_seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands beside this card for a 10 second pause, then it goes back into the deck.' },
+  { id:'petty_cash',  name:'Petty Cash',  emoji:'💵', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ coins:5 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['coins','position'],    desc:'Score two hands beside this card for +5 credits, then it goes back into the deck.' },
 ];
 
 // Deck fixtures: dealt into the Spectrum deck, never sold or awarded. Kept in

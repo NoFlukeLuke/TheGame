@@ -176,7 +176,7 @@ function renderCrossroads() {
   eventState.selectedTrade = null;
   const body = document.getElementById('event-body');
   eventState.trades.forEach(trade => {
-    const el = makeChoiceEl({ icon:trade.icon, rarity:trade.rarity, name:trade.name, desc:trade.desc,
+    const el = makeChoiceEl({ icon:trade.icon, rarity:trade.rarity, name:trade.name, desc:trade.desc, cost:trade.cost,
       onClick: () => {
         body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
         el.classList.add('selected');
@@ -216,8 +216,11 @@ function buildDoorPrize(tier) {
     if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {
+    // r201: two tiers in one pool, so this one is weighted (and luck reaches it).
+    // The legendary / nextRarity pools above are narrowed to a SINGLE tier by the
+    // event's own design, where weighting would be a no-op - left flat on purpose.
     const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='rare'||b.tier==='common'));
-    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
+    if (pool.length>0) { const p=pickTrickByRarity(pool)||pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
   }
   if (tier === 'bad') {
     const bads = [
@@ -305,6 +308,9 @@ function renderGambleDouble() {
   info.textContent = 'Even odds. Win and you keep your Trick and gain another; lose and the one you staked is gone. Pick which one is riding on it.';
   body.appendChild(info);
   const ownedTrick = acquiredTricks || [];
+  // A STAGE gate, not an entry gate: the Gamble's doors play fine with no Tricks
+  // and only this double-or-nothing stage stakes one, so `gamble` is deliberately
+  // absent from EVENT_REQUIRES.
   if (ownedTrick.length === 0) {
     body.innerHTML += evEmptyHTML('You have no Tricks to stake.');
     setEventConfirm(true); return;
@@ -345,6 +351,7 @@ function enhanceCardKey(key, e) {
   if (e.xmult)  permXMult[key]  = (permXMult[key]  || 1) * e.xmult;
   if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
   if (e.time)   permTime[key]   = (permTime[key]   || 0) + e.time;
+  if (e.coin)   permCoins[key]  = (permCoins[key]  || 0) + e.coin;
   if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);
 }
 // Returns the card it created. The Card Market needs that: searching the draw
@@ -360,6 +367,24 @@ function copyCardToDeck(card) {
   return made;
 }
 // Remove up to n random non-sleight cards from the off-grid piles (draw then played).
+// Remove these exact CARDS from the deck (r234), by identity rather than by
+// face - the deck can legitimately hold two 7 of spades (the shop sells
+// duplicates), and splicing on a face match would take whichever it found
+// first. A card sitting on the GRID is skipped: it is in play, not in a pile,
+// and pulling it would leave a hole nothing refills.
+function removeDeckCards(cards) {
+  let removed = 0;
+  (cards || []).forEach(card => {
+    if (!card) return;
+    for (const pile of [drawPile, playedPile]) {
+      const i = pile.indexOf(card);
+      if (i >= 0) { pile.splice(i, 1); removed++; expectedDeckTotal--; return; }
+    }
+  });
+  updateDeckHud?.();
+  return removed;
+}
+
 function removeRandomDeckCards(n) {
   let removed = 0;
   while (removed < n) {
@@ -399,51 +424,74 @@ function evShuffle(arr) {
 // ══════════════════════════════════════════════
 // EVENT: THE FORGE  (this-or-that card enhancement)
 // ══════════════════════════════════════════════
+// AN OPTION BUFFS SEVERAL CARDS (r294, owner's numbers): a SCALING option takes
+// TWO cards, every other option takes THREE. The counts are the trade - a
+// scaling buff is worth more per card, so it reaches fewer of them - and they
+// are what makes the two kinds visibly different things to pick between rather
+// than two sentences to read closely.
+//
+// It is a real power increase on what this event used to pay, and deliberately
+// so: one card in a 52-card deck is a card you may not draw, and three of them
+// is a buff you will actually meet.
+//
+// The wording is buffOfferLine / buffOfferName (js/deck-grid.js) and not a
+// sentence typed here - see that file for why FLAT says BUFF and SCALING says
+// SCALES.
+const FORGE_SCALE_CARDS = 2;
+const FORGE_FLAT_CARDS  = 3;
+const FORGE_BOONS = [
+  { icon: '🔨',  rarity: 'common', e: { pips: 30 } },
+  { icon: '⚒️', rarity: 'rare',   e: { xpips: 2 } },
+  { icon: '✨',  rarity: 'common', e: { mult: 5 } },
+  { icon: '💥',  rarity: 'epic',   e: { xmult: 2 } },
+  { icon: '🔁',  rarity: 'rare',   e: { retrig: 1 } },
+  { icon: '📈',  rarity: 'epic',   e: { growMult: 1 } },
+  { icon: '🌱',  rarity: 'rare',   e: { growPips: 4 } },
+];
 function renderForge() {
   const body = document.getElementById('event-body');
   const all = allDeckCards();
-  if (!all.length) {
+  if (!eventEligible('forge')) {
     body.innerHTML = evEmptyHTML('No cards to upgrade.');
     setEventConfirm(true); return;
   }
-  const lbl = document.createElement('div');
-  lbl.className = 'ev-label';
-  lbl.textContent = 'PICK AN UPGRADE';
-  body.appendChild(lbl);
+  // No 'PICK AN UPGRADE' label: the panel's own title says CARD UPGRADE and its
+  // flavour line says to take one, so a third telling only cost a row of a
+  // panel that already scrolls.
 
-  // Pick 3 distinct random target cards (or reuse if deck is tiny)
-  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
-  const picks = sh(all);
-  const target = i => picks[i % picks.length];
+  // One shuffled pool handed out in order, so an option's cards are distinct
+  // and two options rarely name the same card. It WRAPS rather than running
+  // short: a deck thinned below eight cards still gets three full options, with
+  // a card appearing twice, which beats an option that silently buffs one.
+  const pool = evShuffle(all);
+  let cursor = 0;
+  const take = (n) => {
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(pool[cursor++ % pool.length]);
+    return out;
+  };
 
-  const boons = [
-    // Two things at once here. Main's r209 point stands and is kept: FLAT vs
-    // SCALING must be stated in the words, because "gains +5 mult" was a flat
-    // bonus that never grew and read as one that did. On top of that the NAMES
-    // are plain now (r211) - "Temper"/"Season"/"Overcharge" told the player
-    // nothing about what they were choosing, and the card and the effect are the
-    // only two facts that matter.
-    (t) => ({ icon:'🔨', rarity:'common', name:`${cardLabel(t)}: +30 pips`, desc:`${cardLabel(t)} scores +30 pips every time it is played.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips when played`, 'var(--gold)'); } }),
-    (t) => ({ icon:'⚒️', rarity:'rare', name:`${cardLabel(t)}: ×2 pips`, desc:`${cardLabel(t)} scores double pips, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
-    (t) => ({ icon:'✨', rarity:'common', name:`${cardLabel(t)}: +5 mult`, desc:`${cardLabel(t)} scores +5 mult every time it is played.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult when played`, 'var(--gold)'); } }),
-    (t) => ({ icon:'📈', rarity:'epic', name:`${cardLabel(t)}: mult that grows`, desc:`${cardLabel(t)} gains another +1 mult each time it is played, for good.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {growMult:1}); showMessage(`${cardLabel(t)} scales +1 mult per play`, 'var(--gold)'); } }),
-    (t) => ({ icon:'🌱', rarity:'rare', name:`${cardLabel(t)}: pips that grow`, desc:`${cardLabel(t)} gains another +4 pips each time it is played, for good.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {growPips:4}); showMessage(`${cardLabel(t)} scales +4 pips per play`, 'var(--gold)'); } }),
-    (t) => ({ icon:'💥', rarity:'epic', name:`${cardLabel(t)}: ×2 mult`, desc:`${cardLabel(t)} doubles the mult, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
-    (t) => ({ icon:'🔁', rarity:'rare', name:`${cardLabel(t)}: plays twice`, desc:`${cardLabel(t)} scores its pips twice, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {retrig:1}); showMessage(`${cardLabel(t)} replays`, 'var(--gold)'); } }),
-  ];
-  const chosen = sh(boons).slice(0, 3).map((make, i) => make(target(i)));
+  const chosen = evShuffle(FORGE_BOONS).slice(0, 3).map(b => {
+    const scaling = buffIsScaling(b.e);
+    const cards = take(scaling ? FORGE_SCALE_CARDS : FORGE_FLAT_CARDS);
+    return { ...b, cards, scaling };
+  });
+
   eventState.forgeChoice = null;
   chosen.forEach(opt => {
-    const el = makeChoiceEl({ icon:opt.icon, rarity:opt.rarity, name:opt.name, desc:opt.desc,
+    // The faces are drawn as real mini playing cards under the sentence, so the
+    // sentence says "these three cards" rather than listing them a second time.
+    const subject = cardCountPhrase(opt.cards.length);
+    const el = makeChoiceEl({
+      icon: opt.icon, rarity: opt.rarity,
+      name: buffOfferName(opt.e),
+      desc: buffOfferLine(opt.e, subject, opt.cards.length > 1),
+      cls: 'ec-forge',
+      extra: `<div class="ev-cardchips ec-facerow">` +
+        opt.cards.map(c => `<span class="ev-cardchip${['♥','♦'].includes(c.suit) ? ' red' : ''}">${cardLabel(c)}</span>`).join('') +
+        `</div>`,
       onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
         eventState.forgeChoice = opt;
         setEventConfirm(true);
@@ -452,36 +500,108 @@ function renderForge() {
     body.appendChild(el);
   });
 }
+// Every card is re-resolved at apply time: this screen was built from a
+// snapshot and a card can leave the run in between (the r192 rule).
+function applyForgeChoice(opt) {
+  const hit = [];
+  const seen = new Set();
+  opt.cards.forEach(c => {
+    const t = resolveDeckCard(c);
+    if (!t) return;
+    const k = cardId(t);
+    if (seen.has(k)) return;      // a wrapped pool can hand out one card twice
+    seen.add(k);
+    enhanceCardKey(k, opt.e);
+    hit.push(cardLabel(t));
+  });
+  if (!hit.length) { showMessage('Those cards have left the run', 'var(--c-coral)'); return; }
+  showMessage(`${buffJoin(hit)}: ${buffOfferName(opt.e)}`, 'var(--gold)');
+}
 function confirmForge() {
-  if (eventState.forgeChoice) { eventState.forgeChoice.apply(); render(); }
+  if (eventState.forgeChoice) { applyForgeChoice(eventState.forgeChoice); render(); }
   closeEvent();
 }
 
 // ══════════════════════════════════════════════
 // EVENT: THE BARGAIN  (sacrifice to get more)
 // ══════════════════════════════════════════════
+// ── THE PRICE (r234) ─────────────────────────────────────────────────────────
+//
+// Every trade here is meant to be a real decision: something you value, given up
+// for something you want. Two of them were not, and both failed the same way -
+// the COST was free.
+//
+//   - "Two cards for x3 pips" took two RANDOM cards off a 52-card deck. A random
+//     card is worth almost nothing, so this was a x3 pip enhancement for free,
+//     and it was offered from round 1. It now needs the late half of the run AND
+//     two already-buffed cards to exist, it takes those buffed cards, and it
+//     pays x2 rather than x3.
+//   - "Three cards for two swaps" had the same non-cost. It takes buffed cards
+//     too, and is only offered when there are three to take.
+//
+// The gate is deliberately on cards you have INVESTED in. A run with no buffed
+// cards simply is not offered these trades, and gets the time / credit ones.
+//
+// bargainLateHalf() is the run's midpoint: an act run is 18 rounds, so level 9
+// is the turn. Survival and Flow have no end, so the same number reads as "long
+// enough in that a buffed card is something you chose", which is what the gate
+// is really asking.
+function bargainLateHalf() { return (typeof level === 'number') && level >= 9; }
+
+// Pick n distinct buffed cards at random.
+function pickBuffedCards(n) {
+  const pool = buffedDeckCards();
+  const out = [];
+  while (out.length < n && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  return out;
+}
+
 function buildBargainTrades() {
-  const offGrid = drawPile.filter(c=>!c._isSleight).length + playedPile.filter(c=>!c._isSleight).length;
   const trades = [];
-  if (offGrid >= 2) {
-    trades.push({ icon:'⚖️', rarity:'rare', name:'Two cards for ×3 pips', desc:'Two random cards leave your deck. One of the cards left scores triple pips, for the rest of the run.',
-      apply:()=>{ removeRandomDeckCards(2); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {xpips:3}); showMessage(`${cardLabel(t)} ×3 pips`, 'var(--gold)'); } } });
+  const buffed = buffedDeckCards().length;
+
+  // The two card-cost trades. Both are gated on there being enough buffed cards
+  // to make the cost bite, and the strong one is gated on the late half as well.
+  if (bargainLateHalf() && buffed >= 2) {
+    trades.push({ icon:'\u2696\ufe0f', rarity:'rare', name:'Two buffed cards for \u00d72 pips',
+      desc:'Two of your BUFFED cards leave your deck, with everything you put into them. One of the cards left scores double pips, for the rest of the run.',
+      cost:'Costs 2 buffed cards',
+      apply:()=>{ const take=pickBuffedCards(2); removeDeckCards(take);
+                  const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} \u00d72 pips`, 'var(--gold)'); } } });
   }
-  trades.push({ icon:'🕯️', rarity:'rare', name:'Eight seconds for a copy', desc:'Lose 8s of round time, permanently. A random card is copied into your deck, and that card scores 20 more pips from now on.',
-    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
-  if (coins >= 10) {
-    trades.push({ icon:'🪙', rarity:'epic', name:'Ten credits for a replay', desc:'Lose 10 credits. A random card plays twice and doubles the mult, for the rest of the run.',
-      apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + ×2 mult`, 'var(--gold)'); } } });
+
+  trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'rare', name:'Eight seconds for a copy',
+    desc:'Lose 8s of round time, permanently. A random card is copied into your deck, and that card scores 20 more pips from now on.',
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); showMessage(`Copied ${cardLabel(t)} \u00b7 +20 pips`, 'var(--gold)'); } } });
+
+  // The credit trade was 10, which a mid-run wallet pays without noticing. It is
+  // the one cost here that is plainly legible, so it is the one worth pricing
+  // properly: 18 base, and it rides PRICE_MULT like every other sink.
+  {
+    const _replayCost = priceOf(18);
+    if (coins >= _replayCost) {
+      trades.push({ icon:'\ud83e\ude99', rarity:'epic', name:`${_replayCost} credits for a replay`,
+        desc:`Lose ${_replayCost} credits. A random card plays twice and doubles the mult, for the rest of the run.`,
+        cost:`Costs ${_replayCost} credits`,
+        apply:()=>{ coins-=_replayCost; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + \u00d72 mult`, 'var(--gold)'); } } });
+    }
   }
-  if (offGrid >= 3) {
-    trades.push({ icon:'🗑️', rarity:'epic', name:'Three cards for two swaps', desc:'Three random cards leave your deck. Gain +2 swaps per round permanently, and a random card scores 40 more pips.',
-      apply:()=>{ removeRandomDeckCards(3); limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); showMessage(`+2 swaps · ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
+
+  if (buffed >= 3) {
+    trades.push({ icon:'\ud83d\uddd1\ufe0f', rarity:'epic', name:'Three buffed cards for two swaps',
+      desc:'Three of your BUFFED cards leave your deck, with everything you put into them. Gain +2 swaps per round permanently, and a random card scores 40 more pips.',
+      cost:'Costs 3 buffed cards',
+      apply:()=>{ const take=pickBuffedCards(3); removeDeckCards(take);
+                  limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current);
+                  const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); showMessage(`+2 swaps \u00b7 ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
   }
+
   // Always-available fallback
   if (trades.length === 0) {
-    trades.push({ icon:'🕯️', rarity:'common', name:'Five seconds for +15 pips', desc:'Lose 5s of round time, permanently. A random card scores 15 more pips from now on.',
+    trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'common', name:'Five seconds for +15 pips', desc:'Lose 5s of round time, permanently. A random card scores 15 more pips from now on.',
       apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
   }
+
   const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a.slice(0,3);
 }
@@ -494,7 +614,7 @@ function renderBargain() {
   lbl.textContent = 'PICK WHAT YOU PAY';
   body.appendChild(lbl);
   eventState.bargainTrades.forEach(trade => {
-    const el = makeChoiceEl({ icon:trade.icon, rarity:trade.rarity, name:trade.name, desc:trade.desc,
+    const el = makeChoiceEl({ icon:trade.icon, rarity:trade.rarity, name:trade.name, desc:trade.desc, cost:trade.cost,
       onClick: () => {
         body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
         el.classList.add('selected');
@@ -515,7 +635,7 @@ function confirmBargain() {
 // ══════════════════════════════════════════════
 function renderWager() {
   const body = document.getElementById('event-body');
-  if (!allDeckCards().length) {
+  if (!eventEligible('wager')) {
     body.innerHTML = evEmptyHTML('No cards to stake.');
     setEventConfirm(true); return;
   }
@@ -677,7 +797,7 @@ function confirmAltar() {
 function tickAltarEffects() {
   altarEffects.forEach(eff => {
     if (eff.type === 'time_boost') {
-      roundSeconds = Math.min(roundSeconds + eff.value, limits.round_time.current + 60);
+      roundSeconds = Math.min(roundSeconds + eff.value, crunchNoRoundCap(limits.round_time.current + 60));
       updateClockUI();
     }
     eff.roundsLeft--;
@@ -895,6 +1015,69 @@ function confirmSpring() {
 // ══════════════════════════════════════════════
 // EVENT: TWIN PATH
 // ══════════════════════════════════════════════
+// ── OVERTIME (r293) - the only way to buy time back in Crunch ───────────────
+// +OVERTIME_SECONDS onto the act clock, and the cost is TWO permanent downsides
+// rather than one (owner's call). Both are rolled and SHOWN UP FRONT: the
+// decision is whether ninety seconds is worth exactly these two, so hiding
+// either would make it a coin flip instead of a trade.
+//
+// CRUNCH ONLY, through EVENT_REQUIRES. Everywhere else the clock is a ROUND's
+// and it refills, so +90s is either most of a round handed over for a downside
+// that only bites next round, or clamped away entirely.
+const OVERTIME_SECONDS = 90;
+const OVERTIME_COSTS = [
+  { icon:'🌑', name:'Quota revision', desc:'Every future round goal rises 10%. Permanent.',
+    apply:()=>{ goalPenaltyMult *= 1.10; return 'Goals +10%'; } },
+  { icon:'✖', name:'One less swap', desc:'Lose 1 swap per round. Permanent.',
+    apply:()=>{ limits.swaps.current = Math.max(limits.swaps.min || 0, limits.swaps.current - 1);
+                swaps = Math.min(swaps, limits.swaps.current); return '-1 swap'; } },
+  { icon:'☠', name:'One less discard', desc:'Lose 1 discard per round. Permanent.',
+    apply:()=>{ limits.discards.current = Math.max(limits.discards.min || 0, limits.discards.current - 1);
+                discards = Math.min(discards, limits.discards.current); return '-1 discard'; } },
+  { icon:'⏱', name:'Slower hands', desc:'Playing a hand costs 2s from then on.',
+    apply:()=>{ extraPlayCostPerm += 2; playHandCostThisRound = extraPlayCostPerm + nextRoundPlayCost; return 'Playing costs 2s'; } },
+  { icon:'🗑', name:'Costlier discards', desc:'Each discarded card costs 2s more from then on.',
+    apply:()=>{ extraDiscardCostPerm += 2; discardCostThisRound = extraDiscardCostPerm + nextRoundDiscardCost; return 'Discards cost 2s more'; } },
+  { icon:'🧊', name:'Interest frozen', desc:'No interest on the next 3 payouts.',
+    apply:()=>{ interestFreezeRounds += 3; return 'Interest frozen 3 rounds'; } },
+];
+
+function renderOvertime() {
+  const body = document.getElementById('event-body');
+  // Two DISTINCT costs. evShuffle, not shuffled() - that one is scoped inside
+  // _generateRewardContent and throws the moment an event calls it (r194).
+  eventState.overtimeCosts = evShuffle(OVERTIME_COSTS.slice()).slice(0, 2);
+
+  body.appendChild(evLabel('ON THE CLOCK'));
+  body.appendChild(makeChoiceEl({
+    icon:'⏳', name:`+${OVERTIME_SECONDS} seconds`,
+    desc:`Put ${formatTime(OVERTIME_SECONDS)} back on the quarter's clock, right now.`,
+  }));
+
+  body.appendChild(evLabel('THE COST · BOTH APPLY', true));
+  eventState.overtimeCosts.forEach(c => {
+    body.appendChild(makeChoiceEl({ icon:c.icon, name:c.name, desc:c.desc, cls:'debuff' }));
+  });
+  body.appendChild(evNote('Skip and nothing happens either way.'));
+}
+
+function confirmOvertime() {
+  const costs = eventState.overtimeCosts || [];
+  // rewindTime, never a raw roundSeconds += (r183) - that is what keeps the
+  // floater, the Kingfisher tally and rewindCeiling honest.
+  if (typeof rewindTime === 'function') rewindTime(OVERTIME_SECONDS, 'Overtime');
+  else { roundSeconds += OVERTIME_SECONDS; updateClockUI(); }
+  const notes = costs.map(c => { try { return c.apply(); } catch (e) { return null; } }).filter(Boolean);
+  // Deliberately NO render(). An event opens over a board that has already been
+  // cleared - on the Schedule the grid holds map tiles, so gridRows/gridCols and
+  // gridData disagree and render() throws on a cell that is not there. (This is
+  // the same hazard _devSafeRender exists for, one step worse: it checks that
+  // gridData has ROWS, not that the rows hold cards.) Nothing here is on screen
+  // anyway, and every screen that follows repaints - startRoundTimer for a round,
+  // mapOpen for the board.
+  showMessage(`Overtime · +${formatTime(OVERTIME_SECONDS)} · ${notes.join(' · ')}`, 'var(--gold)');
+}
+
 function renderTwinPath() {
   const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
   const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && !offerBannedGlobal(b.id));
@@ -984,7 +1167,7 @@ function renderShiftChange() {
 
   // Fewer than two Tricks: there is no order to change, so the shift pays out
   // instead of wasting the node.
-  if (tray.length < 2) {
+  if (!eventEligible('shift_change')) {
     eventState.shiftPayout = BAL.shift_change ? BAL.shift_change.consolation_credits : 15;
     body.appendChild(makeChoiceEl({
       icon: '🕓', name: 'Nothing to reshuffle',
@@ -1033,7 +1216,7 @@ function renderShiftChange() {
 function renderShiftRow() {
   const row = document.getElementById('shift-row');
   if (!row) return;
-  const RARS = ['common','rare','epic','legendary','mythic'];
+  const RARS = ['common','rare','epic','legendary'];
   const order = eventState.shiftOrder || [];
   row.innerHTML = '';
   order.forEach((trick, i) => {
@@ -1109,7 +1292,7 @@ function confirmShiftChange() {
 function renderBench() {
   const body = document.getElementById('event-body');
   const pool = [...drawPile].filter(c => c && c.rank && !c._isSleight);
-  if (!pool.length) {
+  if (!eventEligible('bench')) {
     body.innerHTML = evEmptyHTML('No cards in the draw pile to work on.');
     setEventConfirm(true); return;
   }
@@ -1117,12 +1300,15 @@ function renderBench() {
   eventState.benchCard = null;
   body.appendChild(evNote('Pick an upgrade, then pick the card it goes on. That card keeps it for the rest of the run.'));
 
+  // Names and sentences from buffOfferName / buffOfferLine (js/deck-grid.js).
+  // The card is picked on the NEXT step, so the subject is "this card" here.
   const boons = [
-    { icon:'🔨', rarity:'common', name:'+40 pips',  desc:'Scores 40 more pips, for the rest of the run.',        e:{ pips:40 },  say:'+40 pips'  },
-    { icon:'✨', rarity:'rare',   name:'+6 mult',   desc:'Adds 6 mult, for the rest of the run.',         e:{ mult:6 },   say:'+6 mult'   },
-    { icon:'💥', rarity:'epic',   name:'×2 mult',   desc:'Doubles the mult, for the rest of the run.',  e:{ xmult:2 },  say:'×2 mult'   },
-    { icon:'🔁', rarity:'rare',   name:'Plays twice',desc:'Scores twice, for the rest of the run.',    e:{ retrig:1 }, say:'replays'   },
-  ];
+    { icon:'🔨', rarity:'common', e:{ pips:40 }  },
+    { icon:'✨', rarity:'rare',   e:{ mult:6 }   },
+    { icon:'💥', rarity:'epic',   e:{ xmult:2 }  },
+    { icon:'🔁', rarity:'rare',   e:{ retrig:1 } },
+    { icon:'📈', rarity:'epic',   e:{ growMult:1 } },
+  ].map(b => ({ ...b, name: buffOfferName(b.e), desc: buffOfferLine(b.e, 'this card', false) }));
   const chosen = evShuffle(boons).slice(0, 3);
   chosen.forEach(b => {
     const el = makeChoiceEl({ icon:b.icon, rarity:b.rarity, name:b.name, desc:b.desc,
@@ -1174,7 +1360,7 @@ function confirmBench() {
   if (b && c) {
     // Per CARD, not per face - resolved fresh, since the pick was made before this.
     const t = resolveDeckCard(c);
-    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)} ${b.say}`, 'var(--gold)'); }
+    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)}: ${buffOfferName(b.e)}`, 'var(--gold)'); }
   }
   closeEvent();
 }
@@ -1186,7 +1372,7 @@ function confirmBench() {
 // without a line of per-Trick code.
 function renderRehearsal() {
   const body = document.getElementById('event-body');
-  if (!trickTrayMode || !trickTray.length) {
+  if (!eventEligible('rehearsal')) {
     body.innerHTML = evEmptyHTML('No Tricks to work on. Take the credits instead.');
     eventState.rehearseNone = true;
     setEventConfirm(true); return;
@@ -1197,6 +1383,7 @@ function renderRehearsal() {
     const rank = t._rank || 0;
     const el = makeChoiceEl({
       icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
       rarity: t.tier,
       name: t.name + (rank ? ` · rehearsed ×${rank + 1}` : ''),
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
@@ -1230,7 +1417,7 @@ function confirmRehearsal() {
 function renderWorkshop() {
   const body = document.getElementById('event-body');
   const owned = allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null);
-  if (!owned.length) {
+  if (!eventEligible('workshop')) {
     body.innerHTML = evEmptyHTML('No Sleights with charges to service. Take the fee instead.');
     eventState.workshopNone = true;
     setEventConfirm(true); return;
@@ -1280,6 +1467,7 @@ function showWorkshopPicker(owned) {
     const cap = sleightMaxCharges(def);
     const el = makeChoiceEl({
       icon: def.emoji || '◈', rarity: def.rarity, name: def.name,
+      tile: { entity:'sleight', id:def.id, emoji:def.emoji || '◈', label:def.name, uses:(card._usesLeft ?? cap) },
       desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + BAL.workshop.cap_bonus}.`,
       onClick: () => {
         wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
@@ -1336,20 +1524,22 @@ function confirmWorkshop() {
 // Multi-buy: tap to add, tap again to drop, total runs at the bottom. Confirm
 // buys everything in the basket. Nothing is charged until Confirm.
 const MARKET_BOONS = [
-  { key:'pips',   icon:'🔨', rarity:'common', tag:'+30 pips',    e:{ pips:30 },
-    say:'scores 30 extra pips every time it is played' },
-  { key:'mult',   icon:'✨', rarity:'rare',   tag:'+5 mult',     e:{ mult:5 },
-    say:'adds 5 mult every time it is played' },
-  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4 seconds',  e:{ time:4 },
-    say:'puts 4 seconds back on the clock every time it is played' },
-  { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 },
-    say:'scores twice every time it is played' },
+  { key:'pips',   icon:'🔨', rarity:'common', tag:'+30 pips',    e:{ pips:30 } },
+  { key:'mult',   icon:'✨', rarity:'rare',   tag:'+5 mult',     e:{ mult:5 } },
+  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4 seconds',  e:{ time:4 } },
+  { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 } },
+  { key:'coin',   icon:'💰', rarity:'common', tag:'+2 credits',  e:{ coin:2 } },
 ];
+// The wording is buffOfferName (js/deck-grid.js) rather than a clause typed per
+// row - these read "scores 30 extra pips every time it is played", which is the
+// sentence r294 took off the flat side everywhere else. Read at USE time, never
+// baked into the table: buffOfferName runs through lexProse, and the player can
+// change the vocabulary mid-run.
 
 function renderMarket() {
   const body = document.getElementById('event-body');
   const source = allDeckCards();
-  if (!source.length) {
+  if (!eventEligible('market')) {
     body.innerHTML = evEmptyHTML('No deck to copy from.');
     setEventConfirm(true); return;
   }
@@ -1358,7 +1548,7 @@ function renderMarket() {
   const boons = evShuffle(MARKET_BOONS).slice(0, BAL.market.offers);
   eventState.marketOffers = boons.map((b, i) => {
     const card = picks[i % picks.length];
-    return { boon: b, card, price: BAL.market.prices[b.key] };
+    return { boon: b, card, price: priceOf(BAL.market.prices[b.key]) };
   });
 
   body.appendChild(evNote('Each of these adds one new card to your deck, carrying the effect shown. Buy as many as you can pay for.'));
@@ -1386,7 +1576,7 @@ function renderMarket() {
     const el = makeChoiceEl({
       icon: off.boon.icon, rarity: off.boon.rarity,
       name: `${cardLabel(off.card)} · ${off.boon.tag}`,
-      desc: `A new ${cardLabel(off.card)} joins your deck. It ${off.boon.say}, for the rest of the run.`,
+      desc: `A new ${cardLabel(off.card)} joins your deck, buffed with ${buffOfferName(off.boon.e)}.`,
       cost: `${off.price} credits`,
       onClick: () => {
         const i = eventState.marketBasket.indexOf(off);
@@ -1440,7 +1630,7 @@ function confirmMarket() {
 function renderDeckTrim() {
   const body = document.getElementById('event-body');
   const pool = springCuttableCards();          // shared with Clean Up
-  if (!pool.length) {
+  if (!eventEligible('deck_trim')) {
     body.innerHTML = evEmptyHTML('Nothing in the draw pile to cut.');
     setEventConfirm(true); return;
   }
@@ -1448,7 +1638,9 @@ function renderDeckTrim() {
   eventState.trimCards = [];
   body.appendChild(evNote('Every card you cut is gone for the rest of the run. The fewer cards in the deck, the more often the ones you kept come round.'));
 
-  BAL.deck_trim.tiers.forEach(tier => {
+  // r234: PRICE_MULT at the read site (BAL is rebuilt by applyEntityTiers).
+  // A free tier stays free - priceOf() no-ops on 0.
+  BAL.deck_trim.tiers.map(t => ({ ...t, price: priceOf(t.price) })).forEach(tier => {
     const afford = coins >= tier.price;
     const enough = pool.length >= tier.cards;
     const el = makeChoiceEl({
@@ -1578,7 +1770,7 @@ const CLEAN_SLATE_FIXES = [
 function renderCleanSlate() {
   const body = document.getElementById('event-body');
   const live = CLEAN_SLATE_FIXES.filter(f => { try { return f.has(); } catch (e) { return false; } });
-  if (!live.length) {
+  if (!eventEligible('clean_slate')) {
     // Nothing owed. Pay instead of offering a screen full of things that would
     // do nothing - an event that cannot act should say so and still be worth
     // having landed on.

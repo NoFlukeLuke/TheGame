@@ -31,8 +31,7 @@
 .kw-r-common    { color:#35d59b; }
 .kw-r-rare      { color:#16c8d8; }
 .kw-r-epic      { color:#9a6cff; }
-.kw-r-legendary { color:#ffce2b; }
-.kw-r-mythic    { color:#ff2f8e; }
+.kw-r-legendary { color:#ff2f8e; }
 
 /* the tooltip itself: card + a rail of keyword definitions on its outer side */
 #entity-tip {
@@ -95,22 +94,74 @@
 #entity-tip .et-act.danger { border-color:var(--c-magenta); color:var(--c-magenta); }
 #entity-tip .et-act.danger:hover:not(:disabled) { background:var(--c-magenta); color:#fff; }
 
-#entity-tip .et-defs { flex:0 1 auto; display:flex; flex-direction:column; gap:5px;
-  max-height:min(62vh, 420px); overflow-y:auto; width:232px; }
+/* ── THE + AND ITS RAIL (r288) ──────────────────────────────────────────────
+   Definitions are never shown unasked. The rail is display:none until the card's
+   + puts `kw-open` on #entity-tip, and opening it makes the bubble sticky: the
+   card and the rail take pointer events so the definitions can be read and
+   scrolled, and #entity-tip-backdrop catches every click elsewhere. */
+#entity-tip .et-defs { display:none; }
+#entity-tip.kw-open .et-defs { flex:0 1 auto; display:flex; flex-direction:column; gap:5px;
+  max-height:min(62vh, 420px); overflow-y:auto; width:232px; pointer-events:auto; }
+#entity-tip.kw-open .et-card { pointer-events:auto; }
 #entity-tip .et-defs:empty { display:none; }
-#entity-tip .et-def { background:rgba(10,9,6,.96); border:1px solid #2f2a1c; border-left:3px solid currentColor;
+#entity-tip .kw-def { background:rgba(10,9,6,.96); border:1px solid #2f2a1c; border-left:3px solid currentColor;
   border-radius:5px; padding:5px 8px; }
-#entity-tip .et-def b { display:block; font-family:'Orbitron',sans-serif; font-size:8.5px; letter-spacing:1px;
+#entity-tip .kw-def b { display:block; font-family:'Orbitron',sans-serif; font-size:8.5px; letter-spacing:1px;
   text-transform:uppercase; margin-bottom:2px; }
-#entity-tip .et-def span { display:block; font-size:9.5px; line-height:1.45; color:#c9bfa5; }
+#entity-tip .kw-def span { display:block; font-size:9.5px; line-height:1.45; color:#c9bfa5; }
 #entity-tip .et-defs::-webkit-scrollbar { width:6px; }
 #entity-tip .et-defs::-webkit-scrollbar-thumb { background:rgba(255,176,46,.3); border-radius:3px; }
+/* Both corner controls now, so the name reserves room for both. */
+#knack-tooltip .knack-tooltip-name, #trick-tooltip .trick-tooltip-name,
+#reward-tooltip .rtt-name, #reward-tooltip .rtt-rar { padding-right: 46px; }
+
+/* the rail's own wrapper (kwDefsHTML) is a plain column inside .et-defs */
+#entity-tip .et-defs .kw-defs { display:flex; flex-direction:column; gap:5px; }
+
+/* The chip. It is the ONE part of a hover bubble that takes pointer events -
+   deliberately small, and in the card's own corner beside the anchor, because a
+   pointer-events:auto region here can eat a click meant for the tile beneath. */
+#entity-tip .et-more-slot { position:absolute; top:6px; right:7px; }
+#entity-tip .et-card { position:relative; }
+.kw-more {
+  pointer-events:auto; cursor:pointer; display:inline-flex; align-items:center; gap:2px;
+  font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; line-height:1;
+  padding:3px 5px; border-radius:5px; min-height:18px;
+  border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.06); color:#c9bfa5;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.kw-more:hover { background:rgba(255,255,255,.14); color:#fff; border-color:rgba(255,255,255,.4); }
+.kw-more-sign { font-size:11px; }
+.kw-more-n { font-size:8px; opacity:.75; }
+#entity-tip.kw-open .kw-more { background:var(--rc,#35d59b); border-color:var(--rc,#35d59b); color:#0a0906; }
+/* The head reserves room for it so a long entity name never runs underneath. */
+#entity-tip .et-head { padding-right:26px; }
+
+/* On the other two bubbles the chip sits beside their own close button. */
+#knack-tooltip .kw-more, #trick-tooltip .kw-more, #reward-tooltip .kw-more {
+  position:absolute; top:3px; right:23px; z-index:2; }
+#knack-tooltip .kw-defs, #trick-tooltip .kw-defs, #reward-tooltip .kw-defs { display:none; }
+#knack-tooltip.kw-open .kw-defs, #trick-tooltip.kw-open .kw-defs, #reward-tooltip.kw-open .kw-defs {
+  display:flex; flex-direction:column; gap:4px; margin-top:6px; padding-top:6px;
+  border-top:1px solid rgba(255,255,255,.12); max-height:40vh; overflow-y:auto;
+}
+#knack-tooltip .kw-def, #trick-tooltip .kw-def, #reward-tooltip .kw-def {
+  background:rgba(10,9,6,.9); border:1px solid #2f2a1c; border-left:3px solid currentColor;
+  border-radius:5px; padding:4px 7px;
+}
+#knack-tooltip .kw-def b, #trick-tooltip .kw-def b, #reward-tooltip .kw-def b {
+  display:block; font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:1px;
+  text-transform:uppercase; margin-bottom:2px;
+}
+#knack-tooltip .kw-def span, #trick-tooltip .kw-def span, #reward-tooltip .kw-def span {
+  display:block; font-size:9px; line-height:1.4; color:#c9bfa5; font-family:'Share Tech Mono',monospace;
+}
 
 /* narrow screens: drop the definition rail under the card instead of beside it */
 @media (max-width: 620px) {
   #entity-tip { flex-direction: column; max-width: 94vw; }
   #entity-tip.flip { flex-direction: column; }
-  #entity-tip .et-defs { width: 232px; max-height: 34vh; }
+  #entity-tip.kw-open .et-defs { width: 232px; max-height: 34vh; }
 }
 
 /* Touch: the actions are the primary way to buy now, so give them a real thumb
@@ -119,3 +170,11 @@
   #entity-tip .et-card { width: 250px; }
   #entity-tip .et-act { font-size:10px; padding:12px 6px; }
 }
+
+/* A keyword's LIVE figure (r289) - "Current max: 4", "You are on level 7". It
+   reads off the run as the card is drawn, so it is set apart from the stored
+   definition rather than run into it: the definition is what the word means and
+   never changes, this is what it is worth right now. */
+.kw-def .kw-live { display:block; margin-top:3px; font-style:normal;
+  font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:.6px;
+  text-transform:uppercase; color:currentColor; opacity:.92; }

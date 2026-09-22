@@ -3,8 +3,16 @@ const SUITS = ['♠','♥','♦','♣'];
 // flushes become rare. ACTIVE_SUITS is the suit list the current game actually
 // uses - set per-mode in startGame(). Classic play leaves it equal to SUITS,
 // so nothing about the four-suit game changes.
-const SUITS_EXTRA = ['★','▲'];
+// The two suits beyond the classic four. Crown and crescent moon: they have to
+// read as SUITS at card size, so they are single filled-weight glyphs like the
+// other four rather than emoji, which would sit at a different size and weight.
+const SUITS_EXTRA = ['♛','☾'];
 const SUITS_SIX = [...SUITS, ...SUITS_EXTRA];
+// Two more, for the weighted deck's suit knob (r273). Suit count is the flush
+// dial - flush difficulty is cards-per-suit - so the editor needs to reach past
+// six to bring flushes down to where sets and runs sit.
+const SUITS_EXTRA2 = ['★', '▲'];
+const SUITS_EIGHT = [...SUITS_SIX, ...SUITS_EXTRA2];
 let ACTIVE_SUITS = SUITS;
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const RED = new Set(['♥','♦']);
@@ -182,6 +190,10 @@ function applyModeHandValues() {
   const P = _handValuesPristine;
   Object.keys(P.base).forEach(h => { HAND_BASE[h].pips = P.base[h].pips; HAND_BASE[h].mult = P.base[h].mult; });
   Object.keys(P.focus).forEach(h => { HAND_FOCUS[h] = P.focus[h]; });
+  // Poker Squares replaces the whole table with the real-poker ladder and zeroes
+  // every hand the main game invented for its grid (Flush of 3, Run of 4...): a
+  // LINE there is five cards, which is a poker hand, so it is scored as one.
+  if (typeof squaresActive === 'function' && squaresActive()) { squaresInstallHandValues(); return; }
   if (!isNumericMode()) return;
   Object.entries(NUMERIC_HAND_BASE).forEach(([h, v]) => { if (HAND_BASE[h]) { HAND_BASE[h].pips = v.pips; HAND_BASE[h].mult = v.mult; } });
   Object.entries(NUMERIC_HAND_FOCUS).forEach(([h, v]) => { HAND_FOCUS[h] = v; });
@@ -191,9 +203,81 @@ const GAME_DURATION = 1200; // 20 minutes in seconds
 const ROUND_DURATION = 180;
 // Leftover clock -> credits, the payout's "Efficiency" line (js/interlude.js) and
 // Survival's per-clear bonus (js/survival.js). ONE constant so the two economies
-// cannot drift: it was 10 in both, doubled to 5 in r213 (owner's call - beating the
-// clock is the main thing a good round does, and it paid about a fifth of a Trick).
-const EFFICIENCY_SECONDS_PER_COIN = 5;
+// cannot drift. r213 doubled it to 5; r278 puts it back to 10 (owner's call - the
+// player was ending runs drowning in credits, and this paid in every mode). The
+// Time and a Half knack halves the interval, i.e. doubles the payout.
+const EFFICIENCY_SECONDS_PER_COIN = 10;
+// Every reader goes through this, never the raw constant, so the knack reaches
+// the payout figure, the printed labels, the count-up tick and Survival at once.
+function efficiencySecondsPerCoin() {
+  return (typeof hasKnack === 'function' && hasKnack('time_and_a_half'))
+    ? EFFICIENCY_SECONDS_PER_COIN / 2 : EFFICIENCY_SECONDS_PER_COIN;
+}
+// Unused swaps and discards -> credits, the payout's "Unused stock" line
+// (js/interlude.js) and its Survival/Flow mirror (js/survival.js). Same rule as
+// efficiencySecondsPerCoin above: ONE function, so the two economies and the
+// PRINTED label cannot drift - which is exactly what happened to the interact
+// costs in r151 and is why they are quoted from one place now.
+//
+// r304 took the rate 3 -> 2 and CAPPED THE LINE at BAL._resources.unspent_cap
+// (owner's call - runs were ending drowning in credits). r305 took the cap
+// 16 -> 10 and capped INTEREST as well. The cap is what does the work late: the
+// rate alone is linear in a stock that grows all run, so at 12 held actions the
+// pre-r304 line paid 36 and this one pays 10.
+function unspentPayout(actions) {
+  const R = _payoutRes();
+  const rate = R.unspent_credits != null ? R.unspent_credits : 2;
+  return _payoutCapped(Math.max(0, actions) * rate, R.unspent_cap);
+}
+
+// ── INTEREST, and why the cap lands on the BASE rather than the line (r305) ──
+// The runaway is `floor(coins/10)`: it COMPOUNDS, so a hoarded bank grows itself
+// every round with no ceiling, and measured over an 18-round run it was the
+// largest single source of credits in the game by a distance (340 against 208
+// from unused stock and 72 from leftover time).
+//
+// The Idol's x3 is applied AFTER the cap, deliberately. Capping the finished
+// line instead would make the Idol pay nothing at all above 4 credits held -
+// a Sleight whose whole printed effect is "x3 interest", silently doing nothing
+// for the entire second half of every run. Capped base x Idol reads as what it
+// is: the line pays at most 10, and the Idol triples that.
+function interestPayout(credits, mult) {
+  const R = _payoutRes();
+  const base = _payoutCapped(Math.floor(Math.max(0, credits) / 10), R.interest_cap);
+  return base * (mult || 1);
+}
+
+// ── ONE predicate, read by both lines AND by both printed labels ────────────
+// Gross Pay (knack) lifts every payout ceiling. It is asked here rather than at
+// each site so a line and the label above it can never disagree about whether
+// the cap is on - the r151 lesson, where a quoted cost and a charged cost drifted
+// apart because they were worked out in two places.
+function payoutCapsLifted() {
+  return typeof hasKnack === 'function' && hasKnack('gross_pay');
+}
+function _payoutRes() {
+  return (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources : {};
+}
+function _payoutCapped(n, cap) {
+  return (cap == null || payoutCapsLifted()) ? n : Math.min(cap, n);
+}
+// What the payout screen and the Time pop-up say each line pays. Quoted from the
+// same numbers that are paid, never typed alongside them.
+function unspentPayoutDesc() {
+  const R = _payoutRes();
+  const rate = R.unspent_credits != null ? R.unspent_credits : 2;
+  return `${rate} per unused swap or discard` + _payoutCapNote(R.unspent_cap);
+}
+function interestPayoutDesc(credits, mult, creditsHTML) {
+  const R = _payoutRes();
+  const shown = creditsHTML != null ? creditsHTML : credits;
+  return `10% of ${shown}` + ((mult || 1) > 1 ? ` × ${mult} (Idol)` : '')
+       + _payoutCapNote(R.interest_cap, (mult || 1) > 1 ? ' before the Idol' : '');
+}
+function _payoutCapNote(cap, extra) {
+  if (cap == null) return '';
+  return payoutCapsLifted() ? ' · uncapped' : ` · max ${cap}${extra || ''}`;
+}
 const LEVEL_UP_DURATION = 45;
 // 1200, raised from 1000 with the r178 hand retune. That retune moved value into
 // the hands players actually make (Straights, Full Houses, Two Pair) and out of
@@ -202,13 +286,21 @@ const LEVEL_UP_DURATION = 45;
 // Measured over 800 deals each way. Left at 1000 the first round would clear in
 // ~3.0 best hands instead of ~3.6, i.e. the whole game would quietly get easier
 // as a side effect of fixing the price list. 1200 holds the old pace.
-const BASE_GOAL = 1200;
-const GOAL_SCALE = 1.35;
+// r278: retuned from the Monte Carlo bot sweep (tools/sim, SCORE_SCALING.md).
+// Base 1500 opens a touch firmer, growth runs 32% a round through round 12 and
+// then 45% a round from GOAL_LATE_START on, so the run gets a forgiving first
+// half and a back half that can actually kill it. The greedy bot wins ~37% at
+// these numbers against ~57% at 1500/30%; a real player lands well above both.
+const BASE_GOAL = 1500;
+const GOAL_SCALE = 1.32;
+const GOAL_SCALE_LATE = 1.45;  // growth once the late curve takes over
+const GOAL_LATE_START = 13;    // first level that grows at GOAL_SCALE_LATE
 const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
   return COLOR_CLASS[suit]
-      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
+      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '♛':'suit-crowns', '☾':'suit-moons',
+           '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
 }
 
 // Central card capability gate - add new card types here, nowhere else

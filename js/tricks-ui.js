@@ -11,7 +11,7 @@ function showTrickChoiceOverlay() {
       const card = document.createElement('div');
       card.className = `trick-choice-card tier-${trick.tier}${isPending ? ' trick-choice-pending' : ''}`;
       card.innerHTML = `
-        <div class="trick-choice-tier">${trick.tier}</div>
+        <div class="trick-choice-tier">${tierLabel('trick', trick.tier)}</div>
         <div class="trick-choice-emoji">${trickEmoji(trick)}</div>
         <div class="trick-choice-name">${trick.name}</div>
         ${isPending ? '<div class="trick-choice-confirm">Tap to confirm</div>' : '<div class="trick-choice-hold">hover / hold for details</div>'}
@@ -85,19 +85,15 @@ function pickTrickOptions(n) {
   // Don't offer already acquired bonuses (except stackable ones)
   const stackableIds = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   const filtered = pool.filter(b => !acquiredTricks.some(a => a.id === b.id && !stackableIds.includes(b.id)));
-  const shuffled = shuffle(filtered);
-  // Weight: common 9×, rare 3×, legendary 1× 
-  const TIER_WEIGHT = { common: 9, rare: 3, legendary: 1 };
-  const weighted = [];
-  shuffled.forEach(b => {
-    const w = TIER_WEIGHT[b.tier] || 1;
-    for (let i = 0; i < w; i++) weighted.push(b);
-  });
-  const picked = [];
-  const seen = new Set();
-  for (const b of shuffle(weighted)) {
-    if (!seen.has(b.id)) { picked.push(b); seen.add(b.id); }
-    if (picked.length >= n) break;
+  // This held a THREE-tier bag written before `epic` existed, so epic fell through
+  // to weight 1 and carried the same per-entity odds as legendary. Main's shared
+  // table (and Luck) now decide it; drawn one at a time so they stay distinct.
+  const picked = [], seen = new Set();
+  for (let g = 0; g < n * 12 && picked.length < n; g++) {
+    const left = filtered.filter(b => !seen.has(b.id));
+    if (!left.length) break;
+    const p = pickTrickByRarity(left) || left[0];
+    seen.add(p.id); picked.push(p);
   }
   return picked;
 }
@@ -201,7 +197,7 @@ function showTrickTooltip(trick, readOnly = false) {
     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
     : '';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}${hint}${actionBtns}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
 
@@ -267,7 +263,7 @@ function showTrickDescTooltip(trick, anchorEl) {
   tip.style.maxWidth = '260px';
   tip.style.minWidth = '150px';
   tip.style.pointerEvents = 'none';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div>`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div>`
                 + `<div class="trick-tooltip-desc">${withSuitHalo(trickLiveDesc(trick))}</div>`;
   tip.style.opacity = '0';
   document.body.appendChild(tip);
@@ -310,6 +306,40 @@ function attachHoverHold(el, showFn, hideFn) {
 
 // ── Trick Tray: render chips for all tray Tricks ──
 let _trickCountShown = 0;
+// ── Trick slots are a HARD cap (r277) ───────────────────────────────────────
+// The tray used to answer a full house with a modal: the new Trick arrived
+// holding itself hostage and you chose what it replaced on the spot. That made
+// the cap a screen that happened TO you. It is a refusal now - the offer bounces,
+// the count says why, and you free a slot by SELLING from the tray, which is a
+// decision you take when you want to rather than one you are ambushed with.
+//
+// refuseTrickCapacity() is the ONE way that is said, so the sound, the pulse and
+// the wording cannot drift between the shop, the reward grid and a pick.
+function trickTrayFull() {
+  return trickTrayMode && trickTray.length >= trickCapacity();
+}
+
+function pulseTrickCount() {
+  const el = document.getElementById('trick-tray-count');
+  if (!el) return;
+  // Restart the animation on a repeat refusal: removing the class and reading
+  // offsetWidth forces the reflow that makes re-adding it play again. Without it
+  // a second refusal in the same second is silent, which reads as ignored.
+  el.classList.remove('tray-full-pulse');
+  void el.offsetWidth;
+  el.classList.add('tray-full-pulse');
+  clearTimeout(pulseTrickCount._t);
+  pulseTrickCount._t = setTimeout(() => el.classList.remove('tray-full-pulse'), 1500);
+}
+
+function refuseTrickCapacity() {
+  if (typeof sfxNoSwaps === 'function') { try { sfxNoSwaps(); } catch (e) {} }
+  pulseTrickCount();
+  if (typeof portraitShowTricks === 'function') portraitShowTricks();   // portrait hides the tray behind a swap
+  showMessage(`Trick slots full (${trickTray.length}/${trickCapacity()}). Sell one first.`, 'var(--red)');
+  return false;
+}
+
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
@@ -331,7 +361,7 @@ function renderTrickTray() {
     return;
   }
   // Reward-grid-style CRT/neon card tiles inside a scrolling marquee track (r113).
-  const RARS = ['common','rare','epic','legendary','mythic'];
+  const RARS = ['common','rare','epic','legendary'];
   const track = document.createElement('div');
   track.className = 'chip-marquee';
   trickTray.forEach(trick => {
@@ -351,7 +381,9 @@ function renderTrickTray() {
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
     const tile = { entity: 'trick', id: trick.id, label: trick.name,
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
-    chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
+    // tip:false - the chip's own tap bubble (read + hold for sell/discard)
+    // already covers this tile; the delegated data-et bubble would double it.
+    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';
@@ -363,7 +395,6 @@ function renderTrickTray() {
     } else {
       chip.addEventListener('click', e => {
         e.stopPropagation();
-        if (chip._sellHeld) { chip._sellHeld = false; return; }  // the lift that ended a hold
         const existing = document.getElementById('trick-tooltip');
         if (existing) { hideTrickTooltip(); return; }
         showTrickTrayTooltip(trick, chip);
@@ -387,14 +418,14 @@ function renderTrickTray() {
   // Hover tooltips for every tile (originals + marquee clones).
   list.querySelectorAll('.trick-tray-chip').forEach(chip => {
     const trick = trickTray.find(t => t.id === chip.dataset.trickId);
-    if (trick) { attachTrickHover(chip, trick); attachTrickSellHold(chip, trick); }
+    if (trick) attachTrickHover(chip, trick);
   });
   // Names are word-atomic and shrink to fit - never broken across a letter (r182).
   fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the
-// tooltip (and its Discard button) before it hides.
+// tooltip (and its Sell button) before it hides.
 let _trickHoverTimer = null;
 function cancelTrickHoverHide() { if (_trickHoverTimer) { clearTimeout(_trickHoverTimer); _trickHoverTimer = null; } }
 function scheduleTrickHoverHide() { cancelTrickHoverHide(); _trickHoverTimer = setTimeout(hideTrickTooltip, 160); }
@@ -403,62 +434,48 @@ function attachTrickHover(chip, trick) {
   chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
-// Press-and-hold a Trick you own to bring up its sell / discard options (r182).
-// Works with a finger and with a held mouse button, so the gesture is the same
-// on a phone and on a desktop. A hold sets chip._sellHeld, which the chip's own
-// click handler checks so the lift that ends the hold does not immediately
-// toggle the bubble back off.
-const TRICK_SELL_HOLD_MS = 430;
-function attachTrickSellHold(chip, trick) {
-  let timer = null, sx = 0, sy = 0;
-  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  chip.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    sx = e.clientX; sy = e.clientY;
-    chip._sellHeld = false;
-    cancel();
-    timer = setTimeout(() => {
-      chip._sellHeld = true;
-      cancelTrickHoverHide();
-      showTrickTrayTooltip(trick, chip, { actions: true });
-      if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
-    }, TRICK_SELL_HOLD_MS);
-  });
-  chip.addEventListener('pointermove', e => {
-    if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancel();
-  });
-  chip.addEventListener('pointerup', cancel);
-  chip.addEventListener('pointercancel', () => { cancel(); chip._sellHeld = false; });
-}
-
-// r182 - READING a Trick and DISPOSING of one are now two different gestures.
-//   tap / hover  → the description, nothing you can hit by accident
-//   tap-and-hold → the same bubble with SELL and DISCARD on it
-// Before this, every tap put a live Sell button under your thumb just for asking
-// what a Trick did.
-function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
+// r279 - ONE GESTURE. A tap (or a hover on a mouse) opens the description WITH
+// Sell on it. r182 had split that apart, so disposing of a Trick needed a
+// press-and-hold nobody could guess at; the second beat that protects the
+// player is a CONFIRM on the button itself (tipConfirmAction) rather than a
+// hidden gesture in front of it.
+//
+// SELL IS THE ONLY DISPOSAL (owner's call, r279). Discarding a Trick paid
+// nothing and did nothing selling does not, so it was a second button whose
+// only distinction was being worse.
+//
+// `actions` is still a parameter because a Trick on the GRID (dev-only tray-off
+// mode) is not one you own from the tray and has nothing to sell.
+function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   hideTrickTooltip();
   const tip = document.createElement('div');
   tip.id = 'trick-tooltip';
   tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
+  // The + and its rail (r288). Definitions never open unasked, here or anywhere.
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
                 + (actions
-                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
-                      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
-                    : `<div class="trick-tooltip-hint">hold for sell / discard</div>`);
+                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button></div>`
+                    : '');
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
+  // Selling asks first. Cancel RE-SHOWS the bubble rather than restoring its
+  // markup - see tipConfirmAction.
+  const _row = () => tip.querySelector('.trick-tooltip-actions');
+  const _reopen = () => showTrickTrayTooltip(trick, anchorEl, { actions });
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    sellTrick(trick);
+    tipConfirmAction(_row(), {
+      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      onYes: () => sellTrick(trick), onCancel: _reopen,
+    });
   });
-  tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
-    e.stopPropagation();
-    discardTrickFromTray(trick);
-  });
-  // Keep the bubble open while the pointer is over it (so Discard is clickable).
+  tip.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideTrickTooltip(); });
+  // Opening the rail changes the bubble's height, so it has to be re-placed or
+  // a tooltip opened near the bottom of the screen grows off it.
+  wireKwMore(tip, tip, () => placeTipSmart(anchorEl, tip));
+  // Keep the bubble open while the pointer is over it (so Sell is clickable).
   tip.addEventListener('mouseenter', cancelTrickHoverHide);
   tip.addEventListener('mouseleave', scheduleTrickHoverHide);
   void tip.offsetWidth;
@@ -466,16 +483,6 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
   // above, which put it off-screen for tray tiles near the top).
   placeTipSmart(anchorEl, tip);
   tip.style.opacity = '1';
-}
-
-function discardTrickFromTray(trick) {
-  hideTrickTooltip();
-  const idx = trickTray.findIndex(b => b.id === trick.id);
-  if (idx >= 0) trickTray.splice(idx, 1);
-  const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
-  if (aidx >= 0) acquiredTricks.splice(aidx, 1);
-  showMessage(`Discarded: ${trick.name}`, 'var(--cream-dim)');
-  renderTrickTray();
 }
 
 // Sync the Trick tray / hand-preview panel visibility to the current trickTrayMode (no card migration).
@@ -557,7 +564,7 @@ async function confirmFullscreenTrickSelection(trick) {
 
   const flyEl = document.createElement('div');
   flyEl.className = `trick-card trick-tier-${trick.tier} temp-anim`;
-  flyEl.innerHTML = `<div class="trick-tier-label">${trick.tier.charAt(0).toUpperCase()}</div><div class="trick-name">${trick.name}</div>`;
+  flyEl.innerHTML = `<div class="trick-tier-label">${tierInitial('trick', trick.tier)}</div><div class="trick-name">${trick.name}</div>`;
   flyEl.dataset.cardId = String(trickIdCounter);
   flyEl.style.cssText = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${destY - dropDist}px;opacity:0;pointer-events:none;z-index:20;`;
   gridEl.appendChild(flyEl);
@@ -716,6 +723,8 @@ function updateActProgressUI() {
 
 function onGameWin() {
   stopTimers();
+  // A finished run unlocks the next mode, won or lost (js/progress-unlock.js).
+  if (typeof markModeFinished === 'function') markModeFinished(ACTIVE_MODE && ACTIVE_MODE.id);
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory('win');       // log it before the numbers are reset
@@ -725,13 +734,15 @@ function onGameWin() {
   title.className   = 'victory';
 
   // The full run report - quarter by quarter, then the run totals (js/quarter.js).
-  // A won run has already closed all three quarters through rolloverQuarter.
+  // A won run has already closed every quarter through rolloverQuarter.
   document.getElementById('end-stats').innerHTML = runReportHTML();
   overlay.classList.add('show');
 }
 
 function onGameEnd(gameover) {
   stopTimers();
+  // A finished run unlocks the next mode, won or lost (js/progress-unlock.js).
+  if (typeof markModeFinished === 'function') markModeFinished(ACTIVE_MODE && ACTIVE_MODE.id);
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory(gameover ? 'loss' : 'timeup');
@@ -780,9 +791,13 @@ const FAN_MIN_STEP = 13;   // px of each tucked tile that must stay visible
 
 function fanTrickTray(list, track) {
   if (!list || !track) return false;
-  // Landscape anchors the tray in its own wide box and already re-flows there.
   const stage = document.getElementById('stage');
-  if (!stage || stage.classList.contains('landscape')) return false;
+  if (!stage) return false;
+  // Landscape fans too since r237 (it used to marquee): tiles overlap just
+  // enough to fit, each showing AT LEAST HALF of itself. Only past that floor
+  // does the row scroll - sideways, with no scrollbar (css). Handled below,
+  // after the shared measurements.
+  const landscape = stage.classList.contains('landscape');
 
   const chips = [...track.querySelectorAll('.trick-tray-chip')];
   list.classList.remove('fanned');
@@ -807,6 +822,23 @@ function fanTrickTray(list, track) {
                           // lands a few px wide and clips its leftmost tile
   const room = avail - PAD;
   const n = chips.length;
+
+  if (landscape) {
+    const LGAP = 5;
+    if (n * tile + (n - 1) * LGAP <= room) {
+      track.style.setProperty('--fan-gap', LGAP + 'px');   // fits: an ordinary row
+      return true;
+    }
+    // Tuck until they fit, but never past half a tile hidden. Past that floor
+    // the row keeps the 50% step and SCROLLS instead (overflow-x on the list,
+    // scrollbar hidden) - scrolled to the end so the newest Trick starts visible.
+    const minStep = Math.ceil(tile * 0.5);
+    const step = Math.max(minStep, (room - tile) / (n - 1));
+    track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
+    list.classList.add('fanned');
+    requestAnimationFrame(() => { list.scrollLeft = list.scrollWidth; });
+    return true;
+  }
 
   // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var

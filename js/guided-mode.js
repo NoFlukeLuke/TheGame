@@ -49,6 +49,7 @@ function guidedResetRun() {
   guidedOffers = []; guidedLastKind = null; guidedSinceLevel = 0;
   guidedBuysThisAct = {};
   guidedPendingChallenge = null; guidedActiveChallenge = null;
+  miniBossActive = false;   // startGame's own boss teardown clears the effects
   guidedCrossroadsOpen = false;
 }
 
@@ -68,7 +69,9 @@ function guidedStopPrice(kind, id) {
              : kind === 'event'  ? B.price_event
              :                     0;          // level, elite and pick3 are free
   if (!base) return 0;
-  return base + GUIDED_REPEAT_STEP * (guidedBuysThisAct[kind] || 0);
+  // r234: scaled at the READ site, not in BAL - applyEntityTiers() rewrites BAL
+  // in place from BAL_BASE, so a load-time edit there would be thrown away.
+  return priceOf(base) + priceOf(GUIDED_REPEAT_STEP) * (guidedBuysThisAct[kind] || 0);
 }
 
 // ── What is on offer ───────────────────────────────────────────────────────
@@ -118,9 +121,13 @@ function guidedRollOffers() {
   // against recentEventIds, so the pair on the board is never one you just saw.
   const used = new Set(out.map(o => o.id).filter(Boolean));
   const pool = (typeof EVENT_META !== 'undefined') ? Object.keys(EVENT_META) : [];
-  const fresh = pool.filter(id => !used.has(id)
+  // Only events that can DO something (js/events-core.js): the crossroads names
+  // the event and charges a slot plus credits for it, so a dead one is the worst
+  // tile on the board.
+  const usable = (typeof eligibleEventIds === 'function') ? eligibleEventIds(pool) : pool;
+  const fresh = usable.filter(id => !used.has(id)
     && !(typeof recentEventIds !== 'undefined' && recentEventIds.includes(id)));
-  const draw = (typeof evShuffle === 'function' ? evShuffle(fresh.length ? fresh : pool) : (fresh.length ? fresh : pool).slice());
+  const draw = (typeof evShuffle === 'function' ? evShuffle(fresh.length ? fresh : usable) : (fresh.length ? fresh : usable).slice());
   let di = 0;
   while (out.length < GUIDED_TILE_COUNT && di < draw.length) {
     const id = draw[di++];
@@ -245,6 +252,15 @@ function guidedRenderCrossBar() {
 function guidedCloseCrossroads() {
   guidedCrossroadsOpen = false;
   document.getElementById('gx-bar')?.classList.remove('show');
+  // CLEAR THE BOARD IT DREW ON (r248). This was missing, and `render()` could not
+  // cover for it: the renderer reconciles elements carrying [data-card-id] and
+  // `.gx-tile` / `.gx-filler` have none, so nothing in the game ever removed
+  // them. The reward grid and the shop happened to hide it by clearing #grid for
+  // their own reasons - so the tiles survived only on the paths that do NOT
+  // (an event, the pick-of-three, and a plain level), and the next round dealt
+  // ON TOP of them. Measured: 16 cards over 4 crossroads tiles, the descriptions
+  // still legible between the cards, for the rest of the run.
+  document.getElementById('grid')?.querySelectorAll('.gx-tile, .gx-filler').forEach(el => el.remove());
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
 }
 
@@ -321,6 +337,11 @@ function guidedNextStopLabel() {
 // the round passes as normal; meet the requirement as well and you also take the
 // bonus. A node that can end a run on a technicality is not an elite, it is a
 // trap, and a player would simply never take one.
+// This round's own hand-log entries. Entries carry `level`, NOT `round` - the
+// first version of `big` tested h.round, which no entry has, so it never fired.
+function _chRoundHands() {
+  return (handLog || []).filter(h => h.level === level && h.src === 'play');
+}
 const CHALLENGE_DEFS = [
   { id:'types',  goalMult:1.25, credits:25,
     label:'Score three different hand types.',
@@ -329,20 +350,144 @@ const CHALLENGE_DEFS = [
     label:'Score at least five hands.',
     test: () => (handsPlayedRound || 0) >= 5 },
   { id:'big',    goalMult:1.30, credits:30,
-    label:'Score a hand of four cards or more.',
-    test: () => (handLog || []).some(h => h.round === level && (h.cards?.length || 0) >= 4) },
+    label:'Score two hands of four or more cards, back to back.',
+    test: () => { const hs = _chRoundHands();
+      for (let i = 1; i < hs.length; i++)
+        if ((hs[i - 1].cards?.length || 0) >= 4 && (hs[i].cards?.length || 0) >= 4) return true;
+      return false; } },
   { id:'lean',   goalMult:1.15, credits:22,
     label:'Clear it in three hands or fewer.',
     test: () => (handsPlayedRound || 0) <= 3 },
+  { id:'haymaker', goalMult:1.25, credits:28,
+    label:'Score one hand worth a third of the goal.',
+    test: () => _chRoundHands().some(h => (h.score || 0) >= roundGoal / 3) },
+  { id:'clean',  goalMult:1.20, credits:24,
+    label:'Use no discards.',
+    test: () => (cardsDiscardedRound || 0) === 0 },
+  { id:'notakebacks', goalMult:1.20, credits:24,
+    label:'Use no swaps.',
+    test: () => (swapsUsedRound || 0) === 0 },
+  { id:'sprinter', goalMult:1.25, credits:28,
+    label:'Clear with 45 seconds or more on the clock.',
+    test: () => (roundSeconds || 0) >= 45 },
+  { id:'specialist', goalMult:1.20, credits:22,
+    label:'Score the same hand type three times.',
+    test: () => { const n = {};
+      for (const h of _chRoundHands()) { n[h.hand] = (n[h.hand] || 0) + 1; if (n[h.hand] >= 3) return true; }
+      return false; } },
+  // Gated on Selection Size >= 5 (avail), the same liveness idea as
+  // bossPresetIsLive: a requirement that cannot be met must not be offered.
+  { id:'widenet', goalMult:1.35, credits:35,
+    label:'Score a run, a set and a flush.',
+    avail: () => (limits?.selection?.current || 0) >= 5,
+    test: () => { const fams = new Set();
+      for (const h of _chRoundHands())
+        (NS_HAND_FAMILIES[h.hand] || []).forEach(f => fams.add(f));
+      return fams.has('run') && fams.has('set') && fams.has('flush'); } },
+
+  // ── MINI-BOSSES (r239) - the second challenge kind ─────────────────────────
+  // No task to complete: the HANDICAP is the challenge, a boss modifier at half
+  // strength running inside an ordinary round, and clearing the (raised) goal
+  // pays the credits. They ride the real boss-effect machinery through
+  // bossFxLive() (js/boss-effects.js) - armed by miniBossMaybeStart when the
+  // round's clock starts, torn down by miniBossClear at the settle.
+  // test: () => true because the settle only ever runs on a cleared round.
+  { id:'mini_stones', goalMult:1.20, credits:26, mini: { modifier: '_stones' },
+    label:'Stones bury part of the board.',
+    test: () => true },
+  { id:'mini_toll',   goalMult:1.20, credits:24,
+    mini: { modifier: 'interact_surcharge', params: { costMult: 1.5, playCostAdd: 2 } },
+    label:'Swaps and discards cost half again, playing +2s.',
+    test: () => true },
+  { id:'mini_tide',   goalMult:1.20, credits:26,
+    mini: { modifier: 'focus_drain', params: { everySecs: 20, amount: 5 } },
+    label:'Lose 5 Focus every 20 seconds.',
+    test: () => true },
+  { id:'mini_hold',   goalMult:1.20, credits:26,
+    mini: { modifier: 'card_hold', params: { everySecs: 25, holdSecs: 15, count: 1 } },
+    label:'A card is frozen every 25 seconds.',
+    test: () => true },
+  { id:'mini_sip',    goalMult:1.25, credits:28,
+    mini: { modifier: 'suit_markdown', params: { count: 1, mult: 0.6, holdSecs: 60 } },
+    label:'One suit pays 60%, rotating each minute.',
+    test: () => true },
+  { id:'mini_fog',    goalMult:1.25, credits:28, mini: { modifier: '_fog', params: { secs: 60 } },
+    label:'Ranks hidden for the first minute.',
+    test: () => true },
 ];
+
+// ── The mini-boss harness ────────────────────────────────────────────────────
+// One flag, read by bossFxLive() in js/boss-effects.js, which is what lets the
+// real boss schedules, pip scale, fog and suit markdown run in a normal round.
+let miniBossActive = false;
+
+// Called from startRoundTimer - the one place every round's clock starts - so a
+// mini arms exactly when its round becomes live (and on a resumed round, since
+// resume also lands there). Never during a real boss: that round has its own
+// effects and triggerLevelUp never armed a challenge for it anyway.
+function miniBossMaybeStart() {
+  if (miniBossActive || bossActive) return;
+  const m = guidedActiveChallenge && guidedActiveChallenge.mini;
+  if (!m) return;
+  miniBossActive = true;
+  if (m.modifier === '_stones') {
+    // Stone Lord Jr: half the real boss's count, no deck rubble.
+    placeStonesOnGrid(Math.max(2, Math.round((gridRows + gridCols) / 4)));
+    if (typeof render === 'function') render();
+  } else if (m.modifier === '_fog') {
+    // Light Fog: ranks hidden, but only for the opening stretch.
+    bossFog = true;
+    bossDelay((m.params?.secs || 60) * 1000, () => {
+      bossFog = false;
+      if (typeof render === 'function' && gridData && gridData[0]) render();
+    });
+    if (typeof render === 'function') render();
+  } else {
+    applyBossEffectModifier(m.modifier, m.params || {});
+  }
+  // The real boss path fires this from startBossTimer; a mini's round has no
+  // boss timer, so it fires here. Schedules tick behind bossFxLive().
+  bossStartScheduledEffects();
+}
+
+// Torn down wherever the round stops mattering: the settle (cleared round), a
+// failed round's game-over via the next startGame (guidedResetRun), and any
+// real boss teardown (clearBossEffects is shared, so state can never leak).
+function miniBossClear() {
+  if (!miniBossActive) return;
+  miniBossActive = false;
+  clearBossEffects();
+  if (typeof render === 'function' && gridData && gridData[0]) { try { render(); } catch (e) {} }
+}
 
 // Armed by taking an elite tile; consumed when the round deals.
 let guidedPendingChallenge = null;
 // The challenge the CURRENT round is running, or null.
 let guidedActiveChallenge  = null;
 
+// A saved challenge comes back WITHOUT ITS `test` (r238).
+//
+// CHALLENGE_DEFS entries carry a `test` closure, and a save is a JSON round
+// trip, so a restored guidedActiveChallenge is the right numbers attached to no
+// predicate at all - the raised goal would persist and the bonus could never
+// settle. Re-attach it by id, which is the only part of the object that has to
+// survive. An id this build no longer defines is dropped rather than left as a
+// live landmine, the same rule dropUnknownCurses follows for curses.
+function guidedRehydrateChallenges() {
+  const fix = ch => {
+    if (!ch) return null;
+    const def = CHALLENGE_DEFS.find(d => d.id === ch.id);
+    return def ? { ...ch, test: def.test } : null;
+  };
+  guidedActiveChallenge  = fix(guidedActiveChallenge);
+  guidedPendingChallenge = fix(guidedPendingChallenge);
+}
+
 function rollChallengeLevel() {
-  const d = CHALLENGE_DEFS[Math.floor(Math.random() * CHALLENGE_DEFS.length)];
+  // `avail` gates a requirement that cannot currently be met (Wide Net below
+  // Selection Size 5) - the same liveness idea as bossPresetIsLive.
+  const pool = CHALLENGE_DEFS.filter(d => { try { return !d.avail || d.avail(); } catch (e) { return false; } });
+  const d = pool[Math.floor(Math.random() * pool.length)] || CHALLENGE_DEFS[0];
   return { ...d, rewardText: `+${d.credits} credits` };
 }
 
@@ -350,7 +495,9 @@ function rollChallengeLevel() {
 // the real goal for this level rather than on a stale one.
 function guidedApplyPendingChallenge() {
   guidedActiveChallenge = null;
-  if (!guidedActive() || !guidedPendingChallenge) return;
+  // Map mode's challenge tiles ride the same pending/active/settle machinery.
+  const _live = guidedActive() || (typeof mapActive === 'function' && mapActive());
+  if (!_live || !guidedPendingChallenge) return;
   guidedActiveChallenge = guidedPendingChallenge;
   guidedPendingChallenge = null;
   roundGoal = Math.round(roundGoal * guidedActiveChallenge.goalMult / 50) * 50;
@@ -360,9 +507,13 @@ function guidedApplyPendingChallenge() {
 function guidedSettleChallenge() {
   const ch = guidedActiveChallenge;
   guidedActiveChallenge = null;
+  miniBossClear();
   if (!ch) return;
   let met = false;
-  try { met = !!ch.test(); } catch (e) {}
+  // A challenge restored from a save is DATA - JSON dropped its test function -
+  // so the test is always read from CHALLENGE_DEFS by id, never off the object.
+  const def = CHALLENGE_DEFS.find(d => d.id === ch.id);
+  try { met = !!(def || ch).test(); } catch (e) {}
   if (met) {
     coins += ch.credits;
     updateCoinsUI?.();
@@ -378,49 +529,114 @@ function guidedSettleChallenge() {
 // Three rewards, take one, no charge. It is the BASE reward of the mode: every
 // other tile costs a slot AND credits, so this is the one that simply pays.
 //
-// Drawn through the reward grid's own payload factories, so a Trick offered here
-// is the same object, at the same rarity odds, with the same ban filtering as one
-// offered anywhere else - and it renders with the shared entity tile.
-function guidedPickThreeOffers() {
+// THE TYPE OF EACH OFFER IS A WEIGHTED ROLL (r287), NOT ONE OF EACH. It used to
+// push exactly one Trick, one Sleight and one Knack, so every pick on the
+// Schedule asked the same three-way question and the only thing that varied was
+// which three names filled it. Owner's numbers, and they follow the pools: a
+// loadout is mostly Tricks, there are 166 of them against 43 Sleights and 48
+// Knacks, and a Knack is the pick you take once in a while rather than the one
+// you are offered every time.
+//
+// Rolled INDEPENDENTLY three times, so three Tricks is a legitimate and common
+// outcome and a pick with no Knack in it is the usual one. A reroll runs the
+// same draw, so the weighting applies there for free.
+const GUIDED_PICK_WEIGHTS = { trick: 60, sleight: 25, knack: 15 };
+
+// The three pools, filtered exactly as every other offer path filters them -
+// what you already own is out, and survivalEntityBanned is the single chokepoint
+// a mode's ban list is read through (miss it and Flow's clock entities leak).
+function guidedPickPools() {
   const banned = id => (typeof survivalEntityBanned === 'function') && survivalEntityBanned(id);
-  const out = [];
-
-  // A Trick. Drawn through pickEntityByRarity (js/luck.js) - the SHARED rarity
-  // draw every other offer path uses - so Luck tilts this the same way and the
-  // odds are not a second table that can drift.
   const ownedT = new Set((acquiredTricks || []).map(t => t.id));
-  const tricks = TRICK_POOL.filter(t => !ownedT.has(t.id) && !banned(t.id));
-  const t = tricks.length
-    ? ((typeof pickEntityByRarity === 'function' && pickEntityByRarity(tricks, e => e.tier || 'common'))
-       || tricks[Math.floor(Math.random() * tricks.length)])
-    : null;
-  if (t) out.push({ entity:'trick', icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '★',
-    emoji: (typeof trickEmoji === 'function') ? trickEmoji(t) : '★',
-    label: t.name, desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
-    tier: t.tier || 'common', rarity: t.tier || 'common',
-    apply: () => injectTrickAfterReward(t) });
-
-  // A Sleight. pickSleightByRarity IS global (js/shop.js) and already filters the
-  // fixtures and the granted set.
-  const sl = (typeof pickSleightByRarity === 'function')
-    ? (pickSleightByRarity(1, grantedSleightIds) || [])[0] : null;
-  if (sl && !banned(sl.id)) out.push({ entity:'sleight', icon: sl.emoji || '🃏', emoji: sl.emoji || '🃏',
-    label: sl.name, desc: sl.desc, tier: sl.rarity || 'common', rarity: sl.rarity || 'common',
-    uses: sl.durability === 'infinite' ? '∞' : `${sl.durability}x`,
-    apply: () => grantSleight(sl) });
-
-  // A Knack.
   const ownedK = new Set((acquiredKnacks || []).map(k => k.id));
-  const knacks = KNACK_POOL.filter(k => !ownedK.has(k.id) && !banned(k.id));
-  const k = knacks.length
-    ? ((typeof pickEntityByRarity === 'function' && pickEntityByRarity(knacks, e => e.rarity || 'common'))
-       || knacks[Math.floor(Math.random() * knacks.length)])
-    : null;
-  if (k) out.push({ entity:'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦',
-    label: k.name, desc: k.desc, tier: k.rarity || 'common', rarity: k.rarity || 'common',
-    apply: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); showMessage(`+ ${k.name}`, 'var(--gold)'); } });
+  const gotSl  = (typeof grantedSleightIds !== 'undefined' && grantedSleightIds) ? grantedSleightIds : new Set();
+  return {
+    trick:   TRICK_POOL.filter(t => !ownedT.has(t.id) && !banned(t.id)),
+    // sleightOfferable keeps the four Spectrum deck FIXTURES out - they are in
+    // SLEIGHT_POOL so they can render, and the only way to have one is to draw it.
+    sleight: SLEIGHT_POOL.filter(s => !gotSl.has(s.id) && !banned(s.id)
+               && (typeof sleightOfferable !== 'function' || sleightOfferable(s))),
+    knack:   KNACK_POOL.filter(k => !ownedK.has(k.id) && !banned(k.id)),
+  };
+}
 
+// Roll a type among those that still have stock. An exhausted pool is simply not
+// in the roll, so a run that owns every Knack still gets three offers rather than
+// two - the weights decide the MIX, they must never decide the COUNT.
+function guidedPickType(pools) {
+  const types = Object.keys(GUIDED_PICK_WEIGHTS).filter(t => pools[t] && pools[t].length);
+  if (!types.length) return null;
+  const total = types.reduce((s, t) => s + GUIDED_PICK_WEIGHTS[t], 0);
+  let r = Math.random() * total;
+  for (const t of types) { r -= GUIDED_PICK_WEIGHTS[t]; if (r <= 0) return t; }
+  return types[types.length - 1];
+}
+
+// Wrap a pool entry in the payload the shared pick screen draws and grants from.
+function guidedPickOffer(type, d) {
+  if (type === 'trick') {
+    const em = (typeof trickEmoji === 'function') ? trickEmoji(d) : '★';
+    return { entity:'trick', icon: em, emoji: em, label: d.name,
+      desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(d) : d.desc,
+      tier: d.tier || 'common', rarity: d.tier || 'common',
+      apply: () => injectTrickAfterReward(d) };
+  }
+  if (type === 'sleight') return { entity:'sleight', icon: d.emoji || '🃏', emoji: d.emoji || '🃏',
+    label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
+    uses: d.durability === 'infinite' ? '∞' : `${d.durability}x`,
+    apply: () => grantSleight(d) };
+  if (type === 'knack') return { entity:'knack', icon: d.emoji || '♦', emoji: d.emoji || '♦',
+    label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
+    apply: () => { acquiredKnacks.push({ ...d }); updateKnackList?.(); showMessage(`+ ${d.name}`, 'var(--gold)'); } };
+  return null;
+}
+
+// Three offers. The ENTITY inside a rolled type is drawn through
+// pickEntityByRarity (js/luck.js) - the shared rarity draw every other offer path
+// uses - so Luck tilts this the same way and the odds are not a second table that
+// can drift. Each pick is removed from its pool, so one screen never repeats an
+// entity even when it rolls the same type three times.
+function guidedPickThreeOffers() {
+  const pools = guidedPickPools();
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const type = guidedPickType(pools);
+    if (!type) break;
+    const tierOf = (type === 'trick') ? (e => e.tier || 'common') : (e => e.rarity || 'common');
+    const d = (typeof pickEntityByRarity === 'function' && pickEntityByRarity(pools[type], tierOf))
+              || pools[type][Math.floor(Math.random() * pools[type].length)];
+    if (!d) break;
+    pools[type] = pools[type].filter(x => x.id !== d.id);
+    const o = guidedPickOffer(type, d);
+    if (o) out.push(o);
+  }
   return out;
+}
+
+// Tag the offers for the tile's rarity chip. Called on the first draw and on
+// every reroll, so a rerolled tile is labelled exactly like the one it replaced.
+function guidedTagOffers(mk) {
+  mk.forEach(p => { p.tag = (typeof tierLabel === 'function') ? tierLabel(p.entity, p.rarity || 'common') : ''; });
+  return mk;
+}
+
+// The action row (r282). The Schedule's pick is Survival's pick, so it carries
+// Survival's controls - through the SHARED reroll pool in js/grid-pick.js, which
+// is what keeps the price ladder and the free-reroll count one number rather
+// than two that drift.
+//
+// TWO OF SURVIVAL'S FOUR ARE DELIBERATELY ABSENT, and neither is an oversight:
+//  - PEEK puts the pick aside to look at the BOARD, because Survival opens its
+//    pick mid-dance over cards that are still there. This pick opens after the
+//    payout, and `showLevelUpScreen_fallOnly` has already discarded every cell -
+//    there is nothing behind it to peek at.
+//  - SHOP is an obligation you walk to on the Schedule. Selling a way in from
+//    here for a flat fee would route around the board the whole mode is.
+function guidedPickActions(redraw) {
+  return [
+    pickRerollAction(redraw),
+    { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
+  ];
 }
 
 function guidedOpenPickThree(done) {
@@ -429,27 +645,105 @@ function guidedOpenPickThree(done) {
   // trap `shuffled()` set for the r194 events. Calling them here produced three
   // silent nulls and an empty panel. This draws its own, through the same shared
   // rarity table and the same ban filter.
-  const mk = guidedPickThreeOffers();
+  const mk = guidedTagOffers(guidedPickThreeOffers());
   if (!mk.length) { done(); return; }
 
-  let el = document.getElementById('guided-pick3');
-  if (!el) { el = document.createElement('div'); el.id = 'guided-pick3'; document.body.appendChild(el); }
-  el.innerHTML = `<div class="g3-panel"><div class="g3-title">Take one</div><div class="g3-row"></div></div>`;
-  const row = el.querySelector('.g3-row');
-  mk.forEach(p => {
-    const t = document.createElement('div');
-    t.className = 'g3-opt';
-    t.innerHTML = (typeof entityTileHTML === 'function')
-      ? entityTileHTML(p)
-      : `<div class="reward-cell entity"><div class="rwd-name">${p.label}</div></div>`;
-    t.onclick = () => {
-      try { p.apply?.(); } catch (e) {}
-      el.classList.remove('show');
-      done();
-    };
-    row.appendChild(t);
-    const nm = t.querySelector('.rwd-name');
-    if (nm && typeof fitRewardName === 'function') fitRewardName(nm);
+  pickRerollsNewScreen();   // the PRICE ladder restarts on a new pick; the POOL carries
+
+  // The breakdown READER is a text panel and lives in Survival's overlay, which
+  // is inert markup (pointer-events:none) holding exactly that one list. Sharing
+  // it is the same call the Reroll tile is: one implementation, two screens.
+  const ov = (typeof survivalPickOverlay === 'function') ? survivalPickOverlay() : null;
+  if (ov) { ov.classList.add('show'); ov.classList.remove('sv-peek'); }
+  if (typeof survivalHideContrib === 'function') survivalHideContrib();
+  const closePanel = () => {
+    if (typeof survivalHideContrib === 'function') survivalHideContrib();
+    if (ov) ov.classList.remove('show');
+  };
+
+  // A reroll REDRAWS rather than re-dealing - the tiles already fell in once for
+  // this screen, and gridPickRefresh drops the selection with them (r280), so a
+  // reroll can never leave CONFIRM armed on an offer that is no longer there.
+  const redraw = () => {
+    const fresh = guidedTagOffers(guidedPickThreeOffers());
+    if (!fresh.length) return;
+    if (typeof sfxShopOpen === 'function') sfxShopOpen();
+    gridPickRefresh(fresh, guidedPickActions(redraw));
+  };
+
+  // Drawn ON the board (js/grid-pick.js, r254) - the choice is dealt into the
+  // grid slot like the crossroads tiles, not floated over it in a panel. The
+  // board is empty at this beat (the interlude's fall already ran), so the
+  // overlay covers nothing the player still needs.
+  openGridPick({
+    title: 'TAKE ONE', tone: 'reward', offers: mk, actions: guidedPickActions(redraw),
+    onChoose: (i, p) => { closePanel(); try { p.apply?.(); } catch (e) {} done(); },
   });
-  el.classList.add('show');
+}
+
+// ══════════════════════════════════════════════
+// ROUTING (r234) - the three functions the rest of the mode calls
+// ══════════════════════════════════════════════
+// These were referenced from four places (guidedChoose x3, interlude.js's guided
+// branch, reward-grid.js's finishInterludeRoute) and DEFINED NOWHERE, so Guided
+// threw on the first crossroads choice and guidedOpenCrossroads - the screen the
+// whole mode is - was never called at all. Written here to the contract the rest
+// of the file already assumes.
+
+// A bought stop costs the same step on the difficulty curve a played round would.
+// This is the load-bearing rule at the top of this file: without it a player buys
+// six stops and meets the boss at level 2 holding a level-8 loadout.
+//
+// It is deliberately NOT triggerLevelUp. That function also banks the score,
+// flushes the deck, resets the round resources and deals a board - none of which
+// has happened, because no round was played. Only the two lines that ARE the
+// curve are reproduced (level++ and the goal recompute, penalty included, in the
+// same order level-up.js applies them), so a bought slot moves the bar and
+// nothing else.
+function guidedAdvanceCurve() {
+  level++;
+  roundGoal = goalForLevel(level);
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
+  updateScoreUI?.();
+  updateActProgressUI?.();
+}
+
+// The single place that decides "another slot, or the boss", so no caller has to
+// know how long an act is. Every route through a slot ends here: a played level
+// (via startInterlude's guided branch), a bought shop, reward grid, pick-three or
+// event (via their own continuations).
+function guidedAfterSlot() {
+  guidedInStop = false;
+  guidedSlot++;
+  // nodeInAct is kept in step with the slot count purely for the HUD's pips and
+  // the boss sigil - Guided routes off guidedSlot, never off the node index.
+  nodeInAct = Math.min(5, Math.round(guidedSlot * 5 / GUIDED_SLOTS_PER_ACT));
+  updateActProgressUI?.();
+
+  if (guidedSlot >= GUIDED_SLOTS_PER_ACT) {
+    // The act is full. Arm the boss and deal into it - the same two lines the
+    // node modes use, so the boss arrives through the ordinary path.
+    nodeInAct = 5;
+    if (typeof bossesEnabled !== 'function' || bossesEnabled()) forceBossNextRound = true;
+    updateActProgressUI?.();
+    drainLevelUpQueue();
+    return;
+  }
+  guidedOpenCrossroads();
+}
+
+// After the post-boss PRIZE grid: close the quarter's books, advance, and open
+// the new act on a LEVEL rather than on the crossroads - an act you have just
+// fought a boss to reach should start by letting you play.
+//
+// rolloverQuarter (js/quarter.js) is the ONE rollover site; a won run never comes
+// back from it (actNumber past QUARTERS_PER_RUN goes to onGameWin and the report).
+function guidedAfterPrizeGrid() {
+  guidedInStop = false;
+  guidedSlot = 0;
+  guidedBuysThisAct = {};
+  guidedLastKind = null;
+  guidedSinceLevel = 0;
+  guidedOffers = [];
+  rolloverQuarter(() => drainLevelUpQueue());
 }

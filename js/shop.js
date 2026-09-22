@@ -2,7 +2,10 @@
 // ══════════════════════════════════════════════
 
 // ── Legacy service infrastructure (kept, buttons hidden) ──
-const SHOP_PRICES   = { buy: 4, remove: 3, duplicate: 4, suit: 4, combine: 5, swaps: 10, discards: 10 };
+// r234: every price table here is scaled ONCE by PRICE_MULT (js/data/balance.js).
+// Scaling the table rather than each read is what keeps the derived numbers -
+// sell values, the limit step, the reroll ladder - in step with the buy price.
+const SHOP_PRICES   = scalePriceTable({ buy: 4, remove: 3, duplicate: 4, suit: 4, combine: 5, swaps: 10, discards: 10 });
 const SHOP_SVC_MAX  = { remove: 3, duplicate: 3, suit: 3, combine: 3, swaps: 1, discards: 1 };
 let shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
 function shopPrice(key) { return Math.round(SHOP_PRICES[key] * Math.pow(1.2, shopPurchaseCount[key] || 0)); }
@@ -14,21 +17,29 @@ let svcStep = 0;
 let svcPicked = [];
 
 // ── New shop state ──
-const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18, mythic: 25 };
-const SHOP_KNACK_PRICE  = 10;
-const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22, mythic: 28 };
-const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
+const SHOP_TRICK_PRICES   = scalePriceTable({ common: 5, rare: 8, epic: 12, legendary: 18 });
+const SHOP_KNACK_PRICE    = priceOf(10);
+const SHOP_SLEIGHT_PRICES = scalePriceTable({ common: 8, rare: 12, epic: 16, legendary: 22 });
+const SHOP_LIMIT_BASE     = priceOf(15);        // coins; + SHOP_LIMIT_STEP per upgrade already purchased
+const SHOP_LIMIT_STEP     = priceOf(5);
 
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
 let shopPurchased   = new Set();
 let shopRerollCount = 0;
+// The reroll LIMIT was removed in r307 (the on-grid shop buys rerolls with
+// discards now). This overlay shop is the USE_ONGRID_SHOP=false fallback and
+// still counts rerolls per visit, so it keeps the old base as a constant
+// rather than reading a limit that no longer exists.
+const LEGACY_SHOP_REROLLS = 3;
 
 // ── Selling (r127) ──
 // Owner decision: Tricks and Knacks can be sold ANYWHERE (tray / HUD), any time.
 // Sleights are NOT sellable - they leave only by being played, discarded, or removed in the shop.
 // Sell value = half the shop buy price, floored, min 1 (always < buy → no buy/sell exploit).
 const SELL_FRACTION = 0.5;
-function trickSellValue(trick) { return Math.max(1, Math.floor((SHOP_TRICK_PRICES[trick.tier] || 8) * SELL_FRACTION)); }
+// trickSellValue lives in js/shop-grid-preview.js (0.60, owner spec). It was
+// defined here too at 0.50 and the later load won - the r278 delete closes that
+// long-documented wart. SELL_FRACTION above is legacy-overlay only.
 function knackSellValue()      { return Math.max(1, Math.floor(SHOP_KNACK_PRICE * SELL_FRACTION)); }
 
 function sellTrick(trick) {
@@ -61,35 +72,46 @@ function shopLimitPrice(def) {
   // price scales on number of purchases, not raw units (so a step of 15/3 doesn't over-charge)
   const l = limits[def.id];
   const purchases = (l.current - l.base) / (l.step || 1);
-  return SHOP_LIMIT_BASE + purchases * 5;
+  return SHOP_LIMIT_BASE + purchases * SHOP_LIMIT_STEP;
 }
 
-// Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
-// Cascades to lower rarity if the rolled tier has no available sleights.
+// Picks `count` sleights on the shared rarity table (js/data/balance.js), Luck
+// included, cascading DOWN when the rolled tier has nothing left.
+//
+// It had its own copy of the roll-and-cascade loop, and the copy rolled
+// `Math.random() * 100` against a running total of the weights - which is only
+// the same thing while they add up to 100. luckTierWeights makes them sum ABOVE
+// 100, so at any Luck at all a roll past the total fell through to targetIdx 0
+// and handed back a common. It goes through pickEntityByRarity now, which
+// normalises by the real total.
 function pickSleightByRarity(count, excluded) {
-  const TIER_ORDER   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
-  const TIER_WEIGHTS = luckTierWeights(ENTITY_TIER_W);  // Luck tilts the ladder (js/luck.js)
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
     const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id) && sleightOfferable(j) && !_shopModeBanned(j.id));
     if (!pool.length) break;
-    const roll = Math.random() * 100;
-    let cum = 0, targetIdx = 0;
-    for (let ti = 0; ti < TIER_WEIGHTS.length; ti++) {
-      cum += TIER_WEIGHTS[ti];
-      if (roll < cum) { targetIdx = ti; break; }
-    }
-    let pick = null;
-    for (let ti = targetIdx; ti >= 0 && !pick; ti--) {
-      const tp = pool.filter(j => j.rarity === TIER_ORDER[ti]);
-      if (tp.length) pick = tp[Math.floor(Math.random() * tp.length)];
-    }
-    if (!pick) pick = pool[Math.floor(Math.random() * pool.length)];
+    const pick = pickEntityByRarity(pool, j => (j.rarity || 'common'))
+              || pool[Math.floor(Math.random() * pool.length)];
     result.push(pick);
     usedIds.add(pick.id);
   }
   return result;
+}
+
+// Draw `n` DISTINCT entities on the shared rarity table. The legacy shop drew
+// its Tricks and its Knacks as `shuffle(pool).slice(0, n)` - a flat pick, so the
+// POOL COMPOSITION was the drop rate and a shop Trick was 28% epic against the
+// table's 5.5%. Same bug the reward grid had, in the one offer path that never
+// got the r195 fix because the Mart had replaced it by then.
+function _shopDrawDistinct(pool, tierOf, n) {
+  const out = [], seen = new Set();
+  for (let g = 0; g < n * 12 && out.length < n; g++) {
+    const left = pool.filter(x => !seen.has(x.id));
+    if (!left.length) break;
+    const pick = pickEntityByRarity(left, tierOf) || left[0];
+    seen.add(pick.id); out.push(pick);
+  }
+  return out;
 }
 
 function _grantedSleightSet() {
@@ -102,8 +124,8 @@ function _grantedSleightSet() {
 }
 
 // Legacy overlay shop (superseded by the Mart). Kept on the same positional
-// shop stream so a seed behaves identically if USE_MART_SHOP is flipped back.
-// The legacy shop is the USE_MART_SHOP=false fallback; it draws from the raw pools,
+// shop stream so a seed keeps the shop's draws isolated either way.
+// The legacy overlay shop is the USE_ONGRID_SHOP=false fallback; it draws from the raw pools,
 // so it needs the same mode ban the Mart applies (see survivalEntityBanned).
 function _shopModeBanned(id) { return typeof survivalEntityBanned === 'function' && survivalEntityBanned(id); }
 function generateShopItems() {
@@ -114,9 +136,9 @@ function _generateShopItems() {
   const ownedKnackIds = new Set(acquiredKnacks.map(t => t.id));
   const grantedSleights = _grantedSleightSet();
 
-  const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id))).slice(0, 3);
+  const tricks = _shopDrawDistinct(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id)), b => (b.tier || 'common'), 3);
   const lims   = pickWeightedLimits(2);
-  const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id) && !_shopModeBanned(t.id))).slice(0, 2);
+  const knacks = _shopDrawDistinct(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id) && !_shopModeBanned(t.id)), t => (t.rarity || 'common'), 2);
   const sleights = pickSleightByRarity(3, grantedSleights);
 
   shopItems = { tricks, limits: lims, knacks, sleights };
@@ -131,7 +153,7 @@ function rerollShopItems() {
   // Tricks
   const usedBcIds = new Set(ownedBcIds);
   shopItems.tricks.forEach((trick, i) => { if (trick && shopPurchased.has(`trick-${i}`)) usedBcIds.add(trick.id); });
-  const freshTricks = shuffle(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)));
+  const freshTricks = _shopDrawDistinct(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)), b => (b.tier || 'common'), 3);
   let bi = 0;
   shopItems.tricks = shopItems.tricks.map((trick, i) => shopPurchased.has(`trick-${i}`) ? trick : (freshTricks[bi++] || trick));
 
@@ -145,7 +167,7 @@ function rerollShopItems() {
   // Knacks
   const usedTotIds = new Set(ownedKnackIds);
   shopItems.knacks.forEach((t, i) => { if (t && shopPurchased.has(`knack-${i}`)) usedTotIds.add(t.id); });
-  const freshTots = shuffle(KNACK_POOL.filter(t => !usedTotIds.has(t.id) && !_shopModeBanned(t.id)));
+  const freshTots = _shopDrawDistinct(KNACK_POOL.filter(t => !usedTotIds.has(t.id) && !_shopModeBanned(t.id)), t => (t.rarity || 'common'), 2);
   let ti = 0;
   shopItems.knacks = shopItems.knacks.map((t, i) => shopPurchased.has(`knack-${i}`) ? t : (freshTots[ti++] || t));
 
@@ -162,12 +184,9 @@ function triggerShop() {
   clearInterval(roundInterval);
   roundInterval = null;
   gameTimerPaused = true;
-  // LETHE Mart (r127): the off-grid shop. Preferred route; on-grid + overlay below
-  // stay as one-flag fallbacks (USE_MART_SHOP / USE_ONGRID_SHOP).
-  if (typeof USE_MART_SHOP !== 'undefined' && USE_MART_SHOP && typeof openMart === 'function') {
-    openMart();
-    return;
-  }
+  // The on-grid shop is THE shop (r232); the overlay below is a one-flag
+  // fallback (USE_ONGRID_SHOP). The Mart (the off-grid r127 shop) was deleted
+  // in r278 - the Wheel and the Tinker Bench went with it.
   if (typeof USE_ONGRID_SHOP !== 'undefined' && USE_ONGRID_SHOP && typeof openShopGrid === 'function') {
     openShopGrid();
     return;
@@ -196,6 +215,10 @@ function renderShop() {
 // Orbitron name, scanlines, sleight tab, knack diamond - with a price chip
 // pinned to the corner. Descriptions live in the shared reward tooltip on hover.
 function buildShopTileInner(p) {
+  if (p._cardBuff) {
+    // A buffed-card offer: the card's face large, the buff as the name band.
+    return `<div class="stc-face">${p.icon}</div><div class="rwd-name">${p.sub || ''}</div>`;
+  }
   if (p.entity === 'knack') {
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
          + `<div class="rwd-name">${p.label}</div>`;
@@ -255,11 +278,15 @@ function renderShopLimits() {
   if (!row) return;
   row.innerHTML = '';
   shopItems.limits.forEach((def, i) => {
-    const maxed = limits[def.id].current >= limits[def.id].max;
+    // `cur + 1` was wrong for the two limits that do not step by 1 - it offered
+    // Focus Cap as 30 -> 31 and then granted 3. limitChangeText does the clamp
+    // and the unit (js/limits.js).
+    const maxed = !limitCanIncrement(def.id);
     const price = shopLimitPrice(def);
-    const cur   = limits[def.id].current;
-    const next  = Math.min(cur + 1, limits[def.id].max);
-    const p = { _upgrade: true, icon: def.icon, label: def.label, desc: def.desc, sub: `${cur} → ${next}`, rarity: 'common' };
+    const u     = limitUnit(def.id);
+    const sub   = maxed ? `${limits[def.id].current}${u}`
+                        : `${limits[def.id].current}${u} → ${limits[def.id].current + limitGain(def.id)}${u}`;
+    const p = { _upgrade: true, icon: def.icon, label: def.label, desc: def.desc, sub, rarity: 'common' };
     row.appendChild(makeShopTile(p, 'buff', price, shopPurchased.has(`limit-${i}`), maxed ? 'MAXED' : null, () => buyShopLimit(i)));
   });
 }
@@ -287,7 +314,7 @@ function renderShopSleights() {
 }
 
 function renderShopFooter() {
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
+  const maxRerolls = LEGACY_SHOP_REROLLS;
   const isDebuff   = shopRerollCount >= maxRerolls;
   const nextCost   = 8 + shopRerollCount * 2;
   const costEl  = document.getElementById('shop-reroll-cost');
@@ -367,7 +394,7 @@ function buyShopSleight(i) {
 }
 
 function doShopReroll() {
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
+  const maxRerolls = LEGACY_SHOP_REROLLS;
   const isDebuff   = shopRerollCount >= maxRerolls;
   if (isDebuff) {
     const targets = [];

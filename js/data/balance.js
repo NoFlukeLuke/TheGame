@@ -110,18 +110,11 @@ const BAL = {
   more_better:   { mult: 4, min_tiles: 3 },
   rain_check:    { seconds: 30 },
   temporal_rift: { pause: 3 },
-  // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
-  // has no sell price of its own and there's no room for it.
-  wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
-  // Bundle discount: % off per ADDITIONAL item in the cart, with its own flat cap.
-  // 1 item = 0%, 2 = 5%, 3 = 10%, 4 = 15%, 5+ = 20%. Bulk Buyer doubles BOTH the
-  // rate and the cap. This used to be capped at rate × Selection Size, which tied
-  // shopping to how many CARDS you can pick for a poker hand - unrelated things.
-  shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
-  // Tinker bench (Mart → Tools): stamp a real rank + suit onto a Sleight you own,
-  // so it starts counting as a normal card in hand detection on top of whatever
-  // it already does. Price climbs per identity issued in a run.
-  tinker_identity: { cost: 18, cost_step: 8 },
+
+  // Shop multi-buy discount (js/shop-grid-preview.js): % off per ADDITIONAL item
+  // in the connected group. Bulk Buyer raises the rate to bulk_per_item. No cap of
+  // its own - Selection Size already caps the group.
+  shop_discount: { per_item: 3, bulk_per_item: 5 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
@@ -159,7 +152,7 @@ const BAL = {
   chorus:      { mult_mult_per_replay: 0.2 },
   portfolio:   { mult_mult_per_card: 0.15 },
   redline:     { focus_threshold: 2, mult_mult: 2 },
-  // Compound (mythic): every interval_seconds of round time the current round score
+  // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   compound:    { interval_seconds: 45, bank_fraction: 1 },
@@ -170,7 +163,7 @@ const BAL = {
   // Three on offer, priced by how strong the effect is. The card itself is a copy
   // of one already in the deck, so the market can never hand out a rank or suit
   // the mode does not use (Spectrum has no courts, Six Suits has two extra suits).
-  market: { offers: 3, prices: { pips: 8, mult: 12, time: 10, replay: 18 } },
+  market: { offers: 3, prices: { pips: 8, mult: 12, time: 10, replay: 18, coin: 6 } },
   // ── Deck Trim (r211) - the frequent-removal event ──
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.
@@ -211,6 +204,12 @@ const BAL = {
   quarter_chime: { pips: 45 },
   minute_hand: { mult: 5, hands: 2 },
   understudy: { interval_seconds: 30 },
+  hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
+  turnover:   { idle_seconds: 45 },
+  // Card states (r278, js/card-states.js). Not an entity, so improve.js never
+  // touches these - they are the states' own numbers, in one place.
+  card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
+  payout_pick: { pips: 12 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
@@ -270,7 +269,7 @@ const BAL = {
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { unspent_credits: 3, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
+  _resources: { unspent_credits: 2, unspent_cap: 10, interest_cap: 10, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
   _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };
@@ -289,13 +288,30 @@ const BAL = {
 // game's generosity is editing one line and so that a future Luck stat has a
 // single place to reach.
 //
-// The prize grid keeps its own variant (common cut out) because that IS its
-// design, not a drift.
-const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-const ENTITY_TIER_W  = [59, 28, 10, 2, 1];
+// The prize grid has its own table, PRIZE_TIER_W, below.
+//
+// FOUR tiers, not five (r226). `mythic` was merged into `legendary` when the
+// data pools were re-tiered, so the fifth slot matched NOTHING: every mythic
+// roll - 1% of all draws - cascaded down into legendary anyway, and the tiles
+// that hard-coded tier:'mythic' (the Limit Break) asked for a `rar-mythic`
+// colour no stylesheet defines. Its weight is folded into legendary, so the
+// effective spread is unchanged.
+const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary'];
+const ENTITY_TIER_W  = [71, 22, 5.5, 1.5];
+
+// The post-boss PRIZE (boss) grid. It used to cut commons out of every pool and
+// draw the remaining three tiers, which is a different thing from a table: the
+// filters decided the floor and the weights only shared out what was left.
+// It is a real four-tier table now (owner's numbers), so the prize grid's
+// generosity is one line here rather than a filter in three pool builders, and
+// what it says is what it draws. A common is a third of the tiles and the
+// middle of the ladder is where a prize grid pays: RARE is more than half.
+const PRIZE_TIER_W   = [30, 55, 12, 3];
 
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
+  hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, {seconds}s of clock, or a trick primed or forced.',
+  turnover:   'Any card you leave alone for {idle_seconds} seconds is discarded and a fresh one falls in. Costs you nothing.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',
@@ -382,6 +398,7 @@ const DESC_TEMPLATES = {
   nines_mult: 'Each 9 scored permanently adds +{mult_per_nine} mult to this trick',
   fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
   big_win: 'The first time a single hand scores 10,000+, permanently add +{mult} mult to this trick',
+  interest: 'Pips start at ×1 and gain +{pip_mult_per_10_credits}× for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
   amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
@@ -414,3 +431,44 @@ function applyBalDescriptions() {
 }
 applyBalDescriptions();
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// GLOBAL PRICE MULTIPLIER (r234)
+//
+// One knob over every credit SINK in the game, so the economy can be retuned
+// (and un-retuned) without editing a dozen price tables. It is applied in two
+// different ways depending on where the number lives:
+//
+//   - a plain `const` table (shop.js) is scaled ONCE at load, so everything
+//     derived from it - sell values, the +5 limit step - scales with it for
+//     free and cannot drift out of step with the buy price.
+//   - anything read out of BAL is scaled at the READ SITE, because
+//     applyEntityTiers() rewrites BAL in place from BAL_BASE whenever a tier
+//     changes and would throw away a load-time edit.
+//
+// Persisted so a tuning session survives a reload. Set to 1 for the shipped
+// pre-r234 economy.
+// ══════════════════════════════════════════════════════════════════════════
+let PRICE_MULT = parseFloat(localStorage.getItem('lethe.priceMult'));
+if (!isFinite(PRICE_MULT) || PRICE_MULT <= 0) PRICE_MULT = 2;
+
+// Scale one price. Always at least 1 - a sink that rounds to zero stops being a
+// cost at all, which is a different game rather than a cheaper one.
+function priceOf(n) {
+  if (typeof n !== 'number' || !isFinite(n) || n <= 0) return n;
+  return Math.max(1, Math.round(n * PRICE_MULT));
+}
+
+// Scale every numeric value of a price table in place.
+function scalePriceTable(tbl) {
+  for (const k in tbl) if (typeof tbl[k] === 'number') tbl[k] = priceOf(tbl[k]);
+  return tbl;
+}
+
+function setPriceMult(v) {
+  v = parseFloat(v);
+  if (!isFinite(v) || v <= 0) return PRICE_MULT;
+  localStorage.setItem('lethe.priceMult', String(v));
+  PRICE_MULT = v;     // tables already scaled this session; takes full effect on reload
+  return PRICE_MULT;
+}

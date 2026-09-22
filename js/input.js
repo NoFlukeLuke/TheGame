@@ -4,7 +4,15 @@ let isSwiping = false;
 let swipeStopped = false;
 
 // Auto-submit
-const AUTO_SUBMIT_DELAY = 2000; // ms
+const AUTO_SUBMIT_DELAY = 2000;      // ms - long enough to change your mind
+const AUTO_SUBMIT_DELAY_FAST = 350;  // ms - autoPlayHands: steering, not choosing
+// A valid hand has always submitted itself on a timer; `autoPlayHands` only sets
+// how long that timer is. That is deliberately ALL it does - a separate auto-play
+// path would be a second way into playHand to keep in step with this one.
+function autoSubmitDelay() {
+  return (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.autoPlayHands)
+    ? AUTO_SUBMIT_DELAY_FAST : AUTO_SUBMIT_DELAY;
+}
 let autoSubmitTimer = null;
 let handReadyForSubmit = false; // true once an invalid card is hit mid-swipe
 
@@ -52,7 +60,7 @@ function scheduleAutoSubmit() {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
     if (!animating && !falling && selected.length >= 2 && selected.length >= minSelection()) playHand();
-  }, AUTO_SUBMIT_DELAY);
+  }, autoSubmitDelay());
 }
 
 function cardAt(el) {
@@ -87,7 +95,13 @@ function doSwap(r1, c1, r2, c2) {
     swapPending = null; render(); return;
   }
   const notAdjacent = Math.abs(r1-r2) + Math.abs(c1-c2) !== 1;
-  if (notAdjacent && !hasTrick('free_range')) {
+  // Free Range is a KNACK, `free_range_t` (js/data/knacks.js). This tested
+  // hasTrick('free_range') - a Trick id that does not exist in any pool - so
+  // the whole printed effect ("swap any two non-adjacent cards") had never
+  // once fired, while its downside DID: level-up.js takes a swap off the base
+  // for owning it. The knack was strictly negative. Found in r307 while
+  // mirroring this rule into the shop.
+  if (notAdjacent && !hasKnack('free_range_t')) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
@@ -124,6 +138,7 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  swapsUsedRound++;   // every swap ACTION, free or not (the No Takebacks challenge)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
@@ -132,7 +147,7 @@ function doSwap(r1, c1, r2, c2) {
   let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasKnack('free_swaps')) swapTimeCost = 0;
   else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
-  swapTimeCost = Math.round(swapTimeCost * bossInteractMult());
+  swapTimeCost = interactTimeCostsOn() ? Math.round(swapTimeCost * bossInteractMult()) : 0;
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);
@@ -154,6 +169,11 @@ function doSwap(r1, c1, r2, c2) {
   });
   selected = [];
   swapPending = null;
+  // Card states (r278): a swap is an INTERACTION, so it resets both cards' fuses.
+  // That is a real lever rather than a side effect - moving a charged card buys
+  // it another full fuse, at the cost of a swap and the clock, and it is the only
+  // way to hold a state you are not ready to spend yet.
+  if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r1, c1], [r2, c2]]);
   // on_swap sleights (Dazed reshuffle, Pivot charge/message) fire after the swap
   fireSleightsOnSwap(r1, c1, r2, c2);
   feedWhetstones([[r1, c1], [r2, c2]]);  // Whetstone sharpens on adjacent swaps
@@ -258,6 +278,15 @@ function tryAddToSelection(r, c) {
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  // The Pick (r244) owns the board outright while it is open, so it intercepts
+  // ABOVE the `animating` guard - that flag is routinely still true from the
+  // un-explode's flights, and a tap that silently does nothing reads as broken.
+  if (typeof pickActive !== 'undefined' && pickActive) { pickSelect(r, c); return; }
+  // Dev: a card state is armed and this tap charges the card (r278). Above the
+  // `animating` guard for the Pick's reason - the dev panel's own flow is not
+  // play and a tap that silently does nothing reads as broken - and it returns
+  // false the moment nothing is armed, so ordinary play never reaches it.
+  if (typeof devCardStateApplyTap === 'function' && devCardStateApplyTap(r, c)) return;
   if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';

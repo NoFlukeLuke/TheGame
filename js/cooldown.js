@@ -89,7 +89,10 @@ function cdForTrick(trickId) {
   //    the tray-order Tricks that prime their neighbours).
   const tray = (typeof trickTray !== 'undefined' ? trickTray : []) || [];
   const t = tray.find(x => x.id === trickId);
-  const primed = t ? (t._primed || 0) : 0;
+  // _rank is a PERMANENT prime (the Extra Rep event) and fires exactly like a
+  // temporary one - trickFires() is 1 + _primed + _rank + mirrors - so the badge
+  // has to count both or a rehearsed Trick reads as unprimed for the whole run.
+  const primed = t ? ((t._primed || 0) + (t._rank || 0)) : 0;
   if (primed > 0 && trickId !== 'minute_hand') return { mode: 'primed', count: primed };
   // 3. Its own rhythm.
   if (TRICK_TIMERS[trickId]) return TRICK_TIMERS[trickId](trickId);
@@ -111,6 +114,14 @@ function cdForCard(card, r, c) {
   if (typeof bossRecallSecondsLeft === 'function') {
     const info = bossRecallSecondsLeft(card);
     if (info) return { mode: 'off', left: info.left, total: info.total };
+  }
+  // A card-state fuse, or the Turnover knack's idle clock (r278). Mode 'primed'
+  // and NOT 'cooldown', which matters: 'off' and 'cooldown' grey the host, and a
+  // fuse is the opposite of unavailable - the card is perfectly playable and the
+  // ring is the reason to hurry up and play it.
+  if (typeof cardStateFuse === 'function') {
+    const f = cardStateFuse(card);
+    if (f && f.left > 0) return { mode: 'primed', left: f.left, total: f.total };
   }
   return null;
 }
@@ -155,9 +166,16 @@ function cdPaint(el, info) {
   b.classList.toggle('cd-b-primed', mode === 'primed');
   // A charge count (primed with no clock) prints the count; anything with a
   // clock prints whole seconds and fills the ring by how much is left.
+  //
+  // A COUNT is not a COUNTDOWN (r267). The ring is a clock face, and under a
+  // charge count it draws a full circle that never moves - which reads as a
+  // timer that has stuck. A count-only badge is a violet PILL instead (+2), and
+  // the shape is also what tells it apart from the improvement tier's brass
+  // v2.0 in the opposite corner.
   const num = b.querySelector('.cd-num');
+  b.classList.toggle('cd-b-count', info.left == null && info.count != null);
   if (info.left == null) {
-    num.textContent = info.count != null ? String(info.count) : '·';
+    num.textContent = info.count != null ? ('+' + info.count) : '·';
     b.style.setProperty('--cd-p', '1');
   } else {
     num.textContent = String(Math.max(0, Math.ceil(info.left)));
@@ -165,7 +183,8 @@ function cdPaint(el, info) {
     b.style.setProperty('--cd-p', String(Math.max(0, Math.min(1, info.left / total))));
   }
   b.style.setProperty('--cd-c', CD_COLORS[mode] || CD_COLORS.cooldown);
-  b.title = mode === 'off' ? 'Switched off' : mode === 'cooldown' ? 'Recharging' : 'Primed';
+  b.title = mode === 'off' ? 'Switched off' : mode === 'cooldown' ? 'Recharging'
+          : (info.count != null ? `Primed: fires ${info.count} extra time${info.count === 1 ? '' : 's'}` : 'Primed');
 }
 
 // ── The driver ──────────────────────────────────────────────────────────────
@@ -234,7 +253,8 @@ function cardCooldownParts(card, r, c) {
   return {
     cls: `cd-${info.mode}` + (dim ? ' cd-inactive' : ''),
     html: (dim ? '<div class="cd-wash"></div>' : '')
-        + `<div class="cd-badge" style="--cd-p:${p};--cd-c:${color}">`
-        + `<span class="cd-num">${left == null ? (info.count != null ? info.count : '\u00b7') : left}</span></div>`,
+        + `<div class="cd-badge${left == null && info.count != null ? ' cd-b-count' : ''}"`
+        + ` style="--cd-p:${p};--cd-c:${color}">`
+        + `<span class="cd-num">${left == null ? (info.count != null ? '+' + info.count : '\u00b7') : left}</span></div>`,
   };
 }

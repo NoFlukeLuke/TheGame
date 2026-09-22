@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker Squares - mode preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400;600&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   POKER SQUARES - mode preview.
+
+   THEME: this is the GAME'S chrome, not a look of its own. Everything below is
+   lifted from css/style.css and css/dev-overlays.css rather than re-invented:
+
+     - the :root palette, verbatim
+     - the CABINET (beige plastic housing, marquee, CRT bezel, scanlines, glare)
+     - .panel-box for every panel, .score-subbox for the PIPS/MULT chips
+     - .act-btn / .btn-play / .btn-discard / #swap-indicator for the three buttons
+     - the #event-panel CONSOLE for every overlay: indigo wash, 2px plastic ring,
+       violet glow, scanlines, a sticky marquee bar with eyebrow + three idle
+       lamps, and a sticky action footer so CONFIRM is never scrolled away
+     - the reward-cell rarity colours (mint / cyan / purple / magenta) on picks
+     - the type roles: Orbitron caps for names, Share Tech Mono for labels and
+       numbers, Crimson Pro for prose, Cinzel for the score readouts
+   ═══════════════════════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+input{-webkit-user-select:text;user-select:text}
+
+:root{
+  --bg:#0e0c0a; --gold:#c9a84c; --gold-dim:#7a6030; --red:#c0392b; --green:#5a9e5a;
+  --cream:#f0e6c8; --cream-dim:#8a7d60; --panel:#13110e; --border:#3a3020;
+  --card-bg:#f5efe0; --card-border:#d4c89a;
+  --suit-hearts:#A0030B; --suit-diamonds:#EC9F05; --suit-spades:#000; --suit-clubs:#2255cc;
+  --pip:#5588ee; --mult:#dd4444; --violet:#a25cd8;
+  --plastic:#e8e0cd; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+  --rar-common:#6fd08c; --rar-rare:#5fc8e8; --rar-epic:#b07fe8; --rar-legendary:#e86fc8;
+}
+body{background:radial-gradient(circle at 50% 22%,#1d1a16,#070605 70%);color:var(--cream);
+  font-family:'Share Tech Mono',monospace;min-height:100vh;padding:22px 0 40px;
+  display:flex;flex-direction:column;align-items:center;gap:16px}
+
+/* ── THE CABINET ─────────────────────────────────────────────────────────── */
+#cabinet{position:relative;width:1216px;max-width:calc(100vw - 24px);
+  padding:10px 18px 12px;border-radius:24px;
+  background:linear-gradient(180deg,var(--plastic-hi) 0%,var(--plastic) 8%,var(--plastic) 88%,var(--plastic-lo) 100%);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.6),inset 3px 0 0 rgba(255,255,255,.3),
+    inset -3px 0 0 rgba(0,0,0,.16),inset 0 -5px 0 rgba(0,0,0,.2),
+    0 24px 60px rgba(0,0,0,.6),0 4px 0 var(--plastic-deep)}
+#cabinet::before,#cabinet::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;top:13px;
+  background:radial-gradient(circle at 38% 34%,#fff 0%,#cfc6b0 40%,#8a7f65 100%);
+  box-shadow:inset 0 -1px 1px rgba(0,0,0,.35)}
+#cabinet::before{left:13px} #cabinet::after{right:13px}
+#marquee{margin:0 34px 9px;padding:7px 0 8px;border-radius:9px;text-align:center;
+  background:linear-gradient(180deg,#2a2218,#17120c);
+  border:1px solid #5d4e33;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.25)}
+#marquee h1{font-family:'Orbitron',sans-serif;font-weight:900;font-size:19px;letter-spacing:7px;
+  color:var(--gold);text-shadow:0 0 14px rgba(201,168,76,.75),0 0 30px rgba(201,168,76,.3)}
+#marquee .sub{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:4px;
+  color:var(--cream-dim);margin-top:3px;text-transform:uppercase}
+
+/* the CRT the game is drawn on */
+#screen{position:relative;border-radius:14px;padding:14px;overflow:hidden;
+  background:#0e0c0a;border:2px solid #241d12;
+  box-shadow:inset 0 0 0 3px #0a0806,inset 0 0 44px rgba(0,0,0,.9),0 0 0 3px var(--plastic-deep)}
+#screen::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:40;border-radius:12px;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
+    radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.055),transparent 55%),
+    radial-gradient(ellipse at 50% 50%,transparent 52%,rgba(0,0,0,.55) 100%)}
+#vents{display:flex;gap:4px;justify-content:center;margin-top:9px}
+#vents i{width:52px;height:5px;border-radius:3px;background:linear-gradient(180deg,#b9ad93,#8d8267);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+
+/* ── HUD BAR ─────────────────────────────────────────────────────────────── */
+#turnbar{display:flex;justify-content:center;gap:0;align-items:stretch;margin-bottom:10px;
+  font-size:9px;letter-spacing:1px;color:var(--cream-dim);text-transform:uppercase}
+#turnbar .tb{padding:4px 13px;border-right:1px solid var(--border)}
+#turnbar .tb:last-child{border-right:none}
+#turnbar b{color:var(--gold);font-weight:400}
+#turnbar .tb.mode b{color:var(--violet)}
+
+#stage{display:flex;gap:14px;align-items:flex-start;justify-content:center}
+#left{width:186px;display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.panel-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.plabel{font-family:'Cinzel',serif;font-size:7px;letter-spacing:2px;color:var(--cream-dim);
+  text-transform:uppercase;margin-bottom:5px}
+#score-big{font-family:'Cinzel',serif;font-size:30px;font-weight:700;color:var(--cream);line-height:1}
+#round-line{font-size:8px;letter-spacing:1px;color:var(--cream-dim);margin-top:2px}
+.chips{display:flex;gap:4px;margin-top:6px}
+.score-subbox{flex:1;background:#0a0808;border:1px solid var(--border);border-radius:4px;
+  padding:4px;text-align:center;height:42px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.subbox-val{font-family:'Cinzel',serif;font-size:15px;font-weight:700;line-height:1.1}
+.subbox-label{font-family:'Cinzel',serif;font-size:6px;letter-spacing:1px;color:var(--cream-dim);
+  line-height:1;margin-top:2px}
+#chip-pips .subbox-val{color:var(--pip)} #chip-mult .subbox-val{color:var(--mult)}
+.tricks{display:flex;flex-wrap:wrap;gap:4px}
+.tk{width:26px;height:26px;border-radius:5px;background:#1a1510;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:14px;cursor:default;position:relative}
+.tk b{position:absolute;bottom:-1px;right:1px;font-size:7px;font-family:'Share Tech Mono',monospace;
+  text-shadow:0 0 4px #000,0 0 4px #000}
+#cons{display:flex;flex-wrap:wrap;gap:5px}
+.cons{width:50px;height:54px;border-radius:5px;background:#16121c;border:1px solid #3a3560;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;position:relative;transition:transform .12s,box-shadow .12s}
+.cons:hover{transform:translateY(-2px);border-color:#7a63c8}
+.cons.armed{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(201,168,76,.6)}
+.cons .ci{font-size:17px;line-height:1}
+.cons .cn{font-family:'Orbitron',sans-serif;font-size:5px;letter-spacing:.5px;color:var(--cream)}
+.cons .cd{position:absolute;top:2px;right:3px;font-size:6px;color:#fff;background:var(--violet);
+  border-radius:3px;padding:0 2px;line-height:1.5}
+#cons-hint{font-family:'Crimson Pro',serif;font-size:10px;color:var(--cream-dim);margin-top:6px;line-height:1.3}
+#dk-drift{font-size:9px;line-height:1.6;color:var(--cream-dim);max-height:96px;overflow:auto}
+#dk-drift b{color:var(--green);font-weight:400} #dk-drift i{color:var(--red);font-style:normal}
+
+/* ── BOARD ───────────────────────────────────────────────────────────────── */
+#centre{position:relative;display:flex;flex-direction:column;align-items:center}
+#boardwrap{position:relative;margin-top:24px}
+#handname{position:absolute;top:-21px;left:0;right:0;text-align:center;
+  font-family:'Orbitron',sans-serif;font-weight:700;font-size:12px;letter-spacing:2.5px;
+  color:var(--gold);text-shadow:0 0 12px rgba(201,168,76,.7),0 2px 3px #000;
+  opacity:0;transition:opacity .16s;text-transform:uppercase}
+#handname.on{opacity:1}
+#board{display:grid;grid-template-columns:repeat(5,70px);grid-auto-rows:84px;gap:3px;
+  padding:9px;border-radius:9px;background:#0a0806;border:1px solid #241d12;
+  box-shadow:inset 0 0 26px rgba(0,0,0,.8);position:relative}
+.cell{position:relative;border-radius:5px;background:#141210;border:1px dashed #241f18}
+.cell.ghost-ok{background:rgba(90,158,90,.20);border:1px solid var(--green)}
+.cell.ghost-bad{background:rgba(192,57,43,.22);border:1px solid var(--red)}
+.cell.tentative{box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(201,168,76,.45)}
+/* An EMPTY marked cell gets the wash; an OCCUPIED one gets a RING in the same
+   paint, masked to the card's border so the face stays cream. Two tricks on one
+   cell split into hard wedges - never a blend, which is a third colour that
+   belongs to neither (r296). */
+.cell.marked::before{content:'';position:absolute;inset:0;border-radius:5px;
+  background:var(--mk);opacity:.32;pointer-events:none}
+.cell.marked .card::after{content:'';position:absolute;inset:0;border-radius:5px;padding:3px;
+  background:var(--mk);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+.cell.ctarget{box-shadow:0 0 0 2px var(--violet),0 0 14px rgba(162,92,216,.6);cursor:pointer}
+.cell.cpicked{box-shadow:0 0 0 3px var(--gold),0 0 18px rgba(201,168,76,.7)}
+.cell.locked{opacity:.55}
+.cell.locked::after{content:'';position:absolute;inset:0;border-radius:5px;pointer-events:none;
+  background:repeating-linear-gradient(45deg,rgba(0,0,0,.5) 0 5px,transparent 5px 10px)}
+.card{position:absolute;inset:0;background:var(--card-bg);border:2px solid var(--card-border);
+  border-radius:5px;display:flex;flex-direction:column;justify-content:space-between;
+  padding:3px 4px;color:#111;font-family:'Crimson Pro',serif;font-weight:600;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);
+  transition:transform .2s cubic-bezier(.34,1.3,.64,1),box-shadow .2s ease,filter .2s ease}
+.card .r{font-size:15px;line-height:1}
+.card .s{font-size:15px;line-height:1;align-self:flex-end;transform:rotate(180deg)}
+.card.dim{opacity:.55}
+.card.wave{transform:translateY(-8px) scale(1.06);box-shadow:0 12px 22px rgba(0,0,0,.6),0 0 22px rgba(201,168,76,.55);z-index:5}
+.card.penal{filter:saturate(.35) brightness(.72);box-shadow:0 0 0 2px var(--red),0 0 16px rgba(192,57,43,.55);z-index:5}
+.h,.d{} .h{color:var(--suit-hearts)} .d{color:var(--suit-diamonds)}
+.s-{color:#111} .c{color:var(--suit-clubs)}
+
+/* line pick buttons */
+.lbtn{position:absolute;border:1px solid var(--gold-dim);background:#15120d;color:var(--gold);
+  font-size:9px;letter-spacing:1px;border-radius:4px;padding:2px 4px;cursor:pointer;z-index:6;
+  transition:all .12s}
+.lbtn:hover{background:var(--gold);color:#0e0c0a}
+.lbtn.sel{background:var(--gold);color:#0e0c0a;box-shadow:0 0 12px rgba(201,168,76,.7)}
+.lbtn.off{opacity:.25;cursor:default;border-style:dashed}
+.lbtn.off:hover{background:#15120d;color:var(--gold)}
+
+/* ── THE LOOSE HAND ──────────────────────────────────────────────────────── */
+#hand{position:relative;height:178px;margin-top:9px;width:660px;display:flex;
+  justify-content:center;align-items:flex-start;gap:9px;transition:opacity .16s}
+#hand.see-through{opacity:.26}
+.hcard{position:relative;width:114px;height:162px;background:var(--card-bg);
+  border:2px solid var(--card-border);border-radius:8px;display:flex;align-items:center;
+  justify-content:center;cursor:grab;
+  box-shadow:0 8px 16px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.4);
+  background-image:repeating-linear-gradient(45deg,rgba(180,160,110,.09) 0 3px,transparent 3px 6px);
+  transition:transform .16s cubic-bezier(.34,1.3,.64,1),box-shadow .16s}
+.hcard:hover{transform:translateY(-8px) rotate(-1deg);box-shadow:0 16px 26px rgba(0,0,0,.6)}
+.hcard.sel{box-shadow:0 0 0 2px var(--gold),0 14px 26px rgba(0,0,0,.6)}
+.hcard.dragging{opacity:.22}
+.rot{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;
+  background:rgba(20,18,14,.88);border:1px solid var(--gold-dim);color:var(--gold);
+  font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3}
+.rot:hover{background:var(--gold);color:#1a1509}
+#drag{position:fixed;pointer-events:none;z-index:999;display:none;opacity:.92}
+.poly{display:grid;gap:2px}
+.mini{background:var(--card-bg);border:1.5px solid #111;border-radius:2px;
+  width:var(--mw,26px);height:var(--mh,35px);display:flex;flex-direction:column;
+  justify-content:space-between;padding:1px 2px;font-family:'Crimson Pro',serif;font-weight:600}
+.mini .r{font-size:var(--mfs,10px);line-height:1}
+/* A MINI DOES NOT GET THE ROTATED BOTTOM INDEX. At full size that upside-down
+   corner is the real playing-card convention; at 20px it is an illegible smudge
+   that reads as a rendering fault. Rank upright top-left, bare suit glyph below. */
+.mini .s{font-size:var(--mfs,10px);line-height:1;align-self:flex-end}
+.mini.blank{background:transparent;border:none;box-shadow:none}
+
+/* ── THE THREE BUTTONS ───────────────────────────────────────────────────── */
+#right{width:118px;display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.act-btn{font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;
+  border-radius:6px;cursor:pointer;border:2px solid;padding:14px 6px;transition:all .12s;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+.act-btn small{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;
+  text-transform:none;opacity:.8}
+.act-btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-play{background:var(--gold);border-color:var(--gold);color:#0e0c0a;font-weight:700}
+.btn-play:not(:disabled):hover{background:#e0bc5a}
+.btn-discard{background:rgba(192,57,43,.9);border-color:var(--red);color:#fff}
+.btn-discard.drop-target{box-shadow:0 0 0 3px #fff,0 0 22px var(--red)}
+.btn-end{background:#1a1510;border-color:var(--border);color:var(--cream-dim)}
+.btn-end:not(:disabled){border-color:var(--gold-dim);color:var(--gold)}
+.btn-end:not(:disabled):hover{background:var(--gold);color:#0e0c0a}
+
+/* the flying score chip */
+.schip{position:fixed;z-index:900;pointer-events:none;font-family:'Orbitron',sans-serif;
+  font-weight:700;font-size:15px;letter-spacing:1px;color:#fff;padding:5px 9px;border-radius:5px;
+  background:linear-gradient(180deg,#2a2440,#14112a);border:1px solid #7a63c8;
+  box-shadow:0 0 18px rgba(162,92,216,.75),0 4px 10px rgba(0,0,0,.6)}
+
+/* ── THE CONSOLE (every overlay) - #event-panel's chrome ─────────────────── */
+.ov{display:none;position:fixed;inset:0;z-index:300;padding:18px 14px;
+  background:radial-gradient(circle at 50% 16%,rgba(90,70,160,.24),transparent 62%),rgba(10,9,22,.96);
+  flex-direction:column;align-items:center;justify-content:center}
+.ov.on{display:flex}
+.ovp{position:relative;width:100%;max-width:660px;max-height:calc(100dvh - 36px);
+  display:flex;flex-direction:column;align-items:center;padding:0 18px 18px;
+  border:1px solid #33314e;border-radius:14px;
+  background:linear-gradient(180deg,#17162a 0%,#100e1d 46%,#0a0913 100%);
+  box-shadow:0 0 0 2px var(--plastic-lo),0 0 26px -4px rgba(140,110,230,.55),
+    0 26px 70px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.06);
+  overflow-y:auto;overscroll-behavior:contain}
+.ovp::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:13px;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.17) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay}
+.ovp>*{position:relative;z-index:1}
+.conbar{position:sticky;top:0;z-index:3;width:calc(100% + 36px);margin:0 -18px 14px;
+  display:flex;align-items:center;justify-content:space-between;padding:9px 16px;
+  border-bottom:1px solid #3a3560;border-radius:13px 13px 0 0;
+  background:linear-gradient(180deg,rgba(140,110,230,.20),rgba(140,110,230,.03)),
+    linear-gradient(180deg,#191830,#14122400);background-color:#17162a}
+.conbar .eyebrow{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:#b39cf5;
+  text-shadow:0 0 10px rgba(179,156,245,.6)}
+.lamps{display:flex;gap:5px}
+.lamps i{width:5px;height:5px;border-radius:50%;background:#b39cf5;opacity:.45;
+  box-shadow:0 0 6px rgba(179,156,245,.8);animation:ev-lamp 2.6s ease-in-out infinite}
+.lamps i:nth-child(2){animation-delay:.35s} .lamps i:nth-child(3){animation-delay:.7s}
+@keyframes ev-lamp{0%,100%{opacity:.22}50%{opacity:.95}}
+.ovp h3{font-family:'Orbitron',sans-serif;font-weight:800;font-size:19px;letter-spacing:2.5px;
+  text-transform:uppercase;color:#fff;text-align:center;margin-bottom:5px;
+  text-shadow:0 0 14px rgba(179,156,245,.75),0 2px 3px #000}
+.lead{font-family:'Crimson Pro',serif;font-size:13px;line-height:1.5;color:rgba(240,230,200,.72);
+  text-align:center;max-width:430px;margin-bottom:16px}
+.confoot{position:sticky;bottom:-18px;z-index:3;width:calc(100% + 36px);margin:14px -18px -18px;
+  display:flex;gap:10px;justify-content:center;padding:12px 16px;border-top:1px solid #3a3560;
+  border-radius:0 0 13px 13px;background-color:#131222}
+.ovb{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:9px 18px;border-radius:6px;cursor:pointer;border:1px solid #3a3560;
+  background:rgba(140,110,230,.10);color:#cbbcf7;transition:all .12s}
+.ovb:hover:not(:disabled){background:rgba(140,110,230,.26);border-color:#7a63c8;color:#fff}
+.ovb:disabled{opacity:.3;cursor:not-allowed}
+.ovb.go{background:var(--green);border-color:var(--green);color:#06140a;font-weight:700}
+.ovb.go:hover:not(:disabled){background:#6ebf6e}
+
+/* mode choice */
+.opts{display:flex;gap:14px;width:100%}
+.opt{flex:1;padding:16px 14px;border-radius:9px;border:2px solid #33314e;background:#100e1d;
+  cursor:pointer;transition:all .14s}
+.opt:hover{border-color:var(--gold);transform:translateY(-3px);
+  box-shadow:0 0 24px -6px rgba(201,168,76,.6)}
+.opt .on2{font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;
+  color:var(--gold);margin-bottom:8px}
+.opt .od{font-family:'Crimson Pro',serif;font-size:12.5px;line-height:1.5;color:rgba(240,230,200,.75)}
+
+/* pick three - reward-cell rarity colours */
+.pick{display:flex;gap:12px;justify-content:center;width:100%}
+.pk{flex:1;max-width:196px;background:#100e1d;border:2px solid #33314e;border-radius:9px;
+  padding:13px 11px;text-align:center;cursor:pointer;transition:all .14s;position:relative}
+.pk:hover{border-color:var(--rc,var(--gold));transform:translateY(-3px)}
+.pk.sel{border-color:var(--gold);transform:translateY(-3px);
+  box-shadow:0 0 0 2px var(--gold),0 0 24px -4px rgba(201,168,76,.6)}
+.pk.sel::after{content:'CLICK AGAIN TO TAKE';display:block;margin-top:9px;font-size:7px;
+  letter-spacing:1.5px;color:var(--gold)}
+.pk .pi{font-size:27px;line-height:1;margin-bottom:7px}
+.pk .pn{font-family:'Orbitron',sans-serif;font-weight:700;font-size:10px;letter-spacing:1.4px;
+  color:var(--cream);margin-bottom:6px}
+.pk .pd{font-family:'Crimson Pro',serif;font-size:12px;color:rgba(240,230,200,.72);
+  line-height:1.45;min-height:52px}
+.pk .pt{font-size:7px;letter-spacing:1.6px;margin-top:7px;color:var(--rc,var(--cream-dim))}
+.pk .dir{display:inline-block;margin-left:5px;padding:1px 4px;border-radius:3px;
+  background:var(--violet);color:#fff;font-size:8px;letter-spacing:.5px;vertical-align:middle}
+.rar-common{--rc:var(--rar-common)} .rar-rare{--rc:var(--rar-rare)}
+.rar-epic{--rc:var(--rar-epic)} .rar-legendary{--rc:var(--rar-legendary)}
+
+/* forge / suit pickers */
+#pickgrid{display:grid;grid-template-columns:repeat(13,34px);gap:5px;margin:10px 0}
+.pg{height:32px;border:1px solid #3a3560;border-radius:4px;background:#100e1d;color:var(--cream);
+  display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;transition:all .1s}
+.pg:hover,.pg.on{background:var(--gold);color:#1a1509;border-color:var(--gold)}
+#suitrow,#suitrow2{display:flex;gap:9px;justify-content:center;margin-bottom:10px}
+.sbtn{width:46px;height:40px;border:1px solid #3a3560;border-radius:5px;background:var(--card-bg);
+  display:flex;align-items:center;justify-content:center;font-size:21px;cursor:pointer;transition:all .1s}
+.sbtn:hover{transform:translateY(-2px)}
+.sbtn.on{box-shadow:0 0 0 3px var(--gold)}
+
+/* report */
+#rep-body{font-size:11.5px;line-height:1.65;white-space:pre-wrap;color:var(--cream-dim);
+  max-height:42vh;overflow:auto;font-family:'Share Tech Mono',monospace;width:100%;
+  background:#0a0913;border:1px solid #2a2840;border-radius:7px;padding:12px 14px}
+
+/* ── TUNING (outside the cabinet - it is a dev surface, not the game) ────── */
+#cfg{width:1216px;max-width:calc(100vw - 24px);background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px}
+#cfg h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:9px}
+.row{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:8px}
+.row label{font-size:9px;color:var(--cream-dim);display:flex;align-items:center;gap:4px;letter-spacing:.5px}
+.row input[type=number]{width:60px;background:#0a0808;border:1px solid var(--border);color:var(--cream);
+  font-family:'Share Tech Mono',monospace;font-size:10px;padding:3px 5px;border-radius:3px}
+.row button{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;
+  border-radius:4px;border:1px solid var(--gold-dim);background:#15120d;color:var(--gold);cursor:pointer}
+.row button:hover{background:var(--gold);color:#1a1509}
+#out{white-space:pre-wrap;font-size:10px;color:var(--cream-dim);line-height:1.55;max-height:280px;
+  overflow:auto;margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
+</style>
+</head>
+<body>
+<div id="cabinet">
+  <div id="marquee">
+    <h1>POKER SQUARES</h1>
+    <div class="sub">five by five &middot; every line is a hand</div>
+  </div>
+
+  <div id="screen">
+    <div id="turnbar">
+      <div class="tb">ROUND <b id="t-r">1</b>/<b id="t-rmax">10</b></div>
+      <div class="tb">TURN <b id="t-n">1</b>/4</div>
+      <div class="tb">DEALT <b id="t-deal">3 x 4</b></div>
+      <div class="tb">DISCARDS <b id="t-disc">3</b></div>
+      <div class="tb">FILLED <b id="t-fill">0</b>/25</div>
+      <div class="tb mode"><b id="t-mode">SCORE ALL</b></div>
+    </div>
+
+    <div id="stage">
+      <div id="left">
+        <div class="panel-box">
+          <div class="plabel">Total score</div>
+          <div id="score-big">0</div>
+          <div id="round-line">ROUND 1 OF 10</div>
+          <div class="chips">
+            <div class="score-subbox" id="chip-pips"><div class="subbox-val" id="v-pips">0</div><div class="subbox-label">PIPS</div></div>
+            <div class="score-subbox" id="chip-mult"><div class="subbox-val" id="v-mult">0</div><div class="subbox-label">MULT</div></div>
+          </div>
+        </div>
+        <div class="panel-box">
+          <div class="plabel">Tricks <span id="tk-n">0</span>/5</div>
+          <div class="tricks" id="tricks"></div>
+        </div>
+        <div class="panel-box">
+          <div class="plabel">Consumables <span id="cn-n">0</span>/5</div>
+          <div id="cons"></div>
+          <div id="cons-hint">Double-click one to use it.</div>
+        </div>
+        <div class="panel-box">
+          <div class="plabel">Deck <span id="dk-n">52</span></div>
+          <div id="dk-drift">unchanged</div>
+        </div>
+      </div>
+
+      <div id="centre">
+        <div id="boardwrap">
+          <div id="handname"></div>
+          <div id="board"></div>
+        </div>
+        <div id="hand"></div>
+      </div>
+
+      <div id="right">
+        <button class="act-btn btn-discard" id="b-discard">DISCARD<small id="d-left">3 left</small></button>
+        <button class="act-btn btn-play" id="b-confirm">CONFIRM<small>place the tile</small></button>
+        <button class="act-btn btn-end" id="b-end">END TURN<small id="e-why">2 to place</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="vents"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</div>
+
+<div id="drag"></div>
+
+<!-- mode choice -->
+<div class="ov on" id="ov-mode"><div class="ovp">
+  <div class="conbar"><span class="eyebrow">Engagement terms</span>
+    <div class="lamps"><i></i><i></i><i></i></div></div>
+  <h3>How do you want to be paid</h3>
+  <div class="lead">Fill a 5x5 board over four turns. Every row and every column is a poker hand.</div>
+  <div class="opts">
+    <div class="opt" data-mode="all">
+      <div class="on2">SCORE ALL</div>
+      <div class="od">At the end of the round all ten lines pay, worst hand first. Every card counts
+      twice, once for its row and once for its column. Nothing to decide, everything to build.</div>
+    </div>
+    <div class="opt" data-mode="select">
+      <div class="on2">SELECT SCORE</div>
+      <div class="od">Each turn you cash <b>one</b> line. It locks for the rest of the round and you
+      cannot place into it again. On the last turn you cash <b id="fin-n">3</b>. Fewer lines pay, so
+      you choose when a line is finished enough to spend.</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- pick three -->
+<div class="ov" id="ov-pick"><div class="ovp">
+  <div class="conbar"><span class="eyebrow" id="pick-eyebrow">Take one</span>
+    <div class="lamps"><i></i><i></i><i></i></div></div>
+  <h3 id="pick-title">Take one</h3>
+  <div class="lead" id="pick-lead"></div>
+  <div class="pick" id="pick-row"></div>
+  <div class="confoot">
+    <button class="ovb" id="pick-reroll">REROLL (<span id="rr-n">2</span>)</button>
+    <button class="ovb" id="pick-skip">SKIP</button>
+  </div>
+</div></div>
+
+<!-- rank + suit picker for Forge -->
+<div class="ov" id="ov-forge"><div class="ovp">
+  <div class="conbar"><span class="eyebrow">Forge</span>
+    <div class="lamps"><i></i><i></i><i></i></div></div>
+  <h3>Forge a card</h3>
+  <div class="lead">Pick a rank and a suit. That card becomes this, permanently, in your deck.</div>
+  <div id="suitrow"></div>
+  <div id="pickgrid"></div>
+  <div class="confoot">
+    <button class="ovb go" id="forge-ok" disabled>MAKE IT</button>
+    <button class="ovb" id="forge-cancel">CANCEL</button>
+  </div>
+</div></div>
+
+<!-- suit picker for Re-suit -->
+<div class="ov" id="ov-suit"><div class="ovp">
+  <div class="conbar"><span class="eyebrow">Re-suit</span>
+    <div class="lamps"><i></i><i></i><i></i></div></div>
+  <h3>Choose a suit</h3>
+  <div class="lead">Both picked cards become this suit, permanently, in your deck.</div>
+  <div id="suitrow2"></div>
+  <div class="confoot"><button class="ovb" id="suit-cancel">CANCEL</button></div>
+</div></div>
+
+<!-- round / run report -->
+<div class="ov" id="ov-rep"><div class="ovp">
+  <div class="conbar"><span class="eyebrow" id="rep-eyebrow">Round scored</span>
+    <div class="lamps"><i></i><i></i><i></i></div></div>
+  <h3 id="rep-title">Round scored</h3>
+  <div id="rep-body"></div>
+  <div class="confoot"><button class="ovb go" id="rep-ok">CONTINUE</button></div>
+</div></div>
+
+<div id="cfg">
+  <h2>TUNING</h2>
+  <div class="row">
+    <label>discards/turn <input type="number" id="c-disc" value="3" min="0" max="9"></label>
+    <label>keep/turn <input type="number" id="c-keep" value="1" min="0" max="3"></label>
+    <label>rounds <input type="number" id="c-rounds" value="10" min="1" max="20"></label>
+    <label>final-turn lines <input type="number" id="c-fin" value="3" min="1" max="5"></label>
+    <label>ms/hand <input type="number" id="c-hand" value="1400" min="200" max="4000" step="100"></label>
+    <label>accel % <input type="number" id="c-acc" value="5" min="0" max="30"></label>
+    <label>scaling %/play <input type="number" id="c-ns" value="0" min="0" max="50"></label>
+    <label>sound <input type="checkbox" id="c-snd" checked></label>
+    <button id="b-restart">RESTART</button>
+    <button id="b-dump">DUMP CONFIG</button>
+  </div>
+  <div class="row">
+    <button id="b-sim">MEASURE FILL (4000 boards)</button>
+    <button id="b-simscore">MEASURE SCORES (1500 boards)</button>
+    <button id="b-table">SHOW HAND TABLE</button>
+    <button id="b-auto">AUTOPLAY A BOARD</button>
+    <button id="b-sfx">AUDITION EVERY SOUND</button>
+  </div>
+  <div id="out">Drag a card onto the board. Rotate with the button on the card. CONFIRM places it.
+END TURN unlocks once one card or fewer is left in hand.</div>
+</div>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   MODEL
+
+   A piece is a LIST OF {dr,dc,card}. Rotation transforms the offsets and the
+   cards ride along with their own cells, so the rank-to-cell mapping cannot
+   drift and there is no reading order to get wrong.
+
+   THE DECK IS THE RUN'S, NOT THE ROUND'S. `runDeck` is 52 card OBJECTS made
+   once at the start of a run, and everything downstream holds REFERENCES to
+   them - the draw pile, the pieces in your hand, the cards on the board. That
+   is the whole mechanism behind "a consumable's change is permanent": RE-SUIT
+   mutates the object, and the object is the deck's card, so it comes back
+   re-suited next round with no bookkeeping anywhere. Each round simply
+   reshuffles the whole 52 into a fresh draw pile.
+   ══════════════════════════════════════════════════════════════════════════ */
+const N=5, SUITS=['h','d','s','c'];
+const SUIT_CH={h:'♥',d:'♦',s:'♠',c:'♣'};
+const SUIT_CLS={h:'h',d:'d',s:'s-',c:'c'};
+const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RANK_ORDER={'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+const RANK_PIPS={'J':10,'Q':10,'K':10,'A':11};
+const pipsOf=c=>RANK_PIPS[c.rank]||parseInt(c.rank,10);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE HAND TABLE - REAL POKER HANDS ONLY
+
+   Nine hands, ranked by genuine 5-card frequency. Flush of 3/4 and Run of 3/4
+   are gone: they are the main game's own extension, invented because a hand
+   there is 2-5 cards chosen off a grid. A line here is five cards, which is a
+   poker hand, so it is scored as one.
+
+   EVERY HAND COVERS THE WHOLE LINE, which falls straight out of that. A pair
+   with three kickers is still One Pair - poker has never billed the kickers as
+   dead cards - so there is nothing left to subtract and the penalty rule is
+   only reachable on a line the board never filled.
+
+   THE VALUES TRACK THE AMERICAN POKER SQUARES LADDER (0/2/5/10/15/20/25/50/75).
+   Relative to a Pair, this table pays 1 / 2.3 / 4.9 / 7.5 / 10.1 / 12.4 / 24.9
+   against that ladder's 1 / 2.5 / 5 / 7.5 / 10 / 12.5 / 25. The one deliberate
+   departure is the Straight Flush: the classic pays it 1.5x a Four of a Kind
+   while it is genuinely 16x rarer, so here it is a jackpot at ~3.5x. Something
+   to hunt.
+   ══════════════════════════════════════════════════════════════════════════ */
+const HAND_BASE={
+  'High Card':      {pips:0,  mult:1,  r:0, freq:'50.1%'},
+  'Pair':           {pips:30, mult:2,  r:1, freq:'42.3%'},
+  'Two Pair':       {pips:65, mult:3,  r:2, freq:'4.75%'},
+  'Three of a Kind':{pips:125,mult:4,  r:3, freq:'2.11%'},
+  'Straight':       {pips:130,mult:6,  r:4, freq:'0.392%'},
+  'Flush':          {pips:155,mult:7,  r:5, freq:'0.197%'},
+  'Full House':     {pips:170,mult:8,  r:6, freq:'0.144%'},
+  'Four of a Kind': {pips:240,mult:12, r:7, freq:'0.0240%'},
+  'Straight Flush': {pips:500,mult:22, r:8, freq:'0.00154%'}
+};
+
+const SHAPES={
+  1:[[[0,0]]],
+  2:[[[0,0],[0,1]]],
+  3:[[[0,0],[0,1],[0,2]],[[0,0],[0,1],[1,0]]],
+  4:[[[0,0],[0,1],[0,2],[0,3]],[[0,0],[0,1],[1,0],[1,1]],
+     [[0,0],[0,1],[0,2],[1,1]],[[0,1],[0,2],[1,0],[1,1]],
+     [[0,0],[0,1],[1,1],[1,2]],[[0,0],[1,0],[1,1],[1,2]],
+     [[0,2],[1,0],[1,1],[1,2]]]
+};
+
+let CFG={ discards:3, keep:1, rounds:10, finalLines:3, handMs:1400, accel:5, sound:true,
+          rerolls:2, consCap:5, trickCap:5, nsPct:0, nsEvery:2,
+          schedule:[{n:3,size:4},{n:3,size:3},{n:3,size:2},{n:3,size:1}] };
+
+/* ── TRICKS kept for this mode (a sample of the ~84 survivors) ──────────── */
+const TRICKS=[
+  {id:'rowcol_triple_pips',i:'\u{1F3AF}',n:'Right Place',t:'common',d:'Cards scored in a marked row or column score +10 pips'},
+  {id:'rowcol_mult',   i:'⚡',n:'Power Line',  t:'common',d:'Cards scored in a marked row or column each score +2 mult'},
+  {id:'perfect_timing',i:'\u{1F501}',n:'Perfect Timing',t:'epic',d:'Cards scored in a marked row or column replay once'},
+  {id:'overgrowth',    i:'\u{1F33F}',n:'Cascade',   t:'common',d:'Straights score +10 pips per card'},
+  {id:'long_road',     i:'\u{1F300}',n:'Storm',     t:'common',d:'Straights score +2 mult per card'},
+  {id:'enriched',      i:'\u{1F48E}',n:'Enriched',  t:'rare',  d:'Flushes score +40 pips'},
+  {id:'heavy_hand',    i:'\u{1F4AA}',n:'Full Load', t:'rare',  d:'Every scored card adds +6 pips'},
+  {id:'two_corners',   i:'\u{1F4D0}',n:'Stretch',   t:'rare',  d:'Hands using two corners score +30 pips'},
+  {id:'edge_pips',     i:'\u{1F5D3}',n:'On the Edge',t:'common',d:'Edge cards score +6 pips each'},
+  {id:'aftershock',    i:'\u{1F30A}',n:'Aftershock',t:'common',d:'Pairs score +15 pips'},
+  {id:'double_bloom',  i:'\u{1F338}',n:'Magnitude', t:'epic',  d:'Sets score x1.5 pips'},
+  {id:'last_stand',    i:'\u{1F6E1}',n:'Last Stand',t:'epic',  d:'The lowest-scoring line of the round scores x2 mult'}
+];
+/* ── CONSUMABLES, this mode's own ───────────────────────────────────────── */
+const CONS_DEFS=[
+  {id:'swap2',  i:'\u{1F500}',n:'SHUFFLE', need:2, d:()=>'Swap two cells on the grid.'},
+  {id:'clear3', i:'\u{1F9F9}',n:'CLEAR OUT',need:3,d:()=>'Clear three cells off the grid.'},
+  {id:'redeal', i:'\u{1F3B4}',n:'RE-DEAL', need:0, d:()=>'Throw this turn’s cards back and deal again.'},
+  {id:'forge',  i:'⚒',   n:'FORGE',   need:1, d:()=>'Turn one card into any card you name. Permanent.'},
+  {id:'resuit', i:'\u{1F3A8}',n:'RE-SUIT', need:2, d:()=>'Set the suit of any two cards. Permanent.'},
+  {id:'demote', i:'⬇',   n:'DEMOTE',  need:2, d:()=>'Lower the rank of any two cards. Permanent.'},
+  {id:'promote',i:'⬆',   n:'PROMOTE', need:2, d:()=>'Raise the rank of any two cards. Permanent.'},
+  {id:'bleed',  i:'\u{1F4A7}',n:'BLEED',   need:1, dirs:['LR','UD'],
+     d:dir=>`The cards ${dir==='LR'?'left and right':'above and below'} take the picked card’s suit. Permanent.`},
+  {id:'echo',   i:'\u{1F4E1}',n:'ECHO',    need:1, dirs:['L','R','U','D'],
+     d:dir=>`The card ${({L:'to the left',R:'to the right',U:'above',D:'below'})[dir]} takes the picked card’s rank. Permanent.`}
+];
+
+/* ── deck & pieces ──────────────────────────────────────────────────────── */
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+function buildRunDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({rank:r,suit:s});return d;}
+let _pid=0;
+function makePiece(size){const f=SHAPES[size][Math.floor(Math.random()*SHAPES[size].length)];
+  return {id:'p'+(++_pid),cells:f.map(([dr,dc])=>({dr,dc,card:drawCard()}))};}
+function drawCard(){
+  /* Reshuffling mid-round must not hand back a card already on the board or in
+     hand - the board holds deck REFERENCES, so a duplicate would be one object
+     in two cells. Unreachable at the shipped schedule (30 of 52 dealt a round)
+     and here because the tuner can change that. */
+  if(!drawPile.length){
+    const out=new Set(board.flat().filter(Boolean));
+    hand.forEach(p=>p.cells.forEach(cl=>out.add(cl.card)));
+    drawPile=shuffle(runDeck.filter(c=>!out.has(c)));
+  }
+  return drawPile.pop();
+}
+function rotate(p){const mx=Math.max(...p.cells.map(c=>c.dr));
+  p.cells=p.cells.map(c=>({dr:c.dc,dc:mx-c.dr,card:c.card}));norm(p);}
+function norm(p){const mr=Math.min(...p.cells.map(c=>c.dr)),mc=Math.min(...p.cells.map(c=>c.dc));
+  p.cells.forEach(c=>{c.dr-=mr;c.dc-=mc;});}
+const pW=p=>Math.max(...p.cells.map(c=>c.dc))+1, pH=p=>Math.max(...p.cells.map(c=>c.dr))+1;
+
+/* ── state ──────────────────────────────────────────────────────────────── */
+let board,hand,runDeck,drawPile,turn,round,discardsLeft,tentative,selected,total,kept,
+    mode,locked,phase,pickNeed,pickSel,tricks,cons,armed,picked,forgeCell,resuitCells,rerolls,
+    roundScore;
+
+function newRun(){
+  round=1; total=0; roundScore=0; tricks=[]; cons=[]; mode=mode||'all';
+  runDeck=buildRunDeck();                    // the run's own 52, mutated by consumables
+  nsPlays={}; nsBonus={}; roundLog=[]; markAxis='row';
+  newRound(); }
+function newRound(){
+  board=Array.from({length:N},()=>Array(N).fill(null));
+  drawPile=shuffle(runDeck);                 // the WHOLE deck, every round
+  hand=[]; turn=0; kept=null; locked=new Set();
+  tentative=null; selected=null; armed=null; picked=[]; phase='place';
+  startTurn(); renderAll();
+}
+function startTurn(){
+  const sp=CFG.schedule[turn]; discardsLeft=CFG.discards;
+  if(sp) for(let i=0;i<sp.n;i++) hand.push(makePiece(sp.size));
+}
+/* A LOCKED LINE IS CLOSED. In SELECT SCORE a cashed line is out of the round,
+   so it cannot take another card either - which is what makes cashing early a
+   real cost rather than a free harvest. */
+const cellLocked=(r,c)=>mode==='select'&&(locked.has(r)||locked.has(N+c));
+const fits=(p,r,c)=>p.cells.every(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
+  return rr>=0&&cc>=0&&rr<N&&cc<N&&!board[rr][cc]&&!cellLocked(rr,cc);});
+function canPlaceAny(){
+  for(const p of hand){ const save=p.cells.map(c=>({...c}));
+    for(let rot=0;rot<4;rot++){
+      for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(fits(p,r,c)){ p.cells=save; return true; }
+      rotate(p); }
+    p.cells=save; }
+  return false;
+}
+const filled=()=>board.flat().filter(Boolean).length;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SOUND - how to make coded audio hit hard
+
+   Standard game-audio practice, none of it exotic, all of it worth stating
+   because a single oscillator with a gain ramp is what "thin" sounds like:
+
+   1. A HIT IS THREE LAYERS, NEVER ONE.
+        TRANSIENT - 4-8ms of noise through a high-pass at 3-5kHz. The first
+          ten milliseconds are what the ear reads as "punch"; without it a
+          sound is soft whatever its level.
+        BODY      - the pitched part, two oscillators detuned a few cents,
+          through a low-pass that sweeps DOWN over the decay. The sweep is
+          what makes a tone sound struck rather than switched on.
+        SUB       - a sine dropping ~180Hz -> ~60Hz over 80-140ms. This is the
+          kick-drum trick and it is the whole of "weight". A sound with no
+          energy under 120Hz cannot feel heavy on any speaker that can
+          reproduce it.
+   2. DECAY EXPONENTIALLY, and never TO zero - exponentialRampToValueAtTime
+      cannot reach 0 and throws, so ramp to 0.0001 and stop after. Linear
+      decays sound synthetic because nothing in the physical world decays
+      linearly.
+   3. SATURATE. A WaveShaper on a tanh curve adds harmonics, which raises
+      PERCEIVED loudness without raising the peak. This is the single biggest
+      "meatier" lever available and it costs one node.
+   4. COMPRESS THE MASTER. Layers that individually fit will stack past 0dBFS
+      the moment three payouts overlap; a compressor glues them and stops the
+      clipping that otherwise reads as a crackle.
+   5. SEND A LITTLE TO A REVERB. A 0.5s impulse built from decaying noise costs
+      nothing and is the difference between "in a room" and "in a spreadsheet".
+   6. PITCH IS A LADDER, NOT A RANDOM. A minor-pentatonic climb means a run of
+      payouts is a phrase; any two notes of that scale played together consonate,
+      so overlaps never sour.
+   7. ACCENT BY CONTENT, NOT BY VOLUME. A better hand gets more sub, more
+      saturation, an added fifth and a shimmer layer - louder alone just
+      sounds louder.
+   8. PAN BY POSITION. Each card's blip is panned by its column, so a row
+      sweeps across the stereo field. Free movement from information already
+      on screen.
+   ══════════════════════════════════════════════════════════════════════════ */
+let AC=null, MIX=null;
+const PENT=[0,3,5,7,10,12,15,17,19,22,24,27,29,31,34,36];   // minor pentatonic
+function ac(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); buildMix(); }
+  /* an OfflineAudioContext has no resume() to call - the audit swaps one in */
+  if(AC.state==='suspended'&&!AC.startRendering) AC.resume(); return AC; }
+function satCurve(k){ const n=2048,c=new Float32Array(n);
+  for(let i=0;i<n;i++){ const x=i*2/n-1; c[i]=Math.tanh(k*x)/Math.tanh(k); } return c; }
+function makeIR(x,secs,decay){
+  const len=Math.max(1,Math.floor(x.sampleRate*secs)), b=x.createBuffer(2,len,x.sampleRate);
+  for(let ch=0;ch<2;ch++){ const d=b.getChannelData(ch);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
+  return b; }
+function buildMix(){
+  const x=AC;
+  /* DRIVE, THEN TRIM. The gain before the saturator is what decides how hard
+     the tanh is worked, which is where the harmonics - and so the perceived
+     weight - come from; the gain after it is only there to put the peak back
+     under 1.0. Turning up `out` alone makes a sound louder and no heavier. */
+  const dry=x.createGain();            dry.gain.value=1.9;
+  const sat=x.createWaveShaper();      sat.curve=satCurve(2.6); sat.oversample='4x';
+  const comp=x.createDynamicsCompressor();
+  comp.threshold.value=-19; comp.knee.value=7; comp.ratio.value=6;
+  comp.attack.value=0.002; comp.release.value=0.11;
+  const out=x.createGain();            out.gain.value=1.25;
+  const send=x.createGain();           send.gain.value=0.16;
+  const verb=x.createConvolver();      verb.buffer=makeIR(x,0.55,2.6);
+  const verbOut=x.createGain();        verbOut.gain.value=0.55;
+  dry.connect(sat); sat.connect(comp); comp.connect(out); out.connect(x.destination);
+  dry.connect(send); send.connect(verb); verb.connect(verbOut); verbOut.connect(out);
+  MIX={dry,sat,comp,out,send,verb};
+}
+let NOISE=null;
+function noiseBuf(x){ if(NOISE&&NOISE.sampleRate===x.sampleRate) return NOISE;
+  const len=x.sampleRate*1, b=x.createBuffer(1,len,x.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+  NOISE=b; return b; }
+/* One voice: source -> gain(exp env) -> [filter] -> pan -> mix */
+function voice(x,t,src,{gain=0.3,atk=0.002,dec=0.2,pan=0,filter=null}={}){
+  const g=x.createGain(), p=x.createStereoPanner();
+  p.pan.value=Math.max(-1,Math.min(1,pan));
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002,gain),t+atk);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+atk+dec);
+  let node=src; if(filter){ node.connect(filter); node=filter; }
+  node.connect(g); g.connect(p); p.connect(MIX.dry);
+  return {g,p,end:t+atk+dec+0.02};
+}
+function transient(x,t,{hz=4000,dur=0.008,gain=0.34,pan=0}={}){
+  const s=x.createBufferSource(); s.buffer=noiseBuf(x);
+  s.playbackRate.value=1+Math.random()*0.3;
+  const f=x.createBiquadFilter(); f.type='highpass'; f.frequency.value=hz; f.Q.value=0.7;
+  const v=voice(x,t,s,{gain,atk:0.001,dec:dur,pan,filter:f});
+  s.start(t); s.stop(v.end);
+}
+function sub(x,t,{f0=180,f1=58,dur=0.12,gain=0.55,pan=0}={}){
+  const o=x.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  const v=voice(x,t,o,{gain,atk:0.004,dec:dur,pan});
+  o.start(t); o.stop(v.end);
+}
+function body(x,t,{freq=440,type='triangle',dur=0.24,gain=0.24,detune=7,lpFrom=5200,lpTo=900,pan=0}={}){
+  const f=x.createBiquadFilter(); f.type='lowpass'; f.Q.value=1.1;
+  f.frequency.setValueAtTime(lpFrom,t);
+  f.frequency.exponentialRampToValueAtTime(Math.max(120,lpTo),t+dur);
+  const g=x.createGain(), p=x.createStereoPanner(); p.pan.value=Math.max(-1,Math.min(1,pan));
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002,gain),t+0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.004+dur);
+  f.connect(g); g.connect(p); p.connect(MIX.dry);
+  for(const d of [-detune,detune]){
+    const o=x.createOscillator(); o.type=type; o.frequency.value=freq; o.detune.value=d;
+    o.connect(f); o.start(t); o.stop(t+dur+0.03);
+  }
+}
+function shimmer(x,t,freq,dur,gain,pan){
+  for(const m of [2,3,4.02]){
+    const o=x.createOscillator(); o.type='sine'; o.frequency.value=freq*m;
+    const v=voice(x,t+0.012,o,{gain:gain/(m*1.4),atk:0.01,dec:dur,pan});
+    o.start(t+0.012); o.stop(v.end);
+  }
+}
+const semi=n=>Math.pow(2,n/12);
+
+/* THE TALLY BLIP. `i` is position in the tally (worst first, so it climbs) and
+   `rank` is the hand's own rank, which transposes it up AND thickens it. */
+function blip(i,rank,pan){
+  if(!CFG.sound) return; const x=ac(), t=x.currentTime;
+  const step=PENT[Math.min(PENT.length-1,i)] + rank*2;
+  const f=196*semi(step);                                  // G3 root
+  const big=rank>=4;                                       // Straight and above
+  transient(x,t,{hz:big?3200:4600,dur:big?0.012:0.007,gain:big?0.40:0.26,pan});
+  sub(x,t,{f0:big?200:150,f1:big?52:64,dur:big?0.17:0.10,gain:big?0.70:0.42,pan:pan*0.3});
+  body(x,t,{freq:f,type:big?'sawtooth':'triangle',dur:big?0.42:0.26,
+            gain:big?0.26:0.20,lpFrom:big?7000:5000,lpTo:big?800:1000,pan});
+  body(x,t+0.006,{freq:f*1.5,type:'triangle',dur:0.2,gain:0.10,detune:4,pan:pan*0.7});
+  if(big){ body(x,t+0.012,{freq:f*2,type:'triangle',dur:0.5,gain:0.13,pan:-pan*0.6});
+           shimmer(x,t,f,0.7,0.09,pan); }
+  if(rank>=7) shimmer(x,t+0.06,f*2,1.1,0.10,-pan);
+}
+/* A TILE LANDS - a woody knock. Short noise through a resonant band-pass plus a
+   low body, which is what a physical object on a table sounds like. */
+function sfxPlace(){
+  if(!CFG.sound) return; const x=ac(), t=x.currentTime;
+  const s=x.createBufferSource(); s.buffer=noiseBuf(x);
+  const f=x.createBiquadFilter(); f.type='bandpass'; f.frequency.value=380+Math.random()*90; f.Q.value=3.4;
+  const v=voice(x,t,s,{gain:0.34,atk:0.001,dec:0.075,filter:f}); s.start(t); s.stop(v.end);
+  sub(x,t,{f0:150,f1:72,dur:0.09,gain:0.36});
+  body(x,t,{freq:196,type:'triangle',dur:0.10,gain:0.12,lpFrom:1800,lpTo:300});
+}
+function sfxRotate(){ if(!CFG.sound) return; const x=ac(),t=x.currentTime;
+  transient(x,t,{hz:2600,dur:0.012,gain:0.18});
+  body(x,t,{freq:880,type:'square',dur:0.05,gain:0.06,lpFrom:3000,lpTo:900}); }
+function sfxDiscard(){ if(!CFG.sound) return; const x=ac(),t=x.currentTime;
+  const s=x.createBufferSource(); s.buffer=noiseBuf(x);
+  const f=x.createBiquadFilter(); f.type='bandpass'; f.Q.value=1.4;
+  f.frequency.setValueAtTime(2600,t); f.frequency.exponentialRampToValueAtTime(320,t+0.28);
+  const v=voice(x,t,s,{gain:0.24,atk:0.006,dec:0.28,filter:f}); s.start(t); s.stop(v.end);
+  sub(x,t+0.02,{f0:120,f1:46,dur:0.2,gain:0.3}); }
+function sfxDeny(){ if(!CFG.sound) return; const x=ac(),t=x.currentTime;
+  body(x,t,{freq:98,type:'square',dur:0.16,gain:0.2,lpFrom:700,lpTo:180});
+  body(x,t+0.09,{freq:92,type:'square',dur:0.16,gain:0.18,lpFrom:700,lpTo:180}); }
+function sfxCons(){ if(!CFG.sound) return; const x=ac(),t=x.currentTime;
+  transient(x,t,{hz:5200,dur:0.02,gain:0.2});
+  for(let k=0;k<4;k++) body(x,t+k*0.045,{freq:523.25*semi(PENT[k]),type:'sine',
+    dur:0.34,gain:0.11,detune:3,lpFrom:6000,lpTo:2200,pan:(k-1.5)*0.35});
+  sub(x,t,{f0:160,f1:70,dur:0.14,gain:0.3}); }
+function sfxPickHover(){ if(!CFG.sound) return; const x=ac(),t=x.currentTime;
+  body(x,t,{freq:660,type:'triangle',dur:0.10,gain:0.10,lpFrom:4000,lpTo:1400}); }
+/* A ROUND CLOSES - a full chord, the one place the mix is allowed to be big. */
+function sfxRoundEnd(){
+  if(!CFG.sound) return; const x=ac(), t=x.currentTime;
+  transient(x,t,{hz:2400,dur:0.03,gain:0.34});
+  sub(x,t,{f0:150,f1:44,dur:0.5,gain:0.8});
+  [0,7,12,16,19].forEach((s,k)=>{
+    body(x,t+k*0.028,{freq:130.81*semi(s),type:'sawtooth',dur:1.5-k*0.12,
+      gain:0.15,detune:9,lpFrom:5200,lpTo:600,pan:(k-2)*0.3});
+  });
+  shimmer(x,t+0.05,523.25,1.6,0.10,0);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const boardEl=$('board'), handEl=$('hand');
+const cardHTML=(c,cls)=>`<div class="card ${cls||''}"><div class="r ${SUIT_CLS[c.suit]}">${c.rank}</div>`+
+  `<div class="s ${SUIT_CLS[c.suit]}">${c.rank}${SUIT_CH[c.suit]}</div></div>`;
+
+/* WHICH LINE A TRICK MARKED HAS TO BE VISIBLE (r209's whole point). A cell on
+   two marked lines splits its wash between their colours, hard stops, no blend -
+   a blend of two Trick colours is a third colour belonging to neither (r296). */
+const MARK_COLOR={rowcol_triple_pips:'#4a7fd4', rowcol_mult:'#d45050', perfect_timing:'#a25cd8'};
+function markPaint(r,c){
+  const hit=tricks.filter(t=>t.mark&&(t.mark.axis==='row'?t.mark.idx===r:t.mark.idx===c))
+                  .map(t=>MARK_COLOR[t.id]).filter(Boolean);
+  if(!hit.length) return null;
+  if(hit.length===1) return hit[0];
+  const step=100/hit.length;
+  return `conic-gradient(from -45deg,`+hit.map((h,i)=>`${h} ${i*step}% ${(i+1)*step}%`).join(',')+`)`;
+}
+function renderBoard(){
+  boardEl.innerHTML='';
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const d=document.createElement('div'); d.className='cell'; d.dataset.r=r; d.dataset.c=c;
+    const mk=markPaint(r,c); if(mk){ d.classList.add('marked'); d.style.setProperty('--mk',mk); }
+    if(cellLocked(r,c)) d.classList.add('locked');
+    if(board[r][c]) d.innerHTML=cardHTML(board[r][c]);
+    if(armed&&board[r][c]) d.classList.add('ctarget');
+    if(armed&&picked.some(p=>p[0]===r&&p[1]===c)) d.classList.add('cpicked');
+    boardEl.appendChild(d);
+  }
+  paintTentative(); renderLineBtns();
+}
+function paintTentative(){
+  [...boardEl.children].forEach(el=>el.classList.remove('ghost-ok','ghost-bad','tentative'));
+  if(!tentative) return;
+  const {piece,r,c}=tentative, ok=fits(piece,r,c);
+  for(let r2=0;r2<N;r2++)for(let c2=0;c2<N;c2++)
+    if(!board[r2][c2]) boardEl.children[r2*N+c2].innerHTML='';
+  piece.cells.forEach(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
+    if(rr<0||cc<0||rr>=N||cc>=N) return;
+    const el=boardEl.children[rr*N+cc];
+    el.classList.add(ok?'ghost-ok':'ghost-bad','tentative');
+    if(ok&&!board[rr][cc]) el.innerHTML=cardHTML(cl.card,'dim');});
+}
+function renderLineBtns(){
+  document.querySelectorAll('.lbtn').forEach(b=>b.remove());
+  if(phase!=='pickline') return;
+  for(let i=0;i<10;i++){
+    const b=document.createElement('div');
+    b.className='lbtn'+(locked.has(i)?' off':'')+(pickSel.includes(i)?' sel':'');
+    b.textContent=i<N?'R'+(i+1):'C'+(i-N+1);
+    /* the board is 9px padding, 70x84 cells, 3px gap - so a row's centre is
+       9 + i*87 + 42 and a column's is 9 + j*73 + 35. */
+    if(i<N){ b.style.left='-27px'; b.style.top=(9+i*87+34)+'px'; }
+    else   { b.style.top='-25px';  b.style.left=(9+(i-N)*73+23)+'px'; }
+    if(!locked.has(i)) b.onclick=()=>toggleLine(i);
+    boardEl.appendChild(b);
+  }
+}
+const POLY={w:98,h:136,gap:2,ratio:4/3};
+function polyHTML(p){
+  const w=pW(p),h=pH(p);
+  const mw=Math.max(12,Math.min(30,(POLY.w-(w-1)*POLY.gap)/w,(POLY.h-(h-1)*POLY.gap)/h/POLY.ratio));
+  const mh=mw*POLY.ratio, fs=Math.max(6,Math.round(mw*.34));
+  const map={}; p.cells.forEach(c=>map[c.dr+','+c.dc]=c.card);
+  let s=`<div class="poly" style="grid-template-columns:repeat(${w},${mw}px);--mw:${mw}px;--mh:${mh}px;--mfs:${fs}px">`;
+  for(let r=0;r<h;r++)for(let c=0;c<w;c++){const cd=map[r+','+c];
+    s+=cd?`<div class="mini"><div class="r ${SUIT_CLS[cd.suit]}">${cd.rank}</div>`+
+          `<div class="s ${SUIT_CLS[cd.suit]}">${SUIT_CH[cd.suit]}</div></div>`
+        :`<div class="mini blank"></div>`;}
+  return s+'</div>';
+}
+function renderHand(){
+  handEl.innerHTML='';
+  hand.forEach(p=>{const el=document.createElement('div');
+    el.className='hcard'+(selected===p?' sel':'')+(tentative&&tentative.piece===p?' placing':'');
+    el.innerHTML=polyHTML(p)+'<div class="rot" title="rotate">↻</div>';
+    el.dataset.pid=p.id; handEl.appendChild(el);});
+}
+function renderTricks(){
+  $('tricks').innerHTML=tricks.map(t=>{
+    const m=t.mark?` <b style="color:${MARK_COLOR[t.id]||'var(--gold)'}">`+
+      (t.mark.axis==='row'?'R':'C')+(t.mark.idx+1)+'</b>':'';
+    return `<div class="tk" title="${t.n}: ${t.d}">${t.i}${m}</div>`;}).join('');
+  $('tk-n').textContent=tricks.length;
+}
+function renderCons(){
+  $('cons').innerHTML=cons.map((c,i)=>{
+    const def=CONS_DEFS.find(d=>d.id===c.id);
+    return `<div class="cons${armed&&armed.idx===i?' armed':''}" data-i="${i}" `+
+      `title="${def.n}${c.dir?' ('+c.dir+')':''}: ${def.d(c.dir)}">`+
+      `<div class="ci">${def.i}</div><div class="cn">${def.n}</div>`+
+      (c.dir?`<div class="cd">${c.dir}</div>`:'')+`</div>`;}).join('');
+  $('cn-n').textContent=cons.length;
+}
+/* The deck is the RUN's now, so what a consumable did to it is standing state
+   worth showing - it is the only permanent thing in the mode besides Tricks. */
+function renderDeck(){
+  $('dk-n').textContent=runDeck.length;
+  const d=deckDrift();
+  $('dk-drift').innerHTML = d.length
+    ? d.map(r=>r[0]==='+'?`<b>${r}</b>`:`<i>${r}</i>`).join('<br>')
+    : 'unchanged';
+}
+function renderAll(){
+  renderBoard(); renderHand(); renderTricks(); renderCons(); renderDeck();
+  $('t-r').textContent=round; $('t-rmax').textContent=CFG.rounds;
+  $('t-n').textContent=Math.min(turn+1,CFG.schedule.length);
+  const sp=CFG.schedule[turn];
+  $('t-deal').textContent=sp?`${sp.n} x ${sp.size}`:'-';
+  $('t-disc').textContent=discardsLeft; $('t-fill').textContent=filled();
+  $('t-mode').textContent=mode==='all'?'SCORE ALL':'SELECT SCORE';
+  $('d-left').textContent=discardsLeft+' left';
+  $('score-big').textContent=total.toLocaleString();
+  $('round-line').textContent=`ROUND ${round} OF ${CFG.rounds}`;
+  const placing=phase==='place';
+  $('b-discard').disabled=!placing||!selected||discardsLeft<=0;
+  $('b-confirm').disabled=!placing||!tentative||!fits(tentative.piece,tentative.r,tentative.c);
+  /* THE VALVE. Normally you must place or discard down to the keep limit. But a
+     hand that fits nowhere and no discards left would be a soft lock, so once
+     nothing in hand can be placed in any rotation and the discards are spent,
+     END TURN opens anyway. With the shipped 3 discards a turn this is
+     unreachable - hand never exceeds keep+3 - and it is here because lowering
+     the discard count in the tuner would otherwise strand the run. */
+  const stuck=placing&&hand.length>CFG.keep&&discardsLeft<=0&&!canPlaceAny();
+  const canEnd=placing&&(hand.length<=CFG.keep||stuck);
+  $('b-end').disabled=!canEnd;
+  $('e-why').textContent=phase==='pickline'?`pick ${pickNeed-pickSel.length}`
+    :(hand.length<=CFG.keep?'ready':(stuck?'nothing fits':`${hand.length-CFG.keep} to place`));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLACEMENT
+   ══════════════════════════════════════════════════════════════════════ */
+let dragging=null; const dragEl=$('drag');
+handEl.addEventListener('pointerdown',e=>{
+  if(phase!=='place') return;
+  const rot=e.target.closest('.rot'), hc=e.target.closest('.hcard'); if(!hc) return;
+  const p=hand.find(x=>x.id===hc.dataset.pid); if(!p) return;
+  if(rot){ rotate(p); sfxRotate(); if(tentative&&tentative.piece===p) paintTentative(); renderAll(); return; }
+  selected=p; renderAll(); dragging=p;
+  dragEl.style.display='block';
+  dragEl.innerHTML=`<div class="hcard" style="box-shadow:0 14px 26px rgba(0,0,0,.7)">${polyHTML(p)}</div>`;
+  moveDrag(e); hc.classList.add('dragging'); e.preventDefault();
+});
+const moveDrag=e=>{dragEl.style.left=(e.clientX-57)+'px';dragEl.style.top=(e.clientY-81)+'px';};
+window.addEventListener('pointermove',e=>{
+  const over=!!document.elementFromPoint(e.clientX,e.clientY)?.closest('#board');
+  handEl.classList.toggle('see-through',dragging?true:over);
+  if(!dragging) return;
+  moveDrag(e);
+  $('b-discard').classList.toggle('drop-target',!!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard'));
+  const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest('.cell');
+  if(cell){tentative={piece:dragging,r:+cell.dataset.r,c:+cell.dataset.c};paintTentative();renderAll();}
+});
+window.addEventListener('pointerup',e=>{
+  handEl.classList.remove('see-through');
+  $('b-discard').classList.remove('drop-target');
+  if(!dragging) return;
+  const onD=!!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard');
+  dragEl.style.display='none'; dragEl.innerHTML='';
+  const p=dragging; dragging=null;
+  document.querySelectorAll('.hcard.dragging').forEach(x=>x.classList.remove('dragging'));
+  if(onD&&discardsLeft>0){ doDiscard(p); return; }
+  renderAll();
+});
+$('b-confirm').onclick=()=>{
+  if(!tentative) return; const {piece,r,c}=tentative; if(!fits(piece,r,c)) return;
+  /* THE BOARD HOLDS THE DECK'S OWN CARD OBJECT, not a copy. That reference is
+     the whole of "a consumable's change is permanent" - RE-SUIT mutates what
+     is on the board, and what is on the board IS the deck's card. */
+  piece.cells.forEach(cl=>{board[r+cl.dr][c+cl.dc]=cl.card;});
+  hand=hand.filter(x=>x!==piece); tentative=null; selected=null; sfxPlace(); renderAll();
+};
+function doDiscard(p){ if(discardsLeft<=0) return; discardsLeft--;
+  hand=hand.filter(x=>x!==p); if(tentative&&tentative.piece===p) tentative=null;
+  if(selected===p) selected=null; sfxDiscard(); renderAll(); }
+$('b-discard').onclick=()=>{ if(selected) doDiscard(selected); };
+$('b-end').onclick=()=>{
+  kept=hand[0]||null; tentative=null; selected=null;
+  if(mode==='select'){
+    pickNeed=(turn===CFG.schedule.length-1)?CFG.finalLines:1;
+    pickNeed=Math.min(pickNeed,10-locked.size);
+    if(pickNeed<=0){ advance(); return; }
+    phase='pickline'; pickSel=[]; renderAll(); return;
+  }
+  advance();
+};
+function toggleLine(i){
+  if(phase!=='pickline') return;          // the pick is already committed
+  if(pickSel.includes(i)) pickSel=pickSel.filter(x=>x!==i);
+  else if(pickSel.length<pickNeed) pickSel.push(i);
+  else return;
+  if(pickSel.length<pickNeed){ renderAll(); return; }
+  /* COMMIT SYNCHRONOUSLY. Leaving the phase on 'pickline' for the 220ms beat
+     meant a further click still passed the `length===pickNeed` test and armed a
+     SECOND tally-and-advance, which skipped a turn. Flip the phase first, then
+     take the beat. */
+  phase='scoring'; renderAll();
+  setTimeout(async()=>{
+    await runTally(pickSel.slice());
+    pickSel.forEach(k=>locked.add(k));
+    advance();
+  },220);
+}
+async function advance(){
+  turn++;
+  if(turn>=CFG.schedule.length){
+    if(mode==='all'){ phase='scoring'; renderAll(); await runTally([...Array(10).keys()]); }
+    endRound(); return;
+  }
+  phase='place'; startTurn(); renderAll();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HAND EVALUATION - one line, five cards, real poker.
+
+   THE EVALUATOR IS ONE MAXIMISATION. Every candidate shape is scored IN FULL -
+   base pips, the cards it uses, and every Trick that would fire on it - and the
+   best total wins. That also removes r281's trap by construction: there is no
+   separate partition step that can prefer a short hand and then have a coverage
+   rule throw the whole thing away.
+
+   THE PENALTY RULE IS STILL HERE AND IS NOW ALL BUT UNREACHABLE. Every hand in
+   the table covers the whole line, so cards are only ever left over on a line
+   the board never filled. It is kept because it is what a non-covering hand
+   would need the moment one is added back.
+   ══════════════════════════════════════════════════════════════════════════ */
+const FAMILY={
+  'Pair':'set','Two Pair':'set','Three of a Kind':'set','Full House':'set','Four of a Kind':'set',
+  'Straight':'run','Flush':'flush','Straight Flush':'run+flush'
+};
+const isFam=(n,f)=>(FAMILY[n]||'').includes(f);
+
+/* ── natural scaling, per hand TYPE. OFF by default (CFG.nsPct 0). ──────── */
+let nsPlays={}, nsBonus={};
+const nsPipsFor=n=>nsBonus[n]||0;
+function nsRecord(n){
+  if(n==='High Card'||!CFG.nsPct) return;
+  nsPlays[n]=(nsPlays[n]||0)+1;
+  if(nsPlays[n]%CFG.nsEvery===0)
+    nsBonus[n]=(nsBonus[n]||0)+Math.max(1,Math.round(HAND_BASE[n].pips*CFG.nsPct/100));
+}
+
+const hasTrick=id=>tricks.some(t=>t.id===id);
+const trickOf =id=>tricks.find(t=>t.id===id);
+const onMark=(p,id)=>{ if(!p) return false; const t=trickOf(id); if(!t||!t.mark) return false;
+  return t.mark.axis==='row' ? p[0]===t.mark.idx : p[1]===t.mark.idx; };
+const isEdge  =p=>p&&(p[0]===0||p[0]===N-1||p[1]===0||p[1]===N-1);
+const isCorner=p=>p&&(p[0]===0||p[0]===N-1)&&(p[1]===0||p[1]===N-1);
+
+function scoreCand(name,shape,live,posOf){
+  const b=HAND_BASE[name];
+  /* KICKERS. A real 5-card poker hand includes its spare cards - a pair with
+     three kickers is still One Pair - so every hand in this table covers the
+     whole line and only an unfilled line leaves anything behind. */
+  const sub=live;
+  const unused=[];
+  let pips=b.pips+nsPipsFor(name), mult=b.mult, corners=0;
+  for(const c of sub){
+    const p=posOf?posOf.get(c):null;
+    let cp=pipsOf(c);
+    if(onMark(p,'rowcol_triple_pips')) cp+=10;
+    if(hasTrick('edge_pips')&&isEdge(p)) cp+=6;
+    if(hasTrick('heavy_hand')) cp+=6;
+    pips+=cp*(onMark(p,'perfect_timing')?2:1);       // a replay re-scores the CARD
+    if(onMark(p,'rowcol_mult')) mult+=2;
+    if(isCorner(p)) corners++;
+  }
+  if(isFam(name,'run')){
+    if(hasTrick('overgrowth')) pips+=10*sub.length;
+    if(hasTrick('long_road'))  mult+=2*sub.length;
+  }
+  if(isFam(name,'flush')&&hasTrick('enriched')) pips+=40;
+  if(corners>=2&&hasTrick('two_corners'))       pips+=30;
+  if(name==='Pair'&&hasTrick('aftershock'))     pips+=15;
+  const penalty=unused.reduce((s,c)=>s+pipsOf(c),0);
+  pips-=penalty;
+  if(isFam(name,'set')&&hasTrick('double_bloom')) pips=Math.round(pips*1.5);
+  pips=Math.max(0,Math.round(pips));
+  return {name,r:b.r,cards:sub,unused,penalty,pips,mult,total:pips*mult};
+}
+
+function bestHand(cards,lineI){
+  const idx=lineI!=null?lineIdx(lineI):null;
+  const live=[], posOf=new Map();
+  cards.forEach((c,k)=>{ if(!c) return; live.push(c);
+    if(idx) posOf.set(c,[Math.floor(idx[k]/N), idx[k]%N]); });
+  if(!live.length) return {name:'High Card',r:0,cards:[],unused:[],penalty:0,pips:0,mult:1,total:0};
+  let best=scoreCand('High Card',live,live,posOf);
+  const try_=n=>{ const h=scoreCand(n,live,live,posOf); if(h.total>best.total) best=h; };
+  const rs=live.map(c=>RANK_ORDER[c.rank]).sort((a,b)=>a-b);
+  const fl=live.length>=5&&live.every(c=>c.suit===live[0].suit);
+  /* a STRAIGHT needs five consecutive ranks; A-2-3-4-5 counts, so test the
+     wheel as well as the natural run. */
+  const consec=a=>a.every((v,i)=>i===0||v===a[i-1]+1);
+  const wheel=rs.length===5&&rs[4]===14&&consec([1,...rs.slice(0,4)]);
+  const run=live.length>=5&&(consec(rs)||wheel);
+  const cnt={}; live.forEach(c=>cnt[c.rank]=(cnt[c.rank]||0)+1);
+  const cv=Object.values(cnt).sort((a,b)=>b-a);
+  if(fl&&run) try_('Straight Flush');
+  if(cv[0]>=4) try_('Four of a Kind');
+  if(cv[0]>=3&&cv[1]>=2) try_('Full House');
+  if(fl) try_('Flush');
+  if(run) try_('Straight');
+  if(cv[0]>=3) try_('Three of a Kind');
+  if(cv[0]>=2&&cv[1]>=2) try_('Two Pair');
+  if(cv[0]>=2) try_('Pair');
+  return best;
+}
+const lineCards=i=>i<N?board[i].slice():board.map(r=>r[i-N]);
+const lineName =i=>i<N?'ROW '+(i+1):'COL '+(i-N+1);
+const lineIdx  =i=>{const a=[];for(let k=0;k<N;k++)a.push(i<N?i*N+k:k*N+(i-N));return a;};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE TALLY - worst hand first, each one ~accel% quicker than the last.
+
+   Worst-first is the escalation: pitch climbs with BOTH position in the tally
+   and the hand's own rank, so a round ENDS on its best line. It also TEACHES -
+   the order is a live ranking of which lines this loadout likes, which is the
+   only way to find out that Storm has quietly made your straights worth more
+   than your flushes.
+   ══════════════════════════════════════════════════════════════════════════ */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let roundLog=[];
+async function runTally(which){
+  const lines=which.map(i=>({i,...bestHand(lineCards(i),i)}))
+                   .sort((a,b)=> a.total-b.total || a.r-b.r );
+  if(lines.length&&hasTrick('last_stand')){
+    const L=lines[0]; L.mult*=2; L.total=L.pips*L.mult; L.lastStand=true;
+  }
+  let ms=CFG.handMs, roundTotal=0;
+  for(let k=0;k<lines.length;k++){
+    const L=lines[k], idx=lineIdx(L.i), cards=lineCards(L.i);
+    const unused=new Set(L.unused);
+    idx.forEach((j,pos)=>{ const el=boardEl.children[j].querySelector('.card'); if(!el) return;
+      const card=cards[pos];
+      setTimeout(()=>{ el.classList.add(unused.has(card)?'penal':'wave'); }, pos*(ms*0.055)); });
+    $('handname').innerHTML=`${lineName(L.i)} &middot; ${L.name.toUpperCase()}`+
+      (L.penalty?` <span style="color:var(--red)">-${L.penalty}</span>`:'')+
+      (L.lastStand?` <span style="color:var(--gold)">x2</span>`:'');
+    $('handname').classList.add('on');
+    $('v-pips').textContent=L.pips; $('v-mult').textContent=L.mult;
+    blip(k, L.r, L.i<N ? 0 : ((L.i-N)-2)/2.6);        // columns pan by position
+    await sleep(ms*0.48);
+    flyChip(idx,`${L.pips} x ${L.mult}`);
+    total+=L.total; roundTotal+=L.total; roundScore+=L.total;
+    $('score-big').textContent=total.toLocaleString();
+    nsRecord(L.name);
+    await sleep(ms*0.52);
+    idx.forEach(j=>{const el=boardEl.children[j].querySelector('.card');
+      if(el) el.classList.remove('wave','penal');});
+    ms=Math.max(140, ms*(1-CFG.accel/100));
+  }
+  $('handname').classList.remove('on');
+  lines.forEach(L=>roundLog.push(
+    `  ${lineName(L.i).padEnd(6)} ${L.name.padEnd(16)} ${String(L.pips).padStart(4)} x ${String(L.mult).padStart(2)}`+
+    (L.penalty?`  (-${L.penalty})`:'       ')+` = ${String(L.total).padStart(6)}`));
+  return roundTotal;
+}
+function flyChip(idx,text){
+  const a=boardEl.children[idx[0]].getBoundingClientRect(),
+        b=boardEl.children[idx[idx.length-1]].getBoundingClientRect();
+  const el=document.createElement('div'); el.className='schip'; el.textContent=text;
+  el.style.left=((a.left+b.right)/2-42)+'px'; el.style.top=((a.top+b.bottom)/2-15)+'px';
+  document.body.appendChild(el);
+  const t=$('score-big').getBoundingClientRect();
+  el.animate([{transform:'translate(0,0) scale(1)',opacity:1},
+    {transform:`translate(${t.left-parseFloat(el.style.left)+20}px,${t.top-parseFloat(el.style.top)+12}px) scale(.6)`,opacity:0}],
+    {duration:620,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>el.remove();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONSUMABLES
+
+   Double-click to arm, then point at the board. Three rules:
+
+   - A RANDOM-DIRECTION consumable rolls its direction BEFORE it is offered, so
+     the pick-three tile reads "ECHO L - the card to the left takes this rank".
+     Rolling at use time would make the tile a coin flip rather than a choice.
+   - need:0 (RE-DEAL) applies the moment it is armed; there is nothing to point at.
+   - Anything with a second question (FORGE's rank+suit, RE-SUIT's suit) collects
+     its cells FIRST and only then opens its picker.
+
+   EVERY CARD EDIT IS PERMANENT because the board holds the deck's own objects.
+   CLEAR OUT and SHUFFLE are the two that are not: one empties cells and the
+   other moves cards between them, and neither is a property of a card.
+   ══════════════════════════════════════════════════════════════════════════ */
+const consDef=id=>CONS_DEFS.find(d=>d.id===id);
+function rollCons(id){ const d=consDef(id);
+  return {id, dir: d.dirs ? d.dirs[Math.floor(Math.random()*d.dirs.length)] : null}; }
+
+function armCons(i){
+  if(phase!=='place'){ note('Consumables are for the placing phase.'); sfxDeny(); return; }
+  if(armed&&armed.idx===i){ armed=null; picked=[]; renderAll(); return; }
+  const c=cons[i], d=consDef(c.id);
+  armed={idx:i,id:c.id,dir:c.dir,need:d.need}; picked=[];
+  if(d.need===0){ applyCons(); return; }
+  note(`${d.n}: pick ${d.need} card${d.need>1?'s':''} on the grid.`);
+  renderAll();
+}
+function consPick(r,c){
+  if(!armed||!board[r][c]) return;
+  const at=picked.findIndex(p=>p[0]===r&&p[1]===c);
+  if(at>=0) picked.splice(at,1); else if(picked.length<armed.need) picked.push([r,c]);
+  renderAll();
+  if(picked.length===armed.need) setTimeout(applyCons,140);
+}
+function consSpend(){ cons.splice(armed.idx,1); armed=null; picked=[]; sfxCons(); renderAll(); }
+function consRefuse(msg){ picked=[]; note(msg+' Pick another card.'); sfxDeny(); renderAll(); }
+const rankStep=(rank,d)=>{ const i=RANKS.indexOf(rank);
+  return RANKS[Math.max(0,Math.min(RANKS.length-1,i+d))]; };
+
+function applyCons(){
+  const id=armed.id, dir=armed.dir, P=picked.slice();
+  const at=([r,c])=>board[r][c];
+  switch(id){
+    case 'redeal':{
+      hand.forEach(p=>p.cells.forEach(cl=>drawPile.unshift(cl.card)));   // back to the pile
+      hand=[]; const sp=CFG.schedule[turn];
+      if(sp) for(let i=0;i<sp.n;i++) hand.push(makePiece(sp.size));
+      tentative=null; selected=null; note('Re-dealt.'); consSpend(); return; }
+    case 'swap2':{
+      const [a,b]=P; const t=board[a[0]][a[1]];
+      board[a[0]][a[1]]=board[b[0]][b[1]]; board[b[0]][b[1]]=t;
+      note('Swapped.'); consSpend(); return; }
+    case 'clear3':
+      P.forEach(([r,c])=>{ drawPile.unshift(board[r][c]); board[r][c]=null; });
+      note('Cleared.'); consSpend(); return;
+    case 'demote': case 'promote':{
+      const d=id==='promote'?1:-1;
+      P.forEach(p=>{const c=at(p); c.rank=rankStep(c.rank,d);});
+      note(id==='promote'?'Raised, permanently.':'Lowered, permanently.'); consSpend(); return; }
+    /* A DIRECTIONAL CONSUMABLE REFUSES A CELL WITH NOTHING TO POINT AT. The
+       direction is printed on the tile before you take it, so pointing it off
+       the edge of the board is a mistake the player can see coming - and
+       spending the charge for nothing would make it a trap rather than a
+       choice. The pick is dropped and the consumable stays. */
+    case 'bleed':{
+      const [r,c]=P[0], suit=board[r][c].suit;
+      const ds=dir==='LR'?[[0,-1],[0,1]]:[[-1,0],[1,0]];
+      const hit=ds.map(([dr,dc])=>[r+dr,c+dc])
+                  .filter(([rr,cc])=>rr>=0&&cc>=0&&rr<N&&cc<N&&board[rr][cc]);
+      if(!hit.length) return consRefuse('No card '+(dir==='LR'?'beside':'above or below')+' that one.');
+      hit.forEach(([rr,cc])=>board[rr][cc].suit=suit);
+      note(`Suit bled onto ${hit.length} card${hit.length>1?'s':''}, permanently.`); consSpend(); return; }
+    case 'echo':{
+      const [r,c]=P[0], rank=board[r][c].rank;
+      const d={L:[0,-1],R:[0,1],U:[-1,0],D:[1,0]}[dir];
+      const rr=r+d[0],cc=c+d[1];
+      if(!(rr>=0&&cc>=0&&rr<N&&cc<N&&board[rr][cc]))
+        return consRefuse('No card '+({L:'to the left of',R:'to the right of',U:'above',D:'below'})[dir]+' that one.');
+      board[rr][cc].rank=rank;
+      note('Echoed, permanently.'); consSpend(); return; }
+    case 'forge':
+      forgeCell=P[0]; forgeRank=null; forgeSuit=null;
+      $('forge-ok').disabled=true; renderForgePicker(); show('ov-forge'); renderAll(); return;
+    case 'resuit':
+      resuitCells=P; show('ov-suit'); renderAll(); return;
+  }
+}
+let forgeRank=null, forgeSuit=null;
+function renderForgePicker(){
+  $('suitrow').innerHTML=SUITS.map(s=>
+    `<div class="sbtn ${SUIT_CLS[s]}${forgeSuit===s?' on':''}" data-s="${s}">${SUIT_CH[s]}</div>`).join('');
+  $('pickgrid').innerHTML=RANKS.map(r=>
+    `<div class="pg${forgeRank===r?' on':''}" data-r="${r}">${r}</div>`).join('');
+}
+$('suitrow').onclick=e=>{const b=e.target.closest('.sbtn'); if(!b) return;
+  forgeSuit=b.dataset.s; renderForgePicker(); $('forge-ok').disabled=!(forgeRank&&forgeSuit);};
+$('pickgrid').onclick=e=>{const b=e.target.closest('.pg'); if(!b) return;
+  forgeRank=b.dataset.r; renderForgePicker(); $('forge-ok').disabled=!(forgeRank&&forgeSuit);};
+$('forge-ok').onclick=()=>{ const [r,c]=forgeCell;
+  board[r][c].rank=forgeRank; board[r][c].suit=forgeSuit;   // mutate the DECK's card
+  hide('ov-forge'); note('Forged, permanently.'); consSpend(); };
+$('forge-cancel').onclick=()=>{ hide('ov-forge'); armed=null; picked=[]; renderAll(); };
+$('suitrow2').onclick=e=>{const b=e.target.closest('.sbtn'); if(!b) return;
+  resuitCells.forEach(([r,c])=>board[r][c].suit=b.dataset.s);
+  hide('ov-suit'); note('Re-suited, permanently.'); consSpend(); };
+$('suit-cancel').onclick=()=>{ hide('ov-suit'); armed=null; picked=[]; renderAll(); };
+function paintSuitRow2(){ $('suitrow2').innerHTML=SUITS.map(s=>
+  `<div class="sbtn ${SUIT_CLS[s]}" data-s="${s}">${SUIT_CH[s]}</div>`).join(''); }
+
+boardEl.addEventListener('click',e=>{
+  const cell=e.target.closest('.cell'); if(!cell||!armed) return;
+  consPick(+cell.dataset.r,+cell.dataset.c);
+});
+$('cons').addEventListener('dblclick',e=>{
+  const t=e.target.closest('.cons'); if(t) armCons(+t.dataset.i); });
+window.addEventListener('keydown',e=>{ if(e.key==='Escape'&&armed){armed=null;picked=[];renderAll();} });
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BETWEEN ROUNDS - report, a Trick pick, then (every round after the first) a
+   consumable pick. Both carry CFG.rerolls rerolls, and a reroll REDRAWS THE
+   WHOLE ROW rather than one tile, so it is a real second look.
+   ══════════════════════════════════════════════════════════════════════════ */
+const show=id=>$(id).classList.add('on');
+const hide=id=>$(id).classList.remove('on');
+function note(t){ $('out').textContent=t; }
+
+let pickResolve=null, pickKind='trick', pickOffers=[], pickChoice=null;
+const offerTricks=()=>{ const owned=new Set(tricks.map(t=>t.id));
+  return shuffle(TRICKS.filter(t=>!owned.has(t.id))).slice(0,3); };
+const offerCons=()=>shuffle(CONS_DEFS.slice()).slice(0,3).map(d=>rollCons(d.id));
+
+function renderPick(){
+  $('rr-n').textContent=rerolls;
+  $('pick-reroll').disabled=rerolls<=0;
+  $('pick-row').innerHTML=pickOffers.map((o,i)=>{
+    if(pickKind==='trick')
+      return `<div class="pk rar-${o.t}${pickChoice===i?' sel':''}" data-i="${i}">`+
+        `<div class="pi">${o.i}</div><div class="pn">${o.n}</div>`+
+        `<div class="pd">${o.d}</div><div class="pt">${o.t.toUpperCase()}</div></div>`;
+    const d=consDef(o.id);
+    return `<div class="pk rar-rare${pickChoice===i?' sel':''}" data-i="${i}">`+
+      `<div class="pi">${d.i}</div><div class="pn">${d.n}${o.dir?' <span class="dir">'+o.dir+'</span>':''}</div>`+
+      `<div class="pd">${d.d(o.dir)}</div><div class="pt">CONSUMABLE</div></div>`;
+  }).join('');
+}
+$('pick-row').onclick=e=>{ const c=e.target.closest('.pk'); if(!c) return;
+  const i=+c.dataset.i;
+  if(pickChoice===i) return takePick();           // second click confirms
+  pickChoice=i; sfxPickHover(); renderPick(); };
+$('pick-reroll').onclick=()=>{ if(rerolls<=0) return; rerolls--; pickChoice=null;
+  pickOffers = pickKind==='trick' ? offerTricks() : offerCons(); sfxRotate(); renderPick(); };
+$('pick-skip').onclick=()=>{ pickChoice=null; takePick(true); };
+function takePick(skip){
+  if(!skip&&pickChoice!=null){
+    const o=pickOffers[pickChoice];
+    if(pickKind==='trick'){
+      if(tricks.length<CFG.trickCap){ const t={...o}; assignMark(t); tricks.push(t); sfxCons(); }
+      else { note('Trick slots are full.'); sfxDeny(); }
+    } else if(cons.length<CFG.consCap){ cons.push({...o}); sfxCons(); }
+    else { note('No room for another consumable.'); sfxDeny(); }
+  }
+  hide('ov-pick'); const r=pickResolve; pickResolve=null; if(r) r();
+}
+function runPick(kind){
+  pickKind=kind; pickChoice=null; rerolls=CFG.rerolls;
+  pickOffers = kind==='trick' ? offerTricks() : offerCons();
+  const title = kind==='trick' ? 'Take a trick' : 'Take a consumable';
+  $('pick-title').textContent=title; $('pick-eyebrow').textContent=title;
+  $('pick-lead').textContent = kind==='trick'
+    ? 'Click to read it, click again to take it. Tricks are permanent.'
+    : 'Click to read it, click again to take it. A consumable is used once, whenever you like, and what it does to a card is permanent.';
+  renderPick(); show('ov-pick');
+  return new Promise(res=>{ pickResolve=res; });
+}
+/* the marked line ALTERNATES axis (r296): a run that rolled all rows would
+   never give the crossing effects anything to fire on. */
+let markAxis='row';
+function assignMark(t){
+  if(!['rowcol_triple_pips','rowcol_mult','perfect_timing'].includes(t.id)) return;
+  t.mark={axis:markAxis, idx:Math.floor(Math.random()*N)};
+  markAxis = markAxis==='row' ? 'col' : 'row';
+}
+
+function reportRound(){
+  $('rep-title').textContent=`Round ${round} scored`;
+  $('rep-eyebrow').textContent='Round scored';
+  $('rep-body').textContent=
+    `  this round   ${roundScore.toLocaleString()}\n`+
+    `  run total    ${total.toLocaleString()}\n`+
+    `  filled       ${filled()}/25\n\n`+roundLog.join('\n');
+  sfxRoundEnd(); show('ov-rep');
+  return new Promise(res=>{ $('rep-ok').onclick=()=>{ hide('ov-rep'); res(); }; });
+}
+function deckDrift(){
+  const base=buildRunDeck(), have={}, want={};
+  runDeck.forEach(c=>have[c.rank+c.suit]=(have[c.rank+c.suit]||0)+1);
+  base.forEach(c=>want[c.rank+c.suit]=(want[c.rank+c.suit]||0)+1);
+  const rows=[];
+  Object.keys(have).forEach(k=>{ const d=have[k]-(want[k]||0); if(d>0) rows.push(`+${d} ${k}`); });
+  Object.keys(want).forEach(k=>{ const d=(have[k]||0)-want[k]; if(d<0) rows.push(`${d} ${k}`); });
+  return rows;
+}
+function reportRun(){
+  $('rep-title').textContent='Run complete';
+  $('rep-eyebrow').textContent='Run complete';
+  const drift=deckDrift();
+  $('rep-body').textContent=
+    `  FINAL SCORE  ${total.toLocaleString()}\n`+
+    `  mode         ${mode==='all'?'SCORE ALL':'SELECT SCORE'}\n`+
+    `  rounds       ${CFG.rounds}\n`+
+    `  tricks       ${tricks.map(t=>t.n).join(', ')||'none'}\n`+
+    `  deck         ${runDeck.length} cards, `+
+      (drift.length?`changed: ${drift.join(', ')}`:'unchanged')+`\n\nLAST ROUND\n`+roundLog.join('\n');
+  sfxRoundEnd(); show('ov-rep');
+  $('rep-ok').onclick=()=>{ hide('ov-rep'); newRun(); };
+}
+async function endRound(){
+  phase='report'; renderAll();
+  await reportRound();
+  if(round>=CFG.rounds){ reportRun(); return; }
+  await runPick('trick');
+  await runPick('cons');                 // every round after the first
+  round++; roundScore=0; roundLog=[]; newRound();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODE CHOICE, TUNING, MEASUREMENT
+   ══════════════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('#ov-mode .opt').forEach(o=>o.onclick=()=>{
+  mode=o.dataset.mode; hide('ov-mode'); sfxCons(); newRun(); });
+$('fin-n').textContent=CFG.finalLines;
+
+const num=(id,f)=>$(id).addEventListener('change',e=>{f(+e.target.value);renderAll();});
+num('c-disc',v=>CFG.discards=v);  num('c-keep',v=>CFG.keep=v);
+num('c-rounds',v=>CFG.rounds=v);  num('c-fin',v=>{CFG.finalLines=v;$('fin-n').textContent=v;});
+num('c-hand',v=>CFG.handMs=v);    num('c-acc',v=>CFG.accel=v);
+num('c-ns',v=>CFG.nsPct=v);
+$('c-snd').addEventListener('change',e=>CFG.sound=e.target.checked);
+$('b-restart').onclick=()=>{ ['ov-pick','ov-rep','ov-forge','ov-suit'].forEach(hide); show('ov-mode'); };
+$('b-dump').onclick=()=>note('const CFG='+JSON.stringify(CFG,null,1)+';');
+$('b-table').onclick=()=>{
+  const AVG=7.31, pair=(HAND_BASE['Pair'].pips+5*AVG)*HAND_BASE['Pair'].mult;
+  note('HAND             PIPS  MULT   AVG LINE   x PAIR   REAL 5-CARD FREQUENCY\n'+
+    Object.entries(HAND_BASE).sort((a,b)=>a[1].r-b[1].r).map(([n,h])=>{
+      const net=(h.pips+5*AVG)*h.mult;
+      return `${n.padEnd(17)}${String(h.pips).padStart(4)}${String(h.mult).padStart(6)}`+
+        `${String(Math.round(net)).padStart(11)}${(net/pair).toFixed(1).padStart(9)}   ${h.freq}`;}).join('\n')+
+    '\n\nAmerican Poker Squares for comparison, x Pair:  1 / 2.5 / 5 / 7.5 / 10 / 12.5 / 25 / 37.5');
+};
+$('b-sfx').onclick=async()=>{
+  const names=['place','rotate','discard','deny','consumable','pick','round end'];
+  const fns=[sfxPlace,sfxRotate,sfxDiscard,sfxDeny,sfxCons,sfxPickHover,sfxRoundEnd];
+  note('Auditioning: '+names.join(' - ')+', then a full ten-line tally climb.');
+  for(let i=0;i<fns.length;i++){ fns[i](); await sleep(520); }
+  await sleep(500);
+  for(let i=0;i<10;i++){ blip(i, Math.min(8,Math.floor(i*0.9)), (i%5-2)/2.6); await sleep(340); }
+};
+
+/* ── headless measurement: a bot that packs, with no idea it makes hands ── */
+function simBoard(dk){
+  /* `dk` lets AUTOPLAY pack the REAL run deck, so the board it leaves behind
+     holds the same card objects a hand-placed board would and a consumable
+     edits the deck exactly as it does in play. The measurement buttons pass
+     nothing and get a throwaway deck. */
+  const b=Array.from({length:N},()=>Array(N).fill(null));
+  dk = dk ? dk.slice() : shuffle(buildRunDeck());
+  let h=[];
+  const fit=(p,r,c)=>p.cells.every(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
+    return rr>=0&&cc>=0&&rr<N&&cc<N&&!b[rr][cc];});
+  const strandCount=()=>{let n=0;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){ if(b[r][c]) continue;
+      let open=0;
+      if(r>0&&!b[r-1][c])open++; if(r<N-1&&!b[r+1][c])open++;
+      if(c>0&&!b[r][c-1])open++; if(c<N-1&&!b[r][c+1])open++;
+      if(!open) n++; }
+    return n;};
+  const mk=size=>{const f=SHAPES[size][Math.floor(Math.random()*SHAPES[size].length)];
+    return {id:'s'+(++_pid),cells:f.map(([dr,dc])=>({dr,dc,card:dk.pop()||{rank:'2',suit:'h'}}))};};
+  for(let t=0;t<CFG.schedule.length;t++){
+    const sp=CFG.schedule[t];
+    for(let i=0;i<sp.n;i++) h.push(mk(sp.size));
+    let dsc=CFG.discards;
+    while(h.length>CFG.keep){
+      let best=null;
+      for(const p of h) for(let rot=0;rot<4;rot++){
+        for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(fit(p,r,c)){
+          p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=1);
+          const sc=strandCount()*100 + r*N+c;
+          p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=null);
+          if(!best||sc<best.sc) best={sc,p,r,c,cells:p.cells.map(cl=>({...cl}))};
+        }
+        rotate(p);
+      }
+      if(best){ best.cells.forEach(cl=>b[best.r+cl.dr][best.c+cl.dc]=cl.card);
+                h=h.filter(x=>x!==best.p); }
+      else if(dsc>0){ dsc--; h.shift(); }
+      else break;
+    }
+  }
+  return b;
+}
+$('b-sim').onclick=()=>{
+  const runs=4000; let fill=0, full=0;
+  for(let i=0;i<runs;i++){ const b=simBoard(); const f=b.flat().filter(Boolean).length;
+    fill+=f; if(f===25) full++; }
+  note(`FILL over ${runs} boards\n  mean ${(fill/runs).toFixed(2)}/25\n`+
+       `  full boards ${(full/runs*100).toFixed(1)}%\n  schedule ${JSON.stringify(CFG.schedule)}`);
+};
+$('b-simscore').onclick=()=>{
+  const runs=1500; const saveB=board, saveT=tricks, saveNs=nsBonus;
+  tricks=[]; nsBonus={};
+  let sum=0, mn=1e9, mx=0; const mix={};
+  for(let i=0;i<runs;i++){
+    board=simBoard(); let s=0;
+    for(let k=0;k<10;k++){ const h=bestHand(lineCards(k),k); s+=h.total; mix[h.name]=(mix[h.name]||0)+1; }
+    sum+=s; mn=Math.min(mn,s); mx=Math.max(mx,s);
+  }
+  board=saveB; tricks=saveT; nsBonus=saveNs;
+  note(`SCORE over ${runs} boards, no tricks, no scaling\n`+
+    `  mean ${Math.round(sum/runs)}   min ${mn}   max ${mx}\n\nHAND MIX (of ${runs*10} lines)   real 5-card poker in brackets\n`+
+    Object.entries(mix).sort((a,b)=>b[1]-a[1])
+      .map(([n,c])=>`  ${n.padEnd(17)} ${(c/(runs*10)*100).toFixed(1)}%   (${HAND_BASE[n].freq})`).join('\n'));
+};
+$('b-auto').onclick=()=>{ board=simBoard(shuffle(runDeck)); hand=[]; turn=CFG.schedule.length-1;
+  tentative=null; selected=null; renderAll(); note('Board packed by the bot. END TURN to score it.'); };
+
+/* ── OFFLINE AUDIO AUDIT ────────────────────────────────────────────────────
+   Renders a sound into an OfflineAudioContext and reports its peak and RMS. A
+   silent sound is the failure mode a synth engine has and it is invisible
+   otherwise; a CLIPPING one is the other, and peak is the only way to see it. */
+async function auditSfx(fn,secs=2){
+  const off=new OfflineAudioContext(2,Math.ceil(44100*secs),44100);
+  const savedAC=AC, savedMIX=MIX, savedNoise=NOISE;
+  AC=off; NOISE=null; buildMix();
+  const realAc=ac; try{ fn(); }finally{}
+  const buf=await off.startRendering();
+  AC=savedAC; MIX=savedMIX; NOISE=savedNoise;
+  let peak=0,sum=0,n=0;
+  for(let ch=0;ch<buf.numberOfChannels;ch++){ const d=buf.getChannelData(ch);
+    for(let i=0;i<d.length;i++){ const a=Math.abs(d[i]); if(a>peak)peak=a; sum+=d[i]*d[i]; n++; } }
+  return {peak:+peak.toFixed(3), rms:+Math.sqrt(sum/n).toFixed(4)};
+}
+
+/* ── boot ───────────────────────────────────────────────────────────────── */
+paintSuitRow2();
+mode='all'; newRun();
+window.PS={ get board(){return board;}, get hand(){return hand;}, get tricks(){return tricks;},
+  get cons(){return cons;}, get total(){return total;}, get deck(){return runDeck;},
+  get state(){return {round,turn,phase,mode,filled:filled(),locked:[...locked]};},
+  CFG, HAND_BASE, bestHand, lineCards, simBoard, deckDrift, blip, auditSfx,
+  sfx:{place:sfxPlace,rotate:sfxRotate,discard:sfxDiscard,deny:sfxDeny,cons:sfxCons,pick:sfxPickHover,roundEnd:sfxRoundEnd},
+  setMode:m=>{mode=m;hide('ov-mode');newRun();},
+  armCons, consPick, runPick, fits, render:renderAll,
+  grantTrick:id=>{const t={...TRICKS.find(x=>x.id===id)};assignMark(t);tricks.push(t);renderAll();},
+  grantCons:id=>{cons.push(rollCons(id));renderAll();} };
+</script>
+</body>
+</html>

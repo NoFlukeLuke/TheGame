@@ -221,6 +221,30 @@
   #event-bar-dots i:nth-child(3) { animation-delay: 0.7s; }
   @keyframes ev-lamp { 0%,100% { opacity: 0.22; } 50% { opacity: 0.95; } }
 
+  /* The console's pause chip. An event and a Limit Break are full-screen panels
+     over the whole stage, so the play screen's PAUSE button is not merely hidden -
+     it is painted over, and the menu was unreachable for the whole screen. The bar
+     is the one part that never scrolls away, so the chip rides it, and the pause
+     overlay (z-index 420) sits above both panels so it paints correctly on top.
+     The lamps and the chip are grouped so the bar stays eyebrow-left / rest-right. */
+  .con-bar-right { display: flex; align-items: center; gap: 11px; }
+  .con-pause {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; line-height: 1;
+    padding: 4px 8px;
+    color: #b39cf5;
+    background: rgba(140,110,230,0.10);
+    border: 1px solid #3a3560;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s, border-color 0.14s;
+  }
+  .con-pause:hover {
+    background: rgba(140,110,230,0.26);
+    border-color: #7a63c8;
+    color: #e6dcff;
+  }
+
   #event-name {
     font-family: 'Orbitron', sans-serif; font-weight: 800;
     font-size: 19px; letter-spacing: 2.5px; text-transform: uppercase;
@@ -320,8 +344,7 @@
   .event-choice.rar-common    { --rc: var(--c-mint); }
   .event-choice.rar-rare      { --rc: var(--c-cyan); }
   .event-choice.rar-epic      { --rc: var(--c-purple); }
-  .event-choice.rar-legendary { --rc: var(--c-yellow); }
-  .event-choice.rar-mythic    { --rc: var(--c-magenta); }
+  .event-choice.rar-legendary { --rc: var(--c-magenta); }
   .event-choice:hover  { transform: translateY(-2px); filter: brightness(1.08); }
   .event-choice.selected {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 18px rgba(140,110,230,0.8),
@@ -366,10 +389,34 @@
     pointer-events: none;
   }
   .ec-tile .reward-cell {
-    position: static; width: 46px; height: 61px; margin: 0;
+    position: relative; width: 46px; height: 61px; margin: 0;
   }
-  .ec-tile .rwd-name { display: none; }
   .ec-info { flex: 1; min-width: 0; }
+  /* An entity offer reads as a COLUMN (r239): the object on top - at its own
+     ratio, wearing its own name, exactly as it will sit in the tray - and the
+     title and description beneath it. The tile keeps its label now for the
+     same reason: it is a picture of the thing you will own. */
+  .event-choice.has-tile .ec-top { flex-direction: column; gap: 6px; }
+  /* Two across: a tile choice is a COLUMN and much taller than a text row, so
+     a tray-length list (Rehearsal over 10 Tricks) would otherwise be a long
+     scroll. Event bodies wrap their choices in ad-hoc divs, so the CONTAINER
+     is found by :has() rather than named - any div directly holding a tile
+     choice becomes a wrapping row, and the labels and notes sharing it take a
+     full line of their own. */
+  #event-panel div:has(> .event-choice.has-tile) {
+    /* flex-direction must be restated: #event-body is a flex COLUMN, and a
+       column with wrap never wraps at auto height - it just stayed one per
+       line, centred, which looked like :has() failing. */
+    display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px;
+    justify-content: center; align-items: stretch;
+  }
+  #event-panel div:has(> .event-choice.has-tile) > .ev-label,
+  #event-panel div:has(> .event-choice.has-tile) > .ev-note { flex: 1 1 100%; }
+  .event-choice.has-tile { width: calc(50% - 8px); }
+  .event-choice.has-tile .ec-tile,
+  .event-choice.has-tile .ec-tile .reward-cell { width: 56px; height: 72px; }
+  .event-choice.has-tile .ec-info { flex: 0 0 auto; width: 100%; text-align: center; }
+  .event-choice.has-tile .ec-desc { text-align: center; }
   .ec-rarity {
     font-family: 'Share Tech Mono', monospace;
     font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
@@ -385,6 +432,14 @@
     font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.45;
     color: rgba(240,230,200,0.8); margin-top: 7px;
   }
+  /* An offer carrying an `extra` puts it beside the sentence rather than under
+     it. flex-basis keeps the sentence from collapsing to one word before the
+     row wraps. */
+  .ec-descrow {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 4px 10px; margin-top: 7px;
+  }
+  .ec-descrow .ec-desc { flex: 1 1 210px; min-width: 0; margin-top: 0; }
   .ec-cost {
     font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px;
     color: #ff8a95; margin-top: 6px;
@@ -579,8 +634,7 @@
   .blp-item.rar-common    { --rc: var(--c-mint); }
   .blp-item.rar-rare      { --rc: var(--c-cyan); }
   .blp-item.rar-epic      { --rc: var(--c-purple); }
-  .blp-item.rar-legendary { --rc: var(--c-yellow); }
-  .blp-item.rar-mythic    { --rc: var(--c-magenta); }
+  .blp-item.rar-legendary { --rc: var(--c-magenta); }
   .blp-item {
     position:relative;
     width:100%; box-sizing:border-box;
@@ -686,6 +740,22 @@
     opacity: 0.24; cursor: not-allowed; filter: grayscale(0.8);
   }
   .ev-cardchip.blocked:hover { transform: none; }
+
+  /* ── The Forge's face row (r294) ──────────────────────────────────────────
+     An option buffs two or three cards, so the tile has to SHOW which - the
+     same mini playing cards Clean Up's picker is made of, but as a readout
+     rather than a control: no hover lift, no pointer, and the click belongs to
+     the option underneath. Left-aligned and unwrapped, because it sits under a
+     left-aligned sentence and three faces always fit. */
+  .ec-forge .ec-facerow {
+    flex: 0 0 auto; justify-content: flex-start; flex-wrap: wrap;
+    margin-top: 0; max-width: none; max-height: none; overflow: visible;
+  }
+  .ec-forge .ec-facerow .ev-cardchip {
+    cursor: inherit; pointer-events: none;
+    padding: 4px 7px; font-size: 12px; min-width: 26px;
+  }
+  .ec-forge .ec-facerow .ev-cardchip:hover { transform: none; }
 
   /* Running total on the Card Market's basket. */
   .ev-total {
@@ -961,9 +1031,60 @@
   .slot-linebtn { font-size: 9px; padding: 4px 7px; opacity: 0.45; }
   .slot-linebtn.on { opacity: 1; border-color: var(--c-yellow); color: var(--c-yellow); }
 
-/* Natural Scaling bonus editor (r201) - one compact row per hand type. */
-.dev-ns-row { display:flex; align-items:center; gap:6px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
-.dev-ns-row .dev-ns-name { flex:1 1 auto; min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dev-ns-row label { flex:0 0 auto; display:flex; align-items:center; gap:3px; }
-.dev-ns-row input { width:52px; background:#1a1510; color:var(--cream); border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
-.dev-ns-row .dev-ns-plays { flex:0 0 58px; text-align:right; opacity:0.7; }
+/* Natural Scaling table (r282): name + the four RATE columns + the two EARNED
+   columns + a plays/growth readout. One grid template on every row INCLUDING the
+   header, so the header cannot drift out of line with the fields under it. */
+.dev-ns-row { display:grid; grid-template-columns:minmax(0,1fr) 44px 48px 44px 24px 46px 48px 62px;
+  align-items:center; gap:4px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
+.dev-ns-row .dev-ns-name { min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dev-ns-row input { width:100%; box-sizing:border-box; background:#1a1510; color:var(--cream);
+  border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
+.dev-ns-row input.dev-ns-alt { width:14px; justify-self:center; accent-color:var(--gold); }
+.dev-ns-row .dev-ns-plays { text-align:right; opacity:0.7; font-family:'Share Tech Mono',monospace; font-size:10px; }
+/* The header carries no inputs, so its cells are the labels themselves. */
+.dev-ns-head { color:var(--gold-dim); font-family:'Share Tech Mono',monospace; font-size:9px;
+  letter-spacing:1px; border-bottom:1px solid var(--border); padding-bottom:2px; margin-bottom:3px; }
+.dev-ns-head > span { text-align:center; }
+.dev-ns-head .dev-ns-name { text-align:left; }
+.dev-ns-head .dev-ns-plays { text-align:right; }
+/* A row moved off the shipped table. */
+.dev-ns-row.dev-ns-tuned .dev-ns-name { color:var(--gold); }
+.dev-ns-row.dev-ns-tuned input { border-color:var(--gold-dim); }
+
+/* ── NARROW: THE HAND NAME TAKES ITS OWN LINE (r304) ──────────────────────
+   The name column is the only flexible one (minmax(0,1fr)) and the seven field
+   columns are fixed at 316px plus gaps, so on a phone it is what gives: #dev-panel
+   is min(660px, 94vw), and at 420 and 390 wide the name measured EXACTLY 0px.
+   Every row read as a line of unlabelled numbers - the hand the numbers belong to
+   was not narrow, it was gone.
+
+   Scrolling the table sideways was the other option and is worse: the name would
+   then be the part you had to scroll AWAY from the numbers to read, which is the
+   complaint. So the name spans the full row on its own line and the fields sit
+   under it, at slightly tighter widths so the plays/growth readout still fits.
+   The header gets the same treatment, which is what keeps it in line with the
+   fields (the one rule this table has). */
+@media (max-width: 560px) {
+  .dev-ns-row { grid-template-columns:38px 42px 38px 20px 42px 42px minmax(0,1fr); gap:3px; margin:5px 0; }
+  .dev-ns-row .dev-ns-name { grid-column:1 / -1; font-size:11.5px; line-height:1.15; }
+  .dev-ns-row input { font-size:10px; padding:1px 2px; }
+  .dev-ns-head { padding-bottom:3px; }
+  .dev-ns-head .dev-ns-name { font-size:9px; letter-spacing:1px; color:var(--gold-dim); }
+  /* Each row is now two lines, so they need a line between them to read as rows. */
+  .dev-ns-row:not(.dev-ns-head) { border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; }
+}
+
+
+/* ── Weighted deck editor (r273) - one stepper per rank, 13 across ── */
+.dev-wgrid { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+.dev-wrank { display:flex; align-items:center; gap:2px; padding:2px 3px;
+  border:1px solid rgba(212,175,95,0.28); border-radius:4px; background:rgba(0,0,0,0.25); }
+.dev-wrank.off { opacity:0.42; }
+.dev-wrank b { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--gold-dim);
+  min-width:16px; text-align:center; }
+.dev-wrank i { font-family:'Share Tech Mono',monospace; font-style:normal; font-size:12px;
+  color:var(--cream); min-width:16px; text-align:center; }
+.dev-wbtn { font-family:'Share Tech Mono',monospace; font-size:12px; line-height:1;
+  width:18px; height:18px; padding:0; cursor:pointer; color:var(--cream);
+  background:rgba(212,175,95,0.14); border:1px solid rgba(212,175,95,0.34); border-radius:3px; }
+.dev-wbtn:hover { background:rgba(212,175,95,0.3); }

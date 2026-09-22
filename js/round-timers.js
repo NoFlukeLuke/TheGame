@@ -51,8 +51,15 @@ function startRoundTimer() {
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
+  // A Spectrum fixture queued to leave by the GOAL hand never drained - that
+  // hand's finale explodes the board instead of calling removeAndFall - and the
+  // interlude has since discarded the whole board anyway. Drop the stale entry
+  // rather than carry it into a round whose board it is not on. (js/spectrum.js)
+  if (typeof spectrumClearFixtureExits === 'function') spectrumClearFixtureExits();
+  insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
   // know where the round's halfway mark is, and this is the one call site every
   // round start funnels through (the same reason the save checkpoint lives here).
@@ -65,6 +72,10 @@ function startRoundTimer() {
   // consumed by the time triggerBoss runs, so a checkpoint taken here would resume
   // into an ordinary round with the boss gone. The previous round's checkpoint stands.
   if (!bossActive && typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
+  // Mini-boss challenge rounds (r239): the round's handicap arms exactly when
+  // its clock starts - which also covers a resumed round, since resume lands
+  // here too. AFTER the checkpoint, so a save never captures half-armed effects.
+  if (typeof miniBossMaybeStart === 'function') miniBossMaybeStart();
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
@@ -95,6 +106,11 @@ function startRoundTimer() {
       }
     }
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
+    // Crunch: a round with no swaps, no discards and no hand on the board cannot
+    // be finished, and letting its clock run out would end the RUN. It is closed
+    // out instead. The cheap tests are inside crunchCheckStuck, so the board scan
+    // only runs on the rare tick where both stocks are actually empty.
+    if (typeof crunchCheckStuck === 'function') crunchCheckStuck();
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;
@@ -108,17 +124,22 @@ function startRoundTimer() {
       const _pool = (trickTray || []).filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
       if (_pool.length) {
         const _t = _pool[Math.floor(Math.random() * _pool.length)];
-        _t._primed = (_t._primed || 0) + 1;
+        primeTrick(_t);
         showMessage(`🎭 Understudy - ${_t.name} primed`, '#8a5cf0');
         renderTrickTray?.();
       }
     }
+    if (typeof hallmarkTick === 'function') hallmarkTick(_elapsedRound);
+    // Card states (r278): ages every card on the board and fires whatever fuse
+    // came due. Hung off the ROUND tick rather than a clock of its own, so it
+    // stops with the round, with the pause menu and with RECORDS for free.
+    if (typeof cardStatesTick === 'function') cardStatesTick();
     // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
     if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;
       if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
     }
-    // Compound (mythic): bank the round score at each mark. It is paid out by the
+    // Compound (legendary): bank the round score at each mark. It is paid out by the
     // NEXT scored hand, so a mark passing with nothing scored yet banks nothing -
     // the trick rewards scoring early and compounds from there.
     if (hasTrick('compound') && _elapsedRound >= compoundNextMark) {
@@ -163,7 +184,13 @@ function startRoundTimer() {
     // Self-gating: a no-op in every mode whose boss is announced by the reward
     // grid / payout / pick that precedes it.
     if (typeof tickBossApproach === 'function') tickBossApproach();
-    if (roundSeconds <= 0) onRoundEnd();
+    // A mode with no round clock lets the countdown RUN - every entity that reads
+    // "how far into the round are we" (The Swift, Sediment, the Cuckoo, the
+    // Woodpecker, First Wind, the clock marks) measures it as
+    // roundStartSeconds - roundSeconds, so freezing the tick would silently kill
+    // all of them, which is what Zen does. Only the end-of-round is suppressed.
+    // A BOSS window always ends the round: that clock is the boss.
+    if (roundSeconds <= 0 && roundClockEndsRound()) onRoundEnd();
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)
   startFocusDecay();
@@ -218,6 +245,32 @@ function startTimers() {
 // (discard 3s per card, swap 8s flat, play free). Do not charge these again.
 const DISCARD_TIME_COST = 3;
 const SWAP_TIME_COST    = 4;
+// ── The two clock chokepoints (r234) ────────────────────────────────────────
+// "Does the round end when the clock reaches zero?" A boss window always does -
+// that clock IS the boss. Otherwise a mode may say no (Flow's session clock, or a
+// picker-built run that answered "no limit").
+function roundClockEndsRound() {
+  if (bossActive) return true;
+  if (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()) return false;
+  return true;
+}
+
+// "Do swaps and discards bill the clock?" ONE answer, read by the two sites that
+// actually charge (js/input.js, js/discard.js) and by the Time pop-up that quotes
+// them, so the quote can never drift from the charge the way it did before r151.
+//
+// This is also the fix for a live bug: Flow is documented and displayed as
+// charging 0s, and spendRoundTime returns early for it - but spendRoundTime is
+// not what charges. Both real sites write roundSeconds directly and neither
+// consulted flowActive(), so Flow's session clock was being billed for every
+// swap and discard, which is precisely what its own comment says must not happen
+// (interacting could summon the inspection early).
+function interactTimeCostsOn() {
+  if (typeof flowActive === 'function' && flowActive()) return false;
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.timeIsCurrency === false) return false;
+  return true;
+}
+
 function spendRoundTime(sec) {
   // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
   // charging swaps/discards against it would make interacting summon the inspection

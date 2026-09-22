@@ -11,7 +11,11 @@ function generateHandFocus(hand, handCells, vultureSec) {
     const secondsSinceLast = lastHandTime > 0 ? (now - lastHandTime) / 1000 : Infinity;
     // window > 1 DILATES the speed curve: the clock is read as if less time had
     // passed, so you get the same speed bonus with twice as long to play.
-    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed);
+    // r234: Pair / Flush of 3 / Flush of 4 earn HALF the speed bonus. The halving
+    // is applied AFTER the rate mods and before the floor, so an Overclock or a
+    // Flywheel still doubles what is left rather than being cancelled by it.
+    const _halfSpeed = FOCUS_HALF_SPEED_HANDS.has(hand) ? 0.5 : 1;
+    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
     let totalFocus = handFocus + speedBonus;
     // Rhythm: +1 focus per hand
     totalFocus += 1 * trickFires('rhythm');
@@ -28,13 +32,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Run focus tricks: Torrent (+1/card), Rogue Wave (+4/card if played in sequence)
     const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     if (_isRunHand) totalFocus += handCells.length * BAL.river_run.focus_per_card * trickFires('river_run');
-    // Rogue Wave's fire count is read BEFORE canBeOrderedRun, so the predicate is
-    // still short-circuited by ownership. It reads gridData, which is empty between
-    // screens, and calling it unconditionally throws there (caught in a browser run).
-    if (_isRunHand) {
-      const _crf = trickFires('correct_run');
-      if (_crf && canBeOrderedRun(handCells)) totalFocus += handCells.length * BAL.correct_run.focus_per_card * _crf;
-    }
+    // Rogue Wave asks for its fire count only once the predicate holds (r296 - a
+    // count asked for is a prime spent). hasTrick() still short-circuits
+    // canBeOrderedRun, which is what the r203 note was really protecting: it reads
+    // gridData, which is empty between screens, and calling it unconditionally
+    // throws there (caught in a browser run).
+    if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells))
+      totalFocus += handCells.length * BAL.correct_run.focus_per_card * trickFires('correct_run');
     // Resonance: Pairs/Two Pairs containing a 2 or 4 add +2 Focus per card
     if ((hand === 'Pair' || hand === 'Two Pair') &&
         handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
@@ -42,11 +46,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // Gnomes: each rank-5-and-below card scored adds its rank in Focus (Ace = 1)
     {
-      const _btf = trickFires('before_the_tide');
-      if (_btf) {
-        const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
-        handCells.forEach(([r,c]) => { const cc = gridData[r]?.[c]; if (cc && _rv[cc.rank]) totalFocus += _rv[cc.rank] * _btf; });
-      }
+      const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
+      const _btl = handCells.reduce((s,[r,c]) => s + (_rv[gridData[r]?.[c]?.rank] || 0), 0);
+      if (_btl) totalFocus += _btl * trickFires('before_the_tide');
     }
     // Lucky Sevens: +3 Focus per 7 scored
     { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
@@ -71,7 +73,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Groove / Overtime: tally cards scored from their marked line this round, then scale.
     if (hasTrick('groove')) {
       markCount_groove += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'groove')).length;
-      totalFocus += Math.floor(markCount_groove / 2) * BAL.groove.focus_per_2 * trickFires('groove');
+      const _gvf = Math.floor(markCount_groove / 2);
+      if (_gvf > 0) totalFocus += _gvf * BAL.groove.focus_per_2 * trickFires('groove');
     }
     if (hasTrick('overtime')) {
       markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
@@ -79,7 +82,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
     if (counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus * trickFires('third_down');
     // Acorns: grant the trick's accumulated whole-number Focus (grows +0.05 per scored card, post-hand)
-    totalFocus += Math.floor(bonusFocus_acorns) * trickFires('acorns');
+    { const _acf = Math.floor(bonusFocus_acorns); if (_acf > 0) totalFocus += _acf * trickFires('acorns'); }
     // Plan Ahead: every 3rd hand of the round adds Focus = average hands per round so far
     if ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0) {
       totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level))) * trickFires('plan_ahead');
@@ -203,12 +206,27 @@ function playHand() {
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
   if (typeof minSelection === 'function' && selected.length < minSelection()) {
-    dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
-    return;
+    // Roll Call (r278) pulls every card of its rank into the hand, so a selection
+    // that is short on its own can still be legal. The count is asked for BEFORE
+    // the guard decides, because "if the card is selected alone, that can ignore
+    // the minimum if there are enough cards on the board" is the whole point of
+    // the state. rollCallPullCells is pure, so asking twice costs nothing.
+    const _rcN = (typeof rollCallPullCount === 'function') ? rollCallPullCount(selected) : 0;
+    if (selected.length + _rcN < minSelection()) {
+      dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
+      return;
+    }
   }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   let result = findBestHand(selected);
+  // Roll Call (r278, js/card-states.js): every card of its rank on the board
+  // joins the hand. It runs BEFORE the no-hand bail, unlike the Ringer below,
+  // because it can MAKE the hand rather than merely improve one - a lone Roll
+  // Call 7 with three other 7s on the board is a Four of a Kind that
+  // findBestHand, which only ever builds connected subsets, could never find.
+  const _rollCall = (typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
+  if (_rollCall) { result = _rollCall.result; selected = [...selected, ..._rollCall.cells]; }
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
@@ -259,6 +277,10 @@ function playHand() {
   // lastPreHandFocus = the multiplier the hand STARTED at (dance shows this first), then the
   // recompute below sets lastCalcFocus = the multiplier AFTER this hand's Focus (dance beats up to it).
   lastPreHandFocus = focusMultiplier();
+  // r296: every non-scoring payout below asks trickFires(), which records the ask -
+  // that record is what lets runHandPriming spend the primes of a Trick paying in
+  // Focus, seconds or credits, which the contributions ledger cannot see.
+  if (typeof resetTrickFires === 'function') resetTrickFires();
   generateHandFocus(hand, handCells, _vultureSec);
   // Re-score the winning hand now that Focus reflects this hand's own gains.
   const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips);
@@ -276,6 +298,20 @@ function playHand() {
       if (_cd && _cd.rank) _cardSecs += (permTime[cardId(_cd)] || 0);
     });
     if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ +${_cardSecs}s from your cards`);
+  }
+  // Card Market payday cards: credits carried by the individual cards in this
+  // hand. REPLAY-WEIGHTED (unlike permTime): a card that scored three times pays
+  // its credits three times - that is the owner's spec for the card state.
+  if (typeof permCoins !== 'undefined') {
+    let _cardCoins = 0;
+    handCells.forEach(([r, c]) => {
+      const _cd = gridData[r]?.[c];
+      if (_cd && _cd.rank) {
+        const per = permCoins[cardId(_cd)] || 0;
+        if (per) _cardCoins += per * (_handRetrigByCell[r + '-' + c] || 1);
+      }
+    });
+    if (_cardCoins > 0) { coins += _cardCoins; updateCoinsUI(); try { sfxCoin?.(); } catch (e) {} }
   }
 
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
@@ -315,7 +351,7 @@ function playHand() {
     if (spotCheckLeft <= 0) { spotCheckHand = null; showMessage('Spot check cleared', 'var(--gold)'); }
     else showMessage(`Spot check: ${spotCheckLeft} more`, 'var(--cream-dim)');
   }
-  // Compound (mythic): pay out everything banked since the last hand, then clear.
+  // Compound (legendary): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.
   if (compoundBanked > 0) {
@@ -337,6 +373,24 @@ function playHand() {
   // Scaling card buffs: a card carrying permMultGrow / permPipsGrow raises its
   // own FLAT bonus now, so the growth shows on its next play (js/deck-grid.js).
   if (typeof growCardScaling === 'function') growCardScaling(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Hallmark (r234): this round's marked card, if the hand scored it. After the
+  // score commits, exactly like growCardScaling above and recordNaturalScale
+  // below - a buff earned by a hand pays out on the NEXT one. Rolling it inside
+  // calcScore would fire on every speculative re-score instead.
+  // Card states (r278). Same slot and the same reason: a state's payout is
+  // earned by this hand and lands on the next one, and anything rolled inside
+  // calcScore would fire on every speculative re-score. The two states whose
+  // payout HAS to change this hand (Callback's replays, Roll Call's pull) are
+  // applied earlier and only spend their charge here, so there is one place a
+  // charge is spent. Every played card is touched, not just the scored ones -
+  // a penalty card was still committed and consumed.
+  if (typeof cardStatesTouch === 'function') cardStatesTouch(playedCells.map(([r, c]) => gridData[r]?.[c]));
+  if (typeof cardStatesOnUse === 'function') cardStatesOnUse(result.handCells.map(([r, c]) => gridData[r]?.[c]), result.handCells);
+  if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
+  // Cleared here rather than in calcScore for the speculative-re-score reason
+  // given there.
+  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length) forcedTrickIds = [];
   // Natural Scaling: credit every hand type this play paid for - the primary and
   // any other family it layered (a same-suit run earns both). After the score is
   // committed, so the buff lands on the NEXT hand of that type, not this one.
@@ -376,6 +430,27 @@ function playHand() {
   updateCounters(hand, handCells);
   checkUnlocks();
 
+  // The boss-winning hand takes the SAME exit as a goal hand (r237): freeze
+  // input, stop the clock, and let the dance play the full finale. The dance
+  // ends the boss via bossSettleWin() where it would start the interlude.
+  // Sits HERE, below the shared post-score bookkeeping, not up beside
+  // checkBossObjective (r254): the early return used to skip Lucky Seven,
+  // highestHandScore, recordQuarterBest, on_play Sleights, updateCounters and
+  // checkUnlocks for the boss-winning hand alone - visibly, the run report's
+  // boss quarter printed no best hand. Pre-r237 all of it ran (endBoss was
+  // synchronous and playHand carried on), so this restores that behaviour.
+  if (_bossThisHand && typeof bossWinPending !== 'undefined' && bossWinPending && !goalReachedThisRound) {
+    goalReachedThisRound = true;
+    roundEnded = true;
+    clearInterval(roundInterval); roundInterval = null;
+    const toRemove = [...selected];
+    selected = [];
+    commitRoundContrib(_contribSnapshot);
+    playScoreDance(result, toRemove, true /* goalHand */);
+    runHandPriming(hand, handCells);
+    return;
+  }
+
   // ── Check goal immediately after scoring ──
   // Suppressed during/just-after a boss: the boss objective system + post-boss reward
   // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
@@ -395,6 +470,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
+    runHandPriming(hand, handCells);
     return;
   }
 
@@ -437,7 +513,8 @@ function playHand() {
   // was not capped at the round length. rewindTime() does all four, and returns
   // 0 during a boss (bosses run their own clock), which is the correct no-op.
   {
-    const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3 * trickFires('overtime');
+    const _otf = Math.floor(markCount_overtime / 3);
+    const _os = _otf > 0 ? _otf * BAL.overtime.seconds_per_3 * trickFires('overtime') : 0;
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
@@ -445,8 +522,10 @@ function playHand() {
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
-    const _ns = BAL.ninesong.seconds * trickFires('ninesong');
-    if (_ps % 3 === 0 && _ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
+    if (_ps % 3 === 0) {
+      const _ns = BAL.ninesong.seconds * trickFires('ninesong');
+      if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
+    }
   }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
   if (hasTrick('monochrome')) {
@@ -531,7 +610,8 @@ function playHand() {
 
   // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
   {
-    const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second) * trickFires('magpie');
+    const _mgf = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
+    const _sec = _mgf > 0 ? _mgf * trickFires('magpie') : 0;
     if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House - rewound ${_sec}s`);
   }
 
@@ -565,34 +645,8 @@ function playHand() {
       if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); showMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
   }
-  // ── Priming (Inspirato / Prime Times) ──
-  if (trickTrayMode) {
-    // Consume primes that contributed this hand (their extra trigger already fired in scoring)
-    if (trickTray.some(t => t._primed > 0)) {
-      const _pc = []; calcScore(hand, handCells, _pc);
-      const _ids = new Set(_pc.map(e => e.id));
-      const _mm = hasKnack('muscle_memory'); // primes last one extra hand
-      trickTray.forEach(t => {
-        if (t._primed > 0 && _ids.has(t.id)) {
-          if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
-          else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
-        }
-      });
-    }
-    // Inspirato: a scored Ace primes the first and last tray Tricks
-    if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
-      trickTray[0]._primed = (trickTray[0]._primed || 0) + 1;
-      const _last = trickTray[trickTray.length - 1];
-      if (_last !== trickTray[0]) _last._primed = (_last._primed || 0) + 1;
-    }
-    // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
-    if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
-      const _cyc = [0,1,2,4,6];
-      const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
-      _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
-      if (_tt) _tt._primed = (_tt._primed || 0) + 1;
-    }
-  }
+  // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
+  // the goal checks, called from all three dance sites (r294).
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
   // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
@@ -758,7 +812,7 @@ function playHand() {
     foldContribution(contribDisplayName('exalt'), 'coin', _ecPaid);
   }
   if (_ecPlay.time !== 0) {
-    roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, ROUND_DURATION));
+    roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, crunchNoRoundCap(ROUND_DURATION)));
     updateClockUI();
   }
 
@@ -859,6 +913,76 @@ function playHand() {
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
+  runHandPriming(hand, handCells);
+}
+
+// ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────
+//
+// CALLED AFTER playScoreDance, FROM ALL THREE OF ITS SITES, and both halves of
+// that sentence are a fix (r294).
+//
+//   AFTER the dance, because playPreviewDance DERIVES ITS OWN LEDGER by
+//   re-running calcScore (js/score-dance.js), and it does so synchronously on
+//   the call - there is no await between its entry and that line. This block sat
+//   ABOVE the dance, so it decremented the prime and the dance then re-scored a
+//   tray that had already paid up. The dance therefore animated ONE PRIME FEWER
+//   than the hand was scored with, every time: with a single prime - the ordinary
+//   case - it animated NONE, which is the owner's "I didn't notice the prime
+//   making the trick animate twice". Measured on a +1 Kindred: the hand really
+//   scored 476 (34 x 14) while the dance's own ledger read mult 14 -> 8 and
+//   carried 0 prime events. The SCORE total was never wrong - playHand banks the
+//   real figure - but the MULT chip climbed to a number the hand had not been
+//   scored with.
+//
+//   FROM ALL THREE SITES, because the goal-hand and boss-win paths RETURN right
+//   after starting the dance, well above where this used to sit - so the hand
+//   that ends a round was the one hand in the game that never spent its prime.
+//   Measured: an ordinary hand took a +2 Trick to +1, the goal hand left it at
+//   +2. That is the owner's "I've ended levels with a +2 still on some tricks",
+//   and it is the same shape as r254's find, where the boss-winning hand was
+//   skipping every line of shared bookkeeping below its early return.
+//
+// The board is still intact here: removeAndFall runs later, inside the dance, so
+// the recompute below still reads the cards the hand was made of.
+function runHandPriming(hand, handCells) {
+  if (!trickTrayMode) return;
+  // Consume primes that contributed this hand (their extra trigger already fired
+  // in scoring). lastPreFocusMult is saved across the recompute the way the dance
+  // saves it: this now runs after the dance's own calcScore, so leaving it moved
+  // would hand the next read a value this speculative call produced.
+  if (trickTray.some(t => t._primed > 0)) {
+    const _savedPFM = lastPreFocusMult;
+    const _pc = []; calcScore(hand, handCells, _pc);
+    lastPreFocusMult = _savedPFM;
+    const _ids = new Set(_pc.map(e => e.id));
+    // ALL OF A TRICK'S STACKS FIRE ON ONE HAND, SO ALL OF THEM ARE SPENT (r296).
+    // The firing half was never the question - the replay loop has always run
+    // once per stack and trickFires() has always returned 1 + _primed - but only
+    // ONE was spent, so a +2 paid two extra fires and then one more on the hand
+    // after. Owner's call: a prime is a charge on the NEXT firing, not a lease.
+    //
+    // The fired test is the ledger OR the fire record: _pc carries pips and mult,
+    // and a Trick paying in Focus, seconds or credits appears only in the record
+    // (js/scoring.js). Neither alone covers the tray.
+    trickTray.forEach(t => {
+      if (t._primed > 0 && (_ids.has(t.id) ||
+          (typeof trickFiredThisHand === 'function' && trickFiredThisHand(t.id)))) t._primed = 0;
+    });
+  }
+  // Inspirato: a scored Ace primes the first and last tray Tricks
+  if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
+    primeTrick(trickTray[0]);
+    const _last = trickTray[trickTray.length - 1];
+    if (_last !== trickTray[0]) primeTrick(_last);
+  }
+  // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
+  if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
+    const _cyc = [0,1,2,4,6];
+    const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
+    _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
+    if (_tt) primeTrick(_tt);
+  }
+  if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
 // ══════════════════════════════════════════════

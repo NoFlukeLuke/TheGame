@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
 // QUARTER CLOSE (r226) - js/quarter.js + css/quarter.css
 // ══════════════════════════════════════════════
-// Three quarters used to roll over in COMPLETE SILENCE. `actNumber++` happened
+// The quarters used to roll over in COMPLETE SILENCE. `actNumber++` happened
 // inside finishInterlude, the pips redrew, and the next round dealt: eighteen
 // rounds in a row with nothing marking the two boundaries between them. And the
 // end screen was six lines of run totals that said nothing about the shape of
@@ -9,7 +9,7 @@
 //
 // Two things here, and they share one set of books:
 //   1. THE QUARTER CARD - a ~2.4s beat between quarters. Q1 CLOSED / Q2 OPENS,
-//      with the three quarter pips filling one. Skippable, auto-advancing.
+//      with the quarter pips filling one. Skippable, auto-advancing.
 //   2. THE RUN REPORT - the end screen, rebuilt as a quarter-by-quarter table
 //      plus run totals. Both the win and the loss screen use it.
 //
@@ -23,6 +23,24 @@
 // quarter's best hand and what its payouts paid - and those are fed from the ONE
 // site that already knows each (play-hand.js's best-hand line, showPayoutUI's
 // total), not from a sweep.
+
+// ── HOW LONG A RUN IS ───────────────────────────────────────────────────────
+// The number of quarters an act-mode run plays before it is won. This is the
+// ONE place that number is written down: the rollover's win test, the card's
+// pips and the run report's no-ghost-row rule all read it, so setting it back
+// to 3 restores the pre-r264 run exactly and needs no other edit.
+//
+// WHAT IT IS NOT: it does not change what a quarter CONTAINS (5 nodes and a
+// boss), what the goal curve asks for (that rides `level`, which just keeps
+// climbing), or which boss you meet (`bossBag` refills itself, and there are
+// 34 presets). A fourth quarter is therefore six more ordinary nodes at the
+// difficulty the curve has already reached, with no final boss - that is
+// deliberately still to be designed.
+//
+// The mode blurbs in js/menu.js and js/picker-mode.js say this number in
+// words; they are static strings read at load time, before this file runs, so
+// they cannot read it. Change them with it.
+const QUARTERS_PER_RUN = 4;
 
 let quarterLog  = [];    // one row per CLOSED quarter
 let qHandsMark  = 0;     // handsPlayed at this quarter's start
@@ -97,7 +115,11 @@ function rolloverQuarter(next) {
   deadCells = new Set();     // Dead Drop cells are a quarter-long penalty
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
 
-  if (actNumber > 3) { onGameWin(); return; }   // the report is the wrap-up there
+  if (actNumber > QUARTERS_PER_RUN) { onGameWin(); return; }   // the report is the wrap-up there
+  // r238: deal the new quarter's boss NOW, so the progress block can name it for
+  // the whole quarter instead of guessing at it. This and startGame are the two
+  // places a quarter opens.
+  if (typeof drawActBoss === 'function') drawActBoss();
   showQuarterCard(closed, actNumber, next);
 }
 
@@ -128,9 +150,10 @@ function showQuarterCard(closed, next, done) {
   const el = quarterCardEl();
   el.querySelector('#qc-closed').textContent = 'Q' + closed;
   el.querySelector('#qc-next').textContent   = 'Q' + next + ' OPENS';
-  // Three pips, filled up to and including the quarter that just closed.
+  // One pip per quarter, filled up to and including the one that just closed.
   el.querySelector('#qc-pips').innerHTML =
-    [1, 2, 3].map(i => `<span class="${i <= closed ? 'on' : ''}"></span>`).join('');
+    Array.from({ length: QUARTERS_PER_RUN }, (_, i) => i + 1)
+      .map(i => `<span class="${i <= closed ? 'on' : ''}"></span>`).join('');
 
   let finished = false;
   const finish = () => {
@@ -168,9 +191,10 @@ function _qFmtTime(secs) {
 function runReportHTML() {
   const rows = quarterLog.slice();
   // A run that ended mid-quarter gets that quarter as a partial row. A won run
-  // has already closed its third, and its live tracker is empty - no ghost Q4.
+  // has already closed its last one, and its live tracker is empty - so no ghost
+  // row past the end of the run.
   const liveHands = ((typeof handsPlayed === 'number') ? handsPlayed : 0) - qHandsMark;
-  if (liveHands > 0 && rows.length < 3) rows.push(quarterRow(rows.length + 1, true));
+  if (liveHands > 0 && rows.length < QUARTERS_PER_RUN) rows.push(quarterRow(rows.length + 1, true));
 
   const secondsPlayed = Math.floor((Date.now() - (typeof gameStartTime === 'number' ? gameStartTime : Date.now())) / 1000);
   const owned = [

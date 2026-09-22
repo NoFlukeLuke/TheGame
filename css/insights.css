@@ -1,0 +1,113 @@
+/* ══════════════════════════════════════════════
+   TIPS (r280) - js/insights.js
+
+   Body-level, OUTSIDE #cabinet, placed from JS in raw viewport px. The standing
+   rule for every pop-up in this game: inside the cabinet it would inherit the
+   CSS `zoom` and every coordinate written from JS would be multiplied.
+
+   IT SHARES THE TUTORIAL'S MATERIAL AND NOT ITS BEHAVIOUR. Same plastic-and-
+   phosphor console, so it reads as the same voice - but there is NO DIM and NO
+   GATE anywhere in this file. A tutorial step is asking you to do something; a
+   tip is an aside, and the game must stay fully playable underneath it. That is
+   also why the card is narrower and shorter than #tut-bubble: it holds one line,
+   not a lesson.
+
+   z-index sits BELOW the tutorial's layer (200000+) on purpose - the two are
+   mutually exclusive by insightsBlocked(), and if that ever fails the tutorial
+   is the one that must win.
+   ══════════════════════════════════════════════ */
+
+#tip-layer { display: none; }
+#tip-layer.show { display: block; }
+
+/* The ring is inert. A tip never takes a click away from what it is pointing
+   at, which is the whole difference from a tutorial hole. */
+#tip-ring {
+  position: fixed; z-index: 190000;
+  border: 1px solid var(--c-mint, #35d59b);
+  border-radius: 8px;
+  box-shadow: 0 0 16px -3px var(--c-mint, #35d59b), inset 0 0 20px -9px var(--c-mint, #35d59b);
+  pointer-events: none;
+  animation: tip-ring-pulse 2.2s ease-in-out infinite;
+}
+@keyframes tip-ring-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.95; }
+}
+
+#tip-card {
+  position: fixed; z-index: 190001;
+  width: min(296px, 82vw);
+  padding: 10px 13px 11px;
+  border: 1px solid var(--gold-dim, #7a6030);
+  border-left: 3px solid var(--c-mint, #35d59b);
+  border-radius: 4px;
+  background: linear-gradient(180deg, #12140f 0%, #0c0e0a 48%, #080907 100%);
+  box-shadow:
+    0 16px 42px rgba(0, 0, 0, 0.8),
+    0 0 20px -7px var(--c-mint, #35d59b),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: tip-in 0.18s ease-out;
+}
+@keyframes tip-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+#tip-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 5px;
+}
+#tip-eyebrow { color: var(--c-mint, #35d59b); opacity: 0.85; }
+#tip-x {
+  padding: 0 2px; background: none; border: none; cursor: pointer;
+  font-size: 11px; line-height: 1;
+  color: rgba(244, 236, 214, 0.35);
+}
+#tip-x:hover { color: var(--c-coral, #ff6a3c); }
+
+#tip-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 11.5px; letter-spacing: 1.1px;
+  color: var(--cream, #f0e6c8);
+  margin-bottom: 6px;
+}
+#tip-body {
+  font-family: 'Crimson Pro', serif;
+  font-size: 13.5px; line-height: 1.48;
+  color: rgba(240, 230, 200, 0.86);
+}
+
+/* The owner's rule: the way out has to be at least as prominent as the way on.
+   GOT IT is the filled button and sits first. */
+#tip-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tip-btn {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase;
+  padding: 8px 12px; min-height: 30px; border-radius: 3px; cursor: pointer;
+  color: #06110f;
+  border: 1px solid var(--c-mint, #35d59b);
+  background: linear-gradient(180deg, #6fe6b8, #35b981);
+  transition: filter 0.12s ease;
+  flex: 1 1 auto;
+}
+.tip-btn:hover { filter: brightness(1.15); }
+.tip-btn-2 {
+  color: var(--c-mint, #35d59b);
+  background: rgba(53, 213, 155, 0.07);
+}
+
+#tip-off {
+  display: block; margin-top: 8px; padding: 0;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: none; border: none; cursor: pointer;
+  color: rgba(244, 236, 214, 0.26);
+}
+#tip-off:hover { color: rgba(244, 236, 214, 0.6); text-decoration: underline; }
+
+/* A tip is an aside, so under reduced motion it simply appears. */
+body.reduced-motion #tip-card { animation: none; }
+body.reduced-motion #tip-ring { animation: none; opacity: 0.8; }

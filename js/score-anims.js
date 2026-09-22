@@ -18,6 +18,11 @@ function cancelDance() {
   if (typeof dncCleanupReal === 'function') dncCleanupReal();
   // Un-hide any grid cards whose fly-to-preview was cut short (they were never removed).
   if (typeof dncRestoreHiddenGridEls === 'function') dncRestoreHiddenGridEls();
+  // Put the goal finale's board back on its cells NOW (r280). The blast is a
+  // 1.2s out-and-back and the dance's own abort checkpoint is further down the
+  // step it is in, so without this the cards go on flying outward underneath
+  // whatever cut the dance short - a round ending, a boss firing, the next deal.
+  if (typeof dncSettleBlast === 'function') dncSettleBlast();
   // Restore any elements hidden by odometer overlays
   ['pips-val','mult-val','score-total-num'].forEach(id => {
     const el = document.getElementById(id);
@@ -206,7 +211,13 @@ function flashRoundEnd() {
   // round goal" - both dances call it and nothing else does - so the goal-clear
   // presentation (banner + the clock's cleared state, js/goal-clear.js) hangs
   // off it rather than off the two call sites.
-  if (typeof goalClearPresent === 'function') goalClearPresent();
+  if (typeof goalClearPresent === 'function') {
+    // A boss win's banner carries the boss's name (endBoss used to show this
+    // itself; since r237 the dance presents and endBoss skips its copy).
+    const bossKick = (typeof bossWinPending !== 'undefined' && bossWinPending && typeof currentBoss !== 'undefined' && currentBoss)
+      ? { kicker: currentBoss.name, force: true } : undefined;
+    goalClearPresent(bossKick);
+  }
   const grid = document.getElementById('grid');
   if (!grid) return;
   grid.classList.remove('round-end-flash');

@@ -1,0 +1,304 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   POKER SQUARES (r303)
+
+   This file adds only what the mode's own objects need. Everything else - the
+   cabinet, the board, the cards, the score panel, the buttons, the tooltips -
+   is the game's, untouched, which is the point: a mode should look like the
+   game it is in.
+
+   The one layout change is in the LEFT COLUMN. There is no Focus here, so the
+   meter is hidden and the grid takes the room; and the knack row and the hand
+   preview are re-cut into a CONSUMABLES strip and a much taller PIECE HAND,
+   because three polyomino tiles need more than 91px to be read.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Left column re-cut ───────────────────────────────────────────────── */
+#stage.landscape.squares-mode #focus-meter-wrap { display: none; }
+#stage.landscape.squares-mode #grid-slot { left: 41.5%; width: 48.5%; }
+/* Consumables take the knack row (this mode grants no knacks). */
+#stage.landscape.squares-mode #knack-carousel-wrap { top: 30%; height: 7%; }
+/* The PIECE HAND takes the preview slot AND the gap the knack label left. */
+#stage.landscape.squares-mode #selected-cards {
+  top: 38%; height: 44.5%;
+  padding: 6px 7px;
+  justify-content: space-between; align-items: stretch; gap: 6px;
+}
+#stage.landscape.squares-mode #hand-name { display: none; }
+/* Tricks slide down into what is left. */
+#stage.landscape.squares-mode #trick-tray-area { top: 83.5%; height: 7.5%; }
+#stage.landscape.squares-mode #coin-info { display: none; }
+/* No goal, so no progress bar - the SCORE box prints ROUND n/10 instead. */
+#stage.squares-mode #score-progress, #stage.squares-mode #score-bar-wrap { display: none; }
+
+/* ── A piece tile ─────────────────────────────────────────────────────── */
+#selected-cards.sq-hand { overflow: visible; }
+.sq-tile {
+  /* Equal thirds even when one is left, so a tile never changes size as the
+     hand empties - a piece you are comparing must not resize under you. */
+  position: relative; flex: 1 1 0; min-width: 0; max-width: calc(33.33% - 4px);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card-bg); border: 2px solid var(--card-border); border-radius: 7px;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.35);
+  background-image: repeating-linear-gradient(45deg, rgba(180,160,110,0.09) 0 3px, transparent 3px 6px);
+  cursor: grab; transition: transform 0.15s cubic-bezier(.34,1.3,.64,1), box-shadow 0.15s;
+}
+.sq-tile:hover  { transform: translateY(-5px) rotate(-1deg); box-shadow: 0 12px 20px rgba(0,0,0,0.55); }
+.sq-tile.sel    { box-shadow: 0 0 0 2px var(--gold), 0 10px 20px rgba(0,0,0,0.55); }
+.sq-tile.placing{ opacity: 0.45; }
+.sq-rot {
+  position: absolute; top: 3px; right: 3px; width: 19px; height: 19px; border-radius: 50%;
+  background: rgba(20,18,14,0.88); border: 1px solid var(--gold-dim); color: var(--gold);
+  font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 3;
+}
+.sq-rot:hover { background: var(--gold); color: #1a1509; }
+.sq-poly { display: grid; gap: 2px; }
+.sq-mini {
+  width: var(--smw, 22px); height: var(--smh, 29px);
+  background: var(--card-bg); border: 1.5px solid #111; border-radius: 2px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 1px 2px; font-family: 'Crimson Pro', serif; font-weight: 600; color: #111;
+}
+/* A MINI DOES NOT GET THE ROTATED BOTTOM INDEX. At full size that upside-down
+   corner is the real playing-card convention; at 20px it is an illegible smudge
+   that reads as a rendering fault. Rank upright, bare suit glyph below it. */
+.sq-mr { font-size: var(--sfs, 9px); line-height: 1; }
+.sq-ms { font-size: var(--sfs, 9px); line-height: 1; align-self: flex-end; }
+.sq-mini.blank { background: transparent; border: none; box-shadow: none; }
+.sq-empty {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px;
+  color: var(--cream-dim); opacity: 0.7; align-self: center; margin: auto;
+}
+#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; opacity: 0.92; }
+#sq-drag .sq-tile { width: 96px; height: 96px; }
+
+/* ── Board overlays ───────────────────────────────────────────────────── */
+.sq-ghost {
+  position: absolute; border-radius: 5px; pointer-events: none; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Crimson Pro', serif; font-weight: 600; font-size: 13px;
+}
+.sq-ghost.ok  { background: rgba(90,158,90,0.24); border: 1px solid var(--green); color: #d8f0d8; }
+.sq-ghost.bad { background: rgba(192,57,43,0.26); border: 1px solid var(--red); }
+.sq-gr, .sq-gs { line-height: 1; }
+.sq-lock {
+  position: absolute; border-radius: 5px; pointer-events: none; z-index: 4;
+  background: repeating-linear-gradient(45deg, rgba(0,0,0,0.5) 0 5px, transparent 5px 10px);
+  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.35);
+}
+/* The wave: the line being paid lifts and glows, one card after the next. */
+#grid .card.sq-wave {
+  transform: translateY(-7px) scale(1.06) !important;
+  box-shadow: 0 12px 20px rgba(0,0,0,0.6), 0 0 20px rgba(201,168,76,0.6) !important;
+  z-index: 8;
+}
+.sq-lbtn {
+  position: absolute; z-index: 9; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
+  padding: 2px 4px; border-radius: 4px;
+  border: 1px solid var(--gold-dim); background: #15120d; color: var(--gold);
+  transition: all 0.12s;
+}
+.sq-lbtn:hover { background: var(--gold); color: #0e0c0a; }
+.sq-lbtn.sel   { background: var(--gold); color: #0e0c0a; box-shadow: 0 0 10px rgba(201,168,76,0.7); }
+.sq-lbtn.off   { opacity: 0.25; cursor: default; border-style: dashed; }
+.sq-lbtn.off:hover { background: #15120d; color: var(--gold); }
+.sq-schip {
+  position: absolute; z-index: 20; pointer-events: none;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px;
+  color: #fff; padding: 4px 8px; border-radius: 5px; transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, #2a2440, #14112a); border: 1px solid #7a63c8;
+  box-shadow: 0 0 16px rgba(162,92,216,0.75), 0 3px 8px rgba(0,0,0,0.6);
+}
+#sq-banner {
+  position: absolute; left: 0; right: 0; top: -2px; text-align: center; z-index: 12;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--gold); pointer-events: none;
+  text-shadow: 0 0 10px rgba(201,168,76,0.7), 0 2px 3px #000;
+  opacity: 0; transition: opacity 0.16s;
+}
+#sq-banner.on { opacity: 1; }
+
+/* ── Consumable chips, in the knack row ───────────────────────────────── */
+.sq-cons {
+  position: relative; width: 26px; height: 26px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px; background: #16121c; border: 1px solid #3a3560;
+  font-size: 14px; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
+}
+.sq-cons:hover { transform: translateY(-2px); border-color: #7a63c8; }
+.sq-cons.armed { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(201,168,76,0.6); }
+.sq-cd {
+  position: absolute; top: -3px; right: -3px; font-size: 6px; line-height: 1.5;
+  padding: 0 2px; border-radius: 3px; background: #a25cd8; color: #fff;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── The three buttons ────────────────────────────────────────────────── */
+#btn-play.sq-confirm small, #btn-discard.sq-discard small {
+  display: block; font-family: 'Share Tech Mono', monospace; font-size: 6px;
+  letter-spacing: 0.5px; text-transform: none; opacity: 0.75; margin-top: 3px;
+}
+#swap-indicator.sq-end {
+  flex-direction: column; gap: 1px; cursor: pointer;
+  border-color: var(--gold-dim); color: var(--gold);
+}
+#swap-indicator.sq-end:hover { background: var(--gold); color: #0e0c0a; }
+#swap-indicator.sq-end.sq-off { opacity: 0.35; cursor: not-allowed; border-color: var(--border); color: var(--cream-dim); }
+#swap-indicator.sq-end.sq-off:hover { background: #1a1510; color: var(--cream-dim); }
+.sq-endw { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; }
+.sq-ends { font-family: 'Share Tech Mono', monospace; font-size: 6px; opacity: 0.8; }
+
+/* ── The console. #event-panel's chrome, verbatim - indigo wash, plastic
+      ring, scanlines, a sticky marquee bar with three idle lamps. ──────── */
+#sq-overlay {
+  display: none; position: fixed; inset: 0; z-index: 320;
+  padding: 18px 14px; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 16%, rgba(90,70,160,0.24), transparent 62%), rgba(10,9,22,0.96);
+}
+#sq-overlay.show { display: flex; }
+.sq-panel {
+  position: relative; width: 100%; max-width: 620px; max-height: calc(100dvh - 36px);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 18px 18px; border: 1px solid #33314e; border-radius: 14px;
+  background: linear-gradient(180deg, #17162a 0%, #100e1d 46%, #0a0913 100%);
+  box-shadow: 0 0 0 2px #b7ac93, 0 0 26px -4px rgba(140,110,230,0.55),
+              0 26px 70px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.sq-panel::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; border-radius: 13px;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+}
+.sq-panel > * { position: relative; z-index: 1; }
+.sq-bar {
+  position: sticky; top: 0; z-index: 3; width: calc(100% + 36px); margin: 0 -18px 14px;
+  display: flex; align-items: center; justify-content: space-between; padding: 9px 16px;
+  border-bottom: 1px solid #3a3560; border-radius: 13px 13px 0 0;
+  background: linear-gradient(180deg, rgba(140,110,230,0.20), rgba(140,110,230,0.03)),
+              linear-gradient(180deg, #191830, #14122400);
+  background-color: #17162a;
+}
+.sq-eyebrow {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 4px;
+  text-transform: uppercase; color: #b39cf5; text-shadow: 0 0 10px rgba(179,156,245,0.6);
+}
+.sq-lamps { display: flex; gap: 5px; }
+.sq-lamps i {
+  width: 5px; height: 5px; border-radius: 50%; background: #b39cf5; opacity: 0.45;
+  box-shadow: 0 0 6px rgba(179,156,245,0.8); animation: sq-lamp 2.6s ease-in-out infinite;
+}
+.sq-lamps i:nth-child(2) { animation-delay: 0.35s; }
+.sq-lamps i:nth-child(3) { animation-delay: 0.7s; }
+@keyframes sq-lamp { 0%,100% { opacity: 0.22; } 50% { opacity: 0.95; } }
+.sq-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: #fff; text-align: center; margin-bottom: 5px;
+  text-shadow: 0 0 14px rgba(179,156,245,0.75), 0 2px 3px #000;
+}
+.sq-lead {
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.5;
+  color: rgba(240,230,200,0.72); text-align: center; max-width: 430px; margin-bottom: 14px;
+}
+.sq-lead:empty { margin-bottom: 0; }
+.sq-body { width: 100%; }
+.sq-foot {
+  position: sticky; bottom: -18px; z-index: 3; width: calc(100% + 36px); margin: 14px -18px -18px;
+  display: flex; gap: 10px; justify-content: center; padding: 12px 16px;
+  border-top: 1px solid #3a3560; border-radius: 0 0 13px 13px; background-color: #131222;
+}
+.sq-foot:empty { display: none; }
+.sq-btn {
+  font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 9px 18px; border-radius: 6px; cursor: pointer; border: 1px solid #3a3560;
+  background: rgba(140,110,230,0.10); color: #cbbcf7; transition: all 0.12s;
+}
+.sq-btn:hover:not(:disabled) { background: rgba(140,110,230,0.26); border-color: #7a63c8; color: #fff; }
+.sq-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.sq-btn.go { background: var(--green); border-color: var(--green); color: #06140a; font-weight: 700; }
+.sq-btn.go:hover:not(:disabled) { background: #6ebf6e; }
+.sq-opts { display: flex; gap: 14px; width: 100%; }
+.sq-opt {
+  flex: 1; padding: 16px 14px; border-radius: 9px; border: 2px solid #33314e;
+  background: #100e1d; cursor: pointer; transition: all 0.14s;
+}
+.sq-opt:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 0 24px -6px rgba(201,168,76,0.6); }
+.sq-on { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px; color: var(--gold); margin-bottom: 8px; }
+.sq-od { font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5; color: rgba(240,230,200,0.75); }
+.sq-report {
+  font-family: 'Share Tech Mono', monospace; font-size: 11.5px; line-height: 1.65;
+  white-space: pre-wrap; color: var(--cream-dim); width: 100%;
+  max-height: 42vh; overflow: auto;
+  background: #0a0913; border: 1px solid #2a2840; border-radius: 7px; padding: 12px 14px;
+}
+.sq-suitrow { display: flex; gap: 9px; justify-content: center; margin-bottom: 10px; }
+.sq-sbtn {
+  width: 46px; height: 40px; border: 1px solid #3a3560; border-radius: 5px;
+  background: var(--card-bg); display: flex; align-items: center; justify-content: center;
+  font-size: 20px; cursor: pointer; transition: all 0.1s; color: #111;
+}
+.sq-sbtn:hover { transform: translateY(-2px); }
+.sq-sbtn.on { box-shadow: 0 0 0 3px var(--gold); }
+.sq-rankgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(34px, 1fr)); gap: 5px; }
+.sq-rbtn {
+  height: 32px; border: 1px solid #3a3560; border-radius: 4px; background: #100e1d;
+  color: var(--cream); display: flex; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.1s;
+}
+.sq-rbtn:hover, .sq-rbtn.on { background: var(--gold); color: #1a1509; border-color: var(--gold); }
+
+/* Portrait: enough to keep it playable. Desktop is the target (CLAUDE.md), and
+   the PARENT is what has to be forced - syncTrickTrayUI sets an INLINE
+   display:none on #hand-preview-area whenever Tricks live in the tray, which is
+   always, so overriding the child alone left the piece hand at 0x0. */
+#stage:not(.landscape).squares-mode #hand-preview-area {
+  display: flex !important; flex: 0 0 auto; width: 100%; height: 96px; padding: 0;
+  border-right: none;
+}
+#stage:not(.landscape).squares-mode #selected-cards {
+  display: flex !important; flex: 1; gap: 4px; padding: 4px; height: 96px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+}
+#stage:not(.landscape).squares-mode #hand-name { display: none; }
+#stage:not(.landscape).squares-mode .sq-tile { max-width: calc(33.33% - 3px); }
+
+/* ── What this mode does not have ─────────────────────────────────────── */
+/* No clock: the readout and its bar would sit there frozen and full. */
+#stage.squares-mode #clock, #stage.squares-mode #clock-bar-wrap,
+#stage.squares-mode #vclock, #stage.squares-mode #vclock-wrap { display: none !important; }
+/* No Focus: the chip would read x1 for the whole run. PIPS and MULT take the row. */
+#stage.squares-mode #focus-box { display: none !important; }
+/* ...and with it the separator that pointed at it. */
+/* The chips are pips(1) x(2) mult(3) x(4) focus(5) location(6); :last-of-type
+   matches per ELEMENT type, and they are all divs, so the separator has to be
+   named by position. */
+#stage.squares-mode #score-subboxes > .subbox-times:nth-child(4) { display: none !important; }
+/* No hand is being built, so the x/y selection readout means nothing here. */
+#stage.squares-mode #sel-count { display: none !important; }
+/* The knack row is the CONSUMABLES strip here, so its watermark says so. */
+#stage.landscape.squares-mode #knack-carousel-wrap::before { content: "CONSUMABLES"; font-size: 15px; letter-spacing: 4px; }
+#stage.landscape.squares-mode #trick-tray-area::before { font-size: 15px; }
+/* No goal, so the SCORE box prints the round instead of a bar. */
+#stage.squares-mode #score-bar-outer, #stage.squares-mode #score-bar-fill { display: none !important; }
+
+/* ── Empty cells. `render()` only draws cards, so without these the board is
+      a black rectangle with nothing to aim a tile at. ──────────────────── */
+.sq-slot {
+  position: absolute; border-radius: 5px; pointer-events: none; z-index: 0;
+  background: rgba(255,255,255,0.018);
+  border: 1px dashed rgba(201,168,76,0.22);
+}
+
+/* The suit colours. The game's own rules are scoped to `.card` / `.mini-card`,
+   so a mini here needs its own - same variables, so a retune moves both. */
+.sq-mr.suit-hearts,   .sq-ms.suit-hearts   { color: var(--suit-hearts); }
+.sq-mr.suit-diamonds, .sq-ms.suit-diamonds { color: var(--suit-diamonds); }
+.sq-mr.suit-spades,   .sq-ms.suit-spades   { color: var(--suit-spades); }
+.sq-mr.suit-clubs,    .sq-ms.suit-clubs    { color: var(--suit-clubs); }
+.sq-mr.suit-crowns,   .sq-ms.suit-crowns   { color: var(--suit-crowns); }
+.sq-mr.suit-moons,    .sq-ms.suit-moons    { color: var(--suit-moons); }
+.sq-sbtn.suit-hearts   { color: var(--suit-hearts); }
+.sq-sbtn.suit-diamonds { color: var(--suit-diamonds); }
+.sq-sbtn.suit-spades   { color: var(--suit-spades); }
+.sq-sbtn.suit-clubs    { color: var(--suit-clubs); }

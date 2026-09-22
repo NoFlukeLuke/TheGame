@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r234 · four heavier casino sound packs, a shared DSP toolkit, a master punch chain and a per-pack room";
+const BUILD = "2026-09-22 · r309 · four heavier casino sound packs, a shared DSP toolkit, a master punch chain and a per-pack room";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,7 +7,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: 'Three quarters. Play rounds, path through the reward grid, and defeat bosses.',
+    desc: 'Four quarters. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -25,7 +25,7 @@ const MODES = {
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The four-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -36,6 +36,45 @@ const MODES = {
     actStructure: true,
     suitCount: 4,
     guided: true
+  },
+  // The Schedule (r238, renamed r260): a quarter drawn as a 4-lane board you
+  // walk one obligation at a time.
+  // See js/map-mode.js for the rules; actStructure keeps the interlude/payout
+  // machinery, and the map hooks intercept every routing seam Guided cut.
+  map: {
+    id: 'map',
+    name: 'The Schedule',
+    desc: 'Your quarter as a schedule: six time slots of obligations, then a manager review. Two obligations a slot at most, no diagonal moves, and everything you book happens.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    map: true
+  },
+  // CRUNCH (r293): the Schedule on one act-long clock. Carries map:true, so the
+  // board, its generation and every routing seam are the Schedule's untouched;
+  // crunch:true is what js/crunch-mode.js reads. See that file for why the act
+  // bank is roundSeconds itself rather than a parallel counter.
+  crunch: {
+    id: 'crunch',
+    name: 'Crunch',
+    desc: 'The schedule, on one clock. Thirteen minutes for the whole quarter, every obligation you book costs some of it, and the manager review is fought on whatever is left.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    map: true,
+    crunch: true
   },
   // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
   // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
@@ -61,7 +100,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same four-quarter game, but six suits with only five of each rank, so the deck is 60 cards rather than 78. One rank is cut out of the middle, which leaves the ladder too short for long runs. Flushes are rare and sets come a little easier.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -99,7 +138,14 @@ const MODES = {
     enableShops: true,
     enableEvents: false,
     autoRefillGrid: true,
-    timeIsCurrency: false,
+    // TRUE, corrected in r234. This said false while the flag was read by nothing,
+    // and the two sites that actually charge (js/input.js, js/discard.js) billed
+    // Survival's 2:00 clock for every swap and discard regardless. interactTimeCostsOn()
+    // now reads this flag, so leaving it false would have made interacting free in a
+    // shipped mode as a side effect of wiring up the picker. It describes what
+    // Survival does: the clock is a deadline AND a budget, same as Classic.
+    // Flow is the mode that genuinely charges nothing, and it says so on its own entry.
+    timeIsCurrency: true,
     autoPlayHands: false,
     survival: true
   },
@@ -151,6 +197,25 @@ const MODES = {
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
   // crush style). The player only swaps & discards to set matches up - the
   // playing is automatic. Goal + timer progression (Normal's shape). See match3.js.
+  // POKER SQUARES (r303) - the 1930s solitaire. Polyomino tiles of real cards
+  // packed onto a 5x5 board over four turns; every row and column then scores as
+  // a five-card poker hand. No goal, no clock: ten rounds, one score. See
+  // js/squares-mode.js for why it borrows the real calcScore rather than
+  // carrying a scorer of its own.
+  squares: {
+    id: 'squares',
+    name: 'Poker Squares',
+    desc: 'Pack tiles of cards onto a 5x5 board. Every row and every column scores as a poker hand. Ten rounds, no clock, one score.',
+    winCondition: 'high_score',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: false,
+    timeIsCurrency: false,
+    autoPlayHands: false,
+    noWalkthrough: true,   // its own opening console teaches it (see tutorialArmForRun)
+    squares: true
+  },
   match3: {
     id: 'match3',
     name: 'Match-3 (Auto)',
@@ -266,27 +331,46 @@ function startMatch3FromMenu(modeId = 'match3') {
 // to start one expecting the game the other nine modes are. They are still whole
 // and still reachable: the dev panel's MODES group launches any entry in MODES by
 // name, which is why the split is two lists rather than a deletion.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow'];
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
+// The carousel's ORDER and its unlock chain both live in js/progress-unlock.js,
+// which loads before this file. Orientation is no longer a card: every mode's
+// FIRST RUN is its tutorial now, so a standalone one would be a second door to
+// the same thing. It is still reachable from the dev panel's Modes group.
+const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST];
+// Built but NOT in the carousel. Reachable from dev panel -> Modes, which is
+// generated from MODES itself so nothing here has to be listed twice.
+// `crunch` is here because it is a rough first pass being tuned, not because it
+// is an experiment on a different loop the way the other three are.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
+  // promoting the mode is one entry in MODE_FINALE_GROUP and one deletion from
+  // the hidden list, with nothing to rewrite.
+  crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
+              blurb: 'The schedule, against a single clock for the whole quarter. Rounds spend it as you play, booking anything that is not a round costs a flat fee, and the manager review is fought on whatever is left. Run it to zero and the run is over. Beat the review and you get most of it back.' },
+  map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
+              blurb: 'The run is a board. Four lanes, six sets of tiles - rounds, hard rounds, shops, reward grids, events, a couple of blanks and mysteries - then a full-width boss with a fixed quota you can read from the start. Orthogonal moves only, at most two tiles per set, and moving on early pays credits.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
-  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
-              blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
+  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ♛ ☾',
+              blurb: 'Six suits with five of each rank, so the deck is 60 cards and a suit holds only ten. The crown and the moon join the four you know. One rank is cut out of the middle of the ladder, so a four-card run or a straight is a good deal harder to find than in Classic, while sets come a little easier and flushes are hard-won.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE - colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
               blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
   flow:     { accent: '#6fd0ff',         suits: 'NO CLOCK',
               blurb: 'Survival with the round clock taken off. Nothing forces a goal, so you clear one after another for as many level-ups as you can hold together - but Focus caps at 20 and decays the moment you slow down. Five minutes of play and the inspection arrives: a boss with an objective and a quota, on its own clock.' },
+  squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
+              blurb: 'Poker Squares. Every turn deals three tiles of cards - tetromino shapes with real ranks and suits on them - and you pack them onto a 5x5 board. At the end of the round every row and every column is scored as a five-card poker hand, worst first. Real poker values, real poker odds: a pair is 42% of lines and a straight flush is one in 65,000. No clock and no quota - ten rounds, and whatever you can build.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades - you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
+  picker:   { accent: '#ff5fa8',         suits: 'BUILD ONE',
+              blurb: 'Answer seven questions and the run is assembled from your answers: which deck, what happens between rounds, how long a round is, whether interacting costs time, bosses or none, who submits the hands, and what a hand type is worth. Every other mode in this list is one fixed set of those answers.' },
   dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
               blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles - every run and set of 3+ across their six halves scores at once.' },
 };
@@ -356,22 +440,62 @@ function renderModeSelect() {
   const car = document.getElementById('mode-carousel');
   if (!car) return;
   car.innerHTML = '';
-  MODE_SELECT_LIST.forEach(id => {
-    const m = MODES[id]; if (!m) return;
-    const meta = MODE_META[id] || {};
-    const card = document.createElement('div');
-    card.className = 'mode-card';
-    card.style.setProperty('--mode-accent', meta.accent || 'var(--c-yellow)');
-    card.innerHTML =
-      `<div class="mode-card-name">${m.name}</div>` +
-      `<div class="mode-card-suits">${meta.suits || ''}</div>` +
-      `<div class="mode-card-blurb">${meta.blurb || m.desc}</div>` +
-      `<div class="mode-tier"></div>` +
-      `<button class="mode-card-play">PLAY</button>`;
-    renderModeTier(card, id);
-    card.querySelector('.mode-card-play').onclick = () => chooseMode(id);
+  // Consumed here, not read: the fan plays on the ONE render that follows the
+  // unlock. Re-opening the carousel afterwards shows them already fanned.
+  const fan = modeFanPending; modeFanPending = false;
+  modeSelectList().forEach(id => {
+    const card = (id === MODE_STACK_ID) ? buildModeStackCard() : buildModeCard(id);
+    if (!card) return;
+    // Only the cards that just APPEARED fan. The chain's four were already on
+    // screen and sliding them too reads as the whole carousel reloading.
+    const gi = MODE_FINALE_GROUP.indexOf(id);
+    if (fan && gi >= 0) { card.classList.add('fan-in'); card.style.setProperty('--fan-i', gi); }
     car.appendChild(card);
   });
+}
+
+// A mode's display name. 'picker' is NOT an entry in MODES - it is the door to
+// one - so it cannot be looked up there, and a locked card still has to name it.
+function modeDisplayName(id) {
+  return id === 'picker' ? 'Custom' : (MODES[id] ? MODES[id].name : id);
+}
+
+function buildModeCard(id) {
+  const meta = MODE_META[id] || {};
+  const open = modeUnlocked(id);
+  // 'picker' carries the same tier control as the rest (the tier is a property
+  // of the RUN, not of the mode); PLAY opens the questions instead of starting.
+  const isPicker = id === 'picker';
+  if (!isPicker && !MODES[id]) return null;
+  const card = document.createElement('div');
+  card.className = 'mode-card' + (open ? '' : ' mode-locked');
+  card.style.setProperty('--mode-accent', meta.accent || 'var(--c-yellow)');
+  card.innerHTML =
+    `<div class="mode-card-name">${modeDisplayName(id)}</div>` +
+    `<div class="mode-card-suits">${open ? (meta.suits || '') : '\u{1F512}'}</div>` +
+    `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}</div>` +
+    (open ? `<div class="mode-tier"></div><button class="mode-card-play">${isPicker ? 'BUILD' : 'PLAY'}</button>`
+          : `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(modeUnlockedBy(id))}</b> to unlock</div>`);
+  if (open) {
+    renderModeTier(card, isPicker ? 'custom' : id);
+    card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : chooseMode(id);
+  }
+  return card;
+}
+
+// One card standing in for the whole finale group, with two backing layers so
+// it reads as a stack. Four identical padlocks say nothing four times.
+function buildModeStackCard() {
+  const names = MODE_FINALE_GROUP.map(modeDisplayName);
+  const card = document.createElement('div');
+  card.className = 'mode-card mode-locked mode-stack';
+  card.style.setProperty('--mode-accent', 'var(--c-yellow)');
+  card.innerHTML =
+    `<div class="mode-card-name">+${names.length} More</div>` +
+    `<div class="mode-card-suits">\u{1F512}</div>` +
+    `<div class="mode-card-blurb">${names.join(' \u00b7 ')}<br><br>The rest of the game, and they all open at once.</div>` +
+    `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(MODE_UNLOCK_CHAIN[MODE_UNLOCK_CHAIN.length - 1])}</b> to unlock</div>`;
+  return card;
 }
 
 // ══════════════════════════════════════════════

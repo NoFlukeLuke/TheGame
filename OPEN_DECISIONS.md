@@ -122,3 +122,66 @@ That conversion exposed a live bug worth remembering: `rewindTime` clamped to
 `ROUND_DURATION` (Classic's 180), so in Flow - whose session clock starts at 300 - a single
 Flush destroyed 110 seconds and reported nothing. The ceiling is now
 `max(currentRoundDuration(), roundStartSeconds, roundSeconds)`.
+
+## 7. Natural Scaling inverts the hand ladder - largely addressed in r282
+
+**r281 measurement, against the flat rate that shipped then** (`nsPipsPerHand` 2,
+`nsMultPerHand` 0, `nsEveryHands` 1, applied to all nineteen hand types alike):
+
+`handWorth()` reads `handBasePips` / `handBaseMult`, which include the Natural Scaling
+accumulator. So a hand type you have played a lot can out-*worth* a longer hand that the
+same cards also form - and under one flat rate that happened fast, because **NS rewards
+FREQUENCY and short hands are by far the most frequent**:
+
+| the short hand | out-worthed | after (flat rate) | after (r282 table) |
+|---|---|---|---|
+| Run of 3 | Run of 4 | **8 plays** | 40 |
+| Flush of 3 | Flush of 4 | 8 | 80 |
+| Run of 4 | Straight | 11 | 35 |
+| Pair | Two Pair | 13 | 130 |
+| Pair | Three of a Kind | 17 | 165 |
+| Flush of 3 | Flush | 18 | 180 |
+| Three of a Kind | Full House | 21 | 63 |
+| Run of 3 | Straight | 21 | 105 |
+| Pair | Full House | 47 | never (400+) |
+| Three of a Kind | Four of a Kind | 53 | 159 |
+| Flush of 4 | Flush | 21 | 35 |
+| Two Pair | Full House | - | 115 |
+
+**r282 gave every hand type its own rate** (`NS_RATE_DEFAULTS`, js/natural-scaling.js),
+tuned so %-growth-per-play is roughly INVERSE to how available the hand is - about 1% a
+play for a Pair, 8-10% for the hands you reach twice a run. That is what pushes the
+thresholds out to the right-hand column, and it is the lever this item was asking for.
+
+**What is still open, and is a real decision rather than a bug:**
+
+- **The shipped table is deliberately a conservative FLOOR.** Over a simulated 18-round
+  run the hands actually played finish at only **x1.0 to x1.6** of their starting worth,
+  which is almost certainly under-powered against a goal curve that closes a 1.227x gap
+  per level. The whole table is tunable from dev panel -> Score; the growth column in
+  that editor is the number to tune on.
+- **The two 4-card hands are the tightest rungs left** - Run of 4 -> Straight and
+  Flush of 4 -> Flush both invert at 35 plays, because that is where the base-worth gap
+  is smallest (120 -> 200 and 60 -> 100). Widening those means slowing the 4-card hands
+  further, which pulls Run of 3 -> Run of 4 in. It is a `HAND_BASE` question as much as
+  an NS one.
+- **MULT is still the sharp lever.** +1 base mult on a Pair is worth more than +20 base
+  pips, so the table keeps mult off the common hands entirely and only pays it on the
+  rare ones. Turning mult on for a common hand inverts the ladder in a handful of hands
+  rather than a handful of rounds - the `ALT` flag exists partly so a mult can be given
+  to a hand at half rate rather than not at all.
+
+**The two ways this used to reach the player are both closed, so the table above is now
+purely a BALANCE question:**
+
+- **r281** (CLAUDE.md "The partition and the load-bearing rule were fighting"): the
+  inversion used to make the longer hand *unplayable*, not merely unchosen - the partition
+  took the short hand, left a card unclaimed, and the load-bearing rule then voided the
+  whole selection.
+- **r293** (CLAUDE.md "What you selected is what you play"): `findBestHand` used to pick
+  the highest-scoring SUBSET, so an inverted ladder could still drop a card the player had
+  selected on purpose. The whole selection is now always the hand.
+
+So an inverted rung no longer costs the player a card or a hand - it only means the short
+hand pays more when they choose to play it, which is r198 behaving as designed. Whatever
+the table is tuned to, both guards hold.

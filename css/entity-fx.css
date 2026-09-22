@@ -9,9 +9,20 @@
    render() appends new cards AFTER the markers, which would have put a card
    dealt mid-round on top of a line while its neighbours sat under one. Two
    explicit layers settle it regardless of order. Boss cell overlays are 12-15
-   and temp-anim clones are 10, so both still sit above cards, unchanged. */
+   and temp-anim clones are 10, so both still sit above cards, unchanged.
+
+   .reward-cell WAS MISSING AND THAT IS A BUG, NOT A GAP (r294). A reward tile
+   carries no z-index of its own, so it sat at `auto` - and a z-index of 1 beats
+   `auto` whatever the DOM order, so the lines painted straight across the tiles
+   on every reward grid, prize grid, shop board and crossroads. r223 put the
+   lines back on the reward grid deliberately (they are part of what the choice
+   is about) and this is what that looks like when they are in FRONT: on the
+   3x3 prize grid a marked row runs through the middle of the whole bottom row
+   of prizes, end caps and all. Behind the tiles they still read exactly as they
+   do on the play board - in the gutters, and past the ends of the line. */
 #grid > .card,
 #grid > .trick-card,
+#grid > .reward-cell,
 #grid > .blocked-cell { z-index: 2; }
 #grid > .rc-line      { z-index: 1; }
 
@@ -78,18 +89,35 @@
 }
 
 /* ── "This card sits on a marked line" ────────────────────────────────────
-   The card-side half of the line marker, in the owning Trick's colour. Deliberately
-   an inset ring and nothing else: the card face has to stay readable, and the
-   line itself is already doing the loud part. */
-/* A card on SEVERAL marked lines divides its ring evenly between their colours,
-   so an intersection reads as both things rather than as whichever one the
-   registry happened to list first. --rcl-ring is a flat colour for one line and
-   a hard-stop conic gradient for more (lineRingPaint, js/entity-fx.js).
+   ONE LAYER: a ring around the card's own edge, from lineRingPaint
+   (js/entity-fx.js). There is no face wash - r296 added one and r299 took it
+   back out (owner: "the outline is sufficient, and that leaves more legibility
+   on the card to put its buffs"), so the face is free for the r299 corner buff
+   bands and the ring is what says the cell is on a marked line.
 
-   The ring is PAINT MASKED DOWN TO THE BORDER, not a box-shadow, because a
-   box-shadow takes one colour and cannot be divided. padding sets the ring's
-   thickness; the two masks cancel everything inside the padding box, leaving
-   only the 2px frame. */
+   A card on SEVERAL marked lines DIVIDES THE RING EVENLY between their colours
+   (r296): a marked row crossing a marked column reads half and half, three
+   lines read in thirds. Hard stops, never a blend - a blend of two Trick
+   colours is a third colour that belongs to nothing, and that is what the old
+   per-Trick tints in css/style.css produced (blue + red = a flat purple card).
+   Those tints are gone; this rule is what replaced them, and unlike the tints
+   it covers all nine line-marking Tricks rather than three.
+
+   IT IS PAINT MASKED DOWN TO THE BORDER, not a box-shadow, because a box-shadow
+   takes one colour and cannot be divided. padding sets the ring's thickness;
+   the two masks cancel everything inside the padding box, leaving only the 2px
+   frame. */
+/* THE ROTATION (r302). --rcl-rot has to be REGISTERED as an <angle>: an
+   unregistered custom property is an opaque token, so a keyframe on it would
+   step from 0deg to 360deg with nothing in between and the ring would not
+   appear to move at all. `inherits: false` keeps it on the ring, where the
+   animation is - nothing else reads it, and an inherited animated property
+   would recalculate the whole subtree every frame for the same picture.
+   The DURATION and the phase offset are written inline by lineRingHTMLFor
+   (js/entity-fx.js) from one constant, so every ring on screen turns together
+   and a card repainted mid-cycle does not snap back to the start. */
+@property --rcl-rot { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes rcl-spin { from { --rcl-rot: 0deg; } to { --rcl-rot: 360deg; } }
 .rc-line-ring {
   position: absolute;
   inset: 0;
@@ -103,7 +131,11 @@
           mask-composite: exclude;
   pointer-events: none;
   z-index: 5;
+  animation-name: rcl-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
+body.reduced-motion .rc-line-ring { animation-name: none; }
 
 /* ── The per-card mark ────────────────────────────────────────────────────
    One consistent shape in one consistent corner, coloured per Trick. This is
@@ -185,6 +217,54 @@
 }
 #knack-list [data-knack-id] > .cd-badge::before { inset: 2px; }
 #knack-list [data-knack-id] > .cd-badge .cd-num { font-size: 7px; }
+
+/* A COUNT is not a COUNTDOWN (r267). The ring is a clock face; under a charge
+   count it draws a full circle that never moves, which reads as a stuck timer.
+   A count-only badge is a violet PILL instead - `+2`, meaning "fires 2 extra
+   times" - and the shape is also what tells it apart from the improvement
+   tier's brass `v2.0` in the opposite corner. It overrides the ring wholesale:
+   auto width, no conic gradient, and ::before (the ring's hole) switched off. */
+.cd-badge.cd-b-count {
+  width: auto; min-width: 0; height: auto;
+  right: 2px; bottom: 2px;
+  padding: 1px 3px; border-radius: 3px;
+  background: var(--cd-c);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 7px color-mix(in srgb, var(--cd-c) 55%, transparent);
+}
+.cd-badge.cd-b-count::before { content: none; }
+
+/* The TIER stamp sits ON THE OBJECT, not in the frame's letterbox (r267). A
+   floppy and a business card are centred bands inside their frame (r239), so a
+   badge pinned to the frame's corner floats in the dark gutter beside the
+   object. The gutter is half the leftover on each axis, so adding it to the
+   inset puts the stamp on the object's own corner at every tile size. --lbv /
+   --lbh are that leftover for each ratio; max(0px, ...) covers the axis that
+   does not letterbox in a given frame.
+
+   The COOLDOWN badge deliberately does NOT get this. cdPaint appends it to the
+   HOST - the tray chip, the card, the knack chip - not to the .reward-cell, so
+   these selectors cannot reach it, and it is a live status marker shared with
+   hosts that have no letterbox at all. Its home is the tile's corner. */
+.reward-cell.entity-trick    { --lbv: max(0px, (100cqh - 100cqw * 19 / 20) / 2);
+                               --lbh: max(0px, (100cqw - 100cqh * 20 / 19) / 2); }
+.reward-cell.entity-sleight  { --lbv: max(0px, (100cqh - 100cqw / 1.37) / 2);
+                               --lbh: max(0px, (100cqw - 100cqh * 1.37) / 2); }
+.reward-cell.entity-trick    > .rwd-tier,
+.reward-cell.entity-sleight  > .rwd-tier { left: calc(2px + var(--lbh)); top: calc(2px + var(--lbv)); right: auto; }
+.cd-badge.cd-b-count .cd-num { color: #f6f2ff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
+/* IN THE TRAY THE BADGE GOES BOTTOM-LEFT, for the reason r277 moved the tier
+   stamp to the top-left: the fan sets --fan-z ascending, so a tucked tile is
+   covered on its RIGHT edge and only its left part is guaranteed to be in
+   view. A bottom-right badge therefore vanished under the next tile the moment
+   the row tucked - measured at 1440x820 after r284 widened the tile: at 5
+   Tricks the "+2" was 0/5 visible on every chip but the newest. The floor is
+   half a tile (fanTrickTray), and the badge is ~17px on a 73px tile, so at the
+   left edge it is always whole. Both orientations, because both trays fan the
+   same way. Nowhere else: on a card, a knack chip or a reward cell nothing
+   overlaps, and there the corner is the badge's home. */
+#trick-tray-list .trick-tray-chip > .cd-badge            { right: auto; left: 1px; }
+#trick-tray-list .trick-tray-chip > .cd-badge.cd-b-count { right: auto; left: 2px; }
 
 .cd-b-primed { animation: cd-primed-pulse 1.5s ease-in-out infinite; }
 @keyframes cd-primed-pulse {

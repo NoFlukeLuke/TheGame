@@ -30,6 +30,75 @@ function fitCtx() {
   return _fitCtx;
 }
 
+// ── EMOJI INK NORMALISATION (r292) ─────────────────────────────────────────
+// AN EMOJI'S INK IS NOT ITS FONT-SIZE, and that is the whole bug behind "the
+// emojis stick out". Measured across all 95 entity glyphs in Noto Color Emoji,
+// every colour glyph paints an ink box of 1.25 x 1.18 em - so a glyph set at
+// 30px paints 35px tall, and a box sized for 30px is overflowed by 9% at the
+// top and 9% at the bottom. On the Trick disc that is the emoji climbing over
+// the metal shutter and sitting on its own name (measured: ink 1.22x its box).
+//
+// Scaling by EMOJI_INK_EM/inkRatio makes FONT-SIZE MEAN INK HEIGHT: every glyph
+// paints the same fraction of an em whatever it is, so the boxes in
+// css/style.css are sized against the picture rather than against an em box the
+// picture ignores. It also makes the odd one out consistent - a
+// text-presentation symbol like the fallback star measures 0.77 em and is
+// scaled UP to match the emoji, instead of drawing 40% smaller than its
+// neighbours.
+//
+// THE CORRECTION IS A PURE FUNCTION OF THE GLYPH, which is what makes this
+// cheap: it needs no DOM and no layout, so entityTileInner can measure it while
+// building a string and stamp it into the markup, and every surface that draws
+// a tile gets it with no per-surface wiring.
+//
+// VERTICAL CENTRING NEEDS NO CORRECTION and was measured rather than assumed:
+// with `line-height: 1` the half-leading is symmetric, so the line box's centre
+// IS the font box's centre, and the ink centre sits within 0.005 em of it for
+// every colour emoji (0.03 em for the two text symbols). The flex centring the
+// tiles already do is therefore correct; only the size was wrong.
+const EMOJI_PROBE_PX = 100;
+const EMOJI_PROBE_FONT = "'Cinzel', serif";   // what .rwd-art computes to
+// HOW MUCH OF THE EM THE INK IS ALLOWED TO PAINT, and the one knob worth
+// tuning here. At 1.0 the ink exactly fills the box it is centred in, which on
+// the Trick disc means touching the label's top edge and the top of its own
+// name; 0.86 leaves that margin and still reads as a full-size picture. Chosen
+// by rendering 1.0 / 0.92 / 0.86 / 0.80 side by side over the real disc art.
+//
+// It also absorbs a measurement error that cannot be removed: Noto Color Emoji
+// is a BITMAP font, so ink does not scale perfectly linearly with font-size and
+// a glyph probed at 100px lands ~3% out at the 34-119px the game draws at.
+const EMOJI_INK_EM = 0.86;
+// A glyph may not paint more than a little over its em box or less than half of
+// it: a measurement that lands outside this is a font we do not understand, and
+// leaving such a glyph alone beats scaling it by a number we cannot trust.
+const EMOJI_SCALE_MIN = 0.6, EMOJI_SCALE_MAX = 1.6;
+const _emojiScale = new Map();
+
+function emojiInkScale(glyph, family) {
+  if (!glyph) return 1;
+  const key = glyph + '|' + (family || '');
+  if (_emojiScale.has(key)) return _emojiScale.get(key);
+  let s = 1;
+  try {
+    const ctx = fitCtx();
+    ctx.font = `${EMOJI_PROBE_PX}px ${family || EMOJI_PROBE_FONT}`;
+    const m = ctx.measureText(glyph);
+    const ink = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    if (ink > 0) s = Math.min(EMOJI_SCALE_MAX, Math.max(EMOJI_SCALE_MIN,
+                    EMOJI_INK_EM * EMOJI_PROBE_PX / ink));
+  } catch (e) { s = 1; }
+  s = Math.round(s * 1000) / 1000;
+  _emojiScale.set(key, s);
+  return s;
+}
+
+// Cinzel is a WEBFONT, so a text-presentation glyph measured before it loads is
+// measured in the fallback serif. Colour emoji come from a system font and are
+// right on the first measurement, which is why this is a cache clear and not a
+// re-render: the values that can move are the rare ones.
+if (typeof document !== 'undefined' && document.fonts && document.fonts.ready)
+  document.fonts.ready.then(() => _emojiScale.clear(), () => {});
+
 // Width of one word at `px`, honouring the element's own font, weight,
 // letter-spacing and text-transform - a tile that renders UPPERCASE with 0.4px
 // tracking is meaningfully wider than the raw string suggests.

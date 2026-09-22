@@ -162,6 +162,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // not pay it again. The dance applies these on a card's first beat only.
     if (once) e.once = true;
     _tl.push(e);
+    // Returned so a caller can MARK the event it just emitted. Today that is the
+    // prime loop alone (r296), which stamps `prime` so the dance can pace it as a
+    // quick second beat rather than a full one. Growing _ev's arg list to seven
+    // positionals and then an eighth is how a signature stops being readable.
+    return e;
   };
   const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _proc(id); _ev(id, 'pip+',  d); } };
   const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _proc(id); _ev(id, 'mult+', d); } };
@@ -218,12 +223,15 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   //   cond(x)        - does it fire for this hand at all, evaluated ONCE up front
   //   pays(card, x)   - { pip, mult } for THIS card, or nothing
   //
-  // TWO RULES KEEP THE SCORE BYTE-IDENTICAL:
-  //   1. NOT replay-weighted. These read `cells.length`, not a replay-weighted
-  //      count, so a card that scores three times still pays them once. The
-  //      events carry `once`, and the dance applies those on a card's FIRST beat
-  //      only - otherwise a replayed card would pay them again and the running
-  //      chip would drift off the real total.
+  // TWO RULES:
+  //   1. REPLAY-WEIGHTED (r236). A card that scores three times pays these three
+  //      times, exactly as its own pips do. They paid ONCE per card until r236,
+  //      which the owner caught by playing it: "when get even is owned and an
+  //      even card replays, i did not see another mult chip fly to the score
+  //      area." The animation was honest - the payment really was once - and the
+  //      CONDITION is what makes these per-card, not the bonus, so there was no
+  //      reason for the bonus to behave unlike every other per-card bonus.
+  //      `pays` returns a flat per-card amount, so `* _retrig` is the whole edit.
   //   2. Emitted at the END of the card's block, after `totalPips += cp`, so a
   //      pip lands outside that card's own subtotal and is never multiplied by a
   //      card-scoped x pips (Humble Roots, a card enhancement, the Blight). That
@@ -243,6 +251,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     { id:'row_power',     cond:x => x.allSameRow,                     pays:()  => ({ mult: BAL.row_power.mult_per_card }) },
     { id:'heavy_hand',    cond:x => x.cardCount === 5,                pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
     { id:'prime_time',    cond:x => x.primeCount >= 3,                pays:()  => ({ pip:  BAL.prime_time.pips_per_card }) },
+    // Flow State joined the table in r238. It used to pay from a site AFTER the
+    // x pips block, so it escaped Undertow / Scalper / Knave Power / Interest; it
+    // is an ordinary additive per-card pip now and they all multiply it. That is
+    // a deliberate buff - a per-card Trick fires on the card, and a pip in the
+    // additive region is a pip.
+    { id:'flow_state',    cond:x => x.focusMult >= 1.5,                pays:()  => ({ pip:  BAL.flow_state.pips_per_card }) },
     // These two count only the cards that qualify, not the whole hand, and they
     // have NO minimum (r226, owner's call). The old "3+ even cards" gate meant a
     // hand with one or two even cards paid nothing at all, which reads as the
@@ -304,6 +318,37 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _encoreHand = hasTrick('encore') && isSetHand(handName) && cards.every(c => ['A','3','5','7','9'].includes(c.rank));
   // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
   const _wfiChance = hasTrick('wait_for_it') ? negativeTilesTakenRun * BAL.wait_for_it.chance_per : 0;
+  // High Roller (knack): each card has (credits + Luck)% chance to replay. Luck
+  // ADDS to the percent (50 coins + 20 luck = 70%), it does not scale it, so this
+  // deliberately does NOT go through luckRollDet/luckChance - the floor of the
+  // total is guaranteed replays and the remainder is one deterministic roll per
+  // card (calcScore runs speculatively, so a live Math.random() here would give
+  // the preview a different answer than the score - same rule as Wait For Iiiit).
+  const _hrChance = (typeof hasKnack === 'function' && hasKnack('high_roller'))
+    ? Math.max(0, (coins + (typeof luckTotal === 'function' ? luckTotal() : 0)) / 100) : 0;
+  // Low and Behold (knack): "any played hand containing the grid's LOWEST rank
+  // replays the whole hand once". It was a x2 on the finished score, which is a
+  // different thing entirely - THE DESCRIPTION SAYS REPLAY THE CARDS, so it is a
+  // +1 retrigger on every card, exactly like Echo. A replay re-scores what the
+  // CARDS earned; it does not double the hand's base pips or any hand-level
+  // bonus, and it is visible, because the dance already shows a replay by
+  // repeating each card's beat. Computed once here: the CONDITION is a property
+  // of the hand, the EFFECT is per card.
+  const _labOn = hasKnack('low_and_behold') && (() => {
+    let lo = 99;
+    for (let gr = 0; gr < gridRows; gr++) for (let gc = 0; gc < gridCols; gc++) {
+      const g = gridData[gr]?.[gc];
+      if (g && g.rank && !g._isSleight && !g._isStone && !g._isTrick) lo = Math.min(lo, _rankHigh(g.rank));
+    }
+    return lo < 99 && cards.some(c => _rankHigh(c.rank) === lo);
+  })();
+  // Callback (r278, js/card-states.js): a card state, not a Trick. Same shape as
+  // Low and Behold above - the CONDITION is a property of the hand (does any card
+  // in it carry the charge) and the EFFECT is +1 replay on every card, so it is
+  // hoisted here rather than tested per card. A pure READ: the charge is spent in
+  // playHand, because calcScore runs once per connected subset inside
+  // findBestHand and again on every tap of the live preview.
+  const _cbOn = (typeof cardStateCallbackOn === 'function') && cardStateCallbackOn(cards);
   // Per-card replay count (key 'r-c' → times this card scores). Lets the post-loop
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
@@ -409,6 +454,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // compares it against the luck-scaled chance, so the preview stays honest -
     // and it returns a COUNT, so past 100% a card replays more than once.
     const _wfi = _wfiChance > 0 ? luckRollDet(_wfiChance, card._id || 0, handsPlayedRound) : 0;
+    // High Roller: guaranteed floor + one deterministic roll on the remainder.
+    // Hash offset 3301 keeps its stream distinct from Wait For Iiiit's on the
+    // same card in the same hand.
+    let _hr = 0;
+    if (_hrChance > 0) {
+      _hr = Math.floor(_hrChance);
+      if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
+    }
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; _retrig += _rl; if (_pt) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
@@ -417,7 +470,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
     _retrig += _wfi; // Wait For Iiiit: chance replay scaling with negative tiles taken
+    _retrig += _hr;  // High Roller: (credits + Luck)% chance replay per card
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
+    if (_labOn) _retrig++;      // Low and Behold: the hand holds the grid's lowest rank
+    if (_cbOn)  _retrig++;      // Callback (card state): the hand holds a charged card
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
@@ -503,10 +559,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     //    particle count lands on the same total the accumulator does.
     const _isHeartC = card.suit === '♥' || (card.combined && card.suit2 === '♥');
     // `_cmAdd` is what this card pays EVERY time it scores. `_cmOnce` is what it
-    // pays on its FIRST scoring only (the PER_CARD_PAYERS, which read cells.length
-    // rather than a replay-weighted count). The accumulators are kept purely as
-    // LEDGER totals - the contributions tab wants one row per Trick, not one per
-    // card - and the rep loop below is what actually moves `mult`.
+    // pays on its FIRST scoring only - NOTHING FEEDS IT TODAY (the per-card payers
+    // became replay-weighted in r236). It is kept as the seam a future
+    // once-per-card bonus drops into, because the rep loop below is already shaped
+    // to interleave one correctly and that is the hard part to re-derive. The
+    // accumulators are kept purely as LEDGER totals - the contributions tab wants
+    // one row per Trick, not one per card - and the rep loop is what moves `mult`.
     let _cmAdd = 0, _cmOnce = 0;
     if (hasTrick('heart_double') && _isHeartC) { const _v = BAL.heart_double.heart_mult; _cmAdd += _v; _hdMult += _v * _retrig; _ev('heart_double','mult+',_v); }
     if (hasTrick('jack_mult') && baseRank === 'J') { const _v = BAL.jack_mult.mult_per_jack; _cmAdd += _v; _jmMult += _v * _retrig; _ev('jack_mult','mult+',_v); }
@@ -517,13 +575,23 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _ec1 = exaltCorruptTotals([card]);
     if (_ec1.mult) { _cmAdd += _ec1.mult; _ecMultAcc += _ec1.mult * _retrig; _ev('_exalt','mult+',_ec1.mult,'exalt'); }
     if (_ec1.pips) { _ecPipAcc  += _ec1.pips * _retrig; _ev('_exalt','pip+', _ec1.pips,'exalt'); }
-    // Per-card payers (see PER_CARD_PAYERS). NOT multiplied by _retrig - these
-    // pay once per card however many times it scores - so the events carry
-    // `once` and the dance applies them on the card's first beat only.
+    // Per-card payers (see PER_CARD_PAYERS). REPLAY-WEIGHTED since r236: a card
+    // that scores three times pays them three times, exactly as its own pips do.
+    // They used to pay once per card however many times it scored, which is what
+    // the owner saw and reported: "when get even is owned and an even card
+    // replays, i did not see another mult chip fly to the score area. i saw pips
+    // go multiple times, but i only saw the mult animate once." The animation was
+    // telling the truth - the payment really was once - and the condition is what
+    // makes these per-card, not the bonus, so there was no reason for the bonus to
+    // behave differently from every other per-card bonus.
+    //
+    // So they go in `_cmAdd` (paid every rep) rather than `_cmOnce`, and the
+    // events drop their `once` flag - the dance repeats the whole beat, which is
+    // what makes the chip fly once per replay with no work at the dance's end.
     _pcLive.forEach(row => {
       const p = row.pays(card, _pcCtx); if (!p) return;
-      if (p.pip)  { _pcPips[row.id] = (_pcPips[row.id]||0) + p.pip;  _ev(row.id,'pip+', p.pip,  'trick', undefined, undefined, true); }
-      if (p.mult) { _pcMult[row.id] = (_pcMult[row.id]||0) + p.mult; _cmOnce += p.mult; _ev(row.id,'mult+',p.mult, 'trick', undefined, undefined, true); }
+      if (p.pip)  { _pcPips[row.id] = (_pcPips[row.id]||0) + p.pip  * _retrig; _ev(row.id,'pip+', p.pip,  'trick'); }
+      if (p.mult) { _pcMult[row.id] = (_pcMult[row.id]||0) + p.mult * _retrig; _cmAdd += p.mult; _ev(row.id,'mult+',p.mult, 'trick'); }
     });
     // ── This card's own x MULT, and the whole reason the adds above had to move
     //    here (r233). A card enhancement that multiplies the mult is a CARD
@@ -851,6 +919,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
   if (_pcPips.heavy_hand) { totalPips += _pcPips.heavy_hand; bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
   if (_pcPips.prime_time) { totalPips += _pcPips.prime_time; bPipQ('prime_time', _pcPips.prime_time, 1); }
+  // Flow State: the LAST additive pip site before the x pips block below, which is
+  // the whole point of moving it here - see its PER_CARD_PAYERS row.
+  if (_pcPips.flow_state) { totalPips += _pcPips.flow_state; bPipQ('flow_state', _pcPips.flow_state, 1); }
   // Escalation: EVERY hand of the round counts, including the first three - they
   // just do not pay yet. Nothing lands until the (after_hands + 1)-th hand, and
   // then the bonus is the whole count x the rate: 4th = +12, 5th = +15, 6th = +18.
@@ -954,11 +1025,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
     if (_cm[mid]) { const _d = _cm[mid]; mult += _d; bMult('mirror', _d); }
   });
-  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra time
-  // per prime stack the hand it naturally contributes. Stacks are consumed in playHand.
+  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra
+  // time PER STACK on the hand it naturally contributes to, and since r296 every one
+  // of those stacks is then spent together in playHand - a prime is a charge on the
+  // next firing, not a lease on the next few hands.
   // _rank is a PERMANENT prime (Rehearsal event, r194): it fires the Trick an
   // extra time exactly as a prime stack does, but playHand's consumption block
-  // only decrements _primed, so a rank never runs out. Reusing the prime loop is
+  // only clears _primed, so a rank never runs out. Reusing the prime loop is
   // what makes a Trick upgrade generic - it needs no code in any of the 177
   // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
   if (trickTrayMode) trickTray.forEach(t => {
@@ -966,8 +1039,76 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_extra <= 0) return;
     const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
     if (!_pd && !_md) return;
-    for (let k = 0; k < _extra; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
+    // THE EVENT IS THE TRICK'S; THE LEDGER ROW IS STILL 'primed' (r294).
+    // These paid through bPip('primed') / bMult('primed'), so the timeline event
+    // carried the literal id `primed` - and danceEntityEl looks a tray chip up by
+    // Trick id, so it resolved to NOTHING. The prime's score landed and the
+    // primed Trick never popped for it: the owner's "I didn't notice the prime
+    // making the trick animate twice". Measured on a +2 Kindred: two `mult+ 6`
+    // events on the timeline, both with id 'primed', both unresolvable.
+    //
+    // So the emit is split off and re-attributed while the ledger write stays
+    // exactly where it was - the quiet variants write `_cp`/`_cm` and bill the
+    // proc without emitting, and `_ev` is called with the Trick's own id. That
+    // keeps this BALANCE-NEUTRAL, which matters for one reason: _proc feeds the
+    // RIDER penalty (2s per proc, billed per Trick id in playHand), so billing a
+    // prime's extra fires to the Trick instead of to 'primed' would make a
+    // Rider-attached Trick cost real seconds it does not cost today.
+    // `bPipQ(id, d, procs)` defaults procs to 0, so the 1 is passed explicitly to
+    // reproduce bPip's single proc per call.
+    //
+    // `prime` is PACING ONLY - the dance plays a marked event as the quick second
+    // thump of a heartbeat instead of waiting a full beat for it (r296). The
+    // events stay exactly where calcScore emits them: the timeline replay has to
+    // reproduce calcScore's arithmetic (r220), so an event may be re-TIMED and
+    // never re-ORDERED.
+    for (let k = 0; k < _extra; k++) {
+      if (_pd) { totalPips += _pd; bPipQ('primed', _pd, 1);  const e = _ev(t.id, 'pip+',  _pd); if (e) e.prime = true; }
+      if (_md) { mult      += _md; bMultQ('primed', _md, 1); const e = _ev(t.id, 'mult+', _md); if (e) e.prime = true; }
+    }
   });
+  // FORCED fires (r234, js/force-trick.js). Sits here, beside priming, because it
+  // is the same question - "fire this Trick again" - asked of a Trick that did
+  // NOT fire. The prime loop above returns early on an empty `_cp`/`_cm`, so an
+  // unmet condition has no delta to replay; a forced fire pays the Trick's
+  // nominal BAL payout instead, condition ignored.
+  //
+  // READ ONLY. `forcedTrickIds` is spent in playHand, never here - calcScore runs
+  // speculatively for every connected subset in findBestHand and on every tap of
+  // the live PIPS/MULT preview, so consuming here would spend the charge dozens
+  // of times per selection. Same rule siphonMultX and minuteHandCharges follow.
+  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length
+      && typeof trickForcedPayout === 'function') {
+    // A forced fire may MULTIPLY a hand; it may not REPLACE it. Forcing pays the
+    // Trick's real value, and a Trick's real value spans two orders of magnitude:
+    // measured over 20 boards, the median forced fire is x2 (common/rare/epic),
+    // x3 legendary and x5.7 mythic - but **Rogue Wave reached x130**, because it
+    // pays 80 pips AND 16 mult per card and a 5-card hand collects both.
+    //
+    // So each axis gets a budget, and the budget is sqrt(cap) rather than cap:
+    // pips and mult MULTIPLY each other, so capping each at the full factor would
+    // let the two compound to cap^2 (measured: an x8 per-axis cap landed at x64).
+    // Nothing at the median comes near this - a +2 pip common on a 30-pip hand is
+    // x1.07 - so the cap only ever bites the outliers it was written for.
+    //
+    // Clamped BEFORE it is emitted, never scaled back afterwards: the dance
+    // replays this timeline and must reproduce calcScore exactly (r220), so a
+    // correction applied after the event is written would be a drift by
+    // construction.
+    const _fcX  = (BAL.hallmark && BAL.hallmark.force_cap_x) || 8;
+    const _fAx  = Math.sqrt(_fcX) - 1;
+    let _fpLeft = Math.max(0, totalPips * _fAx);
+    let _fmLeft = Math.max(0, mult * _fAx);
+    forcedTrickIds.forEach(fid => {
+      const fp = trickForcedPayout(fid, cards.length);
+      const _fpAdd = Math.min(fp.pips, _fpLeft); _fpLeft -= _fpAdd;
+      const _fmAdd = Math.round(Math.min(fp.mult, _fmLeft) * 10) / 10; _fmLeft -= _fmAdd;
+      if (_fpAdd) { totalPips += _fpAdd; bPip(fid, _fpAdd); }
+      if (_fmAdd) { mult      += _fmAdd; bMult(fid, _fmAdd); }
+      if (fp.pipX !== 1)  { const _pre = totalPips; totalPips = Math.round(totalPips * fp.pipX);        bPipX(fid, fp.pipX,  totalPips - _pre); }
+      if (fp.multX !== 1) { const _pre = mult;      mult      = Math.round(mult * fp.multX * 10) / 10;  bMultX(fid, fp.multX, mult - _pre); }
+    });
+  }
   // Double Take: each scored 2 duplicates your most recently acquired Trick's contribution
   if (hasTrick('twos_retrigger') && trickTrayMode) {
     const _t2 = cards.filter(c => c.rank === '2').length;
@@ -988,7 +1129,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _pool.forEach(t => t.tags.forEach(tag => { _tagCount[tag] = (_tagCount[tag] || 0) + 1; }));
     const _qualTags = new Set(Object.keys(_tagCount).filter(tag => _tagCount[tag] >= 3));
     if (_qualTags.size) {
-      const _RANK = { common:0, rare:1, epic:2, legendary:3, mythic:4 };
+      const _RANK = { common:0, rare:1, epic:2, legendary:3 };
       let _best = null, _bestRank = 99;
       _pool.forEach(t => {
         if (!t.tags.some(tag => _qualTags.has(tag))) return;
@@ -1008,18 +1149,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // 3. Base score
   const fMult = focusMultiplier();
-  // Flow State: +10 pips per card scored while focus mult >= 1.5
-  if (hasTrick('flow_state') && fMult >= 1.5) {
-    // NOT a per-card payer, and this is the reason: its payment sits AFTER the
-    // x pips block (it is grouped with the Focus step), so every other pip in the
-    // hand has already been multiplied by Undertow / Scalper / Knave Power /
-    // Interest by the time it lands and it escapes all of them. Paying it inside
-    // a card's beat would put it in front of those multiplies and change the
-    // score - measured at 459 pips on a hand worth 430. Moving its site up into
-    // the additive region would let those multiply it, which is a balance
-    // decision rather than an animation one.
-    const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
-  }
+  // Flow State is a PER_CARD_PAYER now (r238) - it pays a rate per card, so it
+  // fires on each card's beat like every other one. Its accumulator is added in
+  // the additive pip region with the rest of them, NOT here: this site was after
+  // the x pips block, which is exactly why it used to escape Undertow / Scalper /
+  // Knave Power / Interest. It is multiplied by them now, and that is the owner's
+  // call - a per-card Trick fires on the card, and a pip in the additive region
+  // is a pip every x pips multiplies.
   // Siphon (sleight): ×3 the whole mult, applied last so it multiplies every additive bonus.
   // Read-only here (not consumed) - playHand clears siphonMultX after the hand commits, so
   // findBestHand's candidate scoring sees it consistently.
@@ -1033,6 +1169,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // the four xSCORE Tricks. Read-only here; playHand clears the flag after the hand.
   if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult) {
     const _pre = mult; mult = Math.round(mult * BAL.the_legacy.mult_x * 10) / 10; _legacyM = mult - _pre;
+    _ev('the_legacy', 'mult*', BAL.the_legacy.mult_x, 'sleight');
   }
   // Spot Check (reward-grid penalty): one hand type scores at half until you have
   // played it enough times to clear the flag.
@@ -1045,7 +1182,43 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // CLAUDE.md: a new xSCORE needs a reason, and this one has none.
   if (typeof spotCheckHand !== 'undefined' && spotCheckHand && spotCheckLeft > 0 && handName === spotCheckHand) {
     const _pre = mult; mult = Math.round(mult * BAL.spot_check.mult * 10) / 10; _spotM = mult - _pre;
+    _ev('spot_check', 'mult*', BAL.spot_check.mult, 'penalty');
   }
+
+  // ── THE LAST FOUR x SCORE EFFECTS, MOVED HERE (r236) ────────────────────────
+  // There is no x SCORE step any more. `s = totalPips * mult` and Focus is a
+  // separate multiplier after it, so a xK on the score and a xK on the mult are
+  // the SAME arithmetic - and one of them is a number the player can watch
+  // change while the other is the score quietly coming out different. That is
+  // the r190 rule ("a new xSCORE needs a reason") applied to the four that were
+  // still left. Nothing about the balance moves; only when the player is told.
+  //
+  // THEY GO AT THE VERY END OF THE BLOCK, in the order they used to fire, and
+  // they DO NOT ROUND. Every other x mult here rounds to one decimal, but these
+  // were applied to a finished score, so rounding the mult instead would be a
+  // real (tiny) score change. `rnd:'none'` on the event keeps the dance in step;
+  // the chip still DISPLAYS one decimal, because fmtM formats it.
+  //
+  // The printed descriptions are deliberately unchanged (owner's call): "replays
+  // the whole hand once" says what Low and Behold DOES, and "x2 mult" would be
+  // the implementation talking.
+  // EMITS BUT DOES NOT WRITE THE LEDGER. None of these four ever had a
+  // contributions row (they were applied past every ledger call), and `_cm` is
+  // pushed as source:'trick' wholesale - so billing `_redaction` or a knack there
+  // would print a raw id in the breakdown and change what the tab reports. Same
+  // rule the row/col +2 mult follows: the timeline gets it, the ledger does not.
+  const _xs = (id, f, src) => { if (f !== 1) { mult *= f; _ev(id, 'mult*', f, src, undefined, 'none'); } };
+
+  // The Redaction (boss): one hand family, rotating, is marked down.
+  if (typeof bossRedactedHandMult === 'function') _xs('_redaction', bossRedactedHandMult(handName), 'boss');
+  // The Grind (boss): a hand type pays less every time you repeat it inside its
+  // window. Read-only here; playHand is what pushes the history.
+  if (typeof bossGrindMult === 'function') _xs('_grind', bossGrindMult(handName), 'boss');
+  // The dev-only Trick card sitting on the grid (trickTrayMode off).
+  if (hasTrickCard) _xs('_trickcard', 2, 'trick');
+  // Low and Behold is a PER-CARD REPLAY now (see _labOn in the card loop), not a
+  // x2 here. It was the one entry on this list whose printed text described cards
+  // replaying rather than a multiplier.
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
@@ -1057,33 +1230,19 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   let s = totalPips * mult;
 
-  // 4. x score multipliers
-  // The Redaction (boss): one hand type, fixed for the round, is marked down.
-  if (typeof bossRedactedHandMult === 'function') s *= bossRedactedHandMult(handName);
-  // The Grind (boss): a hand type pays less every time you repeat it inside its
-  // window. Read-only here; playHand is what pushes the history.
-  if (typeof bossGrindMult === 'function') s *= bossGrindMult(handName);
-  // Last Stand / Twenty-One / Perfect Storm / Extinction were ×score until r179. A ×score
-  // fires AFTER lastCalcPips/lastCalcMult are read, so it never showed in the PIPS/MULT
-  // chips - the number just changed. They are ×pips / ×mult now (identical arithmetic,
-  // since s = totalPips × mult) and live in the multiplier block above.
+  // 4. x SCORE - THERE IS NOTHING HERE ANY MORE, AND THAT IS THE POINT (r236).
+  // A x score fires AFTER lastCalcPips / lastCalcMult are read, so it changes the
+  // final number and nothing on screen says why. r190 moved four Tricks out for
+  // that reason; r193 took Legacy, r194 Spot Check, and r236 the last four - The
+  // Redaction, The Grind, Low and Behold and the dev grid Trick card. All of them
+  // are x mult now, which is the same arithmetic (s = totalPips x mult, Focus
+  // separate and after) and visibly moves the MULT chip.
+  //
+  // DO NOT ADD ONE. Anything that would go here is a x pips or a x mult.
+  //
   // Echoes: same hand type as the previous hand retriggers each card (handled in the per-card loop above).
-  // Blackjack: raw face values total exactly 21
   // The Falcon: Focus-doubling while paused is handled in playHand's focus-generation block.
-  // Shape bonuses
-  // Hands of Blue (2×2) and Crossroads (+ shape) now add Focus in playHand; Stretch is a ×mult above.
-
-  if (hasTrickCard) s *= 2;
-
-  // Low and Behold (knack): a hand containing the grid's lowest rank replays whole (×2)
-  if (hasKnack('low_and_behold')) {
-    let _gmin = 99;
-    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
-      const _gc0 = gridData[_gr]?.[_gc];
-      if (_gc0 && _gc0.rank && !_gc0._isSleight && !_gc0._isStone && !_gc0._isTrick) _gmin = Math.min(_gmin, _rankHigh(_gc0.rank));
-    }
-    if (_gmin < 99 && cards.some(c => _rankHigh(c.rank) === _gmin)) s *= 2;
-  }
+  // Hands of Blue (2x2) and Crossroads (+ shape) now add Focus in playHand; Stretch is a x mult above.
 
   // 5. Focus multiplier - separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;
@@ -1142,6 +1301,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 // ══════════════════════════════════════════════
 function contribDisplayName(source, id) {
   if (source === 'exalt') return 'Exalt / Corrupt';
+  // 'primed' is not a Trick, so it fell through to the raw id and the round's
+  // breakdown printed a lower-case `primed` row among the Trick names (r294).
+  if (id === 'primed') return 'Primed fires';
   // Sleight/knack-sourced rows resolve against their own pools (Tricks are the default).
   if (source === 'sleight') return SLEIGHT_POOL.find(s => s.id === id)?.name || id;
   if (source === 'knack')   return KNACK_POOL.find(k => k.id === id)?.name || id;
@@ -1322,7 +1484,56 @@ function trickFires(id) {
     if (t) n += (t._primed || 0) + (t._rank || 0);
     n += mirroredTrickIds().filter(m => m === id).length;
   }
+  _trickFiredThisHand.add(id);
   return n;
+}
+
+// -- The record of what fired, for the effects the ledger cannot see (r296) ---
+//
+// A prime is SPENT when its Trick fires, and until r296 "did it fire" was asked
+// of the contributions ledger alone - which carries pips and mult and nothing
+// else. So the ~71 Tricks that pay in Focus, clock seconds, credits, swaps or
+// card buffs fired their extra times (trickFires() has counted the stack since
+// r203) and NEVER SPENT THE STACK. Measured on Deluge: 15 / 30 / 45 seconds at
+// 0 / 1 / 2 primes, with the count still reading 0 / 1 / 2 afterwards. That is
+// the other half of the owner's "I've ended levels with a +2 still on some
+// tricks".
+//
+// Every one of those payouts asks trickFires(), and trickFires() is called from
+// nowhere inside calcScore (verified: 0 sites) - so unlike the ledger it never
+// runs speculatively, and a set written here is an honest record of this hand.
+//
+// THE CONTRACT TIGHTENS BY ONE WORD: a caller must only ask when it is about to
+// PAY. "Every caller is an amount being granted" was already the rule; a site
+// multiplying by a count that can be zero now has to test that count FIRST, or
+// the Trick spends its primes for a payout that never landed. That is exactly
+// the guard the pip/mult replay loop keeps with its `if (!_pd && !_md) return;`.
+let _trickFiredThisHand = new Set();
+function resetTrickFires() { _trickFiredThisHand = new Set(); }
+function trickFiredThisHand(id) { return _trickFiredThisHand.has(id); }
+
+// -- primeTrick: THE ONE PLACE A PRIME IS GRANTED (r296) ----------------------
+//
+// Four sites hand primes out - Inspirato (the first and last tray Tricks),
+// Prime Times, the Understudy knack and Hallmark's prime outcome - and the
+// Buddy System knack has to see all four. A fifth site writing `t._primed++`
+// directly silently opts out of it, which is the whole reason this exists
+// rather than the knack being tested at each site.
+//
+// `echo` is what stops the second prime priming a third for ever.
+function primeTrick(t, n = 1, opts = {}) {
+  if (!t || !(n > 0)) return null;
+  t._primed = (t._primed || 0) + n;
+  if (!opts.echo && typeof hasKnack === 'function' && hasKnack('muscle_memory')) {
+    const pool = (typeof trickTray !== 'undefined' ? trickTray : []).filter(x =>
+      x !== t && !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(x.id)));
+    if (pool.length) {
+      const buddy = pool[Math.floor(Math.random() * pool.length)];
+      primeTrick(buddy, n, { echo: true });
+      if (typeof showMessage === 'function') showMessage('🤝 Buddy System - ' + buddy.name + ' primed', '#8a5cf0');
+    }
+  }
+  return t;
 }
 
 // Returns all row/col bonus entries matching this card position
@@ -1356,6 +1567,82 @@ function firesThisMinute(id) {
 // A manual chooser (Surveyor/Leveler) always beats Alignment. Assignment is idempotent
 // per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
 const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
+
+// -- The AXIS alternates; only the INDEX is luck (r296) ----------------------
+// Every one of the eight above is printed as "a marked row or column" and the
+// axis was rolled along with the line: pickDefaultLine pooled all the rows AND
+// all the columns and drew one cell out of the lot. On a 4x4 board that is a
+// coin flip per Trick, so a run could hand out four position Tricks and put all
+// four on rows - and did, often.
+//
+// The axis is now the ALTERNATION and the index is still the luck: each new
+// marked line lands on the opposite axis from the one before it. Row, column,
+// row, column.
+//
+// THAT IS WHAT MAKES CROSSINGS HAPPEN, which is the part that matters beyond
+// tidiness. Ley Line and Temporal Rift both fire wherever a row effect crosses
+// a column effect (isEffectIntersection / CARD_MARK_META, js/entity-fx.js), and
+// a run that rolled all rows gives them nothing to fire on at all. It is also
+// what the divided card highlight is for - a cell can only read half and half
+// if the board produces both axes.
+//
+// POSITION_FORCED_AXIS is the exemption: a Trick whose NAME names an axis keeps
+// that axis instead of taking the cursor's. NOTHING IS IN IT TODAY - all eight
+// are named for what they do (Right Place, Power Line, Echo Location, Perfect
+// Timing, Right Time, Groove, Assembly Line, Overtime), not for which way they
+// run - and it is the row a future "Row ..." or "... Column" Trick drops into.
+// An id in here still ADVANCES the cursor off the axis it took, so the run keeps
+// alternating around it.
+const POSITION_FORCED_AXIS = {
+  // trick id: 'row' | 'col'
+};
+// The axis the NEXT position Trick marks. Per run: reset in startGame, and in
+// SAVE_VARS so a resumed run carries on where it left off rather than restarting
+// the sequence. 'row' first, deliberately fixed rather than rolled - the whole
+// point is a rule the player can learn, and randomising the start would make the
+// first Trick of every run the one unpredictable link in the chain.
+let positionAxisNext = 'row';
+function positionAxisFor(trick) {
+  return POSITION_FORCED_AXIS[trick.id] || positionAxisNext;
+}
+// Advance off the axis ACTUALLY TAKEN, never off the cursor. A forced axis, the
+// Alignment knack's column and the player's own pick in the Surveyor / Leveler
+// chooser all go through here, so none of them can leave the run out of step.
+// Idempotent, so the chooser confirming the provisional default costs nothing.
+function markPositionAxisTaken(axis) {
+  positionAxisNext = (axis === 'row') ? 'col' : 'row';
+}
+
+// A SECOND RUN USED TO GET NO LINES AT ALL (r296). assignPositionMark is
+// idempotent per TRICK OBJECT - `_posAssigned` - so that an upgrade, which calls
+// selectTrick twice, cannot re-roll a line the player is already building around.
+// The trap is that what the player owns IS the pool object: makeTrickPayload's
+// `apply: () => injectTrickAfterReward(pick)` hands over `pick` itself, unlike
+// the knack path beside it which pushes `{ ...pick }`. So the flag outlived the
+// run that set it, and `startGame` clearing `rowColBonuses` was not enough -
+// granting Right Place in run 2 returned at the guard, finalizePositionMark
+// never ran, and the registry stayed EMPTY.
+//
+// Measured before the fix: run 1 registers `rowcol_triple_pips:row1` and
+// `rowcol_mult:col2`; run 2 grants both again and registers NOTHING. Both are
+// owned, both print "a marked row or column", and neither marks a line, scores
+// a bonus or draws anything on the board. That is all eight position Tricks,
+// common through epic, dead for every run of a session after the first.
+//
+// desc is NOT restored here: the tier reset (resetEntityTiers -> applyEntityTiers
+// -> applyBalDescriptions) already rewrites every description from the pristine
+// text on a new run, and `_posDescBase` is cleared so the next mark re-captures
+// whatever that left - which matters when the Trick was improved mid-run and its
+// printed number moved.
+function resetPositionMarks() {
+  const seen = new Set();
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : null, typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : null]
+    .forEach(pool => (pool || []).forEach(t => {
+      if (!t || seen.has(t)) return;
+      seen.add(t);
+      delete t._posAssigned; delete t._posAxis; delete t._posIndex; delete t._posDescBase;
+    }));
+}
 
 // Keep every marked line on a line that EXISTS. Growing the board needs nothing
 // - the index is a stored number and a wider board simply has more columns past
@@ -1415,7 +1702,11 @@ function finalizePositionMark(trick, axis, index) {
   rowColBonuses = rowColBonuses.filter(b => b._trickRef !== trick);  // one line per Trick object
   rowColBonuses.push({ id: trick.id, axis, index, _trickRef: trick });
   trick._posAxis = axis; trick._posIndex = index;
-  const label = `${axis} ${index + 1}`;
+  // "column", not the `col` the axis id spells - this string is printed in the
+  // tray, in Records and in the tooltip. The alternation (r296) guarantees half
+  // the position Tricks in every run land on a column, so it is now something
+  // the player reads every run rather than on a coin flip.
+  const label = `${axis === 'row' ? 'row' : 'column'} ${index + 1}`;
   trick.desc = trick._posDescBase
     .replace('a specific row or column', label)
     .replace('a marked row or column', label)
@@ -1437,8 +1728,15 @@ function assignPositionMark(trick) {
   if (hasKnack('leveler'))  axes.push('row');
   if (hasKnack('surveyor')) axes.push('col');
   if (axes.length) {                              // manual chooser wins over Alignment
-    const prov = pickDefaultLine(axes, district); // provisional so state is always valid
+    // Owning BOTH knacks offers both axes, so the provisional default is the
+    // alternation's; owning one means that knack IS the axis and the cursor has
+    // nothing to say. Written as one test so a forced-axis Trick also keeps its
+    // axis whenever the knacks leave it on the table.
+    const want = positionAxisFor(trick);
+    const provAxes = axes.includes(want) ? [want] : axes;
+    const prov = pickDefaultLine(provAxes, district); // provisional so state is always valid
     finalizePositionMark(trick, prov.axis, prov.index);
+    markPositionAxisTaken(prov.axis);
     queuePositionChooser(trick, axes, district);
     return;
   }
@@ -1447,10 +1745,17 @@ function assignPositionMark(trick) {
     let index = ((slot % gridCols) + gridCols) % gridCols;
     if (!district) index = firstFreeAlong('col', index);
     finalizePositionMark(trick, 'col', index);
+    markPositionAxisTaken('col');                 // the knack decided; keep the run in step with it
     return;
   }
-  const prov = pickDefaultLine(['row', 'col'], district); // default: random (spreads unless District)
+  // Default: the AXIS alternates, the INDEX is random (and spreads unless
+  // District). Asking pickDefaultLine for ONE axis rather than both is the whole
+  // change. If every line on that axis is already taken it still lands there, on
+  // an occupied one - the alternation is the rule, and a board with more position
+  // Tricks than it has lines has to double up somewhere.
+  const prov = pickDefaultLine([positionAxisFor(trick)], district);
   finalizePositionMark(trick, prov.axis, prov.index);
+  markPositionAxisTaken(prov.axis);
 }
 
 // ── Surveyor / Leveler line-chooser overlay ─────────────────────────────────
@@ -1494,7 +1799,9 @@ function showNextPositionChooser() {
       b.style.cssText = `min-width:42px;padding:8px 10px;border-radius:8px;font-size:13px;`
         + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor:not-allowed;'
           : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor:pointer;`);
-      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
+      // markPositionAxisTaken: the player's own pick is what the run alternates
+      // off, not the provisional default assignPositionMark already committed.
+      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); markPositionAxisTaken(axis); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis === 'row' ? 'row' : 'column'} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
       row.appendChild(b);
     }
     ov.appendChild(row);

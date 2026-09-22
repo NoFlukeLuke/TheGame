@@ -42,6 +42,12 @@ function lineFXMeta(id) { return LINE_FX_META[id] || { color: '#c9a84c', glyph: 
 // the old single-cell answer and is never assigned by anything, so the
 // `.card.rc-leyline` tint it drove had been dead since it was written.
 const CARD_MARK_META = {
+  // FIRST on purpose: cardMarkHTML returns the first hit, and a mark the player
+  // has to spend before the card leaves the board outranks a standing one.
+  hallmark:           { color: '#d9a129', glyph: '\ud83d\udd16', name: 'Hallmark',
+    covers: (r, c) => typeof hallmarkCardId !== 'undefined' && hallmarkCardId
+                      && gridData[r]?.[c] && gridData[r][c].rank
+                      && cardId(gridData[r][c]) === hallmarkCardId },
   rowcol_perm_double: { color: '#f0c040', glyph: '\u2726', name: 'Ley Line',
     covers: (r, c) => hasTrick('rowcol_perm_double') && isEffectIntersection(r, c) },
   temporal_rift:      { color: '#7ec8e3', glyph: '\u23f8', name: 'Temporal Rift',
@@ -223,25 +229,100 @@ function cellOnMarkedLine(r, c) {
   return m.length ? m[0] : null;
 }
 
-// The ring's paint. One colour is a flat fill; several are equal wedges of a
-// conic gradient with HARD STOPS, so a card on three lines shows three thirds
-// rather than a blend - a blend of three Trick colours is a fourth colour that
-// belongs to nothing. css/entity-fx.css masks whatever this returns down to the
-// border, so the card face is never covered.
+// ── The card-side highlight: A RING, AND ONLY A RING (r296, cut back r299) ──
+// A 2px band of the line's colour around the card's own edge, masked down to the
+// border. There is deliberately NO WASH over the card face.
+//
+// r296 added one, because the per-Trick tints it replaced had been washing the
+// face since r209 and covered three of the nine line-marking Tricks - so half
+// the marked cells on a board had a highlight and half did not. Dividing the
+// face between its lines fixed the crossing; it also spent the card's whole face
+// on a fact the ring already states. Owner's call: "the outline is sufficient,
+// and that leaves more legibility on the card to put its buffs" - which is
+// exactly what r299 then put there (the corner bands, js/deck-grid.js). The ring
+// still covers all nine Tricks, which was the real gap.
+//
+// SEVERAL COLOURS ARE EQUAL WEDGES WITH HARD STOPS, NEVER A BLEND. A card on a
+// marked row and a marked column reads HALF AND HALF; one on three lines reads
+// in thirds, and so on for as many as cover it. A blend is a colour that belongs
+// to nothing - which is what the card had before r296: the old tints painted
+// Right Place (blue) crossing Power Line (red) as a flat PURPLE card.
+//
+// Near-white needs no correction here, and that is the reason the wash was the
+// expensive half. Echo Location's #e0ddd0 was invisible as a face tint over a
+// cream card at any alpha (measured: rgb(240,231,212) over rgb(244,234,213)) and
+// had to be darkened to register. On the card's EDGE, against the dark board, it
+// is the most legible of the nine - so the ring takes every colour exactly as
+// the table gives it and the whole luminance correction goes with the wash.
+//
+// THE RING TURNS (r302, owner's spec: "can the highlight border rotate smoothly
+// around the cards"). Every paint below is a conic gradient whose `from` angle
+// is `var(--rcl-rot)`, a custom property REGISTERED as an <angle> in
+// css/entity-fx.css - registration is what makes it animatable at all, since an
+// unregistered custom property is an opaque token and cannot be interpolated.
+//
+// A SINGLE LINE NEEDS A SHEEN OR THERE IS NOTHING TO SEE TURNING, and one line
+// is the ordinary case - a card sits on a marked row OR a marked column far more
+// often than on both. So one colour is drawn as that colour with two pale
+// arcs sweeping through it, and the ring reads as a highlight travelling round
+// the card. SEVERAL colours are left as hard-stop wedges and get no sheen: the
+// wedges themselves turning IS the motion, and a pale arc laid over two Trick
+// colours is the blend r296 spent a pass removing.
+function lineRingLighten(hex, amt) {
+  const h = String(hex).replace('#', '');
+  const n = h.length === 3 ? h.split('').map(ch => ch + ch).join('') : h;
+  const v = parseInt(n, 16);
+  if (!isFinite(v)) return hex;
+  const mix = c => Math.round(c + (255 - c) * amt);
+  return `rgb(${mix((v >> 16) & 255)},${mix((v >> 8) & 255)},${mix(v & 255)})`;
+}
+const LINE_RING_SHEEN = 0.55;   // how far a sheen arc lifts the colour toward white
+const LINE_RING_SPIN_MS = 8000; // one revolution; see the note on the phase below
 function lineRingPaint(metas) {
   if (!metas.length) return '';
-  if (metas.length === 1) return metas[0].color;
+  if (metas.length === 1) {
+    const c = metas[0].color, l = lineRingLighten(c, LINE_RING_SHEEN);
+    // Seamless: the same colour at 0% and 100%, so the loop has no join in it.
+    return `conic-gradient(from var(--rcl-rot,0deg), ${c} 0%, ${l} 25%, ${c} 50%, ${l} 75%, ${c} 100%)`;
+  }
   const n = metas.length, step = 100 / n;
   const stops = metas.map((m, i) => `${m.color} ${(i * step).toFixed(3)}% ${((i + 1) * step).toFixed(3)}%`);
-  return `conic-gradient(from -45deg, ${stops.join(', ')})`;
+  // `-45deg` is where the division RESTS, so TWO colours split on the card's own
+  // diagonal - one straight line corner to corner - rather than on the vertical,
+  // which reads as a seam. The rotation is added to it.
+  return `conic-gradient(from calc(-45deg + var(--rcl-rot,0deg)), ${stops.join(', ')})`;
 }
 
-// The whole ring element for a cell, or '' when the cell is on no marked line.
-// Built here rather than in renderCardAppearance so the reward grid and any
-// future surface can draw the same ring by asking one function.
-function lineRingHTML(r, c) {
-  const metas = lineMetasForCell(r, c);
+// From an already-resolved meta list. renderCardAppearance works out the list
+// once and builds the ring from it; the (r, c) form below is for any caller that
+// has a cell and not a list. Built here rather than in renderCardAppearance so
+// the reward grid and any future surface can draw the same ring by asking one
+// function.
+// EVERY RING ON SCREEN TURNS IN PHASE, and that takes a negative animation-delay
+// baked in here rather than a single animation on a long-lived ancestor. The ring
+// is markup inside a card, and `render()` rewrites a card's innerHTML on every
+// deal, swap and score - so an animation that starts with the element would snap
+// every ring back to 0deg each time the board repaints. Offsetting the delay by
+// how long the page has been up means a ring created now picks the cycle up
+// exactly where the ones already on screen are.
+// The alternative - animating an inherited --rcl-rot on #grid and letting the
+// rings read it - costs a custom-property style recalc over the whole subtree
+// every frame, for the same picture.
+// The DURATION is written inline from the one constant above and the stylesheet
+// holds only the name, timing and count, so the phase arithmetic here and the
+// animation can never disagree about how long a revolution is. That also leaves
+// `animation-name: none` under reduced-motion able to switch it off, which an
+// inline `animation` shorthand would have outranked.
+const LINE_RING_EPOCH = Date.now();
+function lineRingHTMLFor(metas) {
   if (!metas.length) return '';
   const title = metas.map(m => m.name).join(' · ');
-  return `<div class="rc-line-ring" style="--rcl-ring:${lineRingPaint(metas)}" title="${title}"></div>`;
+  // Rounded to the nearest frame so every ring built in one repaint gets the
+  // same delay to the millisecond - Date.now() ticks while render() walks the
+  // board, and two values 1ms apart is 0.045deg of phase and a line in any
+  // future audit that has to be explained away.
+  const off = -(Math.round((Date.now() - LINE_RING_EPOCH) / 50) * 50 % LINE_RING_SPIN_MS);
+  return `<div class="rc-line-ring" title="${title}" style="--rcl-ring:${lineRingPaint(metas)};`
+       + `animation-duration:${LINE_RING_SPIN_MS}ms;animation-delay:${off}ms"></div>`;
 }
+function lineRingHTML(r, c) { return lineRingHTMLFor(lineMetasForCell(r, c)); }

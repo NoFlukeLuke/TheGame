@@ -1,9 +1,39 @@
+// PAUSE IS THE WAY INTO THE MENU, so it has to work on the screens that have no
+// clock to stop - the map, the shop, a reward grid, the crossroads, an event.
+// `pauseGame` used to return on `!roundInterval && !gameInterval && !countdownActive`
+// ("nothing to pause") and the button silently did nothing on every one of them:
+// measured in a real browser, the map / shop / reward grid all left `isPaused` false
+// and the overlay hidden. There IS nothing to pause there; there is still a menu to
+// open, and that is the button's other job.
+//
+// So pause now always opens the menu, and RESUME PUTS BACK ONLY WHAT THE PAUSE
+// ACTUALLY STOPPED. That is the load-bearing half: resuming unconditionally would
+// start the round timer BEHIND the map or the shop, which is the very thing
+// screenOwnsClock() exists to prevent.
+//
+// TWO flags, not one, because the two clocks are independent and the legacy game
+// timer is live in every mode - `gameInterval` is started for a Classic run as much
+// as for a timer-mode one (its BODY is what `!isActMode()` guards, not its
+// existence). Keying the round clock off "either was running" therefore still
+// restarted it behind every takeover screen: measured, a reward grid resumed with
+// roundInterval back despite having none when it opened.
+//
+// `roundInterval` is a faithful test for "the round clock is live": every path that
+// leaves the round - stopTimers, triggerLevelUp, the goal dance, a takeover screen -
+// nulls it. Pausing mid goal-dance therefore no longer restarts the clock of a round
+// that has already been won, which the old unconditional startRoundTimer() did.
+let pausedRoundClock = false;
+let pausedGameClock  = false;
+
 function pauseGame(hideGrid = true) {
   if (isPaused) return;
+  // No run has started yet (the main menu), so there is no menu to open either.
+  if (!gameStartTime) return;
   // A running 3-2-1 counts as something to pause: the round timer has not started yet,
-  // so the old `!roundInterval && !gameInterval` test made PAUSE a no-op during the deal
-  // and the round began underneath the pause menu.
-  if (!roundInterval && !gameInterval && !countdownActive) return; // nothing to pause
+  // so the old test also made PAUSE a no-op during the deal and the round began
+  // underneath the pause menu.
+  pausedRoundClock = !!roundInterval;
+  pausedGameClock  = !!gameInterval;
   isPaused = true;
   if (countdownActive) {
     countdownPaused = true;
@@ -43,8 +73,12 @@ function resumeGame() {
   }
   // One clock (r205): startBossTimer re-arms any scheduled effects still pending
   // and then starts the same round timer everything else uses.
-  else if (bossActive) startBossTimer();
-  else startRoundTimer();
+  // Guarded: paused from the map / shop / reward grid / an event there was no round
+  // clock running, and starting one now would run the round behind that screen.
+  else if (pausedRoundClock) { if (bossActive) startBossTimer(); else startRoundTimer(); }
+  pausedRoundClock = false;
+  if (!pausedGameClock) return;
+  pausedGameClock = false;
   // Restart game timer
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
@@ -71,10 +105,18 @@ function resumeGame() {
   }, 1000);
 }
 
-document.getElementById('btn-pause').addEventListener('click', () => {
+// The one toggle. The in-stage PAUSE button uses it, and so do the pause chips on
+// the three screens that COVER that button, which fixing pauseGame alone could not
+// reach: an event and a Limit Break are full-screen panels over the whole stage
+// (#event-bar / #lb-bar in index.html), and the map's own bottom strip is body-level
+// and grows across the button row the moment an obligation is picked (#mb-pause,
+// js/map-mode.js). A chip goes in the one part of each screen that never scrolls
+// away - its bar.
+function togglePauseMenu() {
   if (isPaused) resumeGame();
   else pauseGame(true);
-});
+}
+document.getElementById('btn-pause').addEventListener('click', togglePauseMenu);
 
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
@@ -110,12 +152,14 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // Flow charges no time for anything - spendRoundTime is a no-op there, because its
-  // clock is the countdown to the boss rather than a round budget. Quote that, or the
-  // pop-up drifts from reality the way it did before r151.
-  if (typeof flowActive === 'function' && flowActive()) {
-    set('ic-play', '0s'); set('ic-discard', '0s'); set('ic-swap', '0s');
-    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(FLOW_SESSION_SECONDS) : `${FLOW_SESSION_SECONDS}s`);
+  // Read the SAME predicate the two charge sites read (js/round-timers.js), so
+  // the quoted cost and the billed cost cannot drift. Before r234 this branch was
+  // keyed on flowActive() while the charges were keyed on nothing at all, which is
+  // how Flow came to display 0s and bill 8s.
+  if (typeof interactTimeCostsOn === 'function' && !interactTimeCostsOn()) {
+    set('ic-play', `${playHandCostThisRound || 0}s`); set('ic-discard', '0s'); set('ic-swap', '0s');
+    const _dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
+    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(_dur) : `${_dur}s`);
     set('ic-paused',  `${pausesThisRound  || 0}×`);
     set('ic-rewound', `${rewindsThisRound || 0}×`);
     return;
@@ -217,8 +261,7 @@ document.addEventListener('click', (e) => {
 // screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
 // skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
 function screenOwnsClock() {
-  return (typeof martActive !== 'undefined' && martActive)
-      || (typeof shopGridActive !== 'undefined' && shopGridActive)
+  return (typeof shopGridActive !== 'undefined' && shopGridActive)
       || document.getElementById('shop-overlay')?.classList.contains('show')
       || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
 }
@@ -236,6 +279,14 @@ function startGame() {
   // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
   // main menu to open their own screen, can't push the camera in behind them.
   if (typeof camEnterGame === 'function') camEnterGame();
+  // ARM THE WALKTHROUGH BEFORE markModeStarted, AND THAT ORDER IS THE WHOLE
+  // MECHANISM (r283). modeNeedsTutorial() is "this mode has never been played",
+  // and the very next line makes that false forever - so a live read anywhere
+  // later in the run would say no. It is latched here, once, and tutorialActive()
+  // reads the latch (js/tutorial.js).
+  if (typeof tutorialArmForRun === 'function') tutorialArmForRun();
+  // Record that this mode has been played (js/progress-unlock.js).
+  if (typeof markModeStarted === 'function') markModeStarted(ACTIVE_MODE && ACTIVE_MODE.id);
   // Music can differ between the menu and a run (see js/music.js); a track marked
   // 'any' plays through the change, one marked 'menu' hands over here.
   if (typeof musicSetScene === 'function') musicSetScene('game');
@@ -255,9 +306,13 @@ function startGame() {
 
   // Install this run's RNG BEFORE any deck is built or shuffled - startGame is
   // the single point where a run's randomness is established (see js/seed.js).
-  // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
-  // used, and with neither the run is plain unseeded.
-  applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
+  // A mode may pin a seed; a mode's FIRST run pins its own walkthrough seed, so
+  // everyone's first Schedule is the same board and a bug report against it is
+  // reproducible. Otherwise the dev panel's seed is used, and with neither the
+  // run is plain unseeded.
+  applyRunSeed(ACTIVE_MODE.seed
+    || ((typeof tutorialRunSeed === 'function') ? tutorialRunSeed() : null)
+    || pendingRunSeed || null);
 
   // Lock in this run's difficulty tier. Copied out of pendingDifficulty here, at
   // the one point a run begins, so nothing the player touches on a menu later can
@@ -275,7 +330,18 @@ function startGame() {
   } else {
     ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
     ACTIVE_RANKS = RANKS;
+    // Six Suits deals a DESIGNED deck (js/deck-design.js): the cut rank comes out
+    // of ACTIVE_RANKS here, and expectedDeckTotal becomes ranks x copies rather
+    // than ranks x suits. It must run AFTER ACTIVE_SUITS is set - the suit list
+    // is what the copies are spread across.
+    if (typeof deckDesignInstallLists === 'function') deckDesignInstallLists();
   }
+  // A picker-built mode may name a scoring model. It is installed into the live
+  // global only, never into localStorage: the dev panel's own choice is what a
+  // mode WITHOUT one falls back to, so a custom run cannot leave its model behind
+  // for the next Classic run. startGame is the single point both are set from.
+  scoringModel = ACTIVE_MODE.scoringModel
+              || (localStorage.getItem('scoringModel') || 'classic');
   // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
   // gets the pristine table back.
   applyModeHandValues();
@@ -283,7 +349,9 @@ function startGame() {
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
-  expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  // A model that builds its own deck has already written the real total; a rank
+  // x suit cross product is not what it deals, so the generic line must not run.
+  if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
   dealPhase = false;
 
   // Reset all state
@@ -293,25 +361,30 @@ function startGame() {
   handsPlayed = 0;
   // Reset limits to base values on new game.
   //
-  // `step` MUST be carried across (r211). This rebuild dropped it, so from the
-  // first frame of every run round_time.step was undefined and focus_cap.step was
-  // undefined, and incrementLimit's `(l.step || 1)` fell back to 1. That is the
-  // real reason a Round Time upgrade granted ONE SECOND instead of 15 and a Focus
-  // Cap upgrade one node instead of 3, everywhere they could be bought - the
-  // shop, the reward grid, Limit Break, Growth Spurt, the Survival pick. The
-  // limits table in js/limits.js had the right numbers the whole time; this line
-  // threw them away at startGame and nothing read LIMITS_DEF again afterwards.
-  LIMITS_DEF.forEach(def => {
-    limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };
-  });
+  // THROUGH makeLimitRow (js/limits.js), never spelled out here. This rebuild
+  // used to write the row by hand and it dropped `step`, so from the first frame
+  // of every run round_time.step and focus_cap.step were undefined and
+  // incrementLimit's `(l.step || 1)` fell back to 1 - the real reason a Round Time
+  // upgrade granted ONE SECOND instead of 15, everywhere it could be bought (the
+  // shop, the reward grid, Limit Break, Growth Spurt, the Survival pick). r211
+  // fixed the field; r227 removed the second copy that let it happen.
+  LIMITS_DEF.forEach(def => { limits[def.id] = makeLimitRow(def); });
   // Match-3 modes start on a 5×5 board (owner spec). Setting it through `limits`
   // means level-ups keep the size instead of snapping back to the 4×4 base.
   if (match3Active()) {
     limits.grid_rows.current = 5; limits.grid_rows.base = 5;
     limits.grid_cols.current = 5; limits.grid_cols.base = 5;
   }
+  // Poker Squares is a 5x5 board by definition - ten lines of five. Set through
+  // `limits` for match3's reason: a level-up then keeps the size instead of
+  // snapping back to the 4x4 base.
+  if (typeof squaresActive === 'function' && squaresActive()) {
+    limits.grid_rows.current = 5; limits.grid_rows.base = 5; limits.grid_rows.max = 5;
+    limits.grid_cols.current = 5; limits.grid_cols.base = 5; limits.grid_cols.max = 5;
+  }
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
+  if (typeof pickRerollsInit === 'function') pickRerollsInit();  // the pick-of-three reroll pool (js/grid-pick.js)
   if (survivalActive()) survivalInitRun();
   if (typeof flowInitRun === 'function' && flowActive()) flowInitRun();
   // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
@@ -415,8 +488,8 @@ function startGame() {
   acquiredTricks = [];
   acquiredKnacks  = [];
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
+  earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
-  _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
   cardPlayCount   = {};
   cardSwapCount   = {};
@@ -425,8 +498,6 @@ function startGame() {
   // Mart per-run state: pinned catalog items (r171) and the Tinker bench's fee
   // ladder (r175). Pins hold payload objects with live buy() functions, which is
   // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
-  if (typeof martPins   !== 'undefined') martPins   = {};
-  if (typeof martTinkerN !== 'undefined') martTinkerN = 0;
   altarEffects    = [];
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
@@ -444,8 +515,10 @@ function startGame() {
   permXMult  = {};
   permRetrig = {};
   permTime   = {};
+  permCoins  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
+  if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
   bonusMult_fives = 0;
   bonusMult_nines = 0;
   bonusMult_tens = 0;
@@ -470,6 +543,7 @@ function startGame() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  swapsUsedRound = 0;
   focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;
@@ -481,6 +555,14 @@ function startGame() {
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;
   rowColBonuses = [];
+  // The alternating row/column cursor (r296, js/scoring.js). Per RUN, so every
+  // run's first position Trick marks a row; left alone it would carry whatever
+  // the last run finished on.
+  positionAxisNext = 'row';
+  // ...and the per-Trick `_posAssigned` guard with it, or the pool objects the
+  // grant paths hand out carry the last run's assignment and every position
+  // Trick granted from here on silently marks nothing (js/scoring.js).
+  resetPositionMarks();
   _posChooserQueue = []; _posChooserActive = false;
   { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
   leyLinePos = null;
@@ -488,6 +570,8 @@ function startGame() {
   // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
   // the round's first tick, which would prime a Trick one second into the run.
   understudyNextMark = BAL.understudy.interval_seconds;
+  hallmarkCardId = null; hallmarkMarkAt = -1; hallmarkPlanted = false;
+  forcedTrickIds = [];
   lastHandType = null;
   streakCount = 0;
   lastHandTime = 0;
@@ -518,6 +602,7 @@ function startGame() {
   shopFromNodeFlow = false;
   nodeFlowAfterShop = null;
   if (typeof guidedResetRun === 'function') guidedResetRun();  // Guided's slot counter + event offers
+  if (typeof mapResetRun === 'function') mapResetRun();        // Map mode: generate the board (js/map-mode.js)
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
@@ -544,6 +629,8 @@ function startGame() {
   blockedCells = new Set();
   bossNumber = 0;
   bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
+  actBossId = null;          // quarter 1's boss is dealt below, once the mode is set
+  nextActBossId = null;      // and nothing has looked into the quarter after it yet
   savedRoundSeconds = 0;
   nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');
@@ -554,11 +641,20 @@ function startGame() {
   document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
 
   isPaused = false;
+  pausedRoundClock = pausedGameClock = false;
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
   document.getElementById('clock').classList.remove('urgent');
   document.getElementById('clock-bar').classList.remove('urgent');
+
+  // r238: deal QUARTER 1's boss. After the seed is installed (so it is part of
+  // the seeded run) and BEFORE initGridData, so it cannot perturb the deck
+  // draw order - bosses and the deck are separate seeded streams, but the draw
+  // still has to happen at a fixed point or "seed X, quarter 1" stops meaning
+  // one thing. isActMode() is already settled here, so Survival and Flow
+  // correctly hold nothing.
+  drawActBoss();
 
   initGridData();
   // Spectrum: shuffle the four deck fixtures in. AFTER initGridData - it assigns
@@ -577,6 +673,12 @@ function startGame() {
   // Tutorial mode: rig the opening board + goal, then start the coach-marks.
   // Must run LAST - it overwrites roundGoal/coins and re-renders the stacked grid.
   if (tutorialActive()) tutorialBeginRun();
+  // Map mode: freeze the round startTimers just armed and put the map over it.
+  // The first level tile confirmed resumes exactly this round (js/map-mode.js).
+  if (typeof mapActive === 'function' && mapActive()) mapBeginRun();
+  // Poker Squares: same shape as the map's hook - stop the round startTimers
+  // just armed (there is no clock here) and take the board over.
+  if (typeof squaresActive === 'function' && squaresActive()) squaresBeginRun();
 }
 
 // ══════════════════════════════════════════════

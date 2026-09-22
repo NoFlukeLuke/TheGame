@@ -44,13 +44,12 @@ const SLOT_LINES = [
 // Rotating buffs. A paying line takes the next one and the index advances, so a
 // lucky run spreads its winnings across pips, mult and replays instead of piling
 // one stat onto a handful of cards.
+// Worded by buffOfferName (js/deck-grid.js), so a paying line reports a buff in
+// the same words every other offer site uses (r294). Read at USE time - that
+// function runs through lexProse and the vocabulary can change mid-run.
 const SLOT_BUFFS = [
-  { e:{ pips:25 },  say:'+25 pips' },
-  { e:{ mult:4 },   say:'+4 mult' },
-  { e:{ pips:40 },  say:'+40 pips' },
-  { e:{ retrig:1 }, say:'replays' },
-  { e:{ mult:7 },   say:'+7 mult' },
-  { e:{ xmult:2 },  say:'×2 mult' },
+  { e:{ pips:25 } }, { e:{ mult:4 } }, { e:{ pips:40 } },
+  { e:{ retrig:1 } }, { e:{ mult:7 } }, { e:{ xmult:2 } },
 ];
 let slotBuffIdx = 0;
 
@@ -163,7 +162,7 @@ function slotLightCells(host, cells) {
 function renderFloor() {
   const body = document.getElementById('event-body');
   const deck = (typeof everyDeckCard === 'function') ? everyDeckCard() : [];
-  if (deck.length < SLOT_REELS) {
+  if (!eventEligible('the_floor')) {
     body.innerHTML = evEmptyHTML('Not enough cards in the deck to fill the reels.');
     eventState.floorNone = true;
     setEventConfirm(true); return;
@@ -176,7 +175,7 @@ function renderFloor() {
   floorRenderControls();
 }
 
-function floorLineCost() { return BAL.the_floor.line_cost * eventState.floorLines; }
+function floorLineCost() { return priceOf(BAL.the_floor.line_cost) * eventState.floorLines; }
 
 function floorRenderControls() {
   const body = document.getElementById('event-body');
@@ -273,7 +272,7 @@ function floorResolve(host, grid) {
       enhanceCardKey(cardId(target), buff.e);
       improved++;
     });
-    said.push(`${h.ln.name} ${h.kind} run · ${buff.say}`);
+    said.push(`${h.ln.name} ${h.kind} run · ${buffOfferName(buff.e)}`);
   });
   eventState.floorWon += improved;
   const status = document.getElementById('ev-floor-status');
@@ -300,7 +299,7 @@ function confirmFloor() {
 function renderPayline() {
   const body = document.getElementById('event-body');
   const all = (typeof evImprovables === 'function') ? evImprovables() : [];
-  if (all.length < 2) {
+  if (!eventEligible('the_payline')) {
     body.innerHTML = evEmptyHTML('Not enough Tricks or Sleights to fill the reels. Take the fee instead.');
     eventState.paylineNone = true;
     setEventConfirm(true); return;
@@ -353,8 +352,8 @@ function paylineRenderControls() {
   const spin = document.createElement('button');
   spin.className = 'ev-btn';
   spin.id = 'ev-payline-spin';
-  spin.textContent = `SPIN · ${BAL.the_payline.spin_cost}`;
-  spin.disabled = coins < BAL.the_payline.spin_cost;
+  spin.textContent = `SPIN · ${priceOf(BAL.the_payline.spin_cost)}`;
+  spin.disabled = coins < priceOf(BAL.the_payline.spin_cost);
   spin.onclick = () => paylineSpin();
   wrap.appendChild(spin);
 
@@ -364,7 +363,7 @@ function paylineRenderControls() {
 }
 
 function paylineSpin() {
-  const cost = BAL.the_payline.spin_cost;
+  const cost = priceOf(BAL.the_payline.spin_cost);
   if (coins < cost) return;
   coins -= cost; updateCoinsUI?.();
   eventState.paylineSpun++;
@@ -397,7 +396,7 @@ function paylineResolve(host, grid) {
     status.innerHTML = 'No line. Spin again.';
   }
   const btn = document.getElementById('ev-payline-spin');
-  if (btn) btn.disabled = coins < BAL.the_payline.spin_cost;
+  if (btn) btn.disabled = coins < priceOf(BAL.the_payline.spin_cost);
   document.getElementById('event-confirm').textContent = 'CASH OUT';
 }
 

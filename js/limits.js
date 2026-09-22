@@ -1,13 +1,25 @@
+// `min` is the FLOOR a limit can be drained to (default 0). Anything that takes
+// a limit away - a Limit Break sacrifice, the reward grid's limit-drain debuff -
+// goes through decrementLimit, which floored at 0 and nothing else. At 0 rows,
+// 0 columns or a selection of 0 the game is not hard, it is broken, and the
+// random sacrifice table (r227) can put the same limit in front of you again and
+// again. Where no floor is stated the limit really can go to nothing: swaps,
+// discards and rerolls are all playable at 0.
+// NO `reroll` LIMIT (r307): the shop's reroll is bought with DISCARDS you
+// carried in, one per row, so a cap on "rerolls per visit" had nothing left to
+// cap. It was already filtered out of the shop's own Upgrades row as dead
+// stock; this removes it from the reward grid, Limit Break, Records and the
+// Survival pick as well. An old save carrying limits.reroll is harmless - the
+// contents are copied key by key and nothing reads it.
 const LIMITS_DEF = [
-  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Cards selectable at once (play grid AND reward grid). Raising it also raises the MINIMUM you must play: min = max - 2.', base: 3, max: 9, hideMax: true },
-  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7 },
-  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
+  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Cards selectable at once (play grid AND reward grid). Raising it also raises the MINIMUM you must play: min = max - 2.', base: 3, max: 9, min: 3, hideMax: true },
+  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7, min: 3 },
+  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7, min: 3 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
-  { id: 'round_time',  label: 'Starting Time',    icon: '⏱', desc: 'Seconds you START each round with (rewinds can carry you above it)', base: 180, max: 300, step: 15 },
-  { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
-  { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
-  { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, step: 3, weight: 0.5 },
+  { id: 'round_time',  label: 'Starting Time',    icon: '⏱', desc: 'Seconds you START each round with (rewinds can carry you above it)', base: 180, max: 300, min: 60, step: 15 },
+  { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, min: 1, weight: 0.4 },
+  { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, min: 10, step: 3, weight: 0.5 },
   // Luck 10 is a nudge, 100 doubles every chance effect. Step 5 so a single pick
   // is felt without one upgrade being the whole stat, and weight 0.6 because it
   // touches every entity offer in the game - it should be a chase, not a staple.
@@ -39,23 +51,79 @@ function minSelection() {
 function minSelectionBinds() { return minSelection() > 2; }
 
 const limits = {};
-LIMITS_DEF.forEach(def => {
-  limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };
-});
+// ONE builder for a limit's row, because there are TWO places that build it -
+// here and the reset in startGame - and they have already drifted once: r211
+// found that the startGame copy had never carried `step`, so from the first
+// frame of every run a Round Time upgrade granted 1 second instead of 15 and
+// nothing read LIMITS_DEF again to notice. `min` (r227) would have been the
+// second field to go the same way. Add a field here and both sites get it.
+function makeLimitRow(def) {
+  return { current: def.base, base: def.base, max: def.max, min: def.min || 0, step: def.step || 1 };
+}
+LIMITS_DEF.forEach(def => { limits[def.id] = makeLimitRow(def); });
+
+// ── SAY WHAT YOU ACTUALLY DO (r227) ─────────────────────────────
+// A limit moves by its `step` and then CLAMPS, so the step is not the same thing
+// as the gain: Starting Time steps by 15, and at 295/300 raising it gives 5. The
+// screens that move a limit printed the step and let the clamp quietly take the
+// difference - the reward grid's limit tile and its drain debuff, and the Limit
+// Break's offers, sacrifice list and toasts. These helpers are the one place the
+// printed number is decided, so what a screen promises is what the player gets.
+// Call limitGain / limitLoss BEFORE the change - they read the live `current`.
+function limitStep(id)  { const l = limits[id]; return (l && l.step) || 1; }
+function limitUnit(id)  { return id === 'round_time' ? 's' : ''; }
+// What raising / lowering this limit is REALLY worth right now. 0 = at the rail.
+function limitGain(id)  { const l = limits[id]; if (!l) return 0; return Math.min(l.max, l.current + limitStep(id)) - l.current; }
+function limitLoss(id)  { const l = limits[id]; if (!l) return 0; return l.current - Math.max(l.min || 0, l.current - limitStep(id)); }
+function limitCanIncrement(id) { return limitGain(id) > 0; }
+function limitCanDecrement(id) { return limitLoss(id) > 0; }
+// The printed delta, e.g. '+15s' / '−5s'. dir is 1 to raise, -1 to lower.
+function limitDeltaText(id, dir) {
+  const n = dir < 0 ? limitLoss(id) : limitGain(id);
+  return `${dir < 0 ? '−' : '+'}${n}${limitUnit(id)}`;
+}
+// 'Starting Time: 285s → 300s' - the before and after, already clamped.
+function limitChangeText(id, dir) {
+  const l = limits[id], u = limitUnit(id);
+  const to = dir < 0 ? l.current - limitLoss(id) : l.current + limitGain(id);
+  const def = LIMITS_DEF.find(d => d.id === id);
+  return `${def ? def.label : id}: ${l.current}${u} → ${to}${u}`;
+}
+
+// ── Early-limit guidance (r278, owner spec) ─────────────────────────────────
+// A run's opening should VERY LIKELY offer a Selection Size or grid-size limit
+// before the first quarter is out. ONE shared flag across every offer surface,
+// so the chances cannot stack: each surface REPLACES one of its own slots with
+// the boosted limit while the flag is live, it never adds weight on top. The
+// boost ends the moment the player TAKES one of the two - or beats the FIRST
+// boss - whichever comes first. Wired into the shop's Upgrades stock
+// (js/shop-grid-preview.js) and the Survival/Flow pick (js/survival.js); the
+// reward grid's first-5-grids guarantee (r189) already covers it there.
+// In SAVE_VARS; reset for a fresh run in startGame beside tempoInitApplied.
+let earlyLimitDone = false;
+const EARLY_LIMIT_IDS = ['selection', 'grid_rows', 'grid_cols'];
+function earlyLimitOfferId() {
+  if (earlyLimitDone || typeof limits === 'undefined') return null;
+  const open = EARLY_LIMIT_IDS.filter(id => limits[id] && limits[id].current < limits[id].max);
+  return open.length ? open[Math.floor(Math.random() * open.length)] : null;
+}
 
 // Helper: increment a limit by its step, returns true if successful
 function incrementLimit(id) {
   const l = limits[id];
   if (!l || l.current >= l.max) return false;
   l.current = Math.min(l.max, l.current + (l.step || 1));
+  if (EARLY_LIMIT_IDS.includes(id)) earlyLimitDone = true;   // guidance satisfied
   onLimitChanged(id);
   return true;
 }
-// Helper: decrement a limit by its step (for sacrifice), returns true if successful
+// Helper: decrement a limit by its step (for sacrifice), returns true if
+// successful. Floors at the limit's own `min`, not at 0 - see the LIMITS_DEF note.
 function decrementLimit(id) {
   const l = limits[id];
-  if (!l || l.current <= 0) return false;
-  l.current = Math.max(0, l.current - (l.step || 1));
+  const floor = l ? (l.min || 0) : 0;
+  if (!l || l.current <= floor) return false;
+  l.current = Math.max(floor, l.current - (l.step || 1));
   onLimitChanged(id);
   return true;
 }

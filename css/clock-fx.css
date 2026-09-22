@@ -97,7 +97,7 @@
 
 /* The ghosts are decoration - never let one paint a selection ring or a badge. */
 .rewind-ghost .sel-num,
-.rewind-ghost .buff-band,
+.rewind-ghost .card-bands,
 .rewind-ghost .card-marker { display: none !important; }
 
 /* ── Reduced motion ────────────────────────────────────────────────────────

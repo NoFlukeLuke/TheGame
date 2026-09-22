@@ -190,7 +190,7 @@ function showChallengeTrick() {
     const div = document.createElement('div');
     div.className = 'trick-option';
     div.innerHTML = `
-      <div class="bo-tier ${b.tier}">${b.tier.toUpperCase()}</div>
+      <div class="bo-tier ${b.tier}">${tierLabel('trick', b.tier).toUpperCase()}</div>
       <div class="bo-border ${b.tier}"></div>
       <div class="bo-name">${b.name}</div>
       <div class="bo-desc">${withSuitHalo(b.desc)}</div>

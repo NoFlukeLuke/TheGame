@@ -162,7 +162,7 @@ function recordsRenderDeck() {
     return `<div class="rec-sl"><span class="rec-sl-ico">${def.emoji || '🎴'}</span>
       <span class="rec-sl-name">${def.name || card.sleightId}</span>
       <span class="rec-sl-where w-${w}">${w}</span><span class="rec-sl-uses">${uses}</span></div>`;
-  }).join('') : `<div class="rec-empty">No Sleights in the deck.</div>`;
+  }).join('') : `<div class="rec-empty">No ${entityLabel('sleight', true)} in the deck.</div>`;
 
   return `
     <div class="rec-summary">
@@ -188,17 +188,28 @@ function recordsRenderDeck() {
         <div class="rec-bars">${rankBars}</div>
       </div>
     </div>
-    <div class="rec-h">Sleights in deck</div>
+    <div class="rec-h">${entityLabel('sleight', true)} in deck</div>
     <div class="rec-sl-list">${sleightHTML}</div>`;
 }
 
 // ══════════════════════════════════════════════
 // PERSONNEL FILE - every owned entity, description shown by default
 // ══════════════════════════════════════════════
-function recordsEntityCard(icon, name, tag, desc, cls, off) {
+// `rar` is the TIER ID, and it is what colours the card - not `cls`, which only
+// says what kind of thing it is. See css/records.css (r198).
+function recordsEntityCard(icon, name, tag, desc, cls, off, rar) {
   const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
-  return `<div class="rec-ent ${cls}${off ? ' ent-off' : ''}">
-    <div class="rec-ent-top"><span class="rec-ent-ico">${icon}</span>
+  const rc = 'rar-' + (typeof tierId === 'function' ? tierId(rar) : 'common');
+  // The row leads with the OBJECT (r239): the same floppy / business card /
+  // cert diamond every offer surface draws, so what you read about here is
+  // visibly the thing in your tray. `cls` carries the kind (e-trick...).
+  const kind = cls === 'e-trick' ? 'trick' : cls === 'e-sleight' ? 'sleight' : cls === 'e-knack' ? 'knack' : null;
+  const art = (kind && typeof entityTileHTML === 'function')
+    ? `<span class="rec-ent-tilebox">${entityTileHTML({ entity: kind, emoji: icon, label: name },
+        typeof tierId === 'function' ? tierId(rar) : 'common')}</span>`
+    : `<span class="rec-ent-ico">${icon}</span>`;
+  return `<div class="rec-ent ${cls} ${rc}${off ? ' ent-off' : ''}">
+    <div class="rec-ent-top">${art}
       <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${off ? 'SWITCHED OFF' : tag}</span></div>
     <div class="rec-ent-desc">${d}</div></div>`;
 }
@@ -212,9 +223,9 @@ function recordsRenderPersonnel() {
   const _anyOff = tricks.some(_off);
   const trickHTML = tricks.length ? tricks.map(t => recordsEntityCard(
     (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'), t.name,
-    (t.tier || 'common').toUpperCase(),
-    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t))).join('')
-    : `<div class="rec-empty">No Tricks on file.</div>`;
+    tierLabel('trick', t.tier).toUpperCase(),
+    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t), t.tier)).join('')
+    : `<div class="rec-empty">No ${entityLabel('trick', true)} on file.</div>`;
 
   const owned = [];
   const seen = new Set();
@@ -222,24 +233,24 @@ function recordsRenderPersonnel() {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     if (!def) return;
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
-    owned.push(recordsEntityCard(def.emoji || '🎴', def.name, `${(def.rarity || 'common').toUpperCase()} · ${uses} left`, def.desc, 'e-sleight'));
+    owned.push(recordsEntityCard(def.emoji || '🎴', def.name, `${tierLabel('sleight', def.rarity).toUpperCase()} · ${uses} left`, def.desc, 'e-sleight', false, def.rarity));
   };
   [...drawPile, ...playedPile].forEach(c => { if (c._isSleight && !seen.has(c._id)) { seen.add(c._id); pushSleight(c); } });
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) { const x = gridData[r]?.[c]; if (x?._isSleight && !seen.has(x._id)) { seen.add(x._id); pushSleight(x); } }
-  const sleightHTML = owned.length ? owned.join('') : `<div class="rec-empty">No Sleights on file.</div>`;
+  const sleightHTML = owned.length ? owned.join('') : `<div class="rec-empty">No ${entityLabel('sleight', true)} on file.</div>`;
 
   const knackHTML = acquiredKnacks.length ? acquiredKnacks.map(k => recordsEntityCard(
-    k.emoji || '🧿', k.name, (k.rarity || 'knack').toUpperCase(), k.desc, 'e-knack')).join('')
-    : `<div class="rec-empty">No Knacks on file.</div>`;
+    k.emoji || '🧿', k.name, tierLabel('knack', k.rarity).toUpperCase(), (typeof knackLiveDesc === 'function' ? knackLiveDesc(k) : k.desc), 'e-knack', false, k.rarity)).join('')
+    : `<div class="rec-empty">No ${entityLabel('knack', true)} on file.</div>`;
 
   return `
     <div class="rec-note">Active personnel and equipment. Descriptions reflect current values - the clock is held while this file is open.</div>
-    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${_anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}</span></div>
+    <div class="rec-h">${entityLabel('trick', true)} <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${_anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}</span></div>
     <div class="rec-ents">${trickHTML}</div>
-    <div class="rec-h">Sleights <span class="rec-h-note">${owned.length}</span></div>
+    <div class="rec-h">${entityLabel('sleight', true)} <span class="rec-h-note">${owned.length}</span></div>
     <div class="rec-ents">${sleightHTML}</div>
-    <div class="rec-h">Knacks <span class="rec-h-note">${acquiredKnacks.length}</span></div>
+    <div class="rec-h">${entityLabel('knack', true)} <span class="rec-h-note">${acquiredKnacks.length}</span></div>
     <div class="rec-ents">${knackHTML}</div>`;
 }
 
@@ -260,7 +271,7 @@ function recordsRenderLimits() {
     if (def.id === 'luck' && typeof luckTierPercents === 'function') {
       const pc = luckTierPercents();
       extra = `${def.desc}<br><span style="opacity:.75">Chance effects fire at ×${luckScale().toFixed(2)} · ` +
-              ENTITY_TIERS.map((t, i) => `${t} ${pc[i]}%`).join(' · ') + `</span>`;
+              ENTITY_TIERS.map((t, i) => `${tierLabel('_generic', t)} ${pc[i]}%`).join(' · ') + `</span>`;
     }
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
       <div class="rec-lim-top"><span><span class="rec-lim-ico">${def.icon}</span>${def.label}</span>
@@ -399,7 +410,7 @@ function recordsRenderStats() {
 
   const counters = [
     ['Level', level], ['Round goal', roundGoal.toLocaleString()], ['Hands played', handsPlayed],
-    ['Tricks held', acquiredTricks.length], ['Aces played', C.aces], ['Hearts played', C.hearts],
+    [entityLabel('trick', true) + ' held', acquiredTricks.length], ['Aces played', C.aces], ['Hearts played', C.hearts],
     ['Faces played', C.faces], ['Same-suit hands', C.sameSuitHands],
   ].map(([k, v]) => `<div class="rec-row"><span>${k}</span><span class="rec-row-v">${v}</span></div>`).join('');
 

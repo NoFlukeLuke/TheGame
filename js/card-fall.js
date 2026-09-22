@@ -3,6 +3,10 @@ function renderCardAppearance(card, r, c, {
   selIdx       = -1,
   isHandReady  = false,
   isHandValid  = false,
+  // r254: this selected card will NOT be part of the hand - the r201 "every card
+  // must be load-bearing" rule dropped it, its pips will be SUBTRACTED and the
+  // card consumed anyway. Red on the board, priced in the #hand-name label.
+  isPenalty    = false,
   isSwapPending = false,
   isReachable  = true,
   isChallenge  = false,
@@ -39,7 +43,7 @@ function renderCardAppearance(card, r, c, {
         className: `trick-card sleight-card aim-sleight${sleightIsSpent(card, def) ? ' sleight-spent' : ''}`,
         innerHTML:
           `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
-            `<div class="sleight-card-emoji">${def?.emoji || '🪞'}</div>` +
+            `<div class="sleight-card-emoji">${emGlyph(def?.emoji || '🪞')}</div>` +
             `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>` +
           `</div>` +
           `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`,
@@ -60,7 +64,7 @@ function renderCardAppearance(card, r, c, {
       ? '<div class="trick-upgrade-indicator">U</div>' : '';
     return {
       className: `trick-card trick-tier-${card.trick.tier}${isPendingTrick ? ' trick-pending' : ''}${stateClass}`,
-      innerHTML: `<div class="trick-tier-label">${card.trick.tier.charAt(0).toUpperCase()}</div>`
+      innerHTML: `<div class="trick-tier-label">${tierInitial('trick', card.trick.tier)}</div>`
                + `<div class="trick-name">${card.trick.name}</div>${upgradeLabel}`,
       isTappable: card._trickState === 'new' || card._trickState === 'upgradeable',
     };
@@ -95,25 +99,23 @@ function renderCardAppearance(card, r, c, {
   const isCombined = !!card.combined;
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
 
-  const rcPips      = cellHasRowColBonus(r, c, 'rowcol_triple_pips') ? ' rc-pips'      : '';
-  const rcMult      = cellHasRowColBonus(r, c, 'rowcol_mult')        ? ' rc-mult'      : '';
-  const rcRetrigger = cellHasRowColBonus(r, c, 'rowcol_retrigger')   ? ' rc-retrigger' : '';
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
   const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
   const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
-  // r209: the shared "what affected what" marks (js/entity-fx.js). `rcOnLine`
-  // is the piece that was missing - only 3 of the 9 line-marking Tricks tinted
-  // their cards, so Perfect Timing, Right Time, Study Hall, Groove, Assembly
-  // Line and Overtime marked a line the player could not see. One ring, in the
-  // owning Trick's colour, covers all nine.
-  // A card can sit on SEVERAL marked lines at once, so the ring divides itself
-  // evenly between their colours rather than naming one of them (js/entity-fx.js).
-  const _lineMetas  = (typeof lineMetasForCell === 'function') ? lineMetasForCell(r, c) : [];
-  const rcOnLine    = _lineMetas.length ? ' rc-on-line' : '';
-  // The ring is an inner element rather than a class + a CSS variable, because
+  // The shared "what affected what" highlight (r209, divided in r296 -
+  // js/entity-fx.js): a RING around the card in the owning Trick's colour,
+  // DIVIDED EVENLY when several marked lines cross this cell rather than naming
+  // one of them or blending into a third. It covers all nine line-marking
+  // Tricks, where the three per-Trick `rc-pips` / `rc-mult` / `rc-retrigger`
+  // tints it replaced covered three - so Perfect Timing, Right Time, Groove,
+  // Assembly Line and Overtime marked a line the player could not see.
+  // r296 also washed the card FACE and r299 took that back out: the face is the
+  // card's own, and it now carries the buff bands below instead.
+  // An inner element rather than a class + a CSS variable, because
   // renderCardAppearance returns className and innerHTML only - it has nowhere
   // to hang a per-card custom property.
-  const lineRing    = (typeof lineRingHTML === 'function') ? lineRingHTML(r, c) : '';
+  const _lineMetas  = (typeof lineMetasForCell === 'function') ? lineMetasForCell(r, c) : [];
+  const lineRing    = (typeof lineRingHTMLFor === 'function') ? lineRingHTMLFor(_lineMetas) : '';
   const fxMark      = (typeof cardMarkHTML === 'function') ? cardMarkHTML(r, c) : '';
   // A boss hold greys the card and puts its countdown on it (js/cooldown.js).
   const _cd = (typeof cardCooldownParts === 'function') ? cardCooldownParts(card, r, c) : { cls: '', html: '' };
@@ -131,6 +133,7 @@ function renderCardAppearance(card, r, c, {
     suitClass(_faceSuit),
     isSel        ? 'selected'    : '',
     isHandValid  ? 'hand-valid'  : '',
+    isPenalty    ? 'hand-penalty' : '',
     isHandReady  ? 'hand-ready'  : '',
     isSwapPending ? 'swap-pending' : '',
     (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',
@@ -139,9 +142,13 @@ function renderCardAppearance(card, r, c, {
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     curse ? 'cursed' : '',
     bothClass.trim(),
-    rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
-    rcOnLine.trim(), _cd.cls,
+    rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
+    _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
+    // Card states + temp cards (r278). `card-temp` is independent of any state:
+    // "this will not be here next round" is the thing a player most needs to
+    // know before building a plan around the card.
+    (typeof cardStateCardClass === 'function') ? cardStateCardClass(card) : '',
   ].filter(Boolean).join(' ');
 
   const combinedLabel = isCombined
@@ -158,14 +165,11 @@ function renderCardAppearance(card, r, c, {
                  : `<div class="rank fog-rank">?</div><div class="suit">${card.suit}</div>`)
         : (isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
                  : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`)}
-    ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
-    ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
-    ${buffBandHTML('tl', pp, '#3a6fca')}
-    ${buffBandHTML('tr', pm, '#c0392b')}
-    ${buffBandHTML('br', card._vulturePause || 0, '#111')}
+    ${(typeof cardBandsHTML === 'function') ? cardBandsHTML(card) : ''}
     ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}
     ${lineRing}
     ${fxMark}
+    ${(typeof cardStateBadgeHTML === 'function') ? cardStateBadgeHTML(card) : ''}
     ${_cd.html}
   `;
 
@@ -203,6 +207,12 @@ async function removeAndFall(removingCells, mode = 'play') {
   const removing = new Set(removingCells.map(([r,c])=>`${r}-${c}`));
   // Clear swap mode if the pending card is about to be removed
   if (swapPending && removing.has(`${swapPending[0]}-${swapPending[1]}`)) swapPending = null;
+
+  // Card states that fire on LEAVING the board (r278, js/card-states.js). Called
+  // here, while gridData still holds the cards and before anything is nulled:
+  // Backfill queues a temp copy for this column, and by the time the fall plan
+  // below has packed the column the hole it wanted to fill is gone.
+  if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave(removingCells);
 
   // Only play mode routes cards to the played pile.
   // Discard mode: the caller (doDiscard) already pushed cards to the back of the draw pile.
@@ -300,7 +310,12 @@ async function removeAndFall(removingCells, mode = 'play') {
     // New cards fill the top `removedCount` rows of playableRows
     for (let i = 0; i < removedCount; i++) {
       const finalRow = playableRows[i];
-      newCards.push({ col, finalRow, fromAbove: removedCount - i, card: drawCard() || null });
+      // A queued Backfill copy fills the hole BEFORE the deck does, so a
+      // backfilled cell costs the deck nothing: no card is drawn, the Marker's
+      // one-in-ten counter does not advance, and the audit stays balanced
+      // because a temp card is not counted as a deck card (js/card-states.js).
+      const _bf = (typeof cardStatesDrawFor === 'function') ? cardStatesDrawFor(col) : null;
+      newCards.push({ col, finalRow, fromAbove: removedCount - i, card: _bf || drawCard() || null });
     }
   }
 
@@ -437,6 +452,13 @@ async function removeAndFall(removingCells, mode = 'play') {
   const queued = pendingAction;
   pendingAction = null;
   render();
+
+  // A Spectrum deck fixture that just paid out leaves the board HERE, not at the
+  // moment it paid: it pays inside playHand, above the dance, and the dance's own
+  // removeAndFall holds the falling lock until this point. Drained before the
+  // queued action so "it paid, then it left" is one beat rather than a card
+  // vanishing behind the next hand. (js/spectrum.js)
+  if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }

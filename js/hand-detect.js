@@ -125,9 +125,8 @@ function canBeOrderedRun(cells) {
   // For combined cards use the rank that makes it part of the run
   const cards = cells.map(([r,c]) => gridData[r][c]);
   const rankValues = cards.map(card => {
-    const opts = [RANK_ORDER[card.rank]];
-    if (card.rank === 'A') opts.push(14);
-    if (card.combined && card.rank2) opts.push(RANK_ORDER[card.rank2]);
+    const opts = [...rankRunVals(card.rank)];
+    if (card.combined && card.rank2) opts.push(...rankRunVals(card.rank2));
     return opts;
   });
 
@@ -155,7 +154,7 @@ function scoringOrderCells(cells) {
 }
 
 // Rank values for adjacency (Ace counts as both low=1 and high=14). Used by Ripple.
-function _rankValsFor(rk) { return rk === 'A' ? [1, 14] : [RANK_ORDER[rk] || 0]; }
+function _rankValsFor(rk) { return rankRunVals(rk); }
 function _withinOneRank(a, b) {
   // exactly adjacent in rank (Ace counts next to both 2 and K); same rank does NOT count
   const av = _rankValsFor(a), bv = _rankValsFor(b);
@@ -233,6 +232,39 @@ function findBestHand(cells) {
 
   if (detectionCells.length < 2) { restoreWilds(); return null; }
 
+  // ── WHAT YOU SELECTED IS WHAT YOU PLAY (r293) ──
+  // Owner: "if you select cards to play a certain type of hand, then that's the
+  // hand that should play, always."
+  //
+  // The search below picks the highest-SCORING connected subset, which is not
+  // the same question. Once Natural Scaling has made a short hand out-earn the
+  // longer one it lives inside (OPEN_DECISIONS 7), the winner of that contest
+  // can be a SMALLER subset - so selecting A-2-3-4 paid a Run of 3 and billed
+  // the 4 as a penalty. It was the right answer to the wrong question: the
+  // player had already said which hand they were making.
+  //
+  // So if the WHOLE selection is a hand, that is the hand. No search, no
+  // comparison, no dropped card. It can score less than some subset would and
+  // that is the point - predictable beats optimal, and the optimal play is
+  // still available by selecting those cards instead.
+  //
+  // HIGH CARD IS THE ONE EXCLUSION, and it is load-bearing. It is the r200
+  // escape valve: 0 pips, x1 mult, and it covers every cell BY DEFINITION, so
+  // treating it as "the whole selection is a hand" would make it the answer for
+  // every selection that carries a passenger - a Pair beside three big cards
+  // would score 30 as High Card instead of 52 as a Pair with three penalties.
+  // It is never a hand anyone SELECTED, so it stays what it has always been:
+  // the thing a selection falls back to when the search finds nothing better.
+  const _whole = detectionCells.length >= 2 && detectionCells.length <= HAND_MAX_CARDS
+    ? handComponentsFor(detectionCells) : null;
+  if (_whole && !(_whole.components.length === 1 && _whole.components[0].name === 'High Card')) {
+    const hand = _whole.primary;
+    const rawScore = calcScore(hand, detectionCells);
+    restoreWilds();
+    return { hand, handCells: detectionCells, penaltyCells: [],
+             rawScore, penaltyPips: 0, finalScore: Math.max(0, rawScore) };
+  }
+
   // Generate all connected subsets of 2 to HAND_MAX_CARDS cards. The cap used to
   // be 5, which is why Selection Size (max 9) bought nothing past the fifth card:
   // the extra cards could never be in the hand and were billed as penalty pips.
@@ -289,18 +321,22 @@ function _handShape(cells) {
   );
 
   // Run check: combined cards can use either rank value - try all combos
+  // rankRunVals (js/deck-design.js) is the one source of a rank's run values and
+  // returns NOTHING for a rank that is off the ladder, so the loop below can
+  // never place it in a run. Ace-high lives in there too.
   const rankOptions = cards.map(c => {
-    const opts = [RANK_ORDER[c.rank]];
-    if (c.combined && c.rank2) opts.push(RANK_ORDER[c.rank2]);
-    // Ace high option
-    if (c.rank === 'A') opts.push(14);
-    if (c.combined && c.rank2 === 'A') opts.push(14);
+    const opts = [...rankRunVals(c.rank)];
+    if (c.combined && c.rank2) opts.push(...rankRunVals(c.rank2));
     return [...new Set(opts)];
   });
   function tryRunCombos(idx, current) {
     if (idx === rankOptions.length) {
       const sorted = [...current].sort((a,b)=>a-b);
-      return new Set(sorted).size === sorted.length && isSeq(sorted);
+      if (new Set(sorted).size !== sorted.length || !isSeq(sorted)) return false;
+      // The ranks line up. Does the LAYOUT have to as well? runOrderOK is 'off'
+      // by default and then this is exactly the old test. `current` is the value
+      // chosen for each cell in cells order, which is what lets it sort them.
+      return runOrderOK(cells, current);
     }
     for (const v of rankOptions[idx]) {
       if (tryRunCombos(idx+1, [...current, v])) return true;
@@ -427,7 +463,37 @@ function flushOverlayFor(cells) {
 // Standard set-partition recursion on a bitmask: always decide the LOWEST unused
 // card first, either by dropping it or by putting it in a group with some subset
 // of what is left. Memoised per mask, so the whole search is 3^n and n caps at 7.
-function _bestRankPartition(cells) {
+//
+// `mustCover` (r281) FORBIDS the drop branch, so the answer is the best partition
+// that claims EVERY card, or null when there is no such partition. It is what
+// the load-bearing rule (r201, below) needs, and the reason is that the two
+// rules were fighting:
+//
+//   The partition maximises handWorth, and handWorth reads handBasePips /
+//   handBaseMult - which include the NATURAL SCALING accumulator (r190/r198).
+//   So once a SHORT hand has out-scaled the longer hand it lives inside, the
+//   partition preferred "take the short hand and leave a card unclaimed" - and
+//   the load-bearing rule, which runs afterwards and knows nothing about why
+//   the partition chose what it chose, then threw the WHOLE component list away
+//   because a card was unclaimed. The selection stopped being a hand at all,
+//   findBestHand fell back to the smaller subset, and the spare card was billed
+//   as a penalty.
+//
+//   Owner's report: three 7s scoring as a Pair with the third seven dropped,
+//   and A-2-3-4 scoring as a Run of 3 with the 4 dropped. On the flat +2 pips a
+//   hand that shipped at the time that needed 8 Runs of 3 to kill every Run of
+//   4, 11 Runs of 4 to kill the Straight and 17 Pairs to kill Three of a Kind -
+//   not an exotic tuning corner, most of the way through an ordinary run.
+//   (r282 replaced that flat rate with a PER-HAND-TYPE table tuned to push those
+//   thresholds out to 35-180 plays, but the table is tunable and this guard is
+//   what stops any setting of it voiding a hand outright.)
+//
+// Preferring full cover does NOT take the short hand away: findBestHand scores
+// every connected subset on its own, so "play just the Pair and eat the penalty"
+// is still on the table and still wins when it really does pay more. The fix
+// only stops a partition the game is about to reject from vetoing the one it
+// would have accepted.
+function _bestRankPartition(cells, mustCover) {
   const n = cells.length;
   const memo = new Map();
   const groupCache = new Map();
@@ -443,7 +509,10 @@ function _bestRankPartition(cells) {
     if (memo.has(mask)) return memo.get(mask);
     let low = 0; while (!(mask & (1 << low))) low++;
     const lowBit = 1 << low;
-    let best = solve(mask & ~lowBit);                 // leave the lowest card out
+    // Under mustCover the lowest card has to go in a group, so the drop branch
+    // is skipped and `best` starts as null - an unsolvable mask returns null and
+    // every caller below has to survive that.
+    let best = mustCover ? null : solve(mask & ~lowBit);   // leave the lowest card out
     const rest = mask & ~lowBit;
     // every subset of the remaining cards, joined with the lowest card
     for (let sub = rest; ; sub = (sub - 1) & rest) {
@@ -451,8 +520,10 @@ function _bestRankPartition(cells) {
       const h = handFor(g);
       if (h) {
         const tail = solve(mask & ~g);
-        const w = handWorth(h) + tail.worth;
-        if (w > best.worth) best = { worth: w, parts: [{ mask: g, name: h }].concat(tail.parts) };
+        if (tail) {
+          const w = handWorth(h) + tail.worth;
+          if (!best || w > best.worth) best = { worth: w, parts: [{ mask: g, name: h }].concat(tail.parts) };
+        }
       }
       if (sub === 0) break;
     }
@@ -472,25 +543,63 @@ function _compKey(cells) {
   return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
 function handComponentsFor(cells) {
+  // POKER SQUARES NAMES ITS OWN HANDS AND LAYERS NOTHING. A line there is five
+  // cards scored as one real poker hand, kickers included, so a component list
+  // would both pay for the same cards twice (the flush overlay ignores
+  // activeHands) and hand them a replay nothing asked for. Returning null is
+  // what calcScore already does when there is no component list at all.
+  if (typeof squaresActive === 'function' && squaresActive()) return null;
   if (!cells || cells.length < 2 || cells.length > HAND_MAX_CARDS) return null;
   // Keyed on the cards themselves, so a board that moves invalidates its own
   // entries rather than needing anything to remember to clear this.
   // The knack is in the cache key: granting Tagalong mid-run changes the answer
   // for cells whose cards have not moved, so the entries must not be reused.
+  // The run LADDER is in the key for the same reason the knack is: turning the
+  // courts off the ladder changes the answer for cells whose cards have not moved.
   const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin
-    + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't') + '|' + _compKey(cells);
+    + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't')
+    + deckLadderKey() + runOrderKey() + '|' + _compKey(cells);
   if (_compCache.has(key)) return _compCache.get(key);
   if (_compCache.size > 4000) _compCache.clear();
 
-  const part = _bestRankPartition(cells);
-  const components = part.parts.map(p => ({
-    name: p.name,
-    cells: cells.filter((_, i) => p.mask & (1 << i)),
-  }));
-  // The flush overlay, unless Track 1 already took the hand that IS a flush.
-  if (layeredHandsEnabled && !components.some(c => c.name === 'Straight Flush')) {
-    const fl = flushOverlayFor(cells);
-    if (fl) components.push(fl);
+  // The partition, plus the flush overlay unless Track 1 already took the hand
+  // that IS a flush. Built as a function because r281 may have to build it twice.
+  const _tagalong = (typeof hasKnack === 'function') && hasKnack('tagalong');
+  const buildFrom = part => {
+    if (!part) return null;
+    const comps = part.parts.map(p => ({
+      name: p.name,
+      cells: cells.filter((_, i) => p.mask & (1 << i)),
+    }));
+    if (layeredHandsEnabled && !comps.some(c => c.name === 'Straight Flush')) {
+      const fl = flushOverlayFor(cells);
+      if (fl) comps.push(fl);
+    }
+    return comps;
+  };
+  // COVERAGE IS ASKED OF THE WHOLE LIST, OVERLAY INCLUDED - a card the rank
+  // partition left alone is still load-bearing if the flush claims it. That is
+  // why the second attempt below is a LAST resort and not the first: constraining
+  // the partition on its own refuses partitions the overlay would have rescued,
+  // which changed 1 hand in 2,400 with no Natural Scaling in play at all.
+  const coversAll = comps => {
+    const claimed = new Set();
+    comps.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+    return claimed.size >= cells.length;
+  };
+  let components = buildFrom(_bestRankPartition(cells, false)) || [];
+  // ── r281: only when today's answer is about to be thrown away ──
+  // See the note on _bestRankPartition. The unrestricted partition maximises
+  // handWorth, handWorth includes the Natural Scaling accumulator, and so a
+  // short hand that has out-scaled the longer hand it lives inside made the
+  // partition leave a card unclaimed - which the load-bearing rule below then
+  // punished by voiding the ENTIRE hand. Asking for a covering partition at that
+  // point recovers the hand the player was obviously building. Preferring the
+  // unrestricted answer whenever it is already valid is what keeps this a
+  // strict no-op everywhere the bug was not firing.
+  if (!_tagalong && components.length && !coversAll(components)) {
+    const alt = buildFrom(_bestRankPartition(cells, true));
+    components = (alt && coversAll(alt)) ? alt : components;
   }
   // ── EVERY CARD MUST BE LOAD-BEARING (r201) ──
   // A hand may not carry a passenger. If the components do not account for every
@@ -503,7 +612,7 @@ function handComponentsFor(cells) {
   // The Tagalong knack lifts it, which is the whole reason it is a knack: before
   // r201 this was free and unremarkable, so making it the default and selling it
   // back turns "my hand has a spare in it" into something you paid for.
-  const _tagalong = (typeof hasKnack === 'function') && hasKnack('tagalong');
+  // (_tagalong is read above the partition now - it decides which one to ask for.)
   if (!_tagalong && components.length) {
     const claimed = new Set();
     components.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));

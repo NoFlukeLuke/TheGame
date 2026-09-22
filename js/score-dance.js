@@ -137,6 +137,12 @@ const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+  // A PRIME IS THE SECOND THUMP OF A HEARTBEAT (r296). An ordinary payout waits
+  // its turn - a full flight and then tickRest - but a primed Trick firing again
+  // is the SAME Trick paying twice, so it lands right behind the beat in front of
+  // it and several of them keep that quick pace until the last one has fired.
+  // Both are ms/scale at 1x and both ride dncPace() like everything else.
+  primeRest:130, primeFlight:0.45,
   // The plate's size multiplier, on top of PARTICLE_CFG.size. 1.15 is the owner's
   // "+15%". pScale above is the OLD bare-text scale and is now unused by the
   // plate shapes - it still drives the no-plate fallback.
@@ -190,7 +196,12 @@ const PARTICLE_CFG = {
   // particles every further one is `growStep`% bigger than the one before it, so
   // a hand firing forty payouts ends much louder than it started. Compounding,
   // capped at `growMax`. Tunable in the dev panel under Animation.
-  growStart: 5, growStep: 5, growMax: 3,
+  // r304 halved `growStep` 5 -> 2.5 (owner's call: the plates were getting too
+  // big). The CEILING is untouched - what changed is how fast a hand climbs to
+  // it, which is what a realistic hand actually feels: at 40 payouts the last
+  // plate was 1.05^35 = x5.5 (clamped to the x3 ceiling) and is now 1.025^35 =
+  // x2.37, i.e. under the cap and still visibly building.
+  growStart: 5, growStep: 2.5, growMax: 3,
   colors: {
     pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
     pipMul:  '#0e2a5d',      // a multiply is the same hue, deeper
@@ -612,7 +623,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
       console.log('[SALUTE] about to call goalCelebration', { handCells, handCellsLen: handCells?.length });
       await goalCelebration(handCells);
       console.log('[SALUTE] goalCelebration finished, starting interlude');
-      startInterlude();
+      if (!(typeof bossSettleWin === 'function' && bossSettleWin())) startInterlude();
     }
   }
 }
@@ -626,6 +637,10 @@ function handleDanceAbort(isGoalHand) {
   // An interrupted hand must never leave the PMF row fused - the next hand
   // writes its numbers into chips the player would not be able to see.
   if (typeof pmfResetNow === 'function') pmfResetNow();
+  // Same rule for the held hand-type label (r234): this is the hook every abort
+  // path already reaches, so releasing here means no abandoned dance can leave
+  // the label frozen on a hand that is long gone.
+  if (typeof holdHandNameLabel === 'function') holdHandNameLabel(false);
   // Hand the portrait strip back to whichever half the player had chosen.
   if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if (stopwatchActive) endStopwatch(); // release the Stopwatch freeze if the dance was cut short
@@ -641,6 +656,15 @@ function handleDanceAbort(isGoalHand) {
     heldBackScore = 0;
     suppressScoreDisplay = false;
     if (pendingLevelUps > 0) sfxMultiGoal(pendingLevelUps);
+    // The round IS won on this path too, and the banner + cleared-clock state
+    // only ever fired from the climb's goal-cross tick - which an aborted dance
+    // never reaches. Fire it here so a cut-short goal hand still gets QUOTA
+    // CLEARED (and a boss win its name: bossWinPending is still set, so
+    // flashRoundEnd picks up the kicker before bossSettleWin consumes it).
+    if (typeof flashRoundEnd === 'function') flashRoundEnd();
+    // A pending boss win settles even on an abort - endBoss clears the timers
+    // and opens the prize grid itself, so nothing else here should run.
+    if (typeof bossSettleWin === 'function' && bossSettleWin()) { return; }
     // Survival drives its own goal transition (pick → deal); the interlude/payout +
     // its round-freeze must NOT run on abort, or they'd clobber the freshly dealt board.
     if (!challengeActive && !survivalActive()) {
@@ -666,6 +690,106 @@ function handleDanceAbort(isGoalHand) {
 // Reuses the same goal / settle / abort tail as playScoreDance.
 // ══════════════════════════════════════════════
 let dncFF = false;
+// ── FAST FORWARD (r280) ─────────────────────────────────────────────────────
+// The goal hand's animation is the longest thing in the game - a two-second
+// jitter, the blast, the fly-in, and then the whole tally - and a player on
+// their tenth run has already seen it. `#dnc-ff` is mounted into the hand
+// preview for the GOAL HAND ONLY and skips the rest of it.
+//
+// **IT IS NOT AN ABORT, and that is the whole design.** cancelDance() cuts the
+// presentation and leaves handleDanceAbort to pick up the pieces, which for a
+// goal hand means the interlude is reached by a different route with the score
+// snapped on from outside. This is the SAME dance played at DANCE_CFG.ff: the
+// same events in the same order, landing the same numbers, handing off from the
+// same line. Nothing downstream can tell the difference.
+//
+// Two registries, because a speed multiplier alone is not enough - it cannot
+// reach a WAAPI animation or a setTimeout that has already been armed:
+//   dncFFWaiters - an `await` that should return NOW (raced against its timer)
+//   dncFFCuts    - an animation or timer already in flight, to be cut short NOW
+// Both are emptied per dance by dncResetFF, so nothing leaks into the next hand.
+let dncFFWaiters = [];
+let dncFFCuts = [];
+function dncResetFF(){ dncFF = false; dncFFWaiters = []; dncFFCuts = []; }
+function dncFFSignal(){ return dncFF ? Promise.resolve() : new Promise(res => dncFFWaiters.push(res)); }
+// Registering AFTER the button has been pressed runs the cut immediately - that
+// is what makes the finale's steps safe to write in order without each one
+// having to test dncFF for itself.
+function dncFFRegister(fn){ if(dncFF){ try{ fn(); }catch(e){} return; } dncFFCuts.push(fn); }
+function dncRequestFF(){
+  if(dncFF) return;
+  dncFF = true;
+  const btn = document.getElementById('dnc-ff'); if(btn) btn.classList.add('ff-on');
+  const cuts = dncFFCuts; dncFFCuts = [];
+  cuts.forEach(fn => { try{ fn(); }catch(e){} });
+  const waits = dncFFWaiters; dncFFWaiters = [];
+  waits.forEach(res => { try{ res(); }catch(e){} });
+}
+// The button is an absolutely-positioned child of #selected-cards, so it is not
+// a row of the dance stage and cannot push the cards around; #selected-cards is
+// a positioned element in both orientations (absolute in landscape, relative in
+// portrait), so one rule anchors it in both. It is disposed of with everything
+// else by the settle's `stage.innerHTML = ''`.
+function dncMountFF(stage){
+  if(!stage || document.getElementById('dnc-ff')) return;
+  const b = document.createElement('button');
+  b.id = 'dnc-ff'; b.type = 'button'; b.title = 'Skip the rest of this animation';
+  b.innerHTML = '<span class="ff-gl">▶▶</span><span class="ff-lab">SKIP</span>';
+  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); dncRequestFF(); });
+  stage.appendChild(b);
+}
+
+// ── The goal finale's blast: OUT AND BACK (r280) ────────────────────────────
+// The surrounding cards used to fly outward, fade to nothing, and have their DOM
+// removed along with the winners. Two things followed from that, and both were
+// wrong: the board was EMPTY under the whole tally, and the round-end fall was
+// invisible - showLevelUpScreen_fallOnly looks each card up by [data-card-id]
+// and skips what it cannot find, so on a goal hand it only ever did the deck
+// accounting and never animated a thing.
+//
+// The cards come home now. The board the round was played on is still under the
+// tally, and the fall just before the payout is a real fall again.
+//
+// The OUT leg is the r150 explosion unchanged - same distance, spin, scale and
+// easing - and the return is pickUnexplode's (js/payout-pick.js), which was
+// already written as the reverse of exactly this blast. Cards nearest the centre
+// leave first and land first, so the board empties outward and fills inward.
+const WIN_BLAST_CFG = {
+  dist:    200,    // px out along the ray from the board's centre
+  distVar: 140,    // extra random distance on top
+  spin:    160,    // max degrees at the apex, either way
+  scale:   0.82,   // how small it gets at the apex
+  fade:    0.10,   // opacity at the apex - deliberately NOT 0, or it pops back in
+  // THE TRIP IS TIMED OFF THE TALLY IT PLAYS UNDER (r291). The owner's spec is
+  // that the cards take about half as long to come home as the hand takes to
+  // score. Both figures below are ms AT 1x and are divided by the pace at the
+  // call site, so the whole trip tracks Settings > Motion > Scoring speed.
+  // Fitted from measured goal-hand tallies (see the table in CLAUDE.md):
+  // tally at 1x is about 6990ms for a 2-card hand and 989ms more per card, so
+  // half of it is 2500 + 495 per card.
+  dur:     2500,   // ms at 1x: the fixed part of the trip
+  perCard:  495,   // ms at 1x: ...plus this for every card in the hand
+  outAt:   0.42,   // fraction of dur spent travelling out
+  holdAt:  0.50,   // fraction at which the return starts
+  stagger: 18,     // ms between cards at 1x, nearest the centre first
+  outEase:  'cubic-bezier(.25,.6,.35,1)',
+  backEase: 'cubic-bezier(.2,.75,.3,1)',
+};
+// The live out-and-back animations, so an abort or a fast forward can put every
+// card straight back on its cell.
+//
+// **They are CANCELLED, never left to fill.** The last keyframe IS the resting
+// state, so cancelling once the trip is over is seamless - and an animation
+// still filling would pin `transform` AND `opacity`, which are the two
+// properties the round-end fall then wants to animate itself.
+let dncBlast = [];
+function dncSettleBlast(){
+  dncBlast.forEach(({anim, el}) => {
+    try{ anim.cancel(); }catch(e){}
+    if(el){ el.style.zIndex=''; el.style.animation=''; }
+  });
+  dncBlast = [];
+}
 // Per-dance base speed multiplier (1 = full). Set to DANCE_CFG.norm for ordinary
 // hands and 1 for the goal-winning hand at the top of playPreviewDance. Composes
 // with dncFF (the illegible-fast button), which overrides it when active.
@@ -799,11 +923,31 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
 }
 
 function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
-  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
+  let a=srcEl?srcEl.getBoundingClientRect():null; const b=boxEl.getBoundingClientRect();
+  // BELT AND BRACES FOR THE (0,0) LAUNCH (r304). danceEntityEl now refuses a dead
+  // anchor and fireEvent re-resolves at fire time, but THE FALLBACK ANCHOR CAN BE
+  // DEAD TOO, and measurement says it routinely is: the goal hand's last card
+  // beats land while the interlude is opening, and in portrait that collapses the
+  // hand-preview half of the shared strip to 0x0 - so the preview CARD the plate
+  // flies from is still in the document and still measures {0,0,0,0}. Every
+  // particle in the game passes through here, so this is the one place that can
+  // make "flew in from the top-left corner of the screen" impossible.
+  //   no origin  -> pop the plate AT its destination rather than across the display
+  //   no destination either (the PIPS/MULT chips are display:none on every
+  //     grid-takeover screen) -> draw nothing at all. There is nothing on screen
+  //     left for it to mean, and a plate in the corner is worse than no plate.
+  // THE ARITHMETIC IS UNTOUCHED EITHER WAY: the accel still bumps and the promise
+  // still resolves after `dur`, because r220's rule is that replaying the timeline
+  // has to reproduce calcScore exactly - what may vary is only what is drawn.
+  const liveB = b.width > 0 && b.height > 0;
+  if(!a || !a.width || !a.height) a = b;
   const base = ptBaseFlight();
   const dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
-  ptLaunch(a, b, kind, label, color, dur,
-    { scale: dncBlipScale(), animate: dncAnimate, timeout: dncTimeout });
+  // The blip counter advances whether or not a plate is drawn, so a skipped one
+  // does not shrink the next visible plate back down the growth curve.
+  const _blip = dncBlipScale();
+  if(liveB) ptLaunch(a, b, kind, label, color, dur,
+    { scale: _blip, animate: dncAnimate, timeout: dncTimeout });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.
@@ -814,7 +958,8 @@ function dncFinishAbort(stage, isGoalHand, myGen){
   // If a newer dance has taken over (myGen behind the global), this dance was superseded:
   // do NOT touch the shared stage/score UI - the successor owns it now.
   if(myGen!==undefined && myGen!==dncGen) return;
-  if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
+  if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
+  if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncSettleBlast(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
 // Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
 function contribLabel(source, id){
   if(source==='exalt') return 'Exalt';
@@ -834,17 +979,29 @@ function dncGlow(el, strong){ if(!el) return;
   el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},
     {boxShadow:`0 0 ${strong?14:8}px ${strong?4:2}px rgba(245,192,66,${strong?0.7:0.5})`, offset:.4},
     {boxShadow:'0 0 0 0 rgba(245,192,66,0)'}], {duration: strong?360:200, easing:'ease-in-out'}); }
+// AN ANCHOR IS ONLY AN ANCHOR IF IT HAS A REAL RECT (r304). The same rule
+// js/payout-fx.js and tutEl() already follow, and the one this file was missing:
+// a detached or hidden element measures {0,0,0,0}, and dncFly takes the CENTRE of
+// that rect, so the particle launches from the top-left CORNER OF THE SCREEN
+// rather than from the thing that paid it. Returning null here instead sends the
+// caller to its fallback anchor (the card that triggered it, or the chip it flies
+// into), which is always somewhere the player is already looking.
+function dncUsable(el){
+  if(!el || !el.isConnected) return null;
+  const b = el.getBoundingClientRect();
+  return (b.width > 0 && b.height > 0) ? el : null;
+}
 function danceEntityEl(source, id){
   if(source==='trick'){
-    const chip=document.querySelector(`.trick-tray-chip[data-trick-id="${CSS.escape(id)}"]`);
+    const chip=dncUsable(document.querySelector(`.trick-tray-chip[data-trick-id="${CSS.escape(id)}"]`));
     if(chip) return chip;
     for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
-      if(cell?._isTrick && cell.trick?.id===id) return document.querySelector(`#grid [data-card-id="${cell._id}"]`); }
+      if(cell?._isTrick && cell.trick?.id===id) return dncUsable(document.querySelector(`#grid [data-card-id="${cell._id}"]`)); }
   } else if(source==='knack'){
-    const k=document.querySelector(`.knack-chip[data-knack-id="${CSS.escape(id)}"]`); if(k) return k;
+    const k=dncUsable(document.querySelector(`.knack-chip[data-knack-id="${CSS.escape(id)}"]`)); if(k) return k;
   } else if(source==='sleight'){
     for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
-      if(cell?._isSleight && cell.sleightId===id) return document.querySelector(`#grid [data-card-id="${cell._id}"]`); }
+      if(cell?._isSleight && cell.sleightId===id) return dncUsable(document.querySelector(`#grid [data-card-id="${cell._id}"]`)); }
   }
   return null;
 }
@@ -869,7 +1026,10 @@ function flyGridCardToSlot(gEl, slotEl, dur){
   const reveal=()=>{ slotEl.style.opacity=''; slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
   const s = gEl && gEl.getBoundingClientRect();
   const t = slotEl.getBoundingClientRect();
-  if(!s || !s.width || !t.width){ reveal(); return; }
+  // dur 0 = there is no flight to watch, just put the card in its slot. That is
+  // what a fast forward asks for, and it is the same path a zero-size anchor
+  // already took.
+  if(!dur || !s || !s.width || !t.width){ reveal(); return; }
   const clone = gEl.cloneNode(true);
   clone.classList.remove('selected','hand-valid','hand-ready','swap-pending','unreachable');
   clone.style.cssText = `position:fixed;margin:0;z-index:250;pointer-events:none;transition:none;left:${s.left}px;top:${s.top}px;width:${s.width}px;height:${s.height}px;transform-origin:center center;`;
@@ -883,6 +1043,9 @@ function flyGridCardToSlot(gEl, slotEl, dur){
     {transform:`translate(${dx}px,${dy}px) scale(${sc})`, opacity:0.9}],
     {duration:dur, easing:'cubic-bezier(.35,.65,.3,1)', fill:'forwards'});
   anim.onfinish=done; setTimeout(done, dur+140);
+  // A clone already in the air cannot be reached by a speed multiplier, so it
+  // registers its own cut: land it where it was going and reveal the slot.
+  if(typeof dncFFRegister==='function') dncFFRegister(()=>{ try{ anim.finish(); }catch(e){} done(); });
 }
 
 async function playPreviewDance(result, toRemove, isGoalHand = false){
@@ -919,7 +1082,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   cancelDance();
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
-  dncFF = false; resetParticleStep();
+  dncResetFF(); dncSettleBlast(); resetParticleStep();
   // Portrait shares one strip between Knacks and the hand preview, and this dance
   // draws into the preview - so make sure the preview is the visible half before
   // any card flies at it. No-op in landscape. (see js/portrait-panel.js)
@@ -981,9 +1144,19 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // order is not selection order once the Selection Scoring knack is owned).
   const scoreCells = (typeof scoringOrderCells === 'function') ? scoringOrderCells(handCells) : handCells.slice();
   const repsByCard = (_ledger.cards||[]).map(c=>c.reps||1);
-  // handCells index for a scoring-order index, so a beat animates the right slot.
-  const slotOf = si => { const sc = scoreCells[si]; if(!sc) return -1;
-    return handCells.findIndex(([r,c]) => r===sc[0] && c===sc[1]); };
+  // r234: THE PREVIEW IS LAID OUT IN SCORING ORDER, not selection order.
+  //
+  // It used to be built from handCells (the order you tapped) while the tally
+  // walked scoreCells (row-major, reading order), so the beats hopped about the
+  // strip and a hand read as scoring in no order at all. Laying the strip out in
+  // scoring order makes the tally run left to right, and it answers BOTH halves
+  // of the ask for free: scoringOrderCells returns selection order when the
+  // Selection Scoring knack is owned, so on that loadout the strip is in the
+  // order the cards were picked - which is exactly the order they then score in.
+  //
+  // With the two lists in step, a timeline card index IS its slot index.
+  const previewCells = scoreCells;
+  const slotOf = si => si;
 
   // Walk the timeline into STEPS: one per card (replayed `reps` times) and one per
   // hand-level event. This is the running order of the whole tally.
@@ -993,12 +1166,39 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(ev.card >= 0){ const ci=ev.card, start=i;
       while(i<timeline.length && timeline[i].card===ci) i++;
       steps.push({ kind:'card', card:ci, slot:slotOf(ci), reps:repsByCard[ci]||1, events:timeline.slice(start,i) });
-    } else { steps.push({ kind:'hand', event:ev }); i++; }
+    } else { steps.push({ kind:'hand', event:ev, prime: !!ev.prime }); i++; }
   }
-  // Every entity that will fire, so the tray can be resolved once up front. Nothing
-  // is charged here - an entity stays perfectly still until its own event lands.
+  // Every entity that will fire. Nothing is charged here - an entity stays
+  // perfectly still until its own event lands.
+  //
+  // THE SNAPSHOT IS A CACHE, NOT THE ANSWER (r304). It used to be resolved once
+  // here and read straight out at fire time, and a tray chip does not survive the
+  // hand: `renderTrickTray()` rebuilds `#trick-tray-list`'s children wholesale and
+  // is called DURING a hand by the cooldown/prime bookkeeping in play-hand.js and
+  // scoring.js, by boss-effects, by card-states and by hallmark. The element
+  // cached up here is then detached, `getBoundingClientRect()` reads {0,0,0,0},
+  // and every Trick particle for the rest of that hand flew from the TOP-LEFT
+  // CORNER OF THE SCREEN - measured, both orientations, from the first entity
+  // payout of the hand onward. It is far more obvious in portrait, where the tray
+  // is at the bottom of the screen, which is why it reads as a mobile bug.
+  //
+  // Chasing the call sites would not fix it - the tray is entitled to repaint
+  // mid-hand. So `dncEntEl` re-queries whenever what it holds is no longer usable,
+  // and that also puts the charge/pop back on the live chip, which had been
+  // styling a detached node for just as long.
   const elById = {};
   const entityEls = [];
+  const dncEntEl = ev => {
+    if(!ev || ev.id === '_card') return null;
+    const cached = dncUsable(elById[ev.id]);
+    if(cached) return cached;
+    const el = danceEntityEl(ev.source, ev.id);
+    elById[ev.id] = el || null;
+    // Cleanup (dncRealEls / the jitter sweep below) has to know about the element
+    // that actually got the class, not the one that was here when the hand began.
+    if(el && !entityEls.includes(el)){ entityEls.push(el); dncRealEls.push(el); }
+    return el;
+  };
   timeline.forEach(ev => {
     if(ev.id === '_card') return;
     if(elById[ev.id] !== undefined) return;
@@ -1011,6 +1211,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Tricks/Knacks animate on their REAL tray/rack elements (not copies), so the slot
   // keeps its normal size and never covers the UI below it, and the physical trick
   // rack is what actually rattles/releases.
+  // Freeze the hand-type label for the length of the tally (r234). render() runs
+  // several times below with the selection already cleared, and each one would
+  // otherwise blank it.
+  if(typeof holdHandNameLabel==='function') holdHandNameLabel(true);
   const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
   const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
     const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
@@ -1022,7 +1226,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // don't visually change when the dance starts (and the fly-in clone lands as an identical card).
   // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
   // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
-  const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
+  const cardEls=previewCells.map(([r,c])=>{ const card=gridData[r][c];
     const outer=document.createElement('div'); outer.className='dnc-outer';
     const d=document.createElement('div');
     const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
@@ -1033,6 +1237,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // each slot's rect to land the clone on it.
   if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
   dncRealEls = entityEls.slice();
+  // The goal hand gets a SKIP in the preview, live from the first frame of the
+  // jitter (r280). Only the goal hand: it is the one animation long enough to be
+  // worth skipping, and the one that ends the round.
+  if(isGoalHand) dncMountFF(stage);
 
   if(isGoalHand){
     // ── WIN FINALE (runs BEFORE the tally) ──
@@ -1060,45 +1268,92 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       {transform:'translate(-1.3px,-0.9px) rotate(-0.7deg)'},
       {transform:'translate(0,0) rotate(0)'},
     ], {duration:150, iterations:14, easing:'linear'})); // ~2.1s
-    await wait(2000);
+    await Promise.race([wait(2000), dncFFSignal()]);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
-    // 2) Surrounding cards explode outward - gentle (short travel, slow).
-    sfxWinExplode();
-    const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
-    loseEls.forEach(el => {
-      const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
-      const len=Math.hypot(ax,ay)||1; ax/=len; ay/=len;
-      const dist=200+fxRandom()*140, rot=(fxRandom()*2-1)*160;
-      el.style.zIndex='30';
-      el.animate([{transform:'translate(0,0) rotate(0) scale(1)', opacity:1},
-        {transform:`translate(${ax*dist}px,${ay*dist}px) rotate(${rot}deg) scale(.82)`, opacity:0}],
-        {duration:900, easing:'cubic-bezier(.25,.6,.35,1)', fill:'forwards'});
-    });
+    // 2) Surrounding cards BLAST OUT AND COME BACK (r280 - see WIN_BLAST_CFG).
+    //    Out along the ray from the board's centre, a beat at the apex, then
+    //    home to the cell they left. Nearest the centre goes first and lands
+    //    first, so the board empties outward and fills back inward.
+    //    A fast forward taken during the jitter skips the blast outright rather
+    //    than starting one and cancelling it a frame later.
+    if(!dncFF){
+      sfxWinExplode();
+      const C = WIN_BLAST_CFG;
+      // dncPace() IS the Scoring speed setting at this point, which is why the
+      // trip can track the slider without reading it: the accel only bumps on
+      // payout ticks (dncBumpAccel has ONE call site, in the particle launcher)
+      // and every one of those is in the tally, which has not started yet.
+      // The stagger scales with it too - left flat it would dominate the trip
+      // at high speeds instead of merely sequencing it.
+      const bPace = dncPace() || 1;
+      const bDur  = (C.dur + C.perCard * handCells.length) / bPace;
+      const bStag = C.stagger / bPace;
+      const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
+      dncBlast = loseEls.map(el => {
+        const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
+        const len=Math.hypot(ax,ay)||1;
+        return { el, ax:ax/len, ay:ay/len, d:len };
+      }).sort((a,b)=>a.d-b.d).map((row,i) => {
+        const dist=C.dist+fxRandom()*C.distVar, rot=(fxRandom()*2-1)*C.spin;
+        const out=`translate(${row.ax*dist}px,${row.ay*dist}px) rotate(${rot}deg) scale(${C.scale})`;
+        const home='translate(0,0) rotate(0) scale(1)';
+        row.el.style.zIndex='30';
+        return { el: row.el, anim: row.el.animate([
+          { transform:home, opacity:1,      offset:0,        easing:C.outEase },
+          { transform:out,  opacity:C.fade, offset:C.outAt,  easing:'linear' },
+          { transform:out,  opacity:C.fade, offset:C.holdAt, easing:C.backEase },
+          { transform:home, opacity:1,      offset:1 },
+        ], { duration:bDur, delay:i*bStag, fill:'both' }) };
+      });
+      // The blast outlives the await below at ordinary speeds (the tally starts
+      // while the last cards are still coming home, which is the intent), so the
+      // release is hung off the animations themselves rather than off the step.
+      // A cancelled animation REJECTS `finished`, hence the catch - that is the
+      // fast-forward path arriving here.
+      const _blast = dncBlast;
+      Promise.all(_blast.map(b => b.anim.finished.catch(()=>{}))).then(()=>{ if(dncBlast===_blast) dncSettleBlast(); });
+      dncFFRegister(dncSettleBlast);
+    }
     // 3) As the blast happens, the winning cards fly up into the preview slots
     //    (reveals each slot's dnc-card, same handoff normal hands use).
-    handCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
+    const GF_LEAD=140, GF_STEP=100, GF_DUR=460;
+    const flyQueue=[];
+    previewCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
-      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, 460); }, 140 + i*100);
+      const go = dur => { if(aborted()) return; flyGridCardToSlot(gEl, slot, dur); };
+      if(dncFF){ go(0); return; }                       // already skipping: straight into the slot
+      const entry={ go };
+      entry.t=setTimeout(()=>{ const k=flyQueue.indexOf(entry); if(k>=0) flyQueue.splice(k,1); go(GF_DUR); }, GF_LEAD + i*GF_STEP);
+      flyQueue.push(entry);
     });
-    await wait(140 + handCells.length*100 + 460 + 220);
+    // A fast forward flushes whatever has not left the board yet; a clone already
+    // in the air is cut short by flyGridCardToSlot's own registered cut.
+    dncFFRegister(()=>{ flyQueue.splice(0).forEach(e=>{ clearTimeout(e.t); e.go(0); }); });
+    await Promise.race([wait(GF_LEAD + previewCells.length*GF_STEP + GF_DUR + 220), dncFFSignal()]);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    // Remove all original grid card DOM (exploded losers + flown winners). The
-    // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
-    gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
-    // The marked row/column lines belong to the board that just left (js/entity-fx.js).
-    // This is one of THREE places the card DOM is torn down without a following
-    // render - the goal-hand finale (here), the round-end fall (js/interlude.js)
-    // and the next round's deal (js/level-up.js) - which is why the teardown is a
-    // call at each of them and not a guard inside render(): render never runs
-    // again in between, so a guard would never get to look. rowColBonuses is
-    // untouched, so the next board draws the same lines.
-    if(typeof clearLineMarkers==='function') clearLineMarkers();
+    // Only the WINNERS leave the board - they are in the preview now. The rest of
+    // the board stays exactly where it is, under the tally, and goes out in the
+    // round-end fall (showLevelUpScreen_fallOnly), which is also where the deck
+    // accounting for every card - winners included - still happens.
+    //
+    // That is why clearLineMarkers() is NOT called here any more: the marked
+    // row/column lines belong to a board that has not left yet. The fall drops
+    // them at the same moment it drops the cards.
+    winEls.forEach(el => el.remove()); dncHiddenGridEls=[];
+    // `animation:'none'` was written inline on every card above to kill a
+    // lingering score-pop. dncSettleBlast takes it back off the cards it
+    // animated, but a fast forward taken during the jitter means there was no
+    // blast to settle - so the cards that stay on the board get it cleared here
+    // too, or their own CSS animations are dead for the rest of the round.
+    loseEls.forEach(el => { el.style.animation=''; });
     // Survival: open the pick-of-three NOW (right of the preview), so the score
     // count-up below runs alongside it - the player can watch the tally or start
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
-    if(survivalActive()) survivalShowPick();
+    // (Not on a boss win - that hand ends in the PRIZE grid via bossSettleWin,
+    // and a pick opened here would fight it for the screen.)
+    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)) survivalShowPick();
   } else if(skipBeats){
     // ── Third hand of a burst: no fly-in. The cards leave the board immediately
     //    and the preview keeps whatever it already shows; the only thing this
@@ -1110,12 +1365,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
     const FLY_STAGGER=95/dncPace(), FLY_DUR=400/dncPace();
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
-    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+    previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
       setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(cardColorSuit(card)); }, i*FLY_STAGGER);
     });
-    await wait(handCells.length*FLY_STAGGER + FLY_DUR);
+    await wait(previewCells.length*FLY_STAGGER + FLY_DUR);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); dncHiddenGridEls=[]; // flown cards now removed
   }
@@ -1175,6 +1430,16 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
   const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
 
+  // THE REST AFTER A STEP IS DECIDED BY THE STEP THAT FOLLOWS IT (r296), because
+  // the walk is written "fire, then rest" - so the only way to land a prime right
+  // behind the beat in front of it is to cut the rest that beat was about to take.
+  // Consecutive primes each shorten the gap before them, and the first ordinary
+  // step after the run takes a full tickRest, which is the pace resuming.
+  const restAfter = si => (steps[si+1] && steps[si+1].prime) ? DANCE_CFG.primeRest : DANCE_CFG.tickRest;
+  // A prime's own flight is shortened to match. dncFly computes its own duration
+  // when handed none, so an override has to divide by the pace itself.
+  const primeFlight = () => Math.max(60, ptBaseFlight() * DANCE_CFG.primeFlight / (dncFF ? DANCE_CFG.ff : dncPace()));
+
   const _rnd = (v,how) => how==='int' ? Math.round(v) : how==='dp1' ? Math.round(v*10)/10 : v;
   const showPips = extra => { if(pipsEl) pipsEl.textContent = Math.round(rp + (extra||0)); dncTick(pipsEl); };
   const showMult = () => { if(multEl) multEl.textContent = fmtM(rm); dncTick(multEl); };
@@ -1206,7 +1471,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // particle's own landing, so a whole beat can launch together and still apply
   // its values in emission order (see the beat loop below).
   const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer) => {
-    const el = ev.id==='_card' ? null : elById[ev.id];
+    const el = dncEntEl(ev);
     if(el) dncReleaseReal(el);
     const src = el || fallbackEl;
     const box = (ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox;
@@ -1233,8 +1498,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const ev = step.event;
       const anchor = (ev.from >= 0 && cardEls[slotOf(ev.from)]) ? cardEls[slotOf(ev.from)]
                    : ((ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox);
-      await fireEvent(ev, anchor, { v:0 }, true, false);
-      await dwait(DANCE_CFG.tickRest);
+      await fireEvent(ev, anchor, { v:0 }, true, false, step.prime ? primeFlight() : undefined);
+      await dwait(restAfter(si));
       continue;
     }
 
@@ -1291,7 +1556,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // The card's pips join the hand total once its own beat has resolved, so a
       // card-scoped multiply has something of its own to multiply.
       rp += subRef.v; showPips(0);
-      await dwait(DANCE_CFG.tickRest);
+      // Only the LAST rep's rest is the gap before the next step - the earlier
+      // ones separate a card from its own replay and always run at full pace.
+      await dwait(rep === step.reps - 1 ? restAfter(si) : DANCE_CFG.tickRest);
     }
   }
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -1357,12 +1624,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── Settle (same tail as playScoreDance) ──
+  if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
   stage.classList.remove('dnc-active'); stage.innerHTML=''; dncCleanupReal();
   if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
-  await wait(300/dncPace()); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  await wait(300/(dncFF ? DANCE_CFG.ff : dncPace())); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   danceAbortController = null;
   dncChain = 0; _dncOutHandScore = 0;   // the burst has landed
@@ -1383,9 +1651,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       sfxVictory(); const ctx=getAudioCtx();
       if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
       else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
-      // Survival opened its pick during the fly (above); the deal happens when the
-      // player chooses. Everyone else hands off to the standard interlude/payout.
-      if(!survivalActive()) startInterlude();
+      // A pending boss win takes the handoff first (endBoss opens the prize
+      // grid itself); Survival opened its pick during the fly (above); everyone
+      // else hands off to the standard interlude/payout.
+      if(typeof bossSettleWin==='function' && bossSettleWin()){ /* endBoss routed it */ }
+      else if(!survivalActive()) startInterlude();
     }
   }
 }
