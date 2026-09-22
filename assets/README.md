@@ -43,9 +43,17 @@ rather than going silent, and the whole lot can be switched off at once with the
 
 Settings -> Audio -> Sound pack, or the switcher at the top of the sound board:
 
-- **Classic** - the original synthesised set.
-- **1-bit** - one square wave, hard on and off, like a ZX Spectrum beeper.
-- **Arcade** - an 8-bit slot machine: reel clicks, coin counters, jackpots.
+- **Vegas Floor** - a slot cabinet: relays, coin hoppers, struck bells, reel
+  detents. The default.
+- **High Roller** - cinematic: sub drops, brass, taiko and a long hall.
+- **Neon** - the casino app: FM bells, supersaws, tight sub kicks.
+- **Lounge** - warm analogue: Rhodes, vibes, tape thumps, brushed noise. The quiet
+  one, and deliberately not the small one.
+
+**Your own sound files are OFF by default.** Files beat packs, and the six sounds
+listed in `js/data/audio-manifest.js` are the ones you hear most, so leaving files
+on meant a pack was never heard where it matters. Switch **Use my sound files** back
+on any time and your files take over again.
 
 ## Rules of thumb
 

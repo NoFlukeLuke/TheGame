@@ -2181,7 +2181,11 @@ There was no discard sound at all: discarding reused **`sfxFlipShuffle`**, the r
 
 - **One function, two catalog rows.** `card_discard` and `card_discard_forced` share `fn: 'sfxCardDiscard'` and the wrapper picks the row whose `args[0]` matches the call (the same mechanism as the pip/mult particle pair), so `sfxCardDiscard()` and `sfxCardDiscard(true)` are separately switchable, mixable and auditionable.
 - **The loud one is The Marker's forced discard** - a marked card eating the hand you just played. That is not something you did, so it has to announce itself: 1.7x gain and a touch lower in the sound itself, and it rides the **`event`** bus rather than `board`, so it also ducks the board under it. Measured peaks: 0.062 normal, 0.153 forced.
-- **All three packs cover it (r211).** 1-bit does the louder version as a WIDER duty and an extra stroke rather than a fade, because a single output line has no envelope to fade with; slot swaps the short LFSR for the long one, a tear instead of a click. Measured peaks, none clipping: onebit 0.08 / 0.16, slot 0.07 / 0.24.
+- **All four packs cover it (r234).** Each does the louder version in its own
+  vocabulary: Vegas a hard slam with a metal tray rattle under it, High Roller a
+  full taiko plus a low brass, Neon a wider sub kick and a detuned saw, Lounge a
+  tape thump and an upright bass. Measured peaks, none clipping: 0.29 / 0.58 /
+  0.32 / 0.51 against the ordinary discard's 0.09 to 0.19.
 
 ### Two sounds per particle (r191)
 
@@ -2197,24 +2201,130 @@ triangle body, 1-bit a thin high pulse into a wide one (on one output line the g
 is the only way to give a repeated event any shape), and slot a short-LFSR click
 into the coin - the detent and the digit of a counter wheel.
 
-### The packs - `js/audio-packs.js`
+### Four casino packs (r234) - `js/audio-dsp.js` + `js/audio-packs.js`
 
-`SFX_PACKS` is keyed by catalog id; a pack need not cover every id. The shared toolkit is `pulseWave`, `lfsrNoiseBuffer`, `crusherNode`, plus per-pack voices.
+The three packs before this (classic, 1-bit, arcade) are replaced by four, all of
+them heavier and all of them built from one toolkit rather than each inventing its
+own voices. **`classic` is still in the code and is still the floor the wrapper
+falls through to for any id a pack leaves out**, but it is no longer in the picker:
+it is the thin set these replaced. `sfxPackId()` maps an unknown stored id (a save
+holding `classic`, `onebit` or `slot`) onto the default, and `loadSettings` does the
+same for ANY select whose stored value is no longer an option, or an existing player
+would open Settings to a blank dropdown.
 
-- **`pulseWave(duty)`** builds a PeriodicWave from the Fourier series of a pulse: the nth harmonic of a duty-d pulse has amplitude `(2/(n*pi)) * sin(n*pi*d)`. 28 harmonics; past that it is CPU for nothing. Cached per duty **and per context** - a PeriodicWave belongs to the context that made it.
-- **`lfsrNoiseBuffer(mode)`** is the NES noise channel: a 15-bit shift register, feedback `bit0 XOR bit1` ("long", 32767 steps, a hiss) or `bit0 XOR bit6` ("short", 93 steps, a metallic ring). **The short register is the single biggest reason the slot pack sounds like a machine rather than like static.** One second is generated per mode and PITCHED with `playbackRate`, which is how the real chip varies it too.
-- **`crusherNode(bits)`** is a WaveShaper with a staircase curve - quantisation is most of what "8-bit" means, and a WaveShaper needs no AudioWorklet, which matters for a statically-hosted game.
+| pack | what it is |
+|---|---|
+| **Vegas Floor** (default) | a slot cabinet. Relays, coin hoppers, struck bells, reel detents |
+| **High Roller** | cinematic. Sub drops, brass, taiko, a 2.6s hall |
+| **Neon** | the casino app. FM bells, supersaws, tight sub kicks |
+| **Lounge** | warm analogue. Rhodes, vibes, tape thumps, brushed noise |
 
-**ONE-BIT is a constraint, not a filter.** A single output line is ON or OFF, so: **no volume envelope** (the hard gate in `bitTone` - `setValueAtTime` only, never a ramp - is the whole sound, and fading anything instantly stops it reading as 1-bit); timbre comes from **pulse width alone**; pitch slides are **stepped**, because the routine recomputes a period per iteration; noise is a square whose period is re-randomised every few ms (`bitNoise`); and chords are faked by **interleaving** pulses fast enough that the ear fuses them (`bitChord`). The per-sound `gain` values are a mixing concession - a real beeper has one loudness - but the envelope stays binary. Suits are four **duty cycles** rather than four pitches: on one line the timbre is the identifier.
+#### The one rule: a heavy sound is three layers, not one loud one
 
-**SLOT** is NES APU vocabulary aimed at a casino cabinet: pulses at 12.5/25/50% duty for anything melodic, triangle for bass, short-mode LFSR for reel clicks and coin edges, instant-attack linear-decay envelopes (the APU's 4-bit envelope). The anatomy the sounds follow: a firm mechanical click to commit, a whirr made of accelerating ticks, reels landing **one at a time** with the gap doing the tension (`reelStop`), a dry near-miss for a loss, bright chimes for a small win, and `coinCascade` for a big one.
+`js/audio-dsp.js` is the instrument layer, and every impact in every pack is
+**TRANSIENT + BODY + TAIL** - `dClick`/`dWood`, then `dThump`/`dBell`, then the room
+send. A pack chooses what the three are made of, never whether there are three. The
+corollary is the one worth remembering: **punch comes from transient control and
+contrast, not from level.** If a hit is not landing, sharpen its transient or
+shorten what is around it rather than turning it up. That is why the biggest sounds
+open with `D_ANTICIPATION` (90ms of near-silence) and why the packs are measurably
+louder without being squashed.
 
-**Levels are matched by measurement, not by ear.** Rendering all 32 sounds of each pack through an OfflineAudioContext: median peak classic 0.13, onebit 0.12, slot 0.17. That sweep is also what caught classic's `win_explode` peaking at **1.18** - it clipped - now 0.55 gain and 0.88 peak.
+- **Pitch is written in SEMITONES from a root** (`dHz`, `dScale`, `dDegree`), never
+  in Hz, which is the only reason one phrase can be played by four instruments.
+- **Anything that pays out RISES; anything that refuses is flat and dead.** A
+  refusal that resolves reads as a small win.
+- **`D_PARTIALS` are RATIOS, not harmonics.** That is what makes `dMetal` a coin or
+  a bar rather than an organ.
+- The `metal` noise kind is the NES short-mode LFSR (93 steps), so it RINGS at a
+  pitch instead of hissing. It is the single biggest reason Vegas sounds mechanical.
 
-- **`_particleStep` is shared.** It is a top-level `let` in `js/audio.js`, so the packs increment the same counter and `resetParticleStep()` keeps working across all three.
-- **Adding a sound**: one row in `SFX_CATALOG`, then optionally an entry in each pack. Two rows may share a `fn` (the pip/mult particle pair) - the wrapper picks the row whose `args[0]` matches the call.
-- **Testing**: render each id into an `OfflineAudioContext` with `getAudioCtx` temporarily repointed at it, and assert a non-zero peak. A silent sound is the failure mode a pack has, and it is invisible otherwise.
-- **Headless Chromium cannot decode MP3** (no proprietary codecs), so file-backed sounds cannot be verified in this environment - only in a real browser. The fallback chain is what makes that safe.
+#### The master punch, and why the makeup goes BEFORE the limiter
+
+`js/audio-mixer.js` gained an insert between the muffle and the tail: a tanh
+**saturation** (normalised, so it cannot raise the peak - it adds harmonics, which
+is what makes a sub-bass thump audible on a laptop that cannot reproduce its
+fundamental), then `SFX_MAKEUP` driving into a **limiter** whose threshold is the
+real ceiling.
+
+**The first version put the makeup after the limiter and 12 sounds rendered above
+1.0** - every one of them a goal blast, a victory or a multi-goal, which is the
+worst possible place to clip. Gain first, limiter last, and nothing downstream can
+undo it. Measured after: max peak 0.971 across 521 renders, 0 above 0.99.
+
+#### The room is a SEND, and frequent sounds are capped out of it
+
+A tail says where a sound happened; without one a synthesised hit sounds generated
+rather than struck. It is a per-voice send (`verb` in every DSP call, `sfxVerbIn`),
+**not a per-bus one**, because a coin and a score tick share a bus and want opposite
+amounts. The impulse is generated (`_makeIR`: exponentially decaying noise through a
+one-pole whose coefficient is the `tone` knob, plus six discrete early reflections -
+a diffuse tail with no early reflections has length but no size). `SFX_ROOMS` is
+**per pack** and `sfxRoomSync()` rebuilds on a pack change and never otherwise: it is
+called from `sfxMixGraph`, which every voice goes through, so the guard is a string
+compare and the 2.6s stereo buffer is built once.
+
+**`D_FREQUENT` in js/audio-dsp.js is the load-bearing part.** Sounds that can fire
+many times a second have their send capped, **divided by the room's own length**, so
+choosing a bigger room for a pack cannot silently make its repeating sounds longer.
+Measured before the cap: High Roller's score particles carried **1.6s tails and its
+board sounds 2.4s**, which at the dance's 90ms particle spacing is twenty overlapping
+tails and a permanent wash. The one-shots are deliberately absent from the table -
+they are what the room is for.
+
+#### What "bigger" actually measured as
+
+One simulated hand per pack (riffle, 5 cards, 20 particles at the real 90ms spacing,
+25 score ticks, the Focus beat, the hand landing), rendered through the real
+wrappers, buses, ducking and master chain:
+
+| | peak | RMS | crest | gap below peak |
+|---|---|---|---|---|
+| classic | 0.44 | 0.041 | 10.8 | -42.6 dB |
+| Vegas Floor | 0.885 | 0.080 | 11.1 | -51.2 dB |
+| High Roller | 0.892 | 0.088 | 10.1 | -58.2 dB |
+| Neon | 0.878 | 0.077 | 11.4 | -56.0 dB |
+| Lounge | 0.881 | 0.094 | 9.3 | -55.5 dB |
+
+**RMS roughly doubled (about +6dB) with the crest factor unchanged**, which is the
+whole point: louder and denser without being flattened. The gaps between events sit
+FURTHER below the peak than classic's, so the extra size is not the room filling in.
+
+#### Four bugs only rendering found, all invisible to a syntax check
+
+- **`dCascade` could hand a voice a negative delay.** The jitter is symmetric, so the
+  first event of any cascade could be scheduled before now and `setValueAtTime`
+  throws. It showed in two packs of four on one run because the jitter is random, and
+  **the wrapper's try/catch would have hidden it as a silent fallback to classic**.
+  Clamped at 0 in `dCascade` and again in every voice.
+- **`card_discard_forced` was covered by no pack.** A `variantOf` catalog row is
+  looked up by its OWN id, so a pack defining only `card_discard` left The Marker's
+  forced discard playing the classic sound while everything else was replaced.
+- **A pitched noise voice could run off the end of its buffer.** At `rate: 2.4` a
+  voice consumes the 1.3s buffer in half a second, and a late random start offset
+  went silent. `src.loop = true`; a loop seam inside noise is inaudible.
+- **Levels drift silently.** Particles came out at half the level of the ones they
+  replaced and High Roller's clock tick at 0.001 against classic's 0.0044, which on a
+  laptop speaker is not a quiet sound, it is no sound. **Measure every id against the
+  set it replaces**, never by ear on the loud ones.
+
+**Three sounds joined the catalog**: `clock_tick`, `tick_tock` and `rewind` had no
+`SFX_CATALOG` rows, so they could not be switched off, auditioned, or covered by a
+pack - they played the classic version in every pack, forever. The sound board's
+source badges are now derived from `SFX_PACK_LIST` rather than a hardcoded map, for
+the same reason.
+
+**Your own sound files are OFF by default now** (`useSoundFiles`). Files beat packs,
+and the six ids in `AUDIO_MANIFEST` are the most frequent board sounds in the game,
+so leaving it on meant a pack was never heard where it is heard most. The files are
+untouched and the switch still brings them back.
+
+**Testing**: render every id of every pack into an `OfflineAudioContext` with
+`getAudioCtx` temporarily repointed at it, and assert peak, RMS and tail length
+against classic. For a timeline (several sounds at real spacing) the wrapper must be
+a **stable** forwarding object whose `currentTime` you move between calls - a fresh
+one per event makes `sfxMixGraph` rebuild the buses, limiter and reverb each time
+and sum several parallel chains into the output.
 
 ## Dev panel / Settings
 `#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) - inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.

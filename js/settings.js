@@ -26,12 +26,17 @@ const SETTINGS_DEF = [
   // Sound source (r186). Files beat packs beat classic - see the resolution order
   // in js/audio-assets.js. Both rows are read there rather than applied from here,
   // so there is no `apply` to keep in step.
+  // OFF by default since r234. Files beat packs, and the six ids listed in
+  // AUDIO_MANIFEST are the most frequent board sounds in the game, so leaving this
+  // on meant a pack was never heard where it is heard most. The files are still
+  // there and this switch still brings them back.
   { group: 'Audio', id: 'useSoundFiles', label: 'Use my sound files',
     hint: 'Play the files in assets/sfx/ where one is listed for a sound. Off means every sound is generated in code.',
-    type: 'toggle', default: true },
+    type: 'toggle', default: false },
   { group: 'Audio', id: 'sfxPack', label: 'Sound pack',
     hint: 'Which coded sounds to use - for every effect, and for anything a file does not cover.',
-    type: 'select', default: 'classic',
+    type: 'select',
+    default: (typeof SFX_PACK_DEFAULT !== 'undefined') ? SFX_PACK_DEFAULT : 'classic',
     options: (typeof SFX_PACK_LIST !== 'undefined')
       ? SFX_PACK_LIST.map(([id, name]) => [id, name])
       : [['classic', 'Classic']] },
@@ -112,7 +117,16 @@ function loadSettings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) { saved = {}; }
   SETTINGS = {};
-  SETTINGS_DEF.forEach(d => { if (d.type === 'action') return; SETTINGS[d.id] = (saved[d.id] !== undefined) ? saved[d.id] : d.default; });
+  SETTINGS_DEF.forEach(d => {
+    if (d.type === 'action') return;
+    let v = (saved[d.id] !== undefined) ? saved[d.id] : d.default;
+    // A SELECT whose stored value is no longer one of its options falls back to
+    // the default. Without this, r234 replacing the sound packs would leave an
+    // existing player pointing at a pack that does not exist, with the dropdown
+    // showing nothing and no way to tell what they were hearing.
+    if (d.type === 'select' && Array.isArray(d.options) && !d.options.some(o => o[0] === v)) v = d.default;
+    SETTINGS[d.id] = v;
+  });
   applyAllSettings();
 }
 
