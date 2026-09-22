@@ -1,8 +1,16 @@
 function doDiscard() {
   // Dominoes mode has its own discard flow (tiles return to the domino deck).
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoDiscard(); return; }
-  // On grid-takeover screens the Discard button is repurposed: LEAVE (shop) / CLEAR (reward).
-  if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
+  // On grid-takeover screens the Discard button is repurposed: CLEAR (reward),
+  // and in the shop it is still THE DISCARD BUTTON (r307) - it spends a discard
+  // on what is selected. With row labels selected that is a REROLL of those
+  // rows; with nothing selected there is nothing to spend one on, so it reads
+  // and acts as LEAVE.
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) {
+    if (typeof shopRerollSelectedRows === 'function' && shopRerollSelectedRows()) return;
+    if (typeof shopgSelRows === 'function' && shopgSelRows().length) return;   // refused, not an exit
+    closeShopGrid(); return;
+  }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
   // Same gate as doSwap - a boss may refuse the discard before it commits.

@@ -616,7 +616,7 @@ const TUTORIAL_STEPS = [
     when: () => tutShopReady(),
     eyebrow: 'The shop',
     title: 'Buy, then leave',
-    body: `Select what you want and press <b>BUY</b>.<br><br>Reroll refreshes the shelves for a rising price. SELL flips the board to what you own.<br><br>Press <b>LEAVE</b> when you are done.`,
+    body: `Select what you want and press <b>BUY</b>. Tiles that touch each other are cheaper bought together.<br><br>The shop spends what you carried out of the round: <b>double-tap a tile</b> then tap a neighbour to trade them (a swap), and tap a <b>row label</b> then press <b>REROLL</b> for new stock in that row (a discard). Two row labels trade their whole rows.<br><br>SELL flips the board to what you own. Press <b>LEAVE</b> when you are done.`,
     until: () => !tutShopOpen(),
   },
 

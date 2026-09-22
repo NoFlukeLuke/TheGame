@@ -113,7 +113,9 @@ function updateDanceSubboxes(pips, mult) {
 function updateSelectionUI() {
   const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
   const onShop   = (typeof shopGridActive !== 'undefined' && shopGridActive);
-  const n   = onShop ? (shopGridMode === 'buy' ? shopGridSel.size : 0)
+  // The shop counts WEIGHT, not tiles: a row label takes two of your picks
+  // (r307), so the x/y has to agree with the cap that refused the third.
+  const n   = onShop ? (shopGridMode === 'buy' ? shopgSelWeight() : 0)
             : onReward ? rewardSelected.size : selected.length;
   const cap = (onShop || !onReward) ? limits.selection.current : rewardSelectionCap();
   const min = onShop ? 1

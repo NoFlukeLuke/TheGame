@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r306 · payout caps + Gross Pay, and the upright buff overflow mark";
+const BUILD = "2026-09-22 · r307 · the shop spends leftover stock: swaps rearrange, a discard rerolls a row · reroll limit deleted · Free Range fixed";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

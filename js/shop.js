@@ -26,6 +26,11 @@ const SHOP_LIMIT_STEP     = priceOf(5);
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
 let shopPurchased   = new Set();
 let shopRerollCount = 0;
+// The reroll LIMIT was removed in r307 (the on-grid shop buys rerolls with
+// discards now). This overlay shop is the USE_ONGRID_SHOP=false fallback and
+// still counts rerolls per visit, so it keeps the old base as a constant
+// rather than reading a limit that no longer exists.
+const LEGACY_SHOP_REROLLS = 3;
 
 // ── Selling (r127) ──
 // Owner decision: Tricks and Knacks can be sold ANYWHERE (tray / HUD), any time.
@@ -309,7 +314,7 @@ function renderShopSleights() {
 }
 
 function renderShopFooter() {
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
+  const maxRerolls = LEGACY_SHOP_REROLLS;
   const isDebuff   = shopRerollCount >= maxRerolls;
   const nextCost   = 8 + shopRerollCount * 2;
   const costEl  = document.getElementById('shop-reroll-cost');
@@ -389,7 +394,7 @@ function buyShopSleight(i) {
 }
 
 function doShopReroll() {
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
+  const maxRerolls = LEGACY_SHOP_REROLLS;
   const isDebuff   = shopRerollCount >= maxRerolls;
   if (isDebuff) {
     const targets = [];

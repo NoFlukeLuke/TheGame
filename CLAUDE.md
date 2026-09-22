@@ -5466,13 +5466,100 @@ In every one of those the `min` **cut the clock down to 180 and then returned 0*
 ## No text selection (r182)
 `html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.
 
+## The shop spends the round's leftover stock (r307)
+
+**A SWAP moves a tile. A DISCARD rerolls a row.** There is no shop-only reroll
+currency and no cap of its own any more: what you carried out of the round IS
+the budget here, which is the whole reason to finish a round holding something
+back. In the node flow those globals still hold the finished round's leftovers
+when the shop opens (the reset runs later, in `triggerLevelUp`), and on a
+Survival mid-round visit spending them really does cost the rest of the round.
+
+- **THE `reroll` LIMIT IS DELETED**, from `LIMITS_DEF` and therefore from the
+  reward grid, Limit Break, Records and the Survival pick at once. It was
+  already filtered out of the shop's own Upgrades row as dead stock. The legacy
+  overlay shop (`USE_ONGRID_SHOP=false`) keeps its own `LEGACY_SHOP_REROLLS`
+  constant rather than reading a limit that no longer exists. An old save
+  carrying `limits.reroll` is harmless: the contents are copied key by key and
+  nothing reads it.
+- **SWAP IS THE BOARD'S OWN GESTURE, deliberately**: double-tap to lift a tile,
+  tap an orthogonal neighbour to trade them - the same two taps as `onCardTap`,
+  with the same Free Range exemption and Steady Hand bypass. **Routing it
+  through the SELECTION was impossible**: a row label weighs 2, so lifting two
+  of them is 4 against a Selection Size that starts at 3.
+- **Two ROW LABELS trade their whole rows** - stock, category and pin. That is
+  the move worth having: a connected pick cannot cross the board, so bringing
+  two categories next to each other is what lets one purchase cover both at the
+  multi-buy rate. Two ITEMS trade payloads; an empty cell is a valid partner
+  (sliding a tile into a gap is a move, and on a short row it is the move); a
+  label and an item are refused, and so are **two tiles of different widths** -
+  there is nowhere for a 2-wide tile's spare cell to go.
+- **A swap costs no TIME and does not bump `swapsUsedRound`.** The clock on this
+  screen belongs to a round that is already over, and the No Takebacks challenge
+  counts what you did during a ROUND.
+- **A reroll costs ONE DISCARD a row and no credits at all.** The discard is the
+  price. A pinned row (you bought from it) keeps its category and refills; an
+  unpinned row draws a new category, never one already on the board and never
+  the one it just had, so a reroll always visibly changes something.
+- **Any swap or reroll DROPS the selection** - the board moved under it, the
+  same rule a rerolled pick screen follows (`js/grid-pick.js`).
+
+### The row label is a real cell now
+
+- **Selectable**, and it **weighs 2** against Selection Size (owner's call). It
+  is not a purchase - it commands a whole row - and the weight is what decides
+  how many rows one REROLL press can take: one at Selection Size 3 or 4, two at
+  5 or 6. `shopgSelWeight()` is what the x/y readout counts, so the number and
+  the cap that refused the third pick agree.
+- **A selection is EITHER a purchase or a reroll, never both**, or BUY and
+  REROLL are live over one selection and neither says what it would take.
+  Crossing over CLEARS rather than refuses: there is no CLEAR button on this
+  screen, so a refusal would strand the player on a pick they cannot drop. This
+  is also what keeps the old promise that a connected pick can never route
+  through a heading.
+- **`shopGridSelectionCost()` returns `n`, and BUY sizes off `n`, not
+  `shopGridSel.size`.** A label has no price and no `buy()`, so a label-only
+  pick left BUY lit over nothing - pressing it paid 0 for 0 items.
+- **What you already OWN of that category moved to a LONG PRESS** (430ms, finger
+  or held mouse, the r182 gesture), because the tap is the selection now. It has
+  to stay reachable: Sleights sit on the board, so once the shop has taken the
+  board over there is no other way to see what you are holding.
+- The plate **dropped `.unselectable`**, which was `pointer-events:none` AND
+  30% opacity. It sits at full brightness now, which is what a heading you are
+  meant to read should always have been.
+
+### The action column mirrors the board's
+
+| slot | in the shop |
+|---|---|
+| swap | a READOUT of the swaps left (the gesture is on the board, so not a button) |
+| discard | **REROLL** the selected rows, or **LEAVE** when nothing is selected |
+| play | BUY |
+
+The discard button is contextual rather than split in two because it is the
+DISCARD button in both places: on the board it spends a discard on what is
+selected, and here it does exactly that. **A second, permanent Leave sits in the
+cost readout** (`#sc-leave`), so the exit is never behind a deselect - and with
+no discards left the big button reads REROLL and is DISABLED rather than
+silently falling through to leaving.
+
+### Free Range had never worked (found here)
+
+`doSwap` tested **`hasTrick('free_range')`** - an id that exists in no pool.
+Free Range is a KNACK, **`free_range_t`** (`js/data/knacks.js`). So its whole
+printed effect ("swap any two non-adjacent cards") had never once fired, while
+its downside did: `js/level-up.js` takes a swap off the base for owning it. The
+knack was **strictly negative**. Both sites read `hasKnack('free_range_t')` now,
+so it works on the board and in the shop. This is a live balance change - the
+knack does what it says for the first time.
+
 ## The COMPANY STORE (r237) - the shop board rebuilt
 
 The shop is the PLAYER'S BOARD now: same rows and columns as `limits.grid_rows/cols` (never the live globals - a boss can have shrunk those), so raising the board raises the shop. Row 0 is a full-width **COMPANY STORE** title tile that survives every reroll; every row below is a CATEGORY: one 1-cell label plate (bright, never greyed) + cols-1 items.
 
 - **Categories are drawn per board** from `SHOP_CATS` (tricks / sleights / knacks / **cards** / **improve** / limits), no repeats, `shopgCatViable` keeping empty sellers off. **Limits is guaranteed on the FIRST board of a visit** (bottom row); reroll it away unbought and it can leave.
 - **Buying from a row PINS its category** (`shopGridRowMeta[r].pinned`, a 📌 on the label): a reroll keeps that row's category but still REFILLS its stock - a bought slot comes back as fresh goods, not a ✓. Unpinned rows reroll their category too.
-- **Rerolls cost 10 + 5 each and are CAPPED BY THE SWAPS you were holding when the shop opened** (`shopRerollCap`, captured in openShopGrid - in the node flow that is what the finished round left, since the reset runs later in triggerLevelUp). The old `reroll` LIMIT is therefore dead stock and is filtered out of the shop's own Upgrades row - it still exists everywhere else (reward grid, Limit Break, Records), which wants an owner decision.
+- **Rerolls were a whole-board redraw on an escalating credit price, capped by leftover swaps. SUPERSEDED BY r307** (above): a reroll is per ROW and costs a discard. The `reroll` limit the note here called dead stock is deleted outright.
 - **A tile can be WIDER than one cell: the SAME payload object sits in every cell it covers.** The renderer draws the leftmost and skips the rest; `shopgLeadKey`/`shopgCellsOf`/`shopGroupConnected` expand a key to its cells so adjacency and the connected-buy discount see the whole footprint. Today only Improve uses it: a 2-wide SPECIFIC improvement (target picked at build, before/after from `improvePreview`) beside 1-wide "Random {type}" tiles - all riding `js/improve.js` (r206).
 - **Cards row** offers buffs on NAMED cards from the live deck (60% +12 pips / 25% +5 mult / 15% scaling +1 mult per play), re-resolved at apply with `resolveDeckCard` + `enhanceCardKey(cardId(t))`.
 - **Sell → Back is NOT a free reroll**: the buy board is cached (`_shopBuyCache`) and restored.
