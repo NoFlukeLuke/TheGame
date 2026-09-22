@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r299 · Crunch: the Schedule on one clock for the whole quarter (dev panel -> Modes)";
+const BUILD = "2026-09-22 · r300 · poker-squares-preview.html (no game change)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

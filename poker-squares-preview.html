@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker Squares - placement &amp; scoring preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   POKER SQUARES PREVIEW
+   Standalone. Nothing here is wired into the game - this is the design
+   surface for the placement interaction, the deal schedule's fill rate and
+   the per-hand scoring pace, before any of it touches the engine.
+   Palette and type are the game's (css/style.css :root).
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0e0c0a; --gold:#c9a84c; --gold-dim:#7a6030; --red:#c0392b; --green:#5a9e5a;
+  --cream:#f0e6c8; --cream-dim:#8a7d60; --panel:#13110e; --border:#3a3020;
+  --card-bg:#f5efe0; --card-border:#d4c89a;
+  --suit-hearts:#A0030B; --suit-diamonds:#EC9F05; --suit-spades:#000; --suit-clubs:#2255cc;
+  --pips:#5588ee; --mult:#dd4444;
+  --cell:74px;            /* board cell width  */
+  --cellh:88px;           /* board cell height */
+  --gap:4px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);
+  font-family:'Share Tech Mono',monospace;user-select:none;-webkit-tap-highlight-color:transparent}
+body{display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+
+h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;color:var(--gold);
+  margin:12px 0 2px;font-weight:700}
+.sub{font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream-dim);margin-bottom:10px}
+
+/* ── stage ───────────────────────────────────────────────────────────── */
+#stage{display:flex;gap:16px;align-items:flex-start}
+
+/* ── left: score + tricks ────────────────────────────────────────────── */
+#left{width:180px;display:flex;flex-direction:column;gap:8px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.plabel{font-size:8px;letter-spacing:2px;color:var(--cream-dim);margin-bottom:3px}
+#score-big{font-family:'Orbitron',sans-serif;font-size:26px;color:var(--cream);line-height:1;font-weight:700}
+#goal-line{font-size:10px;color:var(--gold);margin-top:3px}
+.chips{display:flex;gap:6px;margin-top:8px}
+.chip{flex:1;background:#0b0a08;border:1px solid var(--border);border-radius:4px;padding:5px 2px;text-align:center}
+.chip .cv{font-family:'Orbitron',sans-serif;font-size:15px;line-height:1;font-weight:700}
+.chip .cl{font-size:7px;letter-spacing:1px;color:var(--cream-dim);margin-top:2px}
+#chip-pips .cv{color:var(--pips)} #chip-pips{border-color:#2b3f6b}
+#chip-mult .cv{color:var(--mult)} #chip-mult{border-color:#6b2b2b}
+.tricks{display:flex;flex-wrap:wrap;gap:4px}
+.tk{width:30px;height:30px;border-radius:4px;background:#1b1813;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+
+/* ── centre: board + hand ────────────────────────────────────────────── */
+#centre{position:relative;display:flex;flex-direction:column;align-items:center}
+#board{display:grid;grid-template-columns:repeat(5,var(--cell));grid-auto-rows:var(--cellh);
+  gap:var(--gap);padding:10px;background:#0a0908;border:1px solid var(--border);border-radius:8px;
+  position:relative}
+.cell{position:relative;border-radius:5px;background:#141210;border:1px dashed #241f18}
+.cell.ghost-ok{background:rgba(90,158,90,.20);border:1px solid var(--green)}
+.cell.ghost-bad{background:rgba(192,57,43,.22);border:1px solid var(--red)}
+.cell.tentative{box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(201,168,76,.45);border-radius:5px}
+
+/* a real card on the board */
+.card{position:absolute;inset:0;background:var(--card-bg);border:1px solid var(--card-border);
+  border-radius:5px;display:flex;flex-direction:column;justify-content:space-between;
+  padding:3px 4px;color:#111;font-family:'Crimson Pro',serif;font-weight:600;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);transition:transform .18s ease,box-shadow .18s ease}
+.card .r{font-size:15px;line-height:1}
+.card .s{font-size:15px;line-height:1;align-self:flex-end;transform:rotate(180deg)}
+.card.lift{transform:translateY(-12px) scale(1.06);
+  box-shadow:0 10px 18px rgba(0,0,0,.6),0 0 0 2px var(--gold),0 0 18px rgba(201,168,76,.5);z-index:5}
+.card.dim{filter:saturate(.25) brightness(.55)}
+.h{color:var(--suit-hearts)} .d{color:var(--suit-diamonds)}
+.s-{color:var(--suit-spades)} .c{color:var(--suit-clubs)}
+
+/* line labels down the side / across the top */
+.linelab{position:absolute;font-size:8px;letter-spacing:1px;color:var(--cream-dim)}
+.linelab.on{color:var(--gold)}
+
+/* ── the hand: loose cards under the board, Balatro-style ────────────── */
+#hand{position:relative;height:186px;margin-top:-14px;width:640px;
+  display:flex;justify-content:center;align-items:flex-start;gap:10px;
+  transition:opacity .16s ease;z-index:20}
+#hand.see-through{opacity:.30}
+.hcard{position:relative;width:118px;height:168px;background:var(--card-bg);
+  border:1px solid var(--card-border);border-radius:9px;box-shadow:0 6px 14px rgba(0,0,0,.55);
+  transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease;cursor:grab;
+  display:flex;align-items:center;justify-content:center;
+  /* the diamond lattice of a real card back, faint */
+  background-image:repeating-linear-gradient(45deg,rgba(212,200,154,.35) 0 1px,transparent 1px 9px),
+                   repeating-linear-gradient(-45deg,rgba(212,200,154,.35) 0 1px,transparent 1px 9px)}
+.hcard:hover{transform:translateY(-8px)}
+.hcard.sel{transform:translateY(-26px) scale(1.04);
+  box-shadow:0 16px 26px rgba(0,0,0,.6),0 0 0 3px var(--gold),0 0 22px rgba(201,168,76,.55)}
+.hcard.placing{opacity:.45;transform:translateY(-6px) scale(.97)}
+.hcard.dragging{opacity:.25}
+/* the polyomino drawn on the card as real mini cards */
+.poly{display:grid;gap:2px}
+.mini{background:var(--card-bg);border:1.5px solid #111;border-radius:2px;
+  width:var(--mw,30px);height:var(--mh,40px);display:flex;flex-direction:column;
+  justify-content:space-between;padding:1px 2px;font-family:'Crimson Pro',serif;
+  font-weight:600;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.28);overflow:hidden}
+.mini .r{font-size:var(--mfs,10px);line-height:1}
+.mini .s{font-size:var(--mfs,10px);line-height:1;align-self:flex-end;transform:rotate(180deg)}
+.mini.blank{background:transparent;border:none;box-shadow:none}
+/* rotate button, on the card itself (owner's preference) */
+.rot{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;
+  background:rgba(20,18,14,.88);border:1px solid var(--gold-dim);color:var(--gold);
+  font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3}
+.rot:hover{background:var(--gold);color:#1a1509}
+.kept{position:absolute;bottom:4px;left:4px;font-size:7px;letter-spacing:1px;color:#1a1509;
+  background:var(--gold);border-radius:3px;padding:1px 4px}
+
+/* the piece that follows the pointer while dragging */
+#drag{position:fixed;pointer-events:none;z-index:999;display:none;opacity:.92}
+
+/* ── right: the three buttons ────────────────────────────────────────── */
+#right{width:96px;display:flex;flex-direction:column;gap:8px;padding-top:2px}
+.btn{height:78px;border-radius:7px;border:2px solid;background:#15120d;cursor:pointer;
+  font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;font-weight:700;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  transition:filter .15s ease,transform .1s ease}
+.btn small{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.5px;
+  color:var(--cream-dim);font-weight:400}
+.btn:hover:not(:disabled){filter:brightness(1.35)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.28;cursor:not-allowed}
+#b-discard{border-color:var(--red);color:#e4736a}
+#b-confirm{border-color:var(--gold);color:var(--gold);height:104px}
+#b-end{border-color:var(--green);color:#8fd08f}
+#b-discard.drop-target{background:rgba(192,57,43,.35);filter:brightness(1.5)}
+
+/* ── turn readout ────────────────────────────────────────────────────── */
+#turnbar{display:flex;gap:14px;align-items:center;margin:8px 0 2px;font-size:10px;
+  letter-spacing:1px;color:var(--cream-dim)}
+#turnbar b{color:var(--gold);font-weight:400}
+
+/* ── scoring chip ────────────────────────────────────────────────────── */
+.schip{position:fixed;z-index:900;pointer-events:none;font-family:'Orbitron',sans-serif;
+  font-size:15px;font-weight:700;padding:5px 9px;border-radius:5px;background:#0b0a08;
+  border:2px solid var(--gold);color:var(--cream);white-space:nowrap;
+  box-shadow:0 0 18px rgba(201,168,76,.5)}
+#handname{position:absolute;left:50%;transform:translateX(-50%);top:-26px;
+  font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:2px;color:var(--gold);
+  opacity:0;transition:opacity .18s ease}
+#handname.on{opacity:1}
+
+/* ── config ──────────────────────────────────────────────────────────── */
+#cfg{width:900px;margin:18px 0 40px;background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px}
+#cfg h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);
+  margin:0 0 8px;font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:8px;font-size:11px}
+.row label{display:flex;gap:5px;align-items:center;color:var(--cream-dim)}
+.row input[type=number]{width:52px;background:#0b0a08;border:1px solid var(--border);
+  color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:11px;padding:3px 4px;border-radius:3px}
+.row button{background:#1b1813;border:1px solid var(--gold-dim);color:var(--gold);
+  font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer}
+.row button:hover{background:var(--gold);color:#1a1509}
+#out{white-space:pre-wrap;font-size:10px;color:var(--cream-dim);line-height:1.5;
+  max-height:220px;overflow:auto;margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
+#log{font-size:10px;color:var(--cream-dim);margin-top:4px;min-height:14px}
+</style>
+</head>
+<body>
+
+<h1>POKER SQUARES</h1>
+<div class="sub">placement, the deal schedule, and the per-hand scoring pace</div>
+
+<div id="turnbar">
+  TURN <b id="t-n">1</b>/<b id="t-max">4</b>
+  &middot; DEALT <b id="t-deal">3 x 4</b>
+  &middot; DISCARDS <b id="t-disc">3</b>
+  &middot; FILLED <b id="t-fill">0</b>/25
+</div>
+
+<div id="stage">
+  <div id="left">
+    <div class="panel">
+      <div class="plabel">SCORE</div>
+      <div id="score-big">0</div>
+      <div id="goal-line">GOAL 4,000</div>
+      <div class="chips">
+        <div class="chip" id="chip-pips"><div class="cv" id="v-pips">0</div><div class="cl">PIPS</div></div>
+        <div class="chip" id="chip-mult"><div class="cv" id="v-mult">0</div><div class="cl">MULT</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plabel">TRICKS 4/5</div>
+      <div class="tricks">
+        <div class="tk">&#127807;</div><div class="tk">&#9889;</div>
+        <div class="tk">&#128142;</div><div class="tk">&#127786;</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plabel">NO CLOCK &middot; NO CREDITS</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4">
+        Fill the board, then every row and column scores as its own hand.
+      </div>
+    </div>
+  </div>
+
+  <div id="centre">
+    <div style="position:relative">
+      <div id="handname"></div>
+      <div id="board"></div>
+    </div>
+    <div id="hand"></div>
+  </div>
+
+  <div id="right">
+    <button class="btn" id="b-discard">DISCARD<small id="d-left">3 left</small></button>
+    <button class="btn" id="b-confirm">CONFIRM<small>place the tile</small></button>
+    <button class="btn" id="b-end">END TURN<small id="e-why">1 card max</small></button>
+  </div>
+</div>
+
+<div id="drag"></div>
+
+<div id="cfg">
+  <h2>TUNING</h2>
+  <div class="row">
+    <label>discards/turn <input type="number" id="c-disc" value="3" min="0" max="9"></label>
+    <label>keep/turn <input type="number" id="c-keep" value="1" min="0" max="3"></label>
+    <label>ms per hand <input type="number" id="c-hand" value="1500" min="200" max="4000" step="100"></label>
+    <button id="b-restart">RESTART</button>
+    <button id="b-auto">AUTOPLAY A BOARD</button>
+    <button id="b-dump">DUMP CONFIG</button>
+  </div>
+  <div class="row">
+    <span style="color:var(--cream-dim)">DEAL SCHEDULE</span>
+    <label>T1 <input type="number" id="s1n" value="3" min="1" max="5">x<input type="number" id="s1s" value="4" min="1" max="4"></label>
+    <label>T2 <input type="number" id="s2n" value="3" min="1" max="5">x<input type="number" id="s2s" value="3" min="1" max="4"></label>
+    <label>T3 <input type="number" id="s3n" value="2" min="1" max="5">x<input type="number" id="s3s" value="2" min="1" max="4"></label>
+    <label>T4 <input type="number" id="s4n" value="2" min="1" max="5">x<input type="number" id="s4s" value="1" min="1" max="4"></label>
+  </div>
+  <div class="row">
+    <button id="b-sim">MEASURE FILL RATE (2000 boards)</button>
+    <button id="b-simscore">MEASURE SCORES (500 boards)</button>
+    <span id="log"></span>
+  </div>
+  <div id="out">Drag a card onto the board. Rotate with the button on the card. CONFIRM places it.
+END TURN unlocks once one card or fewer is left in hand.</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   MODEL
+   A piece is a LIST OF {dr,dc,card}. Rotation transforms the offsets and
+   the cards ride along with their own cells, so the rank-to-cell mapping
+   can never drift and there is no reading order to get wrong.
+   ══════════════════════════════════════════════════════════════════════ */
+const N = 5;                               // board is 5x5
+const SUITS = ['h','d','s','c'];
+const SUIT_CH = {h:'♥', d:'♦', s:'♠', c:'♣'};
+const SUIT_CLS = {h:'h', d:'d', s:'s-', c:'c'};
+const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RANK_ORDER = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+
+/* Copied from js/data/cards.js for this standalone page. If the real table
+   moves, this one has to move with it - it is here only so the preview shows
+   numbers that mean something. */
+const HAND_BASE = {
+  'Flush of 3':{pips:15,mult:2}, 'Flush of 4':{pips:20,mult:3}, 'Flush':{pips:25,mult:4},
+  'Pair':{pips:20,mult:2}, 'Two Pair':{pips:30,mult:3}, 'Three of a Kind':{pips:35,mult:3},
+  'Full House':{pips:45,mult:5}, 'Four of a Kind':{pips:60,mult:7},
+  'Run of 3':{pips:25,mult:3}, 'Run of 4':{pips:30,mult:4}, 'Straight':{pips:40,mult:5},
+  'Straight Flush':{pips:100,mult:8}, 'High Card':{pips:0,mult:1}
+};
+const RANK_PIPS = {'J':10,'Q':10,'K':10,'A':11};
+const pipsOf = c => RANK_PIPS[c.rank] || parseInt(c.rank,10);
+
+/* Base polyominoes by cell count. Rotations are derived, not listed. */
+const SHAPES = {
+  1:[ [[0,0]] ],
+  2:[ [[0,0],[0,1]] ],
+  3:[ [[0,0],[0,1],[0,2]], [[0,0],[0,1],[1,0]] ],
+  4:[ [[0,0],[0,1],[0,2],[0,3]], [[0,0],[0,1],[1,0],[1,1]],
+      [[0,0],[0,1],[0,2],[1,1]], [[0,1],[0,2],[1,0],[1,1]],
+      [[0,0],[0,1],[1,1],[1,2]], [[0,0],[1,0],[1,1],[1,2]],
+      [[0,2],[1,0],[1,1],[1,2]] ]
+};
+
+let CFG = { discards:3, keep:1, handMs:1500,
+            schedule:[{n:3,size:4},{n:3,size:3},{n:2,size:2},{n:2,size:1}] };
+
+/* ── deck ─────────────────────────────────────────────────────────────── */
+function freshDeck(){
+  const d=[];
+  for(const s of SUITS) for(const r of RANKS) d.push({rank:r,suit:s});
+  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+/* ── pieces ───────────────────────────────────────────────────────────── */
+let _pid=0;
+function makePiece(size, deck){
+  const forms = SHAPES[size];
+  const form = forms[Math.floor(Math.random()*forms.length)];
+  return { id:'p'+(++_pid),
+           cells: form.map(([dr,dc]) => ({dr,dc,card:deck.pop()})) };
+}
+/* Rotate 90deg clockwise: (r,c) -> (c, maxR-r). The card travels with its cell. */
+function rotate(p){
+  const maxR = Math.max(...p.cells.map(c=>c.dr));
+  p.cells = p.cells.map(c=>({dr:c.dc, dc:maxR-c.dr, card:c.card}));
+  normalise(p);
+}
+function normalise(p){
+  const mr=Math.min(...p.cells.map(c=>c.dr)), mc=Math.min(...p.cells.map(c=>c.dc));
+  p.cells.forEach(c=>{c.dr-=mr;c.dc-=mc;});
+}
+const pieceW = p => Math.max(...p.cells.map(c=>c.dc))+1;
+const pieceH = p => Math.max(...p.cells.map(c=>c.dr))+1;
+
+/* ── state ────────────────────────────────────────────────────────────── */
+let board, hand, deck, turn, discardsLeft, tentative, selected, score, kept;
+
+function newGame(){
+  board = Array.from({length:N},()=>Array(N).fill(null));
+  deck = freshDeck(); hand=[]; turn=0; score=0; kept=null;
+  tentative=null; selected=null;
+  startTurn();
+  renderAll();
+}
+function startTurn(){
+  const spec = CFG.schedule[turn];
+  discardsLeft = CFG.discards;
+  if(spec){
+    for(let i=0;i<spec.n;i++){
+      if(deck.length < spec.size) deck = freshDeck();
+      hand.push(makePiece(spec.size, deck));
+    }
+  }
+}
+
+/* ── placement ────────────────────────────────────────────────────────── */
+function fits(p,r,c){
+  return p.cells.every(cl=>{
+    const rr=r+cl.dr, cc=c+cl.dc;
+    return rr>=0&&cc>=0&&rr<N&&cc<N&&!board[rr][cc];
+  });
+}
+function commit(p,r,c){
+  p.cells.forEach(cl=>{ board[r+cl.dr][c+cl.dc]={...cl.card}; });
+  hand = hand.filter(x=>x!==p);
+}
+const filled = () => board.flat().filter(Boolean).length;
+
+/* ══════════════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const boardEl=$('board'), handEl=$('hand');
+
+function cardHTML(card, cls){
+  return `<div class="card ${cls||''}"><div class="r ${SUIT_CLS[card.suit]}">${card.rank}</div>`+
+         `<div class="s ${SUIT_CLS[card.suit]}">${card.rank}${SUIT_CH[card.suit]}</div></div>`;
+}
+function renderBoard(){
+  boardEl.innerHTML='';
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const d=document.createElement('div');
+    d.className='cell'; d.dataset.r=r; d.dataset.c=c;
+    if(board[r][c]) d.innerHTML = cardHTML(board[r][c]);
+    boardEl.appendChild(d);
+  }
+  paintTentative();
+}
+function paintTentative(){
+  [...boardEl.children].forEach(el=>el.classList.remove('ghost-ok','ghost-bad','tentative'));
+  if(!tentative) return;
+  const {piece,r,c}=tentative;
+  const ok = fits(piece,r,c);
+  piece.cells.forEach(cl=>{
+    const rr=r+cl.dr, cc=c+cl.dc;
+    if(rr<0||cc<0||rr>=N||cc>=N) return;
+    const el=boardEl.children[rr*N+cc];
+    el.classList.add(ok?'ghost-ok':'ghost-bad','tentative');
+    if(ok && !board[rr][cc]) el.innerHTML = cardHTML(cl.card,'dim');
+    else if(!board[rr][cc]) el.innerHTML='';
+  });
+  // clear any stale ghost cards from cells the piece no longer covers
+  for(let r2=0;r2<N;r2++) for(let c2=0;c2<N;c2++){
+    const el=boardEl.children[r2*N+c2];
+    if(!board[r2][c2] && !el.classList.contains('tentative')) el.innerHTML='';
+  }
+}
+const POLY_BOX = { w:102, h:142, gap:2, ratio:4/3 };   // usable area inside a hand card
+function polyHTML(p){
+  const w=pieceW(p), h=pieceH(p);
+  // Fit the piece to the card: solve the mini's width against BOTH axes and take
+  // the smaller, so a 4-wide I-piece and a 4-tall one both land inside.
+  const byW = (POLY_BOX.w - (w-1)*POLY_BOX.gap) / w;
+  const byH = (POLY_BOX.h - (h-1)*POLY_BOX.gap) / h / POLY_BOX.ratio;
+  const mw = Math.max(12, Math.min(30, byW, byH)), mh = mw*POLY_BOX.ratio;
+  const fs = Math.max(6, Math.round(mw*0.34));
+  const map={}; p.cells.forEach(c=>map[c.dr+','+c.dc]=c.card);
+  let s=`<div class="poly" style="grid-template-columns:repeat(${w},${mw}px);`+
+        `--mw:${mw}px;--mh:${mh}px;--mfs:${fs}px">`;
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
+    const card=map[r+','+c];
+    s += card
+      ? `<div class="mini"><div class="r ${SUIT_CLS[card.suit]}">${card.rank}</div>`+
+        `<div class="s ${SUIT_CLS[card.suit]}">${card.rank}${SUIT_CH[card.suit]}</div></div>`
+      : `<div class="mini blank"></div>`;
+  }
+  return s+'</div>';
+}
+function renderHand(){
+  handEl.innerHTML='';
+  hand.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='hcard';
+    if(selected===p) el.classList.add('sel');
+    if(tentative&&tentative.piece===p) el.classList.add('placing');
+    if(p===kept) el.innerHTML='<div class="kept">KEPT</div>';
+    el.innerHTML += polyHTML(p) + '<div class="rot" title="rotate">↻</div>';
+    el.dataset.pid=p.id;
+    handEl.appendChild(el);
+  });
+}
+function renderAll(){
+  renderBoard(); renderHand();
+  $('t-n').textContent = Math.min(turn+1, CFG.schedule.length);
+  $('t-max').textContent = CFG.schedule.length;
+  const spec=CFG.schedule[turn];
+  $('t-deal').textContent = spec ? `${spec.n} x ${spec.size}` : 'scoring';
+  $('t-disc').textContent = discardsLeft;
+  $('t-fill').textContent = filled();
+  $('d-left').textContent = discardsLeft+' left';
+  $('score-big').textContent = score.toLocaleString();
+  $('b-discard').disabled = !selected || discardsLeft<=0;
+  $('b-confirm').disabled = !tentative || !fits(tentative.piece,tentative.r,tentative.c);
+  const canEnd = hand.length <= CFG.keep;
+  $('b-end').disabled = !canEnd;
+  $('e-why').textContent = canEnd ? 'ready' : `${hand.length-CFG.keep} to place`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   INTERACTION - drag to place, rotate on the card, CONFIRM commits
+   ══════════════════════════════════════════════════════════════════════ */
+let dragging=null;
+const dragEl=$('drag');
+
+handEl.addEventListener('pointerdown', e=>{
+  const rot = e.target.closest('.rot');
+  const hc  = e.target.closest('.hcard');
+  if(!hc) return;
+  const p = hand.find(x=>x.id===hc.dataset.pid);
+  if(!p) return;
+  if(rot){ rotate(p); if(tentative&&tentative.piece===p) paintTentative(); renderAll(); return; }
+  selected = p; renderAll();
+  dragging = p;
+  dragEl.style.display='block';
+  dragEl.innerHTML = `<div class="hcard" style="box-shadow:0 14px 26px rgba(0,0,0,.7)">${polyHTML(p)}</div>`;
+  moveDrag(e);
+  hc.classList.add('dragging');
+  e.preventDefault();
+});
+function moveDrag(e){
+  dragEl.style.left=(e.clientX-59)+'px';
+  dragEl.style.top =(e.clientY-84)+'px';
+}
+window.addEventListener('pointermove', e=>{
+  // hand goes see-through while the pointer is over the board, so both read at once
+  const overBoard = !!e.target.closest && !!document.elementFromPoint(e.clientX,e.clientY)?.closest('#board');
+  handEl.classList.toggle('see-through', overBoard && !dragging ? true : !!dragging);
+  if(!dragging) return;
+  moveDrag(e);
+  $('b-discard').classList.toggle('drop-target', !!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard'));
+  const cell = document.elementFromPoint(e.clientX,e.clientY)?.closest('.cell');
+  if(cell){ tentative={piece:dragging,r:+cell.dataset.r,c:+cell.dataset.c}; paintTentative(); renderAll(); }
+});
+window.addEventListener('pointerup', e=>{
+  handEl.classList.remove('see-through');
+  $('b-discard').classList.remove('drop-target');
+  if(!dragging) return;
+  const onDiscard = !!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard');
+  dragEl.style.display='none'; dragEl.innerHTML='';
+  const p=dragging; dragging=null;
+  document.querySelectorAll('.hcard.dragging').forEach(x=>x.classList.remove('dragging'));
+  if(onDiscard && discardsLeft>0){ doDiscard(p); return; }
+  renderAll();
+});
+
+$('b-confirm').onclick = ()=>{
+  if(!tentative) return;
+  const {piece,r,c}=tentative;
+  if(!fits(piece,r,c)) return;
+  commit(piece,r,c);
+  tentative=null; selected=null;
+  renderAll();
+};
+function doDiscard(p){
+  if(discardsLeft<=0) return;
+  discardsLeft--;
+  hand=hand.filter(x=>x!==p);
+  if(tentative&&tentative.piece===p) tentative=null;
+  if(selected===p) selected=null;
+  renderAll();
+}
+$('b-discard').onclick = ()=>{ if(selected) doDiscard(selected); };
+$('b-end').onclick = ()=>{
+  kept = hand[0] || null;
+  tentative=null; selected=null;
+  turn++;
+  if(turn>=CFG.schedule.length){ scoreBoard(); return; }
+  startTurn(); renderAll();
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   HAND EVALUATION - one line of up to 5 cards
+   ══════════════════════════════════════════════════════════════════════ */
+function bestHand(cards){
+  const live = cards.filter(Boolean);
+  if(live.length<2) return {name:'High Card', ...HAND_BASE['High Card'], cards:live};
+  let best={name:'High Card', ...HAND_BASE['High Card'], cards:live};
+  const worth = h => Math.max(h.pips,1)*h.mult;
+  const consider = (name, sub)=>{
+    const b=HAND_BASE[name]; if(!b) return;
+    const h={name, pips:b.pips, mult:b.mult, cards:sub};
+    if(worth(h)>worth(best)) best=h;
+  };
+  const subsets=(arr,k)=>{ const out=[];
+    const go=(i,cur)=>{ if(cur.length===k){out.push([...cur]);return;} if(i>=arr.length)return;
+      cur.push(arr[i]); go(i+1,cur); cur.pop(); go(i+1,cur); };
+    go(0,[]); return out; };
+  for(const k of [5,4,3,2]){
+    if(live.length<k) continue;
+    for(const sub of subsets(live,k)){
+      const rs=sub.map(c=>RANK_ORDER[c.rank]).sort((a,b)=>a-b);
+      const flush = sub.every(c=>c.suit===sub[0].suit);
+      const run = rs.every((v,i)=>i===0||v===rs[i-1]+1);
+      const counts={}; sub.forEach(c=>counts[c.rank]=(counts[c.rank]||0)+1);
+      const cv=Object.values(counts).sort((a,b)=>b-a);
+      if(k===5){
+        if(flush&&run) consider('Straight Flush',sub);
+        if(cv[0]===4) consider('Four of a Kind',sub);
+        if(cv[0]===3&&cv[1]===2) consider('Full House',sub);
+        if(flush) consider('Flush',sub);
+        if(run) consider('Straight',sub);
+      }
+      if(k===4){ if(flush) consider('Flush of 4',sub); if(run) consider('Run of 4',sub);
+                 if(cv[0]===4) consider('Four of a Kind',sub);
+                 if(cv[0]===2&&cv[1]===2) consider('Two Pair',sub); }
+      if(k===3){ if(flush) consider('Flush of 3',sub); if(run) consider('Run of 3',sub);
+                 if(cv[0]===3) consider('Three of a Kind',sub); }
+      if(k===2){ if(cv[0]===2) consider('Pair',sub); }
+    }
+  }
+  return best;
+}
+const lineCards = i => i<N ? board[i].slice() : board.map(r=>r[i-N]);
+function lineName(i){ return i<N ? 'ROW '+(i+1) : 'COL '+(i-N+1); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCORING - one dance per HAND (a row or a column), 10 in all
+   ══════════════════════════════════════════════════════════════════════ */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+let scoring=false;
+async function scoreBoard(){
+  if(scoring) return; scoring=true;
+  $('b-discard').disabled=$('b-confirm').disabled=$('b-end').disabled=true;
+  const lines=[];
+  for(let i=0;i<10;i++){
+    const cards=lineCards(i);
+    const h=bestHand(cards);
+    const pips = h.pips + h.cards.reduce((s,c)=>s+pipsOf(c),0);
+    lines.push({i,h,pips,total:pips*h.mult});
+  }
+  const t0=performance.now();
+  for(const L of lines){
+    const idx=[];
+    for(let k=0;k<N;k++) idx.push(L.i<N ? L.i*N+k : k*N+(L.i-N));
+    idx.forEach(j=>boardEl.children[j].querySelector('.card')?.classList.add('lift'));
+    $('handname').textContent = `${lineName(L.i)}  ${L.h.name.toUpperCase()}`;
+    $('handname').classList.add('on');
+    $('v-pips').textContent=L.pips; $('v-mult').textContent=L.h.mult;
+    await sleep(CFG.handMs*0.45);
+    flyChip(idx, `${L.pips} x ${L.h.mult}`);
+    score+=L.total; $('score-big').textContent=score.toLocaleString();
+    await sleep(CFG.handMs*0.55);
+    idx.forEach(j=>boardEl.children[j].querySelector('.card')?.classList.remove('lift'));
+  }
+  const ms=Math.round(performance.now()-t0);
+  $('handname').classList.remove('on');
+  $('out').textContent =
+    `BOARD SCORED\n  filled ${filled()}/25\n  total ${score.toLocaleString()}\n`+
+    `  tally took ${(ms/1000).toFixed(1)}s for 10 hands at ${CFG.handMs}ms each\n\n`+
+    lines.map(L=>`  ${lineName(L.i).padEnd(6)} ${L.h.name.padEnd(16)} ${String(L.pips).padStart(4)} x ${L.h.mult}  = ${String(L.total).padStart(5)}`).join('\n');
+  scoring=false;
+  setTimeout(()=>{ newGame(); }, 1200);
+}
+function flyChip(idx,text){
+  const first=boardEl.children[idx[0]].getBoundingClientRect();
+  const last=boardEl.children[idx[idx.length-1]].getBoundingClientRect();
+  const el=document.createElement('div');
+  el.className='schip'; el.textContent=text;
+  el.style.left=((first.left+last.right)/2-40)+'px';
+  el.style.top=((first.top+last.bottom)/2-14)+'px';
+  document.body.appendChild(el);
+  const tgt=$('score-big').getBoundingClientRect();
+  el.animate([{transform:'translate(0,0) scale(1)',opacity:1},
+              {transform:`translate(${tgt.left-parseFloat(el.style.left)+20}px,${tgt.top-parseFloat(el.style.top)+10}px) scale(.6)`,opacity:0}],
+             {duration:CFG.handMs*0.5,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>el.remove();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   HEADLESS MEASUREMENT - does the deal schedule actually fill the board?
+   A greedy bot: for each dealt piece try every cell and rotation, take the
+   placement that leaves the fewest isolated single-cell holes.
+   ══════════════════════════════════════════════════════════════════════ */
+function simBoard(cfg){
+  const b=Array.from({length:N},()=>Array(N).fill(null));
+  let dk=freshDeck(), keptPiece=null, placed=0;
+  const fitsB=(p,r,c)=>p.cells.every(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
+    return rr>=0&&cc>=0&&rr<N&&cc<N&&!b[rr][cc];});
+  const holes=()=>{ let n=0;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){ if(b[r][c])continue;
+      let open=0;
+      if(r>0&&!b[r-1][c])open++; if(r<N-1&&!b[r+1][c])open++;
+      if(c>0&&!b[r][c-1])open++; if(c<N-1&&!b[r][c+1])open++;
+      if(open===0)n++; }
+    return n; };
+  for(let t=0;t<cfg.schedule.length;t++){
+    const spec=cfg.schedule[t];
+    let h=[]; if(keptPiece){h.push(keptPiece);keptPiece=null;}
+    for(let i=0;i<spec.n;i++){ if(dk.length<spec.size) dk=freshDeck(); h.push(makePiece(spec.size,dk)); }
+    let disc=cfg.discards;
+    while(h.length>cfg.keep){
+      let best=null;
+      for(const p of h){
+        for(let rot=0;rot<4;rot++){
+          for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+            if(!fitsB(p,r,c))continue;
+            p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=cl.card);
+            const sc=holes()*10 - p.cells.length;
+            p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=null);
+            if(!best||sc<best.sc) best={sc,p,r,c,cells:p.cells.map(x=>({...x}))};
+          }
+          rotate(p);
+        }
+      }
+      if(best){ best.cells.forEach(cl=>b[best.r+cl.dr][best.c+cl.dc]=cl.card);
+                placed+=best.cells.length; h=h.filter(x=>x!==best.p); }
+      else if(disc>0){ disc--; h.pop(); }
+      else break;
+    }
+    keptPiece=h[0]||null;
+  }
+  return {b, filled:placed};
+}
+$('b-sim').onclick = ()=>{
+  readCfg();
+  const runs=2000, dist={}; let sum=0, full=0;
+  for(let i=0;i<runs;i++){ const f=simBoard(CFG).filled; dist[f]=(dist[f]||0)+1; sum+=f; if(f>=25)full++; }
+  const keys=Object.keys(dist).map(Number).sort((a,b)=>a-b);
+  $('out').textContent =
+    `FILL RATE over ${runs} boards (greedy bot, rotation on)\n`+
+    `  schedule ${CFG.schedule.map(s=>s.n+'x'+s.size).join('  ')}\n`+
+    `  discards/turn ${CFG.discards}   keep ${CFG.keep}\n\n`+
+    `  mean filled  ${(sum/runs).toFixed(2)} / 25  (${(sum/runs/25*100).toFixed(1)}%)\n`+
+    `  reached 25   ${(full/runs*100).toFixed(1)}%\n\n`+
+    keys.map(k=>`  ${String(k).padStart(2)} cells  ${String(dist[k]).padStart(5)}  ${'#'.repeat(Math.round(dist[k]/runs*120))}`).join('\n');
+};
+$('b-simscore').onclick = ()=>{
+  readCfg();
+  const runs=500; let sum=0, lo=1e9, hi=0; const names={};
+  for(let i=0;i<runs;i++){
+    const {b}=simBoard(CFG);
+    let tot=0;
+    for(let j=0;j<10;j++){
+      const cards = j<N ? b[j].slice() : b.map(r=>r[j-N]);
+      const h=bestHand(cards);
+      names[h.name]=(names[h.name]||0)+1;
+      tot += (h.pips + h.cards.reduce((s,c)=>s+pipsOf(c),0)) * h.mult;
+    }
+    sum+=tot; lo=Math.min(lo,tot); hi=Math.max(hi,tot);
+  }
+  $('out').textContent =
+    `BOARD SCORE over ${runs} boards (no Tricks, base values only)\n\n`+
+    `  mean ${Math.round(sum/runs).toLocaleString()}   min ${lo.toLocaleString()}   max ${hi.toLocaleString()}\n\n`+
+    `  hand types across ${runs*10} lines:\n`+
+    Object.entries(names).sort((a,b)=>b[1]-a[1])
+      .map(([n,c])=>`    ${n.padEnd(17)} ${String(c).padStart(5)}  ${(c/(runs*10)*100).toFixed(1)}%`).join('\n');
+};
+function readCfg(){
+  CFG.discards=+$('c-disc').value; CFG.keep=+$('c-keep').value; CFG.handMs=+$('c-hand').value;
+  CFG.schedule=[1,2,3,4].map(i=>({n:+$('s'+i+'n').value, size:+$('s'+i+'s').value}));
+}
+$('b-restart').onclick=()=>{ readCfg(); newGame(); };
+$('b-dump').onclick=()=>{ readCfg();
+  $('out').textContent='const PS_CFG = '+JSON.stringify(CFG,null,2)+';'; };
+$('b-auto').onclick=()=>{ readCfg();
+  const {b}=simBoard(CFG); board=b; hand=[]; turn=CFG.schedule.length;
+  renderAll(); scoreBoard(); };
+
+/* expose for headless measurement */
+window.PS = { simBoard, bestHand, get CFG(){return CFG;}, set CFG(v){CFG=v;}, readCfg, newGame,
+              get board(){return board;}, get hand(){return hand;}, rotate, makePiece, freshDeck, pipsOf };
+
+newGame();
+</script>
+</body>
+</html>
