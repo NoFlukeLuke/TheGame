@@ -3840,6 +3840,201 @@ because a marked line IS the whole hand rather than part of one - Power Line on 
 marked row measured x11 mult on that row's line. That is a tuning call, not a
 bug, so nothing has been quietly retuned.
 
+### The daily grids (r311) - `js/squares-daily.js`
+
+Owner: *"I thought this might make a cool daily game like wordle. But it needs to
+be less roguelike."* Two smaller boards beside the 5x5, picked on a new **size
+console** that now opens the mode: **3 x 3**, **4 x 4**, or the 5x5 as it was.
+
+`sqDaily()` is the one test - true whenever `squaresActive()` and `SQD_SIZES`
+knows the board size - and everything below dispatches on it. **The 5x5 is
+byte-identical**: it keeps its turns, its Tricks, its pips x mult, its SCORE ALL
+/ SELECT SCORE console and its ten rounds, and none of the new CSS can reach it
+because all of it hangs off the `squares-daily` class.
+
+| | 5x5 | a daily |
+|---|---|---|
+| structure | 10 rounds | **3 grids** |
+| tiles | 3 a turn over 4 turns | **every tile at once**, one commit |
+| inventory | tetrominoes | **1-, 2- and 3-cell pieces only** |
+| scoring | real `calcScore`, pips x mult | **base + card values**, no multiplier |
+| between | a Trick and a consumable | **one boon, rolled and granted** |
+| submit | END TURN | **SUBMIT**, refused until the board is full |
+| undo | discard a tile | **TAKE BACK**, an undo stack |
+
+**THE SURPLUS IS THE PUZZLE.** 12 cells of tiles for 9 of board (3x3) and 19 for
+16 (4x4) - the owner's counts - so what you LEAVE OUT is as much of the decision
+as what you place. Three spare cells in both, which is enough that there is
+always more than one legal packing and never so much slack that shape stops
+mattering. `sqdSpare()` is that arithmetic and the board's banner prints it.
+
+**No turns, so no `TURN n/4` banner and no Trick tray.** A daily takes no Tricks
+at all (owner's call): two people playing the same board have to be comparable,
+and a Trick is exactly the thing that makes two runs of one board score
+differently. `#trick-tray-area` is hidden rather than left as an empty panel, and
+in portrait `#trick-panel` goes with it - the hand preview was re-parented into
+`#main` in r309 and the knack row is already the consumables, so the whole box
+was a dead band above the board. **Three top-bar stats go too** (LEVEL, COINS,
+HAND): `level` never advances here, no credits are ever earned or spent, and
+nothing is selected into a hand.
+
+#### Scoring: base + card values, no multiplier
+
+Owner's rule. **Ace 5, court 3, everything else 1** (`sqdCardValue`), and a line
+pays its **hand base plus the sum of its cards**. Nothing multiplies. Every line
+therefore pays something, which is what stops a dead row reading as a wasted row.
+
+**`sqdHandName` is a 3- and 4-card namer and had to be written.** `sqHandName`
+gates runs and flushes on `cards.length >= 5`, which is correct for the 5x5 and
+would call every line here a High Card.
+
+**THE TABLES ARE PRICED BY MEASURED REACHABILITY, NOT BY POKER.** A line is 3 or
+4 cards and you choose where every card goes, so the odds have nothing to do with
+a five-card draw. Measured by exhaustively packing real deals and asking which
+hands could be made AT ALL: **3x3** - Pair 100%, Flush 100%, Run 93%, Trips 43%,
+Straight Flush 35%. **4x4** - Pair / Two Pair / Flush / Run 100%, Trips 83%,
+Straight Flush 25%, Four of a Kind 8%.
+
+Two places that disagrees with poker, and both are the geometry talking:
+- **On a 3-card line trips (43%) is COMMONER than a suited run (35%)**, because
+  three suited consecutive cards are easier to find among twelve than three of
+  one rank. So the straight flush stays on top, as in three-card poker.
+- **On a 4-card line quads (8%) is rarer than a straight flush (25%)**, so quads
+  pays more (90 against 55). That is the reverse of the five-card game and it is
+  what the board actually produces.
+
+#### The boons
+
+Between grids, ONE is rolled and granted with no choice in it (owner's call).
+Either a line scores **double**, or every card in a line is worth **+2**, or you
+get one of the mode's own **consumables**. They ACCUMULATE, so grid 1 is plain,
+grid 2 carries one and grid 3 carries two: the run escalates without the player
+steering it. A line boon never lands twice on one line with the same kind -
+stacking two doubles is a much bigger swing than the roll is meant to be, and it
+reads as the game repeating itself.
+
+**`+N per card` lands INSIDE the doubling**, because a boon on a doubled line
+should be worth double too; that is the only reading under which the two compose
+rather than fight.
+
+#### PAR - "the best this board could have paid"
+
+Owner asked to be shown the best possible score, after submitting. The report
+prints it per grid and for the run, with the percentage reached.
+
+**The 3x3 is PROVEN and the 4x4 is not, and the labels say which** - "best
+possible" against "best found". The difference is the size of the space:
+
+| | packings | search |
+|---|---|---|
+| 3x3 | ~5,000-32,000 | **exhaustive**, 45-70ms |
+| 4x4 | **over 1.6 BILLION** (counted, uncapped) | beam, ~100ms |
+
+**THE 4x4 IS A BEAM SEARCH AND THE FIRST ANSWER - RANDOMISED RESTARTS - WAS A
+BAD ONE.** Measured against a 12-second random search on the same four deals, a
+260ms random search returned 157/147/136/140 where the long one found
+183/159/166/164, about **15% short**. That is the one failure mode this feature
+cannot have: a player who BEATS the "best possible" reads it as broken.
+
+`sqdBeamPar` walks the same forced exact-cover order - always fill the first
+empty cell - but keeps the best `SQD_BEAM_WIDTH` (2000) partial boards at each
+level instead of one path. Three things make that work:
+- **ROW-MAJOR FILLING MAKES ROWS EXACT EARLY.** By the time the frontier is in
+  row 3, rows 1 and 2 are finished and their scores are final, so most of the
+  estimate is real rather than guessed.
+- **A PARTIAL LINE IS SCORED AS IF IT WERE THE WHOLE LINE.** A column holding two
+  hearts already reads as a flush, which is exactly the bias wanted. It is not an
+  upper bound and is not trying to be - nothing is pruned on it. A SHORT line may
+  not claim the line's own hand, though: three cards of a 4-line are not a Flush
+  of 4, and letting them read as one makes the beam chase a hand it cannot
+  finish.
+- **NO DEDUPE IS NEEDED.** Filling the first empty cell means the ORDER of
+  placements is forced by the board, so every distinct board is reached by
+  exactly one path.
+
+A child's estimate is its parent's with only the LINES THE PIECE TOUCHES
+rescored - at most 3 rows and 3 columns - which is what keeps a 20,000-child
+level inside a frame.
+
+**BOTH FILL ORDERS, AND NOTHING ELSE.** Column-major is the mirror bias (columns
+finish first) and the two genuinely disagree: over 12 deals, row-major alone was
+better on 2, column-major alone on 5, and they tied on 5. Against an
+**eight-second** random search the pair wins or ties **10 of 12**. A 180ms random
+restart phase bolted on top beat them on **0 of 12** and was taken out rather
+than left in to cost 180ms a grid; the random path is KEPT in `sqdSearchPar` as
+the measuring stick the beam was validated against, which is the only way to
+re-check that claim if the tables or the inventory move.
+
+**A WIDER BEAM BUYS NOTHING.** Measured: w2000 and w40000 returned the SAME
+number on five of six deals, at 36ms against 600ms.
+
+**A "best" the player has already beaten is worse than no best at all.** The
+4x4's figure is a search, not a proof, so `sqEndRound` raises it to whatever the
+player actually found. The 3x3's is exhaustive and is left alone, because being
+beaten there would be a real bug and it should say so.
+
+**Par is computed AT DEAL TIME, not at submit** - the board is known the moment
+it is dealt and the deal animation is the one place a ~100ms search can hide.
+
+#### Consistency, which is what the owner actually asked for
+
+Owner: *"could you design levels that encourage more consistent scoring than the
+5x5 mode seems to have. I feel like the 5x5 mode is really hard to get more than
+pairs in a few rows and maybe one 5-card hand."* Measured at the best packing the
+search finds, over 60 deals each:
+
+| | lines paying a real hand | the mix |
+|---|---|---|
+| **3x3** | **58%** (3.5 of 6) | Pair 23 · Flush 14 · Run 11 · SF 5 · Trips 4 |
+| **4x4** | **75%** (6.0 of 8) | Pair 28 · Run 16 · Flush 14 · Trips 12 · Two Pair 3 |
+| 5x5 (r309) | ~66% | but **Pair 42% and High Card 34% is most of it** |
+
+So on a 4x4 nearly half of every line is a hand BETTER than a pair, against the
+5x5 where pairs and dead lines are 76% of the board. **That is structural, not a
+tuning trick**: shorter lines, full information, surplus tiles and free
+placement.
+
+#### The tile tray is a GRID here
+
+The 5x5 holds at most three tiles, so a row of thirds is the whole answer there.
+A daily is handed **every** tile at once - 7 on the 3x3 and 11 on the 4x4 - and
+eleven thirds is eleven 40px slivers with unreadable minis on them. **Three rows,
+always**, with the columns from the inventory (3 across for the 3x3, 4 for the
+4x4), as EXPLICIT tracks rather than auto rows - which is what keeps r309's rule
+that a tile does not change size as the hand empties, because the tracks do not
+care how many items are left.
+
+- **`sq-n3` / `sq-n4` on `#stage`** carry the column count, because CSS cannot
+  count children.
+- **THE GRID HAS TO BE RESTATED AT THE PORTRAIT RULE'S OWN SPECIFICITY.** r309's
+  `#stage:not(.landscape).squares-mode #selected-cards` is two ids, two classes
+  and a pseudo-class and carries `display:flex !important` to beat
+  `syncTrickTrayUI`'s inline style, so the shared `#stage.squares-daily` grid
+  loses to it and the eleven tiles went straight back to being slivers.
+- **The portrait tray reserves three rows for the whole phase**, even at one tile
+  left. Letting it shrink was tried and is worse: in portrait it is a flex child,
+  so its height is the board's - measured, the board went 241x312 to 320x415 as
+  the last tiles went down, which is cards moving under a finger that is dragging
+  onto them. A dead band at the foot of the tray is the better of the two. It
+  does not arise in landscape, where the tray is an absolutely-positioned panel.
+
+#### A mode's own children of `#grid` have to be removed by hand
+
+Found here and **pre-existing since r303**. `render()` reconciles elements
+carrying `[data-card-id]` and leaves anything else alone, so an empty `.sq-slot`,
+a `.sq-ghost` or `#sq-banner` survived into the NEXT mode and painted over its
+board - measured, **9 slots from a 3x3 were still there under Classic's 16
+cards**. `squaresTeardown` takes them out. Same shape as the r248 crossroads
+tiles.
+
+#### Not built, deliberately
+
+**There is no daily SEED yet** - the owner asked for the sizes "for our purposes
+for testing right now", so a board is a fresh shuffle. A Wordle-style shared
+board is one call to `applyRunSeed` with a date-derived seed at
+`squaresBeginRun`, plus a way to show the result; the scoring is already
+comparable, which was the point of taking the Tricks out.
+
 ### `MODE_EXTRA_LIST` (js/progress-unlock.js)
 
 Appended after the finale group and **not gated**. `modeUnlocked` already answers
