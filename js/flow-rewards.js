@@ -372,6 +372,10 @@ const FLOWR_DECK_OPS = [
 ];
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;
+let _flowrPlayHTML = null;
+// render()'s button guard asks this (the r247 takeover rule): while the deck
+// edit is up, PLAY is the APPLY button and render must not write over it.
+function flowrDeckActive() { return !!_flowrDeckOp; }
 
 function flowrShowDeckPick() {
   const ops = shuffle(FLOWR_DECK_OPS.slice()).slice(0, 3);
@@ -396,27 +400,50 @@ function flowrDeckBegin(op) {
   // cards are real deck cards and a buff on one persists through the deal.
   try { render(); } catch (e) {}
   flowrDeckBanner();
+  // The board's own action column is the editor's: PLAY becomes APPLY for the
+  // buff ops (the shop's BUY pattern - save the markup, restore on exit).
+  // render()'s button guard skips its disabled writes while flowrDeckActive().
+  const play = document.getElementById('btn-play');
+  if (play) {
+    if (_flowrPlayHTML === null) _flowrPlayHTML = play.innerHTML;
+    play.classList.add('reward-buy');
+    play.innerHTML = 'A<br>P<br>P<br>L<br>Y';
+    play.disabled = true;   // buff ops enable it once a card is picked
+  }
+  const disc = document.getElementById('btn-discard');
+  if (disc) disc.disabled = true;
   const gridEl = document.getElementById('grid');
   // CAPTURE PHASE, the squares rule: input.js binds its own pointerdown here and
   // a tap means "select into a hand", which this screen does not have.
   gridEl?.addEventListener('pointerdown', flowrDeckTap, true);
 }
 
+// The APPLY press: a capture listener on the play button, the Poker Squares
+// pattern. The tricks-ui playHand listener on the same button no-ops with
+// nothing selected, so it cannot double-fire underneath.
+document.getElementById('btn-play')?.addEventListener('click', e => {
+  if (!_flowrDeckOp || !_flowrDeckOp.buff) return;
+  e.stopPropagation();
+  flowrBuffConfirm();
+}, true);
+
+// The banner sits OVER THE CHIPS ROW, never over the board (owner's call - it
+// was covering the top cards). It mounts on #stage: in landscape it takes the
+// left column's chip band (the .score-subbox row is display:none on every
+// grid-screen and #screen-location says DECK EDIT, so the space is free), and
+// in portrait the top-bar band. CSS owns the placement; stage px throughout.
 function flowrDeckBanner() {
-  const host = document.getElementById('grid-slot');
-  if (!host) return;
+  const host = document.getElementById('stage') || document.body;
   document.getElementById('flowr-banner')?.remove();
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
   if (op.buff) {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to 3 cards · <i id="fb-count">0/3</i></span>`
-      + `<button id="fb-confirm" disabled>APPLY</button>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to 3 cards, then press APPLY · <i id="fb-count">0/3</i></span>`;
   } else {
     el.innerHTML = `<b>${op.name}</b><span id="fb-note">${op.desc.split('.')[0]}.</span>`;
   }
   host.appendChild(el);
-  document.getElementById('fb-confirm')?.addEventListener('click', flowrBuffConfirm);
 }
 
 function flowrDeckFindCell(el) {
@@ -452,7 +479,7 @@ function flowrDeckTap(e) {
   else if (_flowrDeckSel.length < 3) { _flowrDeckSel.push({ id: String(cd._id), r, c, cd, el: cardEl }); cardEl.classList.add('flowr-sel'); }
   const n = _flowrDeckSel.length;
   const cnt = document.getElementById('fb-count'); if (cnt) cnt.textContent = n + '/3';
-  const btn = document.getElementById('fb-confirm'); if (btn) btn.disabled = n === 0;
+  const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
   try { sfxCardSelect?.(); } catch (e2) {}
 }
 
@@ -541,7 +568,7 @@ function flowrBuffConfirm() {
   const winners = new Set(shuffle(_flowrDeckSel.slice()).slice(0, q).map(s => s.id));
   const v = flowrValRoll(b.range);
   const label = b.x ? `×${v} ${b.word.replace('× ', '')}` : `+${v}${b.word === 's' ? 's' : ' ' + b.word}`;
-  document.getElementById('fb-confirm')?.setAttribute('disabled', '');
+  const _pb = document.getElementById('btn-play'); if (_pb) _pb.disabled = true;
   _flowrDeckSel.forEach((s, i) => {
     setTimeout(() => {
       const won = winners.has(s.id);
@@ -564,6 +591,14 @@ function flowrDeckEnd() {
   document.getElementById('grid')?.removeEventListener('pointerdown', flowrDeckTap, true);
   document.getElementById('flowr-banner')?.remove();
   document.body.classList.remove('flowr-deck');
+  // Hand the play button back (the exitShopGridButtons shape); render() paints
+  // the real disabled state on the next repaint.
+  const play = document.getElementById('btn-play');
+  if (play && _flowrPlayHTML !== null) {
+    play.classList.remove('reward-buy');
+    play.innerHTML = _flowrPlayHTML;
+    play.disabled = true;
+  }
   document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-hit, .flowr-won, .flowr-miss')
     .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-hit', 'flowr-won', 'flowr-miss'));
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();

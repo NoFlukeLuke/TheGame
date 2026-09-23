@@ -7853,6 +7853,31 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r328 - the deck edit's banner is off the board, APPLY is the play button
+
+Owner: *"it looks like that pop up might be covering the top cards no? Maybe that
+pop can go over the scoring chips and use the grid's normal confirm button."*
+Both halves done.
+
+- **`#flowr-banner` mounts on `#stage` and never touches the board.** Landscape
+  takes the left column's CHIP BAND (`left:1.56%; top:18.06%; width:37.74%` -
+  the `#score-subboxes` box, whose chips are `display:none` on every grid-screen,
+  so the space is free; it covers the LOCATION chip, and names the op itself);
+  portrait takes the band above the board. Measured: **0 of 16 cards intersect
+  the banner** in both orientations, both op kinds.
+- **APPLY is `#btn-play`, the shop's BUY pattern**: markup saved, `reward-buy`
+  class, `A/P/P/L/Y`, disabled until a card is picked, restored in
+  `flowrDeckEnd`. The press is a CAPTURE listener guarded on `_flowrDeckOp.buff`
+  (the Poker Squares shape - the tricks-ui playHand listener on the same button
+  no-ops with nothing selected). `render()`'s r247 `_takeover` guard gained
+  `flowrDeckActive()`, so a repaint mid-edit cannot stamp the real disabled
+  state over it. `#fb-confirm` is gone from the banner.
+- Verified in a real browser at 1440x820 and 420x900 through the real click
+  path: buff select -> APPLY enables -> click applies (+10 pips on the rolled
+  subset) and the chain finishes with the button back on PLAY; an adjacency op
+  runs with APPLY staying dark; **a normal hand still submits off the same
+  button afterwards**. 0 page errors.
+
 ## r325 - the Flow multi-reward chain (js/flow-rewards.js + css/flow-rewards.css)
 
 Owner spec across two turns. A Flow goal clear can pay **up to 5 reward screens**,

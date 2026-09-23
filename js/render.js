@@ -300,7 +300,8 @@ function render() {
   // paints them from sqPaintButtons, so render() must not write over them.
   const _takeover = (typeof squaresActive === 'function' && squaresActive())
                  || (typeof shopGridActive !== 'undefined' && shopGridActive)
-                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+                 || (typeof flowrDeckActive === 'function' && flowrDeckActive());
   if (!_takeover) {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.

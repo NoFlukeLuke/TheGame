@@ -59,14 +59,26 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
   color: var(--fst-c); padding-top: 3px; opacity: .9;
 }
 
-/* ── DECK EDIT takeover ── */
+/* ── DECK EDIT takeover ──
+   The banner NEVER sits over the board (it was covering the top row of
+   cards). It mounts on #stage: landscape takes the left column's chip band -
+   the .score-subbox row is hidden on every grid-screen, so that space is
+   free - and portrait takes the band above the board. Confirming is the
+   grid's own PLAY button, repurposed as APPLY. */
 #flowr-banner {
-  position: absolute; left: 50%; top: 4px; transform: translateX(-50%);
-  z-index: 30; display: flex; align-items: center; gap: 10px;
-  max-width: calc(100% - 12px);
+  position: absolute; z-index: 30;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; text-align: center;
   background: #131126; border: 2px solid #4aa3e0; border-radius: 7px;
   box-shadow: 0 0 16px rgba(74, 163, 224, .35), 0 4px 14px rgba(0, 0, 0, .55);
-  padding: 6px 12px;
+  padding: 6px 10px;
+  /* portrait: the strip above the board, full width */
+  left: 8px; right: 8px; top: 44px;
+}
+#stage.landscape #flowr-banner {
+  /* the chip band's own box (see #stage.landscape #score-subboxes) */
+  left: 1.56%; right: auto; top: 18.06%; width: 37.74%; min-height: 11.11%;
+  box-sizing: border-box;
 }
 #flowr-banner b {
   font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px;
@@ -74,15 +86,8 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
 }
 #flowr-banner span {
   font-family: 'Share Tech Mono', monospace; font-size: 9px; color: #8fa8c8;
-  white-space: nowrap;
 }
 #flowr-banner i { font-style: normal; color: #ffe9a8; }
-#flowr-banner button {
-  font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px;
-  background: #1d4633; color: #7dffc9; border: 1px solid #3fae7c;
-  border-radius: 5px; padding: 5px 12px; cursor: pointer;
-}
-#flowr-banner button:disabled { opacity: .35; cursor: default; }
 
 /* the board wears the editor's tint so it cannot be mistaken for a live round */
 body.flowr-deck #grid::after {

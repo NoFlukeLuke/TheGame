@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r327 · merge: Flow multi-reward chain (r325 branch) + the Trick balance pass (r326 main)";
+const BUILD = "2026-09-23 · r328 · deck edit: the banner sits over the chip band (never the board) and APPLY is the grid's own play button";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
