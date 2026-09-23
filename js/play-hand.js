@@ -37,8 +37,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // canBeOrderedRun, which is what the r203 note was really protecting: it reads
     // gridData, which is empty between screens, and calling it unconditionally
     // throws there (caught in a browser run).
-    if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells))
-      totalFocus += handCells.length * BAL.correct_run.focus_per_card * trickFires('correct_run');
+    if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells) && trickPickOne(0, handCells) === 2)
+      totalFocus += BAL.correct_run.focus * trickFires('correct_run');
     // Resonance: Pairs/Two Pairs containing a 2 or 4 add +2 Focus per card
     if ((hand === 'Pair' || hand === 'Two Pair') &&
         handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
@@ -52,8 +52,10 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // Lucky Sevens: +3 Focus per 7 scored
     { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
-    // Threepeat: hand pip-sum divisible by 3 → +3 Focus
-    { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
+    // Threepeat: hand pip-sum divisible by 3 → one of rewind / mult / Focus
+    { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && trickPickOne(911, handCells) === 2) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
+    // Wildfire: reaching a same-hand streak of 3 adds Focus
+    if (hasTrick('wildfire') && lastHandType === hand && streakCount + 1 === 3) totalFocus += BAL.wildfire.focus * trickFires('wildfire');
     // The Falcon: hands played while the clock is paused add +10 Focus
     if (pipeTimerPaused) totalFocus += BAL.frozen_moment.focus * trickFires('frozen_moment');
     // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
@@ -363,13 +365,9 @@ function playHand() {
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
-  // Minute Hand spends ONE of its primed hands (r209). Decremented here rather
-  // than inside calcScore because calcScore is also called speculatively by
-  // findBestHand and by the live PIPS/MULT preview, which must not consume it.
-  if (minuteHandCharges > 0 && hasTrick('minute_hand')) {
-    minuteHandCharges--;
-    if (minuteHandCharges === 0) showMessage('🕐 Minute Hand spent', 'var(--cream-dim)');
-  }
+  // Minute Hand's charge is spent here rather than inside calcScore because
+  // calcScore is also called speculatively by findBestHand and the live preview.
+  if (minuteHandCharges > 0 && hasTrick('minute_hand')) minuteHandCharges = 0;
   // Scaling card buffs: a card carrying permMultGrow / permPipsGrow raises its
   // own FLAT bonus now, so the growth shows on its next play (js/deck-grid.js).
   if (typeof growCardScaling === 'function') growCardScaling(result.handCells.map(([r, c]) => gridData[r]?.[c]));
@@ -527,7 +525,7 @@ function playHand() {
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
-    if (_ps % 3 === 0) {
+    if (_ps % 3 === 0 && hasTrick('ninesong') && trickPickOne(911, handCells) === 0) {
       const _ns = BAL.ninesong.seconds * trickFires('ninesong');
       if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
     }
@@ -653,20 +651,20 @@ function playHand() {
   // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
   // the goal checks, called from all three dance sites (r294).
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
-  if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
   // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
   if (hasTrick('acorns')) bonusFocus_acorns += handCells.length * BAL.acorns.focus_per_card;
   // Feng Shui: grow its permanent pips when another position trick fired this hand
-  if (hasTrick('feng_shui') && _lastHandPositionFired) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
+  if (hasTrick('feng_shui') && handCells.some(([r,c]) => rowColBonuses.some(b => (b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)))) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
   // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
   if (hasTrick('assembly_line')) assemblyMarkCount = _lastHandAssemblyEnd;
   // Ley Line: a card scored where a row effect and a column effect cross gains permanent +mult, once per minute
   if (hasTrick('rowcol_perm_double')) {
-    const _lc = handCells.find(([r,c]) => isEffectIntersection(r, c));
-    if (_lc && firesThisMinute('rowcol_perm_double')) {
-      const _lcc = gridData[_lc[0]]?.[_lc[1]];
-      if (_lcc && _lcc.rank) { const _lk = cardId(_lcc); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
-    }
+    let _ln = 0;
+    handCells.forEach(([r,c]) => {
+      const _lcc = gridData[r]?.[c];
+      if (isEffectIntersection(r, c) && _lcc && _lcc.rank) { const _lk = cardId(_lcc); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; _ln++; }
+    });
+    if (_ln) showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8');
   }
   // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
   // when scored" buff (reuses The Vulture's _vulturePause pipeline). Once per minute, and it skips
@@ -679,15 +677,6 @@ function playHand() {
     }
   }
   // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)
-  if (hasTrick('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
-  if (hasTrick('snowball') && lastCalcPips >= BAL.snowball.score_threshold) {
-    result.handCells.forEach(([r,c]) => {
-      const card = gridData[r]?.[c]; if (!card || !card.rank) return;
-      const k = cardId(card);
-      permPips[k] = (permPips[k]||0) + BAL.snowball.pips;
-    });
-    showMessage('Snowball! +2 pips to scored cards', '#e8c56b');
-  }
 
   // ── Card curses: apply per-score effects and work them off ──
   // Each scored cursed card ticks its curse down; at 0 the curse lifts.

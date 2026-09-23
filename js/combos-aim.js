@@ -2,8 +2,8 @@ const COMBO_FAMILIES = [
   { id:'discard_furnace',   name:'Discard Furnace',   slots:['free_discards','hoarder','discard_pips','landfill'] },
   { id:'retrigger_cascade', name:'Retrigger Cascade', slots:['soul_mirror',['reflect','corner_retrigger','rowcol_retrigger'],'club_double','high_and_mighty'] },
   { id:'priming_press',     name:'Priming Press',     slots:[['wild_heart','prime_times'],'twos_retrigger','muscle_memory'] },
-  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'snowball','old_growth'] },
-  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','stand_up','scalper'],['coin_toss','martyr']] },
+  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'old_growth'] },
+  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','scalper'],['coin_toss','martyr']] },
   { id:'frozen_hour',       name:'Frozen Hour',       slots:['high_water','frozen_moment','sands_of_time'] },
   { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state',['ancient_grove','richter'],['rhythm','kaleidoscope','before_the_tide']] },
   { id:'position_lock',     name:'Position Lock',     slots:[['rowcol_mult','rowcol_retrigger','rowcol_perm_double'],['shape_square','two_corners','shape_cross'],'magnet'] },
@@ -165,24 +165,19 @@ let _altSwapCount = 0;           // Mockingbird: counts hand-type alternations t
 // consumed by the next hand played (see calcScore / playHand). Reset each round.
 let _discardContextCards = null; // set during a discard so on_discard sleights can inspect co-discarded cards (Sandbagger)
 let pendingHandPips = 0;   // Quarter Chime: +45 pips per multiple-of-15 second passed
-let pendingHandMult = 0;   // generic "+N mult to the next hand" accrual, consumed in playHand
-// Minute Hand (reworked r209). It used to add +3 mult to ONE next hand, which is
-// the same shape as Quarter Chime and gave the player nothing to see: the number
-// arrived, was spent on whatever hand came next, and left. It now PRIMES for a
-// fixed number of hands, so it has a state the timer widget can show - a charge
-// count on the tile - and the player can choose which two hands spend it.
-// A fresh minute mark re-primes to the full count rather than stacking; the value
-// of holding a mark is meant to be playing the two hands, not banking marks.
+let pendingHandMult = 0;   // Second Hand's mult outcome, accrued per 10s mark
+// Minute Hand: 1 while a 30s mark has charged the next hand with x mult.
 let minuteHandCharges = 0;
 // The Understudy knack (r209): the next round-second mark at which it primes a
 // random Trick. A mark rather than a countdown so a rewind re-crosses it, the
 // same way every other clock-mark entity behaves.
 let understudyNextMark = 0;
-let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
+let pendingCardPips = 0;   // Second Hand's pips outcome, accrued per 10s mark
 
 // ── Timing/Streak batch: pause-themed Trick state ──
 let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
 let rewoundSecondsRound = 0;  // total seconds rewound (given back) this round (Kingfisher)
+let rewindInstanceGame = 0;   // PER GAME: number of clock rewinds triggered (Hummingbird); reset only at newGame
 let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
 let pausesThisRound = 0;      // PER ROUND: how many times the clock has been paused (time popup)
 let rewindsThisRound = 0;     // PER ROUND: how many times the clock has been rewound (time popup)
