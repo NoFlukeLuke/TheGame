@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r330 · the WILD card: takes any rank to complete a set, never a run or a flush, no pips and no Tricks; four in the classic and six-suit decks";
+const BUILD = "2026-09-24 · r332 · the board PERSISTS between rounds: the same cards come back to the same cells and only holes fill, so a new row or column deals fresh cards and a buffed card stays yours";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -715,6 +715,64 @@ function discardToPlayed(card) {
   playedPile.push(recycleCard(card)); updateDeckHud();
 }
 
+// ══════════════════════════════════════════════
+// THE BOARD PERSISTS BETWEEN ROUNDS (r332)
+// ══════════════════════════════════════════════
+// Owner's call. A round used to end by discarding EVERY cell to playedPile and
+// dealing a fresh boardful next round, so a card you had spent the run buffing
+// was a card you might simply never see again. The board is now a position you
+// keep: the same cards come back to the same cells, and only HOLES are filled -
+// which is exactly what a grid-size upgrade creates, so a new row or column
+// fills with fresh cards at the next round start and nothing else moves.
+//
+// **The rest of the deck cycle is unchanged.** A card that SCORES still leaves
+// the board for playedPile and is replaced by a draw there and then; a card you
+// DISCARD still goes to the back of drawPile; flushPlayedDeck() still runs at
+// every level-up. So the pile the round generated is still reshuffled back in -
+// the only thing that stopped being recycled is the board itself.
+//
+// Three modes are excluded because they own their board outright and never go
+// through the round-end fall: match-3 cascades cards away, Dominoes builds a
+// two-cell board of its own, and Poker Squares packs and clears a 5x5 per round.
+function boardPersists() {
+  if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return true;
+  if (ACTIVE_MODE.match3 || ACTIVE_MODE.id === 'dominoes') return false;
+  if (typeof squaresActive === 'function' && squaresActive()) return false;
+  return true;
+}
+
+// Resize gridData to the live gridRows/gridCols, KEEPING every in-bounds cell.
+// A cell that falls outside the new board (Short Staffed, or a grid limit given
+// up at a Limit Break) has its card DISCARDED to playedPile rather than dropped:
+// before the board persisted, the round-end fall had already banked every card
+// and an out-of-bounds cell cost nothing. It is the only card in the game that
+// would otherwise leave the run silently.
+function conformGridToDims() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) {
+    out[r] = [];
+    for (let c = 0; c < gridCols; c++) out[r][c] = (gridData[r] && gridData[r][c] !== undefined) ? gridData[r][c] : null;
+  }
+  for (let r = 0; r < gridData.length; r++) {
+    for (let c = 0; c < (gridData[r] || []).length; c++) {
+      if (r < gridRows && c < gridCols) continue;
+      const card = gridData[r][c];
+      if (card && !card._isTrick) discardToPlayed(card);
+    }
+  }
+  gridData = out;
+}
+
+// Fill only the EMPTY cells of the live board. This is the whole of "a new row
+// or column fills with new cards when the round starts" - every other cell
+// already holds the card it held last round.
+function fillGridHoles() {
+  for (let r = 0; r < gridRows; r++) {
+    if (!gridData[r]) gridData[r] = [];
+    for (let c = 0; c < gridCols; c++) if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
+  }
+}
+
 // At round end: reshuffle played cards back into the draw pile (fresh order)
 function flushPlayedDeck() {
   // Reset sleight on_draw flags so they can re-fire when next dealt

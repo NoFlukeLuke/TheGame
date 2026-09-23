@@ -7764,7 +7764,7 @@ and this one caught itself twice: the pack blurbs still described the first
 tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
 They are per pack now.
 
-#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r317)
+#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r331)
 
 Owner, on the r313 candidate: *"i like all the heavies except pip particles which
 has a bit too much wooden knock in it"*, *"any of the effects that now have that
@@ -7807,7 +7807,7 @@ repeated irritant for another: a rap on a surface twelve times a hand.
   deliberately absent, because what says "coins" here is that there are SEVERAL
   of them and a body big enough to hear smears them into one event.
 
-**Measured after, heavy column, r313 -> r317:** Vegas pip particles 893 -> 1150Hz
+**Measured after, heavy column, r313 -> r331:** Vegas pip particles 893 -> 1150Hz
 (the knock down and the coin taking back the difference), mult 804 -> 1033, coin
 1723 -> 2647; Neon pip 1084 -> 1026, mult 889 -> 1139, coin 2644 -> 2930. The
 sounds the owner approved are unmoved: Vegas card_pop 468 -> 471, hand_scored
@@ -8223,3 +8223,88 @@ ONLY** - Survival keeps its single pick; a bonus/boss pick bypasses entirely.
 - **Six Suits is hidden too (r316)**, owner's call: it is reachable from dev panel -> Modes and as the Custom picker's "Six suits" deck. Carousel: Schedule, Flow, Guided, Classic, Spectrum, Custom, Poker Squares.
 - **Walkthrough steps are remembered across modes** (`tutStepsSeen`, `lethe.tutSeen.v1`). A mode's first run shows only steps no earlier walkthrough showed; `welcome`/`outro` carry `always: true` and switch to a short "only what is new" text. If only those two remain, the walkthrough does not arm. Flow gained `flow-clock` / `flow-review`; `progress-endless` is Survival-only. Measured: after Classic, Flow shows 5 steps, the Schedule 7, Six Suits none.
 - **Mode descriptions say how the mode works and nothing else** - no strategy, no reasons. Each card links to a handbook entry (`mode_<id>`, group Modes) with the specifics (pick-of-three odds, fees, clocks). The handbook got the same pass: sentences that justified the design or advised play were removed. Also fixed there: leaving a Schedule slot early PAYS credits (the old text said it cost them).
+
+## The board PERSISTS between rounds (r332) - `boardPersists()`
+
+Owner: *"the cards really do stay in place for the next round, and I think I'll
+generalize that to the rest of the modes as well. With the new card buffing
+system, this just makes the most sense."*
+
+A round used to end by discarding **every cell** to `playedPile` and dealing a
+fresh boardful next round. The board is now a **position you keep**: the same
+cards come back to the same cells, and only **holes** are filled - which is
+exactly what a grid-size upgrade creates, so a new row or column fills with
+fresh cards at the next round start and nothing else moves.
+
+**Everything else about the deck cycle is unchanged, deliberately.** A card that
+SCORES still leaves the board for `playedPile` and is replaced by a draw there
+and then; a card you DISCARD still goes to the back of `drawPile`;
+`flushPlayedDeck()` still runs at every level-up. The pile a round generates is
+still reshuffled back in. **The only thing that stopped being recycled is the
+board itself.** (Options considered and rejected: shuffling the played pile
+*under* the draw pile, and not reshuffling until the draw pile runs dry - both
+make you play through cards you do not want in order to reach the ones you do.)
+
+### Three functions, in `js/deck-grid.js`
+
+| | |
+|---|---|
+| `boardPersists()` | the one predicate. False only for match-3, Dominoes and Poker Squares, which own their board outright and never come through the round-end fall |
+| `conformGridToDims()` | resize `gridData` to the live `gridRows`/`gridCols`, keeping every in-bounds cell |
+| `fillGridHoles()` | deal into the empty cells alone |
+
+- **THE ROUND-END FALL IS NOW PRESENTATION ONLY** (`showLevelUpScreen_fallOnly`,
+  js/interlude.js). The board still has to clear off screen - the payout panel,
+  the reward grid and the shop all take `#grid` over - so the cards still fall
+  and the DOM is still torn down. What is gone is the `discardToPlayed()` sweep
+  and the `gridData` wipe. The next round's deal-in then redraws the same cards
+  into the same cells, so the ceremony reads as before and the position is kept.
+- **`showLevelUpScreen` needed NO change.** Its refill was already
+  `if (!gridData[r][c]) gridData[r][c] = drawCard()`, i.e. hole-filling; it only
+  ever dealt a whole board because the fall had just emptied one.
+- **A SHRINKING BOARD IS THE ONE CARD THAT WOULD LEAVE THE RUN SILENTLY.**
+  `js/level-up.js` conformed `gridData` to the new dims and dropped
+  out-of-bounds cells, with a comment claiming their cards "are effectively
+  returned via `flushPlayedDeck` on the next cycle" - true only because the fall
+  had banked them a moment earlier. `conformGridToDims` discards them to
+  `playedPile` explicitly, which is what makes that comment true again. Reachable
+  from Short Staffed and from a grid limit given up at a Limit Break.
+- **The dev-only grid placement of Tricks needed a guard.** Its spawn slots are
+  the *empty* inner cells of the middle row, and on a persisting board there are
+  none - it would silently offer nothing. That strip is cleared to `playedPile`
+  first, and **only when `trickTrayMode` is false**, so the default tray path
+  leaves the board exactly as the round left it.
+
+### Survival and Flow were DESTROYING CARD IDENTITY every level
+
+`survivalRecycleBoard` (js/survival.js) pushed an ordinary board card back as a
+bare `{ rank, suit }`, so **`_id` and every durable field went with it** -
+permanent pips and mult, x-pips, x-mult, retriggers, curses, play counts. That is
+the r192 rule broken outright, and it is why a card buffed in Flow could never
+stay buffed. Keeping the board fixes it wholesale rather than by repairing the
+copy; the non-persisting branch now uses `recycleCard()` so it cannot recur.
+`survivalDealNext` calls `conformGridToDims()` + `fillGridHoles()` in place of
+its own full re-deal, which is byte-identical when the board has been recycled
+(every cell is null) and is the hole-fill when it has not.
+
+### Two things that turned out to need nothing
+
+- **The Pick** (r244) photographs the board above the fall because the fall used
+  to destroy it. `pickRestoreBoard` only fills cells that are `null` and
+  `pickClearBoard` only nulls cells it put back, so both no-op now; the snapshot
+  became a list of candidates. **Remove** already nulled the board cell as well
+  as splicing the piles, so it still works - the splice simply finds nothing,
+  because the card is on the board and not in a pile.
+- **The grid-screen takeover** (`gridScreenTakeover` / `gridScreenRelease`,
+  js/grid-pick.js) resizes `gridRows`/`gridCols` for the tiled payout and
+  restores them on close. It never touches `gridData`, so a persisting board
+  rides through it. Verified: 6x6 during the payout, 4x4 after, all 16 cells
+  intact.
+
+**Measured in a real browser at 1440x820**, through the real fall ->
+`triggerLevelUp` -> `showLevelUpScreen` sequence, in Classic, Flow, Survival,
+Guided, the Schedule and Spectrum: **16 of 16 cells identical** across the round
+boundary, a `permPips` buff planted before the level-up still on that card after
+it, a grid-column upgrade giving **4x5 with 0 holes and 16 of 16 old cards kept**,
+a shrink returning its cards (deck total unchanged at 56/56 in every case), and
+**0 page errors**.
