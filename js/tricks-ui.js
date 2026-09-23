@@ -338,6 +338,11 @@ function refuseTrickCapacity() {
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the
+  // Sleight draw queue. The intercept always ensures the corner toggle exists;
+  // in queue view it renders the queue and this function stands down - so every
+  // caller repaints whichever face is showing.
+  if (typeof trayQueueIntercept === 'function' && trayQueueIntercept()) return;
   // A newly GAINED Trick should land somewhere visible. In portrait the Tricks
   // view shares the strip with Knacks and the preview, so flip to it when the
   // count grows. Tally updated BEFORE the flip: setPortraitPanelView re-enters

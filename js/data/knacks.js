@@ -1,4 +1,7 @@
 const KNACK_POOL = [
+  // ── Queue-view knacks (r329, js/queue-views.js) ──
+  { id:'head_count',      emoji:'🔢',  name:'Head Count',       rarity:'common', desc:'The Sleight queue (the button on your Trick tray) shows how many cards sit in front of each Sleight.' },
+  { id:'card_counter',    emoji:'🂠',  name:'Card Counter',     rarity:'rare',   desc:'A button below the Focus bar swaps it for the draw queue: the next cards in draw order, 2x your column count.' },
   { id:'advance_notice',  emoji:'📋',  name:'Advance Notice',   rarity:'rare',   desc:'While you hold it, its tooltip names the boss waiting at the end of the NEXT quarter. Sell it and a different boss takes that slot.' },
   { id:'contingency',     emoji:'🛡️',  name:'Contingency Plan', rarity:'rare',   desc:'Boss effects are 10% weaker - timed effects tick 10% less often, and everything else is 10% smaller.' },
   { id:'free_swaps',      emoji:'🕊️',  name:'Free Swaps',       rarity:'common', desc:'Swapping cards costs no time.' },

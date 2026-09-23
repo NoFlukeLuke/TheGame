@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r328 · deck edit: the banner sits over the chip band (never the board) and APPLY is the grid's own play button";
+const BUILD = "2026-09-23 · r329 · the tray doubles as a Sleight draw queue; Head Count and Card Counter knacks";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
