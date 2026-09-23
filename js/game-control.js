@@ -520,6 +520,7 @@ function startGame() {
   permRetrig = {};
   permTime   = {};
   permCoins  = {};
+  permFocus  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278

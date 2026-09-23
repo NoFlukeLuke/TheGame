@@ -156,6 +156,7 @@ function survivalInitRun() {
   survivalEndlessFromLevel = Infinity;
   survivalGridPickCarry    = false;
   svGoalCells              = null;
+  if (typeof flowrResetRun === 'function') flowrResetRun();
   bossNumber               = 0;
   bossBag                  = [];
   actBossId                = null;   // Survival/Flow draw at trigger time (r238)
@@ -399,6 +400,9 @@ function survivalUpdateRerollBtn() {
   // on a button. Called from js/hud.js, the Mart and the shop whenever credits
   // move while the pick is up.
   if (typeof gridPickState === 'undefined' || !gridPickState) return;
+  // A chain step that is not the ordinary pick owns its own action row - stamping
+  // survival's four over it would put Peek/Shop on a limits screen (r325).
+  if (typeof flowrOwnsScreen === 'function' && flowrOwnsScreen()) return;
   gridPickRefresh(null, survivalPickActions());
 }
 
@@ -406,6 +410,10 @@ function survivalUpdateRerollBtn() {
 // cards fly into the preview) and from the post-boss reward. Does NOT advance the
 // level - the deal happens when the player chooses (survivalChoose).
 function survivalShowPick(bonus = false, kicker) {
+  // Flow's multi-reward chain (js/flow-rewards.js, r325): a goal clear can pay
+  // several screens. When it takes over it plays the counter card and shows
+  // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.
+  if (!bonus && typeof flowrMaybeStart === 'function' && flowrMaybeStart()) return;
   animating = false;
   trickSelectionPhase = false;
   survivalBonusPick = !!bonus;
@@ -526,6 +534,9 @@ function survivalChoose(i) {
     return;
   }
   survivalGrant(opt);
+  // Mid-chain (Flow multi-reward, r325): the next screen opens instead of the
+  // level-up, which runs ONCE at the chain's end (flowrFinish).
+  if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
   // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
   survivalSkipCarryover = survivalBonusPick;
   survivalBonusPick = false;

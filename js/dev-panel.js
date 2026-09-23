@@ -180,7 +180,10 @@ function devOpenGroup(g) {
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
   if (g === 'cardstates') devRenderCardStates();
-  if (g === 'rewards') { const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }
+  if (g === 'rewards') {
+    const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode;
+    if (typeof flowrDevSync === 'function') flowrDevSync();
+  }
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';

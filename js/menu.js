@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r324 · dev Rewards group: Flow/Survival board can survive a level-up (only the scored hand leaves), with a variant that also lifts Sleights free";
+const BUILD = "2026-09-23 · r325 · Flow multi-reward chain: a goal clear can pay up to 5 screens (counter card + colour-coded chip stack), with limits, deck-edit, sleight and improve steps";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

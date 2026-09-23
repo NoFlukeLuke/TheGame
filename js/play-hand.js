@@ -313,6 +313,16 @@ function playHand() {
     });
     if (_cardCoins > 0) { coins += _cardCoins; updateCoinsUI(); try { sfxCoin?.(); } catch (e) {} }
   }
+  // Deck-edit Focus cards (r325): Focus carried by the individual cards in this
+  // hand. Flat per scored card, like permTime - not replay-weighted.
+  if (typeof permFocus !== 'undefined') {
+    let _cardFocus = 0;
+    handCells.forEach(([r, c]) => {
+      const _cd = gridData[r]?.[c];
+      if (_cd && _cd.rank) _cardFocus += (permFocus[cardId(_cd)] || 0);
+    });
+    if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
+  }
 
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });

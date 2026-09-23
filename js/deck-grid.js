@@ -29,6 +29,7 @@ let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
 // Credits this card pays when it scores (the Card Market's payday card, r278).
 // Replay-weighted: a card that scores three times pays three times.
 let permCoins  = {}; // { "<card id>": 2, ... } credits paid per score
+let permFocus  = {}; // { "<card id>": 1, ... } Focus granted per score (r325, the deck-edit buff)
 // ── FLAT vs SCALING card buffs (r209) ────────────────────────────────────────
 // permPips / permMult above are FLAT: the card scores that bonus, the same
 // amount, every single time it is played. The wording "permanently gains +1
@@ -101,6 +102,8 @@ function cardBuffLines(k) {
   if (xp > 1) lines.push(`\u00d7${xp} pips`);
   if (xm > 1) lines.push(`\u00d7${xm} mult`);
   if (re) lines.push(`+${re} replay`);
+  const pf = (typeof permFocus !== 'undefined' && permFocus[k]) || 0;
+  if (pf) lines.push(`+${pf} Focus when played`);
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
   // "pips" while the tile that granted the buff said "work" (r198's rule, r294's
