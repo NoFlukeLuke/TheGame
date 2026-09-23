@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
+<link rel="stylesheet" href="css/flow-rewards.css">
 <link rel="stylesheet" href="css/grid-pick.css">
 <link rel="stylesheet" href="css/payout-grid.css">
 <link rel="stylesheet" href="css/records.css">
@@ -43,6 +44,7 @@
 <link rel="stylesheet" href="css/card-states.css">
 <link rel="stylesheet" href="css/audio-menu.css">
 <link rel="stylesheet" href="css/picker.css">
+<link rel="stylesheet" href="css/queue-views.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -552,6 +554,46 @@
     </div>
   </div>
 
+  <div class="dev-section" data-group="rewards">
+    <div class="dev-section-title">Rewards</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">How a mode pays out between rounds. Flow/Survival: whether the board survives a level-up. "Board stays" removes only the scored hand and refills those cells; the no-Sleights variant also lifts every Sleight off the board, costing no time and no discards.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Board between level-ups
+      <select id="dev-sv-board" onchange="setSvBoardMode(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;">
+        <option value="redeal">Redeal (default)</option>
+        <option value="keep">Board stays</option>
+        <option value="keep_nosleights">Board stays, Sleights discarded</option>
+      </select>
+    </label>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A boss round or a grid-size change still redeals - a post-boss board can carry holes, and a resized board cannot be kept.</div>
+
+    <div style="border-top:1px solid #3a3428;margin:8px 0 2px;"></div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);">FLOW · MULTI-REWARD CHAIN</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear can pay up to 5 reward screens, rolled as a chain (a chance of a 2nd, then a 3rd...). Luck multiplies each chance. The order below is the FIXED phase-1 order; after 2 extra rewards it randomises with slot 1 the normal pick at 30%, and after the 2nd inspection it is fully random.</div>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-flowr-on" type="checkbox" onchange="flowrDevSet('on', this.checked)" style="accent-color:var(--gold);"> Enabled
+    </label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;">
+      <span>Chance of a</span>
+      <label>2nd <input id="dev-flowr-ch0" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 0)">%</label>
+      <label>3rd <input id="dev-flowr-ch1" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 1)">%</label>
+      <label>4th <input id="dev-flowr-ch2" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 2)">%</label>
+      <label>5th <input id="dev-flowr-ch3" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 3)">%</label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-steps">
+      <span>Order:</span>
+      <select id="dev-flowr-st0" onchange="flowrDevSet('step', this.value, 0)"></select>
+      <select id="dev-flowr-st1" onchange="flowrDevSet('step', this.value, 1)"></select>
+      <select id="dev-flowr-st2" onchange="flowrDevSet('step', this.value, 2)"></select>
+      <select id="dev-flowr-st3" onchange="flowrDevSet('step', this.value, 3)"></select>
+      <select id="dev-flowr-st4" onchange="flowrDevSet('step', this.value, 4)"></select>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="dev-btn" onclick="flowrDevReset()">Reset to shipped</button>
+      <span id="dev-flowr-phase" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>
+    </div>
+  </div>
+
   <div class="dev-section" data-group="map">
     <div class="dev-section-title">Map Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch: move out from ANY tile you have already taken, not only the one you are standing on.</div>
@@ -952,7 +994,7 @@
       </div>
       <!-- Trick Tray (visible only in trickTrayMode) -->
       <div id="trick-tray-area" style="display:none">
-        <span class="panel-title">Tricks <span id="trick-tray-count"></span></span>
+        <span class="panel-title"><span id="tray-title-word">Tricks</span> <span id="trick-tray-count"></span></span>
         <div id="trick-tray-list"></div>
       </div>
       <!-- Knack section -->
@@ -1404,6 +1446,7 @@
 <script src="js/cooldown.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/flow-rewards.js"></script>
 <script src="js/flow-mode.js"></script>
 <script src="js/goal-tuning.js"></script>
 <!-- picker-mode.js: after flow-mode.js, because modeHasNoRoundClock/pickerRoundSeconds
@@ -1421,6 +1464,7 @@
 <script src="js/tutorial.js"></script>
 <script src="js/info-hub.js"></script>
 <script src="js/insights.js"></script>
+<script src="js/queue-views.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

@@ -103,6 +103,7 @@ function doDiscard() {
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
   cardsDiscardedRound += count;
+  discardsUsedRound++;
   // Five for Fodder: discarding a 5-card hand grants credits
   if (hasTrick('five_fodder') && count === 5) {
     grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
@@ -248,6 +249,7 @@ function rewindTime(seconds, label, srcId, srcSource) {
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
   rewindsThisRound++;            // per-round rewind count (time popup)
+  rewindInstanceGame++;          // Hummingbird
   updateClockUI();
   // Infinity-mirror copies under every card + the reversed swell (js/clock-fx.js)
   if (typeof playRewindFX === 'function') playRewindFX();
@@ -292,17 +294,17 @@ function handleClockMarks(secs) {
   // at ~360, an ordinary common, and makes it the Trick that rewinding pays best:
   // any rewind of 10s or more buys a guaranteed extra fire.
   if (secs % 10 === 0 && hasTrick('second_hand')) {
-    pendingCardPips += BAL.second_hand.pips;
-    showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b');
+    if (Math.random() < 0.5) { pendingHandMult += BAL.second_hand.mult; showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.mult} mult`, '#e8c56b'); }
+    else { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
+  }
+  // Minute Hand: every 30s mark charges the next hand with x mult. A fresh mark
+  // while charged does not stack.
+  if (secs % BAL.minute_hand.interval_seconds === 0 && hasTrick('minute_hand')) {
+    minuteHandCharges = 1;
+    showMessage(`🕐 Minute Hand - next hand x${BAL.minute_hand.mult_mult} mult`, '#cc88ff');
   }
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
-    if (hasTrick('minute_hand')) {
-      // Primes for the next N hands rather than adding to one of them (r209).
-      // Re-priming resets the count; see the note on minuteHandCharges.
-      minuteHandCharges = BAL.minute_hand.hands;
-      showMessage(`🕐 Minute Hand primed - next ${BAL.minute_hand.hands} hands +${BAL.minute_hand.mult} mult`, '#cc88ff');
-    }
     // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
     const _hgN = hasTrick('hourglass') ? luckRoll(BAL.hourglass.chance) : 0;
     for (let _hg = 0; _hg < _hgN; _hg++) {

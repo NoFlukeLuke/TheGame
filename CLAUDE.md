@@ -8069,6 +8069,125 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r328 - the deck edit's banner is off the board, APPLY is the play button
+
+Owner: *"it looks like that pop up might be covering the top cards no? Maybe that
+pop can go over the scoring chips and use the grid's normal confirm button."*
+Both halves done.
+
+- **`#flowr-banner` mounts on `#stage` and never touches the board.** Landscape
+  takes the left column's CHIP BAND (`left:1.56%; top:18.06%; width:37.74%` -
+  the `#score-subboxes` box, whose chips are `display:none` on every grid-screen,
+  so the space is free; it covers the LOCATION chip, and names the op itself);
+  portrait takes the band above the board. Measured: **0 of 16 cards intersect
+  the banner** in both orientations, both op kinds.
+- **APPLY is `#btn-play`, the shop's BUY pattern**: markup saved, `reward-buy`
+  class, `A/P/P/L/Y`, disabled until a card is picked, restored in
+  `flowrDeckEnd`. The press is a CAPTURE listener guarded on `_flowrDeckOp.buff`
+  (the Poker Squares shape - the tricks-ui playHand listener on the same button
+  no-ops with nothing selected). `render()`'s r247 `_takeover` guard gained
+  `flowrDeckActive()`, so a repaint mid-edit cannot stamp the real disabled
+  state over it. `#fb-confirm` is gone from the banner.
+- Verified in a real browser at 1440x820 and 420x900 through the real click
+  path: buff select -> APPLY enables -> click applies (+10 pips on the rolled
+  subset) and the chain finishes with the button back on PLAY; an adjacency op
+  runs with APPLY staying dark; **a normal hand still submits off the same
+  button afterwards**. 0 page errors.
+
+## r325 - the Flow multi-reward chain (js/flow-rewards.js + css/flow-rewards.css)
+
+Owner spec across two turns. A Flow goal clear can pay **up to 5 reward screens**,
+rolled as a CHAIN: 25% for a 2nd, then 30% for a 3rd and so on (dev-tunable), each
+a GOOD roll so **`luckChance` multiplies it** (30% at luck 10 is 33%). **FLOW
+ONLY** - Survival keeps its single pick; a bonus/boss pick bypasses entirely.
+
+- **THREE ONE-LINE SEAMS and nothing else in the engine changed**: the top of
+  `survivalShowPick` (`flowrMaybeStart()` takes over a goal-clear pick),
+  `survivalChoose`'s tail and `finishSurvival` (`flowrAfterStep()` before their
+  `triggerLevelUp` - a mid-chain choose shows the NEXT screen instead of dealing).
+  **The level-up runs ONCE, at the chain's end** (`flowrFinish`), with the
+  ordinary goal-clear carry-over; every screen before it only grants. The chain's
+  own pick3 step re-enters `survivalShowPick` under `_flowrBypass`.
+- **The count is announced by a COUNTER CARD** over the board ("GOAL CLEARED /
+  x1 / REWARD"); every extra CUTS IN - a stinger, a shake (the r277
+  remove/reflow/re-add restart), the number bumping. A single ordinary pick plays
+  no ceremony at all (`flowrMaybeStart` returns false and today's path runs).
+- **The queued chips peek out above the board** (`#flowr-stack`), staggered, each
+  in its KIND's own colour with the current one named NOW - drawn furthest-back
+  first so DOM order is paint order, `z-index: 1` so tiles (2) sit in front.
+  Kind colours: pick3 mint · limits gold · deck blue · sleights violet · improve
+  orange (chrome, not entity tiles, so the colour=rarity rule is untouched).
+- **Ordering has three phases** (`flowrPhase`): (1) until `flowrExtraEarned` >= 2
+  (in SAVE_VARS): the fixed dev-tunable order pick3/limits/deck/sleights/improve;
+  (2) then shuffled with **slot 1 = pick3 at EXACTLY 30%** (30% force to front,
+  70% force OFF the front - a plain 5-shuffle leaves it there 20%, so "force at
+  30%" naively lands at 44%; measured 30.9%); (3) after `survivalBossesBeaten >= 2`
+  fully shuffled (measured 19.9% pick3-first, i.e. uniform).
+- **A kind with nothing to offer substitutes pick3** (`flowrKindViable`) rather
+  than showing an empty screen. limits/sleights/improve steps ride `openGridPick`
+  with the shared reroll pool (`pickRerollAction` + `pickRerollsNewScreen` per
+  screen); the improve step draws OWNED entities through `pickEntityByRarity` and
+  grants via `improveEntity`. `survivalUpdateRerollBtn` is guarded by
+  `flowrOwnsScreen()` so a credits move cannot stamp survival's four actions over
+  a chain step's row.
+- **DECK EDIT is a board takeover**: pick one of 3 ops (drawn from 11 -
+  4 adjacency ops + 7 buff ops), then the real board comes back under a DECK EDIT
+  location chip, a dashed border and a banner. Input is a CAPTURE-phase
+  pointerdown on `#grid` (the squares rule) that stops EVERY tap, so input.js's
+  select/swap can never fire underneath. Adjacency ops (suit spread / rank pull /
+  cut / stamp) fire on ONE selected card's orthogonal neighbours, count rolled
+  weighted-low (the owner's .43/.36/.21 at max 3, luck leaning it higher),
+  revealed with a stagger. **Cut is a real deletion** (`expectedDeckTotal--` +
+  `drawCard()` refill, the `cardStateDeleteAt` pattern - audit verified 52->51 on
+  both sides). Buff ops: select up to 3 cards, APPLY rolls the quantity (clamped
+  to the selection - selecting fewer concentrates it, deliberately NOT explained
+  in-game, owner's call) and ONE value from the range (weighted low), revealed
+  card by card (green = landed, grey = passed), applied via `enhanceCardKey` by
+  `cardId`. In Flow the goal hand's cards are still in `gridData` (only their DOM
+  left with the dance), so the FULL board is editable and a buff persists through
+  the deal.
+- **`permFocus` is the new per-card store** (the documented gap closed): Focus
+  granted per scored card, flat like `permTime` (not replay-weighted), paid in
+  `playHand` beside `permCoins`, in `SAVE_VARS` + `migrateCardKeysToIds` + the
+  new-run reset, with a `cardBuffLines` line. `enhanceCardKey` gained `e.focus`.
+  No corner band (the permCoins precedent).
+- **Dev -> Rewards** gained the chain's knobs: enable, the four chance steppers,
+  the five phase-1 order dropdowns, reset, and a live phase readout. Overrides
+  only in `lethe.flowRewards.v1` (the goal-tuner rule).
+- Verified in a real browser at 1440x820 and 420x900 through the real paths: a
+  forced 3-chain runs counter -> pick3 -> limits -> improve with `level`
+  unchanged until the end, then one level-up, tier 0->1, a full deal, 0 holes; a
+  sleight step grants mid-chain; suit/focus/delete deck ops apply and the audit
+  balances; the stack draws 4 unique-coloured chips on screen in both
+  orientations; a single ordinary reward is byte-identical to today (no counter,
+  no stack, survival's own 4 actions). 0 page errors everywhere.
+
+## r324 - the board can SURVIVE a Flow/Survival level-up (dev -> Rewards)
+
+- **`svBoardMode`** (js/survival.js, `lethe.svBoard.v1`): `redeal` (shipped) ·
+  `keep` · `keep_nosleights`. In a keep mode `survivalDealNext` does NOT recycle
+  and redeal: it cancels the spread-freeze animations (fill:forwards pins
+  transform until cancelled - the r281 rule), then runs
+  **`removeAndFall(cells, 'play')`** on just the goal hand's cells - that is the
+  ordinary scored-hand exit, so the pile accounting and the gravity refill come
+  free and the deck audit balances. `keep_nosleights` adds every Sleight cell to
+  that list: removeAndFall bills no time and no stock, and `discardToPlayed`
+  cycles a charge-preserving copy, so the free discard the owner asked for is
+  the mechanism's own behaviour.
+- **`svGoalCells` is the capture**, written in `playHand` at BOTH goal sites
+  (the ordinary goal and the boss win) beside `toRemove` - in survival the goal
+  hand's cards STAY in `gridData` (the dance only removes their DOM), so
+  something has to say which cells the hand was. Null forces a redeal.
+- **A boss round and a grid-size change still redeal**: `survivalSkipCarryover`
+  (a post-boss board can carry void holes; the prize grid covered that beat) and
+  a `limits.grid_rows/cols` mismatch both fall through to the old path.
+- **Dev -> Rewards is a NEW GROUP** and is the intended home for per-mode reward
+  tuning (the parked multi-reward level-up design lives in this commit's
+  message). Verified live: 14 of 16 cards kept across a level-up, played pair
+  gone, deck 52 -> 52, 0 holes; the Sleight variant lifts a planted Whetstone
+  with its 3 charges into the piles at 0 discards spent; `redeal` is untouched
+  (0 ids kept). No page errors.
+
 ## r323 - the Flow inspection fires again, and the reward grid is a rare pick
 
 - **Flow's boss was unreachable since r234, and the session clock at 0:00 did

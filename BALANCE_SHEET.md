@@ -1,8 +1,8 @@
 # Balance Sheet — how to use it
 
 `balance_sheet.csv` is a catalog of **every** bonus entity in the game — all
-Bonus Cards, Jokers, and Totems — in one place, ready to open in Excel or
-Google Sheets and sort/filter for a balance sweep.
+Tricks, Sleights, and Knacks — in one place, ready to open in Excel or Google
+Sheets and sort/filter for a balance sweep.
 
 ## Where do I actually edit the values?
 
@@ -20,8 +20,8 @@ You edit the **`params_json`** column. Two ways:
 
 ## The round-trip (edit numbers → game updates)
 
-The tunable numbers live in one place in the code: a `BAL` config object in
-`index.html`. The sheet round-trips with it:
+The tunable numbers live in one place in the code: the `BAL` config object in
+`js/data/balance.js`. The sheet round-trips with it:
 
 ```
 node tools/gen_balance_sheet.js     # code  → sheet   (refresh the CSV)
@@ -29,61 +29,70 @@ node tools/gen_balance_sheet.js     # code  → sheet   (refresh the CSV)
 node tools/apply_balance_sheet.js   # sheet → code    (writes values into BAL)
 ```
 
-After `apply`, validate and commit `index.html` as usual:
+After `apply`, validate and commit `js/data/balance.js` as usual (the syntax
+check loads every JS file in order, exactly as the browser does — see
+CLAUDE.md "Workflow"):
 
 ```
-node -e "const h=require('fs').readFileSync('index.html','utf8');new Function(h.match(/<script>([\s\S]*)<\/script>/)[1]);console.log('OK')"
+node -e "const fs=require('fs');const idx=fs.readFileSync('index.html','utf8');const srcs=[...idx.matchAll(/<script src=\"([^\"]+)\"><\/script>/g)].map(m=>m[1]);const code=srcs.map(s=>fs.readFileSync(s,'utf8')).join('\n');new Function(code);console.log('OK',srcs.length,'files');"
 ```
 
-`gen` re-reads the three pools (`BONUS_POOL`, `TOTEM_POOL`, `JOKER_POOL`) plus
-`BAL`, so it never drifts. `apply` only rewrites values inside the `BAL` block,
-preserving its order and comments, and prints every `old → new` change.
+`gen` re-reads the three pools (`TRICK_POOL` from `js/data/tricks.js`,
+`KNACK_POOL` from `js/data/knacks.js`, `SLEIGHT_POOL` from
+`js/data/sleights.js`) plus `BAL` and `DESC_TEMPLATES` (both in
+`js/data/balance.js`), so it never drifts. `apply` only rewrites values inside
+the `BAL` block, preserving its order and comments, and prints every
+`old → new` change.
 
 ## The columns
 
 | Column | What it means |
 |---|---|
-| `entity_type` | Bonus Card / Joker / Totem |
-| `id` | internal code id (don't change) |
+| `entity_type` | Trick / Sleight / Knack |
+| `id` | internal code id (frozen — don't change; see TERMINOLOGY.md) |
 | `name` | display name |
-| `rarity` | common / rare / legendary (blank for totems) |
+| `rarity` | common / rare / epic / legendary. Tricks store this under `tier`, Sleights and Knacks under `rarity` — the sheet reads whichever field the pool actually uses. Knacks only use common/rare today. |
 | `params_json` | **the tunable numbers** — e.g. `{"mult":1}` or `{"pips":5,"mult":1}`. Edit the number(s) inside; `apply` writes them into the game. Blank = a structural entity with no single tunable number (see `notes`). |
-| `base_cost` | **suggested** starting cost by rarity (3/6/9). Edit freely — this is a sweep input, not read by the game yet. |
+| `base_cost` | **suggested** starting cost by rarity (3/6/9/12). Edit freely — this is a sweep input, not read by the game yet. |
 | `buff_type` | the main effect: pips, mult, score-multiplier, retrigger, focus, time, coins, resource, wildcard, exalt/corrupt, boss, challenge, utility |
 | `trigger` | what makes it fire: spatial, hand-type, hand-size, card-specific, suit-specific, streak, time-based, on-swap, on-discard, on_play, passive, etc. |
-| `activation` | (jokers only) how the code fires it |
-| `charges` | jokers: uses per game; totems: "persistent" |
+| `activation` | (sleights only) how the code fires it |
+| `charges` | sleights: uses per game (`durability`); knacks: "persistent" |
 | `cat_*` columns | category flags (1 = applies). Slice the sheet by these: hand_type, hand_size, spatial, card_specific, suit_specific, time, money, discard_swap, play, focus, scaling, retrigger |
-| `tags` | the tags already in the code |
-| `description` | the in-game text **— this is where the actual numbers live today** |
-| `notes` | flags like "needsResolve / TBD" |
+| `tags` | the tags already in the code (Knacks currently carry none) |
+| `description` | the in-game text, rendered through `DESC_TEMPLATES` where one exists — **this is where the actual numbers live for the player** |
+| `notes` | flags like "needsResolve / TBD" or "structural — no tunable value" |
 
 ## What's wired (and what isn't)
 
-This is built on the current game (r45). The round-trip covers **118 of the 154
-entities** — the scoring core (`calcScore` + exalt/corrupt tables), the
-play/round-side accumulators and permanent gains (Penny Saved, Cloud Nine,
-Perfect Ten, Lucky Roll, Steady Fours, First Fruits, Heartwood, Snowball,
-Compound, Prolific, Jackpot), all the numeric **jokers** (Pivot, Idol, Bomb,
-Naturalist, Lightning Rod, Catalyst, Bellhop, Cash Out, Wanderer, Amplifier,
-Time Keeper, Piggy Bank, Legacy), and the **totems** + base swap/discard time
-costs. Each shows its number(s) in `params_json` and round-trips both ways.
+Rows with a filled `params_json` round-trip both ways: edit the number, run
+`apply`, and it lands in `BAL` in `js/data/balance.js`. Rows marked
+**"structural — no tunable value"** have no id in `BAL` at all — genuinely
+structural effects with no single number (wild sleights, shape-detection
+geometry, some flag-based Focus entities, a few whose displayed number is
+*derived* rather than stored). Changing those means changing logic, not a
+number.
 
-**Not wired** (~36 rows, blank `params_json`, marked "structural — no tunable
-value"): genuinely structural effects with no single number — wild jokers,
-shape-detection geometry (Four Corners), rank-shifters (Royal Favour), the
-retrigger/double-score plumbing (Echo, Octave), the focus BCs (flag-based), and
-a couple whose displayed number is *derived* (Legacy's ×3, Before the Tide's
-6×). Changing those means changing logic, not a number — ask and I'll do it.
-
-`description` text **auto-syncs** to the numbers for wired entities (83
-templates). Each has a `{param}` template in `DESC_TEMPLATES` (in `index.html`)
-filled from `BAL` at load, so changing a value updates the in-game tooltip too.
-A few whose wording is a *derived* number (e.g. Before the Tide's "6×" = a base
-+1) keep hand-written text.
+`description` text **auto-syncs** to the numbers for any entity with a
+`DESC_TEMPLATES` entry (`js/data/balance.js`): each has a `{param}` template
+filled from `BAL` at load (`applyBalDescriptions()`), so changing a value via
+`apply` updates the in-game tooltip too, with no separate edit needed.
 
 ## System rows
 
-A few rows have `entity_type = System`: the exalt/corrupt suit tables
-(`_exalt` / `_corrupt`). These are prime balance-sweep targets and round-trip
-exactly like the entities.
+A few rows have `entity_type = System`. Two kinds:
+
+- **`_resources` / `_exalt` / `_corrupt`** — real tuning tables that round-trip
+  exactly like the entities (base interact time costs, the unspent-action and
+  interest payout caps, and the exalt/corrupt per-suit effect tables).
+- **Everything else with this label** — a `BAL` entry whose `id` does not match
+  anything in `TRICK_POOL`/`SLEIGHT_POOL`/`KNACK_POOL`. Most of these are
+  per-event tuning blocks (Rehearsal, the Card Market, Deck Trim, the Schedule's
+  booking prices, and similar) that live in `BAL` alongside the entity numbers
+  but aren't an entity themselves — editing their `params_json` and running
+  `apply` still works. A smaller number are genuinely **dead/unobtainable**
+  leftovers: a `BAL`/`DESC_TEMPLATES` pair for an id no pool currently offers
+  (e.g. `jack_mult`, `heart_double` — see CLAUDE.md's payout-fx section for the
+  two the game calls out by name). The sheet can't tell those two cases apart
+  automatically; check the id against `js/data/tricks.js` / `sleights.js` /
+  `knacks.js` if it matters for your sweep.

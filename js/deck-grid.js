@@ -29,6 +29,7 @@ let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
 // Credits this card pays when it scores (the Card Market's payday card, r278).
 // Replay-weighted: a card that scores three times pays three times.
 let permCoins  = {}; // { "<card id>": 2, ... } credits paid per score
+let permFocus  = {}; // { "<card id>": 1, ... } Focus granted per score (r325, the deck-edit buff)
 // ── FLAT vs SCALING card buffs (r209) ────────────────────────────────────────
 // permPips / permMult above are FLAT: the card scores that bonus, the same
 // amount, every single time it is played. The wording "permanently gains +1
@@ -101,6 +102,8 @@ function cardBuffLines(k) {
   if (xp > 1) lines.push(`\u00d7${xp} pips`);
   if (xm > 1) lines.push(`\u00d7${xm} mult`);
   if (re) lines.push(`+${re} replay`);
+  const pf = (typeof permFocus !== 'undefined' && permFocus[k]) || 0;
+  if (pf) lines.push(`+${pf} Focus when played`);
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
   // "pips" while the tile that granted the buff said "work" (r198's rule, r294's
@@ -449,7 +452,6 @@ let bonusMult_fives   = 0;
 let bonusMult_nines   = 0;
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
-let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
 let bonusFocus_acorns   = 0;   // Acorns Trick: +0.05 Focus per scored card (per game); grants floor each hand
 let handsPlayedGame     = 0;   // cumulative hands played this game (Plan Ahead average); reset on new game
 let bonusMult_morebetter = 0;  // More Better Trick: +4 mult per reward grid where 3+ tiles were selected (per game)
@@ -464,13 +466,7 @@ let studyHallCards      = 0;   // Study Hall: running count of cards scored this
 let markCount_groove    = 0;   // Groove: cards scored from its marked line this round
 let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round
 let _cleanSweepPrev     = [];  // Clean Sweep: cell keys scored in the previous hand (rolling 2-hand window)
-let _lastHandPositionFired = false; // whether another position trick contributed pips/mult this hand (Feng Shui)
-let _perMinuteFired = {};      // once-per-minute gate: trick id -> round-minute index it last fired (Study Hall, Ley Line)
-// Position-trick ids (Feng Shui watches these; excludes itself). Focus/time-only ones
-// (groove/overtime/clean_sweep) don't write pip/mult contributions, so they don't count.
-const POSITION_TRICK_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','assembly_line','huddle'];
-let bonusMult_jackpot   = 0;   // Jackpot (big_win) Trick: +5 when score 10k+
-let jackpotFired        = false; // big_win fires only once
+let _perMinuteFired = {};      // once-per-minute gate: trick id -> round-minute index it last fired (Study Hall, Temporal Rift)
 let handsPlayedRound    = 0;   // count of hands played this round
 // Per-round contribution tally for the Payout > Contributions tab.
 // roundContributions[label|kind] = { label, kind, amount, count }
@@ -487,6 +483,7 @@ let safetyNetUsed       = false; // safety_net knack: once per game
 let cardsDiscardedTotal = 0;
 let cardsDiscardedRound = 0;
 let swapsUsedRound      = 0; // swap actions this round (the No Takebacks challenge)
+let discardsUsedRound   = 0; // discard actions this round (Landfill)
 let cardsScoredTotal  = 0;
 let nineSecondsCounter = 0;
 let highestHandScore = 0;

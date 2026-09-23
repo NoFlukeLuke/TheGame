@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r325 · the WILD card: takes any rank to complete a set, never a run or a flush, no pips and no Tricks; four in the classic and six-suit decks";
+const BUILD = "2026-09-24 · r330 · the WILD card: takes any rank to complete a set, never a run or a flush, no pips and no Tricks; four in the classic and six-suit decks";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

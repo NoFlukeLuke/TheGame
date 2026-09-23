@@ -1,11 +1,18 @@
 // gen_balance_sheet.js
-// Reads the three entity pools (BONUS_POOL, TOTEM_POOL, JOKER_POOL) straight out
-// of index.html, classifies each entity, and writes balance_sheet.csv.
+// Reads the three entity pools (TRICK_POOL, KNACK_POOL, SLEIGHT_POOL) straight
+// out of js/data/*.js, classifies each entity, and writes balance_sheet.csv.
 //
 // WHY THIS EXISTS: the game's numbers live inside the `desc` strings and the
-// scoring functions (calcScore / applyJokerGridEffect), not as editable data.
-// This sheet is a planning/catalog tool for a balance sweep — edit it, then we
-// apply the changes back into index.html in a follow-up pass.
+// scoring functions (calcScore / applySleightGridEffect), not as editable data.
+// This sheet is a planning/catalog tool for a balance sweep — edit it, then
+// apply the changes back into js/data/balance.js in a follow-up pass.
+//
+// The game used to be one giant index.html; it is now split into many small
+// files (see CLAUDE.md "File layout"). The three pools live in
+// js/data/tricks.js, js/data/knacks.js, js/data/sleights.js, and the tunable
+// numbers (BAL) + rendered descriptions (DESC_TEMPLATES) live in
+// js/data/balance.js. This script reads each file directly rather than
+// index.html, which is now just the skeleton of <script> tags.
 //
 // Run:  node tools/gen_balance_sheet.js
 // Out:  balance_sheet.csv  (open in Excel / Google Sheets)
@@ -14,40 +21,53 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 
-// Pull out a `const NAME = [ ... ];` array literal and eval it to a real array.
-function extractArray(name) {
-  const re = new RegExp('const\\s+' + name + '\\s*=\\s*(\\[[\\s\\S]*?\\n\\]);');
-  const m = html.match(re);
+const tricksSrc   = read('js/data/tricks.js');
+const knacksSrc   = read('js/data/knacks.js');
+const sleightsSrc = read('js/data/sleights.js');
+const balanceSrc  = read('js/data/balance.js');
+
+// Pull out a `const NAME = [ ... ];` array literal (or `{ ... }` object
+// literal) and eval it to a real value.
+function extract(src, name, open, close) {
+  const re = new RegExp('const\\s+' + name + '\\s*=\\s*(' +
+    open.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s\\S]*?\\n' +
+    close.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')\\s*;');
+  const m = src.match(re);
   if (!m) throw new Error('could not find ' + name);
   // eslint-disable-next-line no-eval
-  return eval(m[1]);
+  return eval('(' + m[1] + ')');
 }
+const extractArray  = (src, name) => extract(src, name, '[', ']');
+const extractObject = (src, name) => extract(src, name, '{', '}');
 
-const BONUS_POOL = extractArray('BONUS_POOL');
-const TOTEM_POOL = extractArray('TOTEM_POOL');
-const JOKER_POOL = extractArray('JOKER_POOL');
+const TRICK_POOL   = extractArray(tricksSrc, 'TRICK_POOL');
+const KNACK_POOL   = extractArray(knacksSrc, 'KNACK_POOL');
+const SLEIGHT_POOL = extractArray(sleightsSrc, 'SLEIGHT_POOL');
 
-// BAL holds the tunable numbers (see index.html). params_json column.
+// BAL holds the tunable numbers (js/data/balance.js). params_json column.
 // Tolerant of a missing BAL (e.g. before the round-trip refactor is applied).
 function extractBAL() {
-  const m = html.match(/const BAL = (\{[\s\S]*?\n\});/);
-  if (!m) return {};
-  // eslint-disable-next-line no-eval
-  return eval('(' + m[1] + ')');
+  try { return extractObject(balanceSrc, 'BAL'); } catch (e) { return {}; }
 }
 const BAL = extractBAL();
 
 // Render the same templated descriptions the game shows at runtime, so the
-// sheet's description column matches in-game text.
+// sheet's description column matches in-game text. Mirrors fillDescTemplate
+// in js/data/balance.js: {key} prints the raw value, {key_pct} prints it as a
+// percentage.
 let DESC_TEMPLATES = {};
-const dtMatch = html.match(/const DESC_TEMPLATES = (\{[\s\S]*?\n\});/);
-if (dtMatch) DESC_TEMPLATES = eval('(' + dtMatch[1] + ')'); // eslint-disable-line no-eval
+try { DESC_TEMPLATES = extractObject(balanceSrc, 'DESC_TEMPLATES'); } catch (e) { /* left empty */ }
+function fillDescTemplate(t, p) {
+  return t.replace(/\{(\w+)\}/g, (m, k) => {
+    if (k in p) return p[k];
+    if (k.endsWith('_pct')) { const b = k.slice(0, -4); if (b in p) return Math.round(p[b] * 100); }
+    return m;
+  });
+}
 function renderDesc(id, fallback) {
-  if (DESC_TEMPLATES[id] && BAL[id]) {
-    return DESC_TEMPLATES[id].replace(/\{(\w+)\}/g, (m, k) => (k in BAL[id] ? BAL[id][k] : m));
-  }
+  if (DESC_TEMPLATES[id] && BAL[id]) return fillDescTemplate(DESC_TEMPLATES[id], BAL[id]);
   return fallback;
 }
 
@@ -68,14 +88,14 @@ function classifyBuffType(desc, tags) {
   if (t.has('exalt') || t.has('corrupt') || /exalt|corrupt/.test(d)) return 'exalt/corrupt';
   if (t.has('boss') || /boss effects/.test(d)) return 'boss';
   if (t.has('challenge') || /challenge/.test(d)) return 'challenge';
-  if (t.has('retrigger') || /retrigger|trigger their effects|trigger .* twice|once more/.test(d)) return 'retrigger';
+  if (t.has('retrigger') || /retrigger|trigger their effects|trigger .* twice|once more|replays?\b/.test(d)) return 'retrigger';
   if (/×\s*\d|x\d|multipl(y|ies) score|double their pips|÷ 2|score ×|×their|× their/.test(d)) return 'score-multiplier';
   if (t.has('mult') || /\bmult\b/.test(d)) return 'mult';
   if (t.has('pips') || /\bpip/.test(d)) return 'pips';
-  if (t.has('coins') || /\bcoin|interest/.test(d)) return 'coins';
+  if (t.has('coins') || /\bcoin|interest|credits?\b/.test(d)) return 'coins';
   if (t.has('focus') || /\bfocus\b/.test(d)) return 'focus';
   if (t.has('resource') || /\bswap|\bdiscard/.test(d)) return 'resource';
-  if (t.has('time') || /second|timer|pause/.test(d)) return 'time';
+  if (t.has('time') || /second|timer|pause|clock/.test(d)) return 'time';
   return 'utility';
 }
 
@@ -96,7 +116,7 @@ function classifyTrigger(desc, tags, activation) {
   if (/\bswap/.test(d)) return 'on-swap';
   if (/\bdiscard/.test(d)) return 'on-discard';
   if (/first \d+s|last \d+s|seconds elapsed|every \d+ seconds|timer|round time|round start|start (each|of every) round/.test(d)) return 'time-based';
-  if (activation) return activation; // jokers: wildcard / on_play / on_draw etc.
+  if (activation) return activation; // sleights: wildcard / on_play / on_draw etc.
   return 'always / passive';
 }
 
@@ -115,13 +135,13 @@ function classifyCategories(desc, tags) {
   c.spatial       = t.has('position') || t.has('shape') || t.has('grid') || /row|column|corner|edge|adjacent|center|grid|intersection|spanning|2×2/.test(d) ? 1 : '';
   c.card_specific = /\b(ace|jack|queen|king|face card|sevens?|7s|sixes?|fives?|fours?|threes?|twos?|nines?|eights?|tens?)\b/.test(d) || t.has('value') ? 1 : '';
   c.suit_specific = t.has('suit') || /♠|♥|♦|♣|spade|heart|diamond|club/.test(d) ? 1 : '';
-  c.time          = t.has('time') || t.has('focus') === false && /second|timer|pause|\b\d+s\b|elapsed/.test(d) ? 1 : '';
-  c.money         = t.has('coins') || /\bcoin|interest|♦ scored earns/.test(d) ? 1 : '';
+  c.time          = t.has('time') || /second|timer|pause|\b\d+s\b|elapsed|clock/.test(d) ? 1 : '';
+  c.money         = t.has('coins') || /\bcoin|interest|credits?\b/.test(d) ? 1 : '';
   c.discard_swap  = t.has('resource') || /swap|discard|reserves/.test(d) ? 1 : '';
   c.play          = /each hand played|hand played|per hand|when .* scored|every hand/.test(d) ? 1 : '';
   c.focus         = t.has('focus') ? 1 : '';
-  c.scaling       = t.has('scaling') || /permanently|each level|streak|carry over|stack/.test(d) ? 1 : '';
-  c.retrigger     = t.has('retrigger') || /retrigger/.test(d) ? 1 : '';
+  c.scaling       = t.has('scaling') || /permanently|each level|streak|carry over|stack|scales?\b/.test(d) ? 1 : '';
+  c.retrigger     = t.has('retrigger') || /retrigger|replays?\b/.test(d) ? 1 : '';
   return c;
 }
 
@@ -143,23 +163,27 @@ const rows = [];
 
 const STRUCTURAL = 'structural — no tunable value';
 
-BONUS_POOL.forEach(b => {
+// Tricks (formerly "Bonus Cards") carry `tier`; Sleights and Knacks (formerly
+// "Jokers" / "Totems") carry `rarity`. See CLAUDE.md "Rarity: four tiers,
+// three ladders" — the ids are frozen but which field holds the tier differs
+// by pool, and that has not changed since the r197 rename.
+TRICK_POOL.forEach(b => {
   const cats = classifyCategories(b.desc, b.tags);
   const p = pj(b.id);
   rows.push([
-    'Bonus Card', b.id, b.name, p, b.tier, COST_BY_TIER[b.tier] ?? '',
+    'Trick', b.id, b.name, p, b.tier, COST_BY_TIER[b.tier] ?? '',
     classifyBuffType(b.desc, b.tags), classifyTrigger(b.desc, b.tags, null), '', '',
     ...CATEGORIES.map(c => cats[c]),
     (b.tags || []).join(' '), renderDesc(b.id, b.desc), p ? '' : STRUCTURAL,
   ]);
 });
 
-JOKER_POOL.forEach(j => {
+SLEIGHT_POOL.forEach(j => {
   const cats = classifyCategories(j.desc, j.tags);
   const p = pj(j.id);
   const note = [p ? '' : STRUCTURAL, j.needsResolve ? 'needsResolve / TBD' : ''].filter(Boolean).join('; ');
   rows.push([
-    'Joker', j.id, j.name, p, j.rarity, COST_BY_TIER[j.rarity] ?? '',
+    'Sleight', j.id, j.name, p, j.rarity, COST_BY_TIER[j.rarity] ?? '',
     classifyBuffType(j.desc, j.tags), classifyTrigger(j.desc, j.tags, j.activation),
     j.activation, j.durability,
     ...CATEGORIES.map(c => cats[c]),
@@ -167,26 +191,25 @@ JOKER_POOL.forEach(j => {
   ]);
 });
 
-TOTEM_POOL.forEach(t => {
+KNACK_POOL.forEach(t => {
   const cats = classifyCategories(t.desc, t.tags);
   const p = pj(t.id);
   rows.push([
-    'Totem', t.id, t.name, p, '', '',
+    'Knack', t.id, t.name, p, t.rarity, COST_BY_TIER[t.rarity] ?? '',
     classifyBuffType(t.desc, t.tags), classifyTrigger(t.desc, t.tags, null), '', 'persistent',
     ...CATEGORIES.map(c => cats[c]),
     (t.tags || []).join(' '), renderDesc(t.id, t.desc), p ? '' : STRUCTURAL,
   ]);
 });
 
-// System knobs in BAL not tied to a pool entity (suit defaults, exalt/corrupt,
-// resource time costs, plus any phantom bonuses referenced only in code).
+// System / event knobs in BAL not tied to a pool entity: suit exalt/corrupt
+// effects, base interact time costs, and per-event tuning blocks (Rehearsal,
+// the Card Market, the Schedule's cadence, etc.) that live in BAL alongside
+// the entity numbers but have no TRICK_POOL/SLEIGHT_POOL/KNACK_POOL id.
 const SYSTEM_DESC = {
-  _suit_defaults: 'Default per-suit effects when no bonus is active',
-  _resources:     'Base time costs: swap, discard/card, hand play',
-  _exalt:         'Exalted-card per-suit effects',
-  _corrupt:       'Corrupted-card per-suit effects',
-  tidal_force:    'Flush +mult (not in current pool)',
-  extinction:     'Four of a Kind ×score (not in current pool)',
+  _resources: 'Base interact costs and unspent-action/interest payout caps',
+  _exalt:     'Exalted-card per-suit effects (paused by default - see exaltCorruptEnabled)',
+  _corrupt:   'Corrupted-card per-suit effects (paused by default - see exaltCorruptEnabled)',
 };
 Object.keys(BAL).filter(id => !usedBalKeys.has(id)).forEach(id => {
   const blank = CATEGORIES.map(() => '');
@@ -194,11 +217,11 @@ Object.keys(BAL).filter(id => !usedBalKeys.has(id)).forEach(id => {
     'System', id, id.replace(/^_/, '').replace(/_/g, ' '), JSON.stringify(BAL[id]), '', '',
     '', '', '', '',
     ...blank,
-    '', SYSTEM_DESC[id] || '', '',
+    '', SYSTEM_DESC[id] || '', SYSTEM_DESC[id] ? '' : 'event/system tuning block, not an entity',
   ]);
 });
 
 const csv = [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n') + '\n';
 fs.writeFileSync(path.join(root, 'balance_sheet.csv'), csv);
 console.log(`Wrote balance_sheet.csv — ${rows.length} entities ` +
-  `(${BONUS_POOL.length} BCs, ${JOKER_POOL.length} jokers, ${TOTEM_POOL.length} totems).`);
+  `(${TRICK_POOL.length} tricks, ${SLEIGHT_POOL.length} sleights, ${KNACK_POOL.length} knacks).`);
