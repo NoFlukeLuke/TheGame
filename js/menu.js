@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r323 · Flow inspection fires at 0:00 again; reward-grid entities banned wherever there is no grid; the grid itself is a rare pick-3 offer; pick weights on the 60/25/15 ratio";
+const BUILD = "2026-09-24 · r324 · gamer is the resting vocabulary; the five sites that said QUOTA read the live term instead of any hardcoded word";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
