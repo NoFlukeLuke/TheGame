@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r324 · gamer is the resting vocabulary; the five sites that said QUOTA read the live term instead of any hardcoded word";
+const BUILD = "2026-09-24 · r325 · the WILD card: takes any rank to complete a set, never a run or a flush, no pips and no Tricks; four in the classic and six-suit decks";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

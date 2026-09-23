@@ -352,6 +352,7 @@ function startGame() {
   // A model that builds its own deck has already written the real total; a rank
   // x suit cross product is not what it deals, so the generic line must not run.
   if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
   dealPhase = false;
 
   // Reset all state

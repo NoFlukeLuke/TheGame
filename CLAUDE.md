@@ -113,6 +113,9 @@ The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-s
 - **Trick** (formerly *Bonus Card / BC*): `trick:{id,name,desc,tier}`. A scoring buff. **As of the trick redesign (r66+), Tricks do NOT live on the grid** - they sit in a persistent **side tray** (`trickTray[]`, rendered by `renderTrickTray()` into `#trick-tray-list`; `trickTrayMode` defaults to `true`, grid placement is a dev-only toggle). `hasTrick(id)` checks the tray in tray mode (falls back to scanning `gridData` only when grid placement is toggled on). `acquiredTricks[]` tracks ever-owned (for dedup via `ownsTrick`). **NOTE: Sleights (below), not Tricks, are the entities that physically live on the grid.**
 - **Sleight** (formerly *Joker*): `_isSleight:true`, `sleightId`, `_usesLeft`. A deck card with conditional activations (see below).
 - **Stone:** `_isStone:true` - inert obstacle.
+- **Wild** (r325): `rank === WILD_RANK`. An ordinary deck card that takes any rank to
+  complete a SET, never a run or a flush, scoring no pips and firing no Tricks. It is a
+  RANK rather than a flag, so it survives the deck cycle for free - see "The wild card" below.
 - **Knack** (formerly *Totem*): NOT a card. Persistent rule-changer in `acquiredKnacks[]`, shown in HUD. `hasKnack(id)`.
 - **Challenge card:** `challengeCard` / `challengeActive`, occupies a cell; `resolveChallenge(success)`.
 - `cardCan(card, action)` gates what each type can do (`select`/`swap`/`discard`/`fall`/`render`).
@@ -5732,6 +5735,182 @@ deck, since `handBasePips()`/`handBaseMult()` are already the one chokepoint eve
 reader goes through. **This is why the weighted deck is a dev toggle and not a
 mode default**, and why `deckModel` defaults to `'mode'`: with it unset nothing in
 the shipped game changes.
+
+## The wild card (r325) - `WILD_RANK` in `js/data/cards.js`
+
+Owner: *"the wildcard that takes any rank to complete a set but not a run or
+flush. Let's add 4 of those by default to the classic and 6 suits ... They can
+assume a rank to complete a hand, but they don't score pips or trigger tricks by
+default."*
+
+Four are shuffled into the deck at the start of every run. A wild completes a
+**SET** and nothing else: two 7s and a wild is a Three of a Kind, one 7 and two
+wilds is a Three of a Kind, 7-7-3-3 and a wild is a Full House. It can never be
+part of a run or a flush, it scores no pips, and it fires none of the per-card
+Tricks.
+
+### IT IS A RANK, NOT A FLAG, and that is the r165 white-card lesson
+
+`recycleCard` rebuilds an ordinary card from `{rank, suit}` plus the
+`DURABLE_CARD_FIELDS` list every time it leaves the board, so a `_wild` field
+would have to be named there AND kept in step with `SAVE_VARS` and both pile
+functions - which is exactly the bookkeeping r165 removed from the Spectrum white
+cards by DERIVING whiteness from the value instead. `isWildCard(card)` is
+`card.rank === WILD_RANK`, so the wild survives discard -> reshuffle -> redraw
+with no work anywhere, and `cardId` / `cardKey` / curses / buffs / saves all keep
+working untouched. Verified: through `discardToDrawPile` and through
+`discardToPlayed`, still a wild and still the same `_id`.
+
+**`WILD_SUIT` is a non-suit, deliberately.** A wild drawn as a spade that cannot
+complete a spade flush is the more confusing object, and "no rank, no suit" is one
+rule rather than two. It is absent from `ACTIVE_SUITS`, which is most of why the
+flush exclusion falls out - but **both flush sites test `isWildCard` explicitly
+anyway**, because r164 leaned on absence alone for the white cards and r165 had to
+unpick it. All four wilds share one `cardKey`, which is fine: `cardKey` is the
+RECORDS deck matrix's alone and that view aggregates with a count badge (r192).
+
+### The three rules, and where each one is enforced
+
+| rule | where |
+|---|---|
+| never in a RUN | `rankRunVals` returns `[]`, so `tryRunCombos` has nothing to place it at |
+| never in a FLUSH | `_handShape`'s `allSameSuitStrict` **and** `flushOverlayFor` |
+| completes a SET | `_wildFitsPattern`, read by `rankHandForGroup` |
+
+- **`rankRunVals` is where the run rule has to live**, not `RANK_ORDER`. That
+  function ends `?? 0`, so an unknown rank comes back as `[0]` and a wild would
+  have sat happily below an Ace in a run.
+- **`flushOverlayFor` needs the explicit test in a way `_handShape` does not.** It
+  groups cards BY THEIR OWN SUIT rather than testing against `ACTIVE_SUITS`, so
+  three wilds would have formed a `WILD_SUIT` group of their own and paid a
+  **Flush of 3** off cards that are not a suit at all.
+- **`_wildFitsPattern(naturalCounts, w, pattern)`** answers "can w wilds fill this
+  shape". Both lists are descending, the group is exactly `sum(pattern)` cards, so
+  greedy biggest-to-biggest is provably right: if the i-th largest natural group
+  will not fit the i-th largest slot, no pairing exists. `[n]` is n-of-a-kind,
+  `[3,2]` a full house, `[2,2]` two pair.
+- **AT w = 0 IT REDUCES TO THE THREE TESTS IT REPLACED, EXACTLY**, which is why
+  this was safe to drop in. The group size is fixed, so `counts[0] >= n` was only
+  ever true for a single rank, a full house only ever `[3,2]` and two pair only
+  ever `[2,2]`.
+- **A SET NEEDS AT LEAST ONE REAL CARD TO NAME ITS RANK** (`counts.length > 0`).
+  "Takes any rank to complete a set" means there is a set to complete; three blank
+  cards paying Three of a Kind reads as a bug, and on a 7x7 board three wilds
+  landing together is not rare enough to leave to chance.
+
+### No pips, no Tricks - and the mute was NOT enough
+
+The card loop's `_dead` path (Dead Drop, r194) is the right shape - "no pips, and
+none of its per-card Tricks" - but reusing it would have been wrong: it restores
+the ledger and zeroes `cp`, and **the `PER_CARD_PAYERS` block (r228) accumulates
+AFTER that restore**, so a muted wild would still have paid Get Even its +2 mult.
+`calcScore`'s loop therefore **returns** on a wild, which is the one guard that
+covers every per-card payout, present and future.
+
+Every downstream reader of the per-card bookkeeping already tolerates a missing
+cell, which is what makes the early return safe: `retrigByKey` /
+`_lastRetrigByCell` are read as `|| 1` at all three sites, `_reps` contributes 1
+to both its sum and its count (so Rerun and Chorus see no extra iteration),
+`_cardMultSeq` is replayed in order rather than indexed, and a card with no
+timeline event gets no beat in the dance - which is right, because it pays
+nothing to animate. **r220's rule still holds**: replaying the timeline reproduces
+`calcScore` exactly, and a wild adds nothing to either side.
+
+**`_natCards` is the hand-level half.** Seventeen tallies in `calcScore` read a
+rank or a suit across the whole hand - even/odd counts, `suitCount` for Rainbow,
+the hidden pair, Low and Behold's lowest rank, Spade Flood's `every` - and **all
+seventeen** now read `naturalCards(cards)`, including the ones a wild could not
+have affected anyway, so a Trick added later inherits the rule and it stays
+checkable by grep. **`cards` itself is deliberately NOT redefined**: `_reps` is
+built from `_scoreCells` and documented as aligned to it, and
+`exaltCorruptTotals(cards, reps)` pairs them by index, so dropping an entry there
+would silently shift every exalt payout onto the wrong card.
+
+### What it measures as
+
+**Byte-identical with no wild in play: 4,200 of 4,200 selections** over 700 real
+4x4 boards, every connected 2-5 card selection through the real `findBestHand`,
+compared against the r324 tree. So the `_wildFitsPattern` restructure is provably
+behaviour-neutral and only the wilds themselves show.
+
+Per 4x4 board, classic deck, counting SHAPES rather than availability (the r318
+rule - availability saturates at 4x4 and cannot tell two decks apart):
+
+| per board | 0 wilds | 4 wilds |
+|---|---|---|
+| Pair | 1.45 | 4.27 |
+| Three of a Kind | 0.14 | **0.96** |
+| Four of a Kind | 0.00 | 0.14 |
+| Run of 3 | 1.75 | 1.61 |
+| **set : run** | **0.08** | **0.60** |
+
+**76% of boards hold at least one wild** (1.15 on average), and the best hand on a
+board uses one on 35% of them.
+
+**THIS IS MOST OF WHAT THE WHOLE WEIGHTED-DECK EXERCISE WAS CHASING, on the plain
+52-card deck.** r318's target was sets at about two thirds of runs; four wilds
+reach **0.60** with no copy-count weirdness at all - no 11-copy rank, no singles,
+no cut rank, nothing for a player to memorise. Run of 3 drifts DOWN a little
+(1.75 -> 1.61), which is right: a wild occupies a cell a run card could have had.
+
+**IT NEEDS NO GOAL RETUNE, and that is the non-obvious part.** More sets would
+normally mean bigger scores, but a wild pays no pips - so a set completed by one
+is CHEAPER than the same set made of real cards (measured: three real 7s score
+168, two 7s and a wild score 147). The two effects very nearly cancel: the average
+best hand on a fresh board goes **799 -> 774**, slightly DOWN. The wild buys
+availability, not score.
+
+### Where they come from, and the knob
+
+`wildCardCount()` (js/data/cards.js) is the one place the number is decided and
+the one place a mode opts out; `freshShuffledDeck` appends them **after the model
+dispatch**, so the plain cross product, the six-suit designed deck and the
+weighted deck all get them on the same terms. **All three `expectedDeckTotal`
+writes add it** or the audit reports the deck four cards short.
+
+- **Spectrum is out** - its deck is values x colours with its own four payout
+  fixtures, and a rank that is not a value has no place in it.
+- **The four modes with their own hand detection are out for a harder reason**:
+  Poker Squares scores a LINE through `sqScoreLine`, Match-3 and Zen match their
+  own windows, and Dominoes builds its own board - none route through
+  `handComponentsFor`, so a wild there would be a blank card that completes
+  nothing. A daily grid also has to stay comparable between two players.
+- **Dev panel -> Deck -> Wild cards** sets the count (0/2/4/6/8/12), stored as
+  `lethe.wildCount`. Writing the default **deletes** the override rather than
+  pinning today's number for ever - the r197 goal-tuner rule.
+
+### The face
+
+It rides the **ordinary card path**, not an early return like the stone and the
+Sleight: it is a real deck card that is selected, swapped, discarded, cursed,
+buffed and marked like any other, so it wants every decoration that path already
+draws. One class and the rank/suit block differ - the glyph where a rank would be,
+the word under it where the suit would be.
+
+- **It is not a suit colour.** Every other card is coloured by its suit, so a wild
+  in any of those would read as one of them. It takes the violet the game already
+  uses for a CHARGE or a PRIMED state, plus a dashed edge.
+- **The Fog does not hide it.** The Fog hides RANKS and a wild has none, so it is
+  drawn in full rather than reading as a `?` the player would have to select to
+  identify.
+
+**Verified in a real browser at 1440x820 and 420x900**: 4 wilds dealt, the deck
+audit balances at 56/56, the face paints with **0 overflow** at both sizes, a
+buffed wild still draws its corner bands, selecting a wild and two 7s reads
+`SET3` with **0 penalty cards** and plays as a Three of a Kind, the handbook topic
+renders and the tip's predicate fires. **0 JS errors.**
+
+### Known, and deliberately left
+
+- **The RECORDS deck matrix is a rank x suit view**, and a wild is neither, so the
+  four of them do not appear in it. The Deck tab's totals still count them.
+- **There are no Tricks or Knacks that interact with wilds yet** - the owner's
+  "we can make some interesting knacks and tricks to interact with them". The
+  seam is `isWildCard` plus `countWilds(cards)`, which `calcScore` already
+  computes for every hand.
+- **A card STATE on a wild still resolves** (`cardStatesOnUse` runs in
+  `playHand`, not the scoring loop). Card states are the r278 system rather than
+  Tricks, so this is left as an interaction rather than closed off.
 
 ## Which modes are listed (r218)
 

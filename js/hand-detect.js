@@ -302,9 +302,15 @@ function _handShape(cells) {
   const n = cells.length;
   const isSeq = os => { for(let i=1;i<os.length;i++) if(os[i]-os[i-1]!==1) return false; return true; };
 
+  // WILDS ARE COUNTED SEPARATELY AND NEVER APPEAR IN rankCounts (r325). A wild
+  // has no rank, so it cannot be a rank's own tally - it is a slot that one of
+  // the real ranks may claim, which is what _wildFitsPattern decides.
+  const wilds = (typeof countWilds === 'function') ? countWilds(cards) : 0;
+
   // rankCounts: combined cards contribute both ranks
   const rankCounts = {};
   cards.forEach(c => {
+    if (wilds && isWildCard(c)) return;
     rankCounts[c.rank] = (rankCounts[c.rank]||0) + 1;
     if (c.combined && c.rank2) rankCounts[c.rank2] = (rankCounts[c.rank2]||0) + 1;
   });
@@ -315,8 +321,14 @@ function _handShape(cells) {
   // from - that is their identity - but they READ as colourless, so they can never
   // complete a flush. This explicit test is what enforces that; the cards' own
   // suits would otherwise match like any other colour.
+  // A WILD CAN NEVER COMPLETE A FLUSH either, and it is tested explicitly for
+  // exactly the reason the white cards are: WILD_SUIT is absent from
+  // ACTIVE_SUITS, so `cards.every` would already fail today - but r164 leaned on
+  // absence alone for white and r165 had to unpick it, so the rule is stated
+  // rather than inherited from a list that a mode could change.
   const _anyWhite = cards.some(c => isWhiteCard(c));
-  const allSameSuitStrict = !_anyWhite && ACTIVE_SUITS.some(s =>
+  const _anyWild  = wilds > 0;
+  const allSameSuitStrict = !_anyWhite && !_anyWild && ACTIVE_SUITS.some(s =>
     cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
   );
 
@@ -343,7 +355,7 @@ function _handShape(cells) {
     }
     return false;
   }
-  return { n, counts, allSameSuitStrict, isStr: tryRunCombos(0, []) };
+  return { n, counts, allSameSuitStrict, isStr: tryRunCombos(0, []), wilds };
 }
 
 // What a hand is worth under the ACTIVE scoring model, not the printed table:
@@ -415,18 +427,53 @@ function handIsActive(name) { const k = HAND_NAME_TO_KEY[name]; return !k || act
 // for everything, so the pips term is floored at 1 and the mults decide.
 function handWorth(h) { return HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0; }
 
+// ── CAN w WILDS FILL THIS PATTERN OF RANK GROUPS? (r325) ──
+// `naturalCounts` is the group's real ranks, descending; `pattern` is the shape
+// being tested, also descending - [n] for n-of-a-kind, [3,2] for a full house,
+// [2,2] for two pair. The group is EXACTLY sum(pattern) cards, so the wilds have
+// to land exactly and the only real question is whether each natural rank fits
+// in a slot of its own.
+//
+// Greedy biggest-to-biggest is provably right for that: both lists are
+// descending, so if the i-th largest natural group will not fit the i-th largest
+// slot, no pairing exists (any other assignment gives it a slot that is smaller
+// still). More distinct ranks than slots is an immediate no.
+//
+// AT w = 0 THIS REDUCES TO THE THREE TESTS IT REPLACED, EXACTLY. The group size
+// is fixed, so `counts[0] >= n` was only ever true for a single rank, a full
+// house was only ever [3,2] and two pair only ever [2,2] - each of which is what
+// the fit test answers. Verified over real boards: 0 hands move with no wild in
+// play (see the r325 note in CLAUDE.md).
+function _wildFitsPattern(naturalCounts, w, pattern) {
+  if (naturalCounts.length > pattern.length) return false;
+  let need = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    const have = naturalCounts[i] || 0;
+    if (have > pattern[i]) return false;
+    need += pattern[i] - have;
+  }
+  return need === w;
+}
+
 // ── TRACK 1: the best ACTIVE set/run this exact group of cards is, or null ──
 // Strict: n is exact for every shape, so a component never claims a spare card.
 function rankHandForGroup(cells) {
   const n = cells.length;
   if (n < 2 || n > HAND_MAX_CARDS) return null;
-  const { counts, allSameSuitStrict, isStr } = _handShape(cells);
+  const { counts, allSameSuitStrict, isStr, wilds } = _handShape(cells);
   const out = [];
   const add = name => { if (HAND_BASE[name] && handIsActive(name)) out.push(name); };
+  // A SET NEEDS AT LEAST ONE REAL CARD TO NAME ITS RANK. "Takes any rank to
+  // complete a set" means there is a set to complete; three blank cards paying
+  // Three of a Kind reads as a bug, and at a 7x7 board three wilds landing
+  // together is not rare enough to leave to chance. This is also what stops the
+  // whole-group degenerate case without needing a rule inside _wildFitsPattern.
+  const _setOK = counts.length > 0;
+  const _fits = pattern => _setOK && _wildFitsPattern(counts, wilds, pattern);
   if (n === 5 && isStr && allSameSuitStrict) add('Straight Flush');
-  if (counts[0] >= n) add(SET_BY_SIZE[n]);                       // n of a kind
-  if (n === 5 && counts[0] >= 3 && counts[1] >= 2) add('Full House');
-  if (n === 4 && counts[0] >= 2 && counts[1] >= 2) add('Two Pair');
+  if (_fits([n])) add(SET_BY_SIZE[n]);                           // n of a kind
+  if (n === 5 && _fits([3, 2])) add('Full House');
+  if (n === 4 && _fits([2, 2])) add('Two Pair');
   if (isStr) add(RUN_BY_SIZE[n]);
   if (!out.length) return null;
   let best = out[0];
@@ -442,7 +489,11 @@ function flushOverlayFor(cells) {
   const bySuit = {};
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
-    if (!card || isWhiteCard(card)) return;
+    // isWildCard is load-bearing HERE in a way it is not in _handShape: this
+    // function groups cards BY THEIR OWN SUIT rather than testing against
+    // ACTIVE_SUITS, so three wilds would form a WILD_SUIT group of their own and
+    // pay a Flush of 3 off cards that are not a suit at all.
+    if (!card || isWhiteCard(card) || isWildCard(card)) return;
     const push = s => { if (s) (bySuit[s] = bySuit[s] || []).push([r, c]); };
     push(card.suit);
     if (card.combined && card.suit2) push(card.suit2);

@@ -2189,6 +2189,54 @@
   .card.suit-stars .rank,.card.suit-stars .suit{ color: var(--suit-stars); }
   .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
 
+  /* ══ THE WILD CARD (r325) ══
+     Takes any rank to complete a SET, and nothing else - never a run, never a
+     flush, no pips, no Tricks. It rides the ordinary .card path (so it keeps the
+     buff bands, the line ring, card states, the curse badge and the selection
+     glow), and only the face is its own: the glyph where a rank would be, the
+     word under it where the suit would be.
+
+     IT IS NOT A SUIT COLOUR. Every other card on the board is coloured by its
+     suit, so a wild in any of those colours would read as one of them. It takes
+     the violet the game already uses for a CHARGE or a PRIMED state (the .cd-badge
+     pill, .card-temp) - a property of the card rather than a suit - plus a dashed
+     edge, because dashed is what the schedule's blank tiles already use for
+     "this cell is not the ordinary thing". */
+  .card.wild-card {
+    border-style: dashed;
+    border-color: var(--wild-edge, #8b5cf6);
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(139,92,246,0.16), rgba(139,92,246,0) 70%),
+      var(--card-bg);
+  }
+  .card.wild-card:hover:not(.unreachable) {
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(139,92,246,0.24), rgba(139,92,246,0) 70%),
+      #fffaee;
+  }
+  .card .wild-glyph {
+    font-family: 'Cinzel', serif;
+    /* The glyph stands in for BOTH the rank and the suit, so it is sized between
+       the two (0.24 and 0.293 of the card height) rather than matching either. */
+    font-size: calc(var(--card-h, 75px) * 0.30);
+    font-weight: 700;
+    line-height: 1;
+    color: #6d28d9;
+    text-shadow: 0 0 6px rgba(139,92,246,0.45);
+  }
+  .card .wild-label {
+    font-family: 'Share Tech Mono', monospace;
+    /* 0.10 of the card height is ~7.5px on a desktop card and ~4.7px in the hand
+       preview. It is a reminder on a card the player has already learned, not the
+       way they learn it (the handbook and the tip are), so small is correct - and
+       `overflow: hidden` on .card is the hard stop either way. */
+    font-size: calc(var(--card-h, 75px) * 0.10);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    margin-top: 2px;
+    color: #7c5bbf;
+  }
+
   /* ══ SPECTRUM - numeric colour deck (mode: spectrum) ══
      No suits, no court cards: the whole card face IS the colour and the value
      sits large in the middle. `num-suit` + `col-*` come from suitClass(), so the

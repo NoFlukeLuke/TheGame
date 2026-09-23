@@ -626,11 +626,22 @@ function freshShuffledDeck() {
   // The six-suit mode builds a DESIGNED deck instead of the plain cross product:
   // six suits but only four of each rank, so the deck is ranks x copies and the
   // suit count no longer decides its size. See js/deck-design.js.
-  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck());
-  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck());
+  // THE WILDS ARE ADDED AFTER THE MODEL DISPATCH, so every deck shape gets them
+  // on the same terms - the plain cross product, the six-suit designed deck and
+  // the weighted deck alike. wildCardCount() is the one place the number is
+  // decided (and the one place a mode opts out), and it is added to
+  // expectedDeckTotal at each of the three sites that write it.
+  const _wilds = () => {
+    const n = (typeof wildCardCount === 'function') ? wildCardCount() : 0;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(stampId({ rank: WILD_RANK, suit: WILD_SUIT }));
+    return out;
+  };
+  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck().concat(_wilds()));
+  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck().concat(_wilds()));
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
-  return deckShuffle([...d]);
+  return deckShuffle([...d, ..._wilds()]);
 }
 
 function shuffle(arr) {

@@ -138,6 +138,15 @@ const INFO_TOPICS = [
        'WITHDRAWN - a whole rank is off the board for a while, also with a countdown.'],
     ] },
 
+  { id: 'wild_card', group: 'board', title: 'Wild cards',
+    body: [
+      'A wild takes any rank to complete a SET. Two 7s and a wild is a Three of a Kind; one 7 and two wilds is a Three of a Kind too.',
+      'It is only ever a set. A wild can never be part of a run and never part of a flush.',
+      'It scores no pips of its own and fires no {Tricks}. The set it completes pays its own base pips and mult as normal, and the real cards in it score as normal.',
+      'A set needs at least one real card to name its rank, so wilds on their own are not a hand.',
+      'Four are shuffled into the deck at the start of a run.',
+    ] },
+
   { id: 'curses', group: 'board', title: 'Cursed cards',
     body: [
       'A curse rides one specific card, not a rank or a suit, and lifts by itself after that card has scored a few times.',

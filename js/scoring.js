@@ -67,6 +67,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (!base) return 0;
   const _scoreCells = scoringOrderCells(cells);
   const cards = _scoreCells.map(([r,c]) => gridData[r][c]);
+  // ── THE WILD IS INVISIBLE TO EVERY RANK AND SUIT COUNT (r325) ──
+  // A wild has no rank and no suit, so it is not an even card, not a club, not
+  // the lowest rank in the hand, and not a distinct colour for Rainbow to count.
+  // EVERY hand-level tally below reads _natCards, which makes the rule one thing
+  // to check by grep rather than a judgement per Trick - including the ones a
+  // wild could not have affected anyway, so a Trick added later inherits it.
+  //
+  // `cards` is deliberately NOT redefined: `_reps` is built from _scoreCells and
+  // is documented as aligned to `cards`, and exaltCorruptTotals(cards, reps)
+  // pairs them by index, so dropping an entry here would silently shift every
+  // exalt payout onto the wrong card.
+  const _natCards = (typeof naturalCards === 'function') ? naturalCards(cards) : cards;
   const hasTrickCard = trickCardPos && cells.some(([r,c]) => r===trickCardPos[0] && c===trickCardPos[1]);
   // Predicted post-update streak count for THIS hand (playHand updates streakCount/lastHandType
   // only after calcScore runs, so reading streakCount directly here is one hand stale).
@@ -189,10 +201,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _eyeFrac = roundFractionRemaining();
   const _eyeStorm = hasTrick('eye_of_storm') && _eyeFrac > 1/3 && _eyeFrac <= 2/3;
   const _rankHigh = rk => rk === 'A' ? 14 : (RANK_ORDER[rk] || 0);
-  const _eyeMax = _eyeStorm ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
+  const _eyeMax = _eyeStorm ? Math.max(...(_natCards.length ? _natCards : [{}]).map(c => _rankHigh(c.rank))) : -1;
   // High and Mighty (knack): the hand's highest-ranked card(s) all replay once
   const _hnmOn  = hasKnack('high_and_mighty');
-  const _hnmMax = _hnmOn ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
+  const _hnmMax = _hnmOn ? Math.max(...(_natCards.length ? _natCards : [{}]).map(c => _rankHigh(c.rank))) : -1;
   // Ripple: once per 30s, cards within one rank of another card in the hand retrigger
   const _rippleReady = hasTrick('ripple') && (Date.now() - _rippleLastFire >= BAL.ripple.cooldown_ms);
   const _rippleSet = new Set();
@@ -271,8 +283,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hand-level facts every row above is allowed to ask about. Computed ONCE,
   // before the loop, from things already known at this point.
   const _pcRankCounts = {};
-  cards.forEach(c => { _pcRankCounts[c.rank] = (_pcRankCounts[c.rank]||0) + 1; });
-  const _pcMax = cards.length ? Math.max(...Object.values(_pcRankCounts)) : 0;
+  _natCards.forEach(c => { _pcRankCounts[c.rank] = (_pcRankCounts[c.rank]||0) + 1; });
+  const _pcMax = _natCards.length ? Math.max(...Object.values(_pcRankCounts)) : 0;
   const _pcFrac = roundFractionRemaining();
   const _pcIsRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
   const _pcCtx = {
@@ -282,13 +294,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     earlyThird: _pcFrac > 2/3,
     lateThird:  _pcFrac <= 1/3,
     onEdge:     isOnEdge(cells),
-    suitCount:  new Set(cards.map(c => cardColorSuit(c))).size,
+    suitCount:  new Set(_natCards.map(c => cardColorSuit(c))).size,
     allSameCol: cells.every(([, cc]) => cc === cells[0][1]),
     allSameRow: cells.every(([rr]) => rr === cells[0][0]),
-    primeCount: cards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length,
+    primeCount: _natCards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length,
     focusMult:  focusMultiplier(),
-    evenCount:  cards.filter(c => _rankIsEvenRank(c.rank)).length,
-    oddCount:   cards.filter(c => _rankIsOddRank(c.rank)).length,
+    evenCount:  _natCards.filter(c => _rankIsEvenRank(c.rank)).length,
+    oddCount:   _natCards.filter(c => _rankIsOddRank(c.rank)).length,
     maxCount:   _pcMax,
     topRanks:   new Set(Object.keys(_pcRankCounts).filter(r => _pcRankCounts[r] === _pcMax)),
   };
@@ -298,7 +310,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
-  const _eightCount = hasTrick('eights_retrigger') ? cards.filter(c => c.rank === '8').length : 0;
+  const _eightCount = hasTrick('eights_retrigger') ? _natCards.filter(c => c.rank === '8').length : 0;
   // Huddle: set of scored cells for in-hand adjacency. Assembly Line: running mark counter
   // (starts from this round's persistent count; simulated locally so calcScore stays pure).
   const _cellSet = new Set(_scoreCells.map(([_hr,_hc]) => _hr + '-' + _hc));
@@ -315,7 +327,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _slLastKey  = _scoreCells.length ? _scoreCells[_scoreCells.length-1][0] + '-' + _scoreCells[_scoreCells.length-1][1] : '';
   let _slFirstPips = 0, _slLastPips = 0;
   // Encore: an all-odd-rank Set hand scores a second time (whole-hand replay via +1 retrig per card).
-  const _encoreHand = hasTrick('encore') && isSetHand(handName) && cards.every(c => ['A','3','5','7','9'].includes(c.rank));
+  const _encoreHand = hasTrick('encore') && isSetHand(handName) && _natCards.length > 0 && _natCards.every(c => ['A','3','5','7','9'].includes(c.rank));
   // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
   const _wfiChance = hasTrick('wait_for_it') ? negativeTilesTakenRun * BAL.wait_for_it.chance_per : 0;
   // High Roller (knack): each card has (credits + Luck)% chance to replay. Luck
@@ -340,7 +352,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       const g = gridData[gr]?.[gc];
       if (g && g.rank && !g._isSleight && !g._isStone && !g._isTrick) lo = Math.min(lo, _rankHigh(g.rank));
     }
-    return lo < 99 && cards.some(c => _rankHigh(c.rank) === lo);
+    return lo < 99 && _natCards.some(c => _rankHigh(c.rank) === lo);
   })();
   // Callback (r278, js/card-states.js): a card state, not a Trick. Same shape as
   // Low and Behold above - the CONDITION is a property of the hand (does any card
@@ -355,6 +367,23 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _ledgerCells = ledger ? [] : null;
   _scoreCells.forEach(([r, c], _ci) => {
     const card = gridData[r][c];
+    // ── A WILD CONTRIBUTES NOTHING (r325) ──
+    // No pips and none of its per-card Tricks, which is the whole of the card's
+    // printed text. That is the Dead Drop shape (r194's `_dead`), but the mute
+    // further down is NOT enough on its own: it restores the ledger and zeroes
+    // `cp`, and the PER_CARD_PAYERS block (r228) accumulates AFTER that restore,
+    // so a muted wild would still have paid Get Even its +2 mult. Returning here
+    // is the one guard that covers every per-card payout, present and future.
+    //
+    // Every downstream reader of the per-card bookkeeping already tolerates a
+    // missing cell: retrigByKey / _lastRetrigByCell are read as `|| 1` at all
+    // three sites, `_reps` therefore contributes 1 to both its sum and its count
+    // (so Rerun and Chorus see no extra iteration), `_cardMultSeq` is replayed in
+    // order rather than indexed, and a card with no timeline event simply gets no
+    // beat in the dance - which is right, because it pays nothing to animate.
+    // r220's rule still holds: replaying the timeline reproduces calcScore
+    // exactly, and a wild adds nothing to either side.
+    if (typeof isWildCard === 'function' && isWildCard(card)) return;
     _tlCard = _ci;                                          // everything emitted below belongs to THIS card
     const _tlMark = _tl ? _tl.length : 0;                   // rewind point for the Blight
     const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks
@@ -633,7 +662,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Hidden pair trick
   const rankCounts = {};
-  cards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank]||0)+1);
+  _natCards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank]||0)+1);
   const hasPairInHand = Object.values(rankCounts).some(v => v >= 2);
   if (hasTrick('hidden_pair') && hasPairInHand) { totalPips += BAL.hidden_pair.pips; bPip('hidden_pair', BAL.hidden_pair.pips); }
   if (hasTrick('twin_sprouts') && handName === 'Pair')   { totalPips += BAL.twin_sprouts.pips; bPip('twin_sprouts', BAL.twin_sprouts.pips); }
@@ -657,11 +686,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
 
   // Clubs: neutral by default; +10 pips each with Hard Labour Trick
-  const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
+  const clubCount = _natCards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
   if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
-  const allSpadesCalc = cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
+  const allSpadesCalc = _natCards.length > 0 && _natCards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
   if (hasTrick('spade_flood') && allSpadesCalc) { const _a = Math.floor(roundSeconds / BAL.spade_flood.time_div); totalPips += _a; bPip('spade_flood', _a); }
 
   // Sands of Time: remaining round seconds / 2 as trick pips
@@ -681,7 +710,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Trinity Run: +9 mult for runs with 3/6/9 (added to mult section below)
   const hasTrinityRank = (['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName)) &&
-    cards.some(c => ['3','6','9'].includes(c.rank));
+    _natCards.some(c => ['3','6','9'].includes(c.rank));
 
   // 2. Base mult + bonuses
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
@@ -756,7 +785,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
 
   // Ready, Set, Go: a 3-card hand (or a Pair via Three's a Crowd) containing a 3 scores +mult
-  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && cards.some(cd => cd && cd.rank === '3')) {
+  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && _natCards.some(cd => cd && cd.rank === '3')) {
     mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
   }
   // Four Eyes: 4-card hands score +mult
@@ -851,8 +880,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // ── New Trick mult bonuses ──
   // Per-rank mult
-  const _aceCount   = cards.filter(c => c.rank === 'A').length;
-  const _threeCount = cards.filter(c => c.rank === '3').length;
+  const _aceCount   = _natCards.filter(c => c.rank === 'A').length;
+  const _threeCount = _natCards.filter(c => c.rank === '3').length;
   if (_jmMult) { bMultQ('jack_mult', _jmMult, 1); }
   if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
