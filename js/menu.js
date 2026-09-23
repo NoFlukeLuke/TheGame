@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r309 · four heavier casino sound packs, a shared DSP toolkit, a master punch chain and a per-pack room";
+const BUILD = "2026-09-23 · r310 · the mid-dance pick no longer covers the score: the location swap waits for the goal tally";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
