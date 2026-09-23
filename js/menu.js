@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r312 · Daily grids: hand values from real poker";
+const BUILD = "2026-09-23 · r313 · heavy-preview.html: an A/B for Vegas and Neon, measured against the packs that work";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

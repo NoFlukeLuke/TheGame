@@ -7326,6 +7326,41 @@ and the six ids in `AUDIO_MANIFEST` are the most frequent board sounds in the ga
 so leaving it on meant a pack was never heard where it is heard most. The files are
 untouched and the switch still brings them back.
 
+#### `heavy-preview.html` (r313) - the A/B for "less tinkle, more punch"
+
+Owner, on Vegas: *"too tinkly and not mechanical enough."* The page plays the six
+most frequent sounds as NOW and HEAVY, in the real patterns they are heard in (a
+five-card hand, twelve pip particles at the dance's 90ms, six coins) through the
+real buses, ducking, limiter and room. **The candidate lives in the page, not in
+`js/audio-packs.js`** - it is not adopted until the owner says so.
+
+**"Tinkly" is measurable, and measuring it changed the answer twice.**
+The metric is the spectral centroid plus the share of energy above 1.2kHz.
+
+- **The target is the packs with no complaint against them, NOT zero.** High
+  Roller and Lounge measure ~660-680Hz with about a tenth of their energy up
+  top. A first pass drove Vegas to 250Hz and 1% and that is not less tinkly, it
+  is the metal gone.
+- **The blame was narrower than the complaint sounded.** `particle_pip` at
+  **5450Hz / 100% high**, twelve times a hand, and `card_pop` at 2362 / 87%,
+  five times a hand. `card_select` (301 / 2%) was already in band, and
+  `particle_mult` (1278 / 36%) is DARKER than High Roller's (2117 / 78%) - both
+  were left nearly alone on the strength of that.
+- **EVERY pack's coin is bright**, Lounge's included (2282Hz / 100%). A coin
+  that thuds is not a coin, so `vghCoin`/`nehBell` carry a `body` knob: full for
+  the repeated sounds, turned down for the payout coin.
+- **RMS is held within 15% of the original per sound**, and the page goes red
+  past that, because a heavy version that is also louder wins the A/B for the
+  wrong reason. Verified stable across five independent measurements.
+
+**A preview that disagrees with what it does is worse than no preview** (r233),
+and this one caught itself twice: the pack blurbs still described the first
+tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
+They are per pack now.
+
+**`audioCtx` is declared in `js/challenge.js`** - not audio.js - so any page
+loading the audio stack without it must declare it or `getAudioCtx()` throws.
+
 **Testing**: render every id of every pack into an `OfflineAudioContext` with
 `getAudioCtx` temporarily repointed at it, and assert peak, RMS and tail length
 against classic. For a timeline (several sounds at real spacing) the wrapper must be

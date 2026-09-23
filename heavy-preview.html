@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heavy pass - Vegas &amp; Neon A/B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0d12; --panel:#17161d; --panel2:#1e1c26; --line:#2e2b38;
+    --ink:#e8e3d6; --dim:#8d8699; --gold:#ffce2b;
+    --now:#7fd4dd; --heavy:#ff8a4c; --mint:#35d59b;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Share Tech Mono',ui-monospace,monospace; font-size:14px; line-height:1.5;
+    padding:20px 16px 60px;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-family:Orbitron,sans-serif;font-size:19px;letter-spacing:2px;margin:0 0 4px;font-weight:800}
+  .sub{color:var(--dim);margin:0 0 18px;max-width:70ch}
+  .bar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;margin-bottom:18px;position:sticky;top:0;z-index:5;
+  }
+  .bar label{color:var(--dim);font-size:12px}
+  input[type=range]{width:130px;vertical-align:middle;accent-color:var(--gold)}
+  button{
+    font-family:'Share Tech Mono',monospace;font-size:13px;cursor:pointer;
+    background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:8px 12px;min-height:36px;
+  }
+  button:hover{border-color:var(--dim)}
+  button:active{transform:translateY(1px)}
+  button.now{border-color:rgba(127,212,221,.55);color:var(--now)}
+  button.heavy{border-color:rgba(255,138,76,.55);color:var(--heavy)}
+  button.ab{border-color:rgba(255,206,43,.55);color:var(--gold)}
+  button.go{background:#241f14;border-color:var(--gold);color:var(--gold);font-weight:bold}
+  button.playing{background:#2c2636;border-color:var(--gold)}
+  h2{
+    font-family:Orbitron,sans-serif;font-size:14px;letter-spacing:2px;margin:26px 0 2px;
+    display:flex;align-items:center;gap:10px;
+  }
+  h2 .tag{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:0}
+  .packnote{color:var(--dim);font-size:12px;margin:0 0 12px;max-width:80ch}
+  .row{
+    display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:12px 14px;margin-bottom:8px;
+  }
+  .rowhead{font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:1.4px;margin-bottom:2px}
+  .plays{color:var(--dim);font-size:12px}
+  .change{color:var(--heavy);font-size:12px;margin-top:6px;opacity:.92}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .nums{
+    grid-column:1 / -1;border-top:1px solid var(--line);margin-top:10px;padding-top:8px;
+    font-size:12px;color:var(--dim);display:none;
+  }
+  .nums.show{display:block}
+  .nums table{border-collapse:collapse;width:100%;max-width:560px}
+  .nums th{text-align:left;font-weight:normal;color:var(--dim);padding:2px 12px 2px 0}
+  .nums td{padding:2px 12px 2px 0;font-variant-numeric:tabular-nums}
+  .nums .lab{color:var(--dim)}
+  .nums .v-now{color:var(--now)}
+  .nums .v-heavy{color:var(--heavy)}
+  .delta{color:var(--mint)}
+  .delta.bad{color:#e8654f}
+  .legend{color:var(--dim);font-size:12px;margin:10px 0 0;max-width:80ch}
+  .legend b{color:var(--ink);font-weight:normal}
+  @media (max-width:620px){
+    .row{grid-template-columns:1fr}
+    .btns{justify-content:flex-start}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>HEAVY PASS</h1>
+  <p class="sub">
+    A/B for the six sounds you hear most. <b>NOW</b> is exactly what the game plays today;
+    <b>HEAVY</b> is the retune - less high inharmonic metal, more body, sub and saturation.
+    Both run through the real buses, ducking, saturation, limiter and room, so what you hear
+    here is what the game would play.
+  </p>
+
+  <div class="bar">
+    <label>Volume <input id="vol" type="range" min="0" max="100" value="70"></label>
+    <span id="volread" style="color:var(--dim);font-size:12px;width:34px">70</span>
+    <button class="go" id="ab-all-vegas">&#9654; A/B ALL - VEGAS</button>
+    <button class="go" id="ab-all-neon">&#9654; A/B ALL - NEON</button>
+    <button id="measure">MEASURE EVERYTHING</button>
+    <span id="mstat" style="color:var(--dim);font-size:12px"></span>
+  </div>
+
+  <div id="packs"></div>
+
+  <p class="legend">
+    <b>Centroid</b> is where the sound's energy actually sits in the spectrum - the number
+    behind the word "tinkly". <b>High</b> is the share of the sound's energy above 1.2kHz - how much of it is
+    sparkle rather than body. <b>Peak</b> and <b>RMS</b> are there
+    to prove the heavy version is not just louder: RMS is held within 15% of the original,
+    and goes red past that, because otherwise the comparison is rigged. The reference
+    line under each table is High Roller and Lounge measured on the same sound - the
+    target is to land near them, not at zero.
+  </p>
+</div>
+
+<!-- The real audio stack. Stubs for the four things it expects from files a
+     preview has no business loading (settings, the seed, the colour deck). -->
+<script>
+  // getAudioCtx() assigns this, and it is declared in js/challenge.js - a file a
+  // preview has no reason to load. Declared here so audio.js can reach it.
+  let audioCtx = null;
+  let PREVIEW_VOL = 0.70;
+  let PREVIEW_PACK = 'vegas';
+  function sfxVolume() { return PREVIEW_VOL; }
+  function fxRandom()  { return Math.random(); }
+  function sfxPackId() { return PREVIEW_PACK; }   // the mixer reads this to pick the room
+</script>
+<script src="js/audio.js"></script>
+<script src="js/audio-mixer.js"></script>
+<script src="js/audio-dsp.js"></script>
+<script src="js/audio-packs.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// THE CANDIDATE: Vegas and Neon, retuned for weight
+// ══════════════════════════════════════════════════════════════════════════════
+// Written to be lifted straight into js/audio-packs.js if it is approved: the
+// palette functions keep the same shapes and arguments as the ones they replace,
+// so the entries that are NOT in this A/B carry over by renaming the helpers.
+//
+// ── WHAT "TINKLY" WAS, CONCRETELY ─────────────────────────────────────────────
+// Vegas built nearly every frequent sound out of dMetal's `coin` partial set
+// [1, 2.41, 3.83, 5.17, 7.02] at a 1760Hz root - so a single card pop threw a
+// partial at 12kHz - plus short-LFSR noise bandpassed at 3.2k and 5.2k. The
+// body layers were there, underneath, as garnish.
+//
+// Neon's version of the same mistake is dBell at ratio 5.01: a high modulator
+// ratio is what makes FM read as GLASS, and it was on every bell in the pack,
+// rooted at C6.
+//
+// ── THE FOUR LEVERS, IN THE ORDER THEY MATTER ────────────────────────────────
+// 1. THE PAYLOAD AND THE ACCENT SWAP PLACES. The body is the sound and the metal
+//    is a transient on top of it, rather than the other way round. This is most
+//    of the change and the rest is trim.
+// 2. FEWER PARTIALS, STEEPER TILT. `coin` drops its top two partials, and `fall`
+//    (how fast each successive partial is quieter) and `tilt` (how fast each one
+//    dies) both come down hard. A partial at 7x the root is the tinkle.
+// 3. DOWN AN OCTAVE OR MORE. Vegas bells C5 -> G3, coins 1760 -> 740. Neon's
+//    bells C6 -> C5 with the FM ratio 5.01 -> 2.01.
+// 4. A DARKER, SHORTER ROOM. A bright tail is what makes metal sparkle after the
+//    hit has gone, so the room profile is part of the sound, not separate from it.
+//
+// Levels are held to the originals on purpose - see the measured table on the
+// page. "Heavier" has to survive being the same loudness or it is just louder.
+
+// The heavy packs get their own rooms, so the tail is part of the A/B.
+SFX_ROOMS.vegas_heavy = { seconds: 1.00, decay: 3.0, tone: 0.40, mix: 0.28, pre: 0.011 };
+SFX_ROOMS.neon_heavy  = { seconds: 0.70, decay: 3.9, tone: 0.50, mix: 0.27, pre: 0.008 };
+
+// ══ VEGAS HEAVY ══════════════════════════════════════════════════════════════
+// Tuned AGAINST High Roller and Lounge, not against zero. Measured on these six
+// sounds those two sit at a centroid of about 660-680Hz with roughly a tenth of
+// their energy above 1.2kHz, and nobody has complained about either - so that is
+// the band, and a first pass that drove Vegas to 250Hz and 1% was not "less
+// tinkly", it was the metal gone.
+//
+// WHAT THE MEASUREMENT ACTUALLY BLAMED, which is narrower than it sounded:
+//   particle_pip  5457Hz / 100% high   fires twelve times a hand   <- the offender
+//   card_pop      2362Hz /  87%        five times a hand           <- the second
+//   hand_scored   1246Hz /  29%        once a hand
+//   card_select    301Hz /   2%        already in band - barely touched
+//   particle_mult 1278Hz /  36%        already DARKER than High Roller's 78%
+//   coin          3835Hz / 100%        so is every pack's coin, Lounge included
+//
+// So the coin keeps its sparkle and gains a floor to land on; the two sounds
+// that repeat are the ones rebuilt.
+const VGH_COIN = 1180.00;  // was 1760 - down a fifth, not an octave and a third
+const VGH_BELL = 440.00;   // A4 - was C5
+const VGH_BODY = 98.00;    // G2 - the cabinet
+
+// The coin. The ring is still the coin and is still bright; what is new is that
+// it lands on something. Three partials instead of five (the 5.17 and 7.02 threw
+// energy past 9kHz) and a steeper fall, so the sparkle is the attack rather than
+// the whole envelope.
+function vghCoin(semi, { gain = 0.1, delay = 0, verb = 0.20, body = 1 } = {}) {
+  const f = dHz(semi, VGH_COIN);
+  dNoise({ kind: 'metal', dur: 0.018, gain: gain * 0.42, delay, type: 'bandpass',
+           freq: 3000, q: 1.4, rate: 2.0, attack: 0.0005, verb: verb * 0.35 });
+  dMetal({ freq: f, set: [1, 2.41, 3.83], dur: 0.26, gain: gain * 0.80, delay: delay + 0.003,
+           verb: verb * 0.85, tilt: 0.52, fall: 0.50 });
+  // `body` is how much of the tray this coin lands on. A coin heard on its own
+  // should still sparkle - measured, every shipped pack's coin including Lounge's
+  // puts 96-100% of its energy above 1.2kHz - so the payout coin turns this down
+  // while the repeated ones (card pop, pip particles) keep it at full.
+  dThump({ freq: 165, to: 56, dur: 0.15, gain: gain * 0.85 * body, delay: delay + 0.002, sat: 0.7, verb: verb * 0.4 });
+}
+
+// A struck BAR rather than a hung bell: three nearly-harmonic partials instead of
+// `ring` plus a `bar` overlay at 2.02x, which is what was putting two inharmonic
+// stacks on top of each other.
+function vghBell(semi, { dur = 0.9, gain = 0.14, delay = 0, verb = 0.24 } = {}) {
+  const f = dHz(semi, VGH_BELL);
+  dWood({ freq: f * 1.6, dur: 0.045, gain: gain * 0.45, delay, verb: verb * 0.4, bright: 0.8 });
+  dMetal({ freq: f, set: [1, 2.0, 3.01], dur, gain: gain * 0.90, delay, verb, tilt: 0.64, fall: 0.56 });
+  dThump({ freq: 150, to: 52, dur: 0.20, gain: gain * 0.44, delay, sat: 0.7, verb: verb * 0.4 });
+  return dur;
+}
+
+// The detent as a wooden knock with a tick of metal ON it, rather than a 4200Hz
+// metal click with a triangle under it.
+function vghThunk({ gain = 0.09, delay = 0, pitch = 1, verb = 0.08 } = {}) {
+  dNoise({ kind: 'metal', dur: 0.006, gain: gain * 0.25, delay, type: 'bandpass',
+           freq: 3200 * pitch, q: 1.6, rate: 2.4, attack: 0.0005, verb: verb * 0.4 });
+  dWood({ freq: 250 * pitch, dur: 0.075, gain: gain * 1.0, delay, verb, bright: 0.7 });
+  dThump({ freq: 130, to: 50, dur: 0.10, gain: gain * 0.7, delay, sat: 0.7, verb: verb * 0.3 });
+}
+
+function vghHopper(n, { spread = 0.9, gain = 0.075, delay = 0, lo = 0, hi = 12 } = {}) {
+  dCascade(n, (i, at) => vghCoin(dRand(lo, hi), { gain: gain * dRand(0.7, 1.15), delay: at, verb: 0.16 }),
+           { spread, jitter: 0.5, delay, accel: 0.72 });
+}
+
+const VEGAS_HEAVY = {
+  // Already in band at 301Hz, so this is one deletion and nothing else: the
+  // 1150Hz triangle chirp that sat on top of the relay.
+  card_select: () => {
+    dRelay({ gain: 0.15, pitch: 1.40, weight: 0.70, verb: 0.08 });
+  },
+
+  card_pop: (suit) => {
+    const i = packSuitIndex(suit);
+    vghCoin(dDegree('majPent', i), { gain: 0.058, verb: 0.15 });
+    dWood({ freq: dHz(i * 2, VGH_BODY * 2), dur: 0.12, gain: 0.105, verb: 0.09 });
+    dThump({ freq: 140, to: 52, dur: 0.14, gain: 0.062, sat: 0.7, verb: 0.06 });
+  },
+
+  // The one that actually earned the complaint. The wooden knock is the payload
+  // and the coin is the accent on top, which is the inversion of what it was.
+  particle_pip: () => {
+    const i = packParticleIndex();
+    vghCoin(dDegree('majPent', i), { gain: 0.072, verb: 0.14 });
+    vghThunk({ gain: 0.145, pitch: 1 + i * 0.03, verb: 0.06 });
+  },
+
+  particle_mult: () => {
+    const i = packParticleIndex();
+    vghBell(dDegree('majPent', i), { dur: 0.34, gain: 0.15, verb: 0.22 });
+  },
+
+  coin: () => vghCoin(dRand(2, 10), { gain: 0.265, verb: 0.24, body: 0.3 }),
+
+  hand_scored: (finalScore) => {
+    const tier = packScoreTier(finalScore);
+    dThump({ freq: 180, to: 46, dur: 0.40, gain: 0.25 + tier * 0.02, sat: 0.78, verb: 0.15 });
+    dSub({ freq: 62, to: 36, dur: 0.44, gain: 0.14, sat: 0.55 });
+    [0, 7, 12].slice(0, 1 + Math.min(2, tier)).forEach((s, i) =>
+      vghBell(s, { dur: 0.80 - i * 0.10, gain: 0.10 - i * 0.012, delay: i * 0.05, verb: 0.24 }));
+    if (tier >= 2) vghHopper(4 + tier * 2, { spread: 0.5, gain: 0.045, delay: 0.16 });
+  },
+};
+
+// ══ NEON HEAVY ═══════════════════════════════════════════════════════════════
+// Neon's offenders are particle_pip (2198 / 58%) and particle_mult (1721 / 85%),
+// and its coin is at 100% like everyone's. Its card_select is already at 527/9%.
+const NEH_HI  = 784.00;    // G5 - was C6
+const NEH_MID = 392.00;    // G4 - was C5
+
+function nehKick({ gain = 0.26, delay = 0, size = 1, verb = 0.1 } = {}) {
+  dClick({ dur: 0.009, freq: 3200, q: 0.8, gain: gain * 0.24, delay, kind: 'white', verb: verb * 0.4 });
+  dThump({ freq: 210 / size, to: 44, dur: 0.26 * size, gain: gain * 1.05, delay, sat: 0.85, drop: 0.18, verb });
+  dSub({ freq: 58, to: 36, dur: 0.30 * size, gain: gain * 0.38, delay, sat: 0.55 });
+  return 0.32 * size;
+}
+
+// Ratio 5.01 is what makes FM read as GLASS. 2.51 keeps a bell that is clearly
+// still a bell without the sideband stack landing above 5kHz.
+function nehBell(semi, { dur = 0.6, gain = 0.11, delay = 0, verb = 0.24, bright = 1, body = 1 } = {}) {
+  const f = dHz(semi, NEH_HI);
+  dBell({ freq: f, ratio: 2.51, index: 2.4 * bright, dur, gain: gain * 0.95, delay, verb, bite: 0.08 });
+  dTone({ freq: f * 0.5, type: 'sine', dur: dur * 0.6, gain: gain * 0.38, delay, attack: 0.002, sat: 0.4, verb: verb * 0.6 });
+  dThump({ freq: 145, to: 52, dur: 0.15, gain: gain * 0.7 * body, delay, sat: 0.7, verb: verb * 0.35 });
+  return dur;
+}
+
+// 14% duty is the thin nasal pulse and it was on the most repeated sound in the
+// pack. 38% is close to a square: the fundamental is far stronger and the odd
+// harmonics stop running the show. The lowpass takes the rest.
+function nehBlip(semi, { dur = 0.09, gain = 0.08, delay = 0, duty = 0.38, verb = 0.14, to = null } = {}) {
+  dTone({ freq: dHz(semi, NEH_MID), to: to == null ? null : dHz(to, NEH_MID),
+          wave: dPulse(duty), dur, gain, delay, attack: 0.001, sat: 0.45, lp: 3200, q: 0.8, verb });
+  dSub({ freq: dHz(semi - 12, NEH_MID), dur: dur * 1.1, gain: gain * 0.35, delay, sat: 0.5 });
+}
+
+function nehSaw(semi, { dur = 0.5, gain = 0.12, delay = 0, verb = 0.22, voices = 7, detune = 16, bite = 6 } = {}) {
+  return dStab({ freq: dHz(semi, NEH_MID), dur, gain, delay, voices, detune,
+                 cutFrom: bite, cutTo: 1.9, q: 3.0, attack: 0.006, sat: 0.55, verb, sub: 0.9 });
+}
+
+const NEON_HEAVY = {
+  card_select: () => { nehBlip(19, { dur: 0.05, gain: 0.062, duty: 0.36, verb: 0.12 }); nehKick({ gain: 0.075, size: 0.6, verb: 0.07 }); },
+
+  card_pop: (suit) => {
+    const i = packSuitIndex(suit);
+    nehBell(dDegree('lydian', i), { dur: 0.26, gain: 0.068, verb: 0.20 });
+    nehKick({ gain: 0.08, size: 0.6, verb: 0.05 });
+  },
+
+  particle_pip: () => {
+    const i = packParticleIndex();
+    nehBlip(dDegree('lydian', i), { dur: 0.08, gain: 0.215, duty: 0.40, verb: 0.13 });
+  },
+
+  particle_mult: () => {
+    const i = packParticleIndex();
+    nehBell(dDegree('lydian', i), { dur: 0.30, gain: 0.145, verb: 0.22 });
+  },
+
+  coin: () => { nehBell(dDegree('lydian', (dRand(3, 9) | 0)) + 12, { dur: 0.42, gain: 0.228, verb: 0.24, bright: 1.35, body: 0.3 }); nehKick({ gain: 0.072, size: 0.55, verb: 0.05 }); },
+
+  hand_scored: (finalScore) => {
+    const tier = packScoreTier(finalScore);
+    nehKick({ gain: 0.245 + tier * 0.015, size: 1.1, verb: 0.1 });
+    [0, 7, 12, 16, 19].slice(0, 2 + tier).forEach((s, i) =>
+      nehSaw(s, { dur: 0.48 + i * 0.04, gain: 0.115 - i * 0.009, delay: i * 0.018, bite: 6 + i * 0.6, verb: 0.22 }));
+    if (tier >= 2) dRun(3 + tier, (f, at, i) => nehBell(dDegree('lydian', i + 5), { dur: 0.30, gain: 0.048, delay: at, verb: 0.24 }), { step: 0.045, delay: 0.1 });
+  },
+};
+</script>
+
+<script>
+// ══ The page ═════════════════════════════════════════════════════════════════
+// A single tap is not how any of these are heard: particles come in runs of a
+// dozen, cards pop five to a hand, coins arrive in handfuls. So each row plays
+// the REAL pattern at the game's own spacing, which is the only way the tinkle
+// is audible at all - one coin sounds fine, twelve in a row is the complaint.
+const REF_PACKS = [
+  { id: 'highroller', name: 'High Roller', now: HIGHROLLER_PACK },
+  { id: 'lounge',     name: 'Lounge',      now: LOUNGE_PACK },
+];
+
+const PACKS = [
+  {
+    id: 'vegas', name: 'VEGAS FLOOR', now: VEGAS_PACK, heavy: VEGAS_HEAVY,
+    note: 'Coins root at 1760Hz with five inharmonic partials up to 12kHz, over bells at C5. '
+        + 'Heavy: coins at 1180Hz with three partials and a tray to land on, bells at A4 as struck bars. '
+        + 'The payout coin keeps its sparkle on purpose - every pack’s coin is bright, Lounge’s included.',
+  },
+  {
+    id: 'neon', name: 'NEON', now: NEON_PACK, heavy: NEON_HEAVY,
+    note: 'FM bells at ratio 5.01 rooted at C6, and 14%-duty pulses. '
+        + 'Heavy: ratio 2.51 at G5, pulses widened to 38-40% and lowpassed, a longer kick with real sub.',
+  },
+];
+
+// what each row plays, and how it is heard in the game
+const SOUNDS = [
+  { id: 'card_select', label: 'CARD SELECT', plays: 'four taps',
+    change: {
+      vegas: 'Already in band at 300Hz, so this is one deletion: the 1150Hz chirp sitting on the relay.',
+      neon:  'The pulse widens from 14% to 36% duty and drops a fifth; the kick lengthens under it.' },
+    seq: (fn) => rep(fn, 4, 150, () => []) },
+  { id: 'card_pop', label: 'CARD POP', plays: 'a five-card hand scoring',
+    change: {
+      vegas: 'The coin ring becomes the accent; wood and a tray thump carry it. 87% high down to 15%.',
+      neon:  'FM ratio 5.01 to 2.51 and down a fourth, so the bell has a body instead of being glass.' },
+    seq: (fn) => rep(fn, 5, 130, i => [['♠','♣','♥','♦'][i % 4]]) },
+  { id: 'particle_pip', label: 'PIP PARTICLES', plays: 'twelve, at the dance’s own 90ms',
+    change: {
+      vegas: 'The one that earned the complaint: 5450Hz, 100% high, twelve times a hand. Now a wooden knock with a ping on it.',
+      neon:  'The thin 22%-duty pulse becomes a near-square with a sub under it.' },
+    seq: (fn) => rep(fn, 12, 90, () => []), reset: true },
+  { id: 'particle_mult', label: 'MULT PARTICLES', plays: 'eight, at 110ms',
+    change: {
+      vegas: 'A struck bar at A4, rather than a bell at C5 with a second inharmonic stack over it.',
+      neon:  'The same bell change as the card pop. At 85% high it was the brightest thing in the pack.' },
+    seq: (fn) => rep(fn, 8, 110, () => []), reset: true },
+  { id: 'coin', label: 'COIN', plays: 'six credits paid out',
+    change: {
+      vegas: 'Down a fifth to three partials, and it lands on something now - but it stays bright.',
+      neon:  'Kept bright and given a floor. A coin that thuds is not a coin.' },
+    seq: (fn) => rep(fn, 6, 120, () => []) },
+  { id: 'hand_scored', label: 'HAND SCORED', plays: 'one hand, mid-size',
+    change: {
+      vegas: 'Bigger thump and a real sub; the chord drops to three notes and sits under it.',
+      neon:  'Longer kick with sub, and the saws open lower so the stack is not all top end.' },
+    seq: (fn) => rep(fn, 1, 0, () => [1800]) },
+];
+
+function rep(fn, n, gap, argsFor) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push({ at: i * gap, args: argsFor(i) });
+  return out;
+}
+
+// ── Playing ──────────────────────────────────────────────────────────────────
+// PREVIEW_PACK is what the mixer's sfxRoomSync reads, so setting it here is what
+// makes each variant use its own room. sfxWithMixId puts the voices on the right
+// bus and applies that sound's trim, exactly as the wrapper does in the game.
+let _timers = [];
+function stopAll() { _timers.forEach(clearTimeout); _timers = []; }
+
+function playVariant(pack, variant, sound) {
+  stopAll();
+  PREVIEW_PACK = variant === 'heavy' ? pack.id + '_heavy' : pack.id;
+  const impl = (variant === 'heavy' ? pack.heavy : pack.now)[sound.id];
+  if (!impl) return 0;
+  if (sound.reset && typeof resetParticleStep === 'function') resetParticleStep();
+  if (typeof sfxMixResetLimits === 'function') sfxMixResetLimits();
+  const steps = sound.seq(impl);
+  steps.forEach(st => {
+    const go = () => {
+      if (typeof sfxMixResetLimits === 'function') sfxMixResetLimits();
+      sfxWithMixId(sound.id, () => { try { impl.apply(null, st.args); } catch (e) { console.error(sound.id, e); } });
+    };
+    if (st.at === 0) go(); else _timers.push(setTimeout(go, st.at));
+  });
+  return (steps[steps.length - 1]?.at || 0) + 900;
+}
+
+function playAB(pack, sound, btn) {
+  const t = playVariant(pack, 'now', sound);
+  btn && btn.classList.add('playing');
+  _timers.push(setTimeout(() => {
+    playVariantKeepTimers(pack, 'heavy', sound);
+    _timers.push(setTimeout(() => btn && btn.classList.remove('playing'), t));
+  }, t));
+}
+// A/B must not clear the timer that scheduled its own second half.
+function playVariantKeepTimers(pack, variant, sound) {
+  const keep = _timers.slice();
+  const t = playVariant(pack, variant, sound);
+  _timers = _timers.concat(keep);
+  return t;
+}
+
+function abAll(pack) {
+  stopAll();
+  let t = 0;
+  SOUNDS.forEach(s => {
+    _timers.push(setTimeout(() => playVariantKeepTimers(pack, 'now', s), t));
+    const d = (s.seq(() => {}).slice(-1)[0]?.at || 0) + 900;
+    t += d;
+    _timers.push(setTimeout(() => playVariantKeepTimers(pack, 'heavy', s), t));
+    t += d + 350;
+  });
+}
+
+// ── Measuring ────────────────────────────────────────────────────────────────
+// Spectral centroid is the number behind the word "tinkly": the energy-weighted
+// mean frequency. A long-term average spectrum (Hann-windowed frames, power
+// accumulated across the whole sound) rather than one frame, because these are
+// one-shots whose spectrum changes completely from the transient to the tail.
+function fftMag(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {           // bit reversal
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const ur = re[i + k], ui = im[i + k];
+        const vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci;
+        const vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+        re[i + k] = ur + vr; im[i + k] = ui + vi;
+        re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+}
+
+function analyse(data, sr) {
+  const N = 2048, hop = 1024, spec = new Float64Array(N / 2);
+  const win = new Float64Array(N);
+  for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N);
+  let peak = 0, sq = 0, used = 0;
+  for (let i = 0; i < data.length; i++) { const a = Math.abs(data[i]); if (a > peak) peak = a; sq += data[i] * data[i]; }
+  const rms = Math.sqrt(sq / Math.max(1, data.length));
+  for (let off = 0; off + N <= data.length; off += hop) {
+    let e = 0;
+    for (let i = 0; i < N; i++) e += data[off + i] * data[off + i];
+    if (e < 1e-9) continue;                       // skip silence, or the tail drags the mean down
+    used++;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < N; i++) re[i] = data[off + i] * win[i];
+    fftMag(re, im);
+    for (let k = 0; k < N / 2; k++) spec[k] += re[k] * re[k] + im[k] * im[k];
+  }
+  let num = 0, den = 0, lo = 0, hi = 0;
+  const SPLIT = 1200;
+  for (let k = 1; k < N / 2; k++) {
+    const f = k * sr / N, p = spec[k];
+    num += f * p; den += p;
+    if (f < SPLIT) lo += p; else hi += p;
+  }
+  return { centroid: den > 0 ? num / den : 0,
+           high: (hi + lo) > 0 ? hi / (hi + lo) : 0,
+           tinkle: lo > 0 ? hi / lo : 0, peak, rms, frames: used };
+}
+
+async function renderSound(pack, variant, sound) {
+  const SR = 44100;
+  const span = ((sound.seq(() => {}).slice(-1)[0]?.at || 0) / 1000) + 3.2;
+  const off = new OfflineAudioContext(2, Math.ceil(SR * span), SR);
+  const realGet = window.getAudioCtx;
+  // A STABLE forwarding wrapper whose currentTime we move between events - a
+  // fresh one per event makes sfxMixGraph rebuild the buses, limiter and reverb
+  // each time and sum several parallel chains into the output.
+  const w = { currentTime: 0 };
+  for (const k in off) { const v = off[k]; if (typeof v === 'function') w[k] = v.bind(off); }
+  ['destination', 'sampleRate', 'listener', 'state'].forEach(k =>
+    Object.defineProperty(w, k, { get: () => off[k], configurable: true }));
+  window.getAudioCtx = () => w;
+  PREVIEW_PACK = variant === 'heavy' ? pack.id + '_heavy' : pack.id;
+  const impl = (variant === 'heavy' ? pack.heavy : pack.now)[sound.id];
+  if (sound.reset && typeof resetParticleStep === 'function') resetParticleStep();
+  sound.seq(impl).forEach(st => {
+    w.currentTime = st.at / 1000;
+    sfxWithMixId(sound.id, () => { try { impl.apply(null, st.args); } catch (e) { console.error(e); } });
+  });
+  const buf = await off.startRendering();
+  window.getAudioCtx = realGet;
+  return analyse(buf.getChannelData(0), SR);
+}
+
+// ── Build ────────────────────────────────────────────────────────────────────
+const host = document.getElementById('packs');
+PACKS.forEach(pack => {
+  const h = document.createElement('h2');
+  h.innerHTML = pack.name + ' <span class="tag">now vs heavy</span>';
+  host.appendChild(h);
+  const p = document.createElement('p');
+  p.className = 'packnote'; p.textContent = pack.note;
+  host.appendChild(p);
+
+  SOUNDS.forEach(sound => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      '<div>' +
+        '<div class="rowhead">' + sound.label + '</div>' +
+        '<div class="plays">plays ' + sound.plays + '</div>' +
+        '<div class="change">' + (sound.change[pack.id] || '') + '</div>' +
+      '</div>' +
+      '<div class="btns">' +
+        '<button class="now">NOW</button>' +
+        '<button class="heavy">HEAVY</button>' +
+        '<button class="ab">A/B</button>' +
+      '</div>' +
+      '<div class="nums" id="n-' + pack.id + '-' + sound.id + '"></div>';
+    const [bNow, bHeavy, bAb] = row.querySelectorAll('button');
+    bNow.onclick = () => playVariant(pack, 'now', sound);
+    bHeavy.onclick = () => playVariant(pack, 'heavy', sound);
+    bAb.onclick = () => playAB(pack, sound, bAb);
+    host.appendChild(row);
+  });
+});
+
+const volEl = document.getElementById('vol'), volRead = document.getElementById('volread');
+volEl.oninput = () => { PREVIEW_VOL = volEl.value / 100; volRead.textContent = volEl.value; };
+
+document.getElementById('ab-all-vegas').onclick = () => abAll(PACKS[0]);
+document.getElementById('ab-all-neon').onclick  = () => abAll(PACKS[1]);
+
+function pct(a, b) {
+  if (!b) return '';
+  const d = Math.round((a / b - 1) * 100);
+  return (d > 0 ? '+' : '') + d + '%';
+}
+document.getElementById('measure').onclick = async () => {
+  const stat = document.getElementById('mstat');
+  stat.textContent = 'rendering...';
+  for (const pack of PACKS) {
+    for (const sound of SOUNDS) {
+      const a = await renderSound(pack, 'now', sound);
+      const b = await renderSound(pack, 'heavy', sound);
+      const refs = [];
+      for (const rp of REF_PACKS) {
+        const rr = await renderSound(rp, 'now', sound);
+        refs.push(rp.name + ' ' + Math.round(rr.centroid) + 'Hz / ' + Math.round(rr.high * 100) + '%');
+      }
+      const rmsD = Math.round((b.rms / a.rms - 1) * 100);
+      const box = document.getElementById('n-' + pack.id + '-' + sound.id);
+      box.className = 'nums show';
+      box.innerHTML =
+        '<table><tr><th></th><th>centroid</th><th>high</th><th>peak</th><th>rms</th></tr>' +
+        '<tr><td class="lab">now</td><td class="v-now">' + Math.round(a.centroid) + ' Hz</td>' +
+          '<td class="v-now">' + Math.round(a.high * 100) + '%</td>' +
+          '<td>' + a.peak.toFixed(3) + '</td><td>' + a.rms.toFixed(4) + '</td></tr>' +
+        '<tr><td class="lab">heavy</td><td class="v-heavy">' + Math.round(b.centroid) + ' Hz</td>' +
+          '<td class="v-heavy">' + Math.round(b.high * 100) + '%</td>' +
+          '<td>' + b.peak.toFixed(3) + '</td><td>' + b.rms.toFixed(4) + '</td></tr>' +
+        '<tr><td class="lab">change</td>' +
+          '<td class="delta' + (b.centroid < a.centroid ? '' : ' bad') + '">' + pct(b.centroid, a.centroid) + '</td>' +
+          '<td class="delta' + (b.high < a.high ? '' : ' bad') + '">' + pct(b.high, a.high) + '</td>' +
+          '<td>' + pct(b.peak, a.peak) + '</td>' +
+          '<td class="' + (Math.abs(rmsD) <= 15 ? 'delta' : 'delta bad') + '">' + pct(b.rms, a.rms) + '</td></tr></table>' +
+        '<div style="margin-top:6px">for reference, the packs with no complaint against them: ' + refs.join(' &middot; ') + '</div>';
+      stat.textContent = pack.id + ' / ' + sound.id;
+    }
+  }
+  stat.textContent = 'done';
+};
+</script>
+</body>
+</html>
