@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r310 · all modes open, Flow replaces Survival, walkthroughs teach only what is new, plain mode descriptions";
+const BUILD = "2026-09-23 · r313 · all modes open, Flow replaces Survival, walkthroughs teach only what is new, plain mode descriptions";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

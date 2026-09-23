@@ -391,6 +391,7 @@ const INFO_TOPICS = [
       'At the end of the round every row and column scores as a five-card poker hand, lowest first. Ten rounds, no clock and no goal.',
       'SCORE ALL scores all ten lines at the end. SELECT SCORE scores one line per turn, and a scored line is closed.',
       'Between rounds you pick a {trick} and a consumable.',
+      'The daily 3x3 and 4x4 grids score three- and four-card hands, valued from the real three- and four-card poker pay tables.',
     ] },
   { id: 'mode_survival', group: 'modes', title: 'Survival',
     body: [
