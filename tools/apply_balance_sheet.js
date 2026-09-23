@@ -1,6 +1,6 @@
 // apply_balance_sheet.js
 // Reads balance_sheet.csv and writes the edited params_json values back into the
-// BAL config block in index.html. The other half of the round-trip with
+// BAL config block in js/data/balance.js. The other half of the round-trip with
 // gen_balance_sheet.js.
 //
 // It only touches values inside `const BAL = { ... }`. It preserves the block's
@@ -9,16 +9,17 @@
 // in BAL.
 //
 // Run:  node tools/apply_balance_sheet.js
-// Then validate + commit index.html as usual.
+// Then validate + commit js/data/balance.js as usual (see the syntax-check
+// command in CLAUDE.md "Workflow").
 
 const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const htmlPath = path.join(root, 'index.html');
+const balPath = path.join(root, 'js/data/balance.js');
 const csvPath = path.join(root, 'balance_sheet.csv');
 
-let html = fs.readFileSync(htmlPath, 'utf8');
+let bal = fs.readFileSync(balPath, 'utf8');
 const csv = fs.readFileSync(csvPath, 'utf8');
 
 // ── tiny RFC-4180 CSV parser (handles quotes, escaped "", commas/newlines) ──
@@ -61,8 +62,8 @@ for (const r of table) {
 }
 
 // ── locate the BAL block ──
-const balMatch = html.match(/const BAL = \{[\s\S]*?\n\};/);
-if (!balMatch) { console.error('could not find BAL block in index.html'); process.exit(1); }
+const balMatch = bal.match(/const BAL = \{[\s\S]*?\n\};/);
+if (!balMatch) { console.error('could not find BAL block in js/data/balance.js'); process.exit(1); }
 let balBlock = balMatch[0];
 
 // current values (for change reporting)
@@ -87,10 +88,10 @@ for (const [id, params] of Object.entries(edits)) {
 }
 
 if (changed > 0) {
-  html = html.replace(balMatch[0], balBlock);
-  fs.writeFileSync(htmlPath, html);
+  bal = bal.replace(balMatch[0], balBlock);
+  fs.writeFileSync(balPath, bal);
 }
 
-console.log(`\nApplied ${changed} value change(s) to BAL in index.html.`);
+console.log(`\nApplied ${changed} value change(s) to BAL in js/data/balance.js.`);
 if (notFound.length) console.log(`Skipped (not in BAL / structural): ${notFound.join(', ')}`);
 if (changed === 0) console.log('Nothing to update — sheet matches code.');

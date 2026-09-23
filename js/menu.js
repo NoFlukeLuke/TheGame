@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r325 · Flow multi-reward chain: a goal clear can pay up to 5 screens (counter card + colour-coded chip stack), with limits, deck-edit, sleight and improve steps";
+const BUILD = "2026-09-23 · r327 · merge: Flow multi-reward chain (r325 branch) + the Trick balance pass (r326 main)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

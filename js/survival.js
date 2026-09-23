@@ -84,7 +84,7 @@ const SURVIVAL_GRID_OFFER = {
 const SURVIVAL_GUARANTEE_GAP = 3;     // 0,1,2 dry → force on the 4th (gap>=3)
 
 // Tricks that stack, so they may be offered even when already owned (mirrors pickTrickOptions).
-const SURVIVAL_STACKABLE_TRICKS = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
+const SURVIVAL_STACKABLE_TRICKS = ['rich_soil','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
 
 // ── Per-run state ──
 let survivalBossTimeBank      = 0;   // leftover seconds accumulated toward the next boss

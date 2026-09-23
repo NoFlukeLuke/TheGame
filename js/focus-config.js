@@ -210,7 +210,6 @@ function focusRateMods() {
   if (typeof focusRatePenalty === 'number' && focusRatePenalty > 1) m.complexity /= focusRatePenalty;
   if (typeof hasTrick === 'function') {
     if (hasTrick('overclock'))     m.speed      *= BAL.overclock.speed_mult;
-    if (hasTrick('second_nature')) m.complexity *= BAL.second_nature.complexity_mult;
   }
   if (typeof hasKnack === 'function') {
     if (hasKnack('long_fuse')) m.window     *= BAL.long_fuse.window_mult;

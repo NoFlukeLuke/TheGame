@@ -70,7 +70,7 @@ const SAVE_VARS = [
   // id and rehydrated from CHALLENGE_DEFS at confirm time.
   'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
   'mapDrawStrokes', 'mapPenColor',
-  'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
+  'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound', 'discardsUsedRound',
   // The live challenge survives a save as DATA (JSON drops its test function).
   // guidedRehydrateChallenges re-attaches the test by id on the way in, so an
   // active HARD ROUND resumes as one - without it roundGoal came back raised by
@@ -89,7 +89,7 @@ const SAVE_VARS = [
   'roundPenaltySeconds', 'extraPlayCostPerm', 'extraDiscardCostPerm',
   'nextRoundDiscardDelta', 'nextRoundSwapDelta', 'nextRoundSecondsDelta',
   'nextRoundPlayCost', 'nextRoundDiscardCost', 'playHandCostThisRound', 'discardCostThisRound',
-  'freeSwapsLeft', 'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame',
+  'freeSwapsLeft', 'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
   // ── Focus ──
   'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
@@ -113,8 +113,8 @@ const SAVE_VARS = [
   '_comboAnnounced', '_comboHinted',
   // ── Trick / knack accumulators ──
   'bonusMult_fives', 'bonusMult_nines', 'bonusMult_tens', 'bonusMult_compound',
-  'bonusPips_prolific', 'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
-  'bonusMult_jackpot', 'jackpotFired', 'safetyNetUsed', 'negativeTilesTakenRun',
+  'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
+  'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext', 'leyLinePos',
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
