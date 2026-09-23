@@ -16,7 +16,7 @@
 
 // The chain, in carousel order. The first is unlocked from a cold install;
 // every one after it opens when the one before it has had a run finish.
-const MODE_UNLOCK_CHAIN = ['map', 'flow', 'guided', 'sixsuits'];
+const MODE_UNLOCK_CHAIN = ['map', 'flow', 'guided'];
 
 // Everything else opens AT ONCE when the chain is done, and is drawn as a
 // single stacked card until then - one locked object to work toward rather

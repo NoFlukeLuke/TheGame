@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r315 · the mid-dance pick no longer covers the score: the location swap waits for the goal tally";
+const BUILD = "2026-09-23 · r316 · Six Suits off the mode list (dev panel and Custom's deck still reach it)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -340,8 +340,9 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // generated from MODES itself so nothing here has to be listed twice.
 // `crunch` is here because it is a rough first pass being tuned, not because it
 // is an experiment on a different loop the way the other three are.
-// `survival` is hidden since r310 (owner's call): Flow replaced it in the carousel.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival'];
+// `survival` (r310) and `sixsuits` (r316) are hidden by the owner's call. Six Suits
+// is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
