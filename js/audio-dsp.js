@@ -460,10 +460,17 @@ function dSweep({ kind = 'noise', from = 300, to = 4000, dur = 0.6, gain = 0.1, 
 
 // A wooden knock. High-Q bandpassed pink noise IS the wood; the sine gives it a
 // pitch so several of them read as the same block struck in different places.
-function dWood({ freq = 320, dur = 0.16, gain = 0.16, delay = 0, verb = 0.1, bright = 1 } = {}) {
-  dNoise({ kind: 'pink', dur: dur * 0.5, gain: gain * 0.7, delay, type: 'bandpass',
-           freq: freq * 3.4 * bright, q: 3.5, attack: 0.0006, verb: verb * 0.5 });
-  dTone({ freq, type: 'triangle', dur, gain: gain * 0.8, delay, attack: 0.0012, verb, sat: 0.3 });
+// `soft` (0 to 1) takes the CRACK off without taking the wood away, and 0 is
+// byte-identical to the original. The NOISE BURST is what reads as a knock - the
+// pitched body underneath it is just a low tone - so softening moves four things
+// on the burst alone: less level, a lower and broader band, and a slower attack.
+// A transient that arrives over 4ms instead of 0.6ms stops being a rap on a
+// surface and becomes something settling onto one.
+function dWood({ freq = 320, dur = 0.16, gain = 0.16, delay = 0, verb = 0.1, bright = 1, soft = 0 } = {}) {
+  dNoise({ kind: 'pink', dur: dur * (0.5 + soft * 0.25), gain: gain * (0.7 - soft * 0.45), delay,
+           type: 'bandpass', freq: freq * (3.4 - soft * 1.7) * bright, q: 3.5 - soft * 2.1,
+           attack: 0.0006 + soft * 0.0042, verb: verb * 0.5 });
+  dTone({ freq, type: 'triangle', dur, gain: gain * 0.8, delay, attack: 0.0012 + soft * 0.003, verb, sat: 0.3 });
   return dur;
 }
 

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r313 · heavy-preview.html: an A/B for Vegas and Neon, measured against the packs that work";
+const BUILD = "2026-09-23 · r314 · heavy-preview: the knocks softened, the Vegas coin rebuilt as a purse";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

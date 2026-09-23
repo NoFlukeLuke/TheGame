@@ -7358,6 +7358,57 @@ and this one caught itself twice: the pack blurbs still described the first
 tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
 They are per pack now.
 
+#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r314)
+
+Owner, on the r313 candidate: *"i like all the heavies except pip particles which
+has a bit too much wooden knock in it"*, *"any of the effects that now have that
+knocking sound, just soften it a little"*, *"for mult particles somewhere between
+the two would be good"*, and *"for the coin sound can we try and get closer to the
+dota 2 sound for coins?"*
+
+r313 cured the tinkle by making the wooden knock the payload, which traded one
+repeated irritant for another: a rap on a surface twelve times a hand.
+
+- **A PERCUSSIVE HIT IS TRANSIENT + BODY + TAIL (r234's rule), AND THE KNOCK IS
+  THE TRANSIENT ALONE.** That is the whole of this pass and it is why "softer"
+  did not have to cost any weight: `vghThunk` is a metal tick, a wood crack and a
+  low thump, and pulling the first two while leaving the thump at full takes the
+  rap off and keeps every dB of the punch. `dWood` gained a **`soft`** knob (0 to
+  1) that does the same thing inside itself - the bandpassed noise burst IS the
+  wood, the sine under it is just a pitch - and `nehKick` / `nehBlip` got one
+  each, because Neon knocks with its kick's white click and with the saturated
+  edge of a 1ms pulse attack rather than with any wood at all.
+- **`soft = 0` is byte-identical to the original** and is the default, so the four
+  shipped packs are untouched. Proved rather than assumed: 40 shipped-pack sounds
+  rendered on both versions of `js/audio-dsp.js`, **centroid and RMS identical to
+  six decimal places on all 40**. Two rows differ by one part in a million on the
+  PEAK only - and running the SAME dsp twice moves a different pair by the same
+  amount, so that is the reverb IR's own randomness, not the change.
+- **SOFTENING A KNOCK RAISES THE CENTROID, AND THAT IS NOT A REGRESSION.** The
+  knock on Neon's mult particles and on both coins is the low thump under them,
+  so removing it takes away low energy and the measured brightness goes UP -
+  Neon's mult 889 -> 1139Hz, its coin 2644 -> 2930. The r313 metric answers
+  "tinkly" and says nothing about "knocky", and reading one as the other here
+  would have undone the fix the owner asked for.
+- **"Somewhere between the two" is a number, so it was aimed at one.** Vegas mult
+  particles: NOW 1274Hz / 36% high, r313 heavy 804 / 12%, so the target is the
+  midpoint. `vghBell` gained `bright` / `body` / `tilt` / `set` to get there
+  without a second helper, and it lands at **1033 / 27%**.
+- **THE DOTA GOLD SOUND IS A CLUSTER, NOT A PING**, which is why the coin is a
+  new helper rather than a retune. `vghPurse` is three small `vghClink`s 23ms
+  apart, rising, each shorter and quieter than the last, rooted at A6 with
+  **almost no body at all** - the one place in the pack where the tray is
+  deliberately absent, because what says "coins" here is that there are SEVERAL
+  of them and a body big enough to hear smears them into one event.
+
+**Measured after, heavy column, r313 -> r314:** Vegas pip particles 893 -> 1150Hz
+(the knock down and the coin taking back the difference), mult 804 -> 1033, coin
+1723 -> 2647; Neon pip 1084 -> 1026, mult 889 -> 1139, coin 2644 -> 2930. The
+sounds the owner approved are unmoved: Vegas card_pop 468 -> 471, hand_scored
+435 -> 455, Neon hand_scored 807 -> 809. **All twelve rows stay inside the 15%
+RMS budget across five independent runs** (worst 13%), max peak 0.815, and all 38
+buttons drive clean at 1440x820 and 420x900 with no page errors.
+
 **`audioCtx` is declared in `js/challenge.js`** - not audio.js - so any page
 loading the audio stack without it must declare it or `getAudioCtx()` throws.
 

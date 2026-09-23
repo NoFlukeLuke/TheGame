@@ -183,6 +183,7 @@ SFX_ROOMS.neon_heavy  = { seconds: 0.70, decay: 3.9, tone: 0.50, mix: 0.27, pre:
 const VGH_COIN = 1180.00;  // was 1760 - down a fifth, not an octave and a third
 const VGH_BELL = 440.00;   // A4 - was C5
 const VGH_BODY = 98.00;    // G2 - the cabinet
+const VGH_CLINK = 1760.00; // A6 - the purse, not the payout bell
 
 // The coin. The ring is still the coin and is still bright; what is new is that
 // it lands on something. Three partials instead of five (the 5.17 and 7.02 threw
@@ -204,21 +205,56 @@ function vghCoin(semi, { gain = 0.1, delay = 0, verb = 0.20, body = 1 } = {}) {
 // A struck BAR rather than a hung bell: three nearly-harmonic partials instead of
 // `ring` plus a `bar` overlay at 2.02x, which is what was putting two inharmonic
 // stacks on top of each other.
-function vghBell(semi, { dur = 0.9, gain = 0.14, delay = 0, verb = 0.24 } = {}) {
-  const f = dHz(semi, VGH_BELL);
-  dWood({ freq: f * 1.6, dur: 0.045, gain: gain * 0.45, delay, verb: verb * 0.4, bright: 0.8 });
-  dMetal({ freq: f, set: [1, 2.0, 3.01], dur, gain: gain * 0.90, delay, verb, tilt: 0.64, fall: 0.56 });
-  dThump({ freq: 150, to: 52, dur: 0.20, gain: gain * 0.44, delay, sat: 0.7, verb: verb * 0.4 });
+// `soft` takes the mallet's crack off, `body` the tray under it, and `bright`
+// raises the bar's own pitch - three separate ways to move this between the old
+// sound and the new one without inventing a second helper for the one call that
+// wants to sit between them.
+function vghBell(semi, { dur = 0.9, gain = 0.14, delay = 0, verb = 0.24,
+                         soft = 0, bright = 1, body = 1, tilt = 0.64,
+                         set = [1, 2.0, 3.01] } = {}) {
+  const f = dHz(semi, VGH_BELL) * bright;
+  dWood({ freq: f * 1.6, dur: 0.045, gain: gain * (0.45 - soft * 0.24), delay, verb: verb * 0.4, bright: 0.8, soft });
+  dMetal({ freq: f, set, dur, gain: gain * 0.90, delay, verb, tilt, fall: 0.56 });
+  dThump({ freq: 150, to: 52, dur: 0.20, gain: gain * 0.44 * body, delay, sat: 0.7, verb: verb * 0.4 });
   return dur;
 }
 
 // The detent as a wooden knock with a tick of metal ON it, rather than a 4200Hz
 // metal click with a triangle under it.
-function vghThunk({ gain = 0.09, delay = 0, pitch = 1, verb = 0.08 } = {}) {
-  dNoise({ kind: 'metal', dur: 0.006, gain: gain * 0.25, delay, type: 'bandpass',
-           freq: 3200 * pitch, q: 1.6, rate: 2.4, attack: 0.0005, verb: verb * 0.4 });
-  dWood({ freq: 250 * pitch, dur: 0.075, gain: gain * 1.0, delay, verb, bright: 0.7 });
+// THE KNOCK IS THE TWO TRANSIENTS, NOT THE WEIGHT. A detent is a metal tick, a
+// wood crack and a low thump; the thump is what makes it heavy and the first two
+// are what make it a rap on a surface. So `soft` pulls both transients and leaves
+// the thump at full - the sound keeps every bit of its weight and stops knocking.
+function vghThunk({ gain = 0.09, delay = 0, pitch = 1, verb = 0.08, soft = 0 } = {}) {
+  dNoise({ kind: 'metal', dur: 0.006, gain: gain * (0.25 - soft * 0.18), delay, type: 'bandpass',
+           freq: 3200 * pitch, q: 1.6, rate: 2.4, attack: 0.0005 + soft * 0.0018, verb: verb * 0.4 });
+  dWood({ freq: 250 * pitch, dur: 0.075 + soft * 0.035, gain: gain * (1.0 - soft * 0.28), delay, verb, bright: 0.7, soft });
   dThump({ freq: 130, to: 50, dur: 0.10, gain: gain * 0.7, delay, sat: 0.7, verb: verb * 0.3 });
+}
+
+// THE DOTA GOLD SOUND IS A CLUSTER, NOT A PING. Three or four small coins
+// knocking against each other inside about 70ms, rising, each one shorter and
+// quieter than the last, with almost nothing underneath. So this is the one
+// place the tray is deliberately nearly absent: what says "coins" here is that
+// there are SEVERAL of them, and a body big enough to hear would smear them into
+// one event. Rooted an octave and a half above the machine's own bells so it
+// reads as loose change rather than as the cabinet paying out.
+function vghClink(semi, { gain = 0.1, delay = 0, verb = 0.18 } = {}) {
+  const f = dHz(semi, VGH_CLINK);
+  dNoise({ kind: 'metal', dur: 0.009, gain: gain * 0.34, delay, type: 'bandpass',
+           freq: f * 1.9, q: 2.2, rate: 2.2, attack: 0.0004, verb: verb * 0.35 });
+  dMetal({ freq: f, set: [1, 2.76, 4.21], dur: 0.105, gain: gain * 0.78, delay: delay + 0.001,
+           verb, tilt: 0.38, fall: 0.64 });
+}
+
+function vghPurse(n, { gain = 0.1, delay = 0, verb = 0.18 } = {}) {
+  const base = dRand(0, 5) | 0;
+  for (let i = 0; i < n; i++) {
+    vghClink(base + i * 2 + ((dRand(0, 2) | 0)), {
+      gain: gain * (1 - i * 0.15) * dRand(0.85, 1.12),
+      delay: delay + i * 0.023 + dRand(0, 0.011), verb });
+  }
+  dThump({ freq: 180, to: 66, dur: 0.10, gain: gain * 0.26, delay, sat: 0.7, verb: verb * 0.3 });
 }
 
 function vghHopper(n, { spread = 0.9, gain = 0.075, delay = 0, lo = 0, hi = 12 } = {}) {
@@ -236,31 +272,40 @@ const VEGAS_HEAVY = {
   card_pop: (suit) => {
     const i = packSuitIndex(suit);
     vghCoin(dDegree('majPent', i), { gain: 0.058, verb: 0.15 });
-    dWood({ freq: dHz(i * 2, VGH_BODY * 2), dur: 0.12, gain: 0.105, verb: 0.09 });
+    dWood({ freq: dHz(i * 2, VGH_BODY * 2), dur: 0.12, gain: 0.105, verb: 0.09, soft: 0.35 });
     dThump({ freq: 140, to: 52, dur: 0.14, gain: 0.062, sat: 0.7, verb: 0.06 });
   },
 
-  // The one that actually earned the complaint. The wooden knock is the payload
-  // and the coin is the accent on top, which is the inversion of what it was.
+  // The one that actually earned the complaint, TWICE. The first pass made the
+  // wooden knock the payload and the coin the accent, which fixed the tinkle and
+  // put a rap on a surface twelve times a hand instead. The weight stays where it
+  // is - vghThunk's low thump is untouched - and the two TRANSIENTS that were
+  // doing the knocking come down, with the coin taking back the difference.
   particle_pip: () => {
     const i = packParticleIndex();
-    vghCoin(dDegree('majPent', i), { gain: 0.072, verb: 0.14 });
-    vghThunk({ gain: 0.145, pitch: 1 + i * 0.03, verb: 0.06 });
+    vghCoin(dDegree('majPent', i), { gain: 0.090, verb: 0.14 });
+    vghThunk({ gain: 0.118, pitch: 1 + i * 0.03, verb: 0.06, soft: 0.85 });
   },
 
+  // Asked for BETWEEN the two, so it is placed between them rather than picked:
+  // the bar goes back up three semitones, a fourth partial comes back to carry
+  // some air, the partials decay slower, and the tray under it is more than half
+  // gone. Aimed at the midpoint of the two measured centroids.
   particle_mult: () => {
     const i = packParticleIndex();
-    vghBell(dDegree('majPent', i), { dur: 0.34, gain: 0.15, verb: 0.22 });
+    vghBell(dDegree('majPent', i), { dur: 0.34, gain: 0.15, verb: 0.22,
+                                     bright: 1.12, body: 0.58, tilt: 0.70, soft: 0.5,
+                                     set: [1, 2.0, 3.01, 4.97] });
   },
 
-  coin: () => vghCoin(dRand(2, 10), { gain: 0.265, verb: 0.24, body: 0.3 }),
+  coin: () => vghPurse(3, { gain: 0.305, verb: 0.20 }),
 
   hand_scored: (finalScore) => {
     const tier = packScoreTier(finalScore);
     dThump({ freq: 180, to: 46, dur: 0.40, gain: 0.25 + tier * 0.02, sat: 0.78, verb: 0.15 });
     dSub({ freq: 62, to: 36, dur: 0.44, gain: 0.14, sat: 0.55 });
     [0, 7, 12].slice(0, 1 + Math.min(2, tier)).forEach((s, i) =>
-      vghBell(s, { dur: 0.80 - i * 0.10, gain: 0.10 - i * 0.012, delay: i * 0.05, verb: 0.24 }));
+      vghBell(s, { dur: 0.80 - i * 0.10, gain: 0.10 - i * 0.012, delay: i * 0.05, verb: 0.24, soft: 0.3 }));
     if (tier >= 2) vghHopper(4 + tier * 2, { spread: 0.5, gain: 0.045, delay: 0.16 });
   },
 };
@@ -271,9 +316,12 @@ const VEGAS_HEAVY = {
 const NEH_HI  = 784.00;    // G5 - was C6
 const NEH_MID = 392.00;    // G4 - was C5
 
-function nehKick({ gain = 0.26, delay = 0, size = 1, verb = 0.1 } = {}) {
-  dClick({ dur: 0.009, freq: 3200, q: 0.8, gain: gain * 0.24, delay, kind: 'white', verb: verb * 0.4 });
-  dThump({ freq: 210 / size, to: 44, dur: 0.26 * size, gain: gain * 1.05, delay, sat: 0.85, drop: 0.18, verb });
+// Neon knocks with its CLICK, not with its kick. Same split as vghThunk: the
+// thump and the sub keep every dB they had, and `soft` takes the white-noise
+// transient off the front of them.
+function nehKick({ gain = 0.26, delay = 0, size = 1, verb = 0.1, soft = 0 } = {}) {
+  dClick({ dur: 0.009, freq: 3200 - soft * 900, q: 0.8, gain: gain * (0.24 - soft * 0.18), delay, kind: 'white', verb: verb * 0.4 });
+  dThump({ freq: 210 / size, to: 44, dur: 0.26 * size, gain: gain * 1.05, delay, sat: 0.85, drop: 0.18 - soft * 0.05, verb });
   dSub({ freq: 58, to: 36, dur: 0.30 * size, gain: gain * 0.38, delay, sat: 0.55 });
   return 0.32 * size;
 }
@@ -291,10 +339,14 @@ function nehBell(semi, { dur = 0.6, gain = 0.11, delay = 0, verb = 0.24, bright 
 // 14% duty is the thin nasal pulse and it was on the most repeated sound in the
 // pack. 38% is close to a square: the fundamental is far stronger and the odd
 // harmonics stop running the show. The lowpass takes the rest.
-function nehBlip(semi, { dur = 0.09, gain = 0.08, delay = 0, duty = 0.38, verb = 0.14, to = null } = {}) {
+function nehBlip(semi, { dur = 0.09, gain = 0.08, delay = 0, duty = 0.38, verb = 0.14, to = null, soft = 0 } = {}) {
+  // A pulse has no transient of its own, so what reads as a knock here is the
+  // SATURATED edge of a 1ms attack sitting on a sub. `soft` rounds the attack,
+  // takes the drive down and thins the sub; the note itself is untouched.
   dTone({ freq: dHz(semi, NEH_MID), to: to == null ? null : dHz(to, NEH_MID),
-          wave: dPulse(duty), dur, gain, delay, attack: 0.001, sat: 0.45, lp: 3200, q: 0.8, verb });
-  dSub({ freq: dHz(semi - 12, NEH_MID), dur: dur * 1.1, gain: gain * 0.35, delay, sat: 0.5 });
+          wave: dPulse(duty), dur, gain, delay, attack: 0.001 + soft * 0.0045,
+          sat: 0.45 - soft * 0.22, lp: 3200 - soft * 500, q: 0.8 - soft * 0.35, verb });
+  dSub({ freq: dHz(semi - 12, NEH_MID), dur: dur * 1.1, gain: gain * (0.35 - soft * 0.16), delay, sat: 0.5 });
 }
 
 function nehSaw(semi, { dur = 0.5, gain = 0.12, delay = 0, verb = 0.22, voices = 7, detune = 16, bite = 6 } = {}) {
@@ -313,15 +365,15 @@ const NEON_HEAVY = {
 
   particle_pip: () => {
     const i = packParticleIndex();
-    nehBlip(dDegree('lydian', i), { dur: 0.08, gain: 0.215, duty: 0.40, verb: 0.13 });
+    nehBlip(dDegree('lydian', i), { dur: 0.085, gain: 0.205, duty: 0.42, verb: 0.13, soft: 0.8 });
   },
 
   particle_mult: () => {
     const i = packParticleIndex();
-    nehBell(dDegree('lydian', i), { dur: 0.30, gain: 0.145, verb: 0.22 });
+    nehBell(dDegree('lydian', i), { dur: 0.30, gain: 0.148, verb: 0.22, body: 0.35 });
   },
 
-  coin: () => { nehBell(dDegree('lydian', (dRand(3, 9) | 0)) + 12, { dur: 0.42, gain: 0.228, verb: 0.24, bright: 1.35, body: 0.3 }); nehKick({ gain: 0.072, size: 0.55, verb: 0.05 }); },
+  coin: () => { nehBell(dDegree('lydian', (dRand(3, 9) | 0)) + 12, { dur: 0.42, gain: 0.232, verb: 0.24, bright: 1.35, body: 0.14 }); nehKick({ gain: 0.058, size: 0.55, verb: 0.05, soft: 0.9 }); },
 
   hand_scored: (finalScore) => {
     const tier = packScoreTier(finalScore);
@@ -348,13 +400,13 @@ const PACKS = [
   {
     id: 'vegas', name: 'VEGAS FLOOR', now: VEGAS_PACK, heavy: VEGAS_HEAVY,
     note: 'Coins root at 1760Hz with five inharmonic partials up to 12kHz, over bells at C5. '
-        + 'Heavy: coins at 1180Hz with three partials and a tray to land on, bells at A4 as struck bars. '
+        + 'Heavy: coins at 1180Hz with three partials and a tray to land on, bells at A4 as struck bars, and the knocks softened - a detent’s metal tick and wood crack come off, its low thump does not. '
         + 'The payout coin keeps its sparkle on purpose - every pack’s coin is bright, Lounge’s included.',
   },
   {
     id: 'neon', name: 'NEON', now: NEON_PACK, heavy: NEON_HEAVY,
     note: 'FM bells at ratio 5.01 rooted at C6, and 14%-duty pulses. '
-        + 'Heavy: ratio 2.51 at G5, pulses widened to 38-40% and lowpassed, a longer kick with real sub.',
+        + 'Heavy: ratio 2.51 at G5, pulses widened to 38-42% and lowpassed, a longer kick with real sub, and the knocks softened - the click off the kick, the drive off the pulse, the thump out from under the bell.',
   },
 ];
 
@@ -367,23 +419,23 @@ const SOUNDS = [
     seq: (fn) => rep(fn, 4, 150, () => []) },
   { id: 'card_pop', label: 'CARD POP', plays: 'a five-card hand scoring',
     change: {
-      vegas: 'The coin ring becomes the accent; wood and a tray thump carry it. 87% high down to 15%.',
+      vegas: 'The coin ring becomes the accent; wood and a tray thump carry it. 87% high down to 15%. The wood’s crack is softened a third.',
       neon:  'FM ratio 5.01 to 2.51 and down a fourth, so the bell has a body instead of being glass.' },
     seq: (fn) => rep(fn, 5, 130, i => [['♠','♣','♥','♦'][i % 4]]) },
   { id: 'particle_pip', label: 'PIP PARTICLES', plays: 'twelve, at the dance’s own 90ms',
     change: {
-      vegas: 'The one that earned the complaint: 5450Hz, 100% high, twelve times a hand. Now a wooden knock with a ping on it.',
-      neon:  'The thin 22%-duty pulse becomes a near-square with a sub under it.' },
+      vegas: 'Earned the complaint twice. 5450Hz and 100% high first time; a wooden knock twelve times a hand the second. The knock’s two transients come off and the low thump stays, so it keeps its weight: 1150Hz, 30% high.',
+      neon:  'The thin 22%-duty pulse becomes a near-square with a sub under it. The knock was the saturated edge of a 1ms attack, so the attack is rounded and the drive comes down.' },
     seq: (fn) => rep(fn, 12, 90, () => []), reset: true },
   { id: 'particle_mult', label: 'MULT PARTICLES', plays: 'eight, at 110ms',
     change: {
-      vegas: 'A struck bar at A4, rather than a bell at C5 with a second inharmonic stack over it.',
-      neon:  'The same bell change as the card pop. At 85% high it was the brightest thing in the pack.' },
+      vegas: 'Asked for between the two, so it is placed between them: the bar back up a tone, a fourth partial for air, half the tray. 1033Hz against 1274 and 804.',
+      neon:  'The same bell change as the card pop. At 85% high it was the brightest thing in the pack. The knock here is the thump under the bell, so most of it goes.' },
     seq: (fn) => rep(fn, 8, 110, () => []), reset: true },
   { id: 'coin', label: 'COIN', plays: 'six credits paid out',
     change: {
-      vegas: 'Down a fifth to three partials, and it lands on something now - but it stays bright.',
-      neon:  'Kept bright and given a floor. A coin that thuds is not a coin.' },
+      vegas: 'A purse, not a payout bell: three small clinks 23ms apart, rising, each shorter than the last, with almost nothing underneath. The Dota gold sound is a cluster, not a ping.',
+      neon:  'Kept bright, and the floor it was given comes back off - that thump was the knock. A coin that thuds is not a coin.' },
     seq: (fn) => rep(fn, 6, 120, () => []) },
   { id: 'hand_scored', label: 'HAND SCORED', plays: 'one hand, mid-size',
     change: {
