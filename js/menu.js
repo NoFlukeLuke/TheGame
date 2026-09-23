@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r309 · four heavier casino sound packs, a shared DSP toolkit, a master punch chain and a per-pack room";
+const BUILD = "2026-09-23 · r310 · payout coin count runs 3-5x faster with the coin sound every 3rd or 5th coin, never more than ~7 sounds";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
