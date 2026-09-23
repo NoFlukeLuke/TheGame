@@ -3709,12 +3709,387 @@ that Storm has quietly made your straights worth more than your flushes.
 to `scoring` before taking its 220ms beat; leaving it on `pickline` let a further
 click arm a SECOND tally-and-advance and skip a turn.
 
+### Seven owner fixes (r309)
+
+**1. THE SHAPE DRAW IS A WEIGHTED BAG.** A flat draw gave the straight piece one
+turn in two at size 3 and one in seven at size 4, and being memoryless it could
+hand you three of the same shape in one deal. `SQ_SHAPE_W` weights each form (the
+bars lightest) and the weighted list is dealt WITHOUT REPLACEMENT and reshuffled
+when it runs dry - a bag cannot repeat what it has spent. Measured over 4,000
+deals: **I went 14.3% -> 5.5%**, all-three-the-same **~2% -> 0.03%**. Two details:
+  * **THE NO-TRIPLE GUARD SEARCHES THE BAG, it does not take the next entry.** A
+    heavy form appears in the bag several times over, so the next entry is very
+    often the same form again - at size 3 the next-entry version measured 26% of
+    deals all one shape, which is what no guard at all gives.
+  * **A PIECE GETS A RANDOM RESTING ORIENTATION.** There are only 7 free
+    tetrominoes and 2 triominoes, so the shapes are the shapes; rotating each new
+    piece 0-3 times takes what the tray actually SHOWS from 7 to **19** (and from
+    2 to 6 at size 3), and at size 2 it is the only variety there is to have.
+  * **25% of size-3 deals are still all one shape and that is arithmetic**, not a
+    gap: a 1:3 bag is four entries and three tiles a deal, so one deal in four
+    holds no I3.
+
+**2. THE PIECE HAND IS BELOW THE BOARD.** It lived in `#trick-panel`, which sits
+in `#top-strip` ABOVE `#grid-and-buttons`, so on a phone you dragged UPWARD from
+the board to a tray at the top of the screen. `sqMountPanels` re-parents
+`#hand-preview-area` into `#main` between the board and the secondary buttons.
+  * **LANDSCAPE IS UNAFFECTED** - `#selected-cards` is absolutely positioned
+    there, and `#main` and `#hand-preview-area` are both `display:contents`, so
+    the box still resolves against `#stage` wherever it hangs.
+  * **THE FLEX ORDER HAD TO MOVE WITH IT.** `#stage:not(.landscape)
+    #hand-preview-area { order: 2 }` is the portrait shared-strip rule
+    (css/style.css), written when this element was half of `#trick-panel` - it
+    follows the element, so in `#main` it sorted the tray BELOW the Records/Pause
+    row. All four children of `#main` are pinned explicitly in css/squares.css.
+  * **`squaresTeardown()` puts it back**, and `startGame` calls it for every mode
+    that is not this one. Without that the NEXT run plays with its hand preview
+    in the wrong place.
+
+**3. THE MOBILE DRAG WAS `touch-action`, AND NOTHING ELSE.** Left at `auto` the
+browser claims the first movement of a finger drag as a page scroll and fires
+**pointercancel** - the owner's "it stutters on the edge of the tray". Measured
+through real CDP touch events at 420x900: **0 cancels with `touch-action: none`,
+cancelled on the first move without it**, every time. The pointer capture onto
+`document.body` and `sqSetSelClasses` (painting the selection by toggling classes
+instead of re-rendering the tray under the finger) are **insurance, not the fix**
+- Chrome retargets rather than cancelling when the held element is destroyed, and
+both measured 0 cancels on their own. They are kept so the drag does not depend
+on that being true.
+
+**4. THE SCORE CHIP NAMES ITS HAND.** Two lines - the hand in gold caps, the
+arithmetic under it, with the penalty as `- N` when there is one. The banner
+above the board says it too, but the banner is one line for the whole tally and
+the chip is the one thing sat on the line that just paid.
+
+**5. RUN OF 3 AND RUN OF 4 ARE BACK, as the two NON-KICKER hands.** Every other
+hand here IS the line, kickers and all; these two use only the cards in the run
+and the cards left over **subtract their pips**, which is the owner's original
+rule for a line that only makes a short hand.
+  * **A SHORT RUN IS A SECOND CANDIDATE, NEVER AN OVERRIDE.** `sqScoreLine` scores
+    the full-line poker hand AND the best run inside it, and takes the higher -
+    the same question `findBestHand` asks in the main game. So a Run of 3 can
+    never make a line worse than it already was: measured over 8,000 lines,
+    **1,319 (16.5%) are re-named and 0 score lower**.
+  * **Priced off measured frequency in a random five-card line**: a run of 4 turns
+    up on **4.1%** (rarer than Two Pair at 4.75%, commoner than Trips at 2.1%) and
+    a run of 3 on **19.8%** (between Pair at 42% and Two Pair), then handicapped
+    for the pips they forfeit and the penalty they carry. Run of 3 is 40 x2, Run
+    of 4 is 80 x4.
+  * **It is a real score increase and SCORE ALL rounds are not comparable with
+    pre-r309 ones.** High Card falls from **50.1% of lines to 34.1%** - a third of
+    the dead lines now pay something, which is the point - and the average line
+    goes **114 -> 135 (+19%)**.
+  * `SQ_LADDER` is in order of WORTH (pips x mult), which is what the tally's
+    tiebreak wants, and the two runs slot into it by measurement.
+
+**6. ROUND n/10 IS IN THE TOP BAR AND THE CONSUMABLES TOOK THE GOAL BOX.** The
+consumables rode `#knack-list`, which in PORTRAIT shares one half-strip with the
+hand preview (js/portrait-panel.js) - and this mode pins that strip to the
+preview, so they were behind a swap button with no reason to press it and were
+**unreachable on a phone**. The goal box is on screen in both orientations, which
+is the one thing the knack row was not.
+  * **`#sq-round` is a child of `#top-bar`**, so portrait gets it as a flex item
+    beside the other top stats for free and landscape - where `#top-bar` is
+    `display:contents` and every `.top-stat` is hidden - positions it absolutely
+    in the band the clock has vacated. It deliberately does NOT carry `.top-stat`,
+    or the landscape hide rule would take it too.
+  * **NEVER `innerHTML = ''` ON `#score-to-go`.** It owns `<span id="goal-display">`,
+    which `js/hud.js` writes on EVERY `updateScoreUI` - wiping it here left the
+    next mode's first render throwing on a null and the span gone for the rest of
+    the session. `#sq-cons-row` is appended and the span is hidden by CSS.
+  * The chips are 26px in portrait and 21px in landscape: five have to sit across
+    a box that is 129 stage px wide there against ~200 in portrait, so the phone,
+    where a tap target matters most, gets the bigger chip.
+
+**7. A LAYOUT CHANGE RE-RUNS BOTH FITS, AND A `resize` LISTENER CANNOT SEE THEM
+ALL.** The board is sized from the MEASURED slot and a poly from its tile's
+MEASURED inner box, so an orientation flip leaves every one of them fitted to a
+box that no longer exists - the owner's "the Tetris piece went over the card
+boundary".
+  * **The office photograph is why a listener is not enough.** While it is on
+    screen the stage is forced LANDSCAPE whatever the device is (r257), and the
+    channel change hands a phone back its portrait layout behind the flash by
+    calling `applyStageLayout` DIRECTLY - no resize event, no orientationchange.
+    Measured on a 420x900 phone: the first deal fitted its tiles to a **278x217
+    landscape host** and nothing ever re-measured them.
+  * So the trigger is a **ResizeObserver on `#grid-slot` and `#selected-cards`**,
+    which cannot miss a cause it has not been told about. `_sqLastBox` is what
+    stops a loop: a render only runs when a box has genuinely changed size.
+  * **`sqFitHand` also runs again on the next rAF**, because plenty of renders
+    happen before a settled layout - the first deal of a round lands while
+    `#hand-preview-area` is still settling into its new place below the board.
+    Measured: a 3-tall piece came out **156px tall in an 84px tile** on the first
+    pass and 82px on the second.
+  * **The refit is UNCONDITIONAL.** It used to refit only a poly that OVERFLOWED,
+    which is right on a first render and wrong after a layout change: a tile that
+    got WIDER kept the minis it was fitted to when it was narrow.
+
+Verified in a real browser at 1440x820, 1100x620, 420x900 and 390x844: a full
+round plays to its ten-line tally and on into the trick pick, the consumable pick
+and round 2; a real touch drag carries a tile from the tray to the board with 0
+cancels; four orientation flips mid-round leave **0 polys overflowing their tile**
+and 25 slots on the board each time; all five consumable chips fit the goal box
+and are hit-testable in both orientations; and starting any of the other eight
+modes afterwards finds the hand preview back in `#trick-panel`, `#sq-round` gone
+and the GOAL label restored. No page errors anywhere.
+
 ### Known, and left for a decision
 
 **The row/column BUFF Tricks are much stronger here than in the main game**,
 because a marked line IS the whole hand rather than part of one - Power Line on a
 marked row measured x11 mult on that row's line. That is a tuning call, not a
 bug, so nothing has been quietly retuned.
+
+### The daily grids (r311) - `js/squares-daily.js`
+
+Owner: *"I thought this might make a cool daily game like wordle. But it needs to
+be less roguelike."* Two smaller boards beside the 5x5, picked on a new **size
+console** that now opens the mode: **3 x 3**, **4 x 4**, or the 5x5 as it was.
+
+`sqDaily()` is the one test - true whenever `squaresActive()` and `SQD_SIZES`
+knows the board size - and everything below dispatches on it. **The 5x5 is
+byte-identical**: it keeps its turns, its Tricks, its pips x mult, its SCORE ALL
+/ SELECT SCORE console and its ten rounds, and none of the new CSS can reach it
+because all of it hangs off the `squares-daily` class.
+
+| | 5x5 | a daily |
+|---|---|---|
+| structure | 10 rounds | **3 grids** |
+| tiles | 3 a turn over 4 turns | **every tile at once**, one commit |
+| inventory | tetrominoes | **1-, 2- and 3-cell pieces only** |
+| scoring | real `calcScore`, pips x mult | **base + card values**, no multiplier |
+| between | a Trick and a consumable | **one boon, rolled and granted** |
+| submit | END TURN | **SUBMIT**, refused until the board is full |
+| undo | discard a tile | **TAKE BACK**, an undo stack |
+
+**THE SURPLUS IS THE PUZZLE.** 12 cells of tiles for 9 of board (3x3) and 19 for
+16 (4x4) - the owner's counts - so what you LEAVE OUT is as much of the decision
+as what you place. Three spare cells in both, which is enough that there is
+always more than one legal packing and never so much slack that shape stops
+mattering. `sqdSpare()` is that arithmetic and the board's banner prints it.
+
+**No turns, so no `TURN n/4` banner and no Trick tray.** A daily takes no Tricks
+at all (owner's call): two people playing the same board have to be comparable,
+and a Trick is exactly the thing that makes two runs of one board score
+differently. `#trick-tray-area` is hidden rather than left as an empty panel, and
+in portrait `#trick-panel` goes with it - the hand preview was re-parented into
+`#main` in r309 and the knack row is already the consumables, so the whole box
+was a dead band above the board. **Three top-bar stats go too** (LEVEL, COINS,
+HAND): `level` never advances here, no credits are ever earned or spent, and
+nothing is selected into a hand.
+
+#### Scoring: base + card values, no multiplier
+
+Owner's rule. **Ace 5, court 3, everything else 1** (`sqdCardValue`), and a line
+pays its **hand base plus the sum of its cards**. Nothing multiplies. Every line
+therefore pays something, which is what stops a dead row reading as a wasted row.
+
+**`sqdHandName` is a 3- and 4-card namer and had to be written.** `sqHandName`
+gates runs and flushes on `cards.length >= 5`, which is correct for the 5x5 and
+would call every line here a High Card.
+
+**THE TABLES ARE POKER'S OWN (r312).** Owner: *"Make the values based on poker
+not this grid."* They were priced off how often each hand could be MADE on these
+boards, which is a real measurement and the wrong answer: a ladder nobody
+recognises. They are now the RATIOS of the two published pay tables for the real
+games at these hand sizes - **Three Card Poker's PAIR PLUS** and **Four Card
+Poker's ACES UP** - x `SQD_PAY_SCALE` (10).
+
+| | 3 cards (Pair Plus) | | 4 cards (Aces Up) |
+|---|---|---|---|
+| Pair | 1 | Pair | 1 |
+| Flush | 4 | Two Pair | 3 |
+| Straight | 6 | Straight | 4 |
+| Three of a Kind | 30 | Flush | 6 |
+| Straight Flush | 40 | Three of a Kind | 9 |
+| | | Straight Flush | 40 |
+| | | Four of a Kind | 50 |
+
+Exact counts, brute-forced over a real deck (`/tmp` script in the r312 session;
+trivially re-derived):
+
+| 3 cards, C(52,3) = 22,100 | | 4 cards, C(52,4) = 270,725 | |
+|---|---|---|---|
+| Straight Flush | 48 (1:460) | Four of a Kind | 13 (1:20,825) |
+| Three of a Kind | 52 (1:425) | Straight Flush | 44 (1:6,153) |
+| Straight | 720 (1:31) | Three of a Kind | 2,496 (1:108) |
+| Flush | 1,096 (1:20) | Straight | 2,772 (1:98) |
+| Pair | 3,744 (1:6) | Two Pair | 2,808 (1:96) |
+| | | Flush | 2,816 (1:96) |
+| | | Pair | 82,368 (1:3) |
+
+**Two things that look wrong and are real poker:**
+- **On THREE cards a STRAIGHT BEATS A FLUSH** (720 against 1,096) and **trips
+  beats a straight**. That inversion is exactly why three-card poker has its own
+  ranking instead of reusing the five-card one.
+- **On FOUR cards FOUR OF A KIND BEATS A STRAIGHT FLUSH** - 13 hands against 44,
+  because a fourth card of a rank is scarcer than a fourth card of a run. The
+  five-card game is the other way round. (The old table had this right for the
+  wrong reason: it was justified by a board measurement rather than by poker.)
+
+**STRAIGHT, TWO PAIR AND FLUSH ARE A THREE-WAY TIE on four cards** - 2,772 /
+2,808 / 2,816, a 1.6% spread - so the counts cannot order them. The published
+table's order is taken instead, which is the five-card one and the one a player
+expects.
+
+- **`SQD_PAY` holds the RATIOS and `SQD_BASE` is built from it**, so the pay
+  table can be read against the published one line for line. **`SQD_LADDER` is
+  DERIVED by sorting `SQD_PAY`** rather than written out beside it, which is what
+  makes it impossible for the order the tally reads a line in to disagree with
+  what that line paid.
+- **`SQD_PAY_SCALE` is the one number here that is not poker's**, because a pay
+  table is odds on a bet and a line here pays pips. **10 is picked so the owner's
+  card values stay meaningful**: a pair's base is 10 against a line's 3-8 of card
+  value, and at x3 (tried) the base is swamped by the pips and the ladder stops
+  being what decides a line.
+
+**THIS IS MUCH SWINGIER THAN WHAT IT REPLACES, AND THAT IS POKER, NOT A BUG.** A
+straight flush is 40x a pair in Pair Plus, so one rare line can be most of a
+grid. Measured over 60 deals at the best packing the search finds:
+
+| | par spread | best line's share of the grid |
+|---|---|---|
+| grid-priced (r311) | 54 to 124, **2.3x** | ~20% |
+| **poker (r312)** | 112 to 804, **7.2x** | **45%** |
+
+**It also costs a little of the consistency the owner asked for in r311**, for
+the same reason: one trips is worth thirty pairs, so the best packing spends
+other lines to reach it. Lines paying a real hand, 3x3: **58% -> 55%**; 4x4:
+**75% -> 71%**. Worth a decision if it reads badly in play - the lever is
+`SQD_PAY_SCALE` or a compressed table, not the order.
+
+#### The boons
+
+Between grids, ONE is rolled and granted with no choice in it (owner's call).
+Either a line scores **double**, or every card in a line is worth **+2**, or you
+get one of the mode's own **consumables**. They ACCUMULATE, so grid 1 is plain,
+grid 2 carries one and grid 3 carries two: the run escalates without the player
+steering it. A line boon never lands twice on one line with the same kind -
+stacking two doubles is a much bigger swing than the roll is meant to be, and it
+reads as the game repeating itself.
+
+**`+N per card` lands INSIDE the doubling**, because a boon on a doubled line
+should be worth double too; that is the only reading under which the two compose
+rather than fight.
+
+#### PAR - "the best this board could have paid"
+
+Owner asked to be shown the best possible score, after submitting. The report
+prints it per grid and for the run, with the percentage reached.
+
+**The 3x3 is PROVEN and the 4x4 is not, and the labels say which** - "best
+possible" against "best found". The difference is the size of the space:
+
+| | packings | search |
+|---|---|---|
+| 3x3 | ~5,000-32,000 | **exhaustive**, 45-70ms |
+| 4x4 | **over 1.6 BILLION** (counted, uncapped) | beam, ~100ms |
+
+**THE 4x4 IS A BEAM SEARCH AND THE FIRST ANSWER - RANDOMISED RESTARTS - WAS A
+BAD ONE.** Measured against a 12-second random search on the same four deals, a
+260ms random search returned 157/147/136/140 where the long one found
+183/159/166/164, about **15% short**. That is the one failure mode this feature
+cannot have: a player who BEATS the "best possible" reads it as broken.
+
+`sqdBeamPar` walks the same forced exact-cover order - always fill the first
+empty cell - but keeps the best `SQD_BEAM_WIDTH` (2000) partial boards at each
+level instead of one path. Three things make that work:
+- **ROW-MAJOR FILLING MAKES ROWS EXACT EARLY.** By the time the frontier is in
+  row 3, rows 1 and 2 are finished and their scores are final, so most of the
+  estimate is real rather than guessed.
+- **A PARTIAL LINE IS SCORED AS IF IT WERE THE WHOLE LINE.** A column holding two
+  hearts already reads as a flush, which is exactly the bias wanted. It is not an
+  upper bound and is not trying to be - nothing is pruned on it. A SHORT line may
+  not claim the line's own hand, though: three cards of a 4-line are not a Flush
+  of 4, and letting them read as one makes the beam chase a hand it cannot
+  finish.
+- **NO DEDUPE IS NEEDED.** Filling the first empty cell means the ORDER of
+  placements is forced by the board, so every distinct board is reached by
+  exactly one path.
+
+A child's estimate is its parent's with only the LINES THE PIECE TOUCHES
+rescored - at most 3 rows and 3 columns - which is what keeps a 20,000-child
+level inside a frame.
+
+**BOTH FILL ORDERS, AND NOTHING ELSE.** Column-major is the mirror bias (columns
+finish first) and the two genuinely disagree: over 12 deals, row-major alone was
+better on 2, column-major alone on 5, and they tied on 5. Against an
+**eight-second** random search the pair wins or ties **10 of 12**. A 180ms random
+restart phase bolted on top beat them on **0 of 12** and was taken out rather
+than left in to cost 180ms a grid; the random path is KEPT in `sqdSearchPar` as
+the measuring stick the beam was validated against, which is the only way to
+re-check that claim if the tables or the inventory move.
+
+**A WIDER BEAM BUYS NOTHING.** Measured: w2000 and w40000 returned the SAME
+number on five of six deals, at 36ms against 600ms.
+
+**A "best" the player has already beaten is worse than no best at all.** The
+4x4's figure is a search, not a proof, so `sqEndRound` raises it to whatever the
+player actually found. The 3x3's is exhaustive and is left alone, because being
+beaten there would be a real bug and it should say so.
+
+**Par is computed AT DEAL TIME, not at submit** - the board is known the moment
+it is dealt and the deal animation is the one place a ~100ms search can hide.
+
+#### Consistency, which is what the owner actually asked for
+
+Owner: *"could you design levels that encourage more consistent scoring than the
+5x5 mode seems to have. I feel like the 5x5 mode is really hard to get more than
+pairs in a few rows and maybe one 5-card hand."* Measured at the best packing the
+search finds, over 60 deals each:
+
+| | lines paying a real hand | the mix |
+|---|---|---|
+| **3x3** | **55%** (3.3 of 6) | Run 17 · Pair 15 · Flush 14 · SF 5 · Trips 4 |
+| **4x4** | **71%** (5.7 of 8) | Pair 22 · Trips 16 · Flush 16 · Run 9 · SF 4 · Two Pair 3 · Quads 1 |
+| 5x5 (r309) | ~66% | but **Pair 42% and High Card 34% is most of it** |
+
+So on a 4x4 nearly half of every line is a hand BETTER than a pair, against the
+5x5 where pairs and dead lines are 76% of the board. (Both figures fell ~3
+points when r312 put poker's values in - see the pay tables above.) **That is structural, not a
+tuning trick**: shorter lines, full information, surplus tiles and free
+placement.
+
+#### The tile tray is a GRID here
+
+The 5x5 holds at most three tiles, so a row of thirds is the whole answer there.
+A daily is handed **every** tile at once - 7 on the 3x3 and 11 on the 4x4 - and
+eleven thirds is eleven 40px slivers with unreadable minis on them. **Three rows,
+always**, with the columns from the inventory (3 across for the 3x3, 4 for the
+4x4), as EXPLICIT tracks rather than auto rows - which is what keeps r309's rule
+that a tile does not change size as the hand empties, because the tracks do not
+care how many items are left.
+
+- **`sq-n3` / `sq-n4` on `#stage`** carry the column count, because CSS cannot
+  count children.
+- **THE GRID HAS TO BE RESTATED AT THE PORTRAIT RULE'S OWN SPECIFICITY.** r309's
+  `#stage:not(.landscape).squares-mode #selected-cards` is two ids, two classes
+  and a pseudo-class and carries `display:flex !important` to beat
+  `syncTrickTrayUI`'s inline style, so the shared `#stage.squares-daily` grid
+  loses to it and the eleven tiles went straight back to being slivers.
+- **The portrait tray reserves three rows for the whole phase**, even at one tile
+  left. Letting it shrink was tried and is worse: in portrait it is a flex child,
+  so its height is the board's - measured, the board went 241x312 to 320x415 as
+  the last tiles went down, which is cards moving under a finger that is dragging
+  onto them. A dead band at the foot of the tray is the better of the two. It
+  does not arise in landscape, where the tray is an absolutely-positioned panel.
+
+#### A mode's own children of `#grid` have to be removed by hand
+
+Found here and **pre-existing since r303**. `render()` reconciles elements
+carrying `[data-card-id]` and leaves anything else alone, so an empty `.sq-slot`,
+a `.sq-ghost` or `#sq-banner` survived into the NEXT mode and painted over its
+board - measured, **9 slots from a 3x3 were still there under Classic's 16
+cards**. `squaresTeardown` takes them out. Same shape as the r248 crossroads
+tiles.
+
+#### Not built, deliberately
+
+**There is no daily SEED yet** - the owner asked for the sizes "for our purposes
+for testing right now", so a board is a fresh shuffle. A Wordle-style shared
+board is one call to `applyRunSeed` with a date-derived seed at
+`squaresBeginRun`, plus a way to show the result; the scoring is already
+comparable, which was the point of taking the Tricks out.
 
 ### `MODE_EXTRA_LIST` (js/progress-unlock.js)
 
@@ -5130,6 +5505,233 @@ Chips for every value and every colour; turning some off shrinks the deck. **Cha
 - Applying rebuilds the deck AND re-deals the board via `initGridData()`, so no off-list card is left in play. **Sleights are carried across the rebuild by hand** - they aren't part of the rank × colour cross-product, so the rebuild would otherwise delete the four fixtures.
 - `startGame` reads the tuner through `spectrumInstallLists()`, so a new run picks up the current tuning immediately. Selections persist in `localStorage` (`lethe.spectrum.tune.v1`).
 - **A toggle that would starve the board is refused** (`spectrumMinDeck()` = grid cells + 8, and never fewer than 3 values / 1 colour). Without that the deck can run dry and refills hand back `null`, filling the grid with holes.
+
+## Deck design (r269-r318) - `js/deck-design.js`
+
+**The one place the deck's SHAPE is decided, for every model except Spectrum.**
+`deckModelNow()` answers which model is live and `freshShuffledDeck()` dispatches
+on it: `weighted` -> `buildWeightedDeck()`, `six` -> `buildDesignedDeck()`, else
+the ordinary rank x suit cross product. Dev panel -> **Deck**.
+
+| model | deck |
+|---|---|
+| `mode` | whatever the mode says (the default; nothing below is on) |
+| `classic4` | 4 suits x 13 ranks, 52 |
+| `six` | six suits, one cut rank, copies per rank (r269/r271) |
+| `weighted` | copies chosen PER RANK (r273, retuned r318) |
+
+- **Spectrum can never be overridden.** Its deck is welded to `ACTIVE_MODE.numeric`,
+  so `deckModelNow()` returns `'spectrum'` before it looks at `deckModel` at all.
+- **`deckDesignOwnsDeck()` is what stops the generic `expectedDeckTotal` line
+  stamping over a built deck.** The audit counts ranks x suits, which is not what
+  either built model holds; miss it and every run reports a third of its deck
+  permanently missing.
+- **`rankRunVals(rank)` is the ONE source of a rank's run values** and returns
+  `[]` for an off-ladder rank, so every run test fails for free rather than each
+  one needing a special case. `js/hand-detect.js` reads it in `tryRunCombos`, and
+  `deckLadderKey()` is in the `handComponentsFor` cache key - a rule that changes
+  the answer must be in that key or a cached entry is reused (the r201 lesson).
+- **The run ORDER rule** (`runOrderRule`, default `off`) is a separate dev toggle:
+  `off` takes any connected group, `grow` wants each next-highest card touching
+  something already placed, `path` wants a single snake in rank order. `runOrderKey()`
+  is in the cache key too.
+- Settings persist under `DECK_DESIGN_KEY`. **Bump that key when a shipped default
+  changes** or nobody who has already played receives it - a stored value beats a
+  default. It is at `v3`.
+
+### The weighted deck (r273, retuned r318) - separating sets from runs
+
+**A uniform deck cannot do it, and that is provable rather than a matter of
+tuning.** For R ranks at C copies each, `set3 = R * C(C,3)` and
+`run3 = (R-2) * C^3`, so their ratio is `(C-1)(C-2) / 6C^2` - 0.08 at C=5, 0.12
+at C=10, approaching **1/6 as C grows**. Both terms are cubic in the same number,
+so every knob that raises one raises the other. Sets can only reach two thirds of
+runs if the copy count stops being uniform.
+
+**A set needs k copies of ONE rank; a run needs one copy each of k ADJACENT
+ranks.** So the dial is **whether the heavy ranks TOUCH**. Heavies spread apart
+and every run window is forced through a scarce rank, which caps runs while the
+heavies pile up sets on their own; heavies adjacent and some windows are
+heavy x heavy x light, so runs climb with sets and stay ahead. That one fact is
+the whole distance between r273's default (sets 1.18x runs - it overshot) and
+r271's (0.11).
+
+**Measure COUNTS, not availability.** Availability saturates: at 4x4 every
+candidate offers a Pair, a Flush of 3 and a Run of 3 on ~100% of boards, so
+presence cannot tell two decks apart and is not what "as common as" means. What a
+player feels is how many separate sets / runs / flushes are on the board to
+choose between, and that number tracks the deck's own density closely. The
+editor's readout leads with the two ratios for the same reason.
+
+**The r318 default** is 5 / 11 / 2 copies repeating over nine ranks, 5 up to K,
+six suits, **54 cards**. Measured through the real `freshShuffledDeck()`, average
+number of each shape on a 4x4 board, 9,000 deals per deck:
+
+| per board | Classic 52 | r271 six-suit | r273 weighted | r318 |
+|---|---|---|---|---|
+| Run of 3 | 1.80 | 1.69 | 0.86 | **1.63** |
+| Three of a Kind | 0.12 | 0.18 | 1.01 | **1.10** |
+| Flush of 3 | 2.69 | 1.09 | 1.02 | **1.08** |
+| sets : runs | 0.07 | 0.11 | 1.18 | **0.67** |
+| flushes : sets | 21.82 | 6.13 | 1.01 | **0.98** |
+
+- **Long runs had to survive, and that decided the shape.** Straights ARE runs, so
+  lifting sets by flattening the ladder does not serve a run-first brief. Run of 4
+  per board is 1.42 here against Classic's 1.18, and a Straight is available on
+  **37%** of boards - level with Classic's 36%, better than r271's 28%. The
+  all-13-ranks preset is the counter-example: it hits the same ratios and takes
+  straights from 37% to 16%, because with two heavies in thirteen ranks most
+  five-windows are all-light.
+- **A DECK MUST FILL THE BIGGEST BOARD THE RUN CAN GROW INTO.** `freshShuffledDeck`
+  runs once per run, the grid reaches 7x7 = **49 cells**, and r273's default was
+  **48 cards** - measured at 7x7, 120 of 120 deals came up short and the board
+  dealt with holes. `deckMaxBoardCells()` reads `LIMITS_DEF`, never the live
+  `gridRows`/`gridCols` (the `clampRowColBonuses` rule: four things shrink the live
+  board temporarily), and `deckWeightStarved()` is what the editor warns on.
+- **Which nine ranks is a CONTENT decision, not a maths one.** Nine consecutive
+  ranks score identically wherever they sit (no ace-high wrap either way -
+  measured 0.67/0.98 against 0.69/0.95, inside the noise). What differs is which
+  Tricks die: dropping J/Q/K kills seven and makes **Little Guys** - "no face
+  cards" - fire for FREE, which is worse than dead and is the exact trap
+  `NUMERIC_BANNED_TRICKS` documents for Spectrum. Dropping A-4 kills three. Hence
+  5 up to K. It puts average pips at 8.22 against Classic's 7.31 (the Ace is
+  worth 11, not 1), where the same copies on A-9 sit at 5.76.
+- **A PRESET CARRIES ITS SUIT COUNT.** Flush difficulty is cards-per-suit, so the
+  copies alone do not describe a deck: "Classic 4" with the suit dial left on six
+  built 52 cards over six suits, which is neither the deck the label promises nor
+  level across them.
+- **Suits are balanced but WHICH suit takes a spare is random.** A rank with more
+  copies than suits must double up (11 over 6 is 1,2,2,2,2,2), so "one of each" is
+  off the table; what is on the table is keeping the per-suit TOTALS level, or one
+  suit's flushes would be easy and another's impossible while the deck size said
+  nothing. `assignSuitsBalanced` shuffles the suit indexes uniformly and then
+  STABLE-sorts by current load - **sorting with a random comparator is not a
+  uniform shuffle**. Verified: 9 per suit, spread 0, on every preset.
+
+#### Why the heavy rank is ELEVEN, and what a cap costs (r320)
+
+Owner: *"having 11 seems like it could be so crazy, like what are the chances of
+having more than 5 on a board at a time?"* - and then, reduce the cap to 6 or 7 and
+put the Ace back. The instinct is right and the answer is a real constraint.
+
+**How often a heavy rank crowds the board** (hypergeometric, exact):
+
+| one rank | mean on board | P(>=5) | P(>=6) |
+|---|---|---|---|
+| **11 of 54, 4x4** | 3.26 | **17.8%** | 5.2% |
+| **11 of 54, 5x5** | 5.09 | **65.4%** | 39.0% |
+| 7 of 56, 4x4 | 2.00 | 1.6% | 0.1% |
+| Classic 4 of 52, 4x4 | 1.23 | 0.0% | 0.0% |
+
+So on a 5x5 board two thirds of deals really do hold five or more of one rank.
+
+**THE 11 IS PAYING FOR THE FLUSH RATIO, NOT THE SET RATIO, and that is why a cap
+cannot replace it.** `flush3` is about `S * C(N/S, 3)`, so at a fixed suit count it
+RISES with deck size - and the deck has to be big, because the grid reaches 7x7.
+Meanwhile a cap of `c` limits `set3` to `ranks * C(c, 3)`, and a deck of N cards can
+hold at most `N / c` ranks at the cap. Big deck plus low cap therefore means flushes
+swamp sets, whatever the adjacency does for runs.
+
+Searched exhaustively over repeating copy blocks, Ace required, flushes held within
+25% of sets, runs kept findable:
+
+| cap | deck size | board it is safe for | shapes | best set:run |
+|---|---|---|---|---|
+| 7 | 57-60 | 7x7 (49 cells) | **0** | - |
+| 6 | 57-60 | 7x7 | **0** | - |
+| 7 | 44-48 | 6x6 (36 cells) | **0** | - |
+| 7 | 49, 7 suits | deals 7x7 with no spare | some | **0.47** |
+| 7 | 33-40 | 5x5 (25 cells) | 3,779 | **1.00** |
+
+**A cap works beautifully on a SMALL deck and not at all on a large one.** At 36
+cards over 6 suits a cap of 7 reaches set:run 1.00; at 57+ it reaches nothing. So
+"cap the rank count" is really "cap the board size", and the max grid is 7x7.
+
+The **`cap7` preset** is the owner's shape shipped as an option rather than argued
+about: `A:7 2:7 3:1 4:7 5:1 6:4 7:7 8:7 9:1 10:7`, 49 cards, seven suits.
+**set:run 0.47 against the 0.66 target, flushes 1.14 of sets, and run5 19 against
+the default's 57** - straights become rare, which is the same trade the all-13-ranks
+preset makes. It crowds a board far less (P(>=5 of a rank) 3.0% against 17.8%).
+
+**`deckWeightTight()` is a NOTE, not a refusal.** Dealing a maxed board and
+refilling one all round are different asks - `flushPlayedDeck` only runs at a
+round's end - so a deck inside `cells + 8` (spectrumMinDeck's figure) leans on the
+played pile. **Classic ships at 52 against 49 cells and is fine**, so this is amber
+rather than red; the shipped 54 and the capped 49 both carry it.
+
+**A headroom test that fails CLASSIC is testing itself, not the deck.** A first pass
+scored and refilled by hand on a 7x7 board and reported 49 holes for the 54-card
+deck, the 49-card deck AND a Classic-equivalent 52/4 - it drained the pile by
+construction instead of going through the real refill. The r318 figure stands:
+`initGridData` fills all 49 cells with 0 holes.
+
+#### The SINGLES are the mechanism, and the SUIT COUNT is the flush lever (r321)
+
+Owner: *"the problem with that new count is the single cards, that's also whacky ...
+could we make a deck with ranks having a minimum of 3, Max of 6, and some suit count
+that helps counter the flush persistence? If not I just won't worry about flushes."*
+
+**A 1-copy rank is not a wart, it is the whole lever.** A three-card run window pays
+the PRODUCT of its ranks' copies, so a single collapses that window to almost
+nothing (`8 x 1 x 8` = 64 against `8 x 3 x 8` = 192) and that is what holds runs down
+while the heavies pile up sets. Raise the FLOOR and the windows come back.
+
+**The frontier - best set:run reachable, by copy floor and ceiling** (deck 49-64,
+Ace required, runs kept findable, flushes unconstrained):
+
+| min \ max | 6 | 7 | 8 | 9 | 10 | 11 |
+|---|---|---|---|---|---|---|
+| **1** | 0.33 | 0.53 | 0.75 | 0.99 | 1.32 | 1.66 |
+| **2** | 0.27 | 0.42 | 0.58 | 0.78 | 1.09 | 1.32 |
+| **3** | 0.18 | 0.26 | **0.40** | 0.53 | 0.68 | 0.91 |
+
+So the owner's exact ask (min 3, max 6) tops out at **0.18** - essentially the
+uniform ceiling of 1/6 and barely above Classic's 0.07. **Max 8 is the knee**: the
+same floor at a ceiling of 8 reaches 0.40.
+
+**THE SUIT COUNT IS A PURE FLUSH LEVER, and it is strong.** `flush3` is
+`S * C(N/S, 3)`, so at fixed copies only the suit count moves it - `set3` and `run3`
+do not care how the cards are suited at all. On one fixed 54-card shape:
+
+| suits | per suit | flush3 | flush : set |
+|---|---|---|---|
+| 6 | 9.0 | 203 | 4.00 |
+| 9 | 6.0 | 73 | 1.43 |
+| 18 | 3.0 | 7 | 0.14 |
+
+That is what makes the **`min3` preset** work: `A:3 2:3 3:8 4:3 5:3 6:8 7:3 8:3 9:8
+10:3 J:3 Q:8`, **56 cards over EIGHT suits** (7 a suit - eight is the ceiling, since
+`deckWeightSuitCount` clamps at 8 and `SUITS_EIGHT` holds eight glyphs). Every third
+rank is common and the rest are 3s, which is a rule a player can hold in their head.
+
+| | r318 default | `cap7` | **`min3`** | Classic |
+|---|---|---|---|---|
+| set : run | 0.68 | 0.47 | **0.32** | 0.07 |
+| flush : set | 0.96 | 1.14 | **1.21** | 22.00 |
+| run5 (straights) | 57 | 19 | **28** | 39 |
+| copies, min-max | 2-11 | 1-7 | **3-8** | 4-4 |
+| P(>=5 of a rank, 4x4) | 17.8% | 3.0% | **3.5%** | 0.0% |
+| ranks | 9 | 10 | **12** | 13 |
+
+**It is the most PLAYABLE of the three and the weakest on the brief** - sets land at
+a third of runs rather than two thirds. Twelve ranks (everything but the King), no
+singles, nothing above 8, board crowding down from 1 board in 6 to 1 in 29, and
+flushes brought to near parity by the suits rather than by the copies.
+
+**The higher-set alternative, if flushes really are droppable:**
+`8-3-3-8-3-3-8-3-3-8` over **5 suits**, 50 cards - set:run **0.40** and run5 39, but
+flushes at **2.61x** sets. 50 divides by 5 and 10 only, so eight suits is not
+available to it; that is the whole reason the shipped one is 56.
+
+**KNOWN AND NOT DONE: this breaks `HAND_BASE` pricing, and by more than r273 did.**
+Four of a Kind is available on 20% of 4x4 boards against 1% today, and 68% of
+7x7 boards; Full House goes the same way. Both are priced as rare hands. The
+reprice is parked by the owner. When it happens it belongs in
+`applyModeHandValues()` - the existing per-mode hook - so prices follow the active
+deck, since `handBasePips()`/`handBaseMult()` are already the one chokepoint every
+reader goes through. **This is why the weighted deck is a dev toggle and not a
+mode default**, and why `deckModel` defaults to `'mode'`: with it unset nothing in
+the shipped game changes.
 
 ## Which modes are listed (r218)
 
@@ -6951,6 +7553,92 @@ and the six ids in `AUDIO_MANIFEST` are the most frequent board sounds in the ga
 so leaving it on meant a pack was never heard where it is heard most. The files are
 untouched and the switch still brings them back.
 
+#### `heavy-preview.html` (r313) - the A/B for "less tinkle, more punch"
+
+Owner, on Vegas: *"too tinkly and not mechanical enough."* The page plays the six
+most frequent sounds as NOW and HEAVY, in the real patterns they are heard in (a
+five-card hand, twelve pip particles at the dance's 90ms, six coins) through the
+real buses, ducking, limiter and room. **The candidate lives in the page, not in
+`js/audio-packs.js`** - it is not adopted until the owner says so.
+
+**"Tinkly" is measurable, and measuring it changed the answer twice.**
+The metric is the spectral centroid plus the share of energy above 1.2kHz.
+
+- **The target is the packs with no complaint against them, NOT zero.** High
+  Roller and Lounge measure ~660-680Hz with about a tenth of their energy up
+  top. A first pass drove Vegas to 250Hz and 1% and that is not less tinkly, it
+  is the metal gone.
+- **The blame was narrower than the complaint sounded.** `particle_pip` at
+  **5450Hz / 100% high**, twelve times a hand, and `card_pop` at 2362 / 87%,
+  five times a hand. `card_select` (301 / 2%) was already in band, and
+  `particle_mult` (1278 / 36%) is DARKER than High Roller's (2117 / 78%) - both
+  were left nearly alone on the strength of that.
+- **EVERY pack's coin is bright**, Lounge's included (2282Hz / 100%). A coin
+  that thuds is not a coin, so `vghCoin`/`nehBell` carry a `body` knob: full for
+  the repeated sounds, turned down for the payout coin.
+- **RMS is held within 15% of the original per sound**, and the page goes red
+  past that, because a heavy version that is also louder wins the A/B for the
+  wrong reason. Verified stable across five independent measurements.
+
+**A preview that disagrees with what it does is worse than no preview** (r233),
+and this one caught itself twice: the pack blurbs still described the first
+tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
+They are per pack now.
+
+#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r317)
+
+Owner, on the r313 candidate: *"i like all the heavies except pip particles which
+has a bit too much wooden knock in it"*, *"any of the effects that now have that
+knocking sound, just soften it a little"*, *"for mult particles somewhere between
+the two would be good"*, and *"for the coin sound can we try and get closer to the
+dota 2 sound for coins?"*
+
+r313 cured the tinkle by making the wooden knock the payload, which traded one
+repeated irritant for another: a rap on a surface twelve times a hand.
+
+- **A PERCUSSIVE HIT IS TRANSIENT + BODY + TAIL (r234's rule), AND THE KNOCK IS
+  THE TRANSIENT ALONE.** That is the whole of this pass and it is why "softer"
+  did not have to cost any weight: `vghThunk` is a metal tick, a wood crack and a
+  low thump, and pulling the first two while leaving the thump at full takes the
+  rap off and keeps every dB of the punch. `dWood` gained a **`soft`** knob (0 to
+  1) that does the same thing inside itself - the bandpassed noise burst IS the
+  wood, the sine under it is just a pitch - and `nehKick` / `nehBlip` got one
+  each, because Neon knocks with its kick's white click and with the saturated
+  edge of a 1ms pulse attack rather than with any wood at all.
+- **`soft = 0` is byte-identical to the original** and is the default, so the four
+  shipped packs are untouched. Proved rather than assumed: 40 shipped-pack sounds
+  rendered on both versions of `js/audio-dsp.js`, **centroid and RMS identical to
+  six decimal places on all 40**. Two rows differ by one part in a million on the
+  PEAK only - and running the SAME dsp twice moves a different pair by the same
+  amount, so that is the reverb IR's own randomness, not the change.
+- **SOFTENING A KNOCK RAISES THE CENTROID, AND THAT IS NOT A REGRESSION.** The
+  knock on Neon's mult particles and on both coins is the low thump under them,
+  so removing it takes away low energy and the measured brightness goes UP -
+  Neon's mult 889 -> 1139Hz, its coin 2644 -> 2930. The r313 metric answers
+  "tinkly" and says nothing about "knocky", and reading one as the other here
+  would have undone the fix the owner asked for.
+- **"Somewhere between the two" is a number, so it was aimed at one.** Vegas mult
+  particles: NOW 1274Hz / 36% high, r313 heavy 804 / 12%, so the target is the
+  midpoint. `vghBell` gained `bright` / `body` / `tilt` / `set` to get there
+  without a second helper, and it lands at **1033 / 27%**.
+- **THE DOTA GOLD SOUND IS A CLUSTER, NOT A PING**, which is why the coin is a
+  new helper rather than a retune. `vghPurse` is three small `vghClink`s 23ms
+  apart, rising, each shorter and quieter than the last, rooted at A6 with
+  **almost no body at all** - the one place in the pack where the tray is
+  deliberately absent, because what says "coins" here is that there are SEVERAL
+  of them and a body big enough to hear smears them into one event.
+
+**Measured after, heavy column, r313 -> r317:** Vegas pip particles 893 -> 1150Hz
+(the knock down and the coin taking back the difference), mult 804 -> 1033, coin
+1723 -> 2647; Neon pip 1084 -> 1026, mult 889 -> 1139, coin 2644 -> 2930. The
+sounds the owner approved are unmoved: Vegas card_pop 468 -> 471, hand_scored
+435 -> 455, Neon hand_scored 807 -> 809. **All twelve rows stay inside the 15%
+RMS budget across five independent runs** (worst 13%), max peak 0.815, and all 38
+buttons drive clean at 1440x820 and 420x900 with no page errors.
+
+**`audioCtx` is declared in `js/challenge.js`** - not audio.js - so any page
+loading the audio stack without it must declare it or `getAudioCtx()` throws.
+
 **Testing**: render every id of every pack into an `OfflineAudioContext` with
 `getAudioCtx` temporarily repointed at it, and assert peak, RMS and tail length
 against classic. For a timeline (several sounds at real spacing) the wrapper must be
@@ -7164,3 +7852,65 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Match surrounding code style (terse, inline, lots of single-line helpers).
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
+
+## r324 - the board can SURVIVE a Flow/Survival level-up (dev -> Rewards)
+
+- **`svBoardMode`** (js/survival.js, `lethe.svBoard.v1`): `redeal` (shipped) ·
+  `keep` · `keep_nosleights`. In a keep mode `survivalDealNext` does NOT recycle
+  and redeal: it cancels the spread-freeze animations (fill:forwards pins
+  transform until cancelled - the r281 rule), then runs
+  **`removeAndFall(cells, 'play')`** on just the goal hand's cells - that is the
+  ordinary scored-hand exit, so the pile accounting and the gravity refill come
+  free and the deck audit balances. `keep_nosleights` adds every Sleight cell to
+  that list: removeAndFall bills no time and no stock, and `discardToPlayed`
+  cycles a charge-preserving copy, so the free discard the owner asked for is
+  the mechanism's own behaviour.
+- **`svGoalCells` is the capture**, written in `playHand` at BOTH goal sites
+  (the ordinary goal and the boss win) beside `toRemove` - in survival the goal
+  hand's cards STAY in `gridData` (the dance only removes their DOM), so
+  something has to say which cells the hand was. Null forces a redeal.
+- **A boss round and a grid-size change still redeal**: `survivalSkipCarryover`
+  (a post-boss board can carry void holes; the prize grid covered that beat) and
+  a `limits.grid_rows/cols` mismatch both fall through to the old path.
+- **Dev -> Rewards is a NEW GROUP** and is the intended home for per-mode reward
+  tuning (the parked multi-reward level-up design lives in this commit's
+  message). Verified live: 14 of 16 cards kept across a level-up, played pair
+  gone, deck 52 -> 52, 0 holes; the Sleight variant lifts a planted Whetstone
+  with its 3 charges into the piles at 0 discards spent; `redeal` is untouched
+  (0 ids kept). No page errors.
+
+## r323 - the Flow inspection fires again, and the reward grid is a rare pick
+
+- **Flow's boss was unreachable since r234, and the session clock at 0:00 did
+  nothing.** `modeHasNoRoundClock()` is true for Flow, so the round tick's
+  `roundClockEndsRound()` gate suppressed `onRoundEnd` - the only caller of the
+  flow branch that fires `flowTriggerBoss`. The tick (js/round-timers.js) now has
+  an explicit Flow clause; `roundClockEndsRound()` itself is untouched because the
+  tutorial reads it for the clocked/noclock tag and Flow is deliberately noclock.
+- **The reward-grid entities are banned by the MODE'S ACCESS, not by
+  survivalActive().** `modeHasNoRewardGrid()` (js/survival.js) covers Survival,
+  Flow, Squares, Match-3 and Dominoes; `sqTrickBanned` also gained a
+  `/reward grid/` rule, because Squares' pick filters through that predicate
+  alone and More Better matched none of its rules.
+- **The STANDARD reward grid is a pick-of-three offer in Survival/Flow, weighted
+  like ONE rare Trick** - `SURVIVAL_GRID_OFFER` is appended to the pick's trick
+  pool (never to TRICK_POOL itself) at tier rare, so its chance is exactly the
+  type roll x the rare-tier roll x one uniform slot among the ~66 rare Tricks.
+  Measured: 29 of 4,000 screens. Choosing it opens the ordinary grid with
+  `rewardGridContext='survival'`; `survivalGridPickCarry` tells `finishSurvival`
+  to KEEP the score carry-over and time credits (the boss prize grid still skips
+  them), and `NO_DEST` now includes survival - its continuation never reads
+  `pendingEventOverride`, so a destination tile would be a pick spent on nothing.
+  Guided/Schedule deliberately do not get the offer: their crossroads and board
+  already sell reward grids.
+- **`SURVIVAL_PICK_WEIGHTS` retuned to 53/22/13/12** - trick:sleight:knack on the
+  Schedule pick's 60/25/15 ratio (r287), limits keeping their old ~12% share.
+  Measured over 12,000 offers: 53.1 / 22.4 / 12.5 / 11.8.
+
+## r310 - every mode open, Flow replaces Survival, walkthroughs teach only what is new
+
+- **No mode is locked** (`MODE_LOCKS_ON = false`, js/progress-unlock.js). The chain and finale lists now only set carousel ORDER: Schedule, Flow, Guided, Six Suits, Classic, Spectrum, Custom, Poker Squares.
+- **Survival is in `MODE_HIDDEN_LIST`** (owner: Flow is the better version). Still whole, reachable from dev panel -> Modes.
+- **Six Suits is hidden too (r316)**, owner's call: it is reachable from dev panel -> Modes and as the Custom picker's "Six suits" deck. Carousel: Schedule, Flow, Guided, Classic, Spectrum, Custom, Poker Squares.
+- **Walkthrough steps are remembered across modes** (`tutStepsSeen`, `lethe.tutSeen.v1`). A mode's first run shows only steps no earlier walkthrough showed; `welcome`/`outro` carry `always: true` and switch to a short "only what is new" text. If only those two remain, the walkthrough does not arm. Flow gained `flow-clock` / `flow-review`; `progress-endless` is Survival-only. Measured: after Classic, Flow shows 5 steps, the Schedule 7, Six Suits none.
+- **Mode descriptions say how the mode works and nothing else** - no strategy, no reasons. Each card links to a handbook entry (`mode_<id>`, group Modes) with the specifics (pick-of-three odds, fees, clocks). The handbook got the same pass: sentences that justified the design or advised play were removed. Also fixed there: leaving a Schedule slot early PAYS credits (the old text said it cost them).

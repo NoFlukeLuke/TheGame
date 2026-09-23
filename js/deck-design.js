@@ -90,7 +90,7 @@ const DECK_COURTS = ['J', 'Q', 'K'];
 // v2 (r270): the defaults changed, and a STORED value beats a default - anyone
 // who had already loaded the game would have kept the 48-card courts-off deck
 // for ever. Same reason the heartbeat's config key went to hbCfg3 in r183.
-const DECK_DESIGN_KEY = 'lethe.deckDesign.v2';
+const DECK_DESIGN_KEY = 'lethe.deckDesign.v3';
 let deckCutRank        = '8';    // the one rank left out of the deck ('' = none)
 let deckCourtsOffLadder = false; // J/Q/K run like any other rank
 let deckCopiesPerRank  = 5;      // how many of each rank, spread over the 6 suits
@@ -253,39 +253,125 @@ function deckDesignOwnsDeck() { const m = deckModelNow(); return m === 'six' || 
 // every run window is forced to contain a scarce rank, which caps runs, while
 // the common ranks pile up sets on their own.
 //
-// The shipped default is the measured one: A, 4, 7 and 10 carry NINE copies,
-// 2, 3, 5, 6, 8 and 9 carry TWO, J/Q/K are out. 48 cards, six suits. Measured
-// through the real engine against the r271 deck, share of 4x4 boards offering:
+// ── The default, and the three numbers it is aimed at (r318) ────────────────
+// Owner: "runs and flushes more common than sets, sets about 66% as common as
+// runs, flushes a little rarer than sets or around the same."
 //
-//                  today   weighted
-//   Three of a Kind   35%      78%
-//   Full House        29%      83%
-//   Four of a Kind     2%      21%
-//   Run of 3          93%      67%
-//   Run of 4          45%      44%
-//   Straight          24%      17%
-//   Flush of 3        97%      98%
+// The default is 5 / 11 / 2 copies repeating across nine ranks, 5 up to K, six
+// suits, 54 cards. The heavy ranks are 6, 9 and Q - three apart, so no two of
+// them touch and every three-window is forced through one scarce rank.
 //
-// Sets up two to three times over, runs DOWN or flat everywhere, flushes level.
+// Measured on real boards through freshShuffledDeck(), as the average number of
+// each shape SITTING ON a 4x4 board (9,000 deals, all four decks in one sweep).
+// Counts, not availability: availability SATURATES - every candidate here offers
+// a Pair, a Flush of 3 and a Run of 3 on ~100% of boards - so presence cannot
+// tell two decks apart and is not what "as common as" means to a player. What a
+// player feels is how many separate sets / runs / flushes are on the board to
+// choose between, and that number tracks the deck's own density closely.
+//
+//                   Classic 52   r271 six-suit   r273 weighted   THIS
+//   Run of 3              1.80            1.69            0.86   1.63
+//   Three of a Kind       0.12            0.18            1.01   1.10
+//   Flush of 3            2.69            1.09            1.02   1.08
+//   sets : runs           0.07            0.11            1.18   0.67
+//   flushes : sets       21.82            6.13            1.01   0.98
+//
+// So: runs stay where they have always been, sets go from a twentieth of runs to
+// two thirds, and flushes land level with sets. The r273 default had sets ABOVE
+// runs (1.18) - it overshot, which is what this fixes.
+//
+// LONG RUNS SURVIVE, and that decided the shape. Straights are runs, so a deck
+// that lifts sets by flattening the ladder is not serving a run-first brief.
+// Run of 4 per board 1.18 (Classic) / 1.00 (r271) / 0.73 (r273) / 1.42 here, and
+// a Straight is available on 37% of boards - level with Classic's 36%, better
+// than r271's 28%.
+//
+// WHY 54 CARDS AND NOT 48. The grid reaches 7x7 = 49 cells (LIMITS_DEF), and
+// freshShuffledDeck runs ONCE per run, so the deck has to fill the biggest board
+// that run can grow into. The r273 default was 48 and therefore broken: measured
+// at 7x7, 120 of 120 deals came up short and the board dealt with holes. That is
+// the failure spectrumMinDeck() already guards against, and deckWeightStarved()
+// below is the same guard for this editor.
+//
+// WHY 5 UP TO K AND NOT A UP TO 9. The copy pattern is identical either way -
+// nine consecutive ranks with no ace-high wrap to worry about, so the maths is
+// the same to the digit (measured in the same sweep: 0.67/0.98 against
+// 0.69/0.95, inside the noise of 9,000 deals).
+// What differs is which Tricks die with the missing ranks. Dropping J/Q/K kills
+// seven (Face Value, King Guard, Knave Power, Royal Trio, Queen's Upgrade, Undue
+// Influence) and makes Little Guys - "no face cards" - fire for FREE, which is
+// worse than dead and is the exact trap NUMERIC_BANNED_TRICKS documents for
+// Spectrum. Dropping A, 2, 3, 4 kills three. It also puts average pips at 8.22
+// against Classic's 7.31 - the Ace is worth 11, not 1 - where the same copies on
+// A-9 sit at 5.76; both want a BASE_GOAL look, and high is the easier direction
+// to correct.
 //
 // THE POINT IS NOT THE NUMBERS, IT IS WHERE THE SCARCITY SITS. A run is not hard
 // because runs are hard; it is waiting on a specific scarce rank. That is what
-// makes deck manipulation worth doing (adding one 2 opens a family that was
+// makes deck manipulation worth doing (adding one 7 opens a family that was
 // closed) and what gives a Trick keyed on a heavy rank a different job from one
 // keyed on a light rank.
 //
-// KNOWN AND NOT YET DONE: this breaks HAND_BASE pricing. Four of a Kind at 21%
-// and Full House at 83% are priced as rare hands and would become bread and
-// butter, and BASE_GOAL wants re-checking for the same reason r178 moved it.
-// That is why this is a dev toggle and not the default.
+// KNOWN AND NOT YET DONE: this still breaks HAND_BASE pricing, and by more than
+// r273 did. Four of a Kind is available on 20% of 4x4 boards against 1% today,
+// and 68% of 7x7 boards; Full House goes the same way. Both are priced as
+// rare hands. The reprice is deliberately parked (owner: "wait on the reprice")
+// and is why this is still a dev toggle rather than a mode default. Do it with
+// applyModeHandValues() - the existing per-mode hook - so the prices follow the
+// active deck, since handBasePips()/handBaseMult() are already the one chokepoint
+// every reader goes through.
 const DECK_W_RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+// A PRESET CARRIES ITS SUIT COUNT. Flush difficulty is cards-per-suit, so the
+// copies alone do not describe a deck - a "Classic 4" that left the suit dial on
+// six built 52 cards over six suits, which is not the deck the label promises and
+// was not level across them either (8.7 per suit, spread 1).
 const DECK_W_PRESETS = {
-  balanced: { A:9, '2':2, '3':2, '4':9, '5':2, '6':2, '7':9, '8':2, '9':2, '10':9, J:0, Q:0, K:0 },
-  flat5:    { A:5, '2':5, '3':5, '4':5, '5':5, '6':5, '7':5, '8':5, '9':5, '10':5, J:5, Q:5, K:0 },
-  classic:  { A:4, '2':4, '3':4, '4':4, '5':4, '6':4, '7':4, '8':4, '9':4, '10':4, J:4, Q:4, K:4 },
+  // the measured default: sets 0.68 of runs, flushes 0.96 of sets, 54 cards
+  target:   { suits: 6, w: { A:0, '2':0, '3':0, '4':0, '5':5, '6':11, '7':2, '8':5, '9':11, '10':2, J:5, Q:11, K:2 } },
+  // the same copies low instead of high - same maths, kills seven court Tricks
+  targetLo: { suits: 6, w: { A:5, '2':11, '3':2, '4':5, '5':11, '6':2, '7':5, '8':11, '9':2, '10':0, J:0, Q:0, K:0 } },
+  // every rank present, so nothing goes dead - but straights get ~3x rarer
+  // (run5 density 17 against 57), which is the price of a flatter ladder
+  allRanks: { suits: 6, w: { A:2, '2':2, '3':2, '4':6, '5':12, '6':2, '7':2, '8':2, '9':6, '10':12, J:2, Q:2, K:2 } },
+  // r273's shipped default, kept so the overshoot can be felt: sets ABOVE runs.
+  // It is also 48 cards, which cannot fill a maxed board - the editor says so.
+  r273:     { suits: 6, w: { A:9, '2':2, '3':2, '4':9, '5':2, '6':2, '7':9, '8':2, '9':2, '10':9, J:0, Q:0, K:0 } },
+  // Owner's shape: cap a rank at 7 and put the Ace back, because 11 of one rank
+  // crowds a board (see the note below). It CANNOT reach 0.66 - the best a cap of
+  // 7 reaches is 0.47, and only at 49 cards over 7 suits. Kept so the trade can be
+  // felt rather than argued about.
+  cap7:     { suits: 7, w: { A:7, '2':7, '3':1, '4':7, '5':1, '6':4, '7':7, '8':7, '9':1, '10':7, J:0, Q:0, K:0 } },
+  // r321. No singles (min 3), nothing above 8, the Ace in, twelve ranks, and EIGHT
+  // SUITS doing the flush work: every third rank is common, the rest are 3s.
+  // set:run 0.32 and flushes 1.21 of sets - the suit lever is what buys that second
+  // number. 56 cards over 8 suits is 7 a suit.
+  min3:     { suits: 8, w: { A:3, '2':3, '3':8, '4':3, '5':3, '6':8, '7':3, '8':3, '9':8, '10':3, J:3, Q:8, K:0 } },
+  flat5:    { suits: 6, w: { A:5, '2':5, '3':5, '4':5, '5':5, '6':5, '7':5, '8':5, '9':5, '10':5, J:5, Q:5, K:0 } },
+  classic:  { suits: 4, w: { A:4, '2':4, '3':4, '4':4, '5':4, '6':4, '7':4, '8':4, '9':4, '10':4, J:4, Q:4, K:4 } },
 };
-let deckWeights = { ...DECK_W_PRESETS.balanced };
-let deckWeightSuitCount = 6;
+let deckWeights = { ...DECK_W_PRESETS.target.w };
+let deckWeightSuitCount = DECK_W_PRESETS.target.suits;
+
+// The biggest board this run could grow into, which is what the deck has to be
+// able to fill - NOT the board that happens to be on screen. freshShuffledDeck
+// runs once per run, so a deck sized for the 4x4 you started on deals holes the
+// moment a grid limit is taken. Reads LIMITS_DEF rather than the live globals for
+// the same reason clampRowColBonuses() does.
+function deckMaxBoardCells() {
+  const lim = id => (typeof LIMITS_DEF !== 'undefined' && LIMITS_DEF.find(l => l.id === id));
+  const r = lim('grid_rows'), c = lim('grid_cols');
+  return ((r && r.max) || 7) * ((c && c.max) || 7);
+}
+function deckWeightStarved() { return deckWeightedSize() < deckMaxBoardCells(); }
+// Enough to DEAL a maxed board is not the same as enough to keep refilling one:
+// flushPlayedDeck only runs at a round's end, so a deck with little headroom leans
+// on the played pile all round. Classic ships at 52 against 49 cells and is fine,
+// so this is a note and not a refusal - spectrumMinDeck's cells + 8 is the figure
+// it is measured against.
+function deckWeightTight() {
+  const n = deckWeightedSize(), cells = deckMaxBoardCells();
+  return n >= cells && n < cells + 8;
+}
 
 function deckWeightedRanks() { return DECK_W_RANKS.filter(r => (deckWeights[r] | 0) > 0); }
 function deckWeightedSuits() { return SUITS_EIGHT.slice(0, Math.max(2, Math.min(8, deckWeightSuitCount))); }
@@ -444,7 +530,8 @@ function setDeckWeightSuits(n) {
 }
 function deckWeightPreset(name) {
   const p = DECK_W_PRESETS[name]; if (!p) return;
-  deckWeights = { ...p };
+  deckWeights = { ...p.w };
+  deckWeightSuitCount = Math.max(2, Math.min(8, p.suits | 0));
   deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
 }
 
@@ -466,8 +553,16 @@ function devRenderDeckDesign() {
     `<button class="dev-spec-chip${deckWeightSuitCount === n ? ' on' : ''}" onclick="setDeckWeightSuits(${n})">${n}</button>`).join('')
     + SUITS_EIGHT.slice(0, deckWeightSuitCount).map(g => `<span style="font-size:14px;margin-left:3px;">${g}</span>`).join('');
   const wp = document.getElementById('dev-deck-wpreset');
-  if (wp) wp.innerHTML = [['balanced','Balanced 9/2'],['flat5','Flat 5'],['classic','Classic 4']]
-    .map(([k, lbl]) => `<button class="dev-btn" onclick="deckWeightPreset('${k}')">${lbl}</button>`).join('');
+  if (wp) wp.innerHTML = [
+    ['target',   'Target 5/11/2'],
+    ['targetLo', 'Target on A-9'],
+    ['allRanks', 'All 13 ranks'],
+    ['cap7',     'Max 7 + Ace'],
+    ['min3',     'Min 3 · 8 suits'],
+    ['r273',     'r273 9/2'],
+    ['flat5',    'Flat 5'],
+    ['classic',  'Classic 4'],
+  ].map(([k, lbl]) => `<button class="dev-btn" onclick="deckWeightPreset('${k}')">${lbl}</button>`).join('');
   const we = document.getElementById('dev-deck-weights');
   if (we) we.innerHTML = DECK_W_RANKS.map(r => {
     const n = deckWeights[r] | 0;
@@ -481,12 +576,23 @@ function devRenderDeckDesign() {
   const ws = document.getElementById('dev-deck-wstat');
   if (ws) {
     const t = deckWeightedStats();
-    const bad = t.N < 24 ? ' <span style="color:var(--c-coral)">too small to deal a board</span>' : '';
     const fm = x => x.toFixed(0);
+    // The two RATIOS are the brief, so they are what the readout leads with, and
+    // each one says out loud which way it is off. A raw "spread" number did not.
+    const sr = t.run3 > 0 ? t.set3 / t.run3 : 0;
+    const fs = t.set3 > 0 ? t.flush3 / t.set3 : 0;
+    const mark = (v, lo, hi) => v >= lo && v <= hi ? 'var(--c-mint)' : 'var(--c-coral)';
+    const cells = deckMaxBoardCells();
+    const bad = deckWeightStarved()
+      ? ` <span style="color:var(--c-coral)">needs ${cells}+ to fill a maxed board</span>`
+      : deckWeightTight()
+      ? ` <span style="color:var(--gold-dim)">tight at a maxed board (${cells} cells)</span>` : '';
     ws.innerHTML = `<b>${t.N} cards</b> \u00b7 ${t.ranks} ranks \u00b7 ${t.perSuit.toFixed(1)} per suit${bad}<br>`
-      + `per 10k draws \u00b7 <b>set3 ${fm(t.set3)}</b> \u00b7 <b>run3 ${fm(t.run3)}</b> \u00b7 <b>flush3 ${fm(t.flush3)}</b>`
-      + ` \u00b7 spread ${(Math.max(t.set3,t.run3,t.flush3) / Math.max(1e-9, Math.min(t.set3,t.run3,t.flush3))).toFixed(2)}x<br>`
-      + `run4 ${fm(t.run4)} \u00b7 run5 ${fm(t.run5)}${t.run5 <= 0 ? ' <span style="color:var(--c-coral)">(no straight possible)</span>' : ''}`;
+      + `sets : runs <b style="color:${mark(sr, 0.58, 0.74)}">${sr.toFixed(2)}</b> <i>want 0.66</i>`
+      + ` \u00b7 flushes : sets <b style="color:${mark(fs, 0.82, 1.05)}">${fs.toFixed(2)}</b> <i>want 0.90</i><br>`
+      + `per 10k draws \u00b7 set3 ${fm(t.set3)} \u00b7 run3 ${fm(t.run3)} \u00b7 flush3 ${fm(t.flush3)}`
+      + ` \u00b7 run4 ${fm(t.run4)} \u00b7 run5 ${fm(t.run5)}`
+      + `${t.run5 <= 0 ? ' <span style="color:var(--c-coral)">(no straight possible)</span>' : ''}`;
   }
 
   const rk = document.getElementById('dev-deck-ranks');

@@ -445,6 +445,9 @@ function playHand() {
     clearInterval(roundInterval); roundInterval = null;
     const toRemove = [...selected];
     selected = [];
+    // Survival/Flow keep-board (r324): the goal hand's cells, so survivalDealNext
+    // can remove exactly these rather than recycling the whole board.
+    if (typeof svGoalCells !== 'undefined') svGoalCells = toRemove.map(rc => [...rc]);
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
@@ -467,6 +470,8 @@ function playHand() {
     if (!challengeActive) { clearInterval(roundInterval); roundInterval = null; }
     const toRemove = [...selected];
     selected = [];
+    // Survival/Flow keep-board (r324): see the boss-win site above.
+    if (typeof svGoalCells !== 'undefined') svGoalCells = toRemove.map(rc => [...rc]);
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);

@@ -311,6 +311,17 @@ async function showPayoutUI() {
     setTimeout(() => c.classList.remove('tick'), 150);
   }
 
+  // How often the coin sound fires while a line counts up: every coin for a
+  // small payout, every 3rd up to 18 coins, every 5th past that - and if even
+  // 5s would exceed ~7 sounds, the stride widens so a payout never plays more
+  // than 7 coin sounds. The count itself still goes up by 1; it just runs
+  // stride-times faster (capped at 5x) so the line takes the same beat.
+  function coinStride(target) {
+    if (target <= 6)  return 1;
+    if (target <= 18) return 3;
+    return Math.max(5, Math.ceil(target / 7));
+  }
+
   async function animateCount(id, target, interval = 220) {
     const c = el.querySelector(`#${id}`);
     if (fastForward) {
@@ -318,13 +329,17 @@ async function showPayoutUI() {
       tickCoin(id);
       return;
     }
+    const stride = coinStride(target);
+    const step = interval / Math.min(5, stride);
     let n = 0;
     while (n < target) {
       n++;
       c.textContent = n;
-      tickCoin(id);
-      sfxCoin();
-      await wait(interval);
+      if (n % stride === 0 || n === target) {
+        tickCoin(id);
+        sfxCoin();
+      }
+      await wait(step);
       if (fastForward) {
         c.textContent = target;
         return;
@@ -359,14 +374,17 @@ async function showPayoutUI() {
     const tickMs = totalDuration / Math.max(1, _poSecs);
     let secsLeft = _poSecs;
     let effEarned = 0;
+    const effStride = coinStride(efficiencyCoins);
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
       if ((_poSecs - secsLeft) % efficiencySecondsPerCoin() === 0 && secsLeft < _poSecs) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
-        tickCoin('po-efficiency');
-        sfxCoin();
+        if (effEarned % effStride === 0 || effEarned === efficiencyCoins) {
+          tickCoin('po-efficiency');
+          sfxCoin();
+        }
       }
       await wait(tickMs);
       if (fastForward) {

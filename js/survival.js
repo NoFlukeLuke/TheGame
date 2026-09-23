@@ -44,12 +44,41 @@ const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwin
 // They do NOT refresh each level; unspent ones roll forward to the next reward.
 // SHARED WITH THE SCHEDULE'S PICK since r282 - the pool, its price ladder and the
 // Reroll tile all live in js/grid-pick.js (PICK_REROLLS_*, pickReroll*).
-// Entities that only do something in the reward grid - survival has no reward grid,
-// so they are filtered out of every pool while it is the active mode.
+// Entities that only do something in the reward grid. Filtered out of every pool
+// wherever the mode has no reward grid ACCESS - which is a property of the mode,
+// not a synonym for survivalActive(): Poker Squares, Match-3 and Dominoes have no
+// reward grid either, and the shop/offer paths they share all route through
+// survivalEntityBanned. (The rare reward-grid PICK OFFER below does not un-ban
+// these - a grid one pick in several hundred is still a dead slot for a Trick
+// whose whole effect is "each reward grid".)
 const SURVIVAL_BANNED_ENTITIES = new Set(['greedy_boi', 'more_better', 'rain_check']);
-// Pick-3 draw weights (weighted "but not heavily" - Tricks/Sleights lead, the
-// permanent Knacks/Limits show up less). Guarantee below overrides droughts.
-const SURVIVAL_PICK_WEIGHTS  = { trick: 42, sleight: 30, knack: 16, limit: 12 };
+// "This mode never opens a reward grid." The pick-of-three loop (Survival, Flow,
+// a picker-built pick3 run), plus the non-poker loops. Classic/Guided/Schedule/
+// Crunch all reach one, so they keep the reward-grid entities.
+function modeHasNoRewardGrid() {
+  if (survivalActive()) return true;
+  if (typeof squaresActive === 'function' && squaresActive()) return true;
+  if (typeof match3Active === 'function' && match3Active()) return true;
+  if (typeof dominoActive === 'function' && dominoActive()) return true;
+  return false;
+}
+// Pick-3 draw weights. Trick:sleight:knack follow the Schedule pick's 60/25/15
+// ratio (GUIDED_PICK_WEIGHTS, r287 - owner's numbers); limits keep roughly the
+// share they had, since the guided table has no limit type at all. Guarantee
+// below overrides droughts.
+const SURVIVAL_PICK_WEIGHTS  = { trick: 53, sleight: 22, knack: 13, limit: 12 };
+// ── The STANDARD REWARD GRID as a pick offer (owner spec) ────────────────────
+// Weighted like a single rare Trick, literally: it is injected into the TRICK
+// pool at tier 'rare', so its chance of showing is exactly one rare Trick's -
+// the type roll x the rare-tier roll x one uniform slot among the rare Tricks.
+// That is deliberately very rare. Choosing it opens the ordinary reward grid
+// (rewardGridContext 'survival'), whose close runs the level-up exactly as a
+// picked entity would - see survivalChoose and finishSurvival.
+const SURVIVAL_GRID_OFFER = {
+  id: '_pick_reward_grid', _gridPick: true, tier: 'rare',
+  name: 'Reward Grid',
+  desc: 'Open a standard reward grid: pick a connected path of tiles and take everything on it.',
+};
 // Guarantee: at least one Limit AND one Knack option every 4 levels. When a type
 // has not been OFFERED for this many levels, force it into the next initial draw.
 const SURVIVAL_GUARANTEE_GAP = 3;     // 0,1,2 dry → force on the 4th (gap>=3)
@@ -69,6 +98,7 @@ let survivalSkipCarryover     = false;// triggerLevelUp flag: boss-reward round 
 let survivalBossesBeaten      = 0;    // bosses defeated this run
 let survivalSecondsToBoss     = SURVIVAL_BOSS_EVERY_SECONDS; // live countdown to the next boss
 let survivalEndless           = false;// true after the player continues past the 5-boss run
+let survivalGridPickCarry     = false;// the open reward grid came off a goal-cleared pick: keep carry-over
 
 // The round clock length for the active mode. Survival runs shorter rounds; every
 // other mode keeps the global ROUND_DURATION. (Used by computeRoundResources and
@@ -124,6 +154,8 @@ function survivalInitRun() {
   survivalSecondsToBoss    = SURVIVAL_BOSS_EVERY_SECONDS;
   survivalEndless          = false;
   survivalEndlessFromLevel = Infinity;
+  survivalGridPickCarry    = false;
+  svGoalCells              = null;
   bossNumber               = 0;
   bossBag                  = [];
   actBossId                = null;   // Survival/Flow draw at trigger time (r238)
@@ -180,9 +212,9 @@ function survivalTickBossClock() {
 // Also the chokepoint for Flow's own ban list (clock entities in a mode with no round
 // clock) - every offer pool already routes through here, so one test covers both.
 function survivalEntityBanned(id) {
-  // The reward-grid-only entities are dead picks wherever there is no reward
-  // grid, which is exactly the pick-of-three loop.
-  if (survivalActive() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
+  // The reward-grid-only entities are dead picks wherever the MODE never opens
+  // a reward grid - the pick-of-three loop, and the non-poker loops too.
+  if (modeHasNoRewardGrid() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
   // The clock entities assume a round clock that REFILLS: First Wind measures its
   // grace window against ROUND_DURATION, and Carry Time banks the round's unused
   // seconds. Flow is the shipped mode with neither, and a picker-built run that
@@ -205,6 +237,10 @@ function survivalEntityBanned(id) {
 function survivalBuildPools() {
   const ownedTrick = new Set(acquiredTricks.map(b => b.id));
   const tricks = TRICK_POOL.filter(b => !survivalEntityBanned(b.id) && (!ownedTrick.has(b.id) || SURVIVAL_STACKABLE_TRICKS.includes(b.id)));
+  // The reward-grid offer rides the trick pool for its odds (see the const) -
+  // APPENDED after the filters, never injected into TRICK_POOL itself, or it
+  // would leak into the shop, the reward grid and every other draw.
+  tricks.push(SURVIVAL_GRID_OFFER);
   const ownedKnack = new Set(acquiredKnacks.map(k => k.id));
   const knacks = KNACK_POOL.filter(k => !survivalEntityBanned(k.id) && !ownedKnack.has(k.id));
   const grantedSl = _grantedSleightSet();
@@ -215,6 +251,13 @@ function survivalBuildPools() {
 
 // Wrap a raw pool entry into a uniform option object the UI + granter understand.
 function survivalMakeOption(type, data) {
+  // The reward-grid offer wears the trick pool's odds but is not a Trick: its
+  // own type keeps trickEmoji/injectTrickAfterReward from ever seeing it, and
+  // the tile draws a plain icon (gridPickTileHTML's non-entity fallback, the
+  // same one a limit takes) rather than a floppy disc it is not.
+  if (type === 'trick' && data._gridPick)
+    return { type: 'grid', data, id: data.id, name: data.name, icon: '🎁', desc: data.desc,
+             tag: tierLabel('trick', 'rare').toUpperCase(), rar: 'rare' };
   if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
   if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase(), rar: data.rarity };
   if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: tierLabel('knack', data.rarity).toUpperCase(), rar: data.rarity };
@@ -470,6 +513,18 @@ function survivalChoose(i) {
   if (typeof closeGridPick === 'function') closeGridPick();
   survivalPickOffered = null;
   survivalSyncPickAudio();
+  // The reward-grid offer: instead of granting an entity and levelling up here,
+  // open the STANDARD reward grid. closeRewardGrid's 'survival' continuation
+  // (finishSurvival) runs the very triggerLevelUp this function would have run -
+  // and reads survivalGridPickCarry so a goal-cleared pick keeps its score
+  // carry-over and time credits, which the boss prize grid rightly skips.
+  if (opt.type === 'grid') {
+    survivalGridPickCarry = !survivalBonusPick;
+    survivalBonusPick = false;
+    rewardGridContext = 'survival';
+    openRewardGrid();
+    return;
+  }
   survivalGrant(opt);
   // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
   survivalSkipCarryover = survivalBonusPick;
@@ -525,9 +580,63 @@ function survivalRecycleBoard() {
   flushPlayedDeck(); // reshuffle everything back into the draw pile
 }
 
+// ── Board persistence between level-ups (dev -> Rewards, r324, owner request) ──
+// 'redeal' is the shipped behaviour: recycle the whole board and deal fresh.
+// 'keep' leaves the board standing across a level-up - only the goal hand's
+// cards leave (they were SCORED, so they go through removeAndFall's 'play'
+// accounting exactly as a mid-round hand's do) and gravity refills the holes.
+// 'keep_nosleights' additionally lifts every Sleight off the board at the same
+// moment, FREE: removeAndFall bills no time and no discard stock, and
+// discardToPlayed cycles a charge-preserving copy back into the deck.
+// A dev tuning knob, so localStorage and not SAVE_VARS (the r282 nsRates rule).
+let svBoardMode = (() => { try { return localStorage.getItem('lethe.svBoard.v1') || 'redeal'; } catch (e) { return 'redeal'; } })();
+function setSvBoardMode(m) {
+  svBoardMode = (m === 'keep' || m === 'keep_nosleights') ? m : 'redeal';
+  try { localStorage.setItem('lethe.svBoard.v1', svBoardMode); } catch (e) {}
+}
+// The goal hand's cells, captured in playHand at the moment the goal dance is
+// started (both goal sites write it). gridData still HOLDS those cards at
+// survivalDealNext time - the survival goal path never calls removeAndFall, the
+// deck accounting has always happened here - so this is what tells the keep
+// path which cells to remove. Null means "no capture" and forces a redeal.
+let svGoalCells = null;
+
 // After a pick: old cards fall out while the new board falls in (concurrent).
 function survivalDealNext() {
   const gridEl = document.getElementById('grid');
+  // ── Keep-board path (dev toggle above) ──
+  // Only for an ordinary goal-cleared level-up: after a boss
+  // (survivalSkipCarryover - the board can be carrying void-cell holes and the
+  // prize grid already covered it), or when a picked Limit changed the board's
+  // dimensions, the redeal below is the only correct answer.
+  const _sameDims = gridRows === limits.grid_rows.current && gridCols === limits.grid_cols.current;
+  if (svBoardMode !== 'redeal' && _sameDims && !survivalSkipCarryover && Array.isArray(svGoalCells)) {
+    // Undo the spread-freeze: survivalSpreadFreeze holds every surviving card
+    // 20% outward with fill:forwards WAAPI animations, which pin transform
+    // until they are CANCELLED (the r281 gridTileFallIn lesson).
+    [...(gridEl?.querySelectorAll('[data-card-id]') || [])].forEach(el => {
+      try { el.getAnimations().forEach(a => a.cancel()); } catch (e) {}
+      el.style.zIndex = '';
+    });
+    const cells = svGoalCells.filter(([r, c]) => gridData[r]?.[c]);
+    if (svBoardMode === 'keep_nosleights') {
+      const inList = new Set(cells.map(([r, c]) => `${r}-${c}`));
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+        if (gridData[r]?.[c]?._isSleight && !inList.has(`${r}-${c}`)) cells.push([r, c]);
+    }
+    svGoalCells = null;
+    gameTimerPaused = false;             // the goal dance froze the clock; the new round is live
+    animating = false;                   // the dance is over; removeAndFall refuses re-entry on this flag
+    updateClockUI();
+    const _go = () => {
+      if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 500); }
+      else startRoundTimer();
+    };
+    if (cells.length) removeAndFall(cells, 'play').then(_go);
+    else { render(); _go(); }
+    return;
+  }
+  svGoalCells = null;
   // 1) Old frozen cards fall out (down + fade).
   const oldEls = [...(gridEl?.querySelectorAll('[data-card-id]') || [])];
   oldEls.forEach((el, i) => {
