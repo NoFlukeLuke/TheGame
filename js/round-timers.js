@@ -190,7 +190,20 @@ function startRoundTimer() {
     // roundStartSeconds - roundSeconds, so freezing the tick would silently kill
     // all of them, which is what Zen does. Only the end-of-round is suppressed.
     // A BOSS window always ends the round: that clock is the boss.
-    if (roundSeconds <= 0 && roundClockEndsRound()) onRoundEnd();
+    //
+    // FLOW IS THE ONE "no round clock" MODE WHOSE ZERO STILL MEANS SOMETHING:
+    // the session clock at 0:00 summons the inspection, and that trigger lives
+    // in onRoundEnd's flow branch. modeHasNoRoundClock() is true for Flow
+    // (r234), so gating on roundClockEndsRound() alone suppressed that call too
+    // and the boss was unreachable - the clock sat at 0:00 with BOSS INCOMING
+    // painted over a round that never ended, whether or not the goal was then
+    // cleared. Flow gets its own clause rather than a change to
+    // roundClockEndsRound(), because the tutorial reads that predicate for its
+    // clocked/noclock tag and Flow is deliberately `noclock` there.
+    if (roundSeconds <= 0) {
+      if (typeof flowActive === 'function' && flowActive() && !bossActive) onRoundEnd();
+      else if (roundClockEndsRound()) onRoundEnd();
+    }
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)
   startFocusDecay();

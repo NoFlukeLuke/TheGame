@@ -647,7 +647,12 @@ function _generateRewardContent() {
   // and the map was missed. Owner's call: on the map an event is an event TILE.
   const NO_DEST = PRIZE
     || (typeof guidedActive === 'function' && guidedActive())
-    || (typeof mapActive === 'function' && mapActive());
+    || (typeof mapActive === 'function' && mapActive())
+    // Survival/Flow reach a STANDARD grid through the pick-of-three's rare
+    // reward-grid offer (r311+). Their continuation (finishSurvival) never reads
+    // pendingEventOverride, so a destination tile would cost a pick and do
+    // nothing - the exact bug the map clause above documents.
+    || (typeof survivalActive === 'function' && survivalActive());
   if (!NO_DEST) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
@@ -1908,7 +1913,13 @@ function closeRewardGrid() {
   // continuation is that pick's own tail (survivalChoose) - no goal was cleared, so
   // the level-up must not carry score over or pay the leftover-time credits.
   const finishSurvival = () => {
-    survivalSkipCarryover = true;
+    // A grid opened off the pick-of-three's reward-grid offer (survivalChoose)
+    // stands in for a goal-cleared pick, so THAT one keeps the score carry-over
+    // and time credits; the post-boss prize grid still skips them (no goal was
+    // cleared for it).
+    const _fromPick = typeof survivalGridPickCarry !== 'undefined' && survivalGridPickCarry;
+    if (typeof survivalGridPickCarry !== 'undefined') survivalGridPickCarry = false;
+    survivalSkipCarryover = !_fromPick;
     triggerLevelUp();          // → showLevelUpScreen (survival) → survivalDealNext
     survivalSkipCarryover = false;
   };

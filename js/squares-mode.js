@@ -777,6 +777,7 @@ function sqTrickBanned(t) {
   if (/\b2 cards|two cards|2-card/.test(d)) return true;                        // a line is five
   if (/all cards.*(row|column)|only one (row|column)|same row|same column/.test(d)) return true;
   if (/discard/.test(d)) return true;                                           // discards buy tiles, not score
+  if (/reward grid/.test(d)) return true;                                       // no reward grid in this mode
   return false;
 }
 

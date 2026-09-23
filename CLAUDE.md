@@ -7853,6 +7853,34 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r323 - the Flow inspection fires again, and the reward grid is a rare pick
+
+- **Flow's boss was unreachable since r234, and the session clock at 0:00 did
+  nothing.** `modeHasNoRoundClock()` is true for Flow, so the round tick's
+  `roundClockEndsRound()` gate suppressed `onRoundEnd` - the only caller of the
+  flow branch that fires `flowTriggerBoss`. The tick (js/round-timers.js) now has
+  an explicit Flow clause; `roundClockEndsRound()` itself is untouched because the
+  tutorial reads it for the clocked/noclock tag and Flow is deliberately noclock.
+- **The reward-grid entities are banned by the MODE'S ACCESS, not by
+  survivalActive().** `modeHasNoRewardGrid()` (js/survival.js) covers Survival,
+  Flow, Squares, Match-3 and Dominoes; `sqTrickBanned` also gained a
+  `/reward grid/` rule, because Squares' pick filters through that predicate
+  alone and More Better matched none of its rules.
+- **The STANDARD reward grid is a pick-of-three offer in Survival/Flow, weighted
+  like ONE rare Trick** - `SURVIVAL_GRID_OFFER` is appended to the pick's trick
+  pool (never to TRICK_POOL itself) at tier rare, so its chance is exactly the
+  type roll x the rare-tier roll x one uniform slot among the ~66 rare Tricks.
+  Measured: 29 of 4,000 screens. Choosing it opens the ordinary grid with
+  `rewardGridContext='survival'`; `survivalGridPickCarry` tells `finishSurvival`
+  to KEEP the score carry-over and time credits (the boss prize grid still skips
+  them), and `NO_DEST` now includes survival - its continuation never reads
+  `pendingEventOverride`, so a destination tile would be a pick spent on nothing.
+  Guided/Schedule deliberately do not get the offer: their crossroads and board
+  already sell reward grids.
+- **`SURVIVAL_PICK_WEIGHTS` retuned to 53/22/13/12** - trick:sleight:knack on the
+  Schedule pick's 60/25/15 ratio (r287), limits keeping their old ~12% share.
+  Measured over 12,000 offers: 53.1 / 22.4 / 12.5 / 11.8.
+
 ## r310 - every mode open, Flow replaces Survival, walkthroughs teach only what is new
 
 - **No mode is locked** (`MODE_LOCKS_ON = false`, js/progress-unlock.js). The chain and finale lists now only set carousel ORDER: Schedule, Flow, Guided, Six Suits, Classic, Spectrum, Custom, Poker Squares.
