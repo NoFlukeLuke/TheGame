@@ -7853,6 +7853,32 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r324 - the board can SURVIVE a Flow/Survival level-up (dev -> Rewards)
+
+- **`svBoardMode`** (js/survival.js, `lethe.svBoard.v1`): `redeal` (shipped) ·
+  `keep` · `keep_nosleights`. In a keep mode `survivalDealNext` does NOT recycle
+  and redeal: it cancels the spread-freeze animations (fill:forwards pins
+  transform until cancelled - the r281 rule), then runs
+  **`removeAndFall(cells, 'play')`** on just the goal hand's cells - that is the
+  ordinary scored-hand exit, so the pile accounting and the gravity refill come
+  free and the deck audit balances. `keep_nosleights` adds every Sleight cell to
+  that list: removeAndFall bills no time and no stock, and `discardToPlayed`
+  cycles a charge-preserving copy, so the free discard the owner asked for is
+  the mechanism's own behaviour.
+- **`svGoalCells` is the capture**, written in `playHand` at BOTH goal sites
+  (the ordinary goal and the boss win) beside `toRemove` - in survival the goal
+  hand's cards STAY in `gridData` (the dance only removes their DOM), so
+  something has to say which cells the hand was. Null forces a redeal.
+- **A boss round and a grid-size change still redeal**: `survivalSkipCarryover`
+  (a post-boss board can carry void holes; the prize grid covered that beat) and
+  a `limits.grid_rows/cols` mismatch both fall through to the old path.
+- **Dev -> Rewards is a NEW GROUP** and is the intended home for per-mode reward
+  tuning (the parked multi-reward level-up design lives in this commit's
+  message). Verified live: 14 of 16 cards kept across a level-up, played pair
+  gone, deck 52 -> 52, 0 holes; the Sleight variant lifts a planted Whetstone
+  with its 3 charges into the piles at 0 discards spent; `redeal` is untouched
+  (0 ids kept). No page errors.
+
 ## r323 - the Flow inspection fires again, and the reward grid is a rare pick
 
 - **Flow's boss was unreachable since r234, and the session clock at 0:00 did

@@ -552,6 +552,20 @@
     </div>
   </div>
 
+  <div class="dev-section" data-group="rewards">
+    <div class="dev-section-title">Rewards</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">How a mode pays out between rounds. Flow/Survival: whether the board survives a level-up. "Board stays" removes only the scored hand and refills those cells; the no-Sleights variant also lifts every Sleight off the board, costing no time and no discards.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Board between level-ups
+      <select id="dev-sv-board" onchange="setSvBoardMode(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;">
+        <option value="redeal">Redeal (default)</option>
+        <option value="keep">Board stays</option>
+        <option value="keep_nosleights">Board stays, Sleights discarded</option>
+      </select>
+    </label>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A boss round or a grid-size change still redeals - a post-boss board can carry holes, and a resized board cannot be kept.</div>
+  </div>
+
   <div class="dev-section" data-group="map">
     <div class="dev-section-title">Map Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch: move out from ANY tile you have already taken, not only the one you are standing on.</div>

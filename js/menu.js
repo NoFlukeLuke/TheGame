@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r323 · Flow inspection fires at 0:00 again; reward-grid entities banned wherever there is no grid; the grid itself is a rare pick-3 offer; pick weights on the 60/25/15 ratio";
+const BUILD = "2026-09-23 · r324 · dev Rewards group: Flow/Survival board can survive a level-up (only the scored hand leaves), with a variant that also lifts Sleights free";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

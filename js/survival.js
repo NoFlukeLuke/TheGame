@@ -155,6 +155,7 @@ function survivalInitRun() {
   survivalEndless          = false;
   survivalEndlessFromLevel = Infinity;
   survivalGridPickCarry    = false;
+  svGoalCells              = null;
   bossNumber               = 0;
   bossBag                  = [];
   actBossId                = null;   // Survival/Flow draw at trigger time (r238)
@@ -579,9 +580,63 @@ function survivalRecycleBoard() {
   flushPlayedDeck(); // reshuffle everything back into the draw pile
 }
 
+// ── Board persistence between level-ups (dev -> Rewards, r324, owner request) ──
+// 'redeal' is the shipped behaviour: recycle the whole board and deal fresh.
+// 'keep' leaves the board standing across a level-up - only the goal hand's
+// cards leave (they were SCORED, so they go through removeAndFall's 'play'
+// accounting exactly as a mid-round hand's do) and gravity refills the holes.
+// 'keep_nosleights' additionally lifts every Sleight off the board at the same
+// moment, FREE: removeAndFall bills no time and no discard stock, and
+// discardToPlayed cycles a charge-preserving copy back into the deck.
+// A dev tuning knob, so localStorage and not SAVE_VARS (the r282 nsRates rule).
+let svBoardMode = (() => { try { return localStorage.getItem('lethe.svBoard.v1') || 'redeal'; } catch (e) { return 'redeal'; } })();
+function setSvBoardMode(m) {
+  svBoardMode = (m === 'keep' || m === 'keep_nosleights') ? m : 'redeal';
+  try { localStorage.setItem('lethe.svBoard.v1', svBoardMode); } catch (e) {}
+}
+// The goal hand's cells, captured in playHand at the moment the goal dance is
+// started (both goal sites write it). gridData still HOLDS those cards at
+// survivalDealNext time - the survival goal path never calls removeAndFall, the
+// deck accounting has always happened here - so this is what tells the keep
+// path which cells to remove. Null means "no capture" and forces a redeal.
+let svGoalCells = null;
+
 // After a pick: old cards fall out while the new board falls in (concurrent).
 function survivalDealNext() {
   const gridEl = document.getElementById('grid');
+  // ── Keep-board path (dev toggle above) ──
+  // Only for an ordinary goal-cleared level-up: after a boss
+  // (survivalSkipCarryover - the board can be carrying void-cell holes and the
+  // prize grid already covered it), or when a picked Limit changed the board's
+  // dimensions, the redeal below is the only correct answer.
+  const _sameDims = gridRows === limits.grid_rows.current && gridCols === limits.grid_cols.current;
+  if (svBoardMode !== 'redeal' && _sameDims && !survivalSkipCarryover && Array.isArray(svGoalCells)) {
+    // Undo the spread-freeze: survivalSpreadFreeze holds every surviving card
+    // 20% outward with fill:forwards WAAPI animations, which pin transform
+    // until they are CANCELLED (the r281 gridTileFallIn lesson).
+    [...(gridEl?.querySelectorAll('[data-card-id]') || [])].forEach(el => {
+      try { el.getAnimations().forEach(a => a.cancel()); } catch (e) {}
+      el.style.zIndex = '';
+    });
+    const cells = svGoalCells.filter(([r, c]) => gridData[r]?.[c]);
+    if (svBoardMode === 'keep_nosleights') {
+      const inList = new Set(cells.map(([r, c]) => `${r}-${c}`));
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+        if (gridData[r]?.[c]?._isSleight && !inList.has(`${r}-${c}`)) cells.push([r, c]);
+    }
+    svGoalCells = null;
+    gameTimerPaused = false;             // the goal dance froze the clock; the new round is live
+    animating = false;                   // the dance is over; removeAndFall refuses re-entry on this flag
+    updateClockUI();
+    const _go = () => {
+      if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 500); }
+      else startRoundTimer();
+    };
+    if (cells.length) removeAndFall(cells, 'play').then(_go);
+    else { render(); _go(); }
+    return;
+  }
+  svGoalCells = null;
   // 1) Old frozen cards fall out (down + fade).
   const oldEls = [...(gridEl?.querySelectorAll('[data-card-id]') || [])];
   oldEls.forEach((el, i) => {

@@ -140,6 +140,7 @@ const DEV_GROUPS = [
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
+  { g:'rewards',  icon:'🎁', label:'Rewards',   sub:() => `Flow/Survival board: ${svBoardMode === 'keep' ? 'stays' : svBoardMode === 'keep_nosleights' ? 'stays, no Sleights' : 'redeals'}` },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
@@ -179,6 +180,7 @@ function devOpenGroup(g) {
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
   if (g === 'cardstates') devRenderCardStates();
+  if (g === 'rewards') { const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
