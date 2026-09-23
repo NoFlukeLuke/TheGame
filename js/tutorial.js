@@ -63,7 +63,17 @@ function tutorialArmForRun() {
   // Switched off in Settings -> Help, or already played once.
   if (typeof SETTINGS !== 'undefined' && SETTINGS.walkthrough === false) return;
   if (typeof modeNeedsTutorial === 'function') tutorialArmed = modeNeedsTutorial(ACTIVE_MODE && ACTIVE_MODE.id);
+  // r310: a first run teaches only what no earlier walkthrough covered. If that
+  // leaves nothing but the opening and closing cards, there is no walkthrough.
+  if (tutorialArmed) {
+    const steps = tutorialBuildScript();
+    if (!steps.some(st => !st.always)) { tutorialArmed = false; _tutSteps = []; }
+  }
 }
+// Has ANY earlier walkthrough shown this step? (js/progress-unlock.js)
+function tutStepSeen(id) { return typeof tutStepsSeen !== 'undefined' && tutStepsSeen.has(id); }
+// True on a first run of a mode after some other mode's walkthrough has run.
+function tutReturning() { return tutStepSeen('welcome'); }
 function tutorialActive() { return tutorialArmed; }
 
 // One pinned seed per mode, so everyone's first Schedule is the same board.
@@ -152,10 +162,15 @@ function _tutStepApplies(st, tags) {
 // CACHED FOR THE RUN, not recomputed per frame. Five sites index into it by
 // number, so the array has to be the same array every time they look.
 let _tutSteps = [];
+let _tutReturningRun = false;
 function tutorialScript() { return _tutSteps.length ? _tutSteps : TUTORIAL_STEPS; }
 function tutorialBuildScript() {
   const tags = tutModeTags();
-  _tutSteps = TUTORIAL_STEPS.filter(st => _tutStepApplies(st, tags));
+  // Latched for the run: whether this player has seen a walkthrough before is
+  // read ONCE, or marking the welcome as seen would change the script mid-run.
+  _tutReturningRun = tutReturning();
+  _tutSteps = TUTORIAL_STEPS.filter(st => _tutStepApplies(st, tags)
+    && (st.always || !tutStepSeen(st.id)));
   return _tutSteps;
 }
 
@@ -285,10 +300,12 @@ function tutSelMin() { try { return minSelection(); } catch (e) { return 1; } }
 const TUTORIAL_STEPS = [
   // ══ THE OPENING - every mode ══════════════════════════════════════════════
   {
-    id: 'welcome', side: 'center', hold: true, next: true,
+    id: 'welcome', always: true, side: 'center', hold: true, next: true,
     eyebrow: 'Getting started',
     title: () => `${(ACTIVE_MODE && ACTIVE_MODE.name) || 'The game'}: first run`,
-    body: `Cards fall onto a board. Select cards that touch each other, make a shape, and score it.<br><br>Reach the {GOAL} before the clock runs out. The next round asks for more.<br><br>This walkthrough runs once, on your first go at this mode.`,
+    body: () => _tutReturningRun
+      ? `This covers only what is new in this mode. Everything else works as before.`
+      : `Cards fall onto a board. Select cards that touch each other, make a shape, and score it.<br><br>Reach the {GOAL} before the clock runs out. The next round asks for more.<br><br>This walkthrough runs once. Later modes only cover what is new in them.`,
   },
 
   // ══ THE SCHEDULE - map mode opens on its board, before a card is played ════
@@ -505,7 +522,19 @@ const TUTORIAL_STEPS = [
     body: () => `Five rounds, then a <b>manager review</b>. ${(typeof QUARTERS_PER_RUN === 'number') ? QUARTERS_PER_RUN : 4} sets of that wins the run.<br><br>The {GOAL} goes up every round.`,
   },
   {
-    id: 'progress-endless', only: 'survival', side: 'float', next: true,
+    id: 'flow-clock', only: 'flow', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
+    eyebrow: 'The clock',
+    title: 'Time until the review',
+    body: `This clock does not reset between levels. When it reaches zero, the <b>review</b> starts.<br><br>Missing a {GOAL} does not end the run. Clear as many as you can before then.`,
+  },
+  {
+    id: 'flow-review', only: 'flow', side: 'float', next: true,
+    eyebrow: 'The run',
+    title: 'The review',
+    body: `The review is a boss round with its own clock and its own {GOAL}. Fail it and the run ends. Pass it and the clock refills.<br><br>The shop button beside your credits opens the shop for a fee, at any time.`,
+  },
+  {
+    id: 'progress-endless', only: 'survival', not: 'flow', side: 'float', next: true,
     eyebrow: 'The run',
     title: 'No last round',
     body: `Clear a {GOAL}, take a reward, get a bigger {GOAL}.<br><br>It keeps going until you miss one. A review arrives every few minutes.`,
@@ -629,11 +658,11 @@ const TUTORIAL_STEPS = [
 
   // ══ DONE ══════════════════════════════════════════════════════════════════
   {
-    id: 'outro', side: 'center',
+    id: 'outro', always: true, side: 'center',
     when: () => !tutShopOpen() && !tutBoardTaken() && tutIdle(),
     eyebrow: 'Done',
     title: 'That is everything',
-    body: `The rest of the game is built out of the parts you just used. New things explain themselves the first time they turn up.<br><br>The full handbook is in <b>Settings &rsaquo; Help</b>.`,
+    body: () => _tutReturningRun ? `That is what is new here. The full handbook is in <b>Settings &rsaquo; Help</b>.` : `The rest of the game is built out of the parts you just used. New things explain themselves the first time they turn up.<br><br>The full handbook is in <b>Settings &rsaquo; Help</b>.`,
     actions: [
       { label: 'Play on', fn: () => tutorialEnd() },
       { label: 'Main menu', fn: () => { tutorialEnd(); stopTimers(); initMainMenu(); } },
@@ -898,6 +927,7 @@ function tutorialShowStep() {
   const st = tutorialScript()[tutorialStepIdx];
   const E  = tutorialEls;
   _tutShown = true;
+  if (typeof markTutStepSeen === 'function') markTutStepSeen(st.id);
   E.eyebrow.textContent = st.eyebrow || '';
   E.step.textContent    = `${tutorialStepIdx + 1}/${tutorialScript().length}`;
   E.title.textContent   = tutText(st.title);

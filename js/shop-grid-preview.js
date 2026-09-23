@@ -111,7 +111,29 @@ function sleightSellValue(card, def) {
 //     "MAX: n" note at its foot, and the grid slides left into the room
 //     (body.grid-screen rules in css/style.css).
 // All of it is class-driven so the moves ANIMATE via the r230 transitions.
+//
+// r310: WHILE THE GOAL HAND'S TALLY IS STILL PLAYING, THE SWAP WAITS. Survival
+// and Flow open their pick-of-three DURING the goal dance (right after the fly,
+// js/score-dance.js), and this function is what that pick opens through - so the
+// location chip landed on top of the score chips while the final hand was still
+// counting up, and the one readout explaining the hand was covered by a label.
+// The takeover HUD is stashed instead and applied when the dance completes, is
+// SKIPPED (dncFF - a skipped hand is not being watched, so the location may
+// come up at once), or aborts. Only the HUD swap is deferred: the tiles, the
+// pause and everything else about the screen open exactly as before.
+let _gridHudPending = null;
+function applyPendingGridHud() {
+  if (!_gridHudPending) return;
+  const p = _gridHudPending; _gridHudPending = null;
+  enterGridScreenHud(p.locLabel, p.tone);
+}
 function enterGridScreenHud(locLabel, tone) {
+  if (typeof dncGoalLive !== 'undefined' && dncGoalLive
+      && !(typeof dncFF !== 'undefined' && dncFF)) {
+    _gridHudPending = { locLabel, tone };
+    return;
+  }
+  _gridHudPending = null;
   document.body.classList.add('grid-screen');
   const loc = document.getElementById('screen-location');
   if (loc) {
@@ -151,6 +173,9 @@ function updateGridTopline() {
   if (c && typeof coins === 'number') c.textContent = `💰 ${coins}`;
 }
 function exitGridScreenHud() {
+  // A pending swap belongs to the screen that is closing - a late apply would
+  // put grid-screen back on over a live round.
+  _gridHudPending = null;
   document.body.classList.remove('grid-screen');
   const sc = document.getElementById('selected-cards'); if (sc) sc.innerHTML = '';
 }

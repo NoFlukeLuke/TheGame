@@ -15,11 +15,11 @@
 /* ── Left column re-cut ───────────────────────────────────────────────── */
 #stage.landscape.squares-mode #focus-meter-wrap { display: none; }
 #stage.landscape.squares-mode #grid-slot { left: 41.5%; width: 48.5%; }
-/* Consumables take the knack row (this mode grants no knacks). */
-#stage.landscape.squares-mode #knack-carousel-wrap { top: 30%; height: 7%; }
-/* The PIECE HAND takes the preview slot AND the gap the knack label left. */
+/* The knack row is EMPTY now: the consumables moved to the goal box (r309), so
+   the piece hand takes that band as well and the tiles are a third taller. */
+#stage.landscape.squares-mode #knack-carousel-wrap { display: none !important; }
 #stage.landscape.squares-mode #selected-cards {
-  top: 38%; height: 44.5%;
+  top: 30%; height: 52.5%;
   padding: 6px 7px;
   justify-content: space-between; align-items: stretch; gap: 6px;
 }
@@ -27,11 +27,72 @@
 /* Tricks slide down into what is left. */
 #stage.landscape.squares-mode #trick-tray-area { top: 83.5%; height: 7.5%; }
 #stage.landscape.squares-mode #coin-info { display: none; }
-/* No goal, so no progress bar - the SCORE box prints ROUND n/10 instead. */
+/* ── A DAILY HAS NO TRICKS (r311) ─────────────────────────────────────────
+   Not "none yet" - none at all, ever, because two people playing the same board
+   have to be comparable. So the tray is not an empty panel, it is gone, and the
+   piece hand takes the band: a daily is handed EVERY tile at once, so it is the
+   one shape of this mode that genuinely needs the room. */
+#stage.squares-daily #trick-tray-area { display: none !important; }
+#stage.landscape.squares-daily #selected-cards { height: 61%; }
+
+/* ── THE DAILY TRAY IS A GRID, NOT A ROW ──────────────────────────────────
+   The 5x5 holds at most three tiles, so a row of thirds is the whole answer
+   there. A daily is handed EVERY tile at once - 7 on the 3x3 and 11 on the 4x4
+   - and eleven thirds is eleven 40px slivers with unreadable minis on them.
+   THREE ROWS, ALWAYS, and the columns come from the inventory: 3 across for
+   the 3x3's seven tiles, 4 for the 4x4's eleven. Both are EXPLICIT tracks
+   rather than auto rows, which is what keeps r309's rule - a tile does not
+   change size as the hand empties, because the tracks do not care how many
+   items are left. */
+#stage.squares-daily #selected-cards {
+  display: grid !important; grid-template-rows: repeat(3, 1fr);
+  align-content: stretch; justify-content: stretch; gap: 5px;
+}
+#stage.sq-n3 #selected-cards { grid-template-columns: repeat(3, 1fr); }
+#stage.sq-n4 #selected-cards { grid-template-columns: repeat(4, 1fr); }
+/* `max-width` is the ROW layout's cap and would hold a grid cell to a third of
+   the tray; the track is what sizes a tile here. */
+#stage.squares-daily .sq-tile { max-width: none; min-height: 0; }
+
+/* No goal, so no progress bar - the goal box carries the consumables instead. */
 #stage.squares-mode #score-progress, #stage.squares-mode #score-bar-wrap { display: none; }
 
+/* ── ROUND n/10, at the top of the UI (r309) ──────────────────────────────
+   A child of #top-bar, so PORTRAIT gets it as a flex item beside the other top
+   stats with no work, and LANDSCAPE - where #top-bar is `display:contents` and
+   every .top-stat is hidden - can position it absolutely in the band the clock
+   has vacated. It deliberately does NOT carry `.top-stat`, or the landscape
+   hide rule would take it too. */
+#sq-round { display: none; }
+#stage.squares-mode #sq-round {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; line-height: 1.1;
+}
+#sq-round .sqr-l { font-size: 8px; letter-spacing: 2px; color: var(--cream-dim); opacity: 0.8; }
+#sq-round .sqr-v { font-size: 13px; letter-spacing: 1px; color: var(--gold); }
+#stage.landscape.squares-mode #sq-round {
+  position: absolute; left: 45%; top: 2.78%; width: 45%; height: 6.94%;
+  flex-direction: row; gap: 9px; box-sizing: border-box;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+}
+#stage.landscape.squares-mode #sq-round .sqr-l { font-size: 11px; letter-spacing: 5px; }
+#stage.landscape.squares-mode #sq-round .sqr-v { font-size: 17px; letter-spacing: 2px; }
+/* The game timer counts nothing here, so #sq-round simply takes its place. */
+#stage.squares-mode #game-timer-stat { display: none !important; }
+
+/* ── The consumables, in the goal box ──────────────────────────────────────
+   The goal figure and its bar are HIDDEN, not removed: #goal-display is written
+   by js/hud.js on every updateScoreUI, so a mode that deletes it takes the next
+   mode's HUD down with it. */
+#stage.squares-mode #goal-display,
+#stage.squares-mode #score-progress-bar-wrap { display: none !important; }
+#stage.squares-mode #score-to-go { display: flex; align-items: center; justify-content: center; }
+#sq-cons-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px; }
+#stage.squares-mode #score-left { overflow: hidden; }
+
 /* ── A piece tile ─────────────────────────────────────────────────────── */
-#selected-cards.sq-hand { overflow: visible; }
+#selected-cards.sq-hand { overflow: visible; touch-action: none; }
+#stage.squares-mode #grid { touch-action: none; }
 .sq-tile {
   /* Equal thirds even when one is left, so a tile never changes size as the
      hand empties - a piece you are comparing must not resize under you. */
@@ -41,6 +102,15 @@
   box-shadow: 0 5px 12px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.35);
   background-image: repeating-linear-gradient(45deg, rgba(180,160,110,0.09) 0 3px, transparent 3px 6px);
   cursor: grab; transition: transform 0.15s cubic-bezier(.34,1.3,.64,1), box-shadow 0.15s;
+  /* TOUCH-ACTION IS THE WHOLE OF THE MOBILE DRAG FIX (r309). Left at `auto` the
+     browser claims the first movement of a finger drag as a page scroll and
+     fires pointercancel - which read as the tile stuttering at the edge of the
+     tray and never reaching the board. Measured through real touch events at
+     420x900: 0 cancels with it, cancelled on the first move without it. */
+  touch-action: none;
+  /* And a hard clip, so a poly fitted to a box that has since changed can never
+     paint outside its own card while the refit catches up. */
+  overflow: hidden;
 }
 .sq-tile:hover  { transform: translateY(-5px) rotate(-1deg); box-shadow: 0 12px 20px rgba(0,0,0,0.55); }
 .sq-tile.sel    { box-shadow: 0 0 0 2px var(--gold), 0 10px 20px rgba(0,0,0,0.55); }
@@ -103,12 +173,24 @@
 .sq-lbtn.sel   { background: var(--gold); color: #0e0c0a; box-shadow: 0 0 10px rgba(201,168,76,0.7); }
 .sq-lbtn.off   { opacity: 0.25; cursor: default; border-style: dashed; }
 .sq-lbtn.off:hover { background: #15120d; color: var(--gold); }
+/* TWO LINES: the hand, then the arithmetic (r309). The banner above the board
+   names the hand too, but the banner is one line for the whole tally and this
+   chip is the one thing sat on the line that just paid. */
 .sq-schip {
   position: absolute; z-index: 20; pointer-events: none;
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px;
-  color: #fff; padding: 4px 8px; border-radius: 5px; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: #fff; padding: 4px 9px; border-radius: 5px; transform: translate(-50%, -50%);
   background: linear-gradient(180deg, #2a2440, #14112a); border: 1px solid #7a63c8;
   box-shadow: 0 0 16px rgba(162,92,216,0.75), 0 3px 8px rgba(0,0,0,0.6);
+  white-space: nowrap;
+}
+.sq-schip .sq-scn {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 9px; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--gold); line-height: 1;
+}
+.sq-schip .sq-scv {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px;
+  line-height: 1;
 }
 #sq-banner {
   position: absolute; left: 0; right: 0; top: -2px; text-align: center; z-index: 12;
@@ -121,6 +203,7 @@
 
 /* ── Consumable chips, in the knack row ───────────────────────────────── */
 .sq-cons {
+  touch-action: none;
   position: relative; width: 26px; height: 26px; flex: 0 0 auto;
   display: flex; align-items: center; justify-content: center;
   border-radius: 5px; background: #16121c; border: 1px solid #3a3560;
@@ -128,6 +211,12 @@
 }
 .sq-cons:hover { transform: translateY(-2px); border-color: #7a63c8; }
 .sq-cons.armed { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(201,168,76,0.6); }
+/* In the goal box five have to sit across it, and that box is 129 stage px wide
+   in landscape against ~200 in portrait - so the phone, where a tap target
+   matters most, gets the bigger chip. */
+#stage.landscape.squares-mode #sq-cons-row .sq-cons {
+  width: 21px; height: 21px; font-size: 11px; border-radius: 4px;
+}
 .sq-cd {
   position: absolute; top: -3px; right: -3px; font-size: 6px; line-height: 1.5;
   padding: 0 2px; border-radius: 3px; background: #a25cd8; color: #fff;
@@ -226,6 +315,34 @@
 .sq-opt:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 0 24px -6px rgba(201,168,76,0.6); }
 .sq-on { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px; color: var(--gold); margin-bottom: 8px; }
 .sq-od { font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5; color: rgba(240,230,200,0.75); }
+/* THREE OPTIONS, NOT TWO (r311). .sq-opts is a plain flex row sized for the
+   two-option mode console; a third makes each ~190px on a 620px panel and about
+   110px on a phone, which is narrower than the longest unbreakable word in the
+   descriptions. It WRAPS instead: one row on a desktop, stacked on a phone. */
+.sq-sizes { flex-wrap: wrap; }
+.sq-sizes .sq-opt { flex: 1 1 170px; padding: 14px 12px; }
+.sq-sizes .sq-od { font-size: 11.5px; line-height: 1.45; }
+
+/* The between-grid grant. One thing, centred, with what it is in the middle:
+   the player did not choose it, so the screen's whole job is to say what landed. */
+.sq-boon {
+  width: 100%; max-width: 360px; margin: 0 auto; padding: 18px 16px 16px;
+  border-radius: 10px; border: 2px solid var(--gold); background: #100e1d;
+  text-align: center; box-shadow: 0 0 30px -8px rgba(201,168,76,0.55);
+}
+.sq-bi {
+  font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 30px; line-height: 1;
+  color: var(--gold); margin-bottom: 10px; text-shadow: 0 0 16px rgba(201,168,76,0.7);
+}
+.sq-bn {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px;
+  text-transform: uppercase; color: #fff; margin-bottom: 7px;
+}
+.sq-bd {
+  font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5;
+  color: rgba(240,230,200,0.78);
+}
+
 .sq-report {
   font-family: 'Share Tech Mono', monospace; font-size: 11.5px; line-height: 1.65;
   white-space: pre-wrap; color: var(--cream-dim); width: 100%;
@@ -262,6 +379,64 @@
 }
 #stage:not(.landscape).squares-mode #hand-name { display: none; }
 #stage:not(.landscape).squares-mode .sq-tile { max-width: calc(33.33% - 3px); }
+/* THE TRAY IS BELOW THE BOARD NOW (r309). js/squares-mode.js re-parents
+   #hand-preview-area into #main between the board and the secondary buttons, so
+   nothing here places it - it just has to stop being half of the shared strip:
+   the swap button has nothing left to swap to, and the knack row is empty
+   because the consumables moved to the goal box. */
+#stage:not(.landscape).squares-mode #panel-swap-btn { display: none !important; }
+#stage:not(.landscape).squares-mode #knack-carousel-wrap { display: none !important; }
+/* AND ITS FLEX ORDER HAS TO GO WITH IT. `#stage:not(.landscape) #hand-preview-area
+   { order: 2 }` is the portrait shared-strip rule (css/style.css), written when
+   this element was half of #trick-panel - it follows the element wherever it is
+   moved, so in #main it sorted the tray BELOW the Records/Pause row. Every child
+   of #main is pinned explicitly here rather than just zeroing this one, so the
+   run of the column is stated in one place. */
+#stage:not(.landscape).squares-mode #top-strip        { order: 0; }
+#stage:not(.landscape).squares-mode #grid-and-buttons { order: 1; }
+#stage:not(.landscape).squares-mode #hand-preview-area{ order: 2; }
+#stage:not(.landscape).squares-mode #action-row-2     { order: 3; }
+/* No Focus in this mode, so the meter goes in portrait too - it was already
+   hidden in landscape and was a dead 34px column beside the board on a phone. */
+#stage:not(.landscape).squares-mode #focus-meter-wrap { display: none !important; }
+/* A phone's tap target beats a phone's pixel budget: the round readout sits in
+   the top bar with the other stats and the game timer is gone from beside it. */
+#stage:not(.landscape).squares-mode #sq-round { padding: 0 8px; }
+/* A DAILY'S #trick-panel IS COMPLETELY EMPTY in portrait - the hand preview was
+   re-parented into #main (r309), the knack row is hidden with the consumables
+   moved, and a daily takes no Tricks at all - so it was a dead black band above
+   the board. Its room goes to the tile tray, which is the one thing in this
+   mode that genuinely wants more of it. */
+/* THREE TOP-BAR STATS THAT A DAILY HAS NOTHING BEHIND. `level` never advances
+   here, no credits are ever earned or spent, and nothing is selected into a
+   hand - so LEVEL 1, COINS 0 and HAND 0 sat there all run saying nothing. They
+   are only visible in portrait anyway (landscape hides every .top-stat), and
+   the 5x5 is deliberately left alone. */
+#stage.squares-daily #top-bar .top-stat:has(#level-display),
+#stage.squares-daily #top-bar .top-stat:has(#coins-display),
+#stage.squares-daily #sel-stat { display: none !important; }
+#stage:not(.landscape).squares-daily #trick-panel { display: none !important; }
+/* THE GRID HAS TO BE RESTATED AT THE PORTRAIT RULE'S OWN SPECIFICITY. The r309
+   portrait rule is `#stage:not(.landscape).squares-mode #selected-cards` - two
+   ids, two classes and a pseudo-class - and it carries `display:flex
+   !important` to beat syncTrickTrayUI's inline style, so the shared
+   `#stage.squares-daily` grid above loses to it and the daily's eleven tiles
+   went back to being eleven slivers.
+
+   THREE ROWS ARE RESERVED FOR THE WHOLE PHASE, even once the hand is down to
+   one tile. Letting the tray shrink was tried and is worse: in portrait it is
+   a flex child, so its height is the board's - measured, the board went 241x312
+   to 320x415 as the last tiles were placed, which is cards moving under a
+   finger that is dragging onto them. A dead band at the foot of the tray is the
+   better of the two. (It does not arise in landscape, where the tray is an
+   absolutely-positioned panel and an empty slot in it costs the board nothing.) */
+#stage:not(.landscape).squares-daily #hand-preview-area,
+#stage:not(.landscape).squares-daily #selected-cards { height: 220px; flex: 0 0 auto; }
+#stage:not(.landscape).squares-daily #selected-cards {
+  display: grid !important; grid-template-rows: repeat(3, 1fr);
+  align-content: stretch; justify-content: stretch; gap: 4px;
+}
+#stage:not(.landscape).squares-daily .sq-tile { max-width: none; }
 
 /* ── What this mode does not have ─────────────────────────────────────── */
 /* No clock: the readout and its bar would sit there frozen and full. */

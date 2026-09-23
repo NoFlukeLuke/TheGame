@@ -75,6 +75,7 @@ const INFO_GROUPS = [
   ['between', 'Between rounds'],
   ['schedule','The schedule'],
   ['pressure','Pressure'],
+  ['modes',   'Modes'],
 ];
 
 const INFO_TOPICS = [
@@ -98,13 +99,13 @@ const INFO_TOPICS = [
   { id: 'min_selection', group: 'basics', title: 'The minimum you must commit',
     body: [
       'Selection Size is not just a ceiling. Raising it also raises a FLOOR two below it, so at a Selection Size of 5 you must commit at least 3 cards to every hand.',
-      'That is what stops a bigger selection being free: you can no longer tap two cards for a quick Pair to tick the board over. The hand label reads NEED / n in red until you have enough.',
+      'The hand label reads NEED / n in red until you have enough.',
     ] },
 
   { id: 'high_card', group: 'basics', title: 'High Card',
     body: [
       'When the minimum forces you to commit cards that do not make a shape, the hand still plays as a High Card. It scores the cards\' own pips and nothing else: no base pips, no mult, no {FOCUS}.',
-      'It is the escape valve, not a hand to aim for, and it can never grow.',
+      'High Card does not grow with Natural Scaling.',
     ] },
 
   { id: 'hand_layers', group: 'basics', title: 'A hand can be several hands',
@@ -118,24 +119,23 @@ const INFO_TOPICS = [
   { id: 'swap_discard', group: 'board', title: 'Swapping and discarding',
     body: [
       'A SWAP trades two cards that touch. A DISCARD throws selected cards away and pulls new ones down. Both are capped per round, and in most modes both cost time off the round clock.',
-      'Leftover swaps and discards are not wasted: each one you did not use pays credits at the end of the round, so holding them is a real alternative to spending them.',
+      'Each swap and discard you did not use pays credits at the end of the round.',
     ] },
 
   { id: 'sleight_grid', group: 'board', title: '{Sleights} sit on the board',
     body: [
-      'A {sleight} is a real card in your deck, drawn like any other. It falls, swaps, gets discarded, and can be played inside a hand. It is drawn as a business card so you can pick it out of a boardful.',
+      'A {sleight} is a real card in your deck, drawn like any other. It falls, swaps, gets discarded, and can be played inside a hand.',
       'Most have limited charges, shown on the card. Some work just by SITTING there, some fire when you play them, some when you double-tap them.',
       'Press and hold one on the board to read what it does. A single tap is reserved for selecting it into a hand.',
     ] },
 
   { id: 'blocked_cells', group: 'board', title: 'Cards you cannot use',
     body: [
-      'Several things make a cell unusable, and they look different on purpose:',
+      'Several things make a cell unusable, and each looks different:',
       ['VOID - the cell is dark and nothing falls into it.',
        'QUARANTINED - cards still fall in, they are just inert, permanently.',
        'HELD - one card, frozen, with a countdown ring showing when it comes back.',
        'WITHDRAWN - a whole rank is off the board for a while, also with a countdown.'],
-      'All of them are temporary or local. None of them can make a round unwinnable on their own.',
     ] },
 
   { id: 'curses', group: 'board', title: 'Cursed cards',
@@ -152,34 +152,32 @@ const INFO_TOPICS = [
       'A buffed card says which kind it is, and the difference matters:',
       ['FLAT - "scores +5 mult when played". That is the number, every time, forever.',
        'SCALING - "scales +1 mult each time it\'s played". The bonus itself grows with use, and the card carries a small green arrow.'],
-      'A scaling card is worth building hands around; a flat one is worth what it says.',
     ] },
 
   { id: 'line_markers', group: 'board', title: 'Coloured lines down the board',
     body: [
       'Some {tricks} mark a whole row or column. The line is drawn behind the cards in that {trick}\'s colour, with its symbol on both ends, and every card on the line wears a ring in the same colour.',
-      'A card sitting where two lines cross splits its ring between both colours. The lines are permanent for the run and stay visible between rounds, which is when you are deciding whether another one is worth a slot.',
+      'A card sitting where two lines cross splits its ring between both colours. The lines stay for the whole run and stay visible between rounds.',
     ] },
 
   // ── Scoring ───────────────────────────────────────────────────────────────
   { id: 'pips_mult', group: 'scoring', title: 'Pips, mult and the tally',
     body: [
       'A hand is worth its PIPS multiplied by its MULT, then multiplied by {FOCUS}. The hand type sets a base for the first two; every card adds its own pips; everything you own adds to one or the other.',
-      'The tally plays out one card at a time. Each {trick} pops and throws its own number at the moment it actually pays, so what you see is the order the score was really built in.',
+      'The tally plays out one card at a time. Each {trick} pops and throws its own number at the moment it actually pays.',
       'A blue diamond is pips, a red one is mult, violet is {FOCUS}, gold is credits, white is time.',
     ] },
 
   { id: 'focus', group: 'scoring', title: '{FOCUS}',
     body: [
       '{FOCUS} is a multiplier on the whole hand. You earn it by playing complicated hands and by playing them fast, and it DECAYS while you sit still.',
-      'The {FOCUS} a hand earns is applied to that same hand, so the chip settles on the real number before the tally starts.',
+      'The {FOCUS} a hand earns is applied to that same hand.',
       'The meter has a ceiling you can raise. Some things trade the ceiling for something else, and a few pay out every time you reach the top.',
     ] },
 
   { id: 'natural_scaling', group: 'scoring', title: 'Hands get better as you play them',
     body: [
       'Every hand TYPE has its own permanent bonus that grows each time you play it. Play Runs of 3 all run and Runs of 3 get worth more; it does nothing for your Four of a Kind.',
-      'That is deliberate: climbing the ladder is a real decision, and a Three of a Kind played forty times can out-score a Four of a Kind you have never played.',
       'The RECORDS -> Hands tab shows the live value of every hand with the earned part in green. The Old Tricks {knack} makes every hand read the best bonus anywhere in its family.',
     ] },
 
@@ -195,7 +193,7 @@ const INFO_TOPICS = [
     body: [
       'A {trick} is a scoring buff that sits in your tray, never on the board. It works by itself whenever its condition is met.',
       'Your tray has a HARD CAP. When it is full, a new {trick} is refused outright: the count flashes red and nothing is taken. Make room first by SELLING one, which you do by tapping it in the tray and choosing Sell.',
-      'Tray ORDER is load-bearing for a handful of {tricks}, and the Tray Order meeting is where you change it.',
+      'Some {tricks} depend on their position in the tray. The Tray Order meeting changes the order.',
     ] },
 
   { id: 'sleights', group: 'owned', title: '{Sleights}',
@@ -214,7 +212,7 @@ const INFO_TOPICS = [
     body: [
       'Anything you own can be IMPROVED, which makes its own numbers bigger. A +5 bonus climbs 5, 10, 15, 20, 25, 40 across five improvements.',
       'The tier is stamped on the object as a version number, and the object itself changes: gold bands count up across its corner, and a {trick}\'s shutter climbs from grey through bronze, silver, gold and black to iridescent.',
-      'The printed description follows the number, so an improved item always reads true.',
+      'The printed description follows the number.',
     ] },
 
   { id: 'priming', group: 'owned', title: 'Primed - the violet +2',
@@ -231,34 +229,35 @@ const INFO_TOPICS = [
       () => ['Interest on the credits you are holding.',
        `Time left on the clock, at 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds.`,
        'Swaps and discards you did not spend.'],
-      'The Contributions view on the same screen breaks the round down by what earned it, which is the honest answer to "is this {trick} actually doing anything".',
+      'The Contributions view on the same screen breaks the round down by what earned it.',
     ] },
 
   { id: 'reward_grid', group: 'between', title: 'The reward grid',
     body: [
-      'A board of rewards. You pick a CONNECTED PATH through it and take EVERYTHING on that path, which is the whole decision: the good tile you want may only be reachable through a liability.',
-      'Tap a tile you cannot reach and it just explains itself without costing you a pick. Tap one you can reach and it is picked, and explained.',
-      'There is a minimum number of picks, the same idea as the board\'s. SKIP takes nothing at all and is always allowed.',
+      'A board of rewards and liabilities. You pick a CONNECTED PATH through it and take EVERYTHING on that path.',
+      'Tapping a tile you cannot reach shows its description. Tapping one you can reach picks it and shows its description.',
+      'There is a minimum number of picks, the same as on the board. SKIP takes nothing.',
     ] },
 
   { id: 'pick_three', group: 'between', title: 'Take your pick',
     body: [
-      'Three offers, and you take one. It is the base reward of the modes that have no reward board: the Schedule pays one out after every round you clear, and Survival after every {GOAL}.',
-      'Each offer rolls its own type, so three {tricks} is a common outcome and a pick with no {knack} in it is the usual one.',
-      'A TAP READS an option rather than taking it. You pick, then CONFIRM, so a mis-tap can never spend the choice for you.',
-      'Rerolls come out of a pool you carry for the whole run rather than a fresh allowance each time, so one spent now is one you do not have later.',
+      'Three offers, and you take one. The Schedule offers one after every round you clear; Flow and Survival after every {GOAL}. Guided sells one as a slot.',
+      'Each offer rolls its own type. The chances depend on the mode; see that mode\'s entry under Modes.',
+      'A tap selects an option and shows its description. CONFIRM takes it.',
+      () => `Rerolls come from one pool for the whole run: ${typeof PICK_REROLLS_START !== 'undefined' ? PICK_REROLLS_START : 3} at the start, +${typeof PICK_REROLLS_PER_BOSS !== 'undefined' ? PICK_REROLLS_PER_BOSS : 2} per review passed. When the pool is empty a reroll costs credits, rising each time on the same screen.`,
     ] },
 
   { id: 'shop', group: 'between', title: 'The company store',
     body: [
       'The shop is drawn on your own board, at your own board size, so raising the board raises the shop. Each row is a category with a plate naming it.',
-      'Buying several things at once that touch each other is cheaper. Rerolling refreshes what is on the shelves, costs more each time, and is capped by the swaps you were holding when you walked in.',
-      'SELL swaps the board over to what you own. Coming back from it is not a free reroll.',
+      'Buying several things at once that touch each other is cheaper.',
+      'The shop uses the swaps and discards you had left. A swap moves a tile: double-tap it, then tap a neighbour. A discard rerolls a row: select its label and press REROLL.',
+      'SELL shows what you own. Going back does not reroll the stock.',
     ] },
 
   { id: 'events', group: 'between', title: 'Meetings',
     body: [
-      'A meeting is a one-screen decision: a trade, a gamble, an upgrade, a clean-up. SKIP is always there and is sometimes correct.',
+      'A meeting is a one-screen decision: a trade, a gamble, an upgrade, a clean-up. SKIP is always available.',
       'A meeting you could not use is never offered. If you own nothing to improve, the improve meetings do not come up at all.',
       'The same meeting never lands twice in a row.',
     ] },
@@ -266,13 +265,13 @@ const INFO_TOPICS = [
   { id: 'limits', group: 'between', title: 'Limits',
     body: [
       'Limits are the caps on everything: board size, selection size, starting time, swaps, discards, {trick} slots, {FOCUS} ceiling, luck.',
-      'They have floors as well as ceilings, and the printed number is what you actually get. At 295 of 300 seconds, a +15s upgrade says +5s, because that is what it is worth right now.',
+      'They have floors as well as ceilings. The number shown is what you actually get: at 295 of 300 seconds, a +15s upgrade shows +5s.',
       'RECORDS -> Limits lists every one with where it currently stands.',
     ] },
 
   { id: 'limit_break', group: 'between', title: 'Limit Break',
     body: [
-      'Two stages. First a FREE pick of three limits: lock one in and it applies immediately. A blind offer only reveals once it is locked, so it is a real gamble.',
+      'Two stages. First a FREE pick of three limits: lock one in and it applies immediately. A blind offer is revealed once it is locked in.',
       'Then an optional SECOND pick, which costs you something off a short list drawn at that moment. JUST THE ONE always walks away with the free pick and no price.',
     ] },
 
@@ -291,7 +290,7 @@ const INFO_TOPICS = [
   { id: 'schedule', group: 'schedule', title: 'The schedule',
     body: [
       'Your schedule is a board of OBLIGATIONS in six TIME SLOTS, read left to right, ending in the manager review.',
-      'Each obligation is one thing you will do: a client account is an ordinary round, and the rest cost you a slot to visit. The legend button lists every kind on this schedule, and tapping a row lights up where they are.',
+      'Each obligation is one thing you will do: a client account is an ordinary round. The legend button lists every kind on this schedule, and tapping a row lights up where they are.',
       'You can draw on it. Right-drag lays ink over the board, double right-click changes colour, and it is saved with your run.',
     ] },
 
@@ -304,14 +303,12 @@ const INFO_TOPICS = [
 
   { id: 'skip_cost', group: 'schedule', title: 'Leaving a slot early',
     body: [
-      'Take only one obligation in a slot and you pay a skip fee in credits when you leave it, and the fee goes up each time you do it.',
-      'So a slot with only one thing you want in it is a real cost, and reading the whole board before your first move is worth doing.',
+      'Leave a slot after taking only one obligation and you are paid credits. The amount goes up each time you do it.',
     ] },
 
   { id: 'curve', group: 'schedule', title: 'Everything advances the quota',
     body: [
       'Every obligation raises the difficulty, whether you PLAYED it or BOUGHT it. Visiting the store moves the quota exactly as finishing a round does.',
-      'That is deliberate. Without it, buying your way through a quarter and meeting the review with a huge loadout at an easy quota would be the only sensible strategy.',
     ] },
 
   // ── Pressure ──────────────────────────────────────────────────────────────
@@ -339,6 +336,67 @@ const INFO_TOPICS = [
     body: [
       'Every run is built from a SEED, a short code shown on the menu. The same seed deals the same opening board and stocks the same shops.',
       'It is a seed, not a replay: what you choose still changes what comes next.',
+    ] },
+
+  // ── Modes (r310) - how each mode works, one entry per carousel card ──────
+  // Plain description only: what happens, in what order, and the numbers.
+  { id: 'mode_map', group: 'modes', title: 'The Schedule',
+    body: [
+      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: 4 lanes, 6 time slots, then the manager review.`,
+      'Every step activates the obligation you land on. You can take up to two obligations in a slot, if they are next to each other. Leaving a slot after one pays credits.',
+      'Obligations: client accounts (rounds), priority accounts (hard rounds), the shop, incentive programs (reward grids), meetings (events) and raise requests (Limit Break). Some are hidden until you arrive.',
+      'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
+      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account adds a pick of two {knacks}.`,
+    ] },
+  { id: 'mode_flow', group: 'modes', title: 'Flow',
+    body: [
+      () => `A ${Math.round((typeof FLOW_SESSION_SECONDS !== 'undefined' ? FLOW_SESSION_SECONDS : 300) / 60)}-minute clock counts down to the review. It does not reset when you level up.`,
+      'Clear a {GOAL} to level up. Each level up offers a pick of three, then the next, larger {GOAL} starts. Missing a {GOAL} does not end the run.',
+      () => `When the clock reaches zero the review starts. It has its own ${typeof FLOW_BOSS_WINDOW !== 'undefined' ? FLOW_BOSS_WINDOW : 120}-second clock and its own {GOAL}. Pass it and the clock refills. Fail it and the run ends. After five reviews you can stop or continue with faster-rising goals.`,
+      () => `Pick of three odds per offer: ${typeof SURVIVAL_PICK_WEIGHTS !== 'undefined' ? `${SURVIVAL_PICK_WEIGHTS.trick}% {trick}, ${SURVIVAL_PICK_WEIGHTS.sleight}% {sleight}, ${SURVIVAL_PICK_WEIGHTS.knack}% {knack}, ${SURVIVAL_PICK_WEIGHTS.limit}% limit` : ''}. At least one limit and one {knack} are offered every four levels.`,
+      () => `The shop can be opened at any time for ${typeof SURVIVAL_SHOP_COST !== 'undefined' ? SURVIVAL_SHOP_COST : 5} credits. Swaps and discards cost no time. The {FOCUS} ceiling starts at ${typeof FLOW_FOCUS_CAP !== 'undefined' ? FLOW_FOCUS_CAP : 20}.`,
+    ] },
+  { id: 'mode_guided', group: 'modes', title: 'Guided',
+    body: [
+      () => `Each quarter is ${typeof GUIDED_SLOTS_PER_ACT !== 'undefined' ? GUIDED_SLOTS_PER_ACT : 8} slots, then the manager review.`,
+      'Before each slot you choose one of four offers: a round, a hard round, a reward grid, the shop, a pick of three or a meeting. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
+      'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
+      () => `Pick of three odds per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''}.`,
+    ] },
+  { id: 'mode_sixsuits', group: 'modes', title: 'Six Suits',
+    body: [
+      'Six suits: spades, hearts, diamonds, clubs, crowns and moons. 60 cards, with one rank removed from the middle.',
+      'Flush of 3 and Flush of 4 can be played from the start. Everything else is as in Classic.',
+    ] },
+  { id: 'mode_normal', group: 'modes', title: 'Classic',
+    body: [
+      () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
+      'Reach each round\'s {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the reward grid. The reward grid can lead to the shop or a meeting.',
+      'Passing a review opens the prize grid.',
+    ] },
+  { id: 'mode_spectrum', group: 'modes', title: 'Spectrum',
+    body: [
+      'No suits and no face cards. Seven colours, each with the values 0 to 11 plus a 15 and a 20. A card scores pips equal to its value.',
+      '9s, 10s and 11s are white and never count toward a flush. 15 and 20 cannot be part of a run. Flush of 3 scores nothing.',
+      'Four payout cards are shuffled in. Score two hands next to one and it pays: +2 swaps, +2 discards, +10 seconds or +5 credits. It then leaves the board and returns to the deck.',
+    ] },
+  { id: 'mode_picker', group: 'modes', title: 'Custom',
+    body: [
+      'Seven questions build the run: the deck, what happens between rounds, round length, whether swaps and discards cost time, bosses on or off, who submits hands, and what hand types are worth.',
+      'Some answers set others. Those are shown in amber.',
+    ] },
+  { id: 'mode_squares', group: 'modes', title: 'Poker Squares',
+    body: [
+      'Each turn deals three tiles of cards. Place them on the 5x5 board over four turns.',
+      'At the end of the round every row and column scores as a five-card poker hand, lowest first. Ten rounds, no clock and no goal.',
+      'SCORE ALL scores all ten lines at the end. SELECT SCORE scores one line per turn, and a scored line is closed.',
+      'Between rounds you pick a {trick} and a consumable.',
+      'The daily 3x3 and 4x4 grids score three- and four-card hands, valued from the real three- and four-card poker pay tables.',
+    ] },
+  { id: 'mode_survival', group: 'modes', title: 'Survival',
+    body: [
+      'Each {GOAL} has its own 2-minute clock. Clear it for a pick of three; miss it and the run ends. Score above the {GOAL} carries into the next round.',
+      'A review comes every 5 minutes of play, played on the time you had left over.',
     ] },
 ];
 
