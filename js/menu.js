@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r314 · heavy-preview: the knocks softened, the Vegas coin rebuilt as a purse";
+const BUILD = "2026-09-23 · r317 · heavy-preview: the knocks softened, the Vegas coin rebuilt as a purse";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -340,39 +340,41 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // generated from MODES itself so nothing here has to be listed twice.
 // `crunch` is here because it is a rough first pass being tuned, not because it
 // is an experiment on a different loop the way the other three are.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch'];
+// `survival` (r310) and `sixsuits` (r316) are hidden by the owner's call. Six Suits
+// is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
-              blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+              blurb: 'Four suits. Four quarters, each five rounds and then a review. Reach each round\'s goal before the clock runs out. Between rounds you pick a path on the reward grid, and some paths lead to the shop or a meeting.' },
   // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
   // promoting the mode is one entry in MODE_FINALE_GROUP and one deletion from
   // the hidden list, with nothing to rewrite.
   crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
-              blurb: 'The schedule, against a single clock for the whole quarter. Rounds spend it as you play, booking anything that is not a round costs a flat fee, and the manager review is fought on whatever is left. Run it to zero and the run is over. Beat the review and you get most of it back.' },
+              blurb: 'The schedule, played on one clock for the whole quarter. Rounds use it up as you play, and every obligation that is not a round costs a flat amount of time. The review is played on what is left. At zero the run ends.' },
   map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
-              blurb: 'The run is a board. Four lanes, six sets of tiles - rounds, hard rounds, shops, reward grids, events, a couple of blanks and mysteries - then a full-width boss with a fixed quota you can read from the start. Orthogonal moves only, at most two tiles per set, and moving on early pays credits.' },
+              blurb: 'Each quarter is a schedule: four lanes, six time slots, then a review. Every step activates the obligation you land on: a round, a shop, a reward grid, a meeting and more. Up to two obligations per slot. Leaving a slot after one pays credits. Clearing a round offers a pick of three.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
-              blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
+              blurb: 'Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, a reward grid, a pick of three or a meeting. Rounds are free. Most other offers cost credits. The goal rises with every slot.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ♛ ☾',
-              blurb: 'Six suits with five of each rank, so the deck is 60 cards and a suit holds only ten. The crown and the moon join the four you know. One rank is cut out of the middle of the ladder, so a four-card run or a straight is a good deal harder to find than in Classic, while sets come a little easier and flushes are hard-won.' },
+              blurb: 'Six suits: the four standard ones plus crowns and moons. 60 cards, with one rank removed from the middle. Otherwise plays like Classic.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
-              blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE - colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
+              blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
-              blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
-  flow:     { accent: '#6fd0ff',         suits: 'NO CLOCK',
-              blurb: 'Survival with the round clock taken off. Nothing forces a goal, so you clear one after another for as many level-ups as you can hold together - but Focus caps at 20 and decays the moment you slow down. Five minutes of play and the inspection arrives: a boss with an objective and a quota, on its own clock.' },
+              blurb: 'Each goal has its own 2-minute clock. Clear it for a pick of three, then the next goal starts. Extra score carries over. A review comes every 5 minutes of play. Miss a goal and the run ends.' },
+  flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
+              blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
   squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
-              blurb: 'Poker Squares. Every turn deals three tiles of cards - tetromino shapes with real ranks and suits on them - and you pack them onto a 5x5 board. At the end of the round every row and every column is scored as a five-card poker hand, worst first. Real poker values, real poker odds: a pair is 42% of lines and a straight flush is one in 65,000. No clock and no quota - ten rounds, and whatever you can build.' },
+              blurb: 'Poker Squares. Each turn deals three tiles of cards, and you place them on a 5x5 board. At the end of the round every row and column scores as a five-card poker hand. No clock and no goal. Ten rounds.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
-              blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades - you just swap and discard to set them up.' },
+              blurb: 'Lines of 3 or more in a row or column score and clear on their own. You swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
-              blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
+              blurb: 'The auto-playing board with no clock and unlimited swaps and discards. Goals are doubled.' },
   picker:   { accent: '#ff5fa8',         suits: 'BUILD ONE',
-              blurb: 'Answer seven questions and the run is assembled from your answers: which deck, what happens between rounds, how long a round is, whether interacting costs time, bosses or none, who submits the hands, and what a hand type is worth. Every other mode in this list is one fixed set of those answers.' },
+              blurb: 'Answer seven questions to build a run: the deck, what happens between rounds, round length, whether actions cost time, bosses, who submits hands, and hand values.' },
   dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
-              blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles - every run and set of 3+ across their six halves scores at once.' },
+              blurb: 'Beta. Two-value tiles fall and leave gaps. Pick 3 touching tiles and every run and set of 3 or more across their halves scores.' },
 };
 
 function openModeSelect() {
@@ -473,9 +475,14 @@ function buildModeCard(id) {
   card.innerHTML =
     `<div class="mode-card-name">${modeDisplayName(id)}</div>` +
     `<div class="mode-card-suits">${open ? (meta.suits || '') : '\u{1F512}'}</div>` +
-    `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}</div>` +
+    `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}` +
+      (typeof infoTopic === 'function' && infoTopic('mode_' + id)
+        ? ` <a class="mode-card-more" href="#">Read more in the handbook.</a>` : '') +
+    `</div>` +
     (open ? `<div class="mode-tier"></div><button class="mode-card-play">${isPicker ? 'BUILD' : 'PLAY'}</button>`
           : `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(modeUnlockedBy(id))}</b> to unlock</div>`);
+  const more = card.querySelector('.mode-card-more');
+  if (more) more.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openInfoHub('mode_' + id); };
   if (open) {
     renderModeTier(card, isPicker ? 'custom' : id);
     card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : chooseMode(id);

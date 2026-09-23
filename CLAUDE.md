@@ -7358,7 +7358,7 @@ and this one caught itself twice: the pack blurbs still described the first
 tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
 They are per pack now.
 
-#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r314)
+#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r317)
 
 Owner, on the r313 candidate: *"i like all the heavies except pip particles which
 has a bit too much wooden knock in it"*, *"any of the effects that now have that
@@ -7401,7 +7401,7 @@ repeated irritant for another: a rap on a surface twelve times a hand.
   deliberately absent, because what says "coins" here is that there are SEVERAL
   of them and a body big enough to hear smears them into one event.
 
-**Measured after, heavy column, r313 -> r314:** Vegas pip particles 893 -> 1150Hz
+**Measured after, heavy column, r313 -> r317:** Vegas pip particles 893 -> 1150Hz
 (the knock down and the coin taking back the difference), mult 804 -> 1033, coin
 1723 -> 2647; Neon pip 1084 -> 1026, mult 889 -> 1139, coin 2644 -> 2930. The
 sounds the owner approved are unmoved: Vegas card_pop 468 -> 471, hand_scored
@@ -7625,3 +7625,11 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Match surrounding code style (terse, inline, lots of single-line helpers).
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
+
+## r310 - every mode open, Flow replaces Survival, walkthroughs teach only what is new
+
+- **No mode is locked** (`MODE_LOCKS_ON = false`, js/progress-unlock.js). The chain and finale lists now only set carousel ORDER: Schedule, Flow, Guided, Six Suits, Classic, Spectrum, Custom, Poker Squares.
+- **Survival is in `MODE_HIDDEN_LIST`** (owner: Flow is the better version). Still whole, reachable from dev panel -> Modes.
+- **Six Suits is hidden too (r316)**, owner's call: it is reachable from dev panel -> Modes and as the Custom picker's "Six suits" deck. Carousel: Schedule, Flow, Guided, Classic, Spectrum, Custom, Poker Squares.
+- **Walkthrough steps are remembered across modes** (`tutStepsSeen`, `lethe.tutSeen.v1`). A mode's first run shows only steps no earlier walkthrough showed; `welcome`/`outro` carry `always: true` and switch to a short "only what is new" text. If only those two remain, the walkthrough does not arm. Flow gained `flow-clock` / `flow-review`; `progress-endless` is Survival-only. Measured: after Classic, Flow shows 5 steps, the Schedule 7, Six Suits none.
+- **Mode descriptions say how the mode works and nothing else** - no strategy, no reasons. Each card links to a handbook entry (`mode_<id>`, group Modes) with the specifics (pick-of-three odds, fees, clocks). The handbook got the same pass: sentences that justified the design or advised play were removed. Also fixed there: leaving a Schedule slot early PAYS credits (the old text said it cost them).

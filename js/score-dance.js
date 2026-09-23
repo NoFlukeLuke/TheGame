@@ -630,6 +630,11 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
+  // The dance is over, so a takeover screen that opened during it (the mid-dance
+  // pick) gets its deferred HUD swap now - BEFORE the goal branch below, so an
+  // interlude/prize grid opened from here is never itself deferred. (r310)
+  dncGoalLive = false;
+  if (typeof applyPendingGridHud === 'function') applyPendingGridHud();
   // dncChain is still not reset here, but the reason has changed: it is derived
   // from the gap between hand SUBMISSIONS now, so an abort with no successor
   // really does self-correct (the next hand is slow, the count restarts), and an
@@ -690,6 +695,12 @@ function handleDanceAbort(isGoalHand) {
 // Reuses the same goal / settle / abort tail as playScoreDance.
 // ══════════════════════════════════════════════
 let dncFF = false;
+// r310: true while a GOAL hand's dance is in flight. Read by enterGridScreenHud
+// (js/shop-grid-preview.js), which defers the location/score-chip swap while it
+// is set so the tally stays visible under a mid-dance pick screen. Cleared at
+// the dance's normal completion and in handleDanceAbort (the shared abort
+// tail), and dncRequestFF applies the pending swap on a skip.
+let dncGoalLive = false;
 // ── FAST FORWARD (r280) ─────────────────────────────────────────────────────
 // The goal hand's animation is the longest thing in the game - a two-second
 // jitter, the blast, the fly-in, and then the whole tally - and a player on
@@ -724,6 +735,9 @@ function dncRequestFF(){
   cuts.forEach(fn => { try{ fn(); }catch(e){} });
   const waits = dncFFWaiters; dncFFWaiters = [];
   waits.forEach(res => { try{ res(); }catch(e){} });
+  // A skipped hand is not being watched: bring up any takeover HUD that was
+  // waiting for the tally (the mid-dance pick's location swap, r310).
+  if (typeof applyPendingGridHud === 'function') applyPendingGridHud();
 }
 // The button is an absolutely-positioned child of #selected-cards, so it is not
 // a row of the dance stage and cannot push the cards around; #selected-cards is
@@ -1082,6 +1096,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   cancelDance();
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
+  dncGoalLive = isGoalHand;   // holds the grid-screen HUD swap back while the tally plays (r310)
   dncResetFF(); dncSettleBlast(); resetParticleStep();
   // Portrait shares one strip between Knacks and the hand preview, and this dance
   // draws into the preview - so make sure the preview is the visible half before
@@ -1640,6 +1655,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
   if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
   updateScoreUI();
+  // The tally has landed on the real score, so the deferred takeover HUD (the
+  // mid-dance pick's location swap) may come up now - and it MUST be released
+  // before the handoff below, so an interlude or prize grid opened from here
+  // gets its own swap applied rather than deferred. (r310)
+  dncGoalLive = false;
+  if (typeof applyPendingGridHud === 'function') applyPendingGridHud();
 
   if(isGoalHand){
     if(challengeActive){ showMessage('GOAL MET - COMPLETE THE CHALLENGE','#c9a84c'); }
