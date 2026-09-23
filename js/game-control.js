@@ -382,6 +382,10 @@ function startGame() {
     limits.grid_rows.current = 5; limits.grid_rows.base = 5; limits.grid_rows.max = 5;
     limits.grid_cols.current = 5; limits.grid_cols.base = 5; limits.grid_cols.max = 5;
   }
+  // Poker Squares moves two panels in the DOM (the piece hand below the board,
+  // the round readout into the top bar), so a run that starts as ANY other mode
+  // has to put them back. No-ops when nothing was moved.
+  if (typeof squaresTeardown === 'function' && !(typeof squaresActive === 'function' && squaresActive())) squaresTeardown();
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
   if (typeof pickRerollsInit === 'function') pickRerollsInit();  // the pick-of-three reroll pool (js/grid-pick.js)
