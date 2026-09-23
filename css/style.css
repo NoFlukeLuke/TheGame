@@ -6099,3 +6099,5 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 .rec-ent .kn-reveal { margin-top: 6px; display: block; }
 .rec-ent .kn-reveal-q { display: block; font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2px; color: rgba(217, 83, 79, 0.95); }
 .rec-ent .kn-reveal b { display: block; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #ffe9e6; }
+/* r310: the mode card's link into the handbook. */
+.mode-card-more { color: var(--mode-accent, var(--c-yellow)); text-decoration: underline; cursor: pointer; white-space: nowrap; }

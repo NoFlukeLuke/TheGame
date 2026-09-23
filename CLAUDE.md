@@ -7164,3 +7164,10 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Match surrounding code style (terse, inline, lots of single-line helpers).
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
+
+## r310 - every mode open, Flow replaces Survival, walkthroughs teach only what is new
+
+- **No mode is locked** (`MODE_LOCKS_ON = false`, js/progress-unlock.js). The chain and finale lists now only set carousel ORDER: Schedule, Flow, Guided, Six Suits, Classic, Spectrum, Custom, Poker Squares.
+- **Survival is in `MODE_HIDDEN_LIST`** (owner: Flow is the better version). Still whole, reachable from dev panel -> Modes.
+- **Walkthrough steps are remembered across modes** (`tutStepsSeen`, `lethe.tutSeen.v1`). A mode's first run shows only steps no earlier walkthrough showed; `welcome`/`outro` carry `always: true` and switch to a short "only what is new" text. If only those two remain, the walkthrough does not arm. Flow gained `flow-clock` / `flow-review`; `progress-endless` is Survival-only. Measured: after Classic, Flow shows 5 steps, the Schedule 7, Six Suits none.
+- **Mode descriptions say how the mode works and nothing else** - no strategy, no reasons. Each card links to a handbook entry (`mode_<id>`, group Modes) with the specifics (pick-of-three odds, fees, clocks). The handbook got the same pass: sentences that justified the design or advised play were removed. Also fixed there: leaving a Schedule slot early PAYS credits (the old text said it cost them).

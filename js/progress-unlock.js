@@ -16,12 +16,12 @@
 
 // The chain, in carousel order. The first is unlocked from a cold install;
 // every one after it opens when the one before it has had a run finish.
-const MODE_UNLOCK_CHAIN = ['map', 'survival', 'guided', 'sixsuits'];
+const MODE_UNLOCK_CHAIN = ['map', 'flow', 'guided', 'sixsuits'];
 
 // Everything else opens AT ONCE when the chain is done, and is drawn as a
 // single stacked card until then - one locked object to work toward rather
 // than four identical padlocks.
-const MODE_FINALE_GROUP = ['normal', 'spectrum', 'flow', 'picker'];
+const MODE_FINALE_GROUP = ['normal', 'spectrum', 'picker'];
 
 // Appended AFTER the finale group and NOT gated. `modeUnlocked` already answers
 // true for anything in neither list, so a mode here is playable from a cold
@@ -48,6 +48,16 @@ function _saveModeSet(key, set) {
 }
 modesStarted  = _loadModeSet('lethe.modesStarted.v1');
 modesFinished = _loadModeSet('lethe.modesDone.v1');
+
+// WALKTHROUGH STEPS ALREADY SHOWN, in ANY mode (r310). A mode's first run only
+// teaches what this set does not hold, so the second mode you play skips the
+// board, the hand, swapping and discarding and covers only what is new to it.
+let tutStepsSeen = _loadModeSet('lethe.tutSeen.v1');
+function markTutStepSeen(id) {
+  if (!id || tutStepsSeen.has(id)) return;
+  tutStepsSeen.add(id);
+  _saveModeSet('lethe.tutSeen.v1', tutStepsSeen);
+}
 
 // The carousel calls the custom-run door 'picker'; a run built through it has
 // ACTIVE_MODE.id === 'custom'. One id, or the card could never unlock itself.
@@ -80,12 +90,18 @@ function markModeFinished(id) {
   return after.length !== before.length || modeFanPending;
 }
 
+// r310, owner's call: every mode is open from a cold install again. The chain
+// and the finale group now only set the CAROUSEL ORDER; nothing is locked.
+const MODE_LOCKS_ON = false;
+
 function finaleUnlocked() {
+  if (!MODE_LOCKS_ON) return true;
   return modesFinished.has(MODE_UNLOCK_CHAIN[MODE_UNLOCK_CHAIN.length - 1]);
 }
 
 function modeUnlocked(id) {
   if (!id) return false;
+  if (!MODE_LOCKS_ON) return true;
   const i = MODE_UNLOCK_CHAIN.indexOf(id);
   if (i === 0) return true;                       // the opening mode, always
   if (i > 0) return modesFinished.has(MODE_UNLOCK_CHAIN[i - 1]);
@@ -127,12 +143,14 @@ function devUnlockAllModes() {
 // again. devResetModeProgress below clears both, which is what testing wants.
 function resetWalkthroughs() {
   modesStarted = new Set();
+  tutStepsSeen = new Set(); _saveModeSet('lethe.tutSeen.v1', tutStepsSeen);
   _saveModeSet('lethe.modesStarted.v1', modesStarted);
   if (typeof showMessage === 'function') showMessage('Each mode will walk you through it again.', 'var(--c-mint)');
 }
 
 function devResetModeProgress() {
   modesStarted = new Set(); modesFinished = new Set(); modeFanPending = false;
+  tutStepsSeen = new Set(); _saveModeSet('lethe.tutSeen.v1', tutStepsSeen);
   _saveModeSet('lethe.modesStarted.v1', modesStarted);
   _saveModeSet('lethe.modesDone.v1', modesFinished);
   if (typeof renderModeSelect === 'function') renderModeSelect();
