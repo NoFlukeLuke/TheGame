@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r320 · deck editor: a Max 7 + Ace preset, and why a cap cannot reach the ratio";
+const BUILD = "2026-09-23 · r321 · a Min 3 / 8-suit preset: no singles, and the suit count paying for the flushes";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

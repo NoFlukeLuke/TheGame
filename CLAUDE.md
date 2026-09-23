@@ -5665,6 +5665,64 @@ deck, the 49-card deck AND a Classic-equivalent 52/4 - it drained the pile by
 construction instead of going through the real refill. The r318 figure stands:
 `initGridData` fills all 49 cells with 0 holes.
 
+#### The SINGLES are the mechanism, and the SUIT COUNT is the flush lever (r321)
+
+Owner: *"the problem with that new count is the single cards, that's also whacky ...
+could we make a deck with ranks having a minimum of 3, Max of 6, and some suit count
+that helps counter the flush persistence? If not I just won't worry about flushes."*
+
+**A 1-copy rank is not a wart, it is the whole lever.** A three-card run window pays
+the PRODUCT of its ranks' copies, so a single collapses that window to almost
+nothing (`8 x 1 x 8` = 64 against `8 x 3 x 8` = 192) and that is what holds runs down
+while the heavies pile up sets. Raise the FLOOR and the windows come back.
+
+**The frontier - best set:run reachable, by copy floor and ceiling** (deck 49-64,
+Ace required, runs kept findable, flushes unconstrained):
+
+| min \ max | 6 | 7 | 8 | 9 | 10 | 11 |
+|---|---|---|---|---|---|---|
+| **1** | 0.33 | 0.53 | 0.75 | 0.99 | 1.32 | 1.66 |
+| **2** | 0.27 | 0.42 | 0.58 | 0.78 | 1.09 | 1.32 |
+| **3** | 0.18 | 0.26 | **0.40** | 0.53 | 0.68 | 0.91 |
+
+So the owner's exact ask (min 3, max 6) tops out at **0.18** - essentially the
+uniform ceiling of 1/6 and barely above Classic's 0.07. **Max 8 is the knee**: the
+same floor at a ceiling of 8 reaches 0.40.
+
+**THE SUIT COUNT IS A PURE FLUSH LEVER, and it is strong.** `flush3` is
+`S * C(N/S, 3)`, so at fixed copies only the suit count moves it - `set3` and `run3`
+do not care how the cards are suited at all. On one fixed 54-card shape:
+
+| suits | per suit | flush3 | flush : set |
+|---|---|---|---|
+| 6 | 9.0 | 203 | 4.00 |
+| 9 | 6.0 | 73 | 1.43 |
+| 18 | 3.0 | 7 | 0.14 |
+
+That is what makes the **`min3` preset** work: `A:3 2:3 3:8 4:3 5:3 6:8 7:3 8:3 9:8
+10:3 J:3 Q:8`, **56 cards over EIGHT suits** (7 a suit - eight is the ceiling, since
+`deckWeightSuitCount` clamps at 8 and `SUITS_EIGHT` holds eight glyphs). Every third
+rank is common and the rest are 3s, which is a rule a player can hold in their head.
+
+| | r318 default | `cap7` | **`min3`** | Classic |
+|---|---|---|---|---|
+| set : run | 0.68 | 0.47 | **0.32** | 0.07 |
+| flush : set | 0.96 | 1.14 | **1.21** | 22.00 |
+| run5 (straights) | 57 | 19 | **28** | 39 |
+| copies, min-max | 2-11 | 1-7 | **3-8** | 4-4 |
+| P(>=5 of a rank, 4x4) | 17.8% | 3.0% | **3.5%** | 0.0% |
+| ranks | 9 | 10 | **12** | 13 |
+
+**It is the most PLAYABLE of the three and the weakest on the brief** - sets land at
+a third of runs rather than two thirds. Twelve ranks (everything but the King), no
+singles, nothing above 8, board crowding down from 1 board in 6 to 1 in 29, and
+flushes brought to near parity by the suits rather than by the copies.
+
+**The higher-set alternative, if flushes really are droppable:**
+`8-3-3-8-3-3-8-3-3-8` over **5 suits**, 50 cards - set:run **0.40** and run5 39, but
+flushes at **2.61x** sets. 50 divides by 5 and 10 only, so eight suits is not
+available to it; that is the whole reason the shipped one is 56.
+
 **KNOWN AND NOT DONE: this breaks `HAND_BASE` pricing, and by more than r273 did.**
 Four of a Kind is available on 20% of 4x4 boards against 1% today, and 68% of
 7x7 boards; Full House goes the same way. Both are priced as rare hands. The

@@ -341,6 +341,11 @@ const DECK_W_PRESETS = {
   // 7 reaches is 0.47, and only at 49 cards over 7 suits. Kept so the trade can be
   // felt rather than argued about.
   cap7:     { suits: 7, w: { A:7, '2':7, '3':1, '4':7, '5':1, '6':4, '7':7, '8':7, '9':1, '10':7, J:0, Q:0, K:0 } },
+  // r321. No singles (min 3), nothing above 8, the Ace in, twelve ranks, and EIGHT
+  // SUITS doing the flush work: every third rank is common, the rest are 3s.
+  // set:run 0.32 and flushes 1.21 of sets - the suit lever is what buys that second
+  // number. 56 cards over 8 suits is 7 a suit.
+  min3:     { suits: 8, w: { A:3, '2':3, '3':8, '4':3, '5':3, '6':8, '7':3, '8':3, '9':8, '10':3, J:3, Q:8, K:0 } },
   flat5:    { suits: 6, w: { A:5, '2':5, '3':5, '4':5, '5':5, '6':5, '7':5, '8':5, '9':5, '10':5, J:5, Q:5, K:0 } },
   classic:  { suits: 4, w: { A:4, '2':4, '3':4, '4':4, '5':4, '6':4, '7':4, '8':4, '9':4, '10':4, J:4, Q:4, K:4 } },
 };
@@ -553,6 +558,7 @@ function devRenderDeckDesign() {
     ['targetLo', 'Target on A-9'],
     ['allRanks', 'All 13 ranks'],
     ['cap7',     'Max 7 + Ace'],
+    ['min3',     'Min 3 · 8 suits'],
     ['r273',     'r273 9/2'],
     ['flat5',    'Flat 5'],
     ['classic',  'Classic 4'],
