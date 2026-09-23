@@ -336,6 +336,11 @@ const DECK_W_PRESETS = {
   // r273's shipped default, kept so the overshoot can be felt: sets ABOVE runs.
   // It is also 48 cards, which cannot fill a maxed board - the editor says so.
   r273:     { suits: 6, w: { A:9, '2':2, '3':2, '4':9, '5':2, '6':2, '7':9, '8':2, '9':2, '10':9, J:0, Q:0, K:0 } },
+  // Owner's shape: cap a rank at 7 and put the Ace back, because 11 of one rank
+  // crowds a board (see the note below). It CANNOT reach 0.66 - the best a cap of
+  // 7 reaches is 0.47, and only at 49 cards over 7 suits. Kept so the trade can be
+  // felt rather than argued about.
+  cap7:     { suits: 7, w: { A:7, '2':7, '3':1, '4':7, '5':1, '6':4, '7':7, '8':7, '9':1, '10':7, J:0, Q:0, K:0 } },
   flat5:    { suits: 6, w: { A:5, '2':5, '3':5, '4':5, '5':5, '6':5, '7':5, '8':5, '9':5, '10':5, J:5, Q:5, K:0 } },
   classic:  { suits: 4, w: { A:4, '2':4, '3':4, '4':4, '5':4, '6':4, '7':4, '8':4, '9':4, '10':4, J:4, Q:4, K:4 } },
 };
@@ -353,6 +358,15 @@ function deckMaxBoardCells() {
   return ((r && r.max) || 7) * ((c && c.max) || 7);
 }
 function deckWeightStarved() { return deckWeightedSize() < deckMaxBoardCells(); }
+// Enough to DEAL a maxed board is not the same as enough to keep refilling one:
+// flushPlayedDeck only runs at a round's end, so a deck with little headroom leans
+// on the played pile all round. Classic ships at 52 against 49 cells and is fine,
+// so this is a note and not a refusal - spectrumMinDeck's cells + 8 is the figure
+// it is measured against.
+function deckWeightTight() {
+  const n = deckWeightedSize(), cells = deckMaxBoardCells();
+  return n >= cells && n < cells + 8;
+}
 
 function deckWeightedRanks() { return DECK_W_RANKS.filter(r => (deckWeights[r] | 0) > 0); }
 function deckWeightedSuits() { return SUITS_EIGHT.slice(0, Math.max(2, Math.min(8, deckWeightSuitCount))); }
@@ -538,6 +552,7 @@ function devRenderDeckDesign() {
     ['target',   'Target 5/11/2'],
     ['targetLo', 'Target on A-9'],
     ['allRanks', 'All 13 ranks'],
+    ['cap7',     'Max 7 + Ace'],
     ['r273',     'r273 9/2'],
     ['flat5',    'Flat 5'],
     ['classic',  'Classic 4'],
@@ -563,7 +578,9 @@ function devRenderDeckDesign() {
     const mark = (v, lo, hi) => v >= lo && v <= hi ? 'var(--c-mint)' : 'var(--c-coral)';
     const cells = deckMaxBoardCells();
     const bad = deckWeightStarved()
-      ? ` <span style="color:var(--c-coral)">needs ${cells}+ to fill a maxed board</span>` : '';
+      ? ` <span style="color:var(--c-coral)">needs ${cells}+ to fill a maxed board</span>`
+      : deckWeightTight()
+      ? ` <span style="color:var(--gold-dim)">tight at a maxed board (${cells} cells)</span>` : '';
     ws.innerHTML = `<b>${t.N} cards</b> \u00b7 ${t.ranks} ranks \u00b7 ${t.perSuit.toFixed(1)} per suit${bad}<br>`
       + `sets : runs <b style="color:${mark(sr, 0.58, 0.74)}">${sr.toFixed(2)}</b> <i>want 0.66</i>`
       + ` \u00b7 flushes : sets <b style="color:${mark(fs, 0.82, 1.05)}">${fs.toFixed(2)}</b> <i>want 0.90</i><br>`

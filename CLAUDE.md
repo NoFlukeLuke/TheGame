@@ -5608,6 +5608,63 @@ number of each shape on a 4x4 board, 9,000 deals per deck:
   STABLE-sorts by current load - **sorting with a random comparator is not a
   uniform shuffle**. Verified: 9 per suit, spread 0, on every preset.
 
+#### Why the heavy rank is ELEVEN, and what a cap costs (r320)
+
+Owner: *"having 11 seems like it could be so crazy, like what are the chances of
+having more than 5 on a board at a time?"* - and then, reduce the cap to 6 or 7 and
+put the Ace back. The instinct is right and the answer is a real constraint.
+
+**How often a heavy rank crowds the board** (hypergeometric, exact):
+
+| one rank | mean on board | P(>=5) | P(>=6) |
+|---|---|---|---|
+| **11 of 54, 4x4** | 3.26 | **17.8%** | 5.2% |
+| **11 of 54, 5x5** | 5.09 | **65.4%** | 39.0% |
+| 7 of 56, 4x4 | 2.00 | 1.6% | 0.1% |
+| Classic 4 of 52, 4x4 | 1.23 | 0.0% | 0.0% |
+
+So on a 5x5 board two thirds of deals really do hold five or more of one rank.
+
+**THE 11 IS PAYING FOR THE FLUSH RATIO, NOT THE SET RATIO, and that is why a cap
+cannot replace it.** `flush3` is about `S * C(N/S, 3)`, so at a fixed suit count it
+RISES with deck size - and the deck has to be big, because the grid reaches 7x7.
+Meanwhile a cap of `c` limits `set3` to `ranks * C(c, 3)`, and a deck of N cards can
+hold at most `N / c` ranks at the cap. Big deck plus low cap therefore means flushes
+swamp sets, whatever the adjacency does for runs.
+
+Searched exhaustively over repeating copy blocks, Ace required, flushes held within
+25% of sets, runs kept findable:
+
+| cap | deck size | board it is safe for | shapes | best set:run |
+|---|---|---|---|---|
+| 7 | 57-60 | 7x7 (49 cells) | **0** | - |
+| 6 | 57-60 | 7x7 | **0** | - |
+| 7 | 44-48 | 6x6 (36 cells) | **0** | - |
+| 7 | 49, 7 suits | deals 7x7 with no spare | some | **0.47** |
+| 7 | 33-40 | 5x5 (25 cells) | 3,779 | **1.00** |
+
+**A cap works beautifully on a SMALL deck and not at all on a large one.** At 36
+cards over 6 suits a cap of 7 reaches set:run 1.00; at 57+ it reaches nothing. So
+"cap the rank count" is really "cap the board size", and the max grid is 7x7.
+
+The **`cap7` preset** is the owner's shape shipped as an option rather than argued
+about: `A:7 2:7 3:1 4:7 5:1 6:4 7:7 8:7 9:1 10:7`, 49 cards, seven suits.
+**set:run 0.47 against the 0.66 target, flushes 1.14 of sets, and run5 19 against
+the default's 57** - straights become rare, which is the same trade the all-13-ranks
+preset makes. It crowds a board far less (P(>=5 of a rank) 3.0% against 17.8%).
+
+**`deckWeightTight()` is a NOTE, not a refusal.** Dealing a maxed board and
+refilling one all round are different asks - `flushPlayedDeck` only runs at a
+round's end - so a deck inside `cells + 8` (spectrumMinDeck's figure) leans on the
+played pile. **Classic ships at 52 against 49 cells and is fine**, so this is amber
+rather than red; the shipped 54 and the capped 49 both carry it.
+
+**A headroom test that fails CLASSIC is testing itself, not the deck.** A first pass
+scored and refilled by hand on a 7x7 board and reported 49 holes for the 54-card
+deck, the 49-card deck AND a Classic-equivalent 52/4 - it drained the pile by
+construction instead of going through the real refill. The r318 figure stands:
+`initGridData` fills all 49 cells with 0 holes.
+
 **KNOWN AND NOT DONE: this breaks `HAND_BASE` pricing, and by more than r273 did.**
 Four of a Kind is available on 20% of 4x4 boards against 1% today, and 68% of
 7x7 boards; Full House goes the same way. Both are priced as rare hands. The

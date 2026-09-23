@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r319 · OPEN_DECISIONS: the weighted deck reprice, and what tools/sim can and cannot measure";
+const BUILD = "2026-09-23 · r320 · deck editor: a Max 7 + Ace preset, and why a cap cannot reach the ratio";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
