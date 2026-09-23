@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r317 · heavy-preview: the knocks softened, the Vegas coin rebuilt as a purse";
+const BUILD = "2026-09-23 · r318 · the weighted deck retuned: sets two thirds of runs, flushes level, straights kept [onto r317]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

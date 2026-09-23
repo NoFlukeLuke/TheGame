@@ -5506,6 +5506,118 @@ Chips for every value and every colour; turning some off shrinks the deck. **Cha
 - `startGame` reads the tuner through `spectrumInstallLists()`, so a new run picks up the current tuning immediately. Selections persist in `localStorage` (`lethe.spectrum.tune.v1`).
 - **A toggle that would starve the board is refused** (`spectrumMinDeck()` = grid cells + 8, and never fewer than 3 values / 1 colour). Without that the deck can run dry and refills hand back `null`, filling the grid with holes.
 
+## Deck design (r269-r318) - `js/deck-design.js`
+
+**The one place the deck's SHAPE is decided, for every model except Spectrum.**
+`deckModelNow()` answers which model is live and `freshShuffledDeck()` dispatches
+on it: `weighted` -> `buildWeightedDeck()`, `six` -> `buildDesignedDeck()`, else
+the ordinary rank x suit cross product. Dev panel -> **Deck**.
+
+| model | deck |
+|---|---|
+| `mode` | whatever the mode says (the default; nothing below is on) |
+| `classic4` | 4 suits x 13 ranks, 52 |
+| `six` | six suits, one cut rank, copies per rank (r269/r271) |
+| `weighted` | copies chosen PER RANK (r273, retuned r318) |
+
+- **Spectrum can never be overridden.** Its deck is welded to `ACTIVE_MODE.numeric`,
+  so `deckModelNow()` returns `'spectrum'` before it looks at `deckModel` at all.
+- **`deckDesignOwnsDeck()` is what stops the generic `expectedDeckTotal` line
+  stamping over a built deck.** The audit counts ranks x suits, which is not what
+  either built model holds; miss it and every run reports a third of its deck
+  permanently missing.
+- **`rankRunVals(rank)` is the ONE source of a rank's run values** and returns
+  `[]` for an off-ladder rank, so every run test fails for free rather than each
+  one needing a special case. `js/hand-detect.js` reads it in `tryRunCombos`, and
+  `deckLadderKey()` is in the `handComponentsFor` cache key - a rule that changes
+  the answer must be in that key or a cached entry is reused (the r201 lesson).
+- **The run ORDER rule** (`runOrderRule`, default `off`) is a separate dev toggle:
+  `off` takes any connected group, `grow` wants each next-highest card touching
+  something already placed, `path` wants a single snake in rank order. `runOrderKey()`
+  is in the cache key too.
+- Settings persist under `DECK_DESIGN_KEY`. **Bump that key when a shipped default
+  changes** or nobody who has already played receives it - a stored value beats a
+  default. It is at `v3`.
+
+### The weighted deck (r273, retuned r318) - separating sets from runs
+
+**A uniform deck cannot do it, and that is provable rather than a matter of
+tuning.** For R ranks at C copies each, `set3 = R * C(C,3)` and
+`run3 = (R-2) * C^3`, so their ratio is `(C-1)(C-2) / 6C^2` - 0.08 at C=5, 0.12
+at C=10, approaching **1/6 as C grows**. Both terms are cubic in the same number,
+so every knob that raises one raises the other. Sets can only reach two thirds of
+runs if the copy count stops being uniform.
+
+**A set needs k copies of ONE rank; a run needs one copy each of k ADJACENT
+ranks.** So the dial is **whether the heavy ranks TOUCH**. Heavies spread apart
+and every run window is forced through a scarce rank, which caps runs while the
+heavies pile up sets on their own; heavies adjacent and some windows are
+heavy x heavy x light, so runs climb with sets and stay ahead. That one fact is
+the whole distance between r273's default (sets 1.18x runs - it overshot) and
+r271's (0.11).
+
+**Measure COUNTS, not availability.** Availability saturates: at 4x4 every
+candidate offers a Pair, a Flush of 3 and a Run of 3 on ~100% of boards, so
+presence cannot tell two decks apart and is not what "as common as" means. What a
+player feels is how many separate sets / runs / flushes are on the board to
+choose between, and that number tracks the deck's own density closely. The
+editor's readout leads with the two ratios for the same reason.
+
+**The r318 default** is 5 / 11 / 2 copies repeating over nine ranks, 5 up to K,
+six suits, **54 cards**. Measured through the real `freshShuffledDeck()`, average
+number of each shape on a 4x4 board, 9,000 deals per deck:
+
+| per board | Classic 52 | r271 six-suit | r273 weighted | r318 |
+|---|---|---|---|---|
+| Run of 3 | 1.80 | 1.69 | 0.86 | **1.63** |
+| Three of a Kind | 0.12 | 0.18 | 1.01 | **1.10** |
+| Flush of 3 | 2.69 | 1.09 | 1.02 | **1.08** |
+| sets : runs | 0.07 | 0.11 | 1.18 | **0.67** |
+| flushes : sets | 21.82 | 6.13 | 1.01 | **0.98** |
+
+- **Long runs had to survive, and that decided the shape.** Straights ARE runs, so
+  lifting sets by flattening the ladder does not serve a run-first brief. Run of 4
+  per board is 1.42 here against Classic's 1.18, and a Straight is available on
+  **37%** of boards - level with Classic's 36%, better than r271's 28%. The
+  all-13-ranks preset is the counter-example: it hits the same ratios and takes
+  straights from 37% to 16%, because with two heavies in thirteen ranks most
+  five-windows are all-light.
+- **A DECK MUST FILL THE BIGGEST BOARD THE RUN CAN GROW INTO.** `freshShuffledDeck`
+  runs once per run, the grid reaches 7x7 = **49 cells**, and r273's default was
+  **48 cards** - measured at 7x7, 120 of 120 deals came up short and the board
+  dealt with holes. `deckMaxBoardCells()` reads `LIMITS_DEF`, never the live
+  `gridRows`/`gridCols` (the `clampRowColBonuses` rule: four things shrink the live
+  board temporarily), and `deckWeightStarved()` is what the editor warns on.
+- **Which nine ranks is a CONTENT decision, not a maths one.** Nine consecutive
+  ranks score identically wherever they sit (no ace-high wrap either way -
+  measured 0.67/0.98 against 0.69/0.95, inside the noise). What differs is which
+  Tricks die: dropping J/Q/K kills seven and makes **Little Guys** - "no face
+  cards" - fire for FREE, which is worse than dead and is the exact trap
+  `NUMERIC_BANNED_TRICKS` documents for Spectrum. Dropping A-4 kills three. Hence
+  5 up to K. It puts average pips at 8.22 against Classic's 7.31 (the Ace is
+  worth 11, not 1), where the same copies on A-9 sit at 5.76.
+- **A PRESET CARRIES ITS SUIT COUNT.** Flush difficulty is cards-per-suit, so the
+  copies alone do not describe a deck: "Classic 4" with the suit dial left on six
+  built 52 cards over six suits, which is neither the deck the label promises nor
+  level across them.
+- **Suits are balanced but WHICH suit takes a spare is random.** A rank with more
+  copies than suits must double up (11 over 6 is 1,2,2,2,2,2), so "one of each" is
+  off the table; what is on the table is keeping the per-suit TOTALS level, or one
+  suit's flushes would be easy and another's impossible while the deck size said
+  nothing. `assignSuitsBalanced` shuffles the suit indexes uniformly and then
+  STABLE-sorts by current load - **sorting with a random comparator is not a
+  uniform shuffle**. Verified: 9 per suit, spread 0, on every preset.
+
+**KNOWN AND NOT DONE: this breaks `HAND_BASE` pricing, and by more than r273 did.**
+Four of a Kind is available on 20% of 4x4 boards against 1% today, and 68% of
+7x7 boards; Full House goes the same way. Both are priced as rare hands. The
+reprice is parked by the owner. When it happens it belongs in
+`applyModeHandValues()` - the existing per-mode hook - so prices follow the active
+deck, since `handBasePips()`/`handBaseMult()` are already the one chokepoint every
+reader goes through. **This is why the weighted deck is a dev toggle and not a
+mode default**, and why `deckModel` defaults to `'mode'`: with it unset nothing in
+the shipped game changes.
+
 ## Which modes are listed (r218)
 
 `MODE_SELECT_LIST` is the carousel; `MODE_HIDDEN_LIST` (`match3`, `zen`, `dominoes`) is built but not shown. They are experiments on a different loop - Match-3 plays its own matches and **has no boss wiring at all**, Dominoes is beta - and listing them beside the real modes invited a player to start one expecting the game the other seven modes are.
