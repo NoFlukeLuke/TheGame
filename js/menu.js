@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r318 · the weighted deck retuned: sets two thirds of runs, flushes level, straights kept [onto r317]";
+const BUILD = "2026-09-23 · r319 · OPEN_DECISIONS: the weighted deck reprice, and what tools/sim can and cannot measure";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

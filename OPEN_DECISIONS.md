@@ -185,3 +185,52 @@ purely a BALANCE question:**
 So an inverted rung no longer costs the player a card or a hand - it only means the short
 hand pays more when they choose to play it, which is r198 behaving as designed. Whatever
 the table is tuned to, both guards hold.
+
+## 8. The weighted deck's hand prices (r318) - parked by the owner
+
+`js/deck-design.js`'s weighted deck was retuned in r318 to the owner's brief (runs
+most common, sets about two thirds of runs, flushes level with sets) and hits it:
+measured through the real `freshShuffledDeck()` over 9,000 deals, **1.63 runs /
+1.10 sets / 1.08 flushes per 4x4 board - 0.67 and 0.98**.
+
+**What is parked is the REPRICE**, at the owner's word ("wait on the reprice"). The
+deck concentrates copies on a few ranks, so the hands built out of one rank get far
+more common than `HAND_BASE` is priced for:
+
+| available on a 4x4 board | Classic | r318 weighted |
+|---|---|---|
+| Four of a Kind | 1% | **20%** |
+| Four of a Kind (7x7) | 3% | **68%** |
+
+Both are priced as rare hands. **The reprice belongs in `applyModeHandValues()`** -
+the existing per-mode hook - so the prices follow the ACTIVE DECK, since
+`handBasePips()` / `handBaseMult()` are already the one chokepoint every reader goes
+through (r179). That also answers the owner's question about switching decks
+switching prices: it comes free from putting it there.
+
+**Nothing is live.** `deckModel` defaults to `'mode'`, so the shipped game is
+untouched until the dev toggle is set. That is why this is a decision and not a bug.
+
+### A measurement caveat for whoever picks this up: `tools/sim` has very wide spread
+
+Trying to measure the deck through the r278 Monte Carlo bot produced **three
+different answers for one configuration** (median end level 13/19/17, then 20/17/16,
+then 24/23/22) purely by raising the sample size. Before trusting a number from it:
+
+- **Runs ARE independent - that was checked, not assumed.** Probing start-of-run
+  state over 16 runs in one context: level, goal, active hands, tray, knacks,
+  granted Sleights, draw pile, Natural Scaling, entity tiers and all seven limits
+  are **identical on every run**. `startGame` resets everything it should.
+- **It is NOT load-sensitive**, despite faking hand duration off the real wall clock
+  (`lastHandTime = Date.now() - handTime*1000`). Forcing a 1.7x slowdown moved
+  round-1 deaths 7% -> 10% and the median 19 -> 20. The clock only reaches Quick
+  Draw; `generateHandFocus` is passed a literal 0 for the time.
+- **What it is, is WIDE.** End levels run from 1 to 25 on one deck and one config.
+  A win rate over 25 runs is mostly reporting how many early deaths landed in that
+  sample.
+- **Split round-1 deaths out before comparing anything.** A run that fails the first
+  round says nothing about a deck; it drags the mean somewhere no real run sits.
+  Cleanest reading obtained (60 runs per deck, one process, nothing else running):
+  median level among runs that cleared round 1 was **22 for the r318 deck against 19
+  for Classic**, worst run 14 against 2 - consistent with the pricing break above,
+  and the direction to expect from a deck paying rare-hand prices for common hands.
