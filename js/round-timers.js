@@ -134,6 +134,7 @@ function startRoundTimer() {
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.
     if (typeof cardStatesTick === 'function') cardStatesTick();
+    if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)
     // The Woodpecker (r348): every interval a new random card is marked, replacing

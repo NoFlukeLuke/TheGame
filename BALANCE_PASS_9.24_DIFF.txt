@@ -96,11 +96,3 @@ Treat richter exactly like full_house_streak below.
 [magnet] notes
   owner: redo the animation for this so that you can visibly see the other ranks flying into the new location. also, show the cards next to magnet, along with magnet, being discarded. this does not count toward the time or stock cost of discards, but for cards that scale with discards, these discards do count. so if it replaces the magnet and 4 cards, that would count as 4 seperate discards for other scaling entitites.
   (was:  structural — no tunable value)
-
-[reflect] description
-  owner: Tap to rotate its aim. The rank it faces replays 2× when scored. Cannot be swapped discarded or played.  Discards itself after 60s.
-  (was:  Tap to rotate its aim. The rank it faces replays 2× when a hand scores. Works once per round. Cannot be swapped or discarded.)
-
-[soul_mirror] description
-  owner: Tap to rotate its aim. When the rank it faces is scored, it replays once for each count of that rank in the deck. Cannot be swapped, discarded, or played.
-  (was:  Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.)

@@ -87,7 +87,6 @@ let reflectUsedThisRound = false;   // cleared in the round-start sweep
 // not yet fired this round. The (r, c) arguments are kept for call-site
 // compatibility - it is the rank that decides now, not the position.
 function reflectAimsAt(r, c) {
-  if (reflectUsedThisRound) return false;
   const rank = reflectAimedRank();
   if (rank === null) return false;
   const card = gridData[r]?.[c];
@@ -95,6 +94,7 @@ function reflectAimsAt(r, c) {
 }
 // Called from playHand once a hand that used Reflect has committed.
 function reflectSpendForRound(cells) {
+  return false;   // r355: no once-per-round lock any more (Reflect times out instead)
   if (reflectUsedThisRound) return false;
   const rank = reflectAimedRank();
   if (rank === null) return false;
@@ -119,7 +119,29 @@ function soulMirrorRankCount(rank) {
       if (tc && tc.rank === rank) mirrors++;
     }
   if (!mirrors) return 0;
-  return mirrors * rankCountOnGrid(rank);
+  return mirrors * rankCountInDeck(rank);
+}
+// r355: Soul Mirror counts the rank across the WHOLE deck - board and both piles.
+function rankCountInDeck(rank) {
+  let n = rankCountOnGrid(rank);
+  [...drawPile, ...playedPile].forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank === rank) n++; });
+  return n;
+}
+// Reflect (r355) leaves the board on its own after BAL.reflect.board_seconds on
+// it, cycling back into the deck. Counted on the card, so a copy that cycles
+// back starts fresh. Called from the round tick; skips while cards are moving.
+function reflectTimeoutTick() {
+  if (animating || falling) return;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd?._isSleight || cd.sleightId !== 'reflect') continue;
+    cd._boardSecs = (cd._boardSecs || 0) + 1;
+    if (cd._boardSecs < BAL.reflect.board_seconds) continue;
+    discardToPlayed(cd);
+    showMessage('🪞 Reflect leaves the board', 'var(--cream-dim)');
+    removeAndFall([[r, c]], 'discard');
+    return;
+  }
 }
 // How many cards of this rank are on the board right now (sleights/stones excluded).
 function rankCountOnGrid(rank) {

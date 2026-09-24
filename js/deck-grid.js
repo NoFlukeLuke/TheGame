@@ -715,7 +715,7 @@ function discardToPlayed(card) {
   // accept it or the card is deleted from the run when the fall nulls its cell.
   // The cycled copy is a fixed field list, so _inert is dropped and it comes back
   // movable, with whatever charges it still held.
-  if (!cardCan(card, 'discard') && !(card && card._isSleight && card._inert)) return;
+  if (!cardCan(card, 'discard') && !(card && card._isSleight && (card._inert || card.sleightId === 'reflect'))) return;
   // Sleights cycle back into the deck preserving identity & remaining charges
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {

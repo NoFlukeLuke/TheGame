@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r354 · Wanderer lets any two cards swap, Warehouse counts as two cards of a flush";
+const BUILD = "2026-09-24 · r355 · Reflect fires every hand and leaves after 60s, Soul Mirror counts the whole deck";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
