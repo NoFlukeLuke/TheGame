@@ -199,9 +199,10 @@ const HAND_BASE = {
 
 // ── The short label the HUD prints beside the hand preview (r198) ──
 // Two lines, family over size, because the desktop panel gives it a 6%-wide
-// column: "RUN / 3" fits where "Run of 3" does not. A layered hand prints one of
-// these per layer, stacked. Straight Flush is both families at once, so it says
-// so rather than picking one.
+// column. A numeric size is printed as "OF N" by handLabelHTML (owner spec,
+// r333: "SET / OF 3", "RUN / OF 4", "TWO / PAIRS" - words never broken). A
+// layered hand prints one of these per layer, stacked. Straight Flush is both
+// families at once, so it says so rather than picking one.
 const HAND_LABEL = {
   'Run of 3':        { fam:'RUN',   size:'3' },
   'Run of 4':        { fam:'RUN',   size:'4' },
@@ -210,9 +211,9 @@ const HAND_LABEL = {
   'Flush of 4':      { fam:'FLUSH', size:'4' },
   'Flush':           { fam:'FLUSH', size:'5' },
   'Pair':            { fam:'SET',   size:'2' },
-  'Two Pair':        { fam:'SET',   size:'2+2' },
+  'Two Pair':        { fam:'TWO',   size:'PAIRS' },
   'Three of a Kind': { fam:'SET',   size:'3' },
-  'Full House':      { fam:'SET',   size:'3+2' },
+  'Full House':      { fam:'FULL',  size:'HOUSE' },
   'Four of a Kind':  { fam:'SET',   size:'4' },
   'Straight Flush':  { fam:'RUN 5', size:'FLUSH' },
   'Flush of 6':      { fam:'FLUSH', size:'6' },

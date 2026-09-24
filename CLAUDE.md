@@ -8069,6 +8069,35 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r334 - the pick re-centres, the read goes WIDE, the hand label is words
+
+Owner follow-ups on r326; the two superseded r326 bullets are marked below.
+
+- **The portrait pick board is CENTRED again** (r326's gpPortraitDrop is gone -
+  the owner read the foot-of-slot board as the pick sitting too low). The read
+  still opens ABOVE the tile; what makes it fit the smaller centred top margin
+  is **`wide: true`** on the tooltip: `#entity-tip.et-wide .et-card` is
+  `min(392px, 96vw)` (css/tooltip.css), and a broader card is a SHORTER card.
+  Measured at 420x820: board 400-645 in a 301-744 slot, bubble 392x67 at
+  325-392 - entirely inside the board's own top margin, 0 px on any tile.
+  `wide` is set per call in gpShowRead (portrait only) and cleared by every
+  other showEntityTooltip call, so nothing else widens.
+- **The word "HAND" is off the screen** (owner: no text that says "hand" all
+  the time): the dance row's vertical `Hand` caption (mkRow('', 'hand') +
+  `.dnc-lab:empty{display:none}`) and BOTH idle "HAND" watermarks on the
+  preview are gone. The hand-name label is the panel's caption now. The
+  KNACKS / TRICKS watermarks stay - nothing else names those panels.
+- **The label breaks between WORDS, never inside one**: `handLabelHTML` prints
+  a numeric size as `OF N` ("SET / OF 3", "RUN / OF 4") and `HAND_LABEL` gained
+  word rows - Two Pair is **TWO / PAIRS**, Full House **FULL / HOUSE** (display
+  strings only; ids frozen, TERMINOLOGY's rule). Measured in the landscape
+  column: TWO PAIRS at 0 overflow on both axes.
+- **The portrait chip is VERTICALLY CENTRED at the preview's left edge**,
+  stacked like landscape, on a translucent plate (supersedes r326's top-left
+  pill). When a full hand reaches that far left the chip overlays the card and
+  stays legible - the owner's stated fallback. Verified mid-dance at 420x820:
+  SET / OF 3 centred beside the cards, z 61 over the dance's 60.
+
 ## r326 - gestures, sleight feedback, the pick reads above itself
 
 - **The pick-of-three MUFFLE is off** (`survivalSyncPickAudio`, js/survival.js).

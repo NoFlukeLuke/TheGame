@@ -1235,7 +1235,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
     const items=document.createElement('div'); items.className='dnc-items';
     row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
-  const handItems=mkRow('Hand','hand');
+  const handItems=mkRow('','hand');   // no caption (r333) - the hand-name chip beside the cards is the label now
   const handTrack=document.createElement('div'); handTrack.className='dnc-track'; handItems.appendChild(handTrack);
   // Reuse the SAME grid-accurate markup the hand preview uses (renderCardAppearance), so cards
   // don't visually change when the dance starts (and the fly-in clone lands as an identical card).

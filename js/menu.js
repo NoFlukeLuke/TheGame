@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r333 · r326 gestures/sleight-feedback/all-suit-flush merged onto r332 board persistence";
+const BUILD = "2026-09-24 · r334 · pick re-centred with a wide read above it, hand label in words (SET/OF 3, TWO/PAIRS), HAND captions gone";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -830,37 +830,24 @@
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-row.hand { min-height: 0; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .r { font-size: 21px; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .s { font-size: 16px; }
-  /* Portrait: the label is an OVERLAY PILL pinned to the preview's top-left,
-     never a flex child (r326). As an in-flow child of the 92px strip it carried
-     overflow:hidden, whose automatic minimum size is 0 - so the moment the
-     dance filled the strip the label was squeezed to ZERO HEIGHT and the hand's
-     name vanished for the whole tally. Absolute takes it out of that fight;
-     the plate keeps it legible where it clips a card's corner, and z-index 61
-     beats the dance's 60 exactly as landscape's rule does. #hand-preview-area
-     is already position:relative (the HAND watermark needs it). */
-  #stage:not(.landscape) #hand-name { position: absolute; top: 1px; left: 3px; z-index: 61;
-    font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96%;
-    background: rgba(10,9,6,0.78); border: 1px solid rgba(244,236,214,0.18); border-radius: 4px; padding: 1px 5px;
+  /* Portrait: the label is a CHIP, VERTICALLY CENTRED at the preview's left
+     edge (r333, owner spec), never a flex child - in flow the 92px strip's
+     overflow:hidden squeezed it to ZERO HEIGHT the moment the dance filled it.
+     It stacks the same two lines as landscape ("SET / OF 3", "TWO / PAIRS" -
+     handLabelHTML breaks between whole words, never inside one) on a
+     translucent plate, so when a full 5-card hand reaches this far left the
+     chip simply overlays the card and stays legible (the owner's stated
+     fallback). z-index 61 beats the dance's 60. */
+  #stage:not(.landscape) #hand-name { position: absolute; top: 50%; left: 3px; transform: translateY(-50%);
+    z-index: 61; font-size: 9px; line-height: 1.25; text-align: center; overflow: hidden; max-width: 46%;
+    background: rgba(10,9,6,0.62); border: 1px solid rgba(244,236,214,0.16); border-radius: 5px; padding: 2px 5px;
     pointer-events: none; }
   #stage:not(.landscape) #hand-name:empty { display: none; }
-  #stage:not(.landscape) #hand-name .hn-l,
-  #stage:not(.landscape) #hand-name .hn-l b,
-  #stage:not(.landscape) #hand-name .hn-l i,
-  #stage:not(.landscape) #hand-name .hn-plus { display: inline; }
-  #stage:not(.landscape) #hand-name .hn-l b::after { content: '\00a0'; }
-  #stage:not(.landscape) #hand-name .hn-plus { margin: 0 3px; }
-  /* The preview is deliberately inert until a hand is SUBMITTED (r99) - it is the
-     scoring stage, not a live selection readout - so idle it is empty. Landscape
-     fills that emptiness with a faint HAND watermark; portrait needs it too, or
-     swapping to the preview half looks like a broken panel. :empty hides it the
-     moment the dance drops cards in, so there is no z-index fight. */
+  #stage:not(.landscape) #hand-name.hn-layered { font-size: 7px; line-height: 1.15; }
+  /* The HAND watermark is GONE (r333, owner call: no text that says "hand" all
+     the time). The hand-name chip anchored to this panel is the label now.
+     position:relative stays - it is what the chip anchors to. */
   #stage:not(.landscape) #hand-preview-area { position: relative; }
-  #stage:not(.landscape) #selected-cards:empty::before {
-    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 5px; font-size: 20px;
-    color: rgba(244,236,214,0.07); text-transform: uppercase;
-  }
   #stage:not(.landscape) #selected-cards { position: relative; width: 100%; }
 
   /* Trick tray - its tiles were rendering at grid-card size and overflowing the
@@ -5137,14 +5124,7 @@
     color: rgba(244,236,214,0.06); text-transform: uppercase;
   }
   #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
-  /* Hand-preview box: faint "HAND" watermark when idle; :empty hides it the moment the
-     scoring dance drops cards in, so no z-index fight. (r99) */
-  #stage.landscape #selected-cards:empty::before {
-    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 9px; font-size: 40px;
-    color: rgba(244,236,214,0.06); text-transform: uppercase;
-  }
+  /* The HAND watermark is gone here too (r333) - #hand-name is the label. */
 
   /* ── Focus meter → recessed power gauge, continuous fill (r96) ── */
   #stage.landscape #focus-meter-wrap { width: 6.4%; gap: 5px; overflow: visible; }
@@ -5866,7 +5846,6 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      rather than being clipped into nonsense. */
   #stage.landscape.shop-squish #knack-carousel-wrap::before { font-size:14px; letter-spacing:3px; }
   #stage.landscape.shop-squish #trick-tray-area::before     { font-size:28px; letter-spacing:5px; }
-  #stage.landscape.shop-squish #selected-cards:empty::before { font-size:22px; letter-spacing:4px; }
 
   /* the arrow tab ───────────────────────────────────────────────────────── */
   /* Sits on the column's outer edge and rides with it, so it always reads as

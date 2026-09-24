@@ -78,6 +78,10 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   const rar  = ET_RARITY_COLOR[p.rarity] ? p.rarity : (ET_RARITY_COLOR[p.tier] ? p.tier : 'common');
   const desc = p.desc || '';
 
+  // `wide` (the portrait pick, r333): a broader card is a SHORTER card, which is
+  // what lets the read sit in the centred board's top margin instead of pushing
+  // the board itself to the slot's foot to make room.
+  el.classList.toggle('et-wide', !!opts.wide);
   el.style.setProperty('--rc', `var(${ET_RARITY_COLOR[rar]})`);
   el.querySelector('.et-name').textContent = p.label || p.name || '';
   el.querySelector('.et-rar').textContent  = tierLabel(p.type || p.entity, rar);
