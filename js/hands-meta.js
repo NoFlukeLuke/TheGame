@@ -11,10 +11,10 @@ const HAND_DEFS = {
 
 // Relevant bonuses to offer per hand unlock
 const UNLOCK_TRICK_POOL = {
-  run4:         ['overgrowth','fertile_ground','early_bird'],
-  pair:         ['kindred','trinity','double_bloom'],
+  run4:         ['overgrowth','early_bird'],
+  pair:         ['kindred','double_bloom'],
   twopair:      ['pair_pips','two_pair_mult','kindred'],
-  straight:     ['worn_path','long_road','river_run','correct_run'],
+  straight:     ['long_road','river_run','correct_run'],
   flush:        ['enriched','tidal_force','deluge'],
   fullhouse:    ['hidden_triple','kindling','wildfire'],
   straightflush:['enriched','tidal_force','full_color','tide_table'],

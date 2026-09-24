@@ -23,7 +23,16 @@
 // elements here would be a second card renderer to keep in step with
 // `renderCardAppearance`; this only animates what the renderer produced.
 //
-// ── THE BOARD IS REALLY GONE BY THEN, SO THE PICK CARRIES A SNAPSHOT ────────
+// ── SINCE r332 THE BOARD PERSISTS, AND THE SNAPSHOT STILL EARNS ITS KEEP ────
+// boardPersists() made the round-end fall presentation only, so gridData really
+// does still hold every card when the pick opens: pickRestoreBoard finds each
+// cell already filled and no-ops, and pickClearBoard only nulls cells it put
+// back, so it no-ops too. The snapshot is now a LIST OF CANDIDATES rather than a
+// rescue, and Remove lands entirely on its `gridData[r][c] = null` - the pile
+// splice finds nothing, because the card is on the board and not in a pile. The
+// paragraph below is the pre-r332 reasoning and is kept for the trap it records.
+//
+// ── THE BOARD WAS REALLY GONE BY THEN, SO THE PICK CARRIES A SNAPSHOT ───────
 // The obvious reading - "the finale removes the card DOM while gridData still
 // holds every card" - is true of the SCORING FINALE and NOT of the interlude.
 // `showLevelUpScreen_fallOnly` runs before the payout and does the real thing:

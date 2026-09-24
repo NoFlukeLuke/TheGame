@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r326 · right-drag discard, swap-button swap, Magnet double-tap fixed, Pivot 8-way swaps, all-suit flush overlay, sleight particles, pick reads above";
+const BUILD = "2026-09-24 · r333 · r326 gestures/sleight-feedback/all-suit-flush merged onto r332 board persistence";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

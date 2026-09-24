@@ -127,8 +127,14 @@ function renderCardAppearance(card, r, c, {
   // what makes 9/10/11 render white while keeping their own identity underneath.
   const _faceSuit = cardColorSuit(card);
   const isNum = isColorSuit(_faceSuit);
+  // A WILD RIDES THE ORDINARY CARD PATH, not an early return like the stone and
+  // the Sleight. It is a real deck card: it is selected, swapped, discarded,
+  // cursed, buffed and marked like any other, so it wants every decoration this
+  // path already draws. Only the face differs - one class and the rank/suit block.
+  const isWild = (typeof isWildCard === 'function') && isWildCard(card);
   const className = [
     'card',
+    isWild ? 'wild-card' : '',
     isNum ? 'num-card' : '',
     suitClass(_faceSuit),
     isSel        ? 'selected'    : '',
@@ -160,7 +166,12 @@ function renderCardAppearance(card, r, c, {
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
-    ${(typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog))
+    ${isWild
+        // The Fog hides RANKS, and a wild has none to hide - so it is drawn in
+        // full even under the Fog rather than reading as a '?' the player would
+        // have to select to identify.
+        ? `<div class="wild-glyph">${WILD_RANK}</div><div class="wild-label">${WILD_NAME.toUpperCase()}</div>`
+      : (typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog))
         ? (isNum ? `<div class="rank num-rank fog-rank">?</div>`
                  : `<div class="rank fog-rank">?</div><div class="suit">${card.suit}</div>`)
         : (isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`

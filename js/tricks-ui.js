@@ -83,7 +83,7 @@ function updateLUClockUI() {
 function pickTrickOptions(n) {
   const pool = [...TRICK_POOL];
   // Don't offer already acquired bonuses (except stackable ones)
-  const stackableIds = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
+  const stackableIds = ['rich_soil','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   const filtered = pool.filter(b => !acquiredTricks.some(a => a.id === b.id && !stackableIds.includes(b.id)));
   // This held a THREE-tier bag written before `epic` existed, so epic fell through
   // to weight 1 and carried the same per-entity odds as legendary. Main's shared
@@ -137,22 +137,18 @@ function trickLiveDesc(trick) {
       case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);
       case 'tens_mult':      return now(`+${bonusMult_tens || 0} mult`);
       case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(1)} mult`);
-      case 'prolific':       return now(`+${bonusPips_prolific || 0} pips`);
       case 'acorns':         return now(`+${Math.floor(bonusFocus_acorns || 0)} Focus/hand · ${(bonusFocus_acorns || 0).toFixed(2)} stored`);
       case 'plan_ahead':     return now(`+${Math.max(1, Math.round((handsPlayedGame || 0) / Math.max(1, level)))} Focus every 3rd hand`);
       case 'more_better':    return now(`+${bonusMult_morebetter || 0} mult`);
       case 'wild_side':      return now(`+${(negativeTilesTakenRun || 0) * (B.wild_side?.mult_per ?? 3)} mult`);
       case 'wait_for_it':    return now(`${Math.round((negativeTilesTakenRun || 0) * (B.wait_for_it?.chance_per ?? 0.02) * 100)}% replay chance`);
-      case 'big_win':        return now(`+${bonusMult_jackpot || 0} mult`);
-      case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
+      case 'feng_shui':      return now(`+${(B.feng_shui?.pips ?? 3) + (bonusPips_fengshui || 0)} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);
       case 'summit':         return now(`level ${level}`);
-      case 'rising_tide':    return now(`+${level - 1} mult`);
-      case 'veteran_bonus':  return now(`+${(level - 1) * (B.veteran_bonus?.pips_per_level ?? 2)} pips`);
-      case 'hummingbird':    return now(`+${(pauseInstanceGame || 0) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
+      case 'rising_tide':    return now(`+${B.rising_tide.mult + (level - 1) * B.rising_tide.mult_per} mult`);
+      case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(`+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
-      case 'stand_up':       return now(`+${sleightChargeInfo().total * (B.stand_up?.pips_per_charge ?? 10)} pips`);
-      case 'scalper':        return now(`×${(1 + (B.scalper?.pip_mult_per_missing ?? 0.2) * sleightChargeInfo().missing).toFixed(2)} pips`);
+      case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
       case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);
@@ -165,9 +161,8 @@ function trickLiveDesc(trick) {
       case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / 10)} mult`); }
       case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
       case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / B.sands_of_time.divisor)} pips`);
-      case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.pips_per_discard} pips`);
-      case 'landfill':       return roundNow(`+${Math.floor((cardsDiscardedRound || 0) / B.landfill.discards_per) * B.landfill.mult_per_n} mult`);
-      case 'escalation':     { const _h = (handsPlayedRound || 0) + 1; return roundNow(`+${_h > B.escalation.after_hands ? _h * B.escalation.mult_per_hand : 0} mult`); }
+      case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.mult_per} mult`);
+      case 'landfill':       return roundNow(`+${((discardsUsedRound || 0) + (swapsUsedRound || 0)) * B.landfill.mult_per} mult per card`);
       case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
       default: return base;
     }
@@ -343,6 +338,11 @@ function refuseTrickCapacity() {
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the
+  // Sleight draw queue. The intercept always ensures the corner toggle exists;
+  // in queue view it renders the queue and this function stands down - so every
+  // caller repaints whichever face is showing.
+  if (typeof trayQueueIntercept === 'function' && trayQueueIntercept()) return;
   // A newly GAINED Trick should land somewhere visible. In portrait the Tricks
   // view shares the strip with Knacks and the preview, so flip to it when the
   // count grows. Tally updated BEFORE the flip: setPortraitPanelView re-enters

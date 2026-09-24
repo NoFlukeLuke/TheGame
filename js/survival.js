@@ -84,7 +84,7 @@ const SURVIVAL_GRID_OFFER = {
 const SURVIVAL_GUARANTEE_GAP = 3;     // 0,1,2 dry → force on the 4th (gap>=3)
 
 // Tricks that stack, so they may be offered even when already owned (mirrors pickTrickOptions).
-const SURVIVAL_STACKABLE_TRICKS = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
+const SURVIVAL_STACKABLE_TRICKS = ['rich_soil','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
 
 // ── Per-run state ──
 let survivalBossTimeBank      = 0;   // leftover seconds accumulated toward the next boss
@@ -156,6 +156,7 @@ function survivalInitRun() {
   survivalEndlessFromLevel = Infinity;
   survivalGridPickCarry    = false;
   svGoalCells              = null;
+  if (typeof flowrResetRun === 'function') flowrResetRun();
   bossNumber               = 0;
   bossBag                  = [];
   actBossId                = null;   // Survival/Flow draw at trigger time (r238)
@@ -399,6 +400,9 @@ function survivalUpdateRerollBtn() {
   // on a button. Called from js/hud.js, the Mart and the shop whenever credits
   // move while the pick is up.
   if (typeof gridPickState === 'undefined' || !gridPickState) return;
+  // A chain step that is not the ordinary pick owns its own action row - stamping
+  // survival's four over it would put Peek/Shop on a limits screen (r325).
+  if (typeof flowrOwnsScreen === 'function' && flowrOwnsScreen()) return;
   gridPickRefresh(null, survivalPickActions());
 }
 
@@ -406,6 +410,10 @@ function survivalUpdateRerollBtn() {
 // cards fly into the preview) and from the post-boss reward. Does NOT advance the
 // level - the deal happens when the player chooses (survivalChoose).
 function survivalShowPick(bonus = false, kicker) {
+  // Flow's multi-reward chain (js/flow-rewards.js, r325): a goal clear can pay
+  // several screens. When it takes over it plays the counter card and shows
+  // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.
+  if (!bonus && typeof flowrMaybeStart === 'function' && flowrMaybeStart()) return;
   animating = false;
   trickSelectionPhase = false;
   survivalBonusPick = !!bonus;
@@ -526,6 +534,9 @@ function survivalChoose(i) {
     return;
   }
   survivalGrant(opt);
+  // Mid-chain (Flow multi-reward, r325): the next screen opens instead of the
+  // level-up, which runs ONCE at the chain's end (flowrFinish).
+  if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
   // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
   survivalSkipCarryover = survivalBonusPick;
   survivalBonusPick = false;
@@ -568,13 +579,24 @@ function survivalSpreadFreeze() {
 }
 
 // Move current board cards back into the deck so a fresh deal can't deplete it.
+//
+// WITH A PERSISTING BOARD (r332) THE BOARD IS NOT RECYCLED AT ALL - only the
+// round's played pile is cycled back in, exactly as every other mode does it.
+//
+// The old path below was also DESTROYING CARD IDENTITY every level: an ordinary
+// card was pushed as a bare `{ rank, suit }`, so `_id` and every durable field
+// went with it - permanent pips and mult, x-pips, x-mult, retriggers, curses,
+// play counts. That is the r192 rule broken outright, and it is why a card buffed
+// in Flow could never stay buffed. Keeping the board fixes it wholesale rather
+// than by repairing the copy.
 function survivalRecycleBoard() {
+  if (typeof boardPersists === 'function' && boardPersists()) { flushPlayedDeck(); return; }
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const card = gridData[r]?.[c];
       if (!card) continue;
       if (card._isSleight || card._isStone) playedPile.push(card);      // preserve identity/charges
-      else if (card.rank) playedPile.push({ rank: card.rank, suit: card.suit });
+      else if (card.rank) playedPile.push(recycleCard(card));
       gridData[r][c] = null;
     }
   flushPlayedDeck(); // reshuffle everything back into the draw pile
@@ -652,11 +674,13 @@ function survivalDealNext() {
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
   recomputeGridMetrics();
-  gridData = [];
-  for (let r = 0; r < gridRows; r++) {
-    gridData[r] = [];
-    for (let c = 0; c < gridCols; c++) gridData[r][c] = drawCard() || null;
-  }
+  // conformGridToDims keeps every in-bounds card (and banks any that a shrunk
+  // board leaves outside); fillGridHoles then deals into the empty cells alone -
+  // which on a level where a grid limit was picked IS the new row or column.
+  // With the board recycled (boardPersists() false) every cell is already null,
+  // so this deals a full fresh board exactly as it used to.
+  conformGridToDims();
+  fillGridHoles();
   // 3) New cards drop in slightly after the old ones start leaving - reuse the
   //    shared deal-in animation, which clears leftover real cards and repaints.
   dealPhase = true;

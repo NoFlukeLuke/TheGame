@@ -144,6 +144,12 @@ function rankIsOffLadder(rank) {
   return deckCourtsOffLadder && deckDesignActive() && DECK_COURTS.includes(rank);
 }
 function rankRunVals(rank) {
+  // A WILD IS NOT A RANK, so it has no run value and the loop in _handShape's
+  // tryRunCombos has nothing to place it at - which is the whole of "never part
+  // of a run". It has to be tested HERE and not left to RANK_ORDER: the line
+  // below ends `?? 0`, so an unknown rank comes back as [0] and would happily
+  // sit below an Ace in a run.
+  if (typeof isWildRank === 'function' && isWildRank(rank)) return [];
   if (rankIsOffLadder(rank)) return [];
   // Ace plays low or high. With the courts off the ladder there is nothing above
   // a 10 for the high Ace to reach, so the 14 simply never matches - harmless,
@@ -469,6 +475,7 @@ function deckDesignInstallLists() {
     ACTIVE_SUITS = deckWeightedSuits();
     ACTIVE_RANKS = deckWeightedRanks();
     expectedDeckTotal = deckWeightedSize();
+    expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
     deckDesignDirty = false;
     return true;
   }
@@ -480,6 +487,7 @@ function deckDesignInstallLists() {
   // ranks x suits - miss this and every designed run reports a third of its deck
   // permanently missing.
   expectedDeckTotal = deckDesignSize();
+  expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
   deckDesignDirty = false;
   return true;
 }
@@ -535,8 +543,38 @@ function deckWeightPreset(name) {
   deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
 }
 
+// ── The wild count (r325) ──
+// wildCardCount() in js/data/cards.js is the one place the number is read, and it
+// reads this key, so the knob and the deck cannot disagree. Stored rather than a
+// live global for the same reason every other deck setting is: the deck is built
+// once per run, so a value has to survive the reload that starts the next one.
+function setWildCount(n) {
+  n = Math.max(0, Math.min(52, n | 0));
+  try {
+    // Writing the DEFAULT clears the override rather than pinning today's number
+    // for ever - the r197 goal-tuner rule, so an untouched knob tracks the code.
+    if (n === WILD_COUNT_DEFAULT) localStorage.removeItem('lethe.wildCount');
+    else localStorage.setItem('lethe.wildCount', String(n));
+  } catch (e) {}
+  deckDesignDirty = true;
+  devRenderDeckDesign();
+}
+
 function devRenderDeckDesign() {
   const model = deckModelNow();
+  // ── the wild row ──
+  const wc = (typeof wildCardCount === 'function') ? wildCardCount() : 0;
+  const wl = document.getElementById('dev-deck-wilds');
+  if (wl) wl.innerHTML = [0,2,4,6,8,12].map(n =>
+    `<button class="dev-spec-chip${wc === n ? ' on' : ''}" onclick="setWildCount(${n})">${n}</button>`).join('');
+  const wst = document.getElementById('dev-deck-wildstat');
+  if (wst) {
+    const live = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.id : '-';
+    const dealt = wc > 0;
+    wst.innerHTML = `this mode (<b>${live}</b>) deals <b>${wc}</b> wild${wc === 1 ? '' : 's'}`
+      + (dealt ? '' : ' &middot; this mode has its own deck or its own hand detection')
+      + `<br>deck audit expects ${expectedDeckTotal} cards`;
+  }
   const mo = document.getElementById('dev-deck-model');
   if (mo) mo.innerHTML = [
     ['mode',     'Mode default'],
