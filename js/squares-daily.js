@@ -49,8 +49,11 @@ function sqDaily() { return !!(typeof squaresActive === 'function' && squaresAct
 const SQ_CFG_KEY = 'lethe.squares.v1';
 const SQ_CFG_DEF = {
   cardScore:    'tier',  // 'tier' (A 3 / court 2 / else 1) | 'rank' (pip value) | 'none'
-  rankSpread:   7,       // a daily's deck is drawn from this many CONSECUTIVE ranks (13 = all)
-  wildPerGrid:  1,       // wilds guaranteed in every daily deal
+  rankVary:     true,    // the rank window follows SQD_RANK_SCHEDULE, one entry per grid
+  rankSpread:   7,       // the flat window width used when rankVary is off
+  wildPerGrid:  1,       // how many wilds a grid carries WHEN it carries any
+  wildChance:   60,      // % chance a given grid carries one at all
+  wildMinRun:   1,       // ... but at least this many grids of a run must
   wildValue:    false,   // does a wild pay a card value of its own
   qualifyLines: 4,       // a qualifying packing scores at least this many lines (0 = off)
   qualifyDeep:  3,       // ... of which this many use THREE cards, not a pair and a spare
@@ -71,53 +74,136 @@ function sqCfgSet(k, v) { if (v === SQ_CFG_DEF[k]) delete sqCfgOver[k]; else sqC
 function sqCfgReset() { sqCfgOver = {}; sqCfgSave(); }
 sqCfgLoad();
 
-// ── THE RANK WINDOW (r340) ─────────────────────────────────────────────────
-// A daily's deck is drawn from a CONTIGUOUS run of ranks rather than all
-// thirteen. That is the cheapest lever there is on "make a grid likelier to
-// score": every hand this game pays for is a coincidence between two cards'
-// ranks or suits, and narrowing the ranks raises the odds of BOTH a set (two
-// cards of one rank) and a run (two cards next to each other) at once, with no
-// redeal loop and nothing to measure.
+// ── THE RANK WINDOW, PER GRID (r340, rescheduled r342) ─────────────────────
+// A daily's cards are drawn from a CONTIGUOUS run of ranks rather than all
+// thirteen. That is the cheapest lever on "make a grid likelier to score":
+// every hand here is a coincidence between two cards' ranks or suits, and
+// narrowing the ranks raises the odds of BOTH a set and a run at once, with no
+// redeal loop and nothing to measure. Measured over 200 exhaustively-walked
+// 3x3 deals, share that can make four scoring lines: 76% at 13 ranks, 94% at 7,
+// 100% at 5.
 //
-// CONTIGUOUS, NOT A RANDOM SUBSET, and that is the load-bearing part: a scatter
-// of seven ranks would lift sets and KILL runs. The window is rolled per run so
-// two runs are not the same puzzle.
+// CONTIGUOUS, NOT A RANDOM SUBSET, and that is load-bearing: a scatter of seven
+// ranks would lift sets and KILL runs.
+//
+// THE WIDTH IS A SCHEDULE NOW (owner's call), one entry per grid, so the three
+// grids of a run are three different puzzles rather than three draws from one
+// distribution: grid 1 is any width at all, grid 2 is tight, grid 3 is middling.
 const SQD_RANK_LADDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const SQD_WIDTH_MIN = 5, SQD_WIDTH_MAX = 13;
+// `any` is EVERY WIDTH EQUALLY - "the other has an equal chance for anything",
+// listed beside two entries that name widths, so it is read as a width too. If
+// it was meant as "all thirteen ranks", that is `pick: [13]`.
+const SQD_RANK_SCHEDULE = [
+  { any: true },      // grid 1
+  { pick: [5, 7] },   // grid 2
+  { pick: [7, 9] },   // grid 3
+];
 let sqdRanks = null;
 function sqdRankWindow() { return sqdRanks && sqdRanks.length ? sqdRanks : SQD_RANK_LADDER; }
-function sqdRollRankWindow() {
-  const n = Math.max(3, Math.min(SQD_RANK_LADDER.length, sqCfg('rankSpread') | 0));
+// The width this grid is asking for. Off the end of the schedule - or with the
+// schedule switched off - every grid takes the flat `rankSpread` knob.
+function sqdRankWidth(grid) {
+  if (!sqCfg('rankVary')) return sqCfg('rankSpread') | 0;
+  const row = SQD_RANK_SCHEDULE[(grid | 0) - 1];
+  if (!row) return sqCfg('rankSpread') | 0;
+  if (row.pick) return row.pick[Math.floor(Math.random() * row.pick.length)];
+  return SQD_WIDTH_MIN + Math.floor(Math.random() * (SQD_WIDTH_MAX - SQD_WIDTH_MIN + 1));
+}
+// THE NARROWEST WINDOW THIS BOARD CAN ACTUALLY BE DEALT FROM. A window of w
+// ranks holds w x suits cards, and a grid needs every cell of its inventory out
+// of that - so too narrow a window runs dry mid-deal and `sqDraw` falls through
+// to an ordinary draw, which puts a rank on the board the grid was supposed to
+// exclude. Measured before this clamp: 21 stray cards in 2,160, all of them at
+// the tightest widths. The +2 is slack for the wild swap and for a suit the
+// shuffle happens to bury.
+function sqdMinWidth() {
+  const spec = SQD_SIZES[SQ_N];
+  const cells = spec ? spec.inv.reduce((t, r) => t + r.n * r.size, 0) : SQ_N * SQ_N;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS.length : 4;
+  return Math.max(3, Math.ceil((cells + 2) / suits));
+}
+function sqdRollRankWindow(grid) {
+  const n = Math.max(sqdMinWidth(), Math.min(SQD_RANK_LADDER.length, sqdRankWidth(grid)));
   const at = Math.floor(Math.random() * (SQD_RANK_LADDER.length - n + 1));
   return SQD_RANK_LADDER.slice(at, at + n);
 }
+// Called at the top of every grid. It moves the WINDOW, never the deck.
+function sqdNewGridWindow(grid) { sqdRanks = sqdRollRankWindow(grid); return sqdRanks; }
 
-// THE DECK IS INSTALLED ONCE PER RUN, not per grid, and that is what keeps a
-// consumable permanent: CLAUDE.md's "the deck belongs to the run" rests on the
-// board holding the same card OBJECTS the piles do, so rebuilding it between
-// grids would throw away every edit a consumable made. `sqNewRound` still
-// returns the board and reshuffles, exactly as before.
+// ── THE DECK IS THE WHOLE LADDER, AND THE WINDOW IS A FILTER ON THE DRAW ───
+// The window varies per grid and the deck must NOT, because "the deck belongs
+// to the run" is what makes a consumable's edit permanent: the board holds the
+// same card OBJECTS the piles do, so rebuilding the deck between grids would
+// throw away every re-suit and every forge. Installing all thirteen ranks once
+// and letting `sqDraw` skip what this grid's window excludes keeps every object
+// alive and costs one scan of the pile per card.
 function sqdInstallDeck() {
-  sqdRanks = sqdRollRankWindow();
+  sqdNewGridWindow(1);
   // THE BOARD `startGame` DEALT IS NOT PART OF THIS DECK. `sqNewRound` returns
   // every occupied cell to the played pile and flushes, so leaving the opening
-  // 5x5 board in place would tip a handful of full-deck cards straight into the
-  // narrow one and quietly widen it.
+  // 5x5 board in place would tip a handful of full-deck cards into it.
   if (typeof gridData !== 'undefined' && Array.isArray(gridData))
     for (let r = 0; r < gridData.length; r++)
       if (gridData[r]) for (let c = 0; c < gridData[r].length; c++) gridData[r][c] = null;
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : ['♠','♥','♦','♣'];
   const stamp = (typeof stampId === 'function') ? stampId : (c => c);
   const d = [];
-  for (const s of suits) for (const r of sqdRanks) d.push(stamp({ rank: r, suit: s }));
+  for (const s of suits) for (const r of SQD_RANK_LADDER) d.push(stamp({ rank: r, suit: s }));
   // The wild lives in the DECK, not beside it, so every pile function, the deck
-  // audit and the HUD count keep working untouched. Getting one into every
-  // GRID is `sqdForceWilds`'s job at deal time.
-  const w = Math.max(0, sqCfg('wildPerGrid') | 0);
-  for (let i = 0; i < w; i++) d.push(stamp({ rank: WILD_RANK, suit: WILD_SUIT }));
+  // audit and the HUD count keep working untouched. Whether a GRID gets one is
+  // `sqdWildsThisGrid`'s roll and `sqdForceWilds`'s job at deal time.
+  for (let i = 0; i < Math.max(0, sqCfg('wildPerGrid') | 0); i++) d.push(stamp({ rank: WILD_RANK, suit: WILD_SUIT }));
   drawPile = (typeof deckShuffle === 'function') ? deckShuffle(d) : d;
   playedPile = [];
+  sqdWildGrids = 0;
   if (typeof expectedDeckTotal !== 'undefined') expectedDeckTotal = d.length;
   if (typeof updateDeckHud === 'function') updateDeckHud();
+}
+// Is this card one this grid may be dealt? A wild is always allowed - it has no
+// rank to be outside the window.
+function sqdInWindow(card) {
+  if (!card) return false;
+  if (sqdIsWild(card)) return true;
+  return sqdRankWindow().indexOf(card.rank) >= 0;
+}
+// THE WINDOW-AWARE DRAW. Cards outside the window are SET ASIDE and put back
+// after the deal, never discarded - they are the run's own cards and a later
+// grid will want them. Falls through to an ordinary draw if the window somehow
+// cannot be satisfied, because a deal that stops half way is worse than a deal
+// with one stray rank in it.
+function sqdDrawInWindow() {
+  const aside = [];
+  let card = null;
+  for (let pass = 0; pass < 2 && !card; pass++) {
+    while (drawPile.length) {
+      const c = drawPile.shift();
+      if (sqdInWindow(c)) { card = c; break; }
+      aside.push(c);
+    }
+    if (!card && typeof flushPlayedDeck === 'function' && playedPile.length) flushPlayedDeck();
+  }
+  while (aside.length) drawPile.push(aside.pop());
+  if (!card) return null;
+  if (typeof stampId === 'function') card = stampId(card);
+  if (typeof updateDeckHud === 'function') updateDeckHud();
+  return card;
+}
+
+// ── HOW OFTEN A GRID CARRIES A WILD (r342) ─────────────────────────────────
+// Owner: "give it only a 60% chance of appearing in any single grid, with one
+// grid minimum across the 3". So it is a roll per grid, plus a floor: if the
+// last grid comes round and none has turned up, that one gets it. The floor
+// fires on 0.4^3 = 6.4% of runs.
+let sqdWildGrids = 0;
+function sqdWildsThisGrid(grid) {
+  const per = Math.max(0, sqCfg('wildPerGrid') | 0);
+  if (!per) return 0;
+  const grids = (SQD_SIZES[SQ_N] && SQD_SIZES[SQ_N].grids) || 3;
+  if (Math.random() * 100 < (sqCfg('wildChance') | 0)) return per;
+  // The floor: last grid of the run and the wild has not been seen yet.
+  if (sqCfg('wildMinRun') && sqdWildGrids < (sqCfg('wildMinRun') | 0) && grid >= grids) return per;
+  return 0;
 }
 const sqdIsWild = c => !!(c && typeof isWildCard === 'function' && isWildCard(c));
 
@@ -261,7 +347,11 @@ function sqdNameWithWild(cards, n) {
              : (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS[0]) || '♠';
   const tbl = SQD_BASE[n] || {};
   let best = null, bestV = -1;
-  for (const r of sqdRankWindow()) {
+  // THE WHOLE LADDER, not this grid's window. A wild "takes any rank", and at
+  // the window's edge the only rank that completes a run can be one outside it
+  // - so searching the window would make the wild quietly weaker on some boards
+  // and not others. Thirteen iterations instead of seven; nothing notices.
+  for (const r of SQD_RANK_LADDER) {
     const fill = []; for (let k = 0; k < w; k++) fill.push({ rank: r, suit });
     const name = sqdNameNatural(nat.concat(fill));
     const v = tbl[name] || 0;
@@ -435,12 +525,24 @@ function sqdReturnPieces(pieces, reserve) {
 // "One per grid" is not luck, so a deal short of its quota pulls a wild out of
 // the piles and swaps it in for an ordinary dealt card, which goes back. Net
 // effect on the deck is zero and every pile function is untouched.
-function sqdForceWilds(pieces, reserve) {
-  const want = Math.max(0, sqCfg('wildPerGrid') | 0);
-  if (!want) return;
+function sqdForceWilds(pieces, reserve, want) {
+  if (want == null) want = Math.max(0, sqCfg('wildPerGrid') | 0);
   const cells = [];
   pieces.forEach(p => p.cells.forEach(cl => cells.push(cl)));
   let have = cells.filter(cl => sqdIsWild(cl.card)).length;
+  // A WILD CAN ALSO ARRIVE BY LUCK, and a quota is a quota in both directions.
+  // The wild is an ordinary member of the deck, so a grid that rolled NO wild
+  // could still be dealt one - measured at 88% of grids carrying one against a
+  // 60% roll. Over the quota it is swapped back out for an ordinary card.
+  while (have > want) {
+    const at = cells.find(cl => sqdIsWild(cl.card));
+    const sub = sqdDrawInWindow();
+    if (!sub) break;                       // nothing to swap in; leave it be
+    if (reserve) reserve.push(at.card); else playedPile.push(at.card);
+    at.card = sub;
+    have--;
+  }
+  if (!want) return;
   while (have < want) {
     const w = (reserve && reserve.length) ? reserve.shift() : sqdTakeWildFromPiles();
     if (!w) break;
@@ -559,22 +661,31 @@ function sqdQualifiedDeal() {
   // one - attempt 2 gets none, and if it then wins, the grid has no wild at
   // all. Measured: grid 3 of a real run dealt with zero. A reserve every
   // attempt draws from and every rejected attempt hands back cannot lose one.
+  // ROLLED ONCE FOR THE GRID, NOT PER ATTEMPT - a coin flipped six times is not
+  // a 60% chance, it is a 95% one.
+  const wilds = sqdWildsThisGrid(sqRound);
   const reserve = [];
-  for (let i = 0, want = Math.max(0, sqCfg('wildPerGrid') | 0); i < want; i++) {
-    const w = sqdTakeWildFromPiles(); if (w) reserve.push(w);
-  }
+  for (let i = 0; i < wilds; i++) { const w = sqdTakeWildFromPiles(); if (w) reserve.push(w); }
+  // FIRST ACCEPTABLE, NOT BEST OF N, and the reason is the rank window rather
+  // than taste. Holding a leading attempt in hand while the next is dealt means
+  // TWO deals are out of the pile at once - and a 5-rank window is only 20
+  // cards, against two 3x3 deals of 12. The second deal ran the window dry and
+  // `sqDraw` fell through to an ordinary draw: measured, 45 cards came out with
+  // ranks the grid was supposed to exclude. Returning each rejected attempt
+  // BEFORE the next one is dealt keeps the window whole, and costs almost
+  // nothing - the gates pass 84% of 3x3 deals and 93% of 4x4 ones, so the
+  // search ends on the first or second attempt either way.
   let lead = null, n = 0;
   for (let t = 0; t < tries; t++) {
     n = t + 1;
     const pieces = sqdDealAll();
-    sqdForceWilds(pieces, reserve);
+    sqdForceWilds(pieces, reserve, wilds);
     const par = sqdComputePar(pieces);
     const g = sqdGates(par, SQ_N, pieces);
-    const better = !lead || g.ok > lead.g.ok || (g.ok === lead.g.ok &&
-      (g.rank > lead.g.rank || (g.rank === lead.g.rank && par.best > lead.par.best)));
-    if (better) { if (lead) sqdReturnPieces(lead.pieces, reserve); lead = { pieces, par, g }; }
-    else sqdReturnPieces(pieces, reserve);
-    if (lead.g.ok) break;
+    lead = { pieces, par, g };
+    if (g.ok || t === tries - 1) break;    // the last one is kept whatever it is
+    sqdReturnPieces(pieces, reserve);
+    lead = null;
   }
   // THE WINNER GETS THE WILD, WHOEVER WON. Holding the leader in hand while the
   // next attempt is dealt means an attempt can only take a wild the leader is
@@ -584,12 +695,10 @@ function sqdQualifiedDeal() {
   // that cannot lose one, and it costs one more par search on the grids where
   // it actually fires, because a wild is worth a lot of par and the figure the
   // scoreboard quotes has to be the one this hand can really reach.
-  if (lead) {
-    const count = () => lead.pieces.reduce((t, p) => t + p.cells.filter(cl => sqdIsWild(cl.card)).length, 0);
-    const before = count();
-    sqdForceWilds(lead.pieces, reserve);
-    if (count() !== before) { lead.par = sqdComputePar(lead.pieces); lead.g = sqdGates(lead.par, SQ_N, lead.pieces); }
-  }
+  // The winner was dealt under its own quota, so there is nothing left to top
+  // up - only the run's tally of which grids carried one, which is what the
+  // "at least one grid in three" floor reads.
+  if (lead && lead.pieces.some(p => p.cells.some(cl => sqdIsWild(cl.card)))) sqdWildGrids++;
   // Anything the winner did not use goes back into the deck.
   while (reserve.length) playedPile.push(reserve.shift());
   if (typeof flushPlayedDeck === 'function') flushPlayedDeck();

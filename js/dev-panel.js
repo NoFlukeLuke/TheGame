@@ -144,7 +144,7 @@ const DEV_GROUPS = [
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
   { g:'squares',  icon:'▦', label:'Squares',   sub:() => typeof sqCfg === 'function'
-      ? `${sqCfg('rankSpread')} ranks · ${sqCfg('wildPerGrid')} wild · ${sqCfg('qualifyLines')}/${sqCfg('qualifyDeep')}/${sqCfg('qualifyCover')}%` : 'poker squares' },
+      ? `${sqCfg('rankVary') ? 'varied' : sqCfg('rankSpread') + ' ranks'} · wild ${sqCfg('wildChance')}% · ${sqCfg('qualifyLines')}/${sqCfg('qualifyDeep')}/${sqCfg('qualifyCover')}%` : 'poker squares' },
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
       return m === 'weighted' ? `weighted · ${deckWeightedSize()} cards · ${deckWeightedSuits().length} suits`
            : m === 'six'      ? `six suits · ${deckDesignSize()} cards`
@@ -1267,10 +1267,15 @@ function devResetImprove() {
 const SQ_DEV_ROWS = [
   { k:'cardScore', label:'Per-card scoring', kind:'select',
     opts:[['tier','tiered - ace 3, court 2, else 1'], ['rank','rank value - the card\'s own pips'], ['none','none - hands only']] },
-  { k:'rankSpread', label:'Rank spread', kind:'num', min:3, max:13, step:1, unit:' ranks',
-    hint:'A daily deck is drawn from this many CONSECUTIVE ranks. Fewer makes both sets and runs likelier.' },
-  { k:'wildPerGrid', label:'Wilds per grid', kind:'num', min:0, max:4, step:1, unit:'',
-    hint:'Guaranteed in every deal. A wild takes the best rank and suit for each line it sits in, its row and its column separately.' },
+  { k:'rankVary', label:'Rank width varies by grid', kind:'bool',
+    hint:'Grid 1 takes any width, grid 2 is 5 or 7 ranks, grid 3 is 7 or 9. Off, every grid uses the flat width below.' },
+  { k:'rankSpread', label:'... flat width when it does not', kind:'num', min:3, max:13, step:1, unit:' ranks',
+    hint:'A grid is dealt from this many CONSECUTIVE ranks. Fewer makes both sets and runs likelier.' },
+  { k:'wildChance', label:'Chance a grid carries a wild', kind:'num', min:0, max:100, step:5, unit:'%' },
+  { k:'wildMinRun', label:'... but at least this many grids do', kind:'num', min:0, max:3, step:1, unit:'',
+    hint:'The floor. If the last grid comes round and no wild has turned up, that one gets it.' },
+  { k:'wildPerGrid', label:'... and it carries this many', kind:'num', min:0, max:4, step:1, unit:'',
+    hint:'A wild takes the best rank and suit for each line it sits in, its row and its column separately. 0 switches wilds off.' },
   { k:'wildValue', label:'A wild scores a card value', kind:'bool' },
   { k:'qualifyLines', label:'A good grid: lines that score', kind:'num', min:0, max:8, step:1, unit:'',
     hint:'One arrangement has to make at least this many lines a real hand (not a High Card).' },
@@ -1311,7 +1316,7 @@ function devRenderSquares() {
   host.querySelectorAll('input.dev-sq-in').forEach(e => e.onchange = () => { sqCfgSet(e.dataset.k, e.checked); devRenderSquares(); });
   const st = document.getElementById('dev-squares-status');
   if (st) st.textContent = (typeof sqDaily === 'function' && sqDaily())
-    ? `live: ${SQ_N}x${SQ_N} · ranks ${sqdRankWindow().join(' ')} · grid ${sqRound}/${sqRounds()}`
+    ? `live: ${SQ_N}x${SQ_N} · grid ${sqRound}/${sqRounds()} · ranks ${sqdRankWindow().join(' ')} (${sqdRankWindow().length})`
     : 'not in a daily grid - changes apply to the next run';
 }
 function devResetSquares() { if (typeof sqCfgReset === 'function') { sqCfgReset(); devRenderSquares(); } }

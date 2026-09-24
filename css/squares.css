@@ -33,7 +33,7 @@
    piece hand takes the band: a daily is handed EVERY tile at once, so it is the
    one shape of this mode that genuinely needs the room. */
 #stage.squares-daily #trick-tray-area { display: none !important; }
-#stage.landscape.squares-daily #selected-cards { height: 61%; }
+#stage.landscape.squares-daily #selected-cards { height: 66%; }   /* r342: 61 -> 66 */
 
 /* ── THE DAILY TRAY IS A GRID, NOT A ROW ──────────────────────────────────
    The 5x5 holds at most three tiles, so a row of thirds is the whole answer
@@ -430,8 +430,16 @@
    finger that is dragging onto them. A dead band at the foot of the tray is the
    better of the two. (It does not arise in landscape, where the tray is an
    absolutely-positioned panel and an empty slot in it costs the board nothing.) */
+/* r342: 220 -> 250. The board band takes whatever is left, so this is the one
+   number that moves the split - and a 3x3 does not need 45% of the stage for
+   nine cards. Measured in portrait at 462x928: the board band goes 336 -> 306
+   and the tray 227 -> 257, which takes a 3-tall tile from 106 to 121 and its
+   cells from 32-52px to 38-58px. Deliberately SHORT of the 270 the r341 survey
+   costed out (owner: "shrink the grid just a little less than you suggested") -
+   past about 300 the board's cards start hitting CARD_MIN_H and the board stops
+   shrinking while the cards start looking cramped. */
 #stage:not(.landscape).squares-daily #hand-preview-area,
-#stage:not(.landscape).squares-daily #selected-cards { height: 220px; flex: 0 0 auto; }
+#stage:not(.landscape).squares-daily #selected-cards { height: 250px; flex: 0 0 auto; }
 #stage:not(.landscape).squares-daily #selected-cards {
   display: grid !important; grid-template-rows: repeat(3, 1fr);
   align-content: stretch; justify-content: stretch; gap: 4px;

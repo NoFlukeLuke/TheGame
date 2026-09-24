@@ -240,6 +240,14 @@ function sqDealPieces(n, size) {
   return out;
 }
 function sqDraw() {
+  // A DAILY DRAWS THROUGH ITS GRID'S RANK WINDOW (r342). The deck is the whole
+  // ladder and stays that way for the run - that is what keeps a consumable's
+  // edit permanent - so the narrowing is done on the DRAW instead, and cards
+  // outside this grid's window are set aside and put straight back.
+  if (sqDaily() && typeof sqdDrawInWindow === 'function') {
+    const w = sqdDrawInWindow();
+    if (w) return w;
+  }
   if (!drawPile.length) flushPlayedDeck();
   const c = (typeof drawCard === 'function') ? drawCard() : drawPile.shift();
   return c || { rank: '2', suit: (typeof ACTIVE_SUITS !== 'undefined' ? ACTIVE_SUITS[0] : '♠') };
@@ -456,6 +464,9 @@ function sqStartTurn() {
   // is a packing puzzle with full information and one commit.
   if (sqDaily()) {
     sqDiscards = 0; sqdPlaced = [];
+    // THIS GRID'S RANK WINDOW, rolled before a card is drawn. Grid 1 takes any
+    // width, grid 2 a tight one, grid 3 a middling one - see SQD_RANK_SCHEDULE.
+    if (typeof sqdNewGridWindow === 'function') sqdNewGridWindow(sqRound);
     // PAR IS COMPUTED AT THE DEAL, NOT AT SUBMIT - the board is known the moment
     // it is dealt, and the deal animation is the one place a search can hide.
     // Since r340 the deal is also QUALIFIED against that par: a deal whose best

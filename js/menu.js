@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r341 · the daily deal qualifier asks ONE arrangement for 4 scoring lines, 3 three-card hands and 2/3 of the cards carrying weight";
+const BUILD = "2026-09-24 · r342 · the daily rank window is a per-grid schedule over one permanent deck, the wild is a 60% roll with a floor, and the tray takes 30px off the board";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
