@@ -72,11 +72,3 @@ Treat richter exactly like full_house_streak below.
 [the_queen] notes
   owner: Royal Reach: a card with royal reach can be selected with any hand containing a card any distance above, below, beside or diagonal from it. it can also be swapped with any card above, below, beside or diagonal from it
   (was:  structural — no tunable value; needsResolve / TBD)
-
-[magnet] description
-  owner: Double-tap: then tap any card: pull every card of the selected rank to replace itself and adjacent cards (via discard) N/3 charges
-  (was:  Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges))
-
-[magnet] notes
-  owner: redo the animation for this so that you can visibly see the other ranks flying into the new location. also, show the cards next to magnet, along with magnet, being discarded. this does not count toward the time or stock cost of discards, but for cards that scale with discards, these discards do count. so if it replaces the magnet and 4 cards, that would count as 4 seperate discards for other scaling entitites.
-  (was:  structural — no tunable value)

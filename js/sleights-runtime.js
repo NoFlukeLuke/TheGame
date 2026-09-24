@@ -536,33 +536,97 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
 // Magnet: pull every card of `rank` into the cells orthogonally adjacent to Magnet,
 // by swapping grid data. Each pull counts as a swap (fires on_swap Sleights + Restless),
 // which is the intended synergy. Returns how many cards were moved.
+// Magnet (r357): every card of `rank` elsewhere on the board is pulled in to
+// replace the Magnet itself and then its orthogonal neighbours, and whatever it
+// replaces is DISCARDED - the Magnet with its charge spent, the neighbours to
+// the back of the draw pile. The discards cost no time and no stock, but each
+// displaced card counts as a discard for everything that scales on discards.
+// Returns how many cards it pulled (0 = nothing to pull; the caller discards
+// the Magnet the ordinary way then).
 function magnetCluster(mr, mc, rank) {
-  const inBounds = (r, c) => r >= 0 && c >= 0 && r < gridRows && c < gridCols;
-  const isRank   = card => card && card.rank === rank && !card._isSleight && !card._isStone && !card._isTrick;
-  const neighbors = [[mr-1,mc],[mr+1,mc],[mr,mc-1],[mr,mc+1]].filter(([r,c]) => inBounds(r,c));
-  let moved = 0;
-  for (const [nr, nc] of neighbors) {
-    const nb = gridData[nr]?.[nc];
-    if (!nb || nb._isSleight || nb._isStone || nb._isTrick) continue; // don't disturb fixtures
-    if (nb.rank === rank) continue;                                   // already holds the rank
-    if (!cardCan(nb, 'swap')) continue;                               // respect Snared etc.
-    // Find a far card of the rank (not in a neighbor cell, not Magnet, swappable)
-    let found = null;
-    for (let r = 0; r < gridRows && !found; r++) for (let c = 0; c < gridCols && !found; c++) {
-      if (r === mr && c === mc) continue;
-      if (neighbors.some(([ar, ac]) => ar === r && ac === c)) continue;
-      const cand = gridData[r]?.[c];
-      if (isRank(cand) && cardCan(cand, 'swap')) found = [r, c];
-    }
-    if (!found) break; // nothing left to pull
-    const [fr, fc] = found;
-    const tmp = gridData[nr][nc];
-    gridData[nr][nc] = gridData[fr][fc];
-    gridData[fr][fc] = tmp;
-    fireSleightsOnSwap(nr, nc, fr, fc); // counts as a swap
-    moved++;
+  const ordinary = cd => cd && cd.rank && !cd._isSleight && !cd._isStone && !cd._isTrick;
+  const magnet = gridData[mr]?.[mc];
+  const targets = [[mr, mc]];
+  getNeighborsOrtho(mr, mc).forEach(([r, c]) => {
+    const cd = gridData[r]?.[c];
+    if (ordinary(cd) && cd.rank !== rank && cardCan(cd, 'discard') && !isCellBlocked(r, c)) targets.push([r, c]);
+  });
+  const isT = (r, c) => targets.some(([a, b]) => a === r && b === c);
+  const sources = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!isT(r, c) && !(r === mr && c === mc) && ordinary(cd) && cd.rank === rank && cardCan(cd, 'swap') && !isCellBlocked(r, c)) sources.push([r, c]);
   }
-  return moved;
+  const n = Math.min(targets.length, sources.length);
+  if (!n) return 0;
+  const gridEl = document.getElementById('grid');
+  const rectOf = cd => { const el = cd && gridEl?.querySelector(`[data-card-id="${cd._id}"]`); return el ? el.getBoundingClientRect() : null; };
+  const pulled = [], displaced = [], ghosts = [], moves = [];
+  for (let i = 0; i < n; i++) {
+    const [tr, tc] = targets[i], [sr, sc] = sources[i];
+    const out = gridData[tr][tc], inn = gridData[sr][sc];
+    // Ghost the leaving card where it stands, so the discard is SEEN from its
+    // own cell rather than from wherever the data shuffle parks it.
+    const el = gridEl?.querySelector(`[data-card-id="${out._id}"]`);
+    if (el) { const g = el.cloneNode(true), rc = el.getBoundingClientRect();
+      Object.assign(g.style, { position: 'fixed', left: rc.left + 'px', top: rc.top + 'px', width: rc.width + 'px', height: rc.height + 'px', margin: 0, zIndex: 50, pointerEvents: 'none', transform: 'none' });
+      document.body.appendChild(g); ghosts.push(g); }
+    moves.push({ id: inn._id, from: rectOf(inn) });
+    gridData[tr][tc] = inn; gridData[sr][sc] = out;
+    pulled.push([tr, tc]); displaced.push([sr, sc]);
+  }
+  // Piles: the Magnet cycles with a charge spent, the neighbours go to the back
+  // of the draw pile - exactly where a discard sends them.
+  displaced.forEach(([r, c]) => {
+    const cd = gridData[r][c];
+    if (cd === magnet) { if (typeof cd._usesLeft === 'number') cd._usesLeft--; discardToPlayed(cd); }
+    else discardToDrawPile(cd);
+  });
+  magnetCountDiscards(displaced.map(([r, c]) => gridData[r][c]).filter(cd => cd !== magnet));
+  render();
+  // The pulled cards FLY in from where they were; the displaced ones are hidden
+  // at their parking cells (the ghosts are what the player watches leave).
+  moves.forEach(m => {
+    const el = gridEl?.querySelector(`[data-card-id="${m.id}"]`);
+    if (!el || !m.from) return;
+    const to = el.getBoundingClientRect(), z = (to.width / (el.offsetWidth || to.width)) || 1;
+    const dx = (m.from.left - to.left) / z, dy = (m.from.top - to.top) / z;
+    el.animate([{ transform: `translate(${dx}px,${dy}px) scale(1.12)`, zIndex: 20 }, { transform: 'translate(0,0) scale(1)', zIndex: 20 }],
+      { duration: 460, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
+  });
+  displaced.forEach(([r, c]) => { const el = gridEl?.querySelector(`[data-card-id="${gridData[r][c]?._id}"]`); if (el) el.style.visibility = 'hidden'; });
+  const btn = document.getElementById('btn-discard')?.getBoundingClientRect();
+  ghosts.forEach((g, i) => {
+    const rc = g.getBoundingClientRect();
+    const dx = btn ? (btn.left + btn.width / 2) - (rc.left + rc.width / 2) : 0;
+    const dy = btn ? (btn.top + btn.height / 2) - (rc.top + rc.height / 2) : 120;
+    g.animate([{ transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1 },
+               { transform: `translate(${dx}px,${dy}px) scale(.45) rotate(${i % 2 ? 18 : -18}deg)`, opacity: 0 }],
+      { duration: 520, delay: 60 * i, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    setTimeout(() => g.remove(), 620 + 60 * i);
+  });
+  if (typeof sfxCardDiscard === 'function') { try { sfxCardDiscard(); } catch (e) {} }
+  // The parking cells empty and refill by gravity once the flights have landed.
+  setTimeout(() => {
+    displaced.forEach(([r, c]) => { gridData[r][c] = null; });
+    removeAndFall(displaced, 'discard');
+  }, 520);
+  return n;
+}
+// Magnet's displaced cards count as discards for everything that scales on
+// them (owner's spec) - one discard each, at no time or stock.
+function magnetCountDiscards(cards) {
+  const count = cards.length;
+  if (!count) return;
+  cardsDiscardedTotal += count;
+  cardsDiscardedRound += count;
+  discardsUsedRound += count;
+  if (hasTrick('fives_discard')) bonusMult_fives += cards.filter(c => c.rank === '5').length * BAL.fives_discard.pips_per_five;
+  if (hasTrick('tens_mult')) {
+    const prev = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
+    const now  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
+    bonusMult_tens += (now - prev) * BAL.tens_mult.mult_per_milestone;
+  }
 }
 
 function applySleightGridEffect(id, r, c) {

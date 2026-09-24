@@ -324,7 +324,9 @@ function onCardTap(r, c) {
     const _m = magnetArmed; magnetArmed = null;
     const _moved = magnetCluster(_m.r, _m.c, _t.rank);
     showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
-    discardSleightAfterUse(_m.card, _m.r, _m.c); // spends a charge, then leaves the grid
+    // With something pulled the Magnet has already been discarded as part of the
+    // pull; with nothing to pull it leaves the ordinary way, charge spent.
+    if (!_moved) discardSleightAfterUse(_m.card, _m.r, _m.c);
     return;
   }
   // Block null cells

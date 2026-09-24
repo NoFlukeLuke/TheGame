@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r356 · Stopwatch and Fight the Power spend charges as time";
+const BUILD = "2026-09-24 · r357 · Magnet pulls a rank in and discards what it replaces";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
