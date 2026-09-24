@@ -8069,6 +8069,51 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r356 - the Pick emptied the board, and its taps were never reaching it
+
+Owner: *"I keep running out of cards when I play guided"* and *"there's a card
+buff thing after the round ... it just says pick a card but then you pick a card
+and nothing happens."* Two separate faults in THE PICK (r244), both live in every
+mode that reaches a payout - Classic, Guided, the Schedule, Six Suits, Spectrum -
+and both invisible with the setting off, which is why they shipped.
+
+**1. `pickClearBoard` gave back more than the restore borrowed.** The restore
+fills a cell only when it is `null`; the clear nulled every cell whose card
+matched the snapshot. Before r332 those were the same set. **After r332 the board
+PERSISTS, so no cell is ever null and no cell is ever restored - but every cell
+still matched the snapshot, so the clear emptied the whole board**, into no pile
+at all. `fillGridHoles` then drew a fresh boardful over the hole. Measured through
+the real payout in Guided AND Classic: **the run's deck went 56 -> 40 in ONE
+round**, `expectedDeckTotal` still reading 56, so four rounds ran it dry. The
+r332 note above asserted this function no-oped; it did not, and nothing was
+checking. `pickRestored` is the fix - the restore records what it actually filled
+and the clear gives back exactly that, so it is a genuine no-op on a persisting
+board and byte-identical on a non-persisting one.
+
+**2. THE TAP WAS SWALLOWED ONE LEVEL ABOVE THE INTERCEPT.** r244 put the pick's
+intercept above `onCardTap`'s `animating` guard and verified it. **r254 then added
+`roundEnded` to the grid's own `pointerdown` handler**, which is what actually
+decides - and the pick runs inside the interlude, which is by definition after the
+round ended. So from r254 onward `onCardTap` was never called at all: the bar sat
+on PICK A CARD, `pickCard` stayed null, 0 op tiles. `pickOwnsBoard()` is the one
+predicate the guard now asks, and the fix is proved load-bearing by putting the
+old guard back (selection dies) and taking it out again (selection lands).
+
+- **`pointermove` is deliberately NOT exempt.** A pick is a tap, so leaving the
+  swipe blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  was meant to be. `pointerup` carries no guard of its own, so the tap lands.
+- **THE LESSON: a guard added to a shared handler has to be checked against every
+  screen that borrows that handler.** The pick's intercept was correct and
+  unreachable, and a syntax check, a call audit and a read of `onCardTap` all pass
+  without noticing.
+
+Verified in a real browser at 1440x820 through the real click path, Guided and
+Classic: a card selects, all three ops fire, and the deck balances at every step -
+**Boost 56 -> 56, Copy 56 -> 57, Remove 56 -> 55** with `expectedDeckTotal` moving
+with it in each case and the removed card's cell left as one hole for the next
+round's refill. Three consecutive Guided rounds hold at **56/56, board 16, holes
+0**. With the setting OFF the deck is untouched (56 -> 56), as it always was.
+
 ## r334 - the pick re-centres, the read goes WIDE, the hand label is words
 
 Owner follow-ups on r326; the two superseded r326 bullets are marked below.
@@ -8385,11 +8430,12 @@ its own full re-deal, which is byte-identical when the board has been recycled
 ### Two things that turned out to need nothing
 
 - **The Pick** (r244) photographs the board above the fall because the fall used
-  to destroy it. `pickRestoreBoard` only fills cells that are `null` and
-  `pickClearBoard` only nulls cells it put back, so both no-op now; the snapshot
-  became a list of candidates. **Remove** already nulled the board cell as well
-  as splicing the piles, so it still works - the splice simply finds nothing,
-  because the card is on the board and not in a pile.
+  to destroy it. `pickRestoreBoard` only fills cells that are `null`, so it
+  no-ops now and the snapshot became a list of candidates. **Remove** already
+  nulled the board cell as well as splicing the piles, so it still works - the
+  splice simply finds nothing, because the card is on the board and not in a
+  pile. **`pickClearBoard` did NOT no-op, and this line used to claim it did -
+  see r356 below, where it cost the run sixteen cards a round.**
 - **The grid-screen takeover** (`gridScreenTakeover` / `gridScreenRelease`,
   js/grid-pick.js) resizes `gridRows`/`gridCols` for the tiled payout and
   restores them on close. It never touches `gridData`, so a persisting board

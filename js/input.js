@@ -481,8 +481,16 @@ function onCardTap(r, c) {
 // ── Pointer event handlers on the grid ──
 const gridEl2 = document.getElementById('grid');
 
+// THE PICK OWNS THE BOARD OUTRIGHT WHILE IT IS OPEN, so it is exempt from BOTH
+// flags here (r356). `onCardTap` already intercepts above its own `animating`
+// check, but that was never reached: this is the guard that decides, and
+// `roundEnded` - added to it in r254 - is true for the whole interlude, which is
+// exactly when the pick runs. `animating` is routinely still true from the
+// un-explode's flights, which is the r244 reason for the same exemption one
+// level down. A tap that silently does nothing reads as broken, and did.
 gridEl2.addEventListener('pointerdown', e => {
-  if (animating || roundEnded) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
+  const _pick = typeof pickOwnsBoard === 'function' && pickOwnsBoard();
+  if (!_pick && (animating || roundEnded)) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
   const cell = cardAt(e.target);
   if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }
   gridEl2.setPointerCapture(e.pointerId);
@@ -498,6 +506,9 @@ gridEl2.addEventListener('pointerdown', e => {
 });
 
 gridEl2.addEventListener('pointermove', e => {
+  // Deliberately NOT exempt for the pick: a pick is a tap, so leaving the swipe
+  // blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  // was meant to be. pointerup carries no guard of its own, so the tap lands.
   if (animating || roundEnded || !gridEl2._pointerStart) return;
   const cell = cardAt(document.elementFromPoint(e.clientX, e.clientY));
   if (!cell) return;
