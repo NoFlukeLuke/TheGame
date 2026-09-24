@@ -107,7 +107,12 @@ function doSwap(r1, c1, r2, c2) {
   // without this "swap freely all around it" only ever fired on the few pairs
   // that happened to be neighbours anyway - the free swap worked, the freedom
   // did not. Both-ends is _pivotCell, resolved above before anything moved.
-  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell) {
+  // Wanderer (r354): while a live one sits on the grid, ANY two cards may swap
+  // regardless of position. Still spends swap stock; each distance swap spends
+  // one of its charges. Free Range and a both-ends Pivot are asked first, so a
+  // Wanderer charge is only spent when nothing else was already allowing it.
+  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell) ? liveWanderer() : null;
+  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_wanderer) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
@@ -197,6 +202,15 @@ function doSwap(r1, c1, r2, c2) {
   // above because discardSleightAfterUse spins the tile and then runs removeAndFall,
   // which takes the `falling` lock - starting that on top of the swap animation
   // would cut the swap short.
+  if (_wanderer) {
+    const _wc = _wanderer[0];
+    if (_wc._usesLeft > 1) { _wc._usesLeft--; render(); }
+    else setTimeout(() => {
+      let _at = null;
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === _wc) _at = [r, c];
+      if (_at) discardSleightAfterUse(_wc, _at[0], _at[1]);
+    }, 260);
+  }
   if (_pivotSpent) {
     const [_pr, _pc] = _pivotSpent;
     setTimeout(() => {

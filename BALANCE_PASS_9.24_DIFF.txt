@@ -73,10 +73,6 @@ Treat richter exactly like full_house_streak below.
   owner: Royal Reach: a card with royal reach can be selected with any hand containing a card any distance above, below, beside or diagonal from it. it can also be swapped with any card above, below, beside or diagonal from it
   (was:  structural — no tunable value; needsResolve / TBD)
 
-[warehouse] description
-  owner: Counts as 2 cards of any suit for the purpose of completing a flush. Has no rank.
-  (was:  Wild suit - becomes any suit to complete a flush. Has no rank.)
-
 [fight_power] description
   owner: While on the grid, all boss effects are ignored (3 Minutes of use, each 20 seconds count as 1 charge). Remaining Time: 60s (n charges)
   (was:  While on the grid, all boss effects are ignored.)
@@ -84,10 +80,6 @@ Treat richter exactly like full_house_streak below.
 [fight_power] notes
   owner: structural — no tunable value; does this actually work? if so, how? like if this falls onto the grid during a boss round, we're able to remove and stone or other curses and pause other boss effects like giving back discard or swaps, prevent the score fomr incremeenting due to a boss effect, etc?
   (was:  structural — no tunable value)
-
-[the_wanderer] description
-  owner: While on grid: allows any two cards to be swapped regardles of position. Still uses your swap stock. n/5 charges
-  (was:  Swap it with ANY card on the grid, next to it or not, and the swap is free (+1 swap back).)
 
 [stopwatch] description
   owner: Double-tap: freeze the clock until your next played hand (60s of use, each 6 seconds count as 1 charge) Remaining Time: 60s n/12 charges

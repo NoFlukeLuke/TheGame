@@ -240,6 +240,17 @@ const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) ==
 const _isTouching = (r1, c1, r2, c2) =>
   !(r1 === r2 && c1 === c2) && Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1;
 
+// The first Wanderer on the grid with charges left, as [card, r, c] (r354).
+function liveWanderer() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd?._isSleight || cd.sleightId !== 'the_wanderer') continue;
+    if (typeof isCellBlocked === 'function' && isCellBlocked(r, c)) continue;
+    if (cd._usesLeft === 'infinite' || cd._usesLeft > 0) return [cd, r, c];
+  }
+  return null;
+}
+
 // Every Pivot with charges left that touches (r,c).
 function livePivotsTouching(r, c) {
   const out = [];
@@ -592,9 +603,6 @@ function applySleightGridEffect(id, r, c) {
     case 'cash_out':
       grantEntityCoins(BAL.cash_out.coins, 'sleight', 'cash_out');
       _fx('credits', BAL.cash_out.coins); break;
-    case 'the_wanderer':
-      swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
-      _fx('swaps', BAL.the_wanderer.swaps); break;
     case 'amplifier':
       sleightAmplifierMult += BAL.amplifier.mult;
       showMessage('📢 Amplifier - next hand +5 mult!', 'var(--gold)'); break;

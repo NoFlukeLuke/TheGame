@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r353 · Sleight batch: Fresh Start redeals on discard, Sandbagger/Last Call/Cash Out, discard Sleights keep their charges";
+const BUILD = "2026-09-24 · r354 · Wanderer lets any two cards swap, Warehouse counts as two cards of a flush";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

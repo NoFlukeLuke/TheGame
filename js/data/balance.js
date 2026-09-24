@@ -219,7 +219,6 @@ const BAL = {
   the_bomb: { pips: 3 },
   bellhop: { swaps: 2, discards: 1 },
   cash_out: { coins: 10 },
-  the_wanderer: { swaps: 1 },
   amplifier: { mult: 10 },
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
@@ -367,7 +366,6 @@ const DESC_TEMPLATES = {
   cash_out: 'Discard this: gain {coins} credits. (3 charges)',
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
   the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',
-  the_wanderer: 'Swap it with ANY card on the grid, next to it or not, and the swap is free (+{swaps} swap back).',
   time_bank: '+{seconds} seconds at the start of every round.',
   inheritance: 'Start each round with +{coins} credits.',
   lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',

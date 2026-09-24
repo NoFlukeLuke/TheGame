@@ -399,7 +399,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // beat in the dance - which is right, because it pays nothing to animate.
     // r220's rule still holds: replaying the timeline reproduces calcScore
     // exactly, and a wild adds nothing to either side.
-    if (typeof isWildCard === 'function' && isWildCard(card)) return;
+    if (typeof isWildCard === 'function' && (isWildCard(card) || isWarehouseCard(card))) return;
     _tlCard = _ci;                                          // everything emitted below belongs to THIS card
     const _tlMark = _tl ? _tl.length : 0;                   // rewind point for the Blight
     const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks

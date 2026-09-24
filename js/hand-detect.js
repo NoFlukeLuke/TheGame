@@ -217,6 +217,11 @@ function findBestHand(cells) {
       detectionCells.push([r, c]);      // a tinkered sleight is just a card here
       continue;
     }
+    // Warehouse joins as itself - no borrowed rank or suit. _handShape and the
+    // flush overlay read it directly, so the score, the preview and the dance's
+    // own re-score all see the same hand (a temporary identity would be gone by
+    // the time playHand and the dance ask again).
+    if (isWarehouseCard(card)) { detectionCells.push([r, c]); continue; }
     if (def?.activation === 'wildcard') {
       const orig = { rank: card.rank, suit: card.suit };
       if (def.wild === 'rank' || def.wild === 'both') card.rank = bestWildRank(normalCards);
@@ -284,7 +289,7 @@ function findBestHand(cells) {
   let best = null;
   for (const { hand, handCells } of subsets) {
     const penaltyCells = detectionCells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
-    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + cardPips(gridData[r][c].rank), 0);
+    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + (isWarehouseCard(gridData[r][c]) ? 0 : cardPips(gridData[r][c].rank)), 0);
     const rawScore = calcScore(hand, handCells);
     const finalScore = Math.max(0, rawScore - penaltyPips);
     if (!best || finalScore > best.finalScore) {
@@ -311,6 +316,7 @@ function _handShape(cells) {
   const rankCounts = {};
   cards.forEach(c => {
     if (wilds && isWildCard(c)) return;
+    if (isWarehouseCard(c)) return;
     rankCounts[c.rank] = (rankCounts[c.rank]||0) + 1;
     if (c.combined && c.rank2) rankCounts[c.rank2] = (rankCounts[c.rank2]||0) + 1;
   });
@@ -329,7 +335,7 @@ function _handShape(cells) {
   const _anyWhite = cards.some(c => isWhiteCard(c));
   const _anyWild  = wilds > 0;
   const allSameSuitStrict = !_anyWhite && !_anyWild && ACTIVE_SUITS.some(s =>
-    cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
+    cards.every(c => isWarehouseCard(c) || c.suit === s || (c.combined && c.suit2 === s))
   );
 
   // Run check: combined cards can use either rank value - try all combos
@@ -337,6 +343,7 @@ function _handShape(cells) {
   // returns NOTHING for a rank that is off the ladder, so the loop below can
   // never place it in a run. Ace-high lives in there too.
   const rankOptions = cards.map(c => {
+    if (isWarehouseCard(c)) return [];
     const opts = [...rankRunVals(c.rank)];
     if (c.combined && c.rank2) opts.push(...rankRunVals(c.rank2));
     return [...new Set(opts)];
@@ -494,8 +501,10 @@ function rankHandForGroup(cells) {
 // incidentally, always coverage-safe for the r281 rescue below.
 function flushOverlayFor(cells) {
   const bySuit = {};
+  const _wh = cells.filter(([r, c]) => isWarehouseCard(gridData[r][c]));
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
+    if (isWarehouseCard(card)) return;
     // isWildCard is load-bearing HERE in a way it is not in _handShape: this
     // function groups cards BY THEIR OWN SUIT rather than testing against
     // ACTIVE_SUITS, so three wilds would form a WILD_SUIT group of their own and
@@ -507,10 +516,12 @@ function flushOverlayFor(cells) {
   });
   let best = null;
   Object.keys(bySuit).forEach(s => {
-    const group = bySuit[s].slice(0, HAND_MAX_CARDS);
+    const group = [...bySuit[s], ..._wh].slice(0, HAND_MAX_CARDS);
     if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
-    const name = FLUSH_BY_SIZE[group.length];
-    if (group.length < flushOverlayMin || !name || !HAND_BASE[name]) return;
+    // A Warehouse is one cell and two cards of the flush.
+    const size = Math.min(HAND_MAX_CARDS, group.length + _wh.length);
+    const name = FLUSH_BY_SIZE[size];
+    if (size < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };
   });
   return best;
