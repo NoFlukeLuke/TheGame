@@ -199,6 +199,7 @@ const TRICK_POOL = [
   { id:'what_odds',       name:'What are The Odds',  tier:'epic',      tags:['mult','value'],          desc:'Odd-ranked cards score x1.7 mult' },
   { id:'critical',        name:'Critical',           tier:'epic',      tags:['mult','flush'],          desc:'Flush type hands score x3 mult' },
   { id:'twinners',        name:'Twinners',           tier:'epic',      tags:['pips','set'],            desc:'Set type hands score x3 pips' },
+  { id:'feelin_lucky',    name:'Feelin Lucky',       tier:'epic',      tags:['mult','value','luck'],   desc:'Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells' },
   { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','run'],           desc:'Run type hands apply the Focus multiplier twice' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time'],            desc:'Runs pause the clock +3s' },
@@ -227,7 +228,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','overclock'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
-  { emoji:'💎', ids:['obsessed','buried_treasure','patient_rulers','even_better','what_odds','critical','twinners','marathon'] }, // r359 multipliers
+  { emoji:'💎', ids:['obsessed','buried_treasure','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
 ];
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));

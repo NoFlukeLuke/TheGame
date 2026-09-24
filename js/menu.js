@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r359 · Eight new Tricks: Obsessed, Buried Treasure, Patient Rulers, Even Better, What are The Odds, Critical, Twinners, Marathon";
+const BUILD = "2026-09-24 · r360 · Feelin Lucky: five rolled ranks, and a sell that rerolls three times first";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

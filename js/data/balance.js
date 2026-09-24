@@ -55,6 +55,7 @@ const BAL = {
   what_odds:       { mult_mult: 1.7 },
   critical:        { mult_mult: 3 },
   twinners:        { pip_mult: 3 },
+  feelin_lucky:    { mult_mult: 1.25, ranks: 5, sell_cost_share: 0.3, rerolls: 3 },
   double_jeopardy: { pause_seconds: 15, cells: 2 },
   aces_absorb: { chance: 0.5 },
   queens_upgrade: { queen_seconds: 45 },

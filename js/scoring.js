@@ -234,6 +234,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // what it adds on its first scoring only, its own x mult, and how many times
   // it scores. Replayed against `mult` below (see _cardMultSeq's use).
   const _cardMultSeq = [];
+  const _flRanks = hasTrick('feelin_lucky') ? (trickTray.find(t => t.id === 'feelin_lucky')?._luckyRanks || null) : null;   // Feelin Lucky (r360)
 
   // ── PER-CARD PAYERS (r226) ───────────────────────────────────────────────
   // Seventeen Tricks pay "a rate x a number of CARDS" - Get Even is +2 mult per
@@ -660,6 +661,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (hasTrick('what_odds') && _rankIsOddRank(baseRank)) _xl.push({ id: 'what_odds', f: BAL.what_odds.mult_mult });
       if (hasTrick('patient_rulers') && ['J','Q','K'].includes(baseRank) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });
       if (hasTrick('obsessed') && _isHeartC && coins > 0) _xl.push({ id: 'obsessed', f: 1 + coins / BAL.obsessed.per_credits });
+      if (_flRanks && _flRanks.includes(baseRank)) _xl.push({ id: 'feelin_lucky', f: BAL.feelin_lucky.mult_mult });
     }
     _xl.forEach(x => { if (x.id !== 'perm_mult') _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); });
     // The EVENTS are emitted here, where they belong on the timeline. The
@@ -1773,6 +1775,7 @@ function resetPositionMarks() {
       if (!t || seen.has(t)) return;
       seen.add(t);
       delete t._posAssigned; delete t._posAxis; delete t._posIndex; delete t._posDescBase;
+      delete t._luckyRanks; delete t._luckySells;   // Feelin Lucky (r360): a new run rolls afresh
     }));
 }
 
