@@ -132,11 +132,13 @@ function trickLiveDesc(trick) {
     const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
     const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
     switch (trick.id) {
+      case 'move_as_one': { const q = moveAsOneQualifying(); return `${base} (${q.keys.length ? 'keyword: ' + q.keys.join(', ') : 'no keyword shared by 3 yet'})`; }
+      case 'feelin_lucky': return `${base} (ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${feelinLuckyRerollsLeft(trick)} rerolls left)`;
       // ── permanent accumulators / level / owned-based (always a number) ──
       case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);
       case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);
       case 'tens_mult':      return now(`+${bonusMult_tens || 0} mult`);
-      case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(1)} mult`);
+      case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(2)} mult`);
       case 'acorns':         return now(`+${Math.floor(bonusFocus_acorns || 0)} Focus/hand · ${(bonusFocus_acorns || 0).toFixed(2)} stored`);
       case 'plan_ahead':     return now(`+${Math.max(1, Math.round((handsPlayedGame || 0) / Math.max(1, level)))} Focus every 3rd hand`);
       case 'more_better':    return now(`+${bonusMult_morebetter || 0} mult`);
@@ -149,6 +151,11 @@ function trickLiveDesc(trick) {
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(`+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
+      // ── capped Focus-limit growers (r340): current earned of max ──
+      case 'quick_draw':     return now(`+${focusCapGains['quick_draw'] || 0} of ${B.quick_draw?.cap ?? 10} Focus limit`);
+      case 'expanse':        return now(`+${focusCapGains['expanse'] || 0} of ${B.expanse?.cap ?? 10} Focus limit`);
+      case 'little_guys':    return now(`+${focusCapGains['little_guys'] || 0} of ${B.little_guys?.cap ?? 15} Focus limit`);
+      case 'first_play':     return roundNow(`next hand +${Math.max(0, (B.first_play?.focus ?? 5) - (handsPlayedRound || 0))} Focus`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
       case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);
@@ -160,7 +167,7 @@ function trickLiveDesc(trick) {
       case 'kingfisher':     return roundNow(`+${Math.floor(((pausedSecondsRound || 0) + (rewoundSecondsRound || 0)) / B.kingfisher.interval_seconds) * B.kingfisher.mult_per_interval} mult`);
       case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / 10)} mult`); }
       case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
-      case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / B.sands_of_time.divisor)} pips`);
+      case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / sandsDivisor())} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.mult_per} mult`);
       case 'landfill':       return roundNow(`+${((discardsUsedRound || 0) + (swapsUsedRound || 0)) * B.landfill.mult_per} mult per card`);
       case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
@@ -336,8 +343,14 @@ function refuseTrickCapacity() {
 }
 
 function renderTrickTray() {
+  pruneRowColBonuses();
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the
+  // Sleight draw queue. The intercept always ensures the corner toggle exists;
+  // in queue view it renders the queue and this function stands down - so every
+  // caller repaints whichever face is showing.
+  if (typeof trayQueueIntercept === 'function' && trayQueueIntercept()) return;
   // A newly GAINED Trick should land somewhere visible. In portrait the Tricks
   // view shares the strip with Knacks and the preview, so flip to it when the
   // count grows. Tally updated BEFORE the flip: setPortraitPanelView re-enters
@@ -461,8 +474,10 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   const _reopen = () => showTrickTrayTooltip(trick, anchorEl, { actions });
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
+    const _fl = feelinLuckyRerollsLeft(trick);
     tipConfirmAction(_row(), {
-      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      question: _fl ? `Reroll its ranks for 💰${feelinLuckyRerollCost()} (30% of your credits)? ${_fl} left, then it sells.` : `Sell for 💰${_sv}?`,
+      confirmLabel: _fl ? 'Reroll' : 'Sell',
       onYes: () => sellTrick(trick), onCancel: _reopen,
     });
   });
@@ -659,6 +674,31 @@ async function confirmTrickSelection(trick) {
 }
 
 
+// ── Feelin Lucky (r360) ──────────────────────────────────────────────────────
+// Its five ranks are rolled when it is taken and live on the Trick itself (so
+// they save with the tray). A sell attempt with rerolls left costs 30% of your
+// credits and rerolls the ranks instead; the fourth attempt really sells.
+function feelinLuckyRoll(t) {
+  const pool = ACTIVE_RANKS.filter(r => !(typeof isWildRank === 'function' && isWildRank(r)));
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  t._luckyRanks = pool.slice(0, BAL.feelin_lucky.ranks);
+}
+function feelinLuckyRerollsLeft(t) {
+  return (t && t.id === 'feelin_lucky') ? Math.max(0, BAL.feelin_lucky.rerolls - (t._luckySells || 0)) : 0;
+}
+function feelinLuckyRerollCost() { return Math.floor(coins * BAL.feelin_lucky.sell_cost_share); }
+// Returns true when the sell was turned into a reroll (the Trick stays).
+function feelinLuckyIntercept(t) {
+  if (!feelinLuckyRerollsLeft(t)) return false;
+  const cost = feelinLuckyRerollCost();
+  coins = Math.max(0, coins - cost); updateCoinsUI();
+  t._luckySells = (t._luckySells || 0) + 1;
+  feelinLuckyRoll(t);
+  showMessage(`🍀 Feelin Lucky rerolled: ${t._luckyRanks.join(' ')} (-💰${cost})`, 'var(--gold)');
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  return true;
+}
+
 function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
@@ -666,6 +706,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   // Positional bonuses get an axis+index at pick time - steered by the position knacks
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
   assignPositionMark(trick);
+  if (trick.id === 'feelin_lucky' && !trick._luckyRanks) feelinLuckyRoll(trick);
 
   updateTrickList();
   const lvlOverlay = document.getElementById('levelup-overlay');

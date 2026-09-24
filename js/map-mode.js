@@ -221,7 +221,7 @@ function mapTileDesc(t) {
     case 'event':      return t.eventFlavor || 'Something happens.';
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the schedule.')
-      + ` Quota: ${mapBossGoal}.`;
+      + ` ${(typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL'}: ${mapBossGoal}.`;
   }
   return '';
 }

@@ -1,0 +1,38 @@
+BALANCE PASS 9.24 - OUTSTANDING CHANGES ONLY
+=============================================
+The owner's Balance_-_9.23.26.xlsx, minus everything origin/main's r326
+balance pass (commit ce1bd68) already implemented. Each block is
+  [id] column
+    owner: what the sheet asks for now
+    (was:  what the game had when the owner edited)
+Already done and NOT listed here: 13 removals (worn_path redline
+second_nature trinity last_stand fertile_ground huddle veteran_bonus
+prolific snowball big_win escalation feedback_loop), 7 re-tiers
+(correct_run kingfisher row_power nines_mult spade_flood landfill
+magician), and ~70 description/BAL changes (tide_table undertow
+deep_breath interest portfolio blackjack knave_power's text humble_roots
+swift minute_hand second_hand kindling wildfire even_score odd_squad
+shape_line corner_retrigger feng_shui rising_tide wild_side old_growth
+scalper ready_set_go wave_amp stand_up double_bloom pair_pips enriched
+kindred summit light_touch heavy_hand first_light face_value king_guard
+royal_trio rich_soil first_fruits sapling early_bird night_owl
+patience_reward still_water sediment hummingbird ticktock's neighbours
+quarter_chime hourglass's neighbours full_color balanced_diet
+number_crunch prime_time rowcol_mult two_corners edge_pips column_rush
+row_power tidal_force discard_pips landfill heartwood flow_state
+wellspring encore's neighbours combo_score more_better's number
+tens_mult eights' neighbours mirror's neighbours...). When in doubt,
+diff the sheet against a fresh gen_balance_sheet.js output.
+
+DONE IN r336 (Tiers 1-2): the 4 removals (ancient_grove, compound, restless,
+flywheel), both renames (Jackpot, Fresh Start), all 13 rarity moves, meditation
+2s, mockingbird every-4, hourglass 50%, eye_of_storm 2x, Echo Location 2-in-3
+(prints 67%), exalt heart_mult 4, corrupt spade_coins -5. Those rows are pruned
+from this file. Owner decisions: the keyword is INERT (not Spent); echo_hand keeps its
+old effect (the new text was an error); the unnamed legendary becomes the
+DIAMONDS Trick named Buried Treasure, and the old Buried Treasure effect
+moves to spades (name pending).
+
+ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
+"+10 focus" where the code still advances Focus to the next threshold.
+Treat richter exactly like full_house_streak below.

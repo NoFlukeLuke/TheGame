@@ -112,9 +112,11 @@ function fireAdjacentSleights(handCells) {
       if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) continue;   // spent fixture sits inert
       // The fixture itself can be part of the played hand - that doesn't count as
       // "beside it", so only its NEIGHBOURS are checked.
-      const touched = getNeighbors(r, c).some(([nr, nc]) => scored.has(`${nr}-${nc}`));
-      if (!touched) continue;
-      card._adjPlays = (card._adjPlays || 0) + 1;
+      // adjCards (r353, Shift Swap / Recycler) counts scored CARDS beside it,
+      // so two in one hand pay at once; the rest count HANDS.
+      const touching = getNeighbors(r, c).filter(([nr, nc]) => scored.has(`${nr}-${nc}`)).length;
+      if (!touching) continue;
+      card._adjPlays = (card._adjPlays || 0) + (def.adjCards ? touching : 1);
       if (card._adjPlays < (def.adjacentPlays || 2)) continue;
       card._adjPlays = 0;
       paySpectrumFixture(def, card, r, c);

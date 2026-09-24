@@ -27,7 +27,7 @@ const CD_COLORS = { off: '#d8474b', cooldown: '#e8a13a', primed: '#8a5cf0' };
 // ── How long is "one cycle" for the once-per-minute Tricks ──────────────────
 // firesThisMinute() (js/scoring.js) gates on whole round-minutes, so the wait is
 // always "until the clock crosses the next minute boundary".
-const CD_PER_MINUTE_TRICKS = ['study_hall', 'temporal_rift'];
+const CD_PER_MINUTE_TRICKS = ['study_hall'];
 
 function cdRoundElapsed() {
   if (typeof roundStartSeconds === 'undefined' || typeof roundSeconds === 'undefined') return 0;
@@ -61,18 +61,16 @@ const TRICK_TIMERS = {
     }
     return { mode: 'cooldown', left: cdUntilNextMark(BAL.minute_hand.interval_seconds), total: BAL.minute_hand.interval_seconds };
   },
-  // The Cuckoo pauses the clock once a minute of round time.
-  cuckoo() { return { mode: 'cooldown', left: cdUntilNextMark(BAL.cuckoo.interval_seconds), total: BAL.cuckoo.interval_seconds }; },
-  // Compound banks the round score on its own mark.
-  compound() { return { mode: 'cooldown', left: cdUntilNextMark(BAL.compound.interval_seconds), total: BAL.compound.interval_seconds }; },
-  // The Woodpecker marks a card in alternating 30s blocks - it is genuinely off
-  // for half of every minute, which nothing said out loud before.
+  // (The Cuckoo left this table in r346: it fires per HAND now, not on a clock,
+  // so there is no honest countdown to draw.)
+  // The Woodpecker marks a new card every interval; the ring counts down to the
+  // next mark, violet while a mark is standing on the board.
   woodpecker() {
-    const blk = Math.floor(cdRoundElapsed() / 30);
-    const left = cdUntilNextMark(30);
-    return (blk % 2 === 0)
-      ? { mode: 'primed', left, total: 30, label: 'marking' }
-      : { mode: 'cooldown', left, total: 30 };
+    const iv = BAL.woodpecker.interval_seconds;
+    const left = cdUntilNextMark(iv);
+    return woodpeckerCardId
+      ? { mode: 'primed', left, total: iv, label: 'marked' }
+      : { mode: 'cooldown', left, total: iv };
   },
 };
 

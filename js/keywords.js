@@ -33,6 +33,8 @@ const KEYWORD_DEFS = [
     name:'Mult',     def:'The multiplier applied to Pips. Final score = Pips × Mult.' },
   { key:'focus',     cls:'kw-focus',   terms:['focus'],
     name:'Focus',    def:'The meter beside the grid. It builds as you play and adds a score multiplier; it decays if you stall.' },
+  { key:'speed_bonus', cls:'kw-focus', terms:['speed bonus'],
+    name:'Speed bonus', def:'Extra Focus for playing a hand quickly after the previous one. It is largest the moment a hand lands and fades over the next few seconds. Pair, Flush of 3 and Flush of 4 earn only half of it.' },
   { key:'score',     cls:'kw-score',   terms:['score'], basic:true,
     name:'Score',    def:'Your points this round. Reach the round Goal to move on.' },
   { key:'goal',      cls:'kw-score',   terms:['goal'],

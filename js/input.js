@@ -101,7 +101,20 @@ function doSwap(r1, c1, r2, c2) {
   // once fired, while its downside DID: level-up.js takes a swap off the base
   // for owning it. The knack was strictly negative. Found in r307 while
   // mirroring this rule into the shop.
-  if (notAdjacent && !hasKnack('free_range_t')) {
+  //
+  // A Pivot touching BOTH ends also waives adjacency (owner call). The eight
+  // cells around a Pivot are mostly NOT orthogonally adjacent to each other, so
+  // without this "swap freely all around it" only ever fired on the few pairs
+  // that happened to be neighbours anyway - the free swap worked, the freedom
+  // did not. Both-ends is _pivotCell, resolved above before anything moved.
+  // Wanderer (r354): while a live one sits on the grid, ANY two cards may swap
+  // regardless of position. Still spends swap stock; each distance swap spends
+  // one of its charges. Free Range and a both-ends Pivot are asked first, so a
+  // Wanderer charge is only spent when nothing else was already allowing it.
+  // The Queen's Royal Reach (r358) swaps along its lines at any distance.
+  const _royalSwap = notAdjacent && (hasRoyalReach(gridData[r1]?.[c1]) || hasRoyalReach(gridData[r2]?.[c2])) && onQueenLine(r1, c1, r2, c2);
+  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_royalSwap) ? liveWanderer() : null;
+  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_wanderer && !_royalSwap) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
@@ -157,8 +170,7 @@ function doSwap(r1, c1, r2, c2) {
   lastSwapTime = Date.now();
   lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
   resetFocusDecayTimer();
-  // Restless: swapping adds 1 focus
-  if (hasTrick('restless')) addFocus(1);
+  cullPay();   // Cull (r351): a swap pays too, read after the swap is paid for
   // ♥ corruption: a swapped heart goes "on probation" - it must appear in the next scored
   // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
   // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.
@@ -192,6 +204,15 @@ function doSwap(r1, c1, r2, c2) {
   // above because discardSleightAfterUse spins the tile and then runs removeAndFall,
   // which takes the `falling` lock - starting that on top of the swap animation
   // would cut the swap short.
+  if (_wanderer) {
+    const _wc = _wanderer[0];
+    if (_wc._usesLeft > 1) { _wc._usesLeft--; render(); }
+    else setTimeout(() => {
+      let _at = null;
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === _wc) _at = [r, c];
+      if (_at) discardSleightAfterUse(_wc, _at[0], _at[1]);
+    }, 260);
+  }
   if (_pivotSpent) {
     const [_pr, _pc] = _pivotSpent;
     setTimeout(() => {
@@ -305,7 +326,9 @@ function onCardTap(r, c) {
     const _m = magnetArmed; magnetArmed = null;
     const _moved = magnetCluster(_m.r, _m.c, _t.rank);
     showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
-    discardSleightAfterUse(_m.card, _m.r, _m.c); // spends a charge, then leaves the grid
+    // With something pulled the Magnet has already been discarded as part of the
+    // pull; with nothing to pull it leaves the ordinary way, charge spent.
+    if (!_moved) discardSleightAfterUse(_m.card, _m.r, _m.c);
     return;
   }
   // Block null cells
@@ -360,8 +383,13 @@ function onCardTap(r, c) {
         removeFocus(BAL.capacitor.focus_cost);
         roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
         grantEntityCoins(BAL.capacitor.credits, 'sleight', 'capacitor');
-        showMessage(`🔋 Capacitor - ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
-        selected = []; discardSleightAfterUse(jcard, r, c);
+        // The payout is the particle, not a toast (r326): the credits plate flies
+        // from the card to the coin readout with the coin sound; the time cost
+        // already flashed off the clock above.
+        if (typeof entityEffectFX === 'function')
+          entityEffectFX('credits', BAL.capacitor.credits,
+            { srcEl: document.querySelector(`#grid [data-card-id="${jcard._id}"]`), id: 'capacitor', source: 'sleight' });
+        selected = []; sleightUseInPlace(jcard, r, c);   // INERT on use (r341), stays on the grid
         return;
       }
       // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid - it
@@ -382,9 +410,12 @@ function onCardTap(r, c) {
         render();
         return;
       }
-      // Amplifier / Snooze / Piggy Bank: fire, then leave the grid (discard-on-use, r164).
+      // Piggy Bank (and any future INERT_ON_USE sleight): fire in place, go inert (r341).
+      // Amplifier / Snooze: fire, then leave the grid (discard-on-use, r164).
       applySleightGridEffect(jdef.id, r, c);
-      selected = []; discardSleightAfterUse(jcard, r, c);
+      selected = [];
+      if (INERT_ON_USE_SLEIGHTS.has(jdef.id)) sleightUseInPlace(jcard, r, c);
+      else discardSleightAfterUse(jcard, r, c);
       return;
     }
     // otherwise fall through to normal selection/swap handling below
@@ -454,17 +485,34 @@ function onCardTap(r, c) {
 // ── Pointer event handlers on the grid ──
 const gridEl2 = document.getElementById('grid');
 
+// THE PICK OWNS THE BOARD OUTRIGHT WHILE IT IS OPEN, so it is exempt from BOTH
+// flags here (r356). `onCardTap` already intercepts above its own `animating`
+// check, but that was never reached: this is the guard that decides, and
+// `roundEnded` - added to it in r254 - is true for the whole interlude, which is
+// exactly when the pick runs. `animating` is routinely still true from the
+// un-explode's flights, which is the r244 reason for the same exemption one
+// level down. A tap that silently does nothing reads as broken, and did.
 gridEl2.addEventListener('pointerdown', e => {
-  if (animating || roundEnded) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
+  const _pick = typeof pickOwnsBoard === 'function' && pickOwnsBoard();
+  if (!_pick && (animating || roundEnded)) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
   const cell = cardAt(e.target);
   if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }
   gridEl2.setPointerCapture(e.pointerId);
   isSwiping = false;
   swipeStopped = false;
-  gridEl2._pointerStart = { r: cell[0], c: cell[1], moved: false };
+  // RIGHT-DRAG DISCARDS (desktop). Button 2 runs the same swipe-select as a left
+  // drag, and the release spends a discard on whatever it gathered. Mouse only:
+  // there is no right button on a finger, and contextmenu is already suppressed
+  // on the grid. The Schedule's pen also right-drags, but the map has no cards
+  // in gridData so cardAt() bails above before this can ever collide with it.
+  gridEl2._pointerStart = { r: cell[0], c: cell[1], moved: false,
+                            rightBtn: e.pointerType === 'mouse' && e.button === 2 };
 });
 
 gridEl2.addEventListener('pointermove', e => {
+  // Deliberately NOT exempt for the pick: a pick is a tap, so leaving the swipe
+  // blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  // was meant to be. pointerup carries no guard of its own, so the tap lands.
   if (animating || roundEnded || !gridEl2._pointerStart) return;
   const cell = cardAt(document.elementFromPoint(e.clientX, e.clientY));
   if (!cell) return;
@@ -527,6 +575,16 @@ gridEl2.addEventListener('pointermove', e => {
 
 gridEl2.addEventListener('pointerup', e => {
   const ps = gridEl2._pointerStart;
+  // Right-drag release = discard the selection the drag just built. A right
+  // CLICK with no movement deliberately does nothing - the gesture is select-
+  // then-release, and a stray right click discarding a standing selection would
+  // be a destructive misfire. doDiscard() owns every guard (stock, curses,
+  // boss refusals) and clears the selection itself.
+  if (ps && ps.rightBtn) {
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    if (ps.moved && selected.length > 0) { cancelAutoSubmit(); doDiscard(); }
+    return;
+  }
   if (ps && !ps.moved) {
     // If in Trick selection phase and tapped a non-Trick cell, dismiss tooltip
     if (trickSelectionPhase && !gridData[ps.r]?.[ps.c]?._isTrick) {
@@ -553,6 +611,27 @@ gridEl2.addEventListener('pointercancel', () => {
 });
 
 gridEl2.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── The swap stock indicator PERFORMS a swap when exactly two cards are
+// selected. It was a pure readout during play (the reward grid and Poker
+// Squares repurpose it via el.onclick, which is why this is addEventListener -
+// both bindings coexist and the guard below stands down whenever a takeover
+// screen owns the button). doSwap owns every rule: adjacency, Free Range,
+// Pivot, stock, boss refusals.
+document.getElementById('swap-indicator')?.addEventListener('click', () => {
+  const takeover = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+    || (typeof shopGridActive !== 'undefined' && shopGridActive)
+    || (typeof squaresActive === 'function' && squaresActive())
+    || (typeof mapActive === 'function' && mapActive());
+  if (takeover || animating || roundEnded || falling) return;
+  if (selected.length !== 2) {
+    if (selected.length > 0) showMessage('Select exactly 2 cards to swap them', 'var(--cream-dim)');
+    return;
+  }
+  const [[r1, c1], [r2, c2]] = selected;
+  cancelAutoSubmit();
+  doSwap(r1, c1, r2, c2);
+});
 
 // ══════════════════════════════════════════════
 // FOCUS GENERATION (r95)

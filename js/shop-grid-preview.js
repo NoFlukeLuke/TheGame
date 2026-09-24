@@ -374,7 +374,7 @@ function buildShopSellStock() {
     price: knackSellValue(), sell: () => { const i = acquiredKnacks.findIndex(x => x.id === k.id); if (i >= 0) acquiredKnacks.splice(i, 1); updateKnackList?.(); } }));
   const trickList = (typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks;
   (trickList || []).forEach(t => items.push({ entity:'trick', label:t.name, desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
-    price: trickSellValue(t), sell: () => sellOwnedTrick(t) }));
+    price: trickSellValue(t), trick: t, sell: () => sellOwnedTrick(t) }));
   ownedSleightInstances().forEach(inst => {
     const def = inst.def;
     items.push({ entity:'sleight', label:def.name, desc:def.desc, emoji:def.emoji || '🃏',
@@ -1102,6 +1102,9 @@ async function shopGridFlyPurchases(bought) {
 function doShopSell(r, c) {
   const p = shopGridItems[r]?.[c];
   if (!p || typeof p.sell !== 'function') return;
+  if (p.trick && typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(p.trick)) {
+    shopGridItems = buildShopSellStock(); renderShopGrid(); return;
+  }
   coins += p.price; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
   try { sfxRewardGood?.(); } catch (e) {}

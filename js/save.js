@@ -91,7 +91,7 @@ const SAVE_VARS = [
   'nextRoundPlayCost', 'nextRoundDiscardCost', 'playHandCostThisRound', 'discardCostThisRound',
   'freeSwapsLeft', 'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
   // ── Focus ──
-  'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusGenGame', 'focusGenRound',
+  'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusCapGains', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray', 'trickTrayMode',
@@ -101,7 +101,7 @@ const SAVE_VARS = [
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──
-  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins',
+  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins', 'permFocus',
   'permPipsGrow', 'permMultGrow', 'cardCurses',
   // Card states (r278). cardIdleSecs is deliberately NOT saved: the save point is
   // the START of a round and the fuses reset there anyway, so restoring last
@@ -118,9 +118,9 @@ const SAVE_VARS = [
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext', 'leyLinePos',
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
-  'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
+  'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerCardId', 'doubleJeopardyCells',
   // ── Round/run counters ──
-  'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
+  'handsPlayedRound', 'queenUpgradePending', 'queenBoardSecs', 'studyHallCards', 'runsPlayedRound', 'clubsScoredRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
   'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
   // The quarter report's books (js/quarter.js). Snapshot marks, not counters:
@@ -144,6 +144,9 @@ const SAVE_VARS = [
   'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel',
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
+  // Flow multi-reward chain (js/flow-rewards.js, r325): extra rewards rolled
+  // this run - gates the ordering phases, so a resumed run keeps its phase.
+  'flowrExtraEarned',
   // ── Seed (keeps future reward grids / shops deterministic) ──
   'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'earlyLimitDone', 
 ];
@@ -347,7 +350,7 @@ function dropUnknownCurses() {
 }
 
 function migrateCardKeysToIds() {
-  const maps = [permPips, permMult, permXPips, permXMult, permRetrig, permCoins,
+  const maps = [permPips, permMult, permXPips, permXMult, permRetrig, permCoins, permFocus,
                 permPipsGrow, permMultGrow,
                 cardCurses, cardPlayCount, cardSwapCount, cardDealtCount];
   const olds = maps.map(m => ({ ...m }));

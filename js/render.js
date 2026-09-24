@@ -69,9 +69,10 @@ function render() {
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
         // (1/2) instead of its charges - same rule as renderCardAppearance.
+        const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
-          : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
+          : (card._usesLeft === 'infinite' ? '∞' : (_maxChJ ? `${card._usesLeft}/${_maxChJ}` : card._usesLeft));
         const _isAim = AIM_SLEIGHTS.has(def?.id);
         // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
         // not .card, so none of the .card.selected.hand-valid / .hand-ready /
@@ -83,6 +84,7 @@ function render() {
         const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
                       + (_unreachJ ? ' unreachable' : '')
                       + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+                      + (card._inert ? ' sleight-inert' : '')
                       // className is rewritten wholesale below, so an in-flight
                       // double-tap spin has to be carried across the repaint.
                       + (div.classList.contains('sl-spin') ? ' sl-spin' : '');
@@ -95,13 +97,20 @@ function render() {
               `<div class="sleight-card-name">${def?.name||'Sleight'}</div>` +
             `</div>` +
             `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
-          div.onclick = () => onCardTap(r, c);
+          // No div.onclick here (r326): the grid's own pointerup handler already
+          // routes a tap on any [data-row] tile into onCardTap, so an onclick on
+          // top of it fired onCardTap TWICE per physical click. On a double_tap
+          // Sleight that was the Magnet bug the owner reported: ONE click read
+          // as a double tap (call 1 stamped lastTapCell, call 2 saw it inside
+          // 350ms) and armed it, and a REAL double tap armed on the first click
+          // and hit the "tapping Magnet cancels" intercept on the second - so
+          // the printed gesture was the one gesture that could never work.
           attachLongPress(div, r, c);
           continue;
         }
         div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
-        div.onclick = () => onCardTap(r, c);
+        div.onclick = null;   // see the aim-sleight note above - pointerup owns the tap
         attachLongPress(div, r, c);
         continue;
       }
@@ -265,7 +274,7 @@ function render() {
     // Suits neutral by default - preview only shows active Trick effects
     const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
     const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
-    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${5*(Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
+    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
 
     breakdownEl.innerHTML = `
       <div class="sb-row"><span class="sb-label">Base pips (lv${level})</span><span class="sb-value">${scaledBasePips}</span></div>
@@ -300,7 +309,8 @@ function render() {
   // paints them from sqPaintButtons, so render() must not write over them.
   const _takeover = (typeof squaresActive === 'function' && squaresActive())
                  || (typeof shopGridActive !== 'undefined' && shopGridActive)
-                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+                 || (typeof flowrDeckActive === 'function' && flowrDeckActive());
   if (!_takeover) {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.

@@ -352,6 +352,7 @@ function startGame() {
   // A model that builds its own deck has already written the real total; a rank
   // x suit cross product is not what it deals, so the generic line must not run.
   if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
   dealPhase = false;
 
   // Reset all state
@@ -424,6 +425,7 @@ function startGame() {
                ? flowFocusCapBase()
                : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
+  focusCapGains = {}; queenUpgradePending = new Set(); queenBoardSecs = {};
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;
@@ -520,6 +522,7 @@ function startGame() {
   permRetrig = {};
   permTime   = {};
   permCoins  = {};
+  permFocus  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
@@ -537,6 +540,7 @@ function startGame() {
   handsPlayedRound   = 0;
   studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
+  clubsScoredRound   = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
   handTypesRound     = new Set();

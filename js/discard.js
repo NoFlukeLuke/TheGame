@@ -38,10 +38,13 @@ function doDiscard() {
   }
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
+  // Five for Fodder wants a VALID 5-card hand (r339) - judged now, while the cards are still on the grid.
+  const _fodder5 = hasTrick('five_fodder') && realHandOfSize(selected, 5);
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
-  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
+  // Time buffs do not stack (r342): a card already carrying one is skipped.
+  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !cardTimeBuffed(c)) c._vulturePause = BAL.vulture.pause_seconds; });
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
   // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
   if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──
@@ -79,7 +82,17 @@ function doDiscard() {
   // the player throwing anything away.
   const _sieve = (typeof bossSieve !== 'undefined') && bossSieve && bossActive
                  && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored());
-  selected.forEach(([r,c]) => { if (gridData[r]?.[c] && !_sieve) discardToDrawPile(gridData[r][c]); });
+  // A discard-activated Sleight (Cash Out, Last Call, Sandbagger, Fresh Start)
+  // cycles back into the deck with its remaining charges (r353). discardToDrawPile
+  // deletes every Sleight, so before this their printed charges meant nothing:
+  // the first discard was the last. A spent one was already nulled off the board
+  // by consumeSleightCharge and is not here to route.
+  selected.forEach(([r,c]) => {
+    const _dc = gridData[r]?.[c];
+    if (!_dc || _sieve) return;
+    if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
+    else discardToDrawPile(_dc);
+  });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
@@ -105,7 +118,7 @@ function doDiscard() {
   cardsDiscardedRound += count;
   discardsUsedRound++;
   // Five for Fodder: discarding a 5-card hand grants credits
-  if (hasTrick('five_fodder') && count === 5) {
+  if (_fodder5) {
     grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
     showMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
   }
@@ -153,12 +166,9 @@ function doDiscard() {
   }
   sfxCardDiscard();          // discarding has its own sound now (r205), not the riffle
   resetFocusDecayTimer();
-  // Cull: 1 Focus per unit of manipulate stock still in hand. `discards` has already
-  // been decremented above, so this reads what is LEFT after paying for this discard.
-  if (hasTrick('cull')) {
-    const _stock = Math.max(0, swaps) + Math.max(0, discards);
-    if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock, 'cull'); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
-  }
+  // Cull: Focus per 2 swaps+discards still in hand. `discards` has already been
+  // decremented above, so this reads what is LEFT after paying for this discard.
+  cullPay();
   if (typeof cardStatesTouch === 'function') cardStatesTouch(discardedCards);
   const toRemove = [...selected];
   selected = [];
@@ -325,6 +335,13 @@ function handleClockMarks(secs) {
   }
 }
 
+// Cull (r351): +focus per `per` swaps+discards left, on every swap AND discard.
+function cullPay() {
+  if (!hasTrick('cull')) return;
+  const _n = Math.floor((Math.max(0, swaps) + Math.max(0, discards)) / BAL.cull.per) * BAL.cull.focus_per_stock;
+  if (_n > 0) addFocus(_n * trickFires('cull'), 'cull', 'trick');
+}
+
 function pauseRound(seconds, srcId, srcSource) {
   // A pause of no length is not a pause. Callers multiply their seconds by
   // trickFires(), which is 0 for a Trick you do not own, so this is the normal way
@@ -385,7 +402,7 @@ function pauseRound(seconds, srcId, srcSource) {
 // ── Stopwatch sleight ─────────────────────────────────────────────────────────
 // Freezes the clock (a NORMAL pause, so Phoenix/Falcon etc. still apply) until the
 // next played hand's scoring animation settles. Swaps/discards/selection keep it
-// frozen. Drains its 60-second budget (_usesLeft) 1 per frozen second; destroyed at 0.
+// frozen. 60s of use as 10 charges of 6s each (timed charges, r356); spent at 0.
 function startStopwatch(card, r, c) {
   if (stopwatchActive || !card) return;
   if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) return;
@@ -401,15 +418,10 @@ function startStopwatch(card, r, c) {
     if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
     if (gameTimerPaused) return; // don't drain while a menu/shop/event has the game suspended
     if (card._usesLeft === 'infinite') return;
-    card._usesLeft--;
     pausedSecondsRound++; // Albatross counts frozen seconds
-    if (card._usesLeft <= 0) {
-      // budget spent → destroy the sleight (find it by reference; a discard-fall may have moved it) and release
-      for (let rr = 0; rr < gridRows; rr++) for (let cc = 0; cc < gridCols; cc++) if (gridData[rr]?.[cc] === card) gridData[rr][cc] = null;
-      endStopwatch();
-      showMessage('Stopwatch consumed', 'var(--cream-dim)');
-      render();
-    }
+    // Timed charges (r356): every 6 frozen seconds spend one charge; the helper
+    // takes a spent Stopwatch off the board wherever a fall has moved it.
+    if (!sleightTimedDrain(card)) endStopwatch();
   }, 1000);
 }
 function endStopwatch() {

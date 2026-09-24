@@ -109,6 +109,17 @@ All three kinds of unusable funnel through **`isCellBlocked`**, which is what le
 every existing select, tap, swipe and reachability guard cover them with no
 changes.
 
+**ONE CARD, ONE TIME BUFF (r342).** A card may carry at most one time buff, in
+either currency - The Vulture's and Wait Four It's pause (`_vulturePause`) or
+Temporal Rift's rewind (`permTime`). Every grant site asks `cardTimeBuffed(card)`
+(js/deck-grid.js) first and skips a card that already has one.
+
+**Marks from the 9.24 pass (r348, r350):** Double Jeopardy marks two CELLS
+secretly (`doubleJeopardyCells` - cell-keyed on purpose, nothing is drawn); The
+Woodpecker marks a CARD every 30s (`woodpeckerCardId`, spent when scored);
+Royal Favour stamps a +1 rank on a card that scored beside a Queen as it goes
+into the pile (`queenUpgradePending`, applied in `recycleCard`).
+
 ### The marks a card can wear
 
 `CARD_MARK_META` (js/entity-fx.js) is the table, keyed by a `covers(r,c)`
@@ -317,6 +328,21 @@ Fleeting*, *gives a neighbour Temp*, *makes a copy of a random neighbour*,
   once. No work started.
 - **Converting a temp card to a permanent one.** `makeCardPermanent` exists and is
   unused. The open question is what pays for it.
+- **FALL HEIGHT as a trigger (owner, r326).** The board already has gravity
+  (`removeAndFall` computes how far each card drops to refill a hole), and
+  nothing reads that distance. Raised and liked, not built:
+  - a Sleight that increments (banks pips/mult) every time it falls, so churning
+    the board around it feeds it - Whetstone's shape, keyed on its own movement;
+  - a Sleight buffed whenever a card lands ON it from a height of 2+ rows;
+  - a boss that locks cards, freed by dropping a card onto them twice - the
+    match-3 "play adjacent hands to thaw" idea, but worded as impact. The owner's
+    note: "height and falling" reads as more fun than "discard or score above
+    this", even though they are nearly the same trigger.
+  - a Sleight that removes a big chunk of the board at once (also the cheapest
+    way to MAKE things fall) - overlaps the removal ideas above.
+  Wiring: `removeAndFall`'s gravity pass is the one place drop distance is
+  known, so the hook is one callback there (`onCardFell(card, fromR, toR, c)`),
+  and everything above is a reader of it.
 
 ---
 

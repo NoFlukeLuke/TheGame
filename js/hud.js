@@ -53,7 +53,7 @@ function showBonusHandScoreFlash(cells, scoreAmount) {
 // number the player most wants while deciding what to take.
 //
 // So on those screens it reads LAST ROUND over what that round scored, and
-// NEXT QUOTA over the goal about to be asked for. The progress bar is hidden:
+// NEXT GOAL over the goal about to be asked for. The progress bar is hidden:
 // it would sit at 100% and mean nothing.
 //
 // `body.grid-screen` is the switch, set by enterGridScreenHud() and cleared by
@@ -71,7 +71,10 @@ function updateScoreUI() {
   const goalLabel  = document.getElementById('score-goal-label');
   const barWrap    = document.getElementById('score-progress-bar-wrap');
   if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
-  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT QUOTA' : 'GOAL';
+  // lexTerm, never a literal: this label is the one r293 flipped from a
+  // hardcoded QUOTA, and hardcoding GOAL instead is the same bug mirrored.
+  const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';
+  if (goalLabel)  goalLabel.textContent  = between ? ('NEXT ' + goalWord) : goalWord;
   if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
 
   const shownScore = between ? lastRoundScore : score;
@@ -389,7 +392,11 @@ function handLabelHTML(runs) {
   return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
     const x = k > 1 ? `<u>x${k}</u>` : '';
-    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}${x}</i></span>`
+    // A numeric size reads "OF N" (owner spec, r333): SET / OF 3, RUN / OF 4.
+    // Word sizes (TWO / PAIR, FULL / HOUSE, HIGH / CARD) print as they are -
+    // the break is always between whole words, never inside one.
+    const sz = l && /^\d/.test(l.size) ? 'OF ' + l.size : (l && l.size);
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${sz}${x}</i></span>`
              : `<span class="hn-l"><b>${n}</b>${x}</span>`;
   }).join('<span class="hn-plus">+</span>');
 }

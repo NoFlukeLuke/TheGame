@@ -20,6 +20,13 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `js/` - the game code, one file per system (list below).
 - `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
 - `CARD_EFFECTS.md` - **the index of everything that can be true of ONE CARD.** Every permanent buff and debuff, every boss state, the r278 card states, and the parked design list. Read it before adding a per-card effect.
+- `EVENTS.md` - **the review of all 22 events: what each one does, which tier it is in,
+  and what to do about it.** Read it before touching `js/events*.js`. Its spine is the
+  owner's test - an event costs a whole reward grid, so if the screen could have been one
+  tile on the grid you gave up, it is a bad event however well tuned. It also records the
+  seven post-r278 systems (card states, forced fires, `permFocus`, wilds, Natural Scaling,
+  `primeTrick`, `downgradeEntity`) that **no event touches**, which is the standing answer
+  to "make the rewards things you cannot get from the grid or the shop".
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
@@ -113,6 +120,9 @@ The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-s
 - **Trick** (formerly *Bonus Card / BC*): `trick:{id,name,desc,tier}`. A scoring buff. **As of the trick redesign (r66+), Tricks do NOT live on the grid** - they sit in a persistent **side tray** (`trickTray[]`, rendered by `renderTrickTray()` into `#trick-tray-list`; `trickTrayMode` defaults to `true`, grid placement is a dev-only toggle). `hasTrick(id)` checks the tray in tray mode (falls back to scanning `gridData` only when grid placement is toggled on). `acquiredTricks[]` tracks ever-owned (for dedup via `ownsTrick`). **NOTE: Sleights (below), not Tricks, are the entities that physically live on the grid.**
 - **Sleight** (formerly *Joker*): `_isSleight:true`, `sleightId`, `_usesLeft`. A deck card with conditional activations (see below).
 - **Stone:** `_isStone:true` - inert obstacle.
+- **Wild** (r325): `rank === WILD_RANK`. An ordinary deck card that takes any rank to
+  complete a SET, never a run or a flush, scoring no pips and firing no Tricks. It is a
+  RANK rather than a flag, so it survives the deck cycle for free - see "The wild card" below.
 - **Knack** (formerly *Totem*): NOT a card. Persistent rule-changer in `acquiredKnacks[]`, shown in HUD. `hasKnack(id)`.
 - **Challenge card:** `challengeCard` / `challengeActive`, occupies a cell; `resolveChallenge(success)`.
 - `cardCan(card, action)` gates what each type can do (`select`/`swap`/`discard`/`fall`/`render`).
@@ -169,7 +179,7 @@ The old table had four inversions, all fixed:
 - **THERE IS NO xSCORE STEP ANY MORE (r236).** This line used to list Echo, Legacy, Low and Behold, the boss Redaction and the dev grid Trick card as deliberate survivors. It had drifted even before r236: **Echo** is a per-card retrigger in the card loop, and **Legacy** became a xMULT in r193. r194 took Spot Check, and r236 took the last four - The Redaction, The Grind, Low and Behold and the dev grid Trick card. See "The last four xSCORE effects" below. **Do not add one**: anything that would go there is a xPIPS or a xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (top tier) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. (This line used to say its payout lands at SCORE level; it is `mult += bonusMult_compound`, an ordinary additive mult, and has been for some time.)
+- **Compound** was removed in r336 (the 9.24 balance pass).
 
 ### The scoring TIMELINE (r220) - every Trick pays out at its own moment
 
@@ -1821,7 +1831,7 @@ ONE widget for everything temporarily unavailable or temporarily charged: a coun
 - **The grey-out is a WASH ELEMENT, not a `filter`.** A filter applies to the whole subtree and a child cannot undo it, so a filtered card would have dragged its own countdown badge down to 16% saturation - the one part of it that has to stay legible. `.cd-wash` is a sibling of the badge at a lower z-index. It is an appended element rather than an `::after` because `.card.rc-woodpecker` already owns that pseudo-element.
 - **A tray chip a boss switched off already drains itself and stamps OFF** (r188), so on that one host the widget contributes only the ring - washing it as well double-dims it. `cdPaint` checks for `.trick-off`.
 - **`renderCardAppearance` emits the badge too** (`cardCooldownParts`). `render()` rewrites a card's className and innerHTML wholesale, so a badge added only by the sweep would be wiped and re-added on every deal, swap and score - a visible flicker. `renderTrickTray` calls `cdPaint` for the same reason.
-- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), The Cuckoo, Compound, **The Woodpecker** (genuinely off for half of every minute, which nothing said out loud before), Minute Hand, every boss suspension, and every boss card hold.
+- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), **The Woodpecker** (a new card marked every 30s since r348, card-keyed and spent when scored), Minute Hand, every boss suspension, and every boss card hold.
 - **A boss suspension with no clock prints no number.** `bossTrickOffSecondsLeft` returns null for the Voidwright's halves - they flip on a phase change, not a timer, so there is no honest number to show.
 
 ### Minute Hand: primed, not pending (r209)
@@ -4751,7 +4761,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 | what died during every boss | because |
 |---|---|
 | Tick-Tock · Second Hand · Quarter Chime · Minute Hand · Hourglass | `handleClockMarks` runs on the round tick |
-| Tempo's resource drip · the Cuckoo · Compound · the Woodpecker · Slow Burn accrual | same tick |
+| Tempo's resource drip · the Woodpecker · Slow Burn accrual | same tick |
 | Focus decay, the board heartbeat | started by `startRoundTimer` |
 | `pauseRound` / `rewindTime` | operate on the frozen `roundSeconds` |
 | **swap and discard time costs** | billed to the frozen clock, so **interacting was free during a boss** |
@@ -5732,6 +5742,182 @@ deck, since `handBasePips()`/`handBaseMult()` are already the one chokepoint eve
 reader goes through. **This is why the weighted deck is a dev toggle and not a
 mode default**, and why `deckModel` defaults to `'mode'`: with it unset nothing in
 the shipped game changes.
+
+## The wild card (r325) - `WILD_RANK` in `js/data/cards.js`
+
+Owner: *"the wildcard that takes any rank to complete a set but not a run or
+flush. Let's add 4 of those by default to the classic and 6 suits ... They can
+assume a rank to complete a hand, but they don't score pips or trigger tricks by
+default."*
+
+Four are shuffled into the deck at the start of every run. A wild completes a
+**SET** and nothing else: two 7s and a wild is a Three of a Kind, one 7 and two
+wilds is a Three of a Kind, 7-7-3-3 and a wild is a Full House. It can never be
+part of a run or a flush, it scores no pips, and it fires none of the per-card
+Tricks.
+
+### IT IS A RANK, NOT A FLAG, and that is the r165 white-card lesson
+
+`recycleCard` rebuilds an ordinary card from `{rank, suit}` plus the
+`DURABLE_CARD_FIELDS` list every time it leaves the board, so a `_wild` field
+would have to be named there AND kept in step with `SAVE_VARS` and both pile
+functions - which is exactly the bookkeeping r165 removed from the Spectrum white
+cards by DERIVING whiteness from the value instead. `isWildCard(card)` is
+`card.rank === WILD_RANK`, so the wild survives discard -> reshuffle -> redraw
+with no work anywhere, and `cardId` / `cardKey` / curses / buffs / saves all keep
+working untouched. Verified: through `discardToDrawPile` and through
+`discardToPlayed`, still a wild and still the same `_id`.
+
+**`WILD_SUIT` is a non-suit, deliberately.** A wild drawn as a spade that cannot
+complete a spade flush is the more confusing object, and "no rank, no suit" is one
+rule rather than two. It is absent from `ACTIVE_SUITS`, which is most of why the
+flush exclusion falls out - but **both flush sites test `isWildCard` explicitly
+anyway**, because r164 leaned on absence alone for the white cards and r165 had to
+unpick it. All four wilds share one `cardKey`, which is fine: `cardKey` is the
+RECORDS deck matrix's alone and that view aggregates with a count badge (r192).
+
+### The three rules, and where each one is enforced
+
+| rule | where |
+|---|---|
+| never in a RUN | `rankRunVals` returns `[]`, so `tryRunCombos` has nothing to place it at |
+| never in a FLUSH | `_handShape`'s `allSameSuitStrict` **and** `flushOverlayFor` |
+| completes a SET | `_wildFitsPattern`, read by `rankHandForGroup` |
+
+- **`rankRunVals` is where the run rule has to live**, not `RANK_ORDER`. That
+  function ends `?? 0`, so an unknown rank comes back as `[0]` and a wild would
+  have sat happily below an Ace in a run.
+- **`flushOverlayFor` needs the explicit test in a way `_handShape` does not.** It
+  groups cards BY THEIR OWN SUIT rather than testing against `ACTIVE_SUITS`, so
+  three wilds would have formed a `WILD_SUIT` group of their own and paid a
+  **Flush of 3** off cards that are not a suit at all.
+- **`_wildFitsPattern(naturalCounts, w, pattern)`** answers "can w wilds fill this
+  shape". Both lists are descending, the group is exactly `sum(pattern)` cards, so
+  greedy biggest-to-biggest is provably right: if the i-th largest natural group
+  will not fit the i-th largest slot, no pairing exists. `[n]` is n-of-a-kind,
+  `[3,2]` a full house, `[2,2]` two pair.
+- **AT w = 0 IT REDUCES TO THE THREE TESTS IT REPLACED, EXACTLY**, which is why
+  this was safe to drop in. The group size is fixed, so `counts[0] >= n` was only
+  ever true for a single rank, a full house only ever `[3,2]` and two pair only
+  ever `[2,2]`.
+- **A SET NEEDS AT LEAST ONE REAL CARD TO NAME ITS RANK** (`counts.length > 0`).
+  "Takes any rank to complete a set" means there is a set to complete; three blank
+  cards paying Three of a Kind reads as a bug, and on a 7x7 board three wilds
+  landing together is not rare enough to leave to chance.
+
+### No pips, no Tricks - and the mute was NOT enough
+
+The card loop's `_dead` path (Dead Drop, r194) is the right shape - "no pips, and
+none of its per-card Tricks" - but reusing it would have been wrong: it restores
+the ledger and zeroes `cp`, and **the `PER_CARD_PAYERS` block (r228) accumulates
+AFTER that restore**, so a muted wild would still have paid Get Even its +2 mult.
+`calcScore`'s loop therefore **returns** on a wild, which is the one guard that
+covers every per-card payout, present and future.
+
+Every downstream reader of the per-card bookkeeping already tolerates a missing
+cell, which is what makes the early return safe: `retrigByKey` /
+`_lastRetrigByCell` are read as `|| 1` at all three sites, `_reps` contributes 1
+to both its sum and its count (so Rerun and Chorus see no extra iteration),
+`_cardMultSeq` is replayed in order rather than indexed, and a card with no
+timeline event gets no beat in the dance - which is right, because it pays
+nothing to animate. **r220's rule still holds**: replaying the timeline reproduces
+`calcScore` exactly, and a wild adds nothing to either side.
+
+**`_natCards` is the hand-level half.** Seventeen tallies in `calcScore` read a
+rank or a suit across the whole hand - even/odd counts, `suitCount` for Rainbow,
+the hidden pair, Low and Behold's lowest rank, Spade Flood's `every` - and **all
+seventeen** now read `naturalCards(cards)`, including the ones a wild could not
+have affected anyway, so a Trick added later inherits the rule and it stays
+checkable by grep. **`cards` itself is deliberately NOT redefined**: `_reps` is
+built from `_scoreCells` and documented as aligned to it, and
+`exaltCorruptTotals(cards, reps)` pairs them by index, so dropping an entry there
+would silently shift every exalt payout onto the wrong card.
+
+### What it measures as
+
+**Byte-identical with no wild in play: 4,200 of 4,200 selections** over 700 real
+4x4 boards, every connected 2-5 card selection through the real `findBestHand`,
+compared against the r324 tree. So the `_wildFitsPattern` restructure is provably
+behaviour-neutral and only the wilds themselves show.
+
+Per 4x4 board, classic deck, counting SHAPES rather than availability (the r318
+rule - availability saturates at 4x4 and cannot tell two decks apart):
+
+| per board | 0 wilds | 4 wilds |
+|---|---|---|
+| Pair | 1.45 | 4.27 |
+| Three of a Kind | 0.14 | **0.96** |
+| Four of a Kind | 0.00 | 0.14 |
+| Run of 3 | 1.75 | 1.61 |
+| **set : run** | **0.08** | **0.60** |
+
+**76% of boards hold at least one wild** (1.15 on average), and the best hand on a
+board uses one on 35% of them.
+
+**THIS IS MOST OF WHAT THE WHOLE WEIGHTED-DECK EXERCISE WAS CHASING, on the plain
+52-card deck.** r318's target was sets at about two thirds of runs; four wilds
+reach **0.60** with no copy-count weirdness at all - no 11-copy rank, no singles,
+no cut rank, nothing for a player to memorise. Run of 3 drifts DOWN a little
+(1.75 -> 1.61), which is right: a wild occupies a cell a run card could have had.
+
+**IT NEEDS NO GOAL RETUNE, and that is the non-obvious part.** More sets would
+normally mean bigger scores, but a wild pays no pips - so a set completed by one
+is CHEAPER than the same set made of real cards (measured: three real 7s score
+168, two 7s and a wild score 147). The two effects very nearly cancel: the average
+best hand on a fresh board goes **799 -> 774**, slightly DOWN. The wild buys
+availability, not score.
+
+### Where they come from, and the knob
+
+`wildCardCount()` (js/data/cards.js) is the one place the number is decided and
+the one place a mode opts out; `freshShuffledDeck` appends them **after the model
+dispatch**, so the plain cross product, the six-suit designed deck and the
+weighted deck all get them on the same terms. **All three `expectedDeckTotal`
+writes add it** or the audit reports the deck four cards short.
+
+- **Spectrum is out** - its deck is values x colours with its own four payout
+  fixtures, and a rank that is not a value has no place in it.
+- **The four modes with their own hand detection are out for a harder reason**:
+  Poker Squares scores a LINE through `sqScoreLine`, Match-3 and Zen match their
+  own windows, and Dominoes builds its own board - none route through
+  `handComponentsFor`, so a wild there would be a blank card that completes
+  nothing. A daily grid also has to stay comparable between two players.
+- **Dev panel -> Deck -> Wild cards** sets the count (0/2/4/6/8/12), stored as
+  `lethe.wildCount`. Writing the default **deletes** the override rather than
+  pinning today's number for ever - the r197 goal-tuner rule.
+
+### The face
+
+It rides the **ordinary card path**, not an early return like the stone and the
+Sleight: it is a real deck card that is selected, swapped, discarded, cursed,
+buffed and marked like any other, so it wants every decoration that path already
+draws. One class and the rank/suit block differ - the glyph where a rank would be,
+the word under it where the suit would be.
+
+- **It is not a suit colour.** Every other card is coloured by its suit, so a wild
+  in any of those would read as one of them. It takes the violet the game already
+  uses for a CHARGE or a PRIMED state, plus a dashed edge.
+- **The Fog does not hide it.** The Fog hides RANKS and a wild has none, so it is
+  drawn in full rather than reading as a `?` the player would have to select to
+  identify.
+
+**Verified in a real browser at 1440x820 and 420x900**: 4 wilds dealt, the deck
+audit balances at 56/56, the face paints with **0 overflow** at both sizes, a
+buffed wild still draws its corner bands, selecting a wild and two 7s reads
+`SET3` with **0 penalty cards** and plays as a Three of a Kind, the handbook topic
+renders and the tip's predicate fires. **0 JS errors.**
+
+### Known, and deliberately left
+
+- **The RECORDS deck matrix is a rank x suit view**, and a wild is neither, so the
+  four of them do not appear in it. The Deck tab's totals still count them.
+- **There are no Tricks or Knacks that interact with wilds yet** - the owner's
+  "we can make some interesting knacks and tricks to interact with them". The
+  seam is `isWildCard` plus `countWilds(cards)`, which `calcScore` already
+  computes for every hand.
+- **A card STATE on a wild still resolves** (`cardStatesOnUse` runs in
+  `playHand`, not the scoring loop). Card states are the r278 system rather than
+  Tricks, so this is left as an interaction rather than closed off.
 
 ## Which modes are listed (r218)
 
@@ -7585,7 +7771,7 @@ and this one caught itself twice: the pack blurbs still described the first
 tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
 They are per pack now.
 
-#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r317)
+#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r331)
 
 Owner, on the r313 candidate: *"i like all the heavies except pip particles which
 has a bit too much wooden knock in it"*, *"any of the effects that now have that
@@ -7628,7 +7814,7 @@ repeated irritant for another: a rap on a surface twelve times a hand.
   deliberately absent, because what says "coins" here is that there are SEVERAL
   of them and a body big enough to hear smears them into one event.
 
-**Measured after, heavy column, r313 -> r317:** Vegas pip particles 893 -> 1150Hz
+**Measured after, heavy column, r313 -> r331:** Vegas pip particles 893 -> 1150Hz
 (the knock down and the coin taking back the difference), mult 804 -> 1033, coin
 1723 -> 2647; Neon pip 1084 -> 1026, mult 889 -> 1139, coin 2644 -> 2930. The
 sounds the owner approved are unmoved: Vegas card_pop 468 -> 471, hand_scored
@@ -7806,6 +7992,43 @@ its own, so its row shows the consequence rather than asking for faith.
 
 ## Two vocabularies (r198) - `js/labels.js`
 
+### GAMER IS THE RESTING STATE (r293) - corporate is a state, not a default
+
+The vocabulary is **story**, not a preference. The Obliviscore is a forgetting
+machine (Lethe, the river of forgetting; *oblivisci* + score), and it already did
+its job long before the run starts: **the work words were relabelled years ago,
+and the corporate vocabulary is what COMES BACK as the machine fails.** So the
+game opens in gamer words everywhere, and corporate is somewhere the game has to
+be moved INTO.
+
+- **`activeLexicon` defaults to `'gamer'` and `lexicon()` falls back to
+  `LEXICONS.gamer`.** Corporate is no longer anything's fallback; a bad id must
+  not silently land the player in the endgame vocabulary.
+- **ONE VALUE, TWO STORES, and this is the r244 payout-pick trap again.** The
+  wording lives in `lethe.lexicon` (js/labels.js, read at load) AND in
+  `lethe.settings.v1` (js/settings.js). settings.js loads SECOND (index.html
+  1304 vs 1400) and `applyAllSettings` calls `setLexicon`, **so the settings copy
+  wins and writes labels.js's key from itself.** Flipping both defaults therefore
+  moves nobody who has already played - their stored `'corporate'` beats both.
+  `migrateLexiconDefault()` in `loadSettings` clears a stored `'corporate'`
+  exactly once, keyed on `lethe.lexicon.migrated.v2`; a deliberate pick made
+  after that runs is kept, because the flag is already set.
+- **Six hardcoded sites bypassed the toggle entirely** and said QUOTA whatever
+  the setting was: the goal-clear banner (`js/goal-clear.js`), `NEXT QUOTA` in
+  `js/hud.js`, the map's boss preview, one tip, and six lines of handbook prose.
+  `goal` is deliberately absent from the `prose` swap table, so nothing was ever
+  going to translate them. **A new string that means "the goal" writes `{GOAL}`
+  in handbook/tip prose, or calls `lexTerm('goal')`, never the word quota.**
+- **Entity and boss NAMES are unaffected**, per the r197 rule: `Quota Revision`
+  (the reward-grid penalty) and `THE QUOTA` (the boss) are content.
+- **The structural layer is deliberately still corporate**: quarters (Q1/Q2/Q3),
+  the Schedule's obligations (ACCOUNT / PRIORITY / MART / INCENTIVE / MEETING /
+  RAISE / REVIEW), the manager review, COMPANY STORE, the Lethe branding. The
+  machine relabelled its own HUD; it could not relabel the building. That split
+  is what the r213 and r260/r262 calls already encode and it is what the story
+  now needs.
+
+
 The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /
 Vendors / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
 SCORE / GOAL, Tricks / Sleights / Knacks, Common / Rare / Epic / Legendary).
@@ -7852,6 +8075,239 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Match surrounding code style (terse, inline, lots of single-line helpers).
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
+
+## r356 - the Pick emptied the board, and its taps were never reaching it
+
+Owner: *"I keep running out of cards when I play guided"* and *"there's a card
+buff thing after the round ... it just says pick a card but then you pick a card
+and nothing happens."* Two separate faults in THE PICK (r244), both live in every
+mode that reaches a payout - Classic, Guided, the Schedule, Six Suits, Spectrum -
+and both invisible with the setting off, which is why they shipped.
+
+**1. `pickClearBoard` gave back more than the restore borrowed.** The restore
+fills a cell only when it is `null`; the clear nulled every cell whose card
+matched the snapshot. Before r332 those were the same set. **After r332 the board
+PERSISTS, so no cell is ever null and no cell is ever restored - but every cell
+still matched the snapshot, so the clear emptied the whole board**, into no pile
+at all. `fillGridHoles` then drew a fresh boardful over the hole. Measured through
+the real payout in Guided AND Classic: **the run's deck went 56 -> 40 in ONE
+round**, `expectedDeckTotal` still reading 56, so four rounds ran it dry. The
+r332 note above asserted this function no-oped; it did not, and nothing was
+checking. `pickRestored` is the fix - the restore records what it actually filled
+and the clear gives back exactly that, so it is a genuine no-op on a persisting
+board and byte-identical on a non-persisting one.
+
+**2. THE TAP WAS SWALLOWED ONE LEVEL ABOVE THE INTERCEPT.** r244 put the pick's
+intercept above `onCardTap`'s `animating` guard and verified it. **r254 then added
+`roundEnded` to the grid's own `pointerdown` handler**, which is what actually
+decides - and the pick runs inside the interlude, which is by definition after the
+round ended. So from r254 onward `onCardTap` was never called at all: the bar sat
+on PICK A CARD, `pickCard` stayed null, 0 op tiles. `pickOwnsBoard()` is the one
+predicate the guard now asks, and the fix is proved load-bearing by putting the
+old guard back (selection dies) and taking it out again (selection lands).
+
+- **`pointermove` is deliberately NOT exempt.** A pick is a tap, so leaving the
+  swipe blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  was meant to be. `pointerup` carries no guard of its own, so the tap lands.
+- **THE LESSON: a guard added to a shared handler has to be checked against every
+  screen that borrows that handler.** The pick's intercept was correct and
+  unreachable, and a syntax check, a call audit and a read of `onCardTap` all pass
+  without noticing.
+
+Verified in a real browser at 1440x820 through the real click path, Guided and
+Classic: a card selects, all three ops fire, and the deck balances at every step -
+**Boost 56 -> 56, Copy 56 -> 57, Remove 56 -> 55** with `expectedDeckTotal` moving
+with it in each case and the removed card's cell left as one hole for the next
+round's refill. Three consecutive Guided rounds hold at **56/56, board 16, holes
+0**. With the setting OFF the deck is untouched (56 -> 56), as it always was.
+
+## r334 - the pick re-centres, the read goes WIDE, the hand label is words
+
+Owner follow-ups on r326; the two superseded r326 bullets are marked below.
+
+- **The portrait pick board is CENTRED again** (r326's gpPortraitDrop is gone -
+  the owner read the foot-of-slot board as the pick sitting too low). The read
+  still opens ABOVE the tile; what makes it fit the smaller centred top margin
+  is **`wide: true`** on the tooltip: `#entity-tip.et-wide .et-card` is
+  `min(392px, 96vw)` (css/tooltip.css), and a broader card is a SHORTER card.
+  Measured at 420x820: board 400-645 in a 301-744 slot, bubble 392x67 at
+  325-392 - entirely inside the board's own top margin, 0 px on any tile.
+  `wide` is set per call in gpShowRead (portrait only) and cleared by every
+  other showEntityTooltip call, so nothing else widens.
+- **The word "HAND" is off the screen** (owner: no text that says "hand" all
+  the time): the dance row's vertical `Hand` caption (mkRow('', 'hand') +
+  `.dnc-lab:empty{display:none}`) and BOTH idle "HAND" watermarks on the
+  preview are gone. The hand-name label is the panel's caption now. The
+  KNACKS / TRICKS watermarks stay - nothing else names those panels.
+- **The label breaks between WORDS, never inside one**: `handLabelHTML` prints
+  a numeric size as `OF N` ("SET / OF 3", "RUN / OF 4") and `HAND_LABEL` gained
+  word rows - Two Pair is **TWO / PAIR**, Full House **FULL / HOUSE** (display
+  strings only; ids frozen, TERMINOLOGY's rule). Measured in the landscape
+  column: TWO PAIR at 0 overflow on both axes.
+- **The portrait chip is VERTICALLY CENTRED at the preview's left edge**,
+  stacked like landscape, on a translucent plate (supersedes r326's top-left
+  pill). When a full hand reaches that far left the chip overlays the card and
+  stays legible - the owner's stated fallback. Verified mid-dance at 420x820:
+  SET / OF 3 centred beside the cards, z 61 over the dance's 60.
+
+## r326 - gestures, sleight feedback, the pick reads above itself
+
+- **The pick-of-three MUFFLE is off** (`survivalSyncPickAudio`, js/survival.js).
+  It was written for the r197 pick PANEL that covered the board mid-dance; since
+  r256 the pick IS the board and covers nothing, so the function only releases
+  now. `sfxSetMuffle` stays in js/audio-mixer.js for the next screen that
+  genuinely covers the board.
+- **The portrait pick sits at the FOOT of its slot and the read opens ABOVE the
+  tile.** `gpPortraitDrop` (js/grid-pick.js) pushes `#grid` down via `top` on the
+  position:relative element (never a transform - r180's fixed-descendant trap,
+  r281's fall-in fight), cleared in `gridScreenRelease` so the play board is
+  never left low. `gpShowRead` passes `{prefer:'above'}` in portrait and
+  `placeEntityTooltip` (js/entity-tooltip.js) grew that mode, falling back to the
+  side placement when there is no band. Measured at 420x820: board foot 740/744,
+  tip fully inside the freed band, **0 px overlap with any option tile**.
+  Landscape keeps the side placement.
+- **Right-drag DISCARDS on desktop.** Button 2 runs the ordinary swipe-select
+  and the release calls `doDiscard()` (js/input.js pointerdown/up). Mouse only;
+  a right CLICK with no movement deliberately does nothing (a misfire would be
+  destructive). No collision with the Schedule's pen (no cards in gridData
+  there, `cardAt` bails) or Poker Squares (it stops pointerdown propagation).
+- **The swap stock indicator PERFORMS a swap on exactly 2 selected cards**
+  (addEventListener beside the grid handlers, js/input.js - it coexists with the
+  reward grid's SKIP and Squares' END TURN `onclick` repurposings, so it stands
+  down on every takeover). doSwap owns all the rules.
+- **A SLEIGHT TAP FIRED onCardTap TWICE PER CLICK, and that was the Magnet bug.**
+  render()'s sleight paths bound `div.onclick = () => onCardTap(r,c)` on top of
+  the grid's own pointerup routing, so ONE physical click read as a double tap
+  (call 1 stamped lastTapCell, call 2 saw it inside 350ms) and armed the Magnet,
+  while a REAL double tap armed on click 1 and hit the "tapping Magnet cancels"
+  intercept on click 2 - the printed gesture was the one that could never work.
+  The onclicks are gone (js/render.js); verified: one click selects, double tap
+  arms, the target tap pulls the rank and Magnet cycles back into the piles.
+- **A Pivot touching BOTH ends of a swap waives ADJACENCY** (js/input.js). The
+  eight cells around a Pivot are mostly not orthogonally adjacent to each other,
+  so "swap freely all around it" only ever fired on pairs that were neighbours
+  anyway. Verified through the real double-tap-then-tap path: two diagonal
+  neighbours of the Pivot trade places, free, both +5 permanent mult, the Pivot
+  leaves and cycles. (A free-anywhere entity already half-exists: **Free Range**
+  is "swap any two non-adjacent cards", working since r307.)
+- **Sleights never take the `.unreachable` dim** (css/style.css - opacity rule
+  dropped, cursor kept). At 0.28 every out-of-reach Sleight went dark the moment
+  anything was selected, and stayed dark through the hand's dance and falls.
+- **Sleight STOCK payouts are particles, not toasts.** applySleightGridEffect
+  (js/sleights-runtime.js) throws `entityEffectFX` plates from the sleight's own
+  grid card: Power Cell rides `addFocus(n, id, 'sleight')`, Snooze / Syncopation
+  / Shady Tree ride `pauseRound(n, id, 'sleight')`, Rewind / Last Call /
+  Sandbagger ride `rewindTime(n, null, id, 'sleight')`, Bellhop / Wanderer fly
+  swaps+discards, Cash Out / Piggy Bank / Capacitor fly credits. Effects with no
+  HUD readout (next-hand mult, card buffs, reshuffles) keep their toasts.
+- **THE FLUSH OVERLAY IS ALL-OR-NOTHING** (owner call, js/hand-detect.js
+  `flushOverlayFor`): the overlay only pays when the ENTIRE selection shares one
+  suit, so a 4-card hand with 3 of a suit no longer layers a Flush of 3 or
+  replays those cards. Verified: suited Run of 3 still = Run of 3 + Flush of 3;
+  mixed Run of 4 = Run of 4 alone; suited Run of 4 = Run of 4 + Flush of 4.
+  This supersedes the r199 "biggest same-suit group" rule and the measurements
+  built on it (the ~50% overlay rate, OPEN_DECISIONS coverage notes).
+- **The hand-type label survives the dance.** `#hand-name` went z-index 2 -> 61
+  in landscape: `.dnc-active` raises `#selected-cards` to 60 and the label is a
+  sibling, so the preview's opaque panel slid over it for every tally. The 44px
+  label column the preview reserves is untouched by the dance, so nothing is
+  covered by the change. (Portrait keeps the label in flow above the strip.)
+- **Fall-height mechanics** (a Sleight fed by cards landing on it, a boss whose
+  locks break under two impacts) are parked in CARD_EFFECTS.md with the wiring
+  note: `removeAndFall`'s gravity pass is the one place drop distance is known.
+
+## r328 - the deck edit's banner is off the board, APPLY is the play button
+
+Owner: *"it looks like that pop up might be covering the top cards no? Maybe that
+pop can go over the scoring chips and use the grid's normal confirm button."*
+Both halves done.
+
+- **`#flowr-banner` mounts on `#stage` and never touches the board.** Landscape
+  takes the left column's CHIP BAND (`left:1.56%; top:18.06%; width:37.74%` -
+  the `#score-subboxes` box, whose chips are `display:none` on every grid-screen,
+  so the space is free; it covers the LOCATION chip, and names the op itself);
+  portrait takes the band above the board. Measured: **0 of 16 cards intersect
+  the banner** in both orientations, both op kinds.
+- **APPLY is `#btn-play`, the shop's BUY pattern**: markup saved, `reward-buy`
+  class, `A/P/P/L/Y`, disabled until a card is picked, restored in
+  `flowrDeckEnd`. The press is a CAPTURE listener guarded on `_flowrDeckOp.buff`
+  (the Poker Squares shape - the tricks-ui playHand listener on the same button
+  no-ops with nothing selected). `render()`'s r247 `_takeover` guard gained
+  `flowrDeckActive()`, so a repaint mid-edit cannot stamp the real disabled
+  state over it. `#fb-confirm` is gone from the banner.
+- Verified in a real browser at 1440x820 and 420x900 through the real click
+  path: buff select -> APPLY enables -> click applies (+10 pips on the rolled
+  subset) and the chain finishes with the button back on PLAY; an adjacency op
+  runs with APPLY staying dark; **a normal hand still submits off the same
+  button afterwards**. 0 page errors.
+
+## r325 - the Flow multi-reward chain (js/flow-rewards.js + css/flow-rewards.css)
+
+Owner spec across two turns. A Flow goal clear can pay **up to 5 reward screens**,
+rolled as a CHAIN: 25% for a 2nd, then 30% for a 3rd and so on (dev-tunable), each
+a GOOD roll so **`luckChance` multiplies it** (30% at luck 10 is 33%). **FLOW
+ONLY** - Survival keeps its single pick; a bonus/boss pick bypasses entirely.
+
+- **THREE ONE-LINE SEAMS and nothing else in the engine changed**: the top of
+  `survivalShowPick` (`flowrMaybeStart()` takes over a goal-clear pick),
+  `survivalChoose`'s tail and `finishSurvival` (`flowrAfterStep()` before their
+  `triggerLevelUp` - a mid-chain choose shows the NEXT screen instead of dealing).
+  **The level-up runs ONCE, at the chain's end** (`flowrFinish`), with the
+  ordinary goal-clear carry-over; every screen before it only grants. The chain's
+  own pick3 step re-enters `survivalShowPick` under `_flowrBypass`.
+- **The count is announced by a COUNTER CARD** over the board ("GOAL CLEARED /
+  x1 / REWARD"); every extra CUTS IN - a stinger, a shake (the r277
+  remove/reflow/re-add restart), the number bumping. A single ordinary pick plays
+  no ceremony at all (`flowrMaybeStart` returns false and today's path runs).
+- **The queued chips peek out above the board** (`#flowr-stack`), staggered, each
+  in its KIND's own colour with the current one named NOW - drawn furthest-back
+  first so DOM order is paint order, `z-index: 1` so tiles (2) sit in front.
+  Kind colours: pick3 mint · limits gold · deck blue · sleights violet · improve
+  orange (chrome, not entity tiles, so the colour=rarity rule is untouched).
+- **Ordering has three phases** (`flowrPhase`): (1) until `flowrExtraEarned` >= 2
+  (in SAVE_VARS): the fixed dev-tunable order pick3/limits/deck/sleights/improve;
+  (2) then shuffled with **slot 1 = pick3 at EXACTLY 30%** (30% force to front,
+  70% force OFF the front - a plain 5-shuffle leaves it there 20%, so "force at
+  30%" naively lands at 44%; measured 30.9%); (3) after `survivalBossesBeaten >= 2`
+  fully shuffled (measured 19.9% pick3-first, i.e. uniform).
+- **A kind with nothing to offer substitutes pick3** (`flowrKindViable`) rather
+  than showing an empty screen. limits/sleights/improve steps ride `openGridPick`
+  with the shared reroll pool (`pickRerollAction` + `pickRerollsNewScreen` per
+  screen); the improve step draws OWNED entities through `pickEntityByRarity` and
+  grants via `improveEntity`. `survivalUpdateRerollBtn` is guarded by
+  `flowrOwnsScreen()` so a credits move cannot stamp survival's four actions over
+  a chain step's row.
+- **DECK EDIT is a board takeover**: pick one of 3 ops (drawn from 11 -
+  4 adjacency ops + 7 buff ops), then the real board comes back under a DECK EDIT
+  location chip, a dashed border and a banner. Input is a CAPTURE-phase
+  pointerdown on `#grid` (the squares rule) that stops EVERY tap, so input.js's
+  select/swap can never fire underneath. Adjacency ops (suit spread / rank pull /
+  cut / stamp) fire on ONE selected card's orthogonal neighbours, count rolled
+  weighted-low (the owner's .43/.36/.21 at max 3, luck leaning it higher),
+  revealed with a stagger. **Cut is a real deletion** (`expectedDeckTotal--` +
+  `drawCard()` refill, the `cardStateDeleteAt` pattern - audit verified 52->51 on
+  both sides). Buff ops: select up to 3 cards, APPLY rolls the quantity (clamped
+  to the selection - selecting fewer concentrates it, deliberately NOT explained
+  in-game, owner's call) and ONE value from the range (weighted low), revealed
+  card by card (green = landed, grey = passed), applied via `enhanceCardKey` by
+  `cardId`. In Flow the goal hand's cards are still in `gridData` (only their DOM
+  left with the dance), so the FULL board is editable and a buff persists through
+  the deal.
+- **`permFocus` is the new per-card store** (the documented gap closed): Focus
+  granted per scored card, flat like `permTime` (not replay-weighted), paid in
+  `playHand` beside `permCoins`, in `SAVE_VARS` + `migrateCardKeysToIds` + the
+  new-run reset, with a `cardBuffLines` line. `enhanceCardKey` gained `e.focus`.
+  No corner band (the permCoins precedent).
+- **Dev -> Rewards** gained the chain's knobs: enable, the four chance steppers,
+  the five phase-1 order dropdowns, reset, and a live phase readout. Overrides
+  only in `lethe.flowRewards.v1` (the goal-tuner rule).
+- Verified in a real browser at 1440x820 and 420x900 through the real paths: a
+  forced 3-chain runs counter -> pick3 -> limits -> improve with `level`
+  unchanged until the end, then one level-up, tier 0->1, a full deal, 0 holes; a
+  sleight step grants mid-chain; suit/focus/delete deck ops apply and the audit
+  balances; the stack draws 4 unique-coloured chips on screen in both
+  orientations; a single ordinary reward is byte-identical to today (no counter,
+  no stack, survival's own 4 actions). 0 page errors everywhere.
 
 ## r324 - the board can SURVIVE a Flow/Survival level-up (dev -> Rewards)
 
@@ -7914,3 +8370,139 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - **Six Suits is hidden too (r316)**, owner's call: it is reachable from dev panel -> Modes and as the Custom picker's "Six suits" deck. Carousel: Schedule, Flow, Guided, Classic, Spectrum, Custom, Poker Squares.
 - **Walkthrough steps are remembered across modes** (`tutStepsSeen`, `lethe.tutSeen.v1`). A mode's first run shows only steps no earlier walkthrough showed; `welcome`/`outro` carry `always: true` and switch to a short "only what is new" text. If only those two remain, the walkthrough does not arm. Flow gained `flow-clock` / `flow-review`; `progress-endless` is Survival-only. Measured: after Classic, Flow shows 5 steps, the Schedule 7, Six Suits none.
 - **Mode descriptions say how the mode works and nothing else** - no strategy, no reasons. Each card links to a handbook entry (`mode_<id>`, group Modes) with the specifics (pick-of-three odds, fees, clocks). The handbook got the same pass: sentences that justified the design or advised play were removed. Also fixed there: leaving a Schedule slot early PAYS credits (the old text said it cost them).
+
+## The board PERSISTS between rounds (r332) - `boardPersists()`
+
+Owner: *"the cards really do stay in place for the next round, and I think I'll
+generalize that to the rest of the modes as well. With the new card buffing
+system, this just makes the most sense."*
+
+A round used to end by discarding **every cell** to `playedPile` and dealing a
+fresh boardful next round. The board is now a **position you keep**: the same
+cards come back to the same cells, and only **holes** are filled - which is
+exactly what a grid-size upgrade creates, so a new row or column fills with
+fresh cards at the next round start and nothing else moves.
+
+**Everything else about the deck cycle is unchanged, deliberately.** A card that
+SCORES still leaves the board for `playedPile` and is replaced by a draw there
+and then; a card you DISCARD still goes to the back of `drawPile`;
+`flushPlayedDeck()` still runs at every level-up. The pile a round generates is
+still reshuffled back in. **The only thing that stopped being recycled is the
+board itself.** (Options considered and rejected: shuffling the played pile
+*under* the draw pile, and not reshuffling until the draw pile runs dry - both
+make you play through cards you do not want in order to reach the ones you do.)
+
+### Three functions, in `js/deck-grid.js`
+
+| | |
+|---|---|
+| `boardPersists()` | the one predicate. False only for match-3, Dominoes and Poker Squares, which own their board outright and never come through the round-end fall |
+| `conformGridToDims()` | resize `gridData` to the live `gridRows`/`gridCols`, keeping every in-bounds cell |
+| `fillGridHoles()` | deal into the empty cells alone |
+
+- **THE ROUND-END FALL IS NOW PRESENTATION ONLY** (`showLevelUpScreen_fallOnly`,
+  js/interlude.js). The board still has to clear off screen - the payout panel,
+  the reward grid and the shop all take `#grid` over - so the cards still fall
+  and the DOM is still torn down. What is gone is the `discardToPlayed()` sweep
+  and the `gridData` wipe. The next round's deal-in then redraws the same cards
+  into the same cells, so the ceremony reads as before and the position is kept.
+- **`showLevelUpScreen` needed NO change.** Its refill was already
+  `if (!gridData[r][c]) gridData[r][c] = drawCard()`, i.e. hole-filling; it only
+  ever dealt a whole board because the fall had just emptied one.
+- **A SHRINKING BOARD IS THE ONE CARD THAT WOULD LEAVE THE RUN SILENTLY.**
+  `js/level-up.js` conformed `gridData` to the new dims and dropped
+  out-of-bounds cells, with a comment claiming their cards "are effectively
+  returned via `flushPlayedDeck` on the next cycle" - true only because the fall
+  had banked them a moment earlier. `conformGridToDims` discards them to
+  `playedPile` explicitly, which is what makes that comment true again. Reachable
+  from Short Staffed and from a grid limit given up at a Limit Break.
+- **The dev-only grid placement of Tricks needed a guard.** Its spawn slots are
+  the *empty* inner cells of the middle row, and on a persisting board there are
+  none - it would silently offer nothing. That strip is cleared to `playedPile`
+  first, and **only when `trickTrayMode` is false**, so the default tray path
+  leaves the board exactly as the round left it.
+
+### Survival and Flow were DESTROYING CARD IDENTITY every level
+
+`survivalRecycleBoard` (js/survival.js) pushed an ordinary board card back as a
+bare `{ rank, suit }`, so **`_id` and every durable field went with it** -
+permanent pips and mult, x-pips, x-mult, retriggers, curses, play counts. That is
+the r192 rule broken outright, and it is why a card buffed in Flow could never
+stay buffed. Keeping the board fixes it wholesale rather than by repairing the
+copy; the non-persisting branch now uses `recycleCard()` so it cannot recur.
+`survivalDealNext` calls `conformGridToDims()` + `fillGridHoles()` in place of
+its own full re-deal, which is byte-identical when the board has been recycled
+(every cell is null) and is the hole-fill when it has not.
+
+### Two things that turned out to need nothing
+
+- **The Pick** (r244) photographs the board above the fall because the fall used
+  to destroy it. `pickRestoreBoard` only fills cells that are `null`, so it
+  no-ops now and the snapshot became a list of candidates. **Remove** already
+  nulled the board cell as well as splicing the piles, so it still works - the
+  splice simply finds nothing, because the card is on the board and not in a
+  pile. **`pickClearBoard` did NOT no-op, and this line used to claim it did -
+  see r356 below, where it cost the run sixteen cards a round.**
+- **The grid-screen takeover** (`gridScreenTakeover` / `gridScreenRelease`,
+  js/grid-pick.js) resizes `gridRows`/`gridCols` for the tiled payout and
+  restores them on close. It never touches `gridData`, so a persisting board
+  rides through it. Verified: 6x6 during the payout, 4x4 after, all 16 cells
+  intact.
+
+**Measured in a real browser at 1440x820**, through the real fall ->
+`triggerLevelUp` -> `showLevelUpScreen` sequence, in Classic, Flow, Survival,
+Guided, the Schedule and Spectrum: **16 of 16 cells identical** across the round
+boundary, a `permPips` buff planted before the level-up still on that card after
+it, a grid-column upgrade giving **4x5 with 0 holes and 16 of 16 old cards kept**,
+a shrink returning its cards (deck total unchanged at 56/56 in every case), and
+**0 page errors**.
+
+## The 9.24 balance pass (r336-r363) - `BALANCE_PASS_9.24.md`
+
+The owner's Balance_-_9.23.26.xlsx, executed in tiers. **The plan file is the
+index** (tiers, decisions, the new-Tricks table); `BALANCE_PASS_9.24_DIFF.txt`
+held every outstanding row and is now empty. `balance_sheet.csv` still holds
+the owner's sheet verbatim - **regenerate it with `tools/gen_balance_sheet.js`
+only once the unnamed spade Trick is built**, or its row is lost. The systems
+this pass added, and their traps:
+
+- **Inert (r341).** Piggy Bank and Capacitor fire IN PLACE (`sleightUseInPlace`)
+  and sit `_inert`: `cardCan` allows only fall/render/select, so playing it in a
+  hand is its one way off the board, and `discardToPlayed` accepts it.
+- **Timed charges (r356).** A Sleight def with `secsPerCharge` spends charges as
+  time; `_usesLeft` stays the charge count so every charge reader works.
+  Stopwatch 10x6s, Fight the Power 9x20s (drains only while `bossFxLive()`).
+- **Focus applied twice (r343).** `focusExtraApplies(handName, cells)` counts the
+  extra applications (Phoenix, Kaleidoscope, Marathon); the dance plays a second
+  Focus beat per extra. `lastCalcFocus = fMult ^ (1 + n)`.
+- **Per-card x mult is a LIST (r359).** `_cardMultSeq` entries carry `xl`, the
+  card enhancement first and then each Trick factor (What are The Odds, Patient
+  Rulers, Obsessed, Feelin Lucky), each emitted as a card-scoped `mult*` and
+  billed to its own id. Add a per-card x mult Trick as one push there.
+- **Discard-activated Sleights cycle (r353).** `discardToDrawPile` deletes every
+  Sleight, so a player discard now routes an `on_discard` Sleight through
+  `discardToPlayed` with its charges. Before this, Cash Out's charges meant nothing.
+- **Deferred board work drains from `removeAndFall`'s tail**: the Spectrum
+  fixture exits and Fresh Start's redeal (`freshStartDrain`). Anything that must
+  rewrite the board after a discard or a hand goes there, never inline.
+- **Royal Reach (r358).** `reachNeighbors()` = `getNeighbors` plus the lines of
+  any royal card; `isConnected`, `getReachable` and `doSwap` use it. With no
+  royal card on the board it is exactly `getNeighbors`.
+- **Warehouse (r354)** joins detection as ITSELF, never a borrowed rank/suit
+  (`isWarehouseCard`): a temporary identity is restored before playHand and the
+  dance re-score, so they would see a different hand.
+- **A sold line Trick loses its line (r352).** `pruneRowColBonuses()` runs at the
+  top of `renderTrickTray`; before it, a sold Trick kept its line and kept
+  feeding Ley Line / Temporal Rift / Feng Shui. 4x4 is now a fixed column line.
+- **Grid picks can be skipped (r362):** `openGridPick({ onSkip })`; CONFIRM
+  with nothing selected arms it, a second press within 3s skips. Tapping the
+  picked option again unselects it.
+- **Magnet (r357)** pulls a rank into itself and its neighbours; the displaced
+  cards are discarded free but COUNT as discards (`magnetCountDiscards`).
+- **Feelin Lucky's sell intercept (r360)** sits in `sellTrick` and the shop's
+  `doShopSell` - both sell paths.
+- **Move as One (r363)** reads keywords off descriptions through a curated set
+  (`MOVE_AS_ONE_KEYS`, `_MAO_EXTRA`); the owner may trim it.
+- **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
+  hand, preview and dance all see the old rank.
+
