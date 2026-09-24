@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r325 · balance sheet tooling repointed at js/data/*.js and regenerated (312 rows)";
+const BUILD = "2026-09-24 · r326 · owner's 9.23 balance sheet imported; BALANCE_PASS_9.24 plan + full diff committed";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
