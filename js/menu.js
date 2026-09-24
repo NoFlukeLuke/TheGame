@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r360 · Feelin Lucky: five rolled ranks, and a sell that rerolls three times first";
+const BUILD = "2026-09-24 · r361 · Three's a Crowd is a Knack: hands count one card bigger";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

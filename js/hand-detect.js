@@ -650,6 +650,17 @@ function _compKey(cells) {
 // fire - never as a broken hand.
 function realHandOfSize(cells, n) {
   try {
+    // Three's a Crowd (knack, r361): a hand counts as one card bigger, but only
+    // when every card in it is part of the hand - a passenger carried by
+    // Tagalong never makes a Pair into a 3-card hand.
+    if (cells && typeof hasKnack === 'function' && hasKnack('threes_crowd_k') && cells.length + 1 === n) {
+      const comps = handComponentsFor(cells);
+      if (!comps || !comps.components) return false;
+      const real = comps.components.filter(c => c.name !== 'High Card');
+      if (!real.length) return false;
+      const claimed = new Set(); real.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+      return cells.every(([r, cc]) => claimed.has(r + '-' + cc));
+    }
     if (!cells || cells.length !== n) return false;
     const comps = handComponentsFor(cells);
     if (!comps || !comps.components) return false;

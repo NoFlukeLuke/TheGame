@@ -38,7 +38,7 @@ function _rankIsOddRank(r)  { return ['A','3','5','7','9'].includes(r); }
 function counts3CardHand(handName, cells) {
   // "a 3-card hand" is a real 3-card hand - a Set/Run/Flush of 3 the recognition
   // names, not three cells around a Pair (r339, realHandOfSize in hand-detect.js).
-  return realHandOfSize(cells, 3) || (hasTrick('threes_crowd') && handName === 'Pair');
+  return realHandOfSize(cells, 3);
 }
 
 // A "Set" hand for the Set add-on tricks (Undue Influence / Encore / Shaky Foundation):

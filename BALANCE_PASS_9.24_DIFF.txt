@@ -56,11 +56,3 @@ Treat richter exactly like full_house_streak below.
 [rain_check] notes
   owner: For flow, this should instead say adds 30 seconds to the timer, and we also need to add an option to skip rewards in survival and flow. maybe just if you press the confirm button twice without having selected a reward. also, tapping a reward a second time should unselect it.
   (was:  )
-
-[threes_crowd] description
-  owner: Pairs qualify as 3-card hands
-  (was:  Pairs count as 3-card hands)
-
-[threes_crowd] notes
-  owner: this should insinuate that playing a pair with a tag along wouldn't count as a 3 card hand, so if that's not true it should be made true. also, this should be a knack, an epic or rare one, and it should say hands count as being 1 card higher than they are. so a pair is a three card hand, 2 pairs is a 5 card hand. this doesn't affect the natural scaling they get, it does change what tricks and entitities they can trigger.
-  (was:  structural — no tunable value)

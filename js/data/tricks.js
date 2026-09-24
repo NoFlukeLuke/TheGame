@@ -181,7 +181,6 @@ const TRICK_POOL = [
   { id:'third_down',     name:'3rd Down',            tier:'rare',      tags:['focus'],           desc:'3-card hands add +3 Focus' },
   { id:'ready_set_go',   name:'Ready, Set, Go',      tier:'common',    tags:['mult'],            desc:'A 3-card hand containing a 3, 6 or 9 scores +9 mult' },
   { id:'third_charm',    name:"3rd Time's a Charm",  tier:'rare',      tags:['replay'],          desc:'The 3rd card of a hand replays 2x' },
-  { id:'threes_crowd',   name:"Three's a Crowd",     tier:'rare',      tags:['rule'],            desc:'Pairs count as 3-card hands' },
   // ── 4-card-hand family (r123) ──
   { id:'four_eyes',      name:'Four Eyes',           tier:'common',    tags:['mult'],            desc:'4-card hands score +12 mult' },
   { id:'four_by_four',   name:'4x4',                 tier:'common',    tags:['pips','position'], desc:'Cards scored in the 4th column score +16 pips' },
