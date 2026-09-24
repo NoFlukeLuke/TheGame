@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r334 · owner's 9.23 sheet imported over the r333 tree; BALANCE_PASS_9.24 plan pending re-diff";
+const BUILD = "2026-09-24 · r334 · owner's 9.23 sheet imported over the r333 tree; BALANCE_PASS_9.24 plan re-diffed against the r333 tree";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

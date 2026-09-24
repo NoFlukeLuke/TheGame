@@ -1,1013 +1,521 @@
-
-### [Trick] ancient_grove (Flash Flood)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] correct_run (Rogue Wave)
-  rarity:
-    OLD: legendary
-    NEW: rare
-  description:
-    OLD: Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card
-    NEW: Runs played in correct sequential order score one of the following: +80 pips, +20 mult, +10 Focus
-
-### [Trick] tide_table (Tide Table)
-  description:
-    OLD: Runs ×mult, building +×0.75 per Run scored this round
-    NEW: Runs score 1+.25x mult per run scored this round
-
-### [Trick] undertow (Undertow)
-  description:
-    OLD: Runs ×1.5 pips, plus ×0.5 more per card beyond 3
-    NEW: Runs score ×1.5 pips, +.5 per card beyond 3
-
-### [Trick] high_water (High Water)
-  description:
-    OLD: After 3 Runs each round, every Run pauses the clock for its card count in seconds
-    NEW: Runs pause the clock for 1 second for each run played this round.
-
-### [Trick] worn_path (Worn Path)
-  description:
-    OLD: Straight scores +20 pips
-    NEW: Straight scores +50 pips
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] rerun (Rerun)
-  description:
-    OLD: Each replay in a hand multiplies its pips ×0.25 more
-    NEW: x1.2 pips each time a card is replayed
-
-### [Trick] chorus (Chorus)
-  description:
-    OLD: Each replay in a hand multiplies its mult ×0.2 more
-    NEW: x1.75 mult each time a card is replayed
-
-### [Trick] deep_breath (Deep Breath)
-  description:
-    OLD: Hands played while the clock is paused ×2 pips
-    NEW: Score x2 pips when clock is paused
-
-### [Trick] interest (Interest)
-  description:
-    OLD: Pips start at ×1 and gain +0.1× for every 10 credits you hold, up to ×3
-    NEW: Score ×1 pips + 0.1 for every 10 credits you hold, up to ×3
-
-### [Trick] portfolio (Portfolio)
-  description:
-    OLD: ×0.15 mult for every card on the grid carrying a permanent bonus
-    NEW: 1x+.15 mult for every card on the grid with a buff
-
-### [Trick] redline (Redline)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] compound (Compound)
-  description:
-    OLD: Every 45 seconds your round score is banked. Your next hand pays the banked amount again.
-    NEW: Every 15 seconds, increase your current score by 25%
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] overclock (Overclock)
-  notes:
-    OLD: 
-    NEW: make speed bonus a keyword and the tooltip should be something like focus is generated both by how complex the hand is, and by how quickly it was played after the preceeding hand. make that an entry in the handbook if not already
-
-### [Trick] second_nature (Second Nature)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] kindred (Quake)
-  description:
-    OLD: Sets score +3 mult per card in the largest set
-    NEW: Sets score +5 mult per card in the largest set
-
-### [Trick] trinity (Shock)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] double_bloom (Magnitude)
-  description:
-    OLD: Hands containing a pair ×1.5 mult
-    NEW: Hands containing a pair score ×1.5 mult
-
-### [Trick] full_house_streak (Collapsing Columns)
-  description:
-    OLD: Each Full House instantly advances Focus to the next threshold
-    NEW: Full Houses score +10 focus
-
-### [Trick] pair_pips (Aftershock)
-  description:
-    OLD: Two Pair ×2 pips
-    NEW: Two Pair scores ×2 pips
-
-### [Trick] two_pair_mult (Double Dutch)
-  rarity:
-    OLD: rare
-    NEW: epic
-  description:
-    OLD: Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak)
-    NEW: Play 3 hands with a pair within 30s to add +16 Focus
-
-### [Trick] richter (Richter)
-  description:
-    OLD: Four of a Kind ×3 mult and advances Focus to the next threshold
-    NEW: Four of a Kind score ×3 mult and +10 focus
-
-### [Trick] eye_of_storm (Eye of the Storm)
-  description:
-    OLD: Hands played in the middle third of the round replay the highest-ranked card(s)
-    NEW: Hands played in the middle third of the round replay the highest-ranked card(s) 2x
-
-### [Trick] ripple (Ripple)
-  description:
-    OLD: Once every 30s, cards adjacent in rank to another card in the hand replay
-    NEW: Cards adjacent in rank to another card in the hand have a 50% chance to replay
-
-### [Trick] enriched (Enriched)
-  description:
-    OLD: Flushes score +40 pips
-    NEW: Flushes score +100 pips
-
-### [Trick] tidal_force (Tidal Forces)
-  description:
-    OLD: Flushes score +10 mult
-    NEW: Flushes score +5 mult per card
-
-### [Trick] summit (Unsummit)
-  description:
-    OLD: The highest-ranking card in each hand scores +(level x 4) pips.
-    NEW: The highest-ranking card in each hand scores +(level x 2) pips.
-
-### [Trick] last_stand (Last Stand)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] light_touch (Nimble)
-  description:
-    OLD: 2-card hands score +5 mult
-    NEW: 2-card hands score +10 mult
-
-### [Trick] release_valve (Release Valve)
-  description:
-    OLD: Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.
-    NEW: Each time you hit your focus limit, add +1 swap and +1 discard and lose 16 Focus.
-
-### [Trick] heavy_hand (Full Load)
-  description:
-    OLD: 5-card hands score +6 pips per card
-    NEW: 5-card hands score +10 pips per card
-
-### [Trick] blackjack_bonus (Twenty-One)
-  description:
-    OLD: If the face values of your cards total exactly 21, ×3 pips
-    NEW: If the face values of your cards total 21, Score ×3 pips
-
-### [Trick] first_light (First Light)
-  description:
-    OLD: Aces are worth 21 pips
-    NEW: Aces score 21 pips
-
-### [Trick] wild_heart (Inspirato)
-  description:
-    OLD: When an Ace scores, prime your first and last Tricks (each fires twice its next hand)
-    NEW: When an Ace scores, prime your first and last Tricks
-
-### [Trick] face_value (Face Value)
-  description:
-    OLD: Face cards (J/Q/K) are worth 15 pips
-    NEW: Face cards (J/Q/K) score +10 pips
-
-### [Trick] king_guard (Men of Repute)
-  description:
-    OLD: Kings and Jacks score +5 pips and +1 mult each
-    NEW: Kings and Jacks score +5 pips and +5 mult
-
-### [Trick] knave_power (Knave for the People)
-  name:
-    OLD: Knave for the People
-    NEW: Jackpot
-  description:
-    OLD: Each Jack on the grid multiplies total pips ×2
-    NEW: Score x2 pips for each Jack on the grid.
-
-### [Trick] humble_roots (Every Day Essentials)
-  description:
-    OLD: Rank-5-and-below cards (incl. Ace) contribute 3× pips
-    NEW: Rank-6-and-below cards score their rank x3 pips
-
-### [Trick] before_the_tide (Gnomes)
-  description:
-    OLD: Each rank-5-and-below card scored adds its rank in Focus
-    NEW: Each rank 5 or lower card scored adds its rank in Focus
-
-### [Trick] royal_trio (Heads of State)
-  description:
-    OLD: A hand containing K, Q, and J scores ×2 mult
-    NEW: A hand containing a King and one other Royal scores ×2 mult
-
-### [Trick] rich_soil (Rich Soil)
-  description:
-    OLD: All cards score +2 pips
-    NEW: All cards score +1 mult
-
-### [Trick] fertile_ground (Fertile Ground)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] first_fruits (First Fruits)
-  description:
-    OLD: Each card in first hand each round permanently gains +2 pips
-    NEW: Each card in the first hand each round permanently gains +3 pips
-
-### [Trick] sapling (Sapling)
-  description:
-    OLD: Each level, 3 cards permanently gain +2 pips
-    NEW: Each level, 3 cards permanently gain +5 pips
-
-### [Trick] early_bird (Early Bird)
-  description:
-    OLD: Hands played in the first third of the round score +3 pips per card
-    NEW: Hands played in the first third of the round score +5 pips per card
-
-### [Trick] night_owl (Night Owl)
-  description:
-    OLD: Hands played in the last third of the round score +1 mult per card
-    NEW: Hands played in the last third of the round score +3 mult per card
-
-### [Trick] closing_time (Near Extinction)
-  description:
-    OLD: When less than a quarter of the round remains, each scored card replays
-    NEW: In the last third of the round, each scored card replays
-
-### [Trick] quick_draw (Quick Draw)
-  base_cost:
-    OLD: 3
-    NEW: 4
-  description:
-    OLD: Hands played within 3 seconds of the previous permanently add +1 max Focus capacity
-    NEW: Hands played within 2 seconds of the previous hand add +1 to your focus limit (current: n | max: 10)
-
-### [Trick] patience_reward (The Heron)
-  description:
-    OLD: Hands played 15+ round-seconds after the previous score +3 mult
-    NEW: Hands played 15+ seconds after the previous hand score +10 mult
-
-### [Trick] first_play (Head Start)
-  rarity:
-    OLD: common
-    NEW: rare
-  description:
-    OLD: The first hand each round adds +5 Focus
-    NEW: Adds +5 focus to the first hand of a round and one less to each subsequent hand. Does not go negative (current: n)
-  notes:
-    OLD: 
-    NEW: is there a nicer way to word that?
-
-### [Trick] still_water (Eagle Eye)
-  description:
-    OLD: +5 mult for every 10 seconds elapsed without using a swap
-    NEW: Score +5 mult for every 10 seconds elapsed without using a swap
-
-### [Trick] swift (The Swift)
-  description:
-    OLD: +1 mult for every 3 seconds elapsed this round
-    NEW: 5 mult for every 10 seconds elapsed this round
-
-### [Trick] cuckoo (The Cuckoo)
-  description:
-    OLD: Every 60 seconds of round time, pause the clock by 1 second for each replay that has happened this round
-    NEW: Every other hand pauses the clock for 1 second for every 5 replays triggered this round
-
-### [Trick] double_jeopardy (Double Jeopardy)
-  description:
-    OLD: Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds
-    NEW: 2 Cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15 seconds each.
-
-### [Trick] woodpecker (The Woodpecker)
-  description:
-    OLD: In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice
-    NEW: Marks a random cards once every 30 seconds, scoring the marked card replays it 2x
-
-### [Trick] hummingbird (The Hummingbird)
-  description:
-    OLD: +2 mult for every clock pause triggered this game
-    NEW: +2 mult for every clock pause or rewind triggered this game
-
-### [Trick] vulture (The Vulture)
-  description:
-    OLD: Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack)
-    NEW: Cards discarded during the round’s first pause permanently gain +3s pause. Cannot stack this buff
-
-### [Trick] ticktock (Tick-Tock)
-  description:
-    OLD: Every time the round clock ends in a 0, gain +2 Focus
-    NEW: Every time the clock ends in a 0, gain +2 Focus
-
-### [Trick] quarter_chime (Quarter Chime)
-  description:
-    OLD: Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips
-    NEW: Every time the clock passes a multiple of 15s, your next hand scores +45 pips
-
-### [Trick] minute_hand (Minute Hand)
-  description:
-    OLD: Every minute mark the clock passes primes this trick: your next 2 hands each score +5 mult
-    NEW: Every time the clock passes a multiple of 30s, your next hand scores x2 mult
-
-### [Trick] second_hand (Second Hand)
-  description:
-    OLD: Every 10 seconds the clock passes adds +5 pips to your next hand. Rewinding the clock earns them again
-    NEW: Every time the clock passes a multiple of 10s, your next hand scores either +5 mult or +10 pips
-
-### [Trick] hourglass (Hourglass)
-  description:
-    OLD: Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger
-    NEW: Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay
-
-### [Trick] sediment (Sediment)
-  description:
-    OLD: Gains +10 pips for every 10 seconds of round time elapsed (resets each round)
-    NEW: Scores +10 pips for every 10 seconds elapsed this round
-
-### [Trick] kingfisher (The Kingfisher)
-  rarity:
-    OLD: epic
-    NEW: rare
-  description:
-    OLD: +1 mult for every 5 seconds the clock has been paused or rewound this round
-    NEW: +1 mult for every 2 seconds the clock has been paused or rewound this round
-
-### [Trick] magpie (Hoarder House)
-  description:
-    OLD: Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold
-    NEW: Each hand rewinds the clock 1 second for every 2 swaps + discards you hold
-
-### [Trick] mockingbird (Traveler)
-  description:
-    OLD: Every 3 hands you play without a same-type streak grants +1 swap
-    NEW: Every 4 hands you play without a same-type streak grants +1 swap
-
-### [Trick] phoenix (The Phoenix)
-  description:
-    OLD: While the clock is paused, the Focus multiplier applies twice
-    NEW: While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause trigger this trick)
-
-### [Trick] kindling (Kindling)
-  description:
-    OLD: Same hand streak scores +4 pips × streak
-    NEW: Same-hand streaks score +4 mult × streak count
-
-### [Trick] wildfire (Wildfire)
-  description:
-    OLD: 3 same hands in a row scores +2 mult
-    NEW: Reaching a same-hand streak of 3 adds 5 focus
-
-### [Trick] echo_hand (Echoes)
-  description:
-    OLD: Playing the same hand type as the previous hand replays each card
-    NEW: Marks a random cards once every 30 seconds, when scored, the marked card replays 2x
-
-### [Trick] club_double (Hard Labour)
-  description:
-    OLD: Each club scored adds escalating pips - +5, doubling per club; replays count
-    NEW: Each club scored this round adds more and more pips: doubles each time, starts at 1.
-
-### [Trick] monochrome (Blood Diamonds)
-  rarity:
-    OLD: epic
-    NEW: Epic
-  description:
-    OLD: Hands with at least one heart and one diamond grant +1 credit and rewind the clock 15 seconds
-    NEW: Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds
-
-### [Trick] full_color (Rainbow)
-  description:
-    OLD: Hands with all four suits score +16 pips and +4 mult per card
-    NEW: Hands with all four suits score +16 pips and +16 mult per card
-
-### [Trick] balanced_diet (Balance)
-  description:
-    OLD: Hands with exactly 2 suits score +2 mult per card
-    NEW: Hands with exactly 2 suits score +5 mult per card
-
-### [Trick] lucky_sevens (Lucky Sevens)
-  rarity:
-    OLD: epic
-    NEW: rare
-
-### [Trick] ninesong (Threepeat)
-  description:
-    OLD: If the hand's pip total is divisible by 3: rewind 15 seconds, +9 mult, +3 Focus
-    NEW: If the hand's pip total is divisible by 3, one of the following happens: rewind 9 seconds, +9 mult, +9 Focus
-
-### [Trick] prime_time (Prime Time)
-  description:
-    OLD: Hands with 3+ prime-rank cards (A,2,3,5,7) score +23 pips per card
-    NEW: Hands with 3+ prime-ranked cards (A,2,3,5,7) score +23 pips per card
-
-### [Trick] even_score (Get Even)
-  description:
-    OLD: +2 mult for every even-ranked card you score
-    NEW: Even ranked cards score +4 pips
-
-### [Trick] odd_squad (Odd One In)
-  description:
-    OLD: +2 mult for every odd-ranked card you score
-    NEW: Odd ranked cards score +3 mult
-
-### [Trick] number_crunch (Diversity)
-  description:
-    OLD: Hands with 4+ different ranks score +2 mult
-    NEW: Hands with 4+ different ranks score +5 mult per card
-
-### [Trick] rowcol_mult (Power Line)
-  description:
-    OLD: Cards scored in a marked row or column each score +2 mult
-    NEW: Cards scored in a marked row or column score +5 mult
-
-### [Trick] rowcol_retrigger (Echo Location)
-  description:
-    OLD: Cards scored in a marked row or column have a 50% chance to replay once
-    NEW: Cards scored in a marked row or column have a 2 in 3 chance to replay
-
-### [Trick] right_time (Right Time)
-  description:
-    OLD: Each card scored in a marked row or column pauses the clock 2 seconds
-    NEW: Cards scored in a marked row or column pause the clock for +2s
-
-### [Trick] study_hall (Study Hall)
-  description:
-    OLD: Every 2 cards you score adds +1 Focus
-    NEW: Every 2 cards scored adds +1 Focus
-  notes:
-    OLD: 
-    NEW: this should count replays as additional cards scored. so a hand of 3 cards where each replays twice would count as 6 cards
-
-### [Trick] rowcol_perm_double (Ley Line)
-  description:
-    OLD: Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult, once per minute
-    NEW: Cards scored at the intersection of a row effect and a column effect permanently gain +1 mult
-
-### [Trick] shape_square (Hands of Blue)
-  description:
-    OLD: A 2×2 hand adds +16 Focus
-    NEW: A 2×2 shaped hand adds +16 Focus
-
-### [Trick] shape_cross (Crossroads)
-  description:
-    OLD: A + shaped hand adds +25 Focus
-    NEW: A 5 card + shaped hand adds +25 Focus
-
-### [Trick] shape_line (Straight Shot)
-  description:
-    OLD: 5-card hands played in a straight line add the first and last card's pip values to mult
-    NEW: 5-card hands played in a straight line add card's pip values to mult
-
-### [Trick] corner_retrigger (Cornered)
-  description:
-    OLD: Corner cards multiply the running pips by the whole minutes left on the clock
-    NEW: Corner cards score xpips equal to the whole minutes left on the clock
-
-### [Trick] two_corners (Stretch)
-  description:
-    OLD: When a hand has 2 or more corner cells, each corner card scores ×2 mult
-    NEW: When a hand has 2 or more corner cards, each corner card scores ×4 mult
-
-### [Trick] edge_pips (On the Edge)
-  description:
-    OLD: Hands where all cards are on the outer edge score +15 pips per card
-    NEW: Hands where all cards are on an edge score +15 pips per card
-
-### [Trick] column_rush (Stand Up)
-  description:
-    OLD: Hands with cards from only one column score +2 mult per card
-    NEW: Hands with cards from only one column score +5 mult per card
-
-### [Trick] row_power (Lie Down)
-  rarity:
-    OLD: common
-    NEW: rare
-  description:
-    OLD: Hands with cards from only one row score +2 mult per card
-    NEW: Hands with cards from only one row score +10 mult per card
-
-### [Trick] groove (Groove)
-  description:
-    OLD: This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.
-    NEW: Scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.
-
-### [Trick] assembly_line (Assembly Line)
-  description:
-    OLD: Cards scored in a marked row or column score +1 mult for every card already scored from that line this round.
-    NEW: Cards scored in a marked row or column score +1 mult for every card played from that line this round
-
-### [Trick] overtime (Overtime)
-  description:
-    OLD: Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.
-    NEW: Rewind the clock +1s for every 3 cards you have scored from this tricks marked column/row. Resets each round.
-
-### [Trick] feng_shui (Feng Shui)
-  description:
-    OLD: Permanently scores +3 pips each hand another position trick triggers.
-    NEW: 3+3 pips for each each hand scored with a row or column buff
-
-### [Trick] huddle (Huddle)
-  description:
-    OLD: Each scored card scores +11 pips for every adjacent card or sleight in the hand.
-    NEW: Score +7 pips per card for every adjacent card or sleight in the hand.
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] clean_sweep (Clean Sweep)
-  description:
-    OLD: Cover a full row or column within two hands to advance Focus to the next threshold.
-    NEW: Use every cell of any row or column within two hands to add +5 focus and +5 credits
-
-### [Trick] rising_tide (Rising Tide)
-  description:
-    OLD: Base mult increases by +1 for each level reached
-    NEW: Score 1+1 mult for each level reached
-
-### [Trick] veteran_bonus (Veteran)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] prolific (Prolific)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] acorns (Acorns)
-  rarity:
-    OLD: rare
-    NEW: epic
-  description:
-    OLD: Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand
-    NEW: Each card scored scales this trick +0.1 Focus, starts at +0.
-
-### [Trick] plan_ahead (Plan Ahead)
-  rarity:
-    OLD: epic
-    NEW: rare
-
-### [Trick] nines_mult (Cloud Nine)
-  rarity:
-    OLD: rare
-    NEW: epic
-
-### [Trick] tens_mult (Perfect Ten)
-  description:
-    OLD: Every 10 cards discarded permanently adds +1 mult to this trick
-    NEW: Every 9 cards discarded permanently adds +3 mult to this trick
-
-### [Trick] twos_retrigger (Double Take)
-  description:
-    OLD: Each 2 scored duplicates your most recently acquired Trick’s effect
-    NEW: Each 2 scored force triggers your right most trick
-
-### [Trick] prime_times (Prime Times)
-  description:
-    OLD: When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th
-    NEW: Scoring prime-ranked cards (A,2,3,5,7) prime your left most trick
-
-### [Trick] eights_retrigger (Sideways to Infinity)
-  description:
-    OLD: Each 8 in a hand scores a number of times equal to the number of 8s in that hand
-    NEW: Each scored 8 replays once for each other 8 in the hand.
-
-### [Trick] snowball (Snowball)
-  notes:
-    OLD: 
-    NEW: Remove
-
-### [Trick] big_win (Jackpot)
-  name:
-    OLD: Jackpot
-    NEW: 
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] queens_upgrade (Royal Favour)
-  description:
-    OLD: After scoring, cards adjacent to Queens permanently gain +1 rank
-    NEW: Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are autmoatically discarded after they've been on the grid for 45 seconds.
-
-### [Trick] aces_absorb (Ace Absorb)
-  description:
-    OLD: When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)
-    NEW: When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand).
-
-### [Trick] sands_of_time (Sands of Time)
-  description:
-    OLD: Current round time remaining ÷ 2 added as pips
-    NEW: Score +pips equal to time remaining ÷ 2
-  notes:
-    OLD: 
-    NEW: for modes with rounds longer than 3 minutes, make the /2 /4
-
-### [Trick] discard_pips (Compost)
-  description:
-    OLD: +3 pips per card discarded this round
-    NEW: +2 mult per card discarded this round
-
-### [Trick] spade_flood (Dark Matter)
-  rarity:
-    OLD: rare
-    NEW: epic
-  description:
-    OLD: All-spade hands add half the remaining round time as pips
-    NEW: All-Spade hands add the remaining round time as pips
-
-### [Trick] mirror (Mirror)
-  description:
-    OLD: Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.
-    NEW: Tap to tilt left or right; mimics the effect of the Trick it reflects.
-
-### [Trick] combo_score (Combo Score)
-  description:
-    OLD: +2 mult for every distinct hand type played this round
-    NEW: +4 mult for every distinct hand type played this round
-
-### [Trick] escalation (Escalation)
-  description:
-    OLD: Every hand played this round is worth +3 mult, paid from the hand after your 3rd
-    NEW: +Every hand played this round is worth +3 mult, paid from the hand after your 3rd
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] move_as_one (Move as One)
-  description:
-    OLD: If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time
-    NEW: If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time
-  notes:
-    OLD: structural — no tunable value
-    NEW: so for this trick, it needs a readout that says what the keyword is. also, this needs to not look at keywords like time or hands or other words that dozens of tricks use. it should look at things like "marked" and pause and focus and hand types or ranks mentioned in tricks or replay etc. maybe come up with a list that you think would qualify and ill review.
-
-### [Trick] more_better (More Better)
-  description:
-    OLD: Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick
-    NEW: Each reward grid where you select 3+ tiles permanently adds +5 mult to this trick
-  notes:
-    OLD: 
-    NEW: lock this to modes that have frequent reward grids
-
-### [Trick] rain_check (Rain Check)
-  description:
-    OLD: Skipping a reward grid adds +30 seconds to your next round
-    NEW: Skipping a reward adds +30 seconds to your next round.
-  notes:
-    OLD: 
-    NEW: For flow, this should instead say adds 30 seconds to the timer, and we also need to add an option to skip rewards in survival and flow. maybe just if you press the confirm button twice without having selected a reward. also, tapping a reward a second time should unselect it.
-
-### [Trick] temporal_rift (Temporal Rift)
-  description:
-    OLD: A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped)
-    NEW: A card scored where a row and column effect intersect gains +3s rewind (time buffs do not stack)
-
-### [Trick] wild_side (Wild Side)
-  description:
-    OLD: +3 mult for every negative reward tile you have taken this run
-    NEW: +6 mult scaling for every negative reward tile you take
-
-### [Trick] wait_for_it (Wait For Iiiit)
-  description:
-    OLD: Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive)
-    NEW: Each negative reward tile taken this run gives every scored card a +2% chance to replay (current chance: n)
-
-### [Trick] meditation (Meditation)
-  rarity:
-    OLD: common
-    NEW: rare
-  description:
-    OLD: Focus decays 1 second slower
-    NEW: Focus decays 2 second slower
-
-### [Trick] restless (Restless)
-  notes:
-    OLD: structural — no tunable value
-    NEW: remove
-
-### [Trick] cull (Cull)
-  description:
-    OLD: Discarding adds 1 Focus per swap and discard you have left
-    NEW: Discarding or Swapping adds +1 Focus per 2  remaining swaps and discards
-
-### [Trick] expanse (Expanse)
-  description:
-    OLD: Each time you hit max focus, increase max focus capacity by 1
-    NEW: Each time you hit your focus limit, increase focus limit by 1 then lose half your focus (current: +n | max: 10)
-
-### [Trick] kaleidoscope (Kaleidoscope)
-  description:
-    OLD: Playing one or more of each suit in a hand adds +4 Focus
-    NEW: Playing four or more suits in a hand applies the focus multiplier a second time
-
-### [Trick] flow_state (Flow State)
-  description:
-    OLD: While focus is ×1.5 or higher, +10 pips per card scored
-    NEW: While focus is ×1.5 or higher, score +10 pips per card
-
-### [Trick] heartwood (Heartwood)
-  description:
-    OLD: Dead center card permanently gains +5 pips & +1 mult each time scored
-    NEW: When scored, the center-most card gains +5 pips & +2 mult
-
-### [Trick] landfill (Landfill)
-  rarity:
-    OLD: common
-    NEW: epic
-  description:
-    OLD: Hands score +1 mult for every 5 cards you have discarded this round
-    NEW: Score +1 mult per card for every discard or swap used this round
-
-### [Trick] old_growth (Old Growth)
-  description:
-    OLD: Each scored card also adds its permanent pip bonus to mult
-    NEW: Cards adds their pip value to mult
-
-### [Trick] magician (Magician)
-  rarity:
-    OLD: rare
-    NEW: common
-
-### [Trick] stand_up (Stand-Up)
-  description:
-    OLD: +10 pips for each charge remaining across all your Sleights
-    NEW: #ERROR!
-
-### [Trick] scalper (Scalper)
-  description:
-    OLD: Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores
-    NEW: ×1 +.25 mult per charge your Sleights are missing
-
-### [Trick] little_guys (the little guys)
-  description:
-    OLD: A 5-card hand with no face cards permanently raises your maximum Focus by 1
-    NEW: A 5-card hand with no face cards increases your Focus limit by 1 (current: +n | max: 15)
-  notes:
-    OLD: 
-    NEW: so any time an entity says 5 card hand the rule i wrote elsewhere on this should apply, it has to be an
-
-### [Trick] five_fodder (Five for Fodder)
-  description:
-    OLD: Discarding a 5-card hand grants +5 credits
-    NEW: Discarding a valid 5-card hand grants +5 credits
-  notes:
-    OLD: 
-    NEW: this requires the hand to be an actual 5 card hand, not a 4 card hand with a tag along, so the hand recognitioin needs to see a flush, full house, straight, etc.
-
-### [Trick] five_second (Five Second Rule)
-  rarity:
-    OLD: epic
-    NEW: rare
-  description:
-    OLD: Playing a 5-card hand pauses the clock 5 seconds
-    NEW: 5-card hands pause the clock +5s
-
-### [Trick] life_lessons (Life Lessons)
-  description:
-    OLD: Each round you complete permanently raises your maximum Focus by 1
-    NEW: Each round you complete increases your Focus limit by 1
-
-### [Trick] wellspring (Wellspring)
-  description:
-    OLD: For every 10 Focus generated this game, this trick scores +2 pips
-    NEW: For every 10 Focus generated this game, this trick scores +1 mult
-
-### [Trick] feedback_loop (Feedback Loop)
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Trick] ready_set_go (Ready, Set, Go)
-  description:
-    OLD: A 3-card hand containing a 3 scores +9 mult
-    NEW: A 3-card hand containing a 3, 6, or a 9, scores +9 mult
-
-### [Trick] third_charm (3rd Time's a Charm)
-  rarity:
-    OLD: epic
-    NEW: rare
-  description:
-    OLD: The 3rd card of a hand gets +2 replays
-    NEW: The 3rd card of a hand replays 2x
-
-### [Trick] threes_crowd (Three's a Crowd)
-  description:
-    OLD: Pairs count as 3-card hands
-    NEW: Pairs qualify as 3-card hands
-  notes:
-    OLD: structural — no tunable value
-    NEW: this should insinuate that playing a pair with a tag along wouldn't count as a 3 card hand, so if that's not true it should be made true. also, this should be a knack, an epic or rare one, and it should say hands count as being 1 card higher than they are. so a pair is a three card hand, 2 pairs is a 5 card hand. this doesn't affect the natural scaling they get, it does change what tricks and entitities they can trigger.
-
-### [Trick] four_by_four (4x4)
-  notes:
-    OLD: 
-    NEW: this should count as a row/column effect and get a distinct line behind the fourth colun if it isn't already
-
-### [Trick] wait_four_it (Wait Four It)
-  description:
-    OLD: 4-card hands permanently buff their 4th card to pause the clock 1 second when scored
-    NEW: 4-card hands permanently buff their 4th card with +2s pause (time buffs do not stack)
-
-### [Trick] undue_influence (Undue Influence)
-  description:
-    OLD: A Set containing a face card grants credits equal to the number of Sets you have played this round
-    NEW: A Set containing a face card grants credits equal to the number of Set hands you have played this round
-  notes:
-    OLD: structural — no tunable value
-    NEW: small wording change so that playing a two pair only counts as one set hand insted of two sets.
-
-### [Trick] encore (Encore)
-  description:
-    OLD: Sets made of only odd-ranked cards score a second time
-    NEW: Set-type hands made of only odd-ranked cards replay each card
-
-### [Trick] dam_holding (Dam Holding…)
-  description:
-    OLD: Runs pause the clock 3 seconds
-    NEW: Runs pause the clock +3s
-
-### [Trick] wave_amp (Wave Amplification)
-  description:
-    OLD: Consecutively played Runs score +10 pips × the current Run streak
-    NEW: Consecutively played Runs score +10 pips × streak count
-
-### [Sleight] the_queen (The Queen)
-  rarity:
-    OLD: legendary
-    NEW: epic
-  description:
-    OLD: Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD)
-    NEW: The rank of this sleight is Queen, it scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.
-  notes:
-    OLD: structural — no tunable value; needsResolve / TBD
-    NEW: Royal Reach: a card with royal reach can be selected with any hand containing a card any distance above, below, beside or diagonal from it. it can also be swapped with any card above, below, beside or diagonal from it
-
-### [Sleight] warehouse (Warehouse)
-  rarity:
-    OLD: rare
-    NEW: Common
-  description:
-    OLD: Wild suit - becomes any suit to complete a flush. Has no rank.
-    NEW: Counts as 2 cards of any suit for the purpose of completing a flush. Has no rank.
-
-### [Sleight] fight_power (Fight the Power)
-  description:
-    OLD: While on the grid, all boss effects are ignored.
-    NEW: While on the grid, all boss effects are ignored (3 Minutes of use, each 20 seconds count as 1 charge). Remaining Time: 60s (n charges)
-  notes:
-    OLD: structural — no tunable value
-    NEW: structural — no tunable value; does this actually work? if so, how? like if this falls onto the grid during a boss round, we're able to remove and stone or other curses and pause other boss effects like giving back discard or swaps, prevent the score fomr incremeenting due to a boss effect, etc?
-
-### [Sleight] dazed (Dazed & Confused)
-  name:
-    OLD: Dazed & Confused
-    NEW: Fresh Start
-  description:
-    OLD: When swapped, reshuffles every card on the grid.
-    NEW: When discarded, shuffles all cards back into the deck and redeals. Costs -3 credits and -10s
-
-### [Sleight] echo_play (Echo)
-  description:
-    OLD: Play this in any hand: each card replays twice. (3 charges)
-    NEW: Play this in any hand: each card replays 2x. n/3 charges
-
-### [Sleight] bellhop (Bellhop)
-  description:
-    OLD: Play this: gain +2 swaps and +1 discard. (5 charges)
-    NEW: Play this: gain +2 swaps and +1 discard. n/5 charges
-
-### [Sleight] cash_out (Cash Out)
-  rarity:
-    OLD: common
-    NEW: rare
-  description:
-    OLD: Discard this: gain 10 credits. (4 charges)
-    NEW: Discard this: gain 10 credits n/3 charges
-
-### [Sleight] last_call (Last Call)
-  rarity:
-    OLD: epic
-    NEW: rare
-  description:
-    OLD: Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges)
-    NEW: Discard this: rewind the clock 15 seconds. n/3 charges
-
-### [Sleight] sandbag (Sandbagger)
-  description:
-    OLD: Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges)
-    NEW: Discard this: with a pair to rewind the clock by that pair’s rank in seconds. +50% more time for every additional member of the set. n/3 charges
-
-### [Sleight] the_wanderer (Wanderer)
-  rarity:
-    OLD: common
-    NEW: rare
-  description:
-    OLD: Swap it with ANY card on the grid, next to it or not, and the swap is free (+1 swap back).
-    NEW: While on grid: allows any two cards to be swapped regardles of position. Still uses your swap stock. n/5 charges
-
-### [Sleight] stopwatch (Stopwatch)
-  description:
-    OLD: Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.
-    NEW: Double-tap: freeze the clock until your next played hand (60s of use, each 6 seconds count as 1 charge) Remaining Time: 60s n/12 charges
-  notes:
-    OLD: structural — no tunable value
-    NEW: for remaining time, update that value live. Also, count each 6 seconds as a charge for the purposes of entities that scale based on that or restore charges to sleights.
-
-### [Sleight] piggy_bank (Piggy Bank)
-  description:
-    OLD: Double-tap: gain 5 credits. (5 charges)
-    NEW: Double-tap: gain 5 credits. Becomes inert on use. n/5 charges
-  notes:
-    OLD: 
-    NEW: inert meaning it can't be swapped or discarded after use, do we use another word for that? So for all sleights with charges, instead of just having its max charges in the description, have it say n/max charges. so however many charges are left over the max.
-
-### [Sleight] magnet (Magnet)
-  description:
-    OLD: Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges)
-    NEW: Double-tap: then tap any card: pull every card of the selected rank to replace itself and adjacent cards (via discard) N/3 charges
-  notes:
-    OLD: structural — no tunable value
-    NEW: redo the animation for this so that you can visibly see the other ranks flying into the new location. also, show the cards next to magnet, along with magnet, being discarded. this does not count toward the time or stock cost of discards, but for cards that scale with discards, these discards do count. so if it replaces the magnet and 4 cards, that would count as 4 seperate discards for other scaling entitites.
-
-### [Sleight] reflect (Reflect)
-  description:
-    OLD: Tap to rotate its aim. The rank it faces replays 2× when a hand scores. Works once per round. Cannot be swapped or discarded.
-    NEW: Tap to rotate its aim. The rank it faces replays 2× when scored. Cannot be swapped discarded or played.  Discards itself after 60s.
-
-### [Sleight] soul_mirror (Soul Mirror)
-  description:
-    OLD: Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.
-    NEW: Tap to rotate its aim. When the rank it faces is scored, it replays once for each count of that rank in the deck. Cannot be swapped, discarded, or played.
-
-### [Sleight] capacitor (Capacitor)
-  description:
-    OLD: Double-tap to spend 10 Focus and 10 seconds for 10 credits. Consumed on use.
-    NEW: Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use.  n/2 charges
-
-### [Sleight] siphon (Siphon)
-  description:
-    OLD: Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use.
-    NEW: Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Discards on use.
-
-### [Sleight] power_cell (Power Cell)
-  description:
-    OLD: When it enters the grid: +10 Focus. While it remains on the grid: +10 maximum Focus.
-    NEW: When it enters the grid: +10 Focus. While it remains on the grid: +10 to Focus limit.
-
-### [Sleight] slow_burn (Slow Burn)
-  description:
-    OLD: +1 maximum Focus for every minute this sleight spends on the grid.
-    NEW: +1 to Focus limit for every 45 seconds this sleight spends on the grid. current: n | max: 15
-
-### [Sleight] flywheel (Flywheel)
-  description:
-    OLD: While on the grid, the Focus speed bonus is multiplied by 1.5.
-    NEW: While on the grid, the Focus speed bonus is multiplied by 2.
-  notes:
-    OLD: 
-    NEW: remove
-
-### [Sleight] governor (Governor)
-  description:
-    OLD: While on the grid, you have 1.5× as long to earn the same Focus speed bonus.
-    NEW: While on the grid, you have 50% longer to earn the Focus speed bonus.
-
-### [Sleight] shift_swap (Shift Swap)
-  description:
-    OLD: Score two hands beside this card for +2 swaps, then it goes back into the deck.
-    NEW: Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.
-
-### [Sleight] recycler (Recycler)
-  description:
-    OLD: Score two hands beside this card for +2 discards, then it goes back into the deck.
-    NEW: Score two cards adjacent to this sleight to get +2 discards. Discards itself after giving bonus.
-
-### [Sleight] petty_cash (Petty Cash)
-  description:
-    OLD: Score two hands beside this card for +5 credits, then it goes back into the deck.
-    NEW: Score two hands beside this card to get +5 credits, Discards itself after giving bonus.
-
-### [System] _exalt (exalt)
-  params_json:
-    OLD: {"club_pips":10,"diamond_coins":3,"heart_mult":2,"spade_time":4}
-    NEW: {"club_pips":10,"diamond_coins":3,"heart_mult":4,"spade_time":4}
-
-### [System] _corrupt (corrupt)
-  params_json:
-    OLD: {"club_pips":25,"club_mult":-3,"diamond_coins":5,"diamond_pips":-20,"heart_mult":5,"heart_time":-5,"spade_time":7,"spade_coins":-8}
-    NEW: {"club_pips":25,"club_mult":-3,"diamond_coins":5,"diamond_pips":-20,"heart_mult":5,"heart_time":-5,"spade_time":7,"spade_coins":-5}
+BALANCE PASS 9.24 - OUTSTANDING CHANGES ONLY
+=============================================
+The owner's Balance_-_9.23.26.xlsx, minus everything origin/main's r326
+balance pass (commit ce1bd68) already implemented. Each block is
+  [id] column
+    owner: what the sheet asks for now
+    (was:  what the game had when the owner edited)
+Already done and NOT listed here: 13 removals (worn_path redline
+second_nature trinity last_stand fertile_ground huddle veteran_bonus
+prolific snowball big_win escalation feedback_loop), 7 re-tiers
+(correct_run kingfisher row_power nines_mult spade_flood landfill
+magician), and ~70 description/BAL changes (tide_table undertow
+deep_breath interest portfolio blackjack knave_power's text humble_roots
+swift minute_hand second_hand kindling wildfire even_score odd_squad
+shape_line corner_retrigger feng_shui rising_tide wild_side old_growth
+scalper ready_set_go wave_amp stand_up double_bloom pair_pips enriched
+kindred summit light_touch heavy_hand first_light face_value king_guard
+royal_trio rich_soil first_fruits sapling early_bird night_owl
+patience_reward still_water sediment hummingbird ticktock's neighbours
+quarter_chime hourglass's neighbours full_color balanced_diet
+number_crunch prime_time rowcol_mult two_corners edge_pips column_rush
+row_power tidal_force discard_pips landfill heartwood flow_state
+wellspring encore's neighbours combo_score more_better's number
+tens_mult eights' neighbours mirror's neighbours...). When in doubt,
+diff the sheet against a fresh gen_balance_sheet.js output.
+
+ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
+"+10 focus" where the code still advances Focus to the next threshold.
+Treat richter exactly like full_house_streak below.
+
+[ancient_grove] notes
+  owner: remove
+  (was:  )
+
+[high_water] description
+  owner: Runs pause the clock for 1 second for each run played this round.
+  (was:  After 3 Runs each round, every Run pauses the clock for its card count in seconds)
+
+[rerun] description
+  owner: x1.2 pips each time a card is replayed
+  (was:  Each replay in a hand multiplies its pips ×0.25 more)
+
+[chorus] description
+  owner: x1.75 mult each time a card is replayed
+  (was:  Each replay in a hand multiplies its mult ×0.2 more)
+
+[compound] description
+  owner: Every 15 seconds, increase your current score by 25%
+  (was:  Every 45 seconds your round score is banked. Your next hand pays the banked amount again.)
+
+[compound] notes
+  owner: remove
+  (was:  )
+
+[overclock] notes
+  owner: make speed bonus a keyword and the tooltip should be something like focus is generated both by how complex the hand is, and by how quickly it was played after the preceeding hand. make that an entry in the handbook if not already
+  (was:  )
+
+[full_house_streak] description
+  owner: Full Houses score +10 focus
+  (was:  Each Full House instantly advances Focus to the next threshold)
+
+[two_pair_mult] rarity
+  owner: epic
+  (was:  rare)
+
+[two_pair_mult] description
+  owner: Play 3 hands with a pair within 30s to add +16 Focus
+  (was:  Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak))
+
+[eye_of_storm] description
+  owner: Hands played in the middle third of the round replay the highest-ranked card(s) 2x
+  (was:  Hands played in the middle third of the round replay the highest-ranked card(s))
+
+[ripple] description
+  owner: Cards adjacent in rank to another card in the hand have a 50% chance to replay
+  (was:  Once every 30s, cards adjacent in rank to another card in the hand replay)
+
+[release_valve] description
+  owner: Each time you hit your focus limit, add +1 swap and +1 discard and lose 16 Focus.
+  (was:  Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.)
+
+[wild_heart] description
+  owner: When an Ace scores, prime your first and last Tricks
+  (was:  When an Ace scores, prime your first and last Tricks (each fires twice its next hand))
+
+[knave_power] name
+  owner: Jackpot
+  (was:  Knave for the People)
+
+[before_the_tide] description
+  owner: Each rank 5 or lower card scored adds its rank in Focus
+  (was:  Each rank-5-and-below card scored adds its rank in Focus)
+
+[closing_time] description
+  owner: In the last third of the round, each scored card replays
+  (was:  When less than a quarter of the round remains, each scored card replays)
+
+[quick_draw] base_cost
+  owner: 4
+  (was:  3)
+
+[quick_draw] description
+  owner: Hands played within 2 seconds of the previous hand add +1 to your focus limit (current: n | max: 10)
+  (was:  Hands played within 3 seconds of the previous permanently add +1 max Focus capacity)
+
+[first_play] rarity
+  owner: rare
+  (was:  common)
+
+[first_play] description
+  owner: Adds +5 focus to the first hand of a round and one less to each subsequent hand. Does not go negative (current: n)
+  (was:  The first hand each round adds +5 Focus)
+
+[first_play] notes
+  owner: is there a nicer way to word that?
+  (was:  )
+
+[cuckoo] description
+  owner: Every other hand pauses the clock for 1 second for every 5 replays triggered this round
+  (was:  Every 60 seconds of round time, pause the clock by 1 second for each replay that has happened this round)
+
+[double_jeopardy] description
+  owner: 2 Cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15 seconds each.
+  (was:  Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds)
+
+[woodpecker] description
+  owner: Marks a random cards once every 30 seconds, scoring the marked card replays it 2x
+  (was:  In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice)
+
+[vulture] description
+  owner: Cards discarded during the round’s first pause permanently gain +3s pause. Cannot stack this buff
+  (was:  Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack))
+
+[ticktock] description
+  owner: Every time the clock ends in a 0, gain +2 Focus
+  (was:  Every time the round clock ends in a 0, gain +2 Focus)
+
+[hourglass] description
+  owner: Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay
+  (was:  Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger)
+
+[magpie] description
+  owner: Each hand rewinds the clock 1 second for every 2 swaps + discards you hold
+  (was:  Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold)
+
+[mockingbird] description
+  owner: Every 4 hands you play without a same-type streak grants +1 swap
+  (was:  Every 3 hands you play without a same-type streak grants +1 swap)
+
+[phoenix] description
+  owner: While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause trigger this trick)
+  (was:  While the clock is paused, the Focus multiplier applies twice)
+
+[echo_hand] description
+  owner: Marks a random cards once every 30 seconds, when scored, the marked card replays 2x
+  (was:  Playing the same hand type as the previous hand replays each card)
+
+[club_double] description
+  owner: Each club scored this round adds more and more pips: doubles each time, starts at 1.
+  (was:  Each club scored adds escalating pips - +5, doubling per club; replays count)
+
+[monochrome] rarity
+  owner: Epic
+  (was:  epic)
+
+[monochrome] description
+  owner: Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds
+  (was:  Hands with at least one heart and one diamond grant +1 credit and rewind the clock 15 seconds)
+
+[lucky_sevens] rarity
+  owner: rare
+  (was:  epic)
+
+[rowcol_retrigger] description
+  owner: Cards scored in a marked row or column have a 2 in 3 chance to replay
+  (was:  Cards scored in a marked row or column have a 50% chance to replay once)
+
+[right_time] description
+  owner: Cards scored in a marked row or column pause the clock for +2s
+  (was:  Each card scored in a marked row or column pauses the clock 2 seconds)
+
+[study_hall] description
+  owner: Every 2 cards scored adds +1 Focus
+  (was:  Every 2 cards you score adds +1 Focus)
+
+[study_hall] notes
+  owner: this should count replays as additional cards scored. so a hand of 3 cards where each replays twice would count as 6 cards
+  (was:  )
+
+[shape_cross] description
+  owner: A 5 card + shaped hand adds +25 Focus
+  (was:  A + shaped hand adds +25 Focus)
+
+[groove] description
+  owner: Scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.
+  (was:  This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.)
+
+[overtime] description
+  owner: Rewind the clock +1s for every 3 cards you have scored from this tricks marked column/row. Resets each round.
+  (was:  Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.)
+
+[clean_sweep] description
+  owner: Use every cell of any row or column within two hands to add +5 focus and +5 credits
+  (was:  Cover a full row or column within two hands to advance Focus to the next threshold.)
+
+[acorns] rarity
+  owner: epic
+  (was:  rare)
+
+[acorns] description
+  owner: Each card scored scales this trick +0.1 Focus, starts at +0.
+  (was:  Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand)
+
+[plan_ahead] rarity
+  owner: rare
+  (was:  epic)
+
+[twos_retrigger] description
+  owner: Each 2 scored force triggers your right most trick
+  (was:  Each 2 scored duplicates your most recently acquired Trick’s effect)
+
+[prime_times] description
+  owner: Scoring prime-ranked cards (A,2,3,5,7) prime your left most trick
+  (was:  When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th)
+
+[eights_retrigger] description
+  owner: Each scored 8 replays once for each other 8 in the hand.
+  (was:  Each 8 in a hand scores a number of times equal to the number of 8s in that hand)
+
+[queens_upgrade] description
+  owner: Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are autmoatically discarded after they've been on the grid for 45 seconds.
+  (was:  After scoring, cards adjacent to Queens permanently gain +1 rank)
+
+[aces_absorb] description
+  owner: When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand).
+  (was:  When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand))
+
+[sands_of_time] notes
+  owner: for modes with rounds longer than 3 minutes, make the /2 /4
+  (was:  )
+
+[mirror] description
+  owner: Tap to tilt left or right; mimics the effect of the Trick it reflects.
+  (was:  Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.)
+
+[move_as_one] description
+  owner: If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time
+  (was:  If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time)
+
+[move_as_one] notes
+  owner: so for this trick, it needs a readout that says what the keyword is. also, this needs to not look at keywords like time or hands or other words that dozens of tricks use. it should look at things like "marked" and pause and focus and hand types or ranks mentioned in tricks or replay etc. maybe come up with a list that you think would qualify and ill review.
+  (was:  structural — no tunable value)
+
+[more_better] notes
+  owner: lock this to modes that have frequent reward grids
+  (was:  )
+
+[rain_check] description
+  owner: Skipping a reward adds +30 seconds to your next round.
+  (was:  Skipping a reward grid adds +30 seconds to your next round)
+
+[rain_check] notes
+  owner: For flow, this should instead say adds 30 seconds to the timer, and we also need to add an option to skip rewards in survival and flow. maybe just if you press the confirm button twice without having selected a reward. also, tapping a reward a second time should unselect it.
+  (was:  )
+
+[temporal_rift] description
+  owner: A card scored where a row and column effect intersect gains +3s rewind (time buffs do not stack)
+  (was:  A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped))
+
+[wait_for_it] description
+  owner: Each negative reward tile taken this run gives every scored card a +2% chance to replay (current chance: n)
+  (was:  Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive))
+
+[meditation] rarity
+  owner: rare
+  (was:  common)
+
+[meditation] description
+  owner: Focus decays 2 second slower
+  (was:  Focus decays 1 second slower)
+
+[restless] notes
+  owner: remove
+  (was:  structural — no tunable value)
+
+[cull] description
+  owner: Discarding or Swapping adds +1 Focus per 2  remaining swaps and discards
+  (was:  Discarding adds 1 Focus per swap and discard you have left)
+
+[expanse] description
+  owner: Each time you hit your focus limit, increase focus limit by 1 then lose half your focus (current: +n | max: 10)
+  (was:  Each time you hit max focus, increase max focus capacity by 1)
+
+[kaleidoscope] description
+  owner: Playing four or more suits in a hand applies the focus multiplier a second time
+  (was:  Playing one or more of each suit in a hand adds +4 Focus)
+
+[little_guys] description
+  owner: A 5-card hand with no face cards increases your Focus limit by 1 (current: +n | max: 15)
+  (was:  A 5-card hand with no face cards permanently raises your maximum Focus by 1)
+
+[little_guys] notes
+  owner: so any time an entity says 5 card hand the rule i wrote elsewhere on this should apply, it has to be an
+  (was:  )
+
+[five_fodder] description
+  owner: Discarding a valid 5-card hand grants +5 credits
+  (was:  Discarding a 5-card hand grants +5 credits)
+
+[five_fodder] notes
+  owner: this requires the hand to be an actual 5 card hand, not a 4 card hand with a tag along, so the hand recognitioin needs to see a flush, full house, straight, etc.
+  (was:  )
+
+[five_second] rarity
+  owner: rare
+  (was:  epic)
+
+[five_second] description
+  owner: 5-card hands pause the clock +5s
+  (was:  Playing a 5-card hand pauses the clock 5 seconds)
+
+[life_lessons] description
+  owner: Each round you complete increases your Focus limit by 1
+  (was:  Each round you complete permanently raises your maximum Focus by 1)
+
+[third_charm] rarity
+  owner: rare
+  (was:  epic)
+
+[third_charm] description
+  owner: The 3rd card of a hand replays 2x
+  (was:  The 3rd card of a hand gets +2 replays)
+
+[threes_crowd] description
+  owner: Pairs qualify as 3-card hands
+  (was:  Pairs count as 3-card hands)
+
+[threes_crowd] notes
+  owner: this should insinuate that playing a pair with a tag along wouldn't count as a 3 card hand, so if that's not true it should be made true. also, this should be a knack, an epic or rare one, and it should say hands count as being 1 card higher than they are. so a pair is a three card hand, 2 pairs is a 5 card hand. this doesn't affect the natural scaling they get, it does change what tricks and entitities they can trigger.
+  (was:  structural — no tunable value)
+
+[four_by_four] notes
+  owner: this should count as a row/column effect and get a distinct line behind the fourth colun if it isn't already
+  (was:  )
+
+[wait_four_it] description
+  owner: 4-card hands permanently buff their 4th card with +2s pause (time buffs do not stack)
+  (was:  4-card hands permanently buff their 4th card to pause the clock 1 second when scored)
+
+[undue_influence] description
+  owner: A Set containing a face card grants credits equal to the number of Set hands you have played this round
+  (was:  A Set containing a face card grants credits equal to the number of Sets you have played this round)
+
+[undue_influence] notes
+  owner: small wording change so that playing a two pair only counts as one set hand insted of two sets.
+  (was:  structural — no tunable value)
+
+[encore] description
+  owner: Set-type hands made of only odd-ranked cards replay each card
+  (was:  Sets made of only odd-ranked cards score a second time)
+
+[dam_holding] description
+  owner: Runs pause the clock +3s
+  (was:  Runs pause the clock 3 seconds)
+
+[the_queen] rarity
+  owner: epic
+  (was:  legendary)
+
+[the_queen] description
+  owner: The rank of this sleight is Queen, it scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.
+  (was:  Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD))
+
+[the_queen] notes
+  owner: Royal Reach: a card with royal reach can be selected with any hand containing a card any distance above, below, beside or diagonal from it. it can also be swapped with any card above, below, beside or diagonal from it
+  (was:  structural — no tunable value; needsResolve / TBD)
+
+[warehouse] rarity
+  owner: Common
+  (was:  rare)
+
+[warehouse] description
+  owner: Counts as 2 cards of any suit for the purpose of completing a flush. Has no rank.
+  (was:  Wild suit - becomes any suit to complete a flush. Has no rank.)
+
+[fight_power] description
+  owner: While on the grid, all boss effects are ignored (3 Minutes of use, each 20 seconds count as 1 charge). Remaining Time: 60s (n charges)
+  (was:  While on the grid, all boss effects are ignored.)
+
+[fight_power] notes
+  owner: structural — no tunable value; does this actually work? if so, how? like if this falls onto the grid during a boss round, we're able to remove and stone or other curses and pause other boss effects like giving back discard or swaps, prevent the score fomr incremeenting due to a boss effect, etc?
+  (was:  structural — no tunable value)
+
+[dazed] name
+  owner: Fresh Start
+  (was:  Dazed & Confused)
+
+[dazed] description
+  owner: When discarded, shuffles all cards back into the deck and redeals. Costs -3 credits and -10s
+  (was:  When swapped, reshuffles every card on the grid.)
+
+[echo_play] description
+  owner: Play this in any hand: each card replays 2x. n/3 charges
+  (was:  Play this in any hand: each card replays twice. (3 charges))
+
+[bellhop] description
+  owner: Play this: gain +2 swaps and +1 discard. n/5 charges
+  (was:  Play this: gain +2 swaps and +1 discard. (5 charges))
+
+[cash_out] rarity
+  owner: rare
+  (was:  common)
+
+[cash_out] description
+  owner: Discard this: gain 10 credits n/3 charges
+  (was:  Discard this: gain 10 credits. (4 charges))
+
+[last_call] rarity
+  owner: rare
+  (was:  epic)
+
+[last_call] description
+  owner: Discard this: rewind the clock 15 seconds. n/3 charges
+  (was:  Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges))
+
+[sandbag] description
+  owner: Discard this: with a pair to rewind the clock by that pair’s rank in seconds. +50% more time for every additional member of the set. n/3 charges
+  (was:  Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges))
+
+[the_wanderer] rarity
+  owner: rare
+  (was:  common)
+
+[the_wanderer] description
+  owner: While on grid: allows any two cards to be swapped regardles of position. Still uses your swap stock. n/5 charges
+  (was:  Swap it with ANY card on the grid, next to it or not, and the swap is free (+1 swap back).)
+
+[stopwatch] description
+  owner: Double-tap: freeze the clock until your next played hand (60s of use, each 6 seconds count as 1 charge) Remaining Time: 60s n/12 charges
+  (was:  Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.)
+
+[stopwatch] notes
+  owner: for remaining time, update that value live. Also, count each 6 seconds as a charge for the purposes of entities that scale based on that or restore charges to sleights.
+  (was:  structural — no tunable value)
+
+[piggy_bank] description
+  owner: Double-tap: gain 5 credits. Becomes inert on use. n/5 charges
+  (was:  Double-tap: gain 5 credits. (5 charges))
+
+[piggy_bank] notes
+  owner: inert meaning it can't be swapped or discarded after use, do we use another word for that? So for all sleights with charges, instead of just having its max charges in the description, have it say n/max charges. so however many charges are left over the max.
+  (was:  )
+
+[magnet] description
+  owner: Double-tap: then tap any card: pull every card of the selected rank to replace itself and adjacent cards (via discard) N/3 charges
+  (was:  Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges))
+
+[magnet] notes
+  owner: redo the animation for this so that you can visibly see the other ranks flying into the new location. also, show the cards next to magnet, along with magnet, being discarded. this does not count toward the time or stock cost of discards, but for cards that scale with discards, these discards do count. so if it replaces the magnet and 4 cards, that would count as 4 seperate discards for other scaling entitites.
+  (was:  structural — no tunable value)
+
+[reflect] description
+  owner: Tap to rotate its aim. The rank it faces replays 2× when scored. Cannot be swapped discarded or played.  Discards itself after 60s.
+  (was:  Tap to rotate its aim. The rank it faces replays 2× when a hand scores. Works once per round. Cannot be swapped or discarded.)
+
+[soul_mirror] description
+  owner: Tap to rotate its aim. When the rank it faces is scored, it replays once for each count of that rank in the deck. Cannot be swapped, discarded, or played.
+  (was:  Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.)
+
+[capacitor] description
+  owner: Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use.  n/2 charges
+  (was:  Double-tap to spend 10 Focus and 10 seconds for 10 credits. Consumed on use.)
+
+[siphon] description
+  owner: Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Discards on use.
+  (was:  Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use.)
+
+[power_cell] description
+  owner: When it enters the grid: +10 Focus. While it remains on the grid: +10 to Focus limit.
+  (was:  When it enters the grid: +10 Focus. While it remains on the grid: +10 maximum Focus.)
+
+[slow_burn] description
+  owner: +1 to Focus limit for every 45 seconds this sleight spends on the grid. current: n | max: 15
+  (was:  +1 maximum Focus for every minute this sleight spends on the grid.)
+
+[flywheel] description
+  owner: While on the grid, the Focus speed bonus is multiplied by 2.
+  (was:  While on the grid, the Focus speed bonus is multiplied by 1.5.)
+
+[flywheel] notes
+  owner: remove
+  (was:  )
+
+[governor] description
+  owner: While on the grid, you have 50% longer to earn the Focus speed bonus.
+  (was:  While on the grid, you have 1.5× as long to earn the same Focus speed bonus.)
+
+[shift_swap] description
+  owner: Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.
+  (was:  Score two hands beside this card for +2 swaps, then it goes back into the deck.)
+
+[recycler] description
+  owner: Score two cards adjacent to this sleight to get +2 discards. Discards itself after giving bonus.
+  (was:  Score two hands beside this card for +2 discards, then it goes back into the deck.)
+
+[petty_cash] description
+  owner: Score two hands beside this card to get +5 credits, Discards itself after giving bonus.
+  (was:  Score two hands beside this card for +5 credits, then it goes back into the deck.)
+
+[_exalt] params_json
+  owner: {"club_pips":10,"diamond_coins":3,"heart_mult":4,"spade_time":4}
+  (was:  {"club_pips":10,"diamond_coins":3,"heart_mult":2,"spade_time":4})
+
+[_corrupt] params_json
+  owner: {"club_pips":25,"club_mult":-3,"diamond_coins":5,"diamond_pips":-20,"heart_mult":5,"heart_time":-5,"spade_time":7,"spade_coins":-5}
+  (was:  {"club_pips":25,"club_mult":-3,"diamond_coins":5,"diamond_pips":-20,"heart_mult":5,"heart_time":-5,"spade_time":7,"spade_coins":-8})
+
+[richter] description
+  owner: Four of a Kind score ×3 mult and +10 focus
+  code:  Four of a Kind scores ×3 mult and advances Focus to the next threshold
