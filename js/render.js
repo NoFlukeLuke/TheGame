@@ -274,7 +274,7 @@ function render() {
     // Suits neutral by default - preview only shows active Trick effects
     const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
     const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
-    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${5*(Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
+    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
 
     breakdownEl.innerHTML = `
       <div class="sb-row"><span class="sb-label">Base pips (lv${level})</span><span class="sb-value">${scaledBasePips}</span></div>

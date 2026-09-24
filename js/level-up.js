@@ -200,6 +200,7 @@ function triggerLevelUp() {
   focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
+  clubsScoredRound = 0;
   setsPlayedRound  = 0;
   runStreak        = 0;
   handTypesRound   = new Set();
@@ -256,7 +257,6 @@ function triggerLevelUp() {
   retriggersThisRound = 0;
   replaysThisRound = 0;
   timeManipRound = 0;
-  cuckooNextMinute = BAL.cuckoo.interval_seconds;
   understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
   // The card-state fuses refresh every level (owner's spec), so a charged card

@@ -284,11 +284,12 @@ function onFocusMaxed() {
     showMessage(`🏦 Dividend - +${BAL.dividend.credits} credits`, 'var(--gold)');
     keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
   }
+  let dropFlat = 0;    // flat Focus losses (Release Valve's 16); combined with keepFrac by taking the LOWER target
   if (hasTrick('release_valve')) {
     swaps++; discards++;
-    showMessage('🎚️ Release Valve - +1 swap, +1 discard', 'var(--gold)');
+    showMessage(`🎚️ Release Valve - +1 swap, +1 discard, -${BAL.release_valve.focus_drop} Focus`, 'var(--gold)');
     if (!animating && !falling) render();
-    keepFrac = Math.min(keepFrac ?? 1, BAL.release_valve.keep_fraction); // lose 50% Focus
+    dropFlat = Math.max(dropFlat, BAL.release_valve.focus_drop); // lose 16 Focus (r346, was half)
   }
   const _gs = hasKnack('growth_spurt');
   if (_gs) {
@@ -297,11 +298,12 @@ function onFocusMaxed() {
     growthSpurtMaxedThisRound = true;
     showMessage(`🌱 Growth Spurt - max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
   }
-  if (keepFrac !== null || _gs) setTimeout(() => {
+  if (keepFrac !== null || dropFlat > 0 || _gs) setTimeout(() => {
     if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;
     const cap = focusCapNodes();
     let target = focusNodes;
     if (keepFrac !== null) target = Math.min(target, Math.floor(cap * keepFrac));
+    if (dropFlat > 0) target = Math.min(target, Math.max(0, focusNodes - dropFlat));
     target = Math.min(target, cap);                  // Growth Spurt may have lowered the ceiling
     const amt = Math.max(0, focusNodes - target);
     if (amt > 0) removeFocus(amt);

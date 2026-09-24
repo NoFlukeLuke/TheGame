@@ -61,7 +61,10 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // multiplies the payout rather than advancing the count faster.
     if (hasTrick('study_hall')) {
       const _prev = studyHallCards;
-      studyHallCards += handCells.length;
+      // Replays count as additional cards scored (r346, owner's note): a 3-card hand
+      // where each card replays twice counts 6. _lastHandRetrigs is this hand's -
+      // calcScore ran before generateHandFocus.
+      studyHallCards += handCells.length + Math.max(0, _lastHandRetrigs || 0);
       const _fires = Math.floor(studyHallCards / BAL.study_hall.every) - Math.floor(_prev / BAL.study_hall.every);
       if (_fires > 0) totalFocus += _fires * BAL.study_hall.focus * trickFires('study_hall');
     }
@@ -139,8 +142,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // (Ripple's 30s cooldown is gone, r344: each adjacent-rank card rolls its own
     // deterministic 50% inside calcScore - nothing to consume here.)
-    // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
-    if (_isRunHand && runsPlayedRound >= 3) pauseRound(handCells.length * trickFires('high_water'));
+    // High Water (r346): every Run pauses the clock 1s per Run played this round,
+    // THIS one included - runsPlayedRound is bumped later in playHand, so +1 here.
+    if (_isRunHand) pauseRound(BAL.high_water.pause_per_run * (runsPlayedRound + 1) * trickFires('high_water'), 'high_water', 'trick');
     // Dam Holding…: every Run pauses the clock a flat few seconds
     if (_isRunHand) pauseRound(BAL.dam_holding.pause * trickFires('dam_holding'));
     // Sundial knack: a hand where every card shares a column pauses the clock
@@ -159,7 +163,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
 
-  // Clean Sweep: if this hand + the previous cover a full row or column, advance Focus a threshold
+  // Clean Sweep: if this hand + the previous cover a full row or column, +5 Focus and +5 credits
   if (hasTrick('clean_sweep')) {
     const _csCur = handCells.map(([r,c]) => r + '-' + c);
     const _csWin = new Set([..._csCur, ..._cleanSweepPrev]);
@@ -167,9 +171,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
     for (let r = 0; r < gridRows && !_csSwept; r++) { let _full = true; for (let c = 0; c < gridCols; c++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
     for (let c = 0; c < gridCols && !_csSwept; c++) { let _full = true; for (let r = 0; r < gridRows; r++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
     if (_csSwept) {
-      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
-      addFocus(_nt - focusNodes);
-      showMessage('Clean Sweep! Focus advanced', '#5aa9e6');
+      // r346: flat +5 Focus and +5 credits (was a Focus threshold advance)
+      const _csf = trickFires('clean_sweep');
+      if (_csf > 0) {
+        addFocus(BAL.clean_sweep.focus * _csf, 'clean_sweep');
+        grantEntityCoins(BAL.clean_sweep.credits * _csf, 'trick', 'clean_sweep');
+        showMessage(`Clean Sweep! +${BAL.clean_sweep.focus * _csf} Focus, +${BAL.clean_sweep.credits * _csf} credits`, '#5aa9e6');
+      }
       _cleanSweepPrev = [];
     } else {
       _cleanSweepPrev = _csCur;
@@ -255,7 +263,18 @@ function playHand() {
   // Folded into the round tally at the commit points below (goal / normal).
   const _contribSnapshot = captureRoundContrib(result);
   // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
-  if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
+  // Hard Labour's round ladder advances by this hand's club scores (incl. replays).
+  if (hasTrick('club_double')) clubsScoredRound += Math.max(0, _lastHandClubHits || 0);
+  // The Cuckoo (r346): every OTHER hand pauses the clock 1s per 5 replays this round.
+  // handsPlayedRound reads k-1 during hand k, so this fires on hands 2, 4, 6...
+  // The amount check runs before trickFires (r296).
+  if (hasTrick('cuckoo')) {
+    retriggersThisRound += _lastHandRetrigs;
+    if ((handsPlayedRound + 1) % BAL.cuckoo.hands_between === 0) {
+      const _cukBase = Math.floor(retriggersThisRound / BAL.cuckoo.per_replays);
+      if (_cukBase > 0) pauseRound(_cukBase * trickFires('cuckoo'), 'cuckoo', 'trick');
+    }
+  }
   // General replay tally for the Contributions view (all hands, not just Cuckoo).
   if (_lastHandRetrigs > 0) replaysThisRound += _lastHandRetrigs;
   // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
@@ -527,16 +546,22 @@ function playHand() {
       if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
     }
   }
-  // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
+  // Blood Diamonds (r346): a hand of EXCLUSIVELY hearts and diamonds - every card one
+  // of the two, at least one of each - grants +5 credits but COSTS 10 seconds. Wilds
+  // have no suit, so a wild in the hand breaks "exclusively", which reads right.
   if (hasTrick('monochrome')) {
     const _bdc = handCells.map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
-    const _hasHeart = _bdc.some(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
-    const _hasDia   = _bdc.some(c => c.suit === '♦' || (c.combined && c.suit2 === '♦'));
-    if (_hasHeart && _hasDia) {
+    const _bdOk = _bdc.length > 0 && _bdc.every(c => c.suit === '♥' || c.suit === '♦')
+      && _bdc.some(c => c.suit === '♥') && _bdc.some(c => c.suit === '♦');
+    if (_bdOk) {
       const _bdf = trickFires('monochrome');
-      const _bdCoins = BAL.monochrome.coins * _bdf, _bdSecs = BAL.monochrome.seconds * _bdf;
-      grantEntityCoins(_bdCoins, 'trick', 'monochrome');
-      rewindTime(_bdSecs, `💎 Blood Diamonds - +${_bdCoins} credit, rewound ${_bdSecs}s`);
+      if (_bdf > 0) {
+        const _bdCoins = BAL.monochrome.coins * _bdf, _bdSecs = BAL.monochrome.seconds * _bdf;
+        grantEntityCoins(_bdCoins, 'trick', 'monochrome');
+        roundSeconds = Math.max(1, roundSeconds - _bdSecs); updateClockUI();
+        showMessage(`💎 Blood Diamonds - +${_bdCoins} credits, -${_bdSecs}s`, 'var(--gold)');
+        if (typeof showTimeCost === 'function') showTimeCost(`-${_bdSecs}s`);
+      }
     }
   }
 

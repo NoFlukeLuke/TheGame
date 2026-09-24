@@ -134,11 +134,8 @@ function startRoundTimer() {
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.
     if (typeof cardStatesTick === 'function') cardStatesTick();
-    // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
-    if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
-      cuckooNextMinute += BAL.cuckoo.interval_seconds;
-      if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
-    }
+    // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
+    // now, in playHand, at 1s per 5 replays this round.)
     // The Woodpecker: marking runs in alternating 30s blocks - active 0–30s, off 30–60s, active 60–90s, …
     // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
     if (hasTrick('woodpecker')) {

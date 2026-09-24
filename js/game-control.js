@@ -540,6 +540,7 @@ function startGame() {
   handsPlayedRound   = 0;
   studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
+  clubsScoredRound   = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
   handTypesRound     = new Set();

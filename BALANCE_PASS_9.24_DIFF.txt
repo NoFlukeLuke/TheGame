@@ -35,30 +35,6 @@ ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
 Treat richter exactly like full_house_streak below.
 
-[high_water] description
-  owner: Runs pause the clock for 1 second for each run played this round.
-  (was:  After 3 Runs each round, every Run pauses the clock for its card count in seconds)
-
-[rerun] description
-  owner: x1.2 pips each time a card is replayed
-  (was:  Each replay in a hand multiplies its pips ×0.25 more)
-
-[chorus] description
-  owner: x1.75 mult each time a card is replayed
-  (was:  Each replay in a hand multiplies its mult ×0.2 more)
-
-[overclock] notes
-  owner: make speed bonus a keyword and the tooltip should be something like focus is generated both by how complex the hand is, and by how quickly it was played after the preceeding hand. make that an entry in the handbook if not already
-  (was:  )
-
-[release_valve] description
-  owner: Each time you hit your focus limit, add +1 swap and +1 discard and lose 16 Focus.
-  (was:  Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.)
-
-[cuckoo] description
-  owner: Every other hand pauses the clock for 1 second for every 5 replays triggered this round
-  (was:  Every 60 seconds of round time, pause the clock by 1 second for each replay that has happened this round)
-
 [double_jeopardy] description
   owner: 2 Cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15 seconds each.
   (was:  Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds)
@@ -70,26 +46,6 @@ Treat richter exactly like full_house_streak below.
 [echo_hand] description
   owner: Marks a random cards once every 30 seconds, when scored, the marked card replays 2x
   (was:  Playing the same hand type as the previous hand replays each card)
-
-[club_double] description
-  owner: Each club scored this round adds more and more pips: doubles each time, starts at 1.
-  (was:  Each club scored adds escalating pips - +5, doubling per club; replays count)
-
-[monochrome] description
-  owner: Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds
-  (was:  Hands with at least one heart and one diamond grant +1 credit and rewind the clock 15 seconds)
-
-[study_hall] notes
-  owner: this should count replays as additional cards scored. so a hand of 3 cards where each replays twice would count as 6 cards
-  (was:  )
-
-[clean_sweep] description
-  owner: Use every cell of any row or column within two hands to add +5 focus and +5 credits
-  (was:  Cover a full row or column within two hands to advance Focus to the next threshold.)
-
-[acorns] description
-  owner: Each card scored scales this trick +0.1 Focus, starts at +0.
-  (was:  Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand)
 
 [twos_retrigger] description
   owner: Each 2 scored force triggers your right most trick
@@ -106,10 +62,6 @@ Treat richter exactly like full_house_streak below.
 [aces_absorb] description
   owner: When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand).
   (was:  When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand))
-
-[sands_of_time] notes
-  owner: for modes with rounds longer than 3 minutes, make the /2 /4
-  (was:  )
 
 [move_as_one] description
   owner: If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time

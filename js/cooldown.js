@@ -61,8 +61,8 @@ const TRICK_TIMERS = {
     }
     return { mode: 'cooldown', left: cdUntilNextMark(BAL.minute_hand.interval_seconds), total: BAL.minute_hand.interval_seconds };
   },
-  // The Cuckoo pauses the clock once a minute of round time.
-  cuckoo() { return { mode: 'cooldown', left: cdUntilNextMark(BAL.cuckoo.interval_seconds), total: BAL.cuckoo.interval_seconds }; },
+  // (The Cuckoo left this table in r346: it fires per HAND now, not on a clock,
+  // so there is no honest countdown to draw.)
   // The Woodpecker marks a card in alternating 30s blocks - it is genuinely off
   // for half of every minute, which nothing said out loud before.
   woodpecker() {

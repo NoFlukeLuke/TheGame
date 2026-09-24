@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r345 · speed bonus is a keyword with a definition card and a handbook topic";
+const BUILD = "2026-09-24 · r346 · Tier-5 numbers: Rerun and Chorus compound, Cuckoo fires per hand, Hard Labour is a round ladder, High Water, Clean Sweep, Blood Diamonds";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -183,11 +183,11 @@ let pausesThisRound = 0;      // PER ROUND: how many times the clock has been pa
 let rewindsThisRound = 0;     // PER ROUND: how many times the clock has been rewound (time popup)
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
+let _lastHandClubHits = 0;    // club scores (incl. replays) in the most recent calcScore (Hard Labour, r346)
 let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (read by the Rider penalty)
 // Contribution-tally summaries (shown in the Contributions view when non-zero).
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
-let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
 let doubleJeopardyPos = null; // { r, c } - marked tile (Double Jeopardy); fires once per round
 let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
 let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)

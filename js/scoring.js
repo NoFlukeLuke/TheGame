@@ -660,6 +660,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
+  _lastHandClubHits = _clubHits;   // snapshot for Hard Labour's round ladder (advanced in playHand, r346)
   _lastHandVultureSeconds = _vultureFires; // snapshot for Vulture (retrigger-aware pause seconds)
   _lastRetrigByCell = retrigByKey; // snapshot for playHand's exalt/corrupt coin/time (replay-aware)
   // reps aligned to `cards`/`_scoreCells`. The replay-weighted per-card sweeps that
@@ -690,14 +691,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Clubs: neutral by default; +10 pips each with Hard Labour Trick
   const clubCount = _natCards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
-  if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
+  // Hard Labour (r346): the doubling ladder runs across the ROUND, starting at 1 -
+  // this hand's clubs continue the sequence from clubsScoredRound (READ-only here;
+  // playHand advances it off _lastHandClubHits, the siphon rule - calcScore runs
+  // speculatively). Sum of base·2^(n), n = clubsScoredRound .. +_clubHits-1.
+  if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
   const allSpadesCalc = _natCards.length > 0 && _natCards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
   if (hasTrick('spade_flood') && allSpadesCalc) { const _a = Math.floor(roundSeconds / BAL.spade_flood.time_div); totalPips += _a; bPip('spade_flood', _a); }
 
   // Sands of Time: remaining round seconds / 2 as trick pips
-  if (hasTrick('sands_of_time')) { const _a = Math.floor(roundSeconds / BAL.sands_of_time.divisor); totalPips += _a; bPip('sands_of_time', _a); }
+  if (hasTrick('sands_of_time')) { const _a = Math.floor(roundSeconds / sandsDivisor()); totalPips += _a; bPip('sands_of_time', _a); }
 
 
   // Penny Saved: accumulated trick pips from discarded 5s
@@ -994,12 +999,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Replays: _reps[i] is this card's total scoring iterations, so the extras are
   // sum(_reps) - cards.length. Rerun takes them as pips, Chorus as mult.
   const _replayExtras = Math.max(0, _reps.reduce((a, b) => a + b, 0) - cards.length);
+  // Rerun / Chorus (r346): a FACTOR per replay, compounding - x1.2 pips / x1.75 mult
+  // each time a card is replayed - rather than the old additive step.
   if (_replayExtras > 0 && hasTrick('rerun')) {
-    const _m = 1 + BAL.rerun.pip_mult_per_replay * _replayExtras;
+    const _m = Math.pow(BAL.rerun.pip_mult, _replayExtras);
     const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('rerun', _m, totalPips - _pre);
   }
   if (_replayExtras > 0 && hasTrick('chorus')) {
-    const _m = 1 + BAL.chorus.mult_mult_per_replay * _replayExtras;
+    const _m = Math.pow(BAL.chorus.mult_mult, _replayExtras);
     const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('chorus', _m, mult - _pre);
   }
   // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
@@ -1556,6 +1563,14 @@ function cellHasRowColBonus(r, c, id) {
 function isEffectIntersection(r, c) {
   return rowColBonuses.some(b => b.axis === 'row' && b.index === r) &&
          rowColBonuses.some(b => b.axis === 'col' && b.index === c);
+}
+
+// Sands of Time reads the clock, and a mode whose rounds run past 3 minutes has
+// far more clock to read - so the divisor doubles there (owner's note, r346).
+// One function, read by calcScore AND the live desc in tricks-ui.
+function sandsDivisor() {
+  const d = BAL.sands_of_time.divisor;
+  return (typeof currentRoundDuration === 'function' && currentRoundDuration() > 180) ? d * 2 : d;
 }
 
 // ── The Focus multiplier can apply MORE THAN ONCE (r343) ──
