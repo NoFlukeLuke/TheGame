@@ -143,9 +143,10 @@ Two global vocabulary moves ride along:
   Temporal Rift is +3s REWIND via permTime (minute gate dropped - the no-stack
   rule is the limiter; out of CD_PER_MINUTE_TRICKS), Wait Four It +2s pause,
   The Vulture +3s pause and its buff fires once per SCORE, not per replay.
-- **4g. "Speed bonus" keyword + handbook entry** (Overclock note): Focus
-  comes from hand complexity AND how quickly the hand followed the previous
-  one. `js/keywords.js` + handbook topic.
+- **4g. DONE (r345): "speed bonus" keyword** (js/keywords.js, kw-focus family,
+  with a definition card) **+ handbook topic** `speed_bonus` under Scoring.
+  Overclock / Long Fuse / Governor descs already said the phrase, so they all
+  highlight with no data edits.
 - **4h. Move as One keyword system** — random matching Trick (not
   lowest-rarity), a visible readout of WHICH keyword matched, and a CURATED
   list (generic words excluded). **Proposed list for owner review:** marked

@@ -184,6 +184,13 @@ const INFO_TOPICS = [
       'The meter has a ceiling you can raise. Some things trade the ceiling for something else, and a few pay out every time you reach the top.',
     ] },
 
+  { id: 'speed_bonus', group: 'scoring', title: 'The speed bonus',
+    body: [
+      'A hand\'s {FOCUS} comes from two things: what the hand IS, and how fast you played it after the previous one.',
+      'The speed part is largest the instant a hand lands and fades over the next few seconds. Playing slowly earns only the hand\'s own {FOCUS}.',
+      'Pair, Flush of 3 and Flush of 4 earn half the speed bonus. Some things scale it: Overclock multiplies it, and Long Fuse and Governor give you longer to earn the same amount.',
+    ] },
+
   { id: 'natural_scaling', group: 'scoring', title: 'Hands get better as you play them',
     body: [
       'Every hand TYPE has its own permanent bonus that grows each time you play it. Play Runs of 3 all run and Runs of 3 get worth more; it does nothing for your Four of a Kind.',

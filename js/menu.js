@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r344 · Ripple is a deterministic 50% per adjacent-rank card; the 30s cooldown is gone";
+const BUILD = "2026-09-24 · r345 · speed bonus is a keyword with a definition card and a handbook topic";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
