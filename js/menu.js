@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r351 · Cull pays on swaps too, per 2 left; Wait For It, Undue Influence, Encore wording";
+const BUILD = "2026-09-24 · r352 · 4x4 draws its column line; a sold line Trick takes its line with it";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

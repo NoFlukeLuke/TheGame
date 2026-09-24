@@ -32,6 +32,7 @@ const LINE_FX_META = {
   groove:             { color: '#c86bd8', glyph: '♪', name: 'Groove' },
   assembly_line:      { color: '#3aa76d', glyph: '▲', name: 'Assembly Line' },
   overtime:           { color: '#e07c3a', glyph: '⏮', name: 'Overtime' },
+  four_by_four:       { color: '#7fd6c2', glyph: '4', name: '4x4' },
 };
 function lineFXMeta(id) { return LINE_FX_META[id] || { color: '#c9a84c', glyph: '●', name: id }; }
 

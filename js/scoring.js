@@ -448,7 +448,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
     if (_fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
     // 4x4: cards scored in the 4th column (index 3) score +pips
-    if (hasTrick('four_by_four') && c === 3) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
+    if (hasTrick('four_by_four') && c === fourByFourCol()) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
     // Cornered: a corner card's own pips x the whole minutes left on the clock
     if (_crMins >= 1 && _crSet.has(r + '-' + c)) { const _b = cp; cp *= _crMins; bPipX('corner_retrigger', _crMins, cp - _b); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
@@ -1559,6 +1559,26 @@ function cellHasRowColBonus(r, c, id) {
 }
 
 // A cell sits at the intersection of two grid effects if some trick marks its row AND some trick marks its column.
+// A marked line belongs to a Trick you HOLD (r352). Selling, trading or losing
+// the Trick used to leave its line on the board and in the registry, still
+// feeding Ley Line, Temporal Rift and Feng Shui. Pruned from renderTrickTray -
+// the one call every tray change ends in - and the Trick's flag is cleared so
+// taking it again marks a fresh line.
+function pruneRowColBonuses() {
+  if (typeof rowColBonuses === 'undefined' || !rowColBonuses.length || typeof hasTrick !== 'function') return;
+  const gone = rowColBonuses.filter(b => !hasTrick(b.id));
+  if (!gone.length) return;
+  gone.forEach(b => { if (b._trickRef) { delete b._trickRef._posAssigned; } });
+  rowColBonuses = rowColBonuses.filter(b => hasTrick(b.id));
+  if (typeof renderLineMarkers === 'function') renderLineMarkers();
+}
+
+// 4x4's column: its registry line, which clampRowColBonuses keeps on the board.
+function fourByFourCol() {
+  const b = rowColBonuses.find(x => x.id === 'four_by_four');
+  return b ? b.index : 3;
+}
+
 function isEffectIntersection(r, c) {
   return rowColBonuses.some(b => b.axis === 'row' && b.index === r) &&
          rowColBonuses.some(b => b.axis === 'col' && b.index === c);
@@ -1791,6 +1811,16 @@ function finalizePositionMark(trick, axis, index) {
 }
 // Decide (and, for manual choosers, prompt for) a position Trick's line at pick time.
 function assignPositionMark(trick) {
+  // 4x4 (r352) is a column effect with a FIXED line: the 4th column, or the
+  // last one a smaller board has. It joins the registry so it draws its line
+  // and counts for Ley Line / Temporal Rift, but never touches the axis cursor.
+  if (trick.id === 'four_by_four') {
+    if (trick._posAssigned) return;
+    trick._posAssigned = true;
+    const _cols = (typeof limits !== 'undefined' && limits.grid_cols) ? limits.grid_cols.current : gridCols;
+    finalizePositionMark(trick, 'col', Math.min(3, _cols - 1));
+    return;
+  }
   if (!POSITION_ASSIGN_IDS.includes(trick.id)) return;
   if (trick._posAssigned) return;                 // idempotent (upgrade calls selectTrick twice)
   trick._posAssigned = true;

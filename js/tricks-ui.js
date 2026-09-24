@@ -341,6 +341,7 @@ function refuseTrickCapacity() {
 }
 
 function renderTrickTray() {
+  pruneRowColBonuses();
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
   // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the

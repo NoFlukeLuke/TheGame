@@ -65,10 +65,6 @@ Treat richter exactly like full_house_streak below.
   owner: this should insinuate that playing a pair with a tag along wouldn't count as a 3 card hand, so if that's not true it should be made true. also, this should be a knack, an epic or rare one, and it should say hands count as being 1 card higher than they are. so a pair is a three card hand, 2 pairs is a 5 card hand. this doesn't affect the natural scaling they get, it does change what tricks and entitities they can trigger.
   (was:  structural — no tunable value)
 
-[four_by_four] notes
-  owner: this should count as a row/column effect and get a distinct line behind the fourth colun if it isn't already
-  (was:  )
-
 [the_queen] description
   owner: The rank of this sleight is Queen, it scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.
   (was:  Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD))
