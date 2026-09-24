@@ -402,7 +402,7 @@ function pauseRound(seconds, srcId, srcSource) {
 // ── Stopwatch sleight ─────────────────────────────────────────────────────────
 // Freezes the clock (a NORMAL pause, so Phoenix/Falcon etc. still apply) until the
 // next played hand's scoring animation settles. Swaps/discards/selection keep it
-// frozen. Drains its 60-second budget (_usesLeft) 1 per frozen second; destroyed at 0.
+// frozen. 60s of use as 10 charges of 6s each (timed charges, r356); spent at 0.
 function startStopwatch(card, r, c) {
   if (stopwatchActive || !card) return;
   if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) return;
@@ -418,15 +418,10 @@ function startStopwatch(card, r, c) {
     if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
     if (gameTimerPaused) return; // don't drain while a menu/shop/event has the game suspended
     if (card._usesLeft === 'infinite') return;
-    card._usesLeft--;
     pausedSecondsRound++; // Albatross counts frozen seconds
-    if (card._usesLeft <= 0) {
-      // budget spent → destroy the sleight (find it by reference; a discard-fall may have moved it) and release
-      for (let rr = 0; rr < gridRows; rr++) for (let cc = 0; cc < gridCols; cc++) if (gridData[rr]?.[cc] === card) gridData[rr][cc] = null;
-      endStopwatch();
-      showMessage('Stopwatch consumed', 'var(--cream-dim)');
-      render();
-    }
+    // Timed charges (r356): every 6 frozen seconds spend one charge; the helper
+    // takes a spent Stopwatch off the board wherever a fall has moved it.
+    if (!sleightTimedDrain(card)) endStopwatch();
   }, 1000);
 }
 function endStopwatch() {

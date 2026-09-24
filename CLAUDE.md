@@ -179,7 +179,7 @@ The old table had four inversions, all fixed:
 - **THERE IS NO xSCORE STEP ANY MORE (r236).** This line used to list Echo, Legacy, Low and Behold, the boss Redaction and the dev grid Trick card as deliberate survivors. It had drifted even before r236: **Echo** is a per-card retrigger in the card loop, and **Legacy** became a xMULT in r193. r194 took Spot Check, and r236 took the last four - The Redaction, The Grind, Low and Behold and the dev grid Trick card. See "The last four xSCORE effects" below. **Do not add one**: anything that would go there is a xPIPS or a xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (top tier) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. (This line used to say its payout lands at SCORE level; it is `mult += bonusMult_compound`, an ordinary additive mult, and has been for some time.)
+- **Compound** was removed in r336 (the 9.24 balance pass).
 
 ### The scoring TIMELINE (r220) - every Trick pays out at its own moment
 
@@ -1831,7 +1831,7 @@ ONE widget for everything temporarily unavailable or temporarily charged: a coun
 - **The grey-out is a WASH ELEMENT, not a `filter`.** A filter applies to the whole subtree and a child cannot undo it, so a filtered card would have dragged its own countdown badge down to 16% saturation - the one part of it that has to stay legible. `.cd-wash` is a sibling of the badge at a lower z-index. It is an appended element rather than an `::after` because `.card.rc-woodpecker` already owns that pseudo-element.
 - **A tray chip a boss switched off already drains itself and stamps OFF** (r188), so on that one host the widget contributes only the ring - washing it as well double-dims it. `cdPaint` checks for `.trick-off`.
 - **`renderCardAppearance` emits the badge too** (`cardCooldownParts`). `render()` rewrites a card's className and innerHTML wholesale, so a badge added only by the sweep would be wiped and re-added on every deal, swap and score - a visible flicker. `renderTrickTray` calls `cdPaint` for the same reason.
-- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), The Cuckoo, Compound, **The Woodpecker** (a new card marked every 30s since r348, card-keyed and spent when scored), Minute Hand, every boss suspension, and every boss card hold.
+- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), **The Woodpecker** (a new card marked every 30s since r348, card-keyed and spent when scored), Minute Hand, every boss suspension, and every boss card hold.
 - **A boss suspension with no clock prints no number.** `bossTrickOffSecondsLeft` returns null for the Voidwright's halves - they flip on a phase change, not a timer, so there is no honest number to show.
 
 ### Minute Hand: primed, not pending (r209)
@@ -4761,7 +4761,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 | what died during every boss | because |
 |---|---|
 | Tick-Tock · Second Hand · Quarter Chime · Minute Hand · Hourglass | `handleClockMarks` runs on the round tick |
-| Tempo's resource drip · the Cuckoo · Compound · the Woodpecker · Slow Burn accrual | same tick |
+| Tempo's resource drip · the Woodpecker · Slow Burn accrual | same tick |
 | Focus decay, the board heartbeat | started by `startRoundTimer` |
 | `pauseRound` / `rewindTime` | operate on the frozen `roundSeconds` |
 | **swap and discard time costs** | billed to the frozen clock, so **interacting was free during a boss** |
@@ -8456,3 +8456,53 @@ boundary, a `permPips` buff planted before the level-up still on that card after
 it, a grid-column upgrade giving **4x5 with 0 holes and 16 of 16 old cards kept**,
 a shrink returning its cards (deck total unchanged at 56/56 in every case), and
 **0 page errors**.
+
+## The 9.24 balance pass (r336-r363) - `BALANCE_PASS_9.24.md`
+
+The owner's Balance_-_9.23.26.xlsx, executed in tiers. **The plan file is the
+index** (tiers, decisions, the new-Tricks table); `BALANCE_PASS_9.24_DIFF.txt`
+held every outstanding row and is now empty. `balance_sheet.csv` still holds
+the owner's sheet verbatim - **regenerate it with `tools/gen_balance_sheet.js`
+only once the unnamed spade Trick is built**, or its row is lost. The systems
+this pass added, and their traps:
+
+- **Inert (r341).** Piggy Bank and Capacitor fire IN PLACE (`sleightUseInPlace`)
+  and sit `_inert`: `cardCan` allows only fall/render/select, so playing it in a
+  hand is its one way off the board, and `discardToPlayed` accepts it.
+- **Timed charges (r356).** A Sleight def with `secsPerCharge` spends charges as
+  time; `_usesLeft` stays the charge count so every charge reader works.
+  Stopwatch 10x6s, Fight the Power 9x20s (drains only while `bossFxLive()`).
+- **Focus applied twice (r343).** `focusExtraApplies(handName, cells)` counts the
+  extra applications (Phoenix, Kaleidoscope, Marathon); the dance plays a second
+  Focus beat per extra. `lastCalcFocus = fMult ^ (1 + n)`.
+- **Per-card x mult is a LIST (r359).** `_cardMultSeq` entries carry `xl`, the
+  card enhancement first and then each Trick factor (What are The Odds, Patient
+  Rulers, Obsessed, Feelin Lucky), each emitted as a card-scoped `mult*` and
+  billed to its own id. Add a per-card x mult Trick as one push there.
+- **Discard-activated Sleights cycle (r353).** `discardToDrawPile` deletes every
+  Sleight, so a player discard now routes an `on_discard` Sleight through
+  `discardToPlayed` with its charges. Before this, Cash Out's charges meant nothing.
+- **Deferred board work drains from `removeAndFall`'s tail**: the Spectrum
+  fixture exits and Fresh Start's redeal (`freshStartDrain`). Anything that must
+  rewrite the board after a discard or a hand goes there, never inline.
+- **Royal Reach (r358).** `reachNeighbors()` = `getNeighbors` plus the lines of
+  any royal card; `isConnected`, `getReachable` and `doSwap` use it. With no
+  royal card on the board it is exactly `getNeighbors`.
+- **Warehouse (r354)** joins detection as ITSELF, never a borrowed rank/suit
+  (`isWarehouseCard`): a temporary identity is restored before playHand and the
+  dance re-score, so they would see a different hand.
+- **A sold line Trick loses its line (r352).** `pruneRowColBonuses()` runs at the
+  top of `renderTrickTray`; before it, a sold Trick kept its line and kept
+  feeding Ley Line / Temporal Rift / Feng Shui. 4x4 is now a fixed column line.
+- **Grid picks can be skipped (r362):** `openGridPick({ onSkip })`; CONFIRM
+  with nothing selected arms it, a second press within 3s skips. Tapping the
+  picked option again unselects it.
+- **Magnet (r357)** pulls a rank into itself and its neighbours; the displaced
+  cards are discarded free but COUNT as discards (`magnetCountDiscards`).
+- **Feelin Lucky's sell intercept (r360)** sits in `sellTrick` and the shop's
+  `doShopSell` - both sell paths.
+- **Move as One (r363)** reads keywords off descriptions through a curated set
+  (`MOVE_AS_ONE_KEYS`, `_MAO_EXTRA`); the owner may trim it.
+- **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
+  hand, preview and dance all see the old rank.
+

@@ -228,6 +228,9 @@ Per-row spec in the DIFF file. Grouped:
 
 ## Tier 7 — New content (one to two sessions)
 
+DONE r359: Obsessed, Buried Treasure, Patient Rulers, Even Better, What are The
+Odds, Critical, Twinners, Marathon; r360 Feelin Lucky. r361 Three's a Crowd as a Knack. Left: the unnamed spade Trick.
+
 Ten new Tricks (mint ids; TERMINOLOGY.md; BAL + DESC_TEMPLATES; pool, tags,
 improve/force vocabulary; several are per-card ×mult — the r233 machinery):
 

@@ -50,6 +50,7 @@ const KNACK_POOL = [
   // ── Passenger knack (r201) ──
   // A hand normally has to use every card you select; a spare makes it not a hand,
   // and the spare is billed as a penalty card. This lifts that.
+  { id:'threes_crowd_k', emoji:'👥',  name:"Three's a Crowd", rarity:'rare',   desc:'Hands count as 1 card bigger than they are for your entities: a Pair is a 3-card hand, Two Pair a 5-card hand. Cards carried along do not count. Natural Scaling is unaffected.' },
   { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties.' },
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you take raises your Focus limit by 1.' },

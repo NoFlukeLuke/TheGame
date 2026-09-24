@@ -132,6 +132,8 @@ function trickLiveDesc(trick) {
     const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
     const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
     switch (trick.id) {
+      case 'move_as_one': { const q = moveAsOneQualifying(); return `${base} (${q.keys.length ? 'keyword: ' + q.keys.join(', ') : 'no keyword shared by 3 yet'})`; }
+      case 'feelin_lucky': return `${base} (ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${feelinLuckyRerollsLeft(trick)} rerolls left)`;
       // ── permanent accumulators / level / owned-based (always a number) ──
       case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);
       case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);
@@ -472,8 +474,10 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   const _reopen = () => showTrickTrayTooltip(trick, anchorEl, { actions });
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
+    const _fl = feelinLuckyRerollsLeft(trick);
     tipConfirmAction(_row(), {
-      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      question: _fl ? `Reroll its ranks for 💰${feelinLuckyRerollCost()} (30% of your credits)? ${_fl} left, then it sells.` : `Sell for 💰${_sv}?`,
+      confirmLabel: _fl ? 'Reroll' : 'Sell',
       onYes: () => sellTrick(trick), onCancel: _reopen,
     });
   });
@@ -670,6 +674,31 @@ async function confirmTrickSelection(trick) {
 }
 
 
+// ── Feelin Lucky (r360) ──────────────────────────────────────────────────────
+// Its five ranks are rolled when it is taken and live on the Trick itself (so
+// they save with the tray). A sell attempt with rerolls left costs 30% of your
+// credits and rerolls the ranks instead; the fourth attempt really sells.
+function feelinLuckyRoll(t) {
+  const pool = ACTIVE_RANKS.filter(r => !(typeof isWildRank === 'function' && isWildRank(r)));
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  t._luckyRanks = pool.slice(0, BAL.feelin_lucky.ranks);
+}
+function feelinLuckyRerollsLeft(t) {
+  return (t && t.id === 'feelin_lucky') ? Math.max(0, BAL.feelin_lucky.rerolls - (t._luckySells || 0)) : 0;
+}
+function feelinLuckyRerollCost() { return Math.floor(coins * BAL.feelin_lucky.sell_cost_share); }
+// Returns true when the sell was turned into a reroll (the Trick stays).
+function feelinLuckyIntercept(t) {
+  if (!feelinLuckyRerollsLeft(t)) return false;
+  const cost = feelinLuckyRerollCost();
+  coins = Math.max(0, coins - cost); updateCoinsUI();
+  t._luckySells = (t._luckySells || 0) + 1;
+  feelinLuckyRoll(t);
+  showMessage(`🍀 Feelin Lucky rerolled: ${t._luckyRanks.join(' ')} (-💰${cost})`, 'var(--gold)');
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  return true;
+}
+
 function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
@@ -677,6 +706,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   // Positional bonuses get an axis+index at pick time - steered by the position knacks
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
   assignPositionMark(trick);
+  if (trick.id === 'feelin_lucky' && !trick._luckyRanks) feelinLuckyRoll(trick);
 
   updateTrickList();
   const lvlOverlay = document.getElementById('levelup-overlay');

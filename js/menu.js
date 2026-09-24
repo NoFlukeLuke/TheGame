@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r356 · The Pick stops emptying the board, and its taps reach it";
+const BUILD = "2026-09-24 · r364 · The Pick stops emptying the board, and its taps reach it; EVENTS.md";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

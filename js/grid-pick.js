@@ -258,11 +258,15 @@ function gridPickSelect(i) {
   if (!p) return;
   const gridEl = document.getElementById('grid');
   const opt = gridEl && gridEl.querySelector(`.gp-opt[data-gp="${i}"]`);
+  // Tapping the picked option again UNSELECTS it (owner's ask, r362) and closes
+  // its read, so a pick can be taken back without choosing something else.
   if (gridPickState.selected === i) {
-    if (typeof entityTooltipOpen === 'function' && entityTooltipOpen()) { hideEntityTooltip(true); return; }
-    if (opt) gpShowRead(opt, p);
+    gridPickState.selected = -1;
+    if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true);
+    gridPickPaintSelection();
     return;
   }
+  gridPickState.skipArmedAt = 0;
   gridPickState.selected = i;
   gridPickPaintSelection();
   if (opt) gpShowRead(opt, p);
@@ -270,11 +274,20 @@ function gridPickSelect(i) {
 }
 
 // CONFIRM. The only path that commits.
+const GP_SKIP_WINDOW = 3000;
 function gridPickConfirm() {
   if (!gridPickState) return;
   const i = gridPickState.selected;
   const p = (gridPickState.offers || [])[i];
-  if (!p) return;
+  if (!p) {
+    if (!gridPickState.onSkip) return;
+    if (Date.now() - gridPickState.skipArmedAt < GP_SKIP_WINDOW) { gridPickState.onSkip(); return; }
+    gridPickState.skipArmedAt = Date.now();
+    const btn = document.querySelector('#grid .gp-confirm');
+    if (btn) { btn.classList.remove('gp-act-off'); const sub = btn.querySelector('.gp-act-sub'); if (sub) sub.textContent = 'PRESS AGAIN TO SKIP'; }
+    setTimeout(() => { if (gridPickState && gridPickState.selected < 0) gridPickPaintSelection(); }, GP_SKIP_WINDOW);
+    return;
+  }
   gridPickState.onChoose(i, p);
 }
 
@@ -444,6 +457,10 @@ function openGridPick(opts) {
   gridPickState = {
     offers, actions: opts.actions || [], selected: -1,
     onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
+    // r362: a screen that may be SKIPPED passes onSkip. CONFIRM with nothing
+    // selected arms it ('PRESS AGAIN TO SKIP'); a second press inside
+    // GP_SKIP_WINDOW takes nothing.
+    onSkip: opts.onSkip ? () => { closeGridPick(); opts.onSkip(); } : null, skipArmedAt: 0,
   };
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');

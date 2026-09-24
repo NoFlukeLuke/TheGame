@@ -315,6 +315,7 @@ function flowrShowEntityStep(kind) {
         label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag })), null); }
     })],
     onChoose: (i) => { flowrGrantOffer(_flowrStepOffers[i]); _flowrStepOffers = null; flowrAfterStep(); },
+    onSkip: () => { _flowrStepOffers = null; rainCheckPay(); flowrAfterStep(); },
   });
   try { sfxShopOpen?.(); } catch (e) {}
 }
@@ -385,6 +386,7 @@ function flowrShowDeckPick() {
                              label: op.name, desc: op.desc, rarity: 'rare', tag: 'DECK' })),
     actions: [],
     onChoose: (i) => flowrDeckBegin(ops[i]),
+    onSkip: () => { rainCheckPay(); flowrAfterStep(); },
   });
 }
 

@@ -143,10 +143,10 @@ const TRICK_POOL = [
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['utility'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+4 mult for every distinct hand type played this round' },
-  { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time' },
+  { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time' },
   // ── Reward-grid meta (r128) ──
   { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +5 mult to this trick' },
-  { id:'rain_check',     name:'Rain Check',          tier:'epic',      tags:['time'],           desc:'Skipping a reward grid adds +30 seconds to your next round' },
+  { id:'rain_check',     name:'Rain Check',          tier:'epic',      tags:['time'],           desc:'Skipping a reward adds +30 seconds to your next round (in Flow, to the timer)' },
   // ── Time / position (r128) ──
   { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['time','position','scaling'], desc:'A card scored where a row and column effect intersect gains +3s rewind when scored (time buffs do not stack)' },
   // ── Risk / negative-tile scaling (r129) ──
@@ -181,7 +181,6 @@ const TRICK_POOL = [
   { id:'third_down',     name:'3rd Down',            tier:'rare',      tags:['focus'],           desc:'3-card hands add +3 Focus' },
   { id:'ready_set_go',   name:'Ready, Set, Go',      tier:'common',    tags:['mult'],            desc:'A 3-card hand containing a 3, 6 or 9 scores +9 mult' },
   { id:'third_charm',    name:"3rd Time's a Charm",  tier:'rare',      tags:['replay'],          desc:'The 3rd card of a hand replays 2x' },
-  { id:'threes_crowd',   name:"Three's a Crowd",     tier:'rare',      tags:['rule'],            desc:'Pairs count as 3-card hands' },
   // ── 4-card-hand family (r123) ──
   { id:'four_eyes',      name:'Four Eyes',           tier:'common',    tags:['mult'],            desc:'4-card hands score +12 mult' },
   { id:'four_by_four',   name:'4x4',                 tier:'common',    tags:['pips','position'], desc:'Cards scored in the 4th column score +16 pips' },
@@ -191,6 +190,16 @@ const TRICK_POOL = [
   { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Set hands you have played this round' },
   { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Set-type hands made of only odd-ranked cards replay each card' },
   { id:'shaky_foundation',name:'Shaky Foundation',   tier:'common',    tags:['mult','set'],      desc:'Every other Set scores +15 mult' },
+  // ── r359: the 9.23 sheet's new Tricks ──
+  { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['mult','suit','credits'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
+  { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','suit','luck'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits' },
+  { id:'patient_rulers',  name:'Patient Rulers',     tier:'epic',      tags:['mult','face','pause'],   desc:'If you have paused or rewound the clock this round, face cards score x1.5 mult' },
+  { id:'even_better',     name:'Even Better',        tier:'epic',      tags:['pips','value','luck'],   desc:'Even-ranked cards have a 66% chance to score x2.2 pips' },
+  { id:'what_odds',       name:'What are The Odds',  tier:'epic',      tags:['mult','value'],          desc:'Odd-ranked cards score x1.7 mult' },
+  { id:'critical',        name:'Critical',           tier:'epic',      tags:['mult','flush'],          desc:'Flush type hands score x3 mult' },
+  { id:'twinners',        name:'Twinners',           tier:'epic',      tags:['pips','set'],            desc:'Set type hands score x3 pips' },
+  { id:'feelin_lucky',    name:'Feelin Lucky',       tier:'epic',      tags:['mult','value','luck'],   desc:'Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells' },
+  { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','run'],           desc:'Run type hands apply the Focus multiplier twice' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time'],            desc:'Runs pause the clock +3s' },
   { id:'wave_amp',       name:'Wave Amplification',  tier:'common',    tags:['pips','streak'],   desc:'Consecutively played Runs score +10 pips × the streak count' },
@@ -218,6 +227,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','overclock'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
+  { emoji:'💎', ids:['obsessed','buried_treasure','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
 ];
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
@@ -240,7 +250,7 @@ const NUMERIC_BANNED_TRICKS = new Set([
   'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
   'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
   // Named-suit dependent - Spectrum has colours, not ♠♥♦♣
-  'club_double', 'monochrome', 'spade_flood',
+  'club_double', 'monochrome', 'spade_flood', 'obsessed', 'buried_treasure', 'patient_rulers',
 ]);
 // Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
 // 4+) still work as written, so they stay in.

@@ -7,8 +7,35 @@ function getNeighbors(r, c) {
   return n;
 }
 
+// ── Royal Reach (r358, The Queen) ──
+// A card with royal reach is linked to every cell on its row, its column and its
+// two diagonals, at any distance - a chess queen's lines. It can join a hand
+// with any card on those lines and swap with any of them. The link is mutual:
+// the other card reaches the Queen as much as the Queen reaches it.
+function hasRoyalReach(card) { return !!card && card._isSleight && !!sleightDef(card)?.royalReach; }
+function onQueenLine(r1, c1, r2, c2) { return r1 === r2 || c1 === c2 || Math.abs(r1 - r2) === Math.abs(c1 - c2); }
+function royalReachCells() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (hasRoyalReach(gridData[r]?.[c])) out.push([r, c]);
+  return out;
+}
+// getNeighbors plus the royal-reach links. With no royal card on the board this
+// is exactly getNeighbors.
+function reachNeighbors(r, c, royals) {
+  const out = getNeighbors(r, c);
+  royals = royals || royalReachCells();
+  if (!royals.length) return out;
+  const has = (a, b) => out.some(([x, y]) => x === a && y === b);
+  if (royals.some(([a, b]) => a === r && b === c)) {
+    for (let a = 0; a < gridRows; a++) for (let b = 0; b < gridCols; b++)
+      if ((a !== r || b !== c) && onQueenLine(r, c, a, b) && !has(a, b)) out.push([a, b]);
+  } else royals.forEach(([a, b]) => { if (onQueenLine(r, c, a, b) && !has(a, b)) out.push([a, b]); });
+  return out;
+}
+
 function isConnected(cells) {
   if (cells.length <= 1) return true;
+  const _royals = royalReachCells();
   const set = new Set(cells.map(([r,c])=>`${r}-${c}`));
   const visited = new Set();
   const stack = [cells[0]];
@@ -17,7 +44,7 @@ function isConnected(cells) {
     const k = `${r}-${c}`;
     if (visited.has(k)) continue;
     visited.add(k);
-    getNeighbors(r,c).forEach(([nr,nc]) => {
+    reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
       if (set.has(`${nr}-${nc}`) && !visited.has(`${nr}-${nc}`)) stack.push([nr,nc]);
     });
   }
@@ -27,7 +54,8 @@ function isConnected(cells) {
 function getReachable() {
   if (selected.length === 0) return null; // all reachable
   const reachable = new Set(selected.map(([r,c])=>`${r}-${c}`));
-  selected.forEach(([r,c]) => getNeighbors(r,c).forEach(([nr,nc]) => {
+  const _royals = royalReachCells();
+  selected.forEach(([r,c]) => reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
     const card = gridData[nr][nc];
     if (card === null) return;            // empty cells unreachable
     if (isCellBlocked(nr, nc)) return;    // voids unreachable
@@ -622,6 +650,17 @@ function _compKey(cells) {
 // fire - never as a broken hand.
 function realHandOfSize(cells, n) {
   try {
+    // Three's a Crowd (knack, r361): a hand counts as one card bigger, but only
+    // when every card in it is part of the hand - a passenger carried by
+    // Tagalong never makes a Pair into a 3-card hand.
+    if (cells && typeof hasKnack === 'function' && hasKnack('threes_crowd_k') && cells.length + 1 === n) {
+      const comps = handComponentsFor(cells);
+      if (!comps || !comps.components) return false;
+      const real = comps.components.filter(c => c.name !== 'High Card');
+      if (!real.length) return false;
+      const claimed = new Set(); real.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+      return cells.every(([r, cc]) => claimed.has(r + '-' + cc));
+    }
     if (!cells || cells.length !== n) return false;
     const comps = handComponentsFor(cells);
     if (!comps || !comps.components) return false;

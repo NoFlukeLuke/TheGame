@@ -109,6 +109,17 @@ All three kinds of unusable funnel through **`isCellBlocked`**, which is what le
 every existing select, tap, swipe and reachability guard cover them with no
 changes.
 
+**ONE CARD, ONE TIME BUFF (r342).** A card may carry at most one time buff, in
+either currency - The Vulture's and Wait Four It's pause (`_vulturePause`) or
+Temporal Rift's rewind (`permTime`). Every grant site asks `cardTimeBuffed(card)`
+(js/deck-grid.js) first and skips a card that already has one.
+
+**Marks from the 9.24 pass (r348, r350):** Double Jeopardy marks two CELLS
+secretly (`doubleJeopardyCells` - cell-keyed on purpose, nothing is drawn); The
+Woodpecker marks a CARD every 30s (`woodpeckerCardId`, spent when scored);
+Royal Favour stamps a +1 rank on a card that scored beside a Queen as it goes
+into the pile (`queenUpgradePending`, applied in `recycleCard`).
+
 ### The marks a card can wear
 
 `CARD_MARK_META` (js/entity-fx.js) is the table, keyed by a `covers(r,c)`
