@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r335 · r334 pick/label pass merged onto the 9.24 balance re-diff";
+const BUILD = "2026-09-24 · r336 · TWO/PAIR, not TWO/PAIRS";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

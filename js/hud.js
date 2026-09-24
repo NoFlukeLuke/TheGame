@@ -393,7 +393,7 @@ function handLabelHTML(runs) {
     const l = HAND_LABEL[n];
     const x = k > 1 ? `<u>x${k}</u>` : '';
     // A numeric size reads "OF N" (owner spec, r333): SET / OF 3, RUN / OF 4.
-    // Word sizes (TWO / PAIRS, FULL / HOUSE, HIGH / CARD) print as they are -
+    // Word sizes (TWO / PAIR, FULL / HOUSE, HIGH / CARD) print as they are -
     // the break is always between whole words, never inside one.
     const sz = l && /^\d/.test(l.size) ? 'OF ' + l.size : (l && l.size);
     return l ? `<span class="hn-l"><b>${l.fam}</b><i>${sz}${x}</i></span>`

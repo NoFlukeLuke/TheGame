@@ -200,7 +200,7 @@ const HAND_BASE = {
 // ── The short label the HUD prints beside the hand preview (r198) ──
 // Two lines, family over size, because the desktop panel gives it a 6%-wide
 // column. A numeric size is printed as "OF N" by handLabelHTML (owner spec,
-// r333: "SET / OF 3", "RUN / OF 4", "TWO / PAIRS" - words never broken). A
+// r333: "SET / OF 3", "RUN / OF 4", "TWO / PAIR" - words never broken). A
 // layered hand prints one of these per layer, stacked. Straight Flush is both
 // families at once, so it says so rather than picking one.
 const HAND_LABEL = {
@@ -211,7 +211,7 @@ const HAND_LABEL = {
   'Flush of 4':      { fam:'FLUSH', size:'4' },
   'Flush':           { fam:'FLUSH', size:'5' },
   'Pair':            { fam:'SET',   size:'2' },
-  'Two Pair':        { fam:'TWO',   size:'PAIRS' },
+  'Two Pair':        { fam:'TWO',   size:'PAIR' },
   'Three of a Kind': { fam:'SET',   size:'3' },
   'Full House':      { fam:'FULL',  size:'HOUSE' },
   'Four of a Kind':  { fam:'SET',   size:'4' },

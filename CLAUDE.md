@@ -8089,9 +8089,9 @@ Owner follow-ups on r326; the two superseded r326 bullets are marked below.
   KNACKS / TRICKS watermarks stay - nothing else names those panels.
 - **The label breaks between WORDS, never inside one**: `handLabelHTML` prints
   a numeric size as `OF N` ("SET / OF 3", "RUN / OF 4") and `HAND_LABEL` gained
-  word rows - Two Pair is **TWO / PAIRS**, Full House **FULL / HOUSE** (display
+  word rows - Two Pair is **TWO / PAIR**, Full House **FULL / HOUSE** (display
   strings only; ids frozen, TERMINOLOGY's rule). Measured in the landscape
-  column: TWO PAIRS at 0 overflow on both axes.
+  column: TWO PAIR at 0 overflow on both axes.
 - **The portrait chip is VERTICALLY CENTRED at the preview's left edge**,
   stacked like landscape, on a translucent plate (supersedes r326's top-left
   pill). When a full hand reaches that far left the chip overlays the card and
