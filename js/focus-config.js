@@ -56,6 +56,7 @@ const FOCUS_FX = {
 };
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
 let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) - POST-hand value
+let lastCalcFocusExtra = 0; // how many EXTRA times fMult applied (Phoenix / Kaleidoscope, r343) - drives the doubled focus beat
 let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring - the FOCUS box's dance-start value
 let lastPreFocusMult = 0; // mult before focus multiplier applied - used by score dance
 let focusNodeEls    = [];  // bottom=index 0, top=index 9 (10 per active segment)

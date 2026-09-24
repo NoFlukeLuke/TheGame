@@ -78,7 +78,7 @@ const TRICK_POOL = [
   { id:'magpie',         name:'Hoarder House',       tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1 second for every 2 swaps + discards you hold' },
   { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['resource','streak'],desc:'Every 4 hands you play without a same-type streak grants +1 swap' },
   { id:'starling',       name:'Type A',              tier:'rare',      tags:['resource','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
-  { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice' },
+  { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same-hand streaks score +4 mult × the streak count' },
   { id:'wildfire',       name:'Wildfire',            tier:'rare',      desc:'Reaching a same-hand streak of 3 adds +5 Focus' },
@@ -159,7 +159,7 @@ const TRICK_POOL = [
   { id:'rhythm',         name:'Rhythm',              tier:'common',    tags:['focus'], desc:'Each hand played adds 1 additional focus' },
   { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Discarding adds 1 Focus per swap and discard you have left' },
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus' },
-  { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing one or more of each suit in a hand adds +4 Focus' },
+  { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing four or more suits in a hand applies the Focus multiplier a second time' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, score +10 pips per card' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'When scored, the center-most card gains +5 pips & +2 mult' },

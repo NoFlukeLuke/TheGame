@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r342 · one card, one time buff: Vulture 3s / Wait Four It 2s / Temporal Rift is a 3s rewind";
+const BUILD = "2026-09-24 · r343 · the Focus multiplier can apply twice: Phoenix (pauses, incl. hands that cause one) + Kaleidoscope (4+ suits)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

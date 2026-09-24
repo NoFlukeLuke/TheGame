@@ -19,16 +19,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     let totalFocus = handFocus + speedBonus;
     // Rhythm: +1 focus per hand
     totalFocus += 1 * trickFires('rhythm');
-    // Kaleidoscope: +4 focus if all 4 suits present in the scoring hand
-    if (hasTrick('kaleidoscope')) {
-      const handCards = handCells.map(([r,c]) => gridData[r][c]).filter(Boolean);
-      const suitsInHand = new Set();
-      handCards.forEach(c => {
-        if (c.suit) suitsInHand.add(cardColorSuit(c));   // white counts as white
-        if (c.combined && c.suit2) suitsInHand.add(c.suit2);
-      });
-      if (suitsInHand.size >= 4) totalFocus += 4 * trickFires('kaleidoscope');
-    }
+    // Kaleidoscope no longer pays flat Focus here (r343): four or more suits in a
+    // hand now applies the Focus multiplier a second time - see focusExtraApplies
+    // in js/scoring.js, where both fMult sites read it.
     // Run focus tricks: Torrent (+1/card), Rogue Wave (+4/card if played in sequence)
     const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     if (_isRunHand) totalFocus += handCells.length * BAL.river_run.focus_per_card * trickFires('river_run');

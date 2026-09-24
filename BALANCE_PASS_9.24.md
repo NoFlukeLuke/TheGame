@@ -115,12 +115,21 @@ Two global vocabulary moves ride along:
   sleight or the fall would delete it from the run; the cycled copy comes back
   movable with its remaining charges). `INERT_ON_USE_SLEIGHTS` +
   `sleightUseInPlace` in js/sleights-runtime.js; `.sleight-inert` wash.
-- **4d. "Focus multiplier applies twice"** — shared mechanism for The Phoenix
-  (existing, plus its new "hands that trigger a pause trigger this" clause),
-  Kaleidoscope (changed) and Marathon (new). Owner's animation spec (Marathon
-  note): the FOCUS chip gets a staggered copy behind itself, a chip flight
-  when the second application lands, and a doubled focus-family sound (like
-  Flow's extra-reward stingers).
+- **4d. DONE (r343) except Marathon (rides Tier 7).**
+  `focusExtraApplies(handName, cells)` in js/scoring.js is the one count of
+  extra fMult applications, read by BOTH sites (the FOCUS chip and step 5), so
+  shown and paid agree - the chip now prints the real fMult^(1+extra) (old
+  Phoenix showed fMult*2 against a paid fMult^2). `handTriggersPause` is the
+  Phoenix's new clause: every per-hand pause source enumerated, all
+  deterministic (vulture-buffed cards, Five Second Rule, Four Horse-man's
+  roll, Dam Holding/High Water runs, Sundial column, Metronome target, Double
+  Jeopardy mark) - ADD A PREDICATE THERE when adding a per-hand pause.
+  Kaleidoscope: 4+ suits = second application (its +4 flat Focus is gone).
+  The dance plays a second, quicker focus thump per extra application with the
+  focus sound doubled (`targetFocusExtra`, captured at dance start - the
+  global is overwritten by speculative calcScores). Marathon = one line in
+  focusExtraApplies + its pool row. The fuller staggered-chip-copy/flight
+  animation from the owner's note can still be layered on later.
 - **4e. Deterministic chance rolls** (main's earlier pass already did correct_run's one-of-three and second_hand's either/or; left: Threepeat's one-of-three, Even Better, the Legendary luck roll) for scoring-time probabilities
   (`_detReplayRand` shape — `calcScore` runs speculatively): Ripple 50%,
   Hourglass 50% (round tick, may roll live), Even Better 66%, "Legendary"

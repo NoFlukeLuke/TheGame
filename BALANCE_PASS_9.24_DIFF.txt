@@ -71,10 +71,6 @@ Treat richter exactly like full_house_streak below.
   owner: Marks a random cards once every 30 seconds, scoring the marked card replays it 2x
   (was:  In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice)
 
-[phoenix] description
-  owner: While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause trigger this trick)
-  (was:  While the clock is paused, the Focus multiplier applies twice)
-
 [echo_hand] description
   owner: Marks a random cards once every 30 seconds, when scored, the marked card replays 2x
   (was:  Playing the same hand type as the previous hand replays each card)
@@ -146,10 +142,6 @@ Treat richter exactly like full_house_streak below.
 [cull] description
   owner: Discarding or Swapping adds +1 Focus per 2  remaining swaps and discards
   (was:  Discarding adds 1 Focus per swap and discard you have left)
-
-[kaleidoscope] description
-  owner: Playing four or more suits in a hand applies the focus multiplier a second time
-  (was:  Playing one or more of each suit in a hand adds +4 Focus)
 
 [threes_crowd] description
   owner: Pairs qualify as 3-card hands

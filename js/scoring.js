@@ -1222,8 +1222,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
   lastCalcPips = totalPips;
-  // focus multiplier for the FOCUS box - Phoenix (paused) applies it twice, so show the doubled value
-  lastCalcFocus = (hasTrick('phoenix') && pipeTimerPaused && fMult > 1) ? fMult * 2 : fMult;
+  // focus multiplier for the FOCUS box. When the multiplier applies more than once
+  // (Phoenix / Kaleidoscope, r343) the chip shows the REAL figure, fMult^(1+extra) -
+  // the old Phoenix display of fMult*2 only agreed with the paid fMult^2 at exactly x2.
+  const _fxN = focusExtraApplies(handName, cells);
+  lastCalcFocus = Math.pow(fMult, 1 + _fxN);
+  lastCalcFocusExtra = fMult > 1 ? _fxN : 0;
 
   if (totalPips < 0) totalPips = 0; // corrupt costs can't push a hand into score debt
 
@@ -1245,8 +1249,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // 5. Focus multiplier - separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;
-  // Phoenix: while the clock is paused, the Focus multiplier applies a second time
-  if (hasTrick('phoenix') && pipeTimerPaused && fMult > 1) s *= fMult;
+  // The Focus multiplier can apply again (Phoenix / Kaleidoscope, r343) - same
+  // count the FOCUS chip was shown with, so the two cannot disagree.
+  if (fMult > 1) for (let _fi = 0; _fi < _fxN; _fi++) s *= fMult;
 
   // Push accumulated contrib entries (pip then mult, skip zeros)
   if (contrib !== null) {
@@ -1548,6 +1553,56 @@ function cellHasRowColBonus(r, c, id) {
 function isEffectIntersection(r, c) {
   return rowColBonuses.some(b => b.axis === 'row' && b.index === r) &&
          rowColBonuses.some(b => b.axis === 'col' && b.index === c);
+}
+
+// ── The Focus multiplier can apply MORE THAN ONCE (r343) ──
+// One function decides how many EXTRA times fMult applies, read by BOTH sites in
+// calcScore that use it (the FOCUS chip's lastCalcFocus and the step-5 apply), so
+// the shown multiplier and the paid one cannot disagree. It must stay a PURE
+// function of (hand, cells, owned/round state): calcScore runs speculatively for
+// every preview and the dance replays its timeline - no rolls, no consumption.
+// A future "applies twice" Trick (Marathon) is one line here.
+function focusExtraApplies(handName, cells) {
+  let n = 0;
+  try {
+    if (hasTrick('phoenix') && (pipeTimerPaused || handTriggersPause(handName, cells))) n++;
+    if (hasTrick('kaleidoscope')) {
+      // Four or more suits in the hand. Same counting the old +4 Focus effect used:
+      // white counts as white, a combined card counts both suits, a wild counts none.
+      const su = new Set();
+      (cells || []).forEach(([r, c]) => {
+        const cd = gridData[r]?.[c];
+        if (!cd || !cd.rank || (typeof isWildCard === 'function' && isWildCard(cd))) return;
+        if (cd.suit) su.add(cardColorSuit(cd));
+        if (cd.combined && cd.suit2) su.add(cd.suit2);
+      });
+      if (su.size >= 4) n++;
+    }
+  } catch (e) {}
+  return n;
+}
+
+// Does scoring THIS hand trigger a pause? The Phoenix's second clause (owner:
+// "hands that trigger a pause trigger this trick") - the hand's own pauses land in
+// generateHandFocus, AFTER calcScore has already applied the multiplier, so the
+// paused state has to be PREDICTED here. Every per-hand pause source is enumerated
+// and every term is deterministic per (cells, state); when a new per-hand pause is
+// added in play-hand.js, add its predicate here too.
+function handTriggersPause(handName, cells) {
+  try {
+    const cds = (cells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
+    if (cds.some(c => c._vulturePause)) return true;                          // Vulture / Wait Four It card buffs
+    if (hasTrick('five_second') && realHandOfSize(cells, 5)) return true;     // Five Second Rule
+    if (cells.length === 4 && hasTrick('four_horseman') && fourHorsemanRoll(cells) === 3) return true;
+    const _run = ['Run of 3', 'Run of 4', 'Straight', 'Straight Flush'].includes(handName);
+    if (_run && hasTrick('dam_holding')) return true;
+    if (_run && hasTrick('high_water') && runsPlayedRound >= 3) return true;
+    if (hasKnack('sundial') && cells.length > 0 && cells.every(([, c]) => c === cells[0][1])) return true;
+    if (hasKnack('metronome') && handName === metronomeHandType) return true;
+    if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos
+        && cells.some(([r, c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) return true;
+  } catch (e) {}
+  return false;
 }
 
 // Once-per-minute gate (round-time minutes). Rewind (task #10) will re-arm these by re-crossing
