@@ -102,11 +102,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
           else if (_fhm === 3) pauseRound(BAL.four_horseman.pause * _fhf);
         }
       }
-      // Wait Four It: permanently buff the 4th card (scoring order) to pause the clock when scored
+      // Wait Four It: permanently buff the 4th card (scoring order) with +2s pause when
+      // scored. Time buffs do not stack (r342): an already-buffed card is skipped, and
+      // the skip runs BEFORE trickFires so a prime is never spent on a no-op.
       if (hasTrick('wait_four_it')) {
         const _p = scoringOrderCells(handCells)[3];
         const _cd = _p && gridData[_p[0]]?.[_p[1]];
-        if (_cd) _cd._vulturePause = (_cd._vulturePause || 0) + BAL.wait_four_it.pause * trickFires('wait_four_it');
+        if (_cd && !cardTimeBuffed(_cd)) _cd._vulturePause = BAL.wait_four_it.pause * trickFires('wait_four_it');
       }
     }
     // ── 5-card-hand family ── "a 5-card hand" is a real 5-card hand (r339)
@@ -671,14 +673,19 @@ function playHand() {
     });
     if (_ln) showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8');
   }
-  // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
-  // when scored" buff (reuses The Vulture's _vulturePause pipeline). Once per minute, and it skips
-  // any card that already carries a time buff - no stacking from this trick. Mirrors Ley Line.
+  // Temporal Rift (r342): a card scored at a row×column effect intersection gains +3s
+  // REWIND when scored (permTime - the r211 pipeline, paid through rewindTime). The
+  // once-per-minute gate is gone with the owner's new text; "time buffs do not stack"
+  // is now the limiter, so each intersection card can only ever take it once.
   if (hasTrick('temporal_rift')) {
-    const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && gridData[r][c].rank && !gridData[r][c]._vulturePause);
-    if (_tr && firesThisMinute('temporal_rift')) {
+    const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && !cardTimeBuffed(gridData[r][c]));
+    if (_tr) {
       const _trc = gridData[_tr[0]]?.[_tr[1]];
-      if (_trc) { _trc._vulturePause = (_trc._vulturePause || 0) + BAL.temporal_rift.pause; showMessage('Temporal Rift! +' + BAL.temporal_rift.pause + 's pause when scored', '#5aa9e6'); }
+      if (_trc) {
+        const _trk = cardId(_trc);
+        permTime[_trk] = (permTime[_trk] || 0) + BAL.temporal_rift.rewind;
+        showMessage('Temporal Rift! +' + BAL.temporal_rift.rewind + 's rewind when scored', '#5aa9e6');
+      }
     }
   }
   // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)

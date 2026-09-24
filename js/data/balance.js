@@ -50,7 +50,7 @@ const BAL = {
   woodpecker: { interval_seconds: 60, retrigger_count: 2 },
   hummingbird: { mult_per_pause: 2 },
   albatross: { pips_per_second: 5 },
-  vulture: { pause_seconds: 1 },
+  vulture: { pause_seconds: 3 },
   phoenix: {},
   metronome: { seconds: 5 },
   syncopation: { seconds: 12 },
@@ -97,7 +97,7 @@ const BAL = {
   four_eyes:     { mult: 12 },
   four_by_four:  { pips: 16 },
   four_horseman: { pips: 16, mult: 8, focus: 4, pause: 4 },
-  wait_four_it:  { pause: 1 },
+  wait_four_it:  { pause: 2 },
   shaky_foundation: { mult: 15 },
   wave_amp:      { pips_per_streak: 10 },
   dam_holding:   { pause: 3 },
@@ -105,7 +105,7 @@ const BAL = {
   plan_ahead:    { every: 3 },
   more_better:   { mult: 5, min_tiles: 3 },
   rain_check:    { seconds: 30 },
-  temporal_rift: { pause: 3 },
+  temporal_rift: { rewind: 3 },
 
   // Shop multi-buy discount (js/shop-grid-preview.js): % off per ADDITIONAL item
   // in the connected group. Bulk Buyer raises the rate to bulk_per_item. No cap of

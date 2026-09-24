@@ -66,7 +66,7 @@ const TRICK_POOL = [
   { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice' },
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+2 mult for every clock pause or rewind triggered this game' },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+5 pips for every second the clock has spent paused this round' },
-  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack)' },
+  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first pause permanently gain +3s pause when scored (time buffs do not stack)' },
   // ── Clock-mark Tricks (fire as the round clock passes static timestamps) ──
   { id:'ticktock',       name:'Tick-Tock',           tier:'common',    tags:['time','focus'],     desc:'Every time the clock ends in a 0, gain +2 Focus' },
   { id:'quarter_chime',  name:'Quarter Chime',       tier:'rare',      tags:['time','pips'],      desc:'Every time the clock passes a multiple of 15s, your next hand scores +45 pips' },
@@ -148,7 +148,7 @@ const TRICK_POOL = [
   { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +5 mult to this trick' },
   { id:'rain_check',     name:'Rain Check',          tier:'epic',      tags:['time'],           desc:'Skipping a reward grid adds +30 seconds to your next round' },
   // ── Time / position (r128) ──
-  { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['time','position','scaling'], desc:'A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped)' },
+  { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['time','position','scaling'], desc:'A card scored where a row and column effect intersect gains +3s rewind when scored (time buffs do not stack)' },
   // ── Risk / negative-tile scaling (r129) ──
   { id:'wild_side',      name:'Wild Side',           tier:'rare',      tags:['mult','scaling','risk'],    desc:'+6 mult, scaling, for every negative reward tile you take' },
   { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      tags:['replay','scaling','risk'],  desc:'Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive)' },
@@ -186,7 +186,7 @@ const TRICK_POOL = [
   { id:'four_eyes',      name:'Four Eyes',           tier:'common',    tags:['mult'],            desc:'4-card hands score +12 mult' },
   { id:'four_by_four',   name:'4x4',                 tier:'common',    tags:['pips','position'], desc:'Cards scored in the 4th column score +16 pips' },
   { id:'four_horseman',  name:'Four Horse-man',      tier:'epic',      tags:['pips','mult','focus','time'], desc:'4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause' },
-  { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['time'],            desc:'4-card hands permanently buff their 4th card to pause the clock 1 second when scored' },
+  { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['time'],            desc:'4-card hands permanently buff their 4th card with +2s pause when scored (time buffs do not stack)' },
   // ── Set add-ons (r124) ──
   { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Sets you have played this round' },
   { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Sets made of only odd-ranked cards score a second time' },

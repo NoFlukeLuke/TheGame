@@ -43,7 +43,8 @@ function doDiscard() {
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
-  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
+  // Time buffs do not stack (r342): a card already carrying one is skipped.
+  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !cardTimeBuffed(c)) c._vulturePause = BAL.vulture.pause_seconds; });
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
   // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
   if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──

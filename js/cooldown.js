@@ -27,7 +27,7 @@ const CD_COLORS = { off: '#d8474b', cooldown: '#e8a13a', primed: '#8a5cf0' };
 // ── How long is "one cycle" for the once-per-minute Tricks ──────────────────
 // firesThisMinute() (js/scoring.js) gates on whole round-minutes, so the wait is
 // always "until the clock crosses the next minute boundary".
-const CD_PER_MINUTE_TRICKS = ['study_hall', 'temporal_rift'];
+const CD_PER_MINUTE_TRICKS = ['study_hall'];
 
 function cdRoundElapsed() {
   if (typeof roundStartSeconds === 'undefined' || typeof roundSeconds === 'undefined') return 0;

@@ -26,6 +26,15 @@ let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pip
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
 let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
+// ONE CARD, ONE TIME BUFF (r342, owner's rule). Every site that grants a card a
+// time buff - the Vulture's pause, Wait Four It's pause, Temporal Rift's rewind -
+// asks this first and skips a card already carrying one, in either currency.
+function cardTimeBuffed(card) {
+  if (!card || !card.rank) return true;   // not an ordinary card - never buffable
+  if (card._vulturePause) return true;
+  const k = cardId(card);
+  return !!(k != null && permTime[k]);
+}
 // Credits this card pays when it scores (the Card Market's payday card, r278).
 // Replay-weighted: a card that scores three times pays three times.
 let permCoins  = {}; // { "<card id>": 2, ... } credits paid per score

@@ -71,10 +71,6 @@ Treat richter exactly like full_house_streak below.
   owner: Marks a random cards once every 30 seconds, scoring the marked card replays it 2x
   (was:  In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice)
 
-[vulture] description
-  owner: Cards discarded during the round’s first pause permanently gain +3s pause. Cannot stack this buff
-  (was:  Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack))
-
 [phoenix] description
   owner: While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause trigger this trick)
   (was:  While the clock is paused, the Focus multiplier applies twice)
@@ -143,10 +139,6 @@ Treat richter exactly like full_house_streak below.
   owner: For flow, this should instead say adds 30 seconds to the timer, and we also need to add an option to skip rewards in survival and flow. maybe just if you press the confirm button twice without having selected a reward. also, tapping a reward a second time should unselect it.
   (was:  )
 
-[temporal_rift] description
-  owner: A card scored where a row and column effect intersect gains +3s rewind (time buffs do not stack)
-  (was:  A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped))
-
 [wait_for_it] description
   owner: Each negative reward tile taken this run gives every scored card a +2% chance to replay (current chance: n)
   (was:  Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive))
@@ -170,10 +162,6 @@ Treat richter exactly like full_house_streak below.
 [four_by_four] notes
   owner: this should count as a row/column effect and get a distinct line behind the fourth colun if it isn't already
   (was:  )
-
-[wait_four_it] description
-  owner: 4-card hands permanently buff their 4th card with +2s pause (time buffs do not stack)
-  (was:  4-card hands permanently buff their 4th card to pause the clock 1 second when scored)
 
 [undue_influence] description
   owner: A Set containing a face card grants credits equal to the number of Set hands you have played this round

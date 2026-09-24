@@ -125,9 +125,12 @@ Two global vocabulary moves ride along:
   (`_detReplayRand` shape — `calcScore` runs speculatively): Ripple 50%,
   Hourglass 50% (round tick, may roll live), Even Better 66%, "Legendary"
   luck roll, rowcol_retrigger's 2-in-3 (already deterministic — verify).
-- **4f. Time buffs do not stack** (one card, one time buff): Temporal Rift
-  (+3s rewind now, was pause), Wait Four It (+2s pause), The Vulture (+3s
-  pause, no replay-stacking). One predicate over `permTime`/`_vulturePause`.
+- **4f. DONE (r342): time buffs do not stack.** `cardTimeBuffed(card)`
+  (js/deck-grid.js, beside permTime) is the one predicate over
+  permTime/_vulturePause; all three grant sites ask it before trickFires.
+  Temporal Rift is +3s REWIND via permTime (minute gate dropped - the no-stack
+  rule is the limiter; out of CD_PER_MINUTE_TRICKS), Wait Four It +2s pause,
+  The Vulture +3s pause and its buff fires once per SCORE, not per replay.
 - **4g. "Speed bonus" keyword + handbook entry** (Overclock note): Focus
   comes from hand complexity AND how quickly the hand followed the previous
   one. `js/keywords.js` + handbook topic.

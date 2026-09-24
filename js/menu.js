@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r341 · INERT: Piggy Bank / Capacitor stay on the grid after use; every charged Sleight reads n/max";
+const BUILD = "2026-09-24 · r342 · one card, one time buff: Vulture 3s / Wait Four It 2s / Temporal Rift is a 3s rewind";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
