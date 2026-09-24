@@ -101,7 +101,13 @@ function doSwap(r1, c1, r2, c2) {
   // once fired, while its downside DID: level-up.js takes a swap off the base
   // for owning it. The knack was strictly negative. Found in r307 while
   // mirroring this rule into the shop.
-  if (notAdjacent && !hasKnack('free_range_t')) {
+  //
+  // A Pivot touching BOTH ends also waives adjacency (owner call). The eight
+  // cells around a Pivot are mostly NOT orthogonally adjacent to each other, so
+  // without this "swap freely all around it" only ever fired on the few pairs
+  // that happened to be neighbours anyway - the free swap worked, the freedom
+  // did not. Both-ends is _pivotCell, resolved above before anything moved.
+  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
@@ -360,7 +366,12 @@ function onCardTap(r, c) {
         removeFocus(BAL.capacitor.focus_cost);
         roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
         grantEntityCoins(BAL.capacitor.credits, 'sleight', 'capacitor');
-        showMessage(`🔋 Capacitor - ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
+        // The payout is the particle, not a toast (r326): the credits plate flies
+        // from the card to the coin readout with the coin sound; the time cost
+        // already flashed off the clock above.
+        if (typeof entityEffectFX === 'function')
+          entityEffectFX('credits', BAL.capacitor.credits,
+            { srcEl: document.querySelector(`#grid [data-card-id="${jcard._id}"]`), id: 'capacitor', source: 'sleight' });
         selected = []; discardSleightAfterUse(jcard, r, c);
         return;
       }
@@ -461,7 +472,13 @@ gridEl2.addEventListener('pointerdown', e => {
   gridEl2.setPointerCapture(e.pointerId);
   isSwiping = false;
   swipeStopped = false;
-  gridEl2._pointerStart = { r: cell[0], c: cell[1], moved: false };
+  // RIGHT-DRAG DISCARDS (desktop). Button 2 runs the same swipe-select as a left
+  // drag, and the release spends a discard on whatever it gathered. Mouse only:
+  // there is no right button on a finger, and contextmenu is already suppressed
+  // on the grid. The Schedule's pen also right-drags, but the map has no cards
+  // in gridData so cardAt() bails above before this can ever collide with it.
+  gridEl2._pointerStart = { r: cell[0], c: cell[1], moved: false,
+                            rightBtn: e.pointerType === 'mouse' && e.button === 2 };
 });
 
 gridEl2.addEventListener('pointermove', e => {
@@ -527,6 +544,16 @@ gridEl2.addEventListener('pointermove', e => {
 
 gridEl2.addEventListener('pointerup', e => {
   const ps = gridEl2._pointerStart;
+  // Right-drag release = discard the selection the drag just built. A right
+  // CLICK with no movement deliberately does nothing - the gesture is select-
+  // then-release, and a stray right click discarding a standing selection would
+  // be a destructive misfire. doDiscard() owns every guard (stock, curses,
+  // boss refusals) and clears the selection itself.
+  if (ps && ps.rightBtn) {
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    if (ps.moved && selected.length > 0) { cancelAutoSubmit(); doDiscard(); }
+    return;
+  }
   if (ps && !ps.moved) {
     // If in Trick selection phase and tapped a non-Trick cell, dismiss tooltip
     if (trickSelectionPhase && !gridData[ps.r]?.[ps.c]?._isTrick) {
@@ -553,6 +580,27 @@ gridEl2.addEventListener('pointercancel', () => {
 });
 
 gridEl2.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── The swap stock indicator PERFORMS a swap when exactly two cards are
+// selected. It was a pure readout during play (the reward grid and Poker
+// Squares repurpose it via el.onclick, which is why this is addEventListener -
+// both bindings coexist and the guard below stands down whenever a takeover
+// screen owns the button). doSwap owns every rule: adjacency, Free Range,
+// Pivot, stock, boss refusals.
+document.getElementById('swap-indicator')?.addEventListener('click', () => {
+  const takeover = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+    || (typeof shopGridActive !== 'undefined' && shopGridActive)
+    || (typeof squaresActive === 'function' && squaresActive())
+    || (typeof mapActive === 'function' && mapActive());
+  if (takeover || animating || roundEnded || falling) return;
+  if (selected.length !== 2) {
+    if (selected.length > 0) showMessage('Select exactly 2 cards to swap them', 'var(--cream-dim)');
+    return;
+  }
+  const [[r1, c1], [r2, c2]] = selected;
+  cancelAutoSubmit();
+  doSwap(r1, c1, r2, c2);
+});
 
 // ══════════════════════════════════════════════
 // FOCUS GENERATION (r95)

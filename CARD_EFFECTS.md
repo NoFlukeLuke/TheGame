@@ -317,6 +317,21 @@ Fleeting*, *gives a neighbour Temp*, *makes a copy of a random neighbour*,
   once. No work started.
 - **Converting a temp card to a permanent one.** `makeCardPermanent` exists and is
   unused. The open question is what pays for it.
+- **FALL HEIGHT as a trigger (owner, r326).** The board already has gravity
+  (`removeAndFall` computes how far each card drops to refill a hole), and
+  nothing reads that distance. Raised and liked, not built:
+  - a Sleight that increments (banks pips/mult) every time it falls, so churning
+    the board around it feeds it - Whetstone's shape, keyed on its own movement;
+  - a Sleight buffed whenever a card lands ON it from a height of 2+ rows;
+  - a boss that locks cards, freed by dropping a card onto them twice - the
+    match-3 "play adjacent hands to thaw" idea, but worded as impact. The owner's
+    note: "height and falling" reads as more fun than "discard or score above
+    this", even though they are nearly the same trigger.
+  - a Sleight that removes a big chunk of the board at once (also the cheapest
+    way to MAKE things fall) - overlaps the removal ideas above.
+  Wiring: `removeAndFall`'s gravity pass is the one place drop distance is
+  known, so the hook is one callback there (`onCardFell(card, fromR, toR, c)`),
+  and everything above is a reader of it.
 
 ---
 

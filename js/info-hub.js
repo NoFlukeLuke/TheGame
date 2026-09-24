@@ -138,6 +138,15 @@ const INFO_TOPICS = [
        'WITHDRAWN - a whole rank is off the board for a while, also with a countdown.'],
     ] },
 
+  { id: 'wild_card', group: 'board', title: 'Wild cards',
+    body: [
+      'A wild takes any rank to complete a SET. Two 7s and a wild is a Three of a Kind; one 7 and two wilds is a Three of a Kind too.',
+      'It is only ever a set. A wild can never be part of a run and never part of a flush.',
+      'It scores no pips of its own and fires no {Tricks}. The set it completes pays its own base pips and mult as normal, and the real cards in it score as normal.',
+      'A set needs at least one real card to name its rank, so wilds on their own are not a hand.',
+      'Four are shuffled into the deck at the start of a run.',
+    ] },
+
   { id: 'curses', group: 'board', title: 'Cursed cards',
     body: [
       'A curse rides one specific card, not a rank or a suit, and lifts by itself after that card has scored a few times.',
@@ -306,9 +315,9 @@ const INFO_TOPICS = [
       'Leave a slot after taking only one obligation and you are paid credits. The amount goes up each time you do it.',
     ] },
 
-  { id: 'curve', group: 'schedule', title: 'Everything advances the quota',
+  { id: 'curve', group: 'schedule', title: 'Everything advances the goal',
     body: [
-      'Every obligation raises the difficulty, whether you PLAYED it or BOUGHT it. Visiting the store moves the quota exactly as finishing a round does.',
+      'Every obligation raises the difficulty, whether you PLAYED it or BOUGHT it. Visiting the store moves the {GOAL} exactly as finishing a round does.',
     ] },
 
   // ── Pressure ──────────────────────────────────────────────────────────────
@@ -321,15 +330,15 @@ const INFO_TOPICS = [
 
   { id: 'boss', group: 'pressure', title: 'Manager reviews',
     body: [
-      'A review is an ordinary round with one modifier on it and a much larger quota. The briefing says exactly what the modifier does before the clock starts, and PROCEED is what starts it.',
+      'A review is an ordinary round with one modifier on it and a much larger {GOAL}. The briefing says exactly what the modifier does before the clock starts, and PROCEED is what starts it.',
       'A review can make a style of play COST more or PAY less. It can never make one impossible, and there is always something still paying full.',
       'You can read the briefing again mid-round by tapping the {GOAL} chip or the progress block.',
     ] },
 
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
-      'A priority account is an ordinary round with a RAISED quota and one extra requirement, and it pays credits for both.',
-      'Missing the requirement is not failing the round. Clear the raised quota and the round passes as normal; meet the requirement too and you also take the bonus.',
+      'A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement, and it pays credits for both.',
+      'Missing the requirement is not failing the round. Clear the raised {GOAL} and the round passes as normal; meet the requirement too and you also take the bonus.',
     ] },
 
   { id: 'seed', group: 'pressure', title: 'Seeds',

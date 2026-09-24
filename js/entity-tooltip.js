@@ -110,7 +110,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   // card and rail take clicks and the backdrop catches everything else.
   wireKwMore(el, moreSlot, (open) => {
     if (open) ensureEntityBackdrop().classList.add('show');
-    placeEntityTooltip(anchorEl, el);
+    placeEntityTooltip(anchorEl, el, opts.prefer);
   });
 
   // actions row - present only in interactive mode
@@ -134,7 +134,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   else if (_etBackdrop) _etBackdrop.classList.remove('show');
 
   el.classList.add('show');
-  placeEntityTooltip(anchorEl, el);
+  placeEntityTooltip(anchorEl, el, opts.prefer);
 }
 
 // `now` skips the grace delay - used when a click outside dismisses the bubble,
@@ -159,7 +159,7 @@ function entityTooltipInteractive() { return !!(_etEl && _etEl.classList.contain
 // Open into whichever side has the most room. Horizontal first - the definition
 // rail makes the tooltip wide, so left/right is the decision that matters - then
 // clamp vertically, preferring to centre on the anchor.
-function placeEntityTooltip(anchorEl, el) {
+function placeEntityTooltip(anchorEl, el, prefer) {
   const GAP = 12, PAD = 8;
   const a = anchorEl.getBoundingClientRect();
   const vw = window.innerWidth, vh = window.innerHeight;
@@ -168,6 +168,20 @@ function placeEntityTooltip(anchorEl, el) {
   el.style.left = '0px'; el.style.top = '0px';
   el.classList.remove('flip');
   const w = el.offsetWidth, h = el.offsetHeight;
+
+  // prefer:'above' - the portrait pick screens (r326). The board there is
+  // narrow, so the side placement below always clamps the bubble ONTO the
+  // tiles being compared; the pick pushes its board to the foot of the slot
+  // exactly so this band above the tiles exists. Falls through to the side
+  // placement when there genuinely is no room up there.
+  if (prefer === 'above' && a.top - GAP - PAD >= Math.min(h, 90)) {
+    let x = a.left + a.width / 2 - w / 2;
+    x = Math.max(PAD, Math.min(x, vw - w - PAD));
+    let y = Math.max(PAD, a.top - GAP - h);
+    el.style.left = Math.round(x) + 'px';
+    el.style.top  = Math.round(y) + 'px';
+    return;
+  }
 
   const spaceRight = vw - a.right, spaceLeft = a.left;
   const openRight  = spaceRight >= spaceLeft;

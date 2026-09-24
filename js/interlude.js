@@ -83,6 +83,13 @@ async function startInterlude(opts) {
 async function showLevelUpScreen_fallOnly() {
   // Just the fall-out phase - every card (including Tricks) visually falls.
   // Tricks' positions are preserved in gridData so showLevelUpScreen can refill them in place.
+  //
+  // THE FALL IS NOW PRESENTATION ONLY (r332). The board has to clear off screen -
+  // the payout panel, the reward grid and the shop all take #grid over - but with
+  // boardPersists() the cards are NOT discarded on the way out: gridData keeps
+  // them, and the next round's deal puts the same cards back in the same cells.
+  // So the ceremony is unchanged and the position is kept.
+  const _persist = (typeof boardPersists === 'function') && boardPersists();
   animating = true;
   selected = [];
 
@@ -147,14 +154,16 @@ async function showLevelUpScreen_fallOnly() {
         }, 0);
       }));
     }
-    for (let c = 0; c < gridCols; c++) {
-      const card = gridData[r][c];
-      if (card && !card._isTrick) {
-        discardToPlayed(card);
-        gridData[r][c] = null; // clear immediately so HUD reflects the move
+    if (!_persist) {
+      for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r][c];
+        if (card && !card._isTrick) {
+          discardToPlayed(card);
+          gridData[r][c] = null; // clear immediately so HUD reflects the move
+        }
       }
+      updateDeckHud();
     }
-    updateDeckHud();
   }
   await Promise.all(fallPromises);
   flushPlayedDeck();
@@ -169,9 +178,13 @@ async function showLevelUpScreen_fallOnly() {
   // untouched: the Tricks still own their lines.
   if (typeof clearLineMarkers === 'function') clearLineMarkers();
 
-  // Reset gridData; Tricks get restored to their snapshotted positions for refill
-  gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
-  preservedTricks.forEach(({r, c, card}) => { gridData[r][c] = card; });
+  // Reset gridData; Tricks get restored to their snapshotted positions for refill.
+  // With a persisting board there is nothing to reset - every cell still holds
+  // the card it held, Tricks included, and the next deal simply redraws it.
+  if (!_persist) {
+    gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
+    preservedTricks.forEach(({r, c, card}) => { gridData[r][c] = card; });
+  }
   trickCardPos = null;
   animating = false;
 }

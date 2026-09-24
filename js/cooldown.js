@@ -27,7 +27,7 @@ const CD_COLORS = { off: '#d8474b', cooldown: '#e8a13a', primed: '#8a5cf0' };
 // ── How long is "one cycle" for the once-per-minute Tricks ──────────────────
 // firesThisMinute() (js/scoring.js) gates on whole round-minutes, so the wait is
 // always "until the clock crosses the next minute boundary".
-const CD_PER_MINUTE_TRICKS = ['study_hall', 'rowcol_perm_double', 'temporal_rift'];
+const CD_PER_MINUTE_TRICKS = ['study_hall', 'temporal_rift'];
 
 function cdRoundElapsed() {
   if (typeof roundStartSeconds === 'undefined' || typeof roundSeconds === 'undefined') return 0;
@@ -53,13 +53,13 @@ const TRICK_TIMERS = {
     if (_perMinuteFired[id] !== minute) return null;          // ready
     return { mode: 'cooldown', left: cdUntilNextMark(60), total: 60 };
   },
-  // Minute Hand (reworked r209): every minute mark primes it for the next two
-  // hands. Primed shows the charges; otherwise it counts down to the next mark.
+  // Minute Hand: every 30s mark charges the next hand. Primed shows the charge;
+  // otherwise it counts down to the next mark.
   minute_hand() {
     if (typeof minuteHandCharges !== 'undefined' && minuteHandCharges > 0) {
-      return { mode: 'primed', count: minuteHandCharges, label: 'hands' };
+      return { mode: 'primed', count: minuteHandCharges, label: 'hand' };
     }
-    return { mode: 'cooldown', left: cdUntilNextMark(60), total: 60 };
+    return { mode: 'cooldown', left: cdUntilNextMark(BAL.minute_hand.interval_seconds), total: BAL.minute_hand.interval_seconds };
   },
   // The Cuckoo pauses the clock once a minute of round time.
   cuckoo() { return { mode: 'cooldown', left: cdUntilNextMark(BAL.cuckoo.interval_seconds), total: BAL.cuckoo.interval_seconds }; },
