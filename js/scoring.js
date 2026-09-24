@@ -854,6 +854,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _ev('whetstone',  'mult+', _whetM,  'sleight');
   _ev('entourage',  'mult+', _entM,   'sleight');
   _ev('lighthouse', 'mult+', _lightM, 'sleight');
+  // The Queen (r358): each one in the hand adds +pips and +mult on top of the
+  // Queen's own 10 pips as a card.
+  const _queenN = cells.filter(([r, c]) => { const q = gridData[r]?.[c]; return q?._isSleight && q.sleightId === 'the_queen'; }).length;
+  const _queenP = _queenN * BAL.the_queen.pips, _queenM = _queenN * BAL.the_queen.mult;
+  totalPips += _queenP; mult += _queenM;
+  _ev('the_queen', 'pip+',  _queenP, 'sleight');
+  _ev('the_queen', 'mult+', _queenM, 'sleight');
   let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
   let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
   let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
@@ -1275,6 +1282,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
       contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
     if (_whetM  > 0) contrib.push({type:'mult',source:'sleight',id:'whetstone', delta:Math.round(_whetM*10)/10});
+    if (_queenP > 0) contrib.push({type:'pip',source:'sleight',id:'the_queen', delta:_queenP});
+    if (_queenM > 0) contrib.push({type:'mult',source:'sleight',id:'the_queen', delta:_queenM});
     if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
     if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
     if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});

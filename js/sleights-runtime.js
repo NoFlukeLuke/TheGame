@@ -19,11 +19,15 @@ const SLEIGHT_HOUSE_MARKS = ['◈', '◇', '✦', '❖', '⬥', '◆'];
 function sleightIsWild(def) { return !!def && def.activation === 'wildcard'; }
 // A Sleight that has been given a playing identity at the Tinker bench. Wildcards
 // can never be tinkered, so this and sleightIsWild are mutually exclusive.
-function sleightIsPlayable(card) { return !!(card && card._playable && card.rank && card.suit); }
+function sleightIsPlayable(card) {
+  if (!card || !card.rank) return false;
+  if (sleightDef(card)?.fixedRank) return true;   // The Queen (r358): a real rank, no suit
+  return !!(card._playable && card.suit);
+}
 
 function sleightFace(card, def) {
   if (!card) return { rank: 'S', suit: '◈', kind: 'plain' };
-  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit, kind: 'playable' };
+  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit || '♛', kind: 'playable' };
   if (sleightIsWild(def || sleightDef(card))) return { rank: 'W', suit: '∞', kind: 'wild' };
   // The house mark is stable per card, so a Sleight keeps the same face across
   // renders and deck cycles rather than flickering through the set.
@@ -686,6 +690,8 @@ function applySleightGridEffect(id, r, c) {
     case 'echo_play':
       sleightNextHandDouble = true;
       showMessage('🔁 Echo - next hand scores twice!', '#ffd700'); break;
+    case 'the_queen':
+      pauseRound(BAL.the_queen.pause_seconds, 'the_queen', 'sleight'); break;
     case 'bellhop':
       swaps += BAL.bellhop.swaps; discards = Math.min(99, discards + BAL.bellhop.discards); render();
       _fx('swaps', BAL.bellhop.swaps); _fx('discards', BAL.bellhop.discards); break;

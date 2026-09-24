@@ -111,8 +111,10 @@ function doSwap(r1, c1, r2, c2) {
   // regardless of position. Still spends swap stock; each distance swap spends
   // one of its charges. Free Range and a both-ends Pivot are asked first, so a
   // Wanderer charge is only spent when nothing else was already allowing it.
-  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell) ? liveWanderer() : null;
-  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_wanderer) {
+  // The Queen's Royal Reach (r358) swaps along its lines at any distance.
+  const _royalSwap = notAdjacent && (hasRoyalReach(gridData[r1]?.[c1]) || hasRoyalReach(gridData[r2]?.[c2])) && onQueenLine(r1, c1, r2, c2);
+  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_royalSwap) ? liveWanderer() : null;
+  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_wanderer && !_royalSwap) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }

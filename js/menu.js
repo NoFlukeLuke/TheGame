@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r357 · Magnet pulls a rank in and discards what it replaces";
+const BUILD = "2026-09-24 · r358 · The Queen is a real Queen with Royal Reach";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

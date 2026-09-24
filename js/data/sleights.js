@@ -4,7 +4,7 @@
 // interest branch in js/interlude.js are dead code that still compiles; leave
 // them, they are what makes re-enabling one a single-line change.
 const SLEIGHT_POOL = [
-  { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'epic', activation:'wildcard',   wild:'rank', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildrank','scoring'],        desc:'Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD)', needsResolve:true },
+  { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'epic', activation:'on_play',    fixedRank:true, royalReach:true, durability:'infinite', defaultRank:'Q', defaultSuit:null, tags:['scoring','position'],        desc:'The rank of this sleight is Queen. It scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.' },
   { id:'warehouse',     name:'Warehouse',      emoji:'🏭', rarity:'common',      activation:'wildcard',   wild:'suit', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildsuit','suit'],           desc:'Counts as 2 cards of any suit for the purpose of completing a flush. Has no rank.' },
  // { id:'good_friend',   name:'The Good Friend',emoji:'🤝', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['exalt','position'],          desc:'Play it as part of a hand: exalts all adjacent cards. (3 charges)' },
 //  { id:'not_a_friend',  name:'Not a Friend',   emoji:'🗡️', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['corrupt','position'],        desc:'Discard it: corrupts all adjacent cards. (3 charges)' },

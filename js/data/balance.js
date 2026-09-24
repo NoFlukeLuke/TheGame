@@ -231,6 +231,7 @@ const BAL = {
   spot_check:   { mult: 0.5, plays_to_clear: 3 },
   interest_freeze: { rounds: 3 },
   reflect:      { extra_replays: 2, board_seconds: 60 },
+  the_queen:    { pips: 10, mult: 10, pause_seconds: 5 },
   soul_mirror:  { /* replays = copies of the aimed rank in the whole deck */ },
   power_cell:   { focus_on_enter: 10, focus_cap: 10 },
   slow_burn:    { seconds_per: 45, cap: 15 },
