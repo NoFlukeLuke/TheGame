@@ -477,3 +477,151 @@
 .sq-sbtn.suit-diamonds { color: var(--suit-diamonds); }
 .sq-sbtn.suit-spades   { color: var(--suit-spades); }
 .sq-sbtn.suit-clubs    { color: var(--suit-clubs); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   r340 - what is boosted, the pay table, and the end-of-run scoreboard
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* A BOOSTED LINE, ON THE BOARD. z-index 1 puts it behind the cards (2, set in
+   css/entity-fx.css) exactly as a marked row's line sits behind them. */
+.sq-bline {
+  position: absolute; z-index: 1; pointer-events: none; border-radius: 6px;
+  border: 1px dashed rgba(201,168,76,0.55);
+  background: linear-gradient(90deg, rgba(201,168,76,0.16), rgba(201,168,76,0.05));
+  box-shadow: 0 0 14px -4px rgba(201,168,76,0.7);
+}
+.sq-bline.col { background: linear-gradient(180deg, rgba(201,168,76,0.16), rgba(201,168,76,0.05)); }
+.sq-bline.dbl { border-color: rgba(201,168,76,0.9); }
+.sq-btag {
+  position: absolute; right: -2px; bottom: -8px;
+  font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 9px; letter-spacing: 0.5px;
+  padding: 1px 4px; border-radius: 4px; color: #1a1509; background: var(--gold);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.sq-bline.col .sq-btag { right: -8px; bottom: -2px; }
+
+/* The banner doubles as the pay table's handle. */
+#sq-banner.sq-btap { cursor: pointer; pointer-events: auto; }
+.sq-bhelp {
+  display: inline-block; margin-left: 7px; padding: 0 4px; border-radius: 3px;
+  border: 1px solid rgba(201,168,76,0.5); color: var(--gold); font-size: 10px; line-height: 1.35;
+}
+#sq-banner.sq-btap:hover .sq-bhelp { background: var(--gold); color: #0e0c0a; }
+
+#sq-paytable { max-width: min(300px, calc(100vw - 20px)); }
+.sq-pt-h {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px;
+  color: var(--gold); margin-bottom: 6px;
+}
+table.sq-pt { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+table.sq-pt td { padding: 2px 0; color: var(--cream-dim); }
+table.sq-pt td:last-child { text-align: right; color: var(--gold); font-weight: 700; }
+table.sq-pt tr:first-child td { color: #fff; }
+.sq-pt-n {
+  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.45;
+  color: rgba(240,230,200,0.7); margin-top: 7px; padding-top: 6px; border-top: 1px solid #2a2840;
+}
+.sq-pt-n b { color: var(--cream); }
+
+/* ── THE SCOREBOARD ───────────────────────────────────────────────────── */
+table.sq-sb { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+table.sq-sb th {
+  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 2px;
+  color: #b39cf5; text-align: right; padding: 0 6px 6px; font-weight: 700;
+}
+table.sq-sb th:first-child { text-align: left; }
+table.sq-sb td { padding: 7px 6px; border-top: 1px solid #262340; }
+.sq-sbr { cursor: pointer; transition: background 0.12s; }
+.sq-sbr:hover { background: rgba(140,110,230,0.14); }
+.sq-sbg { font-family: 'Orbitron', sans-serif; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+.sq-sbv { text-align: right; color: #fff; font-size: 13px; }
+.sq-sbp { text-align: right; color: var(--cream-dim); }
+.sq-sbpct { text-align: right; color: #b39cf5; width: 42px; }
+.sq-sbbarw { width: 34%; }
+.sq-sbbar {
+  display: block; height: 6px; border-radius: 3px; min-width: 2px;
+  background: linear-gradient(90deg, #6f5ac0, #b39cf5);
+}
+table.sq-sb tfoot td { border-top: 2px solid #3a3560; padding-top: 9px; }
+table.sq-sb tfoot .sq-sbv { color: var(--gold); font-size: 15px; }
+.sq-sbnote {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.5px;
+  color: rgba(240,230,200,0.5); margin-top: 10px; text-align: center;
+}
+
+/* ── THE COMPARISON ───────────────────────────────────────────────────── */
+.sq-cmp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+.sq-cmp-who {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px;
+}
+.sq-cmp-who.mine { color: var(--gold); }
+.sq-cmp-who.opt  { color: var(--green); }
+.sq-cmp-sc { font-family: 'Share Tech Mono', monospace; font-size: 15px; color: #fff; }
+.sq-cmp-grid {
+  display: grid; gap: 5px; width: 100%; max-width: 330px; margin: 0 auto;
+  padding: 9px; border-radius: 9px; border: 2px solid var(--gold); background: #0a0913;
+}
+.sq-cmp-grid.opt { border-color: var(--green); }
+.sq-cc {
+  position: relative; aspect-ratio: 0.72; border-radius: 4px;
+  background: var(--card-bg, #f4ead5); border: 1px solid rgba(0,0,0,0.35);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; line-height: 1; color: #16120c;
+}
+.sq-cc.empty { background: #14121f; border: 1px dashed #2f2b48; }
+.sq-cc.wild  { background: #251c3d; color: #d9ccff; border-color: #7a63c8; }
+.sq-ccr { font-size: clamp(9px, 3.4vw, 15px); font-weight: 700; }
+.sq-ccs { font-size: clamp(8px, 2.8vw, 13px); opacity: 0.9; }
+.sq-cc.bad { box-shadow: 0 0 0 2px var(--red) inset; }
+.sq-cc.fix { box-shadow: 0 0 0 2px var(--green) inset; }
+.sq-ccm {
+  position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+.sq-ccm.bad { background: var(--red); }
+.sq-ccm.fix { background: var(--green); color: #06140a; }
+.sq-cmp-legend {
+  font-family: 'Share Tech Mono', monospace; font-size: 10.5px;
+  color: rgba(240,230,200,0.62); text-align: center; margin-top: 11px;
+}
+.sq-cmp-legend b { color: #fff; }
+.sq-lg { padding: 0 3px; }
+.sq-lg.bad { color: var(--red); }
+.sq-lg.fix { color: var(--green); }
+
+/* A PLACED GROUP'S OUTLINE (r340). Above the cards (they are z-index 2) because
+   it is an edge ON the tile, not a wash behind it; inert, because the board's
+   own capture-phase handler turns the tap into a lift. */
+.sq-grp {
+  position: absolute; z-index: 3; pointer-events: none; border-radius: 5px;
+  border-style: solid; border-color: rgba(122,99,200,0.95); border-width: 0;
+  box-shadow: 0 0 9px -2px rgba(122,99,200,0.85);
+}
+.sq-grp.solo { border-color: rgba(201,168,76,0.9); box-shadow: 0 0 9px -2px rgba(201,168,76,0.8); }
+
+/* A TRAY SLOT WHOSE TILE IS DOWN. It holds the row open so nothing else moves -
+   see sqdTraySlots. Faint enough to read as absence rather than as an option. */
+.sq-tile.sq-hole {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 4px, transparent 4px 8px);
+  border: 1px dashed rgba(240,230,200,0.14); box-shadow: none; cursor: default;
+}
+.sq-tile.sq-hole:hover { transform: none; box-shadow: none; }
+.sq-tile.sq-drop { outline: 2px dashed var(--gold); outline-offset: -3px; }
+
+/* ── THE TRAY RESERVED A ROW IT NO LONGER NEEDS (r340) ────────────────────
+   `grid-template-rows: repeat(3, 1fr)` was written for the r311 inventory: the
+   3x3 dealt SEVEN tiles into three columns, which is three rows. r340's
+   inventory is SIX - a bar, an L, two dominoes and two singles (the owner's
+   "each grid should have an l and a 3x1 piece") - and six into three columns is
+   TWO rows. So a third of the tray was empty by construction and every tile was
+   a third shorter than the space allowed.
+   Measured in portrait at 462x928, a 3-tall piece: tile 131x69 with a 23px cell
+   becomes tile 131x110 with a 36px cell - 60% taller, for one line.
+   The rows stay EXPLICIT rather than auto, which is r309's rule: a tile must
+   not change size as the hand empties, and a track does not care how many
+   items are left. */
+#stage.sq-n3 #selected-cards,
+#stage:not(.landscape).sq-n3 #selected-cards { grid-template-rows: repeat(2, 1fr); }
+#stage.sq-n4 #selected-cards,
+#stage:not(.landscape).sq-n4 #selected-cards { grid-template-rows: repeat(3, 1fr); }

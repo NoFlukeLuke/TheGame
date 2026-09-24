@@ -143,6 +143,8 @@ const DEV_GROUPS = [
   { g:'rewards',  icon:'🎁', label:'Rewards',   sub:() => `Flow/Survival board: ${svBoardMode === 'keep' ? 'stays' : svBoardMode === 'keep_nosleights' ? 'stays, no Sleights' : 'redeals'}` },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
+  { g:'squares',  icon:'▦', label:'Squares',   sub:() => typeof sqCfg === 'function'
+      ? `${sqCfg('rankSpread')} ranks · ${sqCfg('wildPerGrid')} wild · ${sqCfg('qualifyLines')} lines` : 'poker squares' },
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
       return m === 'weighted' ? `weighted · ${deckWeightedSize()} cards · ${deckWeightedSuits().length} suits`
            : m === 'six'      ? `six suits · ${deckDesignSize()} cards`
@@ -176,6 +178,7 @@ function devOpenGroup(g) {
   document.getElementById('dev-group-pop-body').scrollTop = 0;
   if (g === 'seed') devRefreshSeed();
   if (g === 'spectrum') renderSpectrumDev();
+  if (g === 'squares') devRenderSquares();
   if (g === 'deck') devRenderDeckDesign();
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
@@ -1251,3 +1254,60 @@ function devResetImprove() {
   if (typeof updateKnackList === 'function') updateKnackList();
   devRenderImprove();
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// SQUARES (r340) - the daily grids' own knobs
+// ══════════════════════════════════════════════════════════════════════════
+// Everything here is read by js/squares-daily.js through `sqCfg`, which holds
+// OVERRIDES ONLY (the r197 goal-tuner rule): a row left alone tracks whatever
+// the file ships and setting it back deletes the override rather than pinning
+// today's number for ever. A row moved off the shipped value is drawn in gold,
+// so "what have I actually changed" is answerable without diffing the source.
+const SQ_DEV_ROWS = [
+  { k:'cardScore', label:'Per-card scoring', kind:'select',
+    opts:[['tier','tiered - ace 3, court 2, else 1'], ['rank','rank value - the card\'s own pips'], ['none','none - hands only']] },
+  { k:'rankSpread', label:'Rank spread', kind:'num', min:3, max:13, step:1, unit:' ranks',
+    hint:'A daily deck is drawn from this many CONSECUTIVE ranks. Fewer makes both sets and runs likelier.' },
+  { k:'wildPerGrid', label:'Wilds per grid', kind:'num', min:0, max:4, step:1, unit:'',
+    hint:'Guaranteed in every deal. A wild takes the best rank and suit for each line it sits in, its row and its column separately.' },
+  { k:'wildValue', label:'A wild scores a card value', kind:'bool' },
+  { k:'qualifyLines', label:'Qualify: lines that can score', kind:'num', min:0, max:8, step:1, unit:'',
+    hint:'Redeal unless SOME packing makes at least this many lines a real hand. The gate that throws out a grid with no runs in it. 0 switches it off.' },
+  { k:'qualifyKinds', label:'Qualify: distinct hands', kind:'num', min:0, max:6, step:1, unit:'',
+    hint:'... unless the best packing makes this many DIFFERENT hands, so the grid is not one shape repeated.' },
+  { k:'qualifySpread', label:'Qualify: an arbitrary packing is under', kind:'num', min:0, max:100, step:5, unit:'% of par',
+    hint:'... unless where you put the tiles genuinely matters. If any old arrangement already scores near par, the grid is not a puzzle. 100 switches it off.' },
+  { k:'qualifyMixes', label:'Qualify: different ways to score well', kind:'num', min:0, max:8, step:1, unit:'',
+    hint:'... unless several near-par packings make DIFFERENT hands - two good answers, not one. 0 switches it off.' },
+  { k:'qualifyTries', label:'Qualify: deals to try', kind:'num', min:1, max:12, step:1, unit:'' },
+];
+function devRenderSquares() {
+  const host = document.getElementById('dev-squares-rows'); if (!host) return;
+  if (typeof sqCfg !== 'function') { host.innerHTML = '<div class="dev-note">squares not loaded</div>'; return; }
+  host.innerHTML = SQ_DEV_ROWS.map(r => {
+    const v = sqCfg(r.k), moved = v !== SQ_CFG_DEF[r.k];
+    let ctl;
+    if (r.kind === 'select') ctl = `<select class="dev-sq-in" data-k="${r.k}">`
+      + r.opts.map(([o, t]) => `<option value="${o}"${o === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>';
+    else if (r.kind === 'bool') ctl = `<input type="checkbox" class="dev-sq-in" data-k="${r.k}"${v ? ' checked' : ''}>`;
+    else ctl = `<button class="dev-sq-step" data-k="${r.k}" data-d="-1">-</button>`
+             + `<span class="dev-sq-val">${v}${r.unit || ''}</span>`
+             + `<button class="dev-sq-step" data-k="${r.k}" data-d="1">+</button>`;
+    return `<div class="dev-sq-row${moved ? ' moved' : ''}">`
+         + `<div class="dev-sq-lab">${r.label}</div><div class="dev-sq-ctl">${ctl}</div>`
+         + (r.hint ? `<div class="dev-sq-hint">${r.hint}</div>` : '') + '</div>';
+  }).join('');
+  host.querySelectorAll('.dev-sq-step').forEach(b => b.onclick = () => {
+    const r = SQ_DEV_ROWS.find(x => x.k === b.dataset.k);
+    const v = Math.max(r.min, Math.min(r.max, sqCfg(r.k) + (+b.dataset.d) * (r.step || 1)));
+    sqCfgSet(r.k, v); devRenderSquares(); devRenderGroupMenu?.();
+  });
+  host.querySelectorAll('select.dev-sq-in').forEach(e => e.onchange = () => { sqCfgSet(e.dataset.k, e.value); devRenderSquares(); });
+  host.querySelectorAll('input.dev-sq-in').forEach(e => e.onchange = () => { sqCfgSet(e.dataset.k, e.checked); devRenderSquares(); });
+  const st = document.getElementById('dev-squares-status');
+  if (st) st.textContent = (typeof sqDaily === 'function' && sqDaily())
+    ? `live: ${SQ_N}x${SQ_N} · ranks ${sqdRankWindow().join(' ')} · grid ${sqRound}/${sqRounds()}`
+    : 'not in a daily grid - changes apply to the next run';
+}
+function devResetSquares() { if (typeof sqCfgReset === 'function') { sqCfgReset(); devRenderSquares(); } }

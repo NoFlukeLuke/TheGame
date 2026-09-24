@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r339 · a 5-card hand is a REAL 5-card hand: realHandOfSize wired into ten entities";
+const BUILD = "2026-09-24 · r340 · Poker Squares dailies: poker-order pay tables, a wild a grid, narrow ranks, a four-gate deal qualifier, group outlines, a stable tray and an end-of-run scoreboard";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
