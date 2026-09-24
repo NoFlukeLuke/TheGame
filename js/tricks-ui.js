@@ -132,6 +132,7 @@ function trickLiveDesc(trick) {
     const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
     const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
     switch (trick.id) {
+      case 'move_as_one': { const q = moveAsOneQualifying(); return `${base} (${q.keys.length ? 'keyword: ' + q.keys.join(', ') : 'no keyword shared by 3 yet'})`; }
       case 'feelin_lucky': return `${base} (ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${feelinLuckyRerollsLeft(trick)} rerolls left)`;
       // ── permanent accumulators / level / owned-based (always a number) ──
       case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);

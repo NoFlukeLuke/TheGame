@@ -1161,18 +1161,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // (re-adds that Trick's pip/mult delta this hand). TBD: like priming, only the SCORING portion of
   // the doubled Trick re-fires; its non-scoring side effects (Focus/pause/coins) don't.
   if (hasTrick('move_as_one') && trickTrayMode) {
-    const _pool = trickTray.filter(t => t.id !== 'move_as_one' && t.id !== 'mirror' && Array.isArray(t.tags) && t.tags.length);
-    const _tagCount = {};
-    _pool.forEach(t => t.tags.forEach(tag => { _tagCount[tag] = (_tagCount[tag] || 0) + 1; }));
-    const _qualTags = new Set(Object.keys(_tagCount).filter(tag => _tagCount[tag] >= 3));
-    if (_qualTags.size) {
-      const _RANK = { common:0, rare:1, epic:2, legendary:3 };
-      let _best = null, _bestRank = 99;
-      _pool.forEach(t => {
-        if (!t.tags.some(tag => _qualTags.has(tag))) return;
-        const _r = _RANK[t.tier] ?? 0;
-        if (_r < _bestRank) { _bestRank = _r; _best = t; } // ties keep the earlier (older) Trick
-      });
+    // r363: the keywords are CURATED (moveAsOneKeywordsOf) and the Trick that
+    // fires again is a RANDOM one carrying a qualifying keyword - drawn
+    // deterministically per hand, because this runs speculatively.
+    const _qual = moveAsOneQualifying();
+    if (_qual.keys.length) {
+      const _cands = _qual.tricks;
+      const _best = _cands[Math.floor(_detReplayRand(handsPlayedRound + 1, 4411) * _cands.length)];
       if (_best) {
         const _pd = _cp[_best.id] || 0, _md = _cm[_best.id] || 0;
         if (_pd) { totalPips += _pd; bPip('move_as_one', _pd); }
@@ -1631,6 +1626,37 @@ function sandsDivisor() {
 // function of (hand, cells, owned/round state): calcScore runs speculatively for
 // every preview and the dance replays its timeline - no rolls, no consumption.
 // A future "applies twice" Trick (Marathon) is one line here.
+// ── Move as One keywords (r363) ─────────────────────────────────────────────
+// Only DISTINCTIVE mechanics count - never words dozens of Tricks use (time,
+// hand, card, score, round, play, grid, pips, mult). Read off the description,
+// so a Trick's keywords are what its text actually says.
+const MOVE_AS_ONE_KEYS = new Set(['pause','rewind','retrigger','focus','credits','swap','discard','streak',
+  'corner','set','run','flush','pair','straight','curse','wild']);
+const _MAO_EXTRA = [
+  ['marked line', /\bmarked\b|\b(row|column)s?\b/i],
+  ['hearts',   /hearts?\b|♥/i], ['diamonds', /diamonds?\b|♦/i], ['clubs', /clubs?\b|♣/i], ['spades', /spades?\b|♠/i],
+  ['aces',     /\baces?\b/i], ['face cards', /face cards?|\b(jacks?|queens?|kings?)\b/i],
+  ['prime',    /\bprime/i], ['odd ranks', /\bodd\b/i], ['even ranks', /\beven\b/i],
+];
+const _maoCache = {};
+function moveAsOneKeywordsOf(t) {
+  const d = (t && t.desc) || '';
+  if (_maoCache[d]) return _maoCache[d];
+  const out = new Set();
+  (typeof keywordsIn === 'function' ? keywordsIn(d) : []).forEach(k => { if (MOVE_AS_ONE_KEYS.has(k.key)) out.add(k.key === 'retrigger' ? 'replay' : k.key); });
+  _MAO_EXTRA.forEach(([k, re]) => { if (re.test(d)) out.add(k); });
+  return (_maoCache[d] = [...out]);
+}
+// The keywords shared by 3+ of your other Tricks, and the Tricks that carry one.
+function moveAsOneQualifying() {
+  const pool = trickTray.filter(t => t.id !== 'move_as_one' && t.id !== 'mirror');
+  const count = {};
+  pool.forEach(t => moveAsOneKeywordsOf(t).forEach(k => { count[k] = (count[k] || 0) + 1; }));
+  const keys = Object.keys(count).filter(k => count[k] >= 3);
+  const tricks = pool.filter(t => moveAsOneKeywordsOf(t).some(k => keys.includes(k)));
+  return { keys, tricks };
+}
+
 // Does any of these hand names belong to the family ('set' / 'run' / 'flush')?
 // Straight Flush is in both run and flush (NS_HAND_FAMILIES).
 function handHasFamily(names, fam) {

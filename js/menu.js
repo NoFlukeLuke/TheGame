@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r362 · Skip a pick by pressing CONFIRM twice; Rain Check pays on it; More Better needs a grid every round";
+const BUILD = "2026-09-24 · r363 · Move as One: curated keywords, a random match, and a readout";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

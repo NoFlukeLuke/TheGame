@@ -36,11 +36,3 @@ moves to spades (name pending).
 ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
 Treat richter exactly like full_house_streak below.
-
-[move_as_one] description
-  owner: If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time
-  (was:  If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time)
-
-[move_as_one] notes
-  owner: so for this trick, it needs a readout that says what the keyword is. also, this needs to not look at keywords like time or hands or other words that dozens of tricks use. it should look at things like "marked" and pause and focus and hand types or ranks mentioned in tricks or replay etc. maybe come up with a list that you think would qualify and ill review.
-  (was:  structural — no tunable value)
