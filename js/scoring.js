@@ -472,7 +472,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // multiplies pips only, which is what "each card replays twice" describes.
     const _echoS = (typeof sleightNextHandDouble !== 'undefined') && sleightNextHandDouble;
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
-    const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
+    const _rne = hasTrick('closing_time') && roundFractionRemaining() < 1/3; // Near Extinction: last third of the round
     const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker

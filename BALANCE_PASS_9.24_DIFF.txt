@@ -55,10 +55,6 @@ Treat richter exactly like full_house_streak below.
   owner: Full Houses score +10 focus
   (was:  Each Full House instantly advances Focus to the next threshold)
 
-[two_pair_mult] description
-  owner: Play 3 hands with a pair within 30s to add +16 Focus
-  (was:  Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak))
-
 [ripple] description
   owner: Cards adjacent in rank to another card in the hand have a 50% chance to replay
   (was:  Once every 30s, cards adjacent in rank to another card in the hand replay)
@@ -66,18 +62,6 @@ Treat richter exactly like full_house_streak below.
 [release_valve] description
   owner: Each time you hit your focus limit, add +1 swap and +1 discard and lose 16 Focus.
   (was:  Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.)
-
-[wild_heart] description
-  owner: When an Ace scores, prime your first and last Tricks
-  (was:  When an Ace scores, prime your first and last Tricks (each fires twice its next hand))
-
-[before_the_tide] description
-  owner: Each rank 5 or lower card scored adds its rank in Focus
-  (was:  Each rank-5-and-below card scored adds its rank in Focus)
-
-[closing_time] description
-  owner: In the last third of the round, each scored card replays
-  (was:  When less than a quarter of the round remains, each scored card replays)
 
 [quick_draw] description
   owner: Hands played within 2 seconds of the previous hand add +1 to your focus limit (current: n | max: 10)
@@ -107,14 +91,6 @@ Treat richter exactly like full_house_streak below.
   owner: Cards discarded during the round’s first pause permanently gain +3s pause. Cannot stack this buff
   (was:  Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack))
 
-[ticktock] description
-  owner: Every time the clock ends in a 0, gain +2 Focus
-  (was:  Every time the round clock ends in a 0, gain +2 Focus)
-
-[magpie] description
-  owner: Each hand rewinds the clock 1 second for every 2 swaps + discards you hold
-  (was:  Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold)
-
 [phoenix] description
   owner: While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause trigger this trick)
   (was:  While the clock is paused, the Focus multiplier applies twice)
@@ -131,29 +107,9 @@ Treat richter exactly like full_house_streak below.
   owner: Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds
   (was:  Hands with at least one heart and one diamond grant +1 credit and rewind the clock 15 seconds)
 
-[right_time] description
-  owner: Cards scored in a marked row or column pause the clock for +2s
-  (was:  Each card scored in a marked row or column pauses the clock 2 seconds)
-
-[study_hall] description
-  owner: Every 2 cards scored adds +1 Focus
-  (was:  Every 2 cards you score adds +1 Focus)
-
 [study_hall] notes
   owner: this should count replays as additional cards scored. so a hand of 3 cards where each replays twice would count as 6 cards
   (was:  )
-
-[shape_cross] description
-  owner: A 5 card + shaped hand adds +25 Focus
-  (was:  A + shaped hand adds +25 Focus)
-
-[groove] description
-  owner: Scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.
-  (was:  This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.)
-
-[overtime] description
-  owner: Rewind the clock +1s for every 3 cards you have scored from this tricks marked column/row. Resets each round.
-  (was:  Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.)
 
 [clean_sweep] description
   owner: Use every cell of any row or column within two hands to add +5 focus and +5 credits
@@ -171,10 +127,6 @@ Treat richter exactly like full_house_streak below.
   owner: Scoring prime-ranked cards (A,2,3,5,7) prime your left most trick
   (was:  When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th)
 
-[eights_retrigger] description
-  owner: Each scored 8 replays once for each other 8 in the hand.
-  (was:  Each 8 in a hand scores a number of times equal to the number of 8s in that hand)
-
 [queens_upgrade] description
   owner: Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are autmoatically discarded after they've been on the grid for 45 seconds.
   (was:  After scoring, cards adjacent to Queens permanently gain +1 rank)
@@ -186,10 +138,6 @@ Treat richter exactly like full_house_streak below.
 [sands_of_time] notes
   owner: for modes with rounds longer than 3 minutes, make the /2 /4
   (was:  )
-
-[mirror] description
-  owner: Tap to tilt left or right; mimics the effect of the Trick it reflects.
-  (was:  Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.)
 
 [move_as_one] description
   owner: If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time
@@ -247,18 +195,6 @@ Treat richter exactly like full_house_streak below.
   owner: this requires the hand to be an actual 5 card hand, not a 4 card hand with a tag along, so the hand recognitioin needs to see a flush, full house, straight, etc.
   (was:  )
 
-[five_second] description
-  owner: 5-card hands pause the clock +5s
-  (was:  Playing a 5-card hand pauses the clock 5 seconds)
-
-[life_lessons] description
-  owner: Each round you complete increases your Focus limit by 1
-  (was:  Each round you complete permanently raises your maximum Focus by 1)
-
-[third_charm] description
-  owner: The 3rd card of a hand replays 2x
-  (was:  The 3rd card of a hand gets +2 replays)
-
 [threes_crowd] description
   owner: Pairs qualify as 3-card hands
   (was:  Pairs count as 3-card hands)
@@ -286,10 +222,6 @@ Treat richter exactly like full_house_streak below.
 [encore] description
   owner: Set-type hands made of only odd-ranked cards replay each card
   (was:  Sets made of only odd-ranked cards score a second time)
-
-[dam_holding] description
-  owner: Runs pause the clock +3s
-  (was:  Runs pause the clock 3 seconds)
 
 [the_queen] description
   owner: The rank of this sleight is Queen, it scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.
@@ -375,21 +307,9 @@ Treat richter exactly like full_house_streak below.
   owner: Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use.  n/2 charges
   (was:  Double-tap to spend 10 Focus and 10 seconds for 10 credits. Consumed on use.)
 
-[siphon] description
-  owner: Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Discards on use.
-  (was:  Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use.)
-
-[power_cell] description
-  owner: When it enters the grid: +10 Focus. While it remains on the grid: +10 to Focus limit.
-  (was:  When it enters the grid: +10 Focus. While it remains on the grid: +10 maximum Focus.)
-
 [slow_burn] description
   owner: +1 to Focus limit for every 45 seconds this sleight spends on the grid. current: n | max: 15
   (was:  +1 maximum Focus for every minute this sleight spends on the grid.)
-
-[governor] description
-  owner: While on the grid, you have 50% longer to earn the Focus speed bonus.
-  (was:  While on the grid, you have 1.5× as long to earn the same Focus speed bonus.)
 
 [shift_swap] description
   owner: Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.

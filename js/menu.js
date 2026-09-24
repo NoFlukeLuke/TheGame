@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r337 · balance tiers 1-2 merged onto the TWO/PAIR label fix";
+const BUILD = "2026-09-24 · r338 · balance tier 3: wording pass, Focus limit vocabulary, closing_time last third";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

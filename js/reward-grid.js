@@ -1787,7 +1787,7 @@ async function confirmRewardPath() {
     negativeTilesTakenRun += _negThisGrid;
     if (hasKnack('shady_stimulants')) {
       focusCapPerm += _negThisGrid;
-      showMessage(`Shady Stimulants - +${_negThisGrid} max Focus`, '#a25cd8');
+      showMessage(`Shady Stimulants - +${_negThisGrid} Focus limit`, '#a25cd8');
     }
   }
   closeRewardGrid();

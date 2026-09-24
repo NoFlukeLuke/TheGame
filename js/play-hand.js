@@ -116,7 +116,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (hasTrick('little_guys') && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
         const _lgf = BAL.little_guys.cap_gain * trickFires('little_guys');   // no face cards → +1 max Focus node (permanent)
         focusCapPerm += _lgf;
-        showMessage('the little guys! +' + _lgf + ' max Focus', '#a25cd8');
+        showMessage('the little guys! +' + _lgf + ' Focus limit', '#a25cd8');
       }
     }
     if (totalFocus > 0) addFocus(totalFocus);

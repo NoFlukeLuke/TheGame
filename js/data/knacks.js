@@ -52,7 +52,7 @@ const KNACK_POOL = [
   // and the spare is billed as a penalty card. This lifts that.
   { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties.' },
   // ── Reward-grid / risk knacks (r129) ──
-  { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken.' },
+  { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you take raises your Focus limit by 1.' },
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.' },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
@@ -66,16 +66,16 @@ const KNACK_POOL = [
   { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back - alternating swap, then discard.' },
   { id:'jury_rig',        emoji:'🔧',  name:'Jury-Rig',         rarity:'rare', desc:'Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight.' },
   // ── Focus-payout knacks (r123): fire when you reach max Focus ──
-  { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you reach max Focus, gain 8 credits, then Focus resets to a third of max.' },
-  { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your max Focus is 10 lower. At the end of each round, gain credits equal to half your current Focus.' },
-  { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'rare', desc:'Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.' },
+  { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you hit your Focus limit, gain 8 credits, then Focus resets to a third of the limit.' },
+  { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your Focus limit is 10 lower. At the end of each round, gain credits equal to half your current Focus.' },
+  { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'rare', desc:'Each time you hit your Focus limit, the limit drops by 5. If you hit it during a round, a random limit rises by 1 at the end of that round.' },
   // ── Focus-capacity knacks (r104) ──
-  { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 maximum Focus while owned.' },
+  { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 to your Focus limit while owned.' },
   // ── Focus RATE batch (r180) - these scale how fast Focus ACCRUES. Every knack
   // above raises the ceiling; nothing raised the rate. See focusRateMods().
   { id:'long_fuse',       emoji:'🧨',  name:'Long Fuse',        rarity:'rare', desc:'You have 2× as long to earn the same Focus speed bonus.' },
   { id:'shorthand',       emoji:'✍️',  name:'Shorthand',        rarity:'rare', desc:'Hands generate 1.5× their listed Focus.' },
-  { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    rarity:'rare', desc:'Each Event you attend permanently raises your maximum Focus by 2.' },
+  { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    rarity:'rare', desc:'Each Event you attend raises your Focus limit by 2.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
