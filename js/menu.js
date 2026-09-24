@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r334 · pick re-centred with a wide read above it, hand label in words (SET/OF 3, TWO/PAIRS), HAND captions gone";
+const BUILD = "2026-09-24 · r335 · r334 pick/label pass merged onto the 9.24 balance re-diff";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
