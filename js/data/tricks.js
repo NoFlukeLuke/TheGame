@@ -133,8 +133,8 @@ const TRICK_POOL = [
   { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','value'], desc:'Each 2 scored force triggers your rightmost Trick' },
   { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
   { id:'eights_retrigger', name:'Sideways to Infinity', tier:'rare',   tags:['retrigger','value'], desc:'Each scored 8 replays once for each other 8 in the hand' },
-  { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['scaling','grid','value'], desc:'After scoring, cards adjacent to Queens permanently gain +1 rank' },
-  { id:'aces_absorb',    name:'Ace Absorb',          tier:'legendary', tags:['scaling','value'], desc:'When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)' },
+  { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['scaling','grid','value'], desc:'Scoring a card adjacent to a Queen permanently increases that card\'s rank (after it scores). Queens are automatically discarded after they\'ve been on the grid for 45 seconds' },
+  { id:'aces_absorb',    name:'Ace Absorb',          tier:'legendary', tags:['scaling','value'], desc:'When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand)' },
   { id:'monopoly',       name:'Monopoly',            tier:'legendary', tags:['scaling','value'], modes:['spectrum'], desc:'When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand)' },
   // ── Situational pip ──
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Score +pips equal to time remaining ÷ 2' },

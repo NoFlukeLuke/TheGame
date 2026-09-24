@@ -49,6 +49,8 @@ const BAL = {
   cuckoo: { hands_between: 2, per_replays: 5 },
   clean_sweep: { focus: 5, credits: 5 },
   double_jeopardy: { pause_seconds: 15, cells: 2 },
+  aces_absorb: { chance: 0.5 },
+  queens_upgrade: { queen_seconds: 45 },
   woodpecker: { interval_seconds: 30, retrigger_count: 2 },
   hummingbird: { mult_per_pause: 2 },
   albatross: { pips_per_second: 5 },

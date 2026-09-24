@@ -37,14 +37,6 @@ ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
 Treat richter exactly like full_house_streak below.
 
-[queens_upgrade] description
-  owner: Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are autmoatically discarded after they've been on the grid for 45 seconds.
-  (was:  After scoring, cards adjacent to Queens permanently gain +1 rank)
-
-[aces_absorb] description
-  owner: When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand).
-  (was:  When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand))
-
 [move_as_one] description
   owner: If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time
   (was:  If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time)

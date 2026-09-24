@@ -897,28 +897,31 @@ function playHand() {
     cardsScoredTotal += scoringCards.length;
   }
 
-  // Queen/King post-score: shift adjacent non-scored cards' ranks
+  // King post-score: shift adjacent non-scored cards' ranks down
   const scoredSet = new Set(result.handCells.map(([r,c]) => `${r}-${c}`));
-  result.handCells.forEach(([r,c]) => {
+  if (hasTrick('kings_downgrade')) result.handCells.forEach(([r,c]) => {
     const card = gridData[r][c];
-    const isQueen = card.rank === 'Q' || (card.combined && card.rank2 === 'Q');
     const isKing  = card.rank === 'K' || (card.combined && card.rank2 === 'K');
-    if ((isQueen && hasTrick('queens_upgrade')) || (isKing && hasTrick('kings_downgrade'))) {
+    if (isKing) {
       getNeighbors(r, c).forEach(([nr, nc]) => {
         if (!scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc]) {
           const adj = gridData[nr][nc];
           const curIdx = ACTIVE_RANKS.indexOf(adj.rank);
           if (curIdx === -1) return;
-          let newIdx;
-          if (isQueen && hasTrick('queens_upgrade')) {
-            newIdx = curIdx === ACTIVE_RANKS.length - 1 ? 1 : curIdx + 1; // K wraps to 2
-          } else {
-            newIdx = curIdx === 0 ? ACTIVE_RANKS.length - 1 : curIdx - 1; // A wraps to K (2 wraps to A)
-          }
+          const newIdx = curIdx === 0 ? ACTIVE_RANKS.length - 1 : curIdx - 1; // A wraps to K (2 wraps to A)
           gridData[nr][nc] = { ...adj, rank: ACTIVE_RANKS[newIdx] };
         }
       });
     }
+  });
+  // Royal Favour (r350): every scored card that sits beside a Queen goes up a
+  // rank AFTER it scores - the change is stamped on its way into the pile
+  // (recycleCard), so this hand, its preview and its dance all see the old rank.
+  if (hasTrick('queens_upgrade')) result.handCells.forEach(([r, c]) => {
+    const card = gridData[r][c];
+    if (!card || !card.rank || isWildCard(card) || ACTIVE_RANKS.indexOf(card.rank) === -1) return;
+    const byQueen = getNeighbors(r, c).some(([nr, nc]) => { const q = gridData[nr]?.[nc]; return q && (q.rank === 'Q' || (q.combined && q.rank2 === 'Q')); });
+    if (byQueen) queenUpgradePending.add(cardId(card));
   });
 
   // Ace Absorb: when an Ace scores, one random adjacent non-scored card is forgotten and its bonuses added to the Ace.
@@ -928,7 +931,13 @@ function playHand() {
         : hasTrick('monopoly') && scoringRanks.some(rk => MONOPOLY_RANKS.includes(rk))
         ? result.handCells.find(([r,c]) => MONOPOLY_RANKS.includes(gridData[r][c].rank))
         : null;
-  if (_absorbCell) absorbAdjacentInto(_absorbCell, scoredSet);
+  // Ace Absorb (r350) reaches any card off the hand, on a 50% (Luck-scaled)
+  // roll; Monopoly keeps its adjacent-only, every-time rule.
+  if (_absorbCell) {
+    const _ace = gridData[_absorbCell[0]][_absorbCell[1]].rank === 'A';
+    if (!_ace) absorbAdjacentInto(_absorbCell, scoredSet);
+    else if (luckRoll(BAL.aces_absorb.chance) > 0 && trickFires('aces_absorb')) absorbAdjacentInto(_absorbCell, scoredSet, true);
+  }
 
   // Clear trick card
   trickCardPos = null;
@@ -1021,13 +1030,16 @@ let dncGen = 0; // bumped when a new preview-dance starts; a superseded dance ba
 // that wasn't part of the hand - the neighbour's permanent bonuses plus its pip
 // value transfer over, and every copy of it is erased from the deck.
 const MONOPOLY_RANKS = ['15', '20'];
-function absorbAdjacentInto(cell, scoredSet) {
+function absorbAdjacentInto(cell, scoredSet, anywhere) {
   const [ar, ac] = cell;
   const eater = gridData[ar]?.[ac];
   if (!eater) return;
-  const eligibleNeighbors = getNeighbors(ar, ac).filter(([nr,nc]) =>
-    !scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc] && gridData[nr][nc].rank
-  );
+  const _pool = [];
+  if (anywhere) { for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) _pool.push([r, c]); }
+  const eligibleNeighbors = (anywhere ? _pool : getNeighbors(ar, ac)).filter(([nr,nc]) => {
+    const t = gridData[nr]?.[nc];
+    return !scoredSet.has(`${nr}-${nc}`) && t && t.rank && !t._isSleight && !t._isStone && !t._isTrick && !isCellBlocked(nr, nc);
+  });
   if (!eligibleNeighbors.length) return;
   const [tr, tc] = eligibleNeighbors[Math.floor(Math.random() * eligibleNeighbors.length)];
   const target = gridData[tr][tc];
@@ -1037,12 +1049,9 @@ function absorbAdjacentInto(cell, scoredSet) {
   permPips[ak] = (permPips[ak] || 0) + (permPips[tk] || 0) + cardPips(target.rank);
   permMult[ak] = (permMult[ak] || 0) + (permMult[tk] || 0);
   delete permPips[tk]; delete permMult[tk];
-  // Forget from deck - count how many we actually erase, plus the target itself on grid
-  const beforeCount = drawPile.length + playedPile.length;
-  drawPile   = drawPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
-  playedPile = playedPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
-  const afterCount = drawPile.length + playedPile.length;
-  expectedDeckTotal -= (1 + (beforeCount - afterCount)); // 1 for target (on grid), rest from pools
+  // Forget THAT card (r350: by identity - matching on the face erased every
+  // duplicate of it too, the r192 bug). It is on the board, so it is in no pile.
+  if (!isTempCard(target)) expectedDeckTotal--;
   // Replace on grid with new drawn card
   gridData[tr][tc] = drawCard() || null;
 }

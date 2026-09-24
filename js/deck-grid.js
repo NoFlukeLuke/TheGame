@@ -622,8 +622,21 @@ function resolveDeckCard(card) {
 }
 
 // The persisted copy of a normal card. Board and animation state is shed.
+// Royal Favour (r350): cards that scored beside a Queen, keyed by cardId. Their
+// rank goes up by one on the way back into the deck, which is what "after it
+// scores" means - never mid-hand.
+let queenUpgradePending = new Set();
+function queenUpgradedRank(rank) {
+  const i = ACTIVE_RANKS.indexOf(rank);
+  if (i === -1) return rank;
+  return ACTIVE_RANKS[i === ACTIVE_RANKS.length - 1 ? 1 : i + 1]; // K wraps to 2
+}
 function recycleCard(card) {
   const out = { rank: card.rank, suit: card.suit };
+  if (card._id !== undefined && queenUpgradePending.has(cardId(card))) {
+    queenUpgradePending.delete(cardId(card));
+    out.rank = queenUpgradedRank(card.rank);
+  }
   for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
   return out;
 }

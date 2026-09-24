@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r349 · Double Take forces your rightmost Trick, Prime Times primes your leftmost";
+const BUILD = "2026-09-24 · r350 · Royal Favour ranks up scored cards and times out Queens, Ace Absorb reaches the whole board";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

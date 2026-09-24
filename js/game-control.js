@@ -425,7 +425,7 @@ function startGame() {
                ? flowFocusCapBase()
                : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
-  focusCapGains = {};
+  focusCapGains = {}; queenUpgradePending = new Set(); queenBoardSecs = {};
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;

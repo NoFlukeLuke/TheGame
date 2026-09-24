@@ -120,7 +120,7 @@ const SAVE_VARS = [
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerCardId', 'doubleJeopardyCells',
   // ── Round/run counters ──
-  'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'clubsScoredRound', 'setsPlayedRound', 'runStreak',
+  'handsPlayedRound', 'queenUpgradePending', 'queenBoardSecs', 'studyHallCards', 'runsPlayedRound', 'clubsScoredRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
   'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
   // The quarter report's books (js/quarter.js). Snapshot marks, not counters:

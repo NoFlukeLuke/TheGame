@@ -424,7 +424,31 @@ function cardStatesTick() {
   if (animating || falling) return;
   if (typeof roundEnded !== 'undefined' && roundEnded) return;
 
+  if (queenFavourTick(board)) return;
   cardStateFireDue(board);
+}
+
+// Royal Favour (r350): a Queen that has been on the board for its time is
+// discarded - free of stock and clock, like Turnover, because it is the
+// Trick's own rule rather than something the player chose. Board time is
+// counted per Queen by cardId and carries across rounds (the board persists).
+let queenBoardSecs = {};
+function queenFavourTick(board) {
+  if (typeof hasTrick !== 'function' || !hasTrick('queens_upgrade')) return false;
+  const lim = BAL.queens_upgrade.queen_seconds;
+  const live = new Set(), due = [];
+  board.forEach(([card, r, c]) => {
+    if (card.rank !== 'Q') return;
+    const k = cardId(card); live.add(k);
+    queenBoardSecs[k] = (queenBoardSecs[k] || 0) + 1;
+    if (queenBoardSecs[k] >= lim) due.push([r, c]);
+  });
+  for (const k in queenBoardSecs) if (!live.has(k)) delete queenBoardSecs[k];
+  if (!due.length) return false;
+  due.forEach(([r, c]) => delete queenBoardSecs[cardId(gridData[r][c])]);
+  if (typeof showMessage === 'function') showMessage('♛ Royal Favour - a Queen leaves the board', '#c9a0dc');
+  cardStateRemove(due, [], { free: true });
+  return true;
 }
 
 // What has come due this tick, fired in one batch so several cards leaving
