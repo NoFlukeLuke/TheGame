@@ -479,16 +479,16 @@ function survivalTogglePeek() {
   survivalSyncPickAudio();
 }
 
-// The board is still scoring underneath the panel, so it stays audible - just
-// muffled, the way it would sound through the thing covering it. Peeking pulls
-// the panel away, so the mix opens back up. One function owns the rule, and
-// every path that changes what is on screen calls it (show, choose, peek, and
-// the Mart's return in js/mart-shop.js).
+// THE MUFFLE IS OFF (owner call). It was written for the r197 pick PANEL, which
+// really did cover the board mid-dance. Since r256 the pick IS the board - the
+// tiles inhabit #grid and nothing covers the preview in either orientation - so
+// "the mix sounds like something is lying on it" describes a thing that is no
+// longer on screen. The function stays as the chokepoint (every show / choose /
+// peek path still calls it) so it only ever releases now; sfxSetMuffle itself
+// stays in js/audio-mixer.js for the next screen that genuinely covers the board.
 function survivalSyncPickAudio() {
   if (typeof sfxSetMuffle !== 'function') return;
-  const ov = document.getElementById('survival-pick-overlay');
-  const covering = !!ov && ov.classList.contains('show') && !ov.classList.contains('sv-peek');
-  sfxSetMuffle(covering);
+  sfxSetMuffle(false);
 }
 
 // Draw a fresh three. The POOL and the PRICE are already spent by the shared

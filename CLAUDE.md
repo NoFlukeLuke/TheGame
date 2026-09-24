@@ -7853,6 +7853,72 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r326 - gestures, sleight feedback, the pick reads above itself
+
+- **The pick-of-three MUFFLE is off** (`survivalSyncPickAudio`, js/survival.js).
+  It was written for the r197 pick PANEL that covered the board mid-dance; since
+  r256 the pick IS the board and covers nothing, so the function only releases
+  now. `sfxSetMuffle` stays in js/audio-mixer.js for the next screen that
+  genuinely covers the board.
+- **The portrait pick sits at the FOOT of its slot and the read opens ABOVE the
+  tile.** `gpPortraitDrop` (js/grid-pick.js) pushes `#grid` down via `top` on the
+  position:relative element (never a transform - r180's fixed-descendant trap,
+  r281's fall-in fight), cleared in `gridScreenRelease` so the play board is
+  never left low. `gpShowRead` passes `{prefer:'above'}` in portrait and
+  `placeEntityTooltip` (js/entity-tooltip.js) grew that mode, falling back to the
+  side placement when there is no band. Measured at 420x820: board foot 740/744,
+  tip fully inside the freed band, **0 px overlap with any option tile**.
+  Landscape keeps the side placement.
+- **Right-drag DISCARDS on desktop.** Button 2 runs the ordinary swipe-select
+  and the release calls `doDiscard()` (js/input.js pointerdown/up). Mouse only;
+  a right CLICK with no movement deliberately does nothing (a misfire would be
+  destructive). No collision with the Schedule's pen (no cards in gridData
+  there, `cardAt` bails) or Poker Squares (it stops pointerdown propagation).
+- **The swap stock indicator PERFORMS a swap on exactly 2 selected cards**
+  (addEventListener beside the grid handlers, js/input.js - it coexists with the
+  reward grid's SKIP and Squares' END TURN `onclick` repurposings, so it stands
+  down on every takeover). doSwap owns all the rules.
+- **A SLEIGHT TAP FIRED onCardTap TWICE PER CLICK, and that was the Magnet bug.**
+  render()'s sleight paths bound `div.onclick = () => onCardTap(r,c)` on top of
+  the grid's own pointerup routing, so ONE physical click read as a double tap
+  (call 1 stamped lastTapCell, call 2 saw it inside 350ms) and armed the Magnet,
+  while a REAL double tap armed on click 1 and hit the "tapping Magnet cancels"
+  intercept on click 2 - the printed gesture was the one that could never work.
+  The onclicks are gone (js/render.js); verified: one click selects, double tap
+  arms, the target tap pulls the rank and Magnet cycles back into the piles.
+- **A Pivot touching BOTH ends of a swap waives ADJACENCY** (js/input.js). The
+  eight cells around a Pivot are mostly not orthogonally adjacent to each other,
+  so "swap freely all around it" only ever fired on pairs that were neighbours
+  anyway. Verified through the real double-tap-then-tap path: two diagonal
+  neighbours of the Pivot trade places, free, both +5 permanent mult, the Pivot
+  leaves and cycles. (A free-anywhere entity already half-exists: **Free Range**
+  is "swap any two non-adjacent cards", working since r307.)
+- **Sleights never take the `.unreachable` dim** (css/style.css - opacity rule
+  dropped, cursor kept). At 0.28 every out-of-reach Sleight went dark the moment
+  anything was selected, and stayed dark through the hand's dance and falls.
+- **Sleight STOCK payouts are particles, not toasts.** applySleightGridEffect
+  (js/sleights-runtime.js) throws `entityEffectFX` plates from the sleight's own
+  grid card: Power Cell rides `addFocus(n, id, 'sleight')`, Snooze / Syncopation
+  / Shady Tree ride `pauseRound(n, id, 'sleight')`, Rewind / Last Call /
+  Sandbagger ride `rewindTime(n, null, id, 'sleight')`, Bellhop / Wanderer fly
+  swaps+discards, Cash Out / Piggy Bank / Capacitor fly credits. Effects with no
+  HUD readout (next-hand mult, card buffs, reshuffles) keep their toasts.
+- **THE FLUSH OVERLAY IS ALL-OR-NOTHING** (owner call, js/hand-detect.js
+  `flushOverlayFor`): the overlay only pays when the ENTIRE selection shares one
+  suit, so a 4-card hand with 3 of a suit no longer layers a Flush of 3 or
+  replays those cards. Verified: suited Run of 3 still = Run of 3 + Flush of 3;
+  mixed Run of 4 = Run of 4 alone; suited Run of 4 = Run of 4 + Flush of 4.
+  This supersedes the r199 "biggest same-suit group" rule and the measurements
+  built on it (the ~50% overlay rate, OPEN_DECISIONS coverage notes).
+- **The hand-type label survives the dance.** `#hand-name` went z-index 2 -> 61
+  in landscape: `.dnc-active` raises `#selected-cards` to 60 and the label is a
+  sibling, so the preview's opaque panel slid over it for every tally. The 44px
+  label column the preview reserves is untouched by the dance, so nothing is
+  covered by the change. (Portrait keeps the label in flow above the strip.)
+- **Fall-height mechanics** (a Sleight fed by cards landing on it, a boss whose
+  locks break under two impacts) are parked in CARD_EFFECTS.md with the wiring
+  note: `removeAndFall`'s gravity pass is the one place drop distance is known.
+
 ## r324 - the board can SURVIVE a Flow/Survival level-up (dev -> Rewards)
 
 - **`svBoardMode`** (js/survival.js, `lethe.svBoard.v1`): `redeal` (shipped) ·

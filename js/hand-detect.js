@@ -434,10 +434,17 @@ function rankHandForGroup(cells) {
   return best;
 }
 
-// ── TRACK 2: the biggest same-suit group, as a flush hand ──
+// ── TRACK 2: the whole hand as a flush, when EVERY card shares one suit ──
 // Deliberately NOT gated on activeHands (see the note above). Spectrum's white
 // values can never join a flush, which is why isWhiteCard is asked here as well
 // as in _handShape.
+//
+// ALL OR NOTHING (owner call): the overlay only pays when the ENTIRE selection
+// shares one suit. It used to take the biggest same-suit GROUP of
+// flushOverlayMin+ cards, so a 4-card hand with 3 of one suit paid a Flush of 3
+// on top and replayed those three cards - the owner's rule is that a partial
+// suit match is not a flush layer. A group covering every cell is also,
+// incidentally, always coverage-safe for the r281 rescue below.
 function flushOverlayFor(cells) {
   const bySuit = {};
   cells.forEach(([r, c]) => {
@@ -450,6 +457,7 @@ function flushOverlayFor(cells) {
   let best = null;
   Object.keys(bySuit).forEach(s => {
     const group = bySuit[s].slice(0, HAND_MAX_CARDS);
+    if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
     const name = FLUSH_BY_SIZE[group.length];
     if (group.length < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };

@@ -393,14 +393,14 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (def.id === 'rewind') {
       const _inHand = handCells.some(([hr, hc]) => hr === r && hc === c);
       const _size = _inHand ? handCells.length : handCells.length + 1;
-      rewindTime(_size, `⏪ Rewind - +${_size}s`);
+      rewindTime(_size, null, 'rewind', 'sleight');
       consumeSleightCharge(card, r, c);
       return;
     }
     // Syncopation: hand type differs from the previous hand played
     if (def.id === 'syncopation') {
       if (lastHandType === null || hand === lastHandType) return;
-      pauseRound(BAL.syncopation.seconds);
+      pauseRound(BAL.syncopation.seconds, 'syncopation', 'sleight');
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -408,7 +408,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     // (10 → 1), which drop by 1 each use; the sleight is destroyed when it hits 0 (consumeSleightCharge).
     if (def.id === 'shady_tree') {
       if (c !== shadyColumn) return;
-      pauseRound(card._usesLeft != null ? card._usesLeft : def.durability);
+      pauseRound(card._usesLeft != null ? card._usesLeft : def.durability, 'shady_tree', 'sleight');
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -505,10 +505,24 @@ function applySleightGridEffect(id, r, c) {
     showMessage(`${id} is suspended this round`, 'var(--red)');
     return;
   }
+  // A STOCK payout throws the scoring dance's own plate at the readout it
+  // changed (entityEffectFX, js/payout-fx.js) instead of printing a toast
+  // (owner call, r326): the particle plus the currency's own sound IS the
+  // report. The sleight's grid element is passed outright - this runs before
+  // discardSleightAfterUse, so the card is still on the board - and the
+  // entityEffectFX id lookup would find it anyway, but there is nothing to
+  // search for when the caller holds the cell. Effects with no HUD readout
+  // (next-hand mult, card buffs, reshuffles) keep their toasts.
+  const _slEl = document.querySelector(`#grid [data-card-id="${gridData[r]?.[c]?._id}"]`);
+  const _fx = (kind, amount) => {
+    if (typeof entityEffectFX === 'function')
+      entityEffectFX(kind, amount, { srcEl: _slEl, id, source: 'sleight' });
+  };
   switch (id) {
     case 'power_cell':
-      addFocus(BAL.power_cell.focus_on_enter);
-      showMessage(`Power Cell! +${BAL.power_cell.focus_on_enter} Focus`, '#a25cd8'); break;
+      // addFocus with a named source fires the Focus particle itself.
+      addFocus(BAL.power_cell.focus_on_enter, 'power_cell', 'sleight');
+      break;
     case 'good_friend':
       getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
       showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
@@ -538,7 +552,7 @@ function applySleightGridEffect(id, r, c) {
       showMessage('🔁 Echo - next hand scores twice!', '#ffd700'); break;
     case 'bellhop':
       swaps += BAL.bellhop.swaps; discards = Math.min(99, discards + BAL.bellhop.discards); render();
-      showMessage('🛎️ Bellhop - +2 swaps, +1 discard!', '#ffd700'); break;
+      _fx('swaps', BAL.bellhop.swaps); _fx('discards', BAL.bellhop.discards); break;
     case 'the_bomb': {
       let _cnt = 0;
       for (let _r = 0; _r < gridRows; _r++)
@@ -557,19 +571,19 @@ function applySleightGridEffect(id, r, c) {
       showMessage('📜 Legacy - next hand ×3!', '#ffd700'); break;
     case 'cash_out':
       grantEntityCoins(BAL.cash_out.coins, 'sleight', 'cash_out');
-      showMessage('💰 Cash Out - +10 credits!', 'var(--gold)'); break;
+      _fx('credits', BAL.cash_out.coins); break;
     case 'the_wanderer':
       swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
-      showMessage('🧭 Wanderer - swap refunded!', 'var(--gold)'); break;
+      _fx('swaps', BAL.the_wanderer.swaps); break;
     case 'amplifier':
       sleightAmplifierMult += BAL.amplifier.mult;
       showMessage('📢 Amplifier - next hand +5 mult!', 'var(--gold)'); break;
     case 'snooze':
-      pauseRound(BAL.snooze.seconds);
-      showMessage('😴 Snooze - clock paused 10s!', 'var(--gold)'); break;
+      // pauseRound with a named source throws the pause plate at the clock.
+      pauseRound(BAL.snooze.seconds, 'snooze', 'sleight'); break;
     case 'last_call':
       // Only rewinds when discarded during the final minute of the round.
-      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, `⏳ Last Call - rewound ${BAL.last_call.seconds}s`);
+      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, null, 'last_call', 'sleight');
       else showMessage('⏳ Last Call - only works in the final minute', 'var(--cream-dim)');
       break;
     case 'sandbag': {
@@ -579,13 +593,13 @@ function applySleightGridEffect(id, r, c) {
       const _counts = {};
       _co.forEach(c => { const _v = RANK_ORDER[c.rank] || 99; if (_v < BAL.sandbag.rank_below) _counts[_v] = (_counts[_v] || 0) + 1; });
       const _pairRanks = Object.keys(_counts).map(Number).filter(v => _counts[v] >= 2);
-      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, `⏬ Sandbagger - rewound ${_sec}s`); }
+      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, null, 'sandbag', 'sleight'); }
       else showMessage('⏬ Sandbagger - needs a pair below rank 8', 'var(--cream-dim)');
       break;
     }
     case 'piggy_bank':
       grantEntityCoins(BAL.piggy_bank.coins, 'sleight', 'piggy_bank');
-      showMessage('🐷 Piggy Bank - +5 credits!', 'var(--gold)'); break;
+      _fx('credits', BAL.piggy_bank.coins); break;
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
   }

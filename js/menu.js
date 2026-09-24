@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r325 · balance sheet tooling repointed at js/data/*.js and regenerated (312 rows)";
+const BUILD = "2026-09-24 · r326 · right-drag discard, swap-button swap, Magnet double-tap fixed, Pivot 8-way swaps, all-suit flush overlay, sleight particles, pick reads above";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

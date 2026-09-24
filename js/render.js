@@ -95,13 +95,20 @@ function render() {
               `<div class="sleight-card-name">${def?.name||'Sleight'}</div>` +
             `</div>` +
             `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
-          div.onclick = () => onCardTap(r, c);
+          // No div.onclick here (r326): the grid's own pointerup handler already
+          // routes a tap on any [data-row] tile into onCardTap, so an onclick on
+          // top of it fired onCardTap TWICE per physical click. On a double_tap
+          // Sleight that was the Magnet bug the owner reported: ONE click read
+          // as a double tap (call 1 stamped lastTapCell, call 2 saw it inside
+          // 350ms) and armed it, and a REAL double tap armed on the first click
+          // and hit the "tapping Magnet cancels" intercept on the second - so
+          // the printed gesture was the one gesture that could never work.
           attachLongPress(div, r, c);
           continue;
         }
         div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
-        div.onclick = () => onCardTap(r, c);
+        div.onclick = null;   // see the aim-sleight note above - pointerup owns the tap
         attachLongPress(div, r, c);
         continue;
       }

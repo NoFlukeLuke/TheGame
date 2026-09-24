@@ -155,6 +155,9 @@ function gridScreenTakeover(rows, cols) {
 function gridScreenRelease() {
   document.body.classList.remove('gp-active');
   const gridEl = document.getElementById('grid');
+  // The portrait drop belongs to the pick alone - #grid is the PLAY board, so a
+  // stale offset would leave every later round sitting low (the r298 lesson).
+  if (gridEl) gridEl.style.top = '';
   if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
   if (gridScreenSaved) { gridRows = gridScreenSaved.rows; gridCols = gridScreenSaved.cols; gridScreenSaved = null; }
   if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
@@ -221,7 +224,30 @@ function gridPickTileHTML(p, i) {
 // CONFIRM. See the header for why the bubble is the NON-interactive one.
 function gpShowRead(opt, p) {
   if (typeof showEntityTooltip !== 'function' || !p) return;
-  showEntityTooltip(opt, gpTipPayload(p));
+  // Portrait: the read opens ABOVE the tile, in the band gpPortraitDrop just
+  // freed at the top of the slot - the side placement always clamped it onto
+  // the other two options, and the strip above the board is the one place it
+  // covers nothing being compared. Landscape keeps the side placement: the
+  // board there has real gutters and the bubble lands off the tiles already.
+  const portrait = !document.getElementById('stage')?.classList.contains('landscape');
+  showEntityTooltip(opt, gpTipPayload(p), portrait ? { prefer: 'above' } : {});
+}
+
+// ── PORTRAIT: THE BOARD SITS AT THE FOOT OF ITS SLOT (r326) ─────────────────
+// The pick's 4-row board is much shorter than #grid-slot in portrait, and
+// centring it split the leftover into two bands too small for anything. Pushed
+// down, the whole leftover becomes ONE band above the tiles - which is where
+// the read tooltip now goes (gpShowRead). `top` on the (position:relative)
+// #grid, never a transform: a transform would make #grid the containing block
+// for fixed descendants (r180) and fight the tiles' own fall-in (r281). Written
+// in the element's own design px (offsetHeight, the r160/r248 rule).
+function gpPortraitDrop(gridEl) {
+  gridEl.style.top = '';
+  const stage = document.getElementById('stage');
+  const slot  = document.getElementById('grid-slot');
+  if (!gridEl || !slot || !stage || stage.classList.contains('landscape')) return;
+  const free = slot.offsetHeight - gridEl.offsetHeight;
+  if (free > 20) gridEl.style.top = Math.floor(free / 2 - 4) + 'px';
 }
 
 // Paint the selection onto tiles that are already on the board. Never a redraw:
@@ -429,6 +455,7 @@ function gridPickRender(animateIn) {
 
   gridPickAfterRender(gridEl, offers, onChoose);
   gridPickPaintSelection();
+  gpPortraitDrop(gridEl);
 }
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
