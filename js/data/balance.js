@@ -83,7 +83,7 @@ const BAL = {
   assembly_line: { mult_per_prior: 1 },
   overtime:      { seconds_per_3: 1 },
   shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
-  feng_shui:     { pips: 3, pips_per_hand: 3 },
+  feng_shui:     { pips_per_hand: 3 },
   five_stack:    { pips: 20, mult: 5, focus_per_card: 1 },
   little_guys:   { cap_gain: 1 },
   five_fodder:   { credits: 5 },
@@ -112,7 +112,7 @@ const BAL = {
   shop_discount: { per_item: 3, bulk_per_item: 5 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 6 },       // +mult per negative reward tile taken this run
-  rising_tide:   { mult: 1, mult_per: 1 }, // +1 mult, +1 more per level reached
+  rising_tide:   { mult_per: 1 }, // +1 mult per level passed
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   combo_score: { mult_per_type: 4 },
@@ -345,7 +345,7 @@ const DESC_TEMPLATES = {
   groove:        'This trick scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
   assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card played from that line this round',
   overtime:      'Every hand rewinds the clock {seconds_per_3} second for every 3 cards you have scored from its marked row or column this round. The count resets each round.',
-  feng_shui: 'Scores +{pips} pips, +{pips_per_hand} more for each hand scored with a row or column buff',
+  feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a row or column buff',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}',
   discard_pips: '+{mult_per} mult per card discarded this round',
   dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
@@ -396,7 +396,7 @@ const DESC_TEMPLATES = {
   full_color: 'Hands with all four suits score +{pips_per_card} pips and +{mult_per_card} mult per card',
   second_hand: 'Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips',
   sediment: 'Scores +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this round',
-  rising_tide: 'Score +{mult} mult, +{mult_per} more for each level reached',
+  rising_tide: '+{mult_per} mult for each level passed',
   ready_set_go: 'A 3-card hand containing a 3, 6 or 9 scores +{mult} mult',
   minute_hand: 'Every time the clock passes a multiple of {interval_seconds}s, your next hand scores ×{mult_mult} mult',
 };

@@ -116,7 +116,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide: +1 base mult per level
-  const risingTideBonus = hasTrick('rising_tide') ? BAL.rising_tide.mult + (level - 1) * BAL.rising_tide.mult_per : 0;
+  const risingTideBonus = hasTrick('rising_tide') ? (level - 1) * BAL.rising_tide.mult_per : 0;
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
   const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
@@ -898,7 +898,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('compound_mult') && bonusMult_compound > 0) { mult += bonusMult_compound; bMult('compound_mult', bonusMult_compound); }
   if (hasTrick('more_better') && bonusMult_morebetter > 0) { mult += bonusMult_morebetter; bMult('more_better', bonusMult_morebetter); }
   if (hasTrick('wild_side') && negativeTilesTakenRun > 0) { const _a = negativeTilesTakenRun * BAL.wild_side.mult_per; mult += _a; bMult('wild_side', _a); }
-  if (hasTrick('feng_shui')) { const _a = BAL.feng_shui.pips + bonusPips_fengshui; totalPips += _a; bPip('feng_shui', _a); }
+  if (hasTrick('feng_shui') && bonusPips_fengshui > 0) { totalPips += bonusPips_fengshui; bPip('feng_shui', bonusPips_fengshui); }
   // Wellspring: +mult per 10 Focus generated this game.
   if (hasTrick('wellspring')) { const _w = Math.floor(focusGenGame / BAL.wellspring.per_focus) * BAL.wellspring.mult_per; if (_w > 0) { mult += _w; bMult('wellspring', _w); } }
   // Hand type: pair-based pip bonuses

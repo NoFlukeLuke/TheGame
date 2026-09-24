@@ -119,10 +119,10 @@ const TRICK_POOL = [
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','position','scaling'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
   { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','position','scaling'],  desc:'Cards scored in a marked row or column score +1 mult for every card played from that line this round' },
   { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','position','scaling'],  desc:'Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.' },
-  { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','position','scaling'],  desc:'Scores +3 pips, +3 more for each hand scored with a row or column buff' },
+  { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','position','scaling'],  desc:'Permanently scores +3 pips for each hand scored with a row or column buff' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','position'],           desc:'Cover a full row or column within two hands to advance Focus to the next threshold.' },
   // ── Level scaling ──
-  { id:'rising_tide',    name:'Rising Tide',         tier:'common',    desc:'Score +1 mult, +1 more for each level reached' },
+  { id:'rising_tide',    name:'Rising Tide',         tier:'common',    desc:'+1 mult for each level passed' },
   // ── Accumulating ──
   { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played permanently adds +0.1 mult to this trick' },
   { id:'acorns',         name:'Acorns',              tier:'rare',      tags:['focus','scaling'], desc:'Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand' },

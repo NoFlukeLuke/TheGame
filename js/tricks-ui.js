@@ -142,10 +142,10 @@ function trickLiveDesc(trick) {
       case 'more_better':    return now(`+${bonusMult_morebetter || 0} mult`);
       case 'wild_side':      return now(`+${(negativeTilesTakenRun || 0) * (B.wild_side?.mult_per ?? 3)} mult`);
       case 'wait_for_it':    return now(`${Math.round((negativeTilesTakenRun || 0) * (B.wait_for_it?.chance_per ?? 0.02) * 100)}% replay chance`);
-      case 'feng_shui':      return now(`+${(B.feng_shui?.pips ?? 3) + (bonusPips_fengshui || 0)} pips`);
+      case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);
       case 'summit':         return now(`level ${level}`);
-      case 'rising_tide':    return now(`+${B.rising_tide.mult + (level - 1) * B.rising_tide.mult_per} mult`);
+      case 'rising_tide':    return now(`+${(level - 1) * B.rising_tide.mult_per} mult`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(`+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
