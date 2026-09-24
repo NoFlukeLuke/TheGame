@@ -27,14 +27,13 @@ sheet verbatim as the input of record.
 
 ## Owner decisions needed (each blocks only its own row)
 
-1. **Echoes (`echo_hand`)** — its new text is word-for-word The Woodpecker's
-   new text ("Marks a random card every 30s; scoring it replays it 2x").
-   Copy-paste accident, or two identical Tricks intended? (Old Echoes:
-   "same hand type as previous replays each card.")
-2. **"Legendary" (new Trick)** — is that really its name? A Trick named after
-   a rarity tier reads oddly on a tile that also prints its rarity.
-3. **"Inert"** — the Piggy Bank note asks for a better word for a sleight that
-   can't be swapped/discarded after use. Proposal: **"Spent"**.
+1. **Echoes (`echo_hand`)** — RESOLVED: the new text was a copy-paste error.
+   Echoes keeps its current effect (same hand type as the previous hand
+   replays each card). Nothing to change.
+2. **New legendaries** — RESOLVED: the unnamed "Legendary" Trick works on
+   DIAMONDS and takes the name **Buried Treasure**; the original Buried
+   Treasure effect moves to SPADES and its name is pending the owner.
+3. **"Inert"** — RESOLVED: the keyword is **inert** (shipped r341).
 4. **Move as One keyword list** — proposed list to review in Tier 4h.
 5. **Head Start wording** — the owner asked for "a nicer way to word" the
    decaying first-hand Focus. Proposal: *"The round's first hand adds +5
@@ -166,7 +165,7 @@ Per-row spec in the DIFF file. Grouped:
 - **Clock/marks:** Cuckoo → every other hand pauses 1s per 5 replays this
   round · Double Jeopardy → 2 CELLS secretly marked (cell-keyed — deliberate
   exception to r192's card-keyed rule; document it) · Woodpecker → marks
-  every 30s, no alternating blocks · Echoes pending decision 1 ·
+  every 30s, no alternating blocks · Echoes unchanged (decision 1) ·
   Sands of Time → ÷2, but ÷4 in modes with rounds over 3:00.
 - **Replays:** Rerun → ×1.2 pips per replay · Chorus → ×1.75 mult per
   replay (both move from escalating adds to flat multipliers per replay) ·
@@ -235,8 +234,8 @@ improve/force vocabulary; several are per-card ×mult — the r233 machinery):
 | name | tier | effect |
 |---|---|---|
 | Obsessed | legendary | each heart ×mult = 1+(credits/100) |
-| Buried Treasure | legendary | each diamond ×(1 + 0.1 per diamond scored this game) mult |
-| Legendary (name pending, decision 2) | legendary | each scored spade: (luck/2)% chance to ×1.1 your credits |
+| Buried Treasure | legendary | each scored diamond: (luck/2)% chance to ×1.1 your credits |
+| (name pending, decision 2) | legendary | each spade ×(1 + 0.1 per spade scored this game) mult |
 | Patient Rulers | epic | if paused/rewound this round, face cards ×1.5 mult |
 | Even Better | epic | even cards 66% chance ×2.2 pips (4e) |
 | What are The Odds | epic | odd cards ×1.7 mult |

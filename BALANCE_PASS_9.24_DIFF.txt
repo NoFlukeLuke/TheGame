@@ -28,8 +28,10 @@ DONE IN r336 (Tiers 1-2): the 4 removals (ancient_grove, compound, restless,
 flywheel), both renames (Jackpot, Fresh Start), all 13 rarity moves, meditation
 2s, mockingbird every-4, hourglass 50%, eye_of_storm 2x, Echo Location 2-in-3
 (prints 67%), exalt heart_mult 4, corrupt spade_coins -5. Those rows are pruned
-from this file. Owner decisions: the keyword is INERT (not Spent); echo_hand's
-text and the unnamed legendary Trick still await the owner.
+from this file. Owner decisions: the keyword is INERT (not Spent); echo_hand keeps its
+old effect (the new text was an error); the unnamed legendary becomes the
+DIAMONDS Trick named Buried Treasure, and the old Buried Treasure effect
+moves to spades (name pending).
 
 ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
@@ -42,10 +44,6 @@ Treat richter exactly like full_house_streak below.
 [woodpecker] description
   owner: Marks a random cards once every 30 seconds, scoring the marked card replays it 2x
   (was:  In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice)
-
-[echo_hand] description
-  owner: Marks a random cards once every 30 seconds, when scored, the marked card replays 2x
-  (was:  Playing the same hand type as the previous hand replays each card)
 
 [twos_retrigger] description
   owner: Each 2 scored force triggers your right most trick

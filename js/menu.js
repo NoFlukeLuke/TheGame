@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r346 · Tier-5 numbers: Rerun and Chorus compound, Cuckoo fires per hand, Hard Labour is a round ladder, High Water, Clean Sweep, Blood Diamonds";
+const BUILD = "2026-09-24 · r347 · plan: Echoes unchanged, Buried Treasure moves to diamonds";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
