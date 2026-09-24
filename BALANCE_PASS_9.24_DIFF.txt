@@ -37,14 +37,6 @@ ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
 Treat richter exactly like full_house_streak below.
 
-[twos_retrigger] description
-  owner: Each 2 scored force triggers your right most trick
-  (was:  Each 2 scored duplicates your most recently acquired Trick’s effect)
-
-[prime_times] description
-  owner: Scoring prime-ranked cards (A,2,3,5,7) prime your left most trick
-  (was:  When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th)
-
 [queens_upgrade] description
   owner: Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are autmoatically discarded after they've been on the grid for 45 seconds.
   (was:  After scoring, cards adjacent to Queens permanently gain +1 rank)

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r348 · Double Jeopardy marks 2 secret cells, The Woodpecker marks a card every 30s";
+const BUILD = "2026-09-24 · r349 · Double Take forces your rightmost Trick, Prime Times primes your leftmost";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

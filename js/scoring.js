@@ -1089,8 +1089,16 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // speculatively for every connected subset in findBestHand and on every tap of
   // the live PIPS/MULT preview, so consuming here would spend the charge dozens
   // of times per selection. Same rule siphonMultX and minuteHandCharges follow.
-  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length
-      && typeof trickForcedPayout === 'function') {
+  // Double Take (r349): each scored 2 FORCES your rightmost Trick, through this
+  // same block, so it shares the cap and pays the Trick's nominal value whether
+  // or not its condition was met. Itself excluded; a switched-off Trick too.
+  const _forceIds = (typeof forcedTrickIds !== 'undefined') ? forcedTrickIds.slice() : [];
+  if (hasTrick('twos_retrigger') && typeof forceableTrickIds === 'function') {
+    const _t2 = _natCards.filter(c => c.rank === '2').length;
+    const _fi = _t2 ? forceableTrickIds().filter(id => id !== 'twos_retrigger') : [];
+    if (_fi.length) for (let k = 0; k < _t2; k++) _forceIds.push(_fi[_fi.length - 1]);
+  }
+  if (_forceIds.length && typeof trickForcedPayout === 'function') {
     // A forced fire may MULTIPLY a hand; it may not REPLACE it. Forcing pays the
     // Trick's real value, and a Trick's real value spans two orders of magnitude:
     // measured over 20 boards, the median forced fire is x2 (common/rare/epic),
@@ -1111,7 +1119,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _fAx  = Math.sqrt(_fcX) - 1;
     let _fpLeft = Math.max(0, totalPips * _fAx);
     let _fmLeft = Math.max(0, mult * _fAx);
-    forcedTrickIds.forEach(fid => {
+    _forceIds.forEach(fid => {
       const fp = trickForcedPayout(fid, cards.length);
       const _fpAdd = Math.min(fp.pips, _fpLeft); _fpLeft -= _fpAdd;
       const _fmAdd = Math.round(Math.min(fp.mult, _fmLeft) * 10) / 10; _fmLeft -= _fmAdd;
@@ -1120,15 +1128,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (fp.pipX !== 1)  { const _pre = totalPips; totalPips = Math.round(totalPips * fp.pipX);        bPipX(fid, fp.pipX,  totalPips - _pre); }
       if (fp.multX !== 1) { const _pre = mult;      mult      = Math.round(mult * fp.multX * 10) / 10;  bMultX(fid, fp.multX, mult - _pre); }
     });
-  }
-  // Double Take: each scored 2 duplicates your most recently acquired Trick's contribution
-  if (hasTrick('twos_retrigger') && trickTrayMode) {
-    const _t2 = cards.filter(c => c.rank === '2').length;
-    if (_t2 > 0) {
-      let _mr = null;
-      for (let i = trickTray.length - 1; i >= 0; i--) { const _tk = trickTray[i]; if (_tk.id !== 'twos_retrigger' && _tk.id !== 'mirror') { _mr = _tk; break; } }
-      if (_mr) { const _pd = _cp[_mr.id] || 0, _md = _cm[_mr.id] || 0; for (let k = 0; k < _t2; k++) { if (_pd) { totalPips += _pd; bPip('twos_retrigger', _pd); } if (_md) { mult += _md; bMult('twos_retrigger', _md); } } }
-    }
   }
 
   // Move as One: if 3+ owned Tricks share a keyword (tag), the lowest-rarity Trick carrying a

@@ -1002,11 +1002,10 @@ function runHandPriming(hand, handCells) {
     const _last = trickTray[trickTray.length - 1];
     if (_last !== trickTray[0]) primeTrick(_last);
   }
-  // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
-  if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
-    const _cyc = [0,1,2,4,6];
-    const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
-    _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
+  // Prime Times (r349): a hand that scores a prime rank primes your leftmost
+  // Trick (itself excluded - priming Prime Times would do nothing).
+  if (hasTrick('prime_times') && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
+    const _tt = trickTray.find(t => t.id !== 'prime_times');
     if (_tt) primeTrick(_tt);
   }
   if (typeof renderTrickTray === 'function') renderTrickTray();
