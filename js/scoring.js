@@ -36,7 +36,9 @@ function _rankIsEvenRank(r) { return ['2','4','6','8','10'].includes(r); }
 function _rankIsOddRank(r)  { return ['A','3','5','7','9'].includes(r); }
 
 function counts3CardHand(handName, cells) {
-  return cells.length === 3 || (hasTrick('threes_crowd') && handName === 'Pair');
+  // "a 3-card hand" is a real 3-card hand - a Set/Run/Flush of 3 the recognition
+  // names, not three cells around a Pair (r339, realHandOfSize in hand-detect.js).
+  return realHandOfSize(cells, 3) || (hasTrick('threes_crowd') && handName === 'Pair');
 }
 
 // A "Set" hand for the Set add-on tricks (Undue Influence / Encore / Shaky Foundation):
@@ -271,7 +273,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     { id:'rich_soil',     cond:() => true,                            pays:()  => ({ mult: BAL.rich_soil.mult }) },
     { id:'tidal_force',   cond:x => x.isFlush,                        pays:()  => ({ mult: BAL.tidal_force.mult_per_card }) },
     { id:'number_crunch', cond:x => x.rankCount >= 4,                 pays:()  => ({ mult: BAL.number_crunch.mult_per_card }) },
-    { id:'heavy_hand',    cond:x => x.cardCount === 5,                pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
+    { id:'heavy_hand',    cond:x => x.real5,                          pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
     { id:'prime_time',    cond:x => x.primeCount >= 3,                pays:()  => ({ pip:  BAL.prime_time.pips_per_card }) },
     // Flow State joined the table in r238. It used to pay from a site AFTER the
     // x pips block, so it escaped Undertow / Scalper / Knave Power / Interest; it
@@ -298,6 +300,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _pcIsRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
   const _pcCtx = {
     cardCount:  cells.length,
+    real5:      realHandOfSize(cells, 5),
     isRun:      _pcIsRun,
     orderedRun: _pcIsRun && canBeOrderedRun(cells),
     earlyThird: _pcFrac > 2/3,
@@ -810,7 +813,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   });
 
   // Straight Shot: a 5-card hand in a straight line adds every card's modified pips to mult
-  if (hasTrick('shape_line') && cells.length === 5 && isStraightLine(cells)) {
+  if (hasTrick('shape_line') && realHandOfSize(cells, 5) && isStraightLine(cells)) {
     const _a = _slSumPips; mult += _a; bMult('shape_line', _a);
   }
 
@@ -874,7 +877,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_jmMult) { bMultQ('jack_mult', _jmMult, 1); }
   if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
-  if (hasTrick('light_touch') && cells.length === 2) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
+  if (hasTrick('light_touch') && realHandOfSize(cells, 2)) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
   // Timing mult - Near Extinction's retrigger is handled in the per-card loop above.
   // The Heron: hands played 15+ round-seconds after the previous score +mult
   if (hasTrick('patience_reward') && lastHandRoundSeconds !== null && (lastHandRoundSeconds - roundSeconds) >= BAL.patience_reward.seconds) { mult += BAL.patience_reward.mult; bMult('patience_reward', BAL.patience_reward.mult); }

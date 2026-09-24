@@ -60,7 +60,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (pipeTimerPaused) totalFocus += BAL.frozen_moment.focus * trickFires('frozen_moment');
     // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
     if (isSquare(handCells)) totalFocus += BAL.shape_square.focus * trickFires('shape_square');
-    if (isCross(handCells))  totalFocus += BAL.shape_cross.focus  * trickFires('shape_cross');
+    if (isCross(handCells) && realHandOfSize(handCells, 5))  totalFocus += BAL.shape_cross.focus  * trickFires('shape_cross');
     // Study Hall (r205): every Nth card scored pays Focus. It used to need a marked
     // row/column AND a once-per-minute gate, which capped it at 3 fires a round for a
     // rare - the counter runs across the whole run instead, so a 5-card hand pays twice.
@@ -109,8 +109,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
         if (_cd) _cd._vulturePause = (_cd._vulturePause || 0) + BAL.wait_four_it.pause * trickFires('wait_four_it');
       }
     }
-    // ── 5-card-hand family ──
-    if (handCells.length === 5) {
+    // ── 5-card-hand family ── "a 5-card hand" is a real 5-card hand (r339)
+    if (realHandOfSize(handCells, 5)) {
       totalFocus += handCells.length * BAL.five_stack.focus_per_card * trickFires('five_stack'); // +Focus/card (pips+mult handled in calcScore)
       pauseRound(BAL.five_second.pause_seconds * trickFires('five_second'));                       // Five Second Rule → pause 5s
       if (hasTrick('little_guys') && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {

@@ -172,7 +172,7 @@ const TRICK_POOL = [
   // ── 5-card-hand family (r103) ──
   { id:'five_stack',     name:'Five Stack',          tier:'legendary',    tags:['pips','mult','focus'], desc:'Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus' },
   { id:'little_guys',    name:'the little guys',     tier:'rare',      tags:['focus'],           desc:'A 5-card hand with no face cards increases your Focus limit by 1' },
-  { id:'five_fodder',    name:'Five for Fodder',     tier:'common',    tags:['credits','discard'], desc:'Discarding a 5-card hand grants +5 credits' },
+  { id:'five_fodder',    name:'Five for Fodder',     tier:'common',    tags:['credits','discard'], desc:'Discarding a valid 5-card hand grants +5 credits' },
   { id:'five_second',    name:'Five Second Rule',    tier:'rare',      tags:['time'],            desc:'5-card hands pause the clock +5s' },
   // ── Focus-capacity & generation (r104) ──
   { id:'life_lessons',   name:'Life Lessons',        tier:'rare',      tags:['focus'],           desc:'Each round you complete increases your Focus limit by 1' },

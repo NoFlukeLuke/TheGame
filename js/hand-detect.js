@@ -601,6 +601,23 @@ const _compCache = new Map();
 function _compKey(cells) {
   return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
+// r339: "an N-card hand" is a REAL hand of exactly N cards - one component the
+// recognition names (a Straight, a Flush, a Full House, a Set of 3...), never N
+// cells that happen to include a smaller hand plus spares, and never High Card.
+// Owner's rule (the 9.24 sheet, Five for Fodder / the little guys notes): every
+// entity whose printed text says "N-card hand" reads THIS predicate, so they
+// cannot drift. Safe inside calcScore: handComponentsFor is memoised and never
+// calls back into scoring. A throw reads as false - the entity simply does not
+// fire - never as a broken hand.
+function realHandOfSize(cells, n) {
+  try {
+    if (!cells || cells.length !== n) return false;
+    const comps = handComponentsFor(cells);
+    if (!comps || !comps.components) return false;
+    return comps.components.some(c => c.name !== 'High Card' && c.cells.length === n);
+  } catch (e) { return false; }
+}
+
 function handComponentsFor(cells) {
   // POKER SQUARES NAMES ITS OWN HANDS AND LAYERS NOTHING. A line there is five
   // cards scored as one real poker hand, kickers included, so a component list

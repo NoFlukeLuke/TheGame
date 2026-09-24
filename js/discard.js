@@ -38,6 +38,8 @@ function doDiscard() {
   }
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
+  // Five for Fodder wants a VALID 5-card hand (r339) - judged now, while the cards are still on the grid.
+  const _fodder5 = hasTrick('five_fodder') && realHandOfSize(selected, 5);
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
@@ -105,7 +107,7 @@ function doDiscard() {
   cardsDiscardedRound += count;
   discardsUsedRound++;
   // Five for Fodder: discarding a 5-card hand grants credits
-  if (hasTrick('five_fodder') && count === 5) {
+  if (_fodder5) {
     grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
     showMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
   }

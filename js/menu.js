@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r338 · balance tier 3: wording pass, Focus limit vocabulary, closing_time last third";
+const BUILD = "2026-09-24 · r339 · a 5-card hand is a REAL 5-card hand: realHandOfSize wired into ten entities";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

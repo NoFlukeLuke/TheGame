@@ -92,7 +92,7 @@ Two global vocabulary moves ride along:
 
 ## Tier 4 — Shared machinery (one to two sessions; BEFORE Tiers 5–7)
 
-- **4a. "Valid N-card hand" predicate** (Five for Fodder + Little Guys notes):
+- **4a. DONE (r339): "Valid N-card hand" predicate** (`realHandOfSize`, js/hand-detect.js; wired: five_second, five_stack, little_guys, five_fodder, heavy_hand, shape_line, shape_cross, counts3CardHand for ready_set_go/third_down, light_touch) (Five for Fodder + Little Guys notes):
   "5-card hand" = a real 5-card component hand (flush, straight, full house…),
   never 4 cards plus a tagalong/penalty card. One helper over
   `handComponentsFor`; wire `five_fodder`, `little_guys`, `five_second`, and
@@ -111,7 +111,7 @@ Two global vocabulary moves ride along:
   note): the FOCUS chip gets a staggered copy behind itself, a chip flight
   when the second application lands, and a doubled focus-family sound (like
   Flow's extra-reward stingers).
-- **4e. Deterministic chance rolls** for scoring-time probabilities
+- **4e. Deterministic chance rolls** (main's earlier pass already did correct_run's one-of-three and second_hand's either/or; left: Threepeat's one-of-three, Even Better, the Legendary luck roll) for scoring-time probabilities
   (`_detReplayRand` shape — `calcScore` runs speculatively): Ripple 50%,
   Hourglass 50% (round tick, may roll live), Even Better 66%, "Legendary"
   luck roll, rowcol_retrigger's 2-in-3 (already deterministic — verify).

@@ -183,18 +183,6 @@ Treat richter exactly like full_house_streak below.
   owner: A 5-card hand with no face cards increases your Focus limit by 1 (current: +n | max: 15)
   (was:  A 5-card hand with no face cards permanently raises your maximum Focus by 1)
 
-[little_guys] notes
-  owner: so any time an entity says 5 card hand the rule i wrote elsewhere on this should apply, it has to be an
-  (was:  )
-
-[five_fodder] description
-  owner: Discarding a valid 5-card hand grants +5 credits
-  (was:  Discarding a 5-card hand grants +5 credits)
-
-[five_fodder] notes
-  owner: this requires the hand to be an actual 5 card hand, not a 4 card hand with a tag along, so the hand recognitioin needs to see a flush, full house, straight, etc.
-  (was:  )
-
 [threes_crowd] description
   owner: Pairs qualify as 3-card hands
   (was:  Pairs count as 3-card hands)
