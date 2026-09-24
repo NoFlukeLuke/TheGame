@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r336 · balance pass tiers 1-2: 4 removals, 2 renames, 13 rarities, retunes";
+const BUILD = "2026-09-24 · r337 · balance tiers 1-2 merged onto the TWO/PAIR label fix";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
