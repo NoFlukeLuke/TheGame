@@ -191,6 +191,15 @@ const TRICK_POOL = [
   { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Set hands you have played this round' },
   { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Set-type hands made of only odd-ranked cards replay each card' },
   { id:'shaky_foundation',name:'Shaky Foundation',   tier:'common',    tags:['mult','set'],      desc:'Every other Set scores +15 mult' },
+  // ── r359: the 9.23 sheet's new Tricks ──
+  { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['mult','suit','credits'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
+  { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','suit','luck'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits' },
+  { id:'patient_rulers',  name:'Patient Rulers',     tier:'epic',      tags:['mult','face','pause'],   desc:'If you have paused or rewound the clock this round, face cards score x1.5 mult' },
+  { id:'even_better',     name:'Even Better',        tier:'epic',      tags:['pips','value','luck'],   desc:'Even-ranked cards have a 66% chance to score x2.2 pips' },
+  { id:'what_odds',       name:'What are The Odds',  tier:'epic',      tags:['mult','value'],          desc:'Odd-ranked cards score x1.7 mult' },
+  { id:'critical',        name:'Critical',           tier:'epic',      tags:['mult','flush'],          desc:'Flush type hands score x3 mult' },
+  { id:'twinners',        name:'Twinners',           tier:'epic',      tags:['pips','set'],            desc:'Set type hands score x3 pips' },
+  { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','run'],           desc:'Run type hands apply the Focus multiplier twice' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time'],            desc:'Runs pause the clock +3s' },
   { id:'wave_amp',       name:'Wave Amplification',  tier:'common',    tags:['pips','streak'],   desc:'Consecutively played Runs score +10 pips × the streak count' },
@@ -218,6 +227,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','overclock'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
+  { emoji:'💎', ids:['obsessed','buried_treasure','patient_rulers','even_better','what_odds','critical','twinners','marathon'] }, // r359 multipliers
 ];
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
@@ -240,7 +250,7 @@ const NUMERIC_BANNED_TRICKS = new Set([
   'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
   'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
   // Named-suit dependent - Spectrum has colours, not ♠♥♦♣
-  'club_double', 'monochrome', 'spade_flood',
+  'club_double', 'monochrome', 'spade_flood', 'obsessed', 'buried_treasure', 'patient_rulers',
 ]);
 // Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
 // 4+) still work as written, so they stay in.

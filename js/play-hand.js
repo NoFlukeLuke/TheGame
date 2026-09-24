@@ -404,6 +404,24 @@ function playHand() {
   if (typeof cardStatesTouch === 'function') cardStatesTouch(playedCells.map(([r, c]) => gridData[r]?.[c]));
   if (typeof cardStatesOnUse === 'function') cardStatesOnUse(result.handCells.map(([r, c]) => gridData[r]?.[c]), result.handCells);
   if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Buried Treasure (r359): every scored diamond, replays included, rolls
+  // (Luck / 2)% to multiply your credits by 1.1. The chance IS a share of Luck,
+  // so it is not scaled by Luck a second time.
+  if (hasTrick('buried_treasure') && coins > 0) {
+    const _bt = BAL.buried_treasure, _p = Math.max(0, luckTotal() * _bt.luck_share / 100);
+    let _hits = 0;
+    result.handCells.forEach(([r, c]) => {
+      const cd = gridData[r]?.[c];
+      if (!cd || cd.suit !== '♦' || isWildCard(cd)) return;
+      const reps = (_lastRetrigByCell && _lastRetrigByCell[`${r}-${c}`]) || 1;
+      for (let k = 0; k < reps; k++) if (Math.random() < _p) _hits++;
+    });
+    if (_hits) {
+      const _before = coins;
+      let _after = coins; for (let k = 0; k < _hits; k++) _after = Math.max(_after + 1, Math.round(_after * _bt.credit_mult));
+      if (trickFires('buried_treasure')) grantEntityCoins(_after - _before, 'trick', 'buried_treasure');
+    }
+  }
   // The Woodpecker's mark is spent by the hand that scores it (the replays were
   // paid in calcScore, which is read-only, so the mark comes off here).
   if (woodpeckerCardId && result.handCells.some(([r, c]) => gridData[r]?.[c] && cardId(gridData[r][c]) === woodpeckerCardId)) woodpeckerCardId = null;

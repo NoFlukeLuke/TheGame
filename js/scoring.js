@@ -429,6 +429,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('face_value') && ['J','Q','K'].includes(baseRank)) { rawPips += BAL.face_value.face_pips; bPip('face_value', BAL.face_value.face_pips); }
     else if (hasTrick('first_light') && baseRank === 'A') { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
     if (hasTrick('humble_roots') && ['A','1','2','3','4','5','6'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPipX('humble_roots', BAL.humble_roots.pip_mult, rawPips - _b); }
+    // Even Better (r359): a luck-scaled 66% roll per card, deterministic per hand
+    // (the preview and the committed score must agree - the Wait For It rule).
+    if (hasTrick('even_better') && _rankIsEvenRank(baseRank) && luckRollDet(BAL.even_better.chance, (card._id | 0) + 9173, handsPlayedRound) > 0) { const _b = rawPips; rawPips *= BAL.even_better.pip_mult; bPipX('even_better', BAL.even_better.pip_mult, rawPips - _b); }
     if (hasTrick('summit') && (baseRank === 'A' ? 14 : (RANK_ORDER[baseRank] || 0)) === _handTopRankVal) { const _b = BAL.summit.pips_per_level * level; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
     if (hasTrick('court_of_leaves') && ['J','Q','K'].includes(baseRank)) { cp += BAL.court_of_leaves.pips; bPip('court_of_leaves', BAL.court_of_leaves.pips); }
@@ -649,13 +652,23 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     //    card carries an enhancement.
     const _xm = permXMult[_eKey] || 1;
     if (_xm !== 1) _ev('perm_mult', 'mult*', _xm, 'trick', undefined, 'none');
+    // Trick-driven per-card x MULT (r359) rides the same rep loop, each factor
+    // emitted after the enhancement and billed to its own Trick.
+    const _xl = [];
+    if (_xm !== 1) _xl.push({ id: 'perm_mult', f: _xm });
+    if (!_mute) {
+      if (hasTrick('what_odds') && _rankIsOddRank(baseRank)) _xl.push({ id: 'what_odds', f: BAL.what_odds.mult_mult });
+      if (hasTrick('patient_rulers') && ['J','Q','K'].includes(baseRank) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });
+      if (hasTrick('obsessed') && _isHeartC && coins > 0) _xl.push({ id: 'obsessed', f: 1 + coins / BAL.obsessed.per_credits });
+    }
+    _xl.forEach(x => { if (x.id !== 'perm_mult') _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); });
     // The EVENTS are emitted here, where they belong on the timeline. The
     // ARITHMETIC is banked and run in `_cardMultSeq` further down, because `mult`
     // itself does not exist yet - it is declared below this loop, and reading it
     // here is a temporal-dead-zone throw, not a wrong number. The sequence is
     // replayed the moment `mult` has its base value and before ANY hand-level
     // add, which is exactly where these events sit on the timeline.
-    if (_cmAdd || _cmOnce || _xm !== 1) _cardMultSeq.push({ add: _cmAdd, once: _cmOnce, xm: _xm, reps: _retrig });
+    if (_cmAdd || _cmOnce || _xl.length) _cardMultSeq.push({ add: _cmAdd, once: _cmOnce, xl: _xl, reps: _retrig });
   });
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
@@ -743,13 +756,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // order, so any other arrangement diverges the moment a REPLAYED card carries
   // an enhancement.
   _cardMultSeq.forEach(m => {
-    let _noX = mult;                 // what mult would be with no enhancement (ledger delta)
+    const _d = {};                   // per-factor delta, for the ledger
     for (let k = 0; k < m.reps; k++) {
       const a = m.add + (k === 0 ? m.once : 0);
-      mult += a; _noX += a;
-      if (m.xm !== 1) mult *= m.xm;
+      mult += a;
+      m.xl.forEach(x => { const _pre = mult; mult *= x.f; _d[x.id] = (_d[x.id] || 0) + (mult - _pre); });
     }
-    if (m.xm !== 1) bMultQ('perm_mult', mult - _noX, 1);
+    Object.keys(_d).forEach(id => bMultQ(id, _d[id], 1));
   });
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
@@ -965,6 +978,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // above. That is a real score change and a deliberate one: an effect the player
   // cannot see happen is not a mechanic, it is a number.
   // Run multipliers (epic) - applied after additive pip/mult bonuses
+  // Twinners (r359): a hand with a set in it (primary or layered) x3 pips.
+  if (hasTrick('twinners') && handHasFamily([handName, ..._extraLayers], 'set')) {
+    const _f = BAL.twinners.pip_mult, _pre = totalPips; totalPips = Math.round(totalPips * _f); bPipX('twinners', _f, totalPips - _pre);
+  }
   if (isRun && hasTrick('undertow')) {
     const _um = BAL.undertow.pip_mult_base + BAL.undertow.pip_mult_step * Math.max(0, cells.length - 3);
     const _pre = totalPips; totalPips = Math.round(totalPips * _um); bPipX('undertow', _um, totalPips - _pre);
@@ -1174,6 +1191,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Siphon (sleight): ×3 the whole mult, applied last so it multiplies every additive bonus.
   // Read-only here (not consumed) - playHand clears siphonMultX after the hand commits, so
   // findBestHand's candidate scoring sees it consistently.
+  // Critical (r359): a hand with a flush in it (primary or layered) x3 mult.
+  if (hasTrick('critical') && handHasFamily([handName, ..._extraLayers], 'flush')) {
+    const _f = BAL.critical.mult_mult, _pre = mult; mult = Math.round(mult * _f * 10) / 10; bMultX('critical', _f, mult - _pre);
+  }
   if (typeof siphonMultX === 'number' && siphonMultX > 1) {
     const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
     _ev('siphon', 'mult*', siphonMultX, 'sleight');
@@ -1608,9 +1629,20 @@ function sandsDivisor() {
 // function of (hand, cells, owned/round state): calcScore runs speculatively for
 // every preview and the dance replays its timeline - no rolls, no consumption.
 // A future "applies twice" Trick (Marathon) is one line here.
+// Does any of these hand names belong to the family ('set' / 'run' / 'flush')?
+// Straight Flush is in both run and flush (NS_HAND_FAMILIES).
+function handHasFamily(names, fam) {
+  return (names || []).some(n => (NS_HAND_FAMILIES[n] || []).includes(fam));
+}
+
 function focusExtraApplies(handName, cells) {
   let n = 0;
   try {
+    // Marathon (r359): a hand with a run in it applies Focus again.
+    if (hasTrick('marathon')) {
+      const _names = (typeof handComponentsFor === 'function' && handComponentsFor(cells)?.components.map(c => c.name)) || [handName];
+      if (handHasFamily(_names, 'run')) n++;
+    }
     if (hasTrick('phoenix') && (pipeTimerPaused || handTriggersPause(handName, cells))) n++;
     if (hasTrick('kaleidoscope')) {
       // Four or more suits in the hand. Same counting the old +4 Focus effect used:

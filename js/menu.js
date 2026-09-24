@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r358 · The Queen is a real Queen with Royal Reach";
+const BUILD = "2026-09-24 · r359 · Eight new Tricks: Obsessed, Buried Treasure, Patient Rulers, Even Better, What are The Odds, Critical, Twinners, Marathon";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
