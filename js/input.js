@@ -163,8 +163,6 @@ function doSwap(r1, c1, r2, c2) {
   lastSwapTime = Date.now();
   lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
   resetFocusDecayTimer();
-  // Restless: swapping adds 1 focus
-  if (hasTrick('restless')) addFocus(1);
   // ♥ corruption: a swapped heart goes "on probation" - it must appear in the next scored
   // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
   // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r335 · r334 pick/label pass merged onto the 9.24 balance re-diff";
+const BUILD = "2026-09-24 · r336 · balance pass tiers 1-2: 4 removals, 2 renames, 13 rarities, retunes";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

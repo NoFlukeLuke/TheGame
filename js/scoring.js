@@ -10,7 +10,7 @@ function exaltCorruptTotals(cards, reps) {
     if (c._exalted) {
       if      (c.suit === '♣') pips  += BAL._exalt.club_pips * n;          // exalted club:    +10 pips
       else if (c.suit === '♦') coins += BAL._exalt.diamond_coins * n;           // exalted diamond: +3 coins
-      else if (c.suit === '♥') mult  += BAL._exalt.heart_mult * n;           // exalted heart:   +2 mult
+      else if (c.suit === '♥') mult  += BAL._exalt.heart_mult * n;           // exalted heart:   +4 mult
       else if (c.suit === '♠') time  += BAL._exalt.spade_time * n;           // exalted spade:   +4 time
     }
     if (c._corrupted) {
@@ -493,7 +493,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
     }
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; _retrig += _rl; if (_pt) _retrig++;
-    if (_res) _retrig++; if (_rip) _retrig++;
+    if (_res) _retrig += 2; if (_rip) _retrig++;
     if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
     if (_echoS) _retrig++;
     _retrig += _re;

@@ -63,8 +63,6 @@ const TRICK_TIMERS = {
   },
   // The Cuckoo pauses the clock once a minute of round time.
   cuckoo() { return { mode: 'cooldown', left: cdUntilNextMark(BAL.cuckoo.interval_seconds), total: BAL.cuckoo.interval_seconds }; },
-  // Compound banks the round score on its own mark.
-  compound() { return { mode: 'cooldown', left: cdUntilNextMark(BAL.compound.interval_seconds), total: BAL.compound.interval_seconds }; },
   // The Woodpecker marks a card in alternating 30s blocks - it is genuinely off
   // for half of every minute, which nothing said out loud before.
   woodpecker() {

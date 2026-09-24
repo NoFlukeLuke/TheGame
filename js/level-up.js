@@ -257,7 +257,6 @@ function triggerLevelUp() {
   replaysThisRound = 0;
   timeManipRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
-  compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
   // The card-state fuses refresh every level (owner's spec), so a charged card

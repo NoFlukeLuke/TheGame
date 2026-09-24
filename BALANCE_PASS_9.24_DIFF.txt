@@ -24,13 +24,16 @@ wellspring encore's neighbours combo_score more_better's number
 tens_mult eights' neighbours mirror's neighbours...). When in doubt,
 diff the sheet against a fresh gen_balance_sheet.js output.
 
+DONE IN r336 (Tiers 1-2): the 4 removals (ancient_grove, compound, restless,
+flywheel), both renames (Jackpot, Fresh Start), all 13 rarity moves, meditation
+2s, mockingbird every-4, hourglass 50%, eye_of_storm 2x, Echo Location 2-in-3
+(prints 67%), exalt heart_mult 4, corrupt spade_coins -5. Those rows are pruned
+from this file. Owner decisions: the keyword is INERT (not Spent); echo_hand's
+text and the unnamed legendary Trick still await the owner.
+
 ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
 Treat richter exactly like full_house_streak below.
-
-[ancient_grove] notes
-  owner: remove
-  (was:  )
 
 [high_water] description
   owner: Runs pause the clock for 1 second for each run played this round.
@@ -44,14 +47,6 @@ Treat richter exactly like full_house_streak below.
   owner: x1.75 mult each time a card is replayed
   (was:  Each replay in a hand multiplies its mult ×0.2 more)
 
-[compound] description
-  owner: Every 15 seconds, increase your current score by 25%
-  (was:  Every 45 seconds your round score is banked. Your next hand pays the banked amount again.)
-
-[compound] notes
-  owner: remove
-  (was:  )
-
 [overclock] notes
   owner: make speed bonus a keyword and the tooltip should be something like focus is generated both by how complex the hand is, and by how quickly it was played after the preceeding hand. make that an entry in the handbook if not already
   (was:  )
@@ -60,17 +55,9 @@ Treat richter exactly like full_house_streak below.
   owner: Full Houses score +10 focus
   (was:  Each Full House instantly advances Focus to the next threshold)
 
-[two_pair_mult] rarity
-  owner: epic
-  (was:  rare)
-
 [two_pair_mult] description
   owner: Play 3 hands with a pair within 30s to add +16 Focus
   (was:  Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak))
-
-[eye_of_storm] description
-  owner: Hands played in the middle third of the round replay the highest-ranked card(s) 2x
-  (was:  Hands played in the middle third of the round replay the highest-ranked card(s))
 
 [ripple] description
   owner: Cards adjacent in rank to another card in the hand have a 50% chance to replay
@@ -84,10 +71,6 @@ Treat richter exactly like full_house_streak below.
   owner: When an Ace scores, prime your first and last Tricks
   (was:  When an Ace scores, prime your first and last Tricks (each fires twice its next hand))
 
-[knave_power] name
-  owner: Jackpot
-  (was:  Knave for the People)
-
 [before_the_tide] description
   owner: Each rank 5 or lower card scored adds its rank in Focus
   (was:  Each rank-5-and-below card scored adds its rank in Focus)
@@ -96,17 +79,9 @@ Treat richter exactly like full_house_streak below.
   owner: In the last third of the round, each scored card replays
   (was:  When less than a quarter of the round remains, each scored card replays)
 
-[quick_draw] base_cost
-  owner: 4
-  (was:  3)
-
 [quick_draw] description
   owner: Hands played within 2 seconds of the previous hand add +1 to your focus limit (current: n | max: 10)
   (was:  Hands played within 3 seconds of the previous permanently add +1 max Focus capacity)
-
-[first_play] rarity
-  owner: rare
-  (was:  common)
 
 [first_play] description
   owner: Adds +5 focus to the first hand of a round and one less to each subsequent hand. Does not go negative (current: n)
@@ -136,17 +111,9 @@ Treat richter exactly like full_house_streak below.
   owner: Every time the clock ends in a 0, gain +2 Focus
   (was:  Every time the round clock ends in a 0, gain +2 Focus)
 
-[hourglass] description
-  owner: Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay
-  (was:  Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger)
-
 [magpie] description
   owner: Each hand rewinds the clock 1 second for every 2 swaps + discards you hold
   (was:  Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold)
-
-[mockingbird] description
-  owner: Every 4 hands you play without a same-type streak grants +1 swap
-  (was:  Every 3 hands you play without a same-type streak grants +1 swap)
 
 [phoenix] description
   owner: While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause trigger this trick)
@@ -160,21 +127,9 @@ Treat richter exactly like full_house_streak below.
   owner: Each club scored this round adds more and more pips: doubles each time, starts at 1.
   (was:  Each club scored adds escalating pips - +5, doubling per club; replays count)
 
-[monochrome] rarity
-  owner: Epic
-  (was:  epic)
-
 [monochrome] description
   owner: Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds
   (was:  Hands with at least one heart and one diamond grant +1 credit and rewind the clock 15 seconds)
-
-[lucky_sevens] rarity
-  owner: rare
-  (was:  epic)
-
-[rowcol_retrigger] description
-  owner: Cards scored in a marked row or column have a 2 in 3 chance to replay
-  (was:  Cards scored in a marked row or column have a 50% chance to replay once)
 
 [right_time] description
   owner: Cards scored in a marked row or column pause the clock for +2s
@@ -204,17 +159,9 @@ Treat richter exactly like full_house_streak below.
   owner: Use every cell of any row or column within two hands to add +5 focus and +5 credits
   (was:  Cover a full row or column within two hands to advance Focus to the next threshold.)
 
-[acorns] rarity
-  owner: epic
-  (was:  rare)
-
 [acorns] description
   owner: Each card scored scales this trick +0.1 Focus, starts at +0.
   (was:  Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand)
-
-[plan_ahead] rarity
-  owner: rare
-  (was:  epic)
 
 [twos_retrigger] description
   owner: Each 2 scored force triggers your right most trick
@@ -272,18 +219,6 @@ Treat richter exactly like full_house_streak below.
   owner: Each negative reward tile taken this run gives every scored card a +2% chance to replay (current chance: n)
   (was:  Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive))
 
-[meditation] rarity
-  owner: rare
-  (was:  common)
-
-[meditation] description
-  owner: Focus decays 2 second slower
-  (was:  Focus decays 1 second slower)
-
-[restless] notes
-  owner: remove
-  (was:  structural — no tunable value)
-
 [cull] description
   owner: Discarding or Swapping adds +1 Focus per 2  remaining swaps and discards
   (was:  Discarding adds 1 Focus per swap and discard you have left)
@@ -312,10 +247,6 @@ Treat richter exactly like full_house_streak below.
   owner: this requires the hand to be an actual 5 card hand, not a 4 card hand with a tag along, so the hand recognitioin needs to see a flush, full house, straight, etc.
   (was:  )
 
-[five_second] rarity
-  owner: rare
-  (was:  epic)
-
 [five_second] description
   owner: 5-card hands pause the clock +5s
   (was:  Playing a 5-card hand pauses the clock 5 seconds)
@@ -323,10 +254,6 @@ Treat richter exactly like full_house_streak below.
 [life_lessons] description
   owner: Each round you complete increases your Focus limit by 1
   (was:  Each round you complete permanently raises your maximum Focus by 1)
-
-[third_charm] rarity
-  owner: rare
-  (was:  epic)
 
 [third_charm] description
   owner: The 3rd card of a hand replays 2x
@@ -364,10 +291,6 @@ Treat richter exactly like full_house_streak below.
   owner: Runs pause the clock +3s
   (was:  Runs pause the clock 3 seconds)
 
-[the_queen] rarity
-  owner: epic
-  (was:  legendary)
-
 [the_queen] description
   owner: The rank of this sleight is Queen, it scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.
   (was:  Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD))
@@ -375,10 +298,6 @@ Treat richter exactly like full_house_streak below.
 [the_queen] notes
   owner: Royal Reach: a card with royal reach can be selected with any hand containing a card any distance above, below, beside or diagonal from it. it can also be swapped with any card above, below, beside or diagonal from it
   (was:  structural — no tunable value; needsResolve / TBD)
-
-[warehouse] rarity
-  owner: Common
-  (was:  rare)
 
 [warehouse] description
   owner: Counts as 2 cards of any suit for the purpose of completing a flush. Has no rank.
@@ -392,10 +311,6 @@ Treat richter exactly like full_house_streak below.
   owner: structural — no tunable value; does this actually work? if so, how? like if this falls onto the grid during a boss round, we're able to remove and stone or other curses and pause other boss effects like giving back discard or swaps, prevent the score fomr incremeenting due to a boss effect, etc?
   (was:  structural — no tunable value)
 
-[dazed] name
-  owner: Fresh Start
-  (was:  Dazed & Confused)
-
 [dazed] description
   owner: When discarded, shuffles all cards back into the deck and redeals. Costs -3 credits and -10s
   (was:  When swapped, reshuffles every card on the grid.)
@@ -408,17 +323,9 @@ Treat richter exactly like full_house_streak below.
   owner: Play this: gain +2 swaps and +1 discard. n/5 charges
   (was:  Play this: gain +2 swaps and +1 discard. (5 charges))
 
-[cash_out] rarity
-  owner: rare
-  (was:  common)
-
 [cash_out] description
   owner: Discard this: gain 10 credits n/3 charges
   (was:  Discard this: gain 10 credits. (4 charges))
-
-[last_call] rarity
-  owner: rare
-  (was:  epic)
 
 [last_call] description
   owner: Discard this: rewind the clock 15 seconds. n/3 charges
@@ -427,10 +334,6 @@ Treat richter exactly like full_house_streak below.
 [sandbag] description
   owner: Discard this: with a pair to rewind the clock by that pair’s rank in seconds. +50% more time for every additional member of the set. n/3 charges
   (was:  Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges))
-
-[the_wanderer] rarity
-  owner: rare
-  (was:  common)
 
 [the_wanderer] description
   owner: While on grid: allows any two cards to be swapped regardles of position. Still uses your swap stock. n/5 charges
@@ -484,14 +387,6 @@ Treat richter exactly like full_house_streak below.
   owner: +1 to Focus limit for every 45 seconds this sleight spends on the grid. current: n | max: 15
   (was:  +1 maximum Focus for every minute this sleight spends on the grid.)
 
-[flywheel] description
-  owner: While on the grid, the Focus speed bonus is multiplied by 2.
-  (was:  While on the grid, the Focus speed bonus is multiplied by 1.5.)
-
-[flywheel] notes
-  owner: remove
-  (was:  )
-
 [governor] description
   owner: While on the grid, you have 50% longer to earn the Focus speed bonus.
   (was:  While on the grid, you have 1.5× as long to earn the same Focus speed bonus.)
@@ -507,14 +402,6 @@ Treat richter exactly like full_house_streak below.
 [petty_cash] description
   owner: Score two hands beside this card to get +5 credits, Discards itself after giving bonus.
   (was:  Score two hands beside this card for +5 credits, then it goes back into the deck.)
-
-[_exalt] params_json
-  owner: {"club_pips":10,"diamond_coins":3,"heart_mult":4,"spade_time":4}
-  (was:  {"club_pips":10,"diamond_coins":3,"heart_mult":2,"spade_time":4})
-
-[_corrupt] params_json
-  owner: {"club_pips":25,"club_mult":-3,"diamond_coins":5,"diamond_pips":-20,"heart_mult":5,"heart_time":-5,"spade_time":7,"spade_coins":-5}
-  (was:  {"club_pips":25,"club_mult":-3,"diamond_coins":5,"diamond_pips":-20,"heart_mult":5,"heart_time":-5,"spade_time":7,"spade_coins":-8})
 
 [richter] description
   owner: Four of a Kind score ×3 mult and +10 focus

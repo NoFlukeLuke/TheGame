@@ -746,7 +746,7 @@ function handReplayMap(cells) {
 // ── Exalt / Corrupt suit effects ──
 // Per-card flags _exalted / _corrupted grant enhanced suit effects.
 // Returns { pips, mult, coins, time } totals across the given cards.
-// Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +2 mult | ♠ +4 time
+// Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +4 mult | ♠ +4 time
 // Corrupted: ♣ +25 pips/-3 mult | ♦ +5 coins/-20 pips | ♥ +5 mult/-5 time | ♠ +7 time/-8 coins
 // ══════════════════════════════════════════════
 // BALANCE CONFIG (BAL) - single source of truth for tunable numbers

@@ -5,7 +5,7 @@ const COMBO_FAMILIES = [
   { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'old_growth'] },
   { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','scalper'],['coin_toss','martyr']] },
   { id:'frozen_hour',       name:'Frozen Hour',       slots:['high_water','frozen_moment','sands_of_time'] },
-  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state',['ancient_grove','richter'],['rhythm','kaleidoscope','before_the_tide']] },
+  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state','richter',['rhythm','kaleidoscope','before_the_tide']] },
   { id:'position_lock',     name:'Position Lock',     slots:[['rowcol_mult','rowcol_retrigger','rowcol_perm_double'],['shape_square','two_corners','shape_cross'],'magnet'] },
 ];
 let _comboAnnounced = new Set(); // families that already fired the ONLINE toast (per game)
@@ -188,10 +188,6 @@ let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (re
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
-// Compound (legendary): the round score is banked every interval; the next scored hand
-// pays the bank again. Both reset each round (see triggerLevelUp).
-let compoundNextMark = 0;     // next elapsed-seconds threshold at which to bank
-let compoundBanked   = 0;     // banked score awaiting the next hand's payout
 let doubleJeopardyPos = null; // { r, c } - marked tile (Double Jeopardy); fires once per round
 let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
 let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)

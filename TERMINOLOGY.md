@@ -198,6 +198,8 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 | PIPS | **WORK** |
 | MULT | **SKILL** |
 | coins | Credits |
+| Knave for the People (trick `knave_power`) | **Jackpot** (the old Jackpot trick, `big_win`, was removed) |
+| Dazed & Confused (sleight `dazed`) | **Fresh Start** |
 
 ## Where the strings live
 

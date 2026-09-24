@@ -116,7 +116,7 @@ let focusSpeedParams = JSON.parse(localStorage.getItem('focusSpeedParams') || 'n
 
 function recomputeFocusDecayInterval() {
   let ms = focusDecayBaseMs;
-  if (typeof hasTrick === 'function' && hasTrick('meditation')) ms += 1000;
+  if (typeof hasTrick === 'function' && hasTrick('meditation')) ms += 2000;
   focusDecayIntervalMs = ms;
   if (focusDecayTimerId !== null) {
     clearInterval(focusDecayTimerId);
@@ -223,7 +223,6 @@ function focusRateMods() {
       const cd = gridData[r]?.[c];
       if (!cd || !cd._isSleight) continue;
       if (typeof cellCountsForTriggers === 'function' && !cellCountsForTriggers(r, c)) continue;
-      if (cd.sleightId === 'flywheel') m.speed  *= BAL.flywheel.speed_mult;
       if (cd.sleightId === 'governor') m.window *= BAL.governor.window_mult;
     }
   }

@@ -122,11 +122,6 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (totalFocus > 0) addFocus(totalFocus);
     // Quick Draw: hands played within 3 seconds of the previous permanently add +1 max Focus capacity
     if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapPerm += 10 * trickFires('quick_draw');
-    // Flash Flood: runs of 4+ cards instantly advance focus to the next threshold
-    if (_isRunHand && handCells.length >= 4 && hasTrick('ancient_grove')) {
-      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + trickFires('ancient_grove')) * FOCUS_THRESHOLD;
-      addFocus(_nt - focusNodes);
-    }
     // Collapsing Columns (Full House) / Richter (Four of a Kind): advance focus to next threshold
     {
       const _adv = (hand === 'Full House' ? trickFires('full_house_streak') : 0)
@@ -362,14 +357,6 @@ function playHand() {
     spotCheckLeft--;
     if (spotCheckLeft <= 0) { spotCheckHand = null; showMessage('Spot check cleared', 'var(--gold)'); }
     else showMessage(`Spot check: ${spotCheckLeft} more`, 'var(--cream-dim)');
-  }
-  // Compound (legendary): pay out everything banked since the last hand, then clear.
-  // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
-  // already earned, so running it back through mult × Focus would multiply it twice.
-  if (compoundBanked > 0) {
-    score += compoundBanked;
-    showMessage('Compound! +' + compoundBanked.toLocaleString(), '#d8a13a');
-    compoundBanked = 0;
   }
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
@@ -618,7 +605,7 @@ function playHand() {
   // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hoarder House).
   if (hasTrick('mockingbird') && streakCount === 1) {
     _altSwapCount++;
-    if (_altSwapCount >= 3) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
+    if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
   }
 
   // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).

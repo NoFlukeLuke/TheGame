@@ -119,7 +119,6 @@ const BAL = {
   heart_double: { heart_mult: 1 },
   full_house_streak: { score_base: 1.5 },
   blackjack_bonus: { pip_mult: 3 },
-  ancient_grove: { min_run_len: 4 },
   double_bloom: { mult_mult: 1.5 },
   richter: { mult_mult: 3 },
   ripple: { cooldown_ms: 30000 },
@@ -147,7 +146,6 @@ const BAL = {
   // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
-  compound:    { interval_seconds: 45, bank_fraction: 1 },
   // ── Upgrade events (r194) ──
   rehearsal: { consolation_credits: 12 },
   workshop:  { cap_bonus: 2, consolation_credits: 12 },
@@ -176,7 +174,6 @@ const BAL = {
   overclock:      { speed_mult: 2 },
   long_fuse:      { window_mult: 2 },
   shorthand:      { complexity_mult: 1.5 },
-  flywheel:       { speed_mult: 1.5 },
   governor:       { window_mult: 1.5 },
   // ── play/round-side: accumulators & permanent gains ──
   first_fruits: { pips: 3 },
@@ -199,7 +196,7 @@ const BAL = {
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
   payout_pick: { pips: 12 },
   second_hand: { pips: 10, mult: 5 },
-  hourglass: { chance: 1/3 },
+  hourglass: { chance: 0.5 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
   kingfisher: { interval_seconds: 2, mult_per_interval: 1 },
   magpie: { actions_per_second: 2 },
@@ -241,7 +238,7 @@ const BAL = {
   tempo:    { limit: 2, interval_seconds: 15 },
   jury_rig: { chance: 0.5, charges: 1 },
   coin_toss: { chance: 0.5, charges: 1 },   // was hardcoded in js/level-up.js until r196
-  rowcol_retrigger: { chance: 0.5 },        // was an unscalable modulo in js/scoring.js until r196
+  rowcol_retrigger: { chance: 2/3 },        // was an unscalable modulo in js/scoring.js until r196
   time_slip: { chance: 0.25 },
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 15 },
@@ -258,8 +255,8 @@ const BAL = {
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
   _resources: { unspent_credits: 2, unspent_cap: 10, interest_cap: 10, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
-  _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
-  _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
+  _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 4, spade_time: 4 },
+  _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -5 },
 };
 
 // ── Description templates - keep tooltip text in sync with BAL numbers ──
@@ -312,7 +309,6 @@ const DESC_TEMPLATES = {
   overclock: 'The Focus speed bonus is multiplied by {speed_mult}.',
   long_fuse: 'You have {window_mult}× as long to earn the same Focus speed bonus.',
   shorthand: 'Hands generate {complexity_mult}× their listed Focus.',
-  flywheel: 'While on the grid, the Focus speed bonus is multiplied by {speed_mult}.',
   governor: 'While on the grid, you have {window_mult}× as long to earn the same Focus speed bonus.',
   overgrowth: 'Runs score +{pips_per_card} pips per card',
   long_road: 'Runs score +{mult_per_card} mult per card',
@@ -381,7 +377,7 @@ const DESC_TEMPLATES = {
   amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} maximum Focus.',
-  rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay once',
+  rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay',
   coin_toss: 'At the start of each round, every Sleight has a {chance_pct}% chance to restore {charges} charge.',
   reflect: 'Tap to rotate its aim. The rank it faces replays {extra_replays}× when a hand scores. Works once per round. Cannot be swapped or discarded.',
   deluge: 'Flushes rewind the clock {seconds} seconds',

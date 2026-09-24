@@ -491,7 +491,6 @@ function magnetCluster(mr, mc, rank) {
     gridData[nr][nc] = gridData[fr][fc];
     gridData[fr][fc] = tmp;
     fireSleightsOnSwap(nr, nc, fr, fc); // counts as a swap
-    if (hasTrick('restless')) addFocus(1);
     moved++;
   }
   return moved;
@@ -538,7 +537,7 @@ function applySleightGridEffect(id, r, c) {
       break;
     case 'dazed':
       reshuffleGrid();
-      showMessage('Dazed & Confused - grid reshuffled!', '#cc88ff'); break;
+      showMessage('Fresh Start - grid reshuffled!', '#cc88ff'); break;
     case 'pivot':
       // Unreachable since r205: Pivot is `passive` now (it works by sitting on the
       // grid), so fireSleightsOnSwap never dispatches it. The whole effect - the
