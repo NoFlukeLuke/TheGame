@@ -29,9 +29,10 @@ function renderCardAppearance(card, r, c, {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
     // its charge count, which is the number that actually matters on the board.
+    const _maxCh = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
-      : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
+      : (card._usesLeft === 'infinite' ? '∞' : (_maxCh ? `${card._usesLeft}/${_maxCh}` : card._usesLeft));
     // An AIM sleight (Reflect / Soul Mirror) is drawn tilted with a direction arrow,
     // and a spent one is greyed. Both used to live ONLY in render()'s own sleight
     // branch, so a sleight animating - falling, dealt in, or shown in the hand preview -
@@ -51,7 +52,8 @@ function renderCardAppearance(card, r, c, {
     }
     return {
       className: `trick-card sleight-card${sleightRarityClass(def)}${isSwapPending ? ' swap-pending' : ''}`
-               + (sleightIsSpent(card, def) ? ' sleight-spent' : ''),
+               + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+               + (card._inert ? ' sleight-inert' : ''),
       innerHTML: sleightFaceHTML(card, def, usesStr),
     };
   }

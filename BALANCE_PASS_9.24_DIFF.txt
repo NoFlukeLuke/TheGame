@@ -243,14 +243,6 @@ Treat richter exactly like full_house_streak below.
   owner: for remaining time, update that value live. Also, count each 6 seconds as a charge for the purposes of entities that scale based on that or restore charges to sleights.
   (was:  structural — no tunable value)
 
-[piggy_bank] description
-  owner: Double-tap: gain 5 credits. Becomes inert on use. n/5 charges
-  (was:  Double-tap: gain 5 credits. (5 charges))
-
-[piggy_bank] notes
-  owner: inert meaning it can't be swapped or discarded after use, do we use another word for that? So for all sleights with charges, instead of just having its max charges in the description, have it say n/max charges. so however many charges are left over the max.
-  (was:  )
-
 [magnet] description
   owner: Double-tap: then tap any card: pull every card of the selected rank to replace itself and adjacent cards (via discard) N/3 charges
   (was:  Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges))
@@ -266,10 +258,6 @@ Treat richter exactly like full_house_streak below.
 [soul_mirror] description
   owner: Tap to rotate its aim. When the rank it faces is scored, it replays once for each count of that rank in the deck. Cannot be swapped, discarded, or played.
   (was:  Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.)
-
-[capacitor] description
-  owner: Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use.  n/2 charges
-  (was:  Double-tap to spend 10 Focus and 10 seconds for 10 credits. Consumed on use.)
 
 [shift_swap] description
   owner: Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.

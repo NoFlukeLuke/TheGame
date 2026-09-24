@@ -69,9 +69,10 @@ function render() {
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
         // (1/2) instead of its charges - same rule as renderCardAppearance.
+        const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
-          : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
+          : (card._usesLeft === 'infinite' ? '∞' : (_maxChJ ? `${card._usesLeft}/${_maxChJ}` : card._usesLeft));
         const _isAim = AIM_SLEIGHTS.has(def?.id);
         // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
         // not .card, so none of the .card.selected.hand-valid / .hand-ready /
@@ -83,6 +84,7 @@ function render() {
         const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
                       + (_unreachJ ? ' unreachable' : '')
                       + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+                      + (card._inert ? ' sleight-inert' : '')
                       // className is rewritten wholesale below, so an in-flight
                       // double-tap spin has to be carried across the repaint.
                       + (div.classList.contains('sl-spin') ? ' sl-spin' : '');

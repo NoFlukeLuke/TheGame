@@ -107,10 +107,14 @@ Two global vocabulary moves ride along:
   flat +10 Focus. trickLiveDesc cases added for all four Tricks.
   REMAINING from 4b: Wait For Iiiit already has its readout; Stopwatch /
   Fight the Power readouts land with 4i.
-- **4c. Sleight charge display `n/max`** on every charged Sleight (both grid
-  render paths — the r161 rule — plus tooltips), and the **"inert/Spent"
-  state**: Piggy Bank and Capacitor stay on the grid but can't be swapped or
-  discarded after use (`cardCan` gate). Pending naming decision 3.
+- **4c. DONE (r341): n/max charges + the INERT state** (owner's word). Every
+  charged Sleight's tile and grid tooltip read `n/max` (via sleightMaxCharges,
+  so Maintenance-raised ceilings print). Piggy Bank and Capacitor fire IN
+  PLACE, once per round, and go inert: cardCan blocks swap/discard, playing it
+  in a hand is the one way off the board (discardToPlayed accepts an inert
+  sleight or the fall would delete it from the run; the cycled copy comes back
+  movable with its remaining charges). `INERT_ON_USE_SLEIGHTS` +
+  `sleightUseInPlace` in js/sleights-runtime.js; `.sleight-inert` wash.
 - **4d. "Focus multiplier applies twice"** — shared mechanism for The Phoenix
   (existing, plus its new "hands that trigger a pause trigger this" clause),
   Kaleidoscope (changed) and Marathon (new). Owner's animation spec (Marathon

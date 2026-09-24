@@ -688,7 +688,12 @@ function discardToDrawPile(card) {
 
 // Scored card - held out until round ends
 function discardToPlayed(card) {
-  if (!cardCan(card, 'discard')) return;
+  // An INERT sleight (r341) refuses the player's swap/discard gestures, but being
+  // played in a hand is its one way off the board - the pile bookkeeping must
+  // accept it or the card is deleted from the run when the fall nulls its cell.
+  // The cycled copy is a fixed field list, so _inert is dropped and it comes back
+  // movable, with whatever charges it still held.
+  if (!cardCan(card, 'discard') && !(card && card._isSleight && card._inert)) return;
   // Sleights cycle back into the deck preserving identity & remaining charges
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {

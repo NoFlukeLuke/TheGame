@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r340 · Focus-limit growers are capped and live: Quick Draw / Expanse / little guys / Slow Burn / Head Start";
+const BUILD = "2026-09-24 · r341 · INERT: Piggy Bank / Capacitor stay on the grid after use; every charged Sleight reads n/max";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

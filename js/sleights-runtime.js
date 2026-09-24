@@ -116,7 +116,24 @@ function lockSleightForRound(card) {
     showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed - locked until discarded or played`, 'var(--cream-dim)');
 }
 
-// Active-tap sleights (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon) LEAVE the grid
+// ── INERT on use (r341, owner's word) ──
+// Piggy Bank and Capacitor no longer discard-on-use: they fire IN PLACE, at most
+// once per round (the ordinary _usedThisRound lock, cleared by the round-start
+// sweep), and become INERT - the card stays on the grid and can no longer be
+// swapped or discarded (cardCan gates both). It can still be selected into a
+// hand, which is its one way off the board. Deliberately NOT lockSleightForRound:
+// its 0-charge message says "locked until discarded or played", which is a lie here.
+const INERT_ON_USE_SLEIGHTS = new Set(['piggy_bank', 'capacitor']);
+function sleightUseInPlace(card, r, c) {
+  if (!card) return;
+  card._usedThisRound = true;
+  if (card._usesLeft !== 'infinite') card._usesLeft = Math.max(0, card._usesLeft - 1);
+  card._inert = true;
+  spinSleightTile(r, c);
+  if (!animating && !falling) render();
+}
+
+// Active-tap sleights (Amplifier/Snooze/Magnet/Siphon) LEAVE the grid
 // the moment they fire - replacing the old once-per-round lock. Like a normal discard the
 // card cycles back into the deck with its remaining charges (discardToPlayed drops it once
 // fully spent), and removeAndFall animates it out AND refills the hole (nulling the cell by
@@ -625,7 +642,11 @@ function showSleightGridTooltip(r, c, card) {
   const gridEl = document.getElementById('grid');
   const sleightEl = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!sleightEl) return;
-  let uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  // Charged sleights read n/max (owner's spec, r341); max comes through
+  // sleightMaxCharges so a Maintenance-reinforced ceiling is the one printed.
+  const _mxCh = sleightMaxCharges(def);
+  let uses = card._usesLeft === 'infinite' ? '∞ uses'
+           : (_mxCh ? `${card._usesLeft}/${_mxCh} charges` : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`);
   // Whetstone banks mult on the card itself - surface it, it's the whole point of the Sleight.
   if (def.id === 'whetstone') uses = `+${card._whetMult || 0} mult sharpened`;
   // Lighthouse's value depends on where it is right now - show the live number.
@@ -641,9 +662,12 @@ function showSleightGridTooltip(r, c, card) {
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
+  if (card._inert) uses += ' · INERT (cannot be swapped or discarded)';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
-              : def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE'
+              : def.activation === 'double_tap' ? (INERT_ON_USE_SLEIGHTS.has(def.id)
+                  ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND · INERT AFTER USE${_usedLock}`
+                  : 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE')
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`

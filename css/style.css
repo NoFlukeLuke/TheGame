@@ -5476,6 +5476,11 @@
   opacity: 0.55;
   box-shadow: none !important;
 }
+/* INERT (r341): a used Piggy Bank / Capacitor stays on the grid, unswappable and
+   undiscardable. Milder than spent - it may still hold charges for later rounds. */
+.trick-card.sleight-card.sleight-inert:not(.selected):not(.swap-pending) {
+  filter: grayscale(0.5) brightness(0.8);
+}
 /* Fired. The tile spins horizontally in place before it leaves the grid. */
 @keyframes sleight-spin {
   0%   { transform: translate(var(--hbx,0), var(--hby,0)) perspective(500px) rotateY(0deg) scale(var(--hbs,1)); }

@@ -377,6 +377,9 @@ function cardCan(card, action) {
     // Aim sleights are fixtures: fall & render only - never swapped, discarded, or selected
     // (so a single tap is free to rotate aim).
     if (AIM_SLEIGHTS.has(sleightDef(card)?.id)) return action === 'fall' || action === 'render';
+    // INERT (r341): a used Piggy Bank / Capacitor stays on the grid and can no longer
+    // be swapped or discarded. Selecting it into a hand is its one way off the board.
+    if (card._inert) return action === 'fall' || action === 'render' || action === 'select';
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'select' || action === 'discard';
   }
   if (card.isChallenge) {

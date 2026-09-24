@@ -370,7 +370,7 @@ function onCardTap(r, c) {
         if (typeof entityEffectFX === 'function')
           entityEffectFX('credits', BAL.capacitor.credits,
             { srcEl: document.querySelector(`#grid [data-card-id="${jcard._id}"]`), id: 'capacitor', source: 'sleight' });
-        selected = []; discardSleightAfterUse(jcard, r, c);
+        selected = []; sleightUseInPlace(jcard, r, c);   // INERT on use (r341), stays on the grid
         return;
       }
       // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid - it
@@ -391,9 +391,12 @@ function onCardTap(r, c) {
         render();
         return;
       }
-      // Amplifier / Snooze / Piggy Bank: fire, then leave the grid (discard-on-use, r164).
+      // Piggy Bank (and any future INERT_ON_USE sleight): fire in place, go inert (r341).
+      // Amplifier / Snooze: fire, then leave the grid (discard-on-use, r164).
       applySleightGridEffect(jdef.id, r, c);
-      selected = []; discardSleightAfterUse(jcard, r, c);
+      selected = [];
+      if (INERT_ON_USE_SLEIGHTS.has(jdef.id)) sleightUseInPlace(jcard, r, c);
+      else discardSleightAfterUse(jcard, r, c);
       return;
     }
     // otherwise fall through to normal selection/swap handling below
