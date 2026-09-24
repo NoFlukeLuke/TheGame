@@ -122,7 +122,7 @@ const TRICK_POOL = [
   // ── Level scaling ──
   { id:'rising_tide',    name:'Rising Tide',         tier:'common',    desc:'Score +1 mult, +1 more for each level reached' },
   // ── Accumulating ──
-  { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played permanently adds +0.1 mult to this trick' },
+  { id:'compound_mult',  name:'Relentless',          tier:'epic',      desc:'Each hand played permanently adds +0.05 mult to this trick' },
   { id:'acorns',         name:'Acorns',              tier:'epic',      tags:['focus','scaling'], desc:'Each card scored scales this trick +0.1 Focus, starting at +0; grants its whole-number Focus each hand' },
   { id:'plan_ahead',     name:'Plan Ahead',          tier:'rare',      tags:['focus','scaling'], desc:'Every 3rd hand adds Focus equal to your average hands per round' },
   { id:'fives_discard',  name:'Penny Saved',         tier:'rare',      tags:['scaling','pips','value'], desc:'Each 5 discarded or played permanently adds +5 pips to this trick' },

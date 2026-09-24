@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r364 · The Pick stops emptying the board, and its taps reach it; EVENTS.md";
+const BUILD = "2026-09-24 · r365 · Relentless (was Compound): +0.05 mult a hand from 0";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

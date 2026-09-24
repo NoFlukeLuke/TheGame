@@ -696,7 +696,7 @@ function playHand() {
   }
   // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
   // the goal checks, called from all three dance sites (r294).
-  if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
+  if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 100) / 100;   // 2dp: at a 0.05 step, 1dp rounds every hand up to +0.1
   // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
   if (hasTrick('acorns')) bonusFocus_acorns += handCells.length * BAL.acorns.focus_per_card;
   // Feng Shui: grow its permanent pips when another position trick fired this hand

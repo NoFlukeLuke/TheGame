@@ -112,7 +112,7 @@ Trick,huddle,Huddle,"{""pips_per_adj"":11}",rare,6,pips,spatial,,,,,1,,,,,,,,,,p
 Trick,clean_sweep,Clean Sweep,,epic,9,focus,spatial,,,,,1,1,,,,,,1,,,focus position,Use every cell of any row or column within two hands to add +5 focus and +5 credits,structural — no tunable value
 Trick,rising_tide,Rising Tide,,common,3,mult,always / passive,,,,,,,,,,,,,1,,,Score 1+1 mult for each level reached,structural — no tunable value
 Trick,veteran_bonus,Veteran,"{""pips_per_level"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,+2 pips per level reached this run,remove
-Trick,compound_mult,Compound,"{""mult_per_hand"":0.1}",epic,9,mult,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +0.1 mult to this trick,
+Trick,compound_mult,Relentless,"{""mult_per_hand"":0.05}",epic,9,mult,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +0.05 mult to this trick,
 Trick,prolific,Prolific,"{""pips_per_hand"":1}",rare,6,pips,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +1 pip to this trick,remove
 Trick,acorns,Acorns,"{""focus_per_card"":0.05}",epic,6,focus,always / passive,,,,,,,,,,,,1,1,,focus scaling,"Each card scored scales this trick +0.1 Focus, starts at +0.",
 Trick,plan_ahead,Plan Ahead,"{""every"":3}",rare,9,focus,always / passive,,,,,,,,,,,,1,1,,focus scaling,Every 3rd hand adds Focus equal to your average hands per round,

@@ -196,7 +196,7 @@ const BAL = {
   nines_mult: { mult_per_nine: 9 },
   tens_mult: { mult_per_milestone: 3, discards_per_milestone: 9 },
   sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
-  compound_mult: { mult_per_hand: 0.1 },
+  compound_mult: { mult_per_hand: 0.05 },  // Relentless: +1 mult after 20 hands (r364)
   // ── clock-mark Tricks ──
   ticktock: { focus: 2 },
   quarter_chime: { pips: 45 },
