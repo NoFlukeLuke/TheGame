@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r347 · plan: Echoes unchanged, Buried Treasure moves to diamonds";
+const BUILD = "2026-09-24 · r348 · Double Jeopardy marks 2 secret cells, The Woodpecker marks a card every 30s";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

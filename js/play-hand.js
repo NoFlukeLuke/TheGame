@@ -151,11 +151,14 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
     // Metronome knack: playing this round's target hand type pauses the clock
     if (hasKnack('metronome') && hand === metronomeHandType) pauseRound(BAL.metronome.seconds);
-    // Double Jeopardy: the first time the marked card is scored this round, pause the clock 15s (once per round)
-    if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos && handCells.some(([r,c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) {
-      pauseRound(BAL.double_jeopardy.pause_seconds * trickFires('double_jeopardy'));
-      djUsedThisRound = true;
-      doubleJeopardyPos = null; // mark consumed; highlight clears
+    // Double Jeopardy: each secretly marked cell pays 15s the first time a hand
+    // scores from it, then is spent. Two cells in one hand pay twice.
+    if (hasTrick('double_jeopardy') && doubleJeopardyCells.length) {
+      const _djHits = doubleJeopardyCells.filter(m => handCells.some(([r, c]) => r === m.r && c === m.c));
+      if (_djHits.length) {
+        doubleJeopardyCells = doubleJeopardyCells.filter(m => !_djHits.includes(m));
+        pauseRound(BAL.double_jeopardy.pause_seconds * _djHits.length * trickFires('double_jeopardy'), 'double_jeopardy', 'trick');
+      }
     }
     // Vulture buff: scored cards carrying the permanent "+Ns pause" buff pause the clock, counting
     // retriggers (each (re)trigger fires the buff). Not gated on hasTrick - the buff lives on the card.
@@ -401,6 +404,9 @@ function playHand() {
   if (typeof cardStatesTouch === 'function') cardStatesTouch(playedCells.map(([r, c]) => gridData[r]?.[c]));
   if (typeof cardStatesOnUse === 'function') cardStatesOnUse(result.handCells.map(([r, c]) => gridData[r]?.[c]), result.handCells);
   if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // The Woodpecker's mark is spent by the hand that scores it (the replays were
+  // paid in calcScore, which is read-only, so the mark comes off here).
+  if (woodpeckerCardId && result.handCells.some(([r, c]) => gridData[r]?.[c] && cardId(gridData[r][c]) === woodpeckerCardId)) woodpeckerCardId = null;
   // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
   // Cleared here rather than in calcScore for the speculative-re-score reason
   // given there.

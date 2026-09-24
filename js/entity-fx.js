@@ -52,12 +52,9 @@ const CARD_MARK_META = {
     covers: (r, c) => hasTrick('rowcol_perm_double') && isEffectIntersection(r, c) },
   temporal_rift:      { color: '#7ec8e3', glyph: '\u23f8', name: 'Temporal Rift',
     covers: (r, c) => hasTrick('temporal_rift') && isEffectIntersection(r, c) },
-  double_jeopardy:    { color: '#c83c3c', glyph: '\u203c', name: 'Double Jeopardy',
-    covers: (r, c) => typeof doubleJeopardyPos !== 'undefined' && doubleJeopardyPos
-                      && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c },
   woodpecker:         { color: '#5aaa5a', glyph: '\u26cf', name: 'The Woodpecker',
-    covers: (r, c) => typeof woodpeckerPos !== 'undefined' && woodpeckerPos
-                      && woodpeckerPos.r === r && woodpeckerPos.c === c },
+    covers: (r, c) => typeof woodpeckerCardId !== 'undefined' && woodpeckerCardId
+                      && gridData[r]?.[c] && cardId(gridData[r][c]) === woodpeckerCardId },
   // Heartwood's cell is Math.floor(rows/2) x Math.floor(cols/2) - the same
   // expression play-hand.js uses, so the mark can never point at a different
   // cell from the one that actually gets the buff.

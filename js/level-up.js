@@ -267,11 +267,10 @@ function triggerLevelUp() {
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
   _altSwapCount = 0;
-  doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-  djUsedThisRound = false;
+  doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
   firstPauseStartedRound = false;
   firstPauseActive = false;
-  woodpeckerPos = null;
+  woodpeckerCardId = null;
   woodpeckerActiveBlock = -1;
   // Metronome knack: pick this round's target hand type from those the player can actually make.
   if (hasKnack('metronome')) {

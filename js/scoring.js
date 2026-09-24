@@ -481,7 +481,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _rne = hasTrick('closing_time') && roundFractionRemaining() < 1/3; // Near Extinction: last third of the round
     const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
-    const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
+    const _wp = hasTrick('woodpecker') && woodpeckerCardId && cardId(card) === woodpeckerCardId; // Woodpecker
     // Wait For Iiiit: each card independently rolls a replay at 2% × negative reward tiles taken this
     // run. Deterministic per (card, hand) so preview == score (see _detReplayRand).
     // Luck scales the THRESHOLD here rather than adding a roll: calling
@@ -1617,8 +1617,8 @@ function handTriggersPause(handName, cells) {
     if (_run && hasTrick('high_water') && runsPlayedRound >= 3) return true;
     if (hasKnack('sundial') && cells.length > 0 && cells.every(([, c]) => c === cells[0][1])) return true;
     if (hasKnack('metronome') && handName === metronomeHandType) return true;
-    if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos
-        && cells.some(([r, c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) return true;
+    if (hasTrick('double_jeopardy') && doubleJeopardyCells.length
+        && cells.some(([r, c]) => doubleJeopardyCells.some(m => m.r === r && m.c === c))) return true;
   } catch (e) {}
   return false;
 }

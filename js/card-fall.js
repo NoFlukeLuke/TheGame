@@ -102,8 +102,7 @@ function renderCardAppearance(card, r, c, {
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
 
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
-  const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
-  const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
+  const rcWoodpecker = woodpeckerCardId && card && cardId(card) === woodpeckerCardId ? ' rc-woodpecker' : '';
   // The shared "what affected what" highlight (r209, divided in r296 -
   // js/entity-fx.js): a RING around the card in the owning Trick's colour,
   // DIVIDED EVENLY when several marked lines cross this cell rather than naming
@@ -150,7 +149,7 @@ function renderCardAppearance(card, r, c, {
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     curse ? 'cursed' : '',
     bothClass.trim(),
-    rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
+    rcLeyline.trim(), rcWoodpecker.trim(),
     _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
     // Card states + temp cards (r278). `card-temp` is independent of any state:

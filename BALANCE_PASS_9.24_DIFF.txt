@@ -37,14 +37,6 @@ ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.
 Treat richter exactly like full_house_streak below.
 
-[double_jeopardy] description
-  owner: 2 Cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15 seconds each.
-  (was:  Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds)
-
-[woodpecker] description
-  owner: Marks a random cards once every 30 seconds, scoring the marked card replays it 2x
-  (was:  In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice)
-
 [twos_retrigger] description
   owner: Each 2 scored force triggers your right most trick
   (was:  Each 2 scored duplicates your most recently acquired Trick’s effect)

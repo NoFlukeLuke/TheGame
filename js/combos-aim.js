@@ -188,14 +188,24 @@ let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (re
 // Contribution-tally summaries (shown in the Contributions view when non-zero).
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
-let doubleJeopardyPos = null; // { r, c } - marked tile (Double Jeopardy); fires once per round
-let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
+// Double Jeopardy (r348): TWO cells, secretly marked at round start. CELL-keyed
+// on purpose - the Trick marks a place on the board, not a card (a deliberate
+// exception to r192's card-keyed rule). Each cell pays once, then leaves the list.
+let doubleJeopardyCells = []; // [{ r, c }]
+function pickDoubleJeopardyCells() {
+  const all = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) all.push({ r, c });
+  for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+  return all.slice(0, BAL.double_jeopardy.cells);
+}
 let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
 let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
 let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
 let _lastRetrigByCell = {};      // { 'r-c': replayCount } from the last calcScore (playHand reads for replay-aware coin/time)
-let woodpeckerPos = null;       // { r, c } - marked tile (Woodpecker) during an active 30s block
-let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
+// The Woodpecker (r348): a new CARD is marked every interval, keyed by cardId so
+// the mark rides the card as it falls. Scoring it spends the mark.
+let woodpeckerCardId = null;
+let woodpeckerActiveBlock = -1; // index of the interval block already marked
 let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
 let shadyColumn = 0;            // Shady Tree sleight: the "shady" column this round
 let lighthouseColumn = 0;       // Lighthouse sleight: the favored column this round (alternates first ↔ last)
