@@ -471,6 +471,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // queued action so "it paid, then it left" is one beat rather than a card
   // vanishing behind the next hand. (js/spectrum.js)
   if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
+  if (typeof freshStartDrain === 'function') freshStartDrain();
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }

@@ -553,8 +553,12 @@ function applySleightGridEffect(id, r, c) {
       else showMessage('Shortcut - no active challenge', 'var(--cream-dim)');
       break;
     case 'dazed':
-      reshuffleGrid();
-      showMessage('Fresh Start - grid reshuffled!', '#cc88ff'); break;
+      // Fresh Start (r353): the redeal waits for the discard's own fall to land
+      // (drained from the tail of removeAndFall), or the discard would remove
+      // cells out of the freshly dealt board.
+      coins = Math.max(0, coins - BAL.dazed.cost_coins); updateCoinsUI();
+      roundSeconds = Math.max(1, roundSeconds - BAL.dazed.cost_seconds); updateClockUI();
+      freshStartPending = true; break;
     case 'pivot':
       // Unreachable since r205: Pivot is `passive` now (it works by sitting on the
       // grid), so fireSleightsOnSwap never dispatches it. The whole effect - the
@@ -598,19 +602,18 @@ function applySleightGridEffect(id, r, c) {
       // pauseRound with a named source throws the pause plate at the clock.
       pauseRound(BAL.snooze.seconds, 'snooze', 'sleight'); break;
     case 'last_call':
-      // Only rewinds when discarded during the final minute of the round.
-      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, null, 'last_call', 'sleight');
-      else showMessage('⏳ Last Call - only works in the final minute', 'var(--cream-dim)');
+      rewindTime(BAL.last_call.seconds, null, 'last_call', 'sleight');
       break;
     case 'sandbag': {
-      // Rewinds only when discarded alongside a pair of cards below rank 8; the rewind
-      // equals that pair's rank in seconds (highest qualifying pair wins if there are several).
+      // Discarded with a pair (r353, any rank): rewind the pair's rank in seconds,
+      // +50% for each further card of that rank. The best set wins.
       const _co = _discardContextCards || [];
       const _counts = {};
-      _co.forEach(c => { const _v = RANK_ORDER[c.rank] || 99; if (_v < BAL.sandbag.rank_below) _counts[_v] = (_counts[_v] || 0) + 1; });
-      const _pairRanks = Object.keys(_counts).map(Number).filter(v => _counts[v] >= 2);
-      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, null, 'sandbag', 'sleight'); }
-      else showMessage('⏬ Sandbagger - needs a pair below rank 8', 'var(--cream-dim)');
+      _co.forEach(c => { const _v = RANK_ORDER[c.rank]; if (_v) _counts[_v] = (_counts[_v] || 0) + 1; });
+      let _sec = 0;
+      Object.keys(_counts).forEach(v => { const n = _counts[v]; if (n >= 2) _sec = Math.max(_sec, Math.round(Number(v) * (1 + BAL.sandbag.extra_per_member * (n - 2)))); });
+      if (_sec) rewindTime(_sec, null, 'sandbag', 'sleight');
+      else showMessage('⏬ Sandbagger - needs a pair', 'var(--cream-dim)');
       break;
     }
     case 'piggy_bank':
@@ -619,6 +622,27 @@ function applySleightGridEffect(id, r, c) {
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
   }
+}
+
+// Fresh Start (r353): every ordinary card on the board goes back into the draw
+// pile, the pile is shuffled and the holes are dealt. Sleights, stones and other
+// fixtures stay where they are. Run from the tail of removeAndFall.
+let freshStartPending = false;
+function freshStartDrain() {
+  if (!freshStartPending || animating || falling) return;
+  freshStartPending = false;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd.rank || cd._isSleight || cd._isStone || cd._isTrick) continue;
+    if (typeof isCellBlocked === 'function' && isCellBlocked(r, c)) continue;
+    discardToDrawPile(cd);
+    gridData[r][c] = null;
+  }
+  drawPile = deckShuffle(drawPile);
+  fillGridHoles();
+  selected = [];
+  showMessage('😵 Fresh Start - the board is redealt', '#cc88ff');
+  render();
 }
 
 // Reshuffle every non-sleight card currently on the grid (Dazed & Confused).

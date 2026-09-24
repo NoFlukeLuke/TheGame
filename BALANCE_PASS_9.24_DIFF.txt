@@ -85,30 +85,6 @@ Treat richter exactly like full_house_streak below.
   owner: structural — no tunable value; does this actually work? if so, how? like if this falls onto the grid during a boss round, we're able to remove and stone or other curses and pause other boss effects like giving back discard or swaps, prevent the score fomr incremeenting due to a boss effect, etc?
   (was:  structural — no tunable value)
 
-[dazed] description
-  owner: When discarded, shuffles all cards back into the deck and redeals. Costs -3 credits and -10s
-  (was:  When swapped, reshuffles every card on the grid.)
-
-[echo_play] description
-  owner: Play this in any hand: each card replays 2x. n/3 charges
-  (was:  Play this in any hand: each card replays twice. (3 charges))
-
-[bellhop] description
-  owner: Play this: gain +2 swaps and +1 discard. n/5 charges
-  (was:  Play this: gain +2 swaps and +1 discard. (5 charges))
-
-[cash_out] description
-  owner: Discard this: gain 10 credits n/3 charges
-  (was:  Discard this: gain 10 credits. (4 charges))
-
-[last_call] description
-  owner: Discard this: rewind the clock 15 seconds. n/3 charges
-  (was:  Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges))
-
-[sandbag] description
-  owner: Discard this: with a pair to rewind the clock by that pair’s rank in seconds. +50% more time for every additional member of the set. n/3 charges
-  (was:  Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges))
-
 [the_wanderer] description
   owner: While on grid: allows any two cards to be swapped regardles of position. Still uses your swap stock. n/5 charges
   (was:  Swap it with ANY card on the grid, next to it or not, and the swap is free (+1 swap back).)
@@ -136,15 +112,3 @@ Treat richter exactly like full_house_streak below.
 [soul_mirror] description
   owner: Tap to rotate its aim. When the rank it faces is scored, it replays once for each count of that rank in the deck. Cannot be swapped, discarded, or played.
   (was:  Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.)
-
-[shift_swap] description
-  owner: Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.
-  (was:  Score two hands beside this card for +2 swaps, then it goes back into the deck.)
-
-[recycler] description
-  owner: Score two cards adjacent to this sleight to get +2 discards. Discards itself after giving bonus.
-  (was:  Score two hands beside this card for +2 discards, then it goes back into the deck.)
-
-[petty_cash] description
-  owner: Score two hands beside this card to get +5 credits, Discards itself after giving bonus.
-  (was:  Score two hands beside this card for +5 credits, then it goes back into the deck.)

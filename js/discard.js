@@ -82,7 +82,17 @@ function doDiscard() {
   // the player throwing anything away.
   const _sieve = (typeof bossSieve !== 'undefined') && bossSieve && bossActive
                  && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored());
-  selected.forEach(([r,c]) => { if (gridData[r]?.[c] && !_sieve) discardToDrawPile(gridData[r][c]); });
+  // A discard-activated Sleight (Cash Out, Last Call, Sandbagger, Fresh Start)
+  // cycles back into the deck with its remaining charges (r353). discardToDrawPile
+  // deletes every Sleight, so before this their printed charges meant nothing:
+  // the first discard was the last. A spent one was already nulled off the board
+  // by consumeSleightCharge and is not here to route.
+  selected.forEach(([r,c]) => {
+    const _dc = gridData[r]?.[c];
+    if (!_dc || _sieve) return;
+    if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
+    else discardToDrawPile(_dc);
+  });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).

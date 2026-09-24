@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r352 · 4x4 draws its column line; a sold line Trick takes its line with it";
+const BUILD = "2026-09-24 · r353 · Sleight batch: Fresh Start redeals on discard, Sandbagger/Last Call/Cash Out, discard Sleights keep their charges";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
