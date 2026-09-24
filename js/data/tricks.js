@@ -151,13 +151,13 @@ const TRICK_POOL = [
   { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['time','position','scaling'], desc:'A card scored where a row and column effect intersect gains +3s rewind when scored (time buffs do not stack)' },
   // ── Risk / negative-tile scaling (r129) ──
   { id:'wild_side',      name:'Wild Side',           tier:'rare',      tags:['mult','scaling','risk'],    desc:'+6 mult, scaling, for every negative reward tile you take' },
-  { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      tags:['replay','scaling','risk'],  desc:'Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive)' },
+  { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      tags:['replay','scaling','risk'],  desc:'Each negative reward tile taken this run gives every scored card a +2% chance to replay' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'rare',    tags:['focus'], desc:'Focus decays 2 seconds slower' },
   { id:'tunnel_vision',  name:'Tunnel Vision',       tier:'common',    tags:['focus'], desc:'Start each round with 5 focus' },
   { id:'first_wind',     name:'First Wind',          tier:'common',    tags:['focus'], desc:'Focus does not decay for the first 45 seconds of a round' },
   { id:'rhythm',         name:'Rhythm',              tier:'common',    tags:['focus'], desc:'Each hand played adds 1 additional focus' },
-  { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Discarding adds 1 Focus per swap and discard you have left' },
+  { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Discarding or swapping adds +1 Focus per 2 remaining swaps and discards' },
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus' },
   { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing four or more suits in a hand applies the Focus multiplier a second time' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, score +10 pips per card' },
@@ -188,8 +188,8 @@ const TRICK_POOL = [
   { id:'four_horseman',  name:'Four Horse-man',      tier:'epic',      tags:['pips','mult','focus','time'], desc:'4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause' },
   { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['time'],            desc:'4-card hands permanently buff their 4th card with +2s pause when scored (time buffs do not stack)' },
   // ── Set add-ons (r124) ──
-  { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Sets you have played this round' },
-  { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Sets made of only odd-ranked cards score a second time' },
+  { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Set hands you have played this round' },
+  { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Set-type hands made of only odd-ranked cards replay each card' },
   { id:'shaky_foundation',name:'Shaky Foundation',   tier:'common',    tags:['mult','set'],      desc:'Every other Set scores +15 mult' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time'],            desc:'Runs pause the clock +3s' },

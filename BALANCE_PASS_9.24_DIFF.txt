@@ -57,14 +57,6 @@ Treat richter exactly like full_house_streak below.
   owner: For flow, this should instead say adds 30 seconds to the timer, and we also need to add an option to skip rewards in survival and flow. maybe just if you press the confirm button twice without having selected a reward. also, tapping a reward a second time should unselect it.
   (was:  )
 
-[wait_for_it] description
-  owner: Each negative reward tile taken this run gives every scored card a +2% chance to replay (current chance: n)
-  (was:  Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive))
-
-[cull] description
-  owner: Discarding or Swapping adds +1 Focus per 2  remaining swaps and discards
-  (was:  Discarding adds 1 Focus per swap and discard you have left)
-
 [threes_crowd] description
   owner: Pairs qualify as 3-card hands
   (was:  Pairs count as 3-card hands)
@@ -76,18 +68,6 @@ Treat richter exactly like full_house_streak below.
 [four_by_four] notes
   owner: this should count as a row/column effect and get a distinct line behind the fourth colun if it isn't already
   (was:  )
-
-[undue_influence] description
-  owner: A Set containing a face card grants credits equal to the number of Set hands you have played this round
-  (was:  A Set containing a face card grants credits equal to the number of Sets you have played this round)
-
-[undue_influence] notes
-  owner: small wording change so that playing a two pair only counts as one set hand insted of two sets.
-  (was:  structural — no tunable value)
-
-[encore] description
-  owner: Set-type hands made of only odd-ranked cards replay each card
-  (was:  Sets made of only odd-ranked cards score a second time)
 
 [the_queen] description
   owner: The rank of this sleight is Queen, it scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.

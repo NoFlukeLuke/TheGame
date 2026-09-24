@@ -156,12 +156,9 @@ function doDiscard() {
   }
   sfxCardDiscard();          // discarding has its own sound now (r205), not the riffle
   resetFocusDecayTimer();
-  // Cull: 1 Focus per unit of manipulate stock still in hand. `discards` has already
-  // been decremented above, so this reads what is LEFT after paying for this discard.
-  if (hasTrick('cull')) {
-    const _stock = Math.max(0, swaps) + Math.max(0, discards);
-    if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock, 'cull'); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
-  }
+  // Cull: Focus per 2 swaps+discards still in hand. `discards` has already been
+  // decremented above, so this reads what is LEFT after paying for this discard.
+  cullPay();
   if (typeof cardStatesTouch === 'function') cardStatesTouch(discardedCards);
   const toRemove = [...selected];
   selected = [];
@@ -326,6 +323,13 @@ function handleClockMarks(secs) {
       }
     }
   }
+}
+
+// Cull (r351): +focus per `per` swaps+discards left, on every swap AND discard.
+function cullPay() {
+  if (!hasTrick('cull')) return;
+  const _n = Math.floor((Math.max(0, swaps) + Math.max(0, discards)) / BAL.cull.per) * BAL.cull.focus_per_stock;
+  if (_n > 0) addFocus(_n * trickFires('cull'), 'cull', 'trick');
 }
 
 function pauseRound(seconds, srcId, srcSource) {

@@ -163,6 +163,7 @@ function doSwap(r1, c1, r2, c2) {
   lastSwapTime = Date.now();
   lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
   resetFocusDecayTimer();
+  cullPay();   // Cull (r351): a swap pays too, read after the swap is paid for
   // ♥ corruption: a swapped heart goes "on probation" - it must appear in the next scored
   // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
   // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.

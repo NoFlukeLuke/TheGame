@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r350 · Royal Favour ranks up scored cards and times out Queens, Ace Absorb reaches the whole board";
+const BUILD = "2026-09-24 · r351 · Cull pays on swaps too, per 2 left; Wait For It, Undue Influence, Encore wording";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
