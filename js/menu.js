@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r355 · Reflect fires every hand and leaves after 60s, Soul Mirror counts the whole deck";
+const BUILD = "2026-09-24 · r356 · Stopwatch and Fight the Power spend charges as time";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

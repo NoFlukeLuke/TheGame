@@ -90,7 +90,48 @@ function hasSleightOnGrid(id) {
 }
 
 // Boss-immunity check used by isCellBlocked / isTrickDisabledByBoss / boss objective
-function bossEffectsIgnored() { return hasSleightOnGrid('fight_power'); }
+function bossEffectsIgnored() { return !!liveFightPower(); }
+
+// ── Timed charges (r356, plan 4i) ───────────────────────────────────────────
+// A Sleight whose def carries `secsPerCharge` spends its charges as TIME: every
+// that-many seconds of use is one charge. _usesLeft stays the charge count, so
+// everything that reads or restores charges (the n/max on the card, Jury-Rig,
+// Maintenance, Martyr) works on these unchanged - a restored charge is simply
+// secsPerCharge more seconds. _chargeSecsUsed is the part of the current charge
+// already spent.
+function sleightSecsLeft(card) {
+  const def = sleightDef(card);
+  if (!def?.secsPerCharge || typeof card._usesLeft !== 'number') return null;
+  return Math.max(0, card._usesLeft * def.secsPerCharge - (card._chargeSecsUsed || 0));
+}
+// Spend one second. Returns false once the Sleight is spent (and takes it off
+// the board - a spent timed Sleight has nothing left to give).
+function sleightTimedDrain(card) {
+  const def = sleightDef(card);
+  if (!def?.secsPerCharge || typeof card._usesLeft !== 'number') return true;
+  card._chargeSecsUsed = (card._chargeSecsUsed || 0) + 1;
+  if (card._chargeSecsUsed >= def.secsPerCharge) { card._usesLeft--; card._chargeSecsUsed = 0; }
+  if (card._usesLeft > 0) return true;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) gridData[r][c] = null;
+  showMessage(`${def.name} is spent`, 'var(--cream-dim)');
+  if (typeof render === 'function') render();
+  return false;
+}
+// The first Fight the Power on the board with time left.
+function liveFightPower() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd?._isSleight && cd.sleightId === 'fight_power' && (cd._usesLeft === 'infinite' || cd._usesLeft > 0)) return cd;
+  }
+  return null;
+}
+// Round tick: Fight the Power only spends its time while a boss is actually
+// running - there is nothing to ignore otherwise.
+function fightPowerTick() {
+  if (typeof bossFxLive !== 'function' || !bossFxLive()) return;
+  const fp = liveFightPower();
+  if (fp) sleightTimedDrain(fp);
+}
 
 // Consume one charge from a sleight card at [r,c]; remove from grid when depleted.
 function consumeSleightCharge(card, r, c) {
@@ -691,6 +732,7 @@ function showSleightGridTooltip(r, c, card) {
   if (def.id === 'slow_burn') uses = `+${Math.min(BAL.slow_burn.cap, Math.floor((card._slowBurnSecs || 0) / BAL.slow_burn.seconds_per))} of ${BAL.slow_burn.cap} Focus limit`;
   if (def.id === 'capacitor') uses = `needs ${BAL.capacitor.focus_cost} Focus · you have ${focusNodes}`;
   if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}`;
+  if (def.secsPerCharge && typeof card._usesLeft === 'number') uses = `Remaining time: ${sleightSecsLeft(card)}s · ${card._usesLeft}/${_mxCh} charges`;
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
@@ -715,6 +757,16 @@ function showSleightGridTooltip(r, c, card) {
   tip.style.left = Math.max(2, eRect.left - gRect.left + eRect.width/2 - tipW/2) + 'px';
   tip.style.top  = Math.max(2, eRect.top - gRect.top - tipH - 8) + 'px';
   tip.style.opacity = '1';
+  // A timed Sleight's remaining time runs while you read it (r356), so the
+  // line is rewritten each second for as long as the bubble is up.
+  if (def.secsPerCharge && typeof card._usesLeft === 'number') {
+    const _live = setInterval(() => {
+      const el = document.getElementById('sleight-grid-tooltip');
+      if (el !== tip) { clearInterval(_live); return; }
+      const u = tip.querySelector('.sleight-tooltip-uses');
+      if (u) u.textContent = `Remaining time: ${sleightSecsLeft(card)}s · ${card._usesLeft}/${_mxCh} charges`;
+    }, 1000);
+  }
 }
 function hideSleightGridTooltip() {
   document.getElementById('sleight-grid-tooltip')?.remove();
