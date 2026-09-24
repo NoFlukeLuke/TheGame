@@ -20,6 +20,13 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `js/` - the game code, one file per system (list below).
 - `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
 - `CARD_EFFECTS.md` - **the index of everything that can be true of ONE CARD.** Every permanent buff and debuff, every boss state, the r278 card states, and the parked design list. Read it before adding a per-card effect.
+- `EVENTS.md` - **the review of all 22 events: what each one does, which tier it is in,
+  and what to do about it.** Read it before touching `js/events*.js`. Its spine is the
+  owner's test - an event costs a whole reward grid, so if the screen could have been one
+  tile on the grid you gave up, it is a bad event however well tuned. It also records the
+  seven post-r278 systems (card states, forced fires, `permFocus`, wilds, Natural Scaling,
+  `primeTrick`, `downgradeEntity`) that **no event touches**, which is the standing answer
+  to "make the rewards things you cannot get from the grid or the shop".
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
