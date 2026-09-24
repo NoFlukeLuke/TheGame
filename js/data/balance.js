@@ -122,7 +122,7 @@ const BAL = {
   blackjack_bonus: { pip_mult: 3 },
   double_bloom: { mult_mult: 1.5 },
   richter: { mult_mult: 3, focus: 10 },
-  ripple: { cooldown_ms: 30000 },
+  ripple: { chance: 0.5 },
   river_run: { focus_per_card: 1 },
   deluge: { seconds: 15 },
   perfect_storm: { pip_mult: 5 },

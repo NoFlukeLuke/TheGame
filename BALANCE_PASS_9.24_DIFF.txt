@@ -51,10 +51,6 @@ Treat richter exactly like full_house_streak below.
   owner: make speed bonus a keyword and the tooltip should be something like focus is generated both by how complex the hand is, and by how quickly it was played after the preceeding hand. make that an entry in the handbook if not already
   (was:  )
 
-[ripple] description
-  owner: Cards adjacent in rank to another card in the hand have a 50% chance to replay
-  (was:  Once every 30s, cards adjacent in rank to another card in the hand replay)
-
 [release_valve] description
   owner: Each time you hit your focus limit, add +1 swap and +1 discard and lose 16 Focus.
   (was:  Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.)

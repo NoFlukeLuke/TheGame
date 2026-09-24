@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r343 · the Focus multiplier can apply twice: Phoenix (pauses, incl. hands that cause one) + Kaleidoscope (4+ suits)";
+const BUILD = "2026-09-24 · r344 · Ripple is a deterministic 50% per adjacent-rank card; the 30s cooldown is gone";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

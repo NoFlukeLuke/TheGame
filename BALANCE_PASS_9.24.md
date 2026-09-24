@@ -130,10 +130,13 @@ Two global vocabulary moves ride along:
   global is overwritten by speculative calcScores). Marathon = one line in
   focusExtraApplies + its pool row. The fuller staggered-chip-copy/flight
   animation from the owner's note can still be layered on later.
-- **4e. Deterministic chance rolls** (main's earlier pass already did correct_run's one-of-three and second_hand's either/or; left: Threepeat's one-of-three, Even Better, the Legendary luck roll) for scoring-time probabilities
-  (`_detReplayRand` shape — `calcScore` runs speculatively): Ripple 50%,
-  Hourglass 50% (round tick, may roll live), Even Better 66%, "Legendary"
-  luck roll, rowcol_retrigger's 2-in-3 (already deterministic — verify).
+- **4e. DONE (r344) except the Tier-7 newcomers.** Ripple: the 30s cooldown is
+  gone - each adjacent-rank card rolls a deterministic, Luck-scaled 50%
+  (`luckRollDet`, stream offset 7717; `_rippleLastFire` deleted). Threepeat's
+  one-of-three, correct_run and second_hand were already deterministic
+  (trickPickOne / _detReplayRand); Hourglass rolls live in doDiscard, which is
+  a real one-shot event, so that is correct as is. Even Better and the
+  Legendary roll land with their Tricks in Tier 7.
 - **4f. DONE (r342): time buffs do not stack.** `cardTimeBuffed(card)`
   (js/deck-grid.js, beside permTime) is the one predicate over
   permTime/_vulturePause; all three grant sites ask it before trickFires.

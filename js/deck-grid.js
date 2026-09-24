@@ -485,7 +485,6 @@ let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
 let setsPlayedRound     = 0;   // count of Set hands scored this round (Undue Influence / Shaky Foundation)
 let runStreak           = 0;   // consecutive Run hands ending at the last-played hand (Wave Amplification)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)
-let _rippleLastFire     = -100000; // last time Ripple's retrigger fired (30s cooldown)
 let _primeTimesCursor   = 0;   // Prime Times: cycles tray positions 1st→2nd→3rd→5th→7th
 let handTypesRound      = new Set(); // distinct hand types played this round
 let safetyNetUsed       = false; // safety_net knack: once per game

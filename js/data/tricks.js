@@ -28,7 +28,7 @@ const TRICK_POOL = [
   { id:'two_pair_mult',  name:'Double Dutch',        tier:'epic',      desc:'Play 3 hands with a pair within 30s to add +16 Focus' },
   { id:'richter',        name:'Richter',             tier:'legendary', desc:'Four of a Kind scores ×3 mult and +10 Focus' },
   { id:'eye_of_storm',   name:'Eye of the Storm',    tier:'epic',      desc:'Hands played in the middle third of the round replay the highest-ranked card(s) 2x' },
-  { id:'ripple',         name:'Ripple',              tier:'rare',      desc:'Once every 30s, cards adjacent in rank to another card in the hand replay' },
+  { id:'ripple',         name:'Ripple',              tier:'rare',      desc:'Cards adjacent in rank to another card in the hand have a 50% chance to replay' },
   // ── Flush / special hand types ──
   { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flushes score +100 pips' },
   { id:'tidal_force',    name:'Tidal Forces',        tier:'common',    desc:'Flushes score +5 mult per card' },

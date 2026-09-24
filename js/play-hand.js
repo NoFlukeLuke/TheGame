@@ -137,11 +137,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
         if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
       } else { _ddPairTimes = []; }
     }
-    // Ripple: consume the 30s cooldown if this hand actually had an adjacent-rank pair
-    if (hasTrick('ripple') && (Date.now() - _rippleLastFire >= BAL.ripple.cooldown_ms)) {
-      const _hc = handCells.map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
-      if (_hc.some((c,i) => _hc.some((o,j) => j !== i && _withinOneRank(c.rank, o.rank)))) _rippleLastFire = Date.now();
-    }
+    // (Ripple's 30s cooldown is gone, r344: each adjacent-rank card rolls its own
+    // deterministic 50% inside calcScore - nothing to consume here.)
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
     if (_isRunHand && runsPlayedRound >= 3) pauseRound(handCells.length * trickFires('high_water'));
     // Dam Holding…: every Run pauses the clock a flat few seconds

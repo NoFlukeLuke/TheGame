@@ -214,8 +214,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // High and Mighty (knack): the hand's highest-ranked card(s) all replay once
   const _hnmOn  = hasKnack('high_and_mighty');
   const _hnmMax = _hnmOn ? Math.max(...(_natCards.length ? _natCards : [{}]).map(c => _rankHigh(c.rank))) : -1;
-  // Ripple: once per 30s, cards within one rank of another card in the hand retrigger
-  const _rippleReady = hasTrick('ripple') && (Date.now() - _rippleLastFire >= BAL.ripple.cooldown_ms);
+  // Ripple (r344): cards within one rank of another card in the hand have a 50%
+  // chance to replay. The 30s cooldown is gone with the owner's text; the roll is
+  // deterministic per (card, hand) like every scoring-time roll, and Luck-scaled.
+  const _rippleReady = hasTrick('ripple');
   const _rippleSet = new Set();
   if (_rippleReady) {
     _scoreCells.forEach(([_rr,_cc]) => {
@@ -467,7 +469,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       ? luckRollDet(BAL.rowcol_retrigger.chance, (card._id || 0) + 7919, handsPlayedRound) : 0;
     const _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
     const _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
-    const _rip = _rippleReady && _rippleSet.has(`${r}-${c}`);
+    const _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
+      ? luckRollDet(BAL.ripple.chance, (card._id || 0) + 7717, handsPlayedRound) : 0;
     const _refl = reflectAimsAt(r, c);
     const _soul = soulMirrorRankCount(baseRank);
     // Echo (sleight): armed by playing it, every card in the hand replays twice.
@@ -496,7 +499,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
     }
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; _retrig += _rl; if (_pt) _retrig++;
-    if (_res) _retrig += 2; if (_rip) _retrig++;
+    if (_res) _retrig += 2; _retrig += _rip;
     if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
     if (_echoS) _retrig++;
     _retrig += _re;
