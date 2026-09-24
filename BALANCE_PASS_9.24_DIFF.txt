@@ -44,15 +44,3 @@ Treat richter exactly like full_house_streak below.
 [move_as_one] notes
   owner: so for this trick, it needs a readout that says what the keyword is. also, this needs to not look at keywords like time or hands or other words that dozens of tricks use. it should look at things like "marked" and pause and focus and hand types or ranks mentioned in tricks or replay etc. maybe come up with a list that you think would qualify and ill review.
   (was:  structural — no tunable value)
-
-[more_better] notes
-  owner: lock this to modes that have frequent reward grids
-  (was:  )
-
-[rain_check] description
-  owner: Skipping a reward adds +30 seconds to your next round.
-  (was:  Skipping a reward grid adds +30 seconds to your next round)
-
-[rain_check] notes
-  owner: For flow, this should instead say adds 30 seconds to the timer, and we also need to add an option to skip rewards in survival and flow. maybe just if you press the confirm button twice without having selected a reward. also, tapping a reward a second time should unselect it.
-  (was:  )

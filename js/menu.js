@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r361 · Three's a Crowd is a Knack: hands count one card bigger";
+const BUILD = "2026-09-24 · r362 · Skip a pick by pressing CONFIRM twice; Rain Check pays on it; More Better needs a grid every round";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

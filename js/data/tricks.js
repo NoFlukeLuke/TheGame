@@ -146,7 +146,7 @@ const TRICK_POOL = [
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time' },
   // ── Reward-grid meta (r128) ──
   { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +5 mult to this trick' },
-  { id:'rain_check',     name:'Rain Check',          tier:'epic',      tags:['time'],           desc:'Skipping a reward grid adds +30 seconds to your next round' },
+  { id:'rain_check',     name:'Rain Check',          tier:'epic',      tags:['time'],           desc:'Skipping a reward adds +30 seconds to your next round (in Flow, to the timer)' },
   // ── Time / position (r128) ──
   { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['time','position','scaling'], desc:'A card scored where a row and column effect intersect gains +3s rewind when scored (time buffs do not stack)' },
   // ── Risk / negative-tile scaling (r129) ──
