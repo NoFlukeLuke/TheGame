@@ -113,24 +113,26 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (realHandOfSize(handCells, 5)) {
       totalFocus += handCells.length * BAL.five_stack.focus_per_card * trickFires('five_stack'); // +Focus/card (pips+mult handled in calcScore)
       pauseRound(BAL.five_second.pause_seconds * trickFires('five_second'));                       // Five Second Rule → pause 5s
-      if (hasTrick('little_guys') && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
-        const _lgf = BAL.little_guys.cap_gain * trickFires('little_guys');   // no face cards → +1 max Focus node (permanent)
-        focusCapPerm += _lgf;
-        showMessage('the little guys! +' + _lgf + ' Focus limit', '#a25cd8');
+      // no face cards → +1 Focus limit, this Trick's gains capped at +15 for the run.
+      // The under-cap test runs BEFORE trickFires so a prime is never spent on a gain
+      // that cannot land (r296's "ask only when about to pay").
+      if (hasTrick('little_guys') && (focusCapGains['little_guys'] || 0) < BAL.little_guys.cap
+          && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
+        const _lgf = gainFocusCap('little_guys', BAL.little_guys.cap_gain * trickFires('little_guys'), BAL.little_guys.cap);
+        if (_lgf > 0) showMessage('the little guys! +' + _lgf + ' Focus limit', '#a25cd8');
       }
     }
     if (totalFocus > 0) addFocus(totalFocus);
-    // Quick Draw: hands played within 3 seconds of the previous permanently add +1 max Focus capacity
-    if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapPerm += 10 * trickFires('quick_draw');
-    // Collapsing Columns (Full House) / Richter (Four of a Kind): advance focus to next threshold
-    {
-      const _adv = (hand === 'Full House' ? trickFires('full_house_streak') : 0)
-                 + (hand === 'Four of a Kind' ? trickFires('richter') : 0);
-      if (_adv > 0) {
-        const _nt2 = (Math.floor(focusNodes / FOCUS_THRESHOLD) + _adv) * FOCUS_THRESHOLD;
-        addFocus(_nt2 - focusNodes);
-      }
+    // Quick Draw: hands played within 2 seconds of the previous add +1 Focus limit (max +10)
+    if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms
+        && hasTrick('quick_draw') && (focusCapGains['quick_draw'] || 0) < BAL.quick_draw.cap) {
+      const _qd = gainFocusCap('quick_draw', BAL.quick_draw.cap_gain * trickFires('quick_draw'), BAL.quick_draw.cap);
+      if (_qd > 0) showMessage('Quick Draw! +' + _qd + ' Focus limit', '#a25cd8');
     }
+    // Collapsing Columns (Full House) / Richter (Four of a Kind): +10 Focus (was a
+    // threshold advance; owner's sheet prices both as a flat grant)
+    if (hand === 'Full House') { const _f = trickFires('full_house_streak'); if (_f > 0) addFocus(BAL.full_house_streak.focus * _f, 'full_house_streak'); }
+    if (hand === 'Four of a Kind') { const _f = trickFires('richter'); if (_f > 0) addFocus(BAL.richter.focus * _f, 'richter'); }
     // Double Dutch: 3 pair-hands within 30s → +16 Focus (a non-pair hand breaks the streak)
     if (hasTrick('two_pair_mult')) {
       if (['Pair','Two Pair','Three of a Kind','Four of a Kind','Full House'].includes(hand)) {
@@ -182,8 +184,14 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
   }
 
-  // Head Start: the first hand each round adds +5 Focus (flag reset stays in playHand)
-  if (firstHandThisRound && hasTrick('first_play')) addFocus(BAL.first_play.focus, 'first_play');
+  // Head Start: +5 Focus on the round's first hand, one less each hand after, floored
+  // at 0. handsPlayedRound is bumped AFTER scoring (see the Escalation note), so during
+  // hand k it reads k-1 - the first hand sees 0 and pays the full amount. The amount
+  // check runs before trickFires so a prime is never spent on a zero grant.
+  if (hasTrick('first_play')) {
+    const _fpAmt = Math.max(0, BAL.first_play.focus - handsPlayedRound);
+    if (_fpAmt > 0) addFocus(_fpAmt * trickFires('first_play'), 'first_play');
+  }
 }
 
 // ══════════════════════════════════════════════

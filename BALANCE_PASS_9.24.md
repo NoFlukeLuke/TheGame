@@ -97,10 +97,16 @@ Two global vocabulary moves ride along:
   never 4 cards plus a tagalong/penalty card. One helper over
   `handComponentsFor`; wire `five_fodder`, `little_guys`, `five_second`, and
   audit every other "N-card hand" entity for whether the rule bites.
-- **4b. Live readouts in descriptions** — `(current: n | max: m)` rendered
-  live via `trickLiveDesc` (exists; extend): Quick Draw (max 10), Head Start,
-  Little Guys (max 15), Expanse (max 10), Slow Burn (max 15), Wait For Iiiit
-  (current chance), Stopwatch (remaining time), Fight the Power (remaining).
+- **4b. MOSTLY DONE (r340): Focus-limit growers + live readouts.**
+  `gainFocusCap(id, n, max)` + `focusCapGains` ledger (js/focus-config.js, in
+  SAVE_VARS, reset in startGame). Quick Draw (2s window, +1/proc, max +10),
+  Expanse (+1 max +10, then lose half Focus — moved into onFocusMaxed's
+  keepFrac), Little Guys (max +15), Slow Burn (45s per +1, max +15, live
+  "current" in its grid tooltip), Head Start (+5 first hand, −1 each later
+  hand, floor 0). Also Richter + Collapsing Columns: threshold advance →
+  flat +10 Focus. trickLiveDesc cases added for all four Tricks.
+  REMAINING from 4b: Wait For Iiiit already has its readout; Stopwatch /
+  Fight the Power readouts land with 4i.
 - **4c. Sleight charge display `n/max`** on every charged Sleight (both grid
   render paths — the r161 rule — plus tooltips), and the **"inert/Spent"
   state**: Piggy Bank and Capacitor stay on the grid but can't be swapped or

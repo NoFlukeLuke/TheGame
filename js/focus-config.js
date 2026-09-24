@@ -6,6 +6,17 @@ const FOCUS_THRESHOLD = 10; // nodes per charge (tick spacing + charge colors)
 const FOCUS_CAP_HARD = 100;
 let focusCapBase = 30;   // set from the Focus Cap shop limit at round/game start
 let focusCapPerm = 0;    // permanent per-game accumulations (reset on new game)
+// Per-entity ledger of what each grower has added to focusCapPerm this run, so a
+// grower can carry its own ceiling ("max +10"). In SAVE_VARS; reset beside
+// focusCapPerm in startGame. Returns what was actually added (0 at the cap), so
+// callers can skip their toast/prime spend when nothing landed.
+let focusCapGains = {};
+function gainFocusCap(id, n, max) {
+  const cur = focusCapGains[id] || 0;
+  const add = Math.max(0, Math.min(n, max - cur));
+  if (add > 0) { focusCapGains[id] = cur + add; focusCapPerm += add; }
+  return add;
+}
 function onGridSleightCapBonus() {
   if (typeof gridData === 'undefined' || !gridData) return 0;
   let n = 0;
@@ -13,7 +24,7 @@ function onGridSleightCapBonus() {
     const cd = gridData[r]?.[c];
     if (!cd || !cd._isSleight) continue;
     if (cd.sleightId === 'power_cell') n += BAL.power_cell.focus_cap;             // +max Focus while on grid
-    if (cd.sleightId === 'slow_burn')  n += Math.floor((cd._slowBurnSecs || 0) / 60); // +1 per minute on grid
+    if (cd.sleightId === 'slow_burn')  n += Math.min(BAL.slow_burn.cap, Math.floor((cd._slowBurnSecs || 0) / BAL.slow_burn.seconds_per)); // +1 per 45s on grid, max +15
   }
   return n;
 }

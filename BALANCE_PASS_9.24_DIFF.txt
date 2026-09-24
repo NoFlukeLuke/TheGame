@@ -51,10 +51,6 @@ Treat richter exactly like full_house_streak below.
   owner: make speed bonus a keyword and the tooltip should be something like focus is generated both by how complex the hand is, and by how quickly it was played after the preceeding hand. make that an entry in the handbook if not already
   (was:  )
 
-[full_house_streak] description
-  owner: Full Houses score +10 focus
-  (was:  Each Full House instantly advances Focus to the next threshold)
-
 [ripple] description
   owner: Cards adjacent in rank to another card in the hand have a 50% chance to replay
   (was:  Once every 30s, cards adjacent in rank to another card in the hand replay)
@@ -62,18 +58,6 @@ Treat richter exactly like full_house_streak below.
 [release_valve] description
   owner: Each time you hit your focus limit, add +1 swap and +1 discard and lose 16 Focus.
   (was:  Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.)
-
-[quick_draw] description
-  owner: Hands played within 2 seconds of the previous hand add +1 to your focus limit (current: n | max: 10)
-  (was:  Hands played within 3 seconds of the previous permanently add +1 max Focus capacity)
-
-[first_play] description
-  owner: Adds +5 focus to the first hand of a round and one less to each subsequent hand. Does not go negative (current: n)
-  (was:  The first hand each round adds +5 Focus)
-
-[first_play] notes
-  owner: is there a nicer way to word that?
-  (was:  )
 
 [cuckoo] description
   owner: Every other hand pauses the clock for 1 second for every 5 replays triggered this round
@@ -171,17 +155,9 @@ Treat richter exactly like full_house_streak below.
   owner: Discarding or Swapping adds +1 Focus per 2  remaining swaps and discards
   (was:  Discarding adds 1 Focus per swap and discard you have left)
 
-[expanse] description
-  owner: Each time you hit your focus limit, increase focus limit by 1 then lose half your focus (current: +n | max: 10)
-  (was:  Each time you hit max focus, increase max focus capacity by 1)
-
 [kaleidoscope] description
   owner: Playing four or more suits in a hand applies the focus multiplier a second time
   (was:  Playing one or more of each suit in a hand adds +4 Focus)
-
-[little_guys] description
-  owner: A 5-card hand with no face cards increases your Focus limit by 1 (current: +n | max: 15)
-  (was:  A 5-card hand with no face cards permanently raises your maximum Focus by 1)
 
 [threes_crowd] description
   owner: Pairs qualify as 3-card hands
@@ -295,10 +271,6 @@ Treat richter exactly like full_house_streak below.
   owner: Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use.  n/2 charges
   (was:  Double-tap to spend 10 Focus and 10 seconds for 10 credits. Consumed on use.)
 
-[slow_burn] description
-  owner: +1 to Focus limit for every 45 seconds this sleight spends on the grid. current: n | max: 15
-  (was:  +1 maximum Focus for every minute this sleight spends on the grid.)
-
 [shift_swap] description
   owner: Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.
   (was:  Score two hands beside this card for +2 swaps, then it goes back into the deck.)
@@ -310,7 +282,3 @@ Treat richter exactly like full_house_streak below.
 [petty_cash] description
   owner: Score two hands beside this card to get +5 credits, Discards itself after giving bonus.
   (was:  Score two hands beside this card for +5 credits, then it goes back into the deck.)
-
-[richter] description
-  owner: Four of a Kind score ×3 mult and +10 focus
-  code:  Four of a Kind scores ×3 mult and advances Focus to the next threshold

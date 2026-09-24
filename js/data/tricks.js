@@ -23,10 +23,10 @@ const TRICK_POOL = [
   { id:'double_bloom',   name:'Magnitude',           tier:'epic',      desc:'Hands containing a pair score ×1.5 mult' },
   { id:'high_pair',      name:'Resonance',           tier:'rare',      desc:'Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card' },
   { id:'rare_bloom',     name:'Bedrock',             tier:'epic',      desc:'Four of a Kind permanently buffs its 4 cards +8 pips each' },
-  { id:'full_house_streak', name:'Collapsing Columns', tier:'epic',  desc:'Each Full House instantly advances Focus to the next threshold' },
+  { id:'full_house_streak', name:'Collapsing Columns', tier:'epic',  desc:'Full Houses score +10 Focus' },
   { id:'pair_pips',      name:'Aftershock',          tier:'common',    desc:'Two Pair scores ×2 pips' },
   { id:'two_pair_mult',  name:'Double Dutch',        tier:'epic',      desc:'Play 3 hands with a pair within 30s to add +16 Focus' },
-  { id:'richter',        name:'Richter',             tier:'legendary', desc:'Four of a Kind scores ×3 mult and advances Focus to the next threshold' },
+  { id:'richter',        name:'Richter',             tier:'legendary', desc:'Four of a Kind scores ×3 mult and +10 Focus' },
   { id:'eye_of_storm',   name:'Eye of the Storm',    tier:'epic',      desc:'Hands played in the middle third of the round replay the highest-ranked card(s) 2x' },
   { id:'ripple',         name:'Ripple',              tier:'rare',      desc:'Once every 30s, cards adjacent in rank to another card in the hand replay' },
   // ── Flush / special hand types ──
@@ -55,9 +55,9 @@ const TRICK_POOL = [
   { id:'early_bird',     name:'Early Bird',          tier:'common',    desc:'Hands played in the first third of the round score +5 pips per card' },
   { id:'night_owl',      name:'Night Owl',           tier:'common',    desc:'Hands played in the last third of the round score +3 mult per card' },
   { id:'closing_time',   name:'Near Extinction',     tier:'rare',      desc:'In the last third of the round, each scored card replays' },
-  { id:'quick_draw',     name:'Quick Draw',          tier:'common',    desc:'Hands played within 3 seconds of the previous hand add +1 to your Focus limit' },
+  { id:'quick_draw',     name:'Quick Draw',          tier:'common',    desc:'Hands played within 2 seconds of the previous hand add +1 to your Focus limit (max +10)' },
   { id:'patience_reward', name:'The Heron',          tier:'rare',      desc:'Hands played 15+ seconds after the previous hand score +10 mult' },
-  { id:'first_play',     name:'Head Start',          tier:'rare',    desc:'The first hand each round adds +5 Focus' },
+  { id:'first_play',     name:'Head Start',          tier:'rare',    desc:'The round\'s first hand adds +5 Focus; each hand after adds 1 less, down to 0' },
   { id:'still_water',    name:'Eagle Eye',           tier:'rare',      desc:'Score +5 mult for every 10 seconds elapsed without using a swap' },
   { id:'frozen_moment',  name:'The Falcon',          tier:'epic',      desc:'Hands played while the clock is paused add +10 Focus' },
   { id:'swift',          name:'The Swift',           tier:'rare',      desc:'+5 mult for every 10 seconds elapsed this round' },
@@ -158,7 +158,7 @@ const TRICK_POOL = [
   { id:'first_wind',     name:'First Wind',          tier:'common',    tags:['focus'], desc:'Focus does not decay for the first 45 seconds of a round' },
   { id:'rhythm',         name:'Rhythm',              tier:'common',    tags:['focus'], desc:'Each hand played adds 1 additional focus' },
   { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Discarding adds 1 Focus per swap and discard you have left' },
-  { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit your Focus limit, increase it by 1' },
+  { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus' },
   { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing one or more of each suit in a hand adds +4 Focus' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, score +10 pips per card' },
   // ── Legendary ──
@@ -171,7 +171,7 @@ const TRICK_POOL = [
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Score ×1 mult, +×0.25 per charge your Sleights are missing' },
   // ── 5-card-hand family (r103) ──
   { id:'five_stack',     name:'Five Stack',          tier:'legendary',    tags:['pips','mult','focus'], desc:'Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus' },
-  { id:'little_guys',    name:'the little guys',     tier:'rare',      tags:['focus'],           desc:'A 5-card hand with no face cards increases your Focus limit by 1' },
+  { id:'little_guys',    name:'the little guys',     tier:'rare',      tags:['focus'],           desc:'A 5-card hand with no face cards increases your Focus limit by 1 (max +15)' },
   { id:'five_fodder',    name:'Five for Fodder',     tier:'common',    tags:['credits','discard'], desc:'Discarding a valid 5-card hand grants +5 credits' },
   { id:'five_second',    name:'Five Second Rule',    tier:'rare',      tags:['time'],            desc:'5-card hands pause the clock +5s' },
   // ── Focus-capacity & generation (r104) ──

@@ -149,6 +149,11 @@ function trickLiveDesc(trick) {
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(`+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
+      // ── capped Focus-limit growers (r340): current earned of max ──
+      case 'quick_draw':     return now(`+${focusCapGains['quick_draw'] || 0} of ${B.quick_draw?.cap ?? 10} Focus limit`);
+      case 'expanse':        return now(`+${focusCapGains['expanse'] || 0} of ${B.expanse?.cap ?? 10} Focus limit`);
+      case 'little_guys':    return now(`+${focusCapGains['little_guys'] || 0} of ${B.little_guys?.cap ?? 15} Focus limit`);
+      case 'first_play':     return roundNow(`next hand +${Math.max(0, (B.first_play?.focus ?? 5) - (handsPlayedRound || 0))} Focus`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
       case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);

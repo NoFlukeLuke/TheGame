@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r339 · a 5-card hand is a REAL 5-card hand: realHandOfSize wired into ten entities";
+const BUILD = "2026-09-24 · r340 · Focus-limit growers are capped and live: Quick Draw / Expanse / little guys / Slow Burn / Head Start";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

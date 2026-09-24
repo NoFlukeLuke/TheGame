@@ -635,6 +635,7 @@ function showSleightGridTooltip(r, c, card) {
   }
   if (def.id === 'entourage') uses = `+${entourageMult()} mult right now`;
   // Focus-spend sleights: show what they'll cost against what you have right now.
+  if (def.id === 'slow_burn') uses = `+${Math.min(BAL.slow_burn.cap, Math.floor((card._slowBurnSecs || 0) / BAL.slow_burn.seconds_per))} of ${BAL.slow_burn.cap} Focus limit`;
   if (def.id === 'capacitor') uses = `needs ${BAL.capacitor.focus_cost} Focus · you have ${focusNodes}`;
   if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}`;
   const tip = document.createElement('div');

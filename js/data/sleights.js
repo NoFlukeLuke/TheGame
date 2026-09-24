@@ -50,7 +50,7 @@ const SLEIGHT_POOL = [
   { id:'siphon',    name:'Siphon',    emoji:'🩸', rarity:'rare',   activation:'double_tap', durability:4, defaultRank:null, defaultSuit:null, tags:['focus','mult'],  desc:'Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use.' },
   // ── Focus-capacity sleights (r104) ──
   { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'When it enters the grid: +10 Focus. While it remains on the grid: +10 to your Focus limit.' },
-  { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 to your Focus limit for every minute this sleight spends on the grid.' },
+  { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 to your Focus limit for every 45 seconds this sleight spends on the grid (max +15).' },
   // ── Focus-rate sleights (r180) - passive, read by focusRateMods() ──
   { id:'governor', name:'Governor', emoji:'🎚️', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'While on the grid, you have 1.5× as long to earn the same Focus speed bonus.' },
   // ── Spectrum deck fixtures (r161) - four extra cards shuffled into the Spectrum
