@@ -52,14 +52,17 @@ const SQ_CFG_DEF = {
   rankSpread:   7,       // a daily's deck is drawn from this many CONSECUTIVE ranks (13 = all)
   wildPerGrid:  1,       // wilds guaranteed in every daily deal
   wildValue:    false,   // does a wild pay a card value of its own
-  qualifyKinds: 3,       // redeal unless the best packing makes this many DISTINCT hands (0 = off)
-  qualifyLines: 4,       // ... unless SOME packing can make this many lines score at all (0 = off)
-  qualifySpread: 80,     // ... unless an ARBITRARY packing is below this % of par (0 = off)
-  qualifyMixes: 2,       // ... unless this many DIFFERENT hand mixes come within reach of par (0 = off)
+  qualifyLines: 4,       // a qualifying packing scores at least this many lines (0 = off)
+  qualifyDeep:  3,       // ... of which this many use THREE cards, not a pair and a spare
+  qualifyCover: 67,      // ... and this % of the cards are in a hand that is not a High Card
+  qualifyMixes: 2,       // redeal unless this many DIFFERENT qualifying hand mixes exist
+  qualifyKinds: 0,       // ... and the best packing makes this many DISTINCT hands (0 = off)
+  qualifySpread: 80,     // ... and an ARBITRARY packing is below this % of par (0 = off)
   qualifyTries: 6,       // deals to try before keeping the best one seen
 };
-// A packing is "near par" at this share of it, and at most this many are kept.
-const SQD_Q_NEAR = 0.9, SQD_Q_NEAR_CAP = 4000;
+// At most this many DISTINCT qualifying mixes are counted. The number only has
+// to tell "one way" from "several", so there is no reason to hold more.
+const SQD_Q_MIX_CAP = 64;
 let sqCfgOver = {};
 function sqCfgLoad() { try { sqCfgOver = JSON.parse(localStorage.getItem(SQ_CFG_KEY) || '{}') || {}; } catch (e) { sqCfgOver = {}; } }
 function sqCfgSave() { try { localStorage.setItem(SQ_CFG_KEY, JSON.stringify(sqCfgOver)); } catch (e) {} }
@@ -524,27 +527,27 @@ function sqdRandomMean(N, pieces, n) {
 }
 function sqdGates(par, N, pieces) {
   const g = {
-    lines:  par.maxScoring || 0,
+    qual:   par.qual || 0,          // arrangements that clear all three at once
+    lines:  par.maxScoring || 0,    // reported, not gated - the best reach seen
     kinds:  sqdKindCount(par.lines),
-    mixes:  par.mixes || 0,
+    mixes:  par.mixes || 0,         // DISTINCT hand mixes among the qualifying ones
     spread: 0,
   };
   if (par.best > 0) {
     const mean = par.surveyed ? par.mean : sqdRandomMean(N, pieces).mean;
     g.spread = Math.round(100 * (1 - mean / par.best));
   }
-  g.wantLines  = sqCfg('qualifyLines')  | 0;
   g.wantKinds  = sqCfg('qualifyKinds')  | 0;
-  g.wantMixes  = sqCfg('qualifyMixes')  | 0;
+  g.wantMixes  = Math.max(1, sqCfg('qualifyMixes') | 0);
   g.wantSpread = 100 - (sqCfg('qualifySpread') | 0);   // "an arbitrary packing is below 80% of par"
-  g.ok = g.lines >= g.wantLines && g.kinds >= g.wantKinds
-      && g.mixes >= g.wantMixes && g.spread >= g.wantSpread;
+  g.ok = g.qual >= 1 && g.mixes >= g.wantMixes
+      && g.kinds >= g.wantKinds && g.spread >= g.wantSpread;
   // ONE NUMBER TO RANK BY, for the case where no attempt passes and the best of
   // a bad lot has to be kept. Each gate contributes how far it got, capped at
   // what was asked for, so overshooting one does not pay for missing another.
   const cap = (v, w) => w > 0 ? Math.min(v, w) / w : 1;
-  g.rank = cap(g.lines, g.wantLines) + cap(g.kinds, g.wantKinds)
-         + cap(g.mixes, g.wantMixes) + cap(g.spread, g.wantSpread);
+  g.rank = cap(g.qual, 1) + cap(g.mixes, g.wantMixes)
+         + cap(g.kinds, g.wantKinds) + cap(g.spread, g.wantSpread);
   return g;
 }
 
@@ -593,8 +596,8 @@ function sqdQualifiedDeal() {
   if (lead) lead.tries = n;
   if (lead && typeof devMode !== 'undefined' && devMode)
     console.log('[SQD] deal', n, 'tries ·', lead.g.ok ? 'passed' : 'BEST OF A BAD LOT',
-      `lines ${lead.g.lines}/${lead.g.wantLines} kinds ${lead.g.kinds}/${lead.g.wantKinds}`,
-      `mixes ${lead.g.mixes}/${lead.g.wantMixes} spread ${lead.g.spread}%/${lead.g.wantSpread}%`);
+      `qualifying packings ${lead.g.qual} · reach ${lead.g.lines} · mixes ${lead.g.mixes}/${lead.g.wantMixes}`,
+      `· spread ${lead.g.spread}%/${lead.g.wantSpread}%`);
   return lead || { pieces: [], par: { best: 0, exact: false }, g: {}, tries: 0 };
 }
 
@@ -672,7 +675,7 @@ function sqdSearchPar(N, pieces, opts = {}) {
   // is worth (which is what says whether placement matters), and how many
   // DIFFERENT hands the good packings make (which is what says there is a
   // choice rather than one right answer).
-  let maxScoring = 0, sum = 0, near = [];
+  let maxScoring = 0, sum = 0, qual = 0, qualMix = new Set();
 
   const scoreBoard = () => sqdScoreBoard(board, N).total;
   const order = plc.map((_, i) => i);
@@ -688,15 +691,17 @@ function sqdSearchPar(N, pieces, opts = {}) {
         const res = sqdScoreBoard(board, N);
         const s = res.total;
         sum += s;
-        let scoring = 0;
-        for (const l of res.lines) if (l.name !== 'High Card') scoring++;
-        if (scoring > maxScoring) maxScoring = scoring;
+        const m = sqdMetricsFrom(res, N * N);
+        if (m.scoring > maxScoring) maxScoring = m.scoring;
+        // THE GATES ARE ASKED OF EACH ARRANGEMENT, not of the deal's best-ever
+        // figures - see sqdQualifies. `qualMix` is what answers "more than one
+        // way", because two packings that make the same hands in the same
+        // places are one way twice.
+        if (sqdQualifies(m)) { qual++; if (qualMix.size < SQD_Q_MIX_CAP) qualMix.add(m.mix); }
         if (s > best || !bestBoard) { best = s; bestBoard = board.slice(); }
         // A MIX IS COLLECTED AGAINST A MOVING TARGET, so it is over-collected
         // here and filtered against the FINAL best at the end. Capped, because
         // the count only has to distinguish "one answer" from "several".
-        if (s >= best * SQD_Q_NEAR && near.length < SQD_Q_NEAR_CAP)
-          near.push({ s, mix: res.lines.map(l => l.name).sort().join('|') });
         return ++n >= cap;
       }
       let e = 0; while (occ & (1 << e)) e++;
@@ -724,9 +729,8 @@ function sqdSearchPar(N, pieces, opts = {}) {
     while (Date.now() - t0 < budget && restarts < 400);
   }
   const lines = bestBoard ? sqdScoreBoard(bestBoard, N).lines.map(l => l.name) : null;
-  const mixes = new Set(near.filter(x => x.s >= best * SQD_Q_NEAR).map(x => x.mix)).size;
   return { best, exact: exhaustive && !cutShort, leaves, ms: Date.now() - t0, board: bestBoard, lines,
-           maxScoring, mean: leaves ? sum / leaves : 0, mixes, surveyed: exhaustive };
+           maxScoring, mean: leaves ? sum / leaves : 0, qual, mixes: qualMix.size, surveyed: exhaustive };
 }
 // ── THE 4x4 IS A BEAM SEARCH, NOT A LONGER RANDOM WALK ─────────────────────
 // Randomised restarts were the first answer and they are a bad one here: the
@@ -921,7 +925,7 @@ function sqdBeamPar(N, pieces, opts = {}) {
   // That is the right sample for "how many different hands do the good packings
   // make" and the WRONG one for "what is an arbitrary packing worth" - the
   // 4x4's baseline comes from a separate random walk instead.
-  let maxScoring = 0, near = [];
+  let maxScoring = 0, qual = 0, qualMix = new Set();
   // THE EXACT PASS. A board that completes is re-scored by `sqdScoreBoard` -
   // the same function the tally and the report use - and THAT is what the
   // record is kept on. The heuristic above only decides which boards get to
@@ -980,10 +984,9 @@ function sqdBeamPar(N, pieces, opts = {}) {
       // has never once changed the answer.
       if (nocc[i] === full && (i < EXACT_TOP || !bestBoard)) {
         const e = exact(nb, dst);
-        let scoring = 0;
-        for (const l of e.res.lines) if (l.name !== 'High Card') scoring++;
-        if (scoring > maxScoring) maxScoring = scoring;
-        near.push({ s: e.res.total, mix: e.res.lines.map(l => l.name).sort().join('|') });
+        const m = sqdMetricsFrom(e.res, cells);
+        if (m.scoring > maxScoring) maxScoring = m.scoring;
+        if (sqdQualifies(m)) { qual++; if (qualMix.size < SQD_Q_MIX_CAP) qualMix.add(m.mix); }
         if (e.res.total > best || !bestBoard) {
           best = e.res.total; bestBoard = e.cards;
           bestLines = e.res.lines.map(l => l.name);
@@ -999,9 +1002,8 @@ function sqdBeamPar(N, pieces, opts = {}) {
     curN = take;
     if (Date.now() - t0 > budget * 3) break;          // a hard stop, never the plan
   }
-  const mixes = new Set(near.filter(x => x.s >= best * SQD_Q_NEAR).map(x => x.mix)).size;
   return { best, exact: false, leaves: expanded, ms: Date.now() - t0, lines: bestLines, board: bestBoard,
-           maxScoring, mixes, surveyed: false };
+           maxScoring, qual, mixes: qualMix.size, surveyed: false };
 }
 
 // The 3x3 is small enough to prove; the 4x4 is not, and saying so is the whole
@@ -1026,6 +1028,7 @@ function sqdComputePar(pieces) {
     // gates and burn all six attempts.
     return { best: w.best, exact: false, lines: w.lines, board: w.board,
              maxScoring: Math.max(a.maxScoring || 0, b.maxScoring || 0),
+             qual: (a.qual || 0) + (b.qual || 0),
              mixes: Math.max(a.mixes || 0, b.mixes || 0), surveyed: false,
              leaves: a.leaves + b.leaves, ms: Date.now() - t0 };
   } catch (e) {
@@ -1198,4 +1201,80 @@ function sqdMarkDrop(slot) {
   const host = document.getElementById('selected-cards'); if (!host) return;
   host.querySelectorAll('[data-slot]').forEach(el =>
     el.classList.toggle('sq-drop', slot != null && +el.dataset.slot === slot));
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// WHICH CARDS ARE ACTUALLY IN THE HAND (r341)
+// ══════════════════════════════════════════════════════════════════════════
+// `used` is the cards a line's hand was PRICED over, and for a whole-line hand
+// that is the whole line - a Pair on a 3-line lists all three, because a pair
+// with a kicker is what a Pair here means. That is right for scoring and wrong
+// for the question the deal qualifier now asks, which is whether a card is
+// carrying its weight: the kicker beside a pair is a passenger, and a grid full
+// of passengers is a grid where most of your cards did not matter.
+//
+// So this is the MATERIAL subset - the cards the hand would stop being without.
+// High Card has none, a Pair has two whatever the line's length, a run or a
+// flush has all of its own.
+function sqdMaterialCards(line) {
+  const name = line && line.name, used = (line && line.used) || [];
+  if (!name || name === 'High Card') return [];
+  if (/^(Run|Flush) of|^Straight Flush$/.test(name)) return used.slice();
+  const want = name === 'Pair' ? 2 : name === 'Two Pair' ? 4
+             : name === 'Three of a Kind' ? 3 : name === 'Four of a Kind' ? 4 : used.length;
+  // Take the biggest rank groups first, and let a wild join the biggest - it is
+  // standing in for that rank, which is what made the hand in the first place.
+  const wilds = used.filter(sqdIsWild), nat = used.filter(c => !sqdIsWild(c));
+  const by = new Map();
+  nat.forEach(c => { const a = by.get(c.rank) || []; a.push(c); by.set(c.rank, a); });
+  const groups = [...by.values()].sort((a, b) => b.length - a.length);
+  const out = [];
+  for (const g of groups) { for (const c of g) { if (out.length < want) out.push(c); } if (out.length >= want) break; }
+  for (const w of wilds) if (out.length < want) out.push(w);
+  return out;
+}
+// A "THREE-CARD HAND" IS ONE THAT USES THREE CARDS (owner's wording). On a
+// 3-line that separates a Run of 3 / Flush of 3 / Three of a Kind - which spend
+// the whole line - from a Pair, which spends two of it and carries a spare.
+const sqdLineDepth = line => sqdMaterialCards(line).length;
+
+// ── WHAT A FINISHED BOARD IS WORTH ASKING ABOUT (r341) ─────────────────────
+// The three things the qualifier reads, measured on ONE packing rather than
+// each maximised separately - "a grid that could be configured in more than one
+// way such that there are 4 scoring lines" is a statement about a single
+// arrangement being good, not about three different arrangements each being
+// good at one thing.
+function sqdBoardMetrics(board, n, boons) {
+  let cells = 0; for (const c of board) if (c) cells++;
+  return sqdMetricsFrom(sqdScoreBoard(board, n, boons), cells);
+}
+// The same thing from a board that has ALREADY been scored - the par walk has
+// the line results in hand and must not pay for them twice.
+function sqdMetricsFrom(res, cells) {
+  let scoring = 0, deep = 0;
+  const covered = new Set();
+  for (const l of res.lines) {
+    if (!l.name || l.name === 'High Card') continue;
+    scoring++;
+    const mat = sqdMaterialCards(l);
+    if (mat.length >= 3) deep++;
+    for (const c of mat) covered.add(c);
+  }
+  return { total: res.total, scoring, deep, cover: covered.size, cells,
+           coverFrac: cells ? covered.size / cells : 0,
+           mix: res.lines.map(l => l.name).sort().join('|') };
+}
+
+// ── DOES THIS ONE ARRANGEMENT CLEAR THE BAR (r341) ─────────────────────────
+// ALL THREE AT ONCE, ON ONE PACKING. Owner: "a grid that could be configured in
+// more than one way such that there are 4 scoring lines that aren't high card.
+// At least 3 lines should be 3 card hands. And 2/3 of cards are scored in a non
+// high card hand." Maximising the three separately would pass a grid whose four
+// scoring lines and whose three real hands are in different arrangements - that
+// is three promises, one of which you get to keep.
+function sqdQualifies(m) {
+  const need = Math.ceil((m.cells || 0) * (sqCfg('qualifyCover') | 0) / 100);
+  return m.scoring >= (sqCfg('qualifyLines') | 0)
+      && m.deep    >= (sqCfg('qualifyDeep')  | 0)
+      && m.cover   >= need;
 }

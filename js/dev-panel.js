@@ -144,7 +144,7 @@ const DEV_GROUPS = [
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
   { g:'squares',  icon:'▦', label:'Squares',   sub:() => typeof sqCfg === 'function'
-      ? `${sqCfg('rankSpread')} ranks · ${sqCfg('wildPerGrid')} wild · ${sqCfg('qualifyLines')} lines` : 'poker squares' },
+      ? `${sqCfg('rankSpread')} ranks · ${sqCfg('wildPerGrid')} wild · ${sqCfg('qualifyLines')}/${sqCfg('qualifyDeep')}/${sqCfg('qualifyCover')}%` : 'poker squares' },
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
       return m === 'weighted' ? `weighted · ${deckWeightedSize()} cards · ${deckWeightedSuits().length} suits`
            : m === 'six'      ? `six suits · ${deckDesignSize()} cards`
@@ -1272,14 +1272,18 @@ const SQ_DEV_ROWS = [
   { k:'wildPerGrid', label:'Wilds per grid', kind:'num', min:0, max:4, step:1, unit:'',
     hint:'Guaranteed in every deal. A wild takes the best rank and suit for each line it sits in, its row and its column separately.' },
   { k:'wildValue', label:'A wild scores a card value', kind:'bool' },
-  { k:'qualifyLines', label:'Qualify: lines that can score', kind:'num', min:0, max:8, step:1, unit:'',
-    hint:'Redeal unless SOME packing makes at least this many lines a real hand. The gate that throws out a grid with no runs in it. 0 switches it off.' },
-  { k:'qualifyKinds', label:'Qualify: distinct hands', kind:'num', min:0, max:6, step:1, unit:'',
-    hint:'... unless the best packing makes this many DIFFERENT hands, so the grid is not one shape repeated.' },
+  { k:'qualifyLines', label:'A good grid: lines that score', kind:'num', min:0, max:8, step:1, unit:'',
+    hint:'One arrangement has to make at least this many lines a real hand (not a High Card).' },
+  { k:'qualifyDeep', label:'... of which three-card hands', kind:'num', min:0, max:8, step:1, unit:'',
+    hint:'... and this many of them use THREE cards - a run, a flush or a set - rather than a pair with a spare beside it.' },
+  { k:'qualifyCover', label:'... and cards in a real hand', kind:'num', min:0, max:100, step:5, unit:'%',
+    hint:'... and this share of the cards on the board is part of a hand that is not a High Card. All three are asked of the SAME arrangement.' },
+  { k:'qualifyMixes', label:'Qualify: different ways to do it', kind:'num', min:1, max:8, step:1, unit:'',
+    hint:'Redeal unless this many DIFFERENT hand mixes clear that bar - more than one good answer, which is what makes it a decision.' },
+  { k:'qualifyKinds', label:'Qualify: distinct hands at par', kind:'num', min:0, max:6, step:1, unit:'',
+    hint:'... and the best-scoring packing makes this many DIFFERENT hands. 0 switches it off.' },
   { k:'qualifySpread', label:'Qualify: an arbitrary packing is under', kind:'num', min:0, max:100, step:5, unit:'% of par',
-    hint:'... unless where you put the tiles genuinely matters. If any old arrangement already scores near par, the grid is not a puzzle. 100 switches it off.' },
-  { k:'qualifyMixes', label:'Qualify: different ways to score well', kind:'num', min:0, max:8, step:1, unit:'',
-    hint:'... unless several near-par packings make DIFFERENT hands - two good answers, not one. 0 switches it off.' },
+    hint:'... and where you put the tiles genuinely matters. If any old arrangement already scores near par, the grid is not a puzzle. 100 switches it off.' },
   { k:'qualifyTries', label:'Qualify: deals to try', kind:'num', min:1, max:12, step:1, unit:'' },
 ];
 function devRenderSquares() {

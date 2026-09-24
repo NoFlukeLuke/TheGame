@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r340 · Poker Squares dailies: poker-order pay tables, a wild a grid, narrow ranks, a four-gate deal qualifier, group outlines, a stable tray and an end-of-run scoreboard";
+const BUILD = "2026-09-24 · r341 · the daily deal qualifier asks ONE arrangement for 4 scoring lines, 3 three-card hands and 2/3 of the cards carrying weight";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
