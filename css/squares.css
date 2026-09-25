@@ -139,8 +139,17 @@
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px;
   color: var(--cream-dim); opacity: 0.7; align-self: center; margin: auto;
 }
-#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; opacity: 0.92; }
-#sq-drag .sq-tile { width: 96px; height: 96px; }
+/* THE DRAG GHOST (r326). Not a thumbnail of the tile - the CARDS, at the board's
+   own cell size, translucent, with the grabbed cell under the cursor. So what
+   you are holding is literally what will land, in the place it will land. */
+#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; }
+#sq-drag .sq-ghostpoly { opacity: 0.82; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65)); }
+#sq-drag .sq-mini {
+  border-radius: 5px; border-width: 2px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.4);
+  padding: 3px 4px;
+}
+#sq-drag .sq-mr, #sq-drag .sq-ms { font-size: calc(var(--smw, 40px) * 0.34); }
 
 /* ── Board overlays ───────────────────────────────────────────────────── */
 .sq-ghost {
@@ -150,6 +159,10 @@
 }
 .sq-ghost.ok  { background: rgba(90,158,90,0.24); border: 1px solid var(--green); color: #d8f0d8; }
 .sq-ghost.bad { background: rgba(192,57,43,0.26); border: 1px solid var(--red); }
+/* Held: the cards themselves are under the cursor, so the board only outlines
+   the footprint - a second copy of the faces two pixels apart reads as a fault. */
+.sq-ghost.ok.held  { background: rgba(90,158,90,0.16); border: 2px dashed var(--green); }
+.sq-ghost.bad.held { background: rgba(192,57,43,0.16); border: 2px dashed var(--red); }
 .sq-gr, .sq-gs { line-height: 1; }
 .sq-lock {
   position: absolute; border-radius: 5px; pointer-events: none; z-index: 4;
@@ -477,3 +490,90 @@
 .sq-sbtn.suit-diamonds { color: var(--suit-diamonds); }
 .sq-sbtn.suit-spades   { color: var(--suit-spades); }
 .sq-sbtn.suit-clubs    { color: var(--suit-clubs); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE LINE HEADERS (r326)
+
+   What each row and column is currently making, and what it is worth, beside
+   the line itself. They sit in a band RESERVED off the measured slot
+   (sqSlotInset, js/grid-metrics.js) with the matching padding below, so the
+   freed room lands on the left and the top rather than being split around a
+   centred board - and so the labels are never drawn over the cards.
+   ══════════════════════════════════════════════════════════════════════════ */
+#stage.landscape.squares-mode #grid-slot { padding: 30px 0 0 64px; }
+.sq-hdr {
+  position: absolute; z-index: 6; cursor: default;
+  display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+  font-family: 'Share Tech Mono', monospace; line-height: 1.12;
+  opacity: 0.95; transition: opacity 0.12s, color 0.12s;
+}
+.sq-hdr.row { align-items: flex-end; text-align: right; }
+.sq-hdr.col { align-items: center; text-align: center; justify-content: flex-end; padding-bottom: 3px; }
+.sq-hdr .sq-hn {
+  font-size: 8px; letter-spacing: 1px; color: var(--cream-dim); opacity: 0.85;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.sq-hdr .sq-hv {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.5px;
+  color: var(--gold);
+}
+/* A line with nothing in it is a placeholder, not a score of zero. */
+.sq-hdr.none { opacity: 0.3; }
+.sq-hdr.none .sq-hv { color: var(--cream-dim); }
+/* Cashed in SELECT SCORE: the line is closed, and the header says so. */
+.sq-hdr.lock { opacity: 0.45; }
+.sq-hdr.lock .sq-hv { color: var(--cream-dim); text-decoration: line-through; }
+.sq-hdr:hover { opacity: 1; }
+.sq-hdr:hover .sq-hv { text-shadow: 0 0 10px rgba(201,168,76,0.8); }
+/* A PHONE HAS NO BAND TO SPEND. There the same reading is a tap in the board's
+   margin (sqLineTipAt) or on the PIPS / MULT chips, which is what the pop-up
+   below is for. */
+#stage:not(.landscape) .sq-hdr { display: none; }
+
+/* ── The read-out pop-up ───────────────────────────────────────────────────
+   BODY LEVEL and placed in raw viewport px (js/squares-mode.js), so it carries
+   none of the cabinet's CSS zoom, and capped to the viewport the way every
+   other pop-up in the game is. */
+#sq-tip {
+  display: none; position: fixed; z-index: 460;
+  max-width: calc(100vw - 20px); max-height: calc(100vh - 20px); overflow-y: auto;
+  padding: 10px 12px; border-radius: 9px;
+  background: #16142a; border: 1px solid #4a4478;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.7), 0 0 22px -8px rgba(140,110,230,0.7);
+  color: var(--cream); pointer-events: auto;
+}
+#sq-tip.show { display: block; }
+#sq-tip .sqt-h {
+  font-family: 'Share Tech Mono', monospace; font-size: 8.5px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: #b39cf5; margin-bottom: 5px;
+}
+#sq-tip .sqt-hand {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+#sq-tip .sqt-faces { display: flex; gap: 4px; margin-bottom: 7px; }
+#sq-tip .sqt-faces i {
+  font-family: 'Crimson Pro', serif; font-style: normal; font-weight: 700; font-size: 12px;
+  background: var(--card-bg); border-radius: 3px; padding: 2px 5px; color: #111;
+}
+/* The same hues the board uses, so a line's faces can be scanned for the flush
+   you were building rather than read one at a time. */
+#sq-tip .sqt-faces i.suit-hearts   { color: var(--suit-hearts); }
+#sq-tip .sqt-faces i.suit-diamonds { color: var(--suit-diamonds); }
+#sq-tip .sqt-faces i.suit-spades   { color: var(--suit-spades); }
+#sq-tip .sqt-faces i.suit-clubs    { color: var(--suit-clubs); }
+#sq-tip .sqt-sum, #sq-tip .sqt-foot {
+  font-family: 'Share Tech Mono', monospace; font-size: 10.5px; color: var(--cream-dim);
+}
+#sq-tip .sqt-tot {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 17px; color: #fff; margin-top: 2px;
+}
+#sq-tip .sqt-t { border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 10px; }
+#sq-tip .sqt-t td { padding: 2px 7px 2px 0; color: var(--cream-dim); white-space: nowrap; }
+#sq-tip .sqt-t td.n { text-align: right; padding-right: 0; padding-left: 10px; }
+#sq-tip .sqt-t td.b { color: var(--gold); font-weight: 700; }
+#sq-tip .sqt-t tr.off td { opacity: 0.35; }
+#sq-tip .sqt-foot { margin-top: 7px; padding-top: 6px; border-top: 1px solid #332e55; }
+#sq-tip .sqt-foot b, #sq-tip .sqt-sum b { color: var(--gold); }
+/* The two chips are a control on this screen, so they have to look like one. */
+#stage.squares-mode #pips-box, #stage.squares-mode #mult-box { cursor: help; }

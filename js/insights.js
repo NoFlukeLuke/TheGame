@@ -256,7 +256,11 @@ function insightsBlocked() {
   // Reading surfaces and modals.
   for (const s of ['#settings-overlay.show', '#records-overlay.show', '#info-overlay.show',
                    '#dev-panel.show', '#end-overlay.show', '#pause-overlay.show',
-                   '#boss-preamble.show', '#countdown-321-overlay.show']) {
+                   '#boss-preamble.show', '#countdown-321-overlay.show',
+                   // Poker Squares' own console and its end-of-run scorecard are
+                   // reading surfaces too, and the card is the one screen in that
+                   // mode a tip would land squarely on top of.
+                   '#sq-overlay.show', '#sq-card.show']) {
     if (document.querySelector(s)) return true;
   }
   // Mid-animation the card would land on a board that is about to move, and the

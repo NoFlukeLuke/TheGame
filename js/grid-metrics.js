@@ -35,6 +35,16 @@ function recomputeGridMetrics() {
   // Fit cards to the MEASURED slot so the grid always fills the available area
   // without ever overflowing onto the action buttons (any orientation/size).
   const slot   = measureGridSlot();
+  // POKER SQUARES RESERVES A BAND for its line headers (js/squares-mode.js), and
+  // it has to come off the MEASURED slot rather than being drawn over the board:
+  // the headers name the hand each row and column is making, so they are read
+  // beside the cards, not on top of them. #grid-slot carries the matching
+  // padding, which is what puts the freed room on the left and the top rather
+  // than splitting it evenly around a centred board.
+  if (typeof sqSlotInset === 'function') {
+    const ins = sqSlotInset();
+    if (ins) { slot.w = Math.max(60, slot.w - ins.x); slot.h = Math.max(60, slot.h - ins.y); }
+  }
   // Reserve a small safety margin on every side so the grid never touches (and
   // never spills onto) the focus meter on the left or the action buttons on the
   // right - even after rounding. Fixes the "buttons overlap the grid" issue.

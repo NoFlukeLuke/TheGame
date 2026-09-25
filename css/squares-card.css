@@ -1,0 +1,161 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   THE POKER SQUARES SCORECARD (r326)
+
+   Deliberately NOT the game's chrome. A result is read rather than played, so
+   this is paper: a light sheet, one accent, thin rules, real leading. Every
+   rule is scoped under #sq-card, so nothing here can reach the rest of the
+   game - which is what makes the licence to break house style safe.
+
+   It is BODY LEVEL, for the usual reason: anything inside #cabinet inherits its
+   CSS zoom and would paint at about twice the size written here.
+   ══════════════════════════════════════════════════════════════════════════ */
+#sq-card {
+  --ink:    #14140f;
+  --ink-2:  #62625a;
+  --ink-3:  #9a9a90;
+  --paper:  #fbfaf7;
+  --line:   #e2e0d8;
+  --accent: #1d7a54;
+  --h: #a0030b;          /* the board's own suit hues; diamonds darkened for */
+  --d: #b8790a;          /* white paper, where the board's gold is too light */
+  --s: #14140f;
+  --c: #2255cc;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  display: none; position: fixed; inset: 0; z-index: 480;
+  align-items: center; justify-content: center;
+  padding: 16px 12px;
+  background: rgba(12, 12, 16, 0.72);
+  backdrop-filter: blur(3px);
+}
+#sq-card.show { display: flex; }
+
+.sqc-sheet {
+  position: relative; width: 100%; max-width: 560px; max-height: calc(100dvh - 32px);
+  display: flex; flex-direction: column;
+  background: var(--paper); color: var(--ink);
+  border-radius: 14px; overflow-y: auto; overscroll-behavior: contain;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 2px 0 rgba(255,255,255,0.4) inset;
+}
+.sqc-inner { padding: 30px 26px 8px; }
+
+.sqc-eyebrow {
+  font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--ink-3); text-align: center;
+}
+/* The one thing on the sheet that is allowed to be loud. */
+.sqc-total {
+  font-family: 'Crimson Pro', Georgia, serif; font-weight: 700;
+  font-size: 72px; line-height: 1.02; text-align: center;
+  letter-spacing: -2px; margin: 6px 0 2px; font-variant-numeric: tabular-nums;
+}
+.sqc-sub {
+  font-family: var(--sans); font-size: 13px; color: var(--ink-2);
+  text-align: center; margin-bottom: 20px;
+}
+
+.sqc-stats { display: flex; gap: 10px; }
+.sqc-stat {
+  flex: 1; min-width: 0; padding: 11px 10px; border-radius: 9px;
+  background: #f2f0e9; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.sqc-k {
+  font-family: var(--sans); font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink-3); text-align: center;
+}
+.sqc-v {
+  font-family: 'Crimson Pro', Georgia, serif; font-weight: 700; font-size: 25px;
+  line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.sqc-s2 { font-family: var(--sans); font-size: 10.5px; color: var(--accent); font-weight: 600; }
+
+.sqc-extra {
+  margin-top: 12px; font-family: var(--sans); font-size: 12px; color: var(--ink-2);
+  text-align: center; line-height: 1.5;
+}
+.sqc-extra span {
+  display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.sqc-rule { height: 1px; background: var(--line); margin: 22px 0 4px; }
+
+/* ── One grid ──────────────────────────────────────────────────────────── */
+.sqc-block { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.sqc-block:last-child { border-bottom: none; }
+.sqc-bh { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.sqc-bh h3 {
+  margin: 0; font-family: var(--sans); font-size: 11px; font-weight: 700;
+  letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3);
+}
+.sqc-bs { display: flex; align-items: baseline; gap: 8px; }
+.sqc-bs b {
+  font-family: 'Crimson Pro', Georgia, serif; font-size: 25px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sqc-bs span { font-family: var(--sans); font-size: 11px; color: var(--ink-2); }
+.sqc-meter { height: 3px; border-radius: 2px; background: var(--line); margin-bottom: 14px; overflow: hidden; }
+.sqc-meter i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+
+/* THE BOARD AND ITS LABELS ARE ONE GRID, not three boxes lined up by eye: a
+   header can then never drift off its line, at any board size, with nothing
+   measured. The first track is the row-label column. */
+.sqc-grid {
+  display: grid; justify-content: center;
+  grid-template-columns: 62px repeat(var(--sqcn, 3), minmax(0, 54px));
+  gap: 4px;
+}
+.sqc-corner { }
+.sqc-hdr {
+  display: flex; flex-direction: column; justify-content: center;
+  font-family: var(--sans); line-height: 1.15; min-width: 0;
+}
+.sqc-hdr.col { align-items: center; text-align: center; padding-bottom: 2px; }
+.sqc-hdr.row { align-items: flex-end;  text-align: right;  padding-right: 4px; }
+.sqc-hn {
+  font-size: 8.5px; font-weight: 700; letter-spacing: 0.5px; color: var(--ink-3);
+  text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.sqc-hv { font-size: 13px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.sqc-cell {
+  aspect-ratio: 54 / 66; border-radius: 5px; background: #fff;
+  border: 1px solid #dcd9cf; box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 3px 5px; color: var(--ink);
+  font-family: 'Crimson Pro', Georgia, serif; font-weight: 700;
+}
+.sqc-cell.empty { background: #f2f0e9; border-style: dashed; box-shadow: none; }
+.sqc-r { font-size: 15px; line-height: 1; }
+.sqc-s { font-size: 13px; line-height: 1; align-self: flex-end; }
+.sqc-cell.h { color: var(--h); } .sqc-cell.d { color: var(--d); }
+.sqc-cell.s { color: var(--s); } .sqc-cell.c { color: var(--c); }
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.sqc-foot {
+  position: sticky; bottom: 0; padding: 14px 26px 18px;
+  background: linear-gradient(180deg, rgba(251,250,247,0) 0%, var(--paper) 38%);
+  display: flex; justify-content: center;
+}
+.sqc-done {
+  font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: #fff; background: var(--ink);
+  border: none; border-radius: 999px; padding: 13px 48px; cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.sqc-done:hover { background: var(--accent); transform: translateY(-1px); }
+
+/* A phone: the sheet is the screen, and the grid's fixed tracks are what have
+   to give. The row-label column keeps its width - it is the only place a hand
+   is named - and the cells take what is left. */
+@media (max-width: 520px) {
+  .sqc-inner { padding: 22px 15px 8px; }
+  .sqc-total { font-size: 56px; }
+  /* THE CELL STAYS CAPPED, and `1fr` was the bug: on a 390px sheet a 3x3's
+     three flexible tracks came out 200px wide, which at the card's aspect is a
+     244px-tall playing card. `minmax(0, 54px)` is "at most 54, less if the row
+     does not fit", which is what a 5x5 on a 360px phone needs. */
+  .sqc-grid { grid-template-columns: 50px repeat(var(--sqcn, 3), minmax(0, 54px)); gap: 3px; }
+  .sqc-stats { gap: 6px; }
+  .sqc-v { font-size: 21px; }
+  .sqc-foot { padding: 12px 15px 15px; }
+}

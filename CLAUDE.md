@@ -3833,6 +3833,151 @@ and are hit-testable in both orientations; and starting any of the other eight
 modes afterwards finds the hand preview back in `#trick-panel`, `#sq-round` gone
 and the GOAL label restored. No page errors anywhere.
 
+### The board is the interface (r326)
+
+Owner: *"love the new poker square deals, theyre good. ui still sucks though."*
+Six changes, and the thread through all of them is that **the board should be the
+thing you look at**: what you are holding, what each line is making and what it is
+worth are all on the board now, and everything that was a form to fill in is gone.
+
+#### 1. A TILE IS DRAGGED BY THE CELL YOU TOOK HOLD OF
+
+`sqGrab` is which cell of the shape the pointer grabbed, in the piece's own
+`{dr,dc}`, and the whole drag falls out of it: the ghost is drawn at **board cell
+size** with that cell under the cursor, and the board cell under the cursor IS
+that cell, so the origin is `cursorCell - grab`.
+
+Before this the ghost was a **96px thumbnail pinned by its top-left corner, 48px
+up and left of the finger** - neither the size of what would land nor the part of
+the shape you were aiming with - and the drop origin was the cell under the
+cursor, so an L always placed as though you had it by the corner.
+
+- **`sqGrabCellFromTile` reads the poly's own rect, NOT `closest('.sq-mini')`.**
+  A bounding box has HOLES (an L, an S and a T all do) and a grab on a hole still
+  has to mean something: the fractional cell is snapped to the nearest cell the
+  shape actually has.
+- **The ghost is the CARDS, translucent, at `CARD_W x CARD_H` scaled by the
+  board's own zoom** (`sqBoardScale` - `#grid` carries the cabinet's CSS zoom, so
+  `CARD_W` is not what the board measures on screen; the r160 Trick-fan trap).
+  While a tile is held the board only outlines the footprint, because a second
+  copy of the faces two pixels away reads as a rendering fault.
+- **RELEASE IS THE COMMIT.** A tile let go over a cell it fits drops in; one let
+  go anywhere else goes back where it came from. **CONFIRM is still there** and
+  still commits a tap-placed tentative (owner: "it can be there"), but nothing
+  requires it.
+- **`sqCellAt(x, y, loose)` forgives half a card past the edge on a DROP.** A tile
+  is aimed by the cell you hold, so packing the last column means holding the
+  cursor on the board's rim; a strict test there reads as the board refusing a
+  placement that plainly fits.
+
+#### 2. A PLACED TILE IS STILL YOURS - lift it, or double-tap to turn it
+
+**`sqPlaced` is the turn's undo stack and it is now kept in EVERY mode, not just
+the daily.** A record per tile, cleared at `sqStartTurn`, so the rule is *everything
+you did this turn is reversible and everything from an earlier turn is committed*.
+(A daily has one turn, so its whole board is reversible - which is exactly what
+TAKE BACK has always popped.)
+
+- **A press on a placed tile is not yet a lift.** It becomes one only once the
+  finger has moved `SQ_LIFT_PX` (6). That is what lets the same press be a
+  **double-tap**, which rotates the tile IN PLACE - arming the lift on contact
+  would make the two impossible to tell apart, and the owner's "maybe require a
+  slightly longer initial click" is not needed once movement is the test.
+- **`sqRotatePlaced` clears the tile's own cells first**, so the fit test sees the
+  room it is currently using, and re-derives the origin from the tile's CENTRE
+  plus a small spiral of nudges - an L turned against the board's edge would
+  otherwise simply refuse. Nowhere to turn puts it back exactly as it was.
+- **A drag that lands nowhere returns a LIFTED tile to its own cells, not to the
+  tray** (`sqReturnDragged`). Picking a tile up to look under it must not cost you
+  the placement.
+
+#### 3. THE TALLY IS THE REVIEW - no per-grid report
+
+The per-grid report restated, in a monospace block, the ten lines the player had
+just watched pay one at a time. It is gone (owner: *"don't put a review after each
+round"*); `sqCaptureGrid` snapshots the board, its line results and its par while
+the board is still standing, and `SQ_ROUND_GAP_MS` (820) is the beat before the
+boon or the Trick pick. **Faces are COPIED, never referenced**: those card objects
+go straight back into the deck and a consumable can re-suit one two grids later.
+
+`sqFinishText` is the old report, kept and callable from the console: it is the
+only place the raw arithmetic of every line is printed, which is what a balance
+pass wants and what the card deliberately is not.
+
+#### 4. THE SCORECARD IS PAPER - `js/squares-card.js` + `css/squares-card.css`
+
+Owner: *"make the final scorecard look way more modern and better ... make it feel
+more like a new york times game overall, if that means ditching some of the css
+from the rest of the game that's fine."*
+
+A light sheet, one accent, thin rules, real leading, a 72px serif total - and
+**every grid played, drawn as a board with its lines labelled on the left and
+above**. Suits take the game's own hues, with diamonds darkened (the board's gold
+is tuned for a cream card face, not for white paper).
+
+- **Every rule is scoped under `#sq-card`**, which is what makes the licence to
+  break house style safe: none of it can reach the rest of the game.
+- **A board and its labels are ONE CSS grid** of `(N+1) x (N+1)`, so a header can
+  never drift off its line at any board size with nothing measured.
+- **`sqHandShort`** is the abbreviation table, shared with the in-play headers: a
+  header has one cell of width, so "THREE OF A KIND" wrapped to three lines is
+  worse than naming it the way a player says it (TRIPS).
+- Body level, for the usual reason - anything inside `#cabinet` inherits its CSS
+  zoom and would paint at about twice the size written.
+
+#### 5. THE CHIPS SAY WHAT THE BOARD IS WORTH RIGHT NOW
+
+Owner: *"is the mult and pips chips actually saying anything?"* They were not:
+`sqPaintChips` was called from the TALLY and nowhere else, so for the whole of the
+placing phase - which is all of the thinking - the two chips sat on whatever the
+last line to pay had left there.
+
+| | left chip | right chip |
+|---|---|---|
+| daily | **HAND** - every line's hand base | **CARDS** - every line's card values |
+| 5x5 | **PIPS** - every line's pips | **MULT** - what those pips are multiplied by overall |
+
+- **The 5x5's MULT is DERIVED (`total / pips`), not a sum of the ten lines'
+  multipliers**, because the `x` between the chips has to stay true: a sum would
+  read as ten multipliers stacked and would not produce the score.
+- **Hover (desktop) or tap (phone) either chip for the whole board, line by
+  line**: name, arithmetic, total, and the two halves summed at the foot.
+
+#### 6. THE LINE HEADERS, and the band they are drawn in
+
+What each row and column is making and what it is worth, beside the line itself,
+always visible in landscape. `SQ_HDR_W` (64) and `SQ_HDR_H` (30).
+
+- **The band is RESERVED OFF THE MEASURED SLOT, not drawn over the board.**
+  `sqSlotInset()` is a hook `recomputeGridMetrics` asks for (js/grid-metrics.js)
+  and `#grid-slot` carries the matching padding - the inset shrinks the board, the
+  padding is what puts the freed room on the left and the top rather than
+  splitting it around a centred board. The 5x5's cards go 50px -> 45px, which is
+  the "shorten the grid a little" the owner asked for.
+- **`sqSlotInset` must NOT depend on the phase.** The board would resize the
+  moment the tally began, which is the one time the cards are being animated.
+- **The headers stay up through the TALLY and the beat after it** - the board is
+  still standing and every line has just been priced.
+- **A PHONE HAS NO BAND TO SPEND.** There the same reading is a tap in the board's
+  MARGIN, and that listener has to be on **`#grid-slot`, not `#grid`**: `#grid`'s
+  own box IS the board, so a tap beside a row never reaches it.
+- **`0/9 PLACED · 3 SPARE` is gone** from above the board - it counted cards the
+  player can see and is in the strip the column headers now use. The surplus moved
+  to the SUBMIT button, where it says what you are about to leave behind.
+
+#### Two things this pass fixed on the way
+
+- **A SHORT LINE COULD CLAIM A RUN OR A FLUSH.** `sqdHandName` named a two-card
+  column "Run of 2", which has no pay-table entry and so scored 0 - the NAME was
+  the only thing wrong, and nothing looked at it until the live headers started
+  printing it. It now applies the rule the beam search has always applied inside
+  `lineScore`: a line shorter than N may not claim the line's own hand.
+- **`_sqLineCache`** - the headers and the live chips both want all 2N lines, and
+  in the 5x5 a line is a real `calcScore`, so a single render was running it forty
+  times. Dropped at the top of `sqRenderAll`, which is the only place the board can
+  have changed under it; the tally deliberately does not use it, because it
+  re-scores at payout on purpose.
+
 ### Known, and left for a decision
 
 **The row/column BUFF Tricks are much stronger here than in the main game**,

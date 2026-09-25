@@ -190,10 +190,31 @@ let sqPhase = 'idle';               // idle | place | pickline | scoring | betwe
 let sqPickNeed = 0, sqPickSel = [];
 let sqCons = [], sqArmed = null, sqPicked = [];
 let sqLog = [], sqPieceId = 0;
+// EVERY GRID PLAYED, kept for the final card (r326). There is no review between
+// rounds any more - the tally IS the review - so the only place a finished board
+// can still be looked at is the end, and by then `gridData` has been recycled
+// four times over. Each entry is a snapshot: the faces, the line results and the
+// par, taken while the board is still standing.
+let sqGrids = [];
+// ── THE DRAG (r326) ────────────────────────────────────────────────────────
+// `sqGrab` is WHICH CELL OF THE SHAPE the pointer took hold of, in the piece's
+// own {dr,dc}. Everything about the drag follows from it: the ghost is drawn at
+// BOARD cell size with that cell under the cursor, and the board cell under the
+// cursor IS that cell - so the origin is `cursorCell - grab`. Before this the
+// ghost was a 96px thumbnail pinned by its top-left corner 48px up and left of
+// the finger, which is neither the size nor the part of the shape you aimed
+// with, so packing a corner was guesswork.
 let sqDragging = null, sqDragEl = null, sqDragPid = null;
-// DAILY state. `sqdPlaced` is the undo stack - a puzzle you submit once has to
-// be takeable-back, or a mis-drop ends the grid.
-let sqdPlaced = [], sqdPar = null, sqdParTotal = 0, sqdParExact = true;
+let sqGrab = { dr: 0, dc: 0 };      // the shape cell under the cursor
+let sqLiftRec = null;               // the board placement this drag pulled up, if any
+let sqArm = null;                   // a pointerdown on a placed tile, not yet a lift
+let sqTapAt = 0, sqTapKey = '';     // double-tap-to-rotate, on the board
+// `sqPlaced` is the turn's undo stack, and it is what makes a placed tile
+// LIFTABLE: a record per tile, cleared when the turn ends, so everything you did
+// this turn is reversible and everything from an earlier one is committed. (A
+// daily has one turn, so its whole board is reversible - which is what TAKE
+// BACK has always popped.)
+let sqPlaced = [], sqdPar = null, sqdParTotal = 0, sqdParExact = true;
 
 const sqIsRow = i => i < SQ_N;
 const sqLineName = i => sqIsRow(i) ? 'ROW ' + (i + 1) : 'COL ' + (i - SQ_N + 1);
@@ -311,8 +332,10 @@ function squaresTeardown() {
   // so an empty slot, a drop ghost or the line banner survives into the NEXT
   // mode and paints over its board - measured, 9 slots from a 3x3 were still
   // there under Classic's 16 cards. Same shape as the r248 crossroads tiles.
-  document.querySelectorAll('#grid .sq-slot, #grid .sq-ghost').forEach(el => el.remove());
+  document.querySelectorAll('#grid .sq-slot, #grid .sq-ghost, #grid .sq-hdr, #grid .sq-lbtn, #grid .sq-lock').forEach(el => el.remove());
   document.getElementById('sq-banner')?.remove();
+  document.getElementById('sq-drag')?.remove();
+  sqHideTip();
   sqUnobserveLayout();
   document.body.classList.remove('squares-mode');
   document.getElementById('stage')?.classList.remove('squares-mode', 'squares-daily', 'sq-n3', 'sq-n4');
@@ -326,8 +349,8 @@ function squaresBeginRun() {
   document.getElementById('stage')?.classList.add('squares-mode');
   sqMountPanels();
   sqObserveLayout();
-  sqRound = 1; sqTotal = 0; sqRoundScore = 0; sqCons = []; sqLog = []; sqPieceId = 0;
-  sqBags = {}; sqdBoons = []; sqdPlaced = []; sqdPar = null; sqdParTotal = 0; sqdParExact = true;
+  sqRound = 1; sqTotal = 0; sqRoundScore = 0; sqCons = []; sqLog = []; sqPieceId = 0; sqGrids = [];
+  sqBags = {}; sqdBoons = []; sqPlaced = []; sqdPar = null; sqdParTotal = 0; sqdParExact = true;
   sqMode = 'all';
   sqAskSize();
 }
@@ -432,17 +455,19 @@ function sqNewRound() {
   for (let r = 0; r < SQ_N; r++) { gridData[r] = []; for (let c = 0; c < SQ_N; c++) gridData[r][c] = null; }
   gridRows = SQ_N; gridCols = SQ_N;
   sqTurn = 0; sqLocked = new Set(); sqTentative = null; sqSelected = null;
-  sqArmed = null; sqPicked = []; sqRoundScore = 0; sqLog = []; sqdPlaced = []; sqdPar = null;
+  sqArmed = null; sqPicked = []; sqRoundScore = 0; sqLog = []; sqPlaced = []; sqdPar = null;
   if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
   sqStartTurn();
 }
 function sqStartTurn() {
   sqPhase = 'place';
+  sqPlaced = [];                      // a turn's placements are its own to undo
+  sqLiftRec = null; sqArm = null;
   // A DAILY HAS NO TURNS. Every tile is on the table from the first frame, which
   // is the whole difference: the 5x5 is a game of reacting to what arrives, this
   // is a packing puzzle with full information and one commit.
   if (sqDaily()) {
-    sqDiscards = 0; sqdPlaced = [];
+    sqDiscards = 0;
     sqHand.push(...sqdDealAll());
     // PAR IS COMPUTED NOW, NOT AT SUBMIT. The board is known the moment it is
     // dealt, and the deal animation is the one place a search can hide.
@@ -522,6 +547,18 @@ function sqBestRun(cards) {
 // THE ONE PLACE A LINE'S SCORE IS ASKED FOR. The 5x5 goes through the game's
 // real `calcScore`; a daily grid has no pips x mult at all and scores itself.
 function sqLineResult(i) { return sqDaily() ? sqdScoreLine(i) : sqScoreLine(i); }
+// ONE SCORE PER LINE PER REPAINT. The headers and the live chips both want all
+// 2N lines, and in the 5x5 a line is a real `calcScore` - so without this a
+// single render ran it forty times. The cache is dropped at the top of
+// `sqRenderAll`, which is the only place the board can have changed under it;
+// the TALLY deliberately does not use it, because it re-scores at payout on
+// purpose.
+let _sqLineCache = null;
+function sqLineCached(i) {
+  if (!_sqLineCache) _sqLineCache = new Map();
+  if (!_sqLineCache.has(i)) { try { _sqLineCache.set(i, sqLineResult(i)); } catch (e) { _sqLineCache.set(i, null); } }
+  return _sqLineCache.get(i);
+}
 
 // Score ONE line, read-only. `calcScore` is speculative-safe by contract (it is
 // what findBestHand and the live chips call), so this may be run for every line
@@ -609,11 +646,15 @@ async function sqRunTally(which) {
 // ══════════════════════════════════════════════
 // BETWEEN ROUNDS
 // ══════════════════════════════════════════════
+// THE TALLY IS THE REVIEW (r326, owner's call). A per-grid report used to sit
+// between the tally and whatever came next, restating in a monospace block the
+// ten lines the player had just watched pay one at a time - a screen to dismiss
+// between every grid. The board is SNAPSHOTTED here instead and everything it
+// used to say is on the final card.
 function sqEndRound() {
   sqPhase = 'between';
   sqRenderAll();
   if (typeof sfxLevelUp === 'function') sfxLevelUp();
-  const cells = SQ_N * SQ_N;
   // A "BEST" THE PLAYER HAS ALREADY BEATEN IS WORSE THAN NO BEST AT ALL - it
   // reads as the feature being broken rather than as the search being honest.
   // The 4x4's figure is a beam search, not a proof, so it is raised to whatever
@@ -622,24 +663,39 @@ function sqEndRound() {
   let par = sqDaily() && sqdPar ? sqdPar.best : 0;
   if (par && !sqdPar.exact && sqRoundScore > par) par = sqRoundScore;
   if (sqDaily()) { sqdParTotal += par; if (!sqdPar || !sqdPar.exact) sqdParExact = false; }
-  // ONE LABEL WIDTH for the whole block: "best possible" is 13 characters and
-  // every other label is shorter, so anything less puts its value a column
-  // right of the rest.
-  const lab = t => '  ' + t.padEnd(SQ_REPORT_LABEL) + ' ';
-  sqReport(`Grid ${sqRound} scored`,
-    lab('this grid') + `${sqRoundScore.toLocaleString()}\n` +
-    (par ? lab(sqdPar.exact ? 'best possible' : 'best found') + `${par.toLocaleString()}   (${Math.round(100 * sqRoundScore / par)}%)\n` : '') +
-    lab('run total') + `${sqTotal.toLocaleString()}\n` +
-    lab('filled') + `${sqFilled()}/${cells}\n\n` + sqLog.join('\n'),
-    () => {
-      if (sqRound >= sqRounds()) { sqFinish(); return; }
-      // A DAILY TAKES NO TRICKS (owner's call). Two people playing the same
-      // board have to be comparable, and a Trick is exactly the thing that
-      // makes two runs of the same board score differently. What it gets
-      // instead is one BOON, rolled and granted with no choice in it.
-      if (sqDaily()) { sqdOfferBoon(() => { sqRound++; sqNewRound(); }); return; }
-      sqPickTrick(() => sqPickCons(() => { sqRound++; sqNewRound(); }));
-    });
+  sqCaptureGrid(par);
+  const next = () => {
+    if (sqRound >= sqRounds()) { sqFinish(); return; }
+    // A DAILY TAKES NO TRICKS (owner's call). Two people playing the same
+    // board have to be comparable, and a Trick is exactly the thing that
+    // makes two runs of the same board score differently. What it gets
+    // instead is one BOON, rolled and granted with no choice in it.
+    if (sqDaily()) { sqdOfferBoon(() => { sqRound++; sqNewRound(); }); return; }
+    sqPickTrick(() => sqPickCons(() => { sqRound++; sqNewRound(); }));
+  };
+  // A beat to read the board that just paid, then on. The last line of the
+  // tally has only just landed.
+  setTimeout(next, SQ_ROUND_GAP_MS);
+}
+const SQ_ROUND_GAP_MS = 820;
+
+// The board AS IT STANDS, with what each line made. Faces are copied, never
+// referenced: these card objects go straight back into the deck and a
+// consumable can re-suit one three grids later.
+function sqCaptureGrid(par) {
+  const board = [];
+  for (let r = 0; r < SQ_N; r++) {
+    board[r] = [];
+    for (let c = 0; c < SQ_N; c++) {
+      const cd = gridData[r] && gridData[r][c];
+      board[r][c] = cd ? { rank: cd.rank, suit: cd.suit } : null;
+    }
+  }
+  const lines = [];
+  for (let i = 0; i < SQ_LINES(); i++) { const f = sqLineResult(i); lines.push({ ...f, cells: undefined, cards: undefined }); }
+  sqGrids.push({ n: SQ_N, round: sqRound, score: sqRoundScore, par,
+                 parExact: !!(sqdPar && sqdPar.exact), board, lines, daily: sqDaily(),
+                 boons: sqDaily() ? sqdBoons.map(b => ({ ...b })) : [] });
 }
 
 // The between-grid grant. Rolled, not chosen, and the line boons ACCUMULATE -
@@ -670,6 +726,13 @@ function sqdOfferBoon(done) {
 
 function sqFinish() {
   if (typeof sfxVictory === 'function') sfxVictory();
+  sqShowScorecard(() => { totalScore = sqTotal; squaresTeardown(); if (typeof onGameWin === 'function') onGameWin(); });
+}
+// The pre-r326 monospace report. Nothing calls it - the scorecard replaced it -
+// and it is kept because it is the only place the raw arithmetic of every line
+// is printed, which is what a balance pass wants and what the card deliberately
+// is not. Run it from the console at the end of a grid.
+function sqFinishText() {
   const lab = t => '  ' + t.padEnd(SQ_REPORT_LABEL) + ' ';
   sqReport('Run complete',
     lab('FINAL SCORE') + `${sqTotal.toLocaleString()}\n` +
@@ -790,10 +853,12 @@ function sqTrickBanned(t) {
 // what the board does not have - the piece hand, the ghost, the line banner.
 function sqRenderAll() {
   if (!squaresActive()) return;
+  _sqLineCache = null;
   gridRows = SQ_N; gridCols = SQ_N;
   try { if (typeof render === 'function') render(); } catch (e) {}
   sqPaintSlots();
   sqPaintLocked();
+  sqPaintHeaders();
   sqPaintGhost();
   sqRenderHand();
   sqRenderCons();
@@ -804,14 +869,25 @@ function sqRenderAll() {
 // Design px -> the cell under a viewport point. #grid carries the cabinet's CSS
 // zoom, so its rect is NOT its own units (the r160 Trick-fan trap); divide the
 // delta by the ratio the element itself reports.
-function sqCellAt(clientX, clientY) {
+function sqCellAt(clientX, clientY, loose) {
   const g = document.getElementById('grid'); if (!g) return null;
   const rect = g.getBoundingClientRect();
   const k = rect.width / (g.offsetWidth || rect.width || 1);
   const x = (clientX - rect.left) / k, y = (clientY - rect.top) / k;
   const pad = (typeof GRID_PAD === 'number') ? GRID_PAD : 0;
   const cw = CARD_W + CARD_GAP, chh = CARD_H + CARD_GAP;
-  const c = Math.floor((x - pad) / cw), r = Math.floor((y - pad) / chh);
+  let c = Math.floor((x - pad) / cw), r = Math.floor((y - pad) / chh);
+  // `loose` is the DROP test, and it forgives half a card past the edge. A tile
+  // is aimed by the cell you took hold of, so packing the last column means
+  // holding the cursor right on the board's rim - a strict test there reads as
+  // the board refusing a placement that plainly fits.
+  if (loose) {
+    const slack = 0.5;
+    if (r < 0 && (pad - y) / chh <= slack) r = 0;
+    if (c < 0 && (pad - x) / cw  <= slack) c = 0;
+    if (r >= SQ_N && (y - pad) / chh - SQ_N <= slack) r = SQ_N - 1;
+    if (c >= SQ_N && (x - pad) / cw  - SQ_N <= slack) c = SQ_N - 1;
+  }
   if (r < 0 || c < 0 || r >= SQ_N || c >= SQ_N) return null;
   return [r, c];
 }
@@ -850,9 +926,12 @@ function sqPaintGhost() {
     const rr = r + cl.dr, cc = c + cl.dc;
     if (rr < 0 || cc < 0 || rr >= SQ_N || cc >= SQ_N) return;
     const d = document.createElement('div');
-    d.className = 'sq-ghost ' + (ok ? 'ok' : 'bad');
+    d.className = 'sq-ghost ' + (ok ? 'ok' : 'bad') + (sqDragging ? ' held' : '');
     d.style.cssText = `left:${cellLeft(cc)}px;top:${cellTop(rr)}px;width:${CARD_W}px;height:${CARD_H}px`;
-    if (ok) d.innerHTML = `<span class="sq-gr">${cl.card.rank}</span><span class="sq-gs">${cl.card.suit}</span>`;
+    // While a tile is being DRAGGED the real cards are under the cursor, so the
+    // board only marks the footprint; the tap path has nothing else to show, so
+    // there it still prints the face.
+    if (ok && !sqDragging) d.innerHTML = `<span class="sq-gr">${cl.card.rank}</span><span class="sq-gs">${cl.card.suit}</span>`;
     g.appendChild(d);
   });
 }
@@ -861,12 +940,16 @@ function sqPaintGhost() {
 // #selected-cards is "the hand you are about to play", which is exactly what
 // three polyomino tiles are. It is the one panel this mode repurposes.
 const SQ_MINI_RATIO = 4 / 3;
-function sqPolyHTML(p, boxW, boxH) {
-  const w = sqPW(p), h = sqPH(p), gap = 2;
-  const mw = Math.max(9, Math.min(38, (boxW - (w - 1) * gap) / w, (boxH - (h - 1) * gap) / h / SQ_MINI_RATIO));
-  const mh = mw * SQ_MINI_RATIO, fs = Math.max(5, Math.round(mw * 0.36));
+function sqPolyHTML(p, boxW, boxH, fixed) {
+  const w = sqPW(p), h = sqPH(p), gap = fixed ? fixed.gap : 2;
+  // `fixed` is the DRAG GHOST, which is not fitted to a box at all: it is drawn
+  // at the board's own cell size so what you are holding is literally the cards
+  // that will land. Everywhere else the mini is fitted to the tray tile.
+  const mw = fixed ? fixed.mw
+    : Math.max(9, Math.min(38, (boxW - (w - 1) * gap) / w, (boxH - (h - 1) * gap) / h / SQ_MINI_RATIO));
+  const mh = fixed ? fixed.mh : mw * SQ_MINI_RATIO, fs = Math.max(5, Math.round(mw * 0.36));
   const map = {}; p.cells.forEach(c => map[c.dr + ',' + c.dc] = c.card);
-  let s = `<div class="sq-poly" style="grid-template-columns:repeat(${w},${mw}px);--smw:${mw}px;--smh:${mh}px;--sfs:${fs}px">`;
+  let s = `<div class="sq-poly" style="gap:${gap}px;grid-template-columns:repeat(${w},${mw}px);--smw:${mw}px;--smh:${mh}px;--sfs:${fs}px">`;
   for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
     const cd = map[r + ',' + c];
     // A piece's bounding box has HOLES (an L, an S, a T all do), so the suit
@@ -955,6 +1038,206 @@ function sqPaintChips(pips, mult) {
   if (p) p.textContent = (typeof fmtNum === 'function') ? fmtNum(pips) : pips;
   if (m) m.textContent = (typeof fmtM === 'function') ? fmtM(mult) : mult;
 }
+
+// ══════════════════════════════════════════════
+// WHAT THE BOARD IS WORTH RIGHT NOW (r326)
+// ══════════════════════════════════════════════
+// Owner: "is the mult and pips chips actually saying anything?" They were not:
+// `sqPaintChips` is called from the TALLY and nowhere else, so for the whole of
+// the placing phase - which is all of the thinking - the two chips sat on
+// whatever the last line to pay had left there, or on 0.
+//
+// They are LIVE now, and they are the two halves of the board's own score:
+//   DAILY   HAND  = every line's hand base       CARDS = every line's card values
+//   5x5     PIPS  = every line's pips            MULT  = what those pips are
+//                                                        multiplied by overall
+// The 5x5's MULT is DERIVED (total / pips) rather than a sum of the ten lines'
+// multipliers, because the `x` between the chips has to stay true: a sum would
+// read as ten multipliers stacked and would not produce the score.
+function sqBoardTotals() {
+  const out = { total: 0, hand: 0, cards: 0, bonus: 0, lines: [] };
+  if (!gridData || !gridData.length) return out;
+  for (let i = 0; i < SQ_LINES(); i++) {
+    const f = sqLineCached(i); if (!f) continue;
+    out.lines.push(f);
+    out.total += f.total || 0;
+    if (sqDaily()) { out.hand += f.base || 0; out.cards += f.pips || 0; out.bonus += f.bonus || 0; }
+    else           { out.hand += f.pips || 0; }
+  }
+  if (!sqDaily()) out.cards = out.hand ? out.total / out.hand : 1;   // the effective multiplier
+  return out;
+}
+function sqPaintLiveChips() {
+  const t = sqBoardTotals();
+  if (sqDaily()) sqPaintChips(t.hand, t.cards);
+  else { const p = document.getElementById('pips-val'), m = document.getElementById('mult-val');
+         if (p) p.textContent = (typeof fmtNum === 'function') ? fmtNum(Math.round(t.hand)) : Math.round(t.hand);
+         if (m) m.textContent = (typeof fmtM === 'function') ? fmtM(t.cards) : (Math.round(t.cards * 10) / 10); }
+  return t;
+}
+
+// One line's arithmetic, in the same words the tally uses.
+function sqLineSum(f) {
+  if (sqDaily()) {
+    const sum = `${f.base} + ${f.pips}` + (f.bonus ? ` + ${f.bonus}` : '');
+    return f.dbl ? `(${sum}) ×2` : sum;
+  }
+  return `${f.pips} × ${f.mult}` + (f.pen ? ` − ${f.pen}` : '');
+}
+
+// ── THE LINE HEADERS ───────────────────────────────────────────────────────
+// What each row and column is currently making, and what it is currently worth,
+// beside the line itself. On a desktop they are simply always there - the board
+// is the thing being read, and "which of my ten lines is the weak one" is the
+// only question this mode asks. A phone has no room for them, so there they are
+// a tap in the margin (sqLineTipAt) instead.
+const SQ_HDR_W = 64, SQ_HDR_H = 30;    // the band reserved on the left and the top
+const sqHeadersOn = () => squaresActive()
+  && !!document.getElementById('stage')?.classList.contains('landscape');
+// Read by recomputeGridMetrics (js/grid-metrics.js). It must NOT depend on the
+// phase: the board would resize the moment the tally began, which is the one
+// time the cards are being animated.
+function sqSlotInset() { return sqHeadersOn() ? { x: SQ_HDR_W, y: SQ_HDR_H } : null; }
+
+function sqPaintHeaders() {
+  const g = document.getElementById('grid'); if (!g) return;
+  g.querySelectorAll('.sq-hdr').forEach(el => el.remove());
+  // Left up through the TALLY and the beat after it, which is when they say the
+  // most: the board is still standing and every line has just been priced.
+  if (!sqHeadersOn() || sqPhase === 'idle') return;
+  for (let i = 0; i < SQ_LINES(); i++) {
+    const f = sqLineCached(i); if (!f) continue;
+    const filled = sqLineCells(i).filter(([r, c]) => gridData[r] && gridData[r][c]).length;
+    const d = document.createElement('div');
+    d.className = 'sq-hdr ' + (sqIsRow(i) ? 'row' : 'col') + (filled ? '' : ' none')
+                + (sqLocked.has(i) ? ' lock' : '');
+    d.dataset.line = i;
+    d.innerHTML = `<span class="sq-hn">${filled ? sqHandShort(f.name) : ''}</span>`
+                + `<span class="sq-hv">${filled ? Math.round(f.total).toLocaleString() : '·'}</span>`;
+    if (sqIsRow(i)) { d.style.left = (-SQ_HDR_W + 2) + 'px'; d.style.top = cellTop(i) + 'px';
+                      d.style.width = (SQ_HDR_W - 8) + 'px'; d.style.height = CARD_H + 'px'; }
+    else            { d.style.top = (-SQ_HDR_H + 1) + 'px'; d.style.left = cellLeft(i - SQ_N) + 'px';
+                      d.style.width = CARD_W + 'px'; d.style.height = (SQ_HDR_H - 4) + 'px'; }
+    g.appendChild(d);
+  }
+}
+
+// ── THE READ-OUT POP-UP ────────────────────────────────────────────────────
+// Body level and placed in RAW VIEWPORT PX, then clamped to the viewport - the
+// rule every pop-up in this game follows, because anything inside #cabinet
+// inherits its CSS zoom and lands at about twice the coordinates it was given.
+function sqTipEl() {
+  let el = document.getElementById('sq-tip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sq-tip';
+    document.body.appendChild(el);
+    // A tap anywhere else puts it away. Capture, so a tap on the board that
+    // would otherwise place a tile closes this first.
+    document.addEventListener('pointerdown', ev => {
+      if (!el.classList.contains('show')) return;
+      if (ev.target.closest && ev.target.closest('#sq-tip')) return;
+      if (ev.target.closest && (ev.target.closest('.sq-hdr') || ev.target.closest('#pips-box') || ev.target.closest('#mult-box'))) return;
+      sqHideTip();
+    }, true);
+  }
+  return el;
+}
+function sqHideTip() {
+  const el = document.getElementById('sq-tip');
+  if (el && el.classList.contains('show')) { sqTipClosed = sqTipKey; sqTipClosedAt = Date.now(); }
+  el?.classList.remove('show'); sqTipKey = '';
+}
+let sqTipKey = '', sqTipClosed = '', sqTipClosedAt = 0;
+// A SECOND TAP CLOSES IT, and getting that right needs the memory above. The
+// document-level dismissal runs on pointerDOWN and the opening runs on
+// pointerUP, so one tap on the same thing closes it and then immediately
+// re-opens it - it looks like the tip refusing to go away. Re-showing what was
+// just dismissed is therefore a no-op.
+function sqShowTip(key, html, anchor) {
+  const el = sqTipEl();
+  if (sqTipKey === key && el.classList.contains('show')) { sqHideTip(); return; }
+  if (key === sqTipClosed && Date.now() - sqTipClosedAt < 500) { sqTipClosed = ''; return; }
+  sqTipClosed = '';
+  sqTipKey = key;
+  el.innerHTML = html;
+  el.classList.add('show');
+  const r = el.getBoundingClientRect();
+  const a = anchor;
+  let x = a.left + a.width / 2 - r.width / 2;
+  let y = a.bottom + 8;
+  if (y + r.height > innerHeight - 8) y = Math.max(8, a.top - r.height - 8);
+  el.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x)) + 'px';
+  el.style.top  = Math.max(8, Math.min(innerHeight - r.height - 8, y)) + 'px';
+}
+function sqLineTipHTML(i) {
+  const f = sqLineResult(i);
+  const cards = sqLineCells(i).map(([r, c]) => gridData[r] && gridData[r][c]).filter(Boolean);
+  const faces = cards.map(cd => `<i class="${sqSuitCls(cd.suit)}">${cd.rank}${cd.suit}</i>`).join('');
+  return `<div class="sqt-h">${sqLineName(i)}</div>`
+       + `<div class="sqt-hand">${cards.length ? f.name : 'nothing here yet'}</div>`
+       + (cards.length ? `<div class="sqt-faces">${faces}</div>`
+          + `<div class="sqt-sum">${sqLineSum(f)}</div>`
+          + `<div class="sqt-tot">${Math.round(f.total).toLocaleString()}</div>` : '');
+}
+// A tap in the board's margin, on a phone, asks about the line it is beside.
+function sqLineTipAt(clientX, clientY) {
+  const g = document.getElementById('grid'); if (!g) return;
+  const rect = g.getBoundingClientRect();
+  const k = rect.width / (g.offsetWidth || rect.width || 1);
+  const x = (clientX - rect.left) / k, y = (clientY - rect.top) / k;
+  const pad = (typeof GRID_PAD === 'number') ? GRID_PAD : 0;
+  const cw = CARD_W + CARD_GAP, ch = CARD_H + CARD_GAP;
+  const c = Math.floor((x - pad) / cw), r = Math.floor((y - pad) / ch);
+  const inRows = r >= 0 && r < SQ_N, inCols = c >= 0 && c < SQ_N;
+  let i = null;
+  if (inRows && !inCols) i = r;                       // beside a row
+  else if (inCols && !inRows) i = SQ_N + c;           // above or below a column
+  if (i == null) return;
+  sqShowTip('line' + i, sqLineTipHTML(i), { left: clientX - 4, width: 8, top: clientY - 4, bottom: clientY + 4 });
+}
+// The whole board, line by line, from the PIPS / MULT chips.
+function sqChipTipHTML() {
+  _sqLineCache = null;                  // a pop-up is opened between renders
+  const t = sqBoardTotals();
+  const rows = t.lines.map(f => {
+    const filled = sqLineCells(f.i).filter(([r, c]) => gridData[r] && gridData[r][c]).length;
+    return `<tr class="${filled ? '' : 'off'}"><td>${sqLineName(f.i)}</td>`
+         + `<td>${filled ? f.name : '—'}</td>`
+         + `<td class="n">${filled ? sqLineSum(f) : ''}</td>`
+         + `<td class="n b">${filled ? Math.round(f.total).toLocaleString() : ''}</td></tr>`;
+  }).join('');
+  const foot = sqDaily()
+    ? `<b>${Math.round(t.hand).toLocaleString()}</b> hand + <b>${Math.round(t.cards).toLocaleString()}</b> cards`
+      + (t.bonus ? ` + <b>${Math.round(t.bonus).toLocaleString()}</b> boost` : '')
+    : `<b>${Math.round(t.hand).toLocaleString()}</b> pips × <b>${(Math.round(t.cards * 10) / 10)}</b>`;
+  return `<div class="sqt-h">This board</div><table class="sqt-t">${rows}</table>`
+       + `<div class="sqt-foot">${foot} = <b>${Math.round(t.total).toLocaleString()}</b></div>`;
+}
+function sqChipTip(box) {
+  const el = document.getElementById(box); if (!el) return;
+  sqShowTip('chips', sqChipTipHTML(), el.getBoundingClientRect());
+}
+function sqInstallChipTips() {
+  if (sqInstallChipTips._done) return; sqInstallChipTips._done = true;
+  ['pips-box', 'mult-box'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    // Hover on a desktop, tap on a phone. The tap has to be on pointerUP: a
+    // pointerdown handler races the document-level close above and the popup
+    // would open and shut in one gesture.
+    el.addEventListener('mouseenter', () => { if (squaresActive() && matchMedia('(hover:hover)').matches) sqChipTip(id); });
+    el.addEventListener('mouseleave', () => { if (squaresActive() && matchMedia('(hover:hover)').matches && sqTipKey === 'chips') sqHideTip(); });
+    el.addEventListener('pointerup', e => { if (!squaresActive()) return; e.stopPropagation(); sqChipTip(id); });
+  });
+  // A header names its own line.
+  document.addEventListener('pointerup', e => {
+    if (!squaresActive()) return;
+    const h = e.target.closest && e.target.closest('.sq-hdr');
+    if (!h) return;
+    e.stopPropagation();
+    sqShowTip('line' + h.dataset.line, sqLineTipHTML(+h.dataset.line), h.getBoundingClientRect());
+  }, true);
+}
 function sqPaintScore() {
   const el = document.getElementById('score-total-num');
   if (el) el.textContent = sqTotal.toLocaleString();
@@ -976,13 +1259,17 @@ function sqPaintHud() {
   if (gl) gl.textContent = 'ITEMS';
   const tl = document.getElementById('score-total-label');
   if (tl) tl.textContent = 'SCORE';
-  // A DAILY HAS NO TURNS, so the banner says the thing that IS true of it: how
-  // much of the board is down, and how many cells of tiles it will not need.
+  // THE BANNER SAYS WHAT THE BOARD DOES NOT (r326). "0/9 PLACED - 3 SPARE" was
+  // counting cards the player can see and see the number of, in the one strip
+  // of room above the board - which is exactly where the column headers go now.
+  // A daily therefore says nothing there while placing; the 5x5 still has a
+  // TURN, which the board really cannot show.
   sqSetLineBanner(sqPhase === 'pickline'
     ? `PICK ${sqPickNeed - sqPickSel.length} LINE${sqPickNeed - sqPickSel.length === 1 ? '' : 'S'}`
     : sqPhase !== 'place' ? ''
-    : sqDaily() ? `${sqFilled()}/${SQ_N * SQ_N} PLACED · ${sqdSpare()} SPARE`
+    : sqDaily() ? ''
     : `TURN ${Math.min(sqTurn + 1, 4)}/4 · ${SQ_SCHEDULE[sqTurn] ? SQ_SCHEDULE[sqTurn].n + '×' + SQ_SCHEDULE[sqTurn].size : ''}`);
+  if (sqPhase === 'place') sqPaintLiveChips();
   sqPaintLineButtons();
 }
 function sqSetLineBanner(text) {
@@ -1060,11 +1347,14 @@ function sqPaintButtons() {
   if (sqDaily()) {
     const left = SQ_N * SQ_N - sqFilled();
     if (play) { play.disabled = !canPlace; play.innerHTML = `CONFIRM<small>place the tile</small>`; }
-    if (disc) { disc.disabled = !(placing && sqdPlaced.length);
-                disc.innerHTML = `TAKE<br>BACK<small>${sqdPlaced.length} placed</small>`; }
+    if (disc) { disc.disabled = !(placing && sqPlaced.length);
+                disc.innerHTML = `TAKE<br>BACK<small>${sqPlaced.length} placed</small>`; }
+    // The surplus used to be printed over the board ("0/9 PLACED - 3 SPARE");
+    // that band is the column headers' now, and the number is worth more here
+    // anyway - it is what you are about to leave behind by submitting.
     if (swap) { swap.classList.toggle('sq-off', !(placing && left === 0));
                 swap.innerHTML = `<span class="sq-endw">SUBMIT</span><span class="sq-ends">`
-                  + (left === 0 ? 'board full' : `${left} to fill`) + `</span>`; }
+                  + (left === 0 ? `${sqdSpare()} spare` : `${left} to fill`) + `</span>`; }
     return;
   }
   const stuck = placing && sqHand.length > SQ_KEEP && sqDiscards <= 0 && !sqCanPlaceAny();
@@ -1095,54 +1385,55 @@ function sqInstallInput() {
     if (!tile) return;
     const p = sqHand.find(x => x.id === tile.dataset.pid); if (!p) return;
     if (rot) { sqRotate(p); if (typeof sfxCardSelect === 'function') sfxCardSelect(); sqRenderAll(); return; }
-    sqSelected = p; sqDragging = p;
-    // THE DRAG DIED AT THE EDGE OF THE TRAY ON A PHONE, and the cause is
-    // `touch-action` (css/squares.css), not anything in here: with it left at
-    // `auto` the browser claims the first movement as a page scroll and fires
-    // pointercancel. Measured through real touch events on a 420x900 phone -
-    // with touch-action none the drag survives all fourteen moves from the tray
-    // to the board with 0 cancels, and with it back at auto it is cancelled on
-    // the first move, every time.
-    //
-    // The two lines below are insurance rather than the fix, and worth keeping:
-    // a touch pointer is IMPLICITLY CAPTURED by the element it landed on, and
-    // `sqRenderAll()` rebuilds #selected-cards' children wholesale - so the tile
-    // the finger is holding is destroyed on the first frame of the drag. Chrome
-    // retargets rather than cancelling (measured: 0 cancels either way), but
-    // capturing onto the BODY, which no render ever touches, and painting the
-    // selection by toggling classes instead of re-rendering, mean the drag does
-    // not depend on that being true.
-    sqSetSelClasses();
-    try { document.body.setPointerCapture(e.pointerId); sqDragPid = e.pointerId; } catch (_) { sqDragPid = null; }
-    sqDragEl = document.getElementById('sq-drag');
-    if (!sqDragEl) { sqDragEl = document.createElement('div'); sqDragEl.id = 'sq-drag'; document.body.appendChild(sqDragEl); }
-    sqDragEl.style.display = 'block';
-    sqDragEl.innerHTML = `<div class="sq-tile drag">${sqPolyHTML(p, 96, 96)}</div>`;
-    sqMoveDrag(e);
+    sqBeginDrag(p, e, sqGrabCellFromTile(p, tile, e), null);
     e.preventDefault();
   }, true);
 
   window.addEventListener('pointermove', e => {
-    if (!squaresActive() || !sqDragging) return;
+    if (!squaresActive()) return;
+    // A pointerdown on a PLACED tile only becomes a lift once the finger has
+    // genuinely moved. A tap that never moves is left alone, because that is
+    // the double-tap-to-rotate gesture - arming the lift on contact would make
+    // the two impossible to tell apart.
+    if (sqArm && !sqDragging) {
+      if (Math.hypot(e.clientX - sqArm.x, e.clientY - sqArm.y) < SQ_LIFT_PX) return;
+      const a = sqArm; sqArm = null;
+      sqLiftPlaced(a.rec, e, a.grab);
+      return;
+    }
+    if (!sqDragging) return;
     sqMoveDrag(e);
-    const cell = sqCellAt(e.clientX, e.clientY);
-    if (cell) { sqTentative = { piece: sqDragging, r: cell[0], c: cell[1] }; sqPaintGhost(); sqPaintButtons(); sqSetSelClasses(); }
+    const at = sqDropOrigin(e);
+    if (at) { sqTentative = { piece: sqDragging, r: at[0], c: at[1] }; }
+    else sqTentative = null;
+    sqPaintGhost(); sqPaintButtons(); sqSetSelClasses();
   });
 
   // A cancelled pointer (the OS taking the gesture, a context menu) must put the
   // drag down rather than leave the ghost stuck to the screen.
   window.addEventListener('pointercancel', () => {
-    if (!squaresActive() || !sqDragging) return;
-    sqReleaseDrag(); sqDragging = null; sqRenderAll();
+    if (!squaresActive()) return;
+    sqArm = null;
+    if (!sqDragging) return;
+    sqReleaseDrag(); sqReturnDragged(); sqDragging = null; sqRenderAll();
   });
 
   window.addEventListener('pointerup', e => {
     if (!squaresActive()) return;
-    sqReleaseDrag();
+    sqArm = null;
     if (!sqDragging) return;
-    const overDisc = !!(e.target.closest && document.elementFromPoint(e.clientX, e.clientY)?.closest('#btn-discard'));
+    sqReleaseDrag();
     const p = sqDragging; sqDragging = null;
-    if (overDisc && !sqDaily() && sqDiscards > 0) { sqDoDiscard(p); return; }
+    const overDisc = !!(document.elementFromPoint(e.clientX, e.clientY)?.closest('#btn-discard'));
+    if (overDisc && !sqDaily() && sqDiscards > 0 && !sqLiftRec) { sqTentative = null; sqLiftRec = null; sqDoDiscard(p); return; }
+    // RELEASE IS THE COMMIT (r326). A tile let go over a cell it fits drops in;
+    // one let go anywhere else goes back where it came from. There is no
+    // confirm step in the middle, which is what made packing feel like filling
+    // in a form rather than laying out cards.
+    const at = sqDropOrigin(e);
+    if (at && sqFits(p, at[0], at[1])) { sqTentative = { piece: p, r: at[0], c: at[1] }; sqLiftRec = null; sqConfirm(); return; }
+    sqTentative = null;
+    sqReturnDragged();
     sqRenderAll();
   });
 
@@ -1155,14 +1446,46 @@ function sqInstallInput() {
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.addEventListener('pointerdown', e => {
     if (!squaresActive()) return;
+    if (e.target.closest && e.target.closest('.sq-hdr')) return;   // the line headers are their own control
     e.stopPropagation();
-    const cell = sqCellAt(e.clientX, e.clientY); if (!cell) return;
+    const cell = sqCellAt(e.clientX, e.clientY);
+    if (!cell) return;
     if (sqArmed) { sqConsPick(cell[0], cell[1]); return; }
-    if (sqPhase !== 'place' || !sqSelected) return;
-    // A tap places the selected tile, for a pointer that cannot drag.
-    sqTentative = { piece: sqSelected, r: cell[0], c: cell[1] };
-    sqRenderAll();
+    if (sqPhase !== 'place') return;
+    const rec = sqPlacedAt(cell[0], cell[1]);
+    if (rec) {
+      // DOUBLE-TAP ROTATES IN PLACE; a drag off it lifts it. Both start here,
+      // and which one it turns out to be is decided by whether the finger moves.
+      const key = cell[0] + ',' + cell[1], now = Date.now();
+      if (sqTapKey === key && now - sqTapAt < SQ_DTAP_MS) { sqTapAt = 0; sqTapKey = ''; sqRotatePlaced(rec); return; }
+      sqTapAt = now; sqTapKey = key;
+      sqArm = { rec, x: e.clientX, y: e.clientY, grab: { dr: cell[0] - rec.origin[0], dc: cell[1] - rec.origin[1] } };
+      return;
+    }
+    sqTapAt = 0; sqTapKey = '';
+    if (!sqSelected) return;
+    // The no-drag path: a tile selected in the tray, then a cell. It drops
+    // straight in if it fits, exactly as a release does.
+    const org = [cell[0] - sqGrab.dr, cell[1] - sqGrab.dc];
+    const fit = sqFits(sqSelected, org[0], org[1]) ? org
+              : (sqFits(sqSelected, cell[0], cell[1]) ? cell : null);
+    if (!fit) { sqTentative = { piece: sqSelected, r: cell[0], c: cell[1] }; sqRenderAll(); return; }
+    sqTentative = { piece: sqSelected, r: fit[0], c: fit[1] };
+    sqConfirm();
   }, true);
+
+  // THE MARGIN AROUND THE BOARD, which is #grid-slot and NOT #grid: #grid's own
+  // box is the board itself, so a tap beside a row never reaches it. On a phone
+  // there is no room for the headers, so this is how a line is asked about -
+  // tap level with a row, or above a column, and it says what it is making.
+  const slotEl = document.getElementById('grid-slot');
+  if (slotEl) slotEl.addEventListener('pointerup', e => {
+    if (!squaresActive() || sqPhase === 'idle' || sqPhase === 'between') return;
+    if (sqDragging || sqArm) return;                       // a drag is not a question
+    const g = document.getElementById('grid');
+    if (g && (e.target === g || g.contains(e.target))) return;   // the board answers for itself
+    sqLineTipAt(e.clientX, e.clientY);
+  });
 
   document.getElementById('btn-play')?.addEventListener('click', e => {
     if (!squaresActive()) return;
@@ -1180,10 +1503,130 @@ function sqInstallInput() {
     if (e.key.toLowerCase() === 'r' && sqSelected && sqPhase === 'place') { sqRotate(sqSelected); sqRenderAll(); }
   });
 }
+const SQ_LIFT_PX = 6;        // movement that turns a press on a placed tile into a lift
+const SQ_DTAP_MS = 380;
+
+// WHICH CELL OF THE SHAPE THE POINTER TOOK HOLD OF. Computed from the poly's own
+// rect rather than from `closest('.sq-mini')`, because a bounding box has HOLES
+// (an L, an S and a T all do) and a grab on a hole still has to mean something:
+// the fractional cell is snapped to the nearest cell the shape actually has.
+function sqGrabCellFromTile(p, tile, e) {
+  const poly = tile.querySelector('.sq-poly');
+  const w = sqPW(p), h = sqPH(p);
+  let fr = 0, fc = 0;
+  if (poly) {
+    const r = poly.getBoundingClientRect();
+    if (r.width > 4 && r.height > 4) {
+      fc = (e.clientX - r.left) / (r.width / w) - 0.5;
+      fr = (e.clientY - r.top) / (r.height / h) - 0.5;
+    }
+  }
+  let best = p.cells[0], bd = Infinity;
+  p.cells.forEach(cl => { const d = (cl.dr - fr) ** 2 + (cl.dc - fc) ** 2; if (d < bd) { bd = d; best = cl; } });
+  return { dr: best.dr, dc: best.dc };
+}
+
+// The board's own cell size in VIEWPORT px. #grid carries the cabinet's CSS
+// zoom, so CARD_W is not what the board measures on screen (the r160 Trick-fan
+// trap); the ghost is body-level, so it has to be drawn in the scaled units.
+function sqBoardScale() {
+  const g = document.getElementById('grid'); if (!g) return 1;
+  const r = g.getBoundingClientRect();
+  return (r.width && g.offsetWidth) ? r.width / g.offsetWidth : 1;
+}
+function sqBeginDrag(p, e, grab, liftRec) {
+  sqSelected = p; sqDragging = p; sqGrab = grab; sqLiftRec = liftRec || null;
+  // THE TWO LINES BELOW ARE INSURANCE, NOT THE FIX - `touch-action: none` in
+  // css/squares.css is what stops the browser claiming a finger drag as a page
+  // scroll (r309). A touch pointer is IMPLICITLY CAPTURED by the element it
+  // landed on and `sqRenderAll()` rebuilds #selected-cards wholesale, so the
+  // tile being held is destroyed on the first frame; capturing onto the BODY,
+  // which no render touches, means the drag does not depend on Chrome
+  // retargeting rather than cancelling.
+  sqSetSelClasses();
+  try { document.body.setPointerCapture(e.pointerId); sqDragPid = e.pointerId; } catch (_) { sqDragPid = null; }
+  sqDragEl = document.getElementById('sq-drag');
+  if (!sqDragEl) { sqDragEl = document.createElement('div'); sqDragEl.id = 'sq-drag'; document.body.appendChild(sqDragEl); }
+  sqDragEl.style.display = 'block';
+  const k = sqBoardScale(), gap = Math.max(1, (typeof CARD_GAP === 'number' ? CARD_GAP : 3) * k);
+  sqDragEl.innerHTML = `<div class="sq-ghostpoly">${sqPolyHTML(p, 0, 0, { mw: CARD_W * k, mh: CARD_H * k, gap })}</div>`;
+  sqMoveDrag(e);
+  const at = sqDropOrigin(e);
+  sqTentative = at ? { piece: p, r: at[0], c: at[1] } : null;
+  sqPaintGhost();
+}
+// Pull a placed tile back off the board and straight into the drag.
+function sqLiftPlaced(rec, e, grab) {
+  rec.cells.forEach(([r, c]) => { gridData[r][c] = null; });
+  sqPlaced = sqPlaced.filter(x => x !== rec);
+  sqHand.splice(Math.min(rec.at, sqHand.length), 0, rec.piece);
+  if (typeof sfxCardSelect === 'function') sfxCardSelect();
+  sqRenderAll();
+  sqBeginDrag(rec.piece, e, grab, rec);
+  sqPaintButtons();
+}
+// A drag that lands nowhere puts the tile back where it was. For one lifted off
+// the board that is its own cells, not the tray - picking a tile up to look
+// under it must not cost you the placement.
+function sqReturnDragged() {
+  const rec = sqLiftRec; sqLiftRec = null;
+  if (!rec) return;
+  const p = rec.piece;
+  p.cells = rec.shape.map(c => ({ dr: c.dr, dc: c.dc, card: c.card }));
+  if (!sqFits(p, rec.origin[0], rec.origin[1])) return;       // something else took the room
+  sqTentative = { piece: p, r: rec.origin[0], c: rec.origin[1] };
+  sqConfirm();
+}
+// The board ORIGIN a release at this point would place the piece at: the cell
+// under the cursor, less the cell of the shape being held.
+function sqDropOrigin(e) {
+  const cell = sqCellAt(e.clientX, e.clientY, true);
+  if (!cell) return null;
+  return [cell[0] - sqGrab.dr, cell[1] - sqGrab.dc];
+}
+const sqPlacedAt = (r, c) => sqPlaced.find(rec => rec.cells.some(([rr, cc]) => rr === r && cc === c)) || null;
+
+// ROTATE A TILE THAT IS ALREADY DOWN. Its own cells are cleared first, so the
+// fit test sees the room it is currently using. The rotation is kept centred on
+// where the tile was - an L turned at the board's edge would otherwise simply
+// refuse - so the origin is re-derived from the CENTRE and a small spiral of
+// nudges is tried around it.
+function sqRotatePlaced(rec) {
+  const p = rec.piece;
+  const before = p.cells.map(c => ({ ...c })), org = rec.origin.slice();
+  const oh = sqPH(p), ow = sqPW(p);
+  rec.cells.forEach(([r, c]) => { gridData[r][c] = null; });
+  sqRotate(p);
+  const nh = sqPH(p), nw = sqPW(p);
+  const want = [Math.round(org[0] + (oh - nh) / 2), Math.round(org[1] + (ow - nw) / 2)];
+  const tries = [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [-1, 1], [1, -1], [1, 1], [0, -2], [0, 2], [-2, 0], [2, 0]];
+  for (const [dr, dc] of tries) {
+    const r = want[0] + dr, c = want[1] + dc;
+    if (!sqFits(p, r, c)) continue;
+    rec.origin = [r, c];
+    rec.cells = p.cells.map(cl => [r + cl.dr, c + cl.dc]);
+    rec.shape = p.cells.map(cl => ({ dr: cl.dr, dc: cl.dc, card: cl.card }));
+    p.cells.forEach(cl => { gridData[r + cl.dr][c + cl.dc] = cl.card; });
+    if (typeof sfxCardSelect === 'function') sfxCardSelect();
+    sqRenderAll();
+    return;
+  }
+  p.cells = before;                                    // nowhere to turn - put it back
+  rec.cells.forEach(([r, c], k) => { gridData[r][c] = before[k] ? before[k].card : gridData[r][c]; });
+  p.cells.forEach(cl => { gridData[org[0] + cl.dr][org[1] + cl.dc] = cl.card; });
+  if (typeof sfxNoSwaps === 'function') sfxNoSwaps();
+  showMessage?.('No room to turn that one.', 'var(--red)');
+  sqRenderAll();
+}
 function sqMoveDrag(e) {
   if (!sqDragEl) return;
-  sqDragEl.style.left = (e.clientX - 48) + 'px';
-  sqDragEl.style.top  = (e.clientY - 48) + 'px';
+  const k = sqBoardScale(), gap = Math.max(1, (typeof CARD_GAP === 'number' ? CARD_GAP : 3) * k);
+  // The GRABBED cell's centre sits under the cursor, which is the whole point:
+  // what you are holding is the part of the shape you took hold of.
+  const ox = (sqGrab.dc + 0.5) * (CARD_W * k + gap) - gap / 2;
+  const oy = (sqGrab.dr + 0.5) * (CARD_H * k + gap) - gap / 2;
+  sqDragEl.style.left = (e.clientX - ox) + 'px';
+  sqDragEl.style.top  = (e.clientY - oy) + 'px';
 }
 function sqReleaseDrag() {
   if (sqDragEl) { sqDragEl.style.display = 'none'; sqDragEl.innerHTML = ''; }
@@ -1194,9 +1637,10 @@ function sqSetSelClasses() {
   document.querySelectorAll('#selected-cards .sq-tile').forEach(el => {
     const p = sqHand.find(x => x.id === el.dataset.pid);
     el.classList.toggle('sel', !!p && sqSelected === p);
-    el.classList.toggle('placing', !!p && !!sqTentative && sqTentative.piece === p);
+    el.classList.toggle('placing', !!p && (sqDragging === p || (!!sqTentative && sqTentative.piece === p)));
   });
 }
+
 
 function sqConfirm() {
   if (sqPhase !== 'place' || !sqTentative) return;
@@ -1204,7 +1648,10 @@ function sqConfirm() {
   if (!sqFits(piece, r, c)) { if (typeof sfxNoSwaps === 'function') sfxNoSwaps(); return; }
   // THE BOARD HOLDS THE DECK'S OWN CARD OBJECT, not a copy. That reference is
   // the whole of "a consumable's change is permanent".
-  if (sqDaily()) sqdPlaced.push({ piece, at: sqHand.indexOf(piece),
+  // A RECORD FOR EVERY MODE (r326), not just the daily: it is what lets a tile
+  // be picked back up by starting a drag on it. The stack is cleared when the
+  // turn ends, so the rule is "everything you did this turn is reversible".
+  sqPlaced.push({ piece, at: sqHand.indexOf(piece), origin: [r, c],
     shape: piece.cells.map(cl => ({ dr: cl.dr, dc: cl.dc, card: cl.card })),
     cells: piece.cells.map(cl => [r + cl.dr, c + cl.dc]) });
   piece.cells.forEach(cl => { gridData[r + cl.dr][c + cl.dc] = cl.card; });
@@ -1227,8 +1674,8 @@ function sqDoDiscard(p) {
 // surplus of tiles, so a gap is always something you can still close.
 const sqdBoardFull = () => sqFilled() === SQ_N * SQ_N;
 function sqdTakeBack() {
-  if (sqPhase !== 'place' || !sqdPlaced.length) { if (typeof sfxNoSwaps === 'function') sfxNoSwaps(); return; }
-  const last = sqdPlaced.pop();
+  if (sqPhase !== 'place' || !sqPlaced.length) { if (typeof sfxNoSwaps === 'function') sfxNoSwaps(); return; }
+  const last = sqPlaced.pop();
   last.cells.forEach(([r, c]) => { gridData[r][c] = null; });
   // BACK WHERE IT WAS IN THE HAND, and in the ROTATION it was placed in: a tile
   // that comes back turned is a second mistake to undo.
@@ -1514,3 +1961,4 @@ window.addEventListener('resize', _sqOnResize);
 window.addEventListener('orientationchange', _sqOnResize);
 
 sqInstallInput();
+sqInstallChipTips();

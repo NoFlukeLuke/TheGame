@@ -117,11 +117,18 @@ function sqdHandName(cards) {
   if (!run && distinct && vs[n - 1] === 14) run = con([1, ...vs.slice(0, n - 1)]);
   const cnt = {}; cards.forEach(c => cnt[c.rank] = (cnt[c.rank] || 0) + 1);
   const cv = Object.values(cnt).sort((a, b) => b - a);
-  if (fl && run)  return 'Straight Flush';
+  // A SHORT LINE MAY NOT CLAIM THE LINE'S OWN HAND (r326) - the same rule the
+  // beam search has always applied inside `lineScore`. Two cards of a hearts
+  // column are not a Flush of 3 and 6-7 is not a Run of 3, and since neither
+  // 'Run of 2' nor 'Flush of 2' is in the pay table they scored 0 anyway: the
+  // only thing that was wrong was the NAME, which nothing looked at until the
+  // live line headers started printing it.
+  const whole = n >= SQ_N;
+  if (fl && run && whole) return 'Straight Flush';
   if (cv[0] >= 4) return 'Four of a Kind';
   if (cv[0] >= 3) return 'Three of a Kind';
-  if (run)        return 'Run of ' + n;
-  if (fl)         return 'Flush of ' + n;
+  if (run && whole) return 'Run of ' + n;
+  if (fl && whole)  return 'Flush of ' + n;
   if (cv[0] >= 2 && cv[1] >= 2) return 'Two Pair';
   if (cv[0] >= 2) return 'Pair';
   return 'High Card';
