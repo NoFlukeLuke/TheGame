@@ -66,18 +66,13 @@ function triggerLevelUp() {
   }
   recomputeGridMetrics();
   // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
-  // (Out-of-bounds cells from a shrunk grid are simply dropped; their cards are
-  //  effectively returned via flushPlayedDeck on the next cycle.)
-  {
-    const newGrid = [];
-    for (let r = 0; r < gridRows; r++) {
-      newGrid[r] = [];
-      for (let c = 0; c < gridCols; c++) {
-        newGrid[r][c] = (gridData[r] && gridData[r][c] !== undefined) ? gridData[r][c] : null;
-      }
-    }
-    gridData = newGrid;
-  }
+  // conformGridToDims (js/deck-grid.js) DISCARDS an out-of-bounds card to
+  // playedPile rather than dropping it. That did not matter while the round-end
+  // fall banked every card first; with a persisting board (r332) it is the one
+  // card that would otherwise leave the run without anything saying so. The
+  // flushPlayedDeck() further down then cycles it back in, which is exactly what
+  // the old comment here claimed was already happening.
+  conformGridToDims();
 
   // Survival: capture leftover clock time (for coins + boss bank) and the score
   // OVERFLOW above the just-cleared goal - the overflow seeds the next round so
@@ -201,9 +196,11 @@ function triggerLevelUp() {
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
+  discardsUsedRound = 0;
   focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
+  clubsScoredRound = 0;
   setsPlayedRound  = 0;
   runStreak        = 0;
   handTypesRound   = new Set();
@@ -260,8 +257,6 @@ function triggerLevelUp() {
   retriggersThisRound = 0;
   replaysThisRound = 0;
   timeManipRound = 0;
-  cuckooNextMinute = BAL.cuckoo.interval_seconds;
-  compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
   // The card-state fuses refresh every level (owner's spec), so a charged card
@@ -272,11 +267,10 @@ function triggerLevelUp() {
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
   _altSwapCount = 0;
-  doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-  djUsedThisRound = false;
+  doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
   firstPauseStartedRound = false;
   firstPauseActive = false;
-  woodpeckerPos = null;
+  woodpeckerCardId = null;
   woodpeckerActiveBlock = -1;
   // Metronome knack: pick this round's target hand type from those the player can actually make.
   if (hasKnack('metronome')) {
@@ -312,7 +306,7 @@ function triggerLevelUp() {
     for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
     eligible.slice(0, 3).forEach(card => {
       const k = cardId(card);
-      permPips[k] = (permPips[k]||0) + 2;
+      permPips[k] = (permPips[k]||0) + 5;
     });
   }
 
@@ -376,7 +370,18 @@ async function showLevelUpScreen() {
     }
   });
 
-  // Determine available slots for new Tricks (middle row, inner columns)
+  // Determine available slots for new Tricks (middle row, inner columns).
+  // With a persisting board (r332) those cells hold cards, so grid placement -
+  // a DEV-ONLY toggle; trickTrayMode is the default and sends Tricks to the tray -
+  // would find no slot at all and silently offer nothing. Clear the spawn strip
+  // to playedPile first, but ONLY on that path, so the tray path leaves the
+  // board exactly as the round left it.
+  if (typeof trickTrayMode !== 'undefined' && !trickTrayMode) {
+    _trickInnerCols.forEach(c => {
+      const cd = gridData[_trickMidRow][c];
+      if (cd && !cd._isTrick) { discardToPlayed(cd); gridData[_trickMidRow][c] = null; }
+    });
+  }
   const spawnSlots = _trickInnerCols.filter(c => !gridData[_trickMidRow][c]);
   trickSelectionOptions = pickTrickOptions(spawnSlots.length);
   let trickIdCounter = 90000 + (level * 10);

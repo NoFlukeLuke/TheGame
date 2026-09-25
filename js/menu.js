@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r326 · tagalongs are visible and billed (pips + rank in seconds), Tagalong lifts the minimum, Flow bills its clock at half rate, all 34 boss briefs rewritten plain";
+const BUILD = "2026-09-25 · r373 · tagalongs are visible and billed (pips + rank in seconds), Tagalong lifts the minimum, Flow bills its clock at half rate, all boss briefs rewritten plain";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -2,10 +2,10 @@ const COMBO_FAMILIES = [
   { id:'discard_furnace',   name:'Discard Furnace',   slots:['free_discards','hoarder','discard_pips','landfill'] },
   { id:'retrigger_cascade', name:'Retrigger Cascade', slots:['soul_mirror',['reflect','corner_retrigger','rowcol_retrigger'],'club_double','high_and_mighty'] },
   { id:'priming_press',     name:'Priming Press',     slots:[['wild_heart','prime_times'],'twos_retrigger','muscle_memory'] },
-  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'snowball','old_growth'] },
-  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','stand_up','scalper'],['coin_toss','martyr']] },
+  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'old_growth'] },
+  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','scalper'],['coin_toss','martyr']] },
   { id:'frozen_hour',       name:'Frozen Hour',       slots:['high_water','frozen_moment','sands_of_time'] },
-  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state',['ancient_grove','richter'],['rhythm','kaleidoscope','before_the_tide']] },
+  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state','richter',['rhythm','kaleidoscope','before_the_tide']] },
   { id:'position_lock',     name:'Position Lock',     slots:[['rowcol_mult','rowcol_retrigger','rowcol_perm_double'],['shape_square','two_corners','shape_cross'],'magnet'] },
 ];
 let _comboAnnounced = new Set(); // families that already fired the ONLINE toast (per game)
@@ -87,7 +87,6 @@ let reflectUsedThisRound = false;   // cleared in the round-start sweep
 // not yet fired this round. The (r, c) arguments are kept for call-site
 // compatibility - it is the rank that decides now, not the position.
 function reflectAimsAt(r, c) {
-  if (reflectUsedThisRound) return false;
   const rank = reflectAimedRank();
   if (rank === null) return false;
   const card = gridData[r]?.[c];
@@ -95,6 +94,7 @@ function reflectAimsAt(r, c) {
 }
 // Called from playHand once a hand that used Reflect has committed.
 function reflectSpendForRound(cells) {
+  return false;   // r355: no once-per-round lock any more (Reflect times out instead)
   if (reflectUsedThisRound) return false;
   const rank = reflectAimedRank();
   if (rank === null) return false;
@@ -119,7 +119,29 @@ function soulMirrorRankCount(rank) {
       if (tc && tc.rank === rank) mirrors++;
     }
   if (!mirrors) return 0;
-  return mirrors * rankCountOnGrid(rank);
+  return mirrors * rankCountInDeck(rank);
+}
+// r355: Soul Mirror counts the rank across the WHOLE deck - board and both piles.
+function rankCountInDeck(rank) {
+  let n = rankCountOnGrid(rank);
+  [...drawPile, ...playedPile].forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank === rank) n++; });
+  return n;
+}
+// Reflect (r355) leaves the board on its own after BAL.reflect.board_seconds on
+// it, cycling back into the deck. Counted on the card, so a copy that cycles
+// back starts fresh. Called from the round tick; skips while cards are moving.
+function reflectTimeoutTick() {
+  if (animating || falling) return;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd?._isSleight || cd.sleightId !== 'reflect') continue;
+    cd._boardSecs = (cd._boardSecs || 0) + 1;
+    if (cd._boardSecs < BAL.reflect.board_seconds) continue;
+    discardToPlayed(cd);
+    showMessage('🪞 Reflect leaves the board', 'var(--cream-dim)');
+    removeAndFall([[r, c]], 'discard');
+    return;
+  }
 }
 // How many cards of this rank are on the board right now (sleights/stones excluded).
 function rankCountOnGrid(rank) {
@@ -165,46 +187,47 @@ let _altSwapCount = 0;           // Mockingbird: counts hand-type alternations t
 // consumed by the next hand played (see calcScore / playHand). Reset each round.
 let _discardContextCards = null; // set during a discard so on_discard sleights can inspect co-discarded cards (Sandbagger)
 let pendingHandPips = 0;   // Quarter Chime: +45 pips per multiple-of-15 second passed
-let pendingHandMult = 0;   // generic "+N mult to the next hand" accrual, consumed in playHand
-// Minute Hand (reworked r209). It used to add +3 mult to ONE next hand, which is
-// the same shape as Quarter Chime and gave the player nothing to see: the number
-// arrived, was spent on whatever hand came next, and left. It now PRIMES for a
-// fixed number of hands, so it has a state the timer widget can show - a charge
-// count on the tile - and the player can choose which two hands spend it.
-// A fresh minute mark re-primes to the full count rather than stacking; the value
-// of holding a mark is meant to be playing the two hands, not banking marks.
+let pendingHandMult = 0;   // Second Hand's mult outcome, accrued per 10s mark
+// Minute Hand: 1 while a 30s mark has charged the next hand with x mult.
 let minuteHandCharges = 0;
 // The Understudy knack (r209): the next round-second mark at which it primes a
 // random Trick. A mark rather than a countdown so a rewind re-crosses it, the
 // same way every other clock-mark entity behaves.
 let understudyNextMark = 0;
-let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
+let pendingCardPips = 0;   // Second Hand's pips outcome, accrued per 10s mark
 
 // ── Timing/Streak batch: pause-themed Trick state ──
 let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
 let rewoundSecondsRound = 0;  // total seconds rewound (given back) this round (Kingfisher)
+let rewindInstanceGame = 0;   // PER GAME: number of clock rewinds triggered (Hummingbird); reset only at newGame
 let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
 let pausesThisRound = 0;      // PER ROUND: how many times the clock has been paused (time popup)
 let rewindsThisRound = 0;     // PER ROUND: how many times the clock has been rewound (time popup)
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
+let _lastHandClubHits = 0;    // club scores (incl. replays) in the most recent calcScore (Hard Labour, r346)
 let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (read by the Rider penalty)
 // Contribution-tally summaries (shown in the Contributions view when non-zero).
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
-let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
-// Compound (legendary): the round score is banked every interval; the next scored hand
-// pays the bank again. Both reset each round (see triggerLevelUp).
-let compoundNextMark = 0;     // next elapsed-seconds threshold at which to bank
-let compoundBanked   = 0;     // banked score awaiting the next hand's payout
-let doubleJeopardyPos = null; // { r, c } - marked tile (Double Jeopardy); fires once per round
-let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
+// Double Jeopardy (r348): TWO cells, secretly marked at round start. CELL-keyed
+// on purpose - the Trick marks a place on the board, not a card (a deliberate
+// exception to r192's card-keyed rule). Each cell pays once, then leaves the list.
+let doubleJeopardyCells = []; // [{ r, c }]
+function pickDoubleJeopardyCells() {
+  const all = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) all.push({ r, c });
+  for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+  return all.slice(0, BAL.double_jeopardy.cells);
+}
 let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
 let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
 let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
 let _lastRetrigByCell = {};      // { 'r-c': replayCount } from the last calcScore (playHand reads for replay-aware coin/time)
-let woodpeckerPos = null;       // { r, c } - marked tile (Woodpecker) during an active 30s block
-let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
+// The Woodpecker (r348): a new CARD is marked every interval, keyed by cardId so
+// the mark rides the card as it falls. Scoring it spends the mark.
+let woodpeckerCardId = null;
+let woodpeckerActiveBlock = -1; // index of the interval block already marked
 let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
 let shadyColumn = 0;            // Shady Tree sleight: the "shady" column this round
 let lighthouseColumn = 0;       // Lighthouse sleight: the favored column this round (alternates first ↔ last)

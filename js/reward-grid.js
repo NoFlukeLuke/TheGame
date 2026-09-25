@@ -1791,7 +1791,7 @@ async function confirmRewardPath() {
     negativeTilesTakenRun += _negThisGrid;
     if (hasKnack('shady_stimulants')) {
       focusCapPerm += _negThisGrid;
-      showMessage(`Shady Stimulants - +${_negThisGrid} max Focus`, '#a25cd8');
+      showMessage(`Shady Stimulants - +${_negThisGrid} Focus limit`, '#a25cd8');
     }
   }
   closeRewardGrid();
@@ -1923,6 +1923,9 @@ function closeRewardGrid() {
     // cleared for it).
     const _fromPick = typeof survivalGridPickCarry !== 'undefined' && survivalGridPickCarry;
     if (typeof survivalGridPickCarry !== 'undefined') survivalGridPickCarry = false;
+    // The grid offer taken MID-CHAIN (Flow multi-reward, r325): the chain shows
+    // its next screen and runs the one level-up at its end, carry included.
+    if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
     survivalSkipCarryover = !_fromPick;
     triggerLevelUp();          // → showLevelUpScreen (survival) → survivalDealNext
     survivalSkipCarryover = false;

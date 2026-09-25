@@ -3,6 +3,7 @@
   #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
   #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
   #selected-cards.dnc-active .dnc-row.hand{min-height:58px;}
+  #selected-cards.dnc-active .dnc-lab:empty{display:none;}
   #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
     transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
   /* items = clipped viewport; track = the sliding strip of cards (scrolls left as a large hand scores) */

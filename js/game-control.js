@@ -355,6 +355,7 @@ function startGame() {
   // A model that builds its own deck has already written the real total; a rank
   // x suit cross product is not what it deals, so the generic line must not run.
   if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
   dealPhase = false;
 
   // Reset all state
@@ -427,6 +428,7 @@ function startGame() {
                ? flowFocusCapBase()
                : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
+  focusCapGains = {}; queenUpgradePending = new Set(); queenBoardSecs = {};
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;
@@ -472,7 +474,7 @@ function startGame() {
   heldBackScore = 0;
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
-  pauseInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
+  pauseInstanceGame = 0; rewindInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
@@ -523,6 +525,7 @@ function startGame() {
   permRetrig = {};
   permTime   = {};
   permCoins  = {};
+  permFocus  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
@@ -530,19 +533,19 @@ function startGame() {
   bonusMult_nines = 0;
   bonusMult_tens = 0;
   bonusMult_compound = 0;
-  bonusPips_prolific = 0;
+  spadesRelentless = 0;
+  goalHandCards = null; goalHandHeld = [];
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
   bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
   negativeTilesTakenRun = 0; // Wild Side / Wait For Iiiit / Shady Stimulants (per-run negative-tile tally)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
-  bonusMult_jackpot  = 0;
-  jackpotFired       = false;
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
   studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
+  clubsScoredRound   = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
   handTypesRound     = new Set();
@@ -551,6 +554,7 @@ function startGame() {
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
+  discardsUsedRound = 0;
   focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;

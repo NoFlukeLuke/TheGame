@@ -233,9 +233,23 @@ const INSIGHTS = [
     when: () => typeof bossActive !== 'undefined' && bossActive
              && !document.querySelector('#boss-preamble.show') },
 
+  { id: 'wild_card', title: 'That card takes any rank',
+    anchor: ['#hand-name', '#score-center'],
+    body: 'A wild completes a SET at any rank - never a run and never a flush. It scores no pips and fires no {Tricks}; the set it finishes pays as normal.',
+    // A BOARD tip (the default scope), so it cannot fire over the reward grid or
+    // the shop the way the two r284 strays did - the card has to be on screen for
+    // the ring to point at anything. gridData is read defensively because a
+    // predicate may not throw (js/insights.js's own rule).
+    when: () => {
+      if (typeof isWildCard !== 'function' || typeof gridData === 'undefined') return false;
+      for (let r = 0; r < gridRows; r++)
+        for (let c = 0; c < gridCols; c++) if (isWildCard(gridData?.[r]?.[c])) return true;
+      return false;
+    } },
+
   { id: 'mini_boss', screen: 'any', title: 'The extra task is a bonus',
     anchor: ['#goal-display'],
-    body: 'The quota is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
+    body: 'The {GOAL} is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
     when: () => typeof miniBossActive !== 'undefined' && miniBossActive },
 ];
 

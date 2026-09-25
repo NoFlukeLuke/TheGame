@@ -7,8 +7,35 @@ function getNeighbors(r, c) {
   return n;
 }
 
+// ── Royal Reach (r358, The Queen) ──
+// A card with royal reach is linked to every cell on its row, its column and its
+// two diagonals, at any distance - a chess queen's lines. It can join a hand
+// with any card on those lines and swap with any of them. The link is mutual:
+// the other card reaches the Queen as much as the Queen reaches it.
+function hasRoyalReach(card) { return !!card && card._isSleight && !!sleightDef(card)?.royalReach; }
+function onQueenLine(r1, c1, r2, c2) { return r1 === r2 || c1 === c2 || Math.abs(r1 - r2) === Math.abs(c1 - c2); }
+function royalReachCells() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (hasRoyalReach(gridData[r]?.[c])) out.push([r, c]);
+  return out;
+}
+// getNeighbors plus the royal-reach links. With no royal card on the board this
+// is exactly getNeighbors.
+function reachNeighbors(r, c, royals) {
+  const out = getNeighbors(r, c);
+  royals = royals || royalReachCells();
+  if (!royals.length) return out;
+  const has = (a, b) => out.some(([x, y]) => x === a && y === b);
+  if (royals.some(([a, b]) => a === r && b === c)) {
+    for (let a = 0; a < gridRows; a++) for (let b = 0; b < gridCols; b++)
+      if ((a !== r || b !== c) && onQueenLine(r, c, a, b) && !has(a, b)) out.push([a, b]);
+  } else royals.forEach(([a, b]) => { if (onQueenLine(r, c, a, b) && !has(a, b)) out.push([a, b]); });
+  return out;
+}
+
 function isConnected(cells) {
   if (cells.length <= 1) return true;
+  const _royals = royalReachCells();
   const set = new Set(cells.map(([r,c])=>`${r}-${c}`));
   const visited = new Set();
   const stack = [cells[0]];
@@ -17,7 +44,7 @@ function isConnected(cells) {
     const k = `${r}-${c}`;
     if (visited.has(k)) continue;
     visited.add(k);
-    getNeighbors(r,c).forEach(([nr,nc]) => {
+    reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
       if (set.has(`${nr}-${nc}`) && !visited.has(`${nr}-${nc}`)) stack.push([nr,nc]);
     });
   }
@@ -27,7 +54,8 @@ function isConnected(cells) {
 function getReachable() {
   if (selected.length === 0) return null; // all reachable
   const reachable = new Set(selected.map(([r,c])=>`${r}-${c}`));
-  selected.forEach(([r,c]) => getNeighbors(r,c).forEach(([nr,nc]) => {
+  const _royals = royalReachCells();
+  selected.forEach(([r,c]) => reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
     const card = gridData[nr][nc];
     if (card === null) return;            // empty cells unreachable
     if (isCellBlocked(nr, nc)) return;    // voids unreachable
@@ -217,6 +245,11 @@ function findBestHand(cells) {
       detectionCells.push([r, c]);      // a tinkered sleight is just a card here
       continue;
     }
+    // Warehouse joins as itself - no borrowed rank or suit. _handShape and the
+    // flush overlay read it directly, so the score, the preview and the dance's
+    // own re-score all see the same hand (a temporary identity would be gone by
+    // the time playHand and the dance ask again).
+    if (isWarehouseCard(card)) { detectionCells.push([r, c]); continue; }
     if (def?.activation === 'wildcard') {
       const orig = { rank: card.rank, suit: card.suit };
       if (def.wild === 'rank' || def.wild === 'both') card.rank = bestWildRank(normalCards);
@@ -284,7 +317,7 @@ function findBestHand(cells) {
   let best = null;
   for (const { hand, handCells } of subsets) {
     const penaltyCells = detectionCells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
-    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + cardPips(gridData[r][c].rank), 0);
+    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + (isWarehouseCard(gridData[r][c]) ? 0 : cardPips(gridData[r][c].rank)), 0);
     const rawScore = calcScore(hand, handCells);
     // A subset's own passengers are billed here too, or the search would happily
     // prefer a subset that carries three of them over one that carries none -
@@ -326,9 +359,16 @@ function _handShape(cells) {
   const n = cells.length;
   const isSeq = os => { for(let i=1;i<os.length;i++) if(os[i]-os[i-1]!==1) return false; return true; };
 
+  // WILDS ARE COUNTED SEPARATELY AND NEVER APPEAR IN rankCounts (r325). A wild
+  // has no rank, so it cannot be a rank's own tally - it is a slot that one of
+  // the real ranks may claim, which is what _wildFitsPattern decides.
+  const wilds = (typeof countWilds === 'function') ? countWilds(cards) : 0;
+
   // rankCounts: combined cards contribute both ranks
   const rankCounts = {};
   cards.forEach(c => {
+    if (wilds && isWildCard(c)) return;
+    if (isWarehouseCard(c)) return;
     rankCounts[c.rank] = (rankCounts[c.rank]||0) + 1;
     if (c.combined && c.rank2) rankCounts[c.rank2] = (rankCounts[c.rank2]||0) + 1;
   });
@@ -339,9 +379,15 @@ function _handShape(cells) {
   // from - that is their identity - but they READ as colourless, so they can never
   // complete a flush. This explicit test is what enforces that; the cards' own
   // suits would otherwise match like any other colour.
+  // A WILD CAN NEVER COMPLETE A FLUSH either, and it is tested explicitly for
+  // exactly the reason the white cards are: WILD_SUIT is absent from
+  // ACTIVE_SUITS, so `cards.every` would already fail today - but r164 leaned on
+  // absence alone for white and r165 had to unpick it, so the rule is stated
+  // rather than inherited from a list that a mode could change.
   const _anyWhite = cards.some(c => isWhiteCard(c));
-  const allSameSuitStrict = !_anyWhite && ACTIVE_SUITS.some(s =>
-    cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
+  const _anyWild  = wilds > 0;
+  const allSameSuitStrict = !_anyWhite && !_anyWild && ACTIVE_SUITS.some(s =>
+    cards.every(c => isWarehouseCard(c) || c.suit === s || (c.combined && c.suit2 === s))
   );
 
   // Run check: combined cards can use either rank value - try all combos
@@ -349,6 +395,7 @@ function _handShape(cells) {
   // returns NOTHING for a rank that is off the ladder, so the loop below can
   // never place it in a run. Ace-high lives in there too.
   const rankOptions = cards.map(c => {
+    if (isWarehouseCard(c)) return [];
     const opts = [...rankRunVals(c.rank)];
     if (c.combined && c.rank2) opts.push(...rankRunVals(c.rank2));
     return [...new Set(opts)];
@@ -367,7 +414,7 @@ function _handShape(cells) {
     }
     return false;
   }
-  return { n, counts, allSameSuitStrict, isStr: tryRunCombos(0, []) };
+  return { n, counts, allSameSuitStrict, isStr: tryRunCombos(0, []), wilds };
 }
 
 // What a hand is worth under the ACTIVE scoring model, not the printed table:
@@ -439,18 +486,53 @@ function handIsActive(name) { const k = HAND_NAME_TO_KEY[name]; return !k || act
 // for everything, so the pips term is floored at 1 and the mults decide.
 function handWorth(h) { return HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0; }
 
+// ── CAN w WILDS FILL THIS PATTERN OF RANK GROUPS? (r325) ──
+// `naturalCounts` is the group's real ranks, descending; `pattern` is the shape
+// being tested, also descending - [n] for n-of-a-kind, [3,2] for a full house,
+// [2,2] for two pair. The group is EXACTLY sum(pattern) cards, so the wilds have
+// to land exactly and the only real question is whether each natural rank fits
+// in a slot of its own.
+//
+// Greedy biggest-to-biggest is provably right for that: both lists are
+// descending, so if the i-th largest natural group will not fit the i-th largest
+// slot, no pairing exists (any other assignment gives it a slot that is smaller
+// still). More distinct ranks than slots is an immediate no.
+//
+// AT w = 0 THIS REDUCES TO THE THREE TESTS IT REPLACED, EXACTLY. The group size
+// is fixed, so `counts[0] >= n` was only ever true for a single rank, a full
+// house was only ever [3,2] and two pair only ever [2,2] - each of which is what
+// the fit test answers. Verified over real boards: 0 hands move with no wild in
+// play (see the r325 note in CLAUDE.md).
+function _wildFitsPattern(naturalCounts, w, pattern) {
+  if (naturalCounts.length > pattern.length) return false;
+  let need = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    const have = naturalCounts[i] || 0;
+    if (have > pattern[i]) return false;
+    need += pattern[i] - have;
+  }
+  return need === w;
+}
+
 // ── TRACK 1: the best ACTIVE set/run this exact group of cards is, or null ──
 // Strict: n is exact for every shape, so a component never claims a spare card.
 function rankHandForGroup(cells) {
   const n = cells.length;
   if (n < 2 || n > HAND_MAX_CARDS) return null;
-  const { counts, allSameSuitStrict, isStr } = _handShape(cells);
+  const { counts, allSameSuitStrict, isStr, wilds } = _handShape(cells);
   const out = [];
   const add = name => { if (HAND_BASE[name] && handIsActive(name)) out.push(name); };
+  // A SET NEEDS AT LEAST ONE REAL CARD TO NAME ITS RANK. "Takes any rank to
+  // complete a set" means there is a set to complete; three blank cards paying
+  // Three of a Kind reads as a bug, and at a 7x7 board three wilds landing
+  // together is not rare enough to leave to chance. This is also what stops the
+  // whole-group degenerate case without needing a rule inside _wildFitsPattern.
+  const _setOK = counts.length > 0;
+  const _fits = pattern => _setOK && _wildFitsPattern(counts, wilds, pattern);
   if (n === 5 && isStr && allSameSuitStrict) add('Straight Flush');
-  if (counts[0] >= n) add(SET_BY_SIZE[n]);                       // n of a kind
-  if (n === 5 && counts[0] >= 3 && counts[1] >= 2) add('Full House');
-  if (n === 4 && counts[0] >= 2 && counts[1] >= 2) add('Two Pair');
+  if (_fits([n])) add(SET_BY_SIZE[n]);                           // n of a kind
+  if (n === 5 && _fits([3, 2])) add('Full House');
+  if (n === 4 && _fits([2, 2])) add('Two Pair');
   if (isStr) add(RUN_BY_SIZE[n]);
   if (!out.length) return null;
   let best = out[0];
@@ -458,24 +540,40 @@ function rankHandForGroup(cells) {
   return best;
 }
 
-// ── TRACK 2: the biggest same-suit group, as a flush hand ──
+// ── TRACK 2: the whole hand as a flush, when EVERY card shares one suit ──
 // Deliberately NOT gated on activeHands (see the note above). Spectrum's white
 // values can never join a flush, which is why isWhiteCard is asked here as well
 // as in _handShape.
+//
+// ALL OR NOTHING (owner call): the overlay only pays when the ENTIRE selection
+// shares one suit. It used to take the biggest same-suit GROUP of
+// flushOverlayMin+ cards, so a 4-card hand with 3 of one suit paid a Flush of 3
+// on top and replayed those three cards - the owner's rule is that a partial
+// suit match is not a flush layer. A group covering every cell is also,
+// incidentally, always coverage-safe for the r281 rescue below.
 function flushOverlayFor(cells) {
   const bySuit = {};
+  const _wh = cells.filter(([r, c]) => isWarehouseCard(gridData[r][c]));
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
-    if (!card || isWhiteCard(card)) return;
+    if (isWarehouseCard(card)) return;
+    // isWildCard is load-bearing HERE in a way it is not in _handShape: this
+    // function groups cards BY THEIR OWN SUIT rather than testing against
+    // ACTIVE_SUITS, so three wilds would form a WILD_SUIT group of their own and
+    // pay a Flush of 3 off cards that are not a suit at all.
+    if (!card || isWhiteCard(card) || isWildCard(card)) return;
     const push = s => { if (s) (bySuit[s] = bySuit[s] || []).push([r, c]); };
     push(card.suit);
     if (card.combined && card.suit2) push(card.suit2);
   });
   let best = null;
   Object.keys(bySuit).forEach(s => {
-    const group = bySuit[s].slice(0, HAND_MAX_CARDS);
-    const name = FLUSH_BY_SIZE[group.length];
-    if (group.length < flushOverlayMin || !name || !HAND_BASE[name]) return;
+    const group = [...bySuit[s], ..._wh].slice(0, HAND_MAX_CARDS);
+    if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
+    // A Warehouse is one cell and two cards of the flush.
+    const size = Math.min(HAND_MAX_CARDS, group.length + _wh.length);
+    const name = FLUSH_BY_SIZE[size];
+    if (size < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };
   });
   return best;
@@ -578,6 +676,34 @@ function clearHandCompCache() { _compCache.clear(); }
 function _compKey(cells) {
   return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
+// r339: "an N-card hand" is a REAL hand of exactly N cards - one component the
+// recognition names (a Straight, a Flush, a Full House, a Set of 3...), never N
+// cells that happen to include a smaller hand plus spares, and never High Card.
+// Owner's rule (the 9.24 sheet, Five for Fodder / the little guys notes): every
+// entity whose printed text says "N-card hand" reads THIS predicate, so they
+// cannot drift. Safe inside calcScore: handComponentsFor is memoised and never
+// calls back into scoring. A throw reads as false - the entity simply does not
+// fire - never as a broken hand.
+function realHandOfSize(cells, n) {
+  try {
+    // Three's a Crowd (knack, r361): a hand counts as one card bigger, but only
+    // when every card in it is part of the hand - a passenger carried by
+    // Tagalong never makes a Pair into a 3-card hand.
+    if (cells && typeof hasKnack === 'function' && hasKnack('threes_crowd_k') && cells.length + 1 === n) {
+      const comps = handComponentsFor(cells);
+      if (!comps || !comps.components) return false;
+      const real = comps.components.filter(c => c.name !== 'High Card');
+      if (!real.length) return false;
+      const claimed = new Set(); real.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+      return cells.every(([r, cc]) => claimed.has(r + '-' + cc));
+    }
+    if (!cells || cells.length !== n) return false;
+    const comps = handComponentsFor(cells);
+    if (!comps || !comps.components) return false;
+    return comps.components.some(c => c.name !== 'High Card' && c.cells.length === n);
+  } catch (e) { return false; }
+}
+
 function handComponentsFor(cells) {
   // POKER SQUARES NAMES ITS OWN HANDS AND LAYERS NOTHING. A line there is five
   // cards scored as one real poker hand, kickers included, so a component list
@@ -746,7 +872,7 @@ function handReplayMap(cells) {
 // ── Exalt / Corrupt suit effects ──
 // Per-card flags _exalted / _corrupted grant enhanced suit effects.
 // Returns { pips, mult, coins, time } totals across the given cards.
-// Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +2 mult | ♠ +4 time
+// Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +4 mult | ♠ +4 time
 // Corrupted: ♣ +25 pips/-3 mult | ♦ +5 coins/-20 pips | ♥ +5 mult/-5 time | ♠ +7 time/-8 coins
 // ══════════════════════════════════════════════
 // BALANCE CONFIG (BAL) - single source of truth for tunable numbers
