@@ -1,5 +1,22 @@
 // ══════════════════════════════════════════════════════════════════════════
-// THE DAILY SCOREBOARD (r368) - js/squares-report.js
+// THE SCOREBOARD (r368, restyled and extended r375) - js/squares-report.js
+//
+// r375 changed three things about it, all owner asks:
+//   * IT IS PAPER, NOT A CRT (css/squares-report.css). "Make the final scorecard
+//     look way more modern and better, the lines are hard to follow, the colours
+//     aren't good, make it feel more like a new york times game overall." A
+//     result is READ rather than played: a light sheet, one accent, thin rules,
+//     real leading. Every rule is scoped under #sq-card, so the licence to break
+//     house style cannot reach the rest of the game.
+//   * EVERY LINE IS LABELLED. Each grid is drawn with its hand and its score on
+//     the left of every row and above every column, so the board reads like a
+//     scored crossword rather than a picture with a total under it.
+//   * SUITS ARE COLOURED, because an all-black grid of faces cannot be scanned
+//     for the flush you were building. Diamonds is darkened - the board's gold
+//     is tuned for a cream card face, not for white paper.
+//   * AND THE 5x5 GETS IT TOO. It has no par to compare against, so the par
+//     columns simply drop; what it had instead was the plainest block of
+//     monospace text in the game.
 //
 // A run of daily grids ended on a block of monospace text. It now ends on a
 // SCOREBOARD: a row per grid, what you scored against the best the board could
@@ -75,101 +92,181 @@ function sqdAlignOptimal(g) {
   return best || { board: g.opt, sym: 'id', match: sqdMatchCount(g.mine, g.opt) };
 }
 
-// ── THE SCOREBOARD ─────────────────────────────────────────────────────────
+// ── THE SHEET ──────────────────────────────────────────────────────────────
+// One body-level surface for both screens, for the usual #cabinet CSS-zoom
+// reason. It is NOT `sqOverlay()`: that is the mode's CRT console, and the
+// whole point of this pass is that a result is not one.
+function sqcSheet() {
+  let el = document.getElementById('sq-card');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sq-card';
+    el.innerHTML = '<div class="sqc-sheet"><div class="sqc-inner"></div>'
+                 + '<div class="sqc-foot"></div></div>';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function sqcPaint(innerHTML, footHTML) {
+  // A TIP ALREADY ON SCREEN HAS TO GO. `insightsBlocked` stops a NEW one landing
+  // here (js/insights.js), but one opened during the last grid stays up until it
+  // is dismissed - and on a phone it covers most of the sheet.
+  if (typeof dismissInsight === 'function') { try { dismissInsight(); } catch (e) {} }
+  const el = sqcSheet();
+  el.querySelector('.sqc-inner').innerHTML = innerHTML;
+  el.querySelector('.sqc-foot').innerHTML = footHTML;
+  el.querySelector('.sqc-sheet').scrollTop = 0;
+  el.classList.add('show');
+  return el;
+}
+const sqcClose = () => document.getElementById('sq-card')?.classList.remove('show');
 function sqdPct(a, b) { return b > 0 ? Math.round(100 * a / b) : 0; }
+
+// The four glyph suits get a class; anything else (Spectrum's colour deck) is
+// left in the sheet's own ink rather than guessed at.
+const SQC_SUIT = { '♥': 'h', '♦': 'd', '♠': 's', '♣': 'c' };
+function sqcFaceHTML(f, mark) {
+  if (!f) return `<div class="sqc-cell empty"></div>`;
+  const wild = (typeof isWildRank === 'function') && isWildRank(f.rank);
+  return `<div class="sqc-cell ${SQC_SUIT[f.suit] || ''}${wild ? ' wild' : ''}${mark ? ' ' + mark : ''}">`
+       + `<span class="sqc-r">${f.rank}</span><span class="sqc-s">${f.suit}</span>`
+       + (mark === 'bad' ? '<span class="sqc-mark bad">✕</span>' : '')
+       + (mark === 'fix' ? '<span class="sqc-mark fix">✓</span>' : '')
+       + `</div>`;
+}
+// THE BOARD AND ITS LABELS ARE ONE CSS GRID of (N+1)x(N+1): the corner, the
+// column headers, then each row headed by its own. A header can then never
+// drift off its line at any board size, with nothing measured.
+//
+// `lines` is the snapshot's own list (js/squares-mode.js) - the board it
+// describes has long since gone back into the deck, so nothing here can be
+// re-scored. The OPTIMAL board has no line list of its own and passes none,
+// which is why the labels are drawn only for the player's.
+function sqcGridHTML(n, faces, lines, marks) {
+  const at = i => (lines && lines[i]) || null;
+  let h = `<div class="sqc-grid${lines ? '' : ' bare'}" style="--sqcn:${n}">`;
+  if (lines) {
+    h += `<div class="sqc-corner"></div>`;
+    for (let c = 0; c < n; c++) {
+      const f = at(n + c);
+      h += `<div class="sqc-hdr col"><span class="sqc-hn">${f ? sqHandShort(f.name) : ''}</span>`
+         + `<span class="sqc-hv">${f ? Math.round(f.total).toLocaleString() : ''}</span></div>`;
+    }
+  }
+  for (let r = 0; r < n; r++) {
+    if (lines) {
+      const f = at(r);
+      h += `<div class="sqc-hdr row"><span class="sqc-hn">${f ? sqHandShort(f.name) : ''}</span>`
+         + `<span class="sqc-hv">${f ? Math.round(f.total).toLocaleString() : ''}</span></div>`;
+    }
+    for (let c = 0; c < n; c++) {
+      const k = r * n + c;
+      h += sqcFaceHTML(faces[k], marks ? marks[k] : '');
+    }
+  }
+  return h + '</div>';
+}
+
+// ── THE SCOREBOARD ─────────────────────────────────────────────────────────
 function sqdShowScoreboard(onDone) {
-  const ov = sqOverlay();
   const tot = sqdGrids.reduce((t, g) => t + g.score, 0);
   const par = sqdGrids.reduce((t, g) => t + g.par, 0);
   const exact = sqdGrids.every(g => g.exact);
-  ov.querySelector('.sq-eyebrow').textContent = 'Run complete';
-  ov.querySelector('.sq-title').textContent = 'Scoreboard';
-  ov.querySelector('.sq-lead').textContent = 'Tap a grid to see it against the best packing of the same tiles.';
-  ov.querySelector('.sq-body').innerHTML =
-    `<table class="sq-sb">
-       <thead><tr><th>GRID</th><th>YOURS</th><th>${exact ? 'BEST' : 'BEST FOUND'}</th><th></th><th></th></tr></thead>
-       <tbody>${sqdGrids.map((g, i) => {
-         const p = sqdPct(g.score, g.par);
-         return `<tr class="sq-sbr" data-i="${i}">
-           <td class="sq-sbg">${g.round}</td>
-           <td class="sq-sbv">${g.score.toLocaleString()}</td>
-           <td class="sq-sbp">${g.par.toLocaleString()}</td>
-           <td class="sq-sbbarw"><span class="sq-sbbar" style="width:${Math.min(100, p)}%"></span></td>
-           <td class="sq-sbpct">${p}%</td></tr>`;
-       }).join('')}</tbody>
-       <tfoot><tr><td class="sq-sbg">ALL</td><td class="sq-sbv">${tot.toLocaleString()}</td>
-         <td class="sq-sbp">${par.toLocaleString()}</td>
-         <td class="sq-sbbarw"><span class="sq-sbbar" style="width:${Math.min(100, sqdPct(tot, par))}%"></span></td>
-         <td class="sq-sbpct">${sqdPct(tot, par)}%</td></tr></tfoot>
-     </table>
-     <div class="sq-sbnote">${SQ_N}x${SQ_N} · ${sqdGrids.length} grid${sqdGrids.length === 1 ? '' : 's'}`
-     + (sqdRanks ? ` · ranks ${sqdRanks[0]}–${sqdRanks[sqdRanks.length - 1]}` : '')
-     + (sqdBoons.filter(b => b.kind !== 'cons').length ? ` · ${sqdBoons.filter(b => b.kind !== 'cons').map(sqdBoonLabel).join(' · ')}` : '')
-     + `</div>`;
-  ov.querySelector('.sq-foot').innerHTML = `<button class="sq-btn go" id="sq-sb-ok">FINISH</button>`;
-  ov.querySelector('#sq-sb-ok').onclick = () => { sqCloseOverlay(); onDone && onDone(); };
-  ov.querySelectorAll('.sq-sbr').forEach(tr => tr.onclick = () => {
+  const daily = sqdGrids.length ? sqdGrids[0].daily !== false : true;
+  const best = sqdGrids.reduce((m, g) => Math.max(m, g.score), 0);
+  const stat = (k, v, sub) => `<div class="sqc-stat"><span class="sqc-k">${k}</span>`
+    + `<span class="sqc-v">${v}</span>${sub ? `<span class="sqc-sub2">${sub}</span>` : ''}</div>`;
+
+  let extra = '';
+  const lb = sqdBoons.filter(b => b.kind !== 'cons');
+  if (daily && lb.length) extra = `<span>Boosts</span>${lb.map(sqdBoonLabel).join(' &middot; ')}`;
+  else if (!daily) {
+    const tn = (acquiredTricks || []).map(t => t.name).join(' &middot; ');
+    if (tn) extra = `<span>Tricks</span>${tn}`;
+  }
+
+  sqcPaint(
+    `<div class="sqc-eyebrow">Poker Squares &middot; ${SQ_N} &times; ${SQ_N}`
+      + (daily ? '' : ` &middot; ${sqMode === 'all' ? 'Score all' : 'Select score'}`)
+      + (daily && typeof sqdRanks !== 'undefined' && sqdRanks ? ` &middot; ${sqdRanks[0]}–${sqdRanks[sqdRanks.length - 1]}` : '') + `</div>
+     <div class="sqc-total">${tot.toLocaleString()}</div>
+     <div class="sqc-sub">${sqdGrids.length} grid${sqdGrids.length === 1 ? '' : 's'} played</div>
+     <div class="sqc-stats">
+       ${par ? stat(exact ? 'Best possible' : 'Best found', par.toLocaleString(), sqdPct(tot, par) + '% reached') : ''}
+       ${stat('Best grid', best.toLocaleString())}
+       ${stat('Per grid', sqdGrids.length ? Math.round(tot / sqdGrids.length).toLocaleString() : '0')}
+     </div>
+     ${extra ? `<div class="sqc-extra">${extra}</div>` : ''}
+     <div class="sqc-rule"></div>
+     ${sqdGrids.map(sqcGridBlock).join('')}`,
+    `<button class="sqc-done" id="sq-sb-ok">FINISH</button>`);
+
+  document.getElementById('sq-sb-ok').onclick = () => { sqcClose(); onDone && onDone(); };
+  document.querySelectorAll('#sq-card .sqc-cmpbtn').forEach(b => b.onclick = () => {
     if (typeof sfxRewardSelect === 'function') sfxRewardSelect();
-    sqdShowCompare(+tr.dataset.i, () => sqdShowScoreboard(onDone));
+    sqdShowCompare(+b.dataset.i, () => sqdShowScoreboard(onDone));
   });
-  sqShowOverlay();
+}
+
+// One grid: its score, how close to par it came, the board with every line
+// priced, and - where there is a par to compare against - the way in to it.
+function sqcGridBlock(g, idx) {
+  const pct = g.par ? sqdPct(g.score, g.par) : 0;
+  return `<section class="sqc-block">
+      <header class="sqc-bh">
+        <h3>Grid ${g.round}</h3>
+        <div class="sqc-bs"><b>${g.score.toLocaleString()}</b>`
+      + (g.par ? `<span>${pct}% of ${g.par.toLocaleString()}</span>` : '')
+      + `</div>
+      </header>
+      ${g.par ? `<div class="sqc-meter"><i style="width:${Math.min(100, pct)}%"></i></div>` : ''}
+      ${sqcGridHTML(g.n, g.mine, g.lines)}
+      ${g.opt ? `<button class="sqc-cmpbtn" data-i="${idx}">Compare with the best packing</button>` : ''}
+    </section>`;
 }
 
 // ── ONE GRID, SIDE BY SIDE IN ONE PLACE ────────────────────────────────────
 let _sqdCmpShow = 'mine';
-function sqdCardHTML(f, mark) {
-  if (!f) return `<div class="sq-cc empty"></div>`;
-  const wild = (typeof isWildRank === 'function') && isWildRank(f.rank);
-  const sc = (typeof sqSuitCls === 'function') ? sqSuitCls(f.suit) : '';
-  return `<div class="sq-cc${wild ? ' wild' : ''}${mark ? ' ' + mark : ''}">`
-       + `<span class="sq-ccr ${sc}">${f.rank}</span><span class="sq-ccs ${sc}">${f.suit}</span>`
-       + (mark === 'bad' ? '<span class="sq-ccm bad">✕</span>' : '')
-       + (mark === 'fix' ? '<span class="sq-ccm fix">✓</span>' : '')
-       + `</div>`;
-}
-function sqdCompareBody(g, aligned) {
-  const n = g.n, mine = g.mine, opt = aligned.board;
-  const showing = _sqdCmpShow === 'mine' ? mine : opt;
-  const diff = [];
-  for (let i = 0; i < n * n; i++) diff.push(!sqdSameFace(mine[i], opt && opt[i]));
-  const wrong = diff.filter(Boolean).length;
-  const cells = showing.map((f, i) =>
-    sqdCardHTML(f, !diff[i] ? '' : (_sqdCmpShow === 'mine' ? 'bad' : 'fix'))).join('');
-  const sc = _sqdCmpShow === 'mine' ? g.score : g.par;
-  return `<div class="sq-cmp-head">
-            <span class="sq-cmp-who ${_sqdCmpShow}">${_sqdCmpShow === 'mine' ? 'YOUR GRID' : 'BEST PACKING'}</span>
-            <span class="sq-cmp-sc">${sc.toLocaleString()}</span>
-          </div>
-          <div class="sq-cmp-grid ${_sqdCmpShow}" style="grid-template-columns:repeat(${n},1fr)">${cells}</div>
-          <div class="sq-cmp-legend">${wrong
-            ? `<b>${wrong}</b> of ${n * n} cells differ · <span class="sq-lg bad">✕ yours</span> <span class="sq-lg fix">✓ the best packing</span>`
-            : 'Identical — you found the best packing.'}</div>`;
-}
 function sqdShowCompare(i, back) {
   const g = sqdGrids[i]; if (!g) { back(); return; }
   const aligned = sqdAlignOptimal(g);
   _sqdCmpShow = 'mine';
-  const ov = sqOverlay();
-  ov.querySelector('.sq-eyebrow').textContent = `Grid ${g.round}`;
-  ov.querySelector('.sq-title').textContent = `${g.score.toLocaleString()} of ${g.par.toLocaleString()}`;
-  ov.querySelector('.sq-lead').textContent = g.opt
-    ? 'The same tiles, packed for the most points. Flip between the two.'
-    : 'No best packing was recorded for this grid.';
   const paint = () => {
-    ov.querySelector('.sq-body').innerHTML = g.opt ? sqdCompareBody(g, aligned) : '';
-    const f = ov.querySelector('#sq-cmp-flip');
-    if (f) f.textContent = _sqdCmpShow === 'mine' ? 'SHOW THE BEST PACKING' : 'SHOW YOUR GRID';
-  };
-  ov.querySelector('.sq-foot').innerHTML =
-    (g.opt ? `<button class="sq-btn" id="sq-cmp-flip"></button>` : '')
-    + `<button class="sq-btn go" id="sq-cmp-back">BACK</button>`;
-  ov.querySelector('#sq-cmp-back').onclick = () => back();
-  const flip = ov.querySelector('#sq-cmp-flip');
-  if (flip) flip.onclick = () => {
-    _sqdCmpShow = _sqdCmpShow === 'mine' ? 'opt' : 'mine';
-    if (typeof sfxCardFlip === 'function') sfxCardFlip(); else if (typeof sfxRewardSelect === 'function') sfxRewardSelect();
-    paint();
+    const n = g.n, mine = g.mine, opt = aligned.board;
+    const diff = [];
+    for (let k = 0; k < n * n; k++) diff.push(!sqdSameFace(mine[k], opt && opt[k]));
+    const wrong = diff.filter(Boolean).length;
+    const showMine = _sqdCmpShow === 'mine';
+    const marks = diff.map(d => !d ? '' : (showMine ? 'bad' : 'fix'));
+    // THE OPTIMAL BOARD IS LABELLED TOO, and it has to be re-scored to be: the
+    // snapshot carries the line list for the board that was PLAYED and nothing
+    // for the one that was not. `sqdScoreBoard` is the same function the
+    // symmetry check already runs, against this grid's own boons, so the labels
+    // cannot disagree with the par the row quotes. A 5x5 has no `opt` at all,
+    // so this is only ever reached on a daily.
+    let optLines = null;
+    if (!showMine) {
+      try { optLines = sqdScoreBoard(opt, n, g.boons).lines; } catch (e) { optLines = null; }
+    }
+    sqcPaint(
+      `<div class="sqc-eyebrow">Grid ${g.round}</div>
+       <div class="sqc-total">${(showMine ? g.score : g.par).toLocaleString()}</div>
+       <div class="sqc-sub">${showMine ? 'your grid' : 'the best packing of the same tiles'}</div>
+       <div class="sqc-rule"></div>
+       <section class="sqc-block">
+         ${sqcGridHTML(n, showMine ? mine : opt, showMine ? g.lines : optLines, marks)}
+         <div class="sqc-legend">${wrong
+           ? `<b>${wrong}</b> of ${n * n} cells differ &middot; <span class="lg bad">✕ yours</span> <span class="lg fix">✓ the best packing</span>`
+           : 'Identical — you found the best packing.'}</div>
+       </section>`,
+      `<button class="sqc-done ghost" id="sq-cmp-flip">${showMine ? 'SHOW THE BEST PACKING' : 'SHOW YOUR GRID'}</button>`
+      + `<button class="sqc-done" id="sq-cmp-back">BACK</button>`);
+    document.getElementById('sq-cmp-back').onclick = () => back();
+    document.getElementById('sq-cmp-flip').onclick = () => {
+      _sqdCmpShow = showMine ? 'opt' : 'mine';
+      if (typeof sfxCardFlip === 'function') sfxCardFlip(); else if (typeof sfxRewardSelect === 'function') sfxRewardSelect();
+      paint();
+    };
   };
   paint();
-  sqShowOverlay();
 }

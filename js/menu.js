@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r374 · the pick-three title card is the panel's own header; PICK 3 may not repeat in a chain and the rest are damped; counts 48/32/10/6/4";
+const BUILD = "2026-09-25 · r375 · Poker Squares: drag by the cell you grabbed, live line headers, no per-grid review, the scoreboard on paper";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

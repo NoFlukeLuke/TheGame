@@ -139,8 +139,17 @@
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px;
   color: var(--cream-dim); opacity: 0.7; align-self: center; margin: auto;
 }
-#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; opacity: 0.92; }
-#sq-drag .sq-tile { width: 96px; height: 96px; }
+/* THE DRAG GHOST (r375). Not a thumbnail of the tile - the CARDS, at the board's
+   own cell size, translucent, with the grabbed cell under the cursor. So what
+   you are holding is literally what will land, in the place it will land. */
+#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; }
+#sq-drag .sq-ghostpoly { opacity: 0.82; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65)); }
+#sq-drag .sq-mini {
+  border-radius: 5px; border-width: 2px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.4);
+  padding: 3px 4px;
+}
+#sq-drag .sq-mr, #sq-drag .sq-ms { font-size: calc(var(--smw, 40px) * 0.34); }
 
 /* ── Board overlays ───────────────────────────────────────────────────── */
 .sq-ghost {
@@ -150,6 +159,10 @@
 }
 .sq-ghost.ok  { background: rgba(90,158,90,0.24); border: 1px solid var(--green); color: #d8f0d8; }
 .sq-ghost.bad { background: rgba(192,57,43,0.26); border: 1px solid var(--red); }
+/* Held: the cards themselves are under the cursor, so the board only outlines
+   the footprint - a second copy of the faces two pixels apart reads as a fault. */
+.sq-ghost.ok.held  { background: rgba(90,158,90,0.16); border: 2px dashed var(--green); }
+.sq-ghost.bad.held { background: rgba(192,57,43,0.16); border: 2px dashed var(--red); }
 .sq-gr, .sq-gs { line-height: 1; }
 .sq-lock {
   position: absolute; border-radius: 5px; pointer-events: none; z-index: 4;
@@ -531,72 +544,10 @@ table.sq-pt tr:first-child td { color: #fff; }
 }
 .sq-pt-n b { color: var(--cream); }
 
-/* ── THE SCOREBOARD ───────────────────────────────────────────────────── */
-table.sq-sb { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
-table.sq-sb th {
-  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 2px;
-  color: #b39cf5; text-align: right; padding: 0 6px 6px; font-weight: 700;
-}
-table.sq-sb th:first-child { text-align: left; }
-table.sq-sb td { padding: 7px 6px; border-top: 1px solid #262340; }
-.sq-sbr { cursor: pointer; transition: background 0.12s; }
-.sq-sbr:hover { background: rgba(140,110,230,0.14); }
-.sq-sbg { font-family: 'Orbitron', sans-serif; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
-.sq-sbv { text-align: right; color: #fff; font-size: 13px; }
-.sq-sbp { text-align: right; color: var(--cream-dim); }
-.sq-sbpct { text-align: right; color: #b39cf5; width: 42px; }
-.sq-sbbarw { width: 34%; }
-.sq-sbbar {
-  display: block; height: 6px; border-radius: 3px; min-width: 2px;
-  background: linear-gradient(90deg, #6f5ac0, #b39cf5);
-}
-table.sq-sb tfoot td { border-top: 2px solid #3a3560; padding-top: 9px; }
-table.sq-sb tfoot .sq-sbv { color: var(--gold); font-size: 15px; }
-.sq-sbnote {
-  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.5px;
-  color: rgba(240,230,200,0.5); margin-top: 10px; text-align: center;
-}
-
-/* ── THE COMPARISON ───────────────────────────────────────────────────── */
-.sq-cmp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
-.sq-cmp-who {
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px;
-}
-.sq-cmp-who.mine { color: var(--gold); }
-.sq-cmp-who.opt  { color: var(--green); }
-.sq-cmp-sc { font-family: 'Share Tech Mono', monospace; font-size: 15px; color: #fff; }
-.sq-cmp-grid {
-  display: grid; gap: 5px; width: 100%; max-width: 330px; margin: 0 auto;
-  padding: 9px; border-radius: 9px; border: 2px solid var(--gold); background: #0a0913;
-}
-.sq-cmp-grid.opt { border-color: var(--green); }
-.sq-cc {
-  position: relative; aspect-ratio: 0.72; border-radius: 4px;
-  background: var(--card-bg, #f4ead5); border: 1px solid rgba(0,0,0,0.35);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: 'Share Tech Mono', monospace; line-height: 1; color: #16120c;
-}
-.sq-cc.empty { background: #14121f; border: 1px dashed #2f2b48; }
-.sq-cc.wild  { background: #251c3d; color: #d9ccff; border-color: #7a63c8; }
-.sq-ccr { font-size: clamp(9px, 3.4vw, 15px); font-weight: 700; }
-.sq-ccs { font-size: clamp(8px, 2.8vw, 13px); opacity: 0.9; }
-.sq-cc.bad { box-shadow: 0 0 0 2px var(--red) inset; }
-.sq-cc.fix { box-shadow: 0 0 0 2px var(--green) inset; }
-.sq-ccm {
-  position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.7);
-}
-.sq-ccm.bad { background: var(--red); }
-.sq-ccm.fix { background: var(--green); color: #06140a; }
-.sq-cmp-legend {
-  font-family: 'Share Tech Mono', monospace; font-size: 10.5px;
-  color: rgba(240,230,200,0.62); text-align: center; margin-top: 11px;
-}
-.sq-cmp-legend b { color: #fff; }
-.sq-lg { padding: 0 3px; }
-.sq-lg.bad { color: var(--red); }
-.sq-lg.fix { color: var(--green); }
+/* THE SCOREBOARD AND THE COMPARISON MOVED TO css/squares-report.css (r375).
+   They are drawn on a light PAPER sheet now rather than in this mode's CRT
+   console - a result is read, not played - so none of their styling can live
+   here beside the board's. */
 
 /* A PLACED GROUP'S OUTLINE (r368). Above the cards (they are z-index 2) because
    it is an edge ON the tile, not a wash behind it; inert, because the board's
@@ -633,3 +584,89 @@ table.sq-sb tfoot .sq-sbv { color: var(--gold); font-size: 15px; }
 #stage:not(.landscape).sq-n3 #selected-cards { grid-template-rows: repeat(2, 1fr); }
 #stage.sq-n4 #selected-cards,
 #stage:not(.landscape).sq-n4 #selected-cards { grid-template-rows: repeat(3, 1fr); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE LINE HEADERS (r375)
+
+   What each row and column is currently making, and what it is worth, beside
+   the line itself. They sit in a band RESERVED off the measured slot
+   (sqSlotInset, read by js/grid-metrics.js) with the matching padding below, so
+   the freed room lands on the left and the top rather than being split around a
+   centred board - and so the labels are never drawn over the cards.
+   ══════════════════════════════════════════════════════════════════════════ */
+#stage.landscape.squares-mode #grid-slot { padding: 46px 0 0 64px; }
+.sq-hdr {
+  position: absolute; z-index: 6; cursor: default;
+  display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+  font-family: 'Share Tech Mono', monospace; line-height: 1.12;
+  opacity: 0.95; transition: opacity 0.12s, color 0.12s;
+}
+.sq-hdr.row { align-items: flex-end; text-align: right; }
+.sq-hdr.col { align-items: center; text-align: center; justify-content: flex-end; padding-bottom: 3px; }
+.sq-hdr .sq-hn {
+  font-size: 8px; letter-spacing: 1px; color: var(--cream-dim); opacity: 0.85;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.sq-hdr .sq-hv {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.5px;
+  color: var(--gold);
+}
+/* A line with nothing in it is a placeholder, not a score of zero. */
+.sq-hdr.none { opacity: 0.3; }
+.sq-hdr.none .sq-hv { color: var(--cream-dim); }
+/* Cashed in SELECT SCORE: the line is closed, and the header says so. */
+.sq-hdr.lock { opacity: 0.45; }
+.sq-hdr.lock .sq-hv { color: var(--cream-dim); text-decoration: line-through; }
+.sq-hdr:hover { opacity: 1; }
+.sq-hdr:hover .sq-hv { text-shadow: 0 0 10px rgba(201,168,76,0.8); }
+/* A PHONE HAS NO BAND TO SPEND. There the same reading is a tap in the board's
+   margin (sqLineTipAt) or on the HAND / CARDS chips. */
+#stage:not(.landscape) .sq-hdr { display: none; }
+
+/* ── The read-out pop-up ───────────────────────────────────────────────────
+   BODY LEVEL and placed in raw viewport px (js/squares-mode.js), so it carries
+   none of the cabinet's CSS zoom, and capped to the viewport the way every
+   other pop-up in the game is. */
+#sq-tip {
+  display: none; position: fixed; z-index: 460;
+  max-width: calc(100vw - 20px); max-height: calc(100vh - 20px); overflow-y: auto;
+  padding: 10px 12px; border-radius: 9px;
+  background: #16142a; border: 1px solid #4a4478;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.7), 0 0 22px -8px rgba(140,110,230,0.7);
+  color: var(--cream); pointer-events: auto;
+}
+#sq-tip.show { display: block; }
+#sq-tip .sqt-h {
+  font-family: 'Share Tech Mono', monospace; font-size: 8.5px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: #b39cf5; margin-bottom: 5px;
+}
+#sq-tip .sqt-hand {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+#sq-tip .sqt-faces { display: flex; gap: 4px; margin-bottom: 7px; flex-wrap: wrap; }
+#sq-tip .sqt-faces i {
+  font-family: 'Crimson Pro', serif; font-style: normal; font-weight: 700; font-size: 12px;
+  background: var(--card-bg); border-radius: 3px; padding: 2px 5px; color: #111;
+}
+/* The same hues the board uses, so a line's faces can be scanned for the flush
+   you were building rather than read one at a time. */
+#sq-tip .sqt-faces i.suit-hearts   { color: var(--suit-hearts); }
+#sq-tip .sqt-faces i.suit-diamonds { color: var(--suit-diamonds); }
+#sq-tip .sqt-faces i.suit-spades   { color: var(--suit-spades); }
+#sq-tip .sqt-faces i.suit-clubs    { color: var(--suit-clubs); }
+#sq-tip .sqt-sum, #sq-tip .sqt-foot {
+  font-family: 'Share Tech Mono', monospace; font-size: 10.5px; color: var(--cream-dim);
+}
+#sq-tip .sqt-tot {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 17px; color: #fff; margin-top: 2px;
+}
+#sq-tip .sqt-t { border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 10px; }
+#sq-tip .sqt-t td { padding: 2px 7px 2px 0; color: var(--cream-dim); white-space: nowrap; }
+#sq-tip .sqt-t td.n { text-align: right; padding-right: 0; padding-left: 10px; }
+#sq-tip .sqt-t td.b { color: var(--gold); font-weight: 700; }
+#sq-tip .sqt-t tr.off td { opacity: 0.35; }
+#sq-tip .sqt-foot { margin-top: 7px; padding-top: 6px; border-top: 1px solid #332e55; }
+#sq-tip .sqt-foot b, #sq-tip .sqt-sum b { color: var(--gold); }
+/* The two chips are a control on this screen, so they have to look like one. */
+#stage.squares-mode #pips-box, #stage.squares-mode #mult-box { cursor: help; }

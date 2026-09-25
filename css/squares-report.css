@@ -1,10 +1,11 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   THE POKER SQUARES SCORECARD (r326)
+   THE POKER SQUARES SCOREBOARD (r375) - the sheet js/squares-report.js draws on
 
-   Deliberately NOT the game's chrome. A result is read rather than played, so
-   this is paper: a light sheet, one accent, thin rules, real leading. Every
-   rule is scoped under #sq-card, so nothing here can reach the rest of the
-   game - which is what makes the licence to break house style safe.
+   Deliberately NOT the game's chrome (owner: "if that means ditching some of
+   the css from the rest of the game that's fine"). A result is READ rather than
+   played, so this is paper: a light sheet, one accent, thin rules, real
+   leading. Every rule is scoped under #sq-card, so nothing here can reach the
+   rest of the game - which is what makes the licence to break house style safe.
 
    It is BODY LEVEL, for the usual reason: anything inside #cabinet inherits its
    CSS zoom and would paint at about twice the size written here.
@@ -14,8 +15,10 @@
   --ink-2:  #62625a;
   --ink-3:  #9a9a90;
   --paper:  #fbfaf7;
+  --sunk:   #f2f0e9;
   --line:   #e2e0d8;
   --accent: #1d7a54;
+  --wrong:  #c0392b;
   --h: #a0030b;          /* the board's own suit hues; diamonds darkened for */
   --d: #b8790a;          /* white paper, where the board's gold is too light */
   --s: #14140f;
@@ -57,7 +60,7 @@
 .sqc-stats { display: flex; gap: 10px; }
 .sqc-stat {
   flex: 1; min-width: 0; padding: 11px 10px; border-radius: 9px;
-  background: #f2f0e9; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--sunk); display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .sqc-k {
   font-family: var(--sans); font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
@@ -67,7 +70,7 @@
   font-family: 'Crimson Pro', Georgia, serif; font-weight: 700; font-size: 25px;
   line-height: 1.1; font-variant-numeric: tabular-nums;
 }
-.sqc-s2 { font-family: var(--sans); font-size: 10.5px; color: var(--accent); font-weight: 600; }
+.sqc-sub2 { font-family: var(--sans); font-size: 10.5px; color: var(--accent); font-weight: 600; }
 
 .sqc-extra {
   margin-top: 12px; font-family: var(--sans); font-size: 12px; color: var(--ink-2);
@@ -98,13 +101,14 @@
 
 /* THE BOARD AND ITS LABELS ARE ONE GRID, not three boxes lined up by eye: a
    header can then never drift off its line, at any board size, with nothing
-   measured. The first track is the row-label column. */
+   measured. The first track is the row-label column, and `.bare` is the board
+   with no labels at all - the optimal packing, which has no line list. */
 .sqc-grid {
   display: grid; justify-content: center;
   grid-template-columns: 62px repeat(var(--sqcn, 3), minmax(0, 54px));
   gap: 4px;
 }
-.sqc-corner { }
+.sqc-grid.bare { grid-template-columns: repeat(var(--sqcn, 3), minmax(0, 54px)); }
 .sqc-hdr {
   display: flex; flex-direction: column; justify-content: center;
   font-family: var(--sans); line-height: 1.15; min-width: 0;
@@ -118,44 +122,74 @@
 .sqc-hv { font-size: 13px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .sqc-cell {
-  aspect-ratio: 54 / 66; border-radius: 5px; background: #fff;
+  position: relative; aspect-ratio: 54 / 66; border-radius: 5px; background: #fff;
   border: 1px solid #dcd9cf; box-shadow: 0 1px 2px rgba(0,0,0,0.07);
   display: flex; flex-direction: column; justify-content: space-between;
   padding: 3px 5px; color: var(--ink);
   font-family: 'Crimson Pro', Georgia, serif; font-weight: 700;
 }
-.sqc-cell.empty { background: #f2f0e9; border-style: dashed; box-shadow: none; }
+.sqc-cell.empty { background: var(--sunk); border-style: dashed; box-shadow: none; }
+.sqc-cell.wild  { background: #f3edff; border-color: #b7a2e8; }
 .sqc-r { font-size: 15px; line-height: 1; }
 .sqc-s { font-size: 13px; line-height: 1; align-self: flex-end; }
 .sqc-cell.h { color: var(--h); } .sqc-cell.d { color: var(--d); }
 .sqc-cell.s { color: var(--s); } .sqc-cell.c { color: var(--c); }
+/* The comparison's marks: the same cell carries the cross on your board and the
+   tick on the best packing, so the two halves of "what did I get wrong" and
+   "what should have been there" land in the same place. */
+.sqc-cell.bad { box-shadow: 0 0 0 2px var(--wrong) inset; }
+.sqc-cell.fix { box-shadow: 0 0 0 2px var(--accent) inset; }
+.sqc-mark {
+  position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--sans); font-size: 9px; font-weight: 700; color: #fff;
+}
+.sqc-mark.bad { background: var(--wrong); }
+.sqc-mark.fix { background: var(--accent); }
+
+.sqc-cmpbtn {
+  display: block; margin: 14px auto 0; padding: 8px 16px; cursor: pointer;
+  font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+  color: var(--ink-2); background: none; border: 1px solid var(--line); border-radius: 999px;
+  transition: border-color 0.12s, color 0.12s;
+}
+.sqc-cmpbtn:hover { border-color: var(--ink-3); color: var(--ink); }
+.sqc-legend {
+  margin-top: 14px; text-align: center;
+  font-family: var(--sans); font-size: 11.5px; color: var(--ink-2);
+}
+.sqc-legend .lg { font-weight: 700; margin-left: 8px; }
+.sqc-legend .lg.bad { color: var(--wrong); }
+.sqc-legend .lg.fix { color: var(--accent); }
 
 /* ── Footer ────────────────────────────────────────────────────────────── */
 .sqc-foot {
-  position: sticky; bottom: 0; padding: 14px 26px 18px;
+  position: sticky; bottom: 0; padding: 14px 26px 18px; gap: 10px;
   background: linear-gradient(180deg, rgba(251,250,247,0) 0%, var(--paper) 38%);
-  display: flex; justify-content: center;
+  display: flex; justify-content: center; flex-wrap: wrap;
 }
 .sqc-done {
   font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: 1.2px;
   text-transform: uppercase; color: #fff; background: var(--ink);
-  border: none; border-radius: 999px; padding: 13px 48px; cursor: pointer;
+  border: none; border-radius: 999px; padding: 13px 34px; cursor: pointer;
   transition: transform 0.12s, background 0.12s;
 }
 .sqc-done:hover { background: var(--accent); transform: translateY(-1px); }
+.sqc-done.ghost { background: none; color: var(--ink-2); border: 1px solid var(--line); }
+.sqc-done.ghost:hover { background: none; color: var(--ink); border-color: var(--ink-3); }
 
-/* A phone: the sheet is the screen, and the grid's fixed tracks are what have
-   to give. The row-label column keeps its width - it is the only place a hand
-   is named - and the cells take what is left. */
+/* A phone: the sheet is the screen, and the grid's tracks are what have to
+   give. THE CELL STAYS CAPPED - `1fr` was a bug worth remembering: on a 390px
+   sheet a 3x3's three flexible tracks came out 200px wide, which at the card's
+   aspect is a 244px-tall playing card. `minmax(0, 54px)` is "at most 54, less
+   if the row does not fit", which is what a 5x5 on a 360px phone needs. */
 @media (max-width: 520px) {
   .sqc-inner { padding: 22px 15px 8px; }
   .sqc-total { font-size: 56px; }
-  /* THE CELL STAYS CAPPED, and `1fr` was the bug: on a 390px sheet a 3x3's
-     three flexible tracks came out 200px wide, which at the card's aspect is a
-     244px-tall playing card. `minmax(0, 54px)` is "at most 54, less if the row
-     does not fit", which is what a 5x5 on a 360px phone needs. */
   .sqc-grid { grid-template-columns: 50px repeat(var(--sqcn, 3), minmax(0, 54px)); gap: 3px; }
+  .sqc-grid.bare { grid-template-columns: repeat(var(--sqcn, 3), minmax(0, 54px)); }
   .sqc-stats { gap: 6px; }
   .sqc-v { font-size: 21px; }
   .sqc-foot { padding: 12px 15px 15px; }
+  .sqc-done { padding: 12px 22px; font-size: 12px; }
 }
