@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r373 · tagalongs are visible and billed (pips + rank in seconds), Tagalong lifts the minimum, Flow bills its clock at half rate, all boss briefs rewritten plain";
+const BUILD = "2026-09-25 · r373 · the pick-three sits on a panel in its title card's colour; the reward odds are two flat tables (count, then kind) with an early-levels override; CARD PACK joins CERTS and rare+ UTILITIES";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -35,60 +35,120 @@
 // goal-clear carry-over - every screen before it only grants.
 
 const FLOWR_MAX  = 5;
-// THE TABLE (r371). `chances` is the chain - a % for the 2nd reward, then the
-// 3rd, and so on - and `steps` is the phase-1 ORDER, so a chain of n pays the
-// first n of it. `weights` decides the order in phases 2 and 3, where it is
-// drawn rather than fixed: a kind's weight is its chance of being the NEXT one
-// taken, so raising one lifts it at every slot rather than only at the front.
+
+// ══════════════════════════════════════════════
+// THE TABLE (r373) - two flat rolls, no chain, no order
+// ══════════════════════════════════════════════
+// Owner: *"is there a better way to work out the odds for getting more rewards?
+// should it just be a certain percent chance that a given amount happens instead
+// of a stacked chance?"* and *"the order shouldn't always be consistent ... we
+// still want to favor certain options appearing, but not care about when they
+// appear."*
 //
-// CARDS and DECK sit at slots 2 and 3 and carry double weight (owner: "that and
-// the card editor should be a little more common"), and the 2nd/3rd chances
-// went 25/30 -> 35/35 so a chain reaches them at all more often. Measured share
-// of Flow level-ups that pay each kind, phase 1: cards 35%, deck 12.3%.
+// So the r325/r371 machinery is gone - the stacked chain, the fixed phase-1
+// ORDER, the three phases, the permutation draw. There are now exactly TWO
+// rolls, and both are ordinary weighted tables:
+//
+//   1. HOW MANY rewards this level-up pays - `counts`, a direct distribution
+//      over 1..5 rather than a chance-of-one-more compounded four times.
+//   2. WHAT EACH ONE IS - `odds`, rolled INDEPENDENTLY PER SLOT (with
+//      replacement), so a kind's number is simply its share of every reward
+//      screen in the game and says nothing about where it lands.
+//
+// A STACKED CHAIN COULD NOT EXPRESS THE OWNER'S TABLE. Under it the count and
+// the kind were welded together - a kind's frequency was "the chain reached my
+// slot" x "the order put me there" - so "cards on 15% of screens" was not a
+// number anyone could set. Here it is the number.
+//
+// INDEPENDENT PER SLOT MEANS A CHAIN CAN REPEAT A KIND, deliberately: deduping
+// would quietly make the printed odds wrong, and two pick-3 screens are two
+// different sets of offers. Measured below.
 const FLOWR_DEF  = {
   on: true,
-  chances: [35, 35, 30, 30],                              // % for the 2nd..5th
-  steps: ['pick3', 'cards', 'deck', 'limits', 'sleights', 'improve'], // phase-1 order
-  weights: { pick3: 10, cards: 22, deck: 22, limits: 12, sleights: 12, improve: 12 },
+  // Relative weight of 1..5 rewards. The owner's table is 40/25/10/5/5, which
+  // sums to 85 - so it is NORMALISED rather than taken as percentages, which
+  // keeps every ratio they chose and spreads the missing 15 proportionally.
+  counts: [40, 25, 10, 5, 5],
+  // Share of every reward screen. Sums to 100 as given.
+  odds: { pick3: 30, cards: 15, deck: 15, sleights: 15, limits: 10, improve: 10, knacks: 2.5, tricks: 2.5 },
+  // THE ONLY THING THAT STILL CARES ABOUT WHEN: the opening levels lean toward
+  // LIMITS and switch IMPROVE off, because early on there is almost nothing
+  // owned worth improving and a limit compounds for the rest of the run. It is
+  // an OVERRIDE MAP over `odds`, not a second table, so a kind absent from it
+  // keeps its ordinary share. The two moves cancel (+10 / -10), so the table
+  // still sums to 100.
+  early: { limits: 20, improve: 0 },
 };
-const FLOWR_KEY  = 'lethe.flowRewards.v1'; // OVERRIDES ONLY (the goal-tuner rule)
+const FLOWR_EARLY_LEVELS = 5;              // `early` applies while level <= this
+const FLOWR_KEY  = 'lethe.flowRewards.v2'; // OVERRIDES ONLY (the goal-tuner rule)
 
 const FLOWR_KINDS = {
   pick3:    { label: () => 'CHOOSE ONE', short: 'PICK 3',   color: '#5ad4c0' },
   cards:    { label: () => 'CARD PACK',  short: 'CARDS',    color: '#7fd45a' },
   deck:     { label: () => 'DECK EDIT',  short: 'DECK',     color: '#4aa3e0' },
+  sleights: { label: () => flowrEntityWord('sleight', true),  short: () => flowrEntityWord('sleight', true), color: '#c07aee' },
   limits:   { label: () => 'LIMITS',     short: 'LIMITS',   color: '#d4a017' },
-  sleights: { label: () => (typeof entityLabel === 'function' ? entityLabel('sleight', true) : 'Sleights').toUpperCase(),
-              short: 'VENDOR',   color: '#c07aee' },
   improve:  { label: () => 'IMPROVE',    short: 'IMPROVE',  color: '#e0813a' },
+  knacks:   { label: () => flowrEntityWord('knack', true),    short: () => flowrEntityWord('knack', true),   color: '#ff6fa5' },
+  tricks:   { label: () => flowrEntityWord('trick', true),    short: () => flowrEntityWord('trick', true),   color: '#e8dd54' },
 };
 const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS);
 
+// The vocabulary, never a typed word - Settings -> Display -> Wording moves
+// Tricks/Sleights/Knacks to Utilities/Vendors/Certs and these headings with it
+// (r198). `short` is a function for the same reason `label` is, and it is the
+// PLURAL: the tab and the location chip name the same screen, and a screen
+// offering three of something reading "NOW TRICK" against a chip reading
+// "TRICKS" is two names for one thing.
+function flowrEntityWord(type, plural) {
+  return (typeof entityLabel === 'function' ? entityLabel(type, plural) : type).toUpperCase();
+}
+function flowrKindShort(kind) {
+  const m = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
+  return (typeof m.short === 'function') ? m.short() : m.short;
+}
+
 // ── Config (dev -> Rewards). Overrides only; an untouched knob tracks FLOWR_DEF. ──
+// THE KEY IS v2. The v1 shape held `chances`/`steps`/`weights`, none of which
+// exist any more, and a stored order is not translatable into a per-slot odds
+// table - so it is left behind rather than half-read (the r183 hbCfg2 -> hbCfg3
+// rule: a saved value beats a default, and anyone who had tuned the old chain
+// would otherwise keep a table this version cannot honour).
 function flowrCfg() {
   let ov = {};
   try { ov = JSON.parse(localStorage.getItem(FLOWR_KEY) || '{}') || {}; } catch (e) {}
   return {
     on: (typeof ov.on === 'boolean') ? ov.on : FLOWR_DEF.on,
-    chances: Array.isArray(ov.chances) && ov.chances.length === 4 ? ov.chances : FLOWR_DEF.chances.slice(),
-    // A stored order from before a kind was added is the WRONG LENGTH and is
-    // dropped for the shipped one rather than played with a kind missing. The
-    // fields validate independently, so an owner who tuned the chances keeps
-    // them - which is why this needs no key bump.
-    steps: Array.isArray(ov.steps) && ov.steps.length === FLOWR_DEF.steps.length ? ov.steps : FLOWR_DEF.steps.slice(),
-    // Weights MERGE over the defaults, so an override for one kind survives a
-    // new kind being added beside it.
-    weights: Object.assign({}, FLOWR_DEF.weights, (ov.weights && typeof ov.weights === 'object') ? ov.weights : {}),
+    counts: Array.isArray(ov.counts) && ov.counts.length === FLOWR_MAX ? ov.counts : FLOWR_DEF.counts.slice(),
+    // Both maps MERGE over the defaults, so an override for one kind survives a
+    // new kind landing beside it.
+    odds:  flowrMerge(FLOWR_DEF.odds,  ov.odds),
+    early: flowrMerge(FLOWR_DEF.early, ov.early),
   };
+}
+// Merge an override map over the defaults. A stored NULL is how "the owner
+// cleared a key the shipped table sets" is written down: without it, blanking
+// EARLY's limits or improve could not be saved at all, because the merge would
+// hand the default straight back on the next read.
+function flowrMerge(def, ov) {
+  const out = Object.assign({}, def, (ov && typeof ov === 'object') ? ov : {});
+  Object.keys(out).forEach(k => { if (out[k] === null) delete out[k]; });
+  return out;
 }
 function flowrSaveCfg(cfg) {
   const ov = {};
   if (cfg.on !== FLOWR_DEF.on) ov.on = cfg.on;
-  if (cfg.chances.join() !== FLOWR_DEF.chances.join()) ov.chances = cfg.chances;
-  if (cfg.steps.join() !== FLOWR_DEF.steps.join()) ov.steps = cfg.steps;
-  const wov = {};
-  FLOWR_KIND_IDS.forEach(k => { if (cfg.weights[k] !== FLOWR_DEF.weights[k]) wov[k] = cfg.weights[k]; });
-  if (Object.keys(wov).length) ov.weights = wov;
+  if (cfg.counts.join() !== FLOWR_DEF.counts.join()) ov.counts = cfg.counts;
+  // A key the default sets and the live map no longer has was CLEARED, and is
+  // stored as null (see flowrMerge) rather than silently reverting.
+  const diff = (live, def) => {
+    const o = {};
+    Object.keys(live).forEach(k => { if (live[k] !== def[k]) o[k] = live[k]; });
+    Object.keys(def).forEach(k => { if (!(k in live)) o[k] = null; });
+    return Object.keys(o).length ? o : null;
+  };
+  const od = diff(cfg.odds, FLOWR_DEF.odds);   if (od) ov.odds = od;
+  const ed = diff(cfg.early, FLOWR_DEF.early); if (ed) ov.early = ed;
   try {
     if (Object.keys(ov).length) localStorage.setItem(FLOWR_KEY, JSON.stringify(ov));
     else localStorage.removeItem(FLOWR_KEY);
@@ -98,7 +158,7 @@ function flowrSaveCfg(cfg) {
 // ── Run state ────────────────────────────────────────────────────────────────
 let flowrQueue        = null;  // ['pick3','limits',...] for the level-up in progress
 let flowrIdx          = 0;
-let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - gates the phases. In SAVE_VARS.
+let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
 function flowrResetRun() { flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrClearStack(); }
@@ -107,64 +167,55 @@ function flowrChainActive() { return !!flowrQueue; }
 // survivalUpdateRerollBtn stamping survival's four actions over this step's row.
 function flowrOwnsScreen() { return !!flowrQueue && flowrQueue[flowrIdx] !== 'pick3'; }
 
-// ── The roll ─────────────────────────────────────────────────────────────────
+// ── The two rolls ────────────────────────────────────────────────────────────
+// A weighted pick over parallel key/weight arrays. One helper, both rolls, so
+// "how the odds are read" is written once.
+function flowrPickWeighted(keys, weights) {
+  const total = weights.reduce((s, x) => s + Math.max(0, x || 0), 0);
+  if (!(total > 0)) return keys[0];
+  let r = Math.random() * total;
+  for (let i = 0; i < keys.length; i++) {
+    r -= Math.max(0, weights[i] || 0);
+    if (r <= 0) return keys[i];
+  }
+  return keys[keys.length - 1];
+}
+
+// HOW MANY reward screens this level-up pays. A direct distribution over 1..5,
+// NORMALISED - the shipped row sums to 85, and dividing by the real total keeps
+// every ratio the owner set instead of inventing where the missing 15 goes.
+//
+// LUCK LEANS IT UP rather than multiplying a chance, because there is no chance
+// left to multiply: every count above 1 is scaled by luckScale(), which is the
+// shape flowrQtyRoll in this same file already uses for the deck editor's
+// quantity. At 0 luck it is exactly the printed table.
 function flowrRollCount() {
-  const ch = flowrCfg().chances;
-  let n = 1;
-  while (n < FLOWR_MAX) {
-    const p = (typeof luckChance === 'function' ? luckChance(ch[n - 1] || 0) : (ch[n - 1] || 0)) / 100;
-    if (Math.random() >= p) break;
-    n++;
-  }
-  return n;
+  const w = flowrCfg().counts.slice(0, FLOWR_MAX);
+  const ls = (typeof luckScale === 'function') ? luckScale() : 1;
+  const keys = w.map((_, i) => i + 1);
+  return flowrPickWeighted(keys, w.map((v, i) => Math.max(0, v || 0) * (i > 0 ? ls : 1)));
 }
 
-function flowrPhase() {
-  if (typeof survivalBossesBeaten !== 'undefined' && survivalBossesBeaten >= 2) return 3;
-  if (flowrExtraEarned >= 2) return 2;
-  return 1;
+// True while the opening levels' override map applies.
+function flowrEarly() {
+  return (typeof level !== 'undefined' ? level : 1) <= FLOWR_EARLY_LEVELS;
 }
 
-// Draw the order WITHOUT REPLACEMENT, weighted - the same shape
-// pickEntityByRarity uses for a tier. A kind with no weight entry counts as 1
-// rather than as 0, so a kind added to the table and not to the weights is
-// merely ordinary instead of silently unreachable (the improve.js allowlist
-// rule, the other way up).
-function flowrWeightedOrder(kinds, weights) {
-  const pool = kinds.slice(), out = [];
-  while (pool.length) {
-    const w = pool.map(k => { const v = (weights && weights[k] != null) ? +weights[k] : 1; return v > 0 ? v : 0; });
-    const total = w.reduce((s, x) => s + x, 0);
-    if (!(total > 0)) { shuffle(pool).forEach(k => out.push(k)); break; }
-    let rng = Math.random() * total, i = 0;
-    for (; i < pool.length - 1; i++) { rng -= w[i]; if (rng <= 0) break; }
-    out.push(pool.splice(i, 1)[0]);
-  }
-  return out;
-}
-
-function flowrOrder() {
+// The live odds table: the ordinary one, with `early` laid over it while
+// flowrEarly(). A kind absent from `early` keeps its ordinary share.
+function flowrOddsNow() {
   const cfg = flowrCfg();
-  const kinds = cfg.steps.slice();
-  const ph = flowrPhase();
-  if (ph === 1) return kinds;
-  const out = flowrWeightedOrder(kinds, cfg.weights);
-  // Phase 2's "the first is the normal pick3 at like 30%" is EXACT, not a bias
-  // on top of the draw: 30% force it to the front, the other 70% force it OFF
-  // the front. A naive "force it at 30%" lands higher than 30%, because the
-  // draw already puts it there some of the time on its own (its weight share,
-  // 10 of 92, so ~11%) and the two chances add.
-  if (ph === 2) {
-    const i = out.indexOf('pick3');
-    if (i >= 0) {
-      if (Math.random() < 0.30) { out.splice(i, 1); out.unshift('pick3'); }
-      else if (i === 0 && out.length > 1) {
-        const j = 1 + Math.floor(Math.random() * (out.length - 1));
-        [out[0], out[j]] = [out[j], out[0]];
-      }
-    }
-  }
-  return out;
+  const o = Object.assign({}, cfg.odds);
+  if (flowrEarly()) Object.assign(o, cfg.early);
+  return o;
+}
+
+// WHAT ONE SLOT IS. Rolled independently of every other slot, so a kind's
+// weight is its share of reward screens and nothing about ordering.
+function flowrRollKind(odds) {
+  const keys = FLOWR_KIND_IDS.filter(k => (odds[k] || 0) > 0);
+  if (!keys.length) return 'pick3';
+  return flowrPickWeighted(keys, keys.map(k => odds[k]));
 }
 
 // A kind with nothing to offer substitutes pick3 rather than showing an empty
@@ -179,6 +230,11 @@ function flowrKindViable(kind) {
     if (kind === 'improve')  return ['trick', 'knack', 'sleight'].some(t => ownedImprovable(t).length);
     if (kind === 'deck')     return true; // the board always holds ordinary cards
     if (kind === 'cards')    return flowrPackRanks().length > 0;
+    if (kind === 'knacks')   return survivalBuildPools().knack.length > 0;
+    // The tray is a HARD CAP (r277) - a Trick you have no room for is REFUSED,
+    // so a whole screen of them with a full tray is a screen you cannot spend.
+    if (kind === 'tricks')   return !(typeof trickTrayFull === 'function' && trickTrayFull())
+                                 && flowrTrickPool().length > 0;
   } catch (e) {}
   return kind === 'pick3';
 }
@@ -190,14 +246,22 @@ function flowrMaybeStart() {
   if (!flowrCfg().on) return false;
   if (flowrQueue) return false;
   const n = flowrRollCount();
-  const queue = flowrOrder().slice(0, n).map(k => flowrKindViable(k) ? k : 'pick3');
+  // EVERY SLOT IS ROLLED ON ITS OWN, with replacement, so a chain can legitimately
+  // repeat a kind - see the table's header. A kind with nothing to offer falls
+  // back to pick3 rather than showing an empty screen.
+  const odds = flowrOddsNow();
+  const queue = [];
+  for (let i = 0; i < n; i++) {
+    const k = flowrRollKind(odds);
+    queue.push(flowrKindViable(k) ? k : 'pick3');
+  }
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
   if (n <= 1 && queue[0] === 'pick3') return false;
   flowrQueue = queue;
   flowrIdx = 0;
-  // The COUNT is banked synchronously - it gates flowrPhase() and must not wait
-  // on an animation - but nothing is SHOWN until the board is still. See
-  // flowrWhenBoardStill.
+  // The COUNT is banked synchronously - it is a run stat read by the dev panel
+  // and must not wait on an animation - but nothing is SHOWN until the board is
+  // still. See flowrWhenBoardStill.
   if (n > 1) flowrExtraEarned += n - 1;
   flowrWhenBoardStill(() => {
     if (!flowrQueue) return;                 // the run was abandoned while we waited
@@ -322,33 +386,93 @@ function flowrPlayCounter(n, done) {
 function flowrRenderStack() {
   const host = document.getElementById('grid-slot');
   document.getElementById('flowr-stack')?.remove();
+  document.getElementById('flowr-bg')?.remove();
   if (!host || !flowrQueue) return;
   const rest = flowrQueue.slice(flowrIdx);
-  if (rest.length < 2) return;   // nothing queued behind the current one
+  const cur  = FLOWR_KINDS[rest[0]] || FLOWR_KINDS.pick3;
+
+  // ── THE PANEL (r373) ──
+  // Owner: *"if we're going to use these title cards, then the background of the
+  // whole pick three should match the color of the title card. so not the
+  // options themselves, but the negative space around each of the options and
+  // buttons. that way it doesn't look like the title is jutting into the
+  // option."*
+  //
+  // The chips were already drawn as TABS - `border-radius: 7px 7px 0 0` and
+  // `border-bottom: none` - and there was no panel for them to be tabs ON, so
+  // the current one read as a label stuck to the top of the first option tile.
+  // This is that panel: the board's own box, padded out, washed in the current
+  // step's colour, behind every tile and button.
+  //
+  // IT IS SIZED IN PURE CSS FROM `--grid-w` / `--grid-h` (js/grid-metrics.js,
+  // published on documentElement) and centred, because `#grid` is centred in
+  // `#grid-slot` on BOTH axes - measured at 1440x820 and 420x820. So there is no
+  // JS measurement and no resize handler, the same way `#sel-count` is placed
+  // (r216). It is a SIBLING of `#grid`, not a child: the pick empties `#grid` on
+  // every render and a child would be destroyed with the tiles.
+  const bg = document.createElement('div');
+  bg.id = 'flowr-bg';
+  bg.style.setProperty('--fc', cur.color);
+  host.appendChild(bg);
+
+  // THE CURRENT TAB IS THE TITLE CARD, so it is drawn even when it is the only
+  // one: a one-step chain (a lone CARD PACK, say) would otherwise get a coloured
+  // panel with nothing naming it. Only the QUEUE behind it is conditional.
   const el = document.createElement('div');
   el.id = 'flowr-stack';
+  el.style.setProperty('--fst-n', rest.length);
   // Furthest-back first, so DOM order is paint order (the rewind-ghost rule):
   // the current step's chip goes in last and sits lowest and on top.
-  // ONLY THE CURRENT CHIP IS LABELLED (r371). The chips are stacked 6px apart
-  // and each is 24px tall with overflow:hidden, so a queued one shows a 6px
-  // band - and an 8px label inside it came out cut through the middle of its
-  // own glyphs, which reads as a rendering fault rather than as a card peeking
-  // out from behind another. The colour is what the queued chips were always
-  // meant to carry ("how much is still coming is on screen without a number").
+  // ONLY THE CURRENT CHIP IS LABELLED (r371). The chips are stacked a few px
+  // apart and each is far taller than that band, so an 8px label on a queued one
+  // came out cut through the middle of its own glyphs - a rendering fault rather
+  // than a card peeking out from behind another. The colour is what the queued
+  // chips were always meant to carry ("how much is still coming is on screen
+  // without a number").
   el.innerHTML = rest.slice().reverse().map((kind, i) => {
     const meta = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
     const depth = rest.length - 1 - i;              // 0 = current
     return `<div class="fst-chip" style="--fst-c:${meta.color}; --fst-d:${depth}">`
-      + (depth === 0 ? `<span>NOW ${meta.short}</span>` : '') + `</div>`;
+      + (depth === 0 ? `<span>NOW ${flowrKindShort(kind)}</span>` : '') + `</div>`;
   }).join('');
   host.appendChild(el);
 }
-function flowrClearStack() { document.getElementById('flowr-stack')?.remove(); }
+function flowrClearStack() {
+  document.getElementById('flowr-stack')?.remove();
+  document.getElementById('flowr-bg')?.remove();
+}
 
 // ══════════════════════════════════════════════
 // ENTITY STEPS - limits / sleights / improve, on the shared pick board
 // ══════════════════════════════════════════════
 let _flowrStepOffers = null;
+
+// RARE OR BETTER. The owner asked for "uncommon or better"; this game's tiers
+// are common / rare / epic / legendary (r197 merged mythic into legendary and
+// there has never been an uncommon), so the rung above common is RARE.
+// SURVIVAL_GRID_OFFER is excluded: it rides the trick pool for its odds and is
+// not a Trick (js/survival.js says so in as many words).
+function flowrTrickPool() {
+  try {
+    return survivalBuildPools().trick.filter(t =>
+      !t._gridPick && (typeof tierId === 'function' ? tierId(t.tier) : t.tier) !== 'common');
+  } catch (e) { return []; }
+}
+
+// Three distinct entries of a pool, drawn through the SHARED rarity table so
+// Luck tilts these exactly as it tilts every other offer (js/luck.js). A flat
+// pool[random] here would silently opt out of both.
+function flowrDrawThree(pool, tierOf) {
+  const out = [], used = new Set();
+  for (let i = 0; i < 3 && used.size < pool.length; i++) {
+    const avail = pool.filter(e => !used.has(e.id));
+    const pick = (typeof pickEntityByRarity === 'function' ? pickEntityByRarity(avail, tierOf) : null) || avail[0];
+    if (!pick) break;
+    used.add(pick.id);
+    out.push(pick);
+  }
+  return out;
+}
 
 function flowrBuildOffers(kind) {
   const out = [];
@@ -367,6 +491,12 @@ function flowrBuildOffers(kind) {
         used.add(pick.id);
         out.push(survivalMakeOption('sleight', pick));
       }
+    } else if (kind === 'knacks') {
+      flowrDrawThree(survivalBuildPools().knack, k => k.rarity || 'common')
+        .forEach(k => out.push(survivalMakeOption('knack', k)));
+    } else if (kind === 'tricks') {
+      flowrDrawThree(flowrTrickPool(), t => t.tier || 'rare')
+        .forEach(t => out.push(survivalMakeOption('trick', t)));
     } else if (kind === 'improve') {
       // Owned, improvable, all three types - the same draw the improve reward
       // tiles use, so Luck tilts which of your own things is offered.
@@ -867,39 +997,62 @@ function flowrGrantPack(pack) {
 // ══════════════════════════════════════════════
 function flowrDevSync() {
   const cfg = flowrCfg();
-  // Fill the five order <select>s once - the options are the kind table.
-  cfg.steps.forEach((_, i) => {
-    const el = document.getElementById('dev-flowr-st' + i);
-    if (el && !el.options.length)
-      el.innerHTML = Object.keys(FLOWR_KINDS).map(k => `<option value="${k}">${FLOWR_KINDS[k].short}</option>`).join('');
-  });
   const on = document.getElementById('dev-flowr-on'); if (on) on.checked = cfg.on;
-  cfg.chances.forEach((v, i) => { const el = document.getElementById('dev-flowr-ch' + i); if (el && document.activeElement !== el) el.value = v; });
-  cfg.steps.forEach((k, i) => { const el = document.getElementById('dev-flowr-st' + i); if (el) el.value = k; });
-  // The weight row is built from the kind table, so a new kind gets a knob for
-  // free. Built ONCE and then only written - a full rebuild would tear the
-  // field being typed in out from under the caret (the r282 NS-editor rule).
-  const wrap = document.getElementById('dev-flowr-weights');
-  if (wrap) {
-    if (!wrap.children.length) {
-      wrap.innerHTML = '<span>Weights:</span>' + FLOWR_KIND_IDS.map(k =>
-        `<label>${FLOWR_KINDS[k].short} <input id="dev-flowr-w-${k}" type="number" min="0" max="999"`
-        + ` style="width:40px;" onchange="flowrDevSet('weight', this.value, '${k}')"></label>`).join('');
-    }
-    FLOWR_KIND_IDS.forEach(k => {
-      const el = document.getElementById('dev-flowr-w-' + k);
-      if (el && document.activeElement !== el) el.value = cfg.weights[k];
-    });
+  cfg.counts.forEach((v, i) => {
+    const el = document.getElementById('dev-flowr-c' + i);
+    if (el && document.activeElement !== el) el.value = v;
+  });
+  // The counts are WEIGHTS and are normalised, so the panel prints what they
+  // actually come out as - the shipped row sums to 85 and would otherwise read
+  // as five percentages that do not add up.
+  const cOut = document.getElementById('dev-flowr-counts-out');
+  if (cOut) {
+    const t = cfg.counts.reduce((s2, x) => s2 + Math.max(0, x || 0), 0) || 1;
+    cOut.textContent = '= ' + cfg.counts.map(v => (Math.max(0, v || 0) / t * 100).toFixed(1) + '%').join(' / ');
   }
+  // Both rows are built from the KIND TABLE, so a new kind gets its knobs for
+  // free. Built ONCE and then only written - a full rebuild would tear the field
+  // being typed in out from under the caret (the r282 NS-editor rule).
+  const mk = (host, field, placeholder) => {
+    if (!host) return;
+    if (!host.children.length) {
+      host.innerHTML = FLOWR_KIND_IDS.map(k =>
+        `<label>${flowrKindShort(k)} <input id="dev-flowr-${field}-${k}" type="number" min="0" max="100"`
+        + ` step="0.5" style="width:46px;" placeholder="${placeholder}"`
+        + ` onchange="flowrDevSet('${field}', this.value, '${k}')"><span class="dev-flowr-pct"></span></label>`).join('');
+    }
+  };
+  mk(document.getElementById('dev-flowr-odds'),  'odds',  '');
+  mk(document.getElementById('dev-flowr-early'), 'early', '-');
+
+  const live = flowrOddsNow();
+  const total = FLOWR_KIND_IDS.reduce((s2, k) => s2 + Math.max(0, cfg.odds[k] || 0), 0) || 1;
+  FLOWR_KIND_IDS.forEach(k => {
+    const eo = document.getElementById('dev-flowr-odds-' + k);
+    if (eo && document.activeElement !== eo) eo.value = cfg.odds[k];
+    const pc = eo && eo.parentElement.querySelector('.dev-flowr-pct');
+    if (pc) pc.textContent = ' ' + (Math.max(0, cfg.odds[k] || 0) / total * 100).toFixed(1) + '%';
+    const ee = document.getElementById('dev-flowr-early-' + k);
+    // BLANK means "no override", which is not the same as 0 ("never") - so an
+    // absent key writes an empty field rather than a zero the owner never set.
+    if (ee && document.activeElement !== ee) ee.value = (cfg.early[k] == null) ? '' : cfg.early[k];
+  });
+
   const ph = document.getElementById('dev-flowr-phase');
-  if (ph) ph.textContent = `phase ${flowrPhase()} · ${flowrExtraEarned} extra earned · ${typeof survivalBossesBeaten !== 'undefined' ? survivalBossesBeaten : 0} inspections beaten`;
+  if (ph) ph.textContent = `${flowrEarly() ? 'EARLY table (level <= ' + FLOWR_EARLY_LEVELS + ')' : 'standard table'}`
+    + ` \u00b7 level ${typeof level !== 'undefined' ? level : '?'} \u00b7 ${flowrExtraEarned} extra earned`
+    + ` \u00b7 live: ` + FLOWR_KIND_IDS.filter(k => (live[k] || 0) > 0).map(k => flowrKindShort(k) + ' ' + live[k]).join(', ');
 }
 function flowrDevSet(field, value, i) {
   const cfg = flowrCfg();
-  if (field === 'on') cfg.on = !!value;
-  if (field === 'chance') cfg.chances[i] = Math.max(0, Math.min(100, parseFloat(value) || 0));
-  if (field === 'step') cfg.steps[i] = value;
-  if (field === 'weight') cfg.weights[i] = Math.max(0, Math.min(999, parseFloat(value) || 0));  // i is the kind id here
+  if (field === 'on')    cfg.on = !!value;
+  if (field === 'count') cfg.counts[i] = Math.max(0, Math.min(999, parseFloat(value) || 0));
+  if (field === 'odds')  cfg.odds[i]   = Math.max(0, Math.min(100, parseFloat(value) || 0));   // i is the kind id
+  if (field === 'early') {
+    const raw = String(value).trim();
+    if (raw === '') delete cfg.early[i];                                                       // blank = no override
+    else cfg.early[i] = Math.max(0, Math.min(100, parseFloat(raw) || 0));
+  }
   flowrSaveCfg(cfg);
   flowrDevSync();
 }

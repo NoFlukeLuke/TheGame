@@ -590,28 +590,23 @@
 
     <div style="border-top:1px solid #3a3428;margin:8px 0 2px;"></div>
     <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);">FLOW · MULTI-REWARD CHAIN</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear can pay up to 5 reward screens, rolled as a chain (a chance of a 2nd, then a 3rd...). Luck multiplies each chance. The order below is the FIXED phase-1 order; after 2 extra rewards it randomises with slot 1 the normal pick at 30%, and after the 2nd inspection it is fully random.</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear pays 1-5 reward screens. TWO flat rolls: how many, then what each one is - each slot rolled on its own, so a kind's share says nothing about where it lands and a chain can repeat one. Luck leans the count upward.</div>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-flowr-on" type="checkbox" onchange="flowrDevSet('on', this.checked)" style="accent-color:var(--gold);"> Enabled
     </label>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;">
-      <span>Chance of a</span>
-      <label>2nd <input id="dev-flowr-ch0" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 0)">%</label>
-      <label>3rd <input id="dev-flowr-ch1" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 1)">%</label>
-      <label>4th <input id="dev-flowr-ch2" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 2)">%</label>
-      <label>5th <input id="dev-flowr-ch3" type="number" min="0" max="100" style="width:44px;" onchange="flowrDevSet('chance', this.value, 3)">%</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-counts">
+      <span>How many:</span>
+      <label>1 <input id="dev-flowr-c0" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 0)"></label>
+      <label>2 <input id="dev-flowr-c1" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 1)"></label>
+      <label>3 <input id="dev-flowr-c2" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 2)"></label>
+      <label>4 <input id="dev-flowr-c3" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 3)"></label>
+      <label>5 <input id="dev-flowr-c4" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 4)"></label>
+      <span id="dev-flowr-counts-out" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-steps">
-      <span>Order:</span>
-      <select id="dev-flowr-st0" onchange="flowrDevSet('step', this.value, 0)"></select>
-      <select id="dev-flowr-st1" onchange="flowrDevSet('step', this.value, 1)"></select>
-      <select id="dev-flowr-st2" onchange="flowrDevSet('step', this.value, 2)"></select>
-      <select id="dev-flowr-st3" onchange="flowrDevSet('step', this.value, 3)"></select>
-      <select id="dev-flowr-st4" onchange="flowrDevSet('step', this.value, 4)"></select>
-      <select id="dev-flowr-st5" onchange="flowrDevSet('step', this.value, 5)"></select>
-    </div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">Weights decide the order in phases 2 and 3 only. A kind's weight is its chance of being the NEXT one drawn, so raising one lifts it at every slot rather than only at the front.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-weights"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">Weights, not percentages - they are normalised, so a column that does not sum to 100 still plays the ratios you set. The live share is printed beside each row.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-odds"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">EARLY overrides apply while level &lt;= 5. Blank means "use the standard share"; 0 means "never".</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-early"></div>
     <div style="display:flex;gap:10px;align-items:center;">
       <button class="dev-btn" onclick="flowrDevReset()">Reset to shipped</button>
       <span id="dev-flowr-phase" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>

@@ -36,7 +36,14 @@ function render() {
       const card = gridData[r][c];
       const key = `${r}-${c}`;
       const isChallenge = !!(challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c && card === null);
-      if (card === null && !isChallenge) continue;
+      // !card, not `card === null` (r373). An UNDEFINED cell passed this guard
+      // and threw on card._id two lines down: gridData is ragged for as long as
+      // a takeover screen has resized gridRows/gridCols out from under a deal
+      // animation whose completion callback then calls render() (level-up.js).
+      // Reproduced through a grid-pick opened mid-deal. null and undefined both
+      // mean "no card here", and this is the hazard _devSafeRender only half
+      // covers - it checks gridData has ROWS, not that the rows hold cells.
+      if (!card && !isChallenge) continue;
 
       // During deal phase, skip rendering cards into the grid - temp-anim elements handle visuals
       if (dealPhase) continue;

@@ -37,29 +37,85 @@
 }
 body.reduced-motion #flowr-counter.fc-pop { animation: none; }
 
-/* ── The stack (option C): queued chips peek out above the board, staggered,
-      each in its kind's colour. Furthest-back is highest and most inset;
-      the CURRENT chip sits lowest, in front, and names itself. ── */
-/* z-index 5, not 1 (r371). css/entity-fx.css gives #grid's cards z-index 2 and
+/* ══ THE PANEL + ITS TABS (r373) ══════════════════════════════════════════
+   The chips were always drawn as TABS - radius on the top corners only, no
+   bottom border - and there was nothing for them to be tabs ON, so the current
+   one read as a label stuck to the top of the first option tile. The panel is
+   the board's own box padded out, washed in the step's colour, behind every
+   tile and button.
+
+   SIZED IN PURE CSS from --grid-w / --grid-h (js/grid-metrics.js, published on
+   documentElement) and centred, because #grid is centred in #grid-slot on BOTH
+   axes - measured at 1440x820 and 420x820. No JS measurement, no resize
+   handler; the same way #sel-count is placed (r216). */
+:root { --fbg-pad: 9px; }
+
+#flowr-bg {
+  position: absolute; left: 50%; top: 50%;
+  width:  calc(var(--grid-w, 100%) + var(--fbg-pad) * 2);
+  height: calc(var(--grid-h, 100%) + var(--fbg-pad) * 2);
+  transform: translate(-50%, -50%);
+  /* z-index 0: above the marked-line markers (1 is #grid's own children only -
+     this is a SIBLING of #grid, so it sits below the whole board) and below
+     everything the board draws. pointer-events:none so it can never take a tap
+     meant for a tile. */
+  z-index: 0; pointer-events: none;
+  border-radius: 10px;
+  /* 18%: compared at 13 / 18 / 24 / 30 over the real tiles. Below this the
+     panel reads as a slightly lighter box rather than as the tab's own colour -
+     which is the whole ask - and above it the option tiles stop sitting dark
+     against it. */
+  background: color-mix(in srgb, var(--fc, #5ad4c0) 18%, #0c0a14);
+  border: 1px solid color-mix(in srgb, var(--fc, #5ad4c0) 48%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--fc, #5ad4c0) 16%, transparent),
+              inset 0 0 40px color-mix(in srgb, var(--fc, #5ad4c0) 7%, transparent);
+  transition: background .28s ease, border-color .28s ease, box-shadow .28s ease;
+}
+
+/* ── The tabs ──
+   z-index 5, not 1 (r371). css/entity-fx.css gives #grid's cards z-index 2 and
    the marked-line markers 1, so at 1 the whole stack painted BEHIND the board -
    invisible on any step that keeps the cards, which is every deck-edit step.
-   Above the cards, below #sel-count (6) and the boss banner (60). */
+   Above the cards, below #sel-count (6) and the boss banner (60).
+
+   THE LADDER IS ANCHORED TO THE PANEL'S TOP EDGE, not to the slot's. The tabs
+   run UP from it and the current one tucks --fst-tuck under it, so the panel's
+   border crosses its foot and the two read as one object. max(0px, ...) is the
+   hard stop: the band is taller than the margin above the board at a full
+   5-chain on a wide desktop, and without the clamp the deepest tab leaves
+   #grid-slot entirely - which is exactly the bug r371 had to fix once already. */
 #flowr-stack {
-  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  --fst-h: 22px;     /* a tab's height */
+  --fst-step: 5px;   /* how far each queued tab peeks above the one in front */
+  --fst-tuck: 7px;   /* how far the CURRENT tab runs under the panel's edge */
+  --fst-max: 4;      /* FLOWR_MAX - 1: the deepest depth the ladder can reach */
+  --fst-band: calc(var(--fst-h) - var(--fst-tuck) + (var(--fst-max) * var(--fst-step)));
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: max(0px, calc((100% - var(--grid-h, 0px)) / 2 - var(--fbg-pad) - var(--fst-band)));
+  height: var(--fst-band);
   z-index: 5; pointer-events: none; width: 72%;
 }
-/* (FLOWR_MAX - 1 - depth), NOT (3 - depth) (r371): FLOWR_MAX is 5, so depth
-   runs 0..4, and a 5-chain's deepest chip solved to a NEGATIVE top and sat
-   above #grid-slot entirely - measured at y=88 against a slot starting at 96. */
 #flowr-stack .fst-chip {
   position: absolute; left: calc(var(--fst-d) * 5%); right: calc(var(--fst-d) * 5%);
-  top: calc(2px + (4 - var(--fst-d)) * 6px);
-  height: 24px; border-radius: 7px 7px 0 0;
+  /* bottom, not top: the ladder hangs from the panel's edge, so a shorter
+     chain simply has fewer tabs above it rather than a floating block. */
+  bottom: calc(var(--fst-d) * var(--fst-step) - var(--fst-tuck));
+  height: var(--fst-h); border-radius: 7px 7px 0 0;
   background: color-mix(in srgb, var(--fst-c) 30%, #14121f);
   border: 1px solid var(--fst-c); border-bottom: none;
   box-shadow: 0 -2px 10px color-mix(in srgb, var(--fst-c) 30%, transparent);
   overflow: hidden;
 }
+/* THE DECK-EDIT TAKEOVER HAS NO ROOM FOR TABS, so it does not get them. There
+   the board is the PLAY board, not the 6x4 pick board - measured, --grid-h goes
+   277 -> 349 in a 362 slot - so the margin the ladder hangs in is gone and the
+   max(0px, ...) clamp above pins the tabs to the slot's top, 43px clear of the
+   panel and sitting on the first row of cards. That is the very look this pass
+   set out to remove, so on this one step the tabs stand down and the panel does
+   the talking; the location chip already reads DECK EDIT and the step has its
+   own banner. They come back on the next step. */
+body.flowr-deck #flowr-stack { display: none; }
+
 #flowr-stack .fst-chip span {
   display: block; text-align: center;
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2.5px;

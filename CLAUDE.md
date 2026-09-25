@@ -8424,6 +8424,183 @@ Both halves done.
   runs with APPLY staying dark; **a normal hand still submits off the same
   button afterwards**. 0 page errors.
 
+## r373 - the pick-three sits on a PANEL, and the odds are two flat tables
+
+Three owner asks in one pass. The r325 chain machinery - the stacked chance, the
+fixed phase-1 ORDER, the three phases, the permutation draw - is gone.
+
+### 1. THE TITLE CARD NEEDED SOMETHING TO BE A TAB ON
+
+Owner: *"if we're going to use these title cards, then the background of the
+whole pick three should match the color of the title card. so not the options
+themselves, but the negative space around each of the options and buttons. that
+way it doesn't look like the title is jutting into the option."*
+
+The chips were ALREADY DRAWN AS TABS - `border-radius: 7px 7px 0 0` and
+`border-bottom: none` - and there was no panel for them to be tabs on, so the
+current one read as a label stuck to the top of the first option tile.
+**`#flowr-bg` is that panel**: the board's own box padded out, washed in the
+current step's colour, behind every option tile and every button.
+
+- **SIZED IN PURE CSS from `--grid-w` / `--grid-h`** (js/grid-metrics.js,
+  published on `documentElement`) and centred, because `#grid` is centred in
+  `#grid-slot` on BOTH axes - measured at 1440x820, 420x820 and 1100x620. So
+  there is no JS measurement and no resize handler, the same way `#sel-count` is
+  placed (r216). It is a **SIBLING of `#grid`, not a child**: the pick empties
+  `#grid` on every render and a child would go with the tiles.
+- **18% of the tab's colour**, compared at 13 / 18 / 24 / 30 over the real tiles.
+  Below that the panel reads as a slightly lighter box rather than as the tab's
+  own colour, which is the whole ask; above it the option tiles stop sitting dark
+  against it.
+- **THE LADDER HANGS FROM THE PANEL'S TOP EDGE**, not from the slot's. The tabs
+  run UP from it and the current one tucks `--fst-tuck` (7px) under it, so the
+  panel's border crosses its foot and the two read as one object. Each chip is
+  placed by `bottom`, so a SHORTER chain simply has fewer tabs above the panel
+  rather than a block floating away from it.
+- **`max(0px, ...)` is the hard stop**, because the band is taller than the
+  margin above the board at a full 5-chain on a wide desktop - and without it the
+  deepest tab leaves `#grid-slot` entirely, which is a bug r371 already had to
+  fix once.
+- **THE DECK-EDIT TAKEOVER GETS THE PANEL AND NOT THE TABS.** There the board is
+  the PLAY board, not the 6x4 pick board - measured, `--grid-h` goes **277 -> 349
+  in a 362 slot** - so the margin the ladder hangs in is gone, the clamp pins the
+  tabs to the slot's top, and they land 43px clear of the panel ON the first row
+  of cards. That is exactly the look this pass set out to remove, so on that one
+  step `body.flowr-deck #flowr-stack { display: none }` and the panel does the
+  talking; the location chip already reads DECK EDIT and the step has its own
+  banner.
+- **The current tab is drawn even when it is the only one** - it IS the title
+  card, and a one-step chain would otherwise get a coloured panel with nothing
+  naming it. Only the QUEUE behind it is conditional.
+- **The tab's word is the PLURAL and comes from the lexicon**, so it says the
+  same thing as the location chip beside it and follows Settings -> Display ->
+  Wording (r198). A screen offering three things reading "NOW TRICK" against a
+  chip reading "TRICKS" is two names for one screen.
+
+### 2. TWO FLAT ROLLS REPLACE THE STACKED CHAIN
+
+Owner: *"is there a better way to work out the odds for getting more rewards?
+should it just be a certain percent chance that a given amount happens instead of
+a stacked chance?"* and *"the order shouldn't always be consistent ... we still
+want to favor certain options appearing, but not care about when they appear."*
+
+There are now exactly two rolls, and both are ordinary weighted tables:
+
+1. **HOW MANY** screens this level-up pays - `counts`, a direct distribution over
+   1..5 instead of a chance-of-one-more compounded four times.
+2. **WHAT EACH ONE IS** - `odds`, rolled **INDEPENDENTLY PER SLOT**, so a kind's
+   number is simply its share of every reward screen and says nothing about where
+   it lands.
+
+**A STACKED CHAIN COULD NOT EXPRESS THE OWNER'S TABLE.** Under it the count and
+the kind were welded together - a kind's frequency was "the chain reached my
+slot" x "the order put me there" - so "cards on 15% of screens" was not a number
+anyone could set. Here it is the number.
+
+| | shipped |
+|---|---|
+| `counts` (weight of 1 / 2 / 3 / 4 / 5 rewards) | 40 / 25 / 10 / 5 / 5 |
+| `odds` | pick3 30 · cards 15 · deck 15 · sleights 15 · limits 10 · improve 10 · knacks 2.5 · tricks 2.5 |
+| `early` (level <= `FLOWR_EARLY_LEVELS`, 5) | limits **20** · improve **0** |
+
+- **`counts` IS NORMALISED, and it has to be said out loud: the owner's row sums
+  to 85.** Dividing by the real total keeps every ratio they set instead of
+  inventing where the missing 15 goes, so it plays as **47.1 / 29.4 / 11.8 / 5.9
+  / 5.9**. The dev panel prints that line under the fields rather than leaving
+  five numbers that do not add up. `odds` sums to 100 as given and needs none of
+  this.
+- **`early` IS AN OVERRIDE MAP over `odds`, not a second table**, so a kind
+  absent from it keeps its ordinary share. The two moves cancel (+10 / -10), so
+  the table still sums to 100. It is the ONLY thing left in the system that cares
+  about WHEN.
+- **LUCK LEANS THE COUNT UP rather than multiplying a chance**, because there is
+  no chance left to multiply: every count above 1 is scaled by `luckScale()`,
+  which is the shape `flowrQtyRoll` in this same file already uses for the deck
+  editor's quantity. At 0 luck it is exactly the printed table.
+- **INDEPENDENT PER SLOT MEANS A CHAIN CAN REPEAT A KIND, deliberately.**
+  Deduping would quietly make the printed odds wrong, and two PICK 3 screens are
+  two different sets of offers. **Measured: 38% of multi-reward chains repeat a
+  kind** (41% on the early table, where limits is heavier). If that ever reads
+  badly the lever is a no-adjacent-repeat re-roll, which shifts the marginals only
+  slightly - not a draw without replacement, which would break the table outright
+  by starving the heavy kinds once drawn.
+
+Measured over 300,000 rolls through the real `flowrRollCount` / `flowrRollKind`:
+
+| | 1 | 2 | 3 | 4 | 5 | mean screens |
+|---|---|---|---|---|---|---|
+| r371 (stacked chain) | 64.9% | 22.8% | 8.7% | 2.6% | 1.1% | 1.53 |
+| **r373** | **46.9%** | **29.5%** | **11.8%** | **5.8%** | **5.9%** | **1.94** |
+
+| kind | share of SCREENS | of LEVEL-UPS | early: of LEVEL-UPS |
+|---|---|---|---|
+| pick 3 | 30.0% | 58.3% | 58.2% |
+| cards | 15.0% | 29.1% | 29.1% |
+| deck edit | 15.0% | 29.2% | 29.1% |
+| sleights | 15.0% | 29.1% | 29.0% |
+| limits | 10.0% | 19.4% | **38.7%** |
+| improve | 10.0% | 19.5% | **0%** |
+| knacks | 2.5% | 4.9% | 4.9% |
+| tricks | 2.5% | 4.8% | 4.8% |
+
+**Reward volume is up 27%** (1.53 -> 1.94 screens a level-up), which is the
+`counts` table's doing and not the kinds'.
+
+### 3. TWO NEW KINDS: CERTS, and UTILITIES at RARE OR BETTER
+
+- **`knacks`** - three Knacks, drawn from `survivalBuildPools().knack` (already
+  filtered for owned and mode-banned) through the SHARED rarity table, so Luck
+  tilts them as it tilts every other offer.
+- **`tricks`** - three Tricks at **rare or better**. The owner asked for
+  "uncommon or better"; **this game's tiers are common / rare / epic / legendary**
+  (r197 merged mythic into legendary and there has never been an uncommon), so the
+  rung above common is RARE. Measured: a 127-entry pool, tiers epic/legendary/rare
+  only, **0 commons**.
+- **`SURVIVAL_GRID_OFFER` is excluded from that pool** - it rides the trick pool
+  for its odds and is not a Trick (js/survival.js says so in as many words).
+- **The tray is a HARD CAP (r277)**, so `tricks` is not viable while
+  `trickTrayFull()`: a whole screen of Tricks you have no room for is a screen you
+  cannot spend, and `flowrKindViable` substitutes pick3.
+- `flowrDrawThree(pool, tierOf)` is the shared draw for knacks, tricks and
+  sleights, and `survivalMakeOption` / `survivalGrant` do the rest - so neither
+  kind needed a grant path of its own.
+
+### 4. `render()` threw on an UNDEFINED cell
+
+Found by opening a grid-pick mid-deal. `render()` guarded `card === null` and
+then read `card._id`, so an **undefined** cell went straight through:
+`gridData` is ragged for as long as a takeover screen has resized
+`gridRows`/`gridCols` out from under a deal animation whose completion callback
+then calls `render()` (js/level-up.js). `if (!card && !isChallenge)`. This is the
+hazard `_devSafeRender` only half covers - it checks `gridData` has ROWS, not
+that the rows hold cells - and is the same shape as r293's note that `render()`
+throws on a cell that is not there.
+
+### The config key is v2
+
+`lethe.flowRewards.v1` held `chances` / `steps` / `weights`, none of which exist
+now, and a stored ORDER is not translatable into a per-slot odds table - so it is
+left behind rather than half-read (the r183 `hbCfg2 -> hbCfg3` rule: a saved
+value beats a default, and anyone who had tuned the old chain would otherwise
+keep a table this version cannot honour). Verified: a v1 config with
+`chances:[99,99,99,99]` is ignored outright.
+
+**Both maps MERGE over the defaults**, so an override for one kind survives a new
+kind landing beside it - and **a key the default sets that the owner CLEARS is
+stored as `null`**, because without it blanking EARLY's limits or improve could
+not be saved at all: the merge would hand the default straight back on the next
+read. Dev -> Rewards is rebuilt to match: five count weights with the normalised
+line under them, an odds stepper per kind with its live share, and an early
+stepper per kind where blank means "ordinary share" and 0 means "never".
+
+Verified in a real browser at 1440x820 and 420x820, driving a REAL goal hand into
+a forced 5-chain covering every new kind: the counter fires **3-62ms after the
+blast settles**, every step shows its panel with **5/5 tiles and buttons inside
+it, 0 tabs touching a tile, 0 tabs outside the slot and 0 tiles overflowing**, the
+tab and the location chip name the same screen, the deck audit balances (56 ->
+59, exactly one card pack), `level` moves **once** at the chain's end, the chrome
+is cleared afterwards, and there are **no page errors**.
+
 ## r371 - the count reveal waits for the board, and a CARD PACK joins the chain
 
 Owner: *"the level up animation, in terms of the animating multiple level ups
