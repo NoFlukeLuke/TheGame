@@ -189,7 +189,12 @@ function gridPickTileHTML(p, i) {
   // would re-anchor the bubble every time the pointer crossed between the
   // object and the words under it (the delegated listener keys on the NEAREST
   // [data-et]); one payload on the whole tile is one hover target.
-  const art = (isEnt && typeof entityTileHTML === 'function')
+  // artHTML is the escape hatch for an offer that is not an entity and is not
+  // an icon either - today the Flow card pack, whose art is three real mini
+  // playing cards. It is built by the caller, because what a pack looks like is
+  // that feature's business and not this file's.
+  const art = p.artHTML ? p.artHTML
+    : (isEnt && typeof entityTileHTML === 'function')
     ? entityTileHTML({ entity: p.entity, id: p.id, emoji: p.emoji || p.icon, label: p.label, uses: p.uses }, rar,
                      { extraClass: 'gp-obj', tip: false })
     : `<div class="gp-icon">${p.icon || p.emoji || '\u25b2'}</div>`;
@@ -198,7 +203,7 @@ function gridPickTileHTML(p, i) {
   // The art box is given the OBJECT'S OWN ASPECT (gp-art-<kind>), so the object
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
-  const kind = isEnt ? p.entity : 'plain';
+  const kind = p.artKind || (isEnt ? p.entity : 'plain');
   // TWO BLOCKS (r292). .gp-head is the top two cells - the entity and its name,
   // nothing else - and .gp-body the two beneath. They are wrappers rather than
   // four loose children because the halves have to be SIZED against the tile

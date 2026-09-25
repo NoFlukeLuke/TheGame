@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r371 · The winning hand leaves the board at the round end; Whetstone discards itself after 90s";
+const BUILD = "2026-09-25 · r372 · Merge: winning hand leaves the board + Whetstone 90s timer (r371) with the Flow card pack (r368)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
