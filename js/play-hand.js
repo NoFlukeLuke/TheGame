@@ -205,15 +205,15 @@ function playHand() {
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
-  if (typeof minSelection === 'function' && selected.length < minSelection()) {
+  if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) {
     // Roll Call (r278) pulls every card of its rank into the hand, so a selection
     // that is short on its own can still be legal. The count is asked for BEFORE
     // the guard decides, because "if the card is selected alone, that can ignore
     // the minimum if there are enough cards on the board" is the whole point of
     // the state. rollCallPullCells is pure, so asking twice costs nothing.
     const _rcN = (typeof rollCallPullCount === 'function') ? rollCallPullCount(selected) : 0;
-    if (selected.length + _rcN < minSelection()) {
-      dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
+    if (selected.length + _rcN < handMinSelection()) {
+      dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: handMinSelection() });
       return;
     }
   }
@@ -254,6 +254,17 @@ function playHand() {
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips } = result;
+  // Passengers (r326): cards inside the hand that no component claims, which only
+  // Tagalong permits. Their pips come off the score and their pip value is charged
+  // to the clock below, after the hand has scored.
+  //
+  // RECOMPUTED HERE rather than read off `result`, because the Ringer and Roll
+  // Call both SPREAD the result they were handed while replacing handCells - so
+  // the fields findBestHand wrote describe the hand before the augment. Asking
+  // handTagalongCells once, after the hand is final, is the only place that
+  // cannot be stale (handComponentsFor is cached, so it costs nothing).
+  const _tagCells = (typeof handTagalongCells === 'function') ? handTagalongCells(handCells) : [];
+  const _tagPips  = _tagCells.reduce((n, [r, c]) => n + ((gridData[r]?.[c]?.rank) ? cardPips(gridData[r][c].rank) : 0), 0);
   // Snapshot contribution breakdown now, from pristine pre-mutation state.
   // Folded into the round tally at the commit points below (goal / normal).
   const _contribSnapshot = captureRoundContrib(result);
@@ -283,7 +294,7 @@ function playHand() {
   if (typeof resetTrickFires === 'function') resetTrickFires();
   generateHandFocus(hand, handCells, _vultureSec);
   // Re-score the winning hand now that Focus reflects this hand's own gains.
-  const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips);
+  const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips - _tagPips);
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
   // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
   const _handRetrigByCell = { ..._lastRetrigByCell };
@@ -344,6 +355,25 @@ function playHand() {
         updateClockUI();
       }
     }
+  }
+  // ── The passengers' time bill (r326) ──
+  // Charged HERE, after the score has committed and beside the Rider's, so a hand
+  // that wins the round still wins it however little clock is left - the same
+  // ordering the Tollman's play surcharge relies on. interactTimeCostMult() is
+  // folded in by tagalongSecondsFor, so a mode that does not bill the clock pays
+  // nothing and Flow pays half.
+  if (_tagCells.length) {
+    const _tagSecs = (typeof tagalongSecondsFor === 'function') ? tagalongSecondsFor(_tagCells) : 0;
+    if (_tagSecs > 0) {
+      roundSeconds = Math.max(1, roundSeconds - _tagSecs);
+      showTimeCost(`-${_tagSecs}s`);
+      updateClockUI();
+    }
+    // Deliberately NO toast. At Selection Size 7 with the knack owned, 73% of
+    // hands carry a passenger - one toast per hand is noise, and the bill has
+    // already been stated twice before the commit: the card is red on the board
+    // and the hand label prices it. showTimeCost's floater over the clock is the
+    // game's existing vocabulary for "that just cost you seconds".
   }
   // Spot Check (reward-grid penalty): playing the flagged hand is what clears it.
   if (spotCheckHand && spotCheckLeft > 0 && hand === spotCheckHand) {

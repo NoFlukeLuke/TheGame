@@ -152,11 +152,14 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // Read the SAME predicate the two charge sites read (js/round-timers.js), so
+  // Read the SAME multiplier the two charge sites read (js/round-timers.js), so
   // the quoted cost and the billed cost cannot drift. Before r234 this branch was
   // keyed on flowActive() while the charges were keyed on nothing at all, which is
-  // how Flow came to display 0s and bill 8s.
-  if (typeof interactTimeCostsOn === 'function' && !interactTimeCostsOn()) {
+  // how Flow came to display 0s and bill 8s. It is 0 where the mode does not bill
+  // the clock and Flow's half rate where it does, so every line below just
+  // multiplies by it rather than branching (r326).
+  const _tm = (typeof interactTimeCostMult === 'function') ? interactTimeCostMult() : 1;
+  if (_tm <= 0) {
     set('ic-play', `${playHandCostThisRound || 0}s`); set('ic-discard', '0s'); set('ic-swap', '0s');
     const _dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
     set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(_dur) : `${_dur}s`);
@@ -170,13 +173,13 @@ function updateInteractCosts() {
   let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
   else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
-  if (typeof bossInteractMult === 'function') disc = Math.round(disc * bossInteractMult());
+  disc = Math.round(disc * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-discard', `${disc}s`);
   // Swap cost: 4 base, 0 with Free Swaps.
   let swap = (typeof BAL !== 'undefined') ? BAL._resources.swap_seconds : 8;
   if (typeof hasKnack === 'function' && hasKnack('free_swaps')) swap = 0;
   else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
-  if (typeof bossInteractMult === 'function') swap = Math.round(swap * bossInteractMult());
+  swap = Math.round(swap * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-swap', `${swap}s`);
   // Max time = round cap minus permanent (−5s) penalties.
   const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
@@ -585,6 +588,11 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
+  // cancelDance ABORTS - the dance's own checkpoint, and so the release of the
+  // hand-label hold in handleDanceAbort, does not run until a later tick. So the
+  // clear below was a no-op whenever a run was abandoned mid-tally, and the label
+  // kept showing the previous run's hand until the next render. Release it here.
+  if (typeof holdHandNameLabel === 'function') holdHandNameLabel(false);
   updateHandNameLabel(null);   // clears the label AND its cache (js/hud.js)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];

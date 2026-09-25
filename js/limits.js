@@ -41,14 +41,83 @@ const LIMITS_DEF = [
 // It applies to the PLAY GRID ONLY. `limits.selection` also caps the reward grid
 // and the shop pickers, and a minimum there would force you to take seven tiles.
 const MIN_SELECTION_GAP = 2;
+// The RAW floor: the arithmetic alone, with no knack applied. The reward grid
+// reads this one (rewardMinPicks, js/reward-grid.js) because Tagalong is a rule
+// about HANDS and has no business raising or lowering how many tiles a path takes.
 function minSelection() {
   const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 3;
   return Math.max(1, cap - MIN_SELECTION_GAP);
 }
+// The floor a HAND has to meet. Every play-grid caller reads this one, so
+// Tagalong lifting the minimum reaches the PLAY button, the auto-submit, the
+// NEED label, the x/y readout and the playHand guard from one place.
+function handMinSelection() { return tagalongLiftsMinimum() ? 1 : minSelection(); }
 // Does the minimum actually bite? Below 3 it cannot - two cards is the floor for
 // a hand regardless - and High Card is gated on this, so the early game (and the
-// tutorial, which runs at limit 3) is untouched.
-function minSelectionBinds() { return minSelection() > 2; }
+// tutorial, which runs at limit 3) is untouched. It reads the HAND floor, so with
+// Tagalong lifting the minimum High Card switches off too - which is right: High
+// Card is the escape valve for a selection you were FORCED to make, and with no
+// minimum nothing is forced.
+function minSelectionBinds() { return handMinSelection() > 2; }
+
+// ══════════════════════════════════════════════
+// TAGALONG (r326) - passengers are allowed, and they are billed
+// ══════════════════════════════════════════════
+// r201 made every card load-bearing and sold the exemption back as the Tagalong
+// knack. Owner's report: at Selection Size 6+ the floor forces 4-card hands, and
+// being able to "throw 2 random cards on the end of anything" made the floor a
+// fiction - "so maybe that's true... yeah it probably is."
+//
+// So it IS true, deliberately: Tagalong lifts the minimum outright. That is the
+// whole knack now - not "the floor still applies but you may cheat it", which is
+// the version that read as broken. What stops it being free is the PRICE:
+//
+//   - a passenger's pips come OFF the hand, where they used to be scored ON it
+//     (r201's wording said "billed as penalties" but the code paid them, so this
+//     is the first time a passenger has cost anything at all);
+//   - and it costs its own pip value IN SECONDS.
+//
+// The time half is the load-bearing one. Measured on a bare loadout, the pip
+// bill of an average hand's passengers is 5.5% of the hand at level 1 and 1.9%
+// at level 18 - the owner's "by like round 3 it's meaningless", and it only gets
+// worse with a real Trick tray. The CLOCK does not grow with the level while the
+// goal does, so a flat second is worth more every round, which is the one lever
+// that hardens on its own.
+const TAGALONG_KEY = 'lethe.tagalong.v1';
+// Does Tagalong remove the minimum selection? Owner's spec: yes, by default.
+let tagalongIgnoresMin = true;
+// How many passengers ONE hand may carry. 0 = unlimited, which is the shipped
+// default: with the minimum lifted a passenger is never forced on you, so every
+// one is a choice and pricing it is the honest lever. A cap is the alternative
+// reading of the owner's note and is one setting away.
+let tagalongMaxCards = 0;
+// Seconds per point of pip value a passenger costs. 1 = "its rank in time".
+let tagalongTimeRate = 1;
+try {
+  const _tg = JSON.parse(localStorage.getItem(TAGALONG_KEY) || '{}');
+  if (typeof _tg.ignoresMin === 'boolean') tagalongIgnoresMin = _tg.ignoresMin;
+  if (isFinite(_tg.max))  tagalongMaxCards = Math.max(0, Math.min(9, _tg.max | 0));
+  if (isFinite(_tg.rate)) tagalongTimeRate = Math.max(0, Math.min(4, +_tg.rate));
+} catch (e) {}
+function saveTagalongCfg() {
+  try { localStorage.setItem(TAGALONG_KEY, JSON.stringify({ ignoresMin: tagalongIgnoresMin, max: tagalongMaxCards, rate: tagalongTimeRate })); } catch (e) {}
+}
+function tagalongOwned() { return typeof hasKnack === 'function' && hasKnack('tagalong'); }
+function tagalongLiftsMinimum() { return tagalongOwned() && tagalongIgnoresMin; }
+// Infinity when uncapped, 0 when the knack is not owned - so ONE comparison in
+// handComponentsFor covers both the r201 rule and the cap, and 0 reproduces r201
+// exactly. It is in the components cache key for the usual reason: changing it
+// changes the answer for cells whose cards have not moved.
+function tagalongMax() { return tagalongOwned() ? (tagalongMaxCards > 0 ? tagalongMaxCards : Infinity) : 0; }
+// What a set of passenger cells costs in seconds, before the mode's own rate.
+// Rounded once at the end, not per card, so three 7s cost 21s and not 3x7 rounded
+// three times.
+function tagalongSecondsFor(cells) {
+  if (!cells || !cells.length || tagalongTimeRate <= 0) return 0;
+  let pips = 0;
+  cells.forEach(([r, c]) => { const k = gridData[r] && gridData[r][c]; if (k && k.rank) pips += cardPips(k.rank); });
+  return Math.round(pips * tagalongTimeRate * interactTimeCostMult());
+}
 
 const limits = {};
 // ONE builder for a limit's row, because there are TWO places that build it -

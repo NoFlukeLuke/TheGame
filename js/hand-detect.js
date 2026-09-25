@@ -261,8 +261,8 @@ function findBestHand(cells) {
     const hand = _whole.primary;
     const rawScore = calcScore(hand, detectionCells);
     restoreWilds();
-    return { hand, handCells: detectionCells, penaltyCells: [],
-             rawScore, penaltyPips: 0, finalScore: Math.max(0, rawScore) };
+    return _withTagalongs({ hand, handCells: detectionCells, penaltyCells: [],
+                            rawScore, penaltyPips: 0, finalScore: Math.max(0, rawScore) });
   }
 
   // Generate all connected subsets of 2 to HAND_MAX_CARDS cards. The cap used to
@@ -286,13 +286,37 @@ function findBestHand(cells) {
     const penaltyCells = detectionCells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
     const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + cardPips(gridData[r][c].rank), 0);
     const rawScore = calcScore(hand, handCells);
-    const finalScore = Math.max(0, rawScore - penaltyPips);
+    // A subset's own passengers are billed here too, or the search would happily
+    // prefer a subset that carries three of them over one that carries none -
+    // they cost the same pips whether they sit inside the hand or outside it.
+    const tagPips = handTagalongCells(handCells).reduce((n, [r, c]) => n + cardPips(gridData[r][c].rank), 0);
+    const finalScore = Math.max(0, rawScore - penaltyPips - tagPips);
     if (!best || finalScore > best.finalScore) {
       best = { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore };
     }
   }
   restoreWilds();
-  return best;
+  return _withTagalongs(best);
+}
+
+// ── What the passengers cost (r326) ──────────────────────────────────────────
+// A tagalong card is INSIDE the hand (it is in handCells and it is consumed with
+// the rest) and in none of its components. A penalty card is OUTSIDE the hand.
+// Both bill their pips; only a tagalong bills the clock, because only a tagalong
+// is something the knack let you choose to carry.
+//
+// They are kept as separate fields rather than folded into penaltyCells because
+// the two say different things to the player - "the hand refused this" against
+// "this is riding along and here is the bill" - and only one of them is a thing
+// the player asked for.
+function _withTagalongs(res) {
+  if (!res) return res;
+  const tag = handTagalongCells(res.handCells);
+  res.tagalongCells   = tag;
+  res.tagalongPips    = tag.reduce((n, [r, c]) => n + ((gridData[r] && gridData[r][c] && gridData[r][c].rank) ? cardPips(gridData[r][c].rank) : 0), 0);
+  res.tagalongSeconds = (typeof tagalongSecondsFor === 'function') ? tagalongSecondsFor(tag) : 0;
+  res.finalScore = Math.max(0, res.rawScore - (res.penaltyPips || 0) - res.tagalongPips);
+  return res;
 }
 // ── Hand shape: every fact the hand tests read, computed once ──
 // detectHand (the primary hand) and handMatchesFor (every hand these cards are
@@ -539,6 +563,18 @@ function _bestRankPartition(cells, mustCover) {
 // be a hand this mode has unlocked, so a bare Flush of 3 in Classic is still not
 // a hand even though its overlay would have paid.
 const _compCache = new Map();
+// The cache is keyed on the CARDS, which is right for a board that moves and
+// wrong for a rule that moves under a board that has not. Two things change the
+// answer for cells whose cards are exactly where they were:
+//   - activeHands, when Short Suit turns on flush3/flush4 mid-run (js/limits.js)
+//     or a mode unlocks a hand (js/hands-meta.js). Its SIZE is a sound
+//     fingerprint: nothing ever removes a key, so a change is always a growth,
+//     and startGame replaces the Set wholesale with a differently-sized one.
+//   - NATURAL SCALING, which handWorth reads through handBasePips/handBaseMult -
+//     so the partition the cache is holding can be one the live rates would no
+//     longer choose. That only moves when a hand is PLAYED, so playHand empties
+//     the cache rather than every entry carrying a version stamp.
+function clearHandCompCache() { _compCache.clear(); }
 function _compKey(cells) {
   return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
@@ -556,15 +592,20 @@ function handComponentsFor(cells) {
   // for cells whose cards have not moved, so the entries must not be reused.
   // The run LADDER is in the key for the same reason the knack is: turning the
   // courts off the ladder changes the answer for cells whose cards have not moved.
+  const _maxTag = (typeof tagalongMax === 'function') ? tagalongMax() : 0;
   const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin
-    + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't')
+    + 'T' + (_maxTag === Infinity ? '*' : _maxTag)
+    + 'A' + ((typeof activeHands !== 'undefined' && activeHands) ? activeHands.size : 0)
     + deckLadderKey() + runOrderKey() + '|' + _compKey(cells);
   if (_compCache.has(key)) return _compCache.get(key);
   if (_compCache.size > 4000) _compCache.clear();
 
   // The partition, plus the flush overlay unless Track 1 already took the hand
   // that IS a flush. Built as a function because r281 may have to build it twice.
-  const _tagalong = (typeof hasKnack === 'function') && hasKnack('tagalong');
+  // HOW MANY PASSENGERS THIS HAND MAY CARRY. 0 without the knack, which is r201
+  // exactly; the knack's own cap otherwise (Infinity when uncapped, the shipped
+  // default). One number, so the load-bearing rule and the cap are one test.
+  const _maxTagalong = _maxTag;
   const buildFrom = part => {
     if (!part) return null;
     const comps = part.parts.map(p => ({
@@ -587,6 +628,11 @@ function handComponentsFor(cells) {
     comps.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
     return claimed.size >= cells.length;
   };
+  const unclaimedCount = comps => {
+    const claimed = new Set();
+    comps.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+    return Math.max(0, cells.length - claimed.size);
+  };
   let components = buildFrom(_bestRankPartition(cells, false)) || [];
   // ── r281: only when today's answer is about to be thrown away ──
   // See the note on _bestRankPartition. The unrestricted partition maximises
@@ -597,7 +643,7 @@ function handComponentsFor(cells) {
   // point recovers the hand the player was obviously building. Preferring the
   // unrestricted answer whenever it is already valid is what keeps this a
   // strict no-op everywhere the bug was not firing.
-  if (!_tagalong && components.length && !coversAll(components)) {
+  if (components.length && unclaimedCount(components) > _maxTagalong) {
     const alt = buildFrom(_bestRankPartition(cells, true));
     components = (alt && coversAll(alt)) ? alt : components;
   }
@@ -609,15 +655,16 @@ function handComponentsFor(cells) {
   // (toRemove is the whole selection, not just handCells). So a spare card went
   // from a small bonus to a real cost.
   //
-  // The Tagalong knack lifts it, which is the whole reason it is a knack: before
-  // r201 this was free and unremarkable, so making it the default and selling it
-  // back turns "my hand has a spare in it" into something you paid for.
-  // (_tagalong is read above the partition now - it decides which one to ask for.)
-  if (!_tagalong && components.length) {
-    const claimed = new Set();
-    components.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
-    if (claimed.size < cells.length) components.length = 0;   // a passenger: not a hand
-  }
+  // The Tagalong knack RAISES the allowance rather than removing the rule (r326),
+  // which is what lets a cap exist at all: 0 passengers is r201 unchanged,
+  // Infinity is Tagalong as shipped, and any number between is the cap. A hand
+  // over its allowance is not a hand, exactly as before - findBestHand then falls
+  // back to the smaller subset that is within it.
+  //
+  // Being ALLOWED a passenger is not the same as it being free. The cards that
+  // ride along are reported by handTagalongCells and billed by findBestHand: their
+  // pips come off the hand, and playHand charges their pip value in seconds.
+  if (components.length && unclaimedCount(components) > _maxTagalong) components.length = 0;
 
   // High Card (r200): the escape valve. It covers EVERY cell by definition, so it
   // is also what a selection falls back to when the rule above rejects a hand
@@ -630,7 +677,7 @@ function handComponentsFor(cells) {
   // ever dead. 0 base pips and 0 Focus, so it is never worth reaching for.
   if (!components.length && activeHands.has('highcard')
       && typeof minSelectionBinds === 'function' && minSelectionBinds()
-      && cells.length >= minSelection()) {
+      && cells.length >= handMinSelection()) {
     components.push({ name: 'High Card', cells: cells.slice() });
   }
   let res = null;
@@ -665,6 +712,18 @@ function handLayersFor(primary, cells) {
   const i = names.indexOf(r.primary);
   if (i > 0) names.splice(0, 0, names.splice(i, 1)[0]);
   return names;
+}
+
+// The PASSENGERS of a hand: cells inside it that no component claims. Without
+// Tagalong this is always empty - the rule above voids such a hand outright - so
+// it is exactly "what the knack let you get away with", and it is what the board
+// paints red, the label prices and playHand bills the clock for.
+function handTagalongCells(cells) {
+  const r = handComponentsFor(cells);
+  if (!r) return [];
+  const claimed = new Set();
+  r.components.forEach(c => c.cells.forEach(([rr, cc]) => claimed.add(rr + '-' + cc)));
+  return cells.filter(([rr, cc]) => !claimed.has(rr + '-' + cc));
 }
 
 // How many EXTRA times each cell scores: one per component past the first that

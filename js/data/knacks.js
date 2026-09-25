@@ -47,7 +47,7 @@ const KNACK_POOL = [
   // ── Passenger knack (r201) ──
   // A hand normally has to use every card you select; a spare makes it not a hand,
   // and the spare is billed as a penalty card. This lifts that.
-  { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties.' },
+  { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'The minimum selection no longer applies, and your hands may carry cards that are not part of them. Each carried card costs its pips off the hand and its pip value in seconds.' },
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken.' },
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.' },

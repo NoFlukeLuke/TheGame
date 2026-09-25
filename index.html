@@ -201,6 +201,27 @@
       <input id="dev-flushmin" type="range" min="3" max="7" value="3" step="1" oninput="devSetFlushOverlayMin(this.value)"></div>
   </div>
 
+  <!-- TAGALONG (r326): the knack's three rules. Defaults here ARE the shipped
+       behaviour - a passenger is allowed, uncapped, costs its pips and its pip
+       value in seconds, and the minimum selection does not apply. -->
+  <div class="dev-section" data-group="tagalong">
+    <div class="dev-section-title">Tagalong knack</div>
+    <div class="dev-note">
+      A passenger is a selected card that no part of the hand uses. Without the knack a
+      hand may not carry one at all. With it, each one costs its pips off the score AND
+      its pip value in seconds off the clock, and the board paints it red before you commit.
+    </div>
+    <div id="dev-tag-state" class="dev-note" style="color:var(--gold)"></div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-tag-min" type="checkbox" onchange="devSetTagalongMin(this.checked)" style="accent-color:var(--gold);">
+      Tagalong removes the minimum selection
+    </label>
+    <div class="dev-slider-row"><span>Passengers per hand: <b id="dev-tag-max-val">unlimited</b></span>
+      <input id="dev-tag-max" type="range" min="0" max="9" value="0" step="1" oninput="devSetTagalongMax(this.value)"></div>
+    <div class="dev-slider-row"><span>Seconds per pip: <b id="dev-tag-rate-val">1</b></span>
+      <input id="dev-tag-rate" type="range" min="0" max="2" value="1" step="0.25" oninput="devSetTagalongRate(this.value)"></div>
+  </div>
+
   <!-- LEVEL -->
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Level</div>

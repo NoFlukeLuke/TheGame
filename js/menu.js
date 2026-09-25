@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r325 · balance sheet tooling repointed at js/data/*.js and regenerated (312 rows)";
+const BUILD = "2026-09-25 · r326 · tagalongs are visible and billed (pips + rank in seconds), Tagalong lifts the minimum, Flow bills its clock at half rate, all 34 boss briefs rewritten plain";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -144,7 +144,7 @@ const MODES = {
     // now reads this flag, so leaving it false would have made interacting free in a
     // shipped mode as a side effect of wiring up the picker. It describes what
     // Survival does: the clock is a deadline AND a budget, same as Classic.
-    // Flow is the mode that genuinely charges nothing, and it says so on its own entry.
+    // Flow charged nothing until r326; it charges half rate now (its own entry says so).
     timeIsCurrency: true,
     autoPlayHands: false,
     survival: true
@@ -158,13 +158,15 @@ const MODES = {
   flow: {
     id: 'flow',
     name: 'Flow',
-    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Max Focus is 20 - decay is the only pressure.',
+    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Swaps and discards cost half the usual time off that clock. Max Focus is 20.',
     winCondition: 'endless',
     enableBosses: true,
     enableShops: true,
     enableEvents: false,
     autoRefillGrid: true,
-    timeIsCurrency: false,
+    // r326: Flow bills its clock again, at half rate (interactTimeCostMult,
+    // js/round-timers.js). It was the one mode where touching the board was free.
+    timeIsCurrency: true,
     autoPlayHands: false,
     survival: true,
     flow: true

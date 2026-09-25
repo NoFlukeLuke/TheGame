@@ -1496,6 +1496,10 @@ function rewardSelectionCap() {
 // stapled to a knack that is meant to be pure upside.
 // The floor is also held BELOW the cap, so a grid can never demand more picks than it
 // will accept - the two come from different places once Greedy Boi is in play.
+//
+// It reads minSelection(), the RAW arithmetic, and deliberately NOT the play grid's
+// handMinSelection(): Tagalong lifts the floor for HANDS (r326) and has nothing to
+// say about how many tiles a reward path has to take.
 function rewardMinPicks() {
   const min = (typeof minSelection === 'function') ? minSelection() : 1;
   return Math.max(1, Math.min(min, rewardSelectionCap()));

@@ -49,7 +49,7 @@ function scheduleAutoSubmit() {
   const result = selected.length >= 2 ? findBestHand(selected) : null;
   if (!result) return; // no valid hand, don't schedule
   // r200: never auto-fire a hand the player is not allowed to play yet.
-  if (typeof minSelection === 'function' && selected.length < minSelection()) return;
+  if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) return;
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
   // Tutorial: the early steps teach "select, look at the preview, then press
@@ -59,7 +59,7 @@ function scheduleAutoSubmit() {
   autoSubmitTimer = setTimeout(() => {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
-    if (!animating && !falling && selected.length >= 2 && selected.length >= minSelection()) playHand();
+    if (!animating && !falling && selected.length >= 2 && selected.length >= handMinSelection()) playHand();
   }, autoSubmitDelay());
 }
 
@@ -147,7 +147,7 @@ function doSwap(r1, c1, r2, c2) {
   let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasKnack('free_swaps')) swapTimeCost = 0;
   else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
-  swapTimeCost = interactTimeCostsOn() ? Math.round(swapTimeCost * bossInteractMult()) : 0;
+  swapTimeCost = Math.round(swapTimeCost * bossInteractMult() * interactTimeCostMult());
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);

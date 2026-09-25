@@ -107,6 +107,7 @@ function openDevPanel() {
   devSyncHbSliders();
   devSyncBlipSliders();
   devSyncNs();
+  devSyncTagalong();
   devSyncCcSliders();
   devSyncDisco();
   devSyncFullscreen();
@@ -134,6 +135,7 @@ const DEV_GROUPS = [
   { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
   { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
+  { g:'tagalong', icon:'🧳', label:'Tagalong',  sub:() => devTagalongSub() },
   { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
@@ -409,6 +411,41 @@ function devSetFlushOverlayMin(v) {
   const lab = document.getElementById('dev-flushmin-val'); if (lab) lab.textContent = flushOverlayMin;
   _devSafeRender();
 }
+// ── Tagalong (r326) - state lives in js/limits.js ──
+// Three knobs, because the knack is three separate decisions and the owner has
+// only settled two of them. The defaults ARE the shipped rules; changing one here
+// changes what a hand is, so every setter clears the components cache (which is
+// keyed on the cap for exactly this reason) and repaints.
+function devTagalongSub() {
+  const cap = tagalongMaxCards > 0 ? `max ${tagalongMaxCards}` : 'unlimited';
+  return `${cap} · ${tagalongIgnoresMin ? 'no minimum' : 'minimum applies'} · ${tagalongTimeRate}s per pip`;
+}
+function devSetTagalongMin(on) {
+  tagalongIgnoresMin = !!on; saveTagalongCfg();
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
+  devSyncTagalong(); _devSafeRender();
+}
+function devSetTagalongMax(v) {
+  tagalongMaxCards = Math.max(0, Math.min(9, parseInt(v, 10) || 0)); saveTagalongCfg();
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
+  devSyncTagalong(); _devSafeRender();
+}
+function devSetTagalongRate(v) {
+  tagalongTimeRate = Math.max(0, Math.min(4, parseFloat(v) || 0)); saveTagalongCfg();
+  devSyncTagalong(); _devSafeRender();
+}
+function devSyncTagalong() {
+  const a = document.getElementById('dev-tag-min');  if (a) a.checked = tagalongIgnoresMin;
+  const b = document.getElementById('dev-tag-max');  if (b) b.value = tagalongMaxCards;
+  const bl = document.getElementById('dev-tag-max-val'); if (bl) bl.textContent = tagalongMaxCards > 0 ? tagalongMaxCards : 'unlimited';
+  const c = document.getElementById('dev-tag-rate'); if (c) c.value = tagalongTimeRate;
+  const cl = document.getElementById('dev-tag-rate-val'); if (cl) cl.textContent = tagalongTimeRate.toFixed(2).replace(/\.?0+$/, '');
+  const st = document.getElementById('dev-tag-state');
+  if (st) st.textContent = (typeof tagalongOwned === 'function' && tagalongOwned())
+    ? `Owned. Hands may carry ${tagalongMaxCards > 0 ? tagalongMaxCards : 'any number of'} passenger${tagalongMaxCards === 1 ? '' : 's'}.`
+    : 'Not owned - every card must be load-bearing (r201).';
+}
+
 function devSyncNs() {
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
   const st = document.getElementById('dev-ns-state');

@@ -165,6 +165,12 @@ function naturalScaleBonus(handName) {
 function recordNaturalScale(handName, cells) {
   if (!nsEnabled) return;
   const names = (cells && typeof handLayersFor === 'function') ? handLayersFor(handName, cells) : [handName];
+  // The components cache is keyed on the CARDS, and these accumulators are read
+  // through handWorth (handBasePips / handBaseMult) by the partition that builds
+  // those components - so a board whose cards have not moved would keep being
+  // served the partition the OLD rates chose. This is the one function that moves
+  // them mid-round, so it is the one place that has to say so (r326).
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
   names.forEach(name => {
     if (!name || !HAND_BASE[name]) return;
     // High Card has no family and must never scale - it is the escape valve.

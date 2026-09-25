@@ -92,7 +92,9 @@ function doDiscard() {
   else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
-  const timeCost = (usingFreeDiscard || !interactTimeCostsOn()) ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult());
+  // interactTimeCostMult() is 0 when the mode does not bill the clock at all and
+  // Flow's half rate when it does, so this site needs no second test (r326).
+  const timeCost = usingFreeDiscard ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);

@@ -272,23 +272,39 @@ function roundClockEndsRound() {
 // actually charge (js/input.js, js/discard.js) and by the Time pop-up that quotes
 // them, so the quote can never drift from the charge the way it did before r151.
 //
-// This is also the fix for a live bug: Flow is documented and displayed as
-// charging 0s, and spendRoundTime returns early for it - but spendRoundTime is
-// not what charges. Both real sites write roundSeconds directly and neither
-// consulted flowActive(), so Flow's session clock was being billed for every
-// swap and discard, which is precisely what its own comment says must not happen
-// (interacting could summon the inspection early).
+// FLOW BILLS ITS CLOCK AGAIN (r326, owner's call). r234 exempted it on the
+// reasoning that its clock is the countdown to the inspection, so interacting
+// could summon the boss early - true, and the owner's answer is that summoning it
+// early is exactly what a cost should feel like there. Flow was the one mode
+// where touching the board was free, which made its swaps and discards pure
+// upside in a mode whose only pressure is Focus decay.
+//
+// A mode that really has no clock to bill still answers false: a picker-built run
+// that chose "no time limit" is forced to `timeCost: 'no'` (js/picker-mode.js),
+// and there is nothing there for a second to come off.
 function interactTimeCostsOn() {
-  if (typeof flowActive === 'function' && flowActive()) return false;
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.timeIsCurrency === false) return false;
   return true;
 }
 
+// FLOW PAYS LESS PER TOUCH, because its clock is asked to cover much more. A
+// Classic 3:00 clock buys ONE round; Flow's 5:00 covers every level-up until the
+// inspection (flowNextRoundSeconds only refills at run start and after a boss),
+// so the same 8s swap is several times dearer there. Half price is the owner's
+// "maybe make them cost a little less".
+//
+// This is the ONE multiplier, and it returns 0 when costs are off - so a caller
+// that multiplies by it needs no second test, and the quote in the Time pop-up
+// reads the same number the charge does.
+const FLOW_INTERACT_TIME_MULT = 0.5;
+function interactTimeCostMult() {
+  if (!interactTimeCostsOn()) return 0;
+  if (typeof flowActive === 'function' && flowActive()) return FLOW_INTERACT_TIME_MULT;
+  return 1;
+}
+
 function spendRoundTime(sec) {
-  // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
-  // charging swaps/discards against it would make interacting summon the inspection
-  // early. Swaps and discards are still capped by their per-round COUNTS.
-  if (typeof flowActive === 'function' && flowActive()) return;
+  if (!interactTimeCostsOn()) return;
   if (roundEnded || !sec || sec <= 0) return;
   roundSeconds -= sec;
   if (roundSeconds < 0) roundSeconds = 0;

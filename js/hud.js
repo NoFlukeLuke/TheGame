@@ -120,7 +120,7 @@ function updateSelectionUI() {
   const cap = (onShop || !onReward) ? limits.selection.current : rewardSelectionCap();
   const min = onShop ? 1
             : onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
-                       : (typeof minSelection  === 'function' ? minSelection()  : 1);
+                       : (typeof handMinSelection === 'function' ? handMinSelection() : 1);
 
   // Top bar: the limit, not the count.
   const el = document.getElementById('sel-display');
@@ -425,6 +425,21 @@ function updateHandNameLabel(result) {
   if (html && _pen > 0) {
     html += `<span class="hn-plus">−</span>`
           + `<span class="hn-l hn-drop"><b>DROP</b><i>${_pen} · −${result.penaltyPips || 0}</i></span>`;
+  }
+  // r326: the TAGALONGS, which only the knack permits. They are separate from
+  // DROP on purpose - a dropped card is the hand refusing a passenger, a tagalong
+  // is the hand carrying one because you paid to be allowed to. Both are red and
+  // both are a bill; only this one also quotes the clock.
+  //
+  // Stating it here is the whole answer to "it kept saying RUN 3 x2 when the hand
+  // wasn't even a run": the label was naming the components and saying nothing
+  // about the two or three cards riding along beside them. Measured at Selection
+  // Size 7 with Tagalong owned, 73% of hands were carrying at least one.
+  const _tag = (result && result.tagalongCells && result.tagalongCells.length) || 0;
+  if (html && _tag > 0) {
+    const _ts = result.tagalongSeconds || 0;
+    html += `<span class="hn-plus">−</span>`
+          + `<span class="hn-l hn-drop"><b>TAG</b><i>${_tag} · −${result.tagalongPips || 0}${_ts > 0 ? ` · −${_ts}s` : ''}</i></span>`;
   }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.

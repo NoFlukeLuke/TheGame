@@ -93,13 +93,15 @@ const INFO_TOPICS = [
       ['A run needs consecutive ranks. 4-6-7-5-9 is not a Straight, it is a Run of 4 with the 9 dropped.',
        'A hand can be several shapes at once, so a spare card is often not spare. 2, 2, J, Q, K is a Pair and a Run of 3, and every card is used.',
        () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand, so at the largest selection sizes some cards are always dropped.`],
-      'The Tagalong {knack} lifts the whole rule: your hands may carry cards that are not part of them, and those cards score normally instead of being billed.',
+      'The Tagalong {knack} changes the rule: your hands may carry cards that are not part of them, and the minimum selection stops applying.',
+      'A carried card is not free. It costs its pips off the hand, and its pip value in seconds off the clock. It turns red on the board like a dropped card, and the hand label prices it.',
     ] },
 
   { id: 'min_selection', group: 'basics', title: 'The minimum you must commit',
     body: [
       'Selection Size is not just a ceiling. Raising it also raises a FLOOR two below it, so at a Selection Size of 5 you must commit at least 3 cards to every hand.',
       'The hand label reads NEED / n in red until you have enough.',
+      'The Tagalong {knack} removes the floor. Any hand of two cards or more is then legal at any Selection Size.',
     ] },
 
   { id: 'high_card', group: 'basics', title: 'High Card',

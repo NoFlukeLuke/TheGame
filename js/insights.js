@@ -93,7 +93,7 @@ const INSIGHTS = [
   // 5-card selection carries a dropped card 80% of the time.
   { id: 'penalty_cards', title: 'That card is being dropped',
     anchor: ['#hand-name'],
-    body: 'A red card is not part of the hand. You lose its pips and the card.',
+    body: 'A red card is not part of the hand. You lose its pips and the card. With Tagalong it also costs its pip value in seconds.',
     when: () => !!document.querySelector('#hand-name .hn-drop') },
 
   { id: 'min_selection', title: 'You need more cards',

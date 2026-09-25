@@ -849,8 +849,184 @@ and I cannot tell why". The rules, as the code actually is:
 - **The rank partition means "fully used" is not "one shape".** `{2S 2H JH QC KD}` is `Pair + Run of 3` - two disjoint components covering all five - and scores 395. That is the same machinery the 7-card hands use, so the rule is much less restrictive than it sounds.
 - **High Card is the fallback, and it covers every cell by definition.** When the rule rejects a hand with a passenger, the subset falls through to High Card, and `findBestHand` picks whichever actually pays more: measured on a Pair beside three big cards, `Pair` + 3 penalty (52) still beat High Card (30), so the escape valve costs nothing when it isn't needed.
 - **The `hasKnack` call is in the `handComponentsFor` cache key.** Granting Tagalong mid-run changes the answer for cells whose cards have not moved, and the cached entry would otherwise be reused.
-- **Tagalong** (rare knack) lifts it: hands may carry cards that are not part of them, and those cards score their own pips instead of being billed as penalties. That is the whole reason it is a knack - before r201 this was free and unremarkable, so making it the default and selling it back turns "my hand has a spare in it" into something you paid for.
+- **Tagalong** (rare knack) RAISES the allowance rather than removing the rule. **r326 rewrote what it costs and what it buys - see "Tagalong carries passengers, and bills them" below.** This line used to say the carried cards "score their own pips instead of being billed as penalties", which is what the code did and is no longer what it does.
 - **Verified unaffected:** the 7-card `Run of 4 + Set of 3 + Flush` still scores 1870; the tutorial's board audit passed 40 of 40 deals; RECORDS renders; match-3 is byte-for-byte the same behaviour before and after (checked by running the same deal on both commits).
+
+### Flow bills its clock, and the bosses say what they do (r326)
+
+Two more things from the same report.
+
+**FLOW CHARGES FOR TOUCHING THE BOARD AGAIN.** Owner: *"yes it should apply even
+there, and we should turn that back off. maybe make them cost a little less
+there, but they should definitely cost. swap and discard i mean, as well as
+tagalongs."* r234 had exempted Flow on the reasoning that its clock is the
+countdown to the inspection, so interacting could summon the boss early - true,
+and the owner's answer is that summoning it early is exactly what a cost should
+feel like. Flow was the one mode where touching the board was free, in a mode
+whose only pressure is Focus decay.
+
+- **`interactTimeCostMult()` (js/round-timers.js) is the ONE number now**, and it
+  returns **0** when the mode does not bill the clock at all, **0.5** in Flow and
+  **1** everywhere else. Both charge sites (js/input.js, js/discard.js) and the
+  Time pop-up multiply by it instead of branching on `interactTimeCostsOn()`, so
+  the quote and the charge still come from one place - r151's rule, which two
+  separate bugs have already been caught by.
+- **Flow pays half because its clock is asked to cover much more.** A Classic
+  3:00 clock buys ONE round; Flow's 5:00 covers every level-up until the
+  inspection (`flowNextRoundSeconds` refills only at run start and after a boss),
+  so the same 8s swap is several times dearer there. Measured: a swap costs 4s
+  and a discard 1.5s a card in Flow, 8s and 3s everywhere else.
+- **`MODES.flow.timeIsCurrency` is `true`**, so `interactTimeCostsOn()` needed no
+  Flow case at all - the flag describes what the mode does again. A picker-built
+  run that chose "no time limit" is still forced to `timeCost: 'no'` and still
+  answers 0.
+- `spendRoundTime` has had no callers since r151 and is kept for the reason
+  `DISCARD_TIME_COST` is; its Flow early return became the shared predicate.
+
+**THE BOSS BRIEFS SAY WHAT THE BOSS DOES AND STOP.** Owner: *"the description
+doesn't make any sense, and all the boss descriptions have that weird AI sounding
+voice thing. they should just explain the boss mechanic as clearly as possible
+and that's it. no editorialization needed."* All 34 `brief` strings in
+`js/data/bosses.js` were rewritten to the owner's own model, which is the whole
+style guide: *"The corners of the grid have been removed, along with half your
+discards and swaps."*
+
+What came out, and what to keep out if you add a boss:
+
+| out | example that was there |
+|---|---|
+| telling the player how to feel about it | "Focus is still worth having - it just costs you the round to hold." |
+| telling the player how to play it | "Move down the ladder and come back to it." |
+| reassurance | "Nothing is switched off - your best hand is still your best hand." |
+| explaining the DESIGN | "which is what makes the round a plan rather than a wall" |
+| a number written as a phrase | "the opposite edge pays half again on top" |
+
+**The Gradient is the one the owner could not read, and its number was the
+problem.** `bossGradientScale` interpolates between `lo` 0.5 and `hi` 1.5, so the
+brief now says "half pips at one edge ... one and a half times at the opposite
+edge" rather than "half again on top". The identical phrasing in the code comment
+above `bossGradientTick` went with it.
+
+- **`flavor` is untouched.** It is the one-line subtitle under the boss's name,
+  not the description, and the owner pointed at the descriptions.
+- **The brief must not restate the objective.** `bossBriefHTML` prints
+  `OBJECTIVE - REACH THE GOAL (n)` as its own line directly underneath.
+- The one surviving `target: 4000` (The Hold) is gone, which is what the file's
+  own header comment has claimed since r205.
+
+### Tagalong carries passengers, and bills them (r326)
+
+Owner, on a Flow run: *"the hand detection was not working well at all, mostly at
+high selection sizes, it kept saying run of 3 x2 when the hand wasn't even a
+run."* And separately: *"once you're at 6 and you have to play 4 card hands, the
+ability to just throw 2 random cards on at the end of anything just feels like
+there may as well be no minimum. so maybe that's true... yeah it probably is."*
+
+**THE DETECTION WAS RIGHT. THE HUD WAS LYING BY OMISSION, AND TAGALONG IS WHY.**
+Measured over 4,800 random connected selections at Selection Size 7: every
+component of every hand was a real component - **0 mislabelled runs, sets or
+flushes**. `RUN 3 x2` really is two disjoint Runs of 3, and `handLabelHTML`
+collapsing a repeat to `x2` is a count, not a multiplier.
+
+What was missing is everything ELSE in the selection. With Tagalong owned,
+`handComponentsFor` returns a partition that may leave cards unclaimed, and
+`findBestHand`'s r293 whole-selection early return reported
+**`penaltyCells: []`** - so the passengers were not red on the board, not in the
+label, not in the breakdown, and not billed. Measured at Selection Size 7 with
+the knack owned, **73% of hands were carrying at least one passenger and the
+average hand carried 1.5**; at 6-7 cards it was **80% of hands, 2.1 cards each**.
+So a seven-card selection where two cards did nothing at all read as `RUN 3 x2`,
+and the owner correctly said the hand was not a run.
+
+#### The three rules, and where each lives
+
+| | now | was |
+|---|---|---|
+| the minimum selection | **does not apply** with Tagalong | applied |
+| passengers per hand | **unlimited** (`tagalongMaxCards`, dev knob) | unlimited |
+| what a passenger costs | **its pips, AND its pip value in seconds** | nothing - it SCORED its pips |
+
+- **THE THIRD ROW IS THE BIG ONE AND THE OLD DOCS HAD IT BACKWARDS.** r201's note
+  said the carried cards were "billed as penalties instead"; the code paid them,
+  so until r326 a passenger was a small BONUS. That is the whole of the owner's
+  "the only penalty is minus pips which by like round 3 is meaningless" - there
+  was no penalty at all, and the pip half is feeble anyway. Measured on a bare
+  loadout, an average hand's passengers bill **5.5% of the hand at level 1 and
+  1.9% at level 18**, and a real Trick tray makes that smaller still.
+- **THE CLOCK IS THE LEVER THAT HARDENS ON ITS OWN.** A second does not grow with
+  the level while the goal does, so a flat charge is worth more every round -
+  which is exactly the shape the pip bill fails to have. Measured at Selection
+  Size 7-9, a hand deliberately carrying passengers costs about **13 seconds** of
+  a 180s Classic round.
+- **`tagalongMax()` returns 0 without the knack, `Infinity` with it, or the cap.**
+  That collapses r201's rule and the cap into ONE comparison in
+  `handComponentsFor` - `unclaimedCount(components) > _maxTagalong` voids the hand -
+  and 0 reproduces r201 exactly, which is what the A/B below proves. The r281
+  covering-partition retry hangs off the same comparison, so it still fires only
+  when a hand is about to be thrown away.
+- **`handMinSelection()` (js/limits.js) is the play grid's floor; `minSelection()`
+  stays the raw arithmetic.** Nine play-grid callers read the first (the PLAY
+  button, the auto-submit and its scheduler, the `playHand` guard, the NEED
+  label, the x/y readout, High Card's gate, the tutorial). **`rewardMinPicks()`
+  reads the second and must keep doing so** - Tagalong is a rule about HANDS and
+  has no business changing how many tiles a reward path takes.
+- **High Card switches off with the minimum, and that is correct rather than
+  incidental.** Its gate is `minSelectionBinds()`, which now reads the hand floor.
+  High Card is the escape valve for a selection you were FORCED to make (r200);
+  with no minimum nothing is forced, so a shapeless five-card selection is
+  honestly "no hand here" and the answer is to select fewer cards.
+
+#### Where a passenger is reported, and the one place it is computed
+
+`handTagalongCells(cells)` is that place. `_withTagalongs` decorates BOTH of
+`findBestHand`'s return paths with `tagalongCells` / `tagalongPips` /
+`tagalongSeconds`, and `finalScore` subtracts both bills.
+
+- **A TAGALONG AND A PENALTY CARD ARE DIFFERENT THINGS AND ARE KEPT APART.** A
+  penalty card is OUTSIDE the hand (the hand refused it); a tagalong is INSIDE
+  `handCells` and in none of its components (you paid to be allowed to carry it).
+  Both bill pips; only a tagalong bills the clock. The label prints `DROP` for one
+  and `TAG` for the other. **The BOARD paints both red with the same class**,
+  deliberately: one class, one meaning - this selected card is not part of the
+  hand and you are paying for it.
+- **THE SUBSET SEARCH BILLS THEM TOO.** Without that line the search would happily
+  prefer a subset carrying three passengers over one carrying none, since they
+  cost the same pips wherever they sit.
+- **`playHand` RECOMPUTES them rather than reading `result`**, because the Ringer
+  (js/sleights-runtime.js) and Roll Call (js/card-states.js) both SPREAD the
+  result they were handed while replacing `handCells` - so the fields
+  `findBestHand` wrote describe the hand before the augment. `handComponentsFor`
+  is cached, so asking again costs nothing.
+- **The time bill is charged beside the Rider's**, after the score commits, so a
+  hand that wins the round still wins it however little clock is left - the
+  ordering the Tollman's play surcharge already relies on.
+
+#### Two cache bugs found while measuring, both real
+
+`_compCache` is keyed on the CARDS, which is right for a board that moves and
+wrong for a RULE that moves under a board that has not.
+
+- **`activeHands` was not in the key.** Short Suit turning on flush3/flush4
+  mid-run (js/limits.js) or a mode unlocking a hand (js/hands-meta.js) changed
+  the answer for cells whose cards had not moved, and the stale entry was reused.
+  Its `size` is a sound fingerprint: nothing ever removes a key, so a change is
+  always a growth.
+- **NATURAL SCALING was not in the key either**, and `handWorth` reads it through
+  `handBasePips`/`handBaseMult` - so the cache could hold a partition the live
+  rates would no longer choose. `recordNaturalScale` calls
+  `clearHandCompCache()`, because it is the one function that moves those numbers
+  mid-round. Do not scatter that call; if a second thing starts moving them, it
+  goes there.
+
+#### Verified
+
+**8,637 selections across Flow, Classic and Spectrum, at Selection Sizes 3/5/7/9,
+byte-identical to r325 with Tagalong not owned** - same hand, same cells, same
+penalties, same score (planted boards and a seeded selection stream through both
+trees, `git worktree` A/B). With the knack owned: passengers are reported on
+every path, `finalScore` equals `rawScore - penaltyPips - tagalongPips` on every
+hand, a cap of 1 yields exactly one passenger per hand over 1,071 hands, and the
+minimum reads 1 against a raw floor of 5.
 
 ### The partition and the load-bearing rule were fighting (r281)
 
@@ -1237,7 +1413,8 @@ entire text is "your payouts are uncapped".
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 
-- **Flow was billing its clock the whole time, and `interactTimeCostsOn()` (r234) is the fix.** `spendRoundTime` returns early for Flow and the Time pop-up quoted 0s, but **neither is what charges**: the two real sites (`js/discard.js`, `js/input.js`) write `roundSeconds` directly and neither consulted `flowActive()`. So every swap billed 8s off a session clock whose own comment says interacting must not be able to summon the inspection early. Both sites and the pop-up now read the one predicate, so the quote and the charge cannot drift. `spendRoundTime` has no remaining callers and is kept for the same reason `DISCARD_TIME_COST` is.
+- **FLOW BILLS ITS CLOCK AGAIN AS OF r326**, at half rate, so the paragraph below is history rather than current behaviour. `interactTimeCostsOn()` still exists and still reads `ACTIVE_MODE.timeIsCurrency`; what changed is that Flow's flag is now `true` and the rate lives in `interactTimeCostMult()`.
+- **Flow was billing its clock the whole time, and `interactTimeCostsOn()` (r234) was the fix.** `spendRoundTime` returns early for Flow and the Time pop-up quoted 0s, but **neither is what charges**: the two real sites (`js/discard.js`, `js/input.js`) write `roundSeconds` directly and neither consulted `flowActive()`. So every swap billed 8s off a session clock whose own comment says interacting must not be able to summon the inspection early. Both sites and the pop-up now read the one predicate, so the quote and the charge cannot drift. `spendRoundTime` has no remaining callers and is kept for the same reason `DISCARD_TIME_COST` is.
 - **Playing a hand costs no time (r50):** the old "−5s per manual play (+ reward-grid penalties)" deduction in `playHand` was removed (owner request). Reward-grid play-cost debuffs (`extraPlayCostPerm` etc.) still parse but are inert.
 - **Suits are NEUTRAL by default** (owner's decision, now shipped). A plain card scores only its pips × mult - no per-suit coin/time/pip/mult bonus. Suit effects come *only* from exalt/corrupt (below) or Tricks (♥/♣ Tricks in `calcScore`; Spade Flood etc.). The old defaults (♣ pips, ♥ mult, ♦ coin, ♠ time) are gone - see the "suits are neutral" comment in `playHand`.
 - `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild sleights (temp rank/suit) and drops non-wild sleights from detection.
@@ -2870,7 +3047,7 @@ already read and a custom run is not a special case anywhere outside this file.
 | Deck | `suitCount`, `numeric` | `ACTIVE_SUITS` / `ACTIVE_RANKS`, `applyModeHandValues`, `applyModeEntityFilter` |
 | Between rounds | `actStructure`, `guided`, `survival` | the three between-round routes in `level-up.js` / `interlude.js` |
 | Round clock | `clock` | `currentRoundDuration`, `roundClockEndsRound` |
-| Interacting | `timeIsCurrency` | `interactTimeCostsOn` |
+| Interacting | `timeIsCurrency` | `interactTimeCostsOn` / `interactTimeCostMult` |
 | Bosses | `enableBosses` | `bossesEnabled` |
 | Submitting | `autoPlayHands` | `autoSubmitDelay` |
 | Hand values | `scoringModel` | `handBasePips` / `handBaseMult` |
@@ -2916,6 +3093,12 @@ would have to override.
   no-limit round still feeds every timing entity a real elapsed figure. **A boss
   window always ends the round** - that clock is the boss. Verified: the clock
   reaches 0, the round does not end, the timer stays live and elapsed reads 600.
+- **r326 note: the ONE answer is now `interactTimeCostMult()`, which returns 0 when
+  `interactTimeCostsOn()` is false and Flow's half rate when it is true.** Both
+  charge sites and the Time pop-up multiply by it rather than branching on the
+  predicate, so there is still exactly one number. The paragraph below is
+  otherwise unchanged, except that **Flow is no longer the exception**: its
+  `timeIsCurrency` is `true` and it pays `FLOW_INTERACT_TIME_MULT` (0.5).
 - **`interactTimeCostsOn()` is the one answer to "do swaps and discards bill the
   clock", read by the two sites that charge AND by the Time pop-up that quotes
   them** - the same discipline r151 imposed after the double-charge bug.

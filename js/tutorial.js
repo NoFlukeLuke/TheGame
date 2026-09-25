@@ -278,9 +278,10 @@ function tutDiscardCost() { return (BAL._resources && BAL._resources.discard_sec
 // Selection Size, both ends of it. Read live for the same reason the costs are:
 // a limit upgrade can land before this step is reached (the reward grid's first
 // five grids guarantee one), and a quoted cap that is already stale is worse
-// than none. `minSelection()` is the one place the floor is worked out (r200).
+// than none. `handMinSelection()` is the one place a HAND's floor is worked out
+// (js/limits.js) - it is minSelection() unless Tagalong has lifted it (r326).
 function tutSelCap() { try { return limits.selection.current; } catch (e) { return 3; } }
-function tutSelMin() { try { return minSelection(); } catch (e) { return 1; } }
+function tutSelMin() { try { return handMinSelection(); } catch (e) { return 1; } }
 
 // ── The script ───────────────────────────────────────────────────────────────
 // anchor:     () => Element | Element[] | null - each element gets its own hole
@@ -385,7 +386,7 @@ const TUTORIAL_STEPS = [
     when: () => tutRoundLive(),
     eyebrow: 'Basics',
     title: 'Every card must be used',
-    body: `Select five cards where only four make a shape and the fifth is <b>dropped</b>. You lose its pips and the card.<br><br>A card about to be dropped turns red on the board, and the label beside the hand shows what it costs.`,
+    body: `Select five cards where only four make a shape and the fifth is <b>dropped</b>. You lose its pips and the card.<br><br>A card about to be dropped turns red on the board, and the label beside the hand shows what it costs.<br><br>The Tagalong {knack} lets a hand carry those cards instead. They still turn red, and they still cost you.`,
   },
   {
     // r284: Selection Size is a cap AND a floor, and nothing on screen says so
@@ -397,8 +398,11 @@ const TUTORIAL_STEPS = [
     title: 'Selection Size',
     body: () => {
       const cap = tutSelCap(), min = tutSelMin();
+      const lifted = (typeof tagalongLiftsMinimum === 'function') && tagalongLiftsMinimum();
       return `Your Selection Size is <b>${cap}</b>. That is the most cards you can put in one hand.<br><br>`
-           + (min > 2
+           + (lifted
+              ? `Tagalong has removed the floor, so any hand of two cards or more is legal.<br><br>`
+              : min > 2
               ? `It carries a floor with it: you must commit at least <b>${min}</b>. Under that the hand label reads NEED.<br><br>`
               : `Raising it also raises a floor - the most you can select, minus two - so bigger hands become the minimum as well as the maximum.<br><br>`)
            + `The count beside the board is what you have selected over what this screen will take.`;
