@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r373 · the pick-three sits on a panel in its title card's colour; the reward odds are two flat tables (count, then kind) with an early-levels override; CARD PACK joins CERTS and rare+ UTILITIES";
+const BUILD = "2026-09-25 · r374 · the pick-three title card is the panel's own header; PICK 3 may not repeat in a chain and the rest are damped; counts 48/32/10/6/4";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

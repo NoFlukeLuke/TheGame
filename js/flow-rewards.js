@@ -65,10 +65,11 @@ const FLOWR_MAX  = 5;
 // different sets of offers. Measured below.
 const FLOWR_DEF  = {
   on: true,
-  // Relative weight of 1..5 rewards. The owner's table is 40/25/10/5/5, which
-  // sums to 85 - so it is NORMALISED rather than taken as percentages, which
-  // keeps every ratio they chose and spreads the missing 15 proportionally.
-  counts: [40, 25, 10, 5, 5],
+  // Relative weight of 1..5 rewards. Owner's row, and it sums to 100 - so these
+  // ARE the percentages. It is still normalised on read, which costs nothing and
+  // means a retune that does not add up still plays the ratios it sets (the dev
+  // panel prints what a row actually comes out as).
+  counts: [48, 32, 10, 6, 4],
   // Share of every reward screen. Sums to 100 as given.
   odds: { pick3: 30, cards: 15, deck: 15, sleights: 15, limits: 10, improve: 10, knacks: 2.5, tricks: 2.5 },
   // THE ONLY THING THAT STILL CARES ABOUT WHEN: the opening levels lean toward
@@ -80,6 +81,23 @@ const FLOWR_DEF  = {
   early: { limits: 20, improve: 0 },
 };
 const FLOWR_EARLY_LEVELS = 5;              // `early` applies while level <= this
+
+// ── REPEATS WITHIN ONE CHAIN (r374) ──
+// Owner: *"the only one i don't want to see repeat is the generic pick three.
+// the rest can, but should be pushed away from that trend if possible. not
+// worried about it changing the odds on the grid so much."*
+//
+// So a kind already drawn in THIS chain has its weight multiplied by the damp
+// for each time it has been drawn - compounding, so a third is rarer than a
+// second - and PICK 3 is damped to nothing. That is the difference between
+// "discouraged" and "never", in one mechanism.
+//
+// IT DOES MOVE THE MARGINALS, which the owner has accepted: weight taken off a
+// repeat has to land somewhere, and it lands on the kinds not yet drawn. The
+// shift is small because most chains are short (1 or 2 screens, 80% of them) -
+// measured in the table at the head of this file.
+const FLOWR_NO_REPEAT   = new Set(['pick3']);
+const FLOWR_REPEAT_DAMP = 0.3;
 const FLOWR_KEY  = 'lethe.flowRewards.v2'; // OVERRIDES ONLY (the goal-tuner rule)
 
 const FLOWR_KINDS = {
@@ -218,6 +236,74 @@ function flowrRollKind(odds) {
   return flowrPickWeighted(keys, keys.map(k => odds[k]));
 }
 
+// The odds for the NEXT slot of a chain, given what it has already paid.
+// EVERY KIND ZEROED IS NOT AN ANSWER - it would make flowrRollKind fall back to
+// pick3, which is the one kind that must not repeat - so a table that damps to
+// nothing hands back the undamped one.
+function flowrDampOdds(odds, taken) {
+  const out = {};
+  let any = false;
+  FLOWR_KIND_IDS.forEach(k => {
+    const base = odds[k] || 0;
+    if (base <= 0) return;
+    const t = taken[k] || 0;
+    if (t && FLOWR_NO_REPEAT.has(k)) return;
+    out[k] = t ? base * Math.pow(FLOWR_REPEAT_DAMP, t) : base;
+    if (out[k] > 0) any = true;
+  });
+  return any ? out : odds;
+}
+
+// The viability fallback, as an expression - a kind with nothing to offer shows
+// the ordinary pick rather than an empty screen.
+function flowrKindViable2(kind) { return flowrKindViable(kind) ? kind : 'pick3'; }
+
+// THE SET WEIGHT IS NOT THE REALISED SHARE once repeats are damped, so the dev
+// panel measures rather than prints the table back (r374). Weight taken off a
+// repeat lands on the kinds not yet drawn, and pick3 - banned from repeating -
+// pays for all of it: measured, a set 30 comes out at 25.2 and every other kind
+// gains a little. A quoted number and a delivered number drifting apart is the
+// r151 mistake, so the panel shows both.
+//
+// A Monte Carlo rather than a closed form: the damping compounds per draw and
+// the count distribution is a second table on top, so the algebra is worse than
+// the simulation. It deliberately re-uses the REAL roll functions, so it cannot
+// describe a different game from the one being played.
+//
+// IT MUST NOT TOUCH THE SEEDED STREAM. js/seed.js REPLACES the global
+// Math.random for a seeded run, and these 37,000 draws would advance it - so a
+// dev panel opened mid-run would change every deck shuffle, reward grid and
+// boss roll after it. This is cosmetic randomness and takes fxRandom(), the
+// rule CLAUDE.md states for every animation driver; the swap-and-restore is
+// seed.js's own withSeededRng shape, and it is safe because the sim is
+// synchronous and nothing can interleave with it.
+//
+// CACHED on the live table, because flowrDevSync runs on every open and every
+// edit and 20k chains is ~75ms - a visible hitch on each keystroke commit. The
+// sim only depends on the tables, so a cache key of the tables is exact.
+let _flowrSimCache = { key: null, out: null };
+function flowrSimShare(trials) {
+  const odds = flowrOddsNow();
+  const key = JSON.stringify([odds, flowrCfg().counts, trials]);
+  if (_flowrSimCache.key === key) return _flowrSimCache.out;
+  const prev = Math.random;
+  if (typeof fxRandom === 'function') Math.random = fxRandom;
+  const out = {}; let screens = 0;
+  try {
+    for (let i = 0; i < trials; i++) {
+      const n = flowrRollCount(), taken = {};
+      for (let j = 0; j < n; j++) {
+        const k = flowrRollKind(flowrDampOdds(odds, taken));
+        taken[k] = (taken[k] || 0) + 1;
+        out[k] = (out[k] || 0) + 1; screens++;
+      }
+    }
+  } finally { Math.random = prev; }
+  Object.keys(out).forEach(k => { out[k] = out[k] / screens * 100; });
+  _flowrSimCache = { key, out };
+  return out;
+}
+
 // A kind with nothing to offer substitutes pick3 rather than showing an empty
 // screen (the reward-grid "an event you cannot use is never offered" rule).
 function flowrKindViable(kind) {
@@ -246,14 +332,18 @@ function flowrMaybeStart() {
   if (!flowrCfg().on) return false;
   if (flowrQueue) return false;
   const n = flowrRollCount();
-  // EVERY SLOT IS ROLLED ON ITS OWN, with replacement, so a chain can legitimately
-  // repeat a kind - see the table's header. A kind with nothing to offer falls
-  // back to pick3 rather than showing an empty screen.
+  // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
+  // screens and says nothing about where it lands - but a kind already drawn in
+  // THIS chain is damped (see FLOWR_REPEAT_DAMP), and pick3 to nothing. A kind
+  // with nothing to offer falls back to pick3 rather than showing an empty
+  // screen; that substitution is COUNTED too, so it cannot sneak a second pick3
+  // past the damping either.
   const odds = flowrOddsNow();
-  const queue = [];
+  const queue = [], taken = {};
   for (let i = 0; i < n; i++) {
-    const k = flowrRollKind(odds);
-    queue.push(flowrKindViable(k) ? k : 'pick3');
+    const k = flowrKindViable2(flowrRollKind(flowrDampOdds(odds, taken)));
+    queue.push(k);
+    taken[k] = (taken[k] || 0) + 1;
   }
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
   if (n <= 1 && queue[0] === 'pick3') return false;
@@ -432,7 +522,7 @@ function flowrRenderStack() {
   el.innerHTML = rest.slice().reverse().map((kind, i) => {
     const meta = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
     const depth = rest.length - 1 - i;              // 0 = current
-    return `<div class="fst-chip" style="--fst-c:${meta.color}; --fst-d:${depth}">`
+    return `<div class="fst-chip${depth === 0 ? ' fst-cur' : ''}" style="--fst-c:${meta.color}; --fst-d:${depth}">`
       + (depth === 0 ? `<span>NOW ${flowrKindShort(kind)}</span>` : '') + `</div>`;
   }).join('');
   host.appendChild(el);
@@ -1026,12 +1116,13 @@ function flowrDevSync() {
   mk(document.getElementById('dev-flowr-early'), 'early', '-');
 
   const live = flowrOddsNow();
-  const total = FLOWR_KIND_IDS.reduce((s2, k) => s2 + Math.max(0, cfg.odds[k] || 0), 0) || 1;
+  const sim  = flowrSimShare(20000);      // what the damping actually delivers
   FLOWR_KIND_IDS.forEach(k => {
     const eo = document.getElementById('dev-flowr-odds-' + k);
     if (eo && document.activeElement !== eo) eo.value = cfg.odds[k];
     const pc = eo && eo.parentElement.querySelector('.dev-flowr-pct');
-    if (pc) pc.textContent = ' ' + (Math.max(0, cfg.odds[k] || 0) / total * 100).toFixed(1) + '%';
+    // The MEASURED share, not the weight normalised - see flowrSimShare.
+    if (pc) pc.textContent = ' \u2192' + (sim[k] || 0).toFixed(1) + '%';
     const ee = document.getElementById('dev-flowr-early-' + k);
     // BLANK means "no override", which is not the same as 0 ("never") - so an
     // absent key writes an empty field rather than a zero the owner never set.

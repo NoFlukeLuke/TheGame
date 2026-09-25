@@ -8424,6 +8424,91 @@ Both halves done.
   runs with APPLY staying dark; **a normal hand still submits off the same
   button afterwards**. 0 page errors.
 
+## r374 - the tab IS the panel's header, and only PICK 3 may not repeat
+
+Three owner notes on r373.
+
+### 1. The title card is the panel's width now
+
+Owner: *"the title part of the tab needs to blend seamlessly with the rest of
+the chip. right now the title part doesn't look like part of the rest of it.
+either widen the title part so it sits flush with the outside edges of the rest
+of the square, or remove the white highlight around the title where it draws
+over the border of the rest of the square."*
+
+**It was BOTH, and both are fixed.** Measured at 1440x820: the tab was **507px
+against a 659px panel - 153px narrower** - so its corners sat well inside the
+panel's, and it carried a full-saturation `var(--fst-c)` border against the
+panel's 48% one, which is the bright edge the report calls a white highlight.
+
+- `#flowr-stack` is **exactly the panel's width** (`--grid-w + 2 * --fbg-pad`),
+  not 72% of the slot. The current tab's left and right borders then CONTINUE
+  the panel's upward and the join is one outline; the panel's own top border is
+  covered along its whole width, so nothing crosses the tab's face. Measured
+  after: **width delta 0**.
+- **`.fst-cur` wears the PANEL'S border** (48%) and the panel's 10px top radius,
+  and drops its own upward glow - the panel already carries one, and two stacked
+  is what made the tab read as a separate lit object. **The QUEUED tabs keep the
+  strong border and the glow**: they are meant to read as cards behind, and they
+  still step inward from the full width.
+
+### 2. Only PICK 3 may not repeat; the rest are discouraged
+
+Owner: *"honestly i think the only one i don't want to see repeat is the generic
+pick three. the rest can, but should be pushed away from that trend if possible.
+not worried about it changing the odds on the grid so much."*
+
+`flowrDampOdds(odds, taken)` is the whole mechanism: a kind already drawn in
+THIS chain has its weight multiplied by `FLOWR_REPEAT_DAMP` (0.3) for each time
+it has been drawn - compounding, so a third is rarer than a second - and
+`FLOWR_NO_REPEAT` (pick3) is damped to nothing. That is the difference between
+"discouraged" and "never", in one table rather than two mechanisms.
+
+| measured, 300,000 chains | undamped | **damped** |
+|---|---|---|
+| chains repeating any kind | 35.1% | **9.8%** |
+| chains repeating PICK 3 | 17.5% | **0.00%** |
+| adjacent slots the same | 17.9% | **3.6%** |
+
+- **EVERY KIND ZEROED IS NOT AN ANSWER.** `flowrRollKind` falls back to pick3
+  when handed an empty table, which is the one kind that must not repeat - so a
+  table damped to nothing hands back the undamped one.
+- **The viability substitution is COUNTED too.** A kind with nothing to offer
+  becomes pick3, and if that were not recorded in `taken` it could sneak a second
+  pick3 past the ban.
+- **IT MOVES THE MARGINALS, and pick3 pays for all of it** - weight taken off a
+  repeat lands on the kinds not yet drawn. Set 30 delivers **25.2%**; every other
+  kind gains: cards/deck/sleights 15 -> ~15.8, limits 10 -> 10.9, improve
+  10 -> 10.8, knacks/tricks 2.5 -> ~2.9. The owner has accepted that.
+- **SO THE DEV PANEL MEASURES RATHER THAN PRINTS THE TABLE BACK.**
+  `flowrSimShare` Monte-Carlos the real roll functions and the odds row shows
+  `30 ->25.2%`. A quoted number and a delivered number drifting apart is the r151
+  mistake, and this one drifts by five points.
+- **THE SIM MUST NOT TOUCH THE SEEDED STREAM.** js/seed.js REPLACES the global
+  `Math.random` for a seeded run, and 37,000 draws would advance it - so a dev
+  panel opened mid-run would change every deck shuffle, reward grid and boss roll
+  after it. It takes `fxRandom()` under seed.js's own swap-and-restore shape,
+  which is safe because the sim is synchronous. **Verified: the seeded stream is
+  byte-identical across a 20k-chain sim.**
+- **CACHED on the live tables**, because `flowrDevSync` runs on every open and
+  every edit and a cold sim is ~73ms - a visible hitch per keystroke commit.
+  Measured cold 73ms, warm 0ms, a panel sync **1.4ms**.
+
+### 3. The count row
+
+`counts` is **48 / 32 / 10 / 6 / 4** (owner's, and it sums to 100, so these are
+the percentages). It is still normalised on read, which costs nothing and means
+a retune that does not add up still plays the ratios it sets - the dev panel
+prints what a row actually comes out as. **Mean 1.86 screens a level-up**, down
+from r373's 1.94.
+
+Verified in a real browser at 1440x820 and 420x820 through a REAL goal hand into
+a forced 5-chain: the counter fires **17-42ms after the blast settles**, every
+step shows **5/5 tiles and buttons inside its panel, 0 tabs touching a tile, 0
+tabs outside the slot, 0 tiles overflowing**, the tab and the location chip name
+the same screen, the deck audit balances 56 -> 59, `level` moves once at the
+chain's end, and there are **no page errors**.
+
 ## r373 - the pick-three sits on a PANEL, and the odds are two flat tables
 
 Three owner asks in one pass. The r325 chain machinery - the stacked chance, the
