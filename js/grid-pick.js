@@ -189,7 +189,12 @@ function gridPickTileHTML(p, i) {
   // would re-anchor the bubble every time the pointer crossed between the
   // object and the words under it (the delegated listener keys on the NEAREST
   // [data-et]); one payload on the whole tile is one hover target.
-  const art = (isEnt && typeof entityTileHTML === 'function')
+  // artHTML is the escape hatch for an offer that is not an entity and is not
+  // an icon either - today the Flow card pack, whose art is three real mini
+  // playing cards. It is built by the caller, because what a pack looks like is
+  // that feature's business and not this file's.
+  const art = p.artHTML ? p.artHTML
+    : (isEnt && typeof entityTileHTML === 'function')
     ? entityTileHTML({ entity: p.entity, id: p.id, emoji: p.emoji || p.icon, label: p.label, uses: p.uses }, rar,
                      { extraClass: 'gp-obj', tip: false })
     : `<div class="gp-icon">${p.icon || p.emoji || '\u25b2'}</div>`;
@@ -198,7 +203,7 @@ function gridPickTileHTML(p, i) {
   // The art box is given the OBJECT'S OWN ASPECT (gp-art-<kind>), so the object
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
-  const kind = isEnt ? p.entity : 'plain';
+  const kind = p.artKind || (isEnt ? p.entity : 'plain');
   // TWO BLOCKS (r292). .gp-head is the top two cells - the entity and its name,
   // nothing else - and .gp-body the two beneath. They are wrappers rather than
   // four loose children because the halves have to be SIZED against the tile
@@ -221,7 +226,14 @@ function gridPickTileHTML(p, i) {
 // CONFIRM. See the header for why the bubble is the NON-interactive one.
 function gpShowRead(opt, p) {
   if (typeof showEntityTooltip !== 'function' || !p) return;
-  showEntityTooltip(opt, gpTipPayload(p));
+  // Portrait: the read opens ABOVE the tile - the side placement always
+  // clamped it onto the other two options - and WIDE, so it is short enough to
+  // sit in the centred board's top margin (r333; r326 shoved the whole board
+  // to the slot's foot instead and the owner read it as the pick sitting too
+  // low). Landscape keeps the side placement and the normal width: the board
+  // there has real gutters and the bubble lands off the tiles already.
+  const portrait = !document.getElementById('stage')?.classList.contains('landscape');
+  showEntityTooltip(opt, gpTipPayload(p), portrait ? { prefer: 'above', wide: true } : {});
 }
 
 // Paint the selection onto tiles that are already on the board. Never a redraw:
@@ -251,11 +263,15 @@ function gridPickSelect(i) {
   if (!p) return;
   const gridEl = document.getElementById('grid');
   const opt = gridEl && gridEl.querySelector(`.gp-opt[data-gp="${i}"]`);
+  // Tapping the picked option again UNSELECTS it (owner's ask, r362) and closes
+  // its read, so a pick can be taken back without choosing something else.
   if (gridPickState.selected === i) {
-    if (typeof entityTooltipOpen === 'function' && entityTooltipOpen()) { hideEntityTooltip(true); return; }
-    if (opt) gpShowRead(opt, p);
+    gridPickState.selected = -1;
+    if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true);
+    gridPickPaintSelection();
     return;
   }
+  gridPickState.skipArmedAt = 0;
   gridPickState.selected = i;
   gridPickPaintSelection();
   if (opt) gpShowRead(opt, p);
@@ -263,11 +279,20 @@ function gridPickSelect(i) {
 }
 
 // CONFIRM. The only path that commits.
+const GP_SKIP_WINDOW = 3000;
 function gridPickConfirm() {
   if (!gridPickState) return;
   const i = gridPickState.selected;
   const p = (gridPickState.offers || [])[i];
-  if (!p) return;
+  if (!p) {
+    if (!gridPickState.onSkip) return;
+    if (Date.now() - gridPickState.skipArmedAt < GP_SKIP_WINDOW) { gridPickState.onSkip(); return; }
+    gridPickState.skipArmedAt = Date.now();
+    const btn = document.querySelector('#grid .gp-confirm');
+    if (btn) { btn.classList.remove('gp-act-off'); const sub = btn.querySelector('.gp-act-sub'); if (sub) sub.textContent = 'PRESS AGAIN TO SKIP'; }
+    setTimeout(() => { if (gridPickState && gridPickState.selected < 0) gridPickPaintSelection(); }, GP_SKIP_WINDOW);
+    return;
+  }
   gridPickState.onChoose(i, p);
 }
 
@@ -437,6 +462,10 @@ function openGridPick(opts) {
   gridPickState = {
     offers, actions: opts.actions || [], selected: -1,
     onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
+    // r362: a screen that may be SKIPPED passes onSkip. CONFIRM with nothing
+    // selected arms it ('PRESS AGAIN TO SKIP'); a second press inside
+    // GP_SKIP_WINDOW takes nothing.
+    onSkip: opts.onSkip ? () => { closeGridPick(); opts.onSkip(); } : null, skipArmedAt: 0,
   };
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');

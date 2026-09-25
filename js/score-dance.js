@@ -1133,7 +1133,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const { hand, handCells, finalScore } = result;
   const preHandFocus = lastPreHandFocus;   // FOCUS multiplier when this hand STARTED scoring
   const targetFocus = lastCalcFocus;       // FOCUS multiplier AFTER this hand's Focus (what actually scored it)
-  const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(1));
+  const targetFocusExtra = lastCalcFocusExtra || 0; // extra applications (Phoenix / Kaleidoscope, r343) - captured NOW, the global is overwritten by speculative calcScores
+  const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(2).replace(/0$/, ''));
   // Seed the FOCUS box to the hand's starting multiplier immediately (before the fly-in), so the
   // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
   { const _fEl = document.getElementById('focus-val'); if(_fEl) _fEl.textContent = _fmtFocus(preHandFocus); }
@@ -1235,7 +1236,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
     const items=document.createElement('div'); items.className='dnc-items';
     row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
-  const handItems=mkRow('Hand','hand');
+  const handItems=mkRow('','hand');   // no caption (r333) - the hand-name chip beside the cards is the label now
   const handTrack=document.createElement('div'); handTrack.className='dnc-track'; handItems.appendChild(handTrack);
   // Reuse the SAME grid-accurate markup the hand preview uses (renderCardAppearance), so cards
   // don't visually change when the dance starts (and the fly-in clone lands as an identical card).
@@ -1430,6 +1431,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
     if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
     if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    // The multiplier applied AGAIN (Phoenix / Kaleidoscope, r343): a second, quicker
+    // thump right behind the first - the prime's heartbeat idea - with the focus
+    // sound doubled, one per extra application.
+    for (let _fk = 0; _fk < targetFocusExtra; _fk++) {
+      await dwait(200); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      const fb2=document.getElementById('focus-box'); if(fb2){ fb2.classList.remove('focus-beat'); void fb2.offsetWidth; fb2.classList.add('focus-beat'); }
+      if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    }
     await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
 

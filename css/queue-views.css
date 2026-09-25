@@ -1,0 +1,81 @@
+/* ═══════════ QUEUE VIEWS (r329) - js/queue-views.js ═══════════
+   The tray's Sleight-queue face and the Card Counter focus queue. */
+
+/* The corner toggle. #trick-tray-area needs to be a containing block for it -
+   landscape never positioned the area (its ::before rides the ancestor). */
+#trick-tray-area { position: relative; }
+#tray-view-btn {
+  position: absolute; top: 2px; right: 2px; z-index: 5;
+  width: 16px; height: 16px; padding: 0; line-height: 14px;
+  font-size: 8px; text-align: center;
+  color: var(--gold-dim, #b8a468); background: rgba(10, 8, 5, 0.6);
+  border: 1px solid #3a3530; border-radius: 3px; cursor: pointer;
+}
+#tray-view-btn:hover { color: #f4ecd6; border-color: #6a604e; }
+#tray-view-btn.on { color: #b9a0ff; border-color: #6a4fae; }
+
+/* Queue-view watermark: the area still said TRICKS behind an empty queue.
+   Same recipe as the base rule, sized for the longer word. */
+#stage.landscape #trick-tray-area.sq-view::before {
+  content: "SLEIGHTS"; letter-spacing: 5px; font-size: 32px;
+}
+
+.sq-empty {
+  width: 100%; text-align: center; align-self: center;
+  font: 500 9px 'Share Tech Mono', monospace; letter-spacing: 1px;
+  color: rgba(244, 236, 214, 0.35);
+}
+.trick-tray-chip.sq-out { opacity: 0.55; }
+
+/* Corner badges sit BOTTOM-LEFT: the fan covers each tile's RIGHT edge (r284). */
+.sq-tag, .sq-ahead {
+  position: absolute; left: 2px; bottom: 2px; z-index: 4;
+  pointer-events: none; border-radius: 3px; padding: 0 2px;
+  font-family: 'Share Tech Mono', monospace; line-height: 1.3;
+}
+.sq-tag  { font-size: 6px; font-weight: 600; color: #cbbfa5; background: rgba(0, 0, 0, 0.6); }
+.sq-ahead {
+  min-width: 9px; text-align: center;
+  font-size: 8px; font-weight: 700; color: #0d0b08; background: #d9c66a;
+  border-radius: 6px; box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
+/* ── The Card Counter focus queue ── */
+#focus-queue-btn {
+  flex: 0 0 auto; width: 22px; height: 15px; padding: 0; line-height: 13px;
+  font-size: 9px; text-align: center;
+  color: var(--gold-dim, #b8a468); background: rgba(10, 8, 5, 0.6);
+  border: 1px solid #3a3530; border-radius: 3px; cursor: pointer;
+}
+#focus-queue-btn:hover { color: #f4ecd6; border-color: #6a604e; }
+#focus-queue-btn.on { color: #b9a0ff; border-color: #6a4fae; }
+
+#focus-meter-wrap.fq-on #focus-bar-outer,
+#focus-meter-wrap.fq-on #focus-mult-readout { display: none !important; }
+
+#focus-queue-list { display: none; }
+#focus-meter-wrap.fq-on #focus-queue-list {
+  display: flex; flex: 1; min-height: 0; width: 100%;
+  flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 2px; overflow: hidden; position: relative; z-index: 1;
+}
+/* A fixed 40x53 card, zoomed by JS to what the column affords. The card is
+   position:absolute (the base .card rule), so the slot is its box. */
+.fq-slot {
+  position: relative; flex: 0 0 auto;
+  width: 40px; height: 53px;
+  --card-w: 40px; --card-h: 53px;
+}
+.fq-slot.fq-next { outline: 1px solid #d9c66a; outline-offset: 1px; border-radius: 5px; }
+.fq-slot .fq-card { pointer-events: none; cursor: default; }
+.fq-empty {
+  font: 500 8px 'Share Tech Mono', monospace; letter-spacing: 1px;
+  color: rgba(244, 236, 214, 0.35); align-self: center; margin: auto;
+}
+
+/* Grid-takeover screens fade the focus bar (r237); the queue face and its
+   button follow the same rule rather than floating over the shop. */
+body.grid-screen #stage.landscape #focus-queue-list,
+body.grid-screen #stage.landscape #focus-queue-btn {
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}

@@ -152,11 +152,14 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // Read the SAME predicate the two charge sites read (js/round-timers.js), so
+  // Read the SAME multiplier the two charge sites read (js/round-timers.js), so
   // the quoted cost and the billed cost cannot drift. Before r234 this branch was
   // keyed on flowActive() while the charges were keyed on nothing at all, which is
-  // how Flow came to display 0s and bill 8s.
-  if (typeof interactTimeCostsOn === 'function' && !interactTimeCostsOn()) {
+  // how Flow came to display 0s and bill 8s. It is 0 where the mode does not bill
+  // the clock and Flow's half rate where it does, so every line below just
+  // multiplies by it rather than branching (r326).
+  const _tm = (typeof interactTimeCostMult === 'function') ? interactTimeCostMult() : 1;
+  if (_tm <= 0) {
     set('ic-play', `${playHandCostThisRound || 0}s`); set('ic-discard', '0s'); set('ic-swap', '0s');
     const _dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
     set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(_dur) : `${_dur}s`);
@@ -170,13 +173,13 @@ function updateInteractCosts() {
   let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
   else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
-  if (typeof bossInteractMult === 'function') disc = Math.round(disc * bossInteractMult());
+  disc = Math.round(disc * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-discard', `${disc}s`);
   // Swap cost: 4 base, 0 with Free Swaps.
   let swap = (typeof BAL !== 'undefined') ? BAL._resources.swap_seconds : 8;
   if (typeof hasKnack === 'function' && hasKnack('free_swaps')) swap = 0;
   else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
-  if (typeof bossInteractMult === 'function') swap = Math.round(swap * bossInteractMult());
+  swap = Math.round(swap * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-swap', `${swap}s`);
   // Max time = round cap minus permanent (−5s) penalties.
   const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
@@ -352,6 +355,7 @@ function startGame() {
   // A model that builds its own deck has already written the real total; a rank
   // x suit cross product is not what it deals, so the generic line must not run.
   if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
   dealPhase = false;
 
   // Reset all state
@@ -424,6 +428,7 @@ function startGame() {
                ? flowFocusCapBase()
                : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
+  focusCapGains = {}; queenUpgradePending = new Set(); queenBoardSecs = {};
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;
@@ -469,7 +474,7 @@ function startGame() {
   heldBackScore = 0;
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
-  pauseInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
+  pauseInstanceGame = 0; rewindInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
@@ -520,6 +525,7 @@ function startGame() {
   permRetrig = {};
   permTime   = {};
   permCoins  = {};
+  permFocus  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
@@ -527,19 +533,19 @@ function startGame() {
   bonusMult_nines = 0;
   bonusMult_tens = 0;
   bonusMult_compound = 0;
-  bonusPips_prolific = 0;
+  spadesRelentless = 0;
+  goalHandCards = null; goalHandHeld = [];
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
   bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
   negativeTilesTakenRun = 0; // Wild Side / Wait For Iiiit / Shady Stimulants (per-run negative-tile tally)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
-  bonusMult_jackpot  = 0;
-  jackpotFired       = false;
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
   studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
+  clubsScoredRound   = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
   handTypesRound     = new Set();
@@ -548,6 +554,7 @@ function startGame() {
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
+  discardsUsedRound = 0;
   focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;
@@ -585,6 +592,11 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
+  // cancelDance ABORTS - the dance's own checkpoint, and so the release of the
+  // hand-label hold in handleDanceAbort, does not run until a later tick. So the
+  // clear below was a no-op whenever a run was abandoned mid-tally, and the label
+  // kept showing the previous run's hand until the next render. Release it here.
+  if (typeof holdHandNameLabel === 'function') holdHandNameLabel(false);
   updateHandNameLabel(null);   // clears the label AND its cache (js/hud.js)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];

@@ -1496,6 +1496,10 @@ function rewardSelectionCap() {
 // stapled to a knack that is meant to be pure upside.
 // The floor is also held BELOW the cap, so a grid can never demand more picks than it
 // will accept - the two come from different places once Greedy Boi is in play.
+//
+// It reads minSelection(), the RAW arithmetic, and deliberately NOT the play grid's
+// handMinSelection(): Tagalong lifts the floor for HANDS (r326) and has nothing to
+// say about how many tiles a reward path has to take.
 function rewardMinPicks() {
   const min = (typeof minSelection === 'function') ? minSelection() : 1;
   return Math.max(1, Math.min(min, rewardSelectionCap()));
@@ -1787,7 +1791,7 @@ async function confirmRewardPath() {
     negativeTilesTakenRun += _negThisGrid;
     if (hasKnack('shady_stimulants')) {
       focusCapPerm += _negThisGrid;
-      showMessage(`Shady Stimulants - +${_negThisGrid} max Focus`, '#a25cd8');
+      showMessage(`Shady Stimulants - +${_negThisGrid} Focus limit`, '#a25cd8');
     }
   }
   closeRewardGrid();
@@ -1919,6 +1923,9 @@ function closeRewardGrid() {
     // cleared for it).
     const _fromPick = typeof survivalGridPickCarry !== 'undefined' && survivalGridPickCarry;
     if (typeof survivalGridPickCarry !== 'undefined') survivalGridPickCarry = false;
+    // The grid offer taken MID-CHAIN (Flow multi-reward, r325): the chain shows
+    // its next screen and runs the one level-up at its end, carry included.
+    if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
     survivalSkipCarryover = !_fromPick;
     triggerLevelUp();          // → showLevelUpScreen (survival) → survivalDealNext
     survivalSkipCarryover = false;

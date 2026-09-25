@@ -19,11 +19,15 @@ const SLEIGHT_HOUSE_MARKS = ['◈', '◇', '✦', '❖', '⬥', '◆'];
 function sleightIsWild(def) { return !!def && def.activation === 'wildcard'; }
 // A Sleight that has been given a playing identity at the Tinker bench. Wildcards
 // can never be tinkered, so this and sleightIsWild are mutually exclusive.
-function sleightIsPlayable(card) { return !!(card && card._playable && card.rank && card.suit); }
+function sleightIsPlayable(card) {
+  if (!card || !card.rank) return false;
+  if (sleightDef(card)?.fixedRank) return true;   // The Queen (r358): a real rank, no suit
+  return !!(card._playable && card.suit);
+}
 
 function sleightFace(card, def) {
   if (!card) return { rank: 'S', suit: '◈', kind: 'plain' };
-  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit, kind: 'playable' };
+  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit || '♛', kind: 'playable' };
   if (sleightIsWild(def || sleightDef(card))) return { rank: 'W', suit: '∞', kind: 'wild' };
   // The house mark is stable per card, so a Sleight keeps the same face across
   // renders and deck cycles rather than flickering through the set.
@@ -90,7 +94,81 @@ function hasSleightOnGrid(id) {
 }
 
 // Boss-immunity check used by isCellBlocked / isTrickDisabledByBoss / boss objective
-function bossEffectsIgnored() { return hasSleightOnGrid('fight_power'); }
+function bossEffectsIgnored() { return !!liveFightPower(); }
+
+// ── Timed charges (r356, plan 4i) ───────────────────────────────────────────
+// A Sleight whose def carries `secsPerCharge` spends its charges as TIME: every
+// that-many seconds of use is one charge. _usesLeft stays the charge count, so
+// everything that reads or restores charges (the n/max on the card, Jury-Rig,
+// Maintenance, Martyr) works on these unchanged - a restored charge is simply
+// secsPerCharge more seconds. _chargeSecsUsed is the part of the current charge
+// already spent.
+function sleightSecsLeft(card) {
+  const def = sleightDef(card);
+  if (!def?.secsPerCharge || typeof card._usesLeft !== 'number') return null;
+  return Math.max(0, card._usesLeft * def.secsPerCharge - (card._chargeSecsUsed || 0));
+}
+// Spend one second. Returns false once the Sleight is spent (and takes it off
+// the board - a spent timed Sleight has nothing left to give).
+function sleightTimedDrain(card) {
+  const def = sleightDef(card);
+  if (!def?.secsPerCharge || typeof card._usesLeft !== 'number') return true;
+  card._chargeSecsUsed = (card._chargeSecsUsed || 0) + 1;
+  if (card._chargeSecsUsed >= def.secsPerCharge) { card._usesLeft--; card._chargeSecsUsed = 0; }
+  if (card._usesLeft > 0) return true;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) gridData[r][c] = null;
+  showMessage(`${def.name} is spent`, 'var(--cream-dim)');
+  if (typeof render === 'function') render();
+  return false;
+}
+// The first Fight the Power on the board with time left.
+function liveFightPower() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd?._isSleight && cd.sleightId === 'fight_power' && (cd._usesLeft === 'infinite' || cd._usesLeft > 0)) return cd;
+  }
+  return null;
+}
+// Round tick: Fight the Power only spends its time while a boss is actually
+// running - there is nothing to ignore otherwise.
+function fightPowerTick() {
+  if (typeof bossFxLive !== 'function' || !bossFxLive()) return;
+  const fp = liveFightPower();
+  if (fp) sleightTimedDrain(fp);
+}
+
+// ── A Sleight with a board LIFESPAN (r371) ───────────────────────────────────
+// Whetstone discards itself after BAL.whetstone.life_seconds on the board. The
+// clock is _gridSecs ON THE CARD, ticked from the round tick (so it stops with
+// the round, the pause menu and RECORDS), and it is left out of discardToPlayed's
+// rebuild on purpose: every lap back onto the board starts a fresh clock. The
+// board persists between rounds (r332), so a Whetstone that stays put keeps
+// counting across them. The leave waits out an animation or a fall rather than
+// cutting it short (the r213 Hollow lesson) - the card just runs a second late.
+const SLEIGHT_LIFESPAN = { whetstone: () => BAL.whetstone?.life_seconds || 90 };
+function sleightLifeLeft(card) {
+  const f = card?._isSleight && SLEIGHT_LIFESPAN[card.sleightId];
+  if (!f) return null;
+  const total = f();
+  return { left: Math.max(0, total - (card._gridSecs || 0)), total };
+}
+function sleightLifeTick() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || !SLEIGHT_LIFESPAN[card.sleightId]) continue;
+    if ((card._gridSecs || 0) < SLEIGHT_LIFESPAN[card.sleightId]()) card._gridSecs = (card._gridSecs || 0) + 1;
+    if (card._gridSecs < SLEIGHT_LIFESPAN[card.sleightId]()) continue;
+    if (animating || falling || sleightSpinLock) continue;   // try again next tick
+    const def = sleightDef(card);
+    showMessage(`${def?.name || 'Sleight'} discards itself`, 'var(--cream-dim)');
+    spinSleightTile(r, c, () => {
+      if (gridData[r]?.[c] !== card) return;   // the board moved during the spin
+      discardToPlayed(card);                   // cycles back with its charges and banked mult
+      removeAndFall([[r, c]], 'discard');      // slide it out + gravity-refill the cell
+    });
+    return;                                    // one at a time: removeAndFall takes the falling lock
+  }
+}
 
 // Consume one charge from a sleight card at [r,c]; remove from grid when depleted.
 function consumeSleightCharge(card, r, c) {
@@ -116,7 +194,24 @@ function lockSleightForRound(card) {
     showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed - locked until discarded or played`, 'var(--cream-dim)');
 }
 
-// Active-tap sleights (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon) LEAVE the grid
+// ── INERT on use (r341, owner's word) ──
+// Piggy Bank and Capacitor no longer discard-on-use: they fire IN PLACE, at most
+// once per round (the ordinary _usedThisRound lock, cleared by the round-start
+// sweep), and become INERT - the card stays on the grid and can no longer be
+// swapped or discarded (cardCan gates both). It can still be selected into a
+// hand, which is its one way off the board. Deliberately NOT lockSleightForRound:
+// its 0-charge message says "locked until discarded or played", which is a lie here.
+const INERT_ON_USE_SLEIGHTS = new Set(['piggy_bank', 'capacitor']);
+function sleightUseInPlace(card, r, c) {
+  if (!card) return;
+  card._usedThisRound = true;
+  if (card._usesLeft !== 'infinite') card._usesLeft = Math.max(0, card._usesLeft - 1);
+  card._inert = true;
+  spinSleightTile(r, c);
+  if (!animating && !falling) render();
+}
+
+// Active-tap sleights (Amplifier/Snooze/Magnet/Siphon) LEAVE the grid
 // the moment they fire - replacing the old once-per-round lock. Like a normal discard the
 // card cycles back into the deck with its remaining charges (discardToPlayed drops it once
 // fully spent), and removeAndFall animates it out AND refills the hole (nulling the cell by
@@ -222,6 +317,17 @@ const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) ==
 // swap" could never fire once, and the payout would be dead on arrival.
 const _isTouching = (r1, c1, r2, c2) =>
   !(r1 === r2 && c1 === c2) && Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1;
+
+// The first Wanderer on the grid with charges left, as [card, r, c] (r354).
+function liveWanderer() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd?._isSleight || cd.sleightId !== 'the_wanderer') continue;
+    if (typeof isCellBlocked === 'function' && isCellBlocked(r, c)) continue;
+    if (cd._usesLeft === 'infinite' || cd._usesLeft > 0) return [cd, r, c];
+  }
+  return null;
+}
 
 // Every Pivot with charges left that touches (r,c).
 function livePivotsTouching(r, c) {
@@ -393,14 +499,14 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (def.id === 'rewind') {
       const _inHand = handCells.some(([hr, hc]) => hr === r && hc === c);
       const _size = _inHand ? handCells.length : handCells.length + 1;
-      rewindTime(_size, `⏪ Rewind - +${_size}s`);
+      rewindTime(_size, null, 'rewind', 'sleight');
       consumeSleightCharge(card, r, c);
       return;
     }
     // Syncopation: hand type differs from the previous hand played
     if (def.id === 'syncopation') {
       if (lastHandType === null || hand === lastHandType) return;
-      pauseRound(BAL.syncopation.seconds);
+      pauseRound(BAL.syncopation.seconds, 'syncopation', 'sleight');
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -408,7 +514,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     // (10 → 1), which drop by 1 each use; the sleight is destroyed when it hits 0 (consumeSleightCharge).
     if (def.id === 'shady_tree') {
       if (c !== shadyColumn) return;
-      pauseRound(card._usesLeft != null ? card._usesLeft : def.durability);
+      pauseRound(card._usesLeft != null ? card._usesLeft : def.durability, 'shady_tree', 'sleight');
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -467,34 +573,97 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
 // Magnet: pull every card of `rank` into the cells orthogonally adjacent to Magnet,
 // by swapping grid data. Each pull counts as a swap (fires on_swap Sleights + Restless),
 // which is the intended synergy. Returns how many cards were moved.
+// Magnet (r357): every card of `rank` elsewhere on the board is pulled in to
+// replace the Magnet itself and then its orthogonal neighbours, and whatever it
+// replaces is DISCARDED - the Magnet with its charge spent, the neighbours to
+// the back of the draw pile. The discards cost no time and no stock, but each
+// displaced card counts as a discard for everything that scales on discards.
+// Returns how many cards it pulled (0 = nothing to pull; the caller discards
+// the Magnet the ordinary way then).
 function magnetCluster(mr, mc, rank) {
-  const inBounds = (r, c) => r >= 0 && c >= 0 && r < gridRows && c < gridCols;
-  const isRank   = card => card && card.rank === rank && !card._isSleight && !card._isStone && !card._isTrick;
-  const neighbors = [[mr-1,mc],[mr+1,mc],[mr,mc-1],[mr,mc+1]].filter(([r,c]) => inBounds(r,c));
-  let moved = 0;
-  for (const [nr, nc] of neighbors) {
-    const nb = gridData[nr]?.[nc];
-    if (!nb || nb._isSleight || nb._isStone || nb._isTrick) continue; // don't disturb fixtures
-    if (nb.rank === rank) continue;                                   // already holds the rank
-    if (!cardCan(nb, 'swap')) continue;                               // respect Snared etc.
-    // Find a far card of the rank (not in a neighbor cell, not Magnet, swappable)
-    let found = null;
-    for (let r = 0; r < gridRows && !found; r++) for (let c = 0; c < gridCols && !found; c++) {
-      if (r === mr && c === mc) continue;
-      if (neighbors.some(([ar, ac]) => ar === r && ac === c)) continue;
-      const cand = gridData[r]?.[c];
-      if (isRank(cand) && cardCan(cand, 'swap')) found = [r, c];
-    }
-    if (!found) break; // nothing left to pull
-    const [fr, fc] = found;
-    const tmp = gridData[nr][nc];
-    gridData[nr][nc] = gridData[fr][fc];
-    gridData[fr][fc] = tmp;
-    fireSleightsOnSwap(nr, nc, fr, fc); // counts as a swap
-    if (hasTrick('restless')) addFocus(1);
-    moved++;
+  const ordinary = cd => cd && cd.rank && !cd._isSleight && !cd._isStone && !cd._isTrick;
+  const magnet = gridData[mr]?.[mc];
+  const targets = [[mr, mc]];
+  getNeighborsOrtho(mr, mc).forEach(([r, c]) => {
+    const cd = gridData[r]?.[c];
+    if (ordinary(cd) && cd.rank !== rank && cardCan(cd, 'discard') && !isCellBlocked(r, c)) targets.push([r, c]);
+  });
+  const isT = (r, c) => targets.some(([a, b]) => a === r && b === c);
+  const sources = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!isT(r, c) && !(r === mr && c === mc) && ordinary(cd) && cd.rank === rank && cardCan(cd, 'swap') && !isCellBlocked(r, c)) sources.push([r, c]);
   }
-  return moved;
+  const n = Math.min(targets.length, sources.length);
+  if (!n) return 0;
+  const gridEl = document.getElementById('grid');
+  const rectOf = cd => { const el = cd && gridEl?.querySelector(`[data-card-id="${cd._id}"]`); return el ? el.getBoundingClientRect() : null; };
+  const pulled = [], displaced = [], ghosts = [], moves = [];
+  for (let i = 0; i < n; i++) {
+    const [tr, tc] = targets[i], [sr, sc] = sources[i];
+    const out = gridData[tr][tc], inn = gridData[sr][sc];
+    // Ghost the leaving card where it stands, so the discard is SEEN from its
+    // own cell rather than from wherever the data shuffle parks it.
+    const el = gridEl?.querySelector(`[data-card-id="${out._id}"]`);
+    if (el) { const g = el.cloneNode(true), rc = el.getBoundingClientRect();
+      Object.assign(g.style, { position: 'fixed', left: rc.left + 'px', top: rc.top + 'px', width: rc.width + 'px', height: rc.height + 'px', margin: 0, zIndex: 50, pointerEvents: 'none', transform: 'none' });
+      document.body.appendChild(g); ghosts.push(g); }
+    moves.push({ id: inn._id, from: rectOf(inn) });
+    gridData[tr][tc] = inn; gridData[sr][sc] = out;
+    pulled.push([tr, tc]); displaced.push([sr, sc]);
+  }
+  // Piles: the Magnet cycles with a charge spent, the neighbours go to the back
+  // of the draw pile - exactly where a discard sends them.
+  displaced.forEach(([r, c]) => {
+    const cd = gridData[r][c];
+    if (cd === magnet) { if (typeof cd._usesLeft === 'number') cd._usesLeft--; discardToPlayed(cd); }
+    else discardToDrawPile(cd);
+  });
+  magnetCountDiscards(displaced.map(([r, c]) => gridData[r][c]).filter(cd => cd !== magnet));
+  render();
+  // The pulled cards FLY in from where they were; the displaced ones are hidden
+  // at their parking cells (the ghosts are what the player watches leave).
+  moves.forEach(m => {
+    const el = gridEl?.querySelector(`[data-card-id="${m.id}"]`);
+    if (!el || !m.from) return;
+    const to = el.getBoundingClientRect(), z = (to.width / (el.offsetWidth || to.width)) || 1;
+    const dx = (m.from.left - to.left) / z, dy = (m.from.top - to.top) / z;
+    el.animate([{ transform: `translate(${dx}px,${dy}px) scale(1.12)`, zIndex: 20 }, { transform: 'translate(0,0) scale(1)', zIndex: 20 }],
+      { duration: 460, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
+  });
+  displaced.forEach(([r, c]) => { const el = gridEl?.querySelector(`[data-card-id="${gridData[r][c]?._id}"]`); if (el) el.style.visibility = 'hidden'; });
+  const btn = document.getElementById('btn-discard')?.getBoundingClientRect();
+  ghosts.forEach((g, i) => {
+    const rc = g.getBoundingClientRect();
+    const dx = btn ? (btn.left + btn.width / 2) - (rc.left + rc.width / 2) : 0;
+    const dy = btn ? (btn.top + btn.height / 2) - (rc.top + rc.height / 2) : 120;
+    g.animate([{ transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1 },
+               { transform: `translate(${dx}px,${dy}px) scale(.45) rotate(${i % 2 ? 18 : -18}deg)`, opacity: 0 }],
+      { duration: 520, delay: 60 * i, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    setTimeout(() => g.remove(), 620 + 60 * i);
+  });
+  if (typeof sfxCardDiscard === 'function') { try { sfxCardDiscard(); } catch (e) {} }
+  // The parking cells empty and refill by gravity once the flights have landed.
+  setTimeout(() => {
+    displaced.forEach(([r, c]) => { gridData[r][c] = null; });
+    removeAndFall(displaced, 'discard');
+  }, 520);
+  return n;
+}
+// Magnet's displaced cards count as discards for everything that scales on
+// them (owner's spec) - one discard each, at no time or stock.
+function magnetCountDiscards(cards) {
+  const count = cards.length;
+  if (!count) return;
+  cardsDiscardedTotal += count;
+  cardsDiscardedRound += count;
+  discardsUsedRound += count;
+  if (hasTrick('fives_discard')) bonusMult_fives += cards.filter(c => c.rank === '5').length * BAL.fives_discard.pips_per_five;
+  if (hasTrick('tens_mult')) {
+    const prev = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
+    const now  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
+    bonusMult_tens += (now - prev) * BAL.tens_mult.mult_per_milestone;
+  }
 }
 
 function applySleightGridEffect(id, r, c) {
@@ -505,10 +674,24 @@ function applySleightGridEffect(id, r, c) {
     showMessage(`${id} is suspended this round`, 'var(--red)');
     return;
   }
+  // A STOCK payout throws the scoring dance's own plate at the readout it
+  // changed (entityEffectFX, js/payout-fx.js) instead of printing a toast
+  // (owner call, r326): the particle plus the currency's own sound IS the
+  // report. The sleight's grid element is passed outright - this runs before
+  // discardSleightAfterUse, so the card is still on the board - and the
+  // entityEffectFX id lookup would find it anyway, but there is nothing to
+  // search for when the caller holds the cell. Effects with no HUD readout
+  // (next-hand mult, card buffs, reshuffles) keep their toasts.
+  const _slEl = document.querySelector(`#grid [data-card-id="${gridData[r]?.[c]?._id}"]`);
+  const _fx = (kind, amount) => {
+    if (typeof entityEffectFX === 'function')
+      entityEffectFX(kind, amount, { srcEl: _slEl, id, source: 'sleight' });
+  };
   switch (id) {
     case 'power_cell':
-      addFocus(BAL.power_cell.focus_on_enter);
-      showMessage(`Power Cell! +${BAL.power_cell.focus_on_enter} Focus`, '#a25cd8'); break;
+      // addFocus with a named source fires the Focus particle itself.
+      addFocus(BAL.power_cell.focus_on_enter, 'power_cell', 'sleight');
+      break;
     case 'good_friend':
       getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
       showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
@@ -523,8 +706,12 @@ function applySleightGridEffect(id, r, c) {
       else showMessage('Shortcut - no active challenge', 'var(--cream-dim)');
       break;
     case 'dazed':
-      reshuffleGrid();
-      showMessage('Dazed & Confused - grid reshuffled!', '#cc88ff'); break;
+      // Fresh Start (r353): the redeal waits for the discard's own fall to land
+      // (drained from the tail of removeAndFall), or the discard would remove
+      // cells out of the freshly dealt board.
+      coins = Math.max(0, coins - BAL.dazed.cost_coins); updateCoinsUI();
+      roundSeconds = Math.max(1, roundSeconds - BAL.dazed.cost_seconds); updateClockUI();
+      freshStartPending = true; break;
     case 'pivot':
       // Unreachable since r205: Pivot is `passive` now (it works by sitting on the
       // grid), so fireSleightsOnSwap never dispatches it. The whole effect - the
@@ -536,9 +723,11 @@ function applySleightGridEffect(id, r, c) {
     case 'echo_play':
       sleightNextHandDouble = true;
       showMessage('🔁 Echo - next hand scores twice!', '#ffd700'); break;
+    case 'the_queen':
+      pauseRound(BAL.the_queen.pause_seconds, 'the_queen', 'sleight'); break;
     case 'bellhop':
       swaps += BAL.bellhop.swaps; discards = Math.min(99, discards + BAL.bellhop.discards); render();
-      showMessage('🛎️ Bellhop - +2 swaps, +1 discard!', '#ffd700'); break;
+      _fx('swaps', BAL.bellhop.swaps); _fx('discards', BAL.bellhop.discards); break;
     case 'the_bomb': {
       let _cnt = 0;
       for (let _r = 0; _r < gridRows; _r++)
@@ -557,38 +746,55 @@ function applySleightGridEffect(id, r, c) {
       showMessage('📜 Legacy - next hand ×3!', '#ffd700'); break;
     case 'cash_out':
       grantEntityCoins(BAL.cash_out.coins, 'sleight', 'cash_out');
-      showMessage('💰 Cash Out - +10 credits!', 'var(--gold)'); break;
-    case 'the_wanderer':
-      swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
-      showMessage('🧭 Wanderer - swap refunded!', 'var(--gold)'); break;
+      _fx('credits', BAL.cash_out.coins); break;
     case 'amplifier':
       sleightAmplifierMult += BAL.amplifier.mult;
       showMessage('📢 Amplifier - next hand +5 mult!', 'var(--gold)'); break;
     case 'snooze':
-      pauseRound(BAL.snooze.seconds);
-      showMessage('😴 Snooze - clock paused 10s!', 'var(--gold)'); break;
+      // pauseRound with a named source throws the pause plate at the clock.
+      pauseRound(BAL.snooze.seconds, 'snooze', 'sleight'); break;
     case 'last_call':
-      // Only rewinds when discarded during the final minute of the round.
-      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, `⏳ Last Call - rewound ${BAL.last_call.seconds}s`);
-      else showMessage('⏳ Last Call - only works in the final minute', 'var(--cream-dim)');
+      rewindTime(BAL.last_call.seconds, null, 'last_call', 'sleight');
       break;
     case 'sandbag': {
-      // Rewinds only when discarded alongside a pair of cards below rank 8; the rewind
-      // equals that pair's rank in seconds (highest qualifying pair wins if there are several).
+      // Discarded with a pair (r353, any rank): rewind the pair's rank in seconds,
+      // +50% for each further card of that rank. The best set wins.
       const _co = _discardContextCards || [];
       const _counts = {};
-      _co.forEach(c => { const _v = RANK_ORDER[c.rank] || 99; if (_v < BAL.sandbag.rank_below) _counts[_v] = (_counts[_v] || 0) + 1; });
-      const _pairRanks = Object.keys(_counts).map(Number).filter(v => _counts[v] >= 2);
-      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, `⏬ Sandbagger - rewound ${_sec}s`); }
-      else showMessage('⏬ Sandbagger - needs a pair below rank 8', 'var(--cream-dim)');
+      _co.forEach(c => { const _v = RANK_ORDER[c.rank]; if (_v) _counts[_v] = (_counts[_v] || 0) + 1; });
+      let _sec = 0;
+      Object.keys(_counts).forEach(v => { const n = _counts[v]; if (n >= 2) _sec = Math.max(_sec, Math.round(Number(v) * (1 + BAL.sandbag.extra_per_member * (n - 2)))); });
+      if (_sec) rewindTime(_sec, null, 'sandbag', 'sleight');
+      else showMessage('⏬ Sandbagger - needs a pair', 'var(--cream-dim)');
       break;
     }
     case 'piggy_bank':
       grantEntityCoins(BAL.piggy_bank.coins, 'sleight', 'piggy_bank');
-      showMessage('🐷 Piggy Bank - +5 credits!', 'var(--gold)'); break;
+      _fx('credits', BAL.piggy_bank.coins); break;
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
   }
+}
+
+// Fresh Start (r353): every ordinary card on the board goes back into the draw
+// pile, the pile is shuffled and the holes are dealt. Sleights, stones and other
+// fixtures stay where they are. Run from the tail of removeAndFall.
+let freshStartPending = false;
+function freshStartDrain() {
+  if (!freshStartPending || animating || falling) return;
+  freshStartPending = false;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd.rank || cd._isSleight || cd._isStone || cd._isTrick) continue;
+    if (typeof isCellBlocked === 'function' && isCellBlocked(r, c)) continue;
+    discardToDrawPile(cd);
+    gridData[r][c] = null;
+  }
+  drawPile = deckShuffle(drawPile);
+  fillGridHoles();
+  selected = [];
+  showMessage('😵 Fresh Start - the board is redealt', '#cc88ff');
+  render();
 }
 
 // Reshuffle every non-sleight card currently on the grid (Dazed & Confused).
@@ -612,7 +818,11 @@ function showSleightGridTooltip(r, c, card) {
   const gridEl = document.getElementById('grid');
   const sleightEl = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!sleightEl) return;
-  let uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  // Charged sleights read n/max (owner's spec, r341); max comes through
+  // sleightMaxCharges so a Maintenance-reinforced ceiling is the one printed.
+  const _mxCh = sleightMaxCharges(def);
+  let uses = card._usesLeft === 'infinite' ? '∞ uses'
+           : (_mxCh ? `${card._usesLeft}/${_mxCh} charges` : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`);
   // Whetstone banks mult on the card itself - surface it, it's the whole point of the Sleight.
   if (def.id === 'whetstone') uses = `+${card._whetMult || 0} mult sharpened`;
   // Lighthouse's value depends on where it is right now - show the live number.
@@ -622,14 +832,19 @@ function showSleightGridTooltip(r, c, card) {
   }
   if (def.id === 'entourage') uses = `+${entourageMult()} mult right now`;
   // Focus-spend sleights: show what they'll cost against what you have right now.
+  if (def.id === 'slow_burn') uses = `+${Math.min(BAL.slow_burn.cap, Math.floor((card._slowBurnSecs || 0) / BAL.slow_burn.seconds_per))} of ${BAL.slow_burn.cap} Focus limit`;
   if (def.id === 'capacitor') uses = `needs ${BAL.capacitor.focus_cost} Focus · you have ${focusNodes}`;
   if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}`;
+  if (def.secsPerCharge && typeof card._usesLeft === 'number') uses = `Remaining time: ${sleightSecsLeft(card)}s · ${card._usesLeft}/${_mxCh} charges`;
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
+  if (card._inert) uses += ' · INERT (cannot be swapped or discarded)';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
-              : def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE'
+              : def.activation === 'double_tap' ? (INERT_ON_USE_SLEIGHTS.has(def.id)
+                  ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND · INERT AFTER USE${_usedLock}`
+                  : 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE')
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
@@ -645,6 +860,16 @@ function showSleightGridTooltip(r, c, card) {
   tip.style.left = Math.max(2, eRect.left - gRect.left + eRect.width/2 - tipW/2) + 'px';
   tip.style.top  = Math.max(2, eRect.top - gRect.top - tipH - 8) + 'px';
   tip.style.opacity = '1';
+  // A timed Sleight's remaining time runs while you read it (r356), so the
+  // line is rewritten each second for as long as the bubble is up.
+  if (def.secsPerCharge && typeof card._usesLeft === 'number') {
+    const _live = setInterval(() => {
+      const el = document.getElementById('sleight-grid-tooltip');
+      if (el !== tip) { clearInterval(_live); return; }
+      const u = tip.querySelector('.sleight-tooltip-uses');
+      if (u) u.textContent = `Remaining time: ${sleightSecsLeft(card)}s · ${card._usesLeft}/${_mxCh} charges`;
+    }, 1000);
+  }
 }
 function hideSleightGridTooltip() {
   document.getElementById('sleight-grid-tooltip')?.remove();

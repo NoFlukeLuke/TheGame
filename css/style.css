@@ -830,28 +830,24 @@
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-row.hand { min-height: 0; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .r { font-size: 21px; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .s { font-size: 16px; }
-  /* Portrait puts the label ABOVE the cards (source order has it after them, so
-     order:-1 moves it) on ONE line - the strip is wide and short, which is the
-     opposite of the landscape column. Sized to match the tray's own n/10 count. */
-  #stage:not(.landscape) #hand-name { order: -1; font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  #stage:not(.landscape) #hand-name .hn-l,
-  #stage:not(.landscape) #hand-name .hn-l b,
-  #stage:not(.landscape) #hand-name .hn-l i,
-  #stage:not(.landscape) #hand-name .hn-plus { display: inline; }
-  #stage:not(.landscape) #hand-name .hn-l b::after { content: '\00a0'; }
-  #stage:not(.landscape) #hand-name .hn-plus { margin: 0 3px; }
-  /* The preview is deliberately inert until a hand is SUBMITTED (r99) - it is the
-     scoring stage, not a live selection readout - so idle it is empty. Landscape
-     fills that emptiness with a faint HAND watermark; portrait needs it too, or
-     swapping to the preview half looks like a broken panel. :empty hides it the
-     moment the dance drops cards in, so there is no z-index fight. */
+  /* Portrait: the label is a CHIP, VERTICALLY CENTRED at the preview's left
+     edge (r333, owner spec), never a flex child - in flow the 92px strip's
+     overflow:hidden squeezed it to ZERO HEIGHT the moment the dance filled it.
+     It stacks the same two lines as landscape ("SET / OF 3", "TWO / PAIRS" -
+     handLabelHTML breaks between whole words, never inside one) on a
+     translucent plate, so when a full 5-card hand reaches this far left the
+     chip simply overlays the card and stays legible (the owner's stated
+     fallback). z-index 61 beats the dance's 60. */
+  #stage:not(.landscape) #hand-name { position: absolute; top: 50%; left: 3px; transform: translateY(-50%);
+    z-index: 61; font-size: 9px; line-height: 1.25; text-align: center; overflow: hidden; max-width: 46%;
+    background: rgba(10,9,6,0.62); border: 1px solid rgba(244,236,214,0.16); border-radius: 5px; padding: 2px 5px;
+    pointer-events: none; }
+  #stage:not(.landscape) #hand-name:empty { display: none; }
+  #stage:not(.landscape) #hand-name.hn-layered { font-size: 7px; line-height: 1.15; }
+  /* The HAND watermark is GONE (r333, owner call: no text that says "hand" all
+     the time). The hand-name chip anchored to this panel is the label now.
+     position:relative stays - it is what the chip anchors to. */
   #stage:not(.landscape) #hand-preview-area { position: relative; }
-  #stage:not(.landscape) #selected-cards:empty::before {
-    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 5px; font-size: 20px;
-    color: rgba(244,236,214,0.07); text-transform: uppercase;
-  }
   #stage:not(.landscape) #selected-cards { position: relative; width: 100%; }
 
   /* Trick tray - its tiles were rendering at grid-card size and overflowing the
@@ -1734,7 +1730,6 @@
      border-color both lost to later `.card` rules and only `background` was
      ever reaching the board. */
   .card.rc-leyline { background: rgba(240,192,64,0.15); box-shadow: inset 0 0 0 1px rgba(240,192,64,0.4); }
-  .card.rc-jeopardy { background: rgba(200,60,60,0.15); box-shadow: inset 0 0 0 1px rgba(200,60,60,0.5); }
   .card.rc-woodpecker { background: rgba(90,170,90,0.15); box-shadow: inset 0 0 0 1px rgba(90,170,90,0.5); animation: wp-peck 0.16s ease-in-out 5; }
   .card.rc-woodpecker::after { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; animation: wp-ripple 0.34s ease-out 5; }
   @keyframes wp-peck { 0%,100% { transform: scale(1); } 50% { transform: scale(0.9); } }
@@ -2188,6 +2183,54 @@
   .card.suit-moons .rank,.card.suit-moons .suit{ color: var(--suit-moons); }
   .card.suit-stars .rank,.card.suit-stars .suit{ color: var(--suit-stars); }
   .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
+
+  /* ══ THE WILD CARD (r325) ══
+     Takes any rank to complete a SET, and nothing else - never a run, never a
+     flush, no pips, no Tricks. It rides the ordinary .card path (so it keeps the
+     buff bands, the line ring, card states, the curse badge and the selection
+     glow), and only the face is its own: the glyph where a rank would be, the
+     word under it where the suit would be.
+
+     IT IS NOT A SUIT COLOUR. Every other card on the board is coloured by its
+     suit, so a wild in any of those colours would read as one of them. It takes
+     the violet the game already uses for a CHARGE or a PRIMED state (the .cd-badge
+     pill, .card-temp) - a property of the card rather than a suit - plus a dashed
+     edge, because dashed is what the schedule's blank tiles already use for
+     "this cell is not the ordinary thing". */
+  .card.wild-card {
+    border-style: dashed;
+    border-color: var(--wild-edge, #8b5cf6);
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(139,92,246,0.16), rgba(139,92,246,0) 70%),
+      var(--card-bg);
+  }
+  .card.wild-card:hover:not(.unreachable) {
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(139,92,246,0.24), rgba(139,92,246,0) 70%),
+      #fffaee;
+  }
+  .card .wild-glyph {
+    font-family: 'Cinzel', serif;
+    /* The glyph stands in for BOTH the rank and the suit, so it is sized between
+       the two (0.24 and 0.293 of the card height) rather than matching either. */
+    font-size: calc(var(--card-h, 75px) * 0.30);
+    font-weight: 700;
+    line-height: 1;
+    color: #6d28d9;
+    text-shadow: 0 0 6px rgba(139,92,246,0.45);
+  }
+  .card .wild-label {
+    font-family: 'Share Tech Mono', monospace;
+    /* 0.10 of the card height is ~7.5px on a desktop card and ~4.7px in the hand
+       preview. It is a reminder on a card the player has already learned, not the
+       way they learn it (the handbook and the tip are), so small is correct - and
+       `overflow: hidden` on .card is the hard stop either way. */
+    font-size: calc(var(--card-h, 75px) * 0.10);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    margin-top: 2px;
+    color: #7c5bbf;
+  }
 
   /* ══ SPECTRUM - numeric colour deck (mode: spectrum) ══
      No suits, no court cards: the whole card face IS the colour and the value
@@ -4700,7 +4743,13 @@
      split evenly, and the tiles are sized to match: the preview card is as wide
      as five-across allows in this column, and the Trick chip is a touch smaller. */
   #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:21.75%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:5.75%; height:21.75%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 2px; z-index:2; }
+  /* z-index 61: the scoring dance raises #selected-cards to 60 (.dnc-active,
+     css/dance.css), and the label is a SIBLING - at its old z-index 2 the
+     preview's opaque panel background slid over it for the whole tally, so the
+     hand's name vanished exactly when it was being scored. The 44px left
+     padding the preview reserves for this label is untouched by the dance, so
+     sitting above it covers nothing. */
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:5.75%; height:21.75%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 2px; z-index:61; }
   /* A layered hand prints two blocks and a separator - five lines in a column
      sized for two - so it steps down rather than spilling out of the frame.
      Scoped through #trick-panel to out-specify the older 11px rule up the file. */
@@ -5074,14 +5123,7 @@
     color: rgba(244,236,214,0.06); text-transform: uppercase;
   }
   #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
-  /* Hand-preview box: faint "HAND" watermark when idle; :empty hides it the moment the
-     scoring dance drops cards in, so no z-index fight. (r99) */
-  #stage.landscape #selected-cards:empty::before {
-    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 9px; font-size: 40px;
-    color: rgba(244,236,214,0.06); text-transform: uppercase;
-  }
+  /* The HAND watermark is gone here too (r333) - #hand-name is the label. */
 
   /* ── Focus meter → recessed power gauge, continuous fill (r96) ── */
   #stage.landscape #focus-meter-wrap { width: 6.4%; gap: 5px; overflow: visible; }
@@ -5406,7 +5448,14 @@
 .trick-card.sleight-card.selected.hand-ready {
   animation: handReadyPulse 0.7s ease-in-out infinite alternate;
 }
-.trick-card.sleight-card.unreachable { opacity: 0.28; cursor: default; }
+/* A Sleight NEVER takes the unreachable dim (owner call, was opacity 0.28).
+   The moment any card was selected, every Sleight out of reach dropped to a
+   quarter opacity - and the same happened for the length of a played hand and
+   through every fall, because `selected` still holds the hand while it scores.
+   A big coloured object flicking dark on every selection read as the Sleight
+   switching off. The cursor still says it cannot join this hand; the object
+   keeps its full paint. */
+.trick-card.sleight-card.unreachable { cursor: default; }
 /* Double-tapping a Sleight arms a swap, same as any card - but .card.swap-pending
    never matched (a grid Sleight is .trick-card, not .card) and the rarity rule
    below repainted the edge anyway, so the tile looked untouched and the only
@@ -5425,6 +5474,11 @@
   filter: grayscale(0.85);
   opacity: 0.55;
   box-shadow: none !important;
+}
+/* INERT (r341): a used Piggy Bank / Capacitor stays on the grid, unswappable and
+   undiscardable. Milder than spent - it may still hold charges for later rounds. */
+.trick-card.sleight-card.sleight-inert:not(.selected):not(.swap-pending) {
+  filter: grayscale(0.5) brightness(0.8);
 }
 /* Fired. The tile spins horizontally in place before it leaves the grid. */
 @keyframes sleight-spin {
@@ -5796,7 +5850,6 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      rather than being clipped into nonsense. */
   #stage.landscape.shop-squish #knack-carousel-wrap::before { font-size:14px; letter-spacing:3px; }
   #stage.landscape.shop-squish #trick-tray-area::before     { font-size:28px; letter-spacing:5px; }
-  #stage.landscape.shop-squish #selected-cards:empty::before { font-size:22px; letter-spacing:4px; }
 
   /* the arrow tab ───────────────────────────────────────────────────────── */
   /* Sits on the column's outer edge and rides with it, so it always reads as

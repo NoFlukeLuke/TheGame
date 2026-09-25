@@ -33,7 +33,7 @@
    piece hand takes the band: a daily is handed EVERY tile at once, so it is the
    one shape of this mode that genuinely needs the room. */
 #stage.squares-daily #trick-tray-area { display: none !important; }
-#stage.landscape.squares-daily #selected-cards { height: 61%; }
+#stage.landscape.squares-daily #selected-cards { height: 66%; }   /* r368: 61 -> 66 */
 
 /* ── THE DAILY TRAY IS A GRID, NOT A ROW ──────────────────────────────────
    The 5x5 holds at most three tiles, so a row of thirds is the whole answer
@@ -139,17 +139,8 @@
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px;
   color: var(--cream-dim); opacity: 0.7; align-self: center; margin: auto;
 }
-/* THE DRAG GHOST (r326). Not a thumbnail of the tile - the CARDS, at the board's
-   own cell size, translucent, with the grabbed cell under the cursor. So what
-   you are holding is literally what will land, in the place it will land. */
-#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; }
-#sq-drag .sq-ghostpoly { opacity: 0.82; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65)); }
-#sq-drag .sq-mini {
-  border-radius: 5px; border-width: 2px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.4);
-  padding: 3px 4px;
-}
-#sq-drag .sq-mr, #sq-drag .sq-ms { font-size: calc(var(--smw, 40px) * 0.34); }
+#sq-drag { position: fixed; z-index: 999; display: none; pointer-events: none; opacity: 0.92; }
+#sq-drag .sq-tile { width: 96px; height: 96px; }
 
 /* ── Board overlays ───────────────────────────────────────────────────── */
 .sq-ghost {
@@ -159,10 +150,6 @@
 }
 .sq-ghost.ok  { background: rgba(90,158,90,0.24); border: 1px solid var(--green); color: #d8f0d8; }
 .sq-ghost.bad { background: rgba(192,57,43,0.26); border: 1px solid var(--red); }
-/* Held: the cards themselves are under the cursor, so the board only outlines
-   the footprint - a second copy of the faces two pixels apart reads as a fault. */
-.sq-ghost.ok.held  { background: rgba(90,158,90,0.16); border: 2px dashed var(--green); }
-.sq-ghost.bad.held { background: rgba(192,57,43,0.16); border: 2px dashed var(--red); }
 .sq-gr, .sq-gs { line-height: 1; }
 .sq-lock {
   position: absolute; border-radius: 5px; pointer-events: none; z-index: 4;
@@ -443,8 +430,16 @@
    finger that is dragging onto them. A dead band at the foot of the tray is the
    better of the two. (It does not arise in landscape, where the tray is an
    absolutely-positioned panel and an empty slot in it costs the board nothing.) */
+/* r368: 220 -> 250. The board band takes whatever is left, so this is the one
+   number that moves the split - and a 3x3 does not need 45% of the stage for
+   nine cards. Measured in portrait at 462x928: the board band goes 336 -> 306
+   and the tray 227 -> 257, which takes a 3-tall tile from 106 to 121 and its
+   cells from 32-52px to 38-58px. Deliberately SHORT of the 270 the r368 survey
+   costed out (owner: "shrink the grid just a little less than you suggested") -
+   past about 300 the board's cards start hitting CARD_MIN_H and the board stops
+   shrinking while the cards start looking cramped. */
 #stage:not(.landscape).squares-daily #hand-preview-area,
-#stage:not(.landscape).squares-daily #selected-cards { height: 220px; flex: 0 0 auto; }
+#stage:not(.landscape).squares-daily #selected-cards { height: 250px; flex: 0 0 auto; }
 #stage:not(.landscape).squares-daily #selected-cards {
   display: grid !important; grid-template-rows: repeat(3, 1fr);
   align-content: stretch; justify-content: stretch; gap: 4px;
@@ -492,88 +487,149 @@
 .sq-sbtn.suit-clubs    { color: var(--suit-clubs); }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   THE LINE HEADERS (r326)
-
-   What each row and column is currently making, and what it is worth, beside
-   the line itself. They sit in a band RESERVED off the measured slot
-   (sqSlotInset, js/grid-metrics.js) with the matching padding below, so the
-   freed room lands on the left and the top rather than being split around a
-   centred board - and so the labels are never drawn over the cards.
+   r368 - what is boosted, the pay table, and the end-of-run scoreboard
    ══════════════════════════════════════════════════════════════════════════ */
-#stage.landscape.squares-mode #grid-slot { padding: 30px 0 0 64px; }
-.sq-hdr {
-  position: absolute; z-index: 6; cursor: default;
-  display: flex; flex-direction: column; justify-content: center; overflow: hidden;
-  font-family: 'Share Tech Mono', monospace; line-height: 1.12;
-  opacity: 0.95; transition: opacity 0.12s, color 0.12s;
-}
-.sq-hdr.row { align-items: flex-end; text-align: right; }
-.sq-hdr.col { align-items: center; text-align: center; justify-content: flex-end; padding-bottom: 3px; }
-.sq-hdr .sq-hn {
-  font-size: 8px; letter-spacing: 1px; color: var(--cream-dim); opacity: 0.85;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
-}
-.sq-hdr .sq-hv {
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.5px;
-  color: var(--gold);
-}
-/* A line with nothing in it is a placeholder, not a score of zero. */
-.sq-hdr.none { opacity: 0.3; }
-.sq-hdr.none .sq-hv { color: var(--cream-dim); }
-/* Cashed in SELECT SCORE: the line is closed, and the header says so. */
-.sq-hdr.lock { opacity: 0.45; }
-.sq-hdr.lock .sq-hv { color: var(--cream-dim); text-decoration: line-through; }
-.sq-hdr:hover { opacity: 1; }
-.sq-hdr:hover .sq-hv { text-shadow: 0 0 10px rgba(201,168,76,0.8); }
-/* A PHONE HAS NO BAND TO SPEND. There the same reading is a tap in the board's
-   margin (sqLineTipAt) or on the PIPS / MULT chips, which is what the pop-up
-   below is for. */
-#stage:not(.landscape) .sq-hdr { display: none; }
 
-/* ── The read-out pop-up ───────────────────────────────────────────────────
-   BODY LEVEL and placed in raw viewport px (js/squares-mode.js), so it carries
-   none of the cabinet's CSS zoom, and capped to the viewport the way every
-   other pop-up in the game is. */
-#sq-tip {
-  display: none; position: fixed; z-index: 460;
-  max-width: calc(100vw - 20px); max-height: calc(100vh - 20px); overflow-y: auto;
-  padding: 10px 12px; border-radius: 9px;
-  background: #16142a; border: 1px solid #4a4478;
-  box-shadow: 0 12px 34px rgba(0,0,0,0.7), 0 0 22px -8px rgba(140,110,230,0.7);
-  color: var(--cream); pointer-events: auto;
+/* A BOOSTED LINE, ON THE BOARD. z-index 1 puts it behind the cards (2, set in
+   css/entity-fx.css) exactly as a marked row's line sits behind them. */
+.sq-bline {
+  position: absolute; z-index: 1; pointer-events: none; border-radius: 6px;
+  border: 1px dashed rgba(201,168,76,0.55);
+  background: linear-gradient(90deg, rgba(201,168,76,0.16), rgba(201,168,76,0.05));
+  box-shadow: 0 0 14px -4px rgba(201,168,76,0.7);
 }
-#sq-tip.show { display: block; }
-#sq-tip .sqt-h {
-  font-family: 'Share Tech Mono', monospace; font-size: 8.5px; letter-spacing: 2.5px;
-  text-transform: uppercase; color: #b39cf5; margin-bottom: 5px;
+.sq-bline.col { background: linear-gradient(180deg, rgba(201,168,76,0.16), rgba(201,168,76,0.05)); }
+.sq-bline.dbl { border-color: rgba(201,168,76,0.9); }
+.sq-btag {
+  position: absolute; right: -2px; bottom: -8px;
+  font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 9px; letter-spacing: 0.5px;
+  padding: 1px 4px; border-radius: 4px; color: #1a1509; background: var(--gold);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
 }
-#sq-tip .sqt-hand {
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+.sq-bline.col .sq-btag { right: -8px; bottom: -2px; }
+
+/* The banner doubles as the pay table's handle. */
+#sq-banner.sq-btap { cursor: pointer; pointer-events: auto; }
+.sq-bhelp {
+  display: inline-block; margin-left: 7px; padding: 0 4px; border-radius: 3px;
+  border: 1px solid rgba(201,168,76,0.5); color: var(--gold); font-size: 10px; line-height: 1.35;
 }
-#sq-tip .sqt-faces { display: flex; gap: 4px; margin-bottom: 7px; }
-#sq-tip .sqt-faces i {
-  font-family: 'Crimson Pro', serif; font-style: normal; font-weight: 700; font-size: 12px;
-  background: var(--card-bg); border-radius: 3px; padding: 2px 5px; color: #111;
+#sq-banner.sq-btap:hover .sq-bhelp { background: var(--gold); color: #0e0c0a; }
+
+#sq-paytable { max-width: min(300px, calc(100vw - 20px)); }
+.sq-pt-h {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px;
+  color: var(--gold); margin-bottom: 6px;
 }
-/* The same hues the board uses, so a line's faces can be scanned for the flush
-   you were building rather than read one at a time. */
-#sq-tip .sqt-faces i.suit-hearts   { color: var(--suit-hearts); }
-#sq-tip .sqt-faces i.suit-diamonds { color: var(--suit-diamonds); }
-#sq-tip .sqt-faces i.suit-spades   { color: var(--suit-spades); }
-#sq-tip .sqt-faces i.suit-clubs    { color: var(--suit-clubs); }
-#sq-tip .sqt-sum, #sq-tip .sqt-foot {
-  font-family: 'Share Tech Mono', monospace; font-size: 10.5px; color: var(--cream-dim);
+table.sq-pt { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+table.sq-pt td { padding: 2px 0; color: var(--cream-dim); }
+table.sq-pt td:last-child { text-align: right; color: var(--gold); font-weight: 700; }
+table.sq-pt tr:first-child td { color: #fff; }
+.sq-pt-n {
+  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.45;
+  color: rgba(240,230,200,0.7); margin-top: 7px; padding-top: 6px; border-top: 1px solid #2a2840;
 }
-#sq-tip .sqt-tot {
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 17px; color: #fff; margin-top: 2px;
+.sq-pt-n b { color: var(--cream); }
+
+/* ── THE SCOREBOARD ───────────────────────────────────────────────────── */
+table.sq-sb { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+table.sq-sb th {
+  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 2px;
+  color: #b39cf5; text-align: right; padding: 0 6px 6px; font-weight: 700;
 }
-#sq-tip .sqt-t { border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 10px; }
-#sq-tip .sqt-t td { padding: 2px 7px 2px 0; color: var(--cream-dim); white-space: nowrap; }
-#sq-tip .sqt-t td.n { text-align: right; padding-right: 0; padding-left: 10px; }
-#sq-tip .sqt-t td.b { color: var(--gold); font-weight: 700; }
-#sq-tip .sqt-t tr.off td { opacity: 0.35; }
-#sq-tip .sqt-foot { margin-top: 7px; padding-top: 6px; border-top: 1px solid #332e55; }
-#sq-tip .sqt-foot b, #sq-tip .sqt-sum b { color: var(--gold); }
-/* The two chips are a control on this screen, so they have to look like one. */
-#stage.squares-mode #pips-box, #stage.squares-mode #mult-box { cursor: help; }
+table.sq-sb th:first-child { text-align: left; }
+table.sq-sb td { padding: 7px 6px; border-top: 1px solid #262340; }
+.sq-sbr { cursor: pointer; transition: background 0.12s; }
+.sq-sbr:hover { background: rgba(140,110,230,0.14); }
+.sq-sbg { font-family: 'Orbitron', sans-serif; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+.sq-sbv { text-align: right; color: #fff; font-size: 13px; }
+.sq-sbp { text-align: right; color: var(--cream-dim); }
+.sq-sbpct { text-align: right; color: #b39cf5; width: 42px; }
+.sq-sbbarw { width: 34%; }
+.sq-sbbar {
+  display: block; height: 6px; border-radius: 3px; min-width: 2px;
+  background: linear-gradient(90deg, #6f5ac0, #b39cf5);
+}
+table.sq-sb tfoot td { border-top: 2px solid #3a3560; padding-top: 9px; }
+table.sq-sb tfoot .sq-sbv { color: var(--gold); font-size: 15px; }
+.sq-sbnote {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.5px;
+  color: rgba(240,230,200,0.5); margin-top: 10px; text-align: center;
+}
+
+/* ── THE COMPARISON ───────────────────────────────────────────────────── */
+.sq-cmp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+.sq-cmp-who {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px;
+}
+.sq-cmp-who.mine { color: var(--gold); }
+.sq-cmp-who.opt  { color: var(--green); }
+.sq-cmp-sc { font-family: 'Share Tech Mono', monospace; font-size: 15px; color: #fff; }
+.sq-cmp-grid {
+  display: grid; gap: 5px; width: 100%; max-width: 330px; margin: 0 auto;
+  padding: 9px; border-radius: 9px; border: 2px solid var(--gold); background: #0a0913;
+}
+.sq-cmp-grid.opt { border-color: var(--green); }
+.sq-cc {
+  position: relative; aspect-ratio: 0.72; border-radius: 4px;
+  background: var(--card-bg, #f4ead5); border: 1px solid rgba(0,0,0,0.35);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; line-height: 1; color: #16120c;
+}
+.sq-cc.empty { background: #14121f; border: 1px dashed #2f2b48; }
+.sq-cc.wild  { background: #251c3d; color: #d9ccff; border-color: #7a63c8; }
+.sq-ccr { font-size: clamp(9px, 3.4vw, 15px); font-weight: 700; }
+.sq-ccs { font-size: clamp(8px, 2.8vw, 13px); opacity: 0.9; }
+.sq-cc.bad { box-shadow: 0 0 0 2px var(--red) inset; }
+.sq-cc.fix { box-shadow: 0 0 0 2px var(--green) inset; }
+.sq-ccm {
+  position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+.sq-ccm.bad { background: var(--red); }
+.sq-ccm.fix { background: var(--green); color: #06140a; }
+.sq-cmp-legend {
+  font-family: 'Share Tech Mono', monospace; font-size: 10.5px;
+  color: rgba(240,230,200,0.62); text-align: center; margin-top: 11px;
+}
+.sq-cmp-legend b { color: #fff; }
+.sq-lg { padding: 0 3px; }
+.sq-lg.bad { color: var(--red); }
+.sq-lg.fix { color: var(--green); }
+
+/* A PLACED GROUP'S OUTLINE (r368). Above the cards (they are z-index 2) because
+   it is an edge ON the tile, not a wash behind it; inert, because the board's
+   own capture-phase handler turns the tap into a lift. */
+.sq-grp {
+  position: absolute; z-index: 3; pointer-events: none; border-radius: 5px;
+  border-style: solid; border-color: rgba(122,99,200,0.95); border-width: 0;
+  box-shadow: 0 0 9px -2px rgba(122,99,200,0.85);
+}
+.sq-grp.solo { border-color: rgba(201,168,76,0.9); box-shadow: 0 0 9px -2px rgba(201,168,76,0.8); }
+
+/* A TRAY SLOT WHOSE TILE IS DOWN. It holds the row open so nothing else moves -
+   see sqdTraySlots. Faint enough to read as absence rather than as an option. */
+.sq-tile.sq-hole {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 4px, transparent 4px 8px);
+  border: 1px dashed rgba(240,230,200,0.14); box-shadow: none; cursor: default;
+}
+.sq-tile.sq-hole:hover { transform: none; box-shadow: none; }
+.sq-tile.sq-drop { outline: 2px dashed var(--gold); outline-offset: -3px; }
+
+/* ── THE TRAY RESERVED A ROW IT NO LONGER NEEDS (r368) ────────────────────
+   `grid-template-rows: repeat(3, 1fr)` was written for the r311 inventory: the
+   3x3 dealt SEVEN tiles into three columns, which is three rows. r368's
+   inventory is SIX - a bar, an L, two dominoes and two singles (the owner's
+   "each grid should have an l and a 3x1 piece") - and six into three columns is
+   TWO rows. So a third of the tray was empty by construction and every tile was
+   a third shorter than the space allowed.
+   Measured in portrait at 462x928, a 3-tall piece: tile 131x69 with a 23px cell
+   becomes tile 131x110 with a 36px cell - 60% taller, for one line.
+   The rows stay EXPLICIT rather than auto, which is r309's rule: a tile must
+   not change size as the hand empties, and a track does not care how many
+   items are left. */
+#stage.sq-n3 #selected-cards,
+#stage:not(.landscape).sq-n3 #selected-cards { grid-template-rows: repeat(2, 1fr); }
+#stage.sq-n4 #selected-cards,
+#stage:not(.landscape).sq-n4 #selected-cards { grid-template-rows: repeat(3, 1fr); }

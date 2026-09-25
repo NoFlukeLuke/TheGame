@@ -44,6 +44,7 @@ function knackSellValue()      { return Math.max(1, Math.floor(SHOP_KNACK_PRICE 
 
 function sellTrick(trick) {
   if (!trick) return;
+  if (typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(trick)) { if (typeof hideTrickTooltip === 'function') hideTrickTooltip(); return; }
   const idx = trickTray.findIndex(b => b.id === trick.id);
   if (idx >= 0) trickTray.splice(idx, 1);
   const aidx = acquiredTricks.findIndex(b => b.id === trick.id);

@@ -20,6 +20,13 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `js/` - the game code, one file per system (list below).
 - `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
 - `CARD_EFFECTS.md` - **the index of everything that can be true of ONE CARD.** Every permanent buff and debuff, every boss state, the r278 card states, and the parked design list. Read it before adding a per-card effect.
+- `EVENTS.md` - **the review of all 22 events: what each one does, which tier it is in,
+  and what to do about it.** Read it before touching `js/events*.js`. Its spine is the
+  owner's test - an event costs a whole reward grid, so if the screen could have been one
+  tile on the grid you gave up, it is a bad event however well tuned. It also records the
+  seven post-r278 systems (card states, forced fires, `permFocus`, wilds, Natural Scaling,
+  `primeTrick`, `downgradeEntity`) that **no event touches**, which is the standing answer
+  to "make the rewards things you cannot get from the grid or the shop".
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
@@ -113,6 +120,9 @@ The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-s
 - **Trick** (formerly *Bonus Card / BC*): `trick:{id,name,desc,tier}`. A scoring buff. **As of the trick redesign (r66+), Tricks do NOT live on the grid** - they sit in a persistent **side tray** (`trickTray[]`, rendered by `renderTrickTray()` into `#trick-tray-list`; `trickTrayMode` defaults to `true`, grid placement is a dev-only toggle). `hasTrick(id)` checks the tray in tray mode (falls back to scanning `gridData` only when grid placement is toggled on). `acquiredTricks[]` tracks ever-owned (for dedup via `ownsTrick`). **NOTE: Sleights (below), not Tricks, are the entities that physically live on the grid.**
 - **Sleight** (formerly *Joker*): `_isSleight:true`, `sleightId`, `_usesLeft`. A deck card with conditional activations (see below).
 - **Stone:** `_isStone:true` - inert obstacle.
+- **Wild** (r325): `rank === WILD_RANK`. An ordinary deck card that takes any rank to
+  complete a SET, never a run or a flush, scoring no pips and firing no Tricks. It is a
+  RANK rather than a flag, so it survives the deck cycle for free - see "The wild card" below.
 - **Knack** (formerly *Totem*): NOT a card. Persistent rule-changer in `acquiredKnacks[]`, shown in HUD. `hasKnack(id)`.
 - **Challenge card:** `challengeCard` / `challengeActive`, occupies a cell; `resolveChallenge(success)`.
 - `cardCan(card, action)` gates what each type can do (`select`/`swap`/`discard`/`fall`/`render`).
@@ -169,7 +179,7 @@ The old table had four inversions, all fixed:
 - **THERE IS NO xSCORE STEP ANY MORE (r236).** This line used to list Echo, Legacy, Low and Behold, the boss Redaction and the dev grid Trick card as deliberate survivors. It had drifted even before r236: **Echo** is a per-card retrigger in the card loop, and **Legacy** became a xMULT in r193. r194 took Spot Check, and r236 took the last four - The Redaction, The Grind, Low and Behold and the dev grid Trick card. See "The last four xSCORE effects" below. **Do not add one**: anything that would go there is a xPIPS or a xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (top tier) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. (This line used to say its payout lands at SCORE level; it is `mult += bonusMult_compound`, an ordinary additive mult, and has been for some time.)
+- **Compound** was removed in r336 (the 9.24 balance pass).
 
 ### The scoring TIMELINE (r220) - every Trick pays out at its own moment
 
@@ -849,8 +859,184 @@ and I cannot tell why". The rules, as the code actually is:
 - **The rank partition means "fully used" is not "one shape".** `{2S 2H JH QC KD}` is `Pair + Run of 3` - two disjoint components covering all five - and scores 395. That is the same machinery the 7-card hands use, so the rule is much less restrictive than it sounds.
 - **High Card is the fallback, and it covers every cell by definition.** When the rule rejects a hand with a passenger, the subset falls through to High Card, and `findBestHand` picks whichever actually pays more: measured on a Pair beside three big cards, `Pair` + 3 penalty (52) still beat High Card (30), so the escape valve costs nothing when it isn't needed.
 - **The `hasKnack` call is in the `handComponentsFor` cache key.** Granting Tagalong mid-run changes the answer for cells whose cards have not moved, and the cached entry would otherwise be reused.
-- **Tagalong** (rare knack) lifts it: hands may carry cards that are not part of them, and those cards score their own pips instead of being billed as penalties. That is the whole reason it is a knack - before r201 this was free and unremarkable, so making it the default and selling it back turns "my hand has a spare in it" into something you paid for.
+- **Tagalong** (rare knack) RAISES the allowance rather than removing the rule. **r326 rewrote what it costs and what it buys - see "Tagalong carries passengers, and bills them" below.** This line used to say the carried cards "score their own pips instead of being billed as penalties", which is what the code did and is no longer what it does.
 - **Verified unaffected:** the 7-card `Run of 4 + Set of 3 + Flush` still scores 1870; the tutorial's board audit passed 40 of 40 deals; RECORDS renders; match-3 is byte-for-byte the same behaviour before and after (checked by running the same deal on both commits).
+
+### Flow bills its clock, and the bosses say what they do (r326)
+
+Two more things from the same report.
+
+**FLOW CHARGES FOR TOUCHING THE BOARD AGAIN.** Owner: *"yes it should apply even
+there, and we should turn that back off. maybe make them cost a little less
+there, but they should definitely cost. swap and discard i mean, as well as
+tagalongs."* r234 had exempted Flow on the reasoning that its clock is the
+countdown to the inspection, so interacting could summon the boss early - true,
+and the owner's answer is that summoning it early is exactly what a cost should
+feel like. Flow was the one mode where touching the board was free, in a mode
+whose only pressure is Focus decay.
+
+- **`interactTimeCostMult()` (js/round-timers.js) is the ONE number now**, and it
+  returns **0** when the mode does not bill the clock at all, **0.5** in Flow and
+  **1** everywhere else. Both charge sites (js/input.js, js/discard.js) and the
+  Time pop-up multiply by it instead of branching on `interactTimeCostsOn()`, so
+  the quote and the charge still come from one place - r151's rule, which two
+  separate bugs have already been caught by.
+- **Flow pays half because its clock is asked to cover much more.** A Classic
+  3:00 clock buys ONE round; Flow's 5:00 covers every level-up until the
+  inspection (`flowNextRoundSeconds` refills only at run start and after a boss),
+  so the same 8s swap is several times dearer there. Measured: a swap costs 4s
+  and a discard 1.5s a card in Flow, 8s and 3s everywhere else.
+- **`MODES.flow.timeIsCurrency` is `true`**, so `interactTimeCostsOn()` needed no
+  Flow case at all - the flag describes what the mode does again. A picker-built
+  run that chose "no time limit" is still forced to `timeCost: 'no'` and still
+  answers 0.
+- `spendRoundTime` has had no callers since r151 and is kept for the reason
+  `DISCARD_TIME_COST` is; its Flow early return became the shared predicate.
+
+**THE BOSS BRIEFS SAY WHAT THE BOSS DOES AND STOP.** Owner: *"the description
+doesn't make any sense, and all the boss descriptions have that weird AI sounding
+voice thing. they should just explain the boss mechanic as clearly as possible
+and that's it. no editorialization needed."* All 34 `brief` strings in
+`js/data/bosses.js` were rewritten to the owner's own model, which is the whole
+style guide: *"The corners of the grid have been removed, along with half your
+discards and swaps."*
+
+What came out, and what to keep out if you add a boss:
+
+| out | example that was there |
+|---|---|
+| telling the player how to feel about it | "Focus is still worth having - it just costs you the round to hold." |
+| telling the player how to play it | "Move down the ladder and come back to it." |
+| reassurance | "Nothing is switched off - your best hand is still your best hand." |
+| explaining the DESIGN | "which is what makes the round a plan rather than a wall" |
+| a number written as a phrase | "the opposite edge pays half again on top" |
+
+**The Gradient is the one the owner could not read, and its number was the
+problem.** `bossGradientScale` interpolates between `lo` 0.5 and `hi` 1.5, so the
+brief now says "half pips at one edge ... one and a half times at the opposite
+edge" rather than "half again on top". The identical phrasing in the code comment
+above `bossGradientTick` went with it.
+
+- **`flavor` is untouched.** It is the one-line subtitle under the boss's name,
+  not the description, and the owner pointed at the descriptions.
+- **The brief must not restate the objective.** `bossBriefHTML` prints
+  `OBJECTIVE - REACH THE GOAL (n)` as its own line directly underneath.
+- The one surviving `target: 4000` (The Hold) is gone, which is what the file's
+  own header comment has claimed since r205.
+
+### Tagalong carries passengers, and bills them (r326)
+
+Owner, on a Flow run: *"the hand detection was not working well at all, mostly at
+high selection sizes, it kept saying run of 3 x2 when the hand wasn't even a
+run."* And separately: *"once you're at 6 and you have to play 4 card hands, the
+ability to just throw 2 random cards on at the end of anything just feels like
+there may as well be no minimum. so maybe that's true... yeah it probably is."*
+
+**THE DETECTION WAS RIGHT. THE HUD WAS LYING BY OMISSION, AND TAGALONG IS WHY.**
+Measured over 4,800 random connected selections at Selection Size 7: every
+component of every hand was a real component - **0 mislabelled runs, sets or
+flushes**. `RUN 3 x2` really is two disjoint Runs of 3, and `handLabelHTML`
+collapsing a repeat to `x2` is a count, not a multiplier.
+
+What was missing is everything ELSE in the selection. With Tagalong owned,
+`handComponentsFor` returns a partition that may leave cards unclaimed, and
+`findBestHand`'s r293 whole-selection early return reported
+**`penaltyCells: []`** - so the passengers were not red on the board, not in the
+label, not in the breakdown, and not billed. Measured at Selection Size 7 with
+the knack owned, **73% of hands were carrying at least one passenger and the
+average hand carried 1.5**; at 6-7 cards it was **80% of hands, 2.1 cards each**.
+So a seven-card selection where two cards did nothing at all read as `RUN 3 x2`,
+and the owner correctly said the hand was not a run.
+
+#### The three rules, and where each lives
+
+| | now | was |
+|---|---|---|
+| the minimum selection | **does not apply** with Tagalong | applied |
+| passengers per hand | **unlimited** (`tagalongMaxCards`, dev knob) | unlimited |
+| what a passenger costs | **its pips, AND its pip value in seconds** | nothing - it SCORED its pips |
+
+- **THE THIRD ROW IS THE BIG ONE AND THE OLD DOCS HAD IT BACKWARDS.** r201's note
+  said the carried cards were "billed as penalties instead"; the code paid them,
+  so until r326 a passenger was a small BONUS. That is the whole of the owner's
+  "the only penalty is minus pips which by like round 3 is meaningless" - there
+  was no penalty at all, and the pip half is feeble anyway. Measured on a bare
+  loadout, an average hand's passengers bill **5.5% of the hand at level 1 and
+  1.9% at level 18**, and a real Trick tray makes that smaller still.
+- **THE CLOCK IS THE LEVER THAT HARDENS ON ITS OWN.** A second does not grow with
+  the level while the goal does, so a flat charge is worth more every round -
+  which is exactly the shape the pip bill fails to have. Measured at Selection
+  Size 7-9, a hand deliberately carrying passengers costs about **13 seconds** of
+  a 180s Classic round.
+- **`tagalongMax()` returns 0 without the knack, `Infinity` with it, or the cap.**
+  That collapses r201's rule and the cap into ONE comparison in
+  `handComponentsFor` - `unclaimedCount(components) > _maxTagalong` voids the hand -
+  and 0 reproduces r201 exactly, which is what the A/B below proves. The r281
+  covering-partition retry hangs off the same comparison, so it still fires only
+  when a hand is about to be thrown away.
+- **`handMinSelection()` (js/limits.js) is the play grid's floor; `minSelection()`
+  stays the raw arithmetic.** Nine play-grid callers read the first (the PLAY
+  button, the auto-submit and its scheduler, the `playHand` guard, the NEED
+  label, the x/y readout, High Card's gate, the tutorial). **`rewardMinPicks()`
+  reads the second and must keep doing so** - Tagalong is a rule about HANDS and
+  has no business changing how many tiles a reward path takes.
+- **High Card switches off with the minimum, and that is correct rather than
+  incidental.** Its gate is `minSelectionBinds()`, which now reads the hand floor.
+  High Card is the escape valve for a selection you were FORCED to make (r200);
+  with no minimum nothing is forced, so a shapeless five-card selection is
+  honestly "no hand here" and the answer is to select fewer cards.
+
+#### Where a passenger is reported, and the one place it is computed
+
+`handTagalongCells(cells)` is that place. `_withTagalongs` decorates BOTH of
+`findBestHand`'s return paths with `tagalongCells` / `tagalongPips` /
+`tagalongSeconds`, and `finalScore` subtracts both bills.
+
+- **A TAGALONG AND A PENALTY CARD ARE DIFFERENT THINGS AND ARE KEPT APART.** A
+  penalty card is OUTSIDE the hand (the hand refused it); a tagalong is INSIDE
+  `handCells` and in none of its components (you paid to be allowed to carry it).
+  Both bill pips; only a tagalong bills the clock. The label prints `DROP` for one
+  and `TAG` for the other. **The BOARD paints both red with the same class**,
+  deliberately: one class, one meaning - this selected card is not part of the
+  hand and you are paying for it.
+- **THE SUBSET SEARCH BILLS THEM TOO.** Without that line the search would happily
+  prefer a subset carrying three passengers over one carrying none, since they
+  cost the same pips wherever they sit.
+- **`playHand` RECOMPUTES them rather than reading `result`**, because the Ringer
+  (js/sleights-runtime.js) and Roll Call (js/card-states.js) both SPREAD the
+  result they were handed while replacing `handCells` - so the fields
+  `findBestHand` wrote describe the hand before the augment. `handComponentsFor`
+  is cached, so asking again costs nothing.
+- **The time bill is charged beside the Rider's**, after the score commits, so a
+  hand that wins the round still wins it however little clock is left - the
+  ordering the Tollman's play surcharge already relies on.
+
+#### Two cache bugs found while measuring, both real
+
+`_compCache` is keyed on the CARDS, which is right for a board that moves and
+wrong for a RULE that moves under a board that has not.
+
+- **`activeHands` was not in the key.** Short Suit turning on flush3/flush4
+  mid-run (js/limits.js) or a mode unlocking a hand (js/hands-meta.js) changed
+  the answer for cells whose cards had not moved, and the stale entry was reused.
+  Its `size` is a sound fingerprint: nothing ever removes a key, so a change is
+  always a growth.
+- **NATURAL SCALING was not in the key either**, and `handWorth` reads it through
+  `handBasePips`/`handBaseMult` - so the cache could hold a partition the live
+  rates would no longer choose. `recordNaturalScale` calls
+  `clearHandCompCache()`, because it is the one function that moves those numbers
+  mid-round. Do not scatter that call; if a second thing starts moving them, it
+  goes there.
+
+#### Verified
+
+**8,637 selections across Flow, Classic and Spectrum, at Selection Sizes 3/5/7/9,
+byte-identical to r325 with Tagalong not owned** - same hand, same cells, same
+penalties, same score (planted boards and a seeded selection stream through both
+trees, `git worktree` A/B). With the knack owned: passengers are reported on
+every path, `finalScore` equals `rawScore - penaltyPips - tagalongPips` on every
+hand, a cap of 1 yields exactly one passenger per hand over 1,071 hands, and the
+minimum reads 1 against a raw floor of 5.
 
 ### The partition and the load-bearing rule were fighting (r281)
 
@@ -1237,7 +1423,8 @@ entire text is "your payouts are uncapped".
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 
-- **Flow was billing its clock the whole time, and `interactTimeCostsOn()` (r234) is the fix.** `spendRoundTime` returns early for Flow and the Time pop-up quoted 0s, but **neither is what charges**: the two real sites (`js/discard.js`, `js/input.js`) write `roundSeconds` directly and neither consulted `flowActive()`. So every swap billed 8s off a session clock whose own comment says interacting must not be able to summon the inspection early. Both sites and the pop-up now read the one predicate, so the quote and the charge cannot drift. `spendRoundTime` has no remaining callers and is kept for the same reason `DISCARD_TIME_COST` is.
+- **FLOW BILLS ITS CLOCK AGAIN AS OF r326**, at half rate, so the paragraph below is history rather than current behaviour. `interactTimeCostsOn()` still exists and still reads `ACTIVE_MODE.timeIsCurrency`; what changed is that Flow's flag is now `true` and the rate lives in `interactTimeCostMult()`.
+- **Flow was billing its clock the whole time, and `interactTimeCostsOn()` (r234) was the fix.** `spendRoundTime` returns early for Flow and the Time pop-up quoted 0s, but **neither is what charges**: the two real sites (`js/discard.js`, `js/input.js`) write `roundSeconds` directly and neither consulted `flowActive()`. So every swap billed 8s off a session clock whose own comment says interacting must not be able to summon the inspection early. Both sites and the pop-up now read the one predicate, so the quote and the charge cannot drift. `spendRoundTime` has no remaining callers and is kept for the same reason `DISCARD_TIME_COST` is.
 - **Playing a hand costs no time (r50):** the old "−5s per manual play (+ reward-grid penalties)" deduction in `playHand` was removed (owner request). Reward-grid play-cost debuffs (`extraPlayCostPerm` etc.) still parse but are inert.
 - **Suits are NEUTRAL by default** (owner's decision, now shipped). A plain card scores only its pips × mult - no per-suit coin/time/pip/mult bonus. Suit effects come *only* from exalt/corrupt (below) or Tricks (♥/♣ Tricks in `calcScore`; Spade Flood etc.). The old defaults (♣ pips, ♥ mult, ♦ coin, ♠ time) are gone - see the "suits are neutral" comment in `playHand`.
 - `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild sleights (temp rank/suit) and drops non-wild sleights from detection.
@@ -1292,7 +1479,7 @@ An epic `passive` Sleight, 10 charges. While it sits on the grid, submitting a h
 
 ### Adjacency batch (r121)
 Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal - `getNeighborsOrtho` / `_isOrthoAdj` in `sleights-runtime.js`):
-- **Whetstone** - each adjacent card swapped or discarded banks `+1 mult` on the card itself (`card._whetMult`, so it survives deck cycling). A scored hand collects the full banked mult from every Whetstone orthogonally adjacent to at least one scored card; several Whetstones stack. Fed by `feedWhetstones(cells)` (called in `doSwap` + `doDiscard`, before the cards leave the grid), read by `whetstoneMultForCells(cells)` in `calcScore`.
+- **Whetstone** - **discards itself after 90s on the board (r371, `BAL.whetstone.life_seconds`)**: `sleightLifeTick` (round tick) ages `_gridSecs` on the card, the cooldown ring counts it down (`sleightLifeLeft` in `cdForCard`), and it leaves through spin + `discardToPlayed` + `removeAndFall`. `_gridSecs` is NOT in the sleight rebuild, so each lap starts a fresh clock; `_whetMult` IS now (it was being dropped on every cycle). Each adjacent card swapped or discarded banks `+1 mult` on the card itself (`card._whetMult`, so it survives deck cycling). A scored hand collects the full banked mult from every Whetstone orthogonally adjacent to at least one scored card; several Whetstones stack. Fed by `feedWhetstones(cells)` (called in `doSwap` + `doDiscard`, before the cards leave the grid), read by `whetstoneMultForCells(cells)` in `calcScore`.
 - **Entourage** - `+10 mult` per *other* Sleight on the grid (`entourageMult()`); two Entourages each count the rest.
 - **Lighthouse** - `lighthouseColumn` alternates first ↔ last each round (set in `triggerLevelUp` beside `shadyColumn`). `+20 mult` in that column, `−5` per column of distance, floored at 0 (`lighthouseMult()`).
 - **Jury-Rig** (Knack) - swapping/discarding beside a Sleight rolls 50% to restore 1 charge, **once per Sleight per action** (deduped by `_id` in `juryRigRoll`); `restoreSleightCharge` never exceeds the printed `durability` and no-ops on `'infinite'`.
@@ -1802,7 +1989,7 @@ OWN width, and the first version moved a 37.74% column by 37.74% of itself, abou
 `permPips` / `permMult` are **flat**: the card scores that bonus, unchanged, every play. Every offer site said "**permanently gains** +1 mult", which reads as growth - a player could hold a blessed card for a whole run waiting for a number that was never going to move.
 
 - **The wording is now the type.** Flat says **"scores +5 mult when played"**; scaling says **"scales +1 mult each time it's played"**. `cardBuffLines(cardId)` in `js/deck-grid.js` is the single place a card's buffs are put into words, and the grid tooltip, the deck matrix and the reward tiles all read it, so they cannot drift apart again.
-- **`permPipsGrow` / `permMultGrow` are the new scaling kind** - not scored, they are *how much the flat bonus rises per play*. Applied by `growCardScaling()` from `playHand` **after the score commits**, the same discipline `recordNaturalScale` follows: a buff earned by this hand pays out on the next one. Deduped per hand, so a retriggered card grows once.
+- **`permPipsGrow` / `permMultGrow` are the new scaling kind** - not scored, they are *how much the flat bonus rises per play*. Applied by `growCardScaling()` from `playHand` **after the score commits**, the same discipline `recordNaturalScale` follows: a buff earned by this hand pays out on the next one. Grown once per time the card SCORES (r370 - replays count; it used to grow once per hand).
 - **Two stores, not one field with a flag**, because a card can legitimately carry both, and because every existing read of `permMult` keeps working untouched. Both are in `SAVE_VARS`, in `migrateCardKeysToIds`, and reset on a new run.
 - **A scaling card needs its own marker or it is indistinguishable from a flat one** - both print "+N" somewhere. `.card-grow-mark` (a green arrow, bottom-centre) on the board; `.rec-m-g` in the RECORDS deck matrix, which matters because a scaling card may still have 0 flat pips and would otherwise read as ordinary.
 - Offer sites: the reward grid's Blessed Card tile is now a 3-way roll (15% scaling mult / 25% flat +5 mult / 60% flat +12 pips), and The Bench event gained **Train** (scales +1 mult) and **Season** (scales +4 pips) beside its reworded flat boons.
@@ -1821,7 +2008,7 @@ ONE widget for everything temporarily unavailable or temporarily charged: a coun
 - **The grey-out is a WASH ELEMENT, not a `filter`.** A filter applies to the whole subtree and a child cannot undo it, so a filtered card would have dragged its own countdown badge down to 16% saturation - the one part of it that has to stay legible. `.cd-wash` is a sibling of the badge at a lower z-index. It is an appended element rather than an `::after` because `.card.rc-woodpecker` already owns that pseudo-element.
 - **A tray chip a boss switched off already drains itself and stamps OFF** (r188), so on that one host the widget contributes only the ring - washing it as well double-dims it. `cdPaint` checks for `.trick-off`.
 - **`renderCardAppearance` emits the badge too** (`cardCooldownParts`). `render()` rewrites a card's className and innerHTML wholesale, so a badge added only by the sweep would be wiped and re-added on every deal, swap and score - a visible flicker. `renderTrickTray` calls `cdPaint` for the same reason.
-- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), The Cuckoo, Compound, **The Woodpecker** (genuinely off for half of every minute, which nothing said out loud before), Minute Hand, every boss suspension, and every boss card hold.
+- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), **The Woodpecker** (a new card marked every 30s since r348, card-keyed and spent when scored), Minute Hand, every boss suspension, and every boss card hold.
 - **A boss suspension with no clock prints no number.** `bossTrickOffSecondsLeft` returns null for the Voidwright's halves - they flip on a phase change, not a timer, so there is no honest number to show.
 
 ### Minute Hand: primed, not pending (r209)
@@ -2870,7 +3057,7 @@ already read and a custom run is not a special case anywhere outside this file.
 | Deck | `suitCount`, `numeric` | `ACTIVE_SUITS` / `ACTIVE_RANKS`, `applyModeHandValues`, `applyModeEntityFilter` |
 | Between rounds | `actStructure`, `guided`, `survival` | the three between-round routes in `level-up.js` / `interlude.js` |
 | Round clock | `clock` | `currentRoundDuration`, `roundClockEndsRound` |
-| Interacting | `timeIsCurrency` | `interactTimeCostsOn` |
+| Interacting | `timeIsCurrency` | `interactTimeCostsOn` / `interactTimeCostMult` |
 | Bosses | `enableBosses` | `bossesEnabled` |
 | Submitting | `autoPlayHands` | `autoSubmitDelay` |
 | Hand values | `scoringModel` | `handBasePips` / `handBaseMult` |
@@ -2916,6 +3103,12 @@ would have to override.
   no-limit round still feeds every timing entity a real elapsed figure. **A boss
   window always ends the round** - that clock is the boss. Verified: the clock
   reaches 0, the round does not end, the timer stays live and elapsed reads 600.
+- **r326 note: the ONE answer is now `interactTimeCostMult()`, which returns 0 when
+  `interactTimeCostsOn()` is false and Flow's half rate when it is true.** Both
+  charge sites and the Time pop-up multiply by it rather than branching on the
+  predicate, so there is still exactly one number. The paragraph below is
+  otherwise unchanged, except that **Flow is no longer the exception**: its
+  `timeIsCurrency` is `true` and it pays `FLOW_INTERACT_TIME_MULT` (0.5).
 - **`interactTimeCostsOn()` is the one answer to "do swaps and discards bill the
   clock", read by the two sites that charge AND by the Time pop-up that quotes
   them** - the same discipline r151 imposed after the double-charge bug.
@@ -3832,151 +4025,6 @@ and 25 slots on the board each time; all five consumable chips fit the goal box
 and are hit-testable in both orientations; and starting any of the other eight
 modes afterwards finds the hand preview back in `#trick-panel`, `#sq-round` gone
 and the GOAL label restored. No page errors anywhere.
-
-### The board is the interface (r326)
-
-Owner: *"love the new poker square deals, theyre good. ui still sucks though."*
-Six changes, and the thread through all of them is that **the board should be the
-thing you look at**: what you are holding, what each line is making and what it is
-worth are all on the board now, and everything that was a form to fill in is gone.
-
-#### 1. A TILE IS DRAGGED BY THE CELL YOU TOOK HOLD OF
-
-`sqGrab` is which cell of the shape the pointer grabbed, in the piece's own
-`{dr,dc}`, and the whole drag falls out of it: the ghost is drawn at **board cell
-size** with that cell under the cursor, and the board cell under the cursor IS
-that cell, so the origin is `cursorCell - grab`.
-
-Before this the ghost was a **96px thumbnail pinned by its top-left corner, 48px
-up and left of the finger** - neither the size of what would land nor the part of
-the shape you were aiming with - and the drop origin was the cell under the
-cursor, so an L always placed as though you had it by the corner.
-
-- **`sqGrabCellFromTile` reads the poly's own rect, NOT `closest('.sq-mini')`.**
-  A bounding box has HOLES (an L, an S and a T all do) and a grab on a hole still
-  has to mean something: the fractional cell is snapped to the nearest cell the
-  shape actually has.
-- **The ghost is the CARDS, translucent, at `CARD_W x CARD_H` scaled by the
-  board's own zoom** (`sqBoardScale` - `#grid` carries the cabinet's CSS zoom, so
-  `CARD_W` is not what the board measures on screen; the r160 Trick-fan trap).
-  While a tile is held the board only outlines the footprint, because a second
-  copy of the faces two pixels away reads as a rendering fault.
-- **RELEASE IS THE COMMIT.** A tile let go over a cell it fits drops in; one let
-  go anywhere else goes back where it came from. **CONFIRM is still there** and
-  still commits a tap-placed tentative (owner: "it can be there"), but nothing
-  requires it.
-- **`sqCellAt(x, y, loose)` forgives half a card past the edge on a DROP.** A tile
-  is aimed by the cell you hold, so packing the last column means holding the
-  cursor on the board's rim; a strict test there reads as the board refusing a
-  placement that plainly fits.
-
-#### 2. A PLACED TILE IS STILL YOURS - lift it, or double-tap to turn it
-
-**`sqPlaced` is the turn's undo stack and it is now kept in EVERY mode, not just
-the daily.** A record per tile, cleared at `sqStartTurn`, so the rule is *everything
-you did this turn is reversible and everything from an earlier turn is committed*.
-(A daily has one turn, so its whole board is reversible - which is exactly what
-TAKE BACK has always popped.)
-
-- **A press on a placed tile is not yet a lift.** It becomes one only once the
-  finger has moved `SQ_LIFT_PX` (6). That is what lets the same press be a
-  **double-tap**, which rotates the tile IN PLACE - arming the lift on contact
-  would make the two impossible to tell apart, and the owner's "maybe require a
-  slightly longer initial click" is not needed once movement is the test.
-- **`sqRotatePlaced` clears the tile's own cells first**, so the fit test sees the
-  room it is currently using, and re-derives the origin from the tile's CENTRE
-  plus a small spiral of nudges - an L turned against the board's edge would
-  otherwise simply refuse. Nowhere to turn puts it back exactly as it was.
-- **A drag that lands nowhere returns a LIFTED tile to its own cells, not to the
-  tray** (`sqReturnDragged`). Picking a tile up to look under it must not cost you
-  the placement.
-
-#### 3. THE TALLY IS THE REVIEW - no per-grid report
-
-The per-grid report restated, in a monospace block, the ten lines the player had
-just watched pay one at a time. It is gone (owner: *"don't put a review after each
-round"*); `sqCaptureGrid` snapshots the board, its line results and its par while
-the board is still standing, and `SQ_ROUND_GAP_MS` (820) is the beat before the
-boon or the Trick pick. **Faces are COPIED, never referenced**: those card objects
-go straight back into the deck and a consumable can re-suit one two grids later.
-
-`sqFinishText` is the old report, kept and callable from the console: it is the
-only place the raw arithmetic of every line is printed, which is what a balance
-pass wants and what the card deliberately is not.
-
-#### 4. THE SCORECARD IS PAPER - `js/squares-card.js` + `css/squares-card.css`
-
-Owner: *"make the final scorecard look way more modern and better ... make it feel
-more like a new york times game overall, if that means ditching some of the css
-from the rest of the game that's fine."*
-
-A light sheet, one accent, thin rules, real leading, a 72px serif total - and
-**every grid played, drawn as a board with its lines labelled on the left and
-above**. Suits take the game's own hues, with diamonds darkened (the board's gold
-is tuned for a cream card face, not for white paper).
-
-- **Every rule is scoped under `#sq-card`**, which is what makes the licence to
-  break house style safe: none of it can reach the rest of the game.
-- **A board and its labels are ONE CSS grid** of `(N+1) x (N+1)`, so a header can
-  never drift off its line at any board size with nothing measured.
-- **`sqHandShort`** is the abbreviation table, shared with the in-play headers: a
-  header has one cell of width, so "THREE OF A KIND" wrapped to three lines is
-  worse than naming it the way a player says it (TRIPS).
-- Body level, for the usual reason - anything inside `#cabinet` inherits its CSS
-  zoom and would paint at about twice the size written.
-
-#### 5. THE CHIPS SAY WHAT THE BOARD IS WORTH RIGHT NOW
-
-Owner: *"is the mult and pips chips actually saying anything?"* They were not:
-`sqPaintChips` was called from the TALLY and nowhere else, so for the whole of the
-placing phase - which is all of the thinking - the two chips sat on whatever the
-last line to pay had left there.
-
-| | left chip | right chip |
-|---|---|---|
-| daily | **HAND** - every line's hand base | **CARDS** - every line's card values |
-| 5x5 | **PIPS** - every line's pips | **MULT** - what those pips are multiplied by overall |
-
-- **The 5x5's MULT is DERIVED (`total / pips`), not a sum of the ten lines'
-  multipliers**, because the `x` between the chips has to stay true: a sum would
-  read as ten multipliers stacked and would not produce the score.
-- **Hover (desktop) or tap (phone) either chip for the whole board, line by
-  line**: name, arithmetic, total, and the two halves summed at the foot.
-
-#### 6. THE LINE HEADERS, and the band they are drawn in
-
-What each row and column is making and what it is worth, beside the line itself,
-always visible in landscape. `SQ_HDR_W` (64) and `SQ_HDR_H` (30).
-
-- **The band is RESERVED OFF THE MEASURED SLOT, not drawn over the board.**
-  `sqSlotInset()` is a hook `recomputeGridMetrics` asks for (js/grid-metrics.js)
-  and `#grid-slot` carries the matching padding - the inset shrinks the board, the
-  padding is what puts the freed room on the left and the top rather than
-  splitting it around a centred board. The 5x5's cards go 50px -> 45px, which is
-  the "shorten the grid a little" the owner asked for.
-- **`sqSlotInset` must NOT depend on the phase.** The board would resize the
-  moment the tally began, which is the one time the cards are being animated.
-- **The headers stay up through the TALLY and the beat after it** - the board is
-  still standing and every line has just been priced.
-- **A PHONE HAS NO BAND TO SPEND.** There the same reading is a tap in the board's
-  MARGIN, and that listener has to be on **`#grid-slot`, not `#grid`**: `#grid`'s
-  own box IS the board, so a tap beside a row never reaches it.
-- **`0/9 PLACED · 3 SPARE` is gone** from above the board - it counted cards the
-  player can see and is in the strip the column headers now use. The surplus moved
-  to the SUBMIT button, where it says what you are about to leave behind.
-
-#### Two things this pass fixed on the way
-
-- **A SHORT LINE COULD CLAIM A RUN OR A FLUSH.** `sqdHandName` named a two-card
-  column "Run of 2", which has no pay-table entry and so scored 0 - the NAME was
-  the only thing wrong, and nothing looked at it until the live headers started
-  printing it. It now applies the rule the beam search has always applied inside
-  `lineScore`: a line shorter than N may not claim the line's own hand.
-- **`_sqLineCache`** - the headers and the live chips both want all 2N lines, and
-  in the 5x5 a line is a real `calcScore`, so a single render was running it forty
-  times. Dropped at the top of `sqRenderAll`, which is the only place the board can
-  have changed under it; the tally deliberately does not use it, because it
-  re-scores at payout on purpose.
 
 ### Known, and left for a decision
 
@@ -4896,7 +4944,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 | what died during every boss | because |
 |---|---|
 | Tick-Tock · Second Hand · Quarter Chime · Minute Hand · Hourglass | `handleClockMarks` runs on the round tick |
-| Tempo's resource drip · the Cuckoo · Compound · the Woodpecker · Slow Burn accrual | same tick |
+| Tempo's resource drip · the Woodpecker · Slow Burn accrual | same tick |
 | Focus decay, the board heartbeat | started by `startRoundTimer` |
 | `pauseRound` / `rewindTime` | operate on the frozen `roundSeconds` |
 | **swap and discard time costs** | billed to the frozen clock, so **interacting was free during a boss** |
@@ -5877,6 +5925,182 @@ deck, since `handBasePips()`/`handBaseMult()` are already the one chokepoint eve
 reader goes through. **This is why the weighted deck is a dev toggle and not a
 mode default**, and why `deckModel` defaults to `'mode'`: with it unset nothing in
 the shipped game changes.
+
+## The wild card (r325) - `WILD_RANK` in `js/data/cards.js`
+
+Owner: *"the wildcard that takes any rank to complete a set but not a run or
+flush. Let's add 4 of those by default to the classic and 6 suits ... They can
+assume a rank to complete a hand, but they don't score pips or trigger tricks by
+default."*
+
+Four are shuffled into the deck at the start of every run. A wild completes a
+**SET** and nothing else: two 7s and a wild is a Three of a Kind, one 7 and two
+wilds is a Three of a Kind, 7-7-3-3 and a wild is a Full House. It can never be
+part of a run or a flush, it scores no pips, and it fires none of the per-card
+Tricks.
+
+### IT IS A RANK, NOT A FLAG, and that is the r165 white-card lesson
+
+`recycleCard` rebuilds an ordinary card from `{rank, suit}` plus the
+`DURABLE_CARD_FIELDS` list every time it leaves the board, so a `_wild` field
+would have to be named there AND kept in step with `SAVE_VARS` and both pile
+functions - which is exactly the bookkeeping r165 removed from the Spectrum white
+cards by DERIVING whiteness from the value instead. `isWildCard(card)` is
+`card.rank === WILD_RANK`, so the wild survives discard -> reshuffle -> redraw
+with no work anywhere, and `cardId` / `cardKey` / curses / buffs / saves all keep
+working untouched. Verified: through `discardToDrawPile` and through
+`discardToPlayed`, still a wild and still the same `_id`.
+
+**`WILD_SUIT` is a non-suit, deliberately.** A wild drawn as a spade that cannot
+complete a spade flush is the more confusing object, and "no rank, no suit" is one
+rule rather than two. It is absent from `ACTIVE_SUITS`, which is most of why the
+flush exclusion falls out - but **both flush sites test `isWildCard` explicitly
+anyway**, because r164 leaned on absence alone for the white cards and r165 had to
+unpick it. All four wilds share one `cardKey`, which is fine: `cardKey` is the
+RECORDS deck matrix's alone and that view aggregates with a count badge (r192).
+
+### The three rules, and where each one is enforced
+
+| rule | where |
+|---|---|
+| never in a RUN | `rankRunVals` returns `[]`, so `tryRunCombos` has nothing to place it at |
+| never in a FLUSH | `_handShape`'s `allSameSuitStrict` **and** `flushOverlayFor` |
+| completes a SET | `_wildFitsPattern`, read by `rankHandForGroup` |
+
+- **`rankRunVals` is where the run rule has to live**, not `RANK_ORDER`. That
+  function ends `?? 0`, so an unknown rank comes back as `[0]` and a wild would
+  have sat happily below an Ace in a run.
+- **`flushOverlayFor` needs the explicit test in a way `_handShape` does not.** It
+  groups cards BY THEIR OWN SUIT rather than testing against `ACTIVE_SUITS`, so
+  three wilds would have formed a `WILD_SUIT` group of their own and paid a
+  **Flush of 3** off cards that are not a suit at all.
+- **`_wildFitsPattern(naturalCounts, w, pattern)`** answers "can w wilds fill this
+  shape". Both lists are descending, the group is exactly `sum(pattern)` cards, so
+  greedy biggest-to-biggest is provably right: if the i-th largest natural group
+  will not fit the i-th largest slot, no pairing exists. `[n]` is n-of-a-kind,
+  `[3,2]` a full house, `[2,2]` two pair.
+- **AT w = 0 IT REDUCES TO THE THREE TESTS IT REPLACED, EXACTLY**, which is why
+  this was safe to drop in. The group size is fixed, so `counts[0] >= n` was only
+  ever true for a single rank, a full house only ever `[3,2]` and two pair only
+  ever `[2,2]`.
+- **A SET NEEDS AT LEAST ONE REAL CARD TO NAME ITS RANK** (`counts.length > 0`).
+  "Takes any rank to complete a set" means there is a set to complete; three blank
+  cards paying Three of a Kind reads as a bug, and on a 7x7 board three wilds
+  landing together is not rare enough to leave to chance.
+
+### No pips, no Tricks - and the mute was NOT enough
+
+The card loop's `_dead` path (Dead Drop, r194) is the right shape - "no pips, and
+none of its per-card Tricks" - but reusing it would have been wrong: it restores
+the ledger and zeroes `cp`, and **the `PER_CARD_PAYERS` block (r228) accumulates
+AFTER that restore**, so a muted wild would still have paid Get Even its +2 mult.
+`calcScore`'s loop therefore **returns** on a wild, which is the one guard that
+covers every per-card payout, present and future.
+
+Every downstream reader of the per-card bookkeeping already tolerates a missing
+cell, which is what makes the early return safe: `retrigByKey` /
+`_lastRetrigByCell` are read as `|| 1` at all three sites, `_reps` contributes 1
+to both its sum and its count (so Rerun and Chorus see no extra iteration),
+`_cardMultSeq` is replayed in order rather than indexed, and a card with no
+timeline event gets no beat in the dance - which is right, because it pays
+nothing to animate. **r220's rule still holds**: replaying the timeline reproduces
+`calcScore` exactly, and a wild adds nothing to either side.
+
+**`_natCards` is the hand-level half.** Seventeen tallies in `calcScore` read a
+rank or a suit across the whole hand - even/odd counts, `suitCount` for Rainbow,
+the hidden pair, Low and Behold's lowest rank, Spade Flood's `every` - and **all
+seventeen** now read `naturalCards(cards)`, including the ones a wild could not
+have affected anyway, so a Trick added later inherits the rule and it stays
+checkable by grep. **`cards` itself is deliberately NOT redefined**: `_reps` is
+built from `_scoreCells` and documented as aligned to it, and
+`exaltCorruptTotals(cards, reps)` pairs them by index, so dropping an entry there
+would silently shift every exalt payout onto the wrong card.
+
+### What it measures as
+
+**Byte-identical with no wild in play: 4,200 of 4,200 selections** over 700 real
+4x4 boards, every connected 2-5 card selection through the real `findBestHand`,
+compared against the r324 tree. So the `_wildFitsPattern` restructure is provably
+behaviour-neutral and only the wilds themselves show.
+
+Per 4x4 board, classic deck, counting SHAPES rather than availability (the r318
+rule - availability saturates at 4x4 and cannot tell two decks apart):
+
+| per board | 0 wilds | 4 wilds |
+|---|---|---|
+| Pair | 1.45 | 4.27 |
+| Three of a Kind | 0.14 | **0.96** |
+| Four of a Kind | 0.00 | 0.14 |
+| Run of 3 | 1.75 | 1.61 |
+| **set : run** | **0.08** | **0.60** |
+
+**76% of boards hold at least one wild** (1.15 on average), and the best hand on a
+board uses one on 35% of them.
+
+**THIS IS MOST OF WHAT THE WHOLE WEIGHTED-DECK EXERCISE WAS CHASING, on the plain
+52-card deck.** r318's target was sets at about two thirds of runs; four wilds
+reach **0.60** with no copy-count weirdness at all - no 11-copy rank, no singles,
+no cut rank, nothing for a player to memorise. Run of 3 drifts DOWN a little
+(1.75 -> 1.61), which is right: a wild occupies a cell a run card could have had.
+
+**IT NEEDS NO GOAL RETUNE, and that is the non-obvious part.** More sets would
+normally mean bigger scores, but a wild pays no pips - so a set completed by one
+is CHEAPER than the same set made of real cards (measured: three real 7s score
+168, two 7s and a wild score 147). The two effects very nearly cancel: the average
+best hand on a fresh board goes **799 -> 774**, slightly DOWN. The wild buys
+availability, not score.
+
+### Where they come from, and the knob
+
+`wildCardCount()` (js/data/cards.js) is the one place the number is decided and
+the one place a mode opts out; `freshShuffledDeck` appends them **after the model
+dispatch**, so the plain cross product, the six-suit designed deck and the
+weighted deck all get them on the same terms. **All three `expectedDeckTotal`
+writes add it** or the audit reports the deck four cards short.
+
+- **Spectrum is out** - its deck is values x colours with its own four payout
+  fixtures, and a rank that is not a value has no place in it.
+- **The four modes with their own hand detection are out for a harder reason**:
+  Poker Squares scores a LINE through `sqScoreLine`, Match-3 and Zen match their
+  own windows, and Dominoes builds its own board - none route through
+  `handComponentsFor`, so a wild there would be a blank card that completes
+  nothing. A daily grid also has to stay comparable between two players.
+- **Dev panel -> Deck -> Wild cards** sets the count (0/2/4/6/8/12), stored as
+  `lethe.wildCount`. Writing the default **deletes** the override rather than
+  pinning today's number for ever - the r197 goal-tuner rule.
+
+### The face
+
+It rides the **ordinary card path**, not an early return like the stone and the
+Sleight: it is a real deck card that is selected, swapped, discarded, cursed,
+buffed and marked like any other, so it wants every decoration that path already
+draws. One class and the rank/suit block differ - the glyph where a rank would be,
+the word under it where the suit would be.
+
+- **It is not a suit colour.** Every other card is coloured by its suit, so a wild
+  in any of those would read as one of them. It takes the violet the game already
+  uses for a CHARGE or a PRIMED state, plus a dashed edge.
+- **The Fog does not hide it.** The Fog hides RANKS and a wild has none, so it is
+  drawn in full rather than reading as a `?` the player would have to select to
+  identify.
+
+**Verified in a real browser at 1440x820 and 420x900**: 4 wilds dealt, the deck
+audit balances at 56/56, the face paints with **0 overflow** at both sizes, a
+buffed wild still draws its corner bands, selecting a wild and two 7s reads
+`SET3` with **0 penalty cards** and plays as a Three of a Kind, the handbook topic
+renders and the tip's predicate fires. **0 JS errors.**
+
+### Known, and deliberately left
+
+- **The RECORDS deck matrix is a rank x suit view**, and a wild is neither, so the
+  four of them do not appear in it. The Deck tab's totals still count them.
+- **There are no Tricks or Knacks that interact with wilds yet** - the owner's
+  "we can make some interesting knacks and tricks to interact with them". The
+  seam is `isWildCard` plus `countWilds(cards)`, which `calcScore` already
+  computes for every hand.
+- **A card STATE on a wild still resolves** (`cardStatesOnUse` runs in
+  `playHand`, not the scoring loop). Card states are the r278 system rather than
+  Tricks, so this is left as an interaction rather than closed off.
 
 ## Which modes are listed (r218)
 
@@ -7730,7 +7954,7 @@ and this one caught itself twice: the pack blurbs still described the first
 tuning, and the per-sound change notes were Vegas's, printed on Neon's rows too.
 They are per pack now.
 
-#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r317)
+#### The second A/B: a KNOCK is not the same complaint as a TINKLE (r331)
 
 Owner, on the r313 candidate: *"i like all the heavies except pip particles which
 has a bit too much wooden knock in it"*, *"any of the effects that now have that
@@ -7773,7 +7997,7 @@ repeated irritant for another: a rap on a surface twelve times a hand.
   deliberately absent, because what says "coins" here is that there are SEVERAL
   of them and a body big enough to hear smears them into one event.
 
-**Measured after, heavy column, r313 -> r317:** Vegas pip particles 893 -> 1150Hz
+**Measured after, heavy column, r313 -> r331:** Vegas pip particles 893 -> 1150Hz
 (the knock down and the coin taking back the difference), mult 804 -> 1033, coin
 1723 -> 2647; Neon pip 1084 -> 1026, mult 889 -> 1139, coin 2644 -> 2930. The
 sounds the owner approved are unmoved: Vegas card_pop 468 -> 471, hand_scored
@@ -7951,6 +8175,43 @@ its own, so its row shows the consequence rather than asking for faith.
 
 ## Two vocabularies (r198) - `js/labels.js`
 
+### GAMER IS THE RESTING STATE (r293) - corporate is a state, not a default
+
+The vocabulary is **story**, not a preference. The Obliviscore is a forgetting
+machine (Lethe, the river of forgetting; *oblivisci* + score), and it already did
+its job long before the run starts: **the work words were relabelled years ago,
+and the corporate vocabulary is what COMES BACK as the machine fails.** So the
+game opens in gamer words everywhere, and corporate is somewhere the game has to
+be moved INTO.
+
+- **`activeLexicon` defaults to `'gamer'` and `lexicon()` falls back to
+  `LEXICONS.gamer`.** Corporate is no longer anything's fallback; a bad id must
+  not silently land the player in the endgame vocabulary.
+- **ONE VALUE, TWO STORES, and this is the r244 payout-pick trap again.** The
+  wording lives in `lethe.lexicon` (js/labels.js, read at load) AND in
+  `lethe.settings.v1` (js/settings.js). settings.js loads SECOND (index.html
+  1304 vs 1400) and `applyAllSettings` calls `setLexicon`, **so the settings copy
+  wins and writes labels.js's key from itself.** Flipping both defaults therefore
+  moves nobody who has already played - their stored `'corporate'` beats both.
+  `migrateLexiconDefault()` in `loadSettings` clears a stored `'corporate'`
+  exactly once, keyed on `lethe.lexicon.migrated.v2`; a deliberate pick made
+  after that runs is kept, because the flag is already set.
+- **Six hardcoded sites bypassed the toggle entirely** and said QUOTA whatever
+  the setting was: the goal-clear banner (`js/goal-clear.js`), `NEXT QUOTA` in
+  `js/hud.js`, the map's boss preview, one tip, and six lines of handbook prose.
+  `goal` is deliberately absent from the `prose` swap table, so nothing was ever
+  going to translate them. **A new string that means "the goal" writes `{GOAL}`
+  in handbook/tip prose, or calls `lexTerm('goal')`, never the word quota.**
+- **Entity and boss NAMES are unaffected**, per the r197 rule: `Quota Revision`
+  (the reward-grid penalty) and `THE QUOTA` (the boss) are content.
+- **The structural layer is deliberately still corporate**: quarters (Q1/Q2/Q3),
+  the Schedule's obligations (ACCOUNT / PRIORITY / MART / INCENTIVE / MEETING /
+  RAISE / REVIEW), the manager review, COMPANY STORE, the Lethe branding. The
+  machine relabelled its own HUD; it could not relabel the building. That split
+  is what the r213 and r260/r262 calls already encode and it is what the story
+  now needs.
+
+
 The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /
 Vendors / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
 SCORE / GOAL, Tricks / Sleights / Knacks, Common / Rare / Epic / Legendary).
@@ -7997,6 +8258,675 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Match surrounding code style (terse, inline, lots of single-line helpers).
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
+
+## r356 - the Pick emptied the board, and its taps were never reaching it
+
+Owner: *"I keep running out of cards when I play guided"* and *"there's a card
+buff thing after the round ... it just says pick a card but then you pick a card
+and nothing happens."* Two separate faults in THE PICK (r244), both live in every
+mode that reaches a payout - Classic, Guided, the Schedule, Six Suits, Spectrum -
+and both invisible with the setting off, which is why they shipped.
+
+**1. `pickClearBoard` gave back more than the restore borrowed.** The restore
+fills a cell only when it is `null`; the clear nulled every cell whose card
+matched the snapshot. Before r332 those were the same set. **After r332 the board
+PERSISTS, so no cell is ever null and no cell is ever restored - but every cell
+still matched the snapshot, so the clear emptied the whole board**, into no pile
+at all. `fillGridHoles` then drew a fresh boardful over the hole. Measured through
+the real payout in Guided AND Classic: **the run's deck went 56 -> 40 in ONE
+round**, `expectedDeckTotal` still reading 56, so four rounds ran it dry. The
+r332 note above asserted this function no-oped; it did not, and nothing was
+checking. `pickRestored` is the fix - the restore records what it actually filled
+and the clear gives back exactly that, so it is a genuine no-op on a persisting
+board and byte-identical on a non-persisting one.
+
+**2. THE TAP WAS SWALLOWED ONE LEVEL ABOVE THE INTERCEPT.** r244 put the pick's
+intercept above `onCardTap`'s `animating` guard and verified it. **r254 then added
+`roundEnded` to the grid's own `pointerdown` handler**, which is what actually
+decides - and the pick runs inside the interlude, which is by definition after the
+round ended. So from r254 onward `onCardTap` was never called at all: the bar sat
+on PICK A CARD, `pickCard` stayed null, 0 op tiles. `pickOwnsBoard()` is the one
+predicate the guard now asks, and the fix is proved load-bearing by putting the
+old guard back (selection dies) and taking it out again (selection lands).
+
+- **`pointermove` is deliberately NOT exempt.** A pick is a tap, so leaving the
+  swipe blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  was meant to be. `pointerup` carries no guard of its own, so the tap lands.
+- **THE LESSON: a guard added to a shared handler has to be checked against every
+  screen that borrows that handler.** The pick's intercept was correct and
+  unreachable, and a syntax check, a call audit and a read of `onCardTap` all pass
+  without noticing.
+
+Verified in a real browser at 1440x820 through the real click path, Guided and
+Classic: a card selects, all three ops fire, and the deck balances at every step -
+**Boost 56 -> 56, Copy 56 -> 57, Remove 56 -> 55** with `expectedDeckTotal` moving
+with it in each case and the removed card's cell left as one hole for the next
+round's refill. Three consecutive Guided rounds hold at **56/56, board 16, holes
+0**. With the setting OFF the deck is untouched (56 -> 56), as it always was.
+
+## r334 - the pick re-centres, the read goes WIDE, the hand label is words
+
+Owner follow-ups on r326; the two superseded r326 bullets are marked below.
+
+- **The portrait pick board is CENTRED again** (r326's gpPortraitDrop is gone -
+  the owner read the foot-of-slot board as the pick sitting too low). The read
+  still opens ABOVE the tile; what makes it fit the smaller centred top margin
+  is **`wide: true`** on the tooltip: `#entity-tip.et-wide .et-card` is
+  `min(392px, 96vw)` (css/tooltip.css), and a broader card is a SHORTER card.
+  Measured at 420x820: board 400-645 in a 301-744 slot, bubble 392x67 at
+  325-392 - entirely inside the board's own top margin, 0 px on any tile.
+  `wide` is set per call in gpShowRead (portrait only) and cleared by every
+  other showEntityTooltip call, so nothing else widens.
+- **The word "HAND" is off the screen** (owner: no text that says "hand" all
+  the time): the dance row's vertical `Hand` caption (mkRow('', 'hand') +
+  `.dnc-lab:empty{display:none}`) and BOTH idle "HAND" watermarks on the
+  preview are gone. The hand-name label is the panel's caption now. The
+  KNACKS / TRICKS watermarks stay - nothing else names those panels.
+- **The label breaks between WORDS, never inside one**: `handLabelHTML` prints
+  a numeric size as `OF N` ("SET / OF 3", "RUN / OF 4") and `HAND_LABEL` gained
+  word rows - Two Pair is **TWO / PAIR**, Full House **FULL / HOUSE** (display
+  strings only; ids frozen, TERMINOLOGY's rule). Measured in the landscape
+  column: TWO PAIR at 0 overflow on both axes.
+- **The portrait chip is VERTICALLY CENTRED at the preview's left edge**,
+  stacked like landscape, on a translucent plate (supersedes r326's top-left
+  pill). When a full hand reaches that far left the chip overlays the card and
+  stays legible - the owner's stated fallback. Verified mid-dance at 420x820:
+  SET / OF 3 centred beside the cards, z 61 over the dance's 60.
+
+## r326 - gestures, sleight feedback, the pick reads above itself
+
+- **The pick-of-three MUFFLE is off** (`survivalSyncPickAudio`, js/survival.js).
+  It was written for the r197 pick PANEL that covered the board mid-dance; since
+  r256 the pick IS the board and covers nothing, so the function only releases
+  now. `sfxSetMuffle` stays in js/audio-mixer.js for the next screen that
+  genuinely covers the board.
+- **The portrait pick sits at the FOOT of its slot and the read opens ABOVE the
+  tile.** `gpPortraitDrop` (js/grid-pick.js) pushes `#grid` down via `top` on the
+  position:relative element (never a transform - r180's fixed-descendant trap,
+  r281's fall-in fight), cleared in `gridScreenRelease` so the play board is
+  never left low. `gpShowRead` passes `{prefer:'above'}` in portrait and
+  `placeEntityTooltip` (js/entity-tooltip.js) grew that mode, falling back to the
+  side placement when there is no band. Measured at 420x820: board foot 740/744,
+  tip fully inside the freed band, **0 px overlap with any option tile**.
+  Landscape keeps the side placement.
+- **Right-drag DISCARDS on desktop.** Button 2 runs the ordinary swipe-select
+  and the release calls `doDiscard()` (js/input.js pointerdown/up). Mouse only;
+  a right CLICK with no movement deliberately does nothing (a misfire would be
+  destructive). No collision with the Schedule's pen (no cards in gridData
+  there, `cardAt` bails) or Poker Squares (it stops pointerdown propagation).
+- **The swap stock indicator PERFORMS a swap on exactly 2 selected cards**
+  (addEventListener beside the grid handlers, js/input.js - it coexists with the
+  reward grid's SKIP and Squares' END TURN `onclick` repurposings, so it stands
+  down on every takeover). doSwap owns all the rules.
+- **A SLEIGHT TAP FIRED onCardTap TWICE PER CLICK, and that was the Magnet bug.**
+  render()'s sleight paths bound `div.onclick = () => onCardTap(r,c)` on top of
+  the grid's own pointerup routing, so ONE physical click read as a double tap
+  (call 1 stamped lastTapCell, call 2 saw it inside 350ms) and armed the Magnet,
+  while a REAL double tap armed on click 1 and hit the "tapping Magnet cancels"
+  intercept on click 2 - the printed gesture was the one that could never work.
+  The onclicks are gone (js/render.js); verified: one click selects, double tap
+  arms, the target tap pulls the rank and Magnet cycles back into the piles.
+- **A Pivot touching BOTH ends of a swap waives ADJACENCY** (js/input.js). The
+  eight cells around a Pivot are mostly not orthogonally adjacent to each other,
+  so "swap freely all around it" only ever fired on pairs that were neighbours
+  anyway. Verified through the real double-tap-then-tap path: two diagonal
+  neighbours of the Pivot trade places, free, both +5 permanent mult, the Pivot
+  leaves and cycles. (A free-anywhere entity already half-exists: **Free Range**
+  is "swap any two non-adjacent cards", working since r307.)
+- **Sleights never take the `.unreachable` dim** (css/style.css - opacity rule
+  dropped, cursor kept). At 0.28 every out-of-reach Sleight went dark the moment
+  anything was selected, and stayed dark through the hand's dance and falls.
+- **Sleight STOCK payouts are particles, not toasts.** applySleightGridEffect
+  (js/sleights-runtime.js) throws `entityEffectFX` plates from the sleight's own
+  grid card: Power Cell rides `addFocus(n, id, 'sleight')`, Snooze / Syncopation
+  / Shady Tree ride `pauseRound(n, id, 'sleight')`, Rewind / Last Call /
+  Sandbagger ride `rewindTime(n, null, id, 'sleight')`, Bellhop / Wanderer fly
+  swaps+discards, Cash Out / Piggy Bank / Capacitor fly credits. Effects with no
+  HUD readout (next-hand mult, card buffs, reshuffles) keep their toasts.
+- **THE FLUSH OVERLAY IS ALL-OR-NOTHING** (owner call, js/hand-detect.js
+  `flushOverlayFor`): the overlay only pays when the ENTIRE selection shares one
+  suit, so a 4-card hand with 3 of a suit no longer layers a Flush of 3 or
+  replays those cards. Verified: suited Run of 3 still = Run of 3 + Flush of 3;
+  mixed Run of 4 = Run of 4 alone; suited Run of 4 = Run of 4 + Flush of 4.
+  This supersedes the r199 "biggest same-suit group" rule and the measurements
+  built on it (the ~50% overlay rate, OPEN_DECISIONS coverage notes).
+- **The hand-type label survives the dance.** `#hand-name` went z-index 2 -> 61
+  in landscape: `.dnc-active` raises `#selected-cards` to 60 and the label is a
+  sibling, so the preview's opaque panel slid over it for every tally. The 44px
+  label column the preview reserves is untouched by the dance, so nothing is
+  covered by the change. (Portrait keeps the label in flow above the strip.)
+- **Fall-height mechanics** (a Sleight fed by cards landing on it, a boss whose
+  locks break under two impacts) are parked in CARD_EFFECTS.md with the wiring
+  note: `removeAndFall`'s gravity pass is the one place drop distance is known.
+
+## r328 - the deck edit's banner is off the board, APPLY is the play button
+
+Owner: *"it looks like that pop up might be covering the top cards no? Maybe that
+pop can go over the scoring chips and use the grid's normal confirm button."*
+Both halves done.
+
+- **`#flowr-banner` mounts on `#stage` and never touches the board.** Landscape
+  takes the left column's CHIP BAND (`left:1.56%; top:18.06%; width:37.74%` -
+  the `#score-subboxes` box, whose chips are `display:none` on every grid-screen,
+  so the space is free; it covers the LOCATION chip, and names the op itself);
+  portrait takes the band above the board. Measured: **0 of 16 cards intersect
+  the banner** in both orientations, both op kinds.
+- **APPLY is `#btn-play`, the shop's BUY pattern**: markup saved, `reward-buy`
+  class, `A/P/P/L/Y`, disabled until a card is picked, restored in
+  `flowrDeckEnd`. The press is a CAPTURE listener guarded on `_flowrDeckOp.buff`
+  (the Poker Squares shape - the tricks-ui playHand listener on the same button
+  no-ops with nothing selected). `render()`'s r247 `_takeover` guard gained
+  `flowrDeckActive()`, so a repaint mid-edit cannot stamp the real disabled
+  state over it. `#fb-confirm` is gone from the banner.
+- Verified in a real browser at 1440x820 and 420x900 through the real click
+  path: buff select -> APPLY enables -> click applies (+10 pips on the rolled
+  subset) and the chain finishes with the button back on PLAY; an adjacency op
+  runs with APPLY staying dark; **a normal hand still submits off the same
+  button afterwards**. 0 page errors.
+
+## r374 - the tab IS the panel's header, and only PICK 3 may not repeat
+
+Three owner notes on r373.
+
+### 1. The title card is the panel's width now
+
+Owner: *"the title part of the tab needs to blend seamlessly with the rest of
+the chip. right now the title part doesn't look like part of the rest of it.
+either widen the title part so it sits flush with the outside edges of the rest
+of the square, or remove the white highlight around the title where it draws
+over the border of the rest of the square."*
+
+**It was BOTH, and both are fixed.** Measured at 1440x820: the tab was **507px
+against a 659px panel - 153px narrower** - so its corners sat well inside the
+panel's, and it carried a full-saturation `var(--fst-c)` border against the
+panel's 48% one, which is the bright edge the report calls a white highlight.
+
+- `#flowr-stack` is **exactly the panel's width** (`--grid-w + 2 * --fbg-pad`),
+  not 72% of the slot. The current tab's left and right borders then CONTINUE
+  the panel's upward and the join is one outline; the panel's own top border is
+  covered along its whole width, so nothing crosses the tab's face. Measured
+  after: **width delta 0**.
+- **`.fst-cur` wears the PANEL'S border** (48%) and the panel's 10px top radius,
+  and drops its own upward glow - the panel already carries one, and two stacked
+  is what made the tab read as a separate lit object. **The QUEUED tabs keep the
+  strong border and the glow**: they are meant to read as cards behind, and they
+  still step inward from the full width.
+
+### 2. Only PICK 3 may not repeat; the rest are discouraged
+
+Owner: *"honestly i think the only one i don't want to see repeat is the generic
+pick three. the rest can, but should be pushed away from that trend if possible.
+not worried about it changing the odds on the grid so much."*
+
+`flowrDampOdds(odds, taken)` is the whole mechanism: a kind already drawn in
+THIS chain has its weight multiplied by `FLOWR_REPEAT_DAMP` (0.3) for each time
+it has been drawn - compounding, so a third is rarer than a second - and
+`FLOWR_NO_REPEAT` (pick3) is damped to nothing. That is the difference between
+"discouraged" and "never", in one table rather than two mechanisms.
+
+| measured, 300,000 chains | undamped | **damped** |
+|---|---|---|
+| chains repeating any kind | 35.1% | **9.8%** |
+| chains repeating PICK 3 | 17.5% | **0.00%** |
+| adjacent slots the same | 17.9% | **3.6%** |
+
+- **EVERY KIND ZEROED IS NOT AN ANSWER.** `flowrRollKind` falls back to pick3
+  when handed an empty table, which is the one kind that must not repeat - so a
+  table damped to nothing hands back the undamped one.
+- **The viability substitution is COUNTED too.** A kind with nothing to offer
+  becomes pick3, and if that were not recorded in `taken` it could sneak a second
+  pick3 past the ban.
+- **IT MOVES THE MARGINALS, and pick3 pays for all of it** - weight taken off a
+  repeat lands on the kinds not yet drawn. Set 30 delivers **25.2%**; every other
+  kind gains: cards/deck/sleights 15 -> ~15.8, limits 10 -> 10.9, improve
+  10 -> 10.8, knacks/tricks 2.5 -> ~2.9. The owner has accepted that.
+- **SO THE DEV PANEL MEASURES RATHER THAN PRINTS THE TABLE BACK.**
+  `flowrSimShare` Monte-Carlos the real roll functions and the odds row shows
+  `30 ->25.2%`. A quoted number and a delivered number drifting apart is the r151
+  mistake, and this one drifts by five points.
+- **THE SIM MUST NOT TOUCH THE SEEDED STREAM.** js/seed.js REPLACES the global
+  `Math.random` for a seeded run, and 37,000 draws would advance it - so a dev
+  panel opened mid-run would change every deck shuffle, reward grid and boss roll
+  after it. It takes `fxRandom()` under seed.js's own swap-and-restore shape,
+  which is safe because the sim is synchronous. **Verified: the seeded stream is
+  byte-identical across a 20k-chain sim.**
+- **CACHED on the live tables**, because `flowrDevSync` runs on every open and
+  every edit and a cold sim is ~73ms - a visible hitch per keystroke commit.
+  Measured cold 73ms, warm 0ms, a panel sync **1.4ms**.
+
+### 3. The count row
+
+`counts` is **48 / 32 / 10 / 6 / 4** (owner's, and it sums to 100, so these are
+the percentages). It is still normalised on read, which costs nothing and means
+a retune that does not add up still plays the ratios it sets - the dev panel
+prints what a row actually comes out as. **Mean 1.86 screens a level-up**, down
+from r373's 1.94.
+
+Verified in a real browser at 1440x820 and 420x820 through a REAL goal hand into
+a forced 5-chain: the counter fires **17-42ms after the blast settles**, every
+step shows **5/5 tiles and buttons inside its panel, 0 tabs touching a tile, 0
+tabs outside the slot, 0 tiles overflowing**, the tab and the location chip name
+the same screen, the deck audit balances 56 -> 59, `level` moves once at the
+chain's end, and there are **no page errors**.
+
+## r373 - the pick-three sits on a PANEL, and the odds are two flat tables
+
+Three owner asks in one pass. The r325 chain machinery - the stacked chance, the
+fixed phase-1 ORDER, the three phases, the permutation draw - is gone.
+
+### 1. THE TITLE CARD NEEDED SOMETHING TO BE A TAB ON
+
+Owner: *"if we're going to use these title cards, then the background of the
+whole pick three should match the color of the title card. so not the options
+themselves, but the negative space around each of the options and buttons. that
+way it doesn't look like the title is jutting into the option."*
+
+The chips were ALREADY DRAWN AS TABS - `border-radius: 7px 7px 0 0` and
+`border-bottom: none` - and there was no panel for them to be tabs on, so the
+current one read as a label stuck to the top of the first option tile.
+**`#flowr-bg` is that panel**: the board's own box padded out, washed in the
+current step's colour, behind every option tile and every button.
+
+- **SIZED IN PURE CSS from `--grid-w` / `--grid-h`** (js/grid-metrics.js,
+  published on `documentElement`) and centred, because `#grid` is centred in
+  `#grid-slot` on BOTH axes - measured at 1440x820, 420x820 and 1100x620. So
+  there is no JS measurement and no resize handler, the same way `#sel-count` is
+  placed (r216). It is a **SIBLING of `#grid`, not a child**: the pick empties
+  `#grid` on every render and a child would go with the tiles.
+- **18% of the tab's colour**, compared at 13 / 18 / 24 / 30 over the real tiles.
+  Below that the panel reads as a slightly lighter box rather than as the tab's
+  own colour, which is the whole ask; above it the option tiles stop sitting dark
+  against it.
+- **THE LADDER HANGS FROM THE PANEL'S TOP EDGE**, not from the slot's. The tabs
+  run UP from it and the current one tucks `--fst-tuck` (7px) under it, so the
+  panel's border crosses its foot and the two read as one object. Each chip is
+  placed by `bottom`, so a SHORTER chain simply has fewer tabs above the panel
+  rather than a block floating away from it.
+- **`max(0px, ...)` is the hard stop**, because the band is taller than the
+  margin above the board at a full 5-chain on a wide desktop - and without it the
+  deepest tab leaves `#grid-slot` entirely, which is a bug r371 already had to
+  fix once.
+- **THE DECK-EDIT TAKEOVER GETS THE PANEL AND NOT THE TABS.** There the board is
+  the PLAY board, not the 6x4 pick board - measured, `--grid-h` goes **277 -> 349
+  in a 362 slot** - so the margin the ladder hangs in is gone, the clamp pins the
+  tabs to the slot's top, and they land 43px clear of the panel ON the first row
+  of cards. That is exactly the look this pass set out to remove, so on that one
+  step `body.flowr-deck #flowr-stack { display: none }` and the panel does the
+  talking; the location chip already reads DECK EDIT and the step has its own
+  banner.
+- **The current tab is drawn even when it is the only one** - it IS the title
+  card, and a one-step chain would otherwise get a coloured panel with nothing
+  naming it. Only the QUEUE behind it is conditional.
+- **The tab's word is the PLURAL and comes from the lexicon**, so it says the
+  same thing as the location chip beside it and follows Settings -> Display ->
+  Wording (r198). A screen offering three things reading "NOW TRICK" against a
+  chip reading "TRICKS" is two names for one screen.
+
+### 2. TWO FLAT ROLLS REPLACE THE STACKED CHAIN
+
+Owner: *"is there a better way to work out the odds for getting more rewards?
+should it just be a certain percent chance that a given amount happens instead of
+a stacked chance?"* and *"the order shouldn't always be consistent ... we still
+want to favor certain options appearing, but not care about when they appear."*
+
+There are now exactly two rolls, and both are ordinary weighted tables:
+
+1. **HOW MANY** screens this level-up pays - `counts`, a direct distribution over
+   1..5 instead of a chance-of-one-more compounded four times.
+2. **WHAT EACH ONE IS** - `odds`, rolled **INDEPENDENTLY PER SLOT**, so a kind's
+   number is simply its share of every reward screen and says nothing about where
+   it lands.
+
+**A STACKED CHAIN COULD NOT EXPRESS THE OWNER'S TABLE.** Under it the count and
+the kind were welded together - a kind's frequency was "the chain reached my
+slot" x "the order put me there" - so "cards on 15% of screens" was not a number
+anyone could set. Here it is the number.
+
+| | shipped |
+|---|---|
+| `counts` (weight of 1 / 2 / 3 / 4 / 5 rewards) | 40 / 25 / 10 / 5 / 5 |
+| `odds` | pick3 30 · cards 15 · deck 15 · sleights 15 · limits 10 · improve 10 · knacks 2.5 · tricks 2.5 |
+| `early` (level <= `FLOWR_EARLY_LEVELS`, 5) | limits **20** · improve **0** |
+
+- **`counts` IS NORMALISED, and it has to be said out loud: the owner's row sums
+  to 85.** Dividing by the real total keeps every ratio they set instead of
+  inventing where the missing 15 goes, so it plays as **47.1 / 29.4 / 11.8 / 5.9
+  / 5.9**. The dev panel prints that line under the fields rather than leaving
+  five numbers that do not add up. `odds` sums to 100 as given and needs none of
+  this.
+- **`early` IS AN OVERRIDE MAP over `odds`, not a second table**, so a kind
+  absent from it keeps its ordinary share. The two moves cancel (+10 / -10), so
+  the table still sums to 100. It is the ONLY thing left in the system that cares
+  about WHEN.
+- **LUCK LEANS THE COUNT UP rather than multiplying a chance**, because there is
+  no chance left to multiply: every count above 1 is scaled by `luckScale()`,
+  which is the shape `flowrQtyRoll` in this same file already uses for the deck
+  editor's quantity. At 0 luck it is exactly the printed table.
+- **INDEPENDENT PER SLOT MEANS A CHAIN CAN REPEAT A KIND, deliberately.**
+  Deduping would quietly make the printed odds wrong, and two PICK 3 screens are
+  two different sets of offers. **Measured: 38% of multi-reward chains repeat a
+  kind** (41% on the early table, where limits is heavier). If that ever reads
+  badly the lever is a no-adjacent-repeat re-roll, which shifts the marginals only
+  slightly - not a draw without replacement, which would break the table outright
+  by starving the heavy kinds once drawn.
+
+Measured over 300,000 rolls through the real `flowrRollCount` / `flowrRollKind`:
+
+| | 1 | 2 | 3 | 4 | 5 | mean screens |
+|---|---|---|---|---|---|---|
+| r371 (stacked chain) | 64.9% | 22.8% | 8.7% | 2.6% | 1.1% | 1.53 |
+| **r373** | **46.9%** | **29.5%** | **11.8%** | **5.8%** | **5.9%** | **1.94** |
+
+| kind | share of SCREENS | of LEVEL-UPS | early: of LEVEL-UPS |
+|---|---|---|---|
+| pick 3 | 30.0% | 58.3% | 58.2% |
+| cards | 15.0% | 29.1% | 29.1% |
+| deck edit | 15.0% | 29.2% | 29.1% |
+| sleights | 15.0% | 29.1% | 29.0% |
+| limits | 10.0% | 19.4% | **38.7%** |
+| improve | 10.0% | 19.5% | **0%** |
+| knacks | 2.5% | 4.9% | 4.9% |
+| tricks | 2.5% | 4.8% | 4.8% |
+
+**Reward volume is up 27%** (1.53 -> 1.94 screens a level-up), which is the
+`counts` table's doing and not the kinds'.
+
+### 3. TWO NEW KINDS: CERTS, and UTILITIES at RARE OR BETTER
+
+- **`knacks`** - three Knacks, drawn from `survivalBuildPools().knack` (already
+  filtered for owned and mode-banned) through the SHARED rarity table, so Luck
+  tilts them as it tilts every other offer.
+- **`tricks`** - three Tricks at **rare or better**. The owner asked for
+  "uncommon or better"; **this game's tiers are common / rare / epic / legendary**
+  (r197 merged mythic into legendary and there has never been an uncommon), so the
+  rung above common is RARE. Measured: a 127-entry pool, tiers epic/legendary/rare
+  only, **0 commons**.
+- **`SURVIVAL_GRID_OFFER` is excluded from that pool** - it rides the trick pool
+  for its odds and is not a Trick (js/survival.js says so in as many words).
+- **The tray is a HARD CAP (r277)**, so `tricks` is not viable while
+  `trickTrayFull()`: a whole screen of Tricks you have no room for is a screen you
+  cannot spend, and `flowrKindViable` substitutes pick3.
+- `flowrDrawThree(pool, tierOf)` is the shared draw for knacks, tricks and
+  sleights, and `survivalMakeOption` / `survivalGrant` do the rest - so neither
+  kind needed a grant path of its own.
+
+### 4. `render()` threw on an UNDEFINED cell
+
+Found by opening a grid-pick mid-deal. `render()` guarded `card === null` and
+then read `card._id`, so an **undefined** cell went straight through:
+`gridData` is ragged for as long as a takeover screen has resized
+`gridRows`/`gridCols` out from under a deal animation whose completion callback
+then calls `render()` (js/level-up.js). `if (!card && !isChallenge)`. This is the
+hazard `_devSafeRender` only half covers - it checks `gridData` has ROWS, not
+that the rows hold cells - and is the same shape as r293's note that `render()`
+throws on a cell that is not there.
+
+### The config key is v2
+
+`lethe.flowRewards.v1` held `chances` / `steps` / `weights`, none of which exist
+now, and a stored ORDER is not translatable into a per-slot odds table - so it is
+left behind rather than half-read (the r183 `hbCfg2 -> hbCfg3` rule: a saved
+value beats a default, and anyone who had tuned the old chain would otherwise
+keep a table this version cannot honour). Verified: a v1 config with
+`chances:[99,99,99,99]` is ignored outright.
+
+**Both maps MERGE over the defaults**, so an override for one kind survives a new
+kind landing beside it - and **a key the default sets that the owner CLEARS is
+stored as `null`**, because without it blanking EARLY's limits or improve could
+not be saved at all: the merge would hand the default straight back on the next
+read. Dev -> Rewards is rebuilt to match: five count weights with the normalised
+line under them, an odds stepper per kind with its live share, and an early
+stepper per kind where blank means "ordinary share" and 0 means "never".
+
+Verified in a real browser at 1440x820 and 420x820, driving a REAL goal hand into
+a forced 5-chain covering every new kind: the counter fires **3-62ms after the
+blast settles**, every step shows its panel with **5/5 tiles and buttons inside
+it, 0 tabs touching a tile, 0 tabs outside the slot and 0 tiles overflowing**, the
+tab and the location chip name the same screen, the deck audit balances (56 ->
+59, exactly one card pack), `level` moves **once** at the chain's end, the chrome
+is cleared afterwards, and there are **no page errors**.
+
+## r371 - the count reveal waits for the board, and a CARD PACK joins the chain
+
+Owner: *"the level up animation, in terms of the animating multiple level ups
+isn't showing properly, i think that the part that shows the multiple level ups
+is getting covered by another part of it, maybe the cards exploding or
+something."* It was the cards exploding, and it was a TIMING overlap rather than
+a paint order.
+
+### 1. THE COUNTER RAN UNDER THE WIN FINALE'S BLAST
+
+`survivalShowPick` is called from the goal dance the moment the winning cards
+have flown into the preview - a FIXED ~3.3s into the finale, because the fly's
+`GF_LEAD`/`GF_STEP`/`GF_DUR` are constants and are not paced. The r280 blast is
+PACED, so at the default 2x it is still in flight for another ~1.3s and at 1x
+for ~3.6s: the surrounding cards are flung to the corners, over the HUD, and on
+their way home. Measured at 1440x820 on a 5-card goal hand: **the counter opened
+at t=3366ms against a blast that settled at t=4627ms.** The reveal the whole
+chain is built around was competing with fifteen cards in flight.
+
+**`flowrWhenBoardStill(cb)` holds everything the chain shows until the board is
+still**, and `dncSettleBlast()` is what it waits on - the ONE release point,
+called when the animations finish, on a fast-forward and on an abort - so
+polling `dncBlast` cannot outlive the blast. Measured after: the counter opens
+**58ms** after the blast settles (3988 against 3930), on a board whose cards are
+home in their cells.
+
+- **WAITING COSTS NOTHING ANYONE CAN FEEL, because the TALLY runs through it.**
+  The score climb, the chips and the particles are all in the left column, which
+  is where the player is looking while the board comes home. At high scoring
+  speeds the blast is already over by 3.3s and there is no wait at all.
+- **The COUNT is banked synchronously and only the SCREEN waits.**
+  `flowrExtraEarned` gates `flowrPhase()` and must not depend on an animation;
+  `flowrMaybeStart` still returns true on the same tick, so `flowrChainActive()`
+  is correct immediately.
+- **The single-reward chain waits too.** A 1-step chain whose kind is not pick3
+  used to call `flowrShowStep()` at 3.3s, and `openGridPick` EMPTIES `#grid` -
+  so the board vanished out from under a live blast.
+- **The cap is insurance, not a timeout.** 12s, against an animation that never
+  resolves; no real path reaches it.
+- `dncBlast` is a top-level `let` in another file - same global scope, but a read
+  before that file is evaluated is a temporal-dead-zone THROW rather than
+  `undefined` (the r228 / r296 trap), so the poll is guarded.
+
+### 2. Two bugs in the queued-chip stack, both found by measuring it
+
+- **`z-index: 1` put the whole stack BEHIND the board.** css/entity-fx.css gives
+  `#grid`'s cards 2 and the marked-line markers 1, so at 1 the chips were
+  invisible on any step that keeps the cards - which is every deck-edit step. Now
+  5: above the cards, below `#sel-count` (6) and the boss banner (60).
+- **A 5-chain's deepest chip sat ABOVE `#grid-slot` entirely.** The CSS solved
+  `top: calc(2px + (3 - var(--fst-d)) * 6px)` and `FLOWR_MAX` is 5, so depth runs
+  0..4 and depth 4 is **-4px**. Measured at y=88 against a slot starting at 96.
+  `(4 - var(--fst-d))`.
+- **ONLY THE CURRENT CHIP IS LABELLED NOW.** The chips are 6px apart and 24px
+  tall with `overflow:hidden`, so a queued one shows a 6px band - and an 8px
+  label inside it came out cut through the middle of its own glyphs, which reads
+  as a rendering fault rather than as a card peeking out from behind another. The
+  colour is what the queued chips were always meant to carry ("how much is still
+  coming is on screen without a number").
+
+### 3. CARD PACK - the one reward that makes the deck BIGGER
+
+Owner: *"an option for a level up that offers you a pick three between three
+groups of cards. the choices should each contain 3 cards, adjacent in rank,
+matching in suit, and each group has a different buff on it already. in the late
+game i was running out of cards."*
+
+A sixth chain kind. Each offer is a **run of three in one suit** already carrying
+one buff, and taking it puts those three cards into the draw pile for good.
+Every other card reward in the game EDITS or REMOVES what you already hold; a
+long Flow run thins itself out through Cut, Monopoly and the card states until
+there is not enough deck left to fill a grown board.
+
+- **THE THREE CARDS ARE A RUN IN A SUIT**, so a pack is not only deck size - it
+  is a Straight Flush of 3 posted into the deck, and the flush OVERLAY (r199)
+  pays it inside any hand those cards land in.
+- **THE BUFF TABLE IS THE DECK EDITOR'S** (`FLOWR_DECK_OPS`, the 7 buff ops). One
+  table, two consumers - r151's rule, after a quoted cost and a charged cost
+  drifted apart. `flowrBuffLabel(b, v)` is the one place a value is put into
+  words and the deck editor's own reveal reads it too. The VALUE is rolled at
+  BUILD time and printed on the tile (the r206 improve-tile rule: a tile names
+  what it will do), weighted low by the editor's own `flowrValRoll`.
+- **A PACK'S FACES COME FROM WHAT THE RUN'S DECK ACTUALLY HOLDS**, never from
+  `ACTIVE_RANKS` x `ACTIVE_SUITS`. That is r211's Card Market rule: inventing a
+  face is the one way to put a card into play that the mode does not have.
+- **A WILD IS NOT A FACE, and this is what caught it.** `everyDeckCard()` returns
+  wilds - they are ordinary deck cards carrying `WILD_RANK` / `WILD_SUIT` - and
+  measured on a real Flow board the builder offered **A✳ 2✳ 3✳**: three ORDINARY
+  cards wearing the wild's suit, which is in no flush and is a suit the mode does
+  not have. `isWildCard()` is tested EXPLICITLY and the suits are then
+  intersected with `ACTIVE_SUITS`, which is the rule js/data/cards.js states in
+  as many words: r164 relied on the wild's absence from `ACTIVE_SUITS` alone and
+  r165 had to undo it. The rank side was already safe, because a window is three
+  consecutive entries of `ACTIVE_RANKS` and `WILD_RANK` is not in it.
+- **`copyCardToDeck` does the whole grant**: a fresh `_id`, a push to the draw
+  pile, a reshuffle and `expectedDeckTotal++`, so the deck audit balances with no
+  bookkeeping here. The buff is keyed off THAT card's id (r192), never its face -
+  the deck can legitimately hold another 7 of spades and this must not buff it.
+- **The tile is three real mini playing cards** (`.ev-cardchip`, the events'
+  "these are your actual cards" vocabulary), fanned so three fit a two-cell art
+  box. `gridPickTileHTML` gained **`artHTML`** - the escape hatch for an offer
+  that is neither an entity nor an icon - plus `artKind` for the art box's
+  aspect. What a pack looks like is that feature's business, not grid-pick's.
+- **A deck with no window of three consecutive ranks is NOT viable and
+  substitutes pick3** rather than inventing a face. Measured: a run stripped to
+  **24 cards still offers 11 windows and 3 packs, and one stripped to 10 offers
+  8 windows and 3 packs** - so the pack is available exactly when the complaint
+  that motivated it bites. Only a deliberately broken ladder (A and K alone)
+  fails it.
+- Measured over **9,000 generated packs: 0 wild suits, 0 suits outside
+  `ACTIVE_SUITS`, 0 ranks outside `ACTIVE_RANKS`, 0 that are not a run of three,
+  and 0 screens repeating a buff.**
+
+### 4. THE TABLE, and why CARDS and DECK moved up it
+
+Owner: *"that and the card editor should be a little more common."* Two levers,
+because the order alone could not do it: with six kinds competing for at most
+five slots, adding CARDS would have DILUTED DECK rather than lifting it.
+
+| | was (r325) | is (r371) |
+|---|---|---|
+| chance of a 2nd / 3rd / 4th / 5th | 25 / 30 / 30 / 30 | **35 / 35 / 30 / 30** |
+| phase-1 order | pick3, limits, deck, sleights, improve | **pick3, cards, deck, limits, sleights, improve** |
+| phases 2-3 order | a flat shuffle | **a weighted draw** |
+
+`weights` (phases 2 and 3 only): **pick3 10 · cards 22 · deck 22 · limits 12 ·
+sleights 12 · improve 12**. A kind's weight is its chance of being the NEXT one
+drawn without replacement, so raising one lifts it at EVERY slot rather than
+only at the front - the same shape `pickEntityByRarity` uses for a tier. A kind
+with no weight entry counts as **1, not 0**, so a kind added to the table and not
+to the weights is merely ordinary instead of silently unreachable.
+
+Measured over 200,000 rolls through the real `flowrRollCount` / `flowrOrder`:
+
+| rewards on a level-up | 1 | 2 | 3 | 4 | 5 | mean |
+|---|---|---|---|---|---|---|
+| r325 | 75.0% | 17.5% | 5.3% | 1.6% | 0.7% | 1.354 |
+| **r371** | **64.9%** | **22.8%** | **8.7%** | **2.6%** | **1.1%** | **1.525** |
+
+Share of Flow level-ups that pay each kind:
+
+| kind | phase 1 | phase 2 | phase 3 |
+|---|---|---|---|
+| pick3 | 100% | 35.6% | 17.8% |
+| **cards** | **35.1%** | **30.3%** | **35.3%** |
+| **deck** | **12.4%** | **30.1%** | **35.5%** |
+| limits | 3.7% | 18.8% | 21.1% |
+| sleights | 1.1% | 18.6% | 21.3% |
+| improve | 0% | 18.8% | 21.1% |
+
+So the card editor went **7.5% -> 12.4%** of level-ups in phase 1 and the card
+pack arrives on **35%**, against a mean reward count up 1.35 -> 1.53.
+
+- **IMPROVE IS UNREACHABLE IN PHASE 1, and that is the right accident.** It is
+  slot 6 of a chain that caps at 5. Phase 1 is the first two extra rewards of a
+  run - the point at which you own almost nothing to improve, and
+  `flowrKindViable` would substitute pick3 anyway.
+- **A stored order from before a kind was added is the WRONG LENGTH and is
+  dropped** for the shipped one rather than played with a kind missing. The
+  fields validate independently, so an owner who tuned the chances keeps them -
+  which is why this needs no key bump. **Weights MERGE over the defaults**, so an
+  override for one kind survives a new kind landing beside it.
+- **Dev -> Rewards** gained a sixth order dropdown and a weight stepper per kind,
+  built from the kind table so a new kind gets a knob for free - written, never
+  rebuilt, or the field being typed in is torn out from under the caret (the
+  r282 NS-editor rule).
+
+Verified in a real browser at 1440x820 and 420x820, through the real click path:
+a forced 5-chain runs counter -> pick3 -> cards -> deck -> limits -> sleights
+with **0 stack chips above the slot, 0 tiles overflowing and 0 page errors**;
+`level` is unchanged until the chain's end and then moves ONCE (1 -> 2, goal 900
+-> 1150); the card pack takes the deck **56 -> 59** with exactly 3 cards buffed
+and **the deck audit balancing at 59 = 59**.
+
+## r325 - the Flow multi-reward chain (js/flow-rewards.js + css/flow-rewards.css)
+
+Owner spec across two turns. A Flow goal clear can pay **up to 5 reward screens**,
+rolled as a CHAIN: 25% for a 2nd, then 30% for a 3rd and so on (dev-tunable), each
+a GOOD roll so **`luckChance` multiplies it** (30% at luck 10 is 33%). **FLOW
+ONLY** - Survival keeps its single pick; a bonus/boss pick bypasses entirely.
+
+- **THREE ONE-LINE SEAMS and nothing else in the engine changed**: the top of
+  `survivalShowPick` (`flowrMaybeStart()` takes over a goal-clear pick),
+  `survivalChoose`'s tail and `finishSurvival` (`flowrAfterStep()` before their
+  `triggerLevelUp` - a mid-chain choose shows the NEXT screen instead of dealing).
+  **The level-up runs ONCE, at the chain's end** (`flowrFinish`), with the
+  ordinary goal-clear carry-over; every screen before it only grants. The chain's
+  own pick3 step re-enters `survivalShowPick` under `_flowrBypass`.
+- **The count is announced by a COUNTER CARD** over the board ("GOAL CLEARED /
+  x1 / REWARD"); every extra CUTS IN - a stinger, a shake (the r277
+  remove/reflow/re-add restart), the number bumping. A single ordinary pick plays
+  no ceremony at all (`flowrMaybeStart` returns false and today's path runs).
+- **The queued chips peek out above the board** (`#flowr-stack`), staggered, each
+  in its KIND's own colour with the current one named NOW - drawn furthest-back
+  first so DOM order is paint order, `z-index: 1` so tiles (2) sit in front.
+  Kind colours: pick3 mint · limits gold · deck blue · sleights violet · improve
+  orange (chrome, not entity tiles, so the colour=rarity rule is untouched).
+- **Ordering has three phases** (`flowrPhase`): (1) until `flowrExtraEarned` >= 2
+  (in SAVE_VARS): the fixed dev-tunable order pick3/limits/deck/sleights/improve;
+  (2) then shuffled with **slot 1 = pick3 at EXACTLY 30%** (30% force to front,
+  70% force OFF the front - a plain 5-shuffle leaves it there 20%, so "force at
+  30%" naively lands at 44%; measured 30.9%); (3) after `survivalBossesBeaten >= 2`
+  fully shuffled (measured 19.9% pick3-first, i.e. uniform).
+- **A kind with nothing to offer substitutes pick3** (`flowrKindViable`) rather
+  than showing an empty screen. limits/sleights/improve steps ride `openGridPick`
+  with the shared reroll pool (`pickRerollAction` + `pickRerollsNewScreen` per
+  screen); the improve step draws OWNED entities through `pickEntityByRarity` and
+  grants via `improveEntity`. `survivalUpdateRerollBtn` is guarded by
+  `flowrOwnsScreen()` so a credits move cannot stamp survival's four actions over
+  a chain step's row.
+- **DECK EDIT is a board takeover**: pick one of 3 ops (drawn from 11 -
+  4 adjacency ops + 7 buff ops), then the real board comes back under a DECK EDIT
+  location chip, a dashed border and a banner. Input is a CAPTURE-phase
+  pointerdown on `#grid` (the squares rule) that stops EVERY tap, so input.js's
+  select/swap can never fire underneath. Adjacency ops (suit spread / rank pull /
+  cut / stamp) fire on ONE selected card's orthogonal neighbours, count rolled
+  weighted-low (the owner's .43/.36/.21 at max 3, luck leaning it higher),
+  revealed with a stagger. **Cut is a real deletion** (`expectedDeckTotal--` +
+  `drawCard()` refill, the `cardStateDeleteAt` pattern - audit verified 52->51 on
+  both sides). Buff ops: select up to 3 cards, APPLY rolls the quantity (clamped
+  to the selection - selecting fewer concentrates it, deliberately NOT explained
+  in-game, owner's call) and ONE value from the range (weighted low), revealed
+  card by card (green = landed, grey = passed), applied via `enhanceCardKey` by
+  `cardId`. In Flow the goal hand's cards are still in `gridData` (only their DOM
+  left with the dance), so the FULL board is editable and a buff persists through
+  the deal.
+- **`permFocus` is the new per-card store** (the documented gap closed): Focus
+  granted per scored card, flat like `permTime` (not replay-weighted), paid in
+  `playHand` beside `permCoins`, in `SAVE_VARS` + `migrateCardKeysToIds` + the
+  new-run reset, with a `cardBuffLines` line. `enhanceCardKey` gained `e.focus`.
+  No corner band (the permCoins precedent).
+- **Dev -> Rewards** gained the chain's knobs: enable, the four chance steppers,
+  the five phase-1 order dropdowns, reset, and a live phase readout. Overrides
+  only in `lethe.flowRewards.v1` (the goal-tuner rule).
+- Verified in a real browser at 1440x820 and 420x900 through the real paths: a
+  forced 3-chain runs counter -> pick3 -> limits -> improve with `level`
+  unchanged until the end, then one level-up, tier 0->1, a full deal, 0 holes; a
+  sleight step grants mid-chain; suit/focus/delete deck ops apply and the audit
+  balances; the stack draws 4 unique-coloured chips on screen in both
+  orientations; a single ordinary reward is byte-identical to today (no counter,
+  no stack, survival's own 4 actions). 0 page errors everywhere.
 
 ## r324 - the board can SURVIVE a Flow/Survival level-up (dev -> Rewards)
 
@@ -8059,3 +8989,188 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - **Six Suits is hidden too (r316)**, owner's call: it is reachable from dev panel -> Modes and as the Custom picker's "Six suits" deck. Carousel: Schedule, Flow, Guided, Classic, Spectrum, Custom, Poker Squares.
 - **Walkthrough steps are remembered across modes** (`tutStepsSeen`, `lethe.tutSeen.v1`). A mode's first run shows only steps no earlier walkthrough showed; `welcome`/`outro` carry `always: true` and switch to a short "only what is new" text. If only those two remain, the walkthrough does not arm. Flow gained `flow-clock` / `flow-review`; `progress-endless` is Survival-only. Measured: after Classic, Flow shows 5 steps, the Schedule 7, Six Suits none.
 - **Mode descriptions say how the mode works and nothing else** - no strategy, no reasons. Each card links to a handbook entry (`mode_<id>`, group Modes) with the specifics (pick-of-three odds, fees, clocks). The handbook got the same pass: sentences that justified the design or advised play were removed. Also fixed there: leaving a Schedule slot early PAYS credits (the old text said it cost them).
+
+## The board PERSISTS between rounds (r332) - `boardPersists()`
+
+Owner: *"the cards really do stay in place for the next round, and I think I'll
+generalize that to the rest of the modes as well. With the new card buffing
+system, this just makes the most sense."*
+
+A round used to end by discarding **every cell** to `playedPile` and dealing a
+fresh boardful next round. The board is now a **position you keep**: the same
+cards come back to the same cells, and only **holes** are filled - which is
+exactly what a grid-size upgrade creates, so a new row or column fills with
+fresh cards at the next round start and nothing else moves.
+
+**Everything else about the deck cycle is unchanged, deliberately.** A card that
+SCORES still leaves the board for `playedPile` and is replaced by a draw there
+and then; a card you DISCARD still goes to the back of `drawPile`;
+`flushPlayedDeck()` still runs at every level-up. The pile a round generates is
+still reshuffled back in. **The only thing that stopped being recycled is the
+board itself.** (Options considered and rejected: shuffling the played pile
+*under* the draw pile, and not reshuffling until the draw pile runs dry - both
+make you play through cards you do not want in order to reach the ones you do.)
+
+### Three functions, in `js/deck-grid.js`
+
+| | |
+|---|---|
+| `boardPersists()` | the one predicate. False only for match-3, Dominoes and Poker Squares, which own their board outright and never come through the round-end fall |
+| `conformGridToDims()` | resize `gridData` to the live `gridRows`/`gridCols`, keeping every in-bounds cell |
+| `fillGridHoles()` | deal into the empty cells alone |
+
+- **THE ROUND-END FALL IS NOW PRESENTATION ONLY** (`showLevelUpScreen_fallOnly`,
+  js/interlude.js). The board still has to clear off screen - the payout panel,
+  the reward grid and the shop all take `#grid` over - so the cards still fall
+  and the DOM is still torn down. What is gone is the `discardToPlayed()` sweep
+  and the `gridData` wipe. The next round's deal-in then redraws the same cards
+  into the same cells, so the ceremony reads as before and the position is kept.
+- **`showLevelUpScreen` needed NO change.** Its refill was already
+  `if (!gridData[r][c]) gridData[r][c] = drawCard()`, i.e. hole-filling; it only
+  ever dealt a whole board because the fall had just emptied one.
+- **A SHRINKING BOARD IS THE ONE CARD THAT WOULD LEAVE THE RUN SILENTLY.**
+  `js/level-up.js` conformed `gridData` to the new dims and dropped
+  out-of-bounds cells, with a comment claiming their cards "are effectively
+  returned via `flushPlayedDeck` on the next cycle" - true only because the fall
+  had banked them a moment earlier. `conformGridToDims` discards them to
+  `playedPile` explicitly, which is what makes that comment true again. Reachable
+  from Short Staffed and from a grid limit given up at a Limit Break.
+- **The dev-only grid placement of Tricks needed a guard.** Its spawn slots are
+  the *empty* inner cells of the middle row, and on a persisting board there are
+  none - it would silently offer nothing. That strip is cleared to `playedPile`
+  first, and **only when `trickTrayMode` is false**, so the default tray path
+  leaves the board exactly as the round left it.
+
+### The WINNING hand never came back off the board (r371)
+
+Owner: *"sometimes in flow the winning hand will return to the grid at the start
+of the next level when it should never do that."* It was every mode, not just
+Flow. A scored hand leaves through `removeAndFall('play')`, but the goal hand and
+the boss-winning hand never do: their cards fly into the preview and `gridData`
+keeps holding them through the tally (The Pick relies on that). Before this
+section the round-end sweep discarded every cell; once it stopped, the winning
+hand was dealt straight back into its own cells.
+
+- **`captureGoalHand(cells)`** at both goal sites in `playHand` records the CARDS
+  (objects, the r192 rule). **`liftGoalHand()`** takes exactly those off the board
+  by identity - from `showLevelUpScreen_fallOnly` (every act mode) and from
+  `survivalDealNext`'s redeal path (Survival/Flow; the keep path already
+  removeAndFalls them and clears the capture). **`releaseGoalHand()`** at the top
+  of `startRoundTimer` puts them in the played pile.
+- **HELD, NOT DISCARDED, and that is what "never" needs.** Every level-up flushes
+  the played pile into the draw pile just before the refill, so a card discarded at
+  once had its ordinary odds of being dealt straight back into the hole it left -
+  measured on Flow's pinned seed, one landed back at 0-0 every run. Held, it
+  rejoins the deck at the NEXT flush, like any card scored in a round.
+- The Pick's Remove drops a held card from `goalHandHeld` too, or the release would
+  put a removed card back. Held cards are briefly outside both piles, so a deck
+  count taken mid-interlude reads short by the hand; it balances at round start.
+- Verified in a real browser: Flow and Classic both 56/56 at the next round, 0 of
+  the winning cards on the board, all 3 in the piles.
+
+### Survival and Flow were DESTROYING CARD IDENTITY every level
+
+`survivalRecycleBoard` (js/survival.js) pushed an ordinary board card back as a
+bare `{ rank, suit }`, so **`_id` and every durable field went with it** -
+permanent pips and mult, x-pips, x-mult, retriggers, curses, play counts. That is
+the r192 rule broken outright, and it is why a card buffed in Flow could never
+stay buffed. Keeping the board fixes it wholesale rather than by repairing the
+copy; the non-persisting branch now uses `recycleCard()` so it cannot recur.
+`survivalDealNext` calls `conformGridToDims()` + `fillGridHoles()` in place of
+its own full re-deal, which is byte-identical when the board has been recycled
+(every cell is null) and is the hole-fill when it has not.
+
+### Two things that turned out to need nothing
+
+- **The Pick** (r244) photographs the board above the fall because the fall used
+  to destroy it. `pickRestoreBoard` only fills cells that are `null`, so it
+  no-ops now and the snapshot became a list of candidates. **Remove** already
+  nulled the board cell as well as splicing the piles, so it still works - the
+  splice simply finds nothing, because the card is on the board and not in a
+  pile. **`pickClearBoard` did NOT no-op, and this line used to claim it did -
+  see r356 below, where it cost the run sixteen cards a round.**
+- **The grid-screen takeover** (`gridScreenTakeover` / `gridScreenRelease`,
+  js/grid-pick.js) resizes `gridRows`/`gridCols` for the tiled payout and
+  restores them on close. It never touches `gridData`, so a persisting board
+  rides through it. Verified: 6x6 during the payout, 4x4 after, all 16 cells
+  intact.
+
+**Measured in a real browser at 1440x820**, through the real fall ->
+`triggerLevelUp` -> `showLevelUpScreen` sequence, in Classic, Flow, Survival,
+Guided, the Schedule and Spectrum: **16 of 16 cells identical** across the round
+boundary, a `permPips` buff planted before the level-up still on that card after
+it, a grid-column upgrade giving **4x5 with 0 holes and 16 of 16 old cards kept**,
+a shrink returning its cards (deck total unchanged at 56/56 in every case), and
+**0 page errors**.
+
+## The 9.24 balance pass (r336-r363) - `BALANCE_PASS_9.24.md`
+
+The owner's Balance_-_9.23.26.xlsx, executed in tiers. **The plan file is the
+index** (tiers, decisions, the new-Tricks table); `BALANCE_PASS_9.24_DIFF.txt`
+held every outstanding row and is now empty. `balance_sheet.csv` still holds
+the owner's sheet verbatim - **regenerate it with `tools/gen_balance_sheet.js`
+only once the unnamed spade Trick is built**, or its row is lost. (Done r367: the generator only ADDS rows, so a run changes nothing else.) The systems
+this pass added, and their traps:
+
+- **Inert (r341).** Piggy Bank and Capacitor fire IN PLACE (`sleightUseInPlace`)
+  and sit `_inert`: `cardCan` allows only fall/render/select, so playing it in a
+  hand is its one way off the board, and `discardToPlayed` accepts it.
+- **Timed charges (r356).** A Sleight def with `secsPerCharge` spends charges as
+  time; `_usesLeft` stays the charge count so every charge reader works.
+  Stopwatch 10x6s, Fight the Power 9x20s (drains only while `bossFxLive()`).
+- **Focus applied twice (r343).** `focusExtraApplies(handName, cells)` counts the
+  extra applications (Phoenix, Kaleidoscope, Marathon); the dance plays a second
+  Focus beat per extra. `lastCalcFocus = fMult ^ (1 + n)`.
+- **Per-card x mult is a LIST (r359).** `_cardMultSeq` entries carry `xl`, the
+  card enhancement first and then each Trick factor (What are The Odds, Patient
+  Rulers, Obsessed, Feelin Lucky), each emitted as a card-scoped `mult*` and
+  billed to its own id. Add a per-card x mult Trick as one push there.
+- **Discard-activated Sleights cycle (r353).** `discardToDrawPile` deletes every
+  Sleight, so a player discard now routes an `on_discard` Sleight through
+  `discardToPlayed` with its charges. Before this, Cash Out's charges meant nothing.
+- **Deferred board work drains from `removeAndFall`'s tail**: the Spectrum
+  fixture exits and Fresh Start's redeal (`freshStartDrain`). Anything that must
+  rewrite the board after a discard or a hand goes there, never inline.
+- **Royal Reach (r358).** `reachNeighbors()` = `getNeighbors` plus the lines of
+  any royal card; `isConnected`, `getReachable` and `doSwap` use it. With no
+  royal card on the board it is exactly `getNeighbors`.
+- **Warehouse (r354)** joins detection as ITSELF, never a borrowed rank/suit
+  (`isWarehouseCard`): a temporary identity is restored before playHand and the
+  dance re-score, so they would see a different hand.
+- **A sold line Trick loses its line (r352).** `pruneRowColBonuses()` runs at the
+  top of `renderTrickTray`; before it, a sold Trick kept its line and kept
+  feeding Ley Line / Temporal Rift / Feng Shui. 4x4 is now a fixed column line.
+- **Grid picks can be skipped (r362):** `openGridPick({ onSkip })`; CONFIRM
+  with nothing selected arms it, a second press within 3s skips. Tapping the
+  picked option again unselects it.
+- **Magnet (r357)** pulls a rank into itself and its neighbours; the displaced
+  cards are discarded free but COUNT as discards (`magnetCountDiscards`).
+- **Feelin Lucky's sell intercept (r360)** sits in `sellTrick` and the shop's
+  `doShopSell` - both sell paths.
+- **Move as One (r363)** reads keywords off descriptions through a curated set
+  (`MOVE_AS_ONE_KEYS`, `_MAO_EXTRA`); the owner may trim it.
+- **Relentless (r367)** is the spade Trick: each spade applies x(0.05 x
+  `spadesRelentless`), floored at x1, so it does nothing until the 21st spade.
+  The count starts at 0 when the Trick is taken and is bumped by
+  `relentlessCount()` AFTER `playScoreDance` at all three dance sites,
+  REPLAY-WEIGHTED off `_handRetrigByCell` (a replayed card counts every time it
+  scores - owner's standing rule for every counter) - the
+  dance re-scores synchronously, so a count bumped above it would animate a
+  bigger x mult than the hand was scored with (the r295 trap). It is NOT
+  Compound; `compound_mult` keeps its own +0.1 per hand.
+- **Every scaling counter counts REPLAYS and settles AFTER the dance (r370).**
+  Owner's rule: a card that scores three times counts three, for every counter.
+  `scalingCount(hand, handCells, reps)` (js/play-hand.js) holds them all -
+  growCardScaling, Relentless, Compound, Acorns, Feng Shui, Ley Line, Penny
+  Saved, Cloud Nine, Fours Perm, Lucky Roll - and runs beside `runHandPriming`
+  at all three dance sites. Two bugs it closed: they were bumped BEFORE
+  `playScoreDance`, so the dance re-scored with the grown value (the r295 trap),
+  and most sat below the goal/boss early returns, so the hand that ended a round
+  grew nothing. The per-card payers in `generateHandFocus` (River Run, Resonance,
+  Gnomes, Lucky Sevens, Five Stack, the Groove/Overtime tallies), Right Time and
+  the exalt/corrupt trigger counters are replay-weighted too. Compound, Feng
+  Shui and Fours Perm count HANDS and stay unweighted. **A new counter goes in
+  `scalingCount` and multiplies by `reps`.**
+- **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
+  hand, preview and dance all see the old rank.
+

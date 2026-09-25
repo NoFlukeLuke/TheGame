@@ -53,7 +53,7 @@ function showBonusHandScoreFlash(cells, scoreAmount) {
 // number the player most wants while deciding what to take.
 //
 // So on those screens it reads LAST ROUND over what that round scored, and
-// NEXT QUOTA over the goal about to be asked for. The progress bar is hidden:
+// NEXT GOAL over the goal about to be asked for. The progress bar is hidden:
 // it would sit at 100% and mean nothing.
 //
 // `body.grid-screen` is the switch, set by enterGridScreenHud() and cleared by
@@ -71,7 +71,10 @@ function updateScoreUI() {
   const goalLabel  = document.getElementById('score-goal-label');
   const barWrap    = document.getElementById('score-progress-bar-wrap');
   if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
-  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT QUOTA' : 'GOAL';
+  // lexTerm, never a literal: this label is the one r293 flipped from a
+  // hardcoded QUOTA, and hardcoding GOAL instead is the same bug mirrored.
+  const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';
+  if (goalLabel)  goalLabel.textContent  = between ? ('NEXT ' + goalWord) : goalWord;
   if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
 
   const shownScore = between ? lastRoundScore : score;
@@ -120,7 +123,7 @@ function updateSelectionUI() {
   const cap = (onShop || !onReward) ? limits.selection.current : rewardSelectionCap();
   const min = onShop ? 1
             : onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
-                       : (typeof minSelection  === 'function' ? minSelection()  : 1);
+                       : (typeof handMinSelection === 'function' ? handMinSelection() : 1);
 
   // Top bar: the limit, not the count.
   const el = document.getElementById('sel-display');
@@ -389,7 +392,11 @@ function handLabelHTML(runs) {
   return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
     const x = k > 1 ? `<u>x${k}</u>` : '';
-    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}${x}</i></span>`
+    // A numeric size reads "OF N" (owner spec, r333): SET / OF 3, RUN / OF 4.
+    // Word sizes (TWO / PAIR, FULL / HOUSE, HIGH / CARD) print as they are -
+    // the break is always between whole words, never inside one.
+    const sz = l && /^\d/.test(l.size) ? 'OF ' + l.size : (l && l.size);
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${sz}${x}</i></span>`
              : `<span class="hn-l"><b>${n}</b>${x}</span>`;
   }).join('<span class="hn-plus">+</span>');
 }
@@ -425,6 +432,21 @@ function updateHandNameLabel(result) {
   if (html && _pen > 0) {
     html += `<span class="hn-plus">−</span>`
           + `<span class="hn-l hn-drop"><b>DROP</b><i>${_pen} · −${result.penaltyPips || 0}</i></span>`;
+  }
+  // r326: the TAGALONGS, which only the knack permits. They are separate from
+  // DROP on purpose - a dropped card is the hand refusing a passenger, a tagalong
+  // is the hand carrying one because you paid to be allowed to. Both are red and
+  // both are a bill; only this one also quotes the clock.
+  //
+  // Stating it here is the whole answer to "it kept saying RUN 3 x2 when the hand
+  // wasn't even a run": the label was naming the components and saying nothing
+  // about the two or three cards riding along beside them. Measured at Selection
+  // Size 7 with Tagalong owned, 73% of hands were carrying at least one.
+  const _tag = (result && result.tagalongCells && result.tagalongCells.length) || 0;
+  if (html && _tag > 0) {
+    const _ts = result.tagalongSeconds || 0;
+    html += `<span class="hn-plus">−</span>`
+          + `<span class="hn-l hn-drop"><b>TAG</b><i>${_tag} · −${result.tagalongPips || 0}${_ts > 0 ? ` · −${_ts}s` : ''}</i></span>`;
   }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.

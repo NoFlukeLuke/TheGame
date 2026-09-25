@@ -15,7 +15,7 @@
 //   a +5      5   10   15   20   25   40
 //
 // ── Why this rewrites BAL instead of wrapping every read ─────────────────────
-// The ~200 sites that read a tuning number do it as `BAL.rich_soil.pips`, and
+// The ~200 sites that read a tuning number do it as `BAL.rich_soil.mult`, and
 // BAL is never written to anywhere in the game (verified). So the cheapest
 // correct thing is to keep a pristine copy and RECOMPUTE BAL in place whenever a
 // tier changes. Every existing read site then picks the new number up with no
@@ -49,14 +49,14 @@ const IMPROVE_ADD = new Set([
   'pause','pause_seconds',
   'pips_per_level','pips_per_streak','pips_per_hand','pips_per_discard','pips_per_charge',
   'pips_per_second','pips_per_adj','pips_per_five','pips_per_interval','pips_per',
-  'mult_per_sleight','mult_per_hand','mult_per_interval','mult_per_pause','mult_per_ace',
+  'mult_per_sleight','mult_per_hand','mult_per_spade','mult_per_interval','mult_per_pause','mult_per_ace',
   'mult_per_jack','mult_per_match','mult_per_prior','mult_per_nine','mult_per_milestone',
   'mult_per_type','mult_per_event','mult_per_n','mult_per',
   'focus_per_2','focus_per_stock','focus_on_enter','focus_cap',
   'perm_pips','perm_mult','flat_pips','face_pips','worth','extra_mult','per_jack','base',
   'extra_replays','retrigger_count','cap_gain','seconds_per_3','max_seconds','cap_bonus',
   'mult_step','pip_mult_step','pip_mult_per_replay','mult_mult_per_replay',
-  'mult_mult_per_card','pip_mult_per_10_credits','pip_mult_per_missing','chance_per',
+  'mult_mult_per_card','pip_mult_per_10_credits','pip_mult_per_missing','mult_mult_per_missing','chance_per',
 ]);
 
 // Multipliers. The bonus is the part ABOVE x1, so x2 pips has a step of 1 and

@@ -1,0 +1,216 @@
+/* ══════════════════════════════════════════════
+   FLOW MULTI-REWARD CHAIN (r325) - js/flow-rewards.js
+   The counter card, the queued-chip stack, and the DECK EDIT takeover.
+   Everything here lives inside #grid-slot / #grid, so px are STAGE px.
+   ══════════════════════════════════════════════ */
+
+/* ── The counter card - lands on x1, every extra CUTS IN ── */
+#flowr-counter {
+  position: absolute; left: 50%; top: 42%;
+  transform: translate(-50%, -50%) scale(.82);
+  z-index: 40; pointer-events: none;
+  background: linear-gradient(180deg, #171528 0%, #100e1c 100%);
+  border: 2px solid #5ad4c0; border-radius: 8px;
+  box-shadow: 0 0 22px rgba(90, 212, 192, .35), 0 6px 18px rgba(0, 0, 0, .6);
+  padding: 10px 26px 12px; text-align: center;
+  opacity: 0; transition: opacity .22s ease, transform .22s ease;
+}
+#flowr-counter.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#flowr-counter .fc-kick {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  letter-spacing: 3px; color: #8fb8ae; margin-bottom: 2px;
+}
+#flowr-counter .fc-num {
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 34px;
+  color: #ffe9a8; text-shadow: 0 0 14px rgba(255, 210, 90, .55); line-height: 1.05;
+}
+#flowr-counter .fc-sub {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 4px;
+  color: #5ad4c0; margin-top: 2px;
+}
+#flowr-counter.fc-pop { animation: fcPop .38s ease; }
+@keyframes fcPop {
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  30%  { transform: translate(-52%, -50%) scale(1.18) rotate(-2deg); }
+  55%  { transform: translate(-48%, -50%) scale(1.12) rotate(1.5deg); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+body.reduced-motion #flowr-counter.fc-pop { animation: none; }
+
+/* ══ THE PANEL + ITS TABS (r373) ══════════════════════════════════════════
+   The chips were always drawn as TABS - radius on the top corners only, no
+   bottom border - and there was nothing for them to be tabs ON, so the current
+   one read as a label stuck to the top of the first option tile. The panel is
+   the board's own box padded out, washed in the step's colour, behind every
+   tile and button.
+
+   SIZED IN PURE CSS from --grid-w / --grid-h (js/grid-metrics.js, published on
+   documentElement) and centred, because #grid is centred in #grid-slot on BOTH
+   axes - measured at 1440x820 and 420x820. No JS measurement, no resize
+   handler; the same way #sel-count is placed (r216). */
+:root { --fbg-pad: 9px; }
+
+#flowr-bg {
+  position: absolute; left: 50%; top: 50%;
+  width:  calc(var(--grid-w, 100%) + var(--fbg-pad) * 2);
+  height: calc(var(--grid-h, 100%) + var(--fbg-pad) * 2);
+  transform: translate(-50%, -50%);
+  /* z-index 0: above the marked-line markers (1 is #grid's own children only -
+     this is a SIBLING of #grid, so it sits below the whole board) and below
+     everything the board draws. pointer-events:none so it can never take a tap
+     meant for a tile. */
+  z-index: 0; pointer-events: none;
+  border-radius: 10px;
+  /* 18%: compared at 13 / 18 / 24 / 30 over the real tiles. Below this the
+     panel reads as a slightly lighter box rather than as the tab's own colour -
+     which is the whole ask - and above it the option tiles stop sitting dark
+     against it. */
+  background: color-mix(in srgb, var(--fc, #5ad4c0) 18%, #0c0a14);
+  border: 1px solid color-mix(in srgb, var(--fc, #5ad4c0) 48%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--fc, #5ad4c0) 16%, transparent),
+              inset 0 0 40px color-mix(in srgb, var(--fc, #5ad4c0) 7%, transparent);
+  transition: background .28s ease, border-color .28s ease, box-shadow .28s ease;
+}
+
+/* ── The tabs ──
+   z-index 5, not 1 (r371). css/entity-fx.css gives #grid's cards z-index 2 and
+   the marked-line markers 1, so at 1 the whole stack painted BEHIND the board -
+   invisible on any step that keeps the cards, which is every deck-edit step.
+   Above the cards, below #sel-count (6) and the boss banner (60).
+
+   THE LADDER IS ANCHORED TO THE PANEL'S TOP EDGE, not to the slot's. The tabs
+   run UP from it and the current one tucks --fst-tuck under it, so the panel's
+   border crosses its foot and the two read as one object. max(0px, ...) is the
+   hard stop: the band is taller than the margin above the board at a full
+   5-chain on a wide desktop, and without the clamp the deepest tab leaves
+   #grid-slot entirely - which is exactly the bug r371 had to fix once already. */
+#flowr-stack {
+  --fst-h: 22px;     /* a tab's height */
+  --fst-step: 5px;   /* how far each queued tab peeks above the one in front */
+  --fst-tuck: 7px;   /* how far the CURRENT tab runs under the panel's edge */
+  --fst-max: 4;      /* FLOWR_MAX - 1: the deepest depth the ladder can reach */
+  --fst-band: calc(var(--fst-h) - var(--fst-tuck) + (var(--fst-max) * var(--fst-step)));
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: max(0px, calc((100% - var(--grid-h, 0px)) / 2 - var(--fbg-pad) - var(--fst-band)));
+  height: var(--fst-band);
+  z-index: 5; pointer-events: none;
+  /* EXACTLY THE PANEL'S WIDTH (r374), not 72% of the slot. Owner: "the title
+     part of the tab needs to blend seamlessly with the rest of the chip ...
+     either widen the title part so it sits flush with the outside edges of the
+     rest of the square, or remove the white highlight". It was BOTH: measured
+     at 1440x820 the tab was 507px against a 659px panel - 153px narrower - so
+     its corners sat well inside the panel's and it read as a label stuck on
+     rather than the panel's own header. At the panel's width the current tab's
+     left and right borders CONTINUE the panel's upward and the join is one
+     outline. The queued tabs still step inward from it. */
+  width: calc(var(--grid-w, 100%) + var(--fbg-pad) * 2);
+}
+#flowr-stack .fst-chip {
+  position: absolute; left: calc(var(--fst-d) * 5%); right: calc(var(--fst-d) * 5%);
+  /* bottom, not top: the ladder hangs from the panel's edge, so a shorter
+     chain simply has fewer tabs above it rather than a floating block. */
+  bottom: calc(var(--fst-d) * var(--fst-step) - var(--fst-tuck));
+  height: var(--fst-h); border-radius: 7px 7px 0 0;
+  background: color-mix(in srgb, var(--fst-c) 30%, #14121f);
+  border: 1px solid var(--fst-c); border-bottom: none;
+  box-shadow: 0 -2px 10px color-mix(in srgb, var(--fst-c) 30%, transparent);
+  overflow: hidden;
+}
+/* THE DECK-EDIT TAKEOVER HAS NO ROOM FOR TABS, so it does not get them. There
+   the board is the PLAY board, not the 6x4 pick board - measured, --grid-h goes
+   277 -> 349 in a 362 slot - so the margin the ladder hangs in is gone and the
+   max(0px, ...) clamp above pins the tabs to the slot's top, 43px clear of the
+   panel and sitting on the first row of cards. That is the very look this pass
+   set out to remove, so on this one step the tabs stand down and the panel does
+   the talking; the location chip already reads DECK EDIT and the step has its
+   own banner. They come back on the next step. */
+body.flowr-deck #flowr-stack { display: none; }
+
+/* THE CURRENT TAB IS THE PANEL'S HEADER, so it wears the PANEL'S border rather
+   than the queued tabs' full-saturation one - that bright edge running across
+   the top of the panel was the "white highlight" in the report. Same radius as
+   the panel too, so the top corners are the panel's corners. Its own upward
+   glow goes: the panel already carries one, and two of them stacked is what
+   made the tab read as a separate lit object. The QUEUED tabs keep the strong
+   border and the glow - they are meant to read as cards behind. */
+#flowr-stack .fst-chip.fst-cur {
+  border-color: color-mix(in srgb, var(--fst-c) 48%, transparent);
+  border-radius: 10px 10px 0 0;
+  box-shadow: none;
+}
+
+#flowr-stack .fst-chip span {
+  display: block; text-align: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2.5px;
+  color: var(--fst-c); padding-top: 3px; opacity: .9;
+}
+
+/* ── DECK EDIT takeover ──
+   The banner NEVER sits over the board (it was covering the top row of
+   cards). It mounts on #stage: landscape takes the left column's chip band -
+   the .score-subbox row is hidden on every grid-screen, so that space is
+   free - and portrait takes the band above the board. Confirming is the
+   grid's own PLAY button, repurposed as APPLY. */
+#flowr-banner {
+  position: absolute; z-index: 30;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; text-align: center;
+  background: #131126; border: 2px solid #4aa3e0; border-radius: 7px;
+  box-shadow: 0 0 16px rgba(74, 163, 224, .35), 0 4px 14px rgba(0, 0, 0, .55);
+  padding: 6px 10px;
+  /* portrait: the strip above the board, full width */
+  left: 8px; right: 8px; top: 44px;
+}
+#stage.landscape #flowr-banner {
+  /* the chip band's own box (see #stage.landscape #score-subboxes) */
+  left: 1.56%; right: auto; top: 18.06%; width: 37.74%; min-height: 11.11%;
+  box-sizing: border-box;
+}
+#flowr-banner b {
+  font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px;
+  color: #bfe2ff; white-space: nowrap;
+}
+#flowr-banner span {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; color: #8fa8c8;
+}
+#flowr-banner i { font-style: normal; color: #ffe9a8; }
+
+/* the board wears the editor's tint so it cannot be mistaken for a live round */
+body.flowr-deck #grid::after {
+  content: ''; position: absolute; inset: -4px; pointer-events: none;
+  border: 2px dashed rgba(74, 163, 224, .5); border-radius: 8px; z-index: 3;
+}
+
+/* card states during the edit */
+#grid .card.flowr-sel  { box-shadow: 0 0 0 2.5px #4aa3e0, 0 0 14px rgba(74,163,224,.6) !important; }
+#grid .card.flowr-src  { box-shadow: 0 0 0 2.5px #ffe9a8, 0 0 14px rgba(255,233,168,.6) !important; }
+#grid .card.flowr-hit  { animation: flowrHit .45s ease; box-shadow: 0 0 0 2.5px #4aa3e0, 0 0 16px rgba(74,163,224,.75) !important; }
+#grid .card.flowr-won  { animation: flowrHit .45s ease; box-shadow: 0 0 0 2.5px #5ad47f, 0 0 16px rgba(90,212,127,.8) !important; }
+#grid .card.flowr-miss { filter: saturate(.25) brightness(.6); }
+@keyframes flowrHit {
+  0% { filter: brightness(1); } 35% { filter: brightness(1.7); } 100% { filter: brightness(1); }
+}
+body.reduced-motion #grid .card.flowr-hit,
+body.reduced-motion #grid .card.flowr-won { animation: none; }
+
+/* ── CARD PACK tiles (r371) ──
+   Three real mini playing cards, fanned, in place of the icon disc. They reuse
+   .ev-cardchip - the events' "these are your actual cards" vocabulary - so a
+   screen about the deck is made of cards, and a restyle there moves both.
+   The chips are inert here (the tile is what takes the tap), and the cards
+   overlap like a held hand so three of them fit a two-cell art box. */
+.gp-art-pack .gp-art { aspect-ratio: 1.55; align-items: center; }
+.flowr-pack-art {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+}
+.flowr-pack-art .flowr-pack-card {
+  cursor: default; pointer-events: none;
+  min-width: 0; padding: 7px 5px; font-size: 12px;
+  margin-left: -5px; transform: rotate(-6deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .6);
+}
+.flowr-pack-art .flowr-pack-card:first-child { margin-left: 0; transform: rotate(-9deg); }
+.flowr-pack-art .flowr-pack-card:nth-child(2) { transform: rotate(0deg) translateY(-3px); z-index: 1; }
+.flowr-pack-art .flowr-pack-card:last-child  { transform: rotate(9deg); }
+.flowr-pack-art .flowr-pack-card:hover { transform: rotate(0deg); }

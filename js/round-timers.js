@@ -43,6 +43,10 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  // The last round's winning hand goes back into the deck now that the new
+  // board is dealt (r371, js/deck-grid.js) - above the checkpoint, so a save
+  // never captures it held.
+  if (typeof releaseGoalHand === 'function') releaseGoalHand();
   // A live clock again: drop the goal-clear lock the previous round left on it,
   // and any banner still fading (js/goal-clear.js). Every round start funnels
   // through here, so this is the single release point.
@@ -134,30 +138,23 @@ function startRoundTimer() {
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.
     if (typeof cardStatesTick === 'function') cardStatesTick();
-    // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
-    if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
-      cuckooNextMinute += BAL.cuckoo.interval_seconds;
-      if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
-    }
-    // Compound (legendary): bank the round score at each mark. It is paid out by the
-    // NEXT scored hand, so a mark passing with nothing scored yet banks nothing -
-    // the trick rewards scoring early and compounds from there.
-    if (hasTrick('compound') && _elapsedRound >= compoundNextMark) {
-      compoundNextMark += BAL.compound.interval_seconds;
-      const _bank = Math.floor(score * BAL.compound.bank_fraction);
-      if (_bank > 0) {
-        compoundBanked += _bank;
-        showMessage('Compound: ' + _bank.toLocaleString() + ' banked', '#d8a13a');
-      }
-    }
-    // The Woodpecker: marking runs in alternating 30s blocks - active 0–30s, off 30–60s, active 60–90s, …
-    // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
+    if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
+    if (typeof fightPowerTick === 'function') fightPowerTick();
+    if (typeof sleightLifeTick === 'function') sleightLifeTick();
+    // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
+    // now, in playHand, at 1s per 5 replays this round.)
+    // The Woodpecker (r348): every interval a new random card is marked, replacing
+    // any mark still standing. A tick with no legal card (mid-fall, a blocked
+    // board) does not spend the block - it tries again on the next tick.
     if (hasTrick('woodpecker')) {
-      const _blk = Math.floor(_elapsedRound / 30);
-      if (_blk !== woodpeckerActiveBlock) {
-        woodpeckerActiveBlock = _blk;
-        woodpeckerPos = (_blk % 2 === 0) ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-        if (!animating && !falling) render(); // show/clear the highlight + trigger the peck animation
+      const _blk = Math.floor(_elapsedRound / BAL.woodpecker.interval_seconds);
+      if (_blk !== woodpeckerActiveBlock && !animating && !falling) {
+        const _pool = hallmarkCandidates().filter(cd => cardId(cd) !== woodpeckerCardId);
+        if (_pool.length) {
+          woodpeckerActiveBlock = _blk;
+          woodpeckerCardId = cardId(_pool[Math.floor(Math.random() * _pool.length)]);
+          render(); // show the highlight + trigger the peck animation
+        }
       }
     }
     updateClockUI();
@@ -272,23 +269,39 @@ function roundClockEndsRound() {
 // actually charge (js/input.js, js/discard.js) and by the Time pop-up that quotes
 // them, so the quote can never drift from the charge the way it did before r151.
 //
-// This is also the fix for a live bug: Flow is documented and displayed as
-// charging 0s, and spendRoundTime returns early for it - but spendRoundTime is
-// not what charges. Both real sites write roundSeconds directly and neither
-// consulted flowActive(), so Flow's session clock was being billed for every
-// swap and discard, which is precisely what its own comment says must not happen
-// (interacting could summon the inspection early).
+// FLOW BILLS ITS CLOCK AGAIN (r326, owner's call). r234 exempted it on the
+// reasoning that its clock is the countdown to the inspection, so interacting
+// could summon the boss early - true, and the owner's answer is that summoning it
+// early is exactly what a cost should feel like there. Flow was the one mode
+// where touching the board was free, which made its swaps and discards pure
+// upside in a mode whose only pressure is Focus decay.
+//
+// A mode that really has no clock to bill still answers false: a picker-built run
+// that chose "no time limit" is forced to `timeCost: 'no'` (js/picker-mode.js),
+// and there is nothing there for a second to come off.
 function interactTimeCostsOn() {
-  if (typeof flowActive === 'function' && flowActive()) return false;
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.timeIsCurrency === false) return false;
   return true;
 }
 
+// FLOW PAYS LESS PER TOUCH, because its clock is asked to cover much more. A
+// Classic 3:00 clock buys ONE round; Flow's 5:00 covers every level-up until the
+// inspection (flowNextRoundSeconds only refills at run start and after a boss),
+// so the same 8s swap is several times dearer there. Half price is the owner's
+// "maybe make them cost a little less".
+//
+// This is the ONE multiplier, and it returns 0 when costs are off - so a caller
+// that multiplies by it needs no second test, and the quote in the Time pop-up
+// reads the same number the charge does.
+const FLOW_INTERACT_TIME_MULT = 0.5;
+function interactTimeCostMult() {
+  if (!interactTimeCostsOn()) return 0;
+  if (typeof flowActive === 'function' && flowActive()) return FLOW_INTERACT_TIME_MULT;
+  return 1;
+}
+
 function spendRoundTime(sec) {
-  // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
-  // charging swaps/discards against it would make interacting summon the inspection
-  // early. Swaps and discards are still capped by their per-round COUNTS.
-  if (typeof flowActive === 'function' && flowActive()) return;
+  if (!interactTimeCostsOn()) return;
   if (roundEnded || !sec || sec <= 0) return;
   roundSeconds -= sec;
   if (roundSeconds < 0) roundSeconds = 0;
