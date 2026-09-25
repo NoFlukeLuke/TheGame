@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r367 · Relentless is the spade Trick (x0.05 per spade scored, from 21); Compound restored";
+const BUILD = "2026-09-25 · r368 · the multi-reward count reveal waits for the win blast; a CARD PACK joins the Flow chain (3 cards, a run in a suit, pre-buffed); CARDS and DECK EDIT made more common";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

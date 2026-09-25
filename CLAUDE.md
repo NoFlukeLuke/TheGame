@@ -8241,6 +8241,180 @@ Both halves done.
   runs with APPLY staying dark; **a normal hand still submits off the same
   button afterwards**. 0 page errors.
 
+## r368 - the count reveal waits for the board, and a CARD PACK joins the chain
+
+Owner: *"the level up animation, in terms of the animating multiple level ups
+isn't showing properly, i think that the part that shows the multiple level ups
+is getting covered by another part of it, maybe the cards exploding or
+something."* It was the cards exploding, and it was a TIMING overlap rather than
+a paint order.
+
+### 1. THE COUNTER RAN UNDER THE WIN FINALE'S BLAST
+
+`survivalShowPick` is called from the goal dance the moment the winning cards
+have flown into the preview - a FIXED ~3.3s into the finale, because the fly's
+`GF_LEAD`/`GF_STEP`/`GF_DUR` are constants and are not paced. The r280 blast is
+PACED, so at the default 2x it is still in flight for another ~1.3s and at 1x
+for ~3.6s: the surrounding cards are flung to the corners, over the HUD, and on
+their way home. Measured at 1440x820 on a 5-card goal hand: **the counter opened
+at t=3366ms against a blast that settled at t=4627ms.** The reveal the whole
+chain is built around was competing with fifteen cards in flight.
+
+**`flowrWhenBoardStill(cb)` holds everything the chain shows until the board is
+still**, and `dncSettleBlast()` is what it waits on - the ONE release point,
+called when the animations finish, on a fast-forward and on an abort - so
+polling `dncBlast` cannot outlive the blast. Measured after: the counter opens
+**58ms** after the blast settles (3988 against 3930), on a board whose cards are
+home in their cells.
+
+- **WAITING COSTS NOTHING ANYONE CAN FEEL, because the TALLY runs through it.**
+  The score climb, the chips and the particles are all in the left column, which
+  is where the player is looking while the board comes home. At high scoring
+  speeds the blast is already over by 3.3s and there is no wait at all.
+- **The COUNT is banked synchronously and only the SCREEN waits.**
+  `flowrExtraEarned` gates `flowrPhase()` and must not depend on an animation;
+  `flowrMaybeStart` still returns true on the same tick, so `flowrChainActive()`
+  is correct immediately.
+- **The single-reward chain waits too.** A 1-step chain whose kind is not pick3
+  used to call `flowrShowStep()` at 3.3s, and `openGridPick` EMPTIES `#grid` -
+  so the board vanished out from under a live blast.
+- **The cap is insurance, not a timeout.** 12s, against an animation that never
+  resolves; no real path reaches it.
+- `dncBlast` is a top-level `let` in another file - same global scope, but a read
+  before that file is evaluated is a temporal-dead-zone THROW rather than
+  `undefined` (the r228 / r296 trap), so the poll is guarded.
+
+### 2. Two bugs in the queued-chip stack, both found by measuring it
+
+- **`z-index: 1` put the whole stack BEHIND the board.** css/entity-fx.css gives
+  `#grid`'s cards 2 and the marked-line markers 1, so at 1 the chips were
+  invisible on any step that keeps the cards - which is every deck-edit step. Now
+  5: above the cards, below `#sel-count` (6) and the boss banner (60).
+- **A 5-chain's deepest chip sat ABOVE `#grid-slot` entirely.** The CSS solved
+  `top: calc(2px + (3 - var(--fst-d)) * 6px)` and `FLOWR_MAX` is 5, so depth runs
+  0..4 and depth 4 is **-4px**. Measured at y=88 against a slot starting at 96.
+  `(4 - var(--fst-d))`.
+- **ONLY THE CURRENT CHIP IS LABELLED NOW.** The chips are 6px apart and 24px
+  tall with `overflow:hidden`, so a queued one shows a 6px band - and an 8px
+  label inside it came out cut through the middle of its own glyphs, which reads
+  as a rendering fault rather than as a card peeking out from behind another. The
+  colour is what the queued chips were always meant to carry ("how much is still
+  coming is on screen without a number").
+
+### 3. CARD PACK - the one reward that makes the deck BIGGER
+
+Owner: *"an option for a level up that offers you a pick three between three
+groups of cards. the choices should each contain 3 cards, adjacent in rank,
+matching in suit, and each group has a different buff on it already. in the late
+game i was running out of cards."*
+
+A sixth chain kind. Each offer is a **run of three in one suit** already carrying
+one buff, and taking it puts those three cards into the draw pile for good.
+Every other card reward in the game EDITS or REMOVES what you already hold; a
+long Flow run thins itself out through Cut, Monopoly and the card states until
+there is not enough deck left to fill a grown board.
+
+- **THE THREE CARDS ARE A RUN IN A SUIT**, so a pack is not only deck size - it
+  is a Straight Flush of 3 posted into the deck, and the flush OVERLAY (r199)
+  pays it inside any hand those cards land in.
+- **THE BUFF TABLE IS THE DECK EDITOR'S** (`FLOWR_DECK_OPS`, the 7 buff ops). One
+  table, two consumers - r151's rule, after a quoted cost and a charged cost
+  drifted apart. `flowrBuffLabel(b, v)` is the one place a value is put into
+  words and the deck editor's own reveal reads it too. The VALUE is rolled at
+  BUILD time and printed on the tile (the r206 improve-tile rule: a tile names
+  what it will do), weighted low by the editor's own `flowrValRoll`.
+- **A PACK'S FACES COME FROM WHAT THE RUN'S DECK ACTUALLY HOLDS**, never from
+  `ACTIVE_RANKS` x `ACTIVE_SUITS`. That is r211's Card Market rule: inventing a
+  face is the one way to put a card into play that the mode does not have.
+- **A WILD IS NOT A FACE, and this is what caught it.** `everyDeckCard()` returns
+  wilds - they are ordinary deck cards carrying `WILD_RANK` / `WILD_SUIT` - and
+  measured on a real Flow board the builder offered **A✳ 2✳ 3✳**: three ORDINARY
+  cards wearing the wild's suit, which is in no flush and is a suit the mode does
+  not have. `isWildCard()` is tested EXPLICITLY and the suits are then
+  intersected with `ACTIVE_SUITS`, which is the rule js/data/cards.js states in
+  as many words: r164 relied on the wild's absence from `ACTIVE_SUITS` alone and
+  r165 had to undo it. The rank side was already safe, because a window is three
+  consecutive entries of `ACTIVE_RANKS` and `WILD_RANK` is not in it.
+- **`copyCardToDeck` does the whole grant**: a fresh `_id`, a push to the draw
+  pile, a reshuffle and `expectedDeckTotal++`, so the deck audit balances with no
+  bookkeeping here. The buff is keyed off THAT card's id (r192), never its face -
+  the deck can legitimately hold another 7 of spades and this must not buff it.
+- **The tile is three real mini playing cards** (`.ev-cardchip`, the events'
+  "these are your actual cards" vocabulary), fanned so three fit a two-cell art
+  box. `gridPickTileHTML` gained **`artHTML`** - the escape hatch for an offer
+  that is neither an entity nor an icon - plus `artKind` for the art box's
+  aspect. What a pack looks like is that feature's business, not grid-pick's.
+- **A deck with no window of three consecutive ranks is NOT viable and
+  substitutes pick3** rather than inventing a face. Measured: a run stripped to
+  **24 cards still offers 11 windows and 3 packs, and one stripped to 10 offers
+  8 windows and 3 packs** - so the pack is available exactly when the complaint
+  that motivated it bites. Only a deliberately broken ladder (A and K alone)
+  fails it.
+- Measured over **9,000 generated packs: 0 wild suits, 0 suits outside
+  `ACTIVE_SUITS`, 0 ranks outside `ACTIVE_RANKS`, 0 that are not a run of three,
+  and 0 screens repeating a buff.**
+
+### 4. THE TABLE, and why CARDS and DECK moved up it
+
+Owner: *"that and the card editor should be a little more common."* Two levers,
+because the order alone could not do it: with six kinds competing for at most
+five slots, adding CARDS would have DILUTED DECK rather than lifting it.
+
+| | was (r325) | is (r368) |
+|---|---|---|
+| chance of a 2nd / 3rd / 4th / 5th | 25 / 30 / 30 / 30 | **35 / 35 / 30 / 30** |
+| phase-1 order | pick3, limits, deck, sleights, improve | **pick3, cards, deck, limits, sleights, improve** |
+| phases 2-3 order | a flat shuffle | **a weighted draw** |
+
+`weights` (phases 2 and 3 only): **pick3 10 · cards 22 · deck 22 · limits 12 ·
+sleights 12 · improve 12**. A kind's weight is its chance of being the NEXT one
+drawn without replacement, so raising one lifts it at EVERY slot rather than
+only at the front - the same shape `pickEntityByRarity` uses for a tier. A kind
+with no weight entry counts as **1, not 0**, so a kind added to the table and not
+to the weights is merely ordinary instead of silently unreachable.
+
+Measured over 200,000 rolls through the real `flowrRollCount` / `flowrOrder`:
+
+| rewards on a level-up | 1 | 2 | 3 | 4 | 5 | mean |
+|---|---|---|---|---|---|---|
+| r325 | 75.0% | 17.5% | 5.3% | 1.6% | 0.7% | 1.354 |
+| **r368** | **64.9%** | **22.8%** | **8.7%** | **2.6%** | **1.1%** | **1.525** |
+
+Share of Flow level-ups that pay each kind:
+
+| kind | phase 1 | phase 2 | phase 3 |
+|---|---|---|---|
+| pick3 | 100% | 35.6% | 17.8% |
+| **cards** | **35.1%** | **30.3%** | **35.3%** |
+| **deck** | **12.4%** | **30.1%** | **35.5%** |
+| limits | 3.7% | 18.8% | 21.1% |
+| sleights | 1.1% | 18.6% | 21.3% |
+| improve | 0% | 18.8% | 21.1% |
+
+So the card editor went **7.5% -> 12.4%** of level-ups in phase 1 and the card
+pack arrives on **35%**, against a mean reward count up 1.35 -> 1.53.
+
+- **IMPROVE IS UNREACHABLE IN PHASE 1, and that is the right accident.** It is
+  slot 6 of a chain that caps at 5. Phase 1 is the first two extra rewards of a
+  run - the point at which you own almost nothing to improve, and
+  `flowrKindViable` would substitute pick3 anyway.
+- **A stored order from before a kind was added is the WRONG LENGTH and is
+  dropped** for the shipped one rather than played with a kind missing. The
+  fields validate independently, so an owner who tuned the chances keeps them -
+  which is why this needs no key bump. **Weights MERGE over the defaults**, so an
+  override for one kind survives a new kind landing beside it.
+- **Dev -> Rewards** gained a sixth order dropdown and a weight stepper per kind,
+  built from the kind table so a new kind gets a knob for free - written, never
+  rebuilt, or the field being typed in is torn out from under the caret (the
+  r282 NS-editor rule).
+
+Verified in a real browser at 1440x820 and 420x820, through the real click path:
+a forced 5-chain runs counter -> pick3 -> cards -> deck -> limits -> sleights
+with **0 stack chips above the slot, 0 tiles overflowing and 0 page errors**;
+`level` is unchanged until the chain's end and then moves ONCE (1 -> 2, goal 900
+-> 1150); the card pack takes the deck **56 -> 59** with exactly 3 cards buffed
+and **the deck audit balancing at 59 = 59**.
+
 ## r325 - the Flow multi-reward chain (js/flow-rewards.js + css/flow-rewards.css)
 
 Owner spec across two turns. A Flow goal clear can pay **up to 5 reward screens**,

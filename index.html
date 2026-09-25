@@ -587,7 +587,10 @@
       <select id="dev-flowr-st2" onchange="flowrDevSet('step', this.value, 2)"></select>
       <select id="dev-flowr-st3" onchange="flowrDevSet('step', this.value, 3)"></select>
       <select id="dev-flowr-st4" onchange="flowrDevSet('step', this.value, 4)"></select>
+      <select id="dev-flowr-st5" onchange="flowrDevSet('step', this.value, 5)"></select>
     </div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">Weights decide the order in phases 2 and 3 only. A kind's weight is its chance of being the NEXT one drawn, so raising one lifts it at every slot rather than only at the front.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-weights"></div>
     <div style="display:flex;gap:10px;align-items:center;">
       <button class="dev-btn" onclick="flowrDevReset()">Reset to shipped</button>
       <span id="dev-flowr-phase" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>

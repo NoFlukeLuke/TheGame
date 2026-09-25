@@ -40,13 +40,20 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
 /* ── The stack (option C): queued chips peek out above the board, staggered,
       each in its kind's colour. Furthest-back is highest and most inset;
       the CURRENT chip sits lowest, in front, and names itself. ── */
+/* z-index 5, not 1 (r326). css/entity-fx.css gives #grid's cards z-index 2 and
+   the marked-line markers 1, so at 1 the whole stack painted BEHIND the board -
+   invisible on any step that keeps the cards, which is every deck-edit step.
+   Above the cards, below #sel-count (6) and the boss banner (60). */
 #flowr-stack {
   position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-  z-index: 1; pointer-events: none; width: 72%;
+  z-index: 5; pointer-events: none; width: 72%;
 }
+/* (FLOWR_MAX - 1 - depth), NOT (3 - depth) (r326): FLOWR_MAX is 5, so depth
+   runs 0..4, and a 5-chain's deepest chip solved to a NEGATIVE top and sat
+   above #grid-slot entirely - measured at y=88 against a slot starting at 96. */
 #flowr-stack .fst-chip {
   position: absolute; left: calc(var(--fst-d) * 5%); right: calc(var(--fst-d) * 5%);
-  top: calc(2px + (3 - var(--fst-d)) * 6px);
+  top: calc(2px + (4 - var(--fst-d)) * 6px);
   height: 24px; border-radius: 7px 7px 0 0;
   background: color-mix(in srgb, var(--fst-c) 30%, #14121f);
   border: 1px solid var(--fst-c); border-bottom: none;
@@ -106,3 +113,25 @@ body.flowr-deck #grid::after {
 }
 body.reduced-motion #grid .card.flowr-hit,
 body.reduced-motion #grid .card.flowr-won { animation: none; }
+
+/* ── CARD PACK tiles (r326) ──
+   Three real mini playing cards, fanned, in place of the icon disc. They reuse
+   .ev-cardchip - the events' "these are your actual cards" vocabulary - so a
+   screen about the deck is made of cards, and a restyle there moves both.
+   The chips are inert here (the tile is what takes the tap), and the cards
+   overlap like a held hand so three of them fit a two-cell art box. */
+.gp-art-pack .gp-art { aspect-ratio: 1.55; align-items: center; }
+.flowr-pack-art {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+}
+.flowr-pack-art .flowr-pack-card {
+  cursor: default; pointer-events: none;
+  min-width: 0; padding: 7px 5px; font-size: 12px;
+  margin-left: -5px; transform: rotate(-6deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .6);
+}
+.flowr-pack-art .flowr-pack-card:first-child { margin-left: 0; transform: rotate(-9deg); }
+.flowr-pack-art .flowr-pack-card:nth-child(2) { transform: rotate(0deg) translateY(-3px); z-index: 1; }
+.flowr-pack-art .flowr-pack-card:last-child  { transform: rotate(9deg); }
+.flowr-pack-art .flowr-pack-card:hover { transform: rotate(0deg); }
