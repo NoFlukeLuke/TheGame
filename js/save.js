@@ -91,7 +91,7 @@ const SAVE_VARS = [
   'nextRoundPlayCost', 'nextRoundDiscardCost', 'playHandCostThisRound', 'discardCostThisRound',
   'freeSwapsLeft', 'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
   // ── Focus ──
-  'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusGenGame', 'focusGenRound',
+  'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusCapGains', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray', 'trickTrayMode',
@@ -112,15 +112,15 @@ const SAVE_VARS = [
   'activeHands', 'unlockedHands', 'handsPendingUnlock', 'handTypesRound',
   '_comboAnnounced', '_comboHinted',
   // ── Trick / knack accumulators ──
-  'bonusMult_fives', 'bonusMult_nines', 'bonusMult_tens', 'bonusMult_compound',
+  'bonusMult_fives', 'bonusMult_nines', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless',
   'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext', 'leyLinePos',
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
-  'cuckooNextMinute', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
+  'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerCardId', 'doubleJeopardyCells',
   // ── Round/run counters ──
-  'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
+  'handsPlayedRound', 'queenUpgradePending', 'queenBoardSecs', 'studyHallCards', 'runsPlayedRound', 'clubsScoredRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
   'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
   // The quarter report's books (js/quarter.js). Snapshot marks, not counters:

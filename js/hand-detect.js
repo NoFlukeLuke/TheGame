@@ -7,8 +7,35 @@ function getNeighbors(r, c) {
   return n;
 }
 
+// ── Royal Reach (r358, The Queen) ──
+// A card with royal reach is linked to every cell on its row, its column and its
+// two diagonals, at any distance - a chess queen's lines. It can join a hand
+// with any card on those lines and swap with any of them. The link is mutual:
+// the other card reaches the Queen as much as the Queen reaches it.
+function hasRoyalReach(card) { return !!card && card._isSleight && !!sleightDef(card)?.royalReach; }
+function onQueenLine(r1, c1, r2, c2) { return r1 === r2 || c1 === c2 || Math.abs(r1 - r2) === Math.abs(c1 - c2); }
+function royalReachCells() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (hasRoyalReach(gridData[r]?.[c])) out.push([r, c]);
+  return out;
+}
+// getNeighbors plus the royal-reach links. With no royal card on the board this
+// is exactly getNeighbors.
+function reachNeighbors(r, c, royals) {
+  const out = getNeighbors(r, c);
+  royals = royals || royalReachCells();
+  if (!royals.length) return out;
+  const has = (a, b) => out.some(([x, y]) => x === a && y === b);
+  if (royals.some(([a, b]) => a === r && b === c)) {
+    for (let a = 0; a < gridRows; a++) for (let b = 0; b < gridCols; b++)
+      if ((a !== r || b !== c) && onQueenLine(r, c, a, b) && !has(a, b)) out.push([a, b]);
+  } else royals.forEach(([a, b]) => { if (onQueenLine(r, c, a, b) && !has(a, b)) out.push([a, b]); });
+  return out;
+}
+
 function isConnected(cells) {
   if (cells.length <= 1) return true;
+  const _royals = royalReachCells();
   const set = new Set(cells.map(([r,c])=>`${r}-${c}`));
   const visited = new Set();
   const stack = [cells[0]];
@@ -17,7 +44,7 @@ function isConnected(cells) {
     const k = `${r}-${c}`;
     if (visited.has(k)) continue;
     visited.add(k);
-    getNeighbors(r,c).forEach(([nr,nc]) => {
+    reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
       if (set.has(`${nr}-${nc}`) && !visited.has(`${nr}-${nc}`)) stack.push([nr,nc]);
     });
   }
@@ -27,7 +54,8 @@ function isConnected(cells) {
 function getReachable() {
   if (selected.length === 0) return null; // all reachable
   const reachable = new Set(selected.map(([r,c])=>`${r}-${c}`));
-  selected.forEach(([r,c]) => getNeighbors(r,c).forEach(([nr,nc]) => {
+  const _royals = royalReachCells();
+  selected.forEach(([r,c]) => reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
     const card = gridData[nr][nc];
     if (card === null) return;            // empty cells unreachable
     if (isCellBlocked(nr, nc)) return;    // voids unreachable
@@ -217,6 +245,11 @@ function findBestHand(cells) {
       detectionCells.push([r, c]);      // a tinkered sleight is just a card here
       continue;
     }
+    // Warehouse joins as itself - no borrowed rank or suit. _handShape and the
+    // flush overlay read it directly, so the score, the preview and the dance's
+    // own re-score all see the same hand (a temporary identity would be gone by
+    // the time playHand and the dance ask again).
+    if (isWarehouseCard(card)) { detectionCells.push([r, c]); continue; }
     if (def?.activation === 'wildcard') {
       const orig = { rank: card.rank, suit: card.suit };
       if (def.wild === 'rank' || def.wild === 'both') card.rank = bestWildRank(normalCards);
@@ -284,7 +317,7 @@ function findBestHand(cells) {
   let best = null;
   for (const { hand, handCells } of subsets) {
     const penaltyCells = detectionCells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
-    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + cardPips(gridData[r][c].rank), 0);
+    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + (isWarehouseCard(gridData[r][c]) ? 0 : cardPips(gridData[r][c].rank)), 0);
     const rawScore = calcScore(hand, handCells);
     const finalScore = Math.max(0, rawScore - penaltyPips);
     if (!best || finalScore > best.finalScore) {
@@ -311,6 +344,7 @@ function _handShape(cells) {
   const rankCounts = {};
   cards.forEach(c => {
     if (wilds && isWildCard(c)) return;
+    if (isWarehouseCard(c)) return;
     rankCounts[c.rank] = (rankCounts[c.rank]||0) + 1;
     if (c.combined && c.rank2) rankCounts[c.rank2] = (rankCounts[c.rank2]||0) + 1;
   });
@@ -329,7 +363,7 @@ function _handShape(cells) {
   const _anyWhite = cards.some(c => isWhiteCard(c));
   const _anyWild  = wilds > 0;
   const allSameSuitStrict = !_anyWhite && !_anyWild && ACTIVE_SUITS.some(s =>
-    cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
+    cards.every(c => isWarehouseCard(c) || c.suit === s || (c.combined && c.suit2 === s))
   );
 
   // Run check: combined cards can use either rank value - try all combos
@@ -337,6 +371,7 @@ function _handShape(cells) {
   // returns NOTHING for a rank that is off the ladder, so the loop below can
   // never place it in a run. Ace-high lives in there too.
   const rankOptions = cards.map(c => {
+    if (isWarehouseCard(c)) return [];
     const opts = [...rankRunVals(c.rank)];
     if (c.combined && c.rank2) opts.push(...rankRunVals(c.rank2));
     return [...new Set(opts)];
@@ -494,8 +529,10 @@ function rankHandForGroup(cells) {
 // incidentally, always coverage-safe for the r281 rescue below.
 function flushOverlayFor(cells) {
   const bySuit = {};
+  const _wh = cells.filter(([r, c]) => isWarehouseCard(gridData[r][c]));
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
+    if (isWarehouseCard(card)) return;
     // isWildCard is load-bearing HERE in a way it is not in _handShape: this
     // function groups cards BY THEIR OWN SUIT rather than testing against
     // ACTIVE_SUITS, so three wilds would form a WILD_SUIT group of their own and
@@ -507,10 +544,12 @@ function flushOverlayFor(cells) {
   });
   let best = null;
   Object.keys(bySuit).forEach(s => {
-    const group = bySuit[s].slice(0, HAND_MAX_CARDS);
+    const group = [...bySuit[s], ..._wh].slice(0, HAND_MAX_CARDS);
     if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
-    const name = FLUSH_BY_SIZE[group.length];
-    if (group.length < flushOverlayMin || !name || !HAND_BASE[name]) return;
+    // A Warehouse is one cell and two cards of the flush.
+    const size = Math.min(HAND_MAX_CARDS, group.length + _wh.length);
+    const name = FLUSH_BY_SIZE[size];
+    if (size < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };
   });
   return best;
@@ -611,6 +650,17 @@ function _compKey(cells) {
 // fire - never as a broken hand.
 function realHandOfSize(cells, n) {
   try {
+    // Three's a Crowd (knack, r361): a hand counts as one card bigger, but only
+    // when every card in it is part of the hand - a passenger carried by
+    // Tagalong never makes a Pair into a 3-card hand.
+    if (cells && typeof hasKnack === 'function' && hasKnack('threes_crowd_k') && cells.length + 1 === n) {
+      const comps = handComponentsFor(cells);
+      if (!comps || !comps.components) return false;
+      const real = comps.components.filter(c => c.name !== 'High Card');
+      if (!real.length) return false;
+      const claimed = new Set(); real.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+      return cells.every(([r, cc]) => claimed.has(r + '-' + cc));
+    }
     if (!cells || cells.length !== n) return false;
     const comps = handComponentsFor(cells);
     if (!comps || !comps.components) return false;

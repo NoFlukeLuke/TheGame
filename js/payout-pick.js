@@ -26,11 +26,22 @@
 // ── SINCE r332 THE BOARD PERSISTS, AND THE SNAPSHOT STILL EARNS ITS KEEP ────
 // boardPersists() made the round-end fall presentation only, so gridData really
 // does still hold every card when the pick opens: pickRestoreBoard finds each
-// cell already filled and no-ops, and pickClearBoard only nulls cells it put
-// back, so it no-ops too. The snapshot is now a LIST OF CANDIDATES rather than a
-// rescue, and Remove lands entirely on its `gridData[r][c] = null` - the pile
-// splice finds nothing, because the card is on the board and not in a pile. The
-// paragraph below is the pre-r332 reasoning and is kept for the trap it records.
+// cell already filled and no-ops. The snapshot is now a LIST OF CANDIDATES
+// rather than a rescue, and Remove lands entirely on its `gridData[r][c] = null`
+// - the pile splice finds nothing, because the card is on the board and not in
+// a pile. The paragraph below is the pre-r332 reasoning, kept for its trap.
+//
+// **pickClearBoard MUST ONLY GIVE BACK WHAT THE RESTORE BORROWED (r356).** This
+// block used to claim the clear "only nulls cells it put back, so it no-ops
+// too", and it did not: the restore fills a cell only when it is null, while the
+// clear nulled every cell whose card matched the snapshot - which on a
+// persisting board is EVERY CELL, because the card never left. So the pick
+// emptied the whole board and those cards went into no pile at all; the next
+// round's `fillGridHoles` drew a fresh boardful over the hole. Measured through
+// the real payout in Guided AND Classic: **the run's deck went 56 -> 40 cards in
+// one round**, with `expectedDeckTotal` still reading 56, so four rounds ran it
+// dry. `pickRestored` is the whole fix - the restore records what it actually
+// filled and the clear gives back exactly that.
 //
 // ── THE BOARD WAS REALLY GONE BY THEN, SO THE PICK CARRIES A SNAPSHOT ───────
 // The obvious reading - "the finale removes the card DOM while gridData still
@@ -152,6 +163,7 @@ const PICK_OPS = [
       // failed to empty on remove and on nothing else.
       if (pos) gridData[pos[0]][pos[1]] = null;
       pickSnapshot = pickSnapshot.filter(e => e.card._id !== id);
+      pickRestored = pickRestored.filter(e => e.card._id !== id);
       if (typeof expectedDeckTotal !== 'undefined') expectedDeckTotal--;
       updateDeckHud?.();
       return 'removed from the deck';
@@ -159,6 +171,15 @@ const PICK_OPS = [
 ];
 
 let pickActive = false, pickCard = null, pickPos = null, pickDone = null;
+// THE ONE ANSWER TO "IS THE PICK DRIVING THE BOARD RIGHT NOW", read by the grid's
+// pointer guards in js/input.js. The r244 note says the tap intercept sits above
+// onCardTap's `animating` check - true, and not enough: the guard that actually
+// decided was one level up, on the grid's own pointerdown, and r254 added
+// `roundEnded` to it. The pick runs inside the interlude, which is by definition
+// after the round ended, so from r254 to r356 EVERY tap on the board was
+// swallowed before onCardTap could run and the bar sat on PICK A CARD for ever.
+// Measured through the real click path in Guided: pickCard null, 0 op tiles.
+function pickOwnsBoard() { return pickActive; }
 // [{ r, c, card }] of the board as it stood before the round-end fall.
 let pickSnapshot = [];
 
@@ -179,20 +200,29 @@ function pickTakeSnapshot() {
 
 function pickCandidates() { return pickSnapshot; }
 
-// Put the snapshot back on the board to be looked at. PRESENTATION ONLY - these
-// cards are already in playedPile and their accounting is done.
+// The cells pickRestoreBoard ACTUALLY filled. Never the snapshot: a snapshot
+// entry says "this card was here", not "this pick put it here", and the clear
+// has to give back only what it borrowed. On a persisting board this stays
+// empty and the clear is a genuine no-op.
+let pickRestored = [];
+
+// Put the snapshot back on the board to be looked at. PRESENTATION ONLY - on a
+// non-persisting board these cards are already in playedPile and their
+// accounting is done; on a persisting one they never left and nothing is filled.
 function pickRestoreBoard() {
+  pickRestored = [];
   pickSnapshot.forEach(({ r, c, card }) => {
-    if (gridData[r] && gridData[r][c] === null) gridData[r][c] = card;
+    if (gridData[r] && gridData[r][c] === null) { gridData[r][c] = card; pickRestored.push({ r, c, card }); }
   });
 }
 
-// And take them back off, so the reward grid, the level-up refill and the deck
-// audit all see the post-fall board the fall actually left.
+// And take back off exactly the cells the restore filled, so the reward grid,
+// the level-up refill and the deck audit all see the board the fall left.
 function pickClearBoard() {
-  pickSnapshot.forEach(({ r, c, card }) => {
+  pickRestored.forEach(({ r, c, card }) => {
     if (gridData[r] && gridData[r][c] === card) gridData[r][c] = null;
   });
+  pickRestored = [];
   pickSnapshot = [];
 }
 

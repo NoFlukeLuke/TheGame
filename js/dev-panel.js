@@ -1257,7 +1257,7 @@ function devResetImprove() {
 
 
 // ══════════════════════════════════════════════════════════════════════════
-// SQUARES (r340) - the daily grids' own knobs
+// SQUARES (r368) - the daily grids' own knobs
 // ══════════════════════════════════════════════════════════════════════════
 // Everything here is read by js/squares-daily.js through `sqCfg`, which holds
 // OVERRIDES ONLY (the r197 goal-tuner rule): a row left alone tracks whatever

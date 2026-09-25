@@ -33,7 +33,7 @@
    piece hand takes the band: a daily is handed EVERY tile at once, so it is the
    one shape of this mode that genuinely needs the room. */
 #stage.squares-daily #trick-tray-area { display: none !important; }
-#stage.landscape.squares-daily #selected-cards { height: 66%; }   /* r342: 61 -> 66 */
+#stage.landscape.squares-daily #selected-cards { height: 66%; }   /* r368: 61 -> 66 */
 
 /* ── THE DAILY TRAY IS A GRID, NOT A ROW ──────────────────────────────────
    The 5x5 holds at most three tiles, so a row of thirds is the whole answer
@@ -430,11 +430,11 @@
    finger that is dragging onto them. A dead band at the foot of the tray is the
    better of the two. (It does not arise in landscape, where the tray is an
    absolutely-positioned panel and an empty slot in it costs the board nothing.) */
-/* r342: 220 -> 250. The board band takes whatever is left, so this is the one
+/* r368: 220 -> 250. The board band takes whatever is left, so this is the one
    number that moves the split - and a 3x3 does not need 45% of the stage for
    nine cards. Measured in portrait at 462x928: the board band goes 336 -> 306
    and the tray 227 -> 257, which takes a 3-tall tile from 106 to 121 and its
-   cells from 32-52px to 38-58px. Deliberately SHORT of the 270 the r341 survey
+   cells from 32-52px to 38-58px. Deliberately SHORT of the 270 the r368 survey
    costed out (owner: "shrink the grid just a little less than you suggested") -
    past about 300 the board's cards start hitting CARD_MIN_H and the board stops
    shrinking while the cards start looking cramped. */
@@ -487,7 +487,7 @@
 .sq-sbtn.suit-clubs    { color: var(--suit-clubs); }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   r340 - what is boosted, the pay table, and the end-of-run scoreboard
+   r368 - what is boosted, the pay table, and the end-of-run scoreboard
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* A BOOSTED LINE, ON THE BOARD. z-index 1 puts it behind the cards (2, set in
@@ -598,7 +598,7 @@ table.sq-sb tfoot .sq-sbv { color: var(--gold); font-size: 15px; }
 .sq-lg.bad { color: var(--red); }
 .sq-lg.fix { color: var(--green); }
 
-/* A PLACED GROUP'S OUTLINE (r340). Above the cards (they are z-index 2) because
+/* A PLACED GROUP'S OUTLINE (r368). Above the cards (they are z-index 2) because
    it is an edge ON the tile, not a wash behind it; inert, because the board's
    own capture-phase handler turns the tap into a lift. */
 .sq-grp {
@@ -617,9 +617,9 @@ table.sq-sb tfoot .sq-sbv { color: var(--gold); font-size: 15px; }
 .sq-tile.sq-hole:hover { transform: none; box-shadow: none; }
 .sq-tile.sq-drop { outline: 2px dashed var(--gold); outline-offset: -3px; }
 
-/* ── THE TRAY RESERVED A ROW IT NO LONGER NEEDS (r340) ────────────────────
+/* ── THE TRAY RESERVED A ROW IT NO LONGER NEEDS (r368) ────────────────────
    `grid-template-rows: repeat(3, 1fr)` was written for the r311 inventory: the
-   3x3 dealt SEVEN tiles into three columns, which is three rows. r340's
+   3x3 dealt SEVEN tiles into three columns, which is three rows. r368's
    inventory is SIX - a bar, an L, two dominoes and two singles (the owner's
    "each grid should have an l and a 3x1 piece") - and six into three columns is
    TWO rows. So a third of the tray was empty by construction and every tile was

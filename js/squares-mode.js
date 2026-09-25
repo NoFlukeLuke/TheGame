@@ -198,7 +198,7 @@ let sqdPlaced = [], sqdPar = null, sqdParTotal = 0, sqdParExact = true, sqdDealT
 // board could have paid, the board you built and the board that would have paid
 // it. Snapshotted rather than recomputed - a consumable can edit a card after
 // the grid is over, and the boons keep accumulating, so a grid re-scored at the
-// end would not be the grid that was played (r340).
+// end would not be the grid that was played (r368).
 let sqdGrids = [];
 
 const sqIsRow = i => i < SQ_N;
@@ -240,7 +240,7 @@ function sqDealPieces(n, size) {
   return out;
 }
 function sqDraw() {
-  // A DAILY DRAWS THROUGH ITS GRID'S RANK WINDOW (r342). The deck is the whole
+  // A DAILY DRAWS THROUGH ITS GRID'S RANK WINDOW (r368). The deck is the whole
   // ladder and stays that way for the run - that is what keeps a consumable's
   // edit permanent - so the narrowing is done on the DRAW instead, and cards
   // outside this grid's window are set aside and put straight back.
@@ -404,7 +404,7 @@ function sqSetSize(n) {
   // real-poker table it has always used.
   if (!sqDaily()) squaresInstallHandValues();
   // A DAILY BUILDS ITS OWN DECK, once, here - a narrow window of ranks plus its
-  // wild (r340). It has to happen before the first `sqNewRound`, which returns
+  // wild (r368). It has to happen before the first `sqNewRound`, which returns
   // the board `startGame` dealt: those cards belong to the RUN's 52-card deck
   // and would otherwise be flushed straight into the narrow one.
   else if (typeof sqdInstallDeck === 'function') sqdInstallDeck();
@@ -469,7 +469,7 @@ function sqStartTurn() {
     if (typeof sqdNewGridWindow === 'function') sqdNewGridWindow(sqRound);
     // PAR IS COMPUTED AT THE DEAL, NOT AT SUBMIT - the board is known the moment
     // it is dealt, and the deal animation is the one place a search can hide.
-    // Since r340 the deal is also QUALIFIED against that par: a deal whose best
+    // Since r368 the deal is also QUALIFIED against that par: a deal whose best
     // packing makes too few different hands is thrown back and redealt, which
     // costs one more par search and nothing else.
     const deal = sqdQualifiedDeal();
@@ -507,7 +507,7 @@ function sqHandName(cards) {
   const full = cards.length >= 5;
   const fl = full && cards.every(c => c.suit === cards[0].suit);
   const consec = a => a.every((v, i) => i === 0 || v === a[i - 1] + 1);
-  // THE ACE PLAYS HIGH TOO, AND UNTIL r340 IT DID NOT. `sqRank` reads the
+  // THE ACE PLAYS HIGH TOO, AND UNTIL r368 IT DID NOT. `sqRank` reads the
   // game's own RANK_ORDER, where an ace is 1 - so `rs[4] === 14` could never be
   // true and 10-J-Q-K-A came out a HIGH CARD. A-2-3-4-5 works on the 1 already;
   // it is only the high ace that has to be put back, by lifting it off the
@@ -662,7 +662,7 @@ function sqEndRound() {
   // every other label is shorter, so anything less puts its value a column
   // right of the rest.
   const lab = t => '  ' + t.padEnd(SQ_REPORT_LABEL) + ' ';
-  // PAR IS NOT PRINTED BETWEEN GRIDS ANY MORE (r340, owner's call). Being told
+  // PAR IS NOT PRINTED BETWEEN GRIDS ANY MORE (r368, owner's call). Being told
   // mid-run that grid 1 was 61% of what it could have been is a verdict on a
   // grid you can no longer do anything about, and it colours the two you have
   // left. The whole comparison arrives at the end instead, where it is a review
@@ -726,7 +726,7 @@ function sqdOfferBoon(done) {
 
 function sqFinish() {
   if (typeof sfxVictory === 'function') sfxVictory();
-  // A DAILY GETS THE SCOREBOARD (r340): a row per grid, your score against the
+  // A DAILY GETS THE SCOREBOARD (r368): a row per grid, your score against the
   // best the board could have paid, and a tap on a row to see exactly where the
   // difference was. The 5x5 has no par to compare against and keeps its report.
   if (sqDaily() && typeof sqdShowScoreboard === 'function') { sqdShowScoreboard(sqdDone); return; }
@@ -945,7 +945,7 @@ function sqRenderHand() {
   const host = document.getElementById('selected-cards'); if (!host) return;
   host.innerHTML = '';
   host.classList.add('sq-hand');
-  // A DAILY'S TRAY HAS FIXED SLOTS (r340). Every tile keeps the place it was
+  // A DAILY'S TRAY HAS FIXED SLOTS (r368). Every tile keeps the place it was
   // dealt into until the player moves it, so playing one leaves a HOLE rather
   // than sliding the rest along. On a puzzle you read as a whole hand, a tray
   // that reshuffles itself on every placement is a tray you have to re-read on
@@ -1056,7 +1056,7 @@ function sqSetLineBanner(text) {
   let b = document.getElementById('sq-banner');
   if (!b) {
     b = document.createElement('div'); b.id = 'sq-banner'; slot.appendChild(b);
-    // THE BANNER IS THE PAY TABLE'S HANDLE (r340). It is the one element this
+    // THE BANNER IS THE PAY TABLE'S HANDLE (r368). It is the one element this
     // mode owns that is on screen in BOTH orientations and sits in the board's
     // own margin, so it costs no layout to make it the way in - and a scoring
     // ladder you cannot look up is a ladder the player has to memorise.
@@ -1249,7 +1249,7 @@ function sqInstallInput() {
     const cell = sqCellAt(e.clientX, e.clientY); if (!cell) return;
     if (sqArmed) { sqConsPick(cell[0], cell[1]); return; }
     if (sqPhase !== 'place') return;
-    // A PLACED GROUP IS STILL A GROUP (r340). Tapping any card of one lifts the
+    // A PLACED GROUP IS STILL A GROUP (r368). Tapping any card of one lifts the
     // whole tile back into the tray, so a mis-drop is undone where it happened
     // rather than by pressing TAKE BACK until the stack unwinds to it. It is
     // tested FIRST, because a tap on an occupied cell can never be a placement.

@@ -20,6 +20,13 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `js/` - the game code, one file per system (list below).
 - `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
 - `CARD_EFFECTS.md` - **the index of everything that can be true of ONE CARD.** Every permanent buff and debuff, every boss state, the r278 card states, and the parked design list. Read it before adding a per-card effect.
+- `EVENTS.md` - **the review of all 22 events: what each one does, which tier it is in,
+  and what to do about it.** Read it before touching `js/events*.js`. Its spine is the
+  owner's test - an event costs a whole reward grid, so if the screen could have been one
+  tile on the grid you gave up, it is a bad event however well tuned. It also records the
+  seven post-r278 systems (card states, forced fires, `permFocus`, wilds, Natural Scaling,
+  `primeTrick`, `downgradeEntity`) that **no event touches**, which is the standing answer
+  to "make the rewards things you cannot get from the grid or the shop".
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
@@ -172,7 +179,7 @@ The old table had four inversions, all fixed:
 - **THERE IS NO xSCORE STEP ANY MORE (r236).** This line used to list Echo, Legacy, Low and Behold, the boss Redaction and the dev grid Trick card as deliberate survivors. It had drifted even before r236: **Echo** is a per-card retrigger in the card loop, and **Legacy** became a xMULT in r193. r194 took Spot Check, and r236 took the last four - The Redaction, The Grind, Low and Behold and the dev grid Trick card. See "The last four xSCORE effects" below. **Do not add one**: anything that would go there is a xPIPS or a xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (top tier) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. (This line used to say its payout lands at SCORE level; it is `mult += bonusMult_compound`, an ordinary additive mult, and has been for some time.)
+- **Compound** was removed in r336 (the 9.24 balance pass).
 
 ### The scoring TIMELINE (r220) - every Trick pays out at its own moment
 
@@ -1824,7 +1831,7 @@ ONE widget for everything temporarily unavailable or temporarily charged: a coun
 - **The grey-out is a WASH ELEMENT, not a `filter`.** A filter applies to the whole subtree and a child cannot undo it, so a filtered card would have dragged its own countdown badge down to 16% saturation - the one part of it that has to stay legible. `.cd-wash` is a sibling of the badge at a lower z-index. It is an appended element rather than an `::after` because `.card.rc-woodpecker` already owns that pseudo-element.
 - **A tray chip a boss switched off already drains itself and stamps OFF** (r188), so on that one host the widget contributes only the ring - washing it as well double-dims it. `cdPaint` checks for `.trick-off`.
 - **`renderCardAppearance` emits the badge too** (`cardCooldownParts`). `render()` rewrites a card's className and innerHTML wholesale, so a badge added only by the sweep would be wiped and re-added on every deal, swap and score - a visible flicker. `renderTrickTray` calls `cdPaint` for the same reason.
-- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), The Cuckoo, Compound, **The Woodpecker** (genuinely off for half of every minute, which nothing said out loud before), Minute Hand, every boss suspension, and every boss card hold.
+- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), **The Woodpecker** (a new card marked every 30s since r348, card-keyed and spent when scored), Minute Hand, every boss suspension, and every boss card hold.
 - **A boss suspension with no clock prints no number.** `bossTrickOffSecondsLeft` returns null for the Voidwright's halves - they flip on a phase change, not a timer, so there is no honest number to show.
 
 ### Minute Hand: primed, not pending (r209)
@@ -4754,7 +4761,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 | what died during every boss | because |
 |---|---|
 | Tick-Tock · Second Hand · Quarter Chime · Minute Hand · Hourglass | `handleClockMarks` runs on the round tick |
-| Tempo's resource drip · the Cuckoo · Compound · the Woodpecker · Slow Burn accrual | same tick |
+| Tempo's resource drip · the Woodpecker · Slow Burn accrual | same tick |
 | Focus decay, the board heartbeat | started by `startRoundTimer` |
 | `pauseRound` / `rewindTime` | operate on the frozen `roundSeconds` |
 | **swap and discard time costs** | billed to the frozen clock, so **interacting was free during a boss** |
@@ -8069,6 +8076,51 @@ identical whatever its tier, and the tier pill printed on that flat colour:
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.
 - When a mechanic is complex/ambiguous, implement a simplified version and tag it `TBD` in a comment + the item's `desc`/`needsResolve`.
 
+## r356 - the Pick emptied the board, and its taps were never reaching it
+
+Owner: *"I keep running out of cards when I play guided"* and *"there's a card
+buff thing after the round ... it just says pick a card but then you pick a card
+and nothing happens."* Two separate faults in THE PICK (r244), both live in every
+mode that reaches a payout - Classic, Guided, the Schedule, Six Suits, Spectrum -
+and both invisible with the setting off, which is why they shipped.
+
+**1. `pickClearBoard` gave back more than the restore borrowed.** The restore
+fills a cell only when it is `null`; the clear nulled every cell whose card
+matched the snapshot. Before r332 those were the same set. **After r332 the board
+PERSISTS, so no cell is ever null and no cell is ever restored - but every cell
+still matched the snapshot, so the clear emptied the whole board**, into no pile
+at all. `fillGridHoles` then drew a fresh boardful over the hole. Measured through
+the real payout in Guided AND Classic: **the run's deck went 56 -> 40 in ONE
+round**, `expectedDeckTotal` still reading 56, so four rounds ran it dry. The
+r332 note above asserted this function no-oped; it did not, and nothing was
+checking. `pickRestored` is the fix - the restore records what it actually filled
+and the clear gives back exactly that, so it is a genuine no-op on a persisting
+board and byte-identical on a non-persisting one.
+
+**2. THE TAP WAS SWALLOWED ONE LEVEL ABOVE THE INTERCEPT.** r244 put the pick's
+intercept above `onCardTap`'s `animating` guard and verified it. **r254 then added
+`roundEnded` to the grid's own `pointerdown` handler**, which is what actually
+decides - and the pick runs inside the interlude, which is by definition after the
+round ended. So from r254 onward `onCardTap` was never called at all: the bar sat
+on PICK A CARD, `pickCard` stayed null, 0 op tiles. `pickOwnsBoard()` is the one
+predicate the guard now asks, and the fix is proved load-bearing by putting the
+old guard back (selection dies) and taking it out again (selection lands).
+
+- **`pointermove` is deliberately NOT exempt.** A pick is a tap, so leaving the
+  swipe blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  was meant to be. `pointerup` carries no guard of its own, so the tap lands.
+- **THE LESSON: a guard added to a shared handler has to be checked against every
+  screen that borrows that handler.** The pick's intercept was correct and
+  unreachable, and a syntax check, a call audit and a read of `onCardTap` all pass
+  without noticing.
+
+Verified in a real browser at 1440x820 through the real click path, Guided and
+Classic: a card selects, all three ops fire, and the deck balances at every step -
+**Boost 56 -> 56, Copy 56 -> 57, Remove 56 -> 55** with `expectedDeckTotal` moving
+with it in each case and the removed card's cell left as one hole for the next
+round's refill. Three consecutive Guided rounds hold at **56/56, board 16, holes
+0**. With the setting OFF the deck is untouched (56 -> 56), as it always was.
+
 ## r334 - the pick re-centres, the read goes WIDE, the hand label is words
 
 Owner follow-ups on r326; the two superseded r326 bullets are marked below.
@@ -8385,11 +8437,12 @@ its own full re-deal, which is byte-identical when the board has been recycled
 ### Two things that turned out to need nothing
 
 - **The Pick** (r244) photographs the board above the fall because the fall used
-  to destroy it. `pickRestoreBoard` only fills cells that are `null` and
-  `pickClearBoard` only nulls cells it put back, so both no-op now; the snapshot
-  became a list of candidates. **Remove** already nulled the board cell as well
-  as splicing the piles, so it still works - the splice simply finds nothing,
-  because the card is on the board and not in a pile.
+  to destroy it. `pickRestoreBoard` only fills cells that are `null`, so it
+  no-ops now and the snapshot became a list of candidates. **Remove** already
+  nulled the board cell as well as splicing the piles, so it still works - the
+  splice simply finds nothing, because the card is on the board and not in a
+  pile. **`pickClearBoard` did NOT no-op, and this line used to claim it did -
+  see r356 below, where it cost the run sixteen cards a round.**
 - **The grid-screen takeover** (`gridScreenTakeover` / `gridScreenRelease`,
   js/grid-pick.js) resizes `gridRows`/`gridCols` for the tiled payout and
   restores them on close. It never touches `gridData`, so a persisting board
@@ -8403,3 +8456,60 @@ boundary, a `permPips` buff planted before the level-up still on that card after
 it, a grid-column upgrade giving **4x5 with 0 holes and 16 of 16 old cards kept**,
 a shrink returning its cards (deck total unchanged at 56/56 in every case), and
 **0 page errors**.
+
+## The 9.24 balance pass (r336-r363) - `BALANCE_PASS_9.24.md`
+
+The owner's Balance_-_9.23.26.xlsx, executed in tiers. **The plan file is the
+index** (tiers, decisions, the new-Tricks table); `BALANCE_PASS_9.24_DIFF.txt`
+held every outstanding row and is now empty. `balance_sheet.csv` still holds
+the owner's sheet verbatim - **regenerate it with `tools/gen_balance_sheet.js`
+only once the unnamed spade Trick is built**, or its row is lost. (Done r367: the generator only ADDS rows, so a run changes nothing else.) The systems
+this pass added, and their traps:
+
+- **Inert (r341).** Piggy Bank and Capacitor fire IN PLACE (`sleightUseInPlace`)
+  and sit `_inert`: `cardCan` allows only fall/render/select, so playing it in a
+  hand is its one way off the board, and `discardToPlayed` accepts it.
+- **Timed charges (r356).** A Sleight def with `secsPerCharge` spends charges as
+  time; `_usesLeft` stays the charge count so every charge reader works.
+  Stopwatch 10x6s, Fight the Power 9x20s (drains only while `bossFxLive()`).
+- **Focus applied twice (r343).** `focusExtraApplies(handName, cells)` counts the
+  extra applications (Phoenix, Kaleidoscope, Marathon); the dance plays a second
+  Focus beat per extra. `lastCalcFocus = fMult ^ (1 + n)`.
+- **Per-card x mult is a LIST (r359).** `_cardMultSeq` entries carry `xl`, the
+  card enhancement first and then each Trick factor (What are The Odds, Patient
+  Rulers, Obsessed, Feelin Lucky), each emitted as a card-scoped `mult*` and
+  billed to its own id. Add a per-card x mult Trick as one push there.
+- **Discard-activated Sleights cycle (r353).** `discardToDrawPile` deletes every
+  Sleight, so a player discard now routes an `on_discard` Sleight through
+  `discardToPlayed` with its charges. Before this, Cash Out's charges meant nothing.
+- **Deferred board work drains from `removeAndFall`'s tail**: the Spectrum
+  fixture exits and Fresh Start's redeal (`freshStartDrain`). Anything that must
+  rewrite the board after a discard or a hand goes there, never inline.
+- **Royal Reach (r358).** `reachNeighbors()` = `getNeighbors` plus the lines of
+  any royal card; `isConnected`, `getReachable` and `doSwap` use it. With no
+  royal card on the board it is exactly `getNeighbors`.
+- **Warehouse (r354)** joins detection as ITSELF, never a borrowed rank/suit
+  (`isWarehouseCard`): a temporary identity is restored before playHand and the
+  dance re-score, so they would see a different hand.
+- **A sold line Trick loses its line (r352).** `pruneRowColBonuses()` runs at the
+  top of `renderTrickTray`; before it, a sold Trick kept its line and kept
+  feeding Ley Line / Temporal Rift / Feng Shui. 4x4 is now a fixed column line.
+- **Grid picks can be skipped (r362):** `openGridPick({ onSkip })`; CONFIRM
+  with nothing selected arms it, a second press within 3s skips. Tapping the
+  picked option again unselects it.
+- **Magnet (r357)** pulls a rank into itself and its neighbours; the displaced
+  cards are discarded free but COUNT as discards (`magnetCountDiscards`).
+- **Feelin Lucky's sell intercept (r360)** sits in `sellTrick` and the shop's
+  `doShopSell` - both sell paths.
+- **Move as One (r363)** reads keywords off descriptions through a curated set
+  (`MOVE_AS_ONE_KEYS`, `_MAO_EXTRA`); the owner may trim it.
+- **Relentless (r367)** is the spade Trick: each spade applies x(0.05 x
+  `spadesRelentless`), floored at x1, so it does nothing until the 21st spade.
+  The count starts at 0 when the Trick is taken and is bumped by
+  `relentlessCount()` AFTER `playScoreDance` at all three dance sites - the
+  dance re-scores synchronously, so a count bumped above it would animate a
+  bigger x mult than the hand was scored with (the r295 trap). It is NOT
+  Compound; `compound_mult` keeps its own +0.1 per hand.
+- **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
+  hand, preview and dance all see the old rank.
+

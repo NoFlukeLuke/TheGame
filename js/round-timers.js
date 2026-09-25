@@ -134,19 +134,22 @@ function startRoundTimer() {
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.
     if (typeof cardStatesTick === 'function') cardStatesTick();
-    // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
-    if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
-      cuckooNextMinute += BAL.cuckoo.interval_seconds;
-      if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
-    }
-    // The Woodpecker: marking runs in alternating 30s blocks - active 0–30s, off 30–60s, active 60–90s, …
-    // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
+    if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
+    if (typeof fightPowerTick === 'function') fightPowerTick();
+    // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
+    // now, in playHand, at 1s per 5 replays this round.)
+    // The Woodpecker (r348): every interval a new random card is marked, replacing
+    // any mark still standing. A tick with no legal card (mid-fall, a blocked
+    // board) does not spend the block - it tries again on the next tick.
     if (hasTrick('woodpecker')) {
-      const _blk = Math.floor(_elapsedRound / 30);
-      if (_blk !== woodpeckerActiveBlock) {
-        woodpeckerActiveBlock = _blk;
-        woodpeckerPos = (_blk % 2 === 0) ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-        if (!animating && !falling) render(); // show/clear the highlight + trigger the peck animation
+      const _blk = Math.floor(_elapsedRound / BAL.woodpecker.interval_seconds);
+      if (_blk !== woodpeckerActiveBlock && !animating && !falling) {
+        const _pool = hallmarkCandidates().filter(cd => cardId(cd) !== woodpeckerCardId);
+        if (_pool.length) {
+          woodpeckerActiveBlock = _blk;
+          woodpeckerCardId = cardId(_pool[Math.floor(Math.random() * _pool.length)]);
+          render(); // show the highlight + trigger the peck animation
+        }
       }
     }
     updateClockUI();

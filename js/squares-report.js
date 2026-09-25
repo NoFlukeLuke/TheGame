@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// THE DAILY SCOREBOARD (r340) - js/squares-report.js
+// THE DAILY SCOREBOARD (r368) - js/squares-report.js
 //
 // A run of daily grids ended on a block of monospace text. It now ends on a
 // SCOREBOARD: a row per grid, what you scored against the best the board could

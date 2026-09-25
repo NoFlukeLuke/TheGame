@@ -200,6 +200,7 @@ function triggerLevelUp() {
   focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
+  clubsScoredRound = 0;
   setsPlayedRound  = 0;
   runStreak        = 0;
   handTypesRound   = new Set();
@@ -256,7 +257,6 @@ function triggerLevelUp() {
   retriggersThisRound = 0;
   replaysThisRound = 0;
   timeManipRound = 0;
-  cuckooNextMinute = BAL.cuckoo.interval_seconds;
   understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
   // The card-state fuses refresh every level (owner's spec), so a charged card
@@ -267,11 +267,10 @@ function triggerLevelUp() {
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
   _altSwapCount = 0;
-  doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-  djUsedThisRound = false;
+  doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
   firstPauseStartedRound = false;
   firstPauseActive = false;
-  woodpeckerPos = null;
+  woodpeckerCardId = null;
   woodpeckerActiveBlock = -1;
   // Metronome knack: pick this round's target hand type from those the player can actually make.
   if (hasKnack('metronome')) {

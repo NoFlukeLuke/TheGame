@@ -27,14 +27,13 @@ sheet verbatim as the input of record.
 
 ## Owner decisions needed (each blocks only its own row)
 
-1. **Echoes (`echo_hand`)** — its new text is word-for-word The Woodpecker's
-   new text ("Marks a random card every 30s; scoring it replays it 2x").
-   Copy-paste accident, or two identical Tricks intended? (Old Echoes:
-   "same hand type as previous replays each card.")
-2. **"Legendary" (new Trick)** — is that really its name? A Trick named after
-   a rarity tier reads oddly on a tile that also prints its rarity.
-3. **"Inert"** — the Piggy Bank note asks for a better word for a sleight that
-   can't be swapped/discarded after use. Proposal: **"Spent"**.
+1. **Echoes (`echo_hand`)** — RESOLVED: the new text was a copy-paste error.
+   Echoes keeps its current effect (same hand type as the previous hand
+   replays each card). Nothing to change.
+2. **New legendaries** — RESOLVED: the unnamed "Legendary" Trick works on
+   DIAMONDS and takes the name **Buried Treasure**; the original Buried
+   Treasure effect moves to SPADES and its name is pending the owner.
+3. **"Inert"** — RESOLVED: the keyword is **inert** (shipped r341).
 4. **Move as One keyword list** — proposed list to review in Tier 4h.
 5. **Head Start wording** — the owner asked for "a nicer way to word" the
    decaying first-hand Focus. Proposal: *"The round's first hand adds +5
@@ -97,30 +96,56 @@ Two global vocabulary moves ride along:
   never 4 cards plus a tagalong/penalty card. One helper over
   `handComponentsFor`; wire `five_fodder`, `little_guys`, `five_second`, and
   audit every other "N-card hand" entity for whether the rule bites.
-- **4b. Live readouts in descriptions** — `(current: n | max: m)` rendered
-  live via `trickLiveDesc` (exists; extend): Quick Draw (max 10), Head Start,
-  Little Guys (max 15), Expanse (max 10), Slow Burn (max 15), Wait For Iiiit
-  (current chance), Stopwatch (remaining time), Fight the Power (remaining).
-- **4c. Sleight charge display `n/max`** on every charged Sleight (both grid
-  render paths — the r161 rule — plus tooltips), and the **"inert/Spent"
-  state**: Piggy Bank and Capacitor stay on the grid but can't be swapped or
-  discarded after use (`cardCan` gate). Pending naming decision 3.
-- **4d. "Focus multiplier applies twice"** — shared mechanism for The Phoenix
-  (existing, plus its new "hands that trigger a pause trigger this" clause),
-  Kaleidoscope (changed) and Marathon (new). Owner's animation spec (Marathon
-  note): the FOCUS chip gets a staggered copy behind itself, a chip flight
-  when the second application lands, and a doubled focus-family sound (like
-  Flow's extra-reward stingers).
-- **4e. Deterministic chance rolls** (main's earlier pass already did correct_run's one-of-three and second_hand's either/or; left: Threepeat's one-of-three, Even Better, the Legendary luck roll) for scoring-time probabilities
-  (`_detReplayRand` shape — `calcScore` runs speculatively): Ripple 50%,
-  Hourglass 50% (round tick, may roll live), Even Better 66%, "Legendary"
-  luck roll, rowcol_retrigger's 2-in-3 (already deterministic — verify).
-- **4f. Time buffs do not stack** (one card, one time buff): Temporal Rift
-  (+3s rewind now, was pause), Wait Four It (+2s pause), The Vulture (+3s
-  pause, no replay-stacking). One predicate over `permTime`/`_vulturePause`.
-- **4g. "Speed bonus" keyword + handbook entry** (Overclock note): Focus
-  comes from hand complexity AND how quickly the hand followed the previous
-  one. `js/keywords.js` + handbook topic.
+- **4b. MOSTLY DONE (r340): Focus-limit growers + live readouts.**
+  `gainFocusCap(id, n, max)` + `focusCapGains` ledger (js/focus-config.js, in
+  SAVE_VARS, reset in startGame). Quick Draw (2s window, +1/proc, max +10),
+  Expanse (+1 max +10, then lose half Focus — moved into onFocusMaxed's
+  keepFrac), Little Guys (max +15), Slow Burn (45s per +1, max +15, live
+  "current" in its grid tooltip), Head Start (+5 first hand, −1 each later
+  hand, floor 0). Also Richter + Collapsing Columns: threshold advance →
+  flat +10 Focus. trickLiveDesc cases added for all four Tricks.
+  REMAINING from 4b: Wait For Iiiit already has its readout; Stopwatch /
+  Fight the Power readouts land with 4i.
+- **4c. DONE (r341): n/max charges + the INERT state** (owner's word). Every
+  charged Sleight's tile and grid tooltip read `n/max` (via sleightMaxCharges,
+  so Maintenance-raised ceilings print). Piggy Bank and Capacitor fire IN
+  PLACE, once per round, and go inert: cardCan blocks swap/discard, playing it
+  in a hand is the one way off the board (discardToPlayed accepts an inert
+  sleight or the fall would delete it from the run; the cycled copy comes back
+  movable with its remaining charges). `INERT_ON_USE_SLEIGHTS` +
+  `sleightUseInPlace` in js/sleights-runtime.js; `.sleight-inert` wash.
+- **4d. DONE (r343) except Marathon (rides Tier 7).**
+  `focusExtraApplies(handName, cells)` in js/scoring.js is the one count of
+  extra fMult applications, read by BOTH sites (the FOCUS chip and step 5), so
+  shown and paid agree - the chip now prints the real fMult^(1+extra) (old
+  Phoenix showed fMult*2 against a paid fMult^2). `handTriggersPause` is the
+  Phoenix's new clause: every per-hand pause source enumerated, all
+  deterministic (vulture-buffed cards, Five Second Rule, Four Horse-man's
+  roll, Dam Holding/High Water runs, Sundial column, Metronome target, Double
+  Jeopardy mark) - ADD A PREDICATE THERE when adding a per-hand pause.
+  Kaleidoscope: 4+ suits = second application (its +4 flat Focus is gone).
+  The dance plays a second, quicker focus thump per extra application with the
+  focus sound doubled (`targetFocusExtra`, captured at dance start - the
+  global is overwritten by speculative calcScores). Marathon = one line in
+  focusExtraApplies + its pool row. The fuller staggered-chip-copy/flight
+  animation from the owner's note can still be layered on later.
+- **4e. DONE (r344) except the Tier-7 newcomers.** Ripple: the 30s cooldown is
+  gone - each adjacent-rank card rolls a deterministic, Luck-scaled 50%
+  (`luckRollDet`, stream offset 7717; `_rippleLastFire` deleted). Threepeat's
+  one-of-three, correct_run and second_hand were already deterministic
+  (trickPickOne / _detReplayRand); Hourglass rolls live in doDiscard, which is
+  a real one-shot event, so that is correct as is. Even Better and the
+  Legendary roll land with their Tricks in Tier 7.
+- **4f. DONE (r342): time buffs do not stack.** `cardTimeBuffed(card)`
+  (js/deck-grid.js, beside permTime) is the one predicate over
+  permTime/_vulturePause; all three grant sites ask it before trickFires.
+  Temporal Rift is +3s REWIND via permTime (minute gate dropped - the no-stack
+  rule is the limiter; out of CD_PER_MINUTE_TRICKS), Wait Four It +2s pause,
+  The Vulture +3s pause and its buff fires once per SCORE, not per replay.
+- **4g. DONE (r345): "speed bonus" keyword** (js/keywords.js, kw-focus family,
+  with a definition card) **+ handbook topic** `speed_bonus` under Scoring.
+  Overclock / Long Fuse / Governor descs already said the phrase, so they all
+  highlight with no data edits.
 - **4h. Move as One keyword system** — random matching Trick (not
   lowest-rarity), a visible readout of WHICH keyword matched, and a CURATED
   list (generic words excluded). **Proposed list for owner review:** marked
@@ -140,7 +165,7 @@ Per-row spec in the DIFF file. Grouped:
 - **Clock/marks:** Cuckoo → every other hand pauses 1s per 5 replays this
   round · Double Jeopardy → 2 CELLS secretly marked (cell-keyed — deliberate
   exception to r192's card-keyed rule; document it) · Woodpecker → marks
-  every 30s, no alternating blocks · Echoes pending decision 1 ·
+  every 30s, no alternating blocks · Echoes unchanged (decision 1) ·
   Sands of Time → ÷2, but ÷4 in modes with rounds over 3:00.
 - **Replays:** Rerun → ×1.2 pips per replay · Chorus → ×1.75 mult per
   replay (both move from escalating adds to flat multipliers per replay) ·
@@ -203,14 +228,17 @@ Per-row spec in the DIFF file. Grouped:
 
 ## Tier 7 — New content (one to two sessions)
 
+DONE r359: Obsessed, Buried Treasure, Patient Rulers, Even Better, What are The
+Odds, Critical, Twinners, Marathon; r360 Feelin Lucky. r361 Three's a Crowd as a Knack. r367 Relentless (the spade Trick). Tier 7 is complete.
+
 Ten new Tricks (mint ids; TERMINOLOGY.md; BAL + DESC_TEMPLATES; pool, tags,
 improve/force vocabulary; several are per-card ×mult — the r233 machinery):
 
 | name | tier | effect |
 |---|---|---|
 | Obsessed | legendary | each heart ×mult = 1+(credits/100) |
-| Buried Treasure | legendary | each diamond ×(1 + 0.1 per diamond scored this game) mult |
-| Legendary (name pending, decision 2) | legendary | each scored spade: (luck/2)% chance to ×1.1 your credits |
+| Buried Treasure | legendary | each scored diamond: (luck/2)% chance to ×1.1 your credits |
+| Relentless | legendary | each spade ×(0.05 per spade scored since taken) mult, never below ×1 - so nothing until the 21st spade (owner retune r367) |
 | Patient Rulers | epic | if paused/rewound this round, face cards ×1.5 mult |
 | Even Better | epic | even cards 66% chance ×2.2 pips (4e) |
 | What are The Odds | epic | odd cards ×1.7 mult |

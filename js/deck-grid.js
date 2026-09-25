@@ -26,6 +26,15 @@ let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pip
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
 let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
+// ONE CARD, ONE TIME BUFF (r342, owner's rule). Every site that grants a card a
+// time buff - the Vulture's pause, Wait Four It's pause, Temporal Rift's rewind -
+// asks this first and skips a card already carrying one, in either currency.
+function cardTimeBuffed(card) {
+  if (!card || !card.rank) return true;   // not an ordinary card - never buffable
+  if (card._vulturePause) return true;
+  const k = cardId(card);
+  return !!(k != null && permTime[k]);
+}
 // Credits this card pays when it scores (the Card Market's payday card, r278).
 // Replay-weighted: a card that scores three times pays three times.
 let permCoins  = {}; // { "<card id>": 2, ... } credits paid per score
@@ -452,6 +461,7 @@ let bonusMult_fives   = 0;
 let bonusMult_nines   = 0;
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
+let spadesRelentless   = 0;   // Relentless Trick: spades scored since it was taken (r367)
 let bonusFocus_acorns   = 0;   // Acorns Trick: +0.05 Focus per scored card (per game); grants floor each hand
 let handsPlayedGame     = 0;   // cumulative hands played this game (Plan Ahead average); reset on new game
 let bonusMult_morebetter = 0;  // More Better Trick: +4 mult per reward grid where 3+ tiles were selected (per game)
@@ -473,10 +483,10 @@ let handsPlayedRound    = 0;   // count of hands played this round
 let roundContributions  = {};
 let roundHandsScored    = 0;
 let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
+let clubsScoredRound    = 0;   // clubs scored this round incl. replays (Hard Labour's doubling ladder, r346)
 let setsPlayedRound     = 0;   // count of Set hands scored this round (Undue Influence / Shaky Foundation)
 let runStreak           = 0;   // consecutive Run hands ending at the last-played hand (Wave Amplification)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)
-let _rippleLastFire     = -100000; // last time Ripple's retrigger fired (30s cooldown)
 let _primeTimesCursor   = 0;   // Prime Times: cycles tray positions 1st→2nd→3rd→5th→7th
 let handTypesRound      = new Set(); // distinct hand types played this round
 let safetyNetUsed       = false; // safety_net knack: once per game
@@ -613,8 +623,21 @@ function resolveDeckCard(card) {
 }
 
 // The persisted copy of a normal card. Board and animation state is shed.
+// Royal Favour (r350): cards that scored beside a Queen, keyed by cardId. Their
+// rank goes up by one on the way back into the deck, which is what "after it
+// scores" means - never mid-hand.
+let queenUpgradePending = new Set();
+function queenUpgradedRank(rank) {
+  const i = ACTIVE_RANKS.indexOf(rank);
+  if (i === -1) return rank;
+  return ACTIVE_RANKS[i === ACTIVE_RANKS.length - 1 ? 1 : i + 1]; // K wraps to 2
+}
 function recycleCard(card) {
   const out = { rank: card.rank, suit: card.suit };
+  if (card._id !== undefined && queenUpgradePending.has(cardId(card))) {
+    queenUpgradePending.delete(cardId(card));
+    out.rank = queenUpgradedRank(card.rank);
+  }
   for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
   return out;
 }
@@ -688,7 +711,12 @@ function discardToDrawPile(card) {
 
 // Scored card - held out until round ends
 function discardToPlayed(card) {
-  if (!cardCan(card, 'discard')) return;
+  // An INERT sleight (r341) refuses the player's swap/discard gestures, but being
+  // played in a hand is its one way off the board - the pile bookkeeping must
+  // accept it or the card is deleted from the run when the fall nulls its cell.
+  // The cycled copy is a fixed field list, so _inert is dropped and it comes back
+  // movable, with whatever charges it still held.
+  if (!cardCan(card, 'discard') && !(card && card._isSleight && (card._inert || card.sleightId === 'reflect'))) return;
   // Sleights cycle back into the deck preserving identity & remaining charges
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {

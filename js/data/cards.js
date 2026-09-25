@@ -98,7 +98,10 @@ function isWildCard(card) { return !!card && card.rank === WILD_RANK; }
 // Every hand-level count that reads a rank or a suit asks for these instead of
 // the raw hand: a wild is not an even card, not a club, not the lowest rank on
 // the board, and not a distinct colour for Rainbow to count.
-function naturalCards(cards) { return (cards || []).filter(c => c && !isWildRank(c.rank)); }
+// Warehouse (r354): a Sleight with NO rank that counts as TWO cards of any suit
+// toward a flush and nothing else. Like a wild it scores nothing itself.
+function isWarehouseCard(card) { return !!card && card._isSleight && card.sleightId === 'warehouse'; }
+function naturalCards(cards) { return (cards || []).filter(c => c && !isWildRank(c.rank) && !isWarehouseCard(c)); }
 function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && isWildRank(c.rank) ? 1 : 0), 0); }
 
 // How many wilds this mode's deck carries. Four by default (owner's number), in
@@ -377,6 +380,9 @@ function cardCan(card, action) {
     // Aim sleights are fixtures: fall & render only - never swapped, discarded, or selected
     // (so a single tap is free to rotate aim).
     if (AIM_SLEIGHTS.has(sleightDef(card)?.id)) return action === 'fall' || action === 'render';
+    // INERT (r341): a used Piggy Bank / Capacitor stays on the grid and can no longer
+    // be swapped or discarded. Selecting it into a hand is its one way off the board.
+    if (card._inert) return action === 'fall' || action === 'render' || action === 'select';
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'select' || action === 'discard';
   }
   if (card.isChallenge) {

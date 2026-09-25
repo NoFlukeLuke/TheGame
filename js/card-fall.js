@@ -29,9 +29,10 @@ function renderCardAppearance(card, r, c, {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
     // its charge count, which is the number that actually matters on the board.
+    const _maxCh = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
-      : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
+      : (card._usesLeft === 'infinite' ? '∞' : (_maxCh ? `${card._usesLeft}/${_maxCh}` : card._usesLeft));
     // An AIM sleight (Reflect / Soul Mirror) is drawn tilted with a direction arrow,
     // and a spent one is greyed. Both used to live ONLY in render()'s own sleight
     // branch, so a sleight animating - falling, dealt in, or shown in the hand preview -
@@ -51,7 +52,8 @@ function renderCardAppearance(card, r, c, {
     }
     return {
       className: `trick-card sleight-card${sleightRarityClass(def)}${isSwapPending ? ' swap-pending' : ''}`
-               + (sleightIsSpent(card, def) ? ' sleight-spent' : ''),
+               + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+               + (card._inert ? ' sleight-inert' : ''),
       innerHTML: sleightFaceHTML(card, def, usesStr),
     };
   }
@@ -100,8 +102,7 @@ function renderCardAppearance(card, r, c, {
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
 
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
-  const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
-  const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
+  const rcWoodpecker = woodpeckerCardId && card && cardId(card) === woodpeckerCardId ? ' rc-woodpecker' : '';
   // The shared "what affected what" highlight (r209, divided in r296 -
   // js/entity-fx.js): a RING around the card in the owning Trick's colour,
   // DIVIDED EVENLY when several marked lines cross this cell rather than naming
@@ -148,7 +149,7 @@ function renderCardAppearance(card, r, c, {
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     curse ? 'cursed' : '',
     bothClass.trim(),
-    rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
+    rcLeyline.trim(), rcWoodpecker.trim(),
     _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
     // Card states + temp cards (r278). `card-temp` is independent of any state:
@@ -470,6 +471,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // queued action so "it paid, then it left" is one beat rather than a card
   // vanishing behind the next hand. (js/spectrum.js)
   if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
+  if (typeof freshStartDrain === 'function') freshStartDrain();
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }

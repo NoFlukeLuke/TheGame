@@ -24,7 +24,7 @@
 // decides whether a board is a packing puzzle or a formality: the surplus is 3
 // cells in both, so there is always more than one legal packing and never so
 // much slack that the shape stops mattering.
-// EVERY GRID GETS AN L AND A BAR (r340, owner's call). The two trominoes ask
+// EVERY GRID GETS AN L AND A BAR (r368, owner's call). The two trominoes ask
 // opposite questions - a bar commits three cells of ONE line, an L commits a
 // cell to two lines at once - so a deal holding one of each always contains
 // both kinds of decision. `forms` indexes SQ_SHAPES[size]: at size 3 that is
@@ -41,7 +41,7 @@ const sqdSizes = () => Object.keys(SQD_SIZES).map(Number);
 // and keeps its turns, its Tricks and its pips x mult.
 function sqDaily() { return !!(typeof squaresActive === 'function' && squaresActive() && SQD_SIZES[SQ_N]); }
 
-// ── SETTINGS (r340) - dev panel -> Squares ─────────────────────────────────
+// ── SETTINGS (r368) - dev panel -> Squares ─────────────────────────────────
 // OVERRIDES ONLY, in localStorage, which is the r197 goal-tuner rule: an
 // untouched knob tracks whatever this file ships, and setting a field back to
 // its shipped value DELETES the override rather than pinning today's number for
@@ -74,7 +74,7 @@ function sqCfgSet(k, v) { if (v === SQ_CFG_DEF[k]) delete sqCfgOver[k]; else sqC
 function sqCfgReset() { sqCfgOver = {}; sqCfgSave(); }
 sqCfgLoad();
 
-// ── THE RANK WINDOW, PER GRID (r340, rescheduled r342) ─────────────────────
+// ── THE RANK WINDOW, PER GRID (r368) ─────────────────────
 // A daily's cards are drawn from a CONTIGUOUS run of ranks rather than all
 // thirteen. That is the cheapest lever on "make a grid likelier to score":
 // every hand here is a coincidence between two cards' ranks or suits, and
@@ -190,7 +190,7 @@ function sqdDrawInWindow() {
   return card;
 }
 
-// ── HOW OFTEN A GRID CARRIES A WILD (r342) ─────────────────────────────────
+// ── HOW OFTEN A GRID CARRIES A WILD (r368) ─────────────────────────────────
 // Owner: "give it only a 60% chance of appearing in any single grid, with one
 // grid minimum across the 3". So it is a roll per grid, plus a floor: if the
 // last grid comes round and none has turned up, that one gets it. The floor
@@ -234,7 +234,7 @@ function sqdCardValue(rank) {
 }
 
 // ── THE HAND TABLES ────────────────────────────────────────────────────────
-// COMPRESSED, IN POKER'S ORDER (r340, owner's call). The r312 table was the
+// COMPRESSED, IN POKER'S ORDER (r368, owner's call). The r312 table was the
 // published PAIR PLUS / ACES UP pay tables x10, which is the right ORDER and
 // the wrong SPREAD for a board this small: trips at 300 against a pair at 10
 // meant one lucky line was most of a grid, and the tally stopped being a
@@ -306,7 +306,7 @@ function sqdNameNatural(cards) {
   const fl = cards.every(c => c.suit === cards[0].suit);
   const con = a => a.every((v, i) => i === 0 || v === a[i - 1] + 1);
   const distinct = new Set(vs).size === n;
-  // THE ACE RUNS BOTH WAYS, and until r340 it never did. `sqRank` reads the
+  // THE ACE RUNS BOTH WAYS, and until r368 it never did. `sqRank` reads the
   // game's own RANK_ORDER, where an ace is 1, so the `=== 14` these lines used
   // to test for could not fire and Q-K-A came out a Flush of 3. A-2-3 works on
   // the 1, so it is only the HIGH ace that has to be put back by hand.
@@ -324,11 +324,11 @@ function sqdNameNatural(cards) {
   return 'High Card';
 }
 // The ace's two faces, read off the live table rather than written down - the
-// r340 bug was exactly a hardcoded 14 disagreeing with RANK_ORDER.
+// r368 bug was exactly a hardcoded 14 disagreeing with RANK_ORDER.
 const sqAceLow  = () => (typeof RANK_ORDER !== 'undefined' && RANK_ORDER.A != null) ? RANK_ORDER.A : 1;
 const sqAceHigh = () => sqAceLow() + SQD_RANK_LADDER.length;
 
-// ── THE WILD (r340) ────────────────────────────────────────────────────────
+// ── THE WILD (r368) ────────────────────────────────────────────────────────
 // One per grid. On EVERY line it sits in it takes whatever rank and suit make
 // that line worth most - independently for its row and for its column, because
 // the two lines are scored as separate hands and nothing says a card must mean
@@ -399,7 +399,7 @@ const sqdHandRank = (n, name) => (SQD_LADDER[n] || []).indexOf(name);
 // and grid 3 carries two: the run escalates without the player steering it.
 let sqdBoons = [];                 // [{ kind:'dbl'|'plus2', line }]
 const SQD_BOON_PER_CARD = 2;
-// THE BOON LIST IS A PARAMETER (r340). It defaults to the live one, which is
+// THE BOON LIST IS A PARAMETER (r368). It defaults to the live one, which is
 // every caller in play - but the end-of-run report re-scores a grid that was
 // played two boons ago, and reading the live list there would score grid 1
 // under grid 3's boosts and quietly disagree with the number it printed at the
@@ -520,7 +520,7 @@ function sqdReturnPieces(pieces, reserve) {
   if (typeof flushPlayedDeck === 'function') flushPlayedDeck();
 }
 
-// ── ONE WILD IN EVERY GRID (r340) ──────────────────────────────────────────
+// ── ONE WILD IN EVERY GRID (r368) ──────────────────────────────────────────
 // The wild is an ordinary member of the deck, so whether it is DEALT is luck.
 // "One per grid" is not luck, so a deal short of its quota pulls a wild out of
 // the piles and swaps it in for an ordinary dealt card, which goes back. Net
@@ -562,7 +562,7 @@ function sqdTakeWildFromPiles() {
   return null;
 }
 
-// ── QUALIFYING THE DEAL (r340) ─────────────────────────────────────────────
+// ── QUALIFYING THE DEAL (r368) ─────────────────────────────────────────────
 // The rank window makes a deal likelier to score; this catches the tail it
 // cannot. Deal, run par, and ask what the BEST PACKING ACTUALLY MADE - which
 // the search already reports - then throw the deal away and try again unless it
@@ -580,7 +580,7 @@ function sqdKindCount(lines) {
   return new Set(lines.filter(n => n && n !== 'High Card')).size;
 }
 
-// ── WHAT MAKES A DEAL WORTH PLAYING (r340) ─────────────────────────────────
+// ── WHAT MAKES A DEAL WORTH PLAYING (r368) ─────────────────────────────────
 // Owner, on a 3x3 that could not make a single run: "ensure somewhere in the
 // grid is a choice the user has to make about whether to score this type or
 // that". That is the right thing to constrain and the reason the obvious fix -
@@ -778,7 +778,7 @@ function sqdSearchPar(N, pieces, opts = {}) {
   const budget = opts.budgetMs || SQD_PAR_BUDGET_MS;
   const t0 = Date.now();
   let best = 0, leaves = 0, cutShort = false, bestBoard = null;
-  // THE SURVEY (r340). The walk already visits every packing, so the three
+  // THE SURVEY (r368). The walk already visits every packing, so the three
   // questions a qualifier wants to ask cost almost nothing to answer on the way
   // past: how many lines can be made to score AT ALL, what an ARBITRARY packing
   // is worth (which is what says whether placement matters), and how many
@@ -923,7 +923,7 @@ function sqdBeamPar(N, pieces, opts = {}) {
 
   // Allocation-free naming of one line. n <= 4, so counting beats sorting.
   //
-  // THIS IS THE BEAM'S HEURISTIC, NOT THE ANSWER (r340). It runs on the order
+  // THIS IS THE BEAM'S HEURISTIC, NOT THE ANSWER (r368). It runs on the order
   // of two million times a search, so it stays a typed-array loop - but that
   // makes it a SECOND implementation of the scoring rules, and a second
   // implementation drifts. So it is only ever used to ORDER the frontier: every
@@ -991,7 +991,7 @@ function sqdBeamPar(N, pieces, opts = {}) {
     else                     h = SQD_H.HIGH;
     // A SHORT LINE MAY NOT CLAIM THE LINE'S OWN HAND. Three cards of a 4-line
     // are not a Flush of 4, and letting them read as one makes the beam chase a
-    // hand it cannot finish. Since r340 a FULL 4-line may claim a three-card
+    // hand it cannot finish. Since r368 a FULL 4-line may claim a three-card
     // run or flush instead, so the demotion applies only while it is short.
     if (n < N && (h === SQD_H.FLUSH || h === SQD_H.RUN || h === SQD_H.SF)) h = SQD_H.HIGH;
     lastH = h;
@@ -1147,7 +1147,7 @@ function sqdComputePar(pieces) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// WHAT IS BOOSTED, ON THE BOARD (r340)
+// WHAT IS BOOSTED, ON THE BOARD (r368)
 // ══════════════════════════════════════════════════════════════════════════
 // A line boon was applied and then INVISIBLE. It is stored in `sqdBoons` and
 // read only by the scorer, so after the grant card closed there was nothing on
@@ -1187,7 +1187,7 @@ function sqdPaintBoons() {
   });
 }
 
-// ── THE PAY TABLE, one tap away (r340) ─────────────────────────────────────
+// ── THE PAY TABLE, one tap away (r368) ─────────────────────────────────────
 // The whole ladder, what a card is worth, and any line that is boosted. BODY
 // LEVEL and placed in raw viewport px, the `.time-popup` rule: anything inside
 // #cabinet inherits its CSS zoom and the coordinates get multiplied.
@@ -1225,7 +1225,7 @@ function sqdTogglePayTable(anchor) {
 }
 function sqdHidePayTable() { document.getElementById('sq-paytable')?.classList.remove('show'); }
 
-// ── THE TRAY'S SLOTS (r340) ────────────────────────────────────────────────
+// ── THE TRAY'S SLOTS (r368) ────────────────────────────────────────────────
 // What the hand renders, in order, with a null for a slot whose tile is down.
 // The 5x5 has no slots and simply gets its live hand back, so one renderer
 // covers both.
@@ -1253,7 +1253,7 @@ function sqdTrayMove(piece, to) {
   return true;
 }
 
-// ── WHICH CARDS CAME DOWN TOGETHER (r340) ──────────────────────────────────
+// ── WHICH CARDS CAME DOWN TOGETHER (r368) ──────────────────────────────────
 // Once a tile is placed its cards are indistinguishable from any other card on
 // the board, so a board reads as nine loose cards rather than as the four tiles
 // it was built from - and "which of these can I still move" becomes something
@@ -1313,7 +1313,7 @@ function sqdMarkDrop(slot) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// WHICH CARDS ARE ACTUALLY IN THE HAND (r341)
+// WHICH CARDS ARE ACTUALLY IN THE HAND (r368)
 // ══════════════════════════════════════════════════════════════════════════
 // `used` is the cards a line's hand was PRICED over, and for a whole-line hand
 // that is the whole line - a Pair on a 3-line lists all three, because a pair
@@ -1347,7 +1347,7 @@ function sqdMaterialCards(line) {
 // the whole line - from a Pair, which spends two of it and carries a spare.
 const sqdLineDepth = line => sqdMaterialCards(line).length;
 
-// ── WHAT A FINISHED BOARD IS WORTH ASKING ABOUT (r341) ─────────────────────
+// ── WHAT A FINISHED BOARD IS WORTH ASKING ABOUT (r368) ─────────────────────
 // The three things the qualifier reads, measured on ONE packing rather than
 // each maximised separately - "a grid that could be configured in more than one
 // way such that there are 4 scoring lines" is a statement about a single
@@ -1374,7 +1374,7 @@ function sqdMetricsFrom(res, cells) {
            mix: res.lines.map(l => l.name).sort().join('|') };
 }
 
-// ── DOES THIS ONE ARRANGEMENT CLEAR THE BAR (r341) ─────────────────────────
+// ── DOES THIS ONE ARRANGEMENT CLEAR THE BAR (r368) ─────────────────────────
 // ALL THREE AT ONCE, ON ONE PACKING. Owner: "a grid that could be configured in
 // more than one way such that there are 4 scoring lines that aren't high card.
 // At least 3 lines should be 3 card hands. And 2/3 of cards are scored in a non

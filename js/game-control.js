@@ -425,6 +425,7 @@ function startGame() {
                ? flowFocusCapBase()
                : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
+  focusCapGains = {}; queenUpgradePending = new Set(); queenBoardSecs = {};
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;
@@ -529,6 +530,7 @@ function startGame() {
   bonusMult_nines = 0;
   bonusMult_tens = 0;
   bonusMult_compound = 0;
+  spadesRelentless = 0;
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
   bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
@@ -539,6 +541,7 @@ function startGame() {
   handsPlayedRound   = 0;
   studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
+  clubsScoredRound   = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
   handTypesRound     = new Set();

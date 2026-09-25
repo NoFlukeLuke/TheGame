@@ -51,7 +51,7 @@ const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwin
 // survivalEntityBanned. (The rare reward-grid PICK OFFER below does not un-ban
 // these - a grid one pick in several hundred is still a dead slot for a Trick
 // whose whole effect is "each reward grid".)
-const SURVIVAL_BANNED_ENTITIES = new Set(['greedy_boi', 'more_better', 'rain_check']);
+const SURVIVAL_BANNED_ENTITIES = new Set(['greedy_boi', 'more_better']);   // rain_check pays on a skipped pick since r362
 // "This mode never opens a reward grid." The pick-of-three loop (Survival, Flow,
 // a picker-built pick3 run), plus the non-poker loops. Classic/Guided/Schedule/
 // Crunch all reach one, so they keep the reward-grid entities.
@@ -61,6 +61,15 @@ function modeHasNoRewardGrid() {
   if (typeof match3Active === 'function' && match3Active()) return true;
   if (typeof dominoActive === 'function' && dominoActive()) return true;
   return false;
+}
+// A reward grid after every cleared round: the act modes, minus Guided (a grid
+// is a bought slot) and the Schedule (a grid is an occasional obligation).
+function modeHasFrequentRewardGrid() {
+  if (modeHasNoRewardGrid()) return false;
+  if (typeof isActMode === 'function' && !isActMode()) return false;
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.guided) return false;
+  if (typeof mapActive === 'function' && mapActive()) return false;
+  return true;
 }
 // Pick-3 draw weights. Trick:sleight:knack follow the Schedule pick's 60/25/15
 // ratio (GUIDED_PICK_WEIGHTS, r287 - owner's numbers); limits keep roughly the
@@ -216,6 +225,9 @@ function survivalEntityBanned(id) {
   // The reward-grid-only entities are dead picks wherever the MODE never opens
   // a reward grid - the pick-of-three loop, and the non-poker loops too.
   if (modeHasNoRewardGrid() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
+  // More Better (r362) only earns in modes that open a reward grid EVERY round -
+  // the Guided crossroads and the Schedule sell grids as occasional stops.
+  if (id === 'more_better' && !modeHasFrequentRewardGrid()) return true;
   // The clock entities assume a round clock that REFILLS: First Wind measures its
   // grace window against ROUND_DURATION, and Carry Time banks the round's unused
   // seconds. Flow is the shipped mode with neither, and a picker-built run that
@@ -391,6 +403,7 @@ function survivalRenderPick() {
     title: survivalPickKicker === 'BOSS DEFEATED' ? 'BOSS REWARD' : 'CHOOSE ONE',
     tone: 'reward', offers, actions,
     onChoose: (i) => survivalChoose(i),
+    onSkip: () => survivalSkip(),
   });
 }
 
@@ -512,6 +525,33 @@ function survivalReroll() {
 // BEFORE triggerLevelUp, the new limit values are already in place when triggerLevelUp
 // sizes the board and computes swaps/discards/time - so a picked Limit applies to the
 // very next round with no special-casing.
+// Rain Check (r362): skipping a reward adds time - to the next round in
+// Survival, straight onto the session clock in Flow (Flow does not refill).
+function rainCheckPay() {
+  if (!hasTrick('rain_check')) return;
+  const s = BAL.rain_check.seconds * trickFires('rain_check');
+  if (typeof flowActive === 'function' && flowActive()) rewindTime(s, null, 'rain_check', 'trick');
+  else { nextRoundSecondsDelta += s; showMessage(`Rain Check · +${s}s next round`, 'var(--gold)'); }
+}
+
+// CONFIRM pressed twice with nothing selected (r362): take nothing and go on
+// exactly as a choice would, minus the grant.
+function survivalSkip() {
+  if (!survivalPickOffered) return;
+  if (typeof cancelDance === 'function') cancelDance();
+  survivalHideContrib();
+  survivalPickOverlay().classList.remove('show', 'sv-peek');
+  if (typeof closeGridPick === 'function') closeGridPick();
+  survivalPickOffered = null;
+  survivalSyncPickAudio();
+  rainCheckPay();
+  if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
+  survivalSkipCarryover = survivalBonusPick;
+  survivalBonusPick = false;
+  triggerLevelUp();
+  survivalSkipCarryover = false;
+}
+
 function survivalChoose(i) {
   const opt = (survivalPickOffered || [])[i];
   if (!opt) return;

@@ -1089,7 +1089,7 @@
   background:rgba(212,175,95,0.14); border:1px solid rgba(212,175,95,0.34); border-radius:3px; }
 .dev-wbtn:hover { background:rgba(212,175,95,0.3); }
 
-/* r340 - the Squares group's rows */
+/* r368 - the Squares group's rows */
 .dev-sq-row {
   display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center;
   padding: 6px 0; border-bottom: 1px solid rgba(201,168,76,0.12);

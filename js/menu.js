@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r342 · the daily rank window is a per-grid schedule over one permanent deck, the wild is a 60% roll with a floor, and the tray takes 30px off the board";
+const BUILD = "2026-09-25 · r368 · Poker Squares dailies: poker-order pay tables, one wild in 60% of grids, a per-grid rank window, a four-gate deal qualifier and an end-of-run scoreboard";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
