@@ -366,7 +366,7 @@ const DESC_TEMPLATES = {
   low_tide: 'Cards below 6 score +{pips} pips',
   rowcol_triple_pips: 'Cards scored in a marked row or column score +{flat_pips} pips',
   first_fruits: 'Each card in the first hand each round permanently gains +{pips} pips',
-  relentless: 'Each spade scores x{mult_per_spade} mult for every spade scored since you took this. No effect until it passes x1',
+  relentless: 'Each spade scores x{mult_per_spade} mult for every spade scored since you took this (replays count). No effect until it passes x1',
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
   tens_mult: 'Every {discards_per_milestone} cards discarded permanently adds +{mult_per_milestone} mult to this trick',
   heartwood: 'When scored, the center-most card gains +{pips} pips & +{mult} mult',

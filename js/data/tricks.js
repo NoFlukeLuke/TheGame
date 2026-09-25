@@ -193,7 +193,7 @@ const TRICK_POOL = [
   // ── r359: the 9.23 sheet's new Tricks ──
   { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['mult','suit','credits'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
   { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','suit','luck'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits' },
-  { id:'relentless',      name:'Relentless',         tier:'legendary', tags:['mult','suit','scaling'], desc:'Each spade scores x0.05 mult for every spade scored since you took this. No effect until it passes x1' },
+  { id:'relentless',      name:'Relentless',         tier:'legendary', tags:['mult','suit','scaling'], desc:'Each spade scores x0.05 mult for every spade scored since you took this (replays count). No effect until it passes x1' },
   { id:'patient_rulers',  name:'Patient Rulers',     tier:'epic',      tags:['mult','face','pause'],   desc:'If you have paused or rewound the clock this round, face cards score x1.5 mult' },
   { id:'even_better',     name:'Even Better',        tier:'epic',      tags:['pips','value','luck'],   desc:'Even-ranked cards have a 66% chance to score x2.2 pips' },
   { id:'what_odds',       name:'What are The Odds',  tier:'epic',      tags:['mult','value'],          desc:'Odd-ranked cards score x1.7 mult' },

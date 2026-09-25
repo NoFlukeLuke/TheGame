@@ -35,7 +35,7 @@
 // goal-clear carry-over - every screen before it only grants.
 
 const FLOWR_MAX  = 5;
-// THE TABLE (r326). `chances` is the chain - a % for the 2nd reward, then the
+// THE TABLE (r371). `chances` is the chain - a % for the 2nd reward, then the
 // 3rd, and so on - and `steps` is the phase-1 ORDER, so a chain of n pays the
 // first n of it. `weights` decides the order in phases 2 and 3, where it is
 // drawn rather than fixed: a kind's weight is its chance of being the NEXT one
@@ -208,7 +208,7 @@ function flowrMaybeStart() {
 }
 
 // ── Wait for the win finale to let go of the board ──────────────────────────
-// THE COUNT REVEAL MUST NOT RUN UNDER THE BLAST (r326). survivalShowPick is
+// THE COUNT REVEAL MUST NOT RUN UNDER THE BLAST (r371). survivalShowPick is
 // called from the goal dance the moment the winning cards have flown into the
 // preview - about 3.3s into the finale - and the r280 blast is still in flight
 // for another ~1.3s at the default 2x (and ~3.6s at 1x): the surrounding cards
@@ -329,7 +329,7 @@ function flowrRenderStack() {
   el.id = 'flowr-stack';
   // Furthest-back first, so DOM order is paint order (the rewind-ghost rule):
   // the current step's chip goes in last and sits lowest and on top.
-  // ONLY THE CURRENT CHIP IS LABELLED (r326). The chips are stacked 6px apart
+  // ONLY THE CURRENT CHIP IS LABELLED (r371). The chips are stacked 6px apart
   // and each is 24px tall with overflow:hidden, so a queued one shows a 6px
   // band - and an 8px label inside it came out cut through the middle of its
   // own glyphs, which reads as a rendering fault rather than as a card peeking
@@ -704,7 +704,7 @@ function flowrDeckEnd() {
 }
 
 // ══════════════════════════════════════════════
-// CARD PACK (r326) - three cards that JOIN the deck
+// CARD PACK (r371) - three cards that JOIN the deck
 // ══════════════════════════════════════════════
 // Owner: "an option for a level up that offers you a pick three between three
 // groups of cards. the choices should each contain 3 cards, adjacent in rank,

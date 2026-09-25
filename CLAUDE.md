@@ -1812,7 +1812,7 @@ OWN width, and the first version moved a 37.74% column by 37.74% of itself, abou
 `permPips` / `permMult` are **flat**: the card scores that bonus, unchanged, every play. Every offer site said "**permanently gains** +1 mult", which reads as growth - a player could hold a blessed card for a whole run waiting for a number that was never going to move.
 
 - **The wording is now the type.** Flat says **"scores +5 mult when played"**; scaling says **"scales +1 mult each time it's played"**. `cardBuffLines(cardId)` in `js/deck-grid.js` is the single place a card's buffs are put into words, and the grid tooltip, the deck matrix and the reward tiles all read it, so they cannot drift apart again.
-- **`permPipsGrow` / `permMultGrow` are the new scaling kind** - not scored, they are *how much the flat bonus rises per play*. Applied by `growCardScaling()` from `playHand` **after the score commits**, the same discipline `recordNaturalScale` follows: a buff earned by this hand pays out on the next one. Deduped per hand, so a retriggered card grows once.
+- **`permPipsGrow` / `permMultGrow` are the new scaling kind** - not scored, they are *how much the flat bonus rises per play*. Applied by `growCardScaling()` from `playHand` **after the score commits**, the same discipline `recordNaturalScale` follows: a buff earned by this hand pays out on the next one. Grown once per time the card SCORES (r370 - replays count; it used to grow once per hand).
 - **Two stores, not one field with a flag**, because a card can legitimately carry both, and because every existing read of `permMult` keeps working untouched. Both are in `SAVE_VARS`, in `migrateCardKeysToIds`, and reset on a new run.
 - **A scaling card needs its own marker or it is indistinguishable from a flat one** - both print "+N" somewhere. `.card-grow-mark` (a green arrow, bottom-centre) on the board; `.rec-m-g` in the RECORDS deck matrix, which matters because a scaling card may still have 0 flat pips and would otherwise read as ordinary.
 - Offer sites: the reward grid's Blessed Card tile is now a 3-way roll (15% scaling mult / 25% flat +5 mult / 60% flat +12 pips), and The Bench event gained **Train** (scales +1 mult) and **Season** (scales +4 pips) beside its reworded flat boons.
@@ -8241,7 +8241,7 @@ Both halves done.
   runs with APPLY staying dark; **a normal hand still submits off the same
   button afterwards**. 0 page errors.
 
-## r368 - the count reveal waits for the board, and a CARD PACK joins the chain
+## r371 - the count reveal waits for the board, and a CARD PACK joins the chain
 
 Owner: *"the level up animation, in terms of the animating multiple level ups
 isn't showing properly, i think that the part that shows the multiple level ups
@@ -8360,7 +8360,7 @@ Owner: *"that and the card editor should be a little more common."* Two levers,
 because the order alone could not do it: with six kinds competing for at most
 five slots, adding CARDS would have DILUTED DECK rather than lifting it.
 
-| | was (r325) | is (r368) |
+| | was (r325) | is (r371) |
 |---|---|---|
 | chance of a 2nd / 3rd / 4th / 5th | 25 / 30 / 30 / 30 | **35 / 35 / 30 / 30** |
 | phase-1 order | pick3, limits, deck, sleights, improve | **pick3, cards, deck, limits, sleights, improve** |
@@ -8378,7 +8378,7 @@ Measured over 200,000 rolls through the real `flowrRollCount` / `flowrOrder`:
 | rewards on a level-up | 1 | 2 | 3 | 4 | 5 | mean |
 |---|---|---|---|---|---|---|
 | r325 | 75.0% | 17.5% | 5.3% | 1.6% | 0.7% | 1.354 |
-| **r368** | **64.9%** | **22.8%** | **8.7%** | **2.6%** | **1.1%** | **1.525** |
+| **r371** | **64.9%** | **22.8%** | **8.7%** | **2.6%** | **1.1%** | **1.525** |
 
 Share of Flow level-ups that pay each kind:
 
@@ -8680,10 +8680,25 @@ this pass added, and their traps:
 - **Relentless (r367)** is the spade Trick: each spade applies x(0.05 x
   `spadesRelentless`), floored at x1, so it does nothing until the 21st spade.
   The count starts at 0 when the Trick is taken and is bumped by
-  `relentlessCount()` AFTER `playScoreDance` at all three dance sites - the
+  `relentlessCount()` AFTER `playScoreDance` at all three dance sites,
+  REPLAY-WEIGHTED off `_handRetrigByCell` (a replayed card counts every time it
+  scores - owner's standing rule for every counter) - the
   dance re-scores synchronously, so a count bumped above it would animate a
   bigger x mult than the hand was scored with (the r295 trap). It is NOT
   Compound; `compound_mult` keeps its own +0.1 per hand.
+- **Every scaling counter counts REPLAYS and settles AFTER the dance (r370).**
+  Owner's rule: a card that scores three times counts three, for every counter.
+  `scalingCount(hand, handCells, reps)` (js/play-hand.js) holds them all -
+  growCardScaling, Relentless, Compound, Acorns, Feng Shui, Ley Line, Penny
+  Saved, Cloud Nine, Fours Perm, Lucky Roll - and runs beside `runHandPriming`
+  at all three dance sites. Two bugs it closed: they were bumped BEFORE
+  `playScoreDance`, so the dance re-scored with the grown value (the r295 trap),
+  and most sat below the goal/boss early returns, so the hand that ended a round
+  grew nothing. The per-card payers in `generateHandFocus` (River Run, Resonance,
+  Gnomes, Lucky Sevens, Five Stack, the Groove/Overtime tallies), Right Time and
+  the exalt/corrupt trigger counters are replay-weighted too. Compound, Feng
+  Shui and Fours Perm count HANDS and stay unweighted. **A new counter goes in
+  `scalingCount` and multiplies by `reps`.**
 - **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
   hand, preview and dance all see the old rank.
 

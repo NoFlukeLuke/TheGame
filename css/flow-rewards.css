@@ -40,7 +40,7 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
 /* ── The stack (option C): queued chips peek out above the board, staggered,
       each in its kind's colour. Furthest-back is highest and most inset;
       the CURRENT chip sits lowest, in front, and names itself. ── */
-/* z-index 5, not 1 (r326). css/entity-fx.css gives #grid's cards z-index 2 and
+/* z-index 5, not 1 (r371). css/entity-fx.css gives #grid's cards z-index 2 and
    the marked-line markers 1, so at 1 the whole stack painted BEHIND the board -
    invisible on any step that keeps the cards, which is every deck-edit step.
    Above the cards, below #sel-count (6) and the boss banner (60). */
@@ -48,7 +48,7 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
   position: absolute; left: 50%; top: 0; transform: translateX(-50%);
   z-index: 5; pointer-events: none; width: 72%;
 }
-/* (FLOWR_MAX - 1 - depth), NOT (3 - depth) (r326): FLOWR_MAX is 5, so depth
+/* (FLOWR_MAX - 1 - depth), NOT (3 - depth) (r371): FLOWR_MAX is 5, so depth
    runs 0..4, and a 5-chain's deepest chip solved to a NEGATIVE top and sat
    above #grid-slot entirely - measured at y=88 against a slot starting at 96. */
 #flowr-stack .fst-chip {
@@ -114,7 +114,7 @@ body.flowr-deck #grid::after {
 body.reduced-motion #grid .card.flowr-hit,
 body.reduced-motion #grid .card.flowr-won { animation: none; }
 
-/* ── CARD PACK tiles (r326) ──
+/* ── CARD PACK tiles (r371) ──
    Three real mini playing cards, fanned, in place of the icon disc. They reuse
    .ev-cardchip - the events' "these are your actual cards" vocabulary - so a
    screen about the deck is made of cards, and a restyle there moves both.
