@@ -42,7 +42,11 @@ function entityTileInner(p, { mystery = false } = {}) {
   // shape every live count in the game uses - and priming now owns `+N` on the
   // opposite corner, so two different meanings would have worn one costume.
   // `v2.0` reads as a property of the object; `+2` reads as something pending.
-  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier}.0</div>` : '';
+  // THE STAMP IS A VERSION, SO AN UNIMPROVED ENTITY IS v1 AND THE FIRST
+  // IMPROVEMENT IS v2 (r376, owner's call). `entityTier` counts improvements
+  // APPLIED, so the printed version is that count plus one - it was printing
+  // the count, which read as a twice-improved Trick being "v2".
+  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier + 1}.0</div>` : '';
 
   if (kind === 'knack')
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon || '♛')}</span></div>` + name + tierBadge;

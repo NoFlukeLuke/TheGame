@@ -5,6 +5,7 @@ initMainMenu();
 // The red SCORE / GOAL chips (and the top-bar act readout) reopen a boss's
 // briefing. Bound once - each handler no-ops unless a boss is running.
 if (typeof bindBossBriefReopen === 'function') bindBossBriefReopen();
+if (typeof bindClockBossPeek === 'function') bindClockBossPeek();
 initDevMode();
 
 // ── STAGE SCALING (zoom-based) ──

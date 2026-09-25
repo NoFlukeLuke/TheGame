@@ -9342,3 +9342,173 @@ this pass added, and their traps:
 - **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
   hand, preview and dance all see the old rank.
 
+
+## r376 - the counter plays BEFORE the tally, and four readouts stop lying
+
+Owner, on r374: *"the timing of the level up ... is still quite messed up ... The
+score animation seems sort of interrupted by the level up count. I think the
+cards should explode out and fly to the preview, then before they start to
+dance, the level up thing appears and quite loudly does its animation. Then the
+card preview can resume once the options start appearing."*
+
+### 1. THE TALLY WAITS FOR THE COUNTER
+
+r371 fixed the counter running UNDER the blast by deferring it until the board
+was still - and the board goes still several beats INTO the score climb, so the
+counter then landed on top of a tally already in progress. The ORDER was still
+wrong; only the overlap moved.
+
+**`flowrIntroWait()` is the whole fix.** `flowrMaybeStart` now builds a promise
+that resolves when the counter has finished AND step 1 is on screen, and the
+goal finale AWAITS it immediately after `survivalShowPick()` - the line the
+tally begins on. It returns **null** unless a multi-reward chain is arming, so
+the ordinary pick-of-three path awaits nothing and is byte-identical.
+
+**The board-still wait is CAPPED at `FLOWR_PRE_WAIT` (700ms).** Now that the
+tally is held for this beat, an uncapped wait is dead air rather than something
+playing under a running score climb - at 1x the blast runs ~3.6s past the
+fly-in. At the cap the blast is in its RETURN leg with the cards converging on
+their own cells, which is a fine thing for the counter to land over; at 4x and
+up the blast is already done and the wait is 0.
+
+**The counter is LOUDER**, because it now owns its beat: `sfxLevelUp` and
+`sfxSuccess` together, plus `#flowr-flash`, a one-shot radial wash over the
+board. The flash is **its own element, never a class on `#grid-slot`** - that
+element is the positioning context for the board, the stack and the counter, and
+an animation or filter on it would make it the containing block for every fixed
+descendant (the r180 trap).
+
+**The goal hand's SKIP cuts the counter too** (`dncFFRegister`), or pressing it
+would leave the player watching a counter they have just asked to skip past.
+
+#### Measured at 1440x820, default 2x, a 3-card goal hand into a 3-chain
+
+| step | starts at | lasts |
+|---|---|---|
+| jitter (surrounding cards) | 0 | 2000 |
+| blast out and home + winners fly to the preview | 2000 | ~1300 (fly) |
+| **board settles** (capped) | ~3300 | **<= 700** |
+| **counter card: GOAL CLEARED x1** | **3890** | 700 |
+| ... bumps to xN | +700 each | 620 per bump |
+| ... holds, fades | | 850 + 260 |
+| **step 1's options deal in** | **6335** | ~600 |
+| **the tally's first particle** | **6965** | the rest of the hand |
+
+So the counter is **2.4s** end to end for a 3-chain (700 + 620 + 850 + 260) and
+the tally resumes **630ms** after the options appear - watching and picking at
+the same time, which is what was asked for. A 5-chain is 2.4s + two more bumps.
+
+### 2. THE TAB IS THE PANEL'S OWN COLOUR, AND IT SAYS ONLY ITS NAME
+
+- The current tab's FACE is `color-mix(var(--fst-c) 18%, #0c0a14)` - **the
+  panel's exact mix**. r374 matched the border and the corners and left the face
+  at 30%, which is what was still reading as a separate lit object. Verified: the
+  two computed colours are now string-identical. The queued tabs keep 30%.
+- **The word NOW is gone.** The tab carries the kind and nothing else.
+- **`#flowr-stack` went z-index 5 -> 8.** A PICKED option tile is z-index 5
+  (css/grid-pick.css) and the stack is a later sibling, so at 5 the two TIED and
+  the tabs won: the tile you had just selected, and only that one, painted under
+  them. That is the "tiles draw under one part and over another". 8 clears every
+  tile (2/3, and 5 when picked) and `#sel-count` (6).
+
+### 3. THE STAMP IS A VERSION, SO AN UNIMPROVED ENTITY IS v1
+
+Owner: *"why isn't the shaky foundation saying v3 on it?"* and *"the first
+upgrade to a trick or entity should make it v2, not v1."* One cause: `entityTier`
+counts improvements APPLIED, and the badge printed that count - so a
+twice-improved Trick read **v2**. The printed version is the count **plus one**
+now (`js/entity-tile.js`). Verified live: one improvement reads v2.0, three read
+v4.0.
+
+`tier-badge-preview.html` moved with it (the r233 rule - a preview that
+disagrees with the game is worse than no preview), and the chain's improve-offer
+tag, which quotes *what one more would read as*, went from `tier + 1` to
+`tier + 2`.
+
+### 4. THE HEIGHT OF A TRAY TILE IS DECIDED BY ITS WIDTH
+
+Owner: *"why are the tricks not filling the vertical size of the tray?"*
+
+**The disc letterboxes at 20/19** (r239), so a chip taller than `width x 0.95`
+has a dead band top and bottom and the object can never fill the tray however
+tall the chip is made. Landscape's 73px of width bought a **69.4px** disc in
+79.35px of inner tray height; portrait's 47px bought **44.6px** in a 64px chip,
+a ~10px band either side.
+
+| | was | is | disc height |
+|---|---|---|---|
+| landscape | 73 x 75 | **83 x 79** | 69.4 -> **79** |
+| portrait | 47 x 64 | **62 x 59** | 44.6 -> **59** |
+
+**`fanTrickTray` MEASURES everything, so no JS changed.** Verified at 3 / 5 / 7 /
+10 Tricks in both orientations: **0 tiles clipped vertically** at any count, and
+the landscape row still starts scrolling at 7.
+
+### 5. THE PORTRAIT STRIP GROWS AND THE HAND NAME TAKES ITS OWN LINE
+
+Owner: *"expand the vertical size of the trick and knacks and preview trays by
+enough to just barely fit the hand name under the name during scoring. We can
+push the grid and focus meter and buttons down a hair"*, and *"we can shrink the
+whole top area by a few pixels to accommodate the hand name."*
+
+**This is PORTRAIT** - the geometry says so outright. Landscape positions every
+left-column panel absolutely and its focus meter is a full-height bar beside the
+grid, so nothing there can be *pushed down*; portrait is the stacked layout where
+`#score-panel`, `#trick-panel`, the grid and the buttons follow each other.
+
+| | was | is |
+|---|---|---|
+| `#score-panel` | 100px | **90px** |
+| `#trick-panel` (the shared strip) | 92px | **112px** |
+
+10px comes off the top area and 10px is pushed down onto the grid, the focus
+meter and the buttons.
+
+**`#hand-name` is IN FLOW under the cards now.** The r334 chip - absolutely
+positioned at the preview's left edge, on a translucent plate, vertically centred
+- was a workaround for a strip with no spare height: it overlaid the leftmost
+card. It is a SIBLING of `#selected-cards` inside a column flex parent, so with
+the strip 20px taller it simply flows beneath it and nothing measures it. The
+layered form prints its parts on ONE line here; landscape still stacks them into
+its narrow 5.75% column and is untouched.
+
+Measured during a real scored hand at 420x900 and 390x844: the name is below the
+cards, inside the strip, and **0 tray tiles clipped**.
+
+### 6. FLOW'S CLOCK COUNTS DOWN TO THE REVIEW
+
+Owner: *"for flow, can we invert the clock and make it clear it's counting down
+to a review? Similar to how they do it in Everything is Crab. Show an icon on the
+right for the boss. And make it tappable so you can see what the boss is."*
+
+Flow's clock is a five-minute SESSION clock and nothing on screen said so - it
+drained exactly like a round timer and then the round did not end.
+
+- **The bar FILLS toward a skull at its right-hand end** rather than draining
+  (`updateClockUI`): `1 - secs/dur` in Flow, `secs/dur` everywhere else. **The
+  digits are unchanged** - "how long until the review" is the same number as "how
+  much time is left". **During the boss itself the window IS a round clock again,
+  so the drain comes back** (the `!bossActive` clause).
+- **`.clock-boss` is the mark**, one copy in `#clock-area` and one in `#vclock`,
+  shown in Flow only and only in the orientation whose bar is real. Everywhere
+  else that bar is the round's own time and there is nothing fixed at the end of
+  it to point at.
+- **Tapping it opens `showBossPeek`, the SAME forecast bubble the run-progress
+  block shows**, so there is one answer to "what am I heading for" and one place
+  it is written. A second tap or a tap anywhere else closes it; a bubble you
+  cannot dismiss over a live board is worse than no bubble. `bindClockBossPeek()`
+  is called from `js/bootstrap.js` beside `bindBossBriefReopen()`.
+- Verified: at 297s of 300 the fill reads **1%**, the mark is on screen, tapping
+  it names THE REDACTION and a click elsewhere closes it.
+
+### 7. The top bar says HAND SIZE
+
+`#sel-stat`'s label was **Hand**, over the Selection Size limit. One word.
+
+Verified in a real browser at 1440x820, 420x900 and 390x844, through the real tap
+path: a forced 3- and 4-chain runs jitter -> blast -> fly -> counter -> options +
+tally with the sequence timed above, the current tab and the panel report one
+colour, 0 tabs over a tile, 0 tabs outside the slot, 0 tray tiles clipped at any
+count, the portrait hand name lands under the cards inside the strip, the Flow
+clock fills toward its mark and the mark opens and closes the forecast, and there
+are **no page errors** anywhere.

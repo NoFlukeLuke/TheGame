@@ -949,12 +949,16 @@
   <div id="clock-area">
     <div id="clock">1:00</div>
     <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
+    <!-- Flow only (r376): the bar FILLS toward this mark as the session clock
+         runs down, so the readout reads as an approach rather than a drain.
+         Tap it for the boss you are heading for. -->
+    <button id="clock-boss" class="clock-boss" type="button" title="Manager review">&#9760;</button>
     <button id="skip-btn" type="button">Skip »</button>
   </div>
   <!-- The "Hands" counter was removed from the top bar (r160) - it is a
        statistic, not a live decision input, and it is still in Records. -->
   <div class="top-stat" id="sel-stat">
-    <span class="top-label">Hand</span>
+    <span class="top-label">Hand Size</span>
     <span class="top-value" id="sel-display">✋ 0</span>
   </div>
   <div class="top-stat">
@@ -1082,7 +1086,7 @@
   </div>
 
   <!-- v7 landscape-only blocks (hidden in portrait) -->
-  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
+  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div><button id="vclock-boss" class="clock-boss" type="button" title="Manager review">&#9760;</button></div>
   <div id="run-progress" class="v7-ls rp-block">
     <div class="rp-act">Q1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>

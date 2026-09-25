@@ -93,7 +93,11 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
   position: absolute; left: 50%; transform: translateX(-50%);
   top: max(0px, calc((100% - var(--grid-h, 0px)) / 2 - var(--fbg-pad) - var(--fst-band)));
   height: var(--fst-band);
-  z-index: 5; pointer-events: none;
+  /* r376: 5 -> 8. A PICKED option tile is z-index 5 (css/grid-pick.css) and the
+     stack is a later sibling, so at 5 the two TIED and the tabs won - the tile
+     you had just selected, and only that one, painted under them. 8 clears
+     every tile (2/3, and 5 when picked) and #sel-count (6). */
+  z-index: 8; pointer-events: none;
   /* EXACTLY THE PANEL'S WIDTH (r374), not 72% of the slot. Owner: "the title
      part of the tab needs to blend seamlessly with the rest of the chip ...
      either widen the title part so it sits flush with the outside edges of the
@@ -111,7 +115,7 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
      chain simply has fewer tabs above it rather than a floating block. */
   bottom: calc(var(--fst-d) * var(--fst-step) - var(--fst-tuck));
   height: var(--fst-h); border-radius: 7px 7px 0 0;
-  background: color-mix(in srgb, var(--fst-c) 30%, #14121f);
+  background: color-mix(in srgb, var(--fst-c) 30%, #0c0a14);
   border: 1px solid var(--fst-c); border-bottom: none;
   box-shadow: 0 -2px 10px color-mix(in srgb, var(--fst-c) 30%, transparent);
   overflow: hidden;
@@ -126,14 +130,13 @@ body.reduced-motion #flowr-counter.fc-pop { animation: none; }
    own banner. They come back on the next step. */
 body.flowr-deck #flowr-stack { display: none; }
 
-/* THE CURRENT TAB IS THE PANEL'S HEADER, so it wears the PANEL'S border rather
-   than the queued tabs' full-saturation one - that bright edge running across
-   the top of the panel was the "white highlight" in the report. Same radius as
-   the panel too, so the top corners are the panel's corners. Its own upward
-   glow goes: the panel already carries one, and two of them stacked is what
-   made the tab read as a separate lit object. The QUEUED tabs keep the strong
-   border and the glow - they are meant to read as cards behind. */
+/* THE CURRENT TAB IS THE PANEL'S HEADER, so it is painted with the panel's own
+   mix (18% over the same base), not a lighter one. r374 matched the border and
+   the corners; the FACE was still 30%, which is what was left reading as a
+   separate lit object sitting on top. The queued tabs behind it keep 30% - they
+   are meant to read as cards behind, and they step inward as well. */
 #flowr-stack .fst-chip.fst-cur {
+  background: color-mix(in srgb, var(--fst-c) 18%, #0c0a14);
   border-color: color-mix(in srgb, var(--fst-c) 48%, transparent);
   border-radius: 10px 10px 0 0;
   box-shadow: none;
@@ -214,3 +217,20 @@ body.reduced-motion #grid .card.flowr-won { animation: none; }
 .flowr-pack-art .flowr-pack-card:nth-child(2) { transform: rotate(0deg) translateY(-3px); z-index: 1; }
 .flowr-pack-art .flowr-pack-card:last-child  { transform: rotate(9deg); }
 .flowr-pack-art .flowr-pack-card:hover { transform: rotate(0deg); }
+
+
+/* ── THE COUNTER'S FLASH (r376) ────────────────────────────────────────────
+   The tally is held for the counter now, so the beat gets a wash over the
+   board behind it rather than a card fading up over a still picture. */
+#flowr-flash {
+  position: absolute; inset: 0;
+  z-index: 35; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, rgba(90,212,192,.42) 0%, rgba(90,212,192,.12) 45%, rgba(90,212,192,0) 72%);
+  animation: flowrFlash .62s ease-out forwards;
+}
+@keyframes flowrFlash {
+  0%   { opacity: 0; transform: scale(.86); }
+  18%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+body.reduced-motion #flowr-flash { animation: none; opacity: 0; }

@@ -316,8 +316,19 @@ function updateClockUI() {
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   const _dur = currentRoundDuration();
-  barEl.style.width = (secs/_dur*100)+'%';
-  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/_dur*100)+'%';
+  // FLOW INVERTS THE BAR (r376). Everywhere else this clock is a ROUND's and
+  // draining is what it means: the bar is the time you have left. In Flow it is
+  // a SESSION clock counting down to the inspection, and nothing on screen said
+  // so - the bar drained exactly like a round's and the round never ended. It
+  // FILLS toward the skull at the right-hand end instead, so the readout reads
+  // as an approach. The digits are unchanged: "how long until the review" is the
+  // same number as "how much time is left". During the boss itself the window IS
+  // a round clock again, so the drain comes back.
+  const _fill = (typeof flowActive === 'function' && flowActive()
+                 && !(typeof bossActive !== 'undefined' && bossActive))
+                ? (1 - secs/_dur) : (secs/_dur);
+  barEl.style.width = (_fill*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (_fill*100)+'%';
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }

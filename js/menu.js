@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r375 · Poker Squares: drag by the cell you grabbed, live line headers, no per-grid review, the scoreboard on paper";
+const BUILD = "2026-09-25 · r376 · The level-up counter plays BEFORE the tally · the tray tiles fill it · vN is a version · Flow counts down to the review";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

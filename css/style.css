@@ -785,10 +785,19 @@
     border-radius: 5px;
   }
   #stage:not(.landscape) .subbox-times { opacity: 0.55; font-size: 10px; flex: 0 0 auto; }
-  #stage:not(.landscape) #score-panel { height: 100px; }
+  /* r376: 100 -> 90. Owner: "we can shrink the whole top area by a few pixels
+     to accommodate the hand name". The chips are 54px in a 100px panel, so the
+     10px comes out of padding the box had spare. */
+  #stage:not(.landscape) #score-panel { height: 90px; }
 
-  /* The strip: [ Tricks | shared half ] with the swap button pinned top-right. */
-  #stage:not(.landscape) #trick-panel { position: relative; height: 92px; padding-right: 2px; }
+  /* The strip: [ Tricks | shared half ] with the swap button pinned top-right.
+     r376: 92 -> 112. THE STRIP IS THE ONE PANEL WITH NO SLACK - the tray tiles,
+     the knack chips and the preview cards are all sized off its height - so the
+     hand name during scoring had nowhere to go but ON TOP of the cards (r334's
+     left-edge chip). 10px comes from the score panel above and 10px is pushed
+     down onto the grid, the focus meter and the buttons, which is what the
+     owner asked for: "push the grid and focus meter and buttons down a hair". */
+  #stage:not(.landscape) #trick-panel { position: relative; height: 112px; padding-right: 2px; }
 
   /* The Trick tray keeps the LEFT half and is always on screen; Knacks and the
      hand preview share the RIGHT half and the swap button picks between them
@@ -838,10 +847,25 @@
      translucent plate, so when a full 5-card hand reaches this far left the
      chip simply overlays the card and stays legible (the owner's stated
      fallback). z-index 61 beats the dance's 60. */
-  #stage:not(.landscape) #hand-name { position: absolute; top: 50%; left: 3px; transform: translateY(-50%);
-    z-index: 61; font-size: 9px; line-height: 1.25; text-align: center; overflow: hidden; max-width: 46%;
-    background: rgba(10,9,6,0.62); border: 1px solid rgba(244,236,214,0.16); border-radius: 5px; padding: 2px 5px;
+  /* r376: IN FLOW, UNDER THE CARDS. The r334 chip described above was a
+     workaround for a strip with no spare height - it overlaid the leftmost card
+     and read as something stuck on the hand. The strip is 16px taller now, so
+     the name takes its own line beneath the preview and the cards are never
+     covered. It is a SIBLING of #selected-cards inside a column flex parent, so
+     it simply flows; nothing measures it. The layered form prints its parts on
+     one line here (landscape stacks them into a narrow column). */
+  #stage:not(.landscape) #hand-name { position: static; transform: none;
+    z-index: 61; font-size: 9px; line-height: 1.15; text-align: center; overflow: hidden;
+    width: 100%; max-width: 100%; flex: 0 0 auto; padding: 0 2px;
+    white-space: nowrap; text-overflow: ellipsis;
+    background: none; border: none; border-radius: 0;
     pointer-events: none; }
+  #stage:not(.landscape) #hand-name .hn-l,
+  #stage:not(.landscape) #hand-name .hn-l b,
+  #stage:not(.landscape) #hand-name .hn-l i,
+  #stage:not(.landscape) #hand-name .hn-plus { display: inline; }
+  #stage:not(.landscape) #hand-name .hn-l + .hn-l { margin-left: 4px; }
+  #stage:not(.landscape) #hand-name .hn-l i { margin-left: 2px; }
   #stage:not(.landscape) #hand-name:empty { display: none; }
   #stage:not(.landscape) #hand-name.hn-layered { font-size: 7px; line-height: 1.15; }
   /* The HAND watermark is GONE (r333, owner call: no text that says "hand" all
@@ -865,7 +889,7 @@
      fit (an ordinary row) and NEGATIVE when they have to tuck over each other.
      Right-aligned so the NEWEST Trick is always the fully visible one. */
   #stage:not(.landscape) #trick-tray-list {
-    flex: 0 0 auto; max-height: 66px; overflow: hidden;
+    flex: 0 0 auto; max-height: 62px; overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end;
     gap: 0; width: 100%;
   }
@@ -888,7 +912,12 @@
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box;
     z-index: var(--fan-z, 1);   /* set per tile so later ones sit on top */
-    width: 47px; height: 64px; padding: 0; border: none; background: none; box-shadow: none;
+    /* r376: THE DISC LETTERBOXES AT 20/19 (w/h), so a chip taller than
+       width x 0.95 has a dead band top and bottom and the object never fills
+       the tray - 47x64 painted a 47x44.6 disc with ~10px of nothing either
+       side of it. The chip carries the object's own ratio now, and the strip's
+       extra 16px pays for the wider tile: 3 still sit across the half-strip. */
+    width: 62px; height: 59px; padding: 0; border: none; background: none; box-shadow: none;
   }
   /* r277: THE FAN NO LONGER RESTYLES THE TILE. Everything that used to sit
      here - an extra plastic ring and rarity glow on every tucked tile, the
@@ -5268,7 +5297,13 @@
      are MEASURED by fanTrickTray, so nothing else had to change. */
   #stage.landscape .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
-    width: 73px; height: 75px;
+    /* r376: 73x75 -> 83x79. THE HEIGHT OF THE OBJECT IS DECIDED BY THE WIDTH,
+       because the disc letterboxes at 20/19 - so a 73px-wide chip paints a
+       69.4px disc however tall the chip is, and the tray's 79.35px of inner
+       height went unused. 83px of width is what fills it. Three tiles still
+       sit across the tray as a plain row (249 + 2 gaps in 266px of room);
+       fanTrickTray MEASURES everything, so nothing in JS changed. */
+    width: 83px; height: 79px;
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }
@@ -5832,7 +5867,7 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      portrait fan and the r176 landscape pass both landed on - a Trick whose
      glyph changes size stops reading as the same object, so the tile's own
      overflow clips instead. */
-  #stage.landscape.shop-squish .trick-tray-chip   { width:34px; height:35px; }
+  #stage.landscape.shop-squish .trick-tray-chip   { width:37px; height:35px; }
   #stage.landscape.shop-squish .m-lim,
   #stage.landscape.shop-squish #coin-info         { font-size:11px; }
 
@@ -6154,3 +6189,38 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 .rec-ent .kn-reveal b { display: block; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #ffe9e6; }
 /* r310: the mode card's link into the handbook. */
 .mode-card-more { color: var(--mode-accent, var(--c-yellow)); text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+
+/* ══ THE FLOW SESSION CLOCK'S BOSS MARK (r376) ════════════════════════════
+   Flow's clock is a countdown to the inspection, not a round timer, and the
+   bar now FILLS toward this skull (js/round-timers.js). Hidden everywhere
+   else: in every other mode that bar is the round's own time and there is no
+   fixed thing at the end of it to point at. */
+.clock-boss { display: none; }
+#stage.flow-mode #clock-boss,
+#stage.flow-mode #vclock-boss { display: flex; }
+#stage.flow-mode.landscape #clock-boss { display: none; }   /* landscape uses #vclock */
+#stage.flow-mode:not(.landscape) #vclock-boss { display: none; }
+
+.clock-boss {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  align-items: center; justify-content: center;
+  width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--c-magenta, #ff2f8e); border-radius: 4px;
+  background: #1a0d16; color: var(--c-magenta, #ff2f8e);
+  font-size: 11px; line-height: 1; cursor: pointer;
+  box-shadow: 0 0 7px rgba(255,47,142,0.45);
+  z-index: 4;
+}
+.clock-boss:active { transform: translateY(-50%) scale(0.92); }
+#stage.flow-mode #clock-area { position: relative; padding-right: 22px; }
+#stage.flow-mode #vclock     { padding-right: 20px; }
+#stage.flow-mode.landscape #vclock-boss { right: 2px; }
+/* The bar fills toward the mark, so it is the LAST thing the eye reaches;
+   a slow pulse says it is coming rather than that it is here. */
+@keyframes clockBossPulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(255,47,142,0.35); }
+  50%      { box-shadow: 0 0 13px rgba(255,47,142,0.8); }
+}
+.clock-boss { animation: clockBossPulse 2.6s ease-in-out infinite; }
+body.reduced-motion .clock-boss { animation: none; }

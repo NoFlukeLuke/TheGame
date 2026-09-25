@@ -864,6 +864,37 @@ function bindBossBriefReopen() {
   });
 }
 
+// ── THE FLOW CLOCK'S BOSS MARK (r376) ───────────────────────────────────────
+// The skull at the right-hand end of the Flow session clock, which the bar now
+// fills toward. Tapping it opens the SAME forecast bubble the run-progress
+// block shows (showBossPeek), so there is one answer to "what am I heading
+// for" and one place it is written. A second tap, or a tap anywhere else,
+// closes it - a bubble you cannot dismiss over a live board is worse than no
+// bubble. It is bound once and both copies (top-bar and landscape) are wired,
+// because only one of them has a rect in any given orientation.
+let _clockBossOpen = false;
+function bindClockBossPeek() {
+  ['clock-boss', 'vclock-boss'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el._clockBossBound) return;
+    el._clockBossBound = true;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (_clockBossOpen) { hideBossPeek(); _clockBossOpen = false; return; }
+      showBossPeek(el);
+      _clockBossOpen = true;
+    });
+  });
+  if (!document._clockBossDismiss) {
+    document._clockBossDismiss = true;
+    document.addEventListener('pointerdown', (e) => {
+      if (!_clockBossOpen) return;
+      if (e.target.closest && (e.target.closest('.clock-boss') || e.target.closest('#boss-peek-popup'))) return;
+      hideBossPeek(); _clockBossOpen = false;
+    }, true);
+  }
+}
+
 let _bossPreambleHeld = false;
 
 // The on-screen rect of the boss sigil - the mark inside whichever .rp-block the

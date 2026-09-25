@@ -353,13 +353,27 @@ function flowrMaybeStart() {
   // and must not wait on an animation - but nothing is SHOWN until the board is
   // still. See flowrWhenBoardStill.
   if (n > 1) flowrExtraEarned += n - 1;
+  // THE TALLY WAITS FOR THIS (r376). The finale awaits flowrIntroWait() right
+  // after the winners land in the preview, so the order the player sees is
+  // explode -> fly -> counter -> (options deal in AND the tally resumes
+  // together). Before this the counter was deferred to whenever the blast
+  // happened to settle, which was several beats INTO the score climb - the
+  // "the score animation seems interrupted by the level up count" report.
+  let _introDone = null;
+  flowrIntro = new Promise(res => { _introDone = res; });
+  const _release = () => { const f = _introDone; _introDone = null; flowrIntro = null; f && f(); };
   flowrWhenBoardStill(() => {
-    if (!flowrQueue) return;                 // the run was abandoned while we waited
-    if (n > 1) flowrPlayCounter(n, () => flowrShowStep());
-    else flowrShowStep();
+    if (!flowrQueue) { _release(); return; }   // the run was abandoned while we waited
+    if (n > 1) flowrPlayCounter(n, () => { flowrShowStep(); _release(); });
+    else { flowrShowStep(); _release(); }
   });
   return true;
 }
+
+// The finale's handle on the beat above. Null when no chain is arming, so the
+// ordinary single-pick path is untouched and awaits nothing.
+let flowrIntro = null;
+function flowrIntroWait() { return flowrIntro; }
 
 // ── Wait for the win finale to let go of the board ──────────────────────────
 // THE COUNT REVEAL MUST NOT RUN UNDER THE BLAST (r371). survivalShowPick is
@@ -380,7 +394,15 @@ function flowrMaybeStart() {
 // finish, on a fast-forward and on an abort (js/score-dance.js) - so polling
 // dncBlast cannot outlive the blast. The cap is insurance against an animation
 // that never resolves, not a timeout any real path should reach.
-const FLOWR_BOARD_WAIT_MAX = 12000;
+//
+// THE WAIT IS CAPPED (r376). Now that the TALLY waits on this beat too, an
+// uncapped wait is dead air rather than a beat played under a running score
+// climb: at 1x the blast runs ~3.6s past the fly-in. FLOWR_PRE_WAIT is both
+// the pacing cap and the insurance against an animation that never resolves,
+// and at that point the blast is in its RETURN leg with the cards converging
+// on their own cells, which is a fine thing for the counter to land over. At
+// 4x and up the blast is already done and the wait is 0.
+const FLOWR_PRE_WAIT = 700;
 function flowrWhenBoardStill(cb) {
   // `dncBlast` is a top-level `let` in another file: same global scope, but a
   // read before that file has been evaluated is a temporal-dead-zone THROW
@@ -392,7 +414,7 @@ function flowrWhenBoardStill(cb) {
   if (still()) { cb(); return; }
   const t0 = Date.now();
   const tick = () => {
-    if (still() || Date.now() - t0 > FLOWR_BOARD_WAIT_MAX) { cb(); return; }
+    if (still() || Date.now() - t0 > FLOWR_PRE_WAIT) { cb(); return; }
     setTimeout(tick, 60);
   };
   setTimeout(tick, 60);
@@ -438,6 +460,20 @@ function flowrFinish() {
   survivalSkipCarryover = false;
 }
 
+// A one-shot wash over the board behind the counter. Its own element rather
+// than a class on #grid-slot: that element is the positioning context for the
+// board, the stack and the counter, and a filter or animation on it would make
+// it the containing block for every fixed descendant (the r180 trap).
+function flowrFlash() {
+  const host = document.getElementById('grid-slot');
+  if (!host) return;
+  document.getElementById('flowr-flash')?.remove();
+  const f = document.createElement('div');
+  f.id = 'flowr-flash';
+  host.appendChild(f);
+  setTimeout(() => f.remove(), 700);
+}
+
 // ══════════════════════════════════════════════
 // THE COUNTER CARD (option A) - "hold up, there's more"
 // ══════════════════════════════════════════════
@@ -450,6 +486,10 @@ function flowrPlayCounter(n, done) {
   host.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   try { sfxLevelUp?.(); } catch (e) {}
+  try { sfxSuccess?.(); } catch (e) {}
+  // LOUD (r376): the beat the whole chain is built around, and the tally is
+  // now held for it, so it gets a flash over the board and a shake of its own.
+  flowrFlash();
   let k = 1;
   const num = el.querySelector('.fc-num'), sub = el.querySelector('.fc-sub');
   const bump = () => {
@@ -468,6 +508,15 @@ function flowrPlayCounter(n, done) {
   };
   if (n > 1) setTimeout(bump, 700);
   else setTimeout(finish, 900);
+  // The goal hand's SKIP cuts this too, or pressing it would leave the player
+  // watching a counter they have just asked to skip past.
+  try {
+    if (typeof dncFFRegister === 'function') dncFFRegister(() => {
+      if (!el.isConnected) return;
+      k = n; num.textContent = '\u00d7' + n; sub.textContent = n > 1 ? 'REWARDS' : 'REWARD';
+      finish();
+    });
+  } catch (e) {}
 }
 
 // ══════════════════════════════════════════════
@@ -523,7 +572,7 @@ function flowrRenderStack() {
     const meta = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
     const depth = rest.length - 1 - i;              // 0 = current
     return `<div class="fst-chip${depth === 0 ? ' fst-cur' : ''}" style="--fst-c:${meta.color}; --fst-d:${depth}">`
-      + (depth === 0 ? `<span>NOW ${flowrKindShort(kind)}</span>` : '') + `</div>`;
+      + (depth === 0 ? `<span>${flowrKindShort(kind)}</span>` : '') + `</div>`;
   }).join('');
   host.appendChild(el);
 }
@@ -602,7 +651,7 @@ function flowrBuildOffers(kind) {
                    || (typeof improvePreview === 'function' ? (improvePreview(pick.id) || {}).after : '') || '';
         out.push({ type: 'improve', id: pick.id, etype: pick.etype, name: pick.name,
                    icon: '⬆', desc: delta, rar: pick.rarity,
-                   tag: 'v' + ((typeof entityTierOf === 'function' ? entityTierOf(pick.id) : 0) + 1) + '.0' });
+                   tag: 'v' + ((typeof entityTierOf === 'function' ? entityTierOf(pick.id) : 0) + 2) + '.0' });
       }
     }
   } catch (e) {}

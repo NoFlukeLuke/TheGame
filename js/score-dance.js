@@ -1369,7 +1369,22 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
     // (Not on a boss win - that hand ends in the PRIZE grid via bossSettleWin,
     // and a pick opened here would fight it for the screen.)
-    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)) survivalShowPick();
+    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)){
+      survivalShowPick();
+      // THE TALLY WAITS FOR THE CHAIN'S COUNTER (r376). Owner: "the cards
+      // should explode out and fly to the preview, then BEFORE they start to
+      // dance, the level up thing appears and quite loudly does its animation.
+      // Then the card preview can resume once the options start appearing."
+      // flowrIntroWait() is null unless a multi-reward chain is arming, so the
+      // ordinary pick-of-three path awaits nothing and is byte-identical.
+      if(typeof flowrIntroWait==='function'){
+        const _intro = flowrIntroWait();
+        if(_intro){
+          await Promise.race([_intro, dncFFSignal()]);
+          if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+        }
+      }
+    }
   } else if(skipBeats){
     // ── Third hand of a burst: no fly-in. The cards leave the board immediately
     //    and the preview keeps whatever it already shows; the only thing this
