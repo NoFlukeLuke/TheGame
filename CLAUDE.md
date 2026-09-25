@@ -8506,7 +8506,9 @@ this pass added, and their traps:
 - **Relentless (r367)** is the spade Trick: each spade applies x(0.05 x
   `spadesRelentless`), floored at x1, so it does nothing until the 21st spade.
   The count starts at 0 when the Trick is taken and is bumped by
-  `relentlessCount()` AFTER `playScoreDance` at all three dance sites - the
+  `relentlessCount()` AFTER `playScoreDance` at all three dance sites,
+  REPLAY-WEIGHTED off `_handRetrigByCell` (a replayed card counts every time it
+  scores - owner's standing rule for every counter) - the
   dance re-scores synchronously, so a count bumped above it would animate a
   bigger x mult than the hand was scored with (the r295 trap). It is NOT
   Compound; `compound_mult` keeps its own +0.1 per hand.

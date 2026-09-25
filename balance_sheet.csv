@@ -159,7 +159,7 @@ Trick,encore,Encore,,epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,replay set
 Trick,shaky_foundation,Shaky Foundation,"{""mult"":15}",common,3,mult,always / passive,,,,,,,,,,,,,,,mult set,Every other Set scores +15 mult,
 Trick,obsessed,Obsessed,"{""per_credits"":100}",legendary,12,score-multiplier,suit-specific,,,,,,,1,,1,,,,,,mult suit credits,Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5,
 Trick,buried_treasure,Buried Treasure,"{""luck_share"":0.5,""credit_mult"":1.1}",legendary,12,score-multiplier,suit-specific,,,,,,,1,,1,,,,,,credits suit luck,Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits,
-Trick,relentless,Relentless,"{""mult_per_spade"":0.05}",legendary,12,score-multiplier,suit-specific,,,,,,,1,,,,,,1,,mult suit scaling,Each spade scores x0.05 mult for every spade scored since you took this. No effect until it passes x1,
+Trick,relentless,Relentless,"{""mult_per_spade"":0.05}",legendary,12,retrigger,suit-specific,,,,,,,1,,,,,,1,1,mult suit scaling,Each spade scores x0.05 mult for every spade scored since you took this (replays count). No effect until it passes x1,
 Trick,patient_rulers,Patient Rulers,"{""mult_mult"":1.5}",epic,9,score-multiplier,card-specific,,,,,,,,1,,,,,,,mult face pause,"If you have paused or rewound the clock this round, face cards score x1.5 mult",
 Trick,even_better,Even Better,"{""chance"":0.66,""pip_mult"":2.2}",epic,9,score-multiplier,always / passive,,,,,,1,,,,,,,,,pips value luck,Even-ranked cards have a 66% chance to score x2.2 pips,
 Trick,what_odds,What are The Odds,"{""mult_mult"":1.7}",epic,9,score-multiplier,always / passive,,,,,,1,,,,,,,,,mult value,Odd-ranked cards score x1.7 mult,

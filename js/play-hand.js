@@ -489,7 +489,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
-    relentlessCount(handCells);
+    relentlessCount(handCells, _handRetrigByCell);
     return;
   }
 
@@ -515,7 +515,7 @@ function playHand() {
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
-    relentlessCount(handCells);
+    relentlessCount(handCells, _handRetrigByCell);
     return;
   }
 
@@ -970,7 +970,7 @@ function playHand() {
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
   runHandPriming(hand, handCells);
-  relentlessCount(handCells);
+  relentlessCount(handCells, _handRetrigByCell);
 }
 
 // ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────
@@ -1006,13 +1006,15 @@ function playHand() {
 // count bumped above it would make the dance animate a bigger x mult than the
 // hand was scored with. Called from all three dance sites, beside runHandPriming,
 // so the goal hand and the boss-winning hand count too. Counts only while owned:
-// the Trick starts at 0 when you take it. One per spade card, not per replay.
-function relentlessCount(handCells) {
+// the Trick starts at 0 when you take it. REPLAY-WEIGHTED: a spade that scores
+// three times counts three (owner's rule - a replayed card plays again, for
+// every counter). `reps` is playHand's snapshot of the real scoring pass.
+function relentlessCount(handCells, reps) {
   if (!hasTrick('relentless')) return;
   for (const [r, c] of handCells) {
     const card = gridData[r]?.[c];
     if (!card || card._isSleight || card._isStone || isWildCard(card)) continue;
-    if (card.suit === '♠' || (card.combined && card.suit2 === '♠')) spadesRelentless++;
+    if (card.suit === '♠' || (card.combined && card.suit2 === '♠')) spadesRelentless += (reps && reps[r + '-' + c]) || 1;
   }
 }
 

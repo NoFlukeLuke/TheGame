@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r367 · Relentless is the spade Trick (x0.05 per spade scored, from 21); Compound restored";
+const BUILD = "2026-09-25 · r368 · Relentless counts every replay of a spade";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
