@@ -489,6 +489,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
+    relentlessCount(handCells);
     return;
   }
 
@@ -514,6 +515,7 @@ function playHand() {
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
+    relentlessCount(handCells);
     return;
   }
 
@@ -696,7 +698,7 @@ function playHand() {
   }
   // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
   // the goal checks, called from all three dance sites (r294).
-  if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 100) / 100;   // 2dp: at a 0.05 step, 1dp rounds every hand up to +0.1
+  if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
   if (hasTrick('acorns')) bonusFocus_acorns += handCells.length * BAL.acorns.focus_per_card;
   // Feng Shui: grow its permanent pips when another position trick fired this hand
@@ -968,6 +970,7 @@ function playHand() {
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
   runHandPriming(hand, handCells);
+  relentlessCount(handCells);
 }
 
 // ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────
@@ -998,6 +1001,21 @@ function playHand() {
 //
 // The board is still intact here: removeAndFall runs later, inside the dance, so
 // the recompute below still reads the cards the hand was made of.
+// Relentless (r367): count the spades this hand scored, AFTER playScoreDance.
+// The dance re-runs calcScore synchronously to build its own ledger (r295), so a
+// count bumped above it would make the dance animate a bigger x mult than the
+// hand was scored with. Called from all three dance sites, beside runHandPriming,
+// so the goal hand and the boss-winning hand count too. Counts only while owned:
+// the Trick starts at 0 when you take it. One per spade card, not per replay.
+function relentlessCount(handCells) {
+  if (!hasTrick('relentless')) return;
+  for (const [r, c] of handCells) {
+    const card = gridData[r]?.[c];
+    if (!card || card._isSleight || card._isStone || isWildCard(card)) continue;
+    if (card.suit === '♠' || (card.combined && card.suit2 === '♠')) spadesRelentless++;
+  }
+}
+
 function runHandPriming(hand, handCells) {
   if (!trickTrayMode) return;
   // Consume primes that contributed this hand (their extra trigger already fired

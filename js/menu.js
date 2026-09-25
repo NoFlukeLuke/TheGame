@@ -1,4 +1,4 @@
-const BUILD = "2026-09-24 · r366 · Rising Tide and Feng Shui drop their flat base term - scaling-only, per owner correction";
+const BUILD = "2026-09-25 · r367 · Relentless is the spade Trick (x0.05 per spade scored, from 21); Compound restored";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

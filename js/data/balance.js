@@ -49,6 +49,7 @@ const BAL = {
   cuckoo: { hands_between: 2, per_replays: 5 },
   clean_sweep: { focus: 5, credits: 5 },
   obsessed:        { per_credits: 100 },
+  relentless:      { mult_per_spade: 0.05 },
   buried_treasure: { luck_share: 0.5, credit_mult: 1.1 },
   patient_rulers:  { mult_mult: 1.5 },
   even_better:     { chance: 0.66, pip_mult: 2.2 },
@@ -196,7 +197,7 @@ const BAL = {
   nines_mult: { mult_per_nine: 9 },
   tens_mult: { mult_per_milestone: 3, discards_per_milestone: 9 },
   sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
-  compound_mult: { mult_per_hand: 0.05 },  // Relentless: +1 mult after 20 hands (r364)
+  compound_mult: { mult_per_hand: 0.1 },
   // ── clock-mark Tricks ──
   ticktock: { focus: 2 },
   quarter_chime: { pips: 45 },
@@ -365,6 +366,7 @@ const DESC_TEMPLATES = {
   low_tide: 'Cards below 6 score +{pips} pips',
   rowcol_triple_pips: 'Cards scored in a marked row or column score +{flat_pips} pips',
   first_fruits: 'Each card in the first hand each round permanently gains +{pips} pips',
+  relentless: 'Each spade scores x{mult_per_spade} mult for every spade scored since you took this. No effect until it passes x1',
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
   tens_mult: 'Every {discards_per_milestone} cards discarded permanently adds +{mult_per_milestone} mult to this trick',
   heartwood: 'When scored, the center-most card gains +{pips} pips & +{mult} mult',

@@ -122,7 +122,7 @@ const TRICK_POOL = [
   // ── Level scaling ──
   { id:'rising_tide',    name:'Rising Tide',         tier:'common',    desc:'+1 mult for each level passed' },
   // ── Accumulating ──
-  { id:'compound_mult',  name:'Relentless',          tier:'epic',      desc:'Each hand played permanently adds +0.05 mult to this trick' },
+  { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played permanently adds +0.1 mult to this trick' },
   { id:'acorns',         name:'Acorns',              tier:'epic',      tags:['focus','scaling'], desc:'Each card scored scales this trick +0.1 Focus, starting at +0; grants its whole-number Focus each hand' },
   { id:'plan_ahead',     name:'Plan Ahead',          tier:'rare',      tags:['focus','scaling'], desc:'Every 3rd hand adds Focus equal to your average hands per round' },
   { id:'fives_discard',  name:'Penny Saved',         tier:'rare',      tags:['scaling','pips','value'], desc:'Each 5 discarded or played permanently adds +5 pips to this trick' },
@@ -193,6 +193,7 @@ const TRICK_POOL = [
   // ── r359: the 9.23 sheet's new Tricks ──
   { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['mult','suit','credits'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
   { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','suit','luck'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits' },
+  { id:'relentless',      name:'Relentless',         tier:'legendary', tags:['mult','suit','scaling'], desc:'Each spade scores x0.05 mult for every spade scored since you took this. No effect until it passes x1' },
   { id:'patient_rulers',  name:'Patient Rulers',     tier:'epic',      tags:['mult','face','pause'],   desc:'If you have paused or rewound the clock this round, face cards score x1.5 mult' },
   { id:'even_better',     name:'Even Better',        tier:'epic',      tags:['pips','value','luck'],   desc:'Even-ranked cards have a 66% chance to score x2.2 pips' },
   { id:'what_odds',       name:'What are The Odds',  tier:'epic',      tags:['mult','value'],          desc:'Odd-ranked cards score x1.7 mult' },
@@ -227,7 +228,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','overclock'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
-  { emoji:'💎', ids:['obsessed','buried_treasure','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
+  { emoji:'💎', ids:['obsessed','buried_treasure','relentless','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
 ];
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
@@ -250,7 +251,7 @@ const NUMERIC_BANNED_TRICKS = new Set([
   'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
   'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
   // Named-suit dependent - Spectrum has colours, not ♠♥♦♣
-  'club_double', 'monochrome', 'spade_flood', 'obsessed', 'buried_treasure', 'patient_rulers',
+  'club_double', 'monochrome', 'spade_flood', 'obsessed', 'buried_treasure', 'relentless', 'patient_rulers',
 ]);
 // Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
 // 4+) still work as written, so they stay in.

@@ -661,6 +661,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (hasTrick('what_odds') && _rankIsOddRank(baseRank)) _xl.push({ id: 'what_odds', f: BAL.what_odds.mult_mult });
       if (hasTrick('patient_rulers') && ['J','Q','K'].includes(baseRank) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });
       if (hasTrick('obsessed') && _isHeartC && coins > 0) _xl.push({ id: 'obsessed', f: 1 + coins / BAL.obsessed.per_credits });
+      // Relentless (r367): x(0.05 per spade scored since taking it), but never
+      // below x1 - so it does nothing until the 21st spade.
+      if (hasTrick('relentless') && (card.suit === '♠' || (card.combined && card.suit2 === '♠'))) {
+        const _rf = Math.round(spadesRelentless * BAL.relentless.mult_per_spade * 100) / 100;
+        if (_rf > 1) _xl.push({ id: 'relentless', f: _rf });
+      }
       if (_flRanks && _flRanks.includes(baseRank)) _xl.push({ id: 'feelin_lucky', f: BAL.feelin_lucky.mult_mult });
     }
     _xl.forEach(x => { if (x.id !== 'perm_mult') _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); });

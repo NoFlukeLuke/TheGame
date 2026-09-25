@@ -49,7 +49,7 @@ const IMPROVE_ADD = new Set([
   'pause','pause_seconds',
   'pips_per_level','pips_per_streak','pips_per_hand','pips_per_discard','pips_per_charge',
   'pips_per_second','pips_per_adj','pips_per_five','pips_per_interval','pips_per',
-  'mult_per_sleight','mult_per_hand','mult_per_interval','mult_per_pause','mult_per_ace',
+  'mult_per_sleight','mult_per_hand','mult_per_spade','mult_per_interval','mult_per_pause','mult_per_ace',
   'mult_per_jack','mult_per_match','mult_per_prior','mult_per_nine','mult_per_milestone',
   'mult_per_type','mult_per_event','mult_per_n','mult_per',
   'focus_per_2','focus_per_stock','focus_on_enter','focus_cap',

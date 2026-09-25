@@ -138,7 +138,8 @@ function trickLiveDesc(trick) {
       case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);
       case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);
       case 'tens_mult':      return now(`+${bonusMult_tens || 0} mult`);
-      case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(2)} mult`);
+      case 'relentless':     { const f = Math.round((spadesRelentless || 0) * BAL.relentless.mult_per_spade * 100) / 100; return now(`x${Math.max(1, f).toFixed(2)} per spade · ${spadesRelentless || 0} spades scored`); }
+      case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(1)} mult`);
       case 'acorns':         return now(`+${Math.floor(bonusFocus_acorns || 0)} Focus/hand · ${(bonusFocus_acorns || 0).toFixed(2)} stored`);
       case 'plan_ahead':     return now(`+${Math.max(1, Math.round((handsPlayedGame || 0) / Math.max(1, level)))} Focus every 3rd hand`);
       case 'more_better':    return now(`+${bonusMult_morebetter || 0} mult`);

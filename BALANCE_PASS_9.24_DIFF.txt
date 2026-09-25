@@ -31,7 +31,7 @@ flywheel), both renames (Jackpot, Fresh Start), all 13 rarity moves, meditation
 from this file. Owner decisions: the keyword is INERT (not Spent); echo_hand keeps its
 old effect (the new text was an error); the unnamed legendary becomes the
 DIAMONDS Trick named Buried Treasure, and the old Buried Treasure effect
-moves to spades (name pending).
+moves to spades as RELENTLESS (built r367).
 
 ONE PROMOTION FROM THE DONE PILE: richter - the owner's new text says
 "+10 focus" where the code still advances Focus to the next threshold.

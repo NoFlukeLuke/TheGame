@@ -8463,7 +8463,7 @@ The owner's Balance_-_9.23.26.xlsx, executed in tiers. **The plan file is the
 index** (tiers, decisions, the new-Tricks table); `BALANCE_PASS_9.24_DIFF.txt`
 held every outstanding row and is now empty. `balance_sheet.csv` still holds
 the owner's sheet verbatim - **regenerate it with `tools/gen_balance_sheet.js`
-only once the unnamed spade Trick is built**, or its row is lost. The systems
+only once the unnamed spade Trick is built**, or its row is lost. (Done r367: the generator only ADDS rows, so a run changes nothing else.) The systems
 this pass added, and their traps:
 
 - **Inert (r341).** Piggy Bank and Capacitor fire IN PLACE (`sleightUseInPlace`)
@@ -8503,6 +8503,13 @@ this pass added, and their traps:
   `doShopSell` - both sell paths.
 - **Move as One (r363)** reads keywords off descriptions through a curated set
   (`MOVE_AS_ONE_KEYS`, `_MAO_EXTRA`); the owner may trim it.
+- **Relentless (r367)** is the spade Trick: each spade applies x(0.05 x
+  `spadesRelentless`), floored at x1, so it does nothing until the 21st spade.
+  The count starts at 0 when the Trick is taken and is bumped by
+  `relentlessCount()` AFTER `playScoreDance` at all three dance sites - the
+  dance re-scores synchronously, so a count bumped above it would animate a
+  bigger x mult than the hand was scored with (the r295 trap). It is NOT
+  Compound; `compound_mult` keeps its own +0.1 per hand.
 - **Royal Favour's rank-up rides `recycleCard`** (`queenUpgradePending`), so the
   hand, preview and dance all see the old rank.
 

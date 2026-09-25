@@ -229,7 +229,7 @@ Per-row spec in the DIFF file. Grouped:
 ## Tier 7 — New content (one to two sessions)
 
 DONE r359: Obsessed, Buried Treasure, Patient Rulers, Even Better, What are The
-Odds, Critical, Twinners, Marathon; r360 Feelin Lucky. r361 Three's a Crowd as a Knack. Left: the unnamed spade Trick.
+Odds, Critical, Twinners, Marathon; r360 Feelin Lucky. r361 Three's a Crowd as a Knack. r367 Relentless (the spade Trick). Tier 7 is complete.
 
 Ten new Tricks (mint ids; TERMINOLOGY.md; BAL + DESC_TEMPLATES; pool, tags,
 improve/force vocabulary; several are per-card ×mult — the r233 machinery):
@@ -238,7 +238,7 @@ improve/force vocabulary; several are per-card ×mult — the r233 machinery):
 |---|---|---|
 | Obsessed | legendary | each heart ×mult = 1+(credits/100) |
 | Buried Treasure | legendary | each scored diamond: (luck/2)% chance to ×1.1 your credits |
-| (name pending, decision 2) | legendary | each spade ×(1 + 0.1 per spade scored this game) mult |
+| Relentless | legendary | each spade ×(0.05 per spade scored since taken) mult, never below ×1 - so nothing until the 21st spade (owner retune r367) |
 | Patient Rulers | epic | if paused/rewound this round, face cards ×1.5 mult |
 | Even Better | epic | even cards 66% chance ×2.2 pips (4e) |
 | What are The Odds | epic | odd cards ×1.7 mult |

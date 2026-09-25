@@ -530,6 +530,7 @@ function startGame() {
   bonusMult_nines = 0;
   bonusMult_tens = 0;
   bonusMult_compound = 0;
+  spadesRelentless = 0;
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
   bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
