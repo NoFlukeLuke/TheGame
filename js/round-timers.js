@@ -43,6 +43,10 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  // The last round's winning hand goes back into the deck now that the new
+  // board is dealt (r371, js/deck-grid.js) - above the checkpoint, so a save
+  // never captures it held.
+  if (typeof releaseGoalHand === 'function') releaseGoalHand();
   // A live clock again: drop the goal-clear lock the previous round left on it,
   // and any banner still fading (js/goal-clear.js). Every round start funnels
   // through here, so this is the single release point.
@@ -136,6 +140,7 @@ function startRoundTimer() {
     if (typeof cardStatesTick === 'function') cardStatesTick();
     if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
     if (typeof fightPowerTick === 'function') fightPowerTick();
+    if (typeof sleightLifeTick === 'function') sleightLifeTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)
     // The Woodpecker (r348): every interval a new random card is marked, replacing

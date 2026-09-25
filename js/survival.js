@@ -687,6 +687,7 @@ function survivalDealNext() {
         if (gridData[r]?.[c]?._isSleight && !inList.has(`${r}-${c}`)) cells.push([r, c]);
     }
     svGoalCells = null;
+    goalHandCards = null;               // removeAndFall('play') below discards them
     gameTimerPaused = false;             // the goal dance froze the clock; the new round is live
     animating = false;                   // the dance is over; removeAndFall refuses re-entry on this flag
     updateClockUI();
@@ -699,6 +700,11 @@ function survivalDealNext() {
     return;
   }
   svGoalCells = null;
+  // The goal hand leaves the board (r371). With the board persisting, the recycle
+  // below keeps every cell - and the winning hand's cards were still sitting in
+  // gridData, so they were dealt straight back in. This path is the default and
+  // also where the keep modes fall through after a boss or a grid-size pick.
+  liftGoalHand();
   // 1) Old frozen cards fall out (down + fade).
   const oldEls = [...(gridEl?.querySelectorAll('[data-card-id]') || [])];
   oldEls.forEach((el, i) => {

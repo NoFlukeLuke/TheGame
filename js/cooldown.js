@@ -117,6 +117,12 @@ function cdForCard(card, r, c) {
   // and NOT 'cooldown', which matters: 'off' and 'cooldown' grey the host, and a
   // fuse is the opposite of unavailable - the card is perfectly playable and the
   // ring is the reason to hurry up and play it.
+  // A Sleight with a board lifespan (r371, Whetstone): the ring counts down to
+  // it discarding itself. 'primed' so the card is not greyed - it still works.
+  if (typeof sleightLifeLeft === 'function') {
+    const l = sleightLifeLeft(card);
+    if (l) return { mode: 'primed', left: l.left, total: l.total };
+  }
   if (typeof cardStateFuse === 'function') {
     const f = cardStateFuse(card);
     if (f && f.left > 0) return { mode: 'primed', left: f.left, total: f.total };

@@ -164,6 +164,9 @@ const PICK_OPS = [
       if (pos) gridData[pos[0]][pos[1]] = null;
       pickSnapshot = pickSnapshot.filter(e => e.card._id !== id);
       pickRestored = pickRestored.filter(e => e.card._id !== id);
+      // A winning-hand card is held off the board until the next round starts
+      // (r371) - drop it there too, or the release would put it back in the deck.
+      if (typeof goalHandHeld !== 'undefined') goalHandHeld = goalHandHeld.filter(c => c._id !== id);
       if (typeof expectedDeckTotal !== 'undefined') expectedDeckTotal--;
       updateDeckHud?.();
       return 'removed from the deck';

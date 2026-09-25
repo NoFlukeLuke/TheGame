@@ -137,6 +137,39 @@ function fightPowerTick() {
   if (fp) sleightTimedDrain(fp);
 }
 
+// ── A Sleight with a board LIFESPAN (r371) ───────────────────────────────────
+// Whetstone discards itself after BAL.whetstone.life_seconds on the board. The
+// clock is _gridSecs ON THE CARD, ticked from the round tick (so it stops with
+// the round, the pause menu and RECORDS), and it is left out of discardToPlayed's
+// rebuild on purpose: every lap back onto the board starts a fresh clock. The
+// board persists between rounds (r332), so a Whetstone that stays put keeps
+// counting across them. The leave waits out an animation or a fall rather than
+// cutting it short (the r213 Hollow lesson) - the card just runs a second late.
+const SLEIGHT_LIFESPAN = { whetstone: () => BAL.whetstone?.life_seconds || 90 };
+function sleightLifeLeft(card) {
+  const f = card?._isSleight && SLEIGHT_LIFESPAN[card.sleightId];
+  if (!f) return null;
+  const total = f();
+  return { left: Math.max(0, total - (card._gridSecs || 0)), total };
+}
+function sleightLifeTick() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || !SLEIGHT_LIFESPAN[card.sleightId]) continue;
+    if ((card._gridSecs || 0) < SLEIGHT_LIFESPAN[card.sleightId]()) card._gridSecs = (card._gridSecs || 0) + 1;
+    if (card._gridSecs < SLEIGHT_LIFESPAN[card.sleightId]()) continue;
+    if (animating || falling || sleightSpinLock) continue;   // try again next tick
+    const def = sleightDef(card);
+    showMessage(`${def?.name || 'Sleight'} discards itself`, 'var(--cream-dim)');
+    spinSleightTile(r, c, () => {
+      if (gridData[r]?.[c] !== card) return;   // the board moved during the spin
+      discardToPlayed(card);                   // cycles back with its charges and banked mult
+      removeAndFall([[r, c]], 'discard');      // slide it out + gravity-refill the cell
+    });
+    return;                                    // one at a time: removeAndFall takes the falling lock
+  }
+}
+
 // Consume one charge from a sleight card at [r,c]; remove from grid when depleted.
 function consumeSleightCharge(card, r, c) {
   if (!card || card._usesLeft === 'infinite') return;

@@ -733,9 +733,12 @@ function discardToPlayed(card) {
       // EVERY round - so leaving it out silently reset a 1/2 fixture to 0/2 at
       // every round boundary, which is what made the Spectrum fixtures read as
       // firing at random. Measured before the fix: 1 in, undefined out.
+      // _whetMult too (r371): Whetstone's banked mult is "permanent", and since
+      // it now leaves the board every 90s it would otherwise reset on each lap.
+      // _gridSecs (its board clock) is deliberately NOT carried - a fresh lap.
       playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
                         _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable,
-                        _adjPlays: card._adjPlays || 0, _drawFired: false });
+                        _adjPlays: card._adjPlays || 0, _whetMult: card._whetMult || 0, _drawFired: false });
       updateDeckHud();
     }
     return;
@@ -763,6 +766,46 @@ function discardToPlayed(card) {
 // Three modes are excluded because they own their board outright and never go
 // through the round-end fall: match-3 cascades cards away, Dominoes builds a
 // two-cell board of its own, and Poker Squares packs and clears a 5x5 per round.
+// The round-winning hand (r371). A hand that SCORES leaves the board through
+// removeAndFall('play'), but the goal hand and the boss-winning hand never go
+// through it: their cards fly into the preview and gridData keeps holding them
+// through the tally (The Pick photographs that board). Before r332 the round-end
+// sweep discarded every cell, so nobody noticed; once the board persisted, those
+// cards were dealt straight back in at the next round.
+//
+// So the two goal sites in playHand CAPTURE the hand's cards (objects, never
+// cells - the r192 rule), the round-end paths LIFT them off the board by
+// identity (liftGoalHand), and startRoundTimer RELEASES them into the played
+// pile once the new board has been dealt. Held rather than discarded straight
+// away because every level-up flushes the played pile into the draw pile just
+// before the refill: discarded at once, a card of the winning hand could be
+// dealt straight back into the hole it left. Held, it rejoins the deck at the
+// NEXT flush, like any card scored in a round. A cell now holding a different
+// card is left alone.
+let goalHandCards = null;   // captured at the goal, still on the board
+let goalHandHeld = [];      // lifted off the board, not yet back in the deck
+function captureGoalHand(cells) {
+  goalHandCards = (cells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
+}
+function liftGoalHand() {
+  if (!goalHandCards || !goalHandCards.length) { goalHandCards = null; return 0; }
+  const want = new Set(goalHandCards);
+  goalHandCards = null;
+  let n = 0;
+  for (let r = 0; r < gridData.length; r++)
+    for (let c = 0; c < (gridData[r] || []).length; c++) {
+      const card = gridData[r][c];
+      if (card && want.has(card)) { goalHandHeld.push(card); gridData[r][c] = null; n++; }
+    }
+  return n;
+}
+function releaseGoalHand() {
+  if (!goalHandHeld.length) return;
+  const held = goalHandHeld; goalHandHeld = [];
+  held.forEach(card => discardToPlayed(card));
+  updateDeckHud?.();
+}
+
 function boardPersists() {
   if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return true;
   if (ACTIVE_MODE.match3 || ACTIVE_MODE.id === 'dominoes') return false;

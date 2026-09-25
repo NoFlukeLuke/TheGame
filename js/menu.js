@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r370 · Every scaling counter counts replays, and grows after the dance on every hand";
+const BUILD = "2026-09-25 · r371 · The winning hand leaves the board at the round end; Whetstone discards itself after 90s";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

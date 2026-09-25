@@ -90,6 +90,9 @@ async function showLevelUpScreen_fallOnly() {
   // them, and the next round's deal puts the same cards back in the same cells.
   // So the ceremony is unchanged and the position is kept.
   const _persist = (typeof boardPersists === 'function') && boardPersists();
+  // The round-winning hand is the one part of the board that DOES leave (r371):
+  // it scored, so it goes to the played pile like any scored hand.
+  if (_persist) liftGoalHand();
   animating = true;
   selected = [];
 

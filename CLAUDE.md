@@ -1302,7 +1302,7 @@ An epic `passive` Sleight, 10 charges. While it sits on the grid, submitting a h
 
 ### Adjacency batch (r121)
 Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal - `getNeighborsOrtho` / `_isOrthoAdj` in `sleights-runtime.js`):
-- **Whetstone** - each adjacent card swapped or discarded banks `+1 mult` on the card itself (`card._whetMult`, so it survives deck cycling). A scored hand collects the full banked mult from every Whetstone orthogonally adjacent to at least one scored card; several Whetstones stack. Fed by `feedWhetstones(cells)` (called in `doSwap` + `doDiscard`, before the cards leave the grid), read by `whetstoneMultForCells(cells)` in `calcScore`.
+- **Whetstone** - **discards itself after 90s on the board (r371, `BAL.whetstone.life_seconds`)**: `sleightLifeTick` (round tick) ages `_gridSecs` on the card, the cooldown ring counts it down (`sleightLifeLeft` in `cdForCard`), and it leaves through spin + `discardToPlayed` + `removeAndFall`. `_gridSecs` is NOT in the sleight rebuild, so each lap starts a fresh clock; `_whetMult` IS now (it was being dropped on every cycle). Each adjacent card swapped or discarded banks `+1 mult` on the card itself (`card._whetMult`, so it survives deck cycling). A scored hand collects the full banked mult from every Whetstone orthogonally adjacent to at least one scored card; several Whetstones stack. Fed by `feedWhetstones(cells)` (called in `doSwap` + `doDiscard`, before the cards leave the grid), read by `whetstoneMultForCells(cells)` in `calcScore`.
 - **Entourage** - `+10 mult` per *other* Sleight on the grid (`entourageMult()`); two Entourages each count the rest.
 - **Lighthouse** - `lighthouseColumn` alternates first ↔ last each round (set in `triggerLevelUp` beside `shadyColumn`). `+20 mult` in that column, `−5` per column of distance, floored at 0 (`lighthouseMult()`).
 - **Jury-Rig** (Knack) - swapping/discarding beside a Sleight rolls 50% to restore 1 charge, **once per Sleight per action** (deduped by `_id` in `juryRigRoll`); `restoreSleightCharge` never exceeds the printed `durability` and no-ops on `'infinite'`.
@@ -8421,6 +8421,33 @@ make you play through cards you do not want in order to reach the ones you do.)
   none - it would silently offer nothing. That strip is cleared to `playedPile`
   first, and **only when `trickTrayMode` is false**, so the default tray path
   leaves the board exactly as the round left it.
+
+### The WINNING hand never came back off the board (r371)
+
+Owner: *"sometimes in flow the winning hand will return to the grid at the start
+of the next level when it should never do that."* It was every mode, not just
+Flow. A scored hand leaves through `removeAndFall('play')`, but the goal hand and
+the boss-winning hand never do: their cards fly into the preview and `gridData`
+keeps holding them through the tally (The Pick relies on that). Before this
+section the round-end sweep discarded every cell; once it stopped, the winning
+hand was dealt straight back into its own cells.
+
+- **`captureGoalHand(cells)`** at both goal sites in `playHand` records the CARDS
+  (objects, the r192 rule). **`liftGoalHand()`** takes exactly those off the board
+  by identity - from `showLevelUpScreen_fallOnly` (every act mode) and from
+  `survivalDealNext`'s redeal path (Survival/Flow; the keep path already
+  removeAndFalls them and clears the capture). **`releaseGoalHand()`** at the top
+  of `startRoundTimer` puts them in the played pile.
+- **HELD, NOT DISCARDED, and that is what "never" needs.** Every level-up flushes
+  the played pile into the draw pile just before the refill, so a card discarded at
+  once had its ordinary odds of being dealt straight back into the hole it left -
+  measured on Flow's pinned seed, one landed back at 0-0 every run. Held, it
+  rejoins the deck at the NEXT flush, like any card scored in a round.
+- The Pick's Remove drops a held card from `goalHandHeld` too, or the release would
+  put a removed card back. Held cards are briefly outside both piles, so a deck
+  count taken mid-interlude reads short by the hand; it balances at round start.
+- Verified in a real browser: Flow and Classic both 56/56 at the next round, 0 of
+  the winning cards on the board, all 3 in the piles.
 
 ### Survival and Flow were DESTROYING CARD IDENTITY every level
 
