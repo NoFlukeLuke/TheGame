@@ -152,7 +152,14 @@ function gridScreenTakeover(rows, cols) {
   return gridEl;
 }
 
-function gridScreenRelease() {
+// `force` is the pick's own release. A LIVE PICK MUST NOT BE STRIPPED BY
+// SOMEBODY ELSE'S CLEANUP (r377): the takeover slot is shared with the tiled
+// payout, and this function removes .gp-opt wholesale - so a payout close that
+// landed after a pick had opened would take the pick's options off the board
+// and put the board back at the payout's size under them. Only closeGridPick
+// and Survival's peek end a pick.
+function gridScreenRelease(force) {
+  if (!force && typeof gridPickState !== 'undefined' && gridPickState) return;
   document.body.classList.remove('gp-active');
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
@@ -161,7 +168,7 @@ function gridScreenRelease() {
 }
 
 function gridPickTakeover() { return gridScreenTakeover(GP_ROWS, GP_COLS); }
-function gridPickRelease()  { gridScreenRelease(); }
+function gridPickRelease()  { gridScreenRelease(true); }
 
 // A cell box in the live board's own units. Shared with the tiled payout:
 // every screen that inhabits the board places its tiles through this.

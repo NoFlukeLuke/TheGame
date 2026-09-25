@@ -9512,3 +9512,163 @@ colour, 0 tabs over a tile, 0 tabs outside the slot, 0 tray tiles clipped at any
 count, the portrait hand name lands under the cards inside the strip, the Flow
 clock fills toward its mark and the mark opens and closes the forecast, and there
 are **no page errors** anywhere.
+
+## r377 - the clock bar says what it is made of, and the focus bar is the board's height
+
+### 1. THE TRACK IS A WRAPPER, AND THAT IS WHAT MAKES THE REST POSSIBLE
+
+`js/clock-track.js` + `css/clock-track.css`. `#vclock-band` is **gone** - a
+hatched stripe nailed to 33%-67% of the bar that named no Trick, moved with no
+clock and meant nothing. What the bar carries now is read off the live round on
+every repaint (`renderClockTrack()`, called from `updateClockUI`):
+
+| layer | is |
+|---|---|
+| `.clk-bands` | alternate **30-second** stretches textured, so time gone is countable rather than a length to eyeball |
+| `.clk-wins` | a Trick that fires in only part of the round **hatches that stretch diagonally**, in its own colour, with its glyph on it |
+| `.clk-marks` | **one vertical line per level-up** |
+
+- **`.clk-track` EXISTS BECAUSE `padding-right` DOES NOTHING TO AN ABSOLUTELY
+  POSITIONED CHILD.** An abspos element's containing block is its ancestor's
+  **padding box, padding included** - so `#stage.flow-mode #vclock { padding-right:
+  20px }` never held `#vclock-fill` back and the fill ran straight under the boss
+  skull. The fill is **MOVED** into `.clk-track` (never duplicated - it is the
+  element `js/round-timers.js` writes), and the track is inset instead. Measured
+  at 100% fill: **7.7px** clear of the mark in landscape, **10.9px** in portrait.
+- **`#clock-bar-wrap` NEEDED `position: relative`, and this is the trap.** Without
+  it the track's containing block was `#clock-area`, and **an ancestor's
+  `overflow:hidden` does not clip an abspos descendant whose containing block is
+  above it** - so the bands, the hatching and the level-up marks painted across
+  the whole portrait top bar, over the digits and past the boss mark. Seen in a
+  screenshot, invisible to every other check.
+- **`clockTrackPos(seconds)` is the one mapping.** A draining bar shrinks
+  right-to-left so x IS the fraction remaining; Flow's FILLS toward the review so
+  x is the fraction ELAPSED. Every layer places itself through it, or the hatching
+  lands on the wrong half of a Flow clock. `clockTrackFills()` is the same
+  predicate `updateClockUI` now asks for the fill direction, so the two cannot
+  disagree.
+- **A WINDOW IS WRITTEN IN SECONDS REMAINING**, because that is what every one of
+  these Tricks tests (`roundFractionRemaining() x roundStartSeconds`). Keep a row
+  faithful to the site that reads it - **First Wind measures its grace against
+  `ROUND_DURATION`, not the round's own length**, so its row does too. Windows are
+  deduped by the stretch they cover, so Night Owl and Near Extinction draw one
+  hatch rather than two.
+- **A LEVEL-UP MARK ONLY EXISTS WHERE THE CLOCK SPANS LEVEL-UPS**
+  (`clockSpansLevels()`: Flow's session clock, Crunch's act bank). Everywhere else
+  the clock refills at the level-up itself, so a mark would sit on a track that no
+  longer describes the time it was taken in. Marks are stored as SECONDS and
+  repositioned by the same formula the fill is. Cleared when the clock is
+  REFILLED - detected in `startRoundTimer` as "the clock gained time", **read
+  above the line that overwrites `roundStartSeconds`**, which is the only reason
+  it sits there. In `SAVE_VARS`.
+
+### 2. THE FOCUS BAR IS THE GRID'S HEIGHT, AND THE CLOCK CLEARS IT
+
+Owner: *"Make the focus bar match the height of the grid everywhere"* and *"make
+sure the timer and focus bar don't intersect."* Both were real: the landscape bar
+measured **780px against a 670px board**, and its column ran to 46.3% against a
+clock readout at 45%.
+
+- **LANDSCAPE IS PLACED FROM JS, NOT FROM CSS**, and that is not a new decision -
+  `syncSidebarsToGrid()` (js/grid-metrics.js) has always owned these positions
+  because the board MOVES (more columns, the shop squish) and a static percentage
+  cannot follow it. A first pass wrote the geometry into `css/clock-track.css` and
+  **it was silently beaten by that function's inline styles**; the fix is to
+  change the function. Only the column's WIDTH is CSS, and the JS reads it back
+  off the element so the two cannot disagree.
+- It now also sets the wrap's `top` and `height` from the grid's own rect - exact,
+  and needing no second measurement. **Portrait is CSS** (`height: var(--grid-h)`
+  + `align-self: center`), because there the wrap is a flex child beside the slot.
+  `syncSidebarsToGrid` clears the inline `top`/`height` in portrait for the same
+  reason it already cleared `left`/`width`.
+- **The ×1.0 readout drops BELOW the bar** (`top: 100%`), or the bar would be the
+  grid's height minus the readout.
+- **The digits are CENTRED OVER THE FOCUS COLUMN** instead of sitting on the
+  board's left edge, which is what frees the band above the grid: the track runs
+  from just right of them to the grid's right edge (**498px, was 408**) and is
+  thicker (**34px, was 29** - 8.2% from a `top` of 2.4%, which is as thick as it
+  goes without touching `#grid-slot` at 11.11%).
+- Measured at 1440x820, 1100x620, 420x900 and 390x844, Flow and Classic: the bar's
+  top and bottom match the grid's **to within 0.1px**, and the focus column and
+  both clock boxes have **0 intersection**.
+
+### 3. PORTRAIT: the clock is one left-packed group, and the static readouts leave
+
+Owner: *"put the clock to the left of the bar timer, then have a thicker bar which
+runs about 1/4 the distance and leads right up to a boss icon. Don't put the boss
+icon right next to the hand and coins"* and *"Can the hand icon and coins go under
+the grid in portrait always? Or does it depend?"*
+
+- `#clock-area` is a **row** now - digits, then a **104px** bar (25% of a 416
+  stage) at **9px** tall (was 80px x 4px), then the mark **in flow at the end of
+  it** rather than pinned to the right of the whole flex:1 area, which is what had
+  it hard against HAND SIZE.
+- **It does not depend.** HAND SIZE and COINS are STATIC readouts - a limit, and a
+  number you spend between rounds - not live decision inputs, and the band they
+  were in is the only one the clock has. `portraitMountStats()` (js/portrait-panel.js)
+  **MOVES** them (never copies - a second `#coins-display` is a second thing for
+  js/hud.js to keep in step with) into `#pt-underbar`, a **sibling of `#grid`** in
+  the slot's own bottom margin, sized `calc((100% - var(--grid-h)) / 2)` exactly as
+  `#sel-count`'s band above the board is. So nothing is resized to make room:
+  measured **34px of already-empty band at 420x900, 31px at 390x844**.
+- **POKER SQUARES IS THE ONE EXEMPTION.** Its daily hides these two with
+  `#top-bar .top-stat:has(#coins-display)` (css/squares.css), and a selector naming
+  `#top-bar` stops matching the moment they are somewhere else - so they would come
+  BACK on the one screen that deliberately hides them. Called from
+  `syncPortraitPanel()` (which bootstrap's layout pass already runs on every
+  resize, orientation change and office-photo handback) and from `startGame`.
+
+### 4. A discarded Stopwatch let go of the clock
+
+Owner: *"If you discard stopwatch sleight it stays paused."* It did. A Stopwatch
+is an ordinary deck card, and **nothing released the freeze when it left the
+board** - `doDiscard` routes it through `discardToDrawPile`, which silently drops
+every Sleight, and `stopwatchActive` / `pipeTimerPaused` stayed set.
+
+- **`stopwatchOnBoard()` is asked on the ticker**, by IDENTITY rather than by cell
+  (the r192 rule - a fall moves it). That covers every way it can leave: discarded,
+  played in a hand, eaten by a boss.
+- **`doDiscard` also ends it inline**, because that is the one route where a whole
+  second of frozen clock would be visible.
+- Verified through the real discard path: frozen -> discarded -> `pipeTimerPaused`
+  false, timer cleared, card off the board, and the clock ticking again (175 ->
+  173). **The control matters as much**: a Stopwatch left ON the board still holds
+  the clock (173 -> 173) with the freeze intact.
+
+### 5. A GRID PICK OWNS `#grid`, and nothing said so
+
+Owner: *"Strange occasional bug where the options for the pick three don't stay."*
+Two ways to lose them, both closed:
+
+- **`render()` has no business painting there.** It does not clear `#grid`, it
+  APPENDS cards into it and only reconciles elements carrying `[data-card-id]` - so
+  a stray repaint deals the whole board over the option tiles. **Since r332 the
+  board PERSISTS between rounds**, so `gridData` is full at exactly that moment and
+  the cards are there to be drawn; before that it was mostly nulls and the bug was
+  rarer, which is the "occasional". It can throw as well: the pick asks for a 6x4
+  board and `gridData` may have 4 rows, so `gridData[4][c]` reads off undefined
+  (r373 guarded the CELL, not the ROW - both are guarded now). One early return
+  beside the `rewardOnGrid` one. **Survival's PEEK is the one place the board is
+  wanted back, and it releases the takeover first**, which is why the test is
+  `gridPickState && gridScreenSaved` and not `gridPickState` alone.
+- **`gridScreenRelease()` refuses while a pick is live.** The takeover slot is
+  SHARED with the tiled payout and the function removes `.gp-opt` wholesale, so
+  somebody else's cleanup landing after a pick had opened would take the options
+  off the board and put the board back at the payout's size under them.
+  `gridPickRelease()` passes `force`.
+
+### The trick tray already stacks (owner's question, answered by measurement)
+
+*"The tricks should be able to stack over one another slightly ... Do they do that
+now?"* They do, and r376's widening is what made them fill the tray's height.
+Measured live at 1/3/5/7/10 Tricks:
+
+| | landscape | portrait |
+|---|---|---|
+| tucks from | **5** Tricks (pitch 89.6 on a 159px chip, 44% hidden) | **3** Tricks |
+| floor | 50% of a chip visible, then the row SCROLLS (from 7) | `FAN_MIN_STEP` 13px, so all 10 fit |
+| disc height vs chip | **100%** | **100%** |
+| clipped at any count | **0** | **0** |
+
+The one thing that is NOT true is that all ten fit a desktop tray: past 6 the row
+scrolls, which is r237's deliberate floor rather than an oversight.

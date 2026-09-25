@@ -101,6 +101,10 @@ function portraitShowKnacks() {
 // the portrait strip is in a sane state when coming back from landscape.
 function syncPortraitPanel() {
   setPortraitPanelView(portraitPanelUserView, { auto: true });
+  // Turning a tablet mid-run moves HAND SIZE and COINS between the top bar and
+  // the band under the board (r377), so this one call site covers the resize,
+  // the orientation change and the office photo handing a phone its layout back.
+  if (typeof portraitMountStats === 'function') portraitMountStats();
 }
 
 
@@ -176,4 +180,59 @@ function fitPortraitPreviewCards() {
   stage.style.setProperty('--card-w', w + 'px');
   stage.style.setProperty('--card-h', h + 'px');
   stage.style.setProperty('--dnc-lap', (n > 1 ? step - w : 0) + 'px');
+}
+
+// ══════════════════════════════════════════════
+// PORTRAIT: THE STATIC READOUTS GO UNDER THE BOARD  (r377)
+// ══════════════════════════════════════════════
+// Owner: "Can the hand icon and coins go under the grid in portrait always? Or
+// does it depend?" - it does not depend: HAND SIZE and COINS are STATIC
+// readouts (a limit, and a number you spend between rounds), not live decision
+// inputs, and the one place they were is the only band the clock has. Moving
+// them leaves the top bar to the clock, which is what makes room for the Flow
+// session track and its review mark.
+//
+// THEY GO IN THE SLOT'S OWN BOTTOM MARGIN, so nothing is resized to make room.
+// #grid is CENTRED in #grid-slot, so the band under the board is
+// (slot - grid) / 2 - the same expression #sel-count uses for the band ABOVE
+// it, and the same reason neither needs a measurement or a resize handler.
+// Measured on a 420x900 phone: 34px, against a 17px readout.
+//
+// THE ELEMENTS ARE MOVED, NEVER COPIED. A second #coins-display is a second
+// thing for js/hud.js to keep in step with, and it would go stale the first
+// time someone wrote to the other one.
+function portraitStatsHost() {
+  let bar = document.getElementById('pt-underbar');
+  if (bar) return bar;
+  const slot = document.getElementById('grid-slot');
+  if (!slot) return null;
+  bar = document.createElement('div');
+  bar.id = 'pt-underbar';
+  slot.appendChild(bar);           // a SIBLING of #grid: render() rebuilds #grid's children
+  return bar;
+}
+function portraitMountStats() {
+  const stage = document.getElementById('stage');
+  const sel   = document.getElementById('sel-stat');
+  const coins = document.getElementById('coins-display');
+  if (!stage || !sel || !coins) return;
+  const coinStat = coins.closest('.top-stat') || coins.parentElement;
+  const topBar = document.getElementById('top-bar');
+  // POKER SQUARES IS THE ONE EXEMPTION. Its daily hides these two with
+  // `#top-bar .top-stat:has(#coins-display)` (css/squares.css), and a selector
+  // naming #top-bar stops matching the moment they are somewhere else - so they
+  // would come BACK on the one screen that deliberately hides them.
+  const wantUnder = !stage.classList.contains('landscape')
+                 && !(typeof squaresActive === 'function' && squaresActive());
+  const home = wantUnder ? portraitStatsHost() : topBar;
+  if (!home) return;
+  // #sel-stat before the coins, and both after whatever else is already there.
+  if (sel.parentElement !== home)      home.appendChild(sel);
+  if (coinStat.parentElement !== home) home.appendChild(coinStat);
+  // Landscape hides every .top-stat, so putting them back is enough; the bar
+  // itself is display:none there (css/clock-track.css).
+  if (!wantUnder && topBar && sel.parentElement === topBar) {
+    // Restore the document order the markup had: … Level, #clock-area, HAND SIZE, COINS.
+    topBar.appendChild(sel); topBar.appendChild(coinStat);
+  }
 }

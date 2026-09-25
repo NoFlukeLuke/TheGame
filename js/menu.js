@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r376 · The level-up counter plays BEFORE the tally · the tray tiles fill it · vN is a version · Flow counts down to the review";
+const BUILD = "2026-09-25 · r377 · The clock bar says what it is made of · the focus bar is the grid's height · a discarded Stopwatch lets go · a pick-of-three stays";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

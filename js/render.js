@@ -12,6 +12,18 @@ function render() {
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
   // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
   if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
+  // A GRID PICK OWNS #grid THE SAME WAY, and until r377 nothing said so - the
+  // owner's "strange occasional bug where the options for the pick three don't
+  // stay". render() does not clear #grid, it APPENDS cards into it and only
+  // reconciles elements carrying [data-card-id], so a stray repaint during a
+  // pick deals the whole board over the option tiles (and since r332 the board
+  // PERSISTS between rounds, so gridData is full at exactly that moment - the
+  // cards are there to be drawn). It can throw as well: the pick asks for a
+  // 6x4 board and gridData may be 4 rows, so gridData[4][c] is a read off
+  // undefined. The pick's own renderer is the only thing entitled to paint
+  // here; Survival's PEEK is the one place the board is wanted back, and it
+  // releases the takeover first (gridPickSetShown), so this test is false there.
+  if (typeof gridPickState !== 'undefined' && gridPickState && gridScreenSaved) return;
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
@@ -33,7 +45,7 @@ function render() {
 
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
-      const card = gridData[r][c];
+      const card = gridData[r]?.[c];   // the ROW can be missing too (r377) - see the note on !card below
       const key = `${r}-${c}`;
       const isChallenge = !!(challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c && card === null);
       // !card, not `card === null` (r373). An UNDEFINED cell passed this guard

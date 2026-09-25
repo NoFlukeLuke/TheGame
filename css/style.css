@@ -422,6 +422,13 @@
   @keyframes pulse { from { opacity:1 } to { opacity:0.5 } }
 
   #clock-bar-wrap {
+    /* position:relative is LOAD-BEARING (r377). .clk-track is an absolutely
+       positioned child, so without it the track's containing block is whatever
+       is positioned above - #clock-area - and the 30s bands, the Trick hatching
+       and the level-up marks painted across the WHOLE top bar, over the digits
+       and past the boss mark. An ancestor's overflow:hidden does not clip an
+       absolutely positioned descendant whose containing block is above it. */
+    position: relative;
     width: 80px;
     height: 4px;
     background: #2a2010;
@@ -4837,7 +4844,9 @@
   #stage.landscape #btn-play       { position:absolute; left:91.41%; top:62.93%; width:7.81%; height:34.29%; }
   /* new-block internals */
   #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
-  #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
+  /* #vclock-band is GONE (r377). A fixed 33%-67% hatched band that meant
+     nothing - it named no Trick and moved with no clock. The hatching is drawn
+     from the live loadout now (js/clock-track.js). */
   #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
   #coin-info .ci-main b { font-size:19px; }
   #coin-info .ci-row { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:8px; color:var(--cream-dim); }
@@ -6213,8 +6222,12 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
   z-index: 4;
 }
 .clock-boss:active { transform: translateY(-50%) scale(0.92); }
-#stage.flow-mode #clock-area { position: relative; padding-right: 22px; }
-#stage.flow-mode #vclock     { padding-right: 20px; }
+/* r377: #clock-area's own position and padding are gone. The padding held room
+   for the mark by shrinking nothing - an absolutely positioned child's
+   containing block is the PADDING BOX, padding included, so #vclock-fill ran
+   straight under the skull regardless. .clk-track's inset is what holds that
+   room now (css/clock-track.css), and in portrait the mark rides in flow at the
+   end of the bar rather than being pinned to the right of the whole area. */
 #stage.flow-mode.landscape #vclock-boss { right: 2px; }
 /* The bar fills toward the mark, so it is the LAST thing the eye reaches;
    a slow pulse says it is coming rather than that it is here. */

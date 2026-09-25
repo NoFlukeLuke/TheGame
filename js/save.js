@@ -85,6 +85,7 @@ const SAVE_VARS = [
   '_cardIdCounter',   // cards carry ids now; without this a resumed run reissues ids already in play
   // ── Clock & resources ──
   'roundSeconds', 'gameSeconds', 'roundStartSeconds', 'swaps', 'discards',
+  'clockLevelMarks',            // the level-up lines on a session clock (js/clock-track.js)
   'accumulatedSwaps', 'accumulatedDiscards', 'accumulatedSeconds',
   'roundPenaltySeconds', 'extraPlayCostPerm', 'extraDiscardCostPerm',
   'nextRoundDiscardDelta', 'nextRoundSwapDelta', 'nextRoundSecondsDelta',

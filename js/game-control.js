@@ -478,6 +478,7 @@ function startGame() {
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
+  if (typeof clockMarksReset === 'function') clockMarksReset();  // no level-up marks from the last run (js/clock-track.js)
   // The big hands (r199) are always in the list - they need Selection Size past 5
   // to be reachable at all, which is gate enough. flush3/flush4 stay OUT: they are
   // still not something you may PLAY here, only something a hand may LAYER.
@@ -500,6 +501,7 @@ function startGame() {
   earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
+  if (typeof portraitMountStats === 'function') portraitMountStats();  // HAND SIZE + COINS under the board in portrait (r377)
   cardPlayCount   = {};
   cardSwapCount   = {};
   cardDealtCount  = {};

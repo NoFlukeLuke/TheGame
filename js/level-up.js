@@ -43,6 +43,10 @@ function triggerLevelUp() {
   if (bossActive) return;
   clearInterval(roundInterval);
   roundInterval = null;
+  // One vertical line on the clock per level-up, on the clocks that SPAN
+  // level-ups (Flow's session clock, Crunch's act bank). Taken here, before
+  // anything below can move roundSeconds. js/clock-track.js.
+  if (typeof clockMarkLevelUp === 'function') clockMarkLevelUp();
   goalReachedThisRound = false;
   roundEnded = false;
   // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.

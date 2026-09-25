@@ -121,6 +121,7 @@ function syncSidebarsToGrid() {
   const landscape = stage && stage.classList.contains('landscape');
   if (!landscape) {   // portrait: drop any inline overrides so the stacked layout is untouched
     [focus, clockArea, vclock].forEach(e => { if (e) { e.style.left = ''; e.style.width = ''; } });
+    if (focus) { focus.style.top = ''; focus.style.height = ''; }
     return;
   }
   const grid = document.getElementById('grid');
@@ -128,25 +129,47 @@ function syncSidebarsToGrid() {
   const s = stage.getBoundingClientRect();
   const g = grid.getBoundingClientRect();
   if (s.width < 10 || g.width < 10) return;
-  const pct = px => px / s.width * 100;
+  const pct  = px => px / s.width  * 100;
+  const pctH = px => px / s.height * 100;
   const gLeft  = pct(g.left  - s.left);
   const gWidth = pct(g.width);
-  // Clock readout (fixed slice at the grid's left) + timer bar fill the grid width.
+  // ── The focus meter is placed FIRST, because the clock reads over it (r377) ──
+  // It sits right against the grid's left edge - but never back far enough to
+  // crowd the left column. That floor is the COLUMN'S OWN right edge, not a
+  // constant: the shop squeezes the column to 25% of the stage (r230), and a
+  // hardcoded 39.5 pinned the meter out over the board while the column it was
+  // avoiding had moved 13% to the left.
+  //
+  // IT ALSO TAKES THE GRID'S HEIGHT. It used to run 1.39% -> 98.06% of the
+  // stage whatever the board was - measured at 780px against a 670px grid - so
+  // the gauge started most of a card above the top row and meant nothing at
+  // either end. The grid's own top and height are right here, so this is exact
+  // and needs no second measurement; the ×1.0 readout drops below the bar
+  // (css/clock-track.css) rather than eating into it.
+  let fLeft = null, fw = 0;
+  if (focus) {
+    fw = pct(focus.getBoundingClientRect().width);
+    fLeft = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - 0.4);
+    focus.style.left   = fLeft + '%';
+    focus.style.top    = pctH(g.top - s.top) + '%';
+    focus.style.height = pctH(g.height) + '%';
+  }
+  // ── The clock reads over the focus column; the bar runs from there to the
+  //    grid's right edge ──
+  // The digits used to sit ON the grid's left edge, which put them beside the
+  // focus bar rather than above it and started the track a seventh of the way
+  // across the board. Centred on the focus column they cost the track nothing,
+  // so the bar is a good deal longer and ends where the board does - which in
+  // Flow is where the review mark sits.
   if (clockArea && vclock) {
     const readoutW = 7;
-    clockArea.style.left  = gLeft + '%';
+    const cLeft = fLeft === null ? gLeft
+                : Math.max(leftColumnRightPct() + 0.1, fLeft + fw / 2 - readoutW / 2);
+    clockArea.style.left  = cLeft + '%';
     clockArea.style.width = readoutW + '%';
-    vclock.style.left  = (gLeft + readoutW + 0.6) + '%';
-    vclock.style.width = Math.max(6, gWidth - readoutW - 0.6) + '%';
-  }
-  // Focus meter sits right against the grid's left edge - but never back far
-  // enough to crowd the left column. That floor is the COLUMN'S OWN right edge,
-  // not a constant: the shop squeezes the column to 25% of the stage (r230), and
-  // a hardcoded 39.5 pinned the meter out over the board while the column it was
-  // avoiding had moved 13% to the left.
-  if (focus) {
-    const fw = pct(focus.getBoundingClientRect().width);
-    focus.style.left = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - 0.4) + '%';
+    const barLeft = Math.max(cLeft + readoutW + 0.6, gLeft);
+    vclock.style.left  = barLeft + '%';
+    vclock.style.width = Math.max(6, (gLeft + gWidth) - barLeft) + '%';
   }
 }
 

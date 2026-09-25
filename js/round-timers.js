@@ -62,6 +62,10 @@ function startRoundTimer() {
   if (typeof spectrumClearFixtureExits === 'function') spectrumClearFixtureExits();
   insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
+  // The clock GAINED time, so it has been refilled and the level-up marks on it
+  // describe a run of the clock that is over (js/clock-track.js). Read before
+  // roundStartSeconds is overwritten, which is the only reason this sits here.
+  if (typeof clockMarksReset === 'function' && roundSeconds > roundStartSeconds) clockMarksReset();
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
@@ -324,11 +328,18 @@ function updateClockUI() {
   // as an approach. The digits are unchanged: "how long until the review" is the
   // same number as "how much time is left". During the boss itself the window IS
   // a round clock again, so the drain comes back.
-  const _fill = (typeof flowActive === 'function' && flowActive()
-                 && !(typeof bossActive !== 'undefined' && bossActive))
-                ? (1 - secs/_dur) : (secs/_dur);
+  // clockTrackFills() (js/clock-track.js) is the ONE answer to "is this bar
+  // filling or draining" - every decoration drawn on the track places itself
+  // through it too, so the hatching can never end up on the wrong half.
+  const _fillsUp = (typeof clockTrackFills === 'function')
+    ? clockTrackFills()
+    : ((typeof flowActive === 'function' && flowActive())
+       && !(typeof bossActive !== 'undefined' && bossActive));
+  const _fill = _fillsUp ? (1 - secs/_dur) : (secs/_dur);
   barEl.style.width = (_fill*100)+'%';
   const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (_fill*100)+'%';
+  // The 30s bands, the Trick windows and the level-up marks (js/clock-track.js).
+  if (typeof renderClockTrack === 'function') renderClockTrack();
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }

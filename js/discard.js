@@ -87,6 +87,12 @@ function doDiscard() {
   // deletes every Sleight, so before this their printed charges meant nothing:
   // the first discard was the last. A spent one was already nulled off the board
   // by consumeSleightCharge and is not here to route.
+  // A Stopwatch holding the clock frozen is released the moment it is thrown
+  // away, not on its own next tick (r377). The ticker's board check below is
+  // the backstop for every other way it can leave; this is the one route where
+  // a whole second of frozen clock would be visible.
+  if (typeof stopwatchActive !== 'undefined' && stopwatchActive && stopwatchCardPos
+      && discardedCards.includes(stopwatchCardPos.card)) endStopwatch();
   selected.forEach(([r,c]) => {
     const _dc = gridData[r]?.[c];
     if (!_dc || _sieve) return;
@@ -418,6 +424,13 @@ function startStopwatch(card, r, c) {
   if (stopwatchTimer) clearInterval(stopwatchTimer);
   stopwatchTimer = setInterval(() => {
     if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
+    // THE CARD CAN LEAVE THE BOARD WHILE IT IS HOLDING THE CLOCK (r377). A
+    // Stopwatch is an ordinary deck card - discard it, play it in a hand, have
+    // a boss eat it - and nothing released the freeze: the owner's "if you
+    // discard stopwatch sleight it stays paused". Every one of those routes is
+    // "it is no longer in gridData", so that is what is asked rather than
+    // hooking each of them.
+    if (!stopwatchOnBoard()) { endStopwatch(); return; }
     if (gameTimerPaused) return; // don't drain while a menu/shop/event has the game suspended
     if (card._usesLeft === 'infinite') return;
     pausedSecondsRound++; // Albatross counts frozen seconds
@@ -425,6 +438,16 @@ function startStopwatch(card, r, c) {
     // takes a spent Stopwatch off the board wherever a fall has moved it.
     if (!sleightTimedDrain(card)) endStopwatch();
   }, 1000);
+}
+// Is the active Stopwatch still on the board? By IDENTITY, not by cell - a
+// fall moves it, which is the r192 rule and the same reason sleightTimedDrain
+// sweeps for the card rather than trusting a remembered position.
+function stopwatchOnBoard() {
+  const card = stopwatchCardPos && stopwatchCardPos.card;
+  if (!card) return false;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+    if (gridData[r]?.[c] === card) return true;
+  return false;
 }
 function endStopwatch() {
   if (!stopwatchActive && !stopwatchTimer) return;
