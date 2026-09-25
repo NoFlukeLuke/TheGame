@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r369 · Merge: Relentless counts every replay of a spade + Poker Squares daily pass (both were r368)";
+const BUILD = "2026-09-25 · r370 · Every scaling counter counts replays, and grows after the dance on every hand";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

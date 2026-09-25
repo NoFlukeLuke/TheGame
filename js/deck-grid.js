@@ -58,17 +58,18 @@ let permMultGrow = {}; // { cardId: 1 } - flat mult this card gains per play
 // Called once per scored card, after the hand's score is committed (play-hand.js),
 // for the same reason recordNaturalScale is: a scaling buff earned by this hand
 // must pay out on the NEXT one, or the first play would already be the second.
-function growCardScaling(cards) {
+function growCardScaling(cards, counts) {
   if (!cards || !cards.length) return;
   const seen = new Set();
-  cards.forEach(card => {
+  cards.forEach((card, i) => {
     if (!card || !card.rank) return;
     const k = cardId(card);
-    if (seen.has(k)) return;          // a retriggered card grows once per HAND
+    if (seen.has(k)) return;          // one entry per physical card...
     seen.add(k);
+    const n = (counts && counts[i]) || 1;   // ...grown once per time it SCORED (r370)
     const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
-    if (gp) permPips[k] = (permPips[k] || 0) + gp;
-    if (gm) permMult[k] = (permMult[k] || 0) + gm;
+    if (gp) permPips[k] = (permPips[k] || 0) + gp * n;
+    if (gm) permMult[k] = (permMult[k] || 0) + gm * n;
   });
 }
 

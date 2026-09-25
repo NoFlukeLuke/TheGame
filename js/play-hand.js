@@ -23,8 +23,14 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // hand now applies the Focus multiplier a second time - see focusExtraApplies
     // in js/scoring.js, where both fMult sites read it.
     // Run focus tricks: Torrent (+1/card), Rogue Wave (+4/card if played in sequence)
+    // REPLAY-WEIGHTED (r370, owner's rule): every per-card payer below counts a card
+    // once per time it SCORES, so a card that replays twice pays three times.
+    // _lastRetrigByCell is this hand's: captureRoundContrib ran the real calcScore
+    // just before this, and nothing re-scores in between.
+    const _rp = (r, c) => (_lastRetrigByCell && _lastRetrigByCell[r + '-' + c]) || 1;
+    const _rsum = (pred) => handCells.reduce((n, [r, c]) => n + (!pred || pred(gridData[r]?.[c], r, c) ? _rp(r, c) : 0), 0);
     const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
-    if (_isRunHand) totalFocus += handCells.length * BAL.river_run.focus_per_card * trickFires('river_run');
+    if (_isRunHand) totalFocus += _rsum() * BAL.river_run.focus_per_card * trickFires('river_run');
     // Rogue Wave asks for its fire count only once the predicate holds (r296 - a
     // count asked for is a prime spent). hasTrick() still short-circuits
     // canBeOrderedRun, which is what the r203 note was really protecting: it reads
@@ -35,16 +41,16 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Resonance: Pairs/Two Pairs containing a 2 or 4 add +2 Focus per card
     if ((hand === 'Pair' || hand === 'Two Pair') &&
         handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
-      totalFocus += handCells.length * BAL.high_pair.focus_per_card * trickFires('high_pair');
+      totalFocus += _rsum() * BAL.high_pair.focus_per_card * trickFires('high_pair');
     }
     // Gnomes: each rank-5-and-below card scored adds its rank in Focus (Ace = 1)
     {
       const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
-      const _btl = handCells.reduce((s,[r,c]) => s + (_rv[gridData[r]?.[c]?.rank] || 0), 0);
+      const _btl = handCells.reduce((s,[r,c]) => s + (_rv[gridData[r]?.[c]?.rank] || 0) * _rp(r, c), 0);
       if (_btl) totalFocus += _btl * trickFires('before_the_tide');
     }
     // Lucky Sevens: +3 Focus per 7 scored
-    { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
+    { const _sv = _rsum(cd => cd?.rank === '7'); if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
     // Threepeat: hand pip-sum divisible by 3 → one of rewind / mult / Focus
     { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && trickPickOne(911, handCells) === 2) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
     // Wildfire: reaching a same-hand streak of 3 adds Focus
@@ -70,12 +76,12 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // Groove / Overtime: tally cards scored from their marked line this round, then scale.
     if (hasTrick('groove')) {
-      markCount_groove += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'groove')).length;
+      markCount_groove += _rsum((cd, r, c) => cellHasRowColBonus(r, c, 'groove'));
       const _gvf = Math.floor(markCount_groove / 2);
       if (_gvf > 0) totalFocus += _gvf * BAL.groove.focus_per_2 * trickFires('groove');
     }
     if (hasTrick('overtime')) {
-      markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
+      markCount_overtime += _rsum((cd, r, c) => cellHasRowColBonus(r, c, 'overtime'));
     }
     // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
     if (counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus * trickFires('third_down');
@@ -109,7 +115,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // ── 5-card-hand family ── "a 5-card hand" is a real 5-card hand (r339)
     if (realHandOfSize(handCells, 5)) {
-      totalFocus += handCells.length * BAL.five_stack.focus_per_card * trickFires('five_stack'); // +Focus/card (pips+mult handled in calcScore)
+      totalFocus += _rsum() * BAL.five_stack.focus_per_card * trickFires('five_stack'); // +Focus/card (pips+mult handled in calcScore)
       pauseRound(BAL.five_second.pause_seconds * trickFires('five_second'));                       // Five Second Rule → pause 5s
       // no face cards → +1 Focus limit, this Trick's gains capped at +15 for the run.
       // The under-cap test runs BEFORE trickFires so a prime is never spent on a gain
@@ -389,7 +395,7 @@ function playHand() {
   if (minuteHandCharges > 0 && hasTrick('minute_hand')) minuteHandCharges = 0;
   // Scaling card buffs: a card carrying permMultGrow / permPipsGrow raises its
   // own FLAT bonus now, so the growth shows on its next play (js/deck-grid.js).
-  if (typeof growCardScaling === 'function') growCardScaling(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // (growCardScaling moved to scalingCount, after the dance - r370.)
   // Hallmark (r234): this round's marked card, if the hand scored it. After the
   // score commits, exactly like growCardScaling above and recordNaturalScale
   // below - a buff earned by a hand pays out on the NEXT one. Rolling it inside
@@ -489,7 +495,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
-    relentlessCount(handCells, _handRetrigByCell);
+    scalingCount(hand, handCells, _handRetrigByCell);
     return;
   }
 
@@ -515,7 +521,7 @@ function playHand() {
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
-    relentlessCount(handCells, _handRetrigByCell);
+    scalingCount(hand, handCells, _handRetrigByCell);
     return;
   }
 
@@ -563,7 +569,7 @@ function playHand() {
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
-  { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time')); }
+  { const _rt = handCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time')); }
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
@@ -698,22 +704,10 @@ function playHand() {
   }
   // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
   // the goal checks, called from all three dance sites (r294).
-  if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
-  // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
-  if (hasTrick('acorns')) bonusFocus_acorns += handCells.length * BAL.acorns.focus_per_card;
-  // Feng Shui: grow its permanent pips when another position trick fired this hand
-  if (hasTrick('feng_shui') && handCells.some(([r,c]) => rowColBonuses.some(b => (b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)))) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
+  // Compound / Acorns / Feng Shui moved to scalingCount, after the dance (r370).
   // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
   if (hasTrick('assembly_line')) assemblyMarkCount = _lastHandAssemblyEnd;
-  // Ley Line: a card scored where a row effect and a column effect cross gains permanent +mult, once per minute
-  if (hasTrick('rowcol_perm_double')) {
-    let _ln = 0;
-    handCells.forEach(([r,c]) => {
-      const _lcc = gridData[r]?.[c];
-      if (isEffectIntersection(r, c) && _lcc && _lcc.rank) { const _lk = cardId(_lcc); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; _ln++; }
-    });
-    if (_ln) showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8');
-  }
+  // Ley Line moved to scalingCount, after the dance (r370).
   // Temporal Rift (r342): a card scored at a row×column effect intersection gains +3s
   // REWIND when scored (permTime - the r211 pipeline, paid through rewindTime). The
   // once-per-minute gate is gone with the owner's new text; "time buffs do not stack"
@@ -811,30 +805,31 @@ function playHand() {
     const _card = gridData[_r]?.[_c];
     if (!_card || _card._isSleight || _card._isTrick || _card._isStone || !_card.rank) return;
     if (_card._exalted || _card._corrupted) return; // already locked
+    const _ecN = _handRetrigByCell[_r + '-' + _c] || 1;   // replays count as plays (r370)
     if (_card.suit === '♣') {
       if (_clubsInHand >= 3) {
-        _card._clubPackPlays = (_card._clubPackPlays || 0) + 1;
+        _card._clubPackPlays = (_card._clubPackPlays || 0) + _ecN;
         if (_card._clubPackPlays >= 2) { exaltCard(_r, _c); showMessage('♣ Club exalted - strength in numbers!', '#ffd700'); }
       } else if (_clubsInHand === 1) {
-        _card._clubSoloPlays = (_card._clubSoloPlays || 0) + 1;
+        _card._clubSoloPlays = (_card._clubSoloPlays || 0) + _ecN;
         if (_card._clubSoloPlays >= 2) { corruptCard(_r, _c); showMessage('♣ Club corrupted - solo glory!', '#cc88ff'); }
       }
     } else if (_card.suit === '♥') {
       if (_heartsInHand === 1) {
-        _card._heartSoloPlays = (_card._heartSoloPlays || 0) + 1;
+        _card._heartSoloPlays = (_card._heartSoloPlays || 0) + _ecN;
         if (_card._heartSoloPlays >= 2) { exaltCard(_r, _c); showMessage('♥ Heart exalted - stood alone!', '#ffd700'); }
       }
     } else if (_card.suit === '♠') {
       if (_spadeEarly) {
-        _card._spadeEarlyPlays = (_card._spadeEarlyPlays || 0) + 1;
+        _card._spadeEarlyPlays = (_card._spadeEarlyPlays || 0) + _ecN;
         if (_card._spadeEarlyPlays >= 2) { exaltCard(_r, _c); showMessage('♠ Spade exalted - early strike!', '#ffd700'); }
       }
     } else if (_card.suit === '♦') {
       if (coinsAtPlay < 5) {
-        _card._diaPoorPlays = (_card._diaPoorPlays || 0) + 1;
+        _card._diaPoorPlays = (_card._diaPoorPlays || 0) + _ecN;
         if (_card._diaPoorPlays >= 2) { exaltCard(_r, _c); showMessage('♦ Diamond exalted - scarcity!', '#ffd700'); }
       } else if (coinsAtPlay > 65) {
-        _card._diaRichPlays = (_card._diaRichPlays || 0) + 1;
+        _card._diaRichPlays = (_card._diaRichPlays || 0) + _ecN;
         if (_card._diaRichPlays >= 2) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted - excess!', '#cc88ff'); }
       }
     }
@@ -870,52 +865,10 @@ function playHand() {
   // handled in the post-hand block below. The old self-marked pip-doubling is gone.
 
 
-  // Penny Saved: 5s scored also count
-  if (hasTrick('fives_discard')) {
-    const fivesPlayed = scoringCards.filter(c => c.rank === '5').length;
-    bonusMult_fives += fivesPlayed * BAL.fives_discard.pips_per_five;
-  }
+  // Penny Saved / Cloud Nine / Lucky Roll moved to scalingCount, after the dance (r370).
 
-  // Cloud Nine: each 9 scored is forgotten, adds +9 to trick mult
-  if (hasTrick('nines_mult')) {
-    scoringCards.forEach(card => {
-      if (card.rank === '9') {
-        bonusMult_nines += BAL.nines_mult.mult_per_nine;
-        // Remove this specific card from future/past decks
-        let removed = false;
-        drawPile = drawPile.filter(c => {
-          if (!removed && c.rank === '9' && c.suit === card.suit) { removed = true; return false; }
-          return true;
-        });
-        if (!removed) playedPile = playedPile.filter(c => {
-          if (!removed && c.rank === '9' && c.suit === card.suit) { removed = true; return false; }
-          return true;
-        });
-        if (removed) expectedDeckTotal--;
-      }
-    });
-  }
+  // Fours perm moved to scalingCount, after the dance (r370).
 
-  // Fours perm: 4-card hand permanently gives 4th card +4 pips
-  if (hasTrick('fours_perm') && result.handCells.length === 4) {
-    const fourthCell = result.handCells[3];
-    const k = cardId(gridData[fourthCell[0]][fourthCell[1]]);
-    permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips;
-  }
-
-  // Track cards scored for Lucky Roll (sixes_perm)
-  if (hasTrick('sixes_perm')) {
-    scoringCards.forEach(card => {
-      cardsScoredTotal++;
-      if (cardsScoredTotal % BAL.sixes_perm.interval === 0) {
-        const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
-        const k = cardId(card);
-        permPips[k] = (permPips[k] || 0) + roll;
-      }
-    });
-  } else {
-    cardsScoredTotal += scoringCards.length;
-  }
 
   // King post-score: shift adjacent non-scored cards' ranks down
   const scoredSet = new Set(result.handCells.map(([r,c]) => `${r}-${c}`));
@@ -970,7 +923,7 @@ function playHand() {
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
   runHandPriming(hand, handCells);
-  relentlessCount(handCells, _handRetrigByCell);
+  scalingCount(hand, handCells, _handRetrigByCell);
 }
 
 // ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────
@@ -1001,21 +954,90 @@ function playHand() {
 //
 // The board is still intact here: removeAndFall runs later, inside the dance, so
 // the recompute below still reads the cards the hand was made of.
-// Relentless (r367): count the spades this hand scored, AFTER playScoreDance.
-// The dance re-runs calcScore synchronously to build its own ledger (r295), so a
-// count bumped above it would make the dance animate a bigger x mult than the
-// hand was scored with. Called from all three dance sites, beside runHandPriming,
-// so the goal hand and the boss-winning hand count too. Counts only while owned:
-// the Trick starts at 0 when you take it. REPLAY-WEIGHTED: a spade that scores
-// three times counts three (owner's rule - a replayed card plays again, for
-// every counter). `reps` is playHand's snapshot of the real scoring pass.
-function relentlessCount(handCells, reps) {
-  if (!hasTrick('relentless')) return;
-  for (const [r, c] of handCells) {
-    const card = gridData[r]?.[c];
-    if (!card || card._isSleight || card._isStone || isWildCard(card)) continue;
-    if (card.suit === '♠' || (card.combined && card.suit2 === '♠')) spadesRelentless += (reps && reps[r + '-' + c]) || 1;
+// ── Scaling counters, settled (r370) ──────────────────────────────────────────
+//
+// Every counter that makes a Trick or a card permanently bigger lives here, and
+// two rules put it here:
+//
+//   AFTER playScoreDance. The dance re-runs calcScore synchronously to build its
+//   own ledger (r295), and all of these feed calcScore - bumped above the dance,
+//   the animation played a bigger hand than the one that was banked.
+//
+//   FROM ALL THREE DANCE SITES, beside runHandPriming. The goal hand and the
+//   boss-winning hand return early, and these used to sit below those returns,
+//   so the hand that ended a round grew nothing at all.
+//
+// REPLAY-WEIGHTED throughout (owner's rule): a card that scores three times
+// counts three, for every counter. `reps` is playHand's snapshot of the real
+// scoring pass ('r-c' -> times scored). Compound and Feng Shui count HANDS and
+// Fours Perm is a hand condition, so those three are not weighted.
+function scalingCount(hand, handCells, reps) {
+  const _n = (r, c) => (reps && reps[r + '-' + c]) || 1;
+  const _cells = handCells.map(([r, c]) => ({ r, c, card: gridData[r]?.[c], n: _n(r, c) }))
+    .filter(x => x.card);
+  // Scaling card buffs (permPipsGrow / permMultGrow): grow once per time scored.
+  if (typeof growCardScaling === 'function') growCardScaling(_cells.map(x => x.card), _cells.map(x => x.n));
+  // Relentless (r367): spades scored since you took it. Counts only while owned.
+  if (hasTrick('relentless')) {
+    for (const x of _cells) {
+      const card = x.card;
+      if (card._isSleight || card._isStone || isWildCard(card)) continue;
+      if (card.suit === '♠' || (card.combined && card.suit2 === '♠')) spadesRelentless += x.n;
+    }
   }
+  // Compound: +0.1 mult per hand played.
+  if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
+  // Acorns: each card scored grows the stored Focus by 0.05 (per game).
+  if (hasTrick('acorns')) bonusFocus_acorns += _cells.reduce((t, x) => t + x.n, 0) * BAL.acorns.focus_per_card;
+  // Feng Shui: grow its permanent pips when the hand scored on a marked line.
+  if (hasTrick('feng_shui') && handCells.some(([r,c]) => rowColBonuses.some(b => (b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)))) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
+  // Ley Line: a card scored where a row effect and a column effect cross gains permanent +mult.
+  if (hasTrick('rowcol_perm_double')) {
+    let _ln = 0;
+    _cells.forEach(x => {
+      if (isEffectIntersection(x.r, x.c) && x.card.rank) { const _lk = cardId(x.card); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult * x.n; _ln += x.n; }
+    });
+    if (_ln) showMessage('Ley Line! +' + (BAL.rowcol_perm_double.perm_mult * _ln) + ' mult', '#a25cd8');
+  }
+  // Penny Saved: 5s scored also count.
+  if (hasTrick('fives_discard')) {
+    const _f = _cells.reduce((t, x) => t + (x.card.rank === '5' ? x.n : 0), 0);
+    bonusMult_fives += _f * BAL.fives_discard.pips_per_five;
+  }
+  // Cloud Nine: each 9 scored adds to the Trick's mult, and the card is forgotten -
+  // the mult is per time scored, the forgetting once per physical card.
+  if (hasTrick('nines_mult')) {
+    _cells.forEach(({ card, n }) => {
+      if (card.rank !== '9') return;
+      bonusMult_nines += BAL.nines_mult.mult_per_nine * n;
+      let removed = false;
+      drawPile = drawPile.filter(c => {
+        if (!removed && c.rank === '9' && c.suit === card.suit) { removed = true; return false; }
+        return true;
+      });
+      if (!removed) playedPile = playedPile.filter(c => {
+        if (!removed && c.rank === '9' && c.suit === card.suit) { removed = true; return false; }
+        return true;
+      });
+      if (removed) expectedDeckTotal--;
+    });
+  }
+  // Fours perm: a 4-card hand permanently gives its 4th card +4 pips.
+  if (hasTrick('fours_perm') && handCells.length === 4) {
+    const _fc = gridData[handCells[3][0]]?.[handCells[3][1]];
+    if (_fc) { const k = cardId(_fc); permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips; }
+  }
+  // Lucky Roll (sixes_perm): every Nth card scored rolls permanent pips onto it.
+  _cells.forEach(({ card, n }) => {
+    for (let i = 0; i < n; i++) {
+      cardsScoredTotal++;
+      if (hasTrick('sixes_perm') && cardsScoredTotal % BAL.sixes_perm.interval === 0) {
+        const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
+        const k = cardId(card);
+        permPips[k] = (permPips[k] || 0) + roll;
+      }
+    }
+  });
 }
 
 function runHandPriming(hand, handCells) {
