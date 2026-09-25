@@ -688,6 +688,15 @@
     </div>
   </div>
 
+  <div class="dev-section" data-group="squares">
+    <div class="dev-section-title">Poker Squares - the daily grids</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      The 3x3 and 4x4 grids. Changes apply to the NEXT run - the deck and its rank window are built once, when the board size is picked. A row moved off its shipped value is gold.
+    </div>
+    <div id="dev-squares-rows"></div>
+    <div id="dev-squares-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
+    <button class="dev-btn" onclick="devResetSquares()">Reset to shipped</button>
+  </div>
   <div class="dev-section" data-group="spectrum">
     <div class="dev-section-title">Spectrum Deck</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
@@ -1421,6 +1430,7 @@
 <script src="js/map-draw.js"></script>
 <script src="js/squares-daily.js"></script>
 <script src="js/squares-mode.js"></script>
+<script src="js/squares-report.js"></script>
   <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
