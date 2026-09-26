@@ -1,4 +1,4 @@
-const BUILD = "2026-09-26 · r378 · Look direction: three complete art directions on the real layout · a working theme layer · the CRT diagnosed";
+const BUILD = "2026-09-26 · r379 · Reference wall: browser games that fit the brief · Margin Call and 98.css are the two readable ones";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
