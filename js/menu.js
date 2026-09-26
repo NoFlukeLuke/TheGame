@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r377 · The clock bar says what it is made of · the focus bar is the grid's height · a discarded Stopwatch lets go · a pick-of-three stays";
+const BUILD = "2026-09-26 · r378 · Look direction: three complete art directions on the real layout · a working theme layer · the CRT diagnosed";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

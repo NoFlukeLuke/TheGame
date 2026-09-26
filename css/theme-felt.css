@@ -1,0 +1,255 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME LAYER — "The Felt" (direction A), applied to the live game.
+
+   PROOF OF CONCEPT. Loaded AFTER css/style.css; overrides MATERIAL only.
+   It does not move a single panel, change a single size, or touch any JS.
+   Every rule below targets a surface, a border, a shadow or a texture.
+
+   The pattern is the one css/style.css already uses internally for the LETHE
+   cabinet reskin (~line 5100) - this just gives it its own file so a look can
+   be swapped, A/B'd, or switched off, instead of being welded into a 316KB
+   stylesheet.
+
+   `!important` appears where the cabinet block already used it; without that
+   those rules win on cascade order regardless of what this file says.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── one token block. Today four of these names are defined twice in
+        style.css with different values; these are the single answers. ── */
+  --t-room:      #0a0705;
+  --t-console:   #241c12;
+  --t-plate:     #1e1710;   /* surface 1 */
+  --t-plate-hi:  #33291c;   /* surface 2 - the panel a glance lands on */
+  --t-felt:      #2f5c3c;
+  --t-rail:      #3b2a1a;
+  --t-brass:     #d8ae3e;
+  --t-brass-lo:  #8d7a54;
+  --t-ink:       #f4ead2;
+  --t-ink-dim:   #b39a68;   /* 5.6:1 - was #8a7d60 at 4.8 */
+  --t-edge:      #5a4526;   /* 3.0:1 - was #3a3020 at 1.5 */
+
+  /* the existing names, repointed so untouched rules follow along */
+  --bg: var(--t-room);
+  --panel: var(--t-plate);
+  --border: var(--t-edge);
+  --cream: var(--t-ink);
+  --cream-dim: var(--t-ink-dim);
+  --gold: var(--t-brass);
+}
+
+/* ── the room ───────────────────────────────────────────────────────────── */
+body {
+  background:
+    radial-gradient(120% 90% at 22% 6%, rgba(255,214,140,.10) 0%, transparent 55%),
+    linear-gradient(178deg, #2a2015 0%, #17110a 46%, #090604 100%) !important;
+}
+
+/* ── the nine landscape panels. ONE rule in style.css gives all of them
+      their material; this is that rule, rematerialised. ────────────────── */
+#stage.landscape #score-center,
+#stage.landscape #score-left,
+#stage.landscape #score-subboxes,
+#stage.landscape #selected-cards,
+#stage.landscape #knack-carousel-wrap,
+#stage.landscape #trick-tray-area,
+#stage.landscape #vclock,
+#stage.landscape #run-progress,
+#stage.landscape #coin-info {
+  background: linear-gradient(176deg, var(--t-plate) 0%, #140e08 100%) !important;
+  border: 1px solid var(--t-edge) !important;
+  border-radius: 5px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,226,166,.14),
+    inset 0 -1px 0 rgba(0,0,0,.6),
+    inset 0 0 18px rgba(0,0,0,.45),
+    0 1px 2px rgba(10,16,24,.55),
+    0 3px 8px rgba(8,14,22,.5) !important;
+}
+/* SCORE is the top of the elevation ladder - the one panel a glance lands on */
+#stage.landscape #score-center {
+  background: linear-gradient(176deg, var(--t-plate-hi) 0%, #1e160d 100%) !important;
+}
+/* the panels a glance never lands on sit a step lower */
+#stage.landscape #trick-tray-area,
+#stage.landscape #knack-carousel-wrap,
+#stage.landscape #coin-info {
+  background: linear-gradient(176deg, #1a140d 0%, #110c06 100%) !important;
+}
+
+/* ── the table. This is the single biggest change on screen: the cards get
+      a surface to sit on instead of floating in a void. ────────────────── */
+#grid {
+  background:
+    radial-gradient(115% 100% at 28% 0%, rgba(255,222,150,.13) 0%, transparent 62%),
+    radial-gradient(130% 120% at 50% 45%, var(--t-felt) 0%, #1a3825 54%, #0c2114 100%) !important;
+  border: none !important;
+  border-radius: 9px !important;
+  box-shadow:
+    inset 0 0 0 5px var(--t-rail),
+    inset 0 0 0 6px #120c06,
+    inset 0 7px 16px rgba(0,0,0,.65),
+    inset 0 -4px 12px rgba(0,0,0,.5),
+    0 12px 30px rgba(0,0,0,.6) !important;
+}
+/* felt weave + the dealer's arc, screen-printed on. A sibling would be wiped
+   by render(); ::before on #grid survives because render() only rebuilds
+   #grid's CHILDREN. */
+#grid::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; z-index: 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.017) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 1px, transparent 1px 2px),
+    radial-gradient(120% 78% at 50% 122%, transparent 0 55.6%, rgba(232,200,140,.15) 55.6% 56.3%, transparent 56.3%),
+    radial-gradient(120% 78% at 50% 122%, transparent 0 60%, rgba(232,200,140,.08) 60% 60.4%, transparent 60.4%),
+    linear-gradient(153deg, rgba(255,226,170,.1) 0%, transparent 36%);
+}
+
+/* ── cards: a warm paper stock with a real cast shadow ─────────────────── */
+.card {
+  background: linear-gradient(176deg, #fbf5e4, #efe4c8) !important;
+  border-color: #8a7442 !important;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.5),
+    0 4px 9px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.75) !important;
+}
+.card.selected {
+  box-shadow:
+    0 2px 4px rgba(0,0,0,.55),
+    0 9px 18px rgba(0,0,0,.55),
+    0 0 0 2px var(--t-brass),
+    0 0 14px rgba(216,174,62,.55),
+    inset 0 1px 0 rgba(255,255,255,.8) !important;
+}
+
+/* ── the three action keys. PLAY is the one saturated thing on screen. ─── */
+#btn-play, #btn-discard, #swap-indicator { border: 1px solid rgba(0,0,0,.55) !important; }
+#swap-indicator {
+  background: linear-gradient(176deg, #4c99a1, #1f5057) !important; color: #eefdff !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.3), inset 0 -2px 0 rgba(0,0,0,.45),
+              0 3px 7px rgba(0,0,0,.6) !important;
+}
+#btn-discard {
+  background: linear-gradient(176deg, #cf5236, #7f2613) !important; color: #fff0ea !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.28), inset 0 -2px 0 rgba(0,0,0,.45),
+              0 3px 7px rgba(0,0,0,.6) !important;
+}
+#btn-play {
+  background: linear-gradient(176deg, #ffd964, #c8930f) !important; color: #3a2a08 !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.65), inset 0 -2px 0 rgba(120,80,0,.5),
+              0 4px 9px rgba(0,0,0,.6), 0 0 18px rgba(232,194,90,.28) !important;
+}
+
+/* ── the readouts ──────────────────────────────────────────────────────── */
+#score-total-num { color: #ffd977 !important;
+  text-shadow: 0 0 18px rgba(255,190,70,.5), 0 1px 0 #000 !important; }
+#score-total-num, #score-to-go, #goal-display, #pips-val, #mult-val, #focus-val,
+#clock, #vclock, #coins-display, #sel-count {
+  font-variant-numeric: tabular-nums;
+}
+.subbox-label, .panel-title, .top-label { color: var(--t-brass-lo) !important; }
+
+/* the clock stops being the loudest thing on screen */
+#vclock-fill {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.34), transparent 55%),
+    repeating-linear-gradient(90deg, #e8c25a 0 6px, #c9a13a 6px 8px) !important;
+  box-shadow: 0 0 9px rgba(232,194,90,.4) !important;
+}
+
+/* ── held items are objects on a console, not outlines ─────────────────── */
+.trick-tray-chip > .reward-cell {
+  box-shadow: inset 0 1px 0 rgba(255,220,150,.2), 0 2px 5px rgba(0,0,0,.6) !important;
+}
+.knack-chip {
+  background: radial-gradient(circle at 34% 28%, #3a2e1c, #171009) !important;
+  border: 1px solid #574026 !important;
+  box-shadow: inset 0 1px 0 rgba(255,220,150,.28), 0 1px 3px rgba(0,0,0,.6) !important;
+}
+
+/* ── the room's grain. Light-biased, `screen`, 9% - overlay and soft-light
+      crush on dark grounds and desaturate the whole palette. ───────────── */
+#cab-screen::before {
+  content: ''; position: absolute; inset: 12px; z-index: 58; pointer-events: none;
+  opacity: .09; mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' color-interpolation-filters='sRGB'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='gamma' exponent='3.2'/><feFuncG type='gamma' exponent='3.2'/><feFuncB type='gamma' exponent='3.2'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ═══ SECOND PASS — the three things a first cut misses ═══════════════════ */
+
+/* 1. THE FELT HAS TO BE VISIBLE. #grid is 3px of padding around a full board,
+      so its background only ever shows in the gutters. Widening that padding
+      would need a JS change (applyGridMetricsToDOM sizes the board from it),
+      so the table goes on #grid-slot instead - the column the board is
+      centred in, which is already position:relative and already the right
+      size. No JS, no measurement, and the board now sits ON something. */
+#stage.landscape #grid-slot {
+  background:
+    radial-gradient(115% 100% at 28% 0%, rgba(255,222,150,.12) 0%, transparent 62%),
+    radial-gradient(130% 120% at 50% 45%, var(--t-felt) 0%, #1a3825 54%, #0c2114 100%);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 7px var(--t-rail),
+    inset 0 0 0 8px #120c06,
+    inset 0 8px 20px rgba(0,0,0,.6),
+    inset 0 -5px 14px rgba(0,0,0,.45),
+    0 14px 34px rgba(0,0,0,.55);
+}
+#stage.landscape #grid-slot::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; z-index: 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.018) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 1px, transparent 1px 2px),
+    radial-gradient(120% 74% at 50% 118%, transparent 0 56%, rgba(232,200,140,.14) 56% 56.7%, transparent 56.7%),
+    radial-gradient(120% 74% at 50% 118%, transparent 0 60.5%, rgba(232,200,140,.07) 60.5% 60.9%, transparent 60.9%),
+    linear-gradient(153deg, rgba(255,226,170,.09) 0%, transparent 36%);
+}
+/* the board itself then stops being a second box drawn on the table */
+#grid {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#grid::before { content: none; }
+
+/* 2. RECORDS / PAUSE are buttons and should read as the brass keys they are.
+      The cabinet block sets .btn-secondary with !important, so this has to. */
+.btn-secondary {
+  background: linear-gradient(176deg, #2a2217, #17110a) !important;
+  border: 1px solid var(--t-edge) !important;
+  color: #c5ae7c !important;
+  box-shadow: inset 0 1px 0 rgba(255,220,150,.18), 0 2px 5px rgba(0,0,0,.55) !important;
+}
+.btn-secondary:hover {
+  background: linear-gradient(176deg, #362c1e, #1e160c) !important;
+  color: var(--t-ink) !important;
+}
+
+/* 3. AN EMPTY PANEL SHOULD NOT ADVERTISE ITS EMPTINESS. The ghost watermarks
+      are ~2.5cqw of dead type across the two largest panels in the column.
+      An empty tray is a quiet recess, not a room with a sign in it. */
+#stage.landscape #knack-carousel-wrap .panel-title,
+#stage.landscape #trick-tray-area > .panel-title { opacity: .55; }
+#stage.landscape #knack-carousel-wrap:empty,
+#stage.landscape #trick-tray-area:has(#trick-tray-list:empty) {
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,.6),
+    inset 0 -1px 0 rgba(255,226,166,.06) !important;
+  background: linear-gradient(176deg, #15100a 0%, #0e0a05 100%) !important;
+}
+
+/* 4. THE CLOCK STOPS SHOUTING. Its panel keeps its height (that is layout),
+      but the fill is inset to a 9px rail inside it, so the bar carries the
+      same information at a fraction of the visual weight. */
+#stage.landscape #vclock {
+  display: flex !important; align-items: center !important;
+  padding: 0 7px !important;
+  background: linear-gradient(176deg, #1a140d 0%, #110c06 100%) !important;
+}
+#vclock-fill {
+  height: 9px !important; border-radius: 3px !important;
+  align-self: center !important;
+}
