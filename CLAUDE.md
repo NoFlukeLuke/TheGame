@@ -9858,3 +9858,158 @@ unchanged (3 options, 5 actions, a credits move now causing **0** option
 mutations while still repainting the Shop tile's price, a real reroll still doing
 the full redraw); the Classic reward grid opens at 16 cells and confirms. **No
 page errors in any run.**
+
+## r379 - the tiles rest above the tray and fall into it, bottom first
+
+Owner: *"have them fall in one after another from the top of the option tray
+instead of from the top and however they fall now. Right now it's like they fall
+at the same time almost, they don't appear to fall one after the other... And
+falling from above the tray sort of ruins the illusion as well... they should
+look like they are cards resting above the top of the tray, and fall bottom
+first, then after a short delay the tile above can begin to fall, and they'd only
+be visible as they come into the tray... It's almost maybe like they all fall
+from the same spot, but the bottom ones fall faster to reach their destination
+first."*
+
+**WHAT IT USED TO DO, AND WHY IT READ AS ONE MOVE.** Every tile started the SAME
+distance above its OWN destination, so the whole board was already in its final
+arrangement, lifted, and slid down together. There WAS a stagger; it could not be
+seen, because nothing about a tile's fall said where on the board it was going.
+
+### ONE RULE PRODUCES ALL OF IT
+
+> **A tile starts with its BOTTOM EDGE on the tray's lip.**
+> **So D - how far it falls - IS the drop to its own bottom edge.**
+
+Everything the owner asked for falls out of that, which is why there is no
+distance table, no speed curve and no ordering list:
+
+- **The bottom ones are the fastest.** They travel furthest and every tile takes
+  the same time, so speed varies by destination on its own.
+- **Ordering by D is ordering by bottom edge**, so dealing in that order *is*
+  "bottom first, then the tile above".
+- **A tile is exactly fully hidden at rest**, whatever its height. A shared line
+  for the TOPS was the obvious reading and is wrong: a 3-cell option would hang
+  into view before it had moved.
+
+Horizontally nothing moves - each tile falls straight down its own column
+(owner's call, not a fan from one point).
+
+`gridDealTiles(els)` in js/grid-pick.js is the whole thing: measure, sort by
+bottom edge, group, deal. **The deal is ONE PASS AFTER EVERY TILE EXISTS**, not a
+delay handed to each tile as it is appended - a tile's fall is decided by where it
+ends *relative to the others*, which nothing can know mid-append.
+
+- **GROUPS ARE BY BOTTOM EDGE, NOT BY ROW INDEX.** A pick's options are three
+  cells tall and its buttons one, so "which row is it in" does not order them and
+  "where does it end" does.
+- **THE ROW GAP FOLLOWS A GROUP; IT IS NOT AN OFFSET FROM ITS START.** A fixed
+  offset is only a gap when a group holds one tile - the pick's bottom row holds
+  five, so at 130 the options began falling before the last two buttons had left
+  and the groups interleaved. Measured before: options at 130/185/240 against
+  buttons still launching at 165 and 220. After: buttons 0/45/90/135/180, options
+  270/315/360.
+- **THE RUN IS BOUNDED (`GP_DEAL_MAX_LEAD`, 420).** A board's tile COUNT is not
+  something the screen controls: a two-offer pick is mostly ambience, whose 1x1
+  filler sits at four different bottom edges, so the honest ladder came out at
+  **1055ms with inert black cards setting the pace for the last third**. Past the
+  budget every delay is scaled down together, which shortens the run without
+  touching the order or the shape. Measured: 13 tiles 1055 -> 800ms, and an
+  ordinary three-offer pick (740ms) is untouched.
+
+### THE CLIP - a tile is only visible once it is IN the tray
+
+`clip-path` on **`#grid`**, in its BORDER-box coordinates, up while tiles are in
+the air. Three things make that the right element, and the last two were verified
+in a real browser rather than assumed:
+
+- it is the only ancestor whose box IS the tray;
+- **`inset()` TAKES NEGATIVE VALUES**, so the region can extend above the box to
+  meet the Flow chain's panel, which sits `--fbg-pad` outside it. Measured:
+  `inset(-40px 0 0 0)` still hit-tests 30px above the box and `inset(-9px 0 0 0)`
+  does not. So `gridDealClipY()` is `-9` with a panel and `0` without, and the
+  owner's "top of the coloured panel" is one number;
+- **`clip-path` does NOT create a containing block for fixed descendants**
+  (measured: a fixed child does not move when it is applied). Unlike a transform
+  or a filter it therefore cannot re-anchor anything - the r180 hazard.
+
+**IT LIFTS WHEN THE LAST TILE ACTUALLY LANDS, and the timer is only a backstop.**
+A computed end time (delay + duration) was **90ms short in practice** - measured,
+one option finished its flight in the open - because that is not when an
+animation resolves. `_gdAir` is module-level so a second deal landing on a live
+one adds to the same tally.
+
+**AND IT ONLY EVER EXTENDS.** A re-deal cut an 860ms window to 680 before that
+was true. Measured after, over the whole deal: **0 frames with a tile in the air
+and no clip**, on the pick and on the payout, desktop and phone.
+
+**THE AFFORDABILITY REPAINT HAD TO JOIN THE DEAL.** r378 stopped it tearing down
+the OPTIONS, but it still rebuilds the action row - and `survivalShowPick` fires
+one synchronously, one line after opening the pick. Measured: the five buttons
+were already sitting in the tray on the deal's first frame while the options were
+still above it. `gridDealInFlight()` is asked (it is "is the clip up", so the two
+cannot disagree) and the rebuilt row is re-dealt. Its delay is 0, which is exactly
+the delay it lost.
+
+**THE OPACITY RAMP IS GONE.** The clip is what reveals a tile now, so fading one
+in would mean it arrived twice. `longest-all-invisible` on a chain step is **0ms**,
+against 335ms before r378 and 67ms after it.
+
+### The payout and contributions screen
+
+Same rule, and **the staged reveal is kept** (owner's call): the three money lines
+still each arrive as their own count-up begins, seconds apart.
+
+- **`--po-fall` and `--po-delay` are written per tile by `payoutPlaceTiles`.** The
+  keyframe was a hardcoded `-240px` for every tile, which is what made the payout
+  arrive as one slab. `@property` registers `--po-fall` as a `<length>`, or the
+  keyframes would step rather than interpolate.
+- **THE BOTTOM EDGE COMES FROM `data-box`, NOT FROM LAYOUT.** The contributions
+  panel lives inside a `display:none` view until its tab is picked, and a hidden
+  element has no offset box at all - measured, it reported a bottom of **1**
+  against a real 347 and was ordered last in a bottom-first ladder. The box it was
+  placed from is true whether or not it is on screen.
+- **Only the tiles that carry `show` IN THE MARKUP** - the title, the two tabs and
+  the contributions panel - arrive together and are ranked against each other;
+  anything revealed later takes a column-only stagger, so a solo fall is never
+  held back by its row index.
+- **THE CLIP IS HELD FOR THE WHOLE PAYOUT HERE, and that is the one place it
+  differs from the pick.** Bracketing each fall with `animationstart` /
+  `animationend` was built and **loses a race**: `animationstart` fires after the
+  first frame has already been composited, so a tile flashed in over the HUD for a
+  frame or two before the clip caught it (measured, **12 frames across one
+  payout**). Holding it is safe here in a way it is not on the pick, where the top
+  row's selection lift and swell need to paint past the board's edge; the payout
+  selects nothing and all it loses is ~2px of the title tile's downward-offset
+  shadow.
+
+### Two measurement traps worth keeping
+
+- **A rect captured once is stale.** `body.grid-screen` slides the grid one frame
+  after a pick opens (r237), so a lip measured before that is ~13px out - which
+  made a first sighting read as 293ms when it was 60ms. Re-read the rect every
+  frame.
+- **NEVER DIVIDE A RECT BY AN OFFSET.** `#grid`'s width ratio and height ratio
+  disagree, so a "zoom" derived from one and applied to the other is wrong. The
+  r160 Trick-fan trap, and it produced a fictitious 8x discrepancy before the
+  animations were frozen and stepped instead.
+
+**A `page.screenshot()` cannot film this** - each call takes 50-150ms against a
+700ms deal, so a twelve-frame strip covered the whole thing twice over. Pause
+every animation, set `currentTime` by hand and shoot each step; `currentTime`
+includes the delay, so the timeline is faithful.
+
+### Verified
+
+In a real browser at 1440x820 and 420x900: stepped frame by frame, tiles emerge
+from the tray's top edge with **nothing painting above it**, one after another,
+the button row landing before the options; **0 frames with a tile in the air and
+no clip** on the pick, the Flow chain and the payout; the chain's clip line is
+`inset(-9px)` and the panel measures exactly 9 design px above `#grid` in both
+orientations; the clip is cleared on close and the next round's board deals 16
+cards unclipped; the full 5-step chain still runs with the deck audit at 56 -> 59
+and `level` moving once; the payout runs its whole count-up and reaches Valued.
+**No page errors in any run.**
+
+**Not touched:** the Guided crossroads draws its own tiles with its own animation
+(js/guided-mode.js) and is not on this system. It is the obvious next one.

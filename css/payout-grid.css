@@ -38,18 +38,33 @@
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
   opacity: 0;
 }
-/* THE DEAL. `.show` is what the existing stage sequencing in showPayoutUI adds
-   to each line as it is revealed, so the fall costs no new code there - the
-   same shape as gridTileFallIn (js/grid-pick.js). */
-#payout-overlay.po-tiled .po-tile.show { animation: po-fall 0.42s both ease-in; }
+/* THE DEAL (r379). `.show` is what the existing stage sequencing in showPayoutUI
+   adds to each line as it is revealed, so the fall costs no new code there.
+
+   --po-fall AND --po-delay ARE WRITTEN PER TILE by payoutPlaceTiles, and that
+   is the whole change: this used to be a flat -240px for every tile, so the
+   payout arrived as one slab sliding down rather than as cards dealt into a
+   tray. A tile now starts with its BOTTOM EDGE on the tray's lip and drops
+   exactly to its own bottom, at the same duration as every other - so the ones
+   bound for the bottom of the board travel furthest and move fastest. The
+   registration is what lets the keyframes interpolate the distance at all; an
+   unregistered custom property is an opaque token and would step.
+
+   NO OPACITY RAMP: clip-path on #grid (js/grid-pick.js) is what reveals a tile,
+   bracketed by this animation's own start and end events. */
+@property --po-fall { syntax: '<length>'; inherits: false; initial-value: 240px; }
+
+#payout-overlay.po-tiled .po-tile.show {
+  animation: po-fall 0.38s both ease-in;
+  animation-delay: var(--po-delay, 0ms);
+}
 @keyframes po-fall {
-  0%   { opacity: 0; transform: translateY(-240px) scaleY(1); }
-  6%   { opacity: 1; transform: translateY(-240px) scaleY(1); }
-  55%  { opacity: 1; transform: translateY(-108px) scaleY(0.96); animation-timing-function: ease-in; }
-  83%  { opacity: 1; transform: translateY(8px)    scaleY(0.90); }
-  91%  { opacity: 1; transform: translateY(-6px)   scaleY(1.10); }
-  96%  { opacity: 1; transform: translateY(2px)    scaleY(0.98); }
-  100% { opacity: 1; transform: translateY(0)      scaleY(1); }
+  0%   { opacity: 1; transform: translateY(calc(-1 * var(--po-fall, 240px))) scaleY(1); }
+  55%  { opacity: 1; transform: translateY(calc(-0.42 * var(--po-fall, 240px))) scaleY(0.97); animation-timing-function: ease-in; }
+  82%  { opacity: 1; transform: translateY(8px)  scaleY(0.90); }
+  91%  { opacity: 1; transform: translateY(-6px) scaleY(1.10); }
+  96%  { opacity: 1; transform: translateY(2px)  scaleY(0.98); }
+  100% { opacity: 1; transform: translateY(0)    scaleY(1); }
 }
 
 /* Title tile. */

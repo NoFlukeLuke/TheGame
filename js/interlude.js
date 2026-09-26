@@ -287,6 +287,19 @@ async function showPayoutUI() {
     el.classList.add('in-grid', 'po-tiled');
     (_g || document.body).appendChild(el);
     payoutPlaceTiles(el);
+    // THE CLIP IS HELD FOR THE WHOLE PAYOUT, and this is the one place that
+    // differs from the pick. `.show` is added from six places across the
+    // count-up and again on the fast-forward, so the alternative - bracketing
+    // each fall with animationstart / animationend - was tried and it LOSES A
+    // RACE: animationstart fires after the first animation frame has already
+    // been composited, so a tile flashed in over the HUD for a frame or two
+    // before the clip caught it (measured, 12 frames across one payout).
+    //
+    // It is safe to hold here in a way it is not on the pick, where the top
+    // row's selection lift and swell need to paint past the board's edge. The
+    // payout selects nothing; all it loses is about 2px of the title tile's
+    // downward-offset shadow.
+    if (typeof gridDealClip === 'function') gridDealClip(120000);
   } else {
     // Pre-r255: one panel centred over the grid area (r101).
     const _slot = document.getElementById('grid-slot');
@@ -755,9 +768,54 @@ function payoutTiledHTML(c) {
 // again on a re-lay.
 function payoutPlaceTiles(el) {
   if (typeof gpBox !== 'function') return;
-  el.querySelectorAll('[data-box]').forEach(t => {
+  const tiles = [...el.querySelectorAll('[data-box]')];
+  tiles.forEach(t => {
     const [r, c, w, h] = t.dataset.box.split(',').map(Number);
     t.style.cssText += gpBox(r, c, w, h);
+  });
+
+  // ── THE PAYOUT DEALS FROM THE TRAY'S LIP TOO (r379) ───────────────────────
+  // Same rule as the pick (gridDealTiles, js/grid-pick.js): a tile starts with
+  // its BOTTOM EDGE on the lip, so it travels exactly the drop to its own
+  // bottom and the ones bound for the bottom of the board are the fastest.
+  //
+  // IT IS PER TILE, WRITTEN HERE, BECAUSE THE KEYFRAME CANNOT KNOW (it was a
+  // hardcoded -240px for every tile, which is what made the frame arrive as one
+  // slab). --po-fall is that distance and --po-delay the tile's place in its
+  // beat.
+  //
+  // THE STAGED REVEAL IS KEPT (owner's call): the three money lines still each
+  // arrive as their own count-up begins, seconds apart. So only the tiles that
+  // carry `show` IN THE MARKUP - the title, the two tabs and the contributions
+  // panel - arrive together and need ordering against each other; everything
+  // revealed later arrives alone or beside one neighbour, and takes a
+  // column-only stagger so a solo fall is never held back by its row index.
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || typeof gridDealClipY !== 'function') return;
+  const clipY = gridDealClipY();
+  // THE BOTTOM EDGE COMES FROM data-box, NOT FROM LAYOUT. The contributions
+  // panel lives inside a display:none view until its tab is picked, and a
+  // hidden element has no offset box at all - measured, it reported a bottom of
+  // 1 against a real 347 and was ordered last in a bottom-first ladder. The box
+  // it was placed from is the one thing that is true whether or not it is
+  // currently on screen.
+  const bottomOf = t => {
+    const [r, c, w, h] = (t.dataset.box || '0,0,1,1').split(',').map(Number);
+    return cellTop(r + h - 1) + (typeof CARD_H === 'number' ? CARD_H : 75) + gridEl.clientTop;
+  };
+  const atOpen = tiles.filter(t => t.classList.contains('show'))
+                      .map(t => ({ t, b: bottomOf(t) }))
+                      .sort((a, b) => b.b - a.b);
+  const rank = new Map();
+  let g = -1, prev = null, inG = 0;
+  atOpen.forEach(o => {
+    if (prev === null || Math.abs(o.b - prev) > 1) { g++; inG = 0; prev = o.b; }
+    rank.set(o.t, g * 130 + inG * 45); inG++;
+  });
+  tiles.forEach(t => {
+    t.style.setProperty('--po-fall', Math.max(40, bottomOf(t) - clipY + 4) + 'px');
+    const col = Number((t.dataset.box || '0,0').split(',')[1]) || 0;
+    t.style.setProperty('--po-delay', (rank.has(t) ? rank.get(t) : col * 18) + 'ms');
   });
 }
 

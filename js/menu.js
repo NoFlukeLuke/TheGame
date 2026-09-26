@@ -1,4 +1,4 @@
-const BUILD = "2026-09-26 · r378 · The options stop going invisible · every op is confirmed and its cards must touch · a refused move always makes a noise";
+const BUILD = "2026-09-26 · r379 · The tiles rest above the tray and fall into it, bottom first";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

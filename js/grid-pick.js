@@ -78,13 +78,11 @@ const GP_OPT_ROW = 0;             // options start at the top - there is no ambi
 // LEAVE and the reward grid's CONFIRM are fixed for the same reason - so the
 // cells a caller may fill are whatever is left to the left of it.
 const GP_CONFIRM_W = 2;
-// THE OPTIONS LEAD THE DEAL (r378). This used to be 220, so every option was
-// held at opacity 0 by its own fill:'both' deal-in for a third of a second
-// while the AMBIENCE - which is filler by definition - fell in ahead of it.
-// Measured on a Flow chain step: the three tiles read [0,0,0] for 335ms before
-// the first one moved, which is the owner's "the options go invisible briefly".
-// At 40 the hold is the animation's own 6% (~25ms) and nothing else.
-const GP_OPT_LEAD = 40, GP_OPT_STEP = 90;
+// r378 gave the options a 40ms lead over the ambience, because at 220 they were
+// held invisible for a third of a second behind filler. r379 deleted the whole
+// idea of a per-tile delay written at the call site: the order now falls out of
+// where each tile ENDS (gridDealTiles, below), so a tile cannot be given a
+// delay that disagrees with the distance it has to travel.
 const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
 
 // ── THE REROLL POOL (r282) - ONE pool, shared by every pick-of-three ─────────
@@ -168,6 +166,7 @@ function gridScreenTakeover(rows, cols) {
 function gridScreenRelease(force) {
   if (!force && typeof gridPickState !== 'undefined' && gridPickState) return;
   document.body.classList.remove('gp-active');
+  if (typeof gridDealClipOff === 'function') gridDealClipOff();
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
   if (gridScreenSaved) { gridRows = gridScreenSaved.rows; gridCols = gridScreenSaved.cols; gridScreenSaved = null; }
@@ -370,20 +369,170 @@ function gridPickAfterRender(root, offers, onChoose) {
   if (typeof startFloat === 'function') startFloat('gridpick', GRID_PICK_FLOAT_SEL);
 }
 
-// The crossroads' own deal - a tile falls from above the board and settles.
-// Shared with the tiled payout (js/interlude.js), which is the same idea.
+// ══ THE DEAL (rebuilt r379) ═════════════════════════════════════════════════
+// Owner: *"have them fall in one after another from the top of the option tray
+// instead of from the top and however they fall now. Right now it's like they
+// fall at the same time almost... And falling from above the tray sort of ruins
+// the illusion as well... they should look like they are cards resting above
+// the top of the tray, and fall bottom first, then after a short delay the tile
+// above can begin to fall, and they'd only be visible as they come into the
+// tray... It's almost maybe like they all fall from the same spot, but the
+// bottom ones fall faster to reach their destination first."*
+//
+// WHAT IT USED TO DO, AND WHY IT READ AS ONE MOVE: every tile started the SAME
+// distance above its OWN destination, so the whole board was already in its
+// final arrangement, lifted, and slid down together. The stagger was there but
+// it could not be seen, because nothing about a tile's fall said where on the
+// board it was going.
+//
+// ── EVERY TILE'S BOTTOM EDGE STARTS ON THE TRAY'S LIP ───────────────────────
+// That one rule produces all of it, and it is why there is no separate distance
+// table, speed curve or ordering list:
+//
+//   D = the tile's own BOTTOM EDGE, measured down from the clip line.
+//
+//   * A tile bound for the bottom row travels furthest. Every tile takes the
+//     SAME time, so it is also the FASTEST - the owner's "the bottom ones fall
+//     faster to reach their destination first", for free.
+//   * Ordering by D descending IS ordering by bottom edge, so dealing in that
+//     order is "bottom first, then the tile above".
+//   * Starting with the bottom edge on the lip means a tile is exactly fully
+//     hidden at rest - "cards resting above the top of the tray" - whatever its
+//     height. A shared line for the TOPS would leave a 3-cell option hanging
+//     into view before it had moved.
+//
+// Horizontally nothing moves: each tile falls in its own column, straight down
+// (owner's call - not a fan from a single point).
+const GP_DEAL_DUR = 380;   // the same for every tile, which is what varies the speed
+// THE ROW GAP IS AFTER A GROUP, NOT AN OFFSET FROM ITS START. A fixed offset is
+// only a gap when a group holds one tile: the pick's bottom row holds five, so
+// at 130 the options began falling before the last two buttons had left - the
+// groups interleaved and "bottom first, then the row above" stopped reading.
+const GP_DEAL_ROW = 90;    // the pause between one bottom-edge group and the next
+const GP_DEAL_COL = 45;    // left to right within a group
+const GP_DEAL_LIFT = 4;    // a hair more, so frame 1 is provably outside the clip
+// AND THE WHOLE RUN IS BOUNDED. A board's tile COUNT is not something the
+// screen controls - a two-offer pick is mostly ambience, and its 1x1 filler
+// cells sit at four different bottom edges, so the honest ladder came out at
+// 1055ms with inert black cards setting the pace for the last third of it.
+// Past this the delays are scaled down together, which shortens the run
+// without touching the order or the shape of it. Measured: 13 tiles 1055ms ->
+// 800ms, and an ordinary three-offer pick (740ms) is untouched.
+const GP_DEAL_MAX_LEAD = 420;
+
+// ── THE CLIP: a tile is only visible once it is IN the tray ─────────────────
+// clip-path on #grid, in its BORDER-box coordinates, set while tiles are in the
+// air and cleared when they land. Three things make this the right element:
+//  - it is the only ancestor whose box IS the tray;
+//  - `inset()` TAKES NEGATIVE VALUES, so the region can extend above the box to
+//    meet the Flow chain's panel, which sits --fbg-pad outside it (verified in a
+//    real browser: inset(-40px 0 0 0) still hit-tests 30px above the box, while
+//    inset(-9px 0 0 0) does not);
+//  - clip-path does NOT create a containing block for fixed descendants (also
+//    verified), so unlike a transform or a filter it cannot re-anchor anything.
+// It is HELD ONLY FOR THE FALL, never for the whole screen, because it would
+// otherwise cut the top row's selection lift and its shadow.
+function gridDealClipY() {
+  const bg = document.getElementById('flowr-bg');
+  if (!bg) return 0;                       // no panel: the tray's lip IS the board's
+  const pad = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--fbg-pad')) || 0;
+  return -pad;
+}
+let _gdClipTimer = null, _gdClipUntil = 0;
+// A deal is in the air exactly while the clip is up, so the two are one state
+// rather than two that could disagree.
+function gridDealInFlight() { return _gdClipTimer !== null; }
+// IT ONLY EVER EXTENDS. A second deal landing on top of a live one - the action
+// row re-dealt by an affordability repaint, or the payout revealing a line
+// while another is still in the air - would otherwise shorten the window to its
+// own, and the tiles still falling would finish in the open. Measured: the
+// re-deal cut an 860ms window to 680 and the last option landed unclipped.
+function gridDealClip(ms) {
+  const g = document.getElementById('grid');
+  if (!g) return;
+  g.style.clipPath = `inset(${gridDealClipY()}px 0px 0px 0px)`;
+  const until = Date.now() + ms;
+  if (_gdClipTimer && until <= _gdClipUntil) return;
+  _gdClipUntil = until;
+  clearTimeout(_gdClipTimer);
+  _gdClipTimer = setTimeout(() => gridDealClipOff(), ms);
+}
+function gridDealClipOff() {
+  clearTimeout(_gdClipTimer); _gdClipTimer = null; _gdClipUntil = 0; _gdAir = 0;
+  const g = document.getElementById('grid');
+  if (g) g.style.clipPath = '';
+}
+
+// A tile's bottom edge in #grid's BORDER-box units. offsetTop is relative to the
+// offsetParent's PADDING box, so the walk accumulates to #grid's padding box and
+// clientTop (the border) converts to the box clip-path measures from. Offsets
+// are design px and are immune to the cabinet's zoom - never mix them with a
+// rect (the r160 Trick-fan trap).
+function gridDealBottom(el, gridEl) {
+  let y = el.offsetTop, p = el.offsetParent;
+  while (p && p !== gridEl) { y += p.offsetTop; p = p.offsetParent; }
+  return y + el.offsetHeight + (gridEl ? gridEl.clientTop : 0);
+}
+
+// Deal a whole set at once: measure, order by bottom edge, then animate.
+function gridDealTiles(els) {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || !els || !els.length) return;
+  const clipY = gridDealClipY();
+  const rows = els.map(el => ({ el, bottom: gridDealBottom(el, gridEl), x: el.offsetLeft }))
+                  .sort((a, b) => (b.bottom - a.bottom) || (a.x - b.x));
+  // GROUP BY BOTTOM EDGE, not by row index: a pick's option tiles are three
+  // cells tall and its buttons one, so "which row is it in" does not order them
+  // and "where does it end" does.
+  let groupStart = 0, prevBottom = null, inGroup = 0, last = 0;
+  rows.forEach(r => {
+    if (prevBottom === null) { prevBottom = r.bottom; }
+    else if (Math.abs(r.bottom - prevBottom) > 1) {
+      groupStart = groupStart + (inGroup - 1) * GP_DEAL_COL + GP_DEAL_ROW;
+      inGroup = 0; prevBottom = r.bottom;
+    }
+    r.delay = groupStart + inGroup * GP_DEAL_COL;
+    inGroup++;
+    last = Math.max(last, r.delay);
+  });
+  const squeeze = last > GP_DEAL_MAX_LEAD ? GP_DEAL_MAX_LEAD / last : 1;
+  last = 0;
+  rows.forEach(r => {
+    const delay = Math.round(r.delay * squeeze);
+    const dist = Math.max(40, r.bottom - clipY + GP_DEAL_LIFT);
+    const a = gridTileFallIn(r.el, { delay, dist });
+    last = Math.max(last, delay);
+    // THE CLIP LIFTS WHEN THE LAST TILE ACTUALLY LANDS, and the timer below is
+    // only the backstop. A computed end time was 90ms short in practice -
+    // measured, one option finished its flight in the open - because a delay
+    // plus a duration is not when an animation really resolves. The counter is
+    // module-level so a second deal landing on a live one (the action row
+    // re-dealt mid-flight) adds to the same tally instead of lifting the clip
+    // out from under the tiles still falling.
+    if (a && a.finished) { _gdAir++; a.finished.then(_gdLanded, _gdLanded); }
+  });
+  gridDealClip(last + GP_DEAL_DUR + 400);
+}
+let _gdAir = 0;
+function _gdLanded() { if (--_gdAir <= 0) { _gdAir = 0; gridDealClipOff(); } }
+
+// One tile's fall. `dist` is how far it drops; the caller decides that, because
+// only the caller can see the whole set (see gridDealTiles).
+//
+// NO OPACITY RAMP. The clip is what reveals a tile now, so fading one in would
+// mean it arrived twice - once by appearing and once by landing.
 function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
   if (!el.animate) return null;
   const B = 8, S = 0.10;
   const anim = el.animate([
-    { opacity: 0, transform: `translateY(${-dist}px) scaleY(1)` },
-    { opacity: 1, transform: `translateY(${-dist}px) scaleY(1)`,        offset: 0.06 },
-    { opacity: 1, transform: `translateY(${-dist * 0.45}px) scaleY(0.96)`, offset: 0.55, easing: 'ease-in' },
-    { opacity: 1, transform: `translateY(${B}px) scaleY(${1 - S})`,     offset: 0.83 },
-    { opacity: 1, transform: `translateY(${-B * 0.7}px) scaleY(${1 + S})`, offset: 0.91 },
-    { opacity: 1, transform: `translateY(${B * 0.3}px) scaleY(${1 - S * 0.2})`, offset: 0.96 },
-    { opacity: 1, transform: 'translateY(0) scaleY(1)' },
-  ], { duration: 420, delay, easing: 'ease-in', fill: 'both' });
+    { transform: `translateY(${-dist}px) scaleY(1)` },
+    { transform: `translateY(${-dist * 0.42}px) scaleY(0.97)`, offset: 0.55, easing: 'ease-in' },
+    { transform: `translateY(${B}px) scaleY(${1 - S})`,     offset: 0.82 },
+    { transform: `translateY(${-B * 0.7}px) scaleY(${1 + S})`, offset: 0.91 },
+    { transform: `translateY(${B * 0.3}px) scaleY(${1 - S * 0.2})`, offset: 0.96 },
+    { transform: 'translateY(0) scaleY(1)' },
+  ], { duration: GP_DEAL_DUR, delay, easing: 'ease-in', fill: 'both' });
   // RELEASE THE TRANSFORM WHEN THE FALL ENDS (r281). `fill: 'both'` is what
   // holds the tile offset and invisible through its DELAY, and it is also what
   // makes the animation OUTLIVE the fall: a filling WAAPI animation owns
@@ -399,19 +548,27 @@ function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
   return anim;
 }
 
+// The set being dealt, while a render is building it. Null except inside a
+// gridPickRender that is animating in, so an actions-only repaint (r378) adds
+// nothing to it and deals nothing.
+let _gpDeal = null;
+
 // Draw (or redraw) the taken-over board from gridPickState.
 function gridPickRender(animateIn) {
   const gridEl = gridPickTakeover();
   if (!gridEl) return;
   const { offers, actions, onChoose } = gridPickState;
-  const dist = (typeof CARD_H === 'number' ? CARD_H : 75) * GP_ROWS;
-  const put = (html, style, delay) => {
+  // THE DEAL IS ONE PASS OVER THE WHOLE SET, AFTER EVERY TILE EXISTS (r379).
+  // Each tile's fall is decided by where it ENDS relative to the others, which
+  // nothing can know while they are still being appended one at a time.
+  _gpDeal = animateIn ? [] : null;
+  const put = (html, style) => {
     const d = document.createElement('div');
     d.innerHTML = html;
     const el = d.firstElementChild;
     el.style.cssText += style;
     gridEl.appendChild(el);
-    if (animateIn) gridTileFallIn(el, { delay, dist });
+    if (_gpDeal) _gpDeal.push(el);
     return el;
   };
 
@@ -429,18 +586,19 @@ function gridPickRender(animateIn) {
       const inOpt = r >= GP_OPT_ROW && r < GP_OPT_ROW + GP_OPT_H
                  && c >= startCol && c < startCol + span;
       if (inOpt) continue;
-      put('<div class="gp-amb"></div>', gpBox(r, c, 1, 1), (r * GP_COLS + c) * 30);
+      put('<div class="gp-amb"></div>', gpBox(r, c, 1, 1));
     }
   }
 
   // The options themselves, 2 cells wide and 3 tall.
   offers.forEach((p, i) => {
-    put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H), GP_OPT_LEAD + i * GP_OPT_STEP);
+    put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H));
   });
 
   gridPickRenderActions(animateIn);
   gridPickAfterRender(gridEl, offers, onChoose);
   gridPickPaintSelection();
+  if (_gpDeal) { gridDealTiles(_gpDeal); _gpDeal = null; }
 }
 
 // ── THE ACTION ROW ALONE (r378) ─────────────────────────────────────────────
@@ -463,27 +621,33 @@ function gridPickRenderActions(animateIn) {
   // Only THIS row's tiles. The last row's ambience carries gp-amb-act so it can
   // be cleared with the actions and never with the board's own filler.
   gridEl.querySelectorAll('.gp-act, .gp-amb-act').forEach(el => el.remove());
-  const dist = (typeof CARD_H === 'number' ? CARD_H : 75) * GP_ROWS;
-  const put = (html, style, delay) => {
+  // A REBUILD THAT LANDS MID-DEAL MUST FALL WITH IT (r379). r378 stopped the
+  // affordability repaint from tearing down the OPTIONS, but it still rebuilds
+  // this row - and survivalShowPick fires one synchronously, one line after
+  // opening the pick. Measured: the five action tiles were already sitting in
+  // the tray on the deal's first frame while the options were still above it.
+  // They are re-dealt instead of popped, and because this row is the bottom
+  // group its delay is 0 - which is exactly the delay it just lost.
+  const own = (!_gpDeal && (animateIn || gridDealInFlight())) ? [] : null;
+  const put = (html, style) => {
     const d = document.createElement('div');
     d.innerHTML = html;
     const el = d.firstElementChild;
     el.style.cssText += style;
     gridEl.appendChild(el);
-    if (animateIn) gridTileFallIn(el, { delay, dist });
+    if (_gpDeal) _gpDeal.push(el); else if (own) own.push(el);
     return el;
   };
   const acts = (actions || []).slice(0, GP_ACT_COLS);
   for (let c = 0; c < GP_ACT_COLS; c++) {
     const a = acts[c];
-    const delay = 500 + c * 45;
-    if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpBox(GP_ROWS - 1, c, 1, 1), delay); continue; }
+    if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpBox(GP_ROWS - 1, c, 1, 1)); continue; }
     const el = put(
       `<div class="gp-act${a.cls ? ' ' + a.cls : ''}${a.disabled ? ' gp-act-off' : ''}">`
       + `<div class="gp-act-icon">${a.icon || ''}</div>`
       + `<div class="gp-act-label">${a.label || ''}</div>`
       + (a.sub ? `<div class="gp-act-sub">${a.sub}</div>` : '')
-      + `</div>`, gpBox(GP_ROWS - 1, c, 1, 1), delay);
+      + `</div>`, gpBox(GP_ROWS - 1, c, 1, 1));
     if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); a.onClick(); });
   }
 
@@ -495,8 +659,9 @@ function gridPickRenderActions(animateIn) {
     + `<div class="gp-act-icon">\u2713</div>`
     + `<div class="gp-act-label">Confirm</div>`
     + `<div class="gp-act-sub">TAP AN OPTION</div>`
-    + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1), 500 + GP_ACT_COLS * 45);
+    + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1));
   conf.addEventListener('click', e => { e.stopPropagation(); gridPickConfirm(); });
+  if (own) gridDealTiles(own);
 }
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
