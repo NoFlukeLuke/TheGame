@@ -283,3 +283,175 @@ probably the richest vein for this brief. Everything in Part One that points at
 itch.io is search-result evidence only. js13k is completely unexplored, and
 every entry there is ≤13KB with source included, which makes them unusually
 readable.
+
+---
+
+# PART THREE — the card-game and HUD sweep
+
+Second research pass. This one **cloned every candidate and read the render
+path**, so the DOM-vs-canvas calls here are definitive: they come from grepping
+for `getContext` / Unity / Godot / Phaser loaders in real source, not from
+looking at a page. Everything quoted below I then re-verified myself.
+
+## ★★★ The direct fix for "nine outlined boxes of equal weight"
+
+**Antimatter Dimensions** — <https://github.com/IvarK/AntimatterDimensionsSourceCode> (393★)
+· DOM (Vue); the only `getContext` in 842 files is the Steam desktop wrapper.
+
+Verified in `public/stylesheets/new-ui-styles.css`:
+
+```css
+--color-antimatter:     #df5050;
+--color-antimatter--bg: #df50504d;   /* the SAME hue at 4d = 30% alpha */
+--color-infinity--bg:   #b67f334d;
+--color-eternity--bg:   #b341e04d;
+```
+
+**Every currency owns a hue, and that hue is used at two strengths** — full for
+the number, ~30% alpha for the tile's own ground.
+
+**We have already done 90% of this and shipped it in the wrong place.** r222
+assigned a hue per currency for the score *particles*: pips blue, mult red,
+Focus violet, credits gold, time white. That palette currently exists only in
+the flying plates. Push the same hues into the *panels* at ~30% alpha and the
+nine boxes differentiate themselves with **no new geometry and no new assets** —
+and the plate that lands in a box will finally match the box it lands in.
+
+That is probably the highest impact-per-line change available to us.
+
+## ★★★ And the fix for "everything is the same kind of thing"
+
+**98.css** — verified in `style.css`, the `:root` block at lines 50-60:
+
+```css
+--border-raised-outer: inset -1px -1px var(--window-frame),
+                       inset  1px  1px var(--button-highlight);
+--border-raised-inner: inset -2px -2px var(--button-shadow),
+                       inset  2px  2px var(--button-face);
+--border-sunken-outer: inset -1px -1px var(--button-highlight),
+                       inset  1px  1px var(--window-frame);
+--border-sunken-inner: inset -2px -2px var(--button-face),
+                       inset  2px  2px var(--button-shadow);
+```
+
+Sunken is raised with the two colours swapped. Applied as
+`box-shadow: var(--border-raised-outer), var(--border-raised-inner)`.
+
+**This hands us a distinction we do not currently make at all:**
+
+| | should be | what it is |
+|---|---|---|
+| **SUNKEN** | a well with a number in it | SCORE · GOAL · PIPS · MULT · FOCUS · clock · credits |
+| **RAISED** | something you press or own | Trick tiles · Knack chips · PLAY / DISCARD / SWAP · RECORDS · PAUSE |
+
+Right now all nine are the same 1px rect, which is exactly why nothing is the
+focal point. Swapping `:active` from raised to sunken is free physical feedback.
+No images, no extra DOM, and it composes with the transforms already on `.card`.
+
+## ★★ The art direction, already built in CSS
+
+**Imetomi/retro-futuristic-ui-design** — <https://github.com/Imetomi/retro-futuristic-ui-design> (MIT)
+· DOM (React + Vite), 0 canvas. 1,290 CSS lines carrying 28 box-shadows, 25
+gradients, 52 `inset`.
+
+Its own README describes it as *"the aesthetic of 1970s-80s retro-futuristic
+devices — the 'Cassette Futurism' style seen in Alien (1979), Blade Runner, and
+games like Signalis."* Beige monitor bezel, vent slots, green power LED,
+phosphor glow, screen curvature. **It even uses Share Tech Mono + Orbitron,
+two of the five faces we already ship.** This is Direction B, already solved.
+
+**The texture fix, six lines and no assets:**
+
+```css
+.lcd-device::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,...feTurbulence baseFrequency='0.8'
+                        numOctaves='4' stitchTiles='stitch'...");
+  opacity: .4; mix-blend-mode: overlay;
+}
+```
+
+`stitchTiles='stitch'` is what stops the noise seaming — we use it in the
+preview already, but not on the panels.
+
+**The material formula. Verified: `145deg` is used for the housing AND every
+button — one light direction for the whole device, which is most of the effect:**
+
+```css
+background: linear-gradient(145deg, #e8e8e8 0%, #d0d0d0 30%, #b8b8b8 70%, #a0a0a0 100%);
+box-shadow: 0 30px 60px rgba(0,0,0,.5),          /* casts -> it sits ON something */
+            inset 0 2px 0 rgba(255,255,255,.4),  /* top lip catches light */
+            inset 0 -2px 0 rgba(0,0,0,.15);      /* bottom lip in shadow */
+```
+
+Buttons press with `transform: translateY(1px)` **and a reduced drop shadow** —
+the shadow shrinking as it moves down is what sells it.
+
+## ★★ Slay the Web — what actually goes under the cards
+
+Already covered in Part Two for `border-image` and `color-mix`. The other half:
+
+**The surface is not a texture, it is a lit scene.** `.App-background` is a
+`position: fixed; z-index: -1` full-bleed painting, swapped per room, then both
+pseudo-elements crush the top and bottom **30vh** to a dark gradient. The
+comment in the file: *"Darkens the top of the screen to highlight the
+player+monsters on the background."* One element, no per-orientation rules.
+
+Its **hand is one line of flex** — `.Hand .Card { margin-left: -1.5rem }` plus
+`.Hand { transform: translateY(2rem) }` so it sits half off the bottom edge.
+
+And two things that will read as familiar: its energy badge is a **45°-rotated
+square with a counter-rotated span** (identical to our r222 `.pt-box` /
+`.pt-lab`), and its whole palette is a **14-line `variables.css`** — 8 tokens.
+
+## ★★ Pokémon Cards CSS — light moving across a card
+
+<https://github.com/simeydotme/pokemon-cards-css> · play: <https://poke-holo.simey.me/>
+· DOM (SvelteKit), 0 canvas. 3,662 CSS lines, 92 gradients, 87 filters.
+
+**Built on exactly our architecture**: JS writes only custom properties
+(`--pointer-x`, `--pointer-from-center`, `--rotate-x`…) and CSS composes them —
+the r139-r141 rule, in its mature form. Nested elements so transforms don't
+fight: `.card__translater > .card__rotator > .card__front + .card__shine +
+.card__glare`, which is the lesson our r222 particle learned.
+
+The glare is ~8 lines and is the difference between a coloured rectangle and a
+card: a pointer-tracked `radial-gradient` at `mix-blend-mode: overlay`. The foil
+is stacked gradients through `filter: brightness(.85) contrast(2.75) saturate(.65)`
+and `color-dodge` — the `contrast(2.75)` is what turns a smear into a sharp band.
+
+Two details worth taking on their own:
+- **`--card-radius: 4.55% / 3.5%`** — a *percentage elliptical* radius, so the
+  corner scales correctly from a 40px cart thumbnail to a 119px board card. Our
+  fixed 5px radius is wrong at one of those two ends.
+- One CSS file per rarity, selected by attribute. We have four tiers selected by
+  `rar-<tier>`; one file each would give Deluxe/Partner a different **material**
+  rather than a different border colour.
+
+**Caution before adopting the glare:** `mix-blend-mode` creates a stacking
+context and blends against the backdrop. Our cards sit inside `#cabinet` (CSS
+`zoom`) and already carry a transform from the heartbeat, so each is its own
+stacking context, and r296's band layer sits at `z-index: -1`. Prototype on one
+card. Add it as a `pointer-events: none` pseudo-element overlay with an explicit
+z-index — which is what both source projects do — never as a property on the
+card itself. Same rule for the noise overlay above. We learned this the hard way
+in r177 and r209.
+
+## The rest, with the reason
+
+| | |
+|---|---|
+| **[Kittens Game](https://kittensgame.com/web/)** | **33,746 CSS lines across 28 files.** A fixed ledger column that never tabs + a tabbed workspace + a log. Our SCORE/GOAL/PIPS is a ledger; our Tricks/Knacks/preview is a workspace. Also ships **~20 material skins over one layout** (`theme_wood`, `theme_factory`, `theme_cyber`…) as body classes — `default.css` is 2,150 lines of layout, each theme ~1,400 lines of material only. Exactly the decoupling `theme-felt.css` is reaching for. |
+| **[deck-of-cards](https://github.com/deck-of-cards/deck-of-cards)** | Pure vanilla, no deps. **Both corner indices with zero extra elements**: `::before` and `::after` with `white-space: pre-line` and a `\a` newline in `content` to stack rank over suit, the bottom one just `rotate(180deg)`. Faces are from **[Chris Aguilar's Vector Playing Cards](http://sourceforge.net/projects/vector-cards/)** — a free, properly-drawn vector deck if we ever want real court cards instead of glyphs. |
+| **[Solitairey](https://github.com/foss-card-games/Solitairey)** | The felt table as a photographic image **pinned with `background-attachment: fixed`** — which is why it reads as a table the cards move *on* rather than a backdrop. Also ships a full public-domain **Dondorf deck** (19th-century German lithographic). Mine it for the table and the deck; the CSS itself is old. |
+| **[swen128/balatro](https://github.com/swen128/balatro)** | DOM, React+Tailwind. **165 CSS lines, 0 box-shadows, 0 gradients** — so: a clean *logic* reference for hand evaluation, joker resolution and ante structure, and useless visually. Worth knowing which it is before opening it. |
+| **[next-mini-balatro](https://github.com/HosseinzGTX7/next-mini-balatro)** | Hybrid. One technique worth stealing: it renders a swirling vortex into a **160×100 ImageData buffer** (16,000 px/frame, trivially cheap) then upscales with `blur-lg opacity-40` and a dark vignette. **A living surface under the board for almost nothing** — the one option here that suits near-black, and a drop-in alternative to sourcing painted art. |
+| **[coup-ahoo](https://github.com/js13kGames/coup-ahoo)** | js13k 2024, 2nd place. **Canvas, definitively** — `createElement('canvas')` on line 9, and 0 CSS files. Art reference only. Also settles the js13k question: 13KB entries are near-universally single-canvas, so that corpus is not a seam for DOM technique. |
+
+## Still not verifiable
+
+**Solitomb** (`krajzeg.itch.io/solitomb`) — solitaire × poker × deckbuilder
+roguelike, the closest *design* cousin to this game that turned up anywhere.
+Multiple sources describe it as **PICO-8**, which means a 128×128 canvas by
+definition, so it would be art reference only. itch.io stayed blocked, so this
+is unconfirmed.
