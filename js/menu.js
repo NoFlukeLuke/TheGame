@@ -1,4 +1,4 @@
-const BUILD = "2026-09-26 · r379 · Reference wall: browser games that fit the brief · Margin Call and 98.css are the two readable ones";
+const BUILD = "2026-09-26 · r380 · Reference wall part two: source-verified technique · Cookie Clicker, os-gui, Slay the Web";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
