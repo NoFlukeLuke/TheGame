@@ -462,6 +462,29 @@ function toastLayer() {
   return _toastLayer;
 }
 
+// ══ A REFUSED MOVE ALWAYS MAKES A NOISE (r378) ═══════════════════════════════
+// Owner: *"do we play a sound for trying to discard or swap when you can't? Or
+// when you try and buy a trick and can't, basically any time a move is
+// disallowed, there should be a uh uh sound. Not harsh but obvious."*
+//
+// There WAS such a sound - `no_swaps`, catalogued as "Action refused" and
+// covered by all four packs - and it reached about six of the forty-odd places
+// the game turns a move down. Everywhere else the refusal was a red toast in
+// silence, which on a board you are looking at reads as the tap not landing at
+// all rather than as the game saying no.
+//
+// `refuse(text)` is the one way that is said, so a refusal cannot be added
+// without its sound the way thirty of them were. It is deliberately NOT part of
+// showMessage: plenty of red messages report something that HAPPENED (a card
+// corrupted, a score lost to a boss) and are not the player being turned down.
+//
+// A MISS IS NOT A REFUSAL. A roll that passed you over is an outcome and gets
+// sfxRewardBad; this is for a move the game would not let you make.
+function refuse(text, opts) {
+  try { sfxNoSwaps?.(); } catch (e) {}
+  if (text) showMessage(text, (opts && opts.color) || 'var(--red)', opts);
+}
+
 function showMessage(text, color, opts) {
   if (!text) return;
   const o = opts || {};

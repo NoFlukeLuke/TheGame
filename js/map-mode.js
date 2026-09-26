@@ -945,8 +945,7 @@ function mapConfirm() {
   // booking that would empty the act bank is a tap the player could not have
   // known was fatal, so it is turned away and the bar says why.
   if (typeof crunchCanAfford === 'function' && !crunchCanAfford(t)) {
-    sfxNoSwaps?.();
-    showMessage('Not enough time on the clock', 'var(--red)');
+    refuse('Not enough time on the clock');
     return;
   }
 

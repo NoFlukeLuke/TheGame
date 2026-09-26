@@ -443,7 +443,11 @@ function flowrAfterStep() {
   if (!flowrQueue) return false;
   flowrIdx++;
   flowrRenderStack();
-  if (flowrIdx < flowrQueue.length) { setTimeout(() => flowrShowStep(), 380); return true; }
+  // 200ms, not 380 (r378). The panel and its tabs stay lit between steps, so
+  // this gap is a LIT EMPTY PANEL - and the incoming options then took another
+  // 335ms to appear on top of it (see GP_OPT_LEAD). Measured end to end, the
+  // hole between one step and the next was 735ms; it is ~265 now.
+  if (flowrIdx < flowrQueue.length) { setTimeout(() => flowrShowStep(), 200); return true; }
   flowrFinish();
   return true;
 }
@@ -485,8 +489,12 @@ function flowrPlayCounter(n, done) {
   el.innerHTML = `<div class="fc-kick">GOAL CLEARED</div><div class="fc-num">&times;1</div><div class="fc-sub">REWARD</div>`;
   host.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
-  try { sfxLevelUp?.(); } catch (e) {}
-  try { sfxSuccess?.(); } catch (e) {}
+  // ONE SOUND WITH A TAIL (r378), not sfxLevelUp + sfxSuccess stacked. Owner:
+  // "can we make the sound... have longer or bigger tails? So the interruption
+  // feels more substantial?" sfxRewardCount rings on past its own attack and
+  // takes a `step` so the run of bumps climbs; the four packs each carry their
+  // own with a real reverb send. See js/audio.js.
+  try { sfxRewardCount?.(0); } catch (e) {}
   // LOUD (r376): the beat the whole chain is built around, and the tally is
   // now held for it, so it gets a flash over the board and a shake of its own.
   flowrFlash();
@@ -498,7 +506,11 @@ function flowrPlayCounter(n, done) {
     sub.textContent = 'REWARDS';
     // restart the pop (the r277 pulse rule: remove, reflow, re-add)
     el.classList.remove('fc-pop'); void el.offsetWidth; el.classList.add('fc-pop');
-    try { (k >= 4 ? sfxWinExplode : sfxSuccess)?.(); } catch (e) { try { sfxSuccess?.(); } catch (e2) {} }
+    // The same sound one step up, so the run reads as one thing escalating.
+    // sfxWinExplode joins it on the big ones, where the card is already
+    // claiming the screen.
+    try { sfxRewardCount?.(k - 1); } catch (e) {}
+    if (k >= 4) { try { sfxWinExplode?.(); } catch (e) {} }
     if (k < n) setTimeout(bump, 620);
     else setTimeout(finish, 850);
   };
@@ -525,7 +537,12 @@ function flowrPlayCounter(n, done) {
 function flowrRenderStack() {
   const host = document.getElementById('grid-slot');
   document.getElementById('flowr-stack')?.remove();
-  document.getElementById('flowr-bg')?.remove();
+  // THE PANEL IS REUSED, NOT REBUILT (r378). It carries a .28s transition on
+  // its background and border so the step's colour CROSS-FADES; removing and
+  // re-appending it started a fresh element every time, so the transition had
+  // nothing to transition from and the colour snapped.
+  const existing = document.getElementById('flowr-bg');
+  if (!flowrQueue) { existing?.remove(); }
   if (!host || !flowrQueue) return;
   const rest = flowrQueue.slice(flowrIdx);
   const cur  = FLOWR_KINDS[rest[0]] || FLOWR_KINDS.pick3;
@@ -549,10 +566,10 @@ function flowrRenderStack() {
   // JS measurement and no resize handler, the same way `#sel-count` is placed
   // (r216). It is a SIBLING of `#grid`, not a child: the pick empties `#grid` on
   // every render and a child would be destroyed with the tiles.
-  const bg = document.createElement('div');
+  const bg = existing || document.createElement('div');
   bg.id = 'flowr-bg';
   bg.style.setProperty('--fc', cur.color);
-  host.appendChild(bg);
+  if (!existing) host.appendChild(bg);
 
   // THE CURRENT TAB IS THE TITLE CARD, so it is drawn even when it is the only
   // one: a one-step chain (a lone CARD PACK, say) would otherwise get a coloured
@@ -701,39 +718,64 @@ function flowrGrantOffer(opt) {
 // ══════════════════════════════════════════════
 // A pick of three drawn from the op table below; choosing one hands you the
 // REAL BOARD with the HUD swapped to a DECK EDIT chip and a banner over the
-// slot, so it reads as an editor and not the game. Every op works through ONE
-// SELECTED CARD: the adjacency ops fire on its orthogonal neighbours, the buff
-// ops on up to 3 cards you pick yourself.
+// slot, so it reads as an editor and not the game. Every op works through
+// SELECTED CARDS: the adjacency ops through one card, firing on its orthogonal
+// neighbours; the buff ops through up to 3 cards you pick yourself.
 //
-// The buff quantity is rolled AT COMMIT, weighted low (the owner's .43/.36/.21),
-// and revealed one card at a time - a selected card flashes green with its
-// number when the buff lands on it and grey when it passes. Selecting fewer
-// cards concentrates the roll (a rolled 3 clamps to what you selected);
-// deliberately NOT explained anywhere in-game (owner's call).
+// ── EVERY OP IS CONFIRMED, AND NOTHING FIRES ON A TAP (r378) ────────────────
+// Owner: *"all the card buff options should need to be confirmed before
+// happening. Select whatever amount of cards, then press select, then you find
+// out."* The buff ops already worked that way; the four ADJACENCY ops fired the
+// instant a card was touched, so the one screen in the game whose whole purpose
+// is a permanent change to the deck was also the one where a stray tap
+// committed it. Selecting is now selecting on every op and APPLY is the only
+// thing that commits.
+//
+// ── THE SELECTION MUST BE CONNECTED (r378) ──────────────────────────────────
+// Owner: *"Card selections for the card buffs should probably need to be
+// adjacent. To be able to use the leftover swaps and discards for the last
+// round to organize the board for that purpose."* So a buff op's cards are one
+// orthogonally connected group, exactly as a hand is - which turns the last
+// round's unspent swaps and discards into preparation for this screen rather
+// than into nothing.
+//
+// ── THE REVEAL ──────────────────────────────────────────────────────────────
+// The quantity is rolled AT COMMIT, weighted low (the owner's .43/.36/.21), and
+// revealed one card at a time: every candidate JIGGLES as its result lands, a
+// hit goes green on sfxRewardGood and a miss goes grey on sfxRewardBad. The
+// adjacency ops reveal their losers too - the neighbours the roll passed over -
+// so what the roll actually did is on screen rather than implied by what
+// changed. Selecting fewer cards concentrates the roll (a rolled 3 clamps to
+// what you selected); deliberately NOT explained anywhere in-game (owner's
+// call).
+//
+// A MISS IS NOT A REFUSAL, and the two must not share a sound. sfxNoSwaps is
+// now the game's one "you may not do that" (refuse(), js/round-timers.js); a
+// card the roll passed over is an OUTCOME, so it takes sfxRewardBad.
 
 const FLOWR_DECK_OPS = [
   { id: 'suit', adj: true, max: 4, luckMax: true, icon: '♠', name: 'Suit Spread',
-    desc: 'Select a card. Up to 4 adjacent cards change to its suit.' },
+    desc: 'Select a card, then APPLY. Up to 4 cards next to it change to its suit.' },
   { id: 'rank', adj: true, max: 4, luckMax: true, icon: '⇅', name: 'Rank Pull',
-    desc: 'Select a card. Up to 4 adjacent cards move one rank toward it.' },
+    desc: 'Select a card, then APPLY. Up to 4 cards next to it move one rank toward it.' },
   { id: 'del', adj: true, max: 3, icon: '✂', name: 'Cut',
-    desc: 'Select a card. 1-3 adjacent cards leave the run for good.' },
+    desc: 'Select a card, then APPLY. 1-3 cards next to it leave the run for good.' },
   { id: 'copy', adj: true, max: 3, icon: '⧉', name: 'Stamp',
-    desc: 'Select a card. 1-3 adjacent cards become copies of it.' },
+    desc: 'Select a card, then APPLY. 1-3 cards next to it become copies of it.' },
   { id: 'pips',   buff: { key: 'pips',   range: [10, 15, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
-    desc: 'Pick up to 3 cards. Buffed cards score +10 to +15 pips.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +10 to +15 pips.' },
   { id: 'mult',   buff: { key: 'mult',   range: [8, 12, 1],     word: 'mult'   }, icon: '✖', name: 'Mult Buff',
-    desc: 'Pick up to 3 cards. Buffed cards score +8 to +12 mult.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +8 to +12 mult.' },
   { id: 'focus',  buff: { key: 'focus',  range: [1, 2, 1],      word: 'Focus'  }, icon: '◉', name: 'Focus Buff',
-    desc: 'Pick up to 3 cards. Buffed cards grant +1 to +2 Focus when they score.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards grant +1 to +2 Focus when they score.' },
   { id: 'time',   buff: { key: 'time',   range: [1, 5, 1],      word: 's'      }, icon: '⏱', name: 'Time Buff',
-    desc: 'Pick up to 3 cards. Buffed cards put +1 to +5 seconds back on the clock when they score.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards put +1 to +5 seconds back on the clock when they score.' },
   { id: 'replay', buff: { key: 'retrig', range: [1, 2, 1],      word: 'replay' }, icon: '↻', name: 'Replay Buff',
-    desc: 'Pick up to 3 cards. Buffed cards replay +1 to +2 times.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards replay +1 to +2 times.' },
   { id: 'xmult',  buff: { key: 'xmult',  range: [1.5, 3, 0.5],  word: '× mult', x: true }, icon: '⨉', name: '×Mult Buff',
-    desc: 'Pick up to 3 cards. Buffed cards multiply the mult by ×1.5 to ×3.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply the mult by ×1.5 to ×3.' },
   { id: 'xpips',  buff: { key: 'xpips',  range: [1.25, 2, 0.25], word: '× pips', x: true }, icon: '∗', name: '×Pips Buff',
-    desc: 'Pick up to 3 cards. Buffed cards multiply their pips by ×1.25 to ×2.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply their pips by ×1.25 to ×2.' },
 ];
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;
@@ -788,9 +830,9 @@ function flowrDeckBegin(op) {
 // pattern. The tricks-ui playHand listener on the same button no-ops with
 // nothing selected, so it cannot double-fire underneath.
 document.getElementById('btn-play')?.addEventListener('click', e => {
-  if (!_flowrDeckOp || !_flowrDeckOp.buff) return;
+  if (!_flowrDeckOp) return;
   e.stopPropagation();
-  flowrBuffConfirm();
+  flowrDeckConfirm();
 }, true);
 
 // The banner sits OVER THE CHIPS ROW, never over the board (owner's call - it
@@ -805,9 +847,9 @@ function flowrDeckBanner() {
   const el = document.createElement('div');
   el.id = 'flowr-banner';
   if (op.buff) {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to 3 cards, then press APPLY · <i id="fb-count">0/3</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${FLOWR_BUFF_MAX} touching cards, then press APPLY · <i id="fb-count">0/${FLOWR_BUFF_MAX}</i></span>`;
   } else {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">${op.desc.split('.')[0]}.</span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · <i id="fb-count">none</i></span>`;
   }
   host.appendChild(el);
 }
@@ -822,8 +864,52 @@ function flowrDeckFindCell(el) {
   return null;
 }
 
+// A WILD IS NOT AN ORDINARY CARD HERE (r378), and every op breaks on one:
+//  - Suit Spread from a wild gives its neighbours WILD_SUIT, a suit the mode
+//    does not have. That is the one thing js/data/cards.js says never to do -
+//    inventing a face puts a card into play the deck cannot hold.
+//  - Stamp from a wild MINTS WILDS, past whatever wildCardCount() set.
+//  - Rank Pull toward a wild is a dud: WILD_RANK is not in ACTIVE_RANKS, so the
+//    index lookup fails and nothing moves.
+//  - A pip, mult or replay buff ON a wild is worth nothing - calcScore returns
+//    on a wild before any per-card bookkeeping (r325).
+// One clause closes all four, on both the source and the target side.
 function flowrDeckOrdinary(cd) {
+  if (typeof isWildCard === 'function' && isWildCard(cd)) return false;
   return !!cd && !!cd.rank && !cd._isSleight && !cd._isStone && !cd.trick && !cd.challengeCard;
+}
+
+// THE BUFF SELECTION IS ONE ORTHOGONALLY CONNECTED GROUP (r378), the same rule
+// a hand follows - which is what makes the round's leftover swaps and discards
+// worth spending on the shape of the board rather than on nothing.
+//
+// A DESELECT THAT WOULD SPLIT THE GROUP IS REFUSED rather than silently pruning
+// the cards it stranded. Removing a card the player did not tap is the worse
+// surprise, and with a cap of 3 the only breaking case is the middle of a line,
+// where either end works instead.
+const FLOWR_BUFF_MAX = 3;
+// One beat per card, shared by both apply paths so the two cannot drift. The
+// jiggle is 420ms, so this leaves the card still moving as the next one starts -
+// a run of results rather than a queue of them.
+const FLOWR_REVEAL_MS = 420;
+function _flowrAdjacent(a, b) { return Math.abs(a.r - b.r) + Math.abs(a.c - b.c) === 1; }
+function _flowrConnected(sel) {
+  if (sel.length < 2) return true;
+  const seen = new Set([0]); const stack = [0];
+  while (stack.length) {
+    const i = stack.pop();
+    sel.forEach((o, j) => { if (!seen.has(j) && _flowrAdjacent(sel[i], o)) { seen.add(j); stack.push(j); } });
+  }
+  return seen.size === sel.length;
+}
+
+function flowrDeckSyncUI() {
+  const op = _flowrDeckOp; if (!op) return;
+  const n = _flowrDeckSel.length;
+  const cnt = document.getElementById('fb-count');
+  if (cnt) cnt.textContent = op.buff ? `${n}/${FLOWR_BUFF_MAX}`
+                                     : (n ? `${_flowrDeckSel[0].cd.rank}${_flowrDeckSel[0].cd.suit}` : 'none');
+  const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
 }
 
 function flowrDeckTap(e) {
@@ -836,17 +922,62 @@ function flowrDeckTap(e) {
   const hit = flowrDeckFindCell(cardEl);
   if (!hit) return;
   const [r, c, cd] = hit;
-  if (!flowrDeckOrdinary(cd)) { showMessage('Pick an ordinary card', '#e05a5a'); return; }
+  if (!flowrDeckOrdinary(cd)) { refuse('Pick an ordinary card'); return; }
   const op = _flowrDeckOp;
-  if (op.adj) { flowrAdjApply(r, c, cd); return; }
-  // buff op: toggle selection, cap 3
-  const i = _flowrDeckSel.findIndex(s => s.id === String(cd._id));
-  if (i >= 0) { _flowrDeckSel.splice(i, 1); cardEl.classList.remove('flowr-sel'); }
-  else if (_flowrDeckSel.length < 3) { _flowrDeckSel.push({ id: String(cd._id), r, c, cd, el: cardEl }); cardEl.classList.add('flowr-sel'); }
-  const n = _flowrDeckSel.length;
-  const cnt = document.getElementById('fb-count'); if (cnt) cnt.textContent = n + '/3';
-  const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
+  const id = String(cd._id);
+  const i = _flowrDeckSel.findIndex(x => x.id === id);
+
+  // ── ADJACENCY OPS: ONE source card, and a tap MOVES it. It no longer fires.
+  if (op.adj) {
+    if (i >= 0) { _flowrDeckSel = []; cardEl.classList.remove('flowr-src'); }
+    else {
+      document.querySelectorAll('#grid .card.flowr-src').forEach(el => el.classList.remove('flowr-src'));
+      _flowrDeckSel = [{ id, r, c, cd, el: cardEl }];
+      cardEl.classList.add('flowr-src');
+    }
+    flowrDeckSyncUI();
+    try { sfxCardSelect?.(); } catch (e2) {}
+    return;
+  }
+
+  // ── BUFF OPS: a connected group, capped at FLOWR_BUFF_MAX.
+  if (i >= 0) {
+    const rest = _flowrDeckSel.filter((_, k) => k !== i);
+    if (!_flowrConnected(rest)) { refuse('That would split the group'); return; }
+    _flowrDeckSel = rest; cardEl.classList.remove('flowr-sel');
+  } else {
+    if (_flowrDeckSel.length >= FLOWR_BUFF_MAX) { refuse(`Up to ${FLOWR_BUFF_MAX} cards`); return; }
+    const cand = { id, r, c, cd, el: cardEl };
+    if (_flowrDeckSel.length && !_flowrDeckSel.some(o => _flowrAdjacent(o, cand))) {
+      refuse('Pick a card touching the ones you have'); return;
+    }
+    _flowrDeckSel.push(cand); cardEl.classList.add('flowr-sel');
+  }
+  flowrDeckSyncUI();
   try { sfxCardSelect?.(); } catch (e2) {}
+}
+
+// APPLY. One entry point for both kinds, so the button cannot end up wired to
+// one of them (the whole reason the adjacency ops fired on a tap).
+function flowrDeckConfirm() {
+  if (_flowrDeckBusy || !_flowrDeckOp || !_flowrDeckSel.length) return;
+  if (_flowrDeckOp.adj) { const s0 = _flowrDeckSel[0]; flowrAdjApply(s0.r, s0.c, s0.cd); }
+  else flowrBuffConfirm();
+}
+
+// ── THE REVEAL (r378) ───────────────────────────────────────────────────────
+// One card's result. Every candidate jiggles as its number lands, so a miss is
+// something the player WATCHES rather than something they infer from a card
+// that did not change. The classes carry the colour; .flowr-jig carries the
+// movement and is removed after it so a second reveal on the same card - a
+// board that a later step edits again - restarts it.
+function flowrRevealCard(el, won) {
+  if (!el) return;
+  el.classList.remove('flowr-sel', 'flowr-src', 'flowr-jig');
+  void el.offsetWidth;
+  el.classList.add(won ? 'flowr-won' : 'flowr-miss', 'flowr-jig');
+  setTimeout(() => el.classList.remove('flowr-jig'), 420);
+  try { (won ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
 }
 
 // Weighted-low roll over [1..max]: the owner's .43/.36/.21 at max 3, the same
@@ -879,50 +1010,55 @@ function flowrValRoll(range) {
   return vals[vals.length - 1];
 }
 
-// ── Adjacency ops: fire the moment a card is selected ────────────────────────
+// ── Adjacency ops: APPLY rolls, then every NEIGHBOUR reveals ─────────────────
+// EVERY eligible neighbour is revealed, not just the ones the roll took. A card
+// the roll passed over used to do nothing at all and look no different from a
+// card that was never a candidate, so "1-3 adjacent cards" was a promise the
+// screen never showed the player being kept.
 function flowrAdjApply(r, c, sel) {
   const op = _flowrDeckOp;
   const neigh = (typeof getNeighborsOrtho === 'function' ? getNeighborsOrtho(r, c) : [])
     .filter(([nr, nc]) => flowrDeckOrdinary(gridData[nr]?.[nc])
       && !(typeof isCellBlocked === 'function' && isCellBlocked(nr, nc)));
-  if (!neigh.length) { showMessage('No ordinary card next to that one', '#e05a5a'); return; }
+  if (!neigh.length) { refuse('No ordinary card next to that one'); return; }
   _flowrDeckBusy = true;
-  let count = flowrQtyRoll(op.max);
-  count = Math.min(neigh.length, count);
-  const targets = shuffle(neigh.slice()).slice(0, count);
+  const _pb = document.getElementById('btn-play'); if (_pb) _pb.disabled = true;
+  const count = Math.min(neigh.length, flowrQtyRoll(op.max));
+  const order = shuffle(neigh.slice());
+  const won = new Set(order.slice(0, count).map(([nr, nc]) => nr + ',' + nc));
   const gridEl = document.getElementById('grid');
   const elOf = (rr, cc) => {
     const cd = gridData[rr]?.[cc];
     return cd ? gridEl?.querySelector(`[data-card-id="${cd._id}"]`) : null;
   };
-  elOf(r, c)?.classList.add('flowr-src');
-  const summaries = [];
-  targets.forEach(([tr, tc], i) => {
+  // The reveal walks the neighbours in BOARD order, not in roll order - the
+  // roll's own order would leak which ones won before their card moved.
+  neigh.forEach(([tr, tc], i) => {
     setTimeout(() => {
+      const hitIt = won.has(tr + ',' + tc);
+      flowrRevealCard(elOf(tr, tc), hitIt);
+      if (!hitIt) return;
       const t = gridData[tr]?.[tc];
-      const tEl = elOf(tr, tc);
-      tEl?.classList.add('flowr-hit');
-      try { sfxCardPop?.(); } catch (e) {}
       if (!t) return;
-      if (op.id === 'suit') { t.suit = sel.suit; summaries.push('suit'); }
+      if (op.id === 'suit') { t.suit = sel.suit; }
       else if (op.id === 'rank') {
-        const order = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS) ? ACTIVE_RANKS : RANKS;
-        const si = order.indexOf(sel.rank), ti = order.indexOf(t.rank);
-        if (si >= 0 && ti >= 0 && si !== ti) t.rank = order[ti + (si > ti ? 1 : -1)];
+        const ord = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS) ? ACTIVE_RANKS : RANKS;
+        const si = ord.indexOf(sel.rank), ti = ord.indexOf(t.rank);
+        if (si >= 0 && ti >= 0 && si !== ti) t.rank = ord[ti + (si > ti ? 1 : -1)];
       }
       else if (op.id === 'copy') { t.rank = sel.rank; t.suit = sel.suit; }
       else if (op.id === 'del') {
         if (typeof expectedDeckTotal !== 'undefined') expectedDeckTotal--;
         gridData[tr][tc] = (typeof drawCard === 'function' ? drawCard() : null) || null;
       }
-    }, 380 * (i + 1));
+    }, FLOWR_REVEAL_MS * (i + 1));
   });
   setTimeout(() => {
     try { render(); } catch (e) {}
     if (typeof updateDeckHud === 'function') updateDeckHud();
     showMessage(`${op.icon} ${op.name}: ${count} card${count === 1 ? '' : 's'}`, '#4aa3e0');
     flowrDeckEnd();
-  }, 380 * (targets.length + 1) + 420);
+  }, FLOWR_REVEAL_MS * (neigh.length + 1) + 420);
 }
 
 // ── Buff ops: selection then APPLY, with a one-by-one reveal ─────────────────
@@ -930,7 +1066,7 @@ function flowrBuffConfirm() {
   if (_flowrDeckBusy || !_flowrDeckSel.length) return;
   _flowrDeckBusy = true;
   const op = _flowrDeckOp, b = op.buff;
-  const q = Math.min(_flowrDeckSel.length, flowrQtyRoll(3));
+  const q = Math.min(_flowrDeckSel.length, flowrQtyRoll(FLOWR_BUFF_MAX));
   const winners = new Set(shuffle(_flowrDeckSel.slice()).slice(0, q).map(s => s.id));
   const v = flowrValRoll(b.range);
   const label = flowrBuffLabel(b, v);   // shared with the card packs - one wording
@@ -938,19 +1074,15 @@ function flowrBuffConfirm() {
   _flowrDeckSel.forEach((s, i) => {
     setTimeout(() => {
       const won = winners.has(s.id);
-      s.el?.classList.remove('flowr-sel');
-      s.el?.classList.add(won ? 'flowr-won' : 'flowr-miss');
-      if (won) {
-        enhanceCardKey(cardId(s.cd), { [b.key]: v });
-        try { sfxCoin?.(); } catch (e2) {}
-      } else { try { sfxNoSwaps?.(); } catch (e2) {} }
-    }, 480 * (i + 1));
+      flowrRevealCard(s.el, won);
+      if (won) enhanceCardKey(cardId(s.cd), { [b.key]: v });
+    }, FLOWR_REVEAL_MS * (i + 1));
   });
   setTimeout(() => {
     try { render(); } catch (e) {}
     showMessage(`${op.icon} ${label} on ${q} card${q === 1 ? '' : 's'}`, '#5ad4c0');
     flowrDeckEnd();
-  }, 480 * (_flowrDeckSel.length + 1) + 420);
+  }, FLOWR_REVEAL_MS * (_flowrDeckSel.length + 1) + 420);
 }
 
 function flowrDeckEnd() {
@@ -965,8 +1097,8 @@ function flowrDeckEnd() {
     play.innerHTML = _flowrPlayHTML;
     play.disabled = true;
   }
-  document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-hit, .flowr-won, .flowr-miss')
-    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-hit', 'flowr-won', 'flowr-miss'));
+  document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-hit, .flowr-won, .flowr-miss, .flowr-jig')
+    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-hit', 'flowr-won', 'flowr-miss', 'flowr-jig'));
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   _flowrDeckOp = null; _flowrDeckSel = []; _flowrDeckBusy = false;
   flowrAfterStep();

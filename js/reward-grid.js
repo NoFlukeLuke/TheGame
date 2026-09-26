@@ -1760,7 +1760,7 @@ async function confirmRewardPath() {
   if (rewardConfirmed || rewardDealing || rewardSelected.size === 0) return;
   // Hard guard: a queued tap or a keyboard path reaches here without passing the
   // button's disabled state, the same reason playHand re-checks the play grid's floor.
-  if (!rewardPicksMet()) return;
+  if (!rewardPicksMet()) { refuse(`Take ${rewardMinPicks() - rewardSelected.size} more to confirm`); return; }
   rewardConfirmed = true;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');

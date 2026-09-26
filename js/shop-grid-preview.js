@@ -1059,7 +1059,7 @@ function shopGridBuySelection() {
   if (shopGridMode === 'sell') return;
   const { total, n } = shopGridSelectionCost();
   if (n === 0) return;                      // label-only pick: that is a reroll, not a purchase
-  if (coins < total) { showMessage('Not enough credits', 'var(--red)'); return; }
+  if (coins < total) { refuse('Not enough credits'); return; }
   coins -= total;
   updateCoinsUI();
   const bought = [];
@@ -1136,8 +1136,8 @@ function toggleShopSellMode() {
 function shopArmSwap(r, c) {
   if (shopGridMode !== 'buy') return;
   const isLabel = shopgIsLabel(r, c);
-  if (!isLabel && !shopGridItems[r]?.[c]) { showMessage('Nothing to lift', 'var(--cream-dim)'); return; }
-  if (!shopSwapsLeft()) { showMessage('No swaps left', 'var(--red)'); try { sfxNoSwaps?.(); } catch (e) {} return; }
+  if (!isLabel && !shopGridItems[r]?.[c]) { refuse('Nothing to lift', { color: 'var(--cream-dim)' }); return; }
+  if (!shopSwapsLeft()) { refuse('No swaps left'); return; }
   shopSwapPending = shopgLeadKey(r, c);
   // The lift DROPS the selection: what you are about to do is move things, and
   // a pick left standing would be pointing at cells that are about to change.
@@ -1168,11 +1168,11 @@ function shopSwapTiles(r1, c1, r2, c2) {
   // reason it lifts it there.
   const adj = Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
   if (!adj && !(typeof hasKnack === 'function' && hasKnack('free_range_t'))) {
-    showMessage('Trade with a tile it touches', 'var(--cream-dim)'); return false;
+    refuse('Trade with a tile it touches', { color: 'var(--cream-dim)' }); return false;
   }
-  if (!shopSwapsLeft()) { showMessage('No swaps left', 'var(--red)'); try { sfxNoSwaps?.(); } catch (e) {} return false; }
+  if (!shopSwapsLeft()) { refuse('No swaps left'); return false; }
   const l1 = shopgIsLabel(r1, c1), l2 = shopgIsLabel(r2, c2);
-  if (l1 !== l2) { showMessage('A row label only trades with another row label', 'var(--cream-dim)'); return false; }
+  if (l1 !== l2) { refuse('A row label only trades with another row label', { color: 'var(--cream-dim)' }); return false; }
 
   if (l1) {
     // TWO LABELS: the WHOLE ROWS trade - stock, category, pin and all. That is
@@ -1187,7 +1187,7 @@ function shopSwapTiles(r1, c1, r2, c2) {
     // silently reshuffling the row around it. An empty cell IS a valid partner:
     // sliding a tile into a gap is a move, and on a short row it is the move.
     const A = shopgCellsOf(`${r1}-${c1}`), B = shopgCellsOf(`${r2}-${c2}`);
-    if (A.length !== B.length) { showMessage('Those two are different widths', 'var(--cream-dim)'); return false; }
+    if (A.length !== B.length) { refuse('Those two are different widths', { color: 'var(--cream-dim)' }); return false; }
     const pa = shopGridItems[r1][c1], pb = shopGridItems[r2][c2];
     if (!pa && !pb) return false;                                 // two gaps: nothing moved
     A.forEach(([rr, cc]) => { shopGridItems[rr][cc] = pb; });
@@ -1216,8 +1216,7 @@ function shopRerollSelectedRows() {
   if (!rows.length) return false;
   const have = (typeof discards === 'number') ? discards : 0;
   if (have < rows.length) {
-    showMessage(rows.length > 1 ? `Needs ${rows.length} discards` : 'No discards left', 'var(--red)');
-    try { sfxNoSwaps?.(); } catch (e) {}
+    refuse(rows.length > 1 ? `Needs ${rows.length} discards` : 'No discards left');
     return false;
   }
   discards -= rows.length;

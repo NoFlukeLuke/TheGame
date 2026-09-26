@@ -78,6 +78,13 @@ const GP_OPT_ROW = 0;             // options start at the top - there is no ambi
 // LEAVE and the reward grid's CONFIRM are fixed for the same reason - so the
 // cells a caller may fill are whatever is left to the left of it.
 const GP_CONFIRM_W = 2;
+// THE OPTIONS LEAD THE DEAL (r378). This used to be 220, so every option was
+// held at opacity 0 by its own fill:'both' deal-in for a third of a second
+// while the AMBIENCE - which is filler by definition - fell in ahead of it.
+// Measured on a Flow chain step: the three tiles read [0,0,0] for 335ms before
+// the first one moved, which is the owner's "the options go invisible briefly".
+// At 40 the hold is the animation's own 6% (~25ms) and nothing else.
+const GP_OPT_LEAD = 40, GP_OPT_STEP = 90;
 const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
 
 // ── THE REROLL POOL (r282) - ONE pool, shared by every pick-of-three ─────────
@@ -109,7 +116,7 @@ function pickRerollCost() { return pickRerollsLeft > 0 ? 0 : PICK_REROLL_STEP * 
 function pickRerollSpend() {
   if (pickRerollsLeft > 0) { pickRerollsLeft--; return true; }
   const cost = pickRerollCost();
-  if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return false; }
+  if (coins < cost) { refuse('Not enough credits'); return false; }
   coins -= cost;
   if (typeof updateCoinsUI === 'function') updateCoinsUI();
   pickRerollsUsed++;   // only a PAID reroll moves the price
@@ -428,17 +435,49 @@ function gridPickRender(animateIn) {
 
   // The options themselves, 2 cells wide and 3 tall.
   offers.forEach((p, i) => {
-    put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H), 220 + i * 90);
+    put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H), GP_OPT_LEAD + i * GP_OPT_STEP);
   });
 
-  // Row 4: the screen's own actions as TILES (owner spec r256 - Survival's
-  // reroll is a tile on the board, not a button under a panel) in the cells to
-  // the LEFT of CONFIRM, then ambience for the cells no action claimed.
+  gridPickRenderActions(animateIn);
+  gridPickAfterRender(gridEl, offers, onChoose);
+  gridPickPaintSelection();
+}
+
+// ── THE ACTION ROW ALONE (r378) ─────────────────────────────────────────────
+// Row 4: the screen's own actions as TILES (owner spec r256 - Survival's reroll
+// is a tile on the board, not a button under a panel) in the cells to the LEFT
+// of CONFIRM, then ambience for the cells no action claimed.
+//
+// IT IS ITS OWN FUNCTION BECAUSE AN AFFORDABILITY REPAINT MUST NOT TOUCH THE
+// OPTIONS. survivalUpdateRerollBtn - whose own comment already calls itself "a
+// redraw of the action row" - went through gridPickRefresh, which re-runs the
+// whole of gridPickRender and therefore DESTROYS AND REBUILDS EVERY TILE. It is
+// called from updateCoinsUI, i.e. every time credits move, which since r376 is
+// during the tally playing UNDER the pick. Measured on a Flow chain: +6/-3 tiles
+// 34ms into the deal-in (killing it outright, so the options POPPED instead of
+// falling) and +3/-3 again at the end of the score climb.
+function gridPickRenderActions(animateIn) {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || !gridPickState) return;
+  const actions = gridPickState.actions;
+  // Only THIS row's tiles. The last row's ambience carries gp-amb-act so it can
+  // be cleared with the actions and never with the board's own filler.
+  gridEl.querySelectorAll('.gp-act, .gp-amb-act').forEach(el => el.remove());
+  const dist = (typeof CARD_H === 'number' ? CARD_H : 75) * GP_ROWS;
+  const put = (html, style, delay) => {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    const el = d.firstElementChild;
+    el.style.cssText += style;
+    gridEl.appendChild(el);
+    if (animateIn) gridTileFallIn(el, { delay, dist });
+    return el;
+  };
   const acts = (actions || []).slice(0, GP_ACT_COLS);
   for (let c = 0; c < GP_ACT_COLS; c++) {
     const a = acts[c];
     const delay = 500 + c * 45;
-    if (!a) { put('<div class="gp-amb"></div>', gpBox(GP_ROWS - 1, c, 1, 1), delay); continue; }
+    if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpBox(GP_ROWS - 1, c, 1, 1), delay); continue; }
     const el = put(
       `<div class="gp-act${a.cls ? ' ' + a.cls : ''}${a.disabled ? ' gp-act-off' : ''}">`
       + `<div class="gp-act-icon">${a.icon || ''}</div>`
@@ -458,9 +497,6 @@ function gridPickRender(animateIn) {
     + `<div class="gp-act-sub">TAP AN OPTION</div>`
     + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1), 500 + GP_ACT_COLS * 45);
   conf.addEventListener('click', e => { e.stopPropagation(); gridPickConfirm(); });
-
-  gridPickAfterRender(gridEl, offers, onChoose);
-  gridPickPaintSelection();
 }
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
@@ -489,6 +525,10 @@ function gridPickRefresh(offers, actions) {
   if (offers)  { gridPickState.offers = offers; gridPickState.selected = -1;
                  if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true); }
   if (actions) gridPickState.actions = actions;
+  // AN ACTIONS-ONLY REFRESH REDRAWS THE ACTION ROW AND NOTHING ELSE (r378).
+  // See gridPickRenderActions: going through the full render tore down every
+  // option tile, mid-deal-in on the way in and again mid-tally.
+  if (!offers) { gridPickRenderActions(false); gridPickPaintSelection(); return; }
   gridPickRender(false);
 }
 

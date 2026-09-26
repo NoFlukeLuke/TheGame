@@ -92,6 +92,7 @@ function doSwap(r1, c1, r2, c2) {
   if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
+    refuse('No swaps left');
     swapPending = null; render(); return;
   }
   const notAdjacent = Math.abs(r1-r2) + Math.abs(c1-c2) !== 1;
@@ -118,6 +119,7 @@ function doSwap(r1, c1, r2, c2) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
+    refuse('Those cards are not next to each other');
     swapPending = null;
     render();
     return;
@@ -367,19 +369,19 @@ function onCardTap(r, c) {
         if (stopwatchActive && stopwatchCardPos && stopwatchCardPos.card === jcard) {
           endStopwatch(); showMessage('⏱️ Stopwatch - stopped', 'var(--cream-dim)');
         } else if (!stopwatchActive) {
-          if (jcard._usesLeft !== 'infinite' && jcard._usesLeft <= 0) showMessage('Stopwatch is spent', 'var(--cream-dim)');
+          if (jcard._usesLeft !== 'infinite' && jcard._usesLeft <= 0) refuse('Stopwatch is spent', { color: 'var(--cream-dim)' });
           else { spinSleightTile(r, c); startStopwatch(jcard, r, c); }
         }
         return;
       }
       if (!sleightCanActivateThisRound(jcard)) {
-        showMessage(`${jdef.name} already used this round`, 'var(--cream-dim)');
+        refuse(`${jdef.name} already used this round`, { color: 'var(--cream-dim)' });
         return;
       }
       hideSleightGridTooltip();
       // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then it leaves the grid (spent).
       if (jdef.id === 'capacitor') {
-        if (focusNodes < BAL.capacitor.focus_cost) { showMessage(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, 'var(--cream-dim)'); return; }
+        if (focusNodes < BAL.capacitor.focus_cost) { refuse(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, { color: 'var(--cream-dim)' }); return; }
         removeFocus(BAL.capacitor.focus_cost);
         roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
         grantEntityCoins(BAL.capacitor.credits, 'sleight', 'capacitor');
@@ -395,7 +397,7 @@ function onCardTap(r, c) {
       // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid - it
       // cycles back into the deck with its remaining charges, or is spent on its last charge.
       if (jdef.id === 'siphon') {
-        if (focusNodes < BAL.siphon.focus_cost) { showMessage(`Siphon needs ${BAL.siphon.focus_cost} Focus`, 'var(--cream-dim)'); return; }
+        if (focusNodes < BAL.siphon.focus_cost) { refuse(`Siphon needs ${BAL.siphon.focus_cost} Focus`, { color: 'var(--cream-dim)' }); return; }
         removeFocus(BAL.siphon.focus_cost);
         siphonMultX = BAL.siphon.mult;
         showMessage(`🩸 Siphon - next hand ×${BAL.siphon.mult} mult!`, 'var(--gold)');
@@ -625,7 +627,7 @@ document.getElementById('swap-indicator')?.addEventListener('click', () => {
     || (typeof mapActive === 'function' && mapActive());
   if (takeover || animating || roundEnded || falling) return;
   if (selected.length !== 2) {
-    if (selected.length > 0) showMessage('Select exactly 2 cards to swap them', 'var(--cream-dim)');
+    if (selected.length > 0) refuse('Select exactly 2 cards to swap them', { color: 'var(--cream-dim)' });
     return;
   }
   const [[r1, c1], [r2, c2]] = selected;

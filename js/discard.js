@@ -23,7 +23,7 @@ function doDiscard() {
   if (discards <= 0 && !hasKnack('hoarder')) {
     const btn = document.getElementById('btn-discard');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
-    showMessage('No discards left', 'var(--red)');
+    refuse('No discards left');
     return;
   }
   // Defensive: filter selection down to actually-discardable cards

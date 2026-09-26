@@ -56,6 +56,13 @@ const SFX_CATALOG = [
   { id: 'success',       fn: 'sfxSuccess',         group: 'Round',   label: 'Success chime' },
   { id: 'victory',       fn: 'sfxVictory',         group: 'Round',   label: 'Victory fanfare' },
   { id: 'level_up',      fn: 'sfxLevelUp',         group: 'Round',   label: 'Level up' },
+  // ONE ROW, NOT A PAIR. A variantOf row is matched on args[0] and then looked
+  // up in the pack BY ITS OWN ID - so a `reward_count_up` row would have sent
+  // exactly the bumps at that step number to the CLASSIC sound in every pack
+  // while the rest played the pack's. The step is a parameter of one sound, the
+  // way heartbeat's gain is, not a second sound.
+  { id: 'reward_count',  fn: 'sfxRewardCount',     group: 'Round',   label: 'Reward counter', args: [2],
+    note: 'The GOAL CLEARED x N card that holds the tally when a level-up pays more than one reward. Climbs a tone per extra reward.' },
   { id: 'heartbeat',     fn: 'sfxHeartbeat',       group: 'Round',   label: 'Heartbeat (boss approach)' },
 
   // Economy

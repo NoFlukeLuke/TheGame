@@ -1,4 +1,4 @@
-const BUILD = "2026-09-25 · r377 · The clock bar says what it is made of · the focus bar is the grid's height · a discarded Stopwatch lets go · a pick-of-three stays";
+const BUILD = "2026-09-26 · r378 · The options stop going invisible · every op is confirmed and its cards must touch · a refused move always makes a noise";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

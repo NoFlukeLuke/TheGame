@@ -336,10 +336,11 @@ function pulseTrickCount() {
 }
 
 function refuseTrickCapacity() {
-  if (typeof sfxNoSwaps === 'function') { try { sfxNoSwaps(); } catch (e) {} }
+  // refuse() is the one place the sound is played (r378); this site keeps its
+  // own toast because the count chip's pulse below is part of the same answer.
   pulseTrickCount();
   if (typeof portraitShowTricks === 'function') portraitShowTricks();   // portrait hides the tray behind a swap
-  showMessage(`Trick slots full (${trickTray.length}/${trickCapacity()}). Sell one first.`, 'var(--red)');
+  refuse(`Trick slots full (${trickTray.length}/${trickCapacity()}). Sell one first.`);
   return false;
 }
 

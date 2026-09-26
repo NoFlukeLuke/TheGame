@@ -117,7 +117,7 @@ function sleightTimedDrain(card) {
   if (card._chargeSecsUsed >= def.secsPerCharge) { card._usesLeft--; card._chargeSecsUsed = 0; }
   if (card._usesLeft > 0) return true;
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) gridData[r][c] = null;
-  showMessage(`${def.name} is spent`, 'var(--cream-dim)');
+  refuse(`${def.name} is spent`, { color: 'var(--cream-dim)' });
   if (typeof render === 'function') render();
   return false;
 }

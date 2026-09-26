@@ -9672,3 +9672,189 @@ Measured live at 1/3/5/7/10 Tricks:
 
 The one thing that is NOT true is that all ten fit a desktop tray: past 6 the row
 scrolls, which is r237's deliberate floor rather than an oversight.
+
+## r378 - the options stop going invisible, every op is confirmed, a refusal makes a noise
+
+### 1. THE OPTIONS WENT INVISIBLE BECAUSE AN AFFORDABILITY REPAINT TORE THEM DOWN
+
+Owner: *"It's closer now, but when the animation finishes the options do a thing
+where they go invisible briefly."* Two separate causes, and the second is the
+one that survives fixing the first.
+
+**`survivalUpdateRerollBtn` rebuilt the whole board to repaint one row.** Its own
+comment already calls it "a redraw of the action row", but it went through
+`gridPickRefresh` -> `gridPickRender(false)`, which re-runs the entire render and
+therefore **destroys and re-creates every option tile**. It is called from
+`updateCoinsUI`, i.e. every time credits move - and since r376 the TALLY plays
+underneath the pick, so credits move constantly while the options are on screen.
+Measured on a Flow chain through the real goal path: **+6/-3 tiles 34ms into the
+deal-in** (aborting it outright, so the options POPPED rather than falling) and
+**+3/-3 again** at the end of the score climb.
+
+`gridPickRenderActions(animateIn)` is the action row on its own, and
+`gridPickRefresh(null, actions)` routes there. Measured after: **3 added, 0
+removed**, in the same run.
+
+- **The last row's ambience carries `gp-amb-act`**, so the action-row redraw can
+  clear its own filler and never the board's.
+- **It calls `gridPickPaintSelection()` afterwards**, because the CONFIRM tile it
+  just rebuilt is what carries the chosen name.
+
+**`GP_OPT_LEAD` was 220, so the options were held at opacity 0 for a third of a
+second.** `gridTileFallIn` uses `fill: 'both'`, which holds a tile INVISIBLE
+through its delay - and the options waited behind ambience that is filler by
+definition. Frame-by-frame on a chain step: `[0,0,0]` for **335ms** before the
+first tile moved. At 40 the hold is the animation's own 6% and nothing else:
+measured **67-84ms**, which is the deal rather than a gap.
+
+**The chain's own gap went 380 -> 200ms.** The panel and tabs stay lit between
+steps, so that gap is a LIT EMPTY PANEL. End to end the hole between one step
+and the next was **735ms**; it is **366-436ms** now.
+
+**`flowrRenderStack` reuses `#flowr-bg`** instead of removing and re-appending
+it, so the `.28s` colour transition that rule has always carried finally has
+something to transition from and the step's colour cross-fades.
+
+### 2. THE COUNTER HAS ITS OWN SOUND, AND IT RINGS ON - `sfxRewardCount(step)`
+
+Owner: *"Can we make the sound bears for the reward count up have longer or
+bigger tails? So the interruption feels more substantial?"*
+
+It fired `sfxLevelUp()` and `sfxSuccess()` together and then `sfxSuccess()` again
+per bump - three sounds written for three other moments, all of them SHORT. A
+beat the whole tally is now held for (r376) needs a tail.
+
+- **`step` is the bump index and the root climbs a tone a bump**, with the tail
+  growing with it, so a x5 is audibly the biggest without simply being the
+  loudest. A fifth copy of one sound at one pitch reads as a stutter.
+- **All four packs carry their own `reward_count`** with a generous verb send:
+  Vegas a struck house bell over its relay, High Roller taiko into brass and a
+  chime left in the hall, Neon a sub drop under a wide FM bell, Lounge vibes over
+  a tape thump with the upright walking up.
+- **ONE CATALOG ROW, NOT A PAIR.** A `variantOf` row is matched on `args[0]` and
+  then looked up in the pack BY ITS OWN ID - so a `reward_count_up` row would
+  have sent exactly the bumps at that step number to the CLASSIC sound in every
+  pack while every other bump played the pack's. The step is a parameter of one
+  sound, the way `heartbeat`'s gain is. Written, measured as broken, removed.
+
+**Measured** (offline render through the real buses, ducking and limiter), tail
+length in seconds, old = `sfxLevelUp` + `sfxSuccess` stacked:
+
+| pack | old | new, x1 | new, x4 |
+|---|---|---|---|
+| Vegas Floor | 1.33 | **1.70** | **2.16** |
+| High Roller | 2.67 | **2.68** | **2.98** |
+| Neon | 0.87 | **1.52** | **1.94** |
+| Lounge | 1.84 | **1.92** | **2.64** |
+| classic | 1.37 | **1.72** | **2.25** |
+
+RMS is at or above the old in every pack (Lounge is 5% under at x1 and above it
+at every bump), and no peak exceeds **0.91**. **A first pass came out 25%
+QUIETER than what it replaced** - two stacked sounds are dense - which is not
+"more substantial" however long the tail is. Measure against the set you are
+replacing, not by ear on the loud one (the r234 rule).
+
+### 3. EVERY DECK-EDIT OP IS CONFIRMED, AND ITS CARDS MUST TOUCH
+
+Owner: *"all the card buff options should need to be confirmed before happening.
+Select whatever amount of cards, then press select, then you find out."* and
+*"Card selections for the card buffs should probably need to be adjacent. To be
+able to use the leftover swaps and discards for the last round to organize the
+board for that purpose."*
+
+The buff ops already worked that way. **The four ADJACENCY ops fired the instant
+a card was touched** - so the one screen in the game whose whole purpose is a
+permanent change to the deck was also the one where a stray tap committed it.
+
+- **`flowrDeckConfirm()` is the single APPLY**, and the button's capture listener
+  calls it for every op rather than only for the buff ones. That is the whole
+  reason the adjacency ops could end up unwired: the button knew about one kind.
+- **A tap on an adjacency op MOVES the source card**, re-tappable, and the count
+  chip names the card it is holding (`Q♣`) rather than a tally.
+- **A buff selection is ONE ORTHOGONALLY CONNECTED GROUP**, the same rule a hand
+  follows - which is what turns the round's unspent swaps and discards into
+  preparation for this screen instead of into nothing.
+- **A DESELECT THAT WOULD SPLIT THE GROUP IS REFUSED**, not silently pruned.
+  Removing a card the player did not tap is the worse surprise, and at a cap of 3
+  the only breaking case is the middle of a line, where either end works.
+  Measured: first free, a far card refused, two touching cards taken, the middle
+  refused, the end allowed.
+
+#### The reveal
+
+**`flowrRevealCard(el, won)` is the one place a result lands**, on both paths.
+Every candidate JIGGLES as its number arrives, a hit goes green on
+`sfxRewardGood` and a miss goes grey on `sfxRewardBad`.
+
+- **THE JIGGLE IS WHAT MAKES A MISS AN EVENT.** A card that misses changes
+  nothing about itself, so without the movement the reveal had nothing at all to
+  show on it - a hit was something happening and a miss was something not.
+- **`.flowr-jig` is a CSS animation on `transform`**, which beats the
+  stylesheet's composed card transform (the heartbeat's `--hb*`, the freeze's
+  `--frzr`) for its own 420ms and hands it straight back - the r139 precedence
+  rule, and the reason nothing here writes `el.style.transform`.
+- **THE ADJACENCY OPS REVEAL THEIR LOSERS TOO.** A neighbour the roll passed over
+  used to do nothing and look no different from a cell that was never a
+  candidate, so "1-3 adjacent cards" was a promise the screen never showed being
+  kept. The walk is in BOARD order, never in roll order, or the sequence would
+  leak which ones won before their card moved.
+- **A MISS IS NOT A REFUSAL.** It used to play `sfxNoSwaps`, which is now the
+  game's one "you may not do that" (below). A card the roll passed over is an
+  OUTCOME.
+
+#### A WILD is not an ordinary card here, and every op broke on one
+
+Found by running it: the source card came up `✶✳`.
+
+- **Suit Spread from a wild gives its neighbours `WILD_SUIT`**, a suit the mode
+  does not have. That is the one thing `js/data/cards.js` says never to do.
+- **Stamp from a wild MINTS WILDS**, past whatever `wildCardCount()` set.
+- **Rank Pull toward a wild is a dud** - `WILD_RANK` is not in `ACTIVE_RANKS`, so
+  the index lookup fails and nothing moves.
+- **A pip, mult or replay buff ON a wild is worth nothing** - `calcScore` returns
+  on a wild before any per-card bookkeeping (r325).
+
+One clause in `flowrDeckOrdinary` closes all four, on both the source and the
+target side.
+
+### 4. A REFUSED MOVE ALWAYS MAKES A NOISE - `refuse(text, opts)`
+
+Owner: *"do we play a sound for trying to discard or swap when you can't? Or when
+you try and buy a trick and can't, basically any time a move is disallowed, there
+should be a uh uh sound. Not harsh but obvious."*
+
+**There WAS such a sound.** `no_swaps` is catalogued as "Action refused" and is
+covered by all four packs - and it reached about six of the forty-odd places the
+game turns a move down. **Both swap refusals were completely silent**: a red
+border flash on a button and nothing else, which on a board you are looking at
+reads as the tap not landing rather than as the game saying no.
+
+`refuse(text, opts)` (js/round-timers.js) plays the sound and shows the message,
+and **36 sites go through it**: no swaps, a non-adjacent swap, no discards, the
+Trick-slot cap, every "not enough credits" in both shops and on the shared pick,
+the shop board's swap and reroll rules, the reward grid's minimum, the Schedule's
+clock, the Sleight gestures (spent, already used, not enough Focus), Dominoes and
+the deck editor's own rules.
+
+- **IT IS DELIBERATELY NOT PART OF `showMessage`.** Plenty of red messages report
+  something that HAPPENED - a card corrupted, score lost to a boss - and are not
+  the player being turned down.
+- **A MISS IS NOT A REFUSAL** (see above), so the two do not share a sound.
+- Verified: no swaps, a non-adjacent swap, no discards, the tray cap and an
+  unaffordable reroll each play `no_swaps` **exactly once**.
+
+### Verified
+
+In a real browser at 1440x820 and 420x900, through the real click and tap paths:
+a forced 3-chain out of a REAL goal hand deals its options with **0 teardowns**
+and a longest-all-invisible window of **67-84ms** (was 335); the full 5-step
+chain runs pick3 -> cards -> knacks -> tricks -> deck with the tab ladder
+counting 5 down to 1, **0 tabs above the slot, 0 tiles overflowing**, the deck
+audit balancing **56 -> 59** and `level` moving once at the end; a tap on an
+adjacency op leaves the board **byte-identical** and only lights the source;
+APPLY reveals every neighbour with 14-15 jiggles and hit/miss sounds; the
+connected-selection rule holds on all six of its cases; Survival's own pick is
+unchanged (3 options, 5 actions, a credits move now causing **0** option
+mutations while still repainting the Shop tile's price, a real reroll still doing
+the full redraw); the Classic reward grid opens at 16 cells and confirms. **No
+page errors in any run.**
