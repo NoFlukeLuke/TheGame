@@ -98,6 +98,9 @@ html.greyon #frame{filter:saturate(0)}
   align-items:center;justify-content:center;cursor:pointer;
   background:var(--card-bg);border:.17cqw solid var(--card-edge);
   box-shadow:var(--card-sh); transition:transform .12s, box-shadow .12s;}
+/* a fixed px radius is wrong at one end of the 40px-to-119px range; a
+   percentage ELLIPSE is correct at both (pokemon-cards-css) */
+.card,.pcard{border-radius:4.55% / 3.5%}
 .card:hover{transform:translateY(-.4cqw) scale(1.018);z-index:3}
 .card .rk{font:800 2.55cqw/1 var(--card-font);letter-spacing:-.02em}
 .card .st{font-size:2.05cqw;line-height:1;margin-top:.25cqw}
@@ -116,6 +119,22 @@ html.greyon #frame{filter:saturate(0)}
 .card .bands i.tr{right:0;top:0}
 .card .bands i.bl{left:0;bottom:0}
 .card .bands i.br{right:0;bottom:0}
+
+/* ── PER-CURRENCY GROUND TINT (Antimatter Dimensions' pattern) ───────────
+   Every readout owns a hue and uses it at TWO strengths: full for the number,
+   ~16% for the panel's own ground. That is what stops nine identical boxes
+   reading as nine identical boxes - with no new geometry and no new assets.
+   The payoff beyond tidiness: the score plate that flies INTO a box now
+   matches the box it lands in.
+   z-index -1 paints above the panel's own background and below its in-flow
+   content, which is the r296 rule. .pan carries z-index:2 so it is already a
+   stacking context and the -1 cannot escape it. */
+.pan[class*="t-"]::before{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:var(--tint);opacity:var(--tint-a,.16);pointer-events:none;z-index:-1}
+.t-score {--tint:var(--c-score)}
+.t-time  {--tint:var(--c-time)}
+.t-own   {--tint:var(--c-own)}
+.t-credit{--tint:var(--c-credit)}
 
 /* ── generic panel innards ─────────────────────────────────────────────── */
 .lab{font:700 .78cqw/1 var(--lab-font);letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim)}
@@ -200,6 +219,35 @@ html.greyon #frame{filter:saturate(0)}
 /* ═════════ CRT: off by default. This is the good version - see notes. ═══ */
 #fx .scan{opacity:0}
 body.scan #fx .scan{opacity:1}
+
+/* ── THE SHARED CRT, built to the reference numbers, available to all three.
+   Integer pitch, multiply (not overlay - overlay pivots at 50% luminance and
+   darkens dark panels 5x harder than cream cards, which is backwards), a soft
+   ramp with a plateau, a 3px RGB phosphor triad for HORIZONTAL structure, a
+   bloom pass that eats the gaps where the board is brightest, and glass. ── */
+#fx .crt-line{opacity:var(--crt,0);mix-blend-mode:multiply;
+  background:repeating-linear-gradient(180deg,
+    rgba(0,0,0,.34) 0px, rgba(0,0,0,.30) 1px,
+    rgba(0,0,0,.08) 1.9px, rgba(0,0,0,0) 2.5px,
+    rgba(0,0,0,0) 3.5px, rgba(0,0,0,.10) 4px);}
+#fx .crt-mask{opacity:calc(var(--crt,0) * .9);
+  background:repeating-linear-gradient(90deg,
+    rgba(255,60,60,.08) 0 1px, rgba(60,255,90,.08) 1px 2px, rgba(70,90,255,.08) 2px 3px);}
+#fx .crt-glass{opacity:calc(var(--crt,0) * .85);
+  background:
+    linear-gradient(168deg, rgba(255,250,235,.09) 0%, rgba(255,250,235,.02) 15%, transparent 36%),
+    radial-gradient(118% 104% at 50% 46%, transparent 54%, rgba(0,0,0,.34) 100%);}
+#fx .crt-bloom{opacity:calc(var(--crt,0) * .8);mix-blend-mode:screen;
+  background:radial-gradient(52% 44% at 66% 52%, rgba(255,232,186,.16), transparent 74%);}
+
+/* ── THE PS2 DIAL: colour quantization + ordered dither.
+   MEASURED: geometric pixelation over this UI destroys the numbers - a 5px
+   nearest-neighbour block turns a rank glyph into a blob. What actually reads
+   as PS1/PS2 without touching legibility is 16-bit COLOUR QUANTIZATION plus a
+   4x4 Bayer ordered dither. Both verified on a real board. ── */
+#fx .dither{opacity:calc(var(--ps2,0) * .5);mix-blend-mode:overlay;
+  background-image:var(--bayer);background-size:4px 4px;}
+body.ps2q #stage{filter:url(#ps2quant)}
 
 /* dump panel */
 #notes{width:min(1494px,96vw);margin:34px auto 0;border-top:1px solid #26262c;padding-top:26px;flex:0 0 auto}
@@ -302,6 +350,11 @@ body.A{--bg-room:#0a0705}
   --val-w:800;
   --focus-off:rgba(255,255,255,.055); --focus-on:linear-gradient(90deg,#e8c25a,#b98a22);
   --focus-glow:0 0 .55cqw rgba(232,194,90,.75);
+  /* one warm light from the top left; a COOL shadow under a WARM surface is
+     what makes a warm palette read as lit rather than as stained */
+  --bev-lt:rgba(255,226,166,.17); --bev-dk:rgba(0,0,0,.62); --bev-dk2:rgba(0,0,0,.26);
+  --sh-1:rgba(10,16,24,.55); --sh-2:rgba(8,14,22,.5);
+  --c-score:#d8ae3e; --c-time:#6fa8c8; --c-own:#8e4a3c; --c-credit:#e3b944; --tint-a:.1;
   background:
     radial-gradient(120% 90% at 22% 6%, rgba(255,214,140,.10) 0%, transparent 55%),
     linear-gradient(178deg,#2a2015 0%,#17110a 46%,#090604 100%);
@@ -314,6 +367,7 @@ body.A{--bg-room:#0a0705}
   border:1px solid #5a4526;
   border-radius:.5cqw;
   box-shadow:
+    var(--bev),
     inset 0 .12cqw 0 rgba(255,226,166,.14),
     inset 0 -.12cqw 0 rgba(0,0,0,.6),
     inset 0 0 2.4cqw rgba(0,0,0,.45),
@@ -425,6 +479,10 @@ body.B{--bg-room:#0e100e}
   --val-w:600;
   --focus-off:#17190f; --focus-on:linear-gradient(90deg,#ffc24d,#ff8b00);
   --focus-glow:0 0 .5cqw rgba(255,176,0,.85);
+  /* moulded beige plastic: a bright top lip, a soft dark underside */
+  --bev-lt:rgba(255,252,240,.75); --bev-dk:rgba(90,82,64,.42); --bev-dk2:rgba(90,82,64,.2);
+  --sh-1:rgba(20,18,14,.5); --sh-2:rgba(20,18,14,.4);
+  --c-score:#ffb000; --c-time:#63b0ff; --c-own:#c78bff; --c-credit:#ffc24d; --tint-a:.1;
   /* the moulded chassis face */
   background:linear-gradient(174deg,#cec5b2 0%,#b9b09d 40%,#a79e8b 100%);
 }
@@ -437,7 +495,8 @@ body.B{--bg-room:#0e100e}
   background:linear-gradient(176deg,#c6bda9 0%,#b0a794 100%);
   border:1px solid #877e6b;
   border-radius:.22cqw;
-  box-shadow:inset 0 .12cqw 0 rgba(255,252,240,.7), inset 0 -.12cqw 0 rgba(90,82,64,.35),
+  box-shadow:var(--bev),
+             inset 0 .12cqw 0 rgba(255,252,240,.7), inset 0 -.12cqw 0 rgba(90,82,64,.35),
              0 .1cqw .18cqw rgba(70,62,46,.32), 0 .3cqw .62cqw rgba(70,62,46,.24);
 }
 /* EVERY live number sits in a recessed near-black window. That is the rule. */
@@ -486,7 +545,7 @@ body.B{--bg-room:#0e100e}
    5. radiused glass + corner falloff, because a perfect rectangle reads as
       an LCD pretending to be a tube                                        */
 .B #table::before{content:'';position:absolute;inset:0;border-radius:inherit;
-  pointer-events:none;z-index:3;opacity:var(--crt,1);
+  pointer-events:none;z-index:3;opacity:calc(.55 + var(--crt,0) * .45);
   background:
     /* scanlines: 4px period, ~50% duty, soft shoulders */
     repeating-linear-gradient(180deg,
@@ -496,7 +555,7 @@ body.B{--bg-room:#0e100e}
   mix-blend-mode:multiply;}
 /* phosphor triad + glass */
 .B #table::after{content:'';position:absolute;inset:0;border-radius:inherit;
-  pointer-events:none;z-index:4;opacity:calc(.35 + var(--crt,1) * .65);
+  pointer-events:none;z-index:4;opacity:calc(.5 + var(--crt,0) * .5);
   background:
     linear-gradient(168deg, rgba(255,250,235,.1) 0%, rgba(255,250,235,.02) 16%, transparent 38%),
     radial-gradient(112% 100% at 50% 46%, transparent 52%, rgba(0,0,0,.4) 100%),
@@ -592,6 +651,10 @@ body.C{--bg-room:#150d20}
   --card-font:'Archivo',sans-serif; --num-font:'Archivo',sans-serif; --lab-font:'Archivo',sans-serif;
   --val-w:900;
   --focus-off:rgba(255,255,255,.08); --focus-on:#2ec4a6; --focus-glow:none;
+  /* print has no light source, so the "bevel" is a keyline and a hard offset */
+  --bev-lt:rgba(255,255,255,.1); --bev-dk:rgba(10,4,18,.9); --bev-dk2:rgba(10,4,18,.5);
+  --sh-1:rgba(10,4,18,.9); --sh-2:transparent;
+  --c-score:#ffc31f; --c-time:#2ec4a6; --c-own:#8b3ddb; --c-credit:#ffc31f; --tint-a:.17;
   background:#201338;
 }
 /* the printed backdrop: diagonal colour bands + a halftone field.
@@ -614,7 +677,7 @@ body.C{--bg-room:#150d20}
   background:#2c1a48;
   border:.2cqw solid #120a1c;
   border-radius:0;
-  box-shadow:.26cqw .3cqw 0 rgba(10,4,18,.9);
+  box-shadow:var(--bev), .26cqw .3cqw 0 rgba(10,4,18,.9);
 }
 .C .pan::after{content:'';position:absolute;inset:.2cqw;pointer-events:none;
   background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 42%)}
@@ -677,6 +740,42 @@ body.C{--bg-room:#150d20}
 #fx .grit{opacity:calc(var(--grit,0) * .62);
   background-image:var(--grit-tex);
   mix-blend-mode:soft-light;}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RAISED vs SUNKEN — 98.css's lesson, and the distinction the current build
+   does not make at all. Sunken is raised with the two colours swapped.
+
+     SUNKEN = a well you read a number out of   -> SCORE GOAL PIPS MULT FOCUS
+                                                   clock credits, and the trays
+     RAISED = a key you press                   -> RECORDS PAUSE
+
+   It is a COMPOSABLE TOKEN rather than a box-shadow, because every theme
+   already has a hand-tuned shadow stack (contact + ambient + top-edge light)
+   and a rule that replaced it would throw that away. Each theme writes
+   `box-shadow: var(--bev), <its own layers>`, so the bevel rides on top of the
+   material instead of erasing it. The no-op default keeps the comma valid.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pan{--bev:0 0 0 0 transparent}
+.pan.sunk{--bev:
+  inset  1px  1px 0 var(--bev-dk,rgba(0,0,0,.5)),
+  inset  2px  2px 0 var(--bev-dk2,rgba(0,0,0,.22)),
+  inset -1px -1px 0 var(--bev-lt,rgba(255,255,255,.12))}
+.pan.rais{--bev:
+  inset  1px  1px 0 var(--bev-lt,rgba(255,255,255,.14)),
+  inset -1px -1px 0 var(--bev-dk,rgba(0,0,0,.5)),
+  inset -2px -2px 0 var(--bev-dk2,rgba(0,0,0,.22));
+  cursor:pointer}
+.pan.rais:hover{filter:brightness(1.09)}
+/* the press: the bevel INVERTS and the panel drops 1px. The theme's own drop
+   shadow shrinking as it moves down is what actually sells it. */
+.pan.rais:active{transform:translateY(1px);--bev:
+  inset  1px  1px 0 var(--bev-dk,rgba(0,0,0,.5)),
+  inset -1px -1px 0 var(--bev-lt,rgba(255,255,255,.14))}
+/* Today is the flat baseline and must stay flat, or the comparison is rigged. */
+.Z .pan{--bev:0 0 0 0 transparent}
+.Z .pan.rais:active{transform:none}
+.Z .pan[class*="t-"]::before{opacity:0}
+
 #fx .grit2{opacity:calc(var(--grit,0) * .55);
   background:
     repeating-linear-gradient(97deg, rgba(0,0,0,.5) 0 1px, transparent 1px 160px),
@@ -686,6 +785,16 @@ body.C{--bg-room:#150d20}
 </head>
 <body class="A">
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <!-- 16-step per-channel quantization. This is the "16-bit colour" of the era,
+       and unlike geometric pixelation it leaves every glyph intact. -->
+  <filter id="ps2quant" color-interpolation-filters="sRGB"><feComponentTransfer>
+    <feFuncR type="discrete" tableValues="0 .067 .133 .2 .267 .333 .4 .467 .533 .6 .667 .733 .8 .867 .933 1"/>
+    <feFuncG type="discrete" tableValues="0 .067 .133 .2 .267 .333 .4 .467 .533 .6 .667 .733 .8 .867 .933 1"/>
+    <feFuncB type="discrete" tableValues="0 .067 .133 .2 .267 .333 .4 .467 .533 .6 .667 .733 .8 .867 .933 1"/>
+  </feComponentTransfer></filter>
+</defs></svg>
+
 <div id="bar">
   <h1>Look preview</h1>
   <div class="tabs">
@@ -694,10 +803,12 @@ body.C{--bg-room:#150d20}
     <button class="tab" data-k="B">B · The Terminal</button>
     <button class="tab" data-k="C">C · Side Art</button>
   </div>
-  <div class="ctl"><label for="grit">PS2 grit</label><input id="grit" type="range" min="0" max="100" value="18"><span id="gritv" style="width:30px">18</span></div>
-  <div class="ctl"><label><input type="checkbox" id="scan"> room scanlines</label></div>
-  <div class="ctl"><label for="crt">CRT (B)</label><input id="crt" type="range" min="0" max="100" value="70"><span id="crtv" style="width:30px">70</span></div>
+  <div class="ctl"><label for="grit">wear</label><input id="grit" type="range" min="0" max="100" value="18"><span id="gritv" style="width:26px">18</span></div>
+  <div class="ctl"><label for="crt">CRT</label><input id="crt" type="range" min="0" max="100" value="0"><span id="crtv" style="width:26px">0</span></div>
+  <div class="ctl"><label for="ps2">PS2 dither</label><input id="ps2" type="range" min="0" max="100" value="0"><span id="ps2v" style="width:26px">0</span></div>
+  <div class="ctl"><label><input type="checkbox" id="quant"> 16-bit colour</label></div>
   <div class="ctl"><label><input type="checkbox" id="grey"> greyscale test</label></div>
+  <div class="ctl"><label><input type="checkbox" id="scan"> room scanlines</label></div>
   <div class="ctl"><label><input type="checkbox" id="sel" checked> hand selected</label></div>
   <button id="dump">Dump theme tokens</button>
 </div>
@@ -714,11 +825,11 @@ body.C{--bg-room:#150d20}
 <div id="frame">
   <div id="stage">
     <!-- SCORE -->
-    <div class="pan flexc" id="p-score"><div class="lab">Score</div><div class="val">4,180</div></div>
+    <div class="pan flexc sunk t-score" id="p-score"><div class="lab">Score</div><div class="val">4,180</div></div>
     <!-- GOAL -->
-    <div class="pan flexc" id="p-goal"><div class="lab">Goal</div><div class="val">1,500</div></div>
+    <div class="pan flexc sunk t-score" id="p-goal"><div class="lab">Goal</div><div class="val">1,500</div></div>
     <!-- PIPS x MULT x FOCUS -->
-    <div class="pan" id="p-chips">
+    <div class="pan sunk" id="p-chips">
       <div class="chip" id="c-pips"><div class="cl">Pips</div><div class="cv">92</div></div>
       <div class="times">&times;</div>
       <div class="chip" id="c-mult"><div class="cl">Mult</div><div class="cv">14</div></div>
@@ -726,20 +837,20 @@ body.C{--bg-room:#150d20}
       <div class="chip" id="c-foc"><div class="cl">Focus</div><div class="cv">&times;1.8</div></div>
     </div>
     <!-- KNACKS -->
-    <div class="pan" id="p-knack"></div>
+    <div class="pan sunk t-own" id="p-knack"></div>
     <!-- HAND PREVIEW -->
-    <div class="pan" id="p-prev">
+    <div class="pan sunk t-own" id="p-prev">
       <div id="handname"><b>RUN</b><i>OF 3</i></div>
     </div>
     <!-- TRICKS -->
-    <div class="pan" id="p-trick"><div class="trays" id="trays"></div></div>
+    <div class="pan sunk t-own" id="p-trick"><div class="trays" id="trays"></div></div>
     <!-- COINS -->
-    <div class="pan" id="p-coin"><span class="cn">48</span><span class="cs">Credits</span><span class="cs" style="margin-left:auto">Interest +4</span></div>
+    <div class="pan sunk t-credit" id="p-coin"><span class="cn">48</span><span class="cs">Credits</span><span class="cs" style="margin-left:auto">Interest +4</span></div>
     <!-- RECORDS / PAUSE -->
-    <div class="pan" id="p-rec"><div class="btn">Records</div></div>
-    <div class="pan" id="p-pause"><div class="btn">Pause</div></div>
+    <div class="pan rais" id="p-rec"><div class="btn">Records</div></div>
+    <div class="pan rais" id="p-pause"><div class="btn">Pause</div></div>
     <!-- CLOCK -->
-    <div class="pan" id="p-clock"><span id="clocknum">2:41</span><div id="clockbar"><div id="clockfill"></div></div></div>
+    <div class="pan sunk t-time" id="p-clock"><span id="clocknum">2:41</span><div id="clockbar"><div id="clockfill"></div></div></div>
     <!-- BOARD -->
     <div id="p-slot"><div id="table"><div id="grid"></div><div class="bloom"></div></div></div>
     <!-- FOCUS LADDER -->
@@ -751,9 +862,14 @@ body.C{--bg-room:#150d20}
       <div class="act" id="a-play"><span class="an">Play</span></div>
     </div>
     <!-- QUARTER -->
-    <div class="pan" id="p-prog"><div class="q">Q1</div><div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="pan sunk" id="p-prog"><div class="q">Q1</div><div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
     <!-- FX -->
-    <div id="fx"><div class="grain"></div><div class="grit"></div><div class="grit2"></div><div class="vig"></div><div class="scan"></div></div>
+    <div id="fx">
+      <div class="grain"></div><div class="grit"></div><div class="grit2"></div>
+      <div class="dither"></div><div class="crt-bloom"></div><div class="crt-line"></div>
+      <div class="crt-mask"></div><div class="crt-glass"></div>
+      <div class="vig"></div><div class="scan"></div>
+    </div>
   </div>
 </div>
 
@@ -787,6 +903,16 @@ body.C{--bg-room:#150d20}
 <p>This is the good news. <code>css/style.css</code> is 316KB, but <b>all nine landscape HUD panels get their material from one rule</b> &mdash; the shared chrome block that sets <code>background: var(--panel); border: 1px solid var(--border)</code>. Four more declarations carry the rest: <code>body</code>, <code>#grid</code>, <code>.card</code>, and the action buttons.</p>
 <p>So the shape is a <b>theme layer</b>: one stylesheet loaded after <code>style.css</code> that overrides surfaces and leaves geometry alone. The codebase <b>already works this way</b> &mdash; the LETHE cabinet reskin at line ~5100 is exactly that pattern, just living inside the big file instead of its own.</p>
 <p>Honest caveat: ~623 hardcoded hex literals sit outside the token system, mostly in particles, entity tiles and FX. A theme layer reaches the <b>surfaces</b> on day one; the accents get swept afterwards, file by file, and that sweep is worth doing anyway &mdash; four token names (<code>--cream</code>, <code>--gold</code>, <code>--border</code>, <code>--cream-dim</code>) currently hold <b>two different values each</b> depending on which rule wins.</p>
+
+<h4>Pixelation: what works, and what I measured failing</h4>
+<p>I built the real thing and rendered it before promising anything. <b>Geometric pixelation over this UI destroys the game.</b> An SVG <code>feFlood</code>/<code>feTile</code>/<code>feMorphology</code> filter genuinely does pixelate live DOM - but it is nearest-neighbour point sampling, so at a 5px block a rank glyph becomes an unreadable blob and the score becomes four smears. That is not a tuning problem; a card game's most important content is small text, and small text is the first thing a downsample eats.</p>
+<p><b>What actually reads as PS1/PS2 is colour, not geometry.</b> Two things survive legibility completely, and both are on the bar above:</p>
+<p><b>16-bit colour</b> quantizes each channel to 16 discrete steps (<code>feComponentTransfer</code> / <code>type="discrete"</code>). Smooth gradients break into visible contour bands - which is exactly what a 16-bit framebuffer did - and every glyph stays pin-sharp. Measured 24 steps as subtle, 16 as the sweet spot, 12 as too far.</p>
+<p><b>PS2 dither</b> lays a 4x4 Bayer ordered-dither matrix over the frame at <code>overlay</code>. It is the other authentic tell of the era and it touches no glyph shapes at all.</p>
+<p>So the honest route to a pixel look here is <b>pixel ASSETS, not a pixel post-process</b>: a 9-slice <code>border-image</code> from a tiny PNG with <code>image-rendering: pixelated</code> for card and tile mouldings, plus these two colour passes over the top. That is how the DOM games that pull this off actually do it.</p>
+
+<h4>The CRT, rebuilt to the reference numbers</h4>
+<p>It is a dial now, on every direction rather than just B. What changed from the version in the game: an <b>integer 4px pitch</b> instead of a fractional one, a soft ramp with a plateau instead of a hard 1px stop, <code>multiply</code> instead of <code>overlay</code> (overlay pivots at 50% luminance, so it darkened dark panels ~14% and cream cards ~2.9% - backwards from a real tube), a <b>3px RGB phosphor triad</b> for the horizontal structure that scanlines alone cannot give, a <b>bloom pass</b> that eats the scanline gaps where the board is brightest, and glass with a corner falloff. The bloom is the cue that separates emissive phosphor from printed lines.</p>
 
 <h4>Grit is a dial, not a destination</h4>
 <p>The PS2 look isn't a different art direction &mdash; it's the same one <b>degraded along a time axis</b>: grain 0.03&nbsp;&rarr;&nbsp;0.10 and fine&nbsp;&rarr;&nbsp;chunky, neutrals desaturating, accents narrowing from three to one, bevel highlights flattening, vignette deepening, edge wear appearing. Drag the grit slider. Whichever direction you pick, it ages down that curve without changing dialect.</p>
@@ -915,6 +1041,27 @@ document.getElementById('crt').oninput = e=>{
   document.getElementById('stage').style.setProperty('--crt', e.target.value/100);
   document.getElementById('crtv').textContent = e.target.value;
 };
+document.getElementById('ps2').oninput = e=>{
+  document.getElementById('stage').style.setProperty('--ps2', e.target.value/100);
+  document.getElementById('ps2v').textContent = e.target.value;
+};
+document.getElementById('quant').onchange = e=>
+  document.body.classList.toggle('ps2q', e.target.checked);
+
+/* Bayer 4x4 ordered dither, baked to a data URI. shape-rendering:crispEdges
+   keeps the 4 squares hard at any scale. */
+(function(){
+  const M=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  let r='';
+  for(let y=0;y<4;y++) for(let x=0;x<4;x++){
+    const v=((M[y][x]/16)*255)|0;
+    r += `<rect x="${x}" y="${y}" width="1" height="1" fill="rgb(${v},${v},${v})"/>`;
+  }
+  document.documentElement.style.setProperty('--bayer',
+    'url("data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4" shape-rendering="crispEdges">${r}</svg>`
+    ) + '")');
+})();
 document.getElementById('grit').oninput = e=>{
   document.getElementById('stage').style.setProperty('--grit', e.target.value/100);
   document.getElementById('gritv').textContent = e.target.value;
@@ -933,7 +1080,8 @@ document.getElementById('dump').onclick = ()=>{
 
 window._sel = true;
 document.getElementById('stage').style.setProperty('--grit', 0.18);
-document.getElementById('stage').style.setProperty('--crt', 0.7);
+document.getElementById('stage').style.setProperty('--crt', 0);
+document.getElementById('stage').style.setProperty('--ps2', 0);
 drawBoard(); drawRest(); setK('A');
 </script>
 </body>

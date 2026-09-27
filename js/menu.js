@@ -1,4 +1,4 @@
-const BUILD = "2026-09-26 · r381 · Reference wall part three: the per-currency ground tint and the raised-vs-sunken split";
+const BUILD = "2026-09-27 · r382 · Previews v2: per-currency tint, raised-vs-sunken, a rebuilt CRT dial and a measured answer on pixelation";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
