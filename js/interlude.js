@@ -198,6 +198,22 @@ function formatTime(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// ONE PACE FOR EVERY CREDIT (r380). Interest, leftover time and unused stock
+// used to count at three different speeds (220ms a coin, a flat 2.1s however
+// many, 140ms a coin), so two lines paying the same amount visibly ran at
+// different rates. Every line now reads this: coin i takes this long, the same
+// for coin i of any line. It ACCELERATES rather than holding flat, so a big
+// payout still takes visibly longer than a small one (it is a bigger payout)
+// without a 40-coin line taking eight seconds: 3 coins ~0.55s, 10 ~1.4s,
+// 40 ~3s. A flat total duration was the other option and is the wrong one - a
+// huge payout would finish as fast as a tiny one and feel short-changed.
+const PAYOUT_COIN_FIRST_MS = 200;
+const PAYOUT_COIN_ACCEL    = 0.92;
+const PAYOUT_COIN_MIN_MS   = 50;
+function payoutCoinMs(i) {
+  return Math.max(PAYOUT_COIN_MIN_MS, PAYOUT_COIN_FIRST_MS * Math.pow(PAYOUT_COIN_ACCEL, i));
+}
+
 async function showPayoutUI() {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -326,12 +342,14 @@ async function showPayoutUI() {
   await wait(400);
 
   // Fast-forward state
-  let fastForward = false;
+  // Settings -> Skip -> Payout count-up (r380): every line lands at once.
+  let fastForward = (typeof skipOn === 'function' && skipOn('payout'));
   el.querySelector('#po-ff').onclick = () => {
     fastForward = true;
     el.querySelector('#po-ff').disabled = true;
   };
 
+  if (fastForward) { const _ff = el.querySelector('#po-ff'); if (_ff) _ff.disabled = true; }
   function ffSleep(ms) { return fastForward ? Promise.resolve() : sleep(ms); }
 
   function tickCoin(id) {
@@ -351,7 +369,7 @@ async function showPayoutUI() {
     return Math.max(5, Math.ceil(target / 7));
   }
 
-  async function animateCount(id, target, interval = 220) {
+  async function animateCount(id, target) {
     const c = el.querySelector(`#${id}`);
     if (fastForward) {
       c.textContent = target;
@@ -359,7 +377,6 @@ async function showPayoutUI() {
       return;
     }
     const stride = coinStride(target);
-    const step = interval / Math.min(5, stride);
     let n = 0;
     while (n < target) {
       n++;
@@ -368,7 +385,7 @@ async function showPayoutUI() {
         tickCoin(id);
         sfxCoin();
       }
-      await wait(step);
+      await wait(payoutCoinMs(n - 1));
       if (fastForward) {
         c.textContent = target;
         return;
@@ -399,15 +416,17 @@ async function showPayoutUI() {
     // round time, or in Crunch the seconds under par. One function so the
     // animation and the figure above can never disagree.
     const _poSecs = payoutClockSeconds();
-    const totalDuration = 2100;
-    const tickMs = totalDuration / Math.max(1, _poSecs);
+    // The clock runs at whatever speed lands each coin on the SAME curve the
+    // other two lines use (payoutCoinMs): the seconds that earn coin k share
+    // that coin's time. Seconds past the last coin run at the last coin's pace.
+    const _spc = efficiencySecondsPerCoin();
     let secsLeft = _poSecs;
     let effEarned = 0;
     const effStride = coinStride(efficiencyCoins);
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
-      if ((_poSecs - secsLeft) % efficiencySecondsPerCoin() === 0 && secsLeft < _poSecs) {
+      if ((_poSecs - secsLeft) % _spc === 0 && secsLeft < _poSecs) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
         if (effEarned % effStride === 0 || effEarned === efficiencyCoins) {
@@ -415,7 +434,7 @@ async function showPayoutUI() {
           sfxCoin();
         }
       }
-      await wait(tickMs);
+      await wait(payoutCoinMs(Math.min(effEarned, Math.max(0, efficiencyCoins - 1))) / _spc);
       if (fastForward) {
         clockEl.textContent = formatTime(0);
         effCoinsEl.textContent = efficiencyCoins;
@@ -431,7 +450,7 @@ async function showPayoutUI() {
   // ── 3. Unspent swaps and discards ──
   el.querySelector('#po-line-unspent').classList.add('show');
   await ffSleep(500);
-  await animateCount('po-unspent', unspentCoins, 140);
+  await animateCount('po-unspent', unspentCoins);
   coins += unspentCoins;
   updateCoinsUI();
   await ffSleep(400);
@@ -600,7 +619,9 @@ async function show321Countdown() {
     bg.classList.remove('show');
   }
 
-  const PER_NUM  = 500;
+  // Settings -> Skip -> Screen transitions (r380): the count still runs, quickly,
+  // because the new board is falling in underneath it.
+  const PER_NUM  = (typeof skipOn === 'function' && skipOn('transitions')) ? 150 : 500;
   const TOTAL_MS = PER_NUM * 3;
   const startSecs   = roundSeconds;
   const refillStart = performance.now();

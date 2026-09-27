@@ -6016,6 +6016,16 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   body.grid-screen #stage.landscape #grid-topline { opacity: 1; }
 
   body.grid-screen #stage.landscape #grid-slot { left: 41%; width: 49%; }
+  /* r380: A TAKEOVER BOARD STOPS AT THE FOCUS COLUMN. The pick-of-three and the
+     tiled payout (body.gp-active) are 6 cells wide, so at 41% they ran straight
+     over the focus column - measured at every window size, since the stage is
+     one fixed canvas - and Flow's reward panel, padded 9px past the board,
+     covered the meter outright while the tally was still running under it. The
+     column is 39.5% -> 45.9% and the panel pad ~1.2%, so the slot starts at
+     47.8%. gridScreenTakeover measures the slot with its transition off, so the
+     board is sized for THIS box rather than for where the slide started. */
+  body.gp-active #stage.landscape #grid-slot,
+  body.gp-active.grid-screen #stage.landscape #grid-slot { left: 47.8%; width: 42.2%; }
 
   /* Portrait shop: credits beside the live x/y count (the desktop puts them on
      the topline instead). */

@@ -273,8 +273,15 @@ function tutRoundLive() {
 // The interact costs are read from BAL, never typed into the prose. r151's whole
 // lesson: the quoted cost and the charged cost must come from one place or they
 // drift, and they already did once (the popup said 3s while the charge was 6s).
-function tutSwapCost()    { return (BAL._resources && BAL._resources.swap_seconds) || 8; }
-function tutDiscardCost() { return (BAL._resources && BAL._resources.discard_seconds_per_card) || 3; }
+// x interactTimeCostMult() (r380): Flow bills its clock at half rate (r326), and
+// with Flow now the first mode most players meet, quoting the full rate there
+// would be the one number in the walkthrough that is wrong.
+function _tutCostMult() { try { return (typeof interactTimeCostMult === 'function') ? interactTimeCostMult() : 1; } catch (e) { return 1; } }
+function tutSwapCost()    { return +((((BAL._resources && BAL._resources.swap_seconds) || 8) * _tutCostMult()).toFixed(1)); }
+function tutDiscardCost() { return +((((BAL._resources && BAL._resources.discard_seconds_per_card) || 3) * _tutCostMult()).toFixed(1)); }
+// Flow has no round clock and no failed round, so the opening lines that say
+// otherwise branch on it. r380: Flow is first in the carousel now.
+function tutIsFlow() { try { return tutModeTags().has('flow'); } catch (e) { return false; } }
 // Selection Size, both ends of it. Read live for the same reason the costs are:
 // a limit upgrade can land before this step is reached (the reward grid's first
 // five grids guarantee one), and a quoted cap that is already stale is worse
@@ -306,6 +313,8 @@ const TUTORIAL_STEPS = [
     title: () => `${(ACTIVE_MODE && ACTIVE_MODE.name) || 'The game'}: first run`,
     body: () => _tutReturningRun
       ? `This covers only what is new in this mode. Everything else works as before.`
+      : tutIsFlow()
+      ? `Cards fall onto a board. Select cards that touch each other, make a shape, and score it.<br><br>Reach the {GOAL} and you level up. The next {GOAL} asks for more.<br><br>This walkthrough runs once. Later modes only cover what is new in them.`
       : `Cards fall onto a board. Select cards that touch each other, make a shape, and score it.<br><br>Reach the {GOAL} before the clock runs out. The next round asks for more.<br><br>This walkthrough runs once. Later modes only cover what is new in them.`,
   },
 
@@ -418,14 +427,16 @@ const TUTORIAL_STEPS = [
     id: 'quota', anchor: () => tutEls('#score-center', '#score-left'), side: 'bottom', hold: true, next: true,
     eyebrow: 'Scoring',
     title: 'Score and goal',
-    body: `Your score this round, and the {GOAL} you need.<br><br>Hit the {GOAL} and the round ends at once. Miss it and the run is over.<br><br>Score resets every round. The {GOAL} goes up.`,
+    body: () => tutIsFlow()
+      ? `Your score this level, and the {GOAL} you need.<br><br>Hit the {GOAL} and you level up at once. The {GOAL} goes up each time.`
+      : `Your score this round, and the {GOAL} you need.<br><br>Hit the {GOAL} and the round ends at once. Miss it and the run is over.<br><br>Score resets every round. The {GOAL} goes up.`,
   },
   {
     id: 'clock', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
     not: ['noclock', 'crunch'],
     eyebrow: 'The clock',
     title: 'The clock',
-    body: () => `Playing a hand is free.<br><br>A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card.<br><br>Time left when you clear the round is paid out in credits.`,
+    body: () => `Run out before the {GOAL} and the run is over.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card.<br><br>Time left when you clear the round is paid out in credits.`,
   },
   {
     // Crunch's clock is the QUARTER's, so the step above is wrong here twice
@@ -436,6 +447,12 @@ const TUTORIAL_STEPS = [
     eyebrow: 'The clock',
     title: 'One clock, all quarter',
     body: () => `This is the whole quarter's time, not this round's. It does not refill.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card. Booking anything that is not a round costs a flat fee.<br><br>Clear a round under <b>${formatTime(CRUNCH_PAR_SECONDS)}</b> and you are paid for every ${efficiencySecondsPerCoin()}s you came in under.<br><br>The manager review is fought on whatever is left. Run the clock to zero and the run is over.`,
+  },
+  {
+    id: 'flow-clock', only: 'flow', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
+    eyebrow: 'The clock',
+    title: 'Time until the review',
+    body: () => `This clock does not reset between levels. When it reaches zero, the <b>review</b> starts. The skull at the end of the bar shows which one.<br><br>Missing a {GOAL} does not end the run. Clear as many as you can before then.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b> off this clock and a discard <b>${tutDiscardCost()}s</b> per card.`,
   },
   {
     // Interactive. The board was audited at deal time to guarantee an exchange
@@ -524,12 +541,6 @@ const TUTORIAL_STEPS = [
     eyebrow: 'The run',
     title: 'Where you are',
     body: () => `Five rounds, then a <b>manager review</b>. ${(typeof QUARTERS_PER_RUN === 'number') ? QUARTERS_PER_RUN : 4} sets of that wins the run.<br><br>The {GOAL} goes up every round.`,
-  },
-  {
-    id: 'flow-clock', only: 'flow', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
-    eyebrow: 'The clock',
-    title: 'Time until the review',
-    body: `This clock does not reset between levels. When it reaches zero, the <b>review</b> starts.<br><br>Missing a {GOAL} does not end the run. Clear as many as you can before then.`,
   },
   {
     id: 'flow-review', only: 'flow', side: 'float', next: true,

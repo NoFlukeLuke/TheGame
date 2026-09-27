@@ -86,7 +86,9 @@ function channelChangeBusy() { return ccBusy; }
 // swapFn runs at the collapse (that's the whole point - it's hidden).
 // Returns a promise that resolves when the picture has locked back on.
 function channelChange(swapFn, opts = {}) {
-  if (!ccEnabled || ccBusy) {
+  // Settings -> Skip -> Screen transitions (r380) cuts the flicker to a plain swap.
+  const _ccSkip = (typeof skipOn === 'function' && skipOn('transitions'));
+  if (!ccEnabled || ccBusy || _ccSkip) {
     if (typeof swapFn === 'function') swapFn();
     return Promise.resolve();
   }
