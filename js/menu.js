@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r385 · Kickers: one extra card per hand, Kick In knack, Flow return, explosion on top";
+const BUILD = "2026-09-27 · r386 · The trays: coloured frames, an infinity mirror, real gaps, a hand name that fits";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

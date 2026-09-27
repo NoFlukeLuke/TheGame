@@ -10347,3 +10347,126 @@ tiles over the whole HUD (score, trays, PLAY/DISCARD, pause), inside
 `#cabinet` and still below the pause menu (420). The deal-in is untouched.
 Verified at 1440x820 and 420x900: tiles mid-explosion are topmost over the
 action buttons and the focus column.
+
+## r386 - the trays: coloured frames, an infinity mirror, real gaps, a name that fits
+
+Owner, five things in one brief: *"Extend that tray a tad, the name of the hand
+is still cut off. Then shrink the height of everything by a tiny amount so
+everything (all the trays) can have space between it. Then make the color of the
+border of each tray the same color as is currently along the top. Can we make
+each tray look like an infinity mirror? Like having concentric lines that make
+it look almost like chasms? The concentric lines would be slightly fainter as
+they move inward. Make sure the hand name sits on top of the cards and border.
+It shouldn't touch the bottom border, but draw it on top regardless."*
+
+### 1. THE PANEL HEIGHT WAS NEVER THE FIX FOR THE HAND NAME
+
+The name is cut off in **PORTRAIT** and nowhere else - measured over every hand
+type and every layered pair, **0 of 43 labels overflow in landscape**. On a live
+dance at 420x900, `#hand-preview-area`'s content was **105 design px in a 98px
+box**, and `justify-content: center` splits an overflow BOTH ways, so the cards
+were losing their top edge to it as well.
+
+**r376 had already added 20px to the strip for exactly this and it made no
+difference, because `fitPortraitPreviewCards()` sizes the card as
+`stripH * vFill`** (js/portrait-panel.js) - so every pixel added to the panel
+went straight to the cards. That is the trap to remember here: **on this strip,
+growing the panel grows its contents, and a fix that only adds height is
+self-cancelling.**
+
+- **The fitter now clamps the card to the PREVIEW HALF'S CONTENT BOX.**
+  `#hand-preview-area`'s bottom padding (13px) IS the name's reserved band, so
+  its content box is the room the dance may have; `vFill` stays as the ceiling
+  so a taller strip cannot make the cards silly, and `DNC_CHROME` (12) is the
+  dance's own padding inside it (`.dnc-active` 2px + `.dnc-track` 3px, both
+  ends, css/dance.css). Measured: the dance stage went **105 -> 89** in a 92px
+  box.
+- **`z-index` ON A `position: static` ELEMENT DOES NOTHING AT ALL**, so r376's
+  `z-index: 61` label was neither on top nor safe. The name is **absolute** into
+  its band now, `bottom: 2px` off the padding box with the panel's own padding
+  and border below that, at **z-index 62** over the cards, with a dark stroke
+  for the one occasion it lands on one.
+- The strip still grew (112 -> **122**), because a reserved band has to come
+  from somewhere; it is the band, not the cards, that got it.
+
+Measured at 420x900 / 390x844 / 360x640: **0 overflow**, the name **7.8-8.9px
+clear of the panel's bottom border** and **3.7-4.4px below the cards**, 16 cards
+dealt.
+
+### 2. THE GAPS WERE ZERO, BECAUSE OF THE RING
+
+Every tray carries a **2px plastic ring OUTSIDE its border** (the shared
+material rule), and the stacked gaps were **0.83%-1.5%, i.e. 3.5-6.3 design
+px** - so two neighbouring rings had **no background between them at all** and
+the left column read as one slab. That is what "so everything can have space
+between it" is about, and it is why the answer is a number bigger than 4px per
+gap rather than a nudge.
+
+Every gap is **1.9% (8.0px measured)**. The room came from the four panels with
+slack:
+
+| | was | is |
+|---|---|---|
+| score / goal row | 12.5% | **11.2%** |
+| PIPS·MULT·FOCUS | 11.11% | **10.5%** |
+| knacks | 7% | **6.9%** |
+| preview | 21.75% | **20.7%** |
+| **trick tray** | 21.75% | **21.7%** |
+| credits | 6.5% | 6.5% |
+| RECORDS / PAUSE | 6.39% | **6.3%** |
+
+- **THE TRICK TRAY IS UNCHANGED ON PURPOSE.** Its chips are **79px in a 77px
+  content box** already (r376), so it is the one panel in the column with no
+  slack at all; taking 3px from it would clip every tile.
+- Portrait's two panels: score **90 -> 86**, the strip's gap **4 -> 7**, the
+  strip **112 -> 122**. Net +9px off the grid slot, which is 434 -> 425 against
+  the 389 a 7x7 board needs at `CARD_MIN_H`.
+- **TWO THINGS RIDE THESE PERCENTAGES AND HAVE TO MOVE WITH THEM**: the Flow
+  reward banner (`css/flow-rewards.css` takes the chip row's own box - verified
+  byte-identical at 15.88%) and **Poker Squares' piece hand**
+  (`css/squares.css`, which starts where the knack band it replaces starts).
+  Grep the stack's numbers before retuning it again.
+
+### 3. THE FRAME IS THE ACCENT COLOUR ON ALL FOUR SIDES
+
+It was black with a 2px candy line along the top alone, so a tray was named at
+its top edge and nowhere else. **`--tray-c` is the one property that carries
+it** - to the border, and to the rings below - so a tray is retinted by setting
+that one value. The top edge keeps its thicker line.
+
+magenta SCORE · cyan GOAL · cream chips · yellow knacks · mint preview · coral
+tricks · yellow credits · magenta act tracker · cyan clock bar. Portrait's two
+trays are named for what they hold: **cyan score, coral strip**.
+
+### 4. THE INFINITY MIRROR IS `box-shadow` SPREADS, AND THE ORDER MAKES THEM LINES
+
+Concentric inset lines receding into the panel, each fainter than the one
+outside it. **A first-listed shadow paints ON TOP, and an inset shadow with
+spread S fills the whole band from the edge in to S** - so a bright 1px spread
+over a faint 4px spread over a bright 5px spread leaves a 1px LINE, a near-
+transparent gap, another line, and so on.
+
+- **EVERY BAND IS AN ALPHA OVER THE PANEL'S OWN GRADIENT.** Nothing is filled
+  with a flat colour, so the gradient survives and **everything past the
+  innermost line is untouched**. The obvious alternative - flat fills the colour
+  of the panel to punch the gaps - flattens the gradient and was not built.
+- **THE DEPTH HAS TO SUIT THE PANEL**, hence three sets: `--tray-rings` (15px)
+  for the preview, the trick tray and the portrait panels, `--tray-rings-m`
+  (10px) for the score row and the chip row, `--tray-rings-s` (5px) for the
+  **29px** knack strip and the **27px** credits bar. A 15px set on a 27px panel
+  is rings from both edges meeting in the middle.
+- **An inset shadow paints in the BACKGROUND layer, below in-flow content**, so
+  no ring can ever sit over a chip, a card, a watermark or the shop's cost
+  readout. That is what makes this safe to put on nine live panels at once.
+- `--tray-set` picks the set per panel and falls back to the medium one, so a
+  panel added to the shared rule gets a sane default rather than nothing.
+
+### Verified
+
+In a real browser at **1440x820, 1100x620, 420x900, 390x844 and 360x640**:
+uniform 8.0px gaps, every tray's border and rings in its own colour, **0 panels
+outside the stage, 0 panel pairs overlapping, 0 trick chips outside the tray at
+the 10-Trick cap**, the 5-card label unclipped and on top through a full dance,
+the shop's cost readout and LEAVE inside the preview tray, the reward grid at 16
+cells, Poker Squares with 0 overlaps and the Flow banner exactly on the chip
+row's box. **No page errors in any run.**
