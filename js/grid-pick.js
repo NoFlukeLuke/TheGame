@@ -265,6 +265,48 @@ function gridPickPaintSelection() {
   btn.classList.toggle('gp-act-off', !p);
   const sub = btn.querySelector('.gp-act-sub');
   if (sub) sub.textContent = p ? (p.label || '') : 'TAP AN OPTION';
+  gridPickSyncButtons();
+}
+
+// ── The board's own buttons (r380) ──
+// Owner: "i constantly reach for [PLAY] to confirm my choice". While a pick is
+// up, PLAY is CONFIRM and DISCARD is SKIP - the shop's BUY/LEAVE takeover shape:
+// markup saved, restored on close, render() kept off them (its _takeover guard).
+let _gpBtnSaved = null;
+function gridPickSkipNow() { if (gridPickState && gridPickState.onSkip) gridPickState.onSkip(); }
+function gridPickTakeButtons() {
+  const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
+  if (!play || !disc) return;
+  if (!_gpBtnSaved) _gpBtnSaved = { play: play.innerHTML, disc: disc.innerHTML };
+  play.classList.add('reward-buy'); play.innerHTML = 'C<br>O<br>N<br>F<br>I<br>R<br>M';
+  disc.classList.add('reward-clear'); disc.innerHTML = 'S<br>K<br>I<br>P';
+  if (!gridPickTakeButtons._bound) {
+    gridPickTakeButtons._bound = true;
+    // Capture, and grid-pick.js loads before every other script that listens on
+    // these buttons, so this runs first and stops the rest outright.
+    play.addEventListener('click', e => {
+      if (!gridPickState || !_gpBtnSaved) return;
+      e.stopImmediatePropagation(); e.preventDefault(); gridPickConfirm();
+    }, true);
+    disc.addEventListener('click', e => {
+      if (!gridPickState || !_gpBtnSaved) return;
+      e.stopImmediatePropagation(); e.preventDefault(); gridPickSkipNow();
+    }, true);
+  }
+  gridPickSyncButtons();
+}
+function gridPickSyncButtons() {
+  if (!_gpBtnSaved || !gridPickState) return;
+  const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
+  if (play) play.disabled = gridPickState.selected < 0 || !(gridPickState.offers || [])[gridPickState.selected];
+  if (disc) disc.disabled = !gridPickState.onSkip;
+}
+function gridPickReturnButtons() {
+  if (!_gpBtnSaved) return;
+  const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
+  if (play) { play.classList.remove('reward-buy'); play.innerHTML = _gpBtnSaved.play; play.disabled = true; }
+  if (disc) { disc.classList.remove('reward-clear'); disc.innerHTML = _gpBtnSaved.disc; }
+  _gpBtnSaved = null;
 }
 
 // A tap on an option. Tapping the one already picked closes the read and keeps
@@ -661,6 +703,18 @@ function gridPickRenderActions(animateIn) {
     + `<div class="gp-act-sub">TAP AN OPTION</div>`
     + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1));
   conf.addEventListener('click', e => { e.stopPropagation(); gridPickConfirm(); });
+  // SKIP (r380), in the same region as CONFIRM: a strip along its foot, so the
+  // two controls that END the screen are always in one place. One tap, because
+  // it is labelled; CONFIRM-with-nothing-picked still arms a skip too.
+  if (gridPickState.onSkip) {
+    const cw = (typeof CARD_W === 'number' ? CARD_W : 57), ch = (typeof CARD_H === 'number' ? CARD_H : 75);
+    const g = (typeof CARD_GAP === 'number' ? CARD_GAP : 5);
+    const w = GP_CONFIRM_W * cw + (GP_CONFIRM_W - 1) * g, sh = Math.round(ch * 0.34);
+    conf.style.height = (ch - sh - 3) + 'px';
+    const sk = put(`<div class="gp-act gp-skip"><div class="gp-act-label">Skip</div></div>`,
+      `left:${cellLeft(GP_ACT_COLS)}px;top:${cellTop(GP_ROWS - 1) + ch - sh}px;width:${w}px;height:${sh}px;`);
+    sk.addEventListener('click', e => { e.stopPropagation(); gridPickSkipNow(); });
+  }
   if (own) gridDealTiles(own);
 }
 
@@ -678,6 +732,7 @@ function openGridPick(opts) {
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');
   gridPickRender(true);
+  gridPickTakeButtons();
 }
 
 // Re-draw without re-dealing (a reroll swapped the offers under us).
@@ -710,6 +765,7 @@ function gridPickSetShown(on) {
 }
 
 function closeGridPick() {
+  gridPickReturnButtons();
   gridPickRelease();
   gridPickState = null;
   if (typeof stopFloat === 'function') stopFloat('gridpick');

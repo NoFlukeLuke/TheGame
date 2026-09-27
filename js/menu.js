@@ -1,4 +1,4 @@
-const BUILD = "2026-09-26 · r379 · The tiles rest above the tray and fall into it, bottom first";
+const BUILD = "2026-09-27 · r380 · Every pick has SKIP; PLAY confirms, DISCARD skips";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

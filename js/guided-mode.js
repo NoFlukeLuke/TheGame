@@ -678,6 +678,7 @@ function guidedOpenPickThree(done) {
   openGridPick({
     title: 'TAKE ONE', tone: 'reward', offers: mk, actions: guidedPickActions(redraw),
     onChoose: (i, p) => { closePanel(); try { p.apply?.(); } catch (e) {} done(); },
+    onSkip: () => { closePanel(); done(); },
   });
 }
 
