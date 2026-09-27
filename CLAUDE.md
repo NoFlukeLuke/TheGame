@@ -10431,35 +10431,34 @@ slack:
 
 It was black with a 2px candy line along the top alone, so a tray was named at
 its top edge and nowhere else. **`--tray-c` is the one property that carries
-it** - to the border, and to the rings below - so a tray is retinted by setting
-that one value. The top edge keeps its thicker line.
+it** - to the border, to the rings below and (since r388) to the outer plastic
+ring - so a tray is retinted by setting that one value. The top edge keeps its
+thicker line.
 
 magenta SCORE · cyan GOAL · cream chips · yellow knacks · mint preview · coral
 tricks · yellow credits · magenta act tracker · cyan clock bar. Portrait's two
 trays are named for what they hold: **cyan score, coral strip**.
 
-### 4. THE INFINITY MIRROR IS `box-shadow` SPREADS, AND THE ORDER MAKES THEM LINES
+### 4. THE INFINITY MIRROR IS `box-shadow` SPREADS
 
 Concentric inset lines receding into the panel, each fainter than the one
-outside it. **A first-listed shadow paints ON TOP, and an inset shadow with
-spread S fills the whole band from the edge in to S** - so a bright 1px spread
-over a faint 4px spread over a bright 5px spread leaves a 1px LINE, a near-
-transparent gap, another line, and so on.
+outside it. **`--tray-set` picks the depth per panel** and falls back to the
+medium one, so a panel added to the shared rule gets a sane default.
+
+**THIS SECTION USED TO SAY THAT A BRIGHT 1px SPREAD OVER A FAINT 4px SPREAD
+LEAVES A LINE AND A GAP. IT DOES NOT - see r388 below**, which measured the
+shipped edge and found one 15px ramp. The three things below are still true and
+are what the r388 rewrite kept:
 
 - **EVERY BAND IS AN ALPHA OVER THE PANEL'S OWN GRADIENT.** Nothing is filled
   with a flat colour, so the gradient survives and **everything past the
   innermost line is untouched**. The obvious alternative - flat fills the colour
   of the panel to punch the gaps - flattens the gradient and was not built.
-- **THE DEPTH HAS TO SUIT THE PANEL**, hence three sets: `--tray-rings` (15px)
-  for the preview, the trick tray and the portrait panels, `--tray-rings-m`
-  (10px) for the score row and the chip row, `--tray-rings-s` (5px) for the
-  **29px** knack strip and the **27px** credits bar. A 15px set on a 27px panel
-  is rings from both edges meeting in the middle.
+- **THE DEPTH HAS TO SUIT THE PANEL**, hence three sets. A full-depth set on a
+  27px panel is rings from both edges meeting in the middle.
 - **An inset shadow paints in the BACKGROUND layer, below in-flow content**, so
   no ring can ever sit over a chip, a card, a watermark or the shop's cost
   readout. That is what makes this safe to put on nine live panels at once.
-- `--tray-set` picks the set per panel and falls back to the medium one, so a
-  panel added to the shared rule gets a sane default rather than nothing.
 
 ### Verified
 
@@ -10479,3 +10478,90 @@ only; the id stays `kick_in`, TERMINOLOGY's rule) with a coin glyph, and
 kicker under Chip In costs nothing at all and scores. The r385 section's
 "still billed" row is superseded. Every other "Kick In" in that section means
 this knack.
+
+## r388 - the tray frame is the accent colour ALL THE WAY ROUND, and the rings are real lines
+
+Owner: *"the border of the box still is not the right color and the concentric
+lines are a little bit too thick and or blurred. I think the line should have,
+by blurred what I actually mean is they have a shadow, I think they should have
+a shadow cuz I think it helps sell the effect but the shadow should have a
+little bit less spread to it."*
+
+Both were real, and both were found by sampling the live edge pixel by pixel
+rather than by reading the stylesheet back.
+
+### 1. THE PLASTIC RING IS THE TRAY'S OUTERMOST EDGE, AND IT WAS CREAM
+
+r386 tinted the 1px `border` and left `0 0 0 2px var(--plastic-lo)` alone - and
+**that ring sits OUTSIDE the border, at twice its width**, so the widest part of
+every tray's frame stayed cream whatever the accent was. Measured across the
+trick panel's left edge at deviceScaleFactor 4: **8 device px of (184,173,149)
+cream, then 4 of coral**.
+
+It is `color-mix(in srgb, var(--tray-c) 62%, #14100a)` now, with the drop shadow
+under it at 34%, so the ring reads as coloured moulding around the bright border
+rather than as a second glow.
+
+- **THE `--plastic-lo` VARIABLE IS UNTOUCHED, and it has to be.** Some fifteen
+  unrelated rules read it - shop tiles, reward cells, the boss overlay, the focus
+  bar, `#cab-baseline`, the `.plastic` gradients - so the tint is made inside the
+  tray rule and nowhere else.
+- **The chip row (`#score-subboxes`) is deliberately still neutral.** Its three
+  chips are already blue, red and violet, and it is the one tray whose top edge
+  was never a candy colour - and the owner's own rule is that the frame matches
+  the top edge. Its `--tray-c: var(--c-purple)` from r386 was **dead** anyway: a
+  later r95 rule set it back to `--plastic-lo`, so the purple never took. The
+  dead declaration is gone.
+
+### 2. THE RINGS COULD NOT HAVE BEEN LINES, AND THE STACK IS WHY
+
+An inset spread fills the whole band from the edge in to S, and every layer
+covers everything shallower than itself - so **the alphas COMPOSITE and the lit
+depth is MONOTONIC**: a band nearer the edge is under strictly more layers than
+one further in and therefore can never be darker. A line brighter than the gap
+outside it is not expressible with accent spreads alone.
+
+r386's comment read the list as line-gap-line. Measured red channel across the
+shipped edge, per band:
+
+| r386 | 105 | 96 | 91 | 84 | 72 | 54 | 46 | 30 |
+|---|---|---|---|---|---|---|---|---|
+
+One 15px ramp stepping quietly down. **That is exactly the "too thick and
+blurred"** - each line bled into the band inside it with nothing between them.
+
+**SO THE GAPS ARE BLACK LAYERS.** A dark spread is the only thing that can break
+the ramp and put an edge under each line, and it is still an alpha over the
+panel's own gradient, so the gradient survives (the one rule from r386 that had
+to be preserved). The pitch is **3px - a 1px LINE, a 1px SHADOW under it, a 1px
+dark gap** - repeated, each line fainter than the one outside it.
+
+**The shadow stays because the owner asked for it**; what changed is its spread,
+from the 3-4px bleed to 1px.
+
+Measured after, same ray:
+
+| r388 | 104 | 57 | 38 | 80 | 46 | 30 | 52 | 34 | 23 (panel) |
+|---|---|---|---|---|---|---|---|---|---|
+
+Three lines at **104 / 80 / 52**, each with its own shadow, each receding, with a
+real dark gap between them - genuinely non-monotonic for the first time.
+
+| set | was | is | on |
+|---|---|---|---|
+| `--tray-rings` | 15px | **8px**, 3 lines | preview, trick tray, both portrait panels |
+| `--tray-rings-m` | 10px | **5px**, 2 lines | score row, chip row |
+| `--tray-rings-s` | 5px | **3px**, 1 line | knack strip (29px), credits bar (27px) |
+
+**The alphas are named variables now** - `--tray-line` / `--tray-line2` /
+`--tray-line3` and the three `--tray-glow`s - so a retune is three numbers rather
+than twenty-one, and the three sets cannot drift apart from each other.
+
+### Verified
+
+In a real browser at **1440x820, 1100x620, 420x900, 390x844 and 360x640**: all
+eleven trays carry their accent on the border AND on the outer ring, **0 of them
+still cream**, ring depths 8/5/3, **0 panels outside the stage**, 16 cards dealt
+at every viewport. Through the real path: a planted pair plays the full dance and
+scores, the reward grid opens at 16 cells, Poker Squares opens its size console.
+**No page errors in any run.**

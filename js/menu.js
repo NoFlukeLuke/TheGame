@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r387 · Kick In is Chip In and cancels the kicker time cost (+ r386 tray pass)";
+const BUILD = "2026-09-27 · r388 · The tray frame is the accent colour all the way round, and the rings are real lines";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
