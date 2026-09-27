@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r380 · Every pick has SKIP; PLAY confirms, DISCARD skips";
+const BUILD = "2026-09-27 · r381 · The borrowed CONFIRM button greys out until you pick";;
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
