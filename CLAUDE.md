@@ -10565,3 +10565,92 @@ still cream**, ring depths 8/5/3, **0 panels outside the stage**, 16 cards dealt
 at every viewport. Through the real path: a planted pair plays the full dance and
 scores, the reward grid opens at 16 cells, Poker Squares opens its size console.
 **No page errors in any run.**
+
+## r389 - the portrait strip is TWO trays, and the swap button says SWAP
+
+### 1. TWO TRAYS, NOT ONE BOX WITH A HAIRLINE DOWN IT
+
+Owner: *"can we make 2 separate trays in mobile for tricks and the preview/knack
+section."*
+
+`#trick-panel` was one `.panel-box` holding both halves, separated by a 1px
+`border-right`. It now keeps **only the flex row and the positioning context**
+`#panel-swap-btn` anchors to; the Tricks half and the shared preview/Knacks half
+each carry the tray material themselves, so the strip reads as two objects with
+real background between them - the same thing r386's gaps did for the stacked
+column. The divider is gone: a third line inside a 7px gap is not a separator,
+it is clutter.
+
+- **`overflow: visible` ON THE PANEL IS LOAD-BEARING, and the two halves take
+  `overflow: hidden` instead.** Each tray's plastic ring paints 2px OUTSIDE its
+  border, and the panel's own `overflow: hidden` (the base portrait rule up the
+  file) would have clipped it away on all four sides. **An element's overflow
+  never clips its own box-shadow, only its descendants**, so moving the clip down
+  to the halves keeps their content contained - which the dance needs - while
+  leaving both rings whole.
+- **THE RIGHT-HAND TRAY TAKES THE COLOUR OF WHICHEVER VIEW IS SHOWING** - mint
+  for the hand preview, yellow for Knacks - which is what says which side the
+  swap button last left you on. They are the same colours landscape gives those
+  two panels, so the orientations agree rather than inventing a portrait palette.
+  Tricks is coral in both.
+- **Both corner buttons moved in.** `#tray-view-btn` (the Sleight-queue toggle,
+  2px -> 4px) and `#panel-swap-btn` (4px -> 6px) sat on the ring lines the halves
+  now carry inside their borders. `#tray-view-btn` is appended INTO
+  `#trick-tray-area`, which is `position: relative`, so it was already anchored
+  to the right box and needed only the nudge.
+- **The halves are 190 / 211 at 420 wide and that is PRE-EXISTING** - they were
+  188 / 208 before this pass. Both are `flex: 1 1 0` with `min-width: 0`, so the
+  imbalance is the 21px difference in their horizontal padding, not the split.
+
+### 2. THE SWAP BUTTON SAYS SWAP
+
+Owner: *"can you use the swap icon to actually swap two cards?"*
+
+**IT ALREADY DID, since r326, and said so nowhere.** Verified before touching
+anything, through a real click in both orientations: two adjacent cards selected,
+click `#swap-indicator`, the cards trade and the stock goes 3 -> 2. The button
+was an emoji and a number sitting between two neighbours that read **DISCARD**
+and **PLAY** - a readout in a row of verbs - and the documented gesture
+(double-tap to lift, tap a neighbour) is not guessable either. So this is a
+legibility fix, not a mechanism one.
+
+- **The word is the whole fix.** `white-space: pre` stacks the markup's newlines,
+  and **a newline is a LINE break, not a per-character one** - DISCARD spells
+  itself out one letter per line because its markup does - so `SWAP` sits on its
+  own line horizontally and fits the 58px landscape cap and the 72px portrait one
+  alike. Measured: 31px of glyphs in a 50px content box, 0 clipped at 1440x820,
+  1100x620, 420x900, 390x844 and 360x640.
+- **ARMED is what teaches it.** `render()` toggles `.swap-armed` when exactly two
+  cards are selected and there is stock to spend, and the button breathes a ring.
+  It is **optimistic by design**: `doSwap` still owns every rule (adjacency, Free
+  Range, Pivot, curses, boss refusals), so a swap the board refuses still says so
+  out loud rather than the button quietly never lighting.
+- **`:has(.swap-word)` IS THE TAKEOVER GUARD, and it is self-maintaining.** The
+  reward grid (SKIP), the shop (a move chip), Poker Squares (END TURN) and the
+  grid pick all claim this element by REPLACING its innerHTML, which takes the
+  word with it. Measured: **the class really does survive into the reward grid**,
+  because `renderRewardTiles` never calls `render()` - and the armed keyframe
+  writes `box-shadow`, which beats `.reward-skip`'s own. Asking for the markup
+  rather than listing their classes means a takeover added later stands down with
+  no edit here. `render()`'s own write is guarded on `_takeover` as well, for the
+  reason the two `disabled` writes beside it are (r247).
+- **A transform is deliberately NOT used for the armed state.** `swapPop` animates
+  transform on this same element.
+- **Found in passing: `popSwapIndicator()` has NO CALLERS** and never has, so the
+  `swapPop` keyframe has never run. Left alone - it sets `border-color: var(--red)`
+  on a button that has had no border since r170's teal cap, so wiring it up is a
+  design decision rather than a fix.
+
+### Verified
+
+In a real browser at **1440x820, 1100x620, 420x900, 390x844 and 360x640**: both
+portrait halves carry a border and rings, the panel carries neither, the gap
+between them is real background, neither half leaves the strip, both corner
+buttons sit inside their own tray, and 16 cards deal at every viewport. Through
+the real click path: two selected cards trade on a click in both orientations
+with the stock spent; the armed class appears at exactly two selected and not at
+three; the reward grid, the shop and Poker Squares each claim the button, print
+their own label and stand the pulse down; closing each one restores `🔄 SWAP 3
+4s`. A full hand plays its dance inside the mint preview tray with the name in
+its own band. **No page errors in any run.**
+

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r388 · The tray frame is the accent colour all the way round, and the rings are real lines";
+const BUILD = "2026-09-27 · r389 · The portrait strip is TWO trays, and the swap button says SWAP";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

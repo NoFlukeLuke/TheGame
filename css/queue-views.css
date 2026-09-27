@@ -5,7 +5,9 @@
    landscape never positioned the area (its ::before rides the ancestor). */
 #trick-tray-area { position: relative; }
 #tray-view-btn {
-  position: absolute; top: 2px; right: 2px; z-index: 5;
+  /* r389: 2 -> 4. The tray carries concentric ring lines inside its border now,
+     and at 2px the button sat right on the outermost one. */
+  position: absolute; top: 4px; right: 4px; z-index: 5;
   width: 16px; height: 16px; padding: 0; line-height: 14px;
   font-size: 8px; text-align: center;
   color: var(--gold-dim, #b8a468); background: rgba(10, 8, 5, 0.6);

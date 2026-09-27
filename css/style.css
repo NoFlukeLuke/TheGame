@@ -815,7 +815,22 @@
      overflow BOTH ways, so the cards were losing their top edge to it as well.
      The name is out of flow now (below) and the extra 10px is the band it sits
      in, reserved as padding so it can never be squeezed again. */
-  #stage:not(.landscape) #trick-panel { position: relative; height: 122px; padding-right: 2px; }
+  /* r389: THE STRIP IS TWO TRAYS. #trick-panel keeps only the flex row and the
+     positioning context the swap button anchors to; the Tricks half and the
+     shared preview/Knacks half each carry the tray material themselves, so the
+     strip reads as two objects with real background between them rather than as
+     one box divided by a hairline.
+     `overflow: visible` is load-bearing: each tray's plastic ring paints 2px
+     OUTSIDE its border and the panel's own `overflow: hidden` (the base rule up
+     the file) would clip it away on all four sides. The two halves take
+     `overflow: hidden` of their own instead, which clips their CONTENT without
+     touching their rings - an element's overflow never clips its own
+     box-shadow, only its descendants. */
+  #stage:not(.landscape) #trick-panel {
+    position: relative; height: 122px;
+    padding: 0; gap: 7px; overflow: visible;
+    background: none !important; border: none !important; box-shadow: none !important;
+  }
 
   /* The Trick tray keeps the LEFT half and is always on screen; Knacks and the
      hand preview share the RIGHT half and the swap button picks between them
@@ -823,18 +838,22 @@
      player needs at a glance). Tricks that don't fit their half FAN over each
      other instead - see fanTrickTray() in js/tricks-ui.js. `!important` because
      syncTrickTrayUI() writes `display` INLINE on the tray and the preview. */
+  /* r389: NO DIVIDER. The two halves are separate trays now (see the tray rule
+     further down), so each carries its own frame and the background between
+     them is what separates them - the same thing the r386 gaps did for the
+     stacked column. A divider as well would be a third line in a 7px gap. */
   #stage:not(.landscape) #trick-tray-area {
     flex: 1 1 0; min-width: 0;
     display: flex !important;
-    border-right: 1px solid var(--border);
     box-sizing: border-box;
+    overflow: hidden;
   }
   #stage:not(.landscape) #knack-carousel-wrap,
   #stage:not(.landscape) #hand-preview-area {
     flex: 1 1 0; min-width: 0;
     padding: 3px 24px 3px 9px;   /* right pad clears the swap button */
-    border-right: none;
     box-sizing: border-box;
+    overflow: hidden;
   }
   /* r383: the bottom padding IS the hand-name's band. The name is absolutely
      positioned into it (below), so the cards centre in what is left and the
@@ -992,7 +1011,9 @@
   /* The swap button. Deliberately small and quiet - it is a view toggle, not an
      action, so it must not read as a third button next to PLAY / DISCARD. */
   #stage:not(.landscape) #panel-swap-btn {
-    position: absolute; top: 4px; right: 4px; z-index: 4;
+    /* r389: 4 -> 6. The shared half is its own tray now, with a border, a
+       plastic ring and ring lines of its own, so 4px landed on its corner. */
+    position: absolute; top: 6px; right: 6px; z-index: 4;
     width: 19px; height: 19px; padding: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; line-height: 1;
@@ -1690,6 +1711,38 @@
     line-height: 1.3;
   }
   #action-col #swap-indicator #swap-count { font-size: 15px; line-height: 1.2; }
+  /* r389: THE WORD. `white-space: pre` stacks on the newlines in the markup, and
+     a newline is a LINE break, not a per-character one (DISCARD spells itself
+     out one letter per line because its markup does) - so SWAP sits on its own
+     line horizontally and fits the 58px landscape cap and the 72px portrait one
+     alike. Measured: 31px of glyphs in a 50px content box. */
+  #action-col #swap-indicator .swap-word {
+    font-size: 10px; letter-spacing: 1.5px; line-height: 1.15;
+    font-weight: 700; opacity: 0.82;
+  }
+  /* ARMED - two cards selected, so this tap does something. Written by render().
+     A transform is deliberately NOT used: `swapPop` (the spend flash) animates
+     transform on this same element and would be overridden mid-animation. */
+  #action-col #swap-indicator.swap-armed .swap-word { opacity: 1; }
+  /* `:has(.swap-word)` IS THE TAKEOVER GUARD, and it is self-maintaining. The
+     reward grid (SKIP), the shop (a move chip), Poker Squares (END TURN) and
+     the grid pick all claim this element by REPLACING its innerHTML - which
+     takes the word with it - so a stale `.swap-armed` left over from the play
+     screen would otherwise pulse THEIR button with this one's teal shadow, and
+     the keyframe writes box-shadow, which beats their own. Measured: the class
+     really does survive into the reward grid, because renderRewardTiles never
+     calls render(). Asking for the markup rather than listing their classes
+     means a takeover added later stands down with no edit here. */
+  #action-col #swap-indicator.swap-armed:has(.swap-word) {
+    animation: swapArmed 1.15s ease-in-out infinite;
+  }
+  @keyframes swapArmed {
+    0%, 100% { box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,0,0,0.22),
+                           0 4px 0 #0a6b77, 0 6px 8px rgba(0,0,0,0.4), 0 0 0 0 rgba(127,240,251,0.55); }
+    50%      { box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,0,0,0.22),
+                           0 4px 0 #0a6b77, 0 6px 8px rgba(0,0,0,0.4), 0 0 0 5px rgba(127,240,251,0); }
+  }
+  body.reduced-motion #action-col #swap-indicator.swap-armed:has(.swap-word) { animation: none; }
 
   /* ── ACTION ROW 2 ── */
   #action-row-2 {
@@ -5110,7 +5163,9 @@
      cabinet baseline) read it. */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
-  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, .panel-box {
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info,
+  #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
+  #stage:not(.landscape) #knack-carousel-wrap, .panel-box {
     --tray-c: var(--plastic-lo);
     --tray-line:   color-mix(in srgb, var(--tray-c) 46%, transparent);
     --tray-line2:  color-mix(in srgb, var(--tray-c) 24%, transparent);
@@ -5161,9 +5216,14 @@
   #stage.landscape #coin-info       { --tray-c: var(--c-yellow);  --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #run-progress    { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #vclock          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings-s); border: 1px solid var(--tray-c) !important; }
-  /* Portrait: two trays, each named for what it holds. */
-  #stage:not(.landscape) #score-panel { --tray-c: var(--c-cyan);  --tray-set: var(--tray-rings); }
-  #stage:not(.landscape) #trick-panel { --tray-c: var(--c-coral); --tray-set: var(--tray-rings); }
+  /* Portrait: THREE trays, each named for what it holds (r389 split the strip).
+     The right-hand one takes the colour of whichever view is showing, which is
+     what says which side the swap button last left you on - and it is the same
+     colour landscape gives each of them, so the two orientations agree. */
+  #stage:not(.landscape) #score-panel         { --tray-c: var(--c-cyan);   --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-coral);  --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-mint);   --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings); }
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,

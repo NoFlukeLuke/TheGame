@@ -353,6 +353,18 @@ function render() {
   // for the length of it and an unguarded write throws mid-render.
   { const _dc = document.getElementById('disc-count'); if (_dc) _dc.textContent = `(${discards})`; }
   { const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent = swaps; }
+  // ARMED: exactly two cards selected and stock to spend, so tapping SWAP will
+  // do something. It is the only thing that teaches the button - the gesture
+  // (double-tap to lift, tap a neighbour) is not guessable, and r326's click
+  // handler had been live and unadvertised ever since. Guarded on _takeover for
+  // the reason the two `disabled` writes above are: the shop, the reward grid,
+  // Poker Squares and the grid pick all repurpose this element, and a stray
+  // class from the play screen would light THEIR button. doSwap still owns
+  // every rule (adjacency, curses, Pivot, boss refusals), so this is optimistic
+  // by design: a swap the board refuses still says so out loud.
+  { const _si = document.getElementById('swap-indicator');
+    if (_si) _si.classList.toggle('swap-armed',
+      !_takeover && selected.length === 2 && swaps > 0 && !roundEnded && !(animating && !falling)); }
 
   // Marked-row / marked-column lines. Drawn last, for the same reason
   // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the
