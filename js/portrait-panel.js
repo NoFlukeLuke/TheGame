@@ -169,9 +169,26 @@ function fitPortraitPreviewCards() {
   const avail  = items.clientWidth - cfg.edgePad * 2;
   if (stripH < 10 || avail < 20) return;               // not laid out yet
 
+  // r383: THE CARD IS CLAMPED TO THE PREVIEW HALF'S CONTENT BOX, and that is
+  // what finally fixed the hand name being cut off. The height came from
+  // `stripH * vFill` alone, so the cards grew in step with the panel - which is
+  // why r376 could add 20px to the strip and the name was STILL clipped: every
+  // pixel went to the cards. #hand-preview-area's bottom padding is the name's
+  // reserved band, so its CONTENT box is the room the dance may have, and
+  // DNC_CHROME is the dance's own padding inside it (.dnc-active 2px + the
+  // track's 3px, both ends, css/dance.css). vFill is still the ceiling, so a
+  // taller strip does not make the cards silly.
+  const host = document.getElementById('hand-preview-area');
+  let availH = stripH;
+  if (host) {
+    const hs = getComputedStyle(host);
+    availH = host.clientHeight - parseFloat(hs.paddingTop) - parseFloat(hs.paddingBottom);
+  }
+  const DNC_CHROME = 12;
+
   // Widest card the row can hold with every card at least minVisibleFrac visible.
   const wByWidth  = avail / (1 + (n - 1) * cfg.minVisibleFrac);
-  const wByHeight = stripH * cfg.vFill * cfg.aspect;
+  const wByHeight = Math.min(stripH * cfg.vFill, availH - DNC_CHROME) * cfg.aspect;
   const w = Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight)));
   const h = Math.round(w / cfg.aspect);
 
