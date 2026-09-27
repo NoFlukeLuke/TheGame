@@ -10014,7 +10014,13 @@ and `level` moving once; the payout runs its whole count-up and reaches Valued.
 **Not touched:** the Guided crossroads draws its own tiles with its own animation
 (js/guided-mode.js) and is not on this system. It is the obvious next one.
 
-## r380 - one gold pace, reward transitions, a Skip tab, Flow first
+## r380 - every pick can be SKIPPED, and PLAY confirms it
+
+- **Every `openGridPick` screen takes an `onSkip`** (Survival/Flow already did; Guided, the Schedule's knack pick and Poker Squares' picks now do). A skip runs the caller's own tail with no grant.
+- **In the grid: a SKIP strip along CONFIRM's foot**, one tap. CONFIRM-with-nothing-picked still arms the r362 press-twice skip.
+- **PLAY reads CONFIRM and DISCARD reads SKIP for the life of the pick** (`gridPickTakeButtons` / `gridPickReturnButtons`, the reward grid's CONFIRM/CLEAR shape). Capture listeners with `stopImmediatePropagation`; grid-pick.js loads before every other script listening on those buttons. `render()`'s `_takeover` includes `gridPickState`. `closeGridPick` hands the buttons back BEFORE a caller's tail, which lets the Flow deck edit then take PLAY as APPLY.
+
+## r381 - one gold pace, reward transitions, a Skip tab, Flow first (built as r380 beside the pick-SKIP r380)
 
 - **Every credit counts at one pace** (`payoutCoinMs(i)`, js/interlude.js). The
   payout's three lines ran at 220ms a coin, a flat 2.1s however many, and 140ms a

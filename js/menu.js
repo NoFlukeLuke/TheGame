@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r380 · One gold pace, reward transitions, a Skip tab, Flow first";
+const BUILD = "2026-09-27 · r381 · One gold pace, reward transitions, a Skip tab, Flow first";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

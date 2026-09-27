@@ -847,6 +847,7 @@ function sqOpenPick(title, draw, done) {
   openGridPick({
     title, tone: 'reward', offers, actions: actions(),
     onChoose: (i, p) => { try { p.apply && p.apply(); } catch (e) {} sqAfterPick(done); },
+    onSkip: () => sqAfterPick(done),
   });
 }
 function sqAfterPick(done) {
