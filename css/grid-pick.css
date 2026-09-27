@@ -293,3 +293,20 @@ body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
    Scoped to the takeover so a live round's boss overlays (z-index 12-15,
    children of #grid) are not suddenly contained by it. */
 body.gp-active #grid { z-index: 1; }
+
+/* SKIP (r380) - a strip at CONFIRM's foot. Muted, so it never reads as the
+   thing to press; the two controls that end a pick share one region. */
+#grid .gp-act.gp-skip {
+  padding: 1px 6px; flex-direction: row;
+  background: linear-gradient(180deg, rgba(60,56,72,0.55), rgba(18,16,26,0.95));
+  border-color: rgba(154,141,112,0.55);
+}
+#grid .gp-act.gp-skip .gp-act-label { font-size: 7px; letter-spacing: 2px; color: var(--cream-dim, #9a8d70); }
+#grid .gp-act.gp-skip:hover { border-color: #d9cba4; }
+#grid .gp-act.gp-skip:hover .gp-act-label { color: var(--cream, #f0e6c8); }
+
+/* ── Reward transition (r380, js/reward-transition.js) ──
+   The beat before a board leaves: the taken tile holds and glows, the rest
+   step back. */
+#grid.rt-has-chosen > *:not(.rt-chosen):not(.rc-line) { filter: brightness(.45) saturate(.6); transition: filter .25s ease; }
+#grid .rt-chosen { z-index: 6; box-shadow: 0 0 0 2px #f4f0ff, 0 0 26px rgba(160,120,255,.75) !important; }

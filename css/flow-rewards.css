@@ -558,15 +558,3 @@ body.reduced-motion #flowr-flash { animation: none; opacity: 0; }
 }
 body.reduced-motion #flowr-bg.fbg-turn,
 body.reduced-motion #flowr-bg.fbg-turn::after { animation: none; }
-
-/* ── THE EXIT LAYER (r380) - js/grid-pick.js gridDealOut ───────────────────
-   Throwaway clones of the tiles that were on the board, falling out through
-   the bottom of the tray while the real ones are removed on the tick the
-   choice commits. A SIBLING of #grid in #grid-slot, so closeGridPick - which
-   empties #grid - cannot take the exit with it, and so an exit still in flight
-   can never hold up the screen that follows it.
-
-   z-index 7: above #flowr-bg (0) and the board it is replacing, below the tab
-   ladder (8), which belongs to the chain rather than to the step. */
-.gp-outlayer { z-index: 7; pointer-events: none; }
-body.reduced-motion .gp-outlayer { display: none; }

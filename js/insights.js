@@ -247,6 +247,18 @@ const INSIGHTS = [
       return false;
     } },
 
+  // ── Flow's reward chain (r380: Flow is the first mode now, so these are
+  // the first reward screens most players meet) ─────────────────────────────
+  { id: 'flow_chain', screen: 'any', title: 'More than one reward',
+    anchor: ['#flowr-stack', '#grid'],
+    body: 'A clear can pay up to five reward screens. The tabs above the board are the ones still to come.',
+    when: () => typeof flowrQueue !== 'undefined' && Array.isArray(flowrQueue) && flowrQueue.length > 1 },
+
+  { id: 'deck_edit', screen: 'any', title: 'Editing your deck',
+    anchor: ['#flowr-banner', '#grid'],
+    body: 'These are your real cards, and the change is permanent. Select, then press APPLY to see what lands.',
+    when: () => typeof flowrDeckActive === 'function' && flowrDeckActive() },
+
   { id: 'mini_boss', screen: 'any', title: 'The extra task is a bonus',
     anchor: ['#goal-display'],
     body: 'The {GOAL} is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',

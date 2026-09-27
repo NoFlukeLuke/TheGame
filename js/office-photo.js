@@ -352,6 +352,7 @@ function officeApplySkew(tx, ty, S) {
 // multiplier folded into the scale simply composes with the recomputed value.
 function officeStartDrift() {
   if (!officeShowing || officeDone) return;
+  if (typeof skipOn === 'function' && skipOn('intro')) return;   // Settings -> Skip (r380): start at rest
   if (officeHeroK <= 0) return;
   // Start at the cover framing and finish at the hero one, expressed against the
   // hero framing because that is what the camera is now resting at.

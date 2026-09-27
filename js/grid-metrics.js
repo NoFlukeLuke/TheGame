@@ -149,7 +149,12 @@ function syncSidebarsToGrid() {
   let fLeft = null, fw = 0;
   if (focus) {
     fw = pct(focus.getBoundingClientRect().width);
-    fLeft = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - 0.4);
+    // r380: a takeover board (and Flow's deck edit) is drawn on a panel padded
+    // ~9 design px (1.2%) past the grid, so the meter has to clear that too or the
+    // panel's edge sits over it.
+    const b = document.body.classList;
+    const gap = (b.contains('gp-active') || b.contains('flowr-deck')) ? 1.6 : 0.4;
+    fLeft = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - gap);
     focus.style.left   = fLeft + '%';
     focus.style.top    = pctH(g.top - s.top) + '%';
     focus.style.height = pctH(g.height) + '%';

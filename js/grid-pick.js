@@ -159,7 +159,7 @@ function gridScreenTakeover(rows, cols) {
   // note in js/score-anims.js. Measured: 3 of 3 steps caught it at 1440x820.
   document.getElementById('grid')?.classList.remove('round-end-flash');
   gridRows = rows; gridCols = cols;
-  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+  gridSlotMeasureNow(() => { if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics(); });
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';
   return gridEl;
@@ -178,7 +178,22 @@ function gridScreenRelease(force) {
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
   if (gridScreenSaved) { gridRows = gridScreenSaved.rows; gridCols = gridScreenSaved.cols; gridScreenSaved = null; }
-  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+  gridSlotMeasureNow(() => { if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics(); });
+}
+
+// r380: gp-active MOVES #grid-slot, and the slot carries a left/width transition
+// (the column slide). Card size is computed from the slot's MEASURED box, and a
+// box read the instant a class lands mid-transition is the box it is leaving - so
+// the board would be sized for the old slot and overflow the new one. Measure with
+// the transition off; hand it back a frame later so the ordinary slides still glide.
+function gridSlotMeasureNow(fn) {
+  const slot = document.getElementById('grid-slot');
+  if (!slot) { fn(); return; }
+  slot.style.transition = 'none';
+  void slot.offsetWidth;
+  try { fn(); } finally {
+    requestAnimationFrame(() => { slot.style.transition = ''; });
+  }
 }
 
 function gridPickTakeover() { return gridScreenTakeover(GP_ROWS, GP_COLS); }
@@ -289,13 +304,55 @@ function gridPickPaintSelection() {
   btn.classList.toggle('gp-act-off', !p);
   const sub = btn.querySelector('.gp-act-sub');
   if (sub) sub.textContent = p ? (p.label || '') : 'TAP AN OPTION';
+  gridPickSyncButtons();
+}
+
+// ── The board's own buttons (r380) ──
+// Owner: "i constantly reach for [PLAY] to confirm my choice". While a pick is
+// up, PLAY is CONFIRM and DISCARD is SKIP - the shop's BUY/LEAVE takeover shape:
+// markup saved, restored on close, render() kept off them (its _takeover guard).
+let _gpBtnSaved = null;
+function gridPickSkipNow() { if (gridPickState && gridPickState.onSkip) gridPickState.onSkip(); }
+function gridPickTakeButtons() {
+  const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
+  if (!play || !disc) return;
+  if (!_gpBtnSaved) _gpBtnSaved = { play: play.innerHTML, disc: disc.innerHTML };
+  play.classList.add('reward-buy'); play.innerHTML = 'C<br>O<br>N<br>F<br>I<br>R<br>M';
+  disc.classList.add('reward-clear'); disc.innerHTML = 'S<br>K<br>I<br>P';
+  if (!gridPickTakeButtons._bound) {
+    gridPickTakeButtons._bound = true;
+    // Capture, and grid-pick.js loads before every other script that listens on
+    // these buttons, so this runs first and stops the rest outright.
+    play.addEventListener('click', e => {
+      if (!gridPickState || !_gpBtnSaved) return;
+      e.stopImmediatePropagation(); e.preventDefault(); gridPickConfirm();
+    }, true);
+    disc.addEventListener('click', e => {
+      if (!gridPickState || !_gpBtnSaved) return;
+      e.stopImmediatePropagation(); e.preventDefault(); gridPickSkipNow();
+    }, true);
+  }
+  gridPickSyncButtons();
+}
+function gridPickSyncButtons() {
+  if (!_gpBtnSaved || !gridPickState) return;
+  const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
+  if (play) play.disabled = gridPickState.selected < 0 || !(gridPickState.offers || [])[gridPickState.selected];
+  if (disc) disc.disabled = !gridPickState.onSkip;
+}
+function gridPickReturnButtons() {
+  if (!_gpBtnSaved) return;
+  const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
+  if (play) { play.classList.remove('reward-buy'); play.innerHTML = _gpBtnSaved.play; play.disabled = true; }
+  if (disc) { disc.classList.remove('reward-clear'); disc.innerHTML = _gpBtnSaved.disc; }
+  _gpBtnSaved = null;
 }
 
 // A tap on an option. Tapping the one already picked closes the read and keeps
 // the selection - the bubble is a reference, not the choice, so dismissing it
 // must never cost the pick you had made.
 function gridPickSelect(i) {
-  if (!gridPickState) return;
+  if (!gridPickState || gridPickState.leaving) return;
   const p = (gridPickState.offers || [])[i];
   if (!p) return;
   const gridEl = document.getElementById('grid');
@@ -318,7 +375,7 @@ function gridPickSelect(i) {
 // CONFIRM. The only path that commits.
 const GP_SKIP_WINDOW = 3000;
 function gridPickConfirm() {
-  if (!gridPickState) return;
+  if (!gridPickState || gridPickState.leaving) return;
   const i = gridPickState.selected;
   const p = (gridPickState.offers || [])[i];
   if (!p) {
@@ -558,71 +615,16 @@ function gridDealTiles(els) {
 let _gdAir = 0;
 function _gdLanded() { if (--_gdAir <= 0) { _gdAir = 0; gridDealClipOff(); } }
 
-// ── THE TRAY EMPTIES THE WAY IT FILLED (r380) ───────────────────────────────
-// Owner: "i think the animation between choices could use some more va va voom,
-// it feels real empty and boring currently." The gap between one chain step and
-// the next was a LIT EMPTY PANEL: the tiles were removed on the same tick the
-// choice was made, so the only thing that ever moved was the next set arriving.
-// The tiles now fall OUT through the bottom of the tray - the exact reverse of
-// the deal, TOP-FIRST, so the board drains from the top down while the one you
-// picked rises out of it.
-//
-// IT RUNS ON CLONES, IN A LAYER OF ITS OWN, and that is what makes it safe to
-// drop in front of a grant. closeGridPick() removes the real tiles on the tick
-// the choice commits and nothing about the grant path moves; these are throwaway
-// copies in #grid-slot, which closeGridPick does not touch, so an exit still in
-// flight can never hold up - or be held up by - the screen that follows it.
-const GP_OUT_DUR  = 300;   // one tile's drop out
-const GP_OUT_STEP = 34;    // top to bottom, so the board drains downward
-const GP_OUT_PICK = 380;   // the chosen one leaves UP, and takes longer doing it
-function gridDealOut(pickedEl) {
-  const gridEl = document.getElementById('grid');
-  const host = document.getElementById('grid-slot');
-  if (!gridEl || !host || !gridEl.animate) return;
-  const tiles = [...gridEl.querySelectorAll('.gp-opt, .gp-act, .gp-amb')];
-  if (!tiles.length) return;
-  const pad = parseFloat(getComputedStyle(document.documentElement)
-    .getPropertyValue('--fbg-pad')) || 0;
-  const layer = document.createElement('div');
-  layer.className = 'gp-outlayer';
-  // The layer IS #grid's box, so a clone keeps the inline left/top gpBox gave
-  // it and lands exactly where the original was - no measurement, no rect (and
-  // so no chance of mixing rect px with the design px gpBox writes: the r160
-  // Trick-fan trap). It is clipped to the PANEL rather than to the board, so a
-  // tile vanishes at the same edge the deal reveals it at.
-  layer.style.cssText = `position:absolute;left:${gridEl.offsetLeft}px;top:${gridEl.offsetTop}px;`
-    + `width:${gridEl.offsetWidth}px;height:${gridEl.offsetHeight}px;`
-    + `clip-path:inset(${-pad}px 0px ${-pad}px 0px);`;
-  host.appendChild(layer);
-  const rows = tiles.map(el => ({ el, bottom: gridDealBottom(el, gridEl), x: el.offsetLeft }))
-                    .sort((a, b) => (a.bottom - b.bottom) || (a.x - b.x));
-  let last = 0, prevBottom = null, group = -1;
-  rows.forEach(r => {
-    if (prevBottom === null || Math.abs(r.bottom - prevBottom) > 1) { group++; prevBottom = r.bottom; }
-    const isPick = pickedEl && r.el === pickedEl;
-    const c = r.el.cloneNode(true);
-    c.style.pointerEvents = 'none';
-    layer.appendChild(c);
-    const delay = isPick ? 0 : group * GP_OUT_STEP;
-    const dur = isPick ? GP_OUT_PICK : GP_OUT_DUR;
-    last = Math.max(last, delay + dur);
-    // THE ONE YOU PICKED GOES THE OTHER WAY. Everything else drops away; the
-    // choice lifts out of the tray and brightens, so the last thing on screen
-    // before the next step is the thing you just took.
-    const frames = isPick
-      ? [{ transform: 'translateY(0) scale(1)', filter: 'brightness(1)', opacity: 1 },
-         { transform: 'translateY(-6px) scale(1.06)', filter: 'brightness(1.5)', opacity: 1, offset: .22 },
-         { transform: `translateY(${-(r.bottom + 40)}px) scale(.92)`, filter: 'brightness(1.1)', opacity: 0 }]
-      : [{ transform: 'translateY(0) rotate(0deg)', opacity: 1 },
-         { transform: `translateY(${gridEl.offsetHeight - r.bottom + r.el.offsetHeight + 30}px) rotate(${(r.x % 2 ? 1 : -1) * 5}deg)`, opacity: .85 }];
-    try {
-      c.animate(frames, { duration: dur, delay,
-        easing: isPick ? 'cubic-bezier(.2,.7,.3,1)' : 'cubic-bezier(.45,0,.75,1)', fill: 'both' });
-    } catch (e) {}
-  });
-  setTimeout(() => layer.remove(), last + 120);
-  try { sfxFlipShuffle?.(); } catch (e) {}
-}
+// THE TRAY'S EXIT BELONGS TO js/reward-transition.js (r380). This file grew a
+// gridDealOut - clones of the tiles dropping out through the bottom of the
+// tray, the exact reverse of the deal - as its answer to "the animation
+// between choices feels real empty and boring". rewardTransitionOut landed on
+// main for the same beat from the other half of that report ("having the cards
+// explode or something"), and it is the better one: it holds on the CHOICE
+// first, it reuses the win finale's blast, which is already the game's word for
+// "this board is done", it covers the deck editor as well as every pick, and it
+// is switchable in Settings -> Skip. Two exits for one moment is the doubled
+// vocabulary r233 spent a pass removing, so there is one.
 
 // One tile's fall. `dist` is how far it drops; the caller decides that, because
 // only the caller can see the whole set (see gridDealTiles).
@@ -755,7 +757,7 @@ function gridPickRenderActions(animateIn) {
       + `<div class="gp-act-label">${a.label || ''}</div>`
       + (a.sub ? `<div class="gp-act-sub">${a.sub}</div>` : '')
       + `</div>`, gpBox(GP_ROWS - 1, c, 1, 1));
-    if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); a.onClick(); });
+    if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); if (gridPickState && gridPickState.leaving) return; a.onClick(); });
   }
 
   // CONFIRM, across the last cells of the row. Drawn disabled and lit by
@@ -768,7 +770,27 @@ function gridPickRenderActions(animateIn) {
     + `<div class="gp-act-sub">TAP AN OPTION</div>`
     + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1));
   conf.addEventListener('click', e => { e.stopPropagation(); gridPickConfirm(); });
+  // SKIP (r380), in the same region as CONFIRM: a strip along its foot, so the
+  // two controls that END the screen are always in one place. One tap, because
+  // it is labelled; CONFIRM-with-nothing-picked still arms a skip too.
+  if (gridPickState.onSkip) {
+    const cw = (typeof CARD_W === 'number' ? CARD_W : 57), ch = (typeof CARD_H === 'number' ? CARD_H : 75);
+    const g = (typeof CARD_GAP === 'number' ? CARD_GAP : 5);
+    const w = GP_CONFIRM_W * cw + (GP_CONFIRM_W - 1) * g, sh = Math.round(ch * 0.34);
+    conf.style.height = (ch - sh - 3) + 'px';
+    const sk = put(`<div class="gp-act gp-skip"><div class="gp-act-label">Skip</div></div>`,
+      `left:${cellLeft(GP_ACT_COLS)}px;top:${cellTop(GP_ROWS - 1) + ch - sh}px;width:${w}px;height:${sh}px;`);
+    sk.addEventListener('click', e => { e.stopPropagation(); gridPickSkipNow(); });
+  }
   if (own) gridDealTiles(own);
+}
+
+function gridPickLeave(i, go) {
+  if (!gridPickState || gridPickState.leaving) return;
+  gridPickState.leaving = true;
+  const chosen = i >= 0 ? document.querySelectorAll('#grid .gp-opt')[i] : null;
+  if (typeof rewardTransitionOut === 'function') rewardTransitionOut(go, { chosen });
+  else go();
 }
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
@@ -776,18 +798,20 @@ function openGridPick(opts) {
   const offers = opts.offers || [];
   gridPickState = {
     offers, actions: opts.actions || [], selected: -1,
-    onChoose: (i, offer) => {
-      gridDealOut(document.querySelector(`#grid .gp-opt[data-gp="${i}"]`));
-      closeGridPick(); opts.onChoose && opts.onChoose(i, offer);
-    },
+    // r380: the board LEAVES before the next screen arrives - a beat on the
+    // choice, then the tiles explode out (js/reward-transition.js). The commit
+    // is locked the moment it is pressed, so a second tap during the beat does
+    // nothing rather than choosing twice.
+    onChoose: (i, offer) => gridPickLeave(i, () => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); }),
     // r362: a screen that may be SKIPPED passes onSkip. CONFIRM with nothing
     // selected arms it ('PRESS AGAIN TO SKIP'); a second press inside
     // GP_SKIP_WINDOW takes nothing.
-    onSkip: opts.onSkip ? () => { gridDealOut(null); closeGridPick(); opts.onSkip(); } : null, skipArmedAt: 0,
+    onSkip: opts.onSkip ? () => gridPickLeave(-1, () => { closeGridPick(); opts.onSkip(); }) : null, skipArmedAt: 0,
   };
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');
   gridPickRender(true);
+  gridPickTakeButtons();
 }
 
 // Re-draw without re-dealing (a reroll swapped the offers under us).
@@ -820,6 +844,7 @@ function gridPickSetShown(on) {
 }
 
 function closeGridPick() {
+  gridPickReturnButtons();
   gridPickRelease();
   gridPickState = null;
   if (typeof stopFloat === 'function') stopFloat('gridpick');

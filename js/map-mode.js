@@ -1120,6 +1120,7 @@ function mapKnackPickTwo(done) {
       showMessage(`+ ${k.name}`, 'var(--gold)');
       done();
     },
+    onSkip: () => done(),
   });
 }
 

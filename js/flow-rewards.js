@@ -331,6 +331,11 @@ function flowrMaybeStart() {
   if (typeof flowActive !== 'function' || !flowActive()) return false;
   if (!flowrCfg().on) return false;
   if (flowrQueue) return false;
+  // r380: THE WALKTHROUGH'S FIRST REWARD IS A PLAIN PICK. Flow is the first mode
+  // now, so its walkthrough is most players' first reward screen, and its steps
+  // describe a pick of three. The chain explains itself later through a tip
+  // (js/insights.js, flow_chain) the first time a real one rolls.
+  if (typeof tutorialActive === 'function' && tutorialActive()) return false;
   const n = flowrRollCount();
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
@@ -447,7 +452,9 @@ function flowrAfterStep() {
   // this gap is a LIT EMPTY PANEL - and the incoming options then took another
   // 335ms to appear on top of it (see GP_OPT_LEAD). Measured end to end, the
   // hole between one step and the next was 735ms; it is ~265 now.
-  if (flowrIdx < flowrQueue.length) { setTimeout(() => flowrShowStep(), 200); return true; }
+  // r380: the outgoing board has already left through rewardTransitionOut, so
+  // the incoming one only needs a breath, not a pause.
+  if (flowrIdx < flowrQueue.length) { setTimeout(() => flowrShowStep(), (typeof skipOn === 'function' && skipOn('transitions')) ? 0 : 140); return true; }
   flowrFinish();
   return true;
 }
@@ -550,6 +557,14 @@ function flowrPreviewChip(n) {
 }
 
 function flowrPlayCounter(n, done) {
+  // Settings -> Skip -> Reward count-up (r380). The number is still worth
+  // saying, so it is a toast rather than nothing; the tabs above the board show
+  // the chain either way.
+  if (typeof skipOn === 'function' && skipOn('rewardCount')) {
+    showMessage(`GOAL CLEARED · ×${n} REWARDS`, '#7fd45a');
+    done && done();
+    return;
+  }
   const host = document.getElementById('grid-slot') || document.getElementById('stage') || document.body;
   document.getElementById('flowr-counter')?.remove();
   flowrApplyChipStyle();
@@ -1201,7 +1216,12 @@ function flowrDeckEnd() {
     .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-hit', 'flowr-won', 'flowr-miss', 'flowr-jig'));
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   _flowrDeckOp = null; _flowrDeckSel = []; _flowrDeckBusy = false;
-  flowrAfterStep();
+  // r380: THE REVEAL GETS A BEAT, then the board explodes out. It used to cut
+  // straight to the next screen the moment the last card turned - the owner's
+  // "too jumpy". The cards removed here are rebuilt by whatever comes next: a
+  // takeover empties #grid anyway, and the chain's level-up deals the board in.
+  if (typeof rewardTransitionOut === 'function') rewardTransitionOut(() => flowrAfterStep(), { breathe: 800 });
+  else flowrAfterStep();
 }
 
 // ══════════════════════════════════════════════

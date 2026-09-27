@@ -10014,7 +10014,57 @@ and `level` moving once; the payout runs its whole count-up and reaches Valued.
 **Not touched:** the Guided crossroads draws its own tiles with its own animation
 (js/guided-mode.js) and is not on this system. It is the obvious next one.
 
-## r380 - the options stop blacking out, the fall is visible again, four chip looks
+## r380 - every pick can be SKIPPED, and PLAY confirms it
+
+- **Every `openGridPick` screen takes an `onSkip`** (Survival/Flow already did; Guided, the Schedule's knack pick and Poker Squares' picks now do). A skip runs the caller's own tail with no grant.
+- **In the grid: a SKIP strip along CONFIRM's foot**, one tap. CONFIRM-with-nothing-picked still arms the r362 press-twice skip.
+- **PLAY reads CONFIRM and DISCARD reads SKIP for the life of the pick** (`gridPickTakeButtons` / `gridPickReturnButtons`, the reward grid's CONFIRM/CLEAR shape). Capture listeners with `stopImmediatePropagation`; grid-pick.js loads before every other script listening on those buttons. `render()`'s `_takeover` includes `gridPickState`. `closeGridPick` hands the buttons back BEFORE a caller's tail, which lets the Flow deck edit then take PLAY as APPLY.
+
+## r381 - one gold pace, reward transitions, a Skip tab, Flow first (built as r380 beside the pick-SKIP r380)
+
+- **Every credit counts at one pace** (`payoutCoinMs(i)`, js/interlude.js). The
+  payout's three lines ran at 220ms a coin, a flat 2.1s however many, and 140ms a
+  coin. Coin i of any line now takes `max(50, 200 x 0.92^i)` ms, so equal amounts
+  pay at equal speed, and a big payout is visibly longer without a 40-coin line
+  taking eight seconds (3 coins ~0.55s, 10 ~1.4s, 40 ~3s). A flat total duration
+  was rejected: a huge payout would finish as fast as a tiny one. The leftover-time
+  clock runs at whatever speed lands each of its coins on the same curve.
+- **Carousel: Flow, Schedule, Classic, Custom, Poker Squares.** Guided and Spectrum
+  joined `MODE_HIDDEN_LIST` (dev panel -> Modes; Spectrum is still Custom's deck).
+- **Portrait mode select is a vertical list.** `openModeSelect` cuts the office
+  photo to the screen on a portrait viewport (the photo forces landscape, r257),
+  and `#cabinet:not(.landscape) #mode-carousel` stacks the cards. Desktop keeps
+  the carousel on the monitor.
+- **The walkthrough is Flow-first.** `flow-clock` sits where `clock` does and
+  quotes Flow's half-rate costs (`tutSwapCost` x `interactTimeCostMult()`);
+  `welcome` and `quota` branch on Flow (missing a goal does not end a Flow run);
+  `clock` now says running out ends the run. The walkthrough's first reward is a
+  plain pick (`flowrMaybeStart` returns false while `tutorialActive()`); the chain
+  and the deck editor explain themselves through tips (`flow_chain`, `deck_edit`).
+- **A takeover board stops at the focus column.** `body.gp-active` puts
+  `#grid-slot` at 47.8% / 42.2% (was 41/49 via grid-screen), measured with its
+  transition off (`gridSlotMeasureNow`) so the board is sized for the new box; and
+  `syncSidebarsToGrid` leaves a 1.6% gap on takeovers and the deck editor for the
+  Flow panel's 9px pad. The pick-of-three and its panel covered the focus meter at
+  every window size (the stage is one fixed canvas).
+- **Reward screens LEAVE before the next arrives** (js/reward-transition.js,
+  `rewardTransitionOut`): a beat on the choice (`.rt-chosen`, the rest dim), then
+  every tile explodes outward nearest-first and is REMOVED (not restored - the next
+  screen empties #grid or render()/the deal-in rebuilds cards). Wired into
+  `openGridPick` (every pick-of-three in the game, locked by `gridPickState.leaving`)
+  and the deck editor's end (0.8s beat after the reveal). The reward grid already
+  had its own resolve (fly/fall) and is untouched.
+- **Flow returns to play on a 3-2-1** (`svResumeAfterReward`, js/survival.js) via
+  `showBossCountdown` - the countdown with no deal and no clock refill, because
+  `show321Countdown` would refill Flow's session clock.
+- **Settings has TABS, and a Skip tab.** `skipOn(key)` (js/settings.js) reads
+  `skip<Key>` live: `transitions` (reward transitions, the Flow 3-2-1, the channel
+  flicker, a fast Classic 3-2-1), `scoring` (every hand at `dncRequestFF` speed),
+  `finale` (goal hand only), `payout` (count-up lands at once), `rewardCount`
+  (Flow's counter card becomes a toast), `intro` (no opening camera drift). None
+  changes a number.
+
+## r382 - the options stop blacking out, the fall is visible again, four chip looks
 
 ### 1. THE BLACKOUT WAS A STACKING CONTEXT, NOT AN OPACITY
 
@@ -10078,39 +10128,35 @@ ramp with a **1.76x** spread across the whole visible descent, against the old
 profile's 4.6x concentrated in its last two frames. The descent now spans
 **~250ms of continuously revealing motion**.
 
-### 3. THE TRAY EMPTIES THE WAY IT FILLED - `gridDealOut`
+### 3. THE PANEL TURNS OVER BETWEEN STEPS
 
 Owner: *"i think the animation between choices could use some more va va voom,
-it feels real empty and boring currently."* Two halves:
+it feels real empty and boring currently."*
 
-**The tiles fall OUT through the bottom of the tray**, top-first, so the board
-drains downward - the exact reverse of the deal. **The one you picked goes the
-other way**: it lifts out of the tray and brightens, so the last thing on screen
-before the next step is the thing you just took.
+The gap between one chain step and the next was a LIT EMPTY PANEL and a colour
+cross-fade, which is not an event. On a real step change `#flowr-bg` now wipes
+a bright band of the incoming colour across itself and takes a short squash, so
+the screen visibly turns over rather than quietly restocking.
 
-- **IT RUNS ON CLONES IN A LAYER OF ITS OWN, and that is what makes it safe to
-  put in front of a grant.** `closeGridPick()` removes the real tiles on the
-  tick the choice commits and nothing about the grant path moves; these are
-  throwaway copies in `#grid-slot`, which `closeGridPick` does not touch, so an
-  exit still in flight can never hold up - or be held up by - the screen that
-  follows it.
-- **The layer IS `#grid`'s offset box**, so a clone keeps the inline `left`/`top`
-  `gpBox` gave it and lands exactly where the original was: no measurement, and
-  therefore no chance of mixing rect px with the design px `gpBox` writes (the
-  r160 Trick-fan trap). It is clipped to the PANEL rather than to the board, so
-  a tile vanishes at the same edge the deal reveals it at.
-- **z-index 7**: above `#flowr-bg` (0) and the board it is replacing, below the
-  tab ladder (8), which belongs to the chain rather than to the step.
-- Measured: **8 clones, z-index 7, 484ms lifetime, all 8 moving.**
+- **IT FIRES ON A STEP CHANGE AND NOTHING ELSE.** `flowrRenderStack` is called
+  from `flowrShowStep` AND `flowrAfterStep` - twice per step - and from every
+  redraw, so keying it off the call would sweep two or three times for one turn.
+  `_flowrLastIdx` is the guard.
+- **The chain's very first step is exempt**, because the counter card already
+  owns that beat.
 
-**The panel turns over.** On a real step change `#flowr-bg` wipes a bright band
-of the incoming colour across itself and takes a short squash, so the gap is an
-event rather than a lit empty box and a colour cross-fade. **It fires on a step
-change and nothing else**: `flowrRenderStack` is called from `flowrShowStep`
-AND `flowrAfterStep` - twice per step - and from every redraw, so keying it off
-the call would sweep two or three times for one turn. `_flowrLastIdx` is the
-guard, and the very first step is deliberately exempt because the counter card
-already owns that beat.
+**THE TILES' OWN EXIT IS `rewardTransitionOut` (js/reward-transition.js), NOT
+THIS.** This branch grew a `gridDealOut` for the same moment - clones of the
+tiles dropping out through the bottom of the tray, the exact reverse of the
+deal - and it was **deleted on the merge**. The other half of the same report
+("having the cards explode or something") had already landed that file on
+`main`, and it is the better answer: it holds on the CHOICE first, it reuses the
+win finale's blast, which is already the game's word for "this board is done",
+it covers the deck editor as well as every pick, and it is switchable in
+Settings -> Skip. **Two exits for one moment is the doubled vocabulary r233
+spent a pass removing.** The panel turn is a different object - the frame
+handing over, not the tiles leaving - so the two compose: the tiles explode out,
+the panel wipes the new colour across itself, the next set falls in.
 
 ### 4. THE COUNTER HOLDS LONGER, AND NOT FOR THE SAME LENGTH TWICE
 
