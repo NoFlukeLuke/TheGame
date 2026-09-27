@@ -99,7 +99,7 @@ function tagalongOwned() { return typeof hasKnack === 'function' && hasKnack('ta
 function tagalongMax() { return tagalongOwned() ? (tagalongMaxCards > 0 ? tagalongMaxCards : Infinity) : KICKER_BASE_MAX; }
 // Tagalong's other half: kickers cost nothing.
 function kickersFree() { return tagalongOwned(); }
-// Kick In: kickers score and fire per-card Tricks as part of the hand.
+// Chip In: kickers score and fire per-card Tricks as part of the hand.
 function kickersScore() { return typeof hasKnack === 'function' && hasKnack('kick_in'); }
 // The raw pip value of a set of kicker cells (a wild has none).
 function kickerPipValue(cells) {
@@ -108,17 +108,17 @@ function kickerPipValue(cells) {
   return pips;
 }
 // The pip bill on a set of kicker cells. 0 when Tagalong makes them free, and 0
-// under Kick In, where they SCORE their pips instead: billing a card the pips it
+// under Chip In, where they SCORE their pips instead: billing a card the pips it
 // just scored would make the knack do nothing.
 function kickerPipBill(cells) {
   if (!cells || !cells.length || kickersFree() || kickersScore()) return 0;
   return kickerPipValue(cells);
 }
 // What a set of kicker cells costs in seconds. Rounded once at the end, not per
-// card, so three 7s cost 21s and not 3x7 rounded three times. 0 only when free:
-// Kick In makes a kicker score, it does not make it free.
+// card, so three 7s cost 21s and not 3x7 rounded three times. 0 when free
+// (Tagalong) and 0 under Chip In (r386, owner: it negates the time cost too).
 function tagalongSecondsFor(cells) {
-  if (!cells || !cells.length || tagalongTimeRate <= 0 || kickersFree()) return 0;
+  if (!cells || !cells.length || tagalongTimeRate <= 0 || kickersFree() || kickersScore()) return 0;
   return Math.round(kickerPipValue(cells) * tagalongTimeRate * interactTimeCostMult());
 }
 

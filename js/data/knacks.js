@@ -52,7 +52,7 @@ const KNACK_POOL = [
   // and the spare is billed as a penalty card. This lifts that.
   { id:'threes_crowd_k', emoji:'👥',  name:"Three's a Crowd", rarity:'rare',   desc:'Hands count as 1 card bigger than they are for your entities: a Pair is a 3-card hand, Two Pair a 5-card hand. Cards carried along do not count. Natural Scaling is unaffected.' },
   { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'Your hands may carry any number of kickers, and kickers cost nothing.' },
-  { id:'kick_in',        emoji:'🥾',  name:'Kick In',         rarity:'rare',   desc:'Kickers score their pips and fire Tricks as though they were in the hand. They do not change the hand type.' },
+  { id:'kick_in',        emoji:'🪙',  name:'Chip In',         rarity:'rare',   desc:'Kickers cost nothing, and score their pips and fire Tricks as though they were in the hand. They do not change the hand type.' },
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you take raises your Focus limit by 1.' },
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.' },

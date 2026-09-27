@@ -76,8 +76,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (!base) return 0;
   // ── KICKERS (r385) ──
   // A kicker is a selected card no component claims (js/limits.js). Without the
-  // Kick In knack it scores NOTHING, so it is stripped here and never reaches the
-  // card loop. With Kick In it stays in the card loop - its own pips, every
+  // Chip In knack it scores NOTHING, so it is stripped here and never reaches the
+  // card loop. With Chip In it stays in the card loop - its own pips, every
   // per-card Trick it would fire - but every HAND-LEVEL fact (how many cards,
   // what ranks and suits the hand is made of) still reads the hand alone, so a
   // Run of 4 plus a kicker is a four-card hand to everything that asks.

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r386 · The trays: coloured frames, an infinity mirror, real gaps, a hand name that fits";
+const BUILD = "2026-09-27 · r387 · Kick In is Chip In and cancels the kicker time cost (+ r386 tray pass)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
