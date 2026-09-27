@@ -222,7 +222,7 @@ function camInit() {
   // The r185 opening creep is a CABINET shot - it starts behind the wide framing,
   // which in photo mode means behind the edge of the photograph. Photo mode opens
   // on the framed photo instead and saves the push for the run starting.
-  if (onMenu && !(typeof officeShowing !== 'undefined' && officeShowing)) camPlayBootDolly();
+  if (onMenu && !(typeof officeShowing !== 'undefined' && officeShowing) && !(typeof officePending !== 'undefined' && officePending)) camPlayBootDolly();
   // js/settings.js applies its stored values at load, before #room may have been
   // reachable from every path; re-assert here now the scene definitely exists.
   if (typeof SETTINGS !== 'undefined') camSetRoomStyle(SETTINGS.roomStyle);

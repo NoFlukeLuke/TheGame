@@ -10239,3 +10239,111 @@ appearing as a list.
 next, which read as "my change broke the game" - Flow's seed is random once its
 walkthrough has been played, so whether those two cards pair is a coin flip.
 Plant the pair.
+
+## r384 - the phone intro is ONE shot, and the channel change is the whole cut
+
+Owner: *"intro screen on mobile ... jumps between two frames at first, and then
+when it zooms in it zooms in way too far. We can ditch the second zoom."*
+
+- **The two frames were the CSS room and then the photo.** On a phone the
+  photograph lands 1-2s after the page, and until then the r180 room was drawn
+  running its own r185 creep, then snapped to the photo. `<body>` now starts with
+  **`office-pending`** in the markup (so it holds from the very first paint), which
+  keeps `#camera` at `visibility:hidden`; `officeReleasePending(reveal)` takes it
+  off on load (with a .45s fade, `office-reveal`), on error, and at once on any
+  path that rules the photo out. `camInit` does not start the room's creep while
+  pending.
+- **Two safety nets.** Past `OFFICE_PENDING_MAX_MS` (6s) the room is shown with its
+  creep and `officeGaveUp` makes a late photo stand down rather than cut in (that
+  cut IS the jump). And a CSS animation reveals the camera at 8s even if no JS ever
+  releases it.
+- **No dive on a portrait viewport.** `officeCutToScreen` flashes straight into the
+  channel change when `innerHeight > innerWidth`: the glass is landscape, so
+  covering a portrait screen with it blew the menu up several times wider than the
+  phone. Desktop keeps the dive (landscape glass on a landscape screen is the
+  continuous cut it was built for).
+- Verified at 390x844 with the photo delayed 0 / 1.5 / 7s: the first visible frame
+  is the photo in every case that loads in time, the room never shows first, the
+  7s case shows the room at 6s and stays on it; the mode-select press cuts at
+  ~270ms with no camera scale change. Desktop unchanged. No page errors.
+
+## r385 - kickers, no minimum, the Flow return finishes, the explosion is on top
+
+### 1. KICKERS (js/limits.js) - one spare card per hand, and two knacks
+
+Owner: *"no minimum hand size ever"*, *"Normal hands should be able to
+accommodate one extra card only, and it costs pips and time"*, Tagalong
+*"allows you to have more than 1 passenger, and ... they don't have a cost"*,
+and a new knack where passengers *"score pips and trigger tricks"* without
+changing what the hand is.
+
+A **kicker** (poker's word; r326 called it a passenger or tagalong - the code
+ids `tagalong*` are unchanged) is a selected card no component claims.
+
+| | allowance | pips off | seconds off | scores |
+|---|---|---|---|---|
+| no knack | **1** (`KICKER_BASE_MAX`) | its pips | its pip value (x `interactTimeCostMult`) | nothing |
+| **Tagalong** | any (`tagalongMaxCards`, 0 = unlimited) | 0 | 0 | nothing |
+| **Kick In** (`kick_in`, rare, new) | 1 | 0 | still billed | its pips + every per-card Trick |
+| both | any | 0 | 0 | yes |
+
+A card past the allowance is still a PENALTY card (r201): outside the hand,
+billed its pips, consumed.
+
+- **`minSelection()` returns 1**, so the play grid AND the reward grid have no
+  floor (`rewardMinPicks` is 1), `minSelectionBinds()` is always false and
+  **High Card is never offered**. The NEED label, the PLAY-button gate and the
+  `playHand` guard are dormant rather than deleted. The `min_selection` tip and
+  the `min_selection` / `high_card` handbook topics are gone.
+- **`kickerPipValue` / `kickerPipBill` / `tagalongSecondsFor`** are the one
+  place the bill is worked out; `findBestHand`, `_withTagalongs`, `playHand`
+  and the labels all read them.
+- **The r281 covering retry now fires on ANY unclaimed card**, not only past
+  the allowance. With one kicker always allowed, three 7s would otherwise come
+  back as Pair + a 7 riding along whenever the Pair had out-scaled the set.
+- **The subset search breaks a tie toward FEWER kickers**: a kicker and a
+  penalty card bill the same pips and only the kicker bills the clock.
+- **calcScore does the split.** `_comp` is taken from the cells as passed
+  (moved to the top), the claimed cells are `_handOnly`, and without Kick In
+  `cells` is REPLACED by `_handOnly` so a kicker never reaches the card loop.
+  With Kick In the kicker stays in the card loop, but `_handN` (the claimed
+  count) replaces the card count at every hand-level read - `handBaseMult`,
+  `cardCount` in the payer ctx, Five Stack, Four Eyes, Four Horse-man, Landfill,
+  Undertow - and `_natCards` is built from the hand alone, so a Run of 4 plus
+  a kicker is a four-card hand to every hand-level test. `handReplayMap` reads
+  `_allCells`. Positional shape tests still read `cells`.
+- **`_scoredCells` in `playHand`** is what every per-card payout after the
+  score reads instead of `handCells`: generateHandFocus, the card time /
+  credits / Focus stores, card states, the Hallmark, Buried Treasure, Right
+  Time, exalt/corrupt and all three `scalingCount` calls. Removal, logging and
+  Natural Scaling still read `handCells`.
+- **Labels:** the hand label prints `− KICK n · −p · −ss` in red while billed
+  and `+ KICK n` once free; the breakdown row reads Kicker; the board paints a
+  kicker red only while it is billed.
+
+Measured on planted boards: `7 7 7` 168; `7 7 7 K` Three of a Kind with one
+kicker, -10 pips and -10s (158); `7 7 7 K 2` falls back to the set with two
+penalty cards (156); calcScore of the 4 cells equals the 3 cells (168) without
+Kick In; with Men of Repute and Kick In the K scores and fires it (568) while
+the hand stays Three of a Kind; with Tagalong both kickers ride free (168). A
+real Flow hand carrying a K kicker scored and billed the clock with the deck
+audit at 56/56 and no drift warnings.
+
+### 2. THE FLOW RETURN FITS BEFORE THE PICK (js/score-dance.js)
+
+Owner: *"the cards start their return post explosion but they get cut off by
+the options coming into view."* In Survival and Flow the pick opens the moment
+the fly-in lands (`140 + n*100 + 460 + 220` ms), and the r291 trip ran up to
+half the TALLY - longer than that - so `openGridPick` emptied `#grid` under
+cards still coming home. There the trip is capped to the fly-in wait (minus the
+stagger and 60ms), floored at 420ms; a boss win is exempt (no pick follows).
+Measured: blast settles ~3030ms, options arrive 3100ms or later.
+
+### 3. THE EXPLOSION PAINTS OVER EVERYTHING (js/reward-transition.js)
+
+`#grid` takes `z-index: 350` for the explode phase only and hands it back in
+`finish()`. `#grid-slot` is not a stacking context, so this lifts the flying
+tiles over the whole HUD (score, trays, PLAY/DISCARD, pause), inside
+`#cabinet` and still below the pause menu (420). The deal-in is untouched.
+Verified at 1440x820 and 420x900: tiles mid-explosion are topmost over the
+action buttons and the focus column.

@@ -322,10 +322,15 @@ function findBestHand(cells) {
     // A subset's own passengers are billed here too, or the search would happily
     // prefer a subset that carries three of them over one that carries none -
     // they cost the same pips whether they sit inside the hand or outside it.
-    const tagPips = handTagalongCells(handCells).reduce((n, [r, c]) => n + cardPips(gridData[r][c].rank), 0);
+    // (r385) kickerPipBill is 0 once Tagalong makes them free. On a tie a kicker
+    // loses to a penalty card: both bill the same pips and only a kicker also
+    // bills the clock, so the search must not pick the dearer of two equal hands.
+    const tagCells = handTagalongCells(handCells);
+    const tagPips = kickerPipBill(tagCells);
     const finalScore = Math.max(0, rawScore - penaltyPips - tagPips);
-    if (!best || finalScore > best.finalScore) {
-      best = { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore };
+    if (!best || finalScore > best.finalScore
+        || (finalScore === best.finalScore && tagCells.length < best._tagN)) {
+      best = { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore, _tagN: tagCells.length };
     }
   }
   restoreWilds();
@@ -346,7 +351,7 @@ function _withTagalongs(res) {
   if (!res) return res;
   const tag = handTagalongCells(res.handCells);
   res.tagalongCells   = tag;
-  res.tagalongPips    = tag.reduce((n, [r, c]) => n + ((gridData[r] && gridData[r][c] && gridData[r][c].rank) ? cardPips(gridData[r][c].rank) : 0), 0);
+  res.tagalongPips    = kickerPipBill(tag);
   res.tagalongSeconds = (typeof tagalongSecondsFor === 'function') ? tagalongSecondsFor(tag) : 0;
   res.finalScore = Math.max(0, res.rawScore - (res.penaltyPips || 0) - res.tagalongPips);
   return res;
@@ -769,7 +774,10 @@ function handComponentsFor(cells) {
   // point recovers the hand the player was obviously building. Preferring the
   // unrestricted answer whenever it is already valid is what keeps this a
   // strict no-op everywhere the bug was not firing.
-  if (components.length && unclaimedCount(components) > _maxTagalong) {
+  // r385: asked whenever ANY card is unclaimed, not only past the allowance.
+  // Every hand may carry one kicker now, so "three 7s" would otherwise come back
+  // as a Pair with a 7 riding along whenever the Pair had out-scaled the set.
+  if (components.length && unclaimedCount(components) > 0) {
     const alt = buildFrom(_bestRankPartition(cells, true));
     components = (alt && coversAll(alt)) ? alt : components;
   }
@@ -787,6 +795,7 @@ function handComponentsFor(cells) {
   // over its allowance is not a hand, exactly as before - findBestHand then falls
   // back to the smaller subset that is within it.
   //
+  // r385: every hand may carry ONE (KICKER_BASE_MAX); Tagalong lifts the count.
   // Being ALLOWED a passenger is not the same as it being free. The cards that
   // ride along are reported by handTagalongCells and billed by findBestHand: their
   // pips come off the hand, and playHand charges their pip value in seconds.

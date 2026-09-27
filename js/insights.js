@@ -91,15 +91,10 @@ const INSIGHTS = [
   // ── the board ─────────────────────────────────────────────────────────────
   // The single most common surprise in the game: measured at r254, a random
   // 5-card selection carries a dropped card 80% of the time.
-  { id: 'penalty_cards', title: 'That card is being dropped',
+  { id: 'penalty_cards', title: 'That card is not in the hand',
     anchor: ['#hand-name'],
-    body: 'A red card is not part of the hand. You lose its pips and the card. With Tagalong it also costs its pip value in seconds.',
+    body: 'A red card is not part of the hand. One spare card is a kicker: it costs its pips and its pip value in seconds. Any more are dropped: you lose their pips and the cards.',
     when: () => !!document.querySelector('#hand-name .hn-drop') },
-
-  { id: 'min_selection', title: 'You need more cards',
-    anchor: ['#hand-name'],
-    body: 'Selection Size sets a floor as well as a ceiling. The hand label says how many more to add.',
-    when: () => !!document.querySelector('#hand-name .hn-need') },
 
   { id: 'hand_layers', title: 'Your hand was also a flush',
     anchor: ['#hand-name'],

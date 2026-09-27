@@ -26,8 +26,12 @@ const LIMITS_DEF = [
   { id: 'luck',        label: 'Luck',             icon: '🍀', desc: 'Good chance effects fire more often, and better entities turn up', base: 0, max: 100, step: 10, weight: 0.6 },
 ];
 // ══════════════════════════════════════════════
-// MINIMUM SELECTION (r200) - raising your hand size raises the FLOOR too
+// MINIMUM SELECTION (r200) - REMOVED in r385
 // ══════════════════════════════════════════════
+// r385 (owner): "no minimum hand size ever", on the play grid AND the reward
+// grid. minSelection() returns 1, so every gate below reads as satisfied and
+// High Card (gated on minSelectionBinds) is never offered. The history follows.
+//
 // Selection Size is a maximum, and a maximum alone is pure upside: you take the
 // upgrade and keep playing pairs. Tying a minimum to it makes the upgrade a real
 // decision - you must commit that many cards to every hand, so you cannot lean
@@ -44,79 +48,78 @@ const MIN_SELECTION_GAP = 2;
 // The RAW floor: the arithmetic alone, with no knack applied. The reward grid
 // reads this one (rewardMinPicks, js/reward-grid.js) because Tagalong is a rule
 // about HANDS and has no business raising or lowering how many tiles a path takes.
-function minSelection() {
-  const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 3;
-  return Math.max(1, cap - MIN_SELECTION_GAP);
-}
-// The floor a HAND has to meet. Every play-grid caller reads this one, so
-// Tagalong lifting the minimum reaches the PLAY button, the auto-submit, the
-// NEED label, the x/y readout and the playHand guard from one place.
-function handMinSelection() { return tagalongLiftsMinimum() ? 1 : minSelection(); }
-// Does the minimum actually bite? Below 3 it cannot - two cards is the floor for
-// a hand regardless - and High Card is gated on this, so the early game (and the
-// tutorial, which runs at limit 3) is untouched. It reads the HAND floor, so with
-// Tagalong lifting the minimum High Card switches off too - which is right: High
-// Card is the escape valve for a selection you were FORCED to make, and with no
-// minimum nothing is forced.
+// THERE IS NO MINIMUM ANY MORE (r385). Owner: "I like the idea of a minimum on
+// reward grids, but the game has sort of moved away from the reward grid as the
+// main source of leveling, so it seems odd for there to be no minimum normally,
+// but we would do one on the grid. So no minimum hand size ever." The floor that
+// r200 attached to Selection Size is gone from the play grid AND the reward grid.
+// The functions stay because a dozen callers ask them, and 1 is the honest answer.
+function minSelection() { return 1; }
+// The floor a HAND has to meet. Every play-grid caller reads this one.
+function handMinSelection() { return minSelection(); }
+// Does the minimum actually bite? It never does now, so High Card (the r200
+// escape valve for a selection you were FORCED to make) is never offered: with
+// no minimum nothing is forced.
 function minSelectionBinds() { return handMinSelection() > 2; }
 
 // ══════════════════════════════════════════════
-// TAGALONG (r326) - passengers are allowed, and they are billed
+// KICKERS (r385) - the card a hand carries but does not use
 // ══════════════════════════════════════════════
-// r201 made every card load-bearing and sold the exemption back as the Tagalong
-// knack. Owner's report: at Selection Size 6+ the floor forces 4-card hands, and
-// being able to "throw 2 random cards on the end of anything" made the floor a
-// fiction - "so maybe that's true... yeah it probably is."
+// A KICKER is a selected card that no part of the hand claims - poker's own word
+// for the card that rides along beside a pair. (r326 called it a passenger.)
 //
-// So it IS true, deliberately: Tagalong lifts the minimum outright. That is the
-// whole knack now - not "the floor still applies but you may cheat it", which is
-// the version that read as broken. What stops it being free is the PRICE:
+//   - EVERY hand may carry ONE (`KICKER_BASE_MAX`). It scores nothing, and it
+//     costs its pips off the hand AND its pip value in seconds off the clock.
+//   - TAGALONG lifts the count (any number, or `tagalongMaxCards`) and makes
+//     every kicker FREE: no pips off, no seconds.
+//   - KICK IN makes a kicker SCORE as though it were in the hand - its own pips,
+//     and every per-card Trick it would fire - without changing what the hand is
+//     (a Run of 4 plus a kicker is still a four-card hand to every hand-level
+//     test). calcScore is where that split lives.
 //
-//   - a passenger's pips come OFF the hand, where they used to be scored ON it
-//     (r201's wording said "billed as penalties" but the code paid them, so this
-//     is the first time a passenger has cost anything at all);
-//   - and it costs its own pip value IN SECONDS.
-//
-// The time half is the load-bearing one. Measured on a bare loadout, the pip
-// bill of an average hand's passengers is 5.5% of the hand at level 1 and 1.9%
-// at level 18 - the owner's "by like round 3 it's meaningless", and it only gets
-// worse with a real Trick tray. The CLOCK does not grow with the level while the
-// goal does, so a flat second is worth more every round, which is the one lever
-// that hardens on its own.
-const TAGALONG_KEY = 'lethe.tagalong.v1';
-// Does Tagalong remove the minimum selection? Owner's spec: yes, by default.
-let tagalongIgnoresMin = true;
-// How many passengers ONE hand may carry. 0 = unlimited, which is the shipped
-// default: with the minimum lifted a passenger is never forced on you, so every
-// one is a choice and pricing it is the honest lever. A cap is the alternative
-// reading of the owner's note and is one setting away.
+// A card the hand cannot use beyond the allowance is a PENALTY card, as before
+// (r201): outside the hand, billed its pips, consumed anyway.
+const TAGALONG_KEY = 'lethe.tagalong.v2';
+const KICKER_BASE_MAX = 1;
+// How many kickers a hand may carry WITH Tagalong. 0 = unlimited (shipped).
 let tagalongMaxCards = 0;
-// Seconds per point of pip value a passenger costs. 1 = "its rank in time".
+// Seconds per point of pip value a kicker costs. 1 = "its rank in time".
 let tagalongTimeRate = 1;
 try {
   const _tg = JSON.parse(localStorage.getItem(TAGALONG_KEY) || '{}');
-  if (typeof _tg.ignoresMin === 'boolean') tagalongIgnoresMin = _tg.ignoresMin;
   if (isFinite(_tg.max))  tagalongMaxCards = Math.max(0, Math.min(9, _tg.max | 0));
   if (isFinite(_tg.rate)) tagalongTimeRate = Math.max(0, Math.min(4, +_tg.rate));
 } catch (e) {}
 function saveTagalongCfg() {
-  try { localStorage.setItem(TAGALONG_KEY, JSON.stringify({ ignoresMin: tagalongIgnoresMin, max: tagalongMaxCards, rate: tagalongTimeRate })); } catch (e) {}
+  try { localStorage.setItem(TAGALONG_KEY, JSON.stringify({ max: tagalongMaxCards, rate: tagalongTimeRate })); } catch (e) {}
 }
 function tagalongOwned() { return typeof hasKnack === 'function' && hasKnack('tagalong'); }
-function tagalongLiftsMinimum() { return tagalongOwned() && tagalongIgnoresMin; }
-// Infinity when uncapped, 0 when the knack is not owned - so ONE comparison in
-// handComponentsFor covers both the r201 rule and the cap, and 0 reproduces r201
-// exactly. It is in the components cache key for the usual reason: changing it
-// changes the answer for cells whose cards have not moved.
-function tagalongMax() { return tagalongOwned() ? (tagalongMaxCards > 0 ? tagalongMaxCards : Infinity) : 0; }
-// What a set of passenger cells costs in seconds, before the mode's own rate.
-// Rounded once at the end, not per card, so three 7s cost 21s and not 3x7 rounded
-// three times.
-function tagalongSecondsFor(cells) {
-  if (!cells || !cells.length || tagalongTimeRate <= 0) return 0;
+// How many kickers ONE hand may carry. It is in the components cache key: changing
+// it changes the answer for cells whose cards have not moved.
+function tagalongMax() { return tagalongOwned() ? (tagalongMaxCards > 0 ? tagalongMaxCards : Infinity) : KICKER_BASE_MAX; }
+// Tagalong's other half: kickers cost nothing.
+function kickersFree() { return tagalongOwned(); }
+// Kick In: kickers score and fire per-card Tricks as part of the hand.
+function kickersScore() { return typeof hasKnack === 'function' && hasKnack('kick_in'); }
+// The raw pip value of a set of kicker cells (a wild has none).
+function kickerPipValue(cells) {
   let pips = 0;
-  cells.forEach(([r, c]) => { const k = gridData[r] && gridData[r][c]; if (k && k.rank) pips += cardPips(k.rank); });
-  return Math.round(pips * tagalongTimeRate * interactTimeCostMult());
+  (cells || []).forEach(([r, c]) => { const k = gridData[r] && gridData[r][c]; if (k && k.rank && !(typeof isWildCard === 'function' && isWildCard(k))) pips += cardPips(k.rank); });
+  return pips;
+}
+// The pip bill on a set of kicker cells. 0 when Tagalong makes them free, and 0
+// under Kick In, where they SCORE their pips instead: billing a card the pips it
+// just scored would make the knack do nothing.
+function kickerPipBill(cells) {
+  if (!cells || !cells.length || kickersFree() || kickersScore()) return 0;
+  return kickerPipValue(cells);
+}
+// What a set of kicker cells costs in seconds. Rounded once at the end, not per
+// card, so three 7s cost 21s and not 3x7 rounded three times. 0 only when free:
+// Kick In makes a kicker score, it does not make it free.
+function tagalongSecondsFor(cells) {
+  if (!cells || !cells.length || tagalongTimeRate <= 0 || kickersFree()) return 0;
+  return Math.round(kickerPipValue(cells) * tagalongTimeRate * interactTimeCostMult());
 }
 
 const limits = {};

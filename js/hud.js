@@ -442,11 +442,15 @@ function updateHandNameLabel(result) {
   // wasn't even a run": the label was naming the components and saying nothing
   // about the two or three cards riding along beside them. Measured at Selection
   // Size 7 with Tagalong owned, 73% of hands were carrying at least one.
+  // r385: renamed KICK. Red and priced while billed; a plain "+ KICK n" once
+  // Tagalong makes them free, so the card is still named as riding along.
   const _tag = (result && result.tagalongCells && result.tagalongCells.length) || 0;
   if (html && _tag > 0) {
-    const _ts = result.tagalongSeconds || 0;
-    html += `<span class="hn-plus">−</span>`
-          + `<span class="hn-l hn-drop"><b>TAG</b><i>${_tag} · −${result.tagalongPips || 0}${_ts > 0 ? ` · −${_ts}s` : ''}</i></span>`;
+    const _ts = result.tagalongSeconds || 0, _tp = result.tagalongPips || 0;
+    const _bill = (_tp > 0 ? ` · −${_tp}` : '') + (_ts > 0 ? ` · −${_ts}s` : '');
+    html += _bill
+      ? `<span class="hn-plus">−</span><span class="hn-l hn-drop"><b>KICK</b><i>${_tag}${_bill}</i></span>`
+      : `<span class="hn-plus">+</span><span class="hn-l"><b>KICK</b><i>${_tag}</i></span>`;
   }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.

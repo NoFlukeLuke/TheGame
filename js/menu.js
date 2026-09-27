@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r382 · No blackout, a visible fall, four reward-chip looks (merged with the transitions pass)";
+const BUILD = "2026-09-27 · r385 · Kickers: one extra card per hand, Kick In knack, Flow return, explosion on top";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

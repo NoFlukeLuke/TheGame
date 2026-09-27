@@ -305,6 +305,11 @@ body.gp-active #grid { z-index: 1; }
 #grid .gp-act.gp-skip:hover { border-color: #d9cba4; }
 #grid .gp-act.gp-skip:hover .gp-act-label { color: var(--cream, #f0e6c8); }
 
+/* r381: PLAY-as-CONFIRM greys out until an option is picked. */
+#btn-play.reward-buy:disabled {
+  filter: grayscale(1) brightness(.55) !important;
+  opacity: .6 !important; cursor: default;
+}
 /* ── Reward transition (r380, js/reward-transition.js) ──
    The beat before a board leaves: the taken tile holds and glows, the rest
    step back. */
