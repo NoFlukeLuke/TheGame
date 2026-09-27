@@ -1306,8 +1306,19 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // The stagger scales with it too - left flat it would dominate the trip
       // at high speeds instead of merely sequencing it.
       const bPace = dncPace() || 1;
-      const bDur  = (C.dur + C.perCard * handCells.length) / bPace;
       const bStag = C.stagger / bPace;
+      let   bDur  = (C.dur + C.perCard * handCells.length) / bPace;
+      // SURVIVAL AND FLOW OPEN THE PICK THE MOMENT THE FLY-IN LANDS (r385), and
+      // the pick takes #grid over - so a card still on its way home is wiped off
+      // the board mid-flight. Owner: "the cards start their return post explosion
+      // but they get cut off by the options coming into view. speed up the return
+      // so it can finish before the options come up." The whole trip, stagger
+      // included, is squeezed inside the fly-in's own wait (the await below).
+      if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)){
+        const flyWait = 140 + previewCells.length*100 + 460 + 220;   // GF_LEAD + n*GF_STEP + GF_DUR + 220
+        const fit = flyWait - 60 - Math.max(0, loseEls.length-1) * bStag;
+        bDur = Math.max(420, Math.min(bDur, fit));
+      }
       const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
       dncBlast = loseEls.map(el => {
         const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;

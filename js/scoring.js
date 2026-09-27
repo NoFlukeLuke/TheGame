@@ -74,6 +74,26 @@ function trickPickOne(salt, cells) {
 function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
+  // ── KICKERS (r385) ──
+  // A kicker is a selected card no component claims (js/limits.js). Without the
+  // Kick In knack it scores NOTHING, so it is stripped here and never reaches the
+  // card loop. With Kick In it stays in the card loop - its own pips, every
+  // per-card Trick it would fire - but every HAND-LEVEL fact (how many cards,
+  // what ranks and suits the hand is made of) still reads the hand alone, so a
+  // Run of 4 plus a kicker is a four-card hand to everything that asks.
+  // _comp is taken from the cells as passed, before any strip: the components of
+  // a stripped selection can differ from the ones the player actually played.
+  const _allCells = cells;
+  const _comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
+  let _handOnly = cells;
+  if (_comp) {
+    const _cl = new Set();
+    _comp.components.forEach(k => k.cells.forEach(([r, c]) => _cl.add(r + '-' + c)));
+    const _hc = cells.filter(([r, c]) => _cl.has(r + '-' + c));
+    if (_hc.length && _hc.length < cells.length) _handOnly = _hc;
+  }
+  if (_handOnly !== cells && !(typeof kickersScore === 'function' && kickersScore())) cells = _handOnly;
+  const _handN = _handOnly.length;
   const _scoreCells = scoringOrderCells(cells);
   const cards = _scoreCells.map(([r,c]) => gridData[r][c]);
   // ── THE WILD IS INVISIBLE TO EVERY RANK AND SUIT COUNT (r325) ──
@@ -87,7 +107,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // is documented as aligned to `cards`, and exaltCorruptTotals(cards, reps)
   // pairs them by index, so dropping an entry here would silently shift every
   // exalt payout onto the wrong card.
-  const _natCards = (typeof naturalCards === 'function') ? naturalCards(cards) : cards;
+  const _handCards = (_handOnly === cells) ? cards : _handOnly.map(([r,c]) => gridData[r][c]);
+  const _natCards = (typeof naturalCards === 'function') ? naturalCards(_handCards) : _handCards;
   const hasTrickCard = trickCardPos && cells.some(([r,c]) => r===trickCardPos[0] && c===trickCardPos[1]);
   // Predicted post-update streak count for THIS hand (playHand updates streakCount/lastHandType
   // only after calcScore runs, so reading streakCount directly here is one hand stale).
@@ -105,7 +126,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // It is computed HERE, from the cells, rather than passed in by the six callers
   // of calcScore, so the live PIPS/MULT chips, the scoring dance, findBestHand's
   // comparison and the committed score can never disagree about what was played.
-  const _comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
+  // (_comp is computed at the top of the function, r385.)
   // Every component past the one that named the hand. `handName` is passed in by
   // the caller and is normally _comp.primary, but match-3 names its own hands, so
   // one is dropped by NAME rather than assumed to be the first entry.
@@ -123,7 +144,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Extra scoring passes per cell: one per component past the first that holds
   // it. This is what makes "the five suited cards of a Fullest House replay"
   // land on those five cards and not on the whole hand.
-  const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(cells) : null;
+  const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(_allCells) : null;
   // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
   // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
   let totalPips = Math.round(handBasePips(handName) * levelScale);
@@ -302,7 +323,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _pcFrac = roundFractionRemaining();
   const _pcIsRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
   const _pcCtx = {
-    cardCount:  cells.length,
+    cardCount:  _handN,
     real5:      realHandOfSize(cells, 5),
     isRun:      _pcIsRun,
     orderedRun: _pcIsRun && canBeOrderedRun(cells),
@@ -335,7 +356,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _asmK = _asmOn ? assemblyMarkCount : 0;
   let _asmMult = 0;
   // Five Stack: 5-card hands add per-card pips+mult, replay-aware (folds through the retrigger loop).
-  const _fiveCard = hasTrick('five_stack') && cells.length === 5;
+  const _fiveCard = hasTrick('five_stack') && _handN === 5;
   let _fsMult = 0;
   // 3rd Time's a Charm: the 3rd card (scoring order) of any hand gets +2 replays.
   const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? _scoreCells[2][0] + '-' + _scoreCells[2][1] : null;
@@ -741,11 +762,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
-  let mult = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult;
+  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult;
 
   // Layered hands: every other component adds its base mult too. Additive, not
   // multiplied - two hands' worth of ladder, not the product of them.
-  _extraLayers.forEach(h => { mult += handBaseMult(h, _scoreCells.length); });
+  _extraLayers.forEach(h => { mult += handBaseMult(h, _handN); });
 
   // ── THE PER-CARD MULT SEQUENCE (r233) ──────────────────────────────────────
   // Every card's own mult, applied here in scoring order, BEFORE a single
@@ -809,9 +830,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
   }
   // Four Eyes: 4-card hands score +mult
-  if (hasTrick('four_eyes') && cells.length === 4) { mult += BAL.four_eyes.mult; bMult('four_eyes', BAL.four_eyes.mult); }
+  if (hasTrick('four_eyes') && _handN === 4) { mult += BAL.four_eyes.mult; bMult('four_eyes', BAL.four_eyes.mult); }
   // Four Horse-man: 4-card hands grant a random bonus (pips/mult here; Focus/pause in playHand)
-  if (hasTrick('four_horseman') && cells.length === 4) {
+  if (hasTrick('four_horseman') && _handN === 4) {
     const _fhm = fourHorsemanRoll(cells);
     if (_fhm === 0)      { totalPips += BAL.four_horseman.pips; bPip('four_horseman', BAL.four_horseman.pips); }
     else if (_fhm === 1) { mult += BAL.four_horseman.mult; bMult('four_horseman', BAL.four_horseman.mult); }
@@ -862,7 +883,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Magician: +3 mult per Sleight owned
   if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
   // Landfill: +mult per card for every discard or swap used this round
-  if (hasTrick('landfill')) { const _a = cells.length * (discardsUsedRound + swapsUsedRound) * BAL.landfill.mult_per; if (_a) { mult += _a; bMult('landfill', _a); } }
+  if (hasTrick('landfill')) { const _a = _handN * (discardsUsedRound + swapsUsedRound) * BAL.landfill.mult_per; if (_a) { mult += _a; bMult('landfill', _a); } }
   // Compost: +mult per card discarded this round
   if (hasTrick('discard_pips')) { const _a = cardsDiscardedRound * BAL.discard_pips.mult_per; if (_a) { mult += _a; bMult('discard_pips', _a); } }
 
@@ -991,7 +1012,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _f = BAL.twinners.pip_mult, _pre = totalPips; totalPips = Math.round(totalPips * _f); bPipX('twinners', _f, totalPips - _pre);
   }
   if (isRun && hasTrick('undertow')) {
-    const _um = BAL.undertow.pip_mult_base + BAL.undertow.pip_mult_step * Math.max(0, cells.length - 3);
+    const _um = BAL.undertow.pip_mult_base + BAL.undertow.pip_mult_step * Math.max(0, _handN - 3);
     const _pre = totalPips; totalPips = Math.round(totalPips * _um); bPipX('undertow', _um, totalPips - _pre);
   }
   if (isRun && hasTrick('tide_table')) {
@@ -1333,8 +1354,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // worth before anything fires.
     ledger.basePips  = Math.round(handBasePips(handName) * levelScale)
                      + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
-    ledger.baseMult  = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult
-                     + _extraLayers.reduce((a, h) => a + handBaseMult(h, _scoreCells.length), 0);
+    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult
+                     + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
   }
 
   return Math.round(s);

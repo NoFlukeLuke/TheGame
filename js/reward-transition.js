@@ -37,7 +37,9 @@ function rtSkipping() { return typeof skipOn === 'function' && skipOn('transitio
 // taken (it lifts rather than scatters). opts.breathe: override the hold.
 function rewardTransitionOut(done, opts = {}) {
   let called = false;
-  const finish = () => { if (called) return; called = true; try { done && done(); } catch (e) { console.error('[RT] continuation threw', e); } };
+  const finish = () => { if (called) return; called = true;
+    const g = document.getElementById('grid'); if (g) g.style.zIndex = '';
+    try { done && done(); } catch (e) { console.error('[RT] continuation threw', e); } };
   const grid = document.getElementById('grid');
   if (rtSkipping() || !grid) { finish(); return; }
   if (typeof hideEntityTooltip === 'function') { try { hideEntityTooltip(true); } catch (e) {} }
@@ -48,6 +50,14 @@ function rewardTransitionOut(done, opts = {}) {
     const els = [...grid.children].filter(el =>
       !el.classList.contains('rc-line') && el.tagName !== 'CANVAS' && el.offsetWidth > 0);
     if (!els.length) { finish(); return; }
+    // THE EXPLOSION PAINTS OVER EVERYTHING (r385). Owner: "they draw over one
+    // part of the options tray and under part of it ... make them draw over and
+    // explode over everything, the score UI, the confirm discard buttons etc.
+    // that's just for the explosion not for the fall in." #grid-slot is not a
+    // stacking context, so #grid's own z-index competes with every panel in
+    // #stage: lifted above the tray tabs (8), the hand label (61) and the
+    // chain's counter, and below the pause menu (420). Taken back off in finish.
+    grid.style.zIndex = '350';
     const gr = grid.getBoundingClientRect();
     const cx = gr.left + gr.width / 2, cy = gr.top + gr.height / 2;
     const maxD = Math.hypot(gr.width, gr.height) / 2 || 1;

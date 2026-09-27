@@ -268,9 +268,10 @@ function playHand() {
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips } = result;
-  // Passengers (r326): cards inside the hand that no component claims, which only
-  // Tagalong permits. Their pips come off the score and their pip value is charged
-  // to the clock below, after the hand has scored.
+  // Kickers (r326, renamed r385): cards inside the hand that no component claims.
+  // Every hand may carry one; Tagalong allows more and makes them free. Unless
+  // free (or scoring, under Kick In) their pips come off the score, and unless
+  // free their pip value is charged to the clock below, after the hand scores.
   //
   // RECOMPUTED HERE rather than read off `result`, because the Ringer and Roll
   // Call both SPREAD the result they were handed while replacing handCells - so
@@ -278,7 +279,14 @@ function playHand() {
   // handTagalongCells once, after the hand is final, is the only place that
   // cannot be stale (handComponentsFor is cached, so it costs nothing).
   const _tagCells = (typeof handTagalongCells === 'function') ? handTagalongCells(handCells) : [];
-  const _tagPips  = _tagCells.reduce((n, [r, c]) => n + ((gridData[r]?.[c]?.rank) ? cardPips(gridData[r][c].rank) : 0), 0);
+  // r385: kickerPipBill is 0 under Tagalong (free) and under Kick In (they score).
+  const _tagPips  = (typeof kickerPipBill === 'function') ? kickerPipBill(_tagCells) : 0;
+  // THE CELLS THAT SCORE (r385). Without Kick In a kicker scores nothing, so every
+  // per-card payout after the score - card credits, time and Focus, the per-card
+  // Focus payers, scaling buffs, card states, the Hallmark, exalt and corrupt -
+  // reads this rather than handCells. With Kick In a kicker is in it.
+  const _scoredCells = (_tagCells.length && !(typeof kickersScore === 'function' && kickersScore()))
+    ? handCells.filter(([r, c]) => !_tagCells.some(([tr, tc]) => tr === r && tc === c)) : handCells;
   // Snapshot contribution breakdown now, from pristine pre-mutation state.
   // Folded into the round tally at the commit points below (goal / normal).
   const _contribSnapshot = captureRoundContrib(result);
@@ -317,7 +325,7 @@ function playHand() {
   // that record is what lets runHandPriming spend the primes of a Trick paying in
   // Focus, seconds or credits, which the contributions ledger cannot see.
   if (typeof resetTrickFires === 'function') resetTrickFires();
-  generateHandFocus(hand, handCells, _vultureSec);
+  generateHandFocus(hand, _scoredCells, _vultureSec);
   // Re-score the winning hand now that Focus reflects this hand's own gains.
   const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips - _tagPips);
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
@@ -329,7 +337,7 @@ function playHand() {
   // "Every rewind now goes through rewindTime()").
   if (typeof permTime !== 'undefined') {
     let _cardSecs = 0;
-    handCells.forEach(([r, c]) => {
+    _scoredCells.forEach(([r, c]) => {
       const _cd = gridData[r]?.[c];
       if (_cd && _cd.rank) _cardSecs += (permTime[cardId(_cd)] || 0);
     });
@@ -340,7 +348,7 @@ function playHand() {
   // its credits three times - that is the owner's spec for the card state.
   if (typeof permCoins !== 'undefined') {
     let _cardCoins = 0;
-    handCells.forEach(([r, c]) => {
+    _scoredCells.forEach(([r, c]) => {
       const _cd = gridData[r]?.[c];
       if (_cd && _cd.rank) {
         const per = permCoins[cardId(_cd)] || 0;
@@ -353,7 +361,7 @@ function playHand() {
   // hand. Flat per scored card, like permTime - not replay-weighted.
   if (typeof permFocus !== 'undefined') {
     let _cardFocus = 0;
-    handCells.forEach(([r, c]) => {
+    _scoredCells.forEach(([r, c]) => {
       const _cd = gridData[r]?.[c];
       if (_cd && _cd.rank) _cardFocus += (permFocus[cardId(_cd)] || 0);
     });
@@ -438,15 +446,15 @@ function playHand() {
   // charge is spent. Every played card is touched, not just the scored ones -
   // a penalty card was still committed and consumed.
   if (typeof cardStatesTouch === 'function') cardStatesTouch(playedCells.map(([r, c]) => gridData[r]?.[c]));
-  if (typeof cardStatesOnUse === 'function') cardStatesOnUse(result.handCells.map(([r, c]) => gridData[r]?.[c]), result.handCells);
-  if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  if (typeof cardStatesOnUse === 'function') cardStatesOnUse(_scoredCells.map(([r, c]) => gridData[r]?.[c]), _scoredCells);
+  if (typeof hallmarkResolve === 'function') hallmarkResolve(_scoredCells.map(([r, c]) => gridData[r]?.[c]));
   // Buried Treasure (r359): every scored diamond, replays included, rolls
   // (Luck / 2)% to multiply your credits by 1.1. The chance IS a share of Luck,
   // so it is not scaled by Luck a second time.
   if (hasTrick('buried_treasure') && coins > 0) {
     const _bt = BAL.buried_treasure, _p = Math.max(0, luckTotal() * _bt.luck_share / 100);
     let _hits = 0;
-    result.handCells.forEach(([r, c]) => {
+    _scoredCells.forEach(([r, c]) => {
       const cd = gridData[r]?.[c];
       if (!cd || cd.suit !== '♦' || isWildCard(cd)) return;
       const reps = (_lastRetrigByCell && _lastRetrigByCell[`${r}-${c}`]) || 1;
@@ -526,7 +534,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
-    scalingCount(hand, handCells, _handRetrigByCell);
+    scalingCount(hand, _scoredCells, _handRetrigByCell);
     return;
   }
 
@@ -553,7 +561,7 @@ function playHand() {
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
-    scalingCount(hand, handCells, _handRetrigByCell);
+    scalingCount(hand, _scoredCells, _handRetrigByCell);
     return;
   }
 
@@ -601,7 +609,7 @@ function playHand() {
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
-  { const _rt = handCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time')); }
+  { const _rt = _scoredCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time')); }
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
@@ -810,7 +818,7 @@ function playHand() {
   }
 
   // ── Suit effects (applied per scoring card) ──
-  const scoringCards = result.handCells.map(([r,c]) => gridData[r][c]);
+  const scoringCards = _scoredCells.map(([r,c]) => gridData[r][c]);
 
   // Suits are neutral by default - effects only via exalt/corrupt or Tricks.
   // (♥ and ♣ Tricks handled in calcScore; ♦/♠ base effects removed with neutral suits)
@@ -820,7 +828,7 @@ function playHand() {
   // ── Exalt / Corrupt - coins & time (pips & mult applied in calcScore) ──
   // Replay-weighted: a card that replayed fires its exalt/corrupt coin/time once per (re)play,
   // matching the pip/mult side in calcScore. `_lastRetrigByCell` is from the finalScore calcScore above.
-  const _ecReps = result.handCells.map(([r,c]) => _handRetrigByCell[r + '-' + c] || 1);
+  const _ecReps = _scoredCells.map(([r,c]) => _handRetrigByCell[r + '-' + c] || 1);
   const _ecPlay = exaltCorruptTotals(scoringCards, _ecReps);
   // ── Exalt / Corrupt triggers (per scored card; state is permanent + mutually exclusive) ──
   // Counters live ON the card object so they track the individual card and survive deck
@@ -830,10 +838,10 @@ function playHand() {
   // ♦ exalt = played while coins < 5, 2×; ♦ corrupt = played while coins > 65, 2×.
   if (exaltCorruptEnabled) { // ── triggers skipped entirely while the mechanic is paused ──
   const coinsAtPlay   = coins; // snapshot before payout
-  const _clubsInHand  = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♣' ? 1 : 0), 0);
-  const _heartsInHand = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♥' ? 1 : 0), 0);
+  const _clubsInHand  = _scoredCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♣' ? 1 : 0), 0);
+  const _heartsInHand = _scoredCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♥' ? 1 : 0), 0);
   const _spadeEarly   = (roundStartSeconds - roundSeconds) < 30; // within first 30s of the round timer
-  handCells.forEach(([_r,_c]) => {
+  _scoredCells.forEach(([_r,_c]) => {
     const _card = gridData[_r]?.[_c];
     if (!_card || _card._isSleight || _card._isTrick || _card._isStone || !_card.rank) return;
     if (_card._exalted || _card._corrupted) return; // already locked
@@ -955,7 +963,7 @@ function playHand() {
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
   runHandPriming(hand, handCells);
-  scalingCount(hand, handCells, _handRetrigByCell);
+  scalingCount(hand, _scoredCells, _handRetrigByCell);
 }
 
 // ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────

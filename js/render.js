@@ -158,7 +158,8 @@ function render() {
       const isHandValid  = !isHandReady && isSel && !!bestHandResult;
       // r254: a selected card the best hand DROPS (r201 penalty card). Its pips
       // will be subtracted and the card consumed - say so before the commit.
-      // r326: a TAGALONG is painted the same way, and that is the point. It is
+      // r385: a KICKER is painted red only while it is BILLED (Tagalong makes it
+      // free). r326: a TAGALONG is painted the same way, and that is the point. It is
       // inside the hand and in none of its components, so it costs pips and clock
       // exactly as a dropped card costs pips - and until now it was drawn as an
       // ordinary member of the hand, which is why a 7-card selection carrying two
@@ -167,7 +168,8 @@ function render() {
       // hand and you are paying for it.
       const isPenalty    = isSel && !!bestHandResult
         && ((bestHandResult.penaltyCells || []).some(([pr, pc]) => pr === r && pc === c)
-         || (bestHandResult.tagalongCells || []).some(([pr, pc]) => pr === r && pc === c));
+         || ((bestHandResult.tagalongPips > 0 || bestHandResult.tagalongSeconds > 0)
+             && (bestHandResult.tagalongCells || []).some(([pr, pc]) => pr === r && pc === c)));
 
       const { className, innerHTML } = renderCardAppearance(card, r, c, {
         isSel, selIdx, isHandReady, isHandValid, isPenalty,
@@ -314,7 +316,7 @@ function render() {
         return `<div class="sb-row"><span class="sb-label">${withSuitHalo(b.label)}</span><span class="sb-value ${cls}" ${style}>${withSuitHalo(b.val)}</span></div>`;
       }).join('')}
       ${penaltyPips > 0 ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Penalty (${penaltyCells.length} unused)</span><span class="sb-value" style="color:var(--red)">−${penaltyPips}</span></div>` : ''}
-      ${(bestHandResult.tagalongPips > 0) ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Tagalong (${bestHandResult.tagalongCells.length})</span><span class="sb-value" style="color:var(--red)">−${bestHandResult.tagalongPips}${bestHandResult.tagalongSeconds > 0 ? ` · −${bestHandResult.tagalongSeconds}s` : ''}</span></div>` : ''}
+      ${(bestHandResult.tagalongPips > 0 || bestHandResult.tagalongSeconds > 0) ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Kicker (${bestHandResult.tagalongCells.length})</span><span class="sb-value" style="color:var(--red)">${bestHandResult.tagalongPips > 0 ? '−' + bestHandResult.tagalongPips : ''}${bestHandResult.tagalongSeconds > 0 ? ` · −${bestHandResult.tagalongSeconds}s` : ''}</span></div>` : ''}
       <div class="sb-divider"></div>
       <div class="sb-total"><span class="sb-label">SCORE</span><span class="sb-value">${finalScore.toLocaleString()}</span></div>
     `;

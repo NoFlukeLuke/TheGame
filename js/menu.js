@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r384 · Phone intro opens on the photo, no dive";
+const BUILD = "2026-09-27 · r385 · Kickers: one extra card per hand, Kick In knack, Flow return, explosion on top";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
