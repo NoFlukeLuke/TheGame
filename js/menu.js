@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r383 · Borrowed CONFIRM greys out until you pick";
+const BUILD = "2026-09-27 · r384 · Phone intro opens on the photo, no dive";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

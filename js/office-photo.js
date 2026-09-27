@@ -187,14 +187,50 @@ function officeQuadBBox(q) {
 }
 
 // ── Load ────────────────────────────────────────────────────────────────────
+// THE FIRST FRAME IS THE PHOTO (r384). <body> carries .office-pending from the
+// markup, which keeps the whole camera undrawn until this lets go of it. On a
+// phone the photograph lands a second or two after the page, and the r180 CSS room
+// used to fill that gap with its own creep and then snap to the photo - the
+// opening read as two shots. `reveal` fades the scene in; any path that rules the
+// photo out lets go at once, so the CSS room still appears on its own.
+const OFFICE_PENDING_MAX_MS = 6000;   // past this the photo is not worth waiting for
+let officePending = false;
+let officeGaveUp  = false;            // the wait ran out: a late photo must not cut in
+function officeReleasePending(reveal) {
+  officePending = false;
+  const b = document.body;
+  if (!b.classList.contains('office-pending')) return;
+  b.classList.remove('office-pending');
+  if (reveal) {
+    b.classList.add('office-reveal');
+    setTimeout(() => b.classList.remove('office-reveal'), 500);
+  }
+}
+
 function officeInit() {
   const img = officeImgEl();
-  if (!img || !OFFICE_PHOTO.file) return;
+  if (!img || !OFFICE_PHOTO.file) { officeReleasePending(false); return; }
   // Uncalibrated: don't even ask for the file. Photo mode cannot turn on without
   // the corners, so fetching it would only be a 404 in the console on every load
   // of the shipped game - which reads as something being broken when nothing is.
-  if (!Array.isArray(OFFICE_PHOTO.screen) || OFFICE_PHOTO.screen.length !== 4) return;
+  if (!Array.isArray(OFFICE_PHOTO.screen) || OFFICE_PHOTO.screen.length !== 4) { officeReleasePending(false); return; }
+  // Only the MENU opens on the photo. A page that is not on the menu has nothing
+  // to wait for.
+  if (!document.getElementById('main-menu-overlay')?.classList.contains('show')) officeReleasePending(false);
+  else {
+    officePending = true;
+    setTimeout(() => {
+      if (!officePending) return;
+      officeGaveUp = true;
+      officeReleasePending(true);
+      // The CSS room is what shows instead, so it gets the creep it would have had.
+      if (typeof camPlayBootDolly === 'function') camPlayBootDolly();
+    }, OFFICE_PENDING_MAX_MS);
+  }
   img.addEventListener('load', () => {
+    // Too late: the room is already on screen, and cutting to the photo now is the
+    // exact jump this wait exists to prevent.
+    if (officeGaveUp) return;
     OFFICE_PHOTO.w = img.naturalWidth;
     OFFICE_PHOTO.h = img.naturalHeight;
     officeReady = true;
@@ -219,8 +255,10 @@ function officeInit() {
     if (typeof applyStageLayout === 'function') applyStageLayout();
     else if (typeof camRelayout === 'function') camRelayout();
     officeStartDrift();
+    officeReleasePending(true);
   });
   img.addEventListener('error', () => {
+    officeReleasePending(true);
     // Never fatal. The CSS room is still in the document underneath.
     console.warn('[office] could not load', OFFICE_PHOTO.file, '- falling back to the CSS room.');
     officeReady = false;
@@ -403,6 +441,11 @@ function officeCutToScreen() {
   // reciprocal. Guarded: with no travel to make (an uncalibrated photo, or a rest
   // framing already at 1) it flashes on the spot rather than running a 0-length
   // dolly.
+  // NO DIVE ON A PHONE (r384). The glass is landscape, so covering a portrait
+  // viewport with it means blowing it up until its HEIGHT fills the screen - the
+  // menu on it ends up several times wider than the phone and the dive reads as
+  // zooming far too far. The channel change on its own IS the transition there.
+  if (window.innerHeight > window.innerWidth) { flash(); return; }
   const rest = (typeof camWideK === 'number' && camWideK > 0.01) ? camWideK : 1;
   const to   = 1 / rest;
   if (to <= 1.01 || typeof camDollyMul !== 'function') { flash(); return; }

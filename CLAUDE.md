@@ -10239,3 +10239,30 @@ appearing as a list.
 next, which read as "my change broke the game" - Flow's seed is random once its
 walkthrough has been played, so whether those two cards pair is a coin flip.
 Plant the pair.
+
+## r384 - the phone intro is ONE shot, and the channel change is the whole cut
+
+Owner: *"intro screen on mobile ... jumps between two frames at first, and then
+when it zooms in it zooms in way too far. We can ditch the second zoom."*
+
+- **The two frames were the CSS room and then the photo.** On a phone the
+  photograph lands 1-2s after the page, and until then the r180 room was drawn
+  running its own r185 creep, then snapped to the photo. `<body>` now starts with
+  **`office-pending`** in the markup (so it holds from the very first paint), which
+  keeps `#camera` at `visibility:hidden`; `officeReleasePending(reveal)` takes it
+  off on load (with a .45s fade, `office-reveal`), on error, and at once on any
+  path that rules the photo out. `camInit` does not start the room's creep while
+  pending.
+- **Two safety nets.** Past `OFFICE_PENDING_MAX_MS` (6s) the room is shown with its
+  creep and `officeGaveUp` makes a late photo stand down rather than cut in (that
+  cut IS the jump). And a CSS animation reveals the camera at 8s even if no JS ever
+  releases it.
+- **No dive on a portrait viewport.** `officeCutToScreen` flashes straight into the
+  channel change when `innerHeight > innerWidth`: the glass is landscape, so
+  covering a portrait screen with it blew the menu up several times wider than the
+  phone. Desktop keeps the dive (landscape glass on a landscape screen is the
+  continuous cut it was built for).
+- Verified at 390x844 with the photo delayed 0 / 1.5 / 7s: the first visible frame
+  is the photo in every case that loads in time, the room never shows first, the
+  7s case shows the room at 6s and stays on it; the mode-select press cuts at
+  ~270ms with no camera scale change. Desktop unchanged. No page errors.
