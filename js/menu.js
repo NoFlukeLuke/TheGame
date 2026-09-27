@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r389 · The portrait strip is TWO trays, and the swap button says SWAP";
+const BUILD = "2026-09-27 · r390 · score-trays-preview.html - one tray per number";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -10654,3 +10654,88 @@ their own label and stand the pulse down; closing each one restores `🔄 SWAP 3
 4s`. A full hand plays its dance inside the mint preview tray with the name in
 its own band. **No page errors in any run.**
 
+
+## `score-trays-preview.html` (r390) - one tray per number
+
+Owner: *"Could I see a preview where all the individual numbers have their own
+tray and infinity mirror effect? So pips mult focus will need to be sized up
+vertically and the score and goal can remain one box. The text color for the new
+trays should maybe be white and can it have a sort of infinite effect behind the
+text as well, but much less dramatic..."*
+
+**NOTHING HAS SHIPPED. This is the design surface for it.** NOW beside PROPOSED,
+both drawn through the real `css/style.css` (r233's rule - a preview that
+disagrees with the game is worse than not having one), so the NOW column is
+provably the shipped left column and every percentage resolves against a real
+747x420 stage. The frame is CROPPED to the left column rather than the stage
+being drawn small. Dump prints the block to paste.
+
+- **Knobs:** chip tray height, ring depth (the r388 8/5/3 sets), the effect
+  behind the text, its strength, number size, tray gap, and a merge toggle for
+  SCORE + GOAL. The truncated half of the owner's sentence ("much less dramatic
+  so it's not…") is answered by the strength slider rather than guessed at.
+- **Four effects, genuinely different:** **none** · **halo** (the tray's own ring
+  idiom again, smaller and centred on the value - reads as a second, deeper
+  tray) · **tunnel** (a `repeating-radial-gradient` masked to a soft disc) ·
+  **echo** (the glyph repeated behind itself at 1.85x and 2.9x - a true infinity
+  mirror of the NUMBER rather than of the box; needs `data-v` kept in step by
+  js/hud.js if it is ever taken).
+- **The halo is centred on the VALUE (61%), not on the chip.** Centred on the
+  chip its outermost ring runs straight through the label.
+
+### THE HEIGHT HAS TO COME OFF SOMETHING, AND THE TABLE SAYS WHAT
+
+The column is a fixed stack of stage percentages ending at **97.98%** with
+r386's **1.9%** gaps, so every percent the chip row gains is a percent off
+another panel. Only five have slack, and the page shares the deficit across them
+in proportion to what each can spare, flagging red the moment one would be
+pushed under its floor:
+
+| panel | shipped | floor |
+|---|---|---|
+| SCORE / GOAL | 11.20% | 9.80% |
+| Knacks | 6.90% | 6.50% |
+| Hand preview | 20.70% | 19.20% |
+| Credits | 6.50% | 5.70% |
+| Records / Pause | 6.30% | 5.50% |
+| **Trick tray** | **21.70%** | **21.70% - NO SLACK** |
+
+**The trick tray is not a source.** Its chips are already 79px in a 77px content
+box (r386), so a pixel off it clips every tile. Total pool is **5.0%**, so the
+chip row tops out at **15.5%** and the page says so rather than silently
+overflowing. The default 14% is a **+3.5%** growth: the row goes 44px -> 59px and
+each chip fills it (measured 56.4 -> 75.3px at 1.28x).
+
+**Two things ride these numbers and move with them:** `css/flow-rewards.css`
+`#flowr-banner` (takes the chip row's own box) and `css/squares.css`
+`#stage.landscape.squares-mode #selected-cards` (starts where the knack band
+starts).
+
+### Three things this encodes
+
+- **THE ROW STOPS BEING A TRAY, which is where most of the room comes from.**
+  Its border, gradient, rings, plastic ring and 3px vertical padding all come
+  back as height for the three trays inside it.
+- **A CUSTOM PROPERTY IS SUBSTITUTED AT THE ELEMENT THAT DECLARES IT.**
+  `--tray-line: color-mix(in srgb, var(--tray-c) 46%, transparent)` on
+  `#score-subboxes` computes to a finished colour there; a child overriding
+  `--tray-c` inherits that finished colour and does **not** recolour its ring. So
+  the shipped change is to add `.score-subbox` to the shared tray rule's selector
+  list, not to lean on inheritance.
+- **A PERCENTAGE PADDING RESOLVES AGAINST THE CONTAINING BLOCK'S WIDTH, not the
+  element's.** The merged SCORE + GOAL tray needs its score centred in its own
+  half, and the first pass used 45.8% (a share of the 37.74% tray), which is
+  45.8% of the STAGE and pushed the number off the left edge. It is **17.3%**:
+  the left region runs 1.56%..22.0%, so its centre is 10.22% in from the tray's
+  left edge and `37.74 - 2 x 10.22` is what has to be padded off. Measured, the
+  score's centre lands at 11.68% against a target of 11.78%.
+
+**One ambiguity left for the owner, and the toggle is the answer:** in landscape
+SCORE and GOAL are already TWO trays (magenta and cyan); only portrait shares a
+box. "Can remain one box" reads as permission to leave them alone, so the merge
+defaults OFF and is there to be looked at.
+
+Verified in a real browser at 1500x1200 and 420x900: both columns render, every
+control drives, the overflow warning fires at the cap and clears on reset, Dump
+prints 54 lines, **0 panels spill the stage**, no horizontal page scroll, and
+**no page errors**.

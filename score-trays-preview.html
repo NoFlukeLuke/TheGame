@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score trays preview - one tray per number</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;600&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
+
+<!-- THE REAL STYLESHEET. This page is only worth having if the NOW column is
+     provably the shipped look, so the tray material, the r95 chip fills and
+     every landscape percentage come from the game's own CSS rather than from a
+     copy in here (r233: a preview that disagrees with the game is worse than
+     not having one). Everything this page proposes is in the ONE override
+     block below, scoped to .tp-new. -->
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   PAGE CHROME (not the game)
+   ══════════════════════════════════════════════════════════════════════════ */
+/* css/style.css makes <body> a centred, viewport-height flexbox for the game.
+   This page is a document, so every one of those has to be put back. */
+html,body{margin:0;background:#0b0c0f !important;color:#f0e6c8;
+  font-family:'Crimson Pro',Georgia,serif;-webkit-font-smoothing:antialiased}
+body{display:block !important;height:auto !important;max-height:none !important;
+  align-items:initial !important;justify-content:initial !important;
+  padding:18px 18px 80px !important;overflow:auto}
+body::after{display:none !important}
+h1{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:2px;color:#ffb02e;
+   margin:0 0 4px;text-transform:uppercase}
+.sub{font-size:13px;color:#8a7d60;margin:0 0 16px;max-width:900px;line-height:1.45}
+.sub b{color:#f0e6c8;font-weight:600}
+.cols{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.col{flex:0 0 auto}
+.col h2{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;
+  margin:0 0 8px;text-transform:uppercase;color:#8a7d60}
+.col.new h2{color:#35d59b}
+
+/* The stage is 747x420 design px and #stage carries `zoom:1 !important`
+   (css/style.css), so the scale has to go on a PARENT. */
+.tp-zoom{zoom:var(--tp-zoom,1.7);}
+/* The frame is CROPPED to the left column. The stage inside is the real
+   747x420 - it is simply clipped - so every percentage still resolves against
+   the real stage and nothing is being previewed at a size the game never uses. */
+.tp-frame{width:var(--tp-crop,318px);height:420px;position:relative;background:#0c0a07;
+  border:1px solid #2a2418;border-radius:4px;overflow:hidden}
+.tp-frame > #stage{position:absolute;left:0;top:0}
+/* Only the left column is under discussion, so the board half is a flat plate
+   rather than 16 fake cards competing for attention. */
+.tp-board{position:absolute;left:41%;top:11.11%;width:57%;height:77.5%;
+  background:radial-gradient(ellipse at center,#17240f 0%,#0a0d06 82%);
+  border:1px solid #000;border-radius:3px;
+  box-shadow:inset 0 0 24px rgba(0,0,0,.8),0 0 0 2px #2c2418;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',sans-serif;font-size:26px;letter-spacing:8px;
+  color:rgba(244,236,214,.05)}
+.tp-board::after{content:"BOARD"}
+
+/* ── controls ── */
+.panelC{margin-top:22px;background:#12100c;border:1px solid #2a2418;border-radius:6px;
+  padding:14px 16px;max-width:1080px}
+.row{display:flex;align-items:center;gap:12px;margin:0 0 11px;flex-wrap:wrap}
+.row > label:first-child{font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:1px;color:#8a7d60;min-width:186px;text-transform:uppercase}
+input[type=range]{width:230px;accent-color:#35d59b}
+.val{font-family:'Share Tech Mono',monospace;font-size:12px;color:#ffb02e;min-width:64px}
+.seg{display:flex;gap:0;border:1px solid #2a2418;border-radius:4px;overflow:hidden}
+.seg button{background:#0e0d0a;border:0;border-right:1px solid #2a2418;color:#8a7d60;
+  font-family:'Share Tech Mono',monospace;font-size:11px;padding:6px 11px;cursor:pointer;
+  letter-spacing:1px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#1d2b22;color:#35d59b}
+.chk{display:flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;
+  font-size:11px;color:#8a7d60;letter-spacing:1px;cursor:pointer}
+.btn{background:#1a1712;border:1px solid #3a3020;color:#ffb02e;border-radius:4px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;
+  padding:8px 14px;cursor:pointer}
+.btn:hover{background:#241f16}
+.note{font-size:12px;color:#8a7d60;line-height:1.5;margin:10px 0 0;max-width:900px}
+.note b{color:#f0e6c8;font-weight:600}
+table.stack{border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:11px;
+  margin-top:10px}
+table.stack th,table.stack td{padding:3px 10px 3px 0;text-align:left;color:#8a7d60}
+table.stack th{color:#f0e6c8;border-bottom:1px solid #2a2418}
+table.stack td.n{color:#f0e6c8}
+table.stack td.moved{color:#ffb02e}
+table.stack tr.grew td{color:#35d59b}
+#warn{font-family:'Share Tech Mono',monospace;font-size:11px;color:#ff6a3c;margin-top:8px;
+  min-height:15px}
+#dump{width:100%;height:260px;margin-top:12px;background:#0a0908;color:#9fd9b5;
+  border:1px solid #2a2418;border-radius:4px;font-family:'Share Tech Mono',monospace;
+  font-size:11px;padding:10px;display:none;white-space:pre;overflow:auto}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE PROPOSAL - everything below is scoped to .tp-new and is what would be
+   added to css/style.css. Nothing here touches the NOW column.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. THE ROW STOPS BEING A TRAY. It is a bare rail now, so its own border,
+      gradient, rings, plastic ring and 3px vertical padding all come back as
+      room for the three trays inside it. */
+#stage.landscape.tp-new #score-subboxes{
+  top:var(--tp-chips-top);
+  height:var(--tp-chips-h);
+  background:none !important;
+  border:none !important;
+  box-shadow:none !important;
+  padding:0 !important;
+  gap:var(--tp-chip-gap,5px);
+  overflow:visible;
+}
+
+/* 2. EACH NUMBER IS ITS OWN TRAY. This is the shared tray material from
+      css/style.css, declared on the chip - which is all the shipped change
+      would be: add `.score-subbox` to that rule's selector list, and set a
+      --tray-c per chip. The vars have to be declared HERE rather than
+      inherited, because `--tray-line: color-mix(..., var(--tray-c), ...)` is
+      substituted at the element that DECLARES it, so overriding --tray-c on a
+      child does not recolour a parent's ring. */
+#stage.landscape.tp-new .score-subbox{
+  --tray-line:   color-mix(in srgb, var(--tray-c) 46%, transparent);
+  --tray-line2:  color-mix(in srgb, var(--tray-c) 24%, transparent);
+  --tray-line3:  color-mix(in srgb, var(--tray-c) 12%, transparent);
+  --tray-glow:   color-mix(in srgb, var(--tray-c) 15%, transparent);
+  --tray-glow2:  color-mix(in srgb, var(--tray-c) 8%,  transparent);
+  --tray-glow3:  color-mix(in srgb, var(--tray-c) 4%,  transparent);
+  --tray-rings:
+    inset 0 0 0 1px var(--tray-line),
+    inset 0 0 0 2px var(--tray-glow),
+    inset 0 0 0 3px rgba(0,0,0,0.55),
+    inset 0 0 0 4px var(--tray-line2),
+    inset 0 0 0 5px var(--tray-glow2),
+    inset 0 0 0 6px rgba(0,0,0,0.5),
+    inset 0 0 0 7px var(--tray-line3),
+    inset 0 0 0 8px var(--tray-glow3);
+  --tray-rings-m:
+    inset 0 0 0 1px var(--tray-line),
+    inset 0 0 0 2px var(--tray-glow),
+    inset 0 0 0 3px rgba(0,0,0,0.55),
+    inset 0 0 0 4px var(--tray-line2),
+    inset 0 0 0 5px var(--tray-glow2);
+  --tray-rings-s:
+    inset 0 0 0 1px var(--tray-line),
+    inset 0 0 0 2px var(--tray-glow),
+    inset 0 0 0 3px rgba(0,0,0,0.5);
+
+  flex:1 1 0; min-width:0;
+  height:100% !important; max-height:100% !important;
+  position:relative;
+  border-radius:5px;
+  background:linear-gradient(180deg,#15110b,#0d0b07) !important;
+  border:1px solid var(--tray-c) !important;
+  border-top:2px solid var(--tray-c) !important;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
+              var(--tray-set, var(--tray-rings-m)),
+              0 0 0 2px color-mix(in srgb, var(--tray-c) 62%, #14100a),
+              0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806) !important;
+  padding:var(--tp-chip-pad,4px) 3px !important;
+  overflow:hidden;
+}
+
+/* 3. EACH TRAY IS NAMED BY ITS OWN COLOUR, and the TEXT goes white - so the
+      colour is the frame and the number is just the number. This replaces the
+      r95 solid blue/red/violet fills. */
+#stage.landscape.tp-new #pips-box { --tray-c:#4f8dff; }
+#stage.landscape.tp-new #mult-box { --tray-c:#ff5347; }
+#stage.landscape.tp-new #focus-box{ --tray-c:var(--c-purple); }
+
+#stage.landscape.tp-new .score-subbox .subbox-label,
+#stage.landscape.tp-new .score-subbox .subbox-val{
+  position:relative; z-index:2;
+  color:#ffffff !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.5) !important;
+}
+#stage.landscape.tp-new .score-subbox .subbox-label{
+  color:rgba(255,255,255,.66) !important;
+  letter-spacing:1.4px; margin-bottom:2px;
+}
+#stage.landscape.tp-new .score-subbox .subbox-val{
+  font-size:var(--tp-val-size,21px) !important; font-weight:900;
+}
+#stage.landscape.tp-new .subbox-times{
+  flex:0 0 auto; color:rgba(240,230,200,.35); font-size:10px;
+}
+
+/* 4. THE EFFECT BEHIND THE TEXT. One pseudo-element, three shapes, one
+      intensity knob (--tp-tx, 0..1). It is a BACKGROUND layer at z-index 0
+      under the label and the value (z-index 2), so the number is never
+      competing with it. */
+#stage.landscape.tp-new .score-subbox::after{
+  content:''; position:absolute; z-index:0; pointer-events:none;
+  /* centred on the VALUE, not on the chip - the label sits above it, so a box
+     centred on the chip would run its outermost ring through the label. */
+  left:50%; top:var(--tp-ty,61%); transform:translate(-50%,-50%);
+  width:var(--tp-tw,68%); height:var(--tp-th,54%);
+  opacity:var(--tp-tx,0.5);
+}
+/* halo: the tray's own ring idiom again, smaller and centred on the number. */
+#stage.landscape.tp-new.tp-fx-halo .score-subbox::after{
+  border-radius:4px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--tray-c) 40%, transparent),
+    inset 0 0 0 2px rgba(0,0,0,0.45),
+    inset 0 0 0 3px color-mix(in srgb, var(--tray-c) 22%, transparent),
+    inset 0 0 0 4px rgba(0,0,0,0.4),
+    inset 0 0 0 5px color-mix(in srgb, var(--tray-c) 12%, transparent),
+    inset 0 0 0 6px rgba(0,0,0,0.35),
+    inset 0 0 0 7px color-mix(in srgb, var(--tray-c) 6%, transparent);
+}
+/* tunnel: concentric circles receding from behind the glyph. */
+#stage.landscape.tp-new.tp-fx-tunnel .score-subbox::after{
+  width:150%; height:220%;
+  background:repeating-radial-gradient(circle at 50% 50%,
+    color-mix(in srgb, var(--tray-c) 34%, transparent) 0 1px,
+    transparent 1px var(--tp-pitch,7px));
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 22%,transparent 68%);
+          mask-image:radial-gradient(circle at 50% 50%,#000 22%,transparent 68%);
+}
+/* echo: the glyph repeated behind itself, bigger and fainter - a true
+   infinity mirror of the number rather than of the box. */
+#stage.landscape.tp-new.tp-fx-echo .score-subbox::after{ display:none; }
+#stage.landscape.tp-new.tp-fx-echo .subbox-val::before,
+#stage.landscape.tp-new.tp-fx-echo .subbox-val::after{
+  content:attr(data-v); position:absolute; left:50%; top:50%;
+  z-index:-1; pointer-events:none; white-space:nowrap;
+  font:inherit; color:var(--tray-c);
+  text-shadow:none;
+}
+#stage.landscape.tp-new.tp-fx-echo .subbox-val::before{
+  transform:translate(-50%,-50%) scale(1.85);
+  opacity:calc(var(--tp-tx,0.5) * 0.30);
+}
+#stage.landscape.tp-new.tp-fx-echo .subbox-val::after{
+  transform:translate(-50%,-50%) scale(2.9);
+  opacity:calc(var(--tp-tx,0.5) * 0.14);
+}
+#stage.landscape.tp-new.tp-fx-echo .subbox-val{ isolation:isolate; }
+#stage.landscape.tp-new.tp-fx-none .score-subbox::after{ display:none; }
+
+/* 5. THE REST OF THE STACK, re-solved so the 1.9% gaps survive the growth.
+      Written from JS as custom properties on the stage. */
+#stage.landscape.tp-new #score-center  { top:var(--tp-sc-top);   height:var(--tp-sc-h); }
+#stage.landscape.tp-new #score-left    { top:var(--tp-sc-top);   height:var(--tp-sc-h); }
+#stage.landscape.tp-new #knack-carousel-wrap{ top:var(--tp-kn-top); height:var(--tp-kn-h); }
+#stage.landscape.tp-new #selected-cards{ top:var(--tp-pv-top);   height:var(--tp-pv-h); }
+#stage.landscape.tp-new #hand-name     { top:var(--tp-pv-top);   height:var(--tp-pv-h); }
+#stage.landscape.tp-new #trick-tray-area{ top:var(--tp-tk-top);  height:var(--tp-tk-h); }
+#stage.landscape.tp-new #coin-info     { top:var(--tp-ci-top);   height:var(--tp-ci-h); }
+#stage.landscape.tp-new #btn-records,
+#stage.landscape.tp-new #btn-pause     { top:var(--tp-bt-top);   height:var(--tp-bt-h); }
+
+/* 6. OPTIONAL: SCORE + GOAL as ONE box. score-center takes the full column
+      width and score-left keeps its place inside it with its own tray chrome
+      stripped, so the two readouts share one frame. */
+/* score-center spans the whole column, so its own flex centring would put the
+   score in the middle of the merged tray - on top of the goal. The padding is
+   what keeps it centred in its own half - and a PERCENTAGE PADDING RESOLVES
+   AGAINST THE CONTAINING BLOCK'S WIDTH, not the element's, so it is a share of
+   the STAGE: the left region runs 1.56%..22.0%, so its centre is 10.22% in from
+   the tray's left edge, which wants (37.74 - 2*10.22) = 17.3% padded off. */
+#stage.landscape.tp-new.tp-merge #score-center{ width:37.74%; padding-right:17.3%; }
+#stage.landscape.tp-new.tp-merge #score-left{
+  background:none !important; border:none !important; box-shadow:none !important;
+  border-left:1px solid color-mix(in srgb, var(--c-cyan) 34%, transparent) !important;
+}
+#stage.landscape.tp-new.tp-merge #score-center{ --tray-c:var(--c-magenta); }
+</style>
+</head>
+<body>
+
+<h1>Score trays &mdash; one tray per number</h1>
+<p class="sub">
+  <b>NOW</b> is the shipped left column, drawn from <code>css/style.css</code>.
+  <b>PROPOSED</b> gives PIPS, MULT and FOCUS a tray each with the r388 infinity-mirror
+  rings, in place of the r95 solid fills, with white text and an effect behind the
+  number. The three trays are taller, so the rest of the stack is re-solved to keep
+  r386&rsquo;s 1.9% gaps &mdash; the table under the controls shows what moved and flags
+  anything that would not fit.
+</p>
+
+<div class="cols">
+  <div class="col"><h2>Now</h2>
+    <div class="tp-zoom"><div class="tp-frame" id="frame-old"></div></div>
+  </div>
+  <div class="col new"><h2>Proposed</h2>
+    <div class="tp-zoom"><div class="tp-frame" id="frame-new"></div></div>
+  </div>
+</div>
+
+<div class="panelC">
+  <div class="row">
+    <label>Preview scale</label>
+    <input type="range" id="k-zoom" min="1" max="2.6" step="0.05" value="1.7">
+    <span class="val" id="v-zoom"></span>
+    <label class="chk" style="margin-left:14px"><input type="checkbox" id="k-wide"> show the whole stage</label>
+  </div>
+  <div class="row">
+    <label>Chip tray height</label>
+    <input type="range" id="k-h" min="10.5" max="16" step="0.25" value="14">
+    <span class="val" id="v-h"></span>
+    <span class="val" id="v-hpx" style="color:#8a7d60"></span>
+  </div>
+  <div class="row">
+    <label>Ring depth</label>
+    <div class="seg" id="k-ring">
+      <button data-v="var(--tray-rings)">full &middot; 8px</button>
+      <button data-v="var(--tray-rings-m)">medium &middot; 5px</button>
+      <button data-v="var(--tray-rings-s)">small &middot; 3px</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>Effect behind the text</label>
+    <div class="seg" id="k-fx">
+      <button data-v="none">none</button>
+      <button data-v="halo">halo rings</button>
+      <button data-v="tunnel">tunnel</button>
+      <button data-v="echo">echoed glyph</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>Effect strength</label>
+    <input type="range" id="k-tx" min="0" max="1" step="0.02" value="0.5">
+    <span class="val" id="v-tx"></span>
+  </div>
+  <div class="row">
+    <label>Number size</label>
+    <input type="range" id="k-vs" min="15" max="30" step="1" value="21">
+    <span class="val" id="v-vs"></span>
+  </div>
+  <div class="row">
+    <label>Gap between trays</label>
+    <input type="range" id="k-gap" min="0" max="12" step="1" value="5">
+    <span class="val" id="v-gap"></span>
+  </div>
+  <div class="row">
+    <label></label>
+    <label class="chk"><input type="checkbox" id="k-merge"> merge SCORE + GOAL into one tray</label>
+    <button class="btn" id="k-dump">Dump CSS</button>
+    <button class="btn" id="k-reset">Reset</button>
+  </div>
+
+  <table class="stack" id="stacktab"></table>
+  <div id="warn"></div>
+
+  <p class="note">
+    <b>Where the height comes from.</b> The column is a fixed stack of percentages of
+    a 747&times;420 stage and it has to end at 97.98%, so every percent the chip row
+    gains has to come off something else. Only five panels have slack: the SCORE/GOAL
+    row, the knack strip, the hand preview, the credits bar and the buttons. The trick
+    tray is <b>not</b> one of them &mdash; its chips are already 79px in a 77px content
+    box (r386), so a pixel off it clips every tile. The deficit is shared across the
+    five in proportion to what each can spare, and the table goes red the moment one
+    would be pushed under its floor.
+  </p>
+  <p class="note">
+    <b>Two things ride these numbers and would have to move with them:</b> the Flow
+    reward banner (<code>css/flow-rewards.css</code> takes the chip row&rsquo;s own box)
+    and Poker Squares&rsquo; piece hand (<code>css/squares.css</code> starts where the
+    knack band starts).
+  </p>
+
+  <textarea id="dump" readonly spellcheck="false"></textarea>
+</div>
+
+<script>
+/* ── the real markup, both columns ───────────────────────────────────────── */
+function stageHTML(cls){
+  return '<div id="stage" class="landscape ' + cls + '">' +
+    '<div id="top-strip">' +
+      '<div class="panel-box" id="score-panel"><div id="score-panel-inner">' +
+        '<div id="score-subboxes">' +
+          '<div class="score-subbox" id="pips-box">' +
+            '<div class="subbox-label">PIPS</div>' +
+            '<div class="subbox-val" data-v="128">128</div></div>' +
+          '<div class="subbox-times">&times;</div>' +
+          '<div class="score-subbox" id="mult-box">' +
+            '<div class="subbox-label">MULT</div>' +
+            '<div class="subbox-val" data-v="14">14</div></div>' +
+          '<div class="subbox-times">&times;</div>' +
+          '<div class="score-subbox" id="focus-box">' +
+            '<div class="subbox-label">FOCUS</div>' +
+            '<div class="subbox-val" data-v="&times;1.8">&times;1.8</div></div>' +
+        '</div>' +
+        '<div id="score-center"><span id="score-total-label">Score</span>' +
+          '<div id="score-total-num">4,210</div></div>' +
+        '<div id="score-left"><div id="score-goal-label">GOAL</div>' +
+          '<div id="score-to-go"><span id="goal-display">6,500</span></div>' +
+          '<div id="score-progress-bar-wrap"><div id="score-progress-bar" style="width:64%"></div></div></div>' +
+      '</div></div>' +
+      '<div class="panel-box" id="trick-panel">' +
+        '<div id="hand-preview-area"><div id="selected-cards"></div>' +
+          '<div id="hand-name"><span class="hn-l"><b>RUN</b><i>OF 4</i></span></div></div>' +
+        '<div id="trick-tray-area"><span class="panel-title">' +
+          '<span id="tray-title-word">Tricks</span> <span id="trick-tray-count">4/5</span></span>' +
+          '<div id="trick-tray-list"></div></div>' +
+        '<div id="knack-carousel-wrap"><span class="panel-title">Knacks</span>' +
+          '<div id="knack-list"></div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="coin-info" class="v7-ls">' +
+      '<div class="ci-main">&#128176;<b id="ci-gold">42</b></div>' +
+      '<div class="ci-row"><span>Interest</span><span class="pos">+4</span></div>' +
+      '<div class="ci-row"><span>Cash out</span><span>+6</span></div></div>' +
+    '<div id="action-row-2">' +
+      '<button class="act-btn btn-secondary" id="btn-records">&#128452; Records</button>' +
+      '<button class="act-btn btn-secondary" id="btn-pause">&#9208; Pause</button></div>' +
+    '<div class="tp-board"></div>' +
+  '</div>';
+}
+document.getElementById('frame-old').innerHTML = stageHTML('');
+document.getElementById('frame-new').innerHTML = stageHTML('tp-new');
+/* Both columns carry the same ids on purpose: every selector in style.css is an
+   id selector, and a CSS id selector matches EVERY element with that id, so one
+   stylesheet dresses both stages. Nothing on this page uses getElementById to
+   reach inside a stage. */
+var NEW = document.querySelectorAll('#frame-new #stage')[0];
+
+/* ── the stack, and how it re-solves ─────────────────────────────────────── */
+var START = 2.78, GAP = 1.9, END = 97.98;
+/* h    - the shipped height
+   floor- how small it may go before its own contents clip
+   The trick tray has floor === h: it has no slack at all (r386). */
+var STACK = [
+  { key:'sc', name:'SCORE / GOAL',  h:11.2, floor: 9.8 },
+  { key:'ch', name:'PIPS MULT FOCUS', h:10.5, floor:10.5, grow:true },
+  { key:'kn', name:'Knacks',        h: 6.9, floor: 6.5 },
+  { key:'pv', name:'Hand preview',  h:20.7, floor:19.2 },
+  { key:'tk', name:'Trick tray',    h:21.7, floor:21.7 },
+  { key:'ci', name:'Credits',       h: 6.5, floor: 5.7 },
+  { key:'bt', name:'Records / Pause', h: 6.3, floor: 5.5 }
+];
+
+function solve(chipH){
+  var out = {}, i, r, need = chipH - 10.5, pool = 0;
+  for (i = 0; i < STACK.length; i++){
+    r = STACK[i]; out[r.key] = r.h;
+    if (!r.grow) pool += (r.h - r.floor);
+  }
+  out.ch = chipH;
+  var short = 0;
+  if (need > 0){
+    if (pool <= 0) { short = need; }
+    else {
+      var take = Math.min(need, pool);
+      short = need - take;
+      for (i = 0; i < STACK.length; i++){
+        r = STACK[i]; if (r.grow) continue;
+        var spare = r.h - r.floor;
+        if (spare <= 0) continue;
+        out[r.key] = +(r.h - take * (spare / pool)).toFixed(3);
+      }
+    }
+  }
+  /* tops fall straight out of the heights and the one gap */
+  var top = START;
+  for (i = 0; i < STACK.length; i++){
+    out[STACK[i].key + 'Top'] = +top.toFixed(3);
+    top += out[STACK[i].key] + GAP;
+  }
+  out._end = +(top - GAP).toFixed(2);
+  out._short = +short.toFixed(3);
+  return out;
+}
+
+var CFG = { h:14, ring:'var(--tray-rings)', fx:'halo', tx:0.5, vs:21, gap:5, merge:false };
+
+function apply(){
+  var s = solve(CFG.h), st = NEW.style;
+  st.setProperty('--tp-chips-top', s.chTop + '%');
+  st.setProperty('--tp-chips-h',   s.ch + '%');
+  st.setProperty('--tp-sc-top', s.scTop + '%'); st.setProperty('--tp-sc-h', s.sc + '%');
+  st.setProperty('--tp-kn-top', s.knTop + '%'); st.setProperty('--tp-kn-h', s.kn + '%');
+  st.setProperty('--tp-pv-top', s.pvTop + '%'); st.setProperty('--tp-pv-h', s.pv + '%');
+  st.setProperty('--tp-tk-top', s.tkTop + '%'); st.setProperty('--tp-tk-h', s.tk + '%');
+  st.setProperty('--tp-ci-top', s.ciTop + '%'); st.setProperty('--tp-ci-h', s.ci + '%');
+  st.setProperty('--tp-bt-top', s.btTop + '%'); st.setProperty('--tp-bt-h', s.bt + '%');
+  st.setProperty('--tray-set', CFG.ring);
+  st.setProperty('--tp-tx', CFG.tx);
+  st.setProperty('--tp-val-size', CFG.vs + 'px');
+  st.setProperty('--tp-chip-gap', CFG.gap + 'px');
+  NEW.className = 'landscape tp-new tp-fx-' + CFG.fx + (CFG.merge ? ' tp-merge' : '');
+
+  document.getElementById('v-h').textContent  = CFG.h.toFixed(2) + '%';
+  document.getElementById('v-hpx').textContent= '(' + (CFG.h * 4.2).toFixed(1) + 'px)';
+  document.getElementById('v-tx').textContent = CFG.tx.toFixed(2);
+  document.getElementById('v-vs').textContent = CFG.vs + 'px';
+  document.getElementById('v-gap').textContent= CFG.gap + 'px';
+
+  var rows = '<tr><th>panel</th><th>now</th><th>proposed</th><th>&Delta;</th>' +
+             '<th>top</th><th>px</th></tr>';
+  for (var i = 0; i < STACK.length; i++){
+    var r = STACK[i], v = s[r.key], d = +(v - r.h).toFixed(2);
+    var cls = d > 0 ? ' class="grew"' : '';
+    rows += '<tr' + cls + '><td>' + r.name + '</td>' +
+      '<td class="n">' + r.h.toFixed(2) + '%</td>' +
+      '<td class="' + (d ? 'moved' : 'n') + '">' + v.toFixed(2) + '%</td>' +
+      '<td>' + (d > 0 ? '+' : '') + (d ? d.toFixed(2) : '&middot;') + '</td>' +
+      '<td>' + s[r.key + 'Top'].toFixed(2) + '%</td>' +
+      '<td>' + (v * 4.2).toFixed(0) + '</td></tr>';
+  }
+  document.getElementById('stacktab').innerHTML = rows;
+  document.getElementById('warn').textContent = s._short > 0
+    ? 'DOES NOT FIT — ' + s._short.toFixed(2) + '% over. Every shrinkable panel is at its floor; the column would run to ' + (s._end + s._short).toFixed(2) + '% against 97.98%.'
+    : 'Fits. Column ends at ' + s._end.toFixed(2) + '% (shipped: 97.98%).';
+}
+
+/* ── controls ────────────────────────────────────────────────────────────── */
+function seg(id, key, dflt){
+  var box = document.getElementById(id), bs = box.querySelectorAll('button');
+  function set(v){
+    CFG[key] = v;
+    for (var i = 0; i < bs.length; i++) bs[i].classList.toggle('on', bs[i].dataset.v === v);
+    apply();
+  }
+  for (var i = 0; i < bs.length; i++)
+    (function(b){ b.onclick = function(){ set(b.dataset.v); }; })(bs[i]);
+  set(dflt);
+}
+function rng(id, key, num){
+  var el = document.getElementById(id);
+  el.oninput = function(){ CFG[key] = num(el.value); apply(); };
+}
+seg('k-ring', 'ring', 'var(--tray-rings)');
+seg('k-fx',   'fx',   'halo');
+rng('k-h',  'h',  parseFloat);
+rng('k-tx', 'tx', parseFloat);
+rng('k-vs', 'vs', function(v){ return v | 0; });
+rng('k-gap','gap',function(v){ return v | 0; });
+document.getElementById('k-merge').onchange = function(){ CFG.merge = this.checked; apply(); };
+var kz = document.getElementById('k-zoom'), kw = document.getElementById('k-wide');
+function scale(){
+  document.documentElement.style.setProperty('--tp-zoom', kz.value);
+  document.documentElement.style.setProperty('--tp-crop', kw.checked ? '747px' : '318px');
+  document.getElementById('v-zoom').textContent = (+kz.value).toFixed(2) + '\u00d7';
+}
+kz.oninput = scale; kw.onchange = scale; scale();
+document.getElementById('k-reset').onclick = function(){
+  CFG = { h:14, ring:'var(--tray-rings)', fx:'halo', tx:0.5, vs:21, gap:5, merge:false };
+  document.getElementById('k-h').value = 14;
+  document.getElementById('k-tx').value = 0.5;
+  document.getElementById('k-vs').value = 21;
+  document.getElementById('k-gap').value = 5;
+  document.getElementById('k-merge').checked = false;
+  seg('k-ring','ring','var(--tray-rings)'); seg('k-fx','fx','halo');
+};
+
+document.getElementById('k-dump').onclick = function(){
+  var s = solve(CFG.h), t = document.getElementById('dump');
+  var L = [];
+  L.push('/* Score trays - one tray per number. Paste into css/style.css. */');
+  L.push('');
+  L.push('/* 1. Add .score-subbox to the SHARED TRAY RULE\'s selector list, so the');
+  L.push('      ring vars are declared on the chip itself (they are substituted at');
+  L.push('      the declaring element, so inheriting them will not recolour). */');
+  L.push('');
+  L.push('/* 2. The row is a bare rail. */');
+  L.push('  #stage.landscape #score-subboxes { left:1.56%; top:' + s.chTop.toFixed(2) + '%; width:37.74%; height:' + s.ch.toFixed(2) + '%;');
+  L.push('    display:flex; flex-direction:row; align-items:center; justify-content:space-around;');
+  L.push('    gap:' + CFG.gap + 'px; padding:0 !important; background:none !important;');
+  L.push('    border:none !important; box-shadow:none !important; overflow:visible; }');
+  L.push('');
+  L.push('/* 3. Each number is a tray. */');
+  L.push('  #stage.landscape .score-subbox { flex:1 1 0; min-width:0; position:relative;');
+  L.push('    height:100% !important; max-height:100% !important; border-radius:5px;');
+  L.push('    --tray-set: ' + CFG.ring + '; padding:4px 3px; overflow:hidden;');
+  L.push('    border-top:2px solid var(--tray-c) !important; }');
+  L.push('  #stage.landscape #pips-box  { --tray-c:#4f8dff; }');
+  L.push('  #stage.landscape #mult-box  { --tray-c:#ff5347; }');
+  L.push('  #stage.landscape #focus-box { --tray-c:var(--c-purple); }');
+  L.push('');
+  L.push('/* 4. White ink (replaces the r95 solid fills + their cream text). */');
+  L.push('  #stage.landscape .score-subbox .subbox-val {');
+  L.push('    color:#fff !important; font-size:' + CFG.vs + 'px !important; font-weight:900;');
+  L.push('    text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.5) !important;');
+  L.push('    position:relative; z-index:2; }');
+  L.push('  #stage.landscape .score-subbox .subbox-label {');
+  L.push('    color:rgba(255,255,255,.66) !important; letter-spacing:1.4px;');
+  L.push('    position:relative; z-index:2; }');
+  L.push('');
+  L.push('/* 5. Behind the text: ' + CFG.fx + ', strength ' + CFG.tx.toFixed(2) + '. */');
+  if (CFG.fx === 'halo'){
+    L.push('  #stage.landscape .score-subbox::after { content:\'\'; position:absolute; z-index:0;');
+    L.push('    pointer-events:none; left:50%; top:61%; transform:translate(-50%,-50%);');
+    L.push('    width:68%; height:54%; border-radius:4px; opacity:' + CFG.tx.toFixed(2) + ';');
+    L.push('    box-shadow:');
+    L.push('      inset 0 0 0 1px color-mix(in srgb, var(--tray-c) 40%, transparent),');
+    L.push('      inset 0 0 0 2px rgba(0,0,0,0.45),');
+    L.push('      inset 0 0 0 3px color-mix(in srgb, var(--tray-c) 22%, transparent),');
+    L.push('      inset 0 0 0 4px rgba(0,0,0,0.4),');
+    L.push('      inset 0 0 0 5px color-mix(in srgb, var(--tray-c) 12%, transparent),');
+    L.push('      inset 0 0 0 6px rgba(0,0,0,0.35),');
+    L.push('      inset 0 0 0 7px color-mix(in srgb, var(--tray-c) 6%, transparent); }');
+  } else if (CFG.fx === 'tunnel'){
+    L.push('  #stage.landscape .score-subbox::after { content:\'\'; position:absolute; z-index:0;');
+    L.push('    pointer-events:none; left:50%; top:61%; transform:translate(-50%,-50%);');
+    L.push('    width:150%; height:220%; opacity:' + CFG.tx.toFixed(2) + ';');
+    L.push('    background:repeating-radial-gradient(circle at 50% 50%,');
+    L.push('      color-mix(in srgb, var(--tray-c) 34%, transparent) 0 1px, transparent 1px 7px);');
+    L.push('    -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 22%,transparent 68%);');
+    L.push('            mask-image:radial-gradient(circle at 50% 50%,#000 22%,transparent 68%); }');
+  } else if (CFG.fx === 'echo'){
+    L.push('  /* the value element needs data-v kept in step by js/hud.js */');
+    L.push('  #stage.landscape .subbox-val { isolation:isolate; }');
+    L.push('  #stage.landscape .subbox-val::before,');
+    L.push('  #stage.landscape .subbox-val::after { content:attr(data-v); position:absolute;');
+    L.push('    left:50%; top:50%; z-index:-1; pointer-events:none; white-space:nowrap;');
+    L.push('    font:inherit; color:var(--tray-c); text-shadow:none; }');
+    L.push('  #stage.landscape .subbox-val::before { transform:translate(-50%,-50%) scale(1.85);');
+    L.push('    opacity:' + (CFG.tx * 0.30).toFixed(3) + '; }');
+    L.push('  #stage.landscape .subbox-val::after  { transform:translate(-50%,-50%) scale(2.9);');
+    L.push('    opacity:' + (CFG.tx * 0.14).toFixed(3) + '; }');
+  } else {
+    L.push('  /* none */');
+  }
+  L.push('');
+  L.push('/* 6. The re-solved stack (1.9% gaps, column ends at ' + s._end.toFixed(2) + '%). */');
+  var map = { sc:'#score-center, #score-left', ch:'#score-subboxes', kn:'#knack-carousel-wrap',
+              pv:'#selected-cards, #hand-name', tk:'#trick-tray-area', ci:'#coin-info',
+              bt:'#btn-records, #btn-pause' };
+  for (var i = 0; i < STACK.length; i++){
+    var r = STACK[i];
+    L.push('  ' + map[r.key] + ' { top:' + s[r.key + 'Top'].toFixed(2) + '%; height:' + s[r.key].toFixed(2) + '%; }'
+      + (s[r.key] === r.h ? '   /* unchanged */' : ''));
+  }
+  if (CFG.merge){
+    L.push('');
+    L.push('/* 7. SCORE + GOAL share one tray. */');
+    L.push('  #stage.landscape #score-center { width:37.74%; padding-right:17.3%; }');
+    L.push('  #stage.landscape #score-left { background:none !important; border:none !important;');
+    L.push('    box-shadow:none !important;');
+    L.push('    border-left:1px solid color-mix(in srgb, var(--c-cyan) 34%, transparent) !important; }');
+  }
+  L.push('');
+  L.push('/* Also move with this: css/flow-rewards.css #flowr-banner (takes the chip');
+  L.push('   row\'s box) and css/squares.css #stage.landscape.squares-mode #selected-cards');
+  L.push('   (starts where the knack band starts). */');
+  t.value = L.join('\n');
+  t.style.display = 'block';
+};
+
+apply();
+</script>
+</body>
+</html>
