@@ -151,7 +151,7 @@ function gridScreenTakeover(rows, cols) {
   document.body.classList.add('gp-active');
   if (!gridScreenSaved) gridScreenSaved = { rows: gridRows, cols: gridCols };
   gridRows = rows; gridCols = cols;
-  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+  gridSlotMeasureNow(() => { if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics(); });
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';
   return gridEl;
@@ -170,7 +170,22 @@ function gridScreenRelease(force) {
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
   if (gridScreenSaved) { gridRows = gridScreenSaved.rows; gridCols = gridScreenSaved.cols; gridScreenSaved = null; }
-  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+  gridSlotMeasureNow(() => { if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics(); });
+}
+
+// r380: gp-active MOVES #grid-slot, and the slot carries a left/width transition
+// (the column slide). Card size is computed from the slot's MEASURED box, and a
+// box read the instant a class lands mid-transition is the box it is leaving - so
+// the board would be sized for the old slot and overflow the new one. Measure with
+// the transition off; hand it back a frame later so the ordinary slides still glide.
+function gridSlotMeasureNow(fn) {
+  const slot = document.getElementById('grid-slot');
+  if (!slot) { fn(); return; }
+  slot.style.transition = 'none';
+  void slot.offsetWidth;
+  try { fn(); } finally {
+    requestAnimationFrame(() => { slot.style.transition = ''; });
+  }
 }
 
 function gridPickTakeover() { return gridScreenTakeover(GP_ROWS, GP_COLS); }
@@ -271,7 +286,7 @@ function gridPickPaintSelection() {
 // the selection - the bubble is a reference, not the choice, so dismissing it
 // must never cost the pick you had made.
 function gridPickSelect(i) {
-  if (!gridPickState) return;
+  if (!gridPickState || gridPickState.leaving) return;
   const p = (gridPickState.offers || [])[i];
   if (!p) return;
   const gridEl = document.getElementById('grid');
@@ -294,7 +309,7 @@ function gridPickSelect(i) {
 // CONFIRM. The only path that commits.
 const GP_SKIP_WINDOW = 3000;
 function gridPickConfirm() {
-  if (!gridPickState) return;
+  if (!gridPickState || gridPickState.leaving) return;
   const i = gridPickState.selected;
   const p = (gridPickState.offers || [])[i];
   if (!p) {
@@ -648,7 +663,7 @@ function gridPickRenderActions(animateIn) {
       + `<div class="gp-act-label">${a.label || ''}</div>`
       + (a.sub ? `<div class="gp-act-sub">${a.sub}</div>` : '')
       + `</div>`, gpBox(GP_ROWS - 1, c, 1, 1));
-    if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); a.onClick(); });
+    if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); if (gridPickState && gridPickState.leaving) return; a.onClick(); });
   }
 
   // CONFIRM, across the last cells of the row. Drawn disabled and lit by
@@ -664,16 +679,28 @@ function gridPickRenderActions(animateIn) {
   if (own) gridDealTiles(own);
 }
 
+function gridPickLeave(i, go) {
+  if (!gridPickState || gridPickState.leaving) return;
+  gridPickState.leaving = true;
+  const chosen = i >= 0 ? document.querySelectorAll('#grid .gp-opt')[i] : null;
+  if (typeof rewardTransitionOut === 'function') rewardTransitionOut(go, { chosen });
+  else go();
+}
+
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
 function openGridPick(opts) {
   const offers = opts.offers || [];
   gridPickState = {
     offers, actions: opts.actions || [], selected: -1,
-    onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
+    // r380: the board LEAVES before the next screen arrives - a beat on the
+    // choice, then the tiles explode out (js/reward-transition.js). The commit
+    // is locked the moment it is pressed, so a second tap during the beat does
+    // nothing rather than choosing twice.
+    onChoose: (i, offer) => gridPickLeave(i, () => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); }),
     // r362: a screen that may be SKIPPED passes onSkip. CONFIRM with nothing
     // selected arms it ('PRESS AGAIN TO SKIP'); a second press inside
     // GP_SKIP_WINDOW takes nothing.
-    onSkip: opts.onSkip ? () => { closeGridPick(); opts.onSkip(); } : null, skipArmedAt: 0,
+    onSkip: opts.onSkip ? () => gridPickLeave(-1, () => { closeGridPick(); opts.onSkip(); }) : null, skipArmedAt: 0,
   };
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');

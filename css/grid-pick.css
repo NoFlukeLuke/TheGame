@@ -276,3 +276,9 @@ body.gp-active #sel-count { display: none !important; }
 /* The board behind it is not the thing being read. */
 body.gp-reading #grid .gp-opt,
 body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
+
+/* ── Reward transition (r380, js/reward-transition.js) ──
+   The beat before a board leaves: the taken tile holds and glows, the rest
+   step back. */
+#grid.rt-has-chosen > *:not(.rt-chosen):not(.rc-line) { filter: brightness(.45) saturate(.6); transition: filter .25s ease; }
+#grid .rt-chosen { z-index: 6; box-shadow: 0 0 0 2px #f4f0ff, 0 0 26px rgba(160,120,255,.75) !important; }

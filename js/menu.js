@@ -1,4 +1,4 @@
-const BUILD = "2026-09-26 · r379 · The tiles rest above the tray and fall into it, bottom first";
+const BUILD = "2026-09-27 · r380 · One gold pace, reward transitions, a Skip tab, Flow first";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -344,7 +344,9 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // is an experiment on a different loop the way the other three are.
 // `survival` (r310) and `sixsuits` (r316) are hidden by the owner's call. Six Suits
 // is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits'];
+// `guided` and `spectrum` (r380) likewise: dev panel -> Modes, and Spectrum is
+// still Custom's colour deck.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits', 'guided', 'spectrum'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
@@ -380,6 +382,15 @@ const MODE_META = {
 };
 
 function openModeSelect() {
+  // ON A PHONE THE CAROUSEL GOES FULL SCREEN (r380). While the office photo is up
+  // the stage is FORCED landscape (r257) so the menu fits the landscape monitor,
+  // which on a portrait phone leaves the mode cards a few centimetres wide.
+  // Cutting to the screen here hands the phone its portrait layout, where the
+  // modes are a VERTICAL list (css/room.css). Desktop keeps the carousel on the
+  // glass (r258).
+  if (window.innerHeight > window.innerWidth && typeof officeCutToScreen === 'function') {
+    try { officeCutToScreen(); } catch (e) {}
+  }
   document.getElementById('main-menu-overlay').classList.remove('show');
   renderModeSelect();
   document.getElementById('mode-select-overlay').classList.add('show');
@@ -394,6 +405,11 @@ function scrollModes(dir) {
   const car = document.getElementById('mode-carousel');
   if (!car) return;
   const card = car.querySelector('.mode-card');
+  // Portrait stacks the cards (r380), so the arrows scroll down rather than across.
+  if (getComputedStyle(car).flexDirection === 'column') {
+    car.scrollBy({ top: dir * (card ? card.offsetHeight + 12 : 200), behavior: 'smooth' });
+    return;
+  }
   const step = card ? card.offsetWidth + 18 : 280;
   car.scrollBy({ left: dir * step, behavior: 'smooth' });
 }

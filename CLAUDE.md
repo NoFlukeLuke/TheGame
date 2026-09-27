@@ -10013,3 +10013,47 @@ and `level` moving once; the payout runs its whole count-up and reaches Valued.
 
 **Not touched:** the Guided crossroads draws its own tiles with its own animation
 (js/guided-mode.js) and is not on this system. It is the obvious next one.
+
+## r380 - one gold pace, reward transitions, a Skip tab, Flow first
+
+- **Every credit counts at one pace** (`payoutCoinMs(i)`, js/interlude.js). The
+  payout's three lines ran at 220ms a coin, a flat 2.1s however many, and 140ms a
+  coin. Coin i of any line now takes `max(50, 200 x 0.92^i)` ms, so equal amounts
+  pay at equal speed, and a big payout is visibly longer without a 40-coin line
+  taking eight seconds (3 coins ~0.55s, 10 ~1.4s, 40 ~3s). A flat total duration
+  was rejected: a huge payout would finish as fast as a tiny one. The leftover-time
+  clock runs at whatever speed lands each of its coins on the same curve.
+- **Carousel: Flow, Schedule, Classic, Custom, Poker Squares.** Guided and Spectrum
+  joined `MODE_HIDDEN_LIST` (dev panel -> Modes; Spectrum is still Custom's deck).
+- **Portrait mode select is a vertical list.** `openModeSelect` cuts the office
+  photo to the screen on a portrait viewport (the photo forces landscape, r257),
+  and `#cabinet:not(.landscape) #mode-carousel` stacks the cards. Desktop keeps
+  the carousel on the monitor.
+- **The walkthrough is Flow-first.** `flow-clock` sits where `clock` does and
+  quotes Flow's half-rate costs (`tutSwapCost` x `interactTimeCostMult()`);
+  `welcome` and `quota` branch on Flow (missing a goal does not end a Flow run);
+  `clock` now says running out ends the run. The walkthrough's first reward is a
+  plain pick (`flowrMaybeStart` returns false while `tutorialActive()`); the chain
+  and the deck editor explain themselves through tips (`flow_chain`, `deck_edit`).
+- **A takeover board stops at the focus column.** `body.gp-active` puts
+  `#grid-slot` at 47.8% / 42.2% (was 41/49 via grid-screen), measured with its
+  transition off (`gridSlotMeasureNow`) so the board is sized for the new box; and
+  `syncSidebarsToGrid` leaves a 1.6% gap on takeovers and the deck editor for the
+  Flow panel's 9px pad. The pick-of-three and its panel covered the focus meter at
+  every window size (the stage is one fixed canvas).
+- **Reward screens LEAVE before the next arrives** (js/reward-transition.js,
+  `rewardTransitionOut`): a beat on the choice (`.rt-chosen`, the rest dim), then
+  every tile explodes outward nearest-first and is REMOVED (not restored - the next
+  screen empties #grid or render()/the deal-in rebuilds cards). Wired into
+  `openGridPick` (every pick-of-three in the game, locked by `gridPickState.leaving`)
+  and the deck editor's end (0.8s beat after the reveal). The reward grid already
+  had its own resolve (fly/fall) and is untouched.
+- **Flow returns to play on a 3-2-1** (`svResumeAfterReward`, js/survival.js) via
+  `showBossCountdown` - the countdown with no deal and no clock refill, because
+  `show321Countdown` would refill Flow's session clock.
+- **Settings has TABS, and a Skip tab.** `skipOn(key)` (js/settings.js) reads
+  `skip<Key>` live: `transitions` (reward transitions, the Flow 3-2-1, the channel
+  flicker, a fast Classic 3-2-1), `scoring` (every hand at `dncRequestFF` speed),
+  `finale` (goal hand only), `payout` (count-up lands at once), `rewardCount`
+  (Flow's counter card becomes a toast), `intro` (no opening camera drift). None
+  changes a number.

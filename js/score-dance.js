@@ -1257,6 +1257,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // jitter (r280). Only the goal hand: it is the one animation long enough to be
   // worth skipping, and the one that ends the round.
   if(isGoalHand) dncMountFF(stage);
+  // Settings -> Skip (r380). The SAME dance at the skip speed - dncRequestFF is
+  // the goal hand's own SKIP, which lands the same numbers in the same order.
+  if (typeof skipOn === 'function' && (skipOn('scoring') || (isGoalHand && skipOn('finale')))) dncRequestFF();
 
   if(isGoalHand){
     // ── WIN FINALE (runs BEFORE the tally) ──

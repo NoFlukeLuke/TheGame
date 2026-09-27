@@ -95,6 +95,32 @@ const SETTINGS_DEF = [
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-shake', !!v) },
 
+  // ── Skip ── (r380) Owner: "add a setting in settings to skip transitions.
+  // maybe have a whole tab for things you can skip. scoring animations,
+  // transitions, payouts, think through other things like this that take time
+  // without mechanical progression." Every row is read LIVE through skipOn(),
+  // at the one place that thing starts, so none of them needs an apply.
+  // Nothing here changes a number - a skipped animation lands exactly what the
+  // full one would have.
+  { group: 'Skip', id: 'skipTransitions', label: 'Screen transitions',
+    hint: 'The beat and the card explosion between reward screens, the 3-2-1 back into a Flow level, and the channel flicker.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipScoring', label: 'Scoring animations',
+    hint: 'Every hand tallies at skip speed. The same numbers land in the same order.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipFinale', label: 'Round-winning finale',
+    hint: 'The hand that clears the goal skips its jitter and explosion, as if you pressed SKIP.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipPayout', label: 'Payout count-up',
+    hint: 'The end-of-round credits land at once instead of counting up.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipRewardCount', label: 'Reward count-up',
+    hint: 'Flow: the GOAL CLEARED card that counts how many reward screens you earned. The count still shows as a toast.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipIntro', label: 'Opening camera move',
+    hint: 'The slow push in on the office monitor when the game loads.',
+    type: 'toggle', default: false },
+
   { group: 'Motion', id: 'payoutPick', label: 'Card pick after payout',
     hint: 'EXPERIMENTAL. After the payout the board comes back and you boost, copy or remove one card. Off by default.',
     type: 'toggle', default: false,
@@ -254,6 +280,27 @@ function resetSettings() {
   renderSettings();
 }
 
+// ONE READ for every Skip row (r380). `key` is the row id without its prefix:
+// skipOn('transitions') reads skipTransitions. Read live, so flipping a switch
+// changes the very next thing it covers.
+function skipOn(key) {
+  if (typeof SETTINGS === 'undefined' || !SETTINGS) return false;
+  return !!SETTINGS['skip' + key.charAt(0).toUpperCase() + key.slice(1)];
+}
+
+// SETTINGS HAS TABS (r380). It had grown to one long scroll of six groups, and
+// the owner asked for "a whole tab" for the Skip rows. The tab is remembered per
+// viewer; a stored tab that no longer exists falls back to the first.
+const SETTINGS_TAB_KEY = 'lethe.settingsTab';
+let settingsTab = null;
+try { settingsTab = localStorage.getItem(SETTINGS_TAB_KEY); } catch (e) {}
+function setSettingsTab(name) {
+  settingsTab = name;
+  try { localStorage.setItem(SETTINGS_TAB_KEY, name); } catch (e) {}
+  renderSettings();
+  const body = document.getElementById('settings-body'); if (body) body.scrollTop = 0;
+}
+
 function renderSettings() {
   const body = document.getElementById('settings-body');
   if (!body) return;
@@ -263,7 +310,11 @@ function renderSettings() {
     if (!g) groups.push(g = { name: d.group, items: [] });
     g.items.push(d);
   });
-  body.innerHTML = groups.map(g => `
+  if (!groups.some(g => g.name === settingsTab)) settingsTab = groups[0] && groups[0].name;
+  const tabs = `<div class="set-tabs">` + groups.map(g =>
+      `<button class="set-tab${g.name === settingsTab ? ' on' : ''}" onclick="setSettingsTab('${g.name}')">${g.name}</button>`
+    ).join('') + `</div>`;
+  body.innerHTML = tabs + groups.filter(g => g.name === settingsTab).map(g => `
     <div class="set-group-title">${g.name}</div>
     ${g.items.map(d => settingsRowHTML(d)).join('')}
   `).join('') + `<div id="settings-run-msg"></div>`;

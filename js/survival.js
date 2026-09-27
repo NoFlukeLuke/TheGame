@@ -693,7 +693,7 @@ function survivalDealNext() {
     updateClockUI();
     const _go = () => {
       if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 500); }
-      else startRoundTimer();
+      else svResumeAfterReward(startRoundTimer);
     };
     if (cells.length) removeAndFall(cells, 'play').then(_go);
     else { render(); _go(); }
@@ -740,9 +740,26 @@ function survivalDealNext() {
       survivalBossPending = false;
       setTimeout(() => survivalTriggerBoss(), 950);
     } else {
-      startRoundTimer();               // 120s round (roundSeconds set by computeRoundResources)
+      svResumeAfterReward(startRoundTimer);   // 120s round (roundSeconds set by computeRoundResources)
     }
   }, 90);
+}
+
+// BACK INTO THE ROUND ON A 3-2-1 (r380). Owner: "for going from a reward back to
+// the game in flow, maybe do the 321". The board has just dealt in under the
+// countdown, so the clock starts on a board the player has had a second to look
+// at instead of the instant the last reward screen let go.
+//
+// showBossCountdown is the countdown with NOTHING ELSE in it - no deal, no clock
+// refill. show321Countdown winds roundSeconds up to the round-time limit, which
+// would refill Flow's session clock at every level (the Crunch trap, r293). Only
+// Flow: Survival is hidden and its per-level clock is its own business.
+function svResumeAfterReward(go) {
+  const plain = (typeof skipOn === 'function' && skipOn('transitions'))
+             || !(typeof flowActive === 'function' && flowActive())
+             || typeof showBossCountdown !== 'function';
+  if (plain) { go(); return; }
+  showBossCountdown().then(() => go(), () => go());
 }
 
 // ══════════════════════════════════════════════
