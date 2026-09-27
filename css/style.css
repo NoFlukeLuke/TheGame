@@ -5074,55 +5074,87 @@
           rather than as a flat plate;
        3. the plastic ring and the sunken vignette, unchanged.
 
-     THE RINGS ARE `box-shadow` SPREADS, AND THE ORDER IS WHAT MAKES THEM LINES.
-     A first-listed shadow paints ON TOP, and an inset shadow with spread S
-     fills the whole band from the edge in to S - so a bright 1px spread over a
-     faint 4px spread over a bright 5px spread leaves a 1px LINE, a 3px near-
-     transparent gap, another line, and so on. Every band is an alpha over the
-     panel's own gradient (nothing is filled with a flat colour), so the
-     gradient survives and everything past the innermost line is untouched.
+     THE RINGS ARE `box-shadow` SPREADS, AND THE STACK IS WHAT SHAPES THEM.
+     An inset shadow with spread S fills the whole band from the edge in to S,
+     and a first-listed shadow paints ON TOP - so every layer covers everything
+     shallower than itself and the alphas COMPOSITE. **That makes the lit depth
+     MONOTONIC: a band nearer the edge is covered by strictly more layers than
+     one further in, so it can never be darker.** r386 read the list as
+     line-gap-line and it is not: measured on the live panel, its seven accent
+     spreads produced ONE 15px ramp stepping quietly down, which is exactly the
+     "too thick and blurred" the owner reported - the lines were bleeding into
+     the bands inside them with nothing between.
 
-     THE DEPTH HAS TO SUIT THE PANEL. `--tray-rings` reaches 15px, which is
-     most of the way into the 29px knack strip and the 27px credits bar - so
-     those take `--tray-rings-s` (5px) and the mid-height panels
-     `--tray-rings-m` (10px). Measured heights, design px: score row 47, chip
-     row 44, knacks 29, preview 87, tricks 91, credits 27.
+     SO THE GAPS ARE BLACK LAYERS (r387). A dark spread is the only way to break
+     the ramp and put a real edge under each line, and it is still an alpha over
+     the panel's own gradient, so the gradient survives. The pitch is 3px - a
+     1px LINE, a 1px SHADOW under it (the owner asked to keep this, at less
+     spread: it was 3-4px), then a 1px dark gap - repeated, each line fainter
+     than the one outside it.
+
+     THE DEPTH HAS TO SUIT THE PANEL. `--tray-rings` reaches 8px (3 lines), so
+     the 29px knack strip and the 27px credits bar take `--tray-rings-s` (3px,
+     1 line) and the mid-height panels `--tray-rings-m` (5px, 2). Measured
+     heights, design px: score row 47, chip row 44, knacks 29, preview 87,
+     tricks 91, credits 27.
      An inset shadow paints in the BACKGROUND layer, below in-flow content, so
-     no ring can ever sit over a chip, a card or a watermark. */
+     no ring can ever sit over a chip, a card or a watermark.
+
+     THE PLASTIC RING IS THE TRAY'S OUTERMOST EDGE, and it was left cream
+     (`--plastic-lo`, measured 184,173,149) while the 1px accent border sat
+     INSIDE it - so at 2px against 1px the cream was the wider of the two and
+     the frame still read as cream whatever the accent was. It is tinted from
+     `--tray-c` now, deepened so it reads as coloured moulding around the bright
+     border rather than as a second glow. `--plastic-lo` itself is untouched:
+     some fifteen unrelated rules (shop tiles, reward cells, the focus bar, the
+     cabinet baseline) read it. */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
   #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, .panel-box {
     --tray-c: var(--plastic-lo);
+    --tray-line:   color-mix(in srgb, var(--tray-c) 46%, transparent);
+    --tray-line2:  color-mix(in srgb, var(--tray-c) 24%, transparent);
+    --tray-line3:  color-mix(in srgb, var(--tray-c) 12%, transparent);
+    --tray-glow:   color-mix(in srgb, var(--tray-c) 15%, transparent);
+    --tray-glow2:  color-mix(in srgb, var(--tray-c) 8%,  transparent);
+    --tray-glow3:  color-mix(in srgb, var(--tray-c) 4%,  transparent);
     --tray-rings:
-      inset 0 0 0 1px  color-mix(in srgb, var(--tray-c) 44%, transparent),
-      inset 0 0 0 4px  color-mix(in srgb, var(--tray-c) 9%,  transparent),
-      inset 0 0 0 5px  color-mix(in srgb, var(--tray-c) 28%, transparent),
-      inset 0 0 0 9px  color-mix(in srgb, var(--tray-c) 6%,  transparent),
-      inset 0 0 0 10px color-mix(in srgb, var(--tray-c) 17%, transparent),
-      inset 0 0 0 14px color-mix(in srgb, var(--tray-c) 4%,  transparent),
-      inset 0 0 0 15px color-mix(in srgb, var(--tray-c) 10%, transparent);
+      inset 0 0 0 1px var(--tray-line),
+      inset 0 0 0 2px var(--tray-glow),
+      inset 0 0 0 3px rgba(0,0,0,0.55),
+      inset 0 0 0 4px var(--tray-line2),
+      inset 0 0 0 5px var(--tray-glow2),
+      inset 0 0 0 6px rgba(0,0,0,0.5),
+      inset 0 0 0 7px var(--tray-line3),
+      inset 0 0 0 8px var(--tray-glow3);
     --tray-rings-m:
-      inset 0 0 0 1px  color-mix(in srgb, var(--tray-c) 44%, transparent),
-      inset 0 0 0 4px  color-mix(in srgb, var(--tray-c) 9%,  transparent),
-      inset 0 0 0 5px  color-mix(in srgb, var(--tray-c) 28%, transparent),
-      inset 0 0 0 9px  color-mix(in srgb, var(--tray-c) 6%,  transparent),
-      inset 0 0 0 10px color-mix(in srgb, var(--tray-c) 17%, transparent);
+      inset 0 0 0 1px var(--tray-line),
+      inset 0 0 0 2px var(--tray-glow),
+      inset 0 0 0 3px rgba(0,0,0,0.55),
+      inset 0 0 0 4px var(--tray-line2),
+      inset 0 0 0 5px var(--tray-glow2);
     --tray-rings-s:
-      inset 0 0 0 1px  color-mix(in srgb, var(--tray-c) 44%, transparent),
-      inset 0 0 0 4px  color-mix(in srgb, var(--tray-c) 9%,  transparent),
-      inset 0 0 0 5px  color-mix(in srgb, var(--tray-c) 26%, transparent);
+      inset 0 0 0 1px var(--tray-line),
+      inset 0 0 0 2px var(--tray-glow),
+      inset 0 0 0 3px rgba(0,0,0,0.5);
     background: linear-gradient(180deg, #15110b, #0d0b07) !important;
     border: 1px solid var(--tray-c) !important;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
                 var(--tray-set, var(--tray-rings-m)),
-                0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep) !important;
+                0 0 0 2px color-mix(in srgb, var(--tray-c) 62%, #14100a),
+                0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806) !important;
   }
   /* Candy accents give each readout its own identity. The top edge stays the
      thick one; `--tray-c` is what carries the colour to the other three sides
      and to the rings. */
   #stage.landscape #score-center    { --tray-c: var(--c-magenta); border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #score-left      { --tray-c: var(--c-cyan);    border-top: 2px solid var(--tray-c) !important; }
-  #stage.landscape #score-subboxes  { --tray-c: var(--c-purple);  border-top: 2px solid var(--tray-c) !important; border-bottom:1px solid var(--tray-c) !important; }
+  /* The chip row keeps the neutral frame the r95 rule below gives it (its three
+     chips are already blue, red and violet, so an accent frame would fight them);
+     it is the one tray whose top edge was never a candy colour, and the owner's
+     rule is that the frame matches the top edge. It therefore sets no `--tray-c`
+     of its own - the later rule does. */
+  #stage.landscape #score-subboxes  { border-top: 2px solid var(--tray-c) !important; border-bottom:1px solid var(--tray-c) !important; }
   #stage.landscape #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #selected-cards  { --tray-c: var(--c-mint);    --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #trick-tray-area { --tray-c: var(--c-coral);   --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
