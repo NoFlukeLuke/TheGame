@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r385 · Kickers: one extra card per hand, Kick In knack, Flow return, explosion on top";
+const BUILD = "2026-09-27 · r386 · Kick In is Chip In, and it cancels the kicker time cost";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

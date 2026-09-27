@@ -444,7 +444,7 @@ function devSyncTagalong() {
   if (st) st.textContent = (own
     ? `Tagalong owned: ${tagalongMaxCards > 0 ? 'up to ' + tagalongMaxCards : 'any number of'} kickers, free.`
     : 'Tagalong not owned: 1 kicker per hand, billed its pips and seconds.')
-    + (kick ? ' Kick In owned: kickers score.' : '');
+    + (kick ? ' Chip In owned: kickers score.' : '');
 }
 
 function devSyncNs() {

@@ -10284,7 +10284,7 @@ ids `tagalong*` are unchanged) is a selected card no component claims.
 |---|---|---|---|---|
 | no knack | **1** (`KICKER_BASE_MAX`) | its pips | its pip value (x `interactTimeCostMult`) | nothing |
 | **Tagalong** | any (`tagalongMaxCards`, 0 = unlimited) | 0 | 0 | nothing |
-| **Kick In** (`kick_in`, rare, new) | 1 | 0 | still billed | its pips + every per-card Trick |
+| **Chip In** (`kick_in`, rare, new) | 1 | 0 | 0 (r386) | its pips + every per-card Trick |
 | both | any | 0 | 0 | yes |
 
 A card past the allowance is still a PENALTY card (r201): outside the hand,
@@ -10347,3 +10347,13 @@ tiles over the whole HUD (score, trays, PLAY/DISCARD, pause), inside
 `#cabinet` and still below the pause menu (420). The deal-in is untouched.
 Verified at 1440x820 and 420x900: tiles mid-explosion are topmost over the
 action buttons and the focus column.
+
+## r386 - Kick In is CHIP IN, and it cancels the time cost
+
+Owner: *"I kind of like either chip in or pip in as a play on words. And also,
+it should negate the time cost also."* The knack is named **Chip In** (display
+only; the id stays `kick_in`, TERMINOLOGY's rule) with a coin glyph, and
+`tagalongSecondsFor` returns 0 under it as well as under Tagalong - so a
+kicker under Chip In costs nothing at all and scores. The r385 section's
+"still billed" row is superseded. Every other "Kick In" in that section means
+this knack.
