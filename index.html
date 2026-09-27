@@ -590,6 +590,19 @@
     </label>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A boss round or a grid-size change still redeals - a post-boss board can carry holes, and a resized board cannot be kept.</div>
 
+    <div class="dev-subtitle" style="margin-top:8px;">Reward chip</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">The card that announces how many rewards a level-up paid. Each look is a different object with its own entrance, not a recolour.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Look
+      <select id="dev-flowr-chip" onchange="setFlowrChipStyle(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;"></select>
+    </label>
+    <div id="dev-flowr-chip-note" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="flowrPreviewChip(1)">Preview x1</button>
+      <button class="dev-btn" onclick="flowrPreviewChip(3)">Preview x3</button>
+      <button class="dev-btn" onclick="flowrPreviewChip(5)">Preview x5</button>
+    </div>
+
     <div style="border-top:1px solid #3a3428;margin:8px 0 2px;"></div>
     <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);">FLOW · MULTI-REWARD CHAIN</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear pays 1-5 reward screens. TWO flat rolls: how many, then what each one is - each slot rolled on its own, so a kind's share says nothing about where it lands and a chain can repeat one. Luck leans the count upward.</div>

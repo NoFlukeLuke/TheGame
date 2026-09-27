@@ -10013,3 +10013,183 @@ and `level` moving once; the payout runs its whole count-up and reaches Valued.
 
 **Not touched:** the Guided crossroads draws its own tiles with its own animation
 (js/guided-mode.js) and is not on this system. It is the obvious next one.
+
+## r380 - the options stop blacking out, the fall is visible again, four chip looks
+
+### 1. THE BLACKOUT WAS A STACKING CONTEXT, NOT AN OPACITY
+
+Owner: *"the options still black out for a second when the score finishes which
+is bad."*
+
+**`flashRoundEnd` (js/score-anims.js) puts `.round-end-flash` on `#grid` for
+1.4 seconds, and that rule carries `transform: scale(1.02)`.** In Flow the
+reward chain's pick is ALREADY ON THE BOARD when the tally crosses the goal, so
+this was flashing "the round just ended" over a screenful of reward options -
+and the transform is what did the damage:
+
+- `#grid` is `position: relative` with `z-index: auto`, so it is **NOT a
+  stacking context** and its tiles (z-index 2, css/entity-fx.css) beat
+  `#flowr-bg` - a LATER sibling at z-index 0 - on their own.
+- **A transform makes `#grid` a stacking context.** Its children's z-index is
+  then contained inside it, `#grid` as a whole paints at `auto`, and the panel -
+  a dark wash over the board's whole box - paints on top of every tile.
+
+Measured on a real Flow tally: `#grid`'s computed transform flips `none` ->
+`matrix(...)` at t=8455 and back at t=9853, **1.4s**, with the options at full
+opacity underneath it the whole time. Nothing faded; the panel simply moved in
+front.
+
+- **The fix is that a round-level effect does not paint on a board it does not
+  own.** `gridScreenOwnsBoard()` (js/grid-pick.js) is one predicate for every
+  screen that has borrowed `#grid` - the pick takeover's `body.gp-active`, the
+  shop, the reward grid, the Schedule - and `flashRoundEnd` returns on it.
+- **`body.gp-active #grid { z-index: 1 }` is the guard against the NEXT one.**
+  A boss effect or a future animation putting a transform on `#grid` would
+  re-open this exactly the same way; while a screen has the board, `#grid` is
+  explicitly above the panel whether or not it is a stacking context. **Scoped
+  to the takeover on purpose**: a live round's boss cell overlays are z-index
+  12-15 CHILDREN of `#grid`, and making it a stacking context permanently would
+  contain them below `#sel-count` (6).
+
+Measured after, over three chain steps: **0 frames with options on the board and
+a flash or a transform on `#grid`**, and the flash still fires (it is skipped,
+not deleted - it plays normally on an ordinary round).
+
+### 2. THE VISIBLE PART OF THE FALL WAS THE FAST PART
+
+Owner: *"frequently now i don't see any animation of things falling."*
+
+r379's descent was **`ease-in` at the animation level AND `ease-in` again on its
+own middle keyframe**, compounded - so a tile crept while it was still hidden
+above the clip and then whipped through the part the player can actually see.
+Measured per frame on a 421px option drop: **20, 22, 24, 24, 26, 15, 36, 53,
+69px**. The last 122px, which is where most of the tile is on screen, took TWO
+FRAMES.
+
+**The descent is LINEAR now** (`GP_DEAL_EASE`, a near-linear curve on the first
+segment only) and reaches the landing point at **`GP_DEAL_FALL` (0.72)** of the
+duration, with the bounce alone in the last quarter. `GP_DEAL_DUR` went **380 ->
+460** with it, because a constant-speed fall over the same distance in the same
+time is slower at the end than the old one was and needs the room.
+
+Measured by freezing the animation and stepping it in 24ths, px of tile revealed
+per step: **2, 21, 26, 32, 34, 36, 37, 36, 35, 33, 29, 26, 22, 14** - a smooth
+ramp with a **1.76x** spread across the whole visible descent, against the old
+profile's 4.6x concentrated in its last two frames. The descent now spans
+**~250ms of continuously revealing motion**.
+
+### 3. THE TRAY EMPTIES THE WAY IT FILLED - `gridDealOut`
+
+Owner: *"i think the animation between choices could use some more va va voom,
+it feels real empty and boring currently."* Two halves:
+
+**The tiles fall OUT through the bottom of the tray**, top-first, so the board
+drains downward - the exact reverse of the deal. **The one you picked goes the
+other way**: it lifts out of the tray and brightens, so the last thing on screen
+before the next step is the thing you just took.
+
+- **IT RUNS ON CLONES IN A LAYER OF ITS OWN, and that is what makes it safe to
+  put in front of a grant.** `closeGridPick()` removes the real tiles on the
+  tick the choice commits and nothing about the grant path moves; these are
+  throwaway copies in `#grid-slot`, which `closeGridPick` does not touch, so an
+  exit still in flight can never hold up - or be held up by - the screen that
+  follows it.
+- **The layer IS `#grid`'s offset box**, so a clone keeps the inline `left`/`top`
+  `gpBox` gave it and lands exactly where the original was: no measurement, and
+  therefore no chance of mixing rect px with the design px `gpBox` writes (the
+  r160 Trick-fan trap). It is clipped to the PANEL rather than to the board, so
+  a tile vanishes at the same edge the deal reveals it at.
+- **z-index 7**: above `#flowr-bg` (0) and the board it is replacing, below the
+  tab ladder (8), which belongs to the chain rather than to the step.
+- Measured: **8 clones, z-index 7, 484ms lifetime, all 8 moving.**
+
+**The panel turns over.** On a real step change `#flowr-bg` wipes a bright band
+of the incoming colour across itself and takes a short squash, so the gap is an
+event rather than a lit empty box and a colour cross-fade. **It fires on a step
+change and nothing else**: `flowrRenderStack` is called from `flowrShowStep`
+AND `flowrAfterStep` - twice per step - and from every redraw, so keying it off
+the call would sweep two or three times for one turn. `_flowrLastIdx` is the
+guard, and the very first step is deliberately exempt because the counter card
+already owns that beat.
+
+### 4. THE COUNTER HOLDS LONGER, AND NOT FOR THE SAME LENGTH TWICE
+
+Owner: *"the delay between one reward vs 2 or more needs 2 changes, it should
+take slightly longer to reveal the subsequent rewards, and the amount of time it
+takes should be slightly variable such that it genuinely feels surprising when
+multiple rewards trigger."*
+
+**THE SURPRISE IS AT THE FIRST BUMP**, so that is the gap that got the length
+and most of the jitter: the card lands on x1, you read it as the ordinary one
+reward, and only then does it jump. A FIXED gap is learnable in about three
+level-ups - you stop reading the x1 and just wait out the beat - which is
+exactly the thing being asked for.
+
+| | was | is |
+|---|---|---|
+| before the FIRST bump | 700 | **950 + 0-520** |
+| before each later bump | 620 | **620 + 0-300** |
+| hold after the last | 850 | 900 |
+
+Later bumps are quicker and jittered less, so a run of them reads as one cascade
+rather than as the suspense beat played over again.
+
+**`fxRandom`, NEVER `Math.random`**: js/seed.js REPLACES the global for a seeded
+run, so rolling here would advance the deck, reward and boss streams by however
+many rewards a level-up happened to pay.
+
+### 5. FOUR LOOKS FOR THE REWARD CHIP, AND THE ENTRANCE IS HALF OF EACH
+
+Owner: *"could we also give the reward chip some more options, like give me a
+few options for both how it appears and what it looks like. don't just vary the
+color of it, get 4 genuinely different looks chips. before building this find 5
+examples to reference. megabonk, vampire survivors come to mind."*
+
+Five entries in `FLOWR_CHIPS` (js/flow-rewards.js): **Stamp · Receipt · Marquee ·
+Reel**, plus **Plate**, the r376 card, kept so the four have something to beat.
+Dev panel -> Rewards picks one, with Preview x1 / x3 / x5 so they can be compared
+without playing a run; persisted in `lethe.flowrChip.v1`, default **Stamp**.
+
+| look | the object | the entrance |
+|---|---|---|
+| **Stamp** | a round rubber stamp, rotated, double-ringed, distressed ink | SLAMS: 2.6x down to 0.94 and back in 260ms, throwing a shockwave ring |
+| **Receipt** | a manila slip, perforated at the tear, dot-matrix type, the count struck on in red | FEEDS in from the top, `steps(7)`, like a printer advancing |
+| **Marquee** | a wide bevelled lozenge with chase bulbs and extruded block letters | BOUNCES down from above with a real overshoot, a band of light sweeping the face |
+| **Reel** | a brushed-metal payout window over a lit drum | DROPS on a spring, and the NUMBER rolls up past the window and clunks to a stop, blurred while it moves |
+
+- **The markup is identical for all five** - `.fc-kick` / `.fc-num` (`<b>x</b>`
+  + `<em>count</em>`) / `.fc-sub`, plus `.fc-deco` and `.fc-pips`, always
+  emitted and used by some looks and not others. A look is a stylesheet block
+  and nothing else, which is what keeps them comparable and a sixth one cheap.
+- **THE DECORATIONS ARE HIDDEN BY AN ID SELECTOR, so a look must turn one back
+  on at ID specificity too** - and for the same reason every `.fc-pop` rule
+  carries `#flowr-counter`: the `.show` rules set `animation` at (1,2,0), so a
+  bare class pop at (0,2,0) would lose to them and **the bump would never play**.
+  Both were written the naive way first and both were silently dead.
+- **`--fc-k` carries the count as a NUMBER**, so a look can react to it without
+  reading the text back out of the DOM.
+- **ONE PERFORATION, AT THE TEAR.** A receipt is fed from a roll at one end and
+  torn at the other, so a single scalloped edge is the true shape as well as the
+  one that survives: mask layers composite with `add` by default, so a layer
+  opaque everywhere but its own bites UNION-ed with another fills both sets back
+  in (measured - that drew a slip with perfectly straight edges), and the
+  `mask-composite: intersect` version rendered the bottom edge and not the top.
+  One layer needs no compositing and cannot half-apply.
+
+**The five references the shapes are drawn from:** Vampire Survivors' LEVEL UP
+moment, where the screen itself reacts (experience gems rain from the top behind
+the panel); Megabonk's chunky low-poly-and-pixel crudeness, exaggerated but
+readable against chaos; Balatro, where the feedback IS the design - a big number
+treated as a physical object with its size and motion tied to its value, inside
+a total CRT fiction; Hades' boon reveal, where the FRAME states who is giving it
+before the text says what it does; and the Game UI Database's Rewards &
+Experience set, where each reward row arrives as its own object rather than
+appearing as a list.
+
+### A measurement trap worth keeping
+
+**Two random cells are a hand only by luck.** A harness that taps `(0,0)` and
+`(0,1)` and calls `playHand()` worked on one run and silently did nothing on the
+next, which read as "my change broke the game" - Flow's seed is random once its
+walkthrough has been played, so whether those two cards pair is a coin flip.
+Plant the pair.

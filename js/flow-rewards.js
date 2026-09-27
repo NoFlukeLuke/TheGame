@@ -481,12 +481,86 @@ function flowrFlash() {
 // ══════════════════════════════════════════════
 // THE COUNTER CARD (option A) - "hold up, there's more"
 // ══════════════════════════════════════════════
+// ── HOW LONG THE COUNTER HOLDS BEFORE IT JUMPS (r380) ──────────────────────
+// Owner: "the delay between one reward vs 2 or more needs 2 changes, it should
+// take slightly longer to reveal the subsequent rewards, and the amount of time
+// it takes should be slightly variable such that it genuinely feels surprising
+// when multiple rewards trigger."
+//
+// THE SURPRISE IS AT THE FIRST BUMP, so that is the gap that got the length and
+// most of the jitter: the card lands on x1, you read it as the ordinary one
+// reward, and only then does it jump. A FIXED gap is learnable in about three
+// level-ups - you stop reading the x1 and just wait out the beat - which is
+// exactly the thing being asked for here. Later bumps are quicker and jittered
+// less, so a run of them reads as one cascade rather than as the suspense beat
+// played over again.
+//
+// fxRandom, NEVER Math.random: js/seed.js REPLACES the global for a seeded run,
+// so rolling here would advance the deck, reward and boss streams by however
+// many rewards a level-up happened to pay.
+const FLOWR_BUMP_FIRST = 950, FLOWR_BUMP_FIRST_JIT = 520;
+const FLOWR_BUMP_NEXT  = 620, FLOWR_BUMP_NEXT_JIT  = 300;
+function flowrBumpGap(first) {
+  const rnd = (typeof fxRandom === 'function') ? fxRandom() : Math.random();
+  return first ? FLOWR_BUMP_FIRST + rnd * FLOWR_BUMP_FIRST_JIT
+               : FLOWR_BUMP_NEXT  + rnd * FLOWR_BUMP_NEXT_JIT;
+}
+
+// ── THE REWARD CHIP'S LOOK (r380) ──────────────────────────────────────────
+// Owner: "could we also give the reward chip some more options, like give me a
+// few options for both how it appears and what it looks like. don't just vary
+// the color of it, get 4 genuinely different looks."
+//
+// FIVE LOOKS, AND EACH ONE IS A DIFFERENT OBJECT WITH A DIFFERENT ENTRANCE -
+// not one card in five palettes. The entrance is half of what a look IS: a
+// stamp SLAMS, a receipt FEEDS, a marquee BOUNCES, a reel DROPS AND SPINS. All
+// five are pure CSS over the same markup, so the JS below is unchanged by the
+// choice and a sixth is a stylesheet block plus a row in this table.
+//
+// The style is a class on #flowr-counter AND on <body>, because the tab ladder
+// is a separate element and the two are one object on screen - the counter
+// lands over the panel the tabs hang off.
+const FLOWR_CHIPS = [
+  { id: 'stamp',   name: 'Stamp',   note: 'A rubber stamp that slams down askew, with a shockwave ring.' },
+  { id: 'ticket',  name: 'Receipt', note: 'A perforated paper slip that feeds in from the top, dot-matrix.' },
+  { id: 'marquee', name: 'Marquee', note: 'An arcade marquee with chase bulbs; bounces in and sweeps.' },
+  { id: 'reel',    name: 'Reel',    note: 'A slot payout window that drops on a spring; the number spins up.' },
+  { id: 'plate',   name: 'Plate',   note: 'The r376 card: a dark slab that fades and scales up.' },
+];
+const FLOWR_CHIP_KEY = 'lethe.flowrChip.v1';
+let flowrChipStyle = (() => {
+  try { const v = localStorage.getItem(FLOWR_CHIP_KEY);
+        if (v && FLOWR_CHIPS.some(c => c.id === v)) return v; } catch (e) {}
+  return 'stamp';
+})();
+function setFlowrChipStyle(id) {
+  if (!FLOWR_CHIPS.some(c => c.id === id)) return;
+  flowrChipStyle = id;
+  try { localStorage.setItem(FLOWR_CHIP_KEY, id); } catch (e) {}
+  flowrApplyChipStyle();
+}
+function flowrApplyChipStyle() {
+  FLOWR_CHIPS.forEach(c => document.body.classList.toggle('fcs-' + c.id, c.id === flowrChipStyle));
+}
+// Show the chip on its own, at a given count, so the four can be compared
+// without playing a run. Dev panel -> Rewards.
+function flowrPreviewChip(n) {
+  flowrApplyChipStyle();
+  flowrPlayCounter(Math.max(1, n || 3), null);
+}
+
 function flowrPlayCounter(n, done) {
   const host = document.getElementById('grid-slot') || document.getElementById('stage') || document.body;
   document.getElementById('flowr-counter')?.remove();
+  flowrApplyChipStyle();
   const el = document.createElement('div');
   el.id = 'flowr-counter';
-  el.innerHTML = `<div class="fc-kick">GOAL CLEARED</div><div class="fc-num">&times;1</div><div class="fc-sub">REWARD</div>`;
+  el.className = 'fc-s-' + flowrChipStyle;
+  // .fc-deco and .fc-pips are always emitted and are used by some looks and
+  // not others - a look is a stylesheet block, never a second markup builder.
+  el.innerHTML = `<i class="fc-deco"></i><div class="fc-kick">GOAL CLEARED</div>`
+    + `<div class="fc-num"><b>&times;</b><em>1</em></div><div class="fc-sub">REWARD</div>`
+    + `<i class="fc-pips"></i>`;
   host.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   // ONE SOUND WITH A TAIL (r378), not sfxLevelUp + sfxSuccess stacked. Owner:
@@ -499,11 +573,15 @@ function flowrPlayCounter(n, done) {
   // now held for it, so it gets a flash over the board and a shake of its own.
   flowrFlash();
   let k = 1;
-  const num = el.querySelector('.fc-num'), sub = el.querySelector('.fc-sub');
+  const num = el.querySelector('.fc-num em'), sub = el.querySelector('.fc-sub');
+  el.style.setProperty('--fc-k', 1);
   const bump = () => {
     k++;
-    num.textContent = '×' + k;
+    num.textContent = k;
     sub.textContent = 'REWARDS';
+    // The count as a NUMBER too, so a look can react to it (the marquee lights
+    // one bulb per reward) without reading the text back out of the DOM.
+    el.style.setProperty('--fc-k', k);
     // restart the pop (the r277 pulse rule: remove, reflow, re-add)
     el.classList.remove('fc-pop'); void el.offsetWidth; el.classList.add('fc-pop');
     // The same sound one step up, so the run reads as one thing escalating.
@@ -511,21 +589,22 @@ function flowrPlayCounter(n, done) {
     // claiming the screen.
     try { sfxRewardCount?.(k - 1); } catch (e) {}
     if (k >= 4) { try { sfxWinExplode?.(); } catch (e) {} }
-    if (k < n) setTimeout(bump, 620);
-    else setTimeout(finish, 850);
+    if (k < n) setTimeout(bump, flowrBumpGap(false));
+    else setTimeout(finish, 900);
   };
   const finish = () => {
     el.classList.remove('show');
     setTimeout(() => { el.remove(); done && done(); }, 260);
   };
-  if (n > 1) setTimeout(bump, 700);
+  if (n > 1) setTimeout(bump, flowrBumpGap(true));
   else setTimeout(finish, 900);
   // The goal hand's SKIP cuts this too, or pressing it would leave the player
   // watching a counter they have just asked to skip past.
   try {
     if (typeof dncFFRegister === 'function') dncFFRegister(() => {
       if (!el.isConnected) return;
-      k = n; num.textContent = '\u00d7' + n; sub.textContent = n > 1 ? 'REWARDS' : 'REWARD';
+      k = n; num.textContent = n; el.style.setProperty('--fc-k', n);
+      sub.textContent = n > 1 ? 'REWARDS' : 'REWARD';
       finish();
     });
   } catch (e) {}
@@ -571,6 +650,25 @@ function flowrRenderStack() {
   bg.style.setProperty('--fc', cur.color);
   if (!existing) host.appendChild(bg);
 
+  // ── THE PANEL TURNS OVER BETWEEN STEPS (r380) ──
+  // Owner: "the animation between choices could use some more va va voom, it
+  // feels real empty and boring currently." The gap was a lit empty panel and
+  // a colour cross-fade, which is not an event. On a real step change the
+  // panel now takes a bright band ACROSS IT in the incoming colour and a short
+  // squash, so the screen visibly turns over rather than quietly restocking.
+  //
+  // IT FIRES ON A STEP CHANGE AND NOTHING ELSE. flowrRenderStack is called from
+  // flowrShowStep AND flowrAfterStep - twice per step - and from every redraw,
+  // so keying it off the call would sweep two or three times for one turn.
+  if (_flowrLastIdx !== flowrIdx) {
+    _flowrLastIdx = flowrIdx;
+    if (existing) {                      // never on the chain's very first step:
+      bg.classList.remove('fbg-turn');   // the counter card already owns that beat
+      void bg.offsetWidth;               // (the r277 restart rule)
+      bg.classList.add('fbg-turn');
+    }
+  }
+
   // THE CURRENT TAB IS THE TITLE CARD, so it is drawn even when it is the only
   // one: a one-step chain (a lone CARD PACK, say) would otherwise get a coloured
   // panel with nothing naming it. Only the QUEUE behind it is conditional.
@@ -593,9 +691,11 @@ function flowrRenderStack() {
   }).join('');
   host.appendChild(el);
 }
+let _flowrLastIdx = -1;
 function flowrClearStack() {
   document.getElementById('flowr-stack')?.remove();
   document.getElementById('flowr-bg')?.remove();
+  _flowrLastIdx = -1;
 }
 
 // ══════════════════════════════════════════════
@@ -1268,6 +1368,17 @@ function flowrGrantPack(pack) {
 // ══════════════════════════════════════════════
 function flowrDevSync() {
   const cfg = flowrCfg();
+  // THE CHIP PICKER IS BUILT FROM FLOWR_CHIPS, so a new look is one row in that
+  // table and nothing here. Built once and then only written - a rebuild would
+  // reset the select while it is open (the r282 NS-editor rule).
+  const chip = document.getElementById('dev-flowr-chip');
+  if (chip) {
+    if (!chip.options.length) chip.innerHTML = FLOWR_CHIPS
+      .map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (document.activeElement !== chip) chip.value = flowrChipStyle;
+    const note = document.getElementById('dev-flowr-chip-note');
+    if (note) note.textContent = (FLOWR_CHIPS.find(c => c.id === flowrChipStyle) || {}).note || '';
+  }
   const on = document.getElementById('dev-flowr-on'); if (on) on.checked = cfg.on;
   cfg.counts.forEach((v, i) => {
     const el = document.getElementById('dev-flowr-c' + i);

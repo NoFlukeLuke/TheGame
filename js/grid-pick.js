@@ -150,6 +150,14 @@ function gridScreenTakeover(rows, cols) {
   // come through here, because it repurposes that readout for its own count.
   document.body.classList.add('gp-active');
   if (!gridScreenSaved) gridScreenSaved = { rows: gridRows, cols: gridCols };
+  // A ROUND-END FLASH ALREADY RUNNING IS STALE THE MOMENT THE BOARD CHANGES
+  // HANDS (r380). flashRoundEnd now refuses to START one on a borrowed board,
+  // but it runs for 1.4s and in Flow it fires while the counter card is up -
+  // before the chain's first step takes the board - so the tail of it was
+  // still on #grid when the options arrived. That tail is a TRANSFORM, which
+  // makes #grid a stacking context and puts #flowr-bg over every tile; see the
+  // note in js/score-anims.js. Measured: 3 of 3 steps caught it at 1440x820.
+  document.getElementById('grid')?.classList.remove('round-end-flash');
   gridRows = rows; gridCols = cols;
   if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
   const gridEl = document.getElementById('grid');
@@ -175,6 +183,22 @@ function gridScreenRelease(force) {
 
 function gridPickTakeover() { return gridScreenTakeover(GP_ROWS, GP_COLS); }
 function gridPickRelease()  { gridScreenRelease(true); }
+
+// ── "IS THE BOARD SOMEBODY ELSE'S RIGHT NOW?" (r380) ────────────────────────
+// One predicate for every screen that has borrowed #grid, so a round-level
+// effect can ask before painting on a board that is not the round's. Today the
+// one caller is flashRoundEnd (js/score-anims.js), which was flashing "the
+// round just ended" - and, worse, a TRANSFORM - over a live pick-of-three; see
+// the note there for why a transform on #grid is not cosmetic.
+function gridScreenOwnsBoard() {
+  try {
+    if (document.body.classList.contains('gp-active')) return true;
+    if (typeof shopGridActive !== 'undefined' && shopGridActive) return true;
+    if (typeof rewardOnGrid !== 'undefined' && rewardOnGrid) return true;
+    if (typeof mapActive === 'function' && mapActive()) return true;
+  } catch (e) {}
+  return false;
+}
 
 // A cell box in the live board's own units. Shared with the tiled payout:
 // every screen that inhabits the board places its tiles through this.
@@ -403,7 +427,7 @@ function gridPickAfterRender(root, offers, onChoose) {
 //
 // Horizontally nothing moves: each tile falls in its own column, straight down
 // (owner's call - not a fan from a single point).
-const GP_DEAL_DUR = 380;   // the same for every tile, which is what varies the speed
+const GP_DEAL_DUR = 460;   // the same for every tile, which is what varies the speed
 // THE ROW GAP IS AFTER A GROUP, NOT AN OFFSET FROM ITS START. A fixed offset is
 // only a gap when a group holds one tile: the pick's bottom row holds five, so
 // at 130 the options began falling before the last two buttons had left - the
@@ -411,6 +435,21 @@ const GP_DEAL_DUR = 380;   // the same for every tile, which is what varies the 
 const GP_DEAL_ROW = 90;    // the pause between one bottom-edge group and the next
 const GP_DEAL_COL = 45;    // left to right within a group
 const GP_DEAL_LIFT = 4;    // a hair more, so frame 1 is provably outside the clip
+// THE VISIBLE PART OF THE FALL IS THE END OF IT, SO THE END MUST NOT BE THE
+// FAST PART (r380). Owner: "frequently now i don't see any animation of things
+// falling." The descent was ease-in AT THE ANIMATION LEVEL and ease-in AGAIN on
+// its own middle keyframe, compounded - so a tile crept while it was still
+// hidden above the clip and then whipped through the part the player can see.
+// Measured per frame on a 421px option drop: 20, 22, 24, 24, 26, 15, 36, 53,
+// 69px - the last 122px, which is where most of the tile is on screen, took TWO
+// FRAMES. That reads as a snap, not a fall.
+//
+// The descent is LINEAR now (the animation-level easing) with one gentle ease-in
+// on the first segment only, and it reaches the landing point at GP_DEAL_FALL of
+// the duration - so px revealed per frame is near constant and the bounce is the
+// only thing in the last quarter. The duration went 380 -> 460 with it, because
+// a constant-speed fall over the same distance in the same time is slower at the
+// end than the old one was and needs the room.
 // AND THE WHOLE RUN IS BOUNDED. A board's tile COUNT is not something the
 // screen controls - a two-offer pick is mostly ambience, and its 1x1 filler
 // cells sit at four different bottom edges, so the honest ladder came out at
@@ -418,6 +457,8 @@ const GP_DEAL_LIFT = 4;    // a hair more, so frame 1 is provably outside the cl
 // Past this the delays are scaled down together, which shortens the run
 // without touching the order or the shape of it. Measured: 13 tiles 1055ms ->
 // 800ms, and an ordinary three-offer pick (740ms) is untouched.
+const GP_DEAL_FALL = 0.72;   // the share of the duration the descent itself takes
+const GP_DEAL_EASE = 'cubic-bezier(.30,0,.62,1)';  // near linear, a soft push off
 const GP_DEAL_MAX_LEAD = 420;
 
 // ── THE CLIP: a tile is only visible once it is IN the tray ─────────────────
@@ -517,6 +558,72 @@ function gridDealTiles(els) {
 let _gdAir = 0;
 function _gdLanded() { if (--_gdAir <= 0) { _gdAir = 0; gridDealClipOff(); } }
 
+// ── THE TRAY EMPTIES THE WAY IT FILLED (r380) ───────────────────────────────
+// Owner: "i think the animation between choices could use some more va va voom,
+// it feels real empty and boring currently." The gap between one chain step and
+// the next was a LIT EMPTY PANEL: the tiles were removed on the same tick the
+// choice was made, so the only thing that ever moved was the next set arriving.
+// The tiles now fall OUT through the bottom of the tray - the exact reverse of
+// the deal, TOP-FIRST, so the board drains from the top down while the one you
+// picked rises out of it.
+//
+// IT RUNS ON CLONES, IN A LAYER OF ITS OWN, and that is what makes it safe to
+// drop in front of a grant. closeGridPick() removes the real tiles on the tick
+// the choice commits and nothing about the grant path moves; these are throwaway
+// copies in #grid-slot, which closeGridPick does not touch, so an exit still in
+// flight can never hold up - or be held up by - the screen that follows it.
+const GP_OUT_DUR  = 300;   // one tile's drop out
+const GP_OUT_STEP = 34;    // top to bottom, so the board drains downward
+const GP_OUT_PICK = 380;   // the chosen one leaves UP, and takes longer doing it
+function gridDealOut(pickedEl) {
+  const gridEl = document.getElementById('grid');
+  const host = document.getElementById('grid-slot');
+  if (!gridEl || !host || !gridEl.animate) return;
+  const tiles = [...gridEl.querySelectorAll('.gp-opt, .gp-act, .gp-amb')];
+  if (!tiles.length) return;
+  const pad = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--fbg-pad')) || 0;
+  const layer = document.createElement('div');
+  layer.className = 'gp-outlayer';
+  // The layer IS #grid's box, so a clone keeps the inline left/top gpBox gave
+  // it and lands exactly where the original was - no measurement, no rect (and
+  // so no chance of mixing rect px with the design px gpBox writes: the r160
+  // Trick-fan trap). It is clipped to the PANEL rather than to the board, so a
+  // tile vanishes at the same edge the deal reveals it at.
+  layer.style.cssText = `position:absolute;left:${gridEl.offsetLeft}px;top:${gridEl.offsetTop}px;`
+    + `width:${gridEl.offsetWidth}px;height:${gridEl.offsetHeight}px;`
+    + `clip-path:inset(${-pad}px 0px ${-pad}px 0px);`;
+  host.appendChild(layer);
+  const rows = tiles.map(el => ({ el, bottom: gridDealBottom(el, gridEl), x: el.offsetLeft }))
+                    .sort((a, b) => (a.bottom - b.bottom) || (a.x - b.x));
+  let last = 0, prevBottom = null, group = -1;
+  rows.forEach(r => {
+    if (prevBottom === null || Math.abs(r.bottom - prevBottom) > 1) { group++; prevBottom = r.bottom; }
+    const isPick = pickedEl && r.el === pickedEl;
+    const c = r.el.cloneNode(true);
+    c.style.pointerEvents = 'none';
+    layer.appendChild(c);
+    const delay = isPick ? 0 : group * GP_OUT_STEP;
+    const dur = isPick ? GP_OUT_PICK : GP_OUT_DUR;
+    last = Math.max(last, delay + dur);
+    // THE ONE YOU PICKED GOES THE OTHER WAY. Everything else drops away; the
+    // choice lifts out of the tray and brightens, so the last thing on screen
+    // before the next step is the thing you just took.
+    const frames = isPick
+      ? [{ transform: 'translateY(0) scale(1)', filter: 'brightness(1)', opacity: 1 },
+         { transform: 'translateY(-6px) scale(1.06)', filter: 'brightness(1.5)', opacity: 1, offset: .22 },
+         { transform: `translateY(${-(r.bottom + 40)}px) scale(.92)`, filter: 'brightness(1.1)', opacity: 0 }]
+      : [{ transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+         { transform: `translateY(${gridEl.offsetHeight - r.bottom + r.el.offsetHeight + 30}px) rotate(${(r.x % 2 ? 1 : -1) * 5}deg)`, opacity: .85 }];
+    try {
+      c.animate(frames, { duration: dur, delay,
+        easing: isPick ? 'cubic-bezier(.2,.7,.3,1)' : 'cubic-bezier(.45,0,.75,1)', fill: 'both' });
+    } catch (e) {}
+  });
+  setTimeout(() => layer.remove(), last + 120);
+  try { sfxFlipShuffle?.(); } catch (e) {}
+}
+
 // One tile's fall. `dist` is how far it drops; the caller decides that, because
 // only the caller can see the whole set (see gridDealTiles).
 //
@@ -526,13 +633,13 @@ function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
   if (!el.animate) return null;
   const B = 8, S = 0.10;
   const anim = el.animate([
-    { transform: `translateY(${-dist}px) scaleY(1)` },
-    { transform: `translateY(${-dist * 0.42}px) scaleY(0.97)`, offset: 0.55, easing: 'ease-in' },
-    { transform: `translateY(${B}px) scaleY(${1 - S})`,     offset: 0.82 },
-    { transform: `translateY(${-B * 0.7}px) scaleY(${1 + S})`, offset: 0.91 },
-    { transform: `translateY(${B * 0.3}px) scaleY(${1 - S * 0.2})`, offset: 0.96 },
+    { transform: `translateY(${-dist}px) scaleY(1)`, easing: GP_DEAL_EASE },
+    { transform: `translateY(0px) scaleY(0.985)`, offset: GP_DEAL_FALL },
+    { transform: `translateY(${B}px) scaleY(${1 - S})`,     offset: GP_DEAL_FALL + 0.09 },
+    { transform: `translateY(${-B * 0.7}px) scaleY(${1 + S})`, offset: GP_DEAL_FALL + 0.16 },
+    { transform: `translateY(${B * 0.3}px) scaleY(${1 - S * 0.2})`, offset: GP_DEAL_FALL + 0.21 },
     { transform: 'translateY(0) scaleY(1)' },
-  ], { duration: GP_DEAL_DUR, delay, easing: 'ease-in', fill: 'both' });
+  ], { duration: GP_DEAL_DUR, delay, easing: 'linear', fill: 'both' });
   // RELEASE THE TRANSFORM WHEN THE FALL ENDS (r281). `fill: 'both'` is what
   // holds the tile offset and invisible through its DELAY, and it is also what
   // makes the animation OUTLIVE the fall: a filling WAAPI animation owns
@@ -669,11 +776,14 @@ function openGridPick(opts) {
   const offers = opts.offers || [];
   gridPickState = {
     offers, actions: opts.actions || [], selected: -1,
-    onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
+    onChoose: (i, offer) => {
+      gridDealOut(document.querySelector(`#grid .gp-opt[data-gp="${i}"]`));
+      closeGridPick(); opts.onChoose && opts.onChoose(i, offer);
+    },
     // r362: a screen that may be SKIPPED passes onSkip. CONFIRM with nothing
     // selected arms it ('PRESS AGAIN TO SKIP'); a second press inside
     // GP_SKIP_WINDOW takes nothing.
-    onSkip: opts.onSkip ? () => { closeGridPick(); opts.onSkip(); } : null, skipArmedAt: 0,
+    onSkip: opts.onSkip ? () => { gridDealOut(null); closeGridPick(); opts.onSkip(); } : null, skipArmedAt: 0,
   };
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');

@@ -276,3 +276,20 @@ body.gp-active #sel-count { display: none !important; }
 /* The board behind it is not the thing being read. */
 body.gp-reading #grid .gp-opt,
 body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
+
+/* ── #grid MUST OUTRANK A SIBLING PANEL WHILE IT IS BORROWED (r380) ────────
+   #grid is position:relative with z-index auto, so it is NOT a stacking
+   context and its tiles (z-index 2) beat #flowr-bg - a LATER sibling at
+   z-index 0 - on their own. The instant anything gives #grid a transform it
+   becomes a stacking context, its children's z-index is contained, and the
+   panel paints over the whole board. That is exactly what flashRoundEnd's
+   1.4s .round-end-flash was doing at the end of every Flow tally, and it is
+   the owner's "the options black out for a second when the score finishes".
+
+   The real fix is that flashRoundEnd no longer paints on a board it does not
+   own (js/score-anims.js). This is the guard that stops the NEXT transform -
+   a boss effect, a future animation - re-opening it: while a screen has the
+   board, #grid is explicitly above the panel, transform or no transform.
+   Scoped to the takeover so a live round's boss overlays (z-index 12-15,
+   children of #grid) are not suddenly contained by it. */
+body.gp-active #grid { z-index: 1; }
