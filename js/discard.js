@@ -269,6 +269,8 @@ function rewindTime(seconds, label, srcId, srcSource) {
   rewindsThisRound++;            // per-round rewind count (time popup)
   rewindInstanceGame++;          // Hummingbird
   updateClockUI();
+  // r391: rewinding out of the boss warmup window ends it at once, not a tick later.
+  if (typeof tickBossApproach === 'function') tickBossApproach();
   // Infinity-mirror copies under every card + the reversed swell (js/clock-fx.js)
   if (typeof playRewindFX === 'function') playRewindFX();
   const el = document.getElementById('time-cost-flash') ||

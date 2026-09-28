@@ -69,7 +69,8 @@ const FLOWR_DEF  = {
   // ARE the percentages. It is still normalised on read, which costs nothing and
   // means a retune that does not add up still plays the ratios it sets (the dev
   // panel prints what a row actually comes out as).
-  counts: [48, 32, 10, 6, 4],
+  // r391: +10 moved from 1 to 2 (owner: "tune up the chances of a second").
+  counts: [38, 42, 10, 6, 4],
   // Share of every reward screen. Sums to 100 as given.
   odds: { pick3: 30, cards: 15, deck: 15, sleights: 15, limits: 10, improve: 10, knacks: 2.5, tricks: 2.5 },
   // THE ONLY THING THAT STILL CARES ABOUT WHEN: the opening levels lean toward

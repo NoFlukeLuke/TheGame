@@ -122,6 +122,21 @@ function openDevPanel() {
 // on a menu of groups and each group is its own pop-up. The .dev-section elements
 // are never moved - they all keep their ids (plenty of code binds to them) and are
 // simply shown or hidden by data-group.
+// r391 AESTHETICS: extra infinity-tray depth lines (0-4), a body class the
+// tray rule in css/style.css reads. Persisted; default 3.
+let trayDepthExtra = (() => { try { const v = localStorage.getItem('lethe.trayDepth.v1');
+  if (v !== null && +v >= 0 && +v <= 4) return +v; } catch (e) {} return 3; })();
+function setTrayDepth(n) {
+  trayDepthExtra = Math.max(0, Math.min(4, n | 0));
+  try { localStorage.setItem('lethe.trayDepth.v1', String(trayDepthExtra)); } catch (e) {}
+  applyTrayDepth();
+}
+function applyTrayDepth() {
+  for (let i = 0; i <= 4; i++) document.body.classList.toggle('tray-deep-' + i, i === trayDepthExtra);
+  const sel = document.getElementById('dev-tray-depth'); if (sel) sel.value = String(trayDepthExtra);
+}
+if (document.body) applyTrayDepth(); else document.addEventListener('DOMContentLoaded', applyTrayDepth);
+
 const DEV_GROUPS = [
   { g:'tricks',   icon:'✦', label:'Tricks',    sub:() => `${TRICK_POOL.length} in pool` },
   { g:'sleights', icon:'▶', label:'Sleights',  sub:() => `${SLEIGHT_POOL.length} in pool` },
@@ -139,6 +154,7 @@ const DEV_GROUPS = [
   { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
+  { g:'aesthetics', icon:'✧', label:'Aesthetics', sub:() => `tray depth +${trayDepthExtra} lines` },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },

@@ -144,6 +144,8 @@ let gridPickState = null;         // { offers, actions, onChoose } for a re-rend
 // carrying [data-card-id], so a screen's tiles must be removed by hand - that is
 // the r248 crossroads leak, and gridScreenRelease is what stops it repeating.
 function gridScreenTakeover(rows, cols) {
+  if (typeof endBossApproach === 'function') endBossApproach();   // r391
+
   // The x/y selection readout means nothing on a board screen (there is no hand
   // being built) and it sits in the slot margin right beside the grid. Hidden
   // for the length of any takeover. The SHOP is untouched by this - it does not

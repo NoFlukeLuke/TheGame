@@ -293,6 +293,12 @@ body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
    Scoped to the takeover so a live round's boss overlays (z-index 12-15,
    children of #grid) are not suddenly contained by it. */
 body.gp-active #grid { z-index: 1; }
+/* r391: a PICKED tile lifts and glows past the board's top edge, and it must
+   draw OVER the title tabs (#flowr-stack, z 8) - it already does when it flies
+   out (the explode lifts #grid to 350), so drawing under them first read as a
+   jump. #grid is a stacking context here, so the whole board goes up; nothing
+   but the picked tile reaches the tabs. */
+body.gp-active #grid:has(.gp-sel) { z-index: 9; }
 
 /* SKIP (r380) - a strip at CONFIRM's foot. Muted, so it never reads as the
    thing to press; the two controls that end a pick share one region. */

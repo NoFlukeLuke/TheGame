@@ -993,16 +993,25 @@
     position: relative; flex-direction: column; align-items: stretch; justify-content: center; gap: 1px;
   }
   #stage:not(.landscape) #trick-tray-area .panel-title {
-    position: static; margin: 0; z-index: 3; text-align: right; flex: 0 0 auto;
+    /* r391: in the tray's INSIDE corner (bottom-right; the knack label takes
+       the other tray's bottom-left), out of flow so the tiles get the height. */
+    position: absolute; right: 8px; bottom: 4px; margin: 0; z-index: 3; text-align: right;
     font-size: 8px; letter-spacing: 0.5px; opacity: 0.75; line-height: 1;
   }
+  /* r391: rounded trays in portrait, and bigger Tricks (62x59 -> 80x76, the
+     disc's own 20/19). A wider tile makes the fan tuck from the 3rd Trick. */
+  #stage:not(.landscape) #trick-tray-area,
+  #stage:not(.landscape) #knack-carousel-wrap,
+  #stage:not(.landscape) #hand-preview-area { border-radius: 12px; }
+  #stage:not(.landscape) #trick-tray-list { max-height: 80px; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { width: 80px; height: 76px; }
 
   /* Knack chips get their own breathing room too. */
   /* Match the tray's treatment: a small corner label instead of a full-size
      heading, so the chips get the vertical space instead. */
   #stage:not(.landscape) #knack-carousel-wrap { position: relative; }
   #stage:not(.landscape) #knack-carousel-wrap .panel-title {
-    position: absolute; left: 9px; bottom: 2px; margin: 0; z-index: 3;
+    position: absolute; left: 9px; bottom: 4px; margin: 0; z-index: 3;
     font-size: 8px; letter-spacing: 0.5px; opacity: 0.75;
   }
   #stage:not(.landscape) #knack-list { gap: 7px; max-height: 72px; margin-bottom: 8px; }
@@ -3874,6 +3883,15 @@
     content: ''; position: absolute; inset: 12%; border-radius: 5px;
     border: 2.5px solid var(--rc); box-shadow: 0 0 8px -1px var(--rc), inset 0 0 6px -2px var(--rc);
   }
+  /* r391: the owned-Knack chip wears the pick screen's diamond. */
+  .knack-chip.kc-obj { background: none !important; border: none !important; box-shadow: none !important; overflow: visible; }
+  .knack-chip.kc-obj .rwd-diamond { width: 70%; border-radius: 5px; }
+  .knack-chip.kc-obj .rwd-diamond::after { border-width: 1.5px; border-radius: 3px; }
+  .knack-chip.kc-obj .rwd-diamond-emoji { font-size: .62em; }
+  .knack-chip.rar-common    { --rc: var(--c-mint); }
+  .knack-chip.rar-rare      { --rc: var(--c-cyan); }
+  .knack-chip.rar-epic      { --rc: var(--c-purple); }
+  .knack-chip.rar-legendary { --rc: var(--c-magenta); }
   .rwd-diamond-emoji { transform: rotate(-45deg); font-size: 26px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
 
   /* ══ SELECTION IS A WHOLE-CELL STATE (r281) ═══════════════════════════════
@@ -5196,6 +5214,7 @@
     border: 1px solid var(--tray-c) !important;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
                 var(--tray-set, var(--tray-rings-m)),
+                var(--tray-extra, 0 0 0 0 transparent),
                 0 0 0 2px color-mix(in srgb, var(--tray-c) 62%, #14100a),
                 0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806) !important;
   }
@@ -5224,6 +5243,23 @@
   #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-coral);  --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-mint);   --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings); }
+  /* r391 DEEPER MIRROR: 1-4 more receding lines past the r388 set, same 3px
+     pitch (dark gap, line, soft shadow), each fainter. Inset shadows paint in
+     the background layer, so they are always fully BEHIND the tray's contents.
+     Only the tall trays take them - on a 29px strip they would meet in the
+     middle. Dev -> Aesthetics picks the count (body.tray-deep-N, default 3). */
+  :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area,
+      #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
+      #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) {
+    --tray-x1: inset 0 0 0 9px rgba(0,0,0,.45), inset 0 0 0 10px color-mix(in srgb, var(--tray-c) 8%, transparent), inset 0 0 0 11px color-mix(in srgb, var(--tray-c) 3%, transparent);
+    --tray-x2: inset 0 0 0 12px rgba(0,0,0,.4), inset 0 0 0 13px color-mix(in srgb, var(--tray-c) 5%, transparent), inset 0 0 0 14px color-mix(in srgb, var(--tray-c) 2%, transparent);
+    --tray-x3: inset 0 0 0 15px rgba(0,0,0,.35), inset 0 0 0 16px color-mix(in srgb, var(--tray-c) 3.5%, transparent), inset 0 0 0 17px color-mix(in srgb, var(--tray-c) 1.5%, transparent);
+    --tray-x4: inset 0 0 0 18px rgba(0,0,0,.3), inset 0 0 0 19px color-mix(in srgb, var(--tray-c) 2.5%, transparent), inset 0 0 0 20px color-mix(in srgb, var(--tray-c) 1%, transparent);
+  }
+  body.tray-deep-1 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1); }
+  body.tray-deep-2 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2); }
+  body.tray-deep-3 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3); }
+  body.tray-deep-4 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3), var(--tray-x4); }
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,

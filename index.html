@@ -521,6 +521,16 @@
   </div>
 
   <!-- HUD TOGGLES -->
+  <div class="dev-section" data-group="aesthetics">
+    <div class="dev-section-title">Aesthetics</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Infinity tray: extra depth lines
+      <select id="dev-tray-depth" onchange="setTrayDepth(+this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="0">0 (r388)</option><option value="1">+1</option><option value="2">+2</option>
+        <option value="3">+3 (default)</option><option value="4">+4</option>
+      </select>
+    </label>
+  </div>
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">HUD</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-27 · r390 · score-trays-preview.html - one tray per number";
+const BUILD = "2026-09-28 · r391 · Flow polish - warmup 10s, deeper trays, flow card tiles";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

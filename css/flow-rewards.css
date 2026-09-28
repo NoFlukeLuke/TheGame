@@ -33,6 +33,27 @@
   opacity: 0; transition: opacity .22s ease, transform .22s ease;
 }
 #flowr-counter.show { opacity: 1; transform: var(--fc-t) scale(1); }
+/* r391 COLOUR + THEME, shared by every look: a slowly turning burst of the
+   four rarity colours behind the chip, bigger and brighter per reward
+   (--fc-k is the count). ::before is unused by all five looks. */
+#flowr-counter::before {
+  content: ''; position: absolute; left: 50%; top: 50%; z-index: -1;
+  width: calc(190px + 45px * var(--fc-k, 1)); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255,240,200,.5) 0 12%, transparent 60%),
+    repeating-conic-gradient(from 0deg,
+      rgba(53,213,155,.55) 0 7deg, transparent 7deg 22.5deg,
+      rgba(64,200,255,.55) 22.5deg 29.5deg, transparent 29.5deg 45deg,
+      rgba(170,110,255,.55) 45deg 52deg, transparent 52deg 67.5deg,
+      rgba(255,80,200,.55) 67.5deg 74.5deg, transparent 74.5deg 90deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%);
+          mask: radial-gradient(circle, #000 20%, transparent 70%);
+  opacity: calc(.35 + .13 * var(--fc-k, 1));
+  animation: fc-burst 7s linear infinite;
+}
+@keyframes fc-burst { to { rotate: 360deg; } }
+body.reduced-motion #flowr-counter::before { animation: none; }
 #flowr-counter .fc-num b { font-weight: inherit; font-size: .62em; opacity: .8; margin-right: .04em; }
 #flowr-counter .fc-num em { font-style: normal; }
 /* THE DECORATIONS ARE HIDDEN BY AN ID SELECTOR, so every look that wants one

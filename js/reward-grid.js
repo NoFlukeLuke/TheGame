@@ -450,16 +450,41 @@ function _generateRewardContent() {
       apply: () => { const t = resolveDeckCard(card); if (!t) return;
         enhanceCardKey(cardId(t), e);
         showMessage(`${face}: ${buffOfferName(e)}`, 'var(--gold)'); } });
-    const roll = Math.random();
-    if (roll < 0.15) return bless('📈', 'Scaling Card', 'legendary', { growMult: 1 });
-    if (roll < 0.4)  return bless('✨', 'Blessed Card', 'epic',      { mult: 5 });
+    // r391: THE FLOW CARD OPTIONS replace the old blessings (owner). A tile is
+    // either a CARD PACK (3 buffed cards join the deck) or one of the deck
+    // editor's BUFF OPS landing on the named card and up to 2 more at random,
+    // value rolled weighted-low from the same table (FLOWR_DECK_OPS). Odds are
+    // a guess, pending the card-effect probability table (TODO.md).
+    if (typeof FLOWR_DECK_OPS !== 'undefined' && Math.random() < 0.35 && typeof flowrBuildPacks === 'function') {
+      const pack = flowrBuildPacks()[0];
+      if (pack) return { icon: '🃏', label: 'Card Pack', tier: 'epic',
+        cardFace: { rank: pack.ranks[0], suit: pack.suit },
+        desc: `${pack.ranks.length} cards join your deck: ${pack.ranks.map(r => r + pack.suit).join(', ')}. Each one scores ${pack.label}.`,
+        apply: () => flowrGrantPack(pack) };
+    }
+    if (typeof FLOWR_DECK_OPS !== 'undefined') {
+      const ops = FLOWR_DECK_OPS.filter(o => o.buff);
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      const v = flowrValRoll(op.buff.range);
+      const lbl = flowrBuffLabel(op.buff, v);
+      const n = flowrQtyRoll(3);
+      const rare = op.buff.x || op.id === 'replay';
+      return { icon: op.icon, label: op.name, tier: rare ? 'epic' : 'rare', cardFace: { rank, suit },
+        desc: `${face} and ${n - 1 > 0 ? `up to ${n - 1} more random card${n - 1 === 1 ? '' : 's'}` : 'no other card'} score ${lbl}.`,
+        apply: () => {
+          const t = resolveDeckCard(card); const picks = t ? [t] : [];
+          const rest = everyDeckCard().filter(cd => cd !== t && !(typeof isWildCard === 'function' && isWildCard(cd)));
+          while (picks.length < n && rest.length) picks.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
+          picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
+          showMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
+    }
     return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
   }
   // Cull buff: deck thinning - a specific low card leaves the run for good.
   function makeCullPayload() {
     const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
     const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
-    return { icon: '✂️', label: 'Cull', tier: 'rare', cardFace: { rank, suit },
+    return { icon: '✂', label: 'Cut', tier: 'rare',   // r391: Flow's word cardFace: { rank, suit },
       desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
       apply: () => { removeCardIdentityFromRun(rank, suit)
         ? showMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
@@ -1624,7 +1649,8 @@ function rewardTargetKey(p) {
   if (p.flyTo) return p.flyTo;                 // mystery outcomes carry flyTo
   const label = (p.label || '').toLowerCase();
   const icon  = p.icon || '';
-  if (label.includes('trick'))                                                    return 'tricks';   // Lose a Trick
+  if (p.cardFace && !p.entity)                                                    return 'deck';     // r391 card tiles
+  if (label.includes('trick'))                                                  return 'tricks';   // Lose a Trick
   if (label.includes('swap'))                                                     return 'swaps';
   if (label.includes('discard'))                                                  return 'discards';
   if (label.includes('windfall') || label.includes('pickpocket') || icon === '💰' || icon === '💸') return 'coins';

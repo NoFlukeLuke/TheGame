@@ -754,7 +754,20 @@ function survivalDealNext() {
 // refill. show321Countdown winds roundSeconds up to the round-time limit, which
 // would refill Flow's session clock at every level (the Crunch trap, r293). Only
 // Flow: Survival is hidden and its per-level clock is its own business.
-function svResumeAfterReward(go) {
+function svResumeAfterReward(go0) {
+  // r391: the warmup must never survive a reward screen, and the clock must
+  // never be left held. `once` because both the countdown's resolve and the
+  // safety timeout can reach it; the timeout covers a countdown that never
+  // resolves (the frozen-clock, no-3-2-1 report from the last 15 seconds).
+  if (typeof endBossApproach === 'function') endBossApproach();
+  let done = false;
+  const go = () => {
+    if (done) return; done = true;
+    if (typeof isPaused === 'undefined' || !isPaused) gameTimerPaused = false;
+    go0();
+    if (typeof tickBossApproach === 'function') tickBossApproach();
+  };
+  setTimeout(go, 3500);
   const plain = (typeof skipOn === 'function' && skipOn('transitions'))
              || !(typeof flowActive === 'function' && flowActive())
              || typeof showBossCountdown !== 'function';
