@@ -1207,6 +1207,15 @@
     transition: color .15s ease;
   }
   #sel-count.on { display: flex; }
+  /* r394: THE HAND GLYPH LIVES BESIDE THE LIVE TALLY, not in the top bar.
+     Owner: "move the hand emoji next to the 0/3". #sel-display in the top bar
+     printed the LIMIT with the same glyph, which is the same fact twice - and
+     the top bar is the one band the portrait clock has. Portrait only: the
+     landscape readout sits in the gutter beside the board, which is the width
+     of half the slot's slack and has no room for a second glyph. */
+  #sel-count-hand { display: none; margin-right: 5px; opacity: .85; }
+  #stage:not(.landscape) #sel-count-hand { display: inline; }
+  #stage:not(.landscape) #sel-stat { display: none !important; }
   /* Below the minimum the selection cannot be played at all, so it reads as a
      warning rather than as a tally. Same state the hand label shows as "NEED / n". */
   #sel-count.below { color: var(--red); text-shadow: 0 0 8px rgba(255,90,106,.4); }

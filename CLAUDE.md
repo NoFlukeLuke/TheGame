@@ -10934,3 +10934,226 @@ grid opens at 16 cells, a planted pair plays its full dance and scores, the shop
 opens, the setting toggles both ways, reduced motion stops both layers, and
 Poker Squares, the Schedule and Survival all deal and fit. **No page errors in
 any run.**
+
+## r394 - the chosen tab is knocked off, confetti under the chip, the board deals at once
+
+### 1. THE SHINE WAS ON THE WRONG TAB, ON THE WRONG STEP
+
+Owner: *"can we just have the whole tab fall to one side, it falls and rotates
+slightly as it falls off. So the options would explode out, then that tab gets
+the shine effect we're currently giving to the next tab, and when the shine wave
+thing gets close to whichever side it goes toward (make it go either way) then
+the empty tab falls over revealing the next tab. The option behind it would not
+get a fall animation of its own it would just be there already ... right now the
+current tab goes away after a choice and we see a tab the color of the next tab
+get the shine, and then the options appear. I'm saying that shine effect should
+apply to the tab we've just chosen, and the shine is the thing that looks like it
+knocks the current tab off."*
+
+r380's wipe was on the **panel**, fired from `flowrRenderStack` on an index
+change - i.e. **after** the index had already moved, in the **incoming** colour,
+on a tab that had already been swapped. So the thing being polished was the
+arrival rather than the departure, and nothing connected the two.
+`flowrHandOver(fromKind, next)` (js/flow-rewards.js) is the whole beat now:
+the outgoing tab is shined, and the shine reaching the edge is what tips it off.
+
+- **THE NEW STACK IS DRAWN FIRST, UNDER A GHOST OF THE OLD TAB.** The obvious
+  ordering - fall, then re-render - cannot work: `flowrRenderStack` rebuilds
+  `#flowr-stack` wholesale, so an element mid-fall would be destroyed. Drawing
+  the new arrangement first and covering its front tab with a free-standing copy
+  of the old one means the fall reveals something that is **genuinely already
+  there**, which is what was asked for. The queued tabs behind shift 5px and 5%
+  at that instant, hidden under the exploding tiles.
+- **THE GHOST IS A CHILD OF `#grid-slot`, NOT OF `#flowr-stack`**, so it survives
+  the rebuild - **and that is why `#flowr-tabfall` had to be NAMED in the chip's
+  own rules.** Those are `#flowr-stack .fst-chip` / `.fst-cur` / ` span`, which a
+  non-descendant cannot match: measured before the fix, the ghost painted with
+  **no background and a default cream border**, so all that fell off the panel
+  was the word. Both branches are (1,0,0) for `#flowr-tabfall`, so source order
+  decides and the `.fst-cur` block must stay below the base one.
+- **THE PANEL HOLDS THE OLD COLOUR UNTIL THE FALL.** `flowrRenderStack` sets
+  `--fc` to the incoming colour, so without this the whole panel cross-fades
+  while the old tab is still sitting on it - the reveal announced before it
+  happens. Writing it back in the same synchronous block means the browser never
+  sees the new value, so there is no transition to interrupt; setting it at the
+  fall is what lands the .28s cross-fade **on** the reveal.
+- **THE GHOST IS POSITIONED IN DESIGN PX, FROM A RECT DIVIDED BY THE ZOOM**
+  (`flowrBoxIn`). Both elements are inside `#cabinet`, so a rect delta is
+  viewport px and an inline `left` is design px - the r160 Trick-fan trap. The
+  ratio is measured off the element itself rather than assumed from
+  `--stage-zoom`, and the host's own border is subtracted (an absolutely
+  positioned child resolves against the PADDING box).
+- **THE SWEEP'S LENGTH *IS* THE LEAD** (`FLOWR_SHINE_MS`, 340ms), so there is ONE
+  number rather than a JS duration and a CSS keyframe percentage to keep in step.
+  A front-loaded ease was **measured parking the band at the far edge by 40% of
+  the sweep** and loitering there, so the knock stopped reading as the thing the
+  shine had arrived at; it is `linear` now.
+- **THE TRAVEL IS -50% TO +40% OF THE SHINE'S OWN WIDTH**, and neither number is
+  round by accident: the element overhangs the tab by 14% each side, so it is
+  1.28 tab widths, and the band sits at 41-59% of it (centred at rest, 0.115 tab
+  wide). -50% puts the band just off the left edge; **+40% puts it exactly ON the
+  right edge**, which is where it must be when the knock lands. At +-100% (the
+  first pass) the band left the tab two thirds of the way through and the fall
+  fired onto a tab with nothing on it.
+- **A NARROW, BRIGHT BAND, NOT A WASH.** The first tuning ran its stops from 30%
+  to 70% of an over-wide element, so the "band" covered most of a 561px tab at
+  once and read as the tab merely getting lighter. Screen blend, a band about a
+  sixth of the width, and a white core: the tab is an 18% mix over near-black.
+- **`--fst-dir` (+1 or -1, rolled per hand-over with `fxRandom`) steers the
+  sweep, the tip, the pivot and the direction of travel from one number**, so it
+  really does go either way rather than mirroring a hand-written pair.
+
+**ANSWERING THE OWNER'S QUESTION - the incoming options DO still deal in, and
+they start at the KNOCK rather than after it.** So the tab tips off the top of
+the panel while the offers rise into the tray underneath it: one motion, and the
+hand-over costs only the sweep (~340ms) rather than its whole length. The r379
+deal emerges from inside the tray rather than falling from above, so it is not a
+second falling object competing with the tab; and without it the offers would
+pop, which is the "they go invisible then appear" complaint r378 fixed.
+
+**The panel now SETTLES rather than shining** (`fbg-settle`, the squash alone).
+Two shines a third of a second apart is the doubled vocabulary r233 spent a pass
+removing. `fbg-turn` keeps the wipe for the one step with no tab to knock - the
+deck edit, which hides the ladder.
+
+### 2. THE CHIP IS THE PLATE AGAIN, AND THE COLOURS ARE CONFETTI
+
+Owner: *"Make the level up chip what it was at first visually, and add an
+explosion of colored particles underneath it. The color of the particles changes
+for each additional reward, first its the color of common, then rare, etc. for
+the 5th reward, it explodes all the colors ... mostly squares of slightly varying
+size and rotation, and the color can vary by a few shades to add a little depth.
+The confetti should launch in all directions under the level up chip and over the
+grid."*
+
+- **`flowrChipStyle` defaults to `plate` and the key is bumped to
+  `lethe.flowrChip.v2`** - the r183 `hbCfg2 -> hbCfg3` rule: a stored value beats
+  a default, so anyone already shown the stamp would have kept it for ever. The
+  other four looks stay in the picker.
+- **r391's turning ray burst behind the chip is GONE.** It was a later
+  decoration, not what the chip was at first - and it already said "more colours
+  per reward", which is exactly the job the confetti now does with something
+  physical. On a lit board the rays were most of what was on screen.
+  `#flowr-counter::before` is free again.
+- **THE COLOUR IS KEYED TO THE COUNT, NOT TO THE ROLL.** Burst 1 is always mint,
+  2 cyan, 3 purple, 4 magenta, 5 all four - so a x3 is recognisably further up
+  the same ladder as a x2. They are read off the live `--c-mint` / `--c-cyan` /
+  `--c-purple` / `--c-magenta` rather than typed here (the hex is the fallback).
+  Measured, 38/38/38/38/68 pieces: **38 mint / 38 cyan / 38 purple / 38 magenta /
+  20+17+18+13 mixed**, zero bleed between bursts.
+- **A PIECE IS A PLAIN DIV, NOT A CANVAS.** At most ~68 of them for about a
+  second, they want the same z-index seam everything else in `#grid-slot` uses,
+  and a canvas would need its own sizing, its own zoom handling and its own
+  clear-down. Each animates itself with WAAPI and removes itself.
+- **UNDER THE CHIP AND OVER THE BOARD** is simply 39 against the counter's 40,
+  in one stacking context. `overflow: visible`, because a piece thrown from the
+  middle of the board legitimately leaves the slot.
+- `flowrShade` mixes each piece a few percent toward white or black, which is
+  linear in the channels and is all the depth this needs.
+- **`fxRandom`, never `Math.random`** - a seeded run replaces the global, and ~70
+  pieces a burst would advance the deck, reward and boss streams.
+
+### 3. THE WHOLE BOARD DEALS AT ONCE
+
+Owner: *"There's an odd bug where after choosing an option the grid deals like 4
+cards in one corner, normally the top right, and then the rest gets dealt, which
+is odd and wrong. The whole grid should deal in at the same time."*
+
+**Not a bug so much as a cascade nobody had measured.** `startNewRoundDealAnims`
+was column-major with a 60ms column offset AND a 252ms offset per row *within* a
+column (`colReadyAt`), which interleaves into a **row-by-row deal from the
+bottom**. Filmed at 1440x820 and 420x900, counting cards landed inside the board:
+
+| | first 4 | then | then | last card |
+|---|---|---|---|---|
+| r393 cascade | bottom row, t=209-414ms (left to right, so the first lands in a corner) | row 2 at ~460-644 | row 1 at ~937-1130 | **1453ms** |
+| **r394 together** | all 16 launch over a **57ms** spread | - | - | **487ms** |
+
+- **A UNIFORM DROP IS PART OF IT, not a detail.** The cascade's drop distance was
+  `(gridRows - r) * CARD_STEP`, so the top row started FOUR cells above the board
+  - well outside `#grid-slot`, over the trays - which is only invisible while
+  that row is also the last to move. Dropped together they would all be up there
+  at once. `DEAL_DROP_STEPS` (2.1) is the same distance for every card.
+- **`DEAL_JITTER_MS` (70) keeps it from reading as one rigid object**, and is
+  rolled with `fxRandom`.
+- `cascade` is kept as an Aesthetics option and measured byte-for-byte as before
+  (1356ms, 0 -> 936ms of launches).
+
+### 4. PORTRAIT: the clock is centred, thick and long; coins are back on the right
+
+Owner: *"The thickness of the timer in Mobile is too thin. It needs to be at
+least as thick as the boss emoji."* and *"Move the hand emoji next to the 0/3.
+Put the coins back in the top right. (This is on mobile) Then center the timer in
+the top middle. And make it a little longer. Put length and width setting in the
+aesthetics tab."*
+
+| | r377 | r394 |
+|---|---|---|
+| bar | 104 x 9, left-packed | **150 x 18**, centred on the bar |
+| HAND SIZE | `#pt-underbar`, under the board | folded into `#sel-count` as a **✋** |
+| COINS | `#pt-underbar` | **`#top-bar`, right-hand end** |
+
+- **18px IS THE REVIEW MARK'S OWN HEIGHT** (`.clock-boss`), which is the number
+  the owner named - and it is what makes the track's 30s bands, Trick windows and
+  level-up marks legible at phone size rather than a row of specks. The Trick
+  glyph comes back with them (it was hidden at 9px, where it was a smudge).
+- **`#clock-area` IS ABSOLUTELY POSITIONED, NOT A FLEX CHILD.** The top bar
+  carries a variable number of in-flow readouts - the quarter block, the legacy
+  game timer, LEVEL, COINS - so "flex: 1 in the middle" centres the clock in
+  whatever room the others leave, which is not the middle of the bar. Out of flow
+  it is centred on the bar itself and cannot move when a readout appears or goes.
+  Measured: **centre offset 0 at 420, 390 and 360 wide**, with 0 clashes against
+  any other child.
+- **LEVEL takes `margin-right: auto`**, which packs it and the quarter block left
+  and pushes COINS to the right-hand end - measured 9-11px from the bar's inner
+  edge at all three widths.
+- **`max-width: 42vw` on the bar is what keeps a 360px phone working**: the knob
+  goes to 260 and the viewport caps it, so the two ends always have room.
+- **HAND SIZE and the ✋ were the same fact twice.** `#sel-count` already printed
+  the cap as the `y` of `x/y`, so `#sel-stat` is hidden in portrait and the glyph
+  moved onto the live readout. Landscape keeps the top-bar stat and hides the
+  glyph: that readout sits in the gutter beside the board, which is half the
+  slot's slack and has no room for a second glyph.
+- **`portraitMountStats()` is kept, not deleted.** It is the one thing that puts
+  both readouts back if anything has moved them, and **the Poker Squares
+  exemption depends on them being in `#top-bar`** for the daily's own
+  `#top-bar .top-stat:has(#coins-display)` hide rule to match. `#pt-underbar` is
+  now empty and its CSS says so; it is kept because it is the one band in the
+  layout that is provably free.
+
+### 5. AESTHETICS IS THE HOME FOR THIS (owner's standing instruction)
+
+Owner: *"from now on anytime we're working with stuff like this if we can add it
+to dev settings relatively easily then that's great ... For this type of stuff it
+can all go in aesthetics."*
+
+Dev panel -> **Aesthetics** now carries: infinity tray depth (r391), **board deal**
+(together / cascade), **portrait clock bar** length and thickness as steppers, and
+the **reward chip** picker with its three previews, **moved out of Rewards** - one
+picker, wherever it is opened, so `flowrSyncChipPicker()` was split out of
+`flowrDevSync` rather than copied.
+
+- **`--pclk-len` / `--pclk-thick` are published on `:root`**, which is what
+  css/clock-track.css reads - no second copy of the number and no element to keep
+  in step.
+- **OVERRIDES ONLY** (`lethe.clockBar.v1`): a field set back to its shipped value
+  is DELETED rather than pinning today's number for ever (the r197 goal-tuner
+  rule). Verified: 200/24 stores `{"len":200,"thick":24}`, reset clears the key.
+- Steppers, not sliders (r179), **written rather than rebuilt** while a field has
+  focus (r282).
+
+### Verified
+
+In a real browser at **1440x820, 420x900, 390x844 and 360x640**, through the real
+click path: a forced 3- and 5-step Flow chain runs counter -> confetti -> options
+with the hand-over filmed frame by frame (**ghost up at t=1071 with the next tab
+already reading CARDS underneath it, shine 0 -> 1, knock at 1435 with the options
+dealing in on the same frame, gone at 2036**); **0 tabs above the slot, 0 tiles
+overflowing, 0 leftover chrome**, the deck audit balancing **56 -> 56** at the
+next round's start (the 59 -> 57 reading mid-interlude is r371's held goal hand)
+and `level` moving **once**; reduced motion and Settings -> Skip -> Screen
+transitions both still ADVANCE the chain with no ghost; the deal measured at
+**487ms all-at-once against 1356ms cascading**; the portrait bar centred to the
+pixel with coins on the right and the ✋ on the tally; Classic, the Schedule,
+Survival, Spectrum and Poker Squares all dealing and laying out. **No page errors
+in any run.**

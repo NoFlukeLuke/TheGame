@@ -228,28 +228,25 @@ function portraitStatsHost() {
   slot.appendChild(bar);           // a SIBLING of #grid: render() rebuilds #grid's children
   return bar;
 }
+// r394: BOTH LIVE IN THE TOP BAR AGAIN. Owner: "put the coins back in the top
+// right. (This is on mobile)". The room the move bought is no longer needed -
+// the clock is out of flow now (css/clock-track.css), so it is centred on the
+// bar whatever else is in it, and HAND SIZE is folded into the live x/y readout
+// above the board (#sel-count), which was already printing the same cap.
+//
+// The function is KEPT rather than deleted: it is the one thing that puts them
+// back if anything has moved them, it runs from every layout pass, and the
+// Poker Squares exemption below depends on them being in #top-bar for the
+// daily's own hide rule to match.
 function portraitMountStats() {
-  const stage = document.getElementById('stage');
   const sel   = document.getElementById('sel-stat');
   const coins = document.getElementById('coins-display');
-  if (!stage || !sel || !coins) return;
-  const coinStat = coins.closest('.top-stat') || coins.parentElement;
   const topBar = document.getElementById('top-bar');
-  // POKER SQUARES IS THE ONE EXEMPTION. Its daily hides these two with
-  // `#top-bar .top-stat:has(#coins-display)` (css/squares.css), and a selector
-  // naming #top-bar stops matching the moment they are somewhere else - so they
-  // would come BACK on the one screen that deliberately hides them.
-  const wantUnder = !stage.classList.contains('landscape')
-                 && !(typeof squaresActive === 'function' && squaresActive());
-  const home = wantUnder ? portraitStatsHost() : topBar;
-  if (!home) return;
-  // #sel-stat before the coins, and both after whatever else is already there.
-  if (sel.parentElement !== home)      home.appendChild(sel);
-  if (coinStat.parentElement !== home) home.appendChild(coinStat);
-  // Landscape hides every .top-stat, so putting them back is enough; the bar
-  // itself is display:none there (css/clock-track.css).
-  if (!wantUnder && topBar && sel.parentElement === topBar) {
-    // Restore the document order the markup had: … Level, #clock-area, HAND SIZE, COINS.
-    topBar.appendChild(sel); topBar.appendChild(coinStat);
-  }
+  if (!sel || !coins || !topBar) return;
+  const coinStat = coins.closest('.top-stat') || coins.parentElement;
+  // The markup's own order: … Level, #clock-area, HAND SIZE, COINS - so COINS is
+  // last and lands at the right-hand end.
+  if (sel.parentElement !== topBar)      topBar.appendChild(sel);
+  if (coinStat.parentElement !== topBar) topBar.appendChild(coinStat);
+  else if (coinStat.nextElementSibling)  topBar.appendChild(coinStat);
 }

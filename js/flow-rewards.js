@@ -447,6 +447,7 @@ function flowrShowStep() {
 // must NOT run its own level-up.
 function flowrAfterStep() {
   if (!flowrQueue) return false;
+  const from = flowrQueue[flowrIdx];   // the tab just chosen - it is what falls
   flowrIdx++;
   flowrRenderStack();
   // 200ms, not 380 (r378). The panel and its tabs stay lit between steps, so
@@ -455,9 +456,134 @@ function flowrAfterStep() {
   // hole between one step and the next was 735ms; it is ~265 now.
   // r380: the outgoing board has already left through rewardTransitionOut, so
   // the incoming one only needs a breath, not a pause.
-  if (flowrIdx < flowrQueue.length) { setTimeout(() => flowrShowStep(), (typeof skipOn === 'function' && skipOn('transitions')) ? 0 : 140); return true; }
+  if (flowrIdx < flowrQueue.length) { flowrHandOver(from, () => flowrShowStep()); return true; }
   flowrFinish();
   return true;
+}
+
+// ══════════════════════════════════════════════
+// THE TAB HAND-OVER (r394) - the chosen tab is knocked off its own stack
+// ══════════════════════════════════════════════
+// Owner: *"can we just have the whole tab fall to one side, it falls and rotates
+// slightly as it falls off. So the options would explode out, then that tab gets
+// the shine effect we're currently giving to the next tab, and when the shine
+// wave thing gets close to whichever side it goes toward (make it go either way)
+// then the empty tab falls over revealing the next tab. The option behind it
+// would not get a fall animation of its own it would just be there already ...
+// right now the current tab goes away after a choice and we see a tab the color
+// of the next tab get the shine ... I'm saying that shine effect should apply to
+// the tab we've just chosen, and the shine is the thing that looks like it knocks
+// the current tab off."*
+//
+// THE SHINE WAS ON THE WRONG OBJECT AND ON THE WRONG STEP. r380 put it on the
+// PANEL and fired it from flowrRenderStack on an index change - i.e. after the
+// index had already moved, in the INCOMING colour, on a tab that had already been
+// swapped. So the thing being polished was the arrival, not the departure, and
+// nothing connected the two. It is now: shine the OUTGOING tab, and let the shine
+// reaching the edge be what tips it off.
+//
+// FOUR THINGS THIS ENCODES:
+//
+// - THE NEW STACK IS DRAWN FIRST, UNDER A GHOST OF THE OLD TAB. The obvious
+//   ordering - fall, then re-render - cannot work: flowrRenderStack rebuilds
+//   #flowr-stack wholesale, so the element mid-fall would be destroyed. Drawing
+//   the new arrangement first and covering its front tab with a free-standing
+//   copy of the old one means the fall reveals something that is genuinely
+//   already there, which is exactly what was asked for. The queued tabs behind
+//   shift 5px and 5% at that instant, which is hidden under the exploding tiles.
+//
+// - THE PANEL HOLDS THE OLD COLOUR UNTIL THE FALL. flowrRenderStack sets --fc to
+//   the incoming colour, so without this the whole panel would cross-fade while
+//   the old tab was still sitting on it - the reveal announced before it happens.
+//   Writing it back in the same synchronous block means the browser never sees
+//   the new value, so there is no transition to interrupt; setting it at the fall
+//   is what makes the .28s cross-fade land ON the reveal.
+//
+// - THE GHOST IS POSITIONED IN DESIGN PX, FROM A RECT DIVIDED BY THE ZOOM. Both
+//   #flowr-stack and the ghost live inside #cabinet, which carries the stage
+//   zoom, so a rect delta is viewport px and an inline `left` is design px. The
+//   r160 Trick-fan trap: measure the ratio off the element itself rather than
+//   assuming --stage-zoom, and subtract the host's own border (an absolutely
+//   positioned child resolves against the PADDING box).
+//
+// - THE NEXT SCREEN STARTS AT THE FALL, NOT AFTER IT. The owner asked whether the
+//   incoming options should still deal in; they should, and they should do it
+//   BEHIND the falling tab. Starting the step at the moment of the knock means
+//   the tab tips off the top of the panel while the offers rise into the tray
+//   under it - one motion - and the hand-over costs only the shine's lead (about
+//   a third of a second) rather than its whole length.
+// THE SWEEP'S LENGTH IS THE LEAD, so there is ONE number rather than a duration
+// in the JS and a keyframe percentage in the CSS that have to be kept in step.
+// The band travels the tab's full width over exactly this, so it arrives at the
+// far side on the frame the knock lands - which is the whole of the owner's
+// "when the shine wave thing gets close to whichever side it goes toward then
+// the empty tab falls over".
+const FLOWR_SHINE_MS   = 340;
+const FLOWR_TABFALL_MS = 560;
+
+// An element's box in its host's own design px. Returns null when it cannot be
+// measured (a display:none ancestor - the deck-edit step hides the tabs).
+function flowrBoxIn(el, host) {
+  const w = el.offsetWidth, h = el.offsetHeight;
+  if (!w || !h) return null;
+  const r = el.getBoundingClientRect(), hr = host.getBoundingClientRect();
+  const z = r.width / w;
+  if (!(z > 0.01)) return null;
+  return { left: (r.left - hr.left) / z - (host.clientLeft || 0),
+           top:  (r.top  - hr.top ) / z - (host.clientTop  || 0), w, h };
+}
+
+function flowrHandOver(fromKind, next) {
+  const skip = (typeof skipOn === 'function' && skipOn('transitions'));
+  const host = document.getElementById('grid-slot');
+  const cur0 = document.getElementById('flowr-stack')?.querySelector('.fst-cur');
+  // Measured BEFORE the rebuild below destroys it.
+  const box = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
+  const label = cur0 ? cur0.innerHTML : '';
+  const bg0 = document.getElementById('flowr-bg');
+  const oldColor = bg0 ? bg0.style.getPropertyValue('--fc') : '';
+
+  flowrRenderStack();                       // the new arrangement, underneath
+  const bg = document.getElementById('flowr-bg');
+  const newColor = bg ? bg.style.getPropertyValue('--fc') : '';
+
+  // No tab to knock off (the deck-edit takeover hides the ladder, and a skipped
+  // transition wants none of this): the panel says it instead, as it did before.
+  if (!box) {
+    if (bg && !skip) { bg.classList.remove('fbg-turn'); void bg.offsetWidth; bg.classList.add('fbg-turn'); }
+    setTimeout(next, skip ? 0 : 140);
+    return;
+  }
+  if (bg && oldColor) bg.style.setProperty('--fc', oldColor);   // hold the wash
+
+  const meta = FLOWR_KINDS[fromKind] || FLOWR_KINDS.pick3;
+  // EITHER WAY (owner's words). fxRandom, never Math.random - a seeded run
+  // replaces the global and this would advance the deck and reward streams.
+  const dir = ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5) ? -1 : 1;
+  const g = document.createElement('div');
+  g.id = 'flowr-tabfall';
+  g.className = 'fst-chip fst-cur';
+  g.style.cssText = `left:${box.left}px;top:${box.top}px;right:auto;bottom:auto;`
+    + `width:${box.w}px;height:${box.h}px;`;
+  g.style.setProperty('--fst-c', meta.color);
+  g.style.setProperty('--fst-d', 0);
+  g.style.setProperty('--fst-dir', dir);
+  g.style.setProperty('--fst-shine-ms', FLOWR_SHINE_MS + 'ms');
+  g.style.setProperty('--fst-fall-ms', FLOWR_TABFALL_MS + 'ms');
+  g.innerHTML = label + '<i class="fst-shine"></i>';
+  host.appendChild(g);
+  requestAnimationFrame(() => g.classList.add('shining'));
+
+  setTimeout(() => {
+    if (bg) {
+      if (newColor) bg.style.setProperty('--fc', newColor);
+      bg.classList.remove('fbg-settle'); void bg.offsetWidth; bg.classList.add('fbg-settle');
+    }
+    g.classList.add('falling');
+    try { sfxFlipShuffle?.(); } catch (e) {}
+    next();                                  // the offers deal in behind it
+    setTimeout(() => g.remove(), FLOWR_TABFALL_MS + 120);
+  }, FLOWR_SHINE_MS);
 }
 
 function flowrFinish() {
@@ -535,11 +661,19 @@ const FLOWR_CHIPS = [
   { id: 'reel',    name: 'Reel',    note: 'A slot payout window that drops on a spring; the number spins up.' },
   { id: 'plate',   name: 'Plate',   note: 'The r376 card: a dark slab that fades and scales up.' },
 ];
-const FLOWR_CHIP_KEY = 'lethe.flowrChip.v1';
+// THE DEFAULT IS THE PLATE AGAIN (r394). Owner: "make the level up chip what it
+// was at first visually, and add an explosion of colored particles underneath
+// it." The other four stay in the picker - they are whole, and the dev panel's
+// preview is where they are compared - but the slab is what ships.
+//
+// THE KEY IS BUMPED TO v2, the r183 hbCfg2 -> hbCfg3 rule: a stored value beats
+// a default, so anyone who had already been shown the stamp would have kept it
+// for ever.
+const FLOWR_CHIP_KEY = 'lethe.flowrChip.v2';
 let flowrChipStyle = (() => {
   try { const v = localStorage.getItem(FLOWR_CHIP_KEY);
         if (v && FLOWR_CHIPS.some(c => c.id === v)) return v; } catch (e) {}
-  return 'stamp';
+  return 'plate';
 })();
 function setFlowrChipStyle(id) {
   if (!FLOWR_CHIPS.some(c => c.id === id)) return;
@@ -556,6 +690,113 @@ function flowrPreviewChip(n) {
   flowrApplyChipStyle();
   flowrPlayCounter(Math.max(1, n || 3), null);
 }
+
+// ══════════════════════════════════════════════
+// THE CONFETTI (r394) - one burst per reward, in that reward's TIER colour
+// ══════════════════════════════════════════════
+// Owner: *"add an explosion of colored particles underneath it. The color of the
+// particles changes for each additional reward, first its the color of common,
+// then rare, etc. for the 5th reward, it explodes all the colors. So no matter
+// how many there are, the first is always common color, second rare, etc. The
+// exploded bits should be like confetti, mostly squares of slightly varying size
+// and rotation, and the color can vary by a few shades to add a little depth.
+// The confetti should launch in all directions under the level up chip and over
+// the grid."*
+//
+// THE COLOUR IS THE RARITY LADDER, AND IT IS KEYED TO THE COUNT, NOT TO THE ROLL.
+// Burst 1 is always mint, 2 cyan, 3 purple, 4 magenta, 5 all four - so a x3 is
+// recognisably further up the same ladder as a x2 rather than a different colour
+// each time. They are read off the live CSS custom properties rather than typed
+// here, so a palette change moves them (the hex is only the fallback).
+//
+// A PIECE IS A PLAIN DIV, NOT A CANVAS. There are at most ~54 of them for about
+// a second, they want the same z-index seam everything else in #grid-slot uses,
+// and a canvas would need its own sizing, its own zoom handling and its own
+// clear-down. Each one animates itself with WAAPI and removes itself.
+const FLOWR_CONF_N     = 38;   // pieces per burst
+const FLOWR_CONF_N_ALL = 68;   // the fifth, which throws every colour
+const FLOWR_CONF_MS    = 1150;
+const FLOWR_CONF_TIERS = [
+  ['--c-mint',    '#35d59b'],
+  ['--c-cyan',    '#16c8d8'],
+  ['--c-purple',  '#9a6cff'],
+  ['--c-magenta', '#ff2f8e'],
+];
+function flowrTierColor(i) {
+  const [v, fb] = FLOWR_CONF_TIERS[Math.max(0, Math.min(FLOWR_CONF_TIERS.length - 1, i))];
+  let c = '';
+  try { c = getComputedStyle(document.documentElement).getPropertyValue(v).trim(); } catch (e) {}
+  return c || fb;
+}
+// A few shades either side of the tier colour, so a burst has depth rather than
+// being one flat fill repeated thirty times. Mixing k% toward white or black is
+// linear in the channels, which is all the variation this needs.
+function flowrShade(hex, amt) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (ch) => {
+    const t = amt >= 0 ? 255 : 0, k = Math.abs(amt);
+    return Math.round(ch + (t - ch) * k);
+  };
+  const r = mix((n >> 16) & 255), g = mix((n >> 8) & 255), b = mix(n & 255);
+  return `rgb(${r},${g},${b})`;
+}
+
+// index: which reward this burst is for, 0-based. At FLOWR_CONF_TIERS.length and
+// beyond every colour is thrown at once - the owner's "for the 5th reward, it
+// explodes all the colors".
+function flowrConfetti(index) {
+  if (typeof skipOn === 'function' && skipOn('transitions')) return;
+  if (document.body.classList.contains('reduced-motion')) return;
+  const host = document.getElementById('grid-slot');
+  const card = document.getElementById('flowr-counter');
+  if (!host) return;
+  let layer = document.getElementById('flowr-confetti');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'flowr-confetti';
+    host.appendChild(layer);
+  }
+  // UNDER THE CHIP AND OVER THE BOARD: the layer sits at z-index 39 against the
+  // counter's 40 (css/flow-rewards.css), in the same stacking context.
+  const all = index >= FLOWR_CONF_TIERS.length;
+  const palette = all ? FLOWR_CONF_TIERS.map((_, i) => flowrTierColor(i)) : [flowrTierColor(index)];
+  const n = all ? FLOWR_CONF_N_ALL : FLOWR_CONF_N;
+  // The chip's own centre, in the slot's design px. Falls back to the slot's
+  // centre when the chip has not been laid out yet (the dev-panel preview).
+  const box = card ? flowrBoxIn(card, host) : null;
+  const ox = box ? box.left + box.w / 2 : host.offsetWidth / 2;
+  const oy = box ? box.top + box.h / 2 : host.offsetHeight / 2;
+  const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
+  for (let i = 0; i < n; i++) {
+    const a  = rnd() * Math.PI * 2;                 // all directions
+    const sp = 90 + rnd() * 165;
+    const dx = Math.cos(a) * sp, dy = Math.sin(a) * sp;
+    const drop = 120 + rnd() * 130;                 // gravity, applied at the end
+    // MOSTLY SQUARES: one side is the base, the other within a fifth of it.
+    const w = 4.5 + rnd() * 6, h = w * (0.82 + rnd() * 0.36);
+    const col = palette[(rnd() * palette.length) | 0];
+    const p = document.createElement('i');
+    p.className = 'fcf';
+    p.style.cssText = `left:${(ox - w / 2).toFixed(1)}px;top:${(oy - h / 2).toFixed(1)}px;`
+      + `width:${w.toFixed(1)}px;height:${h.toFixed(1)}px;`
+      + `background:${flowrShade(col, (rnd() - 0.45) * 0.34)};`;
+    layer.appendChild(p);
+    const r0 = rnd() * 360, spin = (rnd() - 0.5) * 900;
+    const dur = FLOWR_CONF_MS * (0.72 + rnd() * 0.5);
+    try {
+      p.animate([
+        { transform: `translate(0,0) rotate(${r0}deg)`, opacity: 1 },
+        { transform: `translate(${(dx * 0.72).toFixed(1)}px,${(dy * 0.72 + drop * 0.12).toFixed(1)}px) rotate(${(r0 + spin * 0.55).toFixed(0)}deg)`,
+          opacity: 1, offset: 0.5 },
+        { transform: `translate(${dx.toFixed(1)}px,${(dy + drop).toFixed(1)}px) rotate(${(r0 + spin).toFixed(0)}deg)`, opacity: 0 },
+      ], { duration: Math.round(dur), easing: 'cubic-bezier(.16,.66,.44,1)', fill: 'forwards' })
+        .finished.then(() => p.remove(), () => p.remove());
+    } catch (e) { p.remove(); }
+  }
+}
+function flowrClearConfetti() { document.getElementById('flowr-confetti')?.remove(); }
 
 function flowrPlayCounter(n, done) {
   // Settings -> Skip -> Reward count-up (r380). The number is still worth
@@ -588,6 +829,7 @@ function flowrPlayCounter(n, done) {
   // LOUD (r376): the beat the whole chain is built around, and the tally is
   // now held for it, so it gets a flash over the board and a shake of its own.
   flowrFlash();
+  flowrConfetti(0);        // burst 1 is always the common colour
   let k = 1;
   const num = el.querySelector('.fc-num em'), sub = el.querySelector('.fc-sub');
   el.style.setProperty('--fc-k', 1);
@@ -605,12 +847,13 @@ function flowrPlayCounter(n, done) {
     // claiming the screen.
     try { sfxRewardCount?.(k - 1); } catch (e) {}
     if (k >= 4) { try { sfxWinExplode?.(); } catch (e) {} }
+    flowrConfetti(k - 1);  // 2nd = rare, 3rd = epic, 4th = legendary, 5th = all
     if (k < n) setTimeout(bump, flowrBumpGap(false));
     else setTimeout(finish, 900);
   };
   const finish = () => {
     el.classList.remove('show');
-    setTimeout(() => { el.remove(); done && done(); }, 260);
+    setTimeout(() => { el.remove(); flowrClearConfetti(); done && done(); }, 260);
   };
   if (n > 1) setTimeout(bump, flowrBumpGap(true));
   else setTimeout(finish, 900);
@@ -676,14 +919,14 @@ function flowrRenderStack() {
   // IT FIRES ON A STEP CHANGE AND NOTHING ELSE. flowrRenderStack is called from
   // flowrShowStep AND flowrAfterStep - twice per step - and from every redraw,
   // so keying it off the call would sweep two or three times for one turn.
-  if (_flowrLastIdx !== flowrIdx) {
-    _flowrLastIdx = flowrIdx;
-    if (existing) {                      // never on the chain's very first step:
-      bg.classList.remove('fbg-turn');   // the counter card already owns that beat
-      void bg.offsetWidth;               // (the r277 restart rule)
-      bg.classList.add('fbg-turn');
-    }
-  }
+  // r394: THE HAND-OVER OWNS THIS NOW. It used to fire from here on an index
+  // change, which is after the index has already moved - so the wipe ran in the
+  // INCOMING colour on a tab that had already been swapped, polishing the arrival
+  // instead of the departure. flowrHandOver fires the squash at the moment the
+  // outgoing tab is knocked off, and the wipe only where there is no tab to knock
+  // (the deck-edit step, which hides the ladder). _flowrLastIdx is kept because
+  // flowrRenderStack is called twice per step and neither may double-fire.
+  if (_flowrLastIdx !== flowrIdx) _flowrLastIdx = flowrIdx;
 
   // THE CURRENT TAB IS THE TITLE CARD, so it is drawn even when it is the only
   // one: a one-step chain (a lone CARD PACK, say) would otherwise get a coloured
@@ -711,6 +954,7 @@ let _flowrLastIdx = -1;
 function flowrClearStack() {
   document.getElementById('flowr-stack')?.remove();
   document.getElementById('flowr-bg')?.remove();
+  document.getElementById('flowr-tabfall')?.remove();
   _flowrLastIdx = -1;
 }
 
@@ -1454,19 +1698,25 @@ function flowrGrantPack(pack) {
 // ══════════════════════════════════════════════
 // DEV PANEL (dev -> Rewards) - the chain's knobs
 // ══════════════════════════════════════════════
+// THE CHIP PICKER IS BUILT FROM FLOWR_CHIPS, so a new look is one row in that
+// table and nothing here. Built once and then only written - a rebuild would
+// reset the select while it is open (the r282 NS-editor rule).
+// r394: it lives in the AESTHETICS group now (owner: "for this type of stuff it
+// can all go in aesthetics"), so it is its own function rather than a block
+// inside the chain's sync - one picker, whichever group opens it.
+function flowrSyncChipPicker() {
+  const chip = document.getElementById('dev-flowr-chip');
+  if (!chip) return;
+  if (!chip.options.length) chip.innerHTML = FLOWR_CHIPS
+    .map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if (document.activeElement !== chip) chip.value = flowrChipStyle;
+  const note = document.getElementById('dev-flowr-chip-note');
+  if (note) note.textContent = (FLOWR_CHIPS.find(c => c.id === flowrChipStyle) || {}).note || '';
+}
+
 function flowrDevSync() {
   const cfg = flowrCfg();
-  // THE CHIP PICKER IS BUILT FROM FLOWR_CHIPS, so a new look is one row in that
-  // table and nothing here. Built once and then only written - a rebuild would
-  // reset the select while it is open (the r282 NS-editor rule).
-  const chip = document.getElementById('dev-flowr-chip');
-  if (chip) {
-    if (!chip.options.length) chip.innerHTML = FLOWR_CHIPS
-      .map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    if (document.activeElement !== chip) chip.value = flowrChipStyle;
-    const note = document.getElementById('dev-flowr-chip-note');
-    if (note) note.textContent = (FLOWR_CHIPS.find(c => c.id === flowrChipStyle) || {}).note || '';
-  }
+  flowrSyncChipPicker();
   const on = document.getElementById('dev-flowr-on'); if (on) on.checked = cfg.on;
   cfg.counts.forEach((v, i) => {
     const el = document.getElementById('dev-flowr-c' + i);

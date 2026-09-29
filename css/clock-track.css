@@ -116,26 +116,60 @@ body.reduced-motion .clk-mark { box-shadow: none; }
    measures ~50 for it with the tracking. */
 #stage.landscape #clock { font-size: 20px; letter-spacing: 1px; }
 
-/* ── PORTRAIT: digits LEFT, then the bar, then the mark ──
-   The clock was a column - digits over an 80px stub - inside a flex:1 slot, so
-   the Flow boss mark was pinned to the RIGHT of that slot, hard against HAND
-   SIZE and COINS. The three are one left-packed group now and there is real
-   space between them and the stats. */
+/* ── PORTRAIT: the clock is CENTRED IN THE TOP BAR (r394) ──
+   r377 made the clock a left-packed row - digits, a 104px x 9px bar, then the
+   Flow review mark - so that the mark stopped sitting hard against HAND SIZE
+   and COINS. Owner: *"the thickness of the timer in Mobile is too thin. It
+   needs to be at least as thick as the boss emoji ... center the timer in the
+   top middle. And make it a little longer."*
+
+   THE BAR IS AS THICK AS THE MARK, WHICH IS 18px (.clock-boss in css/style.css).
+   That is the number the owner named, and it is the one that makes the track's
+   bands, Trick windows and level-up marks legible at phone size rather than a
+   row of specks. --pclk-thick / --pclk-len are the live values; the dev panel's
+   Aesthetics group writes them, and the fallbacks here are the shipped defaults.
+
+   IT IS ABSOLUTELY POSITIONED, NOT A FLEX CHILD. The top bar carries a variable
+   number of in-flow readouts - the quarter block, the legacy game timer, LEVEL,
+   COINS - so "flex: 1 in the middle" centres the clock in whatever room the
+   others leave, which is not the middle of the bar. Out of flow it is centred on
+   the bar itself and cannot move when a readout appears or goes. */
+#stage:not(.landscape) #top-bar { position: relative; }
 #stage:not(.landscape) #clock-area {
-  flex-direction: row; align-items: center; justify-content: flex-start;
-  gap: 8px; min-width: 0;
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  flex: 0 0 auto; width: auto; max-width: 62%;
+  flex-direction: row; align-items: center; justify-content: center;
+  gap: 8px; min-width: 0; z-index: 2;
 }
-#stage:not(.landscape) #clock-bar-wrap { width: 104px; height: 9px; border-radius: 5px; }
-#stage:not(.landscape) #clock-bar      { border-radius: 5px; }
+/* LEVEL packs left with the quarter block, which pushes COINS to the right-hand
+   end - the owner's "put the coins back in the top right". The clock is out of
+   flow, so the two groups are simply the ends of the bar. */
+#stage:not(.landscape) #top-bar > .top-stat:has(#level-display) { margin-right: auto; }
+#stage:not(.landscape) #clock-bar-wrap {
+  width: var(--pclk-len, 150px);
+  max-width: 42vw;            /* a 360px phone still leaves room for both ends */
+  height: var(--pclk-thick, 18px);
+  border-radius: calc(var(--pclk-thick, 18px) / 2);
+  flex: 0 1 auto;
+}
+#stage:not(.landscape) #clock-bar      { border-radius: inherit; }
+/* At 18px the bands, hatching and marks are worth drawing in portrait, so the
+   Trick glyph comes back with them (it was hidden at 9px, where it was a smudge). */
+#stage:not(.landscape) #clock-bar-wrap .clk-win-g { display: block; font-size: 10px; }
 /* In portrait the mark is the END of the bar, so it rides in flow rather than
    being pinned to the right of the whole clock area. */
 #stage.flow-mode:not(.landscape) #clock-boss  { position: static; transform: none; margin-left: 2px; }
 #stage.flow-mode:not(.landscape) #clock-boss:active { transform: scale(0.92); }
 
-/* ── PORTRAIT: HAND SIZE and COINS sit in the board's bottom margin (r377) ──
-   js/portrait-panel.js MOVES the two elements in here; this only places the
-   band. It is sized off the grid exactly as #sel-count's band above the board
-   is, so it occupies room that was already empty and the board is unchanged. */
+/* ── PORTRAIT: the board's bottom margin (r377, EMPTY since r394) ──
+   r377 moved HAND SIZE and COINS in here to leave the top bar to the clock.
+   r394 puts COINS back in the top right (owner's call) and folds HAND SIZE into
+   the live x/y readout above the board, which was already printing the same cap
+   - so nothing is mounted here today. The band is kept, and so is
+   portraitStatsHost(), because it is the one place in the layout that is
+   provably free: it is sized off the grid exactly as #sel-count's band above the
+   board is, so anything put in it costs the board nothing. */
 #pt-underbar {
   display: none;
   position: absolute; left: 0; right: 0; bottom: 0;

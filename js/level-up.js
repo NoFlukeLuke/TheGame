@@ -488,7 +488,46 @@ async function showLevelUpScreen() {
 }
 
 // ── Deal animations: called from show321Countdown when 3-2-1 starts ──
-// Cards fall in at normal speed while dark bg fades out.
+//
+// THE WHOLE BOARD DEALS AT ONCE (r394). Owner: "there's an odd bug where after
+// choosing an option the grid deals like 4 cards in one corner, normally the
+// top right, and then the rest gets dealt, which is odd and wrong. The whole
+// grid should deal in at the same time."
+//
+// It was not a bug so much as a cascade nobody had measured. The old timing was
+// column-major with a 60ms column offset AND a 252ms offset per row WITHIN a
+// column (colReadyAt), which interleaves into a ROW-BY-ROW deal from the bottom:
+// filmed at 1440x820 and 420x900, the bottom row landed first (4 cards, t=200 to
+// 420ms, left to right - so the first card lands in a corner), then a pause, then
+// row 2, then row 1, then row 0, with the last card down at 1453ms. A second and
+// a half of a board arriving in four instalments.
+//
+// `together` starts every card the SAME distance above its own cell and drops
+// them in unison, with a small random jitter so a sixteen-card board does not
+// read as one rigid object. The whole deal is over in about half a second.
+//
+// A UNIFORM DROP IS PART OF IT, not a detail. The cascade's drop distance was
+// `(gridRows - r) * CARD_STEP`, so the top row started FOUR cells above the board
+// - well outside #grid-slot, over the trays - which is only invisible while that
+// row is also the last to move. Dropped together they would all be visible up
+// there at once.
+//
+// `cascade` is the pre-r394 timing, kept as an Aesthetics option.
+const DEAL_STYLE_KEY = 'lethe.dealStyle.v1';
+let dealStyle = (() => { try { const v = localStorage.getItem(DEAL_STYLE_KEY);
+  if (v === 'together' || v === 'cascade') return v; } catch (e) {} return 'together'; })();
+function setDealStyle(v) {
+  if (v !== 'together' && v !== 'cascade') return;
+  dealStyle = v;
+  try { localStorage.setItem(DEAL_STYLE_KEY, v); } catch (e) {}
+  const sel = document.getElementById('dev-deal-style'); if (sel) sel.value = v;
+}
+// How far above its cell a card starts when the board deals together, in card
+// steps, and how much the launch may vary. fxRandom, never Math.random: a
+// seeded run replaces the global and this would advance the deck stream.
+const DEAL_DROP_STEPS = 2.1;
+const DEAL_JITTER_MS  = 70;
+
 function startNewRoundDealAnims() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
@@ -503,6 +542,8 @@ function startNewRoundDealAnims() {
   const BOUNCE_PX  = 8;
   const SQUISH     = 0.10;
   const colReadyAt = {};
+  const together   = (dealStyle !== 'cascade');
+  const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
   dealAnims = [];
 
   for (let c = 0; c < gridCols; c++) {
@@ -514,12 +555,14 @@ function startNewRoundDealAnims() {
 
       const destX      = cellLeft(c);
       const destY      = cellTop(r);
-      const fromAbove  = (gridRows - r);
+      const fromAbove  = together ? DEAL_DROP_STEPS : (gridRows - r);
       const startY     = destY - fromAbove * CARD_STEP;
       const dropDist   = fromAbove * CARD_STEP;
       const colBase    = c * COL_OFFSET;
-      const entryStart = Math.max(colBase, colReadyAt[c] || colBase);
-      colReadyAt[c]    = entryStart + FALL_DUR * 0.6;
+      const entryStart = together
+        ? Math.round(rnd() * DEAL_JITTER_MS)
+        : Math.max(colBase, colReadyAt[c] || colBase);
+      if (!together) colReadyAt[c] = entryStart + FALL_DUR * 0.6;
 
       const tempEl = buildCardAnimEl(card, r, c);
       tempEl.style.left    = destX + 'px';

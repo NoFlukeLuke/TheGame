@@ -1,4 +1,4 @@
-const BUILD = "2026-09-29 · r393 · card gap is a share of the card, board rings, hypnosis backdrop";
+const BUILD = "2026-09-29 · r394 · the chosen tab is knocked off, confetti under the chip, the board deals at once";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

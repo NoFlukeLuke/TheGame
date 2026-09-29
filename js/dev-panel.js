@@ -137,6 +137,81 @@ function applyTrayDepth() {
 }
 if (document.body) applyTrayDepth(); else document.addEventListener('DOMContentLoaded', applyTrayDepth);
 
+// ── r394 AESTHETICS: the PORTRAIT CLOCK BAR's length and thickness ──
+// Owner: "the thickness of the timer in Mobile is too thin. It needs to be at
+// least as thick as the boss emoji ... And make it a little longer. Put length
+// and width setting in the aesthetics tab."
+//
+// Published as custom properties on :root, which is what css/clock-track.css
+// reads - so there is no second copy of the number and no element to keep in
+// step. The FLOOR is the review mark's own 18px (.clock-boss): below it the
+// track's bands, Trick windows and level-up marks are specks, which is the
+// state the owner was looking at.
+const CLOCKBAR_KEY = 'lethe.clockBar.v1';
+const CLOCKBAR_DEF = { len: 150, thick: 18 };
+const CLOCKBAR_TUNABLES = [
+  { key: 'len',   label: 'Length',    min: 80, max: 260, step: 5, unit: 'px' },
+  { key: 'thick', label: 'Thickness', min: 4,  max: 34,  step: 1, unit: 'px' },
+];
+let clockBarCfg = (() => {
+  let ov = {};
+  try { ov = JSON.parse(localStorage.getItem(CLOCKBAR_KEY) || '{}') || {}; } catch (e) {}
+  return { len: +ov.len || CLOCKBAR_DEF.len, thick: +ov.thick || CLOCKBAR_DEF.thick };
+})();
+function applyClockBar() {
+  const d = document.documentElement;
+  d.style.setProperty('--pclk-len',   clockBarCfg.len   + 'px');
+  d.style.setProperty('--pclk-thick', clockBarCfg.thick + 'px');
+  devRenderClockBar();
+}
+function setClockBar(key, v) {
+  const t = CLOCKBAR_TUNABLES.find(x => x.key === key); if (!t) return;
+  clockBarCfg[key] = Math.max(t.min, Math.min(t.max, Math.round(+v || 0)));
+  // OVERRIDES ONLY: a field set back to its shipped value is DELETED rather than
+  // pinning today's number for ever (the r197 goal-tuner rule).
+  const ov = {};
+  if (clockBarCfg.len   !== CLOCKBAR_DEF.len)   ov.len   = clockBarCfg.len;
+  if (clockBarCfg.thick !== CLOCKBAR_DEF.thick) ov.thick = clockBarCfg.thick;
+  try {
+    if (Object.keys(ov).length) localStorage.setItem(CLOCKBAR_KEY, JSON.stringify(ov));
+    else localStorage.removeItem(CLOCKBAR_KEY);
+  } catch (e) {}
+  applyClockBar();
+}
+function resetClockBar() { clockBarCfg = Object.assign({}, CLOCKBAR_DEF);
+  try { localStorage.removeItem(CLOCKBAR_KEY); } catch (e) {} applyClockBar(); }
+// Steppers, not sliders - these are exact values worth typing (the r179 rule).
+// WRITTEN, never rebuilt, while a field has focus: a rebuild tears the input
+// out from under the caret (r282).
+function devRenderClockBar() {
+  const host = document.getElementById('dev-clockbar-rows');
+  if (!host) return;
+  if (!host.dataset.built) {
+    host.dataset.built = '1';
+    host.innerHTML = CLOCKBAR_TUNABLES.map(t => `<div class="dev-row" style="align-items:center;gap:6px;margin-top:4px;">
+      <span style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">${t.label}</span>
+      <button class="dev-btn" onclick="setClockBar('${t.key}', clockBarCfg.${t.key} - ${t.step})">&minus;</button>
+      <input id="dev-clockbar-${t.key}" type="number" min="${t.min}" max="${t.max}" step="${t.step}"
+        onchange="setClockBar('${t.key}', this.value)"
+        style="width:56px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-family:'Share Tech Mono',monospace;font-size:12px;text-align:center;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);">${t.unit}</span>
+      <button class="dev-btn" onclick="setClockBar('${t.key}', clockBarCfg.${t.key} + ${t.step})">+</button>
+    </div>`).join('');
+  }
+  CLOCKBAR_TUNABLES.forEach(t => {
+    const el = document.getElementById('dev-clockbar-' + t.key);
+    if (el && document.activeElement !== el) el.value = clockBarCfg[t.key];
+  });
+}
+function devSyncAesthetics() {
+  const sel = document.getElementById('dev-tray-depth'); if (sel) sel.value = String(trayDepthExtra);
+  const d = document.getElementById('dev-deal-style');
+  if (d && typeof dealStyle === 'string') d.value = dealStyle;
+  devRenderClockBar();
+  if (typeof flowrSyncChipPicker === 'function') flowrSyncChipPicker();
+}
+if (document.body) applyClockBar(); else document.addEventListener('DOMContentLoaded', applyClockBar);
+
 const DEV_GROUPS = [
   { g:'tricks',   icon:'✦', label:'Tricks',    sub:() => `${TRICK_POOL.length} in pool` },
   { g:'sleights', icon:'▶', label:'Sleights',  sub:() => `${SLEIGHT_POOL.length} in pool` },
@@ -154,7 +229,7 @@ const DEV_GROUPS = [
   { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
-  { g:'aesthetics', icon:'✧', label:'Aesthetics', sub:() => `tray depth +${trayDepthExtra} lines` },
+  { g:'aesthetics', icon:'✧', label:'Aesthetics', sub:() => `deal ${typeof dealStyle === 'string' ? dealStyle : 'together'} · clock ${clockBarCfg.len}x${clockBarCfg.thick} · tray +${trayDepthExtra}` },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
@@ -201,6 +276,7 @@ function devOpenGroup(g) {
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
   if (g === 'cardstates') devRenderCardStates();
+  if (g === 'aesthetics') devSyncAesthetics();
   if (g === 'rewards') {
     const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode;
     if (typeof flowrDevSync === 'function') flowrDevSync();
