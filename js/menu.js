@@ -1,4 +1,4 @@
-const BUILD = "2026-09-28 · r391 · Flow polish - warmup 10s, deeper trays, flow card tiles";
+const BUILD = "2026-09-29 · r392 · second suit / second rank cards, coin card, op rarity weights";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

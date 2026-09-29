@@ -358,3 +358,34 @@ Fleeting*, *gives a neighbour Temp*, *makes a copy of a random neighbour*,
 
 `BAL.card_states` is deliberately **not** an entity id, so `js/improve.js` never
 scales it: a state is not something you own and improve.
+
+
+## Where each card effect is DRAWN (r392)
+
+A card has four corners, a centre and its rank/suit. Current map:
+
+| place | effect | mark |
+|---|---|---|
+| top-left | +pips (`permPips`) | blue bands, 1 per 5 |
+| top-right | +mult (`permMult`) | red bands, 1 per 5 |
+| bottom-left | time (`permTime` + The Vulture's pause) | black bands, 1 per 5 |
+| bottom-right | replay (`permRetrig`) | green bands, 1 per 1 |
+| centre | **credits (`permCoins`)** | **gold coin behind the face; rank/suit get a thin dark outline** (r392) |
+| rank | **second rank (`rank2`)** | smaller rank under the first (r392) |
+| suit | **second suit (`suit2`)** | a second glyph beside the first, the pair centred (r392) |
+| bottom-centre | scaling (`permPipsGrow` / `permMultGrow`) | green arrow |
+| **none yet** | x pips (`permXPips`), x mult (`permXMult`), Focus (`permFocus`) | open - see TODO.md |
+
+Rule from r299: a corner is a FAMILY of resources and the band colour says which
+member, so a new family can share a corner with its nearest relative (Focus beside
+time in bottom-left, in violet, is the obvious candidate).
+
+## Second suit / second rank (r392)
+
+`card.suit2` / `card.rank2`, durable fields (DURABLE_CARD_FIELDS). Detection:
+a dual-rank card is TWO cards to a set and fills TWO slots of a run (the hand's
+virtual size grows - 6, 7/8, 9 is a Run of 4); a second suit lets the card join
+that suit's flush, and a double suit counts twice. Scoring: the card's trick
+block runs a second time as a GHOST identity (`cardGhostFor`) - no base pips,
+no permanent buffs, no position Tricks, same replay count - so suit and rank
+Tricks fire once per identity. Offered by the deck editor's rarest two ops.

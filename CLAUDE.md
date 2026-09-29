@@ -10739,3 +10739,26 @@ Verified in a real browser at 1500x1200 and 420x900: both columns render, every
 control drives, the overflow warning fires at the cap and clears on reset, Dump
 prints 54 lines, **0 panels spill the stage**, no horizontal page scroll, and
 **no page errors**.
+
+## r392 - second suit, second rank, the coin card, op rarity
+
+- **`card.suit2` / `card.rank2` are live everywhere** (they were the shop Combine's
+  fields; the old `combined &&` guards are gone - the fields alone decide). Detection
+  (js/hand-detect.js): `_handShape` returns a VIRTUAL size `n` (a dual-rank card
+  counts two) and every shape test is sized by it; a dual-rank card's run options are
+  PAIRS of values (both slots filled); `flushOverlayFor` judges coverage on distinct
+  cells and size on entries, so a double suit counts twice. `_compKey` carries both
+  fields. Verified: 6 + 7/8 + 9 = Run of 4, 7 + 7/7 = Three of a Kind, a double heart
+  plus two hearts = Flush of 4.
+- **Scoring is a GHOST PASS** (js/scoring.js `_scoreOne`, `cardGhostFor` in
+  js/deck-grid.js): the per-card block runs again as the card's second identity with
+  `_G` true - 0 base pips, no perm buffs/xmult/exalt, no position Tricks, no replay
+  bookkeeping, the real card's replay count. A ghost only re-pays a PER_CARD_PAYERS
+  row whose payout depends on rank/suit (tested against a blank identity). Hand-level
+  suit tallies (clubs, Relentless) count a double suit twice. Known edge: a ghost with
+  its own x-mult Trick on a REPLAYED card can order its multiply differently from the
+  dance (dev drift warning only).
+- **The coin card** is the `coins` buff op (`permCoins`), drawn as a gold coin behind
+  the face (`cardCoinHTML`, `.card-has-coin` outlines the rank/suit).
+- **`FLOWR_OP_WEIGHTS`** weights the deck editor's op draw and the reward grid's card
+  tiles (`flowrDrawOps`). The dual ops are weight 2; see TODO.md for the table.

@@ -463,12 +463,11 @@ function _generateRewardContent() {
         apply: () => flowrGrantPack(pack) };
     }
     if (typeof FLOWR_DECK_OPS !== 'undefined') {
-      const ops = FLOWR_DECK_OPS.filter(o => o.buff);
-      const op = ops[Math.floor(Math.random() * ops.length)];
+      const op = flowrDrawOps(1, FLOWR_DECK_OPS.filter(o => o.buff))[0];   // r392: weighted
       const v = flowrValRoll(op.buff.range);
       const lbl = flowrBuffLabel(op.buff, v);
       const n = flowrQtyRoll(3);
-      const rare = op.buff.x || op.id === 'replay';
+      const rare = flowrOpWeight(op) <= 6;
       return { icon: op.icon, label: op.name, tier: rare ? 'epic' : 'rare', cardFace: { rank, suit },
         desc: `${face} and ${n - 1 > 0 ? `up to ${n - 1} more random card${n - 1 === 1 ? '' : 's'}` : 'no other card'} score ${lbl}.`,
         apply: () => {

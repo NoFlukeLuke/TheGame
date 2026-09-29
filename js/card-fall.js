@@ -133,6 +133,8 @@ function renderCardAppearance(card, r, c, {
   // cursed, buffed and marked like any other, so it wants every decoration this
   // path already draws. Only the face differs - one class and the rank/suit block.
   const isWild = (typeof isWildCard === 'function') && isWildCard(card);
+  const _dual = (typeof cardIsDual === 'function') && cardIsDual(card);
+  const _coin = (typeof cardCoinHTML === 'function') ? cardCoinHTML(card) : '';
   const className = [
     'card',
     isWild ? 'wild-card' : '',
@@ -152,21 +154,22 @@ function renderCardAppearance(card, r, c, {
     rcLeyline.trim(), rcWoodpecker.trim(),
     _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
+    _dual ? 'card-dual' : '', _coin ? 'card-has-coin' : '',
     // Card states + temp cards (r278). `card-temp` is independent of any state:
     // "this will not be here next round" is the thing a player most needs to
     // know before building a plan around the card.
     (typeof cardStateCardClass === 'function') ? cardStateCardClass(card) : '',
   ].filter(Boolean).join(' ');
 
-  const combinedLabel = isCombined
-    ? `<div style="position:absolute;top:2px;right:3px;font-size:7px;font-family:'Cinzel',serif;color:#9b59b6;font-weight:700">${card.rank2}${card.suit2}</div>`
-    : '';
+  // r392: a dual card draws its second rank/suit on the face itself
+  // (cardDualFaceHTML), so the old corner label is gone.
+  const combinedLabel = '';
 
   const innerHTML = `
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
-    ${combinedLabel}
+    ${combinedLabel}${_coin}
     ${isWild
         // The Fog hides RANKS, and a wild has none to hide - so it is drawn in
         // full even under the Fog rather than reading as a '?' the player would
@@ -176,6 +179,7 @@ function renderCardAppearance(card, r, c, {
         ? (isNum ? `<div class="rank num-rank fog-rank">?</div>`
                  : `<div class="rank fog-rank">?</div><div class="suit">${card.suit}</div>`)
         : (isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
+                 : _dual ? cardDualFaceHTML(card)
                  : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`)}
     ${(typeof cardBandsHTML === 'function') ? cardBandsHTML(card) : ''}
     ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}

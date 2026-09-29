@@ -375,8 +375,13 @@ function _handShape(cells) {
     if (wilds && isWildCard(c)) return;
     if (isWarehouseCard(c)) return;
     rankCounts[c.rank] = (rankCounts[c.rank]||0) + 1;
-    if (c.combined && c.rank2) rankCounts[c.rank2] = (rankCounts[c.rank2]||0) + 1;
+    // r392 DUAL RANK: a card carrying a second rank IS two cards to a set - a
+    // 7/7 is two sevens, a K/7 is a king and a seven in one full house.
+    if (c.rank2) rankCounts[c.rank2] = (rankCounts[c.rank2]||0) + 1;
   });
+  // The group's VIRTUAL size: one per card, two for a dual-rank card. Every
+  // shape test below is sized by this, so a dual 7/8 beside a 9 is a Run of 3.
+  const vn = n + cards.filter(c => c && c.rank2 && !isWarehouseCard(c)).length;
   const counts = Object.values(rankCounts).sort((a,b)=>b-a);
 
   // Flush check: combined cards count as both suits - check if all cards share a common suit
@@ -392,34 +397,39 @@ function _handShape(cells) {
   const _anyWhite = cards.some(c => isWhiteCard(c));
   const _anyWild  = wilds > 0;
   const allSameSuitStrict = !_anyWhite && !_anyWild && ACTIVE_SUITS.some(s =>
-    cards.every(c => isWarehouseCard(c) || c.suit === s || (c.combined && c.suit2 === s))
+    cards.every(c => isWarehouseCard(c) || c.suit === s || c.suit2 === s)
   );
 
   // Run check: combined cards can use either rank value - try all combos
   // rankRunVals (js/deck-design.js) is the one source of a rank's run values and
   // returns NOTHING for a rank that is off the ladder, so the loop below can
   // never place it in a run. Ace-high lives in there too.
+  // r392: every option is a LIST of values the card fills. An ordinary card
+  // fills one; a dual-rank card fills BOTH its ranks at once (two slots of the
+  // run), so its options are the pairs of its two ranks' run values.
   const rankOptions = cards.map(c => {
     if (isWarehouseCard(c)) return [];
-    const opts = [...rankRunVals(c.rank)];
-    if (c.combined && c.rank2) opts.push(...rankRunVals(c.rank2));
-    return [...new Set(opts)];
+    const a = rankRunVals(c.rank);
+    if (!c.rank2) return a.map(v => [v]);
+    const b = rankRunVals(c.rank2), out = [];
+    a.forEach(x => b.forEach(y => out.push([x, y])));
+    return out;
   });
-  function tryRunCombos(idx, current) {
+  function tryRunCombos(idx, current, perCell) {
     if (idx === rankOptions.length) {
       const sorted = [...current].sort((a,b)=>a-b);
       if (new Set(sorted).size !== sorted.length || !isSeq(sorted)) return false;
       // The ranks line up. Does the LAYOUT have to as well? runOrderOK is 'off'
-      // by default and then this is exactly the old test. `current` is the value
+      // by default and then this is exactly the old test. `perCell` is the value
       // chosen for each cell in cells order, which is what lets it sort them.
-      return runOrderOK(cells, current);
+      return runOrderOK(cells, perCell);
     }
-    for (const v of rankOptions[idx]) {
-      if (tryRunCombos(idx+1, [...current, v])) return true;
+    for (const vs of rankOptions[idx]) {
+      if (tryRunCombos(idx+1, [...current, ...vs], [...perCell, vs.length ? Math.min(...vs) : 0])) return true;
     }
     return false;
   }
-  return { n, counts, allSameSuitStrict, isStr: tryRunCombos(0, []), wilds };
+  return { n: vn, cells: n, counts, allSameSuitStrict, isStr: tryRunCombos(0, [], []), wilds };
 }
 
 // What a hand is worth under the ACTIVE scoring model, not the printed table:
@@ -522,9 +532,10 @@ function _wildFitsPattern(naturalCounts, w, pattern) {
 // ── TRACK 1: the best ACTIVE set/run this exact group of cards is, or null ──
 // Strict: n is exact for every shape, so a component never claims a spare card.
 function rankHandForGroup(cells) {
-  const n = cells.length;
-  if (n < 2 || n > HAND_MAX_CARDS) return null;
-  const { counts, allSameSuitStrict, isStr, wilds } = _handShape(cells);
+  if (cells.length < 2 || cells.length > HAND_MAX_CARDS) return null;
+  // r392: n is the VIRTUAL size - a dual-rank card counts as two cards.
+  const { n, counts, allSameSuitStrict, isStr, wilds } = _handShape(cells);
+  if (n > HAND_MAX_CARDS) return null;
   const out = [];
   const add = name => { if (HAND_BASE[name] && handIsActive(name)) out.push(name); };
   // A SET NEEDS AT LEAST ONE REAL CARD TO NAME ITS RANK. "Takes any rank to
@@ -567,16 +578,21 @@ function flushOverlayFor(cells) {
     // ACTIVE_SUITS, so three wilds would form a WILD_SUIT group of their own and
     // pay a Flush of 3 off cards that are not a suit at all.
     if (!card || isWhiteCard(card) || isWildCard(card)) return;
+    // r392 DUAL SUIT: a card carrying a second suit joins that suit's flush too,
+    // and a DOUBLE suit (two hearts) is pushed twice - it counts as two cards of
+    // the flush. Coverage is judged on distinct cells, size on entries.
     const push = s => { if (s) (bySuit[s] = bySuit[s] || []).push([r, c]); };
     push(card.suit);
-    if (card.combined && card.suit2) push(card.suit2);
+    if (card.suit2) push(card.suit2);
   });
   let best = null;
   Object.keys(bySuit).forEach(s => {
-    const group = [...bySuit[s], ..._wh].slice(0, HAND_MAX_CARDS);
+    const seen = new Set(), uniq = [];
+    [...bySuit[s], ..._wh].forEach(cl => { const k = cl[0] + ',' + cl[1]; if (!seen.has(k)) { seen.add(k); uniq.push(cl); } });
+    const group = uniq.slice(0, HAND_MAX_CARDS);
     if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
-    // A Warehouse is one cell and two cards of the flush.
-    const size = Math.min(HAND_MAX_CARDS, group.length + _wh.length);
+    // A Warehouse is one cell and two cards of the flush; a double suit likewise.
+    const size = Math.min(HAND_MAX_CARDS, bySuit[s].length + _wh.length * 2);
     const name = FLUSH_BY_SIZE[size];
     if (size < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };
@@ -679,7 +695,7 @@ const _compCache = new Map();
 //     the cache rather than every entry carrying a version stamp.
 function clearHandCompCache() { _compCache.clear(); }
 function _compKey(cells) {
-  return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
+  return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k.rank2 || '') + (k.suit2 || '') + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
 // r339: "an N-card hand" is a REAL hand of exactly N cards - one component the
 // recognition names (a Straight, a Flush, a Full House, a Set of 3...), never N

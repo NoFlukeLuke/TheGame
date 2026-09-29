@@ -114,6 +114,8 @@ function cardBuffLines(k) {
   if (re) lines.push(`+${re} replay`);
   const pf = (typeof permFocus !== 'undefined' && permFocus[k]) || 0;
   if (pf) lines.push(`+${pf} Focus when played`);
+  const pc = (typeof permCoins !== 'undefined' && permCoins[k]) || 0;   // r392: the coin card
+  if (pc) lines.push(`+${pc} credits when played`);
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
   // "pips" while the tile that granted the buff said "work" (r198's rule, r294's
@@ -346,6 +348,39 @@ function cardBandsHTML(card) {
     }
     return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}">${plus}</div>`;
   }).join('');
+}
+
+// ── DUAL IDENTITY (r392) ─────────────────────────────────────────────────────
+// A card may carry a SECOND suit (suit2) and/or a SECOND rank (rank2) - the two
+// rarest deck-editor effects (and the shop's old Combine). Both are plain card
+// fields in DURABLE_CARD_FIELDS, so they survive the deck cycle and a save.
+// Detection reads them directly (js/hand-detect.js); scoring reads them through
+// the GHOST below: the identity the card's trick block is run a second time as.
+// A dual-suit-only card's ghost has no rank, and a dual-rank-only card's ghost
+// has no suit, so a second suit never re-fires a RANK Trick and vice versa.
+function cardIsDual(c) {
+  return !!(c && (c.rank2 || c.suit2) && !c._isSleight && !c._isStone && !c._isTrick
+            && !(typeof isWildCard === 'function' && isWildCard(c)));
+}
+function cardGhostFor(c) {
+  if (!cardIsDual(c)) return null;
+  return { _id: c._id, rank: c.rank2 || '', suit: c.suit2 || '', _ghost: true };
+}
+// The face: the second rank under the first, the second suit beside the first,
+// the pair of suits centred together (owner's spec).
+function cardDualFaceHTML(card) {
+  const r2 = card.rank2 ? `<div class="rank rank2">${card.rank2}</div>` : '';
+  const suits = card.suit2
+    ? `<div class="suit suit-pair"><span class="${suitClass(card.suit)}">${card.suit}</span><span class="${suitClass(card.suit2)}">${card.suit2}</span></div>`
+    : `<div class="suit">${card.suit}</div>`;
+  return `<div class="rank">${card.rank}</div>${r2}${suits}`;
+}
+// A card that SCORES CREDITS wears a gold coin behind its face (owner's spec);
+// the rank and suit take a thin dark outline over it (.card-has-coin).
+function cardCoinHTML(card) {
+  if (!card || !card.rank || typeof permCoins === 'undefined') return '';
+  const n = permCoins[cardId(card)] || 0;
+  return n ? `<div class="card-coin" title="+${n} credits when scored"></div>` : '';
 }
 
 // The same vocabulary for an enhancement being OFFERED, from the `e` object

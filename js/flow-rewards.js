@@ -892,7 +892,42 @@ const FLOWR_DECK_OPS = [
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply the mult by ×1.5 to ×3.' },
   { id: 'xpips',  buff: { key: 'xpips',  range: [1.25, 2, 0.25], word: '× pips', x: true }, icon: '∗', name: '×Pips Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply their pips by ×1.25 to ×2.' },
+  // r392: the card that SCORES CREDITS (the gold coin face).
+  { id: 'coins',  buff: { key: 'coin',   range: [1, 3, 1],      word: 'credits' }, icon: '🪙', name: 'Coin Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards pay +1 to +3 credits when they score.' },
+  // r392: THE RAREST TWO. Each of up to 4 touching cards has a chance to take a
+  // second suit / rank from another card in the group (js/deck-grid.js).
+  { id: 'suit2', dual: 'suit', icon: '♠♥', name: 'Second Suit',
+    desc: 'Pick up to 4 touching cards, then APPLY. Each may take a SECOND SUIT from another card in the group - it counts for either suit in a flush (both, if it doubles one) and fires Tricks for both.' },
+  { id: 'rank2', dual: 'rank', icon: '7/8', name: 'Second Rank',
+    desc: 'Pick up to 4 touching cards, then APPLY. Each may take a SECOND RANK from another card in the group - it fills two ranks in a run or a set, and fires Tricks for both.' },
 ];
+
+// r392 HOW OFTEN EACH OP IS OFFERED (owner's tiers, pending the full table in
+// TODO.md). Rarest: the two dual ops. Then Stamp and the x buffs; then Focus and
+// Time; then the flat buffs and Suit Spread. Rank Pull, Cut, Replay and Coin are
+// placed by guess. Read by the deck-edit pick AND the reward grid's card tiles.
+const FLOWR_OP_WEIGHTS = {
+  suit2: 2, rank2: 2,
+  copy: 6, xmult: 6, xpips: 6, replay: 6,
+  focus: 10, time: 10, coins: 10, rank: 10, del: 10,
+  pips: 16, mult: 16, suit: 16,
+};
+function flowrOpWeight(op) { return FLOWR_OP_WEIGHTS[op.id] ?? 8; }
+// Weighted draw of n DIFFERENT ops, optionally from a filtered list.
+function flowrDrawOps(n, list) {
+  const pool = (list || FLOWR_DECK_OPS).slice(), out = [];
+  while (out.length < n && pool.length) {
+    const tot = pool.reduce((t, o) => t + flowrOpWeight(o), 0);
+    let x = Math.random() * tot, k = 0;
+    for (; k < pool.length - 1; k++) { x -= flowrOpWeight(pool[k]); if (x <= 0) break; }
+    out.push(pool.splice(k, 1)[0]);
+  }
+  return out;
+}
+const FLOWR_DUAL_MAX = 4;
+const FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
+function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MAX; }
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;
 let _flowrPlayHTML = null;
@@ -901,7 +936,7 @@ let _flowrPlayHTML = null;
 function flowrDeckActive() { return !!_flowrDeckOp; }
 
 function flowrShowDeckPick() {
-  const ops = shuffle(FLOWR_DECK_OPS.slice()).slice(0, 3);
+  const ops = flowrDrawOps(3);   // r392: weighted by FLOWR_OP_WEIGHTS
   openGridPick({
     title: 'DECK EDIT', tone: 'reward',
     offers: ops.map(op => ({ entity: 'deckop', id: op.id, icon: op.icon, emoji: op.icon,
@@ -962,8 +997,8 @@ function flowrDeckBanner() {
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
-  if (op.buff) {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${FLOWR_BUFF_MAX} touching cards, then press APPLY · <i id="fb-count">0/${FLOWR_BUFF_MAX}</i></span>`;
+  if (op.buff || op.dual) {
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then press APPLY · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
     el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · <i id="fb-count">none</i></span>`;
   }
@@ -1023,7 +1058,7 @@ function flowrDeckSyncUI() {
   const op = _flowrDeckOp; if (!op) return;
   const n = _flowrDeckSel.length;
   const cnt = document.getElementById('fb-count');
-  if (cnt) cnt.textContent = op.buff ? `${n}/${FLOWR_BUFF_MAX}`
+  if (cnt) cnt.textContent = (op.buff || op.dual) ? `${n}/${flowrSelMax(op)}`
                                      : (n ? `${_flowrDeckSel[0].cd.rank}${_flowrDeckSel[0].cd.suit}` : 'none');
   const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
 }
@@ -1062,7 +1097,7 @@ function flowrDeckTap(e) {
     if (!_flowrConnected(rest)) { refuse('That would split the group'); return; }
     _flowrDeckSel = rest; cardEl.classList.remove('flowr-sel');
   } else {
-    if (_flowrDeckSel.length >= FLOWR_BUFF_MAX) { refuse(`Up to ${FLOWR_BUFF_MAX} cards`); return; }
+    if (_flowrDeckSel.length >= flowrSelMax(op)) { refuse(`Up to ${flowrSelMax(op)} cards`); return; }
     const cand = { id, r, c, cd, el: cardEl };
     if (_flowrDeckSel.length && !_flowrDeckSel.some(o => _flowrAdjacent(o, cand))) {
       refuse('Pick a card touching the ones you have'); return;
@@ -1078,7 +1113,39 @@ function flowrDeckTap(e) {
 function flowrDeckConfirm() {
   if (_flowrDeckBusy || !_flowrDeckOp || !_flowrDeckSel.length) return;
   if (_flowrDeckOp.adj) { const s0 = _flowrDeckSel[0]; flowrAdjApply(s0.r, s0.c, s0.cd); }
+  else if (_flowrDeckOp.dual) flowrDualConfirm();
   else flowrBuffConfirm();
+}
+
+// r392 SECOND SUIT / SECOND RANK. Each selected card rolls; a hit takes the
+// suit (or rank) of ANOTHER card in the group, chosen at random - which can be
+// its own suit again, making a double suit (two hearts), or its own rank (7/7).
+function flowrDualConfirm() {
+  if (_flowrDeckBusy || !_flowrDeckSel.length) return;
+  const op = _flowrDeckOp;
+  if (_flowrDeckSel.length < 2) { refuse('Pick at least 2 touching cards'); return; }
+  _flowrDeckBusy = true;
+  const _pb = document.getElementById('btn-play'); if (_pb) _pb.disabled = true;
+  const p = (typeof luckChance === 'function') ? luckChance(FLOWR_DUAL_CHANCE) : FLOWR_DUAL_CHANCE;
+  const sel = _flowrDeckSel.slice();
+  let hits = 0;
+  sel.forEach((s, i) => {
+    const won = Math.random() < p;
+    let donor = null;
+    if (won) { const others = sel.filter(o => o !== s); donor = others[Math.floor(Math.random() * others.length)]; }
+    setTimeout(() => {
+      flowrRevealCard(s.el, won);
+      if (!won || !donor) return;
+      hits++;
+      if (op.dual === 'suit') s.cd.suit2 = donor.cd.suit; else s.cd.rank2 = donor.cd.rank;
+      if (typeof clearHandCompCache === 'function') clearHandCompCache();
+    }, FLOWR_REVEAL_MS * (i + 1));
+  });
+  setTimeout(() => {
+    try { render(); } catch (e) {}
+    showMessage(`${op.icon} ${op.name} on ${hits} card${hits === 1 ? '' : 's'}`, '#e8b0ff');
+    flowrDeckEnd();
+  }, FLOWR_REVEAL_MS * (sel.length + 1) + 420);
 }
 
 // ── THE REVEAL (r378) ───────────────────────────────────────────────────────

@@ -20,24 +20,12 @@ and since r391 the reward grids' card tiles, which guess at 35% pack / 65% buff 
 Some effects should be rarer (the x mult / x pips / replay buffs are the obvious ones).
 One table read by every surface, so the odds cannot drift between them.
 
-**Two new effects, the rarest of all the card effects.** Select 4 cards; each one has a
-chance to ADOPT an attribute from another of the four:
-
-- **Second suit.** The card gains a suit from another card (possibly its own suit again,
-  giving a double suit).
-  - Flush: a card with two different suits counts for whichever helps the flush. A double
-    suit (2 hearts) counts as TWO cards of that suit toward a flush.
-  - Tricks: BOTH suits trigger suit Tricks - one card can fire two different suit Tricks,
-    and a double heart fires a heart Trick twice. The dance plays the second fire in rapid
-    succession (the r297 prime heartbeat is the model).
-- **Second rank.** The card carries two ranks: it can fill two rank slots in a run, or
-  count twice in a set / full house. Fires a single rank Trick twice, or two rank Tricks
-  once each.
-- **Art:** the second rank sits below the first; the second suit sits beside the first
-  with the pair centred together (both slightly off centre).
-- Needs: a durable per-card store (DURABLE_CARD_FIELDS or a cardId map), hand-detect
-  support (`_wildFitsPattern` / `tryRunCombos` / the flush overlay), `_natCards` tallies,
-  the face in `renderCardAppearance`, and CARD_EFFECTS.md.
+**The two dual-identity effects shipped in r392** (see CLAUDE.md). What is left here is the
+table itself: `FLOWR_OP_WEIGHTS` in js/flow-rewards.js holds the owner's tiers as a first
+pass (rarest: Second Suit / Second Rank; then Stamp, x mult, x pips, Replay; then Focus,
+Time, Coin, Rank Pull, Cut; then +pips, +mult, Suit Spread). Rank Pull, Cut, Replay and
+Coin were placed by guess and want the owner's call. Also open: the corner-band map for
+x mult / x pips / Focus, which have no mark on the card yet (CARD_EFFECTS.md).
 
 ## 1. MAP MODE - its own mode, owner-specced
 

@@ -914,7 +914,7 @@ function playHand() {
   const scoredSet = new Set(result.handCells.map(([r,c]) => `${r}-${c}`));
   if (hasTrick('kings_downgrade')) result.handCells.forEach(([r,c]) => {
     const card = gridData[r][c];
-    const isKing  = card.rank === 'K' || (card.combined && card.rank2 === 'K');
+    const isKing  = card.rank === 'K' || card.rank2 === 'K';
     if (isKing) {
       getNeighbors(r, c).forEach(([nr, nc]) => {
         if (!scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc]) {
@@ -933,7 +933,7 @@ function playHand() {
   if (hasTrick('queens_upgrade')) result.handCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     if (!card || !card.rank || isWildCard(card) || ACTIVE_RANKS.indexOf(card.rank) === -1) return;
-    const byQueen = getNeighbors(r, c).some(([nr, nc]) => { const q = gridData[nr]?.[nc]; return q && (q.rank === 'Q' || (q.combined && q.rank2 === 'Q')); });
+    const byQueen = getNeighbors(r, c).some(([nr, nc]) => { const q = gridData[nr]?.[nc]; return q && (q.rank === 'Q' || q.rank2 === 'Q'); });
     if (byQueen) queenUpgradePending.add(cardId(card));
   });
 
@@ -1022,7 +1022,7 @@ function scalingCount(hand, handCells, reps) {
     for (const x of _cells) {
       const card = x.card;
       if (card._isSleight || card._isStone || isWildCard(card)) continue;
-      if (card.suit === '♠' || (card.combined && card.suit2 === '♠')) spadesRelentless += x.n;
+      spadesRelentless += x.n * ((card.suit === '♠') + (card.suit2 === '♠'));   // r392: a double spade counts twice
     }
   }
   // Compound: +0.1 mult per hand played.

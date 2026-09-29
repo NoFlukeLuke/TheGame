@@ -301,8 +301,8 @@ function render() {
     }
 
     // Suits neutral by default - preview only shows active Trick effects
-    const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
-    const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
+    const clubCnt  = cards.filter(c => c.suit==='♣'||c.suit2==='♣').length;
+    const heartCnt = cards.filter(c => c.suit==='♥'||c.suit2==='♥').length;
     if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
 
     breakdownEl.innerHTML = `

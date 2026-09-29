@@ -6466,3 +6466,26 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 }
 .clock-boss { animation: clockBossPulse 2.6s ease-in-out infinite; }
 body.reduced-motion .clock-boss { animation: none; }
+
+/* ══ r392: DUAL-IDENTITY CARDS + THE COIN CARD ═══════════════════════════════
+   A second rank sits UNDER the first, smaller; a second suit sits BESIDE the
+   first and the pair is centred together, so both are slightly off centre.
+   A card that scores credits wears a gold coin behind its face (z -1, the
+   corner bands' layer: above the card's background, below its in-flow rank
+   and suit), and the rank and suit take a thin dark outline over it. */
+.card .rank.rank2 { font-size: 0.72em; line-height: 0.9; margin-top: -0.12em; opacity: 0.92; }
+.card .suit.suit-pair { display: flex; gap: 0.08em; justify-content: center; }
+.card .suit.suit-pair > span { line-height: 1; }
+.card .suit.suit-pair > .suit-hearts   { color: var(--suit-hearts); }
+.card .suit.suit-pair > .suit-diamonds { color: var(--suit-diamonds); }
+.card .suit.suit-pair > .suit-spades   { color: var(--suit-spades); }
+.card .suit.suit-pair > .suit-clubs    { color: var(--suit-clubs); }
+.card-coin {
+  position: absolute; left: 50%; top: 50%; z-index: -1; pointer-events: none;
+  width: 62%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c8 0 8%, #f3c64a 30%, #c8901a 70%, #8a5a08 100%);
+  box-shadow: inset 0 0 0 2px rgba(120,76,6,0.55), inset 0 0 0 4px rgba(255,236,160,0.45), 0 0 6px rgba(243,198,74,0.5);
+}
+.card.card-has-coin .rank, .card.card-has-coin .suit {
+  -webkit-text-stroke: 0.6px rgba(0,0,0,0.85); paint-order: stroke fill;
+}
