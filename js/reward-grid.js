@@ -463,7 +463,12 @@ function _generateRewardContent() {
         apply: () => flowrGrantPack(pack) };
     }
     if (typeof FLOWR_DECK_OPS !== 'undefined') {
-      const op = flowrDrawOps(1, FLOWR_DECK_OPS.filter(o => o.buff))[0];   // r392: weighted
+      const op = flowrDrawOps(1, FLOWR_DECK_OPS.filter(o => o.buff || o.dual))[0];   // r392: weighted
+      // r393: a DUAL op needs the player to pick a touching group, so the tile
+      // opens the next round's freshly dealt board as a deck edit first.
+      if (op.dual) return { icon: op.icon, label: op.name, tier: 'legendary', cardFace: { rank, suit },
+        desc: `Next round opens on the board first: pick up to ${FLOWR_DUAL_MAX} touching cards to share a ${op.dual === 'suit' ? 'suit' : 'rank'}.`,
+        apply: () => { flowrPendingDual = op; showMessage(`${op.icon} ${op.name}: pick your cards when the board deals`, 'var(--gold)'); } };
       const v = flowrValRoll(op.buff.range);
       const lbl = flowrBuffLabel(op.buff, v);
       const n = flowrQtyRoll(3);

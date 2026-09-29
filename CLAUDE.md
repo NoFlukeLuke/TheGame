@@ -10762,3 +10762,9 @@ prints 54 lines, **0 panels spill the stage**, no horizontal page scroll, and
   the face (`cardCoinHTML`, `.card-has-coin` outlines the rank/suit).
 - **`FLOWR_OP_WEIGHTS`** weights the deck editor's op draw and the reward grid's card
   tiles (`flowrDrawOps`). The dual ops are weight 2; see TODO.md for the table.
+
+## r393 - x marks, the diagonal dual-rank face, reward-grid dual tiles
+
+- **`cardXMarksHTML`** (js/deck-grid.js, appended by `cardBandsHTML`): an x in the top-left for `permXPips`, top-right for `permXMult`, dark navy / maroon with a drop shadow, z-index 3 so it sits over the bands.
+- **A second RANK splits the card TL->BR** (`card-dual-rank`): `.dual-slash` masked open in the middle, rank in the top-left region, rank2 bottom-right, the suit (or both suits) in the gap. A second suit alone keeps the ordinary face.
+- **Reward-grid Second Suit / Second Rank tiles** set `flowrPendingDual`; `startRoundTimer` hands the fresh board to the deck editor first (`flowrMaybeRunPendingDual`), and `flowrDeckDone` returns to the round instead of the Flow chain. Skipped on a boss round (it waits for the next).

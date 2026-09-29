@@ -1288,8 +1288,21 @@ function flowrDeckEnd() {
   // straight to the next screen the moment the last card turned - the owner's
   // "too jumpy". The cards removed here are rebuilt by whatever comes next: a
   // takeover empties #grid anyway, and the chain's level-up deals the board in.
+  // r393: a reward-grid dual tile runs this editor on the round's own board and
+  // hands back to the round instead of the Flow chain.
+  if (flowrDeckDone) { const cb = flowrDeckDone; flowrDeckDone = null; try { render(); } catch (e) {} setTimeout(cb, 700); return; }
   if (typeof rewardTransitionOut === 'function') rewardTransitionOut(() => flowrAfterStep(), { breathe: 800 });
   else flowrAfterStep();
+}
+let flowrPendingDual = null, flowrDeckDone = null;
+// Called at the top of startRoundTimer: true = the editor took over first.
+function flowrMaybeRunPendingDual() {
+  if (!flowrPendingDual || (typeof bossActive !== 'undefined' && bossActive)) return false;
+  if (!gridData.some(row => row && row.some(c => c && !c._isSleight))) return false;
+  const op = flowrPendingDual; flowrPendingDual = null;
+  flowrDeckDone = () => { gameTimerPaused = false; startRoundTimer(); };
+  flowrDeckBegin(op);
+  return true;
 }
 
 // ══════════════════════════════════════════════

@@ -6489,3 +6489,36 @@ body.reduced-motion .clock-boss { animation: none; }
 .card.card-has-coin .rank, .card.card-has-coin .suit {
   -webkit-text-stroke: 0.6px rgba(0,0,0,0.85); paint-order: stroke fill;
 }
+
+/* ── r393: x pips / x mult marks, over the corner bands ─────────────────── */
+.card .card-xmark {
+  position: absolute; top: 1%; z-index: 3; pointer-events: none;
+  font: 900 calc(var(--card-w, 57px) * 0.36)/1 'Arial Black', Arial, sans-serif;
+  font-style: normal;
+  text-shadow: 0 1.5px 1.5px rgba(0,0,0,.65), 0 0 3px rgba(0,0,0,.45);
+}
+.card .card-xmark.cx-tl { left: 5%;  color: #16305e; }
+.card .card-xmark.cx-tr { right: 5%; color: #5e1410; }
+
+/* ── r393: a second RANK splits the card on the TL-BR diagonal ─────────── */
+.card.card-dual-rank { position: relative; }
+.card.card-dual-rank .dual-slash {
+  position: absolute; inset: 8%; pointer-events: none; z-index: 0;
+  background: linear-gradient(to bottom right,
+    transparent calc(50% - 1px), currentColor calc(50% - 1px), currentColor calc(50% + 1px), transparent calc(50% + 1px));
+  opacity: .55;
+  /* the break in the middle where the suit sits */
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent 24%, #000 25%);
+          mask: radial-gradient(circle at 50% 50%, transparent 24%, #000 25%);
+}
+.card.card-dual-rank .rank.dual-r1,
+.card.card-dual-rank .rank.dual-r2 {
+  position: absolute; margin: 0; line-height: 1; font-size: 0.82em;
+  transform: translate(-50%, -50%);
+}
+.card.card-dual-rank .rank.dual-r1 { left: 30%; top: 25%; }
+.card.card-dual-rank .rank.dual-r2 { left: 70%; top: 75%; }
+.card.card-dual-rank .suit.dual-mid {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  margin: 0; line-height: 1; font-size: 0.8em;
+}
