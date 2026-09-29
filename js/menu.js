@@ -1,4 +1,4 @@
-const BUILD = "2026-09-29 · r393 · x marks, diagonal dual-rank face, reward-grid dual tiles";
+const BUILD = "2026-09-29 · r395 · x marks, diagonal dual-rank face, reward-grid dual tiles";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

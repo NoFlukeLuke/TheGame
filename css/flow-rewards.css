@@ -33,27 +33,13 @@
   opacity: 0; transition: opacity .22s ease, transform .22s ease;
 }
 #flowr-counter.show { opacity: 1; transform: var(--fc-t) scale(1); }
-/* r391 COLOUR + THEME, shared by every look: a slowly turning burst of the
-   four rarity colours behind the chip, bigger and brighter per reward
-   (--fc-k is the count). ::before is unused by all five looks. */
-#flowr-counter::before {
-  content: ''; position: absolute; left: 50%; top: 50%; z-index: -1;
-  width: calc(190px + 45px * var(--fc-k, 1)); aspect-ratio: 1;
-  translate: -50% -50%; border-radius: 50%; pointer-events: none;
-  background:
-    radial-gradient(circle, rgba(255,240,200,.5) 0 12%, transparent 60%),
-    repeating-conic-gradient(from 0deg,
-      rgba(53,213,155,.55) 0 7deg, transparent 7deg 22.5deg,
-      rgba(64,200,255,.55) 22.5deg 29.5deg, transparent 29.5deg 45deg,
-      rgba(170,110,255,.55) 45deg 52deg, transparent 52deg 67.5deg,
-      rgba(255,80,200,.55) 67.5deg 74.5deg, transparent 74.5deg 90deg);
-  -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%);
-          mask: radial-gradient(circle, #000 20%, transparent 70%);
-  opacity: calc(.35 + .13 * var(--fc-k, 1));
-  animation: fc-burst 7s linear infinite;
-}
-@keyframes fc-burst { to { rotate: 360deg; } }
-body.reduced-motion #flowr-counter::before { animation: none; }
+/* r391's turning ray burst behind the chip is GONE (r394). Owner: "make the
+   level up chip what it was at first visually, and add an explosion of colored
+   particles underneath it." It was a later decoration, not what the chip was at
+   first - and it already said "more colours per reward", which is exactly the
+   job the confetti now does with something physical. Two things saying it at
+   once is the doubled vocabulary r233 spent a pass removing, and on a lit board
+   the rays were most of what was on screen. ::before is free again. */
 #flowr-counter .fc-num b { font-weight: inherit; font-size: .62em; opacity: .8; margin-right: .04em; }
 #flowr-counter .fc-num em { font-style: normal; }
 /* THE DECORATIONS ARE HIDDEN BY AN ID SELECTOR, so every look that wants one
@@ -393,7 +379,15 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
      outline. The queued tabs still step inward from it. */
   width: calc(var(--grid-w, 100%) + var(--fbg-pad) * 2);
 }
-#flowr-stack .fst-chip {
+/* THE FALLING GHOST TAKES THESE TOO (r394), and it has to be named here rather
+   than left to inherit: it is a child of #grid-slot, not of #flowr-stack, so a
+   descendant selector does not reach it. Measured before this was added - the
+   ghost painted with NO background and a default cream border, so all that fell
+   off the panel was the word. Both branches are (1,0,0) for #flowr-tabfall, so
+   source order decides, which is why the .fst-cur block below must stay below
+   this one. */
+#flowr-stack .fst-chip,
+#flowr-tabfall {
   position: absolute; left: calc(var(--fst-d) * 5%); right: calc(var(--fst-d) * 5%);
   /* bottom, not top: the ladder hangs from the panel's edge, so a shorter
      chain simply has fewer tabs above it rather than a floating block. */
@@ -419,14 +413,16 @@ body.flowr-deck #flowr-stack { display: none; }
    the corners; the FACE was still 30%, which is what was left reading as a
    separate lit object sitting on top. The queued tabs behind it keep 30% - they
    are meant to read as cards behind, and they step inward as well. */
-#flowr-stack .fst-chip.fst-cur {
+#flowr-stack .fst-chip.fst-cur,
+#flowr-tabfall {
   background: color-mix(in srgb, var(--fst-c) 18%, #0c0a14);
   border-color: color-mix(in srgb, var(--fst-c) 48%, transparent);
   border-radius: 10px 10px 0 0;
   box-shadow: none;
 }
 
-#flowr-stack .fst-chip span {
+#flowr-stack .fst-chip span,
+#flowr-tabfall span {
   display: block; text-align: center;
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2.5px;
   color: var(--fst-c); padding-top: 3px; opacity: .9;
@@ -567,6 +563,12 @@ body.reduced-motion #flowr-flash { animation: none; opacity: 0; }
 }
 #flowr-bg.fbg-turn::after { animation: fbgWipe .46s cubic-bezier(.3,.6,.3,1); }
 #flowr-bg.fbg-turn { animation: fbgSquash .3s cubic-bezier(.3,1.4,.4,1); }
+/* r394: the panel SETTLES rather than shining. The shine belongs to the tab
+   being knocked off now (below), and two shines a third of a second apart is
+   the doubled vocabulary r233 spent a pass removing - so on a real hand-over
+   the panel takes the squash alone, at the moment of the reveal. .fbg-turn
+   keeps the wipe for the one step that has no tab to knock (the deck edit). */
+#flowr-bg.fbg-settle { animation: fbgSquash .3s cubic-bezier(.3,1.4,.4,1); }
 @keyframes fbgWipe {
   0%   { opacity: 0; transform: translateX(-46%); }
   22%  { opacity: 1; }
@@ -578,4 +580,88 @@ body.reduced-motion #flowr-flash { animation: none; opacity: 0; }
   100% { transform: translate(-50%, -50%) scale(1, 1); }
 }
 body.reduced-motion #flowr-bg.fbg-turn,
+body.reduced-motion #flowr-bg.fbg-settle,
 body.reduced-motion #flowr-bg.fbg-turn::after { animation: none; }
+
+/* ══ THE TAB IS KNOCKED OFF ITS OWN STACK (r394) ═══════════════════════════
+   A free-standing copy of the tab just chosen, pinned over the new stack's
+   front tab in the board slot's own design px (js/flow-rewards.js). A band
+   sweeps it, and when the band reaches the side it is heading for the tab
+   tips over that way and falls, revealing the tab that was already underneath.
+
+   --fst-dir is +1 or -1, rolled per hand-over: it steers the sweep, the tip,
+   the pivot and the direction of travel from one number, so the whole thing
+   really does go either way rather than mirroring one hand-written pair. */
+#flowr-tabfall {
+  position: absolute;
+  z-index: 9;               /* above the ladder (8); #grid in a takeover is 1 */
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform-origin: calc(50% + var(--fst-dir, 1) * 34%) 100%;
+}
+/* A NARROW, BRIGHT BAND, NOT A WASH. At the first tuning the stops ran from 30%
+   to 70% of an element 60% wider than the tab, so the "band" covered most of a
+   561px tab at once and read as the tab merely getting lighter. Screen blend, a
+   band about a sixth of the width, and a white core: the tab is an 18% mix over
+   near-black, so nothing short of that reads as a sweep on it. */
+#flowr-tabfall .fst-shine {
+  position: absolute; inset: -30% -14%;
+  opacity: 0; pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(104deg,
+    transparent 41%,
+    color-mix(in srgb, var(--fst-c, #fff) 60%, transparent) 46%,
+    color-mix(in srgb, var(--fst-c, #fff) 45%, white) 50%,
+    color-mix(in srgb, var(--fst-c, #fff) 60%, transparent) 54%,
+    transparent 59%);
+}
+/* LINEAR, and the travel fills the WHOLE duration - which is the lead before the
+   knock (js/flow-rewards.js). A front-loaded ease was measured parking the band
+   at the far edge by 40% of the sweep and then loitering there, so the knock no
+   longer read as the thing the shine had arrived at. */
+#flowr-tabfall.shining .fst-shine {
+  animation: fstShine var(--fst-shine-ms, 340ms) linear forwards;
+}
+/* THE TRAVEL IS -50% TO +40% OF THE SHINE'S OWN WIDTH, and neither number is
+   round by accident. The element overhangs the tab by 14% each side, so it is
+   1.28 tab widths; the band sits at 41-59% of it, i.e. centred on the tab at
+   rest and 0.115 tab wide. -50% puts the band's centre just off the left edge;
+   +40% puts it exactly ON the right edge, which is where it has to be when the
+   knock lands. At +-100% (the first pass) the band left the tab two thirds of
+   the way through and the fall fired onto a tab with nothing on it. */
+@keyframes fstShine {
+  0%   { opacity: 0; transform: translateX(calc(var(--fst-dir, 1) * -50%)); }
+  12%  { opacity: 1; }
+  100% { opacity: .92; transform: translateX(calc(var(--fst-dir, 1) * 40%)); }
+}
+/* The kick first (up and back, as if struck), then the tip. The rotation is
+   deliberately modest - the owner asked for "rotates slightly" - and the
+   sideways travel is a PERCENTAGE of the tab's own width, so it clears the
+   panel at every board size with nothing measured. */
+#flowr-tabfall.falling {
+  animation: fstFall var(--fst-fall-ms, 560ms) cubic-bezier(.42,0,.72,.55) forwards;
+}
+@keyframes fstFall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  15%  { transform: translate(calc(var(--fst-dir, 1) * 7px), -5px) rotate(calc(var(--fst-dir, 1) * 3deg)); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(calc(var(--fst-dir, 1) * 52%), 170px) rotate(calc(var(--fst-dir, 1) * 26deg)); opacity: 0; }
+}
+body.reduced-motion #flowr-tabfall.shining .fst-shine { animation: none; opacity: 0; }
+body.reduced-motion #flowr-tabfall.falling { animation: none; opacity: 0; }
+
+/* ══ THE CONFETTI (r394) ═══════════════════════════════════════════════════
+   One burst per reward, in that reward's tier colour (js/flow-rewards.js).
+   UNDER THE CHIP AND OVER THE BOARD: the layer is a sibling of #flowr-counter
+   in #grid-slot at 39 against its 40, so they share one stacking context and
+   the order is simply the two numbers. inset 0 with overflow visible, because
+   a piece thrown from the middle of the board legitimately leaves the slot. */
+#flowr-confetti {
+  position: absolute; inset: 0;
+  z-index: 39; pointer-events: none; overflow: visible;
+}
+#flowr-confetti .fcf {
+  position: absolute; display: block;
+  border-radius: 1px;
+  will-change: transform, opacity;
+}

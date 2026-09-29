@@ -146,6 +146,13 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
     type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],
     apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
+  // The turning pattern behind the whole scene (css/hypno.css). Off removes the
+  // element outright rather than hiding it - a full-viewport conic gradient is
+  // still one to composite even at zero opacity.
+  { group: 'Display', id: 'hypno', label: 'Background pattern',
+    hint: 'A faint turning pattern behind the cabinet. Motion follows Reduced motion.',
+    type: 'toggle', default: true,
+    apply: v => document.body.classList.toggle('no-hypno', !v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },

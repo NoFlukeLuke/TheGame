@@ -1207,6 +1207,15 @@
     transition: color .15s ease;
   }
   #sel-count.on { display: flex; }
+  /* r394: THE HAND GLYPH LIVES BESIDE THE LIVE TALLY, not in the top bar.
+     Owner: "move the hand emoji next to the 0/3". #sel-display in the top bar
+     printed the LIMIT with the same glyph, which is the same fact twice - and
+     the top bar is the one band the portrait clock has. Portrait only: the
+     landscape readout sits in the gutter beside the board, which is the width
+     of half the slot's slack and has no room for a second glyph. */
+  #sel-count-hand { display: none; margin-right: 5px; opacity: .85; }
+  #stage:not(.landscape) #sel-count-hand { display: inline; }
+  #stage:not(.landscape) #sel-stat { display: none !important; }
   /* Below the minimum the selection cannot be played at all, so it reads as a
      warning rather than as a tally. Same state the hand label shows as "NEED / n". */
   #sel-count.below { color: var(--red); text-shadow: 0 0 8px rgba(255,90,106,.4); }
@@ -1224,9 +1233,12 @@
 
   #grid {
     position: relative;
-    width: calc(5 * 57px + 4 * 3px + 6px);  /* fallback; JS overrides via applyGridMetricsToDOM */
-    height: calc(5 * 75px + 4 * 3px + 6px); /* fallback; JS overrides */
-    padding: 3px;
+    width: calc(5 * 57px + 4 * 5px + 14px);  /* fallback; JS overrides via applyGridMetricsToDOM */
+    height: calc(5 * 75px + 4 * 5px + 14px); /* fallback; JS overrides */
+    /* GRID_PAD (r391) - the board's own frame, where its rings are drawn. Inert
+       for layout (cards are absolutely positioned off the padding box and the box
+       is sized from JS), but the two must not disagree for a reader. */
+    padding: 6px;
     background: radial-gradient(ellipse at center, #1a2e1a 0%, #0e0c0a 80%);
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -5104,21 +5116,27 @@
     content:""; position:absolute; inset:12px; border-radius:8px; pointer-events:none; z-index:61;
     background: radial-gradient(120% 90% at 28% 6%, rgba(255,255,255,0.09), transparent 46%);
   }
-  #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
+  /* THE WASH IS TRANSLUCENT (r391) so the hypnosis backdrop behind it reads.
+     #hypno-screen is the first child of #cab-screen and paints an OPAQUE floor,
+     so the two together are still opaque and the office photograph can never
+     show through the game - which is the one thing #stage's background has to
+     guarantee. 0.82 is measured: it leaves the pattern at 18% of its own alpha
+     (see css/hypno.css) and moves the wash itself by at most 4/255. */
+  #stage { background: radial-gradient(ellipse at 50% 42%, rgba(26,20,12,0.82) 0%, rgba(16,13,9,0.82) 78%);
            border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
            transition: background 0.45s ease; }
   /* ── Per-screen background tint (r124): differentiates the "grid" you're on.
      Low saturation, but noticeable. Play = warm near-black (above); reward = teal;
      boss reward = red; challenge = purple; on-grid shop = gold. ── */
-  body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, #0d2320 0%, #081311 78%); }
-  body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, #2a1010 0%, #150908 78%); }
+  body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, rgba(13,35,32,0.82) 0%, rgba(8,19,17,0.82) 78%); }
+  body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, rgba(42,16,16,0.82) 0%, rgba(21,9,8,0.82) 78%); }
   /* Prize grid (post-boss payout): gold, and it wins over the boss-red tint - the
      boss is beaten by the time this is on screen. Listed after .reward-boss so
      equal specificity resolves in its favour. */
-  body.reward-active.reward-prize #stage        { background: radial-gradient(ellipse at 50% 42%, #2e2408 0%, #171104 78%); }
+  body.reward-active.reward-prize #stage        { background: radial-gradient(ellipse at 50% 42%, rgba(46,36,8,0.82) 0%, rgba(23,17,4,0.82) 78%); }
   body.reward-prize #grid .reward-cell.on-grid  { box-shadow: 0 0 0 1px rgba(226,178,66,0.35), 0 0 14px rgba(226,178,66,0.18); }
-  body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, #1e1030 0%, #100a1c 78%); }
-  body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, #241c0b 0%, #130f07 78%); }
+  body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, rgba(30,16,48,0.82) 0%, rgba(16,10,28,0.82) 78%); }
+  body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, rgba(36,28,11,0.82) 0%, rgba(19,15,7,0.82) 78%); }
 
   /* Thin beige base line (replaces the control deck) */
   #cab-baseline {
@@ -5347,9 +5365,51 @@
   /* Focus meter → glowing LEDs */
   .focus-dot.lit { box-shadow: 0 0 8px var(--focus-color, var(--c-mint)) !important; }
 
-  /* Grid → inner CRT panel */
-  #grid { background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
-          border: 1px solid #000 !important; box-shadow: inset 0 0 24px rgba(0,0,0,0.8), 0 0 0 2px #2c2418 !important; }
+  /* ── Grid → inner CRT panel, with the trays' infinity mirror (r391) ────────
+     Owner: "then we can add the infinity effect to the card grid as well."
+
+     IT IS THE SAME THREE-PART RING STACK the trays use (see the TRAY MATERIAL
+     block above) and it is built from the same `--tray-line*` / `--tray-glow*`
+     variables, so a retune there moves the board with it. What it does NOT take
+     is the trays' brown linear gradient or their candy border: the board is the
+     play surface rather than a readout, so it keeps its own green CRT wash and
+     its black edge, and `--tray-c` only ever reaches the rings.
+
+     THE RINGS LIVE IN THE BOARD'S OWN FRAME, WHICH IS WHY GRID_PAD WENT 3 -> 6.
+     An inset shadow paints in the background layer, below in-flow content, so a
+     ring can never cover a card - but a ring DEEPER than the frame is hidden
+     behind the first row and shows only in the gutters between cards, which at
+     the r391 gap reads as a grid of stray lines rather than as a chasm. The
+     8px `--tray-rings` set is therefore held back to `--tray-rings-m` (5px, 2
+     lines), which fits inside a 6px frame with a pixel to spare.
+
+     The plastic ring stays the cabinet's own #2c2418: the board sits IN the
+     housing, so its outer edge is moulding rather than an accent. */
+  #grid {
+    --tray-c: #4c6b2f;
+    --tray-line:  color-mix(in srgb, var(--tray-c) 46%, transparent);
+    --tray-line2: color-mix(in srgb, var(--tray-c) 24%, transparent);
+    --tray-glow:  color-mix(in srgb, var(--tray-c) 15%, transparent);
+    --tray-glow2: color-mix(in srgb, var(--tray-c) 8%,  transparent);
+    background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
+    border: 1px solid #000 !important;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.8),
+                inset 0 0 0 1px var(--tray-line),
+                inset 0 0 0 2px var(--tray-glow),
+                inset 0 0 0 3px rgba(0,0,0,0.55),
+                inset 0 0 0 4px var(--tray-line2),
+                inset 0 0 0 5px var(--tray-glow2),
+                0 0 0 2px #2c2418 !important;
+  }
+  /* A board at the card floor gives its frame back to the cards (r391,
+     GRID_PAD_TIGHT in js/grid-metrics.js), so the rings step down to fit it. */
+  #grid.grid-tight {
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.8),
+                inset 0 0 0 1px var(--tray-line),
+                inset 0 0 0 2px var(--tray-glow),
+                inset 0 0 0 3px rgba(0,0,0,0.5),
+                0 0 0 2px #2c2418 !important;
+  }
 
   /* ── Left-column stat chips: full solid-color fills, beige text (r95) ── */
   #stage.landscape #score-subboxes { --tray-c: var(--plastic-lo); border-top: 2px solid var(--tray-c) !important; }

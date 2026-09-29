@@ -94,7 +94,9 @@ body.office-photo #cab-screen > #mode-select-overlay { inset: 0 !important; }
    are what makes the board read as something a screen is displaying rather than
    as a page. They were inset by the 12px bezel that no longer exists. */
 body.office-photo #cab-screen::after,
-body.office-photo #cab-screen::before { inset: 0 !important; border-radius: 0 !important; }
+body.office-photo #cab-screen::before,
+/* …and so was the hypnosis backdrop (r391), which is inset to the same bezel. */
+body.office-photo #hypno-screen { inset: 0 !important; border-radius: 0 !important; }
 
 /* Anti-aliasing along the trapezoid's edges. A skewed box has diagonal edges the
    compositor has to resolve every frame of the dolly; without a hint they crawl. */

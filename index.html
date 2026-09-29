@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="css/insights.css">
 <link rel="stylesheet" href="css/info-hub.css">
 <link rel="stylesheet" href="css/builds.css">
+<link rel="stylesheet" href="css/hypno.css">
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/office-photo.css">
 <link rel="stylesheet" href="css/clock-fx.css">
@@ -520,7 +521,8 @@
     <button class="dev-btn" onclick="devResetFocusTunables()" style="margin-top:8px;">Reset all of the above to defaults</button>
   </div>
 
-  <!-- HUD TOGGLES -->
+  <!-- AESTHETICS - the home for look-and-feel knobs (owner, r394: "for this
+       type of stuff it can all go in aesthetics"). -->
   <div class="dev-section" data-group="aesthetics">
     <div class="dev-section-title">Aesthetics</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
@@ -530,6 +532,34 @@
         <option value="3">+3 (default)</option><option value="4">+4</option>
       </select>
     </label>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Board deal</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">How a fresh board arrives at the start of a round. The cascade dealt the bottom row first and took 1.45s to finish.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Cards deal
+      <select id="dev-deal-style" onchange="setDealStyle(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="together">all at once (default)</option>
+        <option value="cascade">row by row (pre-r394)</option>
+      </select>
+    </label>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Portrait clock bar</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">The timer's track in the phone top bar. Thickness is capped below by the review mark beside it (18px), which is what the bands and level-up marks need to be legible.</div>
+    <div id="dev-clockbar-rows"></div>
+    <button class="dev-btn" onclick="resetClockBar()" style="margin-top:6px;">Reset the bar to 150 x 18</button>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Reward chip</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">The card that announces how many rewards a level-up paid, and the confetti burst under it (one per reward, in that reward's tier colour). Each look is a different object with its own entrance, not a recolour.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Look
+      <select id="dev-flowr-chip" onchange="setFlowrChipStyle(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;"></select>
+    </label>
+    <div id="dev-flowr-chip-note" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="flowrPreviewChip(1)">Preview x1</button>
+      <button class="dev-btn" onclick="flowrPreviewChip(3)">Preview x3</button>
+      <button class="dev-btn" onclick="flowrPreviewChip(5)">Preview x5</button>
+    </div>
   </div>
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">HUD</div>
@@ -593,19 +623,6 @@
       </select>
     </label>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A boss round or a grid-size change still redeals - a post-boss board can carry holes, and a resized board cannot be kept.</div>
-
-    <div class="dev-subtitle" style="margin-top:8px;">Reward chip</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">The card that announces how many rewards a level-up paid. Each look is a different object with its own entrance, not a recolour.</div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Look
-      <select id="dev-flowr-chip" onchange="setFlowrChipStyle(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;"></select>
-    </label>
-    <div id="dev-flowr-chip-note" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;"></div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="flowrPreviewChip(1)">Preview x1</button>
-      <button class="dev-btn" onclick="flowrPreviewChip(3)">Preview x3</button>
-      <button class="dev-btn" onclick="flowrPreviewChip(5)">Preview x5</button>
-    </div>
 
     <div style="border-top:1px solid #3a3428;margin:8px 0 2px;"></div>
     <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);">FLOW · MULTI-REWARD CHAIN</div>
@@ -815,6 +832,12 @@
   <button class="overlay-close">Close</button>
 </div>
 
+<!-- THE HYPNOSIS BACKDROP (r391) - css/hypno.css.
+     A faint turning pattern behind the whole scene. A SIBLING of #camera, never
+     an ancestor of it: it carries a transform, and a transform on anything above
+     #stage re-anchors every position:fixed panel inside it. -->
+<div id="hypno" aria-hidden="true"></div>
+
 <!-- ROOM + CAMERA (r180) - js/camera.js + css/room.css.
      #camera is a fixed, transform-scaled viewport onto the world. The room and
      the cabinet are BOTH inside it, so a single transform dollies the whole scene
@@ -862,6 +885,13 @@
     <div id="cab-stripe"></div>
   </div>
   <div id="cab-screen">
+  <!-- THE CRT'S BACKDROP (r391) - css/hypno.css. The same turning pattern the
+       surround carries, on the ground every tray and the board sit on. A SIBLING
+       of #stage (it carries a transform) and the FIRST child of #cab-screen, so
+       DOM order alone puts the game in front of it. It paints an opaque floor,
+       which is what lets #stage's wash go translucent over it without the office
+       photograph showing through the game. -->
+  <div id="hypno-screen" aria-hidden="true"></div>
 <!-- Boss-approach FX (js/boss-approach.js). A SIBLING of #stage, not a child:
      the approach drains the colour out of #stage with a `filter`, and a filter
      applies to the whole subtree - inside it the red alarm would drain along with
@@ -1086,7 +1116,7 @@
            children and renderRewardTiles empties it outright. It sits in the slot's
            empty margin around the centred grid (above it in portrait, beside it in
            landscape), sized off --grid-w / --grid-h. -->
-      <div id="sel-count"><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
+      <div id="sel-count"><span id="sel-count-hand">&#9995;</span><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->
