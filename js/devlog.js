@@ -50,7 +50,11 @@ window.addEventListener('unhandledrejection', e => {
 // animation paths read these live values, so resizing propagates everywhere.
 let CARD_H = 75, CARD_GAP = 3, CARD_STEP = CARD_H + CARD_GAP;
 let CARD_W = 57;
-let GRID_PAD = 3; // matches #grid padding
+// CARD_GAP is DERIVED from the card now (r391, see recomputeGridMetrics); this is
+// the orientation's floor, set by js/bootstrap.js and never read as the live gap.
+let CARD_GAP_BASE = 3;
+let GRID_PAD = 6;    // the board's own frame, where its rings are drawn (r391)
+let GRID_BORDER = 1; // #grid's 1px border - counted so the frame is symmetric
 
 let gridRows = 4; // playing-grid rows (set from limits at round start)
 let gridCols = 4; // playing-grid columns

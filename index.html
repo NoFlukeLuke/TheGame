@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="css/insights.css">
 <link rel="stylesheet" href="css/info-hub.css">
 <link rel="stylesheet" href="css/builds.css">
+<link rel="stylesheet" href="css/hypno.css">
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/office-photo.css">
 <link rel="stylesheet" href="css/clock-fx.css">
@@ -815,6 +816,12 @@
   <button class="overlay-close">Close</button>
 </div>
 
+<!-- THE HYPNOSIS BACKDROP (r391) - css/hypno.css.
+     A faint turning pattern behind the whole scene. A SIBLING of #camera, never
+     an ancestor of it: it carries a transform, and a transform on anything above
+     #stage re-anchors every position:fixed panel inside it. -->
+<div id="hypno" aria-hidden="true"></div>
+
 <!-- ROOM + CAMERA (r180) - js/camera.js + css/room.css.
      #camera is a fixed, transform-scaled viewport onto the world. The room and
      the cabinet are BOTH inside it, so a single transform dollies the whole scene
@@ -862,6 +869,13 @@
     <div id="cab-stripe"></div>
   </div>
   <div id="cab-screen">
+  <!-- THE CRT'S BACKDROP (r391) - css/hypno.css. The same turning pattern the
+       surround carries, on the ground every tray and the board sit on. A SIBLING
+       of #stage (it carries a transform) and the FIRST child of #cab-screen, so
+       DOM order alone puts the game in front of it. It paints an opaque floor,
+       which is what lets #stage's wash go translucent over it without the office
+       photograph showing through the game. -->
+  <div id="hypno-screen" aria-hidden="true"></div>
 <!-- Boss-approach FX (js/boss-approach.js). A SIBLING of #stage, not a child:
      the approach drains the colour out of #stage with a `filter`, and a filter
      applies to the whole subtree - inside it the red alarm would drain along with

@@ -30,6 +30,39 @@ function measureGridSlot() {
   return { w, h };
 }
 
+// ── THE GAP IS A SHARE OF THE CARD (r391) ───────────────────────────────────
+// Owner: "shrink the card size by a couple of pixels or so so there's a more
+// obvious gap between cards". On a board that is FITTED to its slot those are
+// the same edit seen from either end - the grid always fills the measured slot,
+// so a wider gap IS a smaller card and a smaller card on its own buys no gap at
+// all (cellLeft is GRID_PAD + c * (CARD_W + CARD_GAP), so the gutter is CARD_GAP
+// and nothing else).
+//
+// A flat constant is the wrong shape for it, because the gap costs the same
+// pixels on a 4x4 board and a 7x7 one and only the 4x4 has them to spare. So the
+// gap is a share of the card's WIDTH, floored at the orientation's old value:
+// a small board, where the gutter is what you actually look at, gets a generous
+// one, and a big board - already sitting on CARD_MIN_W/CARD_MIN_H and spilling
+// its slot - is not squeezed any further. Measured: a 7x7 board comes out with
+// the same 5px gap it had before this change.
+const CARD_GAP_FRAC = 0.13;   // of CARD_W
+const CARD_GAP_SPAN = 3;      // how far above the floor it may climb
+function gapForCardW(w) {
+  const base = (typeof CARD_GAP_BASE === 'number') ? CARD_GAP_BASE : 3;
+  return Math.min(base + CARD_GAP_SPAN, Math.max(base, Math.round(w * CARD_GAP_FRAC)));
+}
+
+// A BOARD SITTING ON THE CARD FLOOR GETS NEITHER THE WIDER GUTTER NOR THE
+// THICKER FRAME. Past CARD_MIN_W/CARD_MIN_H the card cannot shrink to pay for
+// them, so every pixel they take comes straight off the slot and the board spills
+// further than it already does. Measured on the Schedule's 4x7 board at 420x900,
+// which is at the floor the moment a run opens: it overflowed its slot by 6px
+// before r391, by 26px with the gap and the frame let through, and by 8px with
+// this. The frame giving way exactly where the board needs the room is also why
+// the rings step down to the shallow set there (`.grid-tight`, css/style.css) -
+// a 5px ring stack inside a 3px frame would sit behind the first row of cards.
+const GRID_PAD_BASE = 6, GRID_PAD_TIGHT = 3;
+
 function recomputeGridMetrics() {
   const cols = gridCols, rows = gridRows;
   // Fit cards to the MEASURED slot so the grid always fills the available area
@@ -49,15 +82,22 @@ function recomputeGridMetrics() {
   // never spills onto) the focus meter on the left or the action buttons on the
   // right - even after rounding. Fixes the "buttons overlap the grid" issue.
   const SLOT_SAFETY = 5;
-  const innerW = slot.w - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (cols - 1);
-  const innerH = slot.h - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (rows - 1);
-  let w = Math.floor(innerW / cols);
-  let h = Math.floor(innerH / rows);
+  GRID_PAD = GRID_PAD_BASE;   // the tight fallback below is decided by the fit
+  // Fit the cards into whatever the frame and the gutters leave.
+  const fit = (gap, pad) => {
+    const frame = SLOT_SAFETY * 2 + pad * 2 + GRID_BORDER * 2;
+    return { w: Math.floor((slot.w - frame - gap * (cols - 1)) / cols),
+             h: Math.floor((slot.h - frame - gap * (rows - 1)) / rows) };
+  };
+  let box = fit(CARD_GAP_BASE, GRID_PAD);
+  let w = box.w, h = box.h;
   // Dominoes: a cell is only HALF a tile, so the playing-card aspect ratio and the
   // card-size minimums below don't apply - enforcing them on an 8×8 board pushed
   // the grid past its slot (tiles drew over the clock bar and off the bottom).
-  // Fit the board to the measured slot instead.
+  // Fit the board to the measured slot instead. It keeps the base gap: a domino
+  // cell is not a card, so a share of its width means nothing.
   if (typeof dominoActive === 'function' && dominoActive()) {
+    CARD_GAP = CARD_GAP_BASE;
     CARD_W = Math.max(12, w);
     CARD_H = Math.max(12, h);
     CARD_STEP = CARD_H + CARD_GAP;
@@ -65,13 +105,34 @@ function recomputeGridMetrics() {
     return;
   }
   // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
-  if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
-  else                     w = Math.round(h / CARD_ASPECT); // height-bound
-  // Minimum floor (huge grids may slightly exceed the slot - acceptable, the
-  // slot has overflow:visible so they just spill a touch, not onto buttons).
-  w = Math.max(w, CARD_MIN_W);
-  h = Math.max(h, CARD_MIN_H);
+  const shape = () => {
+    if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
+    else                     w = Math.round(h / CARD_ASPECT); // height-bound
+    // Minimum floor (huge grids may slightly exceed the slot - acceptable, the
+    // slot has overflow:visible so they just spill a touch, not onto buttons).
+    w = Math.max(w, CARD_MIN_W);
+    h = Math.max(h, CARD_MIN_H);
+  };
+  shape();
+  // TWO PASSES, because the gap depends on the card and the card depends on the
+  // gap. The first solve is only there to learn roughly how big a card this board
+  // holds; the gap it implies is then what the board is really built with. A
+  // third pass buys nothing - measured, every board size the game can produce is
+  // already converged (or one px off, which is a rounding step, not a wobble).
+  const floored = () => (w <= CARD_MIN_W || h <= CARD_MIN_H);
+  let gap = floored() ? CARD_GAP_BASE : gapForCardW(w);
+  if (floored()) GRID_PAD = GRID_PAD_TIGHT;
+  if (gap !== CARD_GAP_BASE || GRID_PAD !== GRID_PAD_BASE) {
+    box = fit(gap, GRID_PAD); w = box.w; h = box.h; shape();
+    // The second solve can reach the floor the first one cleared - a board one
+    // step off it pays the wider gutter and lands on it. Take the room back.
+    if (floored() && (gap !== CARD_GAP_BASE || GRID_PAD !== GRID_PAD_TIGHT)) {
+      gap = CARD_GAP_BASE; GRID_PAD = GRID_PAD_TIGHT;
+      box = fit(gap, GRID_PAD); w = box.w; h = box.h; shape();
+    }
+  }
 
+  CARD_GAP = gap;
   CARD_W = w;
   CARD_H = h;
   CARD_STEP = CARD_H + CARD_GAP;
@@ -82,10 +143,20 @@ function recomputeGridMetrics() {
 function applyGridMetricsToDOM() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
-  const totalW = gridCols * CARD_W + (gridCols - 1) * CARD_GAP + GRID_PAD * 2;
-  const totalH = gridRows * CARD_H + (gridRows - 1) * CARD_GAP + GRID_PAD * 2;
+  // THE BORDER IS COUNTED (r391). A card is absolutely positioned and so anchors
+  // to #grid's PADDING box - inside the border - at GRID_PAD + c * (W + GAP). The
+  // box is sized border-box, so leaving the border out of this left the padding
+  // box 2px short and the board's frame came out GRID_PAD on the left and
+  // GRID_PAD - 2 on the right. At a 3px frame that was invisible; at the 6px one
+  // the rings are drawn in it is a visibly lopsided chasm.
+  const totalW = gridCols * CARD_W + (gridCols - 1) * CARD_GAP + GRID_PAD * 2 + GRID_BORDER * 2;
+  const totalH = gridRows * CARD_H + (gridRows - 1) * CARD_GAP + GRID_PAD * 2 + GRID_BORDER * 2;
   gridEl.style.width  = totalW + 'px';
   gridEl.style.height = totalH + 'px';
+  // A 5px ring stack inside a 3px frame would sit behind the first row of cards
+  // and show only through the gutters, which reads as stray lines rather than as
+  // a chasm - so a tight board takes the shallow set (css/style.css).
+  gridEl.classList.toggle('grid-tight', GRID_PAD < GRID_PAD_BASE);
   // Push live card size to CSS custom props so .card / fonts can react
   document.documentElement.style.setProperty('--card-w', CARD_W + 'px');
   document.documentElement.style.setProperty('--card-h', CARD_H + 'px');
@@ -96,7 +167,37 @@ function applyGridMetricsToDOM() {
   // measured from JS on every resize.
   document.documentElement.style.setProperty('--grid-w', totalW + 'px');
   document.documentElement.style.setProperty('--grid-h', totalH + 'px');
+  replaceGridCells();
   syncSidebarsToGrid();
+}
+
+// A CARD'S SIZE FOLLOWS A RECOMPUTE AND ITS POSITION DID NOT (r391).
+// `--card-w`/`--card-h` are CSS, so every card on the board resizes the instant
+// this runs - but `top`/`left` are inline px written by render(), and nothing
+// rewrites them until the next render(). So any recompute that is not followed by
+// one leaves the board laid out to the PREVIOUS card size, and there is a real
+// path that does exactly that: the office photograph forces the stage landscape
+// (r257) and hands a phone its portrait layout back through applyStageLayout,
+// which recomputes and does not repaint. Measured on a 420x900 phone before this:
+// a pitch of 67 against a 70px cell, i.e. **every card overlapping its neighbour
+// by a pixel**, for the whole round. It is pre-existing and r391 only makes it
+// plainer, because the gutter moves now as well as the card.
+//
+// `dataset.row`/`dataset.col` are on every card render() builds, so re-placing is
+// exact and needs no state of its own. It stands down while the board is moving -
+// the fall animation writes `top` itself, and the discard fly-out an inline
+// transform - and a render() is coming at the end of either anyway.
+function replaceGridCells() {
+  if ((typeof animating !== 'undefined' && animating) ||
+      (typeof falling   !== 'undefined' && falling)) return;
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  gridEl.querySelectorAll('[data-card-id][data-row]').forEach(el => {
+    const r = +el.dataset.row, c = +el.dataset.col;
+    if (!Number.isFinite(r) || !Number.isFinite(c)) return;
+    el.style.left = cellLeft(c) + 'px';
+    el.style.top  = cellTop(r)  + 'px';
+  });
 }
 
 // Landscape only: the playing grid centers inside its slot, so its real footprint

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-29 · r392 · second suit / second rank cards, coin card, op rarity weights";
+const BUILD = "2026-09-29 · r393 · card gap is a share of the card, board rings, hypnosis backdrop";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

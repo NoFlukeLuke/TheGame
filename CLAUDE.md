@@ -10762,3 +10762,175 @@ prints 54 lines, **0 panels spill the stage**, no horizontal page scroll, and
   the face (`cardCoinHTML`, `.card-has-coin` outlines the rank/suit).
 - **`FLOWR_OP_WEIGHTS`** weights the deck editor's op draw and the reward grid's card
   tiles (`flowrDrawOps`). The dual ops are weight 2; see TODO.md for the table.
+
+## r393 - the gap is a share of the card, the board gets rings, and a backdrop turns
+
+Owner: *"Can we shrink the card size by a couple of pixels or so so there's a more
+obvious gap between cards? then we can add the infinity effect to the card grid as
+well. Also, could we add some sort of really faint black and dark grey hypnosis
+pattern animating behind everything?"*
+
+### 1. A SMALLER CARD AND A BIGGER GAP ARE THE SAME EDIT
+
+On a board FITTED to its slot they are one thing seen from either end: the grid
+always fills the measured slot, so a wider gutter IS a smaller card - and a
+smaller card ON ITS OWN buys no gap at all, because `cellLeft` is
+`GRID_PAD + c * (CARD_W + CARD_GAP)` and the gutter is `CARD_GAP` and nothing
+else. So the lever is the gap.
+
+**A FLAT CONSTANT IS THE WRONG SHAPE FOR IT.** A gap costs the same pixels on a
+4x4 board and a 7x7 one, and only the 4x4 has them to spare. `gapForCardW(w)`
+(js/grid-metrics.js) makes it a share of the card's WIDTH - 13%, floored at the
+orientation's old value (`CARD_GAP_BASE`, 5 landscape / 3 portrait) and capped
+three above it.
+
+**TWO PASSES, because the gap depends on the card and the card depends on the
+gap.** The first solve only learns roughly how big a card this board holds; the
+gap it implies is what the board is really built with. A third buys nothing -
+every board size the game can produce is already converged, or one px off, which
+is a rounding step rather than a wobble.
+
+**A BOARD ON THE CARD FLOOR GETS NEITHER THE WIDER GUTTER NOR THE THICKER
+FRAME.** Past `CARD_MIN_W`/`CARD_MIN_H` the card cannot shrink to pay for them,
+so every pixel they take comes straight off the slot. There is a second retry
+for the board that is one step OFF the floor and lands on it by paying for the
+wider gutter: it takes the room back and keeps the bigger card. Measured on the
+Schedule's 4x7 board at 420x900, which is at the floor the moment a run opens -
+it overflowed its slot by **6px before, 26px with the gap and the frame let
+through, and 8px with this**, the 2px being the border fix below.
+
+| desktop | was | is |
+|---|---|---|
+| 3x3 | 85x112, gap 5 | **81x107, gap 8** |
+| 4x4 | 62x82, gap 5 | **59x78, gap 8** |
+| 5x5 | 49x65, gap 5 | **47x62, gap 6** |
+| 6x6 and up | 40x53, gap 5 | **unchanged** (floored) |
+
+Portrait takes the same rule off its own base: 4x4 goes 68x89 gap 3 to
+**64x84 gap 6**.
+
+### 2. THE BORDER IS COUNTED, AND THAT IS WHAT MAKES THE FRAME SYMMETRIC
+
+A card is absolutely positioned and so anchors to `#grid`'s PADDING box, inside
+the border, while the box is sized border-box. Leaving the border out of the
+total left the padding box 2px short, so the frame came out `GRID_PAD` on the
+left and `GRID_PAD - 2` on the right. Invisible at a 3px frame; at the 6px one
+the rings are drawn in, it is a lopsided chasm. `GRID_BORDER` is in the total
+now. Measured: 6/6/6/6 in portrait, 6/7/6/7 on a desktop (a rounding step at
+zoom 1.92).
+
+### 3. A CARD'S SIZE FOLLOWED A RECOMPUTE AND ITS POSITION DID NOT
+
+Found while measuring the above, **pre-existing, and it was making cards
+overlap**. `--card-w`/`--card-h` are CSS, so every card on the board resizes the
+instant `recomputeGridMetrics` runs - but `top`/`left` are inline px written by
+`render()`, and nothing rewrites them until the next one. Any recompute not
+followed by a render therefore leaves the board laid out to the PREVIOUS card
+size, and there is a real path that does exactly that: the office photograph
+forces the stage landscape (r257) and hands a phone its portrait layout back
+through `applyStageLayout`, which recomputes and does not repaint.
+
+Measured on a 420x900 phone before the fix: **a pitch of 67 against a 70px cell,
+every card overlapping its neighbour by a pixel, for the whole round.**
+
+`replaceGridCells()` rewrites `top`/`left` from `dataset.row`/`dataset.col`,
+which `render()` already puts on every card, so it is exact and needs no state.
+**It stands down while `animating || falling`** - the fall animation writes `top`
+itself and the discard fly-out an inline transform, and a render is coming at the
+end of either anyway.
+
+### 4. THE BOARD TAKES THE TRAYS' INFINITY MIRROR
+
+The same three-part ring stack, built from the same `--tray-line*` /
+`--tray-glow*` variables, so a retune there moves the board with it. What it does
+NOT take is the trays' brown gradient or their candy border: the board is the
+play surface rather than a readout, so it keeps its green CRT wash and its black
+edge and `--tray-c` only ever reaches the rings.
+
+- **THE RINGS LIVE IN THE BOARD'S OWN FRAME, WHICH IS WHY `GRID_PAD` WENT 3 ->
+  6.** An inset shadow paints in the background layer, below in-flow content, so
+  a ring can never cover a card - but a ring DEEPER than the frame is hidden
+  behind the first row and shows only in the gutters, which at the r393 gap reads
+  as a grid of stray lines rather than as a chasm. So the 8px `--tray-rings` set
+  is held back to the 5px `--tray-rings-m`, which fits a 6px frame with a pixel
+  to spare, and `.grid-tight` steps that down again to the 3px set on a board
+  whose frame has given way (above).
+- **r392's `body.tray-deep-N` sets are deliberately NOT wired to the board.**
+  They start 9px in, and the board's first card starts at 6px with the next
+  gutter 65px in - so on the grid they would be invisible at every depth rather
+  than merely subtle.
+- Measured across the left edge, green channel: **38 (line 1) -> 19 -> 12 (a real
+  dark gap) -> 26 (line 2) -> 15 -> 12 (the board)** - non-monotonic, which is the
+  r388 shape and is what proves they read as lines rather than as one ramp.
+
+### 5. THE HYPNOSIS BACKDROP - `css/hypno.css`
+
+A faint turning pattern behind the scene: two counter-rotating pinwheels with
+concentric rings over them, spokes in light and rings in ink, so the pair reads
+as grey banding on a dark backdrop and on a bright one alike.
+Settings -> Display -> Background pattern.
+
+**TWO SURFACES, AND THE SECOND ONE IS NOT OPTIONAL.** `#hypno` is the SURROUND -
+the room the machine sits in - and `#hypno-screen` is the CRT'S OWN BACKDROP, the
+ground every tray and the board sit on. With the office photograph live the dive
+ends with the monitor's glass covering the viewport: `#stage` measures 1436x807
+in a 1440x820 window, a two-pixel margin. **Measured, the surround alone changed
+2.2% of a desktop frame against 12.2% of a phone one** - the feature would have
+existed only on phones. With both, 23% on either.
+
+- **NEITHER LAYER MAY BE AN ANCESTOR OF `#stage`.** Both carry a transform, and a
+  transform makes its element the containing block for every `position:fixed`
+  descendant AND a stacking context - which above `#stage` would silently
+  re-anchor the Mart, the pause menu, the shop and every other fixed panel inside
+  it (r180). So the surround is a sibling of `#camera` and the screen layer is a
+  sibling of `#stage`.
+- **INSIDE `#stage` THERE IS NOWHERE LEGAL TO PUT IT**, measured both ways: a
+  `z-index: -1` child ESCAPES, because `#stage` is `position: relative` at
+  z-index auto and so is not a stacking context - the layer lands under
+  `#cabinet`'s own background and is never seen; and a `z-index: 0` first child
+  paints over every static in-flow sibling's BACKGROUND (positioned boxes paint
+  in step 8, static block backgrounds in step 4), which in portrait swallowed the
+  whole top bar. Making `#stage` a stacking context fixes both and is not free:
+  its descendants currently compete directly with `#cab-screen`'s scanline and
+  glare pseudos (z 60/61) and with the attract overlays (z 50), and containing
+  them would put the scanlines over the pause menu and the Mart.
+- **THE SCREEN LAYER CARRIES AN OPAQUE FLOOR, and that is what lets `#stage`'s
+  wash go translucent over it.** `#stage` is what keeps the photograph's glass
+  covered (a photo may have a mock-up baked into it), so it may never become
+  see-through; over an opaque floor it can. Its wash and all five per-screen
+  tints are `rgba(..., 0.82)` now - measured, the wash itself moves by at most
+  4/255 - and the pattern therefore reads at 18% of its own alpha, which is why
+  the screen layer's alphas are set higher than the surround's to land in the
+  same band.
+- **SIZED IN PERCENT, NOT vmax, inside the cabinet.** `#cabinet` carries the
+  stage zoom (~1.9 on a desktop) and a viewport unit is resolved against the
+  viewport and THEN zoomed, so 150vmax there would rasterise a 4000px square to
+  cover an 800px box. 240% of its own width, held square by `aspect-ratio`,
+  clears the box's diagonal at every shape the stage takes.
+- **SEAMLESS BY CONSTRUCTION**: the wheels are `repeating-conic-gradient`s, which
+  are periodic in the angle, so a full 360deg rotation returns them to the frame
+  they started on; the rings only BREATHE, on `alternate`, so they reverse rather
+  than reset. A ring pattern cannot be scaled on a loop - scaling a linear ring
+  pitch by k puts the rings k times further apart - which is why the rings are
+  the part that reverses and the wheels the part that turns.
+- **The breathe rides the STANDALONE `scale` property.** The wheel's rotation
+  already owns `transform`, and two animations writing one property means the
+  later-listed one simply wins; `translate`, `rotate`, `scale` and `transform`
+  are four independent properties that compose in that order, which is also why
+  the centring is `translate` rather than a transform function.
+- **Reduced motion keeps the pattern and stops it moving** - it is a texture as
+  well as an animation. **Off removes the surround outright** rather than hiding
+  it (an idle full-viewport conic gradient is still one to composite), and leaves
+  the screen layer's FLOOR, which the translucent wash sits on.
+- Measured frozen, pattern on against off: **max channel delta 14 and mean 4.1 on
+  a phone**, mean 4.55 on a desktop.
+
+**Verified in a real browser at 1440x820, 1100x620, 420x900 and 360x640**: the
+screen layer covers `#stage` exactly at every one, a point on the stage backdrop
+hit-tests to `#grid-slot` rather than to the layer, cards are still hit-testable,
+**0 panels outside the stage, 0 boards failing their slot that did not already**,
+the per-screen tints still apply, PAUSE opens with its panel topmost, the reward
+grid opens at 16 cells, a planted pair plays its full dance and scores, the shop
+opens, the setting toggles both ways, reduced motion stops both layers, and
+Poker Squares, the Schedule and Survival all deal and fit. **No page errors in
+any run.**
