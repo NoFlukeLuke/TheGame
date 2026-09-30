@@ -198,6 +198,31 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 | PIPS | **WORK** |
 | MULT | **SKILL** |
 | coins | Credits |
+| Knave for the People (trick `knave_power`) | **Jackpot** (the old Jackpot trick, `big_win`, was removed) |
+| Dazed & Confused (sleight `dazed`) | **Fresh Start** |
+| Three's a Crowd (trick `threes_crowd`, retired r361) | **Three's a Crowd**, now a Knack (`threes_crowd_k`) |
+
+## New ids from the 9.24 balance pass (r359-r361)
+
+Ids are frozen from here on; the names are content.
+
+| id | name | type |
+|---|---|---|
+| `obsessed` | Obsessed | Trick (legendary) |
+| `buried_treasure` | Buried Treasure | Trick (legendary) - the DIAMONDS Trick; the original "Buried Treasure" text (x0.1 mult per card of a suit scored this game) moves to spades and is not built yet, name pending |
+| `patient_rulers` | Patient Rulers | Trick (epic) |
+| `even_better` | Even Better | Trick (epic) |
+| `what_odds` | What are The Odds | Trick (epic) |
+| `critical` | Critical | Trick (epic) |
+| `twinners` | Twinners | Trick (epic) |
+| `marathon` | Marathon | Trick (epic) |
+| `feelin_lucky` | Feelin Lucky | Trick (epic) |
+| `threes_crowd_k` | Three's a Crowd | Knack (rare) |
+
+**Inert** (r341) is the word for a Sleight that has been used in place and can
+no longer be swapped or discarded - Piggy Bank and Capacitor. **Royal Reach**
+(r358) is The Queen's rule: it links along its row, column and diagonals at
+any distance.
 
 ## Where the strings live
 

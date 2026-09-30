@@ -26,8 +26,12 @@ const LIMITS_DEF = [
   { id: 'luck',        label: 'Luck',             icon: '🍀', desc: 'Good chance effects fire more often, and better entities turn up', base: 0, max: 100, step: 10, weight: 0.6 },
 ];
 // ══════════════════════════════════════════════
-// MINIMUM SELECTION (r200) - raising your hand size raises the FLOOR too
+// MINIMUM SELECTION (r200) - REMOVED in r385
 // ══════════════════════════════════════════════
+// r385 (owner): "no minimum hand size ever", on the play grid AND the reward
+// grid. minSelection() returns 1, so every gate below reads as satisfied and
+// High Card (gated on minSelectionBinds) is never offered. The history follows.
+//
 // Selection Size is a maximum, and a maximum alone is pure upside: you take the
 // upgrade and keep playing pairs. Tying a minimum to it makes the upgrade a real
 // decision - you must commit that many cards to every hand, so you cannot lean
@@ -41,14 +45,82 @@ const LIMITS_DEF = [
 // It applies to the PLAY GRID ONLY. `limits.selection` also caps the reward grid
 // and the shop pickers, and a minimum there would force you to take seven tiles.
 const MIN_SELECTION_GAP = 2;
-function minSelection() {
-  const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 3;
-  return Math.max(1, cap - MIN_SELECTION_GAP);
+// The RAW floor: the arithmetic alone, with no knack applied. The reward grid
+// reads this one (rewardMinPicks, js/reward-grid.js) because Tagalong is a rule
+// about HANDS and has no business raising or lowering how many tiles a path takes.
+// THERE IS NO MINIMUM ANY MORE (r385). Owner: "I like the idea of a minimum on
+// reward grids, but the game has sort of moved away from the reward grid as the
+// main source of leveling, so it seems odd for there to be no minimum normally,
+// but we would do one on the grid. So no minimum hand size ever." The floor that
+// r200 attached to Selection Size is gone from the play grid AND the reward grid.
+// The functions stay because a dozen callers ask them, and 1 is the honest answer.
+function minSelection() { return 1; }
+// The floor a HAND has to meet. Every play-grid caller reads this one.
+function handMinSelection() { return minSelection(); }
+// Does the minimum actually bite? It never does now, so High Card (the r200
+// escape valve for a selection you were FORCED to make) is never offered: with
+// no minimum nothing is forced.
+function minSelectionBinds() { return handMinSelection() > 2; }
+
+// ══════════════════════════════════════════════
+// KICKERS (r385) - the card a hand carries but does not use
+// ══════════════════════════════════════════════
+// A KICKER is a selected card that no part of the hand claims - poker's own word
+// for the card that rides along beside a pair. (r326 called it a passenger.)
+//
+//   - EVERY hand may carry ONE (`KICKER_BASE_MAX`). It scores nothing, and it
+//     costs its pips off the hand AND its pip value in seconds off the clock.
+//   - TAGALONG lifts the count (any number, or `tagalongMaxCards`) and makes
+//     every kicker FREE: no pips off, no seconds.
+//   - KICK IN makes a kicker SCORE as though it were in the hand - its own pips,
+//     and every per-card Trick it would fire - without changing what the hand is
+//     (a Run of 4 plus a kicker is still a four-card hand to every hand-level
+//     test). calcScore is where that split lives.
+//
+// A card the hand cannot use beyond the allowance is a PENALTY card, as before
+// (r201): outside the hand, billed its pips, consumed anyway.
+const TAGALONG_KEY = 'lethe.tagalong.v2';
+const KICKER_BASE_MAX = 1;
+// How many kickers a hand may carry WITH Tagalong. 0 = unlimited (shipped).
+let tagalongMaxCards = 0;
+// Seconds per point of pip value a kicker costs. 1 = "its rank in time".
+let tagalongTimeRate = 1;
+try {
+  const _tg = JSON.parse(localStorage.getItem(TAGALONG_KEY) || '{}');
+  if (isFinite(_tg.max))  tagalongMaxCards = Math.max(0, Math.min(9, _tg.max | 0));
+  if (isFinite(_tg.rate)) tagalongTimeRate = Math.max(0, Math.min(4, +_tg.rate));
+} catch (e) {}
+function saveTagalongCfg() {
+  try { localStorage.setItem(TAGALONG_KEY, JSON.stringify({ max: tagalongMaxCards, rate: tagalongTimeRate })); } catch (e) {}
 }
-// Does the minimum actually bite? Below 3 it cannot - two cards is the floor for
-// a hand regardless - and High Card is gated on this, so the early game (and the
-// tutorial, which runs at limit 3) is untouched.
-function minSelectionBinds() { return minSelection() > 2; }
+function tagalongOwned() { return typeof hasKnack === 'function' && hasKnack('tagalong'); }
+// How many kickers ONE hand may carry. It is in the components cache key: changing
+// it changes the answer for cells whose cards have not moved.
+function tagalongMax() { return tagalongOwned() ? (tagalongMaxCards > 0 ? tagalongMaxCards : Infinity) : KICKER_BASE_MAX; }
+// Tagalong's other half: kickers cost nothing.
+function kickersFree() { return tagalongOwned(); }
+// Chip In: kickers score and fire per-card Tricks as part of the hand.
+function kickersScore() { return typeof hasKnack === 'function' && hasKnack('kick_in'); }
+// The raw pip value of a set of kicker cells (a wild has none).
+function kickerPipValue(cells) {
+  let pips = 0;
+  (cells || []).forEach(([r, c]) => { const k = gridData[r] && gridData[r][c]; if (k && k.rank && !(typeof isWildCard === 'function' && isWildCard(k))) pips += cardPips(k.rank); });
+  return pips;
+}
+// The pip bill on a set of kicker cells. 0 when Tagalong makes them free, and 0
+// under Chip In, where they SCORE their pips instead: billing a card the pips it
+// just scored would make the knack do nothing.
+function kickerPipBill(cells) {
+  if (!cells || !cells.length || kickersFree() || kickersScore()) return 0;
+  return kickerPipValue(cells);
+}
+// What a set of kicker cells costs in seconds. Rounded once at the end, not per
+// card, so three 7s cost 21s and not 3x7 rounded three times. 0 when free
+// (Tagalong) and 0 under Chip In (r386, owner: it negates the time cost too).
+function tagalongSecondsFor(cells) {
+  if (!cells || !cells.length || tagalongTimeRate <= 0 || kickersFree() || kickersScore()) return 0;
+  return Math.round(kickerPipValue(cells) * tagalongTimeRate * interactTimeCostMult());
+}
 
 const limits = {};
 // ONE builder for a limit's row, because there are TWO places that build it -
@@ -112,9 +184,13 @@ function earlyLimitOfferId() {
 function incrementLimit(id) {
   const l = limits[id];
   if (!l || l.current >= l.max) return false;
+  const _was = l.current;
   l.current = Math.min(l.max, l.current + (l.step || 1));
   if (EARLY_LIMIT_IDS.includes(id)) earlyLimitDone = true;   // guidance satisfied
   onLimitChanged(id);
+  // r399: in Survival and Flow a Starting Time pick is also paid onto the clock
+  // you are playing (js/flow-mode.js). Everywhere else it is a round-START figure.
+  if (id === 'round_time' && typeof roundTimeLimitGained === 'function') roundTimeLimitGained(l.current - _was);
   return true;
 }
 // Helper: decrement a limit by its step (for sacrifice), returns true if

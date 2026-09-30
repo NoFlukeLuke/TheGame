@@ -13,6 +13,20 @@ you are not doing, add it here rather than leaving it in a commit message nobody
 
 ---
 
+## 0. CARD EFFECTS - a probability table, and two dual-identity effects (owner, r391)
+
+**A probability table for which card effects show up** (Flow's deck editor, card packs,
+and since r391 the reward grids' card tiles, which guess at 35% pack / 65% buff op).
+Some effects should be rarer (the x mult / x pips / replay buffs are the obvious ones).
+One table read by every surface, so the odds cannot drift between them.
+
+**The two dual-identity effects shipped in r392** (see CLAUDE.md). What is left here is the
+table itself: `FLOWR_OP_WEIGHTS` in js/flow-rewards.js holds the owner's tiers as a first
+pass (rarest: Second Suit / Second Rank; then Stamp, x mult, x pips, Replay; then Focus,
+Time, Coin, Rank Pull, Cut; then +pips, +mult, Suit Spread). Rank Pull, Cut, Replay and
+Coin were placed by guess and want the owner's call. Also open: the corner-band map for
+x mult / x pips / Focus, which have no mark on the card yet (CARD_EFFECTS.md).
+
 ## 1. MAP MODE - its own mode, owner-specced
 
 The big one. Guided's crossroads answers "what next"; this answers "what is my route through

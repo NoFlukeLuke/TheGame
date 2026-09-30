@@ -153,7 +153,7 @@ const shutFor = n => SHUT[Math.min(n, SHUT.length - 1)];
 
 function tile(opt, size, kind, rar, n, corner, pitch, cap, thick){
   let extra = '', cls = '', style = '';
-  if (opt === 'A' && n > 0) extra = `<div class="rwd-tier">v${n}.0</div>`;
+  if (opt === 'A' && n > 0) extra = `<div class="rwd-tier">v${n + 1}.0</div>`;
   if (opt === 'B' && n > 0) extra = `<div class="rwd-ver">+${n}</div>`;
   if (opt === 'C' && kind === 'trick'){
     cls = ' tb-demo';

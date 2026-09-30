@@ -1,0 +1,37 @@
+/* ── Level types (r399) - js/level-types.js ─────────────────────────────── */
+
+/* RELAY: the goal bar is cut into its bars. The dividers sit over the fill. */
+#score-progress-bar-wrap.q-relay { position: relative; }
+#score-progress-bar-wrap .q-div {
+  position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+  background: #0b0906; pointer-events: none;
+}
+
+/* LINES: a translucent band down each marked line, BEHIND the cards (the
+   r209 line markers are z 1 and the cards z 2), filling with progress along
+   its length, and a pill at the outer end. */
+#grid .q-line {
+  position: absolute; z-index: 1; pointer-events: none; box-sizing: border-box;
+  border: 2px dashed rgba(94, 230, 238, .75); border-radius: 7px;
+  background: rgba(94, 230, 238, .08);
+  --qf: 0;
+}
+#grid .q-line::before {
+  content: ''; position: absolute; inset: 0; border-radius: 5px;
+  background: rgba(94, 230, 238, .22);
+}
+#grid .q-line-row::before { right: calc((1 - var(--qf)) * 100%); }
+#grid .q-line-col::before { top: calc((1 - var(--qf)) * 100%); }
+#grid .q-line.q-done { border-style: solid; border-color: rgba(120, 240, 170, .9); background: rgba(120, 240, 170, .12); }
+#grid .q-line.q-done::before { background: rgba(120, 240, 170, .18); }
+
+/* The pill hangs off the line's END, half outside the board, above the cards. */
+#grid .q-pill {
+  position: absolute; z-index: 3; white-space: nowrap; pointer-events: none;
+  font: 700 9px/1 'Share Tech Mono', monospace; letter-spacing: .5px;
+  color: #041416; background: #5ee6ee; border-radius: 8px; padding: 3px 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+#grid .q-pill-row { transform: translate(-50%, -50%); }
+#grid .q-pill-col { transform: translate(-50%, -50%); }
+#grid .q-pill.q-done { background: #78f0aa; }

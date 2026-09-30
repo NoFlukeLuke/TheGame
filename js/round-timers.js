@@ -43,11 +43,18 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  if (typeof flowrMaybeRunPendingDual === 'function' && flowrMaybeRunPendingDual()) return;
+  // The last round's winning hand goes back into the deck now that the new
+  // board is dealt (r371, js/deck-grid.js) - above the checkpoint, so a save
+  // never captures it held.
+  if (typeof releaseGoalHand === 'function') releaseGoalHand();
   // A live clock again: drop the goal-clear lock the previous round left on it,
   // and any banner still fading (js/goal-clear.js). Every round start funnels
   // through here, so this is the single release point.
   if (typeof clearClockCleared === 'function') clearClockCleared();
   if (typeof hideGoalBanner === 'function') hideGoalBanner();
+  // r399: a shaped round (js/level-types.js) says what it is as it goes live.
+  if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
@@ -58,6 +65,10 @@ function startRoundTimer() {
   if (typeof spectrumClearFixtureExits === 'function') spectrumClearFixtureExits();
   insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
+  // The clock GAINED time, so it has been refilled and the level-up marks on it
+  // describe a run of the clock that is over (js/clock-track.js). Read before
+  // roundStartSeconds is overwritten, which is the only reason this sits here.
+  if (typeof clockMarksReset === 'function' && roundSeconds > roundStartSeconds) clockMarksReset();
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
@@ -134,30 +145,23 @@ function startRoundTimer() {
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.
     if (typeof cardStatesTick === 'function') cardStatesTick();
-    // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
-    if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
-      cuckooNextMinute += BAL.cuckoo.interval_seconds;
-      if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
-    }
-    // Compound (legendary): bank the round score at each mark. It is paid out by the
-    // NEXT scored hand, so a mark passing with nothing scored yet banks nothing -
-    // the trick rewards scoring early and compounds from there.
-    if (hasTrick('compound') && _elapsedRound >= compoundNextMark) {
-      compoundNextMark += BAL.compound.interval_seconds;
-      const _bank = Math.floor(score * BAL.compound.bank_fraction);
-      if (_bank > 0) {
-        compoundBanked += _bank;
-        showMessage('Compound: ' + _bank.toLocaleString() + ' banked', '#d8a13a');
-      }
-    }
-    // The Woodpecker: marking runs in alternating 30s blocks - active 0–30s, off 30–60s, active 60–90s, …
-    // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
+    if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
+    if (typeof fightPowerTick === 'function') fightPowerTick();
+    if (typeof sleightLifeTick === 'function') sleightLifeTick();
+    // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
+    // now, in playHand, at 1s per 5 replays this round.)
+    // The Woodpecker (r348): every interval a new random card is marked, replacing
+    // any mark still standing. A tick with no legal card (mid-fall, a blocked
+    // board) does not spend the block - it tries again on the next tick.
     if (hasTrick('woodpecker')) {
-      const _blk = Math.floor(_elapsedRound / 30);
-      if (_blk !== woodpeckerActiveBlock) {
-        woodpeckerActiveBlock = _blk;
-        woodpeckerPos = (_blk % 2 === 0) ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-        if (!animating && !falling) render(); // show/clear the highlight + trigger the peck animation
+      const _blk = Math.floor(_elapsedRound / BAL.woodpecker.interval_seconds);
+      if (_blk !== woodpeckerActiveBlock && !animating && !falling) {
+        const _pool = hallmarkCandidates().filter(cd => cardId(cd) !== woodpeckerCardId);
+        if (_pool.length) {
+          woodpeckerActiveBlock = _blk;
+          woodpeckerCardId = cardId(_pool[Math.floor(Math.random() * _pool.length)]);
+          render(); // show the highlight + trigger the peck animation
+        }
       }
     }
     updateClockUI();
@@ -272,23 +276,45 @@ function roundClockEndsRound() {
 // actually charge (js/input.js, js/discard.js) and by the Time pop-up that quotes
 // them, so the quote can never drift from the charge the way it did before r151.
 //
-// This is also the fix for a live bug: Flow is documented and displayed as
-// charging 0s, and spendRoundTime returns early for it - but spendRoundTime is
-// not what charges. Both real sites write roundSeconds directly and neither
-// consulted flowActive(), so Flow's session clock was being billed for every
-// swap and discard, which is precisely what its own comment says must not happen
-// (interacting could summon the inspection early).
+// FLOW BILLS ITS CLOCK AGAIN (r326, owner's call). r234 exempted it on the
+// reasoning that its clock is the countdown to the inspection, so interacting
+// could summon the boss early - true, and the owner's answer is that summoning it
+// early is exactly what a cost should feel like there. Flow was the one mode
+// where touching the board was free, which made its swaps and discards pure
+// upside in a mode whose only pressure is Focus decay.
+//
+// A mode that really has no clock to bill still answers false: a picker-built run
+// that chose "no time limit" is forced to `timeCost: 'no'` (js/picker-mode.js),
+// and there is nothing there for a second to come off.
 function interactTimeCostsOn() {
-  if (typeof flowActive === 'function' && flowActive()) return false;
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.timeIsCurrency === false) return false;
   return true;
 }
 
+// FLOW PAYS LESS PER TOUCH, because its clock is asked to cover much more. A
+// Classic 3:00 clock buys ONE round; Flow's 5:00 covers every level-up until the
+// inspection (flowNextRoundSeconds only refills at run start and after a boss),
+// so the same 8s swap is several times dearer there. Half price is the owner's
+// "maybe make them cost a little less".
+//
+// This is the ONE multiplier, and it returns 0 when costs are off - so a caller
+// that multiplies by it needs no second test, and the quote in the Time pop-up
+// reads the same number the charge does.
+const FLOW_INTERACT_TIME_MULT = 0.5;
+function interactTimeCostMult() {
+  // The Flow deck editor's swaps and discards are free of the CLOCK (r395) -
+  // that screen sits between rounds, so it spends the round's leftover STOCK
+  // and not the session clock the inspection is counting down to. Asked here
+  // because this is the one number the two charge sites and the Time pop-up all
+  // read, so the quote and the charge cannot drift (r326).
+  if (typeof deckEditFreeInteract === 'function' && deckEditFreeInteract()) return 0;
+  if (!interactTimeCostsOn()) return 0;
+  if (typeof flowActive === 'function' && flowActive()) return FLOW_INTERACT_TIME_MULT;
+  return 1;
+}
+
 function spendRoundTime(sec) {
-  // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
-  // charging swaps/discards against it would make interacting summon the inspection
-  // early. Swaps and discards are still capped by their per-round COUNTS.
-  if (typeof flowActive === 'function' && flowActive()) return;
+  if (!interactTimeCostsOn()) return;
   if (roundEnded || !sec || sec <= 0) return;
   roundSeconds -= sec;
   if (roundSeconds < 0) roundSeconds = 0;
@@ -303,8 +329,26 @@ function updateClockUI() {
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   const _dur = currentRoundDuration();
-  barEl.style.width = (secs/_dur*100)+'%';
-  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/_dur*100)+'%';
+  // FLOW INVERTS THE BAR (r376). Everywhere else this clock is a ROUND's and
+  // draining is what it means: the bar is the time you have left. In Flow it is
+  // a SESSION clock counting down to the inspection, and nothing on screen said
+  // so - the bar drained exactly like a round's and the round never ended. It
+  // FILLS toward the skull at the right-hand end instead, so the readout reads
+  // as an approach. The digits are unchanged: "how long until the review" is the
+  // same number as "how much time is left". During the boss itself the window IS
+  // a round clock again, so the drain comes back.
+  // clockTrackFills() (js/clock-track.js) is the ONE answer to "is this bar
+  // filling or draining" - every decoration drawn on the track places itself
+  // through it too, so the hatching can never end up on the wrong half.
+  const _fillsUp = (typeof clockTrackFills === 'function')
+    ? clockTrackFills()
+    : ((typeof flowActive === 'function' && flowActive())
+       && !(typeof bossActive !== 'undefined' && bossActive));
+  const _fill = _fillsUp ? (1 - secs/_dur) : (secs/_dur);
+  barEl.style.width = (_fill*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (_fill*100)+'%';
+  // The 30s bands, the Trick windows and the level-up marks (js/clock-track.js).
+  if (typeof renderClockTrack === 'function') renderClockTrack();
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
@@ -369,7 +413,7 @@ function onRoundEnd() {
 
 function _onRoundEndCore() {
   // goalReachedThisRound means the goal hand was already played even if the dance is still running
-  if (score >= roundGoal || goalReachedThisRound) {
+  if (roundQuotaMet() || goalReachedThisRound) {
     cancelDance();
     suppressScoreDisplay = false;
     if (heldBackScore > 0) { score += heldBackScore; heldBackScore = 0; }
@@ -425,6 +469,29 @@ function toastLayer() {
     document.body.appendChild(_toastLayer);
   }
   return _toastLayer;
+}
+
+// ══ A REFUSED MOVE ALWAYS MAKES A NOISE (r378) ═══════════════════════════════
+// Owner: *"do we play a sound for trying to discard or swap when you can't? Or
+// when you try and buy a trick and can't, basically any time a move is
+// disallowed, there should be a uh uh sound. Not harsh but obvious."*
+//
+// There WAS such a sound - `no_swaps`, catalogued as "Action refused" and
+// covered by all four packs - and it reached about six of the forty-odd places
+// the game turns a move down. Everywhere else the refusal was a red toast in
+// silence, which on a board you are looking at reads as the tap not landing at
+// all rather than as the game saying no.
+//
+// `refuse(text)` is the one way that is said, so a refusal cannot be added
+// without its sound the way thirty of them were. It is deliberately NOT part of
+// showMessage: plenty of red messages report something that HAPPENED (a card
+// corrupted, a score lost to a boss) and are not the player being turned down.
+//
+// A MISS IS NOT A REFUSAL. A roll that passed you over is an outcome and gets
+// sfxRewardBad; this is for a move the game would not let you make.
+function refuse(text, opts) {
+  try { sfxNoSwaps?.(); } catch (e) {}
+  if (text) showMessage(text, (opts && opts.color) || 'var(--red)', opts);
 }
 
 function showMessage(text, color, opts) {

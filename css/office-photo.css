@@ -94,8 +94,29 @@ body.office-photo #cab-screen > #mode-select-overlay { inset: 0 !important; }
    are what makes the board read as something a screen is displaying rather than
    as a page. They were inset by the 12px bezel that no longer exists. */
 body.office-photo #cab-screen::after,
-body.office-photo #cab-screen::before { inset: 0 !important; border-radius: 0 !important; }
+body.office-photo #cab-screen::before,
+/* …and so was the hypnosis backdrop (r391), which is inset to the same bezel. */
+body.office-photo #hypno-screen { inset: 0 !important; border-radius: 0 !important; }
 
 /* Anti-aliasing along the trapezoid's edges. A skewed box has diagonal edges the
    compositor has to resolve every frame of the dolly; without a hint they crawl. */
 body.office-photo #cab-screen { backface-visibility: hidden; }
+
+/* ── The first frame is the PHOTO (r384) ─────────────────────────────────────
+   On a phone the photograph arrives a second or two after the page, and until
+   then the r180 CSS room was on screen running its own creep - then it snapped
+   to the photo, which read as the opening jumping between two shots. So nothing
+   in the camera is drawn until the photo has loaded (or failed, or been ruled
+   out): <body> starts with .office-pending in the markup, so this holds from the
+   very first paint, and js/office-photo.js takes it off.
+   The animation is a SAFETY NET, not the mechanism: if nothing ever removes the
+   class, the scene still appears after 8s rather than never. */
+body.office-pending #camera {
+  visibility: hidden;
+  animation: of-pending-giveup 0s linear 8s forwards;
+}
+@keyframes of-pending-giveup { to { visibility: visible; } }
+/* The photo arrives with a short fade rather than a cut from black. */
+body.office-reveal #camera { animation: of-reveal .45s ease-out both; }
+@keyframes of-reveal { from { opacity: 0; } to { opacity: 1; } }
+body.reduced-motion.office-reveal #camera { animation: none; }

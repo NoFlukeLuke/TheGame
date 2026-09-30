@@ -266,6 +266,17 @@ const VEGAS_PACK = {
     vgHopper(9, { spread: 0.7, gain: 0.06, delay: 0.16, lo: 4, hi: 16 });
   },
 
+  // THE REWARD COUNTER (r378) - the one sound in the pack written to RING ON.
+  // A struck house bell over the relay that threw it, with the tail growing a
+  // fifth of a second a bump. Not a bigger coin: the beat is the machine
+  // stopping, so it is the bell and the cabinet, not the payout.
+  reward_count: (step = 0) => {
+    const k = Math.min(step, 5), t = 2.0 + k * 0.22;
+    dRelay({ gain: 0.26, pitch: 0.9, verb: 0.2, weight: 1.2 });
+    [0, 7, 12].forEach((sm, i) => vgBell(sm + k * 2, { dur: t, gain: 0.17 - i * 0.028, delay: i * 0.04, verb: 0.62 }));
+    dSub({ freq: 74, to: 52, dur: t * 0.7, gain: 0.3, sat: 0.4, verb: 0.3 });
+  },
+
   // A compressor pump under the floor. Mechanical, not a pulse.
   heartbeat: (gain = 1.0) => {
     dThump({ freq: 96, to: 34, dur: 0.3, gain: 0.3 * gain, sat: 0.75, verb: 0.1 });
@@ -510,6 +521,15 @@ const HIGHROLLER_PACK = {
     hrBrass(12, { dur: 1.2, gain: 0.105, delay: 0.32, bite: 8, verb: 0.44 });
   },
 
+  // THE REWARD COUNTER (r378) - taiko, then brass and a chime left in the hall.
+  reward_count: (step = 0) => {
+    const k = Math.min(step, 5), t = 2.7 + k * 0.25;
+    hrHit({ gain: 0.34, size: 1.15 + k * 0.05, verb: 0.5 });
+    hrBrass(k * 2, { dur: t * 0.55, gain: 0.17, delay: 0.03, bite: 7, verb: 0.55 });
+    hrChime(12 + k * 2, { dur: t, gain: 0.14, delay: 0.05, verb: 0.62 });
+    dSub({ freq: 62, to: 44, dur: t * 0.6, gain: 0.3, sat: 0.35, verb: 0.3 });
+  },
+
   heartbeat: (gain = 1.0) => {
     hrHit({ gain: 0.2 * gain, size: 1.3, verb: 0.2 });
     hrHit({ gain: 0.13 * gain, delay: 0.14, size: 1.15, verb: 0.2 });
@@ -725,6 +745,16 @@ const NEON_PACK = {
     neSaw(12, { dur: 0.9, gain: 0.11, delay: 0.3, bite: 11, verb: 0.34 });
   },
 
+  // THE REWARD COUNTER (r378) - a tight kick under a wide FM bell and a pad
+  // that is still there when the card bumps again.
+  reward_count: (step = 0) => {
+    const k = Math.min(step, 5), t = 2.1 + k * 0.2;
+    neKick({ gain: 0.34, size: 1.25, verb: 0.16 });
+    neBell(12 + k * 2, { dur: t, gain: 0.16, delay: 0.02, verb: 0.6, bright: 1.1 });
+    neSaw(k * 2, { dur: t * 0.7, gain: 0.135, delay: 0.03, bite: 8, verb: 0.5 });
+    dSub({ freq: 58, to: 40, dur: t * 0.6, gain: 0.33, sat: 0.4, verb: 0.24 });
+  },
+
   heartbeat: (gain = 1.0) => {
     neKick({ gain: 0.3 * gain, size: 1.5, verb: 0.08 });
     neKick({ gain: 0.2 * gain, delay: 0.14, size: 1.35, verb: 0.08 });
@@ -914,6 +944,16 @@ const LOUNGE_PACK = {
     dRun(5, (f, at, i) => loVibe(dDegree('majPent', i + 2), { dur: 1.0, gain: 0.07, delay: at, verb: 0.4 }), { step: 0.075 });
     loThump({ gain: 0.2, delay: 0.3, size: 1.1, verb: 0.3 });
     [0, 4, 7, 11].forEach((s, i) => loKey(s + 12, { dur: 1.4, gain: 0.08, delay: 0.3 + i * 0.02, verb: 0.38 }));
+  },
+
+  // THE REWARD COUNTER (r378) - a tape thump, a vibes chord left to ring, and
+  // an upright walking a tone up each bump.
+  reward_count: (step = 0) => {
+    const k = Math.min(step, 5), t = 2.2 + k * 0.22;
+    loThump({ gain: 0.28, size: 1.05, verb: 0.3 });
+    [0, 7, 16].forEach((sm, i) => loVibe(sm + k * 2, { dur: t, gain: 0.13 - i * 0.018, delay: i * 0.035, verb: 0.58 }));
+    loKey(k * 2, { dur: t * 0.7, gain: 0.115, delay: 0.04, verb: 0.46 });
+    loBass(k * 2 - 12, { dur: 0.9, gain: 0.22, verb: 0.2 });
   },
 
   heartbeat: (gain = 1.0) => {

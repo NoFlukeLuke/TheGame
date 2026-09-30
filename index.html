@@ -15,14 +15,17 @@
 <title>Poker Grid - Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
+<link rel="stylesheet" href="css/climb.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
 <link rel="stylesheet" href="css/guided.css">
 <link rel="stylesheet" href="css/payout-pick.css">
 <link rel="stylesheet" href="css/map-mode.css">
 <link rel="stylesheet" href="css/squares.css">
+<link rel="stylesheet" href="css/squares-report.css">
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
+<link rel="stylesheet" href="css/flow-rewards.css">
 <link rel="stylesheet" href="css/grid-pick.css">
 <link rel="stylesheet" href="css/payout-grid.css">
 <link rel="stylesheet" href="css/records.css">
@@ -34,17 +37,21 @@
 <link rel="stylesheet" href="css/insights.css">
 <link rel="stylesheet" href="css/info-hub.css">
 <link rel="stylesheet" href="css/builds.css">
+<link rel="stylesheet" href="css/hypno.css">
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/office-photo.css">
 <link rel="stylesheet" href="css/clock-fx.css">
+<link rel="stylesheet" href="css/clock-track.css">
 <link rel="stylesheet" href="css/goal-clear.css">
 <link rel="stylesheet" href="css/quarter.css">
 <link rel="stylesheet" href="css/entity-fx.css">
+<link rel="stylesheet" href="css/level-types.css">
 <link rel="stylesheet" href="css/card-states.css">
 <link rel="stylesheet" href="css/audio-menu.css">
 <link rel="stylesheet" href="css/picker.css">
+<link rel="stylesheet" href="css/queue-views.css">
 </head>
-<body>
+<body class="office-pending">
 <div id="knack-tooltip" role="tooltip"></div>
 
 
@@ -199,6 +206,21 @@
     </label>
     <div class="dev-slider-row"><span>Flush overlay needs <b id="dev-flushmin-val">3</b> of a suit</span>
       <input id="dev-flushmin" type="range" min="3" max="7" value="3" step="1" oninput="devSetFlushOverlayMin(this.value)"></div>
+  </div>
+
+  <!-- KICKERS (r385): the rules live in js/limits.js. -->
+  <div class="dev-section" data-group="tagalong">
+    <div class="dev-section-title">Kickers (Tagalong / Chip In)</div>
+    <div class="dev-note">
+      A kicker is a selected card that no part of the hand uses. Every hand may carry one:
+      it scores nothing and costs its pips off the score and its pip value in seconds.
+      Tagalong allows more and makes them free. Chip In makes them score and fire Tricks.
+    </div>
+    <div id="dev-tag-state" class="dev-note" style="color:var(--gold)"></div>
+    <div class="dev-slider-row"><span>Kickers per hand with Tagalong: <b id="dev-tag-max-val">unlimited</b></span>
+      <input id="dev-tag-max" type="range" min="0" max="9" value="0" step="1" oninput="devSetTagalongMax(this.value)"></div>
+    <div class="dev-slider-row"><span>Seconds per pip: <b id="dev-tag-rate-val">1</b></span>
+      <input id="dev-tag-rate" type="range" min="0" max="2" value="1" step="0.25" oninput="devSetTagalongRate(this.value)"></div>
   </div>
 
   <!-- LEVEL -->
@@ -501,7 +523,51 @@
     <button class="dev-btn" onclick="devResetFocusTunables()" style="margin-top:8px;">Reset all of the above to defaults</button>
   </div>
 
-  <!-- HUD TOGGLES -->
+  <!-- AESTHETICS - the home for look-and-feel knobs (owner, r394: "for this
+       type of stuff it can all go in aesthetics"). -->
+  <div class="dev-section" data-group="aesthetics">
+    <div class="dev-section-title">Aesthetics</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Infinity tray: extra depth lines
+      <select id="dev-tray-depth" onchange="setTrayDepth(+this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="0">0 (r388)</option><option value="1">+1</option><option value="2">+2</option>
+        <option value="3">+3 (default)</option><option value="4">+4</option>
+      </select>
+    </label>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Board deal</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">How a fresh board arrives at the start of a round. The cascade dealt the bottom row first and took 1.45s to finish.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Cards deal
+      <select id="dev-deal-style" onchange="setDealStyle(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="together">all at once (default)</option>
+        <option value="cascade">row by row (pre-r394)</option>
+      </select>
+    </label>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Portrait clock bar</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">The timer's track in the phone top bar. Thickness is capped below by the review mark beside it (18px), which is what the bands and level-up marks need to be legible.</div>
+    <div id="dev-clockbar-rows"></div>
+    <button class="dev-btn" onclick="resetClockBar()" style="margin-top:6px;">Reset the bar to 150 x 18</button>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Level-up confetti &amp; lasers</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">Flow's reward counter. Percentages are of the base effect. Lasers: two per reward, coloured by tier. On/off: 1 or 0. Use the chip previews below to test.</div>
+    <div id="dev-flowrfx-rows"></div>
+    <button class="dev-btn" onclick="resetFlowrFx()" style="margin-top:6px;">Reset confetti &amp; lasers</button>
+
+    <div class="dev-subtitle" style="margin-top:10px;">Reward chip</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">The card that announces how many rewards a level-up paid, and the confetti burst under it (one per reward, in that reward's tier colour). Each look is a different object with its own entrance, not a recolour.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Look
+      <select id="dev-flowr-chip" onchange="setFlowrChipStyle(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;"></select>
+    </label>
+    <div id="dev-flowr-chip-note" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="flowrPreviewChip(1)">Preview x1</button>
+      <button class="dev-btn" onclick="flowrPreviewChip(3)">Preview x3</button>
+      <button class="dev-btn" onclick="flowrPreviewChip(5)">Preview x5</button>
+    </div>
+  </div>
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">HUD</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
@@ -564,6 +630,30 @@
       </select>
     </label>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A boss round or a grid-size change still redeals - a post-boss board can carry holes, and a resized board cannot be kept.</div>
+
+    <div style="border-top:1px solid #3a3428;margin:8px 0 2px;"></div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);">FLOW · MULTI-REWARD CHAIN</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear pays 1-5 reward screens. TWO flat rolls: how many, then what each one is - each slot rolled on its own, so a kind's share says nothing about where it lands and a chain can repeat one. Luck leans the count upward.</div>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-flowr-on" type="checkbox" onchange="flowrDevSet('on', this.checked)" style="accent-color:var(--gold);"> Enabled
+    </label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-counts">
+      <span>How many:</span>
+      <label>1 <input id="dev-flowr-c0" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 0)"></label>
+      <label>2 <input id="dev-flowr-c1" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 1)"></label>
+      <label>3 <input id="dev-flowr-c2" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 2)"></label>
+      <label>4 <input id="dev-flowr-c3" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 3)"></label>
+      <label>5 <input id="dev-flowr-c4" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 4)"></label>
+      <span id="dev-flowr-counts-out" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>
+    </div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">Weights, not percentages - they are normalised, so a column that does not sum to 100 still plays the ratios you set. The arrow beside each is the share it MEASURES at, which is not the weight: a kind already drawn in a chain is damped to 30% of its weight for the rest of it, and PICK 3 to nothing - so pick 3 pays for every repeat that does not happen and the others gain a little.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-odds"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">EARLY overrides apply while level &lt;= 5. Blank means "use the standard share"; 0 means "never".</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-early"></div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="dev-btn" onclick="flowrDevReset()">Reset to shipped</button>
+      <span id="dev-flowr-phase" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>
+    </div>
   </div>
 
   <div class="dev-section" data-group="map">
@@ -615,6 +705,15 @@
   </div>
 
   <div class="dev-section" data-group="deck">
+    <div class="dev-section-title">Wild cards &middot; how many in the deck</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
+      A wild takes any rank to complete a SET, and only a set - never a run, never a flush. It scores no pips and fires no Tricks. Applies at the START OF THE NEXT ROUND. Four by default, in the classic and six-suit decks alike; Spectrum and the four modes with their own hand detection never deal them.
+    </div>
+    <div id="dev-deck-wilds" class="dev-spec-row"></div>
+    <div id="dev-deck-wildstat" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;line-height:1.5;"></div>
+  </div>
+
+  <div class="dev-section" data-group="deck">
     <div class="dev-section-title">Weighted Deck &middot; copies per rank</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
       A set needs several copies of ONE rank; a run needs one copy each of several ADJACENT ranks. Give the common ranks plenty of copies and keep them apart on the ladder, and sets get much easier while runs do not.
@@ -651,6 +750,15 @@
     </div>
   </div>
 
+  <div class="dev-section" data-group="squares">
+    <div class="dev-section-title">Poker Squares - the daily grids</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      The 3x3 and 4x4 grids. Changes apply to the NEXT run - the deck and its rank window are built once, when the board size is picked. A row moved off its shipped value is gold.
+    </div>
+    <div id="dev-squares-rows"></div>
+    <div id="dev-squares-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
+    <button class="dev-btn" onclick="devResetSquares()">Reset to shipped</button>
+  </div>
   <div class="dev-section" data-group="spectrum">
     <div class="dev-section-title">Spectrum Deck</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
@@ -731,6 +839,12 @@
   <button class="overlay-close">Close</button>
 </div>
 
+<!-- THE HYPNOSIS BACKDROP (r391) - css/hypno.css.
+     A faint turning pattern behind the whole scene. A SIBLING of #camera, never
+     an ancestor of it: it carries a transform, and a transform on anything above
+     #stage re-anchors every position:fixed panel inside it. -->
+<div id="hypno" aria-hidden="true"></div>
+
 <!-- ROOM + CAMERA (r180) - js/camera.js + css/room.css.
      #camera is a fixed, transform-scaled viewport onto the world. The room and
      the cabinet are BOTH inside it, so a single transform dollies the whole scene
@@ -778,6 +892,13 @@
     <div id="cab-stripe"></div>
   </div>
   <div id="cab-screen">
+  <!-- THE CRT'S BACKDROP (r391) - css/hypno.css. The same turning pattern the
+       surround carries, on the ground every tray and the board sit on. A SIBLING
+       of #stage (it carries a transform) and the FIRST child of #cab-screen, so
+       DOM order alone puts the game in front of it. It paints an opaque floor,
+       which is what lets #stage's wash go translucent over it without the office
+       photograph showing through the game. -->
+  <div id="hypno-screen" aria-hidden="true"></div>
 <!-- Boss-approach FX (js/boss-approach.js). A SIBLING of #stage, not a child:
      the approach drains the colour out of #stage with a `filter`, and a filter
      applies to the whole subtree - inside it the red alarm would drain along with
@@ -826,7 +947,7 @@
 <div id="mode-select-overlay">
   <div id="mode-select-inner">
     <div id="mode-select-title">SELECT MODE</div>
-    <div id="mode-select-sub">Scroll sideways · press PLAY to begin</div>
+    <div id="mode-select-sub">Scroll · press PLAY to begin</div>
     <div id="mode-carousel-wrap">
       <button class="mode-arrow" id="mode-arrow-left" onclick="scrollModes(-1)" aria-label="Previous mode">‹</button>
       <div id="mode-carousel"></div>
@@ -883,12 +1004,16 @@
   <div id="clock-area">
     <div id="clock">1:00</div>
     <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
+    <!-- Flow only (r376): the bar FILLS toward this mark as the session clock
+         runs down, so the readout reads as an approach rather than a drain.
+         Tap it for the boss you are heading for. -->
+    <button id="clock-boss" class="clock-boss" type="button" title="Manager review">&#9760;</button>
     <button id="skip-btn" type="button">Skip »</button>
   </div>
   <!-- The "Hands" counter was removed from the top bar (r160) - it is a
        statistic, not a live decision input, and it is still in Records. -->
   <div class="top-stat" id="sel-stat">
-    <span class="top-label">Hand</span>
+    <span class="top-label">Hand Size</span>
     <span class="top-value" id="sel-display">✋ 0</span>
   </div>
   <div class="top-stat">
@@ -957,7 +1082,7 @@
       </div>
       <!-- Trick Tray (visible only in trickTrayMode) -->
       <div id="trick-tray-area" style="display:none">
-        <span class="panel-title">Tricks <span id="trick-tray-count"></span></span>
+        <span class="panel-title"><span id="tray-title-word">Tricks</span> <span id="trick-tray-count"></span></span>
         <div id="trick-tray-list"></div>
       </div>
       <!-- Knack section -->
@@ -998,12 +1123,15 @@
            children and renderRewardTiles empties it outright. It sits in the slot's
            empty margin around the centred grid (above it in portrait, beside it in
            landscape), sized off --grid-w / --grid-h. -->
-      <div id="sel-count"><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
+      <div id="sel-count"><span id="sel-count-hand">&#9995;</span><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->
     <div id="action-col">
-      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
+      <!-- r389: it is a BUTTON, not a readout. It has performed the swap since
+           r326 (js/input.js) and said so nowhere - an emoji and a number beside
+           two neighbours that read DISCARD and PLAY. The word is the whole fix. -->
+      <div id="swap-indicator" title="Select two cards, then tap to swap them">🔄&#10;<span class="swap-word">SWAP</span>&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
       <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span><span class="act-cost" id="disc-cost">3s</span></button>
       <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
     </div>
@@ -1016,7 +1144,7 @@
   </div>
 
   <!-- v7 landscape-only blocks (hidden in portrait) -->
-  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
+  <div id="vclock" class="v7-ls"><div id="vclock-fill"></div><button id="vclock-boss" class="clock-boss" type="button" title="Manager review">&#9760;</button></div>
   <div id="run-progress" class="v7-ls rp-block">
     <div class="rp-act">Q1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
@@ -1024,7 +1152,8 @@
     <div class="rp-sigil">&#9760;</div>
   </div>
   <div id="coin-info" class="v7-ls">
-    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
+    <div class="ci-level">LEVEL <b id="ci-level">1</b></div>
+    <div class="ci-main">&#128176;<b id="ci-gold">0</b><span class="ci-unit">credits</span></div>
     <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
     <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
   </div>
@@ -1339,6 +1468,7 @@
 <script src="js/entity-tooltip.js"></script>
 <script src="js/float-anim.js"></script>
 <script src="js/grid-pick.js"></script>
+<script src="js/reward-transition.js"></script>
 <script src="js/heartbeat.js"></script>
 <script src="js/channel-change.js"></script>
 <script src="js/difficulty.js"></script>
@@ -1359,6 +1489,7 @@
 <script src="js/hud.js"></script>
 <script src="js/input.js"></script>
 <script src="js/play-hand.js"></script>
+<script src="js/climb-mode.js"></script>
 <script src="js/dance-clock.js"></script>
 <script src="js/score-anims.js"></script>
 <script src="js/goal-clear.js"></script>
@@ -1379,11 +1510,13 @@
 <script src="js/card-states.js"></script>
 <script src="js/payout-pick.js"></script>
 <script src="js/guided-mode.js"></script>
+<script src="js/level-types.js"></script>
 <script src="js/map-mode.js"></script>
 <script src="js/crunch-mode.js"></script>
 <script src="js/map-draw.js"></script>
 <script src="js/squares-daily.js"></script>
 <script src="js/squares-mode.js"></script>
+<script src="js/squares-report.js"></script>
   <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
@@ -1405,10 +1538,12 @@
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/clock-fx.js"></script>
+<script src="js/clock-track.js"></script>
 <script src="js/entity-fx.js"></script>
 <script src="js/cooldown.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/flow-rewards.js"></script>
 <script src="js/flow-mode.js"></script>
 <script src="js/goal-tuning.js"></script>
 <!-- picker-mode.js: after flow-mode.js, because modeHasNoRoundClock/pickerRoundSeconds
@@ -1426,6 +1561,7 @@
 <script src="js/tutorial.js"></script>
 <script src="js/info-hub.js"></script>
 <script src="js/insights.js"></script>
+<script src="js/queue-views.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

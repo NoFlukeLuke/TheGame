@@ -12,6 +12,18 @@ function render() {
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
   // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
   if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
+  // A GRID PICK OWNS #grid THE SAME WAY, and until r377 nothing said so - the
+  // owner's "strange occasional bug where the options for the pick three don't
+  // stay". render() does not clear #grid, it APPENDS cards into it and only
+  // reconciles elements carrying [data-card-id], so a stray repaint during a
+  // pick deals the whole board over the option tiles (and since r332 the board
+  // PERSISTS between rounds, so gridData is full at exactly that moment - the
+  // cards are there to be drawn). It can throw as well: the pick asks for a
+  // 6x4 board and gridData may be 4 rows, so gridData[4][c] is a read off
+  // undefined. The pick's own renderer is the only thing entitled to paint
+  // here; Survival's PEEK is the one place the board is wanted back, and it
+  // releases the takeover first (gridPickSetShown), so this test is false there.
+  if (typeof gridPickState !== 'undefined' && gridPickState && gridScreenSaved) return;
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
@@ -33,10 +45,17 @@ function render() {
 
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
-      const card = gridData[r][c];
+      const card = gridData[r]?.[c];   // the ROW can be missing too (r377) - see the note on !card below
       const key = `${r}-${c}`;
       const isChallenge = !!(challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c && card === null);
-      if (card === null && !isChallenge) continue;
+      // !card, not `card === null` (r373). An UNDEFINED cell passed this guard
+      // and threw on card._id two lines down: gridData is ragged for as long as
+      // a takeover screen has resized gridRows/gridCols out from under a deal
+      // animation whose completion callback then calls render() (level-up.js).
+      // Reproduced through a grid-pick opened mid-deal. null and undefined both
+      // mean "no card here", and this is the hazard _devSafeRender only half
+      // covers - it checks gridData has ROWS, not that the rows hold cells.
+      if (!card && !isChallenge) continue;
 
       // During deal phase, skip rendering cards into the grid - temp-anim elements handle visuals
       if (dealPhase) continue;
@@ -69,9 +88,10 @@ function render() {
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
         // (1/2) instead of its charges - same rule as renderCardAppearance.
+        const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
-          : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
+          : (card._usesLeft === 'infinite' ? '∞' : (_maxChJ ? `${card._usesLeft}/${_maxChJ}` : card._usesLeft));
         const _isAim = AIM_SLEIGHTS.has(def?.id);
         // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
         // not .card, so none of the .card.selected.hand-valid / .hand-ready /
@@ -83,6 +103,7 @@ function render() {
         const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
                       + (_unreachJ ? ' unreachable' : '')
                       + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+                      + (card._inert ? ' sleight-inert' : '')
                       // className is rewritten wholesale below, so an in-flight
                       // double-tap spin has to be carried across the repaint.
                       + (div.classList.contains('sl-spin') ? ' sl-spin' : '');
@@ -95,13 +116,20 @@ function render() {
               `<div class="sleight-card-name">${def?.name||'Sleight'}</div>` +
             `</div>` +
             `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
-          div.onclick = () => onCardTap(r, c);
+          // No div.onclick here (r326): the grid's own pointerup handler already
+          // routes a tap on any [data-row] tile into onCardTap, so an onclick on
+          // top of it fired onCardTap TWICE per physical click. On a double_tap
+          // Sleight that was the Magnet bug the owner reported: ONE click read
+          // as a double tap (call 1 stamped lastTapCell, call 2 saw it inside
+          // 350ms) and armed it, and a REAL double tap armed on the first click
+          // and hit the "tapping Magnet cancels" intercept on the second - so
+          // the printed gesture was the one gesture that could never work.
           attachLongPress(div, r, c);
           continue;
         }
         div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
-        div.onclick = () => onCardTap(r, c);
+        div.onclick = null;   // see the aim-sleight note above - pointerup owns the tap
         attachLongPress(div, r, c);
         continue;
       }
@@ -130,8 +158,18 @@ function render() {
       const isHandValid  = !isHandReady && isSel && !!bestHandResult;
       // r254: a selected card the best hand DROPS (r201 penalty card). Its pips
       // will be subtracted and the card consumed - say so before the commit.
+      // r385: a KICKER is painted red only while it is BILLED (Tagalong makes it
+      // free). r326: a TAGALONG is painted the same way, and that is the point. It is
+      // inside the hand and in none of its components, so it costs pips and clock
+      // exactly as a dropped card costs pips - and until now it was drawn as an
+      // ordinary member of the hand, which is why a 7-card selection carrying two
+      // passengers read as "RUN 3 x2" with nothing at all saying the other cards
+      // were doing nothing. One class, one meaning: this card is not part of the
+      // hand and you are paying for it.
       const isPenalty    = isSel && !!bestHandResult
-        && (bestHandResult.penaltyCells || []).some(([pr, pc]) => pr === r && pc === c);
+        && ((bestHandResult.penaltyCells || []).some(([pr, pc]) => pr === r && pc === c)
+         || ((bestHandResult.tagalongPips > 0 || bestHandResult.tagalongSeconds > 0)
+             && (bestHandResult.tagalongCells || []).some(([pr, pc]) => pr === r && pc === c)));
 
       const { className, innerHTML } = renderCardAppearance(card, r, c, {
         isSel, selIdx, isHandReady, isHandValid, isPenalty,
@@ -176,13 +214,19 @@ function render() {
   updateDeckHud();
 
   // r200: below the minimum selection there is no play, however good the hand is.
-  const _belowMin = (typeof minSelection === 'function') && selected.length > 0 && selected.length < minSelection();
+  const _belowMin = (typeof handMinSelection === 'function') && selected.length > 0 && selected.length < handMinSelection();
 
   // Hand preview
   // POKER SQUARES OWNS THIS PANEL. Its three polyomino tiles live in
   // #selected-cards - they ARE "the hand you are about to play" - and this block
   // clears the element unconditionally, so any stray render() would wipe them.
   // Guarded rather than ordered around: render() is called from dozens of places.
+  // While a dance runs the block below is skipped entirely, but the LABEL still has to
+  // follow a new live selection (r401): the tally's hold (js/hud.js) stops it being
+  // blanked, and only a selection that actually names a hand gets through it.
+  if (danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
+  }
   if (!danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
@@ -190,7 +234,7 @@ function render() {
     // The preview CARDS stay inert until a hand is submitted (r99), but the hand
     // NAME is live from the first selection - it is what you need before you
     // commit, and with layered hands it is the only place the second hand shows.
-    updateHandNameLabel(_belowMin ? { short: minSelection() } : bestHandResult);
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
     if (bestHandResult) {
@@ -231,8 +275,7 @@ function render() {
     const hasTrickCard = trickCardPos && handCells.some(([r,c])=>r===trickCardPos[0]&&c===trickCardPos[1]);
 
     const bonusLines = [];
-    if (hasTrick('rich_soil')) bonusLines.push({ label:'Rich Soil', val:`+${handCells.length} pips`, type:'pip' });
-    if (hasTrick('fertile_ground')) bonusLines.push({ label:'Fertile Ground', val:`+${handCells.length*3} pips`, type:'pip' });
+    if (hasTrick('rich_soil')) bonusLines.push({ label:'Rich Soil', val:`+${BAL.rich_soil.mult*handCells.length} mult`, type:'mult' });
     if (hasTrick('court_of_leaves') && cards.some(c=>['J','Q','K'].includes(c.rank))) bonusLines.push({ label:'Court of Leaves', val:'+pips', type:'pip' });
     if (hasTrick('still_water')) {
       const elapsedSinceSwap = lastSwapRoundSeconds !== null
@@ -242,32 +285,31 @@ function render() {
       if (swMult > 0) bonusLines.push({ label:'Eagle Eye', val:`+${swMult} mult`, type:'mult' });
     }
     if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
-    if (hasTrick('hummingbird') && pauseInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${pauseInstanceGame*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
+    if (hasTrick('hummingbird') && pauseInstanceGame + rewindInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${(pauseInstanceGame+rewindInstanceGame)*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
     if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
     if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:'Sediment', val:`+${_sp} pips`, type:'pip' }); }
     if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
     if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
     if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
-    if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:`Minute Hand (${minuteHandCharges} left)`, val:`+${BAL.minute_hand.mult} mult`, type:'mult' });
-    if (pendingHandMult > 0) bonusLines.push({ label:'Pending mult', val:`+${pendingHandMult} mult`, type:'mult' });
+    if (pendingHandMult > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingHandMult} mult`, type:'mult' });
+    if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:'Minute Hand', val:`x${BAL.minute_hand.mult_mult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
     if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
-    if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:'Quake', val:`+${3*_setMax} mult`, type:'mult' });
-    if (hasTrick('trinity') && _setMax >= 2) bonusLines.push({ label:'Shock', val:`+${12*_setMax} pips`, type:'pip' });
+    if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:'Quake', val:`+${BAL.kindred.mult_per_card*_setMax} mult`, type:'mult' });
     if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
-    if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) bonusLines.push({ label:'Rogue Wave', val:`+${80*cards.length} pips`, type:'pip' });
+    if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) { const _crp = trickPickOne(0, handCells); bonusLines.push(_crp === 0 ? { label:'Rogue Wave', val:`+${BAL.correct_run.pips} pips`, type:'pip' } : _crp === 1 ? { label:'Rogue Wave', val:`+${BAL.correct_run.mult} mult`, type:'mult' } : { label:'Rogue Wave', val:`+${BAL.correct_run.focus} Focus`, type:'focus' }); }
     if (hasTrickCard) bonusLines.push({ label:'⭐ Trick', val:'×2 score', type:'score' });
     if (hasTrick('early_bird') && roundFractionRemaining()>2/3) bonusLines.push({ label:'Early Bird', val:`+${BAL.early_bird.pips_per_card*cards.length} pips`, type:'pip' });
     if (hasTrick('kindling')) {
       const _previewStreak = (lastHandType !== null && hand === lastHandType) ? streakCount + 1 : 1;
-      if (_previewStreak > 1) bonusLines.push({ label:`Kindling ×${_previewStreak-1}`, val:`+${4*(_previewStreak-1)} pips`, type:'pip' });
+      if (_previewStreak > 1) bonusLines.push({ label:`Kindling ×${_previewStreak}`, val:`+${BAL.kindling.mult_per_streak*_previewStreak} mult`, type:'mult' });
     }
 
     // Suits neutral by default - preview only shows active Trick effects
-    const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
-    const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
-    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${5*(Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
+    const clubCnt  = cards.filter(c => c.suit==='♣'||c.suit2==='♣').length;
+    const heartCnt = cards.filter(c => c.suit==='♥'||c.suit2==='♥').length;
+    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
 
     breakdownEl.innerHTML = `
       <div class="sb-row"><span class="sb-label">Base pips (lv${level})</span><span class="sb-value">${scaledBasePips}</span></div>
@@ -280,6 +322,7 @@ function render() {
         return `<div class="sb-row"><span class="sb-label">${withSuitHalo(b.label)}</span><span class="sb-value ${cls}" ${style}>${withSuitHalo(b.val)}</span></div>`;
       }).join('')}
       ${penaltyPips > 0 ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Penalty (${penaltyCells.length} unused)</span><span class="sb-value" style="color:var(--red)">−${penaltyPips}</span></div>` : ''}
+      ${(bestHandResult.tagalongPips > 0 || bestHandResult.tagalongSeconds > 0) ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Kicker (${bestHandResult.tagalongCells.length})</span><span class="sb-value" style="color:var(--red)">${bestHandResult.tagalongPips > 0 ? '−' + bestHandResult.tagalongPips : ''}${bestHandResult.tagalongSeconds > 0 ? ` · −${bestHandResult.tagalongSeconds}s` : ''}</span></div>` : ''}
       <div class="sb-divider"></div>
       <div class="sb-total"><span class="sb-label">SCORE</span><span class="sb-value">${finalScore.toLocaleString()}</span></div>
     `;
@@ -302,7 +345,9 @@ function render() {
   // paints them from sqPaintButtons, so render() must not write over them.
   const _takeover = (typeof squaresActive === 'function' && squaresActive())
                  || (typeof shopGridActive !== 'undefined' && shopGridActive)
-                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+                 || (typeof flowrDeckActive === 'function' && flowrDeckActive())
+                 || (typeof gridPickState !== 'undefined' && !!gridPickState);
   if (!_takeover) {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.
@@ -314,12 +359,25 @@ function render() {
   // for the length of it and an unguarded write throws mid-render.
   { const _dc = document.getElementById('disc-count'); if (_dc) _dc.textContent = `(${discards})`; }
   { const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent = swaps; }
+  // ARMED: exactly two cards selected and stock to spend, so tapping SWAP will
+  // do something. It is the only thing that teaches the button - the gesture
+  // (double-tap to lift, tap a neighbour) is not guessable, and r326's click
+  // handler had been live and unadvertised ever since. Guarded on _takeover for
+  // the reason the two `disabled` writes above are: the shop, the reward grid,
+  // Poker Squares and the grid pick all repurpose this element, and a stray
+  // class from the play screen would light THEIR button. doSwap still owns
+  // every rule (adjacency, curses, Pivot, boss refusals), so this is optimistic
+  // by design: a swap the board refuses still says so out loud.
+  { const _si = document.getElementById('swap-indicator');
+    if (_si) _si.classList.toggle('swap-armed',
+      !_takeover && selected.length === 2 && swaps > 0 && !roundEnded && !(animating && !falling)); }
 
   // Marked-row / marked-column lines. Drawn last, for the same reason
   // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the
   // board empty" test is a DOM query, which would be a render out of date if it
   // ran before the card loop above (js/entity-fx.js).
   if (typeof renderLineMarkers === 'function') renderLineMarkers();
+  if (typeof renderQuotaLines === 'function') renderQuotaLines();
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();

@@ -870,17 +870,19 @@
   .aim-arrow.aim-right { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) *  0.30)); }
   .trick-tray-chip.trick-mirror { transition: transform .2s ease; }
   /* Sleight tooltip (shown on single-tap, like Trick tooltip) */
+  /* Body-level (see placeCardTooltip), so these are REAL viewport px, not stage px. */
   .sleight-tooltip {
-    position: absolute; z-index: 50;
+    position: fixed; z-index: 640;
     background:#1e1a0e; border:1px solid #8844cc;
-    border-radius:6px; padding:8px 10px; max-width:200px;
+    border-radius:6px; padding:10px 12px; width:max-content; max-width:min(260px, calc(100vw - 20px));
     box-sizing: border-box; white-space: normal;
-    overflow-wrap: break-word; word-break: break-word;
+    overflow-wrap: break-word;
     font-family:'Cinzel',serif; pointer-events:none;
   }
-  .sleight-tooltip-name { font-size:11px; color:#cc88ff; margin-bottom:3px; }
-  .sleight-tooltip-desc { font-size:10px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
-  .sleight-tooltip-hint { font-size:8px; color:var(--gold-dim); margin-top:5px; letter-spacing:0.5px; }
+  .sleight-tooltip-name { font-size:13px; color:#cc88ff; margin-bottom:4px; }
+  .sleight-tooltip-desc { font-size:13px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
+  .sleight-tooltip-uses { font-size:11px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; margin-top:5px; }
+  .sleight-tooltip-hint { font-size:9px; color:var(--gold-dim); margin-top:6px; letter-spacing:0.5px; }
 
 /* ── Channel change (js/channel-change.js) ────────────────────────────────────
    Full-viewport CRT transition layers. They sit above every screen - the Mart
@@ -1088,3 +1090,30 @@
   width:18px; height:18px; padding:0; cursor:pointer; color:var(--cream);
   background:rgba(212,175,95,0.14); border:1px solid rgba(212,175,95,0.34); border-radius:3px; }
 .dev-wbtn:hover { background:rgba(212,175,95,0.3); }
+
+/* r368 - the Squares group's rows */
+.dev-sq-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid rgba(201,168,76,0.12);
+}
+.dev-sq-lab { font-family: 'Crimson Pro', serif; font-size: 12.5px; color: var(--cream); }
+.dev-sq-row.moved .dev-sq-lab { color: var(--gold); font-weight: 600; }
+.dev-sq-ctl { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.dev-sq-val {
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--gold);
+  min-width: 56px; text-align: center;
+}
+.dev-sq-step {
+  width: 22px; height: 22px; border: 1px solid var(--gold-dim); border-radius: 4px;
+  background: #1a1510; color: var(--gold); cursor: pointer; font-size: 13px; line-height: 1;
+}
+.dev-sq-step:hover { background: var(--gold); color: #0e0c0a; }
+.dev-sq-hint {
+  grid-column: 1 / -1; font-family: 'Crimson Pro', serif; font-size: 10.5px;
+  line-height: 1.4; color: rgba(240,230,200,0.5);
+}
+select.dev-sq-in {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; background: #1a1510;
+  color: var(--gold); border: 1px solid var(--gold-dim); border-radius: 4px; padding: 3px 5px;
+  max-width: 190px;
+}

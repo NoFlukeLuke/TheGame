@@ -5,6 +5,7 @@ initMainMenu();
 // The red SCORE / GOAL chips (and the top-bar act readout) reopen a boss's
 // briefing. Bound once - each handler no-ops unless a boss is running.
 if (typeof bindBossBriefReopen === 'function') bindBossBriefReopen();
+if (typeof bindClockBossPeek === 'function') bindClockBossPeek();
 initDevMode();
 
 // ── STAGE SCALING (zoom-based) ──
@@ -45,8 +46,10 @@ let applyStageLayout = null;
     if (typeof syncPortraitPanel === 'function') syncPortraitPanel();
     // …and re-fit any preview cards on screen, which are sized from the strip.
     if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
-    // Larger inter-card gap in landscape keeps bigger cards visually separated.
-    CARD_GAP = isLandscape ? 5 : 3;
+    // The FLOOR for the inter-card gap; the live gap is derived from the card
+    // size in recomputeGridMetrics (r391) and never falls below this.
+    CARD_GAP_BASE = isLandscape ? 5 : 3;
+    CARD_GAP = CARD_GAP_BASE;
     // Fallback footprints (only used if the slot can't be measured pre-layout).
     GRID_FOOTPRINT_W = isLandscape ? 380 : 320;
     GRID_FOOTPRINT_H = isLandscape ? 408 : 392;

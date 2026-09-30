@@ -86,26 +86,17 @@ const INFO_TOPICS = [
       'Inside that group, nothing else about position matters, and the order you tapped them in never matters. 4, 6, 7, 5 is a Run of 4 whichever cells they sit in and whichever one you tapped first.',
     ] },
 
-  { id: 'penalty_cards', group: 'basics', title: 'Cards your hand drops',
+  { id: 'penalty_cards', group: 'basics', title: 'Kickers and dropped cards',
     body: [
-      'Every card in a hand has to be part of the hand. If you select five cards and only four of them make a shape, the fifth is DROPPED: you lose its pips, and the card is used up anyway.',
-      'A dropped card turns red on the board before you play, and the hand label prices it, so you can always see it coming.',
-      ['A run needs consecutive ranks. 4-6-7-5-9 is not a Straight, it is a Run of 4 with the 9 dropped.',
+      'Every card in a hand should be part of it, but a hand may carry ONE card it does not use. That card is a KICKER. It scores nothing, and it costs its pips off the hand and its pip value in seconds off the clock.',
+      'Any further card the hand cannot use is DROPPED: you lose its pips, and the card is used up anyway.',
+      'Both turn red on the board before you play, and the hand label prices them (KICK and DROP), so you can always see it coming.',
+      ['A run needs consecutive ranks. 4-6-7-5-9 is not a Straight, it is a Run of 4 carrying the 9 as a kicker.',
        'A hand can be several shapes at once, so a spare card is often not spare. 2, 2, J, Q, K is a Pair and a Run of 3, and every card is used.',
        () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand, so at the largest selection sizes some cards are always dropped.`],
-      'The Tagalong {knack} lifts the whole rule: your hands may carry cards that are not part of them, and those cards score normally instead of being billed.',
-    ] },
-
-  { id: 'min_selection', group: 'basics', title: 'The minimum you must commit',
-    body: [
-      'Selection Size is not just a ceiling. Raising it also raises a FLOOR two below it, so at a Selection Size of 5 you must commit at least 3 cards to every hand.',
-      'The hand label reads NEED / n in red until you have enough.',
-    ] },
-
-  { id: 'high_card', group: 'basics', title: 'High Card',
-    body: [
-      'When the minimum forces you to commit cards that do not make a shape, the hand still plays as a High Card. It scores the cards\' own pips and nothing else: no base pips, no mult, no {FOCUS}.',
-      'High Card does not grow with Natural Scaling.',
+      'There is no minimum. Any hand of two cards or more is legal at any Selection Size.',
+      'The Tagalong {knack} lets a hand carry any number of kickers, and makes them free.',
+      'The Chip In {knack} makes kickers free, and they score their pips and fire their {Tricks} as though they were in the hand. They still do not change what the hand is: a Run of 4 with a kicker is a four-card hand.',
     ] },
 
   { id: 'hand_layers', group: 'basics', title: 'A hand can be several hands',
@@ -136,6 +127,15 @@ const INFO_TOPICS = [
        'QUARANTINED - cards still fall in, they are just inert, permanently.',
        'HELD - one card, frozen, with a countdown ring showing when it comes back.',
        'WITHDRAWN - a whole rank is off the board for a while, also with a countdown.'],
+    ] },
+
+  { id: 'wild_card', group: 'board', title: 'Wild cards',
+    body: [
+      'A wild takes any rank to complete a SET. Two 7s and a wild is a Three of a Kind; one 7 and two wilds is a Three of a Kind too.',
+      'It is only ever a set. A wild can never be part of a run and never part of a flush.',
+      'It scores no pips of its own and fires no {Tricks}. The set it completes pays its own base pips and mult as normal, and the real cards in it score as normal.',
+      'A set needs at least one real card to name its rank, so wilds on their own are not a hand.',
+      'Four are shuffled into the deck at the start of a run.',
     ] },
 
   { id: 'curses', group: 'board', title: 'Cursed cards',
@@ -173,6 +173,13 @@ const INFO_TOPICS = [
       '{FOCUS} is a multiplier on the whole hand. You earn it by playing complicated hands and by playing them fast, and it DECAYS while you sit still.',
       'The {FOCUS} a hand earns is applied to that same hand.',
       'The meter has a ceiling you can raise. Some things trade the ceiling for something else, and a few pay out every time you reach the top.',
+    ] },
+
+  { id: 'speed_bonus', group: 'scoring', title: 'The speed bonus',
+    body: [
+      'A hand\'s {FOCUS} comes from two things: what the hand IS, and how fast you played it after the previous one.',
+      'The speed part is largest the instant a hand lands and fades over the next few seconds. Playing slowly earns only the hand\'s own {FOCUS}.',
+      'Pair, Flush of 3 and Flush of 4 earn half the speed bonus. Some things scale it: Overclock multiplies it, and Long Fuse and Governor give you longer to earn the same amount.',
     ] },
 
   { id: 'natural_scaling', group: 'scoring', title: 'Hands get better as you play them',
@@ -306,9 +313,9 @@ const INFO_TOPICS = [
       'Leave a slot after taking only one obligation and you are paid credits. The amount goes up each time you do it.',
     ] },
 
-  { id: 'curve', group: 'schedule', title: 'Everything advances the quota',
+  { id: 'curve', group: 'schedule', title: 'Everything advances the goal',
     body: [
-      'Every obligation raises the difficulty, whether you PLAYED it or BOUGHT it. Visiting the store moves the quota exactly as finishing a round does.',
+      'Every obligation raises the difficulty, whether you PLAYED it or BOUGHT it. Visiting the store moves the {GOAL} exactly as finishing a round does.',
     ] },
 
   // ── Pressure ──────────────────────────────────────────────────────────────
@@ -321,15 +328,15 @@ const INFO_TOPICS = [
 
   { id: 'boss', group: 'pressure', title: 'Manager reviews',
     body: [
-      'A review is an ordinary round with one modifier on it and a much larger quota. The briefing says exactly what the modifier does before the clock starts, and PROCEED is what starts it.',
+      'A review is an ordinary round with one modifier on it and a much larger {GOAL}. The briefing says exactly what the modifier does before the clock starts, and PROCEED is what starts it.',
       'A review can make a style of play COST more or PAY less. It can never make one impossible, and there is always something still paying full.',
       'You can read the briefing again mid-round by tapping the {GOAL} chip or the progress block.',
     ] },
 
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
-      'A priority account is an ordinary round with a RAISED quota and one extra requirement, and it pays credits for both.',
-      'Missing the requirement is not failing the round. Clear the raised quota and the round passes as normal; meet the requirement too and you also take the bonus.',
+      'A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement, and it pays credits for both.',
+      'Missing the requirement is not failing the round. Clear the raised {GOAL} and the round passes as normal; meet the requirement too and you also take the bonus.',
     ] },
 
   { id: 'seed', group: 'pressure', title: 'Seeds',

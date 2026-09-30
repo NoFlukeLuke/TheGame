@@ -86,12 +86,19 @@ const LEXICONS = {
 };
 
 // ── which one is live ───────────────────────────────────────────────────────
+// GAMER IS THE RESTING STATE, AND THAT IS A STORY DECISION, NOT A PREFERENCE.
+// The Obliviscore already did its job: the work words were relabelled long
+// before the run starts, and the corporate vocabulary is what COMES BACK as the
+// machine fails. So corporate is no longer a default anything can fall back to -
+// it is a state the game has to be moved INTO. See "The two vocabularies" in
+// CLAUDE.md.
+//
 // Read through js/storage.js's shim, so a browser that throws on localStorage
 // still gets a working default rather than aborting this file.
-let activeLexicon = 'corporate';
+let activeLexicon = 'gamer';
 try { const v = localStorage.getItem('lethe.lexicon'); if (LEXICONS[v]) activeLexicon = v; } catch (e) {}
 
-function lexicon() { return LEXICONS[activeLexicon] || LEXICONS.corporate; }
+function lexicon() { return LEXICONS[activeLexicon] || LEXICONS.gamer; }
 
 function setLexicon(id) {
   if (!LEXICONS[id]) return activeLexicon;

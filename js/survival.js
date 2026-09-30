@@ -51,7 +51,7 @@ const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwin
 // survivalEntityBanned. (The rare reward-grid PICK OFFER below does not un-ban
 // these - a grid one pick in several hundred is still a dead slot for a Trick
 // whose whole effect is "each reward grid".)
-const SURVIVAL_BANNED_ENTITIES = new Set(['greedy_boi', 'more_better', 'rain_check']);
+const SURVIVAL_BANNED_ENTITIES = new Set(['greedy_boi', 'more_better']);   // rain_check pays on a skipped pick since r362
 // "This mode never opens a reward grid." The pick-of-three loop (Survival, Flow,
 // a picker-built pick3 run), plus the non-poker loops. Classic/Guided/Schedule/
 // Crunch all reach one, so they keep the reward-grid entities.
@@ -61,6 +61,15 @@ function modeHasNoRewardGrid() {
   if (typeof match3Active === 'function' && match3Active()) return true;
   if (typeof dominoActive === 'function' && dominoActive()) return true;
   return false;
+}
+// A reward grid after every cleared round: the act modes, minus Guided (a grid
+// is a bought slot) and the Schedule (a grid is an occasional obligation).
+function modeHasFrequentRewardGrid() {
+  if (modeHasNoRewardGrid()) return false;
+  if (typeof isActMode === 'function' && !isActMode()) return false;
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.guided) return false;
+  if (typeof mapActive === 'function' && mapActive()) return false;
+  return true;
 }
 // Pick-3 draw weights. Trick:sleight:knack follow the Schedule pick's 60/25/15
 // ratio (GUIDED_PICK_WEIGHTS, r287 - owner's numbers); limits keep roughly the
@@ -84,7 +93,7 @@ const SURVIVAL_GRID_OFFER = {
 const SURVIVAL_GUARANTEE_GAP = 3;     // 0,1,2 dry → force on the 4th (gap>=3)
 
 // Tricks that stack, so they may be offered even when already owned (mirrors pickTrickOptions).
-const SURVIVAL_STACKABLE_TRICKS = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
+const SURVIVAL_STACKABLE_TRICKS = ['rich_soil','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
 
 // ── Per-run state ──
 let survivalBossTimeBank      = 0;   // leftover seconds accumulated toward the next boss
@@ -111,7 +120,7 @@ function currentRoundDuration() {
   // Survival banks leftover time into it and Flow uses a flat one, so it is not
   // simply the mode's round length, and the clock bar needs the real denominator.
   if (bossActive) return bossWindowDuration;
-  if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
+  if (typeof flowActive === 'function' && flowActive()) return flowSessionSeconds();
   // Crunch: the clock is the QUARTER's allowance, not a round's. This is what
   // startGame seeds the act bank from and what the clock bar fills against, so
   // both read the one number (js/crunch-mode.js).
@@ -156,6 +165,7 @@ function survivalInitRun() {
   survivalEndlessFromLevel = Infinity;
   survivalGridPickCarry    = false;
   svGoalCells              = null;
+  if (typeof flowrResetRun === 'function') flowrResetRun();
   bossNumber               = 0;
   bossBag                  = [];
   actBossId                = null;   // Survival/Flow draw at trigger time (r238)
@@ -215,6 +225,9 @@ function survivalEntityBanned(id) {
   // The reward-grid-only entities are dead picks wherever the MODE never opens
   // a reward grid - the pick-of-three loop, and the non-poker loops too.
   if (modeHasNoRewardGrid() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
+  // More Better (r362) only earns in modes that open a reward grid EVERY round -
+  // the Guided crossroads and the Schedule sell grids as occasional stops.
+  if (id === 'more_better' && !modeHasFrequentRewardGrid()) return true;
   // The clock entities assume a round clock that REFILLS: First Wind measures its
   // grace window against ROUND_DURATION, and Carry Time banks the round's unused
   // seconds. Flow is the shipped mode with neither, and a picker-built run that
@@ -390,6 +403,7 @@ function survivalRenderPick() {
     title: survivalPickKicker === 'BOSS DEFEATED' ? 'BOSS REWARD' : 'CHOOSE ONE',
     tone: 'reward', offers, actions,
     onChoose: (i) => survivalChoose(i),
+    onSkip: () => survivalSkip(),
   });
 }
 
@@ -399,6 +413,9 @@ function survivalUpdateRerollBtn() {
   // on a button. Called from js/hud.js, the Mart and the shop whenever credits
   // move while the pick is up.
   if (typeof gridPickState === 'undefined' || !gridPickState) return;
+  // A chain step that is not the ordinary pick owns its own action row - stamping
+  // survival's four over it would put Peek/Shop on a limits screen (r325).
+  if (typeof flowrOwnsScreen === 'function' && flowrOwnsScreen()) return;
   gridPickRefresh(null, survivalPickActions());
 }
 
@@ -406,6 +423,10 @@ function survivalUpdateRerollBtn() {
 // cards fly into the preview) and from the post-boss reward. Does NOT advance the
 // level - the deal happens when the player chooses (survivalChoose).
 function survivalShowPick(bonus = false, kicker) {
+  // Flow's multi-reward chain (js/flow-rewards.js, r325): a goal clear can pay
+  // several screens. When it takes over it plays the counter card and shows
+  // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.
+  if (!bonus && typeof flowrMaybeStart === 'function' && flowrMaybeStart()) return;
   animating = false;
   trickSelectionPhase = false;
   survivalBonusPick = !!bonus;
@@ -479,16 +500,16 @@ function survivalTogglePeek() {
   survivalSyncPickAudio();
 }
 
-// The board is still scoring underneath the panel, so it stays audible - just
-// muffled, the way it would sound through the thing covering it. Peeking pulls
-// the panel away, so the mix opens back up. One function owns the rule, and
-// every path that changes what is on screen calls it (show, choose, peek, and
-// the Mart's return in js/mart-shop.js).
+// THE MUFFLE IS OFF (owner call). It was written for the r197 pick PANEL, which
+// really did cover the board mid-dance. Since r256 the pick IS the board - the
+// tiles inhabit #grid and nothing covers the preview in either orientation - so
+// "the mix sounds like something is lying on it" describes a thing that is no
+// longer on screen. The function stays as the chokepoint (every show / choose /
+// peek path still calls it) so it only ever releases now; sfxSetMuffle itself
+// stays in js/audio-mixer.js for the next screen that genuinely covers the board.
 function survivalSyncPickAudio() {
   if (typeof sfxSetMuffle !== 'function') return;
-  const ov = document.getElementById('survival-pick-overlay');
-  const covering = !!ov && ov.classList.contains('show') && !ov.classList.contains('sv-peek');
-  sfxSetMuffle(covering);
+  sfxSetMuffle(false);
 }
 
 // Draw a fresh three. The POOL and the PRICE are already spent by the shared
@@ -504,6 +525,33 @@ function survivalReroll() {
 // BEFORE triggerLevelUp, the new limit values are already in place when triggerLevelUp
 // sizes the board and computes swaps/discards/time - so a picked Limit applies to the
 // very next round with no special-casing.
+// Rain Check (r362): skipping a reward adds time - to the next round in
+// Survival, straight onto the session clock in Flow (Flow does not refill).
+function rainCheckPay() {
+  if (!hasTrick('rain_check')) return;
+  const s = BAL.rain_check.seconds * trickFires('rain_check');
+  if (typeof flowActive === 'function' && flowActive()) rewindTime(s, null, 'rain_check', 'trick');
+  else { nextRoundSecondsDelta += s; showMessage(`Rain Check · +${s}s next round`, 'var(--gold)'); }
+}
+
+// CONFIRM pressed twice with nothing selected (r362): take nothing and go on
+// exactly as a choice would, minus the grant.
+function survivalSkip() {
+  if (!survivalPickOffered) return;
+  if (typeof cancelDance === 'function') cancelDance();
+  survivalHideContrib();
+  survivalPickOverlay().classList.remove('show', 'sv-peek');
+  if (typeof closeGridPick === 'function') closeGridPick();
+  survivalPickOffered = null;
+  survivalSyncPickAudio();
+  rainCheckPay();
+  if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
+  survivalSkipCarryover = survivalBonusPick;
+  survivalBonusPick = false;
+  triggerLevelUp();
+  survivalSkipCarryover = false;
+}
+
 function survivalChoose(i) {
   const opt = (survivalPickOffered || [])[i];
   if (!opt) return;
@@ -526,6 +574,9 @@ function survivalChoose(i) {
     return;
   }
   survivalGrant(opt);
+  // Mid-chain (Flow multi-reward, r325): the next screen opens instead of the
+  // level-up, which runs ONCE at the chain's end (flowrFinish).
+  if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
   // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
   survivalSkipCarryover = survivalBonusPick;
   survivalBonusPick = false;
@@ -568,13 +619,24 @@ function survivalSpreadFreeze() {
 }
 
 // Move current board cards back into the deck so a fresh deal can't deplete it.
+//
+// WITH A PERSISTING BOARD (r332) THE BOARD IS NOT RECYCLED AT ALL - only the
+// round's played pile is cycled back in, exactly as every other mode does it.
+//
+// The old path below was also DESTROYING CARD IDENTITY every level: an ordinary
+// card was pushed as a bare `{ rank, suit }`, so `_id` and every durable field
+// went with it - permanent pips and mult, x-pips, x-mult, retriggers, curses,
+// play counts. That is the r192 rule broken outright, and it is why a card buffed
+// in Flow could never stay buffed. Keeping the board fixes it wholesale rather
+// than by repairing the copy.
 function survivalRecycleBoard() {
+  if (typeof boardPersists === 'function' && boardPersists()) { flushPlayedDeck(); return; }
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const card = gridData[r]?.[c];
       if (!card) continue;
       if (card._isSleight || card._isStone) playedPile.push(card);      // preserve identity/charges
-      else if (card.rank) playedPile.push({ rank: card.rank, suit: card.suit });
+      else if (card.rank) playedPile.push(recycleCard(card));
       gridData[r][c] = null;
     }
   flushPlayedDeck(); // reshuffle everything back into the draw pile
@@ -625,18 +687,61 @@ function survivalDealNext() {
         if (gridData[r]?.[c]?._isSleight && !inList.has(`${r}-${c}`)) cells.push([r, c]);
     }
     svGoalCells = null;
+    goalHandCards = null;               // the discardToPlayed sweep below banks them
     gameTimerPaused = false;             // the goal dance froze the clock; the new round is live
-    animating = false;                   // the dance is over; removeAndFall refuses re-entry on this flag
+    animating = false;
+    falling   = false;
+
+    // THE WHOLE BOARD DEALS IN, exactly as the redeal path below does (r397).
+    //
+    // This used to hand the goal hand's cells to removeAndFall('play') - and
+    // removeAndFall animates the cells it was GIVEN and leaves every other card
+    // where it is, because in mid-round use they are on screen already. They are
+    // not on screen here: the reward pick TOOK THE BOARD OVER and emptied #grid
+    // of every card element, while gridData kept all sixteen. So the only thing
+    // that dealt in was the two or three cells being replaced, in whatever
+    // column they happened to sit, and the other thirteen snapped into place at
+    // removeAndFall's closing render() - the owner's "it deals like 4 cards in
+    // one corner, then the rest gets dealt". Measured at 1440x820: 2 cards on
+    // screen for ~1.2s, then 16.
+    //
+    // r394 aimed at startNewRoundDealAnims, which this path never called - which
+    // is why that fix could not touch it. The board mode is what routes here.
+    //
+    // NO GRAVITY, deliberately, and this is the one behaviour change. The board
+    // is a POSITION YOU KEEP (r332: "the same cards come back to the same cells,
+    // and only holes are filled"), and under a whole-board deal-in gravity has
+    // nothing to show for itself anyway - every card arrives from above whether
+    // it moved or not - so packing the columns would silently scramble the
+    // arrangement the mode exists to preserve.
+    if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave(cells);
+    cells.forEach(([r, c]) => {
+      const card = gridData[r]?.[c];
+      if (card) discardToPlayed(card);   // the 'play' accounting removeAndFall did
+      if (gridData[r]) gridData[r][c] = null;
+    });
+    // Fill the holes, draining any queued Backfill copy first - removeAndFall's
+    // own refill asks cardStatesDrawFor before the deck, and a queue left unread
+    // would surface on the next fall instead.
+    for (let c = 0; c < gridCols; c++) for (let r = 0; r < gridRows; r++) {
+      if (gridData[r]?.[c] || isCellVoid(r, c)) continue;
+      const bf = (typeof cardStatesDrawFor === 'function') ? cardStatesDrawFor(c) : null;
+      gridData[r][c] = bf || drawCard() || null;
+    }
+
+    dealPhase = true;                    // hold render() off the board until the deal lands
+    startNewRoundDealAnims();
     updateClockUI();
-    const _go = () => {
-      if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 500); }
-      else startRoundTimer();
-    };
-    if (cells.length) removeAndFall(cells, 'play').then(_go);
-    else { render(); _go(); }
+    if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 950); }
+    else svResumeAfterReward(startRoundTimer);
     return;
   }
   svGoalCells = null;
+  // The goal hand leaves the board (r371). With the board persisting, the recycle
+  // below keeps every cell - and the winning hand's cards were still sitting in
+  // gridData, so they were dealt straight back in. This path is the default and
+  // also where the keep modes fall through after a boss or a grid-size pick.
+  liftGoalHand();
   // 1) Old frozen cards fall out (down + fade).
   const oldEls = [...(gridEl?.querySelectorAll('[data-card-id]') || [])];
   oldEls.forEach((el, i) => {
@@ -652,11 +757,13 @@ function survivalDealNext() {
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
   recomputeGridMetrics();
-  gridData = [];
-  for (let r = 0; r < gridRows; r++) {
-    gridData[r] = [];
-    for (let c = 0; c < gridCols; c++) gridData[r][c] = drawCard() || null;
-  }
+  // conformGridToDims keeps every in-bounds card (and banks any that a shrunk
+  // board leaves outside); fillGridHoles then deals into the empty cells alone -
+  // which on a level where a grid limit was picked IS the new row or column.
+  // With the board recycled (boardPersists() false) every cell is already null,
+  // so this deals a full fresh board exactly as it used to.
+  conformGridToDims();
+  fillGridHoles();
   // 3) New cards drop in slightly after the old ones start leaving - reuse the
   //    shared deal-in animation, which clears leftover real cards and repaints.
   dealPhase = true;
@@ -670,9 +777,39 @@ function survivalDealNext() {
       survivalBossPending = false;
       setTimeout(() => survivalTriggerBoss(), 950);
     } else {
-      startRoundTimer();               // 120s round (roundSeconds set by computeRoundResources)
+      svResumeAfterReward(startRoundTimer);   // 120s round (roundSeconds set by computeRoundResources)
     }
   }, 90);
+}
+
+// BACK INTO THE ROUND ON A 3-2-1 (r380). Owner: "for going from a reward back to
+// the game in flow, maybe do the 321". The board has just dealt in under the
+// countdown, so the clock starts on a board the player has had a second to look
+// at instead of the instant the last reward screen let go.
+//
+// showBossCountdown is the countdown with NOTHING ELSE in it - no deal, no clock
+// refill. show321Countdown winds roundSeconds up to the round-time limit, which
+// would refill Flow's session clock at every level (the Crunch trap, r293). Only
+// Flow: Survival is hidden and its per-level clock is its own business.
+function svResumeAfterReward(go0) {
+  // r391: the warmup must never survive a reward screen, and the clock must
+  // never be left held. `once` because both the countdown's resolve and the
+  // safety timeout can reach it; the timeout covers a countdown that never
+  // resolves (the frozen-clock, no-3-2-1 report from the last 15 seconds).
+  if (typeof endBossApproach === 'function') endBossApproach();
+  let done = false;
+  const go = () => {
+    if (done) return; done = true;
+    if (typeof isPaused === 'undefined' || !isPaused) gameTimerPaused = false;
+    go0();
+    if (typeof tickBossApproach === 'function') tickBossApproach();
+  };
+  setTimeout(go, 3500);
+  const plain = (typeof skipOn === 'function' && skipOn('transitions'))
+             || !(typeof flowActive === 'function' && flowActive())
+             || typeof showBossCountdown !== 'function';
+  if (plain) { go(); return; }
+  showBossCountdown().then(() => go(), () => go());
 }
 
 // ══════════════════════════════════════════════

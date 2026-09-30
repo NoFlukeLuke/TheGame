@@ -168,6 +168,29 @@ function updateFocusMeter() {
 }
 
 // ══════════════════════════════════════════════
+// THE METER IS ZEROED IN ONE PLACE (r395)
+// ══════════════════════════════════════════════
+// Owner: "Focus should reset every level and when the boss starts."
+//
+// There were three hand-written copies of these four lines (triggerLevelUp, the
+// interlude's fall, startGame) and no copy at all on the boss path, which is
+// how a Flow run carried its whole multiplier into the inspection: Flow's boss
+// fires from onRoundEnd at clock zero, MID-ROUND, so no level-up runs in front
+// of it and nothing else was zeroing the bar. It is one function now, and
+// triggerBoss calls it - which covers every boss path at once (Flow's clock,
+// Survival's cadence, the legacy timer modes, the act modes and the dev panel).
+//
+// It is deliberately SILENT: the notch-fall clones are the interlude's own
+// ceremony and belong to the round ending, not to the state being cleared.
+function resetFocusMeter() {
+  focusNodes = 0;
+  focusAnimQueue = [];
+  focusAnimRunning = false;
+  syncFocusMeterState();
+  updateFocusMultReadout(false);
+}
+
+// ══════════════════════════════════════════════
 // FOCUS GAUGE FX - fill-scaled jitter + glow (r97)
 // ══════════════════════════════════════════════
 // Fraction of the bar that's full (0..1).
@@ -247,11 +270,8 @@ function addFocus(amount, srcId, srcSource) {
   const prev = Math.min(focusNodes, cap);
   focusNodes = Math.min(focusNodes + amount, cap);
   const _justMaxed = prev < cap && focusNodes === cap;
-  // Expanse: each time we hit max capacity, bump the cap by 10 nodes (for the rest of the run)
-  if (hasTrick('expanse') && _justMaxed) {
-    focusCapPerm += 10;
-  }
-  // r123 focus-payout entities fire on the transition INTO max Focus.
+  // r123 focus-payout entities fire on the transition INTO max Focus. (Expanse's
+  // raise-and-drop lives in there too, r340.)
   if (_justMaxed) onFocusMaxed();
   // Keep the bar's node count in sync if capacity changed, preserving already-filled nodes.
   if (focusNodeEls.length !== focusCapNodes()) {
@@ -272,16 +292,27 @@ function onFocusMaxed() {
   // Immediate grants; any Focus DROP or cap change is deferred ~260ms so the fill-to-max
   // animation plays first and we never mutate focusNodes while addFocus's queue is in flight.
   let keepFrac = null; // smallest "fraction of cap to keep" across active droppers (min wins)
+  // Expanse: raise the Focus limit by 1 (max +10 for the run), then lose half your
+  // Focus. The drop is the price of the raise, so a maxed-out Expanse neither raises
+  // nor drops - and the under-cap test runs BEFORE trickFires (no prime spent on a no-op).
+  if (hasTrick('expanse') && (focusCapGains['expanse'] || 0) < BAL.expanse.cap) {
+    const _ex = gainFocusCap('expanse', BAL.expanse.cap_gain * trickFires('expanse'), BAL.expanse.cap);
+    if (_ex > 0) {
+      showMessage(`🌌 Expanse - Focus limit +${_ex}`, 'var(--gold)');
+      keepFrac = Math.min(keepFrac ?? 1, BAL.expanse.keep_fraction);
+    }
+  }
   if (hasKnack('dividend')) {
     grantEntityCoins(BAL.dividend.credits, 'knack', 'dividend');
     showMessage(`🏦 Dividend - +${BAL.dividend.credits} credits`, 'var(--gold)');
     keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
   }
+  let dropFlat = 0;    // flat Focus losses (Release Valve's 16); combined with keepFrac by taking the LOWER target
   if (hasTrick('release_valve')) {
     swaps++; discards++;
-    showMessage('🎚️ Release Valve - +1 swap, +1 discard', 'var(--gold)');
+    showMessage(`🎚️ Release Valve - +1 swap, +1 discard, -${BAL.release_valve.focus_drop} Focus`, 'var(--gold)');
     if (!animating && !falling) render();
-    keepFrac = Math.min(keepFrac ?? 1, BAL.release_valve.keep_fraction); // lose 50% Focus
+    dropFlat = Math.max(dropFlat, BAL.release_valve.focus_drop); // lose 16 Focus (r346, was half)
   }
   const _gs = hasKnack('growth_spurt');
   if (_gs) {
@@ -290,11 +321,12 @@ function onFocusMaxed() {
     growthSpurtMaxedThisRound = true;
     showMessage(`🌱 Growth Spurt - max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
   }
-  if (keepFrac !== null || _gs) setTimeout(() => {
+  if (keepFrac !== null || dropFlat > 0 || _gs) setTimeout(() => {
     if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;
     const cap = focusCapNodes();
     let target = focusNodes;
     if (keepFrac !== null) target = Math.min(target, Math.floor(cap * keepFrac));
+    if (dropFlat > 0) target = Math.min(target, Math.max(0, focusNodes - dropFlat));
     target = Math.min(target, cap);                  // Growth Spurt may have lowered the ceiling
     const amt = Math.max(0, focusNodes - target);
     if (amt > 0) removeFocus(amt);

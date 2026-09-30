@@ -113,7 +113,7 @@ function closeEvent() {
   // Core Memories knack: each Event attended permanently raises max Focus
   if (typeof hasKnack === 'function' && hasKnack('core_memories')) {
     focusCapPerm += 2;
-    if (typeof showMessage === 'function') showMessage('Core Memories! +2 max Focus', '#a25cd8');
+    if (typeof showMessage === 'function') showMessage('Core Memories! +2 Focus limit', '#a25cd8');
   }
   activeEventId = null;
   eventState = {};

@@ -221,7 +221,7 @@ function mapTileDesc(t) {
     case 'event':      return t.eventFlavor || 'Something happens.';
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the schedule.')
-      + ` Quota: ${mapBossGoal}.`;
+      + ` ${(typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL'}: ${mapBossGoal}.`;
   }
   return '';
 }
@@ -945,8 +945,7 @@ function mapConfirm() {
   // booking that would empty the act bank is a tap the player could not have
   // known was fatal, so it is turned away and the bar says why.
   if (typeof crunchCanAfford === 'function' && !crunchCanAfford(t)) {
-    sfxNoSwaps?.();
-    showMessage('Not enough time on the clock', 'var(--red)');
+    refuse('Not enough time on the clock');
     return;
   }
 
@@ -1121,6 +1120,7 @@ function mapKnackPickTwo(done) {
       showMessage(`+ ${k.name}`, 'var(--gold)');
       done();
     },
+    onSkip: () => done(),
   });
 }
 

@@ -16,17 +16,17 @@
 
 // The chain, in carousel order. The first is unlocked from a cold install;
 // every one after it opens when the one before it has had a run finish.
-const MODE_UNLOCK_CHAIN = ['map', 'flow', 'guided'];
+const MODE_UNLOCK_CHAIN = ['flow', 'map'];  // r380: Flow first; Guided hidden
 
 // Everything else opens AT ONCE when the chain is done, and is drawn as a
 // single stacked card until then - one locked object to work toward rather
 // than four identical padlocks.
-const MODE_FINALE_GROUP = ['normal', 'spectrum', 'picker'];
+const MODE_FINALE_GROUP = ['normal', 'picker'];  // r380: Spectrum hidden
 
 // Appended AFTER the finale group and NOT gated. `modeUnlocked` already answers
 // true for anything in neither list, so a mode here is playable from a cold
 // install - which is what "add it to the end and unlock it" asks for.
-const MODE_EXTRA_LIST = ['squares'];
+const MODE_EXTRA_LIST = ['climb', 'squares'];
 
 // The id the carousel uses for the stack itself. Not a mode; never reaches MODES.
 const MODE_STACK_ID = '__stack__';

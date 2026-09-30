@@ -274,3 +274,32 @@
     font-family: 'Share Tech Mono', monospace; font-size: 7px; font-style: normal;
     color: var(--gold); opacity: 0.9;
   }
+
+/* ── Deck tab: the CARDS view (r399) - real card faces, one row per suit ── */
+.rec-deck-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 10px; }
+.rec-chip {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 5px; cursor: pointer;
+  background: rgba(255,255,255,0.04); color: var(--cream-dim, #8a7d60); border: 1px solid rgba(183,172,147,0.3);
+}
+.rec-chip.on { color: #ffe9a8; border-color: rgba(255,206,43,0.6); background: rgba(255,206,43,0.12); }
+.rec-card-rows { display: flex; flex-direction: column; gap: 8px; --card-w: 46px; --card-h: 61px; }
+.rec-card-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rec-card-suit {
+  flex: 0 0 30px; display: flex; flex-direction: column; align-items: center; font-size: 18px; line-height: 1;
+}
+.rec-card-suit b { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim, #8a7d60); margin-top: 3px; }
+.rec-card-fan { flex: 1; min-width: 0; display: flex; padding: 6px 0 2px; }
+.rec-card-slot { position: relative; flex: 0 0 var(--card-w); height: var(--card-h); cursor: pointer;
+  transition: transform .12s ease; }
+.rec-card-slot + .rec-card-slot { margin-left: var(--rc-gap, 4px); }
+.rec-card-slot .card { position: relative !important; top: 0; left: 0; cursor: pointer; transition: none; }
+.rec-card-slot:hover { transform: translateY(-6px); z-index: 50; }
+.rec-card-slot.w-played { filter: brightness(0.42) saturate(0.4); }
+.rec-card-slot.w-played:hover { filter: brightness(0.75) saturate(0.7); }
+.rec-card-rows.show-grid .rec-card-slot.w-grid .card { outline: 2px solid #ffce2b; outline-offset: 1px; }
+.rec-card-rows.show-grid .rec-card-slot.w-grid::after {
+  content: ''; position: absolute; top: -5px; left: 50%; width: 6px; height: 6px; margin-left: -3px;
+  border-radius: 50%; background: #ffce2b; box-shadow: 0 0 6px #ffce2b;
+}
+.rec-wild { color: #b58cff; }
+@media (max-width: 600px) { .rec-card-rows { --card-w: 36px; --card-h: 48px; } }

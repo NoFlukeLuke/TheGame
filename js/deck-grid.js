@@ -26,9 +26,19 @@ let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pip
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
 let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
+// ONE CARD, ONE TIME BUFF (r342, owner's rule). Every site that grants a card a
+// time buff - the Vulture's pause, Wait Four It's pause, Temporal Rift's rewind -
+// asks this first and skips a card already carrying one, in either currency.
+function cardTimeBuffed(card) {
+  if (!card || !card.rank) return true;   // not an ordinary card - never buffable
+  if (card._vulturePause) return true;
+  const k = cardId(card);
+  return !!(k != null && permTime[k]);
+}
 // Credits this card pays when it scores (the Card Market's payday card, r278).
 // Replay-weighted: a card that scores three times pays three times.
 let permCoins  = {}; // { "<card id>": 2, ... } credits paid per score
+let permFocus  = {}; // { "<card id>": 1, ... } Focus granted per score (r325, the deck-edit buff)
 // ── FLAT vs SCALING card buffs (r209) ────────────────────────────────────────
 // permPips / permMult above are FLAT: the card scores that bonus, the same
 // amount, every single time it is played. The wording "permanently gains +1
@@ -48,17 +58,18 @@ let permMultGrow = {}; // { cardId: 1 } - flat mult this card gains per play
 // Called once per scored card, after the hand's score is committed (play-hand.js),
 // for the same reason recordNaturalScale is: a scaling buff earned by this hand
 // must pay out on the NEXT one, or the first play would already be the second.
-function growCardScaling(cards) {
+function growCardScaling(cards, counts) {
   if (!cards || !cards.length) return;
   const seen = new Set();
-  cards.forEach(card => {
+  cards.forEach((card, i) => {
     if (!card || !card.rank) return;
     const k = cardId(card);
-    if (seen.has(k)) return;          // a retriggered card grows once per HAND
+    if (seen.has(k)) return;          // one entry per physical card...
     seen.add(k);
+    const n = (counts && counts[i]) || 1;   // ...grown once per time it SCORED (r370)
     const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
-    if (gp) permPips[k] = (permPips[k] || 0) + gp;
-    if (gm) permMult[k] = (permMult[k] || 0) + gm;
+    if (gp) permPips[k] = (permPips[k] || 0) + gp * n;
+    if (gm) permMult[k] = (permMult[k] || 0) + gm * n;
   });
 }
 
@@ -101,6 +112,10 @@ function cardBuffLines(k) {
   if (xp > 1) lines.push(`\u00d7${xp} pips`);
   if (xm > 1) lines.push(`\u00d7${xm} mult`);
   if (re) lines.push(`+${re} replay`);
+  const pf = (typeof permFocus !== 'undefined' && permFocus[k]) || 0;
+  if (pf) lines.push(`+${pf} Focus when played`);
+  const pc = (typeof permCoins !== 'undefined' && permCoins[k]) || 0;   // r392: the coin card
+  if (pc) lines.push(`+${pc} credits when played`);
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
   // "pips" while the tile that granted the buff said "work" (r198's rule, r294's
@@ -332,7 +347,53 @@ function cardBandsHTML(card) {
            + `--cbi:${slot.ink}"></i>`;
     }
     return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}">${plus}</div>`;
-  }).join('');
+  }).join('') + cardXMarksHTML(k);
+}
+// r393: a x pips / x mult card wears an x in its family's corner (top-left pips,
+// top-right mult), drawn OVER the bands in a darker ink with a drop shadow.
+function cardXMarksHTML(k) {
+  const xp = (typeof permXPips !== 'undefined' && permXPips[k]) || 1;
+  const xm = (typeof permXMult !== 'undefined' && permXMult[k]) || 1;
+  let h = '';
+  if (xp > 1) h += `<i class="card-xmark cx-tl" title="x${+xp.toFixed(2)} pips">\u00d7</i>`;
+  if (xm > 1) h += `<i class="card-xmark cx-tr" title="x${+xm.toFixed(2)} mult">\u00d7</i>`;
+  return h;
+}
+
+// ── DUAL IDENTITY (r392) ─────────────────────────────────────────────────────
+// A card may carry a SECOND suit (suit2) and/or a SECOND rank (rank2) - the two
+// rarest deck-editor effects (and the shop's old Combine). Both are plain card
+// fields in DURABLE_CARD_FIELDS, so they survive the deck cycle and a save.
+// Detection reads them directly (js/hand-detect.js); scoring reads them through
+// the GHOST below: the identity the card's trick block is run a second time as.
+// A dual-suit-only card's ghost has no rank, and a dual-rank-only card's ghost
+// has no suit, so a second suit never re-fires a RANK Trick and vice versa.
+function cardIsDual(c) {
+  return !!(c && (c.rank2 || c.suit2) && !c._isSleight && !c._isStone && !c._isTrick
+            && !(typeof isWildCard === 'function' && isWildCard(c)));
+}
+function cardGhostFor(c) {
+  if (!cardIsDual(c)) return null;
+  return { _id: c._id, rank: c.rank2 || '', suit: c.suit2 || '', _ghost: true };
+}
+// The face (r393): a second RANK splits the card on the TL->BR diagonal, the
+// rank centred in the top-left region, rank2 in the bottom-right, and the line
+// broken in the middle where the suit (or both suits) sits. A second SUIT alone
+// keeps the ordinary layout with the two suits side by side.
+function cardDualFaceHTML(card) {
+  const suits = card.suit2
+    ? `<div class="suit suit-pair"><span class="${suitClass(card.suit)}">${card.suit}</span><span class="${suitClass(card.suit2)}">${card.suit2}</span></div>`
+    : `<div class="suit">${card.suit}</div>`;
+  if (!card.rank2) return `<div class="rank">${card.rank}</div>${suits}`;
+  return `<div class="dual-slash"></div><div class="rank dual-r1">${card.rank}</div>`
+       + `<div class="rank dual-r2">${card.rank2}</div>${suits.replace('class="suit', 'class="suit dual-mid')}`;
+}
+// A card that SCORES CREDITS wears a gold coin behind its face (owner's spec);
+// the rank and suit take a thin dark outline over it (.card-has-coin).
+function cardCoinHTML(card) {
+  if (!card || !card.rank || typeof permCoins === 'undefined') return '';
+  const n = permCoins[cardId(card)] || 0;
+  return n ? `<div class="card-coin" title="+${n} credits when scored"></div>` : '';
 }
 
 // The same vocabulary for an enhancement being OFFERED, from the `e` object
@@ -449,7 +510,7 @@ let bonusMult_fives   = 0;
 let bonusMult_nines   = 0;
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
-let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
+let spadesRelentless   = 0;   // Relentless Trick: spades scored since it was taken (r367)
 let bonusFocus_acorns   = 0;   // Acorns Trick: +0.05 Focus per scored card (per game); grants floor each hand
 let handsPlayedGame     = 0;   // cumulative hands played this game (Plan Ahead average); reset on new game
 let bonusMult_morebetter = 0;  // More Better Trick: +4 mult per reward grid where 3+ tiles were selected (per game)
@@ -464,29 +525,24 @@ let studyHallCards      = 0;   // Study Hall: running count of cards scored this
 let markCount_groove    = 0;   // Groove: cards scored from its marked line this round
 let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round
 let _cleanSweepPrev     = [];  // Clean Sweep: cell keys scored in the previous hand (rolling 2-hand window)
-let _lastHandPositionFired = false; // whether another position trick contributed pips/mult this hand (Feng Shui)
-let _perMinuteFired = {};      // once-per-minute gate: trick id -> round-minute index it last fired (Study Hall, Ley Line)
-// Position-trick ids (Feng Shui watches these; excludes itself). Focus/time-only ones
-// (groove/overtime/clean_sweep) don't write pip/mult contributions, so they don't count.
-const POSITION_TRICK_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','assembly_line','huddle'];
-let bonusMult_jackpot   = 0;   // Jackpot (big_win) Trick: +5 when score 10k+
-let jackpotFired        = false; // big_win fires only once
+let _perMinuteFired = {};      // once-per-minute gate: trick id -> round-minute index it last fired (Study Hall, Temporal Rift)
 let handsPlayedRound    = 0;   // count of hands played this round
 // Per-round contribution tally for the Payout > Contributions tab.
 // roundContributions[label|kind] = { label, kind, amount, count }
 let roundContributions  = {};
 let roundHandsScored    = 0;
 let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
+let clubsScoredRound    = 0;   // clubs scored this round incl. replays (Hard Labour's doubling ladder, r346)
 let setsPlayedRound     = 0;   // count of Set hands scored this round (Undue Influence / Shaky Foundation)
 let runStreak           = 0;   // consecutive Run hands ending at the last-played hand (Wave Amplification)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)
-let _rippleLastFire     = -100000; // last time Ripple's retrigger fired (30s cooldown)
 let _primeTimesCursor   = 0;   // Prime Times: cycles tray positions 1st→2nd→3rd→5th→7th
 let handTypesRound      = new Set(); // distinct hand types played this round
 let safetyNetUsed       = false; // safety_net knack: once per game
 let cardsDiscardedTotal = 0;
 let cardsDiscardedRound = 0;
 let swapsUsedRound      = 0; // swap actions this round (the No Takebacks challenge)
+let discardsUsedRound   = 0; // discard actions this round (Landfill)
 let cardsScoredTotal  = 0;
 let nineSecondsCounter = 0;
 let highestHandScore = 0;
@@ -520,25 +576,36 @@ function gridCardCount() {
   for (let r = 0; r < (gridData?.length || 0); r++)
     for (let c = 0; c < (gridData[r]?.length || 0); c++) {
       const cd = gridData[r][c];
-      if (cd && !cd._isTrick && !cd._temp && cd.rank) n++;
+      if (cd && !cd._isTrick && !cd._isSleight && !cd._temp && cd.rank) n++;
     }
   return n;
 }
+// r400: a SLEIGHT is not part of the audited deck, on the board or in a pile.
+// It used to be counted in the piles (bare .length) and NOT on the grid unless
+// it happened to carry a cosmetic defaultRank - so the actual total moved by one
+// every time one was dealt or scored, and Spectrum's four payout fixtures (r161)
+// made a fresh run read 102/98 for the whole run. Excluded on every side, so
+// expectedDeckTotal stays ranks x suits (+ wilds) and needs no fixture upkeep.
+function pileCardCount(pile) {
+  let n = 0;
+  for (const c of (pile || [])) if (c && !c._isSleight) n++;
+  return n;
+}
 function deckTotalActual() {
-  return drawPile.length + playedPile.length + gridCardCount();
+  return pileCardCount(drawPile) + pileCardCount(playedPile) + gridCardCount();
 }
 function updateDeckHud() {
   const hud = document.getElementById('deck-hud');
   if (!hud) return;
   const actual = deckTotalActual();
-  document.getElementById('dh-draw').textContent   = drawPile.length;
-  document.getElementById('dh-played').textContent = playedPile.length;
+  document.getElementById('dh-draw').textContent   = pileCardCount(drawPile);
+  document.getElementById('dh-played').textContent = pileCardCount(playedPile);
   document.getElementById('dh-grid').textContent   = gridCardCount();
   document.getElementById('dh-total').textContent  = actual;
   document.getElementById('dh-expected').textContent = '/' + expectedDeckTotal;
   hud.classList.toggle('mismatch', actual !== expectedDeckTotal);
   if (actual !== expectedDeckTotal) {
-    console.warn(`[DECK AUDIT] mismatch: actual=${actual}, expected=${expectedDeckTotal}, draw=${drawPile.length}, played=${playedPile.length}, grid=${gridCardCount()}`);
+    console.warn(`[DECK AUDIT] mismatch: actual=${actual}, expected=${expectedDeckTotal}, draw=${pileCardCount(drawPile)}, played=${pileCardCount(playedPile)}, grid=${gridCardCount()}`);
   }
 }
 // Wrap so any call to updateDeckHud after layout settles
@@ -582,6 +649,8 @@ const DURABLE_CARD_FIELDS = [
   '_spadeEarlyPlays', '_spadeDiscards', '_diaPoorPlays', '_diaRichPlays',
   // Whetstone's banked mult and the Vulture's clock buff
   '_whetMult', '_vulturePause',
+  // Climb mode (r398): the rank the card started the run at, for the reset.
+  '_climbBase',
   // A TEMP card (r278, js/card-states.js) exists for this level only. It is
   // named here so the flag survives this rebuild, which is what lets the two
   // pile functions below REFUSE it: a temp card that lost its flag on the way
@@ -616,9 +685,23 @@ function resolveDeckCard(card) {
 }
 
 // The persisted copy of a normal card. Board and animation state is shed.
+// Royal Favour (r350): cards that scored beside a Queen, keyed by cardId. Their
+// rank goes up by one on the way back into the deck, which is what "after it
+// scores" means - never mid-hand.
+let queenUpgradePending = new Set();
+function queenUpgradedRank(rank) {
+  const i = ACTIVE_RANKS.indexOf(rank);
+  if (i === -1) return rank;
+  return ACTIVE_RANKS[i === ACTIVE_RANKS.length - 1 ? 1 : i + 1]; // K wraps to 2
+}
 function recycleCard(card) {
   const out = { rank: card.rank, suit: card.suit };
+  if (card._id !== undefined && queenUpgradePending.has(cardId(card))) {
+    queenUpgradePending.delete(cardId(card));
+    out.rank = queenUpgradedRank(card.rank);
+  }
   for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
+  if (typeof climbRecycle === 'function') climbRecycle(card, out);   // r398
   return out;
 }
 
@@ -626,11 +709,22 @@ function freshShuffledDeck() {
   // The six-suit mode builds a DESIGNED deck instead of the plain cross product:
   // six suits but only four of each rank, so the deck is ranks x copies and the
   // suit count no longer decides its size. See js/deck-design.js.
-  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck());
-  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck());
+  // THE WILDS ARE ADDED AFTER THE MODEL DISPATCH, so every deck shape gets them
+  // on the same terms - the plain cross product, the six-suit designed deck and
+  // the weighted deck alike. wildCardCount() is the one place the number is
+  // decided (and the one place a mode opts out), and it is added to
+  // expectedDeckTotal at each of the three sites that write it.
+  const _wilds = () => {
+    const n = (typeof wildCardCount === 'function') ? wildCardCount() : 0;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(stampId({ rank: WILD_RANK, suit: WILD_SUIT }));
+    return out;
+  };
+  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck().concat(_wilds()));
+  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck().concat(_wilds()));
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
-  return deckShuffle([...d]);
+  return deckShuffle([...d, ..._wilds()]);
 }
 
 function shuffle(arr) {
@@ -680,7 +774,12 @@ function discardToDrawPile(card) {
 
 // Scored card - held out until round ends
 function discardToPlayed(card) {
-  if (!cardCan(card, 'discard')) return;
+  // An INERT sleight (r341) refuses the player's swap/discard gestures, but being
+  // played in a hand is its one way off the board - the pile bookkeeping must
+  // accept it or the card is deleted from the run when the fall nulls its cell.
+  // The cycled copy is a fixed field list, so _inert is dropped and it comes back
+  // movable, with whatever charges it still held.
+  if (!cardCan(card, 'discard') && !(card && card._isSleight && (card._inert || card.sleightId === 'reflect'))) return;
   // Sleights cycle back into the deck preserving identity & remaining charges
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {
@@ -696,15 +795,116 @@ function discardToPlayed(card) {
       // EVERY round - so leaving it out silently reset a 1/2 fixture to 0/2 at
       // every round boundary, which is what made the Spectrum fixtures read as
       // firing at random. Measured before the fix: 1 in, undefined out.
+      // _whetMult too (r371): Whetstone's banked mult is "permanent", and since
+      // it now leaves the board every 90s it would otherwise reset on each lap.
+      // _gridSecs (its board clock) is deliberately NOT carried - a fresh lap.
       playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
                         _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable,
-                        _adjPlays: card._adjPlays || 0, _drawFired: false });
+                        _adjPlays: card._adjPlays || 0, _whetMult: card._whetMult || 0, _drawFired: false });
       updateDeckHud();
     }
     return;
   }
   if (card._temp) { updateDeckHud(); return; }   // see discardToDrawPile (r278)
   playedPile.push(recycleCard(card)); updateDeckHud();
+}
+
+// ══════════════════════════════════════════════
+// THE BOARD PERSISTS BETWEEN ROUNDS (r332)
+// ══════════════════════════════════════════════
+// Owner's call. A round used to end by discarding EVERY cell to playedPile and
+// dealing a fresh boardful next round, so a card you had spent the run buffing
+// was a card you might simply never see again. The board is now a position you
+// keep: the same cards come back to the same cells, and only HOLES are filled -
+// which is exactly what a grid-size upgrade creates, so a new row or column
+// fills with fresh cards at the next round start and nothing else moves.
+//
+// **The rest of the deck cycle is unchanged.** A card that SCORES still leaves
+// the board for playedPile and is replaced by a draw there and then; a card you
+// DISCARD still goes to the back of drawPile; flushPlayedDeck() still runs at
+// every level-up. So the pile the round generated is still reshuffled back in -
+// the only thing that stopped being recycled is the board itself.
+//
+// Three modes are excluded because they own their board outright and never go
+// through the round-end fall: match-3 cascades cards away, Dominoes builds a
+// two-cell board of its own, and Poker Squares packs and clears a 5x5 per round.
+// The round-winning hand (r371). A hand that SCORES leaves the board through
+// removeAndFall('play'), but the goal hand and the boss-winning hand never go
+// through it: their cards fly into the preview and gridData keeps holding them
+// through the tally (The Pick photographs that board). Before r332 the round-end
+// sweep discarded every cell, so nobody noticed; once the board persisted, those
+// cards were dealt straight back in at the next round.
+//
+// So the two goal sites in playHand CAPTURE the hand's cards (objects, never
+// cells - the r192 rule), the round-end paths LIFT them off the board by
+// identity (liftGoalHand), and startRoundTimer RELEASES them into the played
+// pile once the new board has been dealt. Held rather than discarded straight
+// away because every level-up flushes the played pile into the draw pile just
+// before the refill: discarded at once, a card of the winning hand could be
+// dealt straight back into the hole it left. Held, it rejoins the deck at the
+// NEXT flush, like any card scored in a round. A cell now holding a different
+// card is left alone.
+let goalHandCards = null;   // captured at the goal, still on the board
+let goalHandHeld = [];      // lifted off the board, not yet back in the deck
+function captureGoalHand(cells) {
+  goalHandCards = (cells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
+}
+function liftGoalHand() {
+  if (!goalHandCards || !goalHandCards.length) { goalHandCards = null; return 0; }
+  const want = new Set(goalHandCards);
+  goalHandCards = null;
+  let n = 0;
+  for (let r = 0; r < gridData.length; r++)
+    for (let c = 0; c < (gridData[r] || []).length; c++) {
+      const card = gridData[r][c];
+      if (card && want.has(card)) { goalHandHeld.push(card); gridData[r][c] = null; n++; }
+    }
+  return n;
+}
+function releaseGoalHand() {
+  if (!goalHandHeld.length) return;
+  const held = goalHandHeld; goalHandHeld = [];
+  held.forEach(card => discardToPlayed(card));
+  updateDeckHud?.();
+}
+
+function boardPersists() {
+  if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return true;
+  if (ACTIVE_MODE.match3 || ACTIVE_MODE.id === 'dominoes') return false;
+  if (typeof squaresActive === 'function' && squaresActive()) return false;
+  return true;
+}
+
+// Resize gridData to the live gridRows/gridCols, KEEPING every in-bounds cell.
+// A cell that falls outside the new board (Short Staffed, or a grid limit given
+// up at a Limit Break) has its card DISCARDED to playedPile rather than dropped:
+// before the board persisted, the round-end fall had already banked every card
+// and an out-of-bounds cell cost nothing. It is the only card in the game that
+// would otherwise leave the run silently.
+function conformGridToDims() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) {
+    out[r] = [];
+    for (let c = 0; c < gridCols; c++) out[r][c] = (gridData[r] && gridData[r][c] !== undefined) ? gridData[r][c] : null;
+  }
+  for (let r = 0; r < gridData.length; r++) {
+    for (let c = 0; c < (gridData[r] || []).length; c++) {
+      if (r < gridRows && c < gridCols) continue;
+      const card = gridData[r][c];
+      if (card && !card._isTrick) discardToPlayed(card);
+    }
+  }
+  gridData = out;
+}
+
+// Fill only the EMPTY cells of the live board. This is the whole of "a new row
+// or column fills with new cards when the round starts" - every other cell
+// already holds the card it held last round.
+function fillGridHoles() {
+  for (let r = 0; r < gridRows; r++) {
+    if (!gridData[r]) gridData[r] = [];
+    for (let c = 0; c < gridCols; c++) if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
+  }
 }
 
 // At round end: reshuffle played cards back into the draw pile (fresh order)

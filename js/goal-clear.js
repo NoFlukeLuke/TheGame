@@ -31,7 +31,7 @@ function goalBannerEl() {
     el.innerHTML = `<div class="gb-ring"></div>
       <div class="gb-body">
         <div class="gb-kicker">ROUND</div>
-        <div class="gb-title">QUOTA CLEARED</div>
+        <div class="gb-title"></div>
         <div class="gb-num" id="goal-banner-num"></div>
       </div>`;
     document.body.appendChild(el);
@@ -39,9 +39,11 @@ function goalBannerEl() {
   return el;
 }
 
-// Wording note: "QUOTA CLEARED" is the owner's explicit call and is a deliberate
-// exception to the r178 voice rule that pulled the corporate framing out of every
-// player-facing surface. It is the one place the word survives.
+// Wording note: the title is WRITTEN PER SHOW from lexTerm('goal'), never baked
+// into the markup goalBannerEl() caches - the element outlives a wording change,
+// so a title set at build time would keep whichever vocabulary was live the first
+// time a round was cleared. r293 flipped this from a hardcoded QUOTA CLEARED; a
+// hardcoded GOAL CLEARED is the same bug pointing the other way.
 //
 // Called from flashRoundEnd() - the one place that already means "the tally just
 // crossed the goal". Wiring it there rather than at the dance's two call sites
@@ -61,6 +63,8 @@ function showGoalBanner(opts) {
   const el = goalBannerEl();
   const kick = el.querySelector('.gb-kicker');
   if (kick) kick.textContent = opts.kicker || 'ROUND';
+  const ttl = el.querySelector('.gb-title');
+  if (ttl) ttl.textContent = ((typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL') + ' CLEARED';
   el.classList.toggle('gb-boss', !!opts.kicker);
   const num = document.getElementById('goal-banner-num');
   if (num) num.textContent = (typeof roundGoal === 'number' ? roundGoal.toLocaleString() : '');

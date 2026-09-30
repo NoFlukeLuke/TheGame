@@ -83,6 +83,16 @@ async function startInterlude(opts) {
 async function showLevelUpScreen_fallOnly() {
   // Just the fall-out phase - every card (including Tricks) visually falls.
   // Tricks' positions are preserved in gridData so showLevelUpScreen can refill them in place.
+  //
+  // THE FALL IS NOW PRESENTATION ONLY (r332). The board has to clear off screen -
+  // the payout panel, the reward grid and the shop all take #grid over - but with
+  // boardPersists() the cards are NOT discarded on the way out: gridData keeps
+  // them, and the next round's deal puts the same cards back in the same cells.
+  // So the ceremony is unchanged and the position is kept.
+  const _persist = (typeof boardPersists === 'function') && boardPersists();
+  // The round-winning hand is the one part of the board that DOES leave (r371):
+  // it scored, so it goes to the played pile like any scored hand.
+  if (_persist) liftGoalHand();
   animating = true;
   selected = [];
 
@@ -108,11 +118,7 @@ async function showLevelUpScreen_fallOnly() {
     filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: i * 20 }));
 
     // Zero state silently - the real DOM goes dark immediately while clones fall.
-    focusNodes = 0;
-    focusAnimQueue = [];
-    focusAnimRunning = false;
-    syncFocusMeterState();
-    updateFocusMultReadout(false);
+    resetFocusMeter();
 
     // Brief lead before card fall begins
     await new Promise(res => setTimeout(res, FOCUS_LEAD_MS));
@@ -147,14 +153,16 @@ async function showLevelUpScreen_fallOnly() {
         }, 0);
       }));
     }
-    for (let c = 0; c < gridCols; c++) {
-      const card = gridData[r][c];
-      if (card && !card._isTrick) {
-        discardToPlayed(card);
-        gridData[r][c] = null; // clear immediately so HUD reflects the move
+    if (!_persist) {
+      for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r][c];
+        if (card && !card._isTrick) {
+          discardToPlayed(card);
+          gridData[r][c] = null; // clear immediately so HUD reflects the move
+        }
       }
+      updateDeckHud();
     }
-    updateDeckHud();
   }
   await Promise.all(fallPromises);
   flushPlayedDeck();
@@ -169,9 +177,13 @@ async function showLevelUpScreen_fallOnly() {
   // untouched: the Tricks still own their lines.
   if (typeof clearLineMarkers === 'function') clearLineMarkers();
 
-  // Reset gridData; Tricks get restored to their snapshotted positions for refill
-  gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
-  preservedTricks.forEach(({r, c, card}) => { gridData[r][c] = card; });
+  // Reset gridData; Tricks get restored to their snapshotted positions for refill.
+  // With a persisting board there is nothing to reset - every cell still holds
+  // the card it held, Tricks included, and the next deal simply redraws it.
+  if (!_persist) {
+    gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
+    preservedTricks.forEach(({r, c, card}) => { gridData[r][c] = card; });
+  }
   trickCardPos = null;
   animating = false;
 }
@@ -180,6 +192,22 @@ function formatTime(secs) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// ONE PACE FOR EVERY CREDIT (r380). Interest, leftover time and unused stock
+// used to count at three different speeds (220ms a coin, a flat 2.1s however
+// many, 140ms a coin), so two lines paying the same amount visibly ran at
+// different rates. Every line now reads this: coin i takes this long, the same
+// for coin i of any line. It ACCELERATES rather than holding flat, so a big
+// payout still takes visibly longer than a small one (it is a bigger payout)
+// without a 40-coin line taking eight seconds: 3 coins ~0.55s, 10 ~1.4s,
+// 40 ~3s. A flat total duration was the other option and is the wrong one - a
+// huge payout would finish as fast as a tiny one and feel short-changed.
+const PAYOUT_COIN_FIRST_MS = 200;
+const PAYOUT_COIN_ACCEL    = 0.92;
+const PAYOUT_COIN_MIN_MS   = 50;
+function payoutCoinMs(i) {
+  return Math.max(PAYOUT_COIN_MIN_MS, PAYOUT_COIN_FIRST_MS * Math.pow(PAYOUT_COIN_ACCEL, i));
 }
 
 async function showPayoutUI() {
@@ -271,6 +299,19 @@ async function showPayoutUI() {
     el.classList.add('in-grid', 'po-tiled');
     (_g || document.body).appendChild(el);
     payoutPlaceTiles(el);
+    // THE CLIP IS HELD FOR THE WHOLE PAYOUT, and this is the one place that
+    // differs from the pick. `.show` is added from six places across the
+    // count-up and again on the fast-forward, so the alternative - bracketing
+    // each fall with animationstart / animationend - was tried and it LOSES A
+    // RACE: animationstart fires after the first animation frame has already
+    // been composited, so a tile flashed in over the HUD for a frame or two
+    // before the clip caught it (measured, 12 frames across one payout).
+    //
+    // It is safe to hold here in a way it is not on the pick, where the top
+    // row's selection lift and swell need to paint past the board's edge. The
+    // payout selects nothing; all it loses is about 2px of the title tile's
+    // downward-offset shadow.
+    if (typeof gridDealClip === 'function') gridDealClip(120000);
   } else {
     // Pre-r255: one panel centred over the grid area (r101).
     const _slot = document.getElementById('grid-slot');
@@ -297,12 +338,14 @@ async function showPayoutUI() {
   await wait(400);
 
   // Fast-forward state
-  let fastForward = false;
+  // Settings -> Skip -> Payout count-up (r380): every line lands at once.
+  let fastForward = (typeof skipOn === 'function' && skipOn('payout'));
   el.querySelector('#po-ff').onclick = () => {
     fastForward = true;
     el.querySelector('#po-ff').disabled = true;
   };
 
+  if (fastForward) { const _ff = el.querySelector('#po-ff'); if (_ff) _ff.disabled = true; }
   function ffSleep(ms) { return fastForward ? Promise.resolve() : sleep(ms); }
 
   function tickCoin(id) {
@@ -322,7 +365,7 @@ async function showPayoutUI() {
     return Math.max(5, Math.ceil(target / 7));
   }
 
-  async function animateCount(id, target, interval = 220) {
+  async function animateCount(id, target) {
     const c = el.querySelector(`#${id}`);
     if (fastForward) {
       c.textContent = target;
@@ -330,7 +373,6 @@ async function showPayoutUI() {
       return;
     }
     const stride = coinStride(target);
-    const step = interval / Math.min(5, stride);
     let n = 0;
     while (n < target) {
       n++;
@@ -339,7 +381,7 @@ async function showPayoutUI() {
         tickCoin(id);
         sfxCoin();
       }
-      await wait(step);
+      await wait(payoutCoinMs(n - 1));
       if (fastForward) {
         c.textContent = target;
         return;
@@ -370,15 +412,17 @@ async function showPayoutUI() {
     // round time, or in Crunch the seconds under par. One function so the
     // animation and the figure above can never disagree.
     const _poSecs = payoutClockSeconds();
-    const totalDuration = 2100;
-    const tickMs = totalDuration / Math.max(1, _poSecs);
+    // The clock runs at whatever speed lands each coin on the SAME curve the
+    // other two lines use (payoutCoinMs): the seconds that earn coin k share
+    // that coin's time. Seconds past the last coin run at the last coin's pace.
+    const _spc = efficiencySecondsPerCoin();
     let secsLeft = _poSecs;
     let effEarned = 0;
     const effStride = coinStride(efficiencyCoins);
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
-      if ((_poSecs - secsLeft) % efficiencySecondsPerCoin() === 0 && secsLeft < _poSecs) {
+      if ((_poSecs - secsLeft) % _spc === 0 && secsLeft < _poSecs) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
         if (effEarned % effStride === 0 || effEarned === efficiencyCoins) {
@@ -386,7 +430,7 @@ async function showPayoutUI() {
           sfxCoin();
         }
       }
-      await wait(tickMs);
+      await wait(payoutCoinMs(Math.min(effEarned, Math.max(0, efficiencyCoins - 1))) / _spc);
       if (fastForward) {
         clockEl.textContent = formatTime(0);
         effCoinsEl.textContent = efficiencyCoins;
@@ -402,7 +446,7 @@ async function showPayoutUI() {
   // ── 3. Unspent swaps and discards ──
   el.querySelector('#po-line-unspent').classList.add('show');
   await ffSleep(500);
-  await animateCount('po-unspent', unspentCoins, 140);
+  await animateCount('po-unspent', unspentCoins);
   coins += unspentCoins;
   updateCoinsUI();
   await ffSleep(400);
@@ -571,7 +615,9 @@ async function show321Countdown() {
     bg.classList.remove('show');
   }
 
-  const PER_NUM  = 500;
+  // Settings -> Skip -> Screen transitions (r380): the count still runs, quickly,
+  // because the new board is falling in underneath it.
+  const PER_NUM  = (typeof skipOn === 'function' && skipOn('transitions')) ? 150 : 500;
   const TOTAL_MS = PER_NUM * 3;
   const startSecs   = roundSeconds;
   const refillStart = performance.now();
@@ -739,9 +785,54 @@ function payoutTiledHTML(c) {
 // again on a re-lay.
 function payoutPlaceTiles(el) {
   if (typeof gpBox !== 'function') return;
-  el.querySelectorAll('[data-box]').forEach(t => {
+  const tiles = [...el.querySelectorAll('[data-box]')];
+  tiles.forEach(t => {
     const [r, c, w, h] = t.dataset.box.split(',').map(Number);
     t.style.cssText += gpBox(r, c, w, h);
+  });
+
+  // ── THE PAYOUT DEALS FROM THE TRAY'S LIP TOO (r379) ───────────────────────
+  // Same rule as the pick (gridDealTiles, js/grid-pick.js): a tile starts with
+  // its BOTTOM EDGE on the lip, so it travels exactly the drop to its own
+  // bottom and the ones bound for the bottom of the board are the fastest.
+  //
+  // IT IS PER TILE, WRITTEN HERE, BECAUSE THE KEYFRAME CANNOT KNOW (it was a
+  // hardcoded -240px for every tile, which is what made the frame arrive as one
+  // slab). --po-fall is that distance and --po-delay the tile's place in its
+  // beat.
+  //
+  // THE STAGED REVEAL IS KEPT (owner's call): the three money lines still each
+  // arrive as their own count-up begins, seconds apart. So only the tiles that
+  // carry `show` IN THE MARKUP - the title, the two tabs and the contributions
+  // panel - arrive together and need ordering against each other; everything
+  // revealed later arrives alone or beside one neighbour, and takes a
+  // column-only stagger so a solo fall is never held back by its row index.
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || typeof gridDealClipY !== 'function') return;
+  const clipY = gridDealClipY();
+  // THE BOTTOM EDGE COMES FROM data-box, NOT FROM LAYOUT. The contributions
+  // panel lives inside a display:none view until its tab is picked, and a
+  // hidden element has no offset box at all - measured, it reported a bottom of
+  // 1 against a real 347 and was ordered last in a bottom-first ladder. The box
+  // it was placed from is the one thing that is true whether or not it is
+  // currently on screen.
+  const bottomOf = t => {
+    const [r, c, w, h] = (t.dataset.box || '0,0,1,1').split(',').map(Number);
+    return cellTop(r + h - 1) + (typeof CARD_H === 'number' ? CARD_H : 75) + gridEl.clientTop;
+  };
+  const atOpen = tiles.filter(t => t.classList.contains('show'))
+                      .map(t => ({ t, b: bottomOf(t) }))
+                      .sort((a, b) => b.b - a.b);
+  const rank = new Map();
+  let g = -1, prev = null, inG = 0;
+  atOpen.forEach(o => {
+    if (prev === null || Math.abs(o.b - prev) > 1) { g++; inG = 0; prev = o.b; }
+    rank.set(o.t, g * 130 + inG * 45); inG++;
+  });
+  tiles.forEach(t => {
+    t.style.setProperty('--po-fall', Math.max(40, bottomOf(t) - clipY + 4) + 'px');
+    const col = Number((t.dataset.box || '0,0').split(',')[1]) || 0;
+    t.style.setProperty('--po-delay', (rank.has(t) ? rank.get(t) : col * 18) + 'ms');
   });
 }
 

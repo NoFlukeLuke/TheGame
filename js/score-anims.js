@@ -220,6 +220,17 @@ function flashRoundEnd() {
   }
   const grid = document.getElementById('grid');
   if (!grid) return;
+  // NOT WHEN A SCREEN HAS BORROWED THE BOARD (r380). The flash means "the round
+  // just ended", and in Flow the reward chain's pick is already ON the board by
+  // the time the tally crosses the goal - so this was flashing "round over" over
+  // a screenful of reward options. Worse, it is a TRANSFORM: #grid is
+  // position:relative with z-index auto, so it is NOT a stacking context and its
+  // tiles (z-index 2) beat #flowr-bg (a later sibling at z-index 0) on their own.
+  // The transform makes #grid a stacking context, its children's z-index is
+  // contained, and the panel - a dark wash over the whole board - paints on top
+  // of every tile. Measured: 1.4s of it, which is the owner's "the options black
+  // out for a second when the score finishes".
+  if (typeof gridScreenOwnsBoard === 'function' && gridScreenOwnsBoard()) return;
   grid.classList.remove('round-end-flash');
   void grid.offsetWidth;
   grid.classList.add('round-end-flash');
