@@ -12,7 +12,11 @@ function doDiscard() {
     closeShopGrid(); return;
   }
   if (rewardOnGrid) { clearRewardSelection(); return; }
-  if (roundEnded || animating) return;
+  // roundEnded FREEZES INPUT for a round that is over, and the Flow deck editor
+  // runs inside exactly that window: the goal hand set the flag and only the
+  // level-up at the END of the reward chain clears it again. The editor is a
+  // deliberate act on a board it owns, so it is exempt (r395); nothing else is.
+  if ((roundEnded && !(typeof deckEditFreeInteract === 'function' && deckEditFreeInteract())) || animating) return;
   // Same gate as doSwap - a boss may refuse the discard before it commits.
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }

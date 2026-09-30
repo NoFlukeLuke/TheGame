@@ -10655,6 +10655,290 @@ their own label and stand the pulse down; closing each one restores `🔄 SWAP 3
 its own band. **No page errors in any run.**
 
 
+## r398 - the WHOLE PANEL is knocked off, and it never changes size
+
+Owner: *"Right now just the title pops off, and it happens after the shape of
+the square changes suddenly and weirdly. After the options explode off, I want
+the shape of the square that contained the options to remain a square, the shine
+effect goes across that shape, then the whole shape, not just the title, falls
+off to one side. And at no point should the thing all the options and buttons
+are sitting in change size suddenly."*
+
+### THE VOCABULARY, since this is the third pass over it
+
+| what it is | name | element |
+|---|---|---|
+| the coloured rounded rectangle the options and buttons sit on | **the panel** | `#flowr-bg` |
+| the strip of coloured headers above it | **the tab ladder** (or the stack) | `#flowr-stack` |
+| one header in it | **a tab** | `.fst-chip` |
+| the named one, flush with the panel | **the current tab** | `.fst-cur` |
+| the ones peeking behind it | **the queued tabs** | `.fst-chip` at depth > 0 |
+| the free-standing copy that shines and falls | **the ghost** | `#flowr-fall` |
+| the bright band that sweeps it | **the shine** | `.ffl-shine` |
+| the board the tiles are children of | **the tray** | `#grid` |
+| the three choices | **the option tiles** | `.gp-opt` |
+| the row of buttons at their foot | **the action row** | `.gp-act` |
+| the inert filler cards | **the ambience** | `.gp-amb` |
+| the tiles flying away | **the explode-out** | `js/reward-transition.js` |
+| GOAL CLEARED x3 REWARD | **the reward chip** | `#flowr-counter` |
+| one screen | **a step**; all of them, **the chain**; the move between two, **the hand-over** | `flowrHandOver` |
+
+### 1. THE PANEL CHANGED SIZE TWICE IN EVERY GAP, AND IT WAS MEASURABLE
+
+The panel is sized in pure CSS off `--grid-w` / `--grid-h`, which is right while
+a step is up and WRONG the moment it is not: closing a pick calls
+`gridScreenRelease()`, handing `gridRows`/`gridCols` back to the PLAY board, and
+opening the next one takes them again. Sampled every 16ms at 1440x820 across one
+hand-over:
+
+| t (ms) | panel | board |
+|---|---|---|
+| 100 | **615 x 534** | 4x6, the pick |
+| 3650 | **561 x 707** | 4x4, the play board |
+| 4022 | **615 x 534** | 4x6 again |
+
+Narrower AND 173px taller, and back, with nothing on it. **It also built the
+ghost at the wrong width**, because the ghost is measured during exactly that
+window.
+
+- **`--fbg-w` / `--fbg-h` are the pinned figures**, and BOTH the panel and the
+  tab ladder read them, falling back to `--grid-w` / `--grid-h` when nothing is
+  pinned. One write moves both and there are no inline styles to unpick.
+- **The pin is taken on the frame AFTER a step opens** (`flowrPinPanelSoon`):
+  `#grid-slot` carries a left/width transition on the takeover (r237/r380), so
+  the board's final box is not known on the synchronous call. It is held until
+  the NEXT step pins its own, so the gap between them cannot move it.
+- **The deck edit re-pins**, because it is the one step that legitimately wraps
+  a different board - the PLAY board, not the 6x4 pick board. That change lands
+  behind the falling panel of the step before it.
+- **`fbgSquash` IS GONE.** It scaled the panel 1.012 / 0.972 at the reveal,
+  which is small and is still the panel changing size, and with the whole panel
+  now falling there was nothing left for it to do. `fbg-turn` keeps the WIPE
+  for the one case with no panel to knock off.
+- Measured after, sampling every 16ms across a whole 3-step chain: **exactly one
+  panel size, at 1440x820 and at 420x900.**
+
+### 2. THE WHOLE PANEL FALLS, NOT THE TAB
+
+r394 fell the tab alone, which is the "just the title pops off". `#flowr-fall`
+is now a copy of the PANEL at its measured box, carrying a copy of its current
+tab at the measured offset between the two boxes - one object. The shine sweeps
+it, and when the band reaches the side it is heading for, the whole thing tips
+that way and falls, revealing the next step's panel and tab, which were drawn
+underneath it before the sweep began.
+
+- **The offset is MEASURED, not derived.** The ladder's `top` carries a
+  `max(0px, ...)` clamp that can push it down on a deep chain at a wide
+  viewport, so "the tab sits `--fst-tuck` above the panel" is not reliably true.
+  Both boxes go through `flowrBoxIn` in `#grid-slot`'s own design px and the
+  difference is the offset - exact in every case.
+- **The new panel takes its colour IMMEDIATELY**, unlike r394's version, which
+  had to hold the old one: the ghost now covers the whole panel rather than just
+  its tab, so there is nothing of the arrival on screen to give the game away
+  and the cross-fade happens underneath.
+- **The next step still starts AT the knock**, so the offers deal into the tray
+  behind the departing panel - one motion, and the hand-over costs only the
+  shine's lead.
+- `FLOWR_TABFALL_MS` 560 -> **720**: a whole panel has much further to travel
+  than a 22px tab, and both its sideways and downward travel are PERCENTAGES of
+  its own size, so it clears the slot at every board size with nothing measured.
+
+#### THE WRAPPER PAINTS NOTHING, AND THAT IS WHAT CLIPS THE SHINE
+
+`#flowr-fall` has to stay `overflow: visible`, because the tab hangs above its
+box - so with the shine inside it, the band's 52% sweep **painted straight off
+the panel and lit the SWAP / SKIP / CONFIRM buttons beside the board**, which a
+screenshot caught and no measurement would have. The wrapper is bare now and
+carries only the fall; `.ffl-panel` is the panel (with `overflow: hidden`) and
+`.ffl-tab` the tab (which `.fst-chip` already clips). Each piece clips its own
+shine.
+
+- **TWO SHINE LAYERS, ONE ANIMATION.** The silhouette of a panel plus its tab is
+  not a rectangle, so a single band would have to be clipped to a union. The two
+  boxes are the same WIDTH and take the same keyframes, and the band travels
+  horizontally, so they are at the same x on every frame and read as one sweep
+  crossing one object. (They are a few px apart at the join, because a 104deg
+  gradient's line length depends on the box's HEIGHT as well as its width.)
+- **+-52%, not +-60%.** The band sits at the box's centre at rest, so 50% of the
+  box width puts its centre exactly ON the far edge - where it has to be on the
+  frame the knock fires. At 60% it went a tenth of a panel past, the clip ate it,
+  and the sweep appeared to stop early.
+- **THE SHINE GOES OUT AS THE PANEL GOES OVER.** `fflShine` is `forwards`, so
+  without `fflShineOut` the band sat lit at .92 in the corner for the whole 720ms
+  of the fall - a bright streak riding the panel down. It holds its end transform
+  while it fades, or the band would snap back to centre on the way out.
+
+#### A NOTE ON FILMING THIS
+
+`page.screenshot()` takes 50-150ms against a ~1060ms sequence, so it cannot
+catch the fall (r379's lesson) - and pausing every animation is not enough
+either, because **the ghost's own `setTimeout(() => g.remove())` keeps running on
+real time and takes the subject away mid-strip.** The harness neuters it
+(`g.remove = () => {}` the instant a MutationObserver sees the ghost appear),
+then steps `currentTime` by hand. Stepping back into the SHINE phase also has to
+remove `.falling` first, or `fflShine` has already been replaced and every frame
+shows the band parked at its end.
+
+### Verified
+
+In a real browser at **1440x820 and 420x900**: sampling the panel every 16ms
+across a whole 3-step chain gives **exactly one size**; a 5-step chain covering
+pick3 / cards / deck / limits runs with **0 page errors** and only the deck
+edit's own (deliberate) second size; the chain completes with `level` moving
+**once**, **0 ghosts, no panel and no ladder left behind, the pin cleared**, the
+board refilled with **0 holes** and the deck audit balancing. Frame-stepped: the
+shine crosses the panel AND its tab and stops on the panel's edge with **nothing
+painting over the action column**, then the whole panel and its tab tip and
+slide off together, fading, revealing the next panel with its tab and options
+already there. The r397 suites are unchanged - the deck editor's six cases still
+pass and Classic still bills 8s a swap.
+
+## r397 - focus resets at every level and every boss, and the deck editor takes swaps and discards
+
+### 1. THE METER IS ZEROED IN ONE PLACE, AND THE BOSS PATH HAD NO COPY OF IT
+
+Owner: *"Focus should reset every level and when the boss starts."*
+
+The level half already worked and the boss half did not exist. There were three
+hand-written copies of the same four lines (`triggerLevelUp`, the interlude's
+fall, `startGame`) and **no `focusNodes = 0` anywhere in `js/boss.js`** - which
+is exactly the shape a fourth site goes missing in. `resetFocusMeter()`
+(js/focus.js) is those four lines, and `triggerLevelUp`, the interlude and
+`triggerBoss` all call it.
+
+- **EVERY OTHER PATH INTO A BOSS HAD THE RESET BY ACCIDENT.** In the act modes
+  and in Survival the boss is armed by `triggerLevelUp`, which zeroes the meter
+  on its way past - so it looked right everywhere it was ever tested.
+  **FLOW'S INSPECTION FIRES FROM `onRoundEnd` THE MOMENT THE SESSION CLOCK
+  REACHES ZERO, MID-ROUND**, with no level-up in front of it, so a run walked
+  into the review holding whatever multiplier it had built. The legacy timer
+  modes and the dev panel's Trigger Boss are the same shape.
+- **It goes in `triggerBoss`, because that is the single door all six paths come
+  through** (js/level-up.js, js/survival.js, js/flow-mode.js, js/round-timers.js,
+  js/game-control.js, js/dev-panel.js). On the paths that had already zeroed it
+  this is a no-op.
+- **ABOVE `applyBossModifiers`, deliberately.** The Swell halves the ceiling and
+  The Metronome runs the clock AT the focus multiplier, so both want to arm
+  against an empty bar rather than against the round that just ended. The
+  Metronome therefore opens gentle, which is the same direction the reset moves
+  everything else.
+- **The interlude's Trade Winds payout still reads `focusNodes` ABOVE the
+  reset**, which was already load-bearing and is unchanged: the knack cashes out
+  half the round's remaining Focus and the notch-fall clones spawn, and only then
+  is the state zeroed.
+- **`startGame`'s bare `focusNodes = 0` is deliberately NOT routed through it.**
+  It sits mid-way through a long run reset, before the meter has been rebuilt
+  against the new run's limits, and `syncFocusMeterState()` there would be
+  answering a question nothing has asked yet.
+- Measured through the real paths: level-up **8 -> 0**; `triggerBoss` **9 -> 0**
+  in Classic, Flow, Survival and the Schedule.
+
+### 2. THE DECK EDITOR TAKES SWAPS AND DISCARDS (js/flow-rewards.js)
+
+Owner: *"implement the system where you can discard and swap cards in the card
+buff selection screen. So double tapping needs to prep for a swap and selecting
+cards can work for starting the buff or discarding, depending on the button you
+select."*
+
+This is the other half of r378's adjacency rule, which was added so that *"the
+leftover swaps and discards for the last round"* could be spent organising the
+board for a buff - **and then there was no way to spend either of them on that
+screen at all.**
+
+| gesture | does |
+|---|---|
+| tap | select / deselect into the buff group (unchanged) |
+| **double-tap** | **LIFT the card for a swap**; tap an orthogonal neighbour to trade, tap it again to cancel |
+| **PLAY** | APPLY - run the op on the selection (r328, unchanged) |
+| **DISCARD** | **spend a discard on the selection** |
+
+- **IT IS THE BOARD'S OWN VOCABULARY, down to `DOUBLE_TAP_MS`.** A player who
+  has learnt lift-and-trade on the board (input.js) or in the shop (r307) must
+  not have to learn a second one here.
+- **NOTHING IS REIMPLEMENTED.** `doSwap` and `doDiscard` own every rule there
+  is - adjacency, Free Range, Pivot, Wanderer, Royal Reach, Snared, the boss
+  refusals, the stock, Whetstone, Jury-Rig, the Vulture, exalt/corrupt, the
+  `on_discard` Sleights and the gravity refill - and getting any one of those
+  subtly different here is how two vocabularies start to drift. `doDiscard`
+  reads the play grid's own `selected`, so the editor's pick is handed over as
+  that and taken back afterwards: same board, same cells, nothing to translate.
+
+#### THE CLOCK IS NOT BILLED, and that is r307's rule rather than a new one
+
+This screen sits BETWEEN rounds, so organising the board costs the **STOCK** the
+round left over - which is the whole point of it - and not the session clock the
+inspection is counting down to. **`interactTimeCostMult()` is the one number the
+two charge sites AND the Time pop-up all read (r326)**, so one clause there
+covers all three and a quoted cost can never drift from a billed one.
+Measured: a swap in the editor is **1 stock and 0 seconds**, and the very next
+swap outside it is back to Flow's 4s.
+
+#### TWO HOST-SIDE GUARDS, AND THE SECOND ONE IS NOT OBVIOUS
+
+- **`roundEnded` FREEZES INPUT, AND THE EDITOR RUNS INSIDE THAT WINDOW.** The
+  goal hand set the flag (js/play-hand.js) and only the level-up at the END of
+  the reward chain clears it again (js/level-up.js), so `doDiscard`'s
+  `if (roundEnded || animating) return;` refused every discard the editor asked
+  for. It is exempt through the same predicate the clock uses, so there is one
+  flag and it is true only while `doSwap`/`doDiscard` is running **for us**
+  (`flowrDeckAct` sets it in a `try/finally`, and the time is billed
+  synchronously inside both, well before `removeAndFall` runs).
+- **`animating || falling` BAILS THE TAP HANDLER** - the r278 card-states rule. A
+  discard runs `removeAndFall`, which takes the `falling` lock and rewrites every
+  card element underneath us.
+
+#### A SWAP OR A DISCARD DROPS THE SELECTION
+
+Both end in a `render()`, so every `.flowr-sel` class is gone and every element
+reference in `_flowrDeckSel` is stale - and the board has moved under the pick
+anyway, which is the rule every other screen follows when its offers change
+(r282). `flowrDropSelection()` is what makes the state agree with the board.
+
+- **UNDOING THE DOUBLE-TAP'S OWN TOGGLE MUST NOT SPLIT THE GROUP.** The first tap
+  of a double-tap has already selected the card, so arming takes it back out -
+  and r378's rule applies to a card leaving the selection however it leaves. A
+  card whose removal would strand the others simply stays picked; the swap that
+  follows drops the whole selection anyway, so the only case this protects is
+  the player lifting a card and then changing their mind.
+- **The lift outranks everything else in the handler**: with a card lifted, the
+  next tap is the second half of a swap, not a selection.
+- **APPLY clears a pending lift** - a half-made swap is not part of the op.
+
+#### The DISCARD press, and why it uses `stopImmediatePropagation`
+
+The APPLY listener (r328) uses `stopPropagation` and gets away with it because
+the other listener on `#btn-play` is `playHand`, which no-ops with nothing
+selected. **The other listener on `#btn-discard` IS `doDiscard`**, which would
+run on the play grid's own empty `selected` - a no-op today, but "harmless
+because the thing underneath happens to do nothing" is not a guarantee worth
+relying on twice.
+
+#### THE PULSE IS ON `filter`, NOT ON THE RING
+
+`.flowr-lift` is teal rather than a shade of the selection blue: "is this
+lifted" is a different question from "is this in the group", and a card can be
+neither, one or (while removing it would split the group) both. Its ring needs
+`!important` to outrank `.flowr-sel`'s - **and an `!important` author
+declaration BEATS an animation in the cascade, while `!important` inside a
+keyframe is ignored outright**, so the ring can never be the thing that
+animates. The pulse is a `brightness()` animation instead; nothing else on a
+card during the edit writes `filter` (`.flowr-miss` is the reveal, which cannot
+be live at the same time).
+
+#### Verified
+
+In a real browser at **1440x820 and 420x900**, through the real click path, with
+`roundEnded` forced true (the real Flow situation): a tap selects and lights both
+buttons; a double-tap lifts and takes the card out of the group; a neighbour tap
+**trades the two cards, spends 1 swap and 0 seconds**; a non-adjacent tap is
+refused out loud ("Those cards are not next to each other") with **0 stock
+spent** and the lift dropped; DISCARD spends 1 discard, **0 seconds**, leaves
+**16 cards and 0 holes** with the deck balancing at 56; with no stock it refuses
+("No discards left") and **keeps the selection**; APPLY with a lift pending
+clears it and lands the buff; an adjacency op still picks a source and applies.
+**0 page errors at either viewport.** Control: Classic still bills **8s** a swap
+and Flow **4s** before and after the editor, so the free-time flag does not leak.
+
 ## `score-trays-preview.html` (r390) - one tray per number
 
 Owner: *"Could I see a preview where all the individual numbers have their own

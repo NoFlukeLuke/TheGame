@@ -432,6 +432,9 @@ function flowrShowStep() {
   if (typeof trickSelectionPhase !== 'undefined') trickSelectionPhase = false;
   const kind = flowrQueue[flowrIdx];
   flowrRenderStack();
+  // The step's own board decides the panel's size, and it holds it until the
+  // NEXT step pins its own - so the gap in between cannot move it.
+  flowrPinPanelSoon();
   if (kind === 'pick3') {
     _flowrBypass = true;
     try { survivalShowPick(false); } finally { _flowrBypass = false; }
@@ -519,7 +522,7 @@ function flowrAfterStep() {
 // "when the shine wave thing gets close to whichever side it goes toward then
 // the empty tab falls over".
 const FLOWR_SHINE_MS   = 340;
-const FLOWR_TABFALL_MS = 560;
+const FLOWR_TABFALL_MS = 720;   // r398: a whole panel, not a 22px tab
 
 // An element's box in its host's own design px. Returns null when it cannot be
 // measured (a display:none ancestor - the deck-edit step hides the tabs).
@@ -536,53 +539,74 @@ function flowrBoxIn(el, host) {
 function flowrHandOver(fromKind, next) {
   const skip = (typeof skipOn === 'function' && skipOn('transitions'));
   const host = document.getElementById('grid-slot');
-  const cur0 = document.getElementById('flowr-stack')?.querySelector('.fst-cur');
-  // Measured BEFORE the rebuild below destroys it.
-  const box = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
-  const label = cur0 ? cur0.innerHTML : '';
+  const stack0 = document.getElementById('flowr-stack');
+  const cur0 = stack0?.querySelector('.fst-cur');
   const bg0 = document.getElementById('flowr-bg');
-  const oldColor = bg0 ? bg0.style.getPropertyValue('--fc') : '';
+  // Measured BEFORE the rebuild below destroys them. The panel is what falls,
+  // so it is the panel's box the ghost takes; the tab's box is measured in the
+  // SAME space and carried across as an offset, which is exact even when the
+  // ladder has been clamped down by max(0px, ...) on a deep chain.
+  const pBox = (!skip && host && bg0) ? flowrBoxIn(bg0, host) : null;
+  const tBox = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
+  const label = cur0 ? cur0.innerHTML : '';
 
   flowrRenderStack();                       // the new arrangement, underneath
   const bg = document.getElementById('flowr-bg');
-  const newColor = bg ? bg.style.getPropertyValue('--fc') : '';
 
-  // No tab to knock off (the deck-edit takeover hides the ladder, and a skipped
-  // transition wants none of this): the panel says it instead, as it did before.
-  if (!box) {
+  // No panel to knock off (a skipped transition, or a board with no box yet):
+  // the panel says it instead, as it did before.
+  if (!pBox) {
     if (bg && !skip) { bg.classList.remove('fbg-turn'); void bg.offsetWidth; bg.classList.add('fbg-turn'); }
     setTimeout(next, skip ? 0 : 140);
     return;
   }
-  if (bg && oldColor) bg.style.setProperty('--fc', oldColor);   // hold the wash
 
+  // THE NEW PANEL TAKES ITS COLOUR IMMEDIATELY, unlike r394's version, which had
+  // to hold the old one: the ghost now covers the whole panel rather than just
+  // its tab, so there is nothing of the arrival on screen to give the game away
+  // and the cross-fade happens underneath.
   const meta = FLOWR_KINDS[fromKind] || FLOWR_KINDS.pick3;
   // EITHER WAY (owner's words). fxRandom, never Math.random - a seeded run
   // replaces the global and this would advance the deck and reward streams.
   const dir = ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5) ? -1 : 1;
+
   const g = document.createElement('div');
-  g.id = 'flowr-tabfall';
-  g.className = 'fst-chip fst-cur';
-  g.style.cssText = `left:${box.left}px;top:${box.top}px;right:auto;bottom:auto;`
-    + `width:${box.w}px;height:${box.h}px;`;
+  g.id = 'flowr-fall';
+  g.style.cssText = `left:${pBox.left}px;top:${pBox.top}px;width:${pBox.w}px;height:${pBox.h}px;`;
+  g.style.setProperty('--fc', meta.color);
   g.style.setProperty('--fst-c', meta.color);
-  g.style.setProperty('--fst-d', 0);
   g.style.setProperty('--fst-dir', dir);
   g.style.setProperty('--fst-shine-ms', FLOWR_SHINE_MS + 'ms');
   g.style.setProperty('--fst-fall-ms', FLOWR_TABFALL_MS + 'ms');
-  g.innerHTML = label + '<i class="fst-shine"></i>';
+  // THE TAB RIDES THE PANEL, as one object. Its offset is the measured
+  // difference between the two boxes, so it sits exactly where the real one
+  // did; `right:auto;bottom:auto` because .fst-chip positions itself by those.
+  let tabHTML = '';
+  if (tBox) {
+    tabHTML = `<div class="ffl-tab fst-chip fst-cur" style="--fst-c:${meta.color};--fst-d:0;`
+      + `left:${tBox.left - pBox.left}px;top:${tBox.top - pBox.top}px;right:auto;bottom:auto;`
+      + `width:${tBox.w}px;height:${tBox.h}px;">${label}<i class="ffl-shine"></i></div>`;
+  }
+  // TWO SHINE LAYERS, ONE ANIMATION. The panel and its tab are separate boxes
+  // with a gap in the silhouette between them, so a single band would have to
+  // be clipped to a non-rectangular union. They are the same WIDTH and take the
+  // same keyframes, and the band travels horizontally, so the two are at the
+  // same x on every frame and read as one sweep crossing one object.
+  // THE WRAPPER PAINTS NOTHING; .ffl-panel is the panel and .ffl-tab the tab.
+  // The split is what lets each CLIP ITS OWN SHINE: the wrapper has to stay
+  // overflow:visible because the tab hangs above its box, and with the shine
+  // inside the wrapper its 52% sweep painted straight off the panel and over
+  // the SWAP / SKIP / CONFIRM buttons beside the board. The panel goes first so
+  // the tab paints over its top edge, exactly as the ladder does at rest.
+  g.innerHTML = '<div class="ffl-panel"><i class="ffl-shine"></i></div>' + tabHTML;
   host.appendChild(g);
   requestAnimationFrame(() => g.classList.add('shining'));
 
   setTimeout(() => {
-    if (bg) {
-      if (newColor) bg.style.setProperty('--fc', newColor);
-      bg.classList.remove('fbg-settle'); void bg.offsetWidth; bg.classList.add('fbg-settle');
-    }
     g.classList.add('falling');
     try { sfxFlipShuffle?.(); } catch (e) {}
     next();                                  // the offers deal in behind it
-    setTimeout(() => g.remove(), FLOWR_TABFALL_MS + 120);
+    setTimeout(() => g.remove(), FLOWR_TABFALL_MS + 160);
   }, FLOWR_SHINE_MS);
 }
 
@@ -995,6 +1019,49 @@ function flowrPlayCounter(n, done) {
 }
 
 // ══════════════════════════════════════════════
+// THE PANEL'S SIZE IS PINNED FOR THE WHOLE STEP (r398)
+// ══════════════════════════════════════════════
+// Owner: *"at no point should the thing all the options and buttons are sitting
+// in change size suddenly."* It did, twice, in every gap between two steps.
+//
+// The panel is sized in pure CSS off --grid-w / --grid-h, which is exactly
+// right while a step is up and WRONG the moment it is not: closing a pick calls
+// gridScreenRelease(), which hands gridRows/gridCols back to the PLAY board,
+// and opening the next one takes them again. Measured at 1440x820 across one
+// hand-over, the panel went
+//
+//     615 x 534  (the 4x6 pick board)
+//  -> 561 x 707  (the 4x4 play board, for the length of the gap)
+//  -> 615 x 534
+//
+// - narrower AND 173px taller, and back, with nothing on it. That is the
+// "shape of the square changes suddenly and weirdly", and it also meant the
+// falling ghost was built at the WRONG width, because it is measured during
+// exactly that window.
+//
+// --fbg-w / --fbg-h are the pinned figures and BOTH the panel and the tab
+// ladder read them, falling back to --grid-w / --grid-h when nothing is pinned.
+// One write moves both and there are no inline styles to unpick.
+function flowrPinPanel() {
+  const cs = getComputedStyle(document.documentElement);
+  const w = cs.getPropertyValue('--grid-w').trim();
+  const h = cs.getPropertyValue('--grid-h').trim();
+  if (!w || !h || parseFloat(w) <= 0 || parseFloat(h) <= 0) return;
+  document.documentElement.style.setProperty('--fbg-w', w);
+  document.documentElement.style.setProperty('--fbg-h', h);
+}
+function flowrUnpinPanel() {
+  document.documentElement.style.removeProperty('--fbg-w');
+  document.documentElement.style.removeProperty('--fbg-h');
+}
+// The pin is taken on the frame AFTER the screen opens: #grid-slot carries a
+// left/width transition on the takeover (r237/r380), so the board's final box
+// is not known on the synchronous call.
+function flowrPinPanelSoon() {
+  requestAnimationFrame(() => requestAnimationFrame(flowrPinPanel));
+}
+
+// ══════════════════════════════════════════════
 // THE STACK (option C) - queued chips peeking out behind the current one
 // ══════════════════════════════════════════════
 function flowrRenderStack() {
@@ -1079,7 +1146,8 @@ let _flowrLastIdx = -1;
 function flowrClearStack() {
   document.getElementById('flowr-stack')?.remove();
   document.getElementById('flowr-bg')?.remove();
-  document.getElementById('flowr-tabfall')?.remove();
+  document.getElementById('flowr-fall')?.remove();
+  flowrUnpinPanel();
   _flowrLastIdx = -1;
 }
 
@@ -1300,6 +1368,40 @@ function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MA
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;
 let _flowrPlayHTML = null;
+
+// ══════════════════════════════════════════════
+// SWAP AND DISCARD ON THE EDIT SCREEN (r395)
+// ══════════════════════════════════════════════
+// Owner: "implement the system where you can discard and swap cards in the card
+// buff selection screen. So double tapping needs to prep for a swap and
+// selecting cards can work for starting the buff or discarding, depending on
+// the button you select."
+//
+// This is the other half of r378's adjacency rule, which was added so that "the
+// leftover swaps and discards for the last round" could be spent ORGANISING the
+// board for a buff - and then there was no way to spend them here at all.
+//
+// IT IS THE BOARD'S OWN VOCABULARY, deliberately, not a new one: DOUBLE-TAP a
+// card to lift it and tap a neighbour to trade (input.js's gesture, and r307's
+// in the shop), and the SELECTION routes to whichever action button is pressed -
+// PLAY is APPLY (r328) and DISCARD is DISCARD.
+//
+// NOTHING IS REIMPLEMENTED. doSwap and doDiscard own every rule there is -
+// adjacency, Free Range, Pivot, Wanderer, Royal Reach, Snared, the boss
+// refusals, the stock, Whetstone, Jury-Rig, the Vulture, exalt/corrupt, the
+// on_discard Sleights and the gravity refill - and getting any one of those
+// subtly different here is exactly how two vocabularies start to drift.
+let _flowrLift = null;                      // the card lifted for a swap: {id, r, c}
+let _flowrTapCell = null, _flowrTapAt = 0;  // double-tap window, DOUBLE_TAP_MS
+let _flowrActing = false;                   // true only while doSwap/doDiscard runs for us
+
+// THE CLOCK IS NOT BILLED HERE, and that is r307's rule rather than a new one:
+// this screen sits BETWEEN rounds, so organising the board costs the STOCK the
+// round left over - which is the whole point of it - and not the session clock
+// the inspection is counting down to. interactTimeCostMult() is the one number
+// both charge sites AND the Time pop-up read (r326), so one clause covers all
+// three and a quoted cost can never drift from a billed one.
+function deckEditFreeInteract() { return _flowrActing; }
 // render()'s button guard asks this (the r247 takeover rule): while the deck
 // edit is up, PLAY is the APPLY button and render must not write over it.
 function flowrDeckActive() { return !!_flowrDeckOp; }
@@ -1327,6 +1429,11 @@ function flowrDeckBegin(op) {
   // (only their DOM left with the dance), so the FULL board is editable - those
   // cards are real deck cards and a buff on one persists through the deal.
   try { render(); } catch (e) {}
+  // THE DECK EDIT USES THE PLAY BOARD, not the 6x4 pick board, so it re-pins:
+  // flowrShowStep pinned the OP PICK's size a moment ago and the panel has to
+  // wrap the real board now. It is the one step whose panel legitimately
+  // changes size, and it does so behind the falling panel of the step before.
+  flowrPinPanelSoon();
   flowrDeckBanner();
   // The board's own action column is the editor's: PLAY becomes APPLY for the
   // buff ops (the shop's BUY pattern - save the markup, restore on exit).
@@ -1339,7 +1446,8 @@ function flowrDeckBegin(op) {
     play.disabled = true;   // buff ops enable it once a card is picked
   }
   const disc = document.getElementById('btn-discard');
-  if (disc) disc.disabled = true;
+  if (disc) disc.disabled = true;   // lit by flowrDeckSyncUI once something is picked
+  _flowrLift = null; _flowrTapCell = null; _flowrTapAt = 0; _flowrActing = false;
   const gridEl = document.getElementById('grid');
   // CAPTURE PHASE, the squares rule: input.js binds its own pointerdown here and
   // a tap means "select into a hand", which this screen does not have.
@@ -1355,6 +1463,17 @@ document.getElementById('btn-play')?.addEventListener('click', e => {
   flowrDeckConfirm();
 }, true);
 
+// The DISCARD press (r395). stopImmediatePropagation rather than the APPLY
+// listener's stopPropagation, because the other listener on this button IS
+// doDiscard - it would run on the play grid's own empty `selected` and be a
+// no-op today, but "harmless because the thing underneath happens to do
+// nothing" is not a guarantee worth relying on twice.
+document.getElementById('btn-discard')?.addEventListener('click', e => {
+  if (!_flowrDeckOp) return;
+  e.stopImmediatePropagation();
+  flowrDeckDiscard();
+}, true);
+
 // The banner sits OVER THE CHIPS ROW, never over the board (owner's call - it
 // was covering the top cards). It mounts on #stage: in landscape it takes the
 // left column's chip band (the .score-subbox row is display:none on every
@@ -1366,10 +1485,11 @@ function flowrDeckBanner() {
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
+  const _g = 'Double-tap a card to swap it';
   if (op.buff || op.dual) {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then press APPLY · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · ${_g} · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · <i id="fb-count">none</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · ${_g} · <i id="fb-count">none</i></span>`;
   }
   host.appendChild(el);
 }
@@ -1430,6 +1550,72 @@ function flowrDeckSyncUI() {
   if (cnt) cnt.textContent = (op.buff || op.dual) ? `${n}/${flowrSelMax(op)}`
                                      : (n ? `${_flowrDeckSel[0].cd.rank}${_flowrDeckSel[0].cd.suit}` : 'none');
   const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
+  // DISCARD is lit by the same selection APPLY is. It is OPTIMISTIC (r389's
+  // rule): doDiscard still refuses out loud when the stock is gone or a card is
+  // Snared, which reads better than a button that is dark for a reason the
+  // player cannot see.
+  const dsc = document.getElementById('btn-discard'); if (dsc) dsc.disabled = n === 0;
+  flowrPaintLift();
+}
+
+// The lifted card is the only thing on screen that says a swap is half-made, so
+// it is painted from one place and repainted after every render() that doSwap
+// or removeAndFall runs underneath us.
+function flowrPaintLift() {
+  document.querySelectorAll('#grid .card.flowr-lift').forEach(el => el.classList.remove('flowr-lift'));
+  if (!_flowrLift) return;
+  document.querySelector(`#grid [data-card-id="${_flowrLift.id}"]`)?.classList.add('flowr-lift');
+}
+
+function flowrClearLift() { _flowrLift = null; _flowrTapCell = null; _flowrTapAt = 0; flowrPaintLift(); }
+
+// THE SELECTION IS DROPPED BY A SWAP OR A DISCARD, never carried across one.
+// Both end in a render() that rebuilds the cards, so every element reference in
+// _flowrDeckSel is stale and every .flowr-sel class is gone - and the board has
+// moved under the pick anyway, which is the rule every other screen in the game
+// follows when its offers change (r282).
+function flowrDropSelection() {
+  _flowrDeckSel = [];
+  document.querySelectorAll('#grid .card.flowr-sel, #grid .card.flowr-src')
+    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src'));
+  flowrDeckSyncUI();
+}
+
+// _flowrActing is what makes the clock free (above) and what lets doDiscard past
+// its `roundEnded` guard - true here, because the goal hand that opened this
+// chain set it and only the level-up at the chain's END clears it again.
+function flowrDeckAct(fn) {
+  _flowrActing = true;
+  try { fn(); } finally { _flowrActing = false; }
+}
+
+function flowrDeckSwap(r, c) {
+  const from = _flowrLift; if (!from) return;
+  flowrClearLift();
+  flowrDeckAct(() => doSwap(from.r, from.c, r, c));
+  // doSwap ends in a render(), so every .flowr-sel is already gone and every
+  // element reference in _flowrDeckSel is stale - flowrDropSelection is what
+  // makes the STATE agree with the board again.
+  flowrDropSelection();
+}
+
+// DISCARD. doDiscard reads the PLAY GRID's own `selected`, so the editor's pick
+// is handed over as that and taken back afterwards - the board is the same
+// board and the cells are the same cells, so there is nothing to translate.
+function flowrDeckDiscard() {
+  if (_flowrDeckBusy || !_flowrDeckOp || !_flowrDeckSel.length) return;
+  if (animating || falling) return;
+  const cells = _flowrDeckSel.map(s => [s.r, s.c]);
+  const before = discards;
+  flowrClearLift();
+  const _keep = selected;
+  selected = cells;
+  flowrDeckAct(() => doDiscard());
+  // doDiscard empties `selected` on success and leaves it alone on a refusal,
+  // so its own answer is what says whether anything happened.
+  const went = selected.length === 0 || discards !== before;
+  if (!went) selected = _keep;
+  if (went) flowrDropSelection(); else flowrDeckSyncUI();
 }
 
 function flowrDeckTap(e) {
@@ -1437,14 +1623,56 @@ function flowrDeckTap(e) {
   // here, so input.js's select/swap gestures can never fire underneath.
   e.stopPropagation(); e.preventDefault();
   if (_flowrDeckBusy) return;
+  // A settling board is not a board to act on - the r278 card-states rule. A
+  // discard runs removeAndFall, which takes the `falling` lock and rewrites
+  // every card element underneath us.
+  if (animating || falling) return;
   const cardEl = e.target.closest('[data-card-id]');
   if (!cardEl) return;
   const hit = flowrDeckFindCell(cardEl);
   if (!hit) return;
   const [r, c, cd] = hit;
-  if (!flowrDeckOrdinary(cd)) { refuse('Pick an ordinary card'); return; }
-  const op = _flowrDeckOp;
   const id = String(cd._id);
+
+  // ── A LIFTED CARD IS WAITING FOR ITS PARTNER, and that outranks everything
+  // below: this tap is the second half of a swap, not a selection.
+  if (_flowrLift) {
+    if (_flowrLift.id === id) { flowrClearLift(); try { sfxCardSelect?.(); } catch (e2) {} return; }
+    flowrDeckSwap(r, c);
+    return;
+  }
+
+  if (!flowrDeckOrdinary(cd)) { refuse('Pick an ordinary card'); return; }
+
+  // ── DOUBLE-TAP LIFTS IT. The gesture is input.js's, down to DOUBLE_TAP_MS,
+  // because a player who has learnt it on the board must not have to learn a
+  // second one here. The first tap of the pair has already toggled the
+  // selection, so arming UNDOES that toggle - a double-tap means "swap this",
+  // not "swap this and also change what I had picked".
+  const _now = Date.now();
+  const _dbl = _flowrTapCell === id && (_now - _flowrTapAt) < DOUBLE_TAP_MS;
+  _flowrTapCell = id; _flowrTapAt = _now;
+  if (_dbl) {
+    // UNDOING THE TOGGLE MUST NOT SPLIT THE GROUP - r378's rule applies to a
+    // card leaving the selection however it leaves. A card whose removal would
+    // strand the others simply stays picked; the swap that follows drops the
+    // whole selection anyway, so the only case this protects is the player
+    // lifting a card and then changing their mind.
+    const back = _flowrDeckSel.findIndex(x => x.id === id);
+    if (back >= 0) {
+      const rest = _flowrDeckSel.filter((_, k) => k !== back);
+      if (_flowrConnected(rest)) {
+        _flowrDeckSel = rest;
+        cardEl.classList.remove('flowr-sel', 'flowr-src');
+      }
+    }
+    _flowrLift = { id, r, c };
+    flowrDeckSyncUI();
+    try { sfxCardSelect?.(); } catch (e2) {}
+    return;
+  }
+
+  const op = _flowrDeckOp;
   const i = _flowrDeckSel.findIndex(x => x.id === id);
 
   // ── ADJACENCY OPS: ONE source card, and a tap MOVES it. It no longer fires.
@@ -1481,6 +1709,7 @@ function flowrDeckTap(e) {
 // one of them (the whole reason the adjacency ops fired on a tap).
 function flowrDeckConfirm() {
   if (_flowrDeckBusy || !_flowrDeckOp || !_flowrDeckSel.length) return;
+  flowrClearLift();   // a half-made swap is not part of the op
   if (_flowrDeckOp.adj) { const s0 = _flowrDeckSel[0]; flowrAdjApply(s0.r, s0.c, s0.cd); }
   else if (_flowrDeckOp.dual) flowrDualConfirm();
   else flowrBuffConfirm();
@@ -1649,8 +1878,9 @@ function flowrDeckEnd() {
     play.innerHTML = _flowrPlayHTML;
     play.disabled = true;
   }
-  document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-hit, .flowr-won, .flowr-miss, .flowr-jig')
-    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-hit', 'flowr-won', 'flowr-miss', 'flowr-jig'));
+  document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-lift, .flowr-hit, .flowr-won, .flowr-miss, .flowr-jig')
+    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-lift', 'flowr-hit', 'flowr-won', 'flowr-miss', 'flowr-jig'));
+  _flowrLift = null; _flowrTapCell = null; _flowrTapAt = 0; _flowrActing = false;
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   _flowrDeckOp = null; _flowrDeckSel = []; _flowrDeckBusy = false;
   // r380: THE REVEAL GETS A BEAT, then the board explodes out. It used to cut

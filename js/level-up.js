@@ -243,12 +243,8 @@ function triggerLevelUp() {
   fireSleightsAtRoundStart();
   // (♠ exalt/corrupt is now play/discard-driven - handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
-  // Reset focus meter at start of every round (chunk 2 will add notch-fall animation)
-  focusNodes = 0;
-  focusAnimQueue = [];
-  focusAnimRunning = false;
-  syncFocusMeterState();
-  updateFocusMultReadout(false);
+  // Reset focus meter at the start of every round (r395: one helper, js/focus.js)
+  resetFocusMeter();
   // Recompute decay interval (Meditation may be acquired/lost between rounds)
   recomputeFocusDecayInterval();
   // Tunnel Vision: start each round with 5 focus

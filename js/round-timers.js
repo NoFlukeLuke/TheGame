@@ -300,6 +300,12 @@ function interactTimeCostsOn() {
 // reads the same number the charge does.
 const FLOW_INTERACT_TIME_MULT = 0.5;
 function interactTimeCostMult() {
+  // The Flow deck editor's swaps and discards are free of the CLOCK (r395) -
+  // that screen sits between rounds, so it spends the round's leftover STOCK
+  // and not the session clock the inspection is counting down to. Asked here
+  // because this is the one number the two charge sites and the Time pop-up all
+  // read, so the quote and the charge cannot drift (r326).
+  if (typeof deckEditFreeInteract === 'function' && deckEditFreeInteract()) return 0;
   if (!interactTimeCostsOn()) return 0;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_INTERACT_TIME_MULT;
   return 1;

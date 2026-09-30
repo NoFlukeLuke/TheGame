@@ -168,6 +168,29 @@ function updateFocusMeter() {
 }
 
 // ══════════════════════════════════════════════
+// THE METER IS ZEROED IN ONE PLACE (r395)
+// ══════════════════════════════════════════════
+// Owner: "Focus should reset every level and when the boss starts."
+//
+// There were three hand-written copies of these four lines (triggerLevelUp, the
+// interlude's fall, startGame) and no copy at all on the boss path, which is
+// how a Flow run carried its whole multiplier into the inspection: Flow's boss
+// fires from onRoundEnd at clock zero, MID-ROUND, so no level-up runs in front
+// of it and nothing else was zeroing the bar. It is one function now, and
+// triggerBoss calls it - which covers every boss path at once (Flow's clock,
+// Survival's cadence, the legacy timer modes, the act modes and the dev panel).
+//
+// It is deliberately SILENT: the notch-fall clones are the interlude's own
+// ceremony and belong to the round ending, not to the state being cleared.
+function resetFocusMeter() {
+  focusNodes = 0;
+  focusAnimQueue = [];
+  focusAnimRunning = false;
+  syncFocusMeterState();
+  updateFocusMultReadout(false);
+}
+
+// ══════════════════════════════════════════════
 // FOCUS GAUGE FX - fill-scaled jitter + glow (r97)
 // ══════════════════════════════════════════════
 // Fraction of the bar that's full (0..1).
