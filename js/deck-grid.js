@@ -638,6 +638,8 @@ const DURABLE_CARD_FIELDS = [
   '_spadeEarlyPlays', '_spadeDiscards', '_diaPoorPlays', '_diaRichPlays',
   // Whetstone's banked mult and the Vulture's clock buff
   '_whetMult', '_vulturePause',
+  // Climb mode (r398): the rank the card started the run at, for the reset.
+  '_climbBase',
   // A TEMP card (r278, js/card-states.js) exists for this level only. It is
   // named here so the flag survives this rebuild, which is what lets the two
   // pile functions below REFUSE it: a temp card that lost its flag on the way
@@ -688,6 +690,7 @@ function recycleCard(card) {
     out.rank = queenUpgradedRank(card.rank);
   }
   for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
+  if (typeof climbRecycle === 'function') climbRecycle(card, out);   // r398
   return out;
 }
 

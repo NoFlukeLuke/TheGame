@@ -275,14 +275,25 @@ function modeEntityTags() {
 
 function applyModeEntityFilter() {
   const tags  = modeEntityTags();
-  const banned = isNumericMode() ? NUMERIC_BANNED_TRICKS : null;
+  const banned = isNumericMode() ? NUMERIC_BANNED_TRICKS
+               : (typeof climbActive === 'function' && climbActive()) ? CLIMB_BANNED_TRICKS : null;
   const keep = TRICK_POOL_ALL.filter(t =>
     !(banned && banned.has(t.id)) && (!t.modes || t.modes.some(id => tags.has(id)))
   );
   TRICK_POOL.length = 0;
   keep.forEach(t => TRICK_POOL.push(t));
 }
-function trickBannedInMode(id) { return isNumericMode() && NUMERIC_BANNED_TRICKS.has(id); }
+function trickBannedInMode(id) {
+  if (typeof climbActive === 'function' && climbActive()) return CLIMB_BANNED_TRICKS.has(id);
+  return isNumericMode() && NUMERIC_BANNED_TRICKS.has(id);
+}
+// Climb (r398) has real suits but no Aces and no courts, so only the rank half
+// of Spectrum's list applies.
+const CLIMB_BANNED_TRICKS = new Set([
+  'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
+  'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
+  'court_of_leaves', 'patient_rulers',
+]);
 
 // ══════════════════════════════════════════════
 // STATE

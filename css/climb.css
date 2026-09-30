@@ -1,0 +1,4 @@
+/* Climb mode (r398): a card at the ceiling (15) is primed to pay its bonus.
+   A gold ring; no transform, so the composed card transform is untouched. */
+.card.climb-top { box-shadow: inset 0 0 0 2px #f2c14e, 0 0 10px 2px rgba(242,193,78,.65); }
+.card.climb-top .rank { color: #b8860b; text-shadow: 0 0 4px rgba(242,193,78,.8); }

@@ -535,6 +535,7 @@ function playHand() {
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
+    climbAfterHand(_scoredCells);   // r398: after the dance took its ledger
     return;
   }
 
@@ -562,6 +563,7 @@ function playHand() {
     playScoreDance(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
+    climbAfterHand(_scoredCells);   // r398: after the dance took its ledger
     return;
   }
 
@@ -964,6 +966,7 @@ function playHand() {
   playScoreDance(result, toRemove);
   runHandPriming(hand, handCells);
   scalingCount(hand, _scoredCells, _handRetrigByCell);
+  climbAfterHand(_scoredCells);   // r398
 }
 
 // ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────

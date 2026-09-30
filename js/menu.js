@@ -129,6 +129,24 @@ const MODES = {
     suitCount: 7,
     numeric: true
   },
+  // Climb (r398): Classic's structure on a numeric deck whose cards go up one
+  // rank every time they score. See js/climb-mode.js.
+  climb: {
+    id: 'climb',
+    name: 'Climb',
+    desc: 'Four suits, values 1 to 13. Every card that scores goes up one rank, up to 15. A 15 that scores pays a large bonus and returns to its starting rank.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    wilds: 0,
+    climb: true
+  },
   survival: {
     id: 'survival',
     name: 'Survival',
@@ -369,6 +387,8 @@ const MODE_META = {
               blurb: 'Each goal has its own 2-minute clock. Clear it for a pick of three, then the next goal starts. Extra score carries over. A review comes every 5 minutes of play. Miss a goal and the run ends.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
+  climb:    { accent: '#f2c14e',        suits: '1 → 15',
+              blurb: 'Four suits, values 1 to 13, no face cards. Every card that scores goes up one rank, up to 15. A 15 that scores pays +75 pips, then goes back to the rank it started at. Otherwise plays like Classic.' },
   squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
               blurb: 'Poker Squares. Each turn deals three tiles of cards, and you place them on a 5x5 board. At the end of the round every row and column scores as a five-card poker hand. No clock and no goal. Ten rounds.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
