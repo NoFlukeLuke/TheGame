@@ -347,7 +347,17 @@ function cardBandsHTML(card) {
            + `--cbi:${slot.ink}"></i>`;
     }
     return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}">${plus}</div>`;
-  }).join('');
+  }).join('') + cardXMarksHTML(k);
+}
+// r393: a x pips / x mult card wears an x in its family's corner (top-left pips,
+// top-right mult), drawn OVER the bands in a darker ink with a drop shadow.
+function cardXMarksHTML(k) {
+  const xp = (typeof permXPips !== 'undefined' && permXPips[k]) || 1;
+  const xm = (typeof permXMult !== 'undefined' && permXMult[k]) || 1;
+  let h = '';
+  if (xp > 1) h += `<i class="card-xmark cx-tl" title="x${+xp.toFixed(2)} pips">\u00d7</i>`;
+  if (xm > 1) h += `<i class="card-xmark cx-tr" title="x${+xm.toFixed(2)} mult">\u00d7</i>`;
+  return h;
 }
 
 // ── DUAL IDENTITY (r392) ─────────────────────────────────────────────────────
@@ -366,14 +376,17 @@ function cardGhostFor(c) {
   if (!cardIsDual(c)) return null;
   return { _id: c._id, rank: c.rank2 || '', suit: c.suit2 || '', _ghost: true };
 }
-// The face: the second rank under the first, the second suit beside the first,
-// the pair of suits centred together (owner's spec).
+// The face (r393): a second RANK splits the card on the TL->BR diagonal, the
+// rank centred in the top-left region, rank2 in the bottom-right, and the line
+// broken in the middle where the suit (or both suits) sits. A second SUIT alone
+// keeps the ordinary layout with the two suits side by side.
 function cardDualFaceHTML(card) {
-  const r2 = card.rank2 ? `<div class="rank rank2">${card.rank2}</div>` : '';
   const suits = card.suit2
     ? `<div class="suit suit-pair"><span class="${suitClass(card.suit)}">${card.suit}</span><span class="${suitClass(card.suit2)}">${card.suit2}</span></div>`
     : `<div class="suit">${card.suit}</div>`;
-  return `<div class="rank">${card.rank}</div>${r2}${suits}`;
+  if (!card.rank2) return `<div class="rank">${card.rank}</div>${suits}`;
+  return `<div class="dual-slash"></div><div class="rank dual-r1">${card.rank}</div>`
+       + `<div class="rank dual-r2">${card.rank2}</div>${suits.replace('class="suit', 'class="suit dual-mid')}`;
 }
 // A card that SCORES CREDITS wears a gold coin behind its face (owner's spec);
 // the rank and suit take a thin dark outline over it (.card-has-coin).

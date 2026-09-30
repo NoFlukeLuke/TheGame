@@ -10655,7 +10655,7 @@ their own label and stand the pulse down; closing each one restores `🔄 SWAP 3
 its own band. **No page errors in any run.**
 
 
-## r395 - focus resets at every level and every boss, and the deck editor takes swaps and discards
+## r397 - focus resets at every level and every boss, and the deck editor takes swaps and discards
 
 ### 1. THE METER IS ZEROED IN ONE PLACE, AND THE BOSS PATH HAD NO COPY OF IT
 
@@ -11303,3 +11303,8 @@ transitions both still ADVANCE the chain with no ghost; the deal measured at
 pixel with coins on the right and the ✋ on the tally; Classic, the Schedule,
 Survival, Spectrum and Poker Squares all dealing and laying out. **No page errors
 in any run.**
+## r395 - x marks, the diagonal dual-rank face, reward-grid dual tiles
+
+- **`cardXMarksHTML`** (js/deck-grid.js, appended by `cardBandsHTML`): an x in the top-left for `permXPips`, top-right for `permXMult`, dark navy / maroon with a drop shadow, z-index 3 so it sits over the bands.
+- **A second RANK splits the card TL->BR** (`card-dual-rank`): `.dual-slash` masked open in the middle, rank in the top-left region, rank2 bottom-right, the suit (or both suits) in the gap. A second suit alone keeps the ordinary face.
+- **Reward-grid Second Suit / Second Rank tiles** set `flowrPendingDual`; `startRoundTimer` hands the fresh board to the deck editor first (`flowrMaybeRunPendingDual`), and `flowrDeckDone` returns to the round instead of the Flow chain. Skipped on a boss round (it waits for the next).

@@ -154,7 +154,7 @@ function renderCardAppearance(card, r, c, {
     rcLeyline.trim(), rcWoodpecker.trim(),
     _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
-    _dual ? 'card-dual' : '', _coin ? 'card-has-coin' : '',
+    _dual ? 'card-dual' : '', (_dual && card.rank2) ? 'card-dual-rank' : '', _coin ? 'card-has-coin' : '',
     // Card states + temp cards (r278). `card-temp` is independent of any state:
     // "this will not be here next round" is the thing a player most needs to
     // know before building a plan around the card.

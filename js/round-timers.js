@@ -43,6 +43,7 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  if (typeof flowrMaybeRunPendingDual === 'function' && flowrMaybeRunPendingDual()) return;
   // The last round's winning hand goes back into the deck now that the new
   // board is dealt (r371, js/deck-grid.js) - above the checkpoint, so a save
   // never captures it held.

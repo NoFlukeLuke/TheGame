@@ -746,55 +746,178 @@ function flowrShade(hex, amt) {
 // index: which reward this burst is for, 0-based. At FLOWR_CONF_TIERS.length and
 // beyond every colour is thrown at once - the owner's "for the 5th reward, it
 // explodes all the colors".
-function flowrConfetti(index) {
-  if (typeof skipOn === 'function' && skipOn('transitions')) return;
-  if (document.body.classList.contains('reduced-motion')) return;
-  const host = document.getElementById('grid-slot');
-  const card = document.getElementById('flowr-counter');
+// r396: tunable. Owner: "the confetti should be more opaque and larger, and
+// should last a little longer before fading or falling ... make setting for the
+// confetti to tone up down how impactful it is, and settings for the laser
+// beams." Dev -> Aesthetics. OVERRIDES ONLY in storage (the r197 rule).
+const FLOWR_FX_KEY = 'lethe.flowrFx.v1';
+const FLOWR_FX_DEF = {
+  confOn: 1, confAmount: 100, confSize: 170, confOpacity: 100, confTime: 160, confSpread: 130,
+  laserOn: 1, laserLen: 100, laserWidth: 5, laserSpin: 100, laserGlow: 100,
+};
+const FLOWR_FX_TUNABLES = [
+  { key: 'confOn',      label: 'Confetti on',          min: 0,  max: 1,   step: 1,  unit: '' },
+  { key: 'confAmount',  label: 'Confetti amount',      min: 20, max: 300, step: 10, unit: '%' },
+  { key: 'confSize',    label: 'Confetti size',        min: 50, max: 400, step: 10, unit: '%' },
+  { key: 'confOpacity', label: 'Confetti opacity',     min: 20, max: 100, step: 5,  unit: '%' },
+  { key: 'confTime',    label: 'Confetti time',        min: 50, max: 400, step: 10, unit: '%' },
+  { key: 'confSpread',  label: 'Confetti spread',      min: 40, max: 300, step: 10, unit: '%' },
+  { key: 'laserOn',     label: 'Laser beams on',       min: 0,  max: 1,   step: 1,  unit: '' },
+  { key: 'laserLen',    label: 'Laser length',         min: 20, max: 250, step: 10, unit: '%' },
+  { key: 'laserWidth',  label: 'Laser thickness',      min: 1,  max: 20,  step: 1,  unit: 'px' },
+  { key: 'laserSpin',   label: 'Laser spin speed',     min: 0,  max: 400, step: 10, unit: '%' },
+  { key: 'laserGlow',   label: 'Laser glow',           min: 0,  max: 300, step: 10, unit: '%' },
+];
+let flowrFx = (() => {
+  let ov = {};
+  try { ov = JSON.parse(localStorage.getItem(FLOWR_FX_KEY) || '{}') || {}; } catch (e) {}
+  const o = Object.assign({}, FLOWR_FX_DEF);
+  for (const k in ov) if (k in o && isFinite(+ov[k])) o[k] = +ov[k];
+  return o;
+})();
+function setFlowrFx(key, v) {
+  const t = FLOWR_FX_TUNABLES.find(x => x.key === key); if (!t) return;
+  flowrFx[key] = Math.max(t.min, Math.min(t.max, Math.round(+v || 0)));
+  const ov = {};
+  for (const k in FLOWR_FX_DEF) if (flowrFx[k] !== FLOWR_FX_DEF[k]) ov[k] = flowrFx[k];
+  try {
+    if (Object.keys(ov).length) localStorage.setItem(FLOWR_FX_KEY, JSON.stringify(ov));
+    else localStorage.removeItem(FLOWR_FX_KEY);
+  } catch (e) {}
+  devRenderFlowrFx();
+}
+function resetFlowrFx() {
+  flowrFx = Object.assign({}, FLOWR_FX_DEF);
+  try { localStorage.removeItem(FLOWR_FX_KEY); } catch (e) {}
+  devRenderFlowrFx();
+}
+// Written, never rebuilt, while a field has focus (r282).
+function devRenderFlowrFx() {
+  const host = document.getElementById('dev-flowrfx-rows');
   if (!host) return;
+  if (!host.dataset.built) {
+    host.dataset.built = '1';
+    host.innerHTML = FLOWR_FX_TUNABLES.map(t => `<div class="dev-row" style="align-items:center;gap:6px;margin-top:4px;">
+      <span style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">${t.label}</span>
+      <button class="dev-btn" onclick="setFlowrFx('${t.key}', flowrFx.${t.key} - ${t.step})">&minus;</button>
+      <input id="dev-flowrfx-${t.key}" type="number" min="${t.min}" max="${t.max}" step="${t.step}"
+        onchange="setFlowrFx('${t.key}', this.value)"
+        style="width:56px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-family:'Share Tech Mono',monospace;font-size:12px;text-align:center;">
+      <span style="width:18px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);">${t.unit}</span>
+      <button class="dev-btn" onclick="setFlowrFx('${t.key}', flowrFx.${t.key} + ${t.step})">+</button>
+    </div>`).join('');
+  }
+  FLOWR_FX_TUNABLES.forEach(t => {
+    const el = document.getElementById('dev-flowrfx-' + t.key);
+    if (el && document.activeElement !== el) el.value = flowrFx[t.key];
+  });
+}
+
+function flowrFxLayer() {
+  const host = document.getElementById('grid-slot');
+  if (!host) return null;
   let layer = document.getElementById('flowr-confetti');
   if (!layer) {
     layer = document.createElement('div');
     layer.id = 'flowr-confetti';
     host.appendChild(layer);
   }
+  return layer;
+}
+// The chip's own centre, in the slot's design px. Falls back to the slot's
+// centre when the chip has not been laid out yet (the dev-panel preview).
+function flowrFxOrigin() {
+  const host = document.getElementById('grid-slot');
+  const card = document.getElementById('flowr-counter');
+  const box = card ? flowrBoxIn(card, host) : null;
+  return { x: box ? box.left + box.w / 2 : host.offsetWidth / 2,
+           y: box ? box.top + box.h / 2 : host.offsetHeight / 2 };
+}
+
+function flowrConfetti(index) {
+  if (typeof skipOn === 'function' && skipOn('transitions')) return;
+  if (document.body.classList.contains('reduced-motion')) return;
+  if (!flowrFx.confOn) return;
+  const layer = flowrFxLayer(); if (!layer) return;
   // UNDER THE CHIP AND OVER THE BOARD: the layer sits at z-index 39 against the
   // counter's 40 (css/flow-rewards.css), in the same stacking context.
   const all = index >= FLOWR_CONF_TIERS.length;
   const palette = all ? FLOWR_CONF_TIERS.map((_, i) => flowrTierColor(i)) : [flowrTierColor(index)];
-  const n = all ? FLOWR_CONF_N_ALL : FLOWR_CONF_N;
-  // The chip's own centre, in the slot's design px. Falls back to the slot's
-  // centre when the chip has not been laid out yet (the dev-panel preview).
-  const box = card ? flowrBoxIn(card, host) : null;
-  const ox = box ? box.left + box.w / 2 : host.offsetWidth / 2;
-  const oy = box ? box.top + box.h / 2 : host.offsetHeight / 2;
+  const n = Math.round((all ? FLOWR_CONF_N_ALL : FLOWR_CONF_N) * flowrFx.confAmount / 100);
+  const sz = flowrFx.confSize / 100, tm = flowrFx.confTime / 100;
+  const sprd = flowrFx.confSpread / 100, op = flowrFx.confOpacity / 100;
+  const { x: ox, y: oy } = flowrFxOrigin();
   const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
   for (let i = 0; i < n; i++) {
     const a  = rnd() * Math.PI * 2;                 // all directions
-    const sp = 90 + rnd() * 165;
+    const sp = (90 + rnd() * 165) * sprd;
     const dx = Math.cos(a) * sp, dy = Math.sin(a) * sp;
-    const drop = 120 + rnd() * 130;                 // gravity, applied at the end
+    const drop = (120 + rnd() * 130) * sprd;        // gravity, applied at the end
     // MOSTLY SQUARES: one side is the base, the other within a fifth of it.
-    const w = 4.5 + rnd() * 6, h = w * (0.82 + rnd() * 0.36);
+    const w = (4.5 + rnd() * 6) * sz, h = w * (0.82 + rnd() * 0.36);
     const col = palette[(rnd() * palette.length) | 0];
     const p = document.createElement('i');
     p.className = 'fcf';
     p.style.cssText = `left:${(ox - w / 2).toFixed(1)}px;top:${(oy - h / 2).toFixed(1)}px;`
       + `width:${w.toFixed(1)}px;height:${h.toFixed(1)}px;`
-      + `background:${flowrShade(col, (rnd() - 0.45) * 0.34)};`;
+      + `background:${flowrShade(col, (rnd() - 0.45) * 0.26)};`;
     layer.appendChild(p);
     const r0 = rnd() * 360, spin = (rnd() - 0.5) * 900;
-    const dur = FLOWR_CONF_MS * (0.72 + rnd() * 0.5);
+    const dur = FLOWR_CONF_MS * tm * (0.72 + rnd() * 0.5);
     try {
+      // Full opacity held to 75% of the flight, then the fall and fade together.
       p.animate([
-        { transform: `translate(0,0) rotate(${r0}deg)`, opacity: 1 },
+        { transform: `translate(0,0) rotate(${r0}deg)`, opacity: op },
         { transform: `translate(${(dx * 0.72).toFixed(1)}px,${(dy * 0.72 + drop * 0.12).toFixed(1)}px) rotate(${(r0 + spin * 0.55).toFixed(0)}deg)`,
-          opacity: 1, offset: 0.5 },
+          opacity: op, offset: 0.45 },
+        { transform: `translate(${(dx * 0.92).toFixed(1)}px,${(dy * 0.92 + drop * 0.55).toFixed(1)}px) rotate(${(r0 + spin * 0.85).toFixed(0)}deg)`,
+          opacity: op, offset: 0.75 },
         { transform: `translate(${dx.toFixed(1)}px,${(dy + drop).toFixed(1)}px) rotate(${(r0 + spin).toFixed(0)}deg)`, opacity: 0 },
       ], { duration: Math.round(dur), easing: 'cubic-bezier(.16,.66,.44,1)', fill: 'forwards' })
         .finished.then(() => p.remove(), () => p.remove());
     } catch (e) { p.remove(); }
   }
+}
+
+// LASER BEAMS (r396). Two per reward, spinning out of the chip: x1 is two, x2
+// four ... Beam pair i takes tier colour i, so a x3 shows mint, cyan and purple
+// together and a x5's fifth pair throws every colour down its length. Rebuilt on
+// each bump; removed with the confetti layer at the counter's finish.
+function flowrLasers(k) {
+  if (typeof skipOn === 'function' && skipOn('transitions')) return;
+  if (document.body.classList.contains('reduced-motion')) return;
+  document.getElementById('flowr-lasers')?.remove();
+  if (!flowrFx.laserOn || k < 1) return;
+  const host = document.getElementById('grid-slot'); if (!host) return;
+  const { x, y } = flowrFxOrigin();
+  const wrap = document.createElement('div');
+  wrap.id = 'flowr-lasers';
+  wrap.style.cssText = `left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;`;
+  const len = Math.hypot(host.offsetWidth, host.offsetHeight) * 0.75 * flowrFx.laserLen / 100;
+  const n = k * 2, thick = flowrFx.laserWidth, glow = flowrFx.laserGlow / 100;
+  const allCols = FLOWR_CONF_TIERS.map((_, i) => flowrTierColor(i));
+  for (let i = 0; i < n; i++) {
+    const pair = i >> 1;
+    const col = pair < FLOWR_CONF_TIERS.length ? flowrTierColor(pair) : null;
+    const b = document.createElement('i');
+    b.className = 'flz';
+    const bg = col
+      ? `linear-gradient(90deg, #fff 0%, ${col} 12%, ${col} 70%, transparent 100%)`
+      : `linear-gradient(90deg, #fff 0%, ${allCols.map((c, j) => `${c} ${12 + j * 18}%`).join(', ')}, transparent 100%)`;
+    const gc = col || allCols[3];
+    b.style.cssText = `width:${len.toFixed(0)}px;height:${thick}px;margin-top:${(-thick / 2).toFixed(1)}px;`
+      + `background:${bg};box-shadow:0 0 ${(6 * glow).toFixed(1)}px ${(2 * glow).toFixed(1)}px ${gc};`
+      + `transform:rotate(${(i * 360 / n).toFixed(1)}deg);`;
+    wrap.appendChild(b);
+  }
+  (flowrFxLayer() || host).appendChild(wrap);
+  const spinMs = flowrFx.laserSpin > 0 ? 4200 / (flowrFx.laserSpin / 100) : 0;
+  try {
+    wrap.animate([{ opacity: 0, scale: '0.2' }, { opacity: 1, scale: '1' }],
+      { duration: 260, easing: 'cubic-bezier(.2,.8,.3,1.2)', fill: 'both' });
+    if (spinMs) wrap.animate([{ rotate: '0deg' }, { rotate: ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5 ? '' : '-') + '360deg' }],
+      { duration: spinMs, iterations: Infinity });
+  } catch (e) {}
 }
 function flowrClearConfetti() { document.getElementById('flowr-confetti')?.remove(); }
 
@@ -830,6 +953,7 @@ function flowrPlayCounter(n, done) {
   // now held for it, so it gets a flash over the board and a shake of its own.
   flowrFlash();
   flowrConfetti(0);        // burst 1 is always the common colour
+  flowrLasers(1);
   let k = 1;
   const num = el.querySelector('.fc-num em'), sub = el.querySelector('.fc-sub');
   el.style.setProperty('--fc-k', 1);
@@ -848,6 +972,7 @@ function flowrPlayCounter(n, done) {
     try { sfxRewardCount?.(k - 1); } catch (e) {}
     if (k >= 4) { try { sfxWinExplode?.(); } catch (e) {} }
     flowrConfetti(k - 1);  // 2nd = rare, 3rd = epic, 4th = legendary, 5th = all
+    flowrLasers(k);
     if (k < n) setTimeout(bump, flowrBumpGap(false));
     else setTimeout(finish, 900);
   };
@@ -1689,8 +1814,21 @@ function flowrDeckEnd() {
   // straight to the next screen the moment the last card turned - the owner's
   // "too jumpy". The cards removed here are rebuilt by whatever comes next: a
   // takeover empties #grid anyway, and the chain's level-up deals the board in.
+  // r393: a reward-grid dual tile runs this editor on the round's own board and
+  // hands back to the round instead of the Flow chain.
+  if (flowrDeckDone) { const cb = flowrDeckDone; flowrDeckDone = null; try { render(); } catch (e) {} setTimeout(cb, 700); return; }
   if (typeof rewardTransitionOut === 'function') rewardTransitionOut(() => flowrAfterStep(), { breathe: 800 });
   else flowrAfterStep();
+}
+let flowrPendingDual = null, flowrDeckDone = null;
+// Called at the top of startRoundTimer: true = the editor took over first.
+function flowrMaybeRunPendingDual() {
+  if (!flowrPendingDual || (typeof bossActive !== 'undefined' && bossActive)) return false;
+  if (!gridData.some(row => row && row.some(c => c && !c._isSleight))) return false;
+  const op = flowrPendingDual; flowrPendingDual = null;
+  flowrDeckDone = () => { gameTimerPaused = false; startRoundTimer(); };
+  flowrDeckBegin(op);
+  return true;
 }
 
 // ══════════════════════════════════════════════

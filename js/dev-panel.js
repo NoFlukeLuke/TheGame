@@ -209,6 +209,7 @@ function devSyncAesthetics() {
   if (d && typeof dealStyle === 'string') d.value = dealStyle;
   devRenderClockBar();
   if (typeof flowrSyncChipPicker === 'function') flowrSyncChipPicker();
+  if (typeof devRenderFlowrFx === 'function') devRenderFlowrFx();
 }
 if (document.body) applyClockBar(); else document.addEventListener('DOMContentLoaded', applyClockBar);
 
