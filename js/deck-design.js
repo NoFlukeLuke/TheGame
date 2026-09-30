@@ -236,6 +236,7 @@ let deckModel = 'mode';
 function deckModelNow() {
   if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return 'classic4';
   if (ACTIVE_MODE.numeric) return 'spectrum';
+  if (ACTIVE_MODE.climb) return 'climb';   // Climb (r398): 1-13 x four suits, lists set by startGame
   if (deckModel !== 'mode') return deckModel;
   return ACTIVE_MODE.suitCount === 6 ? 'six' : 'classic4';
 }

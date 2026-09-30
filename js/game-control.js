@@ -332,7 +332,7 @@ function startGame() {
     spectrumInstallLists();
   } else {
     ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
-    ACTIVE_RANKS = RANKS;
+    ACTIVE_RANKS = (ACTIVE_MODE.climb && typeof RANKS_CLIMB !== 'undefined') ? RANKS_CLIMB : RANKS;
     // Six Suits deals a DESIGNED deck (js/deck-design.js): the cut rank comes out
     // of ACTIVE_RANKS here, and expectedDeckTotal becomes ranks x copies rather
     // than ranks x suits. It must run AFTER ACTIVE_SUITS is set - the suit list

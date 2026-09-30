@@ -469,6 +469,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('ten_strong') && baseRank === '10') { cp += BAL.ten_strong.pips; bPip('ten_strong', BAL.ten_strong.pips); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { cp += BAL.king_guard.pips; bPip('king_guard', BAL.king_guard.pips); }
     if (hasTrick('dark_matter') && card._corrupted) { cp += BAL.dark_matter.pips; bPip('dark_matter', BAL.dark_matter.pips); }
+    // Climb mode (r398): a card scored AT the ceiling pays a flat bonus. Timeline
+    // only (source 'climb', no ledger row), the row/col +2 mult rule; it sits
+    // before the replay multiply, so each replay pays it again.
+    if (!_G && typeof climbTopBonus === 'function') { const _clb = climbTopBonus(card); if (_clb) { cp += _clb; _ev('_climb', 'pip+', _clb, 'climb'); } }
     const _eKey = cardId(card);
     const _pp = _G ? 0 : (permPips[_eKey] || 0);
     cp += _pp;

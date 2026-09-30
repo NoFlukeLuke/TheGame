@@ -159,6 +159,7 @@ function renderCardAppearance(card, r, c, {
     // "this will not be here next round" is the thing a player most needs to
     // know before building a plan around the card.
     (typeof cardStateCardClass === 'function') ? cardStateCardClass(card) : '',
+    (typeof climbCardClass === 'function') ? climbCardClass(card) : '',
   ].filter(Boolean).join(' ');
 
   // r392: a dual card draws its second rank/suit on the face itself
