@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r404 · shop tutorial split into buy / swaps-and-discards steps, row label tooltip";
+const BUILD = "2026-09-30 · r405 · shop: REROLL and LEAVE are separate buttons, SWAP is a real button";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

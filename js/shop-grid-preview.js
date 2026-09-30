@@ -745,18 +745,23 @@ function syncShopActionChips() {
   const swap = document.getElementById('swap-indicator');
   if (swap && shopGridActive) {
     swap.innerHTML = shopSwapChipHTML();
-    swap.title = 'Double-tap a tile to lift it, then tap a neighbour to trade them. Two row labels trade their whole rows.';
+    const lifted = !!shopSwapPending;
+    swap.title = lifted
+      ? 'Tap a tile next to the lifted one to trade them. Tap SWAP again to cancel.'
+      : 'Select one tile (or one row label), press SWAP, then tap the tile next to it to trade them. Double-tap a tile does the same.';
     swap.classList.toggle('srr-spent', shopGridMode === 'sell' || !shopSwapsLeft());
+    swap.classList.toggle('srr-lifted', lifted);
   }
   const disc = document.getElementById('btn-discard');
   if (disc && shopGridActive) {
     const rows = shopgSelRows().length;
     const have = (typeof discards === 'number') ? discards : 0;
-    disc.classList.toggle('shop-reroll-btn', rows > 0);
-    disc.innerHTML = rows > 0 ? 'R<br>E<br>R<br>O<br>L<br>L' : 'L<br>E<br>A<br>V<br>E';
+    disc.classList.add('shop-half');
+    disc.classList.toggle('shop-idle', rows === 0);
+    disc.innerHTML = `<span class="sh-word">REROLL</span><span class="sh-sub">${rows > 0 ? rows + (rows === 1 ? ' row' : ' rows') : 'select a row'}</span>`;
     disc.title = rows > 0
       ? `Reroll ${rows === 1 ? 'this row' : rows + ' rows'} \u00b7 ${rows} discard${rows === 1 ? '' : 's'} (you have ${have})`
-      : 'Leave the shop';
+      : 'Tap a row label (the plate on the left of a row), then press this to reroll the row. Costs 1 discard.';
     disc.disabled = rows > 0 && have < rows;
   }
 }
@@ -769,7 +774,20 @@ function enterShopGridButtons() {
   if (swap) {
     if (_shopgSwapHTML === null) _shopgSwapHTML = swap.innerHTML;
     swap.classList.add('shop-swapchip');
-    swap.onclick = null;                    // a readout, not a control
+    // r405: a real button. Select one tile or row label, press SWAP to lift it,
+    // then tap the tile beside it. Double-tapping a tile still does the same.
+    swap.onclick = shopSwapButton;
+  }
+  // LEAVE gets its own button under REROLL (the discard button is half height
+  // for the length of the shop), so the way out is always on screen.
+  if (disc && !document.getElementById('btn-leave')) {
+    const lv = document.createElement('button');
+    lv.id = 'btn-leave';
+    lv.className = 'act-btn btn-discard shop-half shop-leave';
+    lv.innerHTML = '<span class="sh-word">LEAVE</span>';
+    lv.title = 'Leave the shop';
+    lv.addEventListener('click', e => { e.stopPropagation(); closeShopGrid(); });
+    disc.insertAdjacentElement('afterend', lv);
   }
   syncShopActionChips();
 }
@@ -778,12 +796,13 @@ function exitShopGridButtons() {
   const disc = document.getElementById('btn-discard');
   const swap = document.getElementById('swap-indicator');
   if (play && _shopgPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _shopgPlayHTML; }
+  document.getElementById('btn-leave')?.remove();
   if (disc && _shopgDiscHTML !== null) {
-    disc.classList.remove('reward-clear', 'shop-reroll-btn');
+    disc.classList.remove('reward-clear', 'shop-reroll-btn', 'shop-half', 'shop-idle');
     disc.innerHTML = _shopgDiscHTML; disc.disabled = false; disc.title = '';
   }
   if (swap && _shopgSwapHTML !== null) {
-    swap.classList.remove('shop-swapchip', 'srr-spent');
+    swap.classList.remove('shop-swapchip', 'srr-spent', 'srr-lifted');
     swap.innerHTML = _shopgSwapHTML; swap.onclick = null; swap.title = '';
     // The saved markup carries #swap-count back with it; render() refills it.
   }
@@ -857,7 +876,7 @@ function renderShopGrid(animateIn = false) {
       // deciding whether to buy another.
       lab.classList.add('srl-openable');
       lab.title = 'Tap to select this row, then press REROLL for new stock (1 discard). '
-                + 'Double-tap, then tap another row label, to trade the two rows (1 swap). '
+                + 'Select it and press SWAP, then tap another row label, to trade the two rows (1 swap). '
                 + 'Press and hold to see what you own.';
       lab.onclick = () => {
         if (lab._lpJustFired) { lab._lpJustFired = false; return; }
@@ -1136,6 +1155,17 @@ function toggleShopSellMode() {
 // ══ SWAP: rearrange the board ══════════════════════════════════════════════
 // Double-tap lifts a tile; the next tap trades it with an orthogonal neighbour.
 // Tapping the lifted tile again puts it back down.
+// The SWAP button (r405): lifts whatever is selected, or puts a lifted tile back.
+function shopSwapButton() {
+  if (!shopGridActive || shopGridMode !== 'buy') return;
+  if (shopSwapPending) { shopSwapPending = null; renderShopGrid(); return; }
+  if (shopGridSel.size !== 1) {
+    refuse(shopGridSel.size ? 'Select just one tile or row label to swap' : 'Select a tile or row label first, then press SWAP');
+    return;
+  }
+  const [r, c] = [...shopGridSel][0].split('-').map(Number);
+  shopArmSwap(r, c);
+}
 function shopArmSwap(r, c) {
   if (shopGridMode !== 'buy') return;
   const isLabel = shopgIsLabel(r, c);

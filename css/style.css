@@ -6362,6 +6362,26 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
 }
 #action-col #swap-indicator.shop-swapchip.srr-spent .srr-left { color: #cfc8bb; }
 
+/* r405 - the shop's action column. SWAP is a real button now (select a tile or
+   a row label, press it, tap a neighbour), and the discard slot is split in two
+   so REROLL and LEAVE are both on screen at all times. */
+#action-col #swap-indicator.shop-swapchip { cursor: pointer; }
+#action-col #swap-indicator.shop-swapchip.srr-spent { cursor: not-allowed; }
+#action-col #swap-indicator.shop-swapchip.srr-lifted {
+  outline: 2px solid #fff; outline-offset: -3px;
+  animation: shopLiftPulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes shopLiftPulse { from { filter: brightness(1); } to { filter: brightness(1.22); } }
+#btn-discard.shop-half, #btn-leave.shop-half {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; padding: 2px; white-space: normal; text-align: center; line-height: 1.05;
+}
+#btn-discard.shop-half .sh-word, #btn-leave.shop-half .sh-word { font-size: 9px; letter-spacing: 0.5px; }
+#btn-discard.shop-half .sh-sub { font-size: 6.5px; letter-spacing: 0; opacity: 0.8; font-weight: 400; }
+#btn-discard.shop-half.shop-idle { filter: saturate(0.5) brightness(0.85); }
+#stage.landscape #btn-discard.shop-half { top: 32.37%; height: 13.9%; }
+#stage.landscape #btn-leave.shop-half { position: absolute; left: 91.41%; top: 47.66%; width: 7.81%; height: 13.9%; }
+
 /* ── The shop board's own two states (r307) ────────────────────────────────
    SELECTED row label: the same treatment a selected tile gets, because it is
    a selected tile now - it is just that pressing the discard button rerolls it

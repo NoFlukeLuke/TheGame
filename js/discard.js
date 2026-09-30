@@ -9,7 +9,8 @@ function doDiscard() {
   if (typeof shopGridActive !== 'undefined' && shopGridActive) {
     if (typeof shopRerollSelectedRows === 'function' && shopRerollSelectedRows()) return;
     if (typeof shopgSelRows === 'function' && shopgSelRows().length) return;   // refused, not an exit
-    closeShopGrid(); return;
+    // r405: LEAVE is its own button now, so this one never leaves.
+    refuse('Select a row label first'); return;
   }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   // roundEnded FREEZES INPUT for a round that is over, and the Flow deck editor
