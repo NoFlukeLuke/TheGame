@@ -365,8 +365,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // ── Trick/trick contrib: call calcScore again with a contrib array for breakdown ──
   const savedPreFocusMult2 = lastPreFocusMult;
-  const trickContrib = [];
-  calcScore(hand, handCells, trickContrib);
+  let trickContrib = (result && result._bankContrib) || null;
+  if (!trickContrib) { trickContrib = []; calcScore(hand, handCells, trickContrib); }
   lastPreFocusMult = savedPreFocusMult2; // restore so focus beat uses correct value
 
   // Count card-only particles (before Trick particles are appended)
@@ -498,7 +498,9 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // If this is a goal-crossing hand, watch the score and flash when crossed
   let goalFlashFired = false;
-  const goalCrossedAt = isGoalHand ? roundGoal : Infinity;
+  // r399: a shaped round (js/level-types.js) is won by its quotas, not by the
+  // total crossing roundGoal, so its flash lands where the climb ends.
+  const goalCrossedAt = !isGoalHand ? Infinity : (typeof roundQuota !== 'undefined' && roundQuota) ? finalScore + scoreBefore : roundGoal;
 
   // Focus beat - fires after mult particles finish. MULT stays pure; the FOCUS box shows the
   // hand's starting multiplier, then pops up to the post-Focus multiplier, then the score climbs by it.
@@ -1133,7 +1135,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const { hand, handCells, finalScore } = result;
   const preHandFocus = lastPreHandFocus;   // FOCUS multiplier when this hand STARTED scoring
   const targetFocus = lastCalcFocus;       // FOCUS multiplier AFTER this hand's Focus (what actually scored it)
-  const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(1));
+  const targetFocusExtra = lastCalcFocusExtra || 0; // extra applications (Phoenix / Kaleidoscope, r343) - captured NOW, the global is overwritten by speculative calcScores
+  const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(2).replace(/0$/, ''));
   // Seed the FOCUS box to the hand's starting multiplier immediately (before the fly-in), so the
   // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
   { const _fEl = document.getElementById('focus-val'); if(_fEl) _fEl.textContent = _fmtFocus(preHandFocus); }
@@ -1152,7 +1155,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // it against a running pip/mult pair reproduces the real total exactly (verified
   // over 10,000 scored hands), which is what lets a Trick pay out at its own moment
   // instead of being banked into an end-of-hand lump.
-  const savedPFM = lastPreFocusMult; const contrib=[]; const _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM;
+  // r399: playHand banks the ledger it scored with; re-scoring here ran after the
+  // streak/run/hand counters had already advanced and animated the wrong hand.
+  let contrib, _ledger;
+  if (result && result._bankLedger && result._bankContrib) { contrib = result._bankContrib; _ledger = result._bankLedger; }
+  else { const savedPFM = lastPreFocusMult; contrib=[]; _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM; }
   const timeline = _ledger.timeline || [];
   const fmtM = m => (m%1===0)?m:m.toFixed(1);
   // Cells in SCORING order (the timeline's card indices point here, and scoring
@@ -1229,13 +1236,16 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Freeze the hand-type label for the length of the tally (r234). render() runs
   // several times below with the selection already cleared, and each one would
   // otherwise blank it.
+  // Stamp THIS hand's name on first: a hand submitted while the previous tally was still
+  // running inherits that tally's hold, and with it the previous hand's label (r401).
+  if(typeof updateHandNameLabel==='function') updateHandNameLabel(result, true);
   if(typeof holdHandNameLabel==='function') holdHandNameLabel(true);
   const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
   const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
     const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
     const items=document.createElement('div'); items.className='dnc-items';
     row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
-  const handItems=mkRow('Hand','hand');
+  const handItems=mkRow('','hand');   // no caption (r333) - the hand-name chip beside the cards is the label now
   const handTrack=document.createElement('div'); handTrack.className='dnc-track'; handItems.appendChild(handTrack);
   // Reuse the SAME grid-accurate markup the hand preview uses (renderCardAppearance), so cards
   // don't visually change when the dance starts (and the fly-in clone lands as an identical card).
@@ -1256,6 +1266,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // jitter (r280). Only the goal hand: it is the one animation long enough to be
   // worth skipping, and the one that ends the round.
   if(isGoalHand) dncMountFF(stage);
+  // Settings -> Skip (r380). The SAME dance at the skip speed - dncRequestFF is
+  // the goal hand's own SKIP, which lands the same numbers in the same order.
+  if (typeof skipOn === 'function' && (skipOn('scoring') || (isGoalHand && skipOn('finale')))) dncRequestFF();
 
   if(isGoalHand){
     // ── WIN FINALE (runs BEFORE the tally) ──
@@ -1302,8 +1315,19 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // The stagger scales with it too - left flat it would dominate the trip
       // at high speeds instead of merely sequencing it.
       const bPace = dncPace() || 1;
-      const bDur  = (C.dur + C.perCard * handCells.length) / bPace;
       const bStag = C.stagger / bPace;
+      let   bDur  = (C.dur + C.perCard * handCells.length) / bPace;
+      // SURVIVAL AND FLOW OPEN THE PICK THE MOMENT THE FLY-IN LANDS (r385), and
+      // the pick takes #grid over - so a card still on its way home is wiped off
+      // the board mid-flight. Owner: "the cards start their return post explosion
+      // but they get cut off by the options coming into view. speed up the return
+      // so it can finish before the options come up." The whole trip, stagger
+      // included, is squeezed inside the fly-in's own wait (the await below).
+      if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)){
+        const flyWait = 140 + previewCells.length*100 + 460 + 220;   // GF_LEAD + n*GF_STEP + GF_DUR + 220
+        const fit = flyWait - 60 - Math.max(0, loseEls.length-1) * bStag;
+        bDur = Math.max(420, Math.min(bDur, fit));
+      }
       const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
       dncBlast = loseEls.map(el => {
         const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
@@ -1368,7 +1392,22 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
     // (Not on a boss win - that hand ends in the PRIZE grid via bossSettleWin,
     // and a pick opened here would fight it for the screen.)
-    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)) survivalShowPick();
+    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)){
+      survivalShowPick();
+      // THE TALLY WAITS FOR THE CHAIN'S COUNTER (r376). Owner: "the cards
+      // should explode out and fly to the preview, then BEFORE they start to
+      // dance, the level up thing appears and quite loudly does its animation.
+      // Then the card preview can resume once the options start appearing."
+      // flowrIntroWait() is null unless a multi-reward chain is arming, so the
+      // ordinary pick-of-three path awaits nothing and is byte-identical.
+      if(typeof flowrIntroWait==='function'){
+        const _intro = flowrIntroWait();
+        if(_intro){
+          await Promise.race([_intro, dncFFSignal()]);
+          if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+        }
+      }
+    }
   } else if(skipBeats){
     // ── Third hand of a burst: no fly-in. The cards leave the board immediately
     //    and the preview keeps whatever it already shows; the only thing this
@@ -1430,6 +1469,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
     if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
     if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    // The multiplier applied AGAIN (Phoenix / Kaleidoscope, r343): a second, quicker
+    // thump right behind the first - the prime's heartbeat idea - with the focus
+    // sound doubled, one per extra application.
+    for (let _fk = 0; _fk < targetFocusExtra; _fk++) {
+      await dwait(200); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      const fb2=document.getElementById('focus-box'); if(fb2){ fb2.classList.remove('focus-beat'); void fb2.offsetWidth; fb2.classList.add('focus-beat'); }
+      if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    }
     await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
 
@@ -1628,7 +1675,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
-      if(isGoalHand && !goalFlashed && cur>=roundGoal){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
+      if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }
     requestAnimationFrame(tk); });

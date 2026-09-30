@@ -276,3 +276,48 @@ body.gp-active #sel-count { display: none !important; }
 /* The board behind it is not the thing being read. */
 body.gp-reading #grid .gp-opt,
 body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
+
+/* ── #grid MUST OUTRANK A SIBLING PANEL WHILE IT IS BORROWED (r380) ────────
+   #grid is position:relative with z-index auto, so it is NOT a stacking
+   context and its tiles (z-index 2) beat #flowr-bg - a LATER sibling at
+   z-index 0 - on their own. The instant anything gives #grid a transform it
+   becomes a stacking context, its children's z-index is contained, and the
+   panel paints over the whole board. That is exactly what flashRoundEnd's
+   1.4s .round-end-flash was doing at the end of every Flow tally, and it is
+   the owner's "the options black out for a second when the score finishes".
+
+   The real fix is that flashRoundEnd no longer paints on a board it does not
+   own (js/score-anims.js). This is the guard that stops the NEXT transform -
+   a boss effect, a future animation - re-opening it: while a screen has the
+   board, #grid is explicitly above the panel, transform or no transform.
+   Scoped to the takeover so a live round's boss overlays (z-index 12-15,
+   children of #grid) are not suddenly contained by it. */
+body.gp-active #grid { z-index: 1; }
+/* r391: a PICKED tile lifts and glows past the board's top edge, and it must
+   draw OVER the title tabs (#flowr-stack, z 8) - it already does when it flies
+   out (the explode lifts #grid to 350), so drawing under them first read as a
+   jump. #grid is a stacking context here, so the whole board goes up; nothing
+   but the picked tile reaches the tabs. */
+body.gp-active #grid:has(.gp-sel) { z-index: 9; }
+
+/* SKIP (r380) - a strip at CONFIRM's foot. Muted, so it never reads as the
+   thing to press; the two controls that end a pick share one region. */
+#grid .gp-act.gp-skip {
+  padding: 1px 6px; flex-direction: row;
+  background: linear-gradient(180deg, rgba(60,56,72,0.55), rgba(18,16,26,0.95));
+  border-color: rgba(154,141,112,0.55);
+}
+#grid .gp-act.gp-skip .gp-act-label { font-size: 7px; letter-spacing: 2px; color: var(--cream-dim, #9a8d70); }
+#grid .gp-act.gp-skip:hover { border-color: #d9cba4; }
+#grid .gp-act.gp-skip:hover .gp-act-label { color: var(--cream, #f0e6c8); }
+
+/* r381: PLAY-as-CONFIRM greys out until an option is picked. */
+#btn-play.reward-buy:disabled {
+  filter: grayscale(1) brightness(.55) !important;
+  opacity: .6 !important; cursor: default;
+}
+/* ── Reward transition (r380, js/reward-transition.js) ──
+   The beat before a board leaves: the taken tile holds and glows, the rest
+   step back. */
+#grid.rt-has-chosen > *:not(.rt-chosen):not(.rc-line) { filter: brightness(.45) saturate(.6); transition: filter .25s ease; }
+#grid .rt-chosen { z-index: 6; box-shadow: 0 0 0 2px #f4f0ff, 0 0 26px rgba(160,120,255,.75) !important; }

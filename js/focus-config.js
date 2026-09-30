@@ -6,6 +6,17 @@ const FOCUS_THRESHOLD = 10; // nodes per charge (tick spacing + charge colors)
 const FOCUS_CAP_HARD = 100;
 let focusCapBase = 30;   // set from the Focus Cap shop limit at round/game start
 let focusCapPerm = 0;    // permanent per-game accumulations (reset on new game)
+// Per-entity ledger of what each grower has added to focusCapPerm this run, so a
+// grower can carry its own ceiling ("max +10"). In SAVE_VARS; reset beside
+// focusCapPerm in startGame. Returns what was actually added (0 at the cap), so
+// callers can skip their toast/prime spend when nothing landed.
+let focusCapGains = {};
+function gainFocusCap(id, n, max) {
+  const cur = focusCapGains[id] || 0;
+  const add = Math.max(0, Math.min(n, max - cur));
+  if (add > 0) { focusCapGains[id] = cur + add; focusCapPerm += add; }
+  return add;
+}
 function onGridSleightCapBonus() {
   if (typeof gridData === 'undefined' || !gridData) return 0;
   let n = 0;
@@ -13,7 +24,7 @@ function onGridSleightCapBonus() {
     const cd = gridData[r]?.[c];
     if (!cd || !cd._isSleight) continue;
     if (cd.sleightId === 'power_cell') n += BAL.power_cell.focus_cap;             // +max Focus while on grid
-    if (cd.sleightId === 'slow_burn')  n += Math.floor((cd._slowBurnSecs || 0) / 60); // +1 per minute on grid
+    if (cd.sleightId === 'slow_burn')  n += Math.min(BAL.slow_burn.cap, Math.floor((cd._slowBurnSecs || 0) / BAL.slow_burn.seconds_per)); // +1 per 45s on grid, max +15
   }
   return n;
 }
@@ -45,6 +56,7 @@ const FOCUS_FX = {
 };
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
 let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) - POST-hand value
+let lastCalcFocusExtra = 0; // how many EXTRA times fMult applied (Phoenix / Kaleidoscope, r343) - drives the doubled focus beat
 let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring - the FOCUS box's dance-start value
 let lastPreFocusMult = 0; // mult before focus multiplier applied - used by score dance
 let focusNodeEls    = [];  // bottom=index 0, top=index 9 (10 per active segment)
@@ -116,7 +128,7 @@ let focusSpeedParams = JSON.parse(localStorage.getItem('focusSpeedParams') || 'n
 
 function recomputeFocusDecayInterval() {
   let ms = focusDecayBaseMs;
-  if (typeof hasTrick === 'function' && hasTrick('meditation')) ms += 1000;
+  if (typeof hasTrick === 'function' && hasTrick('meditation')) ms += 2000;
   focusDecayIntervalMs = ms;
   if (focusDecayTimerId !== null) {
     clearInterval(focusDecayTimerId);
@@ -210,7 +222,6 @@ function focusRateMods() {
   if (typeof focusRatePenalty === 'number' && focusRatePenalty > 1) m.complexity /= focusRatePenalty;
   if (typeof hasTrick === 'function') {
     if (hasTrick('overclock'))     m.speed      *= BAL.overclock.speed_mult;
-    if (hasTrick('second_nature')) m.complexity *= BAL.second_nature.complexity_mult;
   }
   if (typeof hasKnack === 'function') {
     if (hasKnack('long_fuse')) m.window     *= BAL.long_fuse.window_mult;
@@ -224,7 +235,6 @@ function focusRateMods() {
       const cd = gridData[r]?.[c];
       if (!cd || !cd._isSleight) continue;
       if (typeof cellCountsForTriggers === 'function' && !cellCountsForTriggers(r, c)) continue;
-      if (cd.sleightId === 'flywheel') m.speed  *= BAL.flywheel.speed_mult;
       if (cd.sleightId === 'governor') m.window *= BAL.governor.window_mult;
     }
   }

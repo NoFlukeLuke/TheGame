@@ -26,7 +26,7 @@
 // hard boss deadline, teach it to this function and the rest follows.
 
 const BOSS_APPROACH_CFG = {
-  warnSeconds: 30,     // when the colour starts to go
+  warnSeconds: 10,     // when the colour starts to go (r391: 30 -> 10, owner)
   countFrom:   10,     // when the big numbers appear over the board
   beatSlowMs:  1900,   // gap between heartbeats at T-warnSeconds…
   beatFastMs:  420,    // …and at T-0
@@ -52,6 +52,12 @@ function bossApproachSecondsLeft() {
 function tickBossApproach() {
   const left = bossApproachSecondsLeft();
   if (left === null || left > BOSS_APPROACH_CFG.warnSeconds) { endBossApproach(); return; }
+  // r391: never over a screen that has borrowed the board. The drain puts a
+  // `filter` on #grid, which makes it a stacking context, and the Flow reward
+  // panel (#flowr-bg) then paints over every option tile - the "blank options".
+  if (gameTimerPaused || (typeof gridScreenOwnsBoard === 'function' && gridScreenOwnsBoard())) {
+    endBossApproach(); return;
+  }
   if (!bossApproachOn) beginBossApproach();
   _baPaint(left);
 }

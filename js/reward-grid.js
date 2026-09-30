@@ -450,16 +450,45 @@ function _generateRewardContent() {
       apply: () => { const t = resolveDeckCard(card); if (!t) return;
         enhanceCardKey(cardId(t), e);
         showMessage(`${face}: ${buffOfferName(e)}`, 'var(--gold)'); } });
-    const roll = Math.random();
-    if (roll < 0.15) return bless('📈', 'Scaling Card', 'legendary', { growMult: 1 });
-    if (roll < 0.4)  return bless('✨', 'Blessed Card', 'epic',      { mult: 5 });
+    // r391: THE FLOW CARD OPTIONS replace the old blessings (owner). A tile is
+    // either a CARD PACK (3 buffed cards join the deck) or one of the deck
+    // editor's BUFF OPS landing on the named card and up to 2 more at random,
+    // value rolled weighted-low from the same table (FLOWR_DECK_OPS). Odds are
+    // a guess, pending the card-effect probability table (TODO.md).
+    if (typeof FLOWR_DECK_OPS !== 'undefined' && Math.random() < 0.35 && typeof flowrBuildPacks === 'function') {
+      const pack = flowrBuildPacks()[0];
+      if (pack) return { icon: '🃏', label: 'Card Pack', tier: 'epic',
+        cardFace: { rank: pack.ranks[0], suit: pack.suit },
+        desc: `${pack.ranks.length} cards join your deck: ${pack.ranks.map(r => r + pack.suit).join(', ')}. Each one scores ${pack.label}.`,
+        apply: () => flowrGrantPack(pack) };
+    }
+    if (typeof FLOWR_DECK_OPS !== 'undefined') {
+      const op = flowrDrawOps(1, FLOWR_DECK_OPS.filter(o => o.buff || o.dual))[0];   // r392: weighted
+      // r393: a DUAL op needs the player to pick a touching group, so the tile
+      // opens the next round's freshly dealt board as a deck edit first.
+      if (op.dual) return { icon: op.icon, label: op.name, tier: 'legendary', cardFace: { rank, suit },
+        desc: `Next round opens on the board first: pick up to ${FLOWR_DUAL_MAX} touching cards to share a ${op.dual === 'suit' ? 'suit' : 'rank'}.`,
+        apply: () => { flowrPendingDual = op; showMessage(`${op.icon} ${op.name}: pick your cards when the board deals`, 'var(--gold)'); } };
+      const v = flowrValRoll(op.buff.range);
+      const lbl = flowrBuffLabel(op.buff, v);
+      const n = flowrQtyRoll(3);
+      const rare = flowrOpWeight(op) <= 6;
+      return { icon: op.icon, label: op.name, tier: rare ? 'epic' : 'rare', cardFace: { rank, suit },
+        desc: `${face} and ${n - 1 > 0 ? `up to ${n - 1} more random card${n - 1 === 1 ? '' : 's'}` : 'no other card'} score ${lbl}.`,
+        apply: () => {
+          const t = resolveDeckCard(card); const picks = t ? [t] : [];
+          const rest = everyDeckCard().filter(cd => cd !== t && !(typeof isWildCard === 'function' && isWildCard(cd)));
+          while (picks.length < n && rest.length) picks.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
+          picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
+          showMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
+    }
     return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
   }
   // Cull buff: deck thinning - a specific low card leaves the run for good.
   function makeCullPayload() {
     const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
     const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
-    return { icon: '✂️', label: 'Cull', tier: 'rare', cardFace: { rank, suit },
+    return { icon: '✂', label: 'Cut', tier: 'rare',   // r391: Flow's word cardFace: { rank, suit },
       desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
       apply: () => { removeCardIdentityFromRun(rank, suit)
         ? showMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
@@ -1496,6 +1525,10 @@ function rewardSelectionCap() {
 // stapled to a knack that is meant to be pure upside.
 // The floor is also held BELOW the cap, so a grid can never demand more picks than it
 // will accept - the two come from different places once Greedy Boi is in play.
+//
+// It reads minSelection(), the RAW arithmetic, and deliberately NOT the play grid's
+// handMinSelection(): Tagalong lifts the floor for HANDS (r326) and has nothing to
+// say about how many tiles a reward path has to take.
 function rewardMinPicks() {
   const min = (typeof minSelection === 'function') ? minSelection() : 1;
   return Math.max(1, Math.min(min, rewardSelectionCap()));
@@ -1620,7 +1653,8 @@ function rewardTargetKey(p) {
   if (p.flyTo) return p.flyTo;                 // mystery outcomes carry flyTo
   const label = (p.label || '').toLowerCase();
   const icon  = p.icon || '';
-  if (label.includes('trick'))                                                    return 'tricks';   // Lose a Trick
+  if (p.cardFace && !p.entity)                                                    return 'deck';     // r391 card tiles
+  if (label.includes('trick'))                                                  return 'tricks';   // Lose a Trick
   if (label.includes('swap'))                                                     return 'swaps';
   if (label.includes('discard'))                                                  return 'discards';
   if (label.includes('windfall') || label.includes('pickpocket') || icon === '💰' || icon === '💸') return 'coins';
@@ -1756,7 +1790,7 @@ async function confirmRewardPath() {
   if (rewardConfirmed || rewardDealing || rewardSelected.size === 0) return;
   // Hard guard: a queued tap or a keyboard path reaches here without passing the
   // button's disabled state, the same reason playHand re-checks the play grid's floor.
-  if (!rewardPicksMet()) return;
+  if (!rewardPicksMet()) { refuse(`Take ${rewardMinPicks() - rewardSelected.size} more to confirm`); return; }
   rewardConfirmed = true;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
@@ -1787,7 +1821,7 @@ async function confirmRewardPath() {
     negativeTilesTakenRun += _negThisGrid;
     if (hasKnack('shady_stimulants')) {
       focusCapPerm += _negThisGrid;
-      showMessage(`Shady Stimulants - +${_negThisGrid} max Focus`, '#a25cd8');
+      showMessage(`Shady Stimulants - +${_negThisGrid} Focus limit`, '#a25cd8');
     }
   }
   closeRewardGrid();
@@ -1919,6 +1953,9 @@ function closeRewardGrid() {
     // cleared for it).
     const _fromPick = typeof survivalGridPickCarry !== 'undefined' && survivalGridPickCarry;
     if (typeof survivalGridPickCarry !== 'undefined') survivalGridPickCarry = false;
+    // The grid offer taken MID-CHAIN (Flow multi-reward, r325): the chain shows
+    // its next screen and runs the one level-up at its end, carry included.
+    if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
     survivalSkipCarryover = !_fromPick;
     triggerLevelUp();          // → showLevelUpScreen (survival) → survivalDealNext
     survivalSkipCarryover = false;

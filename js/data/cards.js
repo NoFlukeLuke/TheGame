@@ -71,11 +71,72 @@ function isNumericMode() { return !!(typeof ACTIVE_MODE !== 'undefined' && ACTIV
 // to RANKS so nothing about the A-K game changes.
 let ACTIVE_RANKS = RANKS;
 
+// ── THE WILD CARD (r325) ─────────────────────────────────────────────────────
+// A card that TAKES ANY RANK TO COMPLETE A SET, and only a set. It can never be
+// part of a run or a flush, it scores no pips of its own, and it fires none of
+// the per-card Tricks. It is a shape you were missing and nothing else.
+//
+// IT IS A RANK, NOT A FLAG, and that is the r165 white-card lesson applied
+// again: `recycleCard` rebuilds an ordinary card from `{rank, suit}` plus the
+// DURABLE_CARD_FIELDS list every time it leaves the board, so a `_wild` field
+// would have to be named there AND kept in step with the save manifest and the
+// two pile functions. Deriving it from the rank costs none of that - the wild
+// survives the discard -> reshuffle -> redraw round trip for free, cardId and
+// cardKey work untouched, and a buff or a curse lands on it like any other card.
+//
+// WILD_SUIT is a non-suit, deliberately. A wild drawn as a spade that cannot
+// complete a spade flush is the more confusing object, and "no rank, no suit" is
+// one rule rather than two. It is absent from ACTIVE_SUITS, which is most of why
+// the flush exclusion falls out - but both flush sites test isWildCard()
+// EXPLICITLY anyway, because r164 relied on absence alone and r165 had to undo it.
+const WILD_RANK = '\u2736';   // ✶  six-pointed star
+const WILD_SUIT = '\u2733';   // ✳  eight-spoked asterisk
+const WILD_NAME = 'Wild';
+const WILD_DESC = 'Takes any rank to complete a set. Never part of a run or a flush, scores no pips, and fires no Tricks.';
+function isWildRank(rank) { return rank === WILD_RANK; }
+function isWildCard(card) { return !!card && card.rank === WILD_RANK; }
+// Every hand-level count that reads a rank or a suit asks for these instead of
+// the raw hand: a wild is not an even card, not a club, not the lowest rank on
+// the board, and not a distinct colour for Rainbow to count.
+// Warehouse (r354): a Sleight with NO rank that counts as TWO cards of any suit
+// toward a flush and nothing else. Like a wild it scores nothing itself.
+function isWarehouseCard(card) { return !!card && card._isSleight && card.sleightId === 'warehouse'; }
+function naturalCards(cards) { return (cards || []).filter(c => c && !isWildRank(c.rank) && !isWarehouseCard(c)); }
+function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && isWildRank(c.rank) ? 1 : 0), 0); }
+
+// How many wilds this mode's deck carries. Four by default (owner's number), in
+// the classic four-suit deck and the six-suit deck alike - which between them is
+// every mode that plays the ordinary grid game.
+//
+// SPECTRUM IS OUT because its deck is values x colours with its own four payout
+// fixtures shuffled in, and a rank that is not a value has no place in it. The
+// four modes with their own hand detection are out for a harder reason: Poker
+// Squares scores a LINE through its own evaluator (sqScoreLine), Match-3 and Zen
+// match their own windows, and Dominoes builds its own two-cell board - none of
+// them route through handComponentsFor, so a wild there would be a blank card
+// that completes nothing. A daily grid also has to stay comparable between two
+// players, which a wild it cannot score would not be.
+const WILD_COUNT_DEFAULT = 4;
+const WILD_OWN_DETECTION = ['squares', 'match3', 'zen', 'dominoes'];
+function wildCardCount() {
+  const m = (typeof ACTIVE_MODE !== 'undefined') ? ACTIVE_MODE : null;
+  if (!m || m.numeric || WILD_OWN_DETECTION.includes(m.id)) return 0;
+  if (m.wilds != null) return Math.max(0, m.wilds | 0);
+  // Dev panel -> Deck. A stored value beats the default, which is the whole
+  // point of the knob; an unparseable one falls back rather than dealing NaN.
+  let n = WILD_COUNT_DEFAULT;
+  try { const v = parseInt(localStorage.getItem('lethe.wildCount'), 10); if (Number.isFinite(v)) n = v; } catch (e) {}
+  return Math.max(0, Math.min(52, n));
+}
+
 // RANK_ORDER / RANK_PIPS carry the numeric ranks too. '2'-'10' already map to
 // themselves, so only 1, 11-15 and 20 are new - no classic key changes value.
 const RANK_ORDER = {A:1,'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,
                     '11':11,'12':12,'13':13,'14':14,'15':15,'20':20};
-const RANK_PIPS  = {A:11,J:10,Q:10,K:10};   // numeric ranks fall through to parseInt (pips = value)
+const RANK_PIPS  = {A:11,J:10,Q:10,K:10, [WILD_RANK]: 0};   // numeric ranks fall through to parseInt (pips = value)
+// The wild's 0 has to be EXPLICIT: cardPips falls back to 10 for a rank it does
+// not know, so leaving it out would pay every wild a court card's worth. Same
+// shape as the Spectrum 0 that `parseInt(rank) || 10` used to turn into a 10.
 
 // Sort helpers - deck view / shop card list. Numeric ranks sort by value; an
 // unknown rank sinks to the end.
@@ -141,9 +202,10 @@ const HAND_BASE = {
 
 // ── The short label the HUD prints beside the hand preview (r198) ──
 // Two lines, family over size, because the desktop panel gives it a 6%-wide
-// column: "RUN / 3" fits where "Run of 3" does not. A layered hand prints one of
-// these per layer, stacked. Straight Flush is both families at once, so it says
-// so rather than picking one.
+// column. A numeric size is printed as "OF N" by handLabelHTML (owner spec,
+// r333: "SET / OF 3", "RUN / OF 4", "TWO / PAIR" - words never broken). A
+// layered hand prints one of these per layer, stacked. Straight Flush is both
+// families at once, so it says so rather than picking one.
 const HAND_LABEL = {
   'Run of 3':        { fam:'RUN',   size:'3' },
   'Run of 4':        { fam:'RUN',   size:'4' },
@@ -152,9 +214,9 @@ const HAND_LABEL = {
   'Flush of 4':      { fam:'FLUSH', size:'4' },
   'Flush':           { fam:'FLUSH', size:'5' },
   'Pair':            { fam:'SET',   size:'2' },
-  'Two Pair':        { fam:'SET',   size:'2+2' },
+  'Two Pair':        { fam:'TWO',   size:'PAIR' },
   'Three of a Kind': { fam:'SET',   size:'3' },
-  'Full House':      { fam:'SET',   size:'3+2' },
+  'Full House':      { fam:'FULL',  size:'HOUSE' },
   'Four of a Kind':  { fam:'SET',   size:'4' },
   'Straight Flush':  { fam:'RUN 5', size:'FLUSH' },
   'Flush of 6':      { fam:'FLUSH', size:'6' },
@@ -318,6 +380,9 @@ function cardCan(card, action) {
     // Aim sleights are fixtures: fall & render only - never swapped, discarded, or selected
     // (so a single tap is free to rotate aim).
     if (AIM_SLEIGHTS.has(sleightDef(card)?.id)) return action === 'fall' || action === 'render';
+    // INERT (r341): a used Piggy Bank / Capacitor stays on the grid and can no longer
+    // be swapped or discarded. Selecting it into a hand is its one way off the board.
+    if (card._inert) return action === 'fall' || action === 'render' || action === 'select';
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'select' || action === 'discard';
   }
   if (card.isChallenge) {

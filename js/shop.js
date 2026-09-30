@@ -44,6 +44,7 @@ function knackSellValue()      { return Math.max(1, Math.floor(SHOP_KNACK_PRICE 
 
 function sellTrick(trick) {
   if (!trick) return;
+  if (typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(trick)) { if (typeof hideTrickTooltip === 'function') hideTrickTooltip(); return; }
   const idx = trickTray.findIndex(b => b.id === trick.id);
   if (idx >= 0) trickTray.splice(idx, 1);
   const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
@@ -341,7 +342,7 @@ function buyShopTrick(i) {
   const key = `trick-${i}`;
   if (!trick || shopPurchased.has(key)) return;
   const price = SHOP_TRICK_PRICES[trick.tier] || 8;
-  if (coins < price) { showMessage('Not enough credits', 'var(--red)'); return; }
+  if (coins < price) { refuse('Not enough credits'); return; }
   coins -= price;
   shopPurchased.add(key);
   injectTrickAfterReward(trick);
@@ -355,7 +356,7 @@ function buyShopLimit(i) {
   if (!def || shopPurchased.has(key)) return;
   if (limits[def.id].current >= limits[def.id].max) return;
   const price = shopLimitPrice(def);
-  if (coins < price) { showMessage('Not enough credits', 'var(--red)'); return; }
+  if (coins < price) { refuse('Not enough credits'); return; }
   coins -= price;
   shopPurchased.add(key);
   incrementLimit(def.id);
@@ -369,7 +370,7 @@ function buyShopKnack(i) {
   const knack = shopItems?.knacks[i];
   const key = `knack-${i}`;
   if (!knack || shopPurchased.has(key)) return;
-  if (coins < SHOP_KNACK_PRICE) { showMessage('Not enough credits', 'var(--red)'); return; }
+  if (coins < SHOP_KNACK_PRICE) { refuse('Not enough credits'); return; }
   coins -= SHOP_KNACK_PRICE;
   shopPurchased.add(key);
   acquiredKnacks.push({ ...knack });
@@ -384,7 +385,7 @@ function buyShopSleight(i) {
   const key = `sleight-${i}`;
   if (!sleight || shopPurchased.has(key)) return;
   const price = SHOP_SLEIGHT_PRICES[sleight.rarity] || 12;
-  if (coins < price) { showMessage('Not enough credits', 'var(--red)'); return; }
+  if (coins < price) { refuse('Not enough credits'); return; }
   coins -= price;
   shopPurchased.add(key);
   grantSleight(sleight);
@@ -403,7 +404,7 @@ function doShopReroll() {
         const card = gridData[r]?.[c];
         if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank) targets.push([r, c]);
       }
-    if (targets.length === 0) { showMessage('No cards to corrupt!', 'var(--red)'); return; }
+    if (targets.length === 0) { refuse('No cards to corrupt'); return; }
     const [tr, tc] = targets[Math.floor(Math.random() * targets.length)];
     corruptCard(tr, tc);
     render();
@@ -416,7 +417,7 @@ function doShopReroll() {
     return;
   } else {
     const cost = 8 + shopRerollCount * 2;
-    if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
+    if (coins < cost) { refuse('Not enough credits'); return; }
     coins -= cost;
     updateCoinsUI();
   }

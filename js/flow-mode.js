@@ -133,5 +133,38 @@ function flowEndBoss() {
 function flowNextRoundSeconds(currentSeconds) {
   if (!flowRefillClock) return Math.max(1, currentSeconds);
   flowRefillClock = false;
-  return FLOW_SESSION_SECONDS;
+  return flowSessionSeconds();
+}
+
+// r399: the session clock a refill hands out. The Starting Time limit was dead in
+// Flow - the refill was a flat FLOW_SESSION_SECONDS - so a round-time pick bought
+// nothing at all. Every step bought above the limit's base now lengthens every
+// later session, and roundTimeLimitGained pays the same step onto the live one.
+function flowSessionSeconds() {
+  const bonus = (typeof limits !== 'undefined' && limits.round_time)
+    ? limits.round_time.current - limits.round_time.base : 0;
+  return Math.max(30, FLOW_SESSION_SECONDS + bonus);
+}
+
+// r399: Survival and Flow pay a Starting Time pick NOW as well as later. Owner:
+// "+15 seconds now and +15 seconds on subsequent" clocks. Flow's clock carries
+// across levels, so without this a pick changed nothing until the next review;
+// Survival already builds every later round from the limit, so it only needs the
+// "now" half, and only when a round is actually live (between rounds the next
+// round's computeRoundResources already includes it - adding here too would pay
+// it twice). The seconds go onto roundStartSeconds as well, so every Trick that
+// measures elapsed time (roundStartSeconds - roundSeconds) sees the round as
+// longer rather than as younger. A raw write, deliberately NOT rewindTime: this
+// is a limit grant, and a rewind would count toward the Kingfisher and every
+// rewind tally.
+function roundTimeLimitGained(sec) {
+  if (!sec || sec <= 0) return;
+  if (typeof survivalActive !== 'function' || !survivalActive()) return;
+  if (typeof bossActive !== 'undefined' && bossActive) return;
+  const _flow = typeof flowActive === 'function' && flowActive();
+  const _live = _flow || (typeof roundInterval !== 'undefined' && roundInterval && !goalReachedThisRound);
+  if (!_live) return;
+  roundSeconds += sec;
+  if (typeof roundStartSeconds === 'number') roundStartSeconds += sec;
+  if (typeof updateClockUI === 'function') updateClockUI();
 }

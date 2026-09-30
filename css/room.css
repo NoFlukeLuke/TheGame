@@ -503,3 +503,25 @@ body.reduced-motion #room.grimy .rm-strip-light { animation: none; }
 body.cam-play #room { opacity: 0; transition: opacity 0.35s ease 1.15s; }
 body.cam-wide #room { opacity: 1; transition: opacity 0.4s ease; }
 body.high-contrast #room .rm-haze { display: none; }
+
+/* ── Mode select is a VERTICAL LIST in portrait (r380) ──────────────────────
+   Owner: "make the mode select vertical on mobile". A phone is tall and narrow,
+   so the modes stack and scroll down, each card the full width of the screen
+   with its blurb at its natural height. The side arrows go; a swipe is the
+   gesture. Scoped to #cabinet:not(.landscape), which is only true once the
+   office photo has handed a portrait phone its own layout (openModeSelect cuts
+   to the screen on a portrait viewport for exactly this). */
+#cabinet:not(.landscape) #mode-carousel-wrap .mode-arrow { display: none; }
+#cabinet:not(.landscape) #mode-carousel {
+  flex-direction: column; overflow-x: hidden; overflow-y: auto;
+  scroll-snap-type: y proximity; gap: 12px; padding: 10px 4px 14px;
+}
+#cabinet:not(.landscape) .mode-card {
+  width: 100%; max-width: 380px; align-self: center; flex: 0 0 auto;
+  scroll-snap-align: start; padding: 14px 18px; gap: 7px;
+}
+#cabinet:not(.landscape) .mode-card-blurb {
+  flex: 0 0 auto; overflow: visible; -webkit-mask-image: none; mask-image: none;
+}
+#cabinet:not(.landscape) .mode-card.mode-stack::before,
+#cabinet:not(.landscape) .mode-card.mode-stack::after { display: none; }

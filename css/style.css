@@ -422,6 +422,13 @@
   @keyframes pulse { from { opacity:1 } to { opacity:0.5 } }
 
   #clock-bar-wrap {
+    /* position:relative is LOAD-BEARING (r377). .clk-track is an absolutely
+       positioned child, so without it the track's containing block is whatever
+       is positioned above - #clock-area - and the 30s bands, the Trick hatching
+       and the level-up marks painted across the WHOLE top bar, over the digits
+       and past the boss mark. An ancestor's overflow:hidden does not clip an
+       absolutely positioned descendant whose containing block is above it. */
+    position: relative;
     width: 80px;
     height: 4px;
     background: #2a2010;
@@ -499,10 +506,13 @@
   }
 
   /* Top info strip - stacked vertically */
+  /* r383: 4 -> 7. Each tray carries a 2px plastic ring OUTSIDE its border
+     (the shared material rule), so a 4px gap left ZERO background between two
+     rings and the two panels read as one slab. 7px leaves 3px of room. */
   #top-strip {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 7px;
     flex-shrink: 0;
   }
 
@@ -785,10 +795,42 @@
     border-radius: 5px;
   }
   #stage:not(.landscape) .subbox-times { opacity: 0.55; font-size: 10px; flex: 0 0 auto; }
-  #stage:not(.landscape) #score-panel { height: 100px; }
+  /* r376: 100 -> 90. Owner: "we can shrink the whole top area by a few pixels
+     to accommodate the hand name". The chips are 54px in a 100px panel, so the
+     10px comes out of padding the box had spare. */
+  /* r383: 90 -> 86. The strip below grows 10px for the hand name and the gap
+     between them grows 3px; 4px of that comes back out of here. */
+  #stage:not(.landscape) #score-panel { height: 86px; }
 
-  /* The strip: [ Tricks | shared half ] with the swap button pinned top-right. */
-  #stage:not(.landscape) #trick-panel { position: relative; height: 92px; padding-right: 2px; }
+  /* The strip: [ Tricks | shared half ] with the swap button pinned top-right.
+     r376: 92 -> 112. THE STRIP IS THE ONE PANEL WITH NO SLACK - the tray tiles,
+     the knack chips and the preview cards are all sized off its height - so the
+     hand name during scoring had nowhere to go but ON TOP of the cards (r334's
+     left-edge chip). 10px comes from the score panel above and 10px is pushed
+     down onto the grid, the focus meter and the buttons, which is what the
+     owner asked for: "push the grid and focus meter and buttons down a hair". */
+  /* r383: 112 -> 122. STILL NOT ENOUGH: measured on a live dance, the preview
+     half's content was 105 design px in a 98px box, so the name was cut in half
+     by the panel's own bottom edge - and `justify-content: center` splits an
+     overflow BOTH ways, so the cards were losing their top edge to it as well.
+     The name is out of flow now (below) and the extra 10px is the band it sits
+     in, reserved as padding so it can never be squeezed again. */
+  /* r389: THE STRIP IS TWO TRAYS. #trick-panel keeps only the flex row and the
+     positioning context the swap button anchors to; the Tricks half and the
+     shared preview/Knacks half each carry the tray material themselves, so the
+     strip reads as two objects with real background between them rather than as
+     one box divided by a hairline.
+     `overflow: visible` is load-bearing: each tray's plastic ring paints 2px
+     OUTSIDE its border and the panel's own `overflow: hidden` (the base rule up
+     the file) would clip it away on all four sides. The two halves take
+     `overflow: hidden` of their own instead, which clips their CONTENT without
+     touching their rings - an element's overflow never clips its own
+     box-shadow, only its descendants. */
+  #stage:not(.landscape) #trick-panel {
+    position: relative; height: 122px;
+    padding: 0; gap: 7px; overflow: visible;
+    background: none !important; border: none !important; box-shadow: none !important;
+  }
 
   /* The Trick tray keeps the LEFT half and is always on screen; Knacks and the
      hand preview share the RIGHT half and the swap button picks between them
@@ -796,19 +838,27 @@
      player needs at a glance). Tricks that don't fit their half FAN over each
      other instead - see fanTrickTray() in js/tricks-ui.js. `!important` because
      syncTrickTrayUI() writes `display` INLINE on the tray and the preview. */
+  /* r389: NO DIVIDER. The two halves are separate trays now (see the tray rule
+     further down), so each carries its own frame and the background between
+     them is what separates them - the same thing the r386 gaps did for the
+     stacked column. A divider as well would be a third line in a 7px gap. */
   #stage:not(.landscape) #trick-tray-area {
     flex: 1 1 0; min-width: 0;
     display: flex !important;
-    border-right: 1px solid var(--border);
     box-sizing: border-box;
+    overflow: hidden;
   }
   #stage:not(.landscape) #knack-carousel-wrap,
   #stage:not(.landscape) #hand-preview-area {
     flex: 1 1 0; min-width: 0;
     padding: 3px 24px 3px 9px;   /* right pad clears the swap button */
-    border-right: none;
     box-sizing: border-box;
+    overflow: hidden;
   }
+  /* r383: the bottom padding IS the hand-name's band. The name is absolutely
+     positioned into it (below), so the cards centre in what is left and the
+     name has somewhere of its own that no amount of dance chrome can eat. */
+  #stage:not(.landscape) #hand-preview-area { padding-bottom: 13px; }
   #stage:not(.landscape).pv-knacks  #knack-carousel-wrap { display: flex !important; }
   #stage:not(.landscape).pv-knacks  #hand-preview-area   { display: none !important; }
   #stage:not(.landscape).pv-preview #knack-carousel-wrap { display: none !important; }
@@ -830,28 +880,48 @@
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-row.hand { min-height: 0; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .r { font-size: 21px; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .s { font-size: 16px; }
-  /* Portrait puts the label ABOVE the cards (source order has it after them, so
-     order:-1 moves it) on ONE line - the strip is wide and short, which is the
-     opposite of the landscape column. Sized to match the tray's own n/10 count. */
-  #stage:not(.landscape) #hand-name { order: -1; font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  /* Portrait: the label is a CHIP, VERTICALLY CENTRED at the preview's left
+     edge (r333, owner spec), never a flex child - in flow the 92px strip's
+     overflow:hidden squeezed it to ZERO HEIGHT the moment the dance filled it.
+     It stacks the same two lines as landscape ("SET / OF 3", "TWO / PAIRS" -
+     handLabelHTML breaks between whole words, never inside one) on a
+     translucent plate, so when a full 5-card hand reaches this far left the
+     chip simply overlays the card and stays legible (the owner's stated
+     fallback). z-index 61 beats the dance's 60. */
+  /* r376: IN FLOW, UNDER THE CARDS. The r334 chip described above was a
+     workaround for a strip with no spare height - it overlaid the leftmost card
+     and read as something stuck on the hand. The strip is 16px taller now, so
+     the name takes its own line beneath the preview and the cards are never
+     covered. It is a SIBLING of #selected-cards inside a column flex parent, so
+     it simply flows; nothing measures it. The layered form prints its parts on
+     one line here (landscape stacks them into a narrow column). */
+  /* r383: ABSOLUTE, in the band #hand-preview-area reserves for it, and ABOVE
+     the cards. In flow it was clipped (see the panel height above), and
+     `z-index` on a `position: static` element does nothing at all - so the
+     r376 label was neither on top nor safe. It is 2px off the padding box's
+     bottom edge, with the panel's own padding and border below that, so it
+     never touches the border; the dark stroke keeps it legible on the one
+     occasion it does land on a card. */
+  #stage:not(.landscape) #hand-name { position: absolute; transform: none;
+    left: 6px; right: 6px; bottom: 2px; width: auto; max-width: none;
+    z-index: 62; font-size: 9px; line-height: 1.15; text-align: center; overflow: hidden;
+    padding: 0 2px;
+    white-space: nowrap; text-overflow: ellipsis;
+    background: none; border: none; border-radius: 0;
+    text-shadow: 0 0 4px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.9);
+    pointer-events: none; }
   #stage:not(.landscape) #hand-name .hn-l,
   #stage:not(.landscape) #hand-name .hn-l b,
   #stage:not(.landscape) #hand-name .hn-l i,
   #stage:not(.landscape) #hand-name .hn-plus { display: inline; }
-  #stage:not(.landscape) #hand-name .hn-l b::after { content: '\00a0'; }
-  #stage:not(.landscape) #hand-name .hn-plus { margin: 0 3px; }
-  /* The preview is deliberately inert until a hand is SUBMITTED (r99) - it is the
-     scoring stage, not a live selection readout - so idle it is empty. Landscape
-     fills that emptiness with a faint HAND watermark; portrait needs it too, or
-     swapping to the preview half looks like a broken panel. :empty hides it the
-     moment the dance drops cards in, so there is no z-index fight. */
+  #stage:not(.landscape) #hand-name .hn-l + .hn-l { margin-left: 4px; }
+  #stage:not(.landscape) #hand-name .hn-l i { margin-left: 2px; }
+  #stage:not(.landscape) #hand-name:empty { display: none; }
+  #stage:not(.landscape) #hand-name.hn-layered { font-size: 7px; line-height: 1.15; }
+  /* The HAND watermark is GONE (r333, owner call: no text that says "hand" all
+     the time). The hand-name chip anchored to this panel is the label now.
+     position:relative stays - it is what the chip anchors to. */
   #stage:not(.landscape) #hand-preview-area { position: relative; }
-  #stage:not(.landscape) #selected-cards:empty::before {
-    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 5px; font-size: 20px;
-    color: rgba(244,236,214,0.07); text-transform: uppercase;
-  }
   #stage:not(.landscape) #selected-cards { position: relative; width: 100%; }
 
   /* Trick tray - its tiles were rendering at grid-card size and overflowing the
@@ -869,11 +939,16 @@
      fit (an ordinary row) and NEGATIVE when they have to tuck over each other.
      Right-aligned so the NEWEST Trick is always the fully visible one. */
   #stage:not(.landscape) #trick-tray-list {
-    flex: 0 0 auto; max-height: 66px; overflow: hidden;
+    flex: 0 0 auto; max-height: 62px; overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end;
     gap: 0; width: 100%;
   }
   #stage:not(.landscape) #trick-tray-list .chip-marquee { gap: 0; }
+  /* r399: the tilt. fanTrickTray publishes --tilt per chip; it rides the
+     STANDALONE rotate property so it composes with every transform other
+     systems write (dance pop, mirror, selection) instead of replacing them. */
+  #stage:not(.landscape) #trick-tray-list .chip-marquee { perspective: 260px; perspective-origin: 0 50%; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { rotate: y var(--tilt, 0deg); transform-origin: 0 50%; }
   /* Each tile after the first pulls left by however much the row is short. The
      later tile sits ON TOP, so the fan reads left-to-right like a held hand. */
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip + .trick-tray-chip {
@@ -892,7 +967,12 @@
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box;
     z-index: var(--fan-z, 1);   /* set per tile so later ones sit on top */
-    width: 47px; height: 64px; padding: 0; border: none; background: none; box-shadow: none;
+    /* r376: THE DISC LETTERBOXES AT 20/19 (w/h), so a chip taller than
+       width x 0.95 has a dead band top and bottom and the object never fills
+       the tray - 47x64 painted a 47x44.6 disc with ~10px of nothing either
+       side of it. The chip carries the object's own ratio now, and the strip's
+       extra 16px pays for the wider tile: 3 still sit across the half-strip. */
+    width: 62px; height: 59px; padding: 0; border: none; background: none; box-shadow: none;
   }
   /* r277: THE FAN NO LONGER RESTYLES THE TILE. Everything that used to sit
      here - an extra plastic ring and rarity glow on every tucked tile, the
@@ -918,16 +998,25 @@
     position: relative; flex-direction: column; align-items: stretch; justify-content: center; gap: 1px;
   }
   #stage:not(.landscape) #trick-tray-area .panel-title {
-    position: static; margin: 0; z-index: 3; text-align: right; flex: 0 0 auto;
+    /* r391: in the tray's INSIDE corner (bottom-right; the knack label takes
+       the other tray's bottom-left), out of flow so the tiles get the height. */
+    position: absolute; right: 8px; bottom: 4px; margin: 0; z-index: 3; text-align: right;
     font-size: 8px; letter-spacing: 0.5px; opacity: 0.75; line-height: 1;
   }
+  /* r391: rounded trays in portrait, and bigger Tricks (62x59 -> 80x76, the
+     disc's own 20/19). A wider tile makes the fan tuck from the 3rd Trick. */
+  #stage:not(.landscape) #trick-tray-area,
+  #stage:not(.landscape) #knack-carousel-wrap,
+  #stage:not(.landscape) #hand-preview-area { border-radius: 12px; }
+  #stage:not(.landscape) #trick-tray-list { max-height: 80px; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { width: 80px; height: 76px; }
 
   /* Knack chips get their own breathing room too. */
   /* Match the tray's treatment: a small corner label instead of a full-size
      heading, so the chips get the vertical space instead. */
   #stage:not(.landscape) #knack-carousel-wrap { position: relative; }
   #stage:not(.landscape) #knack-carousel-wrap .panel-title {
-    position: absolute; left: 9px; bottom: 2px; margin: 0; z-index: 3;
+    position: absolute; left: 9px; bottom: 4px; margin: 0; z-index: 3;
     font-size: 8px; letter-spacing: 0.5px; opacity: 0.75;
   }
   #stage:not(.landscape) #knack-list { gap: 7px; max-height: 72px; margin-bottom: 8px; }
@@ -936,7 +1025,9 @@
   /* The swap button. Deliberately small and quiet - it is a view toggle, not an
      action, so it must not read as a third button next to PLAY / DISCARD. */
   #stage:not(.landscape) #panel-swap-btn {
-    position: absolute; top: 4px; right: 4px; z-index: 4;
+    /* r389: 4 -> 6. The shared half is its own tray now, with a border, a
+       plastic ring and ring lines of its own, so 4px landed on its corner. */
+    position: absolute; top: 6px; right: 6px; z-index: 4;
     width: 19px; height: 19px; padding: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; line-height: 1;
@@ -1121,6 +1212,15 @@
     transition: color .15s ease;
   }
   #sel-count.on { display: flex; }
+  /* r394: THE HAND GLYPH LIVES BESIDE THE LIVE TALLY, not in the top bar.
+     Owner: "move the hand emoji next to the 0/3". #sel-display in the top bar
+     printed the LIMIT with the same glyph, which is the same fact twice - and
+     the top bar is the one band the portrait clock has. Portrait only: the
+     landscape readout sits in the gutter beside the board, which is the width
+     of half the slot's slack and has no room for a second glyph. */
+  #sel-count-hand { display: none; margin-right: 5px; opacity: .85; }
+  #stage:not(.landscape) #sel-count-hand { display: inline; }
+  #stage:not(.landscape) #sel-stat { display: none !important; }
   /* Below the minimum the selection cannot be played at all, so it reads as a
      warning rather than as a tally. Same state the hand label shows as "NEED / n". */
   #sel-count.below { color: var(--red); text-shadow: 0 0 8px rgba(255,90,106,.4); }
@@ -1138,9 +1238,12 @@
 
   #grid {
     position: relative;
-    width: calc(5 * 57px + 4 * 3px + 6px);  /* fallback; JS overrides via applyGridMetricsToDOM */
-    height: calc(5 * 75px + 4 * 3px + 6px); /* fallback; JS overrides */
-    padding: 3px;
+    width: calc(5 * 57px + 4 * 5px + 14px);  /* fallback; JS overrides via applyGridMetricsToDOM */
+    height: calc(5 * 75px + 4 * 5px + 14px); /* fallback; JS overrides */
+    /* GRID_PAD (r391) - the board's own frame, where its rings are drawn. Inert
+       for layout (cards are absolutely positioned off the padding box and the box
+       is sized from JS), but the two must not disagree for a reader. */
+    padding: 6px;
     background: radial-gradient(ellipse at center, #1a2e1a 0%, #0e0c0a 80%);
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -1634,6 +1737,38 @@
     line-height: 1.3;
   }
   #action-col #swap-indicator #swap-count { font-size: 15px; line-height: 1.2; }
+  /* r389: THE WORD. `white-space: pre` stacks on the newlines in the markup, and
+     a newline is a LINE break, not a per-character one (DISCARD spells itself
+     out one letter per line because its markup does) - so SWAP sits on its own
+     line horizontally and fits the 58px landscape cap and the 72px portrait one
+     alike. Measured: 31px of glyphs in a 50px content box. */
+  #action-col #swap-indicator .swap-word {
+    font-size: 10px; letter-spacing: 1.5px; line-height: 1.15;
+    font-weight: 700; opacity: 0.82;
+  }
+  /* ARMED - two cards selected, so this tap does something. Written by render().
+     A transform is deliberately NOT used: `swapPop` (the spend flash) animates
+     transform on this same element and would be overridden mid-animation. */
+  #action-col #swap-indicator.swap-armed .swap-word { opacity: 1; }
+  /* `:has(.swap-word)` IS THE TAKEOVER GUARD, and it is self-maintaining. The
+     reward grid (SKIP), the shop (a move chip), Poker Squares (END TURN) and
+     the grid pick all claim this element by REPLACING its innerHTML - which
+     takes the word with it - so a stale `.swap-armed` left over from the play
+     screen would otherwise pulse THEIR button with this one's teal shadow, and
+     the keyframe writes box-shadow, which beats their own. Measured: the class
+     really does survive into the reward grid, because renderRewardTiles never
+     calls render(). Asking for the markup rather than listing their classes
+     means a takeover added later stands down with no edit here. */
+  #action-col #swap-indicator.swap-armed:has(.swap-word) {
+    animation: swapArmed 1.15s ease-in-out infinite;
+  }
+  @keyframes swapArmed {
+    0%, 100% { box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,0,0,0.22),
+                           0 4px 0 #0a6b77, 0 6px 8px rgba(0,0,0,0.4), 0 0 0 0 rgba(127,240,251,0.55); }
+    50%      { box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,0,0,0.22),
+                           0 4px 0 #0a6b77, 0 6px 8px rgba(0,0,0,0.4), 0 0 0 5px rgba(127,240,251,0); }
+  }
+  body.reduced-motion #action-col #swap-indicator.swap-armed:has(.swap-word) { animation: none; }
 
   /* ── ACTION ROW 2 ── */
   #action-row-2 {
@@ -1734,7 +1869,6 @@
      border-color both lost to later `.card` rules and only `background` was
      ever reaching the board. */
   .card.rc-leyline { background: rgba(240,192,64,0.15); box-shadow: inset 0 0 0 1px rgba(240,192,64,0.4); }
-  .card.rc-jeopardy { background: rgba(200,60,60,0.15); box-shadow: inset 0 0 0 1px rgba(200,60,60,0.5); }
   .card.rc-woodpecker { background: rgba(90,170,90,0.15); box-shadow: inset 0 0 0 1px rgba(90,170,90,0.5); animation: wp-peck 0.16s ease-in-out 5; }
   .card.rc-woodpecker::after { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; animation: wp-ripple 0.34s ease-out 5; }
   @keyframes wp-peck { 0%,100% { transform: scale(1); } 50% { transform: scale(0.9); } }
@@ -2188,6 +2322,54 @@
   .card.suit-moons .rank,.card.suit-moons .suit{ color: var(--suit-moons); }
   .card.suit-stars .rank,.card.suit-stars .suit{ color: var(--suit-stars); }
   .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
+
+  /* ══ THE WILD CARD (r325) ══
+     Takes any rank to complete a SET, and nothing else - never a run, never a
+     flush, no pips, no Tricks. It rides the ordinary .card path (so it keeps the
+     buff bands, the line ring, card states, the curse badge and the selection
+     glow), and only the face is its own: the glyph where a rank would be, the
+     word under it where the suit would be.
+
+     IT IS NOT A SUIT COLOUR. Every other card on the board is coloured by its
+     suit, so a wild in any of those colours would read as one of them. It takes
+     the violet the game already uses for a CHARGE or a PRIMED state (the .cd-badge
+     pill, .card-temp) - a property of the card rather than a suit - plus a dashed
+     edge, because dashed is what the schedule's blank tiles already use for
+     "this cell is not the ordinary thing". */
+  .card.wild-card {
+    border-style: dashed;
+    border-color: var(--wild-edge, #8b5cf6);
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(139,92,246,0.16), rgba(139,92,246,0) 70%),
+      var(--card-bg);
+  }
+  .card.wild-card:hover:not(.unreachable) {
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(139,92,246,0.24), rgba(139,92,246,0) 70%),
+      #fffaee;
+  }
+  .card .wild-glyph {
+    font-family: 'Cinzel', serif;
+    /* The glyph stands in for BOTH the rank and the suit, so it is sized between
+       the two (0.24 and 0.293 of the card height) rather than matching either. */
+    font-size: calc(var(--card-h, 75px) * 0.30);
+    font-weight: 700;
+    line-height: 1;
+    color: #6d28d9;
+    text-shadow: 0 0 6px rgba(139,92,246,0.45);
+  }
+  .card .wild-label {
+    font-family: 'Share Tech Mono', monospace;
+    /* 0.10 of the card height is ~7.5px on a desktop card and ~4.7px in the hand
+       preview. It is a reminder on a card the player has already learned, not the
+       way they learn it (the handbook and the tip are), so small is correct - and
+       `overflow: hidden` on .card is the hard stop either way. */
+    font-size: calc(var(--card-h, 75px) * 0.10);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    margin-top: 2px;
+    color: #7c5bbf;
+  }
 
   /* ══ SPECTRUM - numeric colour deck (mode: spectrum) ══
      No suits, no court cards: the whole card face IS the colour and the value
@@ -3718,6 +3900,15 @@
     content: ''; position: absolute; inset: 12%; border-radius: 5px;
     border: 2.5px solid var(--rc); box-shadow: 0 0 8px -1px var(--rc), inset 0 0 6px -2px var(--rc);
   }
+  /* r391: the owned-Knack chip wears the pick screen's diamond. */
+  .knack-chip.kc-obj { background: none !important; border: none !important; box-shadow: none !important; overflow: visible; }
+  .knack-chip.kc-obj .rwd-diamond { width: 70%; border-radius: 5px; }
+  .knack-chip.kc-obj .rwd-diamond::after { border-width: 1.5px; border-radius: 3px; }
+  .knack-chip.kc-obj .rwd-diamond-emoji { font-size: .62em; }
+  .knack-chip.rar-common    { --rc: var(--c-mint); }
+  .knack-chip.rar-rare      { --rc: var(--c-cyan); }
+  .knack-chip.rar-epic      { --rc: var(--c-purple); }
+  .knack-chip.rar-legendary { --rc: var(--c-magenta); }
   .rwd-diamond-emoji { transform: rotate(-45deg); font-size: 26px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
 
   /* ══ SELECTION IS A WHOLE-CELL STATE (r281) ═══════════════════════════════
@@ -4669,14 +4860,26 @@
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
   #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info {
     position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
-  /* placements (percentages of the 747×420 stage) */
-  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:18.9%;  height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  #stage.landscape #score-left     { left:22.0%;  top:2.78%;  width:17.3%;  height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  /* placements (percentages of the 747×420 stage)
+     ── r383: THE GAPS BETWEEN THE TRAYS ARE 1.9% (about 8 design px) ──
+     They were 0.83%-1.5%, i.e. 3.5-6.3px - and each tray carries a 2px plastic
+     ring OUTSIDE its border, so the rings of two neighbouring trays had 0px of
+     background between them and the whole column read as one slab. The room
+     came out of the four panels with slack (the score row, the chip row, the
+     preview and the buttons); the TRICK TRAY IS UNCHANGED at 21.7%, because
+     its chips are 79px in a 77px content box already (r376) and it has none.
+     The stack, top to bottom, now runs:
+       2.78 +11.2 | 15.88 +10.5 | 28.28 +6.9 | 37.08 +20.7 | 59.68 +21.7 |
+       83.28 +6.5 | 91.68 +6.3  -> 97.98
+     Anything positioned against one of these (the Flow reward banner takes the
+     chip row's box, css/flow-rewards.css) has to move with it. */
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:18.9%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:22.0%;  top:2.78%;  width:17.3%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
   /* clock readout + timer bar span the grid's width (grid: left 45% → right 90%) */
   #stage.landscape #clock-area     { position:absolute; left:45%; top:2.78%; width:7%; height:6.94%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
   #stage.landscape #vclock         { left:52.5%; top:2.78%; width:37.5%; height:6.94%; overflow:hidden; display:block; }
   /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
-  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:37.74%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #score-subboxes { left:1.56%;  top:15.88%; width:37.74%; height:10.5%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
   #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
@@ -4689,7 +4892,7 @@
   #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); display:inline-block; }
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
-  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:28.28%; width:37.74%; height:6.9%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
   #stage.landscape #knack-list::-webkit-scrollbar { display:none; }
 
@@ -4699,8 +4902,14 @@
      (38×50) even though both are "one item you hold". The 38%→82.5% span is now
      split evenly, and the tiles are sized to match: the preview card is as wide
      as five-across allows in this column, and the Trick chip is a touch smaller. */
-  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:21.75%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:5.75%; height:21.75%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 2px; z-index:2; }
+  #stage.landscape #selected-cards { left:1.56%; top:37.08%; width:37.74%; height:20.7%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  /* z-index 61: the scoring dance raises #selected-cards to 60 (.dnc-active,
+     css/dance.css), and the label is a SIBLING - at its old z-index 2 the
+     preview's opaque panel background slid over it for the whole tally, so the
+     hand's name vanished exactly when it was being scored. The 44px left
+     padding the preview reserves for this label is untouched by the dance, so
+     sitting above it covers nothing. */
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:37.08%; width:5.75%; height:20.7%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:5px 2px; z-index:61; text-shadow:0 0 4px rgba(0,0,0,0.9); }
   /* A layered hand prints two blocks and a separator - five lines in a column
      sized for two - so it steps down rather than spilling out of the frame.
      Scoped through #trick-panel to out-specify the older 11px rule up the file. */
@@ -4715,7 +4924,7 @@
   body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 
   /* tricks: enlarged now that the time/money chips left this column - big reward-grid-style tiles */
-  #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:59.68%; width:37.74%; height:21.7%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
   /* r237: the tray FANS (tiles overlap, never more than half hidden) and only
      then scrolls - sideways, scrollbar hidden, never vertically. */
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:0; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; padding:0; width:100%; }
@@ -4734,11 +4943,11 @@
      (this one stated 40x53 for years and was always outranked by it). */
   #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
-  #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; padding:0 8px; }
+  #stage.landscape #coin-info      { left:1.56%; top:83.28%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; padding:0 8px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
      The same 1.56%→39.3% span, now 2 equal slots of 18.4% with the 0.9% gutter. */
-  #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.67%; width:18.4%; height:6.39%; }
-  #stage.landscape #btn-pause      { position:absolute; left:20.86%; top:91.67%; width:18.44%; height:6.39%; }
+  #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.68%; width:18.4%; height:6.3%; }
+  #stage.landscape #btn-pause      { position:absolute; left:20.86%; top:91.68%; width:18.44%; height:6.3%; }
   /* focus meter hugs the grid's left edge; grid + clock bar shifted right for the wider left column */
   #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
@@ -4759,7 +4968,9 @@
   #stage.landscape #btn-play       { position:absolute; left:91.41%; top:62.93%; width:7.81%; height:34.29%; }
   /* new-block internals */
   #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
-  #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
+  /* #vclock-band is GONE (r377). A fixed 33%-67% hatched band that meant
+     nothing - it named no Trick and moved with no clock. The hatching is drawn
+     from the live loadout now (js/clock-track.js). */
   #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
   #coin-info .ci-main b { font-size:19px; }
   #coin-info .ci-unit { font-size:8px; letter-spacing:.5px; text-transform:uppercase; margin-left:2px; }
@@ -4913,21 +5124,27 @@
     content:""; position:absolute; inset:12px; border-radius:8px; pointer-events:none; z-index:61;
     background: radial-gradient(120% 90% at 28% 6%, rgba(255,255,255,0.09), transparent 46%);
   }
-  #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
+  /* THE WASH IS TRANSLUCENT (r391) so the hypnosis backdrop behind it reads.
+     #hypno-screen is the first child of #cab-screen and paints an OPAQUE floor,
+     so the two together are still opaque and the office photograph can never
+     show through the game - which is the one thing #stage's background has to
+     guarantee. 0.82 is measured: it leaves the pattern at 18% of its own alpha
+     (see css/hypno.css) and moves the wash itself by at most 4/255. */
+  #stage { background: radial-gradient(ellipse at 50% 42%, rgba(26,20,12,0.82) 0%, rgba(16,13,9,0.82) 78%);
            border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
            transition: background 0.45s ease; }
   /* ── Per-screen background tint (r124): differentiates the "grid" you're on.
      Low saturation, but noticeable. Play = warm near-black (above); reward = teal;
      boss reward = red; challenge = purple; on-grid shop = gold. ── */
-  body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, #0d2320 0%, #081311 78%); }
-  body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, #2a1010 0%, #150908 78%); }
+  body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, rgba(13,35,32,0.82) 0%, rgba(8,19,17,0.82) 78%); }
+  body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, rgba(42,16,16,0.82) 0%, rgba(21,9,8,0.82) 78%); }
   /* Prize grid (post-boss payout): gold, and it wins over the boss-red tint - the
      boss is beaten by the time this is on screen. Listed after .reward-boss so
      equal specificity resolves in its favour. */
-  body.reward-active.reward-prize #stage        { background: radial-gradient(ellipse at 50% 42%, #2e2408 0%, #171104 78%); }
+  body.reward-active.reward-prize #stage        { background: radial-gradient(ellipse at 50% 42%, rgba(46,36,8,0.82) 0%, rgba(23,17,4,0.82) 78%); }
   body.reward-prize #grid .reward-cell.on-grid  { box-shadow: 0 0 0 1px rgba(226,178,66,0.35), 0 0 14px rgba(226,178,66,0.18); }
-  body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, #1e1030 0%, #100a1c 78%); }
-  body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, #241c0b 0%, #130f07 78%); }
+  body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, rgba(30,16,48,0.82) 0%, rgba(16,10,28,0.82) 78%); }
+  body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, rgba(36,28,11,0.82) 0%, rgba(19,15,7,0.82) 78%); }
 
   /* Thin beige base line (replaces the control deck) */
   #cab-baseline {
@@ -4939,24 +5156,136 @@
   /* ============================================================= */
   /* ==  On-screen chrome → LED / LCD instrument readouts        == */
   /* ============================================================= */
-  /* Shared panel material for every v7 landscape block + portrait panels */
+  /* ── THE TRAY (r383) ─────────────────────────────────────────────────────
+     Every readout in the left column, plus the two portrait panels, is one
+     object drawn from one rule. Three things describe it and all three read
+     `--tray-c`, the tray's OWN accent colour, so a tray is retinted by setting
+     that one property:
+
+       1. the FRAME is the accent colour on all four sides (it used to be black
+          with only a 2px candy line along the top, so the accent named the
+          tray at its top edge and nowhere else - owner: "make the color of the
+          border of each tray the same color as is currently along the top");
+       2. the INFINITY MIRROR - concentric inset lines receding into the panel,
+          each fainter than the one outside it, so the tray reads as a chasm
+          rather than as a flat plate;
+       3. the plastic ring and the sunken vignette, unchanged.
+
+     THE RINGS ARE `box-shadow` SPREADS, AND THE STACK IS WHAT SHAPES THEM.
+     An inset shadow with spread S fills the whole band from the edge in to S,
+     and a first-listed shadow paints ON TOP - so every layer covers everything
+     shallower than itself and the alphas COMPOSITE. **That makes the lit depth
+     MONOTONIC: a band nearer the edge is covered by strictly more layers than
+     one further in, so it can never be darker.** r386 read the list as
+     line-gap-line and it is not: measured on the live panel, its seven accent
+     spreads produced ONE 15px ramp stepping quietly down, which is exactly the
+     "too thick and blurred" the owner reported - the lines were bleeding into
+     the bands inside them with nothing between.
+
+     SO THE GAPS ARE BLACK LAYERS (r387). A dark spread is the only way to break
+     the ramp and put a real edge under each line, and it is still an alpha over
+     the panel's own gradient, so the gradient survives. The pitch is 3px - a
+     1px LINE, a 1px SHADOW under it (the owner asked to keep this, at less
+     spread: it was 3-4px), then a 1px dark gap - repeated, each line fainter
+     than the one outside it.
+
+     THE DEPTH HAS TO SUIT THE PANEL. `--tray-rings` reaches 8px (3 lines), so
+     the 29px knack strip and the 27px credits bar take `--tray-rings-s` (3px,
+     1 line) and the mid-height panels `--tray-rings-m` (5px, 2). Measured
+     heights, design px: score row 47, chip row 44, knacks 29, preview 87,
+     tricks 91, credits 27.
+     An inset shadow paints in the BACKGROUND layer, below in-flow content, so
+     no ring can ever sit over a chip, a card or a watermark.
+
+     THE PLASTIC RING IS THE TRAY'S OUTERMOST EDGE, and it was left cream
+     (`--plastic-lo`, measured 184,173,149) while the 1px accent border sat
+     INSIDE it - so at 2px against 1px the cream was the wider of the two and
+     the frame still read as cream whatever the accent was. It is tinted from
+     `--tray-c` now, deepened so it reads as coloured moulding around the bright
+     border rather than as a second glow. `--plastic-lo` itself is untouched:
+     some fifteen unrelated rules (shop tiles, reward cells, the focus bar, the
+     cabinet baseline) read it. */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
-  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, .panel-box {
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info,
+  #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
+  #stage:not(.landscape) #knack-carousel-wrap, .panel-box {
+    --tray-c: var(--plastic-lo);
+    --tray-line:   color-mix(in srgb, var(--tray-c) 46%, transparent);
+    --tray-line2:  color-mix(in srgb, var(--tray-c) 24%, transparent);
+    --tray-line3:  color-mix(in srgb, var(--tray-c) 12%, transparent);
+    --tray-glow:   color-mix(in srgb, var(--tray-c) 15%, transparent);
+    --tray-glow2:  color-mix(in srgb, var(--tray-c) 8%,  transparent);
+    --tray-glow3:  color-mix(in srgb, var(--tray-c) 4%,  transparent);
+    --tray-rings:
+      inset 0 0 0 1px var(--tray-line),
+      inset 0 0 0 2px var(--tray-glow),
+      inset 0 0 0 3px rgba(0,0,0,0.55),
+      inset 0 0 0 4px var(--tray-line2),
+      inset 0 0 0 5px var(--tray-glow2),
+      inset 0 0 0 6px rgba(0,0,0,0.5),
+      inset 0 0 0 7px var(--tray-line3),
+      inset 0 0 0 8px var(--tray-glow3);
+    --tray-rings-m:
+      inset 0 0 0 1px var(--tray-line),
+      inset 0 0 0 2px var(--tray-glow),
+      inset 0 0 0 3px rgba(0,0,0,0.55),
+      inset 0 0 0 4px var(--tray-line2),
+      inset 0 0 0 5px var(--tray-glow2);
+    --tray-rings-s:
+      inset 0 0 0 1px var(--tray-line),
+      inset 0 0 0 2px var(--tray-glow),
+      inset 0 0 0 3px rgba(0,0,0,0.5);
     background: linear-gradient(180deg, #15110b, #0d0b07) !important;
-    border: 1px solid #000 !important;
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep) !important;
+    border: 1px solid var(--tray-c) !important;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
+                var(--tray-set, var(--tray-rings-m)),
+                var(--tray-extra, 0 0 0 0 transparent),
+                0 0 0 2px color-mix(in srgb, var(--tray-c) 62%, #14100a),
+                0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806) !important;
   }
-  /* Candy top-accents give each readout its own identity */
-  #stage.landscape #score-center    { border-top: 2px solid var(--c-magenta) !important; }
-  #stage.landscape #score-left      { border-top: 2px solid var(--c-cyan) !important; }
-  #stage.landscape #score-subboxes  { border-top: 2px solid var(--c-purple) !important; border-bottom:1px solid #000 !important; }
-  #stage.landscape #knack-carousel-wrap { border-top: 2px solid var(--c-yellow) !important; }
-  #stage.landscape #selected-cards  { border-top: 2px solid var(--c-mint) !important; }
-  #stage.landscape #trick-tray-area { border-top: 2px solid var(--c-coral) !important; }
-  #stage.landscape #coin-info       { border-top: 2px solid var(--c-yellow) !important; }
-  #stage.landscape #run-progress    { border-top: 2px solid var(--c-magenta) !important; }
-  #stage.landscape #vclock          { border: 1px solid #000 !important; }
+  /* Candy accents give each readout its own identity. The top edge stays the
+     thick one; `--tray-c` is what carries the colour to the other three sides
+     and to the rings. */
+  #stage.landscape #score-center    { --tray-c: var(--c-magenta); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #score-left      { --tray-c: var(--c-cyan);    border-top: 2px solid var(--tray-c) !important; }
+  /* The chip row keeps the neutral frame the r95 rule below gives it (its three
+     chips are already blue, red and violet, so an accent frame would fight them);
+     it is the one tray whose top edge was never a candy colour, and the owner's
+     rule is that the frame matches the top edge. It therefore sets no `--tray-c`
+     of its own - the later rule does. */
+  #stage.landscape #score-subboxes  { border-top: 2px solid var(--tray-c) !important; border-bottom:1px solid var(--tray-c) !important; }
+  #stage.landscape #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #selected-cards  { --tray-c: var(--c-mint);    --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #trick-tray-area { --tray-c: var(--c-coral);   --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #coin-info       { --tray-c: var(--c-yellow);  --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #run-progress    { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #vclock          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings-s); border: 1px solid var(--tray-c) !important; }
+  /* Portrait: THREE trays, each named for what it holds (r389 split the strip).
+     The right-hand one takes the colour of whichever view is showing, which is
+     what says which side the swap button last left you on - and it is the same
+     colour landscape gives each of them, so the two orientations agree. */
+  #stage:not(.landscape) #score-panel         { --tray-c: var(--c-cyan);   --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-coral);  --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-mint);   --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings); }
+  /* r391 DEEPER MIRROR: 1-4 more receding lines past the r388 set, same 3px
+     pitch (dark gap, line, soft shadow), each fainter. Inset shadows paint in
+     the background layer, so they are always fully BEHIND the tray's contents.
+     Only the tall trays take them - on a 29px strip they would meet in the
+     middle. Dev -> Aesthetics picks the count (body.tray-deep-N, default 3). */
+  :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area,
+      #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
+      #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) {
+    --tray-x1: inset 0 0 0 9px rgba(0,0,0,.45), inset 0 0 0 10px color-mix(in srgb, var(--tray-c) 8%, transparent), inset 0 0 0 11px color-mix(in srgb, var(--tray-c) 3%, transparent);
+    --tray-x2: inset 0 0 0 12px rgba(0,0,0,.4), inset 0 0 0 13px color-mix(in srgb, var(--tray-c) 5%, transparent), inset 0 0 0 14px color-mix(in srgb, var(--tray-c) 2%, transparent);
+    --tray-x3: inset 0 0 0 15px rgba(0,0,0,.35), inset 0 0 0 16px color-mix(in srgb, var(--tray-c) 3.5%, transparent), inset 0 0 0 17px color-mix(in srgb, var(--tray-c) 1.5%, transparent);
+    --tray-x4: inset 0 0 0 18px rgba(0,0,0,.3), inset 0 0 0 19px color-mix(in srgb, var(--tray-c) 2.5%, transparent), inset 0 0 0 20px color-mix(in srgb, var(--tray-c) 1%, transparent);
+  }
+  body.tray-deep-1 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1); }
+  body.tray-deep-2 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2); }
+  body.tray-deep-3 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3); }
+  body.tray-deep-4 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3), var(--tray-x4); }
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,
@@ -5044,12 +5373,54 @@
   /* Focus meter → glowing LEDs */
   .focus-dot.lit { box-shadow: 0 0 8px var(--focus-color, var(--c-mint)) !important; }
 
-  /* Grid → inner CRT panel */
-  #grid { background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
-          border: 1px solid #000 !important; box-shadow: inset 0 0 24px rgba(0,0,0,0.8), 0 0 0 2px #2c2418 !important; }
+  /* ── Grid → inner CRT panel, with the trays' infinity mirror (r391) ────────
+     Owner: "then we can add the infinity effect to the card grid as well."
+
+     IT IS THE SAME THREE-PART RING STACK the trays use (see the TRAY MATERIAL
+     block above) and it is built from the same `--tray-line*` / `--tray-glow*`
+     variables, so a retune there moves the board with it. What it does NOT take
+     is the trays' brown linear gradient or their candy border: the board is the
+     play surface rather than a readout, so it keeps its own green CRT wash and
+     its black edge, and `--tray-c` only ever reaches the rings.
+
+     THE RINGS LIVE IN THE BOARD'S OWN FRAME, WHICH IS WHY GRID_PAD WENT 3 -> 6.
+     An inset shadow paints in the background layer, below in-flow content, so a
+     ring can never cover a card - but a ring DEEPER than the frame is hidden
+     behind the first row and shows only in the gutters between cards, which at
+     the r391 gap reads as a grid of stray lines rather than as a chasm. The
+     8px `--tray-rings` set is therefore held back to `--tray-rings-m` (5px, 2
+     lines), which fits inside a 6px frame with a pixel to spare.
+
+     The plastic ring stays the cabinet's own #2c2418: the board sits IN the
+     housing, so its outer edge is moulding rather than an accent. */
+  #grid {
+    --tray-c: #4c6b2f;
+    --tray-line:  color-mix(in srgb, var(--tray-c) 46%, transparent);
+    --tray-line2: color-mix(in srgb, var(--tray-c) 24%, transparent);
+    --tray-glow:  color-mix(in srgb, var(--tray-c) 15%, transparent);
+    --tray-glow2: color-mix(in srgb, var(--tray-c) 8%,  transparent);
+    background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
+    border: 1px solid #000 !important;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.8),
+                inset 0 0 0 1px var(--tray-line),
+                inset 0 0 0 2px var(--tray-glow),
+                inset 0 0 0 3px rgba(0,0,0,0.55),
+                inset 0 0 0 4px var(--tray-line2),
+                inset 0 0 0 5px var(--tray-glow2),
+                0 0 0 2px #2c2418 !important;
+  }
+  /* A board at the card floor gives its frame back to the cards (r391,
+     GRID_PAD_TIGHT in js/grid-metrics.js), so the rings step down to fit it. */
+  #grid.grid-tight {
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.8),
+                inset 0 0 0 1px var(--tray-line),
+                inset 0 0 0 2px var(--tray-glow),
+                inset 0 0 0 3px rgba(0,0,0,0.5),
+                0 0 0 2px #2c2418 !important;
+  }
 
   /* ── Left-column stat chips: full solid-color fills, beige text (r95) ── */
-  #stage.landscape #score-subboxes { border-top: 2px solid var(--plastic-lo) !important; }
+  #stage.landscape #score-subboxes { --tray-c: var(--plastic-lo); border-top: 2px solid var(--tray-c) !important; }
   #pips-box  { background:#2a5fd0 !important; border:1px solid #123a94 !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
   #mult-box  { background:#cf3a2c !important; border:1px solid #7f1d14 !important;
@@ -5077,14 +5448,7 @@
     color: rgba(244,236,214,0.06); text-transform: uppercase;
   }
   #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
-  /* Hand-preview box: faint "HAND" watermark when idle; :empty hides it the moment the
-     scoring dance drops cards in, so no z-index fight. (r99) */
-  #stage.landscape #selected-cards:empty::before {
-    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 9px; font-size: 40px;
-    color: rgba(244,236,214,0.06); text-transform: uppercase;
-  }
+  /* The HAND watermark is gone here too (r333) - #hand-name is the label. */
 
   /* ── Focus meter → recessed power gauge, continuous fill (r96) ── */
   #stage.landscape #focus-meter-wrap { width: 6.4%; gap: 5px; overflow: visible; }
@@ -5229,7 +5593,13 @@
      are MEASURED by fanTrickTray, so nothing else had to change. */
   #stage.landscape .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
-    width: 73px; height: 75px;
+    /* r376: 73x75 -> 83x79. THE HEIGHT OF THE OBJECT IS DECIDED BY THE WIDTH,
+       because the disc letterboxes at 20/19 - so a 73px-wide chip paints a
+       69.4px disc however tall the chip is, and the tray's 79.35px of inner
+       height went unused. 83px of width is what fills it. Three tiles still
+       sit across the tray as a plain row (249 + 2 gaps in 266px of room);
+       fanTrickTray MEASURES everything, so nothing in JS changed. */
+    width: 83px; height: 79px;
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }
@@ -5409,7 +5779,14 @@
 .trick-card.sleight-card.selected.hand-ready {
   animation: handReadyPulse 0.7s ease-in-out infinite alternate;
 }
-.trick-card.sleight-card.unreachable { opacity: 0.28; cursor: default; }
+/* A Sleight NEVER takes the unreachable dim (owner call, was opacity 0.28).
+   The moment any card was selected, every Sleight out of reach dropped to a
+   quarter opacity - and the same happened for the length of a played hand and
+   through every fall, because `selected` still holds the hand while it scores.
+   A big coloured object flicking dark on every selection read as the Sleight
+   switching off. The cursor still says it cannot join this hand; the object
+   keeps its full paint. */
+.trick-card.sleight-card.unreachable { cursor: default; }
 /* Double-tapping a Sleight arms a swap, same as any card - but .card.swap-pending
    never matched (a grid Sleight is .trick-card, not .card) and the rarity rule
    below repainted the edge anyway, so the tile looked untouched and the only
@@ -5428,6 +5805,11 @@
   filter: grayscale(0.85);
   opacity: 0.55;
   box-shadow: none !important;
+}
+/* INERT (r341): a used Piggy Bank / Capacitor stays on the grid, unswappable and
+   undiscardable. Milder than spent - it may still hold charges for later rounds. */
+.trick-card.sleight-card.sleight-inert:not(.selected):not(.swap-pending) {
+  filter: grayscale(0.5) brightness(0.8);
 }
 /* Fired. The tile spins horizontally in place before it leaves the grid. */
 @keyframes sleight-spin {
@@ -5781,7 +6163,7 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      portrait fan and the r176 landscape pass both landed on - a Trick whose
      glyph changes size stops reading as the same object, so the tile's own
      overflow clips instead. */
-  #stage.landscape.shop-squish .trick-tray-chip   { width:34px; height:35px; }
+  #stage.landscape.shop-squish .trick-tray-chip   { width:37px; height:35px; }
   #stage.landscape.shop-squish .m-lim,
   #stage.landscape.shop-squish #coin-info         { font-size:11px; }
 
@@ -5799,7 +6181,6 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      rather than being clipped into nonsense. */
   #stage.landscape.shop-squish #knack-carousel-wrap::before { font-size:14px; letter-spacing:3px; }
   #stage.landscape.shop-squish #trick-tray-area::before     { font-size:28px; letter-spacing:5px; }
-  #stage.landscape.shop-squish #selected-cards:empty::before { font-size:22px; letter-spacing:4px; }
 
   /* the arrow tab ───────────────────────────────────────────────────────── */
   /* Sits on the column's outer edge and rides with it, so it always reads as
@@ -5922,6 +6303,25 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   body.grid-screen #stage.landscape #grid-topline { opacity: 1; }
 
   body.grid-screen #stage.landscape #grid-slot { left: 41%; width: 49%; }
+  /* r380: A TAKEOVER BOARD STOPS AT THE FOCUS COLUMN. The pick-of-three and the
+     tiled payout (body.gp-active) are 6 cells wide, so at 41% they ran straight
+     over the focus column - measured at every window size, since the stage is
+     one fixed canvas - and Flow's reward panel, padded 9px past the board,
+     covered the meter outright while the tally was still running under it. The
+     column is 39.5% -> 45.9% and the panel pad ~1.2%, so the slot starts at
+     47.8%. gridScreenTakeover measures the slot with its transition off, so the
+     board is sized for THIS box rather than for where the slide started. */
+  body.gp-active #stage.landscape #grid-slot,
+  body.gp-active.grid-screen #stage.landscape #grid-slot,
+  /* r400: body.flowr-hold HOLDS THAT GEOMETRY ACROSS A CHAIN HAND-OVER.
+     #flowr-bg is centred on #grid-slot, so closing one step's pick - which
+     removes gp-active - slid the panel sideways and back between two steps.
+     Owner: "the tray shouldn't resize or move, otherwise the effect is
+     ruined." r398 pinned the SIZE and left the POSITION; this is the other
+     half. The hold ends once the next step has taken the board over, so the
+     DECK EDIT step still gets the play board back. */
+  body.flowr-hold #stage.landscape #grid-slot,
+  body.flowr-hold.grid-screen #stage.landscape #grid-slot { left: 47.8%; width: 42.2%; }
 
   /* Portrait shop: credits beside the live x/y count (the desktop puts them on
      the topline instead). */
@@ -6104,3 +6504,98 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 .rec-ent .kn-reveal b { display: block; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #ffe9e6; }
 /* r310: the mode card's link into the handbook. */
 .mode-card-more { color: var(--mode-accent, var(--c-yellow)); text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+
+/* ══ THE FLOW SESSION CLOCK'S BOSS MARK (r376) ════════════════════════════
+   Flow's clock is a countdown to the inspection, not a round timer, and the
+   bar now FILLS toward this skull (js/round-timers.js). Hidden everywhere
+   else: in every other mode that bar is the round's own time and there is no
+   fixed thing at the end of it to point at. */
+.clock-boss { display: none; }
+#stage.flow-mode #clock-boss,
+#stage.flow-mode #vclock-boss { display: flex; }
+#stage.flow-mode.landscape #clock-boss { display: none; }   /* landscape uses #vclock */
+#stage.flow-mode:not(.landscape) #vclock-boss { display: none; }
+
+.clock-boss {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  align-items: center; justify-content: center;
+  width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--c-magenta, #ff2f8e); border-radius: 4px;
+  background: #1a0d16; color: var(--c-magenta, #ff2f8e);
+  font-size: 11px; line-height: 1; cursor: pointer;
+  box-shadow: 0 0 7px rgba(255,47,142,0.45);
+  z-index: 4;
+}
+.clock-boss:active { transform: translateY(-50%) scale(0.92); }
+/* r377: #clock-area's own position and padding are gone. The padding held room
+   for the mark by shrinking nothing - an absolutely positioned child's
+   containing block is the PADDING BOX, padding included, so #vclock-fill ran
+   straight under the skull regardless. .clk-track's inset is what holds that
+   room now (css/clock-track.css), and in portrait the mark rides in flow at the
+   end of the bar rather than being pinned to the right of the whole area. */
+#stage.flow-mode.landscape #vclock-boss { right: 2px; }
+/* The bar fills toward the mark, so it is the LAST thing the eye reaches;
+   a slow pulse says it is coming rather than that it is here. */
+@keyframes clockBossPulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(255,47,142,0.35); }
+  50%      { box-shadow: 0 0 13px rgba(255,47,142,0.8); }
+}
+.clock-boss { animation: clockBossPulse 2.6s ease-in-out infinite; }
+body.reduced-motion .clock-boss { animation: none; }
+
+/* ══ r392: DUAL-IDENTITY CARDS + THE COIN CARD ═══════════════════════════════
+   A second rank sits UNDER the first, smaller; a second suit sits BESIDE the
+   first and the pair is centred together, so both are slightly off centre.
+   A card that scores credits wears a gold coin behind its face (z -1, the
+   corner bands' layer: above the card's background, below its in-flow rank
+   and suit), and the rank and suit take a thin dark outline over it. */
+.card .rank.rank2 { font-size: 0.72em; line-height: 0.9; margin-top: -0.12em; opacity: 0.92; }
+.card .suit.suit-pair { display: flex; gap: 0.08em; justify-content: center; }
+.card .suit.suit-pair > span { line-height: 1; }
+.card .suit.suit-pair > .suit-hearts   { color: var(--suit-hearts); }
+.card .suit.suit-pair > .suit-diamonds { color: var(--suit-diamonds); }
+.card .suit.suit-pair > .suit-spades   { color: var(--suit-spades); }
+.card .suit.suit-pair > .suit-clubs    { color: var(--suit-clubs); }
+.card-coin {
+  position: absolute; left: 50%; top: 50%; z-index: -1; pointer-events: none;
+  width: 62%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c8 0 8%, #f3c64a 30%, #c8901a 70%, #8a5a08 100%);
+  box-shadow: inset 0 0 0 2px rgba(120,76,6,0.55), inset 0 0 0 4px rgba(255,236,160,0.45), 0 0 6px rgba(243,198,74,0.5);
+}
+.card.card-has-coin .rank, .card.card-has-coin .suit {
+  -webkit-text-stroke: 0.6px rgba(0,0,0,0.85); paint-order: stroke fill;
+}
+
+/* ── r393: x pips / x mult marks, over the corner bands ─────────────────── */
+.card .card-xmark {
+  position: absolute; top: 1%; z-index: 3; pointer-events: none;
+  font: 900 calc(var(--card-w, 57px) * 0.36)/1 'Arial Black', Arial, sans-serif;
+  font-style: normal;
+  text-shadow: 0 1.5px 1.5px rgba(0,0,0,.65), 0 0 3px rgba(0,0,0,.45);
+}
+.card .card-xmark.cx-tl { left: 5%;  color: #16305e; }
+.card .card-xmark.cx-tr { right: 5%; color: #5e1410; }
+
+/* ── r393: a second RANK splits the card on the TL-BR diagonal ─────────── */
+.card.card-dual-rank { position: relative; }
+.card.card-dual-rank .dual-slash {
+  position: absolute; inset: 8%; pointer-events: none; z-index: 0;
+  background: linear-gradient(to bottom right,
+    transparent calc(50% - 1px), currentColor calc(50% - 1px), currentColor calc(50% + 1px), transparent calc(50% + 1px));
+  opacity: .55;
+  /* the break in the middle where the suit sits */
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent 24%, #000 25%);
+          mask: radial-gradient(circle at 50% 50%, transparent 24%, #000 25%);
+}
+.card.card-dual-rank .rank.dual-r1,
+.card.card-dual-rank .rank.dual-r2 {
+  position: absolute; margin: 0; line-height: 1; font-size: 0.82em;
+  transform: translate(-50%, -50%);
+}
+.card.card-dual-rank .rank.dual-r1 { left: 30%; top: 25%; }
+.card.card-dual-rank .rank.dual-r2 { left: 70%; top: 75%; }
+.card.card-dual-rank .suit.dual-mid {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  margin: 0; line-height: 1; font-size: 0.8em;
+}

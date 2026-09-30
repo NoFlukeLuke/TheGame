@@ -234,6 +234,42 @@ function sfxRoundStart() {
   playTone({ freq: 880, type: 'sine', gain: 0.08, attack: 0.02, decay: 0.1, sustain: 0.1, release: 0.3, duration: 0.4, delay: 0.08 });
 }
 
+// ══ THE REWARD COUNTER (r378) ════════════════════════════════════════════════
+// Owner: *"Can we make the sound bears for the reward count up have longer or
+// bigger tails? So the interruption feels more substantial?"*
+//
+// The counter card used to fire sfxLevelUp() and sfxSuccess() together and then
+// sfxSuccess() again per bump - three sounds written for three other moments,
+// all of them SHORT. A beat the whole tally is now held for (r376) needs a tail:
+// something that rings on past its own attack, so the pause reads as the game
+// stopping to tell you something rather than as a chime going off.
+//
+// `step` is the bump index: 0 is the card landing on x1, 1 the first extra, and
+// so on. THE ROOT CLIMBS A FOURTH ACROSS THE RUN and the tail gets LONGER with
+// it, so a x5 is audibly the biggest of them without simply being the loudest -
+// a fifth copy of one sound at one pitch reads as a stutter.
+//
+// The classic set has no reverb send (playTone connects dry at sfxOut), so the
+// tail here IS the release: 2.2s on the bell, 2.6s on the swell under it. The
+// four packs each carry their own reward_count with a real verb send.
+function sfxRewardCount(step = 0) {
+  const k = Math.min(step, 5);
+  const root = 392.0 * Math.pow(2, (k * 2) / 12);          // G4, up a tone a bump
+  const tail = 1.5 + k * 0.18;
+  // The strike: a triad that rings, each partial quieter and longer than the last.
+  [[1, 0.20, 0], [1.5, 0.155, 0.045], [2, 0.13, 0.09], [3, 0.075, 0.14]].forEach(([r, g, d]) => {
+    playTone({ freq: root * r, type: 'triangle', gain: g, attack: 0.004,
+               decay: 0.10, sustain: 0.42, release: tail, duration: 0.16, delay: d });
+  });
+  // The swell UNDER it is what makes the beat feel heavy rather than bright - a
+  // low sine with a slow attack, so it arrives after the strike and outlasts it.
+  playTone({ freq: root / 4, type: 'sine', gain: 0.185, attack: 0.09,
+             decay: 0.20, sustain: 0.62, release: tail + 0.4, duration: 0.5 });
+  playTone({ freq: root / 2, type: 'sine', gain: 0.10, attack: 0.07,
+             decay: 0.18, sustain: 0.5, release: tail, duration: 0.42, delay: 0.03 });
+  playNoise({ gain: 0.075, attack: 0.002, release: 0.12 });   // the transient
+}
+
 function sfxLevelUp() {
   // Warm arpeggiated flourish - pentatonic run upward
   const notes = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 659.3];

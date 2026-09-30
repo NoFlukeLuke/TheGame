@@ -91,15 +91,10 @@ const INSIGHTS = [
   // ── the board ─────────────────────────────────────────────────────────────
   // The single most common surprise in the game: measured at r254, a random
   // 5-card selection carries a dropped card 80% of the time.
-  { id: 'penalty_cards', title: 'That card is being dropped',
+  { id: 'penalty_cards', title: 'That card is not in the hand',
     anchor: ['#hand-name'],
-    body: 'A red card is not part of the hand. You lose its pips and the card.',
+    body: 'A red card is not part of the hand. One spare card is a kicker: it costs its pips and its pip value in seconds. Any more are dropped: you lose their pips and the cards.',
     when: () => !!document.querySelector('#hand-name .hn-drop') },
-
-  { id: 'min_selection', title: 'You need more cards',
-    anchor: ['#hand-name'],
-    body: 'Selection Size sets a floor as well as a ceiling. The hand label says how many more to add.',
-    when: () => !!document.querySelector('#hand-name .hn-need') },
 
   { id: 'hand_layers', title: 'Your hand was also a flush',
     anchor: ['#hand-name'],
@@ -233,9 +228,35 @@ const INSIGHTS = [
     when: () => typeof bossActive !== 'undefined' && bossActive
              && !document.querySelector('#boss-preamble.show') },
 
+  { id: 'wild_card', title: 'That card takes any rank',
+    anchor: ['#hand-name', '#score-center'],
+    body: 'A wild completes a SET at any rank - never a run and never a flush. It scores no pips and fires no {Tricks}; the set it finishes pays as normal.',
+    // A BOARD tip (the default scope), so it cannot fire over the reward grid or
+    // the shop the way the two r284 strays did - the card has to be on screen for
+    // the ring to point at anything. gridData is read defensively because a
+    // predicate may not throw (js/insights.js's own rule).
+    when: () => {
+      if (typeof isWildCard !== 'function' || typeof gridData === 'undefined') return false;
+      for (let r = 0; r < gridRows; r++)
+        for (let c = 0; c < gridCols; c++) if (isWildCard(gridData?.[r]?.[c])) return true;
+      return false;
+    } },
+
+  // ── Flow's reward chain (r380: Flow is the first mode now, so these are
+  // the first reward screens most players meet) ─────────────────────────────
+  { id: 'flow_chain', screen: 'any', title: 'More than one reward',
+    anchor: ['#flowr-stack', '#grid'],
+    body: 'A clear can pay up to five reward screens. The tabs above the board are the ones still to come.',
+    when: () => typeof flowrQueue !== 'undefined' && Array.isArray(flowrQueue) && flowrQueue.length > 1 },
+
+  { id: 'deck_edit', screen: 'any', title: 'Editing your deck',
+    anchor: ['#flowr-banner', '#grid'],
+    body: 'These are your real cards, and the change is permanent. Select, then press APPLY to see what lands.',
+    when: () => typeof flowrDeckActive === 'function' && flowrDeckActive() },
+
   { id: 'mini_boss', screen: 'any', title: 'The extra task is a bonus',
     anchor: ['#goal-display'],
-    body: 'The quota is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
+    body: 'The {GOAL} is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
     when: () => typeof miniBossActive !== 'undefined' && miniBossActive },
 ];
 
@@ -256,7 +277,11 @@ function insightsBlocked() {
   // Reading surfaces and modals.
   for (const s of ['#settings-overlay.show', '#records-overlay.show', '#info-overlay.show',
                    '#dev-panel.show', '#end-overlay.show', '#pause-overlay.show',
-                   '#boss-preamble.show', '#countdown-321-overlay.show']) {
+                   '#boss-preamble.show', '#countdown-321-overlay.show',
+                   // Poker Squares' own console and its end-of-run scorecard are
+                   // reading surfaces too, and the card is the one screen in that
+                   // mode a tip would land squarely on top of.
+                   '#sq-overlay.show', '#sq-card.show']) {
     if (document.querySelector(s)) return true;
   }
   // Mid-animation the card would land on a board that is about to move, and the

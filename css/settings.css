@@ -153,3 +153,23 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
   font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--gold, #d4a857);
   min-height: 18px; padding: 6px 2px 0; text-align: right;
 }
+
+/* ── Tabs (r380) ── one group at a time. Sticky so the row stays reachable
+   while a long group scrolls under it; it carries an opaque base for that. */
+.set-tabs {
+  position: sticky; top: -12px; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: -12px -16px 10px; padding: 10px 16px 9px;
+  background: #0f0c08; border-bottom: 1px solid rgba(183,172,147,0.2);
+}
+.set-tab {
+  cursor: pointer; border-radius: 999px; padding: 5px 11px; min-height: 28px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--cream-dim, #8a7d60); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(183,172,147,0.28); transition: all 0.12s ease;
+}
+.set-tab:hover { color: var(--cream, #f0e6c8); border-color: var(--plastic-lo, #b7ac93); }
+.set-tab.on {
+  color: #0b0a07; background: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b);
+}
+#settings-body > .set-tabs + .set-group-title { margin-top: 2px; }

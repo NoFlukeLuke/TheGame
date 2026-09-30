@@ -793,8 +793,10 @@ function bossSuitSecondsLeft() {
 }
 
 // ── THE GRADIENT ─────────────────────────────────────────────────────────────
-// The board is a slope: one edge pays half, the opposite edge pays half again on
-// top, and everything between is interpolated. It turns 90 degrees every 40s.
+// The board is a slope: a card pays x0.5 at one edge and x1.5 at the opposite one,
+// linearly interpolated across the cells between them. It turns 90 degrees every
+// 40s. ("half again on top" is what the brief used to say, and it is the reason
+// nobody could read it - x1.5 is the number, so the number is what it says now.)
 // It is communicated by SIZE - a debuffed cell shrinks, a buffed one grows -
 // because a number in a tooltip is not something anyone reads mid-hand.
 function bossGradientTick() {

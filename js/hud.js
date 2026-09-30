@@ -53,7 +53,7 @@ function showBonusHandScoreFlash(cells, scoreAmount) {
 // number the player most wants while deciding what to take.
 //
 // So on those screens it reads LAST ROUND over what that round scored, and
-// NEXT QUOTA over the goal about to be asked for. The progress bar is hidden:
+// NEXT GOAL over the goal about to be asked for. The progress bar is hidden:
 // it would sit at 100% and mean nothing.
 //
 // `body.grid-screen` is the switch, set by enterGridScreenHud() and cleared by
@@ -71,7 +71,10 @@ function updateScoreUI() {
   const goalLabel  = document.getElementById('score-goal-label');
   const barWrap    = document.getElementById('score-progress-bar-wrap');
   if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
-  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT QUOTA' : 'GOAL';
+  // lexTerm, never a literal: this label is the one r293 flipped from a
+  // hardcoded QUOTA, and hardcoding GOAL instead is the same bug mirrored.
+  const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';
+  if (goalLabel)  goalLabel.textContent  = between ? ('NEXT ' + goalWord) : goalWord;
   if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
 
   const shownScore = between ? lastRoundScore : score;
@@ -82,10 +85,21 @@ function updateScoreUI() {
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
     scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
-  const pct = Math.min(score / roundGoal, 1);
+  const pct = (typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(score / roundGoal, 1);
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
-  document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
+  // r399: a shaped round names its own progress in the goal box (js/level-types.js).
+  const _q = (!between && typeof roundQuota !== 'undefined') ? roundQuota : null;
+  if (_q && _q.kind === 'relay') {
+    const _n = _q.bars.length, _i = Math.min(_q.idx, _n - 1);
+    if (goalLabel) goalLabel.textContent = `${goalWord} ${Math.min(_q.idx + 1, _n)}/${_n}`;
+    document.getElementById('goal-display').textContent = _q.idx >= _n ? 'DONE' : `${_q.prog.toLocaleString()}/${_q.bars[_i].toLocaleString()}`;
+  } else if (_q && _q.kind === 'lines') {
+    if (goalLabel) goalLabel.textContent = 'LINES';
+    document.getElementById('goal-display').textContent = `${_q.lines.filter(l => l.prog >= l.target).length}/${_q.lines.length}`;
+  } else {
+    document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
+  }
   document.getElementById('level-display').textContent = level;
   const cl = document.getElementById('ci-level'); if (cl) cl.textContent = level;
   updateCoinsUI();
@@ -121,7 +135,7 @@ function updateSelectionUI() {
   const cap = (onShop || !onReward) ? limits.selection.current : rewardSelectionCap();
   const min = onShop ? 1
             : onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
-                       : (typeof minSelection  === 'function' ? minSelection()  : 1);
+                       : (typeof handMinSelection === 'function' ? handMinSelection() : 1);
 
   // Top bar: the limit, not the count.
   const el = document.getElementById('sel-display');
@@ -230,7 +244,9 @@ function updateKnackList() {
   // Chips live in a marquee track so the row can slowly auto-scroll when it
   // overflows (no arrows / no scrollbar - r113).
   el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
-    `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${emGlyph(t.emoji)}</div>`
+    // r391: the chip draws the SAME diamond the pick screens draw (entity-tile.js),
+    // so a Knack looks like one object whether offered or owned.
+    `<div class="knack-chip kc-obj rar-${t.rarity || 'common'}" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}"><div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(t.emoji)}</span></div></div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
   // Landscape scrolls the row by hand (no scrollbar - css) since r237; the
@@ -390,13 +406,22 @@ function handLabelHTML(runs) {
   return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
     const x = k > 1 ? `<u>x${k}</u>` : '';
-    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}${x}</i></span>`
+    // A numeric size reads "OF N" (owner spec, r333): SET / OF 3, RUN / OF 4.
+    // Word sizes (TWO / PAIR, FULL / HOUSE, HIGH / CARD) print as they are -
+    // the break is always between whole words, never inside one.
+    const sz = l && /^\d/.test(l.size) ? 'OF ' + l.size : (l && l.size);
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${sz}${x}</i></span>`
              : `<span class="hn-l"><b>${n}</b>${x}</span>`;
   }).join('<span class="hn-plus">+</span>');
 }
 
-function updateHandNameLabel(result) {
-  if (_handNameHeld) return;         // a dance owns this label until it ends
+function updateHandNameLabel(result, force) {
+  // A dance owns this label until it ends, but only against being BLANKED (render()
+  // runs mid-tally with the selection already cleared). A live selection that names a
+  // hand, or a dance stamping its own hand on at its start (`force`), always gets
+  // through - otherwise the label kept the PREVIOUS hand's name while the next one was
+  // being built and played (a Full House read "RUN OF 3", r401).
+  if (_handNameHeld && !force && !(result && (result.hand || result.short))) return;
   const el = document.getElementById('hand-name');
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand
@@ -426,6 +451,25 @@ function updateHandNameLabel(result) {
   if (html && _pen > 0) {
     html += `<span class="hn-plus">−</span>`
           + `<span class="hn-l hn-drop"><b>DROP</b><i>${_pen} · −${result.penaltyPips || 0}</i></span>`;
+  }
+  // r326: the TAGALONGS, which only the knack permits. They are separate from
+  // DROP on purpose - a dropped card is the hand refusing a passenger, a tagalong
+  // is the hand carrying one because you paid to be allowed to. Both are red and
+  // both are a bill; only this one also quotes the clock.
+  //
+  // Stating it here is the whole answer to "it kept saying RUN 3 x2 when the hand
+  // wasn't even a run": the label was naming the components and saying nothing
+  // about the two or three cards riding along beside them. Measured at Selection
+  // Size 7 with Tagalong owned, 73% of hands were carrying at least one.
+  // r385: renamed KICK. Red and priced while billed; a plain "+ KICK n" once
+  // Tagalong makes them free, so the card is still named as riding along.
+  const _tag = (result && result.tagalongCells && result.tagalongCells.length) || 0;
+  if (html && _tag > 0) {
+    const _ts = result.tagalongSeconds || 0, _tp = result.tagalongPips || 0;
+    const _bill = (_tp > 0 ? ` · −${_tp}` : '') + (_ts > 0 ? ` · −${_ts}s` : '');
+    html += _bill
+      ? `<span class="hn-plus">−</span><span class="hn-l hn-drop"><b>KICK</b><i>${_tag}${_bill}</i></span>`
+      : `<span class="hn-plus">+</span><span class="hn-l"><b>KICK</b><i>${_tag}</i></span>`;
   }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.

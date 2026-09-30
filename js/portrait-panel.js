@@ -101,6 +101,10 @@ function portraitShowKnacks() {
 // the portrait strip is in a sane state when coming back from landscape.
 function syncPortraitPanel() {
   setPortraitPanelView(portraitPanelUserView, { auto: true });
+  // Turning a tablet mid-run moves HAND SIZE and COINS between the top bar and
+  // the band under the board (r377), so this one call site covers the resize,
+  // the orientation change and the office photo handing a phone its layout back.
+  if (typeof portraitMountStats === 'function') portraitMountStats();
 }
 
 
@@ -165,9 +169,26 @@ function fitPortraitPreviewCards() {
   const avail  = items.clientWidth - cfg.edgePad * 2;
   if (stripH < 10 || avail < 20) return;               // not laid out yet
 
+  // r383: THE CARD IS CLAMPED TO THE PREVIEW HALF'S CONTENT BOX, and that is
+  // what finally fixed the hand name being cut off. The height came from
+  // `stripH * vFill` alone, so the cards grew in step with the panel - which is
+  // why r376 could add 20px to the strip and the name was STILL clipped: every
+  // pixel went to the cards. #hand-preview-area's bottom padding is the name's
+  // reserved band, so its CONTENT box is the room the dance may have, and
+  // DNC_CHROME is the dance's own padding inside it (.dnc-active 2px + the
+  // track's 3px, both ends, css/dance.css). vFill is still the ceiling, so a
+  // taller strip does not make the cards silly.
+  const host = document.getElementById('hand-preview-area');
+  let availH = stripH;
+  if (host) {
+    const hs = getComputedStyle(host);
+    availH = host.clientHeight - parseFloat(hs.paddingTop) - parseFloat(hs.paddingBottom);
+  }
+  const DNC_CHROME = 12;
+
   // Widest card the row can hold with every card at least minVisibleFrac visible.
   const wByWidth  = avail / (1 + (n - 1) * cfg.minVisibleFrac);
-  const wByHeight = stripH * cfg.vFill * cfg.aspect;
+  const wByHeight = Math.min(stripH * cfg.vFill, availH - DNC_CHROME) * cfg.aspect;
   const w = Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight)));
   const h = Math.round(w / cfg.aspect);
 
@@ -176,4 +197,56 @@ function fitPortraitPreviewCards() {
   stage.style.setProperty('--card-w', w + 'px');
   stage.style.setProperty('--card-h', h + 'px');
   stage.style.setProperty('--dnc-lap', (n > 1 ? step - w : 0) + 'px');
+}
+
+// ══════════════════════════════════════════════
+// PORTRAIT: THE STATIC READOUTS GO UNDER THE BOARD  (r377)
+// ══════════════════════════════════════════════
+// Owner: "Can the hand icon and coins go under the grid in portrait always? Or
+// does it depend?" - it does not depend: HAND SIZE and COINS are STATIC
+// readouts (a limit, and a number you spend between rounds), not live decision
+// inputs, and the one place they were is the only band the clock has. Moving
+// them leaves the top bar to the clock, which is what makes room for the Flow
+// session track and its review mark.
+//
+// THEY GO IN THE SLOT'S OWN BOTTOM MARGIN, so nothing is resized to make room.
+// #grid is CENTRED in #grid-slot, so the band under the board is
+// (slot - grid) / 2 - the same expression #sel-count uses for the band ABOVE
+// it, and the same reason neither needs a measurement or a resize handler.
+// Measured on a 420x900 phone: 34px, against a 17px readout.
+//
+// THE ELEMENTS ARE MOVED, NEVER COPIED. A second #coins-display is a second
+// thing for js/hud.js to keep in step with, and it would go stale the first
+// time someone wrote to the other one.
+function portraitStatsHost() {
+  let bar = document.getElementById('pt-underbar');
+  if (bar) return bar;
+  const slot = document.getElementById('grid-slot');
+  if (!slot) return null;
+  bar = document.createElement('div');
+  bar.id = 'pt-underbar';
+  slot.appendChild(bar);           // a SIBLING of #grid: render() rebuilds #grid's children
+  return bar;
+}
+// r394: BOTH LIVE IN THE TOP BAR AGAIN. Owner: "put the coins back in the top
+// right. (This is on mobile)". The room the move bought is no longer needed -
+// the clock is out of flow now (css/clock-track.css), so it is centred on the
+// bar whatever else is in it, and HAND SIZE is folded into the live x/y readout
+// above the board (#sel-count), which was already printing the same cap.
+//
+// The function is KEPT rather than deleted: it is the one thing that puts them
+// back if anything has moved them, it runs from every layout pass, and the
+// Poker Squares exemption below depends on them being in #top-bar for the
+// daily's own hide rule to match.
+function portraitMountStats() {
+  const sel   = document.getElementById('sel-stat');
+  const coins = document.getElementById('coins-display');
+  const topBar = document.getElementById('top-bar');
+  if (!sel || !coins || !topBar) return;
+  const coinStat = coins.closest('.top-stat') || coins.parentElement;
+  // The markup's own order: … Level, #clock-area, HAND SIZE, COINS - so COINS is
+  // last and lands at the right-hand end.
+  if (sel.parentElement !== topBar)      topBar.appendChild(sel);
+  if (coinStat.parentElement !== topBar) topBar.appendChild(coinStat);
+  else if (coinStat.nextElementSibling)  topBar.appendChild(coinStat);
 }

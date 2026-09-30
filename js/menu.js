@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r326 · card tooltips dock beside the board, level and credits label on the desktop credits bar";
+const BUILD = "2026-09-30 · r403 · card tooltips dock beside the board, credits bar shows level, level types, Climb mode, Records cards, tray tilt, Flow time limit, streak fix";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -129,6 +129,24 @@ const MODES = {
     suitCount: 7,
     numeric: true
   },
+  // Climb (r398): Classic's structure on a numeric deck whose cards go up one
+  // rank every time they score. See js/climb-mode.js.
+  climb: {
+    id: 'climb',
+    name: 'Climb',
+    desc: 'Four suits, values 1 to 13. Every card that scores goes up one rank, up to 15. A 15 that scores pays a large bonus and returns to its starting rank.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    wilds: 0,
+    climb: true
+  },
   survival: {
     id: 'survival',
     name: 'Survival',
@@ -144,7 +162,7 @@ const MODES = {
     // now reads this flag, so leaving it false would have made interacting free in a
     // shipped mode as a side effect of wiring up the picker. It describes what
     // Survival does: the clock is a deadline AND a budget, same as Classic.
-    // Flow is the mode that genuinely charges nothing, and it says so on its own entry.
+    // Flow charged nothing until r326; it charges half rate now (its own entry says so).
     timeIsCurrency: true,
     autoPlayHands: false,
     survival: true
@@ -158,13 +176,15 @@ const MODES = {
   flow: {
     id: 'flow',
     name: 'Flow',
-    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Max Focus is 20 - decay is the only pressure.',
+    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Swaps and discards cost half the usual time off that clock. Max Focus is 20.',
     winCondition: 'endless',
     enableBosses: true,
     enableShops: true,
     enableEvents: false,
     autoRefillGrid: true,
-    timeIsCurrency: false,
+    // r326: Flow bills its clock again, at half rate (interactTimeCostMult,
+    // js/round-timers.js). It was the one mode where touching the board was free.
+    timeIsCurrency: true,
     autoPlayHands: false,
     survival: true,
     flow: true
@@ -342,7 +362,9 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // is an experiment on a different loop the way the other three are.
 // `survival` (r310) and `sixsuits` (r316) are hidden by the owner's call. Six Suits
 // is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits'];
+// `guided` and `spectrum` (r380) likewise: dev panel -> Modes, and Spectrum is
+// still Custom's colour deck.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits', 'guided', 'spectrum'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
@@ -365,6 +387,8 @@ const MODE_META = {
               blurb: 'Each goal has its own 2-minute clock. Clear it for a pick of three, then the next goal starts. Extra score carries over. A review comes every 5 minutes of play. Miss a goal and the run ends.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
+  climb:    { accent: '#f2c14e',        suits: '1 → 15',
+              blurb: 'Four suits, values 1 to 13, no face cards. Every card that scores goes up one rank, up to 15. A 15 that scores pays +75 pips, then goes back to the rank it started at. Otherwise plays like Classic.' },
   squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
               blurb: 'Poker Squares. Each turn deals three tiles of cards, and you place them on a 5x5 board. At the end of the round every row and column scores as a five-card poker hand. No clock and no goal. Ten rounds.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
@@ -378,6 +402,15 @@ const MODE_META = {
 };
 
 function openModeSelect() {
+  // ON A PHONE THE CAROUSEL GOES FULL SCREEN (r380). While the office photo is up
+  // the stage is FORCED landscape (r257) so the menu fits the landscape monitor,
+  // which on a portrait phone leaves the mode cards a few centimetres wide.
+  // Cutting to the screen here hands the phone its portrait layout, where the
+  // modes are a VERTICAL list (css/room.css). Desktop keeps the carousel on the
+  // glass (r258).
+  if (window.innerHeight > window.innerWidth && typeof officeCutToScreen === 'function') {
+    try { officeCutToScreen(); } catch (e) {}
+  }
   document.getElementById('main-menu-overlay').classList.remove('show');
   renderModeSelect();
   document.getElementById('mode-select-overlay').classList.add('show');
@@ -392,6 +425,11 @@ function scrollModes(dir) {
   const car = document.getElementById('mode-carousel');
   if (!car) return;
   const card = car.querySelector('.mode-card');
+  // Portrait stacks the cards (r380), so the arrows scroll down rather than across.
+  if (getComputedStyle(car).flexDirection === 'column') {
+    car.scrollBy({ top: dir * (card ? card.offsetHeight + 12 : 200), behavior: 'smooth' });
+    return;
+  }
   const step = card ? card.offsetWidth + 18 : 280;
   car.scrollBy({ left: dir * step, behavior: 'smooth' });
 }

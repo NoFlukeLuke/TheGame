@@ -268,7 +268,7 @@ function dominoTrySwap(id1, id2) {
   if (!p1 || !p2) { dominoRenderBoard(); return; }
   if (!dominoPiecesAdjacent(p1, p2)) { showMessage('Swap adjacent dominoes only', 'var(--cream-dim)'); dominoRenderBoard(); return; }
   if (p1.orient !== p2.orient) { showMessage('Swap same-orientation dominoes only', 'var(--cream-dim)'); dominoRenderBoard(); return; }
-  if (typeof swaps === 'number' && swaps <= 0) { showMessage('No swaps left', 'var(--red)'); dominoRenderBoard(); return; }
+  if (typeof swaps === 'number' && swaps <= 0) { refuse('No swaps left'); dominoRenderBoard(); return; }
 
   const cells1 = p1.cells, cells2 = p2.cells;
   cells1.forEach(([r, c]) => { dominoGrid[r][c] = null; });
@@ -417,7 +417,7 @@ function dominoAdvanceLevel() {
 function dominoDiscard() {
   if (animating) return;
   if (dominoSelected.length === 0) return;
-  if (typeof discards === 'number' && discards <= 0) { showMessage('No discards left', 'var(--red)'); return; }
+  if (typeof discards === 'number' && discards <= 0) { refuse('No discards left'); return; }
   if (typeof discards === 'number') discards--;
   const ids = [...dominoSelected];
   dominoSelected = [];

@@ -2,220 +2,214 @@ entity_type,id,name,params_json,rarity,base_cost,buff_type,trigger,activation,ch
 Trick,overgrowth,Cascade,"{""pips_per_card"":10}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Runs score +10 pips per card,
 Trick,long_road,Storm,"{""mult_per_card"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Runs score +2 mult per card,
 Trick,river_run,Torrent,"{""focus_per_card"":1}",rare,6,focus,always / passive,,,,,,,,,,,,,,,,Runs add +1 Focus per card,
-Trick,ancient_grove,Flash Flood,"{""min_run_len"":4}",legendary,12,focus,always / passive,,,,,,,,,,,,,,,,Runs of 4+ cards instantly advance Focus to the next threshold,
-Trick,correct_run,Rogue Wave,"{""pips_per_card"":80,""mult_per_card"":16,""focus_per_card"":4}",legendary,12,mult,always / passive,,,,,,,,,,,,,,,,"Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card",
-Trick,tide_table,Tide Table,"{""mult_step"":0.75}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"Runs ×mult, building +×0.75 per Run scored this round",
-Trick,undertow,Undertow,"{""pip_mult_base"":1.5,""pip_mult_step"":0.5}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"Runs ×1.5 pips, plus ×0.5 more per card beyond 3",
-Trick,high_water,High Water,,epic,9,time,always / passive,,,,,,,,1,,,,,,,,"After 3 Runs each round, every Run pauses the clock for its card count in seconds",structural — no tunable value
-Trick,worn_path,Worn Path,"{""pips"":20}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Straight scores +20 pips,
-Trick,rerun,Rerun,"{""pip_mult_per_replay"":0.25}",epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,,Each replay in a hand multiplies its pips ×0.25 more,
-Trick,chorus,Chorus,"{""mult_mult_per_replay"":0.2}",epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,,Each replay in a hand multiplies its mult ×0.2 more,
-Trick,deep_breath,Deep Breath,"{""pip_mult"":2}",rare,6,score-multiplier,always / passive,,,,,,,,1,,,,,,,,Hands played while the clock is paused ×2 pips,
-Trick,interest,Interest,"{""pip_mult_per_10_credits"":0.1,""max_pip_mult"":3}",rare,6,score-multiplier,always / passive,,,,,,,,,1,,,,,,,"Pips start at ×1 and gain +0.1× for every 10 credits you hold, up to ×3",
-Trick,portfolio,Portfolio,"{""mult_mult_per_card"":0.15}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,,,,,×0.15 mult for every card on the grid carrying a permanent bonus,
-Trick,redline,Redline,"{""focus_threshold"":2,""mult_mult"":2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"While your Focus multiplier is ×2 or higher, ×2 mult",
-Trick,compound,Compound,"{""interval_seconds"":45,""bank_fraction"":1}",legendary,12,time,time-based,,,,,,,,1,,,,,,,,Every 45 seconds your round score is banked. Your next hand pays the banked amount again.,
+Trick,correct_run,Rogue Wave,"{""pips"":80,""mult"":20,""focus"":10}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,"Runs played in correct sequential order score one of the following: +80 pips, +20 mult, +10 Focus",
+Trick,tide_table,Tide Table,"{""mult_step"":0.25}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"Runs score ×1 mult, +×0.25 per Run scored this round",
+Trick,undertow,Undertow,"{""pip_mult_base"":1.5,""pip_mult_step"":0.5}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"Runs score ×1.5 pips, +×0.5 per card beyond 3",
+Trick,high_water,High Water,"{""pause_per_run"":1}",epic,9,time,always / passive,,,,,,,,1,,,,,,,,Runs pause the clock for 1 second for each Run played this round,
+Trick,rerun,Rerun,"{""pip_mult"":1.2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,×1.2 pips each time a card is replayed,
+Trick,chorus,Chorus,"{""mult_mult"":1.75}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,×1.75 mult each time a card is replayed,
+Trick,deep_breath,Deep Breath,"{""pip_mult"":2}",rare,6,score-multiplier,always / passive,,,,,,,,1,,,,,,,,Score ×2 pips while the clock is paused,
+Trick,interest,Interest,"{""pip_mult_per_10_credits"":0.1,""max_pip_mult"":3}",rare,6,score-multiplier,always / passive,,,,,,,,,1,,,,,,,"Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3",
+Trick,portfolio,Portfolio,"{""mult_mult_per_card"":0.15}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,,,,,"Score ×1 mult, +×0.15 for every card on the grid with a buff",
 Trick,overclock,Overclock,"{""speed_mult"":2}",epic,9,focus,always / passive,,,,,,,,,,,,,,,,The Focus speed bonus is multiplied by 2.,
-Trick,second_nature,Second Nature,"{""complexity_mult"":2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,Hands generate 2× their listed Focus.,
-Trick,kindred,Quake,"{""mult_per_card"":3}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Sets score +3 mult per card in the largest set,
-Trick,trinity,Shock,"{""pips_per_card"":12}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Sets score +12 pips per card in the largest set,
-Trick,double_bloom,Magnitude,"{""mult_mult"":1.5}",epic,9,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Hands containing a pair ×1.5 mult,
+Trick,kindred,Quake,"{""mult_per_card"":5}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Sets score +5 mult per card in the largest set,
+Trick,double_bloom,Magnitude,"{""mult_mult"":1.5}",epic,9,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Hands containing a pair score ×1.5 mult,
 Trick,high_pair,Resonance,"{""focus_per_card"":2}",rare,6,focus,card-specific,,,1,,,1,,,,,,,,,,Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card,
 Trick,rare_bloom,Bedrock,"{""perm_pips"":8}",epic,9,pips,card-specific,,,1,,,1,,,,,,,1,,,Four of a Kind permanently buffs its 4 cards +8 pips each,
-Trick,full_house_streak,Collapsing Columns,"{""score_base"":1.5}",epic,9,focus,hand-type,,,1,,,,,,,,,,,,,Each Full House instantly advances Focus to the next threshold,
-Trick,pair_pips,Aftershock,"{""pip_mult"":2}",common,3,score-multiplier,card-specific,,,1,,,1,,,,,,,,,,Two Pair ×2 pips,
-Trick,two_pair_mult,Double Dutch,"{""focus"":16,""window_ms"":30000,""need_count"":3}",rare,6,focus,hand-type,,,1,,,,,1,,,,,1,,,Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak),
-Trick,richter,Richter,"{""mult_mult"":3}",legendary,12,score-multiplier,card-specific,,,1,,,1,,,,,,,,,,Four of a Kind ×3 mult and advances Focus to the next threshold,
-Trick,eye_of_storm,Eye of the Storm,,epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,,Hands played in the middle third of the round replay the highest-ranked card(s),structural — no tunable value
-Trick,ripple,Ripple,"{""cooldown_ms"":30000}",rare,6,retrigger,spatial,,,,,1,,,1,,,,,,1,,"Once every 30s, cards adjacent in rank to another card in the hand replay",
-Trick,enriched,Enriched,"{""pips"":40}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Flushes score +40 pips,
-Trick,tidal_force,Tidal Forces,"{""mult"":10}",common,3,mult,hand-type,,,1,,,,,,,,,,,,,Flushes score +10 mult,
+Trick,full_house_streak,Collapsing Columns,"{""focus"":10}",epic,9,focus,hand-type,,,1,,,,,,,,,,,,,Full Houses score +10 Focus,
+Trick,pair_pips,Aftershock,"{""pip_mult"":2}",common,3,score-multiplier,card-specific,,,1,,,1,,,,,,,,,,Two Pair scores ×2 pips,
+Trick,two_pair_mult,Double Dutch,"{""focus"":16,""window_ms"":30000,""need_count"":3}",epic,9,focus,hand-type,,,1,,,,,1,,,,,,,,Play 3 hands with a pair within 30s to add +16 Focus,
+Trick,richter,Richter,"{""mult_mult"":3,""focus"":10}",legendary,12,score-multiplier,card-specific,,,1,,,1,,,,,,,,,,Four of a Kind scores ×3 mult and +10 Focus,
+Trick,eye_of_storm,Eye of the Storm,,epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,,Hands played in the middle third of the round replay the highest-ranked card(s) 2x,structural — no tunable value
+Trick,ripple,Ripple,"{""chance"":0.5}",rare,6,retrigger,spatial,,,,,1,,,,,,,,,1,,Cards adjacent in rank to another card in the hand have a 50% chance to replay,
+Trick,enriched,Enriched,"{""pips"":100}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Flushes score +100 pips,
+Trick,tidal_force,Tidal Forces,"{""mult_per_card"":5}",common,3,mult,hand-type,,,1,,,,,,,,,,,,,Flushes score +5 mult per card,
 Trick,deluge,Deluge,"{""seconds"":15}",rare,6,time,hand-type,,,1,,,,,1,,,,,,,,Flushes rewind the clock 15 seconds,
-Trick,summit,Unsummit,"{""pips_per_level"":4}",common,3,pips,always / passive,,,,,,,,,,,,,,,,The highest-ranking card in each hand scores +(level x 4) pips.,
-Trick,last_stand,Last Stand,"{""mult_mult"":2}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,,"If your score is below the round goal when you play, that hand scores ×2 mult.",
-Trick,light_touch,Nimble,"{""mult"":5}",common,3,mult,hand-size,,,,1,,,,,,,,,,,,2-card hands score +5 mult,
-Trick,release_valve,Release Valve,"{""keep_fraction"":0.5}",rare,6,focus,on-swap,,,,,,,,,,1,,,,,,"Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.",
-Trick,heavy_hand,Full Load,"{""pips_per_card"":6}",rare,6,pips,hand-size,,,,1,,,,,,,,,,,,5-card hands score +6 pips per card,
-Trick,blackjack_bonus,Twenty-One,"{""pip_mult"":3}",legendary,12,score-multiplier,hand-type,,,1,1,,,,,,,,,,,,"If the face values of your cards total exactly 21, ×3 pips",
-Trick,first_light,First Light,"{""worth"":21}",common,3,pips,card-specific,,,1,,,,,,,,,,,,,Aces are worth 21 pips,
-Trick,wild_heart,Inspirato,"{""mult_per_ace"":2}",epic,9,utility,card-specific,,,,,,1,,,,,,,,,,"When an Ace scores, prime your first and last Tricks (each fires twice its next hand)",
-Trick,face_value,Face Value,"{""face_pips"":15}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Face cards (J/Q/K) are worth 15 pips,
-Trick,king_guard,Men of Repute,"{""pips"":5,""mult"":1}",common,3,mult,card-specific,,,,,,,,,,,,,,,,Kings and Jacks score +5 pips and +1 mult each,
-Trick,knave_power,Knave for the People,"{""per_jack"":2}",legendary,12,score-multiplier,spatial,,,,,1,1,,,,,,,,,,Each Jack on the grid multiplies total pips ×2,
-Trick,humble_roots,Every Day Essentials,"{""pip_mult"":3}",rare,6,pips,card-specific,,,,,,1,,,,,,,,,,Rank-5-and-below cards (incl. Ace) contribute 3× pips,
-Trick,before_the_tide,Gnomes,"{""extra_mult"":5}",epic,9,focus,always / passive,,,,,,,,,,,,,,,,Each rank-5-and-below card scored adds its rank in Focus,
-Trick,royal_trio,Heads of State,"{""mult_mult"":2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"A hand containing K, Q, and J scores ×2 mult",
-Trick,rich_soil,Rich Soil,"{""pips"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,All cards score +2 pips,
-Trick,fertile_ground,Fertile Ground,"{""pips"":3}",rare,6,pips,always / passive,,,,,,,,,,,,,,,,All cards score +3 pips,
-Trick,first_fruits,First Fruits,"{""pips"":2}",rare,6,pips,hand-size,,,,,,,,,,,,,1,,,Each card in first hand each round permanently gains +2 pips,
-Trick,sapling,Sapling,,rare,6,pips,always / passive,,,,,,,,,,,,,1,,,"Each level, 3 cards permanently gain +2 pips",structural — no tunable value
-Trick,early_bird,Early Bird,"{""pips_per_card"":3}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Hands played in the first third of the round score +3 pips per card,
-Trick,night_owl,Night Owl,"{""mult_per_card"":1}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Hands played in the last third of the round score +1 mult per card,
-Trick,closing_time,Near Extinction,,rare,6,retrigger,always / passive,,,,,,,,,,,1,,,1,,"When less than a quarter of the round remains, each scored card replays",structural — no tunable value
-Trick,quick_draw,Quick Draw,"{""window_ms"":3000}",common,3,focus,always / passive,,,,,,,,1,,,,,1,,,Hands played within 3 seconds of the previous permanently add +1 max Focus capacity,
-Trick,patience_reward,The Heron,"{""mult"":3,""seconds"":15}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,,Hands played 15+ round-seconds after the previous score +3 mult,
-Trick,first_play,Head Start,"{""focus"":5}",common,3,focus,always / passive,,,,,,,,,,,,,,,,The first hand each round adds +5 Focus,
-Trick,still_water,Eagle Eye,"{""mult_per_interval"":5}",rare,6,mult,on-swap,,,,,,,,1,,1,,,,,,+5 mult for every 10 seconds elapsed without using a swap,
+Trick,summit,Unsummit,"{""pips_per_level"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,The highest-ranking card in each hand scores +(level x 2) pips.,
+Trick,light_touch,Nimble,"{""mult"":10}",common,3,mult,hand-size,,,,1,,,,,,,,,,,,2-card hands score +10 mult,
+Trick,release_valve,Release Valve,"{""focus_drop"":16}",rare,6,focus,on-swap,,,,,,,,,,1,,,,,,"Each time you hit your Focus limit, gain +1 swap and +1 discard and lose 16 Focus.",
+Trick,heavy_hand,Full Load,"{""pips_per_card"":10}",rare,6,pips,hand-size,,,,1,,,,,,,,,,,,5-card hands score +10 pips per card,
+Trick,blackjack_bonus,Twenty-One,"{""pip_mult"":3}",legendary,12,score-multiplier,hand-type,,,1,1,,,,,,,,,,,,"If the face values of your cards total exactly 21, score ×3 pips",
+Trick,first_light,First Light,"{""worth"":21}",common,3,pips,card-specific,,,1,,,,,,,,,,,,,Aces score 21 pips,
+Trick,wild_heart,Inspirato,"{""mult_per_ace"":2}",epic,9,utility,card-specific,,,,,,1,,,,,,,,,,"When an Ace scores, prime your first and last Tricks",
+Trick,face_value,Face Value,"{""face_pips"":10}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Face cards (J/Q/K) score +10 pips,
+Trick,king_guard,Men of Repute,"{""pips"":5,""mult"":5}",common,3,mult,card-specific,,,,,,,,,,,,,,,,Kings and Jacks score +5 pips and +5 mult,
+Trick,knave_power,Jackpot,"{""per_jack"":2}",legendary,12,score-multiplier,spatial,,,,,1,1,,,,,,,,,,Score ×2 pips for each Jack on the grid,
+Trick,humble_roots,Every Day Essentials,"{""pip_mult"":3}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,,Rank-6-and-below cards score their rank ×3 pips,
+Trick,before_the_tide,Gnomes,"{""extra_mult"":5}",epic,9,focus,always / passive,,,,,,,,,,,,,,,,Each rank 5 or lower card scored adds its rank in Focus,
+Trick,royal_trio,Heads of State,"{""mult_mult"":2}",epic,9,score-multiplier,card-specific,,,1,,,1,,,,,,,,,,A hand containing a King and one other Royal scores ×2 mult,
+Trick,rich_soil,Rich Soil,"{""mult"":1}",common,3,mult,always / passive,,,,,,,,,,,,,,,,All cards score +1 mult,
+Trick,first_fruits,First Fruits,"{""pips"":3}",rare,6,pips,hand-size,,,,,,,,,,,,,1,,,Each card in the first hand each round permanently gains +3 pips,
+Trick,sapling,Sapling,,rare,6,pips,always / passive,,,,,,,,,,,,,1,,,"Each level, 3 cards permanently gain +5 pips",structural — no tunable value
+Trick,early_bird,Early Bird,"{""pips_per_card"":5}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Hands played in the first third of the round score +5 pips per card,
+Trick,night_owl,Night Owl,"{""mult_per_card"":3}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Hands played in the last third of the round score +3 mult per card,
+Trick,closing_time,Near Extinction,,rare,6,retrigger,always / passive,,,,,,,,,,,,,,1,,"In the last third of the round, each scored card replays",structural — no tunable value
+Trick,quick_draw,Quick Draw,"{""window_ms"":2000,""cap_gain"":1,""cap"":10}",common,3,focus,always / passive,,,,,,,,1,,,,,,,,Hands played within 2 seconds of the previous hand add +1 to your Focus limit (max +10),
+Trick,patience_reward,The Heron,"{""mult"":10,""seconds"":15}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,,Hands played 15+ seconds after the previous hand score +10 mult,
+Trick,first_play,Head Start,"{""focus"":5}",rare,6,focus,always / passive,,,,,,,,,,,,,,,,"The round's first hand adds +5 Focus; each hand after adds 1 less, down to 0",
+Trick,still_water,Eagle Eye,"{""mult_per_interval"":5}",rare,6,mult,on-swap,,,,,,,,1,,1,,,,,,Score +5 mult for every 10 seconds elapsed without using a swap,
 Trick,frozen_moment,The Falcon,"{""focus"":10}",epic,9,focus,always / passive,,,,,,,,1,,,,,,,,Hands played while the clock is paused add +10 Focus,
-Trick,swift,The Swift,"{""mult_per_interval"":1,""interval_seconds"":3}",rare,6,mult,time-based,,,,,,,,1,,,,,,,,+1 mult for every 3 seconds elapsed this round,
-Trick,cuckoo,The Cuckoo,"{""interval_seconds"":60}",epic,9,retrigger,time-based,,,,,,,,1,,,,,,1,,"Every 60 seconds of round time, pause the clock by 1 second for each replay that has happened this round",
-Trick,double_jeopardy,Double Jeopardy,"{""pause_seconds"":15}",epic,9,time,time-based,,,,,,,,1,,,,,,,,"Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds",
-Trick,woodpecker,The Woodpecker,"{""interval_seconds"":60,""retrigger_count"":2}",rare,6,retrigger,always / passive,,,,,,,,1,,,,,,1,,In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice,
-Trick,hummingbird,The Hummingbird,"{""mult_per_pause"":2}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,,+2 mult for every clock pause triggered this game,
+Trick,swift,The Swift,"{""mult_per_interval"":5,""interval_seconds"":10}",rare,6,mult,time-based,,,,,,,,1,,,,,,,,+5 mult for every 10 seconds elapsed this round,
+Trick,cuckoo,The Cuckoo,"{""hands_between"":2,""per_replays"":5}",epic,9,retrigger,always / passive,,,,,,,,1,,,,,,1,,Every other hand pauses the clock for 1 second for every 5 replays triggered this round,
+Trick,double_jeopardy,Double Jeopardy,"{""pause_seconds"":15,""cells"":2}",epic,9,time,time-based,,,,,,,,1,,,,,,,,"2 cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15 seconds each",
+Trick,woodpecker,The Woodpecker,"{""interval_seconds"":30,""retrigger_count"":2}",rare,6,retrigger,time-based,,,,,,,,1,,,,,,1,,Marks a random card once every 30 seconds; scoring the marked card replays it 2x,
+Trick,hummingbird,The Hummingbird,"{""mult_per_pause"":2}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,,+2 mult for every clock pause or rewind triggered this game,
 Trick,albatross,The Albatross,"{""pips_per_second"":5}",rare,6,pips,always / passive,,,,,,,,1,,,,,,,,+5 pips for every second the clock has spent paused this round,
-Trick,vulture,The Vulture,"{""pause_seconds"":1}",epic,9,retrigger,on-discard,,,,,,,,1,,1,,,1,1,,Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack),
-Trick,ticktock,Tick-Tock,"{""focus"":2}",common,3,focus,always / passive,,,,,,,,1,,,,1,,,time focus,"Every time the round clock ends in a 0, gain +2 Focus",
-Trick,quarter_chime,Quarter Chime,"{""pips"":45}",rare,6,pips,always / passive,,,,,,,,1,,,,,,,time pips,"Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips",
-Trick,minute_hand,Minute Hand,"{""mult"":5,""hands"":2}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,time mult,Every minute mark the clock passes primes this trick: your next 2 hands each score +5 mult,
-Trick,second_hand,Second Hand,"{""pips"":5}",common,3,pips,time-based,,,,,,,,1,,,,,,,time pips,Every 10 seconds the clock passes adds +5 pips to your next hand. Rewinding the clock earns them again,
-Trick,hourglass,Hourglass,"{""chance"":0.3333333333333333}",epic,9,retrigger,spatial,,,,,1,,,1,,,,,,1,time retrigger,Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger,
-Trick,sediment,Sediment,"{""interval_seconds"":10,""pips_per_interval"":10}",rare,6,pips,time-based,,,,,,,,1,,,,,,,time pips,Gains +10 pips for every 10 seconds of round time elapsed (resets each round),
-Trick,kingfisher,The Kingfisher,"{""interval_seconds"":5,""mult_per_interval"":1}",epic,9,mult,time-based,,,,,,,,1,,,,,,,time mult,+1 mult for every 5 seconds the clock has been paused or rewound this round,
-Trick,magpie,Hoarder House,"{""actions_per_second"":2}",epic,9,resource,on-swap,,,,,,,,1,,1,,,,,time resource,Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold,
-Trick,mockingbird,Traveler,,rare,6,resource,streak,,,,,,,,,,1,,,1,,resource streak,Every 3 hands you play without a same-type streak grants +1 swap,structural — no tunable value
+Trick,vulture,The Vulture,"{""pause_seconds"":3}",epic,9,resource,on-discard,,,,,,,,1,,1,,,1,,,Cards discarded during the round’s first pause permanently gain +3s pause when scored (time buffs do not stack),
+Trick,ticktock,Tick-Tock,"{""focus"":2}",common,3,focus,always / passive,,,,,,,,1,,,,1,,,time focus,"Every time the clock ends in a 0, gain +2 Focus",
+Trick,quarter_chime,Quarter Chime,"{""pips"":45}",rare,6,pips,always / passive,,,,,,,,1,,,,,,,time pips,"Every time the clock passes a multiple of 15s, your next hand scores +45 pips",
+Trick,minute_hand,Minute Hand,"{""mult_mult"":2,""interval_seconds"":30}",rare,6,score-multiplier,always / passive,,,,,,,,1,,,,,,,time mult,"Every time the clock passes a multiple of 30s, your next hand scores ×2 mult",
+Trick,second_hand,Second Hand,"{""pips"":10,""mult"":5}",common,3,mult,always / passive,,,,,,,,1,,,,,,,time pips,"Every time the clock passes a multiple of 10s, your next hand scores either +5 mult or +10 pips",
+Trick,hourglass,Hourglass,"{""chance"":0.5}",epic,9,retrigger,spatial,,,,,1,,,1,,,,,,1,time retrigger,"Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay",
+Trick,sediment,Sediment,"{""interval_seconds"":10,""pips_per_interval"":10}",rare,6,pips,time-based,,,,,,,,1,,,,,,,time pips,Scores +10 pips for every 10 seconds elapsed this round,
+Trick,kingfisher,The Kingfisher,"{""interval_seconds"":2,""mult_per_interval"":1}",rare,6,mult,time-based,,,,,,,,1,,,,,,,time mult,+1 mult for every 2 seconds the clock has been paused or rewound this round,
+Trick,magpie,Hoarder House,"{""actions_per_second"":2}",epic,9,resource,on-swap,,,,,,,,1,,1,,,,,time resource,Each hand rewinds the clock 1 second for every 2 swaps + discards you hold,
+Trick,mockingbird,Traveler,,rare,6,resource,streak,,,,,,,,,,1,,,1,,resource streak,Every 4 hands you play without a same-type streak grants +1 swap,structural — no tunable value
 Trick,starling,Type A,,rare,6,resource,streak,,,,,,,,,,1,,,1,,resource streak,Every 2nd hand of an unbroken same-type streak grants +1 discard,structural — no tunable value
-Trick,phoenix,The Phoenix,{},legendary,12,focus,always / passive,,,,,,,,1,,,,,,,,"While the clock is paused, the Focus multiplier applies twice",
-Trick,kindling,Kindling,"{""pips_per_streak"":4}",common,3,pips,streak,,,,,,,,,,,,,1,,,Same hand streak scores +4 pips × streak,
-Trick,wildfire,Wildfire,"{""mult"":2}",rare,6,mult,spatial,,,,,1,,,,,,,,,,,3 same hands in a row scores +2 mult,
+Trick,phoenix,The Phoenix,{},legendary,12,focus,always / passive,,,,,,,,1,,,,,,,,"While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)",
+Trick,kindling,Kindling,"{""mult_per_streak"":4}",common,3,mult,streak,,,,,,,,,,,,,1,,,Same-hand streaks score +4 mult × the streak count,
+Trick,wildfire,Wildfire,"{""focus"":5}",rare,6,focus,streak,,,,,,,,,,,,,1,,,Reaching a same-hand streak of 3 adds +5 Focus,
 Trick,echo_hand,Echoes,,common,3,retrigger,streak,,,,,,,,,,,,,,1,,Playing the same hand type as the previous hand replays each card,structural — no tunable value
-Trick,club_double,Hard Labour,"{""base"":5}",legendary,12,retrigger,suit-specific,,,,,,,1,,,,,,,1,suit pips,"Each club scored adds escalating pips - +5, doubling per club; replays count",
-Trick,monochrome,Blood Diamonds,"{""coins"":1,""seconds"":15}",epic,9,coins,suit-specific,,,,,,,1,1,1,,,,,,,Hands with at least one heart and one diamond grant +1 credit and rewind the clock 15 seconds,
-Trick,full_color,Rainbow,"{""pips_per_card"":16,""mult_per_card"":4}",rare,6,mult,card-specific,,,,,,1,,,,,,,,,,Hands with all four suits score +16 pips and +4 mult per card,
-Trick,balanced_diet,Balance,"{""mult_per_card"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Hands with exactly 2 suits score +2 mult per card,
-Trick,lucky_sevens,Lucky Sevens,"{""focus"":3}",epic,9,focus,on-discard,,,,,,,,,,1,,,,,,+3 Focus for each 7 scored or discarded,
-Trick,ninesong,Threepeat,"{""seconds"":15,""mult"":9,""focus"":3}",epic,9,mult,always / passive,,,,,,,,1,,,,,,,,"If the hand's pip total is divisible by 3: rewind 15 seconds, +9 mult, +3 Focus",
-Trick,prime_time,Prime Time,"{""pips_per_card"":23}",rare,6,pips,always / passive,,,,,,,,,,,,,,,,"Hands with 3+ prime-rank cards (A,2,3,5,7) score +23 pips per card",
-Trick,even_score,Get Even,"{""mult_per_card"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,+2 mult for every even-ranked card you score,
-Trick,odd_squad,Odd One In,"{""mult_per_card"":2}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,+2 mult for every odd-ranked card you score,
-Trick,number_crunch,Diversity,"{""mult"":2}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Hands with 4+ different ranks score +2 mult,
+Trick,club_double,Hard Labour,"{""base"":1}",legendary,12,pips,suit-specific,,,,,,,1,,,,,,,,suit pips,"Each club scored this round adds more and more pips: doubles each time, starting at 1",
+Trick,monochrome,Blood Diamonds,"{""coins"":5,""seconds"":10}",epic,9,coins,suit-specific,,,,,,,1,1,1,,,,,,,Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds,
+Trick,full_color,Rainbow,"{""pips_per_card"":16,""mult_per_card"":16}",rare,6,mult,card-specific,,,,,,1,,,,,,,,,,Hands with all four suits score +16 pips and +16 mult per card,
+Trick,balanced_diet,Balance,"{""mult_per_card"":5}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Hands with exactly 2 suits score +5 mult per card,
+Trick,lucky_sevens,Lucky Sevens,"{""focus"":3}",rare,6,focus,on-discard,,,,,,,,,,1,,,,,,+3 Focus for each 7 scored or discarded,
+Trick,ninesong,Threepeat,"{""seconds"":9,""mult"":9,""focus"":9}",epic,9,mult,always / passive,,,,,,,,1,,,,,,,,"If the hand's pip total is divisible by 3, one of the following happens: rewind 9 seconds, +9 mult, +9 Focus",
+Trick,prime_time,Prime Time,"{""pips_per_card"":23}",rare,6,pips,always / passive,,,,,,,,,,,,,,,,"Hands with 3+ prime-ranked cards (A,2,3,5,7) score +23 pips per card",
+Trick,even_score,Get Even,"{""pips_per_card"":4}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Even-ranked cards score +4 pips,
+Trick,odd_squad,Odd One In,"{""mult_per_card"":3}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Odd-ranked cards score +3 mult,
+Trick,number_crunch,Diversity,"{""mult_per_card"":5}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Hands with 4+ different ranks score +5 mult per card,
 Trick,rowcol_triple_pips,Right Place,"{""flat_pips"":10}",common,3,pips,spatial,,,,,1,,,,,,,,,,pips position,Cards scored in a marked row or column score +10 pips,
-Trick,rowcol_mult,Power Line,,common,3,mult,spatial,,,,,1,,,,,,,,,,mult position,Cards scored in a marked row or column each score +2 mult,structural — no tunable value
-Trick,rowcol_retrigger,Echo Location,"{""chance"":0.5}",rare,6,retrigger,spatial,,,,,1,,,,,,,,,1,replay position,Cards scored in a marked row or column have a 50% chance to replay once,
+Trick,rowcol_mult,Power Line,,common,3,mult,spatial,,,,,1,,,,,,,,,,mult position,Cards scored in a marked row or column score +5 mult,structural — no tunable value
+Trick,rowcol_retrigger,Echo Location,"{""chance"":0.6666666666666666}",rare,6,retrigger,spatial,,,,,1,,,,,,,,,1,replay position,Cards scored in a marked row or column have a 67% chance to replay,
 Trick,perfect_timing,Perfect Timing,,epic,9,retrigger,spatial,,,,,1,,,,,,,,,1,replay position,Cards scored in a marked row or column replay once,structural — no tunable value
-Trick,right_time,Right Time,"{""pause_seconds"":2}",rare,6,time,spatial,,,,,1,,,1,,,,,,,time position,Each card scored in a marked row or column pauses the clock 2 seconds,
-Trick,study_hall,Study Hall,"{""focus"":1,""every"":2}",rare,6,focus,always / passive,,,,,,,,,,,,1,,,focus,Every 2 cards you score adds +1 Focus,
-Trick,rowcol_perm_double,Ley Line,"{""perm_mult"":2}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,mult position scaling,"Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult, once per minute",
-Trick,shape_square,Hands of Blue,"{""focus"":16}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,1,,,position shape focus,A 2×2 hand adds +16 Focus,
-Trick,shape_cross,Crossroads,"{""focus"":25}",rare,6,focus,spatial,,,,,1,,,,,,,1,,,position shape focus,A + shaped hand adds +25 Focus,
-Trick,shape_line,Straight Shot,,epic,9,mult,spatial,,,1,1,1,,,,,,,,,,position shape mult,5-card hands played in a straight line add the first and last card's pip values to mult,structural — no tunable value
-Trick,corner_retrigger,Cornered,,rare,6,pips,spatial,,,,,1,,,1,,,,,,,position pips,Corner cards multiply the running pips by the whole minutes left on the clock,structural — no tunable value
-Trick,two_corners,Stretch,"{""mult_mult"":2}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,,,,position mult,"When a hand has 2 or more corner cells, each corner card scores ×2 mult",
-Trick,edge_pips,On the Edge,"{""pips_per_card"":15}",common,3,pips,spatial,,,,,1,,,,,,,,,,position pips,Hands where all cards are on the outer edge score +15 pips per card,
+Trick,right_time,Right Time,"{""pause_seconds"":2}",rare,6,time,spatial,,,,,1,,,1,,,,,,,time position,Cards scored in a marked row or column pause the clock for +2s,
+Trick,study_hall,Study Hall,"{""focus"":1,""every"":2}",rare,6,focus,always / passive,,,,,,,,,,,,1,,,focus,Every 2 cards scored adds +1 Focus,
+Trick,rowcol_perm_double,Ley Line,"{""perm_mult"":1}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,mult position scaling,Cards scored at the intersection of a row effect and a column effect permanently gain +1 mult,
+Trick,shape_square,Hands of Blue,"{""focus"":16}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,1,,,position shape focus,A 2×2 shaped hand adds +16 Focus,
+Trick,shape_cross,Crossroads,"{""focus"":25}",rare,6,focus,spatial,,,,,1,,,,,,,1,,,position shape focus,A 5 card + shaped hand adds +25 Focus,
+Trick,shape_line,Straight Shot,,epic,9,mult,spatial,,,1,1,1,,,,,,,,,,position shape mult,5-card hands played in a straight line add every card's pip value to mult,structural — no tunable value
+Trick,corner_retrigger,Cornered,,rare,6,score-multiplier,spatial,,,,,1,,,1,,,,,,,position pips,Corner cards score ×pips equal to the whole minutes left on the clock,structural — no tunable value
+Trick,two_corners,Stretch,"{""mult_mult"":4}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,,,,position mult,"When a hand has 2 or more corner cards, each corner card scores ×4 mult",
+Trick,edge_pips,On the Edge,"{""pips_per_card"":15}",common,3,pips,spatial,,,,,1,,,,,,,,,,position pips,Hands where all cards are on an edge score +15 pips per card,
 Trick,wide_span_mult,Inclusive,"{""mult"":25}",rare,6,mult,spatial,,,,,1,,,,,,,,,,position mult,Hands spanning the full width or height of the grid score +25 mult,
-Trick,column_rush,Stand Up,"{""mult_per_card"":2}",common,3,mult,spatial,,,,,1,,,,,,,,,,,Hands with cards from only one column score +2 mult per card,
-Trick,row_power,Lie Down,"{""mult_per_card"":2}",common,3,mult,spatial,,,,,1,,,,,,,,,,,Hands with cards from only one row score +2 mult per card,
-Trick,groove,Groove,"{""focus_per_2"":1}",rare,6,focus,spatial,,,,,1,,,,,,,1,1,,focus position scaling,This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.,
-Trick,assembly_line,Assembly Line,"{""mult_per_prior"":1}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,mult position scaling,Cards scored in a marked row or column score +1 mult for every card already scored from that line this round.,
-Trick,overtime,Overtime,"{""seconds_per_3"":1}",rare,6,time,spatial,,,,,1,,,1,,,1,,1,,time position scaling,Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.,
-Trick,feng_shui,Feng Shui,"{""pips_per_hand"":3}",epic,9,pips,spatial,,,,,1,,,,,,,,1,,pips position scaling,Permanently scores +3 pips each hand another position trick triggers.,
-Trick,huddle,Huddle,"{""pips_per_adj"":11}",rare,6,pips,spatial,,,,,1,,,,,,,,,,pips position,Each scored card scores +11 pips for every adjacent card or sleight in the hand.,
-Trick,clean_sweep,Clean Sweep,,epic,9,focus,spatial,,,,,1,1,,,,,,1,,,focus position,Cover a full row or column within two hands to advance Focus to the next threshold.,structural — no tunable value
-Trick,rising_tide,Rising Tide,,common,3,mult,always / passive,,,,,,,,,,,,,1,,,Base mult increases by +1 for each level reached,structural — no tunable value
-Trick,veteran_bonus,Veteran,"{""pips_per_level"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,+2 pips per level reached this run,
+Trick,column_rush,Stand Up,"{""mult_per_card"":5}",common,3,mult,spatial,,,,,1,,,,,,,,,,,Hands with cards from only one column score +5 mult per card,
+Trick,row_power,Lie Down,"{""mult_per_card"":10}",rare,6,mult,spatial,,,,,1,,,,,,,,,,,Hands with cards from only one row score +10 mult per card,
+Trick,groove,Groove,"{""focus_per_2"":1}",rare,6,focus,spatial,,,,,1,,,,,,,1,1,,focus position scaling,Scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.,
+Trick,assembly_line,Assembly Line,"{""mult_per_prior"":1}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,mult position scaling,Cards scored in a marked row or column score +1 mult for every card played from that line this round,
+Trick,overtime,Overtime,"{""seconds_per_3"":1}",rare,6,time,spatial,,,,,1,,,1,,,1,,1,,time position scaling,Rewind the clock +1s for every 3 cards you have scored from this Trick's marked row or column. Resets each round.,
+Trick,feng_shui,Feng Shui,"{""pips_per_hand"":3}",epic,9,pips,spatial,,,,,1,,,,,,,,1,,pips position scaling,Permanently scores +3 pips for each hand scored with a row or column buff,
+Trick,clean_sweep,Clean Sweep,"{""focus"":5,""credits"":5}",epic,9,coins,spatial,,,,,1,1,,,1,,,1,,,focus position,Use every cell of any row or column within two hands to add +5 Focus and +5 credits,
+Trick,rising_tide,Rising Tide,"{""mult_per"":1}",common,3,mult,always / passive,,,,,,,,,,,,,1,,,+1 mult for each level passed,
 Trick,compound_mult,Compound,"{""mult_per_hand"":0.1}",epic,9,mult,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +0.1 mult to this trick,
-Trick,prolific,Prolific,"{""pips_per_hand"":1}",rare,6,pips,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +1 pip to this trick,
-Trick,acorns,Acorns,"{""focus_per_card"":0.05}",rare,6,focus,always / passive,,,,,,,,,,,,1,1,,focus scaling,Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand,
-Trick,plan_ahead,Plan Ahead,"{""every"":3}",epic,9,focus,always / passive,,,,,,,,,,,,1,1,,focus scaling,Every 3rd hand adds Focus equal to your average hands per round,
+Trick,acorns,Acorns,"{""focus_per_card"":0.1}",epic,9,focus,always / passive,,,,,,,,,,,,1,1,,focus scaling,"Each card scored scales this trick +0.1 Focus, starting at +0; grants its whole-number Focus each hand",
+Trick,plan_ahead,Plan Ahead,"{""every"":3}",rare,6,focus,always / passive,,,,,,,,,,,,1,1,,focus scaling,Every 3rd hand adds Focus equal to your average hands per round,
 Trick,fives_discard,Penny Saved,"{""pips_per_five"":5}",rare,6,pips,on-discard,,,,,,1,,,,1,,,1,,scaling pips value,Each 5 discarded or played permanently adds +5 pips to this trick,
-Trick,nines_mult,Cloud Nine,"{""mult_per_nine"":9}",rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Each 9 scored permanently adds +9 mult to this trick,
-Trick,tens_mult,Perfect Ten,"{""mult_per_milestone"":1,""discards_per_milestone"":10}",rare,6,mult,on-discard,,,,,,1,,,,1,,,1,,scaling mult value,Every 10 cards discarded permanently adds +1 mult to this trick,
+Trick,nines_mult,Cloud Nine,"{""mult_per_nine"":9}",epic,9,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Each 9 scored permanently adds +9 mult to this trick,
+Trick,tens_mult,Perfect Ten,"{""mult_per_milestone"":3,""discards_per_milestone"":9}",rare,6,mult,on-discard,,,,,,1,,,,1,,,1,,scaling mult value,Every 9 cards discarded permanently adds +3 mult to this trick,
 Trick,sixes_perm,D6,"{""roll_min"":1,""roll_max"":6,""interval"":6}",epic,9,pips,always / passive,,,,,,1,,,,,,,1,,scaling pips value,Every 6th card scored permanently gains a random +1–6 pips,
 Trick,fours_perm,Middle Management,"{""pips"":4}",common,3,pips,hand-size,,,,1,,1,,,,,,,1,,scaling pips value,4-card hands permanently give the 4th card +4 pips,
-Trick,twos_retrigger,Double Take,,rare,6,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each 2 scored duplicates your most recently acquired Trick’s effect,structural — no tunable value
-Trick,prime_times,Prime Times,,rare,6,retrigger,always / passive,,,,,,,,,,,,,,1,retrigger prime,"When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th",structural — no tunable value
-Trick,eights_retrigger,Sideways to Infinity,,rare,6,retrigger,card-specific,,,,,,1,,1,,,,,,1,retrigger value,Each 8 in a hand scores a number of times equal to the number of 8s in that hand,structural — no tunable value
-Trick,snowball,Snowball,"{""pips"":2,""score_threshold"":500}",epic,9,pips,always / passive,,,,,,,,,,,,,1,,,"After any hand scoring 500+ pips, each scored card permanently gains +2 pips",
-Trick,big_win,Jackpot,"{""mult"":5,""score_threshold"":10000}",legendary,12,mult,always / passive,,,,,,,,,,,,,1,,,"The first time a single hand scores 10,000+, permanently add +5 mult to this trick",
-Trick,queens_upgrade,Royal Favour,,epic,9,utility,spatial,,,,,1,1,,,,,,,1,,scaling grid value,"After scoring, cards adjacent to Queens permanently gain +1 rank",structural — no tunable value
-Trick,aces_absorb,Ace Absorb,,legendary,12,utility,spatial,,,,,1,1,,,,,1,,1,,scaling value,"When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)",structural — no tunable value
+Trick,twos_retrigger,Double Take,,rare,6,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each 2 scored force triggers your rightmost Trick,structural — no tunable value
+Trick,prime_times,Prime Times,,rare,6,retrigger,always / passive,,,,,,,,,,,,,,1,retrigger prime,"Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick",structural — no tunable value
+Trick,eights_retrigger,Sideways to Infinity,,rare,6,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each scored 8 replays once for each other 8 in the hand,structural — no tunable value
+Trick,queens_upgrade,Royal Favour,"{""queen_seconds"":45}",epic,9,resource,spatial,,,,,1,1,,1,,1,,,1,,scaling grid value,Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are automatically discarded after they've been on the grid for 45 seconds,
+Trick,aces_absorb,Ace Absorb,"{""chance"":0.5}",legendary,12,utility,card-specific,,,,,,1,,,,,1,,1,,scaling value,"When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand)",
 Trick,monopoly,Monopoly,,legendary,12,utility,spatial,,,,,1,1,,,,,1,,1,,scaling value,"When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand)",structural — no tunable value
-Trick,sands_of_time,Sands of Time,"{""divisor"":2}",rare,6,score-multiplier,time-based,,,,,,,,,,,,,,,,Current round time remaining ÷ 2 added as pips,
-Trick,discard_pips,Compost,"{""pips_per_discard"":3}",common,3,pips,on-discard,,,,,,,,,,1,,,,,pips discard,+3 pips per card discarded this round,
-Trick,spade_flood,Dark Matter,"{""time_div"":2}",rare,6,pips,suit-specific,,,,,,,1,,,,,,,,suit pips,All-spade hands add half the remaining round time as pips,
-Trick,mirror,Mirror,,rare,6,utility,always / passive,,,,,1,,,,,,,,,,utility,Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.,structural — no tunable value
-Trick,combo_score,Combo Score,"{""mult_per_type"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,+2 mult for every distinct hand type played this round,
-Trick,escalation,Escalation,"{""mult_per_hand"":3,""after_hands"":3}",rare,6,mult,always / passive,,,,,,,,,,,1,,,,,"Every hand played this round is worth +3 mult, paid from the hand after your 3rd",
-Trick,move_as_one,Move as One,,epic,9,time,always / passive,,,,,,,,1,,,,,,,synergy,"If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time",structural — no tunable value
-Trick,more_better,More Better,"{""mult"":4,""min_tiles"":3}",common,3,mult,spatial,,,,,1,,,,,,,,1,,mult scaling,Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick,
-Trick,rain_check,Rain Check,"{""seconds"":30}",epic,9,time,spatial,,,,,1,,,1,,,,,,,time,Skipping a reward grid adds +30 seconds to your next round,
-Trick,temporal_rift,Temporal Rift,"{""pause"":3}",epic,9,time,spatial,,,,,1,,,1,,,,,1,,time position scaling,A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped),
-Trick,wild_side,Wild Side,"{""mult_per"":3}",rare,6,mult,always / passive,,,,,,,,,,,,,1,,mult scaling risk,+3 mult for every negative reward tile you have taken this run,
-Trick,wait_for_it,Wait For Iiiit,"{""chance_per"":0.02}",epic,9,retrigger,always / passive,,,,,,,,,,,,,1,1,replay scaling risk,Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive),
-Trick,meditation,Meditation,,common,3,focus,always / passive,,,,,,,,1,,,,1,,,focus,Focus decays 1 second slower,structural — no tunable value
+Trick,sands_of_time,Sands of Time,"{""divisor"":2}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,,Score +pips equal to time remaining ÷ 2,
+Trick,discard_pips,Compost,"{""mult_per"":2}",common,3,mult,on-discard,,,,,,,,,,1,,,,,pips discard,+2 mult per card discarded this round,
+Trick,spade_flood,Dark Matter,"{""time_div"":1}",epic,9,pips,suit-specific,,,,,,,1,,,,,,,,suit pips,All-Spade hands add the remaining round time as pips,
+Trick,mirror,Mirror,,rare,6,utility,always / passive,,,,,,,,,,,,,,,utility,Tap to tilt left or right; mimics the effect of the Trick it reflects.,structural — no tunable value
+Trick,combo_score,Combo Score,"{""mult_per_type"":4}",common,3,mult,always / passive,,,,,,,,,,,,,,,,+4 mult for every distinct hand type played this round,
+Trick,move_as_one,Move as One,,epic,9,time,always / passive,,,,,,,,1,,,,,,,synergy,"If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time",structural — no tunable value
+Trick,more_better,More Better,"{""mult"":5,""min_tiles"":3}",common,3,mult,spatial,,,,,1,,,,,,,,1,,mult scaling,Each reward grid where you select 3+ tiles permanently adds +5 mult to this trick,
+Trick,rain_check,Rain Check,"{""seconds"":30}",epic,9,time,time-based,,,,,,,,1,,,,,,,time,"Skipping a reward adds +30 seconds to your next round (in Flow, to the timer)",
+Trick,temporal_rift,Temporal Rift,"{""rewind"":3}",epic,9,time,spatial,,,,,1,,,1,,,,,1,,time position scaling,A card scored where a row and column effect intersect gains +3s rewind when scored (time buffs do not stack),
+Trick,wild_side,Wild Side,"{""mult_per"":6}",rare,6,mult,always / passive,,,,,,,,,,,,,1,,mult scaling risk,"+6 mult, scaling, for every negative reward tile you take",
+Trick,wait_for_it,Wait For Iiiit,"{""chance_per"":0.02}",epic,9,retrigger,always / passive,,,,,,,,,,,,,1,1,replay scaling risk,Each negative reward tile taken this run gives every scored card a +2% chance to replay,
+Trick,meditation,Meditation,,rare,6,focus,always / passive,,,,,,,,1,,,,1,,,focus,Focus decays 2 seconds slower,structural — no tunable value
 Trick,tunnel_vision,Tunnel Vision,,common,3,focus,time-based,,,,,,,,,,,,1,,,focus,Start each round with 5 focus,structural — no tunable value
 Trick,first_wind,First Wind,,common,3,focus,always / passive,,,,,,,,1,,,,1,,,focus,Focus does not decay for the first 45 seconds of a round,structural — no tunable value
 Trick,rhythm,Rhythm,,common,3,focus,always / passive,,,,,,,,,,,1,1,,,focus,Each hand played adds 1 additional focus,structural — no tunable value
-Trick,restless,Restless,,common,3,focus,on-swap,,,,,,,,,,1,,1,,,focus,Swapping adds 1 focus,structural — no tunable value
-Trick,cull,Cull,"{""focus_per_stock"":1}",common,3,focus,on-swap,,,,,,,,,,1,,1,,,focus,Discarding adds 1 Focus per swap and discard you have left,
-Trick,expanse,Expanse,,common,3,focus,always / passive,,,,,,,,,,,,1,,,focus,"Each time you hit max focus, increase max focus capacity by 1",structural — no tunable value
-Trick,kaleidoscope,Kaleidoscope,,rare,6,focus,suit-specific,,,,,,,,,,,,1,,,focus,Playing one or more of each suit in a hand adds +4 Focus,structural — no tunable value
-Trick,flow_state,Flow State,"{""pips_per_card"":10}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,1,,,focus pips,"While focus is ×1.5 or higher, +10 pips per card scored",
-Trick,heartwood,Heartwood,"{""pips"":5,""mult"":1}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,,Dead center card permanently gains +5 pips & +1 mult each time scored,
-Trick,landfill,Landfill,"{""mult_per_n"":1,""discards_per"":5}",common,3,mult,on-discard,,,,,,,,,,1,,,,,discard mult,Hands score +1 mult for every 5 cards you have discarded this round,
-Trick,old_growth,Old Growth,,epic,9,mult,always / passive,,,,,,,,,,,,,1,,scaling mult,Each scored card also adds its permanent pip bonus to mult,structural — no tunable value
-Trick,magician,Magician,"{""mult_per_sleight"":3}",rare,6,mult,always / passive,,,,,,,,,,,,,,,sleight mult,+3 mult for each Sleight you own,
-Trick,stand_up,Stand-Up,"{""pips_per_charge"":10}",rare,6,pips,spatial,,,,,,,,,,,,,,,sleight pips,+10 pips for each charge remaining across all your Sleights,
-Trick,scalper,Scalper,"{""pip_mult_per_missing"":0.2}",rare,6,pips,always / passive,,,,,,,,,,,,,,,sleight pips,"Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores",
+Trick,cull,Cull,"{""focus_per_stock"":1,""per"":2}",common,3,focus,on-swap,,,,,,,,,,1,,1,,,focus,Discarding or swapping adds +1 Focus per 2 remaining swaps and discards,
+Trick,expanse,Expanse,"{""cap_gain"":1,""cap"":10,""keep_fraction"":0.5}",common,3,focus,always / passive,,,,,,,,,,,,1,,,focus,"Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus",
+Trick,kaleidoscope,Kaleidoscope,,rare,6,focus,card-specific,,,,,,1,,1,,,,1,,,focus,Playing four or more suits in a hand applies the Focus multiplier a second time,structural — no tunable value
+Trick,flow_state,Flow State,"{""pips_per_card"":10}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,1,,,focus pips,"While focus is ×1.5 or higher, score +10 pips per card",
+Trick,heartwood,Heartwood,"{""pips"":5,""mult"":2}",epic,9,mult,spatial,,,,,1,,,,,,,,,,,"When scored, the center-most card gains +5 pips & +2 mult",
+Trick,landfill,Landfill,"{""mult_per"":1}",epic,9,mult,on-swap,,,,,,,,,,1,,,,,discard mult,Score +1 mult per card for every discard or swap used this round,
+Trick,old_growth,Old Growth,,epic,9,mult,always / passive,,,,,,,,,,,,,1,,scaling mult,Cards add their pip value to mult,structural — no tunable value
+Trick,magician,Magician,"{""mult_per_sleight"":3}",common,3,mult,always / passive,,,,,,,,,,,,,,,sleight mult,+3 mult for each Sleight you own,
+Trick,stand_up,Stand-Up,"{""mult_per_card"":5}",rare,6,mult,spatial,,,,,1,,,,,,,,,,sleight pips,Hands with cards from only one column score +5 mult per card,
+Trick,scalper,Scalper,"{""mult_mult_per_missing"":0.25}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,sleight pips,"Score ×1 mult, +×0.25 per charge your Sleights are missing",
 Trick,five_stack,Five Stack,"{""pips"":20,""mult"":5,""focus_per_card"":1}",legendary,12,mult,hand-size,,,,1,,,,,,,,1,,,pips mult focus,"Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus",
-Trick,little_guys,the little guys,"{""cap_gain"":1}",rare,6,focus,card-specific,,,,1,,,,,,,,1,1,,focus,A 5-card hand with no face cards permanently raises your maximum Focus by 1,
-Trick,five_fodder,Five for Fodder,"{""credits"":5}",common,3,coins,hand-size,,,,1,,,,,1,1,,,,,credits discard,Discarding a 5-card hand grants +5 credits,
-Trick,five_second,Five Second Rule,"{""pause_seconds"":5}",epic,9,time,hand-size,,,,1,,,,1,,,,,,,time,Playing a 5-card hand pauses the clock 5 seconds,
-Trick,life_lessons,Life Lessons,"{""cap_gain"":1}",rare,6,focus,always / passive,,,,,,,,,,,,1,1,,focus,Each round you complete permanently raises your maximum Focus by 1,
-Trick,wellspring,Wellspring,"{""per_focus"":10,""pips_per"":2}",rare,6,pips,always / passive,,,,,,,,,,,,1,1,,focus pips scaling,"For every 10 Focus generated this game, this trick scores +2 pips",
-Trick,feedback_loop,Feedback Loop,"{""per_focus"":5,""mult_per"":1}",rare,6,mult,always / passive,,,,,,,,,,,,1,1,,focus mult scaling,"For every 5 Focus generated this round, this trick scores +1 mult (resets each round)",
+Trick,little_guys,the little guys,"{""cap_gain"":1,""cap"":15}",rare,6,focus,card-specific,,,,1,,,,,,,,1,,,focus,A 5-card hand with no face cards increases your Focus limit by 1 (max +15),
+Trick,five_fodder,Five for Fodder,"{""credits"":5}",common,3,coins,hand-size,,,,1,,,,,1,1,,,,,credits discard,Discarding a valid 5-card hand grants +5 credits,
+Trick,five_second,Five Second Rule,"{""pause_seconds"":5}",rare,6,time,card-specific,,,,1,,,,1,,,,,,,time,5-card hands pause the clock +5s,
+Trick,life_lessons,Life Lessons,"{""cap_gain"":1}",rare,6,focus,always / passive,,,,,,,,,,,,1,,,focus,Each round you complete increases your Focus limit by 1,
+Trick,wellspring,Wellspring,"{""per_focus"":10,""mult_per"":1}",rare,6,mult,always / passive,,,,,,,,,,,,1,1,,focus pips scaling,"For every 10 Focus generated this game, this trick scores +1 mult",
 Trick,third_down,3rd Down,"{""focus"":3}",rare,6,focus,hand-size,,,,1,,,,,,,,1,,,focus,3-card hands add +3 Focus,
-Trick,ready_set_go,"Ready, Set, Go","{""mult"":9}",common,3,mult,hand-size,,,,1,,,,,,,,,,,mult,A 3-card hand containing a 3 scores +9 mult,
-Trick,third_charm,3rd Time's a Charm,"{""extra_replays"":2}",epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,replay,The 3rd card of a hand gets +2 replays,
-Trick,threes_crowd,Three's a Crowd,,rare,6,utility,hand-size,,,,1,,,,,,,,,,,rule,Pairs count as 3-card hands,structural — no tunable value
+Trick,ready_set_go,"Ready, Set, Go","{""mult"":9}",common,3,mult,hand-size,,,,1,,,,,,,,,,,mult,"A 3-card hand containing a 3, 6 or 9 scores +9 mult",
+Trick,third_charm,3rd Time's a Charm,"{""extra_replays"":2}",rare,6,retrigger,always / passive,,,,,,,,,,,,,,1,replay,The 3rd card of a hand replays 2x,
 Trick,four_eyes,Four Eyes,"{""mult"":12}",common,3,mult,hand-size,,,,1,,,,,,,,,,,mult,4-card hands score +12 mult,
 Trick,four_by_four,4x4,"{""pips"":16}",common,3,pips,spatial,,,,,1,,,,,,,,,,pips position,Cards scored in the 4th column score +16 pips,
 Trick,four_horseman,Four Horse-man,"{""pips"":16,""mult"":8,""focus"":4,""pause"":4}",epic,9,mult,hand-size,,,,1,,,,1,,,,1,,,pips mult focus time,"4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause",
-Trick,wait_four_it,Wait Four It,"{""pause"":1}",rare,6,time,hand-size,,,,1,,,,1,,,,,1,,time,4-card hands permanently buff their 4th card to pause the clock 1 second when scored,
-Trick,undue_influence,Undue Influence,,epic,9,coins,card-specific,,,,,,1,,,1,,,,,,credits set,A Set containing a face card grants credits equal to the number of Sets you have played this round,structural — no tunable value
-Trick,encore,Encore,,epic,9,time,always / passive,,,,,,,,1,,,,,,,replay set,Sets made of only odd-ranked cards score a second time,structural — no tunable value
+Trick,wait_four_it,Wait Four It,"{""pause"":2}",rare,6,time,hand-size,,,,1,,,,1,,,,,1,,time,4-card hands permanently buff their 4th card with +2s pause when scored (time buffs do not stack),
+Trick,undue_influence,Undue Influence,,epic,9,coins,card-specific,,,,,,1,,,1,,,,,,credits set,A Set containing a face card grants credits equal to the number of Set hands you have played this round,structural — no tunable value
+Trick,encore,Encore,,epic,9,retrigger,always / passive,,,,,,,,,,,,,,1,replay set,Set-type hands made of only odd-ranked cards replay each card,structural — no tunable value
 Trick,shaky_foundation,Shaky Foundation,"{""mult"":15}",common,3,mult,always / passive,,,,,,,,,,,,,,,mult set,Every other Set scores +15 mult,
-Trick,dam_holding,Dam Holding…,"{""pause"":3}",rare,6,time,always / passive,,,,,,,,1,,,,,,,time,Runs pause the clock 3 seconds,
-Trick,wave_amp,Wave Amplification,"{""pips_per_streak"":10}",common,3,pips,streak,,,,,,,,,,,,,1,,pips streak,Consecutively played Runs score +10 pips × the current Run streak,
-Sleight,the_queen,The Queen,,legendary,12,wildcard,card-specific,wildcard,infinite,,,,1,,,,,,,,1,wildrank scoring,Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD),structural — no tunable value; needsResolve / TBD
-Sleight,warehouse,Warehouse,,rare,6,wildcard,suit-specific,wildcard,infinite,1,,,,1,,,,,,,,wildsuit suit,Wild suit - becomes any suit to complete a flush. Has no rank.,structural — no tunable value
+Trick,obsessed,Obsessed,"{""per_credits"":100}",legendary,12,score-multiplier,suit-specific,,,,,,,1,,1,,,,,,mult suit credits,Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5,
+Trick,buried_treasure,Buried Treasure,"{""luck_share"":0.5,""credit_mult"":1.1}",legendary,12,score-multiplier,suit-specific,,,,,,,1,,1,,,,,,credits suit luck,Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits,
+Trick,relentless,Relentless,"{""mult_per_spade"":0.05}",legendary,12,retrigger,suit-specific,,,,,,,1,,,,,,1,1,mult suit scaling,Each spade scores x0.05 mult for every spade scored since you took this (replays count). No effect until it passes x1,
+Trick,patient_rulers,Patient Rulers,"{""mult_mult"":1.5}",epic,9,score-multiplier,card-specific,,,,,,,,1,,,,,,,mult face pause,"If you have paused or rewound the clock this round, face cards score x1.5 mult",
+Trick,even_better,Even Better,"{""chance"":0.66,""pip_mult"":2.2}",epic,9,score-multiplier,always / passive,,,,,,1,,,,,,,,,pips value luck,Even-ranked cards have a 66% chance to score x2.2 pips,
+Trick,what_odds,What are The Odds,"{""mult_mult"":1.7}",epic,9,score-multiplier,always / passive,,,,,,1,,,,,,,,,mult value,Odd-ranked cards score x1.7 mult,
+Trick,critical,Critical,"{""mult_mult"":3}",epic,9,score-multiplier,hand-type,,,1,,,,,,,,,,,,mult flush,Flush type hands score x3 mult,
+Trick,twinners,Twinners,"{""pip_mult"":3}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,pips set,Set type hands score x3 pips,
+Trick,feelin_lucky,Feelin Lucky,"{""mult_mult"":1.25,""ranks"":5,""sell_cost_share"":0.3,""rerolls"":3}",epic,9,score-multiplier,card-specific,,,,,,1,,,1,,,,,,mult value luck,"Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells",
+Trick,marathon,Marathon,,epic,9,focus,always / passive,,,,,,,,,,,,1,,,focus run,Run type hands apply the Focus multiplier twice,structural — no tunable value
+Trick,dam_holding,Dam Holding…,"{""pause"":3}",rare,6,time,always / passive,,,,,,,,1,,,,,,,time,Runs pause the clock +3s,
+Trick,wave_amp,Wave Amplification,"{""pips_per_streak"":10}",common,3,pips,streak,,,,,,,,,,,,,1,,pips streak,Consecutively played Runs score +10 pips × the streak count,
+Sleight,the_queen,The Queen,"{""pips"":10,""mult"":10,""pause_seconds"":5}",epic,9,mult,spatial,on_play,infinite,1,,1,1,,1,,,,,,,scoring position,"The rank of this sleight is Queen. It scores +10 pips, +10 mult, and pauses the clock for 5 seconds. Has royal reach.",
+Sleight,warehouse,Warehouse,,common,3,wildcard,suit-specific,wildcard,infinite,1,,,,1,,,,,,,,wildsuit suit,Counts as 2 cards of any suit for the purpose of completing a flush. Has no rank.,structural — no tunable value
 Sleight,the_ringer,The Ringer,,epic,9,utility,spatial,passive,10,1,,1,1,,,,,,,,,scoring grid,"While on the grid, a hand you submit pulls in one more card off the board when that makes a better hand - a third 10 becomes a fourth, a J-Q-K becomes a run of four. Ignores your selection size. (10 charges)",structural — no tunable value
-Sleight,fight_power,Fight the Power,,legendary,12,boss,spatial,passive,infinite,,,1,,,,,,,,,,boss,"While on the grid, all boss effects are ignored.",structural — no tunable value
-Sleight,dazed,Dazed & Confused,,rare,6,resource,spatial,on_swap,infinite,,,1,,,,,1,,,,,grid,"When swapped, reshuffles every card on the grid.",structural — no tunable value
+Sleight,fight_power,Fight the Power,,legendary,12,boss,spatial,passive,9,,,1,,,1,,,,,,,boss,"While on the grid, all boss effects are ignored (3 minutes of use, each 20 seconds count as 1 charge).",structural — no tunable value
+Sleight,dazed,Fresh Start,"{""cost_coins"":3,""cost_seconds"":10}",rare,6,coins,spatial,on_discard,infinite,,,1,,,1,1,1,,,,,grid,"When discarded, shuffles all cards back into the deck and redeals. Costs 3 credits and 10s",
 Sleight,pivot,Pivot!,"{""mult"":5}",common,3,mult,card-specific,passive,3,,,,1,,,,1,,,,,resource scoring,"Cards touching Pivot swap for free. Swap two of its neighbours together and both gain +5 permanent mult, then Pivot leaves the board. (3 charges)",
-Sleight,echo_play,Echo,,epic,9,retrigger,on_play,on_play,3,,,,,,,,,,,,1,scoring,Play this in any hand: each card replays twice. (3 charges),structural — no tunable value
+Sleight,echo_play,Echo,,epic,9,retrigger,on_play,on_play,3,,,,,,,,,,,,1,scoring,Play this in any hand: each card replays 2x. (3 charges),structural — no tunable value
 Sleight,the_naturalist,Naturalist,"{""pips"":3}",rare,6,pips,on_play,on_play,infinite,,,,,,,,,,,1,,scoring pips,Play this: each other scored card permanently gains +3 pips.,
 Sleight,bellhop,Bellhop,"{""swaps"":2,""discards"":1}",common,3,resource,on-swap,on_play,5,,,,,,,,1,,,,,resource,Play this: gain +2 swaps and +1 discard. (5 charges),
 Sleight,syncopation,Syncopation,"{""seconds"":12}",rare,6,time,on_play,on_play,3,,,,,,1,,,,,,,time,Play this in a hand of a different type than your previous hand: pause the clock for 12 seconds. (3 charges),
 Sleight,rewind,Rewind,{},rare,6,time,hand-size,on_play,5,,1,,,,1,,,,,,,time,Play this in a hand to rewind the clock by the hand size in seconds (this Sleight counts toward the size). (5 charges),
 Sleight,the_bomb,Bomb,"{""pips"":3}",epic,9,pips,spatial,on_discard,2,,,1,,,,,1,,,1,,scoring pips,Discard this: every card on the grid permanently gains +3 pips. (2 charges),
 Sleight,the_legacy,Legacy,"{""mult_x"":3}",rare,6,score-multiplier,on-discard,on_discard,3,,,,,,,,1,1,,,,scoring,Discard this: the next hand played gets ×3 mult. (3 charges),
-Sleight,cash_out,Cash Out,"{""coins"":10}",common,3,coins,on-discard,on_discard,4,,,,,,,1,1,,,,,resource coins,Discard this: gain 10 credits. (4 charges),
-Sleight,last_call,Last Call,"{""seconds"":15,""last_minute_at"":60}",epic,9,resource,on-discard,on_discard,2,,,,,,1,,1,,,,,time,Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges),
-Sleight,sandbag,Sandbagger,"{""rank_below"":8}",rare,6,resource,hand-type,on_discard,3,1,,,,,1,,1,,,,,time,Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges),
+Sleight,cash_out,Cash Out,"{""coins"":10}",rare,6,coins,on-discard,on_discard,3,,,,,,,1,1,,,,,resource coins,Discard this: gain 10 credits. (3 charges),
+Sleight,last_call,Last Call,"{""seconds"":15}",rare,6,resource,on-discard,on_discard,3,,,,,,1,,1,,,,,time,Discard this: rewind the clock 15 seconds. (3 charges),
+Sleight,sandbag,Sandbagger,"{""extra_per_member"":0.5}",rare,6,resource,hand-type,on_discard,3,1,,,,,1,,1,,,,,time,"Discard this with a pair to rewind the clock by that pair’s rank in seconds, +50% more time for every additional member of the set. (3 charges)",
 Sleight,lightning_rod,Lightning Rod,"{""pips"":10}",rare,6,pips,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring pips,"When swapped, the card it traded with permanently gains +10 pips.",
 Sleight,the_catalyst,Catalyst,"{""mult"":5}",rare,6,mult,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring mult,"When swapped, the card it traded with permanently gains +5 mult.",
-Sleight,the_wanderer,Wanderer,"{""swaps"":1}",common,3,resource,spatial,on_swap,infinite,,,1,,,,,1,,,,,resource,"Swap it with ANY card on the grid, next to it or not, and the swap is free (+1 swap back).",
+Sleight,the_wanderer,Wanderer,,rare,6,resource,spatial,passive,5,,,1,1,,,,1,,,,,resource,While on grid: allows any two cards to be swapped regardless of position. Still uses your swap stock. (5 charges),structural — no tunable value
 Sleight,amplifier,Amplifier,"{""mult"":10}",common,3,mult,double_tap,double_tap,5,,,,,,,,,,,,,scoring mult,Double-tap: the next hand scores +10 mult. (5 charges),
 Sleight,snooze,Snooze Button,"{""seconds"":10}",common,3,time,double_tap,double_tap,5,,,,,,1,,,,,,,time,"Double-tap: pause the clock for 10 seconds, then Snooze returns to your deck. (5 charges)",
 Sleight,shady_tree,Shady Tree,,rare,6,time,spatial,on_play,10,,,1,,,1,,,,,,,time position,"Play this from column x (changes each round) to pause the clock. Pauses for its remaining charges in seconds (10 → 1), −1 each use; destroyed at 0.",structural — no tunable value
-Sleight,stopwatch,Stopwatch,,epic,9,resource,on-swap,double_tap,60,,,,,,1,,1,,,,,time,"Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.",structural — no tunable value
-Sleight,piggy_bank,Piggy Bank,"{""coins"":5}",common,3,coins,double_tap,double_tap,5,,,,,,,1,1,,,,,resource coins,Double-tap: gain 5 credits. (5 charges),
-Sleight,magnet,Magnet,,common,3,resource,spatial,double_tap,3,,,1,,,,,1,,,,,position swap,"Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges)",structural — no tunable value
-Sleight,reflect,Reflect,"{""extra_replays"":2}",epic,9,retrigger,spatial,aim,infinite,,,1,,,,,1,,,,1,retrigger position,Tap to rotate its aim. The rank it faces replays 2× when a hand scores. Works once per round. Cannot be swapped or discarded.,
-Sleight,soul_mirror,Soul Mirror,{},legendary,12,retrigger,spatial,aim,infinite,,,1,,,,,1,1,,,1,retrigger rank,"Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded.",
+Sleight,stopwatch,Stopwatch,,epic,9,time,double_tap,double_tap,10,,,,,,1,,,,,,,time,"Double-tap: freeze the clock until your next played hand (60s of use, each 6 seconds count as 1 charge).",structural — no tunable value
+Sleight,piggy_bank,Piggy Bank,"{""coins"":5}",common,3,coins,on-swap,double_tap,5,,,,,,,1,1,,,,,resource coins,"Double-tap: gain 5 credits, once per round. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)",
+Sleight,magnet,Magnet,,common,3,resource,spatial,double_tap,3,,,1,,,,,1,,,,,position swap,"Double-tap, then tap any card: pull every card of that rank in to replace the Magnet and the cards beside it (they are discarded). (3 charges)",structural — no tunable value
+Sleight,reflect,Reflect,"{""extra_replays"":2,""board_seconds"":60}",epic,9,retrigger,spatial,aim,infinite,,,1,,,1,,1,,,,1,retrigger position,"Tap to rotate its aim. The rank it faces replays 2x when scored. Cannot be swapped, discarded or played. Discards itself after 60s.",
+Sleight,soul_mirror,Soul Mirror,{},legendary,12,retrigger,on-swap,aim,infinite,,,,,,,,1,1,,,1,retrigger rank,"Tap to rotate its aim. When the rank it faces is scored, it replays once for each count of that rank in the deck. Cannot be swapped, discarded, or played.",
 Sleight,whetstone,Whetstone,"{""mult_per_event"":2}",epic,9,mult,spatial,passive,infinite,,,1,,,,,1,,,1,,scoring mult position,"Whenever an adjacent card is swapped or discarded, Whetstone gains +2 mult permanently. Hands that score a card adjacent to Whetstone score that mult.",
 Sleight,entourage,Entourage,"{""mult_per_sleight"":10}",epic,9,mult,spatial,passive,infinite,,,1,,,,,,,,,,scoring mult,Hands score +10 mult for every other Sleight on the grid.,
 Sleight,lighthouse,Lighthouse,"{""mult"":20,""falloff_per_column"":7}",rare,6,mult,spatial,passive,infinite,,,1,,,,,,,,,,scoring mult position,"Each round Lighthouse picks either the first or last column. All hands score +20 mult when Lighthouse is in that column, −7 per column away (minimum 0).",
-Sleight,capacitor,Capacitor,"{""focus_cost"":10,""time_cost"":10,""credits"":10}",common,3,coins,double_tap,double_tap,1,,,,,,1,1,,,1,,,focus coins,Double-tap to spend 10 Focus and 10 seconds for 10 credits. Consumed on use.,
-Sleight,siphon,Siphon,"{""focus_cost"":15,""mult"":4}",rare,6,score-multiplier,double_tap,double_tap,4,,,,,,,,,,1,,,focus mult,Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use.,
-Sleight,power_cell,Power Cell,"{""focus_on_enter"":10,""focus_cap"":10}",rare,6,focus,spatial,on_draw,infinite,,,1,,,,,,,1,,,focus,When it enters the grid: +10 Focus. While it remains on the grid: +10 maximum Focus.,
-Sleight,slow_burn,Slow Burn,,rare,6,focus,spatial,passive,infinite,,,1,,,,,,,1,,,focus,+1 maximum Focus for every minute this sleight spends on the grid.,structural — no tunable value
-Sleight,flywheel,Flywheel,"{""speed_mult"":1.5}",epic,9,focus,spatial,passive,infinite,,,1,,,,,,,1,,,focus,"While on the grid, the Focus speed bonus is multiplied by 1.5.",
-Sleight,governor,Governor,"{""window_mult"":1.5}",epic,9,focus,spatial,passive,infinite,,,1,,,,,,,1,,,focus,"While on the grid, you have 1.5× as long to earn the same Focus speed bonus.",
-Sleight,shift_swap,Shift Swap,,fixture,,resource,spatial,adjacent,infinite,,,1,1,,,,1,,,,,resource position,"Score two hands beside this card for +2 swaps, then it goes back into the deck.",structural — no tunable value
-Sleight,recycler,Recycler,,fixture,,resource,spatial,adjacent,infinite,,,1,1,,,,1,,,,,resource position,"Score two hands beside this card for +2 discards, then it goes back into the deck.",structural — no tunable value
+Sleight,capacitor,Capacitor,"{""focus_cost"":10,""time_cost"":10,""credits"":10}",common,3,coins,on-swap,double_tap,1,,,,,,1,1,1,,1,,,focus coins,Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use: it can no longer be swapped or discarded. (1 charge),
+Sleight,siphon,Siphon,"{""focus_cost"":15,""mult"":4}",rare,6,score-multiplier,on-discard,double_tap,4,,,,,,,,1,,1,,,focus mult,Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Discards on use.,
+Sleight,power_cell,Power Cell,"{""focus_on_enter"":10,""focus_cap"":10}",rare,6,focus,spatial,on_draw,infinite,,,1,,,,,,,1,,,focus,When it enters the grid: +10 Focus. While it remains on the grid: +10 to your Focus limit.,
+Sleight,slow_burn,Slow Burn,"{""seconds_per"":45,""cap"":15}",rare,6,focus,spatial,passive,infinite,,,1,,,1,,,,1,,,focus,+1 to your Focus limit for every 45 seconds this sleight spends on the grid (max +15).,
+Sleight,governor,Governor,"{""window_mult"":1.5}",epic,9,focus,spatial,passive,infinite,,,1,,,,,,,1,,,focus,"While on the grid, you have {window_mult_pctover}% longer to earn the Focus speed bonus.",
+Sleight,shift_swap,Shift Swap,,fixture,,resource,spatial,adjacent,infinite,,,1,1,,,,1,,,,,resource position,Score two cards adjacent to this sleight to get +2 swaps. Discards itself after giving bonus.,structural — no tunable value
+Sleight,recycler,Recycler,,fixture,,resource,spatial,adjacent,infinite,,,1,1,,,,1,,,,,resource position,Score two cards adjacent to this sleight to get +2 discards. Discards itself after giving bonus.,structural — no tunable value
 Sleight,time_clock,Time Clock,,fixture,,time,spatial,adjacent,infinite,,,1,1,,1,,,,,,,time position,"Score two hands beside this card for a 10 second pause, then it goes back into the deck.",structural — no tunable value
-Sleight,petty_cash,Petty Cash,,fixture,,coins,spatial,adjacent,infinite,,,1,1,,,1,,,,,,coins position,"Score two hands beside this card for +5 credits, then it goes back into the deck.",structural — no tunable value
+Sleight,petty_cash,Petty Cash,,fixture,,coins,spatial,adjacent,infinite,,,1,1,,,1,1,,,,,coins position,Score two hands beside this card to get +5 credits. Discards itself after giving bonus.,structural — no tunable value
+Knack,head_count,Head Count,,common,3,utility,always / passive,,persistent,,,,,,,,,,,,,,The Sleight queue (the button on your Trick tray) shows how many cards sit in front of each Sleight.,structural — no tunable value
+Knack,card_counter,Card Counter,,rare,6,focus,spatial,,persistent,,,1,,,,,1,,,,,,"A button below the Focus bar swaps it for the draw queue: the next cards in draw order, 2x your column count.",structural — no tunable value
 Knack,advance_notice,Advance Notice,,rare,6,utility,always / passive,,persistent,,,,,,,,,,,,,,"While you hold it, its tooltip names the boss waiting at the end of the NEXT quarter. Sell it and a different boss takes that slot.",structural — no tunable value
 Knack,contingency,Contingency Plan,,rare,6,boss,always / passive,,persistent,,,,,,,,,,,,,,"Boss effects are 10% weaker - timed effects tick 10% less often, and everything else is 10% smaller.",structural — no tunable value
 Knack,free_swaps,Free Swaps,,common,3,resource,on-swap,,persistent,,,,,,,,1,,,,,,Swapping cards costs no time.,structural — no tunable value
@@ -255,8 +249,9 @@ Knack,muscle_memory,Buddy System,,common,3,utility,always / passive,,persistent,
 Knack,curator,Curator,,rare,6,utility,always / passive,,persistent,,,,,,,,,,,,,,+1 Trick Slot.,structural — no tunable value
 Knack,short_suit,Short Suit,,rare,6,utility,hand-type,,persistent,1,,,,,,,,,,,,,Flush of 3 and Flush of 4 become scorable hands.,structural — no tunable value
 Knack,old_tricks,Old Tricks,,epic,9,utility,hand-type,,persistent,1,,1,,,,,,1,,,,,"Every hand type scores with the best growth anywhere in its family - sets, runs and flushes each pool their own. It replaces what that hand had earned, it does not add to it.",structural — no tunable value
+Knack,threes_crowd_k,Three's a Crowd,,rare,6,utility,card-specific,,persistent,1,1,,1,,,,,,,,,,"Hands count as 1 card bigger than they are for your entities: a Pair is a 3-card hand, Two Pair a 5-card hand. Cards carried along do not count. Natural Scaling is unaffected.",structural — no tunable value
 Knack,tagalong,Tagalong,,rare,6,pips,always / passive,,persistent,,,,,,,,,,,,,,Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties.,structural — no tunable value
-Knack,shady_stimulants,Shady Stimulants,,rare,6,focus,always / passive,,persistent,,,,,,,,,,,1,,,Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken.,structural — no tunable value
+Knack,shady_stimulants,Shady Stimulants,,rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,Every negative reward tile you take raises your Focus limit by 1.,structural — no tunable value
 Knack,greedy_boi,Greedy Boi,"{""selection"":2}",rare,6,utility,spatial,,persistent,,,1,,,,,,,,,,,+2 selection size in the reward grid - grab more tiles at once.,
 Knack,scavenger,Scavenger,"{""coins"":10}",common,3,coins,on-discard,,persistent,,,,,,,1,1,,,,,,"Whenever a curse lifts, gain +10 coins and +1 discard next round.",
 Knack,coin_toss,Coin Toss,"{""chance"":0.5,""charges"":1}",common,3,utility,always / passive,,persistent,,,,,,,,,,,,,,"At the start of each round, every Sleight has a 50% chance to restore 1 charge.",
@@ -267,13 +262,13 @@ Knack,alignment,Alignment,,common,3,utility,spatial,,persistent,,,1,,,,,,,,,,,Po
 Knack,district,District,,common,3,utility,spatial,,persistent,,,1,,,,,,,,,,,Position Tricks may share a row or column instead of spreading onto separate lines.,structural — no tunable value
 Knack,tempo,Tempo,"{""limit"":2,""interval_seconds"":15}",rare,6,resource,on-swap,,persistent,,,,,,1,,1,,,,,,"When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back - alternating swap, then discard.",
 Knack,jury_rig,Jury-Rig,"{""chance"":0.5,""charges"":1}",rare,6,resource,spatial,,persistent,,,1,,,,,1,,,,,,Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight.,
-Knack,dividend,Dividend,"{""credits"":8,""keep_fraction"":0.33}",rare,6,coins,always / passive,,persistent,,,,,,,1,,,,,,,"Each time you reach max Focus, gain 8 credits, then Focus resets to a third of max.",
-Knack,trade_winds,Trade Winds,"{""cap_reduction"":10,""payout_fraction"":0.5}",rare,6,coins,always / passive,,persistent,,,,,,,1,,,,,,,"Your max Focus is 10 lower. At the end of each round, gain credits equal to half your current Focus.",
-Knack,growth_spurt,Growth Spurt,"{""cap_reduction"":5}",rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,"Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.",
-Knack,stimulants,Stimulants,,rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,+10 maximum Focus while owned.,structural — no tunable value
+Knack,dividend,Dividend,"{""credits"":8,""keep_fraction"":0.33}",rare,6,coins,always / passive,,persistent,,,,,,,1,,,,,,,"Each time you hit your Focus limit, gain 8 credits, then Focus resets to a third of the limit.",
+Knack,trade_winds,Trade Winds,"{""cap_reduction"":10,""payout_fraction"":0.5}",rare,6,coins,always / passive,,persistent,,,,,,,1,,,,,,,"Your Focus limit is 10 lower. At the end of each round, gain credits equal to half your current Focus.",
+Knack,growth_spurt,Growth Spurt,"{""cap_reduction"":5}",rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,"Each time you hit your Focus limit, the limit drops by 5. If you hit it during a round, a random limit rises by 1 at the end of that round.",
+Knack,stimulants,Stimulants,,rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,+10 to your Focus limit while owned.,structural — no tunable value
 Knack,long_fuse,Long Fuse,"{""window_mult"":2}",rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,You have 2× as long to earn the same Focus speed bonus.,
 Knack,shorthand,Shorthand,"{""complexity_mult"":1.5}",rare,6,score-multiplier,always / passive,,persistent,,,,,,,,,,,,,,Hands generate 1.5× their listed Focus.,
-Knack,core_memories,Core Memories,,rare,6,focus,always / passive,,persistent,,,,,,,,,,,1,,,Each Event you attend permanently raises your maximum Focus by 2.,structural — no tunable value
+Knack,core_memories,Core Memories,,rare,6,focus,always / passive,,persistent,,,,,,,,,,,,,,Each Event you attend raises your Focus limit by 2.,structural — no tunable value
 System,court_of_leaves,court of leaves,"{""pips"":3}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
 System,low_tide,low tide,"{""pips"":6}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
 System,power_two,power two,"{""pips"":4}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
@@ -309,5 +304,5 @@ System,rider,rider,"{""seconds_per_proc"":2}",,,,,,,,,,,,,,,,,,,,,"event/system 
 System,spot_check,spot check,"{""mult"":0.5,""plays_to_clear"":3}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
 System,interest_freeze,interest freeze,"{""rounds"":3}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
 System,_resources,resources,"{""unspent_credits"":2,""unspent_cap"":10,""interest_cap"":10,""swap_seconds"":8,""discard_seconds_per_card"":3}",,,,,,,,,,,,,,,,,,,,Base interact costs and unspent-action/interest payout caps,
-System,_exalt,exalt,"{""club_pips"":10,""diamond_coins"":3,""heart_mult"":2,""spade_time"":4}",,,,,,,,,,,,,,,,,,,,Exalted-card per-suit effects (paused by default - see exaltCorruptEnabled),
-System,_corrupt,corrupt,"{""club_pips"":25,""club_mult"":-3,""diamond_coins"":5,""diamond_pips"":-20,""heart_mult"":5,""heart_time"":-5,""spade_time"":7,""spade_coins"":-8}",,,,,,,,,,,,,,,,,,,,Corrupted-card per-suit effects (paused by default - see exaltCorruptEnabled),
+System,_exalt,exalt,"{""club_pips"":10,""diamond_coins"":3,""heart_mult"":4,""spade_time"":4}",,,,,,,,,,,,,,,,,,,,Exalted-card per-suit effects (paused by default - see exaltCorruptEnabled),
+System,_corrupt,corrupt,"{""club_pips"":25,""club_mult"":-3,""diamond_coins"":5,""diamond_pips"":-20,""heart_mult"":5,""heart_time"":-5,""spade_time"":7,""spade_coins"":-5}",,,,,,,,,,,,,,,,,,,,Corrupted-card per-suit effects (paused by default - see exaltCorruptEnabled),

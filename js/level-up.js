@@ -43,6 +43,10 @@ function triggerLevelUp() {
   if (bossActive) return;
   clearInterval(roundInterval);
   roundInterval = null;
+  // One vertical line on the clock per level-up, on the clocks that SPAN
+  // level-ups (Flow's session clock, Crunch's act bank). Taken here, before
+  // anything below can move roundSeconds. js/clock-track.js.
+  if (typeof clockMarkLevelUp === 'function') clockMarkLevelUp();
   goalReachedThisRound = false;
   roundEnded = false;
   // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.
@@ -66,18 +70,13 @@ function triggerLevelUp() {
   }
   recomputeGridMetrics();
   // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
-  // (Out-of-bounds cells from a shrunk grid are simply dropped; their cards are
-  //  effectively returned via flushPlayedDeck on the next cycle.)
-  {
-    const newGrid = [];
-    for (let r = 0; r < gridRows; r++) {
-      newGrid[r] = [];
-      for (let c = 0; c < gridCols; c++) {
-        newGrid[r][c] = (gridData[r] && gridData[r][c] !== undefined) ? gridData[r][c] : null;
-      }
-    }
-    gridData = newGrid;
-  }
+  // conformGridToDims (js/deck-grid.js) DISCARDS an out-of-bounds card to
+  // playedPile rather than dropping it. That did not matter while the round-end
+  // fall banked every card first; with a persisting board (r332) it is the one
+  // card that would otherwise leave the run without anything saying so. The
+  // flushPlayedDeck() further down then cycles it back in, which is exactly what
+  // the old comment here claimed was already happening.
+  conformGridToDims();
 
   // Survival: capture leftover clock time (for coins + boss bank) and the score
   // OVERFLOW above the just-cleared goal - the overflow seeds the next round so
@@ -89,6 +88,9 @@ function triggerLevelUp() {
     // Post-boss BONUS round carries nothing (no goal was cleared); a normal clear
     // carries the score overflow above the goal into the next round.
     _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
+    // r399: a Line Quotas round is won by its lines, not its total, so the total
+    // can sit far past the goal - carrying that would hand the next round a start.
+    if (typeof roundQuota !== 'undefined' && roundQuota && roundQuota.kind === 'lines') _svOverflow = 0;
   }
 
   // The goal the round that just finished was measured against. Captured HERE,
@@ -130,6 +132,9 @@ function triggerLevelUp() {
   if (typeof guidedApplyPendingChallenge === 'function') guidedApplyPendingChallenge();
   // Map mode's boss quota is FIXED at map build; overrides the curve's figure.
   if (typeof mapApplyPendingGoal === 'function') mapApplyPendingGoal();
+  // r399: a Flow level may roll a shaped goal, and a hard round may name one
+  // (js/level-types.js). Last, so it is cut from the final goal.
+  if (typeof levelTypeMaybeArm === 'function') levelTypeMaybeArm();
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
@@ -201,9 +206,11 @@ function triggerLevelUp() {
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
+  discardsUsedRound = 0;
   focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
+  clubsScoredRound = 0;
   setsPlayedRound  = 0;
   runStreak        = 0;
   handTypesRound   = new Set();
@@ -242,12 +249,8 @@ function triggerLevelUp() {
   fireSleightsAtRoundStart();
   // (♠ exalt/corrupt is now play/discard-driven - handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
-  // Reset focus meter at start of every round (chunk 2 will add notch-fall animation)
-  focusNodes = 0;
-  focusAnimQueue = [];
-  focusAnimRunning = false;
-  syncFocusMeterState();
-  updateFocusMultReadout(false);
+  // Reset focus meter at the start of every round (r395: one helper, js/focus.js)
+  resetFocusMeter();
   // Recompute decay interval (Meditation may be acquired/lost between rounds)
   recomputeFocusDecayInterval();
   // Tunnel Vision: start each round with 5 focus
@@ -260,8 +263,6 @@ function triggerLevelUp() {
   retriggersThisRound = 0;
   replaysThisRound = 0;
   timeManipRound = 0;
-  cuckooNextMinute = BAL.cuckoo.interval_seconds;
-  compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
   // The card-state fuses refresh every level (owner's spec), so a charged card
@@ -272,11 +273,10 @@ function triggerLevelUp() {
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
   _altSwapCount = 0;
-  doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
-  djUsedThisRound = false;
+  doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
   firstPauseStartedRound = false;
   firstPauseActive = false;
-  woodpeckerPos = null;
+  woodpeckerCardId = null;
   woodpeckerActiveBlock = -1;
   // Metronome knack: pick this round's target hand type from those the player can actually make.
   if (hasKnack('metronome')) {
@@ -312,7 +312,7 @@ function triggerLevelUp() {
     for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
     eligible.slice(0, 3).forEach(card => {
       const k = cardId(card);
-      permPips[k] = (permPips[k]||0) + 2;
+      permPips[k] = (permPips[k]||0) + 5;
     });
   }
 
@@ -376,7 +376,18 @@ async function showLevelUpScreen() {
     }
   });
 
-  // Determine available slots for new Tricks (middle row, inner columns)
+  // Determine available slots for new Tricks (middle row, inner columns).
+  // With a persisting board (r332) those cells hold cards, so grid placement -
+  // a DEV-ONLY toggle; trickTrayMode is the default and sends Tricks to the tray -
+  // would find no slot at all and silently offer nothing. Clear the spawn strip
+  // to playedPile first, but ONLY on that path, so the tray path leaves the
+  // board exactly as the round left it.
+  if (typeof trickTrayMode !== 'undefined' && !trickTrayMode) {
+    _trickInnerCols.forEach(c => {
+      const cd = gridData[_trickMidRow][c];
+      if (cd && !cd._isTrick) { discardToPlayed(cd); gridData[_trickMidRow][c] = null; }
+    });
+  }
   const spawnSlots = _trickInnerCols.filter(c => !gridData[_trickMidRow][c]);
   trickSelectionOptions = pickTrickOptions(spawnSlots.length);
   let trickIdCounter = 90000 + (level * 10);
@@ -479,7 +490,46 @@ async function showLevelUpScreen() {
 }
 
 // ── Deal animations: called from show321Countdown when 3-2-1 starts ──
-// Cards fall in at normal speed while dark bg fades out.
+//
+// THE WHOLE BOARD DEALS AT ONCE (r394). Owner: "there's an odd bug where after
+// choosing an option the grid deals like 4 cards in one corner, normally the
+// top right, and then the rest gets dealt, which is odd and wrong. The whole
+// grid should deal in at the same time."
+//
+// It was not a bug so much as a cascade nobody had measured. The old timing was
+// column-major with a 60ms column offset AND a 252ms offset per row WITHIN a
+// column (colReadyAt), which interleaves into a ROW-BY-ROW deal from the bottom:
+// filmed at 1440x820 and 420x900, the bottom row landed first (4 cards, t=200 to
+// 420ms, left to right - so the first card lands in a corner), then a pause, then
+// row 2, then row 1, then row 0, with the last card down at 1453ms. A second and
+// a half of a board arriving in four instalments.
+//
+// `together` starts every card the SAME distance above its own cell and drops
+// them in unison, with a small random jitter so a sixteen-card board does not
+// read as one rigid object. The whole deal is over in about half a second.
+//
+// A UNIFORM DROP IS PART OF IT, not a detail. The cascade's drop distance was
+// `(gridRows - r) * CARD_STEP`, so the top row started FOUR cells above the board
+// - well outside #grid-slot, over the trays - which is only invisible while that
+// row is also the last to move. Dropped together they would all be visible up
+// there at once.
+//
+// `cascade` is the pre-r394 timing, kept as an Aesthetics option.
+const DEAL_STYLE_KEY = 'lethe.dealStyle.v1';
+let dealStyle = (() => { try { const v = localStorage.getItem(DEAL_STYLE_KEY);
+  if (v === 'together' || v === 'cascade') return v; } catch (e) {} return 'together'; })();
+function setDealStyle(v) {
+  if (v !== 'together' && v !== 'cascade') return;
+  dealStyle = v;
+  try { localStorage.setItem(DEAL_STYLE_KEY, v); } catch (e) {}
+  const sel = document.getElementById('dev-deal-style'); if (sel) sel.value = v;
+}
+// How far above its cell a card starts when the board deals together, in card
+// steps, and how much the launch may vary. fxRandom, never Math.random: a
+// seeded run replaces the global and this would advance the deck stream.
+const DEAL_DROP_STEPS = 2.1;
+const DEAL_JITTER_MS  = 70;
+
 function startNewRoundDealAnims() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
@@ -494,6 +544,8 @@ function startNewRoundDealAnims() {
   const BOUNCE_PX  = 8;
   const SQUISH     = 0.10;
   const colReadyAt = {};
+  const together   = (dealStyle !== 'cascade');
+  const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
   dealAnims = [];
 
   for (let c = 0; c < gridCols; c++) {
@@ -505,12 +557,14 @@ function startNewRoundDealAnims() {
 
       const destX      = cellLeft(c);
       const destY      = cellTop(r);
-      const fromAbove  = (gridRows - r);
+      const fromAbove  = together ? DEAL_DROP_STEPS : (gridRows - r);
       const startY     = destY - fromAbove * CARD_STEP;
       const dropDist   = fromAbove * CARD_STEP;
       const colBase    = c * COL_OFFSET;
-      const entryStart = Math.max(colBase, colReadyAt[c] || colBase);
-      colReadyAt[c]    = entryStart + FALL_DUR * 0.6;
+      const entryStart = together
+        ? Math.round(rnd() * DEAL_JITTER_MS)
+        : Math.max(colBase, colReadyAt[c] || colBase);
+      if (!together) colReadyAt[c] = entryStart + FALL_DUR * 0.6;
 
       const tempEl = buildCardAnimEl(card, r, c);
       tempEl.style.left    = destX + 'px';

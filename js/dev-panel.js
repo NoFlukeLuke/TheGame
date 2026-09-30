@@ -107,6 +107,7 @@ function openDevPanel() {
   devSyncHbSliders();
   devSyncBlipSliders();
   devSyncNs();
+  devSyncTagalong();
   devSyncCcSliders();
   devSyncDisco();
   devSyncFullscreen();
@@ -121,6 +122,97 @@ function openDevPanel() {
 // on a menu of groups and each group is its own pop-up. The .dev-section elements
 // are never moved - they all keep their ids (plenty of code binds to them) and are
 // simply shown or hidden by data-group.
+// r391 AESTHETICS: extra infinity-tray depth lines (0-4), a body class the
+// tray rule in css/style.css reads. Persisted; default 3.
+let trayDepthExtra = (() => { try { const v = localStorage.getItem('lethe.trayDepth.v1');
+  if (v !== null && +v >= 0 && +v <= 4) return +v; } catch (e) {} return 3; })();
+function setTrayDepth(n) {
+  trayDepthExtra = Math.max(0, Math.min(4, n | 0));
+  try { localStorage.setItem('lethe.trayDepth.v1', String(trayDepthExtra)); } catch (e) {}
+  applyTrayDepth();
+}
+function applyTrayDepth() {
+  for (let i = 0; i <= 4; i++) document.body.classList.toggle('tray-deep-' + i, i === trayDepthExtra);
+  const sel = document.getElementById('dev-tray-depth'); if (sel) sel.value = String(trayDepthExtra);
+}
+if (document.body) applyTrayDepth(); else document.addEventListener('DOMContentLoaded', applyTrayDepth);
+
+// ── r394 AESTHETICS: the PORTRAIT CLOCK BAR's length and thickness ──
+// Owner: "the thickness of the timer in Mobile is too thin. It needs to be at
+// least as thick as the boss emoji ... And make it a little longer. Put length
+// and width setting in the aesthetics tab."
+//
+// Published as custom properties on :root, which is what css/clock-track.css
+// reads - so there is no second copy of the number and no element to keep in
+// step. The FLOOR is the review mark's own 18px (.clock-boss): below it the
+// track's bands, Trick windows and level-up marks are specks, which is the
+// state the owner was looking at.
+const CLOCKBAR_KEY = 'lethe.clockBar.v1';
+const CLOCKBAR_DEF = { len: 150, thick: 18 };
+const CLOCKBAR_TUNABLES = [
+  { key: 'len',   label: 'Length',    min: 80, max: 260, step: 5, unit: 'px' },
+  { key: 'thick', label: 'Thickness', min: 4,  max: 34,  step: 1, unit: 'px' },
+];
+let clockBarCfg = (() => {
+  let ov = {};
+  try { ov = JSON.parse(localStorage.getItem(CLOCKBAR_KEY) || '{}') || {}; } catch (e) {}
+  return { len: +ov.len || CLOCKBAR_DEF.len, thick: +ov.thick || CLOCKBAR_DEF.thick };
+})();
+function applyClockBar() {
+  const d = document.documentElement;
+  d.style.setProperty('--pclk-len',   clockBarCfg.len   + 'px');
+  d.style.setProperty('--pclk-thick', clockBarCfg.thick + 'px');
+  devRenderClockBar();
+}
+function setClockBar(key, v) {
+  const t = CLOCKBAR_TUNABLES.find(x => x.key === key); if (!t) return;
+  clockBarCfg[key] = Math.max(t.min, Math.min(t.max, Math.round(+v || 0)));
+  // OVERRIDES ONLY: a field set back to its shipped value is DELETED rather than
+  // pinning today's number for ever (the r197 goal-tuner rule).
+  const ov = {};
+  if (clockBarCfg.len   !== CLOCKBAR_DEF.len)   ov.len   = clockBarCfg.len;
+  if (clockBarCfg.thick !== CLOCKBAR_DEF.thick) ov.thick = clockBarCfg.thick;
+  try {
+    if (Object.keys(ov).length) localStorage.setItem(CLOCKBAR_KEY, JSON.stringify(ov));
+    else localStorage.removeItem(CLOCKBAR_KEY);
+  } catch (e) {}
+  applyClockBar();
+}
+function resetClockBar() { clockBarCfg = Object.assign({}, CLOCKBAR_DEF);
+  try { localStorage.removeItem(CLOCKBAR_KEY); } catch (e) {} applyClockBar(); }
+// Steppers, not sliders - these are exact values worth typing (the r179 rule).
+// WRITTEN, never rebuilt, while a field has focus: a rebuild tears the input
+// out from under the caret (r282).
+function devRenderClockBar() {
+  const host = document.getElementById('dev-clockbar-rows');
+  if (!host) return;
+  if (!host.dataset.built) {
+    host.dataset.built = '1';
+    host.innerHTML = CLOCKBAR_TUNABLES.map(t => `<div class="dev-row" style="align-items:center;gap:6px;margin-top:4px;">
+      <span style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">${t.label}</span>
+      <button class="dev-btn" onclick="setClockBar('${t.key}', clockBarCfg.${t.key} - ${t.step})">&minus;</button>
+      <input id="dev-clockbar-${t.key}" type="number" min="${t.min}" max="${t.max}" step="${t.step}"
+        onchange="setClockBar('${t.key}', this.value)"
+        style="width:56px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-family:'Share Tech Mono',monospace;font-size:12px;text-align:center;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);">${t.unit}</span>
+      <button class="dev-btn" onclick="setClockBar('${t.key}', clockBarCfg.${t.key} + ${t.step})">+</button>
+    </div>`).join('');
+  }
+  CLOCKBAR_TUNABLES.forEach(t => {
+    const el = document.getElementById('dev-clockbar-' + t.key);
+    if (el && document.activeElement !== el) el.value = clockBarCfg[t.key];
+  });
+}
+function devSyncAesthetics() {
+  const sel = document.getElementById('dev-tray-depth'); if (sel) sel.value = String(trayDepthExtra);
+  const d = document.getElementById('dev-deal-style');
+  if (d && typeof dealStyle === 'string') d.value = dealStyle;
+  devRenderClockBar();
+  if (typeof flowrSyncChipPicker === 'function') flowrSyncChipPicker();
+  if (typeof devRenderFlowrFx === 'function') devRenderFlowrFx();
+}
+if (document.body) applyClockBar(); else document.addEventListener('DOMContentLoaded', applyClockBar);
+
 const DEV_GROUPS = [
   { g:'tricks',   icon:'✦', label:'Tricks',    sub:() => `${TRICK_POOL.length} in pool` },
   { g:'sleights', icon:'▶', label:'Sleights',  sub:() => `${SLEIGHT_POOL.length} in pool` },
@@ -134,15 +226,19 @@ const DEV_GROUPS = [
   { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
   { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
+  { g:'tagalong', icon:'🧳', label:'Tagalong',  sub:() => devTagalongSub() },
   { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
+  { g:'aesthetics', icon:'✧', label:'Aesthetics', sub:() => `deal ${typeof dealStyle === 'string' ? dealStyle : 'together'} · clock ${clockBarCfg.len}x${clockBarCfg.thick} · tray +${trayDepthExtra}` },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
   { g:'rewards',  icon:'🎁', label:'Rewards',   sub:() => `Flow/Survival board: ${svBoardMode === 'keep' ? 'stays' : svBoardMode === 'keep_nosleights' ? 'stays, no Sleights' : 'redeals'}` },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
+  { g:'squares',  icon:'▦', label:'Squares',   sub:() => typeof sqCfg === 'function'
+      ? `${sqCfg('rankVary') ? 'varied' : sqCfg('rankSpread') + ' ranks'} · wild ${sqCfg('wildChance')}% · ${sqCfg('qualifyLines')}/${sqCfg('qualifyDeep')}/${sqCfg('qualifyCover')}%` : 'poker squares' },
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
       return m === 'weighted' ? `weighted · ${deckWeightedSize()} cards · ${deckWeightedSuits().length} suits`
            : m === 'six'      ? `six suits · ${deckDesignSize()} cards`
@@ -176,11 +272,16 @@ function devOpenGroup(g) {
   document.getElementById('dev-group-pop-body').scrollTop = 0;
   if (g === 'seed') devRefreshSeed();
   if (g === 'spectrum') renderSpectrumDev();
+  if (g === 'squares') devRenderSquares();
   if (g === 'deck') devRenderDeckDesign();
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
   if (g === 'cardstates') devRenderCardStates();
-  if (g === 'rewards') { const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }
+  if (g === 'aesthetics') devSyncAesthetics();
+  if (g === 'rewards') {
+    const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode;
+    if (typeof flowrDevSync === 'function') flowrDevSync();
+  }
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -409,6 +510,36 @@ function devSetFlushOverlayMin(v) {
   const lab = document.getElementById('dev-flushmin-val'); if (lab) lab.textContent = flushOverlayMin;
   _devSafeRender();
 }
+// ── Kickers / Tagalong (r385) - state lives in js/limits.js ──
+// Changing a knob changes what a hand is, so every setter clears the components
+// cache (keyed on the kicker allowance for exactly this reason) and repaints.
+function devTagalongSub() {
+  const cap = tagalongMaxCards > 0 ? `max ${tagalongMaxCards}` : 'unlimited';
+  return `1 kicker · Tagalong ${cap} · ${tagalongTimeRate}s per pip`;
+}
+function devSetTagalongMax(v) {
+  tagalongMaxCards = Math.max(0, Math.min(9, parseInt(v, 10) || 0)); saveTagalongCfg();
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
+  devSyncTagalong(); _devSafeRender();
+}
+function devSetTagalongRate(v) {
+  tagalongTimeRate = Math.max(0, Math.min(4, parseFloat(v) || 0)); saveTagalongCfg();
+  devSyncTagalong(); _devSafeRender();
+}
+function devSyncTagalong() {
+  const b = document.getElementById('dev-tag-max');  if (b) b.value = tagalongMaxCards;
+  const bl = document.getElementById('dev-tag-max-val'); if (bl) bl.textContent = tagalongMaxCards > 0 ? tagalongMaxCards : 'unlimited';
+  const c = document.getElementById('dev-tag-rate'); if (c) c.value = tagalongTimeRate;
+  const cl = document.getElementById('dev-tag-rate-val'); if (cl) cl.textContent = tagalongTimeRate.toFixed(2).replace(/\.?0+$/, '');
+  const st = document.getElementById('dev-tag-state');
+  const own = (typeof tagalongOwned === 'function' && tagalongOwned());
+  const kick = (typeof kickersScore === 'function' && kickersScore());
+  if (st) st.textContent = (own
+    ? `Tagalong owned: ${tagalongMaxCards > 0 ? 'up to ' + tagalongMaxCards : 'any number of'} kickers, free.`
+    : 'Tagalong not owned: 1 kicker per hand, billed its pips and seconds.')
+    + (kick ? ' Chip In owned: kickers score.' : '');
+}
+
 function devSyncNs() {
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
   const st = document.getElementById('dev-ns-state');
@@ -1248,3 +1379,69 @@ function devResetImprove() {
   if (typeof updateKnackList === 'function') updateKnackList();
   devRenderImprove();
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// SQUARES (r368) - the daily grids' own knobs
+// ══════════════════════════════════════════════════════════════════════════
+// Everything here is read by js/squares-daily.js through `sqCfg`, which holds
+// OVERRIDES ONLY (the r197 goal-tuner rule): a row left alone tracks whatever
+// the file ships and setting it back deletes the override rather than pinning
+// today's number for ever. A row moved off the shipped value is drawn in gold,
+// so "what have I actually changed" is answerable without diffing the source.
+const SQ_DEV_ROWS = [
+  { k:'cardScore', label:'Per-card scoring', kind:'select',
+    opts:[['tier','tiered - ace 3, court 2, else 1'], ['rank','rank value - the card\'s own pips'], ['none','none - hands only']] },
+  { k:'rankVary', label:'Rank width varies by grid', kind:'bool',
+    hint:'Grid 1 takes any width, grid 2 is 5 or 7 ranks, grid 3 is 7 or 9. Off, every grid uses the flat width below.' },
+  { k:'rankSpread', label:'... flat width when it does not', kind:'num', min:3, max:13, step:1, unit:' ranks',
+    hint:'A grid is dealt from this many CONSECUTIVE ranks. Fewer makes both sets and runs likelier.' },
+  { k:'wildChance', label:'Chance a grid carries a wild', kind:'num', min:0, max:100, step:5, unit:'%' },
+  { k:'wildMinRun', label:'... but at least this many grids do', kind:'num', min:0, max:3, step:1, unit:'',
+    hint:'The floor. If the last grid comes round and no wild has turned up, that one gets it.' },
+  { k:'wildPerGrid', label:'... and it carries this many', kind:'num', min:0, max:4, step:1, unit:'',
+    hint:'A wild takes the best rank and suit for each line it sits in, its row and its column separately. 0 switches wilds off.' },
+  { k:'wildValue', label:'A wild scores a card value', kind:'bool' },
+  { k:'qualifyLines', label:'A good grid: lines that score', kind:'num', min:0, max:8, step:1, unit:'',
+    hint:'One arrangement has to make at least this many lines a real hand (not a High Card).' },
+  { k:'qualifyDeep', label:'... of which three-card hands', kind:'num', min:0, max:8, step:1, unit:'',
+    hint:'... and this many of them use THREE cards - a run, a flush or a set - rather than a pair with a spare beside it.' },
+  { k:'qualifyCover', label:'... and cards in a real hand', kind:'num', min:0, max:100, step:5, unit:'%',
+    hint:'... and this share of the cards on the board is part of a hand that is not a High Card. All three are asked of the SAME arrangement.' },
+  { k:'qualifyMixes', label:'Qualify: different ways to do it', kind:'num', min:1, max:8, step:1, unit:'',
+    hint:'Redeal unless this many DIFFERENT hand mixes clear that bar - more than one good answer, which is what makes it a decision.' },
+  { k:'qualifyKinds', label:'Qualify: distinct hands at par', kind:'num', min:0, max:6, step:1, unit:'',
+    hint:'... and the best-scoring packing makes this many DIFFERENT hands. 0 switches it off.' },
+  { k:'qualifySpread', label:'Qualify: an arbitrary packing is under', kind:'num', min:0, max:100, step:5, unit:'% of par',
+    hint:'... and where you put the tiles genuinely matters. If any old arrangement already scores near par, the grid is not a puzzle. 100 switches it off.' },
+  { k:'qualifyTries', label:'Qualify: deals to try', kind:'num', min:1, max:12, step:1, unit:'' },
+];
+function devRenderSquares() {
+  const host = document.getElementById('dev-squares-rows'); if (!host) return;
+  if (typeof sqCfg !== 'function') { host.innerHTML = '<div class="dev-note">squares not loaded</div>'; return; }
+  host.innerHTML = SQ_DEV_ROWS.map(r => {
+    const v = sqCfg(r.k), moved = v !== SQ_CFG_DEF[r.k];
+    let ctl;
+    if (r.kind === 'select') ctl = `<select class="dev-sq-in" data-k="${r.k}">`
+      + r.opts.map(([o, t]) => `<option value="${o}"${o === v ? ' selected' : ''}>${t}</option>`).join('') + '</select>';
+    else if (r.kind === 'bool') ctl = `<input type="checkbox" class="dev-sq-in" data-k="${r.k}"${v ? ' checked' : ''}>`;
+    else ctl = `<button class="dev-sq-step" data-k="${r.k}" data-d="-1">-</button>`
+             + `<span class="dev-sq-val">${v}${r.unit || ''}</span>`
+             + `<button class="dev-sq-step" data-k="${r.k}" data-d="1">+</button>`;
+    return `<div class="dev-sq-row${moved ? ' moved' : ''}">`
+         + `<div class="dev-sq-lab">${r.label}</div><div class="dev-sq-ctl">${ctl}</div>`
+         + (r.hint ? `<div class="dev-sq-hint">${r.hint}</div>` : '') + '</div>';
+  }).join('');
+  host.querySelectorAll('.dev-sq-step').forEach(b => b.onclick = () => {
+    const r = SQ_DEV_ROWS.find(x => x.k === b.dataset.k);
+    const v = Math.max(r.min, Math.min(r.max, sqCfg(r.k) + (+b.dataset.d) * (r.step || 1)));
+    sqCfgSet(r.k, v); devRenderSquares(); devRenderGroupMenu?.();
+  });
+  host.querySelectorAll('select.dev-sq-in').forEach(e => e.onchange = () => { sqCfgSet(e.dataset.k, e.value); devRenderSquares(); });
+  host.querySelectorAll('input.dev-sq-in').forEach(e => e.onchange = () => { sqCfgSet(e.dataset.k, e.checked); devRenderSquares(); });
+  const st = document.getElementById('dev-squares-status');
+  if (st) st.textContent = (typeof sqDaily === 'function' && sqDaily())
+    ? `live: ${SQ_N}x${SQ_N} · grid ${sqRound}/${sqRounds()} · ranks ${sqdRankWindow().join(' ')} (${sqdRankWindow().length})`
+    : 'not in a daily grid - changes apply to the next run';
+}
+function devResetSquares() { if (typeof sqCfgReset === 'function') { sqCfgReset(); devRenderSquares(); } }

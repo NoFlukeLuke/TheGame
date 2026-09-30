@@ -352,6 +352,7 @@ function enhanceCardKey(key, e) {
   if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
   if (e.time)   permTime[key]   = (permTime[key]   || 0) + e.time;
   if (e.coin)   permCoins[key]  = (permCoins[key]  || 0) + e.coin;
+  if (e.focus)  permFocus[key]  = (permFocus[key]  || 0) + e.focus;
   if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);
 }
 // Returns the card it created. The Card Market needs that: searching the draw

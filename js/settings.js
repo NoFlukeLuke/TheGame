@@ -95,6 +95,32 @@ const SETTINGS_DEF = [
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-shake', !!v) },
 
+  // ── Skip ── (r380) Owner: "add a setting in settings to skip transitions.
+  // maybe have a whole tab for things you can skip. scoring animations,
+  // transitions, payouts, think through other things like this that take time
+  // without mechanical progression." Every row is read LIVE through skipOn(),
+  // at the one place that thing starts, so none of them needs an apply.
+  // Nothing here changes a number - a skipped animation lands exactly what the
+  // full one would have.
+  { group: 'Skip', id: 'skipTransitions', label: 'Screen transitions',
+    hint: 'The beat and the card explosion between reward screens, the 3-2-1 back into a Flow level, and the channel flicker.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipScoring', label: 'Scoring animations',
+    hint: 'Every hand tallies at skip speed. The same numbers land in the same order.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipFinale', label: 'Round-winning finale',
+    hint: 'The hand that clears the goal skips its jitter and explosion, as if you pressed SKIP.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipPayout', label: 'Payout count-up',
+    hint: 'The end-of-round credits land at once instead of counting up.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipRewardCount', label: 'Reward count-up',
+    hint: 'Flow: the GOAL CLEARED card that counts how many reward screens you earned. The count still shows as a toast.',
+    type: 'toggle', default: false },
+  { group: 'Skip', id: 'skipIntro', label: 'Opening camera move',
+    hint: 'The slow push in on the office monitor when the game loads.',
+    type: 'toggle', default: false },
+
   { group: 'Motion', id: 'payoutPick', label: 'Card pick after payout',
     hint: 'EXPERIMENTAL. After the payout the board comes back and you boost, copy or remove one card. Off by default.',
     type: 'toggle', default: false,
@@ -113,13 +139,29 @@ const SETTINGS_DEF = [
   // translated on the way to the screen, so the toggle is live and needs no
   // second copy of anything.
   { group: 'Display', id: 'lexicon', label: 'Wording',
-    hint: 'Corporate: work, skill, output, quota, Utilities and Vendors. Gamer: pips, mult, score, goal, Tricks and Sleights.',
-    type: 'select', default: 'corporate', options: [['corporate','Corporate'], ['gamer','Gamer']],
+    hint: 'Gamer: pips, mult, score, goal, Tricks and Sleights. Corporate: work, skill, output, quota, Utilities and Vendors.',
+    type: 'select', default: 'gamer', options: [['gamer','Gamer'], ['corporate','Corporate']],
     apply: v => { if (typeof setLexicon === 'function') setLexicon(v); } },
   // The room the cabinet sits in on the menu (js/camera.js + css/room.css).
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
     type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],
     apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
+  // The turning pattern behind the whole scene (css/hypno.css). Off removes the
+  // element outright rather than hiding it - a full-viewport conic gradient is
+  // still one to composite even at zero opacity.
+  // OFF BY DEFAULT SINCE r397, and the reason is frame rate rather than taste.
+  // Measured at 1440x820 through the real board, frames in a 2.5s window, three
+  // trials each: pattern off 60/61/60 fps, surround alone 39/38/40, both layers
+  // 25/24/26. It is four conic-gradient layers the size of the screen's own
+  // diagonal, and painting them is most of the cost - swapping the gradients for
+  // a flat colour recovers 46-54, and every other variant tried (smaller, one
+  // wheel, no mask, no will-change, a bitmap, rotating the gradient's own angle
+  // instead of the element) lands between 14 and 30. So it roughly halves the
+  // frame rate everywhere, which reads as the board hitching on every press.
+  { group: 'Display', id: 'hypno', label: 'Background pattern',
+    hint: 'A faint turning pattern behind the cabinet. Costs about half the frame rate, so it is off by default. Motion follows Reduced motion.',
+    type: 'toggle', default: false,
+    apply: v => document.body.classList.toggle('no-hypno', !v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },
@@ -154,9 +196,45 @@ function sfxVolume() {
   return master * sfx * trim;
 }
 
+// ONE VALUE, TWO STORES - the r244 payout-pick trap in a new shape. The wording
+// lives in SETTINGS_KEY here AND in 'lethe.lexicon' over in js/labels.js, and
+// this file loads second, so THIS is the copy that wins: applyAllSettings calls
+// setLexicon, which writes labels.js's key from ours. Flipping the two defaults
+// to 'gamer' therefore moves nobody who has already played - their stored
+// 'corporate' beats both - so the old default has to be cleared out once.
+//
+// It clears a stored 'corporate' ONLY. A player who deliberately picks corporate
+// after this runs keeps it, because the flag is already set by then.
+const LEXICON_MIGRATION_KEY = 'lethe.lexicon.migrated.v2';
+function migrateLexiconDefault(saved) {
+  try {
+    if (localStorage.getItem(LEXICON_MIGRATION_KEY)) return;
+    localStorage.setItem(LEXICON_MIGRATION_KEY, '1');
+    if (saved.lexicon !== 'corporate') return;
+    delete saved.lexicon;                        // fall through to the new default
+    localStorage.removeItem('lethe.lexicon');    // and labels.js's early read with it
+  } catch (e) {}
+}
+
+// A STORED VALUE BEATS A DEFAULT, so flipping one moves nobody who has already
+// played (the r183 hbCfg2 -> hbCfg3 rule). The background pattern shipped ON and
+// costs about half the frame rate, so anyone who had it would have kept it for
+// ever without this. It clears a stored `true` ONCE; a player who turns it back
+// on afterwards keeps it, because the flag is already set by then.
+const HYPNO_MIGRATION_KEY = 'lethe.hypno.migrated.v1';
+function migrateHypnoDefault(saved) {
+  try {
+    if (localStorage.getItem(HYPNO_MIGRATION_KEY)) return;
+    localStorage.setItem(HYPNO_MIGRATION_KEY, '1');
+    if (saved.hypno === true) delete saved.hypno;   // fall through to the new default
+  } catch (e) {}
+}
+
 function loadSettings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) { saved = {}; }
+  migrateLexiconDefault(saved);
+  migrateHypnoDefault(saved);
   SETTINGS = {};
   SETTINGS_DEF.forEach(d => {
     if (d.type === 'action') return;
@@ -233,6 +311,27 @@ function resetSettings() {
   renderSettings();
 }
 
+// ONE READ for every Skip row (r380). `key` is the row id without its prefix:
+// skipOn('transitions') reads skipTransitions. Read live, so flipping a switch
+// changes the very next thing it covers.
+function skipOn(key) {
+  if (typeof SETTINGS === 'undefined' || !SETTINGS) return false;
+  return !!SETTINGS['skip' + key.charAt(0).toUpperCase() + key.slice(1)];
+}
+
+// SETTINGS HAS TABS (r380). It had grown to one long scroll of six groups, and
+// the owner asked for "a whole tab" for the Skip rows. The tab is remembered per
+// viewer; a stored tab that no longer exists falls back to the first.
+const SETTINGS_TAB_KEY = 'lethe.settingsTab';
+let settingsTab = null;
+try { settingsTab = localStorage.getItem(SETTINGS_TAB_KEY); } catch (e) {}
+function setSettingsTab(name) {
+  settingsTab = name;
+  try { localStorage.setItem(SETTINGS_TAB_KEY, name); } catch (e) {}
+  renderSettings();
+  const body = document.getElementById('settings-body'); if (body) body.scrollTop = 0;
+}
+
 function renderSettings() {
   const body = document.getElementById('settings-body');
   if (!body) return;
@@ -242,7 +341,11 @@ function renderSettings() {
     if (!g) groups.push(g = { name: d.group, items: [] });
     g.items.push(d);
   });
-  body.innerHTML = groups.map(g => `
+  if (!groups.some(g => g.name === settingsTab)) settingsTab = groups[0] && groups[0].name;
+  const tabs = `<div class="set-tabs">` + groups.map(g =>
+      `<button class="set-tab${g.name === settingsTab ? ' on' : ''}" onclick="setSettingsTab('${g.name}')">${g.name}</button>`
+    ).join('') + `</div>`;
+  body.innerHTML = tabs + groups.filter(g => g.name === settingsTab).map(g => `
     <div class="set-group-title">${g.name}</div>
     ${g.items.map(d => settingsRowHTML(d)).join('')}
   `).join('') + `<div id="settings-run-msg"></div>`;
