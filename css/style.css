@@ -944,6 +944,11 @@
     gap: 0; width: 100%;
   }
   #stage:not(.landscape) #trick-tray-list .chip-marquee { gap: 0; }
+  /* r399: the tilt. fanTrickTray publishes --tilt per chip; it rides the
+     STANDALONE rotate property so it composes with every transform other
+     systems write (dance pop, mirror, selection) instead of replacing them. */
+  #stage:not(.landscape) #trick-tray-list .chip-marquee { perspective: 260px; perspective-origin: 0 50%; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { rotate: y var(--tilt, 0deg); transform-origin: 0 50%; }
   /* Each tile after the first pulls left by however much the row is short. The
      later tile sits ON TOP, so the fan reads left-to-right like a held hand. */
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip + .trick-tray-chip {
