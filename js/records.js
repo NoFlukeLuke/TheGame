@@ -46,11 +46,14 @@ function openRecords(tab) {
   }
   renderRecords();
   el.classList.add('show');
+  // The card fan MEASURES its row, so it has to run once the panel is on screen.
+  if (recordsTab === 'deck') recordsDeckAfterRender();
 }
 
 function closeRecords() {
   if (!recordsOpen) return;
   recordsOpen = false;
+  if (typeof hideEntityTooltip === "function") hideEntityTooltip(true);
   recordsOverlay().classList.remove('show');
   if (!screenOwnsClock()) resumeGame();
 }
@@ -66,6 +69,7 @@ function renderRecords() {
        <span class="rec-tab-ico">${t.icon}</span>${t.label}</button>`).join('');
   const tab = RECORDS_TABS.find(t => t.id === recordsTab) || RECORDS_TABS[0];
   bodyEl.innerHTML = tab.render();
+  if (tab.id === 'deck') recordsDeckAfterRender();
 }
 
 // ══════════════════════════════════════════════
@@ -107,7 +111,114 @@ function recordsDeckCensus() {
   return cells;
 }
 
+// ══════════════════════════════════════════════
+// DECK TAB - the CARDS view (r399). Every physical card drawn with the board's own
+// renderCardAppearance, one row per suit, sorted by rank. The rank x suit map
+// below is still one toggle away.
+// ══════════════════════════════════════════════
+let recordsDeckView   = 'cards';   // 'cards' | 'map'
+let recordsDeckGrid   = false;     // outline cards that are on the board
+let recordsDeckBuffed = false;     // show only cards carrying something
+let _recDeckCards     = [];        // index -> card, for the tooltip
+
+function recordsDeckSetView(v)  { recordsDeckView = v; renderRecords(); }
+function recordsDeckToggle(k)   { if (k === 'grid') recordsDeckGrid = !recordsDeckGrid; else recordsDeckBuffed = !recordsDeckBuffed; renderRecords(); }
+
+// What one card carries, as plain lines: buffs, curse, card states.
+function recordsCardLines(card) {
+  const k = cardId(card);
+  const lines = cardBuffLines(k).slice();
+  const cu = cardCurses[k], cd = cu ? CURSE_DEFS[cu.id] : null;
+  if (cd) lines.push(`Cursed: ${cd.name} - ${cd.desc}`);
+  if (typeof cardStateList === 'function')
+    cardStateList(card).forEach(s => lines.push(`${s.def.name}${s.n > 1 ? ' x' + s.n : ''} - ${s.def.desc}`));
+  if (card._temp) lines.push('Temp card - gone after this level');
+  return lines;
+}
+
+function recordsDeckWhere() {
+  const grid = new Set(), played = new Set(playedPile);
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) { const x = gridData[r]?.[c]; if (x) grid.add(x); }
+  return card => grid.has(card) ? 'grid' : played.has(card) ? 'played' : 'draw';
+}
+
+function recordsRenderDeckCards() {
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  const whereOf = recordsDeckWhere();
+  const all = everyDeckCard();
+  const rankIdx = rk => { const i = ACTIVE_RANKS.indexOf(rk); return i < 0 ? 99 : i; };
+  const counts = { draw: 0, grid: 0, played: 0 };
+  all.forEach(c => counts[whereOf(c)]++);
+  _recDeckCards = [];
+  const rowOf = (label, cls, cards) => {
+    cards = cards.filter(c => !recordsDeckBuffed || recordsCardLines(c).length);
+    if (!cards.length) return '';
+    cards.sort((a, b) => rankIdx(a.rank) - rankIdx(b.rank));
+    const html = cards.map(card => {
+      const i = _recDeckCards.push(card) - 1;
+      const { className, innerHTML } = renderCardAppearance(card, -1, -1, { revealFog: true });
+      const w = whereOf(card);
+      return `<div class="rec-card-slot w-${w}" data-rci="${i}">` +
+             `<div class="${className}">${innerHTML}</div></div>`;
+    }).join('');
+    return `<div class="rec-card-row"><span class="rec-card-suit ${cls}">${label}<b>${cards.length}</b></span>` +
+           `<div class="rec-card-fan">${html}</div></div>`;
+  };
+  let rows = suits.map(s => rowOf(s, suitClass(s), all.filter(c => c.suit === s && !isWildCard(c)))).join('');
+  rows += rowOf('✶', 'rec-wild', all.filter(c => isWildCard(c)));
+  const other = all.filter(c => !isWildCard(c) && !suits.includes(c.suit));
+  if (other.length) rows += rowOf('?', '', other);
+  if (!rows) rows = `<div class="rec-empty">No buffed cards yet.</div>`;
+  const chip = (on, k, txt) => `<button class="rec-chip${on ? ' on' : ''}" onclick="recordsDeckToggle('${k}')">${txt}</button>`;
+  return `
+    <div class="rec-summary">
+      <div class="rec-stat"><span class="rec-stat-v">${counts.draw}</span><span class="rec-stat-l">Not played</span></div>
+      <div class="rec-stat"><span class="rec-stat-v">${counts.grid}</span><span class="rec-stat-l">On board</span></div>
+      <div class="rec-stat"><span class="rec-stat-v">${counts.played}</span><span class="rec-stat-l">Played</span></div>
+      <div class="rec-stat"><span class="rec-stat-v">${all.length}</span><span class="rec-stat-l">Deck size</span></div>
+    </div>
+    <div class="rec-deck-bar">
+      <button class="rec-chip" onclick="recordsDeckSetView('map')">Show deck map</button>
+      ${chip(recordsDeckGrid, 'grid', 'Mark board cards')}
+      ${chip(recordsDeckBuffed, 'buffed', 'Buffed only')}
+      <span class="rec-h-note">Dim = played this round. Tap a card to see what it carries.</span>
+    </div>
+    <div class="rec-card-rows${recordsDeckGrid ? ' show-grid' : ''}">${rows}</div>`;
+}
+
+// Tuck each row so it fits its width (Balatro-style), and wire the card reads.
+function recordsDeckAfterRender() {
+  document.querySelectorAll('#records-body .rec-card-fan').forEach(fan => {
+    const slots = fan.children, n = slots.length;
+    if (!n) return;
+    const w = slots[0].offsetWidth, avail = fan.clientWidth;
+    const gap = n > 1 ? Math.min(4, (avail - w) / (n - 1) - w) : 4;
+    fan.style.setProperty('--rc-gap', Math.floor(gap) + 'px');
+  });
+  const box = document.querySelector('#records-body .rec-card-rows');
+  if (!box || box._wired) return;
+  box._wired = true;
+  const show = el => {
+    const card = _recDeckCards[+el.dataset.rci]; if (!card) return;
+    const lines = recordsCardLines(card);
+    const w = recordsDeckWhere()(card);
+    const face = isWildCard(card) ? 'Wild card' : `${card.rank}${card.suit}`;
+    showEntityTooltip(el, { label: face, desc: lines.length ? lines.join('<br>') : 'No buffs.' });
+    const rar = document.querySelector('#entity-tip .et-rar');
+    if (rar) rar.textContent = w === 'grid' ? 'ON BOARD' : w === 'played' ? 'PLAYED' : 'NOT PLAYED';
+  };
+  box.addEventListener('click', e => { const s = e.target.closest('.rec-card-slot'); if (s) show(s); });
+  box.addEventListener('mouseover', e => {
+    if (!matchMedia('(hover: hover)').matches) return;
+    const s = e.target.closest('.rec-card-slot'); if (s) show(s);
+  });
+  box.addEventListener('mouseleave', () => hideEntityTooltip());
+}
+
+window.addEventListener('resize', () => { if (recordsOpen && recordsTab === 'deck') recordsDeckAfterRender(); });
+
 function recordsRenderDeck() {
+  if (recordsDeckView === 'cards') return recordsRenderDeckCards();
   const where = recordsDeckCensus();
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
   const counts = { draw: 0, grid: 0, played: 0 };
@@ -171,6 +282,7 @@ function recordsRenderDeck() {
       <div class="rec-stat"><span class="rec-stat-v">${counts.played}</span><span class="rec-stat-l">Played</span></div>
       <div class="rec-stat"><span class="rec-stat-v">${counts.draw + counts.grid + counts.played}</span><span class="rec-stat-l">Deck size</span></div>
     </div>
+    <div class="rec-deck-bar"><button class="rec-chip on" onclick="recordsDeckSetView('cards')">Show cards</button></div>
     <div class="rec-cols">
       <div class="rec-col rec-col-wide">
         <div class="rec-h">Deck map <span class="rec-h-note">every card, and where it is</span></div>
