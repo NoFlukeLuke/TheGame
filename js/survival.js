@@ -415,7 +415,10 @@ function survivalUpdateRerollBtn() {
   if (typeof gridPickState === 'undefined' || !gridPickState) return;
   // A chain step that is not the ordinary pick owns its own action row - stamping
   // survival's four over it would put Peek/Shop on a limits screen (r325).
-  if (typeof flowrOwnsScreen === 'function' && flowrOwnsScreen()) return;
+  if (typeof flowrOwnsScreen === 'function' && flowrOwnsScreen()) {
+    if (typeof flowrRefreshActions === 'function') flowrRefreshActions();   // r405
+    return;
+  }
   gridPickRefresh(null, survivalPickActions());
 }
 
@@ -472,8 +475,13 @@ function survivalHideContrib() {
   const panel = document.getElementById('sv-pick-contrib');
   if (panel) { panel.classList.remove('show'); panel.innerHTML = ''; }
   document.getElementById('sv-pick-contrib-btn')?.classList.remove('sv-open');
-  document.getElementById('survival-pick-overlay')?.classList.remove('sv-reading');
+  const ov = document.getElementById('survival-pick-overlay');
+  ov?.classList.remove('sv-reading');
   document.body.classList.remove('gp-reading');
+  // r405: a Flow chain screen lends the overlay for the reader; give it back.
+  if (ov && ov.dataset.borrowed && !(typeof shopGridActive !== 'undefined' && shopGridActive)) {
+    ov.classList.remove('show'); delete ov.dataset.borrowed;
+  }
 }
 
 // ── PEEK (r197) ──────────────────────────────────────────────────────────────

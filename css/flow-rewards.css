@@ -699,3 +699,7 @@ body.reduced-motion #flowr-stack.fbg-enter { animation: none; }
   border-radius: 1px;
   will-change: transform, opacity;
 }
+
+/* r405 - the shop can be opened from a chain screen; it is the board for as long
+   as it is up, so the panel and the tab ladder stand aside. */
+body.shop-active #flowr-bg, body.shop-active #flowr-stack { visibility: hidden; }

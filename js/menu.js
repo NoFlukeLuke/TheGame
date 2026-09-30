@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r405 · shop: REROLL and LEAVE are separate buttons, SWAP is a real button";
+const BUILD = "2026-09-30 · r406 · Flow reward screens get Round breakdown and Shop buttons";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

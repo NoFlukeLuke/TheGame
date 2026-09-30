@@ -1135,6 +1135,8 @@ function flowrRenderStack() {
 }
 let _flowrLastIdx = -1;
 function flowrClearStack() {
+  flowrStepActions = null;
+  try { flowrReleaseOverlay(); } catch (e) {}
   document.getElementById('flowr-stack')?.remove();
   document.getElementById('flowr-bg')?.remove();
   document.getElementById('flowr-fall')?.remove();
@@ -1222,12 +1224,75 @@ function flowrBuildOffers(kind) {
   return out.filter(Boolean);
 }
 
+
+// ── Round breakdown + Shop on the chain's own screens (r405) ─────────────────
+// The ordinary pick-of-three carries Reroll / Peek / Round / Shop; the chain's
+// other screens (limits, improve, cards, knacks, tricks, sleeps, deck) carried
+// only Reroll. Round and Shop are offered here too - there is room, the action
+// row holds four. The reader and the shop are survival's own (one
+// implementation, several screens), so these only borrow the pick overlay they
+// draw in for as long as they are open.
+//
+// Peek is NOT here: it hands the board back, and on a chain screen the panel and
+// the tab ladder sit over that board too.
+let flowrStepActions = null;     // () => the live step's action row
+function flowrBorrowOverlay() {
+  const ov = survivalPickOverlay();
+  if (!ov.classList.contains('show')) { ov.classList.add('show'); ov.dataset.borrowed = '1'; }
+  return ov;
+}
+function flowrReleaseOverlay() {
+  const ov = document.getElementById('survival-pick-overlay');
+  if (ov && ov.dataset.borrowed) { ov.classList.remove('show'); delete ov.dataset.borrowed; }
+}
+function flowrToggleRound() {
+  const panel = document.getElementById('sv-pick-contrib');
+  const opening = !(panel && panel.classList.contains('show'));
+  if (opening) flowrBorrowOverlay();
+  survivalToggleContrib();
+  if (!opening) flowrReleaseOverlay();
+}
+function flowrOpenShop() {
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
+  // A refusal (not enough credits) just toasts; only a real open borrows the
+  // overlay. The shop opens a beat later, so its state cannot be tested here.
+  if (coins < SURVIVAL_SHOP_COST) { survivalOpenShop(); return; }
+  // Paying the fee repaints credits, which redraws this row and releases the
+  // borrowed overlay before survivalOpenShop reads it, so say it outright.
+  const fee = coins;
+  survivalOpenShop();
+  if (coins < fee) survivalShopFromPick = true;   // the shop took the fee: closing it returns to this step
+}
+function flowrCommonActions() {
+  return [
+    { icon: '\ud83d\udcca', label: 'Round', sub: 'breakdown', onClick: () => flowrToggleRound() },
+    { icon: '\ud83d\uded2', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} \u25c6`, cls: 'gp-act-buy',
+      disabled: coins < SURVIVAL_SHOP_COST, onClick: () => flowrOpenShop() },
+  ];
+}
+// Redraw the live step's action row (credits moved, or the shop just closed).
+function flowrRefreshActions() {
+  flowrReleaseOverlay();
+  if (!(flowrStepActions && typeof gridPickState !== 'undefined' && gridPickState)) return;
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
+  // The shop cleared #grid on its way out: put the step's offers back.
+  if (!document.querySelector('#grid .gp-opt')) { gridPickState.actions = flowrStepActions(); gridPickRender(true); return; }
+  gridPickRefresh(null, flowrStepActions());
+}
+
 function flowrShowEntityStep(kind) {
   const offers = flowrBuildOffers(kind);
   if (!offers.length) { flowrAfterStep(); return; }
   _flowrStepOffers = offers;
   if (typeof pickRerollsNewScreen === 'function') pickRerollsNewScreen(); // price ladder restarts per screen
   const meta = FLOWR_KINDS[kind];
+  const rerollAct = () => pickRerollAction(() => {
+    const fresh = flowrBuildOffers(kind);
+    if (fresh.length) { _flowrStepOffers = fresh; gridPickRefresh(fresh.map(o => ({
+      entity: o.type === 'improve' ? o.etype : o.type, id: o.id, emoji: o.icon, icon: o.icon,
+      label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag })), null); }
+  });
+  flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
   openGridPick({
     title: meta.label(),
     tone: 'reward',
@@ -1236,12 +1301,7 @@ function flowrShowEntityStep(kind) {
       id: o.id, emoji: o.icon, icon: o.icon,
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag,
     })),
-    actions: [pickRerollAction(() => {
-      const fresh = flowrBuildOffers(kind);
-      if (fresh.length) { _flowrStepOffers = fresh; gridPickRefresh(fresh.map(o => ({
-        entity: o.type === 'improve' ? o.etype : o.type, id: o.id, emoji: o.icon, icon: o.icon,
-        label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag })), null); }
-    })],
+    actions: flowrStepActions ? flowrStepActions() : [],
     onChoose: (i) => { flowrGrantOffer(_flowrStepOffers[i]); _flowrStepOffers = null; flowrAfterStep(); },
     onSkip: () => { _flowrStepOffers = null; rainCheckPay(); flowrAfterStep(); },
   });
@@ -1402,11 +1462,12 @@ function flowrDeckActive() { return !!_flowrDeckOp; }
 
 function flowrShowDeckPick() {
   const ops = flowrDrawOps(3);   // r392: weighted by FLOWR_OP_WEIGHTS
+  flowrStepActions = () => flowrCommonActions();
   openGridPick({
     title: 'DECK EDIT', tone: 'reward',
     offers: ops.map(op => ({ entity: 'deckop', id: op.id, icon: op.icon, emoji: op.icon,
                              label: op.name, desc: op.desc, rarity: 'rare', tag: 'DECK' })),
-    actions: [],
+    actions: flowrStepActions(),
     onChoose: (i) => flowrDeckBegin(ops[i]),
     onSkip: () => { rainCheckPay(); flowrAfterStep(); },
   });
@@ -2019,6 +2080,11 @@ function flowrShowCardsPick() {
   if (!packs.length) { flowrAfterStep(); return; }
   _flowrPacks = packs;
   if (typeof pickRerollsNewScreen === 'function') pickRerollsNewScreen();
+  const rerollAct = () => pickRerollAction(() => {
+    const fresh = flowrBuildPacks();
+    if (fresh.length) { _flowrPacks = fresh; gridPickRefresh(tiles(), null); }
+  });
+  flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
   const tiles = () => _flowrPacks.map((p, i) => ({
     entity: 'cardpack', id: 'pack' + i, artKind: 'pack', artHTML: flowrPackArtHTML(p),
     icon: p.suit, emoji: p.suit, rarity: 'rare', tag: 'CARDS',
@@ -2029,10 +2095,7 @@ function flowrShowCardsPick() {
   openGridPick({
     title: FLOWR_KINDS.cards.label(), tone: 'reward',
     offers: tiles(),
-    actions: [pickRerollAction(() => {
-      const fresh = flowrBuildPacks();
-      if (fresh.length) { _flowrPacks = fresh; gridPickRefresh(tiles(), null); }
-    })],
+    actions: flowrStepActions(),
     onChoose: (i) => { flowrGrantPack(_flowrPacks[i]); _flowrPacks = null; flowrAfterStep(); },
     onSkip: () => { _flowrPacks = null; rainCheckPay(); flowrAfterStep(); },
   });
