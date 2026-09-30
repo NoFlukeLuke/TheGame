@@ -10655,6 +10655,144 @@ their own label and stand the pulse down; closing each one restores `🔄 SWAP 3
 its own band. **No page errors in any run.**
 
 
+## r398 - the WHOLE PANEL is knocked off, and it never changes size
+
+Owner: *"Right now just the title pops off, and it happens after the shape of
+the square changes suddenly and weirdly. After the options explode off, I want
+the shape of the square that contained the options to remain a square, the shine
+effect goes across that shape, then the whole shape, not just the title, falls
+off to one side. And at no point should the thing all the options and buttons
+are sitting in change size suddenly."*
+
+### THE VOCABULARY, since this is the third pass over it
+
+| what it is | name | element |
+|---|---|---|
+| the coloured rounded rectangle the options and buttons sit on | **the panel** | `#flowr-bg` |
+| the strip of coloured headers above it | **the tab ladder** (or the stack) | `#flowr-stack` |
+| one header in it | **a tab** | `.fst-chip` |
+| the named one, flush with the panel | **the current tab** | `.fst-cur` |
+| the ones peeking behind it | **the queued tabs** | `.fst-chip` at depth > 0 |
+| the free-standing copy that shines and falls | **the ghost** | `#flowr-fall` |
+| the bright band that sweeps it | **the shine** | `.ffl-shine` |
+| the board the tiles are children of | **the tray** | `#grid` |
+| the three choices | **the option tiles** | `.gp-opt` |
+| the row of buttons at their foot | **the action row** | `.gp-act` |
+| the inert filler cards | **the ambience** | `.gp-amb` |
+| the tiles flying away | **the explode-out** | `js/reward-transition.js` |
+| GOAL CLEARED x3 REWARD | **the reward chip** | `#flowr-counter` |
+| one screen | **a step**; all of them, **the chain**; the move between two, **the hand-over** | `flowrHandOver` |
+
+### 1. THE PANEL CHANGED SIZE TWICE IN EVERY GAP, AND IT WAS MEASURABLE
+
+The panel is sized in pure CSS off `--grid-w` / `--grid-h`, which is right while
+a step is up and WRONG the moment it is not: closing a pick calls
+`gridScreenRelease()`, handing `gridRows`/`gridCols` back to the PLAY board, and
+opening the next one takes them again. Sampled every 16ms at 1440x820 across one
+hand-over:
+
+| t (ms) | panel | board |
+|---|---|---|
+| 100 | **615 x 534** | 4x6, the pick |
+| 3650 | **561 x 707** | 4x4, the play board |
+| 4022 | **615 x 534** | 4x6 again |
+
+Narrower AND 173px taller, and back, with nothing on it. **It also built the
+ghost at the wrong width**, because the ghost is measured during exactly that
+window.
+
+- **`--fbg-w` / `--fbg-h` are the pinned figures**, and BOTH the panel and the
+  tab ladder read them, falling back to `--grid-w` / `--grid-h` when nothing is
+  pinned. One write moves both and there are no inline styles to unpick.
+- **The pin is taken on the frame AFTER a step opens** (`flowrPinPanelSoon`):
+  `#grid-slot` carries a left/width transition on the takeover (r237/r380), so
+  the board's final box is not known on the synchronous call. It is held until
+  the NEXT step pins its own, so the gap between them cannot move it.
+- **The deck edit re-pins**, because it is the one step that legitimately wraps
+  a different board - the PLAY board, not the 6x4 pick board. That change lands
+  behind the falling panel of the step before it.
+- **`fbgSquash` IS GONE.** It scaled the panel 1.012 / 0.972 at the reveal,
+  which is small and is still the panel changing size, and with the whole panel
+  now falling there was nothing left for it to do. `fbg-turn` keeps the WIPE
+  for the one case with no panel to knock off.
+- Measured after, sampling every 16ms across a whole 3-step chain: **exactly one
+  panel size, at 1440x820 and at 420x900.**
+
+### 2. THE WHOLE PANEL FALLS, NOT THE TAB
+
+r394 fell the tab alone, which is the "just the title pops off". `#flowr-fall`
+is now a copy of the PANEL at its measured box, carrying a copy of its current
+tab at the measured offset between the two boxes - one object. The shine sweeps
+it, and when the band reaches the side it is heading for, the whole thing tips
+that way and falls, revealing the next step's panel and tab, which were drawn
+underneath it before the sweep began.
+
+- **The offset is MEASURED, not derived.** The ladder's `top` carries a
+  `max(0px, ...)` clamp that can push it down on a deep chain at a wide
+  viewport, so "the tab sits `--fst-tuck` above the panel" is not reliably true.
+  Both boxes go through `flowrBoxIn` in `#grid-slot`'s own design px and the
+  difference is the offset - exact in every case.
+- **The new panel takes its colour IMMEDIATELY**, unlike r394's version, which
+  had to hold the old one: the ghost now covers the whole panel rather than just
+  its tab, so there is nothing of the arrival on screen to give the game away
+  and the cross-fade happens underneath.
+- **The next step still starts AT the knock**, so the offers deal into the tray
+  behind the departing panel - one motion, and the hand-over costs only the
+  shine's lead.
+- `FLOWR_TABFALL_MS` 560 -> **720**: a whole panel has much further to travel
+  than a 22px tab, and both its sideways and downward travel are PERCENTAGES of
+  its own size, so it clears the slot at every board size with nothing measured.
+
+#### THE WRAPPER PAINTS NOTHING, AND THAT IS WHAT CLIPS THE SHINE
+
+`#flowr-fall` has to stay `overflow: visible`, because the tab hangs above its
+box - so with the shine inside it, the band's 52% sweep **painted straight off
+the panel and lit the SWAP / SKIP / CONFIRM buttons beside the board**, which a
+screenshot caught and no measurement would have. The wrapper is bare now and
+carries only the fall; `.ffl-panel` is the panel (with `overflow: hidden`) and
+`.ffl-tab` the tab (which `.fst-chip` already clips). Each piece clips its own
+shine.
+
+- **TWO SHINE LAYERS, ONE ANIMATION.** The silhouette of a panel plus its tab is
+  not a rectangle, so a single band would have to be clipped to a union. The two
+  boxes are the same WIDTH and take the same keyframes, and the band travels
+  horizontally, so they are at the same x on every frame and read as one sweep
+  crossing one object. (They are a few px apart at the join, because a 104deg
+  gradient's line length depends on the box's HEIGHT as well as its width.)
+- **+-52%, not +-60%.** The band sits at the box's centre at rest, so 50% of the
+  box width puts its centre exactly ON the far edge - where it has to be on the
+  frame the knock fires. At 60% it went a tenth of a panel past, the clip ate it,
+  and the sweep appeared to stop early.
+- **THE SHINE GOES OUT AS THE PANEL GOES OVER.** `fflShine` is `forwards`, so
+  without `fflShineOut` the band sat lit at .92 in the corner for the whole 720ms
+  of the fall - a bright streak riding the panel down. It holds its end transform
+  while it fades, or the band would snap back to centre on the way out.
+
+#### A NOTE ON FILMING THIS
+
+`page.screenshot()` takes 50-150ms against a ~1060ms sequence, so it cannot
+catch the fall (r379's lesson) - and pausing every animation is not enough
+either, because **the ghost's own `setTimeout(() => g.remove())` keeps running on
+real time and takes the subject away mid-strip.** The harness neuters it
+(`g.remove = () => {}` the instant a MutationObserver sees the ghost appear),
+then steps `currentTime` by hand. Stepping back into the SHINE phase also has to
+remove `.falling` first, or `fflShine` has already been replaced and every frame
+shows the band parked at its end.
+
+### Verified
+
+In a real browser at **1440x820 and 420x900**: sampling the panel every 16ms
+across a whole 3-step chain gives **exactly one size**; a 5-step chain covering
+pick3 / cards / deck / limits runs with **0 page errors** and only the deck
+edit's own (deliberate) second size; the chain completes with `level` moving
+**once**, **0 ghosts, no panel and no ladder left behind, the pin cleared**, the
+board refilled with **0 holes** and the deck audit balancing. Frame-stepped: the
+shine crosses the panel AND its tab and stops on the panel's edge with **nothing
+painting over the action column**, then the whole panel and its tab tip and
+slide off together, fading, revealing the next panel with its tab and options
+already there. The r397 suites are unchanged - the deck editor's six cases still
+pass and Classic still bills 8s a swap.
+
 ## r397 - focus resets at every level and every boss, and the deck editor takes swaps and discards
 
 ### 1. THE METER IS ZEROED IN ONE PLACE, AND THE BOSS PATH HAD NO COPY OF IT

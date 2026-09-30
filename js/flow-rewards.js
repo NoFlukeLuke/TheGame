@@ -432,6 +432,9 @@ function flowrShowStep() {
   if (typeof trickSelectionPhase !== 'undefined') trickSelectionPhase = false;
   const kind = flowrQueue[flowrIdx];
   flowrRenderStack();
+  // The step's own board decides the panel's size, and it holds it until the
+  // NEXT step pins its own - so the gap in between cannot move it.
+  flowrPinPanelSoon();
   if (kind === 'pick3') {
     _flowrBypass = true;
     try { survivalShowPick(false); } finally { _flowrBypass = false; }
@@ -519,7 +522,7 @@ function flowrAfterStep() {
 // "when the shine wave thing gets close to whichever side it goes toward then
 // the empty tab falls over".
 const FLOWR_SHINE_MS   = 340;
-const FLOWR_TABFALL_MS = 560;
+const FLOWR_TABFALL_MS = 720;   // r398: a whole panel, not a 22px tab
 
 // An element's box in its host's own design px. Returns null when it cannot be
 // measured (a display:none ancestor - the deck-edit step hides the tabs).
@@ -536,53 +539,74 @@ function flowrBoxIn(el, host) {
 function flowrHandOver(fromKind, next) {
   const skip = (typeof skipOn === 'function' && skipOn('transitions'));
   const host = document.getElementById('grid-slot');
-  const cur0 = document.getElementById('flowr-stack')?.querySelector('.fst-cur');
-  // Measured BEFORE the rebuild below destroys it.
-  const box = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
-  const label = cur0 ? cur0.innerHTML : '';
+  const stack0 = document.getElementById('flowr-stack');
+  const cur0 = stack0?.querySelector('.fst-cur');
   const bg0 = document.getElementById('flowr-bg');
-  const oldColor = bg0 ? bg0.style.getPropertyValue('--fc') : '';
+  // Measured BEFORE the rebuild below destroys them. The panel is what falls,
+  // so it is the panel's box the ghost takes; the tab's box is measured in the
+  // SAME space and carried across as an offset, which is exact even when the
+  // ladder has been clamped down by max(0px, ...) on a deep chain.
+  const pBox = (!skip && host && bg0) ? flowrBoxIn(bg0, host) : null;
+  const tBox = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
+  const label = cur0 ? cur0.innerHTML : '';
 
   flowrRenderStack();                       // the new arrangement, underneath
   const bg = document.getElementById('flowr-bg');
-  const newColor = bg ? bg.style.getPropertyValue('--fc') : '';
 
-  // No tab to knock off (the deck-edit takeover hides the ladder, and a skipped
-  // transition wants none of this): the panel says it instead, as it did before.
-  if (!box) {
+  // No panel to knock off (a skipped transition, or a board with no box yet):
+  // the panel says it instead, as it did before.
+  if (!pBox) {
     if (bg && !skip) { bg.classList.remove('fbg-turn'); void bg.offsetWidth; bg.classList.add('fbg-turn'); }
     setTimeout(next, skip ? 0 : 140);
     return;
   }
-  if (bg && oldColor) bg.style.setProperty('--fc', oldColor);   // hold the wash
 
+  // THE NEW PANEL TAKES ITS COLOUR IMMEDIATELY, unlike r394's version, which had
+  // to hold the old one: the ghost now covers the whole panel rather than just
+  // its tab, so there is nothing of the arrival on screen to give the game away
+  // and the cross-fade happens underneath.
   const meta = FLOWR_KINDS[fromKind] || FLOWR_KINDS.pick3;
   // EITHER WAY (owner's words). fxRandom, never Math.random - a seeded run
   // replaces the global and this would advance the deck and reward streams.
   const dir = ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5) ? -1 : 1;
+
   const g = document.createElement('div');
-  g.id = 'flowr-tabfall';
-  g.className = 'fst-chip fst-cur';
-  g.style.cssText = `left:${box.left}px;top:${box.top}px;right:auto;bottom:auto;`
-    + `width:${box.w}px;height:${box.h}px;`;
+  g.id = 'flowr-fall';
+  g.style.cssText = `left:${pBox.left}px;top:${pBox.top}px;width:${pBox.w}px;height:${pBox.h}px;`;
+  g.style.setProperty('--fc', meta.color);
   g.style.setProperty('--fst-c', meta.color);
-  g.style.setProperty('--fst-d', 0);
   g.style.setProperty('--fst-dir', dir);
   g.style.setProperty('--fst-shine-ms', FLOWR_SHINE_MS + 'ms');
   g.style.setProperty('--fst-fall-ms', FLOWR_TABFALL_MS + 'ms');
-  g.innerHTML = label + '<i class="fst-shine"></i>';
+  // THE TAB RIDES THE PANEL, as one object. Its offset is the measured
+  // difference between the two boxes, so it sits exactly where the real one
+  // did; `right:auto;bottom:auto` because .fst-chip positions itself by those.
+  let tabHTML = '';
+  if (tBox) {
+    tabHTML = `<div class="ffl-tab fst-chip fst-cur" style="--fst-c:${meta.color};--fst-d:0;`
+      + `left:${tBox.left - pBox.left}px;top:${tBox.top - pBox.top}px;right:auto;bottom:auto;`
+      + `width:${tBox.w}px;height:${tBox.h}px;">${label}<i class="ffl-shine"></i></div>`;
+  }
+  // TWO SHINE LAYERS, ONE ANIMATION. The panel and its tab are separate boxes
+  // with a gap in the silhouette between them, so a single band would have to
+  // be clipped to a non-rectangular union. They are the same WIDTH and take the
+  // same keyframes, and the band travels horizontally, so the two are at the
+  // same x on every frame and read as one sweep crossing one object.
+  // THE WRAPPER PAINTS NOTHING; .ffl-panel is the panel and .ffl-tab the tab.
+  // The split is what lets each CLIP ITS OWN SHINE: the wrapper has to stay
+  // overflow:visible because the tab hangs above its box, and with the shine
+  // inside the wrapper its 52% sweep painted straight off the panel and over
+  // the SWAP / SKIP / CONFIRM buttons beside the board. The panel goes first so
+  // the tab paints over its top edge, exactly as the ladder does at rest.
+  g.innerHTML = '<div class="ffl-panel"><i class="ffl-shine"></i></div>' + tabHTML;
   host.appendChild(g);
   requestAnimationFrame(() => g.classList.add('shining'));
 
   setTimeout(() => {
-    if (bg) {
-      if (newColor) bg.style.setProperty('--fc', newColor);
-      bg.classList.remove('fbg-settle'); void bg.offsetWidth; bg.classList.add('fbg-settle');
-    }
     g.classList.add('falling');
     try { sfxFlipShuffle?.(); } catch (e) {}
     next();                                  // the offers deal in behind it
-    setTimeout(() => g.remove(), FLOWR_TABFALL_MS + 120);
+    setTimeout(() => g.remove(), FLOWR_TABFALL_MS + 160);
   }, FLOWR_SHINE_MS);
 }
 
@@ -995,6 +1019,49 @@ function flowrPlayCounter(n, done) {
 }
 
 // ══════════════════════════════════════════════
+// THE PANEL'S SIZE IS PINNED FOR THE WHOLE STEP (r398)
+// ══════════════════════════════════════════════
+// Owner: *"at no point should the thing all the options and buttons are sitting
+// in change size suddenly."* It did, twice, in every gap between two steps.
+//
+// The panel is sized in pure CSS off --grid-w / --grid-h, which is exactly
+// right while a step is up and WRONG the moment it is not: closing a pick calls
+// gridScreenRelease(), which hands gridRows/gridCols back to the PLAY board,
+// and opening the next one takes them again. Measured at 1440x820 across one
+// hand-over, the panel went
+//
+//     615 x 534  (the 4x6 pick board)
+//  -> 561 x 707  (the 4x4 play board, for the length of the gap)
+//  -> 615 x 534
+//
+// - narrower AND 173px taller, and back, with nothing on it. That is the
+// "shape of the square changes suddenly and weirdly", and it also meant the
+// falling ghost was built at the WRONG width, because it is measured during
+// exactly that window.
+//
+// --fbg-w / --fbg-h are the pinned figures and BOTH the panel and the tab
+// ladder read them, falling back to --grid-w / --grid-h when nothing is pinned.
+// One write moves both and there are no inline styles to unpick.
+function flowrPinPanel() {
+  const cs = getComputedStyle(document.documentElement);
+  const w = cs.getPropertyValue('--grid-w').trim();
+  const h = cs.getPropertyValue('--grid-h').trim();
+  if (!w || !h || parseFloat(w) <= 0 || parseFloat(h) <= 0) return;
+  document.documentElement.style.setProperty('--fbg-w', w);
+  document.documentElement.style.setProperty('--fbg-h', h);
+}
+function flowrUnpinPanel() {
+  document.documentElement.style.removeProperty('--fbg-w');
+  document.documentElement.style.removeProperty('--fbg-h');
+}
+// The pin is taken on the frame AFTER the screen opens: #grid-slot carries a
+// left/width transition on the takeover (r237/r380), so the board's final box
+// is not known on the synchronous call.
+function flowrPinPanelSoon() {
+  requestAnimationFrame(() => requestAnimationFrame(flowrPinPanel));
+}
+
+// ══════════════════════════════════════════════
 // THE STACK (option C) - queued chips peeking out behind the current one
 // ══════════════════════════════════════════════
 function flowrRenderStack() {
@@ -1079,7 +1146,8 @@ let _flowrLastIdx = -1;
 function flowrClearStack() {
   document.getElementById('flowr-stack')?.remove();
   document.getElementById('flowr-bg')?.remove();
-  document.getElementById('flowr-tabfall')?.remove();
+  document.getElementById('flowr-fall')?.remove();
+  flowrUnpinPanel();
   _flowrLastIdx = -1;
 }
 
@@ -1361,6 +1429,11 @@ function flowrDeckBegin(op) {
   // (only their DOM left with the dance), so the FULL board is editable - those
   // cards are real deck cards and a buff on one persists through the deal.
   try { render(); } catch (e) {}
+  // THE DECK EDIT USES THE PLAY BOARD, not the 6x4 pick board, so it re-pins:
+  // flowrShowStep pinned the OP PICK's size a moment ago and the panel has to
+  // wrap the real board now. It is the one step whose panel legitimately
+  // changes size, and it does so behind the falling panel of the step before.
+  flowrPinPanelSoon();
   flowrDeckBanner();
   // The board's own action column is the editor's: PLAY becomes APPLY for the
   // buff ops (the shop's BUY pattern - save the markup, restore on exit).

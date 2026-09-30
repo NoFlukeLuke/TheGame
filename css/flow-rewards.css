@@ -322,8 +322,12 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
 
 #flowr-bg {
   position: absolute; left: 50%; top: 50%;
-  width:  calc(var(--grid-w, 100%) + var(--fbg-pad) * 2);
-  height: calc(var(--grid-h, 100%) + var(--fbg-pad) * 2);
+  /* --fbg-w / --fbg-h are the PINNED figures (r398, js/flow-rewards.js): the
+     step's own board size, held for the whole step so the gap between two
+     steps - where gridRows/gridCols briefly revert to the play board - cannot
+     resize the panel. Unpinned, this is the live board exactly as before. */
+  width:  calc(var(--fbg-w, var(--grid-w, 100%)) + var(--fbg-pad) * 2);
+  height: calc(var(--fbg-h, var(--grid-h, 100%)) + var(--fbg-pad) * 2);
   transform: translate(-50%, -50%);
   /* z-index 0: above the marked-line markers (1 is #grid's own children only -
      this is a SIBLING of #grid, so it sits below the whole board) and below
@@ -361,7 +365,7 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
   --fst-max: 4;      /* FLOWR_MAX - 1: the deepest depth the ladder can reach */
   --fst-band: calc(var(--fst-h) - var(--fst-tuck) + (var(--fst-max) * var(--fst-step)));
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: max(0px, calc((100% - var(--grid-h, 0px)) / 2 - var(--fbg-pad) - var(--fst-band)));
+  top: max(0px, calc((100% - var(--fbg-h, var(--grid-h, 0px))) / 2 - var(--fbg-pad) - var(--fst-band)));
   height: var(--fst-band);
   /* r376: 5 -> 8. A PICKED option tile is z-index 5 (css/grid-pick.css) and the
      stack is a later sibling, so at 5 the two TIED and the tabs won - the tile
@@ -377,17 +381,17 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
      rather than the panel's own header. At the panel's width the current tab's
      left and right borders CONTINUE the panel's upward and the join is one
      outline. The queued tabs still step inward from it. */
-  width: calc(var(--grid-w, 100%) + var(--fbg-pad) * 2);
+  width: calc(var(--fbg-w, var(--grid-w, 100%)) + var(--fbg-pad) * 2);
 }
 /* THE FALLING GHOST TAKES THESE TOO (r394), and it has to be named here rather
    than left to inherit: it is a child of #grid-slot, not of #flowr-stack, so a
    descendant selector does not reach it. Measured before this was added - the
    ghost painted with NO background and a default cream border, so all that fell
-   off the panel was the word. Both branches are (1,0,0) for #flowr-tabfall, so
+   off the panel was the word. Both branches are (1,1,0) for #flowr-fall .ffl-tab, so
    source order decides, which is why the .fst-cur block below must stay below
    this one. */
 #flowr-stack .fst-chip,
-#flowr-tabfall {
+#flowr-fall .ffl-tab {
   position: absolute; left: calc(var(--fst-d) * 5%); right: calc(var(--fst-d) * 5%);
   /* bottom, not top: the ladder hangs from the panel's edge, so a shorter
      chain simply has fewer tabs above it rather than a floating block. */
@@ -414,7 +418,7 @@ body.flowr-deck #flowr-stack { display: none; }
    separate lit object sitting on top. The queued tabs behind it keep 30% - they
    are meant to read as cards behind, and they step inward as well. */
 #flowr-stack .fst-chip.fst-cur,
-#flowr-tabfall {
+#flowr-fall .ffl-tab {
   background: color-mix(in srgb, var(--fst-c) 18%, #0c0a14);
   border-color: color-mix(in srgb, var(--fst-c) 48%, transparent);
   border-radius: 10px 10px 0 0;
@@ -422,7 +426,7 @@ body.flowr-deck #flowr-stack { display: none; }
 }
 
 #flowr-stack .fst-chip span,
-#flowr-tabfall span {
+#flowr-fall .ffl-tab span {
   display: block; text-align: center;
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2.5px;
   color: var(--fst-c); padding-top: 3px; opacity: .9;
@@ -584,51 +588,71 @@ body.reduced-motion #flowr-flash { animation: none; opacity: 0; }
     transparent 68%);
 }
 #flowr-bg.fbg-turn::after { animation: fbgWipe .46s cubic-bezier(.3,.6,.3,1); }
-#flowr-bg.fbg-turn { animation: fbgSquash .3s cubic-bezier(.3,1.4,.4,1); }
-/* r394: the panel SETTLES rather than shining. The shine belongs to the tab
-   being knocked off now (below), and two shines a third of a second apart is
-   the doubled vocabulary r233 spent a pass removing - so on a real hand-over
-   the panel takes the squash alone, at the moment of the reveal. .fbg-turn
-   keeps the wipe for the one step that has no tab to knock (the deck edit). */
-#flowr-bg.fbg-settle { animation: fbgSquash .3s cubic-bezier(.3,1.4,.4,1); }
+/* NO SQUASH (r398). Owner: "at no point should the thing all the options and
+   buttons are sitting in change size suddenly." fbgSquash scaled the panel
+   1.012 / 0.972 at the reveal, which is small but is still the panel changing
+   size - and with the whole panel now falling off there is nothing left for it
+   to do. .fbg-settle is gone with it; the wipe survives for the ONE step that
+   has no panel to knock off (the deck edit, which hides the ladder). */
 @keyframes fbgWipe {
   0%   { opacity: 0; transform: translateX(-46%); }
   22%  { opacity: 1; }
   100% { opacity: 0; transform: translateX(46%); }
 }
-@keyframes fbgSquash {
-  0%   { transform: translate(-50%, -50%) scale(1, 1); }
-  38%  { transform: translate(-50%, -50%) scale(1.012, .972); }
-  100% { transform: translate(-50%, -50%) scale(1, 1); }
-}
 body.reduced-motion #flowr-bg.fbg-turn,
-body.reduced-motion #flowr-bg.fbg-settle,
 body.reduced-motion #flowr-bg.fbg-turn::after { animation: none; }
 
-/* ══ THE TAB IS KNOCKED OFF ITS OWN STACK (r394) ═══════════════════════════
-   A free-standing copy of the tab just chosen, pinned over the new stack's
-   front tab in the board slot's own design px (js/flow-rewards.js). A band
-   sweeps it, and when the band reaches the side it is heading for the tab
-   tips over that way and falls, revealing the tab that was already underneath.
+/* ══ THE WHOLE PANEL IS KNOCKED OFF (r398) ═════════════════════════════════
+   Owner: *"After the options explode off, I want the shape of the square that
+   contained the options to remain a square, the shine effect goes across that
+   shape, then the whole shape, not just the title, falls off to one side."*
+
+   r394 fell the TAB alone, which is why "just the title pops off". #flowr-fall
+   is a free-standing copy of the PANEL, at its measured box, carrying a copy of
+   its current tab at the measured offset between the two - one object. A band
+   sweeps it, and when the band reaches the side it is heading for the whole
+   thing tips that way and falls, revealing the next step's panel and tab, which
+   were drawn underneath it before the sweep began.
 
    --fst-dir is +1 or -1, rolled per hand-over: it steers the sweep, the tip,
    the pivot and the direction of travel from one number, so the whole thing
    really does go either way rather than mirroring one hand-written pair. */
-#flowr-tabfall {
+#flowr-fall {
   position: absolute;
   z-index: 9;               /* above the ladder (8); #grid in a takeover is 1 */
   pointer-events: none;
   will-change: transform, opacity;
-  transform-origin: calc(50% + var(--fst-dir, 1) * 34%) 100%;
+  /* The pivot is a bottom corner, so it tips rather than spinning about itself.
+     THE WRAPPER PAINTS NOTHING and stays overflow:visible, because the tab hangs
+     above its box. Each PIECE clips its own shine instead - with the sweep on
+     the wrapper it ran straight off the panel and lit the SWAP / SKIP / CONFIRM
+     buttons beside the board. */
+  transform-origin: calc(50% + var(--fst-dir, 1) * 40%) 100%;
+}
+#flowr-fall .ffl-panel {
+  position: absolute; inset: 0;
+  border-radius: 10px;
+  overflow: hidden;                 /* clips .ffl-shine to the panel */
+  background: color-mix(in srgb, var(--fc, #5ad4c0) 18%, #0c0a14);
+  border: 1px solid color-mix(in srgb, var(--fc, #5ad4c0) 48%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--fc, #5ad4c0) 16%, transparent),
+              inset 0 0 40px color-mix(in srgb, var(--fc, #5ad4c0) 7%, transparent);
 }
 /* A NARROW, BRIGHT BAND, NOT A WASH. At the first tuning the stops ran from 30%
-   to 70% of an element 60% wider than the tab, so the "band" covered most of a
-   561px tab at once and read as the tab merely getting lighter. Screen blend, a
-   band about a sixth of the width, and a white core: the tab is an 18% mix over
-   near-black, so nothing short of that reads as a sweep on it. */
-#flowr-tabfall .fst-shine {
-  position: absolute; inset: -30% -14%;
+   to 70% of an element 60% wider than its host, so the "band" covered most of a
+   561px box at once and read as it merely getting lighter. Screen blend, a band
+   about a sixth of the width, and a white core: the panel is an 18% mix over
+   near-black, so nothing short of that reads as a sweep on it.
+
+   There are TWO of these - one in the panel copy and one in the tab copy - and
+   they take the SAME keyframes. The two boxes are the same width and the band
+   travels horizontally, so they are at the same x on every frame and read as
+   one sweep crossing one object; a single element could not, because the
+   silhouette of a panel plus its tab is not a rectangle. */
+#flowr-fall .ffl-shine {
+  position: absolute; inset: 0;
   opacity: 0; pointer-events: none;
+  border-radius: inherit;
   mix-blend-mode: screen;
   background: linear-gradient(104deg,
     transparent 41%,
@@ -641,36 +665,46 @@ body.reduced-motion #flowr-bg.fbg-turn::after { animation: none; }
    knock (js/flow-rewards.js). A front-loaded ease was measured parking the band
    at the far edge by 40% of the sweep and then loitering there, so the knock no
    longer read as the thing the shine had arrived at. */
-#flowr-tabfall.shining .fst-shine {
-  animation: fstShine var(--fst-shine-ms, 340ms) linear forwards;
+#flowr-fall.shining .ffl-shine {
+  animation: fflShine var(--fst-shine-ms, 340ms) linear forwards;
 }
-/* THE TRAVEL IS -50% TO +40% OF THE SHINE'S OWN WIDTH, and neither number is
-   round by accident. The element overhangs the tab by 14% each side, so it is
-   1.28 tab widths; the band sits at 41-59% of it, i.e. centred on the tab at
-   rest and 0.115 tab wide. -50% puts the band's centre just off the left edge;
-   +40% puts it exactly ON the right edge, which is where it has to be when the
-   knock lands. At +-100% (the first pass) the band left the tab two thirds of
-   the way through and the fall fired onto a tab with nothing on it. */
-@keyframes fstShine {
-  0%   { opacity: 0; transform: translateX(calc(var(--fst-dir, 1) * -50%)); }
+/* +-52%, NOT +-60%. The shine's box is the panel's (inset 0) and the band sits
+   at its centre at rest, so translating by 50% of the box width puts the band's
+   centre exactly ON the far edge - which is where it has to be on the frame the
+   knock fires. 60% carried it a tenth of a panel PAST the edge, where the clip
+   simply ate it and the sweep appeared to stop early. The extra 2% is the
+   band's own half-width, so it finishes just clear. */
+@keyframes fflShine {
+  0%   { opacity: 0; transform: translateX(calc(var(--fst-dir, 1) * -52%)); }
   12%  { opacity: 1; }
-  100% { opacity: .92; transform: translateX(calc(var(--fst-dir, 1) * 40%)); }
+  100% { opacity: .92; transform: translateX(calc(var(--fst-dir, 1) * 52%)); }
+}
+/* THE SHINE GOES OUT AS THE PANEL GOES OVER. fflShine is `forwards`, so without
+   this the band sat lit at .92 in the corner for the whole 720ms of the fall -
+   a bright streak riding the panel down. It holds its end transform while it
+   fades, or the band would snap back to centre on the way out. */
+#flowr-fall.falling .ffl-shine {
+  animation: fflShineOut 200ms linear forwards;
+}
+@keyframes fflShineOut {
+  0%   { opacity: .92; transform: translateX(calc(var(--fst-dir, 1) * 52%)); }
+  100% { opacity: 0;   transform: translateX(calc(var(--fst-dir, 1) * 52%)); }
 }
 /* The kick first (up and back, as if struck), then the tip. The rotation is
-   deliberately modest - the owner asked for "rotates slightly" - and the
-   sideways travel is a PERCENTAGE of the tab's own width, so it clears the
-   panel at every board size with nothing measured. */
-#flowr-tabfall.falling {
-  animation: fstFall var(--fst-fall-ms, 560ms) cubic-bezier(.42,0,.72,.55) forwards;
+   deliberately modest - the owner asked for "rotates slightly" - and BOTH the
+   sideways and downward travel are PERCENTAGES of the panel's own size, so it
+   clears the slot at every board size with nothing measured. */
+#flowr-fall.falling {
+  animation: fflFall var(--fst-fall-ms, 720ms) cubic-bezier(.4,0,.7,.6) forwards;
 }
-@keyframes fstFall {
+@keyframes fflFall {
   0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-  15%  { transform: translate(calc(var(--fst-dir, 1) * 7px), -5px) rotate(calc(var(--fst-dir, 1) * 3deg)); opacity: 1; }
-  70%  { opacity: 1; }
-  100% { transform: translate(calc(var(--fst-dir, 1) * 52%), 170px) rotate(calc(var(--fst-dir, 1) * 26deg)); opacity: 0; }
+  12%  { transform: translate(calc(var(--fst-dir, 1) * 1.2%), -1.6%) rotate(calc(var(--fst-dir, 1) * 1.2deg)); opacity: 1; }
+  72%  { opacity: 1; }
+  100% { transform: translate(calc(var(--fst-dir, 1) * 74%), 118%) rotate(calc(var(--fst-dir, 1) * 21deg)); opacity: 0; }
 }
-body.reduced-motion #flowr-tabfall.shining .fst-shine { animation: none; opacity: 0; }
-body.reduced-motion #flowr-tabfall.falling { animation: none; opacity: 0; }
+body.reduced-motion #flowr-fall.shining .ffl-shine { animation: none; opacity: 0; }
+body.reduced-motion #flowr-fall.falling { animation: none; opacity: 0; }
 
 /* ══ THE CONFETTI (r394) ═══════════════════════════════════════════════════
    One burst per reward, in that reward's tier colour (js/flow-rewards.js).

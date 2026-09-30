@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r397 · focus resets at every level and every boss, and the deck editor takes swaps and discards";
+const BUILD = "2026-09-30 · r398 · the whole panel is knocked off, and it never changes size";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
