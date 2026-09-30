@@ -620,6 +620,8 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   const preset = structuredClone(presetOverride || takeActBoss() || nextBossPreset());
   currentBoss = preset;
   bossActive = true;
+  // r399: a boss is its own round; any shaped goal the level rolled is gone.
+  if (typeof roundQuotaClear === 'function') roundQuotaClear();
   bossNumber++;
   bossPhase = 1;
   bossObjectiveProgress = 0;

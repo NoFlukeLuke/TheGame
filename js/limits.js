@@ -184,9 +184,13 @@ function earlyLimitOfferId() {
 function incrementLimit(id) {
   const l = limits[id];
   if (!l || l.current >= l.max) return false;
+  const _was = l.current;
   l.current = Math.min(l.max, l.current + (l.step || 1));
   if (EARLY_LIMIT_IDS.includes(id)) earlyLimitDone = true;   // guidance satisfied
   onLimitChanged(id);
+  // r399: in Survival and Flow a Starting Time pick is also paid onto the clock
+  // you are playing (js/flow-mode.js). Everywhere else it is a round-START figure.
+  if (id === 'round_time' && typeof roundTimeLimitGained === 'function') roundTimeLimitGained(l.current - _was);
   return true;
 }
 // Helper: decrement a limit by its step (for sacrifice), returns true if

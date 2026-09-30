@@ -568,6 +568,7 @@ function startGame() {
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;
   rowColBonuses = [];
+  roundQuota = null;   // r399 level types
   // The alternating row/column cursor (r296, js/scoring.js). Per RUN, so every
   // run's first position Trick marks a row; left alone it would carry whatever
   // the last run finished on.

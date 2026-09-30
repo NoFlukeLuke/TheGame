@@ -88,6 +88,9 @@ function triggerLevelUp() {
     // Post-boss BONUS round carries nothing (no goal was cleared); a normal clear
     // carries the score overflow above the goal into the next round.
     _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
+    // r399: a Line Quotas round is won by its lines, not its total, so the total
+    // can sit far past the goal - carrying that would hand the next round a start.
+    if (typeof roundQuota !== 'undefined' && roundQuota && roundQuota.kind === 'lines') _svOverflow = 0;
   }
 
   // The goal the round that just finished was measured against. Captured HERE,
@@ -129,6 +132,9 @@ function triggerLevelUp() {
   if (typeof guidedApplyPendingChallenge === 'function') guidedApplyPendingChallenge();
   // Map mode's boss quota is FIXED at map build; overrides the curve's figure.
   if (typeof mapApplyPendingGoal === 'function') mapApplyPendingGoal();
+  // r399: a Flow level may roll a shaped goal, and a hard round may name one
+  // (js/level-types.js). Last, so it is cut from the final goal.
+  if (typeof levelTypeMaybeArm === 'function') levelTypeMaybeArm();
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;

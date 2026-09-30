@@ -85,10 +85,21 @@ function updateScoreUI() {
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
     scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
-  const pct = Math.min(score / roundGoal, 1);
+  const pct = (typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(score / roundGoal, 1);
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
-  document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
+  // r399: a shaped round names its own progress in the goal box (js/level-types.js).
+  const _q = (!between && typeof roundQuota !== 'undefined') ? roundQuota : null;
+  if (_q && _q.kind === 'relay') {
+    const _n = _q.bars.length, _i = Math.min(_q.idx, _n - 1);
+    if (goalLabel) goalLabel.textContent = `${goalWord} ${Math.min(_q.idx + 1, _n)}/${_n}`;
+    document.getElementById('goal-display').textContent = _q.idx >= _n ? 'DONE' : `${_q.prog.toLocaleString()}/${_q.bars[_i].toLocaleString()}`;
+  } else if (_q && _q.kind === 'lines') {
+    if (goalLabel) goalLabel.textContent = 'LINES';
+    document.getElementById('goal-display').textContent = `${_q.lines.filter(l => l.prog >= l.target).length}/${_q.lines.length}`;
+  } else {
+    document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
+  }
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
   updateRunProgressUI();

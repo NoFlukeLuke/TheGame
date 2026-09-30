@@ -120,7 +120,7 @@ function currentRoundDuration() {
   // Survival banks leftover time into it and Flow uses a flat one, so it is not
   // simply the mode's round length, and the clock bar needs the real denominator.
   if (bossActive) return bossWindowDuration;
-  if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
+  if (typeof flowActive === 'function' && flowActive()) return flowSessionSeconds();
   // Crunch: the clock is the QUARTER's allowance, not a round's. This is what
   // startGame seeds the act bank from and what the clock bar fills against, so
   // both read the one number (js/crunch-mode.js).

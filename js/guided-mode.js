@@ -385,6 +385,17 @@ const CHALLENGE_DEFS = [
         (NS_HAND_FAMILIES[h.hand] || []).forEach(f => fams.add(f));
       return fams.has('run') && fams.has('set') && fams.has('flush'); } },
 
+  // ── SHAPED GOALS (r399) - the third challenge kind ──────────────────────────
+  // The goal itself is cut up (js/level-types.js), so clearing the round IS
+  // meeting the challenge: test is always true, the same as a mini-boss.
+  // levelTypeMaybeArm reads `quota` off the active challenge in triggerLevelUp.
+  { id:'q_relay', goalMult:1.10, credits:26, quota:'relay',
+    label:'Three goals in a row. Overflow carries half into the next.',
+    test: () => true },
+  { id:'q_lines', goalMult:1.10, credits:28, quota:'lines',
+    label:'Each marked line has its own goal. A hand pays every marked line it touches.',
+    test: () => true },
+
   // ── MINI-BOSSES (r239) - the second challenge kind ─────────────────────────
   // No task to complete: the HANDICAP is the challenge, a boss modifier at half
   // strength running inside an ordinary round, and clearing the (raised) goal

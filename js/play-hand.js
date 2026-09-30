@@ -327,8 +327,16 @@ function playHand() {
   if (typeof resetTrickFires === 'function') resetTrickFires();
   generateHandFocus(hand, _scoredCells, _vultureSec);
   // Re-score the winning hand now that Focus reflects this hand's own gains.
-  const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips - _tagPips);
+  // r399: the canonical score is taken WITH its ledger, and the dance and the
+  // priming spend read that ledger rather than re-scoring. Both run AFTER the
+  // bookkeeping below (streak counts, run streak, hands this round), so a re-score
+  // there saw a streak one hand longer than the one this hand was scored at -
+  // Kindling showed +12 on a streak of 2 that banked +8.
+  const _bankContrib = [], _bankLedger = {};
+  const finalScore = Math.max(0, calcScore(hand, handCells, _bankContrib, _bankLedger) - penaltyPips - _tagPips);
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
+  result._bankContrib = _bankContrib;
+  result._bankLedger = _bankLedger;
   // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
   const _handRetrigByCell = { ..._lastRetrigByCell };
   // Card Market time cards: seconds carried by the individual cards in this hand.
@@ -372,6 +380,8 @@ function playHand() {
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
   score += finalScore;
+  // r399: a shaped round (js/level-types.js) is credited from the same number.
+  if (typeof roundQuotaCredit === 'function') roundQuotaCredit(finalScore, handCells);
   // Echo and Legacy both used to be applied here, at SCORE level. Both moved (r193):
   // Echo is now a per-card replay (js/scoring.js retrigger block) because its text is
   // "each card replays twice", and Legacy is now a ×mult so the MULT chip shows it.
@@ -533,7 +543,7 @@ function playHand() {
     captureGoalHand(toRemove);   // r371: taken off the board at the round's end
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
-    runHandPriming(hand, handCells);
+    runHandPriming(hand, handCells, result._bankContrib);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     return;
   }
@@ -542,7 +552,7 @@ function playHand() {
   // Suppressed during/just-after a boss: the boss objective system + post-boss reward
   // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
   // already set bossActive=false above.)
-  if (!_bossThisHand && !bossActive && score >= roundGoal && !goalReachedThisRound) {
+  if (!_bossThisHand && !bossActive && roundQuotaMet() && !goalReachedThisRound) {
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
@@ -560,7 +570,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
-    runHandPriming(hand, handCells);
+    runHandPriming(hand, handCells, result._bankContrib);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     return;
   }
@@ -962,7 +972,7 @@ function playHand() {
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
-  runHandPriming(hand, handCells);
+  runHandPriming(hand, handCells, result._bankContrib);
   scalingCount(hand, _scoredCells, _handRetrigByCell);
 }
 
@@ -1080,16 +1090,15 @@ function scalingCount(hand, handCells, reps) {
   });
 }
 
-function runHandPriming(hand, handCells) {
+function runHandPriming(hand, handCells, bankedContrib) {
   if (!trickTrayMode) return;
   // Consume primes that contributed this hand (their extra trigger already fired
   // in scoring). lastPreFocusMult is saved across the recompute the way the dance
   // saves it: this now runs after the dance's own calcScore, so leaving it moved
   // would hand the next read a value this speculative call produced.
   if (trickTray.some(t => t._primed > 0)) {
-    const _savedPFM = lastPreFocusMult;
-    const _pc = []; calcScore(hand, handCells, _pc);
-    lastPreFocusMult = _savedPFM;
+    let _pc = bankedContrib;
+    if (!_pc) { const _savedPFM = lastPreFocusMult; _pc = []; calcScore(hand, handCells, _pc); lastPreFocusMult = _savedPFM; }
     const _ids = new Set(_pc.map(e => e.id));
     // ALL OF A TRICK'S STACKS FIRE ON ONE HAND, SO ALL OF THEM ARE SPENT (r296).
     // The firing half was never the question - the replay loop has always run

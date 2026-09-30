@@ -53,6 +53,8 @@ function startRoundTimer() {
   // through here, so this is the single release point.
   if (typeof clearClockCleared === 'function') clearClockCleared();
   if (typeof hideGoalBanner === 'function') hideGoalBanner();
+  // r399: a shaped round (js/level-types.js) says what it is as it goes live.
+  if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
@@ -411,7 +413,7 @@ function onRoundEnd() {
 
 function _onRoundEndCore() {
   // goalReachedThisRound means the goal hand was already played even if the dance is still running
-  if (score >= roundGoal || goalReachedThisRound) {
+  if (roundQuotaMet() || goalReachedThisRound) {
     cancelDance();
     suppressScoreDisplay = false;
     if (heldBackScore > 0) { score += heldBackScore; heldBackScore = 0; }

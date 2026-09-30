@@ -365,8 +365,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // ── Trick/trick contrib: call calcScore again with a contrib array for breakdown ──
   const savedPreFocusMult2 = lastPreFocusMult;
-  const trickContrib = [];
-  calcScore(hand, handCells, trickContrib);
+  let trickContrib = (result && result._bankContrib) || null;
+  if (!trickContrib) { trickContrib = []; calcScore(hand, handCells, trickContrib); }
   lastPreFocusMult = savedPreFocusMult2; // restore so focus beat uses correct value
 
   // Count card-only particles (before Trick particles are appended)
@@ -498,7 +498,9 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // If this is a goal-crossing hand, watch the score and flash when crossed
   let goalFlashFired = false;
-  const goalCrossedAt = isGoalHand ? roundGoal : Infinity;
+  // r399: a shaped round (js/level-types.js) is won by its quotas, not by the
+  // total crossing roundGoal, so its flash lands where the climb ends.
+  const goalCrossedAt = !isGoalHand ? Infinity : (typeof roundQuota !== 'undefined' && roundQuota) ? finalScore + scoreBefore : roundGoal;
 
   // Focus beat - fires after mult particles finish. MULT stays pure; the FOCUS box shows the
   // hand's starting multiplier, then pops up to the post-Focus multiplier, then the score climbs by it.
@@ -1153,7 +1155,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // it against a running pip/mult pair reproduces the real total exactly (verified
   // over 10,000 scored hands), which is what lets a Trick pay out at its own moment
   // instead of being banked into an end-of-hand lump.
-  const savedPFM = lastPreFocusMult; const contrib=[]; const _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM;
+  // r399: playHand banks the ledger it scored with; re-scoring here ran after the
+  // streak/run/hand counters had already advanced and animated the wrong hand.
+  let contrib, _ledger;
+  if (result && result._bankLedger && result._bankContrib) { contrib = result._bankContrib; _ledger = result._bankLedger; }
+  else { const savedPFM = lastPreFocusMult; contrib=[]; _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM; }
   const timeline = _ledger.timeline || [];
   const fmtM = m => (m%1===0)?m:m.toFixed(1);
   // Cells in SCORING order (the timeline's card indices point here, and scoring
@@ -1666,7 +1672,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
-      if(isGoalHand && !goalFlashed && cur>=roundGoal){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
+      if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }
     requestAnimationFrame(tk); });

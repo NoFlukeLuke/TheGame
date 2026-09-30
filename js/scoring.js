@@ -473,15 +473,19 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pp = _G ? 0 : (permPips[_eKey] || 0);
     cp += _pp;
     if (!_G) bPip('sapling', _pp);
-    // Permanent ×pips enhancement (The Forge / Bargain / Wager events)
-    const _xp = _G ? 1 : (permXPips[_eKey] || 1);
-    if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPipX('sapling', _xp, cp - _preXp); }
     // Right Place: marked row/column cards score +flat pips
     if (!_G && cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
     if (!_G && _fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
     // 4x4: cards scored in the 4th column (index 3) score +pips
     if (!_G && hasTrick('four_by_four') && c === fourByFourCol()) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
+    // Permanent ×pips enhancement (The Forge / Bargain / Wager events, the deck
+    // editor). r399: EVERY flat +pips on the card lands before it (owner: "the
+    // plus must happen first so the xpips can be applied to both the card's
+    // inherent pips and the card's +pips"), and a replay repeats the whole beat -
+    // add, add, multiply - which is what `cp *= _retrig` below is arithmetically.
+    const _xp = _G ? 1 : (permXPips[_eKey] || 1);
+    if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPipX('sapling', _xp, cp - _preXp); }
     // Cornered: a corner card's own pips x the whole minutes left on the clock
     if (!_G && _crMins >= 1 && _crSet.has(r + '-' + c)) { const _b = cp; cp *= _crMins; bPipX('corner_retrigger', _crMins, cp - _b); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
