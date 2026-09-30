@@ -11569,3 +11569,33 @@ asking. Its hint now says what it costs.
 **Noted in passing, pre-existing and NOT touched:** Spectrum's deck audit reads
 **102/98** on a fresh run - the four r161 payout fixtures are shuffled in without
 `expectedDeckTotal` being bumped for them. Every other mode balances.
+
+## r400 - level types, Climb, the Records card view, the tray tilt, and four fixes
+
+### Level types - `js/level-types.js` + `css/level-types.css`
+A round's goal can be SHAPED. `roundQuota` (a `var`, for TDZ reasons; in `SAVE_VARS`) is null or:
+- **relay** - `GOAL_RELAY_BARS` (3) bars of `QUOTA_RELAY_SHARE` (30%) of the goal, filled in order; overflow carries at `QUOTA_RELAY_CARRY` (0.5) so one huge hand cannot clear the round. The goal box reads `GOAL i/n` and the bar is divided.
+- **lines** - 2 or 3 marked rows/columns (always both axes), each with its own quota (`QUOTA_LINE_SHARE`); a hand is credited to every marked line it has a card in. Dashed bands behind the cards, a progress pill at each line's end.
+- **`roundQuotaMet()` is THE goal test** - playHand's goal check, `_onRoundEndCore` and both dances' goal flash read it. `score` is untouched. `roundQuotaCredit` runs after `score += finalScore`.
+- Armed by `levelTypeMaybeArm()` in `triggerLevelUp` (after `mapApplyPendingGoal`): a hard round naming `quota` (CHALLENGE_DEFS `q_relay` / `q_lines`, Guided and the Schedule), or Flow at `LEVEL_TYPE_FLOW_CHANCE` (25%) from level 3. `triggerBoss` clears it. Relay/lines rounds carry no score overflow.
+- Bosses that raise the requirement already exist: The Ledger (over time) and The Ratchet (per swap/discard).
+
+### The dance uses the BANKED ledger (streak fix)
+`playHand` keeps `calcScore`'s contrib and ledger (`result._bankContrib` / `_bankLedger`) and the dance plays those instead of re-scoring. The re-score ran AFTER `streakCount++`/`runStreak++`, so a streak Trick (Kindling) animated one step too many (streak 2 showed 12, scored 8). `runHandPriming` spends against the banked contrib too. This is the r295 trap solved at the root: anything bumped between the score and the dance no longer leaks into the dance.
+
+### Flat pips land before x pips
+Right Place / Five Stack / 4x4 were added after the per-card `permXPips` multiply; they are now added before it, so every + lands before every x. Replays repeat the whole sequence in order.
+
+### Round Time works in Survival and Flow
+`flowSessionSeconds()` = session length + the Round Time limit's gain over base (used by `currentRoundDuration` and `flowNextRoundSeconds`). `roundTimeLimitGained(sec)` (from `incrementLimit`) also adds the seconds to the live clock in Flow and in a live Survival round.
+
+### Climb (`js/climb-mode.js` + `css/climb.css`) - agent write-up
+Classic's act structure on a numeric deck (four suits, 1-13, no wilds). Every card that scores climbs +1 rank for good (once per hand), capped at `CLIMB_MAX` 15; scoring AT 15 pays `CLIMB_TOP_PIPS` (75) per score and resets to `CLIMB_RESET` ('original' or '1'). In the carousel via `MODE_EXTRA_LIST`.
+- The rank changes in `recycleCard` (`climbRecycle`), not at score time - `climbAfterHand` only marks `_climbPending` after the dance at all three sites. `_climbBase` is durable; `_climbPending` is not.
+- The 15 bonus is a card-scoped `pip+` timeline event with no ledger row. `deckModelNow()` returns `'climb'`. `CLIMB_BANNED_TRICKS` pulls the ace/court Tricks. Untested: a full natural 3 -> 15 -> reset cycle.
+
+### Records Deck tab shows the CARDS - agent write-up
+Real card faces (`renderCardAppearance`), one row per suit sorted by rank, cards not yet played dimmed. Chips: mark board cards, buffed only, show the old deck map. Tap a card for its buffs (`recordsCardLines` reads `cardBuffLines`).
+
+### Portrait trick tray tilts before it overlaps - agent write-up
+`fanTrickTray` sets `--tilt` (rotateY, right edge back, up to `FAN_MAX_TILT` 55deg, perspective 260px) so tiles take less width before they start tucking. Landscape unchanged.

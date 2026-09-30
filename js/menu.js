@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r399 · keep-board deals whole, background pattern off by default";
+const BUILD = "2026-09-30 · r400 · level types, Climb mode, Records cards, tray tilt, Flow time limit, streak fix";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
