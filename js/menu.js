@@ -1,4 +1,4 @@
-const BUILD = "2026-09-29 · r395 · x marks, diagonal dual-rank face, reward-grid dual tiles";
+const BUILD = "2026-09-30 · r396 · bigger level-up confetti, laser beams, both tunable";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
