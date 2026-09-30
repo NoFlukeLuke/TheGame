@@ -856,6 +856,9 @@ function renderShopGrid(animateIn = false) {
       // board over there is no other way to see what you are holding while
       // deciding whether to buy another.
       lab.classList.add('srl-openable');
+      lab.title = 'Tap to select this row, then press REROLL for new stock (1 discard). '
+                + 'Double-tap, then tap another row label, to trade the two rows (1 swap). '
+                + 'Press and hold to see what you own.';
       lab.onclick = () => {
         if (lab._lpJustFired) { lab._lpJustFired = false; return; }
         onShopGridClick(r, 0);

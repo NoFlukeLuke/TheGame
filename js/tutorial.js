@@ -647,12 +647,20 @@ const TUTORIAL_STEPS = [
     body: `The shop is a board too. Each row is a category: {knacks}, {tricks}, {sleights}, card upgrades and limit upgrades.<br><br>Tap a tile to read it. Tiles that touch each other are cheaper bought together.`,
   },
   {
-    id: 'shop-leave', anchor: () => tutEls('#btn-play', '#btn-discard'), side: 'left',
+    id: 'shop-buy', anchor: () => tutEls('#btn-play', '#btn-discard'), side: 'left', next: true,
     only: 'rewardgrid',
     when: () => tutShopReady(),
     eyebrow: 'The shop',
     title: 'Buy, then leave',
-    body: `Select what you want and press <b>BUY</b>. Tiles that touch each other are cheaper bought together.<br><br>The shop spends what you carried out of the round: <b>double-tap a tile</b> then tap a neighbour to trade them (a swap), and tap a <b>row label</b> then press <b>REROLL</b> for new stock in that row (a discard). Two row labels trade their whole rows.<br><br>SELL flips the board to what you own. Press <b>LEAVE</b> when you are done.`,
+    body: `Select what you want and press <b>BUY</b>. Tiles that touch each other are cheaper bought together.<br><br>SELL flips the board to what you own. Press <b>LEAVE</b> when you are done.`,
+  },
+  {
+    id: 'shop-stock', anchor: () => tutEls('#swap-indicator', '#btn-discard'), side: 'left',
+    only: 'rewardgrid',
+    when: () => tutShopReady(),
+    eyebrow: 'The shop',
+    title: 'Swaps and discards work here too',
+    body: `You can rearrange the shop, but only with the swaps and discards you had left over from your last round. The number on the SWAP box is what you have. There is nothing else to spend them on here, and they do not come back until the next round.<br><br><b>Swap:</b> double-tap a tile, then tap a tile next to it. They trade places. Double-tap a row label, then tap another row label, to trade two whole rows. Costs 1 swap.<br><br><b>Reroll:</b> tap a row label, and the LEAVE button turns into <b>REROLL</b>. Press it for new stock in that row. Costs 1 discard per row.`,
     until: () => !tutShopOpen(),
   },
 

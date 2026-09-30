@@ -1,4 +1,4 @@
-const BUILD = "2026-09-23 · r325 · balance sheet tooling repointed at js/data/*.js and regenerated (312 rows)";
+const BUILD = "2026-09-30 · r326 · shop tutorial split into buy / swaps-and-discards steps, row label tooltip";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
