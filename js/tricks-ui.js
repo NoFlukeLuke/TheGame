@@ -825,7 +825,9 @@ document.getElementById('btn-discard').addEventListener('click', doDiscard);
 //
 // Returns true when it took charge of the layout (so the caller skips the
 // marquee), false in landscape or when there is nothing to measure.
-const FAN_MIN_STEP = 13;   // px of each tucked tile that must stay visible
+const FAN_MIN_STEP = 13;
+const FAN_MAX_TILT = 55;        // deg, portrait tilt ceiling (r399)
+const FAN_PERSP_SHRINK = 0.97;  // perspective narrows a receding tile a touch more than cos   // px of each tucked tile that must stay visible
 
 function fanTrickTray(list, track) {
   if (!list || !track) return false;
@@ -881,15 +883,25 @@ function fanTrickTray(list, track) {
   // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var
   // that the tile's own `width` reads would be a feedback loop; this cannot be.
+  chips.forEach(c => c.style.removeProperty('--tilt'));
   if (n * tile + (n - 1) * GAP <= room) {
     track.style.setProperty('--fan-gap', GAP + 'px');   // fits: an ordinary row
     return true;
   }
-  // Doesn't fit: tuck each tile over the last until the row does, but never past
-  // the point where a tucked tile stops being visible. Past that floor the
-  // leftmost tiles clip instead - the list is right-aligned, so the newest
-  // Trick always stays whole.
-  const step = Math.max(FAN_MIN_STEP, (room - tile) / (n - 1));
+  // Doesn't fit (r399): TILT first. Every tile but the newest turns its right
+  // edge back (rotateY about its left edge, css `rotate: y`), which shortens its
+  // on-screen width to about tile*cos(a) while its LAYOUT box stays full width -
+  // so the step is computed from the projected width, not the box. The newest
+  // stays flat and whole. Only past FAN_MAX_TILT does the row start to overlap,
+  // and then by less than the old flat tuck, floored at FAN_MIN_STEP.
+  const k = n - 1;
+  const cosNeed = (room - tile - k * GAP) / (k * tile);
+  const cosA = Math.max(Math.cos(FAN_MAX_TILT * Math.PI / 180), Math.min(1, cosNeed));
+  const deg = Math.acos(cosA) * 180 / Math.PI;
+  const proj = tile * cosA * FAN_PERSP_SHRINK;
+  const fitStep = (room - tile) / k;
+  const step = Math.max(FAN_MIN_STEP, Math.min(proj + GAP, fitStep));
+  chips.forEach((c, i) => { if (i < k) c.style.setProperty('--tilt', deg.toFixed(1) + 'deg'); });
   track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
   list.classList.add('fanned');
   return true;
