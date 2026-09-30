@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r396 · bigger level-up confetti, laser beams, both tunable";
+const BUILD = "2026-09-30 · r397 · keep-board deals whole, background pattern off by default";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

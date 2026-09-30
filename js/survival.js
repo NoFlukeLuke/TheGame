@@ -687,16 +687,53 @@ function survivalDealNext() {
         if (gridData[r]?.[c]?._isSleight && !inList.has(`${r}-${c}`)) cells.push([r, c]);
     }
     svGoalCells = null;
-    goalHandCards = null;               // removeAndFall('play') below discards them
+    goalHandCards = null;               // the discardToPlayed sweep below banks them
     gameTimerPaused = false;             // the goal dance froze the clock; the new round is live
-    animating = false;                   // the dance is over; removeAndFall refuses re-entry on this flag
+    animating = false;
+    falling   = false;
+
+    // THE WHOLE BOARD DEALS IN, exactly as the redeal path below does (r397).
+    //
+    // This used to hand the goal hand's cells to removeAndFall('play') - and
+    // removeAndFall animates the cells it was GIVEN and leaves every other card
+    // where it is, because in mid-round use they are on screen already. They are
+    // not on screen here: the reward pick TOOK THE BOARD OVER and emptied #grid
+    // of every card element, while gridData kept all sixteen. So the only thing
+    // that dealt in was the two or three cells being replaced, in whatever
+    // column they happened to sit, and the other thirteen snapped into place at
+    // removeAndFall's closing render() - the owner's "it deals like 4 cards in
+    // one corner, then the rest gets dealt". Measured at 1440x820: 2 cards on
+    // screen for ~1.2s, then 16.
+    //
+    // r394 aimed at startNewRoundDealAnims, which this path never called - which
+    // is why that fix could not touch it. The board mode is what routes here.
+    //
+    // NO GRAVITY, deliberately, and this is the one behaviour change. The board
+    // is a POSITION YOU KEEP (r332: "the same cards come back to the same cells,
+    // and only holes are filled"), and under a whole-board deal-in gravity has
+    // nothing to show for itself anyway - every card arrives from above whether
+    // it moved or not - so packing the columns would silently scramble the
+    // arrangement the mode exists to preserve.
+    if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave(cells);
+    cells.forEach(([r, c]) => {
+      const card = gridData[r]?.[c];
+      if (card) discardToPlayed(card);   // the 'play' accounting removeAndFall did
+      if (gridData[r]) gridData[r][c] = null;
+    });
+    // Fill the holes, draining any queued Backfill copy first - removeAndFall's
+    // own refill asks cardStatesDrawFor before the deck, and a queue left unread
+    // would surface on the next fall instead.
+    for (let c = 0; c < gridCols; c++) for (let r = 0; r < gridRows; r++) {
+      if (gridData[r]?.[c] || isCellVoid(r, c)) continue;
+      const bf = (typeof cardStatesDrawFor === 'function') ? cardStatesDrawFor(c) : null;
+      gridData[r][c] = bf || drawCard() || null;
+    }
+
+    dealPhase = true;                    // hold render() off the board until the deal lands
+    startNewRoundDealAnims();
     updateClockUI();
-    const _go = () => {
-      if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 500); }
-      else svResumeAfterReward(startRoundTimer);
-    };
-    if (cells.length) removeAndFall(cells, 'play').then(_go);
-    else { render(); _go(); }
+    if (survivalBossPending) { survivalBossPending = false; setTimeout(() => survivalTriggerBoss(), 950); }
+    else svResumeAfterReward(startRoundTimer);
     return;
   }
   svGoalCells = null;

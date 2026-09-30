@@ -149,9 +149,18 @@ const SETTINGS_DEF = [
   // The turning pattern behind the whole scene (css/hypno.css). Off removes the
   // element outright rather than hiding it - a full-viewport conic gradient is
   // still one to composite even at zero opacity.
+  // OFF BY DEFAULT SINCE r397, and the reason is frame rate rather than taste.
+  // Measured at 1440x820 through the real board, frames in a 2.5s window, three
+  // trials each: pattern off 60/61/60 fps, surround alone 39/38/40, both layers
+  // 25/24/26. It is four conic-gradient layers the size of the screen's own
+  // diagonal, and painting them is most of the cost - swapping the gradients for
+  // a flat colour recovers 46-54, and every other variant tried (smaller, one
+  // wheel, no mask, no will-change, a bitmap, rotating the gradient's own angle
+  // instead of the element) lands between 14 and 30. So it roughly halves the
+  // frame rate everywhere, which reads as the board hitching on every press.
   { group: 'Display', id: 'hypno', label: 'Background pattern',
-    hint: 'A faint turning pattern behind the cabinet. Motion follows Reduced motion.',
-    type: 'toggle', default: true,
+    hint: 'A faint turning pattern behind the cabinet. Costs about half the frame rate, so it is off by default. Motion follows Reduced motion.',
+    type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-hypno', !v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
@@ -207,10 +216,25 @@ function migrateLexiconDefault(saved) {
   } catch (e) {}
 }
 
+// A STORED VALUE BEATS A DEFAULT, so flipping one moves nobody who has already
+// played (the r183 hbCfg2 -> hbCfg3 rule). The background pattern shipped ON and
+// costs about half the frame rate, so anyone who had it would have kept it for
+// ever without this. It clears a stored `true` ONCE; a player who turns it back
+// on afterwards keeps it, because the flag is already set by then.
+const HYPNO_MIGRATION_KEY = 'lethe.hypno.migrated.v1';
+function migrateHypnoDefault(saved) {
+  try {
+    if (localStorage.getItem(HYPNO_MIGRATION_KEY)) return;
+    localStorage.setItem(HYPNO_MIGRATION_KEY, '1');
+    if (saved.hypno === true) delete saved.hypno;   // fall through to the new default
+  } catch (e) {}
+}
+
 function loadSettings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) { saved = {}; }
   migrateLexiconDefault(saved);
+  migrateHypnoDefault(saved);
   SETTINGS = {};
   SETTINGS_DEF.forEach(d => {
     if (d.type === 'action') return;

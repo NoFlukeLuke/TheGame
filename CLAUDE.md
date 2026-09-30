@@ -11162,3 +11162,126 @@ in any run.**
 - **`cardXMarksHTML`** (js/deck-grid.js, appended by `cardBandsHTML`): an x in the top-left for `permXPips`, top-right for `permXMult`, dark navy / maroon with a drop shadow, z-index 3 so it sits over the bands.
 - **A second RANK splits the card TL->BR** (`card-dual-rank`): `.dual-slash` masked open in the middle, rank in the top-left region, rank2 bottom-right, the suit (or both suits) in the gap. A second suit alone keeps the ordinary face.
 - **Reward-grid Second Suit / Second Rank tiles** set `flowrPendingDual`; `startRoundTimer` hands the fresh board to the deck editor first (`flowrMaybeRunPendingDual`), and `flowrDeckDone` returns to the round instead of the Flow chain. Skipped on a boss round (it waits for the next).
+
+## r397 - the keep-board deal, and the backdrop was the flicker
+
+Owner: *"The game is also flickering a ton. On a lot of button presses there's
+really noticeable flicker."*, *"the bug where after returning to the grid after a
+choice only part of the grid deals in is still happening so the fix that was
+implemented did not fix it"*, and *"Does it matter how I have the grid set to
+refill? Like if it's set to discard sleights but otherwise stay the same, could
+that be doing any of this?"*
+
+**The last question is the answer to the second one.** The board mode is what
+routes the deal, and r394 aimed at a function that mode never calls.
+
+### 1. THE KEEP-BOARD PATH ANIMATED ONLY THE CELLS IT REPLACED
+
+`survivalDealNext`'s keep branch (r324, dev -> Rewards, `svBoardMode` `keep` or
+`keep_nosleights`) handed the goal hand's cells to
+**`removeAndFall(cells, 'play')`** - and removeAndFall animates the cells it was
+GIVEN and leaves every other card alone, because in its ordinary mid-round use
+they are already on screen. **They are not on screen here.** The reward pick is a
+grid takeover: `openGridPick` empties `#grid` of every card element while
+`gridData` keeps all sixteen. So the only thing that dealt in was the two or
+three cells being replaced, and the other thirteen snapped into place at
+removeAndFall's closing `render()`.
+
+Measured at 1440x820 through the real tap path, cards on the board sampled every
+100ms: **`2 2 2` then `16`** - two cards alone for ~1.2s, then the rest at once.
+That is exactly the owner's "it deals like 4 cards in one corner, normally the
+top right, and then the rest gets dealt": the corner is wherever the played cards
+happened to sit, and the count is the size of the hand that won the round.
+
+**r394 could not have fixed it.** That pass rewrote `startNewRoundDealAnims` (the
+redeal path) to launch every card together, and the keep branch never calls it -
+it is `removeAndFall` all the way. A player on `redeal` saw the fix; a player on
+either keep mode saw no change at all, which is what the owner reported.
+
+**The keep branch now deals the WHOLE board in, through the same
+`startNewRoundDealAnims` the redeal path uses**, so the two modes present
+identically and the only difference between them is which cards are on the board
+- which is what the setting is actually about. The removal is done on the data
+first: `cardStatesOnLeave`, then `discardToPlayed` per cell (the 'play' accounting
+removeAndFall was doing), then the holes are filled.
+
+- **NO GRAVITY, and that is the one deliberate behaviour change.** The board is a
+  POSITION YOU KEEP (r332: "the same cards come back to the same cells, and only
+  holes are filled"), and under a whole-board deal-in gravity has nothing to show
+  for itself anyway - every card arrives from above whether it moved or not - so
+  packing the columns would silently scramble the arrangement the mode exists to
+  preserve.
+- **THE HOLE FILL DRAINS `cardStatesDrawFor` BEFORE THE DECK.** removeAndFall's
+  own refill asks it first (a queued Backfill copy fills the hole for free), and a
+  queue left unread would surface on the next fall instead. So the fill here is a
+  loop rather than a bare `fillGridHoles()`; it skips void cells for the same
+  reason removeAndFall does.
+- `falling` is cleared beside `animating` - removeAndFall used to own both.
+
+**Verified** in a real browser at 1440x820 through the real tap path, all three
+board modes, with the board size pinned so the keep branch cannot fall through to
+the redeal: both keep modes take the deal branch with **0 `removeAndFall` calls**,
+the board goes 0 -> 16 in ONE step (the sampled profile is a single number), the
+**deck audit balances 57/57**, `keep_nosleights` leaves **0 Sleights** on the
+board while `keep` leaves 1, and there are no page errors. The redeal path is
+untouched by construction - the whole diff is inside the `svBoardMode !== 'redeal'`
+branch.
+
+### 2. THE FLICKER IS THE BACKGROUND PATTERN, AND IT COSTS HALF THE FRAME RATE
+
+Measured at 1440x820, in-game, frames rendered in a 2.5-second window, three
+trials each:
+
+| | fps |
+|---|---|
+| pattern OFF | **60 / 61 / 60** |
+| surround (`#hypno`) alone | 39 / 38 / 40 |
+| **both layers (shipped r393)** | **25 / 24 / 26** |
+
+So the r393 backdrop roughly **halves the frame rate everywhere**, all the time.
+At ~25fps with a p95 frame of 67-100ms, a button press that repaints lands as a
+visible hitch - which is what "flicker on a lot of button presses" is.
+
+**It is not a second, separate bug.** With the pattern off, a screencast of real
+button presses (card taps, Records open and close, Pause open and close) found
+**0 single-frame brightness outliers** - nothing blanks and comes back.
+
+**THE PAINTING IS THE COST, NOT THE LAYER SIZE, and that is why it cannot be
+tuned out.** Swapping the conic gradients for a flat colour recovers most of it
+(46-54fps); everything else tried made no difference or made it worse:
+
+| variant | fps |
+|---|---|
+| flat colour instead of the gradients | 46-54 |
+| shipped | 24-28 |
+| smaller layers (115% / 60vmax) | 22-24 |
+| one wheel instead of two | 27-30 |
+| no mask / no `will-change` / no breathe | 20-26 |
+| a pre-rendered bitmap texture | 19-20 |
+| rotating the gradient's own angle, box-sized (the r302 `--rcl-rot` trick) | 13-15 |
+
+The last one is worth knowing about: painting a gradient every frame over the
+visible box alone is **worse** than compositing one oversized layer, so the
+transform-and-oversize shape r393 chose was already the better of the two. There
+is no cheap version of this as a live CSS gradient.
+
+**So `Settings > Display > Background pattern` DEFAULTS OFF.** The feature is
+untouched and one toggle away; what changed is that nobody pays for it without
+asking. Its hint now says what it costs.
+
+- **A STORED VALUE BEATS A DEFAULT** (the r183 `hbCfg2 -> hbCfg3` rule), so
+  flipping the default alone would have moved nobody who had already played.
+  `migrateHypnoDefault` clears a stored `true` **once**, keyed on
+  `lethe.hypno.migrated.v1`, exactly as `migrateLexiconDefault` does - and a
+  player who turns it back on afterwards keeps it, because the flag is already
+  set by then. Verified all three ways: a cold load is off at 61fps, a save
+  holding `true` migrates to off and re-enabling sticks across a reload, and a
+  deliberate `false` is untouched.
+- **If it is ever wanted back on by default it needs rebuilding, not retuning.**
+  The shape that would be cheap is a pre-rendered texture composited by the GPU
+  (a bitmap lost here only because this measurement is software-rendered), or
+  giving up the live rotation.
+
+**Noted in passing, pre-existing and NOT touched:** Spectrum's deck audit reads
+**102/98** on a fresh run - the four r161 payout fixtures are shuffled in without
+`expectedDeckTotal` being bumped for them. Every other mode balances.
