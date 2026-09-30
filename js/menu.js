@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r400 · the panel fades and the next one rises; sleights out of the deck audit";
+const BUILD = "2026-09-30 · r401 · the hand-name label follows the hand being played, not the last one";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -1230,6 +1230,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Freeze the hand-type label for the length of the tally (r234). render() runs
   // several times below with the selection already cleared, and each one would
   // otherwise blank it.
+  // Stamp THIS hand's name on first: a hand submitted while the previous tally was still
+  // running inherits that tally's hold, and with it the previous hand's label (r401).
+  if(typeof updateHandNameLabel==='function') updateHandNameLabel(result, true);
   if(typeof holdHandNameLabel==='function') holdHandNameLabel(true);
   const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
   const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');

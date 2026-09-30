@@ -1255,6 +1255,27 @@ Verified at 1440x820, 420x900 and 390x844: 20 rows, **0 clipped names, 0 fields
 outside their row**, and nothing scrolling horizontally.
 
 
+### The label follows the hand being played (r401)
+
+Owner: a Full House (two wilds, Q, A, A) read **RUN OF 3** on the hand-name chip.
+Detection was right - the log said `play Full House` and the engine returns it - the
+LABEL was the previous hand's. Two causes, both about the r234 hold:
+
+- **`render()` skips its whole hand-preview block while a dance runs**
+  (`danceAbortController`), and the label update lived inside it. So a hand built
+  during the previous hand's tally (about 5s at the default speed) never touched the
+  label, which sat on the last hand's name.
+- **A hand submitted mid-tally inherits that tally's hold.** `holdHandNameLabel(true)`
+  was set again but nothing wrote the new name, so the whole second dance ran under
+  the first hand's label.
+
+Fixed in three places: `render()` also calls `updateHandNameLabel` while a dance runs;
+`updateHandNameLabel` lets through anything that NAMES a hand (or `force`) and only
+refuses to BLANK the label, which is what the hold was for; and `playPreviewDance`
+stamps its own hand on with `force` just before it takes the hold. A label showing a
+hand the engine did not pick is the failure to watch for - re-check it with two hands
+submitted inside one tally.
+
 ### The hand-type label (r198) - `#hand-name`
 
 What you are about to play, named, beside the hand preview. The preview CARDS stay inert until a hand is submitted (r99 - it is the scoring stage, not a live readout), but the NAME is live from the first selection, and with layered hands it is the only place the second hand is visible at all.
