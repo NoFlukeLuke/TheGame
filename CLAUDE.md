@@ -1255,6 +1255,27 @@ Verified at 1440x820, 420x900 and 390x844: 20 rows, **0 clipped names, 0 fields
 outside their row**, and nothing scrolling horizontally.
 
 
+### The label follows the hand being played (r401)
+
+Owner: a Full House (two wilds, Q, A, A) read **RUN OF 3** on the hand-name chip.
+Detection was right - the log said `play Full House` and the engine returns it - the
+LABEL was the previous hand's. Two causes, both about the r234 hold:
+
+- **`render()` skips its whole hand-preview block while a dance runs**
+  (`danceAbortController`), and the label update lived inside it. So a hand built
+  during the previous hand's tally (about 5s at the default speed) never touched the
+  label, which sat on the last hand's name.
+- **A hand submitted mid-tally inherits that tally's hold.** `holdHandNameLabel(true)`
+  was set again but nothing wrote the new name, so the whole second dance ran under
+  the first hand's label.
+
+Fixed in three places: `render()` also calls `updateHandNameLabel` while a dance runs;
+`updateHandNameLabel` lets through anything that NAMES a hand (or `force`) and only
+refuses to BLANK the label, which is what the hold was for; and `playPreviewDance`
+stamps its own hand on with `force` just before it takes the hold. A label showing a
+hand the engine did not pick is the failure to watch for - re-check it with two hands
+submitted inside one tally.
+
 ### The hand-type label (r198) - `#hand-name`
 
 What you are about to play, named, beside the hand preview. The preview CARDS stay inert until a hand is submitted (r99 - it is the scoring stage, not a live readout), but the NAME is live from the first selection, and with layered hands it is the only place the second hand is visible at all.
@@ -11599,3 +11620,133 @@ Real card faces (`renderCardAppearance`), one row per suit sorted by rank, cards
 
 ### Portrait trick tray tilts before it overlaps - agent write-up
 `fanTrickTray` sets `--tilt` (rotateY, right edge back, up to `FAN_MAX_TILT` 55deg, perspective 260px) so tiles take less width before they start tucking. Landscape unchanged.
+## r400 - the panel FADES and the next one rises; sleights leave the deck audit
+
+### 1. NO FALL, NO SHINE - the outgoing panel just goes
+
+Owner, on r398: *"the tray kick off is still a little wonky because even though
+the shape is consistent, where it is on the screen is not. so the tray shouldn't
+resize or move, otherwise the effect is ruined. also, the timing is still off in
+the sense that the shine effect does not appear to trigger the tray falling, it
+happens distinctly. also, the tray changes appearance also because where the
+options were goes from black to colored in, then the shine happens.*
+*can we just make it so the tray doesn't fall, and instead just fades away as the
+options explode out. and this happens in such a way to reveal the tile underneath
+without anything else happening. so the options explode, that tray fades out, and
+as both those things happen the tray underneath moved into place and is revealed.
+i think for it to move into place it needs to move down a few pixels then size up
+slightly."*
+
+**Note the vocabulary: the owner's "tray" is the PANEL (`#flowr-bg`), and "the
+tile underneath" is the next step's panel.** r394 knocked the chosen TAB off its
+stack and r398 knocked the whole PANEL off, both behind a shine meant to read as
+the thing doing the knocking. Two events a third of a second apart cannot be made
+to read as one cause, and a panel tipping off the screen is a third moving object
+beside the exploding tiles and the arriving offers.
+
+| | r398 | r400 |
+|---|---|---|
+| outgoing panel | shine, then tips and falls off, 340 + 720ms | **fades, 300ms** |
+| incoming panel | already there, static | **rises into place**, 360ms |
+| moving objects | tiles + falling panel + arriving offers | **tiles + panel** |
+
+- **THE THREE THINGS OVERLAP ON PURPOSE**, which is the whole of "as both those
+  things happen". The tiles are already leaving through `rewardTransitionOut`
+  before the hand-over is called; the ghost fades and the new panel rises over
+  exactly the same window, and `next()` is called on the same frame so the offers
+  deal in behind the fade. Measured: the ghost goes 1 -> 0 over ~300ms with the
+  next step's three option tiles on the board throughout.
+- **The ghost is still a free-standing copy of the panel carrying a copy of its
+  tab** at the measured offset between the two boxes, so the pair sits exactly
+  where the real ones did even on a deep chain where the ladder has been clamped
+  by `max(0px, ...)`. What is gone is `.ffl-shine`, `fflFall`, `--fst-dir` and the
+  direction roll.
+- **THE FADE IS OPACITY ONLY.** The panel underneath is the thing that moves;
+  anything on this one would read as a second object leaving rather than as this
+  one getting out of the way.
+- **The entrance is a TRANSFORM, never width/height/top** - the panel's box is
+  pinned for the whole step and the owner's rule is that it must not resize or
+  move. `#flowr-bg` already carries `transform: translate(-50%,-50%)` for its
+  centring and the stack `translateX(-50%)`, and **a keyframe REPLACES the
+  property**, so both entrances restate it.
+- **IT RELEASES ITSELF ON `animationend`** - r281's rule: a `forwards` animation
+  OWNS the property for good, so a spent entrance would silently beat anything
+  that ever wants to transform `#flowr-bg`. The last keyframe IS the resting
+  place, so dropping the class is visually identical. Measured: 161 of 187 samples
+  at `matrix(1, 0, 0, 1, ...)`, the rest the entrance ramp.
+
+#### THE POSITION HAD TO BE PINNED TOO, and r398 only pinned the SIZE
+
+`#flowr-bg` is centred on `#grid-slot`, and **closing a step's pick removes
+`body.gp-active`, which slides the slot** (css/style.css, 47.8%/42.2% against the
+play board's 41%/49%). So between two steps the panel slid sideways and back -
+exactly the owner's "where it is on the screen is not [consistent]".
+**`body.flowr-hold` holds the takeover geometry across the hand-over**, and
+`js/grid-metrics.js` reads it beside `gp-active` so the slot's gap does not move
+either.
+
+- **The hold ENDS once the next step has taken the board over**, rather than
+  lasting the chain, because the DECK EDIT step legitimately wants the play board
+  back - r398's one deliberate second size.
+- **It is cleared in `flowrClearStack` as well.** A stale hold would leave the
+  PLAY board at the takeover's narrower box for the rest of the run.
+- Measured across a whole 2-step chain, sampling every 16ms: **one panel layout
+  box and one slot box** at 1440x820 (320x278, slot 688.4/606) and at 420x900
+  (305x267, slot 43.6/295.2).
+
+#### `flowrAfterStep` was rendering the ladder before the hand-over measured it
+
+It called `flowrRenderStack()` between `flowrIdx++` and `flowrHandOver`, so by the
+time the hand-over measured `.fst-cur` that was already the **INCOMING** tab - the
+ghost carried the new step's label in the old step's colour. `flowrHandOver`
+renders the new arrangement itself, so the line is simply gone.
+
+#### THE ENTRANCE MUST BE APPLIED AFTER `next()`, NOT BEFORE IT
+
+`flowrShowStep` calls `flowrRenderStack` again, and that **removes and rebuilds
+`#flowr-stack`** (only the panel is reused, r378) - so a class put on the ladder
+above that line was thrown away and only the panel animated. Measured before the
+fix: `enter` true on `#flowr-bg`, false on `#flowr-stack`. `flowrEnterPanel()`
+runs after, and looks both elements up by id rather than holding references that
+`next()` may have invalidated.
+
+### 2. A SLEIGHT IS NOT PART OF THE AUDITED DECK
+
+Owner: *"yes fix the spectrum deck count."* A fresh Spectrum run read **102/98**
+for its whole length, and the cause is general rather than Spectrum's.
+
+`deckTotalActual()` was `drawPile.length + playedPile.length + gridCardCount()`.
+The piles were counted with a **bare `.length`**, so a Sleight in one counted;
+`gridCardCount` requires `cd.rank`, so a Sleight on the BOARD counted only if it
+happened to carry a cosmetic `defaultRank`. **So the actual total moved by one
+every time a Sleight was dealt or scored** - and Spectrum's four r161 payout
+fixtures, shuffled in at run start, made every reading four high.
+
+- **`pileCardCount(pile)` excludes them, and `gridCardCount` gained
+  `!cd._isSleight`.** Excluded on every side, `expectedDeckTotal` stays ranks x
+  suits (+ wilds) and needs no fixture upkeep at either of the two Spectrum write
+  sites - which is why this is not four `expectedDeckTotal++` calls in
+  `spectrumGrantDeckCards`. The HUD's draw and played readouts read the same
+  figure, so they cannot disagree with the total above them.
+- **`gridCardCount` has no callers outside the audit**, so this cannot reach
+  anything else.
+
+**Six Suits audited 64/68 and that was a DOUBLE COUNT of the wilds.**
+`js/game-control.js` guarded the cross-product line with `deckDesignOwnsDeck()`
+and left the r325 wild line beside it unguarded - so a model that builds its own
+deck, which has already added them (`js/deck-design.js`), had them counted twice.
+Both lines are inside the guard now. Measured: 60 designed + 4 wilds = 64 either
+way, expected 68 -> 64.
+
+Measured after, through `startGame` in a real browser: **Spectrum 98/98, Six
+Suits 64/64, Classic / Flow / Schedule / Survival 56/56, 0 HUD mismatches.**
+
+### Verified
+
+In a real browser at **1440x820 and 420x900**, through the real tap path on a
+forced Flow chain: one panel layout box and one slot box across the whole chain,
+the ghost fading 1 -> 0 with the next step's tiles already on the board, both the
+panel and the ladder animating their entrance and both releasing it, the chain
+finishing with `level` moving once, **0 ghosts, no panel and no ladder left
+behind, the hold cleared, 16 cards and 0 holes**, and the deck audit balancing.
+**No page errors in any run.**

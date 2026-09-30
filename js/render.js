@@ -221,6 +221,12 @@ function render() {
   // #selected-cards - they ARE "the hand you are about to play" - and this block
   // clears the element unconditionally, so any stray render() would wipe them.
   // Guarded rather than ordered around: render() is called from dozens of places.
+  // While a dance runs the block below is skipped entirely, but the LABEL still has to
+  // follow a new live selection (r401): the tally's hold (js/hud.js) stops it being
+  // blanked, and only a selection that actually names a hand gets through it.
+  if (danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
+  }
   if (!danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills

@@ -450,9 +450,11 @@ function flowrShowStep() {
 // must NOT run its own level-up.
 function flowrAfterStep() {
   if (!flowrQueue) return false;
-  const from = flowrQueue[flowrIdx];   // the tab just chosen - it is what falls
+  const from = flowrQueue[flowrIdx];   // the tab just chosen - it is what fades
   flowrIdx++;
-  flowrRenderStack();
+  // NO flowrRenderStack() HERE (r400). flowrHandOver renders the new arrangement
+  // itself, and it has to measure the OUTGOING tab first - rendering above it
+  // meant the ghost was built from the INCOMING tab's label.
   // 200ms, not 380 (r378). The panel and its tabs stay lit between steps, so
   // this gap is a LIT EMPTY PANEL - and the incoming options then took another
   // 335ms to appear on top of it (see GP_OPT_LEAD). Measured end to end, the
@@ -465,64 +467,43 @@ function flowrAfterStep() {
 }
 
 // ══════════════════════════════════════════════
-// THE TAB HAND-OVER (r394) - the chosen tab is knocked off its own stack
+// THE PANEL HAND-OVER (r400) - the outgoing panel FADES; the next one arrives
 // ══════════════════════════════════════════════
-// Owner: *"can we just have the whole tab fall to one side, it falls and rotates
-// slightly as it falls off. So the options would explode out, then that tab gets
-// the shine effect we're currently giving to the next tab, and when the shine
-// wave thing gets close to whichever side it goes toward (make it go either way)
-// then the empty tab falls over revealing the next tab. The option behind it
-// would not get a fall animation of its own it would just be there already ...
-// right now the current tab goes away after a choice and we see a tab the color
-// of the next tab get the shine ... I'm saying that shine effect should apply to
-// the tab we've just chosen, and the shine is the thing that looks like it knocks
-// the current tab off."*
+// Owner: *"can we just make it so the tray doesn't fall, and instead just fades
+// away as the options explode out. and this happens in such a way to reveal the
+// tile underneath without anything else happening. so the options explode, that
+// tray fades out, and as both those things happen the tray underneath moved into
+// place and is revealed. i think for it to move into place it needs to move down
+// a few pixels then size up slightly."*
 //
-// THE SHINE WAS ON THE WRONG OBJECT AND ON THE WRONG STEP. r380 put it on the
-// PANEL and fired it from flowrRenderStack on an index change - i.e. after the
-// index had already moved, in the INCOMING colour, on a tab that had already been
-// swapped. So the thing being polished was the arrival, not the departure, and
-// nothing connected the two. It is now: shine the OUTGOING tab, and let the shine
-// reaching the edge be what tips it off.
+// r394 knocked the chosen TAB off its stack and r398 knocked the whole PANEL off,
+// both behind a shine that was meant to read as the thing doing the knocking. The
+// owner's verdict on r398: *"the timing is still off in the sense that the shine
+// effect does not appear to trigger the tray falling, it happens distinctly"* -
+// two events a third of a second apart cannot be made to read as one cause, and a
+// panel tipping off the screen is a third moving object beside the exploding tiles
+// and the arriving offers. So there is no shine and no fall: the outgoing panel
+// simply goes, and the next one is already arriving underneath it.
 //
-// FOUR THINGS THIS ENCODES:
-//
-// - THE NEW STACK IS DRAWN FIRST, UNDER A GHOST OF THE OLD TAB. The obvious
-//   ordering - fall, then re-render - cannot work: flowrRenderStack rebuilds
-//   #flowr-stack wholesale, so the element mid-fall would be destroyed. Drawing
-//   the new arrangement first and covering its front tab with a free-standing
-//   copy of the old one means the fall reveals something that is genuinely
-//   already there, which is exactly what was asked for. The queued tabs behind
-//   shift 5px and 5% at that instant, which is hidden under the exploding tiles.
-//
-// - THE PANEL HOLDS THE OLD COLOUR UNTIL THE FALL. flowrRenderStack sets --fc to
-//   the incoming colour, so without this the whole panel would cross-fade while
-//   the old tab was still sitting on it - the reveal announced before it happens.
-//   Writing it back in the same synchronous block means the browser never sees
-//   the new value, so there is no transition to interrupt; setting it at the fall
-//   is what makes the .28s cross-fade land ON the reveal.
-//
-// - THE GHOST IS POSITIONED IN DESIGN PX, FROM A RECT DIVIDED BY THE ZOOM. Both
-//   #flowr-stack and the ghost live inside #cabinet, which carries the stage
-//   zoom, so a rect delta is viewport px and an inline `left` is design px. The
-//   r160 Trick-fan trap: measure the ratio off the element itself rather than
-//   assuming --stage-zoom, and subtract the host's own border (an absolutely
-//   positioned child resolves against the PADDING box).
-//
-// - THE NEXT SCREEN STARTS AT THE FALL, NOT AFTER IT. The owner asked whether the
-//   incoming options should still deal in; they should, and they should do it
-//   BEHIND the falling tab. Starting the step at the moment of the knock means
-//   the tab tips off the top of the panel while the offers rise into the tray
-//   under it - one motion - and the hand-over costs only the shine's lead (about
-//   a third of a second) rather than its whole length.
-// THE SWEEP'S LENGTH IS THE LEAD, so there is ONE number rather than a duration
-// in the JS and a keyframe percentage in the CSS that have to be kept in step.
-// The band travels the tab's full width over exactly this, so it arrives at the
-// far side on the frame the knock lands - which is the whole of the owner's
-// "when the shine wave thing gets close to whichever side it goes toward then
-// the empty tab falls over".
-const FLOWR_SHINE_MS   = 340;
-const FLOWR_TABFALL_MS = 720;   // r398: a whole panel, not a 22px tab
+// THE THREE THINGS OVERLAP ON PURPOSE, which is the whole of "as both those things
+// happen". The tiles are already leaving through rewardTransitionOut before this is
+// called; the ghost fades and the new panel rises over exactly the same window, and
+// next() is called on the same frame so the offers deal in behind the fade.
+const FLOWR_FADE_MS  = 300;   // the outgoing panel
+const FLOWR_ENTER_MS = 360;   // the incoming one moving into place
+
+// AND IT MAY NOT RESIZE *OR* MOVE (owner: "the tray shouldn't resize or move,
+// otherwise the effect is ruined"). r398 pinned the SIZE (--fbg-w / --fbg-h) and
+// left the POSITION, which is not enough: #flowr-bg is centred on #grid-slot, and
+// closing a pick removes body.gp-active, which slides the slot (css/style.css
+// 47.8%/42.2% against the play board's 41%/49%) - so between two steps the panel
+// slid sideways and back. body.flowr-hold holds the takeover geometry across the
+// hand-over; the next step's own takeover has it by the time this is released,
+// and the DECK EDIT step legitimately wants the play board back, which is why the
+// hold ends rather than lasting the chain.
+function flowrHoldSlot(on) {
+  document.body.classList.toggle('flowr-hold', !!on);
+}
 
 // An element's box in its host's own design px. Returns null when it cannot be
 // measured (a display:none ancestor - the deck-edit step hides the tabs).
@@ -542,72 +523,82 @@ function flowrHandOver(fromKind, next) {
   const stack0 = document.getElementById('flowr-stack');
   const cur0 = stack0?.querySelector('.fst-cur');
   const bg0 = document.getElementById('flowr-bg');
-  // Measured BEFORE the rebuild below destroys them. The panel is what falls,
-  // so it is the panel's box the ghost takes; the tab's box is measured in the
-  // SAME space and carried across as an offset, which is exact even when the
-  // ladder has been clamped down by max(0px, ...) on a deep chain.
+  // Measured BEFORE the rebuild below destroys them. The ghost takes the PANEL's
+  // box and carries a copy of the tab at the measured offset between the two, so
+  // the pair sits exactly where the real ones did even when the ladder has been
+  // clamped down by max(0px, ...) on a deep chain.
   const pBox = (!skip && host && bg0) ? flowrBoxIn(bg0, host) : null;
   const tBox = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
   const label = cur0 ? cur0.innerHTML : '';
 
+  if (!skip) flowrHoldSlot(true);
   flowrRenderStack();                       // the new arrangement, underneath
   const bg = document.getElementById('flowr-bg');
 
-  // No panel to knock off (a skipped transition, or a board with no box yet):
-  // the panel says it instead, as it did before.
+  const release = () => flowrHoldSlot(false);
+
+  // Nothing to fade (a skipped transition, or a board with no box yet): straight
+  // through, exactly as before.
   if (!pBox) {
     if (bg && !skip) { bg.classList.remove('fbg-turn'); void bg.offsetWidth; bg.classList.add('fbg-turn'); }
-    setTimeout(next, skip ? 0 : 140);
+    setTimeout(() => { release(); next(); }, skip ? 0 : 140);
     return;
   }
 
-  // THE NEW PANEL TAKES ITS COLOUR IMMEDIATELY, unlike r394's version, which had
-  // to hold the old one: the ghost now covers the whole panel rather than just
-  // its tab, so there is nothing of the arrival on screen to give the game away
-  // and the cross-fade happens underneath.
   const meta = FLOWR_KINDS[fromKind] || FLOWR_KINDS.pick3;
-  // EITHER WAY (owner's words). fxRandom, never Math.random - a seeded run
-  // replaces the global and this would advance the deck and reward streams.
-  const dir = ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5) ? -1 : 1;
 
   const g = document.createElement('div');
   g.id = 'flowr-fall';
   g.style.cssText = `left:${pBox.left}px;top:${pBox.top}px;width:${pBox.w}px;height:${pBox.h}px;`;
   g.style.setProperty('--fc', meta.color);
   g.style.setProperty('--fst-c', meta.color);
-  g.style.setProperty('--fst-dir', dir);
-  g.style.setProperty('--fst-shine-ms', FLOWR_SHINE_MS + 'ms');
-  g.style.setProperty('--fst-fall-ms', FLOWR_TABFALL_MS + 'ms');
-  // THE TAB RIDES THE PANEL, as one object. Its offset is the measured
-  // difference between the two boxes, so it sits exactly where the real one
-  // did; `right:auto;bottom:auto` because .fst-chip positions itself by those.
+  g.style.setProperty('--fst-fade-ms', FLOWR_FADE_MS + 'ms');
+  // THE TAB RIDES THE PANEL, as one object; `right:auto;bottom:auto` because
+  // .fst-chip positions itself by those.
   let tabHTML = '';
   if (tBox) {
     tabHTML = `<div class="ffl-tab fst-chip fst-cur" style="--fst-c:${meta.color};--fst-d:0;`
       + `left:${tBox.left - pBox.left}px;top:${tBox.top - pBox.top}px;right:auto;bottom:auto;`
-      + `width:${tBox.w}px;height:${tBox.h}px;">${label}<i class="ffl-shine"></i></div>`;
+      + `width:${tBox.w}px;height:${tBox.h}px;">${label}</div>`;
   }
-  // TWO SHINE LAYERS, ONE ANIMATION. The panel and its tab are separate boxes
-  // with a gap in the silhouette between them, so a single band would have to
-  // be clipped to a non-rectangular union. They are the same WIDTH and take the
-  // same keyframes, and the band travels horizontally, so the two are at the
-  // same x on every frame and read as one sweep crossing one object.
-  // THE WRAPPER PAINTS NOTHING; .ffl-panel is the panel and .ffl-tab the tab.
-  // The split is what lets each CLIP ITS OWN SHINE: the wrapper has to stay
-  // overflow:visible because the tab hangs above its box, and with the shine
-  // inside the wrapper its 52% sweep painted straight off the panel and over
-  // the SWAP / SKIP / CONFIRM buttons beside the board. The panel goes first so
-  // the tab paints over its top edge, exactly as the ladder does at rest.
-  g.innerHTML = '<div class="ffl-panel"><i class="ffl-shine"></i></div>' + tabHTML;
+  // The panel goes first so the tab paints over its top edge, exactly as the
+  // ladder does at rest. The wrapper paints nothing of its own.
+  g.innerHTML = '<div class="ffl-panel"></div>' + tabHTML;
   host.appendChild(g);
-  requestAnimationFrame(() => g.classList.add('shining'));
+  requestAnimationFrame(() => g.classList.add('fading'));
 
-  setTimeout(() => {
-    g.classList.add('falling');
-    try { sfxFlipShuffle?.(); } catch (e) {}
-    next();                                  // the offers deal in behind it
-    setTimeout(() => g.remove(), FLOWR_TABFALL_MS + 160);
-  }, FLOWR_SHINE_MS);
+  next();                                    // the offers deal in behind the fade
+  // AFTER next(), NOT BEFORE IT. flowrShowStep calls flowrRenderStack again, and
+  // that REMOVES AND REBUILDS #flowr-stack (only the panel is reused, r378) - so
+  // a class put on the ladder above this line was thrown away and only the panel
+  // animated. Measured: enter true on #flowr-bg, false on #flowr-stack.
+  flowrEnterPanel();
+  setTimeout(() => { g.remove(); release(); }, FLOWR_FADE_MS + 120);
+}
+
+// The incoming panel and its ladder move into place: a few px high and a shade
+// small, down and up to their resting box. A TRANSFORM, so nothing is measured
+// and nothing reflows - the panel's box is pinned for the whole step and the
+// owner's rule is that it must not resize or move.
+//
+// IT RELEASES ITSELF ON animationend, which is r281's rule: a `forwards`
+// animation OWNS the property for good, and #flowr-bg's resting transform is its
+// own centring - so anything that ever wants to transform this element would
+// silently lose to a spent entrance. The last keyframe IS the resting place, so
+// dropping the class is visually identical.
+function flowrEnterPanel() {
+  ['flowr-bg', 'flowr-stack'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('fbg-enter'); void el.offsetWidth;
+    el.style.setProperty('--fbg-enter-ms', FLOWR_ENTER_MS + 'ms');
+    el.classList.add('fbg-enter');
+    el.addEventListener('animationend', function off(e) {
+      if (e.target !== el) return;
+      el.classList.remove('fbg-enter');
+      el.removeEventListener('animationend', off);
+    });
+  });
 }
 
 function flowrFinish() {
@@ -1148,6 +1139,9 @@ function flowrClearStack() {
   document.getElementById('flowr-bg')?.remove();
   document.getElementById('flowr-fall')?.remove();
   flowrUnpinPanel();
+  // r400: the hold moves #grid-slot, so it may never outlive the chain - a stale
+  // one would leave the PLAY board at the takeover's narrower box.
+  flowrHoldSlot(false);
   _flowrLastIdx = -1;
 }
 
