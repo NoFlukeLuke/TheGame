@@ -6304,7 +6304,16 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      47.8%. gridScreenTakeover measures the slot with its transition off, so the
      board is sized for THIS box rather than for where the slide started. */
   body.gp-active #stage.landscape #grid-slot,
-  body.gp-active.grid-screen #stage.landscape #grid-slot { left: 47.8%; width: 42.2%; }
+  body.gp-active.grid-screen #stage.landscape #grid-slot,
+  /* r400: body.flowr-hold HOLDS THAT GEOMETRY ACROSS A CHAIN HAND-OVER.
+     #flowr-bg is centred on #grid-slot, so closing one step's pick - which
+     removes gp-active - slid the panel sideways and back between two steps.
+     Owner: "the tray shouldn't resize or move, otherwise the effect is
+     ruined." r398 pinned the SIZE and left the POSITION; this is the other
+     half. The hold ends once the next step has taken the board over, so the
+     DECK EDIT step still gets the play board back. */
+  body.flowr-hold #stage.landscape #grid-slot,
+  body.flowr-hold.grid-screen #stage.landscape #grid-slot { left: 47.8%; width: 42.2%; }
 
   /* Portrait shop: credits beside the live x/y count (the desktop puts them on
      the topline instead). */

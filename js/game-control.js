@@ -354,8 +354,15 @@ function startGame() {
   // Reset deck audit (a full deck = one of every rank in every active suit)
   // A model that builds its own deck has already written the real total; a rank
   // x suit cross product is not what it deals, so the generic line must not run.
-  if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
-  expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
+  // r400: THE WILDS ARE PART OF THE SAME GUARD. The cross-product line was
+  // guarded and the r325 wild line beside it was not, so a model that builds its
+  // own deck - which has already added them (js/deck-design.js) - had them
+  // counted TWICE: Six Suits audited 64/68 for the whole run. Measured before
+  // and after: 60 designed + 4 wilds = 64 either way, expected 68 -> 64.
+  if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) {
+    expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+    expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
+  }
   dealPhase = false;
 
   // Reset all state

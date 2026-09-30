@@ -254,7 +254,7 @@ function syncSidebarsToGrid() {
     // ~9 design px (1.2%) past the grid, so the meter has to clear that too or the
     // panel's edge sits over it.
     const b = document.body.classList;
-    const gap = (b.contains('gp-active') || b.contains('flowr-deck')) ? 1.6 : 0.4;
+    const gap = (b.contains('gp-active') || b.contains('flowr-hold') || b.contains('flowr-deck')) ? 1.6 : 0.4;
     fLeft = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - gap);
     focus.style.left   = fLeft + '%';
     focus.style.top    = pctH(g.top - s.top) + '%';

@@ -576,25 +576,36 @@ function gridCardCount() {
   for (let r = 0; r < (gridData?.length || 0); r++)
     for (let c = 0; c < (gridData[r]?.length || 0); c++) {
       const cd = gridData[r][c];
-      if (cd && !cd._isTrick && !cd._temp && cd.rank) n++;
+      if (cd && !cd._isTrick && !cd._isSleight && !cd._temp && cd.rank) n++;
     }
   return n;
 }
+// r400: a SLEIGHT is not part of the audited deck, on the board or in a pile.
+// It used to be counted in the piles (bare .length) and NOT on the grid unless
+// it happened to carry a cosmetic defaultRank - so the actual total moved by one
+// every time one was dealt or scored, and Spectrum's four payout fixtures (r161)
+// made a fresh run read 102/98 for the whole run. Excluded on every side, so
+// expectedDeckTotal stays ranks x suits (+ wilds) and needs no fixture upkeep.
+function pileCardCount(pile) {
+  let n = 0;
+  for (const c of (pile || [])) if (c && !c._isSleight) n++;
+  return n;
+}
 function deckTotalActual() {
-  return drawPile.length + playedPile.length + gridCardCount();
+  return pileCardCount(drawPile) + pileCardCount(playedPile) + gridCardCount();
 }
 function updateDeckHud() {
   const hud = document.getElementById('deck-hud');
   if (!hud) return;
   const actual = deckTotalActual();
-  document.getElementById('dh-draw').textContent   = drawPile.length;
-  document.getElementById('dh-played').textContent = playedPile.length;
+  document.getElementById('dh-draw').textContent   = pileCardCount(drawPile);
+  document.getElementById('dh-played').textContent = pileCardCount(playedPile);
   document.getElementById('dh-grid').textContent   = gridCardCount();
   document.getElementById('dh-total').textContent  = actual;
   document.getElementById('dh-expected').textContent = '/' + expectedDeckTotal;
   hud.classList.toggle('mismatch', actual !== expectedDeckTotal);
   if (actual !== expectedDeckTotal) {
-    console.warn(`[DECK AUDIT] mismatch: actual=${actual}, expected=${expectedDeckTotal}, draw=${drawPile.length}, played=${playedPile.length}, grid=${gridCardCount()}`);
+    console.warn(`[DECK AUDIT] mismatch: actual=${actual}, expected=${expectedDeckTotal}, draw=${pileCardCount(drawPile)}, played=${pileCardCount(playedPile)}, grid=${gridCardCount()}`);
   }
 }
 // Wrap so any call to updateDeckHud after layout settles
