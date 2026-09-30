@@ -118,11 +118,7 @@ async function showLevelUpScreen_fallOnly() {
     filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: i * 20 }));
 
     // Zero state silently - the real DOM goes dark immediately while clones fall.
-    focusNodes = 0;
-    focusAnimQueue = [];
-    focusAnimRunning = false;
-    syncFocusMeterState();
-    updateFocusMultReadout(false);
+    resetFocusMeter();
 
     // Brief lead before card fall begins
     await new Promise(res => setTimeout(res, FOCUS_LEAD_MS));

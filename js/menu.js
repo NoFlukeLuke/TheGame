@@ -1,4 +1,4 @@
-const BUILD = "2026-09-29 · r394 · the chosen tab is knocked off, confetti under the chip, the board deals at once";
+const BUILD = "2026-09-30 · r395 · focus resets at every level and every boss, and the deck editor takes swaps and discards";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

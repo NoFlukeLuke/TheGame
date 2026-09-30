@@ -470,6 +470,28 @@ body.flowr-deck #grid::after {
 #grid .card.flowr-hit  { animation: flowrHit .45s ease; box-shadow: 0 0 0 2.5px #4aa3e0, 0 0 16px rgba(74,163,224,.75) !important; }
 #grid .card.flowr-won  { animation: flowrHit .45s ease; box-shadow: 0 0 0 2.5px #5ad47f, 0 0 16px rgba(90,212,127,.8) !important; }
 #grid .card.flowr-miss { filter: saturate(.25) brightness(.6); }
+/* A LIFTED CARD (r395) - double-tapped, waiting for the neighbour it will trade
+   with. Teal rather than a shade of the selection blue: it is a different
+   question from "is this in the group", and a card can legitimately be neither,
+   one or (while the removal would split the group) both. It PULSES, because it
+   is the one state on this screen that is waiting on the player rather than
+   describing what they have already picked, and it outranks .flowr-sel by
+   coming later at the same specificity. */
+#grid .card.flowr-lift {
+  box-shadow: 0 0 0 3px #5ad4c0, 0 0 18px rgba(90,212,192,.85) !important;
+  animation: flowrLift 1s ease-in-out infinite;
+}
+/* THE PULSE IS ON `filter`, NOT ON THE RING, and that is forced rather than
+   chosen: an !important author declaration BEATS an animation in the cascade,
+   and `!important` inside a keyframe is ignored outright - so a ring that has
+   to outrank .flowr-sel's own !important can never be the thing that animates.
+   Nothing else on a card during the edit writes filter (.flowr-miss is the
+   reveal, which cannot be live at the same time). */
+@keyframes flowrLift {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.32); }
+}
+body.reduced-motion #grid .card.flowr-lift { animation: none; }
 @keyframes flowrHit {
   0% { filter: brightness(1); } 35% { filter: brightness(1.7); } 100% { filter: brightness(1); }
 }

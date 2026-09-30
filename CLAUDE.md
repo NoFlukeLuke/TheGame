@@ -10655,6 +10655,152 @@ their own label and stand the pulse down; closing each one restores `🔄 SWAP 3
 its own band. **No page errors in any run.**
 
 
+## r395 - focus resets at every level and every boss, and the deck editor takes swaps and discards
+
+### 1. THE METER IS ZEROED IN ONE PLACE, AND THE BOSS PATH HAD NO COPY OF IT
+
+Owner: *"Focus should reset every level and when the boss starts."*
+
+The level half already worked and the boss half did not exist. There were three
+hand-written copies of the same four lines (`triggerLevelUp`, the interlude's
+fall, `startGame`) and **no `focusNodes = 0` anywhere in `js/boss.js`** - which
+is exactly the shape a fourth site goes missing in. `resetFocusMeter()`
+(js/focus.js) is those four lines, and `triggerLevelUp`, the interlude and
+`triggerBoss` all call it.
+
+- **EVERY OTHER PATH INTO A BOSS HAD THE RESET BY ACCIDENT.** In the act modes
+  and in Survival the boss is armed by `triggerLevelUp`, which zeroes the meter
+  on its way past - so it looked right everywhere it was ever tested.
+  **FLOW'S INSPECTION FIRES FROM `onRoundEnd` THE MOMENT THE SESSION CLOCK
+  REACHES ZERO, MID-ROUND**, with no level-up in front of it, so a run walked
+  into the review holding whatever multiplier it had built. The legacy timer
+  modes and the dev panel's Trigger Boss are the same shape.
+- **It goes in `triggerBoss`, because that is the single door all six paths come
+  through** (js/level-up.js, js/survival.js, js/flow-mode.js, js/round-timers.js,
+  js/game-control.js, js/dev-panel.js). On the paths that had already zeroed it
+  this is a no-op.
+- **ABOVE `applyBossModifiers`, deliberately.** The Swell halves the ceiling and
+  The Metronome runs the clock AT the focus multiplier, so both want to arm
+  against an empty bar rather than against the round that just ended. The
+  Metronome therefore opens gentle, which is the same direction the reset moves
+  everything else.
+- **The interlude's Trade Winds payout still reads `focusNodes` ABOVE the
+  reset**, which was already load-bearing and is unchanged: the knack cashes out
+  half the round's remaining Focus and the notch-fall clones spawn, and only then
+  is the state zeroed.
+- **`startGame`'s bare `focusNodes = 0` is deliberately NOT routed through it.**
+  It sits mid-way through a long run reset, before the meter has been rebuilt
+  against the new run's limits, and `syncFocusMeterState()` there would be
+  answering a question nothing has asked yet.
+- Measured through the real paths: level-up **8 -> 0**; `triggerBoss` **9 -> 0**
+  in Classic, Flow, Survival and the Schedule.
+
+### 2. THE DECK EDITOR TAKES SWAPS AND DISCARDS (js/flow-rewards.js)
+
+Owner: *"implement the system where you can discard and swap cards in the card
+buff selection screen. So double tapping needs to prep for a swap and selecting
+cards can work for starting the buff or discarding, depending on the button you
+select."*
+
+This is the other half of r378's adjacency rule, which was added so that *"the
+leftover swaps and discards for the last round"* could be spent organising the
+board for a buff - **and then there was no way to spend either of them on that
+screen at all.**
+
+| gesture | does |
+|---|---|
+| tap | select / deselect into the buff group (unchanged) |
+| **double-tap** | **LIFT the card for a swap**; tap an orthogonal neighbour to trade, tap it again to cancel |
+| **PLAY** | APPLY - run the op on the selection (r328, unchanged) |
+| **DISCARD** | **spend a discard on the selection** |
+
+- **IT IS THE BOARD'S OWN VOCABULARY, down to `DOUBLE_TAP_MS`.** A player who
+  has learnt lift-and-trade on the board (input.js) or in the shop (r307) must
+  not have to learn a second one here.
+- **NOTHING IS REIMPLEMENTED.** `doSwap` and `doDiscard` own every rule there
+  is - adjacency, Free Range, Pivot, Wanderer, Royal Reach, Snared, the boss
+  refusals, the stock, Whetstone, Jury-Rig, the Vulture, exalt/corrupt, the
+  `on_discard` Sleights and the gravity refill - and getting any one of those
+  subtly different here is how two vocabularies start to drift. `doDiscard`
+  reads the play grid's own `selected`, so the editor's pick is handed over as
+  that and taken back afterwards: same board, same cells, nothing to translate.
+
+#### THE CLOCK IS NOT BILLED, and that is r307's rule rather than a new one
+
+This screen sits BETWEEN rounds, so organising the board costs the **STOCK** the
+round left over - which is the whole point of it - and not the session clock the
+inspection is counting down to. **`interactTimeCostMult()` is the one number the
+two charge sites AND the Time pop-up all read (r326)**, so one clause there
+covers all three and a quoted cost can never drift from a billed one.
+Measured: a swap in the editor is **1 stock and 0 seconds**, and the very next
+swap outside it is back to Flow's 4s.
+
+#### TWO HOST-SIDE GUARDS, AND THE SECOND ONE IS NOT OBVIOUS
+
+- **`roundEnded` FREEZES INPUT, AND THE EDITOR RUNS INSIDE THAT WINDOW.** The
+  goal hand set the flag (js/play-hand.js) and only the level-up at the END of
+  the reward chain clears it again (js/level-up.js), so `doDiscard`'s
+  `if (roundEnded || animating) return;` refused every discard the editor asked
+  for. It is exempt through the same predicate the clock uses, so there is one
+  flag and it is true only while `doSwap`/`doDiscard` is running **for us**
+  (`flowrDeckAct` sets it in a `try/finally`, and the time is billed
+  synchronously inside both, well before `removeAndFall` runs).
+- **`animating || falling` BAILS THE TAP HANDLER** - the r278 card-states rule. A
+  discard runs `removeAndFall`, which takes the `falling` lock and rewrites every
+  card element underneath us.
+
+#### A SWAP OR A DISCARD DROPS THE SELECTION
+
+Both end in a `render()`, so every `.flowr-sel` class is gone and every element
+reference in `_flowrDeckSel` is stale - and the board has moved under the pick
+anyway, which is the rule every other screen follows when its offers change
+(r282). `flowrDropSelection()` is what makes the state agree with the board.
+
+- **UNDOING THE DOUBLE-TAP'S OWN TOGGLE MUST NOT SPLIT THE GROUP.** The first tap
+  of a double-tap has already selected the card, so arming takes it back out -
+  and r378's rule applies to a card leaving the selection however it leaves. A
+  card whose removal would strand the others simply stays picked; the swap that
+  follows drops the whole selection anyway, so the only case this protects is
+  the player lifting a card and then changing their mind.
+- **The lift outranks everything else in the handler**: with a card lifted, the
+  next tap is the second half of a swap, not a selection.
+- **APPLY clears a pending lift** - a half-made swap is not part of the op.
+
+#### The DISCARD press, and why it uses `stopImmediatePropagation`
+
+The APPLY listener (r328) uses `stopPropagation` and gets away with it because
+the other listener on `#btn-play` is `playHand`, which no-ops with nothing
+selected. **The other listener on `#btn-discard` IS `doDiscard`**, which would
+run on the play grid's own empty `selected` - a no-op today, but "harmless
+because the thing underneath happens to do nothing" is not a guarantee worth
+relying on twice.
+
+#### THE PULSE IS ON `filter`, NOT ON THE RING
+
+`.flowr-lift` is teal rather than a shade of the selection blue: "is this
+lifted" is a different question from "is this in the group", and a card can be
+neither, one or (while removing it would split the group) both. Its ring needs
+`!important` to outrank `.flowr-sel`'s - **and an `!important` author
+declaration BEATS an animation in the cascade, while `!important` inside a
+keyframe is ignored outright**, so the ring can never be the thing that
+animates. The pulse is a `brightness()` animation instead; nothing else on a
+card during the edit writes `filter` (`.flowr-miss` is the reveal, which cannot
+be live at the same time).
+
+#### Verified
+
+In a real browser at **1440x820 and 420x900**, through the real click path, with
+`roundEnded` forced true (the real Flow situation): a tap selects and lights both
+buttons; a double-tap lifts and takes the card out of the group; a neighbour tap
+**trades the two cards, spends 1 swap and 0 seconds**; a non-adjacent tap is
+refused out loud ("Those cards are not next to each other") with **0 stock
+spent** and the lift dropped; DISCARD spends 1 discard, **0 seconds**, leaves
+**16 cards and 0 holes** with the deck balancing at 56; with no stock it refuses
+("No discards left") and **keeps the selection**; APPLY with a lift pending
+clears it and lands the buff; an adjacency op still picks a source and applies.
+**0 page errors at either viewport.** Control: Classic still bills **8s** a swap
+and Flow **4s** before and after the editor, so the free-time flag does not leak.
+
 ## `score-trays-preview.html` (r390) - one tray per number
 
 Owner: *"Could I see a preview where all the individual numbers have their own

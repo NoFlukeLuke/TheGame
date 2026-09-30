@@ -1175,6 +1175,40 @@ function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MA
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;
 let _flowrPlayHTML = null;
+
+// ══════════════════════════════════════════════
+// SWAP AND DISCARD ON THE EDIT SCREEN (r395)
+// ══════════════════════════════════════════════
+// Owner: "implement the system where you can discard and swap cards in the card
+// buff selection screen. So double tapping needs to prep for a swap and
+// selecting cards can work for starting the buff or discarding, depending on
+// the button you select."
+//
+// This is the other half of r378's adjacency rule, which was added so that "the
+// leftover swaps and discards for the last round" could be spent ORGANISING the
+// board for a buff - and then there was no way to spend them here at all.
+//
+// IT IS THE BOARD'S OWN VOCABULARY, deliberately, not a new one: DOUBLE-TAP a
+// card to lift it and tap a neighbour to trade (input.js's gesture, and r307's
+// in the shop), and the SELECTION routes to whichever action button is pressed -
+// PLAY is APPLY (r328) and DISCARD is DISCARD.
+//
+// NOTHING IS REIMPLEMENTED. doSwap and doDiscard own every rule there is -
+// adjacency, Free Range, Pivot, Wanderer, Royal Reach, Snared, the boss
+// refusals, the stock, Whetstone, Jury-Rig, the Vulture, exalt/corrupt, the
+// on_discard Sleights and the gravity refill - and getting any one of those
+// subtly different here is exactly how two vocabularies start to drift.
+let _flowrLift = null;                      // the card lifted for a swap: {id, r, c}
+let _flowrTapCell = null, _flowrTapAt = 0;  // double-tap window, DOUBLE_TAP_MS
+let _flowrActing = false;                   // true only while doSwap/doDiscard runs for us
+
+// THE CLOCK IS NOT BILLED HERE, and that is r307's rule rather than a new one:
+// this screen sits BETWEEN rounds, so organising the board costs the STOCK the
+// round left over - which is the whole point of it - and not the session clock
+// the inspection is counting down to. interactTimeCostMult() is the one number
+// both charge sites AND the Time pop-up read (r326), so one clause covers all
+// three and a quoted cost can never drift from a billed one.
+function deckEditFreeInteract() { return _flowrActing; }
 // render()'s button guard asks this (the r247 takeover rule): while the deck
 // edit is up, PLAY is the APPLY button and render must not write over it.
 function flowrDeckActive() { return !!_flowrDeckOp; }
@@ -1214,7 +1248,8 @@ function flowrDeckBegin(op) {
     play.disabled = true;   // buff ops enable it once a card is picked
   }
   const disc = document.getElementById('btn-discard');
-  if (disc) disc.disabled = true;
+  if (disc) disc.disabled = true;   // lit by flowrDeckSyncUI once something is picked
+  _flowrLift = null; _flowrTapCell = null; _flowrTapAt = 0; _flowrActing = false;
   const gridEl = document.getElementById('grid');
   // CAPTURE PHASE, the squares rule: input.js binds its own pointerdown here and
   // a tap means "select into a hand", which this screen does not have.
@@ -1230,6 +1265,17 @@ document.getElementById('btn-play')?.addEventListener('click', e => {
   flowrDeckConfirm();
 }, true);
 
+// The DISCARD press (r395). stopImmediatePropagation rather than the APPLY
+// listener's stopPropagation, because the other listener on this button IS
+// doDiscard - it would run on the play grid's own empty `selected` and be a
+// no-op today, but "harmless because the thing underneath happens to do
+// nothing" is not a guarantee worth relying on twice.
+document.getElementById('btn-discard')?.addEventListener('click', e => {
+  if (!_flowrDeckOp) return;
+  e.stopImmediatePropagation();
+  flowrDeckDiscard();
+}, true);
+
 // The banner sits OVER THE CHIPS ROW, never over the board (owner's call - it
 // was covering the top cards). It mounts on #stage: in landscape it takes the
 // left column's chip band (the .score-subbox row is display:none on every
@@ -1241,10 +1287,11 @@ function flowrDeckBanner() {
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
+  const _g = 'Double-tap a card to swap it';
   if (op.buff || op.dual) {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then press APPLY · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · ${_g} · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · <i id="fb-count">none</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · ${_g} · <i id="fb-count">none</i></span>`;
   }
   host.appendChild(el);
 }
@@ -1305,6 +1352,72 @@ function flowrDeckSyncUI() {
   if (cnt) cnt.textContent = (op.buff || op.dual) ? `${n}/${flowrSelMax(op)}`
                                      : (n ? `${_flowrDeckSel[0].cd.rank}${_flowrDeckSel[0].cd.suit}` : 'none');
   const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
+  // DISCARD is lit by the same selection APPLY is. It is OPTIMISTIC (r389's
+  // rule): doDiscard still refuses out loud when the stock is gone or a card is
+  // Snared, which reads better than a button that is dark for a reason the
+  // player cannot see.
+  const dsc = document.getElementById('btn-discard'); if (dsc) dsc.disabled = n === 0;
+  flowrPaintLift();
+}
+
+// The lifted card is the only thing on screen that says a swap is half-made, so
+// it is painted from one place and repainted after every render() that doSwap
+// or removeAndFall runs underneath us.
+function flowrPaintLift() {
+  document.querySelectorAll('#grid .card.flowr-lift').forEach(el => el.classList.remove('flowr-lift'));
+  if (!_flowrLift) return;
+  document.querySelector(`#grid [data-card-id="${_flowrLift.id}"]`)?.classList.add('flowr-lift');
+}
+
+function flowrClearLift() { _flowrLift = null; _flowrTapCell = null; _flowrTapAt = 0; flowrPaintLift(); }
+
+// THE SELECTION IS DROPPED BY A SWAP OR A DISCARD, never carried across one.
+// Both end in a render() that rebuilds the cards, so every element reference in
+// _flowrDeckSel is stale and every .flowr-sel class is gone - and the board has
+// moved under the pick anyway, which is the rule every other screen in the game
+// follows when its offers change (r282).
+function flowrDropSelection() {
+  _flowrDeckSel = [];
+  document.querySelectorAll('#grid .card.flowr-sel, #grid .card.flowr-src')
+    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src'));
+  flowrDeckSyncUI();
+}
+
+// _flowrActing is what makes the clock free (above) and what lets doDiscard past
+// its `roundEnded` guard - true here, because the goal hand that opened this
+// chain set it and only the level-up at the chain's END clears it again.
+function flowrDeckAct(fn) {
+  _flowrActing = true;
+  try { fn(); } finally { _flowrActing = false; }
+}
+
+function flowrDeckSwap(r, c) {
+  const from = _flowrLift; if (!from) return;
+  flowrClearLift();
+  flowrDeckAct(() => doSwap(from.r, from.c, r, c));
+  // doSwap ends in a render(), so every .flowr-sel is already gone and every
+  // element reference in _flowrDeckSel is stale - flowrDropSelection is what
+  // makes the STATE agree with the board again.
+  flowrDropSelection();
+}
+
+// DISCARD. doDiscard reads the PLAY GRID's own `selected`, so the editor's pick
+// is handed over as that and taken back afterwards - the board is the same
+// board and the cells are the same cells, so there is nothing to translate.
+function flowrDeckDiscard() {
+  if (_flowrDeckBusy || !_flowrDeckOp || !_flowrDeckSel.length) return;
+  if (animating || falling) return;
+  const cells = _flowrDeckSel.map(s => [s.r, s.c]);
+  const before = discards;
+  flowrClearLift();
+  const _keep = selected;
+  selected = cells;
+  flowrDeckAct(() => doDiscard());
+  // doDiscard empties `selected` on success and leaves it alone on a refusal,
+  // so its own answer is what says whether anything happened.
+  const went = selected.length === 0 || discards !== before;
+  if (!went) selected = _keep;
+  if (went) flowrDropSelection(); else flowrDeckSyncUI();
 }
 
 function flowrDeckTap(e) {
@@ -1312,14 +1425,56 @@ function flowrDeckTap(e) {
   // here, so input.js's select/swap gestures can never fire underneath.
   e.stopPropagation(); e.preventDefault();
   if (_flowrDeckBusy) return;
+  // A settling board is not a board to act on - the r278 card-states rule. A
+  // discard runs removeAndFall, which takes the `falling` lock and rewrites
+  // every card element underneath us.
+  if (animating || falling) return;
   const cardEl = e.target.closest('[data-card-id]');
   if (!cardEl) return;
   const hit = flowrDeckFindCell(cardEl);
   if (!hit) return;
   const [r, c, cd] = hit;
-  if (!flowrDeckOrdinary(cd)) { refuse('Pick an ordinary card'); return; }
-  const op = _flowrDeckOp;
   const id = String(cd._id);
+
+  // ── A LIFTED CARD IS WAITING FOR ITS PARTNER, and that outranks everything
+  // below: this tap is the second half of a swap, not a selection.
+  if (_flowrLift) {
+    if (_flowrLift.id === id) { flowrClearLift(); try { sfxCardSelect?.(); } catch (e2) {} return; }
+    flowrDeckSwap(r, c);
+    return;
+  }
+
+  if (!flowrDeckOrdinary(cd)) { refuse('Pick an ordinary card'); return; }
+
+  // ── DOUBLE-TAP LIFTS IT. The gesture is input.js's, down to DOUBLE_TAP_MS,
+  // because a player who has learnt it on the board must not have to learn a
+  // second one here. The first tap of the pair has already toggled the
+  // selection, so arming UNDOES that toggle - a double-tap means "swap this",
+  // not "swap this and also change what I had picked".
+  const _now = Date.now();
+  const _dbl = _flowrTapCell === id && (_now - _flowrTapAt) < DOUBLE_TAP_MS;
+  _flowrTapCell = id; _flowrTapAt = _now;
+  if (_dbl) {
+    // UNDOING THE TOGGLE MUST NOT SPLIT THE GROUP - r378's rule applies to a
+    // card leaving the selection however it leaves. A card whose removal would
+    // strand the others simply stays picked; the swap that follows drops the
+    // whole selection anyway, so the only case this protects is the player
+    // lifting a card and then changing their mind.
+    const back = _flowrDeckSel.findIndex(x => x.id === id);
+    if (back >= 0) {
+      const rest = _flowrDeckSel.filter((_, k) => k !== back);
+      if (_flowrConnected(rest)) {
+        _flowrDeckSel = rest;
+        cardEl.classList.remove('flowr-sel', 'flowr-src');
+      }
+    }
+    _flowrLift = { id, r, c };
+    flowrDeckSyncUI();
+    try { sfxCardSelect?.(); } catch (e2) {}
+    return;
+  }
+
+  const op = _flowrDeckOp;
   const i = _flowrDeckSel.findIndex(x => x.id === id);
 
   // ── ADJACENCY OPS: ONE source card, and a tap MOVES it. It no longer fires.
@@ -1356,6 +1511,7 @@ function flowrDeckTap(e) {
 // one of them (the whole reason the adjacency ops fired on a tap).
 function flowrDeckConfirm() {
   if (_flowrDeckBusy || !_flowrDeckOp || !_flowrDeckSel.length) return;
+  flowrClearLift();   // a half-made swap is not part of the op
   if (_flowrDeckOp.adj) { const s0 = _flowrDeckSel[0]; flowrAdjApply(s0.r, s0.c, s0.cd); }
   else if (_flowrDeckOp.dual) flowrDualConfirm();
   else flowrBuffConfirm();
@@ -1524,8 +1680,9 @@ function flowrDeckEnd() {
     play.innerHTML = _flowrPlayHTML;
     play.disabled = true;
   }
-  document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-hit, .flowr-won, .flowr-miss, .flowr-jig')
-    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-hit', 'flowr-won', 'flowr-miss', 'flowr-jig'));
+  document.querySelectorAll('.flowr-sel, .flowr-src, .flowr-lift, .flowr-hit, .flowr-won, .flowr-miss, .flowr-jig')
+    .forEach(el => el.classList.remove('flowr-sel', 'flowr-src', 'flowr-lift', 'flowr-hit', 'flowr-won', 'flowr-miss', 'flowr-jig'));
+  _flowrLift = null; _flowrTapCell = null; _flowrTapAt = 0; _flowrActing = false;
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   _flowrDeckOp = null; _flowrDeckSel = []; _flowrDeckBusy = false;
   // r380: THE REVEAL GETS A BEAT, then the board explodes out. It used to cut

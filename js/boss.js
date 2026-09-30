@@ -625,6 +625,23 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   bossObjectiveProgress = 0;
   bossScoreAtStart = score;   // vestigial since r155 (boss bar = roundGoal); kept for save/debug shape
 
+  // ── FOCUS RESETS WHEN THE BOSS STARTS (r395, owner's spec) ────────────────
+  // Every OTHER path into a boss already had this for free, because in the act
+  // modes and in Survival the boss is armed by triggerLevelUp, which zeroes the
+  // meter on its way past. FLOW'S DOES NOT: its inspection fires from
+  // onRoundEnd the moment the session clock reaches zero, MID-ROUND, with no
+  // level-up in front of it - so a run walked into the review holding whatever
+  // multiplier it had built, which is the one round that should not be handed
+  // one. The legacy timer modes and the dev panel's Trigger Boss are the same
+  // shape. It goes here, in triggerBoss, because that is the single door every
+  // one of them comes through; on the paths that had already zeroed it this is
+  // a no-op.
+  //
+  // ABOVE applyBossModifiers deliberately. The Swell halves the ceiling and The
+  // Metronome runs the clock AT the focus multiplier, so both want to arm
+  // against an empty bar rather than against the round that just ended.
+  if (typeof resetFocusMeter === 'function') resetFocusMeter();
+
   // Apply modifiers
   applyBossModifiers(preset);
 
