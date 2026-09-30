@@ -4734,7 +4734,7 @@
      (this one stated 40x53 for years and was always outranked by it). */
   #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
-  #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
+  #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; padding:0 8px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
      The same 1.56%→39.3% span, now 2 equal slots of 18.4% with the 0.9% gutter. */
   #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.67%; width:18.4%; height:6.39%; }
@@ -4762,6 +4762,9 @@
   #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
   #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
   #coin-info .ci-main b { font-size:19px; }
+  #coin-info .ci-unit { font-size:8px; letter-spacing:.5px; text-transform:uppercase; margin-left:2px; }
+  #coin-info .ci-level { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.5px; padding-right:8px; border-right:1px solid rgba(255,255,255,.12); color:var(--cream-dim); display:flex; align-items:baseline; gap:4px; white-space:nowrap; }
+  #coin-info .ci-level b { font-family:'Cinzel',serif; font-size:15px; color:var(--cream); }
   #coin-info .ci-row { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:8px; color:var(--cream-dim); }
   #coin-info .ci-row .pos { color:var(--green); }
   #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
@@ -5195,7 +5198,7 @@
   /* Compact one-line money bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info .ci-main { font-size: 13px; }
   #stage.landscape #coin-info .ci-main b { font-size: 16px; }
-  #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 4px; font-size: 9px; white-space: nowrap; }
+  #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 3px; font-size: 8px; white-space: nowrap; }
 
   /* ── Reward-grid-style trick tiles: CRT/neon card, rarity = border color ── */
   #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }

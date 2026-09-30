@@ -87,6 +87,7 @@ function updateScoreUI() {
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
   document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
   document.getElementById('level-display').textContent = level;
+  const cl = document.getElementById('ci-level'); if (cl) cl.textContent = level;
   updateCoinsUI();
   updateRunProgressUI();
 }

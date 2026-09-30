@@ -167,10 +167,10 @@ function updateGridTopline() {
   const t = document.getElementById('gt-time');
   if (t && typeof roundSeconds === 'number') {
     const m = Math.floor(Math.max(0, roundSeconds) / 60), sec = Math.max(0, roundSeconds) % 60;
-    t.textContent = `ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
+    t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
   }
   const c = document.getElementById('gt-coins');
-  if (c && typeof coins === 'number') c.textContent = `💰 ${coins}`;
+  if (c && typeof coins === 'number') c.textContent = `💰 ${coins} credits`;
 }
 function exitGridScreenHud() {
   // A pending swap belongs to the screen that is closing - a late apply would

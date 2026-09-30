@@ -605,6 +605,33 @@ function reshuffleGrid() {
   render();
 }
 
+// Card tooltips are BODY-LEVEL and placed in raw viewport px. They used to be
+// children of #grid positioned from getBoundingClientRect, but #grid sits inside
+// #cabinet's CSS zoom (~1.9 on desktop): a rect is in screen px and `left`/`top`
+// are in the element's own px, so the bubble landed about twice as far right as
+// asked, ran into the grid's edge and shrank to a one-letter-wide strip.
+// It docks BESIDE the board (right, then left) so it never covers the cards being
+// played; only when neither side has room does it fall back to above/below.
+function placeCardTooltip(tip, anchorEl) {
+  document.body.appendChild(tip);
+  void tip.offsetWidth;
+  const gridEl = document.getElementById('grid');
+  const g = (gridEl || anchorEl).getBoundingClientRect();
+  const a = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight, gap = 10, m = 6;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let left, top = a.top + a.height / 2 - h / 2;
+  if (vw - g.right - gap - m >= w)      left = g.right + gap;
+  else if (g.left - gap - m >= w)       left = g.left - gap - w;
+  else {
+    left = a.left + a.width / 2 - w / 2;
+    top = (a.top - h - 8 >= m) ? a.top - h - 8 : a.bottom + 8;
+  }
+  tip.style.left = Math.max(m, Math.min(left, vw - w - m)) + 'px';
+  tip.style.top  = Math.max(m, Math.min(top,  vh - h - m)) + 'px';
+  tip.style.opacity = '1';
+}
+
 function showSleightGridTooltip(r, c, card) {
   hideSleightGridTooltip();
   const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
@@ -637,14 +664,7 @@ function showSleightGridTooltip(r, c, card) {
               : 'LONG-PRESS FOR TOOLTIP';
     tip.innerHTML = `<div class="sleight-tooltip-name">${def.emoji} ${def.name}</div><div class="sleight-tooltip-desc">${colorizeKeywords(def.desc)}</div><div class="sleight-tooltip-uses">${uses}</div><div class="sleight-tooltip-hint">${_hint}</div>`;
   tip.style.opacity = '0';
-  gridEl.appendChild(tip);
-  void tip.offsetWidth;
-  const gRect = gridEl.getBoundingClientRect();
-  const eRect = sleightEl.getBoundingClientRect();
-  const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
-  tip.style.left = Math.max(2, eRect.left - gRect.left + eRect.width/2 - tipW/2) + 'px';
-  tip.style.top  = Math.max(2, eRect.top - gRect.top - tipH - 8) + 'px';
-  tip.style.opacity = '1';
+  placeCardTooltip(tip, sleightEl);
 }
 function hideSleightGridTooltip() {
   document.getElementById('sleight-grid-tooltip')?.remove();
@@ -690,14 +710,7 @@ function showCardTooltip(r, c) {
   tip.innerHTML = `<div class="sleight-tooltip-name">${card.rank}${card.suit}</div>`
                 + `<div class="sleight-tooltip-desc">${lines.join('<br>')}</div>`;
   tip.style.opacity = '0';
-  gridEl.appendChild(tip);
-  void tip.offsetWidth;
-  const gRect = gridEl.getBoundingClientRect();
-  const eRect = cardEl.getBoundingClientRect();
-  const tipW  = tip.offsetWidth, tipH = tip.offsetHeight;
-  tip.style.left = Math.max(2, eRect.left - gRect.left + eRect.width / 2 - tipW / 2) + 'px';
-  tip.style.top  = Math.max(2, eRect.top  - gRect.top  - tipH - 8) + 'px';
-  tip.style.opacity = '1';
+  placeCardTooltip(tip, cardEl);
 }
 
 // Touch: tap-and-hold shows the tooltip. Desktop: hover shows it (no click-and-hold).
