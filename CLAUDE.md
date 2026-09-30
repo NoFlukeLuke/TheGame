@@ -11750,3 +11750,11 @@ panel and the ladder animating their entrance and both releasing it, the chain
 finishing with `level` moving once, **0 ghosts, no panel and no ladder left
 behind, the hold cleared, 16 cards and 0 holes**, and the deck audit balancing.
 **No page errors in any run.**
+
+## r407 - menus are a fixed size (`css/menu-size.css` + `js/menu-size.js`)
+
+Records, Settings, the handbook and History are one FIXED box: `--menu-w` x `--menu-h`, 75vw x 75vh on desktop (width capped at 142vh for ultrawides) and 88vw x 85vh on a phone or any portrait viewport. The box never resizes while open; short content leaves space and an empty state says so inside it (Records' Buffed only reads "None. No card is buffed yet.").
+
+- **`--menu-z` zooms the CONTENT** so type reads at a normal game size: 1 on a phone, rising to 1.4 at 1080p (`min(w/1100, h/660)`, clamped 1-1.4). The box is `calc(var(--menu-w) / var(--menu-z))` so the zoom cannot change its on-screen size. Measured: 1080x615 at 1440x820 on every tab and every menu.
+- **`#entity-tip` zooms its CHILDREN, never itself** - the placement code writes left/top in viewport px onto the host, and zoom would multiply them. The card is ~22% of a desktop width at 1.4.
+- Deliberately NOT sized this way: the pause menu, the dev panel, events, Limit Break and the shop (owner: menus only; those move onto the grid later). `#trick-tooltip`, `#reward-tooltip` and `#knack-tooltip` are positioned elements with flat content and would need a wrapper before they can take the zoom.

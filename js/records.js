@@ -168,7 +168,7 @@ function recordsRenderDeckCards() {
   rows += rowOf('✶', 'rec-wild', all.filter(c => isWildCard(c)));
   const other = all.filter(c => !isWildCard(c) && !suits.includes(c.suit));
   if (other.length) rows += rowOf('?', '', other);
-  if (!rows) rows = `<div class="rec-empty">No buffed cards yet.</div>`;
+  if (!rows) rows = `<div class="rec-empty">None. No card is buffed yet.</div>`;
   const chip = (on, k, txt) => `<button class="rec-chip${on ? ' on' : ''}" onclick="recordsDeckToggle('${k}')">${txt}</button>`;
   return `
     <div class="rec-summary">

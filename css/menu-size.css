@@ -1,0 +1,28 @@
+/* ══════════════════════════════════════════════
+   FIXED MENU SIZE (r407)
+   Records, Settings, the handbook and History are one FIXED box: 75% of the
+   screen on desktop, 85% on a phone, width capped against the height on an
+   ultrawide. The box never resizes while open; content that runs short leaves
+   space and an empty state says so inside the box.
+   --menu-z (js/menu-size.js) zooms the CONTENT up so type reads at a normal
+   game size (about 16px body at 1080p) instead of 12px. The box is divided
+   by it so the zoom cannot change the box's on-screen size.
+   ══════════════════════════════════════════════ */
+:root { --menu-z: 1; --menu-w: min(75vw, 142vh); --menu-h: 75vh; }
+@media (max-aspect-ratio: 1/1), (max-width: 700px) {
+  :root { --menu-w: 88vw; --menu-h: 85vh; }
+}
+#records-panel, #settings-panel, #info-panel, #history-panel {
+  zoom: var(--menu-z);
+  width: calc(var(--menu-w) / var(--menu-z)) !important;
+  max-width: none !important;
+  height: calc(var(--menu-h) / var(--menu-z)) !important;
+  max-height: none !important;
+  flex: 0 0 auto;
+}
+
+/* Tooltips take the same content zoom, on the CHILDREN of #entity-tip and
+   never on #entity-tip itself: the placement code writes left/top in viewport
+   px onto the host, and zoom would multiply them. At 1.4 the 232px card is
+   ~325px, about 22% of a 1440 desktop; a phone stays at zoom 1. */
+#entity-tip > .et-card, #entity-tip > .et-defs { zoom: var(--menu-z); }

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r406 · Flow reward screens get Round breakdown and Shop buttons";
+const BUILD = "2026-09-30 · r407 · Menus are a fixed size and scale their content";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
