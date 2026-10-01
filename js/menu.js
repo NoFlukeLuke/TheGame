@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r409 · Board-only pattern, settings migration fix, loading word";
+const BUILD = "2026-10-01 · r410 · CLAUDE.md slimmed, history moved to HISTORY.md";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
