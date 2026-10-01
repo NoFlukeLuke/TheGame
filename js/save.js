@@ -135,7 +135,7 @@ const SAVE_VARS = [
   // ── Boss ──
   'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'blockedCells', 'nullCells',
   // ── Challenge ──
-  'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
+  'challengeCard', 'challengeActive', 
   // ── Survival ──
   'survivalBossTimeBank', 'survivalBossPending', 'survivalLevelsSinceLimit', 'pickRerollsUsed',
   // The rest of the Survival loop's state. survivalBossesBeaten in particular gates the

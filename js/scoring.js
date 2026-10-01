@@ -1,27 +1,3 @@
-// `reps` (optional) is an array aligned to `cards` giving each card's replay count
-// (1 = scored once). Exalt/corrupt is a per-card suit buff, so a replayed card fires
-// it once per (re)play - omit `reps` (or pass all-1s) for the pristine single-score total.
-function exaltCorruptTotals(cards, reps) {
-  let pips = 0, mult = 0, coins = 0, time = 0;
-  if (!exaltCorruptEnabled) return { pips, mult, coins, time }; // mechanic paused → no suit buffs
-  cards.forEach((c, i) => {
-    if (!c) return;
-    const n = reps ? (reps[i] || 1) : 1;
-    if (c._exalted) {
-      if      (c.suit === '♣') pips  += BAL._exalt.club_pips * n;          // exalted club:    +10 pips
-      else if (c.suit === '♦') coins += BAL._exalt.diamond_coins * n;           // exalted diamond: +3 coins
-      else if (c.suit === '♥') mult  += BAL._exalt.heart_mult * n;           // exalted heart:   +4 mult
-      else if (c.suit === '♠') time  += BAL._exalt.spade_time * n;           // exalted spade:   +4 time
-    }
-    if (c._corrupted) {
-      if      (c.suit === '♣') { pips  += BAL._corrupt.club_pips * n; mult  += BAL._corrupt.club_mult * n;  }  // corrupted club:    +25 pips  -3 mult
-      else if (c.suit === '♦') { coins += BAL._corrupt.diamond_coins * n;  pips  += BAL._corrupt.diamond_pips * n; }  // corrupted diamond: +5 coins  -20 pips
-      else if (c.suit === '♥') { mult  += BAL._corrupt.heart_mult * n;  time  += BAL._corrupt.heart_time * n;  }  // corrupted heart:   +5 mult   -5 time
-      else if (c.suit === '♠') { time  += BAL._corrupt.spade_time * n;  coins += BAL._corrupt.spade_coins * n;  }  // corrupted spade:   +7 time   -8 coins
-    }
-  });
-  return { pips, mult, coins, time };
-}
 
 // `ledger` (optional out-param) collects per-card animation data for the score dance:
 //   ledger.cards = [{ r, c, card, rank, suit, rawPip, reps, ids:[trickId…] }]  in scoring order,
@@ -104,12 +80,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // wild could not have affected anyway, so a Trick added later inherits it.
   //
   // `cards` is deliberately NOT redefined: `_reps` is built from _scoreCells and
-  // is documented as aligned to `cards`, and exaltCorruptTotals(cards, reps)
+  // is documented as aligned to `cards`, and the old exaltCorruptTotals(cards, reps)
   // pairs them by index, so dropping an entry here would silently shift every
   // exalt payout onto the wrong card.
   const _handCards = (_handOnly === cells) ? cards : _handOnly.map(([r,c]) => gridData[r][c]);
   const _natCards = (typeof naturalCards === 'function') ? naturalCards(_handCards) : _handCards;
-  const hasTrickCard = trickCardPos && cells.some(([r,c]) => r===trickCardPos[0] && c===trickCardPos[1]);
   // Predicted post-update streak count for THIS hand (playHand updates streakCount/lastHandType
   // only after calcScore runs, so reading streakCount directly here is one hand stale).
   const _effStreak = (lastHandType !== null && handName === lastHandType) ? streakCount + 1 : 1;
@@ -250,7 +225,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // `_wc(pred) x rate` sweeps, which is the SAME SUM - but a sweep cannot tell the
   // dance which card earned it, so every one of them animated in the end lump.
   // Emitting per card here is what lets "+1 mult for a heart" fire on the heart.
-  let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0, _ecMultAcc = 0, _ecPipAcc = 0;
+  let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0;
   // Per-card MULT, in scoring order: what each card adds every time it scores,
   // what it adds on its first scoring only, its own x mult, and how many times
   // it scores. Replayed against `mult` below (see _cardMultSeq's use).
@@ -652,9 +627,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pmv = _G ? 0 : (permMult[_eKey] || 0);
     if (_pmv) { _cmAdd += _pmv; _pmMult += _pmv * _retrig; _proc('perm_mult'); _ev('perm_mult','mult+',_pmv); }
     if (!_G && hasTrick('old_growth') && !_mute && cp) { const _og = cp / _retrig; _cmAdd += _og; _ogMult += cp; _proc('old_growth'); _ev('old_growth','mult+',_og); }
-    const _ec1 = _G ? {} : exaltCorruptTotals([card]);
-    if (_ec1.mult) { _cmAdd += _ec1.mult; _ecMultAcc += _ec1.mult * _retrig; _ev('_exalt','mult+',_ec1.mult,'exalt'); }
-    if (_ec1.pips) { _ecPipAcc  += _ec1.pips * _retrig; _ev('_exalt','pip+', _ec1.pips,'exalt'); }
     // Per-card payers (see PER_CARD_PAYERS). REPLAY-WEIGHTED since r236: a card
     // that scores three times pays them three times, exactly as its own pips do.
     // They used to pay once per card however many times it scored, which is what
@@ -732,7 +704,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
   _lastHandClubHits = _clubHits;   // snapshot for Hard Labour's round ladder (advanced in playHand, r346)
   _lastHandVultureSeconds = _vultureFires; // snapshot for Vulture (retrigger-aware pause seconds)
-  _lastRetrigByCell = retrigByKey; // snapshot for playHand's exalt/corrupt coin/time (replay-aware)
+  _lastRetrigByCell = retrigByKey; // snapshot for playHand's per-card payouts (replay-aware)
   // reps aligned to `cards`/`_scoreCells`. The replay-weighted per-card sweeps that
   // used to live here are accumulated in the loop instead (r197) - see the per-card
   // MULT block - so each one can animate on the card that earned it.
@@ -938,13 +910,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
   if (_hdMult) { bMultQ('heart_double', _hdMult, 1); }
 
-  // Exalt / Corrupt - pip & mult contributions (coins & time applied in playHand); per-card → per replay
-  // Summed per card in the loop above (same cards, same reps) so an exalted card's
-  // buff animates on that card rather than in the end lump.
-  const _ec = { pips: _ecPipAcc, mult: _ecMultAcc };
-  totalPips += _ec.pips;
-  // _ec.mult was applied per card in the loop; this is the floor it always had.
-  if (mult < 1) mult = 1; // corruption can't drop mult below 1
+  if (mult < 1) mult = 1; // nothing may drop mult below 1
 
   // Trinity Run: +9 mult for runs with 3/6/9
   if (hasTrick('threes_run') && hasTrinityRank) { mult += BAL.threes_run.mult; bMult('threes_run', BAL.threes_run.mult); }
@@ -1302,8 +1268,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // The Grind (boss): a hand type pays less every time you repeat it inside its
   // window. Read-only here; playHand is what pushes the history.
   if (typeof bossGrindMult === 'function') _xs('_grind', bossGrindMult(handName), 'boss');
-  // The starred card (assignTrickCard, every TRICK_CARD_INTERVAL seconds).
-  if (hasTrickCard) _xs('_trickcard', 2, 'trick');
   // Low and Behold is a PER-CARD REPLAY now (see _labOn in the card loop), not a
   // x2 here. It was the one entry on this list whose printed text described cards
   // replaying rather than a multiplier.
@@ -1318,7 +1282,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   lastCalcFocus = Math.pow(fMult, 1 + _fxN);
   lastCalcFocusExtra = fMult > 1 ? _fxN : 0;
 
-  if (totalPips < 0) totalPips = 0; // corrupt costs can't push a hand into score debt
+  if (totalPips < 0) totalPips = 0; // no hand scores into debt
 
   let s = totalPips * mult;
 
@@ -1346,8 +1310,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (contrib !== null) {
     if (_cp) Object.entries(_cp).forEach(([id, d]) => { if (d > 0) contrib.push({type:'pip',source:'trick',id,delta:d}); });
     if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'trick',id,delta:Math.round(d*10)/10}); });
-    if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
-    if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
     // Sleight scoring contribution: Amplifier's carried-over mult (folded into base mult above).
     // NOTE: Knacks and other Sleights are rule/resource/wildcard effects - they add no pips/mult
     // during scoring, so nothing else is attributable here. Any future scoring Knack/Sleight can
@@ -1391,11 +1353,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
 // ══════════════════════════════════════════════
 // PER-ROUND CONTRIBUTION TALLY (Payout > Contributions tab)
-// Reuses calcScore's built-in `contrib` output (per-Trick + exalt pip/mult
+// Reuses calcScore's built-in `contrib` output (per-Trick pip/mult
 // deltas) - no separate scoring math, so it can't drift from the real score.
 // ══════════════════════════════════════════════
 function contribDisplayName(source, id) {
-  if (source === 'exalt') return 'Exalt / Corrupt';
   // 'primed' is not a Trick, so it fell through to the raw id and the round's
   // breakdown printed a lower-case `primed` row among the Trick names (r294).
   if (id === 'primed') return 'Primed fires';
@@ -1435,7 +1396,7 @@ function captureRoundContrib(result) {
   if (!result) return null;
   const { hand, handCells } = result;
   const rows = [];
-  // Bonus-entity contributions (Tricks + exalt) straight from calcScore.
+  // Bonus-entity contributions (Tricks) straight from calcScore.
   const contrib = [];
   calcScore(hand, handCells, contrib);
   contrib.forEach(e => rows.push({ label: contribDisplayName(e.source, e.id), kind: e.type, amount: e.delta }));

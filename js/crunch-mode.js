@@ -14,8 +14,8 @@
 // ── THE CLOCK IS `roundSeconds`, AND THAT IS THE LOAD-BEARING DECISION ───────
 // Flow already proved this out (js/flow-mode.js). About fifteen sites across the
 // engine measure "how far into the round are we" as `roundStartSeconds -
-// roundSeconds` (The Swift, Sediment, the Cuckoo, the Woodpecker, the exalt
-// window, every clock-mark Trick). Keeping a PARALLEL act counter and pinning
+// roundSeconds` (The Swift, Sediment, the Cuckoo, the Woodpecker, every
+// clock-mark Trick). Keeping a PARALLEL act counter and pinning
 // roundSeconds would kill all of them silently. So the act bank simply IS
 // roundSeconds; it ticks exactly as it always did, and only three things differ:
 //   1. a level-up does NOT refill it (crunchNextRoundSeconds carries it),
@@ -137,7 +137,7 @@ function crunchBossWindow() {
 // minutes - which is exactly the bug r183 had to take out of rewindCeiling,
 // where a Flush in Flow cut the session clock from 290 to 180 and reported
 // nothing. Wrapped at the three sites that ADD time to the clock against a
-// ceiling (the Altar's boon, the spade exalt payout, the dev slider); outside
+// ceiling (the Altar's boon, the dev slider); outside
 // Crunch it returns the cap untouched, so every other mode is unchanged.
 //
 // The fourth site, the round-start countdown, is NOT a gain and is handled

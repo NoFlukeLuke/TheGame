@@ -246,7 +246,6 @@ function triggerLevelUp() {
   }
   setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
   fireSleightsAtRoundStart();
-  // (♠ exalt/corrupt is now play/discard-driven - handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
   // Reset focus meter at the start of every round (r395: one helper, js/focus.js)
   resetFocusMeter();
@@ -293,8 +292,6 @@ function triggerLevelUp() {
   stopwatchActive = false;
   if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }
   stopwatchCardPos = null;
-  trickCardPos = null;
-  trickCardTimer = 0;
   selected = [];
 
   // Sapling trick - give perm pips to 3 distinct normal cards

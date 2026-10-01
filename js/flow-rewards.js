@@ -1562,7 +1562,7 @@ let _flowrPlayHTML = null;
 //
 // NOTHING IS REIMPLEMENTED. doSwap and doDiscard own every rule there is -
 // adjacency, Free Range, Pivot, Wanderer, Royal Reach, Snared, the boss
-// refusals, the stock, Whetstone, Jury-Rig, the Vulture, exalt/corrupt, the
+// refusals, the stock, Whetstone, Jury-Rig, the Vulture, the
 // on_discard Sleights and the gravity refill - and getting any one of those
 // subtly different here is exactly how two vocabularies start to drift.
 let _flowrLift = null;                      // the card lifted for a swap: {id, r, c}

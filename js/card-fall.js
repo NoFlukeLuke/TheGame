@@ -84,7 +84,6 @@ function renderCardAppearance(card, r, c, {
   const curseDef = curse ? CURSE_DEFS[curse.id] : null;
   const hasPip = pp > 0, hasMult = pm > 0;
   const isCombined = !!card.combined;
-  const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
 
   const rcWoodpecker = woodpeckerCardId && card && cardId(card) === woodpeckerCardId ? ' rc-woodpecker' : '';
   // The shared "what affected what" highlight (r209, divided in r296 -
@@ -130,9 +129,6 @@ function renderCardAppearance(card, r, c, {
     isHandReady  ? 'hand-ready'  : '',
     isSwapPending ? 'swap-pending' : '',
     (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',
-    isTrick ? 'trick-card' : '',
-    (exaltCorruptEnabled && card._exalted) ? 'exalted' : '',
-    (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     curse ? 'cursed' : '',
     bothClass.trim(),
     rcWoodpecker.trim(),
@@ -152,7 +148,6 @@ function renderCardAppearance(card, r, c, {
 
   const innerHTML = `
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
-    ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}${_coin}
     ${isWild

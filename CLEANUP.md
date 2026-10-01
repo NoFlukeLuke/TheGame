@@ -23,22 +23,18 @@ branches does none of that; only check them for unmerged work before deleting.
 | r414 | **Tricks on the grid** + the legacy pick-1-of-3 Trick overlay; `trickTrayMode` is gone | 33 sites in 17 files, `#trick-choice-overlay`, the `.trick-card.trick-tier-*` CSS |
 | r415 | **the legacy overlay shop**; `js/shop.js` 767 -> 125 lines | `#shop-overlay`, `#svc-picker`, `renderShop*`, `buyShop*`, `USE_ONGRID_SHOP` |
 | r427 | **`tetris` / `autoplay` modes** and the 20-minute legacy game clock. Neither had a menu card; tetris's own flags were read by nothing, autoplay only shortened the auto-submit delay | `MODES.tetris/autoplay`, `gameInterval`/`gameSeconds`/`nextShopTime`/`nextBossTime`/`savedRoundSeconds`, the legacy boss-return branch in `endBoss` |
+| r432 | **Exalt / Corrupt** (owner: archive, maybe a mode or DLC later). Full write-up in `docs/archive/EXALT_CORRUPT.md` | the toggle, `exaltCorruptTotals`, the triggers in playHand/doSwap/doDiscard, the card flags in `DURABLE_CARD_FIELDS`, `BAL._exalt/_corrupt`, the glows, the 3 disabled Sleights |
+| r432 | **the starred x2 card** (owner: ditch it) | `assignTrickCard`, `TRICK_CARD_INTERVAL`, `trickCardPos`, `_trickcard` in calcScore, `.trick-star` |
+| r432 | 7 r95-era preview pages -> `previews/archive/` | |
 | r416 | **the Survival MODE entry** (owner: Flow will likely take the name). The engine in `js/survival.js` stays: Flow runs on it | `MODES.survival`, its `MODE_META` card, its walkthrough seed and step, its handbook topic |
 
 ## Open, safest first
 
 | # | what | where | size | risk | notes |
 |---|---|---|---|---|---|
-| 1 | **Exalt / Corrupt** | `exaltCorruptEnabled` (13 sites), `_exalted`/`_corrupted` card flags, `exaltCorruptTotals`, the trigger counters in `playHand`/`doSwap`/`doDiscard`, two Settings toggles, `.exalted`/`.corrupted` CSS | ~250 lines | medium | Paused since r50, default off. It is woven into the per-card loop in `calcScore` and `DURABLE_CARD_FIELDS`, so this is a careful edit, and it is a designed mechanic rather than dead code. Owner's call. |
-| 2 | **Old challenge system** | `js/challenge.js` (215; also declares `audioCtx`), `challengeCard`/`challengeActive` in 23 sites | ~250 lines | medium | The pre-Guided "challenge card on the board". Check whether any mode still spawns one before touching; `audioCtx` must move to `js/audio.js`. |
-| 3 | Dead `BAL` entries and `DESC_TEMPLATES` for Tricks not in any pool (`jack_mult`, `heart_double`, ...) | `js/data/balance.js`, `js/scoring.js` | small | low | Scored for, described, unobtainable. Either add them to the pool or delete the scoring blocks. |
-| 4 | Preview pages whose system has since moved on | `dance-preview.html`, `finale-preview.html`, `reward-preview.html`, `reward-resolve-preview.html`, `desktop-preview.html`, `layout-view.html`, `palette-preview.html` (all last touched r95-era) | 7 files | none | Self-contained, no live JS refs. Archive if the owner no longer opens them; the tuners that dump a shipped config block (`particle-preview`, `payout-pick-preview`, `heartbeat-preview`, `channel-change-preview`, `shop-float-anim-preview`, `tier-badge-preview`, `heavy-preview`, `score-trays-preview`, `poker-squares-preview`, `office-calibrate`) stay. |
-| 5 | Idea backlogs in the root | `MODE_IDEAS.md`, `FOCUS_IDEAS.md`, `CARD_MECHANICS.md`, `SCORE_SCALING.md`, `GLOSSARY.md` | docs | none | Still accurate as backlogs. Could move to `docs/` to leave the root for live references. |
-Also worth a decision, not dead code: **the starred card** (`assignTrickCard`, js/round-timers.js)
-puts a gold ⭐ on a random card every `TRICK_CARD_INTERVAL` (20s) and that card scores x2 mult
-(`_trickcard` in `calcScore`). It runs in every mode. HISTORY.md calls it "the dev grid Trick card"
-but nothing gates it on dev mode, so it is a live mechanic. Keep it or cut it; either is one block.
-
+| 1 | **Old challenge system** (owner: rework into a challenge round, see below) | `js/challenge.js` (215; also declares `audioCtx`), `challengeCard`/`challengeActive` in 23 sites | ~250 lines | medium | The pre-Guided "challenge card on the board". Check whether any mode still spawns one before touching; `audioCtx` must move to `js/audio.js`. |
+| 2 | Dead `BAL` entries and `DESC_TEMPLATES` for Tricks not in any pool (`jack_mult`, `heart_double`, ...) | `js/data/balance.js`, `js/scoring.js` | small | low | Scored for, described, unobtainable. Either add them to the pool or delete the scoring blocks. |
+| 3 | Idea backlogs in the root (owner: leave) | `MODE_IDEAS.md`, `FOCUS_IDEAS.md`, `CARD_MECHANICS.md`, `SCORE_SCALING.md`, `GLOSSARY.md` | docs | none | Still accurate as backlogs. Could move to `docs/` to leave the root for live references. |
 **Kept by owner (r428): Match-3 and Zen.** The owner wants auto-play
 (`autoPlayHands`, `autoSubmitDelay` in js/input.js) used elsewhere in the game, and
 Match-3 is the test bed for it. Do not propose removing them.

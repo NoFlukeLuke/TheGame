@@ -76,11 +76,9 @@ Everything below is real and working, which is why this is cheaper than it looks
 
 ### The hostile card is a NOTICE, not a "corrupted doc"
 
-**"Corrupted" is already taken and the collision is real.** `_corrupted` is a live
-per-card flag in the exalt/corrupt mechanic (`exaltCard` / `corruptCard`,
-`.corrupted` purple glow, `BAL._exalt`). It is switched off by default today, but it
-is real code with its own suit table, and reusing the word would make two different
-things share one name in the same file. That is exactly the trap
+**"Corrupted" is reserved.** It was the per-card flag of the exalt/corrupt mechanic,
+archived in r432 (`docs/archive/EXALT_CORRUPT.md`) with a possible revival as a mode
+or DLC, and reusing the word would make two different things share one name. That is exactly the trap
 `js/payout-fx.js` vs `js/entity-fx.js` fell into (r220 had to write "NOT
 `js/entity-fx.js`" at the top of a file to undo it).
 

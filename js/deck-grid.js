@@ -640,10 +640,6 @@ const DURABLE_CARD_FIELDS = [
   '_id',
   // combined cards (the shop's Combine service)
   'combined', 'rank2', 'suit2',
-  // exalt / corrupt state and its per-card trigger counters
-  '_exalted', '_corrupted', '_heartSwapPending',
-  '_clubPackPlays', '_clubSoloPlays', '_heartSoloPlays',
-  '_spadeEarlyPlays', '_spadeDiscards', '_diaPoorPlays', '_diaRichPlays',
   // Whetstone's banked mult and the Vulture's clock buff
   '_whetMult', '_vulturePause',
   // Climb mode (r398): the rank the card started the run at, for the reset.
@@ -928,13 +924,11 @@ function initGridData() {
   }
   drawPile = fullDeck.slice(cellCount); // remaining cards become the round's draw stack
   playedPile = [];
-  trickCardPos = null;
 }
 
 // Deal a fresh 5×5 grid mid-game, drawing from existing deck pools
 function dealGrid() {
   selected = [];
-  trickCardPos = null;
   // Clear existing card DOM elements so render starts fresh
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.card[data-card-id], .trick-card').forEach(el => el.remove());

@@ -82,9 +82,9 @@ filled from `BAL` at load (`applyBalDescriptions()`), so changing a value via
 
 A few rows have `entity_type = System`. Two kinds:
 
-- **`_resources` / `_exalt` / `_corrupt`** — real tuning tables that round-trip
+- **`_resources`** — a real tuning table that round-trips
   exactly like the entities (base interact time costs, the unspent-action and
-  interest payout caps, and the exalt/corrupt per-suit effect tables).
+  interest payout caps). `_exalt` / `_corrupt` were removed in r432.
 - **Everything else with this label** — a `BAL` entry whose `id` does not match
   anything in `TRICK_POOL`/`SLEIGHT_POOL`/`KNACK_POOL`. Most of these are
   per-event tuning blocks (Rehearsal, the Card Market, Deck Trim, the Schedule's

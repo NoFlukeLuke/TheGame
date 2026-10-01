@@ -414,8 +414,6 @@ function startGame() {
   lastTapTime = 0;
   lastSwapTime = 0;
   roundSeconds = currentRoundDuration();  // Survival runs shorter rounds
-  trickCardPos = null;
-  trickCardTimer = 0;
   // Reset challenge state
   challengeCard = null;
   challengeActive = false;

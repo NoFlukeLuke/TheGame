@@ -411,7 +411,6 @@ const BASE_GOAL = 1500;
 const GOAL_SCALE = 1.32;
 const GOAL_SCALE_LATE = 1.45;  // growth once the late curve takes over
 const GOAL_LATE_START = 13;    // first level that grows at GOAL_SCALE_LATE
-const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
   return COLOR_CLASS[suit]

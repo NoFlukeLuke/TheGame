@@ -897,15 +897,10 @@ function handReplayMap(cells) {
 // ══════════════════════════════════════════════
 // SCORING
 // ══════════════════════════════════════════════
-// ── Exalt / Corrupt suit effects ──
-// Per-card flags _exalted / _corrupted grant enhanced suit effects.
-// Returns { pips, mult, coins, time } totals across the given cards.
-// Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +4 mult | ♠ +4 time
-// Corrupted: ♣ +25 pips/-3 mult | ♦ +5 coins/-20 pips | ♥ +5 mult/-5 time | ♠ +7 time/-8 coins
 // ══════════════════════════════════════════════
 // BALANCE CONFIG (BAL) - single source of truth for tunable numbers
 // ══════════════════════════════════════════════
-// Pulled out of calcScore / exaltCorruptTotals so a balance sweep can edit them
+// Pulled out of calcScore so a balance sweep can edit them
 // in one place. Defaults EQUAL the original literals (behaviour-preserving).
 // Round-trip: tools/gen_balance_sheet.js (BAL→CSV) + tools/apply_balance_sheet.js
 // (CSV→BAL). Conditional thresholds/windows stay hardcoded; these are the

@@ -85,7 +85,6 @@ which is the whole counterplay: a cursed card is a card you have to play.
 |---|---|
 | `_id` | the card's identity. Everything else keys off it. |
 | `combined`, `rank2`, `suit2` | the shop's Combine service: one card, two faces |
-| `_exalted` / `_corrupted` | the exalt/corrupt state, and its seven trigger counters (off by default) |
 | `_whetMult` | Whetstone's banked mult |
 | `_vulturePause` | the Vulture's pause-on-score buff |
 | `_temp` | r278: this card exists for this level only |

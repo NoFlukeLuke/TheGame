@@ -12,8 +12,6 @@ function toggleDeckHud(on) {
 function initDevMode() {
   const toggle = document.getElementById('dev-mode-toggle');
   if (toggle) toggle.checked = devMode;
-  const ecToggle = document.getElementById('exalt-corrupt-toggle');
-  if (ecToggle) ecToggle.checked = exaltCorruptEnabled;
   const hudToggle = document.getElementById('dev-deck-hud-toggle');
   if (hudToggle) hudToggle.checked = showDeckHud;
   const diSel = document.getElementById('dev-dance-interrupt');
@@ -30,13 +28,6 @@ function toggleDevMode(on) {
   devMode = on;
   localStorage.setItem('devMode', on);
   applyDevMode();
-}
-
-// Exalt/Corrupt suit mechanic toggle (pause-menu Settings). Off by default.
-function toggleExaltCorrupt(on) {
-  exaltCorruptEnabled = !!on;
-  localStorage.setItem('exaltCorruptEnabled', exaltCorruptEnabled);
-  _devSafeRender();   // refresh glows immediately (no-op with no board yet)
 }
 
 // Push the Match-3 dev toggles' real state into their checkboxes. Called both at

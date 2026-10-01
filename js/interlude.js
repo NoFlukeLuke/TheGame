@@ -172,7 +172,6 @@ async function showLevelUpScreen_fallOnly() {
   // With a persisting board there is nothing to reset - every cell still holds
   // the card it held, and the next deal simply redraws it.
   if (!_persist) gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
-  trickCardPos = null;
   animating = false;
 }
 

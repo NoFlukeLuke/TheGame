@@ -385,10 +385,6 @@ function entitySuspended(type, id) {
 // Active for the CURRENT round (recomputed each round = permanent + next-round):
 let playHandCostThisRound = 0;     // extra seconds per hand this round
 let discardCostThisRound  = 0;     // extra seconds per discarded card this round
-// Exalt/Corrupt suit mechanic - PAUSED by default (owner request: it was interfering
-// with hand submission). Toggle in the pause-menu Settings. Persisted across sessions.
-// When off: cards never get exalted/corrupted, existing flags grant no buffs, no glow.
-let exaltCorruptEnabled = (localStorage.getItem('exaltCorruptEnabled') === 'true');
 let challengeOverlayTimer = null;
 let isChallengeTrickPick = false; // true when selectTrick is called from a challenge reward, not a level-up
 let coins = 0;

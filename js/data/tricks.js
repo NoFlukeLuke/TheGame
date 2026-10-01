@@ -298,7 +298,7 @@ const CLIMB_BANNED_TRICKS = new Set([
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let gridData = [];        // gridData[row][col] = { rank, suit, trickStar, permPips, permMult }
+let gridData = [];        // gridData[row][col] = { rank, suit, permPips, permMult }
 let selected = [];        // array of [row,col] in order
 let animating = false;
 let falling = false;   // true during card fall animations - allows selection, queues play/discard

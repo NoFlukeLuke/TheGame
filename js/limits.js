@@ -349,15 +349,12 @@ let swapMode = false;
 let swapFirst = null;
 
 let roundSeconds = ROUND_DURATION;
-let roundStartSeconds = ROUND_DURATION; // roundSeconds value when this round's timer started (♠ "first 30s" exalt window)
+let roundStartSeconds = ROUND_DURATION; // roundSeconds value when this round's timer started
 let roundInterval = null;
 // Unspent swaps + discards at the moment the round ended, captured by
 // triggerLevelUp before the base reset overwrites them. The payout reads this.
 let frozenUnspentActions = 0;
 let gameTimerPaused = false; // true during interlude and shop - game timer doesn't tick down
-let trickCardTimer = 0;
-let trickCardPos = null; // [row,col]
-let trickStar = null;
 
 let pipeTimerPaused = false;
 let pauseSecondsLeft = 0;
@@ -383,7 +380,7 @@ const C = {
 };
 let acquiredTricks = [];
 let acquiredKnacks = [];
-// Per-card-type tracking for exalt/corrupt triggers (key: cardKey(rank,suit))
+// Per-card run counters (boss effects read cardPlayCount)
 let cardPlayCount  = {};   // times scored this run
 let cardSwapCount  = {};   // times swapped this run
 let cardDealtCount = {};   // times dealt onto grid this run   // dev toggle: Tricks live in the panel tray instead of grid cells

@@ -205,14 +205,6 @@ function doSwap(r1, c1, r2, c2) {
   lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
   resetFocusDecayTimer();
   cullPay();   // Cull (r351): a swap pays too, read after the swap is paid for
-  // ♥ corruption: a swapped heart goes "on probation" - it must appear in the next scored
-  // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
-  // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.
-  if (exaltCorruptEnabled) [[r1,c1],[r2,c2]].forEach(([_r,_c]) => {
-    const _card = gridData[_r]?.[_c];
-    if (!_card || _card.suit !== '♥' || _card._exalted || _card._corrupted) return;
-    _card._heartSwapPending = true;
-  });
   selected = [];
   swapPending = null;
   // Card states (r278): a swap is an INTERACTION, so it resets both cards' fuses.

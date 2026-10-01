@@ -11,7 +11,7 @@
 // down to that boss. It is deliberately the SAME variable the round clock always
 // used (`roundSeconds`), because ~15 sites across the engine measure "how far into
 // the round are we" as `roundStartSeconds - roundSeconds` (The Swift, Sediment, the
-// Cuckoo, the Woodpecker, First Wind, the ♠ exalt window, clock-mark Tricks…). Pin
+// Cuckoo, the Woodpecker, First Wind, clock-mark Tricks…). Pin
 // `roundSeconds` to a constant instead and every one of those goes silently dead.
 // Letting it tick keeps them all working with no per-site changes; the only two
 // things that change are what happens at ZERO (boss, not round-over - see the flow

@@ -259,41 +259,6 @@ function sleightIsSpent(card, def) {
   return def.activation === 'on_swap' && !!card._usedThisRound;
 }
 
-// ── Exalt / Corrupt helpers ──
-function exaltCard(r, c) {
-  if (!exaltCorruptEnabled) return; // mechanic paused
-  const card = gridData[r]?.[c];
-  if (!card || card._isSleight || card._isTrick || card._isStone || !card.rank) return;
-  card._corrupted = false;
-  card._exalted = true;
-}
-function corruptCard(r, c) {
-  if (!exaltCorruptEnabled) return; // mechanic paused
-  const card = gridData[r]?.[c];
-  if (!card || card._isSleight || card._isTrick || card._isStone || !card.rank) return;
-  card._exalted = false;
-  card._corrupted = true;
-}
-function exaltRandomCard() {
-  const opts = [];
-  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
-    const card = gridData[r][c];
-    if (card && !card._isSleight && !card._isTrick && !card._isStone && card.rank && !card._exalted) opts.push([r, c]);
-  }
-  if (opts.length === 0) return;
-  const [r, c] = opts[Math.floor(Math.random() * opts.length)];
-  exaltCard(r, c);
-}
-function getNeighborsAll(r, c) {
-  const out = [];
-  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-    if (dr === 0 && dc === 0) continue;
-    const nr = r + dr, nc = c + dc;
-    if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) out.push([nr, nc]);
-  }
-  return out;
-}
-
 // ── Orthogonal neighbors (adjacency for Whetstone / Jury-Rig) ──
 function getNeighborsOrtho(r, c) {
   const out = [];
@@ -692,15 +657,6 @@ function applySleightGridEffect(id, r, c) {
       // addFocus with a named source fires the Focus particle itself.
       addFocus(BAL.power_cell.focus_on_enter, 'power_cell', 'sleight');
       break;
-    case 'good_friend':
-      getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
-      showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
-    case 'not_a_friend':
-      getNeighborsAll(r, c).forEach(([nr, nc]) => corruptCard(nr, nc));
-      showMessage('Not a Friend corrupts neighbors!', '#cc88ff'); render(); break;
-    case 'shepherd':
-      exaltRandomCard();
-      showMessage('Shepherd exalts a card', '#ffd700'); render(); break;
     case 'shortcut':
       if (challengeActive) { resolveChallenge(true); showMessage('Shortcut - challenge complete!', 'var(--gold)'); }
       else showMessage('Shortcut - no active challenge', 'var(--cream-dim)');
@@ -918,7 +874,7 @@ function showCardTooltip(r, c) {
   const xm = permXMult[k]  || 1;
   const re = permRetrig[k] || 0;
   const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
-  if (!pp && !pm && !gp && !gm && xp <= 1 && xm <= 1 && !re && !card._exalted && !card._corrupted) return;
+  if (!pp && !pm && !gp && !gm && xp <= 1 && xm <= 1 && !re) return;
   const gridEl  = document.getElementById('grid');
   const cardEl  = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!cardEl) return;
@@ -926,8 +882,6 @@ function showCardTooltip(r, c) {
   // (cardBuffLines in js/deck-grid.js) - so the tooltip cannot say something
   // different from the tile that granted it.
   const lines = cardBuffLines(k);
-  if (card._exalted)   lines.push('Exalted');
-  if (card._corrupted) lines.push('Corrupted');
   const tip = document.createElement('div');
   tip.id = 'card-enh-tooltip';
   tip.className = 'sleight-tooltip';

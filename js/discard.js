@@ -50,21 +50,7 @@ function doDiscard() {
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   // Time buffs do not stack (r342): a card already carrying one is skipped.
   if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !cardTimeBuffed(c)) c._vulturePause = BAL.vulture.pause_seconds; });
-  // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
-  // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
-  if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──
-  discardedCards.forEach(card => {
-    if (!card || card._isSleight || card._isTrick || card._isStone || !card.rank) return;
-    if (card._exalted || card._corrupted) return;
-    if (card.suit === '♠') {
-      card._spadeDiscards = (card._spadeDiscards || 0) + 1;
-      if (card._spadeDiscards >= 2) { card._exalted = false; card._corrupted = true; showMessage('♠ Spade corrupted - discarded one too many times', '#cc88ff'); }
-    } else if (card.suit === '♥' && card._heartSwapPending) {
-      card._exalted = false; card._corrupted = true; card._heartSwapPending = false;
-      showMessage('♥ Heart corrupted - discarded after a swap', '#cc88ff');
-    }
-  });
-  // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal.
+  // on_discard sleights fire with their grid position before removal.
   // Snapshot the non-sleight cards discarded alongside so Sandbagger can check for a low pair.
   _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
   selected.forEach(([r,c]) => {

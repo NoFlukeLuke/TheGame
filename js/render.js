@@ -255,7 +255,6 @@ function render() {
     const scaledBasePips = Math.round(handBasePips(hand) * levelScale);
     const cards = handCells.map(([r,c]) => gridData[r][c]);
     const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardId(card)]||0), 0);
-    const hasTrickCard = trickCardPos && handCells.some(([r,c])=>r===trickCardPos[0]&&c===trickCardPos[1]);
 
     const bonusLines = [];
     if (hasTrick('rich_soil')) bonusLines.push({ label:'Rich Soil', val:`+${BAL.rich_soil.mult*handCells.length} mult`, type:'mult' });
@@ -282,7 +281,6 @@ function render() {
     if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:'Quake', val:`+${BAL.kindred.mult_per_card*_setMax} mult`, type:'mult' });
     if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
     if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) { const _crp = trickPickOne(0, handCells); bonusLines.push(_crp === 0 ? { label:'Rogue Wave', val:`+${BAL.correct_run.pips} pips`, type:'pip' } : _crp === 1 ? { label:'Rogue Wave', val:`+${BAL.correct_run.mult} mult`, type:'mult' } : { label:'Rogue Wave', val:`+${BAL.correct_run.focus} Focus`, type:'focus' }); }
-    if (hasTrickCard) bonusLines.push({ label:'⭐ Trick', val:'×2 score', type:'score' });
     if (hasTrick('early_bird') && roundFractionRemaining()>2/3) bonusLines.push({ label:'Early Bird', val:`+${BAL.early_bird.pips_per_card*cards.length} pips`, type:'pip' });
     if (hasTrick('kindling')) {
       const _previewStreak = (lastHandType !== null && hand === lastHandType) ? streakCount + 1 : 1;

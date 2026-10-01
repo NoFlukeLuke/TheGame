@@ -565,9 +565,8 @@ function dncFinishAbort(stage, isGoalHand, myGen){
   if(myGen!==undefined && myGen!==dncGen) return;
   if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
   if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncSettleBlast(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
-// Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
+// Display name for a contribution entity, by source (Trick / Sleight / Knack).
 function contribLabel(source, id){
-  if(source==='exalt') return 'Exalt';
   const pool = source==='sleight' ? (typeof SLEIGHT_POOL!=='undefined' && SLEIGHT_POOL)
              : source==='knack'   ? (typeof KNACK_POOL!=='undefined'   && KNACK_POOL)
              :                       (typeof TRICK_POOL!=='undefined'   && TRICK_POOL);

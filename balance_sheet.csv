@@ -304,5 +304,3 @@ System,rider,rider,"{""seconds_per_proc"":2}",,,,,,,,,,,,,,,,,,,,,"event/system 
 System,spot_check,spot check,"{""mult"":0.5,""plays_to_clear"":3}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
 System,interest_freeze,interest freeze,"{""rounds"":3}",,,,,,,,,,,,,,,,,,,,,"event/system tuning block, not an entity"
 System,_resources,resources,"{""unspent_credits"":2,""unspent_cap"":10,""interest_cap"":10,""swap_seconds"":8,""discard_seconds_per_card"":3}",,,,,,,,,,,,,,,,,,,,Base interact costs and unspent-action/interest payout caps,
-System,_exalt,exalt,"{""club_pips"":10,""diamond_coins"":3,""heart_mult"":4,""spade_time"":4}",,,,,,,,,,,,,,,,,,,,Exalted-card per-suit effects (paused by default - see exaltCorruptEnabled),
-System,_corrupt,corrupt,"{""club_pips"":25,""club_mult"":-3,""diamond_coins"":5,""diamond_pips"":-20,""heart_mult"":5,""heart_time"":-5,""spade_time"":7,""spade_coins"":-5}",,,,,,,,,,,,,,,,,,,,Corrupted-card per-suit effects (paused by default - see exaltCorruptEnabled),

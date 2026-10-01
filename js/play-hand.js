@@ -281,7 +281,7 @@ function playHand() {
   const _tagPips  = (typeof kickerPipBill === 'function') ? kickerPipBill(_tagCells) : 0;
   // THE CELLS THAT SCORE (r385). Without Pip In a kicker scores nothing, so every
   // per-card payout after the score - card credits, time and Focus, the per-card
-  // Focus payers, scaling buffs, card states, the Hallmark, exalt and corrupt -
+  // Focus payers, scaling buffs, card states, the Hallmark -
   // reads this rather than handCells. With Pip In a kicker is in it.
   const _scoredCells = (_tagCells.length && !(typeof kickersScore === 'function' && kickersScore()))
     ? handCells.filter(([r, c]) => !_tagCells.some(([tr, tc]) => tr === r && tc === c)) : handCells;
@@ -512,7 +512,7 @@ function playHand() {
   // Check challenge progress
   if (challengeActive) checkChallengeAfterHand(result, handCells);
 
-  // on_play sleights (Good Friend exalt, Shortcut challenge-complete) fire when played
+  // on_play sleights (Shortcut challenge-complete) fire when played
   fireSleightsOnPlay(playedCells, handCells, hand);
   // Spectrum deck fixtures: count this hand against any fixture it scored beside.
   if (typeof fireAdjacentSleights === 'function') fireAdjacentSleights(handCells);
@@ -830,83 +830,11 @@ function playHand() {
   // ── Suit effects (applied per scoring card) ──
   const scoringCards = _scoredCells.map(([r,c]) => gridData[r][c]);
 
-  // Suits are neutral by default - effects only via exalt/corrupt or Tricks.
+  // Suits are neutral - suit effects come only from Tricks.
   // (♥ and ♣ Tricks handled in calcScore; ♦/♠ base effects removed with neutral suits)
 
   // Spade Flood Trick still needs allSpades flag (computed in calcScore via spade_flood)
 
-  // ── Exalt / Corrupt - coins & time (pips & mult applied in calcScore) ──
-  // Replay-weighted: a card that replayed fires its exalt/corrupt coin/time once per (re)play,
-  // matching the pip/mult side in calcScore. `_lastRetrigByCell` is from the finalScore calcScore above.
-  const _ecReps = _scoredCells.map(([r,c]) => _handRetrigByCell[r + '-' + c] || 1);
-  const _ecPlay = exaltCorruptTotals(scoringCards, _ecReps);
-  // ── Exalt / Corrupt triggers (per scored card; state is permanent + mutually exclusive) ──
-  // Counters live ON the card object so they track the individual card and survive deck
-  // cycling. ♣ exalt = in a 3+-club hand 2×; ♣ corrupt = lone club in a hand 2×.
-  // ♥ exalt = only heart in a hand 2× (♥ corrupt is swap-driven, resolved below + on discard).
-  // ♠ exalt = played within first 30s of the round 2× (♠ corrupt is discard-driven).
-  // ♦ exalt = played while coins < 5, 2×; ♦ corrupt = played while coins > 65, 2×.
-  if (exaltCorruptEnabled) { // ── triggers skipped entirely while the mechanic is paused ──
-  const coinsAtPlay   = coins; // snapshot before payout
-  const _clubsInHand  = _scoredCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♣' ? 1 : 0), 0);
-  const _heartsInHand = _scoredCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♥' ? 1 : 0), 0);
-  const _spadeEarly   = (roundStartSeconds - roundSeconds) < 30; // within first 30s of the round timer
-  _scoredCells.forEach(([_r,_c]) => {
-    const _card = gridData[_r]?.[_c];
-    if (!_card || _card._isSleight || _card._isTrick || _card._isStone || !_card.rank) return;
-    if (_card._exalted || _card._corrupted) return; // already locked
-    const _ecN = _handRetrigByCell[_r + '-' + _c] || 1;   // replays count as plays (r370)
-    if (_card.suit === '♣') {
-      if (_clubsInHand >= 3) {
-        _card._clubPackPlays = (_card._clubPackPlays || 0) + _ecN;
-        if (_card._clubPackPlays >= 2) { exaltCard(_r, _c); showMessage('♣ Club exalted - strength in numbers!', '#ffd700'); }
-      } else if (_clubsInHand === 1) {
-        _card._clubSoloPlays = (_card._clubSoloPlays || 0) + _ecN;
-        if (_card._clubSoloPlays >= 2) { corruptCard(_r, _c); showMessage('♣ Club corrupted - solo glory!', '#cc88ff'); }
-      }
-    } else if (_card.suit === '♥') {
-      if (_heartsInHand === 1) {
-        _card._heartSoloPlays = (_card._heartSoloPlays || 0) + _ecN;
-        if (_card._heartSoloPlays >= 2) { exaltCard(_r, _c); showMessage('♥ Heart exalted - stood alone!', '#ffd700'); }
-      }
-    } else if (_card.suit === '♠') {
-      if (_spadeEarly) {
-        _card._spadeEarlyPlays = (_card._spadeEarlyPlays || 0) + _ecN;
-        if (_card._spadeEarlyPlays >= 2) { exaltCard(_r, _c); showMessage('♠ Spade exalted - early strike!', '#ffd700'); }
-      }
-    } else if (_card.suit === '♦') {
-      if (coinsAtPlay < 5) {
-        _card._diaPoorPlays = (_card._diaPoorPlays || 0) + _ecN;
-        if (_card._diaPoorPlays >= 2) { exaltCard(_r, _c); showMessage('♦ Diamond exalted - scarcity!', '#ffd700'); }
-      } else if (coinsAtPlay > 65) {
-        _card._diaRichPlays = (_card._diaRichPlays || 0) + _ecN;
-        if (_card._diaRichPlays >= 2) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted - excess!', '#cc88ff'); }
-      }
-    }
-  });
-  // ♥ corruption resolution: a swap-pending heart must appear in THIS scored hand or it sours.
-  for (let _hr = 0; _hr < gridRows; _hr++) for (let _hc = 0; _hc < gridCols; _hc++) {
-    const _h = gridData[_hr]?.[_hc];
-    if (!_h || _h.suit !== '♥' || !_h._heartSwapPending) continue;
-    const _inHand = handCells.some(([r,c]) => r === _hr && c === _hc);
-    _h._heartSwapPending = false; // resolved either way
-    if (!_inHand && !_h._exalted && !_h._corrupted) {
-      corruptCard(_hr, _hc);
-      showMessage('♥ Heart corrupted - swapped, then left behind', '#cc88ff');
-    }
-  }
-  } // end exaltCorruptEnabled trigger block
-  // Exalt/corrupt credits are floored at 0 (no debt), so the tally records what was
-  // actually paid rather than the raw delta.
-  if (_ecPlay.coins !== 0) {
-    const _ecPaid = Math.max(0, coins + _ecPlay.coins) - coins;
-    coins += _ecPaid; updateCoinsUI();
-    foldContribution(contribDisplayName('exalt'), 'coin', _ecPaid);
-  }
-  if (_ecPlay.time !== 0) {
-    roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, crunchNoRoundCap(ROUND_DURATION)));
-    updateClockUI();
-  }
 
   // ── Card value effects (after scoring) ──
   const scoringRanks = scoringCards.map(c => c.rank);
@@ -963,8 +891,6 @@ function playHand() {
   }
 
   // Clear trick card
-  trickCardPos = null;
-  trickCardTimer = 0;
 
   const toRemove = [...selected];
   selected = [];

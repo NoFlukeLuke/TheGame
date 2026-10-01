@@ -34,7 +34,7 @@
 // here would be a balance change nobody asked for.
 //
 // It also only ever touches ids that are REAL ENTITIES. BAL also holds global
-// config (`_resources`, `_exalt`, `_corrupt`, `wheel`, `shop_discount`), and
+// config (`_resources`, `wheel`, `shop_discount`), and
 // none of that belongs to anything the player can own.
 
 const IMPROVE_MAX_TIER = 5;

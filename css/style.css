@@ -1994,9 +1994,6 @@
     box-shadow: 0 0 0 2px #9b59b6, 0 0 12px rgba(155,89,182,0.4);
     background: #f8f0ff;
   }
-  .card.trick-card { border-color: #e8b84b !important; box-shadow: 0 0 8px rgba(232,184,75,0.6); }
-  .card.exalted   { border-color: #ffd700 !important; box-shadow: 0 0 10px 2px rgba(255,215,0,0.7), inset 0 0 8px rgba(255,215,0,0.25); }
-  .card.corrupted { border-color: #8844cc !important; box-shadow: 0 0 10px 2px rgba(136,68,204,0.7), inset 0 0 8px rgba(136,68,204,0.3); }
   /* Cursed card (reward-grid debuff): sickly green pall + a badge with the count remaining */
   .card.cursed { border-color: #6a8a3a !important; box-shadow: 0 0 9px 1px rgba(120,160,70,0.55), inset 0 0 8px rgba(90,120,50,0.35); }
   .card .curse-badge {
@@ -2382,11 +2379,6 @@
     font-size: 8px;
     font-weight: 700;
     color: var(--gold);
-  }
-  .card .trick-star {
-    position: absolute;
-    top: 2px; right: 3px;
-    font-size: 8px;
   }
 
   /* Score flash */
@@ -2876,7 +2868,6 @@
     .card .rank { font-size: 22px; }
     .card .suit { font-size: 18px; }
     .card .sel-num { font-size: 9px; top: 3px; left: 5px; }
-    .card .trick-star { font-size: 10px; top: 3px; right: 4px; }
     #action-col .act-btn { font-size: 13px; padding: 10px 8px; }
     #hand-types { max-width: 860px; }
     #trick-options { flex-wrap: nowrap; }

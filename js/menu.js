@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r431 · Printer toast preview (four styles)";
+const BUILD = "2026-10-01 · r432 · Exalt/Corrupt archived, starred card removed, old previews archived";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

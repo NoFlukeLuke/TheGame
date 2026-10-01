@@ -69,7 +69,7 @@ function startRoundTimer() {
   // describe a run of the clock that is over (js/clock-track.js). Read before
   // roundStartSeconds is overwritten, which is the only reason this sits here.
   if (typeof clockMarksReset === 'function' && roundSeconds > roundStartSeconds) clockMarksReset();
-  roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  roundStartSeconds = roundSeconds; // mark the start of the countdown ("how far into the round" reads it)
   if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
   // know where the round's halfway mark is, and this is the one call site every
@@ -122,8 +122,6 @@ function startRoundTimer() {
     // out instead. The cheap tests are inside crunchCheckStuck, so the board scan
     // only runs on the rare tick where both stocks are actually empty.
     if (typeof crunchCheckStuck === 'function') crunchCheckStuck();
-    trickCardTimer++;
-    if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;
     // Understudy: every N seconds of round time, prime one random Trick in the
     // tray. Priming is the mechanic the Rehearsal event already built on - a
@@ -314,13 +312,6 @@ function updateClockUI() {
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
-}
-
-function assignTrickCard() {
-  const r = Math.floor(Math.random() * gridRows);
-  const c = Math.floor(Math.random() * gridCols);
-  trickCardPos = [r,c];
-  render();
 }
 
 function stopTimers() {
