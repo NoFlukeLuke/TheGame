@@ -11766,3 +11766,93 @@ Records, Settings, the handbook and History are one FIXED box: `--menu-w` x `--m
 - **The deck editor no longer shows the winning hand** (`flowrDeckClearGoalHand`): its cards were still in gridData, so you could buff cards that were about to leave. They go to the played pile, their cells refill, and `svGoalCells` is emptied so the keep path has nothing left to remove. Deck audit 56/56.
 - **Luck bug: a pool with no common tier drew flat 71% of the time.** `pickEntityByRarity` rolled common, found none at or below it and fell to a flat pick, so Flow's rare-or-better Tricks showed legendaries about 1.6x too often (~8% vs 5%). Tiers below the lowest present tier are now dropped from the roll. Luck itself is gentle (legendary 1.5% -> ~3% at 100).
 - **Board pattern** (Settings > Display): the hypno pattern painted only inside the board, as one turning gradient on `#grid::before`. No measurable frame cost. The full background still defaults off.
+
+## r409 - the 5x5 is PATIENCE (js/squares-patience.js + css/squares-patience.css)
+
+Owner spec through a 10-question survey. **The old turn/polyomino 5x5 - SQ_SCHEDULE,
+the SCORE ALL / SELECT SCORE console, the between-round trick+consumable picks - is
+REPLACED**; the 3x3/4x4 dailies are untouched, and everything of squares-mode.js the
+dailies share (the drag machine, the tally, the consumables, the scoreboard) stays
+live. `sqPatActive()` (squaresActive && SQ_N===5 && !sqDaily) is the one predicate and
+every seam branches on it; the dormant old-5x5 code below those branches is reachable
+only where the dailies share it.
+
+**THE RUN**: `SQP_GRIDS` (2; owner said "2-3") grids, no quota, one high score,
+daily-friendly. Tricks CARRY across grids, capped by the tray (`trick_slots` base 5);
+a full tray REFUSES a pick (r277) and the pick popup carries a DROP ✕ on each owned
+trick so the slot is freed on the same screen. **THE GRID**: opening pick-1-of-5,
+then [deal 3, deal 3, pick] x4, a **FULL BANKING MID-TALLY after the second mid-grid
+pick** (the third trick overall - both of the owner's phrasings reconcile there), a
+5-card final deal, the final tally. 3 swaps + 3 **board-only** discards per grid
+(select placed cells by tap, max 2; SWAP wants 2, DISCARD wants 1), back at the next
+grid. 30s per deal - timeout auto-deals, held one tick while a drag is mid-air - and
+a hard 5:00 grid clock that **runs through the picks too** (otherwise 9 deals x 30s
+caps at 4:30 and the hard clock could never fire); at zero the grid scores as it
+stands. A dealt card survives ONE extra deal (`bornDeal`, expiry at serve time),
+wears LAST CALL in the tray, then goes to playedPile - never back this grid, since
+the deck only reshuffles between grids.
+
+- **A SINGLE CARD IS A 1-CELL PIECE, and that is the whole reuse.** sqHand holds
+  `{id, bornDeal, cells:[{dr:0,dc:0,card}]}`, so the r375 drag machine - grab, ghost,
+  loose drop, release-is-the-commit, tap-to-place - works untouched. What branches:
+  the ghost is the REAL CARD FACE at board scale with a velocity TILT (`--sqp-tilt`,
+  spring-back via transition - the Balatro feel notes in the file header), the
+  footprint ghost became one soft warm ring (`sqp-drop`), the tray renders real
+  faces via renderCardAppearance (position:static override; sized by `sqpFitHand`,
+  1 row to 3 cards, 2 rows past), and a landed card takes a settle pop (`sqp-land`,
+  a transform ANIMATION so it beats the composed heartbeat transform and hands it
+  back - the r139 rule).
+- **SCORING: the best >=3-card SUBSET of each line** (3-4-3-7-3 is a Set of 3; no
+  kickers, no penalties, empties just don't count). `sqpScoreLine` enumerates the
+  <=2^5 subsets, names each (`sqpNameSet`: sets, Two Pair, Full House, any-suit runs,
+  flushes; Straight Flush the lone suited-run entry - owner's call), cheap-ranks by
+  table worth + card pips and runs the TOP 3 through the real calcScore so tricks
+  decide the winner. `SQP_HAND_VALUES` keys are real HAND_BASE names;
+  squaresInstallHandValues now installs it (the r303 table is gone). Worths run
+  40/60/135 · 180/210/280/450 · 500/550/720/1500 - every 5-card hand > every 4-card
+  > every 3-card, the owner's hard rule, numbers in 5s.
+- **FOCUS multiplies every tally with no code here** - calcScore's own step 5 - so
+  this file only GENERATES it, small and slow-draining (owner: many small sources,
+  slow decay): +1 per placement orthogonally touching a kindred card (same rank,
+  same suit, or one rank apart; +2 from streak 3; touching nothing kindred resets),
+  +2 for NEXT DEAL with half the deal clock left having placed, +3 the moment a line
+  COMPLETES with a paying hand (once per line per grid, `sqpIgnited`), -1 node per
+  9s during placement. Reset per grid (the r397 rule). The focus METER is unhidden
+  in landscape only - css/squares.css's hide and the board's borrowed meter band are
+  out-specificity'd by `.squares-pat` rules; portrait keeps the meter hidden and
+  shows the FOCUS chip (desktop first).
+- **THE PICK POPUP rides the sq-overlay console**: 5 entity tiles (entityTileHTML,
+  descs printed below, fitEntityName in a rAF AFTER show - a hidden element measures
+  zero, the r239 rule), tap to arm TAKE, SKIP always. Offers draw through
+  pickEntityByRarity. **The pool is 47** (19/12/13/3 by tier): `sqpTrickBanned` =
+  the old description predicate (sqTrickBanned) + `/reward tile/` + `/sleight|knack/`
+  (neither is ever granted here, so Magician counts zero forever) + an explicit
+  deny list of SEVEN that pass the wording but GRANT through playHand, which never
+  runs here (rare_bloom, wild_heart, rowcol_perm_double, sixes_perm, fours_perm,
+  prime_times, heartwood - found by auditing which allowed ids appear nowhere in
+  js/scoring.js; re-run that audit if the pool grows) + wild_side (its counter never
+  moves). `SQP_TRICK_ALLOW` re-admits flow_state and redline, which merely READ the
+  focus multiplier inside calcScore and genuinely work.
+- **THE TIMER NEVER TICKS A TALLY** (sqPhase 'scoring' is free) and pauses with
+  isPaused; squaresBeginRun stops a leftover patience timer, or restarting squares
+  mid-run would run the old clock down under the size console. Home is a
+  location.reload, so no other leak path exists.
+- **sqdRecordGrid / sqdShowScoreboard are reused as-is** for the end-of-run paper
+  scoreboard (par columns drop at 0). A line with no hand returns `name: ''` so the
+  headers, the report and the chip tip stop printing "HIGH 0" over part-filled
+  lines; the landscape headers only claim a hand once it pays.
+
+**Verified in a real browser at 1440x820 and 420x900 through the real pointer
+paths**: the full grid 1 loop (opening pick, streak focus +1, ignition on a
+completed Run of 3 line, mid tally banking 582, swap 3->2, board discard leaving
+the cell empty, 8 deals + the 5-card final, SCORE, final tally to 1,120, the
+grid report), grid 2 opening with fresh stocks/clock/focus and the tricks
+carried, the deck counting 52 at every boundary, the full-tray refusal
+(TAKE bounces, DROP frees, TAKE lands), the hard clock force-scoring an
+unfinished grid, and the scoreboard closing into onGameWin. 0 page errors in
+every run (the 404s are the repo's absent mp3 assets).
+
+**Known and left**: no save/checkpoint (squares never had one); the insight tips
+fire here with main-game copy (the Focus tip is near-right, the rest are gated by
+board predicates that rarely hold here); the marked-line tricks are as strong as
+r375 already noted; `SQP_GRIDS` is the constant to move if 2 grids reads short.

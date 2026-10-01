@@ -394,11 +394,12 @@ const INFO_TOPICS = [
     ] },
   { id: 'mode_squares', group: 'modes', title: 'Poker Squares',
     body: [
-      'Each turn deals three tiles of cards. Place them on the 5x5 board over four turns.',
-      'At the end of the round every row and column scores as a five-card poker hand, lowest first. Ten rounds, no clock and no goal.',
-      'SCORE ALL scores all ten lines at the end. SELECT SCORE scores one line per turn, and a scored line is closed.',
-      'Between rounds you pick a {trick} and a consumable.',
-      'The daily 3x3 and 4x4 grids score three- and four-card hands, valued from the real three- and four-card poker pay tables.',
+      'The 5x5: cards arrive three at a time and you drag each onto the board. A card lasts one extra deal, then leaves your hand at the next deal. 30 seconds a deal, 5 minutes a grid.',
+      'You pick a {trick} from five before the first deal and after every other deal. The tray caps at 5; a full tray refuses a pick until you drop one.',
+      'Every row and column pays its best hand of 3 or more cards - the cards do not have to touch inside the line. Runs are any suit; suits matter only for flushes. The board pays in full once mid-grid and again at the end, times your Focus.',
+      'Focus builds from placing next to matching cards, placing quickly, and completing a paying line. It drains slowly.',
+      '3 swaps and 3 discards per grid, both on placed cards only. They come back when the grid scores.',
+      'Two grids, one score. The daily 3x3 and 4x4 grids are unchanged: every tile at once, valued from the real three- and four-card poker pay tables.',
     ] },
   { id: 'mode_survival', group: 'modes', title: 'Survival',
     body: [

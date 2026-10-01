@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r408 · Tray turns, full-tray refusal, luck fix";
+const BUILD = "2026-10-01 · r409 · Poker Squares 5x5: the patience redesign";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -217,15 +217,16 @@ const MODES = {
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
   // crush style). The player only swaps & discards to set matches up - the
   // playing is automatic. Goal + timer progression (Normal's shape). See match3.js.
-  // POKER SQUARES (r303) - the 1930s solitaire. Polyomino tiles of real cards
-  // packed onto a 5x5 board over four turns; every row and column then scores as
-  // a five-card poker hand. No goal, no clock: ten rounds, one score. See
+  // POKER SQUARES - the 1930s solitaire as a mode. The 5x5 is the PATIENCE game
+  // (r409, js/squares-patience.js): three cards a deal dragged onto the board,
+  // a trick pick between every other deal, a banking mid-tally and a 5-minute
+  // clock. The 3x3 and 4x4 dailies (js/squares-daily.js) are unchanged. See
   // js/squares-mode.js for why it borrows the real calcScore rather than
   // carrying a scorer of its own.
   squares: {
     id: 'squares',
     name: 'Poker Squares',
-    desc: 'Pack tiles of cards onto a 5x5 board. Every row and every column scores as a poker hand. Ten rounds, no clock, one score.',
+    desc: 'Cards dealt three at a time, placed one by one on a 5x5 board. The best hand in every row and column pays, mid-grid and at the end. Tricks, Focus, a 5-minute clock, one score.',
     winCondition: 'high_score',
     enableBosses: false,
     enableShops: false,
@@ -390,7 +391,7 @@ const MODE_META = {
   climb:    { accent: '#f2c14e',        suits: '1 → 15',
               blurb: 'Four suits, values 1 to 13, no face cards. Every card that scores goes up one rank, up to 15. A 15 that scores pays +75 pips, then goes back to the rank it started at. Otherwise plays like Classic.' },
   squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
-              blurb: 'Poker Squares. Each turn deals three tiles of cards, and you place them on a 5x5 board. At the end of the round every row and column scores as a five-card poker hand. No clock and no goal. Ten rounds.' },
+              blurb: 'Poker Squares. Three cards at a time, placed one by one on a 5x5 board, with a trick pick between every other deal. The best hand of 3+ cards in every row and column pays, once mid-grid and once at the end, times your Focus. Two grids, five minutes each, one score. The 3x3 and 4x4 are quick daily puzzles.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
               blurb: 'Lines of 3 or more in a row or column score and clear on their own. You swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
