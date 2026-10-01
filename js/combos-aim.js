@@ -391,10 +391,8 @@ let discardCostThisRound  = 0;     // extra seconds per discarded card this roun
 let exaltCorruptEnabled = (localStorage.getItem('exaltCorruptEnabled') === 'true');
 let challengeOverlayTimer = null;
 let isChallengeTrickPick = false; // true when selectTrick is called from a challenge reward, not a level-up
-let nextShopTime = GAME_DURATION - 120; // first shop after 2 minutes elapsed
 let coins = 0;
 
 // ══════════════════════════════════════════════
 // BOSS SYSTEM (v1)
 // ══════════════════════════════════════════════
-const BOSS_LOOP_DURATION  = 360; // boss every 6 minutes (used in timer-based modes only)

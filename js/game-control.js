@@ -1,6 +1,6 @@
 // PAUSE IS THE WAY INTO THE MENU, so it has to work on the screens that have no
 // clock to stop - the map, the shop, a reward grid, the crossroads, an event.
-// `pauseGame` used to return on `!roundInterval && !gameInterval && !countdownActive`
+// `pauseGame` used to return on `!roundInterval && !countdownActive`
 // ("nothing to pause") and the button silently did nothing on every one of them:
 // measured in a real browser, the map / shop / reward grid all left `isPaused` false
 // and the overlay hidden. There IS nothing to pause there; there is still a menu to
@@ -11,19 +11,14 @@
 // start the round timer BEHIND the map or the shop, which is the very thing
 // screenOwnsClock() exists to prevent.
 //
-// TWO flags, not one, because the two clocks are independent and the legacy game
-// timer is live in every mode - `gameInterval` is started for a Classic run as much
-// as for a timer-mode one (its BODY is what `!isActMode()` guards, not its
-// existence). Keying the round clock off "either was running" therefore still
-// restarted it behind every takeover screen: measured, a reward grid resumed with
-// roundInterval back despite having none when it opened.
+// The legacy 20-minute game clock that used to run beside the round clock went
+// with the tetris/autoplay modes (r427), so there is one flag.
 //
 // `roundInterval` is a faithful test for "the round clock is live": every path that
 // leaves the round - stopTimers, triggerLevelUp, the goal dance, a takeover screen -
 // nulls it. Pausing mid goal-dance therefore no longer restarts the clock of a round
 // that has already been won, which the old unconditional startRoundTimer() did.
 let pausedRoundClock = false;
-let pausedGameClock  = false;
 
 function pauseGame(hideGrid = true) {
   if (isPaused) return;
@@ -33,7 +28,6 @@ function pauseGame(hideGrid = true) {
   // so the old test also made PAUSE a no-op during the deal and the round began
   // underneath the pause menu.
   pausedRoundClock = !!roundInterval;
-  pausedGameClock  = !!gameInterval;
   isPaused = true;
   if (countdownActive) {
     countdownPaused = true;
@@ -42,7 +36,6 @@ function pauseGame(hideGrid = true) {
     if (_cn) _cn.style.animationPlayState = 'paused';
   }
   clearInterval(roundInterval); roundInterval = null;
-  clearInterval(gameInterval);  gameInterval  = null;
   cancelAutoSubmit();
   // Hold the scoring dance where it is. It runs on its own clock (js/dance-clock.js)
   // and used to play on - and finish - behind the pause overlay, so the player came
@@ -77,32 +70,6 @@ function resumeGame() {
   // clock running, and starting one now would run the round behind that screen.
   else if (pausedRoundClock) { if (bossActive) startBossTimer(); else startRoundTimer(); }
   pausedRoundClock = false;
-  if (!pausedGameClock) return;
-  pausedGameClock = false;
-  // Restart game timer
-  gameInterval = setInterval(() => {
-    if (gameTimerPaused) return;
-    gameSeconds--;
-    // See startTimers: match-3 owns its round loop, skip legacy progression.
-    if (!isActMode() && !match3Active() && !survivalActive()) {
-      const m = Math.floor(gameSeconds/60);
-      const s = gameSeconds%60;
-      document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-      if (gameSeconds === nextShopTime) {
-        if (bossActive) {
-          nextShopTime -= 1;
-        } else {
-          nextShopTime -= 120;
-          triggerShop();
-        }
-      }
-      if (gameSeconds === nextBossTime && !bossActive) {
-        nextBossTime -= BOSS_LOOP_DURATION;
-        triggerBoss();
-      }
-      if (gameSeconds <= 0) onGameEnd(false);
-    }
-  }, 1000);
 }
 
 // The one toggle. The in-stage PAUSE button uses it, and so do the pause chips on
@@ -403,15 +370,10 @@ function startGame() {
   // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
   // not advertise a second-cost). Separate from .survival-mode, which still does.
   document.getElementById('stage')?.classList.toggle('flow-mode', typeof flowActive === 'function' && flowActive());
-  // r175 - the top-left "Game Timer" is the legacy 20-minute run clock. Match-3,
-  // Dominoes and Survival/Flow are all excluded from it (see the startTimers
-  // guard above and in resumeGame), so in those modes it sat frozen on 20:00
-  // forever. Act modes reuse the same slot for the ACT · node readout, and the
-  // remaining legacy timer modes genuinely run it - so the slot is hidden for
-  // exactly the set that neither uses. Derived from the SAME predicate the timer
-  // itself is gated on, so a new mode cannot drift out of sync with it.
-  document.getElementById('stage')?.classList.toggle('no-game-clock',
-    match3Active() || survivalActive());
+  // The top-left slot is the quarter/node readout (updateActProgressUI). Modes
+  // without quarters have nothing to show there, so it is hidden for them. It was
+  // the legacy 20-minute game clock until r427.
+  document.getElementById('stage')?.classList.toggle('no-game-clock', !isActMode());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
@@ -452,7 +414,6 @@ function startGame() {
   lastTapTime = 0;
   lastSwapTime = 0;
   roundSeconds = currentRoundDuration();  // Survival runs shorter rounds
-  gameSeconds = GAME_DURATION;
   trickCardPos = null;
   trickCardTimer = 0;
   // Reset challenge state
@@ -638,7 +599,6 @@ function startGame() {
   totalScore = 0;
   lastRoundScore = 0; lastRoundGoal = 0;
   coins = 0;
-  nextShopTime = GAME_DURATION - 120;
 
   // Reset boss state
   bossActive = false;
@@ -647,8 +607,6 @@ function startGame() {
   bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
   actBossId = null;          // quarter 1's boss is dealt below, once the mode is set
   nextActBossId = null;      // and nothing has looked into the quarter after it yet
-  savedRoundSeconds = 0;
-  nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');
   document.getElementById('clock').classList.remove('boss-mode');
   document.getElementById('clock-bar').classList.remove('boss-mode');
@@ -657,7 +615,7 @@ function startGame() {
   document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
 
   isPaused = false;
-  pausedRoundClock = pausedGameClock = false;
+  pausedRoundClock = false;
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';

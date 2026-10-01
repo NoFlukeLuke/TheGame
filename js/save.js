@@ -84,7 +84,7 @@ const SAVE_VARS = [
   'drawPile', 'playedPile', 'gridData', 'gridRows', 'gridCols', 'expectedDeckTotal', 'ACTIVE_SUITS', 'ACTIVE_RANKS',
   '_cardIdCounter',   // cards carry ids now; without this a resumed run reissues ids already in play
   // ── Clock & resources ──
-  'roundSeconds', 'gameSeconds', 'roundStartSeconds', 'swaps', 'discards',
+  'roundSeconds', 'roundStartSeconds', 'swaps', 'discards',
   'clockLevelMarks',            // the level-up lines on a session clock (js/clock-track.js)
   'accumulatedSwaps', 'accumulatedDiscards', 'accumulatedSeconds',
   'roundPenaltySeconds', 'extraPlayCostPerm', 'extraDiscardCostPerm',
@@ -132,9 +132,8 @@ const SAVE_VARS = [
   'firstHandThisRound', 'replaysThisRound', 'timeManipRound', 'roundContributions',
   // ── Reward grid / shop ──
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
-  'nextShopTime',
   // ── Boss ──
-  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'nextBossTime', 'blockedCells', 'nullCells',
+  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'blockedCells', 'nullCells',
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──

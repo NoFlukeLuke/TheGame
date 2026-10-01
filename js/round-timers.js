@@ -225,34 +225,6 @@ function startTimers() {
   // and then calls startRoundTimer itself.
   if (bossActive) startBossTimer();
   else startRoundTimer();
-
-  // Game timer
-  gameInterval = setInterval(() => {
-    if (gameTimerPaused) return;
-    gameSeconds--;
-    // Match-3 runs its own round-goal loop, so it must NOT take
-    // the legacy timer-based progression below (which would pop shops/bosses off
-    // the 20-minute game clock and hard-end the run at 0).
-    if (!isActMode() && !match3Active() && !survivalActive()) {
-      const m = Math.floor(gameSeconds/60);
-      const s = gameSeconds%60;
-      document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-      // Timer-based progression
-      if (gameSeconds === nextShopTime) {
-        if (bossActive) {
-          nextShopTime -= 1;
-        } else {
-          nextShopTime -= 120;
-          triggerShop();
-        }
-      }
-      if (gameSeconds === nextBossTime && !bossActive) {
-        nextBossTime -= BOSS_LOOP_DURATION;
-        triggerBoss();
-      }
-      if (gameSeconds <= 0) onGameEnd(false);
-    }
-  }, 1000);
 }
 
 // DEAD as of r151 - kept only so nothing referencing them throws. These were a
@@ -353,9 +325,7 @@ function assignTrickCard() {
 
 function stopTimers() {
   clearInterval(roundInterval);
-  clearInterval(gameInterval);
   roundInterval = null;
-  gameInterval = null;
   stopFocusDecay();
   stopHeartbeat();
   cdStopTicker();                   // and strip every cooldown badge (js/cooldown.js)

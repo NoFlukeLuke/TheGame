@@ -316,7 +316,6 @@ function resetHandBaseValues() {
   if (typeof clearHandCompCache === 'function') clearHandCompCache();
 }
 
-const GAME_DURATION = 1200; // 20 minutes in seconds
 const ROUND_DURATION = 180;
 // Leftover clock -> credits, the payout's "Efficiency" line (js/interlude.js) and
 // Survival's per-clear bonus (js/survival.js). ONE constant so the two economies

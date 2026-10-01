@@ -684,10 +684,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // whole gimmick is doubling those costs, did nothing on its own round.
   //
   // The boss now simply sets the round clock to its window and lets the ordinary
-  // round timer run. savedRoundSeconds is still taken because the legacy
-  // timer-based modes summon a boss in the MIDDLE of a live round and put the
-  // player back into it afterwards (see endBoss); no other mode restores it.
-  savedRoundSeconds = roundSeconds;
+  // round timer run.
   roundSeconds = bossWindowDuration;
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
@@ -1110,7 +1107,7 @@ function endBoss(success, opts) {
       } else {
         setTimeout(() => survivalPostBossReward(), 1100);
       }
-    } else if (isActMode()) {
+    } else {
       // Node-based: a boss round ends EXACTLY like any other cleared round - cards
       // fall, the payout counts up, and only then the grid. It used to jump straight
       // to the prize grid, and since credits are awarded inside showPayoutUI (interest
@@ -1120,11 +1117,6 @@ function endBoss(success, opts) {
       // closeRewardGrid's finishInterlude resets it and advances actNumber.
       gameTimerPaused = true;
       setTimeout(() => startInterlude({ prize: true }), 900);
-    } else {
-      // Timer-based modes: restore round timer and resume the interrupted round
-      roundSeconds = savedRoundSeconds;
-      updateClockUI();
-      setTimeout(() => { rewardGridContext = 'boss'; openPrizeGrid(); }, 1000);
     }
   } else {
     if (typeof flowEndBoss === 'function') flowEndBoss();

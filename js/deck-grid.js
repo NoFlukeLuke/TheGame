@@ -2,13 +2,11 @@ const BOSS_WINDOW_DURATION = 180; // 3 minutes to survive
 const BOSS_BLOCKED_CELLS_MIN = 3;
 const BOSS_BLOCKED_CELLS_MAX = 5;
 
-let nextBossTime  = GAME_DURATION - BOSS_LOOP_DURATION; // first boss at 6-min mark elapsed
 let bossActive    = false;
 // The boss runs on the ONE round clock since r205 (roundSeconds / roundInterval);
 // there is no separate boss countdown or boss interval any more. See triggerBoss.
 let blockedCells  = new Set(); // keys like "r-c"
 let bossNumber    = 0;
-let savedRoundSeconds = 0; // round timer value at boss start
 
 // ── Node-based progression (Normal Mode) ──
 // Each quarter = 5 normal events + 1 forced boss = 6 nodes; QUARTERS_PER_RUN of them.

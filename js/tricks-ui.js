@@ -358,10 +358,6 @@ function updateActProgressUI() {
       valEl.textContent  = `Q${actNumber} · ${nodeInAct}/5` + (_next ? ` · ${_next}` : '');
       valEl.style.color  = '';
     }
-  } else {
-    labelEl.textContent = 'Game Timer';
-    valEl.style.color   = '';
-    // Timer loop keeps the value up to date in non-Normal modes
   }
 }
 

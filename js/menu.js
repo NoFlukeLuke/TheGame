@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r426 · Dealer's Choice hangs from the cursor";
+const BUILD = "2026-10-01 · r427 · tetris + autoplay modes and the 20-minute game clock removed";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -138,30 +138,6 @@ const MODES = {
     survival: true,
     flow: true
   },
-  tetris: {
-    id: 'tetris',
-    name: 'Clear the Board',
-    desc: 'Cards do not refill automatically. Clear the grid before the time forces a drop.',
-    winCondition: 'clear_grid',
-    enableBosses: false,
-    enableShops: true,
-    enableEvents: false,
-    autoRefillGrid: false,
-    timeIsCurrency: true,
-    autoPlayHands: false
-  },
-  autoplay: {
-    id: 'autoplay',
-    name: 'Auto-Match',
-    desc: 'Correctly ordered hands automatically play themselves. Fast-paced chaining.',
-    winCondition: 'boss_defeat',
-    enableBosses: true,
-    enableShops: true,
-    enableEvents: true,
-    autoRefillGrid: true,
-    timeIsCurrency: true,
-    autoPlayHands: true
-  },
   // Match-3 auto-play mode. A full 5×5 board of cards: straight-line flushes,
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
   // crush style). The player only swaps & discards to set matches up - the
@@ -220,9 +196,9 @@ const MODES = {
 
 let ACTIVE_MODE = MODES.normal;
 
-// True for the 3-Act "board" modes (Classic + Six Suits). Legacy timer modes
-// (survival/tetris/autoplay) are false. Gates all the 3-Act-vs-timer branches so
-// Six Suits plays exactly like Classic - only the deck's suits differ.
+// True for the quarter/node modes (Classic, the Schedule, Climb, Custom without
+// pick-of-three...). False for the Survival engine (Flow), Match-3/Zen and Poker
+// Squares, which each run their own loop.
 function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true; }
 
 function initMainMenu() {

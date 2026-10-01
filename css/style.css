@@ -5312,12 +5312,9 @@
    never happens. .survival-mode deliberately does NOT get this - Survival still bills
    its round clock for swaps and discards. */
 #stage.flow-mode .act-cost { display: none; }
-/* r175 - the top-left "Game Timer" is the legacy 20-minute run clock. Every mode
-   excluded from that clock (Match-3, Dominoes, Survival, Flow) showed it frozen
-   on 20:00 forever; landscape already hid the whole stat, portrait did not.
-   .no-game-clock is set in startGame from the same predicate the timer is gated
-   on (js/game-control.js), so a new mode cannot drift out of sync with it.
-   Level keeps its own slot beside it. */
+/* The top-left slot is the quarter/node readout; modes without quarters hide it
+   (.no-game-clock, set in startGame from !isActMode()). It was the legacy
+   20-minute game clock until r427. Level keeps its own slot beside it. */
 #stage.no-game-clock #game-timer-stat { display: none; }
 
 

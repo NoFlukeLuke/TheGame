@@ -350,9 +350,7 @@ let swapFirst = null;
 
 let roundSeconds = ROUND_DURATION;
 let roundStartSeconds = ROUND_DURATION; // roundSeconds value when this round's timer started (♠ "first 30s" exalt window)
-let gameSeconds = GAME_DURATION;
 let roundInterval = null;
-let gameInterval = null;
 // Unspent swaps + discards at the moment the round ended, captured by
 // triggerLevelUp before the base reset overwrites them. The payout reads this.
 let frozenUnspentActions = 0;
