@@ -25,7 +25,7 @@
   gap: 4px;
   padding: 8px 10px;
   text-align: center;
-  cursor: pointer;
+  cursor: var(--cur-pointer, pointer);
   z-index: 2;
   --rc: var(--c-yellow, #f5c042);
 }
@@ -41,7 +41,7 @@
 #grid .gx-tile:hover { transform: translateY(-3px); }
 /* Priced out: readable, plainly not takeable. Never hidden - what you cannot
    afford this slot is information about what to play for. */
-#grid .gx-tile.gx-locked { opacity: 0.34; cursor: not-allowed; }
+#grid .gx-tile.gx-locked { opacity: 0.34; cursor: var(--cur-no, not-allowed); }
 #grid .gx-tile.gx-locked:hover { transform: none; }
 
 #grid .gx-t-icon { font-size: 26px; line-height: 1; }
@@ -100,7 +100,7 @@
   border: 1px solid rgba(255,255,255,0.22);
   border-left: 3px solid var(--c-yellow, #f5c042);
   border-radius: 6px;
-  cursor: default; pointer-events: none;
+  cursor: var(--cur-default, default); pointer-events: none;
   z-index: 2;
 }
 #grid .shop-row-label .srl-icon {
@@ -131,7 +131,7 @@
     linear-gradient(180deg, rgba(245,192,66,0.16), rgba(245,192,66,0.04));
   border: 1px solid rgba(245,192,66,0.55);
   border-radius: 8px;
-  cursor: default; pointer-events: none;
+  cursor: var(--cur-default, default); pointer-events: none;
   z-index: 2;
 }
 #grid .shop-title-tile .stt-name {

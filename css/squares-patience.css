@@ -149,7 +149,7 @@
   gap: 10px; width: 100%;
 }
 .sqp-offer {
-  cursor: pointer; border: 1px solid #33314e; border-radius: 10px;
+  cursor: var(--cur-pointer, pointer); border: 1px solid #33314e; border-radius: 10px;
   padding: 9px 7px 10px; background: rgba(255,255,255,0.03);
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
@@ -193,6 +193,6 @@
 }
 .sqp-ownitem i { font-style: normal; font-family: 'Share Tech Mono', monospace; }
 .sqp-ownitem .sqp-oe { font-size: 12px; }
-.sqp-dropbtn { cursor: pointer; color: var(--red); font-weight: bold; padding: 0 2px; }
+.sqp-dropbtn { cursor: var(--cur-pointer, pointer); color: var(--red); font-weight: bold; padding: 0 2px; }
 .sqp-dropbtn:hover { text-shadow: 0 0 6px rgba(220, 60, 60, 0.8); }
 .sqp-ownnone { font-size: 10px; color: var(--cream-dim); font-style: italic; }

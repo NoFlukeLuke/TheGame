@@ -63,7 +63,7 @@
 
 #info-close {
   flex: 0 0 auto;
-  cursor: pointer; border-radius: 8px; padding: 5px 11px; font-size: 14px;
+  cursor: var(--cur-pointer, pointer); border-radius: 8px; padding: 5px 11px; font-size: 14px;
   color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.05);
   border: 1.5px solid var(--plastic-lo, #b7ac93); transition: all 0.12s ease;
 }
@@ -80,7 +80,7 @@
 }
 #info-nav::-webkit-scrollbar { display: none; }
 .info-chip {
-  flex: 0 0 auto; cursor: pointer;
+  flex: 0 0 auto; cursor: var(--cur-pointer, pointer);
   font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px;
   text-transform: uppercase; padding: 5px 10px; border-radius: 999px;
   color: var(--cream-dim, #8a7d60);

@@ -293,4 +293,4 @@ body.reduced-motion .rc-line-ring { animation-name: none; }
 
 /* A held card cannot be picked up, and the cursor should say so before the tap
    does. Pointer events stay ON - onCardTap reports why (js/input.js). */
-.card.cd-off { cursor: not-allowed; }
+.card.cd-off { cursor: var(--cur-no, not-allowed); }

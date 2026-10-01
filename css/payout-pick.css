@@ -26,7 +26,7 @@
 
 #pick-bar .pk-op {
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-  padding: 5px 9px; cursor: pointer;
+  padding: 5px 9px; cursor: var(--cur-pointer, pointer);
   background: color-mix(in srgb, var(--pko) 16%, #0c0f16);
   border: 1.5px solid var(--pko); border-radius: 7px;
   color: var(--cream, #e8e4d8); font-family: inherit; text-align: left;
@@ -37,7 +37,7 @@
 #pick-bar .pk-op i { font-style: normal; font-size: 9px; opacity: .78; }
 
 #pick-bar .pk-skip {
-  padding: 5px 10px; cursor: pointer; font-family: inherit;
+  padding: 5px 10px; cursor: var(--cur-pointer, pointer); font-family: inherit;
   font-size: 10px; letter-spacing: 1.5px;
   background: transparent; border: 1.5px solid #4a5468; border-radius: 7px;
   color: #98a2b8;
@@ -47,7 +47,7 @@
 /* The board during the pick. Every card reads as tappable, and the chosen one
    is ringed in the bar's gold - the same "this is the one" the reward grid
    uses, so the two screens do not need two vocabularies. */
-body.pick-active #grid [data-card-id] { cursor: pointer; }
+body.pick-active #grid [data-card-id] { cursor: var(--cur-pointer, pointer); }
 body.pick-active #grid [data-card-id]:hover { filter: brightness(1.12); }
 body.pick-active #grid .pk-chosen {
   outline: 3px solid #ffd76a; outline-offset: 1px;

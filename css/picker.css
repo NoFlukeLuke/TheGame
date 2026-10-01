@@ -59,7 +59,7 @@
 .pk-rail-step {
   flex: 1 1 0; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 5px 4px; border: 1px solid #332a5c; border-radius: 7px;
-  background: transparent; color: var(--cream-dim); cursor: pointer;
+  background: transparent; color: var(--cream-dim); cursor: var(--cur-pointer, pointer);
   font-family: 'Share Tech Mono', monospace;
 }
 .pk-rail-step.done { border-color: #4b3f7a; color: var(--cream); }
@@ -86,7 +86,7 @@
 .pk-opts { display: flex; flex-direction: column; gap: 6px; }
 .pk-opt {
   --rc: #4b3f7a;
-  display: block; width: 100%; text-align: left; cursor: pointer;
+  display: block; width: 100%; text-align: left; cursor: var(--cur-pointer, pointer);
   padding: 7px 11px; border: 2px solid var(--rc); border-radius: 9px;
   background: rgba(255,255,255,0.02); color: var(--cream);
 }
@@ -126,7 +126,7 @@
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 .pk-summary { display: flex; flex-direction: column; gap: 5px; }
 .pk-srow {
-  width: 100%; text-align: left; cursor: pointer; font: inherit;
+  width: 100%; text-align: left; cursor: var(--cur-pointer, pointer); font: inherit;
   display: grid; grid-template-columns: 120px 1fr auto; gap: 10px; align-items: baseline;
   padding: 7px 10px; border: 1px solid #332a5c; border-radius: 8px;
   background: rgba(255,255,255,0.02);
@@ -157,7 +157,7 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pk-btn {
-  flex: 0 0 auto; cursor: pointer; padding: 8px 14px; border-radius: 8px;
+  flex: 0 0 auto; cursor: var(--cur-pointer, pointer); padding: 8px 14px; border-radius: 8px;
   border: 2px solid #4b3f7a; background: transparent; color: var(--cream-dim);
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
   letter-spacing: 2px; text-transform: uppercase;

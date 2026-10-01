@@ -32,7 +32,7 @@
   color: var(--c-yellow, #ffce2b); text-transform: uppercase;
 }
 #set-close {
-  cursor: pointer; border-radius: 8px; padding: 5px 11px; font-size: 14px;
+  cursor: var(--cur-pointer, pointer); border-radius: 8px; padding: 5px 11px; font-size: 14px;
   color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.05);
   border: 1.5px solid var(--plastic-lo, #b7ac93); transition: all 0.12s ease;
 }
@@ -56,7 +56,7 @@
 
 /* toggle switch */
 .set-switch {
-  flex: 0 0 auto; width: 44px; height: 24px; border-radius: 999px; cursor: pointer;
+  flex: 0 0 auto; width: 44px; height: 24px; border-radius: 999px; cursor: var(--cur-pointer, pointer);
   background: rgba(255,255,255,0.08); border: 1.5px solid var(--plastic-lo, #b7ac93);
   position: relative; transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -69,7 +69,7 @@
 
 /* slider */
 .set-slider-wrap { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
-.set-slider-wrap input[type=range] { width: 130px; accent-color: var(--c-yellow, #ffce2b); cursor: pointer; }
+.set-slider-wrap input[type=range] { width: 130px; accent-color: var(--c-yellow, #ffce2b); cursor: var(--cur-pointer, pointer); }
 .set-slider-v {
   font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--c-yellow, #ffce2b);
   min-width: 34px; text-align: right;
@@ -78,7 +78,7 @@
 /* segmented select */
 .set-seg { display: flex; gap: 3px; flex: 0 0 auto; }
 .set-seg-b {
-  cursor: pointer; padding: 5px 10px; border-radius: 7px;
+  cursor: var(--cur-pointer, pointer); padding: 5px 10px; border-radius: 7px;
   font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px;
   color: var(--cream-dim, #8a7d60); background: rgba(255,255,255,0.04);
   border: 1px solid rgba(183,172,147,0.25); transition: all 0.12s ease;
@@ -88,7 +88,7 @@
 
 #settings-foot { padding: 11px 16px; border-top: 1px solid rgba(183,172,147,0.22); text-align: center; }
 .set-reset {
-  cursor: pointer; padding: 8px 18px; border-radius: 9px;
+  cursor: var(--cur-pointer, pointer); padding: 8px 18px; border-radius: 9px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2px;
   text-transform: uppercase; color: var(--cream-dim, #8a7d60);
   background: rgba(255,255,255,0.04); border: 1.5px solid var(--plastic-lo, #b7ac93);
@@ -135,7 +135,7 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
 .set-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: 0 0 auto; }
 .set-action-b {
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px;
-  text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  text-transform: uppercase; cursor: var(--cur-pointer, pointer); white-space: nowrap;
   padding: 8px 12px; border-radius: 7px;
   color: var(--c-cyan, #7fd4dd);
   background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0));
@@ -148,7 +148,7 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
   background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #e8b84b) 55%, #e0a814);
 }
 .set-action-b.primary:hover:not([disabled]) { filter: brightness(1.06); }
-.set-action-b[disabled] { opacity: 0.4; cursor: default; }
+.set-action-b[disabled] { opacity: 0.4; cursor: var(--cur-default, default); }
 #settings-run-msg {
   font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--gold, #d4a857);
   min-height: 18px; padding: 6px 2px 0; text-align: right;
@@ -163,7 +163,7 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
   background: #0f0c08; border-bottom: 1px solid rgba(183,172,147,0.2);
 }
 .set-tab {
-  cursor: pointer; border-radius: 999px; padding: 5px 11px; min-height: 28px;
+  cursor: var(--cur-pointer, pointer); border-radius: 999px; padding: 5px 11px; min-height: 28px;
   font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
   color: var(--cream-dim, #8a7d60); background: rgba(255,255,255,0.04);
   border: 1px solid rgba(183,172,147,0.28); transition: all 0.12s ease;

@@ -1,0 +1,13 @@
+/* ── Custom cursor (r409) ───────────────────────────────────────────────────
+   The OS cursor is swapped for a themed one by the browser itself (a cursor
+   IMAGE, not a div chasing the mouse, so it never lags and costs nothing).
+   Every `cursor: pointer/default/not-allowed` in the game reads these three
+   vars; Settings -> Display -> Custom cursor sets html.os-cursor, which hands
+   all three back to the system. The hotspot is the arrow's tip (3,2). */
+:root {
+  --cur-default: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><path d='M3 2 L3 22.5 L8.2 17.6 L11.6 25.6 L15.2 24.1 L11.8 16.2 L19 16.2 Z' fill='%23f4ecd6' stroke='%2314100a' stroke-width='1.6' stroke-linejoin='round'/><path d='M5 6 L5 17' stroke='%23ff6a3c' stroke-width='1.4' stroke-linecap='round'/></svg>") 3 2, default;
+  --cur-pointer: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><path d='M3 2 L3 22.5 L8.2 17.6 L11.6 25.6 L15.2 24.1 L11.8 16.2 L19 16.2 Z' fill='%2335d59b' stroke='%2314100a' stroke-width='1.6' stroke-linejoin='round'/><circle cx='3.2' cy='2.4' r='2.2' fill='%23f4ecd6' stroke='%2314100a' stroke-width='1'/></svg>") 3 2, pointer;
+  --cur-no:      url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><path d='M3 2 L3 22.5 L8.2 17.6 L11.6 25.6 L15.2 24.1 L11.8 16.2 L19 16.2 Z' fill='%23b9b0a0' stroke='%2314100a' stroke-width='1.6' stroke-linejoin='round'/><circle cx='20.5' cy='21' r='5' fill='%2314100a' stroke='%23ff4a4a' stroke-width='2'/><path d='M17 24.5 L24 17.5' stroke='%23ff4a4a' stroke-width='2'/></svg>") 3 2, not-allowed;
+}
+html.os-cursor { --cur-default: default; --cur-pointer: pointer; --cur-no: not-allowed; }
+html, body { cursor: var(--cur-default); }

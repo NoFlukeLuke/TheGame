@@ -31,7 +31,7 @@
 #survival-pick-overlay.sv-peek #sv-peek-restore {
   display: block; position: absolute; left: 6px; bottom: 6px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 9px; letter-spacing: 2px;
-  cursor: pointer; color: #0e0c0a; border: none; border-radius: 8px; padding: 6px 10px;
+  cursor: var(--cur-pointer, pointer); color: #0e0c0a; border: none; border-radius: 8px; padding: 6px 10px;
   background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b) 60%, #e0a814);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 0 #b5820f;
 }
@@ -89,7 +89,7 @@
 .sv-c-row b { color: var(--cream, #f0e6c8); font-family: 'Share Tech Mono', monospace; font-size: 12px; }
 .sv-c-btns { display: flex; flex-direction: column; gap: 7px; width: 100%; }
 .sv-c-btn {
-  width: 100%; cursor: pointer; border-radius: 9px; padding: 10px;
+  width: 100%; cursor: var(--cur-pointer, pointer); border-radius: 9px; padding: 10px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 2px;
   text-transform: uppercase; transition: filter 0.12s ease, transform 0.07s ease, border-color 0.12s ease, color 0.12s ease;
 }
@@ -139,7 +139,7 @@
 .survival-shop-btn {
   display: none;                 /* JS adds .sv-on only in Survival */
   font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
-  cursor: pointer; color: #0e0c0a;
+  cursor: var(--cur-pointer, pointer); color: #0e0c0a;
   background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b) 60%, #e0a814);
   border: none; border-radius: 7px; font-weight: 700;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 0 #b5820f, 0 3px 5px rgba(0,0,0,0.4);
@@ -175,7 +175,7 @@
 
 /* Same square chrome as the breakdown toggle beside it. */
 #sv-pick-peek {
-  cursor: pointer; font-size: 14px; line-height: 1; color: var(--cream, #f0e6c8);
+  cursor: var(--cur-pointer, pointer); font-size: 14px; line-height: 1; color: var(--cream, #f0e6c8);
   background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
   border-radius: 9px; padding: 0 12px;
   transition: border-color 0.12s ease, background 0.12s ease, transform 0.07s ease;
@@ -198,7 +198,7 @@
 #sv-peek-restore {
   display: none;
   position: absolute; right: 10px; bottom: 10px;
-  pointer-events: auto; cursor: pointer;
+  pointer-events: auto; cursor: var(--cur-pointer, pointer);
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2px;
   color: #0e0c0a; border: none; border-radius: 9px; padding: 8px 12px;
   background: linear-gradient(180deg, #8ff0cb, var(--c-mint, #35d59b) 60%, #1f9d72);

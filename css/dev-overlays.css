@@ -51,7 +51,7 @@
     font-size: 10px; letter-spacing: 2px;
     background: linear-gradient(180deg, rgba(255,176,46,0.16), rgba(255,176,46,0.04));
     border: 1px solid var(--gold-dim); color: var(--gold);
-    padding: 6px 13px; border-radius: 6px; cursor: pointer;
+    padding: 6px 13px; border-radius: 6px; cursor: var(--cur-pointer, pointer);
     transition: background 0.12s ease, color 0.12s ease;
   }
   #dev-panel-close:hover { background: linear-gradient(180deg, rgba(255,176,46,0.3), rgba(255,176,46,0.1)); color: #fff; }
@@ -78,7 +78,7 @@
   .dev-group-btn {
     display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
     background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px;
-    padding: 9px 10px; color: var(--cream); cursor: pointer; text-align: left;
+    padding: 9px 10px; color: var(--cream); cursor: var(--cur-pointer, pointer); text-align: left;
     transition: background .12s, border-color .12s, transform .08s;
   }
   .dev-group-btn:hover  { background: rgba(255,176,46,0.10); border-color: var(--gold-dim); }
@@ -92,7 +92,7 @@
   #dev-group-back {
     font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; padding:5px 9px;
     background: rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px;
-    color: var(--cream); cursor: pointer;
+    color: var(--cream); cursor: var(--cur-pointer, pointer);
   }
   #dev-group-back:hover { border-color: var(--gold-dim); color: var(--gold); }
   #dev-group-pop-title { font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color: var(--gold); text-transform: uppercase; }
@@ -107,7 +107,7 @@
   .dev-section { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
   .dev-section-title { font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
   .dev-row { display:flex; gap:6px; flex-wrap:wrap; }
-  .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor:pointer; flex:1; min-width:60px; }
+  .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor: var(--cur-pointer, pointer); flex:1; min-width:60px; }
   .dev-btn:active { background:rgba(244,234,213,0.14); }
 
   /* Spectrum deck tuner (dev panel → Spectrum) - one chip per value / colour. */
@@ -115,19 +115,19 @@
   .dev-spec-chip {
     font-family:'Share Tech Mono',monospace; font-size:12px; min-width:30px; padding:5px 7px;
     background:rgba(244,234,213,0.04); border:1px solid var(--border); border-radius:5px;
-    color:rgba(244,234,213,0.35); cursor:pointer; line-height:1;
+    color:rgba(244,234,213,0.35); cursor: var(--cur-pointer, pointer); line-height:1;
   }
   .dev-spec-chip.on { background:rgba(255,215,0,0.14); border-color:var(--gold); color:var(--cream); }
   .dev-spec-chip:active { transform:translateY(1px); }
   .dev-trick-item { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:4px; gap:8px; }
   .dev-trick-name { font-family:'Cinzel',serif; font-size:9px; color:var(--cream); letter-spacing:1px; }
-  .dev-trick-add { font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; white-space:nowrap; }
+  .dev-trick-add { font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor: var(--cur-pointer, pointer); white-space:nowrap; }
   #dev-event-log { font-family:'Courier New',monospace; font-size:9px; color:var(--cream-dim); line-height:1.6; max-height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-radius:4px; padding:6px 8px; white-space:pre-wrap; word-break:break-all; }
   #dev-event-log .log-error { color:#ff6b6b; }
   #dev-event-log .log-warn  { color:#f0c040; }
   #dev-event-log .log-ok    { color:#5aaa5a; }
-  #dev-log-copy { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; }
-  #dev-log-clear { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--cream-dim); cursor:pointer; }
+  #dev-log-copy { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor: var(--cur-pointer, pointer); }
+  #dev-log-clear { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--cream-dim); cursor: var(--cur-pointer, pointer); }
 
   /* ═══════════════ EVENT OVERLAY (r183 rework) ═══════════════
      Events used to be a black sheet with a serif heading and some bordered
@@ -236,7 +236,7 @@
     background: rgba(140,110,230,0.10);
     border: 1px solid #3a3560;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: background 0.14s, color 0.14s, border-color 0.14s;
   }
   .con-pause:hover {
@@ -299,7 +299,7 @@
   #event-actions button, .ev-btn {
     font-family: 'Orbitron', sans-serif; font-weight: 700;
     font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-    padding: 11px 24px; border-radius: 7px; cursor: pointer;
+    padding: 11px 24px; border-radius: 7px; cursor: var(--cur-pointer, pointer);
     transition: filter 0.12s ease, opacity 0.12s ease;
   }
   #event-confirm, .ev-btn {
@@ -309,7 +309,7 @@
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 3px 0 #178a5e, 0 6px 12px rgba(0,0,0,0.45);
   }
   #event-confirm:not(:disabled):hover, .ev-btn:hover { filter: brightness(1.12); }
-  #event-confirm:disabled { opacity: 0.32; cursor: not-allowed; box-shadow: none; }
+  #event-confirm:disabled { opacity: 0.32; cursor: var(--cur-no, not-allowed); box-shadow: none; }
   #event-skip {
     border: 1px solid #4a4570;
     background: rgba(179,156,245,0.07);
@@ -328,7 +328,7 @@
     background: linear-gradient(180deg, #15110b, #0a0906);
     border: 2px solid var(--rc, var(--plastic-deep));
     border-radius: 9px; padding: 11px 13px;
-    cursor: pointer; text-align: left; user-select: none;
+    cursor: var(--cur-pointer, pointer); text-align: left; user-select: none;
     color: var(--cream);
     overflow: hidden;
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -2px var(--rc, transparent),
@@ -363,7 +363,7 @@
     opacity: 0.75;
   }
   .event-choice.debuff .ec-name { color: #ffd7db; }
-  .event-choice.locked { opacity: 0.3; cursor: not-allowed; filter: grayscale(0.6); }
+  .event-choice.locked { opacity: 0.3; cursor: var(--cur-no, not-allowed); filter: grayscale(0.6); }
   .event-choice.locked:hover { transform: none; }
 
   .ec-top  { display: flex; align-items: center; gap: 10px; }
@@ -463,10 +463,10 @@
     gap: 14px 12px; width: 100%; padding: 4px 0;
   }
   .shift-slot {
-    position: relative; flex: 0 0 auto; width: 56px; height: 74px; cursor: pointer;
+    position: relative; flex: 0 0 auto; width: 56px; height: 74px; cursor: var(--cur-pointer, pointer);
     transition: transform 0.12s ease, filter 0.12s ease;
   }
-  .shift-slot > .reward-cell { width: 100%; height: 100%; padding: 3px 2px 4px; cursor: pointer; }
+  .shift-slot > .reward-cell { width: 100%; height: 100%; padding: 3px 2px 4px; cursor: var(--cur-pointer, pointer); }
   .shift-slot .rwd-art   { font-size: 24px; top: 13%; }
   .shift-slot .rwd-glyph { font-size: 9px; top: 4px; }
   .shift-slot .rwd-name  { font-size: 7px; letter-spacing: 0; }
@@ -500,7 +500,7 @@
   .shift-tool {
     font-family: 'Orbitron', sans-serif; font-weight: 700;
     font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-    padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    padding: 7px 14px; border-radius: 6px; cursor: var(--cur-pointer, pointer);
     border: 1px solid #4a4570; background: rgba(179,156,245,0.07);
     color: rgba(240,230,200,0.62);
     transition: border-color 0.12s, color 0.12s;
@@ -609,7 +609,7 @@
     text-transform:uppercase; color:#b39cf5;
   }
   .blp-inc-tile { grid-column:1; grid-row:1 / span 2; width:54px; height:72px; }
-  .blp-inc-tile > .reward-cell { width:100%; height:100%; padding:3px 2px 4px; cursor:default; }
+  .blp-inc-tile > .reward-cell { width:100%; height:100%; padding:3px 2px 4px; cursor: var(--cur-default, default); }
   .blp-inc-tile .rwd-art   { font-size:23px; top:12%; }
   .blp-inc-tile .rwd-glyph { font-size:8px; top:3px; }
   .blp-inc-tile .rwd-name  { font-size:6.5px; letter-spacing:0; }
@@ -641,7 +641,7 @@
     display:flex; align-items:center; gap:11px;
     background:linear-gradient(180deg,#1c0f11,#0d0708);
     border:2px solid #3a2024; border-radius:9px; padding:9px 11px;
-    cursor:pointer; text-align:left; color:var(--cream); user-select:none;
+    cursor: var(--cur-pointer, pointer); text-align:left; color:var(--cream); user-select:none;
     box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
     transition:transform 0.12s ease, border-color 0.14s ease, box-shadow 0.14s ease, filter 0.12s ease;
   }
@@ -653,7 +653,7 @@
   /* The tile keeps its own rarity colour; the ROW is what turns red when picked,
      so "this is the one I am losing" never gets confused with "this is an epic". */
   .blp-item-tile { flex:0 0 auto; width:50px; height:66px; }
-  .blp-item-tile > .reward-cell { width:100%; height:100%; padding:3px 2px 4px; cursor:pointer; }
+  .blp-item-tile > .reward-cell { width:100%; height:100%; padding:3px 2px 4px; cursor: var(--cur-pointer, pointer); }
   .blp-item-tile .rwd-art   { font-size:21px; top:13%; }
   .blp-item-tile .rwd-glyph { font-size:8px; top:3px; }
   /* The row prints the name in full right next to the tile, so the tile's own
@@ -689,7 +689,7 @@
   #blp-actions button {
     font-family:'Orbitron',sans-serif; font-weight:700;
     font-size:10px; letter-spacing:2px; text-transform:uppercase;
-    padding:11px 22px; border-radius:7px; cursor:pointer;
+    padding:11px 22px; border-radius:7px; cursor: var(--cur-pointer, pointer);
     transition:filter 0.12s ease, opacity 0.12s ease;
   }
   #blp-confirm {
@@ -699,7 +699,7 @@
     box-shadow:inset 0 2px 0 rgba(255,255,255,0.35), 0 3px 0 #7d1020, 0 6px 12px rgba(0,0,0,0.45);
   }
   #blp-confirm:not(:disabled):hover { filter:brightness(1.12); }
-  #blp-confirm:disabled { opacity:0.32; cursor:not-allowed; box-shadow:none; }
+  #blp-confirm:disabled { opacity:0.32; cursor: var(--cur-no, not-allowed); box-shadow:none; }
   #blp-cancel {
     border:1px solid #4a3540; background:rgba(255,138,149,0.07); color:rgba(240,230,200,0.6);
   }
@@ -723,7 +723,7 @@
     border: 1.5px solid rgba(255,255,255,0.35);
     background: #f4efe2; color: #1a1a1a;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
-    text-align: center; cursor: pointer; user-select: none; line-height: 1;
+    text-align: center; cursor: var(--cur-pointer, pointer); user-select: none; line-height: 1;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     transition: transform 0.1s ease, box-shadow 0.14s ease, border-color 0.14s ease;
   }
@@ -737,7 +737,7 @@
   /* Clean Up's four-different-ranks cut greys out a rank already taken, rather
      than silently refusing the tap. */
   .ev-cardchip.blocked {
-    opacity: 0.24; cursor: not-allowed; filter: grayscale(0.8);
+    opacity: 0.24; cursor: var(--cur-no, not-allowed); filter: grayscale(0.8);
   }
   .ev-cardchip.blocked:hover { transform: none; }
 
@@ -775,7 +775,7 @@
     background: linear-gradient(180deg, #1a1728, #0e0c18);
     border: 2px solid #3a3560; border-radius: 9px;
     padding: 11px 6px 9px;
-    cursor: pointer; text-align: center; user-select: none;
+    cursor: var(--cur-pointer, pointer); text-align: center; user-select: none;
     color: var(--cream);
     box-shadow: 0 0 0 2px var(--plastic-lo), inset 0 1px 0 rgba(255,255,255,0.07), 0 3px 0 #06050c;
     transition: transform 0.1s ease, box-shadow 0.14s ease, border-color 0.14s ease;
@@ -803,7 +803,7 @@
     width:92px; height:120px;
     background: linear-gradient(180deg, #17162a, #0a0913);
     border: 2px solid #3a3560; border-radius: 9px;
-    cursor: pointer; display: flex; flex-direction: column;
+    cursor: var(--cur-pointer, pointer); display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     user-select: none;
     box-shadow: 0 0 0 2px var(--plastic-lo), inset 0 0 18px -8px rgba(179,156,245,0.7), 0 5px 12px rgba(0,0,0,0.55);
@@ -821,11 +821,11 @@
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 20px -2px rgba(179,156,245,0.9), inset 0 0 16px -6px rgba(179,156,245,0.8);
   }
   .event-door.revealed-good {
-    border-color: var(--c-mint); cursor: default;
+    border-color: var(--c-mint); cursor: var(--cur-default, default);
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 20px -3px var(--c-mint), inset 0 0 16px -6px var(--c-mint);
   }
   .event-door.revealed-bad {
-    border-color: #ff4d5e; cursor: default;
+    border-color: #ff4d5e; cursor: var(--cur-default, default);
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 20px -3px #ff4d5e, inset 0 0 16px -6px #ff4d5e;
   }
   .door-num {
@@ -924,7 +924,7 @@
   }
   .dev-tune-ctl { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
   .dev-step {
-    width: 26px; height: 26px; flex: 0 0 auto; cursor: pointer;
+    width: 26px; height: 26px; flex: 0 0 auto; cursor: var(--cur-pointer, pointer);
     font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700; line-height: 1;
     color: var(--gold); background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--border); border-radius: 5px;
@@ -943,7 +943,7 @@
   }
   /* Radio rows: title plus one line saying what it means. */
   .dev-pick {
-    display: flex; align-items: flex-start; gap: 8px; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 8px; cursor: var(--cur-pointer, pointer);
     padding: 7px 8px; margin-bottom: 4px; border-radius: 6px;
     border: 1px solid var(--border); background: rgba(255, 255, 255, 0.03);
   }
@@ -1014,7 +1014,7 @@
     display: flex; align-items: center; justify-content: center;
     padding: 3px; border-bottom: 1px solid rgba(255,255,255,0.06);
   }
-  .slot-cell .ev-cardchip { cursor: default; box-shadow: none; }
+  .slot-cell .ev-cardchip { cursor: var(--cur-default, default); box-shadow: none; }
   .slot-cell .ev-cardchip:hover { transform: none; }
   .slot-cell.slot-win {
     background: rgba(245,192,66,0.22);
@@ -1088,7 +1088,7 @@
 .dev-wrank i { font-family:'Share Tech Mono',monospace; font-style:normal; font-size:12px;
   color:var(--cream); min-width:16px; text-align:center; }
 .dev-wbtn { font-family:'Share Tech Mono',monospace; font-size:12px; line-height:1;
-  width:18px; height:18px; padding:0; cursor:pointer; color:var(--cream);
+  width:18px; height:18px; padding:0; cursor: var(--cur-pointer, pointer); color:var(--cream);
   background:rgba(212,175,95,0.14); border:1px solid rgba(212,175,95,0.34); border-radius:3px; }
 .dev-wbtn:hover { background:rgba(212,175,95,0.3); }
 
@@ -1106,7 +1106,7 @@
 }
 .dev-sq-step {
   width: 22px; height: 22px; border: 1px solid var(--gold-dim); border-radius: 4px;
-  background: #1a1510; color: var(--gold); cursor: pointer; font-size: 13px; line-height: 1;
+  background: #1a1510; color: var(--gold); cursor: var(--cur-pointer, pointer); font-size: 13px; line-height: 1;
 }
 .dev-sq-step:hover { background: var(--gold); color: #0e0c0a; }
 .dev-sq-hint {

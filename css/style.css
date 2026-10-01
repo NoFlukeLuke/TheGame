@@ -189,7 +189,7 @@
     line-height: 1.3;
     pointer-events: auto;
     user-select: none;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     min-width: 78px;
   }
   #deck-hud.collapsed { padding: 3px 6px; }
@@ -456,7 +456,7 @@
     letter-spacing: 1.5px;
     padding: 6px 14px;
     border-radius: 16px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     text-transform: uppercase;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
     line-height: 1;
@@ -487,7 +487,7 @@
     border: 1px solid var(--border);
     background: #1a1510;
     color: var(--cream-dim);
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     text-transform: uppercase;
     transition: all 0.12s;
   }
@@ -567,7 +567,7 @@
      scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
      in the flex row (grid cards are position:absolute) and not carry grid interactivity. */
   #selected-cards { --card-w: 38px; --card-h: 50px; }
-  #selected-cards .card { position: relative !important; flex: 0 0 auto; will-change: auto; transition: none; cursor: default; }
+  #selected-cards .card { position: relative !important; flex: 0 0 auto; will-change: auto; transition: none; cursor: var(--cur-default, default); }
   #selected-cards .preview-empty { width: var(--card-w, 38px); height: var(--card-h, 50px); border: 1px dashed var(--border); border-radius: 5px; flex: 0 0 auto; }
 
   /* Tricks carousel - right half */
@@ -606,7 +606,7 @@
     background: #1a1510;
     border: 1px solid var(--border);
     border-radius: 6px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     user-select: none;
     transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   }
@@ -663,8 +663,8 @@
   #trick-tray-list::-webkit-scrollbar { display: none; }
   /* The tray chip is a sizing shell around one .reward-cell (r182); the frame
      styling that used to live here now comes from the shared entity tile. */
-  .trick-tray-chip { position: relative; cursor: pointer; user-select: none; }
-  .trick-tray-chip > .reward-cell { width: 100%; height: 100%; cursor: pointer; padding: 3px 2px 4px; }
+  .trick-tray-chip { position: relative; cursor: var(--cur-pointer, pointer); user-select: none; }
+  .trick-tray-chip > .reward-cell { width: 100%; height: 100%; cursor: var(--cur-pointer, pointer); padding: 3px 2px 4px; }
   /* r182: the chip's own tier colours are gone - the tile inside it carries the
      rarity, via .rar-* → --rc, exactly as on the reward grid and in the Mart.
      Painting a second border here would show through behind the tile. */
@@ -1044,7 +1044,7 @@
     background: rgba(10, 22, 24, 0.9);
     border: 1px solid rgba(127, 212, 221, 0.45);
     border-radius: 5px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
   }
   #stage:not(.landscape) #panel-swap-btn:hover { background: rgba(28, 62, 66, 0.95); color: #fff; }
@@ -1385,7 +1385,7 @@
     color: var(--cream-dim);
     font-family: 'Cinzel', serif;
     font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    padding: 6px 14px; border-radius: 6px; cursor: var(--cur-pointer, pointer);
     transition: all 0.15s ease;
   }
   .payout-tab.active {
@@ -1509,7 +1509,7 @@
     font-size: 15px;
     font-style: italic;
     letter-spacing: 2px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     opacity: 0;
     transition: opacity 0.4s ease, background 0.2s ease;
   }
@@ -1528,7 +1528,7 @@
     color: rgba(255,255,255,0.55);
     font-size: 18px;
     font-family: 'Cinzel', serif;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1540,7 +1540,7 @@
     border-color: rgba(245,192,66,0.5);
     color: var(--gold);
   }
-  .payout-ff-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+  .payout-ff-btn:disabled { opacity: 0.3; cursor: var(--cur-default, default); pointer-events: none; }
 
   /* ── Payout rendered ON the board, inside the empty grid slot (r101) ── */
   #payout-overlay.in-grid {
@@ -1793,15 +1793,15 @@
     letter-spacing: 1px;
     text-transform: uppercase;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     border: 2px solid;
     transition: all 0.12s;
   }
   .btn-play { background: var(--gold); border-color: var(--gold); color: #0e0c0a; font-weight: 700; }
-  .btn-play:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-play:disabled { opacity: 0.35; cursor: var(--cur-no, not-allowed); }
   .btn-play:not(:disabled):hover { background: #e0bc5a; }
   .btn-discard { background: rgba(192, 57, 43, 0.90); border-color: var(--red); color: #fff; }
-  .btn-discard:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-discard:disabled { opacity: 0.35; cursor: var(--cur-no, not-allowed); }
 
   /* Swap indicator */
   #swap-indicator {
@@ -1835,7 +1835,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     user-select: none;
     touch-action: none;
     will-change: top, opacity;
@@ -1988,7 +1988,7 @@
     from { border-width: 1px; box-shadow: 0 0 6px rgba(74,158,255,0.4); }
     to   { border-width: 1px; box-shadow: 0 0 12px rgba(74,158,255,0.7); }
   }
-  .card.unreachable { opacity: 0.28; cursor: default; }
+  .card.unreachable { opacity: 0.28; cursor: var(--cur-default, default); }
   .card.swap-pending {
     border-color: #9b59b6 !important;
     box-shadow: 0 0 0 2px #9b59b6, 0 0 12px rgba(155,89,182,0.4);
@@ -2020,7 +2020,7 @@
   .card.challenge-card {
     animation: challenge-pulse 1.4s ease-in-out infinite !important;
     background: linear-gradient(135deg, #1a0505 0%, #3a0a0a 100%) !important;
-    cursor: default !important;
+    cursor: var(--cur-default, default) !important;
     pointer-events: auto;
   }
   .card.challenge-card .rank { color: #f4aaaa !important; }
@@ -2034,7 +2034,7 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 2px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     pointer-events: auto;
     z-index: 5;
     will-change: top, opacity;
@@ -2105,7 +2105,7 @@
     flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
     color: #e07070; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
-    letter-spacing: 0.5px; cursor: pointer;
+    letter-spacing: 0.5px; cursor: var(--cur-pointer, pointer);
     transition: background 0.12s;
   }
   .trick-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
@@ -2114,7 +2114,7 @@
     flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(200,160,60,0.18); border: 1px solid rgba(200,160,60,0.55);
     color: #e8b84b; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
-    letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
+    letter-spacing: 0.5px; cursor: var(--cur-pointer, pointer); white-space: nowrap;
     transition: background 0.12s;
   }
   .trick-tooltip-sell:hover, .knack-tooltip-sell:hover { background: rgba(200,160,60,0.34); }
@@ -2132,7 +2132,7 @@
   .tip-btn {
     flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
-    letter-spacing: 0.5px; cursor: pointer; transition: background 0.12s;
+    letter-spacing: 0.5px; cursor: var(--cur-pointer, pointer); transition: background 0.12s;
     background: rgba(200,160,60,0.22); border: 1px solid rgba(200,160,60,0.6);
     color: #e8b84b;
   }
@@ -2453,7 +2453,7 @@
   @keyframes scroll-out-right { from { transform: translateX(0); opacity:1; } to { transform: translateX(-60%); opacity:0; } }
   @keyframes scroll-out-left  { from { transform: translateX(0); opacity:1; } to { transform: translateX( 60%); opacity:0; } }
 
-  .btn-secondary { flex: 1; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 6px 6px; border-radius: 5px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--cream-dim); transition: all 0.12s; }
+  .btn-secondary { flex: 1; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 6px 6px; border-radius: 5px; cursor: var(--cur-pointer, pointer); border: 1px solid var(--border); background: transparent; color: var(--cream-dim); transition: all 0.12s; }
   .btn-secondary:hover { border-color: var(--gold-dim); color: var(--cream); }
 
   /* Score breakdown (hidden, used by JS) */
@@ -2488,7 +2488,7 @@
   .overlay-close {
     font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
     text-transform: uppercase; padding: 8px 24px; border-radius: 5px;
-    cursor: pointer; border: 1px solid var(--border);
+    cursor: var(--cur-pointer, pointer); border: 1px solid var(--border);
     background: transparent; color: var(--cream-dim); transition: all 0.12s;
   }
   .overlay-close:hover { border-color: var(--gold-dim); color: var(--cream); }
@@ -2602,11 +2602,11 @@
      scanlines, neon rarity, Orbitron name), sized for the bay + a price chip. */
   .shop-tile.reward-cell {
     width: 82px; height: 110px; flex: 0 0 auto;
-    cursor: pointer; padding: 6px;
+    cursor: var(--cur-pointer, pointer); padding: 6px;
   }
   .shop-tile.reward-cell:hover { transform: translate(var(--fx,0), calc(var(--fy,0px) - 4px)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.02)); }
   .shop-tile.entity-knack:hover { transform: translateY(-4px) scale(1.05); }
-  .shop-tile.reward-cell.purchased { opacity: 0.4; cursor: default; }
+  .shop-tile.reward-cell.purchased { opacity: 0.4; cursor: var(--cur-default, default); }
   .shop-tile.reward-cell.purchased:hover { transform: none; }
 
   /* Upgrade tile: CRT resource look (mint neon, no entity chrome).
@@ -2656,9 +2656,9 @@
   #selected-cards .shop-cost .sc-line b { color:var(--phosphor); }
   #selected-cards .shop-cost .sc-off { color:var(--c-mint); }
   #selected-cards .shop-cost .sc-actions { display:flex; gap:6px; margin-top:1px; }
-  #selected-cards .shop-cost .sc-actions button { flex:1; font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:4px 2px; border-radius:5px; cursor:pointer; border:1px solid var(--plastic-deep); background:transparent; color:var(--cream-dim); transition:all .12s; }
+  #selected-cards .shop-cost .sc-actions button { flex:1; font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:4px 2px; border-radius:5px; cursor: var(--cur-pointer, pointer); border:1px solid var(--plastic-deep); background:transparent; color:var(--cream-dim); transition:all .12s; }
   #selected-cards .shop-cost .sc-actions button:hover:not(:disabled) { border-color:var(--phosphor); color:var(--phosphor); }
-  #selected-cards .shop-cost .sc-actions button:disabled { opacity:0.4; cursor:not-allowed; }
+  #selected-cards .shop-cost .sc-actions button:disabled { opacity:0.4; cursor: var(--cur-no, not-allowed); }
   #selected-cards .shop-cost .sc-actions button.sc-sell-on { border-color:var(--c-mint); color:var(--c-mint); }
   .reward-cell.on-grid.shop-tile.sold { opacity:0.34; }
 
@@ -2685,7 +2685,7 @@
   #shop-prev-actions { display: flex; gap: 10px; margin-top: 2px; }
   #shop-prev-actions button {
     font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
-    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    padding: 6px 14px; border-radius: 6px; cursor: var(--cur-pointer, pointer);
     border: 1px solid var(--plastic-deep); background: transparent; color: var(--cream-dim); transition: all 0.12s;
   }
   #shop-prev-actions button:hover { border-color: var(--phosphor); color: var(--phosphor); }
@@ -2724,7 +2724,7 @@
     border: 2px solid var(--border);
     border-radius: 10px;
     padding: 14px 12px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: border-color 0.15s, transform 0.15s;
     display: flex;
     flex-direction: column;
@@ -2778,7 +2778,7 @@
   .end-btn {
     font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px;
     text-transform: uppercase; padding: 12px 32px; border-radius: 5px;
-    cursor: pointer; border: 2px solid var(--gold); background: transparent;
+    cursor: var(--cur-pointer, pointer); border: 2px solid var(--gold); background: transparent;
     color: var(--gold); transition: all 0.15s; margin-top: 8px;
   }
 
@@ -2822,7 +2822,7 @@
   .pause-btn {
     width: 100%;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 4px;
-    text-transform: uppercase; cursor: pointer; border-radius: 10px; padding: 13px 10px;
+    text-transform: uppercase; cursor: var(--cur-pointer, pointer); border-radius: 10px; padding: 13px 10px;
     transition: transform 0.07s ease, filter 0.12s ease, border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
   }
   .pause-btn:active { transform: translateY(3px); }
@@ -2851,9 +2851,9 @@
   .pause-toggle {
     display: flex; align-items: center; justify-content: space-between;
     font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px;
-    color: var(--cream-dim); cursor: pointer;
+    color: var(--cream-dim); cursor: var(--cur-pointer, pointer);
   }
-  .pause-toggle input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--c-yellow); }
+  .pause-toggle input { width: 16px; height: 16px; cursor: var(--cur-pointer, pointer); accent-color: var(--c-yellow); }
 
   /* ── DESKTOP LAYOUT (DISABLED) ──
      Fixed-canvas + zoom-scale system replaces this. The mobile layout is
@@ -2933,7 +2933,7 @@
     color: rgba(180,140,90,0.55);
     font-size: 28px;
     text-shadow: 0 2px 3px rgba(0,0,0,0.9);
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
   }
   .stone-card.swap-pending {
     box-shadow:
@@ -3155,7 +3155,7 @@
     justify-content: center;
     padding: 6px;
     text-align: center;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     /* --fx/--fy/--fr/--fs come from the shared float driver (js/float-anim.js).
        Composed here so hover/.selected can add their scale without the two
@@ -3178,7 +3178,7 @@
      has to beat a per-screen decoration is exactly how it stopped being
      painted on the prize grid. */
   .reward-cell.selectable:not(.selected):hover { transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.04)); }
-  .reward-cell.unselectable { opacity: 0.3; cursor: not-allowed; }
+  .reward-cell.unselectable { opacity: 0.3; cursor: var(--cur-no, not-allowed); }
   .reward-icon {
     font-size: 26px;
     line-height: 1;
@@ -3634,7 +3634,7 @@
     background: rgba(0,0,0,0.5); color: var(--cream-dim);
     border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
     font-family: 'Share Tech Mono', monospace; font-size: 10px;
-    cursor: pointer; pointer-events: auto;
+    cursor: var(--cur-pointer, pointer); pointer-events: auto;
   }
   #reward-tooltip .rtt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 
@@ -3645,7 +3645,7 @@
     background: rgba(0,0,0,0.5); color: var(--cream-dim);
     border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
     font-family: 'Share Tech Mono', monospace; font-size: 10px;
-    cursor: pointer; pointer-events: auto;
+    cursor: var(--cur-pointer, pointer); pointer-events: auto;
   }
   .tt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
   #reward-tooltip::after {
@@ -3675,7 +3675,7 @@
   #action-col #swap-indicator.reward-skip {
     background: linear-gradient(180deg, #9fd6ff, #5aa9e6 55%, #2c7cc0) !important;
     color: #06213a !important; border: 2px solid #5aa9e6 !important;
-    cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    cursor: var(--cur-pointer, pointer); font-size: 11px; font-weight: 700; letter-spacing: 1px;
     padding: 6px 2px; word-break: normal; white-space: normal; gap: 1px;
     text-shadow: 0 1px 0 rgba(255,255,255,0.4);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #216ba5, 0 6px 8px rgba(0,0,0,0.4);
@@ -3753,7 +3753,7 @@
     letter-spacing: 2px;
     padding: 10px 28px;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: all 0.2s ease;
   }
   #reward-confirm {
@@ -3761,14 +3761,14 @@
     border: 2px solid var(--gold);
     color: var(--gold);
   }
-  #reward-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+  #reward-confirm:disabled { opacity: 0.4; cursor: var(--cur-no, not-allowed); }
   #reward-confirm:not(:disabled):hover { background: linear-gradient(180deg, #4a3018, #221610); }
   #reward-clear {
     background: linear-gradient(180deg, #1a1010, #0e0808);
     border: 2px solid var(--cream-dim);
     color: var(--cream-dim);
   }
-  #reward-clear:disabled { opacity: 0.4; cursor: not-allowed; }
+  #reward-clear:disabled { opacity: 0.4; cursor: var(--cur-no, not-allowed); }
   #reward-clear:not(:disabled):hover { border-color: var(--cream); color: var(--cream); }
 
   /* ── LIMIT BREAK EVENT ── */
@@ -3900,7 +3900,7 @@
     justify-content: center;
     padding: 14px 8px;
     text-align: center;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: all 0.18s ease;
     color: var(--cream);
     font-family: 'Cinzel', serif;
@@ -3914,8 +3914,8 @@
   }
   .lb-offer.blind { border-color: #6a4caa; border-style: dashed; }
   .lb-offer.blind.selected { border-color: #aa7ce0; box-shadow: 0 0 20px rgba(150,90,230,0.6); }
-  .lb-offer.disabled { opacity: 0.3; cursor: not-allowed; }
-  .lb-offer.maxed { opacity: 0.45; cursor: not-allowed; border-color: var(--cream-dim); }
+  .lb-offer.disabled { opacity: 0.3; cursor: var(--cur-no, not-allowed); }
+  .lb-offer.maxed { opacity: 0.45; cursor: var(--cur-no, not-allowed); border-color: var(--cream-dim); }
   .lb-offer-icon { font-size: 30px; margin-bottom: 8px; }
   .lb-offer-label { font-size: 11px; letter-spacing: 0.5px; line-height: 1.2; margin-bottom: 6px; }
   .lb-offer-desc { font-family: 'Crimson Pro', serif; font-size: 10px; color: var(--cream-dim); line-height: 1.25; }
@@ -3954,7 +3954,7 @@
     background: linear-gradient(180deg, #2a1410, #160a08);
     border: 1px solid var(--red);
     color: var(--cream);
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: all 0.15s ease;
   }
   .lb-sac-btn:hover:not(:disabled) { background: linear-gradient(180deg, #3a1c14, #200e0a); }
@@ -3969,7 +3969,7 @@
   }
   #lb-sacrifice-hint { color: rgba(240,230,200,0.72); font-size: 12.5px; }
   .lb-sac-btn { font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px; }
-  .lb-sac-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .lb-sac-btn:disabled { opacity: 0.35; cursor: var(--cur-no, not-allowed); }
 
   #lb-confirm {
     /* The events' CONFIRM, so the same button means the same thing on both
@@ -3984,11 +3984,11 @@
     color: #06251a;
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 3px 0 #178a5e, 0 6px 12px rgba(0,0,0,0.45);
     border-radius: 7px;
-    cursor: pointer;
+    cursor: var(--cur-pointer, pointer);
     transition: all 0.2s ease;
     margin-top: 8px;
   }
-  #lb-confirm:disabled { opacity: 0.32; cursor: not-allowed; box-shadow: none; }
+  #lb-confirm:disabled { opacity: 0.32; cursor: var(--cur-no, not-allowed); box-shadow: none; }
   #lb-confirm:not(:disabled):hover { filter: brightness(1.12); }
 
   /* ── Limit Break, stage 2 (r227) ──────────────────────────────────────────
@@ -4012,7 +4012,7 @@
   .lb-tk-gain  { color: var(--c-mint); font-weight: 700; }
   .lb-tk-prog  { color: var(--gold); opacity: 0.85; font-size: 10px; }
   .lb-offer.taken {
-    cursor: default;
+    cursor: var(--cur-default, default);
     border-color: var(--c-mint);
     box-shadow: 0 0 14px rgba(84,175,136,0.32);
     opacity: 0.92;
@@ -4040,7 +4040,7 @@
     padding: 11px 18px; margin: 8px 10px 0 0;
     background: linear-gradient(180deg, #2a2840, #16142400 92%);
     border: 1px solid #4a4768; color: rgba(240,230,200,0.8);
-    border-radius: 7px; cursor: pointer; transition: all 0.2s ease;
+    border-radius: 7px; cursor: var(--cur-pointer, pointer); transition: all 0.2s ease;
   }
   #lb-done:hover { border-color: #6d69a0; color: #fff; }
 
@@ -4207,7 +4207,7 @@
   #menu-start-btn {
     margin-top: 10px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: 6px;
-    color: #3a2a08; text-transform: uppercase; cursor: pointer; border: none; border-radius: 12px; padding: 16px;
+    color: #3a2a08; text-transform: uppercase; cursor: var(--cur-pointer, pointer); border: none; border-radius: 12px; padding: 16px;
     background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 #b5820f, 0 8px 12px rgba(0,0,0,0.45);
     transition: transform 0.07s ease, filter 0.12s ease;
@@ -4222,7 +4222,7 @@
     margin-top: 10px; width: 100%; max-width: 300px;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 5px;
-    color: #06231f; text-transform: uppercase; cursor: pointer; border: none; border-radius: 12px; padding: 13px 16px;
+    color: #06231f; text-transform: uppercase; cursor: var(--cur-pointer, pointer); border: none; border-radius: 12px; padding: 13px 16px;
     background: linear-gradient(180deg, #7ff0d4, #35c9a6 55%, #17967a);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -4px 0 rgba(0,0,0,0.22), 0 5px 0 #0f7a63, 0 8px 12px rgba(0,0,0,0.45);
     transition: transform 0.07s ease, filter 0.12s ease;
@@ -4245,7 +4245,7 @@
   #menu-builds-btn {
     width: 100%; max-width: 300px; margin-bottom: 8px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
-    color: var(--c-purple); text-transform: uppercase; cursor: pointer; padding: 11px;
+    color: var(--c-purple); text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 11px;
     background: linear-gradient(180deg, #241a3d, rgba(20,14,34,0)); border: 1px solid var(--c-purple); border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease;
   }
@@ -4253,7 +4253,7 @@
   #menu-settings-btn {
     width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
-    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 11px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 11px;
     background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease;
   }
@@ -4261,7 +4261,7 @@
   #menu-fullscreen-btn {
     margin-top: 8px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
-    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 11px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 11px;
     background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease;
   }
@@ -4276,7 +4276,7 @@
   #menu-match3-btn {
     margin-top: 8px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 3px;
-    color: #ff7ad0; text-transform: uppercase; cursor: pointer; padding: 12px;
+    color: #ff7ad0; text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 12px;
     background: linear-gradient(180deg, #3a1030, rgba(30,10,26,0)); border: 1px solid #ff7ad0; border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease, filter 0.12s ease;
   }
@@ -4284,7 +4284,7 @@
   #menu-zen-btn {
     margin-top: 6px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 3px;
-    color: #7fe3c0; text-transform: uppercase; cursor: pointer; padding: 10px;
+    color: #7fe3c0; text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 10px;
     background: linear-gradient(180deg, #123028, rgba(10,26,22,0)); border: 1px solid #7fe3c0; border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease;
   }
@@ -4373,14 +4373,14 @@
   }
   .mode-tier-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; }
   .mode-tier-arrow {
-    width: 24px; height: 24px; border-radius: 50%; cursor: pointer; padding: 0;
+    width: 24px; height: 24px; border-radius: 50%; cursor: var(--cur-pointer, pointer); padding: 0;
     font-size: 17px; line-height: 1; color: var(--cream);
     background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16);
     display: flex; align-items: center; justify-content: center;
     transition: background 0.12s ease, opacity 0.12s ease;
   }
   .mode-tier-arrow:hover:not(:disabled) { background: rgba(255,255,255,0.18); }
-  .mode-tier-arrow:disabled { opacity: 0.22; cursor: default; }
+  .mode-tier-arrow:disabled { opacity: 0.22; cursor: var(--cur-default, default); }
   .mode-tier-pips { display: flex; gap: 7px; align-items: center; }
   .mode-tier-pip {
     width: 9px; height: 9px; border-radius: 50%;
@@ -4402,7 +4402,7 @@
   }
   .mode-card-play {
     width: 100%; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 4px;
-    color: #3a2a08; text-transform: uppercase; cursor: pointer; border: none; border-radius: 10px; padding: 12px;
+    color: #3a2a08; text-transform: uppercase; cursor: var(--cur-pointer, pointer); border: none; border-radius: 10px; padding: 12px;
     background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f;
     transition: transform 0.07s ease, filter 0.12s ease;
@@ -4411,7 +4411,7 @@
   .mode-card-play:active { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
   .mode-arrow {
-    flex: 0 0 auto; align-self: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    flex: 0 0 auto; align-self: center; width: 44px; height: 44px; border-radius: 50%; cursor: var(--cur-pointer, pointer);
     font-size: 26px; line-height: 1; color: var(--cream);
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
@@ -4420,7 +4420,7 @@
   .mode-arrow:hover { background: rgba(255,255,255,0.14); }
   #mode-back-btn {
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 3px;
-    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 10px 22px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 10px 22px;
     background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease;
   }
@@ -5003,7 +5003,7 @@
   .btn-discard:not(:disabled):active { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.28), 0 1px 0 #a9330f !important; }
   /* PLAY / DISCARD never gray out - they always read as live caps (r100) */
-  .btn-play:disabled, .btn-discard:disabled { opacity: 1 !important; cursor: pointer !important; }
+  .btn-play:disabled, .btn-discard:disabled { opacity: 1 !important; cursor: var(--cur-pointer, pointer) !important; }
   /* r170 - SWAP is teal, and reads as a cap like PLAY / DISCARD instead of a
      recessed readout. Deliberately left at ONE-id specificity: the reward grid
      repurposes this element as its SKIP button via #action-col #swap-indicator
@@ -5274,7 +5274,7 @@
      plain row (was 4) and the fan starts scrolling at 7 (was 9). Both numbers
      are MEASURED by fanTrickTray, so nothing else had to change. */
   #stage.landscape .trick-tray-chip {
-    position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
+    position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: var(--cur-pointer, pointer);
     /* r376: 73x75 -> 83x79. THE HEIGHT OF THE OBJECT IS DECIDED BY THE WIDTH,
        because the disc letterboxes at 20/19 - so a 73px-wide chip paints a
        69.4px disc however tall the chip is, and the tray's 79.35px of inner
@@ -5345,7 +5345,7 @@
   border-color: #ff3c4a !important;
   background: linear-gradient(160deg, #2a0d10, #170709) !important;
   animation: bossAlarmPulse 1.15s ease-in-out infinite;
-  cursor: pointer;
+  cursor: var(--cur-pointer, pointer);
 }
 #score-center.boss-alarm #score-total-num,
 #score-left.boss-alarm #goal-display {
@@ -5366,7 +5366,7 @@
   position: absolute; top: 6px; right: 8px; z-index: 4;
   width: 24px; height: 24px; line-height: 1; padding: 0;
   background: rgba(0,0,0,0.45); border: 1px solid #5a4a12; border-radius: 6px;
-  color: var(--cream-dim); font-size: 13px; cursor: pointer;
+  color: var(--cream-dim); font-size: 13px; cursor: var(--cur-pointer, pointer);
 }
 #boss-preamble .bp-x:hover { color: var(--phosphor); border-color: var(--phosphor); }
 #boss-preamble .bp-hint {
@@ -5463,7 +5463,7 @@
    A big coloured object flicking dark on every selection read as the Sleight
    switching off. The cursor still says it cannot join this hand; the object
    keeps its full paint. */
-.trick-card.sleight-card.unreachable { cursor: default; }
+.trick-card.sleight-card.unreachable { cursor: var(--cur-default, default); }
 /* Double-tapping a Sleight arms a swap, same as any card - but .card.swap-pending
    never matched (a grid Sleight is .trick-card, not .card) and the rarity rule
    below repainted the edge anyway, so the tile looked untouched and the only
@@ -5918,7 +5918,7 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   color: #3a2a05 !important;
   border: 1px solid #000 !important;
   box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 2px 0 #9a6f0c !important;
-  cursor: default; white-space: normal; text-align: center;
+  cursor: var(--cur-default, default); white-space: normal; text-align: center;
   font-family: 'Share Tech Mono', monospace !important;
 }
 #action-col #swap-indicator.shop-swapchip .srr-word { font-size: 9px; letter-spacing: 1px; line-height: 1; opacity: 0.8; }
@@ -5928,15 +5928,15 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    lose a button halfway through a shop. */
 #action-col #swap-indicator.shop-swapchip.srr-spent {
   background: linear-gradient(180deg, #6a6152, #4a443a) !important;
-  color: #cfc8bb !important; cursor: default; filter: none;
+  color: #cfc8bb !important; cursor: var(--cur-default, default); filter: none;
 }
 #action-col #swap-indicator.shop-swapchip.srr-spent .srr-left { color: #cfc8bb; }
 
 /* r405 - the shop's action column. SWAP is a real button now (select a tile or
    a row label, press it, tap a neighbour), and the discard slot is split in two
    so REROLL and LEAVE are both on screen at all times. */
-#action-col #swap-indicator.shop-swapchip { cursor: pointer; }
-#action-col #swap-indicator.shop-swapchip.srr-spent { cursor: not-allowed; }
+#action-col #swap-indicator.shop-swapchip { cursor: var(--cur-pointer, pointer); }
+#action-col #swap-indicator.shop-swapchip.srr-spent { cursor: var(--cur-no, not-allowed); }
 #action-col #swap-indicator.shop-swapchip.srr-lifted {
   outline: 2px solid #fff; outline-offset: -3px;
   animation: shopLiftPulse 0.9s ease-in-out infinite alternate;
@@ -6006,7 +6006,7 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
    is what it should always have been for a heading you are meant to read.
    Nothing routes a connected pick through it: a selection is either labels or
    items, never both (onShopGridClick). */
-.shop-row-label.srl-openable { pointer-events: auto; cursor: pointer; }
+.shop-row-label.srl-openable { pointer-events: auto; cursor: var(--cur-pointer, pointer); }
 .shop-row-label.srl-openable:hover { filter: brightness(1.12); }
 .shop-row-label .srl-own {
   position: absolute; top: 4px; right: 6px;
@@ -6038,7 +6038,7 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 }
 #shop-owned-panel .sop-close {
   background: none; border: none; color: var(--c-cyan, #16c8d8);
-  font-size: 14px; cursor: pointer; line-height: 1; padding: 0 2px;
+  font-size: 14px; cursor: var(--cur-pointer, pointer); line-height: 1; padding: 0 2px;
 }
 #shop-owned-panel .sop-list { overflow-y: auto; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 9px; }
 #shop-owned-panel .sop-row  { display: flex; gap: 10px; align-items: flex-start; }
@@ -6093,7 +6093,7 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 .rec-ent .kn-reveal-q { display: block; font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2px; color: rgba(217, 83, 79, 0.95); }
 .rec-ent .kn-reveal b { display: block; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #ffe9e6; }
 /* r310: the mode card's link into the handbook. */
-.mode-card-more { color: var(--mode-accent, var(--c-yellow)); text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.mode-card-more { color: var(--mode-accent, var(--c-yellow)); text-decoration: underline; cursor: var(--cur-pointer, pointer); white-space: nowrap; }
 
 
 /* ══ THE FLOW SESSION CLOCK'S BOSS MARK (r376) ════════════════════════════
@@ -6113,7 +6113,7 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
   width: 18px; height: 18px; padding: 0;
   border: 1px solid var(--c-magenta, #ff2f8e); border-radius: 4px;
   background: #1a0d16; color: var(--c-magenta, #ff2f8e);
-  font-size: 11px; line-height: 1; cursor: pointer;
+  font-size: 11px; line-height: 1; cursor: var(--cur-pointer, pointer);
   box-shadow: 0 0 7px rgba(255,47,142,0.45);
   z-index: 4;
 }

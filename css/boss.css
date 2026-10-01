@@ -146,7 +146,7 @@
   color: var(--gold); border-top: 1px solid rgba(255,120,120,0.25); padding-top: 7px; margin-top: 2px;
 }
 #boss-preamble .bp-go {
-  margin-top: 6px; cursor: pointer;
+  margin-top: 6px; cursor: var(--cur-pointer, pointer);
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 3px;
   padding: 9px 24px; border-radius: 5px; color: #1a0606;
   background: linear-gradient(180deg, #ff8a8a, #d63a3a);

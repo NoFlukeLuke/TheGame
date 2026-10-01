@@ -78,14 +78,14 @@
 #entity-tip .et-actions { display:flex; gap:6px; margin-top:9px; padding-top:8px;
   border-top:1px solid rgba(255,255,255,.09); }
 #entity-tip .et-act {
-  flex:1 1 0; min-width:0; cursor:pointer;
+  flex:1 1 0; min-width:0; cursor: var(--cur-pointer, pointer);
   font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; letter-spacing:.8px;
   text-transform:uppercase; padding:9px 6px; border-radius:6px;
   border:1.5px solid var(--rc,#35d59b); background:rgba(255,255,255,.05); color:var(--rc,#35d59b);
   transition:background .12s, color .12s, opacity .12s;
 }
 #entity-tip .et-act:hover:not(:disabled) { background:var(--rc,#35d59b); color:#0a0906; }
-#entity-tip .et-act:disabled { opacity:.35; cursor:not-allowed; }
+#entity-tip .et-act:disabled { opacity:.35; cursor: var(--cur-no, not-allowed); }
 /* the primary action (add to cart / confirm) reads solid */
 #entity-tip .et-act.primary { background:var(--rc,#35d59b); color:#0a0906; }
 #entity-tip .et-act.primary:hover:not(:disabled) { filter:brightness(1.15); }
@@ -124,7 +124,7 @@
 #entity-tip .et-more-slot { position:absolute; top:6px; right:7px; }
 #entity-tip .et-card { position:relative; }
 .kw-more {
-  pointer-events:auto; cursor:pointer; display:inline-flex; align-items:center; gap:2px;
+  pointer-events:auto; cursor: var(--cur-pointer, pointer); display:inline-flex; align-items:center; gap:2px;
   font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; line-height:1;
   padding:3px 5px; border-radius:5px; min-height:18px;
   border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.06); color:#c9bfa5;

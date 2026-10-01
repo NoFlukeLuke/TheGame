@@ -1099,7 +1099,7 @@ function devFilterKnacks(query) {
     return `
       <div class="dev-trick-item">
         <span class="dev-trick-name">${t.emoji} ${t.name}${owned ? ' ✓' : ''}</span>
-        <button class="dev-trick-add" onclick="devAddKnack('${t.id}')" ${owned ? 'disabled style="opacity:0.5;cursor:default;"' : ''}>
+        <button class="dev-trick-add" onclick="devAddKnack('${t.id}')" ${owned ? 'disabled style="opacity:0.5;cursor: var(--cur-default, default);"' : ''}>
           ${owned ? 'Owned' : '+ Add'}
         </button>
       </div>

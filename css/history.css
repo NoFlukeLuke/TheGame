@@ -41,7 +41,7 @@
   background: var(--c-mint, #6ee7c0); box-shadow: 0 0 8px var(--c-mint, #6ee7c0);
 }
 #history-close {
-  width: 30px; height: 30px; line-height: 1; font-size: 18px; cursor: pointer;
+  width: 30px; height: 30px; line-height: 1; font-size: 18px; cursor: var(--cur-pointer, pointer);
   color: var(--cream, #f4ecd6); background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border, #2a2418); border-radius: 7px;
 }
@@ -111,7 +111,7 @@
 }
 .hist-clear {
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px;
-  text-transform: uppercase; cursor: pointer; padding: 8px 12px; border-radius: 7px;
+  text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 8px 12px; border-radius: 7px;
   color: var(--red, #d4574e); background: transparent; border: 1px solid var(--red, #d4574e);
 }
 .hist-clear:hover { background: rgba(212, 87, 78, 0.12); }
@@ -120,7 +120,7 @@
 #menu-history-btn {
   width: 100%; max-width: 300px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
-  color: var(--c-cyan, #7fd4dd); text-transform: uppercase; cursor: pointer; padding: 11px;
+  color: var(--c-cyan, #7fd4dd); text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 11px;
   background: linear-gradient(180deg, #1d3a3e, rgba(16, 36, 39, 0));
   border: 1px solid var(--c-cyan, #7fd4dd); border-radius: 9px;
   transition: background 0.12s ease, color 0.12s ease;

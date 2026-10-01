@@ -11,7 +11,7 @@
   width: 16px; height: 16px; padding: 0; line-height: 14px;
   font-size: 8px; text-align: center;
   color: var(--gold-dim, #b8a468); background: rgba(10, 8, 5, 0.6);
-  border: 1px solid #3a3530; border-radius: 3px; cursor: pointer;
+  border: 1px solid #3a3530; border-radius: 3px; cursor: var(--cur-pointer, pointer);
 }
 #tray-view-btn:hover { color: #f4ecd6; border-color: #6a604e; }
 #tray-view-btn.on { color: #b9a0ff; border-color: #6a4fae; }
@@ -47,7 +47,7 @@
   flex: 0 0 auto; width: 22px; height: 15px; padding: 0; line-height: 13px;
   font-size: 9px; text-align: center;
   color: var(--gold-dim, #b8a468); background: rgba(10, 8, 5, 0.6);
-  border: 1px solid #3a3530; border-radius: 3px; cursor: pointer;
+  border: 1px solid #3a3530; border-radius: 3px; cursor: var(--cur-pointer, pointer);
 }
 #focus-queue-btn:hover { color: #f4ecd6; border-color: #6a604e; }
 #focus-queue-btn.on { color: #b9a0ff; border-color: #6a4fae; }
@@ -69,7 +69,7 @@
   --card-w: 40px; --card-h: 53px;
 }
 .fq-slot.fq-next { outline: 1px solid #d9c66a; outline-offset: 1px; border-radius: 5px; }
-.fq-slot .fq-card { pointer-events: none; cursor: default; }
+.fq-slot .fq-card { pointer-events: none; cursor: var(--cur-default, default); }
 .fq-empty {
   font: 500 8px 'Share Tech Mono', monospace; letter-spacing: 1px;
   color: rgba(244, 236, 214, 0.35); align-self: center; margin: auto;

@@ -293,3 +293,22 @@ patience-branch sections at the end of HISTORY.md.
 
 ## r423 - Dealer's Choice (`js/dealers-choice.js` + `css/dealers-choice.css`)
 A rare `double_tap` Sleight (3 charges). Double-tap deals three held TEMP cards (ranks from the board, random suit, 75% buffed via `DEALER_BUFFS`), then the Sleight leaves the grid. Tap a card or Sleight (`dealerPlaceAt`): it is discarded (a Sleight cycles with its charges) and the top held card takes its cell - swap time and swap hooks, no stock. DISCARD (`dealerDiscardTop`, intercepted in `doDiscard`) throws the top card away - one card's discard time, no stock, not counted as a discard. While holding, taps place rather than select, drags do not swipe-select, a tap mid-fall is held until the board settles, and the stack closes when empty or on `roundEnded`. The stack is body-level: on a mouse the top card hangs from the cursor (its top-right corner just above-right of the pointer, a stiff sub-stepped spring) at 70% of a board card, the rest trail on looser springs with a lean, and all drift at rest; on touch it docks in the hand-preview tray, current card 1.2x, and follows a dragging finger.
+
+## r430 - step 1 of the card-animation plan: cursor, tray words, knack rings
+
+The owner approved a 9-step plan (cursor/labels -> printer toasts -> an Aesthetics
+"Card animations" tab with a mock grid -> swap, fly-to-preview, discard, cut, buff,
+boss, select/idle with THREE options each -> tray reactions + a line-count setting
+up to 20 -> a perf pass). This is step 1.
+
+- **Custom cursor (`css/cursor.css`).** Three cursor IMAGES (SVG data URIs, hotspot
+  3,2): cream arrow, mint for clickables, grey with a red no-entry mark. Drawn by
+  the browser, so they never lag; never replace them with a div that chases the
+  mouse. **Every `cursor:` in css/, index.html and js/ reads
+  `var(--cur-pointer|--cur-default|--cur-no, <fallback>)`** - write new ones the
+  same way. Settings -> Display -> Custom cursor sets `html.os-cursor`, which
+  hands all three back to the OS.
+- **The trays carry no category words** (`css/tray-fx.css`): the landscape
+  TRICKS/KNACKS watermarks, `#tray-title-word` and portrait's knack label are off.
+- **The landscape knack strip takes the full 3-line `--tray-rings`.**
+- The Survival/Flow pick's Peek tile reads PEEK / VIEW GRID.

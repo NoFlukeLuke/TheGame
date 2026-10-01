@@ -60,6 +60,8 @@
 <link rel="stylesheet" href="css/picker.css">
 <link rel="stylesheet" href="css/queue-views.css">
 <link rel="stylesheet" href="css/menu-size.css">
+<link rel="stylesheet" href="css/tray-fx.css">
+<link rel="stylesheet" href="css/cursor.css">
 </head>
 <body class="office-pending">
 <div id="knack-tooltip" role="tooltip"></div>
@@ -195,7 +197,7 @@
       so climbing to a bigger hand is a real decision. The Old Tricks knack pools a
       family: every hand in it reads the family's best bonus instead of its own.
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
       Natural scaling on
     </label>
@@ -233,7 +235,7 @@
       the extra cards outside the hand.
       Turning this OFF drops the flush overlay only - the rank partition still runs.
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-layered-enabled" type="checkbox" onchange="devSetLayeredHands(this.checked)" style="accent-color:var(--gold);">
       Flush overlay on
     </label>
@@ -390,7 +392,7 @@
       on the same beat as the clock's tick. Stagger / row is what makes it fall; stagger / col
       only leans the wavefront (0 = dead flat). Full tuner with a live grid: <b>heartbeat-preview.html</b>.
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-hb-enabled" type="checkbox" onchange="setHbEnabled(this.checked)" style="accent-color:var(--gold);">
       Heartbeat on
     </label>
@@ -425,7 +427,7 @@
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       The CRT flick between screens (play &harr; Mart). Full tuner: <b>channel-change-preview.html</b>.
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-cc-enabled" type="checkbox" onchange="setCcEnabled(this.checked)" style="accent-color:var(--gold);">
       Channel change on
     </label>
@@ -461,7 +463,7 @@
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       Records start as FILE MISSING and open as you acquire entities in a run. Reveal-all lets you browse the real thing.
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-reveal-all" type="checkbox" onchange="devSetRevealAll(this.checked)" style="accent-color:var(--gold);">
       Reveal every record (ignore discovery)
     </label>
@@ -544,7 +546,7 @@
     <div class="dev-section-title">Aesthetics</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Infinity tray: extra depth lines
-      <select id="dev-tray-depth" onchange="setTrayDepth(+this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+      <select id="dev-tray-depth" onchange="setTrayDepth(+this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);">
         <option value="0">0 (r388)</option><option value="1">+1</option><option value="2">+2</option>
         <option value="3">+3 (default)</option><option value="4">+4</option>
       </select>
@@ -554,7 +556,7 @@
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">How a fresh board arrives at the start of a round. The cascade dealt the bottom row first and took 1.45s to finish.</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Cards deal
-      <select id="dev-deal-style" onchange="setDealStyle(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+      <select id="dev-deal-style" onchange="setDealStyle(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);">
         <option value="together">all at once (default)</option>
         <option value="cascade">row by row (pre-r394)</option>
       </select>
@@ -585,13 +587,13 @@
   </div>
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">HUD</div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
       Show card counter (deck audit)
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
       Interrupt a scoring hand by
-      <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+      <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);">
         <option value="ff">Fast-forward the old hand (default)</option>
         <option value="cut">Cut - instant</option>
         <option value="resolve">Resolve - quick pop</option>
@@ -603,7 +605,7 @@
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Display</div>
     <button class="dev-btn" id="dev-fullscreen-btn" onclick="toggleFullscreen(); devSyncFullscreen();">Enter Fullscreen</button>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:8px;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);margin-top:8px;">
       <input id="dev-autofs-toggle" type="checkbox" onchange="setAutoFullscreenPref(this.checked)" style="accent-color:var(--gold);">
       Auto-fullscreen when a run starts
     </label>
@@ -641,7 +643,7 @@
   <div class="dev-section" data-group="flow prob">
     <div class="dev-section-title">Flow multi-reward chain</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear pays 1-5 reward screens. TWO flat rolls: how many, then what each one is - each slot rolled on its own, so a kind's share says nothing about where it lands and a chain can repeat one. Luck leans the count upward.</div>
-    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-flowr-on" type="checkbox" onchange="flowrDevSet('on', this.checked)" style="accent-color:var(--gold);"> Enabled
     </label>
     <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-counts">
@@ -665,7 +667,7 @@
   <div class="dev-section" data-group="map">
     <div class="dev-section-title">Map Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch: move out from ANY tile you have already taken, not only the one you are standing on.</div>
-    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-map-freebranch" type="checkbox" onchange="setMapFreeBranch(this.checked)" style="accent-color:var(--gold);">
       Branch from any visited tile
     </label>
@@ -674,28 +676,28 @@
     <div class="dev-section-title">Match-3 Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types - turn one off to remove it from detection entirely.</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
         <input id="dev-match3-type-flush" type="checkbox" onchange="this.checked = setMatch3Type('flush', this.checked)" style="accent-color:var(--gold);">
         Flushes
       </label>
-      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
         <input id="dev-match3-type-run" type="checkbox" onchange="this.checked = setMatch3Type('run', this.checked)" style="accent-color:var(--gold);">
         Runs
       </label>
-      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
         <input id="dev-match3-type-set" type="checkbox" onchange="this.checked = setMatch3Type('set', this.checked)" style="accent-color:var(--gold);">
         Sets
       </label>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-match3-infinite-deck" type="checkbox" onchange="setMatch3InfiniteDeck(this.checked)" style="accent-color:var(--gold);">
       Infinite deck (scored cards requeue to the back)
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);margin-top:6px;">
       <input id="dev-match3-infinite-mode" type="checkbox" onchange="setMatch3InfiniteMode(this.checked)" style="accent-color:var(--gold);">
       Infinite mode (no clock, no goal - sandbox)
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);margin-top:6px;">
       <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
       Select matches for 1s before playing (interruptible)
     </label>
@@ -1154,7 +1156,7 @@
 </div>
 
 <!-- DEV PANEL -->
-<div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
+<div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor: var(--cur-pointer, pointer);">🛠</div>
 
 <!-- Preview-window scoring dance - renders INTO the dedicated hand-preview slot (#selected-cards) -->
 

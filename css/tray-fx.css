@@ -1,0 +1,17 @@
+/* ── Tray FX (r409) ─────────────────────────────────────────────────────────
+   Step 1 of the card-animation / tray pass. Later steps (tray reactions, the
+   line-count setting) land here too. */
+
+/* The trays carry no category words (owner, r409). The objects in them say
+   what they are; the Trick tray keeps only its n/10 count. Covers the
+   landscape watermarks (incl. the Sleight-queue one) and portrait's corner
+   labels. */
+#stage #trick-tray-area::before,
+#stage #knack-carousel-wrap::before { content: none !important; }
+#tray-title-word { display: none !important; }
+#stage:not(.landscape) #knack-carousel-wrap .panel-title { display: none !important; }
+
+/* The landscape knack strip gets the full three-line infinity mirror (was the
+   one-line small set). Inset shadows paint below the chips, so the rings read
+   in the gaps between them and at the ends. */
+#stage.landscape #knack-carousel-wrap { --tray-set: var(--tray-rings) !important; }

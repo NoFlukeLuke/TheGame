@@ -374,7 +374,7 @@ function survivalPickOverlay() {
 function survivalPickActions() {
   return [
     pickRerollAction(() => survivalReroll()),
-    { icon: '👁', label: 'Peek', sub: 'watch', onClick: () => survivalTogglePeek() },
+    { icon: '👁', label: 'Peek', sub: 'view grid', onClick: () => survivalTogglePeek() },
     { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
     { icon: '🛒', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} ◆`, cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => survivalOpenShop() },

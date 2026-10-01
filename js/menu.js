@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r429 · Every tray Trick tilts, the newest too";
+const BUILD = "2026-10-01 · r430 · Custom cursor, trays lose their words, knack strip rings, Peek reads view grid";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

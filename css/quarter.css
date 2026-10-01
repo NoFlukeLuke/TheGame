@@ -10,7 +10,7 @@
   background: rgba(6, 5, 10, 0.86);
   opacity: 0; visibility: hidden;
   transition: opacity 0.18s ease, visibility 0.18s ease;
-  cursor: pointer;
+  cursor: var(--cur-pointer, pointer);
 }
 #quarter-card.show { opacity: 1; visibility: visible; }
 

@@ -62,7 +62,7 @@
 }
 #tip-eyebrow { color: var(--c-mint, #35d59b); opacity: 0.85; }
 #tip-x {
-  padding: 0 2px; background: none; border: none; cursor: pointer;
+  padding: 0 2px; background: none; border: none; cursor: var(--cur-pointer, pointer);
   font-size: 11px; line-height: 1;
   color: rgba(244, 236, 214, 0.35);
 }
@@ -86,7 +86,7 @@
 .tip-btn {
   font-family: 'Orbitron', sans-serif; font-weight: 700;
   font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase;
-  padding: 8px 12px; min-height: 30px; border-radius: 3px; cursor: pointer;
+  padding: 8px 12px; min-height: 30px; border-radius: 3px; cursor: var(--cur-pointer, pointer);
   color: #06110f;
   border: 1px solid var(--c-mint, #35d59b);
   background: linear-gradient(180deg, #6fe6b8, #35b981);
@@ -103,7 +103,7 @@
   display: block; margin-top: 8px; padding: 0;
   font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px;
   text-transform: uppercase;
-  background: none; border: none; cursor: pointer;
+  background: none; border: none; cursor: var(--cur-pointer, pointer);
   color: rgba(244, 236, 214, 0.26);
 }
 #tip-off:hover { color: rgba(244, 236, 214, 0.6); text-decoration: underline; }

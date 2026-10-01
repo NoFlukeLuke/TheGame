@@ -2012,8 +2012,8 @@ function showNextPositionChooser() {
       const current = trick._posAxis === axis && trick._posIndex === i; // provisional default
       b.disabled = blocked;
       b.style.cssText = `min-width:42px;padding:8px 10px;border-radius:8px;font-size:13px;`
-        + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor:not-allowed;'
-          : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor:pointer;`);
+        + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor: var(--cur-no, not-allowed);'
+          : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor: var(--cur-pointer, pointer);`);
       // markPositionAxisTaken: the player's own pick is what the run alternates
       // off, not the provisional default assignPositionMark already committed.
       if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); markPositionAxisTaken(axis); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis === 'row' ? 'row' : 'column'} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
