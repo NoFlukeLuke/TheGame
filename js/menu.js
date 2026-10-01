@@ -1,5 +1,4 @@
-const BUILD = "2026-10-01 · r424 · One Modes dev tab";
-
+const BUILD = "2026-10-01 · r425 · One Modes dev tab"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

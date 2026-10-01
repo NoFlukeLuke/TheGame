@@ -414,7 +414,16 @@ document.getElementById('btn-play').addEventListener('click', () => {
   cancelAutoSubmit();
   playHand();
 });
-document.getElementById('btn-discard').addEventListener('click', doDiscard);
+document.getElementById('btn-discard').addEventListener('click', () => {
+  // Drag to play (r409): DISCARD with nothing selected arms (or disarms) the
+  // next drag to discard. With a selection it discards as it always has.
+  if (selected.length === 0 && typeof dragControlsLive === 'function' && dragControlsLive()) {
+    setDragDiscardArmed(!dragDiscardArmed);
+    showMessage(dragDiscardArmed ? 'Drag to discard' : 'Discard cancelled', 'var(--cream-dim)');
+    return;
+  }
+  doDiscard();
+});
 
 // ══════════════════════════════════════════════
 
