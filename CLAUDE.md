@@ -11766,3 +11766,12 @@ Records, Settings, the handbook and History are one FIXED box: `--menu-w` x `--m
 - **The deck editor no longer shows the winning hand** (`flowrDeckClearGoalHand`): its cards were still in gridData, so you could buff cards that were about to leave. They go to the played pile, their cells refill, and `svGoalCells` is emptied so the keep path has nothing left to remove. Deck audit 56/56.
 - **Luck bug: a pool with no common tier drew flat 71% of the time.** `pickEntityByRarity` rolled common, found none at or below it and fell to a flat pick, so Flow's rare-or-better Tricks showed legendaries about 1.6x too often (~8% vs 5%). Tiers below the lowest present tier are now dropped from the roll. Luck itself is gentle (legendary 1.5% -> ~3% at 100).
 - **Board pattern** (Settings > Display): the hypno pattern painted only inside the board, as one turning gradient on `#grid::before`. No measurable frame cost. The full background still defaults off.
+
+## r409 - Dealer's Choice (`js/dealers-choice.js` + `css/dealers-choice.css`)
+
+A rare `double_tap` Sleight, 3 charges. Double-tap deals three held cards: ranks from the ranks on the board, random suit, 75% carry a buff (`DEALER_BUFFS`). The Sleight then leaves the grid (`discardSleightAfterUse`).
+- **Tap a card or Sleight** (`dealerPlaceAt`): it is discarded (a Sleight cycles with its charges) and the top held card takes its cell. No swap stock; bills a swap's time and runs the swap hooks (`swapsUsedRound`, `bossOnInteract('swap')`, Cull, Whetstone, Jury-Rig, card-state touch).
+- **DISCARD** (`dealerDiscardTop`, intercepted at the top of `doDiscard`): throws the top card away. No discard stock; bills one card's discard time. Not counted as a discard.
+- **Held cards are TEMP cards** (r278), so they last this level and the deck audit is untouched. The stack closes when empty or when `roundEnded` goes true.
+- While cards are held, taps place rather than select, a drag does not swipe-select, and a tap during a fall is held and placed when the board settles.
+- **The stack is body-level** (raw viewport px). On a mouse it trails the cursor on springs (each card further back is looser), leans with velocity, and drifts gently at rest. On touch it docks in the hand-preview tray (right half of the portrait strip, `#selected-cards` in landscape) with the current card at 1.2x, and follows a finger only while dragging; releasing a drag over a card places it there.

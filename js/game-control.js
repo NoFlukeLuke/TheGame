@@ -522,6 +522,7 @@ function startGame() {
   sleightAmplifierMult = 0;
   _dabiSwapNext        = false;
   magnetArmed          = null;
+  if (typeof dealerClose === 'function') dealerClose();
   _comboAnnounced      = new Set();
   _comboHinted         = new Set();
   sleightFreeSwapPending = false;

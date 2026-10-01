@@ -13,6 +13,8 @@ function doDiscard() {
     refuse('Select a row label first'); return;
   }
   if (rewardOnGrid) { clearRewardSelection(); return; }
+  // Dealer's Choice: while cards are held, DISCARD throws the top one away.
+  if (typeof dealerActive === 'function' && dealerActive()) { dealerDiscardTop(); return; }
   // roundEnded FREEZES INPUT for a round that is over, and the Flow deck editor
   // runs inside exactly that window: the goal hand set the flag and only the
   // level-up at the END of the reward chain clears it again. The editor is a

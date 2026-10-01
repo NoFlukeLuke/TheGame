@@ -352,7 +352,7 @@ function render() {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.
     document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
-    document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
+    document.getElementById('btn-discard').disabled = (selected.length === 0 && !(typeof dealerActive === 'function' && dealerActive())) || (animating && !falling);
   }
   // Both readouts are guarded for the same reason (r237 found the second one):
   // a takeover screen rewrites this chrome, so neither element is in the DOM

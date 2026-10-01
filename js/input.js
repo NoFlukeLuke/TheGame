@@ -315,6 +315,8 @@ function onCardTap(r, c) {
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
+  // ── Dealer's Choice: holding cards - a tap swaps the top one in ──
+  if (typeof dealerActive === 'function' && dealerActive()) { dealerPlaceAt(r, c); return; }
   // ── Magnet: armed and waiting for a target-rank tap ──
   if (magnetArmed) {
     // Tapping Magnet itself (or its cell) cancels the arming.
@@ -406,6 +408,7 @@ function onCardTap(r, c) {
       }
       // Magnet: don't fire yet - arm it and wait for the player to tap a target card.
       // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
+      if (jdef.id === 'dealers_choice') { dealerOpen(jcard, r, c); return; }
       if (jdef.id === 'magnet') {
         magnetArmed = { r, c, card: jcard };
         showMessage('Magnet armed - tap a card to pull its rank', '#8fd0ff');
@@ -516,6 +519,8 @@ gridEl2.addEventListener('pointermove', e => {
   // blocked keeps `ps.moved` false and a small drag still reads as the tap it
   // was meant to be. pointerup carries no guard of its own, so the tap lands.
   if (animating || roundEnded || !gridEl2._pointerStart) return;
+  // Dealer's Choice: a drag carries the held cards, it does not select.
+  if (typeof dealerActive === 'function' && dealerActive()) return;
   const cell = cardAt(document.elementFromPoint(e.clientX, e.clientY));
   if (!cell) return;
   const [r, c] = cell;
@@ -585,6 +590,14 @@ gridEl2.addEventListener('pointerup', e => {
   if (ps && ps.rightBtn) {
     isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
     if (ps.moved && selected.length > 0) { cancelAutoSubmit(); doDiscard(); }
+    return;
+  }
+  // Dealer's Choice: a finger drag released over a card places the held card
+  // there; a plain tap lands on the cell it started on.
+  if (ps && typeof dealerActive === 'function' && dealerActive()) {
+    const _dc = cardAt(document.elementFromPoint(e.clientX, e.clientY)) || [ps.r, ps.c];
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    onCardTap(_dc[0], _dc[1]);
     return;
   }
   if (ps && !ps.moved) {

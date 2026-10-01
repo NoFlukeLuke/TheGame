@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r408 · Tray turns, full-tray refusal, luck fix";
+const BUILD = "2026-10-01 · r409 · Dealer's Choice sleight";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
