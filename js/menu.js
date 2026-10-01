@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r409 · Poker Squares 5x5: the patience redesign";
+const BUILD = "2026-10-01 · r410 · Patience 5x5 audit: entrance fix, NEXT debounce, scorer hardening";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

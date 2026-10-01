@@ -174,8 +174,12 @@ function sqpScoreLine(i) {
   }
   if (!cands.length) return none;
   cands.sort((a, b) => b.est - a.est);
+  // Top 4 by the cheap estimate, priced by the REAL calcScore. The estimate
+  // (table worth + raw card pips) cannot see tricks, so a heavily buffed
+  // off-name candidate could rank low; four covers every cross-name upset a
+  // line of five cards can hold, and the whole board still prices in ~2ms.
   let best = null;
-  for (const cd of cands.slice(0, 3)) {
+  for (const cd of cands.slice(0, 4)) {
     let total = 0;
     try { total = (typeof calcScore === 'function') ? calcScore(cd.name, cd.cells) : 0; } catch (e) { total = 0; }
     const f = { i, name: cd.name, cells: cd.cells, cards: cd.cells.map(([r, c]) => gridData[r][c]),
@@ -248,7 +252,10 @@ function sqpServeDeal() {
   sqpDealNo = n;
   const count = n > SQP_DEALS ? SQP_FINAL_CARDS : 3;
   for (let k = 0; k < count; k++) {
-    sqHand.push({ id: 'sqp' + (++sqPieceId), bornDeal: n, cells: [{ dr: 0, dc: 0, card: sqDraw() }] });
+    // `fresh` marks the cards of THIS deal for the tray's deal-in animation and
+    // is cleared by the first render - without it every repaint (each placement,
+    // each resize) replayed the entrance on cards already sitting there.
+    sqHand.push({ id: 'sqp' + (++sqPieceId), bornDeal: n, fresh: true, cells: [{ dr: 0, dc: 0, card: sqDraw() }] });
   }
   sqpDealClock = SQP_DEAL_SECS; sqpPlacedThisDeal = 0;
   sqTentative = null; sqSelected = null;
@@ -257,9 +264,15 @@ function sqpServeDeal() {
   sqRenderAll();
 }
 
-// NEXT DEAL / SCORE - the play button, and the 30s timeout.
+// NEXT DEAL / SCORE - the play button, and the 30s timeout. Debounced: a
+// double-tap must not skip a whole deal (serving is synchronous, so the second
+// tap of one gesture lands on a live 'place' phase and would advance again).
+let _sqpNextAt = 0;
 function sqpNextPressed() {
   if (!sqPatActive() || sqPhase !== 'place' || sqDragging || sqpGridOver) return;
+  const now = Date.now();
+  if (now - _sqpNextAt < 350) return;
+  _sqpNextAt = now;
   // QUICK HANDS: moving on with half the clock left, having placed something.
   if (sqpPlacedThisDeal > 0 && sqpDealClock >= SQP_DEAL_SECS / 2) sqpFocus(SQP_F_SPEED);
   if (sqpDealNo > SQP_DEALS) { sqpFinishGrid(); return; }       // the final deal → SCORE
@@ -466,13 +479,18 @@ function sqpRenderHand() {
     return;
   }
   const frag = document.createDocumentFragment();
+  let freshIdx = 0;
   sqHand.forEach(p => {
     const card = p.cells[0].card;
     const stale = (p.bornDeal || 0) < sqpDealNo;
     const el = document.createElement('div');
     el.className = 'sq-tile sqp-card' + (stale ? ' sqp-stale' : '')
+      + (p.fresh ? ' sqp-in' : '')
       + (sqSelected === p ? ' sel' : '')
       + ((sqTentative && sqTentative.piece === p) || sqDragging === p ? ' placing' : '');
+    // The stagger is written inline off the FRESH index, not nth-child - the
+    // holdover cards render first and must not eat the new cards' delays.
+    if (p.fresh) { el.style.animationDelay = (freshIdx++ * 0.05) + 's'; p.fresh = false; }
     el.dataset.pid = p.id;
     el.innerHTML = sqpFaceHTML(card) + (stale ? '<span class="sqp-last">LAST CALL</span>' : '');
     frag.appendChild(el);

@@ -1239,8 +1239,10 @@ function sqLineTipHTML(i) {
   const faces = cards.map(cd => `<i class="${sqSuitCls(cd.suit)}">${cd.rank}${cd.suit}</i>`).join('');
   return `<div class="sqt-h">${sqLineName(i)}</div>`
        + `<div class="sqt-hand">${cards.length ? (f.name || 'no hand yet') : 'nothing here yet'}</div>`
-       + (cards.length ? `<div class="sqt-faces">${faces}</div>`
-          + `<div class="sqt-sum">${sqLineSum(f)}</div>`
+       + (cards.length ? `<div class="sqt-faces">${faces}</div>` : '')
+       // "0 x 1 = 0" under a line with no hand is arithmetic about nothing;
+       // the sum only prints once there is a hand to price.
+       + (cards.length && f.name ? `<div class="sqt-sum">${sqLineSum(f)}</div>`
           + `<div class="sqt-tot">${Math.round(f.total).toLocaleString()}</div>` : '');
 }
 // A tap in the board's margin, on a phone, asks about the line it is beside.

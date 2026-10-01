@@ -11856,3 +11856,32 @@ every run (the 404s are the repo's absent mp3 assets).
 fire here with main-game copy (the Focus tip is near-right, the rest are gated by
 board predicates that rarely hold here); the marked-line tricks are as strong as
 r375 already noted; `SQP_GRIDS` is the constant to move if 2 grids reads short.
+
+## r410 - the patience 5x5 audited
+
+A test battery over r409 (scratchpad Playwright, 1440x820): **14 planted-board
+scorer cases all pass** (ace-low and ace-high runs, the owner's 3-4-3-7-3 set,
+quads+junk, two pair vs full house, suited run naming Run not Flush, broadway,
+empty/2-card lines returning nothing), **the whole board prices in ~2ms and a
+full render in ~5ms with 5 tricks**, so there is nothing to optimize there.
+Pause freezes both clocks; tap-tap placement, drag-to-occupied return, the
+margin line tip, the 30s auto-deal and the hard clock firing DURING an open
+pick popup (orphaned callback serves nothing) all verified clean, 0 page errors.
+
+Three real findings, fixed:
+- **The tray's deal-in replayed on EVERY render** - the entrance animation sat
+  on the bare `.sqp-card` class and sqpRenderHand rebuilds the tray wholesale,
+  so each placement made the remaining cards re-enter. A `fresh` flag on the
+  piece (set at serve, cleared by the first render) gates `.sqp-in`, and the
+  stagger is an inline delay off the FRESH index - nth-child delays would let
+  holdover cards eat the new cards' timing. Verified both ways: a fresh deal
+  animates 3/3, a re-render 0/3.
+- **A double-tap on NEXT DEAL skipped a deal** - serving is synchronous, so the
+  second tap of one gesture landed on a live 'place' phase and advanced again.
+  350ms debounce in sqpNextPressed; 4 clicks in 160ms now advance exactly one.
+- **The scorer's calcScore cut went top-3 -> top-4 of the cheap estimate** -
+  the estimate cannot see tricks, and four covers every cross-name upset a
+  5-card line can hold at no measurable cost.
+And one polish: the line tip no longer prints "0 x 1 = 0" under a line with no
+hand - the sum only appears once there is a hand to price (dailies unaffected:
+their lines always carry a name).
