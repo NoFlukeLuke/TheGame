@@ -70,13 +70,6 @@ function sfxNoSwaps() {
   playTone({ freq: 160, type: 'square', gain: 0.10, attack: 0.002, decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.1, delay: 0.12 });
 }
 
-function popSwapIndicator() {
-  const el = document.getElementById('swap-indicator');
-  if (!el) return;
-  el.classList.remove('swap-pop');
-  void el.offsetWidth;
-  el.classList.add('swap-pop');
-}
 
 function sfxFlipShuffle() {
   // Rapid card flip/shuffle - quick staggered noise bursts at varying pitches

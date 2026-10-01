@@ -2,7 +2,7 @@
 // GOAL TUNING (r197)  -  one chokepoint for every round goal
 // ══════════════════════════════════════════════
 // The round goal was computed in four places (level-up.js, game-control.js,
-// dominoes-mode.js, and survival.js's own curve), each spelling out
+// and survival.js's own curve), each spelling out
 // `BASE_GOAL * GOAL_SCALE^(level-1)` with its own rounding. Retuning the
 // difficulty therefore meant an edit, a reload and a fresh run.
 //

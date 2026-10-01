@@ -491,7 +491,6 @@ function flowrWhenBoardStill(cb) {
 function flowrShowStep() {
   if (!flowrQueue) return;
   animating = false;
-  if (typeof trickSelectionPhase !== 'undefined') trickSelectionPhase = false;
   const kind = flowrQueue[flowrIdx];
   flowrBossLuckOn = flowrBossChain && FLOWR_PICKY_KINDS.has(kind);
   flowrRenderStack();
@@ -1538,7 +1537,7 @@ function flowrDrawOps(n, list) {
   return out;
 }
 const FLOWR_DUAL_MAX = 4;
-const FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
+let FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
 function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MAX; }
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;

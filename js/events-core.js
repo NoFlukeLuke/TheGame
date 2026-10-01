@@ -55,10 +55,10 @@ const EVENT_REQUIRES = {
   overtime:     () => (typeof crunchActive === 'function') && crunchActive(),
   // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
   crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
-  rehearsal:    () => trickTrayMode && (trickTray || []).length > 0,
-  reassignment: () => trickTrayMode && (trickTray || []).length > 0,
+  rehearsal:    () => (trickTray || []).length > 0,
+  reassignment: () => (trickTray || []).length > 0,
   // Tray ORDER is the whole screen, so one Trick is not a decision.
-  shift_change: () => trickTrayMode && (trickTray || []).length >= 2,
+  shift_change: () => (trickTray || []).length >= 2,
   // Needs something improvable to stake or to spin between.
   the_draw:     () => evImprovables().length >= 2,
   the_payline:  () => evImprovables().length >= 2,

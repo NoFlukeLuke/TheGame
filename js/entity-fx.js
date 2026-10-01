@@ -74,7 +74,7 @@ const CARD_MARK_META = {
 // lines are drawn side by side across the card's width rather than on top of
 // each other, so a doubled line still reads as two things.
 // Teardown on its own, so the screens that take the #grid away from the play
-// board (the reward grid, a dominoes board) can drop the lines without the draw
+// board (the reward grid) can drop the lines without the draw
 // path having to know about them. Called from the top of render().
 function clearLineMarkers() {
   const gridEl = document.getElementById('grid');

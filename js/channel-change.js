@@ -75,7 +75,7 @@ const ccOvershoot = p => { const s = 1.24; return 1 + (--p) * p * ((s + 1) * p +
 
 // Everything that makes up "the picture" - squeezed and split as one.
 function ccPictureEls() {
-  return ['cabinet', 'mart-overlay', 'shop-overlay', 'event-overlay']
+  return ['cabinet', 'event-overlay']
     .map(id => document.getElementById(id))
     .filter(el => el && el.offsetParent !== null);
 }
@@ -161,7 +161,7 @@ function channelChange(swapFn, opts = {}) {
 
     function settle() {
       // Clear every element we touched, including any that got hidden mid-swap.
-      ['cabinet', 'mart-overlay', 'shop-overlay', 'event-overlay'].forEach(id => {
+      ['cabinet', 'event-overlay'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.style.transform = ''; el.style.filter = ''; el.style.transformOrigin = ''; }
       });

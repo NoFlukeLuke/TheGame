@@ -26,7 +26,7 @@
 // `score` itself is untouched and still totals every hand, so every Trick and
 // payout that reads it behaves exactly as before.
 
-const LEVEL_TYPE_FLOW_CHANCE = 0.25;
+let LEVEL_TYPE_FLOW_CHANCE = 0.25;   // let: dev -> Probabilities tunes it
 const LEVEL_TYPE_FLOW_FROM   = 3;     // levels 1-2 always teach the plain goal
 const GOAL_RELAY_BARS        = 3;
 const QUOTA_RELAY_SHARE      = 0.30;  // each bar is this share of the goal

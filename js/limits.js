@@ -79,20 +79,14 @@ function minSelectionBinds() { return handMinSelection() > 2; }
 //
 // A card the hand cannot use beyond the allowance is a PENALTY card, as before
 // (r201): outside the hand, billed its pips, consumed anyway.
-const TAGALONG_KEY = 'lethe.tagalong.v2';
 const KICKER_BASE_MAX = 1;
-// How many kickers a hand may carry WITH Tagalong. 0 = unlimited (shipped).
-let tagalongMaxCards = 0;
+// How many kickers a hand may carry WITH Tagalong. 0 = unlimited.
+// r409: the dev knobs for these two were retired (the knacks cover it); the
+// stored config is cleared so an old tuning cannot linger unseen.
+const tagalongMaxCards = 0;
 // Seconds per point of pip value a kicker costs. 1 = "its rank in time".
-let tagalongTimeRate = 1;
-try {
-  const _tg = JSON.parse(localStorage.getItem(TAGALONG_KEY) || '{}');
-  if (isFinite(_tg.max))  tagalongMaxCards = Math.max(0, Math.min(9, _tg.max | 0));
-  if (isFinite(_tg.rate)) tagalongTimeRate = Math.max(0, Math.min(4, +_tg.rate));
-} catch (e) {}
-function saveTagalongCfg() {
-  try { localStorage.setItem(TAGALONG_KEY, JSON.stringify({ max: tagalongMaxCards, rate: tagalongTimeRate })); } catch (e) {}
-}
+const tagalongTimeRate = 1;
+try { localStorage.removeItem('lethe.tagalong.v2'); } catch (e) {}
 function tagalongOwned() { return typeof hasKnack === 'function' && hasKnack('tagalong'); }
 // How many kickers ONE hand may carry. It is in the components cache key: changing
 // it changes the answer for cells whose cards have not moved.
@@ -391,7 +385,6 @@ const C = {
 };
 let acquiredTricks = [];
 let acquiredKnacks = [];
-let trickTrayMode = true;   // default: Tricks live in the side tray, NOT on the grid (dev toggle re-enables grid placement)
 // Per-card-type tracking for exalt/corrupt triggers (key: cardKey(rank,suit))
 let cardPlayCount  = {};   // times scored this run
 let cardSwapCount  = {};   // times swapped this run

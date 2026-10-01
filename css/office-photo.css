@@ -95,7 +95,7 @@ body.office-photo #cab-screen > #mode-select-overlay { inset: 0 !important; }
    as a page. They were inset by the 12px bezel that no longer exists. */
 body.office-photo #cab-screen::after,
 body.office-photo #cab-screen::before,
-/* …and so was the hypnosis backdrop (r391), which is inset to the same bezel. */
+/* …and so was the CRT's floor (r391, css/hypno.css), which is inset to the same bezel. */
 body.office-photo #hypno-screen { inset: 0 !important; border-radius: 0 !important; }
 
 /* Anti-aliasing along the trapezoid's edges. A skewed box has diagonal edges the
@@ -120,3 +120,30 @@ body.office-pending #camera {
 body.office-reveal #camera { animation: of-reveal .45s ease-out both; }
 @keyframes of-reveal { from { opacity: 0; } to { opacity: 1; } }
 body.reduced-motion.office-reveal #camera { animation: none; }
+
+/* WHAT THE WAIT SAYS (r409). With the camera hidden there was nothing on screen
+   but the page background, and until r409 the whole-screen pattern drawn over
+   it - the owner's "sometimes when I open the game it just shows that pattern".
+   One quiet word instead, so a slow load reads as loading rather than as the
+   game showing the wrong thing. It waits .4s before it appears, so a fast load
+   never flashes it, and it goes with the class; the second animation is the same
+   8s safety net the camera has, so a page whose scripts never finish does not
+   say LOADING for ever. Position fixed takes it out of <body>'s flex layout. */
+body.office-pending::before {
+  content: "LOADING";
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 2;
+  pointer-events: none;
+  font: 13px/1 'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace;
+  letter-spacing: .45em;
+  padding-left: .45em;     /* letter-spacing trails the last glyph; balance it */
+  color: #f4ecd6;
+  opacity: 0;
+  animation: of-loading 1.1s ease-in-out .4s infinite alternate,
+             of-loading-giveup 0s linear 8s forwards;
+}
+@keyframes of-loading { from { opacity: .18; } to { opacity: .62; } }
+@keyframes of-loading-giveup { to { visibility: hidden; } }

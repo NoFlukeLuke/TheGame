@@ -202,7 +202,6 @@ function triggerLevelUp() {
   lastSwapRoundSeconds = null;
   lastHandRoundSeconds = null;
   firstHandThisRound = true;
-  freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
@@ -347,74 +346,8 @@ async function showLevelUpScreen() {
   selected = [];
   const gridEl = document.getElementById('grid');
 
-  // ── Collect existing Tricks ──
-  const returningTricks = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      if (gridData[r][c]?._isTrick)
-        returningTricks.push({ ...gridData[r][c], _trickState: gridData[r][c]._trickState || 'acquired', savedRow: r, savedCol: c });
-
-  // ── Pick Trick options + pre-assign target positions ──
   sfxLevelUp();
-  trickSelectionPhase = true;
-
-  // Re-place returning Tricks at saved positions
-  returningTricks.forEach(trick => {
-    gridData[trick.savedRow][trick.savedCol] = {
-      rank: null, suit: null, _isTrick: true, _selectable: false,
-      _trickState: trick._trickState, trick: trick.trick, _id: trick._id
-    };
-  });
-
-  // Mark upgradeable - Tricks in the middle row's inner columns qualify
-  const _trickMidRow = Math.floor(gridRows / 2);
-  const _trickInnerCols = Array.from({length: Math.max(0, gridCols - 2)}, (_, i) => i + 1);
-  returningTricks.forEach(trick => {
-    if (trick.savedRow === _trickMidRow && _trickInnerCols.includes(trick.savedCol)) {
-      const cell = gridData[trick.savedRow][trick.savedCol];
-      if (cell._trickState === 'acquired') cell._trickState = 'upgradeable';
-    }
-  });
-
-  // Determine available slots for new Tricks (middle row, inner columns).
-  // With a persisting board (r332) those cells hold cards, so grid placement -
-  // a DEV-ONLY toggle; trickTrayMode is the default and sends Tricks to the tray -
-  // would find no slot at all and silently offer nothing. Clear the spawn strip
-  // to playedPile first, but ONLY on that path, so the tray path leaves the
-  // board exactly as the round left it.
-  if (typeof trickTrayMode !== 'undefined' && !trickTrayMode) {
-    _trickInnerCols.forEach(c => {
-      const cd = gridData[_trickMidRow][c];
-      if (cd && !cd._isTrick) { discardToPlayed(cd); gridData[_trickMidRow][c] = null; }
-    });
-  }
-  const spawnSlots = _trickInnerCols.filter(c => !gridData[_trickMidRow][c]);
-  trickSelectionOptions = pickTrickOptions(spawnSlots.length);
-  let trickIdCounter = 90000 + (level * 10);
-
-  // Pre-assign random target grid positions for new Tricks (excluding middle row inner cols)
-  const occupiedByReturning = new Set(returningTricks.map(trick => `${trick.savedRow}-${trick.savedCol}`));
-  const spawnExcluded = new Set(_trickInnerCols.map(c => `${_trickMidRow}-${c}`));
-  const candidateCells = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      if (!occupiedByReturning.has(`${r}-${c}`) && !spawnExcluded.has(`${r}-${c}`))
-        candidateCells.push([r, c]);
-  // Shuffle candidates
-  for (let i = candidateCells.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidateCells[i], candidateCells[j]] = [candidateCells[j], candidateCells[i]];
-  }
-
-  // Assign target positions to new Trick options
-  trickSelectionOptions.forEach((trick, i) => {
-    const [targetRow, targetCol] = candidateCells[i] || [0, i];
-    trick._targetRow = targetRow;
-    trick._targetCol = targetCol;
-  });
-
-  // Don't place new Tricks into gridData yet - they live in the overlay during selection
-  // Fill ALL cells with regular cards for now (Tricks will be placed after pick)
+  // Fill the holes (the board persists, r332).
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++)
       if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
@@ -438,55 +371,29 @@ async function showLevelUpScreen() {
   // ── Grid is now populated; deal animations start in show321Countdown ──
   dealAnims = [];
 
-  animating = false; // allow Trick taps immediately
+  animating = false;
 
-  // ── Mode split ──
-  // Normal (3-Act node) mode ALWAYS deals straight into the next round - its
-  // rewards come from the reward grid / events, never the legacy pick-1-of-3
-  // Trick overlay. The `|| ACTIVE_MODE.id === 'normal'` clause makes the legacy
-  // overlay branch structurally unreachable in normal mode: even if some future
-  // path reaches here without skipTrickChoiceOverlay set, normal mode can never
-  // show the old Trick pick (this is what caused the double level-up glitch).
-  // The `else` branch below is LEGACY / SURVIVAL-MODE ONLY.
-  if (skipTrickChoiceOverlay || isActMode()) {
-    // Reward grid already handled rewards (or normal mode has no pick) -
-    // skip Trick pick, go straight to new round.
-    skipTrickChoiceOverlay = false;
-    trickSelectionPhase = false;
-    showNextGoalFlash().then(() => show321Countdown()).then(() => {
-      gameTimerPaused = false;
-      sfxRoundStart();
-      updateClockUI();
-      render();
-      if (forceBossNextRound) {
-        forceBossNextRound = false;
-        // Crunch names the window explicitly: whatever is left in the act bank.
-        // Passing it rather than letting triggerBoss default keeps the boss's
-        // clock and the bank the same number, so there is never a second
-        // countdown to keep in step. Every other mode passes null and defaults.
-        triggerBoss(null, (typeof crunchBossWindow === 'function') ? crunchBossWindow() : null);
-        // boss takes over timing - do NOT call startRoundTimer()
-      } else {
-        startRoundTimer();
-      }
-    });
-  } else {
-    // ═══ LEGACY / SURVIVAL MODE ONLY - the old pick-1-of-3 Trick screen. ═══
-    // Not reachable in normal mode (see the mode split above). Kept as the
-    // scaffold for a future survival mode (escalating goals, pick a Trick each
-    // clear, no shop/reward grid).
-    // ── Show target slot glow on grid for each new Trick ──
-    trickSelectionOptions.forEach(trick => {
-      const slot = document.createElement('div');
-      slot.className = 'trick-target-slot';
-      slot.dataset.trickId = trick.id;
-      slot.style.cssText = `width:${CARD_W}px;height:${CARD_H}px;left:${cellLeft(trick._targetCol)}px;top:${cellTop(trick._targetRow)}px;`;
-      gridEl.appendChild(slot);
-    });
-
-    // ── Show Trick choice overlay immediately (cards deal slowly behind it) ──
-    showTrickChoiceOverlay();
-  }
+  // Rewards came from the reward screens; deal straight into the next round.
+  // (The legacy pick-1-of-3 Trick overlay that used to sit in an else branch
+  // here went in r414 - every mode takes this path now.)
+  skipTrickChoiceOverlay = false;
+  showNextGoalFlash().then(() => show321Countdown()).then(() => {
+    gameTimerPaused = false;
+    sfxRoundStart();
+    updateClockUI();
+    render();
+    if (forceBossNextRound) {
+      forceBossNextRound = false;
+      // Crunch names the window explicitly: whatever is left in the act bank.
+      // Passing it rather than letting triggerBoss default keeps the boss's
+      // clock and the bank the same number, so there is never a second
+      // countdown to keep in step. Every other mode passes null and defaults.
+      triggerBoss(null, (typeof crunchBossWindow === 'function') ? crunchBossWindow() : null);
+      // boss takes over timing - do NOT call startRoundTimer()
+    } else {
+      startRoundTimer();
+    }
+  });
 }
 
 // ── Deal animations: called from show321Countdown when 3-2-1 starts ──
@@ -533,6 +440,9 @@ const DEAL_JITTER_MS  = 70;
 function startNewRoundDealAnims() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
+  // The board pattern (r409) is back before the cards fall onto it, rather than
+  // popping in under them at the render() that ends the deal.
+  if (typeof ensureBoardPattern === 'function') ensureBoardPattern(gridEl);
 
   // Clear any existing real card elements so only temp-anims are visible
   gridEl.querySelectorAll('[data-card-id]:not(.temp-anim)').forEach(el => el.remove());
@@ -552,9 +462,6 @@ function startNewRoundDealAnims() {
     for (let r = gridRows - 1; r >= 0; r--) {
       const card = gridData[r][c];
       if (!card) continue;
-      const isTrick  = card._isTrick;
-      const trick = isTrick ? card.trick : null;
-
       const destX      = cellLeft(c);
       const destY      = cellTop(r);
       const fromAbove  = together ? DEAL_DROP_STEPS : (gridRows - r);
@@ -593,7 +500,7 @@ function startNewRoundDealAnims() {
     dealAnims = [];
     dealPhase = false; // re-enable normal render
     animating = false;
-    if (!trickSelectionPhase) render();
+    render();
   });
 }
 

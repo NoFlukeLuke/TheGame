@@ -542,7 +542,7 @@ const MATCH3_SHOP_COINS_LEVEL = 3;   // + this per level reached
 async function showMatch3LevelUpScreen() {
   selected = [];
   const gridEl = document.getElementById('grid');
-  gridEl?.querySelectorAll('[data-card-id],.trick-card,.temp-anim,.trick-target-slot').forEach(el => el.remove());
+  gridEl?.querySelectorAll('[data-card-id],.trick-card,.temp-anim').forEach(el => el.remove());
   // Deal the next round's board now (settled), hidden behind the shop overlay.
   // The 3-2-1 deal that reveals it runs when the shop is left (match3AfterShop).
   for (let r = 0; r < gridRows; r++)

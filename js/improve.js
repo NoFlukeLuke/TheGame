@@ -264,7 +264,7 @@ function resetEntityTiers() { entityTier = {}; applyEntityTiers(); }
 function ownedImprovable(type) {
   const rar = e => e.tier || e.rarity || 'common';
   let list = [];
-  if (type === 'trick')   list = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : acquiredTricks) || [];
+  if (type === 'trick')   list = trickTray;
   if (type === 'knack')   list = (typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []) || [];
   if (type === 'sleight') list = (typeof allOwnedSleightCards === 'function')
       ? dedupeById(allOwnedSleightCards().map(c => (typeof sleightDef === 'function' ? sleightDef(c) : null)).filter(Boolean))

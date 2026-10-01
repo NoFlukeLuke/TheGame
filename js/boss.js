@@ -300,7 +300,7 @@ function applyBossModifiers(preset) {
         // The split is decided ONCE, here, and never re-rolled - that is what lets
         // the briefing print both halves up front (bossTrickPoolsHTML).
         const per = Math.max(1, Math.round((preset.params.perPhase || 2) * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
-        const ownedIds = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : (acquiredTricks || [])).map(b => b.id);
+        const ownedIds = trickTray.map(b => b.id);
         const pool = shuffle(ownedIds);
         // Fewer Tricks than two full phases: split what there is evenly rather
         // than putting everything in the first half and nothing in the second.
@@ -545,7 +545,6 @@ function bossPresetIsLive(preset) {
   // suspend; with one Trick owned it is the same Trick down for the whole boss,
   // which is a harsher and less interesting boss than the one described, so it
   // wants two as well.
-  if (mods.includes('trick_rotate') && owned < 2) return false;
   // The Tax Man bills credits per card and ends the round when you cannot pay.
   // Arriving broke would make it a boss you lose on the first hand regardless of
   // how well you play it, which is the one thing a boss may never be - so it
@@ -771,7 +770,7 @@ function _bossTrickTilesHTML(ids) {
   }).join('');
 }
 function bossTrickPoolsHTML() {
-  const held = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : (acquiredTricks || [])).map(t => t.id);
+  const held = trickTray.map(t => t.id);
   const a = held.filter(id => trickPoolA.has(id));
   const b = held.filter(id => trickPoolB.has(id));
   const safe = held.filter(id => !trickPoolA.has(id) && !trickPoolB.has(id));
