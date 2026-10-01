@@ -313,7 +313,7 @@ function onCardTap(r, c) {
   if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
-  dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });
+  dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
   // ── Magnet: armed and waiting for a target-rank tap ──
   if (magnetArmed) {
@@ -358,7 +358,7 @@ function onCardTap(r, c) {
 
   // Sleights select/swap like normal cards (tooltip shown via long-press).
   // double_tap-activated sleights (none in current pool) would intercept here:
-  if (!trickSelectionPhase && gridData[r]?.[c]?._isSleight) {
+  if (gridData[r]?.[c]?._isSleight) {
     const jdef = sleightDef(gridData[r][c]);
     if (jdef?.activation === 'double_tap' && isDoubleTap) {
       const jcard = gridData[r][c];
@@ -423,20 +423,6 @@ function onCardTap(r, c) {
     // otherwise fall through to normal selection/swap handling below
   }
 
-  // Trick during normal play - double-tap enters swap; long-press shows tooltip
-  if (!trickSelectionPhase && gridData[r]?.[c]?._isTrick) {
-    if (isDoubleTap) {
-      hideCardTooltip();
-      cancelAutoSubmit();
-      swapPending = [r, c];
-      selected = [];
-      lastTapTime = 0; lastTapCell = null;
-      render();
-      return;
-    }
-    lastTapCell = [r, c]; lastTapTime = now;
-    return;
-  }
 
   // Handle swap-pending
   if (swapPending) {
@@ -588,17 +574,7 @@ gridEl2.addEventListener('pointerup', e => {
     return;
   }
   if (ps && !ps.moved) {
-    // If in Trick selection phase and tapped a non-Trick cell, dismiss tooltip
-    if (trickSelectionPhase && !gridData[ps.r]?.[ps.c]?._isTrick) {
-      pendingTrickChoice = null;
-      hideTrickTooltip();
-      render();
-      return;
-    }
-    // During normal play, dismiss any card tooltip if tapping a non-Trick cell
-    if (!trickSelectionPhase && !gridData[ps.r]?.[ps.c]?._isTrick) {
-      hideCardTooltip();
-    }
+    hideCardTooltip();
     onCardTap(ps.r, ps.c);
   }
   isSwiping = false;

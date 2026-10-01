@@ -174,7 +174,6 @@ function updateCoinsUI() {
   if (typeof updateGridTopline === 'function') updateGridTopline();
   const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
-  if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
 }
@@ -486,3 +485,23 @@ function updateHandNameLabel(result, force) {
 let swapPending = null;   // [r,c] of first card in pending swap
 let lastTapCell = null;
 let lastTapTime = 0;
+
+/* r419: PIPS / MULT / FOCUS each sit in their own tray and the number is big, so a
+   long figure (12,345 pips) would run past the tray in portrait. Whenever one of the
+   three is rewritten, drop its size just enough that it fits. Reset to the
+   stylesheet size first so it can also grow back. */
+(function chipValFit() {
+  const fit = el => {
+    const box = el.parentElement; if (!box) return;
+    el.style.fontSize = '';
+    const room = box.clientWidth - 6;
+    if (room <= 0) return;
+    const w = el.scrollWidth;
+    if (w > room) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * room / w).toFixed(1) + 'px';
+  };
+  ['pips-val', 'mult-val', 'focus-val'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    new MutationObserver(() => fit(el)).observe(el, { childList: true, characterData: true, subtree: true });
+    window.addEventListener('resize', () => fit(el));
+  });
+})();

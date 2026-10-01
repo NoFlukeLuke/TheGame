@@ -90,12 +90,12 @@ const SAVE_VARS = [
   'roundPenaltySeconds', 'extraPlayCostPerm', 'extraDiscardCostPerm',
   'nextRoundDiscardDelta', 'nextRoundSwapDelta', 'nextRoundSecondsDelta',
   'nextRoundPlayCost', 'nextRoundDiscardCost', 'playHandCostThisRound', 'discardCostThisRound',
-  'freeSwapsLeft', 'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
+  'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
   // ── Focus ──
   'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusCapGains', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
-  'acquiredTricks', 'acquiredKnacks', 'trickTray', 'trickTrayMode',
+  'acquiredTricks', 'acquiredKnacks', 'trickTray',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',
@@ -116,7 +116,7 @@ const SAVE_VARS = [
   'bonusMult_fives', 'bonusMult_nines', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless',
   'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'safetyNetUsed', 'negativeTilesTakenRun',
-  '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext', 'leyLinePos',
+  '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext',
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerCardId', 'doubleJeopardyCells',
@@ -132,7 +132,7 @@ const SAVE_VARS = [
   'firstHandThisRound', 'replaysThisRound', 'timeManipRound', 'roundContributions',
   // ── Reward grid / shop ──
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
-  'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
+  'nextShopTime',
   // ── Boss ──
   'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──

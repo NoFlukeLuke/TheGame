@@ -96,7 +96,7 @@ const INFO_TOPICS = [
        () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand, so at the largest selection sizes some cards are always dropped.`],
       'There is no minimum. Any hand of two cards or more is legal at any Selection Size.',
       'The Tagalong {knack} lets a hand carry any number of kickers, and makes them free.',
-      'The Chip In {knack} makes kickers free, and they score their pips and fire their {Tricks} as though they were in the hand. They still do not change what the hand is: a Run of 4 with a kicker is a four-card hand.',
+      'The Pip In {knack} makes kickers free, and they score their pips and fire their {Tricks} as though they were in the hand. They still do not change what the hand is: a Run of 4 with a kicker is a four-card hand.',
     ] },
 
   { id: 'hand_layers', group: 'basics', title: 'A hand can be several hands',
@@ -370,11 +370,6 @@ const INFO_TOPICS = [
       'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
       () => `Pick of three odds per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''}.`,
     ] },
-  { id: 'mode_sixsuits', group: 'modes', title: 'Six Suits',
-    body: [
-      'Six suits: spades, hearts, diamonds, clubs, crowns and moons. 60 cards, with one rank removed from the middle.',
-      'Flush of 3 and Flush of 4 can be played from the start. Everything else is as in Classic.',
-    ] },
   { id: 'mode_normal', group: 'modes', title: 'Classic',
     body: [
       () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
@@ -400,11 +395,6 @@ const INFO_TOPICS = [
       'Focus builds from placing next to matching cards, placing quickly, and completing a paying line. It drains slowly.',
       '3 swaps and 3 discards per grid, both on placed cards only. They come back when the grid scores.',
       'Two grids, one score. The daily 3x3 and 4x4 grids are unchanged: every tile at once, valued from the real three- and four-card poker pay tables.',
-    ] },
-  { id: 'mode_survival', group: 'modes', title: 'Survival',
-    body: [
-      'Each {GOAL} has its own 2-minute clock. Clear it for a pick of three; miss it and the run ends. Score above the {GOAL} carries into the next round.',
-      'A review comes every 5 minutes of play, played on the time you had left over.',
     ] },
 ];
 

@@ -10,6 +10,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="The Game">
 <meta name="theme-color" content="#0d2010">
+<!-- THE OFFICE PHOTOGRAPH STARTS DOWNLOADING NOW (r409), alongside the scripts,
+     rather than after all of them. js/office-photo.js only asks for it from
+     camInit, which runs after about a hundred script files, and the camera stays
+     hidden until it arrives (r384) - so on a phone the wait was the scripts PLUS
+     the photo. Same URL as OFFICE_PHOTO.file, so the <img> takes it from the
+     cache. Change both together. -->
+<link rel="preload" href="assets/room/office.jpg" as="image">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%230d2010%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2240%22%20width%3D%22432%22%20height%3D%22432%22%20rx%3D%2264%22%20fill%3D%22none%22%20stroke%3D%22%23f2c94c%22%20stroke-width%3D%2216%22%2F%3E%3Ctext%20x%3D%22256%22%20y%3D%22360%22%20font-size%3D%22300%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f2c94c%22%20font-family%3D%22serif%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22The%20Game%22%2C%22short_name%22%3A%22The%20Game%22%2C%22start_url%22%3A%22.%22%2C%22scope%22%3A%22.%22%2C%22display%22%3A%22fullscreen%22%2C%22background_color%22%3A%22%230d2010%22%2C%22theme_color%22%3A%22%230d2010%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520width%253D%2522512%2522%2520height%253D%2522512%2522%253E%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%252296%2522%2520fill%253D%2522%25230d2010%2522%252F%253E%253Crect%2520x%253D%252240%2522%2520y%253D%252240%2522%2520width%253D%2522432%2522%2520height%253D%2522432%2522%2520rx%253D%252264%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%2523f2c94c%2522%2520stroke-width%253D%252216%2522%252F%253E%253Ctext%2520x%253D%2522256%2522%2520y%253D%2522360%2522%2520font-size%253D%2522300%2522%2520text-anchor%253D%2522middle%2522%2520fill%253D%2522%2523f2c94c%2522%2520font-family%253D%2522serif%2522%253EA%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
 <title>Poker Grid - Arcade Prototype</title>
@@ -24,7 +31,6 @@
 <link rel="stylesheet" href="css/squares-report.css">
 <link rel="stylesheet" href="css/squares-patience.css">
 <link rel="stylesheet" href="css/match3.css">
-<link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
 <link rel="stylesheet" href="css/flow-rewards.css">
 <link rel="stylesheet" href="css/grid-pick.css">
@@ -84,8 +90,28 @@
     </div>
     <div id="dev-group-pop-body">
 
+  <!-- r409: the head of every mode tab - start it, and which deck it plays. -->
+  <div class="dev-section" data-group="flow map normal picker climb squares">
+    <div class="dev-section-title" id="dev-modehead-title">Mode</div>
+    <div id="dev-modehead"></div>
+  </div>
+
+  <div class="dev-section" data-group="hidden">
+    <div class="dev-section-title">Hidden modes</div>
+    <div class="dev-note">Starts a fresh run immediately. Anything in progress is abandoned.</div>
+    <!-- rows generated from MODES by devRenderModes() -->
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-mode-btns"></div>
+  </div>
+
+  <div class="dev-section" data-group="prob">
+    <div class="dev-section-title">Probability tables</div>
+    <div class="dev-note">Every weighted roll in the game. Changes apply straight away and are kept across reloads. A gold row has been moved off its shipped value; hover a row for the shipped number.</div>
+    <button class="dev-btn" onclick="probResetAll()">Reset every table</button>
+    <div id="dev-prob-tables"></div>
+  </div>
+
   <!-- TIME -->
-  <div class="dev-section" data-group="seed">
+  <div class="dev-section" data-group="tools">
     <div class="dev-section-title">Run Seed</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4;">
       A seed makes a run reproducible - same seed, same deal, same shops, same reward grids
@@ -105,8 +131,7 @@
       <div>next run: <span id="dev-seed-next" style="color:var(--gold);">- (unseeded)</span></div>
     </div>
   </div>
-
-  <div class="dev-section" data-group="time">
+  <div class="dev-section" data-group="game">
     <div class="dev-section-title">Time</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddTime(30)">+30s</button>
@@ -117,7 +142,7 @@
   </div>
 
   <!-- COINS -->
-  <div class="dev-section" data-group="coins">
+  <div class="dev-section" data-group="game">
     <div class="dev-section-title">Coins</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddCoins(10)">+10</button>
@@ -128,7 +153,7 @@
   </div>
 
   <!-- SCORE -->
-  <div class="dev-section" data-group="improve">
+  <div class="dev-section" data-group="bonuses">
     <h4>Entity improvement (tiers)</h4>
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
       <button class="dev-btn" onclick="devImproveRandom('trick')">Improve random Trick</button>
@@ -138,7 +163,7 @@
     </div>
     <div id="dev-improve-list" style="max-height:260px;overflow-y:auto"></div>
   </div>
-  <div class="dev-section" data-group="cardstates">
+  <div class="dev-section" data-group="bonuses">
     <h4>Card states (r278)</h4>
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
       <button class="dev-btn" onclick="devCardStateRandom()">State on a random card</button>
@@ -151,7 +176,7 @@
     <div id="dev-card-state-list"></div>
     <div id="dev-card-state-board" style="margin-top:8px;font-size:10px;opacity:0.8"></div>
   </div>
-  <div class="dev-section" data-group="score">
+  <div class="dev-section" data-group="game">
     <div class="dev-section-title">Score</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddScore(100)">+100</button>
@@ -161,8 +186,8 @@
   </div>
 
   <!-- NATURAL SCALING (r181) -->
-  <div class="dev-section" data-group="score">
-    <div class="dev-section-title">Natural Scaling</div>
+  <div class="dev-section" data-group="hands">
+    <div class="dev-section-title">Hand values &amp; scaling</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       Playing a hand permanently buffs THAT HAND TYPE (r198), not its whole family,
       so climbing to a bigger hand is a real decision. The Old Tricks knack pools a
@@ -174,6 +199,9 @@
     </label>
     <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:6px 0 2px;">
+      <b>BASE P</b> / <b>BASE M</b> are the hand's own value (editable; Spectrum and Poker Squares keep
+      their own tables). <b>NOW</b> is what it scores right now: base plus everything earned, pips x mult,
+      before card pips, Tricks and Focus.
       Every hand type earns at its OWN rate. <b>PIPS</b> / <b>MULT</b> are what one grant
       pays, <b>EVERY</b> is how many plays of that hand a grant takes, and <b>ALT</b> makes
       each grant pay one of them instead of both, alternating, pips first - so
@@ -187,11 +215,12 @@
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetNs()">Reset earned</button>
       <button class="dev-btn" onclick="devResetNsRates()">Reset rates to default</button>
+      <button class="dev-btn" onclick="devResetHandBase()">Reset base values</button>
     </div>
   </div>
 
   <!-- LAYERED HANDS (r198) -->
-  <div class="dev-section" data-group="score">
+  <div class="dev-section" data-group="hands">
     <div class="dev-section-title">Layered hands</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       A hand is a LIST of shapes. Sets and runs are carved out of the selection as
@@ -211,66 +240,11 @@
   </div>
 
   <!-- KICKERS (r385): the rules live in js/limits.js. -->
-  <div class="dev-section" data-group="tagalong">
-    <div class="dev-section-title">Kickers (Tagalong / Chip In)</div>
-    <div class="dev-note">
-      A kicker is a selected card that no part of the hand uses. Every hand may carry one:
-      it scores nothing and costs its pips off the score and its pip value in seconds.
-      Tagalong allows more and makes them free. Chip In makes them score and fire Tricks.
-    </div>
-    <div id="dev-tag-state" class="dev-note" style="color:var(--gold)"></div>
-    <div class="dev-slider-row"><span>Kickers per hand with Tagalong: <b id="dev-tag-max-val">unlimited</b></span>
-      <input id="dev-tag-max" type="range" min="0" max="9" value="0" step="1" oninput="devSetTagalongMax(this.value)"></div>
-    <div class="dev-slider-row"><span>Seconds per pip: <b id="dev-tag-rate-val">1</b></span>
-      <input id="dev-tag-rate" type="range" min="0" max="2" value="1" step="0.25" oninput="devSetTagalongRate(this.value)"></div>
-  </div>
-
-  <!-- LEVEL -->
-  <div class="dev-section" data-group="score">
-    <div class="dev-section-title">Level</div>
+  <div class="dev-section" data-group="game">
+    <div class="dev-section-title">Level &amp; screens</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devSkipLevel()">Skip Level</button>
       <button class="dev-btn" onclick="devOpenShop()">Open Shop</button>
-    </div>
-  </div>
-
-  <!-- GOALS (r211): every mode's round-goal curve, live. Rows are built by
-       devRenderGoalPanel() in js/dev-panel.js from GOAL_TUNABLES. -->
-  <div class="dev-section" data-group="goals">
-    <div class="dev-section-title">All modes</div>
-    <div class="dev-note">Scales every mode's goal at once. Leave at 1.00 and tune the per-mode numbers below.</div>
-    <div id="dev-goal-global-rows"></div>
-    <div id="dev-goal-live" class="dev-preview"></div>
-  </div>
-
-  <div class="dev-section" data-group="goals">
-    <div class="dev-section-title">Classic curve</div>
-    <div class="dev-note">Classic, Six Suits, Spectrum, Guided, Orientation, Match-3, Dominoes.</div>
-    <div id="dev-goal-classic-rows"></div>
-    <div id="dev-goal-classic-preview" class="dev-preview"></div>
-  </div>
-
-  <div class="dev-section" data-group="goals">
-    <div class="dev-section-title">Survival / Flow curve</div>
-    <div class="dev-note">Survival and Flow run their own curve from a lower start.</div>
-    <div id="dev-goal-survival-rows"></div>
-    <div id="dev-goal-survival-preview" class="dev-preview"></div>
-  </div>
-
-  <div class="dev-section" data-group="goals">
-    <div class="dev-section-title">Zen</div>
-    <div id="dev-goal-other-rows"></div>
-    <button class="dev-btn" onclick="devResetGoalTune()" style="margin-top:8px;">Reset all goals to shipped values</button>
-  </div>
-
-  <!-- BOSS -->
-  <div class="dev-section" data-group="boss">
-    <div class="dev-section-title">Boss</div>
-    <!-- rows generated from BOSS_PRESETS by devRenderBosses() -->
-    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-boss-btns"></div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devEndBossWin()">End Boss (Win)</button>
-      <button class="dev-btn" onclick="devEndBossLose()">End Boss (Lose)</button>
     </div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devOpenRewardGrid()">Open Reward Grid</button>
@@ -279,20 +253,61 @@
     </div>
   </div>
 
+  <!-- GOALS (r211): every mode's round-goal curve, live. Rows are built by
+       devRenderGoalPanel() in js/dev-panel.js from GOAL_TUNABLES. -->
+  <div class="dev-section" data-group="normal flow map climb hidden">
+    <div class="dev-section-title">All modes</div>
+    <div class="dev-note">Scales every mode's goal at once. Leave at 1.00 and tune the per-mode numbers below.</div>
+    <div id="dev-goal-global-rows"></div>
+    <div id="dev-goal-live" class="dev-preview"></div>
+  </div>
+  <div class="dev-section" data-group="normal climb hidden">
+    <div class="dev-section-title">Classic curve</div>
+    <div class="dev-note">Classic, Climb, Guided, Spectrum, Match-3 and Dominoes. The Schedule shares its round-1 goal and rounding.</div>
+    <div id="dev-goal-classic-rows"></div>
+    <div id="dev-goal-classic-preview" class="dev-preview"></div>
+  </div>
+  <div class="dev-section" data-group="flow hidden">
+    <div class="dev-section-title">Survival / Flow curve</div>
+    <div class="dev-note">Flow and Survival share this curve, from a lower start.</div>
+    <div id="dev-goal-survival-rows"></div>
+    <div id="dev-goal-survival-preview" class="dev-preview"></div>
+  </div>
+  <div class="dev-section" data-group="map">
+    <div class="dev-section-title">Schedule goal curve</div>
+    <div class="dev-note">The Schedule advances the level on every obligation, so it has its own, gentler growth rate. The review's quota is fixed when the map is drawn.</div>
+    <div id="dev-goal-map-rows"></div>
+    <div id="dev-goal-map-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="hidden">
+    <div class="dev-section-title">Zen goal</div>
+    <div id="dev-goal-zen-rows"></div>
+  </div>
+
+  <div class="dev-section" data-group="normal flow map climb hidden">
+    <div class="dev-section-title">Reset goals</div>
+    <button class="dev-btn" onclick="devResetGoalTune()">Reset every mode's goals to shipped values</button>
+  </div>
+
+  <!-- BOSS -->
+  <div class="dev-section" data-group="events">
+    <div class="dev-section-title">Boss</div>
+    <!-- rows generated from BOSS_PRESETS by devRenderBosses() -->
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-boss-btns"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devEndBossWin()">End Boss (Win)</button>
+      <button class="dev-btn" onclick="devEndBossLose()">End Boss (Lose)</button>
+    </div>
+  </div>
+
   <!-- MODES - launch any mode directly, including the ones the carousel hides -->
   <!-- TIPS -->
-  <div class="dev-section" data-group="tips">
+  <div class="dev-section" data-group="tools">
     <div class="dev-section-title">Tips</div>
     <div class="dev-note">Each tip fires once ever, when its condition is first met. Firing one here ignores its condition and does not mark an unseen one as seen.</div>
     <!-- rows generated from INSIGHTS by devRenderTips() -->
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-tip-btns"></div>
-  </div>
-
-  <div class="dev-section" data-group="modes">
-    <div class="dev-section-title">Start a mode</div>
-    <div class="dev-note">Starts a fresh run immediately. Anything in progress is abandoned.</div>
-    <!-- rows generated from MODES by devRenderModes() -->
-    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-mode-btns"></div>
   </div>
 
   <!-- EVENTS -->
@@ -307,26 +322,26 @@
   </div>
 
   <!-- LIMITS (was nested inside the Events section) -->
-  <div class="dev-section" data-group="limits">
+  <div class="dev-section" data-group="bonuses">
     <div class="dev-section-title">Limits</div>
     <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
   </div>
 
   <!-- CARD FALL SPEED -->
-  <div class="dev-section" data-group="anim">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Card Fall Speed (interlude) <span id="dev-fall-val">1×</span></div>
     <input type="range" min="0.25" max="4" value="1" step="0.25" oninput="devSetFallSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
 
   <!-- ANIMATION SPEED -->
-  <div class="dev-section" data-group="anim">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Score Anim Speed <span id="dev-anim-val">5 t/s</span></div>
     <input type="range" min="1" max="100" value="5" step="1" oninput="devSetAnimSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
 
   <!-- ITEM FLOAT (shop + reward grid) -->
-  <div class="dev-section" data-group="anim">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Item Float - shop + reward grid</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       The barely-there drift on shop / reward tiles. Open the shop or a reward grid to see it live.
@@ -347,7 +362,7 @@
   </div>
 
   <!-- SCORE PARTICLE BLIP GROWTH (r233) -->
-  <div class="dev-section" data-group="anim">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Score particle growth</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       A long tally is a crescendo. Past the first N particles of a hand, every further one is
@@ -366,7 +381,7 @@
   </div>
 
   <!-- GRID HEARTBEAT -->
-  <div class="dev-section" data-group="anim">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Grid Heartbeat - play grid</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       A soft swell that falls from the TOP row and travels down the board, once every 10s,
@@ -403,7 +418,7 @@
   </div>
 
   <!-- CHANNEL CHANGE -->
-  <div class="dev-section" data-group="anim">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Channel Change - screen transition</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       The CRT flick between screens (play &harr; Mart). Full tuner: <b>channel-change-preview.html</b>.
@@ -439,7 +454,7 @@
   </div>
 
   <!-- BUILDS ARCHIVE -->
-  <div class="dev-section" data-group="builds">
+  <div class="dev-section" data-group="tools">
     <div class="dev-section-title">Builds Archive</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       Records start as FILE MISSING and open as you acquire entities in a run. Reveal-all lets you browse the real thing.
@@ -456,7 +471,7 @@
   </div>
 
   <!-- ADD TRICK -->
-  <div class="dev-section" data-group="tricks">
+  <div class="dev-section" data-group="bonuses">
     <div class="dev-section-title">Add Trick</div>
     <input id="dev-trick-search" type="text" placeholder="Search trick name..." oninput="devFilterTricks(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
@@ -464,7 +479,7 @@
   </div>
 
   <!-- ADD KNACK -->
-  <div class="dev-section" data-group="knacks">
+  <div class="dev-section" data-group="bonuses">
     <div class="dev-section-title">Add Knack</div>
     <input id="dev-knack-search" type="text" placeholder="Search knack name..." oninput="devFilterKnacks(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
@@ -472,7 +487,7 @@
   </div>
 
   <!-- ADD SLEIGHT -->
-  <div class="dev-section" data-group="sleights">
+  <div class="dev-section" data-group="bonuses">
     <div class="dev-section-title">Add Sleight</div>
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;">
       <!-- populated by JS -->
@@ -481,7 +496,7 @@
   </div>
 
   <!-- ADD FOCUS -->
-  <div class="dev-section" data-group="focus">
+  <div class="dev-section" data-group="game">
     <div class="dev-section-title">Add Focus</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddFocus(1)">+1</button>
@@ -494,12 +509,11 @@
   <!-- FOCUS + SCORING: all plain-language controls, built by devRenderFocusPanel()
        in js/dev-panel.js from FOCUS_TUNABLES. Number steppers rather than sliders
        so an exact value can be typed. -->
-  <div class="dev-section" data-group="focus">
+  <div class="dev-section" data-group="hands">
     <div class="dev-section-title">Where a hand's value comes from</div>
     <div class="dev-note">Changes apply to the next hand scored. Existing runs keep playing.</div>
     <div id="dev-scoring-model"></div>
   </div>
-
   <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: building it</div>
     <div class="dev-note">Playing fast is worth extra Focus on top of the hand type's own value.</div>
@@ -507,18 +521,15 @@
     <div id="dev-focus-speed-params"></div>
     <div id="dev-focus-speed-preview" class="dev-preview"></div>
   </div>
-
   <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: losing it</div>
     <div id="dev-focus-decay-rows"></div>
   </div>
-
   <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: the multiplier</div>
     <div id="dev-focus-mult-rows"></div>
     <div id="dev-focus-mult-preview" class="dev-preview"></div>
   </div>
-
   <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: animation</div>
     <div id="dev-focus-anim-rows"></div>
@@ -527,7 +538,7 @@
 
   <!-- AESTHETICS - the home for look-and-feel knobs (owner, r394: "for this
        type of stuff it can all go in aesthetics"). -->
-  <div class="dev-section" data-group="aesthetics">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Aesthetics</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Infinity tray: extra depth lines
@@ -576,14 +587,6 @@
       <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
       Show card counter (deck audit)
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
-      Place Tricks on the grid (off = side tray)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
-      New scoring dance (preview-window · WIP)
-    </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
       Interrupt a scoring hand by
       <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
@@ -595,7 +598,7 @@
   </div>
 
   <!-- DISPLAY (fullscreen - usable mid-run since Settings = this panel) -->
-  <div class="dev-section" data-group="display">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Display</div>
     <button class="dev-btn" id="dev-fullscreen-btn" onclick="toggleFullscreen(); devSyncFullscreen();">Enter Fullscreen</button>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:8px;">
@@ -606,8 +609,7 @@
       On iPhone / iPad, use the browser Share menu → “Add to Home Screen” for fullscreen instead.
     </div>
   </div>
-
-  <div class="dev-section" data-group="save">
+  <div class="dev-section" data-group="tools">
     <div class="dev-section-title">Save Run</div>
     <div id="dev-save-state" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream-dim);margin-bottom:8px;line-height:1.5;"></div>
     <button class="dev-btn" id="dev-save-btn" onclick="devSaveRun()">💾 Save Run</button>
@@ -619,10 +621,9 @@
       Only one save is kept; saving again replaces it.
     </div>
   </div>
-
-  <div class="dev-section" data-group="rewards">
-    <div class="dev-section-title">Rewards</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">How a mode pays out between rounds. Flow/Survival: whether the board survives a level-up. "Board stays" removes only the scored hand and refills those cells; the no-Sleights variant also lifts every Sleight off the board, costing no time and no discards.</div>
+  <div class="dev-section" data-group="flow hidden">
+    <div class="dev-section-title">Board between level-ups (Flow / Survival)</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Whether the board survives a level-up. "Board stays" removes only the scored hand and refills those cells; the no-Sleights variant also lifts every Sleight off the board, costing no time and no discards.</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Board between level-ups
       <select id="dev-sv-board" onchange="setSvBoardMode(this.value)" style="background:#1a1712;color:var(--cream);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;font-family:'Crimson Pro',serif;font-size:12px;">
@@ -633,8 +634,10 @@
     </label>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A boss round or a grid-size change still redeals - a post-boss board can carry holes, and a resized board cannot be kept.</div>
 
-    <div style="border-top:1px solid #3a3428;margin:8px 0 2px;"></div>
-    <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);">FLOW · MULTI-REWARD CHAIN</div>
+  </div>
+
+  <div class="dev-section" data-group="flow prob">
+    <div class="dev-section-title">Flow multi-reward chain</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A Flow goal clear pays 1-5 reward screens. TWO flat rolls: how many, then what each one is - each slot rolled on its own, so a kind's share says nothing about where it lands and a chain can repeat one. Luck leans the count upward.</div>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-flowr-on" type="checkbox" onchange="flowrDevSet('on', this.checked)" style="accent-color:var(--gold);"> Enabled
@@ -657,7 +660,6 @@
       <span id="dev-flowr-phase" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>
     </div>
   </div>
-
   <div class="dev-section" data-group="map">
     <div class="dev-section-title">Map Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch: move out from ANY tile you have already taken, not only the one you are standing on.</div>
@@ -666,8 +668,7 @@
       Branch from any visited tile
     </label>
   </div>
-
-  <div class="dev-section" data-group="match3">
+  <div class="dev-section" data-group="hidden">
     <div class="dev-section-title">Match-3 Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types - turn one off to remove it from detection entirely.</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -697,61 +698,16 @@
       Select matches for 1s before playing (interruptible)
     </label>
   </div>
-
   <div class="dev-section" data-group="deck">
-    <div class="dev-section-title">Deck Model</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
-      Which deck a run deals from, whatever the mode says. Applies at the START OF THE NEXT ROUND. Spectrum is never overridden - its deck is welded to its card faces and its four payout fixtures; start one from dev panel &rarr; Modes.
-    </div>
-    <div id="dev-deck-model" class="dev-spec-row"></div>
-  </div>
-
-  <div class="dev-section" data-group="deck">
-    <div class="dev-section-title">Wild cards &middot; how many in the deck</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
-      A wild takes any rank to complete a SET, and only a set - never a run, never a flush. It scores no pips and fires no Tricks. Applies at the START OF THE NEXT ROUND. Four by default, in the classic and six-suit decks alike; Spectrum and the four modes with their own hand detection never deal them.
-    </div>
+    <div class="dev-section-title">Wild cards</div>
+    <div class="dev-note">A wild takes any rank to complete a SET. It is never part of a flush, scores no pips and fires no Tricks. Spectrum, Climb and the modes with their own hand detection never deal them. Changes apply from the next run.</div>
+    <div class="dev-note"><b>How many</b> - wilds per suit, so the normal deck (4 suits) and the six-suit deck (6 suits) scale together. At 1: 4 and 6.</div>
     <div id="dev-deck-wilds" class="dev-spec-row"></div>
+    <div class="dev-note" style="margin-top:6px;"><b>Runs</b> - whether a wild may also stand in for a missing rank in a run. A run still needs at least one real card.</div>
+    <div id="dev-deck-wildruns" class="dev-spec-row"></div>
     <div id="dev-deck-wildstat" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;line-height:1.5;"></div>
+    <div class="dev-note" style="margin-top:6px;">Which deck each mode uses (normal 4-suit or six-suit) is set on that mode's own tab.</div>
   </div>
-
-  <div class="dev-section" data-group="deck">
-    <div class="dev-section-title">Weighted Deck &middot; copies per rank</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
-      A set needs several copies of ONE rank; a run needs one copy each of several ADJACENT ranks. Give the common ranks plenty of copies and keep them apart on the ladder, and sets get much easier while runs do not.
-    </div>
-    <div id="dev-deck-weights" class="dev-wgrid"></div>
-    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">SUITS &middot; the flush dial</div>
-    <div id="dev-deck-wsuits" class="dev-spec-row"></div>
-    <div id="dev-deck-wstat" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;line-height:1.5;"></div>
-    <div id="dev-deck-wpreset" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
-  </div>
-
-  <div class="dev-section" data-group="deck">
-    <div class="dev-section-title">Six Suits Deck</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
-      Six suits but only four of each rank, so the deck is ranks x copies and the suit count no longer sets its size. Changes apply at the START OF THE NEXT ROUND. Six Suits only - Classic and Spectrum are untouched.
-    </div>
-    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">CUT RANK &middot; the one rank left out</div>
-    <div id="dev-deck-ranks" class="dev-spec-row"></div>
-    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">RUN LADDER</div>
-    <div id="dev-deck-courts" class="dev-spec-row"></div>
-    <div style="font-family:'Crimson Pro',serif;font-size:10px;color:var(--cream-dim);">
-      Without this the cut rank does almost nothing: measured, Run of 3 stays 74-77% whichever rank is cut, because a high Ace still bridges back to the King.
-    </div>
-    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">A RUN'S CARDS MUST SIT &middot; all modes</div>
-    <div id="dev-deck-order" class="dev-spec-row"></div>
-    <div style="font-family:'Crimson Pro',serif;font-size:10px;color:var(--cream-dim);">
-      Anywhere = today. Touch a lower card = every card except the lowest must touch one ranked below it, which is what tapping them in order already means. Touch the one below = the run is a line you can trace. Measured on a 4x4: Straight 34% / 12% / 1%.
-    </div>
-    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">COPIES OF EACH RANK</div>
-    <div id="dev-deck-copies" class="dev-spec-row"></div>
-    <div id="dev-deck-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
-      <button class="dev-btn" onclick="deckDesignApplyNow()">Apply now (re-deal)</button>
-    </div>
-  </div>
-
   <div class="dev-section" data-group="squares">
     <div class="dev-section-title">Poker Squares - the daily grids</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
@@ -761,7 +717,7 @@
     <div id="dev-squares-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
     <button class="dev-btn" onclick="devResetSquares()">Reset to shipped</button>
   </div>
-  <div class="dev-section" data-group="spectrum">
+  <div class="dev-section" data-group="hidden">
     <div class="dev-section-title">Spectrum Deck</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
       Which values and colours are in the deck. Changes apply at the START OF THE NEXT ROUND - the round you are playing keeps the deck it was dealt.
@@ -777,8 +733,7 @@
       <button class="dev-btn" onclick="spectrumApplyNow()">Apply now (re-deal)</button>
     </div>
   </div>
-
-  <div class="dev-section" data-group="log">
+  <div class="dev-section" data-group="tools">
     <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
     <div id="dev-event-log">No events yet.</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
@@ -791,7 +746,8 @@
       <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
     </div>
   </div>
-    </div><!-- /#dev-group-pop-body -->
+    
+</div><!-- /#dev-group-pop-body -->
   </div><!-- /#dev-group-pop -->
   </div><!-- /#dev-panel-body -->
 </div>
@@ -841,12 +797,6 @@
   <button class="overlay-close">Close</button>
 </div>
 
-<!-- THE HYPNOSIS BACKDROP (r391) - css/hypno.css.
-     A faint turning pattern behind the whole scene. A SIBLING of #camera, never
-     an ancestor of it: it carries a transform, and a transform on anything above
-     #stage re-anchors every position:fixed panel inside it. -->
-<div id="hypno" aria-hidden="true"></div>
-
 <!-- ROOM + CAMERA (r180) - js/camera.js + css/room.css.
      #camera is a fixed, transform-scaled viewport onto the world. The room and
      the cabinet are BOTH inside it, so a single transform dollies the whole scene
@@ -894,12 +844,10 @@
     <div id="cab-stripe"></div>
   </div>
   <div id="cab-screen">
-  <!-- THE CRT'S BACKDROP (r391) - css/hypno.css. The same turning pattern the
-       surround carries, on the ground every tray and the board sit on. A SIBLING
-       of #stage (it carries a transform) and the FIRST child of #cab-screen, so
-       DOM order alone puts the game in front of it. It paints an opaque floor,
-       which is what lets #stage's wash go translucent over it without the office
-       photograph showing through the game. -->
+  <!-- THE CRT'S FLOOR (r391, pattern removed r409) - css/hypno.css. The FIRST
+       child of #cab-screen, so DOM order alone puts the game in front of it. It
+       paints an opaque floor, which is what lets #stage's wash stay translucent
+       without the office photograph showing through the game. -->
   <div id="hypno-screen" aria-hidden="true"></div>
 <!-- Boss-approach FX (js/boss-approach.js). A SIBLING of #stage, not a child:
      the approach drains the colour out of #stage with a `filter`, and a filter
@@ -1082,7 +1030,7 @@
         <div id="selected-cards"></div>
         <div id="hand-name">·</div>
       </div>
-      <!-- Trick Tray (visible only in trickTrayMode) -->
+      <!-- Trick Tray -->
       <div id="trick-tray-area" style="display:none">
         <span class="panel-title"><span id="tray-title-word">Tricks</span> <span id="trick-tray-count"></span></span>
         <div id="trick-tray-list"></div>
@@ -1222,81 +1170,6 @@
   <div id="unlock-trick-options"></div>
 </div>
 
-<!-- SHOP OVERLAY -->
-<div id="shop-overlay">
-  <div id="shop-header">
-    <div id="shop-title">THE SHOP</div>
-    <div id="shop-coins">💰 <span id="shop-coins-val">0</span></div>
-  </div>
-
-  <!-- Stacked shelves: one labeled row per category (Tricks, Sleights, Knacks, Upgrades) -->
-  <div id="shop-main-grid">
-    <div id="shop-trick-shelf" class="shop-shelf">
-      <div class="shop-shelf-label">Tricks</div>
-      <div id="shop-trick-row" class="shop-shelf-items"></div>
-    </div>
-    <div id="shop-sleight-shelf" class="shop-shelf">
-      <div class="shop-shelf-label">Sleights</div>
-      <div id="shop-sleight-row" class="shop-shelf-items"></div>
-    </div>
-    <div id="shop-knack-shelf" class="shop-shelf">
-      <div class="shop-shelf-label">Knacks</div>
-      <div id="shop-knack-row" class="shop-shelf-items"></div>
-    </div>
-    <div id="shop-limits-shelf" class="shop-shelf">
-      <div class="shop-shelf-label">Upgrades</div>
-      <div id="shop-limits-row" class="shop-shelf-items"></div>
-    </div>
-  </div>
-
-  <!-- Footer: reroll + leave -->
-  <div id="shop-footer-row">
-    <button id="shop-reroll-btn">🎲 Reroll - <span id="shop-reroll-cost">8</span> coins</button>
-    <span id="shop-reroll-info"></span>
-    <button id="shop-close">Leave Shop</button>
-  </div>
-
-  <!-- Legacy service picker (kept for future use, hidden by default) -->
-  <div id="svc-picker">
-    <div id="svc-picker-title">Select a card</div>
-    <div id="svc-picker-sub"></div>
-    <div id="svc-card-grid"></div>
-    <div id="svc-suit-choices" style="display:none"></div>
-    <div style="display:flex;gap:10px">
-      <button id="svc-confirm" disabled>Confirm</button>
-      <button id="svc-cancel">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Hidden legacy service buttons (kept for future re-use) -->
-<div id="shop-legacy-services" style="display:none">
-  <button class="svc-btn" id="svc-remove-btn">
-    <div class="svc-icon">🍂</div><div class="svc-name">Remove</div>
-    <div class="svc-price" id="svc-remove-price">3 coins</div>
-  </button>
-  <button class="svc-btn" id="svc-duplicate-btn">
-    <div class="svc-icon">🌱</div><div class="svc-name">Duplicate</div>
-    <div class="svc-price" id="svc-duplicate-price">4 coins</div>
-  </button>
-  <button class="svc-btn" id="svc-suit-btn">
-    <div class="svc-icon">🔄</div><div class="svc-name">Change Suit</div>
-    <div class="svc-price" id="svc-suit-price">4 coins</div>
-  </button>
-  <button class="svc-btn" id="svc-combine-btn">
-    <div class="svc-icon">⚗️</div><div class="svc-name">Combine</div>
-    <div class="svc-price" id="svc-combine-price">5 coins</div>
-  </button>
-  <button class="svc-btn" id="svc-swaps-btn">
-    <div class="svc-icon">↔️</div><div class="svc-name">+1 Swap</div>
-    <div class="svc-price" id="svc-swaps-price">10 coins</div>
-  </button>
-  <button class="svc-btn" id="svc-discards-btn">
-    <div class="svc-icon">🍃</div><div class="svc-name">+1 Discard</div>
-    <div class="svc-price" id="svc-discards-price">10 coins</div>
-  </button>
-</div>
-
 <!-- BOSS REWARD GRID OVERLAY -->
 <div id="reward-overlay">
   <div id="reward-header">
@@ -1413,20 +1286,6 @@
   <div id="trick-options"></div>
 </div>
 
-<!-- FULL-SCREEN Trick CHOICE OVERLAY -->
-<div id="trick-choice-overlay">
-  <div id="trick-choice-header">
-    <div id="trick-choice-title">CHOOSE A TRICK</div>
-    <div id="trick-choice-timer-wrap">
-      <div id="trick-choice-timer-bar"></div>
-    </div>
-    <div id="trick-choice-timer-label"><span id="trick-choice-seconds">45</span>s</div>
-  </div>
-  <div id="trick-choice-cards"></div>
-  <div id="trick-choice-hint">Tap to preview · Tap again to choose</div>
-  <button id="trick-choice-skip">Pass - No Trick</button>
-</div>
-
 <!-- CHALLENGE TOOLTIP -->
 <div id="challenge-tooltip">
   <div class="ctt-label">⚠ Challenge</div>
@@ -1460,7 +1319,6 @@
 <script src="js/data/cards.js"></script>
 <script src="js/deck-design.js"></script>
 <script src="js/data/audio-manifest.js"></script>
-<script src="js/data/dominoes.js"></script>
 <script src="js/data/tricks.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/fit-text.js"></script>
@@ -1537,7 +1395,6 @@
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>
 <script src="js/game-control.js"></script>
-<script src="js/dominoes-mode.js"></script>
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/clock-fx.js"></script>
@@ -1566,6 +1423,7 @@
 <script src="js/info-hub.js"></script>
 <script src="js/insights.js"></script>
 <script src="js/queue-views.js"></script>
+<script src="js/prob-tables.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

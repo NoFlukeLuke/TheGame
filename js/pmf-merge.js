@@ -18,7 +18,7 @@
 // [MERGE] → SCORE climb → [SPLIT] → settle. The merge deliberately happens after
 // the Focus beat, so the fused number matches what all three chips just showed.
 //
-// The legacy playScoreDance (the dev-only `newDance` = off path) is NOT wired:
+// There is one dance since r412 (playScoreDance is a wrapper), so this is the only path:
 // it runs its focus beat and score ticker on overlapping timers rather than in
 // sequence, so there is no single point where "all three have landed" is true.
 // Every mode that populates these chips uses the preview dance.

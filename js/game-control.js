@@ -83,8 +83,8 @@ function resumeGame() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
-    if (!isActMode() && !match3Active() && !dominoActive() && !survivalActive()) {
+    // See startTimers: match-3 owns its round loop, skip legacy progression.
+    if (!isActMode() && !match3Active() && !survivalActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -122,7 +122,7 @@ document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
 // Pause-menu "Home" button - abandon the current run and return to the main menu.
 // A full page reload is the cleanest teardown: the game keeps a lot of live state
-// (round/game/boss timers, decks, overlays, match-3/dominoes state) and there is no
+// (round/game/boss timers, decks, overlays, match-3 state) and there is no
 // single reset function that unwinds all of it, whereas the page boots straight to
 // the home menu on load (index.html #main-menu-overlay starts shown; bootstrap.js
 // calls initMainMenu()). Guarded by a confirm so a stray tap can't lose a run.
@@ -259,13 +259,12 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-limits') && !e.target.closest('#limits-popup')) hideLimitsPopup();
 }, true);
 
-// Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
+// Stats / Deck can also be opened from a takeover screen (the shop), where there is
 // no round running to resume - resuming there would start the round timer behind the shop.
 // screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
 // skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
 function screenOwnsClock() {
   return (typeof shopGridActive !== 'undefined' && shopGridActive)
-      || document.getElementById('shop-overlay')?.classList.contains('show')
       || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
 }
 function closeInfoOverlay(id) {
@@ -295,7 +294,6 @@ function startGame() {
   if (typeof musicSetScene === 'function') musicSetScene('game');
   document.getElementById('end-overlay').classList.remove('show');
   document.getElementById('levelup-overlay').classList.remove('show');
-  document.getElementById('shop-overlay').classList.remove('show');
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
 
@@ -331,7 +329,7 @@ function startGame() {
     // defaults to every value and every colour. See js/spectrum.js.
     spectrumInstallLists();
   } else {
-    ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+    ACTIVE_SUITS = (runSuitCount() === 6) ? SUITS_SIX : SUITS;
     ACTIVE_RANKS = (ACTIVE_MODE.climb && typeof RANKS_CLIMB !== 'undefined') ? RANKS_CLIMB : RANKS;
     // Six Suits deals a DESIGNED deck (js/deck-design.js): the cut rank comes out
     // of ACTIVE_RANKS here, and expectedDeckTotal becomes ranks x copies rather
@@ -413,14 +411,13 @@ function startGame() {
   // exactly the set that neither uses. Derived from the SAME predicate the timer
   // itself is gated on, so a new mode cannot drift out of sync with it.
   document.getElementById('stage')?.classList.toggle('no-game-clock',
-    match3Active() || dominoActive() || survivalActive());
+    match3Active() || survivalActive());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
   // Sync playing-grid dimensions from limits and size the cards
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
-  if (dominoActive()) { gridRows = DOMINO_ROWS; gridCols = DOMINO_COLS; }
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
@@ -497,7 +494,7 @@ function startGame() {
   const startKeys = [...(isActMode() || match3Active() || survivalActive() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
   // Six Suits (6) and Spectrum (7 colours) both dilute the deck enough that the
   // short flushes are playable from the start alongside the 5-card Flush.
-  if (ACTIVE_MODE.suitCount >= 6) startKeys.push('flush3', 'flush4');
+  if (runSuitCount() >= 6) startKeys.push('flush3', 'flush4');
   if (typeof resetNaturalScaling === 'function') resetNaturalScaling();
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);
@@ -507,7 +504,7 @@ function startGame() {
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
-  syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
+  syncTrickTrayUI();   // show the Trick tray for the new game
   if (typeof portraitMountStats === 'function') portraitMountStats();  // HAND SIZE + COINS under the board in portrait (r377)
   cardPlayCount   = {};
   cardSwapCount   = {};
@@ -559,7 +556,6 @@ function startGame() {
   runStreak          = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
-  freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
@@ -586,7 +582,6 @@ function startGame() {
   resetPositionMarks();
   _posChooserQueue = []; _posChooserActive = false;
   { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
-  leyLinePos = null;
   minuteHandCharges = 0;
   // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
   // the round's first tick, which would prime a Trick one second into the run.
@@ -642,12 +637,6 @@ function startGame() {
   totalScore = 0;
   lastRoundScore = 0; lastRoundGoal = 0;
   coins = 0;
-  shopItems = null;
-  shopPurchased = new Set();
-  shopRerollCount = 0;
-  shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
-  svcMode = null;
-  svcPicked = [];
   nextShopTime = GAME_DURATION - 120;
 
   // Reset boss state

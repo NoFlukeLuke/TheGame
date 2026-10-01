@@ -59,15 +59,20 @@ const MAP_BLANKS_MAX = MAP_BLANK_ODDS.length - 1;
 // How many of the funnel's four lanes carry a real tile. Two is the old fixed
 // shape and is now the least likely; four means no structural blanks at all.
 const MAP_FUNNEL_SOLID_ODDS = { 2: 0.25, 3: 0.40, 4: 0.35 };
+// What fills the free middle cells once the minimums are placed, by weight.
+const MAP_FILL_W = [['level', 30], ['event', 26], ['reward', 20], ['shop', 10], ['challenge', 10], ['limitbreak', 4]];
 function mapRollFunnelSolid() {
-  let r = Math.random();
-  for (const k of [2, 3, 4]) { r -= MAP_FUNNEL_SOLID_ODDS[k]; if (r < 0) return k; }
+  // Weights (r409: tunable in dev -> Probabilities), so normalised by the total.
+  const tot = [2, 3, 4].reduce((t, k) => t + Math.max(0, MAP_FUNNEL_SOLID_ODDS[k] || 0), 0) || 1;
+  let r = Math.random() * tot;
+  for (const k of [2, 3, 4]) { r -= Math.max(0, MAP_FUNNEL_SOLID_ODDS[k] || 0); if (r < 0) return k; }
   return 4;
 }
 function mapRollBlanks() {
-  let r = Math.random();
+  const tot = MAP_BLANK_ODDS.reduce((t, w) => t + Math.max(0, w || 0), 0) || 1;
+  let r = Math.random() * tot;
   for (let i = 0; i < MAP_BLANK_ODDS.length; i++) {
-    r -= MAP_BLANK_ODDS[i];
+    r -= Math.max(0, MAP_BLANK_ODDS[i] || 0);
     if (r < 0) return i;
   }
   return MAP_BLANKS_MAX;
@@ -309,7 +314,7 @@ function _mapBuildOnce() {
     }
   }
   // The rest by weight.
-  const W = [['level', 30], ['event', 26], ['reward', 20], ['shop', 10], ['challenge', 10], ['limitbreak', 4]];
+  const W = MAP_FILL_W;
   const wTotal = W.reduce((a, [, w]) => a + w, 0);
   while (free.length) {
     const [l, s] = free.pop();

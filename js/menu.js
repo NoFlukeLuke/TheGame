@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r410 · Patience 5x5 audit: entrance fix, NEXT debounce, scorer hardening";
+const BUILD = "2026-10-01 · r421 · The 5x5 is Patience: single-card deals, subset lines, twin clocks";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -76,41 +76,9 @@ const MODES = {
     map: true,
     crunch: true
   },
-  // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
-  // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
-  tutorial: {
-    id: 'tutorial',
-    name: 'Orientation',
-    desc: 'A guided first run - a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the shop.',
-    // Pinned seed: orientation is the same experience for everyone, and a bug
-    // report against it is reproducible. The board is still a normal random
-    // deal - the tutorial finds a hand on it rather than stacking one.
-    seed: 'LETHE-INDUCTION',
-    winCondition: 'boss_defeat',
-    enableBosses: true,
-    enableShops: true,
-    enableEvents: true,
-    autoRefillGrid: true,
-    timeIsCurrency: true,
-    autoPlayHands: false,
-    actStructure: true,
-    suitCount: 4,
-    tutorial: true
-  },
-  sixsuits: {
-    id: 'sixsuits',
-    name: 'Six Suits',
-    desc: 'Same four-quarter game, but six suits with only five of each rank, so the deck is 60 cards rather than 78. One rank is cut out of the middle, which leaves the ladder too short for long runs. Flushes are rare and sets come a little easier.',
-    winCondition: 'boss_defeat',
-    enableBosses: true,
-    enableShops: true,
-    enableEvents: true,
-    autoRefillGrid: true,
-    timeIsCurrency: true,
-    autoPlayHands: false,
-    actStructure: true,
-    suitCount: 6
-  },
+  // r409: Orientation and Six Suits are retired. The walkthrough is armed on
+  // every mode's first run (js/tutorial.js) and six suits is a per-mode deck
+  // choice (js/deck-design.js, dev panel -> that mode's tab).
   // Spectrum: the same 3-Act game on a deck with no suits and no court cards -
   // seven COLOURS and plain values 1-15 plus a lone 20. Face/Ace Tricks are
   // filtered out of the pool (see applyModeEntityFilter in js/data/tricks.js).
@@ -147,31 +115,13 @@ const MODES = {
     wilds: 0,
     climb: true
   },
-  survival: {
-    id: 'survival',
-    name: 'Survival',
-    desc: 'Endless escalating goals. Clear a goal to pick from three rewards (Trick, Sleight, Knack or Limit). Miss one and the run ends.',
-    winCondition: 'endless',
-    enableBosses: true,
-    enableShops: true,
-    enableEvents: false,
-    autoRefillGrid: true,
-    // TRUE, corrected in r234. This said false while the flag was read by nothing,
-    // and the two sites that actually charge (js/input.js, js/discard.js) billed
-    // Survival's 2:00 clock for every swap and discard regardless. interactTimeCostsOn()
-    // now reads this flag, so leaving it false would have made interacting free in a
-    // shipped mode as a side effect of wiring up the picker. It describes what
-    // Survival does: the clock is a deadline AND a budget, same as Classic.
-    // Flow charged nothing until r326; it charges half rate now (its own entry says so).
-    timeIsCurrency: true,
-    autoPlayHands: false,
-    survival: true
-  },
   // Flow: Survival with the ROUND clock removed. No per-round time limit and no way
   // to fail a round - clear a goal, take a pick-of-three, get the next goal, repeat.
   // The only clock is a 5-minute SESSION clock counting down to a boss with a real
   // objective and score bar. Max Focus is 20, so decay is the mode's pressure.
-  // survivalActive() is true here too, so it reuses Survival's whole flow.
+  // survivalActive() is true here, so it runs on the Survival engine in
+  // js/survival.js (the pick-of-three, grants, bosses, endless). The Survival
+  // MODE entry itself was removed in r416; the engine stays because Flow is it.
   // See js/flow-mode.js.
   flow: {
     id: 'flow',
@@ -267,23 +217,6 @@ const MODES = {
     match3: true,
     zen: true
   },
-  // Dominoes: two-value tiles that occupy TWO grid cells and fall as one rigid
-  // piece in either orientation (leaving natural gaps). Select 3 adjacent tiles;
-  // every run and set of 3+ across their six half-values scores at once.
-  // See js/data/dominoes.js + js/dominoes-mode.js, and DOMINOES_MODE.md.
-  dominoes: {
-    id: 'dominoes',
-    name: 'Dominoes',
-    desc: 'Two-value tiles fall in either orientation. Select 3 adjacent dominoes; score every run and set of 3+ across their six halves at once.',
-    winCondition: 'endless',
-    enableBosses: false,
-    enableShops: false,
-    enableEvents: false,
-    autoRefillGrid: true,
-    timeIsCurrency: false,
-    autoPlayHands: false,
-    dominoes: true
-  }
 };
 
 let ACTIVE_MODE = MODES.normal;
@@ -361,14 +294,11 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // generated from MODES itself so nothing here has to be listed twice.
 // `crunch` is here because it is a rough first pass being tuned, not because it
 // is an experiment on a different loop the way the other three are.
-// `survival` (r310) and `sixsuits` (r316) are hidden by the owner's call. Six Suits
-// is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
-// `guided` and `spectrum` (r380) likewise: dev panel -> Modes, and Spectrum is
-// still Custom's colour deck.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'sixsuits', 'guided', 'spectrum'];
+// `guided` and `spectrum` (r380): dev panel -> Modes, and Spectrum is still
+// Custom's colour deck. (Survival's mode entry went in r417, Six Suits' in r416;
+// the Survival ENGINE stays because Flow runs on it.)
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'guided', 'spectrum'];
 const MODE_META = {
-  tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
-              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'Four suits. Four quarters, each five rounds and then a review. Reach each round\'s goal before the clock runs out. Between rounds you pick a path on the reward grid, and some paths lead to the shop or a meeting.' },
   // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
@@ -380,12 +310,8 @@ const MODE_META = {
               blurb: 'Each quarter is a schedule: four lanes, six time slots, then a review. Every step activates the obligation you land on: a round, a shop, a reward grid, a meeting and more. Up to two obligations per slot. Leaving a slot after one pays credits. Clearing a round offers a pick of three.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, a reward grid, a pick of three or a meeting. Rounds are free. Most other offers cost credits. The goal rises with every slot.' },
-  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ♛ ☾',
-              blurb: 'Six suits: the four standard ones plus crowns and moons. 60 cards, with one rank removed from the middle. Otherwise plays like Classic.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
-  survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
-              blurb: 'Each goal has its own 2-minute clock. Clear it for a pick of three, then the next goal starts. Extra score carries over. A review comes every 5 minutes of play. Miss a goal and the run ends.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
   climb:    { accent: '#f2c14e',        suits: '1 → 15',
@@ -398,8 +324,6 @@ const MODE_META = {
               blurb: 'The auto-playing board with no clock and unlimited swaps and discards. Goals are doubled.' },
   picker:   { accent: '#ff5fa8',         suits: 'BUILD ONE',
               blurb: 'Answer seven questions to build a run: the deck, what happens between rounds, round length, whether actions cost time, bosses, who submits hands, and hand values.' },
-  dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
-              blurb: 'Beta. Two-value tiles fall and leave gaps. Pick 3 touching tiles and every run and set of 3 or more across their halves scores.' },
 };
 
 function openModeSelect() {

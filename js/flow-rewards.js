@@ -110,8 +110,12 @@ const FLOWR_KINDS = {
   improve:  { label: () => 'IMPROVE',    short: 'IMPROVE',  color: '#e0813a' },
   knacks:   { label: () => flowrEntityWord('knack', true),    short: () => flowrEntityWord('knack', true),   color: '#ff6fa5' },
   tricks:   { label: () => flowrEntityWord('trick', true),    short: () => flowrEntityWord('trick', true),   color: '#e8dd54' },
+  // r409: the post-boss PRIZE GRID as a chain step. It is never ROLLED - it is
+  // only ever placed first in a boss chain - so it is kept out of
+  // FLOWR_KIND_IDS, which is what the odds tables and the dev panel walk.
+  prize:    { label: () => 'PRIZE GRID', short: 'PRIZE',    color: '#ffc94a' },
 };
-const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS);
+const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize');
 
 // The vocabulary, never a typed word - Settings -> Display -> Wording moves
 // Tricks/Sleights/Knacks to Utilities/Vendors/Certs and these headings with it
@@ -180,7 +184,7 @@ let flowrIdx          = 0;
 let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
-function flowrResetRun() { flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrClearStack(); }
+function flowrResetRun() { flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
 function flowrChainActive() { return !!flowrQueue; }
 // True while a chain screen that is NOT the ordinary pick is up - what stops
 // survivalUpdateRerollBtn stamping survival's four actions over this step's row.
@@ -353,6 +357,15 @@ function flowrMaybeStart() {
   }
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
   if (n <= 1 && queue[0] === 'pick3') return false;
+  flowrArm(queue, null);
+  return true;
+}
+
+// The shared tail of both entries: install the queue, bank the count, and hold
+// the tally (flowrIntro) until the counter - and, after a boss, the celebration
+// in front of it - has played and step 1 is on screen.
+function flowrArm(queue, counterOpts) {
+  const n = queue.length;
   flowrQueue = queue;
   flowrIdx = 0;
   // The COUNT is banked synchronously - it is a run stat read by the dev panel
@@ -362,17 +375,66 @@ function flowrMaybeStart() {
   // THE TALLY WAITS FOR THIS (r376). The finale awaits flowrIntroWait() right
   // after the winners land in the preview, so the order the player sees is
   // explode -> fly -> counter -> (options deal in AND the tally resumes
-  // together). Before this the counter was deferred to whenever the blast
-  // happened to settle, which was several beats INTO the score climb - the
-  // "the score animation seems interrupted by the level up count" report.
+  // together).
   let _introDone = null;
   flowrIntro = new Promise(res => { _introDone = res; });
   const _release = () => { const f = _introDone; _introDone = null; flowrIntro = null; f && f(); };
   flowrWhenBoardStill(() => {
     if (!flowrQueue) { _release(); return; }   // the run was abandoned while we waited
-    if (n > 1) flowrPlayCounter(n, () => { flowrShowStep(); _release(); });
+    if (n > 1 || counterOpts) flowrPlayCounter(n, () => { flowrShowStep(); _release(); }, counterOpts);
     else { flowrShowStep(); _release(); }
   });
+}
+
+// ══════════════════════════════════════════════
+// THE BOSS CHAIN (r409)
+// ══════════════════════════════════════════════
+// Owner: a Flow boss win "needs to adopt the regular order of animation" - the
+// same explode -> fly -> counter -> options as a goal clear - with three
+// differences: it always pays AT LEAST TWO rewards, the FIRST is always the
+// prize grid, and the counter is preceded by a celebration (the boss passed,
+// with a fanfare) that shakes and turns into the count. On top of that, more
+// rewards are likelier than on an ordinary clear, and every pick in the chain
+// draws as if the player held FLOWR_BOSS_LUCK more Luck.
+//
+// The 5th boss of a non-endless run is NOT a chain: it opens the run-complete
+// screen, which pays its own prize grid on CONTINUE.
+//
+// Weights of 1..5 rewards. 1 is zero, which is the guarantee of two.
+const FLOWR_BOSS_COUNTS = [0, 36, 30, 20, 14];
+const FLOWR_BOSS_LUCK   = 20;
+const FLOWR_PICKY_KINDS = new Set(['pick3', 'sleights', 'knacks', 'tricks', 'improve']);
+let flowrBossChain  = false;   // the live chain is a boss payout
+let flowrBossLuckOn = false;   // a pick in that chain is on screen - read by luckTotal()
+
+function flowrBossChainEligible() {
+  if (typeof flowActive !== 'function' || !flowActive()) return false;
+  if (!flowrCfg().on || flowrQueue) return false;
+  if (typeof tutorialActive === 'function' && tutorialActive()) return false;
+  const beaten = (typeof survivalBossesBeaten !== 'undefined') ? survivalBossesBeaten : 0;
+  return !!survivalEndless || beaten + 1 < SURVIVAL_BOSS_COUNT;
+}
+
+function flowrRollBossCount() {
+  const ls = (typeof luckScale === 'function') ? luckScale() : 1;
+  const w = FLOWR_BOSS_COUNTS.slice(0, FLOWR_MAX);
+  return Math.max(2, flowrPickWeighted(w.map((_, i) => i + 1), w.map((v, i) => Math.max(0, v) * (i > 1 ? ls : 1))));
+}
+
+// Called with the boss already settled (endBoss ran). The queue is the prize
+// grid plus N-1 ordinary rolled kinds; pick3 may still appear once, since the
+// prize grid is not a pick.
+function flowrStartBossChain(bossName) {
+  const n = flowrRollBossCount();
+  const odds = flowrOddsNow();
+  const queue = ['prize'], taken = {};
+  for (let i = 1; i < n; i++) {
+    const k = flowrKindViable2(flowrRollKind(flowrDampOdds(odds, taken)));
+    queue.push(k);
+    taken[k] = (taken[k] || 0) + 1;
+  }
+  flowrBossChain = true;
+  flowrArm(queue, { boss: { name: bossName || '' } });
   return true;
 }
 
@@ -429,8 +491,8 @@ function flowrWhenBoardStill(cb) {
 function flowrShowStep() {
   if (!flowrQueue) return;
   animating = false;
-  if (typeof trickSelectionPhase !== 'undefined') trickSelectionPhase = false;
   const kind = flowrQueue[flowrIdx];
+  flowrBossLuckOn = flowrBossChain && FLOWR_PICKY_KINDS.has(kind);
   flowrRenderStack();
   // The step's own board decides the panel's size, and it holds it until the
   // NEXT step pins its own - so the gap in between cannot move it.
@@ -440,6 +502,7 @@ function flowrShowStep() {
     try { survivalShowPick(false); } finally { _flowrBypass = false; }
     return;
   }
+  if (kind === 'prize') { rewardGridContext = 'survival'; openPrizeGrid(); return; }
   if (kind === 'deck')  { flowrShowDeckPick(); return; }
   if (kind === 'cards') { flowrShowCardsPick(); return; }
   flowrShowEntityStep(kind);
@@ -451,6 +514,7 @@ function flowrShowStep() {
 function flowrAfterStep() {
   if (!flowrQueue) return false;
   const from = flowrQueue[flowrIdx];   // the tab just chosen - it is what fades
+  flowrBossLuckOn = false;
   flowrIdx++;
   // NO flowrRenderStack() HERE (r400). flowrHandOver renders the new arrangement
   // itself, and it has to measure the OUTGOING tab first - rendering above it
@@ -602,13 +666,16 @@ function flowrEnterPanel() {
 }
 
 function flowrFinish() {
+  const _boss = flowrBossChain;
   flowrQueue = null; flowrIdx = 0;
+  flowrBossChain = false; flowrBossLuckOn = false;
   flowrClearStack();
-  // The chain only ever starts on a GOAL CLEAR, so the level-up carries the
-  // score overflow and pays the time credits exactly as a single pick would.
+  // A goal-clear chain carries the score overflow and pays the time credits
+  // exactly as a single pick would. A BOSS chain does neither - no goal was
+  // cleared - which is what the post-boss prize grid always did.
   survivalGridPickCarry = false;
   survivalBonusPick = false;
-  survivalSkipCarryover = false;
+  survivalSkipCarryover = _boss;
   triggerLevelUp();
   survivalSkipCarryover = false;
 }
@@ -936,15 +1003,68 @@ function flowrLasers(k) {
 }
 function flowrClearConfetti() { document.getElementById('flowr-confetti')?.remove(); }
 
-function flowrPlayCounter(n, done) {
+function flowrPlayCounter(n, done, opts) {
+  const boss = opts && opts.boss;
   // Settings -> Skip -> Reward count-up (r380). The number is still worth
   // saying, so it is a toast rather than nothing; the tabs above the board show
   // the chain either way.
   if (typeof skipOn === 'function' && skipOn('rewardCount')) {
-    showMessage(`GOAL CLEARED · ×${n} REWARDS`, '#7fd45a');
+    showMessage(`${boss ? flowrBossPassedText() : 'GOAL CLEARED'} · ×${n} REWARDS`, boss ? '#ffc94a' : '#7fd45a');
     done && done();
     return;
   }
+  // A boss win opens on the celebration, which shakes and hands over to the
+  // ordinary counter at its own spot (r409).
+  if (boss) { flowrBossCelebrate(boss, () => flowrCountUp(n, done, flowrBossPassedText().replace('!', ''))); return; }
+  flowrCountUp(n, done, 'GOAL CLEARED');
+}
+
+// "BOSS PASSED!" or "REVIEW PASSED!", by the live wording (Settings -> Display
+// -> Wording). In corporate the boss is the manager review.
+function flowrBossPassedText() {
+  return (typeof activeLexicon !== 'undefined' && activeLexicon === 'corporate') ? 'REVIEW PASSED!' : 'BOSS PASSED!';
+}
+
+// ══════════════════════════════════════════════
+// THE BOSS CELEBRATION (r409) - pop up, fanfare, shake, then the count
+// ══════════════════════════════════════════════
+const FLOWR_CEL_HOLD  = 1250;  // on screen before it starts to shake
+const FLOWR_CEL_SHAKE = 720;   // the shake, building
+function flowrBossCelebrate(boss, done) {
+  const host = document.getElementById('grid-slot') || document.getElementById('stage') || document.body;
+  document.getElementById('flowr-cel')?.remove();
+  const el = document.createElement('div');
+  el.id = 'flowr-cel';
+  const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rr = (typeof PICK_REROLLS_PER_BOSS !== 'undefined') ? `+${PICK_REROLLS_PER_BOSS} REROLLS` : '';
+  el.innerHTML = `<div class="fcel-kick">${esc(boss.name)}</div>`
+    + `<div class="fcel-title">${flowrBossPassedText()}</div>`
+    + (rr ? `<div class="fcel-sub">${rr}</div>` : '');
+  host.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  try { sfxBossFanfare?.(); } catch (e) {}
+  flowrFlash();
+  flowrConfetti(4);          // every colour - this is the big one
+  flowrLasers(5);
+  let over = false;
+  const burst = () => {
+    if (over) return; over = true;
+    el.classList.remove('shake'); el.classList.add('burst');
+    try { sfxWinExplode?.(); } catch (e) {}
+    setTimeout(() => el.remove(), 320);
+    done && done();
+  };
+  const tShake = setTimeout(() => { if (!over) el.classList.add('shake'); }, FLOWR_CEL_HOLD);
+  const tBurst = setTimeout(burst, FLOWR_CEL_HOLD + FLOWR_CEL_SHAKE);
+  // The goal hand's SKIP cuts straight to the count.
+  try {
+    if (typeof dncFFRegister === 'function') dncFFRegister(() => {
+      clearTimeout(tShake); clearTimeout(tBurst); burst();
+    });
+  } catch (e) {}
+}
+
+function flowrCountUp(n, done, kick) {
   const host = document.getElementById('grid-slot') || document.getElementById('stage') || document.body;
   document.getElementById('flowr-counter')?.remove();
   flowrApplyChipStyle();
@@ -953,7 +1073,7 @@ function flowrPlayCounter(n, done) {
   el.className = 'fc-s-' + flowrChipStyle;
   // .fc-deco and .fc-pips are always emitted and are used by some looks and
   // not others - a look is a stylesheet block, never a second markup builder.
-  el.innerHTML = `<i class="fc-deco"></i><div class="fc-kick">GOAL CLEARED</div>`
+  el.innerHTML = `<i class="fc-deco"></i><div class="fc-kick">${kick || 'GOAL CLEARED'}</div>`
     + `<div class="fc-num"><b>&times;</b><em>1</em></div><div class="fc-sub">REWARD</div>`
     + `<i class="fc-pips"></i>`;
   host.appendChild(el);
@@ -1417,7 +1537,7 @@ function flowrDrawOps(n, list) {
   return out;
 }
 const FLOWR_DUAL_MAX = 4;
-const FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
+let FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
 function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MAX; }
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;

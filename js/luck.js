@@ -48,7 +48,10 @@ let luckModifiers = 0;
 // come out negative and a rarity weight can never invert the ladder.
 function luckTotal() {
   const base = (typeof limits !== 'undefined' && limits.luck) ? limits.luck.current : 0;
-  return Math.max(-100, base + luckModifiers);
+  // r409: a pick inside a Flow boss chain draws as if with FLOWR_BOSS_LUCK more.
+  let boss = 0;
+  try { if (flowrBossLuckOn) boss = FLOWR_BOSS_LUCK; } catch (e) {}
+  return Math.max(-100, base + luckModifiers + boss);
 }
 // Luck as a plain multiplier on a chance: 1.0 at luck 0, 2.0 at luck 100.
 function luckScale() { return 1 + luckTotal() / 100; }

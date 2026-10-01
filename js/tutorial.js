@@ -80,10 +80,8 @@ function tutorialActive() { return tutorialArmed; }
 // A mode absent from the table takes whatever seed the run would otherwise use.
 const TUTORIAL_SEEDS = {
   map:      'LETHE-SCHEDULE',
-  survival: 'LETHE-SURVIVAL',
   guided:   'LETHE-GUIDED',
   normal:   'LETHE-INDUCTION',
-  sixsuits: 'LETHE-SIXSUITS',
   spectrum: 'LETHE-SPECTRUM',
   flow:     'LETHE-FLOW',
   crunch:   'LETHE-CRUNCH',
@@ -539,12 +537,6 @@ const TUTORIAL_STEPS = [
     eyebrow: 'The run',
     title: 'The review',
     body: `The review is a boss round with its own clock and its own {GOAL}. Fail it and the run ends. Pass it and the clock refills.<br><br>The shop button beside your credits opens the shop for a fee, at any time.`,
-  },
-  {
-    id: 'progress-endless', only: 'survival', not: 'flow', side: 'float', next: true,
-    eyebrow: 'The run',
-    title: 'No last round',
-    body: `Clear a {GOAL}, take a reward, get a bigger {GOAL}.<br><br>It keeps going until you miss one. A review arrives every few minutes.`,
   },
   {
     id: 'clear', side: 'float',

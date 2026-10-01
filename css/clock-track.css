@@ -81,7 +81,7 @@ body.reduced-motion .clk-mark { box-shadow: none; }
 
 /* LANDSCAPE IS PLACED FROM JS, NOT FROM HERE - syncSidebarsToGrid() in
    js/grid-metrics.js tracks the grid's REAL left edge, top and height, because
-   the board moves (more columns, the shop squish) and a static percentage
+   the board moves (more columns, a takeover) and a static percentage
    cannot follow it. Only the column's WIDTH is CSS, and the JS reads it back
    off the element so the two cannot disagree. */
 #stage.landscape #focus-meter-wrap {

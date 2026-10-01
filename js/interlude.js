@@ -128,14 +128,6 @@ async function showLevelUpScreen_fallOnly() {
   const gridBottom = gridEl.offsetHeight + 80;
   const fallPromises = [];
 
-  // Snapshot Trick positions before the fall
-  const preservedTricks = [];
-  for (let r = 0; r < gridRows; r++) {
-    for (let c = 0; c < gridCols; c++) {
-      if (gridData[r][c]?._isTrick) preservedTricks.push({ r, c, card: gridData[r][c] });
-    }
-  }
-
   for (let r = gridRows - 1; r >= 0; r--) {
     for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
@@ -156,7 +148,7 @@ async function showLevelUpScreen_fallOnly() {
     if (!_persist) {
       for (let c = 0; c < gridCols; c++) {
         const card = gridData[r][c];
-        if (card && !card._isTrick) {
+        if (card) {
           discardToPlayed(card);
           gridData[r][c] = null; // clear immediately so HUD reflects the move
         }
@@ -177,13 +169,9 @@ async function showLevelUpScreen_fallOnly() {
   // untouched: the Tricks still own their lines.
   if (typeof clearLineMarkers === 'function') clearLineMarkers();
 
-  // Reset gridData; Tricks get restored to their snapshotted positions for refill.
   // With a persisting board there is nothing to reset - every cell still holds
-  // the card it held, Tricks included, and the next deal simply redraws it.
-  if (!_persist) {
-    gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
-    preservedTricks.forEach(({r, c, card}) => { gridData[r][c] = card; });
-  }
+  // the card it held, and the next deal simply redraws it.
+  if (!_persist) gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
   trickCardPos = null;
   animating = false;
 }

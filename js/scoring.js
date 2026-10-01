@@ -76,8 +76,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (!base) return 0;
   // ── KICKERS (r385) ──
   // A kicker is a selected card no component claims (js/limits.js). Without the
-  // Chip In knack it scores NOTHING, so it is stripped here and never reaches the
-  // card loop. With Chip In it stays in the card loop - its own pips, every
+  // Pip In knack it scores NOTHING, so it is stripped here and never reaches the
+  // card loop. With Pip In it stays in the card loop - its own pips, every
   // per-card Trick it would fire - but every HAND-LEVEL fact (how many cards,
   // what ranks and suits the hand is made of) still reads the hand alone, so a
   // Run of 4 plus a kicker is a four-card hand to everything that asks.
@@ -1127,7 +1127,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // only clears _primed, so a rank never runs out. Reusing the prime loop is
   // what makes a Trick upgrade generic - it needs no code in any of the 177
   // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
-  if (trickTrayMode) trickTray.forEach(t => {
+  trickTray.forEach(t => {
     const _extra = (t._primed || 0) + (t._rank || 0);
     if (_extra <= 0) return;
     const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
@@ -1215,7 +1215,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // qualifying keyword scores its effect a second time - reuses the priming contribution model
   // (re-adds that Trick's pip/mult delta this hand). TBD: like priming, only the SCORING portion of
   // the doubled Trick re-fires; its non-scoring side effects (Focus/pause/coins) don't.
-  if (hasTrick('move_as_one') && trickTrayMode) {
+  if (hasTrick('move_as_one')) {
     // r363: the keywords are CURATED (moveAsOneKeywordsOf) and the Trick that
     // fires again is a RANDOM one carrying a qualifying keyword - drawn
     // deterministically per hand, because this runs speculatively.
@@ -1302,7 +1302,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // The Grind (boss): a hand type pays less every time you repeat it inside its
   // window. Read-only here; playHand is what pushes the history.
   if (typeof bossGrindMult === 'function') _xs('_grind', bossGrindMult(handName), 'boss');
-  // The dev-only Trick card sitting on the grid (trickTrayMode off).
+  // The starred card (assignTrickCard, every TRICK_CARD_INTERVAL seconds).
   if (hasTrickCard) _xs('_trickcard', 2, 'trick');
   // Low and Behold is a PER-CARD REPLAY now (see _labOn in the card loop), not a
   // x2 here. It was the one entry on this list whose printed text described cards
@@ -1521,17 +1521,9 @@ function roundContributionRowsHTML() {
 function hasTrick(id) {
   if (isTrickDisabledByBoss(id)) return false;
   if (typeof entitySuspended === 'function' && entitySuspended('trick', id)) return false;
-  if (trickTrayMode && trickTray.some(b => b.id === id)) return true;
-  // gridData?.[r] - the grid is empty between screens (menu, Builds, mid-deal), and
-  // a stray timer tick landing there would otherwise throw on gridData[r][c].
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) {
-      const cell = gridData?.[r]?.[c];
-      if (cell?._isTrick && cell.trick?.id === id) return true;
-    }
-  return false;
+  return trickTray.some(b => b.id === id);
 }
-// For dedup only - checks acquiredTricks (Trick was ever granted, may not be on grid)
+// For dedup only - checks acquiredTricks (Trick was ever granted, may have been sold)
 function ownsTrick(id) { return acquiredTricks.some(b => b.id === id); }
 function hasKnack(id) {
   if (typeof entitySuspended === 'function' && entitySuspended('knack', id)) return false;
@@ -1543,7 +1535,6 @@ function hasKnack(id) {
 // contribution this hand is duplicated in calcScore. Multiple Mirrors stack.
 function mirroredTrickIds() {
   const ids = [];
-  if (!trickTrayMode) return ids;
   for (let i = 0; i < trickTray.length; i++) {
     const t = trickTray[i];
     if (t.id !== 'mirror') continue;
@@ -1574,11 +1565,9 @@ function mirroredTrickIds() {
 function trickFires(id) {
   if (!hasTrick(id)) return 0;
   let n = 1;
-  if (trickTrayMode) {
-    const t = trickTray.find(b => b.id === id);
-    if (t) n += (t._primed || 0) + (t._rank || 0);
-    n += mirroredTrickIds().filter(m => m === id).length;
-  }
+  const t = trickTray.find(b => b.id === id);
+  if (t) n += (t._primed || 0) + (t._rank || 0);
+  n += mirroredTrickIds().filter(m => m === id).length;
   _trickFiredThisHand.add(id);
   return n;
 }

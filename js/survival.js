@@ -6,7 +6,7 @@
 // there is no reward grid and no node/act structure. A shop is available on
 // demand from the coins chip for 5 coins. Bosses arrive every 8 clears (stage 2).
 //
-// Self-contained like js/match3.js / js/dominoes-mode.js: survivalActive() gates
+// Self-contained like js/match3.js: survivalActive() gates
 // everything and the hooks in the shared engine are one-liners.
 
 // True for BOTH survival flavours. Flow (js/flow-mode.js) is Survival with the round
@@ -59,7 +59,6 @@ function modeHasNoRewardGrid() {
   if (survivalActive()) return true;
   if (typeof squaresActive === 'function' && squaresActive()) return true;
   if (typeof match3Active === 'function' && match3Active()) return true;
-  if (typeof dominoActive === 'function' && dominoActive()) return true;
   return false;
 }
 // A reward grid after every cleared round: the act modes, minus Guided (a grid
@@ -431,7 +430,6 @@ function survivalShowPick(bonus = false, kicker) {
   // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.
   if (!bonus && typeof flowrMaybeStart === 'function' && flowrMaybeStart()) return;
   animating = false;
-  trickSelectionPhase = false;
   survivalBonusPick = !!bonus;
   survivalPickKicker = kicker || (bonus ? 'BOSS DEFEATED' : 'GOAL CLEARED');
   pickRerollsNewScreen();              // the PRICE ladder restarts on a new pick
@@ -836,10 +834,13 @@ function survivalTriggerBoss() {
 // Boss defeated: grant carry-over rerolls, then either finish the run (after the
 // 5th boss) or hand out a bonus pick and continue.
 // (endBoss already cleared modifiers/blocked cells and zeroed the time bank.)
-function survivalPostBossReward() {
+function survivalBossBookkeeping() {
   if (typeof flowEndBoss === 'function') flowEndBoss(); // Flow: refill the session clock on the next deal
   survivalBossesBeaten++;
   survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS; // restart the 5-minute cadence
+}
+function survivalPostBossReward() {
+  survivalBossBookkeeping();
   survivalSpreadFreeze();
   if (!survivalEndless && survivalBossesBeaten >= SURVIVAL_BOSS_COUNT) {
     setTimeout(() => showSurvivalCompleteScreen(), 420);
@@ -913,8 +914,7 @@ function survivalContinueEndless() {
 // Mart, so leaving the shop returns you to your three options.
 function survivalOpenShop() {
   if (!survivalActive()) return;
-  if ((typeof shopGridActive !== 'undefined' && shopGridActive)
-      || document.getElementById('shop-overlay')?.classList.contains('show')) return;
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
   if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${SURVIVAL_SHOP_COST} 💰`, 'var(--red)'); return; }
   coins -= SURVIVAL_SHOP_COST;
   updateCoinsUI();
