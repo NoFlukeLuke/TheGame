@@ -79,27 +79,21 @@ function minSelectionBinds() { return handMinSelection() > 2; }
 //
 // A card the hand cannot use beyond the allowance is a PENALTY card, as before
 // (r201): outside the hand, billed its pips, consumed anyway.
-const TAGALONG_KEY = 'lethe.tagalong.v2';
 const KICKER_BASE_MAX = 1;
-// How many kickers a hand may carry WITH Tagalong. 0 = unlimited (shipped).
-let tagalongMaxCards = 0;
+// How many kickers a hand may carry WITH Tagalong. 0 = unlimited.
+// r409: the dev knobs for these two were retired (the knacks cover it); the
+// stored config is cleared so an old tuning cannot linger unseen.
+const tagalongMaxCards = 0;
 // Seconds per point of pip value a kicker costs. 1 = "its rank in time".
-let tagalongTimeRate = 1;
-try {
-  const _tg = JSON.parse(localStorage.getItem(TAGALONG_KEY) || '{}');
-  if (isFinite(_tg.max))  tagalongMaxCards = Math.max(0, Math.min(9, _tg.max | 0));
-  if (isFinite(_tg.rate)) tagalongTimeRate = Math.max(0, Math.min(4, +_tg.rate));
-} catch (e) {}
-function saveTagalongCfg() {
-  try { localStorage.setItem(TAGALONG_KEY, JSON.stringify({ max: tagalongMaxCards, rate: tagalongTimeRate })); } catch (e) {}
-}
+const tagalongTimeRate = 1;
+try { localStorage.removeItem('lethe.tagalong.v2'); } catch (e) {}
 function tagalongOwned() { return typeof hasKnack === 'function' && hasKnack('tagalong'); }
 // How many kickers ONE hand may carry. It is in the components cache key: changing
 // it changes the answer for cells whose cards have not moved.
 function tagalongMax() { return tagalongOwned() ? (tagalongMaxCards > 0 ? tagalongMaxCards : Infinity) : KICKER_BASE_MAX; }
 // Tagalong's other half: kickers cost nothing.
 function kickersFree() { return tagalongOwned(); }
-// Chip In: kickers score and fire per-card Tricks as part of the hand.
+// Pip In: kickers score and fire per-card Tricks as part of the hand.
 function kickersScore() { return typeof hasKnack === 'function' && hasKnack('kick_in'); }
 // The raw pip value of a set of kicker cells (a wild has none).
 function kickerPipValue(cells) {
@@ -108,7 +102,7 @@ function kickerPipValue(cells) {
   return pips;
 }
 // The pip bill on a set of kicker cells. 0 when Tagalong makes them free, and 0
-// under Chip In, where they SCORE their pips instead: billing a card the pips it
+// under Pip In, where they SCORE their pips instead: billing a card the pips it
 // just scored would make the knack do nothing.
 function kickerPipBill(cells) {
   if (!cells || !cells.length || kickersFree() || kickersScore()) return 0;
@@ -116,7 +110,7 @@ function kickerPipBill(cells) {
 }
 // What a set of kicker cells costs in seconds. Rounded once at the end, not per
 // card, so three 7s cost 21s and not 3x7 rounded three times. 0 when free
-// (Tagalong) and 0 under Chip In (r386, owner: it negates the time cost too).
+// (Tagalong) and 0 under Pip In (r386, owner: it negates the time cost too).
 function tagalongSecondsFor(cells) {
   if (!cells || !cells.length || tagalongTimeRate <= 0 || kickersFree() || kickersScore()) return 0;
   return Math.round(kickerPipValue(cells) * tagalongTimeRate * interactTimeCostMult());
@@ -391,7 +385,6 @@ const C = {
 };
 let acquiredTricks = [];
 let acquiredKnacks = [];
-let trickTrayMode = true;   // default: Tricks live in the side tray, NOT on the grid (dev toggle re-enables grid placement)
 // Per-card-type tracking for exalt/corrupt triggers (key: cardKey(rank,suit))
 let cardPlayCount  = {};   // times scored this run
 let cardSwapCount  = {};   // times swapped this run

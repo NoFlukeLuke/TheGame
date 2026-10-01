@@ -113,43 +113,20 @@ function sqShapeDraw(size, avoid) {
   return idx;
 }
 
-// ── THE VALUE TABLE ────────────────────────────────────────────────────────
-// Ranked by genuine 5-card frequency and priced against the classic American
-// Poker Squares ladder (0/2/5/10/15/20/25/50/75). Relative to a Pair this pays
-// 1 / 2.3 / 4.9 / 7.5 / 10.1 / 12.4 / 24.9 against its 1 / 2.5 / 5 / 7.5 / 10 /
-// 12.5 / 25. The one deliberate departure is the Straight Flush: the classic
-// pays it 1.5x a Four of a Kind while it is genuinely 16x rarer, so here it is
-// a jackpot at ~3.5x. Something to hunt.
+// ── THE VALUE TABLE - SUPERSEDED BY THE PATIENCE TABLE (r409) ────────────── The old real-poker ladder lived here;
+// the 5x5 is the patience game now and its table is SQP_HAND_VALUES in
+// js/squares-patience.js - a Balatro-shaped ladder where every 5-card hand
+// out-worths every 4-card hand out-worths every 3-card hand.
 //
-// RUN OF 3 AND RUN OF 4 ARE THE TWO NON-KICKER HANDS (r309, owner's call). Every
-// other hand here IS the line, kickers and all; these two use only the cards in
-// the run and the cards left over SUBTRACT their pips, which is the owner's
-// original rule for a line that only makes a short hand. Priced off their
-// measured frequency in a random five-card line - a run of 4 turns up on 4.1% of
-// lines (rarer than Two Pair at 4.75%, commoner than Trips at 2.1%) and a run of
-// 3 on 19.8% (between Pair at 42% and Two Pair) - then handicapped for the pips
-// they forfeit and the penalty they carry.
-const SQ_HAND_VALUES = {
-  'High Card':       { pips: 0,   mult: 1  },
-  'Pair':            { pips: 30,  mult: 2  },
-  'Run of 3':        { pips: 40,  mult: 2  },
-  'Two Pair':        { pips: 65,  mult: 3  },
-  'Run of 4':        { pips: 80,  mult: 4  },
-  'Three of a Kind': { pips: 125, mult: 4  },
-  'Straight':        { pips: 130, mult: 6  },
-  'Flush':           { pips: 155, mult: 7  },
-  'Full House':      { pips: 170, mult: 8  },
-  'Four of a Kind':  { pips: 240, mult: 12 },
-  'Straight Flush':  { pips: 500, mult: 22 },
-};
 // Everything else in HAND_BASE is a hand this mode does not have. Zeroed rather
 // than deleted: a layered component or a stray lookup then pays nothing instead
 // of throwing.
 function squaresInstallHandValues() {
   if (typeof HAND_BASE === 'undefined') return;
+  const T = (typeof SQP_HAND_VALUES !== 'undefined') ? SQP_HAND_VALUES : {};
   Object.keys(HAND_BASE).forEach(k => {
-    if (SQ_HAND_VALUES[k]) { HAND_BASE[k].pips = SQ_HAND_VALUES[k].pips; HAND_BASE[k].mult = SQ_HAND_VALUES[k].mult; }
-    else                   { HAND_BASE[k].pips = 0; HAND_BASE[k].mult = 1; }
+    if (T[k]) { HAND_BASE[k].pips = T[k].pips; HAND_BASE[k].mult = T[k].mult; }
+    else      { HAND_BASE[k].pips = 0; HAND_BASE[k].mult = 1; }
   });
   // No Focus in this mode, so nothing may generate it.
   if (typeof HAND_FOCUS !== 'undefined') Object.keys(HAND_FOCUS).forEach(k => { HAND_FOCUS[k] = 0; });
@@ -337,8 +314,9 @@ function squaresTeardown() {
   // so an empty slot, a drop ghost or the line banner survives into the NEXT
   // mode and paints over its board - measured, 9 slots from a 3x3 were still
   // there under Classic's 16 cards. Same shape as the r248 crossroads tiles.
-  document.querySelectorAll('#grid .sq-slot, #grid .sq-ghost, #grid .sq-lock, #grid .sq-bline, #grid .sq-grp, #grid .sq-hdr, #grid .sq-lbtn').forEach(el => el.remove());
+  document.querySelectorAll('#grid .sq-slot, #grid .sq-ghost, #grid .sq-lock, #grid .sq-bline, #grid .sq-grp, #grid .sq-hdr, #grid .sq-lbtn, #grid .sqp-ring').forEach(el => el.remove());
   document.getElementById('sq-banner')?.remove();
+  if (typeof sqpTeardown === 'function') sqpTeardown();
   document.getElementById('sq-paytable')?.remove();
   document.getElementById('sq-drag')?.remove();
   sqHideTip();
@@ -355,6 +333,8 @@ function squaresBeginRun() {
   document.getElementById('stage')?.classList.add('squares-mode');
   sqMountPanels();
   sqObserveLayout();
+  // A fresh squares run over a live patience one must not inherit its clock.
+  if (typeof sqpStopTimer === 'function') sqpStopTimer();
   sqRound = 1; sqTotal = 0; sqRoundScore = 0; sqCons = []; sqLog = []; sqPieceId = 0;
   sqBags = {}; sqdBoons = []; sqdPlaced = []; sqdPar = null; sqdParTotal = 0; sqdParExact = true;
   sqdGrids = []; sqdDealTries = 1;
@@ -383,15 +363,22 @@ function sqAskSize() {
          <div class="sq-od"><b>Three grids.</b> The same puzzle, bigger: two 3-tiles, four 2-tiles
          and five singles - 19 cells of tiles for 16 of board - and eight lines of four to fill.</div></div>
        <div class="sq-opt" data-n="5"><div class="sq-on">5 x 5</div>
-         <div class="sq-od"><b>Ten rounds.</b> The original. Three tiles a turn over four turns, real
-         poker hands through the game's own scoring, and a Trick and a consumable between rounds.</div></div>
+         <div class="sq-od"><b>Two grids, one score.</b> Three cards at a time, dragged onto the board
+         one by one. A trick before every other deal, a payout mid-grid and again at the end: the best
+         hand of 3+ cards in every row and column, times your Focus. 3 swaps, 3 discards, 5 minutes.</div></div>
      </div>`;
   ov.querySelector('.sq-foot').innerHTML = '';
   ov.querySelectorAll('.sq-opt').forEach(o => o.onclick = () => {
     sqSetSize(+o.dataset.n);
     if (typeof sfxRewardSelect === 'function') sfxRewardSelect();
-    if (sqDaily()) { sqCloseOverlay(); sqMode = 'all'; sqNewRound(); }
-    else sqAskMode();
+    sqMode = 'all';
+    sqCloseOverlay();
+    // THE 5x5 IS THE PATIENCE GAME NOW (r409, js/squares-patience.js). The old
+    // turn/polyomino 5x5 - SQ_SCHEDULE, SCORE ALL / SELECT SCORE, the between-
+    // round picks - is unreachable from here; what survives of it below is only
+    // what the dailies share (the drag machine, the tally, the consumables).
+    if (sqDaily()) sqNewRound();
+    else sqpBegin();
   });
   sqShowOverlay();
 }
@@ -580,9 +567,13 @@ function sqBestRun(cards) {
   return null;
 }
 
-// THE ONE PLACE A LINE'S SCORE IS ASKED FOR. The 5x5 goes through the game's
-// real `calcScore`; a daily grid has no pips x mult at all and scores itself.
-function sqLineResult(i) { return sqDaily() ? sqdScoreLine(i) : sqScoreLine(i); }
+// THE ONE PLACE A LINE'S SCORE IS ASKED FOR. The patience 5x5 scores the best
+// >=3-card subset of a line through the real `calcScore` (js/squares-patience.js);
+// a daily grid has no pips x mult at all and scores itself.
+function sqLineResult(i) {
+  if (typeof sqPatActive === 'function' && sqPatActive()) return sqpScoreLine(i);
+  return sqDaily() ? sqdScoreLine(i) : sqScoreLine(i);
+}
 // ONE SCORE PER LINE PER REPAINT (r375). The line headers and the live chips
 // both want all 2N lines, and in the 5x5 a line is a real `calcScore` - so
 // without this a single render ran it forty times. Dropped at the top of
@@ -907,6 +898,8 @@ function sqRenderAll() {
   sqRenderCons();
   sqPaintButtons();
   sqPaintHud();
+  // The patience 5x5's own layers: selection rings over the two picked cells.
+  if (typeof sqPatActive === 'function' && sqPatActive()) sqpPaintExtras();
 }
 
 // Design px -> the cell under a viewport point. #grid carries the cabinet's CSS
@@ -965,16 +958,23 @@ function sqPaintGhost() {
   g.querySelectorAll('.sq-ghost').forEach(el => el.remove());
   if (!sqTentative) return;
   const { piece, r, c } = sqTentative, ok = sqFits(piece, r, c);
+  // THE PATIENCE 5x5 MARKS THE CELL, NOT A FOOTPRINT (owner: "rather than green
+  // highlights it should just look like you're dragging a card"). The card
+  // being held IS the information; the board only glows softly where it would
+  // land, and says nothing at all over a cell it cannot take.
+  const pat = typeof sqPatActive === 'function' && sqPatActive();
   piece.cells.forEach(cl => {
     const rr = r + cl.dr, cc = c + cl.dc;
     if (rr < 0 || cc < 0 || rr >= SQ_N || cc >= SQ_N) return;
     const d = document.createElement('div');
-    d.className = 'sq-ghost ' + (ok ? 'ok' : 'bad') + (sqDragging ? ' held' : '');
+    d.className = pat
+      ? 'sq-ghost sqp-drop ' + (ok ? 'ok' : 'bad')
+      : 'sq-ghost ' + (ok ? 'ok' : 'bad') + (sqDragging ? ' held' : '');
     d.style.cssText = `left:${cellLeft(cc)}px;top:${cellTop(rr)}px;width:${CARD_W}px;height:${CARD_H}px`;
     // While a tile is being DRAGGED the real cards are under the cursor, so the
     // board only marks the footprint; the tap path has nothing else to show, so
     // there it still prints the face.
-    if (ok && !sqDragging) d.innerHTML = `<span class="sq-gr">${cl.card.rank}</span><span class="sq-gs">${cl.card.suit}</span>`;
+    if (!pat && ok && !sqDragging) d.innerHTML = `<span class="sq-gr">${cl.card.rank}</span><span class="sq-gs">${cl.card.suit}</span>`;
     g.appendChild(d);
   });
 }
@@ -1010,6 +1010,7 @@ function sqSuitCls(suit) {
   return '';
 }
 function sqRenderHand() {
+  if (typeof sqPatActive === 'function' && sqPatActive()) { sqpRenderHand(); return; }
   const host = document.getElementById('selected-cards'); if (!host) return;
   host.innerHTML = '';
   host.classList.add('sq-hand');
@@ -1069,6 +1070,9 @@ function sqFitHand() {
 // ── Consumables live in the GOAL box, which this mode has no use for and which
 // is on screen in BOTH orientations - the one thing the knack row was not.
 function sqRenderCons() {
+  // The patience 5x5 has no consumables; the goal box carries its swap and
+  // discard stock instead.
+  if (typeof sqPatActive === 'function' && sqPatActive()) { sqpRenderStock(); return; }
   const box = document.getElementById('score-to-go'); if (!box) return;
   let host = document.getElementById('sq-cons-row');
   // APPENDED, NEVER `innerHTML = ''`. #score-to-go owns <span id="goal-display">,
@@ -1164,12 +1168,16 @@ function sqPaintHeaders() {
   for (let i = 0; i < SQ_LINES(); i++) {
     const f = sqLineCached(i); if (!f) continue;
     const filled = sqLineCells(i).filter(([r, c]) => gridData[r] && gridData[r][c]).length;
+    // Patience: a line only CLAIMS a hand once it actually pays - a one-card
+    // column reading "HIGH 0" five times across the top is noise, not a readout.
+    const show = (typeof sqPatActive === 'function' && sqPatActive())
+      ? (filled >= 3 && f.total > 0) : filled > 0;
     const d = document.createElement('div');
     d.className = 'sq-hdr ' + (sqIsRow(i) ? 'row' : 'col') + (filled ? '' : ' none')
                 + (sqLocked.has(i) ? ' lock' : '');
     d.dataset.line = i;
-    d.innerHTML = `<span class="sq-hn">${filled ? sqHandShort(f.name) : ''}</span>`
-                + `<span class="sq-hv">${filled ? Math.round(f.total).toLocaleString() : '·'}</span>`;
+    d.innerHTML = `<span class="sq-hn">${show ? sqHandShort(f.name) : ''}</span>`
+                + `<span class="sq-hv">${show ? Math.round(f.total).toLocaleString() : '·'}</span>`;
     if (sqIsRow(i)) { d.style.left = (-SQ_HDR_W + 2) + 'px'; d.style.top = cellTop(i) + 'px';
                       d.style.width = (SQ_HDR_W - 8) + 'px'; d.style.height = CARD_H + 'px'; }
     else            { d.style.top = (-SQ_HDR_H + 1) + 'px'; d.style.left = cellLeft(i - SQ_N) + 'px';
@@ -1230,9 +1238,11 @@ function sqLineTipHTML(i) {
   const cards = sqLineCells(i).map(([r, c]) => gridData[r] && gridData[r][c]).filter(Boolean);
   const faces = cards.map(cd => `<i class="${sqSuitCls(cd.suit)}">${cd.rank}${cd.suit}</i>`).join('');
   return `<div class="sqt-h">${sqLineName(i)}</div>`
-       + `<div class="sqt-hand">${cards.length ? f.name : 'nothing here yet'}</div>`
-       + (cards.length ? `<div class="sqt-faces">${faces}</div>`
-          + `<div class="sqt-sum">${sqLineSum(f)}</div>`
+       + `<div class="sqt-hand">${cards.length ? (f.name || 'no hand yet') : 'nothing here yet'}</div>`
+       + (cards.length ? `<div class="sqt-faces">${faces}</div>` : '')
+       // "0 x 1 = 0" under a line with no hand is arithmetic about nothing;
+       // the sum only prints once there is a hand to price.
+       + (cards.length && f.name ? `<div class="sqt-sum">${sqLineSum(f)}</div>`
           + `<div class="sqt-tot">${Math.round(f.total).toLocaleString()}</div>` : '');
 }
 // A tap in the board's margin, on a phone, asks about the line it is beside.
@@ -1257,7 +1267,7 @@ function sqChipTipHTML() {
   const rows = t.lines.map(f => {
     const filled = sqLineCells(f.i).filter(([r, c]) => gridData[r] && gridData[r][c]).length;
     return `<tr class="${filled ? '' : 'off'}"><td>${sqLineName(f.i)}</td>`
-         + `<td>${filled ? f.name : '—'}</td>`
+         + `<td>${filled ? (f.name || '—') : '—'}</td>`
          + `<td class="n">${filled ? sqLineSum(f) : ''}</td>`
          + `<td class="n b">${filled ? Math.round(f.total).toLocaleString() : ''}</td></tr>`;
   }).join('');
@@ -1308,6 +1318,7 @@ function sqPaintScore() {
   if (el) el.textContent = sqTotal.toLocaleString();
 }
 function sqPaintHud() {
+  if (typeof sqPatActive === 'function' && sqPatActive()) { sqpPaintHud(); return; }
   sqPaintScore();
   const rd = document.getElementById('sq-round');
   if (rd) { const v = rd.querySelector('.sqr-v'); if (v) v.textContent = `${sqRound}/${sqRounds()}`;
@@ -1411,6 +1422,7 @@ function sqExitButtons() {
   if (swap && _sqSwapHTML !== null) { swap.classList.remove('sq-end'); swap.innerHTML = _sqSwapHTML; swap.onclick = null; }
 }
 function sqPaintButtons() {
+  if (typeof sqPatActive === 'function' && sqPatActive()) { sqpPaintButtons(); return; }
   sqEnterButtons();
   const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard'),
         swap = document.getElementById('swap-indicator');
@@ -1526,8 +1538,12 @@ function sqInstallInput() {
     if (!sqDragging) return;
     sqReleaseDrag();
     const p = sqDragging; sqDragging = null;
+    // Dropping a hand tile on DISCARD was the old 5x5's gesture; the patience
+    // game's discards are BOARD-ONLY (owner's call), so it is excluded there -
+    // an unwanted dealt card simply expires.
     const overDisc = !!(document.elementFromPoint(e.clientX, e.clientY)?.closest('#btn-discard'));
-    if (overDisc && !sqDaily() && sqDiscards > 0 && !sqLiftRec) { sqTentative = null; sqLiftRec = null; sqdMarkDrop(null); sqDoDiscard(p); return; }
+    if (overDisc && !sqDaily() && !(typeof sqPatActive === 'function' && sqPatActive())
+        && sqDiscards > 0 && !sqLiftRec) { sqTentative = null; sqLiftRec = null; sqdMarkDrop(null); sqDoDiscard(p); return; }
     // RELEASE IS THE COMMIT (r375). A tile let go over cells it fits drops in;
     // one let go over the TRAY goes back to the tray; anything else goes back
     // where it came from. There is no confirm step in the middle, which is what
@@ -1559,6 +1575,13 @@ function sqInstallInput() {
     const cell = sqCellAt(e.clientX, e.clientY); if (!cell) return;
     if (sqArmed) { sqConsPick(cell[0], cell[1]); return; }
     if (sqPhase !== 'place') return;
+    // THE PATIENCE 5x5: a placed card is COMMITTED - no lift, no rotate. A tap
+    // on one SELECTS it for a swap or a discard; an empty cell falls through to
+    // the tap-to-place path below.
+    if (typeof sqPatActive === 'function' && sqPatActive()) {
+      if (gridData[cell[0]] && gridData[cell[0]][cell[1]]) { sqpBoardTap(cell[0], cell[1]); return; }
+      sqpSel = []; sqpPaintSelRings(); sqpPaintButtons();   // tapping an empty cell drops the pick
+    } else {
     // A PLACED GROUP IS STILL A GROUP (r368), and since r375 a press on one is
     // the start of a GESTURE rather than an instant lift: move the finger and
     // it comes up into the drag, tap it twice and it turns where it stands.
@@ -1575,6 +1598,7 @@ function sqInstallInput() {
       return;
     }
     sqTapAt = 0; sqTapKey = '';
+    }
     if (!sqSelected) return;
     // The no-drag path: a tile selected in the tray, then a cell. It drops
     // straight in if it fits, exactly as a release does.
@@ -1588,11 +1612,16 @@ function sqInstallInput() {
 
   document.getElementById('btn-play')?.addEventListener('click', e => {
     if (!squaresActive()) return;
-    e.stopPropagation(); sqConfirm();
+    e.stopPropagation();
+    // Patience 5x5: the play button is NEXT DEAL / SCORE, never a confirm -
+    // release is the commit there, and the tap path places directly.
+    if (typeof sqPatActive === 'function' && sqPatActive()) { sqpNextPressed(); return; }
+    sqConfirm();
   }, true);
   document.getElementById('btn-discard')?.addEventListener('click', e => {
     if (!squaresActive()) return;
     e.stopPropagation();
+    if (typeof sqPatActive === 'function' && sqPatActive()) { sqpDiscardPressed(); return; }
     if (sqDaily()) { sqdTakeBack(); return; }
     if (sqSelected) sqDoDiscard(sqSelected);
   }, true);
@@ -1701,7 +1730,11 @@ function sqBeginDrag(p, e, grab, liftRec) {
   if (!sqDragEl) { sqDragEl = document.createElement('div'); sqDragEl.id = 'sq-drag'; document.body.appendChild(sqDragEl); }
   sqDragEl.style.display = 'block';
   const k = sqBoardScale(), gap = Math.max(1, (typeof CARD_GAP === 'number' ? CARD_GAP : 3) * k);
-  sqDragEl.innerHTML = `<div class="sq-ghostpoly">${sqPolyHTML(p, 0, 0, { mw: CARD_W * k, mh: CARD_H * k, gap })}</div>`;
+  // The patience 5x5 drags the REAL CARD FACE at board scale, with a velocity
+  // tilt (js/squares-patience.js) - what you are holding is the card that lands.
+  sqDragEl.innerHTML = (typeof sqPatActive === 'function' && sqPatActive())
+    ? sqpGhostHTML(p)
+    : `<div class="sq-ghostpoly">${sqPolyHTML(p, 0, 0, { mw: CARD_W * k, mh: CARD_H * k, gap })}</div>`;
   sqMoveDrag(e);
   const at = sqDropOrigin(e);
   sqTentative = at ? { piece: p, r: at[0], c: at[1] } : null;
@@ -1716,6 +1749,7 @@ function sqMoveDrag(e) {
   const oy = (sqGrab.dr + 0.5) * (CARD_H * k + gap) - gap / 2;
   sqDragEl.style.left = (e.clientX - ox) + 'px';
   sqDragEl.style.top  = (e.clientY - oy) + 'px';
+  if (typeof sqpGhostTilt === 'function' && typeof sqPatActive === 'function' && sqPatActive()) sqpGhostTilt(e);
 }
 function sqReleaseDrag() {
   if (sqDragEl) { sqDragEl.style.display = 'none'; sqDragEl.innerHTML = ''; }
@@ -1747,6 +1781,9 @@ function sqConfirm() {
   sqHand = sqHand.filter(x => x !== piece);
   sqTentative = null; sqSelected = null;
   if (typeof sfxCardPop === 'function') sfxCardPop(piece.cells[0].card.suit);
+  // Patience 5x5: the placement is where Focus is earned - the connection
+  // streak, the line ignition and the settle pop all hang off this one moment.
+  if (typeof sqPatActive === 'function' && sqPatActive()) sqpOnPlaced(piece, r, c);
   sqRenderAll();
 }
 function sqDoDiscard(p) {
@@ -1793,6 +1830,8 @@ function sqdLift(i) {
   sqRenderAll();
 }
 function sqEndTurn() {
+  // Patience 5x5: the third button is SWAP, not END TURN.
+  if (typeof sqPatActive === 'function' && sqPatActive()) { sqpSwapPressed(); return; }
   if (sqPhase !== 'place') return;
   if (sqDaily()) {
     if (!sqdBoardFull()) { if (typeof sfxNoSwaps === 'function') sfxNoSwaps();

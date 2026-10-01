@@ -91,19 +91,6 @@ function recomputeGridMetrics() {
   };
   let box = fit(CARD_GAP_BASE, GRID_PAD);
   let w = box.w, h = box.h;
-  // Dominoes: a cell is only HALF a tile, so the playing-card aspect ratio and the
-  // card-size minimums below don't apply - enforcing them on an 8×8 board pushed
-  // the grid past its slot (tiles drew over the clock bar and off the bottom).
-  // Fit the board to the measured slot instead. It keeps the base gap: a domino
-  // cell is not a card, so a share of its width means nothing.
-  if (typeof dominoActive === 'function' && dominoActive()) {
-    CARD_GAP = CARD_GAP_BASE;
-    CARD_W = Math.max(12, w);
-    CARD_H = Math.max(12, h);
-    CARD_STEP = CARD_H + CARD_GAP;
-    applyGridMetricsToDOM();
-    return;
-  }
   // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
   const shape = () => {
     if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
@@ -205,14 +192,11 @@ function replaceGridCells() {
 // and stretch the clock readout + timer bar across the grid's WIDTH, so both track
 // the grid and scale as it grows (more columns → wider grid → wider clock bar).
 // Where the left column's outer edge sits, as a percentage of the stage. The
-// playing layout runs it to 39.3% (1.56% + 37.74%); the shop squeezes it to
-// 26.56% (1.56% + 25%). Anything that has to sit clear of the column asks here
-// rather than carrying its own copy of the number.
-const LCOL_RIGHT_PLAY = 39.3, LCOL_RIGHT_SHOP = 26.56;
-function leftColumnRightPct() {
-  const stage = document.getElementById('stage');
-  return (stage && stage.classList.contains('shop-squish')) ? LCOL_RIGHT_SHOP : LCOL_RIGHT_PLAY;
-}
+// playing layout runs it to 39.3% (1.56% + 37.74%). Anything that has to sit
+// clear of the column asks here rather than carrying its own copy of the number.
+// (The r230 shop squish that narrowed it is gone, r412.)
+const LCOL_RIGHT_PLAY = 39.3;
+function leftColumnRightPct() { return LCOL_RIGHT_PLAY; }
 
 function syncSidebarsToGrid() {
   const stage = document.getElementById('stage');

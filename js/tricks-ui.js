@@ -1,85 +1,3 @@
-function showTrickChoiceOverlay() {
-  const overlay = document.getElementById('trick-choice-overlay');
-  const cardsEl = document.getElementById('trick-choice-cards');
-  cardsEl.innerHTML = '';
-  overlay._pendingChoice = null;
-
-  function renderCards() {
-    cardsEl.innerHTML = '';
-    trickSelectionOptions.forEach((trick) => {
-      const isPending = overlay._pendingChoice === trick;
-      const card = document.createElement('div');
-      card.className = `trick-choice-card tier-${trick.tier}${isPending ? ' trick-choice-pending' : ''}`;
-      card.innerHTML = `
-        <div class="trick-choice-tier">${tierLabel('trick', trick.tier)}</div>
-        <div class="trick-choice-emoji">${trickEmoji(trick)}</div>
-        <div class="trick-choice-name">${trick.name}</div>
-        ${isPending ? '<div class="trick-choice-confirm">Tap to confirm</div>' : '<div class="trick-choice-hold">hover / hold for details</div>'}
-      `;
-      attachHoverHold(card, () => showTrickDescTooltip(trick, card), hideTrickDescTooltip);
-      card.addEventListener('click', () => {
-        if (card._lpFired) { card._lpFired = false; return; } // long-press = read, not select
-        hideTrickDescTooltip();
-        if (overlay._pendingChoice === trick) {
-          // Confirm
-          overlay.classList.remove('show');
-          document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
-          confirmFullscreenTrickSelection(trick);
-        } else {
-          overlay._pendingChoice = trick;
-          renderCards();
-        }
-      });
-      cardsEl.appendChild(card);
-    });
-  }
-
-  renderCards();
-  overlay.classList.add('show');
-
-  // Skip button - pass on the trick choice
-  const skipBtn = document.getElementById('trick-choice-skip');
-  if (skipBtn) {
-    skipBtn.onclick = () => {
-      clearInterval(levelupTimer);
-      overlay.classList.remove('show');
-      document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
-      trickSelectionPhase = false;
-      drainLevelUpQueue();
-    };
-  }
-
-  startTrickTimer();
-}
-function startTrickTimer() {
-  levelupSeconds = LEVEL_UP_DURATION;
-  updateLUClockUI();
-  levelupTimer = setInterval(() => {
-    levelupSeconds--;
-    updateLUClockUI();
-    if (levelupSeconds <= 0) {
-      clearInterval(levelupTimer);
-      // Auto-pick first option
-      document.getElementById('trick-choice-overlay')?.classList.remove('show');
-      document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
-      confirmFullscreenTrickSelection(trickSelectionOptions[0]);
-    }
-  }, 1000);
-}
-
-function updateLUClockUI() {
-  const secEl = document.getElementById('trick-choice-seconds');
-  if (secEl) secEl.textContent = levelupSeconds;
-  const bar = document.getElementById('trick-choice-timer-bar');
-  if (bar) bar.style.width = (levelupSeconds / LEVEL_UP_DURATION * 100) + '%';
-  // Legacy overlay fallback
-  const luTimer = document.getElementById('lu-timer');
-  if (luTimer) luTimer.textContent = levelupSeconds;
-  const legacyBar = document.getElementById('levelup-timer-bar');
-  if (legacyBar) legacyBar.style.width = (levelupSeconds / LEVEL_UP_DURATION * 100) + '%';
-}
-
-
 function pickTrickOptions(n) {
   const pool = [...TRICK_POOL];
   // Don't offer already acquired bonuses (except stackable ones)
@@ -96,26 +14,6 @@ function pickTrickOptions(n) {
     seen.add(p.id); picked.push(p);
   }
   return picked;
-}
-
-function onTrickTap(trick) {
-  if (!trickSelectionPhase) return;
-  // Find the Trick card to check its state
-  let trickCard = null;
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      if (gridData[r]?.[c]?._isTrick && gridData[r][c].trick.id === trick.id)
-        trickCard = gridData[r][c];
-  if (!trickCard) return;
-  if (trickCard._trickState !== 'new' && trickCard._trickState !== 'upgradeable') return;
-
-  if (pendingTrickChoice && pendingTrickChoice.id === trick.id) {
-    confirmTrickSelection(trick);
-  } else {
-    pendingTrickChoice = trick;
-    showTrickTooltip(trick);
-    render();
-  }
 }
 
 // Returns a live description with current accumulated values for scaling Tricks
@@ -177,134 +75,9 @@ function trickLiveDesc(trick) {
   } catch (e) { return base; }
 }
 
-function showTrickTooltip(trick, readOnly = false) {
-  hideTrickTooltip();
-  const gridEl = document.getElementById('grid');
-  let trickEl = null;
-  gridEl.querySelectorAll('.trick-card').forEach(el => {
-    const cardId = el.dataset.cardId;
-    for (let r = 0; r < gridRows; r++)
-      for (let c = 0; c < gridCols; c++)
-        if (gridData[r]?.[c]?._isTrick && gridData[r][c].trick.id === trick.id && String(gridData[r][c]._id) === cardId)
-          trickEl = el;
-  });
-  if (!trickEl) return;
-
-  const tip = document.createElement('div');
-  tip.id = 'trick-tooltip';
-  tip.className = `trick-tooltip trick-tier-${trick.tier}`;
-  const hint = readOnly ? '' : `<div class="trick-tooltip-hint">Tap again to pick</div>`;
-  const liveDesc = trickLiveDesc(trick);
-  const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
-  const actionBtns = readOnly
-    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
-      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
-    : '';
-  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}${hint}${actionBtns}`;
-  tip.style.opacity = '0';
-  gridEl.appendChild(tip);
-
-  // Wire sell + discard buttons
-  if (readOnly) {
-    tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
-      e.stopPropagation();
-      sellTrick(trick);
-    });
-    tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
-      e.stopPropagation();
-      discardTrickFromGrid(trick);
-    });
-  }
-
-  void tip.offsetWidth;
-
-  // Position using bounding rects - works regardless of animation state
-  const gridRect = gridEl.getBoundingClientRect();
-  const cardRect = trickEl.getBoundingClientRect();
-  const tipW = tip.offsetWidth;
-  const tipH = tip.offsetHeight;
-  const leftRelative = cardRect.left - gridRect.left + cardRect.width / 2 - tipW / 2;
-  const topRelative  = cardRect.top  - gridRect.top  - tipH - 8;
-  tip.style.left = Math.max(2, leftRelative) + 'px';
-  tip.style.top  = Math.max(2, topRelative) + 'px';
-  tip.style.opacity = '1';
-}
-
-function discardTrickFromGrid(trick) {
-  hideTrickTooltip();
-  for (let r = 0; r < gridRows; r++) {
-    for (let c = 0; c < gridCols; c++) {
-      const card = gridData[r]?.[c];
-      if (card?._isTrick && card.trick.id === trick.id) {
-        gridData[r][c] = drawCard() || null;
-        const idx = acquiredTricks.findIndex(b => b.id === trick.id);
-        if (idx >= 0) acquiredTricks.splice(idx, 1);
-        showMessage(`Discarded: ${trick.name}`, 'var(--cream-dim)');
-        render();
-        return;
-      }
-    }
-  }
-}
 function hideTrickTooltip() {
   const tip = document.getElementById('trick-tooltip');
   if (tip) tip.remove();
-}
-
-// ── Overlay Trick tooltip (reward-pick & shop) ──────────────────────────────
-// A standalone bubble positioned next to an arbitrary anchor element (not the
-// grid), so the full description can live in a tooltip on those screens.
-let _descTipTimer = null;
-function showTrickDescTooltip(trick, anchorEl) {
-  hideTrickDescTooltip();
-  if (!trick || !anchorEl) return;
-  const tip = document.createElement('div');
-  tip.id = 'trick-desc-tooltip';
-  tip.className = `trick-tooltip trick-tier-${trick.tier}`;
-  tip.style.position = 'fixed';
-  tip.style.zIndex = '2000';
-  tip.style.maxWidth = '260px';
-  tip.style.minWidth = '150px';
-  tip.style.pointerEvents = 'none';
-  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div>`
-                + `<div class="trick-tooltip-desc">${withSuitHalo(trickLiveDesc(trick))}</div>`;
-  tip.style.opacity = '0';
-  document.body.appendChild(tip);
-  void tip.offsetWidth;
-  const aRect = anchorEl.getBoundingClientRect();
-  const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
-  let left = aRect.left + aRect.width / 2 - tipW / 2;
-  left = Math.max(6, Math.min(window.innerWidth - tipW - 6, left));
-  let top = aRect.top - tipH - 8;
-  if (top < 6) top = aRect.bottom + 8;  // flip below if no room above
-  tip.style.left = left + 'px';
-  tip.style.top  = top + 'px';
-  tip.style.opacity = '1';
-  clearTimeout(_descTipTimer);
-  _descTipTimer = setTimeout(hideTrickDescTooltip, 6000); // auto-dismiss safety
-}
-function hideTrickDescTooltip() {
-  clearTimeout(_descTipTimer);
-  document.getElementById('trick-desc-tooltip')?.remove();
-}
-
-// Wire hover (desktop) + tap-and-hold (mobile) on an element to show/hide a
-// tooltip. Sets el._lpFired after a touch long-press so the click handler can
-// skip its normal action (so "hold to read" doesn't also buy/select).
-function attachHoverHold(el, showFn, hideFn) {
-  let timer = null;
-  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && e.buttons === 0) showFn(); });
-  el.addEventListener('pointerleave', e => { cancel(); if (e.pointerType === 'mouse') hideFn(); });
-  el.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse') return; // desktop uses hover
-    el._lpFired = false;
-    cancel();
-    timer = setTimeout(() => { el._lpFired = true; showFn(); }, 400);
-  });
-  el.addEventListener('pointermove', cancel);
-  el.addEventListener('pointerup', cancel);
-  el.addEventListener('pointercancel', cancel);
 }
 
 // ── Trick Tray: render chips for all tray Tricks ──
@@ -319,7 +92,7 @@ let _trickCountShown = 0;
 // refuseTrickCapacity() is the ONE way that is said, so the sound, the pulse and
 // the wording cannot drift between the shop, the reward grid and a pick.
 function trickTrayFull() {
-  return trickTrayMode && trickTray.length >= trickCapacity();
+  return trickTray.length >= trickCapacity();
 }
 
 function pulseTrickCount() {
@@ -348,6 +121,8 @@ function renderTrickTray() {
   pruneRowColBonuses();
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  // A lifted copy points at a chip this render is about to replace (r409).
+  if (typeof trayLiftEnd === 'function') trayLiftEnd();
   // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the
   // Sleight draw queue. The intercept always ensures the corner toggle exists;
   // in queue view it renders the queue and this function stands down - so every
@@ -432,6 +207,7 @@ function renderTrickTray() {
   });
   // Names are word-atomic and shrink to fit - never broken across a letter (r182).
   fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
+  if (typeof trayLiftBind === 'function') trayLiftBind(list);
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the
@@ -454,8 +230,6 @@ function attachTrickHover(chip, trick) {
 // nothing and did nothing selling does not, so it was a second button whose
 // only distinction was being worse.
 //
-// `actions` is still a parameter because a Trick on the GRID (dev-only tray-off
-// mode) is not one you own from the tray and has nothing to sell.
 function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   hideTrickTooltip();
   const tip = document.createElement('div');
@@ -497,184 +271,16 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   tip.style.opacity = '1';
 }
 
-// Sync the Trick tray / hand-preview panel visibility to the current trickTrayMode (no card migration).
+// The tray is always on and the hand-preview area is hidden inline (landscape
+// CSS overrides that for the dance). The grid placement this used to switch
+// between went in r414.
 function syncTrickTrayUI() {
   const trayArea = document.getElementById('trick-tray-area');
   const previewArea = document.getElementById('hand-preview-area');
-  if (trayArea) trayArea.style.display = trickTrayMode ? 'flex' : 'none';
-  if (previewArea) previewArea.style.display = trickTrayMode ? 'none' : 'flex';
+  if (trayArea) trayArea.style.display = 'flex';
+  if (previewArea) previewArea.style.display = 'none';
   renderTrickTray();
 }
-
-// ── Toggle Trick Tray mode (dev panel) ──
-function toggleTrickTrayMode(on) {
-  trickTrayMode = on;
-  const trayArea = document.getElementById('trick-tray-area');
-  const previewArea = document.getElementById('hand-preview-area');
-  if (trayArea) trayArea.style.display = on ? 'flex' : 'none';
-  if (previewArea) previewArea.style.display = on ? 'none' : 'flex';
-  if (on) {
-    // Move all existing grid Tricks into the tray
-    for (let r = 0; r < gridRows; r++) {
-      for (let c = 0; c < gridCols; c++) {
-        const cell = gridData[r][c];
-        if (cell?._isTrick) {
-          trickTray.push(cell.trick);
-          gridData[r][c] = drawCard() || null;
-        }
-      }
-    }
-    renderTrickTray();
-    render();
-  } else {
-    // Move tray Tricks back onto the grid
-    const toInject = [...trickTray];
-    trickTray = [];
-    // Remove from acquiredTricks temporarily (injectTrickAfterReward -> selectTrick re-adds)
-    toInject.forEach(b => {
-      const idx = acquiredTricks.findIndex(ab => ab.id === b.id);
-      if (idx >= 0) acquiredTricks.splice(idx, 1);
-    });
-    toInject.forEach(b => injectTrickAfterReward(b));
-    renderTrickTray();
-  }
-}
-
-async function confirmFullscreenTrickSelection(trick) {
-  clearInterval(levelupTimer);
-  trickSelectionPhase = false;
-  hideTrickTooltip();
-
-  const gridEl = document.getElementById('grid');
-
-  // Place chosen Trick into its pre-assigned target cell in gridData
-  const targetRow = trick._targetRow;
-  const targetCol = trick._targetCol;
-  const trickIdCounter = 90000 + (level * 10) + trickSelectionOptions.indexOf(trick);
-  const chosenTrick = {
-    rank: null, suit: null, _isTrick: true, _selectable: false,
-    _trickState: 'acquired', trick, _id: trickIdCounter
-  };
-  // ── Salvage any normal card sitting at the target cell back into the draw pile ──
-  // (Without this, the card would be silently dropped - a slow leak to the deck.)
-  const displaced = gridData[targetRow][targetCol];
-  if (displaced && !displaced._isTrick && displaced.rank) {
-    drawPile.push({ rank: displaced.rank, suit: displaced.suit });
-  }
-  gridData[targetRow][targetCol] = chosenTrick;
-
-  // Apply trick
-  selectTrick(trick, true);
-
-  // (Card speed-up deferred to 3-2-1 countdown so cards keep falling slowly throughout interlude)
-
-  // Animate chosen Trick falling into its target cell (joins the cascade)
-  const destX = cellLeft(targetCol);
-  const destY = cellTop(targetRow);
-  const fromAbove = 5;
-  const dropDist = fromAbove * CARD_STEP;
-
-  const flyEl = document.createElement('div');
-  flyEl.className = `trick-card trick-tier-${trick.tier} temp-anim`;
-  flyEl.innerHTML = `<div class="trick-tier-label">${tierInitial('trick', trick.tier)}</div><div class="trick-name">${trick.name}</div>`;
-  flyEl.dataset.cardId = String(trickIdCounter);
-  flyEl.style.cssText = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${destY - dropDist}px;opacity:0;pointer-events:none;z-index:20;`;
-  gridEl.appendChild(flyEl);
-
-  const FALL_DUR = 520;
-  const BOUNCE_PX = 8;
-  const SQUISH = 0.10;
-  const trickAnim = flyEl.animate([
-    { opacity: 0, transform: 'translateY(0) scaleY(1)' },
-    { opacity: 1, transform: 'translateY(0) scaleY(1)',                                                    offset: 0.06 },
-    { opacity: 1, transform: `translateY(${dropDist * 0.55}px) scaleY(0.96)`,                             offset: 0.55, easing: 'ease-in' },
-    { opacity: 1, transform: `translateY(${dropDist + BOUNCE_PX}px) scaleY(${1 - SQUISH})`,               offset: 0.83 },
-    { opacity: 1, transform: `translateY(${dropDist - BOUNCE_PX * 0.7}px) scaleY(${1 + SQUISH})`,         offset: 0.91 },
-    { opacity: 1, transform: `translateY(${dropDist + BOUNCE_PX * 0.3}px) scaleY(${1 - SQUISH * 0.2})`,   offset: 0.96 },
-    { opacity: 1, transform: `translateY(${dropDist}px) scaleY(1)` },
-  ], { duration: FALL_DUR, easing: 'ease-in', fill: 'forwards' });
-
-  await trickAnim.finished;
-  flyEl.remove();
-
-  // Render so the Trick appears in its grid cell (also cleans up any leftover temp-anim elements)
-  document.getElementById('grid').querySelectorAll('.temp-anim').forEach(el => el.remove());
-  render();
-
-  if (pendingLevelUps > 0) {
-    pendingLevelUps--;
-    setTimeout(() => drainLevelUpQueue(), 400);
-  } else {
-    showNextGoalFlash().then(() => show321Countdown()).then(() => {
-      gameTimerPaused = false;
-      sfxRoundStart();
-      startRoundTimer();
-      updateClockUI();
-      render();
-    });
-  }
-}
-
-async function confirmTrickSelection(trick) {
-  if (!trickSelectionPhase) return;
-  clearInterval(levelupTimer);
-  trickSelectionPhase = false;
-  pendingTrickChoice = null;
-  hideTrickTooltip();
-
-  // Only remove NEW unchosen Tricks - acquired/upgradeable/upgraded stay in the grid
-  const unchosenCells = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) {
-      const cell = gridData[r][c];
-      if (cell?._isTrick && cell._trickState === 'new' && cell.trick.id !== trick.id)
-        unchosenCells.push([r, c]);
-    }
-
-  // Mark chosen Trick settled - acquired or upgraded depending on prior state
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) {
-      const cell = gridData[r][c];
-      if (!cell?._isTrick || cell.trick.id !== trick.id) continue;
-      cell._selectable = false;
-      cell._trickState = cell._trickState === 'upgradeable' ? 'upgraded' : 'acquired';
-    }
-
-  // Apply trick (stack if upgrading - option 4)
-  const isUpgrade = (() => {
-    for (let r = 0; r < gridRows; r++)
-      for (let c = 0; c < gridCols; c++)
-        if (gridData[r][c]?._isTrick && gridData[r][c].trick.id === trick.id && gridData[r][c]._trickState === 'upgraded')
-          return true;
-    return false;
-  })();
-
-  // Apply trick (stack on upgrade - apply twice)
-  selectTrick(trick, true);
-  if (isUpgrade) selectTrick(trick, true);
-
-  // Let gravity handle unchosen Trick removal + card settling
-  if (unchosenCells.length > 0) {
-    await removeAndFall(unchosenCells, 'discard');
-  }
-
-  render();
-
-  if (pendingLevelUps > 0) {
-    // More level-ups queued - chain into next one
-    pendingLevelUps--;
-    setTimeout(() => drainLevelUpQueue(), 400);
-  } else {
-    // All done - 3-2-1 then start round
-    show321Countdown().then(() => {
-      sfxRoundStart();
-      startRoundTimer();
-      updateClockUI();
-      render();
-    });
-  }
-}
-
 
 // ── Feelin Lucky (r360) ──────────────────────────────────────────────────────
 // Its five ranks are rolled when it is taken and live on the Trick itself (so
@@ -714,7 +320,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   const lvlOverlay = document.getElementById('levelup-overlay');
   if (lvlOverlay) lvlOverlay.classList.remove('show');
 
-  if (fromTrickFlow) return; // confirmTrickSelection handles timer + render
+  if (fromTrickFlow) return; // the caller (injectTrickAfterReward) renders
 
   if (pendingLevelUps > 0) {
     // More levels queued - show next trick screen after a short pause

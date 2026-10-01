@@ -187,7 +187,7 @@ function sqdShowScoreboard(onDone) {
 
   sqcPaint(
     `<div class="sqc-eyebrow">Poker Squares &middot; ${SQ_N} &times; ${SQ_N}`
-      + (daily ? '' : ` &middot; ${sqMode === 'all' ? 'Score all' : 'Select score'}`)
+      + (daily ? '' : ` &middot; ${(typeof sqPatActive === 'function' && sqPatActive()) ? 'Patience' : (sqMode === 'all' ? 'Score all' : 'Select score')}`)
       + (daily && typeof sqdRanks !== 'undefined' && sqdRanks ? ` &middot; ${sqdRanks[0]}–${sqdRanks[sqdRanks.length - 1]}` : '') + `</div>
      <div class="sqc-total">${tot.toLocaleString()}</div>
      <div class="sqc-sub">${sqdGrids.length} grid${sqdGrids.length === 1 ? '' : 's'} played</div>

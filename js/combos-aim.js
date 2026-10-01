@@ -288,13 +288,9 @@ let firstHandThisRound = true;
 // DEAD as of r151 - the "first 2 swaps of a round are free" exemption was part of
 // the old double-charge tangle and contradicted the flat 8s the UI now quotes.
 // Still reset each round so restoring it is a one-line change in doSwap.
-let freeSwapsLeft    = 2;
 let freeDiscardsLeft = 2;   // free (no time cost) discards remaining this round
 let levelupTimer = null;
 let levelupSeconds = 0;
-let trickSelectionPhase = false;   // true while player is choosing a Trick on the grid
-let trickSelectionOptions = [];    // the 3 Trick trick objects currently on display
-let pendingTrickChoice = null;     // trick the player has tapped once (awaiting confirm tap)
 
 // ── Goal / level-up queue ──
 let goalReachedThisRound = false;

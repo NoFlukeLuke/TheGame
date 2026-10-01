@@ -95,6 +95,7 @@ const SFX_MIX = {
   multi_goal:    { bus: 'headline' },
   success:       { bus: 'headline', gain: 0.90 },
   victory:       { bus: 'headline' },
+  boss_fanfare:  { bus: 'headline' },
   level_up:      { bus: 'headline' },
   chal_win:      { bus: 'headline' },
   chal_fail:     { bus: 'headline' },

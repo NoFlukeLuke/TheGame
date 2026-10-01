@@ -1,0 +1,39 @@
+/* ── THE TRAY LIFT (r409) - js/tray-lift.js ───────────────────────────────────
+   A body-level copy of the pointed-at Trick, so it can be drawn past the tray's
+   border. The outer box sits on the chip and is scaled by the cabinet's zoom
+   from its top-left; the inner box does the lift about the tile's own centre. */
+#tray-lift {
+  position: fixed; z-index: 28;           /* under #trick-tooltip (30) */
+  pointer-events: none; transform-origin: 0 0;
+}
+#tray-lift .tl-inner {
+  width: 100%; height: 100%;
+  transform: perspective(260px);
+  transition: transform .14s ease-out, filter .14s ease-out;
+  transform-origin: 50% 50%;
+}
+#tray-lift.up .tl-inner {
+  transform:
+    perspective(260px)
+    translate(calc(var(--lx, 0) * var(--lf)), calc(var(--ly, 0) * var(--lf) - var(--lr)))
+    rotateY(calc(var(--lx, 0) * var(--lt)))
+    rotateX(calc(var(--ly, 0) * -1 * var(--lt)))
+    scale(var(--ls));
+  filter: drop-shadow(0 7px 8px rgba(0,0,0,0.6));
+}
+#tray-lift .trick-tray-chip {
+  position: relative; width: 100%; height: 100%; margin: 0 !important;
+  rotate: none; scale: none; translate: none; transform: none;
+  background: none; border: none; box-shadow: none;
+}
+#tray-lift .trick-tray-chip > .reward-cell { width: 100%; height: 100%; }
+#tray-lift .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
+#tray-lift .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
+#tray-lift .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
+#tray-lift .trick-tray-chip.rar-legendary { --rc: var(--c-magenta); }
+
+/* The real chip steps aside while its copy is up. Opacity only, so the r399
+   tilt, the r408 turns and every rect read off the chip are untouched. */
+#trick-tray-list .trick-tray-chip.tray-lifted { opacity: 0; transition: opacity .08s; }
+/* A finger sliding along an unfanned row must reach the lift, not the page. */
+#stage:not(.landscape) #trick-tray-list { touch-action: pan-y; }

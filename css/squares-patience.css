@@ -1,0 +1,198 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   POKER SQUARES · THE PATIENCE 5x5 (r409) - css/squares-patience.css
+
+   Styles for js/squares-patience.js, layered over css/squares.css (this file
+   loads after it). The dailies are untouched: everything here hangs off the
+   .squares-pat class the patience run puts on #stage and body.
+
+   THE DRAG FEEL (the Balatro notes in the JS header): the ghost is the real
+   card face, slightly enlarged, deep-shadowed, tilting with --sqp-tilt and
+   springing back through the transition below; the target cell is a soft warm
+   ring, never a green footprint; a landed card takes a settle pop, which is a
+   CSS ANIMATION on transform so it beats the stylesheet's composed heartbeat
+   transform for its half second and hands it straight back (the r139 rule).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── This mode HAS Focus and a clock, unlike the rest of squares ────────────
+   The landscape meter hide and the board's borrowed meter band are squares.css
+   rules at (2 ids, 2 classes); these carry one class more, so they win without
+   edits there. Portrait keeps the meter hidden (no room) and shows the FOCUS
+   chip instead - desktop first. */
+#stage.landscape.squares-mode.squares-pat #focus-meter-wrap { display: block; }
+#stage.landscape.squares-mode.squares-pat #grid-slot { left: 45%; width: 45%; }
+#stage.squares-mode.squares-pat #focus-box { display: flex !important; }
+#stage.squares-mode.squares-pat #score-subboxes > .subbox-times:nth-child(4) { display: block !important; }
+
+/* LEVEL and COINS say nothing here (the dailies already hide them; the old
+   5x5 had a coin-free economy too and just never got the rule). */
+#stage.squares-mode.squares-pat #top-bar .top-stat:has(#level-display),
+#stage.squares-mode.squares-pat #top-bar .top-stat:has(#coins-display) { display: none !important; }
+
+/* ── The hand: real card faces, wrapping into fresh row + holdover row ──── */
+#stage.squares-mode.squares-pat #selected-cards,
+#selected-cards.sqp-hand {
+  display: flex !important; flex-wrap: wrap;
+  align-items: center; justify-content: center; align-content: center;
+  gap: 4px; overflow: visible;
+}
+.sqp-card {
+  /* The face IS the card - the tile wrapper is bare chrome, kept only for the
+     drag machine's .sq-tile contract and the hover lift. */
+  flex: 0 0 auto; max-width: none; min-height: 0;
+  background: none; background-image: none; border: none; box-shadow: none;
+  overflow: visible; cursor: grab;
+}
+/* Only a FRESHLY DEALT card takes the entrance (the `fresh` flag, cleared by
+   the first render) - on the bare class every repaint replayed it on cards
+   already sitting in the tray. The stagger is an inline animation-delay set
+   from the fresh index, so holdover cards never eat the new cards' delays. */
+.sqp-card.sqp-in { animation: sqpDealIn 0.34s cubic-bezier(0.3, 1.35, 0.55, 1) backwards; }
+@keyframes sqpDealIn {
+  from { transform: translateY(14px) scale(0.85); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.sqp-card:hover { transform: translateY(-4px); box-shadow: none; }
+.sqp-card.sel .sqp-facebox { box-shadow: 0 0 0 2px var(--gold), 0 8px 16px rgba(0,0,0,0.5); border-radius: 5px; }
+.sqp-card.placing { opacity: 0.4; }
+.sqp-facebox { position: relative; width: var(--card-w, 52px); height: var(--card-h, 70px); }
+/* The game's .card is absolutely positioned for the board; in the tray and the
+   ghost it fills its own box instead. */
+.sqp-facebox .card.sqp-face {
+  position: absolute; left: 0; top: 0;
+  width: var(--card-w, 52px); height: var(--card-h, 70px);
+  margin: 0; cursor: inherit;
+}
+.sqp-face-fallback {
+  width: var(--card-w, 52px); height: var(--card-h, 70px);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card-bg, #f2ead3); border-radius: 5px; color: #222;
+  font-family: 'Share Tech Mono', monospace;
+}
+/* A card from the PREVIOUS deal: dimmed, tagged, gone at the next NEXT DEAL. */
+.sqp-card.sqp-stale { opacity: 0.6; filter: saturate(0.55); }
+.sqp-card.sqp-stale .sqp-facebox { box-shadow: 0 0 0 1px rgba(220,140,60,0.65); border-radius: 5px; }
+.sqp-last {
+  position: absolute; left: 50%; bottom: -3px; transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace; font-size: 6.5px; letter-spacing: 1px;
+  color: #e8a25a; background: rgba(20,14,8,0.9); border: 1px solid rgba(220,140,60,0.5);
+  border-radius: 3px; padding: 0 3px; pointer-events: none; white-space: nowrap; z-index: 2;
+}
+.sqp-card { position: relative; }
+
+/* ── The drag ghost: a held card ──────────────────────────────────────── */
+#sq-drag .sqp-ghostcard {
+  position: relative;
+  transform: rotate(var(--sqp-tilt, 0deg)) scale(1.06);
+  transform-origin: 50% 18%;
+  transition: transform 0.15s cubic-bezier(0.3, 1.4, 0.6, 1);
+  filter: drop-shadow(0 16px 24px rgba(0,0,0,0.7));
+  opacity: 0.94;
+}
+#sq-drag .sqp-ghostcard .sqp-facebox { width: 100%; height: 100%; }
+
+/* The target cell: a soft warm ring, not a footprint. */
+.sq-ghost.sqp-drop.ok {
+  background: rgba(255, 250, 230, 0.10);
+  border: 2px solid rgba(255, 240, 190, 0.7); border-radius: 6px;
+  box-shadow: 0 0 14px rgba(255, 236, 180, 0.35), inset 0 0 10px rgba(255,255,255,0.14);
+}
+.sq-ghost.sqp-drop.bad {
+  background: rgba(192, 57, 43, 0.10);
+  border: 2px dashed rgba(192, 57, 43, 0.55); border-radius: 6px;
+}
+
+/* ── Landed: the settle pop; kindred placements flash gold ─────────────── */
+#grid .card.sqp-land { animation: sqpLand 0.5s cubic-bezier(0.3, 1.5, 0.5, 1); }
+@keyframes sqpLand {
+  0%   { transform: scale(1.12) translateY(-3px); }
+  55%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+#grid .card.sqp-kin { box-shadow: 0 0 0 2px rgba(255, 211, 77, 0.85), 0 0 18px rgba(255, 211, 77, 0.5); }
+
+/* ── Board selection (for swap / discard) ──────────────────────────────── */
+.sqp-ring {
+  position: absolute; z-index: 5; pointer-events: none; box-sizing: border-box;
+  border: 2px solid var(--gold); border-radius: 6px;
+  box-shadow: 0 0 12px rgba(201,168,76,0.5), inset 0 0 8px rgba(201,168,76,0.25);
+  animation: sqpRingPulse 1.3s ease-in-out infinite;
+}
+@keyframes sqpRingPulse { 50% { box-shadow: 0 0 18px rgba(201,168,76,0.75), inset 0 0 10px rgba(201,168,76,0.4); } }
+#swap-indicator.sqp-armed { animation: sqpArm 1.1s ease-in-out infinite; }
+@keyframes sqpArm { 50% { box-shadow: 0 0 16px rgba(90, 200, 255, 0.55); } }
+
+/* ── The stock, in the goal box ────────────────────────────────────────── */
+.sqp-stock {
+  display: flex; align-items: center; gap: 4px;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
+  color: var(--cream-dim);
+}
+.sqp-pips { display: inline-flex; gap: 2px; }
+.sqp-pips i {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+  background: #2c281f; border: 1px solid #514a38;
+}
+.sqp-pips i.on { background: var(--gold); border-color: #e8d9a0; box-shadow: 0 0 4px rgba(201,168,76,0.6); }
+.sqp-streak { color: #ffd34d; font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+
+/* ── The clocks ────────────────────────────────────────────────────────── */
+.sqp-clock { color: var(--gold); font-variant-numeric: tabular-nums; }
+.sqp-clock.hot { color: var(--red); animation: sqpBlink 1s steps(2, start) infinite; }
+.sqp-dealclock { color: var(--gold); }
+.sqp-dealclock.hot { color: var(--red); animation: sqpBlink 1s steps(2, start) infinite; }
+@keyframes sqpBlink { 50% { opacity: 0.45; } }
+
+/* ── The trick pick popup (1 of 5, on the shared console) ──────────────── */
+#sq-overlay.sqp-pick .sq-panel { max-width: 880px; }
+.sqp-offers {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+  gap: 10px; width: 100%;
+}
+.sqp-offer {
+  cursor: pointer; border: 1px solid #33314e; border-radius: 10px;
+  padding: 9px 7px 10px; background: rgba(255,255,255,0.03);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.sqp-offer:hover { transform: translateY(-3px); border-color: #55517e; }
+.sqp-offer.sel {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 20px -4px rgba(201,168,76,0.65);
+  transform: translateY(-3px);
+}
+.sqp-tilebox { position: relative; width: 86px; height: 90px; flex: 0 0 auto; }
+.sqp-tilebox .reward-cell { position: absolute; inset: 0; }
+.sqp-on { font-family: 'Orbitron', sans-serif; font-size: 10.5px; color: var(--cream); text-align: center; line-height: 1.25; }
+.sqp-tier { font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2px; }
+.sqp-offer.rar-common    .sqp-tier { color: var(--c-mint, #35d59b); }
+.sqp-offer.rar-rare      .sqp-tier { color: var(--c-cyan, #35b5d5); }
+.sqp-offer.rar-epic      .sqp-tier { color: var(--c-purple, #a06ae8); }
+.sqp-offer.rar-legendary .sqp-tier { color: var(--c-magenta, #e85ab0); }
+.sqp-od {
+  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.4;
+  color: var(--cream-dim); text-align: center;
+}
+.sqp-ownbar {
+  margin-top: 13px; width: 100%; display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  border-top: 1px solid #2c2a44; padding-top: 10px;
+}
+.sqp-ownbar.pulse { animation: sqpOwnPulse 0.9s ease; }
+@keyframes sqpOwnPulse {
+  0%, 100% { box-shadow: none; }
+  30% { box-shadow: 0 -1px 0 var(--red); }
+  30%, 70% { transform: translateX(0); }
+  40% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 60% { transform: translateX(-2px); }
+}
+.sqp-ownlab { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--cream-dim); }
+.sqp-ownlab b { color: var(--gold); }
+.sqp-owned { display: flex; flex-wrap: wrap; gap: 6px; }
+.sqp-ownitem {
+  display: flex; align-items: center; gap: 5px;
+  border: 1px solid #33314e; border-radius: 6px; padding: 3px 6px;
+  background: rgba(255,255,255,0.04); font-size: 10px; color: var(--cream);
+}
+.sqp-ownitem i { font-style: normal; font-family: 'Share Tech Mono', monospace; }
+.sqp-ownitem .sqp-oe { font-size: 12px; }
+.sqp-dropbtn { cursor: pointer; color: var(--red); font-weight: bold; padding: 0 2px; }
+.sqp-dropbtn:hover { text-shadow: 0 0 6px rgba(220, 60, 60, 0.8); }
+.sqp-ownnone { font-size: 10px; color: var(--cream-dim); font-style: italic; }

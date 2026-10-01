@@ -553,7 +553,6 @@ let fullHouseThisRound = 0; // for House Rules
 // ── Positional bonus state ──
 // Each entry: { id, axis:'row'|'col', index:0-4, [intersectRow, intersectCol for ley line] }
 let rowColBonuses = [];
-let leyLinePos = null; // { r, c } - changes each round
 
 // ══════════════════════════════════════════════
 // DECK
@@ -720,7 +719,6 @@ function freshShuffledDeck() {
     for (let i = 0; i < n; i++) out.push(stampId({ rank: WILD_RANK, suit: WILD_SUIT }));
     return out;
   };
-  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck().concat(_wilds()));
   if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck().concat(_wilds()));
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
@@ -870,7 +868,7 @@ function releaseGoalHand() {
 
 function boardPersists() {
   if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return true;
-  if (ACTIVE_MODE.match3 || ACTIVE_MODE.id === 'dominoes') return false;
+  if (ACTIVE_MODE.match3) return false;
   if (typeof squaresActive === 'function' && squaresActive()) return false;
   return true;
 }
@@ -920,11 +918,6 @@ function flushPlayedDeck() {
 // GRID INIT
 // ══════════════════════════════════════════════
 function initGridData() {
-  // Dominoes mode builds its own two-cell board.
-  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoInitBoard(); return; }
-  // Clear any domino tiles left over from a previous Dominoes run - the normal
-  // renderer only reconciles [data-card-id] elements, so these would linger.
-  document.getElementById('grid')?.querySelectorAll('[data-domino-id]').forEach(el => el.remove());
   const fullDeck = freshShuffledDeck();
   const cellCount = gridRows * gridCols;
   // First cellCount cards go on the grid, rest go to future deck
