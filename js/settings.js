@@ -163,6 +163,9 @@ const SETTINGS_DEF = [
   // version was four layers the size of the screen's diagonal). Measured in a
   // software-rendered browser: 60 fps on and off at phone size and at 1100x620,
   // 53-59 against 60 at 1440x820. With a graphics card it is nothing.
+  { group: 'Display', id: 'printToasts', label: 'Printer notices',
+    hint: 'Notices print on paper that drops from the top of the screen. Turn off for plain boxes.',
+    type: 'toggle', default: true, apply: v => { printToastsOn = !!v; } },
   { group: 'Display', id: 'customCursor', label: 'Custom cursor',
     hint: 'A themed pointer instead of the system one. Turn off to use your normal cursor.',
     type: 'toggle', default: true,

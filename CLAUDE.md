@@ -312,3 +312,14 @@ up to 20 -> a perf pass). This is step 1.
   TRICKS/KNACKS watermarks, `#tray-title-word` and portrait's knack label are off.
 - **The landscape knack strip takes the full 3-line `--tray-rings`.**
 - The Survival/Flow pick's Peek tile reads PEEK / VIEW GRID.
+
+## r433 - step 2: notices are PRINTED (`js/print-toast.js` + `css/print-toast.css`)
+`showMessage` hands every notice to `printToast` unless Settings -> Display -> Printer notices
+is off (`printToastsOn`; `opts.plain` also skips it). Tractor-feed paper comes down from the top
+edge of `#stage` (the `#pt-layer` is body-level, laid over the stage rect in viewport px and
+clipped to it; sizes are design px x the stage zoom). Notices within `PT_CFG.groupMs` share one
+slip, newest line at the top; a later notice finishes the slip at once, tears it and starts a new
+one. A finished slip hangs `holdPerLine` per line. The fall is a flutter model on rAF (swing,
+leading edge dips, edge-on at the ends, fastest mid-swing), one transform per frame. Sounds
+`sfxPrintLine` / `sfxPrintFeed` / `sfxPrintTear` are synthesised there and catalogued. Tune in
+`toast-preview.html`, which loads the real file.

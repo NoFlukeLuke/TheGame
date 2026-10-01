@@ -63,6 +63,9 @@ const SFX_MIX = {
   card_pop:      { bus: 'board', gain: 0.95 },
   flip_shuffle:  { bus: 'board' },
   no_swaps:      { bus: 'board', gain: 1.15 },
+  print_line:    { bus: 'board', gain: 0.9 },
+  print_feed:    { bus: 'board', gain: 0.9, gap: 30 },
+  print_tear:    { bus: 'board' },
   card_discard:  { bus: 'board' },
   // The forced discard is a thing happening TO you, so it rides `event` (a louder
   // fader that also ducks the board under it) rather than `board`, on top of the

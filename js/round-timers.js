@@ -445,6 +445,8 @@ function refuse(text, opts) {
 function showMessage(text, color, opts) {
   if (!text) return;
   const o = opts || {};
+  // Printer notices (r432, js/print-toast.js) unless switched off in Settings.
+  if (typeof printToastsOn !== 'undefined' && printToastsOn && !o.plain) return printToast(text, color, o);
   const layer = toastLayer();
   // Repeat suppression: the same line fired twice in a row bumps a counter on the
   // toast already up rather than stacking a duplicate under it.
