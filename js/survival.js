@@ -6,7 +6,7 @@
 // there is no reward grid and no node/act structure. A shop is available on
 // demand from the coins chip for 5 coins. Bosses arrive every 8 clears (stage 2).
 //
-// Self-contained like js/match3.js / js/dominoes-mode.js: survivalActive() gates
+// Self-contained like js/match3.js: survivalActive() gates
 // everything and the hooks in the shared engine are one-liners.
 
 // True for BOTH survival flavours. Flow (js/flow-mode.js) is Survival with the round
@@ -59,7 +59,6 @@ function modeHasNoRewardGrid() {
   if (survivalActive()) return true;
   if (typeof squaresActive === 'function' && squaresActive()) return true;
   if (typeof match3Active === 'function' && match3Active()) return true;
-  if (typeof dominoActive === 'function' && dominoActive()) return true;
   return false;
 }
 // A reward grid after every cleared round: the act modes, minus Guided (a grid

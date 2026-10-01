@@ -870,7 +870,7 @@ function releaseGoalHand() {
 
 function boardPersists() {
   if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return true;
-  if (ACTIVE_MODE.match3 || ACTIVE_MODE.id === 'dominoes') return false;
+  if (ACTIVE_MODE.match3) return false;
   if (typeof squaresActive === 'function' && squaresActive()) return false;
   return true;
 }
@@ -920,11 +920,6 @@ function flushPlayedDeck() {
 // GRID INIT
 // ══════════════════════════════════════════════
 function initGridData() {
-  // Dominoes mode builds its own two-cell board.
-  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoInitBoard(); return; }
-  // Clear any domino tiles left over from a previous Dominoes run - the normal
-  // renderer only reconciles [data-card-id] elements, so these would linger.
-  document.getElementById('grid')?.querySelectorAll('[data-domino-id]').forEach(el => el.remove());
   const fullDeck = freshShuffledDeck();
   const cellCount = gridRows * gridCols;
   // First cellCount cards go on the grid, rest go to future deck

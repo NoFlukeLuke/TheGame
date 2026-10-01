@@ -207,8 +207,6 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
-  // Dominoes mode has its own play flow.
-  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoPlay(); return; }
   // On grid-takeover screens the Play button is repurposed: BUY (shop) / CONFIRM (reward).
   if (typeof shopGridActive !== 'undefined' && shopGridActive) { shopGridBuySelection(); return; }
   if (rewardOnGrid) { confirmRewardPath(); return; }

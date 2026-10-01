@@ -1,11 +1,9 @@
 function render() {
   // Marked-row / marked-column lines (js/entity-fx.js) are torn down HERE, above
-  // the two early returns - otherwise a reward grid or a dominoes board inherits
+  // the two early returns - otherwise a reward grid inherits
   // the lines from the last hand and wears them until the play board comes back.
   // They are DRAWN at the bottom of this function, once the cards are in the DOM.
   if (typeof clearLineMarkers === 'function') clearLineMarkers();
-  // Dominoes mode owns its own board renderer.
-  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoRenderBoard(); return; }
   // Selection readout first - it is the one thing that must stay true on BOTH sides of
   // the reward-grid early return below.
   if (typeof updateSelectionUI === 'function') updateSelectionUI();

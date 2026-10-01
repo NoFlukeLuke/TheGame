@@ -117,7 +117,7 @@ function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && isW
 // that completes nothing. A daily grid also has to stay comparable between two
 // players, which a wild it cannot score would not be.
 const WILD_COUNT_DEFAULT = 4;
-const WILD_OWN_DETECTION = ['squares', 'match3', 'zen', 'dominoes'];
+const WILD_OWN_DETECTION = ['squares', 'match3', 'zen'];
 function wildCardCount() {
   const m = (typeof ACTIVE_MODE !== 'undefined') ? ACTIVE_MODE : null;
   if (!m || m.numeric || WILD_OWN_DETECTION.includes(m.id)) return 0;

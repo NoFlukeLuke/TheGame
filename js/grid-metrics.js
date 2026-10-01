@@ -91,19 +91,6 @@ function recomputeGridMetrics() {
   };
   let box = fit(CARD_GAP_BASE, GRID_PAD);
   let w = box.w, h = box.h;
-  // Dominoes: a cell is only HALF a tile, so the playing-card aspect ratio and the
-  // card-size minimums below don't apply - enforcing them on an 8×8 board pushed
-  // the grid past its slot (tiles drew over the clock bar and off the bottom).
-  // Fit the board to the measured slot instead. It keeps the base gap: a domino
-  // cell is not a card, so a share of its width means nothing.
-  if (typeof dominoActive === 'function' && dominoActive()) {
-    CARD_GAP = CARD_GAP_BASE;
-    CARD_W = Math.max(12, w);
-    CARD_H = Math.max(12, h);
-    CARD_STEP = CARD_H + CARD_GAP;
-    applyGridMetricsToDOM();
-    return;
-  }
   // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
   const shape = () => {
     if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
