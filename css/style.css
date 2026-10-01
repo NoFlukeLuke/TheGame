@@ -2753,9 +2753,6 @@
   .bo-border.rare { background: var(--gold); }
   .bo-border.legendary { background: #e090d0; }
 
-
-  }
-
   /* ── GAME OVER / END ── */
   #end-overlay {
     display: none;
@@ -4853,11 +4850,13 @@
      border rather than as a second glow. `--plastic-lo` itself is untouched:
      some fifteen unrelated rules (shop tiles, reward cells, the focus bar, the
      cabinet baseline) read it. */
-  #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
+  #stage.landscape #score-center, #stage.landscape #score-left,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
   #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info,
   #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
-  #stage:not(.landscape) #knack-carousel-wrap, .panel-box {
+  #stage:not(.landscape) #knack-carousel-wrap,
+  #stage:not(.landscape) #score-center, #stage:not(.landscape) #score-left,
+  #score-subboxes .score-subbox, #score-subboxes #screen-location, #score-subboxes #pmf-merged, .panel-box {
     --tray-c: var(--plastic-lo);
     --tray-line:   color-mix(in srgb, var(--tray-c) 46%, transparent);
     --tray-line2:  color-mix(in srgb, var(--tray-c) 24%, transparent);
@@ -4902,8 +4901,7 @@
      it is the one tray whose top edge was never a candy colour, and the owner's
      rule is that the frame matches the top edge. It therefore sets no `--tray-c`
      of its own - the later rule does. */
-  #stage.landscape #score-subboxes  { border-top: 2px solid var(--tray-c) !important; border-bottom:1px solid var(--tray-c) !important; }
-  #stage.landscape #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #selected-cards  { --tray-c: var(--c-mint);    --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #trick-tray-area { --tray-c: var(--c-coral);   --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #coin-info       { --tray-c: var(--c-yellow);  --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
@@ -4913,10 +4911,11 @@
      The right-hand one takes the colour of whichever view is showing, which is
      what says which side the swap button last left you on - and it is the same
      colour landscape gives each of them, so the two orientations agree. */
-  #stage:not(.landscape) #score-panel         { --tray-c: var(--c-cyan);   --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #score-center        { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-m); border-top: 2px solid var(--tray-c) !important; }
+  #stage:not(.landscape) #score-left          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings-m); border-top: 2px solid var(--tray-c) !important; }
   #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-coral);  --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-mint);   --tray-set: var(--tray-rings); }
-  #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-yellow); --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings); }
   /* r391 DEEPER MIRROR: 1-4 more receding lines past the r388 set, same 3px
      pitch (dark gap, line, soft shadow), each fainter. Inset shadows paint in
      the background layer, so they are always fully BEHIND the tray's contents.
@@ -4924,16 +4923,16 @@
      middle. Dev -> Aesthetics picks the count (body.tray-deep-N, default 3). */
   :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area,
       #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
-      #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) {
+      #stage:not(.landscape) #knack-carousel-wrap) {
     --tray-x1: inset 0 0 0 9px rgba(0,0,0,.45), inset 0 0 0 10px color-mix(in srgb, var(--tray-c) 8%, transparent), inset 0 0 0 11px color-mix(in srgb, var(--tray-c) 3%, transparent);
     --tray-x2: inset 0 0 0 12px rgba(0,0,0,.4), inset 0 0 0 13px color-mix(in srgb, var(--tray-c) 5%, transparent), inset 0 0 0 14px color-mix(in srgb, var(--tray-c) 2%, transparent);
     --tray-x3: inset 0 0 0 15px rgba(0,0,0,.35), inset 0 0 0 16px color-mix(in srgb, var(--tray-c) 3.5%, transparent), inset 0 0 0 17px color-mix(in srgb, var(--tray-c) 1.5%, transparent);
     --tray-x4: inset 0 0 0 18px rgba(0,0,0,.3), inset 0 0 0 19px color-mix(in srgb, var(--tray-c) 2.5%, transparent), inset 0 0 0 20px color-mix(in srgb, var(--tray-c) 1%, transparent);
   }
-  body.tray-deep-1 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1); }
-  body.tray-deep-2 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2); }
-  body.tray-deep-3 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3); }
-  body.tray-deep-4 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-panel) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3), var(--tray-x4); }
+  body.tray-deep-1 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1); }
+  body.tray-deep-2 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1), var(--tray-x2); }
+  body.tray-deep-3 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3); }
+  body.tray-deep-4 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3), var(--tray-x4); }
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,
@@ -5067,19 +5066,46 @@
                 0 0 0 2px #2c2418 !important;
   }
 
-  /* ── Left-column stat chips: full solid-color fills, beige text (r95) ── */
-  #stage.landscape #score-subboxes { --tray-c: var(--plastic-lo); border-top: 2px solid var(--tray-c) !important; }
-  #pips-box  { background:#2a5fd0 !important; border:1px solid #123a94 !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
-  #mult-box  { background:#cf3a2c !important; border:1px solid #7f1d14 !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
-  #focus-box { background:#8a5cf0 !important; border:1px solid #532eb0 !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.26), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
-  #pips-box .subbox-label,  #pips-box .subbox-val,
-  #mult-box .subbox-label,  #mult-box .subbox-val,
-  #focus-box .subbox-label, #focus-box .subbox-val {
-    color: var(--cream) !important; text-shadow: 0 1px 1px rgba(0,0,0,0.4) !important;
+  /* ── PIPS / MULT / FOCUS: one infinity tray per number (r419) ──
+     The outer frame around the row is gone: the row is a bare rail and each
+     number is its own tray, like every other panel. The word on the chip is
+     gone too (the colour says which is which), the number is bigger, and it is
+     stretched a touch taller. `scale` is the standalone property, so it composes
+     with the .digit-pop `transform` animation instead of replacing it. */
+  #score-subboxes { background:none !important; border:none !important; box-shadow:none !important; padding:0 !important; }
+  #score-subboxes .score-subbox { height:100%; max-height:none; padding:0 2px; min-width:0; flex:1 1 0; border-radius:6px; }
+  #score-subboxes #pips-box  { --tray-c:#4f8dff;        --tray-set:var(--tray-rings-m); }
+  #score-subboxes #mult-box  { --tray-c:#ff5347;        --tray-set:var(--tray-rings-m); }
+  #score-subboxes #focus-box { --tray-c:var(--c-purple); --tray-set:var(--tray-rings-m); }
+  #score-subboxes .score-subbox { border-top:2px solid var(--tray-c) !important; }
+  #score-subboxes .subbox-label { display:none !important; }
+  #score-subboxes .subbox-val {
+    color:#fff !important; text-shadow:0 1px 2px rgba(0,0,0,0.7) !important;
+    font-weight:900; line-height:1; white-space:nowrap; scale:1 1.12;
   }
+  #stage.landscape #score-subboxes { gap:5px; padding:0 !important; justify-content:space-between; }
+  #stage.landscape .score-subbox { height:100%; max-height:none; }
+  #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val, #stage.landscape #focus-box .subbox-val { font-size:25px; color:#fff !important; }
+  #stage.landscape .subbox-times { flex:0 0 auto; width:7px; justify-content:center; font-size:10px; }
+  /* Fused chip + the grid-screen location chip wear the same tray. */
+  #score-subboxes #pmf-merged { --tray-c:var(--gold, #d4a857); --tray-set:var(--tray-rings-m); inset:0; background:linear-gradient(180deg,#3a2c08,#201802) !important; border-radius:6px; }
+  #score-subboxes #screen-location { --tray-c:var(--c-purple); --tray-set:var(--tray-rings-m); height:100%; border-radius:6px; border-top:2px solid var(--tray-c) !important; }
+  #score-subboxes #screen-location.tone-reward { --tray-c:var(--c-mint); }
+  #score-subboxes #screen-location.tone-shop   { --tray-c:var(--phosphor); }
+
+  /* Portrait: the score panel is a bare grid too. Chips take the left half
+     (the x signs are dropped to give each number the width), SCORE and GOAL are
+     two trays stacked in the right half. */
+  #stage:not(.landscape) #score-panel.panel-box {
+    background:none !important; border:none !important; box-shadow:none !important; padding:0 8px 0 0;
+  }
+  #stage:not(.landscape) #score-panel-inner { column-gap:9px; row-gap:9px; }
+  #stage:not(.landscape) #score-subboxes { grid-column:1; grid-row:1 / 3; gap:6px; padding:0 !important; justify-content:space-between; height:100%; }
+  #stage:not(.landscape) .score-subbox { height:100%; max-height:none; padding:0 1px; }
+  #stage:not(.landscape) .subbox-times { display:none; }
+  #stage:not(.landscape) #pips-box .subbox-val, #stage:not(.landscape) #mult-box .subbox-val, #stage:not(.landscape) #focus-box .subbox-val { font-size:21px; }
+  #stage:not(.landscape) #score-center, #stage:not(.landscape) #score-left { border-radius:6px; border-left:1px solid var(--tray-c); }
+
 
   /* ── Tricks / Knacks: faint watermark label, covered by real content (r95) ── */
   #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area { overflow: hidden; }
@@ -5211,6 +5237,10 @@
   #stage.landscape #coin-info .ci-main { font-size: 13px; }
   #stage.landscape #coin-info .ci-main b { font-size: 16px; }
   #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 3px; font-size: 8px; white-space: nowrap; }
+  /* r419: the level readout is set exactly like the credits one (same face, size and
+     number size) so the tray reads as one line of two matching figures. */
+  #stage.landscape #coin-info .ci-level { font-family:'Orbitron',sans-serif !important; font-size:8px; letter-spacing:.5px; text-transform:uppercase; font-weight:700; color:var(--c-yellow); align-items:baseline; gap:4px; }
+  #stage.landscape #coin-info .ci-level b { font-family:'Orbitron',sans-serif !important; font-size:16px; font-weight:700; color:var(--c-yellow) !important; letter-spacing:0; }
 
   /* ── Reward-grid-style trick tiles: CRT/neon card, rarity = border color ── */
   #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
