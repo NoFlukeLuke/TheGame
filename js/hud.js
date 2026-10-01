@@ -174,7 +174,6 @@ function updateCoinsUI() {
   if (typeof updateGridTopline === 'function') updateGridTopline();
   const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
-  if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
 }

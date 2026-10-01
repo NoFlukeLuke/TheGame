@@ -132,7 +132,7 @@ const SAVE_VARS = [
   'firstHandThisRound', 'replaysThisRound', 'timeManipRound', 'roundContributions',
   // ── Reward grid / shop ──
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
-  'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
+  'nextShopTime',
   // ── Boss ──
   'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──

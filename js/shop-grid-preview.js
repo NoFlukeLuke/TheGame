@@ -6,12 +6,10 @@
 // discounted (1 = full, 2 = −10%, 3+ = −25%). Reroll refreshes unsold stock;
 // Sell mode sells owned items back. ~10% of grids null one slot ("SOLD OUT").
 //
-// Routed from triggerShop() when USE_ONGRID_SHOP is true; the old overlay shop is
-// kept intact as a one-flag fallback. BUY = the Play button, LEAVE = the Discard
+// Routed from triggerShop().
 // button (mirrors the reward grid's Confirm/Clear repurposing).
 // ════════════════════════════════════════════════════════════════════════════
 
-let USE_ONGRID_SHOP = true;    // flip to false to restore the overlay shop
 let shopGridActive  = false;
 let shopGridItems   = [];      // full board of payloads (or null)
 let shopGridSel     = new Set();
@@ -532,7 +530,6 @@ function openShopGrid() {
   shopGridMode   = 'buy';
   shopGridSel    = new Set();
   shopSelOrder   = [];
-  shopRerollCount = 0;
   shopSwapPending = null;
   _shopTapKey = null; _shopTapAt = 0;
   gameTimerPaused = true;
@@ -617,8 +614,8 @@ function closeShopGrid() {
   shopGridItems = []; shopGridSel = new Set();
   gameTimerPaused = false;
   // Continue whatever flow opened the shop. These branches mirror the Mart's
-  // closeMart tail plus the legacy #shop-close handler - the grid shop is the
-  // LIVE shop (r232), so every route the Mart served has to land here too.
+  // closeMart tail (r232) - the grid shop is THE shop, so every route the Mart
+  // served has to land here.
   if (shopFromNodeFlow) { resumeAfterNodeFlowShop(); }
   else if (typeof match3Active === 'function' && match3Active()) {
     // Match-3's between-rounds shop: the board was pre-dealt behind the shop;

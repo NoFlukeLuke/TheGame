@@ -911,8 +911,7 @@ function survivalContinueEndless() {
 // Mart, so leaving the shop returns you to your three options.
 function survivalOpenShop() {
   if (!survivalActive()) return;
-  if ((typeof shopGridActive !== 'undefined' && shopGridActive)
-      || document.getElementById('shop-overlay')?.classList.contains('show')) return;
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
   if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${SURVIVAL_SHOP_COST} 💰`, 'var(--red)'); return; }
   coins -= SURVIVAL_SHOP_COST;
   updateCoinsUI();

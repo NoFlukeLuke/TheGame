@@ -2593,79 +2593,13 @@
   #unlock-trick-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #unlock-trick-options { display: flex; gap: 14px; }
 
-  /* ── SHOP OVERLAY ── */
-  #shop-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    /* Warm phosphor wash over near-black - the shop's own CRT identity, kept
-       distinct from the reward map's cool indigo. */
-    background:
-      radial-gradient(circle at 50% 12%, rgba(255,176,46,0.10), transparent 58%),
-      rgba(9,8,6,0.97);
-    z-index: 250;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 16px 14px;
-    overflow: hidden;            /* bays are sized to fit - never scroll */
-    gap: 12px;
-  }
-  #shop-overlay.show { display: flex; }
-
-  #shop-header { display: flex; align-items: baseline; justify-content: space-between; width: 100%; max-width: 680px; }
-  #shop-title {
-    font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900;
-    color: var(--phosphor); letter-spacing: 6px; text-transform: uppercase;
-    text-shadow: 0 0 14px rgba(255,176,46,0.55);
-  }
-  #shop-coins {
-    font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--phosphor);
-    text-shadow: 0 0 8px rgba(255,176,46,0.4);
-  }
-
-  /* ── Shop: CRT wares bays (shares the reward grid's neon entity language) ── */
-  #shop-main-grid {
-    display: flex; flex-direction: column;
-    gap: 10px;
-    width: 100%; max-width: 680px;
-    flex: 1 1 auto; min-height: 0;   /* fill the space between header and footer */
-  }
-  .shop-shelf {
-    display: flex; align-items: stretch; gap: 10px;
-    background: linear-gradient(180deg, #15110b, #0a0906);
-    border: 1.5px solid var(--plastic-deep);
-    border-left: 3px solid var(--phosphor);
-    border-radius: 10px; padding: 8px 12px 8px 10px;
-    flex: 1 1 0; min-height: 0;      /* bays share the vertical space evenly */
-    box-shadow: inset 0 0 24px -8px rgba(0,0,0,0.8);
-  }
-  .shop-shelf-label {
-    flex: 0 0 48px; display: flex; align-items: center;
-    font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
-    letter-spacing: 2px; text-transform: uppercase; line-height: 1.2;
-    color: var(--phosphor); text-shadow: 0 0 8px rgba(255,176,46,0.5);
-  }
-  .shop-shelf-items {
-    flex: 1 1 0; min-width: 0;
-    display: flex; gap: 10px; align-items: center; justify-content: flex-start;
-    overflow-x: auto; overflow-y: hidden;   /* safety on very narrow phones; vertical never scrolls */
-  }
-  /* per-bay neon accent + matching label color, for quick orientation */
-  #shop-trick-shelf   { border-left-color: var(--phosphor); }
-  #shop-sleight-shelf { border-left-color: var(--c-cyan); }
-  #shop-sleight-shelf .shop-shelf-label { color: var(--c-cyan);   text-shadow: 0 0 8px rgba(22,200,216,0.5); }
-  #shop-knack-shelf   { border-left-color: var(--c-purple); }
-  #shop-knack-shelf   .shop-shelf-label { color: var(--c-purple); text-shadow: 0 0 8px rgba(154,108,255,0.5); }
-  #shop-limits-shelf  { border-left-color: var(--c-mint); }
-  #shop-limits-shelf  .shop-shelf-label { color: var(--c-mint);   text-shadow: 0 0 8px rgba(53,213,155,0.5); }
-
+  /* ── SHOP TILES (the on-grid shop, js/shop-grid-preview.js) ── */
   /* CRT shop tile: reuses the reward grid's .reward-cell/.entity look (border,
      scanlines, neon rarity, Orbitron name), sized for the bay + a price chip. */
   .shop-tile.reward-cell {
     width: 82px; height: 110px; flex: 0 0 auto;
     cursor: pointer; padding: 6px;
   }
-  .shop-shelf .shop-tile.shop-tile-upgrade { width: 108px; }
   .shop-tile.reward-cell:hover { transform: translate(var(--fx,0), calc(var(--fy,0px) - 4px)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.02)); }
   .shop-tile.entity-knack:hover { transform: translateY(-4px) scale(1.05); }
   .shop-tile.reward-cell.purchased { opacity: 0.4; cursor: default; }
@@ -2751,107 +2685,6 @@
     border: 1px solid var(--plastic-deep); background: transparent; color: var(--cream-dim); transition: all 0.12s;
   }
   #shop-prev-actions button:hover { border-color: var(--phosphor); color: var(--phosphor); }
-
-  /* Footer row */
-  #shop-footer-row {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
-    width: 100%; max-width: 680px; flex: 0 0 auto;
-    padding-top: 12px; border-top: 1px solid var(--plastic-deep);
-  }
-  #shop-reroll-btn {
-    font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 1px;
-    text-transform: uppercase; padding: 9px 20px; border-radius: 7px;
-    cursor: pointer; border: 1.5px solid var(--phosphor);
-    background: rgba(255,176,46,0.08); color: var(--phosphor);
-    text-shadow: 0 0 8px rgba(255,176,46,0.4); transition: all 0.15s;
-  }
-  #shop-reroll-btn:hover:not(:disabled) { background: rgba(255,176,46,0.18); box-shadow: 0 0 12px -2px var(--phosphor); }
-  #shop-reroll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  #shop-reroll-info { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--cream-dim); }
-
-  /* Legacy services (hidden) */
-  .svc-btn {
-    display: flex; flex-direction: column; gap: 4px;
-    background: #1a1510; border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px 16px; cursor: pointer;
-    transition: border-color 0.12s, transform 0.12s;
-    min-width: 150px;
-  }
-  .svc-btn:hover:not(:disabled) { border-color: var(--gold); transform: translateY(-2px); }
-  .svc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .svc-btn .svc-icon { font-size: 20px; }
-  .svc-btn .svc-name { font-family: 'Cinzel', serif; font-size: 12px; color: var(--cream); letter-spacing: 1px; }
-  .svc-btn .svc-desc { font-size: 10px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; line-height: 1.4; }
-  .svc-btn .svc-price { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); margin-top: 2px; }
-  .svc-btn .svc-price.cant-afford { color: var(--red); }
-  .svc-btn.active-svc { border-color: var(--gold); background: #2a1f0a; }
-
-  /* Service card picker */
-  #svc-picker {
-    display: none; flex-direction: column; align-items: center; gap: 12px;
-    width: 100%; max-width: 760px;
-    background: #1a1510; border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px;
-  }
-  #svc-picker.show { display: flex; }
-  #svc-picker-title { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); letter-spacing: 2px; }
-  #svc-picker-sub { font-size: 11px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; }
-  #svc-card-grid {
-    display: flex; flex-wrap: wrap; gap: 4px;
-    justify-content: flex-start; max-height: 340px; overflow-y: auto; padding: 6px;
-  }
-  .svc-card {
-    width: 52px; height: 72px;
-    background: var(--card-bg); border: 2px solid var(--card-border);
-    border-radius: 5px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; cursor: pointer;
-    font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700;
-    color: #1a1510; transition: border-color 0.12s, transform 0.12s;
-    user-select: none; flex-shrink: 0; position: relative;
-  }
-  .svc-card.suit-hearts   { color: var(--suit-hearts); }
-  .svc-card.suit-diamonds { color: var(--suit-diamonds); }
-  .svc-card.suit-spades   { color: var(--suit-spades); }
-  .svc-card.suit-clubs    { color: var(--suit-clubs); }
-  .svc-card.suit-crowns    { color: var(--suit-crowns); }
-  .svc-card.suit-moons{ color: var(--suit-moons); }
-  .svc-card.suit-stars{ color: var(--suit-stars); }
-  .svc-card.suit-triangles{ color: var(--suit-triangles); }
-  .svc-card .svc-c-suit { font-size: 11px; margin-top: 1px; }
-  .svc-card .svc-c-loc { position: absolute; top: 2px; right: 3px; font-size: 7px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; }
-  .svc-card.selected-svc { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 0 0 2px var(--gold); }
-  .svc-card.has-pip  { border-left-color: #3a6fca; border-bottom-color: #3a6fca; }
-  .svc-card.has-mult { border-right-color: #c0392b; border-bottom-color: #c0392b; }
-  .svc-card.has-both { border-left-color: #3a6fca; border-right-color: #c0392b; border-bottom-color: #9b59b6; }
-  #svc-suit-choices { display: flex; gap: 10px; }
-  .suit-choice {
-    font-family: 'Cinzel', serif; font-size: 24px; padding: 10px 18px;
-    border: 2px solid var(--border); border-radius: 8px; cursor: pointer;
-    background: #1a1510; transition: border-color 0.12s, transform 0.12s;
-  }
-  .suit-choice:hover { border-color: var(--gold); transform: scale(1.1); }
-  #svc-confirm {
-    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
-    text-transform: uppercase; padding: 8px 24px; border-radius: 5px;
-    cursor: pointer; border: 2px solid var(--gold);
-    background: var(--gold); color: #0e0c0a; font-weight: 700; transition: all 0.15s;
-  }
-  #svc-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
-  #svc-cancel {
-    font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px;
-    text-transform: uppercase; padding: 6px 16px; border-radius: 5px;
-    cursor: pointer; border: 1px solid var(--border); background: transparent;
-    color: var(--cream-dim); transition: all 0.12s;
-  }
-  #svc-cancel:hover { border-color: var(--gold-dim); color: var(--cream); }
-
-  #shop-close {
-    font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px;
-    text-transform: uppercase; padding: 10px 26px; border-radius: 7px;
-    cursor: pointer; border: 1.5px solid var(--plastic-deep);
-    background: transparent; color: var(--cream-dim); transition: all 0.12s;
-  }
-  #shop-close:hover { border-color: var(--phosphor); color: var(--phosphor); box-shadow: 0 0 12px -3px var(--phosphor); }
 
   /* ── LEVEL UP OVERLAY ── */
   #levelup-overlay {

@@ -259,13 +259,12 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-limits') && !e.target.closest('#limits-popup')) hideLimitsPopup();
 }, true);
 
-// Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
+// Stats / Deck can also be opened from a takeover screen (the shop), where there is
 // no round running to resume - resuming there would start the round timer behind the shop.
 // screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
 // skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
 function screenOwnsClock() {
   return (typeof shopGridActive !== 'undefined' && shopGridActive)
-      || document.getElementById('shop-overlay')?.classList.contains('show')
       || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
 }
 function closeInfoOverlay(id) {
@@ -295,7 +294,6 @@ function startGame() {
   if (typeof musicSetScene === 'function') musicSetScene('game');
   document.getElementById('end-overlay').classList.remove('show');
   document.getElementById('levelup-overlay').classList.remove('show');
-  document.getElementById('shop-overlay').classList.remove('show');
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
 
@@ -639,12 +637,6 @@ function startGame() {
   totalScore = 0;
   lastRoundScore = 0; lastRoundGoal = 0;
   coins = 0;
-  shopItems = null;
-  shopPurchased = new Set();
-  shopRerollCount = 0;
-  shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
-  svcMode = null;
-  svcPicked = [];
   nextShopTime = GAME_DURATION - 120;
 
   // Reset boss state

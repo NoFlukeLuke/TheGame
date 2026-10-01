@@ -639,8 +639,7 @@ function devSkipLevel() {
 
 function devOpenShop() {
   closeDevPanel();
-  document.getElementById('shop-overlay').classList.add('show');
-  renderShop();
+  openShopGrid();
 }
 
 function devTriggerBoss(presetId) {
@@ -678,8 +677,7 @@ function devTriggerEvent(eventId) {
   if (eventId === 'limit_break') {
     openLimitBreakEvent();
   } else if (eventId === 'shop') {
-    document.getElementById('shop-overlay').classList.add('show');
-    renderShop();
+    openShopGrid();
   } else {
     // Any node event in the registry (was a hardcoded list that could drift)
     if (EVENT_META[eventId]) {

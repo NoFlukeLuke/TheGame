@@ -1884,7 +1884,7 @@ function closeRewardGrid() {
     pendingEventOverride = null;
     if (override === 'shop') {
       shopFromNodeFlow = true;
-      triggerShop(); // shop close → resumeAfterNodeFlowShop (wired in shop-close handler)
+      triggerShop(); // closeShopGrid → resumeAfterNodeFlowShop
     } else if (override === 'event') {
       shopFromNodeFlow = false;
       openEvent(() => drainLevelUpQueue());

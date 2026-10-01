@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r414 · Tricks on the grid removed; the tray is the only home";
+const BUILD = "2026-10-01 · r415 · Legacy overlay shop removed";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
