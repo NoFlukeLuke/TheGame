@@ -154,7 +154,7 @@ base pips x 1.1^(level-1) -> per-card loop -> x PIPS / x MULT block -> s = pips 
 - Hands are **components** (`handComponentsFor`): a rank partition (sets/runs) plus a flush
   overlay (all-or-nothing on the whole selection). Cards in two components replay. Every card must
   be load-bearing; one spare **kicker** is allowed and billed (pips + seconds) unless Tagalong /
-  Chip In. What you selected is what you play (no subset search when the whole selection is a hand).
+  Pip In. What you selected is what you play (no subset search when the whole selection is a hand).
 - `handBasePips()` / `handBaseMult()` are the one chokepoint for a hand's value (scoring model,
   Natural Scaling, mode overrides). Never read `HAND_BASE[h].pips` directly.
 - `trickFires(id)` = `1 + _primed + _rank + mirrors`, for non-pip/mult payouts. Ask it only when
@@ -266,3 +266,11 @@ complete runs (`wildsInRuns`, in `deckLadderKey`). RECORDS lists hands of 2-5 ca
 `CLEANUP.md` is the audit of dead and legacy code (what it is, where it lives, how risky it is
 to remove) and what has already gone. `docs/archive/` holds finished design docs and
 `previews/archive/` dead mockups.
+
+## r419 - Chip In is PIP IN
+
+Owner's call: the knack is **Pip In** (display only; id `kick_in`). Every "Chip In"
+above now reads Pip In. What it does is unchanged: a kicker costs nothing and scores
+its pips and fires per-card Tricks, but the allowance is still ONE. Carrying more
+than one is Tagalong's job (any number, free, scoring nothing); owning both gives
+any number, free, all scoring.

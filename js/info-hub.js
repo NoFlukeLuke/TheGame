@@ -96,7 +96,7 @@ const INFO_TOPICS = [
        () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand, so at the largest selection sizes some cards are always dropped.`],
       'There is no minimum. Any hand of two cards or more is legal at any Selection Size.',
       'The Tagalong {knack} lets a hand carry any number of kickers, and makes them free.',
-      'The Chip In {knack} makes kickers free, and they score their pips and fire their {Tricks} as though they were in the hand. They still do not change what the hand is: a Run of 4 with a kicker is a four-card hand.',
+      'The Pip In {knack} makes kickers free, and they score their pips and fire their {Tricks} as though they were in the hand. They still do not change what the hand is: a Run of 4 with a kicker is a four-card hand.',
     ] },
 
   { id: 'hand_layers', group: 'basics', title: 'A hand can be several hands',

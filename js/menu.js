@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r419 · Per-number trays, magenta knacks, end-overlay fix";
+const BUILD = "2026-10-01 · r420 · Per-number trays, magenta knacks, end-overlay fix";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

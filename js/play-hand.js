@@ -268,7 +268,7 @@ function playHand() {
   const { hand, handCells, penaltyCells, penaltyPips } = result;
   // Kickers (r326, renamed r385): cards inside the hand that no component claims.
   // Every hand may carry one; Tagalong allows more and makes them free. Unless
-  // free (or scoring, under Chip In) their pips come off the score, and unless
+  // free (or scoring, under Pip In) their pips come off the score, and unless
   // free their pip value is charged to the clock below, after the hand scores.
   //
   // RECOMPUTED HERE rather than read off `result`, because the Ringer and Roll
@@ -277,12 +277,12 @@ function playHand() {
   // handTagalongCells once, after the hand is final, is the only place that
   // cannot be stale (handComponentsFor is cached, so it costs nothing).
   const _tagCells = (typeof handTagalongCells === 'function') ? handTagalongCells(handCells) : [];
-  // r385: kickerPipBill is 0 under Tagalong (free) and under Chip In (they score).
+  // r385: kickerPipBill is 0 under Tagalong (free) and under Pip In (they score).
   const _tagPips  = (typeof kickerPipBill === 'function') ? kickerPipBill(_tagCells) : 0;
-  // THE CELLS THAT SCORE (r385). Without Chip In a kicker scores nothing, so every
+  // THE CELLS THAT SCORE (r385). Without Pip In a kicker scores nothing, so every
   // per-card payout after the score - card credits, time and Focus, the per-card
   // Focus payers, scaling buffs, card states, the Hallmark, exalt and corrupt -
-  // reads this rather than handCells. With Chip In a kicker is in it.
+  // reads this rather than handCells. With Pip In a kicker is in it.
   const _scoredCells = (_tagCells.length && !(typeof kickersScore === 'function' && kickersScore()))
     ? handCells.filter(([r, c]) => !_tagCells.some(([tr, tc]) => tr === r && tc === c)) : handCells;
   // Snapshot contribution breakdown now, from pristine pre-mutation state.
