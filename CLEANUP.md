@@ -29,16 +29,19 @@ branches does none of that; only check them for unmerged work before deleting.
 
 | # | what | where | size | risk | notes |
 |---|---|---|---|---|---|
-| 1 | **Match-3 and Zen** | `js/match3.js` (602), `css/match3.css` (140), 18 engine files with `match3Active()` guards, two `MODE_META` cards, the Settings match-type toggles, dev group "Match-3" | ~900 lines | medium | Hidden since r218, no boss wiring, a different loop. Owner has not called it. More guards than Dominoes had (18 files vs 13) but the same shape. |
-| 2 | **Exalt / Corrupt** | `exaltCorruptEnabled` (13 sites), `_exalted`/`_corrupted` card flags, `exaltCorruptTotals`, the trigger counters in `playHand`/`doSwap`/`doDiscard`, two Settings toggles, `.exalted`/`.corrupted` CSS | ~250 lines | medium | Paused since r50, default off. It is woven into the per-card loop in `calcScore` and `DURABLE_CARD_FIELDS`, so this is a careful edit, and it is a designed mechanic rather than dead code. Owner's call. |
-| 3 | **Old challenge system** | `js/challenge.js` (215; also declares `audioCtx`), `challengeCard`/`challengeActive` in 23 sites | ~250 lines | medium | The pre-Guided "challenge card on the board". Check whether any mode still spawns one before touching; `audioCtx` must move to `js/audio.js`. |
-| 4 | Dead `BAL` entries and `DESC_TEMPLATES` for Tricks not in any pool (`jack_mult`, `heart_double`, ...) | `js/data/balance.js`, `js/scoring.js` | small | low | Scored for, described, unobtainable. Either add them to the pool or delete the scoring blocks. |
-| 5 | Preview pages whose system has since moved on | `dance-preview.html`, `finale-preview.html`, `reward-preview.html`, `reward-resolve-preview.html`, `desktop-preview.html`, `layout-view.html`, `palette-preview.html` (all last touched r95-era) | 7 files | none | Self-contained, no live JS refs. Archive if the owner no longer opens them; the tuners that dump a shipped config block (`particle-preview`, `payout-pick-preview`, `heartbeat-preview`, `channel-change-preview`, `shop-float-anim-preview`, `tier-badge-preview`, `heavy-preview`, `score-trays-preview`, `poker-squares-preview`, `office-calibrate`) stay. |
-| 6 | Idea backlogs in the root | `MODE_IDEAS.md`, `FOCUS_IDEAS.md`, `CARD_MECHANICS.md`, `SCORE_SCALING.md`, `GLOSSARY.md` | docs | none | Still accurate as backlogs. Could move to `docs/` to leave the root for live references. |
+| 1 | **Exalt / Corrupt** | `exaltCorruptEnabled` (13 sites), `_exalted`/`_corrupted` card flags, `exaltCorruptTotals`, the trigger counters in `playHand`/`doSwap`/`doDiscard`, two Settings toggles, `.exalted`/`.corrupted` CSS | ~250 lines | medium | Paused since r50, default off. It is woven into the per-card loop in `calcScore` and `DURABLE_CARD_FIELDS`, so this is a careful edit, and it is a designed mechanic rather than dead code. Owner's call. |
+| 2 | **Old challenge system** | `js/challenge.js` (215; also declares `audioCtx`), `challengeCard`/`challengeActive` in 23 sites | ~250 lines | medium | The pre-Guided "challenge card on the board". Check whether any mode still spawns one before touching; `audioCtx` must move to `js/audio.js`. |
+| 3 | Dead `BAL` entries and `DESC_TEMPLATES` for Tricks not in any pool (`jack_mult`, `heart_double`, ...) | `js/data/balance.js`, `js/scoring.js` | small | low | Scored for, described, unobtainable. Either add them to the pool or delete the scoring blocks. |
+| 4 | Preview pages whose system has since moved on | `dance-preview.html`, `finale-preview.html`, `reward-preview.html`, `reward-resolve-preview.html`, `desktop-preview.html`, `layout-view.html`, `palette-preview.html` (all last touched r95-era) | 7 files | none | Self-contained, no live JS refs. Archive if the owner no longer opens them; the tuners that dump a shipped config block (`particle-preview`, `payout-pick-preview`, `heartbeat-preview`, `channel-change-preview`, `shop-float-anim-preview`, `tier-badge-preview`, `heavy-preview`, `score-trays-preview`, `poker-squares-preview`, `office-calibrate`) stay. |
+| 5 | Idea backlogs in the root | `MODE_IDEAS.md`, `FOCUS_IDEAS.md`, `CARD_MECHANICS.md`, `SCORE_SCALING.md`, `GLOSSARY.md` | docs | none | Still accurate as backlogs. Could move to `docs/` to leave the root for live references. |
 Also worth a decision, not dead code: **the starred card** (`assignTrickCard`, js/round-timers.js)
 puts a gold ⭐ on a random card every `TRICK_CARD_INTERVAL` (20s) and that card scores x2 mult
 (`_trickcard` in `calcScore`). It runs in every mode. HISTORY.md calls it "the dev grid Trick card"
 but nothing gates it on dev mode, so it is a live mechanic. Keep it or cut it; either is one block.
+
+**Kept by owner (r428): Match-3 and Zen.** The owner wants auto-play
+(`autoPlayHands`, `autoSubmitDelay` in js/input.js) used elsewhere in the game, and
+Match-3 is the test bed for it. Do not propose removing them.
 
 Not on the list: `_cmOnce` (the documented seam for a once-per-card bonus),
 `pendingHandMult` (fed by Second Hand), `cellCountsForTriggers` (two live

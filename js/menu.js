@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r427 · tetris + autoplay modes and the 20-minute game clock removed";
+const BUILD = "2026-10-01 · r428 · Match-3 and Zen kept as the auto-play test bed";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
