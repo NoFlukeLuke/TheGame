@@ -12089,3 +12089,6 @@ Three real findings, fixed:
 And one polish: the line tip no longer prints "0 x 1 = 0" under a line with no
 hand - the sum only appears once there is a hand to price (dailies unaffected:
 their lines always carry a name).
+
+## r422 - a Trick LIFTS out of the tray (`js/tray-lift.js` + `css/tray-lift.css`)
+Mouse hover or a finger on a tray Trick shows a body-level, position:fixed COPY of it: bigger (x1.22), raised, leaning up to 12deg toward the pointer and following it. A copy because the tray and its list both clip (overflow-x auto clips y too), so the real chip can never be drawn past the tray border. The real chip only goes `opacity: 0` (`.tray-lifted`), so the r399 tilt, the r408 turns and scrub, the dance pop and the tooltip anchor all keep working on it. The copy anchors on the chip's left edge and vertical centre (both survive the r399 tilt) and scales by the zoom read off the untransformed `#trick-tray-area`. z-index 28, under `#trick-tooltip` (30). `renderTrickTray` ends any lift first, since it replaces the chips. The landscape hover nudge and its grey `--plastic-lo` ring are deleted.

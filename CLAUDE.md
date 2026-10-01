@@ -287,3 +287,6 @@ tricks carrying across grids (tray-capped, DROP on the popup frees a slot). The 
 dailies are untouched. `sqPatActive()` is the one predicate; `js/squares-patience.js` +
 `css/squares-patience.css`, seams in `js/squares-mode.js`. Full write-up: the r409/r410
 patience-branch sections at the end of HISTORY.md.
+
+## r422 - tray Tricks LIFT on hover / thumb
+`js/tray-lift.js` draws a body-level fixed COPY of the pointed-at tray chip (bigger, raised, tilting toward the pointer) so it can paint past the clipping tray. The real chip only fades (`.tray-lifted`), so the portrait tilt/turns/scrub keep working on it. Full note in HISTORY.md.

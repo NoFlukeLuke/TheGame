@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r421 · The 5x5 is Patience: single-card deals, subset lines, twin clocks";
+const BUILD = "2026-10-01 · r422 · Trays: tricks lift out on hover and thumb";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

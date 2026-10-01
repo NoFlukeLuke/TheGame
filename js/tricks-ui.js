@@ -121,6 +121,8 @@ function renderTrickTray() {
   pruneRowColBonuses();
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  // A lifted copy points at a chip this render is about to replace (r409).
+  if (typeof trayLiftEnd === 'function') trayLiftEnd();
   // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the
   // Sleight draw queue. The intercept always ensures the corner toggle exists;
   // in queue view it renders the queue and this function stands down - so every
@@ -205,6 +207,7 @@ function renderTrickTray() {
   });
   // Names are word-atomic and shrink to fit - never broken across a letter (r182).
   fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
+  if (typeof trayLiftBind === 'function') trayLiftBind(list);
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the

@@ -5290,10 +5290,8 @@
      ::before paints the whole object. Zeroed HERE rather than on the shared
      rule so the (deprioritized) portrait tray is left exactly as it was. */
   #stage.landscape .trick-tray-chip > .reward-cell { padding: 0; }
-  #stage.landscape .trick-tray-chip:hover { transform: translateY(-2px); }
-  #stage.landscape .trick-tray-chip:hover > .reward-cell {
-    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
-  }
+  /* r409: the hover nudge and its grey plastic ring are gone - a pointed-at
+     Trick LIFTS out of the tray as a floating copy instead (js/tray-lift.js). */
   /* No per-surface type sizes: r239 scales the object's own type with the
      object, so a fixed px here only drifts from every other surface. */
 
