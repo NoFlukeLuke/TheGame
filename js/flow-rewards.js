@@ -1473,6 +1473,23 @@ function flowrShowDeckPick() {
   });
 }
 
+function flowrDeckClearGoalHand() {
+  const cells = (typeof svGoalCells !== 'undefined' && Array.isArray(svGoalCells)) ? svGoalCells : null;
+  const want = new Set(goalHandCards || []);
+  let n = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    const inCells = cells && cells.some(([a, b]) => a === r && b === c);
+    if (!card || !(want.has(card) || inCells)) continue;
+    discardToPlayed(card);
+    gridData[r][c] = drawCard() || null;
+    n++;
+  }
+  goalHandCards = null;
+  if (cells) svGoalCells = [];
+  return n;
+}
+
 function flowrDeckBegin(op) {
   _flowrDeckOp = op;
   _flowrDeckSel = [];
@@ -1480,9 +1497,12 @@ function flowrDeckBegin(op) {
   gameTimerPaused = true;
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud('DECK EDIT', 'reward');
   document.body.classList.add('flowr-deck');
-  // The cards come back. In Flow the goal hand's cards are still in gridData
-  // (only their DOM left with the dance), so the FULL board is editable - those
-  // cards are real deck cards and a buff on one persists through the deal.
+  // The cards come back - but NOT the winning hand (r408). Its cards are still
+  // in gridData (only their DOM left with the dance), so the editor used to let
+  // you buff the very cards you had just won with, which then went to the
+  // played pile anyway. They leave the board here and their cells are refilled,
+  // and svGoalCells is emptied so the keep path has nothing left to remove.
+  flowrDeckClearGoalHand();
   try { render(); } catch (e) {}
   // THE DECK EDIT USES THE PLAY BOARD, not the 6x4 pick board, so it re-pins:
   // flowrShowStep pinned the OP PICK's size a moment ago and the panel has to

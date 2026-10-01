@@ -949,6 +949,11 @@
      systems write (dance pop, mirror, selection) instead of replacing them. */
   #stage:not(.landscape) #trick-tray-list .chip-marquee { perspective: 260px; perspective-origin: 0 50%; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip { rotate: y var(--tilt, 0deg); transform-origin: 0 50%; }
+  /* r408: the tile whose turn it is (or the one under a finger) turns flat and
+     comes forward. The list takes horizontal finger moves for the scrub. */
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { transition: rotate .32s ease, scale .32s ease; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.tilt-focus { rotate: y 0deg; scale: 1.06; z-index: 50 !important; }
+  #stage:not(.landscape) #trick-tray-list.fanned { touch-action: pan-y; }
   /* Each tile after the first pulls left by however much the row is short. The
      later tile sits ON TOP, so the fan reads left-to-right like a held hand. */
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip + .trick-tray-chip {

@@ -137,7 +137,14 @@ function luckTierPercents() {
 function pickEntityByRarity(pool, tierOf, weights, tiers) {
   if (!pool || !pool.length) return null;
   const T = tiers   || ENTITY_TIERS;
-  const W = luckTierWeights(weights || ENTITY_TIER_W);
+  const W = luckTierWeights(weights || ENTITY_TIER_W).slice();
+  // A pool with no BOTTOM tiers (Flow's rare-or-better Tricks) used to roll
+  // common 71% of the time, find nothing at or below it and fall through to a
+  // FLAT pick - which made legendaries several times likelier than the table
+  // says (r408). Tiers below the lowest one present are dropped from the roll,
+  // so the remaining tiers keep their ratios. Gaps above still cascade down.
+  let lo = 0;
+  while (lo < T.length - 1 && !pool.some(x => tierOf(x) === T[lo])) W[lo++] = 0;
   const total = W.reduce((a, b) => a + b, 0);
   let roll = Math.random() * total, ti = 0;
   for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }

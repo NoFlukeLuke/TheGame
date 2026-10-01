@@ -169,3 +169,23 @@ body.reduced-motion #hypno-screen::before, body.reduced-motion #hypno-screen::af
 body.no-hypno #hypno { display: none; }
 body.no-hypno #hypno-screen::before,
 body.no-hypno #hypno-screen::after { display: none; }
+
+/* ── BOARD ONLY (r408) ─────────────────────────────────────────────────────
+   The same pattern, painted only inside the board, behind the cards. The cost of
+   the full version is PAINTING the gradients every frame over the whole screen;
+   this paints a box about a sixth of that size, as one gradient whose angle turns
+   (a registered <angle>, so it interpolates). z-index 0 sits over #grid's own
+   background and under the line markers (1) and the cards (2). */
+@property --hzb-rot { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+body.hypno-board #grid::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  border-radius: inherit;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.10) 0 6px, transparent 6px 18px),
+    repeating-conic-gradient(from var(--hzb-rot) at 50% 50%,
+      rgba(255,255,255,.035) 0 10deg, rgba(0,0,0,.08) 10deg 20deg);
+  animation: hzbSpin 40s linear infinite;
+}
+@keyframes hzbSpin { to { --hzb-rot: 360deg; } }
+body.reduced-motion.hypno-board #grid::before { animation: none; }
+body.grid-screen.hypno-board #grid::before { display: none; }

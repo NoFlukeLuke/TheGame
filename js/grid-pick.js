@@ -389,6 +389,11 @@ function gridPickConfirm() {
     setTimeout(() => { if (gridPickState && gridPickState.selected < 0) gridPickPaintSelection(); }, GP_SKIP_WINDOW);
     return;
   }
+  // A Trick with the tray full is refused BEFORE the pick commits, so the
+  // offer stays on the board and the player can sell one to make room (r408).
+  if (p.entity === 'trick' && typeof trickTrayFull === 'function' && trickTrayFull()) {
+    refuseTrickCapacity(); return;
+  }
   gridPickState.onChoose(i, p);
 }
 

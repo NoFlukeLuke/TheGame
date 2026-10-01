@@ -904,5 +904,85 @@ function fanTrickTray(list, track) {
   chips.forEach((c, i) => { if (i < k) c.style.setProperty('--tilt', deg.toFixed(1) + 'deg'); });
   track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
   list.classList.add('fanned');
+  if (deg > 0.5) trayTiltArm(list); else trayTiltStop();
   return true;
 }
+
+// ── THE TILT TAKES TURNS (r408) ─────────────────────────────────────────────
+// Portrait only. A tilted row hides most of each tile's face, so the tiles take
+// turns STRAIGHTENING: one turns flat and comes forward, holds, tilts back, and
+// the next one does it. A finger sliding over the row takes over: the tile under
+// it straightens and its tooltip opens, so thumbing along the row reads every
+// Trick in turn. The cycle resumes a few seconds after the finger lifts.
+const TRAY_TILT_HOLD = 1500;     // ms each tile spends flat
+const TRAY_TILT_RESUME = 4000;   // ms after a scrub before the cycle restarts
+let _trayTiltTimer = null, _trayTiltIdx = -1, _trayTiltHoldUntil = 0;
+function trayTiltChips() {
+  const list = document.getElementById('trick-tray-list');
+  if (!list || !list.classList.contains('fanned')) return [];
+  if (document.getElementById('stage')?.classList.contains('landscape')) return [];
+  return [...list.querySelectorAll('.trick-tray-chip')];
+}
+function trayTiltFocus(i) {
+  const chips = trayTiltChips();
+  chips.forEach((c, j) => c.classList.toggle('tilt-focus', j === i));
+  _trayTiltIdx = i;
+  return chips[i] || null;
+}
+function trayTiltStop() {
+  clearInterval(_trayTiltTimer); _trayTiltTimer = null;
+  document.querySelectorAll('#trick-tray-list .tilt-focus').forEach(c => c.classList.remove('tilt-focus'));
+}
+function trayTiltArm(list) {
+  if (!_trayTiltTimer) _trayTiltTimer = setInterval(() => {
+    const chips = trayTiltChips();
+    if (!chips.length) { trayTiltStop(); return; }
+    if (Date.now() < _trayTiltHoldUntil) return;
+    if (document.body.classList.contains('reduced-motion')) { trayTiltFocus(-1); return; }
+    // The newest tile is never tilted, so it sits out; a tile that is flat goes
+    // back before the next one comes up (an empty beat between them).
+    const tilted = chips.length - 1;
+    if (_trayTiltIdx >= 0) { trayTiltFocus(-1); _trayTiltNext = (_trayTiltNext + 1) % Math.max(1, tilted); return; }
+    trayTiltFocus(_trayTiltNext % Math.max(1, tilted));
+  }, TRAY_TILT_HOLD);
+  if (list._tiltScrub) return;
+  list._tiltScrub = true;
+  let active = false, moved = false, shown = -1, x0 = 0;
+  const hit = x => {
+    const chips = trayTiltChips();
+    let idx = -1;
+    chips.forEach((c, j) => { if (c.getBoundingClientRect().left <= x) idx = j; });
+    return idx < 0 && chips.length ? 0 : idx;
+  };
+  list.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || !trayTiltChips().length) return;
+    active = true; moved = false; shown = -1; x0 = e.clientX;
+    _trayTiltHoldUntil = Date.now() + 1e9;
+    trayTiltFocus(hit(e.clientX));
+  });
+  list.addEventListener('pointermove', e => {
+    if (!active) return;
+    if (Math.abs(e.clientX - x0) > 6) moved = true;
+    if (!moved) return;
+    const i = hit(e.clientX);
+    if (i === shown) return;
+    shown = i;
+    const chip = trayTiltFocus(i);
+    const trick = chip && trickTray.find(t => t.id === chip.dataset.trickId);
+    if (trick) showTrickTrayTooltip(trick, chip);
+  });
+  const end = () => {
+    if (!active) return;
+    active = false;
+    _trayTiltHoldUntil = Date.now() + TRAY_TILT_RESUME;
+    // A scrub ends ON the tooltip it opened; the click that follows must not
+    // toggle it shut again.
+    if (moved) list._swallowClick = Date.now();
+  };
+  list.addEventListener('pointerup', end);
+  list.addEventListener('pointercancel', end);
+  list.addEventListener('click', e => {
+    if (list._swallowClick && Date.now() - list._swallowClick < 400) { e.stopPropagation(); list._swallowClick = 0; }
+  }, true);
+}
+let _trayTiltNext = 0;

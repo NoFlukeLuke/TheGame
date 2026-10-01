@@ -563,6 +563,11 @@ function survivalSkip() {
 function survivalChoose(i) {
   const opt = (survivalPickOffered || [])[i];
   if (!opt) return;
+  // A Trick with a full tray is REFUSED HERE, before the pick closes, so the
+  // offer stays on the board and the player can sell one and come back (r408).
+  if (opt.type === 'trick' && typeof trickTrayFull === 'function' && trickTrayFull()) {
+    refuseTrickCapacity(); return;
+  }
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
   survivalHideContrib();
   survivalPickOverlay().classList.remove('show', 'sv-peek');
