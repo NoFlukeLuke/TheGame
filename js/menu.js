@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r413 · CLEANUP.md audit, finished docs and dead mockups archived";
+const BUILD = "2026-10-01 · r414 · Tricks on the grid removed; the tray is the only home";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -139,7 +139,7 @@ function trickCanForce(id) {
 // boss has switched off - a suspended Trick is suspended, and routing round that
 // would make the Censor and the Voidwright optional.
 function forceableTrickIds() {
-  if (typeof trickTray === 'undefined' || !trickTrayMode) return [];
+  if (typeof trickTray === 'undefined') return [];
   return trickTray
     .filter(t => t && t.id && trickCanForce(t.id))
     .filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)))

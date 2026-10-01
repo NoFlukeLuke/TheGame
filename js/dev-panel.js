@@ -16,8 +16,6 @@ function initDevMode() {
   if (ecToggle) ecToggle.checked = exaltCorruptEnabled;
   const hudToggle = document.getElementById('dev-deck-hud-toggle');
   if (hudToggle) hudToggle.checked = showDeckHud;
-  const trickToggle = document.getElementById('dev-trick-tray-toggle');
-  if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
   const diSel = document.getElementById('dev-dance-interrupt');
   if (diSel) diSel.value = danceInterruptMode;
   syncMatch3DevToggles();
@@ -89,8 +87,6 @@ function openDevPanel() {
   // Reflect current toggle states so the checkboxes match reality.
   const hudToggle = document.getElementById('dev-deck-hud-toggle');
   if (hudToggle) hudToggle.checked = showDeckHud;
-  const trickToggle = document.getElementById('dev-trick-tray-toggle');
-  if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
   syncMatch3DevToggles();
   devFilterTricks('');
   devFilterKnacks('');

@@ -2038,53 +2038,7 @@
     overflow: hidden;
     transform: translate(var(--hbx,0), var(--hby,0)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * var(--grds,1)));  /* grid heartbeat */
   }
-  .trick-card.trick-tier-common {
-    background: linear-gradient(160deg, #1a2a1a 0%, #0f1f0f 100%);
-    border: 2px solid #4a7a4a;
-    box-shadow: 0 0 8px rgba(74,122,74,0.4);
-  }
-  .trick-card.trick-tier-rare {
-    background: linear-gradient(160deg, #0d1a2e 0%, #0a1020 100%);
-    border: 2px solid #3a6fca;
-    box-shadow: 0 0 10px rgba(58,111,202,0.5);
-  }
-  .trick-card.trick-tier-epic {
-    background: linear-gradient(160deg, #1a0a2e 0%, #0f0620 100%);
-    border: 2px solid #9b4dca;
-    box-shadow: 0 0 10px rgba(155,77,202,0.5);
-  }
-  /* Top tier (Deluxe / Executive). Took the crimson look and the faster pulse
-     from the retired mythic tier in r197 - it is the loudest tier now. */
-  .trick-card.trick-tier-legendary {
-    background: linear-gradient(160deg, #2a0012 0%, #16000a 100%);
-    border: 2px solid #ff4d6d;
-    box-shadow: 0 0 12px rgba(255,77,109,0.6);
-    animation: trick-legendary-pulse 2s ease-in-out infinite;
-  }
-  @keyframes trick-legendary-pulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(255,77,109,0.5); }
-    50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
-  }
-  .trick-tier-label {
-    font-family: 'Cinzel', serif;
-    font-size: calc(var(--card-h, 75px) * 0.12); font-weight: 700; letter-spacing: 0.05em;
-    opacity: 0.6;
-  }
-  .trick-tier-common  .trick-tier-label { color: #6aaa6a; }
-  .trick-tier-rare    .trick-tier-label { color: #6a9fea; }
-  .trick-tier-epic    .trick-tier-label { color: #9b4dca; }
-  .trick-tier-legendary .trick-tier-label { color: #ff4d6d; }
   #trick-tooltip.trick-tier-legendary { border-color: #ff4d6d; }
-  .shop-trick-card.trick-tier-legendary { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-legendary-pulse 2s ease-in-out infinite; }
-  .trick-choice-card.tier-legendary { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
-  .tier-legendary .trick-choice-tier { color: #ff4d6d; }
-  .trick-name {
-    font-family: 'Cinzel', serif;
-    font-size: calc(var(--card-h, 75px) * 0.105); font-weight: 600;
-    text-align: center; line-height: 1.2;
-    padding: 0 3px;
-    color: #ddd;
-  }
   .trick-desc {
     display: none; /* description lives in tooltip only */
   }
@@ -2240,25 +2194,6 @@
     30%  { transform: scale(1.0); opacity: 1; filter: brightness(1); }
     75%  { transform: scale(1.0); opacity: 1; }
     100% { transform: scale(0.72); opacity: 0; filter: brightness(0.7); }
-  }
-  .trick-card.trick-upgradeable {
-    box-shadow: 0 0 14px rgba(232,184,75,0.7) !important;
-    border-color: #e8b84b !important;
-  }
-  .trick-card.trick-upgraded {
-    opacity: 0.6;
-    filter: grayscale(0.3);
-  }
-  .trick-upgrade-indicator {
-    position: absolute; top: 3px; right: 4px;
-    font-family: 'Cinzel', serif; font-size: 8px; font-weight: 900;
-    color: #e8b84b;
-    text-shadow: 0 0 4px rgba(232,184,75,0.8);
-  }
-  .trick-card.trick-pending {
-    transform: scale(1.06);
-    z-index: 10;
-    box-shadow: 0 0 18px rgba(232,184,75,0.7) !important;
   }
   .challenge-badge {
     position: absolute; top: 50%; left: 50%;
@@ -2985,124 +2920,7 @@
   .bo-border.rare { background: var(--gold); }
   .bo-border.legendary { background: #e090d0; }
 
-  /* ── FULL-SCREEN Trick CHOICE OVERLAY ── */
-  #trick-choice-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: transparent;
-    z-index: 195;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-    padding: 20px;
-  }
-  #trick-choice-overlay.show { display: flex; }
-  #trick-choice-header {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    width: 100%;
-  }
-  #trick-choice-title {
-    font-family: 'Cinzel', serif;
-    font-size: 13px; font-weight: 700; letter-spacing: 0.4em;
-    color: var(--gold); text-transform: uppercase;
-  }
-  #trick-choice-timer-wrap {
-    width: 240px; height: 3px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 2px; overflow: hidden;
-  }
-  #trick-choice-timer-bar {
-    height: 100%; width: 100%;
-    background: var(--gold);
-    border-radius: 2px;
-    transition: width 1s linear;
-  }
-  #trick-choice-timer-label {
-    font-family: 'Cinzel', serif; font-size: 11px;
-    color: var(--cream-dim); letter-spacing: 0.1em;
-  }
-  #trick-choice-cards {
-    display: flex; gap: 16px; align-items: stretch;
-    justify-content: center;
-  }
-  .trick-choice-card {
-    width: 120px;
-    background: #0e0c09;
-    border-radius: 10px;
-    padding: 16px 12px;
-    cursor: pointer;
-    display: flex; flex-direction: column; gap: 8px; align-items: center;
-    position: relative;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .trick-choice-card:active { transform: scale(0.97); }
-  .trick-choice-card.tier-common   { border: 2px solid #4a7a4a; }
-  .trick-choice-card.tier-rare     { border: 2px solid #3a6fca; box-shadow: 0 0 12px rgba(58,111,202,0.3); }
-  .trick-choice-card.tier-epic     { border: 2px solid #9b4dca; box-shadow: 0 0 14px rgba(155,77,202,0.35); }
-  .trick-choice-card.tier-legendary { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
-  .trick-choice-card.trick-choice-pending {
-    transform: translateY(-6px) scale(1.03);
-    box-shadow: 0 0 24px rgba(232,184,75,0.7) !important;
-    border-color: #e8b84b !important;
-  }
-  .trick-choice-tier {
-    font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 0.25em;
-    text-transform: uppercase; opacity: 0.6;
-  }
-  .tier-common  .trick-choice-tier { color: #6aaa6a; }
-  .tier-rare    .trick-choice-tier { color: #6a9fea; }
-  .tier-epic    .trick-choice-tier { color: #9b4dca; }
-  .tier-legendary .trick-choice-tier { color: #ff4d6d; }
-  .trick-choice-emoji {
-    font-size: 34px; line-height: 1; margin: 2px 0;
-  }
-  .trick-choice-name {
-    font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700;
-    color: var(--cream); text-align: center; line-height: 1.3;
-  }
-  .trick-choice-hold {
-    font-family: 'Crimson Pro', serif; font-size: 9px; font-style: italic;
-    color: rgba(255,255,255,0.3); text-align: center; letter-spacing: 0.03em;
-  }
-  .trick-choice-desc {
-    font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.4;
-    color: var(--cream-dim); text-align: center;
-  }
-  .trick-choice-confirm {
-    font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
-    color: #e8b84b; text-align: center; letter-spacing: 0.1em;
-    animation: trick-confirm-pulse 0.7s ease-in-out infinite alternate;
-  }
-  .trick-choice-target {
-    font-size: 9px; color: var(--cream-dim);
-    font-family: 'Crimson Pro', serif; font-style: italic;
-    text-align: center; opacity: 0.6;
-  }
-  #trick-choice-hint {
-    font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic;
-    color: rgba(255,255,255,0.25); letter-spacing: 0.05em;
-  }
-  #trick-choice-skip {
-    margin-top: 10px; padding: 6px 18px; border-radius: 16px;
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.18);
-    color: rgba(255,255,255,0.35); font-family: 'Cinzel', serif; font-size: 9px;
-    letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
-    transition: background 0.12s, color 0.12s;
-  }
-  #trick-choice-skip:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); }
-  /* Glowing target slot on the grid behind the overlay */
-  .trick-target-slot {
-    position: absolute; pointer-events: none;
-    border: 2px dashed rgba(232,184,75,0.6);
-    border-radius: 5px;
-    box-shadow: 0 0 12px rgba(232,184,75,0.3), inset 0 0 8px rgba(232,184,75,0.1);
-    animation: trick-target-pulse 1.2s ease-in-out infinite alternate;
-    z-index: 1;
-  }
-  @keyframes trick-target-pulse {
-    from { opacity: 0.4; box-shadow: 0 0 8px rgba(232,184,75,0.2); }
-    to   { opacity: 1.0; box-shadow: 0 0 18px rgba(232,184,75,0.6); }
+
   }
 
   /* ── GAME OVER / END ── */

@@ -372,10 +372,6 @@ function cardCan(card, action) {
     // Stones can be drawn, fall, render, and be swapped. Nothing else.
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';
   }
-  if (card._isTrick) {
-    // Tricks fall, render, and swap like normal cards - but can't be selected, scored, or discarded
-    return action === 'fall' || action === 'render' || action === 'swap';
-  }
   if (card._isSleight) {
     // Aim sleights are fixtures: fall & render only - never swapped, discarded, or selected
     // (so a single tap is free to rotate aim).

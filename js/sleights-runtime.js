@@ -909,7 +909,6 @@ function showCardTooltip(r, c) {
   hideCardTooltip();
   const card = gridData[r]?.[c];
   if (!card) return;
-  if (card._isTrick)    { showTrickTooltip(card.trick, true); return; }
   if (card._isSleight) { showSleightGridTooltip(r, c, card); return; }
   // Normal card - show enhancement tooltip only if something to show
   const k  = cardId(card);

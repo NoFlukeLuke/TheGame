@@ -1092,7 +1092,6 @@ function scalingCount(hand, handCells, reps) {
 }
 
 function runHandPriming(hand, handCells, bankedContrib) {
-  if (!trickTrayMode) return;
   // Consume primes that contributed this hand (their extra trigger already fired
   // in scoring). lastPreFocusMult is saved across the recompute the way the dance
   // saves it: this now runs after the dance's own calcScore, so leaving it moved

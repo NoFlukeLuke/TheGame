@@ -291,9 +291,6 @@ let firstHandThisRound = true;
 let freeDiscardsLeft = 2;   // free (no time cost) discards remaining this round
 let levelupTimer = null;
 let levelupSeconds = 0;
-let trickSelectionPhase = false;   // true while player is choosing a Trick on the grid
-let trickSelectionOptions = [];    // the 3 Trick trick objects currently on display
-let pendingTrickChoice = null;     // trick the player has tapped once (awaiting confirm tap)
 
 // ── Goal / level-up queue ──
 let goalReachedThisRound = false;

@@ -430,7 +430,6 @@ function survivalShowPick(bonus = false, kicker) {
   // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.
   if (!bonus && typeof flowrMaybeStart === 'function' && flowrMaybeStart()) return;
   animating = false;
-  trickSelectionPhase = false;
   survivalBonusPick = !!bonus;
   survivalPickKicker = kicker || (bonus ? 'BOSS DEFEATED' : 'GOAL CLEARED');
   pickRerollsNewScreen();              // the PRICE ladder restarts on a new pick

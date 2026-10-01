@@ -10,7 +10,6 @@ function renderCardAppearance(card, r, c, {
   isSwapPending = false,
   isReachable  = true,
   isChallenge  = false,
-  isPendingTrick  = false,
   // The Fog hides ranks on the BOARD. A card in the hand preview or the scoring
   // dance is one you have already committed to, so it is always shown - fogging
   // it there would hide the hand from the animation that is explaining it.
@@ -55,20 +54,6 @@ function renderCardAppearance(card, r, c, {
                + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
                + (card._inert ? ' sleight-inert' : ''),
       innerHTML: sleightFaceHTML(card, def, usesStr),
-    };
-  }
-
-  // ── Blessing Card (Trick) ──
-  if (!isChallenge && card._isTrick) {
-    const stateClass  = card._trickState === 'upgradeable' ? ' trick-upgradeable'
-                      : card._trickState === 'upgraded'    ? ' trick-upgraded' : '';
-    const upgradeLabel = card._trickState === 'upgradeable'
-      ? '<div class="trick-upgrade-indicator">U</div>' : '';
-    return {
-      className: `trick-card trick-tier-${card.trick.tier}${isPendingTrick ? ' trick-pending' : ''}${stateClass}`,
-      innerHTML: `<div class="trick-tier-label">${tierInitial('trick', card.trick.tier)}</div>`
-               + `<div class="trick-name">${card.trick.name}</div>${upgradeLabel}`,
-      isTappable: card._trickState === 'new' || card._trickState === 'upgradeable',
     };
   }
 

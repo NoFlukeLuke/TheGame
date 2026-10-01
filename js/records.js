@@ -328,7 +328,7 @@ function recordsEntityCard(icon, name, tag, desc, cls, off, rar) {
 
 function recordsRenderPersonnel() {
   // Tricks (side tray), Sleights (owned deck cards), Knacks (permanent).
-  const tricks = (typeof trickTray !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks;
+  const tricks = trickTray;
   // Records is the screen you open mid-boss to work out what you still have, so a
   // Trick a boss has switched off (Voidwright, Censor) reads as off here too.
   const _off = t => (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(t.id);

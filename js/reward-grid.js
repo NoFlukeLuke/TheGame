@@ -217,7 +217,7 @@ function _generateRewardContent() {
   // Rider - a Trick you own keeps working and starts charging rent. Needs a
   // Trick to ride, and will not double up on one that already carries it.
   {
-    const _owned = (trickTrayMode ? trickTray : (acquiredTricks || []))
+    const _owned = trickTray
       .filter(t => t && t.id && t.id !== riderTrickId);
     if (_owned.length) {
       const _t = _owned[Math.floor(Math.random() * _owned.length)];
@@ -875,46 +875,20 @@ function removeCardIdentityFromRun(rank, suit) {
   return false;
 }
 
-// Place a Trick card physically on the grid (middle-row inner col, displacing if needed).
-// Use this any time a Trick is granted outside the normal level-up Trick selection flow.
+// Put a Trick in the tray. Use this any time a Trick is granted.
 // THE chokepoint every Trick grant passes through - the shop, the reward grid,
 // every event, both picks, the wheel and the dev panel. Returns false when the
 // grant was refused, so a caller about to charge for one can check first.
 function injectTrickAfterReward(trick) {
   if (!trick) return false;
-  if (trickTrayMode) {
-    // Slots full: REFUSED, not queued (r277). Selling is how a slot is freed.
-    // Guarding here as well as at the selection sites is deliberate - plenty of
-    // grants arrive with nothing to select (a wheel prize, an event payout, a
-    // Mystery tile), and those have to bounce rather than vanish.
-    if (trickTrayFull()) return refuseTrickCapacity();
-    trickTray.push(trick);
-    selectTrick(trick, true);
-    renderTrickTray();
-    return true;
-  }
-  const midRow = Math.floor(gridRows / 2);
-  const allCols = Array.from({length: gridCols}, (_, i) => i).sort(() => Math.random() - 0.5);
-  // Prefer inner cols for aesthetic placement
-  const innerCols = allCols.filter(c => c > 0 && c < gridCols - 1);
-  const searchOrder = [...innerCols, ...allCols.filter(c => !innerCols.includes(c))];
-  let targetRow = midRow, targetCol = searchOrder[0] ?? 0;
-  for (const c of searchOrder) {
-    if (!gridData[midRow]?.[c]?._isTrick && !gridData[midRow]?.[c]?._isSleight) { targetCol = c; break; }
-  }
-  // Fallback: any non-Trick, non-sleight cell in the grid
-  if (gridData[targetRow]?.[targetCol]?._isTrick) {
-    outer: for (let r = 0; r < gridRows; r++)
-      for (const c of searchOrder)
-        if (!gridData[r]?.[c]?._isTrick && !gridData[r]?.[c]?._isSleight) { targetRow = r; targetCol = c; break outer; }
-  }
-  // Salvage displaced card
-  const displaced = gridData[targetRow][targetCol];
-  if (displaced && !displaced._isTrick && !displaced._isSleight && displaced.rank) drawPile.push({ rank: displaced.rank, suit: displaced.suit });
-  const trickId = 90000 + (Date.now() % 9000);
-  gridData[targetRow][targetCol] = { rank: null, suit: null, _isTrick: true, _selectable: false, _trickState: 'acquired', trick, _id: trickId };
-  selectTrick(trick, true); // handles acquiredTricks.push + positional assignment
-  render();
+  // Slots full: REFUSED, not queued (r277). Selling is how a slot is freed.
+  // Guarding here as well as at the selection sites is deliberate - plenty of
+  // grants arrive with nothing to select (a wheel prize, an event payout, a
+  // Mystery tile), and those have to bounce rather than vanish.
+  if (trickTrayFull()) return refuseTrickCapacity();
+  trickTray.push(trick);
+  selectTrick(trick, true);
+  renderTrickTray();
   return true;
 }
 
@@ -931,15 +905,7 @@ function applyRewardRandomTrick() {
   injectTrickAfterReward(pick);
 }
 function applyRewardLoseTrick() {
-  // Collect all current Tricks - either from tray or grid
-  let options = [];
-  if (trickTrayMode) {
-    options = trickTray.map((trick, idx) => ({ trick, source: 'tray', idx }));
-  } else {
-    for (let r = 0; r < gridRows; r++)
-      for (let c = 0; c < gridCols; c++)
-        if (gridData[r]?.[c]?._isTrick) options.push({ trick: gridData[r][c].trick, source: 'grid', r, c });
-  }
+  const options = trickTray.map((trick, idx) => ({ trick, source: 'tray', idx }));
   if (options.length === 0) { showMessage('No Tricks to lose', 'var(--cream-dim)'); return; }
   openTrickLosePicker(options);
 }

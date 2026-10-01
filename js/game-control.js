@@ -506,7 +506,7 @@ function startGame() {
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
-  syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
+  syncTrickTrayUI();   // show the Trick tray for the new game
   if (typeof portraitMountStats === 'function') portraitMountStats();  // HAND SIZE + COINS under the board in portrait (r377)
   cardPlayCount   = {};
   cardSwapCount   = {};

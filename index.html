@@ -581,10 +581,6 @@
       <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
       Show card counter (deck audit)
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
-      Place Tricks on the grid (off = side tray)
-    </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
       Interrupt a scoring hand by
       <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
@@ -1075,7 +1071,7 @@
         <div id="selected-cards"></div>
         <div id="hand-name">·</div>
       </div>
-      <!-- Trick Tray (visible only in trickTrayMode) -->
+      <!-- Trick Tray -->
       <div id="trick-tray-area" style="display:none">
         <span class="panel-title"><span id="tray-title-word">Tricks</span> <span id="trick-tray-count"></span></span>
         <div id="trick-tray-list"></div>
@@ -1404,20 +1400,6 @@
   <div id="levelup-sub">Choose a trick - <span id="lu-timer">15</span>s remaining</div>
   <div id="levelup-timer-bar-wrap"><div id="levelup-timer-bar"></div></div>
   <div id="trick-options"></div>
-</div>
-
-<!-- FULL-SCREEN Trick CHOICE OVERLAY -->
-<div id="trick-choice-overlay">
-  <div id="trick-choice-header">
-    <div id="trick-choice-title">CHOOSE A TRICK</div>
-    <div id="trick-choice-timer-wrap">
-      <div id="trick-choice-timer-bar"></div>
-    </div>
-    <div id="trick-choice-timer-label"><span id="trick-choice-seconds">45</span>s</div>
-  </div>
-  <div id="trick-choice-cards"></div>
-  <div id="trick-choice-hint">Tap to preview · Tap again to choose</div>
-  <button id="trick-choice-skip">Pass - No Trick</button>
 </div>
 
 <!-- CHALLENGE TOOLTIP -->

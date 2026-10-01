@@ -600,8 +600,6 @@ function danceEntityEl(source, id){
   if(source==='trick'){
     const chip=dncUsable(document.querySelector(`.trick-tray-chip[data-trick-id="${CSS.escape(id)}"]`));
     if(chip) return chip;
-    for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
-      if(cell?._isTrick && cell.trick?.id===id) return dncUsable(document.querySelector(`#grid [data-card-id="${cell._id}"]`)); }
   } else if(source==='knack'){
     const k=dncUsable(document.querySelector(`.knack-chip[data-knack-id="${CSS.escape(id)}"]`)); if(k) return k;
   } else if(source==='sleight'){

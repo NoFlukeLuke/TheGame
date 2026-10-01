@@ -391,7 +391,6 @@ const C = {
 };
 let acquiredTricks = [];
 let acquiredKnacks = [];
-let trickTrayMode = true;   // default: Tricks live in the side tray, NOT on the grid (dev toggle re-enables grid placement)
 // Per-card-type tracking for exalt/corrupt triggers (key: cardKey(rank,suit))
 let cardPlayCount  = {};   // times scored this run
 let cardSwapCount  = {};   // times swapped this run

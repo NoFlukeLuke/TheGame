@@ -133,22 +133,6 @@ function render() {
         continue;
       }
 
-      // ── Trick card path ──
-      if (!isChallenge && card._isTrick) {
-        let div = existingEls[cardId];
-        if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
-        div.dataset.row = r; div.dataset.col = c;
-        div.style.left = cellLeft(c) + 'px';
-        if (!animating && !falling) div.style.top = cellTop(r) + "px";
-        const isPendingTrick = !!(pendingTrickChoice && pendingTrickChoice.id === card.trick.id);
-        const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
-        const { className, innerHTML, isTappable } = renderCardAppearance(card, r, c, { isPendingTrick, isSwapPending });
-        div.className = className; div.innerHTML = innerHTML;
-        div.onclick = isTappable ? () => onTrickTap(card.trick) : null;
-        div.style.cursor = isTappable ? 'pointer' : 'default';
-        attachLongPress(div, r, c);
-        continue;
-      }
       const isReach      = reachable ? reachable.has(key) : true;
       const isSwapPend   = swapPending && swapPending[0]===r && swapPending[1]===c;
       const isSel        = selected.some(([sr,sc])=>sr===r&&sc===c);

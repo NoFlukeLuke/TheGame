@@ -308,7 +308,7 @@ function bossRedactedSingleMult(handName) {
 // re-render every second would restart the tray's marquee/fan on every tick.
 let _bossTrickOffSig = '';
 function bossSyncTrickTrayState() {
-  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
+  const held = trickTray;
   const sig = held.filter(t => typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id))
                   .map(t => t.id).sort().join(',');
   if (sig === _bossTrickOffSig) return;

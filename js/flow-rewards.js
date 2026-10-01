@@ -429,7 +429,6 @@ function flowrWhenBoardStill(cb) {
 function flowrShowStep() {
   if (!flowrQueue) return;
   animating = false;
-  if (typeof trickSelectionPhase !== 'undefined') trickSelectionPhase = false;
   const kind = flowrQueue[flowrIdx];
   flowrRenderStack();
   // The step's own board decides the panel's size, and it holds it until the
