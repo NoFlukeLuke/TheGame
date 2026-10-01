@@ -553,7 +553,6 @@ let fullHouseThisRound = 0; // for House Rules
 // ── Positional bonus state ──
 // Each entry: { id, axis:'row'|'col', index:0-4, [intersectRow, intersectCol for ley line] }
 let rowColBonuses = [];
-let leyLinePos = null; // { r, c } - changes each round
 
 // ══════════════════════════════════════════════
 // DECK

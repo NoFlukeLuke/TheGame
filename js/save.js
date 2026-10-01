@@ -90,7 +90,7 @@ const SAVE_VARS = [
   'roundPenaltySeconds', 'extraPlayCostPerm', 'extraDiscardCostPerm',
   'nextRoundDiscardDelta', 'nextRoundSwapDelta', 'nextRoundSecondsDelta',
   'nextRoundPlayCost', 'nextRoundDiscardCost', 'playHandCostThisRound', 'discardCostThisRound',
-  'freeSwapsLeft', 'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
+  'freeDiscardsLeft', 'pauseSecondsLeft', 'pauseInstanceGame', 'rewindInstanceGame',
   // ── Focus ──
   'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusCapGains', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
@@ -116,7 +116,7 @@ const SAVE_VARS = [
   'bonusMult_fives', 'bonusMult_nines', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless',
   'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'safetyNetUsed', 'negativeTilesTakenRun',
-  '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext', 'leyLinePos',
+  '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext',
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerCardId', 'doubleJeopardyCells',

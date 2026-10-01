@@ -101,7 +101,6 @@ function renderCardAppearance(card, r, c, {
   const isCombined = !!card.combined;
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
 
-  const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
   const rcWoodpecker = woodpeckerCardId && card && cardId(card) === woodpeckerCardId ? ' rc-woodpecker' : '';
   // The shared "what affected what" highlight (r209, divided in r296 -
   // js/entity-fx.js): a RING around the card in the owning Trick's colour,
@@ -151,7 +150,7 @@ function renderCardAppearance(card, r, c, {
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     curse ? 'cursed' : '',
     bothClass.trim(),
-    rcLeyline.trim(), rcWoodpecker.trim(),
+    rcWoodpecker.trim(),
     _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
     _dual ? 'card-dual' : '', (_dual && card.rank2) ? 'card-dual-rank' : '', _coin ? 'card-has-coin' : '',

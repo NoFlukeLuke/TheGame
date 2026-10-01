@@ -316,7 +316,7 @@ function bossSyncTrickTrayState() {
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
-// ── Trick blackout (The Censor, The Rota) ────────────────────────────────────
+// ── Trick blackout (The Censor) ────────────────────────────────────────────
 function bossTrickBlackedOut(trickId) {
   if (!bossDisabledTricks.size) return false;
   const until = bossDisabledTricks.get(trickId);
@@ -440,24 +440,6 @@ function bossHoldOne(holdSecs) {
   if (!animating && !falling) render();
 }
 
-// The Rota: exactly ONE Trick down at a time, and when it comes back a different
-// one goes off. The Censor's windows overlap on purpose (two down at once for a
-// stretch of every cycle); this one is a single rolling suspension, which is the
-// readable version - you always know precisely what you have lost.
-function bossRotateTick(holdSecs) {
-  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
-  const owned = held.map(t => t.id);
-  if (!owned.length) return;
-  const previous = [...bossDisabledTricks.keys()];
-  bossDisabledTricks.clear(); bossDisabledTotals.clear();   // the last one comes back now
-  // Never the same Trick twice in a row while there is another to pick.
-  let pool = owned.filter(id => !previous.includes(id));
-  if (!pool.length) pool = owned;
-  const id = pool[Math.floor(Math.random() * pool.length)];
-  bossSuspendTrick(id, holdSecs);
-  showMessage(`${trickIdToName(id)} off for ${Math.round(holdSecs * bossIntervalScale())}s`, 'var(--red)');
-  renderTrickTray?.();
-}
 
 // THE RECALL (rebalanced r213). It used to withdraw ONE rank, and measured over
 // 400 real 4x4 deals that froze an average of 1.23 cards out of 16 - and 22% of
@@ -1001,11 +983,6 @@ function applyBossEffectModifier(mod, params) {
       bossSchedule(bossHoldEvery, () => bossHoldTick(
         params.holdSecs || 15,
         Math.max(1, Math.round((params.count || 2) * bossMagScale()))));
-      return true;
-    case 'trick_rotate':
-      // The interval IS the hold - one down, then the next - so a single param
-      // drives both and the two can never drift out of step.
-      bossSchedule(params.holdSecs || 30, () => bossRotateTick(params.holdSecs || 30));
       return true;
     case 'ration_cut':
       bossSchedule(params.everySecs || 30, bossRationTick);

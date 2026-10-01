@@ -558,7 +558,6 @@ function startGame() {
   runStreak          = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
-  freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
@@ -585,7 +584,6 @@ function startGame() {
   resetPositionMarks();
   _posChooserQueue = []; _posChooserActive = false;
   { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
-  leyLinePos = null;
   minuteHandCharges = 0;
   // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
   // the round's first tick, which would prime a Trick one second into the run.

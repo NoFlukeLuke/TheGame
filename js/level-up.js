@@ -202,7 +202,6 @@ function triggerLevelUp() {
   lastSwapRoundSeconds = null;
   lastHandRoundSeconds = null;
   firstHandThisRound = true;
-  freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;

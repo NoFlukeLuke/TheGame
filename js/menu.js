@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r411 · Dominoes mode removed";
+const BUILD = "2026-10-01 · r412 · Dead code sweep: legacy dance, shop squish, The Rota, dead constants";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

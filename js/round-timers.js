@@ -260,8 +260,6 @@ function startTimers() {
 // 1-card discard cost 3+3=6s and the 3rd swap of a round cost 4+10=14s while the
 // UI quoted 3s and 4s. Interact costs now come from BAL._resources ALONE
 // (discard 3s per card, swap 8s flat, play free). Do not charge these again.
-const DISCARD_TIME_COST = 3;
-const SWAP_TIME_COST    = 4;
 // ── The two clock chokepoints (r234) ────────────────────────────────────────
 // "Does the round end when the clock reaches zero?" A boss window always does -
 // that clock IS the boss. Otherwise a mode may say no (Flow's session clock, or a
@@ -311,14 +309,6 @@ function interactTimeCostMult() {
   if (!interactTimeCostsOn()) return 0;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_INTERACT_TIME_MULT;
   return 1;
-}
-
-function spendRoundTime(sec) {
-  if (!interactTimeCostsOn()) return;
-  if (roundEnded || !sec || sec <= 0) return;
-  roundSeconds -= sec;
-  if (roundSeconds < 0) roundSeconds = 0;
-  updateClockUI();   // next timer tick ends the round if this hit 0
 }
 
 function updateClockUI() {

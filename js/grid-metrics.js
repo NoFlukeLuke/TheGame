@@ -192,14 +192,11 @@ function replaceGridCells() {
 // and stretch the clock readout + timer bar across the grid's WIDTH, so both track
 // the grid and scale as it grows (more columns → wider grid → wider clock bar).
 // Where the left column's outer edge sits, as a percentage of the stage. The
-// playing layout runs it to 39.3% (1.56% + 37.74%); the shop squeezes it to
-// 26.56% (1.56% + 25%). Anything that has to sit clear of the column asks here
-// rather than carrying its own copy of the number.
-const LCOL_RIGHT_PLAY = 39.3, LCOL_RIGHT_SHOP = 26.56;
-function leftColumnRightPct() {
-  const stage = document.getElementById('stage');
-  return (stage && stage.classList.contains('shop-squish')) ? LCOL_RIGHT_SHOP : LCOL_RIGHT_PLAY;
-}
+// playing layout runs it to 39.3% (1.56% + 37.74%). Anything that has to sit
+// clear of the column asks here rather than carrying its own copy of the number.
+// (The r230 shop squish that narrowed it is gone, r412.)
+const LCOL_RIGHT_PLAY = 39.3;
+function leftColumnRightPct() { return LCOL_RIGHT_PLAY; }
 
 function syncSidebarsToGrid() {
   const stage = document.getElementById('stage');
