@@ -323,3 +323,11 @@ one. A finished slip hangs `holdPerLine` per line. The fall is a flutter model o
 leading edge dips, edge-on at the ends, fastest mid-swing), one transform per frame. Sounds
 `sfxPrintLine` / `sfxPrintFeed` / `sfxPrintTear` are synthesised there and catalogued. Tune in
 `toast-preview.html`, which loads the real file.
+
+## r434 - printer notices: fixed width, printed before the feed, varied falls
+Every slip is `PT_CFG.width` design px wide; a long notice wraps. A line is printed out of
+sight first (`sfxPrintLine`), then fed down already written (`sfxPrintFeed`), so the slip
+stays hidden (`.pt-empty`) until its first line arrives. Each falling slip rolls its own swing
+period and width, drop speed, sideways drift and phase; `spinChance` of them spiral (turn right
+round) instead of rocking, and the back of the sheet shows the ink faintly (`--pt-back`).
+`PT_CFG.variety` 0 makes every fall the same.

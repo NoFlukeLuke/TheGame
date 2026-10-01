@@ -8,7 +8,7 @@
 
 .pt-slip {
   --lh: calc(16px * var(--z)); --edge: calc(9px * var(--z)); --hole: calc(4px * var(--z));
-  position: absolute; left: 50%; top: calc(-8px * var(--z));
+  position: absolute; left: 50%; top: calc(-8px * var(--z)); width: calc(var(--ptw, 230px) * var(--z));
   transform: translateX(-50%); transform-origin: 50% 20%;
   filter: drop-shadow(0 calc(3px * var(--z)) calc(4px * var(--z)) rgba(0,0,0,.55));
   will-change: transform;
@@ -30,12 +30,12 @@
 .pt-paper::before { left: calc(var(--edge) + 3px * var(--z)); }
 .pt-paper::after  { right: calc(var(--edge) + 3px * var(--z)); }
 
-.pt-lines { display: flex; flex-direction: column; }
+.pt-lines { display: flex; flex-direction: column; opacity: var(--pt-back, 1); }
 .pt-line {
-  height: var(--lh); line-height: var(--lh); white-space: nowrap; color: var(--ink, #2a2118);
+  min-height: var(--lh); line-height: var(--lh); color: var(--ink, #2a2118); overflow-wrap: anywhere;
   font-family: 'VT323', 'Share Tech Mono', monospace; font-size: calc(var(--fpx, 13px) * var(--z) * 1.15);
   letter-spacing: calc(.4px * var(--z));
-  /* the paper jumps down a line in jerks, not a glide */
+  /* the printed line jumps down into view in jerks, not a glide */
   animation: ptFeed 110ms steps(3) both;
 }
 /* a faint green bar every other line, counted from the oldest so it stays put as
@@ -46,13 +46,9 @@
 /* dot-matrix: the ink is rows of dots, not a solid stroke */
 .pt-t { -webkit-mask: repeating-linear-gradient(#000 0 calc(2px * var(--z)), #0007 0 calc(3px * var(--z)));
         mask: repeating-linear-gradient(#000 0 calc(2px * var(--z)), #0007 0 calc(3px * var(--z))); }
-.pt-head { display: inline-block; width: .5em; height: .75em; margin-left: 1px; background: currentColor; opacity: .7; vertical-align: -.05em; }
-.pt-done .pt-head { display: none; }
 .pt-x { display: inline-block; margin-left: .5em; padding: 0 .3em; border: 1.5px solid currentColor; border-radius: 3px;
         line-height: 1; font-size: .85em; transform: rotate(-6deg); color: var(--ink, #2a2118); }
-.pt-measure { position: absolute; visibility: hidden; white-space: nowrap;
-  font-family: 'VT323', 'Share Tech Mono', monospace; font-size: calc(var(--fpx, 13px) * var(--z) * 1.15);
-  letter-spacing: calc(.4px * var(--z)); }
+.pt-empty { visibility: hidden; }
 
 /* torn: the top edge is the ragged perforation the slip came away from */
 .pt-torn .pt-paper {

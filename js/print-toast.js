@@ -20,11 +20,11 @@ const PT_CFG = {
   groupMs: 160,        // notices this close together share a slip
   holdPerLine: 2000,   // how long a finished slip hangs, per line
   maxLines: 6,         // a slip with this many lines tears and a new one starts
-  charMs: 9,           // print time per character...
+  width: 230,          // design px; every slip is this wide, a long notice wraps
+  charMs: 9,           // print time per character, out of sight above the screen...
   lineMinMs: 140,      // ...floored...
   lineMaxMs: 340,      // ...and capped, so a line never takes long
-  chunk: 3,            // characters struck per jerk of the head
-  feedMs: 110,         // the paper's jump down one line
+  feedMs: 110,         // the paper's jump down one line, already printed
   fontPx: 13,          // design px; scaled by the stage zoom
   ink: 80,             // % of the game colour in the ink (the rest is near-black)
   paper: '#f2ead8', bar: '#dfe9d6',
@@ -34,7 +34,10 @@ const PT_CFG = {
   turn: 38,            // degrees it turns edge-on at the end of a swing
   fallSlow: 14,        // design px/s at the ends of a swing
   fallFast: 190,       // design px/s through the middle
-  fallLife: 3.6,       // seconds before a falling slip is removed
+  fallLife: 3.6,       // seconds before a falling slip is removed (scaled by its speed)
+  variety: 1,          // 0 = every slip falls the same way, 1 = full spread
+  spinChance: 0.35,    // share of slips that spiral (turn right round) instead of rocking
+  drift: 70,           // design px/s of sideways drift a slip can pick up, either way
 };
 
 let printToastsOn = true;          // Settings > Display > Printer notices
@@ -112,7 +115,6 @@ function printToast(text, color, opts) {
   const slip = _ptSlip;
   const line = { text: String(text), icon: o.icon || '', ink: ptInk(color), el: null, n: 1 };
   slip.lines.push(line); slip.queue.push(line);
-  ptSizeSlip(slip, line);
   if (!slip.busy) ptPrintNext(slip);
   return slip.el;
 }
@@ -121,49 +123,39 @@ function ptNewSlip(layer, now) {
   const el = document.createElement('div');
   el.className = 'pt-slip';
   el.innerHTML = '<div class="pt-paper"><div class="pt-lines"></div></div>';
+  el.style.setProperty('--ptw', PT_CFG.width + 'px');
+  el.classList.add('pt-empty');                      // nothing shows until the first line is fed
   layer.appendChild(el);
   return { el, paper: el.firstChild, box: el.firstChild.firstChild, lines: [], queue: [],
            opened: now, busy: false, done: false, timers: [], width: 0 };
 }
 
-// The slip is as wide as its longest line, reserved up front so the paper does
-// not grow sideways under the print head.
-function ptSizeSlip(slip, line) {
-  const m = document.createElement('span');
-  m.className = 'pt-measure'; m.textContent = (line.icon ? line.icon + ' ' : '') + line.text + ' x9';
-  slip.paper.appendChild(m);
-  const w = m.offsetWidth; m.remove();
-  if (w > slip.width) { slip.width = w; slip.box.style.minWidth = w + 'px'; }
-}
-
 function ptLater(slip, ms, fn) { const t = setTimeout(fn, ms); slip.timers.push(t); return t; }
 
+// Each line is printed out of sight, above the screen (the print sound), and then
+// fed down already written (the feed sound, the paper jumping in steps).
 function ptPrintNext(slip) {
   const line = slip.queue.shift();
   if (!line) { slip.busy = false; slip.done = true; ptArmHold(slip); return; }
   slip.busy = true; slip.done = false;
+  const full = (line.icon ? line.icon + ' ' : '') + line.text;
+  const ms = Math.max(PT_CFG.lineMinMs, Math.min(PT_CFG.lineMaxMs, [...full].length * PT_CFG.charMs));
+  try { sfxPrintLine?.(ms); } catch (e) {}
+  ptLater(slip, ms, () => {
+    ptFeedLine(slip, line);
+    try { sfxPrintFeed?.(); } catch (e) {}
+    ptLater(slip, PT_CFG.feedMs, () => ptPrintNext(slip));
+  });
+}
+
+function ptFeedLine(slip, line) {
   const el = document.createElement('div');
   el.className = 'pt-line'; el.style.setProperty('--ink', line.ink);
-  el.innerHTML = '<span class="pt-t"></span><span class="pt-head"></span>';
+  el.innerHTML = '<span class="pt-t"></span>';
+  el.firstChild.textContent = (line.icon ? line.icon + ' ' : '') + line.text;
   line.el = el;
   slip.box.insertBefore(el, slip.box.firstChild);    // the newest line is at the head
-  try { sfxPrintFeed?.(); } catch (e) {}
-  const full = (line.icon ? line.icon + ' ' : '') + line.text;
-  const chars = [...full];
-  const ms = Math.max(PT_CFG.lineMinMs, Math.min(PT_CFG.lineMaxMs, chars.length * PT_CFG.charMs));
-  const steps = Math.max(1, Math.ceil(chars.length / PT_CFG.chunk));
-  const t = el.firstChild;
-  ptLater(slip, PT_CFG.feedMs, () => {
-    try { sfxPrintLine?.(ms); } catch (e) {}
-    let i = 0;
-    const strike = () => {
-      i = Math.min(chars.length, i + PT_CFG.chunk);
-      t.textContent = chars.slice(0, i).join('');
-      if (i < chars.length) ptLater(slip, ms / steps, strike);
-      else { el.classList.add('pt-done'); ptPrintNext(slip); }
-    };
-    strike();
-  });
+  slip.el.classList.remove('pt-empty');
 }
 
 function ptArmHold(slip) {
@@ -175,17 +167,7 @@ function ptArmHold(slip) {
 // Print everything still owed at once: no more sound, no more jerks.
 function ptFinish(slip) {
   slip.timers.forEach(clearTimeout); slip.timers = []; clearTimeout(slip.hold);
-  slip.box.querySelectorAll('.pt-line').forEach(l => l.classList.add('pt-done'));
-  slip.lines.forEach(line => {
-    const full = (line.icon ? line.icon + ' ' : '') + line.text;
-    if (!line.el) {
-      const el = document.createElement('div');
-      el.className = 'pt-line pt-done'; el.style.setProperty('--ink', line.ink);
-      el.innerHTML = '<span class="pt-t"></span>';
-      slip.box.insertBefore(el, slip.box.firstChild); line.el = el;
-    }
-    line.el.querySelector('.pt-t').textContent = full;
-  });
+  slip.lines.forEach(line => { if (!line.el) ptFeedLine(slip, line); });
   slip.queue = []; slip.busy = false; slip.done = true;
 }
 
@@ -198,11 +180,20 @@ function ptTear(slip) {
   const reduced = document.body.classList.contains('reduced-motion');
   if (reduced) { el.classList.add('pt-fade'); setTimeout(() => el.remove(), 400); return; }
   const rnd = typeof fxRandom === 'function' ? fxRandom : Math.random;
-  const w = el.offsetWidth;
-  _ptFalling.push({ el, t: 0, y: 0, vy: 0,
-    T: PT_CFG.swingPeriod * (0.8 + rnd() * 0.4),
-    A: Math.min(130 * z, Math.max(36 * z, w * PT_CFG.swingAmp)),
-    dir: rnd() < 0.5 ? -1 : 1, z, H: _ptLayer ? _ptLayer.offsetHeight : innerHeight });
+  const w = el.offsetWidth, c = PT_CFG, v = c.variety;
+  // Every slip gets its own fall: how fast it swings and how wide, how fast it
+  // drops, whether it drifts off to one side, and whether it rocks or spirals.
+  const vary = (lo, hi) => 1 + v * (lo + rnd() * (hi - lo) - 1);
+  const spin = rnd() < c.spinChance * v ? (rnd() < 0.5 ? -1 : 1) * (200 + rnd() * 220) : 0;
+  const speed = vary(0.65, 1.4);
+  _ptFalling.push({ el, t: 0, y: 0, vy: 0, z, spin, speed,
+    T: c.swingPeriod * vary(0.65, 1.45),
+    A: Math.min(140 * z, Math.max(30 * z, w * c.swingAmp * vary(0.45, 1.5))),
+    tiltK: vary(0.5, 1.4), turnK: vary(0.5, 1.4),
+    drift: (rnd() * 2 - 1) * c.drift * v * z,
+    ph0: rnd() * 0.6 * v,
+    dir: rnd() < 0.5 ? -1 : 1, life: c.fallLife / Math.sqrt(speed),
+    H: _ptLayer ? _ptLayer.offsetHeight : innerHeight });
   while (_ptFalling.length > 8) _ptFalling.shift().el.remove();
   if (!_ptRaf) { _ptLast = performance.now(); _ptRaf = requestAnimationFrame(ptFallTick); }
 }
@@ -214,18 +205,22 @@ function ptFallTick(now) {
   _ptFalling = _ptFalling.filter(f => {
     f.t += dt;
     const ramp = Math.min(1, f.t / 0.7);              // it drops straight before it starts to swing
-    const ph = f.dir * 2 * Math.PI * f.t / f.T;
+    const ph = f.dir * (2 * Math.PI * f.t / f.T + f.ph0);
     const sw = Math.cos(ph), side = Math.sin(ph);
-    const vt = (c.fallSlow + (c.fallFast - c.fallSlow) * sw * sw) * f.z;
+    const vt = (c.fallSlow + (c.fallFast - c.fallSlow) * sw * sw) * f.z * f.speed;
     f.vy += (vt - f.vy) * Math.min(1, dt * 4);
     f.y += f.vy * dt;
-    const x = f.A * ramp * side;
-    const tilt = c.tilt * ramp * sw * f.dir;          // leading edge dips into the motion
-    const turn = c.turn * ramp * side;                // edge-on at the ends of a swing
-    const fade = f.t > c.fallLife - 0.6 ? Math.max(0, (c.fallLife - f.t) / 0.6) : 1;
+    const x = f.A * ramp * side + f.drift * ramp * f.t;
+    // a spiralling slip turns right round; a rocking one dips its leading edge
+    // into the motion and goes edge-on at the ends of each swing
+    const tilt = c.tilt * f.tiltK * ramp * sw * f.dir * (f.spin ? 0.4 : 1);
+    const turn = f.spin ? f.spin * Math.max(0, f.t - 0.25) : c.turn * f.turnK * ramp * side;
+    const fade = f.t > f.life - 0.6 ? Math.max(0, (f.life - f.t) / 0.6) : 1;
     f.el.style.transform = `perspective(${700 * f.z}px) translateX(-50%) translate(${x.toFixed(1)}px, ${f.y.toFixed(1)}px) rotate(${tilt.toFixed(2)}deg) rotateY(${turn.toFixed(2)}deg)`;
     f.el.style.opacity = fade;
-    if (f.t >= c.fallLife || f.y > f.H + 40) { f.el.remove(); return false; }
+    // past edge-on we see the back of the sheet: the ink only shows through faintly
+    f.el.style.setProperty('--pt-back', Math.cos(turn * Math.PI / 180) < 0 ? 0.18 : 1);
+    if (f.t >= f.life || f.y > f.H + 40) { f.el.remove(); return false; }
     return true;
   });
   _ptRaf = _ptFalling.length ? requestAnimationFrame(ptFallTick) : 0;

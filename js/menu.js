@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r433 · Printer notices: shared slips, tear and flutter";
+const BUILD = "2026-10-01 · r434 · Printer notices: fixed width, printed before the feed, varied falls";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
