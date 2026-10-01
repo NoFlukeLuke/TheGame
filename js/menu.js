@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r423 · Dealer's Choice sleight";
+const BUILD = "2026-10-01 · r424 · Controls: drag to play";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

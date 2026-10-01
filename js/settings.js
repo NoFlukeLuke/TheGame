@@ -126,6 +126,12 @@ const SETTINGS_DEF = [
     type: 'toggle', default: false,
     apply: v => { if (typeof setPayoutPickEnabled === 'function') setPayoutPickEnabled(!!v); } },
 
+  // ── Controls ── (r409)
+  { group: 'Controls', id: 'controlMode', label: 'Playing a hand',
+    hint: 'Tap: select cards, then press PLAY. Drag to play: drag across cards and let go to play them. Tap DISCARD first and the next drag discards instead. On desktop, a right-drag always discards.',
+    type: 'select', default: 'tap', options: [['tap','Tap and PLAY'], ['drag','Drag to play']],
+    apply: v => { if (typeof setControlMode === 'function') setControlMode(v); } },
+
   // ── Display ──
   { group: 'Display', id: 'bigText', label: 'Larger text', hint: 'Increases UI text size across panels and pop-ups.',
     type: 'toggle', default: false,

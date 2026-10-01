@@ -335,7 +335,12 @@ function render() {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.
     document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
-    document.getElementById('btn-discard').disabled = (selected.length === 0 && !(typeof dealerActive === 'function' && dealerActive())) || (animating && !falling);
+    // DRAG TO PLAY (r409): with nothing selected, DISCARD arms the next drag
+    // instead, so it has to stay pressable on an empty selection.
+    const _dragArm = typeof controlDragPlay === 'function' && controlDragPlay();
+    const _dealer = typeof dealerActive === 'function' && dealerActive();
+    document.getElementById('btn-discard').disabled = (selected.length === 0 && !_dragArm && !_dealer) || (animating && !falling);
+    document.getElementById('btn-discard').classList.toggle('drag-armed', !!(typeof dragDiscardArmed !== 'undefined' && dragDiscardArmed));
   }
   // Both readouts are guarded for the same reason (r237 found the second one):
   // a takeover screen rewrites this chrome, so neither element is in the DOM

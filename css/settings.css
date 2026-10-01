@@ -173,3 +173,7 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
   color: #0b0a07; background: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b);
 }
 #settings-body > .set-tabs + .set-group-title { margin-top: 2px; }
+
+/* Drag to play (r409): DISCARD armed so the next drag discards. */
+.btn-discard.drag-armed { box-shadow: 0 0 0 2px #fff, 0 0 14px 3px var(--red); animation: dragArmPulse 1s ease-in-out infinite alternate; }
+@keyframes dragArmPulse { from { filter: brightness(1); } to { filter: brightness(1.35); } }

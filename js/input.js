@@ -40,8 +40,40 @@ function scheduleQueuedRetry() {
   })();
 }
 
+// ── CONTROLS: DRAG TO PLAY (r409) ──
+// Settings > Controls. 'drag': a left drag (or a finger drag) that gathers a
+// hand plays it on release, and tapping DISCARD with nothing selected arms the
+// NEXT drag to discard instead - which is how a phone gets the desktop's
+// right-drag discard. Taps still select and PLAY still plays, so this only adds.
+let controlMode = 'tap';
+let dragDiscardArmed = false;
+function controlDragPlay() { return controlMode === 'drag'; }
+function setControlMode(v) {
+  controlMode = v === 'drag' ? 'drag' : 'tap';
+  if (controlMode !== 'drag') dragDiscardArmed = false;
+  if (typeof gridData !== 'undefined' && gridData.length && gridData[0] && typeof render === 'function') { try { render(); } catch (e) {} }
+}
+function setDragDiscardArmed(on) {
+  dragDiscardArmed = !!on;
+  document.getElementById('btn-discard')?.classList.toggle('drag-armed', dragDiscardArmed);
+}
+// The takeover screens own #grid and the two buttons; a drag there is theirs.
+function dragControlsLive() {
+  return controlDragPlay()
+    && !(typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+    && !(typeof shopGridActive !== 'undefined' && shopGridActive)
+    && !(typeof squaresActive === 'function' && squaresActive())
+    && !(typeof mapActive === 'function' && mapActive())
+    && !(typeof gridPickState !== 'undefined' && gridPickState)
+    && !(typeof flowrDeckActive === 'function' && flowrDeckActive())
+    && !(typeof dealerActive === 'function' && dealerActive())
+    && !match3Active();
+}
+
 function scheduleAutoSubmit() {
   cancelAutoSubmit();
+  // Drag to play: the release IS the submit, so no timer may fire mid-drag.
+  if (dragControlsLive() && document.getElementById('grid')?._pointerStart) return;
   // Match-3: hands are never submitted by selection - matches play themselves.
   // Selection exists purely to choose cards to DISCARD.
   if (match3Active()) return;
@@ -584,6 +616,17 @@ gridEl2.addEventListener('pointerup', e => {
     const _dc = cardAt(document.elementFromPoint(e.clientX, e.clientY)) || [ps.r, ps.c];
     isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
     onCardTap(_dc[0], _dc[1]);
+    return;
+  }
+  // Drag to play (r409): the release submits what the drag gathered - a
+  // discard if DISCARD was armed, otherwise the hand. playHand/doDiscard own
+  // every rule; a drag that made no hand just leaves its selection standing.
+  if (ps && ps.moved && dragControlsLive() && selected.length > 0) {
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    cancelAutoSubmit();
+    if (dragDiscardArmed) { setDragDiscardArmed(false); doDiscard(); }
+    else if (findBestHand(selected)) playHand();
+    else scheduleAutoSubmit();
     return;
   }
   if (ps && !ps.moved) {
