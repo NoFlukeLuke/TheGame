@@ -400,11 +400,6 @@ const INFO_TOPICS = [
       'Between rounds you pick a {trick} and a consumable.',
       'The daily 3x3 and 4x4 grids score three- and four-card hands, valued from the real three- and four-card poker pay tables.',
     ] },
-  { id: 'mode_survival', group: 'modes', title: 'Survival',
-    body: [
-      'Each {GOAL} has its own 2-minute clock. Clear it for a pick of three; miss it and the run ends. Score above the {GOAL} carries into the next round.',
-      'A review comes every 5 minutes of play, played on the time you had left over.',
-    ] },
 ];
 
 function infoTopic(id) { return INFO_TOPICS.find(t => t.id === id) || null; }

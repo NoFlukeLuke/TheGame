@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r415 · Legacy overlay shop removed";
+const BUILD = "2026-10-01 · r416 · Survival mode entry removed (Flow keeps the engine)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -147,31 +147,13 @@ const MODES = {
     wilds: 0,
     climb: true
   },
-  survival: {
-    id: 'survival',
-    name: 'Survival',
-    desc: 'Endless escalating goals. Clear a goal to pick from three rewards (Trick, Sleight, Knack or Limit). Miss one and the run ends.',
-    winCondition: 'endless',
-    enableBosses: true,
-    enableShops: true,
-    enableEvents: false,
-    autoRefillGrid: true,
-    // TRUE, corrected in r234. This said false while the flag was read by nothing,
-    // and the two sites that actually charge (js/input.js, js/discard.js) billed
-    // Survival's 2:00 clock for every swap and discard regardless. interactTimeCostsOn()
-    // now reads this flag, so leaving it false would have made interacting free in a
-    // shipped mode as a side effect of wiring up the picker. It describes what
-    // Survival does: the clock is a deadline AND a budget, same as Classic.
-    // Flow charged nothing until r326; it charges half rate now (its own entry says so).
-    timeIsCurrency: true,
-    autoPlayHands: false,
-    survival: true
-  },
   // Flow: Survival with the ROUND clock removed. No per-round time limit and no way
   // to fail a round - clear a goal, take a pick-of-three, get the next goal, repeat.
   // The only clock is a 5-minute SESSION clock counting down to a boss with a real
   // objective and score bar. Max Focus is 20, so decay is the mode's pressure.
-  // survivalActive() is true here too, so it reuses Survival's whole flow.
+  // survivalActive() is true here, so it runs on the Survival engine in
+  // js/survival.js (the pick-of-three, grants, bosses, endless). The Survival
+  // MODE entry itself was removed in r416; the engine stays because Flow is it.
   // See js/flow-mode.js.
   flow: {
     id: 'flow',
@@ -347,7 +329,7 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
 // `guided` and `spectrum` (r380) likewise: dev panel -> Modes, and Spectrum is
 // still Custom's colour deck.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'survival', 'sixsuits', 'guided', 'spectrum'];
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'sixsuits', 'guided', 'spectrum'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
@@ -366,8 +348,6 @@ const MODE_META = {
               blurb: 'Six suits: the four standard ones plus crowns and moons. 60 cards, with one rank removed from the middle. Otherwise plays like Classic.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
-  survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
-              blurb: 'Each goal has its own 2-minute clock. Clear it for a pick of three, then the next goal starts. Extra score carries over. A review comes every 5 minutes of play. Miss a goal and the run ends.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
   climb:    { accent: '#f2c14e',        suits: '1 → 15',

@@ -242,9 +242,10 @@ stacks fire on the next firing and are then cleared; `_rank` is permanent. Force
 ## Modes
 
 Carousel: Flow, Schedule, Classic, Custom, Poker Squares, Climb. Hidden (dev panel -> Modes):
-Guided, Spectrum, Six Suits, Survival, Orientation, Crunch, Match-3, Zen, plus two legacy
-timer modes (`tetris`, `autoplay`) that keep the 20-minute game-clock path alive. Dominoes was
-removed in r411. Every mode's first run is a seeded walkthrough (`tutorialArmForRun`, filtered
+Guided, Spectrum, Six Suits, Orientation, Crunch, Match-3, Zen, plus two legacy timer modes
+(`tetris`, `autoplay`) that keep the 20-minute game-clock path alive. Dominoes (r411) and the
+Survival mode entry (r416) were removed; **Flow runs on the Survival engine** (`js/survival.js`,
+`survivalActive()` is true for Flow), so that file and its flag stay. Every mode's first run is a seeded walkthrough (`tutorialArmForRun`, filtered
 by mode FLAGS); later runs are ordinary.
 
 ## Cleanup backlog
