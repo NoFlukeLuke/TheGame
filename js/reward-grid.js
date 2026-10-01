@@ -32,6 +32,38 @@ function MIN_TRICK_TILES_FOR(prize) { return prize ? 2 : 5; }
 function generateRewardContent() {
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
+// Weighted reward-grid tile categories (r409: hoisted, tunable in dev).
+const REWARD_PRIZE_CATS = [
+  { weight: 34, kind: 'trick' },
+  { weight: 20, kind: 'sleight' },
+  { weight: 16, kind: 'knack' },
+  { weight: 16, kind: 'limit_up' },
+  { weight: 10, kind: 'blessed' },
+  { weight:  4, kind: 'cull' },
+  { weight:  8, kind: 'luck' },
+  { weight:  7, kind: 'improve_trick' },
+  { weight:  5, kind: 'improve_knack' },
+  { weight:  5, kind: 'improve_sleight' },
+];
+const REWARD_BUFF_CATS = [
+  { weight: 40, kind: 'trick' },
+  { weight: 12, kind: 'sleight' },
+  { weight:  7, kind: 'knack' },
+  { weight:  5, kind: 'discard' },
+  { weight:  5, kind: 'swap' },
+  { weight:  5, kind: 'time' },
+  { weight:  6, kind: 'coins' },
+  { weight:  4, kind: 'limit_up' },
+  { weight:  6, kind: 'blessed' },
+  { weight:  4, kind: 'cull' },
+  { weight:  3, kind: 'cleanse' },
+  { weight:  3, kind: 'mystery' },
+  { weight:  4, kind: 'luck' },
+  { weight:  4, kind: 'improve_trick' },
+  { weight:  3, kind: 'improve_knack' },
+  { weight:  3, kind: 'improve_sleight' },
+];
+
 function _generateRewardContent() {
   const PRIZE = prizeGridActive();
   // Two smaller in each direction, never below 3x3.
@@ -53,36 +85,10 @@ function _generateRewardContent() {
   // Bigger swings are rarer things to meet.
   const _luckTier = n => (n >= 15 ? 'legendary' : n >= 10 ? 'epic' : 'rare');
 
-  const prizeCategories = [
-    { weight: 34, kind: 'trick' },
-    { weight: 20, kind: 'sleight' },
-    { weight: 16, kind: 'knack' },
-    { weight: 16, kind: 'limit_up' },
-    { weight: 10, kind: 'blessed' },
-    { weight:  4, kind: 'cull' },
-    { weight:  8, kind: 'luck' },
-    { weight:  7, kind: 'improve_trick' },
-    { weight:  5, kind: 'improve_knack' },
-    { weight:  5, kind: 'improve_sleight' },
-  ];
-  const buffCategories = [
-    { weight: 40, kind: 'trick' },
-    { weight: 12, kind: 'sleight' },
-    { weight:  7, kind: 'knack' },
-    { weight:  5, kind: 'discard' },
-    { weight:  5, kind: 'swap' },
-    { weight:  5, kind: 'time' },
-    { weight:  6, kind: 'coins' },
-    { weight:  4, kind: 'limit_up' },
-    { weight:  6, kind: 'blessed' },
-    { weight:  4, kind: 'cull' },
-    { weight:  3, kind: 'cleanse' },
-    { weight:  3, kind: 'mystery' },
-    { weight:  4, kind: 'luck' },
-    { weight:  4, kind: 'improve_trick' },
-    { weight:  3, kind: 'improve_knack' },
-    { weight:  3, kind: 'improve_sleight' },
-  ];
+  // r409: the two category tables are top-level (REWARD_PRIZE_CATS /
+  // REWARD_BUFF_CATS) so dev -> Probabilities can tune them.
+  const prizeCategories = REWARD_PRIZE_CATS;
+  const buffCategories  = REWARD_BUFF_CATS;
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
   const _capNow  = Math.max(10, Math.max(ROUND_DURATION, limits.round_time.current) - roundPenaltySeconds);

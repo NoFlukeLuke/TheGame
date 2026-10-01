@@ -83,7 +83,6 @@ const TUTORIAL_SEEDS = {
   survival: 'LETHE-SURVIVAL',
   guided:   'LETHE-GUIDED',
   normal:   'LETHE-INDUCTION',
-  sixsuits: 'LETHE-SIXSUITS',
   spectrum: 'LETHE-SPECTRUM',
   flow:     'LETHE-FLOW',
   crunch:   'LETHE-CRUNCH',

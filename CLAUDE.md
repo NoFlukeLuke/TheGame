@@ -11766,3 +11766,75 @@ Records, Settings, the handbook and History are one FIXED box: `--menu-w` x `--m
 - **The deck editor no longer shows the winning hand** (`flowrDeckClearGoalHand`): its cards were still in gridData, so you could buff cards that were about to leave. They go to the played pile, their cells refill, and `svGoalCells` is emptied so the keep path has nothing left to remove. Deck audit 56/56.
 - **Luck bug: a pool with no common tier drew flat 71% of the time.** `pickEntityByRarity` rolled common, found none at or below it and fell to a flat pick, so Flow's rare-or-better Tricks showed legendaries about 1.6x too often (~8% vs 5%). Tiers below the lowest present tier are now dropped from the roll. Luck itself is gentle (legendary 1.5% -> ~3% at 100).
 - **Board pattern** (Settings > Display): the hypno pattern painted only inside the board, as one turning gradient on `#grid::before`. No measurable frame cost. The full background still defaults off.
+
+## r409 - the dev panel is 16 tabs, Six Suits and Orientation are retired
+
+Owner: fewer dev tabs, one per playable mode, a probability tab, hand scoring on
+its own, and the deck reduced to wild settings plus a per-mode deck switch.
+
+### The tabs (`DEV_GROUPS`, js/dev-panel.js)
+Bonuses (Tricks, Sleights, Knacks, Limits, tiers, card states) · Events & Bosses ·
+Change the game now (time, coins, score, focus, level, open reward/prize grid
+and shop) · Hand Scoring · Focus · Probabilities · Wild Cards · HUD & Display ·
+Flow · Schedule · Classic · Custom · Climb · Poker Squares · Hidden Modes · Tools
+(save, run seed, tips, builds archive, event log).
+
+- **A section may belong to several tabs**: `data-group` is space-separated and
+  `devOpenGroup` matches with `split(' ').includes(g)`. The all-modes goal
+  multiplier sits on every mode tab; the Flow reward chain is on Flow AND
+  Probabilities. Section ids stay unique - one element, shown on several tabs.
+- **Every mode tab opens with `#dev-modehead`** (`devRenderModeHead`): a note, the
+  deck switch and a Start button. The goal curves moved out of the old Goals tab
+  into the tabs of the modes that read them; `GOAL_TUNABLES.other` split into
+  `map` and `zen`.
+- **Hidden Modes** launches everything in `MODE_HIDDEN_LIST`, with a deck switch
+  for the ones that can take it, and carries Spectrum, Match-3 and Zen settings.
+- The Tagalong tab is gone; `tagalongMaxCards` / `tagalongTimeRate` are consts
+  at their shipped 0 / 1 and the old stored config is cleared.
+
+### Probabilities - `js/prob-tables.js`
+Every weighted roll, editable live, each with a description and a tuning note:
+entity rarity, prize rarity, the Luck tilt, both pick-of-three type tables, both
+reward-grid category tables, deck-edit ops, the dual chance, the Flow shaped-level
+chance, the Schedule's fill / blanks / last-slot tables, Guided's crossroads and
+the Poker Squares shape bags. Tables are edited IN PLACE so no reader changed;
+overrides only in `lethe.probTables.v1`, shipped values snapshotted at load.
+- **Three tables had to move to be reachable**: the reward grid's two category
+  lists were locals inside `_generateRewardContent` (now `REWARD_BUFF_CATS` /
+  `REWARD_PRIZE_CATS`), the Schedule's fill weights were a local (`MAP_FILL_W`),
+  and two chances became `let` (`LEVEL_TYPE_FLOW_CHANCE`, `FLOWR_DUAL_CHANCE`).
+- **The map's blank and funnel rolls now normalise by their total**, so they are
+  real weight tables; they used to assume the row summed to 1.
+- A new weighted roll belongs in `PROB_TABLES`.
+
+### Hand Scoring
+The Natural Scaling table gained BASE P / BASE M (editable) and NOW (base plus
+earned, pips x mult). Base edits are overrides in `lethe.handBase.v1`, applied by
+`applyHandBaseOverrides()` at the end of `applyModeHandValues` for the ordinary
+table only - Spectrum and Poker Squares keep their own. Layered hands and the
+scoring model moved here too.
+
+### Decks
+- **Six Suits is not a mode.** Every mode on the ordinary deck has a per-mode
+  switch, normal or six-suit (`modeDeckChoice`, `lethe.modeDeck.v1`).
+  **`runSuitCount()` is what every reader of `ACTIVE_MODE.suitCount` asks now**
+  (the suit list, the flush3/flush4 unlock, the Trick tag). Not switchable: Spectrum,
+  Climb, Custom (asks itself) and the four modes with their own detection.
+- **The six-suit deck is fixed at its shipped shape** (cut 8, five copies, 60
+  cards); its tuning block, the weighted deck, the deck-model override and the
+  run-order rule are all retired, with their stored keys cleared.
+- **Wilds are PER SUIT** (`wildsPerSuit`, default 1): 4 in the normal deck, 6 in
+  the six-suit deck. **Wilds in runs** (`wildsInRuns`, default off) makes
+  `rankRunVals(WILD_RANK)` return every run value the deck holds; a run still
+  needs one real card. It is in `deckLadderKey()` for the components cache.
+- Measured: Classic/Flow/Schedule 56/56 with 4 wilds, Flow on the six-suit deck
+  66/66 with 6 wilds and flush3/flush4 unlocked, Spectrum 98/98, Climb and
+  Squares 52/52 with none. 5-wild-7 is a Run of 3 with runs on, a Pair with off.
+
+### Orientation is retired
+`MODES.tutorial` is gone. The walkthrough is unchanged: it arms on each mode's
+first run (r283). Old saves naming `tutorial` or `sixsuits` resume as Classic.
+
+### RECORDS lists only reachable hands
+`HAND_CARD_COUNT` (js/data/cards.js) + `handTypeListed`: 2-5 card hands always,
+6-card hands at Hand Size 6, 7-card at 7. High Card is never listed.

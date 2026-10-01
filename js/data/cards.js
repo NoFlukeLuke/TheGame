@@ -116,17 +116,16 @@ function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && isW
 // them route through handComponentsFor, so a wild there would be a blank card
 // that completes nothing. A daily grid also has to stay comparable between two
 // players, which a wild it cannot score would not be.
-const WILD_COUNT_DEFAULT = 4;
 const WILD_OWN_DETECTION = ['squares', 'match3', 'zen', 'dominoes'];
 function wildCardCount() {
   const m = (typeof ACTIVE_MODE !== 'undefined') ? ACTIVE_MODE : null;
   if (!m || m.numeric || WILD_OWN_DETECTION.includes(m.id)) return 0;
   if (m.wilds != null) return Math.max(0, m.wilds | 0);
-  // Dev panel -> Deck. A stored value beats the default, which is the whole
-  // point of the knob; an unparseable one falls back rather than dealing NaN.
-  let n = WILD_COUNT_DEFAULT;
-  try { const v = parseInt(localStorage.getItem('lethe.wildCount'), 10); if (Number.isFinite(v)) n = v; } catch (e) {}
-  return Math.max(0, Math.min(52, n));
+  // Dev panel -> Deck (r409): wilds PER SUIT, so the normal deck carries 4 and
+  // the six-suit deck 6 at the default of 1. js/deck-design.js owns the setting.
+  const per = (typeof wildsPerSuit === 'number') ? wildsPerSuit : 1;
+  const suits = (typeof runSuitCount === 'function') ? runSuitCount() : 4;
+  return Math.max(0, Math.min(52, Math.round(per * suits)));
 }
 
 // RANK_ORDER / RANK_PIPS carry the numeric ranks too. '2'-'10' already map to
@@ -200,6 +199,23 @@ const HAND_BASE = {
   'High Card':       { pips:0,  mult:1 },   //    0
 };
 
+// How many cards each hand type is made of (r409). RECORDS lists only the hands
+// a player can actually make: 2-5 cards always, 6 and 7 once Selection Size
+// reaches them. High Card is never listed - it is no longer offered (r385).
+const HAND_CARD_COUNT = {
+  'Pair':2, 'Flush of 3':3, 'Run of 3':3, 'Three of a Kind':3,
+  'Flush of 4':4, 'Run of 4':4, 'Two Pair':4, 'Four of a Kind':4,
+  'Flush':5, 'Straight':5, 'Full House':5, 'Straight Flush':5, 'Five of a Kind':5,
+  'Flush of 6':6, 'Run of 6':6, 'Six of a Kind':6,
+  'Flush of 7':7, 'Run of 7':7, 'Seven of a Kind':7,
+};
+function handTypeListed(name) {
+  const n = HAND_CARD_COUNT[name];
+  if (!n) return false;
+  const sel = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5;
+  return n <= Math.max(5, sel);
+}
+
 // ── The short label the HUD prints beside the hand preview (r198) ──
 // Two lines, family over size, because the desktop panel gives it a 6%-wide
 // column. A numeric size is printed as "OF N" by handLabelHTML (owner spec,
@@ -256,9 +272,48 @@ function applyModeHandValues() {
   // every hand the main game invented for its grid (Flush of 3, Run of 4...): a
   // LINE there is five cards, which is a poker hand, so it is scored as one.
   if (typeof squaresActive === 'function' && squaresActive()) { squaresInstallHandValues(); return; }
-  if (!isNumericMode()) return;
+  if (!isNumericMode()) { applyHandBaseOverrides(); return; }
   Object.entries(NUMERIC_HAND_BASE).forEach(([h, v]) => { if (HAND_BASE[h]) { HAND_BASE[h].pips = v.pips; HAND_BASE[h].mult = v.mult; } });
   Object.entries(NUMERIC_HAND_FOCUS).forEach(([h, v]) => { HAND_FOCUS[h] = v; });
+}
+
+// ── Base hand values, tuned from dev -> Hand Scoring (r409) ──
+// Overrides of the ordinary table only (never Spectrum's or Poker Squares'),
+// stored as overrides so an untouched row tracks the code. Applied after the
+// pristine restore in applyModeHandValues, and live when a value is typed.
+const HAND_BASE_KEY = 'lethe.handBase.v1';
+let handBaseOverrides = (() => { try { return JSON.parse(localStorage.getItem(HAND_BASE_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+function handBaseShipped(h) {
+  if (_handValuesPristine && _handValuesPristine.base[h]) return _handValuesPristine.base[h];
+  return HAND_BASE[h];
+}
+function applyHandBaseOverrides() {
+  Object.entries(handBaseOverrides).forEach(([h, o]) => {
+    if (!HAND_BASE[h] || !o) return;
+    if (typeof o.pips === 'number') HAND_BASE[h].pips = o.pips;
+    if (typeof o.mult === 'number') HAND_BASE[h].mult = o.mult;
+  });
+}
+function setHandBaseValue(h, field, v) {
+  if (!HAND_BASE[h] || (field !== 'pips' && field !== 'mult')) return;
+  if (!_handValuesPristine) applyModeHandValues();          // take the pristine copy first
+  let n = parseFloat(v); if (!Number.isFinite(n)) return;
+  n = Math.max(field === 'mult' ? 1 : 0, n);
+  const shipped = _handValuesPristine.base[h][field];
+  const o = handBaseOverrides[h] || {};
+  if (n === shipped) delete o[field]; else o[field] = n;
+  if (Object.keys(o).length) handBaseOverrides[h] = o; else delete handBaseOverrides[h];
+  try { localStorage.setItem(HAND_BASE_KEY, JSON.stringify(handBaseOverrides)); } catch (e) {}
+  // Live only where the ordinary table is the one in play.
+  const ordinary = !isNumericMode() && !(typeof squaresActive === 'function' && squaresActive());
+  if (ordinary) HAND_BASE[h][field] = n;
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
+}
+function resetHandBaseValues() {
+  handBaseOverrides = {};
+  try { localStorage.removeItem(HAND_BASE_KEY); } catch (e) {}
+  applyModeHandValues();
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
 }
 
 const GAME_DURATION = 1200; // 20 minutes in seconds

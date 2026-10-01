@@ -370,11 +370,6 @@ const INFO_TOPICS = [
       'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
       () => `Pick of three odds per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''}.`,
     ] },
-  { id: 'mode_sixsuits', group: 'modes', title: 'Six Suits',
-    body: [
-      'Six suits: spades, hearts, diamonds, clubs, crowns and moons. 60 cards, with one rank removed from the middle.',
-      'Flush of 3 and Flush of 4 can be played from the start. Everything else is as in Classic.',
-    ] },
   { id: 'mode_normal', group: 'modes', title: 'Classic',
     body: [
       () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
