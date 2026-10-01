@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Printer Toasts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* Printer toast preview (r431). Four ways the top-of-screen notices could be
+   printed onto paper. Nothing here is shipped yet: pick one and it replaces
+   .toast in css/style.css, driven by the same showMessage(text, color, opts). */
+:root{
+  --bg:#0c0a08; --panel:#17130e; --line:#3a3128; --cream:#f0e2c0; --dim:#a89878;
+  --gold:#ffc23a; --red:#ff4a4a; --mint:#35d59b; --cyan:#3fd8ff; --violet:#b07cff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);
+  font-family:'Share Tech Mono',ui-monospace,monospace;font-size:14px;overflow:hidden}
+#wrap{display:grid;grid-template-columns:320px 1fr;height:100%}
+#ctl{background:var(--panel);border-right:1px solid var(--line);padding:16px;overflow:auto}
+h1{font-family:Orbitron,sans-serif;font-size:18px;letter-spacing:2px;margin:0 0 4px;font-weight:800}
+.sub{color:var(--dim);font-size:12px;margin:0 0 14px;line-height:1.45}
+.grp{margin:0 0 16px}
+.grp > b{display:block;font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:2px;color:var(--dim);margin:0 0 6px}
+.opts{display:grid;gap:6px}
+.opt{display:block;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+  background:#0f0c09;color:var(--cream);font:inherit;cursor:pointer}
+.opt small{display:block;color:var(--dim);font-size:11px;margin-top:2px;line-height:1.35}
+.opt.on{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:#10201a}
+.fire{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:#0f0c09;color:var(--cream);font:inherit;font-size:12px;cursor:pointer;text-align:left}
+.btn:hover,.opt:hover{border-color:#6a5a48}
+.btn i{font-style:normal;display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.row label{flex:0 0 96px;color:var(--dim)}
+.row input[type=range]{flex:1}
+.row output{flex:0 0 46px;text-align:right}
+.tog{display:flex;gap:6px;flex-wrap:wrap}
+.tog .btn.on{border-color:var(--mint);color:var(--mint)}
+pre{background:#0a0806;border:1px solid var(--line);border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:var(--dim);max-height:180px;overflow:auto}
+
+/* ── the mock board ─────────────────────────────────────────────── */
+#view{position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 40%,#173326 0%,#0c1712 60%,#070b09 100%)}
+#board{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);
+  display:grid;grid-template-columns:repeat(5,var(--cw));gap:8px;--cw:min(9.2vw,74px)}
+.card{width:var(--cw);aspect-ratio:.76;border-radius:6px;background:#f4ead2;border:1px solid #2a2016;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:Orbitron,sans-serif;font-weight:800;color:#1b1610;font-size:calc(var(--cw)*.32);line-height:1}
+.card span{font-size:.7em;margin-top:3px}
+.card.r{color:#b8231b}
+#hud{position:absolute;left:0;right:0;top:0;height:9%;min-height:46px;background:linear-gradient(#1c1610,#120e0a);
+  border-bottom:1px solid #000;display:flex;align-items:center;justify-content:center;gap:18px;
+  font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:2px;color:var(--dim)}
+#hud b{color:var(--cream);font-size:15px;margin-left:6px}
+
+/* ── the toast layer (same place the game puts it) ──────────────── */
+#tl{flex-direction:column-reverse;position:absolute;left:50%;top:var(--layer-top,11%);transform:translateX(-50%);z-index:9;
+  pointer-events:none;display:flex;align-items:center;gap:8px;width:max-content;max-width:calc(100% - 24px)}
+
+/* the printer mouth the paper comes out of (A, B, D) */
+#mouth{position:absolute;left:50%;top:var(--layer-top,11%);transform:translate(-50%,-100%);z-index:10;
+  width:var(--mouth-w,300px);height:14px;border-radius:5px 5px 2px 2px;
+  background:linear-gradient(#3a3229,#1d1813 55%,#050403);box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 1px 0 #5b4f42;display:none}
+#mouth::after{content:"";position:absolute;left:8px;right:8px;bottom:2px;height:3px;border-radius:2px;background:#000;box-shadow:0 1px 0 #3a3229}
+body.s-tractor #mouth, body.s-receipt #mouth, body.s-strip #mouth{display:block}
+
+/* ── shared paper ───────────────────────────────────────────────── */
+.ptw{overflow:hidden;pointer-events:none}      /* the clip: paper only exists below the mouth */
+.pt{position:relative;--ink:#1e1912;color:var(--ink);
+  font-family:var(--pfont,'VT323'),monospace;font-size:var(--psize,20px);line-height:1.05;letter-spacing:.5px;
+  background:var(--paper,#f2ead8);box-shadow:0 4px 10px rgba(0,0,0,.55)}
+.pt .ink{position:relative;white-space:pre-wrap}
+.pt .ico{font-family:'Noto Color Emoji',sans-serif;font-size:.9em;margin-right:6px;filter:grayscale(1) contrast(1.4) brightness(.55)}
+.pt .x{display:inline-block;margin-left:8px;padding:0 5px;border:1.5px solid currentColor;border-radius:3px;font-size:.8em;transform:rotate(-6deg)}
+/* the head: a dark block that runs ahead of the text while it prints */
+.pt .head{display:inline-block;width:.55em;height:.9em;background:currentColor;opacity:.75;vertical-align:-1px;margin-left:1px}
+.pt.done .head{display:none}
+/* dot-matrix texture: ink broken into rows of dots */
+body.dots .pt .ink{-webkit-mask:repeating-linear-gradient(#000 0 2px,#0006 2px 3px);mask:repeating-linear-gradient(#000 0 2px,#0006 2px 3px)}
+
+/* sprocket holes: real holes (masked), so the board shows through them */
+.holes{--hole:5px;--pitch:13px;--edge:11px;
+  -webkit-mask:
+    radial-gradient(circle calc(var(--hole)/2) at calc(var(--edge)/2 + 1px) 50%,#0000 96%,#000) 0 0/50% var(--pitch) repeat-y,
+    radial-gradient(circle calc(var(--hole)/2) at calc(100% - var(--edge)/2 - 1px) 50%,#0000 96%,#000) 100% 0/50% var(--pitch) repeat-y;
+  mask:
+    radial-gradient(circle calc(var(--hole)/2) at calc(var(--edge)/2 + 1px) 50%,#0000 96%,#000) 0 0/50% var(--pitch) repeat-y,
+    radial-gradient(circle calc(var(--hole)/2) at calc(100% - var(--edge)/2 - 1px) 50%,#0000 96%,#000) 100% 0/50% var(--pitch) repeat-y}
+/* the perforation line beside the holes */
+.holes::before,.holes::after{content:"";position:absolute;top:0;bottom:0;width:0;border-left:1px dashed #0002}
+.holes::before{left:calc(var(--edge) + 4px)} .holes::after{right:calc(var(--edge) + 4px)}
+
+/* ── A · TRACTOR FEED ─ continuous form, green bar, tears off ───── */
+.s-tractor .pt{min-width:220px;max-width:min(560px,80vw);padding:8px calc(var(--edge,11px) + 16px) 10px;
+  background:repeating-linear-gradient(var(--paper,#f2ead8) 0 21px,var(--bar,#dfe9d6) 21px 42px)}
+.s-tractor .pt .tear{position:absolute;left:0;right:0;bottom:-1px;height:4px;
+  background:linear-gradient(-45deg,#0000 2px,var(--paper,#f2ead8) 0) 0 0/6px 4px,linear-gradient(45deg,#0000 2px,var(--paper,#f2ead8) 0) 0 0/6px 4px}
+.s-tractor .pt.feed{animation:feedIn var(--feed,360ms) steps(var(--feedsteps,6)) both}
+.s-tractor .pt.out{animation:tearOff 520ms cubic-bezier(.4,0,1,1) forwards}
+@keyframes feedIn{from{transform:translateY(-100%)}to{transform:none}}
+@keyframes tearOff{
+  0%{transform:none}
+  18%{transform:translateY(-4px) rotate(var(--tr,-2deg))}
+  100%{transform:translateY(140px) rotate(calc(var(--tr,-2deg)*6));opacity:0}}
+
+/* ── B · RECEIPT ─ narrow thermal slip, one tractor edge, zigzag tear ─ */
+.s-receipt .pt{min-width:180px;max-width:min(380px,72vw);padding:9px 14px 14px calc(var(--edge,11px) + 14px);
+  font-size:calc(var(--psize,20px)*.9);background:linear-gradient(90deg,#0000 calc(var(--edge,11px) + 4px),var(--paper,#f2ead8) 0),var(--paper,#f2ead8)}
+.s-receipt .pt.holes{padding-bottom:16px;
+  -webkit-mask:
+    radial-gradient(circle calc(var(--hole)/2) at calc(var(--edge)/2 + 1px) 50%,#0000 96%,#000) 0 0/100% var(--pitch) repeat-y,
+    conic-gradient(from 135deg at 50% 0,#000 90deg,#0000 0) 0 100%/8px 5px repeat-x,
+    linear-gradient(#000 0 0) 0 0/100% calc(100% - 5px) no-repeat;
+  -webkit-mask-composite:source-in,source-over;
+  mask:
+    radial-gradient(circle calc(var(--hole)/2) at calc(var(--edge)/2 + 1px) 50%,#0000 96%,#000) 0 0/100% var(--pitch) repeat-y,
+    conic-gradient(from 135deg at 50% 0,#000 90deg,#0000 0) 0 100%/8px 5px repeat-x,
+    linear-gradient(#000 0 0) 0 0/100% calc(100% - 5px) no-repeat;
+  mask-composite:intersect,add}
+.s-receipt .pt.holes::after{display:none}
+.s-receipt .pt.feed{animation:feedIn var(--feed,360ms) cubic-bezier(.3,.7,.4,1) both}
+.s-receipt .pt.out{animation:feedBack 300ms ease-in forwards}
+@keyframes feedBack{to{transform:translateY(-110%)}}
+
+/* ── C · TELEX TICKER ─ tape with holes top and bottom, slides past ─ */
+.s-ticker .pt{padding:calc(var(--edge,11px) + 6px) 18px;white-space:nowrap;max-width:none;
+  -webkit-mask:
+    radial-gradient(circle calc(var(--hole,5px)/2) at 50% calc(var(--edge,11px)/2 + 1px),#0000 96%,#000) 0 0/var(--pitch,13px) 50% repeat-x,
+    radial-gradient(circle calc(var(--hole,5px)/2) at 50% calc(100% - var(--edge,11px)/2 - 1px),#0000 96%,#000) 0 100%/var(--pitch,13px) 50% repeat-x;
+  mask:
+    radial-gradient(circle calc(var(--hole,5px)/2) at 50% calc(var(--edge,11px)/2 + 1px),#0000 96%,#000) 0 0/var(--pitch,13px) 50% repeat-x,
+    radial-gradient(circle calc(var(--hole,5px)/2) at 50% calc(100% - var(--edge,11px)/2 - 1px),#0000 96%,#000) 0 100%/var(--pitch,13px) 50% repeat-x;
+  transform:skewX(-2deg)}
+.s-ticker .pt::before,.s-ticker .pt::after{content:"";position:absolute;left:0;right:0;height:0;border-top:1px dashed #0002}
+.s-ticker .pt::before{top:calc(var(--edge,11px) + 2px)} .s-ticker .pt::after{bottom:calc(var(--edge,11px) + 2px)}
+.s-ticker .pt.feed{animation:tickIn var(--feed,360ms) cubic-bezier(.2,.8,.3,1) both}
+.s-ticker .pt.out{animation:tickOut 380ms cubic-bezier(.6,0,1,1) forwards}
+@keyframes tickIn{from{transform:translateX(70vw) skewX(-2deg)}to{transform:skewX(-2deg)}}
+@keyframes tickOut{to{transform:translateX(-80vw) skewX(-2deg)}}
+
+/* ── D · ONE STRIP ─ every notice prints on the same hanging sheet ─ */
+.s-strip #tl{gap:0}
+.s-ticker #tl{flex-direction:column}
+.s-strip .ptw{width:var(--mouth-w,300px);max-width:calc(100vw - 24px)}
+.s-strip .pt{width:100%;padding:3px calc(var(--edge,11px) + 14px) 4px;box-shadow:none;
+  font-size:calc(var(--psize,20px)*.9)}
+.s-strip .ptw:first-child .pt{padding-bottom:9px}
+.s-strip .ptw:first-child{filter:drop-shadow(0 5px 6px rgba(0,0,0,.6))}
+.s-strip .ptw:last-child .pt{padding-top:7px}
+.s-strip .pt.feed{animation:stripIn var(--feed,360ms) steps(var(--feedsteps,6)) both}
+.s-strip .ptw.out{animation:stripOut 260ms ease-in forwards}
+@keyframes stripIn{from{margin-top:-1.4em;opacity:.0}to{margin-top:0;opacity:1}}
+@keyframes stripOut{to{height:0;opacity:0}}
+
+/* the printer jolts while it feeds */
+#mouth.kick{animation:kick 120ms steps(2) 3}
+@keyframes kick{50%{transform:translate(calc(-50% + 1px),-100%)}}
+
+@media (max-width:760px){
+  #wrap{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  #ctl{max-height:46vh;border-right:0;border-bottom:1px solid var(--line);padding:12px}
+  #board{--cw:15vw;gap:5px}
+}
+</style>
+</head>
+<body class="s-tractor dots">
+<div id="wrap">
+  <div id="ctl">
+    <h1>PRINTER TOASTS</h1>
+    <p class="sub">The notices at the top of the screen, printed onto paper. Pick a style, then fire a few messages at it. Colours come out as darker ink so they read on paper.</p>
+
+    <div class="grp"><b>STYLE</b>
+      <div class="opts" id="styles">
+        <button class="opt" data-s="tractor">A · Tractor feed<small>Wide continuous-form paper, holes down both sides, faint green bars. Feeds out in jerks, prints, then tears off and drops.</small></button>
+        <button class="opt" data-s="receipt">B · Receipt<small>A narrow slip, holes down one edge, zigzag tear at the foot. Glides out, prints, and is pulled back in.</small></button>
+        <button class="opt" data-s="ticker">C · Telex tape<small>A strip of tape with holes top and bottom that runs in from the right and off to the left. No printer mouth.</small></button>
+        <button class="opt" data-s="strip">D · One sheet<small>Every notice prints as a new line at the top of one hanging sheet. The oldest drops off the foot.</small></button>
+      </div>
+    </div>
+
+    <div class="grp"><b>FIRE</b>
+      <div class="fire">
+        <button class="btn" data-m="+5 credits|gold|💰"><i style="background:var(--gold)"></i>Credits</button>
+        <button class="btn" data-m="No swaps left|red"><i style="background:var(--red)"></i>Refused</button>
+        <button class="btn" data-m="Double Dutch! +4 Focus|#5aa9e6"><i style="background:#5aa9e6"></i>Focus</button>
+        <button class="btn" data-m="7♠ cursed: Leaden|#9b59b6"><i style="background:#9b59b6"></i>Curse</button>
+        <button class="btn" data-m="Rich Soil improved to v2.0|mint|⬆"><i style="background:var(--mint)"></i>Improve</button>
+        <button class="btn" data-m="Suspended: Get Even (half the round)|cream"><i style="background:var(--cream)"></i>Long</button>
+        <button class="btn" id="rep"><i style="background:var(--cream)"></i>Repeat x3</button>
+        <button class="btn" id="burst"><i style="background:var(--cream)"></i>Burst of 5</button>
+      </div>
+    </div>
+
+    <div class="grp"><b>TUNE</b>
+      <div class="row"><label>Print speed</label><input id="cps" type="range" min="10" max="120" value="55"><output></output></div>
+      <div class="row"><label>Feed time</label><input id="feed" type="range" min="120" max="900" step="20" value="360"><output></output></div>
+      <div class="row"><label>Hold</label><input id="hold" type="range" min="1000" max="5000" step="100" value="2400"><output></output></div>
+      <div class="row"><label>Text size</label><input id="psize" type="range" min="14" max="28" value="20"><output></output></div>
+      <div class="row"><label>Hole size</label><input id="hole" type="range" min="3" max="8" step=".5" value="5"><output></output></div>
+      <div class="row"><label>Ink strength</label><input id="ink" type="range" min="35" max="95" value="80"><output></output></div>
+    </div>
+
+    <div class="grp"><b>PAPER</b>
+      <div class="tog" id="papers">
+        <button class="btn on" data-p="#f2ead8|#dfe9d6">Cream + green bar</button>
+        <button class="btn" data-p="#fafaf6|#fafaf6">White</button>
+        <button class="btn" data-p="#e9dcc0|#ddd0b2">Aged</button>
+        <button class="btn" data-p="#f2ead8|#dfe4ef">Blue bar</button>
+      </div>
+    </div>
+    <div class="grp"><b>TYPE</b>
+      <div class="tog" id="fonts">
+        <button class="btn on" data-f="VT323">Dot matrix</button>
+        <button class="btn" data-f="Share Tech Mono">Game mono</button>
+        <button class="btn" data-f="Courier New">Typewriter</button>
+        <button class="btn on" id="dotsT">Dot texture</button>
+        <button class="btn on" id="sndT">Print sound</button>
+      </div>
+    </div>
+    <div class="grp"><b>DUMP</b><button class="btn" id="dump">Print the settings</button><pre id="out" hidden></pre></div>
+  </div>
+
+  <div id="view">
+    <div id="hud">LEVEL<b>4</b> &nbsp; SCORE<b>2,140</b> &nbsp; GOAL<b>3,500</b></div>
+    <div id="mouth"></div>
+    <div id="tl"></div>
+    <div id="board"></div>
+  </div>
+</div>
+
+<script>
+const CFG = { style:'tractor', cps:55, feedMs:360, holdMs:2400, size:20, hole:5, ink:80,
+  paper:'#f2ead8', bar:'#dfe9d6', font:'VT323', dots:true, sound:true, max:4 };
+const INK = { gold:'#ffc23a', red:'#e0281f', mint:'#1fa874', cream:'#3a2e20', cyan:'#1b9ec8' };
+const $ = s => document.querySelector(s);
+const view = $('#view'), tl = $('#tl'), mouth = $('#mouth');
+
+// mock board
+const ranks=['A','7','7','K','3','9','Q','5','J','10','2','8','4','6','K','A','9','3','Q','7'], suits=['♠','♥','♦','♣'];
+$('#board').innerHTML = ranks.map((r,i)=>{const s=suits[(i*3)%4];return `<div class="card ${s==='♥'||s==='♦'?'r':''}">${r}<span>${s}</span></div>`}).join('');
+
+// ink on paper: the game colour pushed toward dark brown, so gold and mint stay legible
+function inkFor(c){
+  const base = INK[c] || c;
+  return `color-mix(in srgb, ${base} ${CFG.ink}%, #1b140c)`;
+}
+
+// a tiny print-head tick, made here so the preview needs nothing from the game
+let ac = null;
+function tick(){
+  if (!CFG.sound) return;
+  try {
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    const t = ac.currentTime, len = 0.012, b = ac.createBuffer(1, ac.sampleRate*len, ac.sampleRate), d = b.getChannelData(0);
+    for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+    const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+    f.type='bandpass'; f.frequency.value = 2400 + Math.random()*900; f.Q.value = 3;
+    g.gain.value = 0.11; s.buffer = b; s.connect(f).connect(g).connect(ac.destination); s.start(t);
+  } catch(e){}
+}
+
+function applyCfg(){
+  document.body.className = 's-' + CFG.style + (CFG.dots ? ' dots' : '');
+  const r = view.style;
+  r.setProperty('--feed', CFG.feedMs+'ms'); r.setProperty('--psize', CFG.size+'px');
+  r.setProperty('--paper', CFG.paper); r.setProperty('--bar', CFG.bar);
+  r.setProperty('--pfont', `'${CFG.font}'`);
+  view.querySelectorAll('.pt').forEach(p=>p.style.setProperty('--hole', CFG.hole+'px'));
+  r.setProperty('--hole', CFG.hole+'px');
+}
+
+function show(text, color, icon){
+  // repeat: stamp a count on the one already up
+  const last = tl.lastElementChild;
+  if (last && last.dataset.msg === text && !last.classList.contains('out')) {
+    const n = (+last.dataset.n||1) + 1; last.dataset.n = n;
+    let x = last.querySelector('.x'); if (!x){ x=document.createElement('span'); x.className='x'; last.querySelector('.ink').appendChild(x); }
+    x.textContent = 'x'+n; tick(); clearTimeout(last._t); last._t = setTimeout(()=>out(last), CFG.holdMs); return;
+  }
+  const w = document.createElement('div'); w.className='ptw'; w.dataset.msg = text;
+  const p = document.createElement('div'); p.className = 'pt feed' + (CFG.style==='ticker' ? '' : ' holes');
+  p.style.setProperty('--ink', inkFor(color));
+  p.style.setProperty('--tr', (Math.random()<.5?-1:1)*(1.5+Math.random()*2)+'deg');
+  const ink = document.createElement('span'); ink.className='ink';
+  const head = document.createElement('span'); head.className='head';
+  p.appendChild(ink);
+  if (CFG.style==='tractor') { const t=document.createElement('div'); t.className='tear'; p.appendChild(t); }
+  // reserve the full width before printing, so the paper does not grow under the head
+  const ghost = document.createElement('span'); ghost.style.visibility='hidden'; ghost.style.position='absolute';
+  ghost.textContent = (icon?'XX':'') + text; ink.appendChild(ghost);
+  w.appendChild(p); tl.appendChild(w);
+  p.style.minWidth = Math.ceil(p.getBoundingClientRect().width)+'px';
+  ghost.remove();
+  if (icon){ const i=document.createElement('span'); i.className='ico'; i.textContent=icon; ink.appendChild(i); }
+  const txt = document.createTextNode(''); ink.appendChild(txt); ink.appendChild(head);
+  mouth.classList.remove('kick'); void mouth.offsetWidth; mouth.classList.add('kick');
+  // print once the paper has fed out
+  let i = 0; const chars = [...text];
+  setTimeout(()=>{
+    const step = () => {
+      if (!w.isConnected) return;
+      txt.data += chars[i++]; if (chars[i-1] !== ' ') tick();
+      if (i < chars.length) w._p = setTimeout(step, 1000/CFG.cps);
+      else { p.classList.add('done'); w._t = setTimeout(()=>out(w), CFG.holdMs); }
+    };
+    step();
+  }, CFG.style==='strip' ? 60 : CFG.feedMs*0.8);
+  while (tl.children.length > CFG.max) { const v = tl.firstElementChild; clearTimeout(v._t); clearTimeout(v._p); v.remove(); }
+}
+function out(w){
+  if (!w.isConnected || w.classList.contains('out')) return;
+  w.classList.add('out'); w.firstElementChild.classList.remove('feed'); w.firstElementChild.classList.add('out');
+  setTimeout(()=>w.remove(), 560);
+}
+
+// controls
+document.querySelectorAll('#styles .opt').forEach(b=>{
+  b.classList.toggle('on', b.dataset.s===CFG.style);
+  b.onclick=()=>{ CFG.style=b.dataset.s; tl.innerHTML=''; document.querySelectorAll('#styles .opt').forEach(x=>x.classList.toggle('on',x===b)); applyCfg(); show('Style '+b.textContent.trim().slice(0,1)+' loaded','cream'); };
+});
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ const [t,c,i]=b.dataset.m.split('|'); show(t,c,i); });
+$('#rep').onclick=()=>{ show('+2 swaps','cyan'); setTimeout(()=>show('+2 swaps','cyan'),500); setTimeout(()=>show('+2 swaps','cyan'),1000); };
+$('#burst').onclick=()=>{ [['+5 credits','gold','💰'],['No discards left','red'],['Primed: Quake +1','#b07cff'],['+15s','cyan','⏱'],['Rich Soil improved','mint']].forEach((m,k)=>setTimeout(()=>show(...m),k*160)); };
+const sl=(id,key,unit,fn)=>{ const el=$('#'+id), o=el.nextElementSibling; const upd=()=>{ CFG[key]=+el.value; o.textContent=el.value+unit; fn&&fn(); applyCfg(); }; el.value=CFG[key]; el.oninput=upd; upd(); };
+sl('cps','cps','/s'); sl('feed','feedMs','ms'); sl('hold','holdMs','ms'); sl('psize','size','px'); sl('hole','hole','px'); sl('ink','ink','%');
+document.querySelectorAll('#papers .btn').forEach(b=>b.onclick=()=>{ [CFG.paper,CFG.bar]=b.dataset.p.split('|'); document.querySelectorAll('#papers .btn').forEach(x=>x.classList.toggle('on',x===b)); applyCfg(); });
+document.querySelectorAll('#fonts [data-f]').forEach(b=>b.onclick=()=>{ CFG.font=b.dataset.f; document.querySelectorAll('#fonts [data-f]').forEach(x=>x.classList.toggle('on',x===b)); applyCfg(); });
+$('#dotsT').onclick=e=>{ CFG.dots=!CFG.dots; e.target.classList.toggle('on',CFG.dots); applyCfg(); };
+$('#sndT').onclick=e=>{ CFG.sound=!CFG.sound; e.target.classList.toggle('on',CFG.sound); };
+$('#dump').onclick=()=>{ const o=$('#out'); o.hidden=false; o.textContent='const TOAST_PRINT = '+JSON.stringify(CFG,null,2)+';'; };
+applyCfg();
+setTimeout(()=>show('Printer ready','cream'),300);
+setTimeout(()=>show('+5 credits','gold','💰'),1400);
+</script>
+</body>
+</html>

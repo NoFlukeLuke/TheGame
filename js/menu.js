@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r430 · Custom cursor, trays lose their words, knack strip rings, Peek reads view grid";
+const BUILD = "2026-10-01 · r431 · Printer toast preview (four styles)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
