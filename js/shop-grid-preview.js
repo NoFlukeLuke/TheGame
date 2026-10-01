@@ -582,7 +582,7 @@ function shopGridFallOut() {
   const gridEl = document.getElementById('grid');
   const host   = gridEl?.parentElement;
   if (!gridEl || !host) return;
-  const tiles = [...gridEl.children];
+  const tiles = [...gridEl.children].filter(el => el.id !== 'board-hypno');   // the board's floor, not a tile (r409)
   if (!tiles.length) return;
   const layer = document.createElement('div');
   layer.className = 'shopg-exit-layer';

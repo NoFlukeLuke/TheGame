@@ -1,191 +1,117 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   THE HYPNOSIS BACKDROP (r391)   ·   Settings > Display > Background pattern
+   THE BOARD PATTERN (r409)   ·   Settings > Display > Board pattern
 
-   Owner: "could we add some sort of really faint black and dark grey hypnosis
-   pattern animating behind everything?"
+   Owner, on the r391 backdrop: "What if we just had it behind the cards on the
+   grid? So it was just barely visible?" and then "it's still doing it on the
+   whole screen, and also sometimes when I open the game it just shows that
+   pattern". So the whole-screen version is GONE, both layers of it, and what is
+   left is one faint wheel turning inside the board, behind the cards.
 
-   TWO SURFACES, ONE PATTERN, and the second one is not optional.
-   #hypno        is the SURROUND - the room the machine sits in.
-   #hypno-screen is the CRT'S OWN BACKDROP, the dark ground every tray and the
-                 board sit on, which on a desktop is the only one of the two you
-                 can actually see.
+   WHY THE WHOLE-SCREEN VERSION KEPT COMING BACK. Two bugs, both now fixed:
+     · the r397 settings migration that turned it off was never WRITTEN BACK, so
+       it held for one load and the stored `true` returned on the next one (js/
+       settings.js has the long version). That is why it showed on a phone and
+       not on a PC: changing any setting saves them all, and on the PC something
+       had been changed since.
+     · <body> did not carry `no-hypno` until js/settings.js ran, which is after
+       about a hundred scripts. Until then the surround was drawn over an empty
+       page, because the camera is hidden while the office photograph loads
+       (r384). On a phone that is several seconds of nothing but the pattern.
 
-   Both are needed because with the office photograph live the dive ends with the
-   monitor's glass covering the viewport: #stage measures 1436x807 in a 1440x820
-   window, a two-pixel margin. Measured, the surround layer alone changed 2.2% of
-   a desktop frame against 12.2% of a phone one - the feature would have existed
-   only on phones.
+   WHY THIS ONE IS CHEAP. The whole-screen version cost about half the frame rate
+   because it PAINTED its gradients over the full screen every frame. This one is
+   painted ONCE into its own layer and then only ROTATED, which the compositor
+   does without repainting anything, and it is the size of the board rather than
+   of the screen's diagonal.
 
-   NEITHER LAYER MAY BE AN ANCESTOR OF #stage. Both carry a transform, and a
-   transform makes its element the containing block for every position:fixed
-   descendant AND a stacking context - which above #stage would silently
-   re-anchor the Mart, the pause menu, the shop and every other fixed panel
-   inside it (the r180 rule). So the surround is a sibling of #camera and the
-   screen layer is a sibling of #stage.
+   A CHILD OF #grid, FIRST IN TREE ORDER, AT z-index 0. That is what puts it
+   above the board's own background and below everything on it: the marked-line
+   markers are 1 and the cards 2 (css/entity-fx.css). It stays right when #grid
+   becomes a stacking context (the goal flash scales it) because it is inside it.
+   A sibling would have been painted over by #grid's opaque background, or over
+   the cards the moment #grid took a transform.
 
-   INSIDE #stage THERE IS NOWHERE LEGAL TO PUT IT, which is why the screen layer
-   is a sibling rather than a child. Measured both ways: a z-index:-1 child
-   ESCAPES, because #stage is position:relative at z-index auto and so is not a
-   stacking context - the layer lands under #cabinet's own background and is
-   never seen; and a z-index:0 first child paints over every static in-flow
-   sibling's BACKGROUND (positioned boxes paint in step 8, static block
-   backgrounds in step 4), which in portrait swallowed the whole top bar.
-   Making #stage a stacking context would fix that and is not free: its
-   descendants currently compete directly with #cab-screen's scanline and glare
-   pseudos (z 60/61) and with the attract overlays (z 50), and containing them
-   would put the scanlines over the pause menu and the Mart.
-
-   WHERE IT SITS IN THE PAINT ORDER. body's own background is the root canvas;
-   #hypno is z-index 0; body::after (the r95 cabinet vignette) is z-index 0 too
-   and a pseudo-element paints after every child, so the vignette lands on top of
-   the pattern and darkens it toward the edges with it. #camera is z-index 1, so
-   the machine is always in front. #hypno-screen is the first child of
-   #cab-screen and #stage is a later positioned sibling at z-index auto, so DOM
-   order alone puts the game in front of it.
-
-   THE SCREEN LAYER CARRIES AN OPAQUE FLOOR, and that is what lets #stage's wash
-   go translucent over it without the office photograph showing through the game.
-   #stage is what keeps the glass covered (a photo may have a mock-up baked into
-   it), so it may never become see-through; over an opaque floor it can.
-
-   SEAMLESS BY CONSTRUCTION. A hypnotic loop that visibly restarts is worse than
-   no loop at all, so nothing here is allowed to jump:
-     · the two wheels are `repeating-conic-gradient`s, which are periodic in the
-       angle, so a full 360deg rotation returns them to the frame they started on;
-     · the rings only BREATHE, on `alternate`, so they reverse rather than reset.
-   A ring pattern cannot be scaled on a loop - scaling a linear ring pitch by k
-   puts the rings k times further apart, so it never matches itself - which is
-   why the rings are the part that reverses and the wheels are the part that
-   turns.
-
-   THE ALPHAS ARE THE WHOLE BRIEF ("really faint"), so they are variables: one
-   ink and one light, tuned against the darkest and the brightest thing each
-   layer can land on. Black alone would vanish on a dark backdrop and white alone
-   on a bright one; the pair reads as grey banding on either.
+   It is put back by render() (`ensureBoardPattern`, js/render.js) after any
+   screen that empties #grid, and the two places that sweep #grid's children
+   wholesale skip it (js/reward-transition.js, js/shop-grid-preview.js).
    ═══════════════════════════════════════════════════════════════════════════ */
 
-#hypno, #hypno-screen {
+#board-hypno {
+  display: none;
+  position: absolute;
+  /* GRID_PAD (js/grid-metrics.js): the cards' own area. The frame outside it is
+     where the board's rings are drawn (r391), and they stay crisp. */
+  inset: 6px;
+  z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  /* Its own knob, so a future surface can dim it without touching the alphas. */
-  opacity: var(--hyp-opacity, 1);
-  --hyp-ink:  rgba(0, 0, 0, 0.055);
-  --hyp-lite: rgba(255, 255, 255, 0.030);
+  border-radius: 3px;
+  contain: strict;
 }
+#grid.grid-tight > #board-hypno { inset: 3px; }
+body.board-pattern #board-hypno { display: block; }
+/* Only on the PLAY board. Every screen that borrows #grid empties it anyway;
+   this is for the deck editor, which keeps the cards but is not play. */
+body.grid-screen #board-hypno,
+body.gp-active #board-hypno,
+body.map-active #board-hypno { display: none; }
 
-#hypno {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  /* A square of side >= the VIEWPORT'S diagonal, so a rotation never sweeps an
-     uncovered corner into view. 150vmax clears it at every aspect this runs at. */
-  --hyp-size: 150vmax;
+/* THE WHEEL - spokes in LIGHT and rings in INK, one layer, so they turn
+   together. It is a square as wide as the board's DIAGONAL, so a rotation never
+   sweeps an uncovered corner into view. Sized off --grid-w / --grid-h, which
+   js/grid-metrics.js publishes in this element's own CSS px.
+
+   THE SIZE IS THE COST, so it is the smallest square that works. hypot() is the
+   diagonal exactly; max side x 1.415 is the fallback and is up to a third more
+   pixels on a tall board. The fallback has to go through @supports rather than
+   being written first and overridden: a declaration holding var() is not checked
+   until it is used, so an unsupported hypot() would leave `width: auto`, not the
+   line above it. There is no fade mask either - measured, a mask is a second
+   layer to composite every frame and it made no visible difference, because the
+   pattern only shows through the gutters. */
+#board-hypno::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(max(var(--grid-w, 360px), var(--grid-h, 360px)) * 1.415);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255, 255, 255, 0.07) 0deg 2.6deg, transparent 2.6deg 9deg),
+    repeating-radial-gradient(circle at 50% 50%,
+      rgba(0, 0, 0, 0.22) 0 7px, transparent 7px 30px);
+  will-change: transform;
+  /* SIX SMALL TICKS A SECOND, NOT SIXTY. The compositor only redraws a turning
+     layer when its angle actually changes, so a stepped turn costs a tenth of a
+     smooth one wherever the browser composites without a graphics card. Measured
+     at 1440x820 in a software-rendered browser: smooth 37-46 fps, this 53-59,
+     off 59-60 (at 1100x620 and on a phone all three are 60). 0.25 degrees a step
+     is under 2px at the board's corner, which in an 8px gutter at 7% alpha does
+     not read as a step. */
+  animation: bh-turn 240s steps(1440) infinite;
 }
+@supports (width: hypot(3px, 4px)) {
+  #board-hypno::before { width: hypot(var(--grid-w, 360px), var(--grid-h, 360px)); }
+}
+@keyframes bh-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* Inset to #cab-screen's content box, which is exactly where #stage sits - the
-   same numbers the scanline and glare pseudos use, and overridden the same way
-   when the photograph takes the bezel away (css/office-photo.css). */
+/* Reduced motion keeps the texture and stops the turn. */
+body.reduced-motion #board-hypno::before { animation: none; }
+
+/* ── THE CRT'S FLOOR (r391) ──────────────────────────────────────────────────
+   #hypno-screen used to carry the screen half of the whole-screen pattern. Its
+   pattern is gone; its FLOOR stays, because #stage's wash went translucent
+   (rgba .82, css/style.css) to let that pattern show through, and an opaque floor
+   under it is what keeps the office photograph from ever showing through the
+   game. Inset to #cab-screen's content box, which is exactly where #stage sits,
+   and overridden the same way when the photograph takes the bezel away
+   (css/office-photo.css). */
 #hypno-screen {
   position: absolute;
   inset: 12px;
   border-radius: 8px;
   background-color: #0b0906;
-  /* SIZED IN PERCENT, NOT vmax. This lives inside #cabinet, which carries the
-     stage zoom (~1.9 on a desktop), and a viewport unit is resolved against the
-     viewport and THEN zoomed - so 150vmax here would rasterise a 4000px square
-     to cover an 800px box. 240% of its own width, held square by aspect-ratio,
-     clears the box's diagonal at every shape the stage takes (747x420 landscape,
-     420x740 portrait). */
-  --hyp-size: 240%;
-  /* #stage's wash sits on top at 82%, so the pattern reads at 18% of its own
-     alpha and these are set to land in the same band as the surround's:
-     0.24 x 0.18 = 0.043, against the surround's 0.055 - a little under, because
-     the ground it lands on here is a near-black the surround's purple is not, and
-     4/255 against 16/255 is a quarter of the value it is sitting on. */
-  --hyp-ink:  rgba(0, 0, 0, 0.24);
-  --hyp-lite: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
-
-#hypno::before, #hypno::after,
-#hypno-screen::before, #hypno-screen::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--hyp-size);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  transform-origin: 50% 50%;
-  will-change: transform, scale;
-}
-
-/* THE WHEEL - the classic hypnotist's spokes, plus the concentric rings over
-   them. Both in one layer so they turn together and cost one composited element.
-   The rings are drawn in INK and the spokes in LIGHT, which is what stops the
-   two reading as one texture. */
-#hypno::before, #hypno-screen::before {
-  background:
-    repeating-conic-gradient(from 0deg at 50% 50%,
-      var(--hyp-lite) 0deg 2.6deg, transparent 2.6deg 9deg),
-    repeating-radial-gradient(circle at 50% 50%,
-      var(--hyp-ink) 0 7px, transparent 7px 30px);
-  animation: hyp-turn 150s linear infinite,
-             hyp-breathe 19s ease-in-out infinite alternate;
-}
-
-/* THE COUNTER-WHEEL - a second set of spokes at a different count, turning the
-   other way and half as fast. Two wheels crossing is what makes the thing read
-   as depth rather than as a spinning texture, and the mismatch (40 wedges
-   against 69) means the moire between them never repeats on a short cycle.
-   Masked to a soft disc so it fades out before the corners, where a
-   full-strength pinwheel would draw attention to the layer's own edges. */
-#hypno::after, #hypno-screen::after {
-  background: repeating-conic-gradient(from 0deg at 50% 50%,
-    var(--hyp-lite) 0deg 1.4deg, transparent 1.4deg 5.2deg);
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, #000 34%, transparent 72%);
-          mask-image: radial-gradient(circle at 50% 50%, #000 0%, #000 34%, transparent 72%);
-  animation: hyp-turn-back 310s linear infinite;
-}
-
-@keyframes hyp-turn      { from { transform: rotate(0deg); }   to { transform: rotate(360deg); } }
-@keyframes hyp-turn-back { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-/* The breathe rides the STANDALONE `scale` property, not a scale() inside the
-   transform: the wheel's rotation already owns `transform`, and two animations
-   writing one property means the later-listed one simply wins. `translate`,
-   `rotate`, `scale` and `transform` are four independent properties that compose
-   in that order, which is what lets the wheel turn and breathe at once - and why
-   the centring above is `translate`, not a transform function. */
-@keyframes hyp-breathe   { from { scale: 1; } to { scale: 1.055; } }
-
-/* Reduced motion keeps the pattern and stops it moving: it is a texture as well
-   as an animation, and a blank backdrop is not what the setting asks for. */
-body.reduced-motion #hypno::before,       body.reduced-motion #hypno::after,
-body.reduced-motion #hypno-screen::before, body.reduced-motion #hypno-screen::after { animation: none; }
-
-/* Off = gone, not just transparent: an idle full-viewport conic gradient is
-   still a full-viewport conic gradient to composite. The screen layer keeps its
-   FLOOR either way - that is what #stage's translucent wash sits on - so only
-   its pattern goes. */
-body.no-hypno #hypno { display: none; }
-body.no-hypno #hypno-screen::before,
-body.no-hypno #hypno-screen::after { display: none; }
-
-/* ── BOARD ONLY (r408) ─────────────────────────────────────────────────────
-   The same pattern, painted only inside the board, behind the cards. The cost of
-   the full version is PAINTING the gradients every frame over the whole screen;
-   this paints a box about a sixth of that size, as one gradient whose angle turns
-   (a registered <angle>, so it interpolates). z-index 0 sits over #grid's own
-   background and under the line markers (1) and the cards (2). */
-@property --hzb-rot { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-body.hypno-board #grid::before {
-  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  border-radius: inherit;
-  background:
-    repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.10) 0 6px, transparent 6px 18px),
-    repeating-conic-gradient(from var(--hzb-rot) at 50% 50%,
-      rgba(255,255,255,.035) 0 10deg, rgba(0,0,0,.08) 10deg 20deg);
-  animation: hzbSpin 40s linear infinite;
-}
-@keyframes hzbSpin { to { --hzb-rot: 360deg; } }
-body.reduced-motion.hypno-board #grid::before { animation: none; }
-body.grid-screen.hypno-board #grid::before { display: none; }

@@ -5129,12 +5129,12 @@
     content:""; position:absolute; inset:12px; border-radius:8px; pointer-events:none; z-index:61;
     background: radial-gradient(120% 90% at 28% 6%, rgba(255,255,255,0.09), transparent 46%);
   }
-  /* THE WASH IS TRANSLUCENT (r391) so the hypnosis backdrop behind it reads.
-     #hypno-screen is the first child of #cab-screen and paints an OPAQUE floor,
-     so the two together are still opaque and the office photograph can never
-     show through the game - which is the one thing #stage's background has to
-     guarantee. 0.82 is measured: it leaves the pattern at 18% of its own alpha
-     (see css/hypno.css) and moves the wash itself by at most 4/255. */
+  /* THE WASH IS TRANSLUCENT (r391), over #hypno-screen's OPAQUE floor - the
+     first child of #cab-screen - so the two together are still opaque and the
+     office photograph can never show through the game, which is the one thing
+     #stage's background has to guarantee. It went translucent to let the r391
+     whole-screen pattern show through; that pattern is gone (r409, css/hypno.css)
+     and the floor stays, because over it the wash is within 4/255 of what it was. */
   #stage { background: radial-gradient(ellipse at 50% 42%, rgba(26,20,12,0.82) 0%, rgba(16,13,9,0.82) 78%);
            border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
            transition: background 0.45s ease; }

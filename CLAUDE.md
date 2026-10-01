@@ -11170,6 +11170,11 @@ edge and `--tray-c` only ever reaches the rings.
 
 ### 5. THE HYPNOSIS BACKDROP - `css/hypno.css`
 
+**SUPERSEDED BY r409** - the whole-screen pattern is gone; what is left is a
+faint wheel inside the board (Settings -> Display -> Board pattern). See the r409
+section at the end. This one is kept for the measurements and the stacking
+reasoning.
+
 A faint turning pattern behind the scene: two counter-rotating pinwheels with
 concentric rings over them, spokes in light and rings in ink, so the pair reads
 as grey banding on a dark backdrop and on a bright one alike.
@@ -11570,6 +11575,10 @@ visible box alone is **worse** than compositing one oversized layer, so the
 transform-and-oversize shape r393 chose was already the better of the two. There
 is no cheap version of this as a live CSS gradient.
 
+**r409: this migration never held** - it cleared the value in memory and never
+wrote it back, so the stored `true` returned on the next load. The setting is
+gone now (r409 section).
+
 **So `Settings > Display > Background pattern` DEFAULTS OFF.** The feature is
 untouched and one toggle away; what changed is that nobody pays for it without
 asking. Its hint now says what it costs.
@@ -11765,4 +11774,99 @@ Records, Settings, the handbook and History are one FIXED box: `--menu-w` x `--m
 - **A Trick offered with the tray full is refused BEFORE the pick commits** (`gridPickConfirm` and `survivalChoose`): the refusal sound and toast play and the pick stays open so the player can sell one and confirm again. It used to close the pick and then throw the Trick away.
 - **The deck editor no longer shows the winning hand** (`flowrDeckClearGoalHand`): its cards were still in gridData, so you could buff cards that were about to leave. They go to the played pile, their cells refill, and `svGoalCells` is emptied so the keep path has nothing left to remove. Deck audit 56/56.
 - **Luck bug: a pool with no common tier drew flat 71% of the time.** `pickEntityByRarity` rolled common, found none at or below it and fell to a flat pick, so Flow's rare-or-better Tricks showed legendaries about 1.6x too often (~8% vs 5%). Tiers below the lowest present tier are now dropped from the roll. Luck itself is gentle (legendary 1.5% -> ~3% at 100).
-- **Board pattern** (Settings > Display): the hypno pattern painted only inside the board, as one turning gradient on `#grid::before`. No measurable frame cost. The full background still defaults off.
+- **Board pattern** (Settings > Display): the hypno pattern painted only inside the board, as one turning gradient on `#grid::before`. No measurable frame cost. The full background still defaults off. **Replaced in r409** (below): that version repainted its gradient every frame.
+
+## r409 - the pattern lives on the board only, a settings migration that sticks, a loading word
+
+Owner: *"it's still doing it on the whole screen, and also sometimes when I open
+the game it just shows that pattern..."*
+
+### 1. WHY THE WHOLE-SCREEN PATTERN KEPT COMING BACK
+
+**A migration that edits `saved` and sets its flag is undone by the next load
+unless the edited copy is written back.** r397's `migrateHypnoDefault` cleared a
+stored `hypno: true` in memory and never saved it, so it held for exactly one
+load and the stored `true` won for good after that. Reproduced: load 1 off, loads
+2 and 3 on. It showed on the owner's phone and not their PC because changing ANY
+setting writes them all (`saveSettings` stores the whole SETTINGS object), and on
+the PC something had been changed since.
+
+**r293's `migrateLexiconDefault` had the same bug** - the switch to gamer wording
+lasted one load. `loadSettings` now writes `saved` back when a migration changes
+it (`saved`, not SETTINGS, so no defaults are frozen by it), and the lexicon
+migration moved to **`lethe.lexicon.migrated.v3`** so it runs once more for
+everyone v2 failed. A deliberate Corporate pick made after that still sticks
+(verified across a reload).
+
+**The rule for any future migration: return whether it changed `saved`, and let
+`loadSettings` write it back.**
+
+### 2. THE LOAD SCREEN SHOWED ONLY THE PATTERN
+
+`<body>` carries `office-pending` from the markup, which hides the camera until
+the office photograph loads (r384) - and `no-hypno` only went on when
+js/settings.js ran, after about a hundred script files. So every slow load drew
+the whole-screen surround over an empty page, and with the stored `true` above it
+stayed for the photograph's whole download as well.
+
+- **The surround (`#hypno`) is deleted**, markup and CSS.
+- **`body.office-pending::before` says LOADING** (css/office-photo.css), after a
+  .4s delay so a fast load never flashes it, with the camera's own 8s safety net.
+- **The photograph is PRELOADED in `<head>`** (`<link rel="preload" as="image">`),
+  so it downloads alongside the scripts instead of after them: js/office-photo.js
+  only sets `img.src` from camInit. Measured: requested 38ms into the load. **The
+  preload's href and `OFFICE_PHOTO.file` must stay the same URL** or the <img>
+  fetches it twice.
+
+### 3. THE BOARD PATTERN - `#board-hypno`, css/hypno.css
+
+One faint wheel (spokes in light, rings in ink) turning inside the board, behind
+the cards. Settings -> Display -> **Board pattern**, default ON. It is a NEW
+setting id (`boardPattern`): `hypno` and `hypnoBoard` are gone, and since
+`saveSettings` stores every value, most players carry a stored `hypno` that says
+nothing about what they chose - a fresh id means everyone gets the default.
+
+- **A CHILD OF #grid, FIRST IN TREE ORDER, z-index 0.** That puts it above the
+  board's background and below the line markers (1) and the cards (2), and keeps
+  it there when #grid becomes a stacking context (the goal flash scales it). A
+  sibling would sit under #grid's opaque background, or over the cards the moment
+  #grid took a transform. Inset by GRID_PAD (6, or 3 on a `.grid-tight` board) so
+  the frame's rings stay clean.
+- **`ensureBoardPattern(gridEl)` (js/render.js) puts it back** after any screen
+  that empties #grid - called from `render()` past the takeover early returns and
+  from the top of `startNewRoundDealAnims`, so it is there before the cards fall.
+  Moving it would restart its turn, and nothing else prepends to #grid.
+- **The two sweeps of #grid's children skip it**: `rewardTransitionOut` (it would
+  be flung off with the tiles) and `shopGridFallOut`.
+- **Hidden under `body.grid-screen` / `gp-active` / `map-active`** - only the play
+  board shows it; the deck editor keeps the cards but is not play.
+
+#### Why it is cheap, measured
+
+The whole-screen version was four layers the size of the screen's diagonal,
+re-composited every frame. This is one layer the size of the board's DIAGONAL
+(`hypot(--grid-w, --grid-h)`, with `max side x 1.415` as the `@supports`
+fallback - a var() declaration is not checked until used, so writing the fallback
+first would leave `width: auto`), painted once, with no mask.
+
+**It turns in steps: 240s a revolution in `steps(1440)`, six ticks a second.** The
+compositor only redraws a turning layer when its angle changes, so a stepped
+turn costs a fraction of a smooth one wherever the browser composites without a
+graphics card. 0.25 degrees a step is under 2px at the board's corner. Measured in
+the software-rendered test browser, fps over 3-4s windows:
+
+| | smooth 120s | stepped (shipped) | off |
+|---|---|---|---|
+| 1440x820 | 37-46 | 52-59 | 59-60 |
+| 1100x620 | 60 | 60 | 60 |
+| 390x844, 360x640 | 60 | 60 | 60 |
+
+A mask and the larger square each cost more frames at 1440 and made no visible
+difference, because the pattern only shows through the gutters.
+
+Verified in a real browser at 1440x820, 1100x620, 390x844 and 360x640: the
+pattern is #grid's first child in Classic, Flow, Spectrum and Poker Squares, absent
+on the Schedule's map, gone during the reward grid and back for the next deal, not
+taken by `rewardTransitionOut`, turning, and still first after a planted pair is
+played through the full dance. The first paint with the scripts held back shows
+the page background and LOADING and no pattern. **No page errors.**
