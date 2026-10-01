@@ -93,12 +93,12 @@
     <div id="dev-group-pop-body">
 
   <!-- r409: the head of every mode tab - start it, and which deck it plays. -->
-  <div class="dev-section" data-group="flow map normal picker climb squares">
+  <div class="dev-section" data-group="flow map modes">
     <div class="dev-section-title" id="dev-modehead-title">Mode</div>
     <div id="dev-modehead"></div>
   </div>
 
-  <div class="dev-section" data-group="hidden">
+  <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Hidden modes</div>
     <div class="dev-note">Starts a fresh run immediately. Anything in progress is abandoned.</div>
     <!-- rows generated from MODES by devRenderModes() -->
@@ -257,19 +257,19 @@
 
   <!-- GOALS (r211): every mode's round-goal curve, live. Rows are built by
        devRenderGoalPanel() in js/dev-panel.js from GOAL_TUNABLES. -->
-  <div class="dev-section" data-group="normal flow map climb hidden">
+  <div class="dev-section" data-group="flow map modes">
     <div class="dev-section-title">All modes</div>
     <div class="dev-note">Scales every mode's goal at once. Leave at 1.00 and tune the per-mode numbers below.</div>
     <div id="dev-goal-global-rows"></div>
     <div id="dev-goal-live" class="dev-preview"></div>
   </div>
-  <div class="dev-section" data-group="normal climb hidden">
+  <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Classic curve</div>
     <div class="dev-note">Classic, Climb, Guided, Spectrum, Match-3 and Dominoes. The Schedule shares its round-1 goal and rounding.</div>
     <div id="dev-goal-classic-rows"></div>
     <div id="dev-goal-classic-preview" class="dev-preview"></div>
   </div>
-  <div class="dev-section" data-group="flow hidden">
+  <div class="dev-section" data-group="flow modes">
     <div class="dev-section-title">Survival / Flow curve</div>
     <div class="dev-note">Flow and Survival share this curve, from a lower start.</div>
     <div id="dev-goal-survival-rows"></div>
@@ -282,12 +282,12 @@
     <div id="dev-goal-map-preview" class="dev-preview"></div>
   </div>
 
-  <div class="dev-section" data-group="hidden">
+  <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Zen goal</div>
     <div id="dev-goal-zen-rows"></div>
   </div>
 
-  <div class="dev-section" data-group="normal flow map climb hidden">
+  <div class="dev-section" data-group="flow map modes">
     <div class="dev-section-title">Reset goals</div>
     <button class="dev-btn" onclick="devResetGoalTune()">Reset every mode's goals to shipped values</button>
   </div>
@@ -623,7 +623,7 @@
       Only one save is kept; saving again replaces it.
     </div>
   </div>
-  <div class="dev-section" data-group="flow hidden">
+  <div class="dev-section" data-group="flow modes">
     <div class="dev-section-title">Board between level-ups (Flow / Survival)</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Whether the board survives a level-up. "Board stays" removes only the scored hand and refills those cells; the no-Sleights variant also lifts every Sleight off the board, costing no time and no discards.</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
@@ -670,7 +670,7 @@
       Branch from any visited tile
     </label>
   </div>
-  <div class="dev-section" data-group="hidden">
+  <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Match-3 Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types - turn one off to remove it from detection entirely.</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -710,7 +710,7 @@
     <div id="dev-deck-wildstat" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;line-height:1.5;"></div>
     <div class="dev-note" style="margin-top:6px;">Which deck each mode uses (normal 4-suit or six-suit) is set on that mode's own tab.</div>
   </div>
-  <div class="dev-section" data-group="squares">
+  <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Poker Squares - the daily grids</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       The 3x3 and 4x4 grids. Changes apply to the NEXT run - the deck and its rank window are built once, when the board size is picked. A row moved off its shipped value is gold.
@@ -719,7 +719,7 @@
     <div id="dev-squares-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
     <button class="dev-btn" onclick="devResetSquares()">Reset to shipped</button>
   </div>
-  <div class="dev-section" data-group="hidden">
+  <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Spectrum Deck</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
       Which values and colours are in the deck. Changes apply at the START OF THE NEXT ROUND - the round you are playing keeps the deck it was dealt.

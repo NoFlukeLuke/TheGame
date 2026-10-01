@@ -1135,4 +1135,4 @@ select.dev-sq-in {
 .dev-pt-row .dev-pt-share { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); text-align:right; }
 .dev-pt-row.dev-pt-tuned .dev-pt-k { color:var(--gold); }
 .dev-pt-row.dev-pt-tuned input { border-color:var(--gold-dim); }
-.dev-hidden-mode { flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:4px 0; }
+.dev-hidden-mode { flex-basis:100%; display:flex; flex-direction:column; align-items:flex-start; flex-wrap:wrap; align-items:center; gap:6px; margin:4px 0; }

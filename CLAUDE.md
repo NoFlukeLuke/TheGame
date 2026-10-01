@@ -78,8 +78,8 @@ visible to all the others. **Load order matters**: several files run set-up code
   screenshot or a measurement catches. State what was measured.
 - **Dev panel** (🛠, bottom-right; also the main menu's Settings) is the debug surface. Tabs
   are `DEV_GROUPS` (r416): Bonuses, Events & Bosses, Change the game now, Hand Scoring, Focus,
-  Probabilities, Wild Cards, HUD & Display, one tab per playable mode (its goal curve, deck
-  switch and settings), Hidden Modes, Tools. A section's `data-group` is space-separated and
+  Probabilities, Wild Cards, HUD & Display, Flow and Schedule tabs (goal curve, deck
+  switch and settings), Modes (all but Flow and Schedule), Tools. A section's `data-group` is space-separated and
   may sit on several tabs. Boss/event/mode lists are generated from the data tables. Owner's
   standing instruction: a tunable for visual work goes in **Aesthetics** (HUD & Display tab);
   a mode's tunable goes on that mode's tab.

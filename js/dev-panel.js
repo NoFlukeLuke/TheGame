@@ -217,12 +217,7 @@ const DEV_GROUPS = [
   { g:'hud',      icon:'▤', label:'HUD & Display', sub:() => 'aesthetics · animation · HUD · fullscreen' },
   { g:'flow',     icon:'▶', label:'Flow',          sub:() => devModeSub('flow') },
   { g:'map',      icon:'▶', label:'Schedule',      sub:() => devModeSub('map') },
-  { g:'normal',   icon:'▶', label:'Classic',       sub:() => devModeSub('normal') },
-  { g:'picker',   icon:'▶', label:'Custom',        sub:() => 'builds its own mode' },
-  { g:'climb',    icon:'▶', label:'Climb',         sub:() => 'Classic goal curve' },
-  { g:'squares',  icon:'▶', label:'Poker Squares', sub:() => typeof sqCfg === 'function'
-      ? `${sqCfg('rankVary') ? 'varied' : sqCfg('rankSpread') + ' ranks'} · wild ${sqCfg('wildChance')}%` : 'poker squares' },
-  { g:'hidden',   icon:'⋯', label:'Hidden Modes',  sub:() => `${MODE_HIDDEN_LIST.length} modes · Spectrum · Match-3` },
+  { g:'modes',    icon:'▶', label:'Modes',         sub:() => 'Classic · Custom · Climb · Poker Squares · ' + MODE_HIDDEN_LIST.length + ' hidden' },
   { g:'tools',    icon:'✎', label:'Tools',         sub:() => 'save · run seed · tips · builds archive · event log' },
 ];
 function devModeSub(id) {
@@ -258,15 +253,16 @@ function devOpenGroup(g) {
   if (g === 'deck')    devRenderDeckDesign();
   if (g === 'hud')     devSyncAesthetics();
   if (g === 'tools')   { devRenderTips(); devRefreshSeed(); devSyncSaveSection(); }
-  if (g === 'hidden')  { devRenderModes(); renderSpectrumDev(); devRenderGoalPanel(); syncMatch3DevToggles();
+  if (g === 'modes')   { devRenderModes(); renderSpectrumDev(); devRenderGoalPanel(); syncMatch3DevToggles();
                          const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }
-  if (['flow', 'map', 'normal', 'picker', 'climb', 'squares'].includes(g)) devRenderModeHead(g);
-  if (['flow', 'map', 'normal', 'climb'].includes(g)) devRenderGoalPanel();
+  if (['flow', 'map'].includes(g)) devRenderModeHead(g);
+  if (g === 'modes') devRenderModeHead('modes');
+  if (['flow', 'map', 'modes'].includes(g)) devRenderGoalPanel();
   if (g === 'flow') {
     const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode;
     if (typeof flowrDevSync === 'function') flowrDevSync();
   }
-  if (g === 'squares') devRenderSquares();
+  if (g === 'modes') devRenderSquares();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -324,12 +320,17 @@ const DEV_MODE_NOTES = {
 function devRenderModeHead(id) {
   devRenderModeHead._g = id;
   const host = document.getElementById('dev-modehead'); if (!host) return;
-  const name = (typeof modeDisplayName === 'function') ? modeDisplayName(id) : id;
-  const t = document.getElementById('dev-modehead-title'); if (t) t.textContent = name;
-  const deck = _devDeckChips(id);
-  host.innerHTML = `<div class="dev-note">${DEV_MODE_NOTES[id] || ''}</div>`
-    + (deck ? `<div class="dev-note"><b>Deck</b> - applies from the next run of this mode. Wild count is on the Wild Cards tab.</div>${deck}` : '')
-    + `<div class="dev-row"><button class="dev-btn" onclick="devStartMode('${id}')">Start ${name}</button></div>`;
+  const one = mid => {
+    const name = (typeof modeDisplayName === 'function') ? modeDisplayName(mid) : mid;
+    const deck = _devDeckChips(mid);
+    return `<div class="dev-hidden-mode"><b>${name}</b><div class="dev-note">${DEV_MODE_NOTES[mid] || ''}</div>`
+      + (deck ? `<div class="dev-note"><b>Deck</b> - applies from the next run. Wild count is on the Wild Cards tab.</div>${deck}` : '')
+      + `<div class="dev-row"><button class="dev-btn" onclick="devStartMode('${mid}')">Start ${name}</button></div></div>`;
+  };
+  const ids = id === 'modes' ? ['normal', 'picker', 'climb', 'squares'] : [id];
+  const t = document.getElementById('dev-modehead-title');
+  if (t) t.textContent = id === 'modes' ? 'Playable modes' : ((typeof modeDisplayName === 'function') ? modeDisplayName(id) : id);
+  host.innerHTML = ids.map(one).join('');
 }
 function devRenderModes() {
   const el = document.getElementById('dev-mode-btns'); if (!el) return;
