@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r414 · Confirm tile shows its name";
+const BUILD = "2026-10-01 · r415 · Confirm tile no longer prints the chosen name";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

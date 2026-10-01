@@ -305,7 +305,7 @@ function gridPickPaintSelection() {
   const p = (gridPickState.offers || [])[sel];
   btn.classList.toggle('gp-act-off', !p);
   const sub = btn.querySelector('.gp-act-sub');
-  if (sub) sub.textContent = p ? (p.label || '') : 'TAP AN OPTION';
+  if (sub) sub.textContent = p ? '' : 'TAP AN OPTION';
   gridPickSyncButtons();
 }
 
