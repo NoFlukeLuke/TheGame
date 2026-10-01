@@ -29,6 +29,8 @@ superseded is history, not current code. The other reference docs:
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
+| `CLEANUP.md` | the dead-code audit and removal log |
+| `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
 ## File layout
@@ -240,5 +242,13 @@ stacks fire on the next firing and are then cleared; `_rank` is permanent. Force
 ## Modes
 
 Carousel: Flow, Schedule, Classic, Custom, Poker Squares, Climb. Hidden (dev panel -> Modes):
-Guided, Spectrum, Six Suits, Survival, Orientation, Crunch, Match-3, Zen. Every mode's first run
-is a seeded walkthrough (`tutorialArmForRun`, filtered by mode FLAGS); later runs are ordinary.
+Guided, Spectrum, Six Suits, Survival, Orientation, Crunch, Match-3, Zen, plus two legacy
+timer modes (`tetris`, `autoplay`) that keep the 20-minute game-clock path alive. Dominoes was
+removed in r411. Every mode's first run is a seeded walkthrough (`tutorialArmForRun`, filtered
+by mode FLAGS); later runs are ordinary.
+
+## Cleanup backlog
+
+`CLEANUP.md` is the audit of dead and legacy code (what it is, where it lives, how risky it is
+to remove) and what has already gone. `docs/archive/` holds finished design docs and
+`previews/archive/` dead mockups.

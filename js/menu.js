@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r412 · Dead code sweep: legacy dance, shop squish, The Rota, dead constants";
+const BUILD = "2026-10-01 · r413 · CLEANUP.md audit, finished docs and dead mockups archived";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
