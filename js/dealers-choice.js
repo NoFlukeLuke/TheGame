@@ -95,7 +95,7 @@ function dealerCardSize() {
   const g = document.querySelector('#grid .card');
   const rc = g?.getBoundingClientRect();
   const w = rc && rc.width ? rc.width : 60, h = rc && rc.height ? rc.height : 80;
-  let k = dealerFollowsCursor() ? 0.55 : 0.6;
+  let k = dealerFollowsCursor() ? 0.7 : 0.6;
   if (!dealerFollowsCursor()) {
     const box = dealerDockBox();
     // The stack (current card at 1.2x plus two steps down) fits the tray's height.
@@ -161,7 +161,9 @@ function dealerSlot(i, ax, ay, w, h, curScale) {
 function dealerTarget() {
   const { w, h } = dealerHand.size;
   const follow = dealerFollowsCursor();
-  if (follow) return { x: _dealerMouse.x + 16, y: _dealerMouse.y + 18, mode: 'cursor' };
+  // The top card hangs from the cursor: its top-right corner just above and to
+  // the right of the pointer, so the card sits under it and the click is clear.
+  if (follow) return { x: _dealerMouse.x - w + 7, y: _dealerMouse.y - 7, mode: 'cursor' };
   if (_dealerTouch) return { x: _dealerTouch.x - w * 0.6, y: _dealerTouch.y - h * 1.2 - 34, mode: 'finger' };
   // Docked (touch): in the hand preview's tray, which is empty while cards are
   // held - the right half of the portrait strip, or #selected-cards in
@@ -210,10 +212,16 @@ function dealerStartLoop() {
       if (!p || !el) return;
       const s = dealerSlot(i, tgt.x, tgt.y, w, h, curScale);
       // Each card further back is a looser spring, so the stack trails.
-      const k = 170 / (1 + i * 0.9), damp = 2 * Math.sqrt(k) * 0.82;
-      p.vx += ((s.x - p.x) * k - p.vx * damp) * dt;
-      p.vy += ((s.y - p.y) * k - p.vy * damp) * dt;
-      p.x += p.vx * dt; p.y += p.vy * dt;
+      // The top card is a stiff spring (nearly pinned to the cursor); each card
+      // behind it is looser, so the rest trail like a ribbon.
+      const k = (i === 0 ? 2500 : 380 / (1 + (i - 1) * 0.9)), damp = 2 * Math.sqrt(k) * 0.9;
+      // Sub-stepped: a spring this stiff blows up on one long frame.
+      const nSub = Math.max(1, Math.ceil(dt / 0.008)), h2 = dt / nSub;
+      for (let q = 0; q < nSub; q++) {
+        p.vx += ((s.x - p.x) * k - p.vx * damp) * h2;
+        p.vy += ((s.y - p.y) * k - p.vy * damp) * h2;
+        p.x += p.vx * h2; p.y += p.vy * h2;
+      }
       // Lean toward where it is being pulled.
       const want = Math.max(-26, Math.min(26, p.vx * 0.035 + p.vy * 0.01));
       p.rot += (want - p.rot) * Math.min(1, dt * 12);

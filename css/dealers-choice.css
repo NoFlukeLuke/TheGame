@@ -3,7 +3,7 @@
 #dealer-layer .dl-card {
   position: absolute; left: 0; top: 0;
   width: var(--card-w); height: var(--card-h);
-  transform-origin: 50% 0%;
+  transform-origin: 100% 0%;   /* swings around the cursor point */
   will-change: transform;
   filter: drop-shadow(0 4px 6px rgba(0,0,0,.55));
 }

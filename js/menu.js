@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r425 · One Modes dev tab"
+const BUILD = "2026-10-01 · r426 · Dealer's Choice hangs from the cursor";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
