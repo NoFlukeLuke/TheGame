@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r418 · Flow boss pays through the reward chain";
+const BUILD = "2026-10-01 · r419 · Chip In is renamed Pip In";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
