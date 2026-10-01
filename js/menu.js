@@ -1,4 +1,4 @@
-const BUILD = "2026-09-30 · r407 · Menus are a fixed size and scale their content";
+const BUILD = "2026-10-01 · r408 · Tray turns, full-tray refusal, luck fix";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
