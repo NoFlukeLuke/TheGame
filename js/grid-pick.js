@@ -785,6 +785,7 @@ function gridPickRenderActions(animateIn) {
     const g = (typeof CARD_GAP === 'number' ? CARD_GAP : 5);
     const w = GP_CONFIRM_W * cw + (GP_CONFIRM_W - 1) * g, sh = Math.round(ch * 0.34);
     conf.style.height = (ch - sh - 3) + 'px';
+    conf.classList.add('gp-confirm-sk');
     const sk = put(`<div class="gp-act gp-skip"><div class="gp-act-label">Skip</div></div>`,
       `left:${cellLeft(GP_ACT_COLS)}px;top:${cellTop(GP_ROWS - 1) + ch - sh}px;width:${w}px;height:${sh}px;`);
     sk.addEventListener('click', e => { e.stopPropagation(); gridPickSkipNow(); });

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r413 · CLEANUP.md audit, finished docs and dead mockups archived";
+const BUILD = "2026-10-01 · r414 · Confirm tile shows its name";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
