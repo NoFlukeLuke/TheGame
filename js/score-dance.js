@@ -1323,7 +1323,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // but they get cut off by the options coming into view. speed up the return
       // so it can finish before the options come up." The whole trip, stagger
       // included, is squeezed inside the fly-in's own wait (the await below).
-      if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)){
+      if(survivalActive() && (!(typeof bossWinPending!=='undefined' && bossWinPending)
+          || (typeof flowBossWinTakesChain==='function' && flowBossWinTakesChain()))){
         const flyWait = 140 + previewCells.length*100 + 460 + 220;   // GF_LEAD + n*GF_STEP + GF_DUR + 220
         const fit = flyWait - 60 - Math.max(0, loseEls.length-1) * bStag;
         bDur = Math.max(420, Math.min(bDur, fit));
@@ -1392,8 +1393,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
     // (Not on a boss win - that hand ends in the PRIZE grid via bossSettleWin,
     // and a pick opened here would fight it for the screen.)
-    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)){
-      survivalShowPick();
+    // FLOW's boss win (r409) takes this same beat: the boss settles here and its
+    // reward chain (celebration -> count -> prize grid first) plays where a goal
+    // clear's would, so the order of the animation is the ordinary one.
+    const _flowBossChain = typeof flowBossWinTakesChain==='function' && flowBossWinTakesChain();
+    if(survivalActive() && (_flowBossChain || !(typeof bossWinPending!=='undefined' && bossWinPending))){
+      if(_flowBossChain) bossSettleWinFlow();
+      else survivalShowPick();
       // THE TALLY WAITS FOR THE CHAIN'S COUNTER (r376). Owner: "the cards
       // should explode out and fly to the preview, then BEFORE they start to
       // dance, the level up thing appears and quite loudly does its animation.

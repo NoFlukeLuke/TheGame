@@ -836,10 +836,13 @@ function survivalTriggerBoss() {
 // Boss defeated: grant carry-over rerolls, then either finish the run (after the
 // 5th boss) or hand out a bonus pick and continue.
 // (endBoss already cleared modifiers/blocked cells and zeroed the time bank.)
-function survivalPostBossReward() {
+function survivalBossBookkeeping() {
   if (typeof flowEndBoss === 'function') flowEndBoss(); // Flow: refill the session clock on the next deal
   survivalBossesBeaten++;
   survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS; // restart the 5-minute cadence
+}
+function survivalPostBossReward() {
+  survivalBossBookkeeping();
   survivalSpreadFreeze();
   if (!survivalEndless && survivalBossesBeaten >= SURVIVAL_BOSS_COUNT) {
     setTimeout(() => showSurvivalCompleteScreen(), 420);

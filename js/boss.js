@@ -185,6 +185,18 @@ function bossSettleWin() {
   endBoss(true, { presented: true });
   return true;
 }
+
+// FLOW (r409): a boss win that will pay through the reward chain. The dance asks
+// this at the moment it would open the pick on an ordinary goal clear.
+function flowBossWinTakesChain() {
+  return bossWinPending && typeof flowrBossChainEligible === 'function' && flowrBossChainEligible();
+}
+function bossSettleWinFlow() {
+  if (!bossWinPending) return false;
+  bossWinPending = false;
+  endBoss(true, { presented: true, flowChain: true });
+  return true;
+}
 let bossScoreAtStart = 0;
 
 function updateBossObjectiveUI() {
@@ -1085,7 +1097,20 @@ function endBoss(success, opts) {
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
       // (No payout here: Survival has no payout screen at all, by design.)
       survivalBossTimeBank = 0;
-      setTimeout(() => survivalPostBossReward(), 1100);
+      // FLOW (r409): the boss pays out through the reward CHAIN - at least two
+      // rewards, the prize grid first, behind a celebration. Arriving from the
+      // dance (opts.flowChain) the chain starts NOW, so the dance can hold its
+      // tally for the counter exactly as on a goal clear; an aborted dance
+      // arrives without it and gets the chain after the same beat the old path
+      // took. The run-complete 5th boss keeps the old path.
+      if (opts?.flowChain) {
+        survivalBossBookkeeping();
+        if (typeof flowrStartBossChain === 'function') flowrStartBossChain(_beaten);
+      } else if (typeof flowrBossChainEligible === 'function' && flowrBossChainEligible()) {
+        setTimeout(() => { survivalBossBookkeeping(); flowrStartBossChain(_beaten); }, 1100);
+      } else {
+        setTimeout(() => survivalPostBossReward(), 1100);
+      }
     } else if (isActMode()) {
       // Node-based: a boss round ends EXACTLY like any other cleared round - cards
       // fall, the payout counts up, and only then the grid. It used to jump straight

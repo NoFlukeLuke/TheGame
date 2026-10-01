@@ -167,6 +167,27 @@ function sfxVictory() {
   });
 }
 
+// A Flow boss win (r409): a short brass call - three pickups and a held top
+// note - with the pack's own VICTORY landing on the held note, so the fanfare
+// sounds like whichever pack is selected as well as like a fanfare. The call
+// itself is coded (packs leave boss_fanfare to this), which is what makes it the
+// same recognisable figure in every pack.
+function sfxBossFanfare() {
+  const C5 = 523.3, G4 = 392.0, E5 = 659.3, G5 = 784.0;
+  const call = [[G4, 0, 0.11], [G4, 0.12, 0.11], [G4, 0.24, 0.11], [C5, 0.38, 0.22], [E5, 0.62, 0.22], [G5, 0.86, 0.9]];
+  call.forEach(([f, d, dur], i) => {
+    const last = i === call.length - 1;
+    playTone({ freq: f, type: 'sawtooth', gain: last ? 0.09 : 0.075, attack: 0.012, decay: 0.08,
+               sustain: 0.6, release: last ? 1.1 : 0.12, duration: dur, delay: d });
+    playTone({ freq: f, type: 'square', gain: 0.035, attack: 0.02, decay: 0.08,
+               sustain: 0.5, release: last ? 1.0 : 0.1, duration: dur, delay: d + 0.006 });
+    playTone({ freq: f / 2, type: 'triangle', gain: last ? 0.12 : 0.06, attack: 0.01, decay: 0.1,
+               sustain: 0.5, release: last ? 1.3 : 0.12, duration: dur, delay: d });
+  });
+  // the pack's victory on the held note; its own wrapper picks the bus
+  setTimeout(() => { try { sfxVictory(); } catch (e) {} }, 860);
+}
+
 function sfxHeartbeat(gain = 1.0) {
   // Two-thump heartbeat: lub-dub. It used to connect straight to the destination
   // to stay loud while the other effects ducked - which also meant it ignored

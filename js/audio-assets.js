@@ -55,6 +55,7 @@ const SFX_CATALOG = [
   { id: 'countdown',     fn: 'sfxCountdown321',    group: 'Round',   label: 'Countdown 3-2-1' },
   { id: 'success',       fn: 'sfxSuccess',         group: 'Round',   label: 'Success chime' },
   { id: 'victory',       fn: 'sfxVictory',         group: 'Round',   label: 'Victory fanfare' },
+  { id: 'boss_fanfare',  fn: 'sfxBossFanfare',     group: 'Round',   label: 'Boss passed (Flow)' },
   { id: 'level_up',      fn: 'sfxLevelUp',         group: 'Round',   label: 'Level up' },
   // ONE ROW, NOT A PAIR. A variantOf row is matched on args[0] and then looked
   // up in the pack BY ITS OWN ID - so a `reward_count_up` row would have sent
