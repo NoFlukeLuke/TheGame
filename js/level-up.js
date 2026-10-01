@@ -202,7 +202,6 @@ function triggerLevelUp() {
   lastSwapRoundSeconds = null;
   lastHandRoundSeconds = null;
   firstHandThisRound = true;
-  freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
@@ -533,6 +532,9 @@ const DEAL_JITTER_MS  = 70;
 function startNewRoundDealAnims() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
+  // The board pattern (r409) is back before the cards fall onto it, rather than
+  // popping in under them at the render() that ends the deal.
+  if (typeof ensureBoardPattern === 'function') ensureBoardPattern(gridEl);
 
   // Clear any existing real card elements so only temp-anims are visible
   gridEl.querySelectorAll('[data-card-id]:not(.temp-anim)').forEach(el => el.remove());

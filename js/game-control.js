@@ -83,8 +83,8 @@ function resumeGame() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
-    if (!isActMode() && !match3Active() && !dominoActive() && !survivalActive()) {
+    // See startTimers: match-3 owns its round loop, skip legacy progression.
+    if (!isActMode() && !match3Active() && !survivalActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -122,7 +122,7 @@ document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
 // Pause-menu "Home" button - abandon the current run and return to the main menu.
 // A full page reload is the cleanest teardown: the game keeps a lot of live state
-// (round/game/boss timers, decks, overlays, match-3/dominoes state) and there is no
+// (round/game/boss timers, decks, overlays, match-3 state) and there is no
 // single reset function that unwinds all of it, whereas the page boots straight to
 // the home menu on load (index.html #main-menu-overlay starts shown; bootstrap.js
 // calls initMainMenu()). Guarded by a confirm so a stray tap can't lose a run.
@@ -413,14 +413,13 @@ function startGame() {
   // exactly the set that neither uses. Derived from the SAME predicate the timer
   // itself is gated on, so a new mode cannot drift out of sync with it.
   document.getElementById('stage')?.classList.toggle('no-game-clock',
-    match3Active() || dominoActive() || survivalActive());
+    match3Active() || survivalActive());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
   // Sync playing-grid dimensions from limits and size the cards
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
-  if (dominoActive()) { gridRows = DOMINO_ROWS; gridCols = DOMINO_COLS; }
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
@@ -559,7 +558,6 @@ function startGame() {
   runStreak          = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
-  freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
@@ -586,7 +584,6 @@ function startGame() {
   resetPositionMarks();
   _posChooserQueue = []; _posChooserActive = false;
   { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
-  leyLinePos = null;
   minuteHandCharges = 0;
   // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
   // the round's first tick, which would prime a Trick one second into the run.

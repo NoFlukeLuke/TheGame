@@ -18,8 +18,6 @@ function initDevMode() {
   if (hudToggle) hudToggle.checked = showDeckHud;
   const trickToggle = document.getElementById('dev-trick-tray-toggle');
   if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
-  const ndToggle = document.getElementById('dev-new-dance-toggle');
-  if (ndToggle) ndToggle.checked = newDanceEnabled;
   const diSel = document.getElementById('dev-dance-interrupt');
   if (diSel) diSel.value = danceInterruptMode;
   syncMatch3DevToggles();

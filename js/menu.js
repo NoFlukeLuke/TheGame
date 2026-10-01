@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r409 · Dev panel cleanup, probability tables, deck per mode";
+const BUILD = "2026-10-01 · r416 · Dev panel cleanup, probability tables, deck per mode";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -234,23 +234,6 @@ const MODES = {
     match3: true,
     zen: true
   },
-  // Dominoes: two-value tiles that occupy TWO grid cells and fall as one rigid
-  // piece in either orientation (leaving natural gaps). Select 3 adjacent tiles;
-  // every run and set of 3+ across their six half-values scores at once.
-  // See js/data/dominoes.js + js/dominoes-mode.js, and DOMINOES_MODE.md.
-  dominoes: {
-    id: 'dominoes',
-    name: 'Dominoes',
-    desc: 'Two-value tiles fall in either orientation. Select 3 adjacent dominoes; score every run and set of 3+ across their six halves at once.',
-    winCondition: 'endless',
-    enableBosses: false,
-    enableShops: false,
-    enableEvents: false,
-    autoRefillGrid: true,
-    timeIsCurrency: false,
-    autoPlayHands: false,
-    dominoes: true
-  }
 };
 
 let ACTIVE_MODE = MODES.normal;
@@ -332,7 +315,7 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // is still playable from dev panel -> Modes, or as Custom's "Six suits" deck.
 // `guided` and `spectrum` (r380) likewise: dev panel -> Modes, and Spectrum is
 // still Custom's colour deck.
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch', 'survival', 'guided', 'spectrum'];
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'survival', 'guided', 'spectrum'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'Four suits. Four quarters, each five rounds and then a review. Reach each round\'s goal before the clock runs out. Between rounds you pick a path on the reward grid, and some paths lead to the shop or a meeting.' },
@@ -361,8 +344,6 @@ const MODE_META = {
               blurb: 'The auto-playing board with no clock and unlimited swaps and discards. Goals are doubled.' },
   picker:   { accent: '#ff5fa8',         suits: 'BUILD ONE',
               blurb: 'Answer seven questions to build a run: the deck, what happens between rounds, round length, whether actions cost time, bosses, who submits hands, and hand values.' },
-  dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
-              blurb: 'Beta. Two-value tiles fall and leave gaps. Pick 3 touching tiles and every run and set of 3 or more across their halves scores.' },
 };
 
 function openModeSelect() {

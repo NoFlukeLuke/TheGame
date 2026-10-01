@@ -146,26 +146,21 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
     type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],
     apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
-  // The turning pattern behind the whole scene (css/hypno.css). Off removes the
-  // element outright rather than hiding it - a full-viewport conic gradient is
-  // still one to composite even at zero opacity.
-  // OFF BY DEFAULT SINCE r397, and the reason is frame rate rather than taste.
-  // Measured at 1440x820 through the real board, frames in a 2.5s window, three
-  // trials each: pattern off 60/61/60 fps, surround alone 39/38/40, both layers
-  // 25/24/26. It is four conic-gradient layers the size of the screen's own
-  // diagonal, and painting them is most of the cost - swapping the gradients for
-  // a flat colour recovers 46-54, and every other variant tried (smaller, one
-  // wheel, no mask, no will-change, a bitmap, rotating the gradient's own angle
-  // instead of the element) lands between 14 and 30. So it roughly halves the
-  // frame rate everywhere, which reads as the board hitching on every press.
-  { group: 'Display', id: 'hypno', label: 'Background pattern',
-    hint: 'A faint turning pattern behind the cabinet. Costs about half the frame rate, so it is off by default. Motion follows Reduced motion.',
-    type: 'toggle', default: false,
-    apply: v => document.body.classList.toggle('no-hypno', !v) },
-  { group: 'Display', id: 'hypnoBoard', label: 'Board pattern',
-    hint: 'The same pattern, only behind the cards on the board. Much cheaper than the full background.',
-    type: 'toggle', default: false,
-    apply: v => document.body.classList.toggle('hypno-board', !!v) },
+  // THE BOARD PATTERN (r409, css/hypno.css). A faint wheel turning behind the
+  // cards, inside the board and nowhere else. It replaces the r391 whole-screen
+  // pattern (`hypno`) and the r408 opt-in board copy (`hypnoBoard`), and it is a
+  // NEW id on purpose: a stored value beats a default, and saveSettings writes
+  // every setting, so most players carry a stored `hypno` that says nothing about
+  // what they chose. A fresh id means everyone starts from this default.
+  // It is painted once and only TURNED, in small steps, which the compositor does
+  // without repainting, over an area the size of the board (the whole-screen
+  // version was four layers the size of the screen's diagonal). Measured in a
+  // software-rendered browser: 60 fps on and off at phone size and at 1100x620,
+  // 53-59 against 60 at 1440x820. With a graphics card it is nothing.
+  { group: 'Display', id: 'boardPattern', label: 'Board pattern',
+    hint: 'A faint turning pattern behind the cards on the board. Motion follows Reduced motion.',
+    type: 'toggle', default: true,
+    apply: v => document.body.classList.toggle('board-pattern', !!v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },
@@ -209,36 +204,37 @@ function sfxVolume() {
 //
 // It clears a stored 'corporate' ONLY. A player who deliberately picks corporate
 // after this runs keeps it, because the flag is already set by then.
-const LEXICON_MIGRATION_KEY = 'lethe.lexicon.migrated.v2';
+//
+// v3 (r409): v2 cleared the value IN MEMORY and never wrote it back, so it held
+// for exactly one load and the stored 'corporate' returned on the next. It
+// returns true now and loadSettings writes the result back. The key moved on so
+// it runs once more for everyone v2 failed.
+const LEXICON_MIGRATION_KEY = 'lethe.lexicon.migrated.v3';
 function migrateLexiconDefault(saved) {
   try {
-    if (localStorage.getItem(LEXICON_MIGRATION_KEY)) return;
+    if (localStorage.getItem(LEXICON_MIGRATION_KEY)) return false;
     localStorage.setItem(LEXICON_MIGRATION_KEY, '1');
-    if (saved.lexicon !== 'corporate') return;
+    if (saved.lexicon !== 'corporate') return false;
     delete saved.lexicon;                        // fall through to the new default
     localStorage.removeItem('lethe.lexicon');    // and labels.js's early read with it
-  } catch (e) {}
-}
-
-// A STORED VALUE BEATS A DEFAULT, so flipping one moves nobody who has already
-// played (the r183 hbCfg2 -> hbCfg3 rule). The background pattern shipped ON and
-// costs about half the frame rate, so anyone who had it would have kept it for
-// ever without this. It clears a stored `true` ONCE; a player who turns it back
-// on afterwards keeps it, because the flag is already set by then.
-const HYPNO_MIGRATION_KEY = 'lethe.hypno.migrated.v1';
-function migrateHypnoDefault(saved) {
-  try {
-    if (localStorage.getItem(HYPNO_MIGRATION_KEY)) return;
-    localStorage.setItem(HYPNO_MIGRATION_KEY, '1');
-    if (saved.hypno === true) delete saved.hypno;   // fall through to the new default
-  } catch (e) {}
+    return true;
+  } catch (e) { return false; }
 }
 
 function loadSettings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) { saved = {}; }
-  migrateLexiconDefault(saved);
-  migrateHypnoDefault(saved);
+  // A MIGRATION THAT IS NOT WRITTEN BACK IS UNDONE BY THE NEXT LOAD (r409). A
+  // migration edits `saved`, the copy in memory, and sets its flag so it never
+  // runs again - so unless the edited copy goes back to storage, the next load
+  // reads the old value with the flag already set, and the old value wins for
+  // good. That is what kept the whole-screen pattern on (r397's migration) and
+  // what undid r293's switch to gamer wording. It writes back `saved`, not
+  // SETTINGS, so it stores exactly what the player had minus what was migrated,
+  // and freezes no defaults in the process.
+  if (migrateLexiconDefault(saved)) {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved)); } catch (e) {}
+  }
   SETTINGS = {};
   SETTINGS_DEF.forEach(d => {
     if (d.type === 'action') return;

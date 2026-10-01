@@ -82,13 +82,6 @@ function makeTempCard(rank, suit, states) {
 // it today. It is written now because the rest of the file is built around temp
 // cards being convertible: the flag is a single field, the deck accounting is a
 // single counter, and both are here rather than scattered through the callers.
-function makeCardPermanent(card) {
-  if (!isTempCard(card)) return false;
-  delete card._temp;
-  if (typeof expectedDeckTotal !== 'undefined') expectedDeckTotal++;
-  if (typeof updateDeckHud === 'function') updateDeckHud();
-  return true;
-}
 
 // ══════════════════════════════════════════════
 // THE REGISTRY

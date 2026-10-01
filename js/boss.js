@@ -533,7 +533,6 @@ function bossPresetIsLive(preset) {
   // suspend; with one Trick owned it is the same Trick down for the whole boss,
   // which is a harsher and less interesting boss than the one described, so it
   // wants two as well.
-  if (mods.includes('trick_rotate') && owned < 2) return false;
   // The Tax Man bills credits per card and ends the round when you cannot pay.
   // Arriving broke would make it a boss you lose on the first hand regardless of
   // how well you play it, which is the one thing a boss may never be - so it

@@ -1,11 +1,9 @@
 function render() {
   // Marked-row / marked-column lines (js/entity-fx.js) are torn down HERE, above
-  // the two early returns - otherwise a reward grid or a dominoes board inherits
+  // the two early returns - otherwise a reward grid inherits
   // the lines from the last hand and wears them until the play board comes back.
   // They are DRAWN at the bottom of this function, once the cards are in the DOM.
   if (typeof clearLineMarkers === 'function') clearLineMarkers();
-  // Dominoes mode owns its own board renderer.
-  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoRenderBoard(); return; }
   // Selection readout first - it is the one thing that must stay true on BOTH sides of
   // the reward-grid early return below.
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
@@ -32,6 +30,7 @@ function render() {
   // Dead Drop cells outlive the boss round, so they get their own pass.
   if (typeof renderDeadCellOverlays === 'function') renderDeadCellOverlays();
   const gridEl = document.getElementById('grid');
+  ensureBoardPattern(gridEl);
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;
 
@@ -384,3 +383,22 @@ function render() {
   if (typeof bossGradientPaint === 'function') bossGradientPaint();
 }
 
+// THE BOARD PATTERN'S ELEMENT (r409, css/hypno.css). It lives INSIDE #grid, as
+// its first child, so it paints above the board's own background and below the
+// line markers and the cards in every case - including while #grid is its own
+// stacking context. Every screen that borrows #grid empties it with innerHTML,
+// so this puts it back whenever render() draws the play board again, which is
+// the one place that is known to happen. FIRST matters: it is z-index 0 among
+// #grid's positioned children, and those tie on tree order. Nothing else
+// prepends to #grid, so once it is first it stays first, and moving it would
+// restart its turn. Whether it SHOWS is CSS (body.board-pattern, the setting).
+function ensureBoardPattern(gridEl) {
+  if (!gridEl || gridEl.firstElementChild?.id === 'board-hypno') return;
+  let el = document.getElementById('board-hypno');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'board-hypno';
+    el.setAttribute('aria-hidden', 'true');
+  }
+  gridEl.prepend(el);
+}

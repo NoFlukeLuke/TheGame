@@ -220,6 +220,11 @@
   max-width: 100%; min-width: 0; color: var(--cream, #f0e6c8);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* With a SKIP strip under it the tile is shorter than icon + word + name, so the
+   name was clipped off the bottom. Drop the tick (the word says it) and pack. */
+#grid .gp-act.gp-confirm.gp-confirm-sk { gap: 0; padding: 2px 7px; }
+#grid .gp-act.gp-confirm.gp-confirm-sk .gp-act-icon { display: none; }
+#grid .gp-act.gp-confirm.gp-confirm-sk .gp-act-sub { font-size: 7px; line-height: 1.2; }
 /* Nothing picked yet: it says so and refuses the tap (.gp-act-off). */
 #grid .gp-act.gp-confirm.gp-act-off .gp-act-sub {
   color: var(--cream-dim, #9a8d70); font-size: 5.5px; letter-spacing: 0.5px;
