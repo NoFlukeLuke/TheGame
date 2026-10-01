@@ -329,7 +329,7 @@ function startGame() {
     // defaults to every value and every colour. See js/spectrum.js.
     spectrumInstallLists();
   } else {
-    ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+    ACTIVE_SUITS = (runSuitCount() === 6) ? SUITS_SIX : SUITS;
     ACTIVE_RANKS = (ACTIVE_MODE.climb && typeof RANKS_CLIMB !== 'undefined') ? RANKS_CLIMB : RANKS;
     // Six Suits deals a DESIGNED deck (js/deck-design.js): the cut rank comes out
     // of ACTIVE_RANKS here, and expectedDeckTotal becomes ranks x copies rather
@@ -494,7 +494,7 @@ function startGame() {
   const startKeys = [...(isActMode() || match3Active() || survivalActive() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
   // Six Suits (6) and Spectrum (7 colours) both dilute the deck enough that the
   // short flushes are playable from the start alongside the 5-card Flush.
-  if (ACTIVE_MODE.suitCount >= 6) startKeys.push('flush3', 'flush4');
+  if (runSuitCount() >= 6) startKeys.push('flush3', 'flush4');
   if (typeof resetNaturalScaling === 'function') resetNaturalScaling();
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);

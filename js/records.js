@@ -463,7 +463,8 @@ function recordsRenderHands() {
   Object.entries(HAND_KEY_TO_NAME).forEach(([k, n]) => { nameToKey[n] = k; });
   const playable = name => { const k = nameToKey[name]; return !k || activeHands.has(k); };
 
-  const rows = Object.keys(HAND_BASE).map(name => {
+  const listed = Object.keys(HAND_BASE).filter(handTypeListed);
+  const rows = listed.map(name => {
     if (!playable(name)) {
       return `<div class="rec-hand off">
         <span class="rh-n">${name}</span>
@@ -493,15 +494,17 @@ function recordsRenderHands() {
     </div>`;
   }).join('');
 
-  const all  = Object.keys(HAND_BASE);
+  const all  = listed;
   const live = all.filter(playable).length;
+  const sel  = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5;
+  const more = sel < 7 ? `<div class="rec-foot">${sel < 6 ? '6- and 7-card hands' : '7-card hands'} are listed once Hand Size reaches ${sel < 6 ? 6 : 7}.</div>` : '';
   return `<div class="rec-h">Hand values
       <span class="rec-h-note">${live} of ${all.length} score in this mode</span></div>
     <div class="rec-hand rec-hand-head">
       <span class="rh-n">Hand</span><span class="rh-v">Pips</span><span class="rh-v">Mult</span>
       <span class="rh-v">Focus</span><span class="rh-v">Score</span>
     </div>
-    <div class="rec-hands">${rows}</div>
+    <div class="rec-hands">${rows}</div>${more}
     <div class="rec-foot">${_recHandsFootFull()}</div>`;
 }
 

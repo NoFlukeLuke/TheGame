@@ -1416,7 +1416,7 @@ function flowrDrawOps(n, list) {
   return out;
 }
 const FLOWR_DUAL_MAX = 4;
-const FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
+let FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
 function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MAX; }
 
 let _flowrDeckOp = null, _flowrDeckSel = [], _flowrDeckBusy = false;

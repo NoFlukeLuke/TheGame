@@ -75,9 +75,13 @@ visible to all the others. **Load order matters**: several files run set-up code
 - **Verify in a real browser** (Playwright + the preinstalled Chromium) at 1440x820 and 420x900
   through the real tap path. A syntax check and a read of the code pass plenty of bugs that a
   screenshot or a measurement catches. State what was measured.
-- **Dev panel** (🛠, bottom-right; also the main menu's Settings) is the debug surface. Groups
-  are `DEV_GROUPS`; boss/event/mode lists are generated from the data tables. Owner's standing
-  instruction: a tunable for visual work goes in **Aesthetics**.
+- **Dev panel** (🛠, bottom-right; also the main menu's Settings) is the debug surface. Tabs
+  are `DEV_GROUPS` (r416): Bonuses, Events & Bosses, Change the game now, Hand Scoring, Focus,
+  Probabilities, Wild Cards, HUD & Display, one tab per playable mode (its goal curve, deck
+  switch and settings), Hidden Modes, Tools. A section's `data-group` is space-separated and
+  may sit on several tabs. Boss/event/mode lists are generated from the data tables. Owner's
+  standing instruction: a tunable for visual work goes in **Aesthetics** (HUD & Display tab);
+  a mode's tunable goes on that mode's tab.
 
 ## Core architecture
 
@@ -194,6 +198,8 @@ Four tiers: `common` `rare` `epic` `legendary` (ids frozen; `mythic` aliases to 
 **Every entity draw goes through `pickEntityByRarity`** (`js/luck.js`), which reads
 `ENTITY_TIER_W` and Luck. A flat `pool[random]` opts out of both. Every offer path also calls
 `survivalEntityBanned` (mode bans) and `offerBanned`. Colour means rarity; shape means type.
+**Every weighted roll is listed in `PROB_TABLES` (`js/prob-tables.js`)** with a description and
+a tuning note, edited in place from dev -> Probabilities; a new weighted roll goes there too.
 `entityTileInner` / `entityTileHTML` (`js/entity-tile.js`) is the ONE way an entity is drawn.
 `fitEntityName` shrinks names; words never break mid-word. `emGlyph` sizes emoji ink.
 
@@ -241,12 +247,19 @@ stacks fire on the next firing and are then cleared; `_rank` is permanent. Force
 
 ## Modes
 
-Carousel: Flow, Schedule, Classic, Custom, Poker Squares, Climb. Hidden (dev panel -> Modes):
-Guided, Spectrum, Six Suits, Orientation, Crunch, Match-3, Zen, plus two legacy timer modes
-(`tetris`, `autoplay`) that keep the 20-minute game-clock path alive. Dominoes (r411) and the
-Survival mode entry (r416) were removed; **Flow runs on the Survival engine** (`js/survival.js`,
+Carousel: Flow, Schedule, Classic, Custom, Poker Squares, Climb. Hidden (dev panel -> Hidden
+Modes): Guided, Spectrum, Crunch, Match-3, Zen, plus two legacy timer modes (`tetris`,
+`autoplay`) that keep the 20-minute game-clock path alive. Dominoes (r411), Six Suits and
+Orientation (the other r416) and the Survival mode entry (r417) were removed; **Flow runs on the Survival engine** (`js/survival.js`,
 `survivalActive()` is true for Flow), so that file and its flag stay. Every mode's first run is a seeded walkthrough (`tutorialArmForRun`, filtered
 by mode FLAGS); later runs are ordinary.
+
+**Decks (r416).** Six Suits and Orientation are no longer modes. Any mode on the ordinary deck
+has a per-mode switch, normal or six-suit (`modeDeckChoice`, js/deck-design.js);
+**`runSuitCount()` is what reads the suit count, never `ACTIVE_MODE.suitCount`**. The six-suit
+deck is fixed at 60 cards. Wilds are per suit (`wildsPerSuit`, 1 = 4 or 6) and may optionally
+complete runs (`wildsInRuns`, in `deckLadderKey`). RECORDS lists hands of 2-5 cards, and 6- or
+7-card hands once Hand Size reaches them (`handTypeListed`).
 
 ## Cleanup backlog
 

@@ -82,7 +82,6 @@ const TUTORIAL_SEEDS = {
   map:      'LETHE-SCHEDULE',
   guided:   'LETHE-GUIDED',
   normal:   'LETHE-INDUCTION',
-  sixsuits: 'LETHE-SIXSUITS',
   spectrum: 'LETHE-SPECTRUM',
   flow:     'LETHE-FLOW',
   crunch:   'LETHE-CRUNCH',

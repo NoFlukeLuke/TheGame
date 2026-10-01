@@ -269,7 +269,7 @@ function modeEntityTags() {
   const m = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE : null;
   const tags = new Set([m ? m.id : 'normal']);
   if (m && m.numeric) tags.add('spectrum');
-  if (m && m.suitCount === 6) tags.add('sixsuits');
+  if (m && (typeof runSuitCount === 'function' ? runSuitCount() : m.suitCount) === 6) tags.add('sixsuits');
   return tags;
 }
 

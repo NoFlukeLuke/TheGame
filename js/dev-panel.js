@@ -101,7 +101,6 @@ function openDevPanel() {
   devSyncHbSliders();
   devSyncBlipSliders();
   devSyncNs();
-  devSyncTagalong();
   devSyncCcSliders();
   devSyncDisco();
   devSyncFullscreen();
@@ -208,42 +207,28 @@ function devSyncAesthetics() {
 if (document.body) applyClockBar(); else document.addEventListener('DOMContentLoaded', applyClockBar);
 
 const DEV_GROUPS = [
-  { g:'tricks',   icon:'✦', label:'Tricks',    sub:() => `${TRICK_POOL.length} in pool` },
-  { g:'sleights', icon:'▶', label:'Sleights',  sub:() => `${SLEIGHT_POOL.length} in pool` },
-  { g:'knacks',   icon:'♦', label:'Knacks',    sub:() => `${KNACK_POOL.length} in pool` },
-  { g:'limits',   icon:'▲', label:'Limits',    sub:() => `${LIMITS_DEF.length} upgradeable` },
-  { g:'events',   icon:'✧', label:'Events',    sub:() => `${Object.keys(EVENT_META).length} + shop / limit break` },
-  { g:'boss',     icon:'☠', label:'Bosses',    sub:() => `${BOSS_PRESETS.length} presets` },
-  { g:'modes',    icon:'▶', label:'Modes',     sub:() => `${Object.keys(MODES).length} playable · ${MODE_HIDDEN_LIST.length} hidden` },
-  { g:'anim',     icon:'✺', label:'Animation', sub:() => 'fall · score · item float' },
-  { g:'focus',    icon:'◎', label:'Focus',     sub:() => 'meter · decay · speed bonus' },
-  { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
-  { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
-  { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
-  { g:'tagalong', icon:'🧳', label:'Tagalong',  sub:() => devTagalongSub() },
-  { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
-  { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
-  { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
-  { g:'aesthetics', icon:'✧', label:'Aesthetics', sub:() => `deal ${typeof dealStyle === 'string' ? dealStyle : 'together'} · clock ${clockBarCfg.len}x${clockBarCfg.thick} · tray +${trayDepthExtra}` },
-  { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
-  { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
-  { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
-  { g:'rewards',  icon:'🎁', label:'Rewards',   sub:() => `Flow/Survival board: ${svBoardMode === 'keep' ? 'stays' : svBoardMode === 'keep_nosleights' ? 'stays, no Sleights' : 'redeals'}` },
-  { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
-  { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
-  { g:'squares',  icon:'▦', label:'Squares',   sub:() => typeof sqCfg === 'function'
-      ? `${sqCfg('rankVary') ? 'varied' : sqCfg('rankSpread') + ' ranks'} · wild ${sqCfg('wildChance')}% · ${sqCfg('qualifyLines')}/${sqCfg('qualifyDeep')}/${sqCfg('qualifyCover')}%` : 'poker squares' },
-  { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
-      return m === 'weighted' ? `weighted · ${deckWeightedSize()} cards · ${deckWeightedSuits().length} suits`
-           : m === 'six'      ? `six suits · ${deckDesignSize()} cards`
-           : m === 'spectrum' ? 'Spectrum owns its deck'
-           : 'four suits · 52 cards'; } },
-  { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
-  { g:'cardstates', icon:'\u29c9', label:'Card States', sub:() => devCardStateSub() },
-  { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
-  { g:'tips',     icon:'\u2139', label:'Tips',      sub:() => `${INSIGHTS.length} tips \u00b7 ${insightsSeenCount()} seen` },
-  { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
+  { g:'bonuses',  icon:'✦', label:'Bonuses',      sub:() => `${TRICK_POOL.length} Tricks · ${SLEIGHT_POOL.length} Sleights · ${KNACK_POOL.length} Knacks · limits · tiers` },
+  { g:'events',   icon:'☠', label:'Events & Bosses', sub:() => `${Object.keys(EVENT_META).length} events · ${BOSS_PRESETS.length} bosses` },
+  { g:'game',     icon:'⏱', label:'Change the game now', sub:() => 'time · coins · score · focus · level · screens' },
+  { g:'hands',    icon:'#', label:'Hand Scoring',  sub:() => `base values · scaling ${nsEnabled ? 'on' : 'off'}` },
+  { g:'focus',    icon:'◎', label:'Focus',         sub:() => 'building · decay · multiplier' },
+  { g:'prob',     icon:'%', label:'Probabilities', sub:() => `${PROB_TABLES.length} tables` + (probTablesTuned() ? ` · ${probTablesTuned()} tuned` : '') },
+  { g:'deck',     icon:'✶', label:'Wild Cards', sub:() => `${wildsPerSuit} per suit · ${wildsInRuns ? 'sets + runs' : 'sets only'}` },
+  { g:'hud',      icon:'▤', label:'HUD & Display', sub:() => 'aesthetics · animation · HUD · fullscreen' },
+  { g:'flow',     icon:'▶', label:'Flow',          sub:() => devModeSub('flow') },
+  { g:'map',      icon:'▶', label:'Schedule',      sub:() => devModeSub('map') },
+  { g:'normal',   icon:'▶', label:'Classic',       sub:() => devModeSub('normal') },
+  { g:'picker',   icon:'▶', label:'Custom',        sub:() => 'builds its own mode' },
+  { g:'climb',    icon:'▶', label:'Climb',         sub:() => 'Classic goal curve' },
+  { g:'squares',  icon:'▶', label:'Poker Squares', sub:() => typeof sqCfg === 'function'
+      ? `${sqCfg('rankVary') ? 'varied' : sqCfg('rankSpread') + ' ranks'} · wild ${sqCfg('wildChance')}%` : 'poker squares' },
+  { g:'hidden',   icon:'⋯', label:'Hidden Modes',  sub:() => `${MODE_HIDDEN_LIST.length} modes · Spectrum · Match-3` },
+  { g:'tools',    icon:'✎', label:'Tools',         sub:() => 'save · run seed · tips · builds archive · event log' },
 ];
+function devModeSub(id) {
+  const d = (typeof modeDeckChoice === 'function') ? modeDeckChoice(id) : 'normal';
+  return (d === 'six' ? 'six-suit deck' : 'normal deck') + (typeof goalTuneTouched === 'function' && goalTuneTouched() ? ' · goals tuned' : '');
+}
 function devRenderGroupMenu() {
   const el = document.getElementById('dev-group-menu'); if (!el) return;
   el.innerHTML = DEV_GROUPS.map(d => {
@@ -260,22 +245,28 @@ function devOpenGroup(g) {
   document.getElementById('dev-group-menu').style.display = 'none';
   document.getElementById('dev-group-pop').style.display = 'flex';
   document.getElementById('dev-group-pop-title').textContent = def ? def.label : g;
+  // A section may belong to several tabs (space-separated data-group), e.g. the
+  // all-modes goal multiplier sits on every mode tab.
   document.querySelectorAll('#dev-group-pop-body .dev-section').forEach(sec => {
-    sec.style.display = sec.dataset.group === g ? '' : 'none';
+    sec.style.display = (sec.dataset.group || '').split(' ').includes(g) ? '' : 'none';
   });
   document.getElementById('dev-group-pop-body').scrollTop = 0;
-  if (g === 'seed') devRefreshSeed();
-  if (g === 'spectrum') renderSpectrumDev();
-  if (g === 'squares') devRenderSquares();
-  if (g === 'deck') devRenderDeckDesign();
-  if (g === 'goals') devRenderGoalPanel();
-  if (g === 'improve') devRenderImprove();
-  if (g === 'cardstates') devRenderCardStates();
-  if (g === 'aesthetics') devSyncAesthetics();
-  if (g === 'rewards') {
+  if (g === 'bonuses') { devRenderImprove(); devRenderCardStates(); devRenderLimits(); }
+  if (g === 'hands')   { devSyncNs(); devRenderFocusPanel(); }
+  if (g === 'focus')   devRenderFocusPanel();
+  if (g === 'prob')    { devRenderProbTables(); if (typeof flowrDevSync === 'function') flowrDevSync(); }
+  if (g === 'deck')    devRenderDeckDesign();
+  if (g === 'hud')     devSyncAesthetics();
+  if (g === 'tools')   { devRenderTips(); devRefreshSeed(); devSyncSaveSection(); }
+  if (g === 'hidden')  { devRenderModes(); renderSpectrumDev(); devRenderGoalPanel(); syncMatch3DevToggles();
+                         const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }
+  if (['flow', 'map', 'normal', 'picker', 'climb', 'squares'].includes(g)) devRenderModeHead(g);
+  if (['flow', 'map', 'normal', 'climb'].includes(g)) devRenderGoalPanel();
+  if (g === 'flow') {
     const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode;
     if (typeof flowrDevSync === 'function') flowrDevSync();
   }
+  if (g === 'squares') devRenderSquares();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -310,6 +301,36 @@ function devRenderTips() {
     }).join('');
 }
 
+// The deck switch for one mode: normal four-suit deck or the six-suit deck.
+function _devDeckChips(id) {
+  if (typeof modeDeckSwitchable !== 'function' || !modeDeckSwitchable(id)) return '';
+  const cur = modeDeckChoice(id);
+  return `<div class="dev-spec-row">` + [['normal', 'Normal deck · 52 + wilds'], ['six', 'Six-suit deck · 60 + wilds']].map(([v, l]) =>
+    `<button class="dev-spec-chip${cur === v ? ' on' : ''}" onclick="devSetModeDeck('${id}','${v}')">${l}</button>`).join('') + `</div>`;
+}
+function devSetModeDeck(id, v) {
+  setModeDeckChoice(id, v);
+  if (devRenderModeHead._g) devRenderModeHead(devRenderModeHead._g);
+  devRenderModes(); devRenderGroupMenu();
+}
+const DEV_MODE_NOTES = {
+  flow:    'Goal curve: the Survival / Flow curve below. Reward chain, its odds, and what happens to the board are below too.',
+  map:     'Goal curve: the Schedule growth below. Free branch is a Schedule rule.',
+  normal:  'Goal curve: the Classic curve below.',
+  picker:  'Custom builds its mode from seven questions (deck, rounds, clock, costs, bosses, submitting, hand values) on its own screen, so it has no settings here.',
+  climb:   'Plays on its own 1-13 deck with no wilds. Goal curve: the Classic curve below.',
+  squares: 'Its own deck, hand values and scoring. The daily-grid tuning is below.',
+};
+function devRenderModeHead(id) {
+  devRenderModeHead._g = id;
+  const host = document.getElementById('dev-modehead'); if (!host) return;
+  const name = (typeof modeDisplayName === 'function') ? modeDisplayName(id) : id;
+  const t = document.getElementById('dev-modehead-title'); if (t) t.textContent = name;
+  const deck = _devDeckChips(id);
+  host.innerHTML = `<div class="dev-note">${DEV_MODE_NOTES[id] || ''}</div>`
+    + (deck ? `<div class="dev-note"><b>Deck</b> - applies from the next run of this mode. Wild count is on the Wild Cards tab.</div>${deck}` : '')
+    + `<div class="dev-row"><button class="dev-btn" onclick="devStartMode('${id}')">Start ${name}</button></div>`;
+}
 function devRenderModes() {
   const el = document.getElementById('dev-mode-btns'); if (!el) return;
   // The unlock state is PERSISTED across runs, so without a reset here a mode's
@@ -317,26 +338,25 @@ function devRenderModes() {
   const done = (typeof modesFinished !== 'undefined') ? modesFinished.size : 0;
   const seen = (typeof modesStarted  !== 'undefined') ? modesStarted.size  : 0;
   el.innerHTML =
-    `<div class="dev-note">Unlocks: ${done} finished \u00b7 ${seen} played</div>` +
+    `<div class="dev-note">Unlocks: ${done} finished · ${seen} played</div>` +
     `<button class="dev-btn" onclick="devUnlockAllModes()">Unlock every mode</button>` +
     `<button class="dev-btn" onclick="devResetModeProgress(); devRenderModes();">Reset unlocks + first runs</button>` +
-    Object.keys(MODES).map(id => {
-      const hidden = MODE_HIDDEN_LIST.includes(id);
-      return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
-           + `${MODES[id].name || id}${hidden ? ' \u00b7' : ''}</button>`;
-    }).join('');
+    MODE_HIDDEN_LIST.filter(id => MODES[id]).map(id =>
+      `<div class="dev-hidden-mode"><button class="dev-btn" onclick="devStartMode('${id}')">Start ${MODES[id].name || id}</button>${_devDeckChips(id)}</div>`
+    ).join('');
 }
 
 // Launch a mode from the panel. chooseMode() is the menu's own entry point, so
 // this only has to clear the surfaces the panel may be sitting on top of first -
 // the panel itself, the main menu, and the carousel if it is open behind it.
 function devStartMode(id) {
-  if (!MODES[id]) return;
+  if (!MODES[id] && id !== 'picker') return;
   devPanelFromMenu = false;          // never bounce back to the menu - a run is starting
   devPanelOpen = false;
   document.getElementById('dev-panel').style.display = 'none';
   document.getElementById('main-menu-overlay')?.classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
+  if (id === 'picker') { openPickerMode(); return; }   // Custom opens its question screen
   chooseMode(id);
 }
 
@@ -428,6 +448,9 @@ function devRenderNsRows() {
     host.innerHTML =
       `<div class="dev-ns-row dev-ns-head">
          <span class="dev-ns-name">HAND</span>
+         <span title="the hand's own base pips (editable)">BASE P</span>
+         <span title="the hand's own base mult (editable)">BASE M</span>
+         <span title="what the hand scores right now: (base + earned pips) x (base + earned mult)">NOW</span>
          <span title="pips this hand earns per grant">PIPS</span>
          <span title="mult this hand earns per grant">MULT</span>
          <span title="a grant fires on every Nth play of this hand">EVERY</span>
@@ -438,6 +461,9 @@ function devRenderNsRows() {
        </div>` +
       rows.map(r => `<div class="dev-ns-row" data-nsrow="${r.name}">
       <span class="dev-ns-name">${r.name}</span>
+      <input type="number" step="1"    min="0" data-ns="${r.name}" data-f="bpips"  onchange="devSetHandBase(this)">
+      <input type="number" step="1"    min="1" data-ns="${r.name}" data-f="bmult"  onchange="devSetHandBase(this)">
+      <span class="dev-ns-now"></span>
       <input type="number" step="1"    min="0" data-ns="${r.name}" data-f="rpips"  oninput="devSetNsRate(this)">
       <input type="number" step="0.05" min="0" data-ns="${r.name}" data-f="rmult"  oninput="devSetNsRate(this)">
       <input type="number" step="1"    min="1" data-ns="${r.name}" data-f="revery" oninput="devSetNsRate(this)">
@@ -450,7 +476,8 @@ function devRenderNsRows() {
   // Values are written separately from the markup so a live field is only
   // updated when it is not the one being typed in.
   const V = { rpips: r => r.rate.pips, rmult: r => r.rate.mult, revery: r => r.rate.every,
-              pips: r => r.pips, mult: r => r.mult };
+              pips: r => r.pips, mult: r => r.mult,
+              bpips: r => HAND_BASE[r.name].pips, bmult: r => HAND_BASE[r.name].mult };
   rows.forEach(r => {
     host.querySelectorAll(`[data-ns="${CSS.escape(r.name)}"]`).forEach(inp => {
       if (inp === document.activeElement) return;
@@ -461,7 +488,13 @@ function devRenderNsRows() {
     if (!row) return;
     // A row the owner has moved off the shipped table is marked, so "what have I
     // actually changed" is answerable without diffing against the source.
-    row.classList.toggle('dev-ns-tuned', !!r.tuned);
+    row.classList.toggle('dev-ns-tuned', !!r.tuned || !!(handBaseOverrides && handBaseOverrides[r.name]));
+    const now = row.querySelector('.dev-ns-now');
+    if (now) {
+      const p = handBasePips(r.name), m = handBaseMult(r.name);
+      now.textContent = `${p}x${+m.toFixed(2)}=${Math.round(p * m)}`;
+      now.title = `${p} pips x ${m} mult = ${Math.round(p * m)} before card pips, Tricks and Focus`;
+    }
     const pl = row.querySelector('.dev-ns-plays');
     if (pl) {
       pl.textContent = (r.plays || '0') + ' · ' + r.growth.toFixed(1) + '%';
@@ -477,6 +510,13 @@ function devSetNsBonus(inp) {
   if (st) st.textContent = naturalScaleSummary();
   _devSafeRender();   // the live PIPS/MULT chips quote it, so repaint
 }
+// The hand's own base value (r409). Stored as an override of the shipped table;
+// the live table moves too unless this run plays Spectrum or Poker Squares.
+function devSetHandBase(inp) {
+  setHandBaseValue(inp.dataset.ns, inp.dataset.f === 'bpips' ? 'pips' : 'mult', inp.value);
+  devRenderNsRows(); _devSafeRender();
+}
+function devResetHandBase() { resetHandBaseValues(); devRenderNsRows(); _devSafeRender(); }
 // The rate - how fast it grows from here. `devSyncNs` is NOT called: it would
 // rewrite every field in the table, and the growth readout is refreshed here
 // instead so the field being typed in is left alone.
@@ -504,36 +544,6 @@ function devSetFlushOverlayMin(v) {
   const lab = document.getElementById('dev-flushmin-val'); if (lab) lab.textContent = flushOverlayMin;
   _devSafeRender();
 }
-// ── Kickers / Tagalong (r385) - state lives in js/limits.js ──
-// Changing a knob changes what a hand is, so every setter clears the components
-// cache (keyed on the kicker allowance for exactly this reason) and repaints.
-function devTagalongSub() {
-  const cap = tagalongMaxCards > 0 ? `max ${tagalongMaxCards}` : 'unlimited';
-  return `1 kicker · Tagalong ${cap} · ${tagalongTimeRate}s per pip`;
-}
-function devSetTagalongMax(v) {
-  tagalongMaxCards = Math.max(0, Math.min(9, parseInt(v, 10) || 0)); saveTagalongCfg();
-  if (typeof clearHandCompCache === 'function') clearHandCompCache();
-  devSyncTagalong(); _devSafeRender();
-}
-function devSetTagalongRate(v) {
-  tagalongTimeRate = Math.max(0, Math.min(4, parseFloat(v) || 0)); saveTagalongCfg();
-  devSyncTagalong(); _devSafeRender();
-}
-function devSyncTagalong() {
-  const b = document.getElementById('dev-tag-max');  if (b) b.value = tagalongMaxCards;
-  const bl = document.getElementById('dev-tag-max-val'); if (bl) bl.textContent = tagalongMaxCards > 0 ? tagalongMaxCards : 'unlimited';
-  const c = document.getElementById('dev-tag-rate'); if (c) c.value = tagalongTimeRate;
-  const cl = document.getElementById('dev-tag-rate-val'); if (cl) cl.textContent = tagalongTimeRate.toFixed(2).replace(/\.?0+$/, '');
-  const st = document.getElementById('dev-tag-state');
-  const own = (typeof tagalongOwned === 'function' && tagalongOwned());
-  const kick = (typeof kickersScore === 'function' && kickersScore());
-  if (st) st.textContent = (own
-    ? `Tagalong owned: ${tagalongMaxCards > 0 ? 'up to ' + tagalongMaxCards : 'any number of'} kickers, free.`
-    : 'Tagalong not owned: 1 kicker per hand, billed its pips and seconds.')
-    + (kick ? ' Chip In owned: kickers score.' : '');
-}
-
 function devSyncNs() {
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
   const st = document.getElementById('dev-ns-state');
@@ -974,10 +984,12 @@ const GOAL_TUNABLES = {
       min: 1, max: 5, step: 0.05, dp: 2, unit: 'x',
       get: () => goalTune('endlessAccel'), set: v => setGoalTune('endlessAccel', v) },
   ],
-  other: [
-    { key: 'mapGrowth', label: 'Schedule: harder each level by',
+  map: [
+    { key: 'mapGrowth', label: 'Harder each level by',
       min: 0, max: 200, step: 1, dp: 1, unit: '%',
       get: () => goalTune('mapGrowth'), set: v => setGoalTune('mapGrowth', v) },
+  ],
+  zen: [
     { key: 'zenMult', label: 'Zen (no clock) multiplies the classic goal by',
       min: 0.5, max: 10, step: 0.25, dp: 2, unit: 'x',
       get: () => goalTune('zenMult'), set: v => setGoalTune('zenMult', v) },
@@ -1031,7 +1043,7 @@ function _devGoalCurveLine(fn, rounds) {
 
 function devRenderGoalPanel(liveLine) {
   const fill = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
-  ['global', 'classic', 'survival', 'other'].forEach(g =>
+  ['global', 'classic', 'survival', 'map', 'zen'].forEach(g =>
     fill('dev-goal-' + g + '-rows', GOAL_TUNABLES[g].map(t => _devStepper(t, 'devTuneGoal')).join('')));
 
   fill('dev-goal-classic-preview', _devGoalCurveLine(classicGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18]));
@@ -1039,6 +1051,7 @@ function devRenderGoalPanel(liveLine) {
   // survivalGoalForLevel reads the run's endless state, so the preview is the
   // ordinary (pre-endless) curve unless the live run has already switched.
   fill('dev-goal-survival-preview', _devGoalCurveLine(survivalGoalForLevel, [1, 2, 3, 5, 8, 11, 14, 17]));
+  if (typeof mapGoalForLevel === 'function') fill('dev-goal-map-preview', _devGoalCurveLine(mapGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18]));
 
   const live = (typeof roundGoal === 'number' && typeof level === 'number' && typeof gridData !== 'undefined'
                 && Array.isArray(gridData) && gridData.length)

@@ -429,7 +429,10 @@ function _handShape(cells) {
     }
     return false;
   }
-  return { n: vn, cells: n, counts, allSameSuitStrict, isStr: tryRunCombos(0, [], []), wilds };
+  // r409: with wilds allowed in runs, a run still needs one REAL card to name
+  // where it sits - three blank cards are not a run, as they are not a set.
+  const _runOK = !(wilds && wilds >= cards.length);
+  return { n: vn, cells: n, counts, allSameSuitStrict, isStr: _runOK && tryRunCombos(0, [], []), wilds };
 }
 
 // What a hand is worth under the ACTIVE scoring model, not the printed table:

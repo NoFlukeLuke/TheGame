@@ -719,7 +719,6 @@ function freshShuffledDeck() {
     for (let i = 0; i < n; i++) out.push(stampId({ rank: WILD_RANK, suit: WILD_SUIT }));
     return out;
   };
-  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck().concat(_wilds()));
   if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck().concat(_wilds()));
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
