@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r428 · Match-3 and Zen kept as the auto-play test bed";
+const BUILD = "2026-10-01 · r429 · Every tray Trick tilts, the newest too";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

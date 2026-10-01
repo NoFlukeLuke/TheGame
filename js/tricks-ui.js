@@ -494,7 +494,7 @@ function fanTrickTray(list, track) {
   // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var
   // that the tile's own `width` reads would be a feedback loop; this cannot be.
-  chips.forEach(c => c.style.removeProperty('--tilt'));
+  chips.forEach(c => { c.style.removeProperty('--tilt'); c.style.marginRight = ''; });
   if (n * tile + (n - 1) * GAP <= room) {
     track.style.setProperty('--fan-gap', GAP + 'px');   // fits: an ordinary row
     return true;
@@ -502,19 +502,36 @@ function fanTrickTray(list, track) {
   // Doesn't fit (r399): TILT first. Every tile but the newest turns its right
   // edge back (rotateY about its left edge, css `rotate: y`), which shortens its
   // on-screen width to about tile*cos(a) while its LAYOUT box stays full width -
-  // so the step is computed from the projected width, not the box. The newest
-  // stays flat and whole. Only past FAN_MAX_TILT does the row start to overlap,
+  // so the step is computed from the projected width, not the box. Only past FAN_MAX_TILT does the row start to overlap,
   // and then by less than the old flat tuck, floored at FAN_MIN_STEP.
+  // r429: EVERY tile tilts, the newest included (owner: a flat last tile made
+  // the turns cycle read wrong). The row is right-aligned by LAYOUT box, and a
+  // tilted tile's visible width is only `proj`, so the last tile gives back the
+  // difference as a negative right margin or the row ends in an empty gap.
   const k = n - 1;
-  const cosNeed = (room - tile - k * GAP) / (k * tile);
+  const cosNeed = (room - k * GAP) / (n * tile);
   const cosA = Math.max(Math.cos(FAN_MAX_TILT * Math.PI / 180), Math.min(1, cosNeed));
   const deg = Math.acos(cosA) * 180 / Math.PI;
   const proj = tile * cosA * FAN_PERSP_SHRINK;
-  const fitStep = (room - tile) / k;
+  const fitStep = (room - proj) / k;
   const step = Math.max(FAN_MIN_STEP, Math.min(proj + GAP, fitStep));
-  chips.forEach((c, i) => { if (i < k) c.style.setProperty('--tilt', deg.toFixed(1) + 'deg'); });
+  chips.forEach(c => c.style.setProperty('--tilt', deg.toFixed(1) + 'deg'));
+  chips[k].style.marginRight = (proj - tile).toFixed(2) + 'px';
   track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
   list.classList.add('fanned');
+  // `proj` is an estimate of the perspective; close the remaining gap against the
+  // real painted edge (rect is zoomed, so convert to design px).
+  const lr = list.getBoundingClientRect(), z = lr.width / (list.clientWidth || 1);
+  const padR = parseFloat(getComputedStyle(list).paddingRight) || 0;
+  // The face transitions its rotate, so measure it with the transition off
+  // (a freshly set --tilt would otherwise still read 0deg).
+  const face = chips[k].querySelector('.reward-cell') || chips[k];
+  const faces = chips.map(c => c.querySelector('.reward-cell')).filter(Boolean);
+  faces.forEach(f => { f.style.transition = 'none'; });
+  const short = (lr.right - padR * z - face.getBoundingClientRect().right) / z;
+  void list.offsetWidth;
+  faces.forEach(f => { f.style.transition = ''; });
+  if (Math.abs(short) > 0.5) chips[k].style.marginRight = (proj - tile - short).toFixed(2) + 'px';
   if (deg > 0.5) trayTiltArm(list); else trayTiltStop();
   return true;
 }
@@ -536,7 +553,24 @@ function trayTiltChips() {
 }
 function trayTiltFocus(i) {
   const chips = trayTiltChips();
-  chips.forEach((c, j) => c.classList.toggle('tilt-focus', j === i));
+  // r429: every tile is tilted, so one near the right edge, turned flat, would
+  // run past the tray and be clipped. It slides left by the overhang for its turn.
+  const list = document.getElementById('trick-tray-list');
+  const lr = list ? list.getBoundingClientRect() : null;
+  const z = lr && list.clientWidth ? lr.width / list.clientWidth : 1;
+  chips.forEach((c, j) => {
+    const on = j === i;
+    let dx = 0;
+    if (on && lr) {
+      // offsetLeft, not a rect: the rect already carries this chip's own
+      // translate and scale if it is being re-focused.
+      const op = (c.offsetParent || list).getBoundingClientRect();
+      const right = op.left + (c.offsetLeft + c.offsetWidth * 1.03) * z;
+      dx = Math.max(0, (right - (lr.right - 2 * z)) / z);
+    }
+    c.style.translate = dx ? `${-dx.toFixed(1)}px 0` : '';
+    c.classList.toggle('tilt-focus', on);
+  });
   _trayTiltIdx = i;
   return chips[i] || null;
 }
@@ -550,9 +584,9 @@ function trayTiltArm(list) {
     if (!chips.length) { trayTiltStop(); return; }
     if (Date.now() < _trayTiltHoldUntil) return;
     if (document.body.classList.contains('reduced-motion')) { trayTiltFocus(-1); return; }
-    // The newest tile is never tilted, so it sits out; a tile that is flat goes
-    // back before the next one comes up (an empty beat between them).
-    const tilted = chips.length - 1;
+    // Every tile takes a turn (r429: the newest is tilted too). A tile that is
+    // flat goes back before the next one comes up (an empty beat between them).
+    const tilted = chips.length;
     if (_trayTiltIdx >= 0) { trayTiltFocus(-1); _trayTiltNext = (_trayTiltNext + 1) % Math.max(1, tilted); return; }
     trayTiltFocus(_trayTiltNext % Math.max(1, tilted));
   }, TRAY_TILT_HOLD);
