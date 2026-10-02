@@ -490,3 +490,9 @@ in `crTick` (so it waits out pauses and level-ups) and shown as a countdown on t
 cell. The first two warnings of a run say so. The challenge round (Classic/Schedule) keeps its 3s
 cell pulse and cannot be refused.
 
+
+## r460 - every tooltip takes the same desktop size (css/menu-size.css)
+`--tip-z` (declared on body: `--menu-z` x `--text-z`) zooms the CHILDREN of `#entity-tip` and of the
+older tooltips (`#trick-tooltip`, `#knack-tooltip`, `#reward-tooltip`, `#challenge-tooltip`,
+`.sleight-tooltip`, `#sleight-grid-tooltip`, `#card-enh-tooltip`, `#sq-tip`); each host's px
+max-width and padding are multiplied by it. Hosts are never zoomed (placement writes viewport px).

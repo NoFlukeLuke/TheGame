@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r459 · Shop row labels selectable again";
+const BUILD = "2026-10-02 · r460 · Older tooltips (Trick, Knack, reward, Sleight, challenge) take the desktop tooltip size";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
