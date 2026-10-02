@@ -21,7 +21,7 @@
 #stage.landscape.squares-mode #selected-cards {
   /* r383 moved the chip row up (it ends at 26.38% now), so the piece hand
      starts where the knack band it replaces starts. */
-  top: 28.28%; height: 52.5%;
+  top: 36.68%; height: 44.1%;
   padding: 6px 7px;
   justify-content: space-between; align-items: stretch; gap: 6px;
 }

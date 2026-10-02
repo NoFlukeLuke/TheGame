@@ -107,12 +107,12 @@ function openDevPanel() {
 // are never moved - they all keep their ids (plenty of code binds to them) and are
 // simply shown or hidden by data-group.
 // r391 AESTHETICS: extra infinity-tray depth lines (0-4), a body class the
-// tray rule in css/style.css reads. Persisted; default 3.
-let trayDepthExtra = (() => { try { const v = localStorage.getItem('lethe.trayDepth.v1');
-  if (v !== null && +v >= 0 && +v <= 4) return +v; } catch (e) {} return 3; })();
+// tray rule in css/style.css reads. Persisted; default 0 (every tray shows the same 3 lines; extras only reach the tall trays).
+let trayDepthExtra = (() => { try { const v = localStorage.getItem('lethe.trayDepth.v2');
+  if (v !== null && +v >= 0 && +v <= 4) return +v; } catch (e) {} return 0; })();
 function setTrayDepth(n) {
   trayDepthExtra = Math.max(0, Math.min(4, n | 0));
-  try { localStorage.setItem('lethe.trayDepth.v1', String(trayDepthExtra)); } catch (e) {}
+  try { localStorage.setItem('lethe.trayDepth.v2', String(trayDepthExtra)); } catch (e) {}
   applyTrayDepth();
 }
 function applyTrayDepth() {

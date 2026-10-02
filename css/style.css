@@ -4509,17 +4509,17 @@
      preview and the buttons); the TRICK TRAY IS UNCHANGED at 21.7%, because
      its chips are 79px in a 77px content box already (r376) and it has none.
      The stack, top to bottom, now runs:
-       2.78 +11.2 | 15.88 +10.5 | 28.28 +6.9 | 37.08 +20.7 | 59.68 +21.7 |
-       83.28 +6.5 | 91.68 +6.3  -> 97.98
+       (r440: credits first) 2.78 +6.5 | 11.18 +11.2 | 24.28 +10.5 | 36.68 +6.9 |
+       45.48 +20.7 | 68.08 +21.7 | 91.68 +6.3  -> 97.98
      Anything positioned against one of these (the Flow reward banner takes the
      chip row's box, css/flow-rewards.css) has to move with it. */
-  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:18.9%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  #stage.landscape #score-left     { left:22.0%;  top:2.78%;  width:17.3%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  #stage.landscape #score-center   { left:1.56%;  top:11.18%;  width:18.9%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:22.0%;  top:11.18%;  width:17.3%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
   /* clock readout + timer bar span the grid's width (grid: left 45% → right 90%) */
   #stage.landscape #clock-area     { position:absolute; left:45%; top:2.78%; width:7%; height:6.94%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
   #stage.landscape #vclock         { left:52.5%; top:2.78%; width:37.5%; height:6.94%; overflow:hidden; display:block; }
   /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
-  #stage.landscape #score-subboxes { left:1.56%;  top:15.88%; width:37.74%; height:10.5%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #score-subboxes { left:1.56%;  top:24.28%; width:37.74%; height:10.5%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
   #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
@@ -4532,7 +4532,7 @@
   #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); display:inline-block; }
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
-  #stage.landscape #knack-carousel-wrap { left:1.56%; top:28.28%; width:37.74%; height:6.9%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:36.68%; width:37.74%; height:6.9%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
   #stage.landscape #knack-list::-webkit-scrollbar { display:none; }
 
@@ -4542,14 +4542,14 @@
      (38×50) even though both are "one item you hold". The 38%→82.5% span is now
      split evenly, and the tiles are sized to match: the preview card is as wide
      as five-across allows in this column, and the Trick chip is a touch smaller. */
-  #stage.landscape #selected-cards { left:1.56%; top:37.08%; width:37.74%; height:20.7%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #selected-cards { left:1.56%; top:45.48%; width:37.74%; height:20.7%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
   /* z-index 61: the scoring dance raises #selected-cards to 60 (.dnc-active,
      css/dance.css), and the label is a SIBLING - at its old z-index 2 the
      preview's opaque panel background slid over it for the whole tally, so the
      hand's name vanished exactly when it was being scored. The 44px left
      padding the preview reserves for this label is untouched by the dance, so
      sitting above it covers nothing. */
-  #stage.landscape #hand-name { position:absolute; left:1.56%; top:37.08%; width:5.75%; height:20.7%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:5px 2px; z-index:61; text-shadow:0 0 4px rgba(0,0,0,0.9); }
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:45.48%; width:5.75%; height:20.7%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:5px 2px; z-index:61; text-shadow:0 0 4px rgba(0,0,0,0.9); }
   /* A layered hand prints two blocks and a separator - five lines in a column
      sized for two - so it steps down rather than spilling out of the frame.
      Scoped through #trick-panel to out-specify the older 11px rule up the file. */
@@ -4564,7 +4564,7 @@
   body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 
   /* tricks: enlarged now that the time/money chips left this column - big reward-grid-style tiles */
-  #stage.landscape #trick-tray-area { left:1.56%; top:59.68%; width:37.74%; height:21.7%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:68.08%; width:37.74%; height:21.7%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
   /* r237: the tray FANS (tiles overlap, never more than half hidden) and only
      then scrolls - sideways, scrollbar hidden, never vertically. */
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:0; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; padding:0; width:100%; }
@@ -4583,7 +4583,7 @@
      (this one stated 40x53 for years and was always outranked by it). */
   #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
-  #stage.landscape #coin-info      { left:1.56%; top:83.28%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; padding:0 8px; }
+  #stage.landscape #coin-info      { left:1.56%; top:2.78%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; padding:0 8px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
      The same 1.56%→39.3% span, now 2 equal slots of 18.4% with the 0.9% gutter. */
   #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.68%; width:18.4%; height:6.3%; }
@@ -4671,6 +4671,9 @@
     --c-coral:   #ff6a3c;
     --c-purple:  #9a6cff;
     --c-mint:    #35d59b;
+    --c-red:     #ff4b3e;
+    --c-orange:  #ff8a1f;
+    --c-green:   #4cd964;
     /* CRT phosphor */
     --phosphor:    #ffb02e;
     --phosphor-hi: #ffd57a;
@@ -4881,7 +4884,7 @@
     background: linear-gradient(180deg, #15110b, #0d0b07) !important;
     border: 1px solid var(--tray-c) !important;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
-                var(--tray-set, var(--tray-rings-m)),
+                var(--tray-set, var(--tray-rings)),
                 var(--tray-extra, 0 0 0 0 transparent),
                 0 0 0 2px color-mix(in srgb, var(--tray-c) 62%, #14100a),
                 0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806) !important;
@@ -4889,27 +4892,27 @@
   /* Candy accents give each readout its own identity. The top edge stays the
      thick one; `--tray-c` is what carries the colour to the other three sides
      and to the rings. */
-  #stage.landscape #score-center    { --tray-c: var(--c-magenta); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #score-center    { --tray-c: var(--c-cyan); border-top: 2px solid var(--tray-c) !important; }
   #stage.landscape #score-left      { --tray-c: var(--c-cyan);    border-top: 2px solid var(--tray-c) !important; }
   /* The chip row keeps the neutral frame the r95 rule below gives it (its three
      chips are already blue, red and violet, so an accent frame would fight them);
      it is the one tray whose top edge was never a candy colour, and the owner's
      rule is that the frame matches the top edge. It therefore sets no `--tray-c`
      of its own - the later rule does. */
-  #stage.landscape #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
-  #stage.landscape #selected-cards  { --tray-c: var(--c-mint);    --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
-  #stage.landscape #trick-tray-area { --tray-c: var(--c-coral);   --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
-  #stage.landscape #coin-info       { --tray-c: var(--c-yellow);  --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
-  #stage.landscape #run-progress    { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-s); border-top: 2px solid var(--tray-c) !important; }
-  #stage.landscape #vclock          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings-s); border: 1px solid var(--tray-c) !important; }
+  #stage.landscape #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #selected-cards  { --tray-c: var(--c-red);    --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #trick-tray-area { --tray-c: var(--c-orange);   --tray-set: var(--tray-rings);   border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #coin-info       { --tray-c: var(--c-green);  --tray-set: var(--tray-rings); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #run-progress    { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings); border-top: 2px solid var(--tray-c) !important; }
+  #stage.landscape #vclock          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings); border: 1px solid var(--tray-c) !important; }
   /* Portrait: THREE trays, each named for what it holds (r389 split the strip).
      The right-hand one takes the colour of whichever view is showing, which is
      what says which side the swap button last left you on - and it is the same
      colour landscape gives each of them, so the two orientations agree. */
-  #stage:not(.landscape) #score-center        { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings-m); border-top: 2px solid var(--tray-c) !important; }
-  #stage:not(.landscape) #score-left          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings-m); border-top: 2px solid var(--tray-c) !important; }
-  #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-coral);  --tray-set: var(--tray-rings); }
-  #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-mint);   --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #score-center        { --tray-c: var(--c-cyan); --tray-set: var(--tray-rings); border-top: 2px solid var(--tray-c) !important; }
+  #stage:not(.landscape) #score-left          { --tray-c: var(--c-cyan);    --tray-set: var(--tray-rings); border-top: 2px solid var(--tray-c) !important; }
+  #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-orange);  --tray-set: var(--tray-rings); }
+  #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-red);   --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings); }
   /* r391 DEEPER MIRROR: 1-4 more receding lines past the r388 set, same 3px
      pitch (dark gap, line, soft shadow), each fainter. Inset shadows paint in
@@ -4970,7 +4973,7 @@
   #run-progress .rp-nodes span.cur { background:var(--c-yellow) !important; border-color:var(--c-yellow) !important; box-shadow:0 0 6px var(--c-yellow); }
 
   /* Coin / cost figures */
-  #coin-info .ci-main { color: var(--c-yellow) !important; }
+  #coin-info .ci-main { color: var(--c-green) !important; }
   #coin-info .ci-row .pos, #interact-costs .ic-r span:last-child,
   #limits-popup .ic-r span:last-child { color: var(--c-mint) !important; }
   #interact-costs .ic-h, #limits-popup .ic-h { color: var(--c-cyan) !important; }
@@ -5069,9 +5072,9 @@
      with the .digit-pop `transform` animation instead of replacing it. */
   #score-subboxes { background:none !important; border:none !important; box-shadow:none !important; padding:0 !important; }
   #score-subboxes .score-subbox { height:100%; max-height:none; padding:0 2px; min-width:0; flex:1 1 0; border-radius:6px; }
-  #score-subboxes #pips-box  { --tray-c:#4f8dff;        --tray-set:var(--tray-rings-m); }
-  #score-subboxes #mult-box  { --tray-c:#ff5347;        --tray-set:var(--tray-rings-m); }
-  #score-subboxes #focus-box { --tray-c:var(--c-purple); --tray-set:var(--tray-rings-m); }
+  #score-subboxes #pips-box  { --tray-c:#4f8dff;        --tray-set:var(--tray-rings); }
+  #score-subboxes #mult-box  { --tray-c:#ff5347;        --tray-set:var(--tray-rings); }
+  #score-subboxes #focus-box { --tray-c:var(--c-purple); --tray-set:var(--tray-rings); }
   #score-subboxes .score-subbox { border-top:2px solid var(--tray-c) !important; }
   #score-subboxes .subbox-label { display:none !important; }
   #score-subboxes .subbox-val {
@@ -5083,8 +5086,8 @@
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val, #stage.landscape #focus-box .subbox-val { font-size:25px; color:#fff !important; }
   #stage.landscape .subbox-times { flex:0 0 auto; width:7px; justify-content:center; font-size:10px; }
   /* Fused chip + the grid-screen location chip wear the same tray. */
-  #score-subboxes #pmf-merged { --tray-c:var(--gold, #d4a857); --tray-set:var(--tray-rings-m); inset:0; background:linear-gradient(180deg,#3a2c08,#201802) !important; border-radius:6px; }
-  #score-subboxes #screen-location { --tray-c:var(--c-purple); --tray-set:var(--tray-rings-m); height:100%; border-radius:6px; border-top:2px solid var(--tray-c) !important; }
+  #score-subboxes #pmf-merged { --tray-c:var(--gold, #d4a857); --tray-set:var(--tray-rings); inset:0; background:linear-gradient(180deg,#3a2c08,#201802) !important; border-radius:6px; }
+  #score-subboxes #screen-location { --tray-c:var(--c-purple); --tray-set:var(--tray-rings); height:100%; border-radius:6px; border-top:2px solid var(--tray-c) !important; }
   #score-subboxes #screen-location.tone-reward { --tray-c:var(--c-mint); }
   #score-subboxes #screen-location.tone-shop   { --tray-c:var(--phosphor); }
 
@@ -5234,8 +5237,8 @@
   #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 3px; font-size: 8px; white-space: nowrap; }
   /* r419: the level readout is set exactly like the credits one (same face, size and
      number size) so the tray reads as one line of two matching figures. */
-  #stage.landscape #coin-info .ci-level { font-family:'Orbitron',sans-serif !important; font-size:8px; letter-spacing:.5px; text-transform:uppercase; font-weight:700; color:var(--c-yellow); align-items:baseline; gap:4px; }
-  #stage.landscape #coin-info .ci-level b { font-family:'Orbitron',sans-serif !important; font-size:16px; font-weight:700; color:var(--c-yellow) !important; letter-spacing:0; }
+  #stage.landscape #coin-info .ci-level { font-family:'Orbitron',sans-serif !important; font-size:8px; letter-spacing:.5px; text-transform:uppercase; font-weight:700; color:var(--c-green); align-items:baseline; gap:4px; }
+  #stage.landscape #coin-info .ci-level b { font-family:'Orbitron',sans-serif !important; font-size:16px; font-weight:700; color:var(--c-green) !important; letter-spacing:0; }
 
   /* ── Reward-grid-style trick tiles: CRT/neon card, rarity = border color ── */
   #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }

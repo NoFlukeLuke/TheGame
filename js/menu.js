@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r439 · Idle hint 20s, plain control wording, every discard confirms";
+const BUILD = "2026-10-02 · r440 · Rainbow trays, uniform rings, credits tray on top";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
