@@ -4855,6 +4855,8 @@
   #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
   #stage:not(.landscape) #knack-carousel-wrap,
   #stage:not(.landscape) #score-center, #stage:not(.landscape) #score-left,
+  /* r449: js/tray-fx.js re-declares --tray-rings under THIS selector, trimmed to the chosen
+     line count (TRAY_RING_SEL_FALLBACK copies it for file:// pages). Change both together. */
   #score-subboxes .score-subbox, #score-subboxes #screen-location, #score-subboxes #pmf-merged, .panel-box {
     --tray-c: var(--plastic-lo);
     --tray-line:   color-mix(in srgb, var(--tray-c) 46%, transparent);

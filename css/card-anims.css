@@ -69,7 +69,7 @@
 @keyframes caHover { 0%, 100% { translate: 0 0; rotate: -1.6deg; } 50% { translate: 0 -4px; rotate: 1.6deg; } }
 .ca-idle-attention .card.selected { animation: caHover 1.5s ease-in-out infinite; }
 .ca-idle-attention #grid:has(.card.selected) .card:not(.selected),
-.ca-idle-attention #ca-board:has(.card.selected) .card:not(.selected) { scale: .96; filter: brightness(.82); transition: scale .25s, filter .25s; }
+.ca-idle-attention #ca-board:has(.card.selected) .card:not(.selected) { scale: .96; opacity: .78; transition: scale .25s, opacity .25s; }
 /* Gaze: the board gives its cards depth so a lean reads as a tilt */
 .ca-gazing { perspective: 900px; }
 .ca-gazing .card { transition: rotate .18s ease-out; }

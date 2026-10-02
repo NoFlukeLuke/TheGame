@@ -31,25 +31,65 @@ function trayFxApply() {
   st.setProperty('--tray-gain', f.gain);
   st.setProperty('--tray-mode', f.motion === 'pulse' ? 0 : 1);
   st.setProperty('--tray-amp', f.motion === 'off' ? 0 : (f.motion === 'pulse' ? 0.6 : 0.9));
+  trayFxTrimRings();
   trayFxEach(el => el.style.setProperty('--tray-ph', 0));
   cancelAnimationFrame(_trayFxRaf); _trayFxRaf = 0;
   if (f.motion !== 'off') _trayFxRaf = requestAnimationFrame(trayFxTick);
   trayFxSync();
 }
+
+// ── Perf (r449, step 9) ─────────────────────────────────────────────────────
+// The stylesheet's ring stack is generated for 20 lines, and every one of its 60
+// shadows is painted even at zero alpha. So the stack actually used is rebuilt
+// for the chosen line count and injected after it under the same selector: 3
+// lines paint 9 shadows instead of 60.
+function trayFxRingString(n) {
+  const ph = i => `(1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - ${i}) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * (1 + var(--tray-boost, 0))`;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const base = 70 * Math.pow(0.82, i), dark = 0.6 * Math.pow(0.88, i);
+    out.push(`inset 0 0 0 calc(var(--tp) * ${i} + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, ${base.toFixed(2)} * var(--tray-gain) * ${ph(i)}) * 1%), transparent)`);
+    out.push(`inset 0 0 0 calc(var(--tp) * ${i} + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, ${(base * .33).toFixed(2)} * var(--tray-gain) * ${ph(i)}) * 1%), transparent)`);
+    out.push(`inset 0 0 0 calc(var(--tp) * ${i + 1}) rgb(0 0 0 / ${dark.toFixed(3)})`);
+  }
+  return out.join(', ');
+}
+let _trayRingSel = '';
+// The selector of the ring rule in css/style.css, for when the stylesheet cannot be
+// read (a file:// page blocks cssRules). Keep in step with that rule.
+const TRAY_RING_SEL_FALLBACK = '#stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area, #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap, #stage:not(.landscape) #score-center, #stage:not(.landscape) #score-left, #score-subboxes .score-subbox, #score-subboxes #screen-location, #score-subboxes #pmf-merged, .panel-box';
+function trayFxTrimRings() {
+  if (!_trayRingSel) {   // retried until the stylesheets are in
+    for (const sh of document.styleSheets) {
+      let rules; try { rules = sh.cssRules; } catch (e) { continue; }
+      const find = list => { for (const r of list) {
+        if (r.style && r.style.getPropertyValue('--tray-rings')) return r.selectorText;
+        if (r.cssRules) { const x = find(r.cssRules); if (x) return x; } } return null; };
+      const sel = rules && find(rules); if (sel) { _trayRingSel = sel; break; }
+    }
+  }
+  if (!_trayRingSel && document.readyState === 'complete') _trayRingSel = TRAY_RING_SEL_FALLBACK;
+  if (!_trayRingSel) { if (!trayFxTrimRings._retry) { trayFxTrimRings._retry = 1; window.addEventListener('load', trayFxTrimRings); } return; }
+  let tag = document.getElementById('tray-rings-trim');
+  if (!tag) { tag = document.createElement('style'); tag.id = 'tray-rings-trim'; document.head.appendChild(tag); }
+  tag.textContent = `${_trayRingSel} { --tray-rings: ${trayFxRingString(Math.max(1, Math.min(20, trayFx.lines | 0)))}; }`;
+}
+
 function trayFxEach(fn) {
   if (!_trayFxEls) _trayFxEls = TRAY_FX_IDS.map(id => document.getElementById(id)).filter(Boolean);
   _trayFxEls.forEach(fn);
 }
 function trayFxTick(t) {
   _trayFxRaf = requestAnimationFrame(trayFxTick);
-  if (t - _trayFxLast < 33) return;           // ~30fps is plenty for a slow glow
+  if (t - _trayFxLast < 50) return;           // 20fps is plenty for a slow glow (r449: was 30)
   _trayFxLast = t;
   if (document.body.classList.contains('reduced-motion')) return;
   let ph;
   if (trayFx.motion === 'pulse') ph = 0.5 - 0.5 * Math.cos(t / 1400 * Math.PI);          // 2.8s breath
   else { const n = Math.max(1, trayFx.lines) + 2; ph = ((t / 700) % (n + 1.5)) - 0.5; }  // inward sweep, one line per 0.7s
   const now = performance.now();
-  trayFxEach(el => { if (!el._hover && !(el._kickUntil > now)) el.style.setProperty('--tray-ph', ph.toFixed(3)); });
+  const v = ph.toFixed(2);
+  trayFxEach(el => { if (!el._hover && !(el._kickUntil > now) && el.offsetWidth && el._tfxPh !== v) { el._tfxPh = v; el.style.setProperty('--tray-ph', v); } });
 }
 function trayFxSync() {
   const set = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e) e.value = String(v); };

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r448 · Flow reward odds, pseudo-random extra rewards";
+const BUILD = "2026-10-02 · r449 · card animation step 9, perf pass";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

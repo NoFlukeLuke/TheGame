@@ -413,3 +413,14 @@ face swap is not a leave): a gained entity drops in large and blurred and the tr
 with a flare (`trayFxKick(el,'in')`); a lost one leaves a fixed copy sinking into the tray (rect read
 before the render detaches it, zoom applied) and the lines pull back outward, dimmed. A mouse over
 any tray lights the line nearest the pointer. Kicked and hovered trays are skipped by the ambient tick.
+
+## r449 - step 9: the perf pass
+Measured (software-rendered Chromium, so relative; a GPU makes all of these smaller): the tray
+ripple was the one steady cost, every tray repainting a 60-shadow stack 30 times a second. Now
+`trayFxTrimRings()` injects `#tray-rings-trim`, re-declaring `--tray-rings` under the ring rule's
+own selector with only the chosen line count (3 lines = 9 shadows, not 60; the stylesheet's
+20-line stack stays as the fallback). The ambient tick runs at 20fps, skips trays that are not
+drawn, and only writes `--tray-ph` when its 2-decimal value changes. Attention dims with
+`opacity` instead of `filter`. Frame p95 at 1440x820 with the ripple on: ~37-43ms -> ~30ms.
+The card-animation looks are WAAPI on transform/opacity-class properties and cost nothing at rest;
+Gaze writes one `rotate` per card per pointer frame. Phones held 60fps in every case measured.
