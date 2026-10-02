@@ -623,7 +623,7 @@ function dncReleaseReal(el){ if(!el) return;
 function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
   el.classList.remove('dnc-jitter','dnc-pop','dnc-pulse','dnc-flash'); el.style.removeProperty('--dnc-jit'); }); dncRealEls=[]; }
 // Fly a clone of a selected grid card into its preview slot, then reveal the slot's dnc-card.
-function flyGridCardToSlot(gEl, slotEl, dur){
+function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId){
   if(!slotEl) return;
   const reveal=()=>{ slotEl.style.opacity=''; slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
   const s = gEl && gEl.getBoundingClientRect();
@@ -634,16 +634,24 @@ function flyGridCardToSlot(gEl, slotEl, dur){
   if(!dur || !s || !s.width || !t.width){ reveal(); return; }
   const clone = gEl.cloneNode(true);
   clone.classList.remove('selected','hand-valid','hand-ready','swap-pending','unreachable');
-  clone.style.cssText = `position:fixed;margin:0;z-index:250;pointer-events:none;transition:none;left:${s.left}px;top:${s.top}px;width:${s.width}px;height:${s.height}px;transform-origin:center center;`;
+  const _zTop = slotEl.closest && slotEl.closest('#ca-lab') ? 5001 : 250;   // the card animation lab sits above the game
+  clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;left:${s.left}px;top:${s.top}px;width:${s.width}px;height:${s.height}px;transform-origin:center center;`;
   document.body.appendChild(clone);
   gEl.style.opacity='0'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort)
   const dx=(t.left+t.width/2)-(s.left+s.width/2), dy=(t.top+t.height/2)-(s.top+s.height/2);
   const sc=t.width/s.width;
-  const done=()=>{ if(clone.parentNode) clone.remove(); reveal(); };
-  const anim=clone.animate([
-    {transform:'translate(0,0) scale(1)', opacity:1},
-    {transform:`translate(${dx}px,${dy}px) scale(${sc})`, opacity:0.9}],
-    {duration:dur, easing:'cubic-bezier(.35,.65,.3,1)', fill:'forwards'});
+  // r437: the flight's shape is the chosen look (dev -> Card Animations, js/card-anims.js).
+  // Every look keeps this duration, because the dance times its beats to it.
+  const look = cardFlyLook(dx, dy, sc, idx||0, s.height, lookId);
+  const ghosts = [];
+  for (let g = 1; g <= (look.ghosts||0); g++) {
+    const gh = clone.cloneNode(true); gh.style.zIndex = _zTop - 1; gh.style.opacity = 0;
+    document.body.insertBefore(gh, clone); ghosts.push(gh);
+    gh.animate(look.frames.map(f => Object.assign({}, f, { opacity: (f.opacity ?? 1) * (0.42 / g) })),
+      { duration: dur, delay: g * 34, easing: look.easing, fill: 'both' });
+  }
+  const done=()=>{ if(clone.parentNode) clone.remove(); ghosts.forEach(g=>g.remove()); reveal(); };
+  const anim=clone.animate(look.frames, {duration:dur, easing:look.easing, fill:'forwards'});
   anim.onfinish=done; setTimeout(done, dur+140);
   // A clone already in the air cannot be reached by a speed multiplier, so it
   // registers its own cut: land it where it was going and reveal the slot.
@@ -948,7 +956,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
-      const go = dur => { if(aborted()) return; flyGridCardToSlot(gEl, slot, dur); };
+      const go = dur => { if(aborted()) return; flyGridCardToSlot(gEl, slot, dur, i); };
       if(dncFF){ go(0); return; }                       // already skipping: straight into the slot
       const entry={ go };
       entry.t=setTimeout(()=>{ const k=flyQueue.indexOf(entry); if(k>=0) flyQueue.splice(k,1); go(GF_DUR); }, GF_LEAD + i*GF_STEP);
@@ -1014,7 +1022,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
-      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(cardColorSuit(card)); }, i*FLY_STAGGER);
+      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR, i); if(typeof sfxCardPop==='function') sfxCardPop(cardColorSuit(card)); }, i*FLY_STAGGER);
     });
     await wait(previewCells.length*FLY_STAGGER + FLY_DUR);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }

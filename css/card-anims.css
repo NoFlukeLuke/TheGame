@@ -13,7 +13,8 @@
 #ca-tray { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #3a3128; border-radius: 8px; background: #0f0c09; }
 #ca-tray span { font-size: 11px; letter-spacing: 2px; color: var(--cream-dim, #a89878); }
 #ca-slots { display: flex; gap: 8px; }
-#ca-slots i { width: 44px; height: 59px; border: 1px dashed #4a4034; border-radius: 5px; }
+#ca-slots i { position: relative; width: 44px; height: 59px; border: 1px dashed #4a4034; border-radius: 5px; --card-w: 40px; --card-h: 55px; display: flex; align-items: center; justify-content: center; }
+#ca-slots .card { position: relative !important; }
 
 #ca-panel {
   flex: 0 0 360px; max-width: 46vw; overflow: auto; padding: 14px; border-left: 1px solid #3a3128;
@@ -36,6 +37,6 @@
   #ca-lab { flex-direction: column; }
   #ca-stage { flex: 0 0 auto; padding: 14px 0; }
   #ca-board { --card-w: 52px; --card-h: 70px; }
-  #ca-slots i { width: 36px; height: 48px; }
+  #ca-slots i { width: 36px; height: 48px; --card-w: 32px; --card-h: 44px; }
   #ca-panel { flex: 1; max-width: none; border-left: 0; border-top: 1px solid #3a3128; }
 }

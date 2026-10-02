@@ -233,9 +233,8 @@ function doSwap(r1, c1, r2, c2) {
     const _swGridEl = document.getElementById('grid');
     const _el1 = _swId1 ? _swGridEl.querySelector(`[data-card-id="${_swId1}"]`) : null;
     const _el2 = _swId2 ? _swGridEl.querySelector(`[data-card-id="${_swId2}"]`) : null;
-    const _dur = 220, _ease = 'cubic-bezier(0.25,0.46,0.45,0.94)';
-    if (_el1) _el1.animate([{ transform:`translate(${-_swDx}px,${-_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
-    if (_el2) _el2.animate([{ transform:`translate(${_swDx}px,${_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
+    // r437: the look is the chosen one (dev -> Card Animations); _el1 is the card picked first.
+    cardAnimSwap(_el1, _el2, _swDx, _swDy);
   }
   // Pivot leaves the board once the swap has landed. Deferred behind the 220ms FLIP
   // above because discardSleightAfterUse spins the tile and then runs removeAndFall,
@@ -248,19 +247,19 @@ function doSwap(r1, c1, r2, c2) {
       let _at = null;
       for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === _wc) _at = [r, c];
       if (_at) discardSleightAfterUse(_wc, _at[0], _at[1]);
-    }, 260);
+    }, cardSwapMs() + 40);
   }
   if (_pivotSpent) {
     const [_pr, _pc] = _pivotSpent;
     setTimeout(() => {
       const _pv = gridData[_pr]?.[_pc];
       if (_pv?._isSleight && _pv.sleightId === 'pivot') discardSleightAfterUse(_pv, _pr, _pc);
-    }, 260);
+    }, cardSwapMs() + 40);
   }
   // Match-3: a swap is the player's main way to CREATE a match - resolve the
   // board once the swap animation has landed. (The swap itself stays manual;
   // only the resulting matches play themselves.)
-  if (match3Active()) setTimeout(() => match3Resolve(), 240);
+  if (match3Active()) setTimeout(() => match3Resolve(), cardSwapMs() + 20);
 }
 
 // Remove a card from selection, then keep only the largest connected component.

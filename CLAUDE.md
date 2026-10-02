@@ -357,3 +357,14 @@ Choices persist overrides-only in `lethe.cardAnims.v1`. "Current" rows are stand
 - **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds now pick3 25 / tricks 20 / shop 10 / cards 10 / deck 10 / sleights 8 / limits 7 / improve 5 / knacks 5.
 - **Forced kinds:** no TRICKS reward by the 3rd level-up since the last boss makes it the first reward; no KNACKS reward before a boss puts one in the boss chain (`flowrLvSinceBoss`, `flowrTricksSeen`, `flowrKnacksSeen`, in SAVE_VARS).
 - **A boss refills swaps and discards** in Survival/Flow (`triggerBoss`, before the modifiers).
+
+## r441 - steps 4-5: swap and fly-to-preview looks (`js/card-anims.js`)
+**Swap** runners are FLIP-shaped exactly as `doSwap` runs: data and DOM have already swapped, `a`
+is the card picked first (`r1,c1`), animated from its old cell by `dx,dy` design px; `b` travels the
+other way. `cardAnimSwap(a, b, dx, dy)` is the game's one call; looks: current (220ms slide),
+Leapfrog (a arcs over, b ducks), Rubber band (stretch, snap past, wobble), Shove (a barges, b is
+knocked into a's old cell). `cardSwapMs()` is the chosen look's length; the Pivot / Wanderer exits
+and Match-3's resolve wait on it. **Fly** looks are keyframes for the clone `flyGridCardToSlot`
+flies (`cardFlyLook(dx, dy, sc, i, h, id)`): current, Lean in, Comet (curved path + 3 trailing
+ghosts), Pinball (pop up, drop, squash). Every fly look keeps the caller's duration because the
+dance times its beats to it. The lab flies its own cards through the real `flyGridCardToSlot`.
