@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r441 · Swap and fly-to-preview looks (card animation steps 4-5)";
+const BUILD = "2026-10-02 · r443 · Swap and fly-to-preview looks (card animation steps 4-5)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
