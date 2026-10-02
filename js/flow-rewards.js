@@ -129,7 +129,7 @@ const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize');
 // next round and pays 1 credit per `overPct`% over instead, and interest (1 per
 // 10 held, the shared capped line) is paid at each level-up.
 // `split` switches the reroll half off (back to the shared pool, stock pays gold).
-const FLOWE_DEF = { split: true, overPct: 15 };
+const FLOWE_DEF = { split: true, overPct: 15, multiStep: 10 };
 const FLOWE_KEY = 'lethe.flowEcon.v1';   // OVERRIDES ONLY
 let flowEcon = (() => {
   try { return Object.assign({}, FLOWE_DEF, JSON.parse(localStorage.getItem(FLOWE_KEY) || '{}')); }
@@ -345,30 +345,12 @@ function flowrPickWeighted(keys, weights) {
 // left to multiply: every count above 1 is scaled by luckScale(), which is the
 // shape flowrQtyRoll in this same file already uses for the deck editor's
 // quantity. At 0 luck it is exactly the printed table.
-// r448: PSEUDO-RANDOM, Dota's proc system. The chance of MORE THAN ONE reward
-// is not rolled flat: it starts at C and climbs by C every level-up that paid
-// only one, then drops back to C when it pays more. C is solved so the long-run
-// rate equals the table's own chance, so the average is unchanged and only the
-// droughts and streaks are squeezed out. Which count (2..5) is still the table.
+// r449: MULTI-REWARD BUILD-UP. The chance of more than one reward is the
+// table's own chance, plus `flowEcon.multiStep` (10%) for every level-up in a
+// row that paid only one, back to the base the moment one pays more. Lucky and
+// dry spells still happen; a drought just gets shorter as it goes. (r448 was
+// Dota's exact PRD, which at a 62% base forced a multi by the 3rd try.)
 let flowrPrdMisses = 0;   // level-ups in a row that paid one reward. In SAVE_VARS.
-const _prdCache = {};
-function flowrPrdC(p) {
-  if (!(p > 0)) return 0;
-  if (p >= 1) return 1;
-  const k = p.toFixed(4);
-  if (_prdCache[k] != null) return _prdCache[k];
-  const rate = c => {   // long-run proc rate for a given C
-    let exp = 0, notYet = 1;
-    for (let n = 1; notYet > 1e-9 && n < 10000; n++) {
-      const q = Math.min(1, c * n);
-      exp += n * notYet * q; notYet *= 1 - q;
-    }
-    return 1 / exp;
-  };
-  let lo = 0, hi = p;
-  for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (rate(mid) < p) lo = mid; else hi = mid; }
-  return (_prdCache[k] = (lo + hi) / 2);
-}
 function flowrMultiChance() {
   const w = flowrCfg().counts.slice(0, FLOWR_MAX);
   const ls = (typeof luckScale === 'function') ? luckScale() : 1;
@@ -379,7 +361,7 @@ function flowrMultiChance() {
 function flowrRollCount(state) {
   const st = state || { get m() { return flowrPrdMisses; }, set m(v) { flowrPrdMisses = v; } };
   const { p, ww } = flowrMultiChance();
-  const chance = Math.min(1, flowrPrdC(p) * (st.m + 1));
+  const chance = Math.min(1, p + (flowEcon.multiStep / 100) * st.m);
   if (Math.random() >= chance) { st.m++; return 1; }
   st.m = 0;
   const keys = ww.map((_, i) => i + 1).slice(1);
@@ -2477,6 +2459,7 @@ function flowrDevSync() {
   const on = document.getElementById('dev-flowr-on'); if (on) on.checked = cfg.on;
   const sp = document.getElementById('dev-flowe-split'); if (sp) sp.checked = !!flowEcon.split;
   const ov = document.getElementById('dev-flowe-over'); if (ov) ov.value = flowEcon.overPct;
+  const ms = document.getElementById('dev-flowe-step'); if (ms) ms.value = flowEcon.multiStep;
   cfg.counts.forEach((v, i) => {
     const el = document.getElementById('dev-flowr-c' + i);
     if (el && document.activeElement !== el) el.value = v;

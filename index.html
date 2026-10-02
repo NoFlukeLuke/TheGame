@@ -691,6 +691,9 @@
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">
       1 credit per <input id="dev-flowe-over" type="number" min="1" max="100" step="1" style="width:50px;" onchange="setFlowEcon('overPct', Math.max(1, +this.value || 15))">% over the goal
     </label>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">
+      Extra-reward chance +<input id="dev-flowe-step" type="number" min="0" max="100" step="1" style="width:50px;" onchange="setFlowEcon('multiStep', Math.max(0, +this.value || 0))">% per level-up that paid one (resets after a multi)
+    </label>
     <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-counts">
       <span>How many:</span>
       <label>1 <input id="dev-flowr-c0" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 0)"></label>

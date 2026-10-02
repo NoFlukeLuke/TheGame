@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r450 · Tray lines: clear centre per tray, depth fade";
+const BUILD = "2026-10-02 · r449 · Flow extra rewards: +10% per single-reward level-up";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
