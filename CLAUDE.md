@@ -404,3 +404,12 @@ clears them. **Idle**: Ripple is driven from the end of `render()` (`cardAnimAft
 `selected`); Gaze puts `.ca-gazing` (perspective) on #grid and writes each card's `rotate` axis-angle
 toward the pointer, or the phone's tilt; Attention is `body.ca-idle-attention` CSS.
 `cardAnimApplyIdle()` re-applies on every idle choice change.
+
+## r447 - step 8: tray reactions, up to 20 lines (`js/tray-fx.js`)
+The ring stack in css/style.css is generated for 20 lines (dev -> Aesthetics -> Tray lines goes to
+20) and every line's alpha carries `* (1 + var(--tray-boost, 0))`. `trayWatch` wraps
+`renderTrickTray` / `updateKnackList` and diffs the OWNED ids (never the DOM, so the Sleight-queue
+face swap is not a leave): a gained entity drops in large and blurred and the tray ripples inward
+with a flare (`trayFxKick(el,'in')`); a lost one leaves a fixed copy sinking into the tray (rect read
+before the render detaches it, zoom applied) and the lines pull back outward, dimmed. A mouse over
+any tray lights the line nearest the pointer. Kicked and hovered trays are skipped by the ambient tick.
