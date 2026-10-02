@@ -531,6 +531,7 @@ let roundContributions  = {};
 let roundHandsScored    = 0;
 let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
 let clubsScoredRound    = 0;   // clubs scored this round incl. replays (Hard Labour's doubling ladder, r346)
+let clubHitsPending     = 0;   // this hand's club scores, banked at the score and added after the dance (r461)
 let setsPlayedRound     = 0;   // count of Set hands scored this round (Undue Influence / Shaky Foundation)
 let runStreak           = 0;   // consecutive Run hands ending at the last-played hand (Wave Amplification)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)

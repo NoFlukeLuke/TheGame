@@ -490,3 +490,21 @@ in `crTick` (so it waits out pauses and level-ups) and shown as a countdown on t
 cell. The first two warnings of a run say so. The challenge round (Classic/Schedule) keeps its 3s
 cell pulse and cannot be refused.
 
+
+## r460 - every tooltip takes the same desktop size (css/menu-size.css)
+`--tip-z` (declared on body: `--menu-z` x `--text-z`) zooms the CHILDREN of `#entity-tip` and of the
+older tooltips (`#trick-tooltip`, `#knack-tooltip`, `#reward-tooltip`, `#challenge-tooltip`,
+`.sleight-tooltip`, `#sleight-grid-tooltip`, `#card-enh-tooltip`, `#sq-tip`); each host's px
+max-width and padding are multiplied by it. Hosts are never zoomed (placement writes viewport px).
+
+## r461 - Hard Labour pays per club; a card's x pips multiplies the whole pip total
+- **Hard Labour** pays its current rung (base x 2^n) on every club SCORE, on the club's beat, replays
+  and a dual card's club ghost included. A timeline event can carry `vals` (one value per replay); the
+  dance swaps `value` per rep. Rungs interleave as the dance plays them (real rep 0, ghost rep 0, real rep 1...).
+- **The ladder now advances after the dance** (`clubHitsPending`, added in `scalingCount`). It used to
+  advance above the canonical score, so every hand was scored as many rungs too high as it had clubs.
+- **A card's x pips (`permXPips`) multiplies the WHOLE running pip total** (owner's call), last in the
+  card's beat, once per replay. Its event has `scope: 'total'`; the dance banks the beat then multiplies.
+  calcScore banks each cell per replay in `_bankCell` (card pips, then x pips, then its ghost) so the two agree.
+  Per-card payer pips (Early Bird, Get Even...) are now added in the loop so a later x pips multiplies them.
+  A muted or Leaden card's x pips does not fire. Straight Shot reads the card's pips x its own x pips.

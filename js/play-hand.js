@@ -290,8 +290,6 @@ function playHand() {
   // Folded into the round tally at the commit points below (goal / normal).
   const _contribSnapshot = captureRoundContrib(result);
   // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
-  // Hard Labour's round ladder advances by this hand's club scores (incl. replays).
-  if (hasTrick('club_double')) clubsScoredRound += Math.max(0, _lastHandClubHits || 0);
   // The Cuckoo (r346): every OTHER hand pauses the clock 1s per 5 replays this round.
   // handsPlayedRound reads k-1 during hand k, so this fires on hands 2, 4, 6...
   // The amount check runs before trickFires (r296).
@@ -336,6 +334,10 @@ function playHand() {
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
   result._bankContrib = _bankContrib;
   result._bankLedger = _bankLedger;
+  // Hard Labour (r461): this hand's club scores, advanced in scalingCount after the
+  // dance. It used to advance HERE, above the canonical score, so every hand was
+  // scored five rungs (or however many clubs) further up the ladder than it had climbed.
+  clubHitsPending = Math.max(0, _lastHandClubHits || 0);
   // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
   const _handRetrigByCell = { ..._lastRetrigByCell };
   // Card Market time cards: seconds carried by the individual cards in this hand.
@@ -966,6 +968,9 @@ function scalingCount(hand, handCells, reps) {
       spadesRelentless += x.n * ((card.suit === '♠') + (card.suit2 === '♠'));   // r392: a double spade counts twice
     }
   }
+  // Hard Labour: the round ladder climbs by this hand's club scores (incl. replays).
+  if (hasTrick('club_double')) clubsScoredRound += clubHitsPending;
+  clubHitsPending = 0;
   // Compound: +0.1 mult per hand played.
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   // Acorns: each card scored grows the stored Focus by 0.05 (per game).
