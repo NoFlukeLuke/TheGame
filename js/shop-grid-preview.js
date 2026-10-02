@@ -688,7 +688,7 @@ function syncShopActionChips() {
     const lifted = !!shopSwapPending;
     swap.title = lifted
       ? 'Tap a tile next to the lifted one to trade them. Tap SWAP again to cancel.'
-      : 'Select one tile (or one row label), press SWAP, then tap the tile next to it to trade them. Double-tap a tile does the same.';
+      : 'Select two touching tiles (or two row labels) and press SWAP to trade them. Or select one, press SWAP, then tap the tile next to it. Double-tap a tile does the same.';
     swap.classList.toggle('srr-spent', shopGridMode === 'sell' || !shopSwapsLeft());
     swap.classList.toggle('srr-lifted', lifted);
   }
@@ -1095,12 +1095,18 @@ function toggleShopSellMode() {
 // ══ SWAP: rearrange the board ══════════════════════════════════════════════
 // Double-tap lifts a tile; the next tap trades it with an orthogonal neighbour.
 // Tapping the lifted tile again puts it back down.
-// The SWAP button (r405): lifts whatever is selected, or puts a lifted tile back.
+// The SWAP button (r405): two selected trade at once; one selected is lifted; a lifted tile is put back.
 function shopSwapButton() {
   if (!shopGridActive || shopGridMode !== 'buy') return;
   if (shopSwapPending) { shopSwapPending = null; renderShopGrid(); return; }
+  if (shopGridSel.size === 2) {   // two picked: trade them now, like the board's SWAP
+    const [[r1, c1], [r2, c2]] = [...shopGridSel].map(k => k.split('-').map(Number));
+    shopSwapTiles(r1, c1, r2, c2);
+    renderShopGrid();
+    return;
+  }
   if (shopGridSel.size !== 1) {
-    refuse(shopGridSel.size ? 'Select just one tile or row label to swap' : 'Select a tile or row label first, then press SWAP');
+    refuse(shopGridSel.size ? 'Select one tile to lift, or two to trade' : 'Select a tile or row label first, then press SWAP');
     return;
   }
   const [r, c] = [...shopGridSel][0].split('-').map(Number);

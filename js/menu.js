@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r462 · Reward grid read bubble sits beside the board";
+const BUILD = "2026-10-02 · r463 · Shop: SWAP trades two selected tiles";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
