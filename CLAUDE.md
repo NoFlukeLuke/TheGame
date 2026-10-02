@@ -521,3 +521,8 @@ top left (top/left walls dark, bottom/right lit) or `light:'below'` (the colour 
 `view` shows more of the far wall, the top lip shadows the floor. While on it replaces the ring stack
 and the tray background (`#tray-pit-style`), and takes the three reactions over (`trayPitKick` /
 `trayPitTrigger`, WAAPI brightness). Presets: shadow, quarry, glow.
+
+## r464 - the pit is the default tray look, with a glowing ring
+`TRAY_PIT_DEFAULT.on` is 1 (store `lethe.trayPit.v2`; v1 carried over once without its `on`, since r463
+shipped it off). A 1px ring in the tray's full colour sits `ring`% (50) of the way from rim to floor,
+following the walls' perspective, over a blurred copy of itself (`ringGlow`, 0 = no ring; filter `#rg`).

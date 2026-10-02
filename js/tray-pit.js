@@ -1,5 +1,5 @@
 /* Tray Pit (r463): the trays drawn as pits sunk into the cabinet, instead of glowing lines.
-   Dev -> Aesthetics -> Tray look. Off by default while the owner compares it with the lines.
+   Dev -> Aesthetics -> Tray look. The default look since r464 (the lines are the alternative).
 
    What makes a hole read as a hole (trompe l'oeil, pixel-art pits, recessed UI):
    - ONE light. Here it comes from the top left, so the walls facing away from it (top, left)
@@ -19,11 +19,20 @@
    zoom scales it up like pixel art). It is repainted only when the tray resizes or its
    colour changes; nothing animates at rest. The tray reactions (land, leave, trigger) come
    here from js/tray-fx.js while the pit is on. */
-const TRAY_PIT_KEY = 'lethe.trayPit.v1';
-const TRAY_PIT_DEFAULT = { on: 0, depth: 16, steps: 4, persp: 80, view: 30, tint: 45, light: 'top', floor: 0 };
+// r464: the pit is the default (owner's call), with one glowing 1px ring part way down
+// (`ring`, % of the way from the rim to the floor; `ringGlow` its glow, 0 = no ring).
+const TRAY_PIT_KEY = 'lethe.trayPit.v2';
+const TRAY_PIT_DEFAULT = { on: 1, depth: 16, steps: 4, persp: 80, view: 30, tint: 45, light: 'top', floor: 0, ring: 50, ringGlow: 60 };
 let trayPit = (() => {
   const d = Object.assign({}, TRAY_PIT_DEFAULT);
-  try { const sv = JSON.parse(localStorage.getItem(TRAY_PIT_KEY) || '{}'); for (const k in sv) if (k in d) d[k] = sv[k]; } catch (e) {}
+  try {
+    let o = localStorage.getItem(TRAY_PIT_KEY);
+    if (o == null) {   // one-shot: v1 (r463, pit off by default) carried over without its on/off
+      const v1 = JSON.parse(localStorage.getItem('lethe.trayPit.v1') || '{}'); delete v1.on;
+      o = JSON.stringify(v1); localStorage.setItem(TRAY_PIT_KEY, o); localStorage.removeItem('lethe.trayPit.v1');
+    }
+    const sv = JSON.parse(o); for (const k in sv) if (k in d) d[k] = sv[k];
+  } catch (e) {}
   return d;
 })();
 function trayPitOn() { return !!trayPit.on; }
@@ -101,9 +110,20 @@ function trayPitSvg(w, h, rgb, f, center) {
   // mitred corners, darkest where the walls fold
   [[0, 0, fl.x0, fl.y0], [w, 0, fl.x1, fl.y0], [0, h, fl.x0, fl.y1], [w, h, fl.x1, fl.y1]]
     .forEach(([x0, y0, x1, y1]) => { s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="rgb(0 0 0 / .4)"/>`; });
+  // The ring: one 1px line in the tray's own (full) colour, part way down, over a soft blur of
+  // itself so it glows. It follows the walls' perspective, so it is a smaller rectangle than the rim.
+  if (f.ringGlow > 0 && f.ring > 0 && f.ring < 100) {
+    const tr = f.ring / 100, q = f.ringGlow / 100;
+    const rx0 = Math.round(wall.l * tr), ry0 = Math.round(wall.t * tr), rx1 = Math.round(w - wall.r * tr), ry1 = Math.round(h - wall.b * tr);
+    const hot = rgb.map(c => Math.round(c + (255 - c) * 0.35)).join(' ');
+    const box = `x="${rx0 + .5}" y="${ry0 + .5}" width="${rx1 - rx0 - 1}" height="${ry1 - ry0 - 1}" fill="none"`;
+    s += `<rect ${box} stroke="rgb(${rgb.join(' ')} / ${(0.9 * q).toFixed(2)})" stroke-width="3" filter="url(#rg)" shape-rendering="auto"/>`
+       + `<rect ${box} stroke="rgb(${hot} / ${(0.55 + 0.45 * q).toFixed(2)})"/>`;
+  }
   const defs = `<defs><linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>`
     + `<linearGradient id="sl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>`
-    + `<radialGradient id="pg"><stop offset="0" stop-color="${col(1.5)}" stop-opacity="${(0.5 * f.floor / 100).toFixed(2)}"/><stop offset="1" stop-color="${col(1)}" stop-opacity="0"/></radialGradient></defs>`;
+    + `<radialGradient id="pg"><stop offset="0" stop-color="${col(1.5)}" stop-opacity="${(0.5 * f.floor / 100).toFixed(2)}"/><stop offset="1" stop-color="${col(1)}" stop-opacity="0"/></radialGradient>`
+    + `<filter id="rg" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="${(0.8 + 1.6 * f.ringGlow / 100).toFixed(2)}"/></filter></defs>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">${defs}${s}</svg>`;
 }
 
@@ -157,7 +177,7 @@ function trayPitTrigger(el) {
 function trayPitSync() {
   const set = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e) e.value = String(v); };
   set('dev-pit-on', trayPit.on ? 'pit' : 'lines'); set('dev-pit-light', trayPit.light);
-  [['depth', 'px'], ['steps', ''], ['persp', '%'], ['view', '%'], ['tint', '%'], ['floor', '%']].forEach(([k, u]) => {
+  [['depth', 'px'], ['steps', ''], ['persp', '%'], ['view', '%'], ['tint', '%'], ['floor', '%'], ['ring', '%'], ['ringGlow', '%']].forEach(([k, u]) => {
     set('dev-pit-' + k, trayPit[k]);
     const e = document.getElementById('dev-pit-' + k + '-v'); if (e) e.textContent = trayPit[k] + u;
   });

@@ -603,6 +603,16 @@
       <input type="range" id="dev-pit-floor" min="0" max="100" step="5" oninput="trayPitSet('floor', this.value)" style="flex:1;">
       <span id="dev-pit-floor-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Glowing ring (how far down the walls)
+      <input type="range" id="dev-pit-ring" min="10" max="90" step="5" oninput="trayPitSet('ring', this.value)" style="flex:1;">
+      <span id="dev-pit-ring-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Ring glow (0 = no ring)
+      <input type="range" id="dev-pit-ringGlow" min="0" max="100" step="10" oninput="trayPitSet('ringGlow', this.value)" style="flex:1;">
+      <span id="dev-pit-ringGlow-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
     <div class="dev-subtitle">Tray lines (when trays are glowing lines)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Number of lines

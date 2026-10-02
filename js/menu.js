@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r463 · Trays: no idle motion or hover, a light trigger flare; Pit look to compare (dev -> Aesthetics -> Tray look)";
+const BUILD = "2026-10-02 · r464 · Trays are pits by default, with a glowing 1px ring halfway down";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
