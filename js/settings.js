@@ -128,14 +128,14 @@ const SETTINGS_DEF = [
 
   // ── Controls ── (r409)
   { group: 'Controls', id: 'controlMode', label: 'Playing a hand',
-    hint: 'Tap and PLAY: tap cards to select them, then press PLAY. Drag to play: press on a card, drag across the others and let go to play them; to discard this way, tap DISCARD first, then drag. With a mouse, holding the right button while you drag discards the cards instead, in either mode.',
+    hint: 'Tap and PLAY: tap cards to select them, then press PLAY. Drag to play: press on a card, drag across the others and let go to play them; to discard this way, tap DISCARD first, then drag. With a mouse, right-click and drag to discard instead, in either mode.',
     type: 'select', default: 'tap', options: [['tap','Tap and PLAY'], ['drag','Drag to play']],
     apply: v => { if (typeof setControlMode === 'function') setControlMode(v); } },
   { group: 'Controls', id: 'ctlDragGrace', label: 'After a drag',
     hint: 'Only with Drag to play. After you let go, the hand waits this long before it plays. Tap another card during the wait to add it.',
     type: 'select', default: '0', options: [['0','Play at once'], ['500','Wait 0.5s'], ['1000','Wait 1s'], ['1500','Wait 1.5s']] },
   { group: 'Controls', id: 'ctlDragBack', label: 'Drag back to unselect',
-    hint: 'While dragging, move back onto the card you just left to unselect the newest card. A T shape crosses one card twice, so drag the straight part and tap the last card.',
+    hint: 'While dragging, move back onto the card you just left to unselect the newest card. A T shape crosses one card twice, so drag the straight part, then tap the last card. With Drag to play, that tap only works if After a drag is set to a wait.',
     type: 'toggle', default: false },
   { group: 'Controls', id: 'ctlDoubleTapPlay', label: 'Double-tap to play',
     hint: 'Tap a selected card twice quickly to play your selection. Double-tapping a card that is not selected still picks it up to swap, as normal.',

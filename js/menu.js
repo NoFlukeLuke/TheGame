@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r441 · Flow: split rerolls, over-goal gold, interest, shop reward";
+const BUILD = "2026-10-02 · r442 · Flow: split rerolls, over-goal gold, interest, shop reward";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
