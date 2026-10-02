@@ -435,3 +435,6 @@ it) and the dark gap after it slides with the next line, so gaps close on the le
 their thickness. The clear-centre cap counts a line only if it clears the centre at full lean. Ripple is a
 comet (sharp front, tail behind) over each tray's OWN line count, restarting at the border. Store is now
 `lethe.trayFx.v2`, overrides only; v1 is carried over once with its old fade 50 dropped (default 70).
+
+## r452 - dev panel: collapsible sections and docking
+A dev tab with 3+ visible sections folds each under its title (start closed; `devSetupCollapse`, one delegated click). On HUD & Display the panel docks over the info column so the grid stays visible (`devApplyDock`); opening a section marked `data-affects-info` moves it over the grid. Portrait docks above the grid. Too small a box falls back to centred.

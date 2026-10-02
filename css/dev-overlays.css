@@ -1136,3 +1136,15 @@ select.dev-sq-in {
 .dev-pt-row.dev-pt-tuned .dev-pt-k { color:var(--gold); }
 .dev-pt-row.dev-pt-tuned input { border-color:var(--gold-dim); }
 .dev-hidden-mode { flex-basis:100%; display:flex; flex-direction:column; align-items:flex-start; flex-wrap:wrap; align-items:center; gap:6px; margin:4px 0; }
+
+/* r426: collapsible sections and the docked panel */
+.dev-section.dev-collapsible > .dev-section-title,
+.dev-section.dev-collapsible > h4 { cursor:pointer; user-select:none; display:flex; align-items:center; gap:6px; font-size:10px; }
+.dev-section.dev-collapsible > .dev-section-title::before,
+.dev-section.dev-collapsible > h4::before { content:'\25BE'; display:inline-block; transition:transform .15s; }
+.dev-section.dev-collapsed > .dev-section-title::before,
+.dev-section.dev-collapsed > h4::before { transform:rotate(-90deg); }
+.dev-section.dev-collapsed > *:not(.dev-section-title):not(h4) { display:none !important; }
+.dev-section.dev-collapsed { gap:0; }
+#dev-panel.dev-docked { transform:none; border-radius:10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.75), 0 0 18px rgba(255,176,46,0.12), inset 0 1px 0 rgba(255,255,255,0.07); }
