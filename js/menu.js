@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r449 · Flow extra rewards: +10% per single-reward level-up";
+const BUILD = "2026-10-02 · r451 · Tray lines: spacing, cursor tilt, comet ripple";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -424,3 +424,14 @@ drawn, and only writes `--tray-ph` when its 2-decimal value changes. Attention d
 `opacity` instead of `filter`. Frame p95 at 1440x820 with the ripple on: ~37-43ms -> ~30ms.
 The card-animation looks are WAAPI on transform/opacity-class properties and cost nothing at rest;
 Gaze writes one `rotate` per card per pointer frame. Phones held 60fps in every case measured.
+
+## r451 - tray lines: spacing, cursor tilt, comet ripple (`js/tray-fx.js`)
+The painted ring stack is baked per settings by `trayFxRingString` from `trayFxGeom(n)`: each line is
+thick px + a 1px soft edge + a dark gap of `gap * (1 + grow%)^i` (Line spacing / Spacing growth sliders).
+The pointer's glow (`--tray-hv` at line `--tray-hp`) and tilt (`--tray-tx/-ty`, -1..1 x the Cursor tilt
+slider) are their own properties, so the ambient ripple keeps running under them: ease in, hold
+`TRAY_HOVER_HOLD_MS` (500) after leaving, ease out. A tilted line slides by `w[i]` (0.6 of the gaps outside
+it) and the dark gap after it slides with the next line, so gaps close on the leaning side and lines keep
+their thickness. The clear-centre cap counts a line only if it clears the centre at full lean. Ripple is a
+comet (sharp front, tail behind) over each tray's OWN line count, restarting at the border. Store is now
+`lethe.trayFx.v2`, overrides only; v1 is carried over once with its old fade 50 dropped (default 70).

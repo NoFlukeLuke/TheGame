@@ -589,6 +589,21 @@
       <input type="range" id="dev-tfx-fade" min="0" max="100" step="5" oninput="trayFxSet('fade', this.value)" style="flex:1;">
       <span id="dev-tfx-fade-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Line spacing (dark gap between lines)
+      <input type="range" id="dev-tfx-gap" min="1" max="6" step="0.5" oninput="trayFxSet('gap', this.value)" style="flex:1;">
+      <span id="dev-tfx-gap-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Spacing growth (each gap wider than the one outside it)
+      <input type="range" id="dev-tfx-grow" min="0" max="20" step="1" oninput="trayFxSet('grow', this.value)" style="flex:1;">
+      <span id="dev-tfx-grow-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Cursor tilt (tunnel leans toward the mouse; minus flips it)
+      <input type="range" id="dev-tfx-tilt" min="-100" max="100" step="10" oninput="trayFxSet('tilt', this.value)" style="flex:1;">
+      <span id="dev-tfx-tilt-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
     <button class="dev-btn" onclick="trayFxReset()" style="margin:4px 0 2px;">Reset tray lines</button>
 
     <div class="dev-subtitle" style="margin-top:10px;">Board deal</div>
