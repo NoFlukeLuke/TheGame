@@ -86,7 +86,7 @@ const PARTICLE_CFG = {
   // ── The flight itself (r233). These used to be dumped by the preview and read
   // by nobody: dncFly hardcoded its own keyframes, so a tuning session in
   // particle-preview.html could not reach the game. They are live now.
-  flightMs: 1200,            // ms at 1x pace
+  flightMs: 1440,            // ms at 1x pace
   pop: 1.8,                  // scale at the launch pop
   arc: 0,                    // px of lob; 0 is a straight line
   spin: 30,                  // peak rotation, reached at the HALFWAY point
@@ -486,6 +486,8 @@ function ptFrames(dx, dy, scale){
     { transform:`${B} scale(${.5*scale}) rotate(0deg)`, opacity:0 },
     { transform:`${B} translate(${dx*.12}px,${dy*.12 - arc*.5}px) scale(${pop}) rotate(${mid*.5}deg)`, opacity:1, offset:.22 },
     { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, opacity:1, offset:.5 },
+    ...[.6,.7,.8,.9].map(o => { const t = (o-.5)/.5;   // fade curve: t^6, almost nothing until the very end
+      return { transform:`${B} translate(${dx*(.5+.5*t)}px,${dy*(.5+.5*t) - arc*(1-t)}px) scale(${scale*(1-.2*t)}) rotate(${mid+(end-mid)*t}deg)`, opacity: 1 - fade/100*Math.pow(t,6), offset:o }; }),
     { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)`, opacity: 1 - fade/100 },
   ];
 }

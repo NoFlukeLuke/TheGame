@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r456 · Remove card counter chip and minimum-hand text from Selection Size";
+const BUILD = "2026-10-02 · r457 · Score plates: 20% slower flight, fade held back to the very end";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
