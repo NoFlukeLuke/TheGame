@@ -122,11 +122,9 @@ function _generateRewardContent() {
   const _handNow = 0 + extraPlayCostPerm + nextRoundPlayCost;   // base play cost is 0 (r50)
   const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
   // ── Penalty tiles ──────────────────────────────────────────────────────────
-  // `perm: true` marks a penalty that outlives the next round. The difficulty
-  // tier multiplies the weight of every permanent one (diffPermWeightMult), and
-  // the epic-neighbour rule below can only draw from the permanent half - so the
-  // flag is load-bearing, not documentation. A penalty that resolves instantly
-  // and is then over (Pickpocket) is NOT permanent: it costs you once.
+  // `perm: true` marks a penalty that outlives the next round. A penalty that
+  // resolves instantly and is then over (Pickpocket) is NOT permanent: it costs
+  // you once.
   const debuffs = [
     { weight: 8, perm: true, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
       desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
@@ -302,14 +300,6 @@ function _generateRewardContent() {
     { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
 
-  // Like weightedPick, but the weight is read through `wf` - which is how the
-  // difficulty tier re-weights permanent penalties without editing the table.
-  function weightedPickBy(arr, wf) {
-    const total = arr.reduce((s, x) => s + wf(x), 0);
-    let rng = Math.random() * total;
-    for (const x of arr) { rng -= wf(x); if (rng <= 0) return x; }
-    return arr[arr.length - 1];
-  }
   function weightedPick(arr) {
     const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
     let rng = Math.random() * total;
@@ -352,7 +342,7 @@ function _generateRewardContent() {
         if (onceKind) once.add(cand.label);
         pick = cand;
       }
-      pen[r][c] = { kind: 'debuff', payload: pick || pickRand(pool) };
+      pen[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
     }
     return pen;
   }
@@ -680,29 +670,7 @@ function _generateRewardContent() {
     for (let c = 0; c < COLS; c++)
       (PRIZE || (r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
 
-  // ── Difficulty: convert extra buff cells into penalty cells (r193) ─────────
-  // The checkerboard is a 50/50 split, which means a path of N tiles can always
-  // be walked with roughly N/2 penalties - and with Selection Size 5, one penalty
-  // and four rewards. Tier 3 raises the penalty share so that stops being true.
-  //
-  // Cells are converted from the END of the shuffled buff list, which is what
-  // keeps this safe: the destination and every guaranteed tile are placed from
-  // the FRONT of that same list, so they are never the ones taken away. A prize
-  // grid has no penalty half at all and is skipped outright.
   const shuffledBuff = shuffled(buffPos);
-  if (!PRIZE) {
-    const share = (typeof diffDebuffShare === 'function') ? diffDebuffShare() : null;
-    if (share) {
-      const cells  = ROWS * COLS;
-      const wanted = Math.round(cells * share);
-      // Never eat into the guaranteed tiles or the destination, and always leave
-      // enough buff slots for the Trick minimum - a grid with nothing worth
-      // taking is not hard, it is empty.
-      const reserved = 1 + buildGuaranteedRewardTiles().length + MIN_TRICK_TILES_FOR(PRIZE);
-      let convert = Math.min(wanted - debuffPos.length, shuffledBuff.length - reserved);
-      while (convert > 0) { debuffPos.push(shuffledBuff.pop()); convert--; }
-    }
-  }
 
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
@@ -769,82 +737,20 @@ function _generateRewardContent() {
     }
   }
 
-  // ── Difficulty: push the best tiles out to the rim (r193) ─────────────────
-  // A reward path is walked from a starting tile through orthogonally connected
-  // neighbours, so a CENTRE cell is cheap to reach - it has four ways in - and a
-  // corner is dear, with two. Above tier 1 the epic-and-better tiles are traded
-  // out to edge and corner cells, so taking the best thing on the board means
-  // committing the path to it instead of collecting it on the way past.
-  //
-  // This is a SWAP between two already-placed buff cells, never a re-roll: the
-  // grid's contents are unchanged and only their positions move, so the Trick
-  // minimum, the limit ceiling and the destination all still hold afterwards.
-  const _isEdge = (r, c) => r === 0 || c === 0 || r === ROWS - 1 || c === COLS - 1;
-  // How exposed a cell is, lowest first: a corner (2 ways in) beats an edge (3).
-  const _openness = (r, c) => [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
-    .filter(([nr, nc]) => nr >= 0 && nc >= 0 && nr < ROWS && nc < COLS).length;
-  if (!PRIZE && typeof diffWantsEdge === 'function') {
-    const highInner = [], freeEdge = [];
-    for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
-      const [r, c] = shuffledBuff[i];
-      const cell = grid[r][c];
-      if (!cell || cell.kind !== 'buff') continue;
-      const high = diffWantsEdge(cell.payload?.rarity || cell.payload?.tier);
-      if (high && !_isEdge(r, c))       highInner.push([r, c]);
-      else if (!high && _isEdge(r, c))  freeEdge.push([r, c]);
-    }
-    // Most exposed inner tile out first, into the least exposed edge cell going -
-    // so on a board with one corner free, the legendary is the tile that gets it.
-    highInner.sort((a, b) => _openness(b[0], b[1]) - _openness(a[0], a[1]));
-    freeEdge.sort((a, b) => _openness(a[0], a[1]) - _openness(b[0], b[1]));
-    const n = Math.min(highInner.length, freeEdge.length);
-    for (let i = 0; i < n; i++) {
-      const [ar, ac] = highInner[i], [br, bc] = freeEdge[i];
-      const t = grid[ar][ac]; grid[ar][ac] = grid[br][bc]; grid[br][bc] = t;
-    }
-  }
-
   // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds.
   // debuffPos is empty on a prize grid, so this loop simply does not run.
   // (two identical curse/drain/mystery tiles in one grid would be confusing)
-  //
-  // The weight of every PERMANENT penalty is multiplied by the difficulty tier's
-  // permWeightMult, so a higher tier does not add more penalties (tier 3 does that
-  // separately, above) - it changes which ones you meet.
-  const _permMult = (typeof diffPermWeightMult === 'function') ? diffPermWeightMult() : 1;
-  const _wOf = d => (d.weight || 1) * (d.perm ? _permMult : 1);
-  // Cells that must carry a PERMANENT penalty: the ones orthogonally touching a
-  // tile of an edge-bias rarity. Computed after the swap above, so it reads the
-  // final positions.
-  const _mustBePerm = new Set();
-  if (!PRIZE && typeof diffPermNeighborCount === 'function' && diffPermNeighborCount() > 0) {
-    const want = diffPermNeighborCount();
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      const cell = grid[r][c];
-      if (!cell || cell.kind !== 'buff') continue;
-      if (!diffWantsEdge(cell.payload?.rarity || cell.payload?.tier)) continue;
-      const nb = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
-        .filter(([nr, nc]) => debuffPos.some(([dr, dc]) => dr === nr && dc === nc));
-      // Shuffled so it is not always the same compass points that turn permanent.
-      shuffled(nb).slice(0, want).forEach(([nr, nc]) => _mustBePerm.add(`${nr}-${nc}`));
-    }
-  }
   const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
     let pick = null;
-    const needPerm = _mustBePerm.has(`${r}-${c}`);
-    // A forced-permanent cell draws from the permanent half only. If that half is
-    // somehow empty it falls through to the ordinary draw rather than blanking.
-    const table = needPerm ? debuffs.filter(d => d.perm) : debuffs;
-    const pool = table.length ? table : debuffs;
     for (let tries = 0; tries < 12; tries++) {
-      const cand = weightedPickBy(pool, _wOf);
+      const cand = weightedPick(debuffs);
       const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.icon === '🐈‍⬛' || cand.tier === 'mystery';
       if (isOnceKind && usedOnce.has(cand.label)) continue;
       if (isOnceKind) usedOnce.add(cand.label);
       pick = cand; break;
     }
-    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(pool) };
+    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
   }
 
   // The tutorial rewrites its FIRST grid into a Trick → liability → Mart row so
