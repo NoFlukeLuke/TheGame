@@ -131,6 +131,34 @@ const SETTINGS_DEF = [
     hint: 'Tap: select cards, then press PLAY. Drag to play: drag across cards and let go to play them. Tap DISCARD first and the next drag discards instead. On desktop, a right-drag always discards.',
     type: 'select', default: 'tap', options: [['tap','Tap and PLAY'], ['drag','Drag to play']],
     apply: v => { if (typeof setControlMode === 'function') setControlMode(v); } },
+  { group: 'Controls', id: 'ctlDragGrace', label: 'After a drag',
+    hint: 'Drag to play only. How long to wait after you let go before the hand plays. Tap a card in that time to add it.',
+    type: 'select', default: '0', options: [['0','Play at once'], ['500','Wait 0.5s'], ['1000','Wait 1s'], ['1500','Wait 1.5s']] },
+  { group: 'Controls', id: 'ctlDragBack', label: 'Drag back to drop a card',
+    hint: 'Dragging back onto the previous card drops the last one. A T shape passes back over a card, so finish a T with a tap.',
+    type: 'toggle', default: false },
+  { group: 'Controls', id: 'ctlDoubleTapPlay', label: 'Double-tap to play',
+    hint: 'Double-tap a card in your selection to play the hand. A double-tap on a card you have not selected still lifts it for a swap.',
+    type: 'toggle', default: false },
+  { group: 'Controls', id: 'ctlAutoPlay', label: 'Auto-play',
+    hint: 'How long a playable selection waits before it plays itself.',
+    type: 'select', default: '2000', options: [['0','Off'], ['1000','1s'], ['2000','2s'], ['4000','4s']] },
+  { group: 'Controls', id: 'ctlConfirmDiscard', label: 'Confirm discards',
+    hint: 'Pressing DISCARD asks first; press it again within 3 seconds to discard.',
+    type: 'toggle', default: false },
+  { group: 'Controls', id: 'ctlHaptics', label: 'Vibration',
+    hint: 'A short buzz when a move is refused. Phones only, and not on iPhone.',
+    type: 'toggle', default: true },
+  { group: 'Controls', id: 'ctlIdleHint', label: 'Idle hint',
+    hint: 'After 15 seconds with nothing played, a faint shine runs across a playable hand.',
+    type: 'toggle', default: true },
+  { group: 'Controls', id: 'ctlLeftHanded', label: 'Left-handed',
+    hint: 'Portrait: puts SWAP, DISCARD and PLAY on the left of the board.',
+    type: 'toggle', default: false,
+    apply: v => { if (typeof ctlSetLeftHanded === 'function') ctlSetLeftHanded(v); } },
+  ...KEY_ACTIONS.map(a => ({ group: 'Keys', id: 'key_' + a.id, label: a.label,
+    hint: (a.hint ? a.hint + ' ' : '') + 'Click, then press a key. Backspace unbinds.',
+    type: 'keybind', default: a.def })),
 
   // ── Display ──
   { group: 'Display', id: 'bigText', label: 'Larger text', hint: 'Increases UI text size across panels and pop-ups.',
@@ -385,6 +413,8 @@ function settingsRowHTML(d) {
         <input type="range" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}"
                oninput="setSettingLive('${d.id}', this.value)">
         <span class="set-slider-v">${v}${d.unit || ''}</span></span>`;
+  } else if (d.type === 'keybind') {
+    control = keyBindRowHTML(d);
   } else if (d.type === 'select') {
     control = `<span class="set-seg">` + d.options.map(([val, lbl]) =>
         `<button class="set-seg-b${String(v) === String(val) ? ' on' : ''}" onclick="setSetting('${d.id}', '${val}')">${lbl}</button>`

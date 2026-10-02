@@ -22,6 +22,7 @@ function doDiscard() {
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
   if (selected.length === 0) return;
+  if (typeof dragGrace !== 'undefined') dragGrace = false;
   // Guard: block discard when out of discards. Mirrors the swap guard in input.js.
   // Hoarder is the one bypass - its whole text is "discards no longer count against
   // the discard limit", so it must not be stopped by that limit either.

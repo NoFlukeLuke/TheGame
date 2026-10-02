@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r436 · Card animation lab (dev panel tab)";
+const BUILD = "2026-10-02 · r437 · Controls: drag grace, drag back, double-tap play, keys, hints";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

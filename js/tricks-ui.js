@@ -418,6 +418,7 @@ document.getElementById('btn-discard').addEventListener('click', () => {
     showMessage(dragDiscardArmed ? 'Drag to discard' : 'Discard cancelled', 'var(--cream-dim)');
     return;
   }
+  if (typeof ctlDiscardGate === 'function' && !ctlDiscardGate()) return;
   doDiscard();
 });
 

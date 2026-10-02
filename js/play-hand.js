@@ -230,6 +230,7 @@ function playHand() {
     }
   }
   cancelAutoSubmit();
+  dragGrace = false;
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   let result = findBestHand(selected);
   // Roll Call (r278, js/card-states.js): every card of its rank on the board

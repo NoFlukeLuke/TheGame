@@ -11,13 +11,15 @@ const AUTO_SUBMIT_DELAY_FAST = 350;  // ms - autoPlayHands: steering, not choosi
 // path would be a second way into playHand to keep in step with this one.
 function autoSubmitDelay() {
   return (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.autoPlayHands)
-    ? AUTO_SUBMIT_DELAY_FAST : AUTO_SUBMIT_DELAY;
+    ? AUTO_SUBMIT_DELAY_FAST
+    : (typeof ctlAutoPlayMs === 'function' ? ctlAutoPlayMs() : AUTO_SUBMIT_DELAY);
 }
 let autoSubmitTimer = null;
 let handReadyForSubmit = false; // true once an invalid card is hit mid-swipe
 
 function cancelAutoSubmit() {
   if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
+  if (dragPlayTimer) { clearTimeout(dragPlayTimer); dragPlayTimer = null; }
   handReadyForSubmit = false;
 }
 
@@ -47,6 +49,23 @@ function scheduleQueuedRetry() {
 // right-drag discard. Taps still select and PLAY still plays, so this only adds.
 let controlMode = 'tap';
 let dragDiscardArmed = false;
+// The grace after a drag release (Settings > Controls > After a drag): while
+// it runs, a tap still adds a card and restarts the wait. dragGrace outlives
+// cancelAutoSubmit on purpose - the tap path cancels and re-schedules, and the
+// re-schedule is what re-arms this timer.
+let dragGrace = false, dragPlayTimer = null;
+function armDragPlay() {
+  if (dragPlayTimer) { clearTimeout(dragPlayTimer); dragPlayTimer = null; }
+  if (!selected.length) { dragGrace = false; return; }
+  if (!findBestHand(selected)) return;          // keep the grace; a tap may yet make the hand
+  handReadyForSubmit = true;
+  dragPlayTimer = setTimeout(() => {
+    dragPlayTimer = null;
+    if (!dragGrace || animating || falling || !dragControlsLive()) return;
+    dragGrace = false; handReadyForSubmit = false;
+    if (selected.length && findBestHand(selected)) playHand();
+  }, ctlDragGraceMs());
+}
 function controlDragPlay() { return controlMode === 'drag'; }
 function setControlMode(v) {
   controlMode = v === 'drag' ? 'drag' : 'tap';
@@ -58,22 +77,13 @@ function setDragDiscardArmed(on) {
   document.getElementById('btn-discard')?.classList.toggle('drag-armed', dragDiscardArmed);
 }
 // The takeover screens own #grid and the two buttons; a drag there is theirs.
-function dragControlsLive() {
-  return controlDragPlay()
-    && !(typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
-    && !(typeof shopGridActive !== 'undefined' && shopGridActive)
-    && !(typeof squaresActive === 'function' && squaresActive())
-    && !(typeof mapActive === 'function' && mapActive())
-    && !(typeof gridPickState !== 'undefined' && gridPickState)
-    && !(typeof flowrDeckActive === 'function' && flowrDeckActive())
-    && !(typeof dealerActive === 'function' && dealerActive())
-    && !match3Active();
-}
+function dragControlsLive() { return controlDragPlay() && ctlLiveBoard(); }
 
 function scheduleAutoSubmit() {
   cancelAutoSubmit();
   // Drag to play: the release IS the submit, so no timer may fire mid-drag.
-  if (dragControlsLive() && document.getElementById('grid')?._pointerStart) return;
+  if (dragControlsLive() && document.getElementById('grid')?._pointerStart?.moved) return;
+  if (dragGrace) { armDragPlay(); render(); return; }
   // Match-3: hands are never submitted by selection - matches play themselves.
   // Selection exists purely to choose cards to DISCARD.
   if (match3Active()) return;
@@ -84,6 +94,7 @@ function scheduleAutoSubmit() {
   if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) return;
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
+  if (autoSubmitDelay() <= 0) return;   // Settings > Controls > Auto-play: Off
   // Tutorial: the early steps teach "select, look at the preview, then press
   // PLAY". A 2s auto-play would fire the hand out from under the lesson, so the
   // countdown is suppressed while those steps are up (the pulse still shows).
@@ -259,7 +270,7 @@ function deselect(r, c) {
   if (idx === -1) return;
 
   const remaining = selected.filter((_,i) => i !== idx);
-  if (remaining.length === 0) { selected = []; render(); return; }
+  if (remaining.length === 0) { selected = []; dragGrace = false; render(); return; }
 
   // Find connected components among remaining
   const inRemaining = new Set(remaining.map(([r,c]) => `${r}-${c}`));
@@ -322,6 +333,7 @@ function tryAddToSelection(r, c) {
   return true;
 }
 
+let _dtBefore = null;   // the selection before the first tap of a possible double-tap
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
@@ -465,6 +477,17 @@ function onCardTap(r, c) {
     return;
   }
 
+  // Double-tap a card that was IN a playable selection -> play it (Settings >
+  // Controls). The first tap of the pair deselected it, so the selection from
+  // before that tap is put back. A double-tap on a card that was not selected
+  // still lifts it for a swap: you do not swap mid-selection.
+  if (isDoubleTap && ctlOn('ctlDoubleTapPlay') && _dtBefore && _dtBefore.r === r && _dtBefore.c === c
+      && _dtBefore.wasSel && _dtBefore.sel.length >= 2 && findBestHand(_dtBefore.sel)) {
+    selected = _dtBefore.sel; _dtBefore = null;
+    lastTapTime = 0; lastTapCell = null;
+    cancelAutoSubmit(); playHand();
+    return;
+  }
   // Double-tap → enter swap mode
   if (isDoubleTap) {
     cancelAutoSubmit();
@@ -475,6 +498,7 @@ function onCardTap(r, c) {
     return;
   }
 
+  _dtBefore = { r, c, sel: selected.map(x => [...x]), wasSel: selected.some(([sr,sc]) => sr===r && sc===c) };
   // Already selected → deselect with component logic
   if (selected.some(([sr,sc]) => sr===r && sc===c)) {
     deselect(r, c);
@@ -557,8 +581,9 @@ gridEl2.addEventListener('pointermove', e => {
         if (reachable && !reachable.has(originKey)) {
           // Not adjacent to existing selection - start fresh
           selected = [[ps.r, ps.c]];
+          ps.added = [originKey];
         } else {
-          tryAddToSelection(ps.r, ps.c);
+          if (tryAddToSelection(ps.r, ps.c)) ps.added = [originKey];
         }
       }
     }
@@ -566,7 +591,16 @@ gridEl2.addEventListener('pointermove', e => {
     if (isSwiping && !swipeStopped) {
       const key = `${r}-${c}`;
       if (selected.some(([sr,sc]) => sr===r && sc===c)) {
-        // Swiped over already-selected card - ignore (don't deselect during swipe)
+        // Drag back onto the previous card drops the last one (Settings >
+        // Controls), but only cards this drag added. Otherwise a swipe over a
+        // selected card is ignored.
+        const n = selected.length, prev = selected[n - 2], last = selected[n - 1];
+        if (ctlOn('ctlDragBack') && n >= 2 && prev[0] === r && prev[1] === c
+            && ps.added && ps.added.some(k => k === `${last[0]}-${last[1]}`)) {
+          selected.pop(); ps.added.pop();
+          swipeStopped = false;
+          sfxCardSelect(); scheduleAutoSubmit(); render();
+        }
         return;
       }
       // Skip non-selectable cells (stones, Tricks, voids)
@@ -581,6 +615,7 @@ gridEl2.addEventListener('pointermove', e => {
       }
       if (selected.length < limits.selection.current) {
         selected.push([r, c]);
+        (ps.added || (ps.added = [])).push(key);
         dbgEvent('info', `swipe-add [${r},${c}] (total:${selected.length})`);
         sfxCardSelect();
         scheduleAutoSubmit();
@@ -617,6 +652,7 @@ gridEl2.addEventListener('pointerup', e => {
     isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
     cancelAutoSubmit();
     if (dragDiscardArmed) { setDragDiscardArmed(false); doDiscard(); }
+    else if (ctlDragGraceMs() > 0) { dragGrace = true; armDragPlay(); render(); }
     else if (findBestHand(selected)) playHand();
     else scheduleAutoSubmit();
     return;

@@ -177,3 +177,17 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
 /* Drag to play (r409): DISCARD armed so the next drag discards. */
 .btn-discard.drag-armed { box-shadow: 0 0 0 2px #fff, 0 0 14px 3px var(--red); animation: dragArmPulse 1s ease-in-out infinite alternate; }
 @keyframes dragArmPulse { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+
+/* Controls (r436) */
+.set-key { min-width: 64px; font-family: 'Share Tech Mono', monospace; }
+.set-key.listening { background: var(--gold, #f0c040); color: #111; animation: dragArmPulse .6s ease-in-out infinite alternate; }
+.btn-discard.confirm-armed { box-shadow: 0 0 0 2px #fff, 0 0 12px 2px var(--red); }
+/* Left-handed: the portrait board row is mirrored, so the action column sits on the left. */
+body.left-handed #stage:not(.landscape) #grid-and-buttons { flex-direction: row-reverse; }
+/* Idle hint: one faint diagonal shine across each card of a playable hand, staggered. */
+.idle-shine { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 4; }
+.idle-shine::before { content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.38), transparent);
+  transform: skewX(-12deg); animation: idleShine 1.1s ease-in-out var(--d, 0ms) both; }
+@keyframes idleShine { from { left: -60%; opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } to { left: 120%; opacity: 0; } }
+body.reduced-motion .idle-shine::before { animation-duration: 2s; }

@@ -439,6 +439,7 @@ function toastLayer() {
 // sfxRewardBad; this is for a move the game would not let you make.
 function refuse(text, opts) {
   try { sfxNoSwaps?.(); } catch (e) {}
+  if (typeof ctlHaptic === 'function') ctlHaptic('refuse');
   if (text) showMessage(text, (opts && opts.color) || 'var(--red)', opts);
 }
 

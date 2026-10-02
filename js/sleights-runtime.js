@@ -861,32 +861,60 @@ function hideCardTooltip() {
   document.getElementById('card-enh-tooltip')?.remove();
 }
 
-function showCardTooltip(r, c) {
+// What is true of this card and its cell (r436): its own buffs, curse and
+// card states, then every Trick marking its row, column or the cell itself.
+// `always` (a long-press) answers even when the answer is "nothing"; a mouse
+// hover only shows when there is something to say.
+function cardTooltipSections(r, c, card) {
+  const k = cardId(card), own = [], cell = [];
+  cardBuffLines(k).forEach(l => own.push(l));
+  const cu = typeof cardCurses !== 'undefined' && cardCurses[k];
+  if (cu && CURSE_DEFS[cu.id]) { const d = CURSE_DEFS[cu.id]; own.push(`${d.icon} ${d.name}: ${d.desc} (${cu.left} to go)`); }
+  if (typeof cardStateList === 'function')
+    cardStateList(card).forEach(({ def, n }) => own.push(`${def.icon} ${def.name}${n > 1 ? ' x' + n : ''}: ${def.desc}`));
+  const trickTxt = id => {
+    const t = (typeof trickTray !== 'undefined' ? trickTray : []).find(x => x && x.id === id);
+    if (t) return colorizeKeywords(typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc);
+    const kn = (typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []).find(x => x && x.id === id);
+    return kn ? colorizeKeywords(kn.desc) : '';
+  };
+  const seen = new Set();
+  if (typeof rowColBonuses !== 'undefined') rowColBonuses.forEach(bn => {
+    if (!((bn.axis === 'row' && bn.index === r) || (bn.axis === 'col' && bn.index === c))) return;
+    if (seen.has(bn.id)) return; seen.add(bn.id);
+    const m = lineFXMeta(bn.id), d = trickTxt(bn.id);
+    cell.push(`<span style="color:${m.color}">${m.glyph} ${m.name}</span>${d ? ': ' + d : ''}`);
+  });
+  if (typeof CARD_MARK_META !== 'undefined') for (const id in CARD_MARK_META) {
+    const m = CARD_MARK_META[id];
+    let hit = false; try { hit = !!m.covers(r, c); } catch (e) {}
+    if (!hit || seen.has(id)) continue; seen.add(id);
+    const d = trickTxt(id);
+    cell.push(`<span style="color:${m.color}">${m.glyph} ${m.name}</span>${d ? ': ' + d : ''}`);
+  }
+  return { own, cell };
+}
+
+function showCardTooltip(r, c, always) {
   hideCardTooltip();
   const card = gridData[r]?.[c];
   if (!card) return;
   if (card._isSleight) { showSleightGridTooltip(r, c, card); return; }
-  // Normal card - show enhancement tooltip only if something to show
-  const k  = cardId(card);
-  const pp = permPips[k]   || 0;
-  const pm = permMult[k]   || 0;
-  const xp = permXPips[k]  || 1;
-  const xm = permXMult[k]  || 1;
-  const re = permRetrig[k] || 0;
-  const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
-  if (!pp && !pm && !gp && !gm && xp <= 1 && xm <= 1 && !re) return;
+  if (!card.rank) return;
+  const { own, cell } = cardTooltipSections(r, c, card);
+  if (!own.length && !cell.length && !always) return;
   const gridEl  = document.getElementById('grid');
   const cardEl  = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!cardEl) return;
-  // One shared wording for every card buff, flat and scaling alike
-  // (cardBuffLines in js/deck-grid.js) - so the tooltip cannot say something
-  // different from the tile that granted it.
-  const lines = cardBuffLines(k);
+  const sec = (title, lines) => lines.length
+    ? `<div class="sleight-tooltip-hint">${title}</div><div class="sleight-tooltip-desc">${lines.join('<br>')}</div>` : '';
   const tip = document.createElement('div');
   tip.id = 'card-enh-tooltip';
   tip.className = 'sleight-tooltip';
-  tip.innerHTML = `<div class="sleight-tooltip-name">${card.rank}${card.suit}</div>`
-                + `<div class="sleight-tooltip-desc">${lines.join('<br>')}</div>`;
+  const face = (typeof isWildCard === 'function' && isWildCard(card)) ? 'Wild' : `${card.rank}${card.suit}`;
+  tip.innerHTML = `<div class="sleight-tooltip-name">${face}</div>`
+                + sec('ON THIS CARD', own) + sec('ON THIS CELL', cell)
+                + (!own.length && !cell.length ? `<div class="sleight-tooltip-desc">No buffs.</div>` : '');
   tip.style.opacity = '0';
   placeCardTooltip(tip, cardEl);
 }
@@ -901,7 +929,7 @@ function attachLongPress(el, r, c) {
     timer = setTimeout(() => {
       longFired = true;
       _longPressActive = true;
-      showCardTooltip(r, c);
+      showCardTooltip(r, c, true);
     }, 500);
   };
   el.onpointerdown  = start;
