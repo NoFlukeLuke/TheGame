@@ -80,6 +80,14 @@ const SFX_CATALOG = [
   { id: 'chal_appear',   fn: 'sfxChallengeAppear', group: 'Challenge', label: 'Challenge appears' },
   { id: 'chal_win',      fn: 'sfxChallengeWin',    group: 'Challenge', label: 'Challenge won' },
   { id: 'chal_fail',     fn: 'sfxChallengeFail',   group: 'Challenge', label: 'Challenge failed' },
+  { id: 'chal_warn',     fn: 'sfxChallengeWarn',   group: 'Challenge', label: 'Challenge cell pulses', note: 'A cell starts to pulse; a challenge card is coming.' },
+  { id: 'chal_land',     fn: 'sfxChallengeLand',   group: 'Challenge', label: 'Challenge card drops in' },
+  { id: 'chal_slap',     fn: 'sfxChallengeSlap',   group: 'Challenge', label: 'Challenge: hand counted' },
+  { id: 'chal_tap',      fn: 'sfxChallengeTap',    group: 'Challenge', label: 'Challenge: touching hand' },
+  { id: 'chal_thud',     fn: 'sfxChallengeThud',   group: 'Challenge', label: 'Challenge: fall or hit' },
+  { id: 'chal_solve',    fn: 'sfxChallengeSolve',  group: 'Challenge', label: 'Challenge card solved' },
+  { id: 'chal_expire',   fn: 'sfxChallengeExpire', group: 'Challenge', label: 'Challenge card failed' },
+  { id: 'chal_tick',     fn: 'sfxChallengeTick',   group: 'Challenge', label: 'Challenge: last seconds' },
 
   // Time
   // These three were NOT in the catalog before r234, which meant they could not

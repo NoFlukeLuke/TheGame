@@ -385,9 +385,9 @@ long (no skip, no Greedy Boi). Clock out without the goal is an ordinary lost ro
 Where: a mode with the `challengeNode` flag (Classic: node 3 of each quarter, via
 `crMaybeArmForNode`), and half the Schedule's challenge tiles are an **AUDIT** (`t.audit`,
 `MAP_AUDIT_SHARE`) instead of a PRIORITY account, with `CR_MAP_BONUS_SECONDS` (60) on the clock
-past the round cap (`crStartBonus`, read by the countdown refill). Not in Flow yet: Flow has no
-round clock to fail against. `crRound` / `crArmed` are plain data in SAVE_VARS. Dev:
-"Next Round: Challenge" and "Open Penalty Grid" under Level & screens.
+past the round cap (`crStartBonus`, read by the countdown refill). `crRound` / `crArmed` /
+`crFlow` are plain data in SAVE_VARS. Dev (Level & screens): "Next Round: Challenge", "Open
+Penalty Grid", "Flow: Challenge Card Now".
 Same pass: the reward grids lost the Cut tile and the dual card op, and card-buff tiles are
 halved (`REWARD_BUFF_CATS` blessed 6 -> 3, prize 10 -> 5).
 
@@ -435,3 +435,36 @@ it) and the dark gap after it slides with the next line, so gaps close on the le
 their thickness. The clear-centre cap counts a line only if it clears the centre at full lean. Ripple is a
 comet (sharp front, tail behind) over each tray's OWN line count, restarting at the border. Store is now
 `lethe.trayFx.v2`, overrides only; v1 is carried over once with its old fade 50 dropped (default 70).
+
+## r452 - challenge cards v2: Flow, fall cards, arrival and effects (`js/challenge-round.js`)
+- **Each card carries its own state** on the board object (`card.cr`: kind, tier, `diff`,
+  prog/seen, `src` 'seq'|'flow', `timeLeft`, `done`), so two can share a board and a save keeps
+  them with gridData. `crCards()` lists them; `crQueue` holds ids leaving, drained by `crDrain`
+  (never mid-fall, never while a round is over; `crOnRoundStart` drains a card the last hand solved).
+- **Arrival:** `crBeginArrival(src, tier, idx)` picks a valid cell (`crSpotsFor`: a playable
+  neighbour for every card, fall cards in fixed rows), pulses it (`.cr-tele`, `CR_TELE_MS` 3s in a
+  challenge round, 5s in Flow), sinks the old card with the animation lab's Sink look, and drops the
+  challenge card in from above (`crFxLand`).
+- **Flow (owner spec):** `CR_FLOW_PER_CYCLE` (2) cards per boss cycle, planned off the session clock
+  (`crFlowPlanCycle`: at least `CR_FLOW_TIME`+5s apart, none within `CR_FLOW_BOSS_GAP` (60s) of either
+  end of a boss), `CR_FLOW_SPICE` 10% chance of a second card 15s later, at most two at once. Each
+  card has `CR_FLOW_TIME` (60s) of its own, ticked from the round tick (`crTick`), so it pauses with
+  the clock and survives level-ups. Solved: +credits, +seconds (`rewindTime`), +1 reward next level-up;
+  timed out: the same taken away and one fewer reward (`crTakeFlowRewardDelta`, read by `flowrArm`,
+  never below 1). Amounts by difficulty: `CR_DIFFICULTY[kind+tier]` -> `CR_FLOW_STAKES` (1: 5/10s,
+  2: 8/15s, 3: 12/20s). **The owner will assign difficulties after play**; until then they follow tier.
+  `flowTriggerBoss` clears Flow cards (`crFlowCancel`); `flowEndBoss` re-plans (`crFlowNewCycle`).
+- **Fall cards** (tier 2, every mode): `colfall` spawns in the top row, locks discards in its column
+  and is solved after falling `CR_FALL_NEEDED` (2) times; `rowhit` spawns in the bottom row, locks
+  discards in its row and is solved after 2 cards fall onto it. `crBeforeFall`/`crAfterFall` bracket
+  `removeAndFall`; `crDiscardLocked` refuses in `doDiscard`; `crPaintLocks` draws the hatched band
+  from `render()`'s tail.
+- **Achievable by construction:** named hands come from `achievableHandTypes()` filtered by
+  `handIsActive`; sizes/suit counts/type counts are capped; "N in one hand" is set from the median of
+  recent hand scores (`crRecent`), not the goal.
+- **Looks and sounds per family** (`crFamily`: slap = hand asks, tap = touch, thud = fall cards):
+  increment, solve (gold check, sparks), fail (grey, shake), leave. Face: difficulty pips (Flow) or
+  1/3 (round), glyph, task, to-do boxes (`crBoxes`), Flow's draining timer (red in the last 10s, ticks
+  in the last 5). Synthesised sounds `sfxChallengeWarn/Land/Slap/Tap/Thud/Solve/Expire/Tick`,
+  catalogued under Challenge in `js/audio-assets.js`.
+

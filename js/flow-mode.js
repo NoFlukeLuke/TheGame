@@ -115,6 +115,7 @@ function flowTriggerBoss() {
   // above is already correct, so an abort can't strand a half-reset run.
   suppressScoreDisplay = true;
   showMessage('⚠ BOSS', 'var(--red)');
+  if (typeof crFlowCancel === 'function') crFlowCancel();   // no challenge card overlaps a boss
   const _go = () => triggerBoss(null, FLOW_BOSS_WINDOW);
   if (typeof bossApproachWipe === 'function') bossApproachWipe(_wiped).then(_go);
   else { suppressScoreDisplay = false; updateScoreUI(); _go(); }
@@ -125,6 +126,7 @@ function flowTriggerBoss() {
 function flowEndBoss() {
   flowBossFighting = false;
   flowRefillClock  = true;
+  if (typeof crFlowNewCycle === 'function') crFlowNewCycle();   // fresh challenge plan for the next cycle
 }
 
 // The session clock is NOT refilled by an ordinary level-up - five minutes spans as

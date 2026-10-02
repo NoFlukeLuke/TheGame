@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r451 · Tray lines: spacing, cursor tilt, comet ripple";
+const BUILD = "2026-10-02 · r452 · Challenge cards v2: Flow cards, fall cards, arrival and effects";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

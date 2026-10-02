@@ -364,6 +364,7 @@ function render() {
   // ran before the card loop above (js/entity-fx.js).
   if (typeof renderLineMarkers === 'function') renderLineMarkers();
   if (typeof renderQuotaLines === 'function') renderQuotaLines();
+  if (typeof crPaintLocks === 'function') crPaintLocks();   // fall-type challenge cards' locked lines
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
