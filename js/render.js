@@ -368,6 +368,7 @@ function render() {
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
   if (typeof bossGradientPaint === 'function') bossGradientPaint();
+  if (typeof cardAnimAfterRender === 'function') cardAnimAfterRender();   // r445: the select ripple
 }
 
 // THE BOARD PATTERN'S ELEMENT (r409, css/hypno.css). It lives INSIDE #grid, as

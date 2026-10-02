@@ -2175,6 +2175,7 @@ function flowrAdjApply(r, c, sel) {
       }
       else if (op.id === 'copy') { t.rank = sel.rank; t.suit = sel.suit; }
       else if (op.id === 'del') {
+        if (typeof cardAnimExit === 'function') cardAnimExit('cut', [elOf(tr, tc)]);   // r445: the chosen cut look
         if (typeof expectedDeckTotal !== 'undefined') expectedDeckTotal--;
         gridData[tr][tc] = (typeof drawCard === 'function' ? drawCard() : null) || null;
       }

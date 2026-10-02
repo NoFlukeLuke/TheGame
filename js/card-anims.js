@@ -75,6 +75,7 @@ function cardAnimChoice(kind) {
 }
 function setCardAnimChoice(kind, id) {
   if (id === 'current') delete _cardAnimPick[kind]; else _cardAnimPick[kind] = id;
+  if (kind === 'idle') setTimeout(() => { try { cardAnimApplyIdle(); } catch (e) {} });
   try { Object.keys(_cardAnimPick).length ? localStorage.setItem(CARD_ANIM_KEY, JSON.stringify(_cardAnimPick)) : localStorage.removeItem(CARD_ANIM_KEY); } catch (e) {}
 }
 
@@ -90,7 +91,6 @@ const caAnim = (el, frames, opts) => new Promise(res => {
   a.oncancel = () => res();
 });
 
-// ── Current looks, as stand-ins for comparison ──────────────────────────────
 // ── SWAP (step 4) ───────────────────────────────────────────────────────────
 // Runners are FLIP-shaped, exactly as the game does a swap: the data and the DOM
 // have ALREADY swapped, so `a` (the card picked first) sits in its new cell and
@@ -240,24 +240,306 @@ const caFly = id => async ({ cards, slots }) => {
 };
 Object.keys(CARD_FLY_LOOKS).forEach(id => { CARD_ANIM_RUN.fly[id] = caFly(id); });
 
-const caShrinkFade = async ({ cards }) => {
-  await Promise.all(cards.map(el => caAnim(el, [{ opacity: 1, scale: '1' }, { opacity: 0, scale: '.85' }],
-    { duration: 180, easing: 'ease-in', fill: 'forwards' })));
+// ── DISCARD and CUT (step 6) ────────────────────────────────────────────────
+// Exits: the element is about to be removed, so the end state is KEPT (no cancel).
+// ctx.cards are the elements; ctx.target is a viewport rect to aim at (the DISCARD
+// button in the game), or null.
+const caKeep = (el, frames, opts) => new Promise(res => {
+  if (!el || !el.animate) return res();
+  const a = el.animate(frames, Object.assign({ fill: 'forwards' }, opts));
+  a.onfinish = res; a.oncancel = res; setTimeout(res, (opts.duration || 300) + (opts.delay || 0) + 80);
+});
+const caK = el => { const r = el.getBoundingClientRect(); return (r.width / (el.offsetWidth || 1)) || 1; };
+function caAim(el, target) {
+  const r = el.getBoundingClientRect(), k = caK(el);
+  if (!target) return { dx: 0, dy: el.offsetHeight * 1.2, k };
+  return { dx: (target.left + target.width / 2 - r.left - r.width / 2) / k, dy: (target.top + target.height / 2 - r.top - r.height / 2) / k, k };
+}
+const caZ = el => { el.style.zIndex = '20'; };
+const caRnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
+const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 460 }, cut: { current: 280, burn: 620, snip: 600, deep: 520 } };
+
+CARD_ANIM_RUN.discard.current = async ({ cards, target }) => {
+  await Promise.all(cards.map(el => { caZ(el); const { dx, dy } = caAim(el, target);
+    return caKeep(el, [{ translate: '0px 0px', scale: '1', opacity: 1 }, { translate: caT(dx, dy), scale: '.3', opacity: 0 }],
+      { duration: 280, easing: 'cubic-bezier(0.4,0,1,1)' }); }));
 };
-CARD_ANIM_RUN.discard.current = caShrinkFade;
-CARD_ANIM_RUN.cut.current = caShrinkFade;
+// A: flicked off the board with a spin, arcing toward the discard pile
+CARD_ANIM_RUN.discard.toss = async ({ cards, target }) => {
+  await Promise.all(cards.map((el, i) => { caZ(el); const { dx, dy } = caAim(el, target), h = el.offsetHeight;
+    const spin = (dx >= 0 ? 1 : -1) * (300 + caRnd() * 200);
+    return caKeep(el, [
+      { translate: '0px 0px', rotate: '0deg', scale: '1', opacity: 1 },
+      { translate: caT(dx * .35, dy * .35 - h * .9), rotate: `${spin * .4}deg`, scale: '.9', opacity: 1, offset: .4 },
+      { translate: caT(dx, dy), rotate: `${spin}deg`, scale: '.35', opacity: 0 }],
+      { duration: CARD_EXIT_MS.discard.toss, delay: i * 40, easing: 'cubic-bezier(.3,.5,.6,1)' }); }));
+};
+// B: squashed into a ball that drops away
+CARD_ANIM_RUN.discard.crumple = async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => { caZ(el); const h = el.offsetHeight;
+    return caKeep(el, [
+      { scale: '1 1', rotate: '0deg', borderRadius: '5px', filter: 'brightness(1)', translate: '0px 0px', opacity: 1 },
+      { scale: '.78 .62', rotate: '8deg', borderRadius: '18px', filter: 'brightness(.85) contrast(1.2)', translate: '0px 0px', opacity: 1, offset: .3 },
+      { scale: '.42 .44', rotate: '-14deg', borderRadius: '50%', filter: 'brightness(.7) contrast(1.3)', translate: '0px 0px', opacity: 1, offset: .55 },
+      { scale: '.34 .34', rotate: '40deg', borderRadius: '50%', filter: 'brightness(.6)', translate: caT(0, h * 1.3), opacity: 0 }],
+      { duration: CARD_EXIT_MS.discard.crumple, delay: i * 40, easing: 'cubic-bezier(.4,0,.7,1)' }); }));
+};
+// C: falls back into the table, darkening as it goes
+CARD_ANIM_RUN.discard.sink = async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => { caZ(el);
+    return caKeep(el, [
+      { scale: '1', translate: '0px 0px', filter: 'brightness(1) blur(0px)', opacity: 1 },
+      { scale: '.9', translate: '0px 2px', filter: 'brightness(.55) blur(0px)', opacity: 1, offset: .35 },
+      { scale: '.55', translate: '0px 8px', filter: 'brightness(.1) blur(1.5px)', opacity: 0 }],
+      { duration: CARD_EXIT_MS.discard.sink, delay: i * 40, easing: 'cubic-bezier(.5,0,.8,.6)' }); }));
+};
+
+CARD_ANIM_RUN.cut.current = async ({ cards }) => {
+  await Promise.all(cards.map(el => caKeep(el, [{ opacity: 1, scale: '1' }, { opacity: 0, scale: '.85' }], { duration: 280, easing: 'ease-in' })));
+};
+// A: an edge catches and burns across the card
+CARD_ANIM_RUN.cut.burn = async ({ cards }) => {
+  await Promise.all(cards.map(el => {
+    caZ(el);
+    const fire = document.createElement('div'); fire.className = 'ca-burn'; el.appendChild(fire);
+    const d = CARD_EXIT_MS.cut.burn;
+    caKeep(fire, [{ '--ca-burn': '0%' }, { '--ca-burn': '115%' }], { duration: d * .8, easing: 'ease-in' });
+    return caKeep(el, [
+      { filter: 'sepia(0) brightness(1)', scale: '1', opacity: 1 },
+      { filter: 'sepia(.8) brightness(.7)', scale: '.97', opacity: 1, offset: .6 },
+      { filter: 'sepia(1) brightness(.15)', scale: '.9', opacity: 0 }], { duration: d, easing: 'ease-in' });
+  }));
+};
+// B: cut in two along a diagonal; the halves fall apart
+CARD_ANIM_RUN.cut.snip = async ({ cards }) => {
+  await Promise.all(cards.map(el => {
+    const parent = el.parentNode; if (!parent) return Promise.resolve();
+    const h = el.offsetHeight, d = CARD_EXIT_MS.cut.snip;
+    const half = (clip, dx, rot) => {
+      const c = el.cloneNode(true); c.classList.add('ca-half'); c.removeAttribute('data-card-id');
+      c.style.clipPath = clip; c.style.zIndex = '21'; c.style.left = el.style.left; c.style.top = el.style.top;
+      parent.appendChild(c);
+      return caKeep(c, [
+        { translate: '0px 0px', rotate: '0deg', opacity: 1 },
+        { translate: caT(dx * .4, -h * .06), rotate: `${rot * .3}deg`, opacity: 1, offset: .25 },
+        { translate: caT(dx, h * 1.1), rotate: `${rot}deg`, opacity: 0 }],
+        { duration: d, easing: 'cubic-bezier(.35,0,.7,1)' }).then(() => c.remove());
+    };
+    el.style.opacity = '0';
+    const line = document.createElement('div'); line.className = 'ca-snipline';
+    line.style.left = el.style.left; line.style.top = el.style.top; line.style.width = el.offsetWidth + 'px'; line.style.height = h + 'px';
+    parent.appendChild(line); setTimeout(() => line.remove(), 260);
+    return Promise.all([half('polygon(0 0,100% 0,0 100%)', -18, -24), half('polygon(100% 0,100% 100%,0 100%)', 18, 24)]);
+  }));
+};
+// C: drops through the board into the dark, shrinking
+CARD_ANIM_RUN.cut.deep = async ({ cards }) => {
+  await Promise.all(cards.map(el => { caZ(el); return caKeep(el, [
+    { scale: '1', rotate: '0deg', translate: '0px 0px', filter: 'brightness(1)', opacity: 1 },
+    { scale: '1.06', rotate: '0deg', translate: '0px -4px', filter: 'brightness(1.05)', opacity: 1, offset: .15 },
+    { scale: '.16', rotate: `${caRnd() < .5 ? -1 : 1}${18 + caRnd() * 20}deg`, translate: '0px 10px', filter: 'brightness(0)', opacity: 0 }],
+    { duration: CARD_EXIT_MS.cut.deep, easing: 'cubic-bezier(.55,0,.9,.5)' }); }));
+};
+
+// ── BUFF and BOSS (step 6) ──────────────────────────────────────────────────
+// Entrances on a card that stays: everything returns to rest (caAnim cancels).
+const caOverlay = (el, cls, ms) => { const o = document.createElement('div'); o.className = cls; el.appendChild(o); setTimeout(() => o.remove(), ms + 60); return o; };
+
 CARD_ANIM_RUN.buff.current = async ({ cards }) => {
   await Promise.all(cards.map(el => caAnim(el, [
     { scale: '1', boxShadow: '0 0 0 0 #4aa3e000' },
     { scale: '1.08', boxShadow: '0 0 0 3px #4aa3e0, 0 0 16px #4aa3e0' },
     { scale: '1', boxShadow: '0 0 0 0 #4aa3e000' }], { duration: 450, easing: 'ease' })));
 };
-CARD_ANIM_RUN.boss.current = async () => { await caWait(300); };
+// A: pressed down like a rubber stamp, with a ring thrown out
+CARD_ANIM_RUN.buff.stamp = async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => caWait(i * 70).then(() => {
+    caOverlay(el, 'ca-stampring', 520);
+    try { sfxCardSelect?.(); } catch (e) {}
+    return caAnim(el, [
+      { scale: '1', translate: '0px 0px', filter: 'brightness(1)' },
+      { scale: '1.14', translate: '0px -6px', filter: 'brightness(1.1)', offset: .35 },
+      { scale: '.93', translate: '0px 1px', filter: 'brightness(1.25)', offset: .55 },
+      { scale: '1.02', translate: '0px 0px', filter: 'brightness(1.05)', offset: .78 },
+      { scale: '1', translate: '0px 0px', filter: 'brightness(1)' }], { duration: 460, easing: 'cubic-bezier(.4,0,.3,1)' });
+  })));
+};
+// B: fills with light from the bottom, then flares
+CARD_ANIM_RUN.buff.charge = async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => caWait(i * 70).then(() => {
+    const o = caOverlay(el, 'ca-charge', 640);
+    caAnim(o, [{ clipPath: 'inset(100% 0 0 0)', opacity: 1 }, { clipPath: 'inset(0 0 0 0)', opacity: 1, offset: .6 }, { clipPath: 'inset(0 0 0 0)', opacity: 0 }], { duration: 640, easing: 'ease-in-out' });
+    return caAnim(el, [
+      { filter: 'brightness(1)', scale: '1' },
+      { filter: 'brightness(1.05)', scale: '1', offset: .55 },
+      { filter: 'brightness(1.6) drop-shadow(0 0 10px #ffe9a8)', scale: '1.07', offset: .7 },
+      { filter: 'brightness(1)', scale: '1' }], { duration: 640, easing: 'ease' });
+  })));
+};
+// C: flips over and back
+CARD_ANIM_RUN.buff.flip = async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => caWait(i * 70).then(() => caAnim(el, [
+    { rotate: 'y 0deg', scale: '1', filter: 'brightness(1)' },
+    { rotate: 'y 90deg', scale: '1.12', filter: 'brightness(.7)', offset: .3 },
+    { rotate: 'y 270deg', scale: '1.12', filter: 'brightness(.7)', offset: .62 },
+    { rotate: 'y 360deg', scale: '1', filter: 'brightness(1.25)', offset: .85 },
+    { rotate: 'y 360deg', scale: '1', filter: 'brightness(1)' }], { duration: 560, easing: 'cubic-bezier(.4,0,.3,1)' }))));
+};
+
+CARD_ANIM_RUN.boss.current = async () => { await caWait(200); };
+// A: a chain wraps the card and pulls tight
+CARD_ANIM_RUN.boss.shackle = async ({ cards }) => {
+  await Promise.all(cards.map(el => {
+    const o = caOverlay(el, 'ca-chain', 900);
+    caAnim(o, [{ scale: '0 1', opacity: 1 }, { scale: '1.08 1', opacity: 1, offset: .35 }, { scale: '1 1', opacity: 1, offset: .5 }, { scale: '1 1', opacity: 1, offset: .8 }, { scale: '1 1', opacity: 0 }], { duration: 900, easing: 'ease-out' });
+    return caAnim(el, [
+      { translate: '0px 0px', scale: '1' }, { translate: '0px 0px', scale: '1', offset: .35 },
+      { translate: '-2px 0px', scale: '.95', offset: .42 }, { translate: '2px 0px', scale: '.95', offset: .5 },
+      { translate: '-1px 0px', scale: '.96', offset: .58 }, { translate: '0px 0px', scale: '1' }], { duration: 900 });
+  }));
+};
+// B: the card glitches and loses its colour
+CARD_ANIM_RUN.boss.static = async ({ cards }) => {
+  await Promise.all(cards.map(el => {
+    const o = caOverlay(el, 'ca-static', 700);
+    caAnim(o, [{ opacity: 0, backgroundPositionY: '0px' }, { opacity: .9, backgroundPositionY: '40px', offset: .2 }, { opacity: .6, backgroundPositionY: '-30px', offset: .6 }, { opacity: 0, backgroundPositionY: '10px' }], { duration: 700, easing: 'steps(8)' });
+    return caAnim(el, [
+      { translate: '0px 0px', filter: 'grayscale(0) contrast(1)' },
+      { translate: '3px 0px', filter: 'grayscale(.6) contrast(1.6) hue-rotate(40deg)', offset: .15 },
+      { translate: '-4px 1px', filter: 'grayscale(1) contrast(1.3)', offset: .3 },
+      { translate: '2px -1px', filter: 'grayscale(.4) contrast(1.8) hue-rotate(-60deg)', offset: .45 },
+      { translate: '0px 0px', filter: 'grayscale(1) contrast(1)', offset: .7 },
+      { translate: '0px 0px', filter: 'grayscale(0) contrast(1)' }], { duration: 700, easing: 'steps(10)' });
+  }));
+};
+// C: squashed flat into the board
+CARD_ANIM_RUN.boss.pressed = async ({ cards }) => {
+  await Promise.all(cards.map(el => caAnim(el, [
+    { scale: '1 1', translate: '0px 0px', filter: 'brightness(1)' },
+    { scale: '1.04 1.06', translate: '0px -3px', filter: 'brightness(1)', offset: .2 },
+    { scale: '1.1 .78', translate: '0px 4px', filter: 'brightness(.6)', offset: .45 },
+    { scale: '1.05 .86', translate: '0px 3px', filter: 'brightness(.7)', offset: .7 },
+    { scale: '1 1', translate: '0px 0px', filter: 'brightness(1)' }], { duration: 560, easing: 'cubic-bezier(.5,0,.3,1)' })));
+};
+
+// The game's calls. Each finds the chosen look and plays it on card elements.
+const caReduced = () => document.body.classList.contains('reduced-motion');
+function cardAnimExit(kind, els, target) {
+  els = (els || []).filter(Boolean); if (!els.length) return Promise.resolve();
+  const id = caReduced() ? 'current' : cardAnimChoice(kind);
+  return cardAnimRunner(kind, id)({ cards: els, target }).catch(() => {});
+}
+function cardAnimOn(kind, els) {
+  els = (els || []).filter(e => e && e.isConnected); if (!els.length || caReduced()) return;
+  const id = cardAnimChoice(kind); if (id === 'current') return;   // today's look is drawn by the caller
+  cardAnimRunner(kind, id)({ cards: els }).catch(() => {});
+}
+// Board elements for card objects or ids (only cards drawn on #grid right now).
+function cardAnimEls(cards) {
+  const g = document.getElementById('grid'); if (!g) return [];
+  return (cards || []).map(cd => cd && g.querySelector(`[data-card-id="${typeof cd === 'object' ? cd._id : cd}"]`)).filter(Boolean);
+}
+
+// ── SELECT and IDLE (step 7) ────────────────────────────────────────────────
+// A: Ripple. Selecting a card sends a small wave through the cards around it.
+function caRippleFrom(src, board) {
+  if (!src || !board) return;
+  const sr = src.getBoundingClientRect(), k = caK(src), w = src.offsetWidth;
+  board.querySelectorAll('.card').forEach(el => {
+    if (el === src) return;
+    const r = el.getBoundingClientRect();
+    const dx = (r.left + r.width / 2 - sr.left - sr.width / 2) / k, dy = (r.top + r.height / 2 - sr.top - sr.height / 2) / k;
+    const dist = Math.hypot(dx, dy) / (w * 1.15); if (dist > 2.6) return;
+    const push = 5 * (1 - dist / 2.8);
+    caAnim(el, [{ translate: '0px 0px', scale: '1' }, { translate: caT(dx / (dist * w * 1.15 || 1) * push, dy / (dist * w * 1.15 || 1) * push), scale: String(1 + push * .006) }, { translate: '0px 0px', scale: '1' }],
+      { duration: 360, delay: dist * 70, easing: 'ease-out' });
+  });
+}
 CARD_ANIM_RUN.idle.current = async ({ cards }) => {
   for (const el of cards) { el.classList.add('selected'); await caWait(160); }
-  await caWait(700);
-  cards.forEach(el => el.classList.remove('selected'));
+  await caWait(700); cards.forEach(el => el.classList.remove('selected'));
 };
+CARD_ANIM_RUN.idle.ripple = async ({ cards, board }) => {
+  for (const el of cards) { el.classList.add('selected'); caRippleFrom(el, board); await caWait(380); }
+  await caWait(500); cards.forEach(el => el.classList.remove('selected'));
+};
+// B: Gaze. Cards lean toward the pointer (the phone's tilt on mobile).
+let _gazeBoard = null, _gazePt = null, _gazeRaf = 0;
+function caGazeFrame() {
+  _gazeRaf = 0;
+  const b = _gazeBoard; if (!b || !b.isConnected) return;
+  b.querySelectorAll('.card').forEach(el => {
+    if (!_gazePt) { el.style.rotate = ''; return; }
+    const r = el.getBoundingClientRect();
+    const dx = _gazePt.x - (r.left + r.width / 2), dy = _gazePt.y - (r.top + r.height / 2);
+    const d = Math.hypot(dx, dy) || 1, ang = Math.min(14, 2200 / (d + 120));
+    el.style.rotate = `${(-dy / d).toFixed(3)} ${(dx / d).toFixed(3)} 0 ${ang.toFixed(1)}deg`;
+  });
+}
+function caGazePoint(x, y) { _gazePt = x == null ? null : { x, y }; if (!_gazeRaf) _gazeRaf = requestAnimationFrame(caGazeFrame); }
+function caGazeAttach(board) {
+  if (_gazeBoard === board) return;
+  caGazeDetach();
+  _gazeBoard = board; if (!board) return;
+  board.classList.add('ca-gazing');
+  board._gzMove = e => caGazePoint(e.clientX, e.clientY);
+  board._gzLeave = () => caGazePoint(null);
+  board.addEventListener('pointermove', board._gzMove);
+  board.addEventListener('pointerleave', board._gzLeave);
+  window.addEventListener('deviceorientation', caGazeTilt);
+}
+function caGazeDetach() {
+  const b = _gazeBoard; _gazeBoard = null;
+  window.removeEventListener('deviceorientation', caGazeTilt);
+  if (!b) return;
+  b.classList.remove('ca-gazing');
+  b.removeEventListener('pointermove', b._gzMove); b.removeEventListener('pointerleave', b._gzLeave);
+  b.querySelectorAll('.card').forEach(el => { el.style.rotate = ''; });
+}
+function caGazeTilt(e) {
+  if (!_gazeBoard || e.gamma == null) return;
+  const r = _gazeBoard.getBoundingClientRect();
+  caGazePoint(r.left + r.width / 2 + Math.max(-1, Math.min(1, e.gamma / 30)) * r.width,
+              r.top + r.height / 2 + Math.max(-1, Math.min(1, (e.beta - 45) / 30)) * r.height);
+}
+CARD_ANIM_RUN.idle.gaze = async ({ board }) => {
+  caGazeAttach(board);
+  const r = board.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let t = 0; t <= 1; t += 1 / 60) {
+    caGazePoint(cx + Math.cos(t * Math.PI * 2) * r.width * .6, cy + Math.sin(t * Math.PI * 2) * r.height * .6);
+    await caWait(33);
+  }
+  caGazePoint(null); await caWait(60);
+  if (board.id === 'ca-board') caGazeDetach(); else cardAnimApplyIdle();
+};
+// C: Attention. Selected cards hover and sway; the rest settle back.
+CARD_ANIM_RUN.idle.attention = async ({ cards, board }) => {
+  const host = board.closest('#ca-lab') || document.body;
+  host.classList.add('ca-idle-attention');
+  for (const el of cards) { el.classList.add('selected'); await caWait(200); }
+  await caWait(1600); cards.forEach(el => el.classList.remove('selected'));
+  if (host !== document.body) host.classList.remove('ca-idle-attention');
+};
+
+// The game's idle hooks: set once, and again whenever the choice changes.
+function cardAnimApplyIdle() {
+  const id = cardAnimChoice('idle'), g = document.getElementById('grid');
+  document.body.classList.toggle('ca-idle-attention', id === 'attention' && !caReduced());
+  if (id === 'gaze' && !caReduced() && g) caGazeAttach(g); else if (_gazeBoard && _gazeBoard.id === 'grid') caGazeDetach();
+}
+let _caLastSel = new Set();
+// Called from the end of render(): a card newly selected sends the ripple.
+function cardAnimAfterRender() {
+  const g = document.getElementById('grid'); if (!g) return;
+  const now = new Set((typeof selected !== 'undefined' ? selected : []).map(([r, c]) => r + '-' + c));
+  if (cardAnimChoice('idle') === 'ripple' && !caReduced()) {
+    now.forEach(k => { if (_caLastSel.has(k)) return;
+      const [r, c] = k.split('-').map(Number), cd = gridData[r]?.[c];
+      const el = cd && g.querySelector(`[data-card-id="${cd._id}"]`); if (el) caRippleFrom(el, g); });
+  }
+  _caLastSel = now;
+}
+document.addEventListener('DOMContentLoaded', () => { try { cardAnimApplyIdle(); } catch (e) {} });
 
 // ── The lab ──────────────────────────────────────────────────────────────────
 const CA_ROWS = 4, CA_COLS = 5;
@@ -342,7 +624,7 @@ function caTargets(kind) {
     return { a: caCell(1, 1), b: caCell(1, 2) };
   }
   const cards = picked.length ? picked : (kind === 'fly' ? [caCell(2, 1), caCell(2, 2), caCell(2, 3)] : [caCell(1, 2), caCell(2, 2)]);
-  return { cards, slots: [..._caLab.querySelectorAll('#ca-slots i')] };
+  return { cards, slots: [..._caLab.querySelectorAll('#ca-slots i')], target: _caLab.querySelector('#ca-tray').getBoundingClientRect() };
 }
 
 async function caPreview(kind, id) {

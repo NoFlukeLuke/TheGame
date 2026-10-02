@@ -438,6 +438,7 @@ function bossHoldOne(holdSecs) {
   if (swapPending && swapPending[0] === r && swapPending[1] === c) swapPending = null;
   showMessage(`${card.rank}${cardColorSuit(card)} on hold ${Math.round(total)}s`, 'var(--red)');
   if (!animating && !falling) render();
+  if (typeof cardAnimOn === 'function') cardAnimOn('boss', cardAnimEls([card]));   // r445: the chosen boss look
 }
 
 
@@ -491,6 +492,7 @@ function bossRecallTick(count) {
   selected = selected.filter(([r, c]) => !isCardRecalled(gridData[r]?.[c]));
   showMessage(`${draw.join(', ')} withdrawn`, 'var(--red)');
   render();
+  if (typeof cardAnimOn === 'function') cardAnimOn('boss', cardAnimEls(gridData.flat().filter(cd => cd && isCardRecalled(cd))));
 }
 
 function bossRationTick() {

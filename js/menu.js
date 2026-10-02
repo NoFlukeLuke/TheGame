@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r445 · Louder tray lines: count, thickness, glow, motion";
+const BUILD = "2026-10-02 · r446 · Discard, cut, buff, boss and select looks (card animation steps 6-7)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

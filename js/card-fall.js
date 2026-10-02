@@ -237,7 +237,13 @@ async function removeAndFall(removingCells, mode = 'play') {
   const targetRect = targetEl ? targetEl.getBoundingClientRect() : null;
 
   const slidePromises = [];
-  removingCells.forEach(([r,c]) => {
+  // r445: a discard plays the chosen look (dev -> Card Animations, js/card-anims.js)
+  if (mode === 'discard' && typeof cardAnimExit === 'function') {
+    const els = removingCells.map(([r,c]) => gridData[r][c] && gridEl.querySelector(`[data-card-id="${gridData[r][c]._id}"]`)).filter(Boolean);
+    els.forEach(el => { el.style.transition = 'none'; });
+    slidePromises.push(cardAnimExit('discard', els, targetRect));
+  }
+  if (!(mode === 'discard' && typeof cardAnimExit === 'function')) removingCells.forEach(([r,c]) => {
     const card = gridData[r][c];
     if (!card) return;
     const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);

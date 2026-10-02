@@ -391,3 +391,16 @@ round clock to fail against. `crRound` / `crArmed` are plain data in SAVE_VARS. 
 Same pass: the reward grids lost the Cut tile and the dual card op, and card-buff tiles are
 halved (`REWARD_BUFF_CATS` blessed 6 -> 3, prize 10 -> 5).
 
+
+## r446 - steps 6-7: discard, cut, buff, boss and select/idle looks (`js/card-anims.js`)
+Every movement now has three built looks plus Current. **Exits** keep their end state (the element
+is removed after): `cardAnimExit(kind, els, target)`. Discard runs inside `removeAndFall`'s
+'discard' mode (Toss, Crumple, Sink; aimed at the DISCARD button, divided by the zoom); Cut runs in
+the Flow deck editor's delete (Burn, Snip into two clipped halves, Deep fall). **Entrances** return
+to rest: `cardAnimOn(kind, els)` (Current = nothing extra). Buff fires from `enhanceCardKey` on any
+card drawn on #grid (Stamp, Charge, Flip); Boss fires from The Hold and The Recall (Shackle,
+Static, Pressed). Overlays (`.ca-burn`, `.ca-chain`...) are children of the card, so a re-render
+clears them. **Idle**: Ripple is driven from the end of `render()` (`cardAnimAfterRender` diffs
+`selected`); Gaze puts `.ca-gazing` (perspective) on #grid and writes each card's `rotate` axis-angle
+toward the pointer, or the phone's tilt; Attention is `body.ca-idle-attention` CSS.
+`cardAnimApplyIdle()` re-applies on every idle choice change.
