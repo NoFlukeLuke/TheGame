@@ -1380,7 +1380,25 @@ function showRewardTooltipFor(r, c) {
   // being read. The reward grid keeps roomiest-side: its picks are a connected
   // path, and a bubble below the tile would sit on the next tile to take.
   if (onShop) placeTipBelow(el, tt, { gap: 10 });
-  else placeTipSmart(el, tt, { gap: 12 });
+  else { placeTipSmart(el, tt, { gap: 12 }); placeTipOffBoard(el, tt, 12); }
+}
+
+// Landscape: the bubble sits beside the WHOLE board (the free side with room),
+// never over a neighbouring tile - the picks are a connected path, so a bubble
+// on the next tile hides the very thing being chosen.
+function placeTipOffBoard(el, tt, gap) {
+  if (!document.getElementById('stage')?.classList.contains('landscape')) return;
+  const cells = [...document.querySelectorAll('#grid .reward-cell')];
+  if (!cells.length) return;
+  let L = Infinity, R = -Infinity;
+  cells.forEach(c => { const b = c.getBoundingClientRect(); L = Math.min(L, b.left); R = Math.max(R, b.right); });
+  const a = el.getBoundingClientRect(), w = tt.offsetWidth, h = tt.offsetHeight, PAD = 6;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = L - gap - w;
+  if (x < PAD) x = R + gap;
+  if (x + w > vw - PAD) return;   // no clear side: keep placeTipSmart's spot
+  tt.style.left = Math.round(x) + 'px';
+  tt.style.top  = Math.round(Math.max(PAD, Math.min(a.top + a.height / 2 - h / 2, vh - h - PAD))) + 'px';
 }
 
 // Re-show whatever tooltip was up before a re-render, since renderRewardTiles
