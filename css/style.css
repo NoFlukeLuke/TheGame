@@ -4659,6 +4659,7 @@
   /* ==  Visual skin only; layout coordinates untouched.        == */
   /* ============================================================= */
   :root {
+    --tray-lines: 3; --tray-t: 2; --tray-gain: 1.2; --tray-amp: 0.7; --tray-mode: 1; --tray-ph: 0; --tray-halo: 10;
     /* Beige injection-molded housing */
     --plastic:      #e4dccb;
     --plastic-hi:   #f7f2e6;
@@ -4862,15 +4863,35 @@
     --tray-glow:   color-mix(in srgb, var(--tray-c) 15%, transparent);
     --tray-glow2:  color-mix(in srgb, var(--tray-c) 8%,  transparent);
     --tray-glow3:  color-mix(in srgb, var(--tray-c) 4%,  transparent);
+    /* r441: the ring stack is GENERATED for up to 8 lines. --tray-lines says how many show,
+       --tray-t the line thickness, --tray-gain the brightness, and --tray-ph (written per tray by
+       js/tray-fx.js) drives the pulse or inward ripple. Dev -> Aesthetics. */
+    --tp: calc((var(--tray-t) + 2) * 1px);
     --tray-rings:
-      inset 0 0 0 1px var(--tray-line),
-      inset 0 0 0 2px var(--tray-glow),
-      inset 0 0 0 3px rgba(0,0,0,0.55),
-      inset 0 0 0 4px var(--tray-line2),
-      inset 0 0 0 5px var(--tray-glow2),
-      inset 0 0 0 6px rgba(0,0,0,0.5),
-      inset 0 0 0 7px var(--tray-line3),
-      inset 0 0 0 8px var(--tray-glow3);
+      inset 0 0 0 calc(var(--tp) * 0 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 70.00 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 0) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 0, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 0 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 23.10 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 0) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 0, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 1) rgb(0 0 0 / calc(0.600 * clamp(0, var(--tray-lines) - 0, 1))),
+      inset 0 0 0 calc(var(--tp) * 1 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 57.40 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 1) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 1, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 1 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 18.94 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 1) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 1, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 2) rgb(0 0 0 / calc(0.528 * clamp(0, var(--tray-lines) - 1, 1))),
+      inset 0 0 0 calc(var(--tp) * 2 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 47.07 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 2) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 2, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 2 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 15.53 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 2) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 2, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 3) rgb(0 0 0 / calc(0.465 * clamp(0, var(--tray-lines) - 2, 1))),
+      inset 0 0 0 calc(var(--tp) * 3 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 38.60 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 3) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 3, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 3 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 12.74 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 3) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 3, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 4) rgb(0 0 0 / calc(0.409 * clamp(0, var(--tray-lines) - 3, 1))),
+      inset 0 0 0 calc(var(--tp) * 4 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 31.65 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 4) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 4, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 4 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 10.44 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 4) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 4, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 5) rgb(0 0 0 / calc(0.360 * clamp(0, var(--tray-lines) - 4, 1))),
+      inset 0 0 0 calc(var(--tp) * 5 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 25.95 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 5) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 5, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 5 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 8.56 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 5) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 5, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 6) rgb(0 0 0 / calc(0.317 * clamp(0, var(--tray-lines) - 5, 1))),
+      inset 0 0 0 calc(var(--tp) * 6 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 21.28 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 6) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 6, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 6 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 7.02 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 6) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 6, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 7) rgb(0 0 0 / calc(0.279 * clamp(0, var(--tray-lines) - 6, 1))),
+      inset 0 0 0 calc(var(--tp) * 7 + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 17.45 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 7) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 7, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 7 + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 5.76 * var(--tray-gain) * (1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - 7) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * clamp(0, var(--tray-lines) - 7, 1)) * 1%), transparent),
+      inset 0 0 0 calc(var(--tp) * 8) rgb(0 0 0 / calc(0.245 * clamp(0, var(--tray-lines) - 7, 1)));
     --tray-rings-m:
       inset 0 0 0 1px var(--tray-line),
       inset 0 0 0 2px var(--tray-glow),
@@ -4885,9 +4906,9 @@
     border: 1px solid var(--tray-c) !important;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
                 var(--tray-set, var(--tray-rings)),
-                var(--tray-extra, 0 0 0 0 transparent),
                 0 0 0 2px color-mix(in srgb, var(--tray-c) 62%, #14100a),
-                0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806) !important;
+                0 2px 0 color-mix(in srgb, var(--tray-c) 34%, #0a0806),
+                0 0 calc(var(--tray-halo) * 1px) color-mix(in srgb, var(--tray-c) calc(var(--tray-halo) * 3%), transparent) !important;
   }
   /* Candy accents give each readout its own identity. The top edge stays the
      thick one; `--tray-c` is what carries the colour to the other three sides
@@ -4914,23 +4935,6 @@
   #stage:not(.landscape) #trick-tray-area     { --tray-c: var(--c-orange);  --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-red);   --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings); }
-  /* r391 DEEPER MIRROR: 1-4 more receding lines past the r388 set, same 3px
-     pitch (dark gap, line, soft shadow), each fainter. Inset shadows paint in
-     the background layer, so they are always fully BEHIND the tray's contents.
-     Only the tall trays take them - on a 29px strip they would meet in the
-     middle. Dev -> Aesthetics picks the count (body.tray-deep-N, default 3). */
-  :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area,
-      #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area,
-      #stage:not(.landscape) #knack-carousel-wrap) {
-    --tray-x1: inset 0 0 0 9px rgba(0,0,0,.45), inset 0 0 0 10px color-mix(in srgb, var(--tray-c) 8%, transparent), inset 0 0 0 11px color-mix(in srgb, var(--tray-c) 3%, transparent);
-    --tray-x2: inset 0 0 0 12px rgba(0,0,0,.4), inset 0 0 0 13px color-mix(in srgb, var(--tray-c) 5%, transparent), inset 0 0 0 14px color-mix(in srgb, var(--tray-c) 2%, transparent);
-    --tray-x3: inset 0 0 0 15px rgba(0,0,0,.35), inset 0 0 0 16px color-mix(in srgb, var(--tray-c) 3.5%, transparent), inset 0 0 0 17px color-mix(in srgb, var(--tray-c) 1.5%, transparent);
-    --tray-x4: inset 0 0 0 18px rgba(0,0,0,.3), inset 0 0 0 19px color-mix(in srgb, var(--tray-c) 2.5%, transparent), inset 0 0 0 20px color-mix(in srgb, var(--tray-c) 1%, transparent);
-  }
-  body.tray-deep-1 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1); }
-  body.tray-deep-2 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1), var(--tray-x2); }
-  body.tray-deep-3 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3); }
-  body.tray-deep-4 :is(#stage.landscape #selected-cards, #stage.landscape #trick-tray-area, #stage:not(.landscape) #trick-tray-area, #stage:not(.landscape) #hand-preview-area, #stage:not(.landscape) #knack-carousel-wrap) { --tray-extra: var(--tray-x1), var(--tray-x2), var(--tray-x3), var(--tray-x4); }
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,

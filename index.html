@@ -553,13 +553,28 @@
        type of stuff it can all go in aesthetics"). -->
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Aesthetics</div>
+    <div class="dev-subtitle">Tray lines (every tray, together)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Infinity tray: extra depth lines
-      <select id="dev-tray-depth" onchange="setTrayDepth(+this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);">
-        <option value="0">0 (r388)</option><option value="1">+1</option><option value="2">+2</option>
-        <option value="3">+3 (default)</option><option value="4">+4</option>
-      </select>
+      Number of lines
+      <select id="dev-tfx-lines" onchange="trayFxSet('lines', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select>
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Line thickness
+      <select id="dev-tfx-thick" onchange="trayFxSet('thick', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">thin (1px)</option><option value="2">normal (2px)</option><option value="3">thick (3px)</option></select>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Outer glow
+      <select id="dev-tfx-glow" onchange="trayFxSet('glow', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="0">none</option><option value="6">soft</option><option value="10">medium</option><option value="16">strong</option><option value="24">blazing</option></select>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Brightness
+      <select id="dev-tfx-gain" onchange="trayFxSet('gain', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">normal</option><option value="1.2">bright</option><option value="1.6">brighter</option><option value="2.2">loud</option></select>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Motion
+      <select id="dev-tfx-motion" onchange="trayFxSet('motion', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">still</option><option value="pulse">pulse (all lines breathe)</option><option value="ripple">ripple (light moves inward)</option></select>
+    </label>
+    <button class="dev-btn" onclick="trayFxReset()" style="margin:4px 0 2px;">Reset tray lines</button>
 
     <div class="dev-subtitle" style="margin-top:10px;">Board deal</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">How a fresh board arrives at the start of a round. The cascade dealt the bottom row first and took 1.45s to finish.</div>
@@ -1444,6 +1459,7 @@
 <script src="js/insights.js"></script>
 <script src="js/queue-views.js"></script>
 <script src="js/prob-tables.js"></script>
+<script src="js/tray-fx.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

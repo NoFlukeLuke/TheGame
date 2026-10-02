@@ -106,21 +106,6 @@ function openDevPanel() {
 // on a menu of groups and each group is its own pop-up. The .dev-section elements
 // are never moved - they all keep their ids (plenty of code binds to them) and are
 // simply shown or hidden by data-group.
-// r391 AESTHETICS: extra infinity-tray depth lines (0-4), a body class the
-// tray rule in css/style.css reads. Persisted; default 0 (every tray shows the same 3 lines; extras only reach the tall trays).
-let trayDepthExtra = (() => { try { const v = localStorage.getItem('lethe.trayDepth.v2');
-  if (v !== null && +v >= 0 && +v <= 4) return +v; } catch (e) {} return 0; })();
-function setTrayDepth(n) {
-  trayDepthExtra = Math.max(0, Math.min(4, n | 0));
-  try { localStorage.setItem('lethe.trayDepth.v2', String(trayDepthExtra)); } catch (e) {}
-  applyTrayDepth();
-}
-function applyTrayDepth() {
-  for (let i = 0; i <= 4; i++) document.body.classList.toggle('tray-deep-' + i, i === trayDepthExtra);
-  const sel = document.getElementById('dev-tray-depth'); if (sel) sel.value = String(trayDepthExtra);
-}
-if (document.body) applyTrayDepth(); else document.addEventListener('DOMContentLoaded', applyTrayDepth);
-
 // ── r394 AESTHETICS: the PORTRAIT CLOCK BAR's length and thickness ──
 // Owner: "the thickness of the timer in Mobile is too thin. It needs to be at
 // least as thick as the boss emoji ... And make it a little longer. Put length
@@ -188,7 +173,7 @@ function devRenderClockBar() {
   });
 }
 function devSyncAesthetics() {
-  const sel = document.getElementById('dev-tray-depth'); if (sel) sel.value = String(trayDepthExtra);
+  if (typeof trayFxSync === 'function') trayFxSync();
   const d = document.getElementById('dev-deal-style');
   if (d && typeof dealStyle === 'string') d.value = dealStyle;
   devRenderClockBar();
