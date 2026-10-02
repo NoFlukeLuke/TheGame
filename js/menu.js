@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r458 · Deck edit: SWAP button swaps two picked cards; Peek hides the option read";
+const BUILD = "2026-10-02 · r459 · Shop row labels selectable again";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
