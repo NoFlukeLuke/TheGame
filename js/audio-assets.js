@@ -88,6 +88,7 @@ const SFX_CATALOG = [
   { id: 'chal_solve',    fn: 'sfxChallengeSolve',  group: 'Challenge', label: 'Challenge card solved' },
   { id: 'chal_expire',   fn: 'sfxChallengeExpire', group: 'Challenge', label: 'Challenge card failed' },
   { id: 'chal_tick',     fn: 'sfxChallengeTick',   group: 'Challenge', label: 'Challenge: last seconds' },
+  { id: 'chal_dodge',    fn: 'sfxChallengeDodge',  group: 'Challenge', label: 'Challenge refused', note: 'The marked card was discarded before the challenge card landed.' },
 
   // Time
   // These three were NOT in the catalog before r234, which meant they could not

@@ -66,6 +66,18 @@
   border: 2px dashed rgba(255, 179, 71, 0.9);
   animation: cr-tele-beat 0.6s ease-in-out infinite, cr-tele-fade var(--cr-tele-ms, 3000ms) linear forwards;
 }
+/* Flow's warning counts live seconds, so its fill is driven by --cr-tp (0..1)
+   from the tick rather than a timed animation, and it shows the count. */
+#grid .cr-tele.cr-tele-flow {
+  animation: cr-tele-beat 0.6s ease-in-out infinite;
+  background: rgba(255, 179, 71, calc(0.05 + 0.4 * var(--cr-tp, 0)));
+  transition: background 0.9s linear, left 0.3s ease, top 0.3s ease;
+  display: flex; align-items: flex-end; justify-content: flex-end;
+}
+#grid .cr-tele.cr-tele-flow b {
+  font: 400 16px/1 'VT323', 'Courier New', monospace; color: #1a1006;
+  background: #ffb347; border-radius: 4px; padding: 1px 4px; margin: 3px;
+}
 @keyframes cr-tele-beat {
   0%, 100% { box-shadow: 0 0 6px rgba(255, 179, 71, 0.5), inset 0 0 10px rgba(255, 179, 71, 0.25); }
   50%      { box-shadow: 0 0 20px rgba(255, 179, 71, 1), inset 0 0 22px rgba(255, 179, 71, 0.55); }

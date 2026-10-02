@@ -34,7 +34,10 @@
 const CR_CARDS = 3;
 const CR_CARD_CREDITS = [5, 8, 12];      // challenge round: paid per card solved
 const CR_MAP_BONUS_SECONDS = 60;         // the Schedule's audit adds a minute
-const CR_TELE_MS = { seq: 3000, flow: 5000 };   // how long the cell pulses first
+const CR_TELE_MS = { seq: 3000, flow: 10000 };   // how long the cell pulses first
+// Flow's warning MARKS A CARD and counts live seconds (crTick), so it follows the
+// card if it falls or is swapped, and waits out a pause. Discarding the marked
+// card refuses the challenge: the player chooses whether to take it on (owner).
 
 const CR_FLOW_TIME = 60;                 // a Flow card's own clock
 const CR_FLOW_PER_CYCLE = 2;             // cards per boss cycle
@@ -264,9 +267,37 @@ function crBeginArrival(src, tier, idx) {
   const [r, c] = _crPick(spots);
   const t = { r, c, src, tier, idx, q };
   crTele.push(t);
+  if (src === 'flow') {
+    t.cardId = gridData[r][c]._id;
+    t.left = Math.round(CR_TELE_MS.flow / 1000);
+    const st = crFlowState();
+    if ((st.hints || 0) < 2) {
+      st.hints = (st.hints || 0) + 1;
+      showMessage(`⚑ A challenge card lands on the marked card in ${t.left}s. Discard that card to refuse it.`, 'var(--c-amber, #ffb347)', { ms: 4600 });
+    }
+  }
   crTelePaint(t);
   sfxChallengeWarn();
-  t.timer = setTimeout(() => crLand(t), CR_TELE_MS[src] || 3000);
+  if (src !== 'flow') t.timer = setTimeout(() => crLand(t), CR_TELE_MS[src] || 3000);
+}
+// Flow: keep each warning on its marked card. Off the board and back in the draw
+// pile means it was discarded - the challenge is refused. Off the board any other
+// way (played) and the warning stays on the cell it last held.
+function crTeleTrack() {
+  for (const t of crTele.slice()) {
+    if (t.src !== 'flow' || t.cardId == null) { if (t.el && !t.el.isConnected) crTelePaint(t); continue; }
+    let at = null;
+    for (let r = 0; r < gridRows && !at; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c]?._id === t.cardId) { at = [r, c]; break; }
+    if (at) { t.r = at[0]; t.c = at[1]; }
+    else if ((drawPile || []).some(cd => cd && cd._id === t.cardId)) {
+      crTeleDrop(t);
+      sfxChallengeDodge();
+      noteMessage('⚑ Challenge refused');
+      continue;
+    } else t.cardId = null;
+    if (!t.el || !t.el.isConnected) crTelePaint(t);
+    else if (typeof cellLeft === 'function') { t.el.style.left = cellLeft(t.c) + 'px'; t.el.style.top = cellTop(t.r) + 'px'; }
+  }
 }
 function crTelePaint(t) {
   const g = document.getElementById('grid'); if (!g || typeof cellLeft !== 'function') return;
@@ -274,6 +305,13 @@ function crTelePaint(t) {
   el.className = 'cr-tele';
   el.style.left = cellLeft(t.c) + 'px'; el.style.top = cellTop(t.r) + 'px';
   el.style.setProperty('--cr-tele-ms', (CR_TELE_MS[t.src] || 3000) + 'ms');
+  if (t.src === 'flow') {
+    el.classList.add('cr-tele-flow');
+    const total = CR_TELE_MS.flow / 1000;
+    el.style.setProperty('--cr-tp', String(1 - (t.left ?? total) / total));
+    el.innerHTML = `<b>${t.left ?? total}</b>`;
+  }
+  if (t.el && t.el.isConnected) t.el.remove();
   g.appendChild(el); t.el = el;
 }
 function crTeleDrop(t) { if (t.el) t.el.remove(); crTele = crTele.filter(x => x !== t); clearTimeout(t.timer); }
@@ -368,6 +406,7 @@ function crDiscardLocked(cells) {
 // The locked line, drawn behind the cards. Called from render's tail.
 function crPaintLocks() {
   const g = document.getElementById('grid'); if (!g) return;
+  if (crTele.length && g.querySelector('[data-card-id]')) crTeleTrack();
   g.querySelectorAll('.cr-lock').forEach(e => e.remove());
   if (!g.querySelector('[data-card-id]') || typeof cellLeft !== 'function') return;
   const W = cellLeft(gridCols - 1) + CARD_W - cellLeft(0), H = cellTop(gridRows - 1) + CARD_H - cellTop(0);
@@ -444,6 +483,13 @@ function crDrain() {
 // The round tick, once per second of live clock. Flow cards count down; the Flow
 // spawner reads the session clock.
 function crTick() {
+  for (const t of crTele.slice()) {
+    if (t.src !== 'flow' || t.left == null) continue;
+    t.left--;
+    if (t.el) { t.el.style.setProperty('--cr-tp', String(1 - t.left / (CR_TELE_MS.flow / 1000))); const b = t.el.querySelector('b'); if (b) b.textContent = Math.max(0, t.left); }
+    if (t.left <= 3 && t.left > 0) sfxChallengeTick();
+    if (t.left <= 0) { t.left = null; crLand(t); }
+  }
   for (const [, , cd] of crCards()) {
     const q = cd.cr;
     if (q.src !== 'flow' || q.done) continue;
@@ -722,6 +768,16 @@ function sfxChallengeExpire() {
     _crTone(ctx, out, t, 330, 110, 0.55, 0.10 * v, 'sawtooth');
     _crTone(ctx, out, t, 220, 74, 0.55, 0.08 * v, 'square');
     _crHit(ctx, out, t + 0.35, _crNoise(ctx, 0.3, p => (1 - p) * (p * 30 % 1 < 0.4 ? 1 : 0.2)), 0.10 * v, 'lowpass', 1400);
+  });
+}
+// A marked card discarded: the challenge is refused - a short falling swish.
+function sfxChallengeDodge() {
+  _crVoice((ctx, v, t, out) => {
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = _crNoise(ctx, 0.22, p => Math.sin(p * Math.PI)); f.type = 'bandpass'; f.Q.value = 2;
+    f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(500, t + 0.2); g.gain.value = 0.08 * v;
+    s.connect(f).connect(g).connect(out); s.start(t);
+    _crTone(ctx, out, t, 520, 300, 0.18, 0.05 * v, 'triangle');
   });
 }
 // The last five seconds of a Flow card.

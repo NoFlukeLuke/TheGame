@@ -471,3 +471,12 @@ A dev tab with 3+ visible sections folds each under its title (start closed; `de
   in the last 5). Synthesised sounds `sfxChallengeWarn/Land/Slap/Tap/Thud/Solve/Expire/Tick`,
   catalogued under Challenge in `js/audio-assets.js`.
 
+## r454 - Flow's challenge warning is 10s and can be refused
+In Flow the arrival warning MARKS A CARD (`t.cardId`) for `CR_TELE_MS.flow` (10s) of live play, counted
+in `crTick` (so it waits out pauses and level-ups) and shown as a countdown on the pulse. `crTeleTrack`
+(run from `crPaintLocks`, i.e. every render) keeps the pulse on that card if it falls or is swapped.
+**Discarding the marked card refuses the challenge** (found back in `drawPile`: the warning drops,
+`sfxChallengeDodge`, "Challenge refused"); a marked card that is played leaves the warning on its last
+cell. The first two warnings of a run say so. The challenge round (Classic/Schedule) keeps its 3s
+cell pulse and cannot be refused.
+

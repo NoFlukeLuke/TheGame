@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r453 · Challenge cards v2: Flow cards, fall cards, arrival and effects";
+const BUILD = "2026-10-02 · r454 · Flow challenge warning: 10s, follows its card, discard it to refuse";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
