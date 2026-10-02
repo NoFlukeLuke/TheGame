@@ -72,14 +72,16 @@ const FLOWR_DEF  = {
   // r391: +10 moved from 1 to 2 (owner: "tune up the chances of a second").
   counts: [38, 42, 10, 6, 4],
   // Share of every reward screen. Sums to 100 as given.
-  odds: { pick3: 30, cards: 15, deck: 15, sleights: 15, limits: 10, improve: 10, knacks: 2.5, tricks: 2.5 },
+  // r441: PICK 3 and TRICKS are the two most common (owner), and the SHOP is a
+  // reward at 10.
+  odds: { pick3: 25, tricks: 20, shop: 10, cards: 10, deck: 10, sleights: 8, limits: 7, improve: 5, knacks: 5 },
   // THE ONLY THING THAT STILL CARES ABOUT WHEN: the opening levels lean toward
   // LIMITS and switch IMPROVE off, because early on there is almost nothing
   // owned worth improving and a limit compounds for the rest of the run. It is
   // an OVERRIDE MAP over `odds`, not a second table, so a kind absent from it
   // keeps its ordinary share. The two moves cancel (+10 / -10), so the table
   // still sums to 100.
-  early: { limits: 20, improve: 0 },
+  early: { limits: 12, improve: 0 },
 };
 const FLOWR_EARLY_LEVELS = 5;              // `early` applies while level <= this
 
@@ -110,12 +112,143 @@ const FLOWR_KINDS = {
   improve:  { label: () => 'IMPROVE',    short: 'IMPROVE',  color: '#e0813a' },
   knacks:   { label: () => flowrEntityWord('knack', true),    short: () => flowrEntityWord('knack', true),   color: '#ff6fa5' },
   tricks:   { label: () => flowrEntityWord('trick', true),    short: () => flowrEntityWord('trick', true),   color: '#e8dd54' },
+  shop:     { label: () => 'SHOP',       short: 'SHOP',     color: '#ff9a3d' },
   // r409: the post-boss PRIZE GRID as a chain step. It is never ROLLED - it is
   // only ever placed first in a boss chain - so it is kept out of
   // FLOWR_KIND_IDS, which is what the odds tables and the dev panel walk.
   prize:    { label: () => 'PRIZE GRID', short: 'PRIZE',    color: '#ffc94a' },
 };
 const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize');
+
+// ══════════════════════════════════════════════
+// FLOW ECONOMY (r441) - dev panel -> Flow
+// ══════════════════════════════════════════════
+// Owner: leftover SWAPS reroll the reward TYPE and leftover DISCARDS reroll the
+// OPTIONS, free up to what you finished the round holding, then escalating gold.
+// They no longer pay credits. The score over the goal stops carrying into the
+// next round and pays 1 credit per `overPct`% over instead, and interest (1 per
+// 10 held, the shared capped line) is paid at each level-up.
+// `split` switches the reroll half off (back to the shared pool, stock pays gold).
+const FLOWE_DEF = { split: true, overPct: 15 };
+const FLOWE_KEY = 'lethe.flowEcon.v1';   // OVERRIDES ONLY
+let flowEcon = (() => {
+  try { return Object.assign({}, FLOWE_DEF, JSON.parse(localStorage.getItem(FLOWE_KEY) || '{}')); }
+  catch (e) { return Object.assign({}, FLOWE_DEF); }
+})();
+function setFlowEcon(k, v) {
+  flowEcon[k] = v;
+  const ov = {};
+  Object.keys(FLOWE_DEF).forEach(key => { if (flowEcon[key] !== FLOWE_DEF[key]) ov[key] = flowEcon[key]; });
+  try { if (Object.keys(ov).length) localStorage.setItem(FLOWE_KEY, JSON.stringify(ov)); else localStorage.removeItem(FLOWE_KEY); } catch (e) {}
+}
+function flowSplitRerolls() {
+  return typeof flowActive === 'function' && flowActive() && !!flowEcon.split;
+}
+// Credits for the score over the goal. ONE function, read by the payment and
+// by the breakdown that quotes it.
+function flowOverGoalPay(over, goal) {
+  if (!(goal > 0) || !(over > 0)) return 0;
+  return Math.floor((over / goal) * 100 / Math.max(1, flowEcon.overPct || 15));
+}
+// Every line a Flow level-up pays, for the payment and the breakdown alike.
+function flowLevelPayLines(over, goal, held, unspent) {
+  const lines = [{ label: 'Level clear', amt: SURVIVAL_LEVEL_COINS }];
+  const og = flowOverGoalPay(over, goal);
+  lines.push({ label: `Over the goal (+${goal > 0 ? Math.floor(Math.max(0, over) / goal * 100) : 0}%)`,
+               note: `1 per ${flowEcon.overPct}%`, amt: og });
+  lines.push({ label: 'Interest', note: interestPayoutDesc(held), amt: interestPayout(held) });
+  if (!flowEcon.split) lines.push({ label: 'Unused stock', note: unspentPayoutDesc(), amt: unspentPayout(unspent) });
+  return lines;
+}
+
+// ── Split rerolls: the per-level-up budgets ──
+// Snapshotted when the goal-clear reward opens, from the swaps and discards the
+// round finished with. Free first, then PICK_REROLL_STEP x (paid this level-up).
+let flowRr = { type: 0, opt: 0, paidType: 0, paidOpt: 0 };
+function flowRrSnapshot() {
+  flowRr = { type: Math.max(0, swaps || 0), opt: Math.max(0, discards || 0), paidType: 0, paidOpt: 0 };
+}
+function flowRrCost(k) {
+  if (flowRr[k] > 0) return 0;
+  return PICK_REROLL_STEP * ((k === 'type' ? flowRr.paidType : flowRr.paidOpt) + 1);
+}
+function flowRrLabel(k) { return flowRr[k] > 0 ? `FREE ${flowRr[k]}` : `${flowRrCost(k)} \u25c6`; }
+function flowRrSpend(k) {
+  if (flowRr[k] > 0) { flowRr[k]--; return true; }
+  const c = flowRrCost(k);
+  if (coins < c) { refuse('Not enough credits'); return false; }
+  coins -= c;
+  if (typeof updateCoinsUI === 'function') updateCoinsUI();
+  if (k === 'type') flowRr.paidType++; else flowRr.paidOpt++;
+  return true;
+}
+// DISCARD on a pick: reroll this screen's options (the screen's own reroll).
+function flowRerollOptions() {
+  if (!gridPickState || gridPickState.leaving) return;
+  const rr = (gridPickState.actions || []).find(a => a && a.reroll);
+  if (!rr || !rr._roll) { refuse('This screen has no options to reroll'); return; }
+  if (!flowRrSpend('opt')) return;
+  rr._roll();
+  gridPickSyncButtons();
+}
+// SWAP on a pick: reroll what KIND of reward this screen is.
+function flowRerollType() {
+  if (!gridPickState || gridPickState.leaving) return;
+  const cur = flowrQueue ? flowrQueue[flowrIdx] : 'pick3';
+  if (cur === 'prize') return;
+  const odds = Object.assign({}, flowrOddsNow());
+  delete odds[cur];
+  if (flowrQueue) flowrQueue.forEach((k, i) => { if (i !== flowrIdx && FLOWR_NO_REPEAT.has(k)) delete odds[k]; });
+  let pick = null;
+  for (let t = 0; t < 12 && Object.keys(odds).some(k => odds[k] > 0); t++) {
+    const k = flowrRollKind(odds);
+    if (k !== cur && flowrKindViable(k)) { pick = k; break; }
+    delete odds[k];
+  }
+  if (!pick) { refuse('Nothing else to roll'); return; }
+  if (!flowRrSpend('type')) return;
+  flowrNoteSeen(pick);
+  if (cur === 'pick3') {
+    // The ordinary pick's own state goes with it; the dance is NOT cancelled.
+    survivalHideContrib();
+    survivalPickOverlay().classList.remove('show', 'sv-peek');
+    survivalPickOffered = null;
+  }
+  closeGridPick();
+  if (cur === 'pick3') survivalSyncPickAudio();
+  if (!flowrQueue) { flowrQueue = [pick]; flowrIdx = 0; }
+  else flowrQueue[flowrIdx] = pick;
+  try { sfxShopOpen?.(); } catch (e) {}
+  flowrShowStep();
+}
+// The tiles that replace REROLL and CONFIRM on a split screen.
+function flowrSplitTiles() {
+  const out = [];
+  const rest = flowrQueue ? flowrQueue.length - flowrIdx : 0;
+  if (rest > 1) out.push({ icon: '\u2630', label: 'Queue', sub: `${rest} rewards`,
+    cls: flowrQueueOpen ? 'gp-act-on' : '', onClick: () => flowrToggleQueue() });
+  if (gridPickState && gridPickState.onSkip) out.push({ icon: '\u23ed', label: 'Skip', sub: 'take none',
+    onClick: () => gridPickSkipNow() });
+  return out;
+}
+
+// ── The REWARD QUEUE: the stacked tabs spread out to show each title ──
+let flowrQueueOpen = false;
+function flowrToggleQueue(on) {
+  flowrQueueOpen = (on == null) ? !flowrQueueOpen : !!on;
+  document.getElementById('flowr-stack')?.classList.toggle('fst-open', flowrQueueOpen);
+  if (gridPickState) gridPickRefresh(null, gridPickState.actions);
+}
+
+// ── Pseudo-forced kinds (r441) ──
+// Owner: a TRICKS reward at least once before each boss - if none has come by
+// the 3rd level-up since the last boss, it is that level-up's first reward. And
+// if no KNACKS reward came before a boss, the boss payout carries one.
+let flowrLvSinceBoss = 0, flowrTricksSeen = false, flowrKnacksSeen = false;
+function flowrNoteSeen(k) {
+  if (k === 'tricks') flowrTricksSeen = true;
+  if (k === 'knacks') flowrKnacksSeen = true;
+}
 
 // The vocabulary, never a typed word - Settings -> Display -> Wording moves
 // Tricks/Sleights/Knacks to Utilities/Vendors/Certs and these headings with it
@@ -184,7 +317,7 @@ let flowrIdx          = 0;
 let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
-function flowrResetRun() { flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
+function flowrResetRun() { flowrLvSinceBoss = 0; flowrTricksSeen = false; flowrKnacksSeen = false; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
 function flowrChainActive() { return !!flowrQueue; }
 // True while a chain screen that is NOT the ordinary pick is up - what stops
 // survivalUpdateRerollBtn stamping survival's four actions over this step's row.
@@ -320,6 +453,7 @@ function flowrKindViable(kind) {
     }
     if (kind === 'improve')  return ['trick', 'knack', 'sleight'].some(t => ownedImprovable(t).length);
     if (kind === 'deck')     return true; // the board always holds ordinary cards
+    if (kind === 'shop')     return typeof triggerShop === 'function';
     if (kind === 'cards')    return flowrPackRanks().length > 0;
     if (kind === 'knacks')   return survivalBuildPools().knack.length > 0;
     // The tray is a HARD CAP (r277) - a Trick you have no room for is REFUSED,
@@ -341,6 +475,7 @@ function flowrMaybeStart() {
   // describe a pick of three. The chain explains itself later through a tip
   // (js/insights.js, flow_chain) the first time a real one rolls.
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;
+  flowrLvSinceBoss++;
   const n = flowrRollCount();
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
@@ -355,6 +490,8 @@ function flowrMaybeStart() {
     queue.push(k);
     taken[k] = (taken[k] || 0) + 1;
   }
+  if (!flowrTricksSeen && flowrLvSinceBoss >= 3 && !queue.includes('tricks') && flowrKindViable('tricks')) queue[0] = 'tricks';
+  queue.forEach(flowrNoteSeen);
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
   if (n <= 1 && queue[0] === 'pick3') return false;
   flowrArm(queue, null);
@@ -433,6 +570,11 @@ function flowrStartBossChain(bossName) {
     queue.push(k);
     taken[k] = (taken[k] || 0) + 1;
   }
+  if (!flowrKnacksSeen && !queue.includes('knacks') && flowrKindViable('knacks')) queue[1] = 'knacks';
+  // A new boss cycle starts: the forcing counters reset.
+  flowrLvSinceBoss = 0; flowrTricksSeen = false; flowrKnacksSeen = false;
+  queue.forEach(flowrNoteSeen);
+  flowRrSnapshot();
   flowrBossChain = true;
   flowrArm(queue, { boss: { name: bossName || '' } });
   return true;
@@ -440,6 +582,7 @@ function flowrStartBossChain(bossName) {
 
 // The finale's handle on the beat above. Null when no chain is arming, so the
 // ordinary single-pick path is untouched and awaits nothing.
+let flowrShopStep = false;   // the open shop IS a chain step: closing it advances
 let flowrIntro = null;
 function flowrIntroWait() { return flowrIntro; }
 
@@ -505,6 +648,7 @@ function flowrShowStep() {
   if (kind === 'prize') { rewardGridContext = 'survival'; openPrizeGrid(); return; }
   if (kind === 'deck')  { flowrShowDeckPick(); return; }
   if (kind === 'cards') { flowrShowCardsPick(); return; }
+  if (kind === 'shop')  { flowrShopStep = true; triggerShop(); return; }
   flowrShowEntityStep(kind);
 }
 
@@ -668,7 +812,7 @@ function flowrEnterPanel() {
 function flowrFinish() {
   const _boss = flowrBossChain;
   flowrQueue = null; flowrIdx = 0;
-  flowrBossChain = false; flowrBossLuckOn = false;
+  flowrBossChain = false; flowrBossLuckOn = false; flowrQueueOpen = false;
   flowrClearStack();
   // A goal-clear chain carries the score overflow and pays the time credits
   // exactly as a single pick would. A BOSS chain does neither - no goal was
@@ -1236,7 +1380,11 @@ function flowrRenderStack() {
   // panel with nothing naming it. Only the QUEUE behind it is conditional.
   const el = document.createElement('div');
   el.id = 'flowr-stack';
+  if (flowrQueueOpen) el.classList.add('fst-open');
   el.style.setProperty('--fst-n', rest.length);
+  // r441: hover (or the Queue tile) spreads the tabs to show every title.
+  el.addEventListener('mouseenter', () => el.classList.add('fst-hover'));
+  el.addEventListener('mouseleave', () => el.classList.remove('fst-hover'));
   // Furthest-back first, so DOM order is paint order (the rewind-ghost rule):
   // the current step's chip goes in last and sits lowest and on top.
   // ONLY THE CURRENT CHIP IS LABELLED (r371). The chips are stacked a few px
@@ -1249,7 +1397,7 @@ function flowrRenderStack() {
     const meta = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
     const depth = rest.length - 1 - i;              // 0 = current
     return `<div class="fst-chip${depth === 0 ? ' fst-cur' : ''}" style="--fst-c:${meta.color}; --fst-d:${depth}">`
-      + (depth === 0 ? `<span>${flowrKindShort(kind)}</span>` : '') + `</div>`;
+      + `<span>${flowrKindShort(kind)}</span></div>`;
   }).join('');
   host.appendChild(el);
 }
@@ -1581,12 +1729,15 @@ function deckEditFreeInteract() { return _flowrActing; }
 function flowrDeckActive() { return !!_flowrDeckOp; }
 
 function flowrShowDeckPick() {
-  const ops = flowrDrawOps(3);   // r392: weighted by FLOWR_OP_WEIGHTS
-  flowrStepActions = () => flowrCommonActions();
+  let ops = flowrDrawOps(3);   // r392: weighted by FLOWR_OP_WEIGHTS
+  const toOffer = op => ({ entity: 'deckop', id: op.id, icon: op.icon, emoji: op.icon,
+                           label: op.name, desc: op.desc, rarity: 'rare', tag: 'DECK' });
+  // r441: the deck pick rerolls like every other screen.
+  const rerollAct = () => pickRerollAction(() => { ops = flowrDrawOps(3); gridPickRefresh(ops.map(toOffer), null); });
+  flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
   openGridPick({
     title: 'DECK EDIT', tone: 'reward',
-    offers: ops.map(op => ({ entity: 'deckop', id: op.id, icon: op.icon, emoji: op.icon,
-                             label: op.name, desc: op.desc, rarity: 'rare', tag: 'DECK' })),
+    offers: ops.map(toOffer),
     actions: flowrStepActions(),
     onChoose: (i) => flowrDeckBegin(ops[i]),
     onSkip: () => { rainCheckPay(); flowrAfterStep(); },
@@ -2283,6 +2434,8 @@ function flowrDevSync() {
   const cfg = flowrCfg();
   flowrSyncChipPicker();
   const on = document.getElementById('dev-flowr-on'); if (on) on.checked = cfg.on;
+  const sp = document.getElementById('dev-flowe-split'); if (sp) sp.checked = !!flowEcon.split;
+  const ov = document.getElementById('dev-flowe-over'); if (ov) ov.value = flowEcon.overPct;
   cfg.counts.forEach((v, i) => {
     const el = document.getElementById('dev-flowr-c' + i);
     if (el && document.activeElement !== el) el.value = v;

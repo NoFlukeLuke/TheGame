@@ -623,6 +623,12 @@ function closeShopGrid() {
     gameTimerPaused = true;
     match3AfterShop();
   }
+  else if (typeof flowrShopStep !== 'undefined' && flowrShopStep) {
+    // r441: the shop was a Flow reward step - closing it moves the chain on.
+    flowrShopStep = false;
+    gameTimerPaused = true;
+    flowrAfterStep();
+  }
   else if (typeof survivalActive === 'function' && survivalActive() && !bossActive) {
     if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
       // Opened from the PICK screen: bring the peeked panel back in front. The

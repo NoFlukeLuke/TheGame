@@ -146,7 +146,7 @@ const SAVE_VARS = [
   'flowBossFighting', 'flowRefillClock',
   // Flow multi-reward chain (js/flow-rewards.js, r325): extra rewards rolled
   // this run - gates the ordering phases, so a resumed run keeps its phase.
-  'flowrExtraEarned',
+  'flowrExtraEarned', 'flowrLvSinceBoss', 'flowrTricksSeen', 'flowrKnacksSeen',
   // ── Seed (keeps future reward grids / shops deterministic) ──
   'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'earlyLimitDone', 
 ];

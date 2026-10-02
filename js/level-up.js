@@ -137,6 +137,10 @@ function triggerLevelUp() {
   if (typeof levelTypeMaybeArm === 'function') levelTypeMaybeArm();
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
+  // r441: the overflow NO LONGER CARRIES (owner). It is recorded instead and
+  // paid as credits by survivalAfterLevelUp (flowOverGoalPay).
+  svLastOverflow = _svOverflow; svLastGoal = roundGoal;
+  _svOverflow = 0;
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
   // What the round just finished was worth, kept for the between-rounds score
   // panel (js/hud.js). It has to be captured HERE: the next line zeroes `score`,

@@ -761,3 +761,12 @@ body.shop-active #flowr-bg, body.shop-active #flowr-stack { visibility: hidden; 
 }
 body.reduced-motion #flowr-cel.show,
 body.reduced-motion #flowr-cel.shake { animation: none; opacity: 1; transform: var(--fc-t); }
+
+/* ── r441: THE REWARD QUEUE ──
+   Hover the tabs, or press the Queue tile, and they spread far enough for each
+   one's title to show. Every tab carries its label; a queued one only shows it
+   while spread, since the default 5px step cuts it through the middle. */
+#flowr-stack .fst-chip { pointer-events: auto; transition: bottom .28s cubic-bezier(.2,.8,.3,1); }
+#flowr-stack .fst-chip:not(.fst-cur) span { opacity: 0; transition: opacity .2s; }
+#flowr-stack.fst-open, #flowr-stack.fst-hover { --fst-step: 17px; }
+#flowr-stack.fst-open .fst-chip span, #flowr-stack.fst-hover .fst-chip span { opacity: .9; }

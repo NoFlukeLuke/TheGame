@@ -102,6 +102,7 @@ let survivalPickOffered       = null; // the 3 options currently shown
 let survivalBossPending       = false;// next dealt round is a boss (set every 8 clears)
 let survivalPickKicker        = 'GOAL CLEARED'; // header line above the pick (set per context)
 let survivalBonusPick         = false;// true while showing the post-boss BONUS pick (no goal cleared)
+let svLastOverflow = 0, svLastGoal = 0; // r441: the score over the goal at the last clear, paid as credits
 let survivalSkipCarryover     = false;// triggerLevelUp flag: boss-reward round doesn't carry score / pay time-coins
 let survivalBossesBeaten      = 0;    // bosses defeated this run
 let survivalSecondsToBoss     = SURVIVAL_BOSS_EVERY_SECONDS; // live countdown to the next boss
@@ -186,8 +187,10 @@ function survivalAfterLevelUp(leftover, unspentActions = 0) {
   const _flow = (typeof flowActive === 'function' && flowActive());
   // Survival and Flow skip the payout screen, so the unspent-actions credits
   // (r218) are folded into their own coin step instead - the rule is every mode.
-  const unspent = unspentPayout(unspentActions);
-  const gained = unspent + (_flow ? SURVIVAL_LEVEL_COINS
+  // r441: Flow pays its own lines (flowLevelPayLines): level clear, the score
+  // over the goal, interest, and unused stock only when rerolls are not split.
+  const unspent = _flow ? 0 : unspentPayout(unspentActions);
+  const gained = unspent + (_flow ? flowLevelPayLines(svLastOverflow, svLastGoal, coins, unspentActions).reduce((t, l) => t + l.amt, 0)
                        : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / efficiencySecondsPerCoin()) * SURVIVAL_COINS_PER_10S);
   coins += gained;
   updateCoinsUI();
@@ -428,6 +431,8 @@ function survivalShowPick(bonus = false, kicker) {
   // Flow's multi-reward chain (js/flow-rewards.js, r325): a goal clear can pay
   // several screens. When it takes over it plays the counter card and shows
   // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.
+  // r441: the split reroll budgets come from the stock this round finished with.
+  if (!bonus && typeof _flowrBypass !== 'undefined' && !_flowrBypass && typeof flowRrSnapshot === 'function') flowRrSnapshot();
   if (!bonus && typeof flowrMaybeStart === 'function' && flowrMaybeStart()) return;
   animating = false;
   survivalBonusPick = !!bonus;
@@ -462,12 +467,25 @@ function survivalToggleContrib() {
   const panel = document.getElementById('sv-pick-contrib');
   if (!panel) return;
   if (panel.classList.contains('show')) { survivalHideContrib(); return; }
-  panel.innerHTML = (typeof roundContributionRowsHTML === 'function')
-    ? roundContributionRowsHTML() : '<div class="contrib-empty">No breakdown.</div>';
+  panel.innerHTML = ((typeof roundContributionRowsHTML === 'function')
+    ? roundContributionRowsHTML() : '<div class="contrib-empty">No breakdown.</div>') + flowPayoutRowsHTML();
   panel.classList.add('show');
   document.getElementById('sv-pick-contrib-btn')?.classList.add('sv-open');
   survivalPickOverlay().classList.add('sv-reading');
   document.body.classList.add('gp-reading');
+}
+// r441: what this level-up will pay, quoted from the same lines it pays.
+function flowPayoutRowsHTML() {
+  if (!(typeof flowActive === 'function' && flowActive()) || typeof flowLevelPayLines !== 'function') return '';
+  if (survivalBonusPick || (typeof flowrBossChain !== 'undefined' && flowrBossChain)) return '';
+  const lines = flowLevelPayLines(Math.max(0, score - roundGoal), roundGoal, coins, Math.max(0, swaps) + Math.max(0, discards));
+  let html = `<div class="contrib-group-title">Paid at level-up</div>`;
+  lines.forEach(l => {
+    html += `<div class="contrib-row"><span class="contrib-label">${l.label}`
+      + (l.note ? `<span class="contrib-count">${l.note}</span>` : '') + `</span>`
+      + `<span class="contrib-val contrib-coin">+${l.amt}</span></div>`;
+  });
+  return html;
 }
 function survivalHideContrib() {
   const panel = document.getElementById('sv-pick-contrib');

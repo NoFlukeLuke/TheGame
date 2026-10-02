@@ -326,3 +326,24 @@ body.gp-active #grid:has(.gp-sel) { z-index: 9; }
    step back. */
 #grid.rt-has-chosen > *:not(.rt-chosen):not(.rc-line) { filter: brightness(.45) saturate(.6); transition: filter .25s ease; }
 #grid .rt-chosen { z-index: 6; box-shadow: 0 0 0 2px #f4f0ff, 0 0 26px rgba(160,120,255,.75) !important; }
+
+/* ── r441: Flow's split rerolls ──
+   SWAP grows into REROLL REWARD TYPE, DISCARD shrinks into REROLL OPTIONS; PLAY
+   is CONFIRM as on every pick. The column still ends where it did. */
+#stage.landscape #swap-indicator, #stage.landscape #btn-discard {
+  transition: top .35s cubic-bezier(.2,.8,.3,1), height .35s cubic-bezier(.2,.8,.3,1);
+}
+#stage.landscape.gp-split #swap-indicator { height: 27.5%; }
+#stage.landscape.gp-split #btn-discard    { top: 40%; height: 21.5%; }
+#swap-indicator.gp-rr-type, #btn-discard.gp-rr-opt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  writing-mode: horizontal-tb; text-align: center; cursor: var(--cur-pointer, pointer);
+}
+#swap-indicator.gp-rr-type .rr-word, #btn-discard.gp-rr-opt .rr-word {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px; line-height: 1.25;
+}
+#swap-indicator.gp-rr-type .rr-n, #btn-discard.gp-rr-opt .rr-n {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; opacity: .85;
+}
+#swap-indicator.gp-rr-off { opacity: .4; pointer-events: none; }
+.gp-act.gp-act-on { outline: 2px solid var(--cream, #f4ead5); outline-offset: -3px; }

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r440 · Rainbow trays, uniform rings, credits tray on top";
+const BUILD = "2026-10-02 · r441 · Flow: split rerolls, over-goal gold, interest, shop reward";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

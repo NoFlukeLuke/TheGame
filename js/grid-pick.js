@@ -125,7 +125,7 @@ function pickRerollSpend() {
 // with the pool's count while it lasts, then the live price.
 function pickRerollAction(onReroll) {
   const free = pickRerollsLeft > 0, cost = pickRerollCost();
-  return { icon: '🎲', label: 'Reroll',
+  return { icon: '🎲', label: 'Reroll', reroll: true, _roll: onReroll,
            sub: free ? `FREE (${pickRerollsLeft})` : `${cost} \u25c6`,
            disabled: !free && coins < cost,
            onClick: () => { if (pickRerollSpend()) onReroll(); } };
@@ -301,7 +301,7 @@ function gridPickPaintSelection() {
     el.classList.toggle('gp-sel', +el.dataset.gp === sel);
   });
   const btn = gridEl.querySelector('.gp-confirm');
-  if (!btn) return;
+  if (!btn) { gridPickSyncButtons(); return; }   // r441: split screens have no CONFIRM tile
   const p = (gridPickState.offers || [])[sel];
   btn.classList.toggle('gp-act-off', !p);
   const sub = btn.querySelector('.gp-act-sub');
@@ -314,13 +314,21 @@ function gridPickPaintSelection() {
 // up, PLAY is CONFIRM and DISCARD is SKIP - the shop's BUY/LEAVE takeover shape:
 // markup saved, restored on close, render() kept off them (its _takeover guard).
 let _gpBtnSaved = null;
+function gpSplit() { return typeof flowSplitRerolls === 'function' && flowSplitRerolls() && !!gridPickState; }
 function gridPickSkipNow() { if (gridPickState && gridPickState.onSkip) gridPickState.onSkip(); }
 function gridPickTakeButtons() {
   const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
   if (!play || !disc) return;
-  if (!_gpBtnSaved) _gpBtnSaved = { play: play.innerHTML, disc: disc.innerHTML };
+  const swap = document.getElementById('swap-indicator');
+  if (!_gpBtnSaved) _gpBtnSaved = { play: play.innerHTML, disc: disc.innerHTML, swap: swap ? swap.innerHTML : null };
   play.classList.add('reward-buy'); play.innerHTML = 'C<br>O<br>N<br>F<br>I<br>R<br>M';
   disc.classList.add('reward-clear'); disc.innerHTML = 'S<br>K<br>I<br>P';
+  // r441: Flow's split rerolls. DISCARD rerolls the OPTIONS and shrinks; SWAP
+  // rerolls the reward TYPE and grows (css/grid-pick.css, #stage.gp-split).
+  const split = gpSplit();
+  document.getElementById('stage')?.classList.toggle('gp-split', split);
+  if (split && swap) swap.classList.add('gp-rr-type');
+  if (split) disc.classList.add('gp-rr-opt');
   if (!gridPickTakeButtons._bound) {
     gridPickTakeButtons._bound = true;
     // Capture, and grid-pick.js loads before every other script that listens on
@@ -331,7 +339,12 @@ function gridPickTakeButtons() {
     }, true);
     disc.addEventListener('click', e => {
       if (!gridPickState || !_gpBtnSaved) return;
-      e.stopImmediatePropagation(); e.preventDefault(); gridPickSkipNow();
+      e.stopImmediatePropagation(); e.preventDefault();
+      if (gpSplit()) flowRerollOptions(); else gridPickSkipNow();
+    }, true);
+    swap?.addEventListener('click', e => {
+      if (!gridPickState || !_gpBtnSaved || !gpSplit()) return;
+      e.stopImmediatePropagation(); e.preventDefault(); flowRerollType();
     }, true);
   }
   gridPickSyncButtons();
@@ -341,12 +354,26 @@ function gridPickSyncButtons() {
   const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
   if (play) play.disabled = gridPickState.selected < 0 || !(gridPickState.offers || [])[gridPickState.selected];
   if (disc) disc.disabled = !gridPickState.onSkip;
+  if (gpSplit() && disc) {
+    const swap = document.getElementById('swap-indicator');
+    const hasOpts = (gridPickState.actions || []).some(a => a && a.reroll);
+    disc.disabled = !hasOpts;
+    disc.innerHTML = `<span class="rr-word">REROLL<br>OPTIONS</span><span class="rr-n">${flowRrLabel('opt')}</span>`;
+    const typeOk = !(typeof flowrQueue !== 'undefined' && flowrQueue && flowrQueue[flowrIdx] === 'prize');
+    if (swap) {
+      swap.classList.toggle('gp-rr-off', !typeOk);
+      swap.innerHTML = `<span class="rr-word">REROLL<br>REWARD<br>TYPE</span><span class="rr-n">${flowRrLabel('type')}</span>`;
+    }
+  }
 }
 function gridPickReturnButtons() {
   if (!_gpBtnSaved) return;
   const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
   if (play) { play.classList.remove('reward-buy'); play.innerHTML = _gpBtnSaved.play; play.disabled = true; }
-  if (disc) { disc.classList.remove('reward-clear'); disc.innerHTML = _gpBtnSaved.disc; }
+  if (disc) { disc.classList.remove('reward-clear', 'gp-rr-opt'); disc.innerHTML = _gpBtnSaved.disc; }
+  const swap = document.getElementById('swap-indicator');
+  if (swap && _gpBtnSaved.swap != null) { swap.classList.remove('gp-rr-type', 'gp-rr-off'); swap.innerHTML = _gpBtnSaved.swap; }
+  document.getElementById('stage')?.classList.remove('gp-split');
   _gpBtnSaved = null;
 }
 
@@ -754,8 +781,12 @@ function gridPickRenderActions(animateIn) {
     if (_gpDeal) _gpDeal.push(el); else if (own) own.push(el);
     return el;
   };
-  const acts = (actions || []).slice(0, GP_ACT_COLS);
-  for (let c = 0; c < GP_ACT_COLS; c++) {
+  // r441: in Flow's split mode REROLL and CONFIRM leave the tray - DISCARD and
+  // SWAP are the two rerolls and PLAY confirms - so the row takes all six cells.
+  const split = gpSplit();
+  const cols = split ? GP_COLS : GP_ACT_COLS;
+  const acts = (split ? (actions || []).filter(a => a && !a.reroll).concat(flowrSplitTiles()) : (actions || [])).slice(0, cols);
+  for (let c = 0; c < cols; c++) {
     const a = acts[c];
     if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpBox(GP_ROWS - 1, c, 1, 1)); continue; }
     const el = put(
@@ -767,6 +798,7 @@ function gridPickRenderActions(animateIn) {
     if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); if (gridPickState && gridPickState.leaving) return; a.onClick(); });
   }
 
+  if (split) { if (own) gridDealTiles(own); return; }
   // CONFIRM, across the last cells of the row. Drawn disabled and lit by
   // gridPickPaintSelection - which is also what writes the chosen name into it,
   // so the tile that commits always says what it is about to commit to.
@@ -837,6 +869,7 @@ function gridPickRefresh(offers, actions) {
   // option tile, mid-deal-in on the way in and again mid-tally.
   if (!offers) { gridPickRenderActions(false); gridPickPaintSelection(); return; }
   gridPickRender(false);
+  gridPickSyncButtons();
 }
 
 // Put the board back without ending the pick (Survival's peek), and bring it

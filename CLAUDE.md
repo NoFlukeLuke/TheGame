@@ -350,3 +350,10 @@ animating card elements with WAAPI on the standalone `translate`/`scale`/`rotate
 compose with the heartbeat's `transform`); the same runner is what the game calls once a step wires
 it in through `cardAnimChoice(kind)`. Unbuilt looks are listed, disabled, with their step.
 Choices persist overrides-only in `lethe.cardAnims.v1`. "Current" rows are stand-ins for today's look.
+
+## r441 - Flow economy: split rerolls, no score carry-over, shop as a reward
+- **Split rerolls** (`flowSplitRerolls()`, dev -> Flow, `lethe.flowEcon.v1`, default on): on every Flow pick, SWAP becomes REROLL REWARD TYPE and grows, DISCARD becomes REROLL OPTIONS and shrinks (`#stage.gp-split`, css/grid-pick.css). Free up to the swaps / discards the round ended with (`flowRrSnapshot`, taken at the goal clear and at the boss chain), then `PICK_REROLL_STEP` x paid this level-up. The tray loses its REROLL and CONFIRM tiles (`pickRerollAction` tiles carry `reroll:true` + `_roll`; the DISCARD reroll calls `_roll`) and gains QUEUE (spreads the tab stack, also on hover) and SKIP. A type reroll on the ordinary pick turns it into a one-step chain.
+- **Score over the goal no longer carries** into the next round (Survival engine). Flow pays it: 1 credit per `flowEcon.overPct` (15)% over. Flow also pays interest (`interestPayout`) at each level-up; unused stock pays only when split is off. `flowLevelPayLines` is the one source; the Round breakdown prints it under "Paid at level-up".
+- **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds now pick3 25 / tricks 20 / shop 10 / cards 10 / deck 10 / sleights 8 / limits 7 / improve 5 / knacks 5.
+- **Forced kinds:** no TRICKS reward by the 3rd level-up since the last boss makes it the first reward; no KNACKS reward before a boss puts one in the boss chain (`flowrLvSinceBoss`, `flowrTricksSeen`, `flowrKnacksSeen`, in SAVE_VARS).
+- **A boss refills swaps and discards** in Survival/Flow (`triggerBoss`, before the modifiers).

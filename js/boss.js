@@ -656,6 +656,13 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (typeof resetFocusMeter === 'function') resetFocusMeter();
 
   // Apply modifiers
+  // r441: Survival/Flow refill swaps and discards for the boss (owner: "when a
+  // boss is triggered your stock should reset/refresh"). Before the modifiers, so
+  // a boss that cuts the pools cuts the fresh ones.
+  if (typeof survivalActive === 'function' && survivalActive()) {
+    const _rr = computeRoundResources();
+    swaps = _rr.swaps; discards = _rr.discards;
+  }
   applyBossModifiers(preset);
 
   // Any cards sitting on now-void cells: return to draw pile
