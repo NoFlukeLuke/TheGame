@@ -498,7 +498,10 @@ function flowrMaybeStart() {
   // (js/insights.js, flow_chain) the first time a real one rolls.
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;
   flowrLvSinceBoss++;
-  const n = flowrRollCount();
+  // A Flow challenge card solved (+1) or failed (-1) since the last level-up
+  // (js/challenge-round.js). Never below one reward.
+  const _crd = (typeof crTakeFlowRewardDelta === 'function') ? crTakeFlowRewardDelta() : 0;
+  const n = Math.max(1, Math.min(FLOWR_MAX, flowrRollCount() + _crd));
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
   // THIS chain is damped (see FLOWR_REPEAT_DAMP), and pick3 to nothing. A kind

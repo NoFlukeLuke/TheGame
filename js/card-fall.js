@@ -17,7 +17,10 @@ function renderCardAppearance(card, r, c, {
 } = {}) {
   // ── Challenge card (js/challenge-round.js) ──
   if (card._isChallenge) {
-    return { className: 'card stone-card cr-card', innerHTML: crCardFaceHTML(card) };
+    const _q = card.cr || {};
+    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.src === 'flow' ? ' cr-flow' : '') + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
+               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : ''),
+             innerHTML: crCardFaceHTML(card) };
   }
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
@@ -201,6 +204,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   }
   console.log('[FALL] start', { mode, cells: removingCells.length });
   animating = true;
+  if (typeof crBeforeFall === 'function') crBeforeFall();   // fall-type challenge cards count against this
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);
@@ -466,6 +470,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // vanishing behind the next hand. (js/spectrum.js)
   if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
   if (typeof freshStartDrain === 'function') freshStartDrain();
+  if (typeof crAfterFall === 'function') crAfterFall();   // falls / hits on fall-type challenge cards
   if (typeof crDrain === 'function') crDrain();   // a solved challenge card leaves, the next arrives
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
