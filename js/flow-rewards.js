@@ -74,7 +74,7 @@ const FLOWR_DEF  = {
   // Share of every reward screen. Sums to 100 as given.
   // r441: PICK 3 and TRICKS are the two most common (owner), and the SHOP is a
   // reward at 10.
-  odds: { pick3: 25, tricks: 20, shop: 10, cards: 10, deck: 10, sleights: 8, limits: 7, improve: 5, knacks: 5 },
+  odds: { pick3: 25, tricks: 25, shop: 10, cards: 7, deck: 7, sleights: 8, limits: 8, improve: 4, knacks: 6 },
   // THE ONLY THING THAT STILL CARES ABOUT WHEN: the opening levels lean toward
   // LIMITS and switch IMPROVE off, because early on there is almost nothing
   // owned worth improving and a limit compounds for the rest of the run. It is
@@ -317,7 +317,7 @@ let flowrIdx          = 0;
 let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
-function flowrResetRun() { flowrLvSinceBoss = 0; flowrTricksSeen = false; flowrKnacksSeen = false; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
+function flowrResetRun() { flowrPrdMisses = 0; flowrLvSinceBoss = 0; flowrTricksSeen = false; flowrKnacksSeen = false; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
 function flowrChainActive() { return !!flowrQueue; }
 // True while a chain screen that is NOT the ordinary pick is up - what stops
 // survivalUpdateRerollBtn stamping survival's four actions over this step's row.
@@ -345,11 +345,45 @@ function flowrPickWeighted(keys, weights) {
 // left to multiply: every count above 1 is scaled by luckScale(), which is the
 // shape flowrQtyRoll in this same file already uses for the deck editor's
 // quantity. At 0 luck it is exactly the printed table.
-function flowrRollCount() {
+// r448: PSEUDO-RANDOM, Dota's proc system. The chance of MORE THAN ONE reward
+// is not rolled flat: it starts at C and climbs by C every level-up that paid
+// only one, then drops back to C when it pays more. C is solved so the long-run
+// rate equals the table's own chance, so the average is unchanged and only the
+// droughts and streaks are squeezed out. Which count (2..5) is still the table.
+let flowrPrdMisses = 0;   // level-ups in a row that paid one reward. In SAVE_VARS.
+const _prdCache = {};
+function flowrPrdC(p) {
+  if (!(p > 0)) return 0;
+  if (p >= 1) return 1;
+  const k = p.toFixed(4);
+  if (_prdCache[k] != null) return _prdCache[k];
+  const rate = c => {   // long-run proc rate for a given C
+    let exp = 0, notYet = 1;
+    for (let n = 1; notYet > 1e-9 && n < 10000; n++) {
+      const q = Math.min(1, c * n);
+      exp += n * notYet * q; notYet *= 1 - q;
+    }
+    return 1 / exp;
+  };
+  let lo = 0, hi = p;
+  for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (rate(mid) < p) lo = mid; else hi = mid; }
+  return (_prdCache[k] = (lo + hi) / 2);
+}
+function flowrMultiChance() {
   const w = flowrCfg().counts.slice(0, FLOWR_MAX);
   const ls = (typeof luckScale === 'function') ? luckScale() : 1;
-  const keys = w.map((_, i) => i + 1);
-  return flowrPickWeighted(keys, w.map((v, i) => Math.max(0, v || 0) * (i > 0 ? ls : 1)));
+  const ww = w.map((v, i) => Math.max(0, v || 0) * (i > 0 ? ls : 1));
+  const tot = ww.reduce((a, b) => a + b, 0);
+  return { p: tot > 0 ? 1 - ww[0] / tot : 0, ww };
+}
+function flowrRollCount(state) {
+  const st = state || { get m() { return flowrPrdMisses; }, set m(v) { flowrPrdMisses = v; } };
+  const { p, ww } = flowrMultiChance();
+  const chance = Math.min(1, flowrPrdC(p) * (st.m + 1));
+  if (Math.random() >= chance) { st.m++; return 1; }
+  st.m = 0;
+  const keys = ww.map((_, i) => i + 1).slice(1);
+  return flowrPickWeighted(keys, ww.slice(1));
 }
 
 // True while the opening levels' override map applies.
@@ -363,6 +397,12 @@ function flowrOddsNow() {
   const cfg = flowrCfg();
   const o = Object.assign({}, cfg.odds);
   if (flowrEarly()) Object.assign(o, cfg.early);
+  // r448: a FULL TRICK TRAY drops Tricks to 18 and spreads the rest over card
+  // pack, deck edit, limits and improve (owner).
+  if (typeof trickTrayFull === 'function' && trickTrayFull() && (o.tricks || 0) > 18) {
+    const spare = o.tricks - 18; o.tricks = 18;
+    ['cards', 'deck', 'limits', 'improve'].forEach(k => { o[k] = (o[k] || 0) + spare / 4; });
+  }
   return o;
 }
 
@@ -426,10 +466,10 @@ function flowrSimShare(trials) {
   if (_flowrSimCache.key === key) return _flowrSimCache.out;
   const prev = Math.random;
   if (typeof fxRandom === 'function') Math.random = fxRandom;
-  const out = {}; let screens = 0;
+  const out = {}; let screens = 0; const _simPrd = { m: 0 };
   try {
     for (let i = 0; i < trials; i++) {
-      const n = flowrRollCount(), taken = {};
+      const n = flowrRollCount(_simPrd), taken = {};
       for (let j = 0; j < n; j++) {
         const k = flowrRollKind(flowrDampOdds(odds, taken));
         taken[k] = (taken[k] || 0) + 1;

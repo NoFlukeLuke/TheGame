@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r447 · Tray reactions and up to 20 tray lines (card animation step 8)";
+const BUILD = "2026-10-02 · r448 · Flow reward odds, pseudo-random extra rewards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
