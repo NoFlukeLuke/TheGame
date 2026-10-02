@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r440 · Rainbow trays, uniform rings, credits tray on top";
+const BUILD = "2026-10-02 · r441 · Controls wording: right-click and drag, T shape note";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
