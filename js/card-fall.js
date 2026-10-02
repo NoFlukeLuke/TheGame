@@ -19,7 +19,8 @@ function renderCardAppearance(card, r, c, {
   if (card._isChallenge) {
     const _q = card.cr || {};
     return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.src === 'flow' ? ' cr-flow' : '') + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
-               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : ''),
+               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
+               + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : ''),
              innerHTML: crCardFaceHTML(card) };
   }
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
@@ -205,6 +206,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   console.log('[FALL] start', { mode, cells: removingCells.length });
   animating = true;
   if (typeof crBeforeFall === 'function') crBeforeFall();   // fall-type challenge cards count against this
+  if (mode === 'discard' && typeof crTeleOnDiscard === 'function') crTeleOnDiscard(removingCells);   // a discarded marked cell refuses a Flow challenge
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);

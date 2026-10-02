@@ -88,6 +88,8 @@ const SFX_CATALOG = [
   { id: 'chal_solve',    fn: 'sfxChallengeSolve',  group: 'Challenge', label: 'Challenge card solved' },
   { id: 'chal_expire',   fn: 'sfxChallengeExpire', group: 'Challenge', label: 'Challenge card failed' },
   { id: 'chal_tick',     fn: 'sfxChallengeTick',   group: 'Challenge', label: 'Challenge: last seconds' },
+  { id: 'chal_clear',    fn: 'sfxChallengeClear',  group: 'Challenge', label: 'Challenge tier cleared' },
+  { id: 'chal_raise',    fn: 'sfxChallengeRaise',  group: 'Challenge', label: 'Challenge raised a tier' },
   { id: 'chal_dodge',    fn: 'sfxChallengeDodge',  group: 'Challenge', label: 'Challenge refused', note: 'The marked card was discarded before the challenge card landed.' },
 
   // Time

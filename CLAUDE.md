@@ -526,3 +526,27 @@ and the tray background (`#tray-pit-style`), and takes the three reactions over 
 `TRAY_PIT_DEFAULT.on` is 1 (store `lethe.trayPit.v2`; v1 carried over once without its `on`, since r463
 shipped it off). A 1px ring in the tray's full colour sits `ring`% (50) of the way from rim to floor,
 following the walls' perspective, over a blurred copy of itself (`ringGlow`, 0 = no ring; filter `#rg`).
+
+## r465 - challenge ladders; Flow's warning marks a cell (`js/challenge-round.js`)
+- **Flow warning is a CELL** (owner): plays and falls do not move it; whatever card is there when
+  the 10s count ends is replaced. Discarding the card IN that cell refuses the challenge
+  (`crTeleOnDiscard`, from `removeAndFall`'s 'discard' mode). `crTeleTrack` only redraws the pulse.
+- **Every challenge is a LADDER** of tiers `{ d, n }` (`crTypeDefs`, owner's table): touch 1/4 2/5
+  3/8 · low hands (Pair, Run of 3, Three of a Kind) 1/3 2/5 3/7 · Straight 2/2 3/4 · Two Pair, Run of
+  4 2/3 3/5 · Flush, Full House, Straight Flush 2/1 3/2 · Four of a Kind 3/1 · suit (one hand with 3
+  of a named suit) single tier, d3 at Selection 3 else d2 · size (hands of 4+ cards) 1/2 3/5 · types
+  2/3 3/5 · big hand 2/1.3x 3/1.8x of recent typical · fall cards 1/2 2/3 3/5. "Touching hand" is
+  gone. Types are offered only when the board can make them.
+- **Clear, raise, take:** reaching a tier BANKS it (`crAdvance`). With a higher tier the card glows
+  (`.cr-cleared`, "MORE?"): tap takes the banked payout (`crCollect`), double-tap raises
+  (`crTap` -> `crRaise`, no extra time, counts carry). Unanswered, it takes the payout after
+  `CR_CLEAR_HOLD` (6) live seconds. A raise that fails loses everything banked and takes the raised
+  tier's penalty (`crFail`). Payout/penalty = `CR_FLOW_STAKES[d]` (credits everywhere; seconds and
+  a reward in Flow).
+- **Challenge rounds use ladders too:** a card counts as done for the round the moment its first
+  tier clears (`q.counted`), the next card comes after it is taken, and a raised round card holds
+  the goal open (`crHoldsGoal`) until it banks or the clock runs out (then it no longer counts).
+  Card N of a round rolls a type whose ladder starts at difficulty N.
+- Face: one pip per tier (green/amber/red by difficulty; filled = banked, ringed = current),
+  progress boxes (<= 5) or `n/of`, the timer in Flow. Sounds `sfxChallengeClear` / `sfxChallengeRaise`.
+

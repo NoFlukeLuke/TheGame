@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r464 · Trays are pits by default, with a glowing 1px ring halfway down";
+const BUILD = "2026-10-02 · r465 · Challenge ladders: clear, tap to take, double-tap to raise; Flow warning marks a cell";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

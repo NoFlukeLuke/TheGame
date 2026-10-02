@@ -16,8 +16,28 @@
   background: radial-gradient(circle at 50% 30%, #3b4350 0%, #20252d 70%, #0f1216 100%); }
 #grid .stone-card.cr-card.cr-flow { justify-content: flex-start; padding-top: 4px; padding-bottom: 14px; gap: 1px; }
 #grid .cr-card .cr-head  { font-size: 9px; letter-spacing: 0.08em; line-height: 1; color: var(--cr-ink, #ffb347); }
-#grid .cr-card .cr-glyph { font-size: 16px; line-height: 1; color: var(--cr-ink, #ffb347); }
+#grid .cr-card .cr-glyph { font-size: 14px; line-height: 1; color: var(--cr-ink, #ffb347); }
 #grid .cr-card .cr-req   { font-size: 10px; line-height: 1; max-width: 100%; word-break: normal; overflow-wrap: normal; }
+/* the ladder: one pip per tier, filled once banked, ringed on the current tier */
+#grid .cr-card .cr-head { display: flex; gap: 3px; align-items: center; justify-content: center; min-height: 7px; margin-bottom: 2px; }
+#grid .cr-card .cr-pips { display: inline-flex; gap: 2px; }
+#grid .cr-card .cr-pip { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.18); }
+#grid .cr-card .cr-pip.d1 { --pc: #6fd08c; } #grid .cr-card .cr-pip.d2 { --pc: #ffb347; } #grid .cr-card .cr-pip.d3 { --pc: #ff5c5c; }
+#grid .cr-card .cr-pip.on  { background: var(--pc); }
+#grid .cr-card .cr-pip.cur { box-shadow: 0 0 0 1.5px var(--pc); }
+#grid .cr-card .cr-num { font-size: 10px; line-height: 1; color: var(--cr-ink, #ffb347); }
+/* cleared, waiting for an answer: tap takes, double-tap raises */
+#grid .cr-card .cr-more {
+  position: absolute; left: 2px; right: 2px; top: 50%; transform: translateY(-50%);
+  background: rgba(20, 12, 4, 0.88); border: 1px solid #ffe27a; border-radius: 4px;
+  color: #ffe27a; font-size: 11px; line-height: 1.05; padding: 3px 1px; pointer-events: none;
+}
+#grid .cr-card .cr-more i { display: block; font-style: normal; font-size: 7px; color: #ffd9a0; }
+#grid .cr-card.cr-cleared { border-color: #ffe27a; animation: cr-cleared 0.9s ease-in-out infinite; }
+@keyframes cr-cleared {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 226, 122, 0.55); }
+  50%      { box-shadow: 0 0 22px rgba(255, 226, 122, 1); }
+}
 /* the to-do strip */
 #grid .cr-card .cr-boxes { display: flex; gap: 3px; }
 #grid .cr-card .cr-box {
