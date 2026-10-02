@@ -15,6 +15,10 @@ function renderCardAppearance(card, r, c, {
   // it there would hide the hand from the animation that is explaining it.
   revealFog       = false,
 } = {}) {
+  // ── Challenge card (js/challenge-round.js) ──
+  if (card._isChallenge) {
+    return { className: 'card stone-card cr-card', innerHTML: crCardFaceHTML(card) };
+  }
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
     return {
@@ -456,6 +460,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // vanishing behind the next hand. (js/spectrum.js)
   if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
   if (typeof freshStartDrain === 'function') freshStartDrain();
+  if (typeof crDrain === 'function') crDrain();   // a solved challenge card leaves, the next arrives
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }

@@ -374,6 +374,8 @@ function onCardTap(r, c) {
   if (gridData[r][c] === null) { dbgEvent('warn', `tap blocked: null cell [${r},${c}]`); return; }
   // Block boss-obstructed cells
   if (isCellBlocked(r, c)) { dbgEvent('warn', `tap blocked: cell blocked [${r},${c}]`); return; }
+  // A challenge round card: a tap reads what it asks for (js/challenge-round.js).
+  if (gridData[r]?.[c]?._isChallenge) { if (typeof crShowInfo === 'function') crShowInfo(); return; }
   // Block challenge card taps
   if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) { dbgEvent('warn', `tap blocked: challenge card`); return; }
   // Block non-swappable cards entirely (e.g. challenge card)

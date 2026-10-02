@@ -135,7 +135,8 @@ and clock from JS because the board moves.
   Leaves the board through `discardSleightAfterUse` / `discardToPlayed` (which keeps charges);
   `discardToDrawPile` silently drops Sleights.
 - **Knack**: not a card. `acquiredKnacks[]`, `hasKnack(id)`.
-- **Stone**, **Wild** (completes a set only, no pips, no Tricks), **Challenge** card.
+- **Stone**, **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
+  challenge round's card, `_isStone` + `_isChallenge`, falls and renders only; see below).
 - `cardCan(card, action)` gates select/swap/discard/fall/render.
 
 ### Scoring: `calcScore(handName, cells)`
@@ -368,3 +369,25 @@ and Match-3's resolve wait on it. **Fly** looks are keyframes for the clone `fly
 flies (`cardFlyLook(dx, dy, sc, i, h, id)`): current, Lean in, Comet (curved path + 3 trailing
 ghosts), Pinball (pop up, drop, squash). Every fly look keeps the caller's duration because the
 dance times its beats to it. The lab flies its own cards through the real `flyGridCardToSlot`.
+
+## r444 - challenge rounds and the penalty grid (`js/challenge-round.js`, `css/challenge-round.css`)
+A round with the FULL goal plus `CR_CARDS` (3) challenge cards, one at a time. A card arrives
+by sending a random board card back to the deck and rising into its cell; it asks one thing
+(touch it with N hands, score a named hand, N cards of a suit, an N-card hand, a big hand,
+N hand types), harder per card. Solving pays `CR_CARD_CREDITS` and the next one arrives
+(drained from `removeAndFall`'s tail, `crDrain`). **`roundQuotaMet()` returns false while a card
+is unsolved (`crHoldsGoal`)**, so the round cannot end on the goal alone. All solved + goal:
+the reward is the PRIZE grid (`crTakePrize`, read by the interlude and by `mapAfterLevel`).
+Clock out with the goal met but a card unsolved (`crOnClockOut`): the round is cleared and the
+interlude opens the **penalty grid** first (`crSettle` -> `openPenaltyGrid`): every cell a
+penalty from the reward grid's own table, and the path must be exactly `limits.selection.current`
+long (no skip, no Greedy Boi). Clock out without the goal is an ordinary lost round.
+Where: a mode with the `challengeNode` flag (Classic: node 3 of each quarter, via
+`crMaybeArmForNode`), and half the Schedule's challenge tiles are an **AUDIT** (`t.audit`,
+`MAP_AUDIT_SHARE`) instead of a PRIORITY account, with `CR_MAP_BONUS_SECONDS` (60) on the clock
+past the round cap (`crStartBonus`, read by the countdown refill). Not in Flow yet: Flow has no
+round clock to fail against. `crRound` / `crArmed` are plain data in SAVE_VARS. Dev:
+"Next Round: Challenge" and "Open Penalty Grid" under Level & screens.
+Same pass: the reward grids lost the Cut tile and the dual card op, and card-buff tiles are
+halved (`REWARD_BUFF_CATS` blessed 6 -> 3, prize 10 -> 5).
+

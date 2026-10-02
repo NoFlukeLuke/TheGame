@@ -121,7 +121,7 @@ function purgeStonesFromDeck() {
   playedPile = playedPile.filter(c => !c._isStone);
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
-      if (gridData[r][c] && gridData[r][c]._isStone) {
+      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge) {
         gridData[r][c] = drawCard() || null; // refill with a real card
       }
     }

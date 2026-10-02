@@ -77,6 +77,8 @@ function levelTypeMaybeArm() {
 
 // The one "is this round's goal met" test.
 function roundQuotaMet() {
+  // A challenge round holds the goal open while a card is unsolved (js/challenge-round.js).
+  if (typeof crHoldsGoal === 'function' && crHoldsGoal()) return false;
   const q = roundQuota;
   if (!q) return score >= roundGoal;
   if (q.kind === 'relay') return q.idx >= q.bars.length;
