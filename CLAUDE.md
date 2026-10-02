@@ -471,7 +471,17 @@ A dev tab with 3+ visible sections folds each under its title (start closed; `de
   in the last 5). Synthesised sounds `sfxChallengeWarn/Land/Slap/Tap/Thud/Solve/Expire/Tick`,
   catalogued under Challenge in `js/audio-assets.js`.
 
-## r454 - Flow's challenge warning is 10s and can be refused
+## r454 - only the big trays move; small trays are quiet; Larger text reaches tooltips
+`TRAY_FX_MOVING` (Knacks, hand preview, Tricks) are the only trays the ripple / pulse touches. Every
+other tray gets `--tray-loud` (trayFx.small, default 35%) on its lines and outer glow, and
+`--tray-amp: 0`. The ripple is slower (`trayFx.speed`, 1.4s a line), speeds up a little as it goes in
+(`u^1.25`), and has a softer front and longer tail (`TRAY_RIPPLE_FRONT` / `_TAIL`); the previous comet
+(`--tray-pl` lines further in) is drawn too so its tail finishes fading as the next one starts.
+Default line thickness is 1px. Score / goal / credits text is white (end of css/style.css).
+`body.big-text` sets `--text-z` (1.15), multiplied into the tooltip CHILDREN's zoom
+(css/menu-size.css), never the host the placement code positions.
+
+## r455 - Flow's challenge warning is 10s and can be refused
 In Flow the arrival warning MARKS A CARD (`t.cardId`) for `CR_TELE_MS.flow` (10s) of live play, counted
 in `crTick` (so it waits out pauses and level-ups) and shown as a countdown on the pulse. `crTeleTrack`
 (run from `crPaintLocks`, i.e. every render) keeps the pulse on that card if it falls or is swapped.

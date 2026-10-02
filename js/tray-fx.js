@@ -6,11 +6,15 @@
    Motion is a rAF loop that writes those on each tray element (not on :root, so the rest
    of the page is not restyled). */
 const TRAY_FX_KEY = 'lethe.trayFx.v2';   // r451: overrides only (v1 stored every field)
-const TRAY_FX_DEFAULT = { lines: 3, thick: 2, glow: 10, gain: 1.2, motion: 'ripple', center: 35, fade: 70,
-  gap: 2, grow: 5, tilt: 60 };
+const TRAY_FX_DEFAULT = { lines: 3, thick: 1, glow: 10, gain: 1.2, motion: 'ripple', center: 35, fade: 70,
+  gap: 2, grow: 5, tilt: 60, small: 35, speed: 1.4 };
 const TRAY_FX_IDS = ['score-center', 'score-left', 'pips-box', 'mult-box', 'focus-box', 'screen-location',
   'pmf-merged', 'knack-carousel-wrap', 'selected-cards', 'trick-tray-area', 'hand-preview-area',
   'coin-info', 'vclock', 'run-progress'];
+// r453: only these trays move (ripple / pulse). Every other tray is a SMALL tray: still,
+// and drawn at trayFx.small % loudness (lines and outer glow) so the big trays lead.
+const TRAY_FX_MOVING = ['knack-carousel-wrap', 'selected-cards', 'trick-tray-area', 'hand-preview-area'];
+const trayFxMoves = el => TRAY_FX_MOVING.includes(el.id);
 let trayFx = (() => {
   const d = Object.assign({}, TRAY_FX_DEFAULT);
   try {
@@ -50,7 +54,13 @@ function trayFxApply() {
   st.setProperty('--tray-amp', f.motion === 'off' ? 0 : (f.motion === 'pulse' ? 0.6 : 0.9));
   trayFxTrimRings();
   st.setProperty('--tray-f', (1 - 0.45 * f.fade / 100).toFixed(3));
-  trayFxEach(el => el.style.setProperty('--tray-ph', 0));
+  trayFxEach(el => {
+    el.style.setProperty('--tray-ph', 0);
+    if (trayFxMoves(el)) ['--tray-loud', '--tray-amp', '--tray-halo'].forEach(p => el.style.removeProperty(p));
+    else { const q = f.small / 100;
+      el.style.setProperty('--tray-loud', q); el.style.setProperty('--tray-amp', 0);
+      el.style.setProperty('--tray-halo', +(f.glow * q).toFixed(2)); }
+  });
   trayFxLimitAll();
   cancelAnimationFrame(_trayFxRaf); _trayFxRaf = 0;
   if (f.motion !== 'off') _trayFxRaf = requestAnimationFrame(trayFxTick);
@@ -78,11 +88,15 @@ function trayFxGeom(n) {
   return { s, w };
 }
 const _tfxPx = v => +v.toFixed(2);
+const TRAY_RIPPLE_FRONT = 1, TRAY_RIPPLE_TAIL = 2.6;   // in lines
 function trayFxRingString(n) {
-  // Ambient band: a comet heading inward (sharp front, long tail behind it) so the ripple
-  // reads as motion down into the tray. Pulse mode breathes every line by --tray-ph.
-  // The pointer adds its own band (--tray-hv at line --tray-hp) on top of either.
-  const ph = i => `(1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - max((${i} - var(--tray-ph)) / 0.7, (var(--tray-ph) - ${i}) / 1.8)) + (1 - var(--tray-mode)) * var(--tray-ph)) + var(--tray-hv, 0) * max(0, 1 - abs(var(--tray-hp, 0) - ${i}) / 1.5)) * (1 + var(--tray-boost, 0) + 0.3 * var(--tray-hv, 0))`;
+  // Ambient band: a comet heading inward (soft front, long tail behind it) so the ripple
+  // reads as motion down into the tray. The comet before it (one loop, --tray-pl, further
+  // in) is drawn too, so its tail finishes fading while the next one starts at the border.
+  // Pulse mode breathes every line by --tray-ph. The pointer adds its own band (--tray-hv
+  // at line --tray-hp) on top of either. --tray-loud is a small tray's loudness.
+  const band = (i, x) => `max(0, 1 - max((${i} - ${x}) / ${TRAY_RIPPLE_FRONT}, (${x} - ${i}) / ${TRAY_RIPPLE_TAIL}))`;
+  const ph = i => `(1 + var(--tray-amp) * (var(--tray-mode) * max(${band(i, 'var(--tray-ph)')}, ${band(i, '(var(--tray-ph) + var(--tray-pl, 99))')}) + (1 - var(--tray-mode)) * var(--tray-ph)) + var(--tray-hv, 0) * max(0, 1 - abs(var(--tray-hp, 0) - ${i}) / 1.5)) * (1 + var(--tray-boost, 0) + 0.3 * var(--tray-hv, 0))`;
   const off = w => w ? `calc(var(--tray-tx, 0) * ${_tfxPx(w)}px) calc(var(--tray-ty, 0) * ${_tfxPx(w)}px)` : '0 0';
   const g = trayFxGeom(n), t = trayFx.thick, out = [];
   for (let i = 0; i < n; i++) {
@@ -91,8 +105,8 @@ function trayFxRingString(n) {
     // A line and its soft edge slide by w[i]; the dark gap after it slides with the NEXT
     // line, so tilting narrows and widens the gaps and the lines keep their thickness.
     const fade = `pow(var(--tray-f, 0.685), ${i})`, vis = `clamp(0, var(--tray-n, 99) - ${i}, 1)`;
-    out.push(`inset ${off(g.w[i])} 0 ${_tfxPx(g.s[i] + t)}px color-mix(in srgb, var(--tray-c) calc(min(100, 70 * ${fade} * var(--tray-gain) * ${ph(i)} * ${vis}) * 1%), transparent)`);
-    out.push(`inset ${off(g.w[i])} 0 ${_tfxPx(g.s[i] + t + 1)}px color-mix(in srgb, var(--tray-c) calc(min(100, 23.1 * ${fade} * var(--tray-gain) * ${ph(i)} * ${vis}) * 1%), transparent)`);
+    out.push(`inset ${off(g.w[i])} 0 ${_tfxPx(g.s[i] + t)}px color-mix(in srgb, var(--tray-c) calc(min(100, 70 * ${fade} * var(--tray-gain) * var(--tray-loud, 1) * ${ph(i)} * ${vis}) * 1%), transparent)`);
+    out.push(`inset ${off(g.w[i])} 0 ${_tfxPx(g.s[i] + t + 1)}px color-mix(in srgb, var(--tray-c) calc(min(100, 23.1 * ${fade} * var(--tray-gain) * var(--tray-loud, 1) * ${ph(i)} * ${vis}) * 1%), transparent)`);
     out.push(`inset ${off(g.w[i + 1])} 0 ${_tfxPx(g.s[i + 1])}px rgb(0 0 0 / calc(0.6 * ${fade} * ${vis}))`);
   }
   return out.join(', ');
@@ -151,11 +165,16 @@ function trayFxTick(t) {
   const pulse = trayFx.motion === 'pulse', breath = 0.5 - 0.5 * Math.cos(t / 1400 * Math.PI);   // 2.8s breath
   const now = performance.now();
   trayFxEach(el => {
-    if (el._kickUntil > now || !el.offsetWidth) return;
-    // Ripple: one line per 0.7s from the border inward over THIS tray's own lines; as the
-    // band leaves the innermost line the next one starts at the border (never back out).
+    if (!trayFxMoves(el) || el._kickUntil > now || !el.offsetWidth) return;
+    // Ripple: from the border inward over THIS tray's own lines, trayFx.speed seconds a
+    // line on average and speeding up a little as it goes in (u^1.25). A loop is L lines
+    // long; as one comet leaves the innermost line the next starts at the border.
     let ph = breath;
-    if (!pulse) { const L = Math.max(1, el._tfxN || 1) + 0.6; ph = ((t / 700) % L) - 0.6; }
+    if (!pulse) {
+      const L = Math.max(1, el._tfxN || 1) + TRAY_RIPPLE_FRONT, u = (t / (trayFx.speed * 1000 * L)) % 1;
+      ph = L * Math.pow(u, 1.25) - TRAY_RIPPLE_FRONT;
+      if (el._tfxPl !== L) { el._tfxPl = L; el.style.setProperty('--tray-pl', L); }
+    }
     const v = ph.toFixed(2);
     if (el._tfxPh !== v) { el._tfxPh = v; el.style.setProperty('--tray-ph', v); }
   });
@@ -164,7 +183,7 @@ function trayFxSync() {
   const set = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e) e.value = String(v); };
   set('dev-tfx-lines', trayFx.lines); set('dev-tfx-thick', trayFx.thick); set('dev-tfx-glow', trayFx.glow);
   set('dev-tfx-gain', trayFx.gain); set('dev-tfx-motion', trayFx.motion);
-  [['center', '%'], ['fade', '%'], ['gap', 'px'], ['grow', '%'], ['tilt', '']].forEach(([k, u]) => {
+  [['center', '%'], ['fade', '%'], ['gap', 'px'], ['grow', '%'], ['tilt', ''], ['small', '%'], ['speed', 's']].forEach(([k, u]) => {
     set('dev-tfx-' + k, trayFx[k]);
     const e = document.getElementById('dev-tfx-' + k + '-v'); if (e) e.textContent = trayFx[k] + u;
   });
@@ -189,6 +208,7 @@ function trayFxKick(el, dir) {
   const n = Math.max(1, el._tfxN || trayFx.lines) + 1, t0 = performance.now();
   el._kickUntil = t0 + TRAY_KICK_MS;
   el.style.setProperty('--tray-mode', 1);
+  el.style.setProperty('--tray-pl', 99); el._tfxPl = 0;   // no trailing comet during a kick
   const step = t => {
     const p = Math.min(1, (t - t0) / TRAY_KICK_MS);
     const ph = dir === 'in' ? -0.5 + p * (n + 1) : n + 0.5 - p * (n + 1);
@@ -231,14 +251,15 @@ function trayFxHoverStep(t) {
   const dt = Math.min(100, t - _trayHoverT); _trayHoverT = t;
   const ease = (v, to, tau) => v + (to - v) * (1 - Math.exp(-dt / tau));
   _trayHoverSet.forEach(el => {
+    el._hv = el._hv || 0; el._tx = el._tx || 0; el._ty = el._ty || 0;   // a leave can arrive before any move
     const out = el._leaveAt && t - el._leaveAt > TRAY_HOVER_HOLD_MS;
     if (out) { el._hvT = 0; el._txT = 0; el._tyT = 0; }
     const held = el._leaveAt && !out;
     if (!held) {
       // in: glow 0.1s, lean 0.4s. out: glow ~1.5s, lean ~2s to settle.
-      el._hv = ease(el._hv || 0, el._hvT, out ? 450 : 100);
-      el._tx = ease(el._tx || 0, el._txT, out ? 650 : 400);
-      el._ty = ease(el._ty || 0, el._tyT, out ? 650 : 400);
+      el._hv = ease(el._hv, el._hvT || 0, out ? 450 : 100);
+      el._tx = ease(el._tx, el._txT || 0, out ? 650 : 400);
+      el._ty = ease(el._ty, el._tyT || 0, out ? 650 : 400);
     }
     const done = out && el._hv < 0.01 && Math.abs(el._tx) < 0.005 && Math.abs(el._ty) < 0.005;
     if (done) {
