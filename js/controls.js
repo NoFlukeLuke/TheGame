@@ -36,6 +36,7 @@ function ctlDiscardGate() {
   if (_discConfirm.key === key && Date.now() - _discConfirm.at < 3000) {
     _discConfirm = { key: '', at: 0 };
     btn?.classList.remove('confirm-armed');
+    if (typeof setDragDiscardArmed === 'function') setDragDiscardArmed(false);
     return true;
   }
   _discConfirm = { key, at: Date.now() };
@@ -61,13 +62,13 @@ function ctlSetLeftHanded(on) { document.body.classList.toggle('left-handed', !!
 // rebindable in Settings. An empty string is unbound.
 const KEY_ACTIONS = [
   { id: 'play',    label: 'Play',     def: 'Space',
-    hint: 'Plays the hand. Where PLAY reads CONFIRM or BUY, presses that.' },
+    hint: 'Same as pressing PLAY, including when it reads CONFIRM or BUY.' },
   { id: 'discard', label: 'Discard',  def: 'KeyD',
-    hint: 'Presses DISCARD. See Confirm discards in Controls.' },
+    hint: 'Same as pressing DISCARD.' },
   { id: 'swap',    label: 'Swap',     def: 'KeyS',
-    hint: 'Swaps two selected neighbouring cards, like the SWAP button.' },
+    hint: 'Swaps the two selected cards, same as pressing SWAP.' },
   { id: 'clear',   label: 'Clear',    def: 'Escape',
-    hint: 'Clears the selection and drops a card lifted for a swap. Closes Records.' },
+    hint: 'Unselects every card and puts down a card picked up to swap. Also closes Records.' },
   { id: 'records', label: 'Records',  def: 'KeyR',
     hint: 'Opens and closes Records.' },
   { id: 'pause',   label: 'Pause',    def: 'KeyP',
@@ -148,10 +149,10 @@ window.addEventListener('keydown', e => {
 }, true);
 
 // ── Idle hint ──
-// After 15s with nothing played, selected, discarded or swapped, a soft shine
+// After 20s with nothing played, selected, discarded or swapped, a soft shine
 // runs across one playable hand on the board (and a short buzz, if vibration
 // is on). Watching the counters means nothing else has to report activity.
-const CTL_IDLE_SECS = 15;
+const CTL_IDLE_SECS = 20;
 let _idleSig = '', _idleSecs = 0;
 function ctlIdleTick() {
   if (!ctlOn('ctlIdleHint')) { _idleSecs = 0; return; }

@@ -634,7 +634,7 @@ gridEl2.addEventListener('pointerup', e => {
   // boss refusals) and clears the selection itself.
   if (ps && ps.rightBtn) {
     isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
-    if (ps.moved && selected.length > 0) { cancelAutoSubmit(); doDiscard(); }
+    if (ps.moved && selected.length > 0) { cancelAutoSubmit(); if (ctlDiscardGate()) doDiscard(); }
     return;
   }
   // Dealer's Choice: a finger drag released over a card places the held card
@@ -651,7 +651,7 @@ gridEl2.addEventListener('pointerup', e => {
   if (ps && ps.moved && dragControlsLive() && selected.length > 0) {
     isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
     cancelAutoSubmit();
-    if (dragDiscardArmed) { setDragDiscardArmed(false); doDiscard(); }
+    if (dragDiscardArmed) { if (ctlDiscardGate()) { setDragDiscardArmed(false); doDiscard(); } }
     else if (ctlDragGraceMs() > 0) { dragGrace = true; armDragPlay(); render(); }
     else if (findBestHand(selected)) playHand();
     else scheduleAutoSubmit();

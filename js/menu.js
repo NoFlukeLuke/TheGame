@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r438 · Wheel to swap, controls wording";
+const BUILD = "2026-10-02 · r439 · Idle hint 20s, plain control wording, every discard confirms";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
