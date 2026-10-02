@@ -385,7 +385,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // owns none of the card itself: no base pips, no permanent buffs, no
   // position Tricks, no replay bookkeeping - it replays exactly as often as the
   // real card, and its events land in the same card beat, right behind it.
-  const _scoreOne = ([r, c], _ci, _ghost) => {
+  const _scoreOne = ([r, c], _ci, _ghost, _pend) => {
     const card = _ghost || gridData[r][c];
     const _G = !!_ghost;
     // ── A WILD CONTRIBUTES NOTHING (r325) ──
@@ -463,15 +463,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // plus must happen first so the xpips can be applied to both the card's
     // inherent pips and the card's +pips"), and a replay repeats the whole beat -
     // add, add, multiply - which is what `cp *= _retrig` below is arithmetically.
+    // r458 (owner): a card's x pips multiplies the WHOLE running pip total, not
+    // the card's own pips. It is the last thing in the card's beat (after its
+    // per-card Trick pips and Hard Labour), applied once per replay; banked in
+    // `_pend` and run by `_bankCell` below, emitted at the end of this block.
     const _xp = _G ? 1 : (permXPips[_eKey] || 1);
-    if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPipX('sapling', _xp, cp - _preXp); }
     // Cornered: a corner card's own pips x the whole minutes left on the clock
     if (!_G && _crMins >= 1 && _crSet.has(r + '-' + c)) { const _b = cp; cp *= _crMins; bPipX('corner_retrigger', _crMins, cp - _b); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
     if (!_G && cardCurses[_eKey]?.id === 'leaden') { if (cp) _ev('leaden', 'pip*', 0, 'curse'); cp = 0; }
     // Straight Shot: sum every card's modified pips (post-buff, post-curse, pre-replay)
     const _cKey = r + '-' + c;
-    _slSumPips += cp;
+    _slSumPips += cp * _xp;
     // Retrigger / replay: certain conditions score this card's pips an extra time
     let _retrig = 1;
     const _r2 = false; // Double Take redesigned - now duplicates a Trick, not the 2 card
@@ -546,7 +549,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       for (const _id in _cp) { const _d = (_cp[_id] || 0) - (_cpSnap[_id] || 0); if (_d) _pipT[_id] = _d; }
       _ledgerCells.push({ r, c, card, rank: card.rank, suit: card.suit, rawPip: _origPips, reps: _retrig, pipT: _pipT, multT: {} });
     }
-    if (hasTrick('club_double') && card.suit === '♣') _clubHits += _retrig;
+    const _hlClub = hasTrick('club_double') && card.suit === '♣';
+    if (_hlClub) _clubHits += _retrig;
     if (!_G && card._vulturePause) _vultureFires += card._vulturePause; // pause buff fires once per SCORE, not per replay (r342, owner's text dropped "replays stack")
     // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
     if (!_G && _asmOn && !_mute && cellHasRowColBonus(r, c, 'assembly_line')) {
@@ -606,7 +610,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       const _bps = bossCardPipScale(card, r, c);
       if (_bps !== 1) { _ev('_bossCard', 'pip*', _bps, 'boss'); cp *= _bps; }
     }
-    totalPips += cp;
+    // Banked per replay (every replay of a card is identical apart from Hard
+    // Labour's rung), so `_bankCell` can interleave the x pips the way the dance does.
+    const _perRep = cp / _retrig;
+    const _repPips = Array.from({ length: _retrig }, () => _perRep);
     // ── Per-card MULT (see the accumulators above). Emitted AFTER the Blight's
     //    rewind, because the post-loop sweeps these replace were never Blight-
     //    suppressed - truncating them here would make the timeline under-report.
@@ -646,7 +653,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       // blank identity pays the same, the row is about position or the hand.
       if (_G) { const p0 = row.pays({ ...card, rank: '', suit: '' }, _pcCtx);
                 if (p0 && (p0.pip || 0) === (p.pip || 0) && (p0.mult || 0) === (p.mult || 0)) return; }
-      if (p.pip)  { _pcPips[row.id] = (_pcPips[row.id]||0) + p.pip  * _retrig; _ev(row.id,'pip+', p.pip,  'trick'); }
+      if (p.pip)  { _pcPips[row.id] = (_pcPips[row.id]||0) + p.pip  * _retrig; _ev(row.id,'pip+', p.pip,  'trick'); for (let _i = 0; _i < _retrig; _i++) _repPips[_i] += p.pip; }
       if (p.mult) { _pcMult[row.id] = (_pcMult[row.id]||0) + p.mult * _retrig; _cmAdd += p.mult; _ev(row.id,'mult+',p.mult, 'trick'); }
     });
     // ── This card's own x MULT, and the whole reason the adds above had to move
@@ -693,11 +700,48 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // replayed the moment `mult` has its base value and before ANY hand-level
     // add, which is exactly where these events sit on the timeline.
     if (_cmAdd || _cmOnce || _xl.length) _cardMultSeq.push({ add: _cmAdd, once: _cmOnce, xl: _xl, reps: _retrig });
+    // Hard Labour (r458): every club SCORE pays the ladder's current rung, on the
+    // club, replays included. The rungs interleave as the dance plays them: real
+    // card rep 0, its ghost rep 0, real rep 1... (`_pend.k0` / `_pend.stride`).
+    // One event per beat carries a value per replay (`vals`).
+    if (_hlClub) {
+      const _vals = [];
+      for (let _i = 0; _i < _retrig; _i++) {
+        const _v = BAL.club_double.base * Math.pow(2, _pend.k0 + _i * _pend.stride + (_G ? _pend.rc : 0));
+        _vals.push(_v); _repPips[_i] += _v; _hlPips += _v;
+      }
+      const _he = _ev('club_double', 'pip+', _vals[0], 'trick');
+      if (_he && _retrig > 1) _he.vals = _vals;
+    }
+    // The card's x pips, last in its beat, on the whole running total.
+    const _xpOn = _xp !== 1 && !_mute && cardCurses[_eKey]?.id !== 'leaden';
+    if (_xpOn) { _proc('sapling'); const _xe = _ev('sapling', 'pip*', _xp, 'trick', undefined, 'none'); if (_xe) _xe.scope = 'total'; }
+    _pend[_G ? 'ghost' : 'real'] = _repPips;
+    if (!_G) _pend.xp = _xpOn ? _xp : 1;
   };
+  // Adds a cell's banked pips to the total in the dance's order: for each replay,
+  // the card's pips, then its x pips on the running total, then its ghost's pips.
+  let _hlPips = 0;
+  const _bankCell = pd => {
+    const n = Math.max(pd.real ? pd.real.length : 0, pd.ghost ? pd.ghost.length : 0);
+    let _xd = 0;
+    for (let _i = 0; _i < n; _i++) {
+      if (pd.real) totalPips += pd.real[_i];
+      if (pd.xp !== 1) { const _pre = totalPips; totalPips *= pd.xp; _xd += totalPips - _pre; }
+      if (pd.ghost) totalPips += pd.ghost[_i];
+    }
+    if (_xd) _cp.sapling = (_cp.sapling || 0) + _xd;
+  };
+  const _scores = c => !!c && !((typeof isWildCard === 'function') && (isWildCard(c) || isWarehouseCard(c)));
   _scoreCells.forEach((cell, ci) => {
-    _scoreOne(cell, ci, null);
-    const _gh = (typeof cardGhostFor === 'function') ? cardGhostFor(gridData[cell[0]]?.[cell[1]]) : null;
-    if (_gh) _scoreOne(cell, ci, _gh);
+    const _real = gridData[cell[0]]?.[cell[1]];
+    const _gh = (typeof cardGhostFor === 'function') ? cardGhostFor(_real) : null;
+    const rc = hasTrick('club_double') && _scores(_real) && _real.suit === '♣' ? 1 : 0;
+    const gc = hasTrick('club_double') && _scores(_gh) && _gh.suit === '♣' ? 1 : 0;
+    const _pend = { k0: clubsScoredRound + _clubHits, stride: rc + gc, rc, xp: 1 };
+    _scoreOne(cell, ci, null, _pend);
+    if (_gh) _scoreOne(cell, ci, _gh, _pend);
+    _bankCell(_pend);
   });
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
@@ -719,7 +763,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('enriched')     && handName === 'Flush')   { totalPips += BAL.enriched.pips; bPip('enriched', BAL.enriched.pips); }
 
   // Early bird: first third of the round, +pips per card
-  if (_pcPips.early_bird) { totalPips += _pcPips.early_bird; bPipQ('early_bird', _pcPips.early_bird, 1); }
+  if (_pcPips.early_bird) { bPipQ('early_bird', _pcPips.early_bird, 1); }
 
   // Albatross: +5 pips for every second the clock has spent paused this round
   if (hasTrick('albatross') && pausedSecondsRound > 0) { const _a = pausedSecondsRound * BAL.albatross.pips_per_second; totalPips += _a; bPip('albatross', _a); }
@@ -736,8 +780,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hard Labour (r346): the doubling ladder runs across the ROUND, starting at 1 -
   // this hand's clubs continue the sequence from clubsScoredRound (READ-only here;
   // playHand advances it off _lastHandClubHits, the siphon rule - calcScore runs
-  // speculatively). Sum of base·2^(n), n = clubsScoredRound .. +_clubHits-1.
-  if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
+  // speculatively). r458: paid per club in the card loop; this is the ledger row.
+  if (_hlPips) bPipQ('club_double', _hlPips, 1);
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
   const allSpadesCalc = _natCards.length > 0 && _natCards.every(c => c.suit === '♠' || c.suit2 === '♠');
@@ -840,7 +884,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Hand-specific mult
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
-  if (_pcPips.overgrowth) { totalPips += _pcPips.overgrowth; bPipQ('overgrowth', _pcPips.overgrowth, 1); }
+  if (_pcPips.overgrowth) { bPipQ('overgrowth', _pcPips.overgrowth, 1); }
   if (_pcMult.long_road) { bMultQ('long_road', _pcMult.long_road, 1); }
   // Wave Amplification: consecutive Runs score +pips × their streak position (runStreak is the streak
   // ending at the PREVIOUS hand, so this run's position = runStreak + 1). playHand advances runStreak after.
@@ -868,7 +912,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
 
   // Batch C - positional conditions
-  if (_pcPips.edge_pips) { totalPips += _pcPips.edge_pips; bPipQ('edge_pips', _pcPips.edge_pips, 1); }
+  if (_pcPips.edge_pips) { bPipQ('edge_pips', _pcPips.edge_pips, 1); }
   const { rowSpan, colSpan } = spanStats(cells);
   // Inclusive: a hand spanning the full width or full height of the grid scores +mult
   if (hasTrick('wide_span_mult') && (colSpan === gridCols || rowSpan === gridRows)) {
@@ -938,7 +982,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Rainbow / Balance count COLOURS as seen, so a white card counts as white
   // rather than as the colour of the slot it came from.
   const _suitSet = new Set(cards.map(c => cardColorSuit(c)));
-  if (_pcPips.full_color) { totalPips += _pcPips.full_color; bPipQ('full_color', _pcPips.full_color, 1); }
+  if (_pcPips.full_color) { bPipQ('full_color', _pcPips.full_color, 1); }
   if (_pcMult.full_color) { bMultQ('full_color', _pcMult.full_color, 0); }
   if (_pcMult.balanced_diet) { bMultQ('balanced_diet', _pcMult.balanced_diet, 1); }
   // Rank diversity
@@ -962,7 +1006,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // two odd cards as well, and Odd One In paid 5 where Get Even paid 2.
   // (`_evenN`, not `_ev` - that name is this function's timeline emitter, and a
   // block-scoped const of the same name shadows it.)
-  if (_pcPips.even_score) { totalPips += _pcPips.even_score; bPipQ('even_score', _pcPips.even_score, 1); }
+  if (_pcPips.even_score) { bPipQ('even_score', _pcPips.even_score, 1); }
   if (_pcMult.odd_squad) { bMultQ('odd_squad', _pcMult.odd_squad, 1); }
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
   // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
@@ -987,11 +1031,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hand type: pair-based pip bonuses
   // Hand type: specific pip bonuses
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
-  if (_pcPips.heavy_hand) { totalPips += _pcPips.heavy_hand; bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
-  if (_pcPips.prime_time) { totalPips += _pcPips.prime_time; bPipQ('prime_time', _pcPips.prime_time, 1); }
+  if (_pcPips.heavy_hand) { bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
+  if (_pcPips.prime_time) { bPipQ('prime_time', _pcPips.prime_time, 1); }
   // Flow State: the LAST additive pip site before the x pips block below, which is
   // the whole point of moving it here - see its PER_CARD_PAYERS row.
-  if (_pcPips.flow_state) { totalPips += _pcPips.flow_state; bPipQ('flow_state', _pcPips.flow_state, 1); }
+  if (_pcPips.flow_state) { bPipQ('flow_state', _pcPips.flow_state, 1); }
   // Combo score: +2 mult per distinct hand type played this round
   if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
