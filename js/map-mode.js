@@ -60,6 +60,9 @@ const MAP_BLANKS_MAX = MAP_BLANK_ODDS.length - 1;
 // shape and is now the least likely; four means no structural blanks at all.
 const MAP_FUNNEL_SOLID_ODDS = { 2: 0.25, 3: 0.40, 4: 0.35 };
 // What fills the free middle cells once the minimums are placed, by weight.
+// Share of the challenge tiles that are an AUDIT (a challenge round) rather than
+// a PRIORITY account (r444).
+const MAP_AUDIT_SHARE = 0.5;
 const MAP_FILL_W = [['level', 30], ['event', 26], ['reward', 20], ['shop', 10], ['challenge', 10], ['limitbreak', 4]];
 function mapRollFunnelSolid() {
   // Weights (r409: tunable in dev -> Probabilities), so normalised by the total.
@@ -194,6 +197,10 @@ const MAP_KIND_META = {
                 blurb: 'An ordinary round. Clear it and take a pick of three.' },
   challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
                 blurb: 'A round with a raised goal and one extra ask. Pays credits and a knack.' },
+  // r444: half the challenge tiles are an AUDIT instead - a challenge round
+  // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
+  audit:      { icon: '⚑', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
+                blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Solve all ${CR_CARDS} for a prize grid; run out of time and you pick penalties.` },
   shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
   reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
@@ -211,7 +218,7 @@ const MAP_KIND_META = {
 function mapTileFace(t) {
   // What the PLAYER sees - a mystery hides its kind until confirmed.
   if (t.mystery && !t.revealed) return { icon: '?', name: '???', full: 'Unconfirmed', cls: 'mk-mystery' };
-  const m = MAP_KIND_META[t.kind] || MAP_KIND_META.event;
+  const m = MAP_KIND_META[t.audit ? 'audit' : t.kind] || MAP_KIND_META.event;
   if (t.kind === 'event' && t.eventName) return { ...m, name: t.eventName };
   return m;
 }
@@ -219,7 +226,8 @@ function mapTileDesc(t) {
   if (t.mystery && !t.revealed) return 'Unconfirmed until you commit to it.';
   switch (t.kind) {
     case 'level':      return 'Play a round. Clear the goal, take the payout and a pick of three.';
-    case 'challenge':  return (t.challenge ? t.challenge.label + ' ' : '')
+    case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb;
+                       return (t.challenge ? t.challenge.label + ' ' : '')
       + `Goal +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%, pays +${t.challenge?.credits || 0} credits, plus a knack pick.`;
     case 'shop':       return 'The company store. Buy Tricks, Sleights, Knacks and upgrades.';
     case 'reward':     return 'Pick a path across a board of rewards.';
@@ -367,6 +375,7 @@ function _mapBuildOnce() {
       t.eventName = id ? EVENT_META[id].name : 'Event';
       t.eventFlavor = id ? EVENT_META[id].flavor : '';
     }
+    if (t.kind === 'challenge' && Math.random() < MAP_AUDIT_SHARE) { t.audit = true; return; }
     if (t.kind === 'challenge') {
       const ch = rollChallengeLevel();
       t.challenge = { id: ch.id, label: ch.label, goalMult: ch.goalMult, credits: ch.credits };
@@ -988,13 +997,18 @@ function mapConfirm() {
   mapPosTileId = t.id;
   mapPos = { lane: move.after.lane, set: move.after.set };
   mapVisits = move.after.visits;
-  mapLastWasChallenge = (t.kind === 'challenge');
+  mapLastWasChallenge = (t.kind === 'challenge' && !t.audit);   // a priority account's knack pick
 
   switch (t.kind) {
     case 'level':
       mapFallOutAndClose(() => mapStartRound(null));
       return;
     case 'challenge': {
+      if (t.audit) {
+        crArmNext({ source: 'map', bonusSecs: CR_MAP_BONUS_SECONDS });
+        mapFallOutAndClose(() => mapStartRound(null));
+        return;
+      }
       // Rehydrate the test function from CHALLENGE_DEFS by id - the stored
       // challenge is data only (JSON-safe for saves).
       const def = CHALLENGE_DEFS.find(d => d.id === t.challenge?.id) || CHALLENGE_DEFS[0];
@@ -1081,8 +1095,12 @@ function mapAfterLevel() {
   mapLastWasChallenge = false;
   const done = () => mapOpen();
   if (!mapPos) { done(); return; }   // resumed pre-map edge: straight back to the map
+  // A won audit (js/challenge-round.js) pays the prize grid after the pick;
+  // its close goes back to the map (finishInterludeRoute, map branch).
+  const prize = (typeof crTakePrize === 'function') && crTakePrize();
   guidedOpenPickThree(() => {
     if (wasChallenge) mapKnackPickTwo(done);
+    else if (prize) { rewardGridContext = 'interlude'; openPrizeGrid(); }
     else done();
   });
 }

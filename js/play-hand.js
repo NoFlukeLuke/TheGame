@@ -512,6 +512,9 @@ function playHand() {
 
   // Check challenge progress
   if (challengeActive) checkChallengeAfterHand(result, handCells);
+  // Challenge round cards (js/challenge-round.js). Before the goal check below, so
+  // the hand that solves the last card can also be the hand that ends the round.
+  if (typeof crOnHand === 'function') crOnHand(hand, handCells, finalScore);
 
   // on_play sleights (Shortcut challenge-complete) fire when played
   fireSleightsOnPlay(playedCells, handCells, hand);

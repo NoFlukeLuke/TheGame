@@ -25,6 +25,7 @@
 /* One colour per kind - red is the hard round and the boss, nothing else. */
 #grid .map-tile.mk-level     { --rc: #6fd08c; }
 #grid .map-tile.mk-challenge { --rc: #ff9d5c; }
+#grid .map-tile.mk-audit     { --rc: #ff7ad0; }
 #grid .map-tile.mk-shop      { --rc: var(--c-yellow, #f5c042); }
 #grid .map-tile.mk-reward    { --rc: #8fd0ff; }
 #grid .map-tile.mk-event     { --rc: #c9a0ff; }
@@ -390,6 +391,7 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
 }
 #map-legend .ml-row.mk-level     { --rc: #6fd08c; }
 #map-legend .ml-row.mk-challenge { --rc: #ff9d5c; }
+#map-legend .ml-row.mk-audit     { --rc: #ff7ad0; }
 #map-legend .ml-row.mk-shop      { --rc: var(--c-yellow, #f5c042); }
 #map-legend .ml-row.mk-reward    { --rc: #8fd0ff; }
 #map-legend .ml-row.mk-event     { --rc: #c9a0ff; }

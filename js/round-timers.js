@@ -55,6 +55,7 @@ function startRoundTimer() {
   if (typeof hideGoalBanner === 'function') hideGoalBanner();
   // r399: a shaped round (js/level-types.js) says what it is as it goes live.
   if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
+  if (typeof crOnRoundStart === 'function') crOnRoundStart();   // a challenge round's first card
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
@@ -332,6 +333,9 @@ function onRoundEnd() {
   // Since r205 the boss runs on this same clock, so reaching zero during a boss is
   // the boss window expiring - the boss's own loss path, not a missed round goal.
   if (bossActive) { endBoss(false); return; }
+  // A challenge round that met its goal but not its cards is cleared and failed
+  // (js/challenge-round.js); it ends the round itself.
+  if (typeof crOnClockOut === 'function' && crOnClockOut()) return;
   // Flow: the clock is a 5-minute SESSION clock, not a round clock. Reaching zero
   // summons the boss on the board as it stands - there is no round to fail here, and
   // no goal to have missed. (During the boss itself the boss timer owns the clock, so

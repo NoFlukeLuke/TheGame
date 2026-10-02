@@ -532,6 +532,7 @@ function startGame() {
   fullHouseThisRound = 0;
   rowColBonuses = [];
   roundQuota = null;   // r399 level types
+  if (typeof crReset === 'function') crReset();   // r444 challenge rounds
   // The alternating row/column cursor (r296, js/scoring.js). Per RUN, so every
   // run's first position Trick marks a row; left alone it would carry whatever
   // the last run finished on.

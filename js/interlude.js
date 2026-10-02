@@ -48,6 +48,10 @@ async function startInterlude(opts) {
   // once the player has chosen or skipped.
   if (typeof runPayoutPick === 'function') await runPayoutPick();
 
+  // A failed challenge round takes its penalty grid here, before any reward
+  // (js/challenge-round.js). A won one pays the prize grid below.
+  if (typeof crSettle === 'function') await crSettle();
+
   // Guided's elite pays out here, while the round's own counters are still live -
   // triggerLevelUp resets handsPlayedRound and handTypesRound, which is what every
   // challenge test reads (js/guided-mode.js).
@@ -76,7 +80,8 @@ async function startInterlude(opts) {
   // asked for here instead. Beating the quarter should pay the prize grid whether
   // or not a boss was standing in front of it.
   const prize = opts.prize || (typeof isActMode === 'function' && isActMode()
-                && nodeInAct === 5 && typeof bossesEnabled === 'function' && !bossesEnabled());
+                && nodeInAct === 5 && typeof bossesEnabled === 'function' && !bossesEnabled())
+                || (typeof crTakePrize === 'function' && crTakePrize());
   if (prize) openPrizeGrid(); else openRewardGrid();
 }
 
@@ -630,7 +635,8 @@ async function show321Countdown() {
     if (refillPauseMark) { refillPausedMs += performance.now() - refillPauseMark; refillPauseMark = 0; }
     const elapsed  = performance.now() - refillStart - refillPausedMs;
     const progress = Math.min(elapsed / TOTAL_MS, 1);
-    roundSeconds   = Math.round(startSecs + (limits.round_time.current - startSecs) * progress);
+    const _target  = limits.round_time.current + ((typeof crStartBonus === 'function') ? crStartBonus() : 0);   // + an audit's minute
+    roundSeconds   = Math.round(startSecs + (_target - startSecs) * progress);
     updateClockUI();
     if (progress < 1) requestAnimationFrame(tickRefill);
     else refillDone = true;
@@ -661,7 +667,8 @@ async function show321Countdown() {
   // player took - it just comes off the bank instead of off a limit.
   roundSeconds = (typeof crunchActive === 'function' && crunchActive())
     ? Math.max(10, roundSeconds - roundPenaltySeconds)
-    : Math.max(10, Math.min(roundSeconds, limits.round_time.current - roundPenaltySeconds));
+    : Math.max(10, Math.min(roundSeconds, limits.round_time.current - roundPenaltySeconds
+        + ((typeof crStartBonus === 'function') ? crStartBonus() : 0)));   // a Schedule audit's extra minute
   updateClockUI();
   overlay.classList.remove('show');
 

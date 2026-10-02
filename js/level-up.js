@@ -135,6 +135,8 @@ function triggerLevelUp() {
   // r399: a Flow level may roll a shaped goal, and a hard round may name one
   // (js/level-types.js). Last, so it is cut from the final goal.
   if (typeof levelTypeMaybeArm === 'function') levelTypeMaybeArm();
+  // A challenge round armed for this round goes live (js/challenge-round.js).
+  if (typeof crOnLevelUp === 'function') crOnLevelUp();
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   // r441: the overflow NO LONGER CARRIES (owner). It is recorded instead and
@@ -183,6 +185,7 @@ function triggerLevelUp() {
                ? crunchNextRoundSeconds(roundSeconds)
                : (typeof flowNextRoundSeconds === 'function' && flowActive())
                ? flowNextRoundSeconds(roundSeconds) : _rr.seconds;
+  if (typeof crApplyStartTime === 'function') crApplyStartTime();   // the Schedule audit's extra minute
   match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
   match3PendingSettle = true; // the round's fresh board settles when its timer starts
   // Per-action time-cost debuffs active this round = permanent + next-round-only.

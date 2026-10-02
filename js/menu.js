@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r444 · Louder tray lines: count, thickness, glow, motion";
+const BUILD = "2026-10-02 · r445 · Louder tray lines: count, thickness, glow, motion";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -15,6 +15,7 @@ const MODES = {
     timeIsCurrency: true,
     autoPlayHands: false,
     actStructure: true,
+    challengeNode: 3,   // a challenge round as node 3 of every quarter (js/challenge-round.js)
     suitCount: 4
   },
   // Guided: an act is GUIDED_SLOTS_PER_ACT slots and then the boss, and every

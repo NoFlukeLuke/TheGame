@@ -20,8 +20,31 @@
 // It REPLACES the post-boss reward grid rather than being shown after it - one
 // grid, not two. Survival and Flow have no reward grid at all (they run a
 // pick-of-three), so they keep their bonus pick.
-let rewardGridMode = 'normal';   // 'normal' | 'prize'
+let rewardGridMode = 'normal';   // 'normal' | 'prize' | 'penalty'
 function prizeGridActive() { return rewardGridMode === 'prize'; }
+// ── PENALTY GRID (r444) ──────────────────────────────────────────────────────
+// The inverse of the prize grid: what a failed challenge round costs
+// (js/challenge-round.js). Every cell is a penalty, drawn from the reward grid's
+// own penalty table, and the path must be EXACTLY your Selection Size long - you
+// choose which penalties, not how many. No skip. Greedy Boi does not lengthen it.
+function penaltyGridActive() { return rewardGridMode === 'penalty'; }
+function penaltyPickCount() {
+  const cells = (rewardCells || []).reduce((n, row) => n + (row ? row.filter(Boolean).length : 0), 0);
+  return Math.max(1, Math.min(limits.selection.current, cells || limits.selection.current));
+}
+let penaltyVisitIndex = 0;
+let _penaltyDone = null;
+function openPenaltyGrid(done) {
+  rewardGridMode = 'penalty';
+  rewardGridContext = 'penalty';
+  _penaltyDone = done || null;
+  openRewardGrid();
+  showMessage(`Pick ${penaltyPickCount()} penalties`, 'var(--red)', { ms: 3000 });
+}
+function devOpenPenaltyGrid() {
+  if (typeof closeDevPanel === 'function') closeDevPanel();
+  openPenaltyGrid(() => { gameTimerPaused = false; if (gridData && gridData[0]) { startRoundTimer(); render(); } });
+}
 
 // The Trick-tile floor for a grid. A prize grid is 9 tiles at its smallest and
 // several of those are guaranteed upgrades, so demanding 5 Tricks there would
@@ -30,6 +53,9 @@ function prizeGridActive() { return rewardGridMode === 'prize'; }
 function MIN_TRICK_TILES_FOR(prize) { return prize ? 2 : 5; }
 
 function generateRewardContent() {
+  // The penalty grid draws on its own stream, so taking one never shifts which
+  // reward grids a seed deals.
+  if (penaltyGridActive()) return withSeededRng(_generateRewardContent, 'penalty', penaltyVisitIndex++);
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
 // Weighted reward-grid tile categories (r409: hoisted, tunable in dev).
@@ -38,8 +64,7 @@ const REWARD_PRIZE_CATS = [
   { weight: 20, kind: 'sleight' },
   { weight: 16, kind: 'knack' },
   { weight: 16, kind: 'limit_up' },
-  { weight: 10, kind: 'blessed' },
-  { weight:  4, kind: 'cull' },
+  { weight:  5, kind: 'blessed' },   // r444: halved, and no Cut tile - see REWARD_BUFF_CATS
   { weight:  8, kind: 'luck' },
   { weight:  7, kind: 'improve_trick' },
   { weight:  5, kind: 'improve_knack' },
@@ -54,8 +79,10 @@ const REWARD_BUFF_CATS = [
   { weight:  5, kind: 'time' },
   { weight:  6, kind: 'coins' },
   { weight:  4, kind: 'limit_up' },
-  { weight:  6, kind: 'blessed' },
-  { weight:  4, kind: 'cull' },
+  // r444 (owner: less deck manipulation on the grids, now that card packs, the
+  // deck editor, Dealer's Choice and the Clean Up / Deck Trim events exist):
+  // card buffs halved (6 -> 3), the Cut tile gone, and no two-card dual op.
+  { weight:  3, kind: 'blessed' },
   { weight:  3, kind: 'cleanse' },
   { weight:  3, kind: 'mystery' },
   { weight:  4, kind: 'luck' },
@@ -309,6 +336,27 @@ function _generateRewardContent() {
     return a;
   }
 
+  // The penalty grid: every cell a penalty, full board size, no mystery (a
+  // penalty you can see is the point). The one-per-grid rule for the big kinds
+  // holds, falling back to a repeat only if the table runs out.
+  if (penaltyGridActive()) {
+    const pool = debuffs.filter(d => d.tier !== 'mystery');
+    const pen = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    const once = new Set();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      let pick = null;
+      for (let tries = 0; tries < 16 && !pick; tries++) {
+        const cand = weightedPick(pool);
+        const onceKind = cand.cardFace || cand.icon === '⬇️' || cand.icon === '🐈‍⬛' || cand.perm;
+        if (onceKind && once.has(cand.label)) continue;
+        if (onceKind) once.add(cand.label);
+        pick = cand;
+      }
+      pen[r][c] = { kind: 'debuff', payload: pick || pickRand(pool) };
+    }
+    return pen;
+  }
+
   // Pre-pick Trick at generation time so the tile shows the exact card.
   // entity/rarity drive the LETHE reward-entity visuals (see buildRewardTileInner).
   // Trick tiles are drawn on the SHOP'S RARITY TABLE (r193), not uniformly.
@@ -469,12 +517,9 @@ function _generateRewardContent() {
         apply: () => flowrGrantPack(pack) };
     }
     if (typeof FLOWR_DECK_OPS !== 'undefined') {
-      const op = flowrDrawOps(1, FLOWR_DECK_OPS.filter(o => o.buff || o.dual))[0];   // r392: weighted
-      // r393: a DUAL op needs the player to pick a touching group, so the tile
-      // opens the next round's freshly dealt board as a deck edit first.
-      if (op.dual) return { icon: op.icon, label: op.name, tier: 'legendary', cardFace: { rank, suit },
-        desc: `Next round opens on the board first: pick up to ${FLOWR_DUAL_MAX} touching cards to share a ${op.dual === 'suit' ? 'suit' : 'rank'}.`,
-        apply: () => { flowrPendingDual = op; noteMessage(`${op.icon} ${op.name}: pick your cards when the board deals`, 'var(--gold)'); } };
+      // r444: buff ops only. The DUAL op (pick touching cards on next round's
+      // board) stays in Flow's chain; on a reward grid it took over a round.
+      const op = flowrDrawOps(1, FLOWR_DECK_OPS.filter(o => o.buff))[0];   // r392: weighted
       const v = flowrValRoll(op.buff.range);
       const lbl = flowrBuffLabel(op.buff, v);
       const n = flowrQtyRoll(3);
@@ -489,16 +534,6 @@ function _generateRewardContent() {
           noteMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
     }
     return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
-  }
-  // Cull buff: deck thinning - a specific low card leaves the run for good.
-  function makeCullPayload() {
-    const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
-    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
-    return { icon: '✂', label: 'Cut', tier: 'rare',   // r391: Flow's word cardFace: { rank, suit },
-      desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
-      apply: () => { removeCardIdentityFromRun(rank, suit)
-        ? noteMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
-        : showMessage(`${rank}${suit} was already gone`, 'var(--cream-dim)'); } };
   }
   function makeLimitUpPayload() {
     // EVERY LIMIT HAS ITS OWN STEP, and this tile used to ignore all of them: it
@@ -576,7 +611,6 @@ function _generateRewardContent() {
                  apply: () => { luckModifiers += n; noteMessage(`+${n} Luck`, 'var(--gold)'); } };
       }
       case 'blessed': return makeBlessedPayload() || makeTrickPayload();
-      case 'cull':    return makeCullPayload();
       case 'cleanse':
         // Only meaningful if something is cursed; otherwise fall back to a Trick
         if (!Object.keys(cardCurses).length) return makeTrickPayload();
@@ -867,20 +901,6 @@ function rollRewardMystery(goodChance) {
 }
 function resolveRewardMystery(goodChance) { rollRewardMystery(goodChance).apply(); }
 
-// Remove one copy of a specific card identity from the run (deck thinning).
-// Searches drawPile, then playedPile, then the live grid (refilling the cell).
-function removeCardIdentityFromRun(rank, suit) {
-  const match = c => c && c.rank === rank && c.suit === suit && !c._isSleight && !c._isStone && !c._isTrick;
-  let idx = drawPile.findIndex(match);
-  if (idx >= 0) { drawPile.splice(idx, 1); updateDeckHud(); return true; }
-  idx = playedPile.findIndex(match);
-  if (idx >= 0) { playedPile.splice(idx, 1); updateDeckHud(); return true; }
-  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
-    if (match(gridData[r]?.[c])) { gridData[r][c] = drawCard() || null; render(); return true; }
-  }
-  return false;
-}
-
 // Put a Trick in the tray. Use this any time a Trick is granted.
 // THE chokepoint every Trick grant passes through - the shop, the reward grid,
 // every event, both picks, the wheel and the dev panel. Returns false when the
@@ -1029,7 +1049,7 @@ function openPrizeGrid() {
 
 function openRewardGrid() {
   gameTimerPaused = true;
-  rewardGridsSeen++;               // count this grid (gates the first-5 guaranteed upgrades)
+  if (!penaltyGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardPickOrder = [];
@@ -1049,7 +1069,9 @@ function openRewardGrid() {
   // silently getting the ordinary tint. isActMode() is the real question.
   document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5));
   document.body.classList.toggle('reward-prize', prizeGridActive());
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : 'REWARDS', 'reward');
+  document.body.classList.toggle('reward-penalty', penaltyGridActive());
+  if (penaltyGridActive()) document.body.classList.remove('reward-boss');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : penaltyGridActive() ? 'PENALTIES' : 'REWARDS', 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -1211,6 +1233,8 @@ function enterRewardButtonMode() {
                    + `<span class="rskip-gain">+${BAL.reward_skip.gold}\u00a0\ud83d\udcb0</span>`
                    + (hasTrick('rain_check') ? `<span class="rskip-gain rskip-gain-time">+${BAL.rain_check.seconds}s</span>` : '');
     swap.onclick = skipRewardGrid;
+    // The penalty grid has no skip: the slot says how many you must take.
+    if (penaltyGridActive()) swap.innerHTML = `<span class="rskip-word">TAKE</span><span class="rskip-gain">${penaltyPickCount()}</span>`;
   }
 }
 function exitRewardButtonMode() {
@@ -1226,6 +1250,7 @@ function exitRewardButtonMode() {
 // Rain Check - bank extra seconds for next round. Then close the step normally (node still advances).
 function skipRewardGrid() {
   if (rewardConfirmed || rewardDealing) return;
+  if (penaltyGridActive()) { refuse(`Pick ${penaltyPickCount()} penalties`); return; }
   rewardConfirmed = true;
   coins += BAL.reward_skip.gold; updateCoinsUI();
   let _msg = `Skipped rewards · +${BAL.reward_skip.gold} gold`;
@@ -1484,6 +1509,7 @@ function renderRewardGrid() {
 
 // Effective reward-grid pick cap = the Selection Size limit + Greedy Boi's reward-grid-only bonus.
 function rewardSelectionCap() {
+  if (penaltyGridActive()) return penaltyPickCount();
   return limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0);
 }
 
@@ -1502,6 +1528,7 @@ function rewardSelectionCap() {
 // handMinSelection(): Tagalong lifts the floor for HANDS (r326) and has nothing to
 // say about how many tiles a reward path has to take.
 function rewardMinPicks() {
+  if (penaltyGridActive()) return penaltyPickCount();   // exactly that many
   const min = (typeof minSelection === 'function') ? minSelection() : 1;
   return Math.max(1, Math.min(min, rewardSelectionCap()));
 }
@@ -1784,7 +1811,7 @@ async function confirmRewardPath() {
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
   // More Better: every reward grid confirmed with 3+ tiles (all tiles count) permanently grows the trick.
-  if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles) {
+  if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles && !penaltyGridActive()) {
     bonusMult_morebetter += BAL.more_better.mult;
     showMessage(`More Better! +${BAL.more_better.mult} mult (now +${bonusMult_morebetter})`, 'var(--gold)');
   }
@@ -1806,7 +1833,7 @@ function closeRewardGrid() {
   // Tear down the on-grid reward step: restore the action buttons, clear the
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
-  document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize');
+  document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize', 'reward-penalty');
   rewardGridMode = 'normal';   // one prize grid per boss; the next grid is ordinary
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;
@@ -1846,6 +1873,7 @@ function closeRewardGrid() {
       } else {
         nodeInAct++;
         updateActProgressUI();
+        if (typeof crMaybeArmForNode === 'function') crMaybeArmForNode(nodeInAct);   // Classic's challenge node
         if (nodeInAct === 5 && (typeof bossesEnabled !== 'function' || bossesEnabled())) {
           forceBossNextRound = true;
         }
@@ -1933,6 +1961,12 @@ function closeRewardGrid() {
     survivalSkipCarryover = false;
   };
 
+  // The penalty grid hands control back to whoever opened it (crSettle).
+  if (rewardGridContext === 'penalty') {
+    const done = _penaltyDone; _penaltyDone = null;
+    if (typeof done === 'function') done();
+    return;
+  }
   const proceed = rewardGridContext === 'survival' ? finishSurvival
                 : rewardGridContext === 'interlude' ? finishInterlude
                 : finishTimer;
