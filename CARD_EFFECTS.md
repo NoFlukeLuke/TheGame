@@ -40,7 +40,7 @@ Three sections:
 |---|---|---|---|
 | **flat pips** | `permPips` | scores +N pips, every play | the per-card pip loop |
 | **flat mult** | `permMult` | scores +N mult, every play | the per-card mult region |
-| **x pips** | `permXPips` | multiplies the whole running pip total, last in the card's beat, once per replay (r458) | total-scoped x pips |
+| **x pips** | `permXPips` | multiplies the whole running pip total, last in the card's beat, once per replay (r461) | total-scoped x pips |
 | **x mult** | `permXMult` | multiplies the running mult, ON the card, once per replay | the card's own beat (r233) |
 | **replay** | `permRetrig` | this card scores +N extra times | the card's rep count |
 | **seconds** | `permTime` | rewinds the clock N seconds when scored | through `rewindTime`, never a raw `roundSeconds +=` |

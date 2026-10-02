@@ -516,7 +516,7 @@ function survivalTogglePeek() {
   if (!ov.classList.contains('show')) return;
   ov.classList.toggle('sv-peek');
   const peeking = ov.classList.contains('sv-peek');
-  if (peeking) survivalHideContrib();
+  if (peeking) { survivalHideContrib(); if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true); }
   // r256: peek is no longer "hide a panel" - the pick IS the board, so peeking
   // hands the BOARD back (the real cards are re-rendered at the play size) and
   // restoring re-takes it over. gridPickState holds the offers across both.

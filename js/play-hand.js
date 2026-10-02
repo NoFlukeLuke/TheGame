@@ -334,7 +334,7 @@ function playHand() {
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
   result._bankContrib = _bankContrib;
   result._bankLedger = _bankLedger;
-  // Hard Labour (r458): this hand's club scores, advanced in scalingCount after the
+  // Hard Labour (r461): this hand's club scores, advanced in scalingCount after the
   // dance. It used to advance HERE, above the canonical score, so every hand was
   // scored five rungs (or however many clubs) further up the ladder than it had climbed.
   clubHitsPending = Math.max(0, _lastHandClubHits || 0);

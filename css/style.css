@@ -6042,8 +6042,8 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
    is what it should always have been for a heading you are meant to read.
    Nothing routes a connected pick through it: a selection is either labels or
    items, never both (onShopGridClick). */
-.shop-row-label.srl-openable { pointer-events: auto; cursor: var(--cur-pointer, pointer); }
-.shop-row-label.srl-openable:hover { filter: brightness(1.12); }
+#grid .shop-row-label.srl-openable { pointer-events: auto; cursor: var(--cur-pointer, pointer); }
+#grid .shop-row-label.srl-openable:hover { filter: brightness(1.12); }
 .shop-row-label .srl-own {
   position: absolute; top: 4px; right: 6px;
   font-family: 'Share Tech Mono', monospace; font-size: 9px;

@@ -463,7 +463,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // plus must happen first so the xpips can be applied to both the card's
     // inherent pips and the card's +pips"), and a replay repeats the whole beat -
     // add, add, multiply - which is what `cp *= _retrig` below is arithmetically.
-    // r458 (owner): a card's x pips multiplies the WHOLE running pip total, not
+    // r461 (owner): a card's x pips multiplies the WHOLE running pip total, not
     // the card's own pips. It is the last thing in the card's beat (after its
     // per-card Trick pips and Hard Labour), applied once per replay; banked in
     // `_pend` and run by `_bankCell` below, emitted at the end of this block.
@@ -700,7 +700,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // replayed the moment `mult` has its base value and before ANY hand-level
     // add, which is exactly where these events sit on the timeline.
     if (_cmAdd || _cmOnce || _xl.length) _cardMultSeq.push({ add: _cmAdd, once: _cmOnce, xl: _xl, reps: _retrig });
-    // Hard Labour (r458): every club SCORE pays the ladder's current rung, on the
+    // Hard Labour (r461): every club SCORE pays the ladder's current rung, on the
     // club, replays included. The rungs interleave as the dance plays them: real
     // card rep 0, its ghost rep 0, real rep 1... (`_pend.k0` / `_pend.stride`).
     // One event per beat carries a value per replay (`vals`).
@@ -780,7 +780,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hard Labour (r346): the doubling ladder runs across the ROUND, starting at 1 -
   // this hand's clubs continue the sequence from clubsScoredRound (READ-only here;
   // playHand advances it off _lastHandClubHits, the siphon rule - calcScore runs
-  // speculatively). r458: paid per club in the card loop; this is the ledger row.
+  // speculatively). r461: paid per club in the card loop; this is the ledger row.
   if (_hlPips) bPipQ('club_double', _hlPips, 1);
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips

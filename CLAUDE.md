@@ -491,7 +491,13 @@ cell. The first two warnings of a run say so. The challenge round (Classic/Sched
 cell pulse and cannot be refused.
 
 
-## r458 - Hard Labour pays per club; a card's x pips multiplies the whole pip total
+## r460 - every tooltip takes the same desktop size (css/menu-size.css)
+`--tip-z` (declared on body: `--menu-z` x `--text-z`) zooms the CHILDREN of `#entity-tip` and of the
+older tooltips (`#trick-tooltip`, `#knack-tooltip`, `#reward-tooltip`, `#challenge-tooltip`,
+`.sleight-tooltip`, `#sleight-grid-tooltip`, `#card-enh-tooltip`, `#sq-tip`); each host's px
+max-width and padding are multiplied by it. Hosts are never zoomed (placement writes viewport px).
+
+## r461 - Hard Labour pays per club; a card's x pips multiplies the whole pip total
 - **Hard Labour** pays its current rung (base x 2^n) on every club SCORE, on the club's beat, replays
   and a dual card's club ghost included. A timeline event can carry `vals` (one value per replay); the
   dance swaps `value` per rep. Rungs interleave as the dance plays them (real rep 0, ghost rep 0, real rep 1...).

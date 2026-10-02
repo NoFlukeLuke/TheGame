@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r458 · Hard Labour pays on every club; a card's x pips multiplies the whole pip total";
+const BUILD = "2026-10-02 · r461 · Hard Labour pays on every club; a card's x pips multiplies the whole pip total";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
