@@ -1856,7 +1856,7 @@ function flowrDeckBanner() {
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
-  const _g = 'Double-tap a card to swap it';
+  const _g = 'Double-tap a card, or pick 2 and press SWAP';
   if (op.buff || op.dual) {
     el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · ${_g} · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
@@ -1926,6 +1926,7 @@ function flowrDeckSyncUI() {
   // Snared, which reads better than a button that is dark for a reason the
   // player cannot see.
   const dsc = document.getElementById('btn-discard'); if (dsc) dsc.disabled = n === 0;
+  { const si = document.getElementById('swap-indicator'); if (si) si.classList.toggle('swap-armed', n === 2 && swaps > 0); }
   flowrPaintLift();
 }
 
@@ -1988,6 +1989,23 @@ function flowrDeckDiscard() {
   if (!went) selected = _keep;
   if (went) flowrDropSelection(); else flowrDeckSyncUI();
 }
+
+// SWAP with exactly two cards picked swaps them, like the SWAP button on the
+// play board. Capture + stopImmediatePropagation: input.js's own listener on
+// this button reads the play grid's `selected`, which this screen leaves empty.
+document.getElementById('swap-indicator')?.addEventListener('click', e => {
+  if (!_flowrDeckOp) return;
+  e.stopImmediatePropagation();
+  if (_flowrDeckBusy || animating || falling) return;
+  if (_flowrDeckSel.length !== 2) {
+    if (_flowrDeckSel.length > 0) refuse('Select exactly 2 cards to swap them', { color: 'var(--cream-dim)' });
+    return;
+  }
+  const [a, b] = _flowrDeckSel;
+  flowrClearLift();
+  flowrDeckAct(() => doSwap(a.r, a.c, b.r, b.c));
+  flowrDropSelection();
+}, true);
 
 function flowrDeckTap(e) {
   // The whole board is the editor's while this listener exists: every tap stops

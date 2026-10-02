@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r457 · Score plates: 20% slower flight, fade held back to the very end";
+const BUILD = "2026-10-02 · r458 · Deck edit: SWAP button swaps two picked cards; Peek hides the option read";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
