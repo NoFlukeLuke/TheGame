@@ -340,3 +340,13 @@ Print sounds ride the `detail` bus at about half gain. **`noteMessage(text)`** (
 is the quiet sibling of `showMessage`: it prints nothing and keeps `noticeLog`. 116 call sites that
 only echoed the player's own pick, purchase or a visible counter use it; **`NOTICES.md`** lists
 every notice and the rule. New notices pick one of the two on purpose.
+
+## r436 - step 3: the card animation lab (`js/card-anims.js` + `css/card-anims.css`)
+Dev panel -> **Card Animations** opens a body-level lab: a mock board of real card faces
+(`renderCardAppearance`), a mock preview tray, and one row per movement (`CARD_ANIM_KINDS`: swap,
+fly, discard, cut, buff, boss, idle) with a look dropdown and a Preview button. Tapping cards picks
+which ones a preview uses. A look is a runner in `CARD_ANIM_RUN[kind][id]`, `(ctx) => Promise`,
+animating card elements with WAAPI on the standalone `translate`/`scale`/`rotate` properties (they
+compose with the heartbeat's `transform`); the same runner is what the game calls once a step wires
+it in through `cardAnimChoice(kind)`. Unbuilt looks are listed, disabled, with their step.
+Choices persist overrides-only in `lethe.cardAnims.v1`. "Current" rows are stand-ins for today's look.

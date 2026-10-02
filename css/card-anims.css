@@ -1,0 +1,41 @@
+/* ══ CARD ANIMATIONS LAB (r436) - js/card-anims.js ═══════════════════════════
+   Dev panel -> Card Animations. A mock board of real card faces with the
+   settings laid over it. Body-level and fixed, above the dev panel. */
+#ca-lab {
+  position: fixed; inset: 0; z-index: 5000; display: flex; align-items: stretch;
+  background: radial-gradient(ellipse at 40% 45%, #163024 0%, #0b1510 60%, #060907 100%);
+  font-family: 'Share Tech Mono', monospace; color: var(--cream, #f0e2c0);
+}
+#ca-stage { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; min-width: 0; }
+#ca-board { position: relative; --card-w: 64px; --card-h: 86px; }
+#ca-board .card { cursor: var(--cur-pointer, pointer); }
+#ca-board .card.ca-pick { box-shadow: 0 0 0 2.5px #ffe9a8, 0 0 14px rgba(255,233,168,.6); }
+#ca-tray { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #3a3128; border-radius: 8px; background: #0f0c09; }
+#ca-tray span { font-size: 11px; letter-spacing: 2px; color: var(--cream-dim, #a89878); }
+#ca-slots { display: flex; gap: 8px; }
+#ca-slots i { width: 44px; height: 59px; border: 1px dashed #4a4034; border-radius: 5px; }
+
+#ca-panel {
+  flex: 0 0 360px; max-width: 46vw; overflow: auto; padding: 14px; border-left: 1px solid #3a3128;
+  background: rgba(16,13,10,.94);
+}
+#ca-head { display: flex; align-items: center; justify-content: space-between; }
+#ca-head b { font-family: Orbitron, sans-serif; letter-spacing: 2px; font-size: 15px; }
+#ca-close { background: none; border: 1px solid #3a3128; color: var(--cream, #f0e2c0); border-radius: 6px; width: 30px; height: 30px; cursor: var(--cur-pointer, pointer); }
+.ca-sub { font-size: 12px; line-height: 1.45; color: var(--cream-dim, #a89878); margin: 8px 0 12px; }
+.ca-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; padding: 10px 0; border-top: 1px solid #2a231b; }
+.ca-lbl { grid-column: 1 / -1; font-size: 13px; }
+.ca-lbl small { display: block; font-size: 11px; color: var(--cream-dim, #a89878); margin-top: 2px; }
+.ca-row select { background: #1a1510; color: var(--cream, #f0e2c0); border: 1px solid #4a4034; border-radius: 5px; padding: 5px; font: inherit; font-size: 12px; min-width: 0; }
+.ca-desc { grid-column: 1 / -1; font-size: 11px; color: #c9b88f; line-height: 1.4; min-height: 0; }
+.ca-desc:empty { display: none; }
+.ca-btn { background: #10201a; color: #7fe3b0; border: 1px solid #35d59b; border-radius: 6px; padding: 5px 12px; font: inherit; font-size: 12px; cursor: var(--cur-pointer, pointer); }
+#ca-reset { margin-top: 10px; width: 100%; }
+
+@media (max-width: 760px), (orientation: portrait) {
+  #ca-lab { flex-direction: column; }
+  #ca-stage { flex: 0 0 auto; padding: 14px 0; }
+  #ca-board { --card-w: 52px; --card-h: 70px; }
+  #ca-slots i { width: 36px; height: 48px; }
+  #ca-panel { flex: 1; max-width: none; border-left: 0; border-top: 1px solid #3a3128; }
+}

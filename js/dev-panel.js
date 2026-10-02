@@ -206,6 +206,7 @@ const DEV_GROUPS = [
   { g:'prob',     icon:'%', label:'Probabilities', sub:() => `${PROB_TABLES.length} tables` + (probTablesTuned() ? ` · ${probTablesTuned()} tuned` : '') },
   { g:'deck',     icon:'✶', label:'Wild Cards', sub:() => `${wildsPerSuit} per suit · ${wildsInRuns ? 'sets + runs' : 'sets only'}` },
   { g:'hud',      icon:'▤', label:'HUD & Display', sub:() => 'aesthetics · animation · HUD · fullscreen' },
+  { g:'cardanim', icon:'🂠', label:'Card Animations', sub:() => `${CARD_ANIM_KINDS.length} movements · mock board and previews` },
   { g:'flow',     icon:'▶', label:'Flow',          sub:() => devModeSub('flow') },
   { g:'map',      icon:'▶', label:'Schedule',      sub:() => devModeSub('map') },
   { g:'modes',    icon:'▶', label:'Modes',         sub:() => 'Classic · Custom · Climb · Poker Squares · ' + MODE_HIDDEN_LIST.length + ' hidden' },
@@ -243,6 +244,7 @@ function devOpenGroup(g) {
   if (g === 'prob')    { devRenderProbTables(); if (typeof flowrDevSync === 'function') flowrDevSync(); }
   if (g === 'deck')    devRenderDeckDesign();
   if (g === 'hud')     devSyncAesthetics();
+  if (g === 'cardanim') openCardAnimLab();
   if (g === 'tools')   { devRenderTips(); devRefreshSeed(); devSyncSaveSection(); }
   if (g === 'modes')   { devRenderModes(); renderSpectrumDev(); devRenderGoalPanel(); syncMatch3DevToggles();
                          const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }

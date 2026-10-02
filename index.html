@@ -63,6 +63,7 @@
 <link rel="stylesheet" href="css/tray-fx.css">
 <link rel="stylesheet" href="css/cursor.css">
 <link rel="stylesheet" href="css/print-toast.css">
+<link rel="stylesheet" href="css/card-anims.css">
 </head>
 <body class="office-pending">
 <div id="knack-tooltip" role="tooltip"></div>
@@ -539,6 +540,13 @@
     <div class="dev-section-title">Focus: animation</div>
     <div id="dev-focus-anim-rows"></div>
     <button class="dev-btn" onclick="devResetFocusTunables()" style="margin-top:8px;">Reset all of the above to defaults</button>
+  </div>
+
+  <!-- CARD ANIMATIONS (r436) - the lab opens on its own; this section is the way back in. -->
+  <div class="dev-section" data-group="cardanim">
+    <div class="dev-section-title">Card animations</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream-dim);line-height:1.5;">A mock board with a look and a Preview button for every card movement. Choices are saved and the game uses them as each look is built.</div>
+    <button class="dev-btn" onclick="openCardAnimLab()" style="margin-top:8px;">Open the card animation lab</button>
   </div>
 
   <!-- AESTHETICS - the home for look-and-feel knobs (owner, r394: "for this
@@ -1361,6 +1369,7 @@
   <script src="js/payout-fx.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>
+<script src="js/card-anims.js"></script>
 <script src="js/round-timers.js"></script>
 <script src="js/data/bosses.js"></script>
 <script src="js/boss.js"></script>

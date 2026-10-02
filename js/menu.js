@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r435 · Black printer notices pull back up; 116 echo notices go quiet";
+const BUILD = "2026-10-01 · r436 · Card animation lab (dev panel tab)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
