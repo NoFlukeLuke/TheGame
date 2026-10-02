@@ -241,8 +241,11 @@ function devOpenGroup(g) {
     if (typeof flowrDevSync === 'function') flowrDevSync();
   }
   if (g === 'modes') devRenderSquares();
+  devSetupCollapse(g);
+  devApplyDock(g);
 }
 function devCloseGroup() {
+  devUndock();
   document.getElementById('dev-group-menu').style.display = '';
   document.getElementById('dev-group-pop').style.display = 'none';
 }
@@ -593,6 +596,7 @@ function devSyncFloatSliders() {
 
 function closeDevPanel() {
   devPanelOpen = false;
+  devUndock();
   document.getElementById('dev-panel').style.display = 'none';
   if (devPanelFromMenu) {
     // Return to the main menu - do NOT start game timers (no game is running).
@@ -1429,3 +1433,67 @@ function devRenderSquares() {
     : 'not in a daily grid - changes apply to the next run';
 }
 function devResetSquares() { if (typeof sqCfgReset === 'function') { sqCfgReset(); devRenderSquares(); } }
+
+// ══════════════════════════════════════════════
+// COLLAPSIBLE SECTIONS + DOCKING (r426)
+// ══════════════════════════════════════════════
+// A tab with three or more sections folds each one under its title, so a long
+// tab is a list of headers to open rather than a scroll. Sections start closed.
+// The click is delegated once; the DOM is never moved (ids are bound elsewhere).
+let devLastOpened = null;       // the section the player opened last
+let devDockTab = null;
+function devSetupCollapse(g) {
+  const body = document.getElementById('dev-group-pop-body'); if (!body) return;
+  const vis = [...body.querySelectorAll('.dev-section')].filter(sec => sec.style.display !== 'none');
+  const fold = vis.length >= 3;
+  devLastOpened = null;
+  vis.forEach(sec => {
+    sec.classList.toggle('dev-collapsible', fold);
+    sec.classList.toggle('dev-collapsed', fold);
+  });
+  if (!body._devFold) {
+    body._devFold = true;
+    body.addEventListener('click', e => {
+      const t = e.target.closest('.dev-section-title, .dev-section > h4');
+      const sec = t && t.closest('.dev-section');
+      if (!sec || !sec.classList.contains('dev-collapsible') || t.parentElement !== sec) return;
+      sec.classList.toggle('dev-collapsed');
+      devLastOpened = sec.classList.contains('dev-collapsed') ? null : sec;
+      devApplyDock(devDockTab);
+    });
+  }
+}
+
+// HUD & Display: the panel sits over the info UI (left column) so the grid and
+// cards stay visible while a look-and-feel setting is tuned. Opening a section
+// that changes the info UI itself (data-affects-info) moves it over the grid.
+function devUndock() {
+  const el = document.getElementById('dev-panel'); if (!el) return;
+  el.classList.remove('dev-docked');
+  ['left', 'top', 'width', 'height', 'maxHeight'].forEach(k => { el.style[k] = ''; });
+}
+function devApplyDock(g) {
+  devDockTab = g;
+  const el = document.getElementById('dev-panel');
+  const stage = document.getElementById('stage'), slot = document.getElementById('grid-slot');
+  const live = g === 'hud' && !devPanelFromMenu && stage && slot && typeof gridData !== 'undefined' && gridData[0];
+  if (!live) { devUndock(); return; }
+  const sr = stage.getBoundingClientRect(), gr = slot.getBoundingClientRect();
+  if (sr.width < 200 || gr.width < 40) { devUndock(); return; }
+  const overGrid = !!(devLastOpened && devLastOpened.dataset.affectsInfo);
+  const pad = 6;
+  let box;
+  if (sr.width > sr.height * 1.1) {                 // landscape: info column | grid
+    box = overGrid ? { l: gr.left, t: gr.top, w: gr.width, h: gr.height }
+                   : { l: sr.left, t: sr.top, w: gr.left - sr.left, h: sr.height };
+  } else {                                          // portrait: info above the grid
+    box = overGrid ? { l: gr.left, t: gr.top, w: gr.width, h: gr.height }
+                   : { l: sr.left, t: sr.top, w: sr.width, h: gr.top - sr.top };
+  }
+  if (box.w - pad * 2 < 260 || box.h - pad * 2 < 200) { devUndock(); return; }
+  el.classList.add('dev-docked');
+  el.style.left = (box.l + pad) + 'px'; el.style.top = (box.t + pad) + 'px';
+  el.style.width = (box.w - pad * 2) + 'px'; el.style.height = (box.h - pad * 2) + 'px';
+  el.style.maxHeight = 'none';
+}
+window.addEventListener('resize', () => { if (devPanelOpen && devDockTab) devApplyDock(devDockTab); });

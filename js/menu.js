@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r452 · Challenge cards v2: Flow cards, fall cards, arrival and effects";
+const BUILD = "2026-10-02 · r453 · Challenge cards v2: Flow cards, fall cards, arrival and effects";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

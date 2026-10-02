@@ -436,7 +436,10 @@ their thickness. The clear-centre cap counts a line only if it clears the centre
 comet (sharp front, tail behind) over each tray's OWN line count, restarting at the border. Store is now
 `lethe.trayFx.v2`, overrides only; v1 is carried over once with its old fade 50 dropped (default 70).
 
-## r452 - challenge cards v2: Flow, fall cards, arrival and effects (`js/challenge-round.js`)
+## r452 - dev panel: collapsible sections and docking
+A dev tab with 3+ visible sections folds each under its title (start closed; `devSetupCollapse`, one delegated click). On HUD & Display the panel docks over the info column so the grid stays visible (`devApplyDock`); opening a section marked `data-affects-info` moves it over the grid. Portrait docks above the grid. Too small a box falls back to centred.
+
+## r453 - challenge cards v2: Flow, fall cards, arrival and effects (`js/challenge-round.js`)
 - **Each card carries its own state** on the board object (`card.cr`: kind, tier, `diff`,
   prog/seen, `src` 'seq'|'flow', `timeLeft`, `done`), so two can share a board and a save keeps
   them with gridData. `crCards()` lists them; `crQueue` holds ids leaving, drained by `crDrain`

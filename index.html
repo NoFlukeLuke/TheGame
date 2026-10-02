@@ -347,7 +347,7 @@
   </div>
 
   <!-- ANIMATION SPEED -->
-  <div class="dev-section" data-group="hud">
+  <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">Score Anim Speed <span id="dev-anim-val">5 t/s</span></div>
     <input type="range" min="1" max="100" value="5" step="1" oninput="devSetAnimSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
@@ -374,7 +374,7 @@
   </div>
 
   <!-- SCORE PARTICLE BLIP GROWTH (r233) -->
-  <div class="dev-section" data-group="hud">
+  <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">Score particle growth</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       A long tally is a crescendo. Past the first N particles of a hand, every further one is
@@ -557,7 +557,7 @@
 
   <!-- AESTHETICS - the home for look-and-feel knobs (owner, r394: "for this
        type of stuff it can all go in aesthetics"). -->
-  <div class="dev-section" data-group="hud">
+  <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">Aesthetics</div>
     <div class="dev-subtitle">Tray lines (every tray, together)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
@@ -640,7 +640,7 @@
       <button class="dev-btn" onclick="flowrPreviewChip(5)">Preview x5</button>
     </div>
   </div>
-  <div class="dev-section" data-group="hud">
+  <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">HUD</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
