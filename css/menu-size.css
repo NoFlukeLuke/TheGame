@@ -26,3 +26,10 @@
    px onto the host, and zoom would multiply them. At 1.4 the 232px card is
    ~325px, about 22% of a 1440 desktop; a phone stays at zoom 1. */
 #entity-tip > .et-card, #entity-tip > .et-defs { zoom: var(--menu-z); }
+
+/* r453 - Settings -> Larger text reaches every tooltip. Same rule as above: the zoom
+   goes on the tooltip's CHILDREN, never on the host the placement code positions. */
+body.big-text { --text-z: 1.15; }
+#entity-tip > .et-card, #entity-tip > .et-defs { zoom: calc(var(--menu-z) * var(--text-z, 1)); }
+body.big-text :is(#trick-tooltip, #knack-tooltip, #reward-tooltip, #challenge-tooltip, .sleight-tooltip,
+  #sleight-grid-tooltip, #card-enh-tooltip, #sq-tip) > * { zoom: var(--text-z); }

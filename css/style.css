@@ -6225,3 +6225,13 @@ body.reduced-motion .clock-boss { animation: none; }
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   margin: 0; line-height: 1; font-size: 0.8em;
 }
+
+/* r453 - the small trays' text is white, so it never reads as part of the border
+   (score/goal are teal-bordered, credits green). The goal's progress bar keeps its colour. */
+#stage #score-total-label, #stage #score-goal-label,
+#stage #coin-info .ci-level, #stage #coin-info .ci-level b,
+#stage.landscape #coin-info .ci-level, #stage.landscape #coin-info .ci-level b { color: #f4f1ea !important; }
+#stage #score-total-num, #stage #goal-display, #stage #score-to-go,
+#stage #coin-info .ci-main, #stage #coin-info .ci-main b {
+  color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.28) !important;
+}

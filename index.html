@@ -577,7 +577,7 @@
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Motion
-      <select id="dev-tfx-motion" onchange="trayFxSet('motion', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">still</option><option value="pulse">pulse (all lines breathe)</option><option value="ripple">ripple (light moves inward)</option></select>
+      <select id="dev-tfx-motion" onchange="trayFxSet('motion', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">still</option><option value="pulse">pulse (all lines breathe)</option><option value="ripple">ripple (light moves inward, big trays only)</option></select>
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Clear centre (% of the tray; lines never enter it)
@@ -603,6 +603,16 @@
       Cursor tilt (tunnel leans toward the mouse; minus flips it)
       <input type="range" id="dev-tfx-tilt" min="-100" max="100" step="10" oninput="trayFxSet('tilt', this.value)" style="flex:1;">
       <span id="dev-tfx-tilt-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Small tray loudness (every tray but Tricks, hand preview, Knacks)
+      <input type="range" id="dev-tfx-small" min="10" max="100" step="5" oninput="trayFxSet('small', this.value)" style="flex:1;">
+      <span id="dev-tfx-small-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Ripple speed (seconds per line; Tricks, hand preview, Knacks only)
+      <input type="range" id="dev-tfx-speed" min="0.6" max="3" step="0.1" oninput="trayFxSet('speed', this.value)" style="flex:1;">
+      <span id="dev-tfx-speed-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
     <button class="dev-btn" onclick="trayFxReset()" style="margin:4px 0 2px;">Reset tray lines</button>
 

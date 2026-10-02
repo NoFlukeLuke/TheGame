@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r452 · Dev panel: collapsible sections, docked HUD tab";
+const BUILD = "2026-10-02 · r453 · Tray lines: 1px, slow ripple on big trays only, quiet small trays, white text; Larger text reaches tooltips";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
