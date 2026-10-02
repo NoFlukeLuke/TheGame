@@ -559,7 +559,51 @@
        type of stuff it can all go in aesthetics"). -->
   <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">Aesthetics</div>
-    <div class="dev-subtitle">Tray lines (every tray, together)</div>
+    <div class="dev-subtitle">Tray look</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Trays are
+      <select id="dev-pit-on" onchange="trayPitSet('on', this.value === 'pit' ? 1 : 0)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="lines">glowing lines</option><option value="pit">pits</option></select>
+    </label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px;">
+      <button class="dev-btn" onclick="trayPitPreset('shadow')">Pit: shadow</button>
+      <button class="dev-btn" onclick="trayPitPreset('quarry')">Pit: quarry</button>
+      <button class="dev-btn" onclick="trayPitPreset('glow')">Pit: glow from below</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Pit light
+      <select id="dev-pit-light" onchange="trayPitSet('light', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="top">from the top left</option><option value="below">rising from the floor</option></select>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Pit depth (wall width)
+      <input type="range" id="dev-pit-depth" min="6" max="30" step="1" oninput="trayPitSet('depth', this.value)" style="flex:1;">
+      <span id="dev-pit-depth-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Steps down the walls
+      <input type="range" id="dev-pit-steps" min="1" max="8" step="1" oninput="trayPitSet('steps', this.value)" style="flex:1;">
+      <span id="dev-pit-steps-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Step shrink (each step narrower than the one above)
+      <input type="range" id="dev-pit-persp" min="55" max="100" step="5" oninput="trayPitSet('persp', this.value)" style="flex:1;">
+      <span id="dev-pit-persp-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Far wall shows more (viewer in front)
+      <input type="range" id="dev-pit-view" min="0" max="60" step="5" oninput="trayPitSet('view', this.value)" style="flex:1;">
+      <span id="dev-pit-view-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Wall colour (tray colour vs grey)
+      <input type="range" id="dev-pit-tint" min="0" max="100" step="5" oninput="trayPitSet('tint', this.value)" style="flex:1;">
+      <span id="dev-pit-tint-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Floor light
+      <input type="range" id="dev-pit-floor" min="0" max="100" step="5" oninput="trayPitSet('floor', this.value)" style="flex:1;">
+      <span id="dev-pit-floor-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <div class="dev-subtitle">Tray lines (when trays are glowing lines)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Number of lines
       <select id="dev-tfx-lines" onchange="trayFxSet('lines', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option></select>
@@ -575,10 +619,6 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Brightness
       <select id="dev-tfx-gain" onchange="trayFxSet('gain', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">normal</option><option value="1.2">bright</option><option value="1.6">brighter</option><option value="2.2">loud</option></select>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Motion
-      <select id="dev-tfx-motion" onchange="trayFxSet('motion', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">still</option><option value="pulse">pulse (all lines breathe)</option><option value="ripple">ripple (light moves inward, big trays only)</option></select>
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Clear centre (% of the tray; lines never enter it)
@@ -601,19 +641,9 @@
       <span id="dev-tfx-grow-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Cursor tilt (tunnel leans toward the mouse; minus flips it)
-      <input type="range" id="dev-tfx-tilt" min="-100" max="100" step="10" oninput="trayFxSet('tilt', this.value)" style="flex:1;">
-      <span id="dev-tfx-tilt-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Small tray loudness (every tray but Tricks, hand preview, Knacks)
       <input type="range" id="dev-tfx-small" min="10" max="100" step="5" oninput="trayFxSet('small', this.value)" style="flex:1;">
       <span id="dev-tfx-small-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Ripple speed (seconds per line; Tricks, hand preview, Knacks only)
-      <input type="range" id="dev-tfx-speed" min="0.6" max="3" step="0.1" oninput="trayFxSet('speed', this.value)" style="flex:1;">
-      <span id="dev-tfx-speed-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
     <button class="dev-btn" onclick="trayFxReset()" style="margin:4px 0 2px;">Reset tray lines</button>
 
@@ -1493,6 +1523,7 @@
 <script src="js/queue-views.js"></script>
 <script src="js/prob-tables.js"></script>
 <script src="js/tray-fx.js"></script>
+<script src="js/tray-pit.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

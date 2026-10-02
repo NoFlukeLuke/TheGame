@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r463 · Shop: SWAP trades two selected tiles";
+const BUILD = "2026-10-02 · r463 · Trays: no idle motion or hover, a light trigger flare; Pit look to compare (dev -> Aesthetics -> Tray look)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

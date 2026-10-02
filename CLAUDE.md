@@ -508,3 +508,16 @@ max-width and padding are multiplied by it. Hosts are never zoomed (placement wr
   calcScore banks each cell per replay in `_bankCell` (card pips, then x pips, then its ghost) so the two agree.
   Per-card payer pips (Early Bird, Get Even...) are now added in the loop so a later x pips multiplies them.
   A muted or Leaden card's x pips does not fire. Straight Shot reads the card's pips x its own x pips.
+
+## r463 - trays: no idle motion; the Pit look to compare (`js/tray-pit.js`)
+Owner's rule: a tray moves for exactly three things: an entity lands (`trayFxKick 'in'`), leaves
+(`'out'`), or triggers (`trayFxTrigger`, a 240ms +35% flare, hooked on the dance's `dncReleaseReal`
+for chips inside `TRAY_FX_MOVING`). The ambient ripple/pulse, the hover glow and the cursor tilt are
+gone (their stored settings are dropped on load); `--tray-ph` rests at `TRAY_PH_REST` (-9).
+**Pit look** (dev -> Aesthetics -> Tray look; off by default, `lethe.trayPit.v1`, overrides only):
+each tray gets an SVG painted to its own size (`trayPitSvg`, crisp edges, repainted only on resize /
+class change): four mitred trapezoid walls of `steps` terraces narrowing by `persp`, one light from the
+top left (top/left walls dark, bottom/right lit) or `light:'below'` (the colour rises from the floor),
+`view` shows more of the far wall, the top lip shadows the floor. While on it replaces the ring stack
+and the tray background (`#tray-pit-style`), and takes the three reactions over (`trayPitKick` /
+`trayPitTrigger`, WAAPI brightness). Presets: shadow, quarry, glow.
