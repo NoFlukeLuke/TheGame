@@ -4659,7 +4659,7 @@
   /* ==  Visual skin only; layout coordinates untouched.        == */
   /* ============================================================= */
   :root {
-    --tray-lines: 3; --tray-t: 2; --tray-gain: 1.2; --tray-amp: 0.7; --tray-mode: 1; --tray-ph: 0; --tray-halo: 10;
+    --tray-lines: 3; --tray-t: 2; --tray-gain: 1.2; --tray-amp: 0.7; --tray-mode: 1; --tray-ph: 0; --tray-halo: 10; --tray-f: 0.775;
     /* Beige injection-molded housing */
     --plastic:      #e4dccb;
     --plastic-hi:   #f7f2e6;

@@ -579,6 +579,16 @@
       Motion
       <select id="dev-tfx-motion" onchange="trayFxSet('motion', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">still</option><option value="pulse">pulse (all lines breathe)</option><option value="ripple">ripple (light moves inward)</option></select>
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Clear centre (% of the tray; lines never enter it)
+      <input type="range" id="dev-tfx-center" min="10" max="80" step="5" oninput="trayFxSet('center', this.value)" style="flex:1;">
+      <span id="dev-tfx-center-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Depth fade (inner lines dimmer; 0 = all equal)
+      <input type="range" id="dev-tfx-fade" min="0" max="100" step="5" oninput="trayFxSet('fade', this.value)" style="flex:1;">
+      <span id="dev-tfx-fade-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
     <button class="dev-btn" onclick="trayFxReset()" style="margin:4px 0 2px;">Reset tray lines</button>
 
     <div class="dev-subtitle" style="margin-top:10px;">Board deal</div>

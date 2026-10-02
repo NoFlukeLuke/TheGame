@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r449 · card animation step 9, perf pass";
+const BUILD = "2026-10-02 · r450 · Tray lines: clear centre per tray, depth fade";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

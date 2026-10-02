@@ -5,7 +5,7 @@
    rest of the page is not restyled): Pulse breathes all lines together, Ripple sends a
    bright band inward through them. */
 const TRAY_FX_KEY = 'lethe.trayFx.v1';
-const TRAY_FX_DEFAULT = { lines: 3, thick: 2, glow: 10, gain: 1.2, motion: 'ripple' };
+const TRAY_FX_DEFAULT = { lines: 3, thick: 2, glow: 10, gain: 1.2, motion: 'ripple', center: 35, fade: 50 };
 const TRAY_FX_IDS = ['score-center', 'score-left', 'pips-box', 'mult-box', 'focus-box', 'screen-location',
   'pmf-merged', 'knack-carousel-wrap', 'selected-cards', 'trick-tray-area', 'hand-preview-area',
   'coin-info', 'vclock', 'run-progress'];
@@ -32,9 +32,12 @@ function trayFxApply() {
   st.setProperty('--tray-mode', f.motion === 'pulse' ? 0 : 1);
   st.setProperty('--tray-amp', f.motion === 'off' ? 0 : (f.motion === 'pulse' ? 0.6 : 0.9));
   trayFxTrimRings();
+  st.setProperty('--tray-f', (1 - 0.45 * f.fade / 100).toFixed(3));
   trayFxEach(el => el.style.setProperty('--tray-ph', 0));
+  trayFxLimitAll();
   cancelAnimationFrame(_trayFxRaf); _trayFxRaf = 0;
   if (f.motion !== 'off') _trayFxRaf = requestAnimationFrame(trayFxTick);
+  trayFxWatch();
   trayFxSync();
 }
 
@@ -47,10 +50,12 @@ function trayFxRingString(n) {
   const ph = i => `(1 + var(--tray-amp) * (var(--tray-mode) * max(0, 1 - abs(var(--tray-ph) - ${i}) / 1.5) + (1 - var(--tray-mode)) * var(--tray-ph))) * (1 + var(--tray-boost, 0))`;
   const out = [];
   for (let i = 0; i < n; i++) {
-    const base = 70 * Math.pow(0.82, i), dark = 0.6 * Math.pow(0.88, i);
-    out.push(`inset 0 0 0 calc(var(--tp) * ${i} + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, ${base.toFixed(2)} * var(--tray-gain) * ${ph(i)}) * 1%), transparent)`);
-    out.push(`inset 0 0 0 calc(var(--tp) * ${i} + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, ${(base * .33).toFixed(2)} * var(--tray-gain) * ${ph(i)}) * 1%), transparent)`);
-    out.push(`inset 0 0 0 calc(var(--tp) * ${i + 1}) rgb(0 0 0 / ${dark.toFixed(3)})`);
+    // fade = how much dimmer each line is than the one outside it (--tray-f, the depth
+    // fade slider); vis = this tray's own cap (--tray-n, from the clear-centre rule).
+    const fade = `pow(var(--tray-f, 0.775), ${i})`, vis = `clamp(0, var(--tray-n, 99) - ${i}, 1)`;
+    out.push(`inset 0 0 0 calc(var(--tp) * ${i} + var(--tray-t) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 70 * ${fade} * var(--tray-gain) * ${ph(i)} * ${vis}) * 1%), transparent)`);
+    out.push(`inset 0 0 0 calc(var(--tp) * ${i} + (var(--tray-t) + 1) * 1px) color-mix(in srgb, var(--tray-c) calc(min(100, 23.1 * ${fade} * var(--tray-gain) * ${ph(i)} * ${vis}) * 1%), transparent)`);
+    out.push(`inset 0 0 0 calc(var(--tp) * ${i + 1}) rgb(0 0 0 / calc(0.6 * ${fade} * ${vis}))`);
   }
   return out.join(', ');
 }
@@ -75,6 +80,24 @@ function trayFxTrimRings() {
   tag.textContent = `${_trayRingSel} { --tray-rings: ${trayFxRingString(Math.max(1, Math.min(20, trayFx.lines | 0)))}; }`;
 }
 
+/* Every tray keeps a clear rectangle in its middle (f.center, % of the tray's shorter side):
+   the lines may only use the room between the border and that rectangle, so a small tray
+   shows fewer lines than a tall one and lines from opposite sides never meet. offsetWidth /
+   offsetHeight are design px, the same unit a box-shadow spread is drawn in. */
+function trayFxLimit(el) {
+  const w = el.offsetWidth, h = el.offsetHeight;
+  if (!w || !h) return;
+  const room = (1 - trayFx.center / 100) / 2 * Math.min(w, h);
+  const n = Math.max(0, Math.min(trayFx.lines, Math.floor(room / (trayFx.thick + 2))));
+  el.style.setProperty('--tray-n', n);
+}
+function trayFxLimitAll() { trayFxEach(trayFxLimit); }
+let _trayFxRo = null;
+function trayFxWatch() {
+  if (_trayFxRo || typeof ResizeObserver === 'undefined') return;
+  _trayFxRo = new ResizeObserver(es => es.forEach(e => trayFxLimit(e.target)));
+  trayFxEach(el => _trayFxRo.observe(el));
+}
 function trayFxEach(fn) {
   if (!_trayFxEls) _trayFxEls = TRAY_FX_IDS.map(id => document.getElementById(id)).filter(Boolean);
   _trayFxEls.forEach(fn);
@@ -95,6 +118,9 @@ function trayFxSync() {
   const set = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e) e.value = String(v); };
   set('dev-tfx-lines', trayFx.lines); set('dev-tfx-thick', trayFx.thick); set('dev-tfx-glow', trayFx.glow);
   set('dev-tfx-gain', trayFx.gain); set('dev-tfx-motion', trayFx.motion);
+  set('dev-tfx-center', trayFx.center); set('dev-tfx-fade', trayFx.fade);
+  const c = document.getElementById('dev-tfx-center-v'), d = document.getElementById('dev-tfx-fade-v');
+  if (c) c.textContent = trayFx.center + '%'; if (d) d.textContent = trayFx.fade + '%';
 }
 if (document.body) trayFxApply(); else document.addEventListener('DOMContentLoaded', trayFxApply);
 
