@@ -289,7 +289,7 @@ function floorResolve(host, grid) {
 }
 
 function confirmFloor() {
-  if (eventState.floorWon) showMessage(`${eventState.floorWon} cards improved`, 'var(--gold)');
+  if (eventState.floorWon) noteMessage(`${eventState.floorWon} cards improved`, 'var(--gold)');
   closeEvent();
 }
 
@@ -404,9 +404,9 @@ function confirmPayline() {
   if (eventState.paylineNone) {
     coins += BAL.the_payline.consolation_credits;
     updateCoinsUI?.();
-    showMessage(`+${BAL.the_payline.consolation_credits} credits`, 'var(--gold)');
+    noteMessage(`+${BAL.the_payline.consolation_credits} credits`, 'var(--gold)');
   } else if (eventState.paylineWon.length) {
-    showMessage(`${eventState.paylineWon.length} improved`, 'var(--gold)');
+    noteMessage(`${eventState.paylineWon.length} improved`, 'var(--gold)');
   }
   closeEvent();
 }

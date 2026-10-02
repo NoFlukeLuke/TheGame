@@ -83,7 +83,7 @@ function grantSleight(def) {
   drawPile.push(card);
   grantedSleightIds.add(def.id);
   updateDeckHud?.();
-  showMessage(`+ ${def.name}`, '#cc88ff');
+  noteMessage(`+ ${def.name}`, '#cc88ff');
 }
 
 function hasSleightOnGrid(id) {
@@ -176,7 +176,7 @@ function consumeSleightCharge(card, r, c) {
   card._usesLeft--;
   if (card._usesLeft <= 0) {
     if (r >= 0 && c >= 0) gridData[r][c] = null;
-    showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed`, 'var(--cream-dim)');
+    noteMessage(`${sleightDef(card)?.name || 'Sleight'} consumed`, 'var(--cream-dim)');
   }
 }
 
@@ -191,7 +191,7 @@ function lockSleightForRound(card) {
   card._usedThisRound = true;
   if (card._usesLeft !== 'infinite') card._usesLeft--;
   if (card._usesLeft !== 'infinite' && card._usesLeft <= 0)
-    showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed - locked until discarded or played`, 'var(--cream-dim)');
+    noteMessage(`${sleightDef(card)?.name || 'Sleight'} consumed - locked until discarded or played`, 'var(--cream-dim)');
 }
 
 // ── INERT on use (r341, owner's word) ──
@@ -728,7 +728,7 @@ function applySleightGridEffect(id, r, c) {
       grantEntityCoins(BAL.piggy_bank.coins, 'sleight', 'piggy_bank');
       _fx('credits', BAL.piggy_bank.coins); break;
     default:
-      showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
+      noteMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
   }
 }
 
@@ -749,7 +749,7 @@ function freshStartDrain() {
   drawPile = deckShuffle(drawPile);
   fillGridHoles();
   selected = [];
-  showMessage('😵 Fresh Start - the board is redealt', '#cc88ff');
+  noteMessage('😵 Fresh Start - the board is redealt', '#cc88ff');
   render();
 }
 

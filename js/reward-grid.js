@@ -103,51 +103,51 @@ function _generateRewardContent() {
   const debuffs = [
     { weight: 8, perm: true, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
       desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
-      apply: () => { roundPenaltySeconds += 5; showMessage('Round cap -5s (permanent)', 'var(--red)'); } },
+      apply: () => { roundPenaltySeconds += 5; noteMessage('Round cap -5s (permanent)', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '☠', label: '-1 Discard', tier: 'penalty',
       desc: `Next round discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next round only`,
-      apply: () => { nextRoundDiscardDelta -= 1; showMessage('-1 discard next round', 'var(--red)'); } },
+      apply: () => { nextRoundDiscardDelta -= 1; noteMessage('-1 discard next round', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '✖', label: '-1 Swap', tier: 'penalty',
       desc: `Next round swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next round only`,
-      apply: () => { nextRoundSwapDelta -= 1; showMessage('-1 swap next round', 'var(--red)'); } },
+      apply: () => { nextRoundSwapDelta -= 1; noteMessage('-1 swap next round', 'var(--red)'); } },
     { weight: 8, perm: true, icon: '💔', label: 'Lose a Trick', tier: 'penalty',
       desc: 'Discard one random Trick you own.',
       apply: applyRewardLoseTrick },
     { weight: 8, perm: true, icon: '🐌', label: 'Hands +2s', tier: 'penalty',
       desc: `Hand cost: ${_handNow}s → ${_handNow + 2}s each · permanent, stacks`,
-      apply: () => { extraPlayCostPerm += 2; showMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
+      apply: () => { extraPlayCostPerm += 2; noteMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
       desc: `Next round hand cost: ${_handNow}s → ${_handNow + 5}s each · next round only`,
-      apply: () => { nextRoundPlayCost += 5; showMessage('Hands cost +5s next round', 'var(--red)'); } },
+      apply: () => { nextRoundPlayCost += 5; noteMessage('Hands cost +5s next round', 'var(--red)'); } },
     { weight: 8, perm: true, icon: '🐌', label: 'Discards +2s', tier: 'penalty',
       desc: `Discard cost: ${_discNow}s → ${_discNow + 2}s per card · permanent, stacks`,
-      apply: () => { extraDiscardCostPerm += 2; showMessage('Discarding costs +2s/card (permanent)', 'var(--red)'); } },
+      apply: () => { extraDiscardCostPerm += 2; noteMessage('Discarding costs +2s/card (permanent)', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
       desc: `Next round discard cost: ${_discNow}s → ${_discNow + 5}s per card · next round only`,
-      apply: () => { nextRoundDiscardCost += 5; showMessage('Discards cost +5s/card next round', 'var(--red)'); } },
+      apply: () => { nextRoundDiscardCost += 5; noteMessage('Discards cost +5s/card next round', 'var(--red)'); } },
     // ── Variety debuffs (r74) ──
     { weight: 8, perm: false, icon: '💸', label: 'Pickpocket', tier: 'penalty',
       desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
-      apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); showMessage('-10 coins', 'var(--red)'); } },
+      apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); noteMessage('-10 coins', 'var(--red)'); } },
     { weight: 8, perm: true, icon: '🪨', label: 'Stones', tier: 'penalty',
       desc: 'Two Stones are shuffled into your deck. They block cells until purged.',
-      apply: () => { injectStonesIntoDeck(2); showMessage('2 Stones added to deck', 'var(--red)'); } },
+      apply: () => { injectStonesIntoDeck(2); noteMessage('2 Stones added to deck', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⏳', label: 'Slow Start', tier: 'penalty',
       desc: 'Next round starts with 20 fewer seconds.',
-      apply: () => { nextRoundSecondsDelta -= 20; showMessage('-20s next round', 'var(--red)'); } },
+      apply: () => { nextRoundSecondsDelta -= 20; noteMessage('-20s next round', 'var(--red)'); } },
     // ── r193 penalties: four that cost something other than seconds ──────────
     // Every penalty before these took time, resources or a card. The grid needed
     // costs aimed at the other three things a run runs on - the goal you are
     // chasing, the Focus multiplier, the credits, and the loadout itself.
     { weight: 7, perm: true, icon: '📈', label: 'Quota Revision', tier: 'penalty',
       desc: `Every future round goal rises by 10% (now ×${goalPenaltyMult.toFixed(2)} → ×${(goalPenaltyMult * 1.10).toFixed(2)}) · permanent, stacks`,
-      apply: () => { goalPenaltyMult *= 1.10; showMessage('Goals +10% (permanent)', 'var(--red)'); } },
+      apply: () => { goalPenaltyMult *= 1.10; noteMessage('Goals +10% (permanent)', 'var(--red)'); } },
     { weight: 7, perm: true, icon: '📋', label: 'Red Tape', tier: 'penalty',
       desc: `Hands generate ${Math.round(100 / (focusRatePenalty * 1.25))}% of their listed Focus (now ${Math.round(100 / focusRatePenalty)}%) · permanent, stacks`,
-      apply: () => { focusRatePenalty *= 1.25; showMessage('Focus gain reduced (permanent)', 'var(--red)'); } },
+      apply: () => { focusRatePenalty *= 1.25; noteMessage('Focus gain reduced (permanent)', 'var(--red)'); } },
     { weight: 7, perm: false, icon: '🚫', label: 'Withheld', tier: 'penalty',
       desc: 'The next round pays out nothing: no interest, no leftover-time credits.',
-      apply: () => { skipNextPayout = true; showMessage('Next payout withheld', 'var(--red)'); } },
+      apply: () => { skipNextPayout = true; noteMessage('Next payout withheld', 'var(--red)'); } },
     // The TYPE is fixed when the tile is generated so the tile can name it; WHICH
     // entity gets suspended is rolled at the start of the round it applies to.
     (() => {
@@ -155,18 +155,18 @@ function _generateRewardContent() {
       const noun = { trick: 'Trick', knack: 'Knack', sleight: 'Sleight' }[t];
       return { weight: 7, perm: false, icon: '⛔', label: `Suspend a ${noun}`, tier: 'penalty',
         desc: `One random ${noun} you own stops working for the first half of next round. Which one is decided when the round deals.`,
-        apply: () => { pendingEntityLockout = { type: t }; showMessage(`A ${noun} will be suspended next round`, 'var(--red)'); } };
+        apply: () => { pendingEntityLockout = { type: t }; noteMessage(`A ${noun} will be suspended next round`, 'var(--red)'); } };
     })(),
     // ── r194 penalties: five that cost you a board, a habit or a Trick's rent ──
     (() => {
       const n = _luckAmt();
       return { weight: 7, perm: true, icon: '🐈‍⬛', label: `-${n} Luck`, tier: 'penalty',
         desc: `Luck ${luckTotal()} → ${luckTotal() - n}. Chance effects fire less often and worse entities turn up. Permanent, and it can take Luck below zero.`,
-        apply: () => { luckModifiers -= n; showMessage(`-${n} Luck`, 'var(--red)'); } };
+        apply: () => { luckModifiers -= n; noteMessage(`-${n} Luck`, 'var(--red)'); } };
     })(),
     { weight: 7, perm: false, icon: '🧊', label: 'Interest Freeze', tier: 'penalty',
       desc: `No interest paid for the next ${BAL.interest_freeze.rounds} rounds. Leftover-time credits still pay.`,
-      apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; showMessage(`Interest frozen for ${BAL.interest_freeze.rounds} rounds`, 'var(--red)'); } },
+      apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; noteMessage(`Interest frozen for ${BAL.interest_freeze.rounds} rounds`, 'var(--red)'); } },
   ];
 
   // ── Conditional penalties (r194) ────────────────────────────────────────────
@@ -186,7 +186,7 @@ function _generateRewardContent() {
       const [_ax, _noun, _now] = _axes[Math.floor(Math.random() * _axes.length)];
       debuffs.push({ weight: 7, perm: false, icon: '📉', label: `Short Staffed`, tier: 'penalty',
         desc: `Next round the board is one ${_noun} smaller (${_now} → ${_now - 1}). One round only.`,
-        apply: () => { nextRoundGridShrink = _ax; showMessage(`-1 ${_noun} next round`, 'var(--red)'); } });
+        apply: () => { nextRoundGridShrink = _ax; noteMessage(`-1 ${_noun} next round`, 'var(--red)'); } });
     }
   }
 
@@ -259,7 +259,7 @@ function _generateRewardContent() {
       const _dch = limitChangeText(_dl.id, -1);
       debuffs.push({ weight: 5, perm: true, icon: '⬇️', label: `${_dtx} ${_dl.label}`, tier: 'penalty',
         desc: `${_dch} · permanent (limits are precious!)`,
-        apply: () => { decrementLimit(_dl.id); showMessage(`${_dtx} ${_dl.label}`, 'var(--red)'); } });
+        apply: () => { decrementLimit(_dl.id); noteMessage(`${_dtx} ${_dl.label}`, 'var(--red)'); } });
     }
   }
   // Dark mystery: unknown until claimed - mostly bad (weight 6).
@@ -393,7 +393,7 @@ function _generateRewardContent() {
           showMessage(`${pick.name} could not be improved`, 'var(--red)');
           return;
         }
-        showMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
+        noteMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
         if (typeof renderTrickTray === 'function') renderTrickTray();
         if (typeof updateKnackList  === 'function') updateKnackList();
       }
@@ -434,7 +434,7 @@ function _generateRewardContent() {
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
       tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack',
-      apply: () => { acquiredKnacks.push({ ...pick }); updateKnackList?.(); showMessage(`+ ${pick.name}`, 'var(--gold)'); }
+      apply: () => { acquiredKnacks.push({ ...pick }); updateKnackList?.(); noteMessage(`+ ${pick.name}`, 'var(--gold)'); }
     };
   }
 
@@ -455,7 +455,7 @@ function _generateRewardContent() {
       desc: buffOfferLine(e, face, false),
       apply: () => { const t = resolveDeckCard(card); if (!t) return;
         enhanceCardKey(cardId(t), e);
-        showMessage(`${face}: ${buffOfferName(e)}`, 'var(--gold)'); } });
+        noteMessage(`${face}: ${buffOfferName(e)}`, 'var(--gold)'); } });
     // r391: THE FLOW CARD OPTIONS replace the old blessings (owner). A tile is
     // either a CARD PACK (3 buffed cards join the deck) or one of the deck
     // editor's BUFF OPS landing on the named card and up to 2 more at random,
@@ -474,7 +474,7 @@ function _generateRewardContent() {
       // opens the next round's freshly dealt board as a deck edit first.
       if (op.dual) return { icon: op.icon, label: op.name, tier: 'legendary', cardFace: { rank, suit },
         desc: `Next round opens on the board first: pick up to ${FLOWR_DUAL_MAX} touching cards to share a ${op.dual === 'suit' ? 'suit' : 'rank'}.`,
-        apply: () => { flowrPendingDual = op; showMessage(`${op.icon} ${op.name}: pick your cards when the board deals`, 'var(--gold)'); } };
+        apply: () => { flowrPendingDual = op; noteMessage(`${op.icon} ${op.name}: pick your cards when the board deals`, 'var(--gold)'); } };
       const v = flowrValRoll(op.buff.range);
       const lbl = flowrBuffLabel(op.buff, v);
       const n = flowrQtyRoll(3);
@@ -486,7 +486,7 @@ function _generateRewardContent() {
           const rest = everyDeckCard().filter(cd => cd !== t && !(typeof isWildCard === 'function' && isWildCard(cd)));
           while (picks.length < n && rest.length) picks.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
           picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
-          showMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
+          noteMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
     }
     return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
   }
@@ -497,7 +497,7 @@ function _generateRewardContent() {
     return { icon: '✂', label: 'Cut', tier: 'rare',   // r391: Flow's word cardFace: { rank, suit },
       desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
       apply: () => { removeCardIdentityFromRun(rank, suit)
-        ? showMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
+        ? noteMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
         : showMessage(`${rank}${suit} was already gone`, 'var(--cream-dim)'); } };
   }
   function makeLimitUpPayload() {
@@ -529,7 +529,7 @@ function _generateRewardContent() {
     const _ch = limitChangeText(dl.id, 1);
     return { icon: '⬆️', label: `${_tx} ${dl.label}`, tier: 'epic',
       desc: `${_ch} · permanent`,
-      apply: () => { incrementLimit(dl.id); showMessage(`${_tx} ${dl.label}!`, 'var(--gold)'); } };
+      apply: () => { incrementLimit(dl.id); noteMessage(`${_tx} ${dl.label}!`, 'var(--gold)'); } };
   }
 
   // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit
@@ -552,16 +552,16 @@ function _generateRewardContent() {
       case 'improve_sleight': return makeImprovePayload('sleight');
       case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',
                                desc: `Next round discards: ${_proj.discards} → ${_proj.discards + 1}`,
-                               apply: () => { nextRoundDiscardDelta += 1; showMessage('+1 discard next round', 'var(--gold)'); } };
+                               apply: () => { nextRoundDiscardDelta += 1; noteMessage('+1 discard next round', 'var(--gold)'); } };
       case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',
                                desc: `Next round swaps: ${_proj.swaps} → ${_proj.swaps + 1}`,
-                               apply: () => { nextRoundSwapDelta += 1; showMessage('+1 swap next round', 'var(--gold)'); } };
+                               apply: () => { nextRoundSwapDelta += 1; noteMessage('+1 swap next round', 'var(--gold)'); } };
       case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',
                                desc: `Next round starts with +15s`,
-                               apply: () => { nextRoundSecondsDelta += 15; showMessage('+15s next round', 'var(--gold)'); } };
+                               apply: () => { nextRoundSecondsDelta += 15; noteMessage('+15s next round', 'var(--gold)'); } };
       case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
                                desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
-                               apply: () => { coins += 8; updateCoinsUI(); showMessage('+8 coins', 'var(--gold)'); } };
+                               apply: () => { coins += 8; updateCoinsUI(); noteMessage('+8 coins', 'var(--gold)'); } };
       case 'limit_up': {
         // makeLimitUpPayload falls back to a Trick when nothing is upgradeable, so
         // count the tile only when it really is a limit (its ⬆️ icon).
@@ -573,7 +573,7 @@ function _generateRewardContent() {
         const n = _luckAmt();
         return { icon: '🍀', label: `+${n} Luck`, tier: _luckTier(n),
                  desc: `Luck ${luckTotal()} → ${luckTotal() + n}. Good chance effects fire more often and better entities turn up. Permanent.`,
-                 apply: () => { luckModifiers += n; showMessage(`+${n} Luck`, 'var(--gold)'); } };
+                 apply: () => { luckModifiers += n; noteMessage(`+${n} Luck`, 'var(--gold)'); } };
       }
       case 'blessed': return makeBlessedPayload() || makeTrickPayload();
       case 'cull':    return makeCullPayload();
@@ -607,7 +607,7 @@ function _generateRewardContent() {
     return {
       icon: '⬆️', label: `+${gain}${u} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true,
       desc: `${def.label}: ${cur}${u} → ${next}${u} · permanent`,
-      apply: () => { for (let k = 0; k < steps; k++) incrementLimit(id); onLimitChanged?.(id); showMessage(`+${gain}${u} ${def.label}!`, 'var(--gold)'); }
+      apply: () => { for (let k = 0; k < steps; k++) incrementLimit(id); onLimitChanged?.(id); noteMessage(`+${gain}${u} ${def.label}!`, 'var(--gold)'); }
     };
   }
   function makeGrowthTile()      { const o = Math.random()<0.5 ? ['grid_rows','grid_cols'] : ['grid_cols','grid_rows']; for (const id of o) { const t = makeLimitUpgradeTile(id, 1); if (t) return t; } return null; }
@@ -1230,7 +1230,7 @@ function skipRewardGrid() {
   coins += BAL.reward_skip.gold; updateCoinsUI();
   let _msg = `Skipped rewards · +${BAL.reward_skip.gold} gold`;
   if (hasTrick('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next round`; }
-  showMessage(_msg, 'var(--gold)');
+  noteMessage(_msg, 'var(--gold)');
   rewardSelected = new Set(); // abandon any in-progress picks
   rewardPickOrder = []; rewardTipKey = null;
   closeRewardGrid();

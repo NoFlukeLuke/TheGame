@@ -69,7 +69,7 @@ pre{background:#0a0806;border:1px solid var(--line);border-radius:6px;padding:8p
 <div id="wrap">
   <div id="ctl">
     <h1>PRINTER NOTICES</h1>
-    <p class="sub">The real thing, loaded from js/print-toast.js. Notices fired together print on one slip; a new notice tears the old slip off. Each slip hangs for the hold time per line, then tears and falls.</p>
+    <p class="sub">The real thing, loaded from js/print-toast.js. Notices fired together print on one slip. A slip hangs for the hold time per line, then is pulled back up. A new notice pulls the old slip back at once.</p>
     <div class="grp"><b>FIRE</b>
       <div class="fire">
         <button class="btn" data-m="+5 credits|var(--gold)|💰"><i style="background:var(--gold)"></i>Credits</button>
@@ -83,23 +83,13 @@ pre{background:#0a0806;border:1px solid var(--line);border-radius:6px;padding:8p
       </div>
     </div>
     <div class="grp"><b>TUNE</b>
-      <div class="row"><label>Game scale</label><input id="gz" type="range" min="1" max="2.4" step=".05" value="1.8"><output></output></div>
       <div class="row"><label>Hold / line</label><input data-k="holdPerLine" type="range" min="500" max="5000" step="100"><output></output></div>
+      <div class="row"><label>Pull back ms</label><input data-k="pullMs" type="range" min="80" max="900" step="20"><output></output></div>
       <div class="row"><label>Group window</label><input data-k="groupMs" type="range" min="40" max="600" step="10"><output></output></div>
       <div class="row"><label>Print ms / char</label><input data-k="charMs" type="range" min="2" max="30"><output></output></div>
       <div class="row"><label>Line max ms</label><input data-k="lineMaxMs" type="range" min="80" max="900" step="10"><output></output></div>
-      <div class="row"><label>Paper width</label><input data-k="width" type="range" min="140" max="360" step="5"><output></output></div>
-      <div class="row"><label>Fall variety</label><input data-k="variety" type="range" min="0" max="1" step=".05"><output></output></div>
-      <div class="row"><label>Spiral share</label><input data-k="spinChance" type="range" min="0" max="1" step=".05"><output></output></div>
-      <div class="row"><label>Sideways drift</label><input data-k="drift" type="range" min="0" max="200" step="5"><output></output></div>
-      <div class="row"><label>Text size</label><input data-k="fontPx" type="range" min="9" max="20"><output></output></div>
-      <div class="row"><label>Ink strength</label><input data-k="ink" type="range" min="40" max="95"><output></output></div>
-      <div class="row"><label>Swing period</label><input data-k="swingPeriod" type="range" min=".5" max="2.5" step=".05"><output></output></div>
-      <div class="row"><label>Swing width</label><input data-k="swingAmp" type="range" min="0" max="1.2" step=".05"><output></output></div>
-      <div class="row"><label>Tilt</label><input data-k="tilt" type="range" min="0" max="60"><output></output></div>
-      <div class="row"><label>Turn edge-on</label><input data-k="turn" type="range" min="0" max="80"><output></output></div>
-      <div class="row"><label>Fall fast</label><input data-k="fallFast" type="range" min="60" max="500" step="10"><output></output></div>
-      <div class="row"><label>Fall slow</label><input data-k="fallSlow" type="range" min="-40" max="120" step="2"><output></output></div>
+      <div class="row"><label>Paper width</label><input data-k="width" type="range" min="180" max="480" step="5"><output></output></div>
+      <div class="row"><label>Text size</label><input data-k="fontPx" type="range" min="14" max="30"><output></output></div>
     </div>
     <div class="grp"><b>DUMP</b><button class="btn" id="dump">Print PT_CFG</button><pre id="out" hidden></pre></div>
   </div>
@@ -114,7 +104,7 @@ pre{background:#0a0806;border:1px solid var(--line);border-radius:6px;padding:8p
 // stand-ins for the game's audio plumbing, so the real file runs on its own
 let _ac = null;
 function getAudioCtx(){ _ac = _ac || new (window.AudioContext||window.webkitAudioContext)(); if (_ac.state==='suspended') _ac.resume(); return _ac; }
-function sfxVolume(){ return 1; }
+function sfxVolume(){ return 0.45; }
 function sfxOut(ctx){ return ctx.destination; }
 function fxRandom(){ return Math.random(); }
 </script>
@@ -129,7 +119,6 @@ $('#rep').onclick=()=>{ printToast('+2 swaps','var(--cyan)'); setTimeout(()=>pri
 document.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k, o=el.nextElementSibling;
   el.value=PT_CFG[k]; const up=()=>{ PT_CFG[k]=+el.value; o.textContent=el.value; }; el.oninput=up; up(); });
 // the game is drawn at the stage zoom (about 1.9 on a desktop); this stands in for it
-const gz=$('#gz'); if (innerWidth < 760) gz.value = 1; let _gz=+gz.value; ptZoom=()=>_gz; gz.oninput=()=>{ _gz=+gz.value; gz.nextElementSibling.textContent=gz.value; }; gz.oninput();
 $('#dump').onclick=()=>{ const o=$('#out'); o.hidden=false; o.textContent='const PT_CFG = '+JSON.stringify(PT_CFG,null,2)+';'; };
 setTimeout(()=>$('#grp3').click(), 400);
 </script>

@@ -145,7 +145,7 @@ function paySpectrumFixture(def, card, r, c) {
   if (p.pause_seconds) { pauseRound(p.pause_seconds, def.id, 'sleight'); bits.push(`${p.pause_seconds}s pause`); }
   if (p.seconds)  { const g = rewindTime(p.seconds, null, def.id, 'sleight'); if (g > 0) bits.push(`+${g}s`); }
   if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); fx('credits', p.coins); }
-  showMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
+  noteMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
   // Paid, so it goes. The charge is NOT consumed here - spectrumFixtureExit's
   // discardSleightAfterUse decrements it on the way out, and doing both would
   // spend two charges for one payout.

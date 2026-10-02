@@ -1,22 +1,22 @@
-/* ══ PRINTER NOTICES (r432) - js/print-toast.js ═══════════════════════════════
-   Tractor-feed paper that comes down from the top edge of the game screen, holes
-   down both sides, a faint green bar every other line. Sizes are design px times
-   --z (the stage zoom), so a slip is the same size relative to the game at every
-   window size. The layer is placed over #stage in raw viewport px and clips to
-   it, which is what makes the paper appear from the screen's own top edge. */
-#pt-layer { position: fixed; z-index: 900; pointer-events: none; overflow: hidden; --z: 1; }
+/* ══ PRINTER NOTICES (r432, reworked r435) - js/print-toast.js ════════════════
+   Black tractor-feed paper that comes down from the top edge of the game screen,
+   holes down both sides, a dark green bar every other line, text in the notice's
+   own UI colour. The layer is placed over #stage in raw viewport px and clips to
+   it, which is what makes the paper appear from the screen's own top edge. Sizes
+   are plain px, matching the plate toasts this replaced. */
+#pt-layer { position: fixed; z-index: 900; pointer-events: none; overflow: hidden; }
 
 .pt-slip {
-  --lh: calc(16px * var(--z)); --edge: calc(9px * var(--z)); --hole: calc(4px * var(--z));
-  position: absolute; left: 50%; top: calc(-8px * var(--z)); width: calc(var(--ptw, 230px) * var(--z));
-  transform: translateX(-50%); transform-origin: 50% 20%;
-  filter: drop-shadow(0 calc(3px * var(--z)) calc(4px * var(--z)) rgba(0,0,0,.55));
-  will-change: transform;
+  --lh: 22px; --edge: 13px; --hole: 6px;
+  position: absolute; left: 50%; top: -6px; width: min(var(--ptw, 300px), calc(100% - 24px));
+  transform: translateX(-50%);
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.8));
 }
 .pt-paper {
   position: relative;
-  padding: calc(14px * var(--z)) calc(var(--edge) + 12px * var(--z)) calc(5px * var(--z));
-  background: var(--pt-paper, #f2ead8);
+  padding: 12px calc(var(--edge) + 12px) 6px;
+  background: var(--pt-paper, #0d0b09);
+  border-left: 1px solid #ffffff10; border-right: 1px solid #ffffff10;
   /* real holes down both edges: the board shows through them */
   -webkit-mask:
     radial-gradient(circle calc(var(--hole) / 2) at calc(var(--edge) / 2 + 1px) 50%, #0000 96%, #000) 0 0 / 50% calc(var(--lh) * 1.2) repeat-y,
@@ -26,32 +26,32 @@
     radial-gradient(circle calc(var(--hole) / 2) at calc(100% - var(--edge) / 2 - 1px) 50%, #0000 96%, #000) 100% 0 / 50% calc(var(--lh) * 1.2) repeat-y;
 }
 /* the perforations beside the holes */
-.pt-paper::before, .pt-paper::after { content: ""; position: absolute; top: 0; bottom: 0; border-left: 1px dashed #0002; }
-.pt-paper::before { left: calc(var(--edge) + 3px * var(--z)); }
-.pt-paper::after  { right: calc(var(--edge) + 3px * var(--z)); }
+.pt-paper::before, .pt-paper::after { content: ""; position: absolute; top: 0; bottom: 0; border-left: 1px dashed #ffffff1c; }
+.pt-paper::before { left: calc(var(--edge) + 3px); }
+.pt-paper::after  { right: calc(var(--edge) + 3px); }
 
-.pt-lines { display: flex; flex-direction: column; opacity: var(--pt-back, 1); }
+.pt-lines { display: flex; flex-direction: column; }
 .pt-line {
-  min-height: var(--lh); line-height: var(--lh); color: var(--ink, #2a2118); overflow-wrap: anywhere;
-  font-family: 'VT323', 'Share Tech Mono', monospace; font-size: calc(var(--fpx, 13px) * var(--z) * 1.15);
-  letter-spacing: calc(.4px * var(--z));
+  min-height: var(--lh); line-height: var(--lh); color: var(--ink, #f0e2c0); overflow-wrap: anywhere;
+  font-family: 'VT323', 'Share Tech Mono', monospace; font-size: var(--fpx, 21px); letter-spacing: .5px;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--ink, #f0e2c0) 45%, transparent);
   /* the printed line jumps down into view in jerks, not a glide */
   animation: ptFeed 110ms steps(3) both;
 }
-/* a faint green bar every other line, counted from the oldest so it stays put as
+/* a dark green bar every other line, counted from the oldest so it stays put as
    new lines push in above */
-.pt-line:nth-last-child(even) { background: var(--pt-bar, #dfe9d6); margin-left: calc(-12px * var(--z)); margin-right: calc(-12px * var(--z));
-  padding-left: calc(12px * var(--z)); padding-right: calc(12px * var(--z)); }
+.pt-line:nth-last-child(even) { background: var(--pt-bar, #151f17); margin: 0 -12px; padding: 0 12px; }
 @keyframes ptFeed { from { margin-top: calc(var(--lh) * -1); } to { margin-top: 0; } }
 /* dot-matrix: the ink is rows of dots, not a solid stroke */
-.pt-t { -webkit-mask: repeating-linear-gradient(#000 0 calc(2px * var(--z)), #0007 0 calc(3px * var(--z)));
-        mask: repeating-linear-gradient(#000 0 calc(2px * var(--z)), #0007 0 calc(3px * var(--z))); }
+.pt-t { -webkit-mask: repeating-linear-gradient(#000 0 2px, #0008 0 3px); mask: repeating-linear-gradient(#000 0 2px, #0008 0 3px); }
 .pt-x { display: inline-block; margin-left: .5em; padding: 0 .3em; border: 1.5px solid currentColor; border-radius: 3px;
-        line-height: 1; font-size: .85em; transform: rotate(-6deg); color: var(--ink, #2a2118); }
+        line-height: 1; font-size: .85em; transform: rotate(-6deg); }
 .pt-empty { visibility: hidden; }
 
-/* torn: the top edge is the ragged perforation the slip came away from */
-.pt-torn .pt-paper {
-  clip-path: polygon(0 3px, 6% 0, 13% 4px, 21% 1px, 30% 3px, 38% 0, 47% 4px, 56% 1px, 64% 3px, 73% 0, 82% 4px, 90% 1px, 100% 3px, 100% 100%, 0 100%);
-}
-.pt-fade { transition: opacity .35s; opacity: 0; }
+/* pulled back up into the top of the screen */
+.pt-pulled { animation: ptPull var(--pt-pull, 280ms) steps(5) forwards; }
+@keyframes ptPull { to { transform: translate(-50%, -105%); } }
+
+body.reduced-motion .pt-line { animation: none; }
+body.reduced-motion .pt-pulled { animation: none; opacity: 0; }
+body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }

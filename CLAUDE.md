@@ -331,3 +331,12 @@ stays hidden (`.pt-empty`) until its first line arrives. Each falling slip rolls
 period and width, drop speed, sideways drift and phase; `spinChance` of them spiral (turn right
 round) instead of rocking, and the back of the sheet shows the ink faintly (`--pt-back`).
 `PT_CFG.variety` 0 makes every fall the same.
+
+## r435 - notices: black paper, pulled back up, and only the helpful ones print
+No fall: a finished slip (or one interrupted by a new notice) is pulled back up into the top in
+steps (`ptPull`, `PT_CFG.pullMs`). Paper is black with a dark green bar every other line; text is
+the notice's own UI colour; plain px sizes like the old plate toast (`fontPx` 21 VT323, 340 wide).
+Print sounds ride the `detail` bus at about half gain. **`noteMessage(text)`** (js/round-timers.js)
+is the quiet sibling of `showMessage`: it prints nothing and keeps `noticeLog`. 116 call sites that
+only echoed the player's own pick, purchase or a visible counter use it; **`NOTICES.md`** lists
+every notice and the rule. New notices pick one of the two on purpose.

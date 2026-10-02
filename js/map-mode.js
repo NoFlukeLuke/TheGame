@@ -1122,7 +1122,7 @@ function mapKnackPickTwo(done) {
       const k = offers[i];
       acquiredKnacks.push({ ...k });
       updateKnackList?.();
-      showMessage(`+ ${k.name}`, 'var(--gold)');
+      noteMessage(`+ ${k.name}`, 'var(--gold)');
       done();
     },
     onSkip: () => done(),

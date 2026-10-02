@@ -34,7 +34,6 @@ const SFX_CATALOG = [
   { id: 'no_swaps',      fn: 'sfxNoSwaps',         group: 'Board',   label: 'Action refused' },
   { id: 'print_line',    fn: 'sfxPrintLine',       group: 'Board',   label: 'Notice printing', args: [240] },
   { id: 'print_feed',    fn: 'sfxPrintFeed',       group: 'Board',   label: 'Notice paper feed' },
-  { id: 'print_tear',    fn: 'sfxPrintTear',       group: 'Board',   label: 'Notice torn off' },
   { id: 'card_discard',  fn: 'sfxCardDiscard',     group: 'Board',   label: 'Cards discarded' },
   { id: 'card_discard_forced', fn: 'sfxCardDiscard', group: 'Board', label: 'Discard forced on you', args: [true], variantOf: 'card_discard',
     note: 'The Marker boss taking a marked card out of a hand you played.' },

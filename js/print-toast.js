@@ -1,54 +1,31 @@
-// ══ PRINTER NOTICES (r432) ═══════════════════════════════════════════════════
-// Owner: the top-of-screen notices are printed on tractor-feed paper. Notices
-// that arrive together print on ONE slip, line by line, fast and jerky, with a
-// dot-matrix sound. A slip hangs for PT_CFG.holdPerLine a line, then tears off
-// (a tear sound) and falls, swinging side to side like real paper. A notice that
-// arrives while a slip is still up finishes that slip at once, tears it off and
-// starts a new one. There is no printer drawn: the paper comes down from the top
-// edge of the game screen.
+// ══ PRINTER NOTICES (r432, reworked r435) ═══════════════════════════════════
+// The top-of-screen notices print on black tractor-feed paper that comes down
+// from the top edge of the game screen. Notices that arrive together share ONE
+// slip. Each line is printed out of sight (the print sound) and then fed down
+// already written (the feed sound). A finished slip hangs PT_CFG.holdPerLine a
+// line and is then pulled back up into the top. A notice that arrives while a
+// slip is still up finishes that slip at once and pulls it back.
 //
 // showMessage (js/round-timers.js) hands every notice here while the setting is
-// on, so no call site changed. The old plate toast is the fallback.
-//
-// THE FALL is a cheap phenomenological model of "flutter", the regime a sheet of
-// paper falls in: it swings side to side like a pendulum, tilts its leading edge
-// down into the direction it is moving, drops fastest through the middle of a
-// swing and almost stalls at each end, turning edge-on to the viewer as it does.
-// One transform per slip per frame, so it runs on the compositor.
+// on, so no call site changed. noteMessage is for things the player just did and
+// can already see; it prints nothing. The old plate toast is the fallback.
 
 const PT_CFG = {
   groupMs: 160,        // notices this close together share a slip
   holdPerLine: 2000,   // how long a finished slip hangs, per line
-  maxLines: 6,         // a slip with this many lines tears and a new one starts
-  width: 230,          // design px; every slip is this wide, a long notice wraps
+  maxLines: 6,         // a slip with this many lines is pulled back and a new one starts
+  width: 340,          // px; every slip is this wide, a long notice wraps
   charMs: 9,           // print time per character, out of sight above the screen...
   lineMinMs: 140,      // ...floored...
   lineMaxMs: 340,      // ...and capped, so a line never takes long
   feedMs: 110,         // the paper's jump down one line, already printed
-  fontPx: 13,          // design px; scaled by the stage zoom
-  ink: 80,             // % of the game colour in the ink (the rest is near-black)
-  paper: '#f2ead8', bar: '#dfe9d6',
-  swingPeriod: 1.15,   // seconds per full swing, +-20% per slip
-  swingAmp: 0.45,      // side to side, as a share of the slip's width
-  tilt: 24,            // degrees the leading edge dips
-  turn: 38,            // degrees it turns edge-on at the end of a swing
-  fallSlow: 14,        // design px/s at the ends of a swing
-  fallFast: 190,       // design px/s through the middle
-  fallLife: 3.6,       // seconds before a falling slip is removed (scaled by its speed)
-  variety: 1,          // 0 = every slip falls the same way, 1 = full spread
-  spinChance: 0.35,    // share of slips that spiral (turn right round) instead of rocking
-  drift: 70,           // design px/s of sideways drift a slip can pick up, either way
+  pullMs: 280,         // the slip being pulled back up
+  fontPx: 21,          // px (VT323 runs small: 21 reads like the old 15px toast)
+  paper: '#0d0b09', bar: '#151f17',
 };
 
 let printToastsOn = true;          // Settings > Display > Printer notices
-let _ptLayer = null, _ptSlip = null, _ptFalling = [], _ptRaf = 0;
-
-function ptZoom() {
-  const st = document.getElementById('stage');
-  if (!st || !st.offsetWidth) return 1;
-  const w = st.getBoundingClientRect().width;
-  return w > 50 ? w / st.offsetWidth : 1;
-}
+let _ptLayer = null, _ptSlip = null;
 
 // The layer is laid over the game screen in raw viewport px and clips to it, so
 // the paper appears from the screen's top edge and falls out of its bottom. It is
@@ -64,32 +41,14 @@ function ptLayer() {
   if (!r || r.width < 50 || r.height < 50) r = { left: 0, top: 0, width: innerWidth, height: innerHeight };
   const s = _ptLayer.style;
   s.left = r.left + 'px'; s.top = r.top + 'px'; s.width = r.width + 'px'; s.height = r.height + 'px';
-  _ptLayer.style.setProperty('--z', ptZoom());
   _ptLayer.style.setProperty('--fpx', PT_CFG.fontPx + 'px');
   _ptLayer.style.setProperty('--pt-paper', PT_CFG.paper);
   _ptLayer.style.setProperty('--pt-bar', PT_CFG.bar);
   return _ptLayer;
 }
 
-// Ink on paper: a light game colour cannot be read on cream, so the lighter the
-// colour, the more of it is swapped for near-black.
-let _ptProbe = null;
-function ptInk(color) {
-  if (!color) return '#2a2118';
-  try {
-    _ptProbe = _ptProbe || Object.assign(document.createElement('i'), { hidden: true });
-    if (!_ptProbe.isConnected) document.body.appendChild(_ptProbe);
-    _ptProbe.style.color = ''; _ptProbe.style.color = color;
-    const m = getComputedStyle(_ptProbe).color.match(/[\d.]+/g);
-    if (m) {
-      const [r, g, b] = m.map(Number), L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      if (L > 0.78) return '#2a2118';
-      const k = L > 0.55 ? Math.round(PT_CFG.ink * 0.7) : PT_CFG.ink;
-      return `color-mix(in srgb, ${color} ${k}%, #1b140c)`;
-    }
-  } catch (e) {}
-  return '#2a2118';
-}
+// Ink: the notice's own UI colour, which is already bright enough for black paper.
+function ptInk(color) { return color || 'var(--cream, #f0e2c0)'; }
 
 function printToast(text, color, opts) {
   const o = opts || {};
@@ -109,8 +68,8 @@ function printToast(text, color, opts) {
       return same.el;
     }
   }
-  // Join the slip if it opened a moment ago, otherwise tear it off now.
-  if (s && (now - s.opened > PT_CFG.groupMs || s.lines.length >= PT_CFG.maxLines)) { ptFinish(s); ptTear(s); }
+  // Join the slip if it opened a moment ago, otherwise pull it back now.
+  if (s && (now - s.opened > PT_CFG.groupMs || s.lines.length >= PT_CFG.maxLines)) ptPull(s);
   if (!_ptSlip) _ptSlip = ptNewSlip(layer, now);
   const slip = _ptSlip;
   const line = { text: String(text), icon: o.icon || '', ink: ptInk(color), el: null, n: 1 };
@@ -160,7 +119,7 @@ function ptFeedLine(slip, line) {
 
 function ptArmHold(slip) {
   clearTimeout(slip.hold);
-  slip.hold = setTimeout(() => { if (_ptSlip === slip) { ptTear(slip); } },
+  slip.hold = setTimeout(() => { if (_ptSlip === slip) ptPull(slip); },
     PT_CFG.holdPerLine * slip.lines.length);
 }
 
@@ -171,65 +130,22 @@ function ptFinish(slip) {
   slip.queue = []; slip.busy = false; slip.done = true;
 }
 
-function ptTear(slip) {
+// Pulled back up into the top of the screen, in jerks like the feed.
+function ptPull(slip) {
   if (_ptSlip === slip) _ptSlip = null;
   ptFinish(slip);
-  try { sfxPrintTear?.(); } catch (e) {}
-  const el = slip.el, z = ptZoom();
-  el.classList.add('pt-torn');
-  const reduced = document.body.classList.contains('reduced-motion');
-  if (reduced) { el.classList.add('pt-fade'); setTimeout(() => el.remove(), 400); return; }
-  const rnd = typeof fxRandom === 'function' ? fxRandom : Math.random;
-  const w = el.offsetWidth, c = PT_CFG, v = c.variety;
-  // Every slip gets its own fall: how fast it swings and how wide, how fast it
-  // drops, whether it drifts off to one side, and whether it rocks or spirals.
-  const vary = (lo, hi) => 1 + v * (lo + rnd() * (hi - lo) - 1);
-  const spin = rnd() < c.spinChance * v ? (rnd() < 0.5 ? -1 : 1) * (200 + rnd() * 220) : 0;
-  const speed = vary(0.65, 1.4);
-  _ptFalling.push({ el, t: 0, y: 0, vy: 0, z, spin, speed,
-    T: c.swingPeriod * vary(0.65, 1.45),
-    A: Math.min(140 * z, Math.max(30 * z, w * c.swingAmp * vary(0.45, 1.5))),
-    tiltK: vary(0.5, 1.4), turnK: vary(0.5, 1.4),
-    drift: (rnd() * 2 - 1) * c.drift * v * z,
-    ph0: rnd() * 0.6 * v,
-    dir: rnd() < 0.5 ? -1 : 1, life: c.fallLife / Math.sqrt(speed),
-    H: _ptLayer ? _ptLayer.offsetHeight : innerHeight });
-  while (_ptFalling.length > 8) _ptFalling.shift().el.remove();
-  if (!_ptRaf) { _ptLast = performance.now(); _ptRaf = requestAnimationFrame(ptFallTick); }
-}
-
-let _ptLast = 0;
-function ptFallTick(now) {
-  const dt = Math.min(0.05, (now - _ptLast) / 1000); _ptLast = now;
-  const c = PT_CFG;
-  _ptFalling = _ptFalling.filter(f => {
-    f.t += dt;
-    const ramp = Math.min(1, f.t / 0.7);              // it drops straight before it starts to swing
-    const ph = f.dir * (2 * Math.PI * f.t / f.T + f.ph0);
-    const sw = Math.cos(ph), side = Math.sin(ph);
-    const vt = (c.fallSlow + (c.fallFast - c.fallSlow) * sw * sw) * f.z * f.speed;
-    f.vy += (vt - f.vy) * Math.min(1, dt * 4);
-    f.y += f.vy * dt;
-    const x = f.A * ramp * side + f.drift * ramp * f.t;
-    // a spiralling slip turns right round; a rocking one dips its leading edge
-    // into the motion and goes edge-on at the ends of each swing
-    const tilt = c.tilt * f.tiltK * ramp * sw * f.dir * (f.spin ? 0.4 : 1);
-    const turn = f.spin ? f.spin * Math.max(0, f.t - 0.25) : c.turn * f.turnK * ramp * side;
-    const fade = f.t > f.life - 0.6 ? Math.max(0, (f.life - f.t) / 0.6) : 1;
-    f.el.style.transform = `perspective(${700 * f.z}px) translateX(-50%) translate(${x.toFixed(1)}px, ${f.y.toFixed(1)}px) rotate(${tilt.toFixed(2)}deg) rotateY(${turn.toFixed(2)}deg)`;
-    f.el.style.opacity = fade;
-    // past edge-on we see the back of the sheet: the ink only shows through faintly
-    f.el.style.setProperty('--pt-back', Math.cos(turn * Math.PI / 180) < 0 ? 0.18 : 1);
-    if (f.t >= f.life || f.y > f.H + 40) { f.el.remove(); return false; }
-    return true;
-  });
-  _ptRaf = _ptFalling.length ? requestAnimationFrame(ptFallTick) : 0;
+  const el = slip.el;
+  if (el.classList.contains('pt-empty')) { el.remove(); return; }
+  try { sfxPrintFeed?.(); } catch (e) {}
+  el.style.setProperty('--pt-pull', PT_CFG.pullMs + 'ms');
+  el.classList.add('pt-pulled');
+  setTimeout(() => el.remove(), PT_CFG.pullMs + 60);
 }
 
 // ── Sounds ──────────────────────────────────────────────────────────────────
 // A dot-matrix head is two noises: a hard pin chatter (the needles striking the
 // ribbon, high and gritty) over a low rattle (the carriage stepper). The line
-// feed is a ratchet and a thump. A tear is grainy noise that rises and snaps.
+// feed is a ratchet and a thump.
 function ptVoice(build) {
   let gain = sfxVolume(); if (gain <= 0) return;
   const ctx = getAudioCtx();
@@ -274,21 +190,5 @@ function sfxPrintFeed() {
     g.gain.setValueAtTime(0.0001, t + 0.05); g.gain.exponentialRampToValueAtTime(0.12 * v, t + 0.056);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
     o.connect(g).connect(sfxOut(ctx)); o.start(t + 0.05); o.stop(t + 0.16);
-  });
-}
-
-function sfxPrintTear() {
-  ptVoice((ctx, v, t) => {
-    // a perforation giving way: grains of noise, denser and louder, then a snap
-    const sec = 0.26;
-    const rip = ptNoiseBuf(ctx, sec, (ts, p, rnd) => {
-      const grain = Math.sin(ts * 900 + Math.sin(ts * 37) * 6) > 0.1 ? 1 : 0.15;
-      const env = p < 0.88 ? 0.25 + p * 0.85 : (1 - p) * 9;
-      return grain * env * (0.6 + rnd() * 0.4);
-    });
-    ptPlay(ctx, rip, t, 0.16 * v, 'bandpass', 1900, 0.7);
-    ptPlay(ctx, rip, t, 0.06 * v, 'highpass', 4200, 0.7);
-    const snap = ptNoiseBuf(ctx, 0.03, (ts, p) => (1 - p) * (1 - p));
-    ptPlay(ctx, snap, t + sec * 0.9, 0.14 * v, 'bandpass', 1300, 1.4);
   });
 }

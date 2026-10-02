@@ -1433,7 +1433,7 @@ function flowrGrantOffer(opt) {
   if (opt.type === 'improve') {
     const tier = improveEntity(opt.id);
     if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
-    showMessage(`⬆ ${opt.name} improved to v${tier}.0`, '#e0813a');
+    noteMessage(`⬆ ${opt.name} improved to v${tier}.0`, '#e0813a');
     try { sfxSuccess?.(); } catch (e) {}
     return;
   }
@@ -1936,7 +1936,7 @@ function flowrDualConfirm() {
   });
   setTimeout(() => {
     try { render(); } catch (e) {}
-    showMessage(`${op.icon} ${op.name} on ${hits} card${hits === 1 ? '' : 's'}`, '#e8b0ff');
+    noteMessage(`${op.icon} ${op.name} on ${hits} card${hits === 1 ? '' : 's'}`, '#e8b0ff');
     flowrDeckEnd();
   }, FLOWR_REVEAL_MS * (sel.length + 1) + 420);
 }
@@ -2032,7 +2032,7 @@ function flowrAdjApply(r, c, sel) {
   setTimeout(() => {
     try { render(); } catch (e) {}
     if (typeof updateDeckHud === 'function') updateDeckHud();
-    showMessage(`${op.icon} ${op.name}: ${count} card${count === 1 ? '' : 's'}`, '#4aa3e0');
+    noteMessage(`${op.icon} ${op.name}: ${count} card${count === 1 ? '' : 's'}`, '#4aa3e0');
     flowrDeckEnd();
   }, FLOWR_REVEAL_MS * (neigh.length + 1) + 420);
 }
@@ -2056,7 +2056,7 @@ function flowrBuffConfirm() {
   });
   setTimeout(() => {
     try { render(); } catch (e) {}
-    showMessage(`${op.icon} ${label} on ${q} card${q === 1 ? '' : 's'}`, '#5ad4c0');
+    noteMessage(`${op.icon} ${label} on ${q} card${q === 1 ? '' : 's'}`, '#5ad4c0');
     flowrDeckEnd();
   }, FLOWR_REVEAL_MS * (_flowrDeckSel.length + 1) + 420);
 }
@@ -2256,7 +2256,7 @@ function flowrGrantPack(pack) {
     made++;
   });
   if (typeof updateDeckHud === 'function') updateDeckHud();
-  showMessage(`🃏 ${made} card${made === 1 ? '' : 's'} joined the deck · ${pack.label}`, '#7fd45a');
+  noteMessage(`🃏 ${made} card${made === 1 ? '' : 's'} joined the deck · ${pack.label}`, '#7fd45a');
   try { sfxCoin?.(); } catch (e) {}
 }
 

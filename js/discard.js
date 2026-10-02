@@ -119,7 +119,7 @@ function doDiscard() {
   // Five for Fodder: discarding a 5-card hand grants credits
   if (_fodder5) {
     grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
-    showMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
+    noteMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
   if (hasTrick('fives_discard')) {
@@ -145,8 +145,8 @@ function doDiscard() {
       else if (_v === _hi) _hiCards.push(_cd);
     }
     if (_hi > 0 && _hiCards.length && _hiCards.every(hc => discardedCards.includes(hc))) {
-      if (_dabiSwapNext) { swaps++; showMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
-      else { discards++; showMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      if (_dabiSwapNext) { swaps++; noteMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      else { discards++; noteMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
       _dabiSwapNext = !_dabiSwapNext;
       grantEntityCoins(BAL.down_and_back_in.coins, 'trick', 'down_and_back_in');
     }
@@ -275,7 +275,7 @@ function rewindTime(seconds, label, srcId, srcSource) {
   void el.offsetWidth;
   el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
   el.style.top = '-22px'; el.style.opacity = '0';
-  if (label) showMessage(label, '#5aa9e6', { icon: '\u23ea' });
+  if (label) noteMessage(label, '#5aa9e6', { icon: '\u23ea' });
   // The symbol flies from the entity that caused it to the clock it changed
   // (js/entity-fx.js). `srcId` is optional - without it the flight still happens,
   // it just starts from the clock rather than from a tray tile.

@@ -136,7 +136,7 @@ function confirmReassignment() {
   if (eventState.reassignNone) {
     coins += BAL.reassignment.consolation_credits;
     updateCoinsUI?.();
-    showMessage(`+${BAL.reassignment.consolation_credits} credits`, 'var(--gold)');
+    noteMessage(`+${BAL.reassignment.consolation_credits} credits`, 'var(--gold)');
     closeEvent(); return;
   }
   const t = eventState.reassignTrick, kind = eventState.reassignKind;
@@ -218,7 +218,7 @@ function confirmDraw() {
   if (eventState.drawNone) {
     coins += BAL.the_draw.consolation_credits;
     updateCoinsUI?.();
-    showMessage(`+${BAL.the_draw.consolation_credits} credits`, 'var(--gold)');
+    noteMessage(`+${BAL.the_draw.consolation_credits} credits`, 'var(--gold)');
     closeEvent(); return;
   }
   // Second press, after the wheel has stopped: leave.

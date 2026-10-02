@@ -103,7 +103,7 @@ async function showLevelUpScreen_fallOnly() {
   // Trade Winds: cash out half the round's remaining Focus before it falls away.
   if (hasKnack('trade_winds') && focusNodes > 0) {
     const _payout = Math.floor(focusNodes * BAL.trade_winds.payout_fraction);
-    if (_payout > 0) { coins += _payout; updateCoinsUI(); showMessage(`⛵ Trade Winds - +${_payout} credits`, 'var(--gold)'); }
+    if (_payout > 0) { coins += _payout; updateCoinsUI(); noteMessage(`⛵ Trade Winds - +${_payout} credits`, 'var(--gold)'); }
   }
   if (focusNodes > 0) {
     const cap = focusCapNodes();
@@ -209,7 +209,7 @@ async function showPayoutUI() {
       const card = gridData[r]?.[c];
       if (card?._isSleight && card.sleightId === 'idol') { consumeSleightCharge(card, r, c); }
     }
-    showMessage('🗿 Idol - triple interest!', 'var(--gold)');
+    noteMessage('🗿 Idol - triple interest!', 'var(--gold)');
   }
   // Withheld (reward-grid penalty): this payout pays nothing. The breakdown is
   // still shown, with its figures zeroed, so the round is accounted for and the

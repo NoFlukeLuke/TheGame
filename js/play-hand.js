@@ -143,7 +143,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
         const _ddNow = Date.now();
         _ddPairTimes.push(_ddNow);
         _ddPairTimes = _ddPairTimes.filter(t => _ddNow - t <= BAL.two_pair_mult.window_ms);
-        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
+        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; noteMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
       } else { _ddPairTimes = []; }
     }
     // (Ripple's 30s cooldown is gone, r344: each adjacent-rank card rolls its own
@@ -185,7 +185,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (_csf > 0) {
         addFocus(BAL.clean_sweep.focus * _csf, 'clean_sweep');
         grantEntityCoins(BAL.clean_sweep.credits * _csf, 'trick', 'clean_sweep');
-        showMessage(`Clean Sweep! +${BAL.clean_sweep.focus * _csf} Focus, +${BAL.clean_sweep.credits * _csf} credits`, '#5aa9e6');
+        noteMessage(`Clean Sweep! +${BAL.clean_sweep.focus * _csf} Focus, +${BAL.clean_sweep.credits * _csf} credits`, '#5aa9e6');
       }
       _cleanSweepPrev = [];
     } else {
@@ -502,7 +502,7 @@ function playHand() {
   // Lucky Seven knack: every 7th hand grants +1 swap
   if (hasKnack('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
     swaps = Math.min(99, swaps + BAL.lucky_seven.swaps);
-    showMessage('🎯 LUCKY SEVEN - +1 SWAP', '#c9a84c');
+    noteMessage('🎯 LUCKY SEVEN - +1 SWAP', '#c9a84c');
   }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
   // The quarter keeps its own best, for the run report's per-quarter row.
@@ -685,7 +685,7 @@ function playHand() {
     // The Starling: every 2nd hand of an unbroken same-type streak grants +1 discard
     if (hasTrick('starling') && streakCount % 2 === 0) {
       discards = Math.min(99, discards + 1);
-      showMessage('📋 Type A - +1 discard', '#8fc98f');
+      noteMessage('📋 Type A - +1 discard', '#8fc98f');
     }
     // Re-arming progress for Combo Keeper
     if (!streakSaveArmed) {
@@ -712,7 +712,7 @@ function playHand() {
   // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hoarder House).
   if (hasTrick('mockingbird') && streakCount === 1) {
     _altSwapCount++;
-    if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
+    if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); noteMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
   }
 
   // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
@@ -749,7 +749,7 @@ function playHand() {
     // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
     if (handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
       const _ui = setsPlayedRound * trickFires('undue_influence');
-      if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); showMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
+      if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); noteMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
   }
   // Priming is settled AFTER the dance is handed the hand - runHandPriming, below

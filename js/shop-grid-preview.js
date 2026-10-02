@@ -325,7 +325,7 @@ function shopgImprovePayloads(n) {
       _improve: true, icon: '⬆', label: `Random ${typeWord}`,
       desc: `Improve a random owned ${typeWord} one tier. Which one is decided when you buy.`,
       rarity: 'rare', price: 20,
-      buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); showMessage(`⬆ ${t.name} improved`, 'var(--c-mint)'); } },
+      buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); noteMessage(`⬆ ${t.name} improved`, 'var(--c-mint)'); } },
     });
     left -= 1;
   }
@@ -1029,7 +1029,7 @@ function shopGridBuySelection() {
       if (r >= 1 && shopGridRowMeta[r - 1]) shopGridRowMeta[r - 1].pinned = true;
     }
   });
-  showMessage(`Bought ${bought.length} - 💰${total}`, 'var(--gold)');
+  noteMessage(`Bought ${bought.length} - 💰${total}`, 'var(--gold)');
   shopGridSel = new Set();
   shopSelOrder = [];
   if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
@@ -1064,7 +1064,7 @@ function doShopSell(r, c) {
   coins += p.price; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
   try { sfxRewardGood?.(); } catch (e) {}
-  showMessage(`Sold ${p.label} - +💰${p.price}`, 'var(--gold)');
+  noteMessage(`Sold ${p.label} - +💰${p.price}`, 'var(--gold)');
   shopGridItems = buildShopSellStock();   // refresh owned view
   renderShopGrid();
 }
@@ -1191,7 +1191,7 @@ function shopRerollSelectedRows() {
   shopGridSel = new Set(); shopSelOrder = [];
   shopSwapPending = null;
   if (typeof rewardTipKey !== 'undefined') { rewardTipKey = null; hideRewardTooltip(); }
-  showMessage(rows.length > 1 ? `Rerolled ${rows.length} rows` : 'Row rerolled', 'var(--c-mint)');
+  noteMessage(rows.length > 1 ? `Rerolled ${rows.length} rows` : 'Row rerolled', 'var(--c-mint)');
   try { sfxShopOpen?.(); } catch (e) {}
   renderShopGrid();
   return true;

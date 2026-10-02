@@ -598,7 +598,7 @@ function guidedPickOffer(type, d) {
     apply: () => grantSleight(d) };
   if (type === 'knack') return { entity:'knack', icon: d.emoji || '♦', emoji: d.emoji || '♦',
     label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
-    apply: () => { acquiredKnacks.push({ ...d }); updateKnackList?.(); showMessage(`+ ${d.name}`, 'var(--gold)'); } };
+    apply: () => { acquiredKnacks.push({ ...d }); updateKnackList?.(); noteMessage(`+ ${d.name}`, 'var(--gold)'); } };
   return null;
 }
 

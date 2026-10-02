@@ -182,7 +182,7 @@ function lbLockIn() {
   const say = `${limitDeltaText(id, 1)} ${LIMITS_DEF.find(d => d.id === id).label}`;
   incrementLimit(id);
   offer.revealed = true;
-  showMessage(say, 'var(--gold)');
+  noteMessage(say, 'var(--gold)');
 
   // Roll the sacrifice table ONCE, here, and keep it: re-rolling it whenever the
   // player changed their second pick would let them shop for a cheap price.
@@ -269,7 +269,7 @@ function confirmLimitBreak() {
     if (lbSacrifice.type === 'limit') {
       const say = `${limitDeltaText(lbSacrifice.id, -1)} ${LIMITS_DEF.find(d => d.id === lbSacrifice.id).label}`;
       decrementLimit(lbSacrifice.id);
-      showMessage(say, 'var(--red)');
+      noteMessage(say, 'var(--red)');
     } else if (lbSacrifice.type === 'trick') {
       const lost = acquiredTricks.splice(lbSacrifice.id, 1)[0];
       // acquiredTricks is the ever-owned list; the TRAY is what scores.
@@ -278,11 +278,11 @@ function confirmLimitBreak() {
         if (ti >= 0) trickTray.splice(ti, 1);
         renderTrickTray?.();
       }
-      if (lost) showMessage(`✖ ${lost.name}`, 'var(--red)');
+      if (lost) noteMessage(`✖ ${lost.name}`, 'var(--red)');
     } else if (lbSacrifice.type === 'knack') {
       const lost = acquiredKnacks.splice(lbSacrifice.id, 1)[0];
       updateKnackList?.();
-      if (lost) showMessage(`✖ ${lost.name}`, 'var(--red)');
+      if (lost) noteMessage(`✖ ${lost.name}`, 'var(--red)');
     }
   }
 
@@ -294,7 +294,7 @@ function confirmLimitBreak() {
   second._gain = limitGain(secondId);
   second.revealed = true;
   incrementLimit(secondId);
-  showMessage(secondSay, 'var(--gold)');
+  noteMessage(secondSay, 'var(--gold)');
 
   // If the second pick was the gamble, hold the screen open long enough to SHOW
   // what it turned out to be. Closing on the same frame would mean the mystery

@@ -87,7 +87,7 @@ function confirmConfluence() {
   } else if (item.type === 'knack') {
     acquiredKnacks.push({ ...item.payload });
     updateKnackList?.();
-    showMessage(`+ ${item.name}`, 'var(--gold)');
+    noteMessage(`+ ${item.name}`, 'var(--gold)');
   } else if (item.type === 'sleight') {
     grantSleight(item.payload);
   }
@@ -116,7 +116,7 @@ function buildCrossroadsTrades() {
       apply: () => {
         acquiredKnacks = acquiredKnacks.filter(x=>x.id!==t.id); updateKnackList?.();
         for (let i=0;i<2;i++) applyRewardRandomTrick();
-        showMessage('Sacrificed knack · 2 Tricks gained', 'var(--gold)'); render();
+        noteMessage('Sacrificed knack · 2 Tricks gained', 'var(--gold)'); render();
       }
     });
   }
@@ -131,7 +131,7 @@ function buildCrossroadsTrades() {
           limits.discards.current = Math.max(1, limits.discards.current - 1);
           discards = Math.min(discards, limits.discards.current);
           injectTrickAfterReward(pick);
-          showMessage(`+ ${pick.name} · −1 Discard`, 'var(--gold)');
+          noteMessage(`+ ${pick.name} · −1 Discard`, 'var(--gold)');
         }
       });
     }
@@ -149,7 +149,7 @@ function buildCrossroadsTrades() {
       if (eligible.length > 0) {
         const pick = eligible[Math.floor(Math.random()*eligible.length)];
         trades.push({ icon:'🔁', name:`${pick.name}, for ${j.name}`, desc:`Lose ${j.name} off the board. Gain ${pick.name}. ${pick.desc}`, rarity:nextRarity,
-          apply: () => { gridData[entry.r][entry.c]=null; grantedSleightIds.delete(j.id); grantSleight(pick); showMessage(`Sleight upgraded!`, 'var(--gold)'); render(); }
+          apply: () => { gridData[entry.r][entry.c]=null; grantedSleightIds.delete(j.id); grantSleight(pick); noteMessage(`Sleight upgraded!`, 'var(--gold)'); render(); }
         });
       }
     }
@@ -162,7 +162,7 @@ function buildCrossroadsTrades() {
         limits.swaps.current++;  limits.discards.current++;
         swaps = Math.min(swaps+1, limits.swaps.current);
         discards = Math.min(discards+1, limits.discards.current);
-        showMessage('−10s · +1 Swap · +1 Discard', 'var(--gold)'); render();
+        noteMessage('−10s · +1 Swap · +1 Discard', 'var(--gold)'); render();
       }
     });
   }
@@ -213,7 +213,7 @@ function buildDoorPrize(tier) {
     if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
     // fallback: knack
     const tp = KNACK_POOL.filter(t=>!ownedT.has(t.id));
-    if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
+    if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();noteMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {
     // r201: two tiers in one pool, so this one is weighted (and luck reaches it).
@@ -516,7 +516,7 @@ function applyForgeChoice(opt) {
     hit.push(cardLabel(t));
   });
   if (!hit.length) { showMessage('Those cards have left the run', 'var(--c-coral)'); return; }
-  showMessage(`${buffJoin(hit)}: ${buffOfferName(opt.e)}`, 'var(--gold)');
+  noteMessage(`${buffJoin(hit)}: ${buffOfferName(opt.e)}`, 'var(--gold)');
 }
 function confirmForge() {
   if (eventState.forgeChoice) { applyForgeChoice(eventState.forgeChoice); render(); }
@@ -568,12 +568,12 @@ function buildBargainTrades() {
       desc:'Two of your BUFFED cards leave your deck, with everything you put into them. One of the cards left scores double pips, for the rest of the run.',
       cost:'Costs 2 buffed cards',
       apply:()=>{ const take=pickBuffedCards(2); removeDeckCards(take);
-                  const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} \u00d72 pips`, 'var(--gold)'); } } });
+                  const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {xpips:2}); noteMessage(`${cardLabel(t)} \u00d72 pips`, 'var(--gold)'); } } });
   }
 
   trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'rare', name:'Eight seconds for a copy',
     desc:'Lose 8s of round time, permanently. A random card is copied into your deck, and that card scores 20 more pips from now on.',
-    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); showMessage(`Copied ${cardLabel(t)} \u00b7 +20 pips`, 'var(--gold)'); } } });
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); noteMessage(`Copied ${cardLabel(t)} \u00b7 +20 pips`, 'var(--gold)'); } } });
 
   // The credit trade was 10, which a mid-run wallet pays without noticing. It is
   // the one cost here that is plainly legible, so it is the one worth pricing
@@ -584,7 +584,7 @@ function buildBargainTrades() {
       trades.push({ icon:'\ud83e\ude99', rarity:'epic', name:`${_replayCost} credits for a replay`,
         desc:`Lose ${_replayCost} credits. A random card plays twice and doubles the mult, for the rest of the run.`,
         cost:`Costs ${_replayCost} credits`,
-        apply:()=>{ coins-=_replayCost; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + \u00d72 mult`, 'var(--gold)'); } } });
+        apply:()=>{ coins-=_replayCost; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {retrig:1, xmult:2}); noteMessage(`${cardLabel(t)} replay + \u00d72 mult`, 'var(--gold)'); } } });
     }
   }
 
@@ -594,13 +594,13 @@ function buildBargainTrades() {
       cost:'Costs 3 buffed cards',
       apply:()=>{ const take=pickBuffedCards(3); removeDeckCards(take);
                   limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current);
-                  const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); showMessage(`+2 swaps \u00b7 ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
+                  const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); noteMessage(`+2 swaps \u00b7 ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
   }
 
   // Always-available fallback
   if (trades.length === 0) {
     trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'common', name:'Five seconds for +15 pips', desc:'Lose 5s of round time, permanently. A random card scores 15 more pips from now on.',
-      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
+      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); noteMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
   }
 
   const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
@@ -737,7 +737,7 @@ function confirmMerchant() {
   const item = eventState.merchantPick;
   if (!item) { closeEvent(); return; }
   if (item.type === 'trick') { injectTrickAfterReward(item.payload); }
-  else if (item.type === 'knack') { acquiredKnacks.push({...item.payload}); updateKnackList?.(); showMessage(`+ ${item.name}`,'var(--gold)'); }
+  else if (item.type === 'knack') { acquiredKnacks.push({...item.payload}); updateKnackList?.(); noteMessage(`+ ${item.name}`,'var(--gold)'); }
   else if (item.type === 'sleight') { grantSleight(item.payload); }
   closeEvent();
 }
@@ -751,13 +751,13 @@ function renderAltar() {
       desc:'Give up 2 discards now. Every hand scores +3 mult for the next 3 rounds.',
       cost:'Costs 2 discards',
       canTake: () => discards >= 2,
-      apply: () => { discards = Math.max(0, discards-2); altarEffects.push({ type:'mult_boost', value:3, roundsLeft:3 }); showMessage('+3 mult for 3 rounds', 'var(--gold)'); render(); }
+      apply: () => { discards = Math.max(0, discards-2); altarEffects.push({ type:'mult_boost', value:3, roundsLeft:3 }); noteMessage('+3 mult for 3 rounds', 'var(--gold)'); render(); }
     },
     { icon:'⌛', name:'+20s for 2 rounds', rarity:'rare',
       desc:'Pay 10 credits. The next 2 rounds start with 20 extra seconds on the clock.',
       cost:'Costs 10 credits',
       canTake: () => coins >= 10,
-      apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); showMessage('+20s for 2 rounds', 'var(--gold)'); }
+      apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); noteMessage('+20s for 2 rounds', 'var(--gold)'); }
     },
     { icon:'🌑', name:'Half goal for 4 rounds', rarity:'legendary',
       desc:'Give up one of your Tricks, chosen at random. The next 4 rounds need only half the score.',
@@ -767,7 +767,7 @@ function renderAltar() {
         const i=Math.floor(Math.random()*acquiredTricks.length);
         const lost=acquiredTricks.splice(i,1)[0];
         altarEffects.push({ type:'goal_reduce', value:0.5, roundsLeft:4 });
-        showMessage(`Gave up ${lost.name} · goal halved for 4 rounds`, 'var(--gold)'); render();
+        noteMessage(`Gave up ${lost.name} · goal halved for 4 rounds`, 'var(--gold)'); render();
       }
     },
   ];
@@ -982,7 +982,7 @@ function confirmSpring() {
       if (cut) {
         expectedDeckTotal -= cut;
         updateDeckHud?.();
-        showMessage(`${cut} card${cut > 1 ? 's' : ''} cut from the deck`, 'var(--gold)');
+        noteMessage(`${cut} card${cut > 1 ? 's' : ''} cut from the deck`, 'var(--gold)');
       }
       break;
     }
@@ -991,11 +991,11 @@ function confirmSpring() {
       if (short.swaps || short.discards) {
         limits.swaps.current    = Math.max(limits.swaps.current,    limits.swaps.base);
         limits.discards.current = Math.max(limits.discards.current, limits.discards.base);
-        showMessage(`Limits restored - ${limits.swaps.base} swaps, ${limits.discards.base} discards`, 'var(--gold)');
+        noteMessage(`Limits restored - ${limits.swaps.base} swaps, ${limits.discards.base} discards`, 'var(--gold)');
       } else {
         limits.swaps.current    = Math.min(limits.swaps.max,    limits.swaps.current + 1);
         limits.discards.current = Math.min(limits.discards.max, limits.discards.current + 1);
-        showMessage('+1 swap, +1 discard per round', 'var(--gold)');
+        noteMessage('+1 swap, +1 discard per round', 'var(--gold)');
       }
       // Refill this round's stock up to the repaired limits too, so the fix is
       // visible now rather than only from the next round.
@@ -1008,7 +1008,7 @@ function confirmSpring() {
     case 'cleanse_debuff':
       // Unchanged from before r211 - the owner confirmed this one reads right.
       discards = Math.min(discards + 1, limits.discards.current + 2);
-      render(); showMessage('+1 discard restored', 'var(--gold)'); break;
+      render(); noteMessage('+1 discard restored', 'var(--gold)'); break;
   }
   closeEvent();
 }
@@ -1076,7 +1076,7 @@ function confirmOvertime() {
   // gridData has ROWS, not that the rows hold cards.) Nothing here is on screen
   // anyway, and every screen that follows repaints - startRoundTimer for a round,
   // mapOpen for the board.
-  showMessage(`Overtime · +${formatTime(OVERTIME_SECONDS)} · ${notes.join(' · ')}`, 'var(--gold)');
+  noteMessage(`Overtime · +${formatTime(OVERTIME_SECONDS)} · ${notes.join(' · ')}`, 'var(--gold)');
 }
 
 function renderTwinPath() {
@@ -1256,7 +1256,7 @@ function confirmShiftChange() {
   if (eventState.shiftPayout) {
     coins += eventState.shiftPayout;
     updateCoinsUI();
-    showMessage(`+${eventState.shiftPayout} credits`, 'var(--gold)');
+    noteMessage(`+${eventState.shiftPayout} credits`, 'var(--gold)');
   } else if (eventState.shiftOrder) {
     // Write the new order back in place. trickTray is referenced by identity all
     // over the codebase (scoring walks it by index, the tray UI re-reads it), so
@@ -1268,7 +1268,7 @@ function confirmShiftChange() {
     // (assignPositionMark, guarded by _posAssigned) and is deliberately left
     // alone here - reshuffling the tray moves the Tricks, not the lines they
     // already own, so nothing you were building around silently relocates.
-    showMessage('Shift change - Trick order updated', 'var(--gold)');
+    noteMessage('Shift change - Trick order updated', 'var(--gold)');
   }
   closeEvent();
 }
@@ -1361,7 +1361,7 @@ function confirmBench() {
   if (b && c) {
     // Per CARD, not per face - resolved fresh, since the pick was made before this.
     const t = resolveDeckCard(c);
-    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)}: ${buffOfferName(b.e)}`, 'var(--gold)'); }
+    if (t) { enhanceCardKey(cardId(t), b.e); noteMessage(`${cardLabel(t)}: ${buffOfferName(b.e)}`, 'var(--gold)'); }
   }
   closeEvent();
 }
@@ -1402,11 +1402,11 @@ function confirmRehearsal() {
   if (eventState.rehearseNone) {
     coins += BAL.rehearsal.consolation_credits;
     updateCoinsUI?.();
-    showMessage(`+${BAL.rehearsal.consolation_credits} credits`, 'var(--gold)');
+    noteMessage(`+${BAL.rehearsal.consolation_credits} credits`, 'var(--gold)');
   } else if (eventState.rehearsePick) {
     const t = eventState.rehearsePick;
     t._rank = (t._rank || 0) + 1;
-    showMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand`, 'var(--gold)');
+    noteMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand`, 'var(--gold)');
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }
   closeEvent();
@@ -1485,14 +1485,14 @@ function confirmWorkshop() {
   if (eventState.workshopNone) {
     coins += BAL.workshop.consolation_credits;
     updateCoinsUI?.();
-    showMessage(`+${BAL.workshop.consolation_credits} credits`, 'var(--gold)');
+    noteMessage(`+${BAL.workshop.consolation_credits} credits`, 'var(--gold)');
   } else if (eventState.workshopPick === 'service') {
     let n = 0;
     allOwnedSleightCards().forEach(c => {
       const cap = sleightMaxCharges(sleightDef(c));
       if (cap !== null && (c._usesLeft || 0) < cap) { c._usesLeft = cap; n++; }
     });
-    showMessage(n ? `${n} Sleight${n > 1 ? 's' : ''} refilled` : 'All Sleights already full', 'var(--gold)');
+    noteMessage(n ? `${n} Sleight${n > 1 ? 's' : ''} refilled` : 'All Sleights already full', 'var(--gold)');
   } else if (eventState.workshopPick === 'reinforce' && eventState.workshopCard) {
     const def = sleightDef(eventState.workshopCard);
     if (def) {
@@ -1502,7 +1502,7 @@ function confirmWorkshop() {
       allOwnedSleightCards().forEach(c => {
         if (c.sleightId === def.id) c._usesLeft = sleightMaxCharges(def);
       });
-      showMessage(`${def.name} reinforced - ${sleightMaxCharges(def)} charges`, 'var(--gold)');
+      noteMessage(`${def.name} reinforced - ${sleightMaxCharges(def)} charges`, 'var(--gold)');
     }
   }
   closeEvent();
@@ -1613,7 +1613,7 @@ function confirmMarket() {
     const made = copyCardToDeck(off.card);
     if (made) enhanceCardKey(cardId(made), off.boon.e);
   });
-  showMessage(`${basket.length} card${basket.length > 1 ? 's' : ''} added to your deck`, 'var(--gold)');
+  noteMessage(`${basket.length} card${basket.length > 1 ? 's' : ''} added to your deck`, 'var(--gold)');
   render();
   closeEvent();
 }
@@ -1714,7 +1714,7 @@ function confirmDeckTrim() {
     if (idx >= 0) { drawPile.splice(idx, 1); cut++; }
   });
   if (cut) { expectedDeckTotal -= cut; updateDeckHud?.(); }
-  showMessage(`${cut} card${cut === 1 ? '' : 's'} cut from the deck`, 'var(--gold)');
+  noteMessage(`${cut} card${cut === 1 ? '' : 's'} cut from the deck`, 'var(--gold)');
   render();
   closeEvent();
 }
@@ -1799,7 +1799,7 @@ function confirmCleanSlate() {
   if (eventState.slateNone) {
     coins += BAL.clean_slate.consolation_credits;
     updateCoinsUI?.();
-    showMessage(`+${BAL.clean_slate.consolation_credits} credits`, 'var(--gold)');
+    noteMessage(`+${BAL.clean_slate.consolation_credits} credits`, 'var(--gold)');
   } else if (eventState.slatePick) {
     let say = '';
     try { say = eventState.slatePick.fix(); } catch (e) {}
@@ -1809,7 +1809,7 @@ function confirmCleanSlate() {
       try { render(); } catch (e) {}
     }
     updateScoreUI?.();
-    showMessage(say || 'Cleared', 'var(--gold)');
+    noteMessage(say || 'Cleared', 'var(--gold)');
   }
   closeEvent();
 }

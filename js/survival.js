@@ -192,7 +192,7 @@ function survivalAfterLevelUp(leftover, unspentActions = 0) {
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
-  if (gained > 0) showMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
+  if (gained > 0) noteMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
 }
 
 // Called once per second from the round tick (live play time only - the clock is
@@ -599,10 +599,10 @@ function survivalChoose(i) {
 function survivalGrant(opt) {
   switch (opt.type) {
     case 'trick':   return injectTrickAfterReward(opt.data);   // false = refused, tray full
-    case 'sleight': grantSleight(opt.data); showMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
-    case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); showMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
+    case 'sleight': grantSleight(opt.data); noteMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
+    case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); noteMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
     case 'limit': { const _say = `${opt.icon} ${limitDeltaText(opt.data.id, 1)} ${opt.data.label}`;   // before the increment moves it
-                    incrementLimit(opt.data.id); showMessage(_say, '#5ad4c0'); break; }
+                    incrementLimit(opt.data.id); noteMessage(_say, '#5ad4c0'); break; }
   }
 }
 

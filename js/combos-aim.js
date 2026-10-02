@@ -138,7 +138,7 @@ function reflectTimeoutTick() {
     cd._boardSecs = (cd._boardSecs || 0) + 1;
     if (cd._boardSecs < BAL.reflect.board_seconds) continue;
     discardToPlayed(cd);
-    showMessage('🪞 Reflect leaves the board', 'var(--cream-dim)');
+    noteMessage('🪞 Reflect leaves the board', 'var(--cream-dim)');
     removeAndFall([[r, c]], 'discard');
     return;
   }

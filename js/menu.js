@@ -1,4 +1,4 @@
-const BUILD = "2026-10-01 · r434 · Printer notices: fixed width, printed before the feed, varied falls";
+const BUILD = "2026-10-01 · r435 · Black printer notices pull back up; 116 echo notices go quiet";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

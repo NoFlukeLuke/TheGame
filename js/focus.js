@@ -304,7 +304,7 @@ function onFocusMaxed() {
   }
   if (hasKnack('dividend')) {
     grantEntityCoins(BAL.dividend.credits, 'knack', 'dividend');
-    showMessage(`🏦 Dividend - +${BAL.dividend.credits} credits`, 'var(--gold)');
+    noteMessage(`🏦 Dividend - +${BAL.dividend.credits} credits`, 'var(--gold)');
     keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
   }
   let dropFlat = 0;    // flat Focus losses (Release Valve's 16); combined with keepFrac by taking the LOWER target

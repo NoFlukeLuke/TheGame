@@ -110,8 +110,8 @@ function startRoundTimer() {
         tempoElapsed = 0;
         // Refill up to the CURRENT limit, not a hardcoded 2 - so raising the swap/discard
         // limit (shop, events, other knacks) also raises where Tempo's drip tops out.
-        if (tempoNextIsSwap) { if (swaps    < limits.swaps.current)    { swaps++;    showMessage('⏲️ Tempo - +1 swap',    'var(--gold)'); } }
-        else                 { if (discards < limits.discards.current) { discards++; showMessage('⏲️ Tempo - +1 discard', 'var(--gold)'); } }
+        if (tempoNextIsSwap) { if (swaps    < limits.swaps.current)    { swaps++;    noteMessage('⏲️ Tempo - +1 swap',    'var(--gold)'); } }
+        else                 { if (discards < limits.discards.current) { discards++; noteMessage('⏲️ Tempo - +1 discard', 'var(--gold)'); } }
         tempoNextIsSwap = !tempoNextIsSwap;
         if (!animating && !falling) render();
       }
@@ -440,6 +440,16 @@ function toastLayer() {
 function refuse(text, opts) {
   try { sfxNoSwaps?.(); } catch (e) {}
   if (text) showMessage(text, (opts && opts.color) || 'var(--red)', opts);
+}
+
+// Something the player just did and can already see (a pick, a purchase, a
+// sale, a resource the HUD already shows). It prints nothing; it is kept as a
+// short log so the line is still there for anyone who wants to read it back.
+// NOTICES.md lists every notice and which of the two it goes through.
+const noticeLog = [];
+function noteMessage(text) {
+  if (!text) return;
+  noticeLog.push(String(text)); if (noticeLog.length > 60) noticeLog.shift();
 }
 
 function showMessage(text, color, opts) {

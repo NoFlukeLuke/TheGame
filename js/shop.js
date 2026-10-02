@@ -27,7 +27,7 @@ function sellTrick(trick) {
   if (aidx >= 0) acquiredTricks.splice(aidx, 1);
   const v = trickSellValue(trick);
   coins += v; updateCoinsUI();
-  showMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
+  noteMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
   if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
   if (typeof renderTrickTray === 'function') renderTrickTray();
   render();
@@ -39,7 +39,7 @@ function sellKnack(knack) {
   if (aidx >= 0) acquiredKnacks.splice(aidx, 1);
   const v = knackSellValue();
   coins += v; updateCoinsUI();
-  showMessage(`Sold ${knack.name} · +${v} credits`, 'var(--gold)');
+  noteMessage(`Sold ${knack.name} · +${v} credits`, 'var(--gold)');
   if (typeof hideKnackTooltip === 'function') hideKnackTooltip();
   if (typeof updateKnackList === 'function') updateKnackList();
   render();

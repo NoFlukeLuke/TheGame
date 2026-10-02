@@ -318,7 +318,7 @@ function pickApply(op) {
     return;
   }
   const face = `${pickCard.rank}${(typeof cardColorSuit === 'function') ? cardColorSuit(pickCard) : pickCard.suit}`;
-  showMessage(`${face} · ${note}`, op.color);
+  noteMessage(`${face} · ${note}`, op.color);
   if (typeof sfxCoin === 'function') { try { sfxCoin(); } catch (e) {} }
   // Repaint so a removed card leaves and a boosted one shows its new badge
   // before the board falls away again.
