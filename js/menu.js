@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r437 · Controls: drag grace, drag back, double-tap play, keys, hints";
+const BUILD = "2026-10-02 · r438 · Wheel to swap, controls wording";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

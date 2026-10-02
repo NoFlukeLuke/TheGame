@@ -60,13 +60,18 @@ function ctlSetLeftHanded(on) { document.body.classList.toggle('left-handed', !!
 // Stored as KeyboardEvent.code (the physical key), one per action, every one
 // rebindable in Settings. An empty string is unbound.
 const KEY_ACTIONS = [
-  { id: 'play',    label: 'Play hand',        def: 'Space',
-    hint: 'Also confirms on screens where PLAY is CONFIRM or BUY.' },
-  { id: 'discard', label: 'Discard',          def: 'KeyD' },
-  { id: 'swap',    label: 'Swap two selected cards', def: 'KeyS' },
-  { id: 'clear',   label: 'Clear selection',  def: 'Escape' },
-  { id: 'records', label: 'Records',          def: 'KeyR' },
-  { id: 'pause',   label: 'Pause',            def: 'KeyP' },
+  { id: 'play',    label: 'Play',     def: 'Space',
+    hint: 'Plays the hand. Where PLAY reads CONFIRM or BUY, presses that.' },
+  { id: 'discard', label: 'Discard',  def: 'KeyD',
+    hint: 'Presses DISCARD. See Confirm discards in Controls.' },
+  { id: 'swap',    label: 'Swap',     def: 'KeyS',
+    hint: 'Swaps two selected neighbouring cards, like the SWAP button.' },
+  { id: 'clear',   label: 'Clear',    def: 'Escape',
+    hint: 'Clears the selection and drops a card lifted for a swap. Closes Records.' },
+  { id: 'records', label: 'Records',  def: 'KeyR',
+    hint: 'Opens and closes Records.' },
+  { id: 'pause',   label: 'Pause',    def: 'KeyP',
+    hint: 'Opens and closes the pause menu.' },
 ];
 function keyLabel(code) {
   if (!code) return 'none';
@@ -181,3 +186,26 @@ function ctlShowHint() {
   return true;
 }
 setInterval(ctlIdleTick, 1000);
+
+// ── Mouse wheel swap ──
+// Two neighbouring cards selected: one wheel flick over the board swaps them,
+// through doSwap like the SWAP button. A gesture is one swap; further wheel
+// events within 400ms of the last one are swallowed, not repeated.
+let _wheelAt = 0;
+document.getElementById('grid')?.addEventListener('wheel', e => {
+  if (!ctlOn('ctlWheelSwap') || selected.length !== 2 || !ctlLiveBoard()) return;
+  if (animating || falling || roundEnded || isPaused) return;
+  e.preventDefault();
+  const now = Date.now(), quiet = now - _wheelAt > 400;
+  _wheelAt = now;
+  if (!quiet) return;
+  const [[r1, c1], [r2, c2]] = selected;
+  cancelAutoSubmit();
+  doSwap(r1, c1, r2, c2);
+}, { passive: false });
+
+function keyBindsReset() {
+  KEY_ACTIONS.forEach(a => { SETTINGS['key_' + a.id] = a.def; });
+  keyListening = null;
+  saveSettings(); renderSettings();
+}
