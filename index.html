@@ -652,11 +652,7 @@
   </div>
   <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">HUD</div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
-      <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
-      Show card counter (deck audit)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Interrupt a scoring hand by
       <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);">
         <option value="ff">Fast-forward the old hand (default)</option>
@@ -1001,14 +997,6 @@
 </div>
 
 <div id="stage">
-
-<!-- DECK HUD (debug) -->
-<div id="deck-hud" title="Tap to toggle compact view">
-  <div class="dh-row dh-total"><span class="dh-label">Total</span><span id="dh-total">52</span><span id="dh-expected" class="dh-expected">/52</span></div>
-  <div class="dh-row"><span class="dh-label">Draw</span><span id="dh-draw">0</span></div>
-  <div class="dh-row"><span class="dh-label">Played</span><span id="dh-played">0</span></div>
-  <div class="dh-row"><span class="dh-label">Grid</span><span id="dh-grid">0</span></div>
-</div>
 
 <!-- TOP BAR -->
 <div id="top-bar">

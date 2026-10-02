@@ -592,24 +592,12 @@ function deckTotalActual() {
   return pileCardCount(drawPile) + pileCardCount(playedPile) + gridCardCount();
 }
 function updateDeckHud() {
-  const hud = document.getElementById('deck-hud');
-  if (!hud) return;
+  // The on-screen chip is gone (r456); the audit still logs a mismatch.
   const actual = deckTotalActual();
-  document.getElementById('dh-draw').textContent   = pileCardCount(drawPile);
-  document.getElementById('dh-played').textContent = pileCardCount(playedPile);
-  document.getElementById('dh-grid').textContent   = gridCardCount();
-  document.getElementById('dh-total').textContent  = actual;
-  document.getElementById('dh-expected').textContent = '/' + expectedDeckTotal;
-  hud.classList.toggle('mismatch', actual !== expectedDeckTotal);
   if (actual !== expectedDeckTotal) {
     console.warn(`[DECK AUDIT] mismatch: actual=${actual}, expected=${expectedDeckTotal}, draw=${pileCardCount(drawPile)}, played=${pileCardCount(playedPile)}, grid=${gridCardCount()}`);
   }
 }
-// Wrap so any call to updateDeckHud after layout settles
-setTimeout(() => {
-  const hud = document.getElementById('deck-hud');
-  if (hud) hud.addEventListener('click', () => hud.classList.toggle('collapsed'));
-}, 100);
 
 let _enterFromGridTop = false; // when true, new cards enter from grid top, not screen top
 let _cardIdCounter = 0;

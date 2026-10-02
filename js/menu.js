@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r455 · Flow challenge warning: 10s, follows its card, discard it to refuse";
+const BUILD = "2026-10-02 · r456 · Remove card counter chip and minimum-hand text from Selection Size";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

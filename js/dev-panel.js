@@ -1,23 +1,9 @@
-function applyDeckHudVisibility() {
-  const hud = document.getElementById('deck-hud');
-  if (hud) hud.style.display = showDeckHud ? '' : 'none';
-}
-
-function toggleDeckHud(on) {
-  showDeckHud = !!on;
-  localStorage.setItem('showDeckHud', showDeckHud);
-  applyDeckHudVisibility();
-}
-
 function initDevMode() {
   const toggle = document.getElementById('dev-mode-toggle');
   if (toggle) toggle.checked = devMode;
-  const hudToggle = document.getElementById('dev-deck-hud-toggle');
-  if (hudToggle) hudToggle.checked = showDeckHud;
   const diSel = document.getElementById('dev-dance-interrupt');
   if (diSel) diSel.value = danceInterruptMode;
   syncMatch3DevToggles();
-  applyDeckHudVisibility();
   // Focus + scoring controls are generated from FOCUS_TUNABLES, so one call
   // rebuilds every row at its persisted value.
   devRenderFocusPanel();
@@ -76,8 +62,6 @@ function openDevPanel() {
   const title = document.getElementById('dev-panel-title');
   if (title) title.textContent = devPanelFromMenu ? 'SETTINGS' : 'DEV MODE';
   // Reflect current toggle states so the checkboxes match reality.
-  const hudToggle = document.getElementById('dev-deck-hud-toggle');
-  if (hudToggle) hudToggle.checked = showDeckHud;
   syncMatch3DevToggles();
   devFilterTricks('');
   devFilterKnacks('');
