@@ -953,7 +953,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     }
     // 3) As the blast happens, the winning cards fly up into the preview slots
     //    (reveals each slot's dnc-card, same handoff normal hands use).
-    const GF_LEAD=140, GF_STEP=100, GF_DUR=460;
+    const GF_LEAD=140, GF_STEP=100, GF_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(460) : 460);   // r468: the fly look may take longer
     const flyQueue=[];
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -1019,7 +1019,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncPace(), FLY_DUR=400/dncPace();
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPace();   // r468: the fly look may take longer
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);

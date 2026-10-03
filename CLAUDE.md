@@ -550,3 +550,20 @@ following the walls' perspective, over a blurred copy of itself (`ringGlow`, 0 =
 - Face: one pip per tier (green/amber/red by difficulty; filled = banked, ringed = current),
   progress boxes (<= 5) or `n/of`, the timer in Flow. Sounds `sfxChallengeClear` / `sfxChallengeRaise`.
 
+
+## r468 - the owner's card animation picks are the defaults
+`CARD_ANIM_DEFAULT` (js/card-anims.js): swap Leapfrog, fly Pinball, discard Sink, cut Snip, buff
+Stamp, boss Static, idle Watch. The store holds only choices that differ from these. Tuned to the
+owner's notes: Leapfrog 10% slower, the jumper (always the first-picked card, `r1,c1`) larger at the
+top of its arc, both cards snapping past and settling. Pinball takes `CARD_FLY_MUL` 1.2x; the dance
+multiplies its flight by `cardFlyMs()` so its beats wait for the landing. **Sink** hides the card and
+plays a stand-in copy (`caStandIn`: no card id, first child of the board so every card paints over
+it) for `CA_SINK_MS` while the board only waits 200ms, so new cards fall in over it; it tips onto a
+corner (3D tilt about the diagonal), spins at most 60 degrees and dims to 65%. **Snip** cuts with a
+thin dark line (no glow; the stand-ins strip `flowr-*` and selection classes) and both halves sink
+the same way. **Stamp** is 20% slower; its ring is fainter, travels to 1.9x and takes the buff's
+colour (`caBuffColor(e)`, passed from `enhanceCardKey` via `cardAnimOn(kind, els, opts)`).
+**Static** cycles the channel change's own noise frames (`ccNoise`) with scan lines and a rolling
+bar, and splits the card red / blue. **Watch** (new) is Attention (10% less sway) plus Gaze: the
+other cards turn toward the newest selected card (`selected`'s last entry), or the pointer when
+nothing is selected. Closing the lab re-applies the idle look (a preview borrows the gaze).

@@ -49,28 +49,31 @@
   mix-blend-mode: multiply;
 }
 .ca-charge { background: linear-gradient(to top, #ffe9a8 0%, #ffd36bcc 40%, #fff6 100%); mix-blend-mode: screen; }
-.ca-stampring { inset: -6px; border: 3px solid #ffe9a8; border-radius: 10px; animation: caRing 520ms ease-out forwards; }
-@keyframes caRing { from { scale: .8; opacity: 1; } to { scale: 1.35; opacity: 0; } }
+.ca-stampring { inset: -6px; border: 2px solid var(--ca-ring, #ffe9a8); border-radius: 10px; box-shadow: 0 0 6px color-mix(in srgb, var(--ca-ring, #ffe9a8) 45%, transparent); animation: caRing 860ms cubic-bezier(.2,.6,.35,1) forwards; }
+@keyframes caRing { from { scale: .85; opacity: .6; } to { scale: 1.9; opacity: 0; } }
 .ca-chain {
   inset: 38% -10%; transform-origin: left center; rotate: -14deg;
   background: repeating-linear-gradient(90deg, #8d8a84 0 7px, #2d2a26 7px 9px, #c9c4bb 9px 14px, #2d2a26 14px 16px);
   border-radius: 4px; box-shadow: 0 2px 4px #0009, inset 0 1px 0 #fff6;
 }
-.ca-static {
-  background: repeating-linear-gradient(0deg, #fff3 0 1px, #0000 1px 3px, #0006 3px 4px), repeating-linear-gradient(90deg, #f0f2 0 2px, #0ff2 2px 4px);
-  mix-blend-mode: hard-light;
-}
+.ca-static { background-color: #777; background-repeat: repeat; background-size: 60px 60px; image-rendering: pixelated; overflow: hidden; opacity: 0; }
+/* scan lines over the snow, and the dark bar that rolls down through it */
+.ca-static::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #0000 0 2px, #0005 2px 3px); }
+.ca-static .ca-roll { position: absolute; left: 0; right: 0; height: 28%; top: -30%;
+  background: linear-gradient(180deg, #0000, #000b 30%, #000c 70%, #0000); animation: caRoll 420ms linear infinite; }
+@keyframes caRoll { to { top: 110%; } }
 .ca-snipline { position: absolute; pointer-events: none; z-index: 22;
-  background: linear-gradient(to top right, transparent calc(50% - 1.5px), #fff calc(50% - 1px), #ffe9a8 50%, #fff calc(50% + 1px), transparent calc(50% + 1.5px));
+  background: linear-gradient(to top right, transparent calc(50% - 1px), #1a1510 calc(50% - .5px), #1a1510 calc(50% + .5px), transparent calc(50% + 1px));
   animation: caSnip 240ms ease-out forwards; }
 @keyframes caSnip { from { opacity: 0; clip-path: inset(0 100% 0 0); } 40% { opacity: 1; } to { opacity: 0; clip-path: inset(0 0 0 0); } }
 
 /* Attention: selected cards hover and sway, the rest settle back */
-@keyframes caHover { 0%, 100% { translate: 0 0; rotate: -1.6deg; } 50% { translate: 0 -4px; rotate: 1.6deg; } }
+@keyframes caHover { 0%, 100% { translate: 0 0; rotate: -1.44deg; } 50% { translate: 0 -3.6px; rotate: 1.44deg; } }
 .ca-idle-attention .card.selected { animation: caHover 1.5s ease-in-out infinite; }
 .ca-idle-attention #grid:has(.card.selected) .card:not(.selected),
 .ca-idle-attention #ca-board:has(.card.selected) .card:not(.selected) { scale: .96; opacity: .78; transition: scale .25s, opacity .25s; }
 /* Gaze: the board gives its cards depth so a lean reads as a tilt */
 .ca-gazing { perspective: 900px; }
 .ca-gazing .card { transition: rotate .18s ease-out; }
+.ca-standin { pointer-events: none; }
 body.reduced-motion .ca-idle-attention .card.selected { animation: none; }

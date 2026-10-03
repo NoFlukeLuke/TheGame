@@ -343,7 +343,7 @@ function randomDeckCard() {
 // how much the flat bonus rises per play. See js/deck-grid.js for why they are
 // two stores and not one field with a flag.
 function enhanceCardKey(key, e) {
-  if (typeof cardAnimOn === 'function') setTimeout(() => cardAnimOn('buff', cardAnimEls([key])), 0);   // r445: the chosen buff look, if the card is on the board
+  if (typeof cardAnimOn === 'function') setTimeout(() => cardAnimOn('buff', cardAnimEls([key]), { color: caBuffColor(e) }), 0);   // r445: the chosen buff look, if the card is on the board; r468: its ring takes the buff's colour
   if (e.pips)   permPips[key]   = (permPips[key]   || 0) + e.pips;
   if (e.mult)   permMult[key]   = (permMult[key]   || 0) + e.mult;
   if (e.growPips) permPipsGrow[key] = (permPipsGrow[key] || 0) + e.growPips;

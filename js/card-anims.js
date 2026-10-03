@@ -17,7 +17,7 @@ const CARD_ANIM_KINDS = [
   { id: 'swap', label: 'Swap', note: 'Two cards trade places.',
     options: [
       { id: 'current', name: 'Current: slide' },
-      { id: 'leapfrog', name: 'A · Leapfrog', step: 4, desc: 'The first card you picked lifts and arcs over the other, which ducks under it.' },
+      { id: 'leapfrog', name: 'A · Leapfrog', step: 4, desc: 'The first card you picked lifts and arcs over the other, which ducks under it; both snap past and settle.' },
       { id: 'rubber',   name: 'B · Rubber band', step: 4, desc: 'Both stretch toward each other, snap across and wobble to rest.' },
       { id: 'shove',    name: 'C · Shove', step: 4, desc: 'The first card barges across and knocks the other into its old cell.' },
     ] },
@@ -26,26 +26,26 @@ const CARD_ANIM_KINDS = [
       { id: 'current', name: 'Current: straight flight' },
       { id: 'lean',    name: 'A · Lean in', step: 5, desc: 'Each card tilts into its flight and straightens as it lands.' },
       { id: 'comet',   name: 'B · Comet', step: 5, desc: 'Cards streak along a curve with a short trail.' },
-      { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards pop up, then drop into their slots with a bounce.' },
+      { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards pop up, then drop into their slots with a bounce. Takes a fifth longer.' },
     ] },
   { id: 'discard', label: 'Discard', note: 'Cards you throw away.',
     options: [
       { id: 'current', name: 'Current: shrink and fade' },
       { id: 'toss',    name: 'A · Toss', step: 6, desc: 'Flicked off the board with a spin.' },
       { id: 'crumple', name: 'B · Crumple', step: 6, desc: 'Squashed into a ball that drops away.' },
-      { id: 'sink',    name: 'C · Sink', step: 6, desc: 'Falls back into the table, darkening as it goes.' },
+      { id: 'sink',    name: 'C · Sink', step: 6, desc: 'Tips onto one corner and sinks into the table with a slight spin; the cards above fall in over it.' },
     ] },
   { id: 'cut', label: 'Cut from deck', note: 'A card removed from the run for good.',
     options: [
       { id: 'current', name: 'Current: shrink and fade' },
       { id: 'burn',  name: 'A · Burn', step: 6, desc: 'An edge catches and burns across the card.' },
-      { id: 'snip',  name: 'B · Snip', step: 6, desc: 'Cut in two along a diagonal; the halves fall apart.' },
+      { id: 'snip',  name: 'B · Snip', step: 6, desc: 'Cut in two along a diagonal; the halves sink into the board.' },
       { id: 'deep',  name: 'C · Deep fall', step: 6, desc: 'Drops through the board into the dark, shrinking.' },
     ] },
   { id: 'buff', label: 'Buff lands', note: 'A card gains a permanent bonus.',
     options: [
       { id: 'current', name: 'Current: ring pulse' },
-      { id: 'stamp',  name: 'A · Stamp', step: 6, desc: 'Pressed down like a rubber stamp, with a thud.' },
+      { id: 'stamp',  name: 'A · Stamp', step: 6, desc: 'Pressed down like a rubber stamp; a ring in the buff\'s colour spreads out.' },
       { id: 'charge', name: 'B · Charge', step: 6, desc: 'Fills with light from the bottom, then flares.' },
       { id: 'flip',   name: 'C · Flip', step: 6, desc: 'Flips over and back, new and improved.' },
     ] },
@@ -53,7 +53,7 @@ const CARD_ANIM_KINDS = [
     options: [
       { id: 'current',  name: 'Current: none' },
       { id: 'shackle',  name: 'A · Shackle', step: 6, desc: 'A chain wraps the card and pulls tight.' },
-      { id: 'static',   name: 'B · Static', step: 6, desc: 'The card glitches and loses its colour.' },
+      { id: 'static',   name: 'B · Static', step: 6, desc: 'TV static rolls over the card, which loses its colour and splits.' },
       { id: 'pressed',  name: 'C · Pressed', step: 6, desc: 'Squashed flat into the board.' },
     ] },
   { id: 'idle', label: 'Select and idle', note: 'Picking a card, and the board at rest.',
@@ -62,19 +62,22 @@ const CARD_ANIM_KINDS = [
       { id: 'ripple',    name: 'A · Ripple', step: 7, desc: 'Selecting sends a small wave through the cards around it.' },
       { id: 'gaze',      name: 'B · Gaze', step: 7, desc: 'Cards lean toward the pointer (tilting the phone on mobile).' },
       { id: 'attention', name: 'C · Attention', step: 7, desc: 'Selected cards hover and sway; the rest settle back.' },
+      { id: 'watch',     name: 'D · Watch', step: 7, desc: 'Attention, and the other cards turn to look at the newest selected card (at the pointer when nothing is selected).' },
     ] },
 ];
 
 const CARD_ANIM_KEY = 'lethe.cardAnims.v1';
 let _cardAnimPick = (() => { try { return JSON.parse(localStorage.getItem(CARD_ANIM_KEY)) || {}; } catch (e) { return {}; } })();
 
+// The owner's picks (r468). The store holds only choices that differ from these.
+const CARD_ANIM_DEFAULT = { swap: 'leapfrog', fly: 'pinball', discard: 'sink', cut: 'snip', buff: 'stamp', boss: 'static', idle: 'watch' };
 // Which look a kind uses. A look that is not built yet reads as 'current'.
 function cardAnimChoice(kind) {
-  const id = _cardAnimPick[kind] || 'current';
+  const id = _cardAnimPick[kind] || CARD_ANIM_DEFAULT[kind] || 'current';
   return cardAnimRunner(kind, id) ? id : 'current';
 }
 function setCardAnimChoice(kind, id) {
-  if (id === 'current') delete _cardAnimPick[kind]; else _cardAnimPick[kind] = id;
+  if (id === (CARD_ANIM_DEFAULT[kind] || 'current')) delete _cardAnimPick[kind]; else _cardAnimPick[kind] = id;
   if (kind === 'idle') setTimeout(() => { try { cardAnimApplyIdle(); } catch (e) {} });
   try { Object.keys(_cardAnimPick).length ? localStorage.setItem(CARD_ANIM_KEY, JSON.stringify(_cardAnimPick)) : localStorage.removeItem(CARD_ANIM_KEY); } catch (e) {}
 }
@@ -97,7 +100,7 @@ const caAnim = (el, frames, opts) => new Promise(res => {
 // is animated FROM its old one. dx/dy is how far `a` travelled, in design px; `b`
 // travelled the opposite way. Only the standalone translate/scale/rotate/filter
 // properties move, so the heartbeat's own transform keeps beating underneath.
-const CARD_SWAP_MS = { current: 220, leapfrog: 380, rubber: 400, shove: 360 };
+const CARD_SWAP_MS = { current: 220, leapfrog: 418, rubber: 400, shove: 360 };
 function cardSwapMs() { return CARD_SWAP_MS[cardAnimChoice('swap')] || 220; }
 
 function caSwapGeom(a, dx, dy) {
@@ -123,21 +126,25 @@ CARD_ANIM_RUN.swap.current = async ({ a, b, dx, dy }) => {
     caAnim(b, [{ translate: caT(dx, dy), scale: '1.09' }, { translate: '0px 0px', scale: '1' }], o),
   ]);
 };
-// A: the first card lifts and arcs over; the other ducks under it.
+// A: the first card lifts and arcs over; the other ducks under it. Both land a
+// little past their cell and snap back (the shove's snap).
 CARD_ANIM_RUN.swap.leapfrog = async ({ a, b, dx, dy }) => {
   const g = caSwapGeom(a, dx, dy), arc = (g.horiz ? g.h : g.w) * 0.55, dur = CARD_SWAP_MS.leapfrog;
   const lean = (g.horiz ? g.sx : g.sy) * 9;
   await Promise.all([
     caLift(a, dur, () => caAnim(a, [
       { translate: caT(-dx, -dy), scale: '1', rotate: '0deg', filter: 'brightness(1)' },
-      { translate: caT(-dx * .5 + g.px * arc, -dy * .5 + g.py * arc), scale: '1.16', rotate: `${lean}deg`, filter: 'brightness(1.08) drop-shadow(0 10px 8px rgba(0,0,0,.45))', offset: .45 },
-      { translate: '0px 0px', scale: '0.97', rotate: `${-lean * .3}deg`, filter: 'brightness(1)', offset: .82 },
+      { translate: caT(-dx * .5 + g.px * arc, -dy * .5 + g.py * arc), scale: '1.22', rotate: `${lean}deg`, filter: 'brightness(1.08) drop-shadow(0 10px 8px rgba(0,0,0,.45))', offset: .45 },
+      { translate: caT(dx * .07, dy * .07), scale: '0.96', rotate: `${-lean * .4}deg`, filter: 'brightness(1)', offset: .72 },
+      { translate: caT(-dx * .02, -dy * .02), scale: '1.01', rotate: `${lean * .12}deg`, filter: 'brightness(1)', offset: .88 },
       { translate: '0px 0px', scale: '1', rotate: '0deg', filter: 'brightness(1)' }],
       { duration: dur, easing: 'cubic-bezier(.3,.6,.35,1)' })),
     caAnim(b, [
-      { translate: caT(dx, dy), scale: '1', filter: 'brightness(1)' },
-      { translate: caT(dx * .55, dy * .55), scale: '.86', filter: 'brightness(.72)', offset: .45 },
-      { translate: '0px 0px', scale: '1', filter: 'brightness(1)' }],
+      { translate: caT(dx, dy), scale: '1', rotate: '0deg', filter: 'brightness(1)' },
+      { translate: caT(dx * .55, dy * .55), scale: '.86', rotate: '0deg', filter: 'brightness(.72)', offset: .45 },
+      { translate: caT(-dx * .08, -dy * .08), scale: '1', rotate: `${-lean * .5}deg`, filter: 'brightness(1)', offset: .74 },
+      { translate: caT(dx * .02, dy * .02), scale: '1', rotate: `${lean * .15}deg`, filter: 'brightness(1)', offset: .89 },
+      { translate: '0px 0px', scale: '1', rotate: '0deg', filter: 'brightness(1)' }],
       { duration: dur, easing: 'cubic-bezier(.4,0,.3,1)' }),
   ]);
 };
@@ -224,6 +231,10 @@ const CARD_FLY_LOOKS = {
       { transform: `translate(${dx}px,${dy}px) scale(${sc})`, opacity: .9 }] };
   },
 };
+// A look may take longer than the dance's own flight (pinball: a fifth longer).
+// The dance multiplies its flight by this, so its beats wait for the landing.
+const CARD_FLY_MUL = { pinball: 1.2 };
+function cardFlyMs(ms, id) { return caReduced() ? ms : ms * (CARD_FLY_MUL[id || cardAnimChoice('fly')] || 1); }
 function cardFlyLook(dx, dy, sc, i, h, id) {
   const f = CARD_FLY_LOOKS[id || cardAnimChoice('fly')] || CARD_FLY_LOOKS.current;
   return document.body.classList.contains('reduced-motion') ? CARD_FLY_LOOKS.current(dx, dy, sc) : f(dx, dy, sc, i || 0, h || 75);
@@ -235,8 +246,8 @@ const caFly = id => async ({ cards, slots }) => {
     s.innerHTML = `<div class="${el.className.replace('ca-pick', '')}" style="position:relative;left:0;top:0">${el.innerHTML}</div>`;
     s.style.opacity = '0';
   });
-  cards.forEach((el, i) => setTimeout(() => flyGridCardToSlot(el, slots[i], 460, i, id), i * 100));
-  await caWait(cards.length * 100 + 900);
+  cards.forEach((el, i) => setTimeout(() => flyGridCardToSlot(el, slots[i], cardFlyMs(460, id), i, id), i * 100));
+  await caWait(cards.length * 100 + cardFlyMs(460, id) + 440);
 };
 Object.keys(CARD_FLY_LOOKS).forEach(id => { CARD_ANIM_RUN.fly[id] = caFly(id); });
 
@@ -257,7 +268,34 @@ function caAim(el, target) {
 }
 const caZ = el => { el.style.zIndex = '20'; };
 const caRnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
-const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 460 }, cut: { current: 280, burn: 620, snip: 600, deep: 520 } };
+const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 200 }, cut: { current: 280, burn: 620, snip: 600, deep: 520 } };
+// Sink (r468): the board waits only CARD_EXIT_MS for it. The card itself is a
+// stand-in copy that keeps sinking for CA_SINK_MS while the cards above fall in
+// over it, so it is drawn under its neighbours and carries no card id.
+const CA_SINK_MS = 1000;
+const CA_STRIP = /^(selected|hand-|swap-pending|unreachable|flowr-|ca-pick|tray-)/;
+function caStandIn(el, clip) {
+  const c = el.cloneNode(true);
+  [...c.classList].forEach(k => { if (CA_STRIP.test(k)) c.classList.remove(k); });
+  c.removeAttribute('data-card-id'); c.classList.add('ca-standin');
+  c.style.transition = 'none'; c.style.zIndex = '0'; c.style.opacity = '1'; c.style.boxShadow = 'none';
+  if (clip) c.style.clipPath = clip;
+  el.parentNode.insertBefore(c, el.parentNode.firstChild);   // first child: every card paints over it
+  return c;
+}
+// Tips toward one corner (a 3D tilt about the card's diagonal), spins at most 60
+// degrees and sinks, dimming only a little.
+function caSinkInto(c, side, ms, delay, drift) {
+  const spin = side * (36 + caRnd() * 22), tilt = d => `perspective(420px) rotate3d(1, ${-side}, 0, ${d}deg)`;
+  const ox = (drift || 0);
+  const a = c.animate([
+    { transform: tilt(0),  rotate: '0deg', scale: '1', translate: caT(0, 0), filter: 'brightness(1)', opacity: 1 },
+    { transform: tilt(20), rotate: `${spin * .22}deg`, scale: '.93', translate: caT(ox * .4 + side * 2, 3), filter: 'brightness(.93)', opacity: 1, offset: .3 },
+    { transform: tilt(46), rotate: `${spin * .65}deg`, scale: '.74', translate: caT(ox * .8 + side * 5, 9), filter: 'brightness(.8)', opacity: .9, offset: .7 },
+    { transform: tilt(62), rotate: `${spin}deg`, scale: '.5', translate: caT(ox + side * 8, 14), filter: 'brightness(.65)', opacity: 0 }],
+    { duration: ms, delay: delay || 0, easing: 'cubic-bezier(.45,.05,.7,.9)', fill: 'forwards' });
+  return new Promise(res => { const end = () => { c.remove(); res(); }; a.onfinish = end; a.oncancel = end; setTimeout(end, ms + (delay || 0) + 120); });
+}
 
 CARD_ANIM_RUN.discard.current = async ({ cards, target }) => {
   await Promise.all(cards.map(el => { caZ(el); const { dx, dy } = caAim(el, target);
@@ -284,14 +322,14 @@ CARD_ANIM_RUN.discard.crumple = async ({ cards }) => {
       { scale: '.34 .34', rotate: '40deg', borderRadius: '50%', filter: 'brightness(.6)', translate: caT(0, h * 1.3), opacity: 0 }],
       { duration: CARD_EXIT_MS.discard.crumple, delay: i * 40, easing: 'cubic-bezier(.4,0,.7,1)' }); }));
 };
-// C: falls back into the table, darkening as it goes
-CARD_ANIM_RUN.discard.sink = async ({ cards }) => {
-  await Promise.all(cards.map((el, i) => { caZ(el);
-    return caKeep(el, [
-      { scale: '1', translate: '0px 0px', filter: 'brightness(1) blur(0px)', opacity: 1 },
-      { scale: '.9', translate: '0px 2px', filter: 'brightness(.55) blur(0px)', opacity: 1, offset: .35 },
-      { scale: '.55', translate: '0px 8px', filter: 'brightness(.1) blur(1.5px)', opacity: 0 }],
-      { duration: CARD_EXIT_MS.discard.sink, delay: i * 40, easing: 'cubic-bezier(.5,0,.8,.6)' }); }));
+// C: tips onto a corner and sinks into the table; the cards above fall in over it
+CARD_ANIM_RUN.discard.sink = async ({ cards, lab }) => {
+  const done = cards.map((el, i) => {
+    if (!el.parentNode) return Promise.resolve();
+    const c = caStandIn(el); el.style.opacity = '0';
+    return caSinkInto(c, caRnd() < .5 ? -1 : 1, CA_SINK_MS, i * 40);
+  });
+  await (lab ? Promise.all(done) : caWait(CARD_EXIT_MS.discard.sink + (cards.length - 1) * 40));
 };
 
 CARD_ANIM_RUN.cut.current = async ({ cards }) => {
@@ -310,26 +348,19 @@ CARD_ANIM_RUN.cut.burn = async ({ cards }) => {
       { filter: 'sepia(1) brightness(.15)', scale: '.9', opacity: 0 }], { duration: d, easing: 'ease-in' });
   }));
 };
-// B: cut in two along a diagonal; the halves fall apart
+// B: cut in two along a diagonal; the halves part and sink into the board, as a discard does
 CARD_ANIM_RUN.cut.snip = async ({ cards }) => {
   await Promise.all(cards.map(el => {
     const parent = el.parentNode; if (!parent) return Promise.resolve();
-    const h = el.offsetHeight, d = CARD_EXIT_MS.cut.snip;
-    const half = (clip, dx, rot) => {
-      const c = el.cloneNode(true); c.classList.add('ca-half'); c.removeAttribute('data-card-id');
-      c.style.clipPath = clip; c.style.zIndex = '21'; c.style.left = el.style.left; c.style.top = el.style.top;
-      parent.appendChild(c);
-      return caKeep(c, [
-        { translate: '0px 0px', rotate: '0deg', opacity: 1 },
-        { translate: caT(dx * .4, -h * .06), rotate: `${rot * .3}deg`, opacity: 1, offset: .25 },
-        { translate: caT(dx, h * 1.1), rotate: `${rot}deg`, opacity: 0 }],
-        { duration: d, easing: 'cubic-bezier(.35,0,.7,1)' }).then(() => c.remove());
-    };
-    el.style.opacity = '0';
     const line = document.createElement('div'); line.className = 'ca-snipline';
-    line.style.left = el.style.left; line.style.top = el.style.top; line.style.width = el.offsetWidth + 'px'; line.style.height = h + 'px';
+    line.style.left = el.style.left; line.style.top = el.style.top; line.style.width = el.offsetWidth + 'px'; line.style.height = el.offsetHeight + 'px';
     parent.appendChild(line); setTimeout(() => line.remove(), 260);
-    return Promise.all([half('polygon(0 0,100% 0,0 100%)', -18, -24), half('polygon(100% 0,100% 100%,0 100%)', 18, 24)]);
+    return caWait(150).then(() => {
+      if (!el.parentNode) return;
+      const h1 = caStandIn(el, 'polygon(0 0,100% 0,0 100%)'), h2 = caStandIn(el, 'polygon(100% 0,100% 100%,0 100%)');
+      el.style.opacity = '0';
+      return Promise.all([caSinkInto(h1, -1, 900, 0, -6), caSinkInto(h2, 1, 900, 40, 6)]);
+    });
   }));
 };
 // C: drops through the board into the dark, shrinking
@@ -351,18 +382,37 @@ CARD_ANIM_RUN.buff.current = async ({ cards }) => {
     { scale: '1.08', boxShadow: '0 0 0 3px #4aa3e0, 0 0 16px #4aa3e0' },
     { scale: '1', boxShadow: '0 0 0 0 #4aa3e000' }], { duration: 450, easing: 'ease' })));
 };
-// A: pressed down like a rubber stamp, with a ring thrown out
-CARD_ANIM_RUN.buff.stamp = async ({ cards }) => {
-  await Promise.all(cards.map((el, i) => caWait(i * 70).then(() => {
-    caOverlay(el, 'ca-stampring', 520);
+// A: pressed down like a rubber stamp; a ring in the buff's colour spreads out
+// (ctx.color, from caBuffColor; the lab gives each card a different family).
+const CA_BUFF_COLORS = { pips: '#5b8fe8', mult: '#e5503f', time: '#f4ead2', replay: '#3fcf8a', coin: '#e8c25a', focus: '#b48cff', minus: '#8f877a' };
+function caBuffColor(e) {
+  e = e || {};
+  if (e.subpips) return CA_BUFF_COLORS.minus;
+  if (e.mult || e.growMult || e.xmult) return CA_BUFF_COLORS.mult;
+  if (e.pips || e.growPips || e.xpips) return CA_BUFF_COLORS.pips;
+  if (e.retrig) return CA_BUFF_COLORS.replay;
+  if (e.time) return CA_BUFF_COLORS.time;
+  if (e.coin) return CA_BUFF_COLORS.coin;
+  if (e.focus) return CA_BUFF_COLORS.focus;
+  return '#ffe9a8';
+}
+const CA_STAMP_MS = 552;
+CARD_ANIM_RUN.buff.stamp = async ({ cards, color, lab }) => {
+  const cols = Object.values(CA_BUFF_COLORS);
+  await Promise.all(cards.map((el, i) => caWait(i * 84).then(() => {
+    setTimeout(() => {
+      const ring = caOverlay(el, 'ca-stampring', 900);
+      ring.style.setProperty('--ca-ring', lab ? cols[i % cols.length] : (color || '#ffe9a8'));
+    }, CA_STAMP_MS * .5);
     try { sfxCardSelect?.(); } catch (e) {}
     return caAnim(el, [
       { scale: '1', translate: '0px 0px', filter: 'brightness(1)' },
       { scale: '1.14', translate: '0px -6px', filter: 'brightness(1.1)', offset: .35 },
       { scale: '.93', translate: '0px 1px', filter: 'brightness(1.25)', offset: .55 },
       { scale: '1.02', translate: '0px 0px', filter: 'brightness(1.05)', offset: .78 },
-      { scale: '1', translate: '0px 0px', filter: 'brightness(1)' }], { duration: 460, easing: 'cubic-bezier(.4,0,.3,1)' });
+      { scale: '1', translate: '0px 0px', filter: 'brightness(1)' }], { duration: CA_STAMP_MS, easing: 'cubic-bezier(.4,0,.3,1)' });
   })));
+  await caWait(500);
 };
 // B: fills with light from the bottom, then flares
 CARD_ANIM_RUN.buff.charge = async ({ cards }) => {
@@ -398,18 +448,28 @@ CARD_ANIM_RUN.boss.shackle = async ({ cards }) => {
       { translate: '-1px 0px', scale: '.96', offset: .58 }, { translate: '0px 0px', scale: '1' }], { duration: 900 });
   }));
 };
-// B: the card glitches and loses its colour
+// B: TV static. The noise is the channel change's own (ccNoise, js/channel-change.js),
+// cycled a frame every 40ms with a rolling bar, while the card loses its colour and
+// splits red / blue the way the channel change splits the picture.
+const CA_STATIC_MS = 820;
 CARD_ANIM_RUN.boss.static = async ({ cards }) => {
+  const noise = typeof ccNoise === 'function' ? ccNoise() : [];
   await Promise.all(cards.map(el => {
-    const o = caOverlay(el, 'ca-static', 700);
-    caAnim(o, [{ opacity: 0, backgroundPositionY: '0px' }, { opacity: .9, backgroundPositionY: '40px', offset: .2 }, { opacity: .6, backgroundPositionY: '-30px', offset: .6 }, { opacity: 0, backgroundPositionY: '10px' }], { duration: 700, easing: 'steps(8)' });
+    const o = caOverlay(el, 'ca-static', CA_STATIC_MS);
+    o.innerHTML = '<i class="ca-roll"></i>';
+    let f = 0;
+    const tick = () => { if (!noise.length) return; o.style.backgroundImage = noise[f++ % noise.length]; o.style.backgroundPosition = `${(caRnd() * 90) | 0}px ${(caRnd() * 90) | 0}px`; };
+    tick(); const iv = setInterval(tick, 40); setTimeout(() => clearInterval(iv), CA_STATIC_MS + 40);
+    caAnim(o, [{ opacity: 0 }, { opacity: .92, offset: .1 }, { opacity: .85, offset: .55 }, { opacity: .45, offset: .8 }, { opacity: 0 }], { duration: CA_STATIC_MS, easing: 'linear' });
+    const split = n => `grayscale(1) contrast(1.25) drop-shadow(${n}px 0 rgba(255,0,64,.6)) drop-shadow(${-n}px 0 rgba(0,190,255,.6))`;
     return caAnim(el, [
       { translate: '0px 0px', filter: 'grayscale(0) contrast(1)' },
-      { translate: '3px 0px', filter: 'grayscale(.6) contrast(1.6) hue-rotate(40deg)', offset: .15 },
-      { translate: '-4px 1px', filter: 'grayscale(1) contrast(1.3)', offset: .3 },
-      { translate: '2px -1px', filter: 'grayscale(.4) contrast(1.8) hue-rotate(-60deg)', offset: .45 },
-      { translate: '0px 0px', filter: 'grayscale(1) contrast(1)', offset: .7 },
-      { translate: '0px 0px', filter: 'grayscale(0) contrast(1)' }], { duration: 700, easing: 'steps(10)' });
+      { translate: '3px 0px', filter: split(3), offset: .12 },
+      { translate: '-4px 0px', filter: split(4), offset: .24 },
+      { translate: '1px 0px', filter: split(2), offset: .4 },
+      { translate: '-2px 0px', filter: split(3), offset: .55 },
+      { translate: '0px 0px', filter: split(1), offset: .75 },
+      { translate: '0px 0px', filter: 'grayscale(0) contrast(1)' }], { duration: CA_STATIC_MS, easing: 'steps(12)' });
   }));
 };
 // C: squashed flat into the board
@@ -429,10 +489,10 @@ function cardAnimExit(kind, els, target) {
   const id = caReduced() ? 'current' : cardAnimChoice(kind);
   return cardAnimRunner(kind, id)({ cards: els, target }).catch(() => {});
 }
-function cardAnimOn(kind, els) {
+function cardAnimOn(kind, els, opts) {
   els = (els || []).filter(e => e && e.isConnected); if (!els.length || caReduced()) return;
   const id = cardAnimChoice(kind); if (id === 'current') return;   // today's look is drawn by the caller
-  cardAnimRunner(kind, id)({ cards: els }).catch(() => {});
+  cardAnimRunner(kind, id)(Object.assign({ cards: els }, opts)).catch(() => {});
 }
 // Board elements for card objects or ids (only cards drawn on #grid right now).
 function cardAnimEls(cards) {
@@ -464,21 +524,36 @@ CARD_ANIM_RUN.idle.ripple = async ({ cards, board }) => {
   await caWait(500); cards.forEach(el => el.classList.remove('selected'));
 };
 // B: Gaze. Cards lean toward the pointer (the phone's tilt on mobile).
-let _gazeBoard = null, _gazePt = null, _gazeRaf = 0;
+// D: Watch (r468) is Attention plus Gaze: the selected cards hover, and the rest
+// look at the newest selected card instead of the pointer (the pointer again
+// once nothing is selected). The selected cards themselves do not turn.
+let _gazeBoard = null, _gazePt = null, _gazeRaf = 0, _gazeWatch = false;
+function caGazeFocusEl(b) {
+  if (!_gazeWatch) return null;
+  if (b.id === 'grid') {
+    const last = typeof selected !== 'undefined' && selected.length ? selected[selected.length - 1] : null;
+    const cd = last && gridData[last[0]]?.[last[1]];
+    return cd ? b.querySelector(`[data-card-id="${cd._id}"]`) : null;
+  }
+  return b._gazeFocus && b._gazeFocus.isConnected ? b._gazeFocus : null;
+}
 function caGazeFrame() {
   _gazeRaf = 0;
   const b = _gazeBoard; if (!b || !b.isConnected) return;
+  const fe = caGazeFocusEl(b), fr = fe && fe.getBoundingClientRect();
+  const pt = fr ? { x: fr.left + fr.width / 2, y: fr.top + fr.height / 2 } : _gazePt;
   b.querySelectorAll('.card').forEach(el => {
-    if (!_gazePt) { el.style.rotate = ''; return; }
+    if (!pt || el === fe || (_gazeWatch && el.classList.contains('selected')) || el.classList.contains('ca-standin')) { el.style.rotate = ''; return; }
     const r = el.getBoundingClientRect();
-    const dx = _gazePt.x - (r.left + r.width / 2), dy = _gazePt.y - (r.top + r.height / 2);
+    const dx = pt.x - (r.left + r.width / 2), dy = pt.y - (r.top + r.height / 2);
     const d = Math.hypot(dx, dy) || 1, ang = Math.min(14, 2200 / (d + 120));
     el.style.rotate = `${(-dy / d).toFixed(3)} ${(dx / d).toFixed(3)} 0 ${ang.toFixed(1)}deg`;
   });
 }
 function caGazePoint(x, y) { _gazePt = x == null ? null : { x, y }; if (!_gazeRaf) _gazeRaf = requestAnimationFrame(caGazeFrame); }
-function caGazeAttach(board) {
-  if (_gazeBoard === board) return;
+function caGazeAttach(board, watch) {
+  _gazeWatch = !!watch;
+  if (_gazeBoard === board) { caGazePoint(_gazePt ? _gazePt.x : null, _gazePt ? _gazePt.y : null); return; }
   caGazeDetach();
   _gazeBoard = board; if (!board) return;
   board.classList.add('ca-gazing');
@@ -512,6 +587,17 @@ CARD_ANIM_RUN.idle.gaze = async ({ board }) => {
   caGazePoint(null); await caWait(60);
   if (board.id === 'ca-board') caGazeDetach(); else cardAnimApplyIdle();
 };
+// D: Watch. Attention on the selected cards, and the rest look at the newest one.
+CARD_ANIM_RUN.idle.watch = async ({ cards, board }) => {
+  const host = board.closest('#ca-lab') || document.body;
+  host.classList.add('ca-idle-attention');
+  caGazeAttach(board, true);
+  for (const el of cards) { el.classList.add('selected'); board._gazeFocus = el; caGazePoint(null); await caWait(800); }
+  await caWait(1200);
+  cards.forEach(el => el.classList.remove('selected')); board._gazeFocus = null; caGazePoint(null);
+  await caWait(250);
+  if (host !== document.body) { host.classList.remove('ca-idle-attention'); caGazeDetach(); } else cardAnimApplyIdle();
+};
 // C: Attention. Selected cards hover and sway; the rest settle back.
 CARD_ANIM_RUN.idle.attention = async ({ cards, board }) => {
   const host = board.closest('#ca-lab') || document.body;
@@ -524,8 +610,8 @@ CARD_ANIM_RUN.idle.attention = async ({ cards, board }) => {
 // The game's idle hooks: set once, and again whenever the choice changes.
 function cardAnimApplyIdle() {
   const id = cardAnimChoice('idle'), g = document.getElementById('grid');
-  document.body.classList.toggle('ca-idle-attention', id === 'attention' && !caReduced());
-  if (id === 'gaze' && !caReduced() && g) caGazeAttach(g); else if (_gazeBoard && _gazeBoard.id === 'grid') caGazeDetach();
+  document.body.classList.toggle('ca-idle-attention', (id === 'attention' || id === 'watch') && !caReduced());
+  if ((id === 'gaze' || id === 'watch') && !caReduced() && g) caGazeAttach(g, id === 'watch'); else if (_gazeBoard && _gazeBoard.id === 'grid') caGazeDetach();
 }
 let _caLastSel = new Set();
 // Called from the end of render(): a card newly selected sends the ripple.
@@ -538,12 +624,13 @@ function cardAnimAfterRender() {
       const el = cd && g.querySelector(`[data-card-id="${cd._id}"]`); if (el) caRippleFrom(el, g); });
   }
   _caLastSel = now;
+  if (_gazeWatch && _gazeBoard === g) caGazePoint(_gazePt ? _gazePt.x : null, _gazePt ? _gazePt.y : null);   // Watch: turn to the newest pick
 }
 document.addEventListener('DOMContentLoaded', () => { try { cardAnimApplyIdle(); } catch (e) {} });
 
 // ── The lab ──────────────────────────────────────────────────────────────────
 const CA_ROWS = 4, CA_COLS = 5;
-let _caLab = null, _caBusy = false;
+let _caLab = null, _caBusy = false, _caPickN = 0;
 
 function caMockCard(i) {
   const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'], suits = ['♠', '♥', '♦', '♣'];
@@ -588,7 +675,7 @@ function openCardAnimLab() {
   caBuildBoard();
 }
 
-function closeCardAnimLab() { if (_caLab) { _caLab.remove(); _caLab = null; } _caBusy = false; }
+function closeCardAnimLab() { if (_caLab) { _caLab.remove(); _caLab = null; } _caBusy = false; try { cardAnimApplyIdle(); } catch (e) {} }   // a Gaze preview borrowed the gaze from #grid
 
 function caBuildBoard() {
   if (!_caLab) return;
@@ -607,7 +694,7 @@ function caBuildBoard() {
     el.className = look.className; el.innerHTML = look.innerHTML;
     el.dataset.r = r; el.dataset.c = c;
     el.style.left = (c * (cw + gap)) + 'px'; el.style.top = (r * (ch + gap)) + 'px';
-    el.onclick = () => { if (!_caBusy) el.classList.toggle('ca-pick'); };
+    el.onclick = () => { if (!_caBusy) { el.classList.toggle('ca-pick'); el.dataset.pickN = ++_caPickN; } };
     board.appendChild(el);
   }
   const slots = _caLab.querySelector('#ca-slots');
@@ -618,7 +705,7 @@ function caCell(r, c) { return _caLab && _caLab.querySelector(`#ca-board [data-r
 
 // Which cards a preview uses: the ones you tapped, or a sensible default.
 function caTargets(kind) {
-  const picked = [..._caLab.querySelectorAll('#ca-board .ca-pick')];
+  const picked = [..._caLab.querySelectorAll('#ca-board .ca-pick')].sort((x, y) => x.dataset.pickN - y.dataset.pickN);   // tap order
   if (kind === 'swap') {
     if (picked.length >= 2) return { a: picked[0], b: picked[1] };
     return { a: caCell(1, 1), b: caCell(1, 2) };

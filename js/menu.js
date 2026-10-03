@@ -1,4 +1,4 @@
-const BUILD = "2026-10-03 · r467 · Tray zigzag preview page";
+const BUILD = "2026-10-03 · r468 · card animation picks tuned";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
