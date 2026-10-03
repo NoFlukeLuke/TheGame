@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tray Zigzag Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* The page chrome. The TILES are the game's own (.reward-cell.entity-trick
+     from css/style.css, markup from js/entity-tile.js). */
+  html, body { color: #e8e0cc; margin: 0; overflow: auto !important; height: auto !important; max-height: none !important; }
+  body { display: block !important; font-family: 'Share Tech Mono', monospace; font-size: 12px; padding: 14px 16px 40px !important; }
+  body::after { display: none; }
+  h1 { font-family: Orbitron, sans-serif; font-size: 15px; letter-spacing: 2px; margin: 0 0 4px; color: #ff6a3c; }
+  .sub { font-size: 12px; opacity: .7; margin: 0 0 14px; max-width: 640px; line-height: 1.45; }
+  .knobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 16px; max-width: 760px; margin-bottom: 18px; }
+  .knobs label { font-size: 11px; letter-spacing: 1px; display: block; opacity: .85; }
+  .knobs input[type=range] { width: 100%; margin: 2px 0; }
+  .knobs select { font-size: 11px; }
+  .knobs select { width: 100%; background: #15110b; color: #e8e0cc; border: 1px solid #555; font: inherit; }
+  .cmp { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+  .col h2 { font-family: Orbitron, sans-serif; font-size: 11px; letter-spacing: 2px; margin: 0 0 8px; color: #16c8d8; }
+  .col h2 small { color: #e8e0cc; opacity: .6; letter-spacing: 0; font-family: 'Share Tech Mono', monospace; }
+
+  /* A mock of the portrait shared strip: the Tricks half on the left, the
+     preview half on the right. Sizes are the live game's at 420 wide. */
+  .strip { display: flex; gap: 7px; width: 406px; }
+  .tray {
+    position: relative; box-sizing: border-box; height: var(--tray-h, 122px); width: var(--tray-w, 195px);
+    border: 1px solid var(--c-coral); border-top-width: 2px; border-radius: 12px;
+    background: linear-gradient(180deg, #2a2116, #16110b);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-coral) 62%, #14100a), inset 0 0 0 1px rgba(255,106,60,.35);
+    overflow: hidden;
+  }
+  .tray.other { border-color: var(--c-mint); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-mint) 62%, #14100a); flex: 1; }
+  .tray .count { position: absolute; right: 8px; bottom: 4px; font-size: 8px; opacity: .75; z-index: 300; }
+  .tray .other-lab { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; opacity: .4; letter-spacing: 2px; }
+
+  /* A chip is a frame; its .reward-cell paints the floppy disc. */
+  .chip { position: absolute; box-sizing: border-box; cursor: pointer; }
+  .chip > .reward-cell { width: 100%; height: 100%; padding: 0; }
+  .chip.rar-common    { --rc: var(--c-mint); }
+  .chip.rar-rare      { --rc: var(--c-cyan); }
+  .chip.rar-epic      { --rc: var(--c-purple); }
+  .chip.rar-legendary { --rc: var(--c-magenta); }
+
+  /* ZIGZAG: placed by left/top from JS. The hop rides translate + scale so it
+     composes with nothing else. */
+  .zz .chip { transition: translate .22s cubic-bezier(.3,1.6,.5,1), scale .22s cubic-bezier(.3,1.6,.5,1), filter .22s; }
+  .zz .chip.hop { translate: 0 calc(var(--hop-y) * -1); scale: var(--hop-s); z-index: 200 !important;
+                  filter: drop-shadow(0 5px 6px rgba(0,0,0,.7)); }
+  .zz .chip.shade-on:not(.hop) > .reward-cell { filter: brightness(var(--shade)); }
+
+  /* NOW: today's tilted fan, reproduced (r429: per-tile perspective, 55deg max). */
+  .now .chip { perspective: 260px; perspective-origin: 0 50%; }
+  .now .chip > .reward-cell { rotate: y var(--tilt, 0deg); transform-origin: 0 50%; }
+
+  .readout { font-size: 11px; margin-top: 8px; opacity: .8; min-height: 2.6em; line-height: 1.4; max-width: 406px; }
+  .note { font-size: 11px; opacity: .65; max-width: 406px; line-height: 1.45; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>TRICK TRAY · ZIGZAG</h1>
+<p class="sub">Portrait tray, drawn at phone size with the game's own tiles. Each Trick sits one step right of the last and alternates up and down, so a line through their centres zigzags. The tiles in the upper row sit on top and cover the shutter (the top part) of the tiles in the lower row. No tilt. Tap a tile to hop it.</p>
+
+<div class="knobs">
+  <div><label>TRICKS <span id="nV"></span></label><input type="range" id="n" min="1" max="10" value="7"></div>
+  <div><label>TILE HEIGHT <span id="hV"></span>% of today's</label><input type="range" id="h" min="60" max="100" value="80"></div>
+  <div><label>STEP RIGHT <span id="sV"></span>% of a tile</label><input type="range" id="s" min="25" max="80" value="40"></div>
+  <div><label>DROP <span id="dV"></span>% of a tile</label><input type="range" id="d" min="15" max="60" value="40"></div>
+  <div><label>ON TOP</label><select id="top"><option value="up">upper row (covers lower row's shutter)</option><option value="down">lower row (covers upper row's label)</option><option value="newest">newest always on top</option></select></div>
+  <div><label>HOP</label><select id="hop"><option value="cycle">takes turns, every 1.5s</option><option value="tap">only when tapped</option></select></div>
+  <div><label>HOP HEIGHT <span id="hyV"></span>px · SIZE x<span id="hsV"></span></label><input type="range" id="hy" min="0" max="20" value="8"><input type="range" id="hs" min="100" max="130" value="112"></div>
+  <div><label>DIM COVERED TILES <span id="shV"></span>%</label><input type="range" id="sh" min="0" max="40" value="0"></div>
+  <div><label>TRAY WIDTH</label><select id="tw"><option value="195">half strip (today)</option><option value="406">full strip</option></select></div>
+</div>
+
+<div class="cmp">
+  <div class="col">
+    <h2>ZIGZAG <small>· proposed</small></h2>
+    <div class="strip zz"><div class="tray" id="zz"></div><div class="tray other" id="zzO"><div class="other-lab">PREVIEW / KNACKS</div></div></div>
+    <div class="readout" id="zzR"></div>
+  </div>
+  <div class="col">
+    <h2>NOW <small>· tilted fan (r429)</small></h2>
+    <div class="strip now"><div class="tray" id="now"></div><div class="tray other"><div class="other-lab">PREVIEW / KNACKS</div></div></div>
+    <div class="readout" id="nowR"></div>
+  </div>
+</div>
+<p class="note">Sizes are the live game's at a 420-wide phone: tray 195 x 122, today's tile 80 x 76. If the row is wider than the tray, the step shrinks to fit (the readout says so). Nothing here is wired into the game yet.</p>
+
+<script src="js/fit-text.js"></script>
+<script src="js/entity-tile.js"></script>
+<script>
+const TRICKS = [
+  ['Rich Soil','🌱','common'], ['Kindling','🔥','common'], ['Heads of State','👑','rare'],
+  ['Quake','🌋','rare'], ['Get Even','⚖️','common'], ['Second Hand','⏱️','epic'],
+  ['Men of Repute','🎩','rare'], ['Undertow','🌊','epic'], ['Lucky Sevens','🍀','legendary'],
+  ['Syncopation','🥁','rare'],
+];
+const BASE_W = 80, BASE_H = 76;      // today's portrait tile
+const $ = id => document.getElementById(id);
+
+function tileHTML([name, emoji, rar], i) {
+  // The game's own builder when it loaded; a hand-written copy otherwise.
+  if (typeof entityTileHTML === 'function') {
+    try { return entityTileHTML({ entity: 'trick', id: 'pv' + i, label: name, emoji }, rar, { tip: false }); } catch (e) {}
+  }
+  return `<div class="reward-cell entity entity-trick rar-${rar}"><div class="rwd-art"><span class="rwd-em">${emoji}</span></div><div class="rwd-name">${name}</div></div>`;
+}
+function chip(t, i, w, h) {
+  const c = document.createElement('div');
+  c.className = 'chip rar-' + t[2];
+  c.style.width = w + 'px'; c.style.height = h + 'px';
+  c.innerHTML = tileHTML(t, i);
+  c.dataset.name = t[0];
+  return c;
+}
+function fit(root) {
+  if (typeof fitEntityNames === 'function') { try { fitEntityNames(root, '.rwd-name', { maxLines: 2, minPx: 5 }); } catch (e) {} }
+}
+
+let hopTimer = null, hopIdx = -1;
+function drawZZ() {
+  const n = +$('n').value, hp = +$('h').value / 100, sp = +$('s').value / 100, dp = +$('d').value / 100;
+  const top = $('top').value, tw = +$('tw').value;
+  ['nV','hV','sV','dV'].forEach((k, j) => $(k).textContent = [n, $('h').value, $('s').value, $('d').value][j]);
+  $('hyV').textContent = $('hy').value; $('hsV').textContent = (+$('hs').value / 100).toFixed(2);
+  $('shV').textContent = $('sh').value;
+  const tray = $('zz'); tray.innerHTML = '<div class="count">Tricks ' + n + '/10</div>';
+  tray.parentElement.style.width = tw === 406 ? '406px' : '';
+  tray.style.setProperty('--tray-w', tw + 'px');
+  $('zzO').style.display = tw === 406 ? 'none' : '';
+  tray.style.setProperty('--hop-y', $('hy').value + 'px');
+  tray.style.setProperty('--hop-s', +$('hs').value / 100);
+  tray.style.setProperty('--shade', 1 - +$('sh').value / 100);
+  const PAD = 8, room = tw - 2 * PAD - 2, innerH = 122 - 3 - 2 * 6;
+  let h = BASE_H * hp, w = h * BASE_W / BASE_H;
+  let drop = h * dp;
+  // If the two rows are taller than the tray, the tiles shrink to fit.
+  if (h + drop > innerH) { const k = innerH / (h + drop); h *= k; w *= k; drop *= k; }
+  let step = w * sp, shrunk = false;
+  if (n > 1 && w + (n - 1) * step > room) { step = (room - w) / (n - 1); shrunk = true; }
+  const rowW = w + (n - 1) * step;
+  const x0 = PAD + (room - rowW) / 2 + 1, y0 = (122 - 3 - (h + drop)) / 2 + 1;
+  for (let i = 0; i < n; i++) {
+    const t = TRICKS[i], c = chip(t, i, w, h);
+    const low = i % 2 === 1;
+    c.style.left = (x0 + i * step).toFixed(1) + 'px';
+    c.style.top = (y0 + (low ? drop : 0)).toFixed(1) + 'px';
+    const z = top === 'up' ? (low ? 10 + i : 100 + i) : top === 'down' ? (low ? 100 + i : 10 + i) : 10 + i;
+    c.style.zIndex = z;
+    if (+$('sh').value > 0 && ((top === 'up' && low) || (top === 'down' && !low))) c.classList.add('shade-on');
+    c.addEventListener('click', () => doHop(i, true));
+    tray.appendChild(c);
+  }
+  fit(tray);
+  const vis = top === 'up' ? 'lower row shows its bottom ' + Math.round(dp * 100) + '% (the label) below the upper row'
+            : top === 'down' ? 'upper row shows its top ' + Math.round(dp * 100) + '% (the shutter) above the lower row'
+            : 'each tile covers part of the one before it';
+  $('zzR').innerHTML = `tile ${w.toFixed(0)} x ${h.toFixed(0)} px (today 80 x 76) · step ${step.toFixed(1)} px`
+    + (shrunk ? ` <span style="color:#ff6a3c">(shrunk to fit ${n})</span>` : '') + `<br>${vis}`;
+  armHop();
+}
+function doHop(i, manual) {
+  const chips = [...$('zz').querySelectorAll('.chip')];
+  chips.forEach((c, j) => c.classList.toggle('hop', j === i));
+  hopIdx = i;
+  if (chips[i]) $('zzR').dataset.last = chips[i].dataset.name;
+  if (manual) { clearInterval(hopTimer); hopTimer = null; setTimeout(armHop, 3000); }
+}
+function armHop() {
+  clearInterval(hopTimer); hopTimer = null;
+  if ($('hop').value !== 'cycle') return;
+  let k = 0, up = false;
+  hopTimer = setInterval(() => {
+    const n = $('zz').querySelectorAll('.chip').length;
+    if (!n) return;
+    if (up) { doHop(-1); up = false; k = (k + 1) % n; } else { doHop(k); up = true; }
+  }, 750);
+}
+
+function drawNow() {
+  const n = +$('n').value, tw = +$('tw').value;
+  const tray = $('now'); tray.innerHTML = '<div class="count">Tricks ' + n + '/10</div>';
+  tray.style.setProperty('--tray-w', tw + 'px');
+  tray.parentElement.style.width = tw === 406 ? '406px' : '';
+  tray.nextElementSibling.style.display = tw === 406 ? 'none' : '';
+  const PAD = 8, room = tw - 2 * PAD - 2, w = BASE_W, h = BASE_H, GAP = 4;
+  let deg = 0, step = w + GAP;
+  if (n * w + (n - 1) * GAP > room) {
+    const cos = Math.max(Math.cos(55 * Math.PI / 180), Math.min(1, (room - (n - 1) * GAP) / (n * w)));
+    deg = Math.acos(cos) * 180 / Math.PI;
+    const proj = w * cos * 0.97;
+    step = Math.max(13, Math.min(proj + GAP, (room - proj) / Math.max(1, n - 1)));
+  }
+  const proj = deg ? w * Math.cos(deg * Math.PI / 180) * 0.97 : w;
+  const rowW = (n - 1) * step + proj;
+  const x0 = PAD + 1 + (room - rowW), y0 = (122 - 3 - h) / 2 + 1;
+  for (let i = 0; i < n; i++) {
+    const c = chip(TRICKS[i], i, w, h);
+    c.style.left = (x0 + i * step).toFixed(1) + 'px'; c.style.top = y0 + 'px'; c.style.zIndex = 10 + i;
+    c.style.setProperty('--tilt', deg.toFixed(1) + 'deg');
+    tray.appendChild(c);
+  }
+  fit(tray);
+  $('nowR').textContent = `tile 80 x 76 px · tilted ${deg.toFixed(0)}deg · step ${step.toFixed(1)} px`;
+}
+
+function draw() { drawZZ(); drawNow(); }
+document.querySelectorAll('.knobs input, .knobs select').forEach(el => el.addEventListener('input', draw));
+draw();
+(document.fonts && document.fonts.ready || Promise.resolve()).then(draw);
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-02 · r466 · Difficulty tiers removed";
+const BUILD = "2026-10-03 · r467 · Tray zigzag preview page";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
