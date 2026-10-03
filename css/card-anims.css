@@ -77,3 +77,5 @@
 .ca-gazing .card { transition: rotate .18s ease-out; }
 .ca-standin { pointer-events: none; }
 body.reduced-motion .ca-idle-attention .card.selected { animation: none; }
+#ca-all { margin-top: 10px; width: 100%; }
+.ca-row.ca-playing { background: rgba(53,213,155,.08); box-shadow: -3px 0 0 #35d59b; }

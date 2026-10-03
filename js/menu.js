@@ -1,4 +1,4 @@
-const BUILD = "2026-10-03 · r468 · card animation picks tuned";
+const BUILD = "2026-10-03 · r469 · card animation lab opens from a link, Play all";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

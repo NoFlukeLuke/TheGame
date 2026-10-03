@@ -627,6 +627,8 @@ function cardAnimAfterRender() {
   if (_gazeWatch && _gazeBoard === g) caGazePoint(_gazePt ? _gazePt.x : null, _gazePt ? _gazePt.y : null);   // Watch: turn to the newest pick
 }
 document.addEventListener('DOMContentLoaded', () => { try { cardAnimApplyIdle(); } catch (e) {} });
+// The live site opens the lab straight from a link: .../TheGame/#card-anims
+window.addEventListener('load', () => { if (location.hash === '#card-anims') setTimeout(() => { try { openCardAnimLab(); } catch (e) {} }, 300); });
 
 // ── The lab ──────────────────────────────────────────────────────────────────
 const CA_ROWS = 4, CA_COLS = 5;
@@ -650,12 +652,14 @@ function openCardAnimLab() {
       <div id="ca-head"><b>CARD ANIMATIONS</b><button id="ca-close" aria-label="Close">✕</button></div>
       <p class="ca-sub">Pick a look for each card movement and press Preview to play it on the mock board. Tap cards to choose which ones a preview uses. Swap: the first card you tap is the one picked first. Looks marked with a step are built in that step of the plan.</p>
       <div id="ca-rows"></div>
+      <button id="ca-all" class="ca-btn">Play all (the chosen look of each)</button>
       <button id="ca-reset" class="ca-btn">Reset the board</button>
     </div>`;
   document.body.appendChild(lab);
   _caLab = lab;
   lab.querySelector('#ca-close').onclick = closeCardAnimLab;
   lab.querySelector('#ca-reset').onclick = () => caBuildBoard();
+  lab.querySelector('#ca-all').onclick = caPlayAll;
   const rows = lab.querySelector('#ca-rows');
   rows.innerHTML = CARD_ANIM_KINDS.map(k => `
     <div class="ca-row" data-k="${k.id}">
@@ -714,6 +718,18 @@ function caTargets(kind) {
   return { cards, slots: [..._caLab.querySelectorAll('#ca-slots i')], target: _caLab.querySelector('#ca-tray').getBoundingClientRect() };
 }
 
+// Every row's chosen look, one after another, its row lit while it plays.
+async function caPlayAll() {
+  if (!_caLab || _caBusy) return;
+  for (const k of CARD_ANIM_KINDS) {
+    if (!_caLab) return;
+    const row = _caLab.querySelector(`.ca-row[data-k="${k.id}"]`);
+    row?.classList.add('ca-playing'); row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    await caPreview(k.id, row ? row.querySelector('select').value : cardAnimChoice(k.id));
+    row?.classList.remove('ca-playing');
+    await caWait(250);
+  }
+}
 async function caPreview(kind, id) {
   const run = cardAnimRunner(kind, id);
   if (!_caLab || _caBusy || !run) return;
