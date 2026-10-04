@@ -8,24 +8,24 @@
    - The HOUSING is the frame. #stage is painted metal (or beige plastic) with
      grain, grime toward the bottom, and seams that split it into three bolted
      modules (left column, board bay, key column), screwed at their corners.
-   - Every tray is a WINDOW set into that housing: dark glass, recessed, with a
-     faint top reflection. The window never competes with what is inside it.
-   - Each window keeps its colour as a thin BACKLIT STRIP on the bezel above it.
-     That strip is also the trigger signal: it lights up for a moment when
-     something in the tray fires (.mc-lit, from trayPitTrigger).
-   - Glow lives only INSIDE displays (the numbers, the clock). Nothing on the
-     housing glows.
+   - Every tray is a WINDOW cut into that housing (r472: a thin recessed edge,
+     shadowed along the top, lit along the bottom; no raised bezel, no colour band).
+     The window never competes with what is inside it.
+   - The CRT look (scanlines, glass glare, edge falloff) is ONLY on the displays:
+     the board and every window where things move and change (score, chips,
+     Knacks, Tricks, the hand preview, the clock). The housing and the keys are
+     clean matte surfaces, no grain.
+   - A trigger glows the window from inside in its tray colour (.mc-lit, from
+     trayPitTrigger).
    - The three action buttons are matte keycaps; RECORDS / PAUSE are dark keys.
    Everything here is under html.skin-machine, so switching it off restores the
    game exactly. */
 
 html.skin-machine {
-  --mc-grain-key: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   --mc-house: #2d2c28; --mc-house2: #1f1e1b;
   --mc-plate: #3b3934; --mc-plate-hi: #5a564d; --mc-plate-lo: #121110;
   --mc-glass: #0b0d0c; --mc-seam: rgba(0,0,0,.55); --mc-seam-hi: rgba(255,255,255,.07);
   --mc-print: #d6cfbb; --mc-screw: #8d877a;
-  --mc-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 html.skin-machine.mc-cream {
   --mc-house: #b6ad96; --mc-house2: #988f78;
@@ -53,39 +53,47 @@ html.skin-machine #stage {
     radial-gradient(ellipse 55% 30% at 18% 104%, rgba(0,0,0,.38), transparent 70%),
     radial-gradient(ellipse 30% 22% at 96% 100%, rgba(20,12,4,.35), transparent 70%),
     radial-gradient(ellipse 80% 70% at 50% 45%, transparent 55%, rgba(0,0,0,.32) 100%),
-    var(--mc-grain),
     linear-gradient(180deg, var(--mc-house) 0%, var(--mc-house2) 100%) !important;
   box-shadow: inset 0 1px 0 var(--mc-plate-hi), inset 0 -2px 0 var(--mc-plate-lo), inset 0 0 0 1px rgba(0,0,0,.5) !important;
   border-radius: 6px !important;
 }
 html.skin-machine.mc-cream #stage { background-blend-mode: normal; }
 
-/* ── Every tray is a window in the housing ─────────────────────────────────── */
+/* ── Every tray is a window cut into the housing ─────────────────────────────
+   One thin recessed edge: the housing's cut shadows the top of the window and the
+   bottom lip catches the light, inside and out. */
 html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location,
   #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #hand-preview-area, #coin-info, #vclock, #run-progress) {
   --tray-set: 0 0 transparent !important; --tray-rings: 0 0 transparent !important;
-  --mc-strip: color-mix(in srgb, var(--tray-c) 55%, #000);
-  background: linear-gradient(180deg, rgba(255,255,255,.045), transparent 30%), var(--mc-glass) !important;
-  border: 1px solid #050505 !important; border-radius: 3px !important;
-  box-shadow:
-    inset 0 2px 6px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.03),
-    0 -3px 0 -1px var(--mc-strip),                     /* the backlit colour strip, top bezel */
-    0 0 0 3px var(--mc-plate),                          /* bezel */
-    0 -1px 0 3px var(--mc-plate-hi), 0 1px 0 3px var(--mc-plate-lo),
-    0 3px 5px 3px rgba(0,0,0,.45) !important;
-  transition: box-shadow .5s ease;
+  --mc-in: 0 0 0 0 transparent;
+  background: var(--mc-glass) !important;
+  border: 1px solid rgba(0,0,0,.85) !important; border-radius: 3px !important;
+  box-shadow: var(--mc-in), inset 0 3px 6px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.06),
+              0 -1px 0 rgba(0,0,0,.35), 0 1px 0 var(--mc-plate-hi) !important;
+  transition: box-shadow .45s ease;
 }
-/* A trigger: the strip lights to the full tray colour and glows onto the bezel, then fades. */
-html.skin-machine #stage .mc-lit {
-  --mc-strip: color-mix(in srgb, var(--tray-c) 85%, #fff);
-  box-shadow:
-    inset 0 2px 6px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.03),
-    0 -3px 0 -1px var(--mc-strip), 0 -4px 7px -2px var(--tray-c),
-    0 0 0 3px var(--mc-plate),
-    0 -1px 0 3px var(--mc-plate-hi), 0 1px 0 3px var(--mc-plate-lo),
-    0 3px 5px 3px rgba(0,0,0,.45) !important;
-  transition: box-shadow .06s ease;
+/* A trigger: the window glows from inside in its own colour, then fades. */
+html.skin-machine #stage .mc-lit { --mc-in: inset 0 0 12px -2px color-mix(in srgb, var(--tray-c) 75%, transparent) !important; transition: box-shadow .06s ease !important; }
+
+/* ── CRT, on the displays only ────────────────────────────────────────────────
+   Scanlines, a glare off the glass and a darker edge, laid OVER the contents
+   (pointer-events: none). The static windows get position: relative so the layer
+   has a box to fill; the rest are already positioned. #hand-preview-area is left
+   out: in landscape it is a static wrapper whose absolute child (#selected-cards)
+   must keep #stage as its box, and a layer on it filled the whole stage. */
+html.skin-machine #stage :is(#pips-box, #mult-box, #focus-box, #clock),
+html.skin-machine #stage:not(.landscape) #score-left { position: relative; }
+html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location,
+  #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #coin-info, #vclock, #run-progress, #clock)::after,
+html.skin-machine body:not(.flowr-deck) #stage #grid::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 40; border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06), transparent 22%),
+    radial-gradient(ellipse 75% 85% at 50% 45%, transparent 62%, rgba(0,0,0,.38) 100%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,var(--mc-scan, .18)) 0 1px, transparent 1px 3px);
 }
+html.skin-machine #stage #grid { --mc-scan: .1; }   /* lighter over the cards, so faces stay crisp */
+
 /* Readout text: white, a soft phosphor bloom, printed small caps for the labels. */
 html.skin-machine #stage #score-total-label, html.skin-machine #stage #score-goal-label, html.skin-machine #stage .subbox-label {
   color: rgba(244,241,234,.62) !important; letter-spacing: 2px; }
@@ -93,21 +101,22 @@ html.skin-machine #stage #score-total-label, html.skin-machine #stage #score-goa
 /* ── The board sits in its own bay (on #grid itself: #grid-slot also holds the Focus bar) ── */
 html.skin-machine #stage #grid {
   border-radius: 4px !important;
-  box-shadow: inset 0 3px 10px rgba(0,0,0,.8), 0 0 0 4px var(--mc-plate), 0 -1px 0 4px var(--mc-plate-hi),
-              0 1px 0 4px var(--mc-plate-lo), 0 4px 8px 4px rgba(0,0,0,.4) !important;
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.8), inset 0 -1px 0 rgba(255,255,255,.05),
+              0 -1px 0 rgba(0,0,0,.35), 0 1px 0 var(--mc-plate-hi) !important;
 }
 
 /* ── The clock: a small amber display window ──────────────────────────────── */
 html.skin-machine #stage #clock {
   background: var(--mc-glass); border-radius: 3px;
-  box-shadow: 0 0 0 4px var(--mc-glass), inset 0 2px 5px rgba(0,0,0,.9), 0 0 0 7px var(--mc-plate),
-              0 -1px 0 7px var(--mc-plate-hi), 0 1px 0 7px var(--mc-plate-lo) !important;
+  box-shadow: 0 0 0 4px var(--mc-glass), inset 0 2px 5px rgba(0,0,0,.9),
+              0 -5px 0 0 rgba(0,0,0,.35), 0 5px 0 0 var(--mc-plate-hi),
+              -4px 0 0 0 var(--mc-glass), 4px 0 0 0 var(--mc-glass) !important;
 }
 
 /* ── Keys ─────────────────────────────────────────────────────────────────── */
 html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator) {
   border-radius: 4px !important; filter: saturate(.85);
-  background-image: var(--mc-grain-key), var(--mc-key) !important;
+  background-image: var(--mc-key) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -5px 0 rgba(0,0,0,.22),
               0 0 0 1px rgba(0,0,0,.55), 0 4px 0 var(--mc-key-side), 0 4px 0 1px rgba(0,0,0,.55),
               0 7px 9px rgba(0,0,0,.5) !important;
@@ -121,7 +130,7 @@ html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disa
               0 0 0 1px rgba(0,0,0,.55), 0 1px 0 var(--mc-key-side), 0 1px 0 1px rgba(0,0,0,.55) !important;
 }
 html.skin-machine #stage :is(#btn-records, #btn-pause) {
-  background: var(--mc-grain), linear-gradient(180deg, #46443d, #34322d) !important;
+  background: linear-gradient(180deg, #46443d, #34322d) !important;
   border: none !important; border-radius: 4px !important; color: #d6cfbb !important; text-shadow: 0 -1px 0 rgba(0,0,0,.6);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -3px 0 rgba(0,0,0,.25),
               0 0 0 1px rgba(0,0,0,.6), 0 3px 0 #1d1c19, 0 5px 7px rgba(0,0,0,.45) !important;
@@ -134,6 +143,6 @@ html.skin-machine.mc-cream #stage #focus-mult-readout { color: #5a3404 !importan
 /* ── The Focus gauge: a slot in the housing ───────────────────────────────── */
 html.skin-machine #stage #focus-bar-outer {
   border: 1px solid #050505 !important; border-radius: 3px !important; background: var(--mc-glass) !important;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 0 0 3px var(--mc-plate), 0 -1px 0 3px var(--mc-plate-hi),
-              0 1px 0 3px var(--mc-plate-lo) !important;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.06),
+              0 -1px 0 rgba(0,0,0,.35), 0 1px 0 var(--mc-plate-hi) !important;
 }
