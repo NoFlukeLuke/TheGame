@@ -151,6 +151,8 @@ function innerWidthOf(el, cs) {
 // keeps its designed size when the name already fits.
 function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
   if (!el) return;
+  el._fitOpts = { maxLines, minPx };
+  if (el.classList.contains('fit-wrap')) { el.classList.remove('fit-wrap'); el.style.maxWidth = ''; }
   // Undo any previous fit so re-renders start from the CSS-designed size rather
   // than compounding shrink on shrink.
   el.style.fontSize = '';
@@ -217,6 +219,46 @@ function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
     let g2 = 0;
     while (overflowsHeight() && fs > minPx && g2 < 60) { fs -= 0.5; el.style.fontSize = fs + 'px'; g2++; }
   }
+  fitWrapIfClipped(el);
+}
+
+// ── THE SAFETY NET (r474): measure what was actually DRAWN ──
+// Everything above sizes the name from canvas metrics. Those are taken in
+// whatever font is loaded at that moment, and the webfonts come from Google, so
+// on a slow connection a name is fitted in the fallback face and then drawn in
+// Orbitron, which is wider. A centred word that is too wide spills out of BOTH
+// sides and the tile's overflow:hidden cuts its first and last letters (owner:
+// "the titles in the options frequently lose the beginning and end"). So the
+// drawn glyphs are measured against the box, and a name that still does not fit
+// RETURNS ONTO A SECOND LINE (the owner's pick over shrinking it further).
+function fitWrapIfClipped(el) {
+  try {
+    // Against the PARENT's box as well as its own: a name in a centred flex
+    // column is as wide as its text, so its own box overflows with it.
+    const r = el.getBoundingClientRect(), pr = el.parentElement?.getBoundingClientRect() || r;
+    if (!r.width) return;
+    const L = Math.max(r.left, pr.left), R = Math.min(r.right, pr.right);
+    const rg = document.createRange(); rg.selectNodeContents(el);
+    const g = rg.getBoundingClientRect();
+    if (g.left < L - 0.5 || g.right > R + 0.5) {
+      // Put the pristine name back first: the truncation pass may have cut it.
+      if (el.dataset.fitSrc) el.textContent = el.dataset.fitSrc;
+      el.classList.add('fit-wrap');
+      if (el.parentElement) el.style.maxWidth = el.parentElement.clientWidth + 'px';
+    }
+  } catch (e) {}
+}
+
+// Refit every fitted name once the real fonts have arrived, because a fit taken
+// in the fallback face is the wrong size for the face that is now drawn.
+function refitAllNames() {
+  document.querySelectorAll('[data-fit-src]').forEach(el => {
+    if (el._fitOpts && el.isConnected) fitEntityName(el, el._fitOpts);
+  });
+}
+if (typeof document !== 'undefined' && document.fonts) {
+  try { document.fonts.addEventListener('loadingdone', () => requestAnimationFrame(refitAllNames)); } catch (e) {}
+  if (document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(refitAllNames), () => {});
 }
 
 // Longest prefix of `word` that fits `avail` with an ellipsis appended. Falls

@@ -336,6 +336,8 @@ let _dtBefore = null;   // the selection before the first tap of a possible doub
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  // Autopilot (r474) has the board while it runs.
+  if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
   // The Pick (r244) owns the board outright while it is open, so it intercepts
   // ABOVE the `animating` guard - that flag is routinely still true from the
   // un-explode's flights, and a tap that silently does nothing reads as broken.

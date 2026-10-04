@@ -6197,3 +6197,8 @@ body.reduced-motion .clock-boss { animation: none; }
 #stage #coin-info .ci-main, #stage #coin-info .ci-main b {
   color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.28) !important;
 }
+
+/* r474: a name the fitter could not fit in the face actually drawn (a late
+   webfont) returns onto a second line rather than spilling off both edges.
+   js/fit-text.js fitWrapIfClipped. */
+.fit-wrap { overflow-wrap: anywhere !important; word-break: normal !important; white-space: normal !important; }

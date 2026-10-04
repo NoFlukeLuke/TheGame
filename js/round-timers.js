@@ -148,6 +148,7 @@ function startRoundTimer() {
     if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
     if (typeof fightPowerTick === 'function') fightPowerTick();
     if (typeof sleightLifeTick === 'function') sleightLifeTick();
+    if (typeof autopilotTick === 'function') autopilotTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)
     // The Woodpecker (r348): every interval a new random card is marked, replacing

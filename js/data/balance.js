@@ -232,6 +232,7 @@ const BAL = {
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
   whetstone:  { mult_per_event: 2, life_seconds: 90 },
+  autopilot:  { delay_seconds: 30, focus_cost: 5, max_hands: 0 },
   entourage:  { mult_per_sleight: 10 },
   lighthouse: { mult: 20, falloff_per_column: 7 },
   // ── focus-payout entities (r123) ──
@@ -311,6 +312,7 @@ const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
   hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, {seconds}s of clock, or a trick primed or forced.',
   turnover:   'Any card you leave alone for {idle_seconds} seconds is discarded and a fresh one falls in. Costs you nothing.',
+  autopilot: 'Costs {focus_cost} Focus when it lands on the board. {delay_seconds}s later it plays the best hand on the board, waits for the cards to fall, and repeats until no hand is left. Hand 2 applies Focus twice, hand 3 three times, and so on. Then it discards itself.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult. Discards itself after {life_seconds}s on the board.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',

@@ -147,6 +147,7 @@ function fightPowerTick() {
 // cutting it short (the r213 Hollow lesson) - the card just runs a second late.
 const SLEIGHT_LIFESPAN = { whetstone: () => BAL.whetstone?.life_seconds || 90 };
 function sleightLifeLeft(card) {
+  if (card?.sleightId === 'autopilot' && typeof autopilotLifeLeft === 'function') return autopilotLifeLeft(card);
   const f = card?._isSleight && SLEIGHT_LIFESPAN[card.sleightId];
   if (!f) return null;
   const total = f();

@@ -762,7 +762,7 @@ function flowrHandOver(fromKind, next) {
   // clamped down by max(0px, ...) on a deep chain.
   const pBox = (!skip && host && bg0) ? flowrBoxIn(bg0, host) : null;
   const tBox = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
-  const label = cur0 ? cur0.innerHTML : '';
+  const label = bg0?.querySelector('.fbg-title')?.textContent || '';
 
   if (!skip) flowrHoldSlot(true);
   flowrRenderStack();                       // the new arrangement, underneath
@@ -796,7 +796,8 @@ function flowrHandOver(fromKind, next) {
   }
   // The panel goes first so the tab paints over its top edge, exactly as the
   // ladder does at rest. The wrapper paints nothing of its own.
-  g.innerHTML = '<div class="ffl-panel"></div>' + tabHTML;
+  g.innerHTML = '<div class="ffl-panel"></div>' + tabHTML
+    + (label ? `<div class="ffl-title">${label}</div>` : '');
   host.appendChild(g);
   requestAnimationFrame(() => g.classList.add('fading'));
 
@@ -1380,6 +1381,11 @@ function flowrRenderStack() {
   bg.id = 'flowr-bg';
   bg.style.setProperty('--fc', cur.color);
   if (!existing) host.appendChild(bg);
+  // r474: the current step's title is TEXT ON THE PANEL, not a tab tucked into
+  // its edge (owner: "not a separate piece"), so there is no seam to show.
+  let title = bg.querySelector('.fbg-title');
+  if (!title) { title = document.createElement('div'); title.className = 'fbg-title'; bg.appendChild(title); }
+  title.textContent = flowrKindShort(rest[0]);
 
   // ── THE PANEL TURNS OVER BETWEEN STEPS (r380) ──
   // Owner: "the animation between choices could use some more va va voom, it
@@ -1418,13 +1424,17 @@ function flowrRenderStack() {
   // than a card peeking out from behind another. The colour is what the queued
   // chips were always meant to carry ("how much is still coming is on screen
   // without a number").
+  // r474: depth 0 (the current step) draws no tab - its title is on the panel.
+  // The stack goes in BEFORE the panel at the same z-index, so the queued tabs
+  // paint behind it and only their tops peek above its edge.
   el.innerHTML = rest.slice().reverse().map((kind, i) => {
     const meta = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
     const depth = rest.length - 1 - i;              // 0 = current
-    return `<div class="fst-chip${depth === 0 ? ' fst-cur' : ''}" style="--fst-c:${meta.color}; --fst-d:${depth}">`
+    if (depth === 0) return '';
+    return `<div class="fst-chip" style="--fst-c:${meta.color}; --fst-d:${depth}">`
       + `<span>${flowrKindShort(kind)}</span></div>`;
   }).join('');
-  host.appendChild(el);
+  host.insertBefore(el, bg);
 }
 let _flowrLastIdx = -1;
 function flowrClearStack() {

@@ -1733,6 +1733,8 @@ function focusExtraApplies(handName, cells) {
       });
       if (su.size >= 4) n++;
     }
+    // Autopilot (r474): hand k of a run applies Focus k times.
+    if (typeof autopilotFocusExtra === 'function') n += autopilotFocusExtra();
   } catch (e) {}
   return n;
 }
