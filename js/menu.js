@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r471 · Bug report: Settings > Help > Copy bug report; the log traces bosses, challenges, level-ups and the board";
+const BUILD = "2026-10-04 · r472 · Fix: Shop from a reward pick no longer leaves the board the wrong size; no hand during the boss wipe";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

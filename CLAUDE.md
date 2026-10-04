@@ -583,3 +583,10 @@ time changes, saves) and every notice, and a 250ms watch logs board size/shape, 
 errors, log, previous page load. Clipboard, then execCommand, then a selectable box. The first
 uncaught error of a page load prints a notice pointing there. A new big moment worth tracing goes
 in `BR_TRACE`.
+
+## r472 - the shop on top of a pick; the boss wipe
+The pick's capture listeners on PLAY / DISCARD / swap stand down while `shopGridActive`: BUY twice
+under a pick's Shop tile used to skip the pick, and LEAVE then restored the pick's 4x6 onto the 4x4
+board (cards shrank, `getReachable` read `undefined`, every render threw, the board vanished).
+`getReachable` now skips a missing cell. `playHand` refuses during Flow's boss wipe
+(`flowBossFighting && !bossActive`); a goal cleared there opened the reward chain over the boss.

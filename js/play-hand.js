@@ -213,6 +213,10 @@ function playHand() {
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
+  // r472: Flow's boss wipe (flowTriggerBoss -> bossApproachWipe -> triggerBoss) is
+  // ~1s of live board. A hand clearing the goal there opened the reward chain on
+  // top of the boss and soft-locked it.
+  if (typeof flowBossFighting !== 'undefined' && flowBossFighting && !bossActive) { dbgEvent('warn', 'play ignored (boss arriving)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
