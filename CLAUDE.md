@@ -637,3 +637,6 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 - Fix: goal met and every card done with no hand to end the round (last card cleared by a fall) used
   to clock out through the legacy level-up and skip the interlude (prize grid lost); `crOnClockOut`
   now ends it through the interlude.
+
+## r479 - Autopilot has 15 charges
+`durability: 15`. Each hand it actually plays spends one (`handsPlayed` rose across the `playHand` call); at 0 the run stops even if the board still has hands, and `discardToPlayed` drops the spent card for good. With charges left it cycles back into the deck as before. The Focus multiplier count (hand k applies Focus k times) still restarts every time it engages.

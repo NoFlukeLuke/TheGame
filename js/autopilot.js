@@ -86,6 +86,9 @@ function _apPoll() {
   if (!_apIdle()) { setTimeout(_apPoll, 250); return; }
   const cap = _apCfg().max_hands || 0;
   if (cap && autopilotRun.k >= cap) { autopilotStop(); return; }
+  // r479: 15 charges, one spent per hand it plays. Out of charges, it stops.
+  const _card = autopilotRun.card;
+  if (_card._usesLeft !== 'infinite' && !(_card._usesLeft > 0)) { autopilotStop(); return; }
   const cells = autopilotBestHand();
   if (!cells) {
     // A search that ran out of budget has not proven the board empty: try again.
@@ -96,7 +99,9 @@ function _apPoll() {
   autopilotRun.k++;
   _autopilotHandK = autopilotRun.k;
   selected = cells;
+  const _before = handsPlayed;
   try { render(); playHand(); } finally { _autopilotHandK = 0; }
+  if (handsPlayed > _before && _card._usesLeft !== 'infinite') { _card._usesLeft--; render(); }
   if (autopilotRun) setTimeout(_apPoll, 350);
 }
 
@@ -113,6 +118,7 @@ function autopilotStop() {
   _apLeave(run.card);
 }
 function _apLeave(card) {
+  // Out of charges, discardToPlayed drops it for good (its last lap).
   if (roundEnded || !_apIdle()) { setTimeout(() => _apLeave(card), 400); return; }
   const at = _apFind(card);
   if (!at) return;

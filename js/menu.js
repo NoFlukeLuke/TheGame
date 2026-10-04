@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r478 · Challenge stakes 4/9/15, seconds everywhere, mini grid";
+const BUILD = "2026-10-04 · r479 · Autopilot has 15 charges, one per hand it plays";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
