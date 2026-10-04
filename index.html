@@ -197,6 +197,14 @@
     </div>
   </div>
 
+  <!-- QRL (r477) -->
+  <div class="dev-section" data-group="game">
+    <div class="dev-section-title">Quarter resource limits</div>
+    <div class="dev-row">
+      <label><input type="checkbox" id="dev-qrl" onchange="qrlSetEnabled(this.checked)" onclick="event.stopPropagation()"> QRL on (quarter N: N buffs per card, N replay sources, N prime sources)</label>
+    </div>
+  </div>
+
   <!-- COINS -->
   <div class="dev-section" data-group="game">
     <div class="dev-section-title">Coins</div>
@@ -1499,6 +1507,7 @@
 <script src="js/data/sleights.js"></script>
 <script src="js/combos-aim.js"></script>
 <script src="js/deck-grid.js"></script>
+<script src="js/qrl.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
 <script src="js/improve.js"></script>

@@ -280,6 +280,12 @@ function pickRenderBar() {
           + `<b>${o.icon} ${o.name}</b><i>${o.line()}</i></button>`).join('') + `</span>`
       + `<button class="pk-skip" id="pk-skip">SKIP</button>`;
     bar.querySelectorAll('.pk-op').forEach(b => {
+      // QRL (r477): Boost on a card already at this quarter's buff limit.
+      if (b.dataset.op === 'boost' && qrlCardFull(pickCard, 'pips')) {
+        b.classList.add('qrl-full'); b.title = QRL_TEXT.full() + '\n' + QRL_TEXT.fullWhy();
+        b.onclick = () => refuse(QRL_TEXT.full() + '. ' + QRL_TEXT.fullWhy());
+        return;
+      }
       b.onclick = () => pickApply(PICK_OPS.find(o => o.id === b.dataset.op));
     });
   }

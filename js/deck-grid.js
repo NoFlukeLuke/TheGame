@@ -65,7 +65,7 @@ function growCardScaling(cards, counts) {
     if (seen.has(k)) return;          // one entry per physical card...
     seen.add(k);
     const n = (counts && counts[i]) || 1;   // ...grown once per time it SCORED (r370)
-    const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
+    const gp = qrlBuffOn(card, 'pips') ? (permPipsGrow[k] || 0) : 0, gm = qrlBuffOn(card, 'mult') ? (permMultGrow[k] || 0) : 0;   // QRL (r477)
     if (gp) permPips[k] = (permPips[k] || 0) + gp * n;
     if (gm) permMult[k] = (permMult[k] || 0) + gm * n;
   });

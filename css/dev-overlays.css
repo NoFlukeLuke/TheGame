@@ -728,6 +728,7 @@
     transition: transform 0.1s ease, box-shadow 0.14s ease, border-color 0.14s ease;
   }
   .ev-cardchip.red { color: #c0392b; }
+  .ev-cardchip.qrl-full { opacity: .35; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }   /* QRL (r477) */
   .ev-cardchip:hover { transform: translateY(-2px); }
   .ev-cardchip.picked {
     border-color: var(--c-yellow);

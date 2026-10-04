@@ -646,3 +646,30 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 
 ## r479 - Autopilot has 15 charges
 `durability: 15`. Each hand it actually plays spends one (`handsPlayed` rose across the `playHand` call); at 0 the run stops even if the board still has hands, and `discardToPlayed` drops the spent card for good. With charges left it cycles back into the deck as before. The Focus multiplier count (hand k applies Focus k times) still restarts every time it engages.
+
+## r482 - Quarter resource limits (QRL, `js/qrl.js`)
+Owner's rule: in quarter N a card has N buffs working, takes replays from N sources, and a Trick
+holds primes from N sources. `qrlLimit()` is the one number (Infinity when off); it applies to
+`actStructure` modes and Flow, where the quarter is `survivalBossesBeaten + 1` (capped 4).
+**Flow is now 4 bosses** (`SURVIVAL_BOSS_COUNT`), one per quarter. Dev -> Change the game now has
+the switch (`lethe.qrl.v1`, stored only when off).
+- **Buffs:** kinds are pips (incl. scaling pips), mult (incl. scaling), x pips, x mult, replay,
+  time, credits, Focus (`QRL_BUFF_KINDS`; penalties always apply). A card may HOLD more; when it
+  scores, `qrlActiveKinds` picks `limit` at random, deterministic on `qrlSeed`, which advances at
+  the end of `scalingCount` so the preview, the score and the payouts after it agree. Every read
+  goes through `qrlBuffOn(card, kind)` (calcScore, playHand's time/credits/Focus, growCardScaling).
+- **Pickers** grey a card that cannot take a NEW kind (`qrlCardFull`): Flow deck editor buff ops
+  (`flowrPaintQrl`, `.qrl-full`), the Bench event's chips, Payout Pick's Boost. Hover/tap gives
+  "Quarter resource limit (QRL) reached" + the rule. The only place QRL is explained.
+  Grants that go past the limit anyway (random-target events: Wager, Bargain, Forge) are allowed
+  and print "Clearance granted for early resource expansion" (`enhanceCardKey`).
+- **Replays:** calcScore lists every source on a card (`_srcs`) and keeps the `limit` biggest; a
+  cut source is zeroed so the ledger never bills it. Layered-hand replays are not a source.
+- **Primes:** `primeTrick(t, n, { src })` refuses a new source past the limit (`t._primeSrc`,
+  cleared with `_primed` when spent). Sources: wild_heart, prime_times, understudy, hallmark,
+  muscle_memory. Mirror, Move as One, forced fires and `_rank` are not limited.
+- **Printouts** (`qrlNotice`, once per round per kind): "Only N buff per card permitted in QN due
+  to QRL", "Replays are limited to N source(s) in QN due to QRL", "Tricks are limited to N prime
+  source(s) in QN due to QRL".
+- Not covered: reward-grid buff tiles (their card is fixed by the tile), Heartwood and Absorb
+  (write the maps directly, no clearance note), `_vulturePause` / Whetstone.
