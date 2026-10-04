@@ -385,6 +385,9 @@ function flowrOddsNow() {
     const spare = o.tricks - 18; o.tricks = 18;
     ['cards', 'deck', 'limits', 'improve'].forEach(k => { o[k] = (o[k] || 0) + spare / 4; });
   }
+  // r476: the first quarter (no boss beaten yet) gives Tricks +5, added AFTER
+  // the full-tray cap so nothing takes it back (owner).
+  if ((typeof survivalBossesBeaten !== 'undefined' ? survivalBossesBeaten : 0) === 0) o.tricks = (o.tricks || 0) + 5;
   return o;
 }
 
