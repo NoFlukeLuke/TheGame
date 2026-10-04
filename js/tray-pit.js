@@ -177,13 +177,13 @@ function trayPitKick(el, dir) {
     : [{ filter: 'brightness(1)' }, { filter: 'brightness(.7)', offset: .35 }, { filter: 'brightness(1)' }],
     { duration: dir === 'in' ? 420 : 480, easing: 'ease-out' });
 }
-// Machine panel: the tray's backlit strip lights for `ms`, then fades (css/skin-machine.css).
+// Machine panel: the window glows from inside in its tray colour for `ms`, then fades (css/skin-machine.css).
 function trayMachineLamp(el, ms) {
   el.classList.add('mc-lit'); clearTimeout(el._mcLit);
   el._mcLit = setTimeout(() => el.classList.remove('mc-lit'), ms);
 }
 function trayPitTrigger(el) {
-  if (trayMachineOn()) { trayMachineLamp(el, 140); return; }   // the strip is the whole signal
+  if (trayMachineOn()) { trayMachineLamp(el, 140); return; }   // the glow is the whole signal
   if (el.animate) el.animate([{ filter: 'brightness(1.14)' }, { filter: 'brightness(1)' }], { duration: 220, easing: 'ease-out' });
 }
 

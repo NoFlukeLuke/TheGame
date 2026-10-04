@@ -576,6 +576,12 @@ Dev -> Aesthetics -> Tray look: `trayPit.on` 0 lines / 1 pit / 2 machine (charco
 glass window with a 3px bezel and a backlit colour strip on its top edge, which lights (`.mc-lit`,
 `trayMachineLamp`) on a trigger (140ms) and a land (420ms). Keys are matte keycaps. The bay bezel goes on
 `#grid`, not `#grid-slot` (the slot also holds the Focus bar). Pit stays the default.
+**r480 (owner):** windows are a thin RECESSED edge (inset shadow on top, 1px lit lip below; no raised
+bezel), the colour band is gone (a trigger now glows the window from inside in its tray colour,
+`--mc-in` on `.mc-lit`), and the CRT layer (scanlines, glare, edge falloff; `::after`, z 40,
+`--mc-scan`) is ONLY on the displays: #grid and every window. Housing and keys carry no grain or
+scanlines. **Never give `#hand-preview-area` the layer**: in landscape it is a static wrapper, so its
+`::after` filled the whole stage.
 ## r473 - the event log and the bug report (`js/devlog.js`, `js/bug-report.js`)
 `dbgEvent` keeps 600 lines; each carries a state stamp (`dbgCtx`: mode, level, quarter, clock,
 score/goal, board shape, boss/approach/challenge/ended/paused/anim/fall/takeover), printed only
@@ -638,7 +644,10 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
   to clock out through the legacy level-up and skip the interlude (prize grid lost); `crOnClockOut`
   now ends it through the interlude.
 
-## r479 - spot challenge cards: 25% of ordinary rounds (`js/challenge-round.js`)
+## r479 - Autopilot has 15 charges
+`durability: 15`. Each hand it actually plays spends one (`handsPlayed` rose across the `playHand` call); at 0 the run stops even if the board still has hands, and `discardToPlayed` drops the spent card for good. With charges left it cycles back into the deck as before. The Focus multiplier count (hand k applies Focus k times) still restarts every time it engages.
+
+## r482 - spot challenge cards: 25% of ordinary rounds (`js/challenge-round.js`)
 An ordinary round in a node mode (`isActMode()`, not Survival/Flow, not a boss, not the walkthrough,
 not a challenge round) has `CR_SPOT_CHANCE` (25%) of ONE challenge card, src `'spot'`. Rolled once per
 level in `crOnRoundStart` (`crSpotRoll`; `crSpot.rolled` guards the resumes that also run

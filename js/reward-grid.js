@@ -971,6 +971,7 @@ function openPrizeGrid() {
   openRewardGrid();
 }
 
+let rewardSwapReady = false, rewardSwapLift = null, rewardTapKey = null, rewardTapAt = 0;
 function openRewardGrid() {
   gameTimerPaused = true;
   if (!penaltyGridActive() && !miniGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
@@ -980,6 +981,10 @@ function openRewardGrid() {
   rewardTipKey    = null;
   rewardConfirmed = false;
   rewardOnGrid    = true;
+  // Last Swap: ready only if the round ended on exactly one swap. Spent on use.
+  rewardSwapReady = hasKnack('last_swap') && swaps === 1;
+  rewardSwapLift = null; rewardTapKey = null; rewardTapAt = 0;
+  if (rewardSwapReady) showMessage('Last Swap: double-tap a tile, then tap a neighbour to trade them', 'var(--c-mint)');
   // The reward grid now lives ON the play grid (r100). Reveal the board: drop the
   // interlude dark veil (showNextGoalFlash re-adds it later) and repurpose the
   // Play/Discard buttons into Confirm/Clear.
@@ -1042,6 +1047,7 @@ function renderRewardTiles(animateIn = false) {
         // builds its own cell from entityTileInner, so it adds the class itself.
         p.entity ? entityTierClass(p) : '',
         isSel   ? 'selected'    : '',
+        rewardSwapLift === key ? 'shop-lifted' : '',
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',
       ].filter(Boolean).join(' ');
@@ -1515,6 +1521,31 @@ function onRewardCellClick(r, c) {
   if (rewardConfirmed || rewardDealing) return;
   const key = `${r}-${c}`;
 
+  // LAST SWAP: a lifted tile waits for its neighbour; double-tap lifts one.
+  if (rewardSwapReady) {
+    if (rewardSwapLift) {
+      const [lr, lc] = rewardSwapLift.split('-').map(Number);
+      if (rewardSwapLift === key) { rewardSwapLift = null; renderRewardTiles(); return; }
+      if (Math.abs(lr - r) + Math.abs(lc - c) !== 1) { refuse('Trade with a tile it touches', { color: 'var(--cream-dim)' }); return; }
+      const t = rewardCells[lr][lc]; rewardCells[lr][lc] = rewardCells[r][c]; rewardCells[r][c] = t;
+      swaps = Math.max(0, swaps - 1);
+      rewardSwapReady = false; rewardSwapLift = null; rewardSelected = new Set(); rewardPickOrder = []; rewardTipKey = null;
+      try { sfxCardSelect?.(); } catch (e) {}
+      noteMessage('Last Swap used', 'var(--c-mint)');
+      renderRewardTiles();
+      return;
+    }
+    const now = Date.now();
+    if (rewardTapKey === key && now - rewardTapAt < DOUBLE_TAP_MS && rewardCells[r]?.[c]) {
+      rewardTapKey = null; rewardTapAt = 0;
+      rewardSwapLift = key; rewardSelected = new Set(); rewardPickOrder = []; rewardTipKey = null;
+      try { sfxCardSelect?.(); } catch (e) {}
+      renderRewardTiles();
+      return;
+    }
+    rewardTapKey = key; rewardTapAt = now;
+  }
+
   // Already selected: tapping it takes it back and clears its bubble. Still only
   // allowed from the fringe - removing a middle tile would split the group.
   if (rewardSelected.has(key)) {
@@ -1769,7 +1800,7 @@ async function confirmRewardPath() {
 }
 
 function closeRewardGrid() {
-  hideRewardTooltip();
+  hideRewardTooltip(); rewardSwapReady = false; rewardSwapLift = null;
   stopRewardFloat();
   document.getElementById('reward-overlay')?.classList.remove('show');
   // Tear down the on-grid reward step: restore the action buttons, clear the

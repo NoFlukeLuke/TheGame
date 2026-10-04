@@ -650,7 +650,7 @@ function crTakeFlowRewardDelta() {
   return d;
 }
 
-// ── Spot cards (r479) ───────────────────────────────────────────────────────
+// ── Spot cards (r482) ───────────────────────────────────────────────────────
 function crSpotState() { return crSpot || (crSpot = { at: null, minis: 0, hints: 0 }); }
 function crSpotMayRun() {
   if (typeof isActMode !== 'function' || !isActMode()) return false;
