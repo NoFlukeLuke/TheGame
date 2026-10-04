@@ -455,8 +455,10 @@ function startNewRoundDealAnims() {
 
   const FALL_DUR   = 420;
   const COL_OFFSET = 60;
-  const BOUNCE_PX  = 8;
-  const SQUISH     = 0.10;
+  // The Terminal look lands cards dead: no bounce, no squash (r471).
+  const _mech = typeof termSkinNoBounce === 'function' && termSkinNoBounce();
+  const BOUNCE_PX  = _mech ? 0 : 8;
+  const SQUISH     = _mech ? 0 : 0.10;
   const colReadyAt = {};
   const together   = (dealStyle !== 'cascade');
   const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());

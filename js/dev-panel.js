@@ -157,6 +157,8 @@ function devRenderClockBar() {
   });
 }
 function devSyncAesthetics() {
+  const ts = document.getElementById('dev-term-skin');
+  if (ts && typeof termSkinOn === 'function') ts.checked = termSkinOn();
   if (typeof trayFxSync === 'function') trayFxSync();
   const d = document.getElementById('dev-deal-style');
   if (d && typeof dealStyle === 'string') d.value = dealStyle;

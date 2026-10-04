@@ -376,8 +376,10 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   const FALL_DUR = 420;
   const COL_OFFSET = 60;
-  const BOUNCE_PX = 8;
-  const SQUISH = 0.10;
+  // The Terminal look lands cards dead: no bounce, no squash (r471).
+  const _mech = typeof termSkinNoBounce === 'function' && termSkinNoBounce();
+  const BOUNCE_PX = _mech ? 0 : 8;
+  const SQUISH = _mech ? 0 : 0.10;
   const activeCols = new Set(removingCells.map(([,c]) => c));
   const minActiveCol = activeCols.size > 0 ? Math.min(...activeCols) : 0;
 

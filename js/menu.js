@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r470 · deck editor cards visible again; auto-save and pause in the background; boot watchdog";
+const BUILD = "2026-10-04 · r471 · Terminal look prototype: dev · Aesthetics switch drains the chrome, motion goes mechanical, sounds go solenoid";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

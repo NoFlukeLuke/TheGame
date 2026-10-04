@@ -1,0 +1,92 @@
+/* ══ TERMINAL LOOK (r471) - the cold-machine prototype ══════════════════════
+   One switch (dev -> Aesthetics -> Terminal look, body.term-skin via
+   js/terminal-skin.js). The in-round CHROME drains to one amber monochrome -
+   the readout of a work terminal, not an attract screen. The cards are the
+   physical objects on the glass, so #grid and its contents are left alone;
+   motion and sound are the JS half of the switch.
+
+   The drain is a FILTER on the chrome containers, never on #stage or an
+   ancestor of #grid (the stacking-context / fixed-anchor trap, CLAUDE.md).
+   A filter makes each panel its own stacking context, which is safe here:
+   every pop-up that matters is body-level, outside #cabinet. The landscape
+   action column lives INSIDE #grid-slot, so those buttons are filtered one
+   by one rather than through a parent that also holds the board. */
+
+body.term-skin #top-bar,
+body.term-skin #top-strip,
+body.term-skin #action-row-2,
+body.term-skin #grid-and-buttons > :not(#grid-slot),
+body.term-skin #score-left,
+body.term-skin #score-center,
+body.term-skin #score-panel,
+body.term-skin #pips-box,
+body.term-skin #mult-box,
+body.term-skin #focus-box,
+body.term-skin #screen-location,
+body.term-skin #selected-cards,
+body.term-skin #hand-preview-area,
+body.term-skin #trick-panel,
+body.term-skin #trick-tray-area,
+body.term-skin #knack-carousel-wrap,
+body.term-skin #focus-meter-wrap,
+body.term-skin #focus-mult-readout,
+body.term-skin #sel-count,
+body.term-skin #swap-indicator,
+body.term-skin #btn-discard,
+body.term-skin #btn-play,
+body.term-skin #panel-swap-btn,
+body.term-skin #btn-records,
+body.term-skin #btn-pause,
+body.term-skin #vclock,
+body.term-skin #vclock-boss,
+body.term-skin #coin-info,
+body.term-skin #clock-area,
+body.term-skin #run-progress,
+body.term-skin #run-progress-pt,
+body.term-skin #interact-costs,
+body.term-skin #skip-btn {
+  filter: grayscale(1) sepia(0.55) saturate(2.4) hue-rotate(-12deg) brightness(0.95);
+}
+
+/* The action buttons are candy caps (bright !important gradients in
+   css/style.css), which the drain turns into pale parchment slabs. A
+   terminal's controls are dark panels with lit legends, so they go dark -
+   !important against !important, and this file loads last. */
+body.term-skin #btn-play,
+body.term-skin #btn-discard,
+body.term-skin #swap-indicator,
+body.term-skin #panel-swap-btn,
+body.term-skin #btn-records,
+body.term-skin #btn-pause {
+  background: #241b10 !important;
+  color: #e8c87a !important;
+  border: 1px solid #806438 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6) !important;
+}
+body.term-skin #swap-indicator span,
+body.term-skin #btn-play span,
+body.term-skin #btn-discard span {
+  color: #e8c87a;
+}
+
+/* Hard edges: a machine's chrome is pressed, not moulded. */
+body.term-skin .panel-box,
+body.term-skin #btn-play,
+body.term-skin #btn-discard,
+body.term-skin #swap-indicator,
+body.term-skin #panel-swap-btn,
+body.term-skin #btn-records,
+body.term-skin #btn-pause,
+body.term-skin #screen-location,
+body.term-skin #coin-info,
+body.term-skin #vclock {
+  border-radius: 2px;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+/* The glass behind the cards: warm phosphor black, not the green well. */
+body.term-skin #grid {
+  background: radial-gradient(ellipse at center, #16120a 0%, #0c0a07 80%);
+}

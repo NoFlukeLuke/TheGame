@@ -20,6 +20,7 @@ const CARD_ANIM_KINDS = [
       { id: 'leapfrog', name: 'A · Leapfrog', step: 4, desc: 'The first card you picked lifts and arcs over the other, which ducks under it; both snap past and settle.' },
       { id: 'rubber',   name: 'B · Rubber band', step: 4, desc: 'Both stretch toward each other, snap across and wobble to rest.' },
       { id: 'shove',    name: 'C · Shove', step: 4, desc: 'The first card barges across and knocks the other into its old cell.' },
+      { id: 'mech',     name: 'T · Solenoid', desc: 'Terminal look: straight travel, hard stop, a one-notch settle. No arc.' },
     ] },
   { id: 'fly', label: 'Fly to preview', note: 'A played hand leaves the board for the preview tray.',
     options: [
@@ -27,6 +28,7 @@ const CARD_ANIM_KINDS = [
       { id: 'lean',    name: 'A · Lean in', step: 5, desc: 'Each card tilts into its flight and straightens as it lands.' },
       { id: 'comet',   name: 'B · Comet', step: 5, desc: 'Cards streak along a curve with a short trail.' },
       { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards pop up, then drop into their slots with a bounce. Takes a fifth longer.' },
+      { id: 'mech',    name: 'T · Carriage', desc: 'Terminal look: a straight run at constant speed, seated with a firm stop.' },
     ] },
   { id: 'discard', label: 'Discard', note: 'Cards you throw away.',
     options: [
@@ -34,6 +36,7 @@ const CARD_ANIM_KINDS = [
       { id: 'toss',    name: 'A · Toss', step: 6, desc: 'Flicked off the board with a spin.' },
       { id: 'crumple', name: 'B · Crumple', step: 6, desc: 'Squashed into a ball that drops away.' },
       { id: 'sink',    name: 'C · Sink', step: 6, desc: 'Tips onto one corner and sinks into the table with a slight spin; the cards above fall in over it.' },
+      { id: 'mech',    name: 'T · Filed', desc: 'Terminal look: pulled straight down into a slot below the board. No spin.' },
     ] },
   { id: 'cut', label: 'Cut from deck', note: 'A card removed from the run for good.',
     options: [
@@ -41,6 +44,7 @@ const CARD_ANIM_KINDS = [
       { id: 'burn',  name: 'A · Burn', step: 6, desc: 'An edge catches and burns across the card.' },
       { id: 'snip',  name: 'B · Snip', step: 6, desc: 'Cut in two along a diagonal; the halves sink into the board.' },
       { id: 'deep',  name: 'C · Deep fall', step: 6, desc: 'Drops through the board into the dark, shrinking.' },
+      { id: 'mech',  name: 'T · Shredded', desc: 'Terminal look: drawn straight down into the machine, fast.' },
     ] },
   { id: 'buff', label: 'Buff lands', note: 'A card gains a permanent bonus.',
     options: [
@@ -73,7 +77,10 @@ let _cardAnimPick = (() => { try { return JSON.parse(localStorage.getItem(CARD_A
 const CARD_ANIM_DEFAULT = { swap: 'leapfrog', fly: 'pinball', discard: 'sink', cut: 'snip', buff: 'stamp', boss: 'static', idle: 'watch' };
 // Which look a kind uses. A look that is not built yet reads as 'current'.
 function cardAnimChoice(kind) {
-  const id = _cardAnimPick[kind] || CARD_ANIM_DEFAULT[kind] || 'current';
+  let id = _cardAnimPick[kind] || CARD_ANIM_DEFAULT[kind] || 'current';
+  // The Terminal look (r471, js/terminal-skin.js) answers over the stored pick
+  // while it is on, and stands aside - picks untouched - when it is off.
+  if (typeof termSkinAnim === 'function') id = termSkinAnim(kind, id);
   return cardAnimRunner(kind, id) ? id : 'current';
 }
 function setCardAnimChoice(kind, id) {
@@ -100,7 +107,7 @@ const caAnim = (el, frames, opts) => new Promise(res => {
 // is animated FROM its old one. dx/dy is how far `a` travelled, in design px; `b`
 // travelled the opposite way. Only the standalone translate/scale/rotate/filter
 // properties move, so the heartbeat's own transform keeps beating underneath.
-const CARD_SWAP_MS = { current: 220, leapfrog: 418, rubber: 400, shove: 360 };
+const CARD_SWAP_MS = { current: 220, leapfrog: 418, rubber: 400, shove: 360, mech: 180 };
 function cardSwapMs() { return CARD_SWAP_MS[cardAnimChoice('swap')] || 220; }
 
 function caSwapGeom(a, dx, dy) {
@@ -183,6 +190,17 @@ CARD_ANIM_RUN.swap.shove = async ({ a, b, dx, dy }) => {
       { duration: dur, easing: 'cubic-bezier(.3,.7,.4,1)' }),
   ]);
 };
+// T: the Terminal look's swap. Straight line, most of the travel in the first
+// half, a 4% overshoot and a one-notch settle - a carriage hitting its stop.
+CARD_ANIM_RUN.swap.mech = async ({ a, b, dx, dy }) => {
+  const o = { duration: CARD_SWAP_MS.mech, easing: 'cubic-bezier(.3,0,.1,1)' };
+  const go = (el, x, y) => caAnim(el, [
+    { translate: caT(x, y) },
+    { translate: caT(-x * .04, -y * .04), offset: .82 },
+    { translate: '0px 0px' }], o);
+  await Promise.all([go(a, -dx, -dy), go(b, dx, dy)]);
+};
+
 // The game's swap: one call, whichever look is chosen.
 function cardAnimSwap(a, b, dx, dy) {
   const run = cardAnimRunner('swap', cardAnimChoice('swap'));
@@ -230,6 +248,12 @@ const CARD_FLY_LOOKS = {
       { transform: `translate(${dx}px,${dy - h * sc * .07}px) scale(${sc})`, opacity: .92, offset: .87, easing: 'ease-in' },
       { transform: `translate(${dx}px,${dy}px) scale(${sc})`, opacity: .9 }] };
   },
+  // T: the Terminal look. A straight run at near-constant speed, square to the
+  // board the whole way, seated with a 2px drop at the stop. Same duration.
+  mech: (dx, dy, sc) => ({ easing: 'cubic-bezier(.25,0,.2,1)', frames: [
+    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+    { transform: `translate(${dx}px,${dy - 2}px) scale(${sc})`, opacity: .95, offset: .88 },
+    { transform: `translate(${dx}px,${dy}px) scale(${sc})`, opacity: .9 }] }),
 };
 // A look may take longer than the dance's own flight (pinball: a fifth longer).
 // The dance multiplies its flight by this, so its beats wait for the landing.
@@ -268,7 +292,7 @@ function caAim(el, target) {
 }
 const caZ = el => { el.style.zIndex = '20'; };
 const caRnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
-const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 200 }, cut: { current: 280, burn: 620, snip: 600, deep: 520 } };
+const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 200, mech: 220 }, cut: { current: 280, burn: 620, snip: 600, deep: 520, mech: 260 } };
 // Sink (r468): the board waits only CARD_EXIT_MS for it. The card itself is a
 // stand-in copy that keeps sinking for CA_SINK_MS while the cards above fall in
 // over it, so it is drawn under its neighbours and carries no card id.
@@ -331,6 +355,19 @@ CARD_ANIM_RUN.discard.sink = async ({ cards, lab }) => {
   });
   await (lab ? Promise.all(done) : caWait(CARD_EXIT_MS.discard.sink + (cards.length - 1) * 40));
 };
+
+// T: the Terminal look. A 3px dip (the solenoid grabbing it), then pulled
+// straight down into a slot below its cell and gone. No spin, no shrink.
+const caMechDown = (ms) => async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => { caZ(el); const h = el.offsetHeight;
+    return caKeep(el, [
+      { translate: '0px 0px', opacity: 1 },
+      { translate: caT(0, 3), opacity: 1, offset: .3 },
+      { translate: caT(0, h * .95), opacity: 0 }],
+      { duration: ms, delay: i * 50, easing: 'cubic-bezier(.5,0,.85,.5)' }); }));
+};
+CARD_ANIM_RUN.discard.mech = caMechDown(CARD_EXIT_MS.discard.mech);
+CARD_ANIM_RUN.cut.mech     = caMechDown(CARD_EXIT_MS.cut.mech);
 
 CARD_ANIM_RUN.cut.current = async ({ cards }) => {
   await Promise.all(cards.map(el => caKeep(el, [{ opacity: 1, scale: '1' }, { opacity: 0, scale: '.85' }], { duration: 280, easing: 'ease-in' })));
