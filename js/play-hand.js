@@ -381,6 +381,28 @@ function playHand() {
     if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
   }
 
+  // Short Change (r483): a hand that used fewer cards than your hand size pays
+  // credits. It counts `playedCells` - everything this hand CONSUMED, which is
+  // what "hand size" means and is the one array captured before any path clears
+  // the selection - so the Ringer's and Roll Call's extra cards count too. Both
+  // of those deliberately ignore the cap (r218), so a hand they push to or past
+  // it does not pay, which is the rule reading as written rather than an
+  // exception.
+  //
+  // It sits HERE, above all three dance sites, for r254's reason: the
+  // boss-winning hand and the goal hand both return early further down, and
+  // anything below those returns is bookkeeping only an ordinary hand gets.
+  if (hasKnack('short_change') && typeof playedCells !== 'undefined') {
+    const _scCap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 0;
+    if (_scCap > 0 && playedCells.length < _scCap) {
+      const _scN = BAL.short_change.coins;
+      coins += _scN;
+      updateCoinsUI();
+      if (typeof entityEffectFX === 'function') entityEffectFX('credits', _scN, { id: 'short_change', source: 'knack' });
+      noteMessage(`Short Change: +${_scN} credit${_scN === 1 ? '' : 's'}`, 'var(--gold)');
+    }
+  }
+
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
