@@ -1813,6 +1813,7 @@ function flowrDeckBegin(op) {
   // and svGoalCells is emptied so the keep path has nothing left to remove.
   flowrDeckClearGoalHand();
   try { render(); } catch (e) {}
+  flowrPaintQrl();
   // THE DECK EDIT USES THE PLAY BOARD, not the 6x4 pick board, so it re-pins:
   // flowrShowStep pinned the OP PICK's size a moment ago and the panel has to
   // wrap the real board now. It is the one step whose panel legitimately
@@ -1941,6 +1942,21 @@ function flowrDeckSyncUI() {
   const dsc = document.getElementById('btn-discard'); if (dsc) dsc.disabled = n === 0;
   { const si = document.getElementById('swap-indicator'); if (si) si.classList.toggle('swap-armed', n === 2 && swaps > 0); }
   flowrPaintLift();
+  flowrPaintQrl();
+}
+
+// QRL (r484): on a buff op, a card that cannot take another buff kind this
+// quarter is greyed and says why on hover; a tap refuses with the same words.
+function flowrPaintQrl() {
+  const op = _flowrDeckOp, kind = op && op.buff ? qrlPayloadKind({ [op.buff.key]: 1 }) : null;
+  document.querySelectorAll('#grid .card[data-card-id]').forEach(el => {
+    const hit = op && op.buff ? flowrDeckFindCell(el) : null;
+    const full = !!(hit && flowrDeckOrdinary(hit[2]) && qrlCardFull(hit[2], kind));
+    el.classList.toggle('qrl-full', full);
+    if (full) el.title = QRL_TEXT.full() + '\n' + QRL_TEXT.fullWhy();
+    else if (el.title && el.classList.contains('qrl-titled')) el.removeAttribute('title');
+    el.classList.toggle('qrl-titled', full);
+  });
 }
 
 // The lifted card is the only thing on screen that says a swap is half-made, so
@@ -2097,6 +2113,7 @@ function flowrDeckTap(e) {
     _flowrDeckSel = rest; cardEl.classList.remove('flowr-sel');
   } else {
     if (_flowrDeckSel.length >= flowrSelMax(op)) { refuse(`Up to ${flowrSelMax(op)} cards`); return; }
+    if (op.buff && qrlCardFull(cd, qrlPayloadKind({ [op.buff.key]: 1 }))) { refuse(QRL_TEXT.full() + '. ' + QRL_TEXT.fullWhy()); return; }
     const cand = { id, r, c, cd, el: cardEl };
     if (_flowrDeckSel.length && !_flowrDeckSel.some(o => _flowrAdjacent(o, cand))) {
       refuse('Pick a card touching the ones you have'); return;
@@ -2271,6 +2288,7 @@ function flowrBuffConfirm() {
 
 function flowrDeckEnd() {
   document.getElementById('grid')?.removeEventListener('pointerdown', flowrDeckTap, true);
+  document.querySelectorAll('#grid .card.qrl-full, #grid .card.qrl-titled').forEach(el => { el.classList.remove('qrl-full', 'qrl-titled'); el.removeAttribute('title'); });
   document.getElementById('flowr-banner')?.remove();
   document.body.classList.remove('flowr-deck');
   // Hand the play button back (the exitShopGridButtons shape); render() paints

@@ -343,6 +343,7 @@ function randomDeckCard() {
 // how much the flat bonus rises per play. See js/deck-grid.js for why they are
 // two stores and not one field with a flag.
 function enhanceCardKey(key, e) {
+  const _qrlBefore = qrlKindsOfKey(key).length;
   if (typeof cardAnimOn === 'function') setTimeout(() => cardAnimOn('buff', cardAnimEls([key]), { color: caBuffColor(e) }), 0);   // r445: the chosen buff look, if the card is on the board; r468: its ring takes the buff's colour
   if (e.pips)   permPips[key]   = (permPips[key]   || 0) + e.pips;
   if (e.mult)   permMult[key]   = (permMult[key]   || 0) + e.mult;
@@ -355,6 +356,9 @@ function enhanceCardKey(key, e) {
   if (e.coin)   permCoins[key]  = (permCoins[key]  || 0) + e.coin;
   if (e.focus)  permFocus[key]  = (permFocus[key]  || 0) + e.focus;
   if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);
+  // QRL (r484): a grant that takes a card past the quarter's buff limit is allowed, and says so.
+  const _qrlAfter = qrlKindsOfKey(key).length;
+  if (_qrlAfter > _qrlBefore && _qrlAfter > qrlLimit()) qrlNotice('clearance');
 }
 // Returns the card it created. The Card Market needs that: searching the draw
 // pile afterwards for "a card with this face that is not the original" picks the
@@ -1346,7 +1350,11 @@ function showBenchCardPicker(pool) {
     const chip = document.createElement('div');
     chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
     chip.textContent = card.rank + card.suit;
+    // QRL (r484): a card that cannot take this kind of buff this quarter.
+    const _full = qrlCardFull(card, qrlPayloadKind(eventState.benchBoon && eventState.benchBoon.e));
+    if (_full) { chip.classList.add('qrl-full'); chip.title = QRL_TEXT.full() + '\n' + QRL_TEXT.fullWhy(); }
     chip.addEventListener('click', () => {
+      if (_full) { refuse(QRL_TEXT.full() + '. ' + QRL_TEXT.fullWhy()); return; }
       chips.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
       chip.classList.add('picked');
       eventState.benchCard = card;
