@@ -576,7 +576,7 @@ Dev -> Aesthetics -> Tray look: `trayPit.on` 0 lines / 1 pit / 2 machine (charco
 glass window with a 3px bezel and a backlit colour strip on its top edge, which lights (`.mc-lit`,
 `trayMachineLamp`) on a trigger (140ms) and a land (420ms). Keys are matte keycaps. The bay bezel goes on
 `#grid`, not `#grid-slot` (the slot also holds the Focus bar). Pit stays the default.
-**r479 (owner):** windows are a thin RECESSED edge (inset shadow on top, 1px lit lip below; no raised
+**r480 (owner):** windows are a thin RECESSED edge (inset shadow on top, 1px lit lip below; no raised
 bezel), the colour band is gone (a trigger now glows the window from inside in its tray colour,
 `--mc-in` on `.mc-lit`), and the CRT layer (scanlines, glare, edge falloff; `::after`, z 40,
 `--mc-scan`) is ONLY on the displays: #grid and every window. Housing and keys carry no grain or
@@ -643,3 +643,6 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 - Fix: goal met and every card done with no hand to end the round (last card cleared by a fall) used
   to clock out through the legacy level-up and skip the interlude (prize grid lost); `crOnClockOut`
   now ends it through the interlude.
+
+## r479 - Autopilot has 15 charges
+`durability: 15`. Each hand it actually plays spends one (`handsPlayed` rose across the `playHand` call); at 0 the run stops even if the board still has hands, and `discardToPlayed` drops the spent card for good. With charges left it cycles back into the deck as before. The Focus multiplier count (hand k applies Focus k times) still restarts every time it engages.
