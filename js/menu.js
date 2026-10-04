@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r470 · deck editor cards visible again; auto-save and pause in the background; boot watchdog";
+const BUILD = "2026-10-04 · r471 · Machine panel skin to compare (dev -> Aesthetics -> Tray look)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

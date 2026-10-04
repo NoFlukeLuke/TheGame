@@ -567,3 +567,12 @@ colour (`caBuffColor(e)`, passed from `enhanceCardKey` via `cardAnimOn(kind, els
 bar, and splits the card red / blue. **Watch** (new) is Attention (10% less sway) plus Gaze: the
 other cards turn toward the newest selected card (`selected`'s last entry), or the pointer when
 nothing is selected. Closing the lab re-applies the idle look (a preview borrows the gaze).
+
+## r471 - the Machine panel skin to compare (`css/skin-machine.css`)
+Cassette futurism with a little CloverPit grit, under `html.skin-machine` (`.mc-cream` = beige housing).
+Dev -> Aesthetics -> Tray look: `trayPit.on` 0 lines / 1 pit / 2 machine (charcoal) / 3 machine (cream);
+`trayPitOn()` is >= 1 (the WAAPI reactions), `trayPitDrawn()` is the SVG pit, `trayMachineOn()` the skin.
+`#stage` is the housing (grain SVG, grime, seams at 41.35% / 90.6%, corner screws); every tray is a dark
+glass window with a 3px bezel and a backlit colour strip on its top edge, which lights (`.mc-lit`,
+`trayMachineLamp`) on a trigger (140ms) and a land (420ms). Keys are matte keycaps. The bay bezel goes on
+`#grid`, not `#grid-slot` (the slot also holds the Focus bar). Pit stays the default.

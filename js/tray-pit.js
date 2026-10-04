@@ -35,7 +35,11 @@ let trayPit = (() => {
   } catch (e) {}
   return d;
 })();
-function trayPitOn() { return !!trayPit.on; }
+// on: 0 = glowing lines, 1 = pit, 2 = machine panel (charcoal), 3 = machine panel (cream).
+// The machine panel is css/skin-machine.css (r471); it uses the pit's three reactions.
+function trayPitOn() { return trayPit.on >= 1; }
+function trayPitDrawn() { return trayPit.on === 1; }
+function trayMachineOn() { return trayPit.on >= 2; }
 function trayPitSave() {
   const o = {}; for (const k in trayPit) if (trayPit[k] !== TRAY_PIT_DEFAULT[k]) o[k] = trayPit[k];
   try { if (Object.keys(o).length) localStorage.setItem(TRAY_PIT_KEY, JSON.stringify(o)); else localStorage.removeItem(TRAY_PIT_KEY); } catch (e) {}
@@ -129,7 +133,7 @@ function trayPitSvg(w, h, rgb, f, center) {
 
 function trayPitPaint(el) {
   if (!el) return;
-  if (!trayPit.on) { el.style.removeProperty('--pit-bg'); return; }
+  if (!trayPitDrawn()) { el.style.removeProperty('--pit-bg'); el._pitKey = ''; return; }
   const w = el.clientWidth, h = el.clientHeight;
   if (!w || !h) return;
   const rgb = trayPitRgb(el), key = [w, h, rgb.join(), JSON.stringify(trayPit), trayFx.center].join('|');
@@ -141,7 +145,9 @@ function trayPitPaint(el) {
 // The pit replaces the ring stack and the tray's flat background, on the trays only.
 function trayPitApply() {
   const html = document.documentElement;
-  html.classList.toggle('tray-pit', !!trayPit.on);
+  html.classList.toggle('tray-pit', trayPitDrawn());
+  html.classList.toggle('skin-machine', trayMachineOn());
+  html.classList.toggle('mc-cream', trayPit.on === 3);
   let tag = document.getElementById('tray-pit-style');
   if (!tag) { tag = document.createElement('style'); tag.id = 'tray-pit-style'; document.head.appendChild(tag); }
   const sel = TRAY_FX_IDS.map(id => `html.tray-pit #stage #${id}`).join(', ');
@@ -164,19 +170,26 @@ function trayPitWatchColour() {
 // darkens as the entity sinks away. Trigger: a quick, small brightening.
 function trayPitKick(el, dir) {
   if (!el.animate) return;
+  if (trayMachineOn() && dir === 'in') trayMachineLamp(el, 420);
   el._kickUntil = performance.now() + 480;
   el.animate(dir === 'in'
     ? [{ filter: 'brightness(1.45)', translate: '0 1px' }, { filter: 'brightness(1)', translate: '0 0' }]
     : [{ filter: 'brightness(1)' }, { filter: 'brightness(.7)', offset: .35 }, { filter: 'brightness(1)' }],
     { duration: dir === 'in' ? 420 : 480, easing: 'ease-out' });
 }
+// Machine panel: the tray's backlit strip lights for `ms`, then fades (css/skin-machine.css).
+function trayMachineLamp(el, ms) {
+  el.classList.add('mc-lit'); clearTimeout(el._mcLit);
+  el._mcLit = setTimeout(() => el.classList.remove('mc-lit'), ms);
+}
 function trayPitTrigger(el) {
+  if (trayMachineOn()) { trayMachineLamp(el, 140); return; }   // the strip is the whole signal
   if (el.animate) el.animate([{ filter: 'brightness(1.14)' }, { filter: 'brightness(1)' }], { duration: 220, easing: 'ease-out' });
 }
 
 function trayPitSync() {
   const set = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e) e.value = String(v); };
-  set('dev-pit-on', trayPit.on ? 'pit' : 'lines'); set('dev-pit-light', trayPit.light);
+  set('dev-pit-on', ['lines', 'pit', 'machine', 'machine-cream'][trayPit.on] || 'pit'); set('dev-pit-light', trayPit.light);
   [['depth', 'px'], ['steps', ''], ['persp', '%'], ['view', '%'], ['tint', '%'], ['floor', '%'], ['ring', '%'], ['ringGlow', '%']].forEach(([k, u]) => {
     set('dev-pit-' + k, trayPit[k]);
     const e = document.getElementById('dev-pit-' + k + '-v'); if (e) e.textContent = trayPit[k] + u;
