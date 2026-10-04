@@ -598,3 +598,20 @@ under a pick's Shop tile used to skip the pick, and LEAVE then restored the pick
 board (cards shrank, `getReachable` read `undefined`, every render threw, the board vanished).
 `getReachable` now skips a missing cell. `playHand` refuses during Flow's boss wipe
 (`flowBossFighting && !bossActive`); a goal cleared there opened the reward chain over the boss.
+
+## r474 - card animation speed, Focus speed-up, Watch rebuilt
+- **Speed** (lab sliders, `lethe.cardAnimSpeed.v1`, overrides only): `caSpeedCfg.speed` (default
+  0.6, so every look is ~1.67x as long as built) and `focus2` (default 1.5: at Focus x2 every look
+  runs 1.5x as fast, linear from x1, Focus read from `focusMultiplier()`, capped at x4). `caSlow()`
+  is the one length multiplier: caAnim / caKeep / caWait / caOverlay / caSinkInto scale through it,
+  CSS overlay animations read `--ca-k` set on the overlay, and `cardSwapMs()` / `cardFlyMs()` include
+  it so the game's waits match. The lab's "Preview at Focus" slider (`_caLabFocus`) is lab-only.
+- **Watch**: no shrink or dim (own class `ca-idle-watch`). Nothing selected: cards look around
+  slowly (`caGazeWander`, a timer, 2-5 degrees, `.ca-wander` 1.6s transition). A selection: every
+  other card turns to the newest selected card (max `CA_GAZE_FIX_MAX` 9 degrees, `.ca-fixed`).
+  The pointer is not used. **Gaze had been invisible**: 900px perspective turned a 9 degree lean
+  into under 1% edge change; now 320px, and `caGazeFrame` re-adds `.ca-gazing` every frame. The
+  gazing transition list repeats the card's own transitions so adding rotate keeps them.
+- **Pinball** hops `h * .35` AWAY from the tray (opposite the flight vector) before flying.
+- **Sink** stand-ins go before the first `.card`, not the first child: the board's background
+  layer (the swirl) is a child of #grid and was painting over them. Fall 1300ms; `.sel-num` stripped.

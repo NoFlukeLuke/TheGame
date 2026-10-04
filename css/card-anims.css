@@ -49,7 +49,7 @@
   mix-blend-mode: multiply;
 }
 .ca-charge { background: linear-gradient(to top, #ffe9a8 0%, #ffd36bcc 40%, #fff6 100%); mix-blend-mode: screen; }
-.ca-stampring { inset: -6px; border: 2px solid var(--ca-ring, #ffe9a8); border-radius: 10px; box-shadow: 0 0 6px color-mix(in srgb, var(--ca-ring, #ffe9a8) 45%, transparent); animation: caRing 860ms cubic-bezier(.2,.6,.35,1) forwards; }
+.ca-stampring { inset: -6px; border: 2px solid var(--ca-ring, #ffe9a8); border-radius: 10px; box-shadow: 0 0 6px color-mix(in srgb, var(--ca-ring, #ffe9a8) 45%, transparent); animation: caRing calc(860ms * var(--ca-k, 1)) cubic-bezier(.2,.6,.35,1) forwards; }
 @keyframes caRing { from { scale: .85; opacity: .6; } to { scale: 1.9; opacity: 0; } }
 .ca-chain {
   inset: 38% -10%; transform-origin: left center; rotate: -14deg;
@@ -60,22 +60,31 @@
 /* scan lines over the snow, and the dark bar that rolls down through it */
 .ca-static::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #0000 0 2px, #0005 2px 3px); }
 .ca-static .ca-roll { position: absolute; left: 0; right: 0; height: 28%; top: -30%;
-  background: linear-gradient(180deg, #0000, #000b 30%, #000c 70%, #0000); animation: caRoll 420ms linear infinite; }
+  background: linear-gradient(180deg, #0000, #000b 30%, #000c 70%, #0000); animation: caRoll calc(420ms * var(--ca-k, 1)) linear infinite; }
 @keyframes caRoll { to { top: 110%; } }
 .ca-snipline { position: absolute; pointer-events: none; z-index: 22;
   background: linear-gradient(to top right, transparent calc(50% - 1px), #1a1510 calc(50% - .5px), #1a1510 calc(50% + .5px), transparent calc(50% + 1px));
-  animation: caSnip 240ms ease-out forwards; }
+  animation: caSnip calc(240ms * var(--ca-k, 1)) ease-out forwards; }
 @keyframes caSnip { from { opacity: 0; clip-path: inset(0 100% 0 0); } 40% { opacity: 1; } to { opacity: 0; clip-path: inset(0 0 0 0); } }
 
 /* Attention: selected cards hover and sway, the rest settle back */
 @keyframes caHover { 0%, 100% { translate: 0 0; rotate: -1.44deg; } 50% { translate: 0 -3.6px; rotate: 1.44deg; } }
-.ca-idle-attention .card.selected { animation: caHover 1.5s ease-in-out infinite; }
+.ca-idle-attention .card.selected, .ca-idle-watch .card.selected { animation: caHover 1.5s ease-in-out infinite; }
 .ca-idle-attention #grid:has(.card.selected) .card:not(.selected),
 .ca-idle-attention #ca-board:has(.card.selected) .card:not(.selected) { scale: .96; opacity: .78; transition: scale .25s, opacity .25s; }
-/* Gaze: the board gives its cards depth so a lean reads as a tilt */
-.ca-gazing { perspective: 900px; }
-.ca-gazing .card { transition: rotate .18s ease-out; }
+/* Gaze: the board gives its cards depth so a lean reads as a tilt. r474: 900px
+   made a 9 degree turn move a card's edges under 1%, which read as nothing.
+   The card's own transitions are listed again so adding rotate keeps them. */
+.ca-gazing { perspective: 320px; }
+.ca-gazing .card { transition: border-color .1s, box-shadow .1s, opacity .15s, rotate .18s ease-out; }
+.ca-gazing.ca-wander .card { transition: border-color .1s, box-shadow .1s, opacity .15s, rotate 1.6s ease-in-out; }
+.ca-gazing.ca-fixed .card { transition: border-color .1s, box-shadow .1s, opacity .15s, rotate .4s cubic-bezier(.3,.7,.4,1); }
 .ca-standin { pointer-events: none; }
-body.reduced-motion .ca-idle-attention .card.selected { animation: none; }
+body.reduced-motion .ca-idle-attention .card.selected, body.reduced-motion .ca-idle-watch .card.selected { animation: none; }
 #ca-all { margin-top: 10px; width: 100%; }
 .ca-row.ca-playing { background: rgba(53,213,155,.08); box-shadow: -3px 0 0 #35d59b; }
+
+/* speed (r474) */
+.ca-speed { display: grid; grid-template-columns: 1fr 120px 42px; gap: 4px 8px; align-items: center; font-size: 12px; padding: 8px 0 4px; }
+.ca-speed small { grid-column: 1 / -1; color: var(--cream-dim, #a89878); font-size: 11px; line-height: 1.4; margin-bottom: 4px; }
+.ca-speed output { text-align: right; color: #7fe3b0; }
