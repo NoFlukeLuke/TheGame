@@ -20,6 +20,10 @@ const SETTINGS_DEF = [
   { group: 'Help', id: 'handbook', type: 'action',
     label: 'Handbook', hint: 'How everything works, in more detail than the game stops to explain.',
     buttons: () => [{ label: 'Open the handbook', fn: 'openInfoHubFromSettings()', primary: true }] },
+  // r471: everything the log saw, on the clipboard (js/bug-report.js).
+  { group: 'Help', id: 'bugReport', type: 'action',
+    label: 'Bug report', hint: 'Copies a record of what just happened in the game. Paste it into a message to the developer.',
+    buttons: () => [{ label: 'Copy bug report', fn: 'settingsCopyBugReport(this)' }] },
   { group: 'Help', id: 'tips', label: 'Tips',
     hint: 'A one-line note the first time something new turns up. Each one shows once, ever, and never blocks play.',
     type: 'toggle', default: true },

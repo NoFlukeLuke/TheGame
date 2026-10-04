@@ -567,3 +567,19 @@ colour (`caBuffColor(e)`, passed from `enhanceCardKey` via `cardAnimOn(kind, els
 bar, and splits the card red / blue. **Watch** (new) is Attention (10% less sway) plus Gaze: the
 other cards turn toward the newest selected card (`selected`'s last entry), or the pointer when
 nothing is selected. Closing the lab re-applies the idle look (a preview borrows the gaze).
+
+## r471 - the event log and the bug report (`js/devlog.js`, `js/bug-report.js`)
+`dbgEvent` keeps 600 lines; each carries a state stamp (`dbgCtx`: mode, level, quarter, clock,
+score/goal, board shape, boss/approach/challenge/ended/paused/anim/fall/takeover), printed only
+when it changes. Identical lines in a row fold into a count. Errors and promise rejections log a
+trimmed stack, and each distinct one keeps its state and a board picture (`_dbgErrors`).
+console.error/warn are logged. The buffer is mirrored into `lethe.bugLog.v1`, so the next page
+load can still report it. `js/bug-report.js` (loads just before bootstrap) wraps the big moments
+(`BR_TRACE`: bosses, challenge cards, round end, interlude, level-up, picks, swap, discard, falls,
+time changes, saves) and every notice, and a 250ms watch logs board size/shape, card size and
+#grid size/visibility changes; a board whose gridData does not match gridRows x gridCols is a WARN.
+`dbgCardStr` names a cell (`UNDEF` = outside gridData, `·` = empty, CH:/SL:/STONE).
+**Settings -> Help -> Copy bug report** (`bugReportText`): build, device, run, loadout, board,
+errors, log, previous page load. Clipboard, then execCommand, then a selectable box. The first
+uncaught error of a page load prints a notice pointing there. A new big moment worth tracing goes
+in `BR_TRACE`.

@@ -316,7 +316,7 @@ function deselect(r, c) {
 
 function tryAddToSelection(r, c) {
   const _card = gridData[r]?.[c];
-  const _cs = _card ? `${_card.rank}${_card.suit}` : 'null';
+  const _cs = dbgCardStr(_card);
   if (selected.length >= limits.selection.current) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
   if (isCellBlocked(r, c)) { dbgEvent('warn', `add blocked: cell blocked [${r},${c}]`); return false; }
   if (!cardCan(gridData[r]?.[c], 'select')) { dbgEvent('warn', `add blocked: cardCan=false [${r},${c}] ${_cs}`); return false; }
@@ -347,7 +347,7 @@ function onCardTap(r, c) {
   if (typeof devCardStateApplyTap === 'function' && devCardStateApplyTap(r, c)) return;
   if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
-  const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
+  const _cardStr = dbgCardStr(_card);
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
   // ── Dealer's Choice: holding cards - a tap swaps the top one in ──
