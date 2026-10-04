@@ -53,7 +53,7 @@ const BR_TRACE = [
   'triggerBoss', 'startBossTimer', 'endBoss', 'flowTriggerBoss', 'flowEndBoss',
   // challenge cards
   'crBeginArrival', 'crLand', 'crTap', 'crRaise', 'crCollect', 'crFail', 'crDrain',
-  'crOnClockOut', 'crSettle', 'crTakePrize', 'crFlowSpawn', 'crFlowCancel',
+  'crOnClockOut', 'crSettle', 'crSpotSettle', 'crTakePrize', 'crFlowSpawn', 'crFlowCancel',
   // between rounds
   'onRoundEnd', 'flashRoundEnd', 'startInterlude', 'triggerLevelUp', 'rolloverQuarter',
   'openGridPick', 'openPenaltyGrid', 'openEvent', 'openShopGrid', 'flowrArm', 'onGameEnd',

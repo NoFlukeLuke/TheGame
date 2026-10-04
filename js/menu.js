@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r478 · Challenge stakes 4/9/15, seconds everywhere, mini grid";
+const BUILD = "2026-10-04 · r479 · 25% of ordinary rounds get a challenge card";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

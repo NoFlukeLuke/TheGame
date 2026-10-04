@@ -637,3 +637,14 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 - Fix: goal met and every card done with no hand to end the round (last card cleared by a fall) used
   to clock out through the legacy level-up and skip the interlude (prize grid lost); `crOnClockOut`
   now ends it through the interlude.
+
+## r479 - spot challenge cards: 25% of ordinary rounds (`js/challenge-round.js`)
+An ordinary round in a node mode (`isActMode()`, not Survival/Flow, not a boss, not the walkthrough,
+not a challenge round) has `CR_SPOT_CHANCE` (25%) of ONE challenge card, src `'spot'`. Rolled once per
+level in `crOnRoundStart` (`crSpotRoll`; `crSpot.rolled` guards the resumes that also run
+startRoundTimer), arriving at a random clock value that leaves its 60s clock plus 10s (`crSpotTick`).
+It behaves like a Flow card (`crTimed(src)`: 10s refusable cell warning, 60s clock, ladder, stakes);
+a d2+ take queues a mini grid (`crSpot.minis`), a fail takes credits and seconds only. At the round's
+end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes a card still on the
+board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
+in SAVE_VARS. Dev: "Classic: Challenge Card Now".
