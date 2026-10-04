@@ -23,6 +23,7 @@ const KNACK_POOL = [
   { id:'carry_discards',  emoji:'📦',  name:'Collector',        rarity:'common', desc:'Unused discards carry over to the next round (max 8).' },
   { id:'carry_time',      emoji:'🕰️',  name:'Clock Tower',      rarity:'rare',   desc:'Unused round seconds carry over (max 60s).' },
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the round goal, gain a 30s extension instead of failing.' },
+  { id:'last_swap',       emoji:'🔀',  name:'Last Swap',        rarity:'rare',   desc:'End a round with exactly one swap left and you can trade two touching tiles on the reward grid. Double-tap a tile, then tap its neighbour. Uses the swap.' },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       rarity:'rare',   desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your tricks is primed: it fires an extra time on your next hand.' },
   { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a round a card on the board is marked. Score it and it takes a random buff.' },

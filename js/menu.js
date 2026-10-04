@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r479 · Autopilot has 15 charges, one per hand it plays";
+const BUILD = "2026-10-04 · r478 · Last Swap knack";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
