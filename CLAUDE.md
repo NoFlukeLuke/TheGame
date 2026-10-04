@@ -622,3 +622,18 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 - **The current reward step has no tab.** Its title is `.fbg-title`, text in a `--fbg-head` (15px) band at the top of `#flowr-bg`; the panel grows by that band and is centred half a band higher so the board inside does not move (0 on the deck edit). The queued tabs are behind the panel (`#flowr-stack` inserted before it at z-index 0), anchored by `bottom` to the panel's top edge with height 0, so the Queue tile / hover spread (`--fst-step` 14px) can only grow UP. The fading ghost carries the title as `.ffl-title`.
 - **Names are refitted when the webfonts land** (`refitAllNames` on `document.fonts` loadingdone / ready). The fonts come from Google, so a name fitted in the fallback face and then drawn in Orbitron spilled off both edges and lost its first and last letters. `fitWrapIfClipped` measures the drawn glyphs against the name's parent and, if they still spill, returns the name onto a second line (`.fit-wrap`, owner's pick over shrinking it).
 - **`index.html?blank`** hides every glyph (text, numbers, emoji) without moving the layout (`js/blank-ui.js`, `css/blank-ui.css`); `?blank&screen=board|pick|reward|shop` opens a screen. `empty-ui-preview.html` wraps it with screen buttons.
+
+## r478 - challenge stakes push harder; seconds everywhere; the mini grid
+- `CR_FLOW_STAKES` is credits 4 / 9 / 15 and seconds 10 / 16 / 24 for difficulty 1 / 2 / 3 (owner:
+  reward pushing the ladder). Seconds are paid in every mode now, not only Flow (`crCollect` rewinds).
+- The extra reward needs difficulty `CR_BONUS_D` (2) or higher. Flow: +1 reward next level-up (and a
+  failed d2+ tier takes one away; a d1 fail does not). Elsewhere: a free **mini grid**
+  (`crRound.minis`, also counted for a cleared card paid at the round's end), opened by `crSettle`
+  after the penalty grid and before the ordinary rewards.
+- **Mini grid** (`rewardGridMode 'mini'`, `openMiniGrid(done)`, js/reward-grid.js): always 3x3,
+  ordinary buff/debuff checkerboard, no guaranteed tiles, no destination, 2 Tricks minimum, its own
+  seeded stream, not counted in `rewardGridsSeen`, never red, HUD reads BONUS. Hands back to its
+  caller like the penalty grid (a Limit Break tile still opens its screen first). Dev: Open Mini Grid.
+- Fix: goal met and every card done with no hand to end the round (last card cleared by a fall) used
+  to clock out through the legacy level-up and skip the interlude (prize grid lost); `crOnClockOut`
+  now ends it through the interlude.

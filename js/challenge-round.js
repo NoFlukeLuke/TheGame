@@ -47,9 +47,11 @@ const CR_FLOW_SPICE = 0.10;              // chance of a second card...
 const CR_FLOW_SPICE_DELAY = 15;          // ...this many seconds after the first
 const CR_FLOW_BOSS_GAP = 60;             // no card within a minute of a boss
 const CR_FLOW_TIER_W = [45, 40, 15];     // how often a Flow card's ladder STARTS at difficulty 1 / 2 / 3
-// What a tier is worth by difficulty: credits in every mode; seconds and a reward
-// at the next level-up in Flow. A failed tier takes the same amounts away.
-const CR_FLOW_STAKES = { 1: { credits: 5, secs: 10 }, 2: { credits: 8, secs: 15 }, 3: { credits: 12, secs: 20 } };
+// What a tier is worth by difficulty: credits and seconds in every mode. Taken at
+// difficulty 2+ (CR_BONUS_D) it also pays a reward: +1 at Flow's next level-up, a
+// free 3x3 mini grid elsewhere. A failed tier takes the same amounts away.
+const CR_FLOW_STAKES = { 1: { credits: 4, secs: 10 }, 2: { credits: 9, secs: 16 }, 3: { credits: 15, secs: 24 } };
+const CR_BONUS_D = 2;
 
 var crRound = null;   // `var`: read by name from files above this one (TDZ)
 var crFlow  = null;   // { plan:[clock values], spiceAt, rewardDelta } - in SAVE_VARS
@@ -482,14 +484,17 @@ function crCollect(cd) {
   const d = q.ladder[q.banked].d, st = crStake(d);
   coins += st.credits; updateCoinsUI();
   crRepaint(cd); crFxSolve(cd);
+  if (typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - +${st.secs}s`);
+  const bonus = d >= CR_BONUS_D;
   if (q.src === 'seq' && crRound) {
+    if (bonus) crRound.minis = (crRound.minis || 0) + 1;
     const left = CR_CARDS - crRound.solved;
-    showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · +${st.credits} credits`
-                         : `⚑ All ${CR_CARDS} challenges done · +${st.credits} credits · prize grid earned`, 'var(--gold)');
+    const pay = `+${st.credits} credits · +${st.secs}s${bonus ? ' · +1 mini grid' : ''}`;
+    showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${pay}`
+                         : `⚑ All ${CR_CARDS} challenges done · ${pay} · prize grid earned`, 'var(--gold)');
   } else if (q.src === 'flow') {
-    if (typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - +${st.secs}s`);
-    crFlowState().rewardDelta++;
-    showMessage(`⚑ Challenge done · +${st.credits} credits · +${st.secs}s · +1 reward next level-up`, 'var(--gold)');
+    if (bonus) crFlowState().rewardDelta++;
+    showMessage(`⚑ Challenge done · +${st.credits} credits · +${st.secs}s${bonus ? ' · +1 reward next level-up' : ''}`, 'var(--gold)');
   }
   crQueue.push(cd._id);
   setTimeout(crDrain, 700);
@@ -504,8 +509,9 @@ function crFail(cd) {
   coins = Math.max(0, coins - st.credits); updateCoinsUI();
   roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI();
   if (typeof showTimeCost === 'function') showTimeCost(`-${st.secs}s`);
-  crFlowState().rewardDelta--;
-  showMessage(`⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s · one fewer reward next level-up`, 'var(--red)');
+  const bonus = crDiff(q) >= CR_BONUS_D;
+  if (bonus) crFlowState().rewardDelta--;
+  showMessage(`⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s${bonus ? ' · one fewer reward next level-up' : ''}`, 'var(--red)');
   crQueue.push(cd._id);
   setTimeout(crDrain, 900);
 }
@@ -642,7 +648,19 @@ function crOnClockOut() {
     if (crCleared(q)) crCollect(cd);
     else if (q.counted && crRound) { q.counted = false; crRound.solved--; }
   }
-  if (!crHoldsGoal()) return false;
+  // Goal met and every card done, but no hand ended the round (the last card
+  // cleared by a fall): end it through the interlude so the prize and mini grids
+  // are paid, not the legacy level-up path.
+  if (!crHoldsGoal()) {
+    if (!crRound || crRound.over || goalReachedThisRound || !roundQuotaMet()) return false;
+    crRound.over = true;
+    goalReachedThisRound = true; roundEnded = true;
+    clearInterval(roundInterval); roundInterval = null;
+    gameTimerPaused = true; frozenRoundSeconds = roundSeconds;
+    if (typeof flashRoundEnd === 'function') flashRoundEnd();
+    setTimeout(() => startInterlude(), 900);
+    return true;
+  }
   crRound.over = true;
   if (!roundQuotaMet()) { crRound.over = false; return false; }
   crRound.result = 'lost';
@@ -664,14 +682,23 @@ function crSettle() {
   crTele.filter(t => t.src === 'seq').forEach(crTeleDrop);
   for (const [r, c, cd] of crCards()) {
     if (cd.cr.src !== 'seq') continue;
-    if (crCleared(cd.cr)) { const st = crStake(cd.cr.ladder[cd.cr.banked].d); coins += st.credits; updateCoinsUI(); }
+    // Cleared but never taken: paid as if taken (no clock left to add seconds to).
+    if (crCleared(cd.cr)) {
+      const d = cd.cr.ladder[cd.cr.banked].d, st = crStake(d);
+      coins += st.credits; updateCoinsUI();
+      if (d >= CR_BONUS_D) crRound.minis = (crRound.minis || 0) + 1;
+    }
     gridData[r][c] = drawCard() || null;
   }
   crQueue = [];
   if (!crRound.result) crRound.result = crRound.solved >= CR_CARDS ? 'won' : 'lost';
   crRound.over = true;
-  if (crRound.result !== 'lost') return Promise.resolve();
-  return new Promise(res => openPenaltyGrid(res));
+  // Penalty grid first (a lost round), then one free mini grid per card taken at
+  // difficulty 2+, then the ordinary rewards.
+  const minis = crRound.minis || 0; crRound.minis = 0;
+  let p = crRound.result === 'lost' ? new Promise(res => openPenaltyGrid(res)) : Promise.resolve();
+  for (let i = 0; i < minis; i++) p = p.then(() => new Promise(res => openMiniGrid(res)));
+  return p;
 }
 function crTakePrize() {
   const won = !!(crRound && crRound.result === 'won');

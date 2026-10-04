@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r477 · Shop: row swaps need hand size 4";
+const BUILD = "2026-10-04 · r478 · Challenge stakes 4/9/15, seconds everywhere, mini grid";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
