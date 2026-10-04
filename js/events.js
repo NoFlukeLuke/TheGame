@@ -356,7 +356,7 @@ function enhanceCardKey(key, e) {
   if (e.coin)   permCoins[key]  = (permCoins[key]  || 0) + e.coin;
   if (e.focus)  permFocus[key]  = (permFocus[key]  || 0) + e.focus;
   if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);
-  // QRL (r477): a grant that takes a card past the quarter's buff limit is allowed, and says so.
+  // QRL (r484): a grant that takes a card past the quarter's buff limit is allowed, and says so.
   const _qrlAfter = qrlKindsOfKey(key).length;
   if (_qrlAfter > _qrlBefore && _qrlAfter > qrlLimit()) qrlNotice('clearance');
 }
@@ -1350,7 +1350,7 @@ function showBenchCardPicker(pool) {
     const chip = document.createElement('div');
     chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
     chip.textContent = card.rank + card.suit;
-    // QRL (r477): a card that cannot take this kind of buff this quarter.
+    // QRL (r484): a card that cannot take this kind of buff this quarter.
     const _full = qrlCardFull(card, qrlPayloadKind(eventState.benchBoon && eventState.benchBoon.e));
     if (_full) { chip.classList.add('qrl-full'); chip.title = QRL_TEXT.full() + '\n' + QRL_TEXT.fullWhy(); }
     chip.addEventListener('click', () => {

@@ -1,4 +1,4 @@
-// ── QUARTER RESOURCE LIMITS (QRL, r477) ─────────────────────────────────────
+// ── QUARTER RESOURCE LIMITS (QRL, r484) ─────────────────────────────────────
 //
 // Owner's rule. In quarter N a card may have N buffs working, take replays from
 // N sources, and a Trick may hold primes from N sources. Q1 = 1, Q4 = 4. Flow's

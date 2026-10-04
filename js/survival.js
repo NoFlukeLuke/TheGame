@@ -37,7 +37,7 @@ const SURVIVAL_COINS_PER_10S = 1;     // + this per EFFICIENCY_SECONDS_PER_COIN 
                                       // (the constant is shared with the payout's Efficiency line - js/data/cards.js)
 const SURVIVAL_SHOP_COST     = 5;     // coins to open the shop from the pick screen
 const SURVIVAL_BOSS_EVERY_SECONDS = 300; // a boss arrives every 5 minutes of play
-const SURVIVAL_BOSS_COUNT     = 4;    // run "completes" after this many bosses beaten (r477: 4, one per QRL quarter)
+const SURVIVAL_BOSS_COUNT     = 4;    // run "completes" after this many bosses beaten (r484: 4, one per QRL quarter)
 const SURVIVAL_BOSS_TIME_CAP  = 180;  // banked leftover time feeding the boss, capped
 const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwinnable boss
 // Rerolls are a CARRY-OVER POOL (owner spec): 3 at run start, +2 per boss beaten.

@@ -450,7 +450,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // before the replay multiply, so each replay pays it again.
     if (!_G && typeof climbTopBonus === 'function') { const _clb = climbTopBonus(card); if (_clb) { cp += _clb; _ev('_climb', 'pip+', _clb, 'climb'); } }
     const _eKey = cardId(card);
-    const _pp = (_G || !qrlBuffOn(card, 'pips')) ? 0 : (permPips[_eKey] || 0);   // QRL (r477): a buff this hand did not pick pays nothing
+    const _pp = (_G || !qrlBuffOn(card, 'pips')) ? 0 : (permPips[_eKey] || 0);   // QRL (r484): a buff this hand did not pick pays nothing
     cp += _pp;
     if (!_G) bPip('sapling', _pp);
     // Right Place: marked row/column cards score +flat pips
@@ -518,7 +518,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       _hr = Math.floor(_hrChance);
       if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
     }
-    // Every replay SOURCE on this card and what it gives. QRL (r477): only the
+    // Every replay SOURCE on this card and what it gives. QRL (r484): only the
     // `qrlLimit()` biggest sources pay; a cut source is switched off here so the
     // ledger rows below never bill it. Layered-hand replays are not a source.
     let _enc = _encoreHand, _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
@@ -1627,7 +1627,7 @@ function trickFiredThisHand(id) { return _trickFiredThisHand.has(id); }
 // `echo` is what stops the second prime priming a third for ever.
 function primeTrick(t, n = 1, opts = {}) {
   if (!t || !(n > 0)) return null;
-  // QRL (r477): a Trick holds primes from at most qrlLimit() sources (opts.src).
+  // QRL (r484): a Trick holds primes from at most qrlLimit() sources (opts.src).
   // A new source past that is refused; a source it already holds may add more.
   const _src = opts.src || 'other';
   const _held = t._primeSrc || [];

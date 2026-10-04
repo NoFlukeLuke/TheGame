@@ -647,7 +647,18 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 ## r479 - Autopilot has 15 charges
 `durability: 15`. Each hand it actually plays spends one (`handsPlayed` rose across the `playHand` call); at 0 the run stops even if the board still has hands, and `discardToPlayed` drops the spent card for good. With charges left it cycles back into the deck as before. The Focus multiplier count (hand k applies Focus k times) still restarts every time it engages.
 
-## r482 - Quarter resource limits (QRL, `js/qrl.js`)
+## r482 - spot challenge cards: 25% of ordinary rounds (`js/challenge-round.js`)
+An ordinary round in a node mode (`isActMode()`, not Survival/Flow, not a boss, not the walkthrough,
+not a challenge round) has `CR_SPOT_CHANCE` (25%) of ONE challenge card, src `'spot'`. Rolled once per
+level in `crOnRoundStart` (`crSpotRoll`; `crSpot.rolled` guards the resumes that also run
+startRoundTimer), arriving at a random clock value that leaves its 60s clock plus 10s (`crSpotTick`).
+It behaves like a Flow card (`crTimed(src)`: 10s refusable cell warning, 60s clock, ladder, stakes);
+a d2+ take queues a mini grid (`crSpot.minis`), a fail takes credits and seconds only. At the round's
+end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes a card still on the
+board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
+in SAVE_VARS. Dev: "Classic: Challenge Card Now".
+
+## r484 - Quarter resource limits (QRL, `js/qrl.js`)
 Owner's rule: in quarter N a card has N buffs working, takes replays from N sources, and a Trick
 holds primes from N sources. `qrlLimit()` is the one number (Infinity when off); it applies to
 `actStructure` modes and Flow, where the quarter is `survivalBossesBeaten + 1` (capped 4).

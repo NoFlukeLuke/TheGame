@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r482 · Quarter resource limits (QRL); Flow is 4 bosses";
+const BUILD = "2026-10-04 · r484 · Quarter resource limits (QRL); Flow is 4 bosses";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

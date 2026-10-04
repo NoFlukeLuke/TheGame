@@ -1945,7 +1945,7 @@ function flowrDeckSyncUI() {
   flowrPaintQrl();
 }
 
-// QRL (r477): on a buff op, a card that cannot take another buff kind this
+// QRL (r484): on a buff op, a card that cannot take another buff kind this
 // quarter is greyed and says why on hover; a tap refuses with the same words.
 function flowrPaintQrl() {
   const op = _flowrDeckOp, kind = op && op.buff ? qrlPayloadKind({ [op.buff.key]: 1 }) : null;

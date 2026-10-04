@@ -36,7 +36,8 @@
 
 const CR_CARDS = 3;
 const CR_MAP_BONUS_SECONDS = 60;         // the Schedule's audit adds a minute
-const CR_TELE_MS = { seq: 3000, flow: 10000 };   // how long the cell pulses first
+function crTimed(src) { return src === 'flow' || src === 'spot'; }
+const CR_TELE_MS = { seq: 3000, flow: 10000, spot: 10000 };   // how long the cell pulses first
 // Flow's warning marks a CELL and counts live seconds (crTick), so it waits out a
 // pause. Discarding the card in that cell refuses the challenge: the player
 // chooses whether to take it on (owner).
@@ -55,6 +56,11 @@ const CR_BONUS_D = 2;
 
 var crRound = null;   // `var`: read by name from files above this one (TDZ)
 var crFlow  = null;   // { plan:[clock values], spiceAt, rewardDelta } - in SAVE_VARS
+// A SPOT card: an ordinary round in a node mode (Classic, Guided, the Schedule)
+// has CR_SPOT_CHANCE of one challenge card, timed and refusable like Flow's.
+// { at: clock value to arrive at | null, minis } - in SAVE_VARS.
+var crSpot  = null;
+const CR_SPOT_CHANCE = 0.25;
 let crArmed = null;   // { source, bonusSecs } | null - in SAVE_VARS
 let crSeq = 0;        // id counter for cards
 let crTele = [];      // pending arrivals: { r, c, src, tier, idx, el, timer }
@@ -106,7 +112,8 @@ function crApplyStartTime() {
 }
 function crOnRoundStart() {
   if (crQueue.length) setTimeout(crDrain, 400);   // a card solved by the last hand of a round
-  if (!crRound || crRound.started || crRound.over) return;
+  if (!crRound) { crSpotRoll(); return; }
+  if (crRound.started || crRound.over) return;
   crRound.started = true;
   showMessage(`⚑ Challenge round: ${CR_CARDS} challenge cards, one at a time, and the goal.`, 'var(--c-amber, #ffb347)', { ms: 4200 });
   setTimeout(() => crBeginArrival('seq', 1, 0), 650);
@@ -223,7 +230,7 @@ function crCardFaceHTML(card) {
   else if (of <= 5) { prog = '<div class="cr-boxes">'; for (let i = 0; i < of; i++) prog += `<span class="cr-box${i < done ? ' on' : ''}"></span>`; prog += '</div>'; }
   else prog = `<div class="cr-num">${done}/${of}</div>`;
   const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '') + `<span class="cr-pips">${pips}</span>`;
-  const timer = q.src === 'flow' && !q.done
+  const timer = crTimed(q.src) && !q.done
     ? `<div class="cr-timer${q.timeLeft <= 10 ? ' low' : ''}" style="--crt:${Math.max(0, q.timeLeft / (q.timeMax || CR_FLOW_TIME))}"><b>${q.timeLeft}s</b></div>` : '';
   const more = crCanRaise(q) ? `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>` : '';
   return `<div class="cr-head">${head}</div>`
@@ -235,7 +242,7 @@ function crRepaint(cd) {
   const el = crCardEl(cd);
   if (!el) return;
   el.innerHTML = crCardFaceHTML(cd);
-  el.classList.toggle('cr-low', !!(cd.cr.src === 'flow' && !cd.cr.done && cd.cr.timeLeft <= 10));
+  el.classList.toggle('cr-low', !!(crTimed(cd.cr.src) && !cd.cr.done && cd.cr.timeLeft <= 10));
   el.classList.toggle('cr-cleared', crCanRaise(cd.cr));
 }
 function crShowInfo(r, c) {
@@ -243,7 +250,7 @@ function crShowInfo(r, c) {
   if (!cd || !cd.cr || !cd.cr.ladder) return;
   const q = cd.cr, [done, of] = crProg(q);
   const ladder = q.ladder.length > 1 ? ` Tier ${q.tier + 1} of ${q.ladder.length}.` : '';
-  const extra = (q.kind !== 'big' && of > 1 ? ` (${done}/${of})` : '') + (q.src === 'flow' ? ` · ${q.timeLeft}s left` : '');
+  const extra = (q.kind !== 'big' && of > 1 ? ` (${done}/${of})` : '') + (crTimed(q.src) ? ` · ${q.timeLeft}s left` : '');
   showMessage(`⚑ ${crReqText(q)}${extra}${ladder}`, 'var(--c-amber, #ffb347)', { ms: 3200 });
 }
 // A tap on a challenge card (input.js). On a cleared card: tap takes the banked
@@ -301,9 +308,9 @@ function crBeginArrival(src, tier, idx) {
   const [r, c] = _crPick(spots);
   const t = { r, c, src, tier, idx, q };
   crTele.push(t);
-  if (src === 'flow') {
-    t.left = Math.round(CR_TELE_MS.flow / 1000);
-    const st = crFlowState();
+  if (crTimed(src)) {
+    t.left = Math.round(CR_TELE_MS[src] / 1000);
+    const st = src === 'flow' ? crFlowState() : crSpotState();
     if ((st.hints || 0) < 2) {
       st.hints = (st.hints || 0) + 1;
       showMessage(`⚑ A challenge card lands on the marked cell in ${t.left}s. Discard the card there to refuse it.`, 'var(--c-amber, #ffb347)', { ms: 4600 });
@@ -311,7 +318,7 @@ function crBeginArrival(src, tier, idx) {
   }
   crTelePaint(t);
   sfxChallengeWarn();
-  if (src !== 'flow') t.timer = setTimeout(() => crLand(t), CR_TELE_MS[src] || 3000);
+  if (!crTimed(src)) t.timer = setTimeout(() => crLand(t), CR_TELE_MS[src] || 3000);
 }
 // Flow's warning MARKS A CELL (owner, r463). Plays and falls do not move it:
 // whatever card sits there when the count ends is the one the challenge card
@@ -326,7 +333,7 @@ function crTeleTrack() {
 }
 function crTeleOnDiscard(cells) {
   for (const t of crTele.slice()) {
-    if (t.src !== 'flow') continue;
+    if (!crTimed(t.src)) continue;
     if (!(cells || []).some(([r, c]) => r === t.r && c === t.c)) continue;
     crTeleDrop(t);
     sfxChallengeDodge();
@@ -339,9 +346,9 @@ function crTelePaint(t) {
   el.className = 'cr-tele';
   el.style.left = cellLeft(t.c) + 'px'; el.style.top = cellTop(t.r) + 'px';
   el.style.setProperty('--cr-tele-ms', (CR_TELE_MS[t.src] || 3000) + 'ms');
-  if (t.src === 'flow') {
+  if (crTimed(t.src)) {
     el.classList.add('cr-tele-flow');
-    const total = CR_TELE_MS.flow / 1000;
+    const total = CR_TELE_MS[t.src] / 1000;
     el.style.setProperty('--cr-tp', String(1 - (t.left ?? total) / total));
     el.innerHTML = `<b>${t.left ?? total}</b>`;
   }
@@ -352,6 +359,7 @@ function crTeleDrop(t) { if (t.el) t.el.remove(); crTele = crTele.filter(x => x 
 function crLand(t) {
   if (t.src === 'seq' && (!crLive() || crRound.solved >= CR_CARDS)) { crTeleDrop(t); return; }
   if (t.src === 'flow' && !crFlowMayRun()) { crTeleDrop(t); return; }
+  if (t.src === 'spot' && !crSpotMayRun()) { crTeleDrop(t); return; }
   if (crBusy()) { t.timer = setTimeout(() => crLand(t), 250); return; }
   // The cell may have changed while it pulsed; fall back to a fresh spot. Its own
   // pulse comes off first, or crSpotsFor would count the cell as taken.
@@ -366,7 +374,7 @@ function crLand(t) {
     if (!crOrdinary(gridData[t.r]?.[t.c])) { if (t.src === 'seq') setTimeout(() => crBeginArrival('seq', t.tier, t.idx), 400); return; }
     discardToDrawPile(gridData[t.r][t.c]);
     const q = { ...t.q, src: t.src, idx: t.idx };
-    if (t.src === 'flow') { q.timeLeft = CR_FLOW_TIME; q.timeMax = CR_FLOW_TIME; }
+    if (crTimed(t.src)) { q.timeLeft = CR_FLOW_TIME; q.timeMax = CR_FLOW_TIME; }
     const card = { rank: '?', suit: 'stone', _isStone: true, _isChallenge: true, _id: `cr-${Date.now()}-${++crSeq}`, cr: q };
     gridData[t.r][t.c] = card;
     render();
@@ -495,6 +503,9 @@ function crCollect(cd) {
   } else if (q.src === 'flow') {
     if (bonus) crFlowState().rewardDelta++;
     showMessage(`⚑ Challenge done · +${st.credits} credits · +${st.secs}s${bonus ? ' · +1 reward next level-up' : ''}`, 'var(--gold)');
+  } else if (q.src === 'spot') {
+    if (bonus) crSpotState().minis++;
+    showMessage(`⚑ Challenge done · +${st.credits} credits · +${st.secs}s${bonus ? ' · +1 mini grid after the round' : ''}`, 'var(--gold)');
   }
   crQueue.push(cd._id);
   setTimeout(crDrain, 700);
@@ -509,7 +520,7 @@ function crFail(cd) {
   coins = Math.max(0, coins - st.credits); updateCoinsUI();
   roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI();
   if (typeof showTimeCost === 'function') showTimeCost(`-${st.secs}s`);
-  const bonus = crDiff(q) >= CR_BONUS_D;
+  const bonus = q.src === 'flow' && crDiff(q) >= CR_BONUS_D;
   if (bonus) crFlowState().rewardDelta--;
   showMessage(`⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s${bonus ? ' · one fewer reward next level-up' : ''}`, 'var(--red)');
   crQueue.push(cd._id);
@@ -544,9 +555,9 @@ function crDrain() {
 // spawner reads the session clock.
 function crTick() {
   for (const t of crTele.slice()) {
-    if (t.src !== 'flow' || t.left == null) continue;
+    if (!crTimed(t.src) || t.left == null) continue;
     t.left--;
-    if (t.el) { t.el.style.setProperty('--cr-tp', String(1 - t.left / (CR_TELE_MS.flow / 1000))); const b = t.el.querySelector('b'); if (b) b.textContent = Math.max(0, t.left); }
+    if (t.el) { t.el.style.setProperty('--cr-tp', String(1 - t.left / (CR_TELE_MS[t.src] / 1000))); const b = t.el.querySelector('b'); if (b) b.textContent = Math.max(0, t.left); }
     if (t.left <= 3 && t.left > 0) sfxChallengeTick();
     if (t.left <= 0) { t.left = null; crLand(t); }
   }
@@ -555,13 +566,14 @@ function crTick() {
     if (q.done || !q.ladder) continue;
     // A cleared card nobody answered takes its payout by itself.
     if (crCanRaise(q) && q.hold != null) { if (--q.hold <= 0) { crCollect(cd); continue; } }
-    if (q.src !== 'flow') continue;
+    if (!crTimed(q.src)) continue;
     q.timeLeft = Math.max(0, (q.timeLeft || 0) - 1);
     crRepaint(cd);
     if (q.timeLeft <= 5 && q.timeLeft > 0 && !crCleared(q)) sfxChallengeTick();
     if (q.timeLeft <= 0) { if (crCleared(q)) crCollect(cd); else crFail(cd); }
   }
   crFlowTick();
+  crSpotTick();
 }
 
 // ── Flow spawning ───────────────────────────────────────────────────────────
@@ -638,6 +650,61 @@ function crTakeFlowRewardDelta() {
   return d;
 }
 
+// ── Spot cards (r482) ───────────────────────────────────────────────────────
+function crSpotState() { return crSpot || (crSpot = { at: null, minis: 0, hints: 0 }); }
+function crSpotMayRun() {
+  if (typeof isActMode !== 'function' || !isActMode()) return false;
+  if (typeof survivalActive === 'function' && survivalActive()) return false;
+  if (typeof bossActive !== 'undefined' && bossActive) return false;
+  if (typeof tutorialActive === 'function' && tutorialActive()) return false;
+  if (crRound) return false;   // a challenge round has its own cards
+  return !roundEnded && roundSeconds > CR_FLOW_TIME + 5;
+}
+// Rolled once per round at its start: maybe one card, arriving at a random point
+// that leaves the card its full clock plus a beat.
+function crSpotRoll() {
+  const st = crSpotState();
+  // startRoundTimer also runs on resumes (pause, dev panel, a shop): one roll a level.
+  if (st.rolled === level) return;
+  st.rolled = level; st.at = null;
+  if (!crSpotMayRun() || Math.random() >= CR_SPOT_CHANCE) return;
+  const hi = roundSeconds - 15, lo = CR_FLOW_TIME + 10;
+  if (hi <= lo) return;
+  st.at = Math.round(lo + Math.random() * (hi - lo));
+}
+function crSpotTick() {
+  const st = crSpot;
+  if (!st || st.at == null || roundSeconds > st.at) return;
+  st.at = null;
+  if (!crSpotMayRun()) return;
+  const w = CR_FLOW_TIER_W, tot = w.reduce((a, b) => a + b, 0);
+  let x = Math.random() * tot, tier = 1;
+  for (let i = 0; i < w.length; i++) { x -= w[i]; if (x <= 0) { tier = i + 1; break; } }
+  crBeginArrival('spot', tier, 0);
+}
+// The round is over: a spot card still pulsing never lands, one on the board
+// leaves (a banked tier is paid, an open one costs nothing), and each mini grid
+// it earned opens.
+function crSpotSettle() {
+  const st = crSpotState();
+  st.at = null;
+  crTele.filter(t => t.src === 'spot').forEach(crTeleDrop);
+  for (const [r, c, cd] of crCards()) {
+    if (cd.cr.src !== 'spot') continue;
+    if (crCleared(cd.cr)) {
+      const d = cd.cr.ladder[cd.cr.banked].d, k = crStake(d);
+      coins += k.credits; updateCoinsUI();
+      if (d >= CR_BONUS_D) st.minis++;
+    }
+    gridData[r][c] = drawCard() || null;
+  }
+  crQueue = crQueue.filter(id => crFindById(id));
+  const n = st.minis; st.minis = 0;
+  let p = Promise.resolve();
+  for (let i = 0; i < n; i++) p = p.then(() => new Promise(res => openMiniGrid(res)));
+  return p;
+}
+
 // ── The challenge round's clock and settlement ──────────────────────────────
 function crOnClockOut() {
   // A cleared, unanswered round card takes its payout; a raised one is lost and
@@ -678,7 +745,11 @@ function crOnClockOut() {
   return true;
 }
 function crSettle() {
-  if (!crRound) return Promise.resolve();
+  const spot = crSpotSettle();
+  if (!crRound) return spot;
+  return spot.then(crSettleRound);
+}
+function crSettleRound() {
   crTele.filter(t => t.src === 'seq').forEach(crTeleDrop);
   for (const [r, c, cd] of crCards()) {
     if (cd.cr.src !== 'seq') continue;
@@ -707,7 +778,7 @@ function crTakePrize() {
 }
 function crReset() {
   crTele.forEach(t => { if (t.el) t.el.remove(); clearTimeout(t.timer); });
-  crRound = null; crArmed = null; crFlow = null; crTele = []; crQueue = []; crRecent = []; crFallSnap = null;
+  crRound = null; crArmed = null; crFlow = null; crSpot = null; crTele = []; crQueue = []; crRecent = []; crFallSnap = null;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -911,6 +982,11 @@ function sfxChallengeTick() {
 function devArmChallengeRound() {
   crArmNext({ source: 'dev' });
   showMessage('Next round is a challenge round', 'var(--gold)');
+}
+function devSpotChallengeNow(tier) {
+  if (typeof closeDevPanel === 'function') closeDevPanel();
+  if (!crSpotMayRun()) { showMessage('Ordinary rounds of a node mode only', 'var(--red)'); return; }
+  crBeginArrival('spot', tier || 2, 0);
 }
 function devFlowChallengeNow(tier) {
   if (typeof closeDevPanel === 'function') closeDevPanel();
