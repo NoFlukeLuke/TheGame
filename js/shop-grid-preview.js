@@ -889,6 +889,14 @@ function shopgIsLabel(r, c) {
 // purchase - it commands a whole row - and the weight is what decides how many
 // rows one REROLL press can take: one at Selection Size 3 or 4, two at 5 or 6.
 const SHOP_LABEL_WEIGHT = 2;
+// Trading two rows needs two labels in hand at once, so it needs Selection Size
+// 2 x SHOP_LABEL_WEIGHT. Below that every row-swap route refuses the same way.
+function shopRowSwapOK() {
+  const need = 2 * SHOP_LABEL_WEIGHT;
+  if (limits.selection.current >= need) return true;
+  refuse(`Insufficient hand size, ${limits.selection.current}/${need}`);
+  return false;
+}
 function shopgKeyWeight(key) {
   const [r, c] = key.split('-').map(Number);
   return shopgIsLabel(r, c) ? SHOP_LABEL_WEIGHT : 1;
@@ -984,7 +992,10 @@ function onShopGridClick(r, c) {
     shopGridSel = new Set(); shopSelOrder = [];
     if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
   }
-  if (shopgSelWeight() + shopgKeyWeight(key) > limits.selection.current) return;   // capped by Selection Size
+  if (shopgSelWeight() + shopgKeyWeight(key) > limits.selection.current) {   // capped by Selection Size
+    if (isLabel) refuse(`Insufficient hand size, ${limits.selection.current}/${shopgSelWeight() + SHOP_LABEL_WEIGHT}`);
+    return;
+  }
   if (shopGridSel.size > 0) {
     // Adjacent to the selection through ANY cell of this tile's footprint.
     const adj = shopgCellsOf(key).some(([tr, tc]) =>
@@ -1116,6 +1127,7 @@ function shopArmSwap(r, c) {
   if (shopGridMode !== 'buy') return;
   const isLabel = shopgIsLabel(r, c);
   if (!isLabel && !shopGridItems[r]?.[c]) { refuse('Nothing to lift', { color: 'var(--cream-dim)' }); return; }
+  if (isLabel && !shopRowSwapOK()) return;
   if (!shopSwapsLeft()) { refuse('No swaps left'); return; }
   shopSwapPending = shopgLeadKey(r, c);
   // The lift DROPS the selection: what you are about to do is move things, and
@@ -1153,6 +1165,7 @@ function shopSwapTiles(r1, c1, r2, c2) {
   const l1 = shopgIsLabel(r1, c1), l2 = shopgIsLabel(r2, c2);
   if (l1 !== l2) { refuse('A row label only trades with another row label', { color: 'var(--cream-dim)' }); return false; }
 
+  if (l1 && !shopRowSwapOK()) return false;
   if (l1) {
     // TWO LABELS: the WHOLE ROWS trade - stock, category, pin and all. That is
     // the move worth having, because a connected pick cannot cross the board:

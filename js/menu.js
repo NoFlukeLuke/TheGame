@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r476 · Flow: Tricks +5 in the first quarter";
+const BUILD = "2026-10-04 · r477 · Shop: row swaps need hand size 4";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
