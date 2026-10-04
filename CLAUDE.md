@@ -599,7 +599,24 @@ board (cards shrank, `getReachable` read `undefined`, every render threw, the bo
 `getReachable` now skips a missing cell. `playHand` refuses during Flow's boss wipe
 (`flowBossFighting && !bossActive`); a goal cleared there opened the reward chain over the boss.
 
-## r474 - Autopilot, the reward title is on the panel, names never clip, an empty-UI preview
+## r474 - card animation speed, Focus speed-up, Watch rebuilt
+- **Speed** (lab sliders, `lethe.cardAnimSpeed.v1`, overrides only): `caSpeedCfg.speed` (default
+  0.6, so every look is ~1.67x as long as built) and `focus2` (default 1.5: at Focus x2 every look
+  runs 1.5x as fast, linear from x1, Focus read from `focusMultiplier()`, capped at x4). `caSlow()`
+  is the one length multiplier: caAnim / caKeep / caWait / caOverlay / caSinkInto scale through it,
+  CSS overlay animations read `--ca-k` set on the overlay, and `cardSwapMs()` / `cardFlyMs()` include
+  it so the game's waits match. The lab's "Preview at Focus" slider (`_caLabFocus`) is lab-only.
+- **Watch**: no shrink or dim (own class `ca-idle-watch`). Nothing selected: cards look around
+  slowly (`caGazeWander`, a timer, 2-5 degrees, `.ca-wander` 1.6s transition). A selection: every
+  other card turns to the newest selected card (max `CA_GAZE_FIX_MAX` 9 degrees, `.ca-fixed`).
+  The pointer is not used. **Gaze had been invisible**: 900px perspective turned a 9 degree lean
+  into under 1% edge change; now 320px, and `caGazeFrame` re-adds `.ca-gazing` every frame. The
+  gazing transition list repeats the card's own transitions so adding rotate keeps them.
+- **Pinball** hops `h * .35` AWAY from the tray (opposite the flight vector) before flying.
+- **Sink** stand-ins go before the first `.card`, not the first child: the board's background
+  layer (the swirl) is a child of #grid and was painting over them. Fall 1300ms; `.sel-num` stripped.
+
+## r475 - Autopilot, the reward title is on the panel, names never clip, an empty-UI preview
 
 - **Autopilot** (legendary Sleight, `js/autopilot.js`, `BAL.autopilot`): -5 Focus when it lands (first round tick that sees it), a 30s countdown ring (`sleightLifeLeft` -> `autopilotLifeLeft`), then it plays the best hand on the board, waits for the dance and the fall, and repeats until the board has no hand, the round ends, or `max_hands` (0 = no cap). Hand k applies Focus k times (`focusExtraApplies` adds `autopilotFocusExtra()`, read only while that hand is in `playHand`). Then it discards itself and cycles. Taps are ignored while it runs (`onCardTap`). The board search (`autopilotBestHand`) walks connected shapes up to the Selection Size (5, or 4 on boards over 30 cells), allows one kicker at a 0.8 weight, shuffles its start cells (fxRandom) and retries when its 2,500-shape budget runs out before calling the board empty. Measured: ~11ms on 4x4, ~94ms on 7x7; at max Focus the score roughly doubles every hand (8 hands ~75k), so it is a round-ender.
 - **The current reward step has no tab.** Its title is `.fbg-title`, text in a `--fbg-head` (15px) band at the top of `#flowr-bg`; the panel grows by that band and is centred half a band higher so the board inside does not move (0 on the deck edit). The queued tabs are behind the panel (`#flowr-stack` inserted before it at z-index 0), anchored by `bottom` to the panel's top edge with height 0, so the Queue tile / hover spread (`--fst-step` 14px) can only grow UP. The fading ghost carries the title as `.ffl-title`.

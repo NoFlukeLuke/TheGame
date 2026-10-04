@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r474 · Autopilot sleight, reward title on the panel, queue spreads up, names never clip, empty UI preview";
+const BUILD = "2026-10-04 · r475 · Autopilot sleight, reward title on the panel, names never clip, empty UI preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

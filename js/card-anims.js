@@ -27,7 +27,7 @@ const CARD_ANIM_KINDS = [
       { id: 'current', name: 'Current: straight flight' },
       { id: 'lean',    name: 'A · Lean in', step: 5, desc: 'Each card tilts into its flight and straightens as it lands.' },
       { id: 'comet',   name: 'B · Comet', step: 5, desc: 'Cards streak along a curve with a short trail.' },
-      { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards pop up, then drop into their slots with a bounce. Takes a fifth longer.' },
+      { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards hop a little away from the tray, then fly over and land with a bounce. Takes a fifth longer.' },
       { id: 'mech',    name: 'T · Carriage', desc: 'Terminal look: a straight run at constant speed, seated with a firm stop.' },
     ] },
   { id: 'discard', label: 'Discard', note: 'Cards you throw away.',
@@ -66,7 +66,7 @@ const CARD_ANIM_KINDS = [
       { id: 'ripple',    name: 'A · Ripple', step: 7, desc: 'Selecting sends a small wave through the cards around it.' },
       { id: 'gaze',      name: 'B · Gaze', step: 7, desc: 'Cards lean toward the pointer (tilting the phone on mobile).' },
       { id: 'attention', name: 'C · Attention', step: 7, desc: 'Selected cards hover and sway; the rest settle back.' },
-      { id: 'watch',     name: 'D · Watch', step: 7, desc: 'Attention, and the other cards turn to look at the newest selected card (at the pointer when nothing is selected).' },
+      { id: 'watch',     name: 'D · Watch', step: 7, desc: 'Selected cards hover and sway. With nothing selected the cards look around slightly; once one is selected the rest turn, just barely, to the newest and hold.' },
     ] },
 ];
 
@@ -93,10 +93,35 @@ function setCardAnimChoice(kind, id) {
 const CARD_ANIM_RUN = { swap: {}, fly: {}, discard: {}, cut: {}, buff: {}, boss: {}, idle: {} };
 function cardAnimRunner(kind, id) { return (CARD_ANIM_RUN[kind] || {})[id] || null; }
 
-const caWait = ms => new Promise(r => setTimeout(r, ms));
+// ── SPEED (r474) ─────────────────────────────────────────────────────────────
+// One speed for every look, set in the lab (stored overrides-only), and Focus
+// speeds it up: at Focus x2 everything runs `focus2` times as fast, scaled
+// linearly from x1. caSlow() is the length multiplier every runner's time goes
+// through (caAnim, caKeep, caWait, caOverlay, the swap and fly lengths).
+const CA_SPEED_KEY = 'lethe.cardAnimSpeed.v1';
+const CA_SPEED_DEFAULT = { speed: 0.6, focus2: 1.5 };
+let caSpeedCfg = (() => { try { return Object.assign({}, CA_SPEED_DEFAULT, JSON.parse(localStorage.getItem(CA_SPEED_KEY)) || {}); } catch (e) { return Object.assign({}, CA_SPEED_DEFAULT); } })();
+let _caLabFocus = null;   // the lab's "preview at Focus" slider; null in the game
+function caSpeedSet(k, v) {
+  caSpeedCfg[k] = +v;
+  const o = {}; Object.keys(CA_SPEED_DEFAULT).forEach(n => { if (caSpeedCfg[n] !== CA_SPEED_DEFAULT[n]) o[n] = caSpeedCfg[n]; });
+  try { Object.keys(o).length ? localStorage.setItem(CA_SPEED_KEY, JSON.stringify(o)) : localStorage.removeItem(CA_SPEED_KEY); } catch (e) {}
+}
+function caFocusNow() {
+  if (_caLab && _caLabFocus != null) return _caLabFocus;
+  try { return typeof focusMultiplier === 'function' ? focusMultiplier() : 1; } catch (e) { return 1; }
+}
+function caSpeedNow() {
+  const f = Math.min(4, Math.max(1, caFocusNow() || 1));
+  return Math.max(0.05, caSpeedCfg.speed) * (1 + (f - 1) * (caSpeedCfg.focus2 - 1));
+}
+const caSlow = () => 1 / caSpeedNow();
+const caWaitRaw = ms => new Promise(r => setTimeout(r, ms));
+const caWait = ms => caWaitRaw(ms * caSlow());
+const caTime = o => { const k = caSlow(); return Object.assign({}, o, { duration: (o.duration || 0) * k, delay: (o.delay || 0) * k }); };
 const caAnim = (el, frames, opts) => new Promise(res => {
   if (!el || !el.animate) return res();
-  const a = el.animate(frames, opts);
+  const a = el.animate(frames, caTime(opts));
   a.onfinish = () => { a.cancel(); res(); };      // a filled animation owns its property for good
   a.oncancel = () => res();
 });
@@ -108,7 +133,7 @@ const caAnim = (el, frames, opts) => new Promise(res => {
 // travelled the opposite way. Only the standalone translate/scale/rotate/filter
 // properties move, so the heartbeat's own transform keeps beating underneath.
 const CARD_SWAP_MS = { current: 220, leapfrog: 418, rubber: 400, shove: 360, mech: 180 };
-function cardSwapMs() { return CARD_SWAP_MS[cardAnimChoice('swap')] || 220; }
+function cardSwapMs() { return (CARD_SWAP_MS[cardAnimChoice('swap')] || 220) * caSlow(); }
 
 function caSwapGeom(a, dx, dy) {
   const h = (a && a.offsetHeight) || 75, w = (a && a.offsetWidth) || 57;
@@ -238,27 +263,22 @@ const CARD_FLY_LOOKS = {
       { transform: `${pt(.65)} scale(${1 + (sc - 1) * .65}) rotate(${bow > 0 ? 4 : -4}deg)`, opacity: 1, offset: .62 },
       { transform: `${pt(1)} scale(${sc}) rotate(0deg)`, opacity: .9 }] };
   },
-  // C: pops up, then drops into its slot with a bounce
+  // C: hops a little AWAY from the tray (right when the preview is on the left,
+  // down when it is above), then flies over and lands with a bounce
   pinball: (dx, dy, sc, i, h) => {
-    const up = -h * .55;
+    const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, hop = h * .35, over = h * sc * .12, back = h * sc * .06;
     return { easing: 'linear', frames: [
       { transform: 'translate(0,0) scale(1)', opacity: 1, easing: 'cubic-bezier(.2,.8,.4,1)' },
-      { transform: `translate(${dx * .2}px,${up}px) scale(${1.12})`, opacity: 1, offset: .3, easing: 'cubic-bezier(.55,0,.85,.4)' },
-      { transform: `translate(${dx}px,${dy + h * sc * .12}px) scale(${sc * 1.04},${sc * .92})`, opacity: .95, offset: .74, easing: 'cubic-bezier(.2,.7,.4,1)' },
-      { transform: `translate(${dx}px,${dy - h * sc * .07}px) scale(${sc})`, opacity: .92, offset: .87, easing: 'ease-in' },
+      { transform: `translate(${-ux * hop}px,${-uy * hop}px) scale(1.1)`, opacity: 1, offset: .26, easing: 'cubic-bezier(.55,0,.85,.4)' },
+      { transform: `translate(${dx + ux * over}px,${dy + uy * over}px) scale(${sc * .95})`, opacity: .95, offset: .74, easing: 'cubic-bezier(.2,.7,.4,1)' },
+      { transform: `translate(${dx - ux * back}px,${dy - uy * back}px) scale(${sc * 1.02})`, opacity: .92, offset: .87, easing: 'ease-in' },
       { transform: `translate(${dx}px,${dy}px) scale(${sc})`, opacity: .9 }] };
   },
-  // T: the Terminal look. A straight run at near-constant speed, square to the
-  // board the whole way, seated with a 2px drop at the stop. Same duration.
-  mech: (dx, dy, sc) => ({ easing: 'cubic-bezier(.25,0,.2,1)', frames: [
-    { transform: 'translate(0,0) scale(1)', opacity: 1 },
-    { transform: `translate(${dx}px,${dy - 2}px) scale(${sc})`, opacity: .95, offset: .88 },
-    { transform: `translate(${dx}px,${dy}px) scale(${sc})`, opacity: .9 }] }),
 };
 // A look may take longer than the dance's own flight (pinball: a fifth longer).
 // The dance multiplies its flight by this, so its beats wait for the landing.
 const CARD_FLY_MUL = { pinball: 1.2 };
-function cardFlyMs(ms, id) { return caReduced() ? ms : ms * (CARD_FLY_MUL[id || cardAnimChoice('fly')] || 1); }
+function cardFlyMs(ms, id) { return caReduced() ? ms : ms * (CARD_FLY_MUL[id || cardAnimChoice('fly')] || 1) * caSlow(); }
 function cardFlyLook(dx, dy, sc, i, h, id) {
   const f = CARD_FLY_LOOKS[id || cardAnimChoice('fly')] || CARD_FLY_LOOKS.current;
   return document.body.classList.contains('reduced-motion') ? CARD_FLY_LOOKS.current(dx, dy, sc) : f(dx, dy, sc, i || 0, h || 75);
@@ -271,7 +291,7 @@ const caFly = id => async ({ cards, slots }) => {
     s.style.opacity = '0';
   });
   cards.forEach((el, i) => setTimeout(() => flyGridCardToSlot(el, slots[i], cardFlyMs(460, id), i, id), i * 100));
-  await caWait(cards.length * 100 + cardFlyMs(460, id) + 440);
+  await caWaitRaw(cards.length * 100 + cardFlyMs(460, id) + 440);
 };
 Object.keys(CARD_FLY_LOOKS).forEach(id => { CARD_ANIM_RUN.fly[id] = caFly(id); });
 
@@ -281,8 +301,8 @@ Object.keys(CARD_FLY_LOOKS).forEach(id => { CARD_ANIM_RUN.fly[id] = caFly(id); }
 // button in the game), or null.
 const caKeep = (el, frames, opts) => new Promise(res => {
   if (!el || !el.animate) return res();
-  const a = el.animate(frames, Object.assign({ fill: 'forwards' }, opts));
-  a.onfinish = res; a.oncancel = res; setTimeout(res, (opts.duration || 300) + (opts.delay || 0) + 80);
+  const t = caTime(opts), a = el.animate(frames, Object.assign({ fill: 'forwards' }, t));
+  a.onfinish = res; a.oncancel = res; setTimeout(res, (t.duration || 300) + (t.delay || 0) + 80);
 });
 const caK = el => { const r = el.getBoundingClientRect(); return (r.width / (el.offsetWidth || 1)) || 1; };
 function caAim(el, target) {
@@ -296,20 +316,25 @@ const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 2
 // Sink (r468): the board waits only CARD_EXIT_MS for it. The card itself is a
 // stand-in copy that keeps sinking for CA_SINK_MS while the cards above fall in
 // over it, so it is drawn under its neighbours and carries no card id.
-const CA_SINK_MS = 1000;
+const CA_SINK_MS = 1300;
 const CA_STRIP = /^(selected|hand-|swap-pending|unreachable|flowr-|ca-pick|tray-)/;
 function caStandIn(el, clip) {
   const c = el.cloneNode(true);
   [...c.classList].forEach(k => { if (CA_STRIP.test(k)) c.classList.remove(k); });
   c.removeAttribute('data-card-id'); c.classList.add('ca-standin');
+  c.querySelectorAll('.sel-num').forEach(n => n.remove());   // the selection order badge is not part of the card
   c.style.transition = 'none'; c.style.zIndex = '0'; c.style.opacity = '1'; c.style.boxShadow = 'none';
   if (clip) c.style.clipPath = clip;
-  el.parentNode.insertBefore(c, el.parentNode.firstChild);   // first child: every card paints over it
+  // before the FIRST CARD, not the first child: the board's own background layers
+  // (the swirl) come first and must stay under it
+  const firstCard = [...el.parentNode.children].find(n => n.classList && n.classList.contains('card') && n !== c);
+  el.parentNode.insertBefore(c, firstCard || el.parentNode.firstChild);
   return c;
 }
 // Tips toward one corner (a 3D tilt about the card's diagonal), spins at most 60
 // degrees and sinks, dimming only a little.
 function caSinkInto(c, side, ms, delay, drift) {
+  const k = caSlow(); ms *= k; delay = (delay || 0) * k;
   const spin = side * (36 + caRnd() * 22), tilt = d => `perspective(420px) rotate3d(1, ${-side}, 0, ${d}deg)`;
   const ox = (drift || 0);
   const a = c.animate([
@@ -391,7 +416,7 @@ CARD_ANIM_RUN.cut.snip = async ({ cards }) => {
     const parent = el.parentNode; if (!parent) return Promise.resolve();
     const line = document.createElement('div'); line.className = 'ca-snipline';
     line.style.left = el.style.left; line.style.top = el.style.top; line.style.width = el.offsetWidth + 'px'; line.style.height = el.offsetHeight + 'px';
-    parent.appendChild(line); setTimeout(() => line.remove(), 260);
+    line.style.setProperty('--ca-k', caSlow()); parent.appendChild(line); setTimeout(() => line.remove(), 260 * caSlow());
     return caWait(150).then(() => {
       if (!el.parentNode) return;
       const h1 = caStandIn(el, 'polygon(0 0,100% 0,0 100%)'), h2 = caStandIn(el, 'polygon(100% 0,100% 100%,0 100%)');
@@ -411,7 +436,7 @@ CARD_ANIM_RUN.cut.deep = async ({ cards }) => {
 
 // ── BUFF and BOSS (step 6) ──────────────────────────────────────────────────
 // Entrances on a card that stays: everything returns to rest (caAnim cancels).
-const caOverlay = (el, cls, ms) => { const o = document.createElement('div'); o.className = cls; el.appendChild(o); setTimeout(() => o.remove(), ms + 60); return o; };
+const caOverlay = (el, cls, ms) => { const o = document.createElement('div'), k = caSlow(); o.className = cls; o.style.setProperty('--ca-k', k); el.appendChild(o); setTimeout(() => o.remove(), ms * k + 60); return o; };
 
 CARD_ANIM_RUN.buff.current = async ({ cards }) => {
   await Promise.all(cards.map(el => caAnim(el, [
@@ -440,7 +465,7 @@ CARD_ANIM_RUN.buff.stamp = async ({ cards, color, lab }) => {
     setTimeout(() => {
       const ring = caOverlay(el, 'ca-stampring', 900);
       ring.style.setProperty('--ca-ring', lab ? cols[i % cols.length] : (color || '#ffe9a8'));
-    }, CA_STAMP_MS * .5);
+    }, CA_STAMP_MS * .5 * caSlow());
     try { sfxCardSelect?.(); } catch (e) {}
     return caAnim(el, [
       { scale: '1', translate: '0px 0px', filter: 'brightness(1)' },
@@ -496,7 +521,7 @@ CARD_ANIM_RUN.boss.static = async ({ cards }) => {
     o.innerHTML = '<i class="ca-roll"></i>';
     let f = 0;
     const tick = () => { if (!noise.length) return; o.style.backgroundImage = noise[f++ % noise.length]; o.style.backgroundPosition = `${(caRnd() * 90) | 0}px ${(caRnd() * 90) | 0}px`; };
-    tick(); const iv = setInterval(tick, 40); setTimeout(() => clearInterval(iv), CA_STATIC_MS + 40);
+    tick(); const iv = setInterval(tick, 40); setTimeout(() => clearInterval(iv), CA_STATIC_MS * caSlow() + 40);
     caAnim(o, [{ opacity: 0 }, { opacity: .92, offset: .1 }, { opacity: .85, offset: .55 }, { opacity: .45, offset: .8 }, { opacity: 0 }], { duration: CA_STATIC_MS, easing: 'linear' });
     const split = n => `grayscale(1) contrast(1.25) drop-shadow(${n}px 0 rgba(255,0,64,.6)) drop-shadow(${-n}px 0 rgba(0,190,255,.6))`;
     return caAnim(el, [
@@ -561,10 +586,26 @@ CARD_ANIM_RUN.idle.ripple = async ({ cards, board }) => {
   await caWait(500); cards.forEach(el => el.classList.remove('selected'));
 };
 // B: Gaze. Cards lean toward the pointer (the phone's tilt on mobile).
-// D: Watch (r468) is Attention plus Gaze: the selected cards hover, and the rest
-// look at the newest selected card instead of the pointer (the pointer again
-// once nothing is selected). The selected cards themselves do not turn.
-let _gazeBoard = null, _gazePt = null, _gazeRaf = 0, _gazeWatch = false;
+// D: Watch (r474). The selected cards hover (Attention's sway, nothing else on the
+// board shrinks or dims). With nothing selected the cards look around on their
+// own, slowly and slightly (caGazeWander); once a card is selected every other
+// card turns, just barely, to the newest one and holds there.
+let _gazeBoard = null, _gazePt = null, _gazeRaf = 0, _gazeWatch = false, _gazeWanderT = 0;
+const CA_GAZE_FIX_MAX = 9, CA_GAZE_WANDER = [2, 5], CA_GAZE_WANDER_MS = 1300;
+const caGazeSkip = el => el.classList.contains('selected') || el.classList.contains('ca-standin');
+function caGazeWander() {
+  const b = _gazeBoard;
+  if (!b || !b.isConnected || !_gazeWatch) { _gazeWanderT = 0; return; }
+  _gazeWanderT = setTimeout(caGazeWander, CA_GAZE_WANDER_MS * caSlow());
+  if (document.hidden || caGazeFocusEl(b)) return;
+  b.classList.add('ca-wander'); b.classList.remove('ca-fixed');
+  b.querySelectorAll('.card').forEach(el => {
+    if (caGazeSkip(el)) { el.style.rotate = ''; return; }
+    if (el.style.rotate && caRnd() < .4) return;            // not every card moves at once
+    const th = caRnd() * Math.PI * 2, ang = CA_GAZE_WANDER[0] + caRnd() * (CA_GAZE_WANDER[1] - CA_GAZE_WANDER[0]);
+    el.style.rotate = `${Math.cos(th).toFixed(3)} ${Math.sin(th).toFixed(3)} 0 ${ang.toFixed(1)}deg`;
+  });
+}
 function caGazeFocusEl(b) {
   if (!_gazeWatch) return null;
   if (b.id === 'grid') {
@@ -577,20 +618,23 @@ function caGazeFocusEl(b) {
 function caGazeFrame() {
   _gazeRaf = 0;
   const b = _gazeBoard; if (!b || !b.isConnected) return;
+  b.classList.add('ca-gazing');                               // a re-render must not lose the depth
   const fe = caGazeFocusEl(b), fr = fe && fe.getBoundingClientRect();
+  if (_gazeWatch && !fe) { if (b.classList.contains('ca-fixed')) { b.classList.remove('ca-fixed'); clearTimeout(_gazeWanderT); caGazeWander(); } return; }
+  if (_gazeWatch) { b.classList.add('ca-fixed'); b.classList.remove('ca-wander'); }
   const pt = fr ? { x: fr.left + fr.width / 2, y: fr.top + fr.height / 2 } : _gazePt;
   b.querySelectorAll('.card').forEach(el => {
-    if (!pt || el === fe || (_gazeWatch && el.classList.contains('selected')) || el.classList.contains('ca-standin')) { el.style.rotate = ''; return; }
+    if (!pt || el === fe || (_gazeWatch && caGazeSkip(el)) || el.classList.contains('ca-standin')) { el.style.rotate = ''; return; }
     const r = el.getBoundingClientRect();
     const dx = pt.x - (r.left + r.width / 2), dy = pt.y - (r.top + r.height / 2);
-    const d = Math.hypot(dx, dy) || 1, ang = Math.min(14, 2200 / (d + 120));
+    const d = Math.hypot(dx, dy) || 1, ang = _gazeWatch ? Math.min(CA_GAZE_FIX_MAX, 1500 / (d + 90)) : Math.min(14, 2200 / (d + 120));
     el.style.rotate = `${(-dy / d).toFixed(3)} ${(dx / d).toFixed(3)} 0 ${ang.toFixed(1)}deg`;
   });
 }
 function caGazePoint(x, y) { _gazePt = x == null ? null : { x, y }; if (!_gazeRaf) _gazeRaf = requestAnimationFrame(caGazeFrame); }
 function caGazeAttach(board, watch) {
   _gazeWatch = !!watch;
-  if (_gazeBoard === board) { caGazePoint(_gazePt ? _gazePt.x : null, _gazePt ? _gazePt.y : null); return; }
+  if (_gazeBoard === board) { if (_gazeWatch && !_gazeWanderT) caGazeWander(); caGazePoint(_gazePt ? _gazePt.x : null, _gazePt ? _gazePt.y : null); return; }
   caGazeDetach();
   _gazeBoard = board; if (!board) return;
   board.classList.add('ca-gazing');
@@ -599,17 +643,19 @@ function caGazeAttach(board, watch) {
   board.addEventListener('pointermove', board._gzMove);
   board.addEventListener('pointerleave', board._gzLeave);
   window.addEventListener('deviceorientation', caGazeTilt);
+  if (_gazeWatch) { clearTimeout(_gazeWanderT); caGazeWander(); }
 }
 function caGazeDetach() {
   const b = _gazeBoard; _gazeBoard = null;
+  clearTimeout(_gazeWanderT); _gazeWanderT = 0;
   window.removeEventListener('deviceorientation', caGazeTilt);
   if (!b) return;
-  b.classList.remove('ca-gazing');
+  b.classList.remove('ca-gazing', 'ca-wander', 'ca-fixed');
   b.removeEventListener('pointermove', b._gzMove); b.removeEventListener('pointerleave', b._gzLeave);
   b.querySelectorAll('.card').forEach(el => { el.style.rotate = ''; });
 }
 function caGazeTilt(e) {
-  if (!_gazeBoard || e.gamma == null) return;
+  if (!_gazeBoard || _gazeWatch || e.gamma == null) return;
   const r = _gazeBoard.getBoundingClientRect();
   caGazePoint(r.left + r.width / 2 + Math.max(-1, Math.min(1, e.gamma / 30)) * r.width,
               r.top + r.height / 2 + Math.max(-1, Math.min(1, (e.beta - 45) / 30)) * r.height);
@@ -627,13 +673,14 @@ CARD_ANIM_RUN.idle.gaze = async ({ board }) => {
 // D: Watch. Attention on the selected cards, and the rest look at the newest one.
 CARD_ANIM_RUN.idle.watch = async ({ cards, board }) => {
   const host = board.closest('#ca-lab') || document.body;
-  host.classList.add('ca-idle-attention');
+  host.classList.add('ca-idle-watch');
   caGazeAttach(board, true);
-  for (const el of cards) { el.classList.add('selected'); board._gazeFocus = el; caGazePoint(null); await caWait(800); }
-  await caWait(1200);
+  await caWait(2800);                                          // looking around
+  for (const el of cards) { el.classList.add('selected'); board._gazeFocus = el; caGazePoint(null); await caWait(1100); }
+  await caWait(1400);
   cards.forEach(el => el.classList.remove('selected')); board._gazeFocus = null; caGazePoint(null);
-  await caWait(250);
-  if (host !== document.body) { host.classList.remove('ca-idle-attention'); caGazeDetach(); } else cardAnimApplyIdle();
+  await caWait(1800);                                          // and back to looking around
+  if (host !== document.body) { host.classList.remove('ca-idle-watch'); caGazeDetach(); } else cardAnimApplyIdle();
 };
 // C: Attention. Selected cards hover and sway; the rest settle back.
 CARD_ANIM_RUN.idle.attention = async ({ cards, board }) => {
@@ -647,7 +694,8 @@ CARD_ANIM_RUN.idle.attention = async ({ cards, board }) => {
 // The game's idle hooks: set once, and again whenever the choice changes.
 function cardAnimApplyIdle() {
   const id = cardAnimChoice('idle'), g = document.getElementById('grid');
-  document.body.classList.toggle('ca-idle-attention', (id === 'attention' || id === 'watch') && !caReduced());
+  document.body.classList.toggle('ca-idle-attention', id === 'attention' && !caReduced());
+  document.body.classList.toggle('ca-idle-watch', id === 'watch' && !caReduced());
   if ((id === 'gaze' || id === 'watch') && !caReduced() && g) caGazeAttach(g, id === 'watch'); else if (_gazeBoard && _gazeBoard.id === 'grid') caGazeDetach();
 }
 let _caLastSel = new Set();
@@ -688,6 +736,12 @@ function openCardAnimLab() {
     <div id="ca-panel">
       <div id="ca-head"><b>CARD ANIMATIONS</b><button id="ca-close" aria-label="Close">✕</button></div>
       <p class="ca-sub">Pick a look for each card movement and press Preview to play it on the mock board. Tap cards to choose which ones a preview uses. Swap: the first card you tap is the one picked first. Looks marked with a step are built in that step of the plan.</p>
+      <div class="ca-speed">
+        <small>Speed: how fast every look plays (1 = as built). Focus: how much faster at Focus x2, growing evenly from x1. The preview slider is for this lab only.</small>
+        <span>Speed</span><input type="range" id="ca-sp" min="0.2" max="2" step="0.05"><output id="ca-sp-v"></output>
+        <span>Speed at Focus x2</span><input type="range" id="ca-f2" min="1" max="3" step="0.1"><output id="ca-f2-v"></output>
+        <span>Preview at Focus</span><input type="range" id="ca-pf" min="1" max="4" step="0.1" value="1"><output id="ca-pf-v"></output>
+      </div>
       <div id="ca-rows"></div>
       <button id="ca-all" class="ca-btn">Play all (the chosen look of each)</button>
       <button id="ca-reset" class="ca-btn">Reset the board</button>
@@ -697,6 +751,12 @@ function openCardAnimLab() {
   lab.querySelector('#ca-close').onclick = closeCardAnimLab;
   lab.querySelector('#ca-reset').onclick = () => caBuildBoard();
   lab.querySelector('#ca-all').onclick = caPlayAll;
+  const slide = (id, get, set) => { const r = lab.querySelector('#' + id), o = lab.querySelector('#' + id + '-v');
+    const show = () => { o.textContent = (+r.value).toFixed(2).replace(/0$/, '') + (id === 'ca-sp' ? '' : 'x'); };
+    r.value = get(); show(); r.oninput = () => { set(+r.value); show(); }; };
+  slide('ca-sp', () => caSpeedCfg.speed, v => caSpeedSet('speed', v));
+  slide('ca-f2', () => caSpeedCfg.focus2, v => caSpeedSet('focus2', v));
+  _caLabFocus = 1; slide('ca-pf', () => 1, v => { _caLabFocus = v; });
   const rows = lab.querySelector('#ca-rows');
   rows.innerHTML = CARD_ANIM_KINDS.map(k => `
     <div class="ca-row" data-k="${k.id}">
