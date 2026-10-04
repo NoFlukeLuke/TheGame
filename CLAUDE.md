@@ -657,3 +657,11 @@ a d2+ take queues a mini grid (`crSpot.minis`), a fail takes credits and seconds
 end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes a card still on the
 board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
 in SAVE_VARS. Dev: "Classic: Challenge Card Now".
+
+## r484 - the shop survives its opener closing
+`shopGridSaved` records `owner` ('pick' / 'map' / null). `shopRestoreSize` puts the saved size back
+unless that owner closed while the shop was up; then the board under the shop is the play board,
+sized from `gridData` (or the limits if it is ragged), with a WARN in the log. The Survival/Flow
+"opened from the pick" close branch no longer re-pauses the clock when the pick is gone (the next
+round is already dealt); it renders and restarts the round timer only if none is running. Belt and
+braces under r473's button guard: verified by closing the pick underneath an open shop.
