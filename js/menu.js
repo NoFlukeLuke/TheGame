@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r471 · Terminal look prototype: dev · Aesthetics switch drains the chrome, motion goes mechanical, sounds go solenoid";
+const BUILD = "2026-10-04 · r472 · Terminal look prototype (dev -> Aesthetics), merged over the machine panel skin";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

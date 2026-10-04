@@ -1,0 +1,139 @@
+/* ══ MACHINE PANEL skin (r471) ═══════════════════════════════════════════════
+   Cassette futurism with a little CloverPit grit: the game is a piece of hardware,
+   not a screen. Dev -> Aesthetics -> Tray look -> "machine panel". Off by default
+   while the owner compares it; js/tray-pit.js sets html.skin-machine (and
+   .mc-cream for the beige housing).
+
+   The rules it follows:
+   - The HOUSING is the frame. #stage is painted metal (or beige plastic) with
+     grain, grime toward the bottom, and seams that split it into three bolted
+     modules (left column, board bay, key column), screwed at their corners.
+   - Every tray is a WINDOW set into that housing: dark glass, recessed, with a
+     faint top reflection. The window never competes with what is inside it.
+   - Each window keeps its colour as a thin BACKLIT STRIP on the bezel above it.
+     That strip is also the trigger signal: it lights up for a moment when
+     something in the tray fires (.mc-lit, from trayPitTrigger).
+   - Glow lives only INSIDE displays (the numbers, the clock). Nothing on the
+     housing glows.
+   - The three action buttons are matte keycaps; RECORDS / PAUSE are dark keys.
+   Everything here is under html.skin-machine, so switching it off restores the
+   game exactly. */
+
+html.skin-machine {
+  --mc-grain-key: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mc-house: #2d2c28; --mc-house2: #1f1e1b;
+  --mc-plate: #3b3934; --mc-plate-hi: #5a564d; --mc-plate-lo: #121110;
+  --mc-glass: #0b0d0c; --mc-seam: rgba(0,0,0,.55); --mc-seam-hi: rgba(255,255,255,.07);
+  --mc-print: #d6cfbb; --mc-screw: #8d877a;
+  --mc-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+html.skin-machine.mc-cream {
+  --mc-house: #b6ad96; --mc-house2: #988f78;
+  --mc-plate: #c9c0a8; --mc-plate-hi: #ebe4d0; --mc-plate-lo: #6f6754;
+  --mc-seam: rgba(40,32,20,.45); --mc-seam-hi: rgba(255,255,255,.35);
+  --mc-print: #2c271e; --mc-screw: #7a725f;
+}
+
+/* ── The housing ─────────────────────────────────────────────────────────── */
+html.skin-machine body { background: #080706 !important; }
+html.skin-machine #cab-screen::after, html.skin-machine #cab-screen::before { display: none; }   /* no scanlines: it is not a screen */
+html.skin-machine #stage {
+  background:
+    /* screws at the corners of the three modules */
+    radial-gradient(circle at 1.1% 1.9%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 40.4% 1.9%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 1.1% 98.1%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 40.4% 98.1%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 98.9% 1.9%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 98.9% 98.1%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    /* seams between the modules: a dark groove with a lit edge beside it */
+    linear-gradient(90deg, transparent calc(41.35% - 1px), var(--mc-seam) calc(41.35% - 1px) 41.35%, var(--mc-seam-hi) 41.35% calc(41.35% + 1px), transparent calc(41.35% + 1px)),
+    linear-gradient(90deg, transparent calc(90.6% - 1px), var(--mc-seam) calc(90.6% - 1px) 90.6%, var(--mc-seam-hi) 90.6% calc(90.6% + 1px), transparent calc(90.6% + 1px)),
+    /* grit: grime gathering low and in the corners, a little oil by the keys */
+    radial-gradient(ellipse 55% 30% at 18% 104%, rgba(0,0,0,.38), transparent 70%),
+    radial-gradient(ellipse 30% 22% at 96% 100%, rgba(20,12,4,.35), transparent 70%),
+    radial-gradient(ellipse 80% 70% at 50% 45%, transparent 55%, rgba(0,0,0,.32) 100%),
+    var(--mc-grain),
+    linear-gradient(180deg, var(--mc-house) 0%, var(--mc-house2) 100%) !important;
+  box-shadow: inset 0 1px 0 var(--mc-plate-hi), inset 0 -2px 0 var(--mc-plate-lo), inset 0 0 0 1px rgba(0,0,0,.5) !important;
+  border-radius: 6px !important;
+}
+html.skin-machine.mc-cream #stage { background-blend-mode: normal; }
+
+/* ── Every tray is a window in the housing ─────────────────────────────────── */
+html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location,
+  #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #hand-preview-area, #coin-info, #vclock, #run-progress) {
+  --tray-set: 0 0 transparent !important; --tray-rings: 0 0 transparent !important;
+  --mc-strip: color-mix(in srgb, var(--tray-c) 55%, #000);
+  background: linear-gradient(180deg, rgba(255,255,255,.045), transparent 30%), var(--mc-glass) !important;
+  border: 1px solid #050505 !important; border-radius: 3px !important;
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.03),
+    0 -3px 0 -1px var(--mc-strip),                     /* the backlit colour strip, top bezel */
+    0 0 0 3px var(--mc-plate),                          /* bezel */
+    0 -1px 0 3px var(--mc-plate-hi), 0 1px 0 3px var(--mc-plate-lo),
+    0 3px 5px 3px rgba(0,0,0,.45) !important;
+  transition: box-shadow .5s ease;
+}
+/* A trigger: the strip lights to the full tray colour and glows onto the bezel, then fades. */
+html.skin-machine #stage .mc-lit {
+  --mc-strip: color-mix(in srgb, var(--tray-c) 85%, #fff);
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.03),
+    0 -3px 0 -1px var(--mc-strip), 0 -4px 7px -2px var(--tray-c),
+    0 0 0 3px var(--mc-plate),
+    0 -1px 0 3px var(--mc-plate-hi), 0 1px 0 3px var(--mc-plate-lo),
+    0 3px 5px 3px rgba(0,0,0,.45) !important;
+  transition: box-shadow .06s ease;
+}
+/* Readout text: white, a soft phosphor bloom, printed small caps for the labels. */
+html.skin-machine #stage #score-total-label, html.skin-machine #stage #score-goal-label, html.skin-machine #stage .subbox-label {
+  color: rgba(244,241,234,.62) !important; letter-spacing: 2px; }
+
+/* ── The board sits in its own bay (on #grid itself: #grid-slot also holds the Focus bar) ── */
+html.skin-machine #stage #grid {
+  border-radius: 4px !important;
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.8), 0 0 0 4px var(--mc-plate), 0 -1px 0 4px var(--mc-plate-hi),
+              0 1px 0 4px var(--mc-plate-lo), 0 4px 8px 4px rgba(0,0,0,.4) !important;
+}
+
+/* ── The clock: a small amber display window ──────────────────────────────── */
+html.skin-machine #stage #clock {
+  background: var(--mc-glass); border-radius: 3px;
+  box-shadow: 0 0 0 4px var(--mc-glass), inset 0 2px 5px rgba(0,0,0,.9), 0 0 0 7px var(--mc-plate),
+              0 -1px 0 7px var(--mc-plate-hi), 0 1px 0 7px var(--mc-plate-lo) !important;
+}
+
+/* ── Keys ─────────────────────────────────────────────────────────────────── */
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator) {
+  border-radius: 4px !important; filter: saturate(.85);
+  background-image: var(--mc-grain-key), var(--mc-key) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -5px 0 rgba(0,0,0,.22),
+              0 0 0 1px rgba(0,0,0,.55), 0 4px 0 var(--mc-key-side), 0 4px 0 1px rgba(0,0,0,.55),
+              0 7px 9px rgba(0,0,0,.5) !important;
+}
+html.skin-machine #stage #btn-play      { --mc-key: linear-gradient(180deg, #f3d36a, #d9ae2c); --mc-key-side: #8a6a12; }
+html.skin-machine #stage #btn-discard   { --mc-key: linear-gradient(180deg, #ef8d64, #c9502a); --mc-key-side: #7d2c12; }
+html.skin-machine #stage #swap-indicator { --mc-key: linear-gradient(180deg, #7fd8df, #2fa7b3); --mc-key-side: #145a62; }
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.22),
+              0 0 0 1px rgba(0,0,0,.55), 0 1px 0 var(--mc-key-side), 0 1px 0 1px rgba(0,0,0,.55) !important;
+}
+html.skin-machine #stage :is(#btn-records, #btn-pause) {
+  background: var(--mc-grain), linear-gradient(180deg, #46443d, #34322d) !important;
+  border: none !important; border-radius: 4px !important; color: #d6cfbb !important; text-shadow: 0 -1px 0 rgba(0,0,0,.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -3px 0 rgba(0,0,0,.25),
+              0 0 0 1px rgba(0,0,0,.6), 0 3px 0 #1d1c19, 0 5px 7px rgba(0,0,0,.45) !important;
+}
+
+/* ── Print on the housing (cream housing needs dark ink) ───────────────────── */
+html.skin-machine.mc-cream #stage :is(#sel-count, #sel-count-val, #sel-count-hand, #sel-count-coins, .subbox-times) { color: var(--mc-print) !important; text-shadow: none !important; opacity: 1 !important; }
+html.skin-machine.mc-cream #stage #focus-mult-readout { color: #5a3404 !important; text-shadow: none !important; opacity: 1 !important; }
+
+/* ── The Focus gauge: a slot in the housing ───────────────────────────────── */
+html.skin-machine #stage #focus-bar-outer {
+  border: 1px solid #050505 !important; border-radius: 3px !important; background: var(--mc-glass) !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 0 0 3px var(--mc-plate), 0 -1px 0 3px var(--mc-plate-hi),
+              0 1px 0 3px var(--mc-plate-lo) !important;
+}

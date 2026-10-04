@@ -66,6 +66,7 @@
 <link rel="stylesheet" href="css/print-toast.css">
 <link rel="stylesheet" href="css/card-anims.css">
 <link rel="stylesheet" href="css/terminal-skin.css">
+<link rel="stylesheet" href="css/skin-machine.css">
 </head>
 <body class="office-pending">
 <!-- BOOT WATCHDOG (r470). The 126 scripts load with no versioning, so a
@@ -619,7 +620,7 @@
     <div class="dev-subtitle">Tray look</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Trays are
-      <select id="dev-pit-on" onchange="trayPitSet('on', this.value === 'pit' ? 1 : 0)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="lines">glowing lines</option><option value="pit">pits</option></select>
+      <select id="dev-pit-on" onchange="trayPitSet('on', ['lines', 'pit', 'machine', 'machine-cream'].indexOf(this.value))" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="lines">glowing lines</option><option value="pit">pits</option><option value="machine">machine panel (charcoal)</option><option value="machine-cream">machine panel (cream)</option></select>
     </label>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px;">
       <button class="dev-btn" onclick="trayPitPreset('shadow')">Pit: shadow</button>
