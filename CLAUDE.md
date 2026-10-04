@@ -568,7 +568,15 @@ bar, and splits the card red / blue. **Watch** (new) is Attention (10% less sway
 other cards turn toward the newest selected card (`selected`'s last entry), or the pointer when
 nothing is selected. Closing the lab re-applies the idle look (a preview borrows the gaze).
 
-## r471 - the event log and the bug report (`js/devlog.js`, `js/bug-report.js`)
+## r471 - the Machine panel skin to compare (`css/skin-machine.css`)
+Cassette futurism with a little CloverPit grit, under `html.skin-machine` (`.mc-cream` = beige housing).
+Dev -> Aesthetics -> Tray look: `trayPit.on` 0 lines / 1 pit / 2 machine (charcoal) / 3 machine (cream);
+`trayPitOn()` is >= 1 (the WAAPI reactions), `trayPitDrawn()` is the SVG pit, `trayMachineOn()` the skin.
+`#stage` is the housing (grain SVG, grime, seams at 41.35% / 90.6%, corner screws); every tray is a dark
+glass window with a 3px bezel and a backlit colour strip on its top edge, which lights (`.mc-lit`,
+`trayMachineLamp`) on a trigger (140ms) and a land (420ms). Keys are matte keycaps. The bay bezel goes on
+`#grid`, not `#grid-slot` (the slot also holds the Focus bar). Pit stays the default.
+## r473 - the event log and the bug report (`js/devlog.js`, `js/bug-report.js`)
 `dbgEvent` keeps 600 lines; each carries a state stamp (`dbgCtx`: mode, level, quarter, clock,
 score/goal, board shape, boss/approach/challenge/ended/paused/anim/fall/takeover), printed only
 when it changes. Identical lines in a row fold into a count. Errors and promise rejections log a
@@ -584,7 +592,7 @@ errors, log, previous page load. Clipboard, then execCommand, then a selectable 
 uncaught error of a page load prints a notice pointing there. A new big moment worth tracing goes
 in `BR_TRACE`.
 
-## r472 - the shop on top of a pick; the boss wipe
+## r473 - the shop on top of a pick; the boss wipe
 The pick's capture listeners on PLAY / DISCARD / swap stand down while `shopGridActive`: BUY twice
 under a pick's Shop tile used to skip the pick, and LEAVE then restored the pick's 4x6 onto the 4x4
 board (cards shrank, `getReachable` read `undefined`, every render threw, the board vanished).
