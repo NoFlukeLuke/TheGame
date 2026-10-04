@@ -576,6 +576,12 @@ Dev -> Aesthetics -> Tray look: `trayPit.on` 0 lines / 1 pit / 2 machine (charco
 glass window with a 3px bezel and a backlit colour strip on its top edge, which lights (`.mc-lit`,
 `trayMachineLamp`) on a trigger (140ms) and a land (420ms). Keys are matte keycaps. The bay bezel goes on
 `#grid`, not `#grid-slot` (the slot also holds the Focus bar). Pit stays the default.
+**r479 (owner):** windows are a thin RECESSED edge (inset shadow on top, 1px lit lip below; no raised
+bezel), the colour band is gone (a trigger now glows the window from inside in its tray colour,
+`--mc-in` on `.mc-lit`), and the CRT layer (scanlines, glare, edge falloff; `::after`, z 40,
+`--mc-scan`) is ONLY on the displays: #grid and every window. Housing and keys carry no grain or
+scanlines. **Never give `#hand-preview-area` the layer**: in landscape it is a static wrapper, so its
+`::after` filled the whole stage.
 ## r473 - the event log and the bug report (`js/devlog.js`, `js/bug-report.js`)
 `dbgEvent` keeps 600 lines; each carries a state stamp (`dbgCtx`: mode, level, quarter, clock,
 score/goal, board shape, boss/approach/challenge/ended/paused/anim/fall/takeover), printed only

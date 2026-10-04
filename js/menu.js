@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r478 · Challenge stakes 4/9/15, seconds everywhere, mini grid";
+const BUILD = "2026-10-04 · r479 · Machine panel: thin recessed edges, no colour band, CRT only on the displays";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
