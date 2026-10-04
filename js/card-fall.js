@@ -453,7 +453,11 @@ async function removeAndFall(removingCells, mode = 'play') {
     ], { duration: FALL_DUR, delay: entryStart, easing: 'ease-in', fill: 'forwards' }));
   });
 
-  await Promise.all([...fallAnims, ...enterAnims].map(a => a.finished));
+  // allSettled, not all: a CANCELLED animation's `finished` REJECTS (a screen
+  // change or a background tab can cancel mid-fall), and a rejection here threw
+  // out of removeAndFall with `falling` stuck true - a board that ignores every
+  // tap until the page is reloaded (r470).
+  await Promise.allSettled([...fallAnims, ...enterAnims].map(a => a.finished));
   gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
 

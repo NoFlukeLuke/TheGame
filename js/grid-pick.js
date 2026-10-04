@@ -213,6 +213,9 @@ function gridScreenOwnsBoard() {
     if (typeof shopGridActive !== 'undefined' && shopGridActive) return true;
     if (typeof rewardOnGrid !== 'undefined' && rewardOnGrid) return true;
     if (typeof mapActive === 'function' && mapActive()) return true;
+    // r470: the deck editor borrows the real board too, so a round-level
+    // effect (flashRoundEnd's transform above all) must not paint over it.
+    if (typeof flowrDeckActive === 'function' && flowrDeckActive()) return true;
   } catch (e) {}
   return false;
 }

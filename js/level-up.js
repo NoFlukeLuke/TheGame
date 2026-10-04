@@ -499,7 +499,10 @@ function startNewRoundDealAnims() {
     }
   }
 
-  Promise.all(dealAnims.map(a => a.finished)).then(() => {
+  // allSettled, not all: a cancelled deal animation REJECTS its `finished`,
+  // and with no rejection path dealPhase and animating stayed true for good -
+  // render() then draws no cards at all (r470).
+  Promise.allSettled(dealAnims.map(a => a.finished)).then(() => {
     gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
     dealAnims = [];
     dealPhase = false; // re-enable normal render

@@ -288,22 +288,28 @@ function resumeSavedRun() {
   // sequence after resuming (they key off runSeed + visit index - see seed.js).
   if (typeof setPendingRunSeed === 'function') setPendingRunSeed(save.state.runSeed || null);
 
+  // finally, not a bare clear: a restore that THROWS used to leave
+  // _restoringSave true for the whole session - no checkpoint was ever taken
+  // again and mapBeginRun refused to open the Schedule (r470).
   _restoringSave = true;
-  startGame();                    // clean baseline: every global at a known value
-  applySavedState(save.state);
-  if (save.v < 2) migrateCardKeysToIds();
-  // Natural Scaling was keyed by FAMILY before r198 and is keyed by hand type now.
-  // Self-detecting, so it is safe to call on every restore.
-  if (typeof migrateNaturalScaleFamilies === 'function') migrateNaturalScaleFamilies();
-  // entityTier is just a map of numbers; the BONUSES it buys live in BAL, which
-  // is recomputed from it. Without this a resumed run restores the tiers and
-  // plays at base values.
-  if (typeof applyEntityTiers === 'function') applyEntityTiers();
-  dropUnknownCurses();
-  // Guided's challenges lost their predicate to the JSON round trip - see the
-  // note beside them in SAVE_VARS.
-  if (typeof guidedRehydrateChallenges === 'function') guidedRehydrateChallenges();
-  _restoringSave = false;
+  try {
+    startGame();                    // clean baseline: every global at a known value
+    applySavedState(save.state);
+    if (save.v < 2) migrateCardKeysToIds();
+    // Natural Scaling was keyed by FAMILY before r198 and is keyed by hand type now.
+    // Self-detecting, so it is safe to call on every restore.
+    if (typeof migrateNaturalScaleFamilies === 'function') migrateNaturalScaleFamilies();
+    // entityTier is just a map of numbers; the BONUSES it buys live in BAL, which
+    // is recomputed from it. Without this a resumed run restores the tiers and
+    // plays at base values.
+    if (typeof applyEntityTiers === 'function') applyEntityTiers();
+    dropUnknownCurses();
+    // Guided's challenges lost their predicate to the JSON round trip - see the
+    // note beside them in SAVE_VARS.
+    if (typeof guidedRehydrateChallenges === 'function') guidedRehydrateChallenges();
+  } finally {
+    _restoringSave = false;
+  }
 
   // The board came out of the save, so the grid has to be re-measured (a saved
   // run may have bought grid-size limits since) and repainted.
@@ -415,6 +421,39 @@ function continueSavedRun() {
     clearSavedRun();
   }
 }
+
+// ── Auto-save and auto-pause when the game loses the screen (r470) ──────────
+// The owner: "when opening the game, I almost always have to close the browser
+// and restart... maybe we need something that auto saves". Two things go wrong
+// in a backgrounded tab: progress since the last MANUAL save is lost if the OS
+// discards the tab, and the timers (which keep ticking, throttled) race the
+// animations (which freeze), leaving stuck flags and a dead board to come back
+// to. So the moment the game goes to the background:
+//   1. the in-memory checkpoint (refreshed every round start) is written to
+//      storage, so the run survives the tab being killed, and
+//   2. a live run is paused through the SAME path as the PAUSE button, so
+//      nothing races while hidden and the player comes back to the pause menu.
+// Guarded to the current run so backgrounding on the main menu or the run-over
+// screen never overwrites a save from an earlier run.
+function letheOnHidden() {
+  try {
+    if (runCheckpoint && typeof gameStartTime === 'number' && gameStartTime
+        && runCheckpoint.state && runCheckpoint.state.gameStartTime === gameStartTime) {
+      saveRunToStorage();
+    }
+  } catch (e) {}
+  try {
+    const menuUp = document.getElementById('main-menu-overlay')?.classList.contains('show');
+    const endUp  = document.getElementById('end-overlay')?.classList.contains('show');
+    if (!menuUp && !endUp && typeof pauseGame === 'function') pauseGame(true);
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') letheOnHidden();
+});
+// pagehide too: iOS fires it on app switches where visibilitychange can be
+// missed, and it is the last breath before a bfcache freeze.
+window.addEventListener('pagehide', letheOnHidden);
 
 // A finished run's save is stale, but only if the save actually belongs to the
 // run that just ended - a player may have saved run A, started run B, and died

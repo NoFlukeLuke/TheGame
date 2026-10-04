@@ -1198,9 +1198,9 @@ function devClearSave() {
 function devResumeRun() {
   if (!hasSavedRun()) return;
   closeDevPanel();
-  document.getElementById('main-menu-overlay').classList.remove('show');
-  document.getElementById('mode-select-overlay')?.classList.remove('show');
-  resumeSavedRun();
+  // continueSavedRun, not a bare resumeSavedRun: it hides the menus itself and
+  // catches a restore that throws (r470).
+  continueSavedRun();
 }
 
 

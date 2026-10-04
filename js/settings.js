@@ -472,7 +472,8 @@ function settingsDeleteSave() {
 function settingsResumeRun() {
   if (typeof hasSavedRun !== 'function' || !hasSavedRun()) return;
   closeSettings();
-  document.getElementById('main-menu-overlay')?.classList.remove('show');
-  document.getElementById('mode-select-overlay')?.classList.remove('show');
-  resumeSavedRun();
+  // continueSavedRun, not a bare resumeSavedRun: it hides the menus itself and
+  // catches a restore that throws, handing back the menu instead of stranding
+  // the player on a dead board (r470).
+  continueSavedRun();
 }

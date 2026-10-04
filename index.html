@@ -67,6 +67,52 @@
 <link rel="stylesheet" href="css/card-anims.css">
 </head>
 <body class="office-pending">
+<!-- BOOT WATCHDOG (r470). The 126 scripts load with no versioning, so a
+     restored tab can mix two deploys and one bad file stops bootstrap.js cold:
+     no stage scale, no menu, nothing to press. Launched from a home-screen
+     icon there is not even a reload button, which is why the owner had to
+     kill the whole browser. This runs before everything, depends on nothing,
+     and if bootstrap.js has not checked in (its last line) a few seconds
+     after load, it offers the one way out itself. -->
+<script>
+(function () {
+  window.LETHE_BOOT_OK = false;
+  var shown = false, badScripts = 0;
+  // A script that fails to FETCH does not stop the ones after it, so bootstrap
+  // can finish while the game is missing a file. Resource errors only surface
+  // on a capture-phase listener.
+  window.addEventListener('error', function (e) {
+    var t = e && e.target;
+    if (t && t.tagName === 'SCRIPT' && t.src) badScripts++;
+  }, true);
+  function check() {
+    if ((window.LETHE_BOOT_OK && !badScripts) || shown) return;
+    shown = true;
+    var d = document.createElement('div');
+    d.id = 'boot-watchdog';
+    d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0a0a12;color:#ffce2b;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;' +
+      'font-family:monospace;font-size:16px;text-align:center;padding:24px;';
+    var msg = document.createElement('div');
+    msg.textContent = badScripts
+      ? 'SYSTEM FAULT · ' + badScripts + ' file(s) failed to load.'
+      : 'SYSTEM FAULT · the game did not start.';
+    var btn = document.createElement('button');
+    btn.textContent = 'RESTART';
+    btn.style.cssText = 'font-family:monospace;font-size:18px;padding:12px 36px;background:#ffce2b;' +
+      'color:#0a0a12;border:0;border-radius:6px;cursor:pointer;';
+    btn.onclick = function () {
+      // A fresh query string makes the browser refetch the page itself, which
+      // is the cheap way past a stale restored-session copy.
+      location.replace(location.pathname + '?boot=' + Date.now());
+    };
+    d.appendChild(msg); d.appendChild(btn);
+    document.body.appendChild(d);
+  }
+  window.addEventListener('load', function () { setTimeout(check, 5000); });
+  setTimeout(check, 20000);   // insurance: `load` itself can fail to fire
+})();
+</script>
 <div id="knack-tooltip" role="tooltip"></div>
 
 

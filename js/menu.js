@@ -1,4 +1,4 @@
-const BUILD = "2026-10-03 · r469 · card animation lab opens from a link, Play all";
+const BUILD = "2026-10-04 · r470 · deck editor cards visible again; auto-save and pause in the background; boot watchdog";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

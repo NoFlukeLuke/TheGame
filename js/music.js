@@ -20,6 +20,12 @@ let _musicIndex = -1;
 let _musicScene = 'menu';        // 'menu' while the main menu is up, 'game' in a run
 let _musicWantPlaying = false;   // what the player asked for, regardless of autoplay
 let _musicOrder = [];            // shuffled index order when shuffle is on
+// Track ids whose FILE failed to load this session. Without this, a missing
+// file was an infinite loop: error -> musicNext -> the same track (it is the
+// only one in its scene) -> load -> error, re-requesting the file nonstop for
+// the whole run (r470, found with deadline.mp3 absent from assets/music/).
+// Session-only on purpose: a deploy that adds the file heals on the next load.
+const _musicDeadIds = new Set();
 
 function musicEl() {
   if (!_musicEl) {
@@ -28,7 +34,10 @@ function musicEl() {
     _musicEl.addEventListener('ended', () => musicNext());
     _musicEl.addEventListener('error', () => {
       const t = musicTrackAt(_musicIndex);
-      if (t) console.warn('[music] could not play', t.file, '- skipping.');
+      if (t) {
+        console.warn('[music] could not play', t.file, '- skipping.');
+        _musicDeadIds.add(t.id);
+      }
       musicNext();
     });
   }
@@ -67,7 +76,7 @@ function musicPlayableIndexes() {
   return musicAllTracks().map((t, i) => i).filter(i => {
     const t = musicTrackAt(i);
     const scene = t.scene || 'any';
-    return musicTrackOn(t.id) && (scene === 'any' || scene === _musicScene);
+    return musicTrackOn(t.id) && !_musicDeadIds.has(t.id) && (scene === 'any' || scene === _musicScene);
   });
 }
 
@@ -234,6 +243,7 @@ function musicPrev() {
 function musicPlayTrack(id) {
   const i = musicAllTracks().findIndex(t => t.id === id);
   if (i < 0) return;
+  _musicDeadIds.delete(id);   // an explicit press is a request to try the file again
   if (!musicTrackOn(id)) setMusicTrackOn(id, true);
   musicLoadIndex(i);
   musicPlay();
