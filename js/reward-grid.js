@@ -1662,13 +1662,17 @@ async function flyRewardTile(tile, p, good) {
   const target = rewardTargetEl(rewardTargetKey(p));
   if (!target) { await fallRewardTile(tile, 0); return; }
   const a = tile.getBoundingClientRect(), b = target.getBoundingClientRect();
-  const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-  const dy = (b.top  + b.height / 2) - (a.top  + a.height / 2);
-  await tile.animate([
+  let dx = (b.left + b.width / 2) - (a.left + a.width / 2);
+  let dy = (b.top  + b.height / 2) - (a.top  + a.height / 2);
+  // Machine panel: a copy flies, under the housing, to the target screen (js/machine-skin.js).
+  let mover = tile;
+  if (typeof mcOn === 'function' && mcOn()) { const f = mcFlightClone(tile); mover = f.el; dx /= f.zoom; dy /= f.zoom; }
+  await mover.animate([
     { transform: 'translate(0,0) scale(1)', opacity: 1 },
     { transform: `translate(${dx * 0.55}px, ${dy * 0.55}px) scale(0.62)`, opacity: 1, offset: 0.6 },
     { transform: `translate(${dx}px, ${dy}px) scale(0.14)`, opacity: 0 },
   ], { duration: 380, easing: 'cubic-bezier(0.5,0,0.85,1)', fill: 'forwards' }).finished;
+  if (mover !== tile) mover.remove();
   if (good) { try { sfxRewardGood(); } catch (e) {} pulseEl(target, 'reward-ding'); }
   else      { try { sfxRewardBad();  } catch (e) {} pulseEl(target, 'reward-hit'); }
 }

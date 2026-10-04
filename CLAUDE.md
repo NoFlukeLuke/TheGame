@@ -657,3 +657,23 @@ a d2+ take queues a mini grid (`crSpot.minis`), a fail takes credits and seconds
 end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes a card still on the
 board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
 in SAVE_VARS. Dev: "Classic: Challenge Card Now".
+
+## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
+Work on the machine panel now happens on the `machine-panel` branch (owner), not main.
+- **Screens vs housing:** every non-housing part is a domed-glass screen in a recess: `::before` is the
+  dome (glare, corner falloff), `::after` the tube (scan lines + a soft RGB grille, `mix-blend-mode:
+  multiply`, so dark glass stays black). Housing and keys are grained and grimy (`--mc-grain`,
+  `--mc-grain-lt`, `--mc-grime`), never scanlined.
+- **Text** in #stage is VT323 (shipped in `fonts/`, OFL, as 'VT323 Local'), card faces excepted, with
+  `font-size-adjust: .56`. Readout numbers take `#mc-crisp` (anti-aliasing thresholded away + a bloom).
+  A live SVG mosaic was tried for "pixelate everything" and dropped: 60 -> 20 fps on the board, and its
+  dilate erases dark strokes on light card faces.
+- **Fliers under the housing:** a body-level `position:fixed; pointer-events:none` element with no id
+  is moved into `#mc-fly` (`mcAdopt`), whose mask is opaque over the screens (`MC_SCREENS` rects) and
+  `MC_FLY_GHOST` (16%) elsewhere, recomputed every frame while anything flies. #grid clips its overflow
+  (`overflow-clip-margin: 6px`) so falling cards come out from under the housing.
+- **Focus gauge** is a fixed screen: in the skin `focusFxLoop` shakes `#focus-active-segment` (62% wide)
+  instead of `#focus-bar-outer`; `#focus-mult-readout` rides on the fill (`--focus-fill` on the wrap,
+  set in `syncFocusMeterState`) inside 22px of head room.
+- **Clock** is a flip clock (`#mc-flip`, built over `#clock`, whose text is hidden; a MutationObserver
+  on #clock flips changed digits), always four digits, flat black with faint static, no urgent colour.
