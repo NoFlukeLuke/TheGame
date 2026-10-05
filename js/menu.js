@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r483 · Short Change: credits for hands under your hand size";
+const BUILD = "2026-10-05 · r484 · event roster verdict, the reserve, junk cards, slots pass (docs)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

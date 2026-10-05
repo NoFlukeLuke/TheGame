@@ -477,3 +477,70 @@ of the owner's test.
 - Adding an event means registering it in **four** places in `js/events-core.js` (the
   `pool` array, the `handlers` map, `EVENT_META`, and the `renderers` map). The dev panel
   generates its list from `EVENT_META`, so it picks up a new one on its own.
+
+---
+
+# THE OWNER'S VERDICT (r484) - what each event becomes
+
+Decided in conversation after the r482 re-audit. **This section outranks everything above
+it.** The sections above are the measured case; this is the call.
+
+## The rule every event is now built to
+
+A reworked event has **three rungs**, and the first one is not optional:
+
+1. **a floor** - an option that is barely risky and still worth taking instead of a
+   reward grid. Without it the event is a gamble you can be forced into.
+2. **a trade** - known terms, a real cost.
+3. **a gamble** - unknown outcome, bigger ceiling.
+
+## Goes
+
+| event | why |
+|---|---|
+| **Pick a Card** (`bench`) | the reward grid's card tile with an extra tap |
+| **Two and a Catch** (`twin_path`) | the randomness is too hard to read. Parked, see TODO |
+| **The Price** (`bargain`) / **The Trade** (`crossroads`) | under review, owner unconvinced |
+
+## Reworked
+
+- **Card Market** becomes the way you stock a new **RESERVE** (see TODO). Buy as many
+  cards as you can afford at 5 credits each; **50% carry one random buff, 5% carry two**.
+  They do not join the deck - they go to the reserve and are placed on the board by hand.
+- **Card Upgrade** (`forge`) becomes the SCALING event and nothing else: **+10 pips or
+  +4 mult, growing by that much again every time it triggers.** It opens the board, you
+  pick two cards, one of them takes the buff. Paying credits buys a chance at both.
+- **Free Pick** (`merchant`) offers only entities that **complete a scoring engine you are
+  already building** - read from `COMBO_FAMILIES` (js/combos-aim.js), never from tags.
+- **Theme Draft** (`confluence`) **locks one theme** rather than offering three, then pays
+  a Sleight, a Trick and a buffed card at **double the normal buff**. Its theme table is
+  replaced by `COMBO_FAMILIES` for the same reason Free Pick's is.
+- **Extra Rep** (`rehearsal`) keeps its permanent prime and gains a cost: **3 junk cards
+  into the deck.**
+- **Maintenance** (`workshop`): the charge ceiling raise becomes **+20% of the printed
+  durability**, not +1.
+- **Coin Flip** (`wager`): needs a reason to be interesting. Open.
+- **Card Slots** / **Entity Slots**: both need a design pass before they are worth keeping.
+  See TODO.
+
+## Stays as it is
+
+Clean Up · Deck Trim (conditional on junk cards existing) · Clean Slate · Tray Order ·
+Trade a Trick · The Investment · Overtime · The Gamble · Spin to Improve.
+
+## The card-buff value split
+
+A multiplier buff is **worth less outside an event**, and the two multipliers are
+**3x rarer** than the ordinary buffs wherever they appear.
+
+| | grid / shop | card-buff event | structural event |
+|---|---|---|---|
+| x pips | x1.5 | x2 | - |
+| x mult | x1.5 | x3 | - |
+| scaling pips / mult | - | - | yes |
+| replay | - | - | yes |
+| second suit / rank | - | - | yes |
+| card states | - | - | yes |
+
+**Two structural events** are wanted, paying those four families in different ways and at
+different costs. Neither is built.

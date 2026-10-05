@@ -27,6 +27,63 @@ Time, Coin, Rank Pull, Cut; then +pips, +mult, Suit Spread). Rank Pull, Cut, Rep
 Coin were placed by guess and want the owner's call. Also open: the corner-band map for
 x mult / x pips / Focus, which have no mark on the card yet (CARD_EFFECTS.md).
 
+## 0b. THE RESERVE - cards you hold and place by hand (owner, r484)
+
+A second place a card can be: not the deck, not the board, a **RESERVE**. Reached by
+**double-tapping the hand preview area**, which swaps that panel to show what you are
+holding; from there a card is **placed on the grid by hand**, the way a Sleight is.
+
+- **Card Market stocks it.** Buy as many as you can afford at **5 credits** each (the
+  price will want to vary by mode). **50% of them carry one random buff, 5% carry two.**
+- The placement gesture is Dealer's Choice's (`js/dealers-choice.js`, r423): it already
+  holds temp cards off-board and places them into a cell by tap, with the swap hooks and
+  the swap time cost. **Read that file before designing this one.** The difference is that
+  a reserve card persists across rounds and is not a temp card.
+- Open: does a placed card join the deck or return to the reserve when it leaves the
+  board? Is the reserve capped? Does it survive a save (it must - `SAVE_VARS`).
+
+## 0c. JUNK CARDS - a deck cost worth paying with (owner, r484)
+
+There is **nothing in the game that costs you a card slot**, and several events want one.
+Today's three curses (`CURSE_DEFS`, js/deck-grid.js) all fire **when the card scores** and
+all **lift after N scores**, so a cursed card is a nuisance you clear by playing it - the
+opposite of a lasting cost. Stones are inert but boss-owned and filtered out of the piles.
+
+What is wanted:
+
+- **An inert card** that really sits in your deck. 6 of them as an event offer: hold them
+  for N rounds and the payout is large.
+- **Arrival costs** - a card that bills you when it LANDS on the board, not when it
+  scores: -5 Focus, -8 seconds, caps a single card's pips at 50. **No hook exists**;
+  `fireSleightsOnDraw` (js/sleights-runtime.js) is the precedent and the right site.
+- **A stone that breaks what is under it** - moves that card to the played pile unplayed,
+  on landing or after 20 seconds in place.
+- Junk cards are then available as a **gamble cost** to any event (Extra Rep takes 3).
+
+## 0d. THE SLOT MACHINES - a design pass before they are kept (owner, r484)
+
+**Card Slots** (`the_floor`) and **Entity Slots** (`the_payline`) both "feel odd" and
+neither is worth keeping as it is. Owner's leads, plus what the odds actually are today:
+
+- **Card Slots** draws 5 reels from the live deck and pays a line that matches. P(three
+  alike on a line) is the sum over suits of that suit's deck share cubed - **1/16 a line
+  with four suits, 1/49 on Spectrum** - so most spins pay nothing and the player cannot
+  tell why.
+- Leads: **narrow the reels to a few random ranks** so a hit is likely; or make a spin
+  **cheap and repeatable** so you buy several; and **a hit also improves one random
+  entity** on top of the card buffs.
+- **Entity Slots** caps at `SLOT_ENT_SYMBOLS` (4) distinct symbols, so P(three alike) is
+  exactly 1/k^2. It is also the fifth source of entity improvement in the game.
+- Worth reading how real slot design creates tension (near misses, variable reel weights,
+  a visible paytable) and adapting it, rather than tuning these two numbers.
+
+## 0e. TWO AND A CATCH - parked, for much later (owner, r484)
+
+Removed from the pool because its randomness is too hard to read: two Tricks and a shadow
+debuff you cannot refuse, none of it chosen. Worth bringing back only if the pairing is
+**tailored** - the debuff aimed at what the two Tricks are for, so the catch is legible
+before you accept it.
+
 ## 1. MAP MODE - its own mode, owner-specced
 
 The big one. Guided's crossroads answers "what next"; this answers "what is my route through
