@@ -6,15 +6,15 @@
       Trick going to its tray...) is a body-level position:fixed element with
       pointer-events:none. Each one is moved into #mc-fly, a full-viewport layer whose
       mask is opaque only over the screens (every window, the board, the Focus gauge,
-      the clock) and MC_FLY_GHOST over the housing. So a flier is crisp on a screen and
-      only a faint shape while it passes under the housing between them.
+      the clock) and MC_FLY_GHOST (0) over the housing. So a flier shows on a screen and
+      is hidden completely while it passes under the housing between them.
    2. THE FLIP CLOCK. #clock keeps its text (every writer still writes it); the text is
       hidden and #mc-flip, laid over it, shows four split-flap digits that flip when
       they change. Always four digits (leading zero), so the width never changes.
    3. CRISP TEXT. An SVG filter (#mc-crisp) that removes anti-aliasing from readout
       text and adds a phosphor bloom; css/skin-machine.css says which text gets it. */
 
-const MC_FLY_GHOST = 0.16;   // how much of a flier shows through the housing
+const MC_FLY_GHOST = 0;      // nothing shows through the housing: it is in front of the screens (owner, r486)
 const MC_SCREENS = ['score-center', 'score-left', 'pips-box', 'mult-box', 'focus-box', 'screen-location', 'pmf-merged',
   'knack-carousel-wrap', 'selected-cards', 'trick-tray-area', 'coin-info', 'vclock', 'run-progress', 'grid',
   'focus-bar-outer', 'clock', 'hand-preview-area'];
@@ -29,7 +29,7 @@ function mcFlyLayer() {
   document.body.appendChild(_mcFly);
   return _mcFly;
 }
-// The mask: a faint base everywhere, fully opaque over each visible screen.
+// The mask: MC_FLY_GHOST everywhere (0: the housing hides it), fully opaque over each visible screen.
 function mcFlyMask() {
   const layers = [`linear-gradient(rgb(0 0 0 / ${MC_FLY_GHOST}), rgb(0 0 0 / ${MC_FLY_GHOST}))`], sizes = ['100% 100%'], pos = ['0 0'];
   const land = document.getElementById('stage')?.classList.contains('landscape');
@@ -169,11 +169,53 @@ function mcCrispFilter() {
   document.body.appendChild(svg);
 }
 
+// ── 4. Words on the panel (r486, owner) ────────────────────────────────────
+// DISCARD reads DEFER, SWAP and the credits lose their emoji, and the FOCUS screen drops its "x" (the x between the screens
+// already says it). Both are text the game rewrites (the reward step relabels the
+// key and restores its markup; the dance writes the Focus value), so an observer
+// re-applies them after every write. Switching the skin off restores them.
+// [element, text in the game, text on the panel]. The game's text is wrapped in a
+// .mc-game span with a .mc-panel twin beside it; css/skin-machine.css shows one or the
+// other. Nothing is ever deleted, so markup a screen saves and restores (the reward step
+// does) carries both words, and switching the skin off needs no undo.
+const MC_WORDS = [
+  [() => document.getElementById('btn-discard'), 'D\nI\nS\nC\nA\nR\nD', 'D\nE\nF\nE\nR'],
+  [() => document.getElementById('swap-indicator'), '\ud83d\udd04', ''],                     // the swap emoji
+  [() => document.querySelector('#coin-info .ci-main'), '\ud83d\udcb0', ''],                // the credits emoji
+  [() => document.getElementById('coins-display'), '\ud83d\udcb0', ''],                     // portrait's credits
+];
+function mcWordFix(on) {
+  if (on) MC_WORDS.forEach(([get, game, panel]) => {
+    const el = get(); if (!el) return;
+    [...el.childNodes].forEach(n => {
+      if (n.nodeType !== 3 || !n.data.includes(game)) return;
+      const i = n.data.indexOf(game), frag = document.createDocumentFragment();
+      if (i > 0) frag.append(n.data.slice(0, i));
+      const g = document.createElement('span'); g.className = 'mc-game'; g.textContent = game;
+      const q = document.createElement('span'); q.className = 'mc-panel'; q.textContent = panel;
+      frag.append(g, q);
+      if (i + game.length < n.data.length) frag.append(n.data.slice(i + game.length));
+      n.replaceWith(frag);
+    });
+  });
+  const f = document.getElementById('focus-val');
+  if (f && on && /^[x×]/.test(f.textContent)) f.textContent = f.textContent.replace(/^[x×]\s*/, '');
+  if (f && !on && /^\d/.test(f.textContent)) f.textContent = '×' + f.textContent;
+}
+let _mcWordMo = null;
+function mcWordWatch() {
+  if (_mcWordMo) return;
+  _mcWordMo = new MutationObserver(() => { if (mcOn()) mcWordFix(true); });
+  [...MC_WORDS.map(w => w[0]()), document.getElementById('focus-val')].forEach(e => {
+    if (e) _mcWordMo.observe(e, { childList: true, characterData: true, subtree: true }); });
+}
+
 // ── Switching ───────────────────────────────────────────────────────────────
 function mcApply() {
   const on = mcOn();
-  if (on) { mcCrispFilter(); mcClockWatch(); mcFlipSet(); }
+  if (on) { mcCrispFilter(); mcClockWatch(); mcFlipSet(); mcWordWatch(); }
   else if (_mcFlip) { _mcFlip.remove(); _mcFlip = null; _mcFlipVal = ''; }
+  mcWordFix(on);
   if (!on && _mcFly) [..._mcFly.children].forEach(c => document.body.appendChild(c));   // hand back anything mid-flight
 }
 function mcInit() {

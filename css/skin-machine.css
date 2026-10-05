@@ -240,3 +240,39 @@ html.skin-machine #stage :is(#btn-records, #btn-pause):active { transform: trans
 
 /* ── Print on the housing (cream housing needs dark ink) ───────────────────── */
 html.skin-machine.mc-cream #stage :is(#sel-count, #sel-count-val, #sel-count-hand, #sel-count-coins, .subbox-times) { color: var(--mc-print) !important; text-shadow: none !important; opacity: 1 !important; }
+
+/* ── r486 owner notes ─────────────────────────────────────────────────────── */
+/* Words the panel says differently (js/machine-skin.js wraps both, CSS picks one). */
+.mc-panel { display: none; }
+html.skin-machine .mc-game { display: none; }
+html.skin-machine .mc-panel { display: contents; }   /* contents: stays in the same line run as the text around it */
+/* SCORE and GOAL are blank screens holding only their numbers, laid out alike. */
+html.skin-machine #stage :is(#score-total-label, #score-goal-label) { display: none !important; }
+/* The goal screen IS the progress bar: the old bar's fill (same element, same width the
+   game writes, same colours, boss red included) spreads under the number across the
+   whole screen. */
+html.skin-machine #stage #score-left { position: relative; }
+html.skin-machine #stage #score-progress-bar-wrap {
+  position: absolute !important; inset: 0 !important; width: auto !important; height: auto !important;
+  background: none !important; border-radius: inherit !important; margin: 0 !important; z-index: 0; pointer-events: none;
+}
+html.skin-machine #stage #score-progress-bar { border-radius: 0 !important; opacity: .55; }
+html.skin-machine #stage #score-left > :not(#score-progress-bar-wrap) { position: relative; z-index: 1; }
+
+/* Desktop credits bar: level at one end, credits at the other, no emoji. */
+html.skin-machine #stage.landscape #coin-info { justify-content: space-between !important; }
+html.skin-machine #stage.landscape #coin-info .ci-level { border-right: none !important; padding-right: 0 !important; }
+html.skin-machine #stage.landscape #coin-info .ci-main b { font-size: 16px !important; }
+html.skin-machine #stage.landscape #coin-info .ci-main .ci-unit { font-size: 9px !important; margin-left: 4px; }
+
+/* Keys (the SWAP and credits emoji are removed by js/machine-skin.js): the words are engraved in the plastic and filled with white
+   enamel (a dark lip above each stroke where the cut is in shadow, a lit lip below). */
+html.skin-machine #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 17px !important; display: block; letter-spacing: 1px; }
+html.skin-machine #stage #swap-indicator:not(.reward-skip) #swap-count { font-size: 19px !important; display: block; }
+html.skin-machine #stage #swap-indicator:not(.reward-skip) .act-cost { font-size: 8px !important; }
+html.skin-machine #stage :is(#btn-discard, #btn-play) { font-size: 1.25em !important; line-height: 1 !important; }
+html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator),
+html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator) * {
+  color: #f2eee3 !important; -webkit-text-stroke: .45px rgba(40,28,8,.55) !important;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.3), 0 0 1px rgba(0,0,0,.4) !important;
+}

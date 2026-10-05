@@ -711,3 +711,11 @@ Work on the machine panel now happens on the `machine-panel` branch (owner), not
   set in `syncFocusMeterState`) inside 22px of head room.
 - **Clock** is a flip clock (`#mc-flip`, built over `#clock`, whose text is hidden; a MutationObserver
   on #clock flips changed digits), always four digits, flat black with faint static, no urgent colour.
+**r486 (machine-panel, owner):** SCORE / GOAL labels hidden (blank screens, numbers alike); the goal
+screen IS the progress bar (`#score-progress-bar-wrap` stretched to `inset:0` under the number, same
+width writes and colours, 55%). Fliers are fully hidden under the housing (`MC_FLY_GHOST` 0). Desktop
+credits bar is level left, credits right. **Panel words** (`MC_WORDS`, js/machine-skin.js): DISCARD
+reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word is never deleted: the
+game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
+for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
+Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
