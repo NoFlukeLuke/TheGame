@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r485 · Shop: if the pick that opened it closes underneath, the board keeps its own size and the clock runs";
+const BUILD = "2026-10-05 · r486 · Zigzag Trick tray, stacked phone trays, smaller preview cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

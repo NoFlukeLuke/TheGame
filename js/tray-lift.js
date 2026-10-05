@@ -84,7 +84,14 @@ function trayLiftAt(chip, x, y) {
 
 // The chip under a point. Later tiles sit on top in a fan, so the LAST chip
 // whose box holds x wins; a point past every tile takes the nearest end.
-function trayLiftChipAt(list, x) {
+function trayLiftChipAt(list, x, y) {
+  // The chip actually drawn under the finger wins (the zigzag stacks two rows);
+  // off every tile, the last one whose columns hold x.
+  if (y != null) {
+    const top = document.elementFromPoint(x, y);
+    const c = top && top.closest && top.closest('#trick-tray-list .trick-tray-chip');
+    if (c) return c;
+  }
   const chips = [...list.querySelectorAll('.trick-tray-chip')];
   let hit = null;
   chips.forEach(c => { const r = c.getBoundingClientRect(); if (x >= r.left && x <= r.right) hit = c; });
@@ -101,12 +108,12 @@ function trayLiftBind(list) {
       if (chip) trayLiftAt(chip, e.clientX, e.clientY); else trayLiftEnd();
       return;
     }
-    if (touching) trayLiftAt(trayLiftChipAt(list, e.clientX), e.clientX, e.clientY);
+    if (touching) trayLiftAt(trayLiftChipAt(list, e.clientX, e.clientY), e.clientX, e.clientY);
   });
   list.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse') return;
     touching = true;
-    trayLiftAt(trayLiftChipAt(list, e.clientX), e.clientX, e.clientY);
+    trayLiftAt(trayLiftChipAt(list, e.clientX, e.clientY), e.clientX, e.clientY);
   });
   const lift = () => { touching = false; trayLiftEnd(); };
   list.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') lift(); });
