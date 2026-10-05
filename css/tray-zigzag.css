@@ -1,0 +1,33 @@
+/* ── PORTRAIT TRAYS (r486) ────────────────────────────────────────────────────
+   1. The zigzag Trick tray (js/tray-zigzag.js): tiles are placed absolutely by
+      left/top in the list's own box; the list takes the tray's full height.
+   2. Side by side, the two halves are exactly half the strip each. They were
+      flex 1 1 0, which shared the space AFTER each half's padding, so the
+      preview half (24px of right padding for the swap button) came out wider.
+   3. Settings -> Display -> Phone tray layout -> Stacked bars: the Trick tray
+      and the preview / Knacks tray become two full-width bars, each 65% of the
+      strip's height. The board's slot takes the difference. */
+#stage:not(.landscape) #trick-tray-list.zz {
+  display: block; max-height: none; flex: 1 1 auto; min-height: 0; align-self: stretch;
+  overflow: visible; position: relative;
+}
+#stage:not(.landscape) #trick-tray-list.zz .chip-marquee {
+  position: relative; display: block; width: 100%; height: 100%;
+}
+#stage:not(.landscape) #trick-tray-list.zz .trick-tray-chip {
+  position: absolute; margin: 0 !important; flex: none;
+}
+
+#stage:not(.landscape) #trick-tray-area,
+#stage:not(.landscape) #hand-preview-area,
+#stage:not(.landscape) #knack-carousel-wrap { flex: 0 0 calc((100% - 7px) / 2); }
+
+body.pt-stacked #stage:not(.landscape) #trick-panel { flex-direction: column; height: 165px; }
+body.pt-stacked #stage:not(.landscape) #trick-tray-area,
+body.pt-stacked #stage:not(.landscape) #hand-preview-area,
+body.pt-stacked #stage:not(.landscape) #knack-carousel-wrap {
+  flex: 0 0 calc((100% - 7px) / 2); width: 100%;
+}
+body.pt-stacked #stage:not(.landscape) #trick-tray-list { max-height: 70px; }
+body.pt-stacked #stage:not(.landscape) #trick-tray-list .trick-tray-chip { width: 66px; height: 63px; }
+body.pt-stacked #stage:not(.landscape) #panel-swap-btn { top: calc(50% + 7px); }

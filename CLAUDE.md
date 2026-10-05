@@ -692,8 +692,11 @@ sized from `gridData` (or the limits if it is ragged), with a WARN in the log. T
 round is already dealt); it renders and restarts the round timer only if none is running. Belt and
 braces under r473's button guard: verified by closing the pick underneath an open shop.
 
+## r486 - phone trays: zigzag Tricks, stacked bars (`js/tray-zigzag.js`, `css/tray-zigzag.css`)
+Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on: tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
+
 ## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
-Work on the machine panel now happens on the `machine-panel` branch (owner), not main.
+r487: merged to main as a dev option (Tray look -> machine panel); the pit stays the default. Further tuning on the `machine-panel` branch.
 - **Screens vs housing:** every non-housing part is a domed-glass screen in a recess: `::before` is the
   dome (glare, corner falloff), `::after` the tube (scan lines + a soft RGB grille, `mix-blend-mode:
   multiply`, so dark glass stays black). Housing and keys are grained and grimy (`--mc-grain`,

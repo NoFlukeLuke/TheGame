@@ -1,4 +1,4 @@
-const BUILD = "2026-10-05 · r486 · machine-panel: goal screen fills, blank labels, DEFER, engraved keys, fliers fully hidden";
+const BUILD = "2026-10-05 · r487 · Machine panel skin (dev -> Aesthetics -> Tray look); pit stays the default";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

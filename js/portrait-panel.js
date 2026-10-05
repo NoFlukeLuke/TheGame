@@ -140,7 +140,8 @@ const PORTRAIT_PREVIEW_CFG = {
   edgePad:        3,       // px of clear space at each end of the row
   gap:            4,       // px between cards when they fit without overlapping
   minVisibleFrac: 0.55,    // least of each overlapped card that must stay showing
-  minW:           30,      // never end up smaller than the old fixed size
+  minW:           26,      // never end up smaller than this
+  cardScale:      0.85,    // r486: owner, the preview cards 15% smaller on a phone
 };
 
 function fitPortraitPreviewCards() {
@@ -189,7 +190,7 @@ function fitPortraitPreviewCards() {
   // Widest card the row can hold with every card at least minVisibleFrac visible.
   const wByWidth  = avail / (1 + (n - 1) * cfg.minVisibleFrac);
   const wByHeight = Math.min(stripH * cfg.vFill, availH - DNC_CHROME) * cfg.aspect;
-  const w = Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight)));
+  const w = Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight) * cfg.cardScale));
   const h = Math.round(w / cfg.aspect);
 
   // Pitch between cards: as much as the row affords, capped at a normal gap.
