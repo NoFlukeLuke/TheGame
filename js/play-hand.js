@@ -342,6 +342,9 @@ function playHand() {
   // dance. It used to advance HERE, above the canonical score, so every hand was
   // scored five rungs (or however many clubs) further up the ladder than it had climbed.
   clubHitsPending = Math.max(0, _lastHandClubHits || 0);
+  // QRL (r484): say so when this hand ran into a quarter resource limit.
+  if (_lastHandQrlReplayCut) qrlNotice('replay');
+  if (_scoredCells.some(([r, c]) => qrlActiveKinds(gridData[r]?.[c]))) qrlNotice('buff');
   // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
   const _handRetrigByCell = { ..._lastRetrigByCell };
   // Card Market time cards: seconds carried by the individual cards in this hand.
@@ -352,7 +355,7 @@ function playHand() {
     let _cardSecs = 0;
     _scoredCells.forEach(([r, c]) => {
       const _cd = gridData[r]?.[c];
-      if (_cd && _cd.rank) _cardSecs += (permTime[cardId(_cd)] || 0);
+      if (_cd && _cd.rank && qrlBuffOn(_cd, 'time')) _cardSecs += (permTime[cardId(_cd)] || 0);
     });
     if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ +${_cardSecs}s from your cards`);
   }
@@ -364,7 +367,7 @@ function playHand() {
     _scoredCells.forEach(([r, c]) => {
       const _cd = gridData[r]?.[c];
       if (_cd && _cd.rank) {
-        const per = permCoins[cardId(_cd)] || 0;
+        const per = qrlBuffOn(_cd, 'coins') ? (permCoins[cardId(_cd)] || 0) : 0;
         if (per) _cardCoins += per * (_handRetrigByCell[r + '-' + c] || 1);
       }
     });
@@ -376,9 +379,31 @@ function playHand() {
     let _cardFocus = 0;
     _scoredCells.forEach(([r, c]) => {
       const _cd = gridData[r]?.[c];
-      if (_cd && _cd.rank) _cardFocus += (permFocus[cardId(_cd)] || 0);
+      if (_cd && _cd.rank && qrlBuffOn(_cd, 'focus')) _cardFocus += (permFocus[cardId(_cd)] || 0);
     });
     if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
+  }
+
+  // Short Change (r483): a hand that used fewer cards than your hand size pays
+  // credits. It counts `playedCells` - everything this hand CONSUMED, which is
+  // what "hand size" means and is the one array captured before any path clears
+  // the selection - so the Ringer's and Roll Call's extra cards count too. Both
+  // of those deliberately ignore the cap (r218), so a hand they push to or past
+  // it does not pay, which is the rule reading as written rather than an
+  // exception.
+  //
+  // It sits HERE, above all three dance sites, for r254's reason: the
+  // boss-winning hand and the goal hand both return early further down, and
+  // anything below those returns is bookkeeping only an ordinary hand gets.
+  if (hasKnack('short_change') && typeof playedCells !== 'undefined') {
+    const _scCap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 0;
+    if (_scCap > 0 && playedCells.length < _scCap) {
+      const _scN = BAL.short_change.coins;
+      coins += _scN;
+      updateCoinsUI();
+      if (typeof entityEffectFX === 'function') entityEffectFX('credits', _scN, { id: 'short_change', source: 'knack' });
+      noteMessage(`Short Change: +${_scN} credit${_scN === 1 ? '' : 's'}`, 'var(--gold)');
+    }
   }
 
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
@@ -1028,6 +1053,7 @@ function scalingCount(hand, handCells, reps) {
       }
     }
   });
+  qrlSeed++;   // QRL: the next hand picks its working buffs afresh (after every read of this hand's pick)
 }
 
 function runHandPriming(hand, handCells, bankedContrib) {
@@ -1050,20 +1076,20 @@ function runHandPriming(hand, handCells, bankedContrib) {
     // (js/scoring.js). Neither alone covers the tray.
     trickTray.forEach(t => {
       if (t._primed > 0 && (_ids.has(t.id) ||
-          (typeof trickFiredThisHand === 'function' && trickFiredThisHand(t.id)))) t._primed = 0;
+          (typeof trickFiredThisHand === 'function' && trickFiredThisHand(t.id)))) { t._primed = 0; t._primeSrc = []; }
     });
   }
   // Inspirato: a scored Ace primes the first and last tray Tricks
   if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
-    primeTrick(trickTray[0]);
+    primeTrick(trickTray[0], 1, { src: 'wild_heart' });
     const _last = trickTray[trickTray.length - 1];
-    if (_last !== trickTray[0]) primeTrick(_last);
+    if (_last !== trickTray[0]) primeTrick(_last, 1, { src: 'wild_heart' });
   }
   // Prime Times (r349): a hand that scores a prime rank primes your leftmost
   // Trick (itself excluded - priming Prime Times would do nothing).
   if (hasTrick('prime_times') && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
     const _tt = trickTray.find(t => t.id !== 'prime_times');
-    if (_tt) primeTrick(_tt);
+    if (_tt) primeTrick(_tt, 1, { src: 'prime_times' });
   }
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }

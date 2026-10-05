@@ -33,6 +33,7 @@
   transition: transform .1s ease, filter .1s ease;
 }
 #pick-bar .pk-op:hover { transform: translateY(-1px); filter: brightness(1.25); }
+#pick-bar .pk-op.qrl-full { opacity: .4; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }   /* QRL (r484) */
 #pick-bar .pk-op b { font-size: 11px; letter-spacing: 1px; color: var(--pko); }
 #pick-bar .pk-op i { font-style: normal; font-size: 9px; opacity: .78; }
 

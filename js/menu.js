@@ -1,4 +1,4 @@
-const BUILD = "2026-10-04 · r483 · machine-panel: domed screens, CRT, VT323, flip clock, fliers under the housing, Focus screen";
+const BUILD = "2026-10-05 · r486 · machine-panel: goal screen fills, blank labels, DEFER, engraved keys, fliers fully hidden";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

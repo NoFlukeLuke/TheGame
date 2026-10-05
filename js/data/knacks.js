@@ -10,6 +10,7 @@ const KNACK_POOL = [
   { id:'hoarder',         emoji:'🗑️',  name:'Hoarder',          rarity:'common', desc:'Discards no longer count against the discard limit, but cost 2× time.' },
   { id:'time_bank',       emoji:'⏳',  name:'Time Bank',        rarity:'rare',   desc:'+30 seconds at the start of every round.' },
   { id:'inheritance',     emoji:'💰',  name:'Inheritance',      rarity:'rare',   desc:'Start each round with +5 credits.' },
+  { id:'short_change',    emoji:'🤏',  name:'Short Change',     rarity:'common', desc:'Each hand you play with fewer cards than your hand size earns 1 credit.' },
   { id:'bulk_buyer',      emoji:'🛒',  name:'Bulk Buyer',       rarity:'rare',   desc:'The shop multi-buy discount is 5% per extra item instead of 3%.' },
   { id:'haggler',         emoji:'🤝',  name:'Haggler',          rarity:'rare',   desc:'Shop prices are 5% lower.' },
   { id:'time_and_a_half', emoji:'🕰️',  name:'Time and a Half',  rarity:'rare',   desc:'Leftover round time pays double: 1 credit per 5 seconds remaining instead of 10.' },

@@ -658,6 +658,40 @@ end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes 
 board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
 in SAVE_VARS. Dev: "Classic: Challenge Card Now".
 
+## r484 - Quarter resource limits (QRL, `js/qrl.js`)
+Owner's rule: in quarter N a card has N buffs working, takes replays from N sources, and a Trick
+holds primes from N sources. `qrlLimit()` is the one number (Infinity when off); it applies to
+`actStructure` modes and Flow, where the quarter is `survivalBossesBeaten + 1` (capped 4).
+**Flow is now 4 bosses** (`SURVIVAL_BOSS_COUNT`), one per quarter. Dev -> Change the game now has
+the switch (`lethe.qrl.v1`, stored only when off).
+- **Buffs:** kinds are pips (incl. scaling pips), mult (incl. scaling), x pips, x mult, replay,
+  time, credits, Focus (`QRL_BUFF_KINDS`; penalties always apply). A card may HOLD more; when it
+  scores, `qrlActiveKinds` picks `limit` at random, deterministic on `qrlSeed`, which advances at
+  the end of `scalingCount` so the preview, the score and the payouts after it agree. Every read
+  goes through `qrlBuffOn(card, kind)` (calcScore, playHand's time/credits/Focus, growCardScaling).
+- **Pickers** grey a card that cannot take a NEW kind (`qrlCardFull`): Flow deck editor buff ops
+  (`flowrPaintQrl`, `.qrl-full`), the Bench event's chips, Payout Pick's Boost. Hover/tap gives
+  "Quarter resource limit (QRL) reached" + the rule. The only place QRL is explained.
+  Grants that go past the limit anyway (random-target events: Wager, Bargain, Forge) are allowed
+  and print "Clearance granted for early resource expansion" (`enhanceCardKey`).
+- **Replays:** calcScore lists every source on a card (`_srcs`) and keeps the `limit` biggest; a
+  cut source is zeroed so the ledger never bills it. Layered-hand replays are not a source.
+- **Primes:** `primeTrick(t, n, { src })` refuses a new source past the limit (`t._primeSrc`,
+  cleared with `_primed` when spent). Sources: wild_heart, prime_times, understudy, hallmark,
+  muscle_memory. Mirror, Move as One, forced fires and `_rank` are not limited.
+- **Printouts** (`qrlNotice`, once per round per kind): "Only N buff per card permitted in QN due
+  to QRL", "Replays are limited to N source(s) in QN due to QRL", "Tricks are limited to N prime
+  source(s) in QN due to QRL".
+- Not covered: reward-grid buff tiles (their card is fixed by the tile), Heartwood and Absorb
+  (write the maps directly, no clearance note), `_vulturePause` / Whetstone.
+## r485 - the shop survives its opener closing
+`shopGridSaved` records `owner` ('pick' / 'map' / null). `shopRestoreSize` puts the saved size back
+unless that owner closed while the shop was up; then the board under the shop is the play board,
+sized from `gridData` (or the limits if it is ragged), with a WARN in the log. The Survival/Flow
+"opened from the pick" close branch no longer re-pauses the clock when the pick is gone (the next
+round is already dealt); it renders and restarts the round timer only if none is running. Belt and
+braces under r473's button guard: verified by closing the pick underneath an open shop.
+
 ## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
 Work on the machine panel now happens on the `machine-panel` branch (owner), not main.
 - **Screens vs housing:** every non-housing part is a domed-glass screen in a recess: `::before` is the
