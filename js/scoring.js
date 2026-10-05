@@ -320,6 +320,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Which rows are live this hand, resolved once.
   const _pcLive = PER_CARD_PAYERS.filter(row => hasTrick(row.id) && row.cond(_pcCtx));
   const _pcPips = {}, _pcMult = {};   // id -> total, for the LEDGER only (applied per card, r233)
+  let _qrlReplayCut = false; // QRL cut a replay source this hand (snapshot for playHand's notice)
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
@@ -449,7 +450,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // before the replay multiply, so each replay pays it again.
     if (!_G && typeof climbTopBonus === 'function') { const _clb = climbTopBonus(card); if (_clb) { cp += _clb; _ev('_climb', 'pip+', _clb, 'climb'); } }
     const _eKey = cardId(card);
-    const _pp = _G ? 0 : (permPips[_eKey] || 0);
+    const _pp = (_G || !qrlBuffOn(card, 'pips')) ? 0 : (permPips[_eKey] || 0);   // QRL (r484): a buff this hand did not pick pays nothing
     cp += _pp;
     if (!_G) bPip('sapling', _pp);
     // Right Place: marked row/column cards score +flat pips
@@ -467,7 +468,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // the card's own pips. It is the last thing in the card's beat (after its
     // per-card Trick pips and Hard Labour), applied once per replay; banked in
     // `_pend` and run by `_bankCell` below, emitted at the end of this block.
-    const _xp = _G ? 1 : (permXPips[_eKey] || 1);
+    const _xp = (_G || !qrlBuffOn(card, 'xpips')) ? 1 : (permXPips[_eKey] || 1);
     // Cornered: a corner card's own pips x the whole minutes left on the clock
     if (!_G && _crMins >= 1 && _crSet.has(r + '-' + c)) { const _b = cp; cp *= _crMins; bPipX('corner_retrigger', _crMins, cp - _b); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
@@ -478,29 +479,29 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Retrigger / replay: certain conditions score this card's pips an extra time
     let _retrig = 1;
     const _r2 = false; // Double Take redesigned - now duplicates a Trick, not the 2 card
-    const _r8 = hasTrick('eights_retrigger') && baseRank === '8';
+    let _r8 = hasTrick('eights_retrigger') && baseRank === '8';
     const _rc = false; // Cornered redesigned - now a post-loop pip multiplier, not a replay
     // Echo Location: a 50% replay, deterministic so preview == score. It was
     // `(card._id + handsPlayedRound) % 2 === 0`, which IS a fair 50% but has no
     // probability in it for Luck to scale - so it is now the same
     // hash-vs-threshold shape as Wait For Iiiit, off the same BAL number.
-    const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger')
+    let _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger')
       ? luckRollDet(BAL.rowcol_retrigger.chance, (card._id || 0) + 7919, handsPlayedRound) : 0;
-    const _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
-    const _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
-    const _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
+    let _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
+    let _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
+    let _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
       ? luckRollDet(BAL.ripple.chance, (card._id || 0) + 7717, handsPlayedRound) : 0;
-    const _refl = reflectAimsAt(r, c);
-    const _soul = soulMirrorRankCount(baseRank);
+    let _refl = reflectAimsAt(r, c);
+    let _soul = soulMirrorRankCount(baseRank);
     // Echo (sleight): armed by playing it, every card in the hand replays twice.
     // It used to double the whole hand at SCORE level; as a per-card replay it
     // multiplies pips only, which is what "each card replays twice" describes.
-    const _echoS = (typeof sleightNextHandDouble !== 'undefined') && sleightNextHandDouble;
-    const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
-    const _rne = hasTrick('closing_time') && roundFractionRemaining() < 1/3; // Near Extinction: last third of the round
-    const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
-    const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
-    const _wp = hasTrick('woodpecker') && woodpeckerCardId && cardId(card) === woodpeckerCardId; // Woodpecker
+    let _echoS = (typeof sleightNextHandDouble !== 'undefined') && sleightNextHandDouble;
+    let _re = qrlBuffOn(card, 'retrig') ? (permRetrig[_eKey] || 0) : 0;  // permanent per-card retrigger (events); QRL may switch the buff off
+    let _rne = hasTrick('closing_time') && roundFractionRemaining() < 1/3; // Near Extinction: last third of the round
+    let _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
+    let _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
+    let _wp = hasTrick('woodpecker') && woodpeckerCardId && cardId(card) === woodpeckerCardId; // Woodpecker
     // Wait For Iiiit: each card independently rolls a replay at 2% × negative reward tiles taken this
     // run. Deterministic per (card, hand) so preview == score (see _detReplayRand).
     // Luck scales the THRESHOLD here rather than adding a roll: calling
@@ -508,7 +509,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // answer than the committed score. luckRollDet keeps the same hash and
     // compares it against the luck-scaled chance, so the preview stays honest -
     // and it returns a COUNT, so past 100% a card replays more than once.
-    const _wfi = _wfiChance > 0 ? luckRollDet(_wfiChance, card._id || 0, handsPlayedRound) : 0;
+    let _wfi = _wfiChance > 0 ? luckRollDet(_wfiChance, card._id || 0, handsPlayedRound) : 0;
     // High Roller: guaranteed floor + one deterministic roll on the remainder.
     // Hash offset 3301 keeps its stream distinct from Wait For Iiiit's on the
     // same card in the same hand.
@@ -517,20 +518,33 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       _hr = Math.floor(_hrChance);
       if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
     }
-    if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; _retrig += _rl; if (_pt) _retrig++;
-    if (_res) _retrig += 2; _retrig += _rip;
-    if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
-    if (_echoS) _retrig++;
-    _retrig += _re;
-    if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
-    if (_hnm) _retrig++;
-    _retrig += _wfi; // Wait For Iiiit: chance replay scaling with negative tiles taken
-    _retrig += _hr;  // High Roller: (credits + Luck)% chance replay per card
-    if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
-    if (_labOn) _retrig++;      // Low and Behold: the hand holds the grid's lowest rank
-    if (_cbOn)  _retrig++;      // Callback (card state): the hand holds a charged card
+    // Every replay SOURCE on this card and what it gives. QRL (r484): only the
+    // `qrlLimit()` biggest sources pay; a cut source is switched off here so the
+    // ledger rows below never bill it. Layered-hand replays are not a source.
+    let _enc = _encoreHand, _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
+    const _srcs = [
+      ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _pt ? 1 : 0], ['res', _res ? 2 : 0], ['rip', _rip],
+      ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? 1 : 0], ['re', _re],
+      ['rne', _rne ? 1 : 0], ['ech', _ech ? 1 : 0], ['wp', _wp ? BAL.woodpecker.retrigger_count : 0], ['hnm', _hnm ? 1 : 0],
+      ['wfi', _wfi], ['hr', _hr], ['enc', _enc ? 1 : 0], ['lab', _lab ? 1 : 0], ['cb', _cb ? 1 : 0],
+      ['3c', _3c ? BAL.third_charm.extra_replays : 0],
+    ].filter(x => x[1] > 0);
+    const _qL = _G ? Infinity : qrlLimit();
+    if (_srcs.length > _qL) {
+      _srcs.sort((a, b) => b[1] - a[1]);
+      const _cutIds = new Set(_srcs.slice(_qL).map(x => x[0]));
+      _srcs.length = _qL;
+      if (_cutIds.has('r8')) _r8 = false;   if (_cutIds.has('rl')) _rl = 0;      if (_cutIds.has('pt')) _pt = false;
+      if (_cutIds.has('res')) _res = false; if (_cutIds.has('rip')) _rip = 0;    if (_cutIds.has('refl')) _refl = false;
+      if (_cutIds.has('soul')) _soul = 0;   if (_cutIds.has('echoS')) _echoS = false; if (_cutIds.has('re')) _re = 0;
+      if (_cutIds.has('rne')) _rne = false; if (_cutIds.has('ech')) _ech = false; if (_cutIds.has('wp')) _wp = false;
+      if (_cutIds.has('hnm')) _hnm = false; if (_cutIds.has('wfi')) _wfi = 0;    if (_cutIds.has('hr')) _hr = 0;
+      if (_cutIds.has('enc')) _enc = false; if (_cutIds.has('lab')) _lab = false; if (_cutIds.has('cb')) _cb = false;
+      if (_cutIds.has('3c')) _3c = false;
+      _qrlReplayCut = true;
+    }
+    _srcs.forEach(x => { _retrig += x[1]; });
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
-    if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
     // keyed on the card and the hand index, so the preview and the committed score
     // can never disagree - the same rule Wait For Iiiit follows.
@@ -583,8 +597,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_ech) bPipQ('echo_hand', _pre, 1);
       else if (_wp) bPipQ('woodpecker', _extra, 1);
       else if (_wfi) bPipQ('wait_for_it', _pre, 1);
-      else if (_encoreHand) bPipQ('encore', _pre, 1);
-      else if (_cKey === _3rdKey) bPipQ('third_charm', _extra, 1);
+      else if (_enc) bPipQ('encore', _pre, 1);
+      else if (_3c) bPipQ('third_charm', _extra, 1);
     }
     // The Blight, applied. A muted card falls back to its RAW pip value (plus any
     // permanent per-card buff, which is a property of the card rather than a
@@ -631,7 +645,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('heart_double') && _isHeartC) { const _v = BAL.heart_double.heart_mult; _cmAdd += _v; _hdMult += _v * _retrig; _ev('heart_double','mult+',_v); }
     if (hasTrick('jack_mult') && baseRank === 'J') { const _v = BAL.jack_mult.mult_per_jack; _cmAdd += _v; _jmMult += _v * _retrig; _ev('jack_mult','mult+',_v); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { const _v = BAL.king_guard.mult; _cmAdd += _v; _kgMult += _v * _retrig; _ev('king_guard','mult+',_v); }
-    const _pmv = _G ? 0 : (permMult[_eKey] || 0);
+    const _pmv = (_G || !qrlBuffOn(card, 'mult')) ? 0 : (permMult[_eKey] || 0);
     if (_pmv) { _cmAdd += _pmv; _pmMult += _pmv * _retrig; _proc('perm_mult'); _ev('perm_mult','mult+',_pmv); }
     if (!_G && hasTrick('old_growth') && !_mute && cp) { const _og = cp / _retrig; _cmAdd += _og; _ogMult += cp; _proc('old_growth'); _ev('old_growth','mult+',_og); }
     // Per-card payers (see PER_CARD_PAYERS). REPLAY-WEIGHTED since r236: a card
@@ -674,7 +688,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     //    filters `once` events out of later reps and applies everything else in
     //    emission order, so any other arrangement diverges the moment a replayed
     //    card carries an enhancement.
-    const _xm = _G ? 1 : (permXMult[_eKey] || 1);
+    const _xm = (_G || !qrlBuffOn(card, 'xmult')) ? 1 : (permXMult[_eKey] || 1);
     if (_xm !== 1) _ev('perm_mult', 'mult*', _xm, 'trick', undefined, 'none');
     // Trick-driven per-card x MULT (r359) rides the same rep loop, each factor
     // emitted after the enhancement and billed to its own Trick.
@@ -746,6 +760,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
+  _lastHandQrlReplayCut = _qrlReplayCut;
   _lastHandClubHits = _clubHits;   // snapshot for Hard Labour's round ladder (advanced in playHand, r346)
   _lastHandVultureSeconds = _vultureFires; // snapshot for Vulture (retrigger-aware pause seconds)
   _lastRetrigByCell = retrigByKey; // snapshot for playHand's per-card payouts (replay-aware)
@@ -1612,14 +1627,19 @@ function trickFiredThisHand(id) { return _trickFiredThisHand.has(id); }
 // `echo` is what stops the second prime priming a third for ever.
 function primeTrick(t, n = 1, opts = {}) {
   if (!t || !(n > 0)) return null;
+  // QRL (r484): a Trick holds primes from at most qrlLimit() sources (opts.src).
+  // A new source past that is refused; a source it already holds may add more.
+  const _src = opts.src || 'other';
+  const _held = t._primeSrc || [];
+  if (!_held.includes(_src) && _held.length >= qrlLimit()) { qrlNotice('prime'); return null; }
+  if (!_held.includes(_src)) t._primeSrc = _held.concat(_src);
   t._primed = (t._primed || 0) + n;
   if (!opts.echo && typeof hasKnack === 'function' && hasKnack('muscle_memory')) {
     const pool = (typeof trickTray !== 'undefined' ? trickTray : []).filter(x =>
       x !== t && !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(x.id)));
     if (pool.length) {
       const buddy = pool[Math.floor(Math.random() * pool.length)];
-      primeTrick(buddy, n, { echo: true });
-      if (typeof showMessage === 'function') showMessage('🤝 Buddy System - ' + buddy.name + ' primed', '#8a5cf0');
+      if (primeTrick(buddy, n, { echo: true, src: 'muscle_memory' }) && typeof showMessage === 'function') showMessage('🤝 Buddy System - ' + buddy.name + ' primed', '#8a5cf0');
     }
   }
   return t;

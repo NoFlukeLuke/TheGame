@@ -22,6 +22,7 @@
 <title>Poker Grid - Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/tray-lift.css">
+<link rel="stylesheet" href="css/tray-zigzag.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/climb.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
@@ -194,6 +195,14 @@
       <button class="dev-btn" onclick="devAddTime(60)">+60s</button>
       <button class="dev-btn" onclick="devAddTime(-30)">-30s</button>
       <button class="dev-btn" onclick="devSetTime(180)">Max</button>
+    </div>
+  </div>
+
+  <!-- QRL (r484) -->
+  <div class="dev-section" data-group="game">
+    <div class="dev-section-title">Quarter resource limits</div>
+    <div class="dev-row">
+      <label><input type="checkbox" id="dev-qrl" onchange="qrlSetEnabled(this.checked)" onclick="event.stopPropagation()"> QRL on (quarter N: N buffs per card, N replay sources, N prime sources)</label>
     </div>
   </div>
 
@@ -761,6 +770,17 @@
         <option value="resolve">Resolve - quick pop</option>
       </select>
     </label>
+  </div>
+
+  <!-- r486: the portrait zigzag Trick tray (js/tray-zigzag.js) -->
+  <div class="dev-section" data-group="hud">
+    <div class="dev-section-title">Zigzag tray (phone)</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Tile height, % of the tilted tile<input id="dev-zz-height" type="number" min="50" max="110" step="5" onchange="zzSetCfg('height', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Step right, % of a tile<input id="dev-zz-step" type="number" min="20" max="100" step="5" onchange="zzSetCfg('step', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Lower row drop, % of a tile<input id="dev-zz-drop" type="number" min="10" max="80" step="5" onchange="zzSetCfg('drop', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Size when forward (x)<input id="dev-zz-scale" type="number" min="1" max="1.5" step="0.05" onchange="zzSetCfg('scale', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Hold forward (ms)<input id="dev-zz-hold" type="number" min="200" max="6000" step="100" onchange="zzSetCfg('hold', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <button class="dev-btn" onclick="zzResetCfg()">Reset</button>
   </div>
 
   <!-- DISPLAY (fullscreen - usable mid-run since Settings = this panel) -->
@@ -1500,6 +1520,7 @@
 <script src="js/data/sleights.js"></script>
 <script src="js/combos-aim.js"></script>
 <script src="js/deck-grid.js"></script>
+<script src="js/qrl.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
 <script src="js/improve.js"></script>
@@ -1555,6 +1576,7 @@
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
 <script src="js/tray-lift.js"></script>
+<script src="js/tray-zigzag.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/shop-grid-preview.js"></script>
 <script src="js/builds.js"></script>
@@ -1595,6 +1617,7 @@
 <script src="js/prob-tables.js"></script>
 <script src="js/tray-fx.js"></script>
 <script src="js/tray-pit.js"></script>
+<script src="js/machine-skin.js"></script>
 <script src="js/terminal-skin.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>

@@ -63,16 +63,16 @@
 </head>
 <body>
 <h1>TRICK TRAY · ZIGZAG</h1>
-<p class="sub">Portrait tray, drawn at phone size with the game's own tiles. Each Trick sits one step right of the last and alternates up and down, so a line through their centres zigzags. The tiles in the upper row sit on top and cover the shutter (the top part) of the tiles in the lower row. No tilt. Tap a tile to hop it.</p>
+<p class="sub">Portrait tray, drawn at phone size with the game's own tiles. Each Trick sits one step right of the last and alternates up and down, so a line through their centres zigzags. The tiles in the upper row sit on top and cover the shutter (the top part) of the tiles in the lower row. No tilt. Tap a tile to hop it.<br><b>The game has this now</b> (Settings &rarr; Display &rarr; Trick tray on a phone). The sliders here still show the layout; the game's hop is the newer one (slides out from under its neighbour, comes forward toward the middle, holds 2s). The game's numbers are in dev &rarr; HUD &amp; Display &rarr; Zigzag tray.</p>
 
 <div class="knobs">
   <div><label>TRICKS <span id="nV"></span></label><input type="range" id="n" min="1" max="10" value="7"></div>
-  <div><label>TILE HEIGHT <span id="hV"></span>% of today's</label><input type="range" id="h" min="60" max="100" value="80"></div>
-  <div><label>STEP RIGHT <span id="sV"></span>% of a tile</label><input type="range" id="s" min="25" max="80" value="40"></div>
-  <div><label>DROP <span id="dV"></span>% of a tile</label><input type="range" id="d" min="15" max="60" value="40"></div>
+  <div><label>TILE HEIGHT <span id="hV"></span>% of today's</label><input type="range" id="h" min="60" max="100" value="90"></div>
+  <div><label>STEP RIGHT <span id="sV"></span>% of a tile</label><input type="range" id="s" min="25" max="80" value="60"></div>
+  <div><label>DROP <span id="dV"></span>% of a tile</label><input type="range" id="d" min="15" max="60" value="60"></div>
   <div><label>ON TOP</label><select id="top"><option value="up">upper row (covers lower row's shutter)</option><option value="down">lower row (covers upper row's label)</option><option value="newest">newest always on top</option></select></div>
   <div><label>HOP</label><select id="hop"><option value="cycle">takes turns, every 1.5s</option><option value="tap">only when tapped</option></select></div>
-  <div><label>HOP HEIGHT <span id="hyV"></span>px · SIZE x<span id="hsV"></span></label><input type="range" id="hy" min="0" max="20" value="8"><input type="range" id="hs" min="100" max="130" value="112"></div>
+  <div><label>HOP HEIGHT <span id="hyV"></span>px · SIZE x<span id="hsV"></span></label><input type="range" id="hy" min="0" max="20" value="8"><input type="range" id="hs" min="100" max="130" value="115"></div>
   <div><label>DIM COVERED TILES <span id="shV"></span>%</label><input type="range" id="sh" min="0" max="40" value="0"></div>
   <div><label>TRAY WIDTH</label><select id="tw"><option value="195">half strip (today)</option><option value="406">full strip</option></select></div>
 </div>

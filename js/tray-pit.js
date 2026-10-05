@@ -155,6 +155,7 @@ function trayPitApply() {
     background: var(--pit-bg, none) 0 0 / 100% 100% no-repeat, #070604 !important; }`;
   trayFxEach(el => { el._pitKey = ''; trayPitPaint(el); });
   trayPitWatchColour();
+  if (typeof mcApply === 'function') mcApply();   // js/machine-skin.js: flip clock, fliers, pixel filter
   trayPitSync();
 }
 // A tray whose class changes may change colour (a boss alarm, a view swap): repaint it.

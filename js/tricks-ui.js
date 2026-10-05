@@ -469,6 +469,13 @@ function fanTrickTray(list, track) {
 
   if (avail <= 0) return false;   // not laid out yet - leave it alone
 
+  // r486: the zigzag tray (js/tray-zigzag.js), a Settings choice for portrait.
+  if (!landscape && typeof trayZigzagOn === 'function' && trayZigzagOn()) {
+    trayTiltStop();
+    if (zigzagTrickTray(list, track, chips)) return true;
+  }
+  if (typeof zzTeardown === 'function') zzTeardown(list);
+
   const GAP = 4;
   const PAD = 3;          // rounding + the track's own box; without it the fan
                           // lands a few px wide and clips its leftmost tile

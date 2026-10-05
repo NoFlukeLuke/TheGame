@@ -200,6 +200,21 @@ const SETTINGS_DEF = [
   // version was four layers the size of the screen's diagonal). Measured in a
   // software-rendered browser: 60 fps on and off at phone size and at 1100x620,
   // 53-59 against 60 at 1440x820. With a graphics card it is nothing.
+  // r486: the portrait trays (js/tray-zigzag.js, css/tray-zigzag.css).
+  { group: 'Display', id: 'trickTrayLayout', label: 'Trick tray on a phone',
+    hint: 'Zigzag: Tricks alternate up and down and take turns coming forward. Tilted: Tricks lean back side by side and take turns turning flat.',
+    type: 'select', default: 'zigzag', options: [['zigzag','Zigzag'], ['tilt','Tilted']],
+    apply: () => setTimeout(() => { if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} } }, 0) },
+  { group: 'Display', id: 'phoneTrays', label: 'Phone tray layout',
+    hint: 'Side by side: Tricks and the hand preview share one strip. Stacked: each gets a full-width bar, and the board is a little smaller.',
+    type: 'select', default: 'side', options: [['side','Side by side'], ['stacked','Stacked bars']],
+    apply: v => {
+      document.body.classList.toggle('pt-stacked', v === 'stacked');
+      setTimeout(() => {
+        try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+        if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} }
+      }, 0);
+    } },
   { group: 'Display', id: 'printToasts', label: 'Printer notices',
     hint: 'Notices print on paper that drops from the top of the screen. Turn off for plain boxes.',
     type: 'toggle', default: true, apply: v => { printToastsOn = !!v; } },

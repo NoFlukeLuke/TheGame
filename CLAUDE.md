@@ -657,3 +657,68 @@ a d2+ take queues a mini grid (`crSpot.minis`), a fail takes credits and seconds
 end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes a card still on the
 board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
 in SAVE_VARS. Dev: "Classic: Challenge Card Now".
+
+## r484 - Quarter resource limits (QRL, `js/qrl.js`)
+Owner's rule: in quarter N a card has N buffs working, takes replays from N sources, and a Trick
+holds primes from N sources. `qrlLimit()` is the one number (Infinity when off); it applies to
+`actStructure` modes and Flow, where the quarter is `survivalBossesBeaten + 1` (capped 4).
+**Flow is now 4 bosses** (`SURVIVAL_BOSS_COUNT`), one per quarter. Dev -> Change the game now has
+the switch (`lethe.qrl.v1`, stored only when off).
+- **Buffs:** kinds are pips (incl. scaling pips), mult (incl. scaling), x pips, x mult, replay,
+  time, credits, Focus (`QRL_BUFF_KINDS`; penalties always apply). A card may HOLD more; when it
+  scores, `qrlActiveKinds` picks `limit` at random, deterministic on `qrlSeed`, which advances at
+  the end of `scalingCount` so the preview, the score and the payouts after it agree. Every read
+  goes through `qrlBuffOn(card, kind)` (calcScore, playHand's time/credits/Focus, growCardScaling).
+- **Pickers** grey a card that cannot take a NEW kind (`qrlCardFull`): Flow deck editor buff ops
+  (`flowrPaintQrl`, `.qrl-full`), the Bench event's chips, Payout Pick's Boost. Hover/tap gives
+  "Quarter resource limit (QRL) reached" + the rule. The only place QRL is explained.
+  Grants that go past the limit anyway (random-target events: Wager, Bargain, Forge) are allowed
+  and print "Clearance granted for early resource expansion" (`enhanceCardKey`).
+- **Replays:** calcScore lists every source on a card (`_srcs`) and keeps the `limit` biggest; a
+  cut source is zeroed so the ledger never bills it. Layered-hand replays are not a source.
+- **Primes:** `primeTrick(t, n, { src })` refuses a new source past the limit (`t._primeSrc`,
+  cleared with `_primed` when spent). Sources: wild_heart, prime_times, understudy, hallmark,
+  muscle_memory. Mirror, Move as One, forced fires and `_rank` are not limited.
+- **Printouts** (`qrlNotice`, once per round per kind): "Only N buff per card permitted in QN due
+  to QRL", "Replays are limited to N source(s) in QN due to QRL", "Tricks are limited to N prime
+  source(s) in QN due to QRL".
+- Not covered: reward-grid buff tiles (their card is fixed by the tile), Heartwood and Absorb
+  (write the maps directly, no clearance note), `_vulturePause` / Whetstone.
+## r485 - the shop survives its opener closing
+`shopGridSaved` records `owner` ('pick' / 'map' / null). `shopRestoreSize` puts the saved size back
+unless that owner closed while the shop was up; then the board under the shop is the play board,
+sized from `gridData` (or the limits if it is ragged), with a WARN in the log. The Survival/Flow
+"opened from the pick" close branch no longer re-pauses the clock when the pick is gone (the next
+round is already dealt); it renders and restarts the round timer only if none is running. Belt and
+braces under r473's button guard: verified by closing the pick underneath an open shop.
+
+## r486 - phone trays: zigzag Tricks, stacked bars (`js/tray-zigzag.js`, `css/tray-zigzag.css`)
+Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on: tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
+
+## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
+r487: merged to main as a dev option (Tray look -> machine panel); the pit stays the default. Further tuning on the `machine-panel` branch.
+- **Screens vs housing:** every non-housing part is a domed-glass screen in a recess: `::before` is the
+  dome (glare, corner falloff), `::after` the tube (scan lines + a soft RGB grille, `mix-blend-mode:
+  multiply`, so dark glass stays black). Housing and keys are grained and grimy (`--mc-grain`,
+  `--mc-grain-lt`, `--mc-grime`), never scanlined.
+- **Text** in #stage is VT323 (shipped in `fonts/`, OFL, as 'VT323 Local'), card faces excepted, with
+  `font-size-adjust: .56`. Readout numbers take `#mc-crisp` (anti-aliasing thresholded away + a bloom).
+  A live SVG mosaic was tried for "pixelate everything" and dropped: 60 -> 20 fps on the board, and its
+  dilate erases dark strokes on light card faces.
+- **Fliers under the housing:** a body-level `position:fixed; pointer-events:none` element with no id
+  is moved into `#mc-fly` (`mcAdopt`), whose mask is opaque over the screens (`MC_SCREENS` rects) and
+  `MC_FLY_GHOST` (16%) elsewhere, recomputed every frame while anything flies. #grid clips its overflow
+  (`overflow-clip-margin: 6px`) so falling cards come out from under the housing.
+- **Focus gauge** is a fixed screen: in the skin `focusFxLoop` shakes `#focus-active-segment` (62% wide)
+  instead of `#focus-bar-outer`; `#focus-mult-readout` rides on the fill (`--focus-fill` on the wrap,
+  set in `syncFocusMeterState`) inside 22px of head room.
+- **Clock** is a flip clock (`#mc-flip`, built over `#clock`, whose text is hidden; a MutationObserver
+  on #clock flips changed digits), always four digits, flat black with faint static, no urgent colour.
+**r486 (machine-panel, owner):** SCORE / GOAL labels hidden (blank screens, numbers alike); the goal
+screen IS the progress bar (`#score-progress-bar-wrap` stretched to `inset:0` under the number, same
+width writes and colours, 55%). Fliers are fully hidden under the housing (`MC_FLY_GHOST` 0). Desktop
+credits bar is level left, credits right. **Panel words** (`MC_WORDS`, js/machine-skin.js): DISCARD
+reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word is never deleted: the
+game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
+for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
+Keys are engraved: white enamel in the cut (dark lip above, lit lip below).

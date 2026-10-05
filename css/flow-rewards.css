@@ -796,3 +796,6 @@ body.reduced-motion #flowr-cel.shake { animation: none; opacity: 1; transform: v
 #flowr-stack .fst-chip:not(.fst-cur) span { opacity: 0; transition: opacity .2s; }
 #flowr-stack.fst-open, #flowr-stack.fst-hover { --fst-step: 14px; }
 #flowr-stack.fst-open .fst-chip span, #flowr-stack.fst-hover .fst-chip span { opacity: .9; }
+
+/* QRL (r484): a card that cannot take another buff kind this quarter. */
+#grid .card.qrl-full { filter: grayscale(1) brightness(.62); cursor: var(--cur-no, not-allowed); }
