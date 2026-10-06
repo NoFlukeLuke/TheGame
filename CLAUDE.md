@@ -723,3 +723,10 @@ reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word i
 game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
+
+## r491 - the score tally speeds up with Focus
+`dncPace()` (js/dance-clock.js) now also multiplies by `dncFocusPace`, read once per hand in
+`dncResetAccel` from `caFocusPace('tally2')` (js/card-anims.js): `tally2` (default 1.5, lab slider
+"Score tally at Focus x2", same store as the card speed) at Focus x2, linear from x1, Focus capped
+at x4. The card fly already carries Focus through `cardFlyMs`, so the dance's flight divides by
+`dncPaceNoFocus()` instead of counting it twice.

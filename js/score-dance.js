@@ -1019,7 +1019,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPace();   // r468: the fly look may take longer
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPaceNoFocus();   // r491: cardFlyMs already holds Focus   // r468: the fly look may take longer
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
