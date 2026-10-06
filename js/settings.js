@@ -215,6 +215,18 @@ const SETTINGS_DEF = [
         if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} }
       }, 0);
     } },
+  // r500: rows with `get` are views of a feature's own store (js/tray-pit.js,
+  // js/stock-bulbs.js), not stored here, so the dev panel and Settings never disagree.
+  { group: 'Display', id: 'consoleMode', label: 'Console mode',
+    hint: 'The game is built into an 80s computer: cream housing, glass screens, a flip clock and engraved keys.',
+    type: 'toggle', default: false,
+    get: () => typeof trayMachineOn === 'function' && trayMachineOn(),
+    apply: v => { if (typeof trayPitSet === 'function') trayPitSet('on', v ? 3 : 1); } },
+  { group: 'Display', id: 'stockBulbs', label: 'Stock display',
+    hint: 'How swaps, discards, hand size and Trick slots left are shown. Bulbs: green is free, blue or red is used, dim is not unlocked yet.',
+    type: 'select', default: 'numbers', options: [['numbers','Numbers'], ['bulbs','Bulbs']],
+    get: () => (typeof sbCfg !== 'undefined' && sbCfg.on) ? 'bulbs' : 'numbers',
+    apply: v => { if (typeof sbSet === 'function') sbSet('on', v === 'bulbs' ? 1 : 0); } },
   { group: 'Display', id: 'printToasts', label: 'Printer notices',
     hint: 'Notices print on paper that drops from the top of the screen. Turn off for plain boxes.',
     type: 'toggle', default: true, apply: v => { printToastsOn = !!v; } },
@@ -302,7 +314,7 @@ function loadSettings() {
   }
   SETTINGS = {};
   SETTINGS_DEF.forEach(d => {
-    if (d.type === 'action') return;
+    if (d.type === 'action' || d.get) return;
     let v = (saved[d.id] !== undefined) ? saved[d.id] : d.default;
     // A SELECT whose stored value is no longer one of its options falls back to
     // the default. Without this, r234 replacing the sound packs would leave an
@@ -315,11 +327,12 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS)); } catch (e) {}
+  const o = {}; SETTINGS_DEF.forEach(d => { if (!d.get && d.id in SETTINGS) o[d.id] = SETTINGS[d.id]; });
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(o)); } catch (e) {}
 }
 
 function applyAllSettings() {
-  SETTINGS_DEF.forEach(d => { if (d.apply) { try { d.apply(SETTINGS[d.id]); } catch (e) {} } });
+  SETTINGS_DEF.forEach(d => { if (d.apply && !d.get) { try { d.apply(SETTINGS[d.id]); } catch (e) {} } });
 }
 
 function setSetting(id, value) {
@@ -370,8 +383,9 @@ function closeSettings() {
 }
 
 function resetSettings() {
-  SETTINGS_DEF.forEach(d => { if (d.type !== 'action') SETTINGS[d.id] = d.default; });
+  SETTINGS_DEF.forEach(d => { if (d.type !== 'action' && !d.get) SETTINGS[d.id] = d.default; });
   applyAllSettings();
+  SETTINGS_DEF.forEach(d => { if (d.get && d.apply) { try { d.apply(d.default); } catch (e) {} } });
   saveSettings();
   renderSettings();
 }
@@ -421,7 +435,8 @@ function renderSettings() {
 function _setText(x) { try { return (typeof x === 'function') ? x() : (x || ''); } catch (e) { return ''; } }
 
 function settingsRowHTML(d) {
-  const v = SETTINGS[d.id];
+  let v = SETTINGS[d.id];
+  if (d.get) { try { v = d.get(); } catch (e) {} }
   let control = '';
   if (d.type === 'action') {
     let btns = [];

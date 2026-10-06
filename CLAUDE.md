@@ -762,3 +762,12 @@ clock's tick (`pulseClockWithWave`, js/clock-fx.js) now runs from `js/clock-tick
 (`startClockTick` / `stopClockTick`, every `CLOCK_TICK_SEC` 10s, started with the round timer and
 stopped where the heartbeat was). Anything above that says a look "composes with the heartbeat's
 transform" still holds for `--frzr` / `--grds`; the `--hb*` vars are unset (CLEANUP.md 1c).
+
+## r500 - Console mode and Stock display in Settings; the beige case
+Settings -> Display: **Console mode** (the machine panel in cream, `trayPit.on` 3; off = the pit) and
+**Stock display** (Numbers / Bulbs, `sbCfg.on`). Both default off. A settings row with `get` is a VIEW
+of its feature's own store: it is not loaded, stored or applied by settings.js (only on a click, and
+on Restore defaults), so the dev panel and Settings never disagree. The cream case is an 80s computer
+beige (`--mc-house` #ddd2b2); its grain and grime are warm brown and lighter on balance, because the
+black specks covered about a quarter of the surface and turned the beige grey (measured centre colour
+#9c947d -> #cec1a1). All machine grain is 20% fainter.

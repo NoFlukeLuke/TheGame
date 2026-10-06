@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r499 · board heartbeat removed; the clock tick keeps its own timer";
+const BUILD = "2026-10-06 · r500 · Settings: Console mode and Stock display (bulbs); 80s cream housing, 20% less grain";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
