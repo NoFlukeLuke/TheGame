@@ -469,11 +469,8 @@ function fanTrickTray(list, track) {
 
   if (avail <= 0) return false;   // not laid out yet - leave it alone
 
-  // r486: the zigzag tray (js/tray-zigzag.js), a Settings choice for portrait.
-  if (!landscape && typeof trayZigzagOn === 'function' && trayZigzagOn()) {
-    trayTiltStop();
-    if (zigzagTrickTray(list, track, chips)) return true;
-  }
+  // r486: the zigzag tray (js/tray-zigzag.js) is torn down first; it comes
+  // back below only when the row does not fit flat (r492, like the tilt).
   if (typeof zzTeardown === 'function') zzTeardown(list);
 
   const GAP = 4;
@@ -506,6 +503,11 @@ function fanTrickTray(list, track) {
   if (n * tile + (n - 1) * GAP <= room) {
     track.style.setProperty('--fan-gap', GAP + 'px');   // fits: an ordinary row
     return true;
+  }
+  // Doesn't fit: the zigzag, when that is the Settings choice.
+  if (typeof trayZigzagOn === 'function' && trayZigzagOn()) {
+    trayTiltStop();
+    if (zigzagTrickTray(list, track, chips)) return true;
   }
   // Doesn't fit (r399): TILT first. Every tile but the newest turns its right
   // edge back (rotateY about its left edge, css `rotate: y`), which shortens its
