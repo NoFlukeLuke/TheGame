@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r508 · Autopilot plays at most 5 hands per landing";
+const BUILD = "2026-10-06 · r509 · preview tray keeps its size while cards fly in; pause menu sits on the board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

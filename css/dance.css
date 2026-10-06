@@ -1,6 +1,6 @@
   #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
     overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
-  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
+  #stage.landscape #selected-cards.dnc-active{ height:20.7%; min-height:0; overflow:visible; flex-direction:column; align-items:stretch; justify-content:center; z-index:60; }   /* same box as at rest (style.css): the tray never resizes when cards fly in */
   #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
   #selected-cards.dnc-active .dnc-row.hand{min-height:58px;}
   #selected-cards.dnc-active .dnc-lab:empty{display:none;}
