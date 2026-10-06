@@ -5,6 +5,13 @@
 #sb-layer { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 60; pointer-events: none; }
 .sb-grp { position: absolute; display: flex; }
 .sb-grp.sb-col { flex-direction: column; }
+/* a column that does not fit the key splits, half each side of the label */
+.sb-grp.sb-split { display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--sb-rows), var(--sb));
+  grid-template-columns: var(--sb) var(--sb); justify-content: space-between; }
+/* on a key: the lens alone, flush in the plastic (no ring) */
+.sb-flush .sb-b { background: none; }
+.sb-flush .sb-b::before { inset: 0; }
+.sb-flush .sb-b::after { inset: 14% 44% 56% 22%; }
 .sb-b { --c: 255, 200, 90; --on: 0; position: relative; display: block; flex: none;
   width: var(--sb, 8px); height: var(--sb, 8px); border-radius: 50%;
   background: radial-gradient(circle, #4a4a48 0 56%, #121212 60% 70%, #5c5850 74% 80%, #1b1b1a 84%); }
@@ -25,7 +32,13 @@
   38% { --on: 1.9; } 55% { --on: 1.6; } 100% { --on: 1; } }
 .sb-b.sb-ext { animation: sbExtend 1.4s ease-out both; }
 /* the readouts the bulbs stand in for */
-html.stock-bulbs #swap-count, html.stock-bulbs #disc-count,
 html.stock-bulbs #trick-tray-count { visibility: hidden; }
+html.stock-bulbs #stage :is(#swap-count, #disc-count) { display: none !important; }
 html.stock-bulbs #stage.landscape #sel-count { visibility: hidden; }
 html.stock-bulbs #stage:not(.landscape) #sel-count-val { visibility: hidden; }
+/* SWAP reads top to bottom like the other keys, with bulbs on and in Console mode */
+html:is(.stock-bulbs, .skin-machine) #stage #swap-indicator:not(.reward-skip) .swap-word {
+  writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -1px; display: inline-block; line-height: 1; }
+html.skin-machine #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 14px !important; }
+/* an unlit lens on a key is dark glass, not a hole */
+.sb-flush .sb-b:not(.sb-on) { background: radial-gradient(circle, rgba(18,16,12,.5) 0 66%, transparent 70%); }

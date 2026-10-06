@@ -16,7 +16,7 @@
    in the gaps between them and at the ends. */
 #stage.landscape #knack-carousel-wrap { --tray-set: var(--tray-rings) !important; }
 
-/* r503 (owner): in the pit look the goal tray's floor IS the progress bar. The bar's fill
+/* r505 (owner): in the pit look the goal tray's floor IS the progress bar. The bar's fill
    (same element and width the game writes, boss red included) covers the floor from left
    to right; --pit-floor is the floor's rect, set by trayPitPaint. Per-line meters keep
    their own small bars. */
@@ -30,8 +30,8 @@ html.tray-pit #stage.landscape #score-progress-bar-wrap:not(.q-lines) #score-pro
 }
 html.tray-pit #stage.landscape #score-left > :not(#score-progress-bar-wrap) { position: relative; z-index: 1; }
 
-/* r503 (owner): level at the left end of the credits tray, credits at the right. */
+/* r505 (owner): level at the left end of the credits tray, credits at the right. */
 #stage.landscape #coin-info .ci-main { order: 1; margin-left: auto; }
 
-/* r503 (owner): the Tricks tray is a little more yellow than plain orange. */
+/* r505 (owner): the Tricks tray is a little more yellow than plain orange. */
 #stage #trick-tray-area { --tray-c: #ffa01f !important; }

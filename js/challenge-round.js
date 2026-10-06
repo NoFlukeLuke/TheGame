@@ -111,6 +111,9 @@ function crApplyStartTime() {
   if (crRound && !crRound.started && crRound.bonusSecs > 0) roundSeconds += crRound.bonusSecs;
 }
 function crOnRoundStart() {
+  // A finished card the queue does not know (a resumed save) leaves too; one still
+  // charging its penalty bursts (crFailing) leaves when they end.
+  for (const [, , cd] of crCards()) if (cd.cr.done && !crQueue.includes(cd._id) && !crFailing.has(cd._id)) crQueue.push(cd._id);
   if (crQueue.length) setTimeout(crDrain, 400);   // a card solved by the last hand of a round
   if (!crRound) { crSpotRoll(); return; }
   if (crRound.started || crRound.over) return;
@@ -510,21 +513,37 @@ function crCollect(cd) {
   crQueue.push(cd._id);
   setTimeout(crDrain, 700);
 }
-// Flow: the card's clock ran out short of its current tier. A raised card loses
-// what it had banked; either way the current tier's penalty is taken.
+// The card's clock ran out short of its current tier. A raised card loses what
+// it had banked; either way the current tier's penalty is taken.
+// r504 (owner): the card STAYS on the board and charges the penalty one burst at
+// a time: each flies from the card to the readout it costs (-Ns to the clock,
+// -N to the credits, -1 reward to the level in Flow) and is charged when it
+// lands, with a hit sound. The card leaves after the last one. crFailGen guards
+// the timers against a new run (crReset).
+let crFailGen = 0;
+const crFailing = new Set();   // ids of failed cards still charging
+const CR_FAIL_LEAD = 560, CR_FAIL_STEP = 640;   // ms: the fail shake, then one burst each
 function crFail(cd) {
   const q = cd.cr;
   q.done = 'lost';
   crRepaint(cd); crFxFail(cd);
   const st = crStake(crDiff(q));
-  coins = Math.max(0, coins - st.credits); updateCoinsUI();
-  roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI();
-  if (typeof showTimeCost === 'function') showTimeCost(`-${st.secs}s`);
   const bonus = q.src === 'flow' && crDiff(q) >= CR_BONUS_D;
+  // The reward is taken at once: a level-up during the bursts must already see it.
   if (bonus) crFlowState().rewardDelta--;
-  showMessage(`⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s${bonus ? ' · one fewer reward next level-up' : ''}`, 'var(--red)');
-  crQueue.push(cd._id);
-  setTimeout(crDrain, 900);
+  const msg = `⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s${bonus ? ' · one fewer reward next level-up' : ''}`;
+  const hits = [
+    { to: 'time', label: `-${st.secs}s`, pay: () => { roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI(); } },
+    { to: 'credits', label: `-${st.credits}`, pay: () => { coins = Math.max(0, coins - st.credits); updateCoinsUI(); } },
+  ];
+  if (bonus) hits.push({ to: 'level', label: '-1 reward' });
+  const gen = crFailGen, id = cd._id;
+  crFailing.add(id);
+  hits.forEach((h, i) => setTimeout(() => { if (gen === crFailGen) crFxPenalty(id, h, i); }, CR_FAIL_LEAD + i * CR_FAIL_STEP));
+  // The notice prints after the bursts: printed first, it hung over the clock the
+  // seconds burst flies into.
+  setTimeout(() => { if (gen !== crFailGen) return; crFailing.delete(id); showMessage(msg, 'var(--red)'); crQueue.push(id); crDrain(); },
+    CR_FAIL_LEAD + (hits.length - 1) * CR_FAIL_STEP + CR_FAIL_FLY + 260);
 }
 // The card leaves (a fresh card takes its cell); in a challenge round the next
 // one is sent for. Never on top of a live fall.
@@ -777,6 +796,7 @@ function crTakePrize() {
   return won;
 }
 function crReset() {
+  crFailGen++; crFailing.clear();   // drops a failed card's penalty bursts still to come
   crTele.forEach(t => { if (t.el) t.el.remove(); clearTimeout(t.timer); });
   crRound = null; crArmed = null; crFlow = null; crSpot = null; crTele = []; crQueue = []; crRecent = []; crFallSnap = null;
 }
@@ -868,6 +888,29 @@ function crFxFail(cd) {
   _crAnim(el, [ { translate: '0px 0px' }, { translate: '-5px 0px', offset: 0.15 }, { translate: '5px 0px', offset: 0.3 },
                 { translate: '-4px 0px', offset: 0.45 }, { translate: '3px 0px', offset: 0.6 }, { translate: '0px 0px' } ], { duration: 520 });
 }
+// One penalty burst (r504): the card kicks and flashes red, a red plate flies to
+// the readout, and on landing the readout jolts, the cost is charged and the hit
+// sounds. The plate is the payout plate (efxFly, js/payout-fx.js). A card already
+// gone (the round ended under it) fires from the readout itself.
+const CR_FAIL_FLY = 620;   // efxFly's flight, for the leave timer; the landing reads efxFly's own return
+const CR_FAIL_PLATE = 1.7;   // the penalty plate's size against an ordinary payout plate
+const CR_FAIL_TARGETS = { time: 'time', credits: 'credits', level: 'level' };
+function crFxPenalty(id, h, i) {
+  const at = crFindById(id), el = at && crCardEl(at[2]);
+  if (el) {
+    _crAnim(el, [ { scale: '1', filter: 'brightness(1)' }, { scale: '1.12 0.9', filter: 'brightness(1.6) saturate(1.6)', offset: 0.25 },
+                  { scale: '0.97 1.03', offset: 0.6 }, { scale: '1', filter: 'brightness(1)' } ], { duration: 340, easing: 'ease-out' });
+    crBurst(at[2], 6, 'cr-spark', 30);
+  }
+  sfxChallengePenaltyFire(i);
+  const fly = (typeof efxFly === 'function' && efxFly(el, CR_FAIL_TARGETS[h.to], h.label, '#ff4d4d', 'loss', CR_FAIL_PLATE)) || 0;
+  setTimeout(() => {
+    if (h.pay) h.pay();
+    sfxChallengePenalty(i);
+    const t = typeof efxTargetEl === 'function' && efxTargetEl(CR_FAIL_TARGETS[h.to]);
+    if (t) { t.classList.remove('cr-loss-hit'); void t.offsetWidth; t.classList.add('cr-loss-hit'); setTimeout(() => t.classList.remove('cr-loss-hit'), 520); }
+  }, fly);
+}
 function crFxLeave(cd) {
   const el = crCardEl(cd);
   if (!el) return Promise.resolve();
@@ -949,6 +992,20 @@ function sfxChallengeExpire() {
     _crTone(ctx, out, t, 330, 110, 0.55, 0.10 * v, 'sawtooth');
     _crTone(ctx, out, t, 220, 74, 0.55, 0.08 * v, 'square');
     _crHit(ctx, out, t + 0.35, _crNoise(ctx, 0.3, p => (1 - p) * (p * 30 % 1 < 0.4 ? 1 : 0.2)), 0.10 * v, 'lowpass', 1400);
+  });
+}
+// A penalty burst leaves the card: a short falling whip.
+function sfxChallengePenaltyFire(i) {
+  _crVoice((ctx, v, t, out) => { _crTone(ctx, out, t, 520 - (i || 0) * 60, 180, 0.16, 0.06 * v, 'sawtooth'); });
+}
+// A penalty lands on its readout: a heavy low hit and a sour buzz, each one lower.
+function sfxChallengePenalty(i) {
+  const k = Math.pow(0.84, i || 0);
+  _crVoice((ctx, v, t, out) => {
+    _crTone(ctx, out, t, 150 * k, 42 * k, 0.42, 0.30 * v, 'sine');
+    _crTone(ctx, out, t, 233 * k, 110 * k, 0.32, 0.07 * v, 'square');
+    _crTone(ctx, out, t + 0.01, 247 * k, 116 * k, 0.32, 0.06 * v, 'sawtooth');
+    _crHit(ctx, out, t, _crNoise(ctx, 0.2, p => Math.pow(1 - p, 2)), 0.16 * v, 'lowpass', 700);
   });
 }
 // A tier cleared: two bright notes.

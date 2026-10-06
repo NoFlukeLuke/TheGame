@@ -148,7 +148,7 @@ function trayPitPaint(el) {
   if (el._pitKey === key) return;
   el._pitKey = key;
   el.style.setProperty('--pit-bg', `url("data:image/svg+xml,${encodeURIComponent(trayPitSvg(w, h, rgb, trayPit, trayFx.center))}")`);
-  // r503: the floor's rect, so a tray can fill its own floor (the goal tray's progress)
+  // r505: the floor's rect, so a tray can fill its own floor (the goal tray's progress)
   const fl = trayPitGeom(w, h, trayPit, trayFx.center);
   const F = fl.R(fl.N);
   el.style.setProperty('--pit-floor', `${F.y0}px ${w - F.x1}px ${h - F.y1}px ${F.x0}px`);

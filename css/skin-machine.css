@@ -153,6 +153,12 @@ html.skin-machine #mc-flip :is(.mcf-top, .mcf-bot, .mcf-flap) > span {
   filter: url(#mc-crisp); text-shadow: none !important;
 }
 
+/* PIPS / MULT / FOCUS keep their colours, drawn as phosphor beside a green terminal's:
+   bright, a little pale, glowing (the crisp filter adds the bloom). */
+html.skin-machine #cabinet #cab-screen #stage #pips-val  { color: #5cc8ff !important; }
+html.skin-machine #cabinet #cab-screen #stage #mult-val  { color: #ff6a52 !important; }
+html.skin-machine #cabinet #cab-screen #stage #focus-val { color: #cf8cff !important; }
+
 /* ── Fliers under the housing (js/machine-skin.js) ─────────────────────────── */
 #mc-fly { position: fixed; inset: 0; z-index: 260; pointer-events: none;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
@@ -281,5 +287,7 @@ html.skin-machine #stage :is(#btn-discard, #btn-play) { font-size: 1.25em !impor
 html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator),
 html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator) * {
   color: #f2eee3 !important; -webkit-text-stroke: .45px rgba(40,28,8,.55) !important;
-  text-shadow: 0 -1px 0 rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.3), 0 0 1px rgba(0,0,0,.4) !important;
+  /* r502: the two side copies thicken each stroke a little, sideways only */
+  text-shadow: .45px 0 0 #f2eee3, -.45px 0 0 #f2eee3,
+               0 -1px 0 rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.3), 0 0 1px rgba(0,0,0,.4) !important;
 }

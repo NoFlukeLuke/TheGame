@@ -724,6 +724,34 @@ game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
 
+<<<<<<< HEAD
+## r503 - fly-to-preview: the copy keeps its text size and marks; Sleights stand up
+- **The flying copy is drawn at the board's zoom** (`flyGridCardToSlot`, js/score-dance.js). It lives on
+  body, outside `#cabinet`'s zoom, while card text is sized in design px, so its text flew at 1/zoom (half
+  size on a desktop). Now the copy carries `zoom: z` (z = rect width / offsetWidth) and every length it
+  is given (left/top, the look's dx/dy and h) is divided by z. Measured at 1440x820: rank height / card
+  height was 0.05 in flight vs 0.22 on the board; now 0.24. All four fly looks land within 2px.
+- **Marks fly because they are part of the card.** `cardFlyClone` deep-clones the board element and strips
+  only board-moment state (`CARD_FLY_STRIP`: selection, hints, the order badge, lab overlays). Every mark
+  (buffs, curses, charges, states, rarity) must be drawn inside `renderCardAppearance`'s markup or as a
+  class on the card; a mark drawn as a separate layer on `#grid` will not fly or show in the preview.
+- **A Sleight stands up in the preview** (`.dnc-turn`, css/dance.css): its landscape business card turns a
+  quarter and grows by 75/57 to fill the portrait slot. The turn is appended to each fly frame's
+  `transform` (a standalone `rotate` would turn the flight path too). Sleights also flow in the preview
+  row now (`.trick-card` is absolute on the board and used to fall out of line).
+
+## r504 - a failed challenge charges its penalty one burst at a time (`crFail`, js/challenge-round.js)
+Owner: feel the loss. The failed card STAYS on the board (shake, `cr-lost`), then every `CR_FAIL_STEP`
+(640ms) fires one burst (`crFxPenalty`): the card kicks red, a red payout plate 1.7x the usual size
+(`efxFly(..., 'loss', CR_FAIL_PLATE)`, js/payout-fx.js, which now returns its flight length) flies to the
+readout it costs (-Ns to the clock, -N to the credits, -1 reward to the level in Flow), and on landing the
+cost is charged, the readout jolts red (`.cr-loss-hit`) and `sfxChallengePenalty(i)` hits, each one lower.
+The card leaves after the last burst and the "Challenge failed" notice prints then (printed first, it hung
+over the clock the seconds burst flies into). Flow's reward is taken at once (a level-up mid-burst must
+see it). `crFailGen` (bumped by `crReset`) drops pending bursts on a new run; `crFailing` keeps
+`crOnRoundStart` from removing a card mid-burst, and that function now also queues any finished card the
+queue lost (a resumed save).
+=======
 ## r491 - the score tally speeds up with Focus
 `dncPace()` (js/dance-clock.js) now also multiplies by `dncFocusPace`, read once per hand in
 `dncResetAccel` from `caFocusPace('tally2')` (js/card-anims.js): `tally2` (default 1.5, lab slider
@@ -788,3 +816,15 @@ on Restore defaults), so the dev panel and Settings never disagree. The cream ca
 beige (`--mc-house` #ddd2b2); its grain and grime are warm brown and lighter on balance, because the
 black specks covered about a quarter of the surface and turned the beige grey (measured centre colour
 #9c947d -> #cec1a1). All machine grain is 20% fainter.
+
+## r502 - bulbs on the keys and tray edges; Console mode readouts (owner)
+- Tray bulbs (Tricks, hand preview) are centred on the tray's LOWER edge ('below' centres them under it).
+- Swap / discard bulbs sit on the key itself, flush inside its right edge (`.sb-flush`: lens only,
+  no ring; an unlit one is dark glass). A column taller than the key minus 4px each end splits in
+  half, one column each side of the label (`.sb-split`, a 2-column grid, left fills first). The
+  desktop SWAP key splits; DEFER and the phone's keys take one column.
+- With bulbs on or in Console mode, SWAP reads top to bottom (`writing-mode: vertical-rl`,
+  upright); with bulbs on the key counts are `display: none` so they hold no space.
+- Console mode: key letters are thickened sideways (two +-0.45px copies in the text-shadow);
+  PIPS / MULT / FOCUS values are phosphor blue / red / purple (#5cc8ff / #ff6a52 / #cf8cff).
+>>>>>>> origin/main
