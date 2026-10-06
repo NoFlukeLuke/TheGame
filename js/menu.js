@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r501 · Settings: Console mode and Stock display (bulbs); 80s beige case, 20% less grain";
+const BUILD = "2026-10-06 · r503 · Goal tray floor fills as the progress bar; credits right-aligned; Tricks tray more yellow";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

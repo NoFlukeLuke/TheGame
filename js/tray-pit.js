@@ -71,7 +71,8 @@ function trayPitRgb(el) {
   return (h.match(/\d+/g) || [102, 102, 102]).slice(0, 3).map(Number);
 }
 
-function trayPitSvg(w, h, rgb, f, center) {
+// The pit's shape: wall widths, terrace count and the rect of terrace k (k = N is the floor).
+function trayPitGeom(w, h, f, center) {
   const v = f.view / 100, r = f.persp / 100;
   // The widest wall (top) may not reach into the clear centre (Tray lines -> Clear centre).
   const room = (1 - center / 100) / 2 * Math.min(w, h);
@@ -83,6 +84,11 @@ function trayPitSvg(w, h, rgb, f, center) {
   ws.forEach((x, k) => t.push(t[k] + x / sum));
   const R = k => ({ x0: Math.round(wall.l * t[k]), y0: Math.round(wall.t * t[k]),
                     x1: Math.round(w - wall.r * t[k]), y1: Math.round(h - wall.b * t[k]) });
+  return { N, R, wall };
+}
+
+function trayPitSvg(w, h, rgb, f, center) {
+  const { N, R, wall } = trayPitGeom(w, h, f, center);
   // colours: the tray's hue, greyed by `tint`, scaled by how much light a face gets
   const g = 0.3 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2], tint = f.tint / 100;
   const base = rgb.map(c => g + (c - g) * tint);
@@ -135,13 +141,17 @@ function trayPitSvg(w, h, rgb, f, center) {
 
 function trayPitPaint(el) {
   if (!el) return;
-  if (!trayPitDrawn()) { el.style.removeProperty('--pit-bg'); el._pitKey = ''; return; }
+  if (!trayPitDrawn()) { el.style.removeProperty('--pit-bg'); el.style.removeProperty('--pit-floor'); el._pitKey = ''; return; }
   const w = el.clientWidth, h = el.clientHeight;
   if (!w || !h) return;
   const rgb = trayPitRgb(el), key = [w, h, rgb.join(), JSON.stringify(trayPit), trayFx.center].join('|');
   if (el._pitKey === key) return;
   el._pitKey = key;
   el.style.setProperty('--pit-bg', `url("data:image/svg+xml,${encodeURIComponent(trayPitSvg(w, h, rgb, trayPit, trayFx.center))}")`);
+  // r503: the floor's rect, so a tray can fill its own floor (the goal tray's progress)
+  const fl = trayPitGeom(w, h, trayPit, trayFx.center);
+  const F = fl.R(fl.N);
+  el.style.setProperty('--pit-floor', `${F.y0}px ${w - F.x1}px ${h - F.y1}px ${F.x0}px`);
 }
 
 // The pit replaces the ring stack and the tray's flat background, on the trays only.
