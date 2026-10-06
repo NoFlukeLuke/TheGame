@@ -29,6 +29,7 @@ superseded is history, not current code. The other reference docs:
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
+| `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
@@ -693,7 +694,7 @@ round is already dealt); it renders and restarts the round timer only if none is
 braces under r473's button guard: verified by closing the pick underneath an open shop.
 
 ## r486 - phone trays: zigzag Tricks, stacked bars (`js/tray-zigzag.js`, `css/tray-zigzag.css`)
-Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on: tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
+Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on AND the row does not fit flat (r492; a row that fits stays an ordinary row): tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
 
 ## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
 r487: merged to main as a dev option (Tray look -> machine panel); the pit stays the default. Further tuning on the `machine-panel` branch.
@@ -723,7 +724,14 @@ game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
 
-## r489 - a click PINS a tray Trick's tooltip (`js/tricks-ui.js`, `js/tray-lift.js`)
+## r491 - the score tally speeds up with Focus
+`dncPace()` (js/dance-clock.js) now also multiplies by `dncFocusPace`, read once per hand in
+`dncResetAccel` from `caFocusPace('tally2')` (js/card-anims.js): `tally2` (default 1.5, lab slider
+"Score tally at Focus x2", same store as the card speed) at Focus x2, linear from x1, Focus capped
+at x4. The card fly already carries Focus through `cardFlyMs`, so the dance's flight divides by
+`dncPaceNoFocus()` instead of counting it twice.
+
+## r496 - a click PINS a tray Trick's tooltip (`js/tricks-ui.js`, `js/tray-lift.js`)
 Hover still shows the bubble and the lift still leans toward the cursor. A click pins (`_trickPin`):
 the bubble stays, hover on other Tricks leaves it alone, the lift freezes (`trayLiftFreeze`; mouse
 only) and the marquee stops, so the pointer can cross the tray to Sell. Closed by clicking the Trick

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r489 · click a tray Trick to pin its tooltip (sell on desktop)";
+const BUILD = "2026-10-06 · r496 · click a tray Trick to pin its tooltip (merge)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

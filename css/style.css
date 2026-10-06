@@ -5279,7 +5279,7 @@
        height went unused. 83px of width is what fills it. Three tiles still
        sit across the tray as a plain row (249 + 2 gaps in 266px of room);
        fanTrickTray MEASURES everything, so nothing in JS changed. */
-    width: 83px; height: 79px;
+    width: 75px; height: 71px;   /* r494: 10% smaller (owner), was 83x79 */
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }

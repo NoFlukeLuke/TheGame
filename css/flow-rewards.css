@@ -755,10 +755,6 @@ body.shop-active #flowr-bg, body.shop-active #flowr-stack { visibility: hidden; 
   color: #fff3c4; letter-spacing: 1px;
   text-shadow: 0 0 10px rgba(255, 201, 74, .9), 0 0 26px rgba(255, 150, 40, .6);
 }
-#flowr-cel .fcel-sub {
-  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 3px;
-  color: #ffc94a; margin-top: 4px;
-}
 #flowr-cel.shake { animation: fcelShake .72s linear forwards; }
 #flowr-cel.burst { animation: fcelBurst .3s ease-in forwards; }
 @keyframes fcelIn {

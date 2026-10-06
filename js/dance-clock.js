@@ -96,11 +96,16 @@ const DNC_ACCEL_STEP = 0.05;  // +5% of the CURRENT pace per payout tick
 const DNC_ACCEL_MAX  = 8;     // ceiling, as a multiple of this dance's base pace
 let dncAccel = 1;
 
-function dncResetAccel() { dncAccel = 1; }
+// r491: Focus speeds the tally up too, read ONCE per hand (caFocusPace, js/card-anims.js:
+// x`tally2` at Focus x2, linear from x1) so a hand never changes speed mid-tally.
+let dncFocusPace = 1;
+function dncResetAccel() { dncAccel = 1; dncFocusPace = typeof caFocusPace === 'function' ? caFocusPace('tally2') : 1; }
 function dncBumpAccel(n = 1) {
   if (!(n > 0)) return;
   dncAccel = Math.min(DNC_ACCEL_MAX, dncAccel * Math.pow(1 + DNC_ACCEL_STEP, n));
 }
 // The live pace: this dance's base speed times everything it has paid out so far.
 // Every duration in the dance divides by THIS, never by dncSpeed directly.
-function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel; }
+function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncFocusPace; }
+// The pace without Focus: for lengths that already carry Focus (the card fly, cardFlyMs).
+function dncPaceNoFocus() { return dncPace() / (dncFocusPace || 1); }
