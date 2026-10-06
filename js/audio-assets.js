@@ -87,6 +87,8 @@ const SFX_CATALOG = [
   { id: 'chal_thud',     fn: 'sfxChallengeThud',   group: 'Challenge', label: 'Challenge: fall or hit' },
   { id: 'chal_solve',    fn: 'sfxChallengeSolve',  group: 'Challenge', label: 'Challenge card solved' },
   { id: 'chal_expire',   fn: 'sfxChallengeExpire', group: 'Challenge', label: 'Challenge card failed' },
+  { id: 'chal_pen_fire', fn: 'sfxChallengePenaltyFire', group: 'Challenge', label: 'Challenge penalty leaves the card' },
+  { id: 'chal_penalty',  fn: 'sfxChallengePenalty', group: 'Challenge', label: 'Challenge penalty lands', note: 'One per cost (seconds, credits, reward), each lower than the last.' },
   { id: 'chal_tick',     fn: 'sfxChallengeTick',   group: 'Challenge', label: 'Challenge: last seconds' },
   { id: 'chal_clear',    fn: 'sfxChallengeClear',  group: 'Challenge', label: 'Challenge tier cleared' },
   { id: 'chal_raise',    fn: 'sfxChallengeRaise',  group: 'Challenge', label: 'Challenge raised a tier' },

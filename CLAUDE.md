@@ -737,3 +737,15 @@ Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
   quarter and grows by 75/57 to fill the portrait slot. The turn is appended to each fly frame's
   `transform` (a standalone `rotate` would turn the flight path too). Sleights also flow in the preview
   row now (`.trick-card` is absolute on the board and used to fall out of line).
+
+## r490 - a failed challenge charges its penalty one burst at a time (`crFail`, js/challenge-round.js)
+Owner: feel the loss. The failed card STAYS on the board (shake, `cr-lost`), then every `CR_FAIL_STEP`
+(640ms) fires one burst (`crFxPenalty`): the card kicks red, a red payout plate 1.7x the usual size
+(`efxFly(..., 'loss', CR_FAIL_PLATE)`, js/payout-fx.js, which now returns its flight length) flies to the
+readout it costs (-Ns to the clock, -N to the credits, -1 reward to the level in Flow), and on landing the
+cost is charged, the readout jolts red (`.cr-loss-hit`) and `sfxChallengePenalty(i)` hits, each one lower.
+The card leaves after the last burst and the "Challenge failed" notice prints then (printed first, it hung
+over the clock the seconds burst flies into). Flow's reward is taken at once (a level-up mid-burst must
+see it). `crFailGen` (bumped by `crReset`) drops pending bursts on a new run; `crFailing` keeps
+`crOnRoundStart` from removing a card mid-burst, and that function now also queues any finished card the
+queue lost (a resumed save).

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r489 · fly-to-preview keeps text size and marks; Sleights lie sideways in the preview";
+const BUILD = "2026-10-06 · r490 · a failed challenge charges its penalty burst by burst";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

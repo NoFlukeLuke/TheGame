@@ -29,6 +29,7 @@ const EFX_TARGETS = {
   swaps:    ['#swap-indicator'],
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
+  level:    ['#ci-level', '#level-display'],   // r490: a challenge's -1 reward
 };
 // Two of these lists were pointing at ids that do not exist (r233). `#ci-coins`,
 // `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`
@@ -47,6 +48,7 @@ const EFX_STYLE = {
   focus:    { icon: '◈',  color: '#a25cd8', plate: 'focus' },
   swaps:    { icon: '⇄',  color: '#6fd08c', plate: 'focus' },
   discards: { icon: '✕',  color: '#e07a5f', plate: 'multAdd' },
+  loss:     { icon: '✕',  color: '#ff4d4d', plate: 'multAdd' },   // r490: a challenge penalty, any currency
 };
 
 // First laid-out element from a target list. A zero-size rect means "not showing
@@ -69,9 +71,9 @@ function efxTargetEl(kind) {
 // a second bare-text one: one shape vocabulary, one tuner, one legibility fix.
 // `fxKind` is the effect (rewind / pause / credits...) and decides the ghost trail;
 // `currency` is where it flies to and which colour family it wears.
-function efxFly(srcEl, currency, label, color, fxKind) {
+function efxFly(srcEl, currency, label, color, fxKind, scale) {
   const target = efxTargetEl(currency);
-  if (!target) return;
+  if (!target) return 0;
   const src = srcEl && srcEl.getBoundingClientRect && srcEl.getBoundingClientRect();
   const a = (src && src.width) ? src : target.getBoundingClientRect();
   const b = target.getBoundingClientRect();
@@ -79,7 +81,7 @@ function efxFly(srcEl, currency, label, color, fxKind) {
   if (typeof ptLaunch === 'function') {
     const style = EFX_STYLE[fxKind || currency] || EFX_STYLE.time;
     ptLaunch(a, b, style.plate || currency, label, color, dur,
-             { trail: (typeof ptTrail === 'function') ? ptTrail(fxKind || currency) : 0 });
+             { trail: (typeof ptTrail === 'function') ? ptTrail(fxKind || currency) : 0, scale: scale || 1 });
   }
   // The readout itself acknowledges the hit, so the flight has a destination that
   // reacts rather than a number that silently changed some time earlier.
@@ -87,6 +89,7 @@ function efxFly(srcEl, currency, label, color, fxKind) {
     target.classList.remove('efx-hit'); void target.offsetWidth; target.classList.add('efx-hit');
     setTimeout(() => target.classList.remove('efx-hit'), 380);
   }, dur * 0.8);
+  return dur;   // r490: the flight's length, for a caller that acts on landing
 }
 
 // The one entry point. `opts.id` / `opts.source` name the entity when the caller
