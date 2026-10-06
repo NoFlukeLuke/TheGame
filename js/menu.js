@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r493 · bosses no longer grant rerolls";
+const BUILD = "2026-10-06 · r494 · Desktop Tricks 10% smaller";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
