@@ -269,6 +269,8 @@ function framesFor(c, x0, y0, dx, dy, scale){
     { transform:`${base} scale(${.5*scale}) rotate(0deg)`, opacity:0, offset:0 },
     { transform:`${base} translate(${dx*.12}px,${dy*.12 - c.arc*.5}px) scale(${c.pop*scale}) rotate(${c.spin*.5}deg)`, opacity:1, offset:.22 },
     { transform:`${base} translate(${dx*.5}px,${dy*.5 - c.arc}px) scale(${scale}) rotate(${c.spin}deg)`, opacity:1, offset:.5 },
+    ...[.6,.7,.8,.9].map(o => { const t = (o-.5)/.5;
+      return { transform:`${base} translate(${dx*(.5+.5*t)}px,${dy*(.5+.5*t) - c.arc*(1-t)}px) scale(${scale*(1-.2*t)}) rotate(${c.spin+(c.spinEnd-c.spin)*t}deg)`, opacity:1 - c.fade/100*Math.pow(t,6), offset:o }; }),
     { transform:`${base} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${c.spinEnd}deg)`, opacity:1 - c.fade/100, offset:1 },
   ];
 }
