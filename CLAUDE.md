@@ -722,3 +722,12 @@ reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word i
 game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
+
+## r489 - a click PINS a tray Trick's tooltip (`js/tricks-ui.js`, `js/tray-lift.js`)
+Hover still shows the bubble and the lift still leans toward the cursor. A click pins (`_trickPin`):
+the bubble stays, hover on other Tricks leaves it alone, the lift freezes (`trayLiftFreeze`; mouse
+only) and the marquee stops, so the pointer can cross the tray to Sell. Closed by clicking the Trick
+again, the bubble's X, a click elsewhere, Escape, or the sale. A re-render hands the pin to the new
+chip (`trickPinReanchor`, `trayLiftReanchor`). Every chip, marquee copies included, gets the click
+(`attachTrickClick`); before this the copies had none. The board's tooltip-dismiss pointerdown in
+`js/sleights-runtime.js` stands down for tray chips, or it unpinned before the click landed.

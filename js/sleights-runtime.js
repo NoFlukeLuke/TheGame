@@ -948,6 +948,10 @@ function attachLongPress(el, r, c) {
 
 // Dismiss any card tooltip when tapping outside a card or tooltip element
 document.addEventListener('pointerdown', e => {
+  // A tray Trick's own click pins or unpins its bubble (js/tricks-ui.js).
+  if (e.target.closest('#trick-tray-list .trick-tray-chip')) {
+    hideSleightGridTooltip(); document.getElementById('card-enh-tooltip')?.remove(); return;
+  }
   if (!e.target.closest('.trick-card') &&
       !e.target.closest('#trick-tooltip') &&
       !e.target.closest('#sleight-grid-tooltip') &&

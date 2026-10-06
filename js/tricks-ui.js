@@ -78,6 +78,7 @@ function trickLiveDesc(trick) {
 function hideTrickTooltip() {
   const tip = document.getElementById('trick-tooltip');
   if (tip) tip.remove();
+  if (_trickPin) { _trickPin = null; trickPinMark(); if (typeof trayLiftEnd === 'function') trayLiftEnd(); }
 }
 
 // ── Trick Tray: render chips for all tray Tricks ──
@@ -121,13 +122,14 @@ function renderTrickTray() {
   pruneRowColBonuses();
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
-  // A lifted copy points at a chip this render is about to replace (r409).
-  if (typeof trayLiftEnd === 'function') trayLiftEnd();
+  // A lifted copy points at a chip this render is about to replace (r409). A
+  // pinned one is handed to the new chip at the end instead (trickPinReanchor).
+  if (!_trickPin && typeof trayLiftEnd === 'function') trayLiftEnd();
   // The tray has two faces (r329, js/queue-views.js): the Tricks below, or the
   // Sleight draw queue. The intercept always ensures the corner toggle exists;
   // in queue view it renders the queue and this function stands down - so every
   // caller repaints whichever face is showing.
-  if (typeof trayQueueIntercept === 'function' && trayQueueIntercept()) return;
+  if (typeof trayQueueIntercept === 'function' && trayQueueIntercept()) { if (_trickPin) hideTrickTooltip(); return; }
   // A newly GAINED Trick should land somewhere visible. In portrait the Tricks
   // view shares the strip with Knacks and the preview, so flip to it when the
   // count grows. Tally updated BEFORE the flip: setPortraitPanelView re-enters
@@ -172,18 +174,6 @@ function renderTrickTray() {
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';
-      chip.addEventListener('click', e => {           // single tap cycles borrow direction
-        e.stopPropagation();
-        trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
-        renderTrickTray();
-      });
-    } else {
-      chip.addEventListener('click', e => {
-        e.stopPropagation();
-        const existing = document.getElementById('trick-tooltip');
-        if (existing) { hideTrickTooltip(); return; }
-        showTrickTrayTooltip(trick, chip);
-      });
     }
     // Cooldown / disable / primed ring (js/cooldown.js). Painted here as well as
     // by the widget's own sweep so a freshly rebuilt tray shows the right state on
@@ -200,14 +190,16 @@ function renderTrickTray() {
   } else {
     applyChipMarquee(list, track);
   }
-  // Hover tooltips for every tile (originals + marquee clones).
+  // Hover and click for every tile (originals + marquee clones, which copy the
+  // markup but not the listeners).
   list.querySelectorAll('.trick-tray-chip').forEach(chip => {
     const trick = trickTray.find(t => t.id === chip.dataset.trickId);
-    if (trick) attachTrickHover(chip, trick);
+    if (trick) { attachTrickHover(chip, trick); attachTrickClick(chip, trick); }
   });
   // Names are word-atomic and shrink to fit - never broken across a letter (r182).
   fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
   if (typeof trayLiftBind === 'function') trayLiftBind(list);
+  trickPinReanchor(list);
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the
@@ -216,9 +208,59 @@ let _trickHoverTimer = null;
 function cancelTrickHoverHide() { if (_trickHoverTimer) { clearTimeout(_trickHoverTimer); _trickHoverTimer = null; } }
 function scheduleTrickHoverHide() { cancelTrickHoverHide(); _trickHoverTimer = setTimeout(hideTrickTooltip, 160); }
 function attachTrickHover(chip, trick) {
-  chip.addEventListener('mouseenter', () => { cancelTrickHoverHide(); showTrickTrayTooltip(trick, chip); });
-  chip.addEventListener('mouseleave', scheduleTrickHoverHide);
+  chip.addEventListener('mouseenter', () => { if (_trickPin) return; cancelTrickHoverHide(); showTrickTrayTooltip(trick, chip); });
+  chip.addEventListener('mouseleave', () => { if (!_trickPin) scheduleTrickHoverHide(); });
 }
+
+// ── PIN (r489) ───────────────────────────────────────────────────────────────
+// Hover shows the bubble; a CLICK pins it. A pinned bubble stays put, hover on
+// other Tricks leaves it alone, and on a mouse the lifted copy freezes. So the
+// pointer can cross the tray to reach Sell. Closed by clicking the Trick again,
+// the bubble's X, a click anywhere else, or Escape. Mirror's click still flips
+// its aim, and pins.
+let _trickPin = null;   // { id } of the pinned Trick, or null
+function trickPinMark() {
+  const tip = document.getElementById('trick-tooltip');
+  if (tip) tip.classList.toggle('pinned', !!_trickPin);
+  document.getElementById('trick-tray-area')?.classList.toggle('tt-pinned', !!_trickPin);
+}
+function attachTrickClick(chip, trick) {
+  chip.addEventListener('click', e => {
+    e.stopPropagation();
+    if (trick.id === 'mirror') {
+      trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
+      _trickPin = { id: trick.id };
+      renderTrickTray();
+      return;
+    }
+    if (_trickPin && _trickPin.id === trick.id) { hideTrickTooltip(); return; }
+    if (_trickPin && typeof trayLiftEnd === 'function') trayLiftEnd();
+    cancelTrickHoverHide();
+    _trickPin = { id: trick.id };
+    showTrickTrayTooltip(trick, chip);
+    if (e.pointerType !== 'touch' && matchMedia('(hover: hover)').matches && typeof trayLiftAt === 'function') {
+      if (chip.classList.contains('tray-lifted')) trayLiftFreeze(true);
+      else { trayLiftAt(chip, e.clientX, e.clientY); trayLiftFreeze(true); }
+    }
+  });
+}
+// After a re-render: the pinned Trick's chip is new (or gone, once sold).
+function trickPinReanchor(list) {
+  if (!_trickPin) return;
+  const trick = trickTray.find(t => t.id === _trickPin.id);
+  const chip = trick && list.querySelector(`.trick-tray-chip[data-trick-id="${trick.id}"]`);
+  if (!chip) { hideTrickTooltip(); return; }
+  if (typeof trayLiftReanchor === 'function') trayLiftReanchor(chip);
+  // Leave a bubble that is mid-confirm alone; rebuilding it would drop the question.
+  if (document.querySelector('#trick-tooltip .tip-confirming')) return;
+  showTrickTrayTooltip(trick, chip);
+}
+document.addEventListener('click', e => {
+  if (!_trickPin) return;
+  if (e.target.closest && e.target.closest('#trick-tooltip, #trick-tray-list .trick-tray-chip')) return;
+  hideTrickTooltip();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && _trickPin) hideTrickTooltip(); });
 
 // r279 - ONE GESTURE. A tap (or a hover on a mouse) opens the description WITH
 // Sell on it. r182 had split that apart, so disposing of a Trick needed a
@@ -231,7 +273,7 @@ function attachTrickHover(chip, trick) {
 // only distinction was being worse.
 //
 function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
-  hideTrickTooltip();
+  document.getElementById('trick-tooltip')?.remove();   // not hideTrickTooltip: that unpins
   const tip = document.createElement('div');
   tip.id = 'trick-tooltip';
   tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
@@ -263,12 +305,13 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   wireKwMore(tip, tip, () => placeTipSmart(anchorEl, tip));
   // Keep the bubble open while the pointer is over it (so Sell is clickable).
   tip.addEventListener('mouseenter', cancelTrickHoverHide);
-  tip.addEventListener('mouseleave', scheduleTrickHoverHide);
+  tip.addEventListener('mouseleave', () => { if (!_trickPin) scheduleTrickHoverHide(); });
   void tip.offsetWidth;
   // Opens into whichever side of the chip has the most room (was hardcoded to
   // above, which put it off-screen for tray tiles near the top).
   placeTipSmart(anchorEl, tip);
   tip.style.opacity = '1';
+  trickPinMark();
 }
 
 // The tray is always on and the hand-preview area is hidden inline (landscape
