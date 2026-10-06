@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r501 · Settings: Console mode and Stock display (bulbs); 80s beige case, 20% less grain";
+const BUILD = "2026-10-06 · r502 · Bulbs on the keys and tray edges; SWAP reads top to bottom; phosphor pips, mult, Focus in Console mode";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

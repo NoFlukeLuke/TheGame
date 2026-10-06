@@ -2,9 +2,10 @@
 // STOCK BULBS (r497) - small lamps in place of the x/y stock readouts
 // ══════════════════════════════════════════════
 // One bulb per point of a limit's MAX, set beside the thing it counts:
-//   Swaps / Discards : a column between the board and the key. Green = a use left,
+//   Swaps / Discards : a column on the key's right edge (split either side of the label
+//                      when it does not fit). Green = a use left,
 //                      red = used this round, dim = not unlocked yet.
-//   Hand / Tricks    : a row on the tray's rim, or just beneath it (`trick` setting).
+//   Hand / Tricks    : a row centred on the tray's lower edge, or just beneath it (`trick`).
 //                      Green = free, blue = in use, dim = not unlocked yet.
 // A limit that goes up lights its new bulb with a flicker, a flash, then settles.
 // The x/y readouts they replace are hidden (visibility, so tips still find them).
@@ -60,26 +61,28 @@ function sbLive() {
     && !(typeof shopGridActive !== 'undefined' && shopGridActive);
 }
 
-// Where each group goes: { x, y, dir: 'col'|'row', size }.
+// Where each group goes: { x, y, dir: 'col'|'row', size, split?: rows per side, w? }.
 function sbPlaces(st, z, sr) {
   const land = st.classList.contains('landscape');
-  const grid = sbRect(document.getElementById('grid'), st, z, sr);
   const out = {};
+  // On the key, flush inside its right edge. If the column is taller than the key, the
+  // bulbs split in half, one column each side of the label (left fills first).
   const keyCol = (id, n) => {
-    const k = sbRect(document.getElementById(id), st, z, sr); if (!k || !grid) return null;
-    const gap = k.x - (grid.x + grid.w);
-    const size = Math.max(4, Math.min(SB_SIZE, gap - 3));
-    const len = n * size + (n - 1) * SB_GAP;
-    return { x: k.x - Math.min(5, (gap - size) / 2) - size, y: k.y + (k.h - len) / 2, dir: 'col', size };
+    const k = sbRect(document.getElementById(id), st, z, sr); if (!k) return null;
+    const size = SB_SIZE, pad = 4;
+    const len = m => m * size + (m - 1) * SB_GAP;
+    if (len(n) <= k.h - 2 * pad) return { x: k.x + k.w - pad - size, y: k.y + (k.h - len(n)) / 2, dir: 'col', size };
+    const rows = Math.ceil(n / 2);
+    return { x: k.x + pad, y: k.y + (k.h - len(rows)) / 2, dir: 'col', size, split: rows, w: k.w - 2 * pad };
   };
   const trayRow = (el, n, where, below) => {
     const t = sbRect(el, st, z, sr); if (!t) return null;
     let size = SB_SIZE, y;
     if (where === 'below') { size = Math.max(4, Math.min(SB_SIZE, (below == null ? SB_SIZE + 3 : below) - 2)); y = t.y + t.h + 1; }
     else if (where === 'mid') y = t.y + (t.h - size) / 2;
-    else y = t.y - size / 2;
+    else y = t.y + t.h - size / 2;                       // centred on the tray's lower edge
     const len = n * size + (n - 1) * SB_GAP;
-    return { x: t.x + t.w - 10 - len, y, dir: 'row', size };
+    return { x: where === 'mid' ? t.x + t.w - 10 - len : t.x + (t.w - len) / 2, y, dir: 'row', size };
   };
   // the room under a tray: down to the next thing drawn below it, or the stage edge
   const roomBelow = (el, nextIds) => {
@@ -117,8 +120,11 @@ function sbPaint(force) {
     let box = l.querySelector(`.sb-${g}`);
     if (!s || !p) { if (box) box.remove(); continue; }
     if (!box) { box = document.createElement('div'); box.className = `sb-grp sb-${g}`; l.appendChild(box); }
-    box.classList.toggle('sb-col', p.dir === 'col');
-    box.style.cssText = `left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px;--sb:${p.size.toFixed(1)}px;gap:${SB_GAP}px`;
+    box.classList.toggle('sb-col', p.dir === 'col' && !p.split);
+    box.classList.toggle('sb-split', !!p.split);
+    box.classList.toggle('sb-flush', g === 'swap' || g === 'disc');
+    box.style.cssText = `left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px;--sb:${p.size.toFixed(1)}px;gap:${SB_GAP}px`
+      + (p.split ? `;width:${p.w.toFixed(1)}px;--sb-rows:${p.split}` : '');
     while (box.children.length < s.n) box.appendChild(document.createElement('i'));
     while (box.children.length > s.n) box.lastChild.remove();
     const prev = _sbLast[g];

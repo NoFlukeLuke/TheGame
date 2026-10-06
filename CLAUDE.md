@@ -788,3 +788,14 @@ on Restore defaults), so the dev panel and Settings never disagree. The cream ca
 beige (`--mc-house` #ddd2b2); its grain and grime are warm brown and lighter on balance, because the
 black specks covered about a quarter of the surface and turned the beige grey (measured centre colour
 #9c947d -> #cec1a1). All machine grain is 20% fainter.
+
+## r502 - bulbs on the keys and tray edges; Console mode readouts (owner)
+- Tray bulbs (Tricks, hand preview) are centred on the tray's LOWER edge ('below' centres them under it).
+- Swap / discard bulbs sit on the key itself, flush inside its right edge (`.sb-flush`: lens only,
+  no ring; an unlit one is dark glass). A column taller than the key minus 4px each end splits in
+  half, one column each side of the label (`.sb-split`, a 2-column grid, left fills first). The
+  desktop SWAP key splits; DEFER and the phone's keys take one column.
+- With bulbs on or in Console mode, SWAP reads top to bottom (`writing-mode: vertical-rl`,
+  upright); with bulbs on the key counts are `display: none` so they hold no space.
+- Console mode: key letters are thickened sideways (two +-0.45px copies in the text-shadow);
+  PIPS / MULT / FOCUS values are phosphor blue / red / purple (#5cc8ff / #ff6a52 / #cf8cff).
