@@ -91,7 +91,7 @@ const TRICK_POOL = [
   // ── Number magic ──
   { id:'lucky_sevens',   name:'Lucky Sevens',        tier:'rare',      desc:'+3 Focus for each 7 scored or discarded' },
   { id:'ninesong',       name:'Threepeat',           tier:'epic',      desc:"If the hand's pip total is divisible by 3, one of the following happens: rewind 9 seconds, +9 mult, +9 Focus" },
-  { id:'prime_time',     name:'Prime Time',          tier:'rare',      desc:'Hands with 3+ prime-ranked cards (A,2,3,5,7) score +23 pips per card' },
+  { id:'prime_time',     name:'Prime Time',          tier:'rare',      desc:'Prime-ranked cards (A,2,3,5,7) score +23 pips' },
   { id:'even_score',     name:'Get Even',            tier:'common',    desc:'Even-ranked cards score +4 pips' },
   { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Odd-ranked cards score +3 mult' },
   // ── Rank diversity ──
@@ -161,6 +161,7 @@ const TRICK_POOL = [
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus' },
   { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing four or more suits in a hand applies the Focus multiplier a second time' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, score +10 pips per card' },
+  { id:'hyper_focus',    name:'Hyper Focus',         tier:'rare',      tags:['focus','mult'], desc:'Each card scored adds mult equal to 2x your Focus multiplier' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'When scored, the center-most card gains +5 pips & +2 mult' },
   // ── Combo batch (r83): payoffs / sleight-charge synergies ──
@@ -226,7 +227,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🧮', ids:['interest','portfolio','compound_mult','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
-  { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','overclock'] }, // Focus
+  { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','hyper_focus','overclock'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
   { emoji:'💎', ids:['obsessed','buried_treasure','relentless','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
 ];

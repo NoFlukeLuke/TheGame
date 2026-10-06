@@ -91,6 +91,8 @@ const IMPROVE_STEP = {
   jury_rig:       { chance: 0.15 },
   time_slip:      { chance: 0.10 },
   replay_rewind:  { chance: 0.20 },
+  prime_time:     { pips_per_card: 11 }, // owner: +11 per improvement, not +23
+  hyper_focus:    { focus_mult: 1 },     // 2x Focus -> 3x -> 4x
 };
 
 // Pristine BAL, captured at load before anything can have improved. One level

@@ -273,7 +273,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     { id:'tidal_force',   cond:x => x.isFlush,                        pays:()  => ({ mult: BAL.tidal_force.mult_per_card }) },
     { id:'number_crunch', cond:x => x.rankCount >= 4,                 pays:()  => ({ mult: BAL.number_crunch.mult_per_card }) },
     { id:'heavy_hand',    cond:x => x.real5,                          pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
-    { id:'prime_time',    cond:x => x.primeCount >= 3,                pays:()  => ({ pip:  BAL.prime_time.pips_per_card }) },
+    { id:'prime_time',    cond:() => true,                            pays:c => ['A','2','3','5','7'].includes(c.rank) ? ({ pip: BAL.prime_time.pips_per_card }) : null },
+    // Hyper Focus: mult per card = focus_mult x the Focus multiplier (x1.5 Focus, 2x -> +3 mult).
+    { id:'hyper_focus',   cond:() => true,                            pays:(c,x) => ({ mult: Math.round(BAL.hyper_focus.focus_mult * x.focusMult * 100) / 100 }) },
     // Flow State joined the table in r238. It used to pay from a site AFTER the
     // x pips block, so it escaped Undertow / Scalper / Knave Power / Interest; it
     // is an ordinary additive per-card pip now and they all multiply it. That is
@@ -1023,6 +1025,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // block-scoped const of the same name shadows it.)
   if (_pcPips.even_score) { bPipQ('even_score', _pcPips.even_score, 1); }
   if (_pcMult.odd_squad) { bMultQ('odd_squad', _pcMult.odd_squad, 1); }
+  if (_pcMult.hyper_focus) { bMultQ('hyper_focus', _pcMult.hyper_focus, 1); }
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
   // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
   if (_kgMult) { bMultQ('king_guard', _kgMult, 1); }
