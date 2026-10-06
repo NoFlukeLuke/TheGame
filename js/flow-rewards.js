@@ -1079,7 +1079,37 @@ function flowrFxLayer() {
     layer.id = 'flowr-confetti';
     host.appendChild(layer);
   }
+  flowrFxHousingMask(layer);
   return layer;
+}
+// Console mode (r513): the confetti shows only through the screens, so it goes
+// under the housing like everything else that flies. A mask built from the
+// MC_SCREENS rects in the layer's own px; mask-clip no-clip because pieces are
+// thrown well outside the slot the layer covers.
+function flowrFxHousingMask(layer) {
+  const s = layer.style;
+  if (!(typeof trayMachineOn === 'function' && trayMachineOn()) || typeof MC_SCREENS === 'undefined') {
+    s.webkitMaskImage = s.maskImage = ''; return;
+  }
+  const lr = layer.getBoundingClientRect(), z = lr.width / (layer.offsetWidth || 1);
+  if (!(z > 0.01)) return;
+  const land = document.getElementById('stage')?.classList.contains('landscape');
+  const imgs = [], sizes = [], pos = [];
+  MC_SCREENS.forEach(id => {
+    const e = document.getElementById(id);
+    if (!e || !e.offsetWidth || (land && id === 'hand-preview-area')) return;
+    if (e.checkVisibility && !e.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return;
+    const r = e.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return;
+    imgs.push('linear-gradient(#000, #000)');
+    sizes.push(`${(r.width / z).toFixed(1)}px ${(r.height / z).toFixed(1)}px`);
+    pos.push(`${((r.left - lr.left) / z).toFixed(1)}px ${((r.top - lr.top) / z).toFixed(1)}px`);
+  });
+  s.webkitMaskImage = s.maskImage = imgs.join(', ') || 'linear-gradient(#0000, #0000)';
+  s.webkitMaskSize = s.maskSize = sizes.join(', ');
+  s.webkitMaskPosition = s.maskPosition = pos.join(', ');
+  s.webkitMaskRepeat = s.maskRepeat = 'no-repeat';
+  s.webkitMaskClip = s.maskClip = 'no-clip';
 }
 // The chip's own centre, in the slot's design px. Falls back to the slot's
 // centre when the chip has not been laid out yet (the dev-panel preview).
