@@ -221,6 +221,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
+  // A LINES round's progress lands now if the climb never finished it.
+  if (typeof roundQuotaClimb === 'function') roundQuotaClimb(1);
   // The dance is over, so a takeover screen that opened during it (the mid-dance
   // pick) gets its deferred HUD swap now - BEFORE the goal branch below, so an
   // interlude/prize grid opened from here is never itself deferred. (r310)
@@ -1281,6 +1283,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)
       if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }

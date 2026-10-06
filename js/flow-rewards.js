@@ -504,7 +504,9 @@ function flowrMaybeStart() {
   // A Flow challenge card solved (+1) or failed (-1) since the last level-up
   // (js/challenge-round.js). Never below one reward.
   const _crd = (typeof crTakeFlowRewardDelta === 'function') ? crTakeFlowRewardDelta() : 0;
-  const n = Math.max(1, Math.min(FLOWR_MAX, flowrRollCount() + _crd));
+  // A cleared Line Quotas round pays at least QUOTA_LINES_REWARDS (js/level-types.js).
+  const _qf = (typeof quotaLinesRewardFloor === 'function') ? quotaLinesRewardFloor() : 0;
+  const n = Math.max(1, _qf, Math.min(FLOWR_MAX, flowrRollCount() + _crd));
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
   // THIS chain is damped (see FLOWR_REPEAT_DAMP), and pick3 to nothing. A kind
