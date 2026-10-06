@@ -839,7 +839,7 @@ the bottom, left column first.
 ## r508 - Autopilot plays at most 5 hands per landing
 `BAL.autopilot.max_hands` 0 -> 5 (description reads it). With its 15 charges that is three landings at most. Verified: 5 hands, charges 15 -> 10, stop with hands still on the board, back in the deck.
 
-## r510 - Console mode: nothing rides over the housing; fliers keep the screen door
+## r511 - Console mode: nothing rides over the housing; fliers keep the screen door
 - **What leaked** (filmed at 0.15x through CDP `Animation.setPlaybackRate`): the body-level fliers
   were all adopted into `#mc-fly` and masked correctly. What showed over the housing was the
   SCREENS themselves: `box-pop` swelled `#score-center` 1.32x past its recess, `subbox-pop` /

@@ -138,7 +138,7 @@ html.skin-machine #stage #score-total-label, html.skin-machine #stage #score-goa
    the housing: the board clips its overflow, with a small margin for selection glows. */
 html.skin-machine #stage #grid {
   overflow: clip !important; overflow-clip-margin: 6px;
-  clip-path: inset(0 -6px -6px -6px);   /* r510: no margin at the top, where new cards fall in */
+  clip-path: inset(0 -6px -6px -6px);   /* r511: no margin at the top, where new cards fall in */
   border-radius: 7px !important;
   box-shadow: inset 0 4px 12px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.06),
               0 -2px 0 var(--mc-cut-dk), 0 1px 0 var(--mc-cut-lt), 0 2px 0 rgba(255,255,255,.05) !important;
@@ -160,7 +160,7 @@ html.skin-machine #cabinet #cab-screen #stage #pips-val  { color: #5cc8ff !impor
 html.skin-machine #cabinet #cab-screen #stage #mult-val  { color: #ff6a52 !important; }
 html.skin-machine #cabinet #cab-screen #stage #focus-val { color: #cf8cff !important; }
 
-/* r510: a card in flight, a Trick in flight, and the lifted / pinned Trick wear the board's
+/* r511: a card in flight, a Trick in flight, and the lifted / pinned Trick wear the board's
    screen door themselves (same lines and grille as #grid::after), so it does not drop off
    mid-move. A Trick's door is drawn over its floppy only (same box and cut corner as its
    ::before), never over the see-through corner. */
@@ -203,9 +203,9 @@ html.skin-machine #stage #focus-mult-readout {
   bottom: calc(6px + var(--focus-fill, 0) * (100% - 28px)) !important;
   translate: -50% 0; padding: 0 !important; font-size: 10px !important; letter-spacing: -.5px !important; pointer-events: none;
   transition: bottom .12s ease-out;
-  animation: none !important; white-space: nowrap; max-width: 100%;   /* r510: fits the gauge; its pulse grew it onto the housing */
+  animation: none !important; white-space: nowrap; max-width: 100%;   /* r511: fits the gauge; its pulse grew it onto the housing */
 }
-/* r510: the screens are set in the housing, so they never grow or shake: a hand's pops
+/* r511: the screens are set in the housing, so they never grow or shake: a hand's pops
    and jitters become a brightness flash on the glass. */
 html.skin-machine #stage :is(#score-center, #score-left, .score-subbox, #pmf-merged):is(.box-popping, .subbox-pop) {
   animation: mc-screen-flash .3s ease-out !important; }

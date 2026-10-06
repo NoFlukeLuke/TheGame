@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r510 · Console mode: screens stay in the housing, fliers keep the screen door; key bulbs on the left; tally never dips";
+const BUILD = "2026-10-06 · r511 · Console mode: screens stay in the housing, fliers keep the screen door; key bulbs on the left; tally never dips";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
