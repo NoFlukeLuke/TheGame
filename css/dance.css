@@ -11,6 +11,14 @@
   #selected-cards.dnc-active .dnc-track{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:nowrap;padding:8px 0;
     transition:transform .38s cubic-bezier(.4,.6,.3,1);will-change:transform;}
   .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  /* r489: a Sleight in the preview. It never flowed in the row (it is .trick-card,
+     absolute on the board, not .card); now it does. Its face is a landscape business
+     card letterboxed in a portrait tile, so here the tile turns a quarter and grows by
+     the card's own h/w (75/57), which stands the business card up to fill the slot.
+     Standalone rotate/scale, so the dance's pops and flashes on `transform` compose. */
+  #selected-cards .trick-card.sleight-card{position:relative !important;flex:0 0 auto;will-change:auto;transition:none;cursor:var(--cur-default, default);}
+  .dnc-outer.dnc-turn{align-items:center;justify-content:center;}
+  .dnc-outer.dnc-turn > .sleight-card{rotate:90deg;scale:var(--dnc-turn-k, 1.316);}
   /* ── Portrait preview sizing (r160) ──
      fitPortraitPreviewCards() publishes --card-w/--card-h (the card size) and
      --dnc-lap (the margin between cards - NEGATIVE when the hand has to overlap

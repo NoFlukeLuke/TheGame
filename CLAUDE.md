@@ -722,3 +722,18 @@ reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word i
 game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
+
+## r489 - fly-to-preview: the copy keeps its text size and marks; Sleights stand up
+- **The flying copy is drawn at the board's zoom** (`flyGridCardToSlot`, js/score-dance.js). It lives on
+  body, outside `#cabinet`'s zoom, while card text is sized in design px, so its text flew at 1/zoom (half
+  size on a desktop). Now the copy carries `zoom: z` (z = rect width / offsetWidth) and every length it
+  is given (left/top, the look's dx/dy and h) is divided by z. Measured at 1440x820: rank height / card
+  height was 0.05 in flight vs 0.22 on the board; now 0.24. All four fly looks land within 2px.
+- **Marks fly because they are part of the card.** `cardFlyClone` deep-clones the board element and strips
+  only board-moment state (`CARD_FLY_STRIP`: selection, hints, the order badge, lab overlays). Every mark
+  (buffs, curses, charges, states, rarity) must be drawn inside `renderCardAppearance`'s markup or as a
+  class on the card; a mark drawn as a separate layer on `#grid` will not fly or show in the preview.
+- **A Sleight stands up in the preview** (`.dnc-turn`, css/dance.css): its landscape business card turns a
+  quarter and grows by 75/57 to fill the portrait slot. The turn is appended to each fly frame's
+  `transform` (a standalone `rotate` would turn the flight path too). Sleights also flow in the preview
+  row now (`.trick-card` is absolute on the board and used to fall out of line).

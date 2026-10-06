@@ -1,4 +1,4 @@
-const BUILD = "2026-10-05 · r488 · event roster verdict, the reserve, junk cards, slots pass (docs)";
+const BUILD = "2026-10-06 · r489 · fly-to-preview keeps text size and marks; Sleights lie sideways in the preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
