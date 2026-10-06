@@ -30,7 +30,7 @@ let _autopilotHandK = 0;      // the run's hand number while that hand is being 
 function autopilotFocusExtra() { return _autopilotHandK > 1 ? _autopilotHandK - 1 : 0; }
 function autopilotRunning() { return !!autopilotRun; }
 
-function _apCfg() { return BAL.autopilot || { delay_seconds: 30, focus_cost: 5, max_hands: 0 }; }
+function _apCfg() { return BAL.autopilot || { delay_seconds: 30, focus_cost: 5, max_hands: 5 }; }
 
 function _apFind(card) {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)

@@ -837,3 +837,6 @@ first and stacks them on the survivors, so the empty cells are at the TOP (it us
 order, leaving a gap under a card that fell in, e.g. a discard with an empty deck coming straight back).
 `fillGridHoles` does the same when the deck cannot fill every hole: columns pack down, then fill from
 the bottom, left column first.
+
+## r508 - Autopilot plays at most 5 hands per landing
+`BAL.autopilot.max_hands` 0 -> 5 (description reads it). With its 15 charges that is three landings at most. Verified: 5 hands, charges 15 -> 10, stop with hands still on the board, back in the deck.
