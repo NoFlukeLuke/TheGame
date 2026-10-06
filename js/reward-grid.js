@@ -1567,7 +1567,7 @@ function onRewardCellClick(r, c) {
   // path is taken as a whole, so bouncing it later would mean spending a pick on
   // nothing. The tray count says why.
   const _pay = rewardCells[r] && rewardCells[r][c] && rewardCells[r][c].payload;
-  if (_pay && _pay.entity === 'trick' && trickTrayFull()) { refuseTrickCapacity(); return; }
+  if (offerNeedsTrickSlot(_pay)) { refuseTrickCapacity(); return; }
 
   rewardSelected.add(key);
   if (typeof sfxRewardSelect === 'function') { try { sfxRewardSelect(); } catch (e) {} }

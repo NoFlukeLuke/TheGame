@@ -504,7 +504,9 @@ function flowrMaybeStart() {
   // A Flow challenge card solved (+1) or failed (-1) since the last level-up
   // (js/challenge-round.js). Never below one reward.
   const _crd = (typeof crTakeFlowRewardDelta === 'function') ? crTakeFlowRewardDelta() : 0;
-  const n = Math.max(1, Math.min(FLOWR_MAX, flowrRollCount() + _crd));
+  // A cleared Line Quotas round pays at least QUOTA_LINES_REWARDS (js/level-types.js).
+  const _qf = (typeof quotaLinesRewardFloor === 'function') ? quotaLinesRewardFloor() : 0;
+  const n = Math.max(1, _qf, Math.min(FLOWR_MAX, flowrRollCount() + _crd));
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
   // THIS chain is damped (see FLOWR_REPEAT_DAMP), and pick3 to nothing. A kind
@@ -1209,10 +1211,8 @@ function flowrBossCelebrate(boss, done) {
   const el = document.createElement('div');
   el.id = 'flowr-cel';
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const rr = (typeof PICK_REROLLS_PER_BOSS !== 'undefined') ? `+${PICK_REROLLS_PER_BOSS} REROLLS` : '';
   el.innerHTML = `<div class="fcel-kick">${esc(boss.name)}</div>`
-    + `<div class="fcel-title">${flowrBossPassedText()}</div>`
-    + (rr ? `<div class="fcel-sub">${rr}</div>` : '');
+    + `<div class="fcel-title">${flowrBossPassedText()}</div>`;
   host.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   try { sfxBossFanfare?.(); } catch (e) {}
@@ -1595,7 +1595,7 @@ function flowrShowEntityStep(kind) {
   const rerollAct = () => pickRerollAction(() => {
     const fresh = flowrBuildOffers(kind);
     if (fresh.length) { _flowrStepOffers = fresh; gridPickRefresh(fresh.map(o => ({
-      entity: o.type === 'improve' ? o.etype : o.type, id: o.id, emoji: o.icon, icon: o.icon,
+      entity: o.type === 'improve' ? o.etype : o.type, _improve: o.type === 'improve', id: o.id, emoji: o.icon, icon: o.icon,
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag })), null); }
   });
   flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
@@ -1604,6 +1604,7 @@ function flowrShowEntityStep(kind) {
     tone: 'reward',
     offers: offers.map(o => ({
       entity: o.type === 'improve' ? o.etype : o.type,   // improve shows the real owned object
+      _improve: o.type === 'improve',
       id: o.id, emoji: o.icon, icon: o.icon,
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag,
     })),

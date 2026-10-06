@@ -22,7 +22,8 @@
 // r464: the pit is the default (owner's call), with one glowing 1px ring part way down
 // (`ring`, % of the way from the rim to the floor; `ringGlow` its glow, 0 = no ring).
 const TRAY_PIT_KEY = 'lethe.trayPit.v2';
-const TRAY_PIT_DEFAULT = { on: 1, depth: 16, steps: 4, persp: 80, view: 30, tint: 45, light: 'top', floor: 0, ring: 50, ringGlow: 60 };
+// r498 (owner): light from below, shallow 3-step walls, full tray colour, a ring 10% down.
+const TRAY_PIT_DEFAULT = { on: 1, depth: 6, steps: 3, persp: 100, view: 15, tint: 100, light: 'below', floor: 0, ring: 10, ringGlow: 100 };
 let trayPit = (() => {
   const d = Object.assign({}, TRAY_PIT_DEFAULT);
   try {
@@ -70,7 +71,8 @@ function trayPitRgb(el) {
   return (h.match(/\d+/g) || [102, 102, 102]).slice(0, 3).map(Number);
 }
 
-function trayPitSvg(w, h, rgb, f, center) {
+// The pit's shape: wall widths, terrace count and the rect of terrace k (k = N is the floor).
+function trayPitGeom(w, h, f, center) {
   const v = f.view / 100, r = f.persp / 100;
   // The widest wall (top) may not reach into the clear centre (Tray lines -> Clear centre).
   const room = (1 - center / 100) / 2 * Math.min(w, h);
@@ -82,6 +84,11 @@ function trayPitSvg(w, h, rgb, f, center) {
   ws.forEach((x, k) => t.push(t[k] + x / sum));
   const R = k => ({ x0: Math.round(wall.l * t[k]), y0: Math.round(wall.t * t[k]),
                     x1: Math.round(w - wall.r * t[k]), y1: Math.round(h - wall.b * t[k]) });
+  return { N, R, wall };
+}
+
+function trayPitSvg(w, h, rgb, f, center) {
+  const { N, R, wall } = trayPitGeom(w, h, f, center);
   // colours: the tray's hue, greyed by `tint`, scaled by how much light a face gets
   const g = 0.3 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2], tint = f.tint / 100;
   const base = rgb.map(c => g + (c - g) * tint);
@@ -104,7 +111,8 @@ function trayPitSvg(w, h, rgb, f, center) {
     }
   }
   const fl = R(N), fw = fl.x1 - fl.x0, fh = fl.y1 - fl.y0;
-  const floorK = below ? 0.35 + 0.65 * f.floor / 100 : 0.06 + 0.25 * f.floor / 100;
+  const floorK = below ? 0.175 + 0.825 * f.floor / 100   // r498: the lit floor's base halved (owner)
+     : 0.06 + 0.25 * f.floor / 100;
   s += `<rect x="${fl.x0}" y="${fl.y0}" width="${fw}" height="${fh}" fill="${col(floorK)}"/>`;
   if (below && f.floor) s += `<rect x="${fl.x0}" y="${fl.y0}" width="${fw}" height="${fh}" fill="url(#pg)"/>`;
   // the top lip's shadow on the floor, and a little from the left wall
@@ -133,13 +141,17 @@ function trayPitSvg(w, h, rgb, f, center) {
 
 function trayPitPaint(el) {
   if (!el) return;
-  if (!trayPitDrawn()) { el.style.removeProperty('--pit-bg'); el._pitKey = ''; return; }
+  if (!trayPitDrawn()) { el.style.removeProperty('--pit-bg'); el.style.removeProperty('--pit-floor'); el._pitKey = ''; return; }
   const w = el.clientWidth, h = el.clientHeight;
   if (!w || !h) return;
   const rgb = trayPitRgb(el), key = [w, h, rgb.join(), JSON.stringify(trayPit), trayFx.center].join('|');
   if (el._pitKey === key) return;
   el._pitKey = key;
   el.style.setProperty('--pit-bg', `url("data:image/svg+xml,${encodeURIComponent(trayPitSvg(w, h, rgb, trayPit, trayFx.center))}")`);
+  // r505: the floor's rect, so a tray can fill its own floor (the goal tray's progress)
+  const fl = trayPitGeom(w, h, trayPit, trayFx.center);
+  const F = fl.R(fl.N);
+  el.style.setProperty('--pit-floor', `${F.y0}px ${w - F.x1}px ${h - F.y1}px ${F.x0}px`);
 }
 
 // The pit replaces the ring stack and the tray's flat background, on the trays only.

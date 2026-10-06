@@ -96,14 +96,12 @@ const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
 // screen), so 5, 10, 15. The escalation resets per screen and the pool does not:
 // that is what makes holding a free reroll for a later pick a real decision.
 const PICK_REROLLS_START    = 3;   // at the start of a run
-const PICK_REROLLS_PER_BOSS = 2;   // every boss beaten, in every mode
 const PICK_REROLL_STEP      = 5;   // the price of the 1st, 2nd, 3rd PAID reroll
 
 let pickRerollsLeft = PICK_REROLLS_START;  // the carry-over pool
 let pickRerollsUsed = 0;                   // PAID rerolls on the screen that is open
 
 function pickRerollsInit()  { pickRerollsLeft = PICK_REROLLS_START; pickRerollsUsed = 0; }
-function pickRerollsGrant() { pickRerollsLeft += PICK_REROLLS_PER_BOSS; }
 // Called when a pick OPENS, never when it refreshes - the price climbing within
 // one screen is the whole point, and a reroll that reset it would be free.
 function pickRerollsNewScreen() { pickRerollsUsed = 0; }
@@ -424,7 +422,7 @@ function gridPickConfirm() {
   }
   // A Trick with the tray full is refused BEFORE the pick commits, so the
   // offer stays on the board and the player can sell one to make room (r408).
-  if (p.entity === 'trick' && typeof trickTrayFull === 'function' && trickTrayFull()) {
+  if (typeof offerNeedsTrickSlot === 'function' && offerNeedsTrickSlot(p)) {
     refuseTrickCapacity(); return;
   }
   gridPickState.onChoose(i, p);

@@ -87,10 +87,17 @@ const SFX_CATALOG = [
   { id: 'chal_thud',     fn: 'sfxChallengeThud',   group: 'Challenge', label: 'Challenge: fall or hit' },
   { id: 'chal_solve',    fn: 'sfxChallengeSolve',  group: 'Challenge', label: 'Challenge card solved' },
   { id: 'chal_expire',   fn: 'sfxChallengeExpire', group: 'Challenge', label: 'Challenge card failed' },
+  { id: 'chal_pen_fire', fn: 'sfxChallengePenaltyFire', group: 'Challenge', label: 'Challenge penalty leaves the card' },
+  { id: 'chal_penalty',  fn: 'sfxChallengePenalty', group: 'Challenge', label: 'Challenge penalty lands', note: 'One per cost (seconds, credits, reward), each lower than the last.' },
   { id: 'chal_tick',     fn: 'sfxChallengeTick',   group: 'Challenge', label: 'Challenge: last seconds' },
   { id: 'chal_clear',    fn: 'sfxChallengeClear',  group: 'Challenge', label: 'Challenge tier cleared' },
   { id: 'chal_raise',    fn: 'sfxChallengeRaise',  group: 'Challenge', label: 'Challenge raised a tier' },
   { id: 'chal_dodge',    fn: 'sfxChallengeDodge',  group: 'Challenge', label: 'Challenge refused', note: 'The marked card was discarded before the challenge card landed.' },
+
+  { id: 'quota_open',    fn: 'sfxQuotaOpen',       group: 'Level types', label: 'Line Quotas: round opens' },
+  { id: 'quota_sweep',   fn: 'sfxQuotaSweep',      group: 'Level types', label: 'Line Quotas: a line draws on' },
+  { id: 'quota_line',    fn: 'sfxQuotaLine',       group: 'Level types', label: 'Line Quotas: a line filled' },
+  { id: 'quota_all',     fn: 'sfxQuotaAll',        group: 'Level types', label: 'Line Quotas: every line filled' },
 
   // Time
   // These three were NOT in the catalog before r234, which meant they could not

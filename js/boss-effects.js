@@ -578,7 +578,7 @@ function bossMarkerFizzleFX(cells, marked) {
   items.appendChild(track); row.appendChild(lab); row.appendChild(items); stage.appendChild(row);
   const outers = cells.map(([r, c]) => {
     const card = gridData[r]?.[c];
-    const outer = document.createElement('div'); outer.className = 'dnc-outer';
+    const outer = document.createElement('div'); outer.className = 'dnc-outer' + (card && card._isSleight ? ' dnc-turn' : '');
     if (card) {
       const d = document.createElement('div');
       const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });

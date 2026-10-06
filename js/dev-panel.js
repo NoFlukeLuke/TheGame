@@ -73,7 +73,6 @@ function openDevPanel() {
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
-  devSyncHbSliders();
   devSyncBlipSliders();
   devSyncNs();
   devSyncCcSliders();
@@ -377,15 +376,6 @@ function devSyncBlipSliders() {
   BLIP_KEYS.forEach(k => { if (typeof o[k] === 'number') PARTICLE_CFG[k] = o[k]; });
 } catch (e) {} })();
 
-// ── Grid heartbeat sliders (HB_CFG lives in js/heartbeat.js) ──
-const HB_KEYS = ['dx','dy','rot','scale','period','beat','gap','beat2','colStagger','rowStagger'];
-function devSetHb(k, v) {
-  setHbParam(k, v);
-  const lab = document.getElementById('dev-hb-' + k + '-val');
-  if (lab) lab.textContent = (+v).toString();
-}
-function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
-
 // ── Natural Scaling tuner (r181) - state lives in js/natural-scaling.js ──
 // Each setting persists so a tuning session survives a reload. Changing pips/mult
 // per hand affects FUTURE grants only; the accumulators already earned stay put
@@ -559,16 +549,6 @@ function devSyncCcSliders() {
     const lab = document.getElementById('dev-cc-' + k + '-val');
     if (sl)  sl.value = CC_CFG[k];
     if (lab) lab.textContent = CC_CFG[k].toString();
-  });
-}
-function devSyncHbSliders() {
-  const on = document.getElementById('dev-hb-enabled');
-  if (on) on.checked = hbEnabled;
-  HB_KEYS.forEach(k => {
-    const sl = document.getElementById('dev-hb-' + k);
-    const lab = document.getElementById('dev-hb-' + k + '-val');
-    if (sl)  sl.value = HB_CFG[k];
-    if (lab) lab.textContent = HB_CFG[k].toString();
   });
 }
 function devSyncFloatSliders() {

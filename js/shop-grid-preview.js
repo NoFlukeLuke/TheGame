@@ -1035,7 +1035,7 @@ function onShopGridClick(r, c) {
   }
   // Same rule the reward grid follows: a Trick you have no room for is refused
   // before it can be selected, let alone paid for.
-  if (p && p.entity === 'trick' && trickTrayFull()) { refuseTrickCapacity(); return; }
+  if (offerNeedsTrickSlot(p)) { refuseTrickCapacity(); return; }
   shopGridSel.add(key);
   shopSelOrder.push(key);
   // The newest pick is the one being explained (r182's reward-grid rule).

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r489 · Flow boss reshuffles played cards; cards settle low when the deck runs dry";
+const BUILD = "2026-10-06 · r507 · Flow boss reshuffles played cards; cards settle low when the deck runs dry";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

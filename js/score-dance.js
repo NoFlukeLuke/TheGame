@@ -221,6 +221,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
+  // A LINES round's progress lands now if the climb never finished it.
+  if (typeof roundQuotaClimb === 'function') roundQuotaClimb(1);
   // The dance is over, so a takeover screen that opened during it (the mid-dance
   // pick) gets its deferred HUD swap now - BEFORE the goal branch below, so an
   // interlude/prize grid opened from here is never itself deferred. (r310)
@@ -624,6 +626,22 @@ function dncReleaseReal(el){ if(!el) return;
   setTimeout(()=>{ if(el) el.classList.remove('dnc-pop'); }, DANCE_CFG.trig.dur+80); }
 function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
   el.classList.remove('dnc-jitter','dnc-pop','dnc-pulse','dnc-flash'); el.style.removeProperty('--dnc-jit'); }); dncRealEls=[]; }
+// THE FLYING COPY (r503). One rule keeps the copy honest: everything that marks a
+// card (buffs, curses, charges, states, rarity edge) is drawn INSIDE the card
+// element, by renderCardAppearance, as a child or a class. So a deep clone carries
+// every mark there is, and the preview slot (built by the same function) lands on
+// an identical card. A mark drawn as a separate layer on #grid would not fly; put
+// new marks in renderCardAppearance. This strips only what belongs to the board
+// moment, not the card: selection and hint states, the order badge, the animation
+// lab's own overlays and idle classes, and inline styles (cell position, gaze tilt).
+const CARD_FLY_STRIP = /^(selected|hand-|swap-pending|unreachable|score-pop|dnc-|ca-|flowr-|tray-|sqp-|sq-|m3-)/;
+function cardFlyClone(gEl){
+  const c = gEl.cloneNode(true);
+  [...c.classList].forEach(k => { if (CARD_FLY_STRIP.test(k)) c.classList.remove(k); });
+  c.removeAttribute('data-card-id');
+  c.querySelectorAll('.sel-num, [class^="ca-"]').forEach(n => n.remove());
+  return c;
+}
 // Fly a clone of a selected grid card into its preview slot, then reveal the slot's dnc-card.
 function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId){
   if(!slotEl) return;
@@ -634,17 +652,32 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId){
   // what a fast forward asks for, and it is the same path a zero-size anchor
   // already took.
   if(!dur || !s || !s.width || !t.width){ reveal(); return; }
-  const clone = gEl.cloneNode(true);
-  clone.classList.remove('selected','hand-valid','hand-ready','swap-pending','unreachable');
+  const clone = cardFlyClone(gEl);
   const _zTop = slotEl.closest && slotEl.closest('#ca-lab') ? 5001 : 250;   // the card animation lab sits above the game
-  clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;left:${s.left}px;top:${s.top}px;width:${s.width}px;height:${s.height}px;transform-origin:center center;`;
+  // The copy lives on body, outside #cabinet's zoom, but its text and marks are
+  // sized in design px. So it is drawn at the board's own zoom (z): design-px box,
+  // and every length (position, flight, size) divided by z. Without this the card
+  // flew at full size with its text at 1/z (half size on a desktop).
+  const ow = gEl.offsetWidth || s.width, oh = gEl.offsetHeight || s.height, z = s.width / ow || 1;
+  clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;zoom:${z};left:${s.left/z}px;top:${s.top/z}px;width:${ow}px;height:${oh}px;transform-origin:center center;`;
   document.body.appendChild(clone);
   gEl.style.opacity='0'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort)
-  const dx=(t.left+t.width/2)-(s.left+s.width/2), dy=(t.top+t.height/2)-(s.top+s.height/2);
+  const dx=((t.left+t.width/2)-(s.left+s.width/2))/z, dy=((t.top+t.height/2)-(s.top+s.height/2))/z;
+  // A Sleight stands up in the preview (.dnc-turn, css/dance.css): it turns a
+  // quarter and grows as it flies, landing on its slot card's own rotate and scale.
+  const side = slotEl.classList.contains('dnc-turn');
   const sc=t.width/s.width;
   // r437: the flight's shape is the chosen look (dev -> Card Animations, js/card-anims.js).
   // Every look keeps this duration, because the dance times its beats to it.
-  const look = cardFlyLook(dx, dy, sc, idx||0, s.height, lookId);
+  const look = cardFlyLook(dx, dy, sc, idx||0, oh, lookId);
+  // The turn goes on the END of each frame's transform, after the flight's
+  // translate, so the path is not turned with the card (a standalone rotate would be).
+  const _tEl = side && slotEl.firstElementChild, _ts = _tEl && getComputedStyle(_tEl);
+  if (_ts) {
+    const rot = parseFloat(_ts.rotate) || 0, k = parseFloat(_ts.scale) || 1, n = look.frames.length;
+    look.frames = look.frames.map((f, i) => { const o = f.offset ?? (n > 1 ? i / (n - 1) : 1);
+      return Object.assign({}, f, { transform: `${f.transform} rotate(${rot * o}deg) scale(${1 + (k - 1) * o})` }); });
+  }
   const ghosts = [];
   for (let g = 1; g <= (look.ghosts||0); g++) {
     const gh = clone.cloneNode(true); gh.style.zIndex = _zTop - 1; gh.style.opacity = 0;
@@ -848,7 +881,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
   // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
   const cardEls=previewCells.map(([r,c])=>{ const card=gridData[r][c];
-    const outer=document.createElement('div'); outer.className='dnc-outer';
+    const outer=document.createElement('div'); outer.className='dnc-outer'+(card._isSleight?' dnc-turn':'');   // r503: a Sleight stands up (css/dance.css)
     const d=document.createElement('div');
     const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
     d.className=className+' preview-card'; d.innerHTML=innerHTML;
@@ -1019,7 +1052,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPace();   // r468: the fly look may take longer
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPaceNoFocus();   // r491: cardFlyMs already holds Focus   // r468: the fly look may take longer
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -1281,6 +1314,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)
       if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }

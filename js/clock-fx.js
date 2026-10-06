@@ -3,19 +3,16 @@
 //
 // Three effects, all of them driven by the clock rather than by scoring:
 //
-//  1. THE TICK.  Every time the grid heartbeat starts a new wave (once every
-//     HB_CFG.period seconds, 10 by default), the timer gives one gentle swell
-//     and a quiet clock tick plays. The board's wave and the clock are the same
-//     beat, so the room has a pulse instead of two unrelated animations.
+//  1. THE TICK.  Every 10 seconds of a running round (js/clock-tick.js) the
+//     timer gives one gentle swell and a quiet clock tick plays. (It rode the
+//     board heartbeat until r499, when the owner removed the board swell.)
 //
 //  2. THE FREEZE.  Any time the clock is PAUSED - a Trick, a Sleight, the
 //     Stopwatch - the timer lights up, a tick-tock plays, and a ripple runs out
 //     from the middle of the board rotating every card a few degrees and
 //     leaving it there. Cards on the left half turn their outer (left) corner
 //     out, cards on the right half turn theirs out, and a dead-centre column
-//     alternates row by row so it does not read as a straight line. The board
-//     also stops breathing: js/heartbeat.js checks `clockFrozen` and holds
-//     whatever offsets the cards had at that instant. When the pause ends the
+//     alternates row by row so it does not read as a straight line. When the pause ends the
 //     ripple runs again in reverse and the cards settle back.
 //
 //  3. THE REWIND.  When time is given back, each card spawns two translucent
@@ -32,8 +29,9 @@ const CARD_SEL = '#grid .card, #grid .trick-card';
 
 function clockFxReduced() { return document.body.classList.contains('reduced-motion'); }
 
-// ── 1. The tick that rides the heartbeat wave ────────────────────────────────
-// Called by js/heartbeat.js the frame a new wave starts. Silent and still while
+// ── 1. The tick ──────────────────────────────────────────────────────────────
+// Called by js/clock-tick.js every 10s of a running round (r499: it rode the board
+// heartbeat, now removed). Silent and still while
 // anything has the game suspended (menus, shop, payout), and while the clock is
 // frozen - a paused clock has its own, louder, sound.
 function pulseClockWithWave() {
