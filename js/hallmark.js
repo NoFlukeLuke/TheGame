@@ -141,8 +141,7 @@ function hallmarkResolve(cards) {
         !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
       if (!pool.length) { note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + B.pips; break; }
       const t = pool[Math.floor(Math.random() * pool.length)];
-      primeTrick(t);
-      note = `${t.name} primed`;
+      note = primeTrick(t, 1, { src: 'hallmark' }) ? `${t.name} primed` : `${t.name} not primed (QRL)`;
       if (typeof renderTrickTray === 'function') renderTrickTray();
       break;
     }

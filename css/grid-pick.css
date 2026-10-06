@@ -298,6 +298,14 @@ body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
    Scoped to the takeover so a live round's boss overlays (z-index 12-15,
    children of #grid) are not suddenly contained by it. */
 body.gp-active #grid { z-index: 1; }
+/* r470: the same guard for the OTHER two between-round takeovers. The deck
+   editor (body.flowr-deck) and the reward grid (body.reward-active) sit over
+   #flowr-bg in a Flow chain, and since r468 the default idle look keeps
+   .ca-gazing (a perspective, so a stacking context) on #grid at all times -
+   which put the panel over the real cards and the owner's "the deck editor
+   opens the grid and the cards are invisible". Same scope rule as above: a
+   between-round takeover only, never a live round. */
+body.flowr-deck #grid, body.reward-active #grid { z-index: 1; }
 /* r391: a PICKED tile lifts and glows past the board's top edge, and it must
    draw OVER the title tabs (#flowr-stack, z 8) - it already does when it flies
    out (the explode lifts #grid to 350), so drawing under them first read as a

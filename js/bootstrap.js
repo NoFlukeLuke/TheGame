@@ -155,3 +155,7 @@ document.addEventListener('webkitfullscreenchange', onFsChange);
   const els = ['build-stamp', 'menu-build-stamp'];
   els.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = BUILD; });
 })();
+
+// Last line on purpose: tells the boot watchdog (inline in index.html) that
+// every script loaded and bootstrap ran to the end (r470).
+window.LETHE_BOOT_OK = true;

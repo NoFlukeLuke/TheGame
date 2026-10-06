@@ -316,7 +316,7 @@ function deselect(r, c) {
 
 function tryAddToSelection(r, c) {
   const _card = gridData[r]?.[c];
-  const _cs = _card ? `${_card.rank}${_card.suit}` : 'null';
+  const _cs = dbgCardStr(_card);
   if (selected.length >= limits.selection.current) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
   if (isCellBlocked(r, c)) { dbgEvent('warn', `add blocked: cell blocked [${r},${c}]`); return false; }
   if (!cardCan(gridData[r]?.[c], 'select')) { dbgEvent('warn', `add blocked: cardCan=false [${r},${c}] ${_cs}`); return false; }
@@ -336,6 +336,8 @@ let _dtBefore = null;   // the selection before the first tap of a possible doub
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  // Autopilot (r474) has the board while it runs.
+  if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
   // The Pick (r244) owns the board outright while it is open, so it intercepts
   // ABOVE the `animating` guard - that flag is routinely still true from the
   // un-explode's flights, and a tap that silently does nothing reads as broken.
@@ -347,7 +349,7 @@ function onCardTap(r, c) {
   if (typeof devCardStateApplyTap === 'function' && devCardStateApplyTap(r, c)) return;
   if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
-  const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
+  const _cardStr = dbgCardStr(_card);
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
   // ── Dealer's Choice: holding cards - a tap swaps the top one in ──
@@ -375,7 +377,7 @@ function onCardTap(r, c) {
   // Block boss-obstructed cells
   if (isCellBlocked(r, c)) { dbgEvent('warn', `tap blocked: cell blocked [${r},${c}]`); return; }
   // A challenge round card: a tap reads what it asks for (js/challenge-round.js).
-  if (gridData[r]?.[c]?._isChallenge) { if (typeof crShowInfo === 'function') crShowInfo(r, c); return; }
+  if (gridData[r]?.[c]?._isChallenge) { if (typeof crTap === 'function') crTap(r, c); return; }
   // Block challenge card taps
   if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) { dbgEvent('warn', `tap blocked: challenge card`); return; }
   // Block non-swappable cards entirely (e.g. challenge card)

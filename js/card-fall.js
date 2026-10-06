@@ -19,7 +19,8 @@ function renderCardAppearance(card, r, c, {
   if (card._isChallenge) {
     const _q = card.cr || {};
     return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.src === 'flow' ? ' cr-flow' : '') + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
-               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : ''),
+               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
+               + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : ''),
              innerHTML: crCardFaceHTML(card) };
   }
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
@@ -205,6 +206,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   console.log('[FALL] start', { mode, cells: removingCells.length });
   animating = true;
   if (typeof crBeforeFall === 'function') crBeforeFall();   // fall-type challenge cards count against this
+  if (mode === 'discard' && typeof crTeleOnDiscard === 'function') crTeleOnDiscard(removingCells);   // a discarded marked cell refuses a Flow challenge
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);
@@ -374,8 +376,10 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   const FALL_DUR = 420;
   const COL_OFFSET = 60;
-  const BOUNCE_PX = 8;
-  const SQUISH = 0.10;
+  // The Terminal look lands cards dead: no bounce, no squash (r471).
+  const _mech = typeof termSkinNoBounce === 'function' && termSkinNoBounce();
+  const BOUNCE_PX = _mech ? 0 : 8;
+  const SQUISH = _mech ? 0 : 0.10;
   const activeCols = new Set(removingCells.map(([,c]) => c));
   const minActiveCol = activeCols.size > 0 ? Math.min(...activeCols) : 0;
 
@@ -451,7 +455,11 @@ async function removeAndFall(removingCells, mode = 'play') {
     ], { duration: FALL_DUR, delay: entryStart, easing: 'ease-in', fill: 'forwards' }));
   });
 
-  await Promise.all([...fallAnims, ...enterAnims].map(a => a.finished));
+  // allSettled, not all: a CANCELLED animation's `finished` REJECTS (a screen
+  // change or a background tab can cancel mid-fall), and a rejection here threw
+  // out of removeAndFall with `falling` stuck true - a board that ignores every
+  // tap until the page is reloaded (r470).
+  await Promise.allSettled([...fallAnims, ...enterAnims].map(a => a.finished));
   gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
 

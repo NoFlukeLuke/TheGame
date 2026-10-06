@@ -65,7 +65,7 @@ function growCardScaling(cards, counts) {
     if (seen.has(k)) return;          // one entry per physical card...
     seen.add(k);
     const n = (counts && counts[i]) || 1;   // ...grown once per time it SCORED (r370)
-    const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
+    const gp = qrlBuffOn(card, 'pips') ? (permPipsGrow[k] || 0) : 0, gm = qrlBuffOn(card, 'mult') ? (permMultGrow[k] || 0) : 0;   // QRL (r484)
     if (gp) permPips[k] = (permPips[k] || 0) + gp * n;
     if (gm) permMult[k] = (permMult[k] || 0) + gm * n;
   });
@@ -531,6 +531,7 @@ let roundContributions  = {};
 let roundHandsScored    = 0;
 let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
 let clubsScoredRound    = 0;   // clubs scored this round incl. replays (Hard Labour's doubling ladder, r346)
+let clubHitsPending     = 0;   // this hand's club scores, banked at the score and added after the dance (r461)
 let setsPlayedRound     = 0;   // count of Set hands scored this round (Undue Influence / Shaky Foundation)
 let runStreak           = 0;   // consecutive Run hands ending at the last-played hand (Wave Amplification)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)

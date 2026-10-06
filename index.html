@@ -22,6 +22,7 @@
 <title>Poker Grid - Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/tray-lift.css">
+<link rel="stylesheet" href="css/tray-zigzag.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/climb.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
@@ -65,8 +66,57 @@
 <link rel="stylesheet" href="css/cursor.css">
 <link rel="stylesheet" href="css/print-toast.css">
 <link rel="stylesheet" href="css/card-anims.css">
+<link rel="stylesheet" href="css/terminal-skin.css">
+<link rel="stylesheet" href="css/skin-machine.css">
+<link rel="stylesheet" href="css/blank-ui.css">
 </head>
 <body class="office-pending">
+<!-- BOOT WATCHDOG (r470). The 126 scripts load with no versioning, so a
+     restored tab can mix two deploys and one bad file stops bootstrap.js cold:
+     no stage scale, no menu, nothing to press. Launched from a home-screen
+     icon there is not even a reload button, which is why the owner had to
+     kill the whole browser. This runs before everything, depends on nothing,
+     and if bootstrap.js has not checked in (its last line) a few seconds
+     after load, it offers the one way out itself. -->
+<script>
+(function () {
+  window.LETHE_BOOT_OK = false;
+  var shown = false, badScripts = 0;
+  // A script that fails to FETCH does not stop the ones after it, so bootstrap
+  // can finish while the game is missing a file. Resource errors only surface
+  // on a capture-phase listener.
+  window.addEventListener('error', function (e) {
+    var t = e && e.target;
+    if (t && t.tagName === 'SCRIPT' && t.src) badScripts++;
+  }, true);
+  function check() {
+    if ((window.LETHE_BOOT_OK && !badScripts) || shown) return;
+    shown = true;
+    var d = document.createElement('div');
+    d.id = 'boot-watchdog';
+    d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0a0a12;color:#ffce2b;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;' +
+      'font-family:monospace;font-size:16px;text-align:center;padding:24px;';
+    var msg = document.createElement('div');
+    msg.textContent = badScripts
+      ? 'SYSTEM FAULT · ' + badScripts + ' file(s) failed to load.'
+      : 'SYSTEM FAULT · the game did not start.';
+    var btn = document.createElement('button');
+    btn.textContent = 'RESTART';
+    btn.style.cssText = 'font-family:monospace;font-size:18px;padding:12px 36px;background:#ffce2b;' +
+      'color:#0a0a12;border:0;border-radius:6px;cursor:pointer;';
+    btn.onclick = function () {
+      // A fresh query string makes the browser refetch the page itself, which
+      // is the cheap way past a stale restored-session copy.
+      location.replace(location.pathname + '?boot=' + Date.now());
+    };
+    d.appendChild(msg); d.appendChild(btn);
+    document.body.appendChild(d);
+  }
+  window.addEventListener('load', function () { setTimeout(check, 5000); });
+  setTimeout(check, 20000);   // insurance: `load` itself can fail to fire
+})();
+</script>
 <div id="knack-tooltip" role="tooltip"></div>
 
 
@@ -145,6 +195,14 @@
       <button class="dev-btn" onclick="devAddTime(60)">+60s</button>
       <button class="dev-btn" onclick="devAddTime(-30)">-30s</button>
       <button class="dev-btn" onclick="devSetTime(180)">Max</button>
+    </div>
+  </div>
+
+  <!-- QRL (r484) -->
+  <div class="dev-section" data-group="game">
+    <div class="dev-section-title">Quarter resource limits</div>
+    <div class="dev-row">
+      <label><input type="checkbox" id="dev-qrl" onchange="qrlSetEnabled(this.checked)" onclick="event.stopPropagation()"> QRL on (quarter N: N buffs per card, N replay sources, N prime sources)</label>
     </div>
   </div>
 
@@ -261,7 +319,9 @@
     <div class="dev-row">
       <button class="dev-btn" onclick="devArmChallengeRound()">Next Round: Challenge</button>
       <button class="dev-btn" onclick="devOpenPenaltyGrid()">Open Penalty Grid</button>
+      <button class="dev-btn" onclick="devOpenMiniGrid()">Open Mini Grid (3x3)</button>
       <button class="dev-btn" onclick="devFlowChallengeNow(2)">Flow: Challenge Card Now</button>
+      <button class="dev-btn" onclick="devSpotChallengeNow(2)">Classic: Challenge Card Now</button>
     </div>
   </div>
 
@@ -559,7 +619,71 @@
        type of stuff it can all go in aesthetics"). -->
   <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">Aesthetics</div>
-    <div class="dev-subtitle">Tray lines (every tray, together)</div>
+    <div class="dev-subtitle">Terminal look</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      The cold-machine prototype: in-round chrome drains to amber monochrome, card motion goes
+      mechanical (no arcs, no bounce), board sounds go relay and solenoid. Cards are untouched.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
+      <input id="dev-term-skin" type="checkbox" onchange="setTermSkin(this.checked)" style="accent-color:var(--gold);">
+      Terminal look on
+    </label>
+
+    <div class="dev-subtitle">Tray look</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Trays are
+      <select id="dev-pit-on" onchange="trayPitSet('on', ['lines', 'pit', 'machine', 'machine-cream'].indexOf(this.value))" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="lines">glowing lines</option><option value="pit">pits</option><option value="machine">machine panel (charcoal)</option><option value="machine-cream">machine panel (cream)</option></select>
+    </label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px;">
+      <button class="dev-btn" onclick="trayPitPreset('shadow')">Pit: shadow</button>
+      <button class="dev-btn" onclick="trayPitPreset('quarry')">Pit: quarry</button>
+      <button class="dev-btn" onclick="trayPitPreset('glow')">Pit: glow from below</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Pit light
+      <select id="dev-pit-light" onchange="trayPitSet('light', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="top">from the top left</option><option value="below">rising from the floor</option></select>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Pit depth (wall width)
+      <input type="range" id="dev-pit-depth" min="6" max="30" step="1" oninput="trayPitSet('depth', this.value)" style="flex:1;">
+      <span id="dev-pit-depth-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Steps down the walls
+      <input type="range" id="dev-pit-steps" min="1" max="8" step="1" oninput="trayPitSet('steps', this.value)" style="flex:1;">
+      <span id="dev-pit-steps-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Step shrink (each step narrower than the one above)
+      <input type="range" id="dev-pit-persp" min="55" max="100" step="5" oninput="trayPitSet('persp', this.value)" style="flex:1;">
+      <span id="dev-pit-persp-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Far wall shows more (viewer in front)
+      <input type="range" id="dev-pit-view" min="0" max="60" step="5" oninput="trayPitSet('view', this.value)" style="flex:1;">
+      <span id="dev-pit-view-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Wall colour (tray colour vs grey)
+      <input type="range" id="dev-pit-tint" min="0" max="100" step="5" oninput="trayPitSet('tint', this.value)" style="flex:1;">
+      <span id="dev-pit-tint-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Floor light
+      <input type="range" id="dev-pit-floor" min="0" max="100" step="5" oninput="trayPitSet('floor', this.value)" style="flex:1;">
+      <span id="dev-pit-floor-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Glowing ring (how far down the walls)
+      <input type="range" id="dev-pit-ring" min="10" max="90" step="5" oninput="trayPitSet('ring', this.value)" style="flex:1;">
+      <span id="dev-pit-ring-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Ring glow (0 = no ring)
+      <input type="range" id="dev-pit-ringGlow" min="0" max="100" step="10" oninput="trayPitSet('ringGlow', this.value)" style="flex:1;">
+      <span id="dev-pit-ringGlow-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
+    </label>
+    <div class="dev-subtitle">Tray lines (when trays are glowing lines)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Number of lines
       <select id="dev-tfx-lines" onchange="trayFxSet('lines', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option></select>
@@ -575,10 +699,6 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Brightness
       <select id="dev-tfx-gain" onchange="trayFxSet('gain', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="1">normal</option><option value="1.2">bright</option><option value="1.6">brighter</option><option value="2.2">loud</option></select>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Motion
-      <select id="dev-tfx-motion" onchange="trayFxSet('motion', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">still</option><option value="pulse">pulse (all lines breathe)</option><option value="ripple">ripple (light moves inward, big trays only)</option></select>
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Clear centre (% of the tray; lines never enter it)
@@ -601,19 +721,9 @@
       <span id="dev-tfx-grow-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Cursor tilt (tunnel leans toward the mouse; minus flips it)
-      <input type="range" id="dev-tfx-tilt" min="-100" max="100" step="10" oninput="trayFxSet('tilt', this.value)" style="flex:1;">
-      <span id="dev-tfx-tilt-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Small tray loudness (every tray but Tricks, hand preview, Knacks)
       <input type="range" id="dev-tfx-small" min="10" max="100" step="5" oninput="trayFxSet('small', this.value)" style="flex:1;">
       <span id="dev-tfx-small-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Ripple speed (seconds per line; Tricks, hand preview, Knacks only)
-      <input type="range" id="dev-tfx-speed" min="0.6" max="3" step="0.1" oninput="trayFxSet('speed', this.value)" style="flex:1;">
-      <span id="dev-tfx-speed-v" style="min-width:34px;text-align:right;color:var(--cream-dim);"></span>
     </label>
     <button class="dev-btn" onclick="trayFxReset()" style="margin:4px 0 2px;">Reset tray lines</button>
 
@@ -660,6 +770,17 @@
         <option value="resolve">Resolve - quick pop</option>
       </select>
     </label>
+  </div>
+
+  <!-- r486: the portrait zigzag Trick tray (js/tray-zigzag.js) -->
+  <div class="dev-section" data-group="hud">
+    <div class="dev-section-title">Zigzag tray (phone)</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Tile height, % of the tilted tile<input id="dev-zz-height" type="number" min="50" max="110" step="5" onchange="zzSetCfg('height', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Step right, % of a tile<input id="dev-zz-step" type="number" min="20" max="100" step="5" onchange="zzSetCfg('step', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Lower row drop, % of a tile<input id="dev-zz-drop" type="number" min="10" max="80" step="5" onchange="zzSetCfg('drop', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Size when forward (x)<input id="dev-zz-scale" type="number" min="1" max="1.5" step="0.05" onchange="zzSetCfg('scale', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Hold forward (ms)<input id="dev-zz-hold" type="number" min="200" max="6000" step="100" onchange="zzSetCfg('hold', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
+    <button class="dev-btn" onclick="zzResetCfg()">Reset</button>
   </div>
 
   <!-- DISPLAY (fullscreen - usable mid-run since Settings = this panel) -->
@@ -812,7 +933,7 @@
     <div id="dev-event-log">No events yet.</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
       <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--cream-dim);letter-spacing:1px;">COPY LAST</span>
-      <input id="dev-log-n" type="range" min="5" max="80" value="20" step="5" oninput="document.getElementById('dev-log-n-val').textContent=this.value" style="flex:1;accent-color:var(--gold);">
+      <input id="dev-log-n" type="range" min="5" max="600" value="20" step="5" oninput="document.getElementById('dev-log-n-val').textContent=this.value" style="flex:1;accent-color:var(--gold);">
       <span id="dev-log-n-val" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold);min-width:18px;">20</span>
     </div>
     <div class="dev-row">
@@ -1393,13 +1514,13 @@
 <script src="js/reward-transition.js"></script>
 <script src="js/heartbeat.js"></script>
 <script src="js/channel-change.js"></script>
-<script src="js/difficulty.js"></script>
 <script src="js/limits.js"></script>
 <script src="js/luck.js"></script>
 <script src="js/data/knacks.js"></script>
 <script src="js/data/sleights.js"></script>
 <script src="js/combos-aim.js"></script>
 <script src="js/deck-grid.js"></script>
+<script src="js/qrl.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
 <script src="js/improve.js"></script>
@@ -1445,6 +1566,7 @@
   <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
+<script src="js/autopilot.js"></script>
 <script src="js/dealers-choice.js"></script>
 <script src="js/events-core.js"></script>
 <script src="js/events.js"></script>
@@ -1454,6 +1576,7 @@
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
 <script src="js/tray-lift.js"></script>
+<script src="js/tray-zigzag.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/shop-grid-preview.js"></script>
 <script src="js/builds.js"></script>
@@ -1493,9 +1616,14 @@
 <script src="js/queue-views.js"></script>
 <script src="js/prob-tables.js"></script>
 <script src="js/tray-fx.js"></script>
+<script src="js/tray-pit.js"></script>
+<script src="js/machine-skin.js"></script>
+<script src="js/terminal-skin.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>
+<script src="js/bug-report.js"></script>
+<script src="js/blank-ui.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
 

@@ -88,6 +88,8 @@ const SFX_CATALOG = [
   { id: 'chal_solve',    fn: 'sfxChallengeSolve',  group: 'Challenge', label: 'Challenge card solved' },
   { id: 'chal_expire',   fn: 'sfxChallengeExpire', group: 'Challenge', label: 'Challenge card failed' },
   { id: 'chal_tick',     fn: 'sfxChallengeTick',   group: 'Challenge', label: 'Challenge: last seconds' },
+  { id: 'chal_clear',    fn: 'sfxChallengeClear',  group: 'Challenge', label: 'Challenge tier cleared' },
+  { id: 'chal_raise',    fn: 'sfxChallengeRaise',  group: 'Challenge', label: 'Challenge raised a tier' },
   { id: 'chal_dodge',    fn: 'sfxChallengeDodge',  group: 'Challenge', label: 'Challenge refused', note: 'The marked card was discarded before the challenge card landed.' },
 
   // Time
@@ -256,6 +258,12 @@ function installSfxOverrides() {
       return sfxWithMixId(row.id, () => {
         if (typeof sfxDuckFor === 'function') sfxDuckFor(row.id);
         if (typeof sfxMixHold === 'function') sfxMixHold(row.id);
+        // The Terminal look (r471) replaces a handful of board moments with
+        // electromechanical ones, over files AND packs, only while it is on.
+        if (typeof termSkinSfx === 'function') {
+          const tfn = termSkinSfx(row.id);
+          if (tfn) { try { return tfn.apply(this, args); } catch (e) { /* fall through */ } }
+        }
         if (sfxUseFiles()) {
           const buf = sfxSampleReady(row.id);
           if (buf) return playSfxBuffer(buf);

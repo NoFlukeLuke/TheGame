@@ -213,6 +213,9 @@ function gridScreenOwnsBoard() {
     if (typeof shopGridActive !== 'undefined' && shopGridActive) return true;
     if (typeof rewardOnGrid !== 'undefined' && rewardOnGrid) return true;
     if (typeof mapActive === 'function' && mapActive()) return true;
+    // r470: the deck editor borrows the real board too, so a round-level
+    // effect (flashRoundEnd's transform above all) must not paint over it.
+    if (typeof flowrDeckActive === 'function' && flowrDeckActive()) return true;
   } catch (e) {}
   return false;
 }
@@ -333,17 +336,20 @@ function gridPickTakeButtons() {
     gridPickTakeButtons._bound = true;
     // Capture, and grid-pick.js loads before every other script that listens on
     // these buttons, so this runs first and stops the rest outright.
+    // r472: not while the shop is open on top of the pick (its Shop tile). The
+    // shop owns these buttons then; BUY twice used to skip the pick underneath,
+    // and leaving the shop then put the pick's 4x6 size on the 4x4 play board.
     play.addEventListener('click', e => {
-      if (!gridPickState || !_gpBtnSaved) return;
+      if (!gridPickState || !_gpBtnSaved || (typeof shopGridActive !== 'undefined' && shopGridActive)) return;
       e.stopImmediatePropagation(); e.preventDefault(); gridPickConfirm();
     }, true);
     disc.addEventListener('click', e => {
-      if (!gridPickState || !_gpBtnSaved) return;
+      if (!gridPickState || !_gpBtnSaved || (typeof shopGridActive !== 'undefined' && shopGridActive)) return;
       e.stopImmediatePropagation(); e.preventDefault();
       if (gpSplit()) flowRerollOptions(); else gridPickSkipNow();
     }, true);
     swap?.addEventListener('click', e => {
-      if (!gridPickState || !_gpBtnSaved || !gpSplit()) return;
+      if (!gridPickState || !_gpBtnSaved || (typeof shopGridActive !== 'undefined' && shopGridActive) || !gpSplit()) return;
       e.stopImmediatePropagation(); e.preventDefault(); flowRerollType();
     }, true);
   }

@@ -157,6 +157,8 @@ function devRenderClockBar() {
   });
 }
 function devSyncAesthetics() {
+  const ts = document.getElementById('dev-term-skin');
+  if (ts && typeof termSkinOn === 'function') ts.checked = termSkinOn();
   if (typeof trayFxSync === 'function') trayFxSync();
   const d = document.getElementById('dev-deal-style');
   if (d && typeof dealStyle === 'string') d.value = dealStyle;
@@ -1198,9 +1200,9 @@ function devClearSave() {
 function devResumeRun() {
   if (!hasSavedRun()) return;
   closeDevPanel();
-  document.getElementById('main-menu-overlay').classList.remove('show');
-  document.getElementById('mode-select-overlay')?.classList.remove('show');
-  resumeSavedRun();
+  // continueSavedRun, not a bare resumeSavedRun: it hides the menus itself and
+  // catches a restore that throws (r470).
+  continueSavedRun();
 }
 
 

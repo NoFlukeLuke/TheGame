@@ -953,7 +953,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     }
     // 3) As the blast happens, the winning cards fly up into the preview slots
     //    (reveals each slot's dnc-card, same handoff normal hands use).
-    const GF_LEAD=140, GF_STEP=100, GF_DUR=460;
+    const GF_LEAD=140, GF_STEP=100, GF_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(460) : 460);   // r468: the fly look may take longer
     const flyQueue=[];
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -1019,7 +1019,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncPace(), FLY_DUR=400/dncPace();
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPace();   // r468: the fly look may take longer
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -1141,6 +1141,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const box = (ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox;
     const land = () => {
       if(ev.op==='pip+'){ if(inBeat) subRef.v += ev.value; else rp += ev.value; showPips(subRef.v); }
+      // A card's x pips (r461) multiplies the whole running total: bank the beat so far, then multiply.
+      else if(ev.op==='pip*' && ev.scope==='total'){ rp = _rnd((rp + subRef.v)*ev.value, ev.rnd); subRef.v = 0; showPips(0); }
       else if(ev.op==='pip*'){ if(inBeat) subRef.v = _rnd(subRef.v*ev.value, ev.rnd); else rp = _rnd(rp*ev.value, ev.rnd); showPips(subRef.v); }
       else if(ev.op==='mult+'){ rm += ev.value; showMult(); }
       else { rm = _rnd(rm*ev.value, ev.rnd); showMult(); }
@@ -1212,7 +1214,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // table in calcScore - Get Even and friends read `cells.length`, not a
       // replay-weighted count). So a replayed card re-pops and re-fires
       // everything else, but not those, or the chip drifts above the real total.
-      const beatEvents = rep === 0 ? step.events : step.events.filter(ev => !ev.once);
+      // `vals` (Hard Labour, r461): an event worth a different amount on each replay.
+      const beatEvents = (rep === 0 ? step.events : step.events.filter(ev => !ev.once))
+        .map(ev => ev.vals ? Object.assign({}, ev, { value: ev.vals[rep] }) : ev);
       const applies = beatEvents.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
       await dncWait(beatDur);
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }

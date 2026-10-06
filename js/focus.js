@@ -141,6 +141,8 @@ function syncFocusMeterState() {
     else    { node.style.background = ''; node.style.boxShadow = ''; }
   });
   applyFocusGlow();
+  // The machine panel's multiplier rides on top of the fill (css/skin-machine.css).
+  document.getElementById('focus-meter-wrap')?.style.setProperty('--focus-fill', (cap > 0 ? total / cap : 0).toFixed(3));
   updateFocusMultReadout();
 }
 
@@ -227,7 +229,14 @@ function applyFocusGlow() {
 // Jitter loop: discrete shakes whose amplitude AND rate scale with fill; off at/below ×1.0.
 let _focusJitterLast = 0, _focusJX = 0, _focusJY = 0, _focusJitterOn = false;
 function focusFxLoop(ts) {
-  const outer = document.getElementById('focus-bar-outer');
+  // The machine panel's gauge is a fixed screen: the fill shakes inside it instead (r483).
+  const mc = typeof trayMachineOn === 'function' && trayMachineOn();
+  const outer = document.getElementById(mc ? 'focus-active-segment' : 'focus-bar-outer');
+  if (mc !== focusFxLoop._mc) {   // switched: the other element keeps no leftover shake
+    focusFxLoop._mc = mc;
+    const other = document.getElementById(mc ? 'focus-bar-outer' : 'focus-active-segment');
+    if (other) other.style.transform = '';
+  }
   if (outer) {
     const jf = focusReduceMotion() ? 0 : focusJitterFrac();
     const amp = FOCUS_FX.jitterMaxPx * jf;

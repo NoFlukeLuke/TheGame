@@ -306,7 +306,6 @@ function pickerStart() {
   // combination behind.
   MODES.custom = pickerBuildMode(pickerChoice);
   ACTIVE_MODE = MODES.custom;
-  pendingDifficulty = (typeof difficultyForMode === 'function') ? difficultyForMode('custom') : 1;
   document.getElementById('picker-overlay')?.classList.remove('show');
   startGame();
 }

@@ -37,7 +37,7 @@ const SURVIVAL_COINS_PER_10S = 1;     // + this per EFFICIENCY_SECONDS_PER_COIN 
                                       // (the constant is shared with the payout's Efficiency line - js/data/cards.js)
 const SURVIVAL_SHOP_COST     = 5;     // coins to open the shop from the pick screen
 const SURVIVAL_BOSS_EVERY_SECONDS = 300; // a boss arrives every 5 minutes of play
-const SURVIVAL_BOSS_COUNT     = 5;    // run "completes" after this many bosses beaten
+const SURVIVAL_BOSS_COUNT     = 4;    // run "completes" after this many bosses beaten (r484: 4, one per QRL quarter)
 const SURVIVAL_BOSS_TIME_CAP  = 180;  // banked leftover time feeding the boss, capped
 const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwinnable boss
 // Rerolls are a CARRY-OVER POOL (owner spec): 3 at run start, +2 per boss beaten.
@@ -516,7 +516,7 @@ function survivalTogglePeek() {
   if (!ov.classList.contains('show')) return;
   ov.classList.toggle('sv-peek');
   const peeking = ov.classList.contains('sv-peek');
-  if (peeking) survivalHideContrib();
+  if (peeking) { survivalHideContrib(); if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true); }
   // r256: peek is no longer "hide a panel" - the pick IS the board, so peeking
   // hands the BOARD back (the real cards are re-rendered at the play size) and
   // restoring re-takes it over. gridPickState holds the offers across both.
@@ -873,7 +873,7 @@ function survivalPostBossReward() {
 }
 
 // ══════════════════════════════════════════════
-// RUN COMPLETE (5 bosses) - retire, or continue into accelerated endless
+// RUN COMPLETE (4 bosses) - retire, or continue into accelerated endless
 // ══════════════════════════════════════════════
 function survivalCompleteOverlay() {
   let el = document.getElementById('survival-complete-overlay');

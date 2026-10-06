@@ -538,7 +538,11 @@ function openShopGrid() {
   // The shop board is the PLAYER'S board: same rows and columns, read from the
   // limits (never the live globals - a boss or a penalty can have shrunk those
   // temporarily, and the shop should not inherit the shrink).
-  shopGridSaved  = { rows: gridRows, cols: gridCols };
+  // `owner` is the screen that had the board when the shop opened (r484): if it
+  // closes while the shop is up, its size is no longer the one to go back to.
+  shopGridSaved  = { rows: gridRows, cols: gridCols,
+                     owner: (typeof gridPickState !== 'undefined' && gridPickState) ? 'pick'
+                          : (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) ? 'map' : null };
   gridRows = shopgRows(); gridCols = shopgCols();
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
@@ -598,6 +602,22 @@ function shopGridFallOut() {
   setTimeout(() => layer.remove(), OUT_MS + rows * 55 + 80);
 }
 
+// The size to put back when the shop closes. Normally the one saved at open.
+// If the pick or the Schedule map that opened the shop has closed underneath it,
+// the board under the shop is the play board again: take its size from gridData
+// itself (or the limits if gridData is not a clean rectangle).
+function shopRestoreSize(saved) {
+  const gone = (saved.owner === 'pick' && !(typeof gridPickState !== 'undefined' && gridPickState))
+            || (saved.owner === 'map'  && !(typeof mapScreenOpen !== 'undefined' && mapScreenOpen));
+  if (!gone) return saved;
+  const gd = gridData;
+  const z = (gd.length && gd.every(r => Array.isArray(r) && r.length === gd[0].length))
+    ? { rows: gd.length, cols: gd[0].length }
+    : { rows: limits.grid_rows.current, cols: limits.grid_cols.current };
+  dbgEvent('warn', `shop closed after its ${saved.owner} did: board ${z.rows}x${z.cols}, not ${saved.rows}x${saved.cols}`);
+  return z;
+}
+
 function closeShopGrid() {
   if (!shopGridActive) return;
   shopGridActive = false;
@@ -609,7 +629,7 @@ function closeShopGrid() {
   exitShopGridButtons();
   shopGridFallOut();
   const gridEl = document.getElementById('grid'); if (gridEl) gridEl.innerHTML = '';
-  if (shopGridSaved) { gridRows = shopGridSaved.rows; gridCols = shopGridSaved.cols; shopGridSaved = null; }
+  if (shopGridSaved) { const z = shopRestoreSize(shopGridSaved); gridRows = z.rows; gridCols = z.cols; shopGridSaved = null; }
   recomputeGridMetrics();
   shopGridItems = []; shopGridSel = new Set();
   gameTimerPaused = false;
@@ -630,7 +650,15 @@ function closeShopGrid() {
     flowrAfterStep();
   }
   else if (typeof survivalActive === 'function' && survivalActive() && !bossActive) {
-    if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
+    const pickGone = !(typeof gridPickState !== 'undefined' && gridPickState)
+      && !document.getElementById('survival-pick-overlay')?.classList.contains('show');
+    if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick && pickGone) {
+      // r484: the pick closed while the shop was up, and the next round is
+      // already dealt behind it. Do not hold the clock for a pick that is gone.
+      survivalShopFromPick = false;
+      if (typeof render === 'function') render();
+      if (!roundInterval) startRoundTimer();
+    } else if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
       // Opened from the PICK screen: bring the peeked panel back in front. The
       // pick owns the flow (the round deals when you choose), so stay paused.
       survivalShopFromPick = false;
@@ -688,7 +716,7 @@ function syncShopActionChips() {
     const lifted = !!shopSwapPending;
     swap.title = lifted
       ? 'Tap a tile next to the lifted one to trade them. Tap SWAP again to cancel.'
-      : 'Select one tile (or one row label), press SWAP, then tap the tile next to it to trade them. Double-tap a tile does the same.';
+      : 'Select two touching tiles (or two row labels) and press SWAP to trade them. Or select one, press SWAP, then tap the tile next to it. Double-tap a tile does the same.';
     swap.classList.toggle('srr-spent', shopGridMode === 'sell' || !shopSwapsLeft());
     swap.classList.toggle('srr-lifted', lifted);
   }
@@ -889,6 +917,14 @@ function shopgIsLabel(r, c) {
 // purchase - it commands a whole row - and the weight is what decides how many
 // rows one REROLL press can take: one at Selection Size 3 or 4, two at 5 or 6.
 const SHOP_LABEL_WEIGHT = 2;
+// Trading two rows needs two labels in hand at once, so it needs Selection Size
+// 2 x SHOP_LABEL_WEIGHT. Below that every row-swap route refuses the same way.
+function shopRowSwapOK() {
+  const need = 2 * SHOP_LABEL_WEIGHT;
+  if (limits.selection.current >= need) return true;
+  refuse(`Insufficient hand size, ${limits.selection.current}/${need}`);
+  return false;
+}
 function shopgKeyWeight(key) {
   const [r, c] = key.split('-').map(Number);
   return shopgIsLabel(r, c) ? SHOP_LABEL_WEIGHT : 1;
@@ -984,7 +1020,10 @@ function onShopGridClick(r, c) {
     shopGridSel = new Set(); shopSelOrder = [];
     if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
   }
-  if (shopgSelWeight() + shopgKeyWeight(key) > limits.selection.current) return;   // capped by Selection Size
+  if (shopgSelWeight() + shopgKeyWeight(key) > limits.selection.current) {   // capped by Selection Size
+    if (isLabel) refuse(`Insufficient hand size, ${limits.selection.current}/${shopgSelWeight() + SHOP_LABEL_WEIGHT}`);
+    return;
+  }
   if (shopGridSel.size > 0) {
     // Adjacent to the selection through ANY cell of this tile's footprint.
     const adj = shopgCellsOf(key).some(([tr, tc]) =>
@@ -1095,12 +1134,18 @@ function toggleShopSellMode() {
 // ══ SWAP: rearrange the board ══════════════════════════════════════════════
 // Double-tap lifts a tile; the next tap trades it with an orthogonal neighbour.
 // Tapping the lifted tile again puts it back down.
-// The SWAP button (r405): lifts whatever is selected, or puts a lifted tile back.
+// The SWAP button (r405): two selected trade at once; one selected is lifted; a lifted tile is put back.
 function shopSwapButton() {
   if (!shopGridActive || shopGridMode !== 'buy') return;
   if (shopSwapPending) { shopSwapPending = null; renderShopGrid(); return; }
+  if (shopGridSel.size === 2) {   // two picked: trade them now, like the board's SWAP
+    const [[r1, c1], [r2, c2]] = [...shopGridSel].map(k => k.split('-').map(Number));
+    shopSwapTiles(r1, c1, r2, c2);
+    renderShopGrid();
+    return;
+  }
   if (shopGridSel.size !== 1) {
-    refuse(shopGridSel.size ? 'Select just one tile or row label to swap' : 'Select a tile or row label first, then press SWAP');
+    refuse(shopGridSel.size ? 'Select one tile to lift, or two to trade' : 'Select a tile or row label first, then press SWAP');
     return;
   }
   const [r, c] = [...shopGridSel][0].split('-').map(Number);
@@ -1110,6 +1155,7 @@ function shopArmSwap(r, c) {
   if (shopGridMode !== 'buy') return;
   const isLabel = shopgIsLabel(r, c);
   if (!isLabel && !shopGridItems[r]?.[c]) { refuse('Nothing to lift', { color: 'var(--cream-dim)' }); return; }
+  if (isLabel && !shopRowSwapOK()) return;
   if (!shopSwapsLeft()) { refuse('No swaps left'); return; }
   shopSwapPending = shopgLeadKey(r, c);
   // The lift DROPS the selection: what you are about to do is move things, and
@@ -1147,6 +1193,7 @@ function shopSwapTiles(r1, c1, r2, c2) {
   const l1 = shopgIsLabel(r1, c1), l2 = shopgIsLabel(r2, c2);
   if (l1 !== l2) { refuse('A row label only trades with another row label', { color: 'var(--cream-dim)' }); return false; }
 
+  if (l1 && !shopRowSwapOK()) return false;
   if (l1) {
     // TWO LABELS: the WHOLE ROWS trade - stock, category, pin and all. That is
     // the move worth having, because a connected pick cannot cross the board:

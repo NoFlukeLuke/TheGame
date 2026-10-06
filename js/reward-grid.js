@@ -20,7 +20,7 @@
 // It REPLACES the post-boss reward grid rather than being shown after it - one
 // grid, not two. Survival and Flow have no reward grid at all (they run a
 // pick-of-three), so they keep their bonus pick.
-let rewardGridMode = 'normal';   // 'normal' | 'prize' | 'penalty'
+let rewardGridMode = 'normal';   // 'normal' | 'prize' | 'penalty' | 'mini'
 function prizeGridActive() { return rewardGridMode === 'prize'; }
 // ── PENALTY GRID (r444) ──────────────────────────────────────────────────────
 // The inverse of the prize grid: what a failed challenge round costs
@@ -41,6 +41,22 @@ function openPenaltyGrid(done) {
   openRewardGrid();
   showMessage(`Pick ${penaltyPickCount()} penalties`, 'var(--red)', { ms: 3000 });
 }
+// ── MINI GRID (r478) ─────────────────────────────────────────────────────────
+// A free 3x3 ordinary grid (buffs and debuffs on the checkerboard, no guaranteed
+// tiles, no destination), paid for a challenge card taken at difficulty 2+ outside
+// Flow. Hands control back to whoever opened it, like the penalty grid.
+function miniGridActive() { return rewardGridMode === 'mini'; }
+let miniVisitIndex = 0;
+function openMiniGrid(done) {
+  rewardGridMode = 'mini';
+  rewardGridContext = 'mini';
+  _penaltyDone = done || null;
+  openRewardGrid();
+}
+function devOpenMiniGrid() {
+  if (typeof closeDevPanel === 'function') closeDevPanel();
+  openMiniGrid(() => { gameTimerPaused = false; if (gridData && gridData[0]) { startRoundTimer(); render(); } });
+}
 function devOpenPenaltyGrid() {
   if (typeof closeDevPanel === 'function') closeDevPanel();
   openPenaltyGrid(() => { gameTimerPaused = false; if (gridData && gridData[0]) { startRoundTimer(); render(); } });
@@ -56,6 +72,7 @@ function generateRewardContent() {
   // The penalty grid draws on its own stream, so taking one never shifts which
   // reward grids a seed deals.
   if (penaltyGridActive()) return withSeededRng(_generateRewardContent, 'penalty', penaltyVisitIndex++);
+  if (miniGridActive()) return withSeededRng(_generateRewardContent, 'mini', miniVisitIndex++);
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
 // Weighted reward-grid tile categories (r409: hoisted, tunable in dev).
@@ -92,10 +109,10 @@ const REWARD_BUFF_CATS = [
 ];
 
 function _generateRewardContent() {
-  const PRIZE = prizeGridActive();
-  // Two smaller in each direction, never below 3x3.
-  const ROWS = PRIZE ? Math.max(3, limits.grid_rows.current - 2) : limits.grid_rows.current;
-  const COLS = PRIZE ? Math.max(3, limits.grid_cols.current - 2) : limits.grid_cols.current;
+  const PRIZE = prizeGridActive(), MINI = miniGridActive();
+  // Two smaller in each direction, never below 3x3. The mini grid is always 3x3.
+  const ROWS = MINI ? 3 : PRIZE ? Math.max(3, limits.grid_rows.current - 2) : limits.grid_rows.current;
+  const COLS = MINI ? 3 : PRIZE ? Math.max(3, limits.grid_cols.current - 2) : limits.grid_cols.current;
 
   // Weighted buff categories. Tricks are also guaranteed a minimum count per
   // grid (MIN_TRICK_TILES below), so their true share ends up higher than the
@@ -122,11 +139,9 @@ function _generateRewardContent() {
   const _handNow = 0 + extraPlayCostPerm + nextRoundPlayCost;   // base play cost is 0 (r50)
   const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
   // ── Penalty tiles ──────────────────────────────────────────────────────────
-  // `perm: true` marks a penalty that outlives the next round. The difficulty
-  // tier multiplies the weight of every permanent one (diffPermWeightMult), and
-  // the epic-neighbour rule below can only draw from the permanent half - so the
-  // flag is load-bearing, not documentation. A penalty that resolves instantly
-  // and is then over (Pickpocket) is NOT permanent: it costs you once.
+  // `perm: true` marks a penalty that outlives the next round. A penalty that
+  // resolves instantly and is then over (Pickpocket) is NOT permanent: it costs
+  // you once.
   const debuffs = [
     { weight: 8, perm: true, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
       desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
@@ -302,14 +317,6 @@ function _generateRewardContent() {
     { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
 
-  // Like weightedPick, but the weight is read through `wf` - which is how the
-  // difficulty tier re-weights permanent penalties without editing the table.
-  function weightedPickBy(arr, wf) {
-    const total = arr.reduce((s, x) => s + wf(x), 0);
-    let rng = Math.random() * total;
-    for (const x of arr) { rng -= wf(x); if (rng <= 0) return x; }
-    return arr[arr.length - 1];
-  }
   function weightedPick(arr) {
     const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
     let rng = Math.random() * total;
@@ -352,7 +359,7 @@ function _generateRewardContent() {
         if (onceKind) once.add(cand.label);
         pick = cand;
       }
-      pen[r][c] = { kind: 'debuff', payload: pick || pickRand(pool) };
+      pen[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
     }
     return pen;
   }
@@ -662,6 +669,7 @@ function _generateRewardContent() {
   // guaranteed limit upgrades stacked in one payout, which is not what a prize is
   // for. It also has a hard ceiling on limit tiles overall (below).
   function buildGuaranteedRewardTiles() {
+    if (MINI) return [];
     const out = [ makeLimitBreakPayload() ];
     if (!PRIZE && rewardGridsSeen <= 5) {
       out.push(makeGrowthTile());
@@ -680,29 +688,7 @@ function _generateRewardContent() {
     for (let c = 0; c < COLS; c++)
       (PRIZE || (r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
 
-  // ── Difficulty: convert extra buff cells into penalty cells (r193) ─────────
-  // The checkerboard is a 50/50 split, which means a path of N tiles can always
-  // be walked with roughly N/2 penalties - and with Selection Size 5, one penalty
-  // and four rewards. Tier 3 raises the penalty share so that stops being true.
-  //
-  // Cells are converted from the END of the shuffled buff list, which is what
-  // keeps this safe: the destination and every guaranteed tile are placed from
-  // the FRONT of that same list, so they are never the ones taken away. A prize
-  // grid has no penalty half at all and is skipped outright.
   const shuffledBuff = shuffled(buffPos);
-  if (!PRIZE) {
-    const share = (typeof diffDebuffShare === 'function') ? diffDebuffShare() : null;
-    if (share) {
-      const cells  = ROWS * COLS;
-      const wanted = Math.round(cells * share);
-      // Never eat into the guaranteed tiles or the destination, and always leave
-      // enough buff slots for the Trick minimum - a grid with nothing worth
-      // taking is not hard, it is empty.
-      const reserved = 1 + buildGuaranteedRewardTiles().length + MIN_TRICK_TILES_FOR(PRIZE);
-      let convert = Math.min(wanted - debuffPos.length, shuffledBuff.length - reserved);
-      while (convert > 0) { debuffPos.push(shuffledBuff.pop()); convert--; }
-    }
-  }
 
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
@@ -714,7 +700,7 @@ function _generateRewardContent() {
   // cleared unread by finishInterludeRoute - the player picks 'Next: Event',
   // pays a tile for it, and NOTHING HAPPENS. Guided was excluded when it landed
   // and the map was missed. Owner's call: on the map an event is an event TILE.
-  const NO_DEST = PRIZE
+  const NO_DEST = PRIZE || MINI
     || (typeof guidedActive === 'function' && guidedActive())
     || (typeof mapActive === 'function' && mapActive())
     // Survival/Flow reach a STANDARD grid through the pick-of-three's rare
@@ -747,12 +733,12 @@ function _generateRewardContent() {
   // tissue of builds). Non-trick buffs are converted at random until met.
   // A prize grid is 9 tiles at its smallest, several of them guaranteed upgrades -
   // demanding 5 Tricks there would crowd everything else out.
-  const MIN_TRICK_TILES = MIN_TRICK_TILES_FOR(PRIZE);
+  const MIN_TRICK_TILES = MIN_TRICK_TILES_FOR(PRIZE || MINI);
   {
     const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
     let trickCount = 0;
     const convertible = [];
-    for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
+    for (let i = (PRIZE || MINI ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
       // An improve tile is not a Trick offer and must not be converted into one.
@@ -769,82 +755,20 @@ function _generateRewardContent() {
     }
   }
 
-  // ── Difficulty: push the best tiles out to the rim (r193) ─────────────────
-  // A reward path is walked from a starting tile through orthogonally connected
-  // neighbours, so a CENTRE cell is cheap to reach - it has four ways in - and a
-  // corner is dear, with two. Above tier 1 the epic-and-better tiles are traded
-  // out to edge and corner cells, so taking the best thing on the board means
-  // committing the path to it instead of collecting it on the way past.
-  //
-  // This is a SWAP between two already-placed buff cells, never a re-roll: the
-  // grid's contents are unchanged and only their positions move, so the Trick
-  // minimum, the limit ceiling and the destination all still hold afterwards.
-  const _isEdge = (r, c) => r === 0 || c === 0 || r === ROWS - 1 || c === COLS - 1;
-  // How exposed a cell is, lowest first: a corner (2 ways in) beats an edge (3).
-  const _openness = (r, c) => [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
-    .filter(([nr, nc]) => nr >= 0 && nc >= 0 && nr < ROWS && nc < COLS).length;
-  if (!PRIZE && typeof diffWantsEdge === 'function') {
-    const highInner = [], freeEdge = [];
-    for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
-      const [r, c] = shuffledBuff[i];
-      const cell = grid[r][c];
-      if (!cell || cell.kind !== 'buff') continue;
-      const high = diffWantsEdge(cell.payload?.rarity || cell.payload?.tier);
-      if (high && !_isEdge(r, c))       highInner.push([r, c]);
-      else if (!high && _isEdge(r, c))  freeEdge.push([r, c]);
-    }
-    // Most exposed inner tile out first, into the least exposed edge cell going -
-    // so on a board with one corner free, the legendary is the tile that gets it.
-    highInner.sort((a, b) => _openness(b[0], b[1]) - _openness(a[0], a[1]));
-    freeEdge.sort((a, b) => _openness(a[0], a[1]) - _openness(b[0], b[1]));
-    const n = Math.min(highInner.length, freeEdge.length);
-    for (let i = 0; i < n; i++) {
-      const [ar, ac] = highInner[i], [br, bc] = freeEdge[i];
-      const t = grid[ar][ac]; grid[ar][ac] = grid[br][bc]; grid[br][bc] = t;
-    }
-  }
-
   // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds.
   // debuffPos is empty on a prize grid, so this loop simply does not run.
   // (two identical curse/drain/mystery tiles in one grid would be confusing)
-  //
-  // The weight of every PERMANENT penalty is multiplied by the difficulty tier's
-  // permWeightMult, so a higher tier does not add more penalties (tier 3 does that
-  // separately, above) - it changes which ones you meet.
-  const _permMult = (typeof diffPermWeightMult === 'function') ? diffPermWeightMult() : 1;
-  const _wOf = d => (d.weight || 1) * (d.perm ? _permMult : 1);
-  // Cells that must carry a PERMANENT penalty: the ones orthogonally touching a
-  // tile of an edge-bias rarity. Computed after the swap above, so it reads the
-  // final positions.
-  const _mustBePerm = new Set();
-  if (!PRIZE && typeof diffPermNeighborCount === 'function' && diffPermNeighborCount() > 0) {
-    const want = diffPermNeighborCount();
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      const cell = grid[r][c];
-      if (!cell || cell.kind !== 'buff') continue;
-      if (!diffWantsEdge(cell.payload?.rarity || cell.payload?.tier)) continue;
-      const nb = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
-        .filter(([nr, nc]) => debuffPos.some(([dr, dc]) => dr === nr && dc === nc));
-      // Shuffled so it is not always the same compass points that turn permanent.
-      shuffled(nb).slice(0, want).forEach(([nr, nc]) => _mustBePerm.add(`${nr}-${nc}`));
-    }
-  }
   const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
     let pick = null;
-    const needPerm = _mustBePerm.has(`${r}-${c}`);
-    // A forced-permanent cell draws from the permanent half only. If that half is
-    // somehow empty it falls through to the ordinary draw rather than blanking.
-    const table = needPerm ? debuffs.filter(d => d.perm) : debuffs;
-    const pool = table.length ? table : debuffs;
     for (let tries = 0; tries < 12; tries++) {
-      const cand = weightedPickBy(pool, _wOf);
+      const cand = weightedPick(debuffs);
       const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.icon === '🐈‍⬛' || cand.tier === 'mystery';
       if (isOnceKind && usedOnce.has(cand.label)) continue;
       if (isOnceKind) usedOnce.add(cand.label);
       pick = cand; break;
     }
-    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(pool) };
+    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
   }
 
   // The tutorial rewrites its FIRST grid into a Trick → liability → Mart row so
@@ -1047,15 +971,20 @@ function openPrizeGrid() {
   openRewardGrid();
 }
 
+let rewardSwapReady = false, rewardSwapLift = null, rewardTapKey = null, rewardTapAt = 0;
 function openRewardGrid() {
   gameTimerPaused = true;
-  if (!penaltyGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
+  if (!penaltyGridActive() && !miniGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardPickOrder = [];
   rewardTipKey    = null;
   rewardConfirmed = false;
   rewardOnGrid    = true;
+  // Last Swap: ready only if the round ended on exactly one swap. Spent on use.
+  rewardSwapReady = hasKnack('last_swap') && swaps === 1;
+  rewardSwapLift = null; rewardTapKey = null; rewardTapAt = 0;
+  if (rewardSwapReady) showMessage('Last Swap: double-tap a tile, then tap a neighbour to trade them', 'var(--c-mint)');
   // The reward grid now lives ON the play grid (r100). Reveal the board: drop the
   // interlude dark veil (showNextGoalFlash re-adds it later) and repurpose the
   // Play/Discard buttons into Confirm/Clear.
@@ -1067,11 +996,11 @@ function openRewardGrid() {
   // missed every OTHER act mode - Six Suits, Spectrum, Orientation and now Guided
   // all route their post-boss prize grid through here with nodeInAct 5 and were
   // silently getting the ordinary tint. isActMode() is the real question.
-  document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5));
+  document.body.classList.toggle('reward-boss', !miniGridActive() && (rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5)));
   document.body.classList.toggle('reward-prize', prizeGridActive());
   document.body.classList.toggle('reward-penalty', penaltyGridActive());
   if (penaltyGridActive()) document.body.classList.remove('reward-boss');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : penaltyGridActive() ? 'PENALTIES' : 'REWARDS', 'reward');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : penaltyGridActive() ? 'PENALTIES' : miniGridActive() ? 'BONUS' : 'REWARDS', 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -1118,6 +1047,7 @@ function renderRewardTiles(animateIn = false) {
         // builds its own cell from entityTileInner, so it adds the class itself.
         p.entity ? entityTierClass(p) : '',
         isSel   ? 'selected'    : '',
+        rewardSwapLift === key ? 'shop-lifted' : '',
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',
       ].filter(Boolean).join(' ');
@@ -1380,7 +1310,25 @@ function showRewardTooltipFor(r, c) {
   // being read. The reward grid keeps roomiest-side: its picks are a connected
   // path, and a bubble below the tile would sit on the next tile to take.
   if (onShop) placeTipBelow(el, tt, { gap: 10 });
-  else placeTipSmart(el, tt, { gap: 12 });
+  else { placeTipSmart(el, tt, { gap: 12 }); placeTipOffBoard(el, tt, 12); }
+}
+
+// Landscape: the bubble sits beside the WHOLE board (the free side with room),
+// never over a neighbouring tile - the picks are a connected path, so a bubble
+// on the next tile hides the very thing being chosen.
+function placeTipOffBoard(el, tt, gap) {
+  if (!document.getElementById('stage')?.classList.contains('landscape')) return;
+  const cells = [...document.querySelectorAll('#grid .reward-cell')];
+  if (!cells.length) return;
+  let L = Infinity, R = -Infinity;
+  cells.forEach(c => { const b = c.getBoundingClientRect(); L = Math.min(L, b.left); R = Math.max(R, b.right); });
+  const a = el.getBoundingClientRect(), w = tt.offsetWidth, h = tt.offsetHeight, PAD = 6;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = L - gap - w;
+  if (x < PAD) x = R + gap;
+  if (x + w > vw - PAD) return;   // no clear side: keep placeTipSmart's spot
+  tt.style.left = Math.round(x) + 'px';
+  tt.style.top  = Math.round(Math.max(PAD, Math.min(a.top + a.height / 2 - h / 2, vh - h - PAD))) + 'px';
 }
 
 // Re-show whatever tooltip was up before a re-render, since renderRewardTiles
@@ -1573,6 +1521,31 @@ function onRewardCellClick(r, c) {
   if (rewardConfirmed || rewardDealing) return;
   const key = `${r}-${c}`;
 
+  // LAST SWAP: a lifted tile waits for its neighbour; double-tap lifts one.
+  if (rewardSwapReady) {
+    if (rewardSwapLift) {
+      const [lr, lc] = rewardSwapLift.split('-').map(Number);
+      if (rewardSwapLift === key) { rewardSwapLift = null; renderRewardTiles(); return; }
+      if (Math.abs(lr - r) + Math.abs(lc - c) !== 1) { refuse('Trade with a tile it touches', { color: 'var(--cream-dim)' }); return; }
+      const t = rewardCells[lr][lc]; rewardCells[lr][lc] = rewardCells[r][c]; rewardCells[r][c] = t;
+      swaps = Math.max(0, swaps - 1);
+      rewardSwapReady = false; rewardSwapLift = null; rewardSelected = new Set(); rewardPickOrder = []; rewardTipKey = null;
+      try { sfxCardSelect?.(); } catch (e) {}
+      noteMessage('Last Swap used', 'var(--c-mint)');
+      renderRewardTiles();
+      return;
+    }
+    const now = Date.now();
+    if (rewardTapKey === key && now - rewardTapAt < DOUBLE_TAP_MS && rewardCells[r]?.[c]) {
+      rewardTapKey = null; rewardTapAt = 0;
+      rewardSwapLift = key; rewardSelected = new Set(); rewardPickOrder = []; rewardTipKey = null;
+      try { sfxCardSelect?.(); } catch (e) {}
+      renderRewardTiles();
+      return;
+    }
+    rewardTapKey = key; rewardTapAt = now;
+  }
+
   // Already selected: tapping it takes it back and clears its bubble. Still only
   // allowed from the fringe - removing a middle tile would split the group.
   if (rewardSelected.has(key)) {
@@ -1689,13 +1662,17 @@ async function flyRewardTile(tile, p, good) {
   const target = rewardTargetEl(rewardTargetKey(p));
   if (!target) { await fallRewardTile(tile, 0); return; }
   const a = tile.getBoundingClientRect(), b = target.getBoundingClientRect();
-  const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-  const dy = (b.top  + b.height / 2) - (a.top  + a.height / 2);
-  await tile.animate([
+  let dx = (b.left + b.width / 2) - (a.left + a.width / 2);
+  let dy = (b.top  + b.height / 2) - (a.top  + a.height / 2);
+  // Machine panel: a copy flies, under the housing, to the target screen (js/machine-skin.js).
+  let mover = tile;
+  if (typeof mcOn === 'function' && mcOn()) { const f = mcFlightClone(tile); mover = f.el; dx /= f.zoom; dy /= f.zoom; }
+  await mover.animate([
     { transform: 'translate(0,0) scale(1)', opacity: 1 },
     { transform: `translate(${dx * 0.55}px, ${dy * 0.55}px) scale(0.62)`, opacity: 1, offset: 0.6 },
     { transform: `translate(${dx}px, ${dy}px) scale(0.14)`, opacity: 0 },
   ], { duration: 380, easing: 'cubic-bezier(0.5,0,0.85,1)', fill: 'forwards' }).finished;
+  if (mover !== tile) mover.remove();
   if (good) { try { sfxRewardGood(); } catch (e) {} pulseEl(target, 'reward-ding'); }
   else      { try { sfxRewardBad();  } catch (e) {} pulseEl(target, 'reward-hit'); }
 }
@@ -1827,7 +1804,7 @@ async function confirmRewardPath() {
 }
 
 function closeRewardGrid() {
-  hideRewardTooltip();
+  hideRewardTooltip(); rewardSwapReady = false; rewardSwapLift = null;
   stopRewardFloat();
   document.getElementById('reward-overlay')?.classList.remove('show');
   // Tear down the on-grid reward step: restore the action buttons, clear the
@@ -1961,9 +1938,10 @@ function closeRewardGrid() {
     survivalSkipCarryover = false;
   };
 
-  // The penalty grid hands control back to whoever opened it (crSettle).
-  if (rewardGridContext === 'penalty') {
+  // The penalty and mini grids hand control back to whoever opened them (crSettle).
+  if (rewardGridContext === 'penalty' || rewardGridContext === 'mini') {
     const done = _penaltyDone; _penaltyDone = null;
+    if (pendingLimitBreak) { pendingLimitBreak = false; openLimitBreakEvent(() => { if (typeof done === 'function') done(); }); return; }
     if (typeof done === 'function') done();
     return;
   }

@@ -33,6 +33,7 @@ const BAL = {
   stand_up: { mult_per_card: 5 },
   scalper: { mult_mult_per_missing: 0.25 },
   down_and_back_in: { coins: 5 },
+  short_change: { coins: 1 },
   scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
   high_pair: { focus_per_card: 2 },
@@ -232,6 +233,7 @@ const BAL = {
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
   whetstone:  { mult_per_event: 2, life_seconds: 90 },
+  autopilot:  { delay_seconds: 30, focus_cost: 5, max_hands: 0 },
   entourage:  { mult_per_sleight: 10 },
   lighthouse: { mult: 20, falloff_per_column: 7 },
   // ── focus-payout entities (r123) ──
@@ -311,6 +313,7 @@ const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
   hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, {seconds}s of clock, or a trick primed or forced.',
   turnover:   'Any card you leave alone for {idle_seconds} seconds is discarded and a fresh one falls in. Costs you nothing.',
+  autopilot: 'Costs {focus_cost} Focus when it lands on the board. {delay_seconds}s later it plays the best hand on the board, waits for the cards to fall, and repeats until no hand is left. Hand 2 applies Focus twice, hand 3 three times, and so on. Each hand it plays spends a charge. Then it discards itself.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult. Discards itself after {life_seconds}s on the board.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',
@@ -393,6 +396,7 @@ const DESC_TEMPLATES = {
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',
   rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay',
   coin_toss: 'At the start of each round, every Sleight has a {chance_pct}% chance to restore {charges} charge.',
+  short_change: 'Each hand you play with fewer cards than your hand size earns {coins} credit.',
   reflect: 'Tap to rotate its aim. The rank it faces replays {extra_replays}x when scored. Cannot be swapped, discarded or played. Discards itself after {board_seconds}s.',
   deluge: 'Flushes rewind the clock {seconds} seconds',
   monochrome: 'Hands containing exclusively hearts AND diamonds grant +{coins} credits but cost {seconds} seconds',

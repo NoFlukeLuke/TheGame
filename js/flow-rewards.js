@@ -385,6 +385,9 @@ function flowrOddsNow() {
     const spare = o.tricks - 18; o.tricks = 18;
     ['cards', 'deck', 'limits', 'improve'].forEach(k => { o[k] = (o[k] || 0) + spare / 4; });
   }
+  // r476: the first quarter (no boss beaten yet) gives Tricks +5, added AFTER
+  // the full-tray cap so nothing takes it back (owner).
+  if ((typeof survivalBossesBeaten !== 'undefined' ? survivalBossesBeaten : 0) === 0) o.tricks = (o.tricks || 0) + 5;
   return o;
 }
 
@@ -762,7 +765,7 @@ function flowrHandOver(fromKind, next) {
   // clamped down by max(0px, ...) on a deep chain.
   const pBox = (!skip && host && bg0) ? flowrBoxIn(bg0, host) : null;
   const tBox = (!skip && host && cur0) ? flowrBoxIn(cur0, host) : null;
-  const label = cur0 ? cur0.innerHTML : '';
+  const label = bg0?.querySelector('.fbg-title')?.textContent || '';
 
   if (!skip) flowrHoldSlot(true);
   flowrRenderStack();                       // the new arrangement, underneath
@@ -796,7 +799,8 @@ function flowrHandOver(fromKind, next) {
   }
   // The panel goes first so the tab paints over its top edge, exactly as the
   // ladder does at rest. The wrapper paints nothing of its own.
-  g.innerHTML = '<div class="ffl-panel"></div>' + tabHTML;
+  g.innerHTML = '<div class="ffl-panel"></div>' + tabHTML
+    + (label ? `<div class="ffl-title">${label}</div>` : '');
   host.appendChild(g);
   requestAnimationFrame(() => g.classList.add('fading'));
 
@@ -1380,6 +1384,11 @@ function flowrRenderStack() {
   bg.id = 'flowr-bg';
   bg.style.setProperty('--fc', cur.color);
   if (!existing) host.appendChild(bg);
+  // r474: the current step's title is TEXT ON THE PANEL, not a tab tucked into
+  // its edge (owner: "not a separate piece"), so there is no seam to show.
+  let title = bg.querySelector('.fbg-title');
+  if (!title) { title = document.createElement('div'); title.className = 'fbg-title'; bg.appendChild(title); }
+  title.textContent = flowrKindShort(rest[0]);
 
   // ── THE PANEL TURNS OVER BETWEEN STEPS (r380) ──
   // Owner: "the animation between choices could use some more va va voom, it
@@ -1418,13 +1427,17 @@ function flowrRenderStack() {
   // than a card peeking out from behind another. The colour is what the queued
   // chips were always meant to carry ("how much is still coming is on screen
   // without a number").
+  // r474: depth 0 (the current step) draws no tab - its title is on the panel.
+  // The stack goes in BEFORE the panel at the same z-index, so the queued tabs
+  // paint behind it and only their tops peek above its edge.
   el.innerHTML = rest.slice().reverse().map((kind, i) => {
     const meta = FLOWR_KINDS[kind] || FLOWR_KINDS.pick3;
     const depth = rest.length - 1 - i;              // 0 = current
-    return `<div class="fst-chip${depth === 0 ? ' fst-cur' : ''}" style="--fst-c:${meta.color}; --fst-d:${depth}">`
+    if (depth === 0) return '';
+    return `<div class="fst-chip" style="--fst-c:${meta.color}; --fst-d:${depth}">`
       + `<span>${flowrKindShort(kind)}</span></div>`;
   }).join('');
-  host.appendChild(el);
+  host.insertBefore(el, bg);
 }
 let _flowrLastIdx = -1;
 function flowrClearStack() {
@@ -1800,6 +1813,7 @@ function flowrDeckBegin(op) {
   // and svGoalCells is emptied so the keep path has nothing left to remove.
   flowrDeckClearGoalHand();
   try { render(); } catch (e) {}
+  flowrPaintQrl();
   // THE DECK EDIT USES THE PLAY BOARD, not the 6x4 pick board, so it re-pins:
   // flowrShowStep pinned the OP PICK's size a moment ago and the panel has to
   // wrap the real board now. It is the one step whose panel legitimately
@@ -1856,7 +1870,7 @@ function flowrDeckBanner() {
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
-  const _g = 'Double-tap a card to swap it';
+  const _g = 'Double-tap a card, or pick 2 and press SWAP';
   if (op.buff || op.dual) {
     el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · ${_g} · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
@@ -1926,7 +1940,23 @@ function flowrDeckSyncUI() {
   // Snared, which reads better than a button that is dark for a reason the
   // player cannot see.
   const dsc = document.getElementById('btn-discard'); if (dsc) dsc.disabled = n === 0;
+  { const si = document.getElementById('swap-indicator'); if (si) si.classList.toggle('swap-armed', n === 2 && swaps > 0); }
   flowrPaintLift();
+  flowrPaintQrl();
+}
+
+// QRL (r484): on a buff op, a card that cannot take another buff kind this
+// quarter is greyed and says why on hover; a tap refuses with the same words.
+function flowrPaintQrl() {
+  const op = _flowrDeckOp, kind = op && op.buff ? qrlPayloadKind({ [op.buff.key]: 1 }) : null;
+  document.querySelectorAll('#grid .card[data-card-id]').forEach(el => {
+    const hit = op && op.buff ? flowrDeckFindCell(el) : null;
+    const full = !!(hit && flowrDeckOrdinary(hit[2]) && qrlCardFull(hit[2], kind));
+    el.classList.toggle('qrl-full', full);
+    if (full) el.title = QRL_TEXT.full() + '\n' + QRL_TEXT.fullWhy();
+    else if (el.title && el.classList.contains('qrl-titled')) el.removeAttribute('title');
+    el.classList.toggle('qrl-titled', full);
+  });
 }
 
 // The lifted card is the only thing on screen that says a swap is half-made, so
@@ -1988,6 +2018,23 @@ function flowrDeckDiscard() {
   if (!went) selected = _keep;
   if (went) flowrDropSelection(); else flowrDeckSyncUI();
 }
+
+// SWAP with exactly two cards picked swaps them, like the SWAP button on the
+// play board. Capture + stopImmediatePropagation: input.js's own listener on
+// this button reads the play grid's `selected`, which this screen leaves empty.
+document.getElementById('swap-indicator')?.addEventListener('click', e => {
+  if (!_flowrDeckOp) return;
+  e.stopImmediatePropagation();
+  if (_flowrDeckBusy || animating || falling) return;
+  if (_flowrDeckSel.length !== 2) {
+    if (_flowrDeckSel.length > 0) refuse('Select exactly 2 cards to swap them', { color: 'var(--cream-dim)' });
+    return;
+  }
+  const [a, b] = _flowrDeckSel;
+  flowrClearLift();
+  flowrDeckAct(() => doSwap(a.r, a.c, b.r, b.c));
+  flowrDropSelection();
+}, true);
 
 function flowrDeckTap(e) {
   // The whole board is the editor's while this listener exists: every tap stops
@@ -2066,6 +2113,7 @@ function flowrDeckTap(e) {
     _flowrDeckSel = rest; cardEl.classList.remove('flowr-sel');
   } else {
     if (_flowrDeckSel.length >= flowrSelMax(op)) { refuse(`Up to ${flowrSelMax(op)} cards`); return; }
+    if (op.buff && qrlCardFull(cd, qrlPayloadKind({ [op.buff.key]: 1 }))) { refuse(QRL_TEXT.full() + '. ' + QRL_TEXT.fullWhy()); return; }
     const cand = { id, r, c, cd, el: cardEl };
     if (_flowrDeckSel.length && !_flowrDeckSel.some(o => _flowrAdjacent(o, cand))) {
       refuse('Pick a card touching the ones you have'); return;
@@ -2240,6 +2288,7 @@ function flowrBuffConfirm() {
 
 function flowrDeckEnd() {
   document.getElementById('grid')?.removeEventListener('pointerdown', flowrDeckTap, true);
+  document.querySelectorAll('#grid .card.qrl-full, #grid .card.qrl-titled').forEach(el => { el.classList.remove('qrl-full', 'qrl-titled'); el.removeAttribute('title'); });
   document.getElementById('flowr-banner')?.remove();
   document.body.classList.remove('flowr-deck');
   // Hand the play button back (the exitShopGridButtons shape); render() paints

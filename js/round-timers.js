@@ -135,8 +135,7 @@ function startRoundTimer() {
       const _pool = (trickTray || []).filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
       if (_pool.length) {
         const _t = _pool[Math.floor(Math.random() * _pool.length)];
-        primeTrick(_t);
-        showMessage(`🎭 Understudy - ${_t.name} primed`, '#8a5cf0');
+        if (primeTrick(_t, 1, { src: 'understudy' })) showMessage(`🎭 Understudy - ${_t.name} primed`, '#8a5cf0');
         renderTrickTray?.();
       }
     }
@@ -148,6 +147,7 @@ function startRoundTimer() {
     if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
     if (typeof fightPowerTick === 'function') fightPowerTick();
     if (typeof sleightLifeTick === 'function') sleightLifeTick();
+    if (typeof autopilotTick === 'function') autopilotTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)
     // The Woodpecker (r348): every interval a new random card is marked, replacing

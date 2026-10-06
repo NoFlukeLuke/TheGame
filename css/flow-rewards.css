@@ -321,13 +321,18 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
 :root { --fbg-pad: 9px; }
 
 #flowr-bg {
-  position: absolute; left: 50%; top: 50%;
+  position: absolute; left: 50%;
   /* --fbg-w / --fbg-h are the PINNED figures (r398, js/flow-rewards.js): the
      step's own board size, held for the whole step so the gap between two
      steps - where gridRows/gridCols briefly revert to the play board - cannot
      resize the panel. Unpinned, this is the live board exactly as before. */
   width:  calc(var(--fbg-w, var(--grid-w, 100%)) + var(--fbg-pad) * 2);
-  height: calc(var(--fbg-h, var(--grid-h, 100%)) + var(--fbg-pad) * 2);
+  /* r474: the panel CARRIES ITS OWN TITLE in a --fbg-head band along its top,
+     so it is taller by that band and centred half a band higher - the board's
+     box inside it does not move. */
+  --fbg-head: 15px;
+  height: calc(var(--fbg-h, var(--grid-h, 100%)) + var(--fbg-pad) * 2 + var(--fbg-head));
+  top: calc(50% - var(--fbg-head) / 2);
   transform: translate(-50%, -50%);
   /* z-index 0: above the marked-line markers (1 is #grid's own children only -
      this is a SIBLING of #grid, so it sits below the whole board) and below
@@ -363,15 +368,21 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
   --fst-step: 5px;   /* how far each queued tab peeks above the one in front */
   --fst-tuck: 7px;   /* how far the CURRENT tab runs under the panel's edge */
   --fst-max: 4;      /* FLOWR_MAX - 1: the deepest depth the ladder can reach */
-  --fst-band: calc(var(--fst-h) - var(--fst-tuck) + (var(--fst-max) * var(--fst-step)));
+  /* r474: ANCHORED BY ITS BOTTOM to the panel's top edge, zero tall. It used
+     to be a band of fixed height hanging from a clamped TOP, so spreading the
+     tabs (the Queue tile / hover) grew the band, the clamp pinned its top, and
+     the tabs spread DOWN into the panel. Now they can only grow upward. The
+     current step has no tab at all - its title is text on the panel - and the
+     queued tabs sit BEHIND the panel (the stack is inserted before #flowr-bg
+     at the same z-index 0), peeking above its edge. */
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: max(0px, calc((100% - var(--fbg-h, var(--grid-h, 0px))) / 2 - var(--fbg-pad) - var(--fst-band)));
-  height: var(--fst-band);
+  bottom: calc(50% + var(--fbg-h, var(--grid-h, 0px)) / 2 + var(--fbg-pad) + 15px);
+  height: 0;
   /* r376: 5 -> 8. A PICKED option tile is z-index 5 (css/grid-pick.css) and the
      stack is a later sibling, so at 5 the two TIED and the tabs won - the tile
      you had just selected, and only that one, painted under them. 8 clears
      every tile (2/3, and 5 when picked) and #sel-count (6). */
-  z-index: 8; pointer-events: none;
+  z-index: 0; pointer-events: none;
   /* EXACTLY THE PANEL'S WIDTH (r374), not 72% of the slot. Owner: "the title
      part of the tab needs to blend seamlessly with the rest of the chip ...
      either widen the title part so it sits flush with the outside edges of the
@@ -395,7 +406,7 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
   position: absolute; left: calc(var(--fst-d) * 5%); right: calc(var(--fst-d) * 5%);
   /* bottom, not top: the ladder hangs from the panel's edge, so a shorter
      chain simply has fewer tabs above it rather than a floating block. */
-  bottom: calc(var(--fst-d) * var(--fst-step) - var(--fst-tuck));
+  bottom: calc(var(--fst-d) * var(--fst-step) - var(--fst-h));
   height: var(--fst-h); border-radius: 7px 7px 0 0;
   background: color-mix(in srgb, var(--fst-c) 30%, #0c0a14);
   border: 1px solid var(--fst-c); border-bottom: none;
@@ -411,6 +422,21 @@ body.reduced-motion #flowr-counter.show { opacity: 1; transform: var(--fc-t); }
    the talking; the location chip already reads DECK EDIT and the step has its
    own banner. They come back on the next step. */
 body.flowr-deck #flowr-stack { display: none; }
+body.flowr-deck #flowr-bg { --fbg-head: 0px; }
+body.flowr-deck #flowr-bg .fbg-title { display: none; }
+
+/* r474: THE TITLE IS TEXT ON THE PANEL. Owner: "the title should for all
+   intents and purposes be text on the tray, not a separate piece". A separate
+   tab tucked into the panel's edge always left a seam and a notch at the
+   rounded corners; one element has neither. */
+#flowr-bg .fbg-title,
+#flowr-fall .ffl-title {
+  position: absolute; left: 0; right: 0; top: 0; height: calc(var(--fbg-head, 15px) + 4px);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2.5px;
+  color: var(--fc, #5ad4c0); opacity: .9; white-space: nowrap; pointer-events: none;
+}
+#flowr-fall { --fbg-head: 15px; }
 
 /* THE CURRENT TAB IS THE PANEL'S HEADER, so it is painted with the panel's own
    mix (18% over the same base), not a lighter one. r374 matched the border and
@@ -768,5 +794,8 @@ body.reduced-motion #flowr-cel.shake { animation: none; opacity: 1; transform: v
    while spread, since the default 5px step cuts it through the middle. */
 #flowr-stack .fst-chip { pointer-events: auto; transition: bottom .28s cubic-bezier(.2,.8,.3,1); }
 #flowr-stack .fst-chip:not(.fst-cur) span { opacity: 0; transition: opacity .2s; }
-#flowr-stack.fst-open, #flowr-stack.fst-hover { --fst-step: 17px; }
+#flowr-stack.fst-open, #flowr-stack.fst-hover { --fst-step: 14px; }
 #flowr-stack.fst-open .fst-chip span, #flowr-stack.fst-hover .fst-chip span { opacity: .9; }
+
+/* QRL (r484): a card that cannot take another buff kind this quarter. */
+#grid .card.qrl-full { filter: grayscale(1) brightness(.62); cursor: var(--cur-no, not-allowed); }

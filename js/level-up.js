@@ -455,8 +455,10 @@ function startNewRoundDealAnims() {
 
   const FALL_DUR   = 420;
   const COL_OFFSET = 60;
-  const BOUNCE_PX  = 8;
-  const SQUISH     = 0.10;
+  // The Terminal look lands cards dead: no bounce, no squash (r471).
+  const _mech = typeof termSkinNoBounce === 'function' && termSkinNoBounce();
+  const BOUNCE_PX  = _mech ? 0 : 8;
+  const SQUISH     = _mech ? 0 : 0.10;
   const colReadyAt = {};
   const together   = (dealStyle !== 'cascade');
   const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
@@ -499,7 +501,10 @@ function startNewRoundDealAnims() {
     }
   }
 
-  Promise.all(dealAnims.map(a => a.finished)).then(() => {
+  // allSettled, not all: a cancelled deal animation REJECTS its `finished`,
+  // and with no rejection path dealPhase and animating stayed true for good -
+  // render() then draws no cards at all (r470).
+  Promise.allSettled(dealAnims.map(a => a.finished)).then(() => {
     gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
     dealAnims = [];
     dealPhase = false; // re-enable normal render

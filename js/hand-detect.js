@@ -56,8 +56,8 @@ function getReachable() {
   const reachable = new Set(selected.map(([r,c])=>`${r}-${c}`));
   const _royals = royalReachCells();
   selected.forEach(([r,c]) => reachNeighbors(r, c, _royals).forEach(([nr,nc]) => {
-    const card = gridData[nr][nc];
-    if (card === null) return;            // empty cells unreachable
+    const card = gridData[nr]?.[nc];
+    if (!card) return;                    // empty cells unreachable (and cells off a mis-sized board)
     if (isCellBlocked(nr, nc)) return;    // voids unreachable
     if (card._isStone) return;            // stones unreachable for selection
     reachable.add(`${nr}-${nc}`);

@@ -29,6 +29,7 @@ superseded is history, not current code. The other reference docs:
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
+| `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
@@ -355,7 +356,7 @@ Choices persist overrides-only in `lethe.cardAnims.v1`. "Current" rows are stand
 ## r441 - Flow economy: split rerolls, no score carry-over, shop as a reward
 - **Split rerolls** (`flowSplitRerolls()`, dev -> Flow, `lethe.flowEcon.v1`, default on): on every Flow pick, SWAP becomes REROLL REWARD TYPE and grows, DISCARD becomes REROLL OPTIONS and shrinks (`#stage.gp-split`, css/grid-pick.css). Free up to the swaps / discards the round ended with (`flowRrSnapshot`, taken at the goal clear and at the boss chain), then `PICK_REROLL_STEP` x paid this level-up. The tray loses its REROLL and CONFIRM tiles (`pickRerollAction` tiles carry `reroll:true` + `_roll`; the DISCARD reroll calls `_roll`) and gains QUEUE (spreads the tab stack, also on hover) and SKIP. A type reroll on the ordinary pick turns it into a one-step chain.
 - **Score over the goal no longer carries** into the next round (Survival engine). Flow pays it: 1 credit per `flowEcon.overPct` (15)% over. Flow also pays interest (`interestPayout`) at each level-up; unused stock pays only when split is off. `flowLevelPayLines` is the one source; the Round breakdown prints it under "Paid at level-up".
-- **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds (r448) pick3 25 / tricks 25 / shop 10 / cards 7 / deck 7 / sleights 8 / limits 8 / improve 4 / knacks 6; a full trick tray drops tricks to 18 and splits the 7 over cards/deck/limits/improve (`flowrOddsNow`). The chance of 2+ rewards BUILDS UP (r449, `flowrRollCount`, `flowrPrdMisses` in SAVE_VARS): the table chance plus `flowEcon.multiStep` (10, dev -> Flow) per single-reward level-up in a row, reset on a multi. Average rate 62% -> 66%.
+- **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds (r448) pick3 25 / tricks 25 / shop 10 / cards 7 / deck 7 / sleights 8 / limits 8 / improve 4 / knacks 6; a full trick tray drops tricks to 18 and splits the 7 over cards/deck/limits/improve (`flowrOddsNow`); r476: before the first boss tricks get +5, added after that cap. The chance of 2+ rewards BUILDS UP (r449, `flowrRollCount`, `flowrPrdMisses` in SAVE_VARS): the table chance plus `flowEcon.multiStep` (10, dev -> Flow) per single-reward level-up in a row, reset on a multi. Average rate 62% -> 66%.
 - **Forced kinds:** no TRICKS reward by the 3rd level-up since the last boss makes it the first reward; no KNACKS reward before a boss puts one in the boss chain (`flowrLvSinceBoss`, `flowrTricksSeen`, `flowrKnacksSeen`, in SAVE_VARS).
 - **A boss refills swaps and discards** in Survival/Flow (`triggerBoss`, before the modifiers).
 
@@ -490,3 +491,235 @@ in `crTick` (so it waits out pauses and level-ups) and shown as a countdown on t
 cell. The first two warnings of a run say so. The challenge round (Classic/Schedule) keeps its 3s
 cell pulse and cannot be refused.
 
+
+## r460 - every tooltip takes the same desktop size (css/menu-size.css)
+`--tip-z` (declared on body: `--menu-z` x `--text-z`) zooms the CHILDREN of `#entity-tip` and of the
+older tooltips (`#trick-tooltip`, `#knack-tooltip`, `#reward-tooltip`, `#challenge-tooltip`,
+`.sleight-tooltip`, `#sleight-grid-tooltip`, `#card-enh-tooltip`, `#sq-tip`); each host's px
+max-width and padding are multiplied by it. Hosts are never zoomed (placement writes viewport px).
+
+## r461 - Hard Labour pays per club; a card's x pips multiplies the whole pip total
+- **Hard Labour** pays its current rung (base x 2^n) on every club SCORE, on the club's beat, replays
+  and a dual card's club ghost included. A timeline event can carry `vals` (one value per replay); the
+  dance swaps `value` per rep. Rungs interleave as the dance plays them (real rep 0, ghost rep 0, real rep 1...).
+- **The ladder now advances after the dance** (`clubHitsPending`, added in `scalingCount`). It used to
+  advance above the canonical score, so every hand was scored as many rungs too high as it had clubs.
+- **A card's x pips (`permXPips`) multiplies the WHOLE running pip total** (owner's call), last in the
+  card's beat, once per replay. Its event has `scope: 'total'`; the dance banks the beat then multiplies.
+  calcScore banks each cell per replay in `_bankCell` (card pips, then x pips, then its ghost) so the two agree.
+  Per-card payer pips (Early Bird, Get Even...) are now added in the loop so a later x pips multiplies them.
+  A muted or Leaden card's x pips does not fire. Straight Shot reads the card's pips x its own x pips.
+
+## r463 - trays: no idle motion; the Pit look to compare (`js/tray-pit.js`)
+Owner's rule: a tray moves for exactly three things: an entity lands (`trayFxKick 'in'`), leaves
+(`'out'`), or triggers (`trayFxTrigger`, a 240ms +35% flare, hooked on the dance's `dncReleaseReal`
+for chips inside `TRAY_FX_MOVING`). The ambient ripple/pulse, the hover glow and the cursor tilt are
+gone (their stored settings are dropped on load); `--tray-ph` rests at `TRAY_PH_REST` (-9).
+**Pit look** (dev -> Aesthetics -> Tray look; off by default, `lethe.trayPit.v1`, overrides only):
+each tray gets an SVG painted to its own size (`trayPitSvg`, crisp edges, repainted only on resize /
+class change): four mitred trapezoid walls of `steps` terraces narrowing by `persp`, one light from the
+top left (top/left walls dark, bottom/right lit) or `light:'below'` (the colour rises from the floor),
+`view` shows more of the far wall, the top lip shadows the floor. While on it replaces the ring stack
+and the tray background (`#tray-pit-style`), and takes the three reactions over (`trayPitKick` /
+`trayPitTrigger`, WAAPI brightness). Presets: shadow, quarry, glow.
+
+## r464 - the pit is the default tray look, with a glowing ring
+`TRAY_PIT_DEFAULT.on` is 1 (store `lethe.trayPit.v2`; v1 carried over once without its `on`, since r463
+shipped it off). A 1px ring in the tray's full colour sits `ring`% (50) of the way from rim to floor,
+following the walls' perspective, over a blurred copy of itself (`ringGlow`, 0 = no ring; filter `#rg`).
+
+## r465 - challenge ladders; Flow's warning marks a cell (`js/challenge-round.js`)
+- **Flow warning is a CELL** (owner): plays and falls do not move it; whatever card is there when
+  the 10s count ends is replaced. Discarding the card IN that cell refuses the challenge
+  (`crTeleOnDiscard`, from `removeAndFall`'s 'discard' mode). `crTeleTrack` only redraws the pulse.
+- **Every challenge is a LADDER** of tiers `{ d, n }` (`crTypeDefs`, owner's table): touch 1/4 2/5
+  3/8 · low hands (Pair, Run of 3, Three of a Kind) 1/3 2/5 3/7 · Straight 2/2 3/4 · Two Pair, Run of
+  4 2/3 3/5 · Flush, Full House, Straight Flush 2/1 3/2 · Four of a Kind 3/1 · suit (one hand with 3
+  of a named suit) single tier, d3 at Selection 3 else d2 · size (hands of 4+ cards) 1/2 3/5 · types
+  2/3 3/5 · big hand 2/1.3x 3/1.8x of recent typical · fall cards 1/2 2/3 3/5. "Touching hand" is
+  gone. Types are offered only when the board can make them.
+- **Clear, raise, take:** reaching a tier BANKS it (`crAdvance`). With a higher tier the card glows
+  (`.cr-cleared`, "MORE?"): tap takes the banked payout (`crCollect`), double-tap raises
+  (`crTap` -> `crRaise`, no extra time, counts carry). Unanswered, it takes the payout after
+  `CR_CLEAR_HOLD` (6) live seconds. A raise that fails loses everything banked and takes the raised
+  tier's penalty (`crFail`). Payout/penalty = `CR_FLOW_STAKES[d]` (credits everywhere; seconds and
+  a reward in Flow).
+- **Challenge rounds use ladders too:** a card counts as done for the round the moment its first
+  tier clears (`q.counted`), the next card comes after it is taken, and a raised round card holds
+  the goal open (`crHoldsGoal`) until it banks or the clock runs out (then it no longer counts).
+  Card N of a round rolls a type whose ladder starts at difficulty N.
+- Face: one pip per tier (green/amber/red by difficulty; filled = banked, ringed = current),
+  progress boxes (<= 5) or `n/of`, the timer in Flow. Sounds `sfxChallengeClear` / `sfxChallengeRaise`.
+
+
+## r468 - the owner's card animation picks are the defaults
+`CARD_ANIM_DEFAULT` (js/card-anims.js): swap Leapfrog, fly Pinball, discard Sink, cut Snip, buff
+Stamp, boss Static, idle Watch. The store holds only choices that differ from these. Tuned to the
+owner's notes: Leapfrog 10% slower, the jumper (always the first-picked card, `r1,c1`) larger at the
+top of its arc, both cards snapping past and settling. Pinball takes `CARD_FLY_MUL` 1.2x; the dance
+multiplies its flight by `cardFlyMs()` so its beats wait for the landing. **Sink** hides the card and
+plays a stand-in copy (`caStandIn`: no card id, first child of the board so every card paints over
+it) for `CA_SINK_MS` while the board only waits 200ms, so new cards fall in over it; it tips onto a
+corner (3D tilt about the diagonal), spins at most 60 degrees and dims to 65%. **Snip** cuts with a
+thin dark line (no glow; the stand-ins strip `flowr-*` and selection classes) and both halves sink
+the same way. **Stamp** is 20% slower; its ring is fainter, travels to 1.9x and takes the buff's
+colour (`caBuffColor(e)`, passed from `enhanceCardKey` via `cardAnimOn(kind, els, opts)`).
+**Static** cycles the channel change's own noise frames (`ccNoise`) with scan lines and a rolling
+bar, and splits the card red / blue. **Watch** (new) is Attention (10% less sway) plus Gaze: the
+other cards turn toward the newest selected card (`selected`'s last entry), or the pointer when
+nothing is selected. Closing the lab re-applies the idle look (a preview borrows the gaze).
+
+## r471 - the Machine panel skin to compare (`css/skin-machine.css`)
+Cassette futurism with a little CloverPit grit, under `html.skin-machine` (`.mc-cream` = beige housing).
+Dev -> Aesthetics -> Tray look: `trayPit.on` 0 lines / 1 pit / 2 machine (charcoal) / 3 machine (cream);
+`trayPitOn()` is >= 1 (the WAAPI reactions), `trayPitDrawn()` is the SVG pit, `trayMachineOn()` the skin.
+`#stage` is the housing (grain SVG, grime, seams at 41.35% / 90.6%, corner screws); every tray is a dark
+glass window with a 3px bezel and a backlit colour strip on its top edge, which lights (`.mc-lit`,
+`trayMachineLamp`) on a trigger (140ms) and a land (420ms). Keys are matte keycaps. The bay bezel goes on
+`#grid`, not `#grid-slot` (the slot also holds the Focus bar). Pit stays the default.
+**r480 (owner):** windows are a thin RECESSED edge (inset shadow on top, 1px lit lip below; no raised
+bezel), the colour band is gone (a trigger now glows the window from inside in its tray colour,
+`--mc-in` on `.mc-lit`), and the CRT layer (scanlines, glare, edge falloff; `::after`, z 40,
+`--mc-scan`) is ONLY on the displays: #grid and every window. Housing and keys carry no grain or
+scanlines. **Never give `#hand-preview-area` the layer**: in landscape it is a static wrapper, so its
+`::after` filled the whole stage.
+## r473 - the event log and the bug report (`js/devlog.js`, `js/bug-report.js`)
+`dbgEvent` keeps 600 lines; each carries a state stamp (`dbgCtx`: mode, level, quarter, clock,
+score/goal, board shape, boss/approach/challenge/ended/paused/anim/fall/takeover), printed only
+when it changes. Identical lines in a row fold into a count. Errors and promise rejections log a
+trimmed stack, and each distinct one keeps its state and a board picture (`_dbgErrors`).
+console.error/warn are logged. The buffer is mirrored into `lethe.bugLog.v1`, so the next page
+load can still report it. `js/bug-report.js` (loads just before bootstrap) wraps the big moments
+(`BR_TRACE`: bosses, challenge cards, round end, interlude, level-up, picks, swap, discard, falls,
+time changes, saves) and every notice, and a 250ms watch logs board size/shape, card size and
+#grid size/visibility changes; a board whose gridData does not match gridRows x gridCols is a WARN.
+`dbgCardStr` names a cell (`UNDEF` = outside gridData, `·` = empty, CH:/SL:/STONE).
+**Settings -> Help -> Copy bug report** (`bugReportText`): build, device, run, loadout, board,
+errors, log, previous page load. Clipboard, then execCommand, then a selectable box. The first
+uncaught error of a page load prints a notice pointing there. A new big moment worth tracing goes
+in `BR_TRACE`.
+
+## r473 - the shop on top of a pick; the boss wipe
+The pick's capture listeners on PLAY / DISCARD / swap stand down while `shopGridActive`: BUY twice
+under a pick's Shop tile used to skip the pick, and LEAVE then restored the pick's 4x6 onto the 4x4
+board (cards shrank, `getReachable` read `undefined`, every render threw, the board vanished).
+`getReachable` now skips a missing cell. `playHand` refuses during Flow's boss wipe
+(`flowBossFighting && !bossActive`); a goal cleared there opened the reward chain over the boss.
+
+## r474 - card animation speed, Focus speed-up, Watch rebuilt
+- **Speed** (lab sliders, `lethe.cardAnimSpeed.v1`, overrides only): `caSpeedCfg.speed` (default
+  0.6, so every look is ~1.67x as long as built) and `focus2` (default 1.5: at Focus x2 every look
+  runs 1.5x as fast, linear from x1, Focus read from `focusMultiplier()`, capped at x4). `caSlow()`
+  is the one length multiplier: caAnim / caKeep / caWait / caOverlay / caSinkInto scale through it,
+  CSS overlay animations read `--ca-k` set on the overlay, and `cardSwapMs()` / `cardFlyMs()` include
+  it so the game's waits match. The lab's "Preview at Focus" slider (`_caLabFocus`) is lab-only.
+- **Watch**: no shrink or dim (own class `ca-idle-watch`). Nothing selected: cards look around
+  slowly (`caGazeWander`, a timer, 2-5 degrees, `.ca-wander` 1.6s transition). A selection: every
+  other card turns to the newest selected card (max `CA_GAZE_FIX_MAX` 9 degrees, `.ca-fixed`).
+  The pointer is not used. **Gaze had been invisible**: 900px perspective turned a 9 degree lean
+  into under 1% edge change; now 320px, and `caGazeFrame` re-adds `.ca-gazing` every frame. The
+  gazing transition list repeats the card's own transitions so adding rotate keeps them.
+- **Pinball** hops `h * .35` AWAY from the tray (opposite the flight vector) before flying.
+- **Sink** stand-ins go before the first `.card`, not the first child: the board's background
+  layer (the swirl) is a child of #grid and was painting over them. Fall 1300ms; `.sel-num` stripped.
+
+## r475 - Autopilot, the reward title is on the panel, names never clip, an empty-UI preview
+
+- **Autopilot** (legendary Sleight, `js/autopilot.js`, `BAL.autopilot`): -5 Focus when it lands (first round tick that sees it), a 30s countdown ring (`sleightLifeLeft` -> `autopilotLifeLeft`), then it plays the best hand on the board, waits for the dance and the fall, and repeats until the board has no hand, the round ends, or `max_hands` (0 = no cap). Hand k applies Focus k times (`focusExtraApplies` adds `autopilotFocusExtra()`, read only while that hand is in `playHand`). Then it discards itself and cycles. Taps are ignored while it runs (`onCardTap`). The board search (`autopilotBestHand`) walks connected shapes up to the Selection Size (5, or 4 on boards over 30 cells), allows one kicker at a 0.8 weight, shuffles its start cells (fxRandom) and retries when its 2,500-shape budget runs out before calling the board empty. Measured: ~11ms on 4x4, ~94ms on 7x7; at max Focus the score roughly doubles every hand (8 hands ~75k), so it is a round-ender.
+- **The current reward step has no tab.** Its title is `.fbg-title`, text in a `--fbg-head` (15px) band at the top of `#flowr-bg`; the panel grows by that band and is centred half a band higher so the board inside does not move (0 on the deck edit). The queued tabs are behind the panel (`#flowr-stack` inserted before it at z-index 0), anchored by `bottom` to the panel's top edge with height 0, so the Queue tile / hover spread (`--fst-step` 14px) can only grow UP. The fading ghost carries the title as `.ffl-title`.
+- **Names are refitted when the webfonts land** (`refitAllNames` on `document.fonts` loadingdone / ready). The fonts come from Google, so a name fitted in the fallback face and then drawn in Orbitron spilled off both edges and lost its first and last letters. `fitWrapIfClipped` measures the drawn glyphs against the name's parent and, if they still spill, returns the name onto a second line (`.fit-wrap`, owner's pick over shrinking it).
+- **`index.html?blank`** hides every glyph (text, numbers, emoji) without moving the layout (`js/blank-ui.js`, `css/blank-ui.css`); `?blank&screen=board|pick|reward|shop` opens a screen. `empty-ui-preview.html` wraps it with screen buttons.
+
+## r478 - challenge stakes push harder; seconds everywhere; the mini grid
+- `CR_FLOW_STAKES` is credits 4 / 9 / 15 and seconds 10 / 16 / 24 for difficulty 1 / 2 / 3 (owner:
+  reward pushing the ladder). Seconds are paid in every mode now, not only Flow (`crCollect` rewinds).
+- The extra reward needs difficulty `CR_BONUS_D` (2) or higher. Flow: +1 reward next level-up (and a
+  failed d2+ tier takes one away; a d1 fail does not). Elsewhere: a free **mini grid**
+  (`crRound.minis`, also counted for a cleared card paid at the round's end), opened by `crSettle`
+  after the penalty grid and before the ordinary rewards.
+- **Mini grid** (`rewardGridMode 'mini'`, `openMiniGrid(done)`, js/reward-grid.js): always 3x3,
+  ordinary buff/debuff checkerboard, no guaranteed tiles, no destination, 2 Tricks minimum, its own
+  seeded stream, not counted in `rewardGridsSeen`, never red, HUD reads BONUS. Hands back to its
+  caller like the penalty grid (a Limit Break tile still opens its screen first). Dev: Open Mini Grid.
+- Fix: goal met and every card done with no hand to end the round (last card cleared by a fall) used
+  to clock out through the legacy level-up and skip the interlude (prize grid lost); `crOnClockOut`
+  now ends it through the interlude.
+
+## r479 - Autopilot has 15 charges
+`durability: 15`. Each hand it actually plays spends one (`handsPlayed` rose across the `playHand` call); at 0 the run stops even if the board still has hands, and `discardToPlayed` drops the spent card for good. With charges left it cycles back into the deck as before. The Focus multiplier count (hand k applies Focus k times) still restarts every time it engages.
+
+## r482 - spot challenge cards: 25% of ordinary rounds (`js/challenge-round.js`)
+An ordinary round in a node mode (`isActMode()`, not Survival/Flow, not a boss, not the walkthrough,
+not a challenge round) has `CR_SPOT_CHANCE` (25%) of ONE challenge card, src `'spot'`. Rolled once per
+level in `crOnRoundStart` (`crSpotRoll`; `crSpot.rolled` guards the resumes that also run
+startRoundTimer), arriving at a random clock value that leaves its 60s clock plus 10s (`crSpotTick`).
+It behaves like a Flow card (`crTimed(src)`: 10s refusable cell warning, 60s clock, ladder, stakes);
+a d2+ take queues a mini grid (`crSpot.minis`), a fail takes credits and seconds only. At the round's
+end `crSpotSettle` (first thing in `crSettle`) drops a pending warning, removes a card still on the
+board (a banked tier is paid, an open one costs nothing) and opens the queued mini grids. `crSpot` is
+in SAVE_VARS. Dev: "Classic: Challenge Card Now".
+
+## r484 - Quarter resource limits (QRL, `js/qrl.js`)
+Owner's rule: in quarter N a card has N buffs working, takes replays from N sources, and a Trick
+holds primes from N sources. `qrlLimit()` is the one number (Infinity when off); it applies to
+`actStructure` modes and Flow, where the quarter is `survivalBossesBeaten + 1` (capped 4).
+**Flow is now 4 bosses** (`SURVIVAL_BOSS_COUNT`), one per quarter. Dev -> Change the game now has
+the switch (`lethe.qrl.v1`, stored only when off).
+- **Buffs:** kinds are pips (incl. scaling pips), mult (incl. scaling), x pips, x mult, replay,
+  time, credits, Focus (`QRL_BUFF_KINDS`; penalties always apply). A card may HOLD more; when it
+  scores, `qrlActiveKinds` picks `limit` at random, deterministic on `qrlSeed`, which advances at
+  the end of `scalingCount` so the preview, the score and the payouts after it agree. Every read
+  goes through `qrlBuffOn(card, kind)` (calcScore, playHand's time/credits/Focus, growCardScaling).
+- **Pickers** grey a card that cannot take a NEW kind (`qrlCardFull`): Flow deck editor buff ops
+  (`flowrPaintQrl`, `.qrl-full`), the Bench event's chips, Payout Pick's Boost. Hover/tap gives
+  "Quarter resource limit (QRL) reached" + the rule. The only place QRL is explained.
+  Grants that go past the limit anyway (random-target events: Wager, Bargain, Forge) are allowed
+  and print "Clearance granted for early resource expansion" (`enhanceCardKey`).
+- **Replays:** calcScore lists every source on a card (`_srcs`) and keeps the `limit` biggest; a
+  cut source is zeroed so the ledger never bills it. Layered-hand replays are not a source.
+- **Primes:** `primeTrick(t, n, { src })` refuses a new source past the limit (`t._primeSrc`,
+  cleared with `_primed` when spent). Sources: wild_heart, prime_times, understudy, hallmark,
+  muscle_memory. Mirror, Move as One, forced fires and `_rank` are not limited.
+- **Printouts** (`qrlNotice`, once per round per kind): "Only N buff per card permitted in QN due
+  to QRL", "Replays are limited to N source(s) in QN due to QRL", "Tricks are limited to N prime
+  source(s) in QN due to QRL".
+- Not covered: reward-grid buff tiles (their card is fixed by the tile), Heartwood and Absorb
+  (write the maps directly, no clearance note), `_vulturePause` / Whetstone.
+## r485 - the shop survives its opener closing
+`shopGridSaved` records `owner` ('pick' / 'map' / null). `shopRestoreSize` puts the saved size back
+unless that owner closed while the shop was up; then the board under the shop is the play board,
+sized from `gridData` (or the limits if it is ragged), with a WARN in the log. The Survival/Flow
+"opened from the pick" close branch no longer re-pauses the clock when the pick is gone (the next
+round is already dealt); it renders and restarts the round timer only if none is running. Belt and
+braces under r473's button guard: verified by closing the pick underneath an open shop.
+
+## r486 - phone trays: zigzag Tricks, stacked bars (`js/tray-zigzag.js`, `css/tray-zigzag.css`)
+Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on: tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
+
+## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
+r487: merged to main as a dev option (Tray look -> machine panel); the pit stays the default. Further tuning on the `machine-panel` branch.
+- **Screens vs housing:** every non-housing part is a domed-glass screen in a recess: `::before` is the
+  dome (glare, corner falloff), `::after` the tube (scan lines + a soft RGB grille, `mix-blend-mode:
+  multiply`, so dark glass stays black). Housing and keys are grained and grimy (`--mc-grain`,
+  `--mc-grain-lt`, `--mc-grime`), never scanlined.
+- **Text** in #stage is VT323 (shipped in `fonts/`, OFL, as 'VT323 Local'), card faces excepted, with
+  `font-size-adjust: .56`. Readout numbers take `#mc-crisp` (anti-aliasing thresholded away + a bloom).
+  A live SVG mosaic was tried for "pixelate everything" and dropped: 60 -> 20 fps on the board, and its
+  dilate erases dark strokes on light card faces.
+- **Fliers under the housing:** a body-level `position:fixed; pointer-events:none` element with no id
+  is moved into `#mc-fly` (`mcAdopt`), whose mask is opaque over the screens (`MC_SCREENS` rects) and
+  `MC_FLY_GHOST` (16%) elsewhere, recomputed every frame while anything flies. #grid clips its overflow
+  (`overflow-clip-margin: 6px`) so falling cards come out from under the housing.
+- **Focus gauge** is a fixed screen: in the skin `focusFxLoop` shakes `#focus-active-segment` (62% wide)
+  instead of `#focus-bar-outer`; `#focus-mult-readout` rides on the fill (`--focus-fill` on the wrap,
+  set in `syncFocusMeterState`) inside 22px of head room.
+- **Clock** is a flip clock (`#mc-flip`, built over `#clock`, whose text is hidden; a MutationObserver
+  on #clock flips changed digits), always four digits, flat black with faint static, no urgent colour.
+**r486 (machine-panel, owner):** SCORE / GOAL labels hidden (blank screens, numbers alike); the goal
+screen IS the progress bar (`#score-progress-bar-wrap` stretched to `inset:0` under the number, same
+width writes and colours, 55%). Fliers are fully hidden under the housing (`MC_FLY_GHOST` 0). Desktop
+credits bar is level left, credits right. **Panel words** (`MC_WORDS`, js/machine-skin.js): DISCARD
+reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word is never deleted: the
+game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
+for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
+Keys are engraved: white enamel in the cut (dark lip above, lit lip below).

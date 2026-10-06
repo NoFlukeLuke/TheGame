@@ -1,0 +1,278 @@
+/* ══ MACHINE PANEL skin (r471; r483 rework on the machine-panel branch) ════════
+   Cassette futurism with a little CloverPit grit: the game is a piece of hardware,
+   not a screen. Dev -> Aesthetics -> Tray look -> "machine panel". js/tray-pit.js sets
+   html.skin-machine (and .mc-cream for the beige housing); js/machine-skin.js runs the
+   moving parts (fliers under the housing, the flip clock, the pixel filter).
+
+   The rules it follows:
+   - The HOUSING is the frame: grained, grimy painted metal (or beige plastic) in three
+     bolted modules. Nothing on it glows and nothing on it is a screen.
+   - The SCREENS are everything that is not housing: the board and every window where
+     things change (score, chips, Knacks, Tricks, the hand preview, the clock, the Focus
+     gauge). Each is its own little domed-glass readout set into a recess: a cut edge
+     (shadowed top, lit lip below), a glare across the dome, darker corners where the
+     glass curves away, and the CRT layer (scan lines that only show on lit pixels, a
+     faint RGB phosphor grille) and crisp pixel text with a phosphor bloom (#mc-crisp).
+   - Things that travel between screens pass UNDER the housing (js/machine-skin.js).
+   - Keys are dirty, chunky plastic with real travel.
+   - All text is the printer's face (VT323), card faces excepted.
+   Everything here is under html.skin-machine, so switching it off restores the game. */
+
+/* VT323, shipped with the game (fonts/, SIL Open Font License) so the panel's one face
+   never waits on, or falls back from, the Google Fonts import. */
+@font-face { font-family: 'VT323 Local'; src: url('../fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
+
+html.skin-machine {
+  --mc-house: #2d2c28; --mc-house2: #1f1e1b;
+  --mc-plate-hi: #5a564d; --mc-plate-lo: #121110;
+  --mc-glass: #070908; --mc-seam: rgba(0,0,0,.55); --mc-seam-hi: rgba(255,255,255,.07);
+  --mc-cut-dk: rgba(0,0,0,.6); --mc-cut-lt: rgba(255,255,255,.1);
+  --mc-print: #d6cfbb; --mc-screw: #8d877a; --mc-dirt: 20,14,6;
+  --mc-font: 'VT323 Local', 'VT323', 'Share Tech Mono', monospace;
+  /* grain: fine noise, dark and light specks */
+  --mc-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .7 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mc-grain-lt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .5 -.18'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* blotchy grime: big soft noise, brown-black, for dirt on the keys and housing */
+  --mc-grime: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.035' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .08  0 0 0 0 .055  0 0 0 0 .02  0 0 0 -1.6 .74'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* screen static: very faint, for the clock */
+  --mc-static: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='turbulence' baseFrequency='1.6' numOctaves='1' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .28 -.05'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23s)'/%3E%3C/svg%3E");
+}
+html.skin-machine.mc-cream {
+  --mc-house: #b6ad96; --mc-house2: #988f78;
+  --mc-plate-hi: #ebe4d0; --mc-plate-lo: #6f6754;
+  --mc-seam: rgba(40,32,20,.45); --mc-seam-hi: rgba(255,255,255,.35);
+  --mc-cut-dk: rgba(30,22,10,.55); --mc-cut-lt: rgba(255,255,255,.55);
+  --mc-print: #2c271e; --mc-screw: #7a725f;
+}
+
+/* ── The housing ─────────────────────────────────────────────────────────── */
+html.skin-machine body { background: #080706 !important; }
+html.skin-machine #cab-screen::after, html.skin-machine #cab-screen::before { display: none; }   /* the housing is not a screen */
+html.skin-machine #stage {
+  background:
+    radial-gradient(circle at 1.1% 1.9%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 40.4% 1.9%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 1.1% 98.1%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 40.4% 98.1%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 98.9% 1.9%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    radial-gradient(circle at 98.9% 98.1%, var(--mc-screw) 0 1.6px, var(--mc-plate-lo) 1.7px 2.3px, transparent 2.5px),
+    linear-gradient(90deg, transparent calc(41.35% - 1px), var(--mc-seam) calc(41.35% - 1px) 41.35%, var(--mc-seam-hi) 41.35% calc(41.35% + 1px), transparent calc(41.35% + 1px)),
+    linear-gradient(90deg, transparent calc(90.6% - 1px), var(--mc-seam) calc(90.6% - 1px) 90.6%, var(--mc-seam-hi) 90.6% calc(90.6% + 1px), transparent calc(90.6% + 1px)),
+    /* grime: gathered low, in the corners, and oil by the keys */
+    radial-gradient(ellipse 55% 30% at 18% 104%, rgba(var(--mc-dirt),.45), transparent 70%),
+    radial-gradient(ellipse 30% 26% at 96% 100%, rgba(var(--mc-dirt),.42), transparent 70%),
+    radial-gradient(ellipse 14% 10% at 93% 58%, rgba(var(--mc-dirt),.22), transparent 70%),
+    radial-gradient(ellipse 80% 70% at 50% 45%, transparent 52%, rgba(0,0,0,.36) 100%),
+    var(--mc-grime), var(--mc-grain), var(--mc-grain-lt),
+    linear-gradient(180deg, var(--mc-house) 0%, var(--mc-house2) 100%) !important;
+  background-size: auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, 240px 240px, 160px 160px, 160px 160px, auto !important;
+  box-shadow: inset 0 1px 0 var(--mc-plate-hi), inset 0 -2px 0 var(--mc-plate-lo), inset 0 0 0 1px rgba(0,0,0,.5) !important;
+  border-radius: 6px !important;
+}
+
+/* ── All text is the printer's face ───────────────────────────────────────── */
+/* Three ids so it beats every per-element font rule (several are two ids + !important).
+   The playing cards keep their own faces. font-size-adjust keeps VT323's small x-height
+   from shrinking everything that was sized for Orbitron. */
+html.skin-machine #cabinet #cab-screen #stage :not(.card, .card *) {
+  font-family: var(--mc-font) !important; font-size-adjust: 0.56; font-weight: 400 !important;
+}
+/* Tiles fit their names to a box measured for the old faces: a little smaller there,
+   so a name never breaks mid-word. */
+html.skin-machine #cabinet #cab-screen #stage :is(.reward-cell, .reward-cell *, .trick-tray-chip *, .knack-chip *) { font-size-adjust: 0.47; }
+
+/* ── The screens: domed glass readouts set into recesses ──────────────────── */
+html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location,
+  #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #hand-preview-area, #coin-info, #vclock, #run-progress) {
+  --tray-set: 0 0 transparent !important; --tray-rings: 0 0 transparent !important;
+  --mc-in: 0 0 0 0 transparent;
+  background: radial-gradient(ellipse 90% 90% at 50% 45%, #0e1210, var(--mc-glass) 75%) !important;
+  border: 1px solid rgba(0,0,0,.95) !important; border-radius: 6px !important;
+  box-shadow: var(--mc-in),
+    inset 0 4px 9px rgba(0,0,0,.95), inset 0 0 0 1px rgba(0,0,0,.7), inset 0 -1px 0 rgba(255,255,255,.07),
+    0 -2px 0 var(--mc-cut-dk), 0 1px 0 var(--mc-cut-lt), 0 2px 0 rgba(255,255,255,.05) !important;
+  transition: box-shadow .45s ease;
+}
+/* A trigger: the screen glows from inside in its own colour, then fades. */
+html.skin-machine #stage .mc-lit { --mc-in: inset 0 0 14px -2px color-mix(in srgb, var(--tray-c) 75%, transparent) !important; transition: box-shadow .06s ease !important; }
+
+/* The glass and the tube, laid OVER each screen's contents (pointer-events: none).
+   ::before is the dome: a glare across the top, a pin highlight, and corners that fall
+   away. ::after is the tube: scan lines and a phosphor grille, multiplied, so they only
+   show where something is lit (dark glass stays black, as on a real CRT).
+   Static screens get position: relative so the layers have a box to fill. #hand-preview-area
+   is left out: in landscape it is a static wrapper and its layer would fill the stage. */
+html.skin-machine #stage :is(#pips-box, #mult-box, #focus-box, #clock),
+html.skin-machine #stage:not(.landscape) #score-left { position: relative; }
+html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location,
+  #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #coin-info, #vclock, #run-progress, #clock, #focus-bar-outer)::before,
+html.skin-machine body:not(.flowr-deck) #stage #grid::before {
+  content: '' !important; display: block !important; position: absolute !important; inset: 0 !important; pointer-events: none;
+  z-index: 41; border-radius: inherit; opacity: 1 !important;
+  background:
+    radial-gradient(140% 70% at 35% -18%, rgba(255,255,255,.09), rgba(255,255,255,.025) 48%, transparent 62%),
+    radial-gradient(ellipse 72% 82% at 50% 50%, transparent 58%, rgba(0,0,0,.5) 100%) !important;
+}
+html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location,
+  #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #coin-info, #vclock, #run-progress, #focus-bar-outer)::after,
+html.skin-machine body:not(.flowr-deck) #stage #grid::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 40; border-radius: inherit;
+  mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,var(--mc-scan, .34)) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(255 205 205) 0 1px, rgb(205 255 210) 1px 2px, rgb(210 215 255) 2px 3px);
+  opacity: var(--mc-tube, .85);
+}
+html.skin-machine #stage #grid { --mc-scan: .18; --mc-tube: .55; }   /* lighter over the cards, so faces stay crisp */
+html.skin-machine #stage #score-total-label, html.skin-machine #stage #score-goal-label, html.skin-machine #stage .subbox-label {
+  color: rgba(244,241,234,.62) !important; letter-spacing: 2px; }
+
+/* The board: the biggest screen, same recess. Cards that fall in come out from under
+   the housing: the board clips its overflow, with a small margin for selection glows. */
+html.skin-machine #stage #grid {
+  overflow: clip !important; overflow-clip-margin: 6px;
+  border-radius: 7px !important;
+  box-shadow: inset 0 4px 12px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.06),
+              0 -2px 0 var(--mc-cut-dk), 0 1px 0 var(--mc-cut-lt), 0 2px 0 rgba(255,255,255,.05) !important;
+}
+
+/* ── Crisp readout text (js/machine-skin.js builds #mc-crisp) ─────────────
+   Hard pixel edges plus a phosphor bloom, on the text that sits straight on a screen.
+   Their own text-shadows are dropped: the filter draws the bloom. Not on the small
+   labels (SCORE, GOAL...): thresholded at portrait's 6px they break into dots. */
+html.skin-machine #cabinet #cab-screen #stage :is(#score-total-num, #goal-display, #score-to-go, .subbox-val,
+  .ci-main, .ci-level, #focus-mult-readout, #trick-tray-count, #hand-name),
+html.skin-machine #mc-flip :is(.mcf-top, .mcf-bot, .mcf-flap) > span {
+  filter: url(#mc-crisp); text-shadow: none !important;
+}
+
+/* ── Fliers under the housing (js/machine-skin.js) ─────────────────────────── */
+#mc-fly { position: fixed; inset: 0; z-index: 260; pointer-events: none;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+
+/* ── The Focus gauge: a fixed screen; the fill moves inside it ─────────────── */
+html.skin-machine #stage #focus-bar-outer {
+  border: 1px solid rgba(0,0,0,.95) !important; border-radius: 6px !important; background: var(--mc-glass) !important;
+  box-shadow: inset 0 4px 9px rgba(0,0,0,.95), inset 0 -1px 0 rgba(255,255,255,.07),
+              0 -2px 0 var(--mc-cut-dk), 0 1px 0 var(--mc-cut-lt) !important;
+  transform: none !important;                       /* the screen never moves (focus.js shakes the fill instead) */
+  padding: 22px 6px 5px !important;                  /* head room for the multiplier at max Focus */
+  overflow: hidden !important;
+}
+html.skin-machine #stage #focus-active-segment { width: 62% !important; margin: 0 auto; will-change: transform; }
+html.skin-machine #stage #focus-meter-wrap { justify-content: stretch !important; padding-bottom: 0 !important; }
+html.skin-machine #stage #focus-meter-wrap > #focus-bar-outer { flex: 1 1 auto; height: 100%; }
+/* The multiplier rides on top of the fill: --focus-fill (0..1, focus.js) inside the
+   space the nodes use (22px head room on top, 5px at the bottom). */
+html.skin-machine #stage #focus-mult-readout {
+  position: absolute !important; left: 50% !important; top: auto !important; z-index: 42;
+  bottom: calc(6px + var(--focus-fill, 0) * (100% - 28px)) !important;
+  translate: -50% 0; padding: 0 !important; font-size: 12px !important; letter-spacing: -.5px !important; pointer-events: none;
+  transition: bottom .12s ease-out;
+}
+
+/* ── The clock: a flip clock behind glass, flat black, a little static ────── */
+html.skin-machine #stage #clock {
+  min-width: 60px; height: 26px; box-sizing: border-box; color: transparent !important; text-shadow: none !important;
+  background: var(--mc-static), #050505 !important; border-radius: 4px; animation: mc-static .45s steps(3) infinite;
+  box-shadow: 0 0 0 3px #050505, inset 0 2px 5px rgba(0,0,0,.9),
+              0 -5px 0 0 var(--mc-cut-dk), 0 4px 0 0 var(--mc-cut-lt) !important;
+}
+html.skin-machine #stage #clock.urgent, html.skin-machine #stage #clock.boss-mode { color: transparent !important; }
+@keyframes mc-static { 0% { background-position: 0 0, 0 0; } 100% { background-position: 61px 37px, 0 0; } }
+body.reduced-motion #stage #clock { animation: none !important; }
+#mc-flip { position: absolute; display: flex; align-items: stretch; justify-content: center; gap: 2px;
+  padding: 2px 3px; box-sizing: border-box; pointer-events: none; z-index: 2; perspective: 60px; }
+#mc-flip.mcf-blank { visibility: hidden; }
+#mc-flip .mcf-tile { position: relative; flex: 0 0 12px; border-radius: 2px; font-weight: 400; }
+#mc-flip .mcf-colon { flex: 0 0 4px; background:
+  radial-gradient(circle at 50% 33%, #d9d3c4 0 1.1px, transparent 1.4px), radial-gradient(circle at 50% 67%, #d9d3c4 0 1.1px, transparent 1.4px); }
+#mc-flip .mcf-top, #mc-flip .mcf-bot, #mc-flip .mcf-flap {
+  position: absolute; left: 0; right: 0; height: 50%; overflow: hidden;
+  background: linear-gradient(180deg, #1c1b19, #121110); color: #e9e3d3;
+  font-family: var(--mc-font); font-size: 20px; line-height: 20px; text-align: center; }
+#mc-flip .mcf-top, #mc-flip .mcf-flap-top { top: 0; border-radius: 2px 2px 0 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.08); transform-origin: 50% 100%; }
+#mc-flip .mcf-bot, #mc-flip .mcf-flap-bot { bottom: 0; border-radius: 0 0 2px 2px; transform-origin: 50% 0; }
+#mc-flip .mcf-bot { background: linear-gradient(180deg, #0f0e0d, #181715); }
+#mc-flip :is(.mcf-top, .mcf-bot, .mcf-flap) > span { position: absolute; left: 0; right: 0; top: 0; height: 200%; display: flex; align-items: center; justify-content: center; }
+#mc-flip :is(.mcf-bot, .mcf-flap-bot) > span { top: -100%; }
+#mc-flip .mcf-tile::after { content: ''; position: absolute; left: 0; right: 0; top: calc(50% - .5px); height: 1px; background: #000; z-index: 3; }   /* the split */
+#mc-flip .mcf-flap { z-index: 2; backface-visibility: hidden; }
+
+/* ── Keys: dirty plastic with real travel ─────────────────────────────────── */
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator) {
+  border-radius: 5px !important; filter: saturate(.8);
+  background-image:
+    radial-gradient(ellipse 60% 26% at 50% 104%, rgba(var(--mc-dirt),.42), transparent 75%),   /* grime where fingers rest */
+    radial-gradient(ellipse 40% 20% at 50% 48%, rgba(var(--mc-dirt),.12), transparent 75%),
+    var(--mc-grime), var(--mc-grain), var(--mc-grain-lt),
+    linear-gradient(180deg, rgba(255,255,255,.18), transparent 18%),
+    var(--mc-key) !important;
+  background-size: auto, auto, 240px 240px, 160px 160px, 160px 160px, auto, auto !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 0 rgba(0,0,0,.18), inset 2px 0 0 rgba(255,255,255,.08), inset -2px 0 0 rgba(0,0,0,.1),
+              0 0 0 1px rgba(0,0,0,.6), 0 6px 0 var(--mc-key-side), 0 6px 0 1px rgba(0,0,0,.6), 0 9px 10px rgba(0,0,0,.55) !important;
+  transform: translateY(0); transition: transform .14s cubic-bezier(.3,1.6,.5,1), box-shadow .14s cubic-bezier(.3,1.6,.5,1), filter .1s !important;
+}
+html.skin-machine #stage #btn-play      { --mc-key: linear-gradient(180deg, #f3d36a, #c99d24); --mc-key-side: #7a5c0e; }
+html.skin-machine #stage #btn-play, html.skin-machine #stage #btn-play * { color: #2e2005 !important; }
+/* VT323 is a thin face: a hairline stroke keeps key labels legible on worn plastic */
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-records, #btn-pause) { -webkit-text-stroke: .35px currentColor; text-shadow: 0 1px 0 rgba(255,255,255,.18) !important; }
+html.skin-machine #stage #swap-indicator, html.skin-machine #stage #swap-indicator * { color: #062a2f !important; }
+html.skin-machine #stage #btn-discard   { --mc-key: linear-gradient(180deg, #ef8d64, #b9461f); --mc-key-side: #6d250e; }
+html.skin-machine #stage #swap-indicator { --mc-key: linear-gradient(180deg, #7fd8df, #2a97a2); --mc-key-side: #124e55; }
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disabled):hover { filter: saturate(.85) brightness(1.04); transform: translateY(-1px); }
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disabled):active {
+  transform: translateY(5px) !important; transition-duration: .05s !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -3px 0 rgba(0,0,0,.18),
+              0 0 0 1px rgba(0,0,0,.6), 0 1px 0 var(--mc-key-side), 0 1px 0 1px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5) !important;
+}
+html.skin-machine #stage :is(#btn-records, #btn-pause) {
+  background: radial-gradient(ellipse 60% 40% at 50% 110%, rgba(var(--mc-dirt),.5), transparent 75%),
+              var(--mc-grime), var(--mc-grain), linear-gradient(180deg, #46443d, #302e29) !important;
+  background-size: auto, 240px 240px, 160px 160px, auto !important;
+  border: none !important; border-radius: 5px !important; color: #d6cfbb !important; text-shadow: 0 -1px 0 rgba(0,0,0,.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -3px 0 rgba(0,0,0,.25),
+              0 0 0 1px rgba(0,0,0,.6), 0 4px 0 #1b1a17, 0 6px 8px rgba(0,0,0,.5) !important;
+  transition: transform .14s cubic-bezier(.3,1.6,.5,1), box-shadow .14s cubic-bezier(.3,1.6,.5,1) !important;
+}
+html.skin-machine #stage :is(#btn-records, #btn-pause):active { transform: translateY(3px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 1px rgba(0,0,0,.6), 0 1px 0 #1b1a17 !important; }
+
+/* ── Print on the housing (cream housing needs dark ink) ───────────────────── */
+html.skin-machine.mc-cream #stage :is(#sel-count, #sel-count-val, #sel-count-hand, #sel-count-coins, .subbox-times) { color: var(--mc-print) !important; text-shadow: none !important; opacity: 1 !important; }
+
+/* ── r486 owner notes ─────────────────────────────────────────────────────── */
+/* Words the panel says differently (js/machine-skin.js wraps both, CSS picks one). */
+.mc-panel { display: none; }
+html.skin-machine .mc-game { display: none; }
+html.skin-machine .mc-panel { display: contents; }   /* contents: stays in the same line run as the text around it */
+/* SCORE and GOAL are blank screens holding only their numbers, laid out alike. */
+html.skin-machine #stage :is(#score-total-label, #score-goal-label) { display: none !important; }
+/* The goal screen IS the progress bar: the old bar's fill (same element, same width the
+   game writes, same colours, boss red included) spreads under the number across the
+   whole screen. */
+html.skin-machine #stage #score-left { position: relative; }
+html.skin-machine #stage #score-progress-bar-wrap {
+  position: absolute !important; inset: 0 !important; width: auto !important; height: auto !important;
+  background: none !important; border-radius: inherit !important; margin: 0 !important; z-index: 0; pointer-events: none;
+}
+html.skin-machine #stage #score-progress-bar { border-radius: 0 !important; opacity: .55; }
+html.skin-machine #stage #score-left > :not(#score-progress-bar-wrap) { position: relative; z-index: 1; }
+
+/* Desktop credits bar: level at one end, credits at the other, no emoji. */
+html.skin-machine #stage.landscape #coin-info { justify-content: space-between !important; }
+html.skin-machine #stage.landscape #coin-info .ci-level { border-right: none !important; padding-right: 0 !important; }
+html.skin-machine #stage.landscape #coin-info .ci-main b { font-size: 16px !important; }
+html.skin-machine #stage.landscape #coin-info .ci-main .ci-unit { font-size: 9px !important; margin-left: 4px; }
+
+/* Keys (the SWAP and credits emoji are removed by js/machine-skin.js): the words are engraved in the plastic and filled with white
+   enamel (a dark lip above each stroke where the cut is in shadow, a lit lip below). */
+html.skin-machine #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 17px !important; display: block; letter-spacing: 1px; }
+html.skin-machine #stage #swap-indicator:not(.reward-skip) #swap-count { font-size: 19px !important; display: block; }
+html.skin-machine #stage #swap-indicator:not(.reward-skip) .act-cost { font-size: 8px !important; }
+html.skin-machine #stage :is(#btn-discard, #btn-play) { font-size: 1.25em !important; line-height: 1 !important; }
+html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator),
+html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator) * {
+  color: #f2eee3 !important; -webkit-text-stroke: .45px rgba(40,28,8,.55) !important;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.3), 0 0 1px rgba(0,0,0,.4) !important;
+}

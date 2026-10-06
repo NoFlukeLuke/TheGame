@@ -20,6 +20,10 @@ const SETTINGS_DEF = [
   { group: 'Help', id: 'handbook', type: 'action',
     label: 'Handbook', hint: 'How everything works, in more detail than the game stops to explain.',
     buttons: () => [{ label: 'Open the handbook', fn: 'openInfoHubFromSettings()', primary: true }] },
+  // r471: everything the log saw, on the clipboard (js/bug-report.js).
+  { group: 'Help', id: 'bugReport', type: 'action',
+    label: 'Bug report', hint: 'Copies a record of what just happened in the game. Paste it into a message to the developer.',
+    buttons: () => [{ label: 'Copy bug report', fn: 'settingsCopyBugReport(this)' }] },
   { group: 'Help', id: 'tips', label: 'Tips',
     hint: 'A one-line note the first time something new turns up. Each one shows once, ever, and never blocks play.',
     type: 'toggle', default: true },
@@ -196,6 +200,21 @@ const SETTINGS_DEF = [
   // version was four layers the size of the screen's diagonal). Measured in a
   // software-rendered browser: 60 fps on and off at phone size and at 1100x620,
   // 53-59 against 60 at 1440x820. With a graphics card it is nothing.
+  // r486: the portrait trays (js/tray-zigzag.js, css/tray-zigzag.css).
+  { group: 'Display', id: 'trickTrayLayout', label: 'Trick tray on a phone',
+    hint: 'Zigzag: Tricks alternate up and down and take turns coming forward. Tilted: Tricks lean back side by side and take turns turning flat.',
+    type: 'select', default: 'zigzag', options: [['zigzag','Zigzag'], ['tilt','Tilted']],
+    apply: () => setTimeout(() => { if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} } }, 0) },
+  { group: 'Display', id: 'phoneTrays', label: 'Phone tray layout',
+    hint: 'Side by side: Tricks and the hand preview share one strip. Stacked: each gets a full-width bar, and the board is a little smaller.',
+    type: 'select', default: 'side', options: [['side','Side by side'], ['stacked','Stacked bars']],
+    apply: v => {
+      document.body.classList.toggle('pt-stacked', v === 'stacked');
+      setTimeout(() => {
+        try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+        if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} }
+      }, 0);
+    } },
   { group: 'Display', id: 'printToasts', label: 'Printer notices',
     hint: 'Notices print on paper that drops from the top of the screen. Turn off for plain boxes.',
     type: 'toggle', default: true, apply: v => { printToastsOn = !!v; } },
@@ -472,7 +491,8 @@ function settingsDeleteSave() {
 function settingsResumeRun() {
   if (typeof hasSavedRun !== 'function' || !hasSavedRun()) return;
   closeSettings();
-  document.getElementById('main-menu-overlay')?.classList.remove('show');
-  document.getElementById('mode-select-overlay')?.classList.remove('show');
-  resumeSavedRun();
+  // continueSavedRun, not a bare resumeSavedRun: it hides the menus itself and
+  // catches a restore that throws, handing back the menu instead of stranding
+  // the player on a dead board (r470).
+  continueSavedRun();
 }
