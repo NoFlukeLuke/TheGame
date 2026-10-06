@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r497 · Line Quotas: opening card, per-line meters, line flashes, 15% in Flow, 3 rewards";
+const BUILD = "2026-10-06 · r500 · Line Quotas: opening card, per-line meters, line flashes, 15% in Flow, 3 rewards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

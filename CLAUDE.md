@@ -740,7 +740,30 @@ chip (`trickPinReanchor`, `trayLiftReanchor`). Every chip, marquee copies includ
 (`attachTrickClick`); before this the copies had none. The board's tooltip-dismiss pointerdown in
 `js/sleights-runtime.js` stands down for tray chips, or it unpinned before the click landed.
 
-## r497 - Line Quotas made loud (`js/level-types.js`, `css/level-types.css`)
+## r497 - card face, stock bulbs (`js/card-face.js`, `js/stock-bulbs.js`)
+- **Card face** (dev -> Aesthetics -> Card face, `lethe.cardFace.v1`, overrides only; `html.cf-*`):
+  `print` (default) draws rank in VT323 with speckled ink (SVG `#cf-dot`, noise thresholded
+  into a mask) on rank and suit; `phosphor` makes each card a black glass screen, rank and suit
+  glowing in the suit colour (`--pg`), scanlines; `classic` is the old Cinzel face.
+- **Stock bulbs** (dev -> Aesthetics -> Stock bulbs, `lethe.stockBulbs.v1`, off by default, a
+  preview for the owner): one pilot lamp per point of a limit's MAX in `#sb-layer` (child of
+  #stage, placed in design px from live rects every 150ms, repainted only when state or layout
+  changes, and at once from `updateSelectionUI`). Swaps / discards: a column between the board
+  and the key, green left / red used / dim locked. Hand / Tricks: a row on the tray's rim or
+  beneath it (`trick: 'rim'|'below'`), blue used / green free / dim locked; portrait hand row sits
+  in `#sel-count`. A new unlocked bulb flickers, flashes, settles (`sbExtend`, 1.4s). The x/y
+  readouts it replaces get `visibility: hidden`. Shown only while `#sel-count` is live and not
+  on a reward grid or the shop.
+
+## r499 - the board heartbeat is gone; the clock tick has its own timer
+Owner: the grid heartbeat (r183, a swell falling down the board every 10s) is gratuitous next to the
+Watch idle look. `js/heartbeat.js`, `heartbeat-preview.html` and the dev section are removed. The
+clock's tick (`pulseClockWithWave`, js/clock-fx.js) now runs from `js/clock-tick.js`
+(`startClockTick` / `stopClockTick`, every `CLOCK_TICK_SEC` 10s, started with the round timer and
+stopped where the heartbeat was). Anything above that says a look "composes with the heartbeat's
+transform" still holds for `--frzr` / `--grds`; the `--hb*` vars are unset (CLEANUP.md 1c).
+
+## r500 - Line Quotas made loud (`js/level-types.js`, `css/level-types.css`)
 - **Odds:** from level 3 a Flow level is Line Quotas at `LEVEL_TYPE_LINES_CHANCE` (15%) and Relay at
   `LEVEL_TYPE_RELAY_CHANCE` (12.5%), one roll, lines first (dev -> Probabilities, "Flow shaped level chance").
 - **Reward floor:** a cleared Flow lines round pays at least `QUOTA_LINES_REWARDS` (3) reward screens
