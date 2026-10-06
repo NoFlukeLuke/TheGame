@@ -715,7 +715,13 @@ body.reduced-motion #flowr-stack.fbg-enter { animation: none; }
 }
 /* r396 laser beams: a zero-size hub on the chip's centre, beams rotated out of
    it from their left end. Under the chip (inside the confetti layer, z 39). */
-#flowr-lasers { position: absolute; width: 0; height: 0; }
+#flowr-lasers, .flz-wheel { position: absolute; width: 0; height: 0; }
+/* Console mode (r510): one wheel per screen, clipped to it and painted under its
+   contents. The host is isolated so z -1 lands above its glass, below the rest. */
+.flz-host { isolation: isolate; }
+.flz-host.flz-rel { position: relative; }
+.flz-clip { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.flz-wheel .flz,
 #flowr-lasers .flz {
   position: absolute; left: 0; top: 0; display: block;
   transform-origin: 0 50%; border-radius: 99px; mix-blend-mode: screen;
@@ -754,10 +760,6 @@ body.shop-active #flowr-bg, body.shop-active #flowr-stack { visibility: hidden; 
   font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 30px; line-height: 1.05;
   color: #fff3c4; letter-spacing: 1px;
   text-shadow: 0 0 10px rgba(255, 201, 74, .9), 0 0 26px rgba(255, 150, 40, .6);
-}
-#flowr-cel .fcel-sub {
-  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 3px;
-  color: #ffc94a; margin-top: 4px;
 }
 #flowr-cel.shake { animation: fcelShake .72s linear forwards; }
 #flowr-cel.burst { animation: fcelBurst .3s ease-in forwards; }

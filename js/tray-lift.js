@@ -17,8 +17,29 @@ const LIFT_RISE = 7;         // design px it rises
 const LIFT_TILT = 12;        // max degrees it leans toward the pointer
 const LIFT_FOLLOW = 4;       // design px it drifts toward the pointer
 let _liftGhost = null, _liftChip = null;
+// A PINNED Trick (a click, js/tricks-ui.js) freezes its lift: the copy holds the
+// pose it had when clicked and the mouse no longer moves or replaces it.
+let _liftFrozen = false;
+
+function trayLiftFreeze(on) {
+  _liftFrozen = !!(on && _liftGhost);
+  if (_liftGhost) _liftGhost.classList.toggle('frozen', _liftFrozen);
+}
+
+// The tray re-renders under a pinned Trick (a hand scores, a cooldown ticks), which
+// replaces the chip. Hand the frozen copy to the new chip without lifting it again.
+function trayLiftReanchor(chip) {
+  if (!_liftFrozen || !_liftGhost || !chip || chip === _liftChip) return;
+  if (_liftChip) _liftChip.classList.remove('tray-lifted');
+  _liftChip = chip;
+  chip.classList.add('tray-lifted');
+  const z = _liftZoom(), r = chip.getBoundingClientRect(), h = chip.offsetHeight;
+  _liftGhost.style.left = r.left + 'px';
+  _liftGhost.style.top = (r.top + r.height / 2 - (h * z) / 2) + 'px';
+}
 
 function trayLiftEnd() {
+  _liftFrozen = false;
   if (_liftChip) _liftChip.classList.remove('tray-lifted');
   _liftChip = null;
   if (_liftGhost) {
@@ -104,6 +125,7 @@ function trayLiftBind(list) {
   let touching = false;
   list.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') {
+      if (_liftFrozen) return;
       const chip = e.target.closest && e.target.closest('.trick-tray-chip');
       if (chip) trayLiftAt(chip, e.clientX, e.clientY); else trayLiftEnd();
       return;
@@ -118,5 +140,5 @@ function trayLiftBind(list) {
   const lift = () => { touching = false; trayLiftEnd(); };
   list.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') lift(); });
   list.addEventListener('pointercancel', lift);
-  list.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') trayLiftEnd(); });
+  list.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !_liftFrozen) trayLiftEnd(); });
 }

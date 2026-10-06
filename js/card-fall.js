@@ -319,16 +319,24 @@ async function removeAndFall(removingCells, mode = 'play') {
       }
     });
 
-    // New cards fill the top `removedCount` rows of playableRows
+    // New cards fill the holes left above the packed survivors.
+    // A queued Backfill copy fills the hole BEFORE the deck does, so a
+    // backfilled cell costs the deck nothing: no card is drawn, the Marker's
+    // one-in-ten counter does not advance, and the audit stays balanced
+    // because a temp card is not counted as a deck card (js/card-states.js).
+    // Drawn first, then stacked: when the deck runs dry the cards that did come
+    // sit on the survivors and the empty cells stay at the TOP of the column.
+    // (Placing by draw order left a gap under a card that fell in.)
+    const drawn = [];
     for (let i = 0; i < removedCount; i++) {
-      const finalRow = playableRows[i];
-      // A queued Backfill copy fills the hole BEFORE the deck does, so a
-      // backfilled cell costs the deck nothing: no card is drawn, the Marker's
-      // one-in-ten counter does not advance, and the audit stays balanced
-      // because a temp card is not counted as a deck card (js/card-states.js).
       const _bf = (typeof cardStatesDrawFor === 'function') ? cardStatesDrawFor(col) : null;
-      newCards.push({ col, finalRow, fromAbove: removedCount - i, card: _bf || drawCard() || null });
+      const card = _bf || drawCard() || null;
+      if (card) drawn.push(card);
     }
+    drawn.forEach((card, j) => {
+      const finalRow = playableRows[removedCount - drawn.length + j];
+      newCards.push({ col, finalRow, fromAbove: drawn.length - j, card });
+    });
   }
 
   // Update gridData NOW (before animations) so selection during fall is accurate

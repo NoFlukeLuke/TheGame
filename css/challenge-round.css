@@ -122,3 +122,16 @@
 
 /* The penalty grid (js/reward-grid.js, rewardGridMode 'penalty') tints red. */
 body.reward-active.reward-penalty #stage { background: radial-gradient(ellipse at 50% 42%, rgba(58,12,12,0.86) 0%, rgba(26,6,6,0.86) 78%); }
+
+/* r504: a challenge penalty lands on its readout: a hard red jolt. Wins over the
+   payout plate's own .efx-hit bump, which lands a beat earlier on the same element. */
+.cr-loss-hit, .cr-loss-hit.efx-hit { animation: crLossHit 500ms cubic-bezier(.2,.8,.3,1); }
+@keyframes crLossHit {
+  0%   { transform: translate(0, 0) scale(1); filter: none; }
+  12%  { transform: translate(-4px, 2px) scale(1.16); filter: brightness(1.4) sepia(1) saturate(6) hue-rotate(-50deg); }
+  30%  { transform: translate(4px, -1px) scale(1.06); }
+  48%  { transform: translate(-3px, 0) scale(1.02); filter: brightness(1.2) sepia(1) saturate(4) hue-rotate(-50deg); }
+  66%  { transform: translate(2px, 0) scale(1); }
+  100% { transform: translate(0, 0) scale(1); filter: none; }
+}
+body.reduced-motion .cr-loss-hit { animation-duration: 1ms; }

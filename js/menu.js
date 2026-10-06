@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r489 · Hyper Focus trick; Prime Time pays every prime card";
+const BUILD = "2026-10-06 · r513 · Hyper Focus trick; Prime Time pays every prime card";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

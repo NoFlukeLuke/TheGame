@@ -44,9 +44,30 @@ function pauseGame(hideGrid = true) {
   if (hideGrid) {
     document.getElementById('pause-overlay').style.display = 'flex';
     document.getElementById('grid').style.visibility = 'hidden';
+    placePauseMenu();
   }
   document.getElementById('btn-pause').textContent = '▶ Resume';
 }
+
+// The pause menu sits on the board (r509): the panel covers #grid's rect and its
+// contents are zoomed to fit. The overlay stays full screen and clear, so the rest
+// of the screen shows but nothing under it can be tapped while paused.
+function placePauseMenu() {
+  const ov = document.getElementById('pause-overlay'), panel = document.getElementById('pause-panel');
+  const grid = document.getElementById('grid');
+  if (!ov || !panel || !grid || ov.style.display === 'none') return;
+  const r = grid.getBoundingClientRect();
+  if (r.width < 40 || r.height < 40) { ov.classList.remove('pm-on-grid'); panel.removeAttribute('style'); return; }
+  ov.classList.add('pm-on-grid');
+  panel.style.zoom = 1; panel.style.width = '300px'; panel.style.height = 'auto';
+  // The overlay sits inside #cabinet, so its own zoom (k) is already applied.
+  const k = (ov.getBoundingClientRect().width / ov.offsetWidth) || 1;
+  const z = Math.min(r.width / 300, r.height / panel.offsetHeight) * 0.9;
+  panel.style.zoom = z / k;
+  panel.style.left = (r.left / z) + 'px'; panel.style.top = (r.top / z) + 'px';
+  panel.style.width = (r.width / z) + 'px'; panel.style.height = (r.height / z) + 'px';
+}
+window.addEventListener('resize', () => { if (isPaused) placePauseMenu(); });
 
 function resumeGame() {
   if (!isPaused) return;

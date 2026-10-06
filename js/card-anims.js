@@ -99,7 +99,7 @@ function cardAnimRunner(kind, id) { return (CARD_ANIM_RUN[kind] || {})[id] || nu
 // linearly from x1. caSlow() is the length multiplier every runner's time goes
 // through (caAnim, caKeep, caWait, caOverlay, the swap and fly lengths).
 const CA_SPEED_KEY = 'lethe.cardAnimSpeed.v1';
-const CA_SPEED_DEFAULT = { speed: 0.6, focus2: 1.5 };
+const CA_SPEED_DEFAULT = { speed: 0.6, focus2: 1.5, tally2: 1.5 };
 let caSpeedCfg = (() => { try { return Object.assign({}, CA_SPEED_DEFAULT, JSON.parse(localStorage.getItem(CA_SPEED_KEY)) || {}); } catch (e) { return Object.assign({}, CA_SPEED_DEFAULT); } })();
 let _caLabFocus = null;   // the lab's "preview at Focus" slider; null in the game
 function caSpeedSet(k, v) {
@@ -111,10 +111,13 @@ function caFocusNow() {
   if (_caLab && _caLabFocus != null) return _caLabFocus;
   try { return typeof focusMultiplier === 'function' ? focusMultiplier() : 1; } catch (e) { return 1; }
 }
-function caSpeedNow() {
+// How much faster Focus makes things: `key` (focus2 for the card looks, tally2 for
+// the score tally, js/dance-clock.js) is the multiplier at Focus x2, linear from x1.
+function caFocusPace(key) {
   const f = Math.min(4, Math.max(1, caFocusNow() || 1));
-  return Math.max(0.05, caSpeedCfg.speed) * (1 + (f - 1) * (caSpeedCfg.focus2 - 1));
+  return 1 + (f - 1) * ((caSpeedCfg[key] || 1) - 1);
 }
+function caSpeedNow() { return Math.max(0.05, caSpeedCfg.speed) * caFocusPace('focus2'); }
 const caSlow = () => 1 / caSpeedNow();
 const caWaitRaw = ms => new Promise(r => setTimeout(r, ms));
 const caWait = ms => caWaitRaw(ms * caSlow());
@@ -737,9 +740,10 @@ function openCardAnimLab() {
       <div id="ca-head"><b>CARD ANIMATIONS</b><button id="ca-close" aria-label="Close">✕</button></div>
       <p class="ca-sub">Pick a look for each card movement and press Preview to play it on the mock board. Tap cards to choose which ones a preview uses. Swap: the first card you tap is the one picked first. Looks marked with a step are built in that step of the plan.</p>
       <div class="ca-speed">
-        <small>Speed: how fast every look plays (1 = as built). Focus: how much faster at Focus x2, growing evenly from x1. The preview slider is for this lab only.</small>
+        <small>Speed: how fast every look plays (1 = as built). The Focus rows: how much faster the looks, and the score tally, run at Focus x2, growing evenly from x1. The preview slider is for this lab only.</small>
         <span>Speed</span><input type="range" id="ca-sp" min="0.2" max="2" step="0.05"><output id="ca-sp-v"></output>
         <span>Speed at Focus x2</span><input type="range" id="ca-f2" min="1" max="3" step="0.1"><output id="ca-f2-v"></output>
+        <span>Score tally at Focus x2</span><input type="range" id="ca-t2" min="1" max="3" step="0.1"><output id="ca-t2-v"></output>
         <span>Preview at Focus</span><input type="range" id="ca-pf" min="1" max="4" step="0.1" value="1"><output id="ca-pf-v"></output>
       </div>
       <div id="ca-rows"></div>
@@ -756,6 +760,7 @@ function openCardAnimLab() {
     r.value = get(); show(); r.oninput = () => { set(+r.value); show(); }; };
   slide('ca-sp', () => caSpeedCfg.speed, v => caSpeedSet('speed', v));
   slide('ca-f2', () => caSpeedCfg.focus2, v => caSpeedSet('focus2', v));
+  slide('ca-t2', () => caSpeedCfg.tally2, v => caSpeedSet('tally2', v));
   _caLabFocus = 1; slide('ca-pf', () => 1, v => { _caLabFocus = v; });
   const rows = lab.querySelector('#ca-rows');
   rows.innerHTML = CARD_ANIM_KINDS.map(k => `

@@ -48,6 +48,18 @@
         line-height: 1; font-size: .85em; transform: rotate(-6deg); }
 .pt-empty { visibility: hidden; }
 
+/* r510: a tap pulls the slip back; the pin keeps it up */
+.pt-slip { pointer-events: auto; cursor: var(--cur-pointer, pointer); }
+.pt-slip .pt-paper { padding-right: calc(var(--edge) + 32px); }   /* room for the pin */
+.pt-pulled { pointer-events: none; }
+.pt-pin {
+  position: absolute; top: 4px; right: calc(var(--edge) + 6px); width: 22px; height: 22px; padding: 0;
+  border: 1px solid #ffffff22; border-radius: 4px; background: #0008; cursor: var(--cur-pointer, pointer);
+  font-size: 12px; line-height: 20px; opacity: .45; filter: grayscale(1); transition: opacity .12s, filter .12s;
+}
+.pt-pin:hover { opacity: .9; }
+.pt-pinned .pt-pin { opacity: 1; filter: none; border-color: var(--c-yellow, #ffce2b); }
+
 /* pulled back up into the top of the screen */
 .pt-pulled { animation: ptPull var(--pt-pull, 280ms) steps(5) forwards; }
 @keyframes ptPull { to { transform: translate(-50%, -105%); } }
