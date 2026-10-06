@@ -95,6 +95,11 @@ let _trickCountShown = 0;
 function trickTrayFull() {
   return trickTray.length >= trickCapacity();
 }
+// An offer that would ADD a Trick to the tray. An improve offer carries
+// entity 'trick' to draw the owned Trick, but takes no slot.
+function offerNeedsTrickSlot(p) {
+  return !!p && p.entity === 'trick' && !p._improve && trickTrayFull();
+}
 
 function pulseTrickCount() {
   const el = document.getElementById('trick-tray-count');

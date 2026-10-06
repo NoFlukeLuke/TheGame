@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r505 · Goal tray floor fills as the progress bar; credits right-aligned; Tricks tray more yellow";
+const BUILD = "2026-10-06 · r506 · improving a Trick no longer refused by a full tray";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

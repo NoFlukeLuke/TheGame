@@ -1595,7 +1595,7 @@ function flowrShowEntityStep(kind) {
   const rerollAct = () => pickRerollAction(() => {
     const fresh = flowrBuildOffers(kind);
     if (fresh.length) { _flowrStepOffers = fresh; gridPickRefresh(fresh.map(o => ({
-      entity: o.type === 'improve' ? o.etype : o.type, id: o.id, emoji: o.icon, icon: o.icon,
+      entity: o.type === 'improve' ? o.etype : o.type, _improve: o.type === 'improve', id: o.id, emoji: o.icon, icon: o.icon,
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag })), null); }
   });
   flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
@@ -1604,6 +1604,7 @@ function flowrShowEntityStep(kind) {
     tone: 'reward',
     offers: offers.map(o => ({
       entity: o.type === 'improve' ? o.etype : o.type,   // improve shows the real owned object
+      _improve: o.type === 'improve',
       id: o.id, emoji: o.icon, icon: o.icon,
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag,
     })),
