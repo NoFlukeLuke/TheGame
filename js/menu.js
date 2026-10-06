@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r509 · preview tray keeps its size while cards fly in; pause menu sits on the board";
+const BUILD = "2026-10-06 · r510 · printer notices: hold scales with length, tap hides, pin keeps";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

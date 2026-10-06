@@ -3,8 +3,10 @@
 // from the top edge of the game screen. Notices that arrive together share ONE
 // slip. Each line is printed out of sight (the print sound) and then fed down
 // already written (the feed sound). A finished slip hangs PT_CFG.holdPerLine a
-// line and is then pulled back up into the top. A notice that arrives while a
-// slip is still up finishes that slip at once and pulls it back.
+// line (longer lines longer, see ptLineHold) and is then pulled back up into the
+// top. A notice that arrives while a slip is still up finishes that slip at once
+// and pulls it back. Tapping a slip pulls it back; its pin keeps it up (r510):
+// pinned slips stack at the top and new slips hang below them.
 //
 // showMessage (js/round-timers.js) hands every notice here while the setting is
 // on, so no call site changed. noteMessage is for things the player just did and
@@ -12,7 +14,9 @@
 
 const PT_CFG = {
   groupMs: 160,        // notices this close together share a slip
-  holdPerLine: 2000,   // how long a finished slip hangs, per line
+  holdPerLine: 2000,   // how long a finished slip hangs, per line of average length
+  avgChars: 26,        // an average notice (measured over every showMessage text)
+  longScale: 0.5,      // a line N% longer than average hangs N * longScale % longer
   maxLines: 6,         // a slip with this many lines is pulled back and a new one starts
   width: 340,          // px; every slip is this wide, a long notice wraps
   charMs: 9,           // print time per character, out of sight above the screen...
@@ -25,7 +29,7 @@ const PT_CFG = {
 };
 
 let printToastsOn = true;          // Settings > Display > Printer notices
-let _ptLayer = null, _ptSlip = null;
+let _ptLayer = null, _ptSlip = null, _ptPinned = [];
 
 // The layer is laid over the game screen in raw viewport px and clips to it, so
 // the paper appears from the screen's top edge and falls out of its bottom. It is
@@ -81,12 +85,50 @@ function printToast(text, color, opts) {
 function ptNewSlip(layer, now) {
   const el = document.createElement('div');
   el.className = 'pt-slip';
-  el.innerHTML = '<div class="pt-paper"><div class="pt-lines"></div></div>';
+  el.innerHTML = '<div class="pt-paper"><div class="pt-lines"></div></div><button class="pt-pin" title="Pin">\u{1F4CC}</button>';
   el.style.setProperty('--ptw', PT_CFG.width + 'px');
+  el.style.top = ptPinBottom() + 'px';
   el.classList.add('pt-empty');                      // nothing shows until the first line is fed
   layer.appendChild(el);
-  return { el, paper: el.firstChild, box: el.firstChild.firstChild, lines: [], queue: [],
-           opened: now, busy: false, done: false, timers: [], width: 0 };
+  const slip = { el, paper: el.firstChild, box: el.firstChild.firstChild, lines: [], queue: [],
+                 opened: now, busy: false, done: false, timers: [], width: 0, pinned: false };
+  el.addEventListener('pointerdown', e => e.stopPropagation());
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (e.target.closest('.pt-pin')) ptSetPinned(slip, !slip.pinned);
+    else ptPull(slip);
+  });
+  return slip;
+}
+
+// Pinned slips stack down from the top edge; the live slip hangs below them.
+function ptPinBottom() {
+  return _ptPinned.reduce((y, p) => y + p.el.offsetHeight, -6);
+}
+function ptRestack() {
+  let y = -6;
+  _ptPinned.forEach(p => { p.el.style.top = y + 'px'; y += p.el.offsetHeight; });
+  if (_ptSlip) _ptSlip.el.style.top = y + 'px';
+}
+function ptSetPinned(slip, on) {
+  slip.pinned = on;
+  slip.el.classList.toggle('pt-pinned', on);
+  if (on) {
+    clearTimeout(slip.hold);
+    if (_ptSlip === slip) { ptFinish(slip); _ptSlip = null; }
+    _ptPinned.push(slip);
+  } else {
+    _ptPinned = _ptPinned.filter(p => p !== slip);
+    ptArmHold(slip);
+  }
+  ptRestack();
+}
+
+// A line of average length hangs holdPerLine; a longer one hangs longer by
+// longScale of how much longer it is (twice the length: 1.5x the time).
+function ptLineHold(line) {
+  const n = [...((line.icon ? line.icon + ' ' : '') + line.text)].length;
+  return PT_CFG.holdPerLine * (1 + PT_CFG.longScale * Math.max(0, n / PT_CFG.avgChars - 1));
 }
 
 function ptLater(slip, ms, fn) { const t = setTimeout(fn, ms); slip.timers.push(t); return t; }
@@ -119,8 +161,9 @@ function ptFeedLine(slip, line) {
 
 function ptArmHold(slip) {
   clearTimeout(slip.hold);
-  slip.hold = setTimeout(() => { if (_ptSlip === slip) ptPull(slip); },
-    PT_CFG.holdPerLine * slip.lines.length);
+  if (slip.pinned) return;
+  slip.hold = setTimeout(() => ptPull(slip),
+    slip.lines.reduce((t, l) => t + ptLineHold(l), 0));
 }
 
 // Print everything still owed at once: no more sound, no more jerks.
@@ -133,6 +176,9 @@ function ptFinish(slip) {
 // Pulled back up into the top of the screen, in jerks like the feed.
 function ptPull(slip) {
   if (_ptSlip === slip) _ptSlip = null;
+  if (slip.pulled) return;
+  slip.pulled = true;
+  if (slip.pinned) { _ptPinned = _ptPinned.filter(p => p !== slip); ptRestack(); }
   ptFinish(slip);
   const el = slip.el;
   if (el.classList.contains('pt-empty')) { el.remove(); return; }
