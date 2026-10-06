@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r494 · Desktop Tricks 10% smaller";
+const BUILD = "2026-10-06 · r495 · Desktop Tricks 10% smaller (comment fix)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
