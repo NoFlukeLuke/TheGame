@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r490 · Score plates: preview matches the game fade curve";
+const BUILD = "2026-10-06 · r491 · Pixel card type (default), phosphor card face, stock bulbs preview (dev -> Aesthetics)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

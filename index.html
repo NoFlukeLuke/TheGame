@@ -67,6 +67,8 @@
 <link rel="stylesheet" href="css/print-toast.css">
 <link rel="stylesheet" href="css/card-anims.css">
 <link rel="stylesheet" href="css/terminal-skin.css">
+<link rel="stylesheet" href="css/card-face.css">
+<link rel="stylesheet" href="css/stock-bulbs.css">
 <link rel="stylesheet" href="css/skin-machine.css">
 <link rel="stylesheet" href="css/blank-ui.css">
 </head>
@@ -627,6 +629,18 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-term-skin" type="checkbox" onchange="setTermSkin(this.checked)" style="accent-color:var(--gold);">
       Terminal look on
+    </label>
+
+    <div class="dev-subtitle">Card face</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Cards are
+      <select id="dev-card-face" onchange="setCardFace(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="print">printed (pixel type)</option><option value="phosphor">phosphor screens</option><option value="classic">classic serif</option></select>
+    </label>
+
+    <div class="dev-subtitle">Stock bulbs</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Stock shows as
+      <select id="dev-sb-on" onchange="sbChoose(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">numbers</option><option value="rim">bulbs, tray bulbs on the rim</option><option value="below">bulbs, tray bulbs beneath the tray</option></select>
     </label>
 
     <div class="dev-subtitle">Tray look</div>
@@ -1618,6 +1632,8 @@
 <script src="js/tray-fx.js"></script>
 <script src="js/tray-pit.js"></script>
 <script src="js/machine-skin.js"></script>
+<script src="js/card-face.js"></script>
+<script src="js/stock-bulbs.js"></script>
 <script src="js/terminal-skin.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>

@@ -723,3 +723,18 @@ reads DEFER, the SWAP and credits emoji go, the FOCUS chip drops its x. A word i
 game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one (`display: contents`
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
+
+## r491 - card face, stock bulbs (`js/card-face.js`, `js/stock-bulbs.js`)
+- **Card face** (dev -> Aesthetics -> Card face, `lethe.cardFace.v1`, overrides only; `html.cf-*`):
+  `print` (default) draws rank in VT323 with speckled ink (SVG `#cf-dot`, noise thresholded
+  into a mask) on rank and suit; `phosphor` makes each card a black glass screen, rank and suit
+  glowing in the suit colour (`--pg`), scanlines; `classic` is the old Cinzel face.
+- **Stock bulbs** (dev -> Aesthetics -> Stock bulbs, `lethe.stockBulbs.v1`, off by default, a
+  preview for the owner): one pilot lamp per point of a limit's MAX in `#sb-layer` (child of
+  #stage, placed in design px from live rects every 150ms, repainted only when state or layout
+  changes, and at once from `updateSelectionUI`). Swaps / discards: a column between the board
+  and the key, green left / red used / dim locked. Hand / Tricks: a row on the tray's rim or
+  beneath it (`trick: 'rim'|'below'`), blue used / green free / dim locked; portrait hand row sits
+  in `#sel-count`. A new unlocked bulb flickers, flashes, settles (`sbExtend`, 1.4s). The x/y
+  readouts it replaces get `visibility: hidden`. Shown only while `#sel-count` is live and not
+  on a reward grid or the shop.
