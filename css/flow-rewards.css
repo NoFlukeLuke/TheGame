@@ -715,7 +715,13 @@ body.reduced-motion #flowr-stack.fbg-enter { animation: none; }
 }
 /* r396 laser beams: a zero-size hub on the chip's centre, beams rotated out of
    it from their left end. Under the chip (inside the confetti layer, z 39). */
-#flowr-lasers { position: absolute; width: 0; height: 0; }
+#flowr-lasers, .flz-wheel { position: absolute; width: 0; height: 0; }
+/* Console mode (r510): one wheel per screen, clipped to it and painted under its
+   contents. The host is isolated so z -1 lands above its glass, below the rest. */
+.flz-host { isolation: isolate; }
+.flz-host.flz-rel { position: relative; }
+.flz-clip { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.flz-wheel .flz,
 #flowr-lasers .flz {
   position: absolute; left: 0; top: 0; display: block;
   transform-origin: 0 50%; border-radius: 99px; mix-blend-mode: screen;

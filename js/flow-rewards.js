@@ -1083,12 +1083,16 @@ function flowrFxLayer() {
 }
 // The chip's own centre, in the slot's design px. Falls back to the slot's
 // centre when the chip has not been laid out yet (the dev-panel preview).
+// The zoom is read off the SLOT: the chip arrives at scale(.82), so its own
+// rect/offsetWidth ratio is off by that much and the first burst missed its centre.
 function flowrFxOrigin() {
   const host = document.getElementById('grid-slot');
   const card = document.getElementById('flowr-counter');
-  const box = card ? flowrBoxIn(card, host) : null;
-  return { x: box ? box.left + box.w / 2 : host.offsetWidth / 2,
-           y: box ? box.top + box.h / 2 : host.offsetHeight / 2 };
+  const hr = host.getBoundingClientRect(), z = hr.width / (host.offsetWidth || 1);
+  const r = card && card.offsetWidth ? card.getBoundingClientRect() : null;
+  if (!r || !(z > 0.01)) return { x: host.offsetWidth / 2, y: host.offsetHeight / 2 };
+  return { x: (r.left + r.width / 2 - hr.left) / z - (host.clientLeft || 0),
+           y: (r.top + r.height / 2 - hr.top) / z - (host.clientTop || 0) };
 }
 
 function flowrConfetti(index) {
@@ -1143,14 +1147,49 @@ function flowrConfetti(index) {
 function flowrLasers(k) {
   if (typeof skipOn === 'function' && skipOn('transitions')) return;
   if (document.body.classList.contains('reduced-motion')) return;
-  document.getElementById('flowr-lasers')?.remove();
+  flowrLasersClear();
   if (!flowrFx.laserOn || k < 1) return;
   const host = document.getElementById('grid-slot'); if (!host) return;
   const { x, y } = flowrFxOrigin();
-  const wrap = document.createElement('div');
-  wrap.id = 'flowr-lasers';
-  wrap.style.cssText = `left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;`;
+  const spinMs = flowrFx.laserSpin > 0 ? 4200 / (flowrFx.laserSpin / 100) : 0;
+  const spinDir = ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5 ? '' : '-') + '360deg';
+  // Console mode (r510): the beams run the whole screen but are only ever seen
+  // through the screens, UNDER what each one shows (cards, numbers, Tricks).
+  // One wheel per screen, clipped to it, hub on the same point; the housing
+  // between them hides the rest.
+  if (typeof trayMachineOn === 'function' && trayMachineOn() && typeof MC_SCREENS !== 'undefined') {
+    const st = document.getElementById('stage');
+    const len = Math.hypot(st.offsetWidth, st.offsetHeight) * flowrFx.laserLen / 100;
+    const hr = host.getBoundingClientRect(), z = hr.width / (host.offsetWidth || 1);
+    const hx = hr.left + (x + (host.clientLeft || 0)) * z, hy = hr.top + (y + (host.clientTop || 0)) * z;
+    const land = st.classList.contains('landscape');
+    MC_SCREENS.forEach(id => {
+      const scr = document.getElementById(id);
+      if (!scr || !scr.offsetWidth || (land && id === 'hand-preview-area')) return;
+      if (scr.checkVisibility && !scr.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return;
+      const r = scr.getBoundingClientRect();
+      const clip = document.createElement('div');
+      clip.className = 'flz-clip';
+      scr.classList.add('flz-host');
+      if (getComputedStyle(scr).position === 'static') scr.classList.add('flz-rel');
+      const w = flowrLaserWheel(k, len, (hx - r.left) / z - scr.clientLeft, (hy - r.top) / z - scr.clientTop);
+      clip.appendChild(w);
+      scr.insertBefore(clip, scr.firstChild);
+      flowrLaserAnimate(w, spinMs, spinDir);
+    });
+    return;
+  }
   const len = Math.hypot(host.offsetWidth, host.offsetHeight) * 0.75 * flowrFx.laserLen / 100;
+  const wrap = flowrLaserWheel(k, len, x, y);
+  wrap.id = 'flowr-lasers';
+  (flowrFxLayer() || host).appendChild(wrap);
+  flowrLaserAnimate(wrap, spinMs, spinDir);
+}
+// One wheel: a zero-size hub at (x, y) with k pairs of beams.
+function flowrLaserWheel(k, len, x, y) {
+  const wrap = document.createElement('div');
+  wrap.className = 'flz-wheel';
+  wrap.style.cssText = `left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;`;
   const n = k * 2, thick = flowrFx.laserWidth, glow = flowrFx.laserGlow / 100;
   const allCols = FLOWR_CONF_TIERS.map((_, i) => flowrTierColor(i));
   for (let i = 0; i < n; i++) {
@@ -1167,16 +1206,22 @@ function flowrLasers(k) {
       + `transform:rotate(${(i * 360 / n).toFixed(1)}deg);`;
     wrap.appendChild(b);
   }
-  (flowrFxLayer() || host).appendChild(wrap);
-  const spinMs = flowrFx.laserSpin > 0 ? 4200 / (flowrFx.laserSpin / 100) : 0;
+  return wrap;
+}
+function flowrLaserAnimate(wrap, spinMs, spinDir) {
   try {
-    wrap.animate([{ opacity: 0, scale: '0.2' }, { opacity: 1, scale: '1' }],
+    const a = wrap.animate([{ opacity: 0, scale: '0.2' }, { opacity: 1, scale: '1' }],
       { duration: 260, easing: 'cubic-bezier(.2,.8,.3,1.2)', fill: 'both' });
-    if (spinMs) wrap.animate([{ rotate: '0deg' }, { rotate: ((typeof fxRandom === 'function' ? fxRandom() : Math.random()) < 0.5 ? '' : '-') + '360deg' }],
-      { duration: spinMs, iterations: Infinity });
+    a.onfinish = () => { wrap.style.opacity = 1; a.cancel(); };   // a fill:'both' animation owns its property for good
+    if (spinMs) wrap.animate([{ rotate: '0deg' }, { rotate: spinDir }], { duration: spinMs, iterations: Infinity });
   } catch (e) {}
 }
-function flowrClearConfetti() { document.getElementById('flowr-confetti')?.remove(); }
+function flowrLasersClear() {
+  document.getElementById('flowr-lasers')?.remove();
+  document.querySelectorAll('.flz-clip').forEach(e => e.remove());
+  document.querySelectorAll('.flz-host').forEach(e => e.classList.remove('flz-host', 'flz-rel'));
+}
+function flowrClearConfetti() { document.getElementById('flowr-confetti')?.remove(); flowrLasersClear(); }
 
 function flowrPlayCounter(n, done, opts) {
   const boss = opts && opts.boss;

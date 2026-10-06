@@ -860,3 +860,9 @@ the bottom, left column first.
   score below its old value for a frame (-5, or -110,325 at slow playback). Clamped at 0.
 - Phone: the hand bulbs sit centred on the bottom of the preview's box, or of the Knacks box that
   shares its half of the strip (`js/portrait-panel.js`) while Knacks show.
+
+## r509/r510/r512 (this session) - preview tray size, pause on the board, printer pins, console lasers
+- Landscape `#selected-cards.dnc-active` keeps the resting 20.7% height (it shrank 7px whenever cards flew in).
+- **Pause menu sits on the board**: `placePauseMenu()` (js/game-control.js) lays `#pause-panel` over `#grid`'s rect and zooms its contents to fit; the overlay is clear but still blocks taps. It lives inside `#cabinet`, so the cabinet zoom is divided out.
+- **Printer notices**: a line hangs `holdPerLine` x (1 + 0.5 x how much longer than `avgChars` 26 it is); a tap pulls the slip; the pin keeps it up, pinned slips stack from the top and new slips hang below (`ptRestack`).
+- **Reward lasers**: `flowrFxOrigin` reads the zoom off `#grid-slot` (the chip arrives at scale .82, which put the first burst off centre). In console mode `flowrLasers` builds one wheel per `MC_SCREENS` screen (`.flz-clip`, z -1 in an isolated host, so under the screen's contents), beams the length of the whole stage, the housing hiding the rest. `flowrLasersClear` removes them.
