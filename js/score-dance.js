@@ -205,7 +205,7 @@ async function danceHandoffToScore(tier, outHandScore, fromVal, toVal, sig) {
     (function tk(now){
       if (done) return;
       if (sig && sig.aborted) { clearTimeout(guard); bail(); return; }
-      const t = Math.min(((now||performance.now()) - start)/dur, 1), e = 1 - Math.pow(1-t, 3);
+      const t = Math.max(0, Math.min(((now||performance.now()) - start)/dur, 1)), e = 1 - Math.pow(1-t, 3);
       if (scoreEl) scoreEl.textContent = Math.round(fromVal + (toVal-fromVal)*e).toLocaleString();
       if (typeof sfxScoreTick === 'function' && fxRandom() < 0.4) sfxScoreTick();
       if (t < 1) requestAnimationFrame(tk); else { clearTimeout(guard); finish(); }
@@ -1311,7 +1311,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   let goalFlashed=false;
   await new Promise(res=>{ const st=performance.now();
     function tk(now){ if(aborted()){ res(); return; }
-      const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
+      // A frame's timestamp can be a little EARLIER than `st` (it is the frame's start),
+      // and a negative tt made the cubic dip the number below the old score.
+      const tt=Math.max(0,Math.min((now-st)/climb,1)), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
       if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)

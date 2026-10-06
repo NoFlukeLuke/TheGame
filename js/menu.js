@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r508 · Autopilot plays at most 5 hands per landing";
+const BUILD = "2026-10-06 · r509 · Console mode: screens stay in the housing, fliers keep the screen door; key bulbs on the left; tally never dips";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

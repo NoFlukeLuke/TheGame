@@ -40,5 +40,10 @@ html.stock-bulbs #stage:not(.landscape) #sel-count-val { visibility: hidden; }
 html:is(.stock-bulbs, .skin-machine) #stage #swap-indicator:not(.reward-skip) .swap-word {
   writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -1px; display: inline-block; line-height: 1; }
 html.skin-machine #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 14px !important; }
+/* with the number still showing, word and number share the key's height */
+html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 12px !important; letter-spacing: -2px; }
+html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) #swap-count { font-size: 14px !important; line-height: 1; }
 /* an unlit lens on a key is dark glass, not a hole */
 .sb-flush .sb-b:not(.sb-on) { background: radial-gradient(circle, rgba(18,16,12,.5) 0 66%, transparent 70%); }
+/* Console mode with numbers: DEFER's count goes on its own line under the word */
+html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #btn-discard #disc-count { display: block; margin-top: 4px; line-height: 1; }

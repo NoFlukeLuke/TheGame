@@ -2,7 +2,7 @@
 // STOCK BULBS (r497) - small lamps in place of the x/y stock readouts
 // ══════════════════════════════════════════════
 // One bulb per point of a limit's MAX, set beside the thing it counts:
-//   Swaps / Discards : a column on the key's right edge (split either side of the label
+//   Swaps / Discards : a column on the key's left edge (split either side of the label
 //                      when it does not fit). Green = a use left,
 //                      red = used this round, dim = not unlocked yet.
 //   Hand / Tricks    : a row centred on the tray's lower edge, or just beneath it (`trick`).
@@ -65,13 +65,13 @@ function sbLive() {
 function sbPlaces(st, z, sr) {
   const land = st.classList.contains('landscape');
   const out = {};
-  // On the key, flush inside its right edge. If the column is taller than the key, the
+  // On the key, flush inside its left edge. If the column is taller than the key, the
   // bulbs split in half, one column each side of the label (left fills first).
   const keyCol = (id, n) => {
     const k = sbRect(document.getElementById(id), st, z, sr); if (!k) return null;
     const size = SB_SIZE, pad = 4;
     const len = m => m * size + (m - 1) * SB_GAP;
-    if (len(n) <= k.h - 2 * pad) return { x: k.x + k.w - pad - size, y: k.y + (k.h - len(n)) / 2, dir: 'col', size };
+    if (len(n) <= k.h - 2 * pad) return { x: k.x + pad, y: k.y + (k.h - len(n)) / 2, dir: 'col', size };
     const rows = Math.ceil(n / 2);
     return { x: k.x + pad, y: k.y + (k.h - len(rows)) / 2, dir: 'col', size, split: rows, w: k.w - 2 * pad };
   };
@@ -97,9 +97,12 @@ function sbPlaces(st, z, sr) {
   if (s.disc) out.disc = keyCol('btn-discard', s.disc.n);
   const tt = document.getElementById('trick-tray-area');
   if (s.trick) out.trick = trayRow(tt, s.trick.n, sbCfg.trick, roomBelow(tt, ['btn-records', 'btn-pause', 'knack-carousel-wrap', 'grid']));
-  const hp = land ? document.getElementById('selected-cards') : null;
-  if (s.hand) out.hand = hp && hp.offsetWidth
-    ? trayRow(hp, s.hand.n, sbCfg.trick, roomBelow(hp, ['trick-tray-area']))
+  // The hand preview's box. On a phone it shares its half of the strip with Knacks
+  // (js/portrait-panel.js), so while Knacks show, that same box stands in for it.
+  const vis = id => { const e = document.getElementById(id); return e && e.offsetParent && e.offsetWidth ? e : null; };
+  const hp = land ? vis('selected-cards') : (vis('hand-preview-area') || vis('knack-carousel-wrap'));
+  if (s.hand) out.hand = hp
+    ? trayRow(hp, s.hand.n, sbCfg.trick, roomBelow(hp, land ? ['trick-tray-area'] : ['sel-count', 'grid', 'trick-tray-area']))
     : trayRow(document.getElementById('sel-count'), s.hand.n, 'mid');
   return out;
 }

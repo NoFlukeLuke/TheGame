@@ -840,3 +840,25 @@ the bottom, left column first.
 
 ## r508 - Autopilot plays at most 5 hands per landing
 `BAL.autopilot.max_hands` 0 -> 5 (description reads it). With its 15 charges that is three landings at most. Verified: 5 hands, charges 15 -> 10, stop with hands still on the board, back in the deck.
+
+## r509 - Console mode: nothing rides over the housing; fliers keep the screen door
+- **What leaked** (filmed at 0.15x through CDP `Animation.setPlaybackRate`): the body-level fliers
+  were all adopted into `#mc-fly` and masked correctly. What showed over the housing was the
+  SCREENS themselves: `box-pop` swelled `#score-center` 1.32x past its recess, `subbox-pop` /
+  `pmfJitter` moved the PIPS / MULT boxes, the Focus readout's `focusReadoutPulse` (1.5x) and
+  width spilled off the gauge, and falling cards showed 6px above the board (the clip margin).
+  In the skin: those pops are a brightness flash on the glass (`mc-screen-flash`), the jitter is
+  off, the readout is 10px with no pulse, and `#grid` takes `clip-path: inset(0 -6px -6px -6px)`
+  (no margin on top, where new cards fall in). The "-4s" time flash by the clock still prints on
+  the housing: it is a label, like the banners, not a moving screen.
+- **Screen door on fliers:** `mcAdopt` tags a card clone `.mc-door` (lines over the whole face)
+  and a Trick tile `.mc-door-t`; the lifted / pinned Trick (`#tray-lift`, not adopted: it has an
+  id and is meant to rise) gets the same. A Trick's door is drawn on its `.reward-cell::after`
+  with the floppy's own box and cut corner, so the see-through corner stays clear.
+- **Key bulbs** sit inside the key's LEFT edge (split either side of the label when too tall).
+  Console mode with numbers: SWAP 12px + count 14px fit; DEFER's count is on its own line.
+- **Tally dip fixed (every look):** the score climbs in js/score-dance.js used `now - start` with a
+  frame timestamp that can be earlier than `start`; negative progress through the cubic showed the
+  score below its old value for a frame (-5, or -110,325 at slow playback). Clamped at 0.
+- Phone: the hand bulbs sit centred on the bottom of the preview's box, or of the Knacks box that
+  shares its half of the strip (`js/portrait-panel.js`) while Knacks show.

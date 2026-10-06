@@ -138,6 +138,7 @@ html.skin-machine #stage #score-total-label, html.skin-machine #stage #score-goa
    the housing: the board clips its overflow, with a small margin for selection glows. */
 html.skin-machine #stage #grid {
   overflow: clip !important; overflow-clip-margin: 6px;
+  clip-path: inset(0 -6px -6px -6px);   /* r509: no margin at the top, where new cards fall in */
   border-radius: 7px !important;
   box-shadow: inset 0 4px 12px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.06),
               0 -2px 0 var(--mc-cut-dk), 0 1px 0 var(--mc-cut-lt), 0 2px 0 rgba(255,255,255,.05) !important;
@@ -158,6 +159,26 @@ html.skin-machine #mc-flip :is(.mcf-top, .mcf-bot, .mcf-flap) > span {
 html.skin-machine #cabinet #cab-screen #stage #pips-val  { color: #5cc8ff !important; }
 html.skin-machine #cabinet #cab-screen #stage #mult-val  { color: #ff6a52 !important; }
 html.skin-machine #cabinet #cab-screen #stage #focus-val { color: #cf8cff !important; }
+
+/* r509: a card in flight, a Trick in flight, and the lifted / pinned Trick wear the board's
+   screen door themselves (same lines and grille as #grid::after), so it does not drop off
+   mid-move. A Trick's door is drawn over its floppy only (same box and cut corner as its
+   ::before), never over the see-through corner. */
+html.skin-machine .mc-door::after,
+html.skin-machine :is(.mc-door-t, #tray-lift) .reward-cell.entity-trick::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 40; border-radius: inherit;
+  mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(255 205 205) 0 1px, rgb(205 255 210) 1px 2px, rgb(210 215 255) 2px 3px);
+  opacity: .55;
+}
+html.skin-machine :is(.mc-door-t, #tray-lift) .reward-cell.entity-trick::after {
+  inset: auto; left: 50%; top: 50%; border-radius: 0;
+  width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+  transform: translate(-50%, -50%);
+  clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
+}
 
 /* ── Fliers under the housing (js/machine-skin.js) ─────────────────────────── */
 #mc-fly { position: fixed; inset: 0; z-index: 260; pointer-events: none;
@@ -180,9 +201,16 @@ html.skin-machine #stage #focus-meter-wrap > #focus-bar-outer { flex: 1 1 auto; 
 html.skin-machine #stage #focus-mult-readout {
   position: absolute !important; left: 50% !important; top: auto !important; z-index: 42;
   bottom: calc(6px + var(--focus-fill, 0) * (100% - 28px)) !important;
-  translate: -50% 0; padding: 0 !important; font-size: 12px !important; letter-spacing: -.5px !important; pointer-events: none;
+  translate: -50% 0; padding: 0 !important; font-size: 10px !important; letter-spacing: -.5px !important; pointer-events: none;
   transition: bottom .12s ease-out;
+  animation: none !important; white-space: nowrap; max-width: 100%;   /* r509: fits the gauge; its pulse grew it onto the housing */
 }
+/* r509: the screens are set in the housing, so they never grow or shake: a hand's pops
+   and jitters become a brightness flash on the glass. */
+html.skin-machine #stage :is(#score-center, #score-left, .score-subbox, #pmf-merged):is(.box-popping, .subbox-pop) {
+  animation: mc-screen-flash .3s ease-out !important; }
+html.skin-machine #stage :is(#score-center, #score-left, .score-subbox, #pmf-merged).pmf-jitter { animation: none !important; }
+@keyframes mc-screen-flash { 0% { filter: brightness(1); } 30% { filter: brightness(1.7); } 100% { filter: brightness(1); } }
 
 /* ── The clock: a flip clock behind glass, flat black, a little static ────── */
 html.skin-machine #stage #clock {
