@@ -251,7 +251,7 @@ const INFO_TOPICS = [
       'Three offers, and you take one. The Schedule offers one after every round you clear; Flow and Survival after every {GOAL}. Guided sells one as a slot.',
       'Each offer rolls its own type. The chances depend on the mode; see that mode\'s entry under Modes.',
       'A tap selects an option and shows its description. CONFIRM takes it.',
-      () => `Rerolls come from one pool for the whole run: ${typeof PICK_REROLLS_START !== 'undefined' ? PICK_REROLLS_START : 3} at the start, +${typeof PICK_REROLLS_PER_BOSS !== 'undefined' ? PICK_REROLLS_PER_BOSS : 2} per review passed. When the pool is empty a reroll costs credits, rising each time on the same screen.`,
+      () => `Rerolls come from one pool for the whole run: ${typeof PICK_REROLLS_START !== 'undefined' ? PICK_REROLLS_START : 3} at the start. When the pool is empty a reroll costs credits, rising each time on the same screen.`,
     ] },
 
   { id: 'shop', group: 'between', title: 'The company store',

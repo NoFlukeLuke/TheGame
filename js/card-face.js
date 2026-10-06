@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// CARD FACE (r491) - how a playing card's rank and suit are drawn
+// CARD FACE (r497) - how a playing card's rank and suit are drawn
 // ══════════════════════════════════════════════
 // 'print' (default): the printout's pixel type, dot-printed ink on the paper card.
 // 'phosphor': the card is a small screen, rank and suit glowing in the suit colour.

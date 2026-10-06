@@ -1,4 +1,4 @@
-/* ══ STOCK BULBS (r491, js/stock-bulbs.js) ══
+/* ══ STOCK BULBS (r497, js/stock-bulbs.js) ══
    Pilot lamps: a domed lens in a dark ring, a fine diffusion grid in the glass.
    --on 0 = unlit, 1 = lit, past 1 = the flash when a limit goes up. */
 @property --on { syntax: '<number>'; inherits: true; initial-value: 0; }

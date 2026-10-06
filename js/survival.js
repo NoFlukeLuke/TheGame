@@ -868,7 +868,7 @@ function survivalPostBossReward() {
   // occasion, but the grid is what every other mode's boss pays out in, and it
   // hands out several things off one connected path instead of one. The
   // 'survival' context in closeRewardGrid runs survivalChoose's own tail.
-  showMessage(`BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED · +${PICK_REROLLS_PER_BOSS} REROLLS`, 'var(--gold)');
+  showMessage(`BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED`, 'var(--gold)');
   setTimeout(() => { rewardGridContext = 'survival'; openPrizeGrid(); }, 320);
 }
 

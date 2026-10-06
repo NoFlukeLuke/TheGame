@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// STOCK BULBS (r491) - small lamps in place of the x/y stock readouts
+// STOCK BULBS (r497) - small lamps in place of the x/y stock readouts
 // ══════════════════════════════════════════════
 // One bulb per point of a limit's MAX, set beside the thing it counts:
 //   Swaps / Discards : a column between the board and the key. Green = a use left,
