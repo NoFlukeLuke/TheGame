@@ -754,3 +754,11 @@ chip (`trickPinReanchor`, `trayLiftReanchor`). Every chip, marquee copies includ
   in `#sel-count`. A new unlocked bulb flickers, flashes, settles (`sbExtend`, 1.4s). The x/y
   readouts it replaces get `visibility: hidden`. Shown only while `#sel-count` is live and not
   on a reward grid or the shop.
+
+## r499 - the board heartbeat is gone; the clock tick has its own timer
+Owner: the grid heartbeat (r183, a swell falling down the board every 10s) is gratuitous next to the
+Watch idle look. `js/heartbeat.js`, `heartbeat-preview.html` and the dev section are removed. The
+clock's tick (`pulseClockWithWave`, js/clock-fx.js) now runs from `js/clock-tick.js`
+(`startClockTick` / `stopClockTick`, every `CLOCK_TICK_SEC` 10s, started with the round timer and
+stopped where the heartbeat was). Anything above that says a look "composes with the heartbeat's
+transform" still holds for `--frzr` / `--grds`; the `--hb*` vars are unset (CLEANUP.md 1c).

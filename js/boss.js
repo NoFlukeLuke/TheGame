@@ -1052,7 +1052,7 @@ function endBoss(success, opts) {
   // the ordinary missed-goal path a second later.
   if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
   if (typeof stopFocusDecay === 'function') stopFocusDecay();
-  if (typeof stopHeartbeat === 'function') stopHeartbeat();
+  if (typeof stopClockTick === 'function') stopClockTick();
 
   // Clean up modifiers (must happen BEFORE render)
   clearBossModifiers();

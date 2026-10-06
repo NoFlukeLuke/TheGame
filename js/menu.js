@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r498 · Owner tray defaults: pit lit from below, shallow walls, ring 10% down; floor glow halved";
+const BUILD = "2026-10-06 · r499 · board heartbeat removed; the clock tick keeps its own timer";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

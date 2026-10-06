@@ -57,7 +57,7 @@ function startRoundTimer() {
   if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof crOnRoundStart === 'function') crOnRoundStart();   // a challenge round's first card
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
-  startHeartbeat();                 // the board's idle pulse runs with the round
+  startClockTick();                 // the clock's 10s tick runs with the round (js/clock-tick.js)
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
   // A Spectrum fixture queued to leave by the GOAL hand never drained - that
   // hand's finale explodes the board instead of calling removeAndFall - and the
@@ -320,7 +320,7 @@ function stopTimers() {
   clearInterval(roundInterval);
   roundInterval = null;
   stopFocusDecay();
-  stopHeartbeat();
+  stopClockTick();
   cdStopTicker();                   // and strip every cooldown badge (js/cooldown.js)
   // The board is about to be taken away or replaced; never leave it holding a
   // freeze tilt or a mirror stack behind an overlay (js/clock-fx.js).
