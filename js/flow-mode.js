@@ -116,6 +116,9 @@ function flowTriggerBoss() {
   suppressScoreDisplay = true;
   showMessage('⚠ BOSS', 'var(--red)');
   if (typeof crFlowCancel === 'function') crFlowCancel();   // no challenge card overlaps a boss
+  // The boss opens on a full deck: the level's played cards go back in, as at a
+  // level-up. Flow's boss comes mid-level, so nothing else would return them.
+  flushPlayedDeck();
   const _go = () => triggerBoss(null, FLOW_BOSS_WINDOW);
   if (typeof bossApproachWipe === 'function') bossApproachWipe(_wiped).then(_go);
   else { suppressScoreDisplay = false; updateScoreUI(); _go(); }

@@ -881,10 +881,32 @@ function conformGridToDims() {
 // Fill only the EMPTY cells of the live board. This is the whole of "a new row
 // or column fills with new cards when the round starts" - every other cell
 // already holds the card it held last round.
+// With too few cards left to fill every hole, the board settles first: every
+// column packs down past its holes (voids skipped) and the cards that are left
+// fill each column from the bottom, so the empty cells end up at the top.
 function fillGridHoles() {
+  let holes = 0;
   for (let r = 0; r < gridRows; r++) {
     if (!gridData[r]) gridData[r] = [];
-    for (let c = 0; c < gridCols; c++) if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
+    for (let c = 0; c < gridCols; c++) if (!gridData[r][c]) holes++;
+  }
+  if (holes <= drawPile.length) {
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++) if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
+    return;
+  }
+  const _void = (r, c) => typeof isCellVoid === 'function' && isCellVoid(r, c);
+  for (let c = 0; c < gridCols; c++) {
+    const rows = [];
+    for (let r = 0; r < gridRows; r++) if (!_void(r, c)) rows.push(r);
+    const cards = rows.map(r => gridData[r][c]).filter(Boolean);
+    rows.forEach(r => { gridData[r][c] = null; });
+    cards.forEach((card, i) => { gridData[rows[rows.length - cards.length + i]][c] = card; });
+    for (let i = rows.length - cards.length - 1; i >= 0; i--) {
+      const card = drawCard();
+      if (!card) break;
+      gridData[rows[i]][c] = card;
+    }
   }
 }
 
