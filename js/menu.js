@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r492 · Zigzag tray only when the Tricks do not fit flat";
+const BUILD = "2026-10-06 · r493 · bosses no longer grant rerolls";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -1209,10 +1209,8 @@ function flowrBossCelebrate(boss, done) {
   const el = document.createElement('div');
   el.id = 'flowr-cel';
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const rr = (typeof PICK_REROLLS_PER_BOSS !== 'undefined') ? `+${PICK_REROLLS_PER_BOSS} REROLLS` : '';
   el.innerHTML = `<div class="fcel-kick">${esc(boss.name)}</div>`
-    + `<div class="fcel-title">${flowrBossPassedText()}</div>`
-    + (rr ? `<div class="fcel-sub">${rr}</div>` : '');
+    + `<div class="fcel-title">${flowrBossPassedText()}</div>`;
   host.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   try { sfxBossFanfare?.(); } catch (e) {}
