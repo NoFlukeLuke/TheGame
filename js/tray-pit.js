@@ -22,7 +22,8 @@
 // r464: the pit is the default (owner's call), with one glowing 1px ring part way down
 // (`ring`, % of the way from the rim to the floor; `ringGlow` its glow, 0 = no ring).
 const TRAY_PIT_KEY = 'lethe.trayPit.v2';
-const TRAY_PIT_DEFAULT = { on: 1, depth: 16, steps: 4, persp: 80, view: 30, tint: 45, light: 'top', floor: 0, ring: 50, ringGlow: 60 };
+// r498 (owner): light from below, shallow 3-step walls, full tray colour, a ring 10% down.
+const TRAY_PIT_DEFAULT = { on: 1, depth: 6, steps: 3, persp: 100, view: 15, tint: 100, light: 'below', floor: 0, ring: 10, ringGlow: 100 };
 let trayPit = (() => {
   const d = Object.assign({}, TRAY_PIT_DEFAULT);
   try {
@@ -104,7 +105,8 @@ function trayPitSvg(w, h, rgb, f, center) {
     }
   }
   const fl = R(N), fw = fl.x1 - fl.x0, fh = fl.y1 - fl.y0;
-  const floorK = below ? 0.35 + 0.65 * f.floor / 100 : 0.06 + 0.25 * f.floor / 100;
+  const floorK = below ? 0.175 + 0.825 * f.floor / 100   // r498: the lit floor's base halved (owner)
+     : 0.06 + 0.25 * f.floor / 100;
   s += `<rect x="${fl.x0}" y="${fl.y0}" width="${fw}" height="${fh}" fill="${col(floorK)}"/>`;
   if (below && f.floor) s += `<rect x="${fl.x0}" y="${fl.y0}" width="${fw}" height="${fh}" fill="url(#pg)"/>`;
   // the top lip's shadow on the floor, and a little from the left wall
