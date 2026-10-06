@@ -763,7 +763,24 @@ clock's tick (`pulseClockWithWave`, js/clock-fx.js) now runs from `js/clock-tick
 stopped where the heartbeat was). Anything above that says a look "composes with the heartbeat's
 transform" still holds for `--frzr` / `--grds`; the `--hb*` vars are unset (CLEANUP.md 1c).
 
-## r500 - Console mode and Stock display in Settings; the beige case
+## r500 - Line Quotas made loud (`js/level-types.js`, `css/level-types.css`)
+- **Odds:** from level 3 a Flow level is Line Quotas at `LEVEL_TYPE_LINES_CHANCE` (15%) and Relay at
+  `LEVEL_TYPE_RELAY_CHANCE` (12.5%), one roll, lines first (dev -> Probabilities, "Flow shaped level chance").
+- **Reward floor:** a cleared Flow lines round pays at least `QUOTA_LINES_REWARDS` (3) reward screens
+  (`quotaLinesRewardFloor()`, read in `flowrMaybeStart` before the level-up clears `roundQuota`).
+- **Onset:** the first `QUOTA_INTRO_TIMES` (4) lines rounds open on an explainer card over the board
+  (`#q-intro`, count in `lethe.lineQuotaIntro.v1`, not during the walkthrough) and the round tick holds
+  (`quotaIntroHold`) until GOT IT; later rounds get a 1.9s banner. Then the lines draw on one at a time.
+- **Colours:** each line has its own (`QUOTA_LINE_COLORS`, `l.hue`) on its band, pill and HUD meter. The
+  goal bar becomes one meter per line (`roundQuotaPaintHud`, `.q-meters`).
+- **Fill:** `l.shown` trails `l.prog` and catches up with the tally's climb (`roundQuotaClimb(e)` from the
+  dance; `handleDanceAbort` and a 9s net call it with 1). A filled line flares and locks faded
+  (`.q-flash`, `sfxQuotaLine`, pitch rises per line). **The hand that fills the last line plays its fill
+  and finale at once** (650ms), because Flow's pick takes the board mid-dance, before the climb.
+  Finale: every line flares gold (`.q-final`, `sfxQuotaAll`). Board bands and meters are kept and
+  updated by `data-qi`, not rebuilt, so a flash survives the repaints.
+
+## r501 - Console mode and Stock display in Settings; the beige case
 Settings -> Display: **Console mode** (the machine panel in cream, `trayPit.on` 3; off = the pit) and
 **Stock display** (Numbers / Bulbs, `sbCfg.on`). Both default off. A settings row with `get` is a VIEW
 of its feature's own store: it is not loaded, stored or applied by settings.js (only on a click, and

@@ -215,7 +215,7 @@ const SETTINGS_DEF = [
         if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} }
       }, 0);
     } },
-  // r500: rows with `get` are views of a feature's own store (js/tray-pit.js,
+  // r501: rows with `get` are views of a feature's own store (js/tray-pit.js,
   // js/stock-bulbs.js), not stored here, so the dev panel and Settings never disagree.
   { group: 'Display', id: 'consoleMode', label: 'Console mode',
     hint: 'The game is built into an 80s computer: cream housing, glass screens, a flip clock and engraved keys.',

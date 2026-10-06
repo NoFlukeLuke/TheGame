@@ -75,9 +75,10 @@ const PROB_TABLES = [
     rows: () => [{ k: 'v', label: 'Chance per card', get: () => FLOWR_DUAL_CHANCE, set: v => { FLOWR_DUAL_CHANCE = v; } }] },
 
   { id: 'leveltype', group: 'Levels', type: 'p1', title: 'Flow shaped level chance',
-    desc: 'From level 3, the chance a Flow level is a shaped one (a relay of bars, or marked lines each with its own quota) instead of a plain goal.',
-    how: '0% switches shaped levels off in Flow. 100% makes every level from 3 shaped.',
-    rows: () => [{ k: 'v', label: 'Chance per level', get: () => LEVEL_TYPE_FLOW_CHANCE, set: v => { LEVEL_TYPE_FLOW_CHANCE = v; } }] },
+    desc: 'From level 3, the chance a Flow level is Line Quotas (marked lines, each with its own goal; clearing it pays at least 3 rewards) or a Relay (three goals in a row) instead of a plain goal. Rolled once per level, Line Quotas first.',
+    how: '0% switches that shape off in Flow. The two together are the share of shaped levels.',
+    rows: () => [{ k: 'lines', label: 'Line Quotas', get: () => LEVEL_TYPE_LINES_CHANCE, set: v => { LEVEL_TYPE_LINES_CHANCE = v; } },
+                 { k: 'relay', label: 'Relay', get: () => LEVEL_TYPE_RELAY_CHANCE, set: v => { LEVEL_TYPE_RELAY_CHANCE = v; } }] },
 
   { id: 'mapfill', group: 'Schedule map', type: 'w', title: 'Schedule obligation mix',
     desc: 'What fills the free cells of a Schedule map once the minimums are placed (2 shops, 2 hard rounds, 3 meetings, 2 reward grids).',
