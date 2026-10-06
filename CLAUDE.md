@@ -724,7 +724,6 @@ game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
 
-<<<<<<< HEAD
 ## r503 - fly-to-preview: the copy keeps its text size and marks; Sleights stand up
 - **The flying copy is drawn at the board's zoom** (`flyGridCardToSlot`, js/score-dance.js). It lives on
   body, outside `#cabinet`'s zoom, while card text is sized in design px, so its text flew at 1/zoom (half
@@ -751,7 +750,7 @@ over the clock the seconds burst flies into). Flow's reward is taken at once (a 
 see it). `crFailGen` (bumped by `crReset`) drops pending bursts on a new run; `crFailing` keeps
 `crOnRoundStart` from removing a card mid-burst, and that function now also queues any finished card the
 queue lost (a resumed save).
-=======
+
 ## r491 - the score tally speeds up with Focus
 `dncPace()` (js/dance-clock.js) now also multiplies by `dncFocusPace`, read once per hand in
 `dncResetAccel` from `caFocusPace('tally2')` (js/card-anims.js): `tally2` (default 1.5, lab slider
@@ -827,7 +826,6 @@ black specks covered about a quarter of the surface and turned the beige grey (m
   upright); with bulbs on the key counts are `display: none` so they hold no space.
 - Console mode: key letters are thickened sideways (two +-0.45px copies in the text-shadow);
   PIPS / MULT / FOCUS values are phosphor blue / red / purple (#5cc8ff / #ff6a52 / #cf8cff).
->>>>>>> origin/main
 
 ## r507 - Flow's boss reshuffles; a dry deck settles low
 `flowTriggerBoss` runs `flushPlayedDeck()`: Flow's boss comes mid-level, so the level's played cards used
@@ -841,7 +839,7 @@ the bottom, left column first.
 ## r508 - Autopilot plays at most 5 hands per landing
 `BAL.autopilot.max_hands` 0 -> 5 (description reads it). With its 15 charges that is three landings at most. Verified: 5 hands, charges 15 -> 10, stop with hands still on the board, back in the deck.
 
-## r509 - Console mode: nothing rides over the housing; fliers keep the screen door
+## r510 - Console mode: nothing rides over the housing; fliers keep the screen door
 - **What leaked** (filmed at 0.15x through CDP `Animation.setPlaybackRate`): the body-level fliers
   were all adopted into `#mc-fly` and masked correctly. What showed over the housing was the
   SCREENS themselves: `box-pop` swelled `#score-center` 1.32x past its recess, `subbox-pop` /
