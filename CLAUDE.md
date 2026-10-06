@@ -29,6 +29,7 @@ superseded is history, not current code. The other reference docs:
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
+| `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
@@ -693,7 +694,7 @@ round is already dealt); it renders and restarts the round timer only if none is
 braces under r473's button guard: verified by closing the pick underneath an open shop.
 
 ## r486 - phone trays: zigzag Tricks, stacked bars (`js/tray-zigzag.js`, `css/tray-zigzag.css`)
-Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on: tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
+Settings -> Display -> **Trick tray on a phone** (`trickTrayLayout`: zigzag default / tilt) and **Phone tray layout** (`phoneTrays`: side / stacked -> `body.pt-stacked`, two full-width bars at 65% height). `fanTrickTray` hands portrait to `zigzagTrickTray` when on AND the row does not fit flat (r492; a row that fits stays an ordinary row): tiles placed by left/top, alternate rows, upper row on top. Turns: slide left by `w - 2*step` (room reserved on the left), come forward toward the tray middle at x`scale`, slide back, hold, return; after the top row, the lower row drops clear, trades z, rises, and its tiles go. Stops while a hand scores, a Trick is lifted or its tooltip is open, paused, reduced motion. Knobs: dev -> HUD & Display -> Zigzag tray (`lethe.trayZigzag.v1`, overrides only). Side-by-side halves are exactly 50% each; phone preview cards are 15% smaller (`PORTRAIT_PREVIEW_CFG.cardScale`).
 
 ## r483 (machine-panel branch) - the panel, second pass (`css/skin-machine.css`, `js/machine-skin.js`)
 r487: merged to main as a dev option (Tray look -> machine panel); the pit stays the default. Further tuning on the `machine-panel` branch.
@@ -723,7 +724,8 @@ game's text is wrapped in `.mc-game` beside a `.mc-panel` twin and CSS shows one
 for the twin so it stays in its line run), because the reward step saves and restores the key's markup.
 Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
 
-## r489 - fly-to-preview: the copy keeps its text size and marks; Sleights stand up
+<<<<<<< HEAD
+## r503 - fly-to-preview: the copy keeps its text size and marks; Sleights stand up
 - **The flying copy is drawn at the board's zoom** (`flyGridCardToSlot`, js/score-dance.js). It lives on
   body, outside `#cabinet`'s zoom, while card text is sized in design px, so its text flew at 1/zoom (half
   size on a desktop). Now the copy carries `zoom: z` (z = rect width / offsetWidth) and every length it
@@ -738,7 +740,7 @@ Keys are engraved: white enamel in the cut (dark lip above, lit lip below).
   `transform` (a standalone `rotate` would turn the flight path too). Sleights also flow in the preview
   row now (`.trick-card` is absolute on the board and used to fall out of line).
 
-## r490 - a failed challenge charges its penalty one burst at a time (`crFail`, js/challenge-round.js)
+## r504 - a failed challenge charges its penalty one burst at a time (`crFail`, js/challenge-round.js)
 Owner: feel the loss. The failed card STAYS on the board (shake, `cr-lost`), then every `CR_FAIL_STEP`
 (640ms) fires one burst (`crFxPenalty`): the card kicks red, a red payout plate 1.7x the usual size
 (`efxFly(..., 'loss', CR_FAIL_PLATE)`, js/payout-fx.js, which now returns its flight length) flies to the
@@ -749,3 +751,80 @@ over the clock the seconds burst flies into). Flow's reward is taken at once (a 
 see it). `crFailGen` (bumped by `crReset`) drops pending bursts on a new run; `crFailing` keeps
 `crOnRoundStart` from removing a card mid-burst, and that function now also queues any finished card the
 queue lost (a resumed save).
+=======
+## r491 - the score tally speeds up with Focus
+`dncPace()` (js/dance-clock.js) now also multiplies by `dncFocusPace`, read once per hand in
+`dncResetAccel` from `caFocusPace('tally2')` (js/card-anims.js): `tally2` (default 1.5, lab slider
+"Score tally at Focus x2", same store as the card speed) at Focus x2, linear from x1, Focus capped
+at x4. The card fly already carries Focus through `cardFlyMs`, so the dance's flight divides by
+`dncPaceNoFocus()` instead of counting it twice.
+
+## r496 - a click PINS a tray Trick's tooltip (`js/tricks-ui.js`, `js/tray-lift.js`)
+Hover still shows the bubble and the lift still leans toward the cursor. A click pins (`_trickPin`):
+the bubble stays, hover on other Tricks leaves it alone, the lift freezes (`trayLiftFreeze`; mouse
+only) and the marquee stops, so the pointer can cross the tray to Sell. Closed by clicking the Trick
+again, the bubble's X, a click elsewhere, Escape, or the sale. A re-render hands the pin to the new
+chip (`trickPinReanchor`, `trayLiftReanchor`). Every chip, marquee copies included, gets the click
+(`attachTrickClick`); before this the copies had none. The board's tooltip-dismiss pointerdown in
+`js/sleights-runtime.js` stands down for tray chips, or it unpinned before the click landed.
+
+## r497 - card face, stock bulbs (`js/card-face.js`, `js/stock-bulbs.js`)
+- **Card face** (dev -> Aesthetics -> Card face, `lethe.cardFace.v1`, overrides only; `html.cf-*`):
+  `print` (default) draws rank in VT323 with speckled ink (SVG `#cf-dot`, noise thresholded
+  into a mask) on rank and suit; `phosphor` makes each card a black glass screen, rank and suit
+  glowing in the suit colour (`--pg`), scanlines; `classic` is the old Cinzel face.
+- **Stock bulbs** (dev -> Aesthetics -> Stock bulbs, `lethe.stockBulbs.v1`, off by default, a
+  preview for the owner): one pilot lamp per point of a limit's MAX in `#sb-layer` (child of
+  #stage, placed in design px from live rects every 150ms, repainted only when state or layout
+  changes, and at once from `updateSelectionUI`). Swaps / discards: a column between the board
+  and the key, green left / red used / dim locked. Hand / Tricks: a row on the tray's rim or
+  beneath it (`trick: 'rim'|'below'`), blue used / green free / dim locked; portrait hand row sits
+  in `#sel-count`. A new unlocked bulb flickers, flashes, settles (`sbExtend`, 1.4s). The x/y
+  readouts it replaces get `visibility: hidden`. Shown only while `#sel-count` is live and not
+  on a reward grid or the shop.
+
+## r499 - the board heartbeat is gone; the clock tick has its own timer
+Owner: the grid heartbeat (r183, a swell falling down the board every 10s) is gratuitous next to the
+Watch idle look. `js/heartbeat.js`, `heartbeat-preview.html` and the dev section are removed. The
+clock's tick (`pulseClockWithWave`, js/clock-fx.js) now runs from `js/clock-tick.js`
+(`startClockTick` / `stopClockTick`, every `CLOCK_TICK_SEC` 10s, started with the round timer and
+stopped where the heartbeat was). Anything above that says a look "composes with the heartbeat's
+transform" still holds for `--frzr` / `--grds`; the `--hb*` vars are unset (CLEANUP.md 1c).
+
+## r500 - Line Quotas made loud (`js/level-types.js`, `css/level-types.css`)
+- **Odds:** from level 3 a Flow level is Line Quotas at `LEVEL_TYPE_LINES_CHANCE` (15%) and Relay at
+  `LEVEL_TYPE_RELAY_CHANCE` (12.5%), one roll, lines first (dev -> Probabilities, "Flow shaped level chance").
+- **Reward floor:** a cleared Flow lines round pays at least `QUOTA_LINES_REWARDS` (3) reward screens
+  (`quotaLinesRewardFloor()`, read in `flowrMaybeStart` before the level-up clears `roundQuota`).
+- **Onset:** the first `QUOTA_INTRO_TIMES` (4) lines rounds open on an explainer card over the board
+  (`#q-intro`, count in `lethe.lineQuotaIntro.v1`, not during the walkthrough) and the round tick holds
+  (`quotaIntroHold`) until GOT IT; later rounds get a 1.9s banner. Then the lines draw on one at a time.
+- **Colours:** each line has its own (`QUOTA_LINE_COLORS`, `l.hue`) on its band, pill and HUD meter. The
+  goal bar becomes one meter per line (`roundQuotaPaintHud`, `.q-meters`).
+- **Fill:** `l.shown` trails `l.prog` and catches up with the tally's climb (`roundQuotaClimb(e)` from the
+  dance; `handleDanceAbort` and a 9s net call it with 1). A filled line flares and locks faded
+  (`.q-flash`, `sfxQuotaLine`, pitch rises per line). **The hand that fills the last line plays its fill
+  and finale at once** (650ms), because Flow's pick takes the board mid-dance, before the climb.
+  Finale: every line flares gold (`.q-final`, `sfxQuotaAll`). Board bands and meters are kept and
+  updated by `data-qi`, not rebuilt, so a flash survives the repaints.
+
+## r501 - Console mode and Stock display in Settings; the beige case
+Settings -> Display: **Console mode** (the machine panel in cream, `trayPit.on` 3; off = the pit) and
+**Stock display** (Numbers / Bulbs, `sbCfg.on`). Both default off. A settings row with `get` is a VIEW
+of its feature's own store: it is not loaded, stored or applied by settings.js (only on a click, and
+on Restore defaults), so the dev panel and Settings never disagree. The cream case is an 80s computer
+beige (`--mc-house` #ddd2b2); its grain and grime are warm brown and lighter on balance, because the
+black specks covered about a quarter of the surface and turned the beige grey (measured centre colour
+#9c947d -> #cec1a1). All machine grain is 20% fainter.
+
+## r502 - bulbs on the keys and tray edges; Console mode readouts (owner)
+- Tray bulbs (Tricks, hand preview) are centred on the tray's LOWER edge ('below' centres them under it).
+- Swap / discard bulbs sit on the key itself, flush inside its right edge (`.sb-flush`: lens only,
+  no ring; an unlit one is dark glass). A column taller than the key minus 4px each end splits in
+  half, one column each side of the label (`.sb-split`, a 2-column grid, left fills first). The
+  desktop SWAP key splits; DEFER and the phone's keys take one column.
+- With bulbs on or in Console mode, SWAP reads top to bottom (`writing-mode: vertical-rl`,
+  upright); with bulbs on the key counts are `display: none` so they hold no space.
+- Console mode: key letters are thickened sideways (two +-0.45px copies in the text-shadow);
+  PIPS / MULT / FOCUS values are phosphor blue / red / purple (#5cc8ff / #ff6a52 / #cf8cff).
+>>>>>>> origin/main

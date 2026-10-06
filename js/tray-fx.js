@@ -6,7 +6,7 @@
    moves for exactly three things: an entity arriving, one leaving, and one triggering
    (very light). The Pit look (js/tray-pit.js) replaces the lines and takes those three over. */
 const TRAY_FX_KEY = 'lethe.trayFx.v2';   // r451: overrides only (v1 stored every field)
-const TRAY_FX_DEFAULT = { lines: 3, thick: 1, glow: 10, gain: 1.2, center: 35, fade: 70, gap: 2, grow: 5, small: 35 };
+const TRAY_FX_DEFAULT = { lines: 1, thick: 1, glow: 6, gain: 1, center: 80, fade: 70, gap: 1, grow: 0, small: 10 };   // r498 (owner)
 const TRAY_FX_IDS = ['score-center', 'score-left', 'pips-box', 'mult-box', 'focus-box', 'screen-location',
   'pmf-merged', 'knack-carousel-wrap', 'selected-cards', 'trick-tray-area', 'hand-preview-area',
   'coin-info', 'vclock', 'run-progress'];

@@ -29,7 +29,7 @@ const EFX_TARGETS = {
   swaps:    ['#swap-indicator'],
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
-  level:    ['#ci-level', '#level-display'],   // r490: a challenge's -1 reward
+  level:    ['#ci-level', '#level-display'],   // r504: a challenge's -1 reward
 };
 // Two of these lists were pointing at ids that do not exist (r233). `#ci-coins`,
 // `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`
@@ -48,7 +48,7 @@ const EFX_STYLE = {
   focus:    { icon: '◈',  color: '#a25cd8', plate: 'focus' },
   swaps:    { icon: '⇄',  color: '#6fd08c', plate: 'focus' },
   discards: { icon: '✕',  color: '#e07a5f', plate: 'multAdd' },
-  loss:     { icon: '✕',  color: '#ff4d4d', plate: 'multAdd' },   // r490: a challenge penalty, any currency
+  loss:     { icon: '✕',  color: '#ff4d4d', plate: 'multAdd' },   // r504: a challenge penalty, any currency
 };
 
 // First laid-out element from a target list. A zero-size rect means "not showing
@@ -89,7 +89,7 @@ function efxFly(srcEl, currency, label, color, fxKind, scale) {
     target.classList.remove('efx-hit'); void target.offsetWidth; target.classList.add('efx-hit');
     setTimeout(() => target.classList.remove('efx-hit'), 380);
   }, dur * 0.8);
-  return dur;   // r490: the flight's length, for a caller that acts on landing
+  return dur;   // r504: the flight's length, for a caller that acts on landing
 }
 
 // The one entry point. `opts.id` / `opts.source` name the entity when the caller

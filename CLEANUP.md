@@ -27,6 +27,7 @@ branches does none of that; only check them for unmerged work before deleting.
 | r432 | **the starred x2 card** (owner: ditch it) | `assignTrickCard`, `TRICK_CARD_INTERVAL`, `trickCardPos`, `_trickcard` in calcScore, `.trick-star` |
 | r432 | 7 r95-era preview pages -> `previews/archive/` | |
 | r416 | **the Survival MODE entry** (owner: Flow will likely take the name). The engine in `js/survival.js` stays: Flow runs on it | `MODES.survival`, its `MODE_META` card, its walkthrough seed and step, its handbook topic |
+| r499 | **the grid heartbeat** (owner: gratuitous next to Watch). The clock's 10s tick moved to its own timer, `js/clock-tick.js` | `js/heartbeat.js`, `heartbeat-preview.html`, the dev Grid Heartbeat section, `HB_KEYS`/`devSetHb`/`devSyncHbSliders`, stored `hbCfg3`/`hbEnabled` (removed on load) |
 
 ## Open, safest first
 
@@ -34,6 +35,7 @@ branches does none of that; only check them for unmerged work before deleting.
 |---|---|---|---|---|---|
 | 1 | **Old challenge system** (superseded r444 by `js/challenge-round.js`) | `js/challenge.js` (215; also declares `audioCtx`), `challengeCard`/`challengeActive` in ~20 sites (render, card-fall, input, play-hand, score-dance, round-timers, save, the Shortcut Sleight) | ~250 lines | low | Nothing spawns it (its only spawner is reached only from its own pick screen) and its null-cell card is refilled by the persisting board anyway (measured r444). Move `audioCtx` to `js/audio.js`, then delete. Shortcut Sleight's 'complete the challenge' could point at `crSolve` instead. |
 | 1b | `flowrPendingDual` / `flowrMaybeRunPendingDual` (js/flow-rewards.js) | the reward grid's dual card op was its only setter, removed r444 | small | low | Dead now; delete or give it a new setter. |
+| 1c | the heartbeat's `--hbx/--hby/--hbr/--hbs` (nothing sets them since r499) | the composed card transform in css/style.css (~4 rules), `css/settings.css` reduced-motion line, comments in boss/clock-fx/flow-rewards css | small | low | Drop the vars from the transform strings; keep `--frzr` and `--grds`. |
 | 2 | Dead `BAL` entries and `DESC_TEMPLATES` for Tricks not in any pool (`jack_mult`, `heart_double`, ...) | `js/data/balance.js`, `js/scoring.js` | small | low | Scored for, described, unobtainable. Either add them to the pool or delete the scoring blocks. |
 | 3 | Idea backlogs in the root (owner: leave) | `MODE_IDEAS.md`, `FOCUS_IDEAS.md`, `CARD_MECHANICS.md`, `SCORE_SCALING.md`, `GLOSSARY.md` | docs | none | Still accurate as backlogs. Could move to `docs/` to leave the root for live references. |
 **Kept by owner (r428): Match-3 and Zen.** The owner wants auto-play

@@ -221,6 +221,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
+  // A LINES round's progress lands now if the climb never finished it.
+  if (typeof roundQuotaClimb === 'function') roundQuotaClimb(1);
   // The dance is over, so a takeover screen that opened during it (the mid-dance
   // pick) gets its deferred HUD swap now - BEFORE the goal branch below, so an
   // interlude/prize grid opened from here is never itself deferred. (r310)
@@ -624,7 +626,7 @@ function dncReleaseReal(el){ if(!el) return;
   setTimeout(()=>{ if(el) el.classList.remove('dnc-pop'); }, DANCE_CFG.trig.dur+80); }
 function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
   el.classList.remove('dnc-jitter','dnc-pop','dnc-pulse','dnc-flash'); el.style.removeProperty('--dnc-jit'); }); dncRealEls=[]; }
-// THE FLYING COPY (r489). One rule keeps the copy honest: everything that marks a
+// THE FLYING COPY (r503). One rule keeps the copy honest: everything that marks a
 // card (buffs, curses, charges, states, rarity edge) is drawn INSIDE the card
 // element, by renderCardAppearance, as a child or a class. So a deep clone carries
 // every mark there is, and the preview slot (built by the same function) lands on
@@ -879,7 +881,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
   // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
   const cardEls=previewCells.map(([r,c])=>{ const card=gridData[r][c];
-    const outer=document.createElement('div'); outer.className='dnc-outer'+(card._isSleight?' dnc-turn':'');   // r489: a Sleight stands up (css/dance.css)
+    const outer=document.createElement('div'); outer.className='dnc-outer'+(card._isSleight?' dnc-turn':'');   // r503: a Sleight stands up (css/dance.css)
     const d=document.createElement('div');
     const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
     d.className=className+' preview-card'; d.innerHTML=innerHTML;
@@ -1050,7 +1052,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPace();   // r468: the fly look may take longer
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPaceNoFocus();   // r491: cardFlyMs already holds Focus   // r468: the fly look may take longer
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -1312,6 +1314,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)
       if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }

@@ -94,6 +94,11 @@ const SFX_CATALOG = [
   { id: 'chal_raise',    fn: 'sfxChallengeRaise',  group: 'Challenge', label: 'Challenge raised a tier' },
   { id: 'chal_dodge',    fn: 'sfxChallengeDodge',  group: 'Challenge', label: 'Challenge refused', note: 'The marked card was discarded before the challenge card landed.' },
 
+  { id: 'quota_open',    fn: 'sfxQuotaOpen',       group: 'Level types', label: 'Line Quotas: round opens' },
+  { id: 'quota_sweep',   fn: 'sfxQuotaSweep',      group: 'Level types', label: 'Line Quotas: a line draws on' },
+  { id: 'quota_line',    fn: 'sfxQuotaLine',       group: 'Level types', label: 'Line Quotas: a line filled' },
+  { id: 'quota_all',     fn: 'sfxQuotaAll',        group: 'Level types', label: 'Line Quotas: every line filled' },
+
   // Time
   // These three were NOT in the catalog before r234, which meant they could not
   // be switched off, could not be auditioned, had no mixer bus and could never be

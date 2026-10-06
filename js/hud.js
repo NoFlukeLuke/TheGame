@@ -96,7 +96,7 @@ function updateScoreUI() {
     document.getElementById('goal-display').textContent = _q.idx >= _n ? 'DONE' : `${_q.prog.toLocaleString()}/${_q.bars[_i].toLocaleString()}`;
   } else if (_q && _q.kind === 'lines') {
     if (goalLabel) goalLabel.textContent = 'LINES';
-    document.getElementById('goal-display').textContent = `${_q.lines.filter(l => l.prog >= l.target).length}/${_q.lines.length}`;
+    if (typeof roundQuotaPaintHud === 'function') roundQuotaPaintHud();   // count + per-line meters
   } else {
     document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
   }

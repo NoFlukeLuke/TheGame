@@ -11,7 +11,7 @@
   #selected-cards.dnc-active .dnc-track{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:nowrap;padding:8px 0;
     transition:transform .38s cubic-bezier(.4,.6,.3,1);will-change:transform;}
   .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
-  /* r489: a Sleight in the preview. It never flowed in the row (it is .trick-card,
+  /* r503: a Sleight in the preview. It never flowed in the row (it is .trick-card,
      absolute on the board, not .card); now it does. Its face is a landscape business
      card letterboxed in a portrait tile, so here the tile turns a quarter and grows by
      the card's own h/w (75/57), which stands the business card up to fill the slot.

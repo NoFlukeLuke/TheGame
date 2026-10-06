@@ -1052,7 +1052,7 @@ function endBoss(success, opts) {
   // the ordinary missed-goal path a second later.
   if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
   if (typeof stopFocusDecay === 'function') stopFocusDecay();
-  if (typeof stopHeartbeat === 'function') stopHeartbeat();
+  if (typeof stopClockTick === 'function') stopClockTick();
 
   // Clean up modifiers (must happen BEFORE render)
   clearBossModifiers();
@@ -1092,9 +1092,6 @@ function endBoss(success, opts) {
     frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
     if (!opts?.presented && typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
-    // Every mode's pick-of-three draws on one reroll pool, so the grant belongs
-    // here rather than in Survival's own post-boss path (r282).
-    if (typeof pickRerollsGrant === 'function') pickRerollsGrant();
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.

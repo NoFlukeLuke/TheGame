@@ -37,3 +37,9 @@
 #trick-tray-list .trick-tray-chip.tray-lifted { opacity: 0; transition: opacity .08s; }
 /* A finger sliding along an unfanned row must reach the lift, not the page. */
 #stage:not(.landscape) #trick-tray-list { touch-action: pan-y; }
+
+/* PINNED (r489, js/tricks-ui.js): a click holds the bubble and freezes the lift.
+   The marquee stops so the pinned tile stays under its copy. */
+#trick-tray-area.tt-pinned .chip-marquee.scrolling { animation-play-state: paused; }
+#tray-lift.frozen .tl-inner { transition: none; }
+#trick-tooltip.pinned { box-shadow: 0 0 0 1px rgba(255,255,255,0.35), 0 4px 16px rgba(0,0,0,0.7); }

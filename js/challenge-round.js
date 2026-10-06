@@ -515,7 +515,7 @@ function crCollect(cd) {
 }
 // The card's clock ran out short of its current tier. A raised card loses what
 // it had banked; either way the current tier's penalty is taken.
-// r490 (owner): the card STAYS on the board and charges the penalty one burst at
+// r504 (owner): the card STAYS on the board and charges the penalty one burst at
 // a time: each flies from the card to the readout it costs (-Ns to the clock,
 // -N to the credits, -1 reward to the level in Flow) and is charged when it
 // lands, with a hit sound. The card leaves after the last one. crFailGen guards
@@ -888,7 +888,7 @@ function crFxFail(cd) {
   _crAnim(el, [ { translate: '0px 0px' }, { translate: '-5px 0px', offset: 0.15 }, { translate: '5px 0px', offset: 0.3 },
                 { translate: '-4px 0px', offset: 0.45 }, { translate: '3px 0px', offset: 0.6 }, { translate: '0px 0px' } ], { duration: 520 });
 }
-// One penalty burst (r490): the card kicks and flashes red, a red plate flies to
+// One penalty burst (r504): the card kicks and flashes red, a red plate flies to
 // the readout, and on landing the readout jolts, the cost is charged and the hit
 // sounds. The plate is the payout plate (efxFly, js/payout-fx.js). A card already
 // gone (the round ended under it) fires from the readout itself.

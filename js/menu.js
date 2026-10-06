@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r490 · a failed challenge charges its penalty burst by burst";
+const BUILD = "2026-10-06 · r504 · fly-to-preview keeps text size and marks; Sleights stand up; failed challenges charge burst by burst";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
