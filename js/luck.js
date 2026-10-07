@@ -141,7 +141,7 @@ function pickEntityByRarity(pool, tierOf, weights, tiers) {
   if (!pool || !pool.length) return null;
   const T = tiers   || ENTITY_TIERS;
   const W = luckTierWeights(weights || ENTITY_TIER_W).slice();
-  // A pool with no BOTTOM tiers (Flow's rare-or-better Tricks) used to roll
+  // A pool with no BOTTOM tiers (e.g. a pool that has run out of commons) used to roll
   // common 71% of the time, find nothing at or below it and fall through to a
   // FLAT pick - which made legendaries several times likelier than the table
   // says (r408). Tiers below the lowest one present are dropped from the roll,

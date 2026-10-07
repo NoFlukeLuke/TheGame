@@ -142,6 +142,7 @@ const PORTRAIT_PREVIEW_CFG = {
   minVisibleFrac: 0.55,    // least of each overlapped card that must stay showing
   minW:           26,      // never end up smaller than this
   cardScale:      0.85,    // r486: owner, the preview cards 15% smaller on a phone
+  stackedFill:    0.90,    // r515: stacked bars, card height as a share of the bar's
 };
 
 function fitPortraitPreviewCards() {
@@ -190,7 +191,12 @@ function fitPortraitPreviewCards() {
   // Widest card the row can hold with every card at least minVisibleFrac visible.
   const wByWidth  = avail / (1 + (n - 1) * cfg.minVisibleFrac);
   const wByHeight = Math.min(stripH * cfg.vFill, availH - DNC_CHROME) * cfg.aspect;
-  const w = Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight) * cfg.cardScale));
+  // r515 (owner): stacked bars have the room, so a card is 90% of the bar's
+  // height (no cardScale), still narrowed if the hand would not fit.
+  const stacked = document.body.classList.contains('pt-stacked') && host;
+  const w = stacked
+    ? Math.max(cfg.minW, Math.floor(Math.min(wByWidth, host.clientHeight * cfg.stackedFill * cfg.aspect)))
+    : Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight) * cfg.cardScale));
   const h = Math.round(w / cfg.aspect);
 
   // Pitch between cards: as much as the row affords, capped at a normal gap.

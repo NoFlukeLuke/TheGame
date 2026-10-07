@@ -1533,15 +1533,13 @@ function flowrClearStack() {
 // ══════════════════════════════════════════════
 let _flowrStepOffers = null;
 
-// RARE OR BETTER. The owner asked for "uncommon or better"; this game's tiers
-// are common / rare / epic / legendary (r197 merged mythic into legendary and
-// there has never been an uncommon), so the rung above common is RARE.
-// SURVIVAL_GRID_OFFER is excluded: it rides the trick pool for its odds and is
-// not a Trick (js/survival.js says so in as many words).
+// Every tier, commons included, on the ordinary rarity roll (owner, r515:
+// only the boss reward grid lifts the floor). SURVIVAL_GRID_OFFER is excluded:
+// it rides the trick pool for its odds and is not a Trick (js/survival.js says
+// so in as many words).
 function flowrTrickPool() {
   try {
-    return survivalBuildPools().trick.filter(t =>
-      !t._gridPick && (typeof tierId === 'function' ? tierId(t.tier) : t.tier) !== 'common');
+    return survivalBuildPools().trick.filter(t => !t._gridPick);
   } catch (e) { return []; }
 }
 
@@ -1581,7 +1579,7 @@ function flowrBuildOffers(kind) {
       flowrDrawThree(survivalBuildPools().knack, k => k.rarity || 'common')
         .forEach(k => out.push(survivalMakeOption('knack', k)));
     } else if (kind === 'tricks') {
-      flowrDrawThree(flowrTrickPool(), t => t.tier || 'rare')
+      flowrDrawThree(flowrTrickPool(), t => t.tier || 'common')
         .forEach(t => out.push(survivalMakeOption('trick', t)));
     } else if (kind === 'improve') {
       // Owned, improvable, all three types - the same draw the improve reward

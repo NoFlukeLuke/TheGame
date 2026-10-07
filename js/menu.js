@@ -1,4 +1,4 @@
-const BUILD = "2026-10-06 · r514 · console mode: reward confetti goes under the housing";
+const BUILD = "2026-10-07 · r515 · Flow Trick rewards roll commons again; stacked phone preview: bigger cards, name on the right";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

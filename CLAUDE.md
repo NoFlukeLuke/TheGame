@@ -867,3 +867,9 @@ the bottom, left column first.
 - **Printer notices**: a line hangs `holdPerLine` x (1 + 0.5 x how much longer than `avgChars` 26 it is); a tap pulls the slip; the pin keeps it up, pinned slips stack from the top and new slips hang below (`ptRestack`).
 - **Reward confetti** (r514): in console mode `flowrFxHousingMask` masks `#flowr-confetti` to the `MC_SCREENS` rects (`mask-clip: no-clip`, pieces leave the slot), so it shows only through screens and stays under the chip.
 - **Reward lasers**: `flowrFxOrigin` reads the zoom off `#grid-slot` (the chip arrives at scale .82, which put the first burst off centre). In console mode `flowrLasers` builds one wheel per `MC_SCREENS` screen (`.flz-clip`, z -1 in an isolated host, so under the screen's contents), beams the length of the whole stage, the housing hiding the rest. `flowrLasersClear` removes them.
+
+## r515 - Flow Trick rewards include commons; stacked phone preview
+- `flowrTrickPool` no longer drops commons (owner: only the boss reward grid lifts the floor). Every
+  Flow reward is the ordinary `ENTITY_TIER_W` roll; measured 4,000 Trick screens: 71 / 22 / 5.6 / 1.3%.
+- Stacked bars (`body.pt-stacked`): preview cards are `stackedFill` (90%) of the bar's height and the
+  hand name is a column on the right (`--pt-name-w` 30%), family over size (css/tray-zigzag.css).

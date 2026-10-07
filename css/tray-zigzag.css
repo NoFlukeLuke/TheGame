@@ -31,3 +31,26 @@ body.pt-stacked #stage:not(.landscape) #knack-carousel-wrap {
 body.pt-stacked #stage:not(.landscape) #trick-tray-list { max-height: 70px; }
 body.pt-stacked #stage:not(.landscape) #trick-tray-list .trick-tray-chip { width: 66px; height: 63px; }
 body.pt-stacked #stage:not(.landscape) #panel-swap-btn { top: calc(50% + 7px); }
+
+/* r515 (owner): stacked bars, the hand preview. The bar is full width, so the
+   hand name moves out of the bottom band to a column on the right, family over
+   size, and the cards take 90% of the bar's height (fitPortraitPreviewCards,
+   js/portrait-panel.js, reads --pt-name-w off the bar for its width). */
+body.pt-stacked #stage:not(.landscape) #hand-preview-area {
+  --pt-name-w: 30%; padding-top: 0; padding-bottom: 0; justify-content: center;
+}
+body.pt-stacked #stage:not(.landscape) #selected-cards.dnc-active,
+body.pt-stacked #stage:not(.landscape) #selected-cards.dnc-active .dnc-track { padding-top: 0; padding-bottom: 0; }
+body.pt-stacked #stage:not(.landscape) #selected-cards { width: calc(100% - var(--pt-name-w)); }
+body.pt-stacked #stage:not(.landscape) #hand-name {
+  left: auto; right: 24px; top: 0; bottom: 0; width: calc(var(--pt-name-w) - 24px);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  font-size: 12px; line-height: 1.2; white-space: normal; text-overflow: clip;
+}
+body.pt-stacked #stage:not(.landscape) #hand-name.hn-layered { font-size: 10px; }
+body.pt-stacked #stage:not(.landscape) #hand-name .hn-l,
+body.pt-stacked #stage:not(.landscape) #hand-name .hn-l b,
+body.pt-stacked #stage:not(.landscape) #hand-name .hn-l i,
+body.pt-stacked #stage:not(.landscape) #hand-name .hn-plus { display: block; }
+body.pt-stacked #stage:not(.landscape) #hand-name .hn-l + .hn-l,
+body.pt-stacked #stage:not(.landscape) #hand-name .hn-l i { margin-left: 0; }
