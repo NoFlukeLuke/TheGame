@@ -1,4 +1,4 @@
-const BUILD = "2026-10-07 · r515 · Flow Trick rewards roll commons again; stacked phone preview: bigger cards, name on the right";
+const BUILD = "2026-10-08 · r516 · CLAUDE.md notes r503 and r504 put back in build order (docs)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
