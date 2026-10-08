@@ -565,6 +565,20 @@ function openShopGrid() {
   const svPick = document.getElementById('survival-pick-overlay');
   if (svPick && svPick.classList.contains('show')) svPick.classList.add('sv-peek');
   renderShopGrid(true);
+  shopHintMaybePrint();
+}
+
+// r517 (owner): on a phone the multi-buy discount is a PRINTED notice, not a line in the
+// preview tray. Every shop visit for the first SHOP_HINT_FIRST, then SHOP_HINT_CHANCE of them.
+const SHOP_HINT_KEY = 'lethe.shopHint.v1', SHOP_HINT_FIRST = 5, SHOP_HINT_CHANCE = 0.15;
+function shopHintText() { return `Buy connected items: −${Math.round(shopGridDiscountRate() * 100)}% per extra item`; }
+function shopHintMaybePrint() {
+  if (document.getElementById('stage')?.classList.contains('landscape')) return;   // landscape shows it in the readout
+  let n = 0;
+  try { n = +localStorage.getItem(SHOP_HINT_KEY) || 0; } catch (e) {}
+  if (n >= SHOP_HINT_FIRST && fxRandom() >= SHOP_HINT_CHANCE) return;
+  try { localStorage.setItem(SHOP_HINT_KEY, String(n + 1)); } catch (e) {}
+  showMessage(shopHintText(), 'var(--c-mint)');
 }
 // Dev-panel + earlier hook both call this name.
 function openShopGridPreview() { openShopGrid(); }
@@ -1291,7 +1305,10 @@ function renderShopCostReadout() {
       ? `<div class="sc-line"><span>${rows === 1 ? '1 row' : rows + ' rows'}</span><b>${rows} ♻</b></div>`
         + `<div class="sc-line"><span>Discards</span><b>${(typeof discards === 'number') ? discards : 0}</b></div>`
       : n === 0
-      ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>−${Math.round(shopGridDiscountRate()*100)}% per extra item</span></div>`
+      // A phone prints the discount as a notice instead (shopHintMaybePrint).
+      ? (document.getElementById('stage')?.classList.contains('landscape')
+          ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>−${Math.round(shopGridDiscountRate()*100)}% per extra item</span></div>`
+          : `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`)
       : (discount > 0
           ? `<div class="sc-line"><span>${n} items</span><span><s>💰${base}</s> <b>💰${total}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
           : `<div class="sc-line"><span>${n} item</span><b>💰${total}</b></div>`)

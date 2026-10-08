@@ -13,7 +13,7 @@ counter that visibly moved.
 New notices: `showMessage` / `refuse` to print, `noteMessage` to stay quiet.
 The dev panel's own messages always print.
 
-## Printed (212)
+## Printed (213)
 | where | text |
 |---|---|
 | boss-effects.js:207 |  Objective ${before.toLocaleString()} → ${roundGoal.toLocaleString()} |
@@ -201,6 +201,7 @@ The dev panel's own messages always print.
 | shop-grid-preview.js:1142 | refuse A row label only trades with another row label |
 | shop-grid-preview.js:1157 | refuse Those two are different widths |
 | shop-grid-preview.js:1186 | refuse rows.length > 1 ? `Needs ${rows.length} discards` : 'No discards left'); |
+| shop-grid-preview.js:581 | Buy connected items: −${rate}% per extra item (phone only: the first 5 shop visits, then 15% of them) |
 | sleights-runtime.js:120 | refuse ${def.name} is spent |
 | sleights-runtime.js:163 |  ${def?.name // 'Sleight'} discards itself |
 | sleights-runtime.js:330 |  🔪 Whetstone +${fed} mult |

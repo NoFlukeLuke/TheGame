@@ -73,8 +73,9 @@ function zigzagTrickTray(list, track, chips) {
     if (slide(step) > 0) step = n > 3 ? (W - 2 * w - 2) / (n - 3) : step;
     step = Math.max(step, w * 0.2);
   }
-  const res = slide(step), rowW = res + w + (n - 1) * step;
-  const x0 = Math.max(0, (W - rowW) / 2) + Math.min(res, Math.max(0, W - w - (n - 1) * step)), y0 = Math.max(0, (H - (h + drop)) / 2);
+  // r517 (owner): left-aligned, not centred. Only the slide's reserve sits left of the first tile.
+  const res = slide(step);
+  const x0 = Math.min(res, Math.max(0, W - w - (n - 1) * step)), y0 = Math.max(0, (H - (h + drop)) / 2);
   chips.forEach((c, i) => {
     c.style.width = w.toFixed(1) + 'px'; c.style.height = h.toFixed(1) + 'px';
     c.style.left = (x0 + i * step).toFixed(1) + 'px';

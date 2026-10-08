@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r516 · CLAUDE.md notes r503 and r504 put back in build order (docs)";
+const BUILD = "2026-10-08 · r517 · phone: preview tray loses its inner frame, shop discount is a printed notice, Tricks left-aligned";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

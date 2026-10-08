@@ -937,10 +937,11 @@
   /* --fan-step is the visible width of each tucked tile, measured and set by
      fanTrickTray(): --fan-gap is the space between tiles, POSITIVE when they all
      fit (an ordinary row) and NEGATIVE when they have to tuck over each other.
-     Right-aligned so the NEWEST Trick is always the fully visible one. */
+     Left-aligned (owner, r517); a tucked row fills the width, so the NEWEST Trick
+     is still the fully visible one. */
   #stage:not(.landscape) #trick-tray-list {
     flex: 0 0 auto; max-height: 62px; overflow: hidden;
-    display: flex; align-items: center; justify-content: flex-end;
+    display: flex; align-items: center; justify-content: flex-start;
     gap: 0; width: 100%;
   }
   #stage:not(.landscape) #trick-tray-list .chip-marquee { gap: 0; }

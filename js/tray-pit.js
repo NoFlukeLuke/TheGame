@@ -162,7 +162,9 @@ function trayPitApply() {
   html.classList.toggle('mc-cream', trayPit.on === 3);
   let tag = document.getElementById('tray-pit-style');
   if (!tag) { tag = document.createElement('style'); tag.id = 'tray-pit-style'; document.head.appendChild(tag); }
-  const sel = TRAY_FX_IDS.map(id => `html.tray-pit #stage #${id}`).join(', ');
+  // r517 (owner): on a phone the hand preview sits INSIDE #hand-preview-area's pit, so it
+  // takes no pit of its own (it drew a second, smaller frame round the cards).
+  const sel = TRAY_FX_IDS.map(id => id === 'selected-cards' ? `html.tray-pit #stage.landscape #${id}` : `html.tray-pit #stage #${id}`).join(', ');
   tag.textContent = `${sel} { --tray-set: 0 0 transparent !important; --tray-rings: 0 0 transparent !important;
     background: var(--pit-bg, none) 0 0 / 100% 100% no-repeat, #070604 !important; }`;
   trayFxEach(el => { el._pitKey = ''; trayPitPaint(el); });
