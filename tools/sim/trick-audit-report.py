@@ -67,7 +67,64 @@ DEPENDS = {
 }
 
 # Plain-terms reads for the Tricks the doc discusses (written after the run).
-NOTES = {}
+NOTES = {
+    # Flat or growing mult on every hand: base mult is only 2-8, so each +1 mult is worth ~30% of a typical hand.
+    'nines_mult': 'Four 9s and it is +36 mult on every hand for the rest of the run (x11.6 on a typical hand by itself).',
+    'wellspring': 'Counts Focus made all run, before you took it too: about +33 mult at level 12 and +69 at level 24, on every hand.',
+    'rising_tide': 'A Common worth +11 mult at level 12 and +23 at level 24, on every hand. Grows with the run, never fades.',
+    'old_growth': 'Every card adds its own pips to mult: a 3-card Run adds 20-30 mult.',
+    'compound_mult': '+0.1 mult a hand forever: +4.8 after 48 hands, +14 after 144. No cap.',
+    'tens_mult': '+3 mult per 9 cards discarded, forever. Slow start, no cap.',
+    'hyper_focus': 'At least +2 mult per card on every hand, more with Focus (+9 mult on a typical hand).',
+    'swift': '+5 mult per 10 seconds into the level: about +8 mult on an average hand, more in slow levels.',
+    'still_water': '+5 mult per 10 seconds without a swap, so it is The Swift when you do not swap.',
+    'combo_score': 'A Common worth about +7 mult on an average hand (+4 per hand type played earlier in the level).',
+    'magician': '+3 mult per Sleight owned (the sim assumes 2). A Common that scales with another system.',
+    'kindred': '+5 mult per card in the largest set: +15 on Three of a Kind. Strong for a Common.',
+    'balanced_diet': '+5 mult per card on two-suit hands, which most 2-3 card hands are. Strong for a Common.',
+    'row_power': '+10 mult per card for one row: +50 mult on a 5-card row. Twice Stand Up for the same shape turned sideways.',
+    'stand_up': 'Same effect as Stand Up (Common), sold as a Rare.',
+    'column_rush': 'Same effect as Stand-Up (Rare).',
+    'full_color': '+16 pips and +16 mult per card on a four-suit hand: +80 mult on five cards. Rare on random hands, huge when built.',
+    'number_crunch': '+5 mult per card on hands with 4+ ranks: +25 mult on a 5-card hand.',
+    # Multipliers with loose conditions
+    'twinners': 'x3 pips on any hand with a set in it, and a Pair counts: on most hands.',
+    'double_bloom': 'x1.5 mult on any hand with a pair in it: on most hands.',
+    'what_odds': 'x1.7 mult per odd card, compounding: x14 on five odd cards, more with replays.',
+    'knave_power': 'x2 pips per Jack on the BOARD: x3.4 on a random board (1.8 Jacks), x16 with all four held, x2 more per extra Jack.',
+    'club_double': 'Doubles per club scored this level: mild on random hands, past a billion pips by hand 6 of an all-club level.',
+    'relentless': 'Per spade card, x0.05 per spade scored since taken: x5 per spade after 100 spades, so a 5-spade hand is x3,000+.',
+    'two_corners': 'x4 mult per corner card once 2+ corners: x16 on any 5-card line along an edge.',
+    'five_stack': '+20 pips +5 mult +1 Focus per card in 5-card hands: the strongest per-card 5-card payout.',
+    'interest': 'x1 to x3 pips by credits held: x1.0-1.5 at 0-50 credits.',
+    'obsessed': 'Per heart, x(1 + credits/100) mult: x1.5 per heart at 50 credits.',
+    # Timing Tricks that read the round's thirds
+    'early_bird': 'Flow measures the round from the clock when the level started, so nearly every hand is in the first third: always on.',
+    'night_owl': 'Flow measures the round from the clock when the level started: the last third almost never comes.',
+    'closing_time': 'Flow measures the round from the clock when the level started: the last third almost never comes.',
+    'eye_of_storm': 'Flow measures the round from the clock when the level started: the middle third only comes in long, late levels.',
+    'patience_reward': 'Needs a 15-second gap between hands, which a fast player rarely leaves.',
+    # Flushes in Flow
+    'critical': 'Only 5-card Flushes are hands in Flow (Flush of 3 and 4 are off), so it rarely fires.',
+    'enriched': 'Only 5-card Flushes are hands in Flow, so it rarely fires.',
+    'tidal_force': 'Only 5-card Flushes are hands in Flow, so it rarely fires.',
+    'deluge': 'Only 5-card Flushes are hands in Flow, so it rarely fires.',
+    # Needs an enabler
+    'deep_breath': 'Needs a pause Trick; nothing alone.', 'albatross': 'Needs a pause Trick; nothing alone.',
+    'kingfisher': 'Needs a pause or rewind Trick; nothing alone.', 'patient_rulers': 'Needs a pause or rewind this level.',
+    'phoenix': 'Needs a pause Trick; with one it applies Focus twice on paused hands.',
+    'hummingbird': 'Needs pause or rewind Tricks; counts every one this run.',
+    'feng_shui': 'Needs other marked-line Tricks.', 'rowcol_perm_double': 'Needs a marked row and a marked column from other Tricks.',
+    'frozen_moment': 'Needs a pause Trick; nothing alone.', 'temporal_rift': 'Needs a marked row and column from other Tricks.',
+    # Focus
+    'expanse': 'Halves your Focus each time you hit the limit, for +1 limit: lowers average Focus.',
+    'release_valve': 'Drops 16 Focus each time you hit the limit, for a swap and a discard: lowers average Focus.',
+    'acorns': '+0.1 Focus per card scored, paid every hand, forever: the best Focus Trick.',
+    'first_play': 'Front-loads Focus on a level\'s first hands, where it is lowest.',
+    'life_lessons': '+1 Focus limit per level, no cap: small in a short window, grows over a long run.',
+    'rain_check': 'Its seconds cost a skipped reward each time.',
+    'double_jeopardy': '2 secret cells a level, 15s pause each: about 18s a level.',
+}
 
 def ptype(tid):
     if tid in DEAD: return 'Dead in Flow'

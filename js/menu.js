@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r519 · the Trick audit tool (tools/sim/trick-audit.js)";
+const BUILD = "2026-10-08 · r520 · Trick audit: plain-terms notes for the sheet";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
