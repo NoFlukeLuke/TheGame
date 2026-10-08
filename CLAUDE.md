@@ -891,3 +891,12 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
   `fillGridHoles` drops it once the deck has cards again.
 - Fall challenge cards (`colfall` / `rowhit`) read IMPACT N×: the card falling OR a card landing on
   it counts, for both kinds, once per fall (`crAfterFall`). Placement and locked lines unchanged.
+
+## r523 - pause menu NEW RUN; the Knock-On knack
+- **New Run** (pause menu, `restartRun`, js/game-control.js): one confirm, then a reload like Home with a
+  `lethe.newRun.v1` note in sessionStorage (mode id + picker answers). Bootstrap reads and clears it
+  (`takeNewRunRequest`), keeps the main menu hidden and starts the same mode on `load` (`launchNewRun`).
+- **Knock-On** (rare knack, `knock_on`): `incrementLimit` calls `knockOnLimit(id)`; any limit but Focus Cap
+  going up raises one more random limit (weighted, not Focus Cap, not the same one), with a printed notice.
+  The second raise does not knock on. A multi-step grant knocks on once (`incrementLimit(id, { noKnockOn })`).
+  The Bargain-style event that writes `limits.swaps` directly calls `knockOnLimit('swaps')` itself.

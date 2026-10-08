@@ -648,7 +648,7 @@ function _generateRewardContent() {
     return {
       icon: '⬆️', label: `+${gain}${u} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true,
       desc: `${def.label}: ${cur}${u} → ${next}${u} · permanent`,
-      apply: () => { for (let k = 0; k < steps; k++) incrementLimit(id); onLimitChanged?.(id); noteMessage(`+${gain}${u} ${def.label}!`, 'var(--gold)'); }
+      apply: () => { for (let k = 0; k < steps; k++) incrementLimit(id, { noKnockOn: k > 0 }); onLimitChanged?.(id); noteMessage(`+${gain}${u} ${def.label}!`, 'var(--gold)'); }
     };
   }
   function makeGrowthTile()      { const o = Math.random()<0.5 ? ['grid_rows','grid_cols'] : ['grid_cols','grid_rows']; for (const id of o) { const t = makeLimitUpgradeTile(id, 1); if (t) return t; } return null; }

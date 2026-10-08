@@ -598,7 +598,7 @@ function buildBargainTrades() {
       desc:'Three of your BUFFED cards leave your deck, with everything you put into them. Gain +2 swaps per round permanently, and a random card scores 40 more pips.',
       cost:'Costs 3 buffed cards',
       apply:()=>{ const take=pickBuffedCards(3); removeDeckCards(take);
-                  limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current);
+                  limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); knockOnLimit('swaps');
                   const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); noteMessage(`+2 swaps \u00b7 ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
   }
 

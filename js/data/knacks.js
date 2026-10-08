@@ -72,6 +72,7 @@ const KNACK_POOL = [
   // ── Focus-payout knacks (r123): fire when you reach max Focus ──
   { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you hit your Focus limit, gain 8 credits, then Focus resets to a third of the limit.' },
   { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your Focus limit is 10 lower. At the end of each round, gain credits equal to half your current Focus.' },
+  { id:'knock_on',     emoji:'🔗',  name:'Knock-On',      rarity:'rare', desc:'Whenever a limit other than Focus Cap goes up, another random limit goes up too.' },
   { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'rare', desc:'Each time you hit your Focus limit, the limit drops by 5. If you hit it during a round, a random limit rises by 1 at the end of that round.' },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 to your Focus limit while owned.' },

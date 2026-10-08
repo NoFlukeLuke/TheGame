@@ -1,7 +1,11 @@
 // Static HUD labels carry data-lex and are written from the live vocabulary
 // (js/labels.js). Runs before the menu so nothing paints in the wrong wording.
 if (typeof applyLexiconToDOM === 'function') applyLexiconToDOM();
-initMainMenu();
+// The pause menu's NEW RUN reloads with a note asking for a run of the same mode
+// (js/game-control.js). The menu never shows; the run starts once the page is built.
+const _newRunReq = (typeof takeNewRunRequest === 'function') ? takeNewRunRequest() : null;
+if (!_newRunReq) initMainMenu();
+else document.getElementById('main-menu-overlay')?.classList.remove('show');   // starts shown in index.html
 // The red SCORE / GOAL chips (and the top-bar act readout) reopen a boss's
 // briefing. Bound once - each handler no-ops unless a boss is running.
 if (typeof bindBossBriefReopen === 'function') bindBossBriefReopen();
@@ -158,4 +162,9 @@ document.addEventListener('webkitfullscreenchange', onFsChange);
 
 // Last line on purpose: tells the boot watchdog (inline in index.html) that
 // every script loaded and bootstrap ran to the end (r470).
+if (_newRunReq) {
+  const _go = () => { try { launchNewRun(_newRunReq); } catch (e) { console.error('[new run] failed', e); initMainMenu(); } };
+  if (document.readyState === 'complete') _go(); else window.addEventListener('load', _go, { once: true });
+}
+
 window.LETHE_BOOT_OK = true;

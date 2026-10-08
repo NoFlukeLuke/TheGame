@@ -174,8 +174,9 @@ function earlyLimitOfferId() {
   return open.length ? open[Math.floor(Math.random() * open.length)] : null;
 }
 
-// Helper: increment a limit by its step, returns true if successful
-function incrementLimit(id) {
+// Helper: increment a limit by its step, returns true if successful.
+// opts.noKnockOn: a later step of one multi-step grant, so Knock-On fires once per grant.
+function incrementLimit(id, opts) {
   const l = limits[id];
   if (!l || l.current >= l.max) return false;
   const _was = l.current;
@@ -185,7 +186,22 @@ function incrementLimit(id) {
   // r399: in Survival and Flow a Starting Time pick is also paid onto the clock
   // you are playing (js/flow-mode.js). Everywhere else it is a round-START figure.
   if (id === 'round_time' && typeof roundTimeLimitGained === 'function') roundTimeLimitGained(l.current - _was);
+  if (!(opts && opts.noKnockOn)) knockOnLimit(id);
   return true;
+}
+// Knock-On (rare knack): a limit other than Focus Cap goes up, and another one
+// (weighted like Growth Spurt, never Focus Cap, never the same one) goes up too.
+// The second raise does not knock on again.
+let _knockOnBusy = false;
+function knockOnLimit(id) {
+  if (_knockOnBusy || id === 'focus_cap' || typeof hasKnack !== 'function' || !hasKnack('knock_on')) return;
+  const pool = LIMITS_DEF.filter(d => d.id !== id && d.id !== 'focus_cap' && limits[d.id] && limits[d.id].current < limits[d.id].max);
+  const pick = pool.length ? pickWeightedLimits(1, pool)[0] : null;
+  if (!pick) return;
+  const say = `🔗 Knock-On: ${limitDeltaText(pick.id, 1)} ${pick.label}`;
+  _knockOnBusy = true;
+  try { incrementLimit(pick.id); } finally { _knockOnBusy = false; }
+  showMessage(say, 'var(--gold)');
 }
 // Helper: decrement a limit by its step (for sacrifice), returns true if
 // successful. Floors at the limit's own `min`, not at 0 - see the LIMITS_DEF note.

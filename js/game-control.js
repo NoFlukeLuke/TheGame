@@ -125,6 +125,33 @@ function quitToMainMenu() {
   location.reload();
 }
 
+// NEW RUN from the pause menu: a fresh run of the same mode, no menu in between.
+// Reloads like Home, so nothing from the abandoned run (timers, boss effects, a
+// takeover screen) can leak into the new one, and leaves a note in sessionStorage
+// that bootstrap reads to skip the menu and start the run. A picker-built mode is
+// not in MODES after a reload, so its answers go in the note.
+const NEW_RUN_KEY = 'lethe.newRun.v1';
+function restartRun() {
+  if (!confirm('Start a new run of this mode? The current run ends here.')) return;
+  const m = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) || MODES.normal;
+  try { sessionStorage.setItem(NEW_RUN_KEY, JSON.stringify({ mode: m.id, picker: m.picker ? { ...m.picker } : null })); } catch (e) {}
+  location.reload();
+}
+// Read once at boot and cleared at once, so a later reload is an ordinary one.
+function takeNewRunRequest() {
+  try {
+    const raw = sessionStorage.getItem(NEW_RUN_KEY);
+    sessionStorage.removeItem(NEW_RUN_KEY);
+    const req = raw ? JSON.parse(raw) : null;
+    return (req && req.mode) ? req : null;
+  } catch (e) { return null; }
+}
+function launchNewRun(req) {
+  if (req.picker && typeof pickerBuildMode === 'function') MODES.custom = pickerBuildMode(req.picker);
+  ACTIVE_MODE = MODES[req.mode] || MODES.normal;
+  startGame();
+}
+
 // The four secondary chips (Stats / Deck / Time / Limits) were merged into the single
 // RECORDS hub in r155 (js/records.js) - a large tabbed pop-up that pauses the round.
 // showStats() / showDeck() and the Time + Limits pop-ups are kept: the dev panel and
