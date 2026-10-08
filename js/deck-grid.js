@@ -885,6 +885,7 @@ function conformGridToDims() {
 // column packs down past its holes (voids skipped) and the cards that are left
 // fill each column from the bottom, so the empty cells end up at the top.
 function fillGridHoles() {
+  if (typeof reshuffleClearIfStocked === 'function') reshuffleClearIfStocked();
   let holes = 0;
   for (let r = 0; r < gridRows; r++) {
     if (!gridData[r]) gridData[r] = [];

@@ -423,6 +423,8 @@ function cardCan(card, action) {
   if (!card) return false;
   // A challenge card (js/challenge-round.js) only sits on the board and falls.
   if (card._isChallenge) return action === 'fall' || action === 'render';
+  // The Reshuffle card (js/reshuffle-card.js) is double-tapped, never played or moved.
+  if (card._isReshuffle) return action === 'fall' || action === 'render';
   if (card._isStone) {
     // Stones can be drawn, fall, render, and be swapped. Nothing else.
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';

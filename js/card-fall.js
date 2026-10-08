@@ -23,6 +23,8 @@ function renderCardAppearance(card, r, c, {
                + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : ''),
              innerHTML: crCardFaceHTML(card) };
   }
+  // ── Reshuffle card (js/reshuffle-card.js) ──
+  if (card._isReshuffle) return { className: 'card stone-card rs-card', innerHTML: reshuffleFaceHTML() };
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
     return {
@@ -356,6 +358,9 @@ async function removeAndFall(removingCells, mode = 'play') {
       if (card && !isCellVoid(finalRow, col)) gridData[finalRow][col] = card;
     });
   }
+
+  // Deck dry and the board thin: the Reshuffle card drops into a hole the deck could not fill.
+  if (mode !== 'match3' && typeof reshuffleMaybeDeal === 'function') { const _rs = reshuffleMaybeDeal(); if (_rs) newCards.push(_rs); }
 
   // Settle challenge card into the first empty cell of its column (data is now final)
   if (challengeCard) {

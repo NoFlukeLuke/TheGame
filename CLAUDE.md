@@ -873,3 +873,21 @@ the bottom, left column first.
   Flow reward is the ordinary `ENTITY_TIER_W` roll; measured 4,000 Trick screens: 71 / 22 / 5.6 / 1.3%.
 - Stacked bars (`body.pt-stacked`): preview cards are `stackedFill` (90%) of the bar's height and the
   hand name is a column on the right (`--pt-name-w` 30%), family over size (css/tray-zigzag.css).
+
+## r517 - phone trays (owner)
+On a phone the hand preview (`#selected-cards`) takes no pit / console screen of its own (it sat
+inside `#hand-preview-area`'s); in console mode the glass layers go on `#hand-preview-area`. The
+shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: first 5 visits, then
+15%, `lethe.shopHint.v1`); landscape keeps the readout. The phone Trick tray is left-aligned
+(flat row and zigzag).
+
+## r518 - the Reshuffle card (`js/reshuffle-card.js`); fall challenges take an IMPACT
+- Deck empty, played cards to shuffle back, fewer than `RESHUFFLE_BOARD_MAX` (18) cards on the
+  board, none already there: `removeAndFall` deals a RESHUFFLE? PAY 45s card into a hole the deck
+  could not fill (lowest hole of the emptiest column, after every deck card of that fall). A board
+  object (`_isStone` + `_isReshuffle`, `_temp`): falls and renders only. Double-tap
+  (`reshuffleTap`, from `onCardTap`): pays `RESHUFFLE_SECONDS`, `flushPlayedDeck()`, leaves through
+  `removeAndFall` 'discard', which refills every hole. Refused at 45s or less on the clock.
+  `fillGridHoles` drops it once the deck has cards again.
+- Fall challenge cards (`colfall` / `rowhit`) read IMPACT N×: the card falling OR a card landing on
+  it counts, for both kinds, once per fall (`crAfterFall`). Placement and locked lines unchanged.

@@ -192,8 +192,8 @@ function crReqShort(q) {
     case 'size':    return `${n}× ${q.per}+ CARDS`;
     case 'big':     return `${n.toLocaleString()} IN 1 HAND`;
     case 'types':   return `${n} HAND TYPES`;
-    case 'colfall': return `FALL ${n}×`;
-    case 'rowhit':  return `HIT ${n}×`;
+    case 'colfall':
+    case 'rowhit':  return `IMPACT ${n}×`;
   }
   return '';
 }
@@ -207,8 +207,9 @@ function crReqText(q, tier) {
     case 'size':    return `Score ${n} hands of ${q.per} or more cards.`;
     case 'big':     return `Score ${n.toLocaleString()} or more in one hand.`;
     case 'types':   return `Score ${n} different hand types.`;
-    case 'colfall': return `Make this card fall ${n} times. No discards in its column.`;
-    case 'rowhit':  return `Land ${n} falling cards on this card. No discards in its row.`;
+    // r517 (owner): either kind takes an IMPACT both ways: the card falls, or a card lands on it.
+    case 'colfall': return `Impact this card ${n} times: make it fall, or land a card on it. No discards in its column.`;
+    case 'rowhit':  return `Impact this card ${n} times: land a card on it, or make it fall. No discards in its row.`;
   }
   return '';
 }
@@ -416,8 +417,8 @@ function crOnHand(hand, handCells, finalScore) {
 
 // ── Fall cards ──────────────────────────────────────────────────────────────
 // removeAndFall snapshots the fall cards before it moves anything and compares
-// at its tail: a column card that moved down fell once; a row card whose cell
-// above holds a different card after the fall was hit once.
+// at its tail. r517: an IMPACT is either - the card moved down, or the cell above it
+// holds a different card - for both kinds, and counts once per fall.
 function crBeforeFall() {
   crFallSnap = crCards().filter(([, , cd]) => cd.cr.kind === 'colfall' || cd.cr.kind === 'rowhit')
     .map(([r, c, cd]) => ({ id: cd._id, r, c, above: r > 0 ? (gridData[r - 1]?.[c]?._id ?? null) : null }));
@@ -430,8 +431,8 @@ function crAfterFall() {
     const [r, c, cd] = h, q = cd.cr;
     if (q.done) continue;
     let hit = false;
-    if (q.kind === 'colfall' && r > s.r) hit = true;
-    if (q.kind === 'rowhit' && r > 0) { const now = gridData[r - 1]?.[c]?._id ?? null; hit = now != null && now !== s.above; }
+    if (r > s.r) hit = true;
+    else if (r > 0) { const now = gridData[r - 1]?.[c]?._id ?? null; hit = now != null && now !== s.above; }
     if (!hit) continue;
     q.prog++;
     crAdvance(cd);

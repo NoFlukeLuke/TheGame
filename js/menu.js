@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r517 · phone: preview tray loses its inner frame, shop discount is a printed notice, Tricks left-aligned";
+const BUILD = "2026-10-08 · r518 · the Reshuffle card; fall challenges count an impact either way";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
