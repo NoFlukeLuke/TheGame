@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r518 · the Reshuffle card; fall challenges count an impact either way";
+const BUILD = "2026-10-08 · r519 · the Trick audit tool (tools/sim/trick-audit.js)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

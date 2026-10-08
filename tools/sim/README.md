@@ -64,3 +64,44 @@ the review at 8.2x (shipped r278) = 41-64% across two sweeps. Survival: 30-35%
 growth = 0-1/100 (the 5th boss sits at level ~25-30, unreachable at that
 compounding); 22% = 22/100; shipped r278 is 25% = ~9/100 (the bot is weakest in
 survival's 120s format, so its floor is lowest there).
+
+## Trick audit (r519): which Tricks are out of line for their rarity
+
+`trick-audit.js` scores the same hands with every on/off combination of a
+5-Trick loadout through the real `calcScore`, and splits each hand's score
+fairly between its Tricks (Shapley values: a Trick's credit is its added score
+averaged over every order the five could have been added in; the credits add up
+exactly to the hand's score above its no-Trick score).
+
+```
+node tools/sim/trick-audit.js --passes loadouts --out main.json            # ~75 min on 4 cores
+node tools/sim/trick-audit.js --passes focus,time,hold,levels,pairs --out extra.json
+python3 tools/sim/trick-audit-report.py main.json extra.json --out trick-audit.xlsx
+```
+
+- **loadouts**: Flow's Trick pool shuffled and dealt five at a time, 30 deals,
+  so every Trick sits in 30 loadouts. 100 shared 5x5 boards x 10 hands: the
+  "any hand" set (a random size 2-5, then a random real hand of that size, the
+  same hands for every loadout) and the "planned" set (each board's best hand
+  for that loadout). Each hand is scored 32 times.
+- **focus**: each Trick alone through the real `generateHandFocus` / `addFocus`
+  / `onFocusMaxed` / `focusDecayTick`, 150 runs of 8 six-hand levels. The
+  no-Trick run also sets the Focus each loadout hand is scored at.
+- **time**: seconds (pause + rewind), credits and stock a hand, per Trick.
+- **hold**: scaling Tricks alone after 0-144 hands held, and by hand position.
+- **levels**: each Trick alone at levels 4 / 12 / 24.
+- **pairs**: every pair of Tricks alone together on 200 hands; the extra
+  multiplier a pair makes beyond each one alone.
+
+What the sim SETS rather than plays (the `DEFAULTS` block in trick-audit.js,
+all overridable with `--cfg '{...}'`): level 12, quarter 2 (QRL 2), six hands a
+level, ~6s a hand (1.5s minimum), a level starting with 45-300s on Flow's
+clock, 15s of reward screens between levels, 25% swap / 15% discard (3 cards)
+chance before a hand, 0-50 credits, 2 Sleights owned with 2 charges missing,
+scaling Tricks held 48 hands, a deck with 4 cards at +10 pips and 2 at +4 mult.
+Runs are tapped in rank order where the board allows (Rogue Wave). Mirror is
+tilted at its better neighbour. Pause Tricks feed a simplified pause model
+(`AUD_handPause`: Cuckoo and card time buffs left out). Royal Favour and Ace
+Absorb reshape the deck and are not scored; Wild Side and Wait For Iiiit never
+pay in Flow (no reward grid). The sim replaces `hasTrick` with a set lookup and
+silences notices and audio; nothing in the game is changed.
