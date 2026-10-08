@@ -93,7 +93,7 @@ NOTES = {
     'twinners': 'x3 pips on any hand with a set in it, and a Pair counts: on most hands.',
     'double_bloom': 'x1.5 mult on any hand with a pair in it: on most hands.',
     'what_odds': 'x1.7 mult per odd card, compounding: x14 on five odd cards, more with replays.',
-    'knave_power': 'x2 pips per Jack on the BOARD: x3.4 on a random board (1.8 Jacks), x16 with all four held, x2 more per extra Jack.',
+    'knave_power': 'x2 pips per Jack on the BOARD: x3.4 on average (a Jack is on the board 90% of the time), x16 with all four held, x2 more per extra Jack.',
     'club_double': 'Doubles per club scored this level: mild on random hands, past a billion pips by hand 6 of an all-club level.',
     'relentless': 'Per spade card, x0.05 per spade scored since taken: x5 per spade after 100 spades, so a 5-spade hand is x3,000+.',
     'two_corners': 'x4 mult per corner card once 2+ corners: x16 on any 5-card line along an edge.',
@@ -121,7 +121,7 @@ NOTES = {
     # Focus
     'expanse': 'Halves your Focus each time you hit the limit, for +1 limit: lowers average Focus.',
     'release_valve': 'Drops 16 Focus each time you hit the limit, for a swap and a discard: lowers average Focus.',
-    'acorns': '+0.1 Focus per card scored, paid every hand, forever: the best Focus Trick.',
+    'acorns': '+0.1 Focus per card scored, paid every hand, forever: the best Focus Trick (+30%).',
     'first_play': 'Front-loads Focus on a level\'s first hands, where it is lowest.',
     'life_lessons': '+1 Focus limit per level, no cap: small in a short window, grows over a long run.',
     'rain_check': 'Its seconds cost a skipped reward each time.',
@@ -351,10 +351,10 @@ def write_xlsx(path, rows, avg, combos, ex, cfg, d, r2, focus_base, tmeta):
     order = {'Score': 0, 'Focus': 1, 'Time': 2, 'Credits / stock': 3, 'Dead in Flow': 4, 'Not measured': 5}
     data_rows = sorted(rows, key=lambda r: (order[r['type']], -(max(r.get('ratio_any') or -9, r.get('ratio_plan') or -9))))
     headers = ['Trick', 'Rarity', 'Description (as the game prints it)', 'Pays in', 'Flag',
-               'Ratio vs rarity avg (any hand)', 'Ratio vs rarity avg (planned)',
+               'Ratio vs rarity avg (random hand)', 'Ratio vs rarity avg (chosen hand)',
                'Points added per hand (typical)', 'Pips added per hand', 'Mult added per hand',
-               'Score multiplier (any hand)', 'Score multiplier (planned)',
-               'Pays on % of hands (any)', 'Pays on % of hands (planned)', 'Multiplier when it pays (any)',
+               'Score multiplier (random hand)', 'Score multiplier (chosen hand)',
+               'Pays on % of hands (random)', 'Pays on % of hands (chosen)', 'Multiplier when it pays (random)',
                'Focus / time / credit effect', 'Compared against', 'Rests on', 'Read']
     data = []
     for r in data_rows:
@@ -390,7 +390,7 @@ def write_xlsx(path, rows, avg, combos, ex, cfg, d, r2, focus_base, tmeta):
         'Trick audit, Flow, level 12, 5x5 board. One row per Trick Flow can offer.',
         'Ratio: the Trick\'s score lift divided by the average lift of its rarity (Score Tricks), or of its kind (Focus, Time). 1 = average, 0.75 = a quarter weaker, 5 = five times the average.',
         'Score multiplier: how much the Trick multiplies a hand\'s score on average (x1.50 = +50%), with its share of any combo split fairly with its partners.',
-        'Any hand = the same 1,000 hands for every loadout. Planned = the best hand on each board for that loadout.',
+        'Random hand = the same 1,000 hands for every loadout. Chosen hand = the best hand on each board for that loadout.',
     ])
     n = len(data)
     for i in range(n):
@@ -408,7 +408,7 @@ def write_xlsx(path, rows, avg, combos, ex, cfg, d, r2, focus_base, tmeta):
     for (ty, tier), g in sorted(avg.items(), key=lambda kv: (kv[0][0], (TIERS + ['all']).index(kv[0][1]))):
         data.append([ty, 'All' if tier == 'all' else TIER_WORD[tier], g['n'], rnd(1 + g['any']),
                      rnd(1 + g['plan']) if g['plan'] is not None else None, rnd(g['pts'], 0) if g['pts'] is not None else None])
-    sheet(ws, ['Pays in', 'Rarity', 'Tricks', 'Average multiplier (any hand)', 'Average multiplier (planned)',
+    sheet(ws, ['Pays in', 'Rarity', 'Tricks', 'Average multiplier (random hand)', 'Average multiplier (chosen hand)',
                'Average points added per hand (mean)'], data, [14, 12, 8, 16, 16, 18],
           notes=['The averages each ratio is measured against. Dead and unmeasured Tricks are left out.',
                  'Focus and Time rows: the multiplier is the score the effect is worth (Focus multiplier, or more hands in the same clock).'])
@@ -421,7 +421,7 @@ def write_xlsx(path, rows, avg, combos, ex, cfg, d, r2, focus_base, tmeta):
                 for c in combos[:60]]
         sheet(ws, ['Trick A', 'Trick B', 'Extra multiplier together', 'A alone', 'B alone', 'Both together', 'A x B (if they did not interact)'],
               data, [22, 22, 14, 10, 10, 12, 16],
-              notes=['Every pair of Tricks scored alone together on 200 shared hands. Extra multiplier = both together / (A alone x B alone).',
+              notes=['Every pair of Tricks scored on the same 200 hands with just those two held. Extra multiplier = both together / (A alone x B alone).',
                      'Above 1: the pair feeds itself (one makes the other\'s condition, replays feed a per-replay multiplier...). The top 60 pairs.'])
 
     # ── 4. Scaling over time ──
@@ -465,9 +465,9 @@ def write_xlsx(path, rows, avg, combos, ex, cfg, d, r2, focus_base, tmeta):
 
     # ── 6. Detail ──
     ws = wb.create_sheet('Detail')
-    headers = ['Trick', 'Rarity', 'Pays in', 'Loadouts', 'Points mean (any)', 'Points median of loadouts (any)', 'Pips mean', 'Mult mean',
-               'Multiplier (any)', 'Std error (log)', 'Lowest loadout x', 'Highest loadout x', 'Alone: points added', 'Added last: points',
-               'Biggest single-hand share (any)', 'Points mean (planned)', 'Multiplier (planned)', 'Biggest single-hand share (planned)',
+    headers = ['Trick', 'Rarity', 'Pays in', 'Loadouts', 'Points mean (random)', 'Points median of loadouts (random)', 'Pips mean', 'Mult mean',
+               'Multiplier (random)', 'Std error (log)', 'Lowest loadout x', 'Highest loadout x', 'Alone: points added', 'Added last: points',
+               'Biggest single-hand share (random)', 'Points mean (chosen)', 'Multiplier (chosen)', 'Biggest single-hand share (chosen)',
                'Regression multiplier', 'Ratio on points basis']
     data = []
     for r in sorted(rows, key=lambda r: r['name'].lower()):
@@ -478,7 +478,7 @@ def write_xlsx(path, rows, avg, combos, ex, cfg, d, r2, focus_base, tmeta):
                      rnd(r.get('pts_plan_mean'), 0), rnd(r.get('x_plan'), 3), rnd(r.get('mx_plan'), 0), rnd(r.get('reg_x'), 3), rnd(r.get('ratio_pts'))])
     sheet(ws, headers, data, [22, 10, 12, 9] + [12] * 16,
           notes=[f'Regression check: each loadout\'s average log lift regressed on the Tricks it held explains {r2 * 100:.0f}% of the variation between loadouts.',
-                 'Points mean is pulled up by a few huge hands; the Tricks sheet shows the median over the Trick\'s 30 loadouts.'])
+                 'Points mean is pulled up by a few huge hands; the Tricks sheet shows the median over the Trick\'s 30 or more loadouts.'])
 
     # ── 7. Settings ──
     ws = wb.create_sheet('Settings')

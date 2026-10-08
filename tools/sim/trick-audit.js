@@ -4,7 +4,7 @@
 // same number of loadouts: the pool is shuffled and dealt five at a time, once
 // per deal.
 //
-//   node tools/sim/trick-audit.js [--deals 40] [--grids 100] [--workers 4]
+//   node tools/sim/trick-audit.js [--deals 30] [--grids 100] [--workers 4]
 //                                 [--out tools/sim/out/trick-audit.json] [--cfg '{"level":12}']
 //
 // Output: one JSON file with the settings, the pool (live names, rarities and
@@ -126,7 +126,7 @@ function runPool(cfg, jobs, nWorkers, label) {
 async function main() {
   const cfg = Object.assign({}, DEFAULTS, JSON.parse(arg('cfg', '{}')));
   cfg.grids = parseInt(arg('grids', cfg.grids), 10);
-  const deals = parseInt(arg('deals', '40'), 10);
+  const deals = parseInt(arg('deals', '30'), 10);
   const nWorkers = parseInt(arg('workers', '4'), 10);
   const out = arg('out', path.join(__dirname, 'out', 'trick-audit.json'));
   const passes = (arg('passes', 'loadouts,focus,time,hold,levels,pairs')).split(',');

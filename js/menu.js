@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r521 · Trick audit results: the r518 sheet and raw data";
+const BUILD = "2026-10-08 · r522 · Trick audit: review fixes to the sheet labels and notes";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

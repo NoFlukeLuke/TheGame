@@ -80,9 +80,9 @@ python3 tools/sim/trick-audit-report.py main.json extra.json --out trick-audit.x
 ```
 
 - **loadouts**: Flow's Trick pool shuffled and dealt five at a time, 30 deals,
-  so every Trick sits in 30 loadouts. 100 shared 5x5 boards x 10 hands: the
-  "any hand" set (a random size 2-5, then a random real hand of that size, the
-  same hands for every loadout) and the "planned" set (each board's best hand
+  so every Trick sits in 30 to 34 loadouts. 100 shared 5x5 boards x 10 hands: the
+  "random hand" set (a random size 2-5, then a random real hand of that size, the
+  same hands for every loadout) and the "chosen hand" set (each board's best hand
   for that loadout). Each hand is scored 32 times.
 - **focus**: each Trick alone through the real `generateHandFocus` / `addFocus`
   / `onFocusMaxed` / `focusDecayTick`, 150 runs of 8 six-hand levels. The
@@ -116,13 +116,14 @@ script reads them as they are). Headlines, at level 12 in Flow:
   flat-pips Trick keeps ~1/5 of its level-4 value at level 24; flat mult keeps
   all of it.
 - Rarity barely tracks power: the average Score Trick lifts a random hand
-  x1.40 Common, x1.44 Rare, x1.56 Epic, x1.43 Legendary (chosen hands: 1.51 /
-  1.79 / 1.77 / 2.29).
-- 18 Score Tricks are 3x+ their rarity average; 49 Tricks are under 1/5 of it.
+  x1.40 Common, x1.44 Rare, x1.56 Epic, x1.43 Legendary (chosen hands: 1.50 /
+  1.79 / 1.77 / 2.29), and the median Score Trick only x1.11.
+- 18 Score Tricks are 3x+ their rarity average; 38 are under 1/5 of it (49
+  Tricks counting Focus and Time Tricks against their own kind).
   Loadouts holding Cloud Nine, Wellspring, Old Growth, Rising Tide or Jackpot
   lift a hand x10.8 (median); all others x1.8.
 - Focus averages x1.32 with no Trick (it resets every level, and a level's
-  first hand earns no speed bonus). Acorns is the best Focus Trick (+31%);
+  first hand earns no speed bonus). Acorns is the best Focus Trick (+30%);
   Expanse (-8%) and Release Valve (-14%) lower it.
 - The Hummingbird + any every-hand pause/rewind Trick is uncapped (x29 with
   Hoarder House).
