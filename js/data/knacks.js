@@ -75,7 +75,7 @@ const KNACK_POOL = [
   { id:'knock_on',     emoji:'🔗',  name:'Knock-On',      rarity:'rare', desc:'Whenever a limit other than Focus Cap goes up, another random limit goes up too.' },
   { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'rare', desc:'Each time you hit your Focus limit, the limit drops by 5. If you hit it during a round, a random limit rises by 1 at the end of that round.' },
   // ── Focus-capacity knacks (r104) ──
-  { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 to your Focus limit while owned.' },
+  { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 to your Focus limit.' },
   // ── Focus RATE batch (r180) - these scale how fast Focus ACCRUES. Every knack
   // above raises the ceiling; nothing raised the rate. See focusRateMods().
   { id:'long_fuse',       emoji:'🧨',  name:'Long Fuse',        rarity:'rare', desc:'You have 2× as long to earn the same Focus speed bonus.' },

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r523 · Pause menu New Run; Knock-On knack";
+const BUILD = "2026-10-08 · r524 · Stimulants: drop \"while owned\"";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
