@@ -3,12 +3,14 @@
 
     python3 tools/sim/trick-audit-report.py MAIN.json [EXTRA.json] --out trick-audit.xlsx [--csv out.csv]
 
+The r518 run's raw data is kept gzipped in tools/sim/out/ (either form loads).
+
 MAIN.json holds the loadout pass (and the run settings); EXTRA.json, when given,
 holds the focus / time / hold / pairs passes. Everything printed in the sheet is
 computed here from those files, except the per-Trick classification below
 (what a Trick pays in) and the short plain-terms reads in NOTES.
 """
-import argparse, json, math, statistics
+import argparse, gzip, json, math, statistics
 from collections import defaultdict
 
 import numpy as np
@@ -198,8 +200,9 @@ def main():
     ap.add_argument('main'); ap.add_argument('extra', nargs='?')
     ap.add_argument('--out', required=True); ap.add_argument('--csv'); ap.add_argument('--json')
     a = ap.parse_args()
-    d = json.load(open(a.main))
-    ex = json.load(open(a.extra)) if a.extra else {}
+    load = lambda p: json.load(gzip.open(p, 'rt') if p.endswith('.gz') else open(p))
+    d = load(a.main)
+    ex = load(a.extra) if a.extra else {}
     for k in ('focus', 'time', 'hold', 'pairs', 'focusBase', 'levels'):
         if k in d and k not in ex: ex[k] = d[k]
     cfg = d['cfg']

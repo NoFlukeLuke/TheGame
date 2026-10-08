@@ -105,3 +105,26 @@ tilted at its better neighbour. Pause Tricks feed a simplified pause model
 Absorb reshape the deck and are not scored; Wild Side and Wait For Iiiit never
 pay in Flow (no reward grid). The sim replaces `hasTrick` with a set lookup and
 silences notices and audio; nothing in the game is changed.
+
+### Results at r518 (`tools/sim/out/trick-audit-r518.xlsx`)
+
+Raw data: `out/trick-audit-r518-main.json.gz` and `-extra.json.gz` (the report
+script reads them as they are). Headlines, at level 12 in Flow:
+
+- A typical hand with no Tricks scores ~620 points (111 pips x 3.8 mult).
+  +1 mult adds 31% to it, +10 pips adds 10%. Only pips grow with level, so a
+  flat-pips Trick keeps ~1/5 of its level-4 value at level 24; flat mult keeps
+  all of it.
+- Rarity barely tracks power: the average Score Trick lifts a random hand
+  x1.40 Common, x1.44 Rare, x1.56 Epic, x1.43 Legendary (chosen hands: 1.51 /
+  1.79 / 1.77 / 2.29).
+- 18 Score Tricks are 3x+ their rarity average; 49 Tricks are under 1/5 of it.
+  Loadouts holding Cloud Nine, Wellspring, Old Growth, Rising Tide or Jackpot
+  lift a hand x10.8 (median); all others x1.8.
+- Focus averages x1.32 with no Trick (it resets every level, and a level's
+  first hand earns no speed bonus). Acorns is the best Focus Trick (+31%);
+  Expanse (-8%) and Release Valve (-14%) lower it.
+- The Hummingbird + any every-hand pause/rewind Trick is uncapped (x29 with
+  Hoarder House).
+- A ridge regression of each loadout's log lift on its Tricks explains 95% of
+  the variance and matches the Shapley numbers (r = 0.99).
