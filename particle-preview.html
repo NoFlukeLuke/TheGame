@@ -145,8 +145,11 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
   <div class="row"><label>Spin peak</label><input type="range" id="spin" min="-180" max="180" step="5" value="30" oninput="sync()"><span class="val" id="spinV"></span></div>
   <div class="row"><label>Spin settle</label><input type="range" id="spinEnd" min="-180" max="180" step="5" value="-5" oninput="sync()"><span class="val" id="spinEndV"></span></div>
   <div class="row"><label>Land fade</label><input type="range" id="fade" min="0" max="100" step="5" value="100" oninput="sync()"><span class="val" id="fadeV"></span></div>
+  <div class="row"><label>Fade ms</label><input type="range" id="fadeMs" min="0" max="400" step="10" value="60" oninput="sync()"><span class="val" id="fadeMsV"></span></div>
   <div class="note">The spin PEAK is hit at the halfway point; the plate then settles back to the
-    settle angle on the way down - a flick of the wrist rather than a constant tumble.</div>
+    settle angle on the way down - a flick of the wrist rather than a constant tumble.
+    The plate is solid from its first frame and fades only in the last Fade ms (at most a
+    quarter of the flight).</div>
 
   <h2>PER KIND &mdash; shape, plate, ink</h2>
   <div class="note">A currency that would be mistaken for another one gets its own SHAPE or its own
@@ -194,7 +197,7 @@ const KINDS = {
 };
 const SHAPES = ['','diamond','square','circle','pill','none'];
 const DEFAULTS = { shape:'diamond', size:40, font:25.5, round:0, bw:0, bl:0, glow:30,
-                   ink:'#ffffff', dur:1440, pop:1.8, arc:0, spin:30, spinEnd:-5, fade:100,
+                   ink:'#ffffff', dur:1440, pop:1.8, arc:0, spin:30, spinEnd:-5, fade:100, fadeMs:60,
                    trail:4, trailLag:0.06, trailFade:0.42,
                    growStart:5, growStep:2.5, growMax:3,
                    colors:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.bg])),
@@ -219,7 +222,7 @@ function cfg(){
   return { shape:$('shape').value, size:num('size'), font:num('font'), round:num('round'),
     bw:num('bw'), bl:num('bl'), glow:num('glow'), ink:$('ink').value,
     dur:num('dur'), pop:num('pop'), arc:num('arc'), spin:num('spin'),
-    spinEnd:num('spinEnd'), fade:num('fade'),
+    spinEnd:num('spinEnd'), fade:num('fade'), fadeMs:num('fadeMs'),
     trail:num('trail'), trailLag:num('trailLag'), trailFade:num('trailFade'),
     growStart:num('growStart'), growStep:num('growStep'), growMax:num('growMax'),
     colors:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('c_'+k).value])),
@@ -227,7 +230,7 @@ function cfg(){
     inks:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('ko_'+k).checked ? $('k_'+k).value : ''])) };
 }
 function sync(){
-  ['size','font','round','bw','bl','glow','dur','pop','arc','spin','spinEnd','fade',
+  ['size','font','round','bw','bl','glow','dur','pop','arc','spin','spinEnd','fade','fadeMs',
    'trail','trailLag','trailFade','growStart','growStep','growMax']
     .forEach(id => { const el=$(id+'V'); if(el) el.textContent = $(id).value; });
   save();
@@ -266,13 +269,16 @@ function plateEl(c, kind, label, scale){
 function framesFor(c, x0, y0, dx, dy, scale){
   const base = `translate(${x0}px,${y0}px) translate(-50%,-50%)`;
   return [
-    { transform:`${base} scale(${.5*scale}) rotate(0deg)`, opacity:0, offset:0 },
-    { transform:`${base} translate(${dx*.12}px,${dy*.12 - c.arc*.5}px) scale(${c.pop*scale}) rotate(${c.spin*.5}deg)`, opacity:1, offset:.22 },
-    { transform:`${base} translate(${dx*.5}px,${dy*.5 - c.arc}px) scale(${scale}) rotate(${c.spin}deg)`, opacity:1, offset:.5 },
-    ...[.6,.7,.8,.9].map(o => { const t = (o-.5)/.5;
-      return { transform:`${base} translate(${dx*(.5+.5*t)}px,${dy*(.5+.5*t) - c.arc*(1-t)}px) scale(${scale*(1-.2*t)}) rotate(${c.spin+(c.spinEnd-c.spin)*t}deg)`, opacity:1 - c.fade/100*Math.pow(t,6), offset:o }; }),
-    { transform:`${base} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${c.spinEnd}deg)`, opacity:1 - c.fade/100, offset:1 },
+    { transform:`${base} scale(${.5*scale}) rotate(0deg)`, offset:0 },
+    { transform:`${base} translate(${dx*.12}px,${dy*.12 - c.arc*.5}px) scale(${c.pop*scale}) rotate(${c.spin*.5}deg)`, offset:.22 },
+    { transform:`${base} translate(${dx*.5}px,${dy*.5 - c.arc}px) scale(${scale}) rotate(${c.spin}deg)`, offset:.5 },
+    { transform:`${base} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${c.spinEnd}deg)`, offset:1 },
   ];
+}
+// Mirrors ptFadeFrames: the fade runs on its own linear clock, solid until the last fadeMs.
+function fadesFor(c){
+  const ms = Math.min(c.fadeMs, c.dur * .25);
+  return [ { opacity:1 }, { opacity:1, offset: 1 - ms/c.dur }, { opacity: 1 - c.fade/100 } ];
 }
 function fireOne(kind, label, srcEl, trail){
   const c = cfg(), K = KINDS[kind];
@@ -284,6 +290,7 @@ function fireOne(kind, label, srcEl, trail){
   const scale = blipScale(c);
   const frames = framesFor(c, x0, y0, dx, dy, scale);
   const tw = { duration:c.dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
+  const fades = fadesFor(c), fw = { duration:c.dur, easing:'linear', fill:'forwards' };
   const n = (trail === undefined) ? 0 : trail;
   // Furthest-back first: these are body-level siblings at one z-index, so DOM
   // order is paint order and the real plate has to go in last to sit on top.
@@ -292,11 +299,13 @@ function fireOne(kind, label, srcEl, trail){
     g.querySelector('.pt-box').style.opacity = (c.trailFade * (1 - (i-1)/n)).toFixed(3);
     document.body.appendChild(g);
     g.animate(frames, Object.assign({}, tw, { delay: c.dur*c.trailLag*i }));
+    g.animate(fades, Object.assign({}, fw, { delay: c.dur*c.trailLag*i }));
     setTimeout(()=>g.remove(), c.dur*(1+c.trailLag*i)+60);
   }
   const el = plateEl(c, kind, label, scale);
   document.body.appendChild(el);
   el.animate(frames, tw);
+  el.animate(fades, fw);
   setTimeout(()=>{ el.remove(); bump(K.target); }, c.dur);
 }
 function fireRewind(){ blipN = 0; fireOne('time', '+12s', document.getElementById('srcTrick'), cfg().trail); }
@@ -343,7 +352,7 @@ const PARTICLE_CFG = {
   font:  ${c.font},               // px, the label
   round: ${c.round}, borderW: ${c.bw}, borderLight: ${c.bl}, glow: ${c.glow},
   ink:   '${c.ink}',
-  flightMs: ${c.dur}, pop: ${c.pop}, arc: ${c.arc}, spin: ${c.spin}, spinEnd: ${c.spinEnd}, landFade: ${c.fade},
+  flightMs: ${c.dur}, pop: ${c.pop}, arc: ${c.arc}, spin: ${c.spin}, spinEnd: ${c.spinEnd}, landFade: ${c.fade}, fadeMs: ${c.fadeMs},
   shapes: { ${Object.entries(c.shapes).filter(([,v])=>v).map(([k,v])=>`${k}: '${v}'`).join(', ')} },
   inks:   { ${Object.entries(c.inks).filter(([,v])=>v).map(([k,v])=>`${k}: '${v}'`).join(', ')} },
   trails: { rewind: ${c.trail} }, trailLag: ${c.trailLag}, trailFade: ${c.trailFade},

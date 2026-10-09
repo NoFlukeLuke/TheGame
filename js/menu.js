@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r530 · Flow rewards sit in the play board's own box; names never break mid-word";
+const BUILD = "2026-10-09 · r531 · score plates stay solid and white until the last 60ms of their flight";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -230,6 +230,9 @@ stacks fire on the next firing and are then cleared; `_rank` is permanent. Force
   `[data-card-id]` elements.
 - **`render()` throws on a ragged `gridData`** (takeover screens resize `gridRows/gridCols`).
   Don't call it from between-screen code; `_devSafeRender` guards the dev panel.
+- **One global scope, so one name per function.** A second top-level `function x` in a later file
+  silently replaces the first everywhere (print-toast's `ptInk` blanked every score plate's ink for
+  ~100 builds, r531). Before adding a top-level name, `grep -rn "function name" js/`.
 - **Temporal dead zone:** reading a top-level `let`/`const` from another file before it is
   evaluated (or above its declaration in the same file) THROWS. `mult` does not exist inside
   `calcScore`'s card loop.
@@ -955,3 +958,12 @@ free slot (the second used to be lost at apply).
   tabs use that room). The pin lasts the Flow chain; `flowrFinish` lets go. Portrait never moved.
 - `fitEntityName` caps its width at the parent's content box and, for the shrink test, counts the
   trailing letter-spacing the browser wraps on ("Stimulants" 69.6 measured, 70 drawn, 69 box).
+
+## r531 - score plates: white numbers, solid until the end (`js/score-dance.js`)
+Two bugs made the plate numbers grey or off-colour. (1) `js/print-toast.js` (r433) defined its own
+`ptInk`, which replaced the plate's, so `--pt-ink` got a kind name ('pipAdd') and the label fell back to
+the legacy per-op text colour; it is `ptLineInk` now. (2) The fade lived in the flight's keyframes, so
+the flight's ease-out stretched "fade at the very end" over 74% of real flight time and the plate went
+see-through. The fade is its own linear animation now (`ptFadeFrames`): solid from the first frame,
+gone in the last `PARTICLE_CFG.fadeMs` (60, at most a quarter of the flight). `particle-preview.html`
+mirrors it (Fade ms knob). Time plates keep their black ink on white.

@@ -52,7 +52,9 @@ function ptLayer() {
 }
 
 // Ink: the notice's own UI colour, which is already bright enough for black paper.
-function ptInk(color) { return color || 'var(--cream, #f0e2c0)'; }
+// Not `ptInk`: that name is the score plate's (js/score-dance.js), and this file loads
+// later, so a second one replaced it and every plate number took a stray colour (r531).
+function ptLineInk(color) { return color || 'var(--cream, #f0e2c0)'; }
 
 function printToast(text, color, opts) {
   const o = opts || {};
@@ -76,7 +78,7 @@ function printToast(text, color, opts) {
   if (s && (now - s.opened > PT_CFG.groupMs || s.lines.length >= PT_CFG.maxLines)) ptPull(s);
   if (!_ptSlip) _ptSlip = ptNewSlip(layer, now);
   const slip = _ptSlip;
-  const line = { text: String(text), icon: o.icon || '', ink: ptInk(color), el: null, n: 1 };
+  const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1 };
   slip.lines.push(line); slip.queue.push(line);
   if (!slip.busy) ptPrintNext(slip);
   return slip.el;

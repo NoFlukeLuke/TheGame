@@ -92,6 +92,7 @@ const PARTICLE_CFG = {
   spin: 30,                  // peak rotation, reached at the HALFWAY point
   spinEnd: -5,               // where it settles by the landing
   landFade: 100,             // % faded out on arrival
+  fadeMs: 60,                // the fade takes only the last 60ms (never more than a quarter of the flight)
   // ── Per-kind overrides. The plate's job is to say WHAT changed before the
   // number is read, so a currency that would be mistaken for another one gets
   // its own shape or its own ink rather than one more shade of the same family.
@@ -483,15 +484,24 @@ function ptFrames(dx, dy, scale){
   const pop = ((C.pop === undefined) ? 1.2 : C.pop) * scale;
   const arc = C.arc || 0, mid = C.spin || 0;
   const end = (C.spinEnd === undefined) ? 0 : C.spinEnd;
-  const fade = (C.landFade === undefined) ? 100 : C.landFade;
   return [
-    { transform:`${B} scale(${.5*scale}) rotate(0deg)`, opacity:0 },
-    { transform:`${B} translate(${dx*.12}px,${dy*.12 - arc*.5}px) scale(${pop}) rotate(${mid*.5}deg)`, opacity:1, offset:.22 },
-    { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, opacity:1, offset:.5 },
-    ...[.6,.7,.8,.9].map(o => { const t = (o-.5)/.5;   // fade curve: t^6, almost nothing until the very end
-      return { transform:`${B} translate(${dx*(.5+.5*t)}px,${dy*(.5+.5*t) - arc*(1-t)}px) scale(${scale*(1-.2*t)}) rotate(${mid+(end-mid)*t}deg)`, opacity: 1 - fade/100*Math.pow(t,6), offset:o }; }),
-    { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)`, opacity: 1 - fade/100 },
+    { transform:`${B} scale(${.5*scale}) rotate(0deg)` },
+    { transform:`${B} translate(${dx*.12}px,${dy*.12 - arc*.5}px) scale(${pop}) rotate(${mid*.5}deg)`, offset:.22 },
+    { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, offset:.5 },
+    { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)` },
   ];
+}
+// The fade has its OWN linear clock (r531). Inside the flight's keyframes it rode the
+// flight's ease-out, which spends most of the real time on the last stretch of the
+// path, so a fade meant for the very end covered three quarters of the flight
+// (measured: 74% of frames under 98% opacity) and the white number took the colour
+// of whatever was behind it. Now the plate is solid from its first frame and fades
+// in the last `fadeMs`.
+function ptFadeFrames(dur){
+  const C = PARTICLE_CFG;
+  const fade = (C.landFade === undefined) ? 100 : C.landFade;
+  const ms = Math.min((C.fadeMs === undefined) ? 60 : C.fadeMs, dur * .25);
+  return [ { opacity:1 }, { opacity:1, offset: 1 - ms/dur }, { opacity: 1 - fade/100 } ];
 }
 
 // Throw a plate (and its ghosts) from rect `a` to rect `b`.
@@ -504,8 +514,9 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   const scale = (o.scale === undefined) ? 1 : o.scale;
   const x = a.left + a.width/2,  y = a.top + a.height/2;
   const dx = (b.left + b.width/2) - x, dy = (b.top + b.height/2) - y;
-  const frames = ptFrames(dx, dy, scale);
+  const frames = ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
   const tw = { duration: dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
+  const fw = { duration: dur, easing:'linear', fill:'forwards' };
   // GHOSTS. A rewind is the one payout that means "this already happened, and it
   // is happening again", so it is the one that gets an after-image. Appended
   // FURTHEST-BACK FIRST: these are body-level siblings at one z-index, so DOM
@@ -521,12 +532,14 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
     g.querySelector('.pt-box').style.opacity = (fade * (1 - (i-1)/trail)).toFixed(3);
     document.body.appendChild(g);
     anim(g, frames, Object.assign({}, tw, { delay: dur * lag * i }));
+    anim(g, fades, Object.assign({}, fw, { delay: dur * lag * i }));
     later(()=>g.remove(), dur * (1 + lag*i) + 60);
   }
   const el = ptPlateEl(kind, label, scale, color);
   el.style.left = x+'px'; el.style.top = y+'px';
   document.body.appendChild(el);
   anim(el, frames, tw);
+  anim(el, fades, fw);
   later(()=>el.remove(), dur + 60);
   return el;
 }
