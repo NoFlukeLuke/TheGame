@@ -144,6 +144,23 @@ function innerWidthOf(el, cs) {
   return Math.max(0, el.clientWidth - pad);
 }
 
+// True when the browser broke a word across two lines in el's text.
+function fitWordSplit(el) {
+  const t = el.firstChild;
+  if (!t || t.nodeType !== 3 || el.childNodes.length !== 1) return false;
+  const s = t.textContent, r = document.createRange();
+  let i = 0;
+  for (const w of s.split(' ')) {
+    if (w.length > 1) {
+      r.setStart(t, i); r.setEnd(t, i + w.length);
+      const rs = r.getClientRects();
+      if (rs.length > 1 && Math.abs(rs[0].top - rs[rs.length - 1].top) > 1) return true;
+    }
+    i += w.length + 1;
+  }
+  return false;
+}
+
 // Fit one element's text to its own box.
 //   maxLines  - how many lines the box can show (default 2)
 //   minPx     - hard floor for the font size (default 6)
@@ -214,6 +231,15 @@ function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
     guard++;
   }
 
+  // ── 2b. what was DRAWN (r532): no word may sit on two lines ──
+  // The passes above trust canvas metrics, and the first fit of a session can
+  // be off by the trailing letter-spacing ("Wave Amplification" at 9.5px drew
+  // 0.6px past its tile, and fitWrapIfClipped then let it break anywhere). So
+  // the laid-out text is read back and the size steps down while any word is
+  // split across lines or the glyphs spill past the box.
+  let g3 = 0;
+  while (fs > minPx && g3 < 12 && (fitWordSplit(el) || fitClipped(el))) { fs -= 0.5; el.style.fontSize = fs + 'px'; g3++; }
+
   // ── 3. last resort: TRUNCATE, never split ──
   // Some tiles are genuinely too small for some names - "Kaleidoscope" in a 47px
   // tray chip cannot be legible at any size that fits. The old fallback let the
@@ -241,6 +267,17 @@ function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
 // "the titles in the options frequently lose the beginning and end"). So the
 // drawn glyphs are measured against the box, and a name that still does not fit
 // RETURNS ONTO A SECOND LINE (the owner's pick over shrinking it further).
+// True when the drawn glyphs spill past the element's or its parent's box.
+function fitClipped(el) {
+  try {
+    const r = el.getBoundingClientRect(), pr = el.parentElement?.getBoundingClientRect() || r;
+    if (!r.width) return false;
+    const L = Math.max(r.left, pr.left), R = Math.min(r.right, pr.right);
+    const rg = document.createRange(); rg.selectNodeContents(el);
+    const g = rg.getBoundingClientRect();
+    return g.left < L - 0.5 || g.right > R + 0.5;
+  } catch (e) { return false; }
+}
 function fitWrapIfClipped(el) {
   try {
     // Against the PARENT's box as well as its own: a name in a centred flex

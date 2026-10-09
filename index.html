@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/survival.css">
 <link rel="stylesheet" href="css/flow-rewards.css">
+<link rel="stylesheet" href="css/screen-change.css">
 <link rel="stylesheet" href="css/grid-pick.css">
 <link rel="stylesheet" href="css/payout-grid.css">
 <link rel="stylesheet" href="css/records.css">
@@ -605,6 +606,13 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Stock shows as
       <select id="dev-sb-on" onchange="sbChoose(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">numbers</option><option value="rim">bulbs, tray bulbs on the rim</option><option value="below">bulbs, tray bulbs beneath the tray</option></select>
+    </label>
+
+    <div class="dev-subtitle">Screen change (Flow rewards)</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      The screen changes by
+      <select id="dev-screen-change" onchange="setScreenChange(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="turn">turning (the right side revolves)</option><option value="shutter">shutter (housing plates close over it)</option><option value="none">cutting (no move)</option></select>
+      <button class="dev-btn" onclick="screenChangePreview()">Preview</button>
     </label>
 
     <div class="dev-subtitle">Tray look</div>
@@ -1574,6 +1582,7 @@
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
 <script src="js/flow-rewards.js"></script>
+<script src="js/screen-change.js"></script>
 <script src="js/flow-mode.js"></script>
 <script src="js/goal-tuning.js"></script>
 <!-- picker-mode.js: after flow-mode.js, because modeHasNoRoundClock/pickerRoundSeconds

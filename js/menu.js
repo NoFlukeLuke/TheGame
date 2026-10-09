@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r531 · score plates stay solid and white until the last 60ms of their flight";
+const BUILD = "2026-10-09 · r532 · Flow rewards come in and out through a hardware screen change (turn or shutter)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

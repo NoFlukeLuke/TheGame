@@ -967,3 +967,21 @@ the flight's ease-out stretched "fade at the very end" over 74% of real flight t
 see-through. The fade is its own linear animation now (`ptFadeFrames`): solid from the first frame,
 gone in the last `PARTICLE_CFG.fadeMs` (60, at most a quarter of the flight). `particle-preview.html`
 mirrors it (Fade ms knob). Time plates keep their black ink on white.
+
+## r532 - the screen change: Flow rewards turn in (`js/screen-change.js`, `css/screen-change.css`)
+Owner: the game is a piece of hardware, so the screen cannot just become another screen.
+`screenChange(swap)` runs a first half, calls `swap()` when none of the screen shows, and runs the
+second half. Flow's chain enters through it (`flowrArm`'s first `flowrShowStep`) and leaves through
+it (`flowrFinish` -> `flowrFinishSwap`, guarded against a run quit mid-turn); steps inside the chain
+do not. Looks (dev -> Aesthetics -> Screen change, `lethe.screenChange.v1`, overrides only, Preview
+button): **turn** (default) revolves the right-hand side on a vertical axis like a wall panel:
+`SC_RIGHT_LAND` / `SC_RIGHT_PORT` parts, each `perspective() rotateY()` about one shared origin, plus
+`.sc-plate` (a stage-sized copy of #stage's background clipped to the panel) over `.sc-cavity`; edge-on
+the parts take `.sc-hide`, the transforms are cancelled and the swap is laid out untransformed, then
+the back comes round with an overshoot and a latch. **shutter**: two plates (housing texture in the
+machine skin, `.sc-skin`) slide out of the screen's recess (`#grid` + `#flowr-bg`), meet, swap, part.
+Sounds `sfxScreenTurn` / `sfxScreenLatch` (built on print-toast's `ptVoice`). Off for skip-transitions
+and reduced motion. Headless Chromium renders this at ~4fps; check it with CDP
+`Animation.setPlaybackRate`.
+`fitEntityName` also reads back what was drawn (`fitWordSplit`, `fitClipped`) and steps down while a
+word sits on two lines or the glyphs spill, before `fitWrapIfClipped` (which breaks anywhere) can fire.

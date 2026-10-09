@@ -548,8 +548,10 @@ function flowrArm(queue, counterOpts) {
   const _release = () => { const f = _introDone; _introDone = null; flowrIntro = null; f && f(); };
   flowrWhenBoardStill(() => {
     if (!flowrQueue) { _release(); return; }   // the run was abandoned while we waited
-    if (n > 1 || counterOpts) flowrPlayCounter(n, () => { flowrShowStep(); _release(); }, counterOpts);
-    else { flowrShowStep(); _release(); }
+    // The first step comes in through the machine's screen change (r532).
+    const first = () => (typeof screenChange === 'function' ? screenChange(flowrShowStep) : flowrShowStep());
+    if (n > 1 || counterOpts) flowrPlayCounter(n, () => { first(); _release(); }, counterOpts);
+    else { first(); _release(); }
   });
 }
 
@@ -843,8 +845,20 @@ function flowrEnterPanel() {
 function flowrFinish() {
   const _boss = flowrBossChain;
   flowrQueue = null; flowrIdx = 0;
-  if (typeof gridSlotPin === 'function') gridSlotPin(false);
   flowrBossChain = false; flowrBossLuckOn = false; flowrQueueOpen = false;
+  // The play board comes back through the machine's screen change (r532): the
+  // panel and its tabs leave with the reward screen, the level-up deals the
+  // board on the way home.
+  // A run quit or restarted while the panel turns must not get this level-up.
+  const run = gameStartTime;
+  const swap = () => {
+    if (gameStartTime !== run || document.getElementById('main-menu-overlay')?.classList.contains('show')) return;
+    flowrFinishSwap(_boss);
+  };
+  if (typeof screenChange === 'function') screenChange(swap); else swap();
+}
+function flowrFinishSwap(_boss) {
+  if (typeof gridSlotPin === 'function') gridSlotPin(false);
   flowrClearStack();
   // A goal-clear chain carries the score overflow and pays the time credits
   // exactly as a single pick would. A BOSS chain does neither - no goal was
