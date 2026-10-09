@@ -985,3 +985,11 @@ and reduced motion. Headless Chromium renders this at ~4fps; check it with CDP
 `Animation.setPlaybackRate`.
 `fitEntityName` also reads back what was drawn (`fitWordSplit`, `fitClipped`) and steps down while a
 word sits on two lines or the glyphs spill, before `fitWrapIfClipped` (which breaks anywhere) can fire.
+
+## r533 - a rewind plate throws no copies
+`PARTICLE_CFG.trails.rewind` 4 -> 0 (owner: no blending or fading). The ghost copies were see-through, so
+their numbers read grey, and with `fill: 'forwards'` each sat full size and unplaced beside the launch
+point until its delay ran out; copies now take `fill: 'both'` in case the trail is turned back on.
+A card's time buff is a REWIND (`permTime`, paid through `rewindTime` in `playHand`); The Vulture and
+Wait Four It put a PAUSE on a card (`_vulturePause`, paid through `pauseRound`). Both show as the same
+time mark on the card and the same white plate.

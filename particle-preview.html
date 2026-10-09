@@ -160,7 +160,7 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
   <div class="note">A rewind is the one payout that means "this already happened, and it is happening
     again", so it is the one that gets an after-image: N copies lagging behind the real plate, each
     fainter than the last.</div>
-  <div class="row"><label>Copies</label><input type="range" id="trail" min="0" max="8" step="1" value="4" oninput="sync()"><span class="val" id="trailV"></span></div>
+  <div class="row"><label>Copies</label><input type="range" id="trail" min="0" max="8" step="1" value="0" oninput="sync()"><span class="val" id="trailV"></span></div>
   <div class="row"><label>Lag</label><input type="range" id="trailLag" min="0.01" max="0.25" step="0.01" value="0.06" oninput="sync()"><span class="val" id="trailLagV"></span></div>
   <div class="row"><label>First ghost</label><input type="range" id="trailFade" min="0.05" max="1" step="0.01" value="0.42" oninput="sync()"><span class="val" id="trailFadeV"></span></div>
   <div class="btns"><button onclick="fireRewind()">Fire a rewind</button></div>
@@ -198,7 +198,7 @@ const KINDS = {
 const SHAPES = ['','diamond','square','circle','pill','none'];
 const DEFAULTS = { shape:'diamond', size:40, font:25.5, round:0, bw:0, bl:0, glow:30,
                    ink:'#ffffff', dur:1440, pop:1.8, arc:0, spin:30, spinEnd:-5, fade:100, fadeMs:60,
-                   trail:4, trailLag:0.06, trailFade:0.42,
+                   trail:0, trailLag:0.06, trailFade:0.42,
                    growStart:5, growStep:2.5, growMax:3,
                    colors:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.bg])),
                    shapes:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.shape||''])),
@@ -298,8 +298,8 @@ function fireOne(kind, label, srcEl, trail){
     const g = plateEl(c, kind, label, scale);
     g.querySelector('.pt-box').style.opacity = (c.trailFade * (1 - (i-1)/n)).toFixed(3);
     document.body.appendChild(g);
-    g.animate(frames, Object.assign({}, tw, { delay: c.dur*c.trailLag*i }));
-    g.animate(fades, Object.assign({}, fw, { delay: c.dur*c.trailLag*i }));
+    g.animate(frames, Object.assign({}, tw, { delay: c.dur*c.trailLag*i, fill: 'both' }));
+    g.animate(fades, Object.assign({}, fw, { delay: c.dur*c.trailLag*i, fill: 'both' }));
     setTimeout(()=>g.remove(), c.dur*(1+c.trailLag*i)+60);
   }
   const el = plateEl(c, kind, label, scale);

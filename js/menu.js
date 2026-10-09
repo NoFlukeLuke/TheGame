@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r532 · Flow rewards come in and out through a hardware screen change (turn or shutter)";
+const BUILD = "2026-10-09 · r533 · rewind plates throw no see-through copies";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -101,7 +101,8 @@ const PARTICLE_CFG = {
   // ── Ghost trail. A rewind is the one payout that means "this already happened,
   // and it is happening again", so it is the one that gets an after-image: N
   // copies of the plate lagging behind the real one, each fainter than the last.
-  trails:    { rewind: 4 },
+  // r533 (owner): off. The copies are see-through, so their numbers read grey.
+  trails:    { rewind: 0 },
   trailLag:  0.06,           // share of the flight each successive copy lags by
   trailFade: 0.42,           // opacity of the FIRST ghost; the rest fall off from it
   // ── Blip growth. A long tally is a crescendo: past the first `growStart`
@@ -531,8 +532,10 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
     // lightened any further, and time particles are white plates.
     g.querySelector('.pt-box').style.opacity = (fade * (1 - (i-1)/trail)).toFixed(3);
     document.body.appendChild(g);
-    anim(g, frames, Object.assign({}, tw, { delay: dur * lag * i }));
-    anim(g, fades, Object.assign({}, fw, { delay: dur * lag * i }));
+    // fill 'both': a copy waiting out its delay holds its first frame. With 'forwards'
+    // it sat full size and unplaced beside the launch point until it set off.
+    anim(g, frames, Object.assign({}, tw, { delay: dur * lag * i, fill: 'both' }));
+    anim(g, fades, Object.assign({}, fw, { delay: dur * lag * i, fill: 'both' }));
     later(()=>g.remove(), dur * (1 + lag*i) + 60);
   }
   const el = ptPlateEl(kind, label, scale, color);
