@@ -14,9 +14,11 @@
 //   AUDIT, which adds CR_MAP_BONUS_SECONDS past the round cap.
 //
 // FLOW (r450, owner spec) - `crFlow`
-//   Cards turn up on their own, CR_FLOW_PER_CYCLE per boss cycle, never within a
-//   minute of a boss (on either side), with a CR_FLOW_SPICE chance of a second one
-//   CR_FLOW_SPICE_DELAY seconds later. Each has its own CR_FLOW_TIME clock that
+//   Cards turn up on their own, at most CR_FLOW_PER_CYCLE per boss cycle, never within
+//   a minute of a boss (on either side), with a CR_FLOW_SPICE chance of a second one
+//   CR_FLOW_SPICE_DELAY seconds later. r528 (owner): a card comes near the START of a
+//   level: each level rolls CR_FLOW_LEVEL_CHANCE, and its warning appears
+//   CR_FLOW_LEVEL_DELAY seconds of live play in (crFlowLevelStart). Each has its own CR_FLOW_TIME clock that
 //   only runs while the round clock does, so it waits out a level-up and resumes.
 //   Solved: + credits, + seconds and +1 reward at the next level-up. Timed out:
 //   the same amounts taken away, and one fewer reward (never below one). The
@@ -45,7 +47,9 @@ const CR_TELE_MS = { seq: 3000, flow: 10000, spot: 10000 };   // how long the ce
 const CR_FLOW_TIME = 60;                 // a Flow card's own clock
 const CR_FLOW_PER_CYCLE = 2;             // cards per boss cycle
 const CR_FLOW_SPICE = 0.10;              // chance of a second card...
-const CR_FLOW_SPICE_DELAY = 15;          // ...this many seconds after the first
+const CR_FLOW_SPICE_DELAY = 15;
+const CR_FLOW_LEVEL_CHANCE = 0.5;        // r528: chance a Flow level opens with a card (while the cycle has room)
+const CR_FLOW_LEVEL_DELAY = [3, 8];      // ...whose warning appears this many live seconds into the level          // ...this many seconds after the first
 const CR_FLOW_BOSS_GAP = 60;             // no card within a minute of a boss
 const CR_FLOW_TIER_W = [45, 40, 15];     // how often a Flow card's ladder STARTS at difficulty 1 / 2 / 3
 // What a tier is worth by difficulty: credits and seconds in every mode. Taken at
@@ -55,7 +59,10 @@ const CR_FLOW_STAKES = { 1: { credits: 4, secs: 10 }, 2: { credits: 9, secs: 16 
 const CR_BONUS_D = 2;
 
 var crRound = null;   // `var`: read by name from files above this one (TDZ)
-var crFlow  = null;   // { plan:[clock values], spiceAt, rewardDelta } - in SAVE_VARS
+var crFlow  = null;   // { at: clock value | null, used: cards this cycle, rolled: level, spiceAt, rewardDelta } - in SAVE_VARS
+// r528: how often each hand type was played this run, so a challenge asks less for a
+// hand the player has not been making (crReqWeight). In SAVE_VARS.
+var crHandPlays = {};
 // A SPOT card: an ordinary round in a node mode (Classic, Guided, the Schedule)
 // has CR_SPOT_CHANCE of one challenge card, timed and refusable like Flow's.
 // { at: clock value to arrive at | null, minis } - in SAVE_VARS.
@@ -90,6 +97,12 @@ function crFindById(id) { const h = crCards().find(([, , cd]) => cd._id === id);
 function crCardEl(cd) { return cd ? document.querySelector(`#grid [data-card-id="${cd._id}"]`) : null; }
 function crOrdinary(cd) { return !!(cd && cd.rank && !cd._isStone && !cd._isSleight && !cd._isTrick); }
 function _crPick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function _crPickW(a, w) {
+  const ws = a.map(w), tot = ws.reduce((x, y) => x + y, 0);
+  let x = Math.random() * tot;
+  for (let i = 0; i < a.length; i++) { x -= ws[i]; if (x <= 0) return a[i]; }
+  return a[a.length - 1];
+}
 function _crRound10(n) { return Math.max(10, Math.round(n / 10) * 10); }
 
 // ── Arming the challenge round ──────────────────────────────────────────────
@@ -115,6 +128,7 @@ function crOnRoundStart() {
   // charging its penalty bursts (crFailing) leaves when they end.
   for (const [, , cd] of crCards()) if (cd.cr.done && !crQueue.includes(cd._id) && !crFailing.has(cd._id)) crQueue.push(cd._id);
   if (crQueue.length) setTimeout(crDrain, 400);   // a card solved by the last hand of a round
+  crFlowLevelStart();
   if (!crRound) { crSpotRoll(); return; }
   if (crRound.started || crRound.over) return;
   crRound.started = true;
@@ -169,7 +183,18 @@ function crRollReq(b) {
   let pool = [];
   for (let k = Math.max(1, Math.min(3, b)); k >= 1 && !pool.length; k--) pool = defs.filter(t => t.ladder[0].d === k);
   if (!pool.length) pool = defs;
-  return { ..._crPick(pool), tier: 0, banked: -1, prog: 0, seen: [] };
+  return { ..._crPickW(pool, crReqWeight), tier: 0, banked: -1, prog: 0, seen: [] };
+}
+// r528 (owner): the harder a hand, the less often a challenge names it; the hardest
+// come up 4x less often than the easy ones. A hand not played yet this run (once a few
+// hands are in) is asked CR_UNPLAYED_W as often again. Every other kind weighs 1.
+const CR_HAND_W = { 'Two Pair': 0.8, 'Run of 4': 0.8, 'Straight': 0.6, 'Flush': 0.5, 'Full House': 0.5,
+                    'Four of a Kind': 0.25, 'Straight Flush': 0.25 };
+const CR_UNPLAYED_W = 0.6, CR_UNPLAYED_AFTER = 5;
+function crReqWeight(t) {
+  if (t.kind !== 'hand') return 1;
+  const plays = crHandPlays || {}, total = Object.values(plays).reduce((a, b) => a + b, 0);
+  return (CR_HAND_W[t.hand] ?? 1) * (total >= CR_UNPLAYED_AFTER && !plays[t.hand] ? CR_UNPLAYED_W : 1);
 }
 function crTarget(q) { return q.ladder[q.tier].n; }
 function crDiff(q) { return q.ladder[q.tier].d; }
@@ -327,7 +352,7 @@ function crBeginArrival(src, tier, idx) {
 // Flow's warning MARKS A CELL (owner, r463). Plays and falls do not move it:
 // whatever card sits there when the count ends is the one the challenge card
 // replaces. Discarding the card IN that cell refuses the challenge
-// (crTeleOnDiscard, from removeAndFall's 'discard' mode). This only keeps the
+// (crTeleOnDiscard, from doDiscard: the player's own discard only, r528). This only keeps the
 // pulse drawn - a takeover screen empties #grid and takes it with it.
 function crTeleTrack() {
   for (const t of crTele) {
@@ -365,6 +390,18 @@ function crLand(t) {
   if (t.src === 'flow' && !crFlowMayRun()) { crTeleDrop(t); return; }
   if (t.src === 'spot' && !crSpotMayRun()) { crTeleDrop(t); return; }
   if (crBusy()) { t.timer = setTimeout(() => crLand(t), 250); return; }
+  // r528: a timed warning (Flow, spot) marks THE cell: the card lands there or not at all.
+  // It used to fall back to a fresh spot whenever the cell stopped qualifying, and
+  // crSpotsFor refuses a SELECTED cell, so lining up the marked card to discard it,
+  // or a Sleight falling into the cell, moved the card next door (or, with no spot
+  // free, dropped it without a word). A stone / challenge / Reshuffle card in the
+  // cell still stops it; a selection on the cell is let go.
+  if (crTimed(t.src)) {
+    crTeleDrop(t);
+    const cd = gridData[t.r]?.[t.c];
+    if (cd && !crOrdinary(cd) && !cd._isSleight) return;
+    selected = (selected || []).filter(([r, c]) => !(r === t.r && c === t.c));
+  } else {
   // The cell may have changed while it pulsed; fall back to a fresh spot. Its own
   // pulse comes off first, or crSpotsFor would count the cell as taken.
   crTeleDrop(t);
@@ -373,10 +410,19 @@ function crLand(t) {
     if (!s.length) { if (t.src === 'seq') setTimeout(() => crBeginArrival('seq', t.tier, t.idx), 600); return; }
     [t.r, t.c] = _crPick(s);
   }
+  }
   const old = gridData[t.r][t.c], oldEl = crCardEl(old);
   const place = () => {
-    if (!crOrdinary(gridData[t.r]?.[t.c])) { if (t.src === 'seq') setTimeout(() => crBeginArrival('seq', t.tier, t.idx), 400); return; }
-    discardToDrawPile(gridData[t.r][t.c]);
+    const cur = gridData[t.r]?.[t.c];
+    if (crTimed(t.src)) {
+      if (cur && !crOrdinary(cur) && !cur._isSleight) return;
+      if (cur?._isSleight) discardToPlayed(cur);   // keeps its charges (discardToDrawPile drops Sleights)
+      else if (cur) discardToDrawPile(cur);
+      selected = (selected || []).filter(([r, c]) => !(r === t.r && c === t.c));
+    } else {
+      if (!crOrdinary(cur)) { if (t.src === 'seq') setTimeout(() => crBeginArrival('seq', t.tier, t.idx), 400); return; }
+      discardToDrawPile(cur);
+    }
     const q = { ...t.q, src: t.src, idx: t.idx };
     if (crTimed(t.src)) { q.timeLeft = CR_FLOW_TIME; q.timeMax = CR_FLOW_TIME; }
     const card = { rank: '?', suit: 'stone', _isStone: true, _isChallenge: true, _id: `cr-${Date.now()}-${++crSeq}`, cr: q };
@@ -395,6 +441,8 @@ function crLand(t) {
 // ── Scoring a hand ──────────────────────────────────────────────────────────
 // playHand, after the score is committed and BEFORE the goal check.
 function crOnHand(hand, handCells, finalScore) {
+  if (!crHandPlays) crHandPlays = {};   // a save from before r528
+  if (hand) crHandPlays[hand] = (crHandPlays[hand] || 0) + 1;
   if (finalScore > 0) { crRecent.push(finalScore); if (crRecent.length > 12) crRecent.shift(); }
   const cards = (handCells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
   const touches = (r0, c0) => (handCells || []).some(([r, c]) => Math.abs(r - r0) + Math.abs(c - c0) === 1);
@@ -597,7 +645,7 @@ function crTick() {
 }
 
 // ── Flow spawning ───────────────────────────────────────────────────────────
-function crFlowState() { return crFlow || (crFlow = { plan: null, spiceAt: null, rewardDelta: 0 }); }
+function crFlowState() { return crFlow || (crFlow = { at: null, used: 0, rolled: null, spiceAt: null, rewardDelta: 0 }); }
 // May a Flow card arrive or keep pulsing right now? Never in a boss, the
 // walkthrough, or within a minute of either end of one.
 function crFlowMayRun() {
@@ -606,34 +654,26 @@ function crFlowMayRun() {
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;
   return roundSeconds >= CR_FLOW_TIME + CR_FLOW_BOSS_GAP;
 }
-// A plan is two session-clock values to arrive at, drawn once per boss cycle
-// from the stretch that leaves a minute after the last boss and a full card
-// plus a minute before the next.
-function crFlowPlanCycle() {
-  const S = (typeof flowSessionSeconds === 'function') ? flowSessionSeconds() : 300;
-  const hi = Math.min(roundSeconds, S) - CR_FLOW_BOSS_GAP, lo = CR_FLOW_TIME + CR_FLOW_BOSS_GAP + 5;
+// r528 (owner): cards come near the start of a level. Once per level (startRoundTimer
+// also runs on resumes), while the cycle has room, roll CR_FLOW_LEVEL_CHANCE; a hit
+// arrives CR_FLOW_LEVEL_DELAY live seconds in. The boss gaps still hold: nothing in the
+// first minute of a cycle, and crFlowMayRun at the moment it arrives.
+function crFlowLevelStart() {
+  if (typeof flowActive !== 'function' || !flowActive()) return;
+  if (typeof bossActive !== 'undefined' && bossActive) return;
   const st = crFlowState();
-  st.plan = [];
-  if (hi <= lo) return;
-  // Spaced so a planned card never lands while the one before it is still on
-  // its clock: each slot is drawn from what is left after reserving a full card
-  // (plus a beat) for every slot still to come.
-  const gap = CR_FLOW_TIME + 5;
-  let top = hi;
-  for (let i = 0; i < CR_FLOW_PER_CYCLE; i++) {
-    const room = top - lo - gap * (CR_FLOW_PER_CYCLE - 1 - i);
-    if (room < 0) break;
-    const t = Math.round(top - Math.random() * room);
-    st.plan.push(t);
-    top = t - gap;
-  }
-  st.spiceAt = null;
+  if (st.rolled === level) return;
+  st.rolled = level; st.at = null;
+  const S = (typeof flowSessionSeconds === 'function') ? flowSessionSeconds() : 300;
+  if ((st.used || 0) >= CR_FLOW_PER_CYCLE || roundSeconds > S - CR_FLOW_BOSS_GAP) return;
+  if (Math.random() >= CR_FLOW_LEVEL_CHANCE) return;
+  const [a, b] = CR_FLOW_LEVEL_DELAY;
+  st.at = roundSeconds - Math.round(a + Math.random() * (b - a));
 }
 function crFlowTick() {
   if (typeof flowActive !== 'function' || !flowActive()) return;
-  if (typeof bossActive !== 'undefined' && bossActive) return;   // never plan off the boss clock
+  if (typeof bossActive !== 'undefined' && bossActive) return;
   const st = crFlowState();
-  if (!st.plan) crFlowPlanCycle();
   if (!crFlowMayRun() || roundEnded) return;
   const live = crCards().filter(([, , cd]) => cd.cr.src === 'flow' && !cd.cr.done).length + crTele.filter(t => t.src === 'flow').length;
   if (st.spiceAt != null && roundSeconds <= st.spiceAt) {
@@ -641,9 +681,9 @@ function crFlowTick() {
     if (live < 2) crFlowSpawn(false);
     return;
   }
-  if (st.plan.length && roundSeconds <= st.plan[0]) {
-    st.plan.shift();
-    if (live < 2) crFlowSpawn(true);
+  if (st.at != null && roundSeconds <= st.at) {
+    st.at = null;
+    if (live < 2) { st.used = (st.used || 0) + 1; crFlowSpawn(true); }
   }
 }
 function crFlowSpawn(mayChain) {
@@ -659,10 +699,10 @@ function crFlowSpawn(mayChain) {
 function crFlowCancel() {
   crTele.filter(t => t.src === 'flow').forEach(crTeleDrop);
   for (const [r, c, cd] of crCards()) if (cd.cr.src === 'flow') gridData[r][c] = drawCard() || null;
-  const st = crFlowState(); st.plan = []; st.spiceAt = null;
+  const st = crFlowState(); st.at = null; st.spiceAt = null;
 }
-// flowEndBoss: the next cycle draws a fresh plan once the clock refills.
-function crFlowNewCycle() { crFlowState().plan = null; }
+// flowEndBoss: a fresh cycle. The level the boss interrupted does not roll again.
+function crFlowNewCycle() { const st = crFlowState(); st.used = 0; st.at = null; }
 // flowrArm: what this level-up's reward count gains or loses. Spent once.
 function crTakeFlowRewardDelta() {
   const st = crFlowState(), d = st.rewardDelta || 0;
@@ -799,7 +839,7 @@ function crTakePrize() {
 function crReset() {
   crFailGen++; crFailing.clear();   // drops a failed card's penalty bursts still to come
   crTele.forEach(t => { if (t.el) t.el.remove(); clearTimeout(t.timer); });
-  crRound = null; crArmed = null; crFlow = null; crSpot = null; crTele = []; crQueue = []; crRecent = []; crFallSnap = null;
+  crRound = null; crArmed = null; crFlow = null; crSpot = null; crHandPlays = {}; crTele = []; crQueue = []; crRecent = []; crFallSnap = null;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

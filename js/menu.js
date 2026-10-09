@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r527 · merge main; Reshuffle card costs 30s of Starting Time, not the clock (was r519 on the branch)";
+const BUILD = "2026-10-09 · r528 · challenge cards: Flow arrivals near level start, the marked cell never moves, hard hands asked less";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

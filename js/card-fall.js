@@ -208,7 +208,6 @@ async function removeAndFall(removingCells, mode = 'play') {
   console.log('[FALL] start', { mode, cells: removingCells.length });
   animating = true;
   if (typeof crBeforeFall === 'function') crBeforeFall();   // fall-type challenge cards count against this
-  if (mode === 'discard' && typeof crTeleOnDiscard === 'function') crTeleOnDiscard(removingCells);   // a discarded marked cell refuses a Flow challenge
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);

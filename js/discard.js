@@ -174,6 +174,9 @@ function doDiscard() {
   if (typeof cardStatesTouch === 'function') cardStatesTouch(discardedCards);
   const toRemove = [...selected];
   selected = [];
+  // r528: only the player's own DISCARD refuses a marked challenge cell (it used to be any
+  // 'discard'-mode fall: a Sleight leaving, a boss taking cards).
+  if (typeof crTeleOnDiscard === 'function') crTeleOnDiscard(toRemove);
   removeAndFall(toRemove, 'discard');
 }
 
