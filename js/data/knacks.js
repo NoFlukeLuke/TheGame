@@ -18,8 +18,8 @@ const KNACK_POOL = [
   { id:'high_roller',     emoji:'🎰',  name:'High Roller',      rarity:'epic',   desc:'Each scored card has a chance to replay equal to your credits plus your Luck, as a percent. Over 100% guarantees a replay and rolls the remainder for another.' },
   { id:'combo_keeper',    emoji:'🔥',  name:'Combo Keeper',     rarity:'rare',   desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
   { id:'lucky_seven',     emoji:'🎯',  name:'Lucky Seven',      rarity:'common', desc:'Every 7th hand played gives +1 swap.' },
-  { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        rarity:'common', desc:'Start each round with +2 extra swaps.' },
-  { id:'extra_discards',  emoji:'🌾',  name:'Harvest',          rarity:'common', desc:'Start each round with +2 extra discards.' },
+  { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        rarity:'common', desc:`Start each round with +2 extra swaps. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.` },
+  { id:'extra_discards',  emoji:'🌾',  name:'Harvest',          rarity:'common', desc:`Start each round with +2 extra discards. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.` },
   { id:'carry_swaps',     emoji:'🎒',  name:'Pack Rat',         rarity:'common', desc:'Unused swaps carry over to the next round (max 8).' },
   { id:'carry_discards',  emoji:'📦',  name:'Collector',        rarity:'common', desc:'Unused discards carry over to the next round (max 8).' },
   { id:'carry_time',      emoji:'🕰️',  name:'Clock Tower',      rarity:'rare',   desc:'Unused round seconds carry over (max 60s).' },
@@ -42,7 +42,7 @@ const KNACK_POOL = [
   { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   rarity:'rare',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.' },
   { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
   { id:'muscle_memory',   emoji:'🤝',  name:'Buddy System',     rarity:'common', desc:'Whenever a Trick is primed, a different Trick is primed too.' },
-  { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:'+1 Trick Slot.' },
+  { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:`+1 Trick Slot. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.` },
   { id:'short_suit',      emoji:'🃏',  name:'Short Suit',       rarity:'rare',   desc:'Flush of 3 and Flush of 4 become scorable hands.' },
   // ── Natural Scaling knack (r198) ──
   // Natural Scaling is per HAND TYPE now, so a family's growth sits in whichever

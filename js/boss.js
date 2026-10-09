@@ -1092,6 +1092,7 @@ function endBoss(success, opts) {
     frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
     if (!opts?.presented && typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
+    knackBossGrowRoll();   // Swap Shop / Harvest / Curator may grow (js/limits.js)
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.

@@ -312,7 +312,29 @@ function applyShortSuitOnce() {
 
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
 function trickCapacity() {
-  return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
+  return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 + knackBossGrowth.curator : 0);
+}
+
+// ── Knacks that grow after a boss (r525, owner) ──
+// Swap Shop, Harvest and Curator: after each boss beaten, each owned one has a
+// KNACK_BOSS_GROW_PCT chance to give 1 more (swap / discard per round, Trick slot).
+// Read by computeRoundResources and trickCapacity. In SAVE_VARS; reset in startGame.
+// TBD: tuned per mode later (owner).
+const KNACK_BOSS_GROW_PCT = 60;
+const KNACK_BOSS_GROW = [
+  { id: 'extra_swaps',    say: 'swap per round' },
+  { id: 'extra_discards', say: 'discard per round' },
+  { id: 'curator',        say: 'Trick slot' },
+];
+let knackBossGrowth = { extra_swaps: 0, extra_discards: 0, curator: 0 };
+function knackBossGrowRoll() {
+  KNACK_BOSS_GROW.forEach(g => {
+    if (!hasKnack(g.id) || Math.random() * 100 >= KNACK_BOSS_GROW_PCT) return;
+    knackBossGrowth[g.id] = (knackBossGrowth[g.id] || 0) + 1;
+    const k = KNACK_POOL.find(x => x.id === g.id);
+    showMessage(`${k ? k.name : g.id}: +1 ${g.say}`, 'var(--gold)');
+  });
+  if (hasKnack('curator') && typeof renderTrickTray === 'function') renderTrickTray();
 }
 
 // Raise a random non-maxed limit by its step (Growth Spurt). Uses the shop's weighted

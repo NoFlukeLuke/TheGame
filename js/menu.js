@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r524 · Stimulants: drop \"while owned\"";
+const BUILD = "2026-10-09 · r525 · Knacks grow after bosses; Flow boss goal at 5 levels a cycle; Swap Shop / Harvest double count";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
