@@ -843,6 +843,7 @@ function flowrEnterPanel() {
 function flowrFinish() {
   const _boss = flowrBossChain;
   flowrQueue = null; flowrIdx = 0;
+  if (typeof gridSlotPin === 'function') gridSlotPin(false);
   flowrBossChain = false; flowrBossLuckOn = false; flowrQueueOpen = false;
   flowrClearStack();
   // A goal-clear chain carries the score overflow and pays the time credits

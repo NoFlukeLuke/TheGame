@@ -355,3 +355,8 @@ body.gp-active #grid:has(.gp-sel) { z-index: 9; }
 }
 #swap-indicator.gp-rr-off { opacity: .4; pointer-events: none; }
 .gp-act.gp-act-on { outline: 2px solid var(--cream, #f4ead5); outline-offset: -3px; }
+
+/* r529: a same-box Flow reward screen sits where the play board does, so the
+   panel's title band and queued tabs take the room the topline used. The left
+   column already shows the level and credits. */
+body.gp-samebox #stage.landscape #grid-topline { opacity: 0 !important; pointer-events: none; }

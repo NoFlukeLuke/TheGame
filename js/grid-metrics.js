@@ -63,7 +63,28 @@ function gapForCardW(w) {
 // a 5px ring stack inside a 3px frame would sit behind the first row of cards.
 const GRID_PAD_BASE = 6, GRID_PAD_TIGHT = 3;
 
+// SAME BOX (r529, owner's option 3). A Flow reward screen is laid in the play
+// board's exact box: same slot, same outline, its cells stretched to fill it
+// instead of keeping the card shape. _playGeom is the last play board's size,
+// kept on every ordinary recompute; gridSameBoxOn() says when a takeover uses it.
+let _playGeom = null;
+function gridSameBoxOn() {
+  return document.body.classList.contains('gp-active') && !!_playGeom
+    && typeof survivalActive === 'function' && survivalActive()
+    && !(typeof shopGridActive !== 'undefined' && shopGridActive);
+}
+function gridSameBoxMetrics() {
+  const P = _playGeom;
+  const tw = P.cols * P.W + (P.cols - 1) * P.gap, th = P.rows * P.H + (P.rows - 1) * P.gap;
+  GRID_PAD = P.pad; CARD_GAP = P.gap;
+  CARD_W = (tw - (gridCols - 1) * P.gap) / gridCols;
+  CARD_H = (th - (gridRows - 1) * P.gap) / gridRows;
+  CARD_STEP = CARD_H + CARD_GAP;
+  applyGridMetricsToDOM();
+}
+
 function recomputeGridMetrics() {
+  if (gridSameBoxOn()) { gridSameBoxMetrics(); return; }
   const cols = gridCols, rows = gridRows;
   // Fit cards to the MEASURED slot so the grid always fills the available area
   // without ever overflowing onto the action buttons (any orientation/size).
@@ -123,8 +144,24 @@ function recomputeGridMetrics() {
   CARD_W = w;
   CARD_H = h;
   CARD_STEP = CARD_H + CARD_GAP;
-
+  if (!document.body.classList.contains('gp-active') && !(typeof shopGridActive !== 'undefined' && shopGridActive)) {
+    const sl = document.getElementById('grid-slot');
+    _playGeom = { W: CARD_W, H: CARD_H, gap: CARD_GAP, pad: GRID_PAD, rows, cols,
+                  slot: sl && !sl.style.left ? { l: sl.offsetLeft, t: sl.offsetTop, w: sl.offsetWidth, h: sl.offsetHeight }
+                                             : _playGeom && _playGeom.slot };
+  }
   applyGridMetricsToDOM();
+}
+
+// The slot is pinned at the play board's place for the length of a same-box
+// screen (a takeover or a Flow chain), so the HUD classes that move it for the
+// wide pick (gp-active, grid-screen, flowr-hold) do nothing.
+function gridSlotPin(on) {
+  const sl = document.getElementById('grid-slot'); if (!sl) return;
+  const g = _playGeom && _playGeom.slot;
+  document.body.classList.toggle('gp-samebox', !!on);
+  if (on && g && getComputedStyle(sl).position === 'absolute') Object.assign(sl.style, { left: g.l + 'px', top: g.t + 'px', width: g.w + 'px', height: g.h + 'px' });
+  else ['left', 'top', 'width', 'height'].forEach(k => sl.style.removeProperty(k));
 }
 
 function applyGridMetricsToDOM() {

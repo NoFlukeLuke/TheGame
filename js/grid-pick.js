@@ -159,6 +159,7 @@ function gridScreenTakeover(rows, cols) {
   // note in js/score-anims.js. Measured: 3 of 3 steps caught it at 1440x820.
   document.getElementById('grid')?.classList.remove('round-end-flash');
   gridRows = rows; gridCols = cols;
+  if (typeof gridSameBoxOn === 'function' && gridSameBoxOn()) gridSlotPin(true);
   gridSlotMeasureNow(() => { if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics(); });
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';
@@ -178,6 +179,8 @@ function gridScreenRelease(force) {
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
   if (gridScreenSaved) { gridRows = gridScreenSaved.rows; gridCols = gridScreenSaved.cols; gridScreenSaved = null; }
+  // A Flow chain keeps the pin between its steps; flowrFinish lets go.
+  if (typeof gridSlotPin === 'function' && !(typeof flowrChainActive === 'function' && flowrChainActive())) gridSlotPin(false);
   gridSlotMeasureNow(() => { if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics(); });
 }
 

@@ -945,3 +945,13 @@ slot tile is left on the grid (`rewardSlotTileLeft`), so either order works; `re
 waits for room >= 0. On confirm, slot tiles land FIRST, apply on landing, and the Trick count flashes
 gold (`pulseTrickSlotGain`, `.tray-slot-gain`) before the Trick lands. Also fixes two Trick tiles with one
 free slot (the second used to be lost at apply).
+
+## r530 - Flow rewards in the play board's box (owner's option 3)
+- `gridSameBoxOn()` (js/grid-metrics.js): a takeover (`gp-active`) in Survival/Flow, not the shop, lays its
+  grid in the last play board's exact outline (`_playGeom`, kept on every ordinary recompute): same
+  pad and gap, cells stretched to fill (`gridSameBoxMetrics`, no card aspect). `gridSlotPin` pins
+  `#grid-slot` at the play position in landscape (inline px, so gp-active / grid-screen / flowr-hold
+  move nothing) and sets `body.gp-samebox`, which hides `#grid-topline` (the panel's title band and
+  tabs use that room). The pin lasts the Flow chain; `flowrFinish` lets go. Portrait never moved.
+- `fitEntityName` caps its width at the parent's content box and, for the shrink test, counts the
+  trailing letter-spacing the browser wraps on ("Stimulants" 69.6 measured, 70 drawn, 69 box).

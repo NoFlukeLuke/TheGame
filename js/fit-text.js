@@ -167,7 +167,11 @@ function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
   if (el.textContent !== text) el.textContent = text;
 
   const cs = getComputedStyle(el);
-  const avail = innerWidthOf(el, cs);
+  // Capped at the PARENT's content box (r529): a name in a centred flex column
+  // is as wide as its longest word, so its own box grows past the tile with it
+  // and a word 3px too wide measured as fitting, then broke mid-word.
+  const par = el.parentElement, pcs = par && getComputedStyle(par);
+  const avail = par ? Math.min(innerWidthOf(el, cs), innerWidthOf(par, pcs)) : innerWidthOf(el, cs);
   if (avail <= 0) return;                       // not laid out yet - nothing to measure against
 
   const base = parseFloat(cs.fontSize) || 10;
@@ -178,16 +182,22 @@ function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
   // size, so one division gives the size that fits. Rounded down to the half
   // pixel so sizes stay tidy and identical names always land on the same size.
   const words = text.split(/\s+/).filter(Boolean);
+  // The SHRINK test counts the trailing letter-spacing the browser lays out
+  // when it decides to wrap (r529: "Stimulants" measured 69.6 in a 69px box,
+  // drew at 70 and broke mid-word). Truncation below keeps the lenient measure,
+  // so this only ever costs half a pixel of size, never letters.
+  const lsTail = parseFloat(cs.letterSpacing) || 0;
+  const wrapW = (w, px) => measureWordPx(w, px, cs) + lsTail;
   let widest = 0;
-  words.forEach(w => { widest = Math.max(widest, measureWordPx(w, base, cs)); });
-  if (widest > avail + FIT_SLOP) {
+  words.forEach(w => { widest = Math.max(widest, wrapW(w, base)); });
+  if (widest > avail) {
     fs = Math.floor((base * avail / widest) * 2) / 2;
     fs = Math.max(minPx, Math.min(base, fs));
     // Verify rather than trust the division: rounding to the half pixel can land
     // a hair over, and being a hair over is what triggers truncation below.
     let g0 = 0;
     while (fs > minPx && g0 < 40 &&
-           words.some(w => measureWordPx(w, fs, cs) > avail + FIT_SLOP)) { fs -= 0.5; g0++; }
+           words.some(w => wrapW(w, fs) > avail)) { fs -= 0.5; g0++; }
     el.style.fontSize = fs + 'px';
   }
 
