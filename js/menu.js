@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r528 · Reward grid: a Trick Slot or Curator tile makes room for a Trick in the same path";
+const BUILD = "2026-10-09 · r529 · Reward grid: a Trick Slot or Curator tile makes room for a Trick in the same path";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

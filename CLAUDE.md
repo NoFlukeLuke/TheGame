@@ -919,7 +919,25 @@ curve (700 at default tuning; the owner saw 1500). `_saveEncode` now writes non-
 `{ __t: 'num' }` and `_saveDecode` reads them back; `applySavedState` repairs a pre-r526 null to Infinity.
 Verified: Flow level 12, auto-save, reload, Continue, two level-ups: 13,100 and 16,350 (was 700, 700).
 
-## r528 - a Trick Slot or Curator tile makes room for a Trick in the same reward path
+## r528 - challenge cards: level starts, the cell holds, hard hands are rarer (`js/challenge-round.js`)
+- **Flow arrivals near a level's start** (owner): the session-clock plan is gone. Each Flow level
+  (`crFlowLevelStart`, from `crOnRoundStart`, once per `level`) rolls `CR_FLOW_LEVEL_CHANCE` (50%)
+  while the cycle has room (`crFlow.used` < `CR_FLOW_PER_CYCLE`, reset by `crFlowNewCycle`); a hit
+  puts the warning up `CR_FLOW_LEVEL_DELAY` (3-8) live seconds in. Still never in the first minute of
+  a cycle or once `crFlowMayRun` fails near the boss; the spice second card is unchanged.
+- **A timed warning (Flow, spot) lands on its marked cell or not at all.** `crLand` used to fall back
+  to a fresh spot whenever the cell stopped qualifying, and `crSpotsFor` refuses a SELECTED cell: lining
+  the marked card up to discard it, or a Sleight falling into the cell, moved the card next door, or
+  with no spot free dropped it silently. Now a selection on the cell is let go, a Sleight there cycles
+  (`discardToPlayed`), and only a stone / challenge / Reshuffle card stops it. **Only the player's
+  DISCARD refuses** (`crTeleOnDiscard` moved from `removeAndFall` to `doDiscard`; a Sleight leaving or a
+  boss taking cards no longer counts).
+- **Hand asks are weighted** (`crReqWeight`, `_crPickW` in `crRollReq`): `CR_HAND_W` (Two Pair / Run of 4
+  0.8, Straight 0.6, Flush / Full House 0.5, Four of a Kind / Straight Flush 0.25, the rest 1), and a hand
+  not played yet this run asks `CR_UNPLAYED_W` (0.6) as often once `CR_UNPLAYED_AFTER` (5) hands are in.
+  `crHandPlays` (per-hand counts, bumped in `crOnHand`) is in SAVE_VARS.
+
+## r529 - a Trick Slot or Curator tile makes room for a Trick in the same reward path
 `rewardTrickRoom(keys)` (js/reward-grid.js) = free slots + `rewardTrickSlotGain` of each tile in the path
 (a `_limitId: 'trick_slots'` limit tile, or a Curator knack tile, `_knackId`) - one per Trick tile.
 A Limit Break tile and Knock-On never count. Selection refuses a Trick only when it will not fit AND no
