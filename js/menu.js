@@ -1,4 +1,4 @@
-const BUILD = "2026-10-08 · r518 · the Reshuffle card; fall challenges count an impact either way";
+const BUILD = "2026-10-09 · r519 · Reshuffle card costs 30s of Starting Time, not the clock";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

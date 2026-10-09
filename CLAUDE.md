@@ -883,11 +883,13 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
 
 ## r518 - the Reshuffle card (`js/reshuffle-card.js`); fall challenges take an IMPACT
 - Deck empty, played cards to shuffle back, fewer than `RESHUFFLE_BOARD_MAX` (18) cards on the
-  board, none already there: `removeAndFall` deals a RESHUFFLE? PAY 45s card into a hole the deck
+  board, none already there: `removeAndFall` deals a RESHUFFLE? card into a hole the deck
   could not fill (lowest hole of the emptiest column, after every deck card of that fall). A board
   object (`_isStone` + `_isReshuffle`, `_temp`): falls and renders only. Double-tap
-  (`reshuffleTap`, from `onCardTap`): pays `RESHUFFLE_SECONDS`, `flushPlayedDeck()`, leaves through
-  `removeAndFall` 'discard', which refills every hole. Refused at 45s or less on the clock.
+  (`reshuffleTap`, from `onCardTap`): `flushPlayedDeck()`, leaves through `removeAndFall`
+  'discard', which refills every hole. **r519 (owner):** the cost is `RESHUFFLE_CAP_CUT` (30) off
+  Starting Time (`limits.round_time`, floored at its min), face "-30s": the live clock keeps its
+  seconds, later rounds start shorter (Flow: the next session). Refused at the floor.
   `fillGridHoles` drops it once the deck has cards again.
 - Fall challenge cards (`colfall` / `rowhit`) read IMPACT N×: the card falling OR a card landing on
   it counts, for both kinds, once per fall (`crAfterFall`). Placement and locked lines unchanged.
