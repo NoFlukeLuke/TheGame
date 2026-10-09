@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r525 · Knacks grow after bosses; Flow boss goal at 5 levels a cycle; Swap Shop / Harvest double count";
+const BUILD = "2026-10-09 · r526 · Fix: Flow goals collapse after Continue (Infinity saved as null)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

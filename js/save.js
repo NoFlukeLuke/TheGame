@@ -169,10 +169,14 @@ function _saveEncode(v) {
     return o;
   }
   if (typeof v === 'function' || v === undefined) return undefined;
+  // JSON writes Infinity and NaN as null. survivalEndlessFromLevel is Infinity for a
+  // whole Flow run, and restored as null it sent every later goal to the bottom (r526).
+  if (typeof v === 'number' && !Number.isFinite(v)) return { __t: 'num', v: String(v) };
   return v;
 }
 function _saveDecode(v) {
   if (v && typeof v === 'object') {
+    if (v.__t === 'num') return Number(v.v);
     if (v.__t === 'set') return new Set(v.v.map(_saveDecode));
     if (v.__t === 'map') return new Map(v.v.map(([k, x]) => [k, _saveDecode(x)]));
     if (Array.isArray(v)) return v.map(_saveDecode);
@@ -373,6 +377,8 @@ function applySavedState(state) {
     if (!(name in state)) continue;
     _saveWrite(name, _saveDecode(state[name]));
   }
+  // Saves written before r526 hold null here (see _saveEncode): not in endless yet.
+  if (typeof survivalEndlessFromLevel !== 'number') survivalEndlessFromLevel = Infinity;
   // const-bound objects: copy contents in place rather than reassigning.
   for (const name of SAVE_MUTATE) {
     if (!(name in state)) continue;

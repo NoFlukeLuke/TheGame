@@ -909,3 +909,10 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
   AND again under "round-start knack effects", so each paid +4 while saying +2.
 - **Flow boss goal** (`flowBossGoalLevel`, js/flow-mode.js): boss N's goal is `goalForLevel(1 + 5N)`
   (`FLOW_BOSS_GOAL_LEVELS`), whatever level the run reached. The level-up after the boss resets it.
+
+## r526 - Flow goals collapsed after Continue
+`survivalEndlessFromLevel` is `Infinity` for a whole Flow run; JSON saved it as `null`, and on restore
+`Math.min(lv, null)` is 0, so every goal after the first post-Continue level-up was the bottom of the
+curve (700 at default tuning; the owner saw 1500). `_saveEncode` now writes non-finite numbers as
+`{ __t: 'num' }` and `_saveDecode` reads them back; `applySavedState` repairs a pre-r526 null to Infinity.
+Verified: Flow level 12, auto-save, reload, Continue, two level-ups: 13,100 and 16,350 (was 700, 700).
