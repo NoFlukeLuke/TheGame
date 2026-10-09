@@ -7,6 +7,10 @@ const vm = require('vm');
 
 const ROOT = require('path').resolve(__dirname, '..', '..');
 
+// A shared detached root: an element made by the stub has a parent, so code that
+// climbs (`el.closest(...) || el.parentElement`) gets an element, and the climb ends here.
+let ORPHAN_ROOT = null;
+
 function makeStyle() {
   const t = {};
   t.setProperty = (k, v) => { t[k] = v; };
@@ -24,7 +28,7 @@ function makeEl(tag) {
     attributes: {},
     _listeners: {},
     parentNode: null,
-    parentElement: null,
+    parentElement: ORPHAN_ROOT,
     innerHTML: '', textContent: '', innerText: '', value: '', id: '',
     className: '',
     offsetWidth: 100, offsetHeight: 100, clientWidth: 100, clientHeight: 100,
@@ -62,13 +66,19 @@ function makeEl(tag) {
   el.focus = () => {}; el.blur = () => {}; el.click = () => {};
   el.animate = () => ({ finished: Promise.resolve(), cancel() {}, pause() {}, play() {}, addEventListener() {}, onfinish: null });
   el.getAnimations = () => [];
-  el.getContext = () => new Proxy({}, { get: (t, k) => (k === 'measureText' ? () => ({ width: 10 }) : () => {}) });
+  // Plain values (fillStyle...) read back what was set; every method is a no-op.
+  el.getContext = () => new Proxy({ fillStyle: '#666666', strokeStyle: '#666666' }, {
+    get: (t, k) => (k in t ? t[k] : k === 'measureText' ? () => ({ width: 10 }) : () => {}),
+    set: (t, k, v) => { t[k] = v; return true; },
+  });
   el.firstElementChild = null; el.lastElementChild = null; el.firstChild = null; el.nextElementSibling = null;
   el.cloneNode = () => makeEl(tag);
   el.insertAdjacentHTML = () => {};
   el.scrollTo = () => {}; el.scrollIntoView = () => {};
   return el;
 }
+
+ORPHAN_ROOT = makeEl('div');
 
 function load(opts = {}) {
   const byId = new Map();
@@ -92,6 +102,7 @@ function load(opts = {}) {
     visibilityState: 'visible',
     elementFromPoint: () => null,
     hasFocus: () => true,
+    styleSheets: [],
   };
 
   const storage = new Map();
@@ -133,6 +144,9 @@ function load(opts = {}) {
     Promise, Symbol, Error, TypeError, RangeError, parseInt, parseFloat, isNaN, isFinite,
     Infinity, NaN, undefined,
     structuredClone: (x) => JSON.parse(JSON.stringify(x)),
+    MutationObserver: class { observe() {} disconnect() {} takeRecords() { return []; } },
+    ResizeObserver: class { observe() {} unobserve() {} disconnect() {} },
+    IntersectionObserver: class { observe() {} unobserve() {} disconnect() {} },
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;

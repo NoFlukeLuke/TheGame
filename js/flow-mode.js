@@ -84,6 +84,13 @@ function flowSessionRunning() { return flowActive() && !bossActive; }
 // level's goal". Adding the delta rather than zeroing `score` means no in-progress
 // round is thrown away and no state surgery is needed - the bar simply becomes a
 // clean "earn this much more, inside the boss window".
+// r525 (owner): a Flow boss's goal ignores how many levels were cleared. Boss N is
+// set as though exactly FLOW_BOSS_GOAL_LEVELS level-ups came before it each cycle:
+// boss 1 = level 6's goal, boss 2 = level 11's, and so on.
+const FLOW_BOSS_GOAL_LEVELS = 5;
+function flowBossGoalLevel() {
+  return 1 + FLOW_BOSS_GOAL_LEVELS * ((typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + 1);
+}
 function flowTriggerBoss() {
   if (bossActive || flowBossFighting) return;
   flowBossFighting = true;
@@ -110,7 +117,7 @@ function flowTriggerBoss() {
   const _wiped = score;
   totalScore += Math.max(0, score);
   score = 0;
-  roundGoal = goalForLevel(level);
+  roundGoal = goalForLevel(flowBossGoalLevel());
   // Held while the wipe animates the OLD number down to the new zero - the state
   // above is already correct, so an abort can't strand a half-reset run.
   suppressScoreDisplay = true;

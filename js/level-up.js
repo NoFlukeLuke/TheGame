@@ -13,8 +13,8 @@ function computeRoundResources() {
   // Both seed from the LIMIT's own base, so the round-start stock can never drift from
   // the number the Limits screen prints. Discards used to seed from a hardcoded 4 against
   // a limit base of 3, which handed out one discard more than the limit every round.
-  const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards : 0);
-  const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps : 0);
+  const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards + knackBossGrowth.extra_discards : 0);
+  const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps + knackBossGrowth.extra_swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
   const _roundDur = currentRoundDuration();
   const baseSeconds  = Math.max(10, (_roundDur - roundPenaltySeconds) + limitTimeBonus);
@@ -25,9 +25,9 @@ function computeRoundResources() {
   let sec = Math.min(secCap, baseSeconds + accumulatedSeconds + nextRoundSecondsDelta);
 
   // Round-start knack effects.
+  // Swap Shop / Harvest are already in baseSwaps / baseDiscards above. They were
+  // also added here until r525, so each paid twice what it said (+4, not +2).
   if (hasKnack('time_bank'))      sec = Math.min(secCap, sec + BAL.time_bank.seconds);
-  if (hasKnack('extra_swaps'))    s += BAL.extra_swaps.swaps;
-  if (hasKnack('extra_discards')) d += BAL.extra_discards.discards;
 
   // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
   // (applyTempoLimitOnce), so the normal computation above already reflects it via the

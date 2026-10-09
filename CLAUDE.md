@@ -887,9 +887,34 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
   could not fill (lowest hole of the emptiest column, after every deck card of that fall). A board
   object (`_isStone` + `_isReshuffle`, `_temp`): falls and renders only. Double-tap
   (`reshuffleTap`, from `onCardTap`): `flushPlayedDeck()`, leaves through `removeAndFall`
-  'discard', which refills every hole. **r519 (owner):** the cost is `RESHUFFLE_CAP_CUT` (30) off
+  'discard', which refills every hole. **r527 (owner):** the cost is `RESHUFFLE_CAP_CUT` (30) off
   Starting Time (`limits.round_time`, floored at its min), face "-30s": the live clock keeps its
   seconds, later rounds start shorter (Flow: the next session). Refused at the floor.
   `fillGridHoles` drops it once the deck has cards again.
 - Fall challenge cards (`colfall` / `rowhit`) read IMPACT N×: the card falling OR a card landing on
   it counts, for both kinds, once per fall (`crAfterFall`). Placement and locked lines unchanged.
+
+## r523 - pause menu NEW RUN; the Knock-On knack
+- **New Run** (pause menu, `restartRun`, js/game-control.js): one confirm, then a reload like Home with a
+  `lethe.newRun.v1` note in sessionStorage (mode id + picker answers). Bootstrap reads and clears it
+  (`takeNewRunRequest`), keeps the main menu hidden and starts the same mode on `load` (`launchNewRun`).
+- **Knock-On** (rare knack, `knock_on`): `incrementLimit` calls `knockOnLimit(id)`; any limit but Focus Cap
+  going up raises one more random limit (weighted, not Focus Cap, not the same one), with a printed notice.
+  The second raise does not knock on. A multi-step grant knocks on once (`incrementLimit(id, { noKnockOn })`).
+  The Bargain-style event that writes `limits.swaps` directly calls `knockOnLimit('swaps')` itself.
+
+## r525 - knacks grow after bosses; Flow boss goal; Swap Shop / Harvest paid twice
+- **Swap Shop, Harvest, Curator** (`KNACK_BOSS_GROW`, js/limits.js): each boss beaten (`endBoss` success),
+  each owned one has `KNACK_BOSS_GROW_PCT` (60%) to give 1 more (`knackBossGrowth`, in SAVE_VARS, reset
+  in startGame), read by `computeRoundResources` and `trickCapacity`. Curator stays +1. TBD: per mode.
+- **Swap Shop / Harvest double count fixed:** `computeRoundResources` added them in baseSwaps/baseDiscards
+  AND again under "round-start knack effects", so each paid +4 while saying +2.
+- **Flow boss goal** (`flowBossGoalLevel`, js/flow-mode.js): boss N's goal is `goalForLevel(1 + 5N)`
+  (`FLOW_BOSS_GOAL_LEVELS`), whatever level the run reached. The level-up after the boss resets it.
+
+## r526 - Flow goals collapsed after Continue
+`survivalEndlessFromLevel` is `Infinity` for a whole Flow run; JSON saved it as `null`, and on restore
+`Math.min(lv, null)` is 0, so every goal after the first post-Continue level-up was the bottom of the
+curve (700 at default tuning; the owner saw 1500). `_saveEncode` now writes non-finite numbers as
+`{ __t: 'num' }` and `_saveDecode` reads them back; `applySavedState` repairs a pre-r526 null to Infinity.
+Verified: Flow level 12, auto-save, reload, Continue, two level-ups: 13,100 and 16,350 (was 700, 700).

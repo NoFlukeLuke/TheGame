@@ -1,7 +1,7 @@
 /* r517 (owner): the Reshuffle card. When the deck runs dry and the board is thin, the game
    deals one card that reads RESHUFFLE? -30s. Double-tap it: Starting Time (the round_time
    limit) loses RESHUFFLE_CAP_CUT, the played cards go back into the deck, the card leaves
-   and every hole on the board refills. r519 (owner): the cost is the time cap, not the
+   and every hole on the board refills. r527 (owner): the cost is the time cap, not the
    clock, because it is usually needed late in a round: the clock you are playing keeps its
    seconds and every LATER round starts shorter (Flow: the next session).
 

@@ -64,3 +64,68 @@ the review at 8.2x (shipped r278) = 41-64% across two sweeps. Survival: 30-35%
 growth = 0-1/100 (the 5th boss sits at level ~25-30, unreachable at that
 compounding); 22% = 22/100; shipped r278 is 25% = ~9/100 (the bot is weakest in
 survival's 120s format, so its floor is lowest there).
+
+## Trick audit (r519): which Tricks are out of line for their rarity
+
+`trick-audit.js` scores the same hands with every on/off combination of a
+5-Trick loadout through the real `calcScore`, and splits each hand's score
+fairly between its Tricks (Shapley values: a Trick's credit is its added score
+averaged over every order the five could have been added in; the credits add up
+exactly to the hand's score above its no-Trick score).
+
+```
+node tools/sim/trick-audit.js --passes loadouts --out main.json            # ~75 min on 4 cores
+node tools/sim/trick-audit.js --passes focus,time,hold,levels,pairs --out extra.json
+python3 tools/sim/trick-audit-report.py main.json extra.json --out trick-audit.xlsx
+```
+
+- **loadouts**: Flow's Trick pool shuffled and dealt five at a time, 30 deals,
+  so every Trick sits in 30 to 34 loadouts. 100 shared 5x5 boards x 10 hands: the
+  "random hand" set (a random size 2-5, then a random real hand of that size, the
+  same hands for every loadout) and the "chosen hand" set (each board's best hand
+  for that loadout). Each hand is scored 32 times.
+- **focus**: each Trick alone through the real `generateHandFocus` / `addFocus`
+  / `onFocusMaxed` / `focusDecayTick`, 150 runs of 8 six-hand levels. The
+  no-Trick run also sets the Focus each loadout hand is scored at.
+- **time**: seconds (pause + rewind), credits and stock a hand, per Trick.
+- **hold**: scaling Tricks alone after 0-144 hands held, and by hand position.
+- **levels**: each Trick alone at levels 4 / 12 / 24.
+- **pairs**: every pair of Tricks alone together on 200 hands; the extra
+  multiplier a pair makes beyond each one alone.
+
+What the sim SETS rather than plays (the `DEFAULTS` block in trick-audit.js,
+all overridable with `--cfg '{...}'`): level 12, quarter 2 (QRL 2), six hands a
+level, ~6s a hand (1.5s minimum), a level starting with 45-300s on Flow's
+clock, 15s of reward screens between levels, 25% swap / 15% discard (3 cards)
+chance before a hand, 0-50 credits, 2 Sleights owned with 2 charges missing,
+scaling Tricks held 48 hands, a deck with 4 cards at +10 pips and 2 at +4 mult.
+Runs are tapped in rank order where the board allows (Rogue Wave). Mirror is
+tilted at its better neighbour. Pause Tricks feed a simplified pause model
+(`AUD_handPause`: Cuckoo and card time buffs left out). Royal Favour and Ace
+Absorb reshape the deck and are not scored; Wild Side and Wait For Iiiit never
+pay in Flow (no reward grid). The sim replaces `hasTrick` with a set lookup and
+silences notices and audio; nothing in the game is changed.
+
+### Results at r518 (`tools/sim/out/trick-audit-r518.xlsx`)
+
+Raw data: `out/trick-audit-r518-main.json.gz` and `-extra.json.gz` (the report
+script reads them as they are). Headlines, at level 12 in Flow:
+
+- A typical hand with no Tricks scores ~620 points (111 pips x 3.8 mult).
+  +1 mult adds 31% to it, +10 pips adds 10%. Only pips grow with level, so a
+  flat-pips Trick keeps ~1/5 of its level-4 value at level 24; flat mult keeps
+  all of it.
+- Rarity barely tracks power: the average Score Trick lifts a random hand
+  x1.40 Common, x1.44 Rare, x1.56 Epic, x1.43 Legendary (chosen hands: 1.50 /
+  1.79 / 1.77 / 2.29), and the median Score Trick only x1.11.
+- 18 Score Tricks are 3x+ their rarity average; 38 are under 1/5 of it (49
+  Tricks counting Focus and Time Tricks against their own kind).
+  Loadouts holding Cloud Nine, Wellspring, Old Growth, Rising Tide or Jackpot
+  lift a hand x10.8 (median); all others x1.8.
+- Focus averages x1.32 with no Trick (it resets every level, and a level's
+  first hand earns no speed bonus). Acorns is the best Focus Trick (+30%);
+  Expanse (-8%) and Release Valve (-14%) lower it.
+- The Hummingbird + any every-hand pause/rewind Trick is uncapped (x29 with
+  Hoarder House).
+- A ridge regression of each loadout's log lift on its Tricks explains 95% of
+  the variance and matches the Shapley numbers (r = 0.99).

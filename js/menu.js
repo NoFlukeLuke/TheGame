@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r519 · Reshuffle card costs 30s of Starting Time, not the clock";
+const BUILD = "2026-10-09 · r527 · merge main; Reshuffle card costs 30s of Starting Time, not the clock (was r519 on the branch)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
