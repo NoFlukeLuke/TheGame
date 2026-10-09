@@ -488,7 +488,7 @@ function _generateRewardContent() {
     _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
-      tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack',
+      tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack', _knackId: pick.id,
       apply: () => { acquiredKnacks.push({ ...pick }); updateKnackList?.(); noteMessage(`+ ${pick.name}`, 'var(--gold)'); }
     };
   }
@@ -569,7 +569,7 @@ function _generateRewardContent() {
     // the one place the printed number is worked out, clamp included.
     const _tx = limitDeltaText(dl.id, 1);
     const _ch = limitChangeText(dl.id, 1);
-    return { icon: '⬆️', label: `${_tx} ${dl.label}`, tier: 'epic',
+    return { icon: '⬆️', label: `${_tx} ${dl.label}`, tier: 'epic', _limitId: dl.id,
       desc: `${_ch} · permanent`,
       apply: () => { incrementLimit(dl.id); noteMessage(`${_tx} ${dl.label}!`, 'var(--gold)'); } };
   }
@@ -646,7 +646,7 @@ function _generateRewardContent() {
     const next = Math.min(l.max, cur + steps * limitStep(id));
     const gain = next - cur;
     return {
-      icon: '⬆️', label: `+${gain}${u} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true,
+      icon: '⬆️', label: `+${gain}${u} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true, _limitId: id, _limitSteps: steps,
       desc: `${def.label}: ${cur}${u} → ${next}${u} · permanent`,
       apply: () => { for (let k = 0; k < steps; k++) incrementLimit(id, { noKnockOn: k > 0 }); onLimitChanged?.(id); noteMessage(`+${gain}${u} ${def.label}!`, 'var(--gold)'); }
     };
@@ -1481,7 +1481,36 @@ function rewardMinPicks() {
   return Math.max(1, Math.min(min, rewardSelectionCap()));
 }
 // SKIP is unaffected - taking nothing is a deliberate alternative, not a short pick.
-function rewardPicksMet() { return rewardSelected.size >= rewardMinPicks(); }
+function rewardPicksMet() { return rewardSelected.size >= rewardMinPicks() && rewardTrickRoom(rewardSelected) >= 0; }
+
+// ── Trick room across a path (r527) ──
+// A Trick Slot limit tile or a Curator knack tile in the path counts as room for
+// a Trick in the same path. A Limit Break tile does not (its pick comes later),
+// nor does Knock-On (its extra limit is random). Applied tiles count as nothing:
+// their effect is already in trickCapacity() / trickTray.
+function rewardTrickSlotGain(p) {
+  if (!p || p._applied) return 0;
+  if (p._limitId === 'trick_slots') {
+    const l = limits.trick_slots;
+    return Math.max(0, Math.min(l.max, l.current + (p._limitSteps || 1) * limitStep('trick_slots')) - l.current);
+  }
+  if (p.entity === 'knack' && p._knackId === 'curator' && !hasKnack('curator')) return 1 + (knackBossGrowth.curator || 0);
+  return 0;
+}
+function rewardTakesTrickSlot(p) { return !!p && p.entity === 'trick' && !p._improve && !p._applied; }
+function rewardTrickRoom(keys) {
+  let room = trickCapacity() - trickTray.length;
+  for (const k of keys) {
+    const [r, c] = k.split('-').map(Number);
+    const p = rewardCells[r] && rewardCells[r][c] && rewardCells[r][c].payload;
+    room += rewardTrickSlotGain(p) - (rewardTakesTrickSlot(p) ? 1 : 0);
+  }
+  return room;
+}
+function rewardSlotTileLeft() {
+  return rewardCells.some((row, r) => (row || []).some((cell, c) =>
+    cell && !rewardSelected.has(`${r}-${c}`) && rewardTrickSlotGain(cell.payload) > 0));
+}
 
 // A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
 function isRewardCellSelectable(r, c) {
@@ -1566,8 +1595,11 @@ function onRewardCellClick(r, c) {
   // A Trick tile you have no room for is refused at SELECTION, not at apply: the
   // path is taken as a whole, so bouncing it later would mean spending a pick on
   // nothing. The tray count says why.
+  // r527: a Trick Slot tile or Curator in the same path makes room, in either order.
+  // With no such tile left to take, a Trick that will not fit is refused here;
+  // otherwise CONFIRM waits until the path fits (rewardPicksMet).
   const _pay = rewardCells[r] && rewardCells[r][c] && rewardCells[r][c].payload;
-  if (offerNeedsTrickSlot(_pay)) { refuseTrickCapacity(); return; }
+  if (rewardTakesTrickSlot(_pay) && rewardTrickRoom([...rewardSelected, key]) < 0 && !rewardSlotTileLeft()) { refuseTrickCapacity(); return; }
 
   rewardSelected.add(key);
   if (typeof sfxRewardSelect === 'function') { try { sfxRewardSelect(); } catch (e) {} }
@@ -1743,11 +1775,15 @@ async function animateRewardResolve() {
   tiles.forEach(t => t.getAnimations().forEach(a => a.cancel()));
   const claimed = [], rest = [];
   tiles.forEach(t => (rewardSelected.has(`${t.dataset.r}-${t.dataset.c}`) ? claimed : rest).push(t));
+  // r527: tiles that add Trick slots land first, so a Trick in the same path has room.
+  const _slotGain = t => rewardTrickSlotGain(rewardCells[+t.dataset.r]?.[+t.dataset.c]?.payload) > 0;
+  claimed.sort((a, b) => _slotGain(b) - _slotGain(a));
 
   for (const tile of claimed) {
     const r = +tile.dataset.r, c = +tile.dataset.c;
     const cell = rewardCells[r]?.[c]; if (!cell) continue;
     const p = cell.payload;
+    const _addsSlot = rewardTrickSlotGain(p) > 0;
     if (p._mystery) await revealAndFlyMystery(tile, p, c, cols);
     else            await flyRewardTile(tile, p, cell.kind !== 'debuff');
     // Entity rewards populate a HUD chip - apply the moment the tile lands so the
@@ -1756,6 +1792,14 @@ async function animateRewardResolve() {
     if (p && (p.entity === 'trick' || p.entity === 'knack' || p.entity === 'sleight')
         && typeof p.apply === 'function' && !p._applied) {
       try { p.apply(); p._applied = true; } catch (e) { console.error('[REWARD] land apply failed', e); }
+    }
+    // A slot tile is applied on landing too, and the Trick count flashes gold
+    // before anything else lands.
+    if (_addsSlot) {
+      if (!p._applied) { try { p.apply(); p._applied = true; } catch (e) { console.error('[REWARD] land apply failed', e); } }
+      renderTrickTray();
+      pulseTrickSlotGain();
+      await new Promise(res => setTimeout(res, 450));
     }
     await new Promise(res => setTimeout(res, 90));
   }
@@ -1766,7 +1810,8 @@ async function confirmRewardPath() {
   if (rewardConfirmed || rewardDealing || rewardSelected.size === 0) return;
   // Hard guard: a queued tap or a keyboard path reaches here without passing the
   // button's disabled state, the same reason playHand re-checks the play grid's floor.
-  if (!rewardPicksMet()) { refuse(`Take ${rewardMinPicks() - rewardSelected.size} more to confirm`); return; }
+  if (rewardSelected.size < rewardMinPicks()) { refuse(`Take ${rewardMinPicks() - rewardSelected.size} more to confirm`); return; }
+  if (rewardTrickRoom(rewardSelected) < 0) { pulseTrickCount(); refuse('Trick slots full. Take the Trick Slot tile too, or drop a Trick.'); return; }
   rewardConfirmed = true;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');

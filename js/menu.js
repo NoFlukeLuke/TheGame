@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r526 · Fix: Flow goals collapse after Continue (Infinity saved as null)";
+const BUILD = "2026-10-09 · r527 · Reward grid: a Trick Slot or Curator tile makes room for a Trick in the same path";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

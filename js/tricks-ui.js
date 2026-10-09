@@ -114,6 +114,19 @@ function pulseTrickCount() {
   pulseTrickCount._t = setTimeout(() => el.classList.remove('tray-full-pulse'), 1500);
 }
 
+// The count flashes gold when a slot is added (r527, reward grid).
+function pulseTrickSlotGain() {
+  if (typeof portraitShowTricks === 'function') portraitShowTricks();
+  const el = document.getElementById('trick-tray-count');
+  if (!el) return;
+  el.classList.remove('tray-full-pulse', 'tray-slot-gain');
+  void el.offsetWidth;
+  el.classList.add('tray-slot-gain');
+  if (typeof sfxRewardSelect === 'function') { try { sfxRewardSelect(); } catch (e) {} }
+  clearTimeout(pulseTrickSlotGain._t);
+  pulseTrickSlotGain._t = setTimeout(() => el.classList.remove('tray-slot-gain'), 1200);
+}
+
 function refuseTrickCapacity() {
   // refuse() is the one place the sound is played (r378); this site keeps its
   // own toast because the count chip's pulse below is part of the same answer.

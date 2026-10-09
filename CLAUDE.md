@@ -916,3 +916,12 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
 curve (700 at default tuning; the owner saw 1500). `_saveEncode` now writes non-finite numbers as
 `{ __t: 'num' }` and `_saveDecode` reads them back; `applySavedState` repairs a pre-r526 null to Infinity.
 Verified: Flow level 12, auto-save, reload, Continue, two level-ups: 13,100 and 16,350 (was 700, 700).
+
+## r527 - a Trick Slot or Curator tile makes room for a Trick in the same reward path
+`rewardTrickRoom(keys)` (js/reward-grid.js) = free slots + `rewardTrickSlotGain` of each tile in the path
+(a `_limitId: 'trick_slots'` limit tile, or a Curator knack tile, `_knackId`) - one per Trick tile.
+A Limit Break tile and Knock-On never count. Selection refuses a Trick only when it will not fit AND no
+slot tile is left on the grid (`rewardSlotTileLeft`), so either order works; `rewardPicksMet` (CONFIRM)
+waits for room >= 0. On confirm, slot tiles land FIRST, apply on landing, and the Trick count flashes
+gold (`pulseTrickSlotGain`, `.tray-slot-gain`) before the Trick lands. Also fixes two Trick tiles with one
+free slot (the second used to be lost at apply).

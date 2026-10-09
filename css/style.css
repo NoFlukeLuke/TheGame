@@ -4403,6 +4403,16 @@
     color: var(--red) !important; font-weight: 900;
   }
   body.reduced-motion .tray-full-pulse { animation: none; }
+  /* r527: a Trick slot added on the reward grid */
+  @keyframes traySlotGain {
+    0%, 100% { transform: scale(1);   filter: none; }
+    30%      { transform: scale(1.8); filter: drop-shadow(0 0 8px var(--gold)); }
+  }
+  .tray-slot-gain {
+    animation: traySlotGain 0.6s ease-out 2;
+    color: var(--gold) !important; font-weight: 900;
+  }
+  body.reduced-motion .tray-slot-gain { animation: none; }
 
   /* ═══════════════ LOCKED MODES + THE STACK (r276) ═══════════════
      A locked card is the same card, drained and without its PLAY button, so
