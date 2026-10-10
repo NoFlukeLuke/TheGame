@@ -1,4 +1,4 @@
-const BUILD = "2026-10-10 · r535 · Trick steering test: one swap and one discard, every hand size";
+const BUILD = "2026-10-10 · r536 · the screen change runs in console mode only";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

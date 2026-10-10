@@ -980,7 +980,7 @@ button): **turn** (default) revolves the right-hand side on a vertical axis like
 the parts take `.sc-hide`, the transforms are cancelled and the swap is laid out untransformed, then
 the back comes round with an overshoot and a latch. **shutter**: two plates (housing texture in the
 machine skin, `.sc-skin`) slide out of the screen's recess (`#grid` + `#flowr-bg`), meet, swap, part.
-Sounds `sfxScreenTurn` / `sfxScreenLatch` (built on print-toast's `ptVoice`). Off for skip-transitions
+Sounds `sfxScreenTurn` / `sfxScreenLatch` (built on print-toast's `ptVoice`). Console mode only (r536). Off for skip-transitions
 and reduced motion. Headless Chromium renders this at ~4fps; check it with CDP
 `Animation.setPlaybackRate`.
 `fitEntityName` also reads back what was drawn (`fitWordSplit`, `fitClipped`) and steps down while a

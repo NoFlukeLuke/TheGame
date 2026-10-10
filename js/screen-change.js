@@ -37,7 +37,8 @@ function setScreenChange(v) {
 }
 
 function screenChange(swap) {
-  const off = scLook === 'none' || _scBusy
+  // Console mode only (owner, r536): the move is the hardware explaining itself.
+  const off = scLook === 'none' || _scBusy || !(typeof trayMachineOn === 'function' && trayMachineOn())
     || (typeof skipOn === 'function' && skipOn('transitions'))
     || document.body.classList.contains('reduced-motion');
   if (off) { swap(); return; }
