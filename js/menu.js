@@ -1,4 +1,4 @@
-const BUILD = "2026-10-10 · r538 · steering README: examples on one basis";
+const BUILD = "2026-10-10 · r539 · a queued discard keeps to its own cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

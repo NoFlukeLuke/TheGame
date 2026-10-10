@@ -20,7 +20,10 @@ function doDiscard() {
   if ((roundEnded && !(typeof deckEditFreeInteract === 'function' && deckEditFreeInteract())) || animating) return;
   // Same gate as doSwap - a boss may refuse the discard before it commits.
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
-  if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
+  // A discard pressed mid-fall is queued with the CARDS it was pressed on. Taps
+  // still select during a fall, so the selection at the fall's end can be the
+  // next hand; discarding that instead was the bug (r539).
+  if (falling) { if (selected.length > 0) { pendingAction = 'discard'; pendingDiscardCards = selected.map(([r,c]) => gridData[r]?.[c]).filter(Boolean); dbgEvent('info', 'discard queued (falling)'); } return; }
   if (selected.length === 0) return;
   // A fall-type challenge card locks discards in its line (js/challenge-round.js).
   { const _lock = (typeof crDiscardLocked === 'function') ? crDiscardLocked(selected) : null; if (_lock) { refuse(_lock); return; } }
@@ -178,6 +181,41 @@ function doDiscard() {
   // 'discard'-mode fall: a Sleight leaving, a boss taking cards).
   if (typeof crTeleOnDiscard === 'function') crTeleOnDiscard(toRemove);
   removeAndFall(toRemove, 'discard');
+}
+
+// The queued discard runs once the fall settles. It throws away only the cards
+// it was pressed on, wherever they landed. Cards selected since stay selected:
+// carried by identity through the discard's own fall (discardCarryRestore).
+let discardCarry = null, discardCarryArm = false;
+function cellOfCard(card) {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) return [r, c];
+  return null;
+}
+function runQueuedDiscard() {
+  const want = pendingDiscardCards; pendingDiscardCards = null;
+  if (!want) { doDiscard(); return; }
+  const cells = want.map(cellOfCard).filter(Boolean);
+  if (!cells.length) return;
+  const isOut = ([r,c]) => cells.some(([a,b]) => a === r && b === c);
+  const before = selected.map(x => [...x]);
+  const keep = before.filter(x => !isOut(x)).map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
+  cancelAutoSubmit();
+  selected = cells;
+  doDiscard();
+  if (animating || falling) { discardCarry = keep.length ? keep : null; return; }
+  selected = before;   // refused (no discards left, a lock, a boss): nothing moved
+  scheduleAutoSubmit(); render();
+}
+// Called by removeAndFall once the board's data is final, before the fall plays.
+// Only the connected run from the first carried card is kept. No render here.
+function discardCarryRestore() {
+  const keep = discardCarry; discardCarry = null;
+  if (!keep || selected.length) return;
+  let cells = keep.map(cellOfCard).filter(Boolean)
+    .filter(([r,c]) => !isCellBlocked(r, c) && cardCan(gridData[r][c], 'select'));
+  while (cells.length > 1 && !isConnected(cells)) cells.pop();
+  if (!cells.length) return;
+  selected = cells; discardCarryArm = true;
 }
 
 // ══════════════════════════════════════════════

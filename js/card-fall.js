@@ -375,6 +375,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // Transition: slide-out done, now entering fall phase - allow selection
   animating = false;
   falling = true;
+  if (typeof discardCarryRestore === 'function') discardCarryRestore();   // a queued discard's leftover selection
 
   // Hide only the persistent elements for cards that will be animated as temp elements
   const fallingIds = new Set();
@@ -494,7 +495,8 @@ async function removeAndFall(removingCells, mode = 'play') {
   if (typeof crDrain === 'function') crDrain();   // a solved challenge card leaves, the next arrives
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
-  else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }
+  else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); runQueuedDiscard(); }
+  else if (discardCarryArm) { discardCarryArm = false; if (selected.length) scheduleAutoSubmit(); }
 
   // Match-3: the settled board may have created new matches (e.g. after the
   // player discarded). match3Resolve() self-guards, so a cascade already in

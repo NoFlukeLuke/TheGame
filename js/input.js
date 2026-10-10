@@ -38,7 +38,7 @@ function scheduleQueuedRetry() {
     const q = pendingAction; pendingAction = null;
     dbgEvent('info', 'executing queued ' + q + ' (animation settled)');
     if (q === 'play') playHand();
-    else if (q === 'discard') doDiscard();
+    else if (q === 'discard') runQueuedDiscard();
   })();
 }
 
@@ -99,11 +99,16 @@ function scheduleAutoSubmit() {
   // PLAY". A 2s auto-play would fire the hand out from under the lesson, so the
   // countdown is suppressed while those steps are up (the pulse still shows).
   if (typeof tutorialHoldsAutoSubmit === 'function' && tutorialHoldsAutoSubmit()) return;
-  autoSubmitTimer = setTimeout(() => {
+  // A hand finished while cards are still falling waits for them (it used to be
+  // dropped). Any change to the selection cancels the wait.
+  let _waits = 0;
+  const fire = () => {
     autoSubmitTimer = null;
+    if ((animating || falling) && _waits++ < 100) { autoSubmitTimer = setTimeout(fire, 60); return; }
     handReadyForSubmit = false;
     if (!animating && !falling && selected.length >= 2 && selected.length >= handMinSelection()) playHand();
-  }, autoSubmitDelay());
+  };
+  autoSubmitTimer = setTimeout(fire, autoSubmitDelay());
 }
 
 function cardAt(el) {

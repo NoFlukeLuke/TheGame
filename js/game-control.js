@@ -613,7 +613,7 @@ function startGame() {
   selected = [];
   animating = false;
   falling = false;
-  pendingAction = null;
+  pendingAction = null; pendingDiscardCards = null;
   pendingEventOverride = null;
   rewardGridContext = 'interlude';
   skipTrickChoiceOverlay = false;

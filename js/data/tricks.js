@@ -304,6 +304,7 @@ let selected = [];        // array of [row,col] in order
 let animating = false;
 let falling = false;   // true during card fall animations - allows selection, queues play/discard
 let pendingAction = null; // 'play' | 'discard' - queued while falling
+let pendingDiscardCards = null; // the cards a queued discard was pressed on (runQueuedDiscard)
 let dealPhase = false; // true while deal anims are running - suppresses render() card placement
 
 let score = 0;      // current round's score - resets to 0 at the start of every round
