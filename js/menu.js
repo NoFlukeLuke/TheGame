@@ -1,4 +1,4 @@
-const BUILD = "2026-10-10 · r537 · Trick steering test results at r533";
+const BUILD = "2026-10-10 · r538 · steering README: examples on one basis";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

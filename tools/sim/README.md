@@ -189,11 +189,14 @@ not ranked. Medians of the other 103, each Trick alone:
   hand and has a swap and a discard. What still separates the rarities is
   what they pay, and it does not separate them much: Rare = Common, and
   Legendary = Epic across hand sizes.
-- Conditions that read narrow on random hands are easy to steer to: Lie Down
-  (one row) 18% of random hands -> 99% of boards, x4.70; Stand Up (one column)
-  19% -> 98%, x2.73; Rainbow (four suits) 4% -> 47%, x6-11 on 4-5 card hands;
-  Critical (flush type) 2% -> 76% of boards, x1.90 on the best hand; Stretch
-  0% -> 94%, x7.3 on 5-card hands.
+- Conditions that read narrow on random hands are easy to steer to. Pays on
+  random hands -> pays on the best hand with a swap and a discard, and that
+  hand's lift: Lie Down (one row) 18% -> every board, x4.41; Stand Up (one
+  column) 19% -> every board, x2.49; Rainbow (four suits) 4% -> every board,
+  x10.55; Critical (flush type) 2% -> 77%, x1.90; Stretch 0% -> 94%, x7.06.
+- Hard conditions with small payoffs stay small: Richter (Four of a Kind, x3
+  mult) and Twenty-One (a total of 21, x3 pips) are made on 75% / 74% of
+  boards but lift those hands only x1.71 / x1.48.
 - Strongest steered: Old Growth x7.3, Cloud Nine x6.8, Wellspring x6.3,
   Lie Down x4.7, Jackpot x3.9, What are The Odds x3.4.
 - Stand Up (Common, `column_rush`) and Stand-Up (Rare, `stand_up`) are the
