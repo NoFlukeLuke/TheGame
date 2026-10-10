@@ -285,7 +285,8 @@ function rewindTime(seconds, label, srcId, srcSource) {
   // The symbol flies from the entity that caused it to the clock it changed
   // (js/entity-fx.js). `srcId` is optional - without it the flight still happens,
   // it just starts from the clock rather than from a tray tile.
-  if (typeof entityEffectFX === 'function') entityEffectFX('rewind', gained, { id: srcId, source: srcSource });
+  // sfx false: playRewindFX above already played the rewind; the plate's copy doubled it (r534).
+  if (typeof entityEffectFX === 'function') entityEffectFX('rewind', gained, { id: srcId, source: srcSource, sfx: false });
   return gained;
 }
 
@@ -380,10 +381,13 @@ function pauseRound(seconds, srcId, srcSource) {
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
-  // Lit clock, tick-tock, and the ripple that turns and holds every card
+  // Lit clock, click click, and the ripple that turns and holds every card
   // (js/clock-fx.js). Idempotent - an extension of a live pause does nothing.
+  const _wasFrozen = typeof clockFrozen !== 'undefined' && clockFrozen;
   if (typeof beginClockFreeze === 'function') beginClockFreeze();
-  if (typeof entityEffectFX === 'function') entityEffectFX('pause', Math.round(seconds), { id: srcId, source: srcSource });
+  // One click click per pause (r534): beginClockFreeze plays it when the clock stops,
+  // so the plate only plays it for an extension of a pause already running.
+  if (typeof entityEffectFX === 'function') entityEffectFX('pause', Math.round(seconds), { id: srcId, source: srcSource, sfx: _wasFrozen });
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {

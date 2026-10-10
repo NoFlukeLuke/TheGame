@@ -986,10 +986,18 @@ and reduced motion. Headless Chromium renders this at ~4fps; check it with CDP
 `fitEntityName` also reads back what was drawn (`fitWordSplit`, `fitClipped`) and steps down while a
 word sits on two lines or the glyphs spill, before `fitWrapIfClipped` (which breaks anywhere) can fire.
 
-## r533 - a rewind plate throws no copies
-`PARTICLE_CFG.trails.rewind` 4 -> 0 (owner: no blending or fading). The ghost copies were see-through, so
-their numbers read grey, and with `fill: 'forwards'` each sat full size and unplaced beside the launch
-point until its delay ran out; copies now take `fill: 'both'` in case the trail is turned back on.
+## r533 - rewind copies placed from their first frame
+With `fill: 'forwards'` each rewind ghost copy sat full size and unplaced beside the launch point until
+its delay ran out; copies now take `fill: 'both'`. (r533 also turned the copies off; r534 put them back.)
 A card's time buff is a REWIND (`permTime`, paid through `rewindTime` in `playHand`); The Vulture and
 Wait Four It put a PAUSE on a card (`_vulturePause`, paid through `pauseRound`). Both show as the same
 time mark on the card and the same white plate.
+
+## r534 - rewind copies are back; a pause clicks
+- `PARTICLE_CFG.trails.rewind` is 4 again (owner: the trailing copies are intended).
+- **Pause is CLICK CLICK** (`tick_tock`, every pack and classic): two equal dry clicks `PAUSE_CLICK_GAP`
+  (85ms, js/audio.js) apart, no held note, about 0.1s (was 0.6 to 2s), peaks within ~1.5 dB of the old.
+  Rewind keeps its wind-up. Vegas built both from the same reel detent; the click is now high and dry.
+- **One sound per event:** `rewindTime` already plays `playRewindFX`, and `pauseRound`'s `beginClockFreeze`
+  plays the click, so their plates pass `sfx: false` (the pause plate plays it only for an extension of a
+  running pause). Measured: a new pause and a rewind each played their sound twice before.

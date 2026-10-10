@@ -324,15 +324,12 @@ const VEGAS_PACK = {
 
   // The escapement. Quiet by design: it fires six times a minute for a whole run.
   clock_tick: () => vgDetent({ gain: 0.04, pitch: 1.9, verb: 0.05 }),
-  // The clock has STOPPED. Two throws, the second lower, over a held ring - the
-  // second one landing late is the whole reason a stopped clock sounds stopped.
-  tick_tock: () => {
-    vgDetent({ gain: 0.09, pitch: 2.0, verb: 0.16 });
-    dWood({ freq: 420, dur: 0.06, gain: 0.07, verb: 0.14 });
-    vgDetent({ gain: 0.08, pitch: 1.45, delay: 0.22, verb: 0.16 });
-    dWood({ freq: 300, dur: 0.07, gain: 0.065, delay: 0.22, verb: 0.14 });
-    dMetal({ freq: 262, set: 'ring', dur: 1.1, gain: 0.05, delay: 0.01, verb: 0.4, tilt: 0.85 });
-  },
+  // The clock has PAUSED: click click (r534, PAUSE_CLICK_GAP in js/audio.js). Dry and
+  // high, so it never reads as the rewind's detents winding up.
+  tick_tock: () => [0, PAUSE_CLICK_GAP].forEach(at => {
+    dClick({ dur: 0.008, freq: 5200, q: 1.6, gain: 0.12, kind: 'metal', rate: 2.4, delay: at, verb: 0.04 });
+    dWood({ freq: 760, dur: 0.035, gain: 0.09, delay: at, verb: 0.04, bright: 1.2 });
+  }),
   // The reels driven backwards: detents accelerating the wrong way, swelling into
   // a stop rather than decaying out of one.
   rewind: () => {
@@ -575,13 +572,10 @@ const HIGHROLLER_PACK = {
   },
 
   clock_tick: () => dClick({ dur: 0.012, freq: 2600, q: 1.1, gain: 0.11, kind: 'pink', verb: 0.06 }),
-  tick_tock: () => {
-    dClick({ dur: 0.013, freq: 3000, q: 1.3, gain: 0.07, kind: 'pink', verb: 0.2 });
-    dThump({ freq: 220, to: 90, dur: 0.1, gain: 0.08, sat: 0.4, verb: 0.2 });
-    dClick({ dur: 0.013, freq: 2100, q: 1.3, gain: 0.06, kind: 'pink', delay: 0.22, verb: 0.2 });
-    dThump({ freq: 170, to: 72, dur: 0.11, gain: 0.07, delay: 0.22, sat: 0.4, verb: 0.2 });
-    hrBrass(-12, { dur: 1.4, gain: 0.05, bite: 3, verb: 0.45, voices: 3 });
-  },
+  tick_tock: () => [0, PAUSE_CLICK_GAP].forEach(at => {      // click click (r534)
+    dClick({ dur: 0.01, freq: 3800, q: 1.4, gain: 0.15, kind: 'pink', delay: at, verb: 0.08 });
+    dThump({ freq: 260, to: 140, dur: 0.05, gain: 0.11, sat: 0.4, delay: at, verb: 0.06 });
+  }),
   // Tape pulled backwards: a swell that stops dead, pitching up the whole way.
   rewind: () => {
     dSweep({ kind: 'tone', from: dHz(-12, HR_MID), to: dHz(19, HR_MID), dur: 0.62, gain: 0.13, type: 'sawtooth', up: true, verb: 0.35 });
@@ -790,11 +784,10 @@ const NEON_PACK = {
   },
 
   clock_tick: () => neBlip(36, { dur: 0.012, gain: 0.022, duty: 0.1, verb: 0.05 }),
-  tick_tock: () => {
-    neBlip(33, { dur: 0.03, gain: 0.07, duty: 0.12, verb: 0.16 });
-    neBlip(26, { dur: 0.035, gain: 0.06, duty: 0.12, delay: 0.22, verb: 0.16 });
-    neSaw(-12, { dur: 0.9, gain: 0.05, bite: 3.2, verb: 0.3, voices: 5 });
-  },
+  tick_tock: () => [0, PAUSE_CLICK_GAP].forEach(at => {      // click click (r534)
+    neBlip(31, { dur: 0.014, gain: 0.095, duty: 0.1, delay: at, verb: 0.05 });
+    dClick({ dur: 0.006, freq: 6000, q: 1.2, gain: 0.085, delay: at });
+  }),
   rewind: () => {
     dSweep({ kind: 'tone', from: dHz(-5, NE_LOW), to: dHz(26, NE_LOW), dur: 0.6, gain: 0.11, type: 'sawtooth', up: true, verb: 0.26 });
     dSweep({ kind: 'noise', from: 600, to: 8000, dur: 0.6, gain: 0.06, q: 1.7, up: true, verb: 0.26 });
@@ -991,11 +984,10 @@ const LOUNGE_PACK = {
   },
 
   clock_tick: () => loBrush({ dur: 0.014, gain: 0.055, freq: 3000, to: 2200, verb: 0.05 }),
-  tick_tock: () => {
-    loBrush({ dur: 0.025, gain: 0.06, freq: 2800, to: 1800, verb: 0.2 });
-    loBrush({ dur: 0.028, gain: 0.05, delay: 0.22, freq: 2000, to: 1300, verb: 0.2 });
-    loKey(-12, { dur: 1.3, gain: 0.055, verb: 0.38, bright: 0.6 });
-  },
+  tick_tock: () => [0, PAUSE_CLICK_GAP].forEach(at => {      // click click (r534)
+    dWood({ freq: 640, dur: 0.04, gain: 0.14, delay: at, verb: 0.08, soft: 0.3 });
+    loBrush({ dur: 0.012, gain: 0.1, freq: 3600, to: 2600, delay: at, verb: 0.05 });
+  }),
   rewind: () => {
     dSweep({ kind: 'tone', from: dHz(-12, LO_KEYS), to: dHz(14, LO_KEYS), dur: 0.6, gain: 0.1, type: 'triangle', up: true, verb: 0.3 });
     dNoise({ kind: 'pink', dur: 0.6, gain: 0.06, type: 'bandpass', freq: 400, to: 3000, q: 1.3, up: true, verb: 0.3 });

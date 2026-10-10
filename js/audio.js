@@ -585,22 +585,18 @@ function sfxClockTick() {
              decay: 0.02,  sustain: 0.06, release: 0.05, duration: 0.03 });
 }
 
-// TICK ... TOCK - the clock has been PAUSED. Two clicks, the second lower and a
-// beat later, which is the whole reason a stopped clock sounds like a stopped
-// clock. Louder than the idle tick because it marks a real state change.
+// CLICK CLICK - the clock has been PAUSED (r534, owner). A stopwatch button: two
+// equal, dry clicks `PAUSE_CLICK_GAP` apart, no ring, so it cannot be mistaken for
+// a rewind (a swell that winds up). Every pack keeps the same rhythm in its own voice.
+const PAUSE_CLICK_GAP = 0.085;
 function sfxTickTock() {
-  const hit = (freq, delay, gain) => {
-    playNoise({ gain: gain * 0.55, attack: 0.001, release: 0.03, delay });
-    playTone({ freq, type: 'square', gain: gain * 0.5, attack: 0.001,
-               decay: 0.018, sustain: 0.06, release: 0.04, duration: 0.026, delay });
-    playTone({ freq: freq * 0.26, type: 'triangle', gain, attack: 0.001,
-               decay: 0.03, sustain: 0.1, release: 0.09, duration: 0.05, delay });
-  };
-  hit(1900, 0,    0.075);   // tick
-  hit(1380, 0.22, 0.065);   // tock
-  // A held ring underneath, so the pause has a floor rather than two dry clicks.
-  playTone({ freq: 262, type: 'sine', gain: 0.030, attack: 0.03,
-             decay: 0.2, sustain: 0.5, release: 0.55, duration: 0.5 });
+  [0, PAUSE_CLICK_GAP].forEach(delay => {
+    playNoise({ gain: 0.07, attack: 0.0008, release: 0.014, delay });
+    playTone({ freq: 2600, type: 'square', gain: 0.04, attack: 0.0008,
+               decay: 0.008, sustain: 0.04, release: 0.016, duration: 0.012, delay });
+    playTone({ freq: 640, type: 'triangle', gain: 0.085, attack: 0.001,
+               decay: 0.02, sustain: 0.05, release: 0.03, duration: 0.03, delay });
+  });
 }
 
 // REWIND - a tape played backwards. A normal sound is a hit that decays; this is

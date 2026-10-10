@@ -101,8 +101,7 @@ const PARTICLE_CFG = {
   // ── Ghost trail. A rewind is the one payout that means "this already happened,
   // and it is happening again", so it is the one that gets an after-image: N
   // copies of the plate lagging behind the real one, each fainter than the last.
-  // r533 (owner): off. The copies are see-through, so their numbers read grey.
-  trails:    { rewind: 0 },
+  trails:    { rewind: 4 },
   trailLag:  0.06,           // share of the flight each successive copy lags by
   trailFade: 0.42,           // opacity of the FIRST ghost; the rest fall off from it
   // ── Blip growth. A long tally is a crescendo: past the first `growStart`

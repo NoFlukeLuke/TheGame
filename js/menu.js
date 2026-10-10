@@ -1,4 +1,4 @@
-const BUILD = "2026-10-09 · r533 · rewind plates throw no see-through copies";
+const BUILD = "2026-10-10 · r534 · rewind copies back; pause sounds click click";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
