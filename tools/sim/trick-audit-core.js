@@ -43,6 +43,7 @@ function AUD_init(cfg) {
   limits.grid_rows.current = cfg.rows; limits.grid_cols.current = cfg.cols;
   limits.selection.current = cfg.maxHand;
   gridRows = cfg.rows; gridCols = cfg.cols;
+  if (cfg.scoring) scoringModel = cfg.scoring;     // classic / mult_ladder / hand_size (js/focus-config.js)
   bossActive = false;
   gameTimerPaused = false; roundEnded = false; isPaused = false;   // startGame leaves the clock held for the deal
   const seen = new Set(), all = [];
@@ -658,5 +659,372 @@ function AUD_levelCurve(id, levels) {
       out.levels.push({ level: lv, mult: Math.exp(lg / n), pts: pts / n });
     }
   } finally { cfg.level = keep; level = keep; }
+  return out;
+}
+
+// ── Steering: what one swap and one discard buy (r535) ──────────────────────
+// Each Trick alone. On every board the player looks for the hand that scores
+// best with the Trick, three ways:
+//   dealt    the hands already on the board
+//   swap     the same, or one neighbour swap first (the game's rule: orthogonal neighbours)
+//   discard  the same, or one discard of 1..steerDiscardMax connected cards first
+//            (cards above fall, new ones drop in from the draw pile; steerSamples
+//            random draws), then optionally the swap. The discard is made only
+//            when its average beats not making it.
+// The discards tried are the steerCands groups that disturb the Trick's best
+// hands least: a discard moves every card above it, so a group costs the best
+// hand running through any cell it moves or replaces. A sharper player would
+// aim the discard at a nearly made hand; this one clears the least useful cards.
+// The no-Trick player runs the same search for the bare score (id null), so a
+// Trick's lift is how much better the best hand gets when you play for it.
+// A used swap or discard counts (Eagle Eye, Compost and the like see it); its
+// clock cost does not.
+function AUD_steerInit() {
+  if (AUD.shapes) return;
+  const R = gridRows, C = gridCols, N = R * C;
+  const nb = [];
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / C), c = i % C, o = [];
+    if (r > 0) o.push(i - C); if (r < R - 1) o.push(i + C); if (c > 0) o.push(i - 1); if (c < C - 1) o.push(i + 1);
+    nb.push(o);
+  }
+  const grow = maxSize => {                     // every connected mask of 1..maxSize cells
+    const all = [], seen = new Set();
+    let fr = [];
+    for (let i = 0; i < N; i++) { fr.push(1 << i); all.push(1 << i); }
+    for (let s = 2; s <= maxSize; s++) {
+      const nx = [];
+      for (const m of fr) for (let i = 0; i < N; i++) if (m & (1 << i)) for (const j of nb[i]) {
+        if (m & (1 << j)) continue;
+        const nm = m | (1 << j);
+        if (seen.has(nm)) continue;
+        seen.add(nm); nx.push(nm);
+      }
+      all.push(...nx); fr = nx;
+    }
+    return all;
+  };
+  const cellsOf = m => { const out = []; for (let i = 0; i < N; i++) if (m & (1 << i)) out.push([Math.floor(i / C), i % C]); return out; };
+  AUD.shapes = grow(AUD.cfg.maxHand).filter(m => AUD_popcount(m) >= 2).map(m => ({ m, cells: cellsOf(m) }));
+  AUD.byCell = Array.from({ length: N }, () => []);
+  AUD.shapes.forEach((s, si) => { for (let i = 0; i < N; i++) if (s.m & (1 << i)) AUD.byCell[i].push(si); });
+  AUD.dgroups = grow(AUD.cfg.steerDiscardMax).map(m => ({ m, n: AUD_popcount(m) }));
+  AUD.swapPairs = [];
+  for (let i = 0; i < N; i++) for (const j of nb[i]) if (j > i) AUD.swapPairs.push([i, j]);
+  AUD.stamp = new Int32Array(AUD.shapes.length); AUD.stampN = 0;
+  // The search asks for the same cards in the same cells many times over (every
+  // swap re-asks the shapes it leaves alone after a discard, calcScore asks again
+  // for the hand it scores, and every Trick searches the same boards). The game
+  // keeps 4,000 answers and then starts over, so a memo sits in front of it. The
+  // answer depends only on the cards in the cells and the run/flush rules, which
+  // no Trick changes here, so the dealt board and its swaps are kept per board
+  // for the whole worker (shared); discard boards differ by Trick and are kept
+  // for one board of one job (local).
+  const real = handComponentsFor;
+  AUD.hcSharedBy = []; AUD.cardSetBy = [];
+  AUD_steerUse(0, true);
+  handComponentsFor = function (cells) {
+    if (!cells || !cells.length) return real(cells);
+    let key = '';
+    for (const [r, c] of cells) { const cd = gridData[r] && gridData[r][c]; key += r * 8 + c + ':' + (cd ? cd._id : '-') + ';'; }
+    let v = AUD.hcShared.get(key);
+    if (v === undefined) v = AUD.hcLocal.get(key);
+    if (v === undefined) { v = real(cells); (AUD.memoShared ? AUD.hcShared : AUD.hcLocal).set(key, v); }
+    return v;
+  };
+  AUD.runVals = {};
+}
+// Point the memos at board gi; shared = new answers go to the per-board store.
+function AUD_steerUse(gi, shared) {
+  AUD.hcShared = AUD.hcSharedBy[gi] || (AUD.hcSharedBy[gi] = new Map());
+  AUD.cardSet = AUD.cardSetBy[gi] || (AUD.cardSetBy[gi] = new Map());
+  AUD.hcLocal = new Map(); AUD.cardSetLocal = new Map();
+  AUD.memoShared = shared;
+}
+function AUD_setBoard(b) {
+  const C = gridCols;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < C; c++) gridData[r][c] = b[r * C + c];
+}
+// Every card must be load-bearing: the ranks split, without sharing a card,
+// into sets (2+ of a rank) and runs (3+ consecutive ranks), unless the whole
+// hand is one suit (the flush claims every card). handComponentsFor costs
+// ~0.3ms, so a shape whose ranks cannot split that way is skipped without
+// asking it. Wilds, dual cards and one-suit shapes always go to the real check.
+function AUD_quickOk(cells) {
+  const cards = cells.map(([r, c]) => gridData[r][c]);
+  let wild = 0;
+  for (const c of cards) {
+    if (!c || c.suit2 || c.rank2) return true;
+    if (isWildCard(c)) { if (wildsInRuns) return true; wild++; }
+  }
+  const nat = cards.filter(c => !isWildCard(c));
+  // One suit: the flush overlay can claim every card (a Run of 3 inside a Flush
+  // of 4 is a hand even where Flush of 4 alone is not), so the real check decides.
+  if (cards.length >= flushOverlayMin && nat.length && nat.every(c => c.suit === nat[0].suit)) return true;
+  // A wild completes a set only: it pairs a lone rank, joins a set, or sets with another wild.
+  return AUD_splits(nat.map(c => AUD.runVals[c.rank] || (AUD.runVals[c.rank] = rankRunVals(c.rank))), wild, wild);
+}
+// vs: one entry per natural card, its run values (an Ace is [1, 14]); same
+// values = same rank. w wilds may pad lone ranks into sets; every wild must
+// land in a set (any set, or two wilds together).
+function AUD_splits(vs, w, wAll, sets = 0) {
+  if (!vs.length) return wAll === 0 || sets > 0 || wAll >= 2;
+  const v0 = vs[0], rest = vs.slice(1);
+  const same = [];
+  rest.forEach((v, i) => { if (v === v0 || v[0] === v0[0]) same.push(i); });
+  for (let k = 1; k <= same.length; k++) {
+    const drop = new Set(same.slice(0, k));
+    if (AUD_splits(rest.filter((_, i) => !drop.has(i)), w, wAll, sets + 1)) return true;
+  }
+  if (w > 0 && AUD_splits(rest, w - 1, wAll, sets + 1)) return true;
+  for (const x of v0) for (let lo = x - 4; lo <= x; lo++) for (let len = 3; len <= 1 + rest.length && len <= 5; len++) {
+    const hi = lo + len - 1;
+    if (x < lo || x > hi) continue;
+    const used = new Set();
+    let ok = true;
+    for (let y = lo; y <= hi && ok; y++) {
+      if (y === x) continue;
+      const i = rest.findIndex((v, j) => !used.has(j) && v[0] !== v0[0] && v.includes(y) && ![...used].some(u => rest[u][0] === v[0]));
+      if (i < 0) ok = false; else used.add(i);
+    }
+    if (ok && AUD_splits(rest.filter((_, i) => !used.has(i)), w, wAll, sets)) return true;
+  }
+  return false;
+}
+// The hand a shape makes on the board as it stands (every card load-bearing,
+// no High Card), or null. The verdict depends only on which cards are in it,
+// so it is kept per card set (shared and local like the memo above).
+function AUD_shapeHand(si) {
+  const sh = AUD.shapes[si];
+  if (!AUD_quickOk(sh.cells)) return null;
+  const key = sh.cells.map(([r, c]) => gridData[r][c]._id).sort().join(',');
+  let name = AUD.cardSet.get(key);
+  if (name === undefined) name = AUD.cardSetLocal.get(key);
+  if (name === undefined) {
+    let comps = null;
+    try { comps = handComponentsFor(sh.cells); } catch (e) { comps = null; }
+    name = null;
+    if (comps && comps.playable) {
+      const claimed = new Set();
+      comps.components.forEach(k => k.cells.forEach(([r, c]) => claimed.add(r * 100 + c)));
+      const n = comps.primary;
+      if (claimed.size === sh.cells.length && n && n !== 'High Card' && HAND_BASE[n]) name = n;
+    }
+    (AUD.memoShared ? AUD.cardSet : AUD.cardSetLocal).set(key, name);
+  }
+  if (!name) return null;
+  return { si, name, cells: AUD_RUNS.includes(name) ? AUD_orderRun(sh.cells) : sh.cells, s: 0 };
+}
+function AUD_calc(h) {
+  try { return calcScore(h.name, h.cells); } catch (e) { AUD.lastErr = String(e && e.stack || e).slice(0, 300); return NaN; }
+}
+// Score a list of hands with the state as it stands; best first.
+function AUD_rescore(hands) {
+  const out = [];
+  for (const h of hands) { const s = AUD_calc(h); if (isFinite(s)) out.push({ si: h.si, name: h.name, cells: h.cells, s }); }
+  return out.sort((a, b) => b.s - a.s);
+}
+// Every hand on the board, or (with prev + changed) the hands of `prev` clear
+// of the changed cells plus a fresh look at every shape through them.
+function AUD_steerHands(prev, changed) {
+  const out = [];
+  if (!prev) { for (let si = 0; si < AUD.shapes.length; si++) { const h = AUD_shapeHand(si); if (h) out.push(h); } return out; }
+  for (const h of prev) if (!(AUD.shapes[h.si].m & changed)) out.push(h);
+  for (let si = 0; si < AUD.shapes.length; si++) if (AUD.shapes[si].m & changed) { const h = AUD_shapeHand(si); if (h) out.push(h); }
+  return out;
+}
+function AUD_steerFlags(base, swap, discarded) {
+  swapsUsedRound = base.swaps + (swap ? 1 : 0);
+  lastSwapRoundSeconds = swap ? roundSeconds : base.lastSwap;
+  discardsUsedRound = base.discards + (discarded ? 1 : 0);
+  cardsDiscardedRound = base.cardsDiscarded + discarded;
+}
+// The best hand of each size with one neighbour swap, on board b whose hands
+// (scored with the swap counted) are `sorted`. A swap only changes the hands
+// through its two cells; the best of the rest is the first in `sorted` clear of both.
+function AUD_steerSwap(b, sorted) {
+  const C = gridCols, best = {};
+  for (const [a, c2] of AUD.swapPairs) {
+    const bm = (1 << a) | (1 << c2), top = {};
+    for (const h of sorted) { const k = h.cells.length; if (!top[k] && !(AUD.shapes[h.si].m & bm)) top[k] = h; }
+    const ra = Math.floor(a / C), ca = a % C, rb = Math.floor(c2 / C), cb = c2 % C;
+    gridData[ra][ca] = b[c2]; gridData[rb][cb] = b[a];
+    const st = ++AUD.stampN;
+    for (const list of [AUD.byCell[a], AUD.byCell[c2]]) for (const si of list) {
+      if (AUD.stamp[si] === st) continue;
+      AUD.stamp[si] = st;
+      const h = AUD_shapeHand(si); if (!h) continue;
+      h.s = AUD_calc(h);
+      const k = h.cells.length;
+      if (isFinite(h.s) && (!top[k] || h.s > top[k].s)) { h.swap = [a, c2]; top[k] = h; }
+    }
+    gridData[ra][ca] = b[a]; gridData[rb][cb] = b[c2];
+    for (const k in top) if (!best[k] || top[k].s > best[k].s) best[k] = top[k].swap ? top[k] : Object.assign({}, top[k], { swap: [a, c2] });
+  }
+  return best;
+}
+// The best (first) hand of each size in a best-first list.
+function AUD_bySize(sorted) {
+  const out = {};
+  for (const h of sorted) { const k = h.cells.length; if (!out[k]) out[k] = h; }
+  return out;
+}
+// Board b after discarding the cells of mask gm: survivors fall to the bottom
+// of their column, the holes above are filled from pile in column order.
+function AUD_steerDrop(b, gm, pile) {
+  const R = gridRows, C = gridCols, nb = b.slice();
+  let changed = 0, pi = 0;
+  for (let c = 0; c < C; c++) {
+    const surv = [];
+    let low = -1;
+    for (let r = 0; r < R; r++) { const i = r * C + c; if (gm & (1 << i)) low = r; else surv.push(b[i]); }
+    if (low < 0) continue;
+    const k = R - surv.length;
+    for (let r = 0; r < R; r++) nb[r * C + c] = r < k ? pile[pi++] : surv[r - k];
+    for (let r = 0; r <= low; r++) changed |= 1 << (r * C + c);
+  }
+  return { b: nb, changed };
+}
+// The discard groups to try: those whose fall disturbs the best hands least,
+// bigger groups first among equals.
+function AUD_steerCands(dealtSorted) {
+  const R = gridRows, C = gridCols, N = R * C, v = new Array(N).fill(0);
+  for (const h of dealtSorted) { const m = AUD.shapes[h.si].m; for (let i = 0; i < N; i++) if ((m & (1 << i)) && h.s > v[i]) v[i] = h.s; }
+  const scored = AUD.dgroups.map(gr => {
+    let cost = 0;
+    for (let c = 0; c < C; c++) {
+      let low = -1;
+      for (let r = 0; r < R; r++) if (gr.m & (1 << (r * C + c))) low = r;
+      for (let r = 0; r <= low; r++) cost = Math.max(cost, v[r * C + c]);
+    }
+    return { m: gr.m, n: gr.n, cost };
+  });
+  scored.sort((x, y) => x.cost - y.cost || y.n - x.n || x.m - y.m);
+  return scored.slice(0, AUD.cfg.steerCands);
+}
+// Per board, for each hand size and for the best hand of any size ('any'):
+// the log score of the hand picked at each level (dealt / swap / discard),
+// whether the Trick paid on it, and the same Trick on the board's random hands.
+function AUD_steerTrick(id) {
+  AUD_steerInit();
+  const cfg = AUD.cfg, nG = Math.min(cfg.steerGrids, AUD.grids.length), S = cfg.steerSamples;
+  const L = AUD_makeLoadout(id ? [id] : [], 91);
+  const mask = id ? 1 : 0;
+  const KS = [];
+  for (let k = 2; k <= cfg.maxHand; k++) KS.push(String(k));
+  const KEYS = [...KS, 'any'];
+  const grid = () => Object.fromEntries(KEYS.map(k => [k, []]));
+  const out = { id, lv: [grid(), grid(), grid()], fv: [grid(), grid(), grid()], used: { swap: grid(), disc: grid() },
+    rand: { n: 0, log: 0, fired: 0, bySize: {} }, names: {}, err: null };
+  const lg = v => Math.log(Math.max(1, v));
+  const pileOf = (g, gi, s) => {
+    const on = new Set(g.cards.map(c => c._id));
+    return AUD_shuffle(AUD.deck.filter(c => !on.has(c._id)), AUD_rng(cfg.seed * 7717 + gi * 101 + s * 13 + 5));
+  };
+  const withAny = m => { let a = null; for (const k of KS) if (m[k] && (!a || m[k].s > a.s)) a = m[k]; if (a) m.any = a; return m; };
+  for (let gi = 0; gi < nG; gi++) {
+    const g = AUD.grids[gi], ctx = g.ctx[0];
+    AUD_steerUse(gi, true);
+    AUD_place(g.cards);
+    const b0 = g.cards.slice();
+    AUD_apply(L, mask, g, g.hands[ctx.last], ctx);
+    const base = { swaps: swapsUsedRound, lastSwap: lastSwapRoundSeconds, discards: discardsUsedRound, cardsDiscarded: cardsDiscardedRound };
+    // Dealt.
+    AUD_steerFlags(base, false, 0);
+    const valid = AUD_steerHands(null, 0);
+    const D = AUD_rescore(valid);
+    if (!D.length) continue;
+    const p0 = withAny(AUD_bySize(D));
+    // One neighbour swap: per size, the swap's best when it beats the dealt best.
+    AUD_steerFlags(base, true, 0);
+    const sw = AUD_steerSwap(b0, AUD_rescore(valid));
+    const p1 = {};
+    for (const k of KS) {
+      if (sw[k] && (!p0[k] || sw[k].s > p0[k].s)) p1[k] = Object.assign({}, sw[k], { sw: true }); else if (p0[k]) p1[k] = p0[k];
+    }
+    withAny(p1);
+    // One discard, then the swap. The discard tried is the one whose draws give
+    // the best hands across sizes; each size then takes it only if it pays on average.
+    AUD.memoShared = false;
+    const cands = AUD_steerCands(D);
+    const piles = [];
+    for (let s = 0; s < S; s++) piles.push(pileOf(g, gi, s));
+    let pick = null;
+    for (const cd of cands) {
+      let tot = 0;
+      const runs = [];
+      for (let s = 0; s < S; s++) {
+        const dr = AUD_steerDrop(b0, cd.m, piles[s]);
+        AUD_setBoard(dr.b);
+        AUD_steerFlags(base, false, cd.n);
+        const hv = AUD_steerHands(valid, dr.changed);
+        const H2 = AUD_rescore(hv);
+        AUD_setBoard(b0);
+        const bs = AUD_bySize(H2);
+        for (const k of KS) tot += bs[k] ? lg(bs[k].s) : (p1[k] ? lg(p1[k].s) : 0);   // a size the draw loses is judged as kept
+        runs.push({ dr, hv, bs });
+      }
+      if (!pick || tot > pick.tot) pick = { cd, tot, runs };
+    }
+    const after = [];                            // per sample, per size: the hand after the discard (and maybe a swap)
+    if (pick) for (const run of pick.runs) {
+      AUD_setBoard(run.dr.b);
+      AUD_steerFlags(base, true, pick.cd.n);
+      const sw2 = AUD_steerSwap(run.dr.b, AUD_rescore(run.hv));
+      AUD_setBoard(b0);
+      const m = {};
+      for (const k of KS) {
+        const a = run.bs[k], c = sw2[k];
+        if (c && (!a || c.s > a.s)) m[k] = Object.assign({}, c, { sw: true, b: run.dr.b, n: pick.cd.n });
+        else if (a) m[k] = Object.assign({}, a, { b: run.dr.b, n: pick.cd.n });
+      }
+      after.push(withAny(m));
+    }
+    AUD.memoShared = true;
+    const p2 = {};                               // per size: [hands] (one per sample) or the level-1 hand
+    for (const k of KEYS) {
+      const xs = after.map(m => m[k]);
+      const ok = xs.length === S && xs.every(Boolean) && p1[k] && xs.reduce((t, h) => t + h.s, 0) / S > p1[k].s;
+      p2[k] = ok ? xs : (p1[k] ? [p1[k]] : null);
+      if (ok) out.used.disc[k].push(gi);
+    }
+    for (const k of KEYS) if (p1[k] && p1[k].sw) out.used.swap[k].push(gi);
+    const hs = p2.any || [];
+    hs.forEach(h => { out.names[h.name] = (out.names[h.name] || 0) + 1 / hs.length; });
+    // Log scores, and (with a Trick) whether it paid on the hand picked: the bare
+    // score of that very hand, in the same board state with the same stock used.
+    for (const k of KEYS) {
+      out.lv[0][k].push(p0[k] ? lg(p0[k].s) : null);
+      out.lv[1][k].push(p1[k] ? lg(p1[k].s) : null);
+      out.lv[2][k].push(p2[k] ? p2[k].reduce((t, h) => t + lg(h.s), 0) / p2[k].length : null);
+    }
+    if (id) {
+      AUD_apply(L, 0, g, g.hands[ctx.last], ctx);
+      const pays = h => {
+        const bb = (h.b || b0).slice();
+        if (h.sw && h.swap) { const [a, c2] = h.swap; const t = bb[a]; bb[a] = bb[c2]; bb[c2] = t; }
+        AUD_setBoard(bb); AUD_steerFlags(base, !!h.sw, h.n || 0);
+        const v = AUD_calc(h);
+        AUD_setBoard(b0);
+        return Math.abs(h.s - v) > 0.5 ? 1 : 0;
+      };
+      for (const k of KEYS) {
+        out.fv[0][k].push(p0[k] ? pays(p0[k]) : null);
+        out.fv[1][k].push(p1[k] ? pays(p1[k]) : null);
+        out.fv[2][k].push(p2[k] ? p2[k].reduce((t, h) => t + pays(h), 0) / p2[k].length : null);
+      }
+      // The same Trick alone on the board's random hands, for comparison.
+      g.any.forEach((hi, s) => {
+        const h = g.hands[hi], c = g.ctx[s];
+        const v1 = AUD_score(L, 1, g, h, c)[0], v0 = AUD_score(L, 0, g, h, c)[0];
+        if (!isFinite(v1) || !isFinite(v0)) return;
+        const d = lg(v1) - lg(v0), f = Math.abs(v1 - v0) > 0.5 ? 1 : 0;
+        out.rand.n++; out.rand.log += d; out.rand.fired += f;
+        const z = out.rand.bySize[h.n] || (out.rand.bySize[h.n] = { n: 0, log: 0, fired: 0 });
+        z.n++; z.log += d; z.fired += f;
+      });
+    }
+  }
+  if (AUD.lastErr) out.err = AUD.lastErr;
   return out;
 }

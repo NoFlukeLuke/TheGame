@@ -5,6 +5,8 @@
 // per deal.
 //
 //   node tools/sim/trick-audit.js [--deals 30] [--grids 100] [--workers 4]
+//                                 [--passes loadouts,focus,time,hold,levels,pairs,steer]
+//                                 [--scoring classic|mult_ladder|hand_size] [--steerIds a,b]
 //                                 [--out tools/sim/out/trick-audit.json] [--cfg '{"level":12}']
 //
 // Output: one JSON file with the settings, the pool (live names, rarities and
@@ -37,6 +39,11 @@ const DEFAULTS = {
   baseBuffMult: 2, baseBuffMultAmt: 4,    // 2 cards +4 mult
   focusLevels: 8, focusRuns: 150,
   levelUpSeconds: 15,     // time on the reward screens between levels (the speed bonus clock keeps running)
+  scoring: 'classic',     // the scoring model: classic / mult_ladder / hand_size
+  steerGrids: 100,        // steer pass: boards searched per Trick
+  steerSamples: 2,        //   random draws behind each discard
+  steerCands: 8,          //   discard groups tried per board
+  steerDiscardMax: 3,     //   cards in one discard
 };
 
 function arg(name, dflt) {
@@ -77,6 +84,9 @@ if (process.argv[2] === 'worker') {
       process.send({ type: 'result', r });
     } else if (msg.type === 'levels') {
       const r = JSON.parse(G.eval(`JSON.stringify(AUD_levelCurve(${JSON.stringify(msg.id)}, ${JSON.stringify(msg.levels)}))`));
+      process.send({ type: 'result', r });
+    } else if (msg.type === 'steer') {
+      const r = JSON.parse(G.eval(`JSON.stringify(AUD_steerTrick(${JSON.stringify(msg.id)}))`));
       process.send({ type: 'result', r });
     } else if (msg.type === 'exit') process.exit(0);
   });
@@ -126,6 +136,7 @@ function runPool(cfg, jobs, nWorkers, label) {
 async function main() {
   const cfg = Object.assign({}, DEFAULTS, JSON.parse(arg('cfg', '{}')));
   cfg.grids = parseInt(arg('grids', cfg.grids), 10);
+  cfg.scoring = arg('scoring', cfg.scoring);
   const deals = parseInt(arg('deals', '30'), 10);
   const nWorkers = parseInt(arg('workers', '4'), 10);
   const out = arg('out', path.join(__dirname, 'out', 'trick-audit.json'));
@@ -137,7 +148,7 @@ async function main() {
   const pool = JSON.parse(G.eval(`JSON.stringify(TRICK_POOL.filter(t => !survivalEntityBanned(t.id)).map(t => ({ id: t.id, name: t.name, tier: t.tier, desc: t.desc, tags: t.tags || [] })))`));
   const banned = JSON.parse(G.eval(`JSON.stringify(TRICK_POOL.filter(t => survivalEntityBanned(t.id)).map(t => t.id))`));
   const ids = pool.map(t => t.id);
-  const result = { cfg, deals, pool, banned, started: new Date().toISOString() };
+  const result = { cfg, deals, pool, banned, build: G.eval(`typeof BUILD === 'string' ? BUILD : ''`), started: new Date().toISOString() };
   if (fs.existsSync(out)) Object.assign(result, JSON.parse(fs.readFileSync(out, 'utf8')), { cfg, pool, banned });
   const save = () => fs.writeFileSync(out, JSON.stringify(result));
 
@@ -189,6 +200,13 @@ async function main() {
   if (passes.includes('levels')) {
     const levels = [4, 12, 24];
     result.levels = await runPool(cfg, ids.map(id => ({ type: 'levels', id, levels })), nWorkers, 'levels');
+    save();
+  }
+  if (passes.includes('steer')) {
+    // Each Trick alone (and no Trick), best hand as dealt / with a swap / with a discard and a swap.
+    const only = arg('steerIds', '');
+    const sel = only ? only.split(',').filter(id => ids.includes(id)) : ids;
+    result.steer = await runPool(cfg, [null, ...sel].map(id => ({ type: 'steer', id })), nWorkers, 'steer');
     save();
   }
   if (passes.includes('pairs')) {

@@ -129,3 +129,39 @@ script reads them as they are). Headlines, at level 12 in Flow:
   Hoarder House).
 - A ridge regression of each loadout's log lift on its Tricks explains 95% of
   the variance and matches the Shapley numbers (r = 0.99).
+
+### Steering pass (r535): how hard is a Trick's condition to make?
+
+The loadout pass prices a condition in by chance (random hands) and by what is
+already on the board (chosen hands). The steer pass adds what a player does to
+make a hand: one neighbour swap and one discard.
+
+```
+node tools/sim/trick-audit.js --passes steer --out steer.json      # ~85 min on 4 cores
+python3 tools/sim/trick-steer-report.py steer.json --out trick-steer.xlsx
+```
+
+Each Trick ALONE (and no Trick, the baseline), on the loadout pass's 100
+boards, in each board's first round state. The player picks the hand that
+scores best with the Trick at three levels: as dealt; with one neighbour swap
+(orthogonal, the game's rule); with one discard of 1-3 connected cards first
+(cards above fall, new ones drop in; 2 random draws), then optionally the swap.
+It does this for the best hand of each size (2-5 cards) and for the best hand
+of any size, and asks whether the Trick paid on the hand it picked (the bare
+score of that very hand, same board, same stock used). The headline number is
+the average over the four sizes with a swap and a discard: a player who plays
+a spread of hand lengths and steers each one. `--scoring mult_ladder` (or
+`hand_size`) runs it under another scoring model (js/focus-config.js).
+
+How the search is made affordable: every connected shape of 2-5 cells is
+listed once; a shape is only sent to `handComponentsFor` (~0.3ms) if its ranks
+can split into sets and runs (`AUD_quickOk`, checked against the real test on
+28,000 shapes: it never turns away a real hand); answers are kept per board for
+the whole worker (`AUD_steerUse`), and a swap only rescans the shapes through
+its two cells.
+
+What it does not do: the discard tried is the least disruptive group whose
+draws give the best hands (a sharper player aims it at a nearly made hand);
+the clock cost of a swap or discard is not charged; the player maximises
+score, not score per second, so a Trick for small or fast hands reads lower
+than it plays (its 2-card column shows it).
