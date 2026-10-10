@@ -79,6 +79,10 @@ def main():
         row['disc_used'] = len(r['used']['disc']['any']) / nb if nb else None
         row['names'] = r.get('names', {})
         row['err'] = r.get('err')
+        # Never paid alone (no random hand, no picked hand at any level or size):
+        # it needs other Tricks, clock pauses or a later hand, so this test cannot rank it.
+        paid = r['rand']['fired'] > 0 or any(v for lv in r['fv'] for k in lv for v in lv[k] if v)
+        if row['type'] == 'Score' and not paid: row['type'] = 'Needs others'
         rows.append(row)
 
     score = [r for r in rows if r['type'] == 'Score' and r.get('all_x')]
@@ -157,7 +161,7 @@ def write_xlsx(path, rows, med, cuts, cfg, d, sizes, base):
 
     # ── 1. Steering ──
     ws = wb.active; ws.title = 'Steering'
-    order = {'Score': 0, 'Focus': 1, 'Time': 2, 'Credits / stock': 3, 'Dead in Flow': 4, 'Not measured': 5}
+    order = {'Score': 0, 'Needs others': 1, 'Focus': 2, 'Time': 3, 'Credits / stock': 4, 'Dead in Flow': 5, 'Not measured': 6}
     rs = sorted(rows, key=lambda r: (order.get(r['type'], 9), TIERS.index(r['tier']), -(r.get('all_x') or 0)))
     headers = ['Trick', 'Rarity', 'Pays in', 'Description',
                'Steered, all hand sizes (x)', 'Ratio to rarity median', 'Suggested rarity', 'Pays on, steered (% of boards)',
@@ -177,7 +181,7 @@ def write_xlsx(path, rows, med, cuts, cfg, d, sizes, base):
              '"x" = how much better that best hand scores than the best hand a player with no Trick finds the same way (x1.50 = 50% more).',
              '"Steered, all hand sizes" = the average over 2-, 3-, 4- and 5-card hands with a swap and a discard: a player who plays a spread of hand lengths and steers each one.',
              '"Ratio to rarity median": 1 = the typical Trick of its rarity. "Suggested rarity": rank every Score Trick by the steered number and hand out the rarities in today\'s numbers, weakest first.',
-             'Only Score Tricks are ranked. Focus, Time and credit Tricks are listed for their score side only (most have none).']
+             'Only Score Tricks are ranked. "Needs others" never paid alone (it needs other Tricks, clock pauses or a later hand), so it is not ranked; Focus, Time and credit Tricks are listed for their score side only.']
     r0 = sheet(ws, headers, data, [22, 11, 10, 46, 12, 11, 11, 12, 10, 10, 10, 10, 10, 10, 11, 11] + [10] * len(sizes) + [10, 10, 28], notes)
     for i, r in enumerate(rs, r0 + 1):
         if r.get('suggest'):

@@ -165,3 +165,37 @@ draws give the best hands (a sharper player aims it at a nearly made hand);
 the clock cost of a swap or discard is not charged; the player maximises
 score, not score per second, so a Trick for small or fast hands reads lower
 than it plays (its 2-card column shows it).
+
+#### Results at r533 (`tools/sim/out/trick-steer-r533.xlsx`)
+
+Raw data: `out/trick-steer-r533.json.gz` (the report script reads it as it is).
+14 Score Tricks never paid alone (they need other Tricks, clock pauses or a
+later hand: Mirror, Double Take, Prime Times, Inspirato, Move as One, the
+pause birds, Deep Breath, Patient Rulers, Ley Line, Feng Shui, Bedrock) and are
+not ranked. Medians of the other 103, each Trick alone:
+
+| median Score Trick | Common | Rare | Epic | Legendary |
+|---|---|---|---|---|
+| random hand | x1.31 | x1.13 | x1.09 | x1.15 |
+| best hand, as dealt | x1.20 | x1.20 | x1.38 | x1.51 |
+| best hand, one swap | x1.17 | x1.19 | x1.43 | x1.71 |
+| best hand, swap + discard | x1.18 | x1.19 | x1.42 | x1.78 |
+| steered, all hand sizes | x1.23 | x1.23 | x1.42 | x1.42 |
+| pays on: random hand | 36% | 36% | 36% | 47% |
+| pays on: best hand, swap + discard | 73% | 87% | 85% | 78% |
+
+- Steering removes most of the condition gap: the typical Trick of every
+  rarity pays on three quarters or more of boards once the player picks the
+  hand and has a swap and a discard. What still separates the rarities is
+  what they pay, and it does not separate them much: Rare = Common, and
+  Legendary = Epic across hand sizes.
+- Conditions that read narrow on random hands are easy to steer to: Lie Down
+  (one row) 18% of random hands -> 99% of boards, x4.70; Stand Up (one column)
+  19% -> 98%, x2.73; Rainbow (four suits) 4% -> 47%, x6-11 on 4-5 card hands;
+  Critical (flush type) 2% -> 76% of boards, x1.90 on the best hand; Stretch
+  0% -> 94%, x7.3 on 5-card hands.
+- Strongest steered: Old Growth x7.3, Cloud Nine x6.8, Wellspring x6.3,
+  Lie Down x4.7, Jackpot x3.9, What are The Odds x3.4.
+- Stand Up (Common, `column_rush`) and Stand-Up (Rare, `stand_up`) are the
+  same Trick: +5 mult per card on one-column hands.
+- Ranked into today's tier sizes, 30 of the 103 stay where they are.
