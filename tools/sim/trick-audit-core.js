@@ -347,7 +347,11 @@ function AUD_apply(L, mask, g, h, ctx) {
   // Held-for-a-while scaling Tricks (cfg.holdHands hands).
   const H = cfg.holdHands, st = AUD.stats;
   bonusMult_compound = Math.round(H * BAL.compound_mult.mult_per_hand * 10) / 10;
-  bonusMult_nines = BAL.nines_mult.mult_per_nine * Math.min(AUD.deck.filter(c => c.rank === '9').length, Math.round(H * st.nines));   // each 9 is forgotten once scored
+  // Cloud Nine (r539) brings its own 9s; each is destroyed once scored, so the
+  // count is capped by the 9s it has (the deck's plus the added ones).
+  const _d9 = AUD.deck.filter(c => c.rank === '9').length, _n9 = _d9 + (BAL.nines_mult.added || 0);
+  bonusMult_nines = BAL.nines_mult.mult_per_nine * Math.min(_n9, Math.round(H * st.nines * _n9 / Math.max(1, _d9)));
+  risingTideMult = Math.round(H / cfg.handsPerLevel * (BAL.rising_tide.mult_min + BAL.rising_tide.mult_max) / 2);   // r539: 1-3 a level while held
   bonusMult_tens = BAL.tens_mult.mult_per_milestone * Math.floor(H * cfg.discardChance * cfg.cardsPerDiscard / BAL.tens_mult.discards_per_milestone);
   bonusMult_fives = BAL.fives_discard.pips_per_five * Math.round(H * (st.fives + cfg.discardChance * cfg.cardsPerDiscard * 4 / 52));
   focusGenGame = Math.round((cfg.level - 1) * cfg.handsPerLevel * cfg.focusPerHand);   // Wellspring counts the whole run

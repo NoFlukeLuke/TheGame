@@ -47,7 +47,7 @@ DEPENDS = {
     'sixes_perm': 'held 48 hands', 'fours_perm': 'held 48 hands', 'heartwood': 'held 48 hands', 'hourglass': 'held 48 hands',
     'rowcol_perm_double': 'held 48 hands; needs a marked row and column', 'rare_bloom': 'held 48 hands',
     'hummingbird': 'held 48 hands; needs pause sources', 'wellspring': 'Focus made all run (level 12)',
-    'rising_tide': 'level 12', 'summit': 'level 12', 'club_double': 'clubs scored earlier in the level',
+    'rising_tide': 'held 48 hands (8 levels)', 'summit': 'level 12', 'club_double': 'clubs scored earlier in the level',
     'tide_table': 'Runs earlier in the level', 'combo_score': 'hand types earlier in the level',
     'shaky_foundation': 'Sets earlier in the level', 'kindling': 'same-hand streak', 'echo_hand': 'same-hand streak',
     'wave_amp': 'Run streak', 'swift': 'seconds into the level', 'sediment': 'seconds into the level',
@@ -73,7 +73,7 @@ NOTES = {
     # Flat or growing mult on every hand: base mult is only 2-8, so each +1 mult is worth ~30% of a typical hand.
     'nines_mult': 'Four 9s and it is +36 mult on every hand for the rest of the run (x11.6 on a typical hand by itself).',
     'wellspring': 'Counts Focus made all run, before you took it too: about +33 mult at level 12 and +69 at level 24, on every hand.',
-    'rising_tide': 'A Common worth +11 mult at level 12 and +23 at level 24, on every hand. Grows with the run, never fades.',
+    'rising_tide': 'Builds 1-3 mult a level from when it is taken (r539); r518 numbers are the old +1 per level, Common.',
     'old_growth': 'Every card adds its own pips to mult: a 3-card Run adds 20-30 mult.',
     'compound_mult': '+0.1 mult a hand forever: +4.8 after 48 hands, +14 after 144. No cap.',
     'tens_mult': '+3 mult per 9 cards discarded, forever. Slow start, no cap.',

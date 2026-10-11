@@ -116,6 +116,8 @@ function triggerLevelUp() {
   frozenUnspentActions = Math.max(0, swaps) + Math.max(0, discards);
 
   level++;
+  // Rising Tide (r539): each level passed while held adds a 1-3 mult roll.
+  if (hasTrick('rising_tide')) { const _r = BAL.rising_tide; risingTideMult += _r.mult_min + Math.floor(Math.random() * (_r.mult_max - _r.mult_min + 1)); }
   // This round's score target, from zero
   // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
   // survival curve in Survival/Flow and applies Zen's doubling, and it is what

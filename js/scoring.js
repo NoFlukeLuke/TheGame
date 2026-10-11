@@ -125,8 +125,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let totalPips = Math.round(handBasePips(handName) * levelScale);
   _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
-  // Rising Tide: +1 base mult per level
-  const risingTideBonus = hasTrick('rising_tide') ? (level - 1) * BAL.rising_tide.mult_per : 0;
+  // Rising Tide (r539): the mult it has built, 1-3 per level passed while held (level-up.js)
+  const risingTideBonus = hasTrick('rising_tide') ? risingTideMult : 0;
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
   const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
@@ -264,7 +264,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     { id:'overgrowth',    cond:x => x.isRun,                          pays:()  => ({ pip:  BAL.overgrowth.pips_per_card }) },
     { id:'long_road',     cond:x => x.isRun,                          pays:()  => ({ mult: BAL.long_road.mult_per_card }) },
     { id:'edge_pips',     cond:x => x.onEdge,                         pays:()  => ({ pip:  BAL.edge_pips.pips_per_card }) },
-    { id:'full_color',    cond:x => x.suitCount === 4,                pays:()  => ({ pip:  BAL.full_color.pips_per_card, mult: BAL.full_color.mult_per_card }) },
     { id:'balanced_diet', cond:x => x.suitCount === 2,                pays:()  => ({ mult: BAL.balanced_diet.mult_per_card }) },
     { id:'column_rush',   cond:x => x.allSameCol,                     pays:()  => ({ mult: BAL.column_rush.mult_per_card }) },
     { id:'row_power',     cond:x => x.allSameRow,                     pays:()  => ({ mult: BAL.row_power.mult_per_card }) },
@@ -698,6 +697,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_xm !== 1) _xl.push({ id: 'perm_mult', f: _xm });
     if (!_mute) {
       if (hasTrick('what_odds') && _rankIsOddRank(baseRank)) _xl.push({ id: 'what_odds', f: BAL.what_odds.mult_mult });
+      // Rainbow (r539): a four-suit hand, x mult on each card (was +pips +mult per card).
+      if (!_G && hasTrick('full_color') && _pcCtx.suitCount === 4 && !isWildCard(card)) _xl.push({ id: 'full_color', f: BAL.full_color.mult_mult });
       if (hasTrick('patient_rulers') && ['J','Q','K'].includes(baseRank) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });
       if (hasTrick('obsessed') && _isHeartC && coins > 0) _xl.push({ id: 'obsessed', f: 1 + coins / BAL.obsessed.per_credits });
       // Relentless (r367): x(0.05 per spade scored since taking it), but never
@@ -999,8 +1000,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Rainbow / Balance count COLOURS as seen, so a white card counts as white
   // rather than as the colour of the slot it came from.
   const _suitSet = new Set(cards.map(c => cardColorSuit(c)));
-  if (_pcPips.full_color) { bPipQ('full_color', _pcPips.full_color, 1); }
-  if (_pcMult.full_color) { bMultQ('full_color', _pcMult.full_color, 0); }
   if (_pcMult.balanced_diet) { bMultQ('balanced_diet', _pcMult.balanced_diet, 1); }
   // Rank diversity
   const _rankSet = new Set(cards.map(c => c.rank));

@@ -19,7 +19,7 @@ const TRICK_POOL = [
   // ── Focus RATE batch (r180) - see focusRateMods() in js/focus-config.js ──
   { id:'overclock',     name:'Overclock',     tier:'epic', desc:'The Focus speed bonus is multiplied by 2.' },
   // ── Pairs / sets ──
-  { id:'kindred',        name:'Quake',               tier:'common',    desc:'Sets score +5 mult per card in the largest set' },
+  { id:'kindred',        name:'Quake',               tier:'rare',    desc:'Sets score +5 mult per card in the largest set' },
   { id:'double_bloom',   name:'Magnitude',           tier:'epic',      desc:'Hands containing a pair score ×1.5 mult' },
   { id:'high_pair',      name:'Resonance',           tier:'rare',      desc:'Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card' },
   { id:'rare_bloom',     name:'Bedrock',             tier:'epic',      desc:'Four of a Kind permanently buffs its 4 cards +8 pips each' },
@@ -43,7 +43,7 @@ const TRICK_POOL = [
   { id:'wild_heart',     name:'Inspirato',           tier:'epic',      desc:'When an Ace scores, prime your first and last Tricks' },
   { id:'face_value',     name:'Face Value',          tier:'common',    desc:'Face cards (J/Q/K) score +10 pips' },
   { id:'king_guard',     name:'Men of Repute',       tier:'common',    desc:'Kings and Jacks score +5 pips and +5 mult' },
-  { id:'knave_power',    name:'Jackpot',              tier:'legendary', desc:'Score ×2 pips for each Jack on the grid' },
+  { id:'knave_power',    name:'Jackpot',              tier:'legendary', desc:'Score ×1.5 pips for each Jack on the grid' },
   { id:'humble_roots',   name:'Every Day Essentials', tier:'rare',     desc:'Rank-6-and-below cards score their rank ×3 pips' },
   { id:'before_the_tide', name:'Gnomes',             tier:'epic',      desc:'Each rank 5 or lower card scored adds its rank in Focus' },
   { id:'royal_trio',     name:'Heads of State',      tier:'epic',      desc:'A hand containing a King and one other Royal scores ×2 mult' },
@@ -86,8 +86,8 @@ const TRICK_POOL = [
   // ── Suit conditions ──
   { id:'club_double',    name:'Hard Labour',         tier:'legendary',    tags:['suit','pips'], desc:'Each club scored this round adds more and more pips: doubles each time, starting at 1' },
   { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds' },
-  { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score +16 pips and +16 mult per card' },
-  { id:'balanced_diet',  name:'Balance',             tier:'common',    desc:'Hands with exactly 2 suits score +5 mult per card' },
+  { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score x1.25 mult per card' },
+  { id:'balanced_diet',  name:'Balance',             tier:'rare',    desc:'Hands with exactly 2 suits score +5 mult per card' },
   // ── Number magic ──
   { id:'lucky_sevens',   name:'Lucky Sevens',        tier:'rare',      desc:'+3 Focus for each 7 scored or discarded' },
   { id:'ninesong',       name:'Threepeat',           tier:'epic',      desc:"If the hand's pip total is divisible by 3, one of the following happens: rewind 9 seconds, +9 mult, +9 Focus" },
@@ -111,8 +111,8 @@ const TRICK_POOL = [
   { id:'two_corners',    name:'Stretch',             tier:'epic',      tags:['position','mult'], desc:'When a hand has 2 or more corner cards, each corner card scores ×4 mult' },
   { id:'edge_pips',      name:'On the Edge',         tier:'common',    tags:['position','pips'], desc:'Hands where all cards are on an edge score +15 pips per card' },
   { id:'wide_span_mult', name:'Inclusive',           tier:'rare',      tags:['position','mult'], desc:'Hands spanning the full width or height of the grid score +25 mult' },
-  { id:'column_rush',    name:'Stand Up',            tier:'common',    desc:'Hands with cards from only one column score +5 mult per card' },
-  { id:'row_power',      name:'Lie Down',            tier:'rare',    desc:'Hands with cards from only one row score +10 mult per card' },
+  { id:'column_rush',    name:'Stand Up',            tier:'common',    retired:true, desc:'Hands with cards from only one column score +5 mult per card' },
+  { id:'row_power',      name:'Lie Down',            tier:'rare',    desc:'Hands with cards from only one row score +5 mult per card' },
   // ── New position tricks (owner batch) ──
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','position','scaling'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
   { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','position','scaling'],  desc:'Cards scored in a marked row or column score +1 mult for every card played from that line this round' },
@@ -120,13 +120,13 @@ const TRICK_POOL = [
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','position','scaling'],  desc:'Permanently scores +3 pips for each hand scored with a row or column buff' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','position'],           desc:'Use every cell of any row or column within two hands to add +5 Focus and +5 credits' },
   // ── Level scaling ──
-  { id:'rising_tide',    name:'Rising Tide',         tier:'common',    desc:'+1 mult for each level passed' },
+  { id:'rising_tide',    name:'Rising Tide',         tier:'rare',    desc:'Each level you pass while holding this adds +1 to +3 mult to it' },
   // ── Accumulating ──
   { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played permanently adds +0.1 mult to this trick' },
   { id:'acorns',         name:'Acorns',              tier:'epic',      tags:['focus','scaling'], desc:'Each card scored scales this trick +0.1 Focus, starting at +0; grants its whole-number Focus each hand' },
   { id:'plan_ahead',     name:'Plan Ahead',          tier:'rare',      tags:['focus','scaling'], desc:'Every 3rd hand adds Focus equal to your average hands per round' },
   { id:'fives_discard',  name:'Penny Saved',         tier:'rare',      tags:['scaling','pips','value'], desc:'Each 5 discarded or played permanently adds +5 pips to this trick' },
-  { id:'nines_mult',     name:'Cloud Nine',          tier:'epic',      tags:['scaling','mult','value'], desc:'Each 9 scored permanently adds +9 mult to this trick' },
+  { id:'nines_mult',     name:'Cloud Nine',          tier:'epic',      tags:['scaling','mult','value'], desc:'Adds 9 9s to your deck. Each 9 scored adds +2 mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick goes' },
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['scaling','mult','value'], desc:'Every 9 cards discarded permanently adds +3 mult to this trick' },
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['scaling','pips','value'], desc:'Every 6th card scored permanently gains a random +1–6 pips' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['scaling','pips','value'], desc:'4-card hands permanently give the 4th card +4 pips' },
@@ -166,7 +166,7 @@ const TRICK_POOL = [
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'When scored, the center-most card gains +5 pips & +2 mult' },
   // ── Combo batch (r83): payoffs / sleight-charge synergies ──
   { id:'landfill',       name:'Landfill',            tier:'epic',    tags:['discard','mult'],  desc:'Score +1 mult per card for every discard or swap used this round' },
-  { id:'old_growth',     name:'Old Growth',          tier:'epic',      tags:['scaling','mult'],  desc:'Cards add their pip value to mult' },
+  { id:'old_growth',     name:'Old Growth',          tier:'legendary',      tags:['scaling','mult'],  desc:'Cards add their pip value to mult' },
   { id:'magician',       name:'Magician',            tier:'common',      tags:['sleight','mult'],  desc:'+3 mult for each Sleight you own' },
   { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['sleight','pips'],  desc:'Hands with cards from only one column score +5 mult per card' },
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Score ×1 mult, +×0.25 per charge your Sleights are missing' },
@@ -177,7 +177,7 @@ const TRICK_POOL = [
   { id:'five_second',    name:'Five Second Rule',    tier:'rare',      tags:['time'],            desc:'5-card hands pause the clock +5s' },
   // ── Focus-capacity & generation (r104) ──
   { id:'life_lessons',   name:'Life Lessons',        tier:'rare',      tags:['focus'],           desc:'Each round you complete increases your Focus limit by 1' },
-  { id:'wellspring',     name:'Wellspring',          tier:'rare',      tags:['focus','pips','scaling'], desc:'For every 10 Focus generated this game, this trick scores +1 mult' },
+  { id:'wellspring',     name:'Wellspring',          tier:'rare',      tags:['focus','pips','scaling'], desc:'For every 30 Focus generated this game, this trick scores +1 mult' },
   // ── 3-card-hand family (r113) ──
   { id:'third_down',     name:'3rd Down',            tier:'rare',      tags:['focus'],           desc:'3-card hands add +3 Focus' },
   { id:'ready_set_go',   name:'Ready, Set, Go',      tier:'common',    tags:['mult'],            desc:'A 3-card hand containing a 3, 6 or 9 scores +9 mult' },
@@ -278,8 +278,10 @@ function applyModeEntityFilter() {
   const tags  = modeEntityTags();
   const banned = isNumericMode() ? NUMERIC_BANNED_TRICKS
                : (typeof climbActive === 'function' && climbActive()) ? CLIMB_BANNED_TRICKS : null;
+  // `retired` (r539): kept in TRICK_POOL_ALL so a saved run that owns it still
+  // draws and scores it, never offered again (Stand Up duplicated Stand-Up).
   const keep = TRICK_POOL_ALL.filter(t =>
-    !(banned && banned.has(t.id)) && (!t.modes || t.modes.some(id => tags.has(id)))
+    !t.retired && !(banned && banned.has(t.id)) && (!t.modes || t.modes.some(id => tags.has(id)))
   );
   TRICK_POOL.length = 0;
   keep.forEach(t => TRICK_POOL.push(t));

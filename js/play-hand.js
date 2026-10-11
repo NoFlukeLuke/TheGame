@@ -983,6 +983,30 @@ function playHand() {
 // counts three, for every counter. `reps` is playHand's snapshot of the real
 // scoring pass ('r-c' -> times scored). Compound and Feng Shui count HANDS and
 // Fours Perm is a hand condition, so those three are not weighted.
+// Cloud Nine (r539): taking it adds its own 9s to the deck and starts its mult
+// from zero; it lives on the deck's 9s, and when the last one is gone the Trick
+// goes too, mult and all. A spent 9 (scored or discarded while it is held) is
+// destroyed on its way off the board (discardToPlayed / discardToDrawPile).
+function cloudNinePickup() {
+  bonusMult_nines = 0;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  const n = BAL.nines_mult.added || 0;
+  for (let i = 0; i < n; i++) copyCardToDeck({ rank: '9', suit: suits[i % suits.length] });
+  if (n) showMessage(`Cloud Nine: ${n} 9s added to your deck`, 'var(--gold)');
+}
+function cloudNineCheck() {
+  if (!hasTrick('nines_mult')) return;
+  const live = c => c && c.rank === '9' && !c._nineSpent && !c._temp;
+  if (everyDeckCard().some(live) || (goalHandHeld || []).some(live)) return;
+  const i = trickTray.findIndex(t => t.id === 'nines_mult');
+  if (i >= 0) trickTray.splice(i, 1);
+  const a = acquiredTricks.findIndex(t => t.id === 'nines_mult');
+  if (a >= 0) acquiredTricks.splice(a, 1);
+  bonusMult_nines = 0;
+  showMessage('Cloud Nine is gone: no 9s left in your deck', 'var(--cream-dim)');
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+}
+
 function scalingCount(hand, handCells, reps) {
   const _n = (r, c) => (reps && reps[r + '-' + c]) || 1;
   const _cells = handCells.map(([r, c]) => ({ r, c, card: gridData[r]?.[c], n: _n(r, c) }))
@@ -1019,22 +1043,16 @@ function scalingCount(hand, handCells, reps) {
     const _f = _cells.reduce((t, x) => t + (x.card.rank === '5' ? x.n : 0), 0);
     bonusMult_fives += _f * BAL.fives_discard.pips_per_five;
   }
-  // Cloud Nine: each 9 scored adds to the Trick's mult, and the card is forgotten -
-  // the mult is per time scored, the forgetting once per physical card.
+  // Cloud Nine (r539, owner's rework): each 9 scored adds to the Trick's mult (per
+  // time scored, replays too) and is marked spent. The card is still on the board
+  // here (the fall runs inside the dance); it is destroyed when it leaves, in
+  // discardToPlayed (the old code removed a same-suit 9 from the PILES, which is
+  // never the scored card, so the "forgotten" 9 always came back).
   if (hasTrick('nines_mult')) {
     _cells.forEach(({ card, n }) => {
-      if (card.rank !== '9') return;
+      if (card.rank !== '9' || card._isSleight || isWildCard(card)) return;
       bonusMult_nines += BAL.nines_mult.mult_per_nine * n;
-      let removed = false;
-      drawPile = drawPile.filter(c => {
-        if (!removed && c.rank === '9' && c.suit === card.suit) { removed = true; return false; }
-        return true;
-      });
-      if (!removed) playedPile = playedPile.filter(c => {
-        if (!removed && c.rank === '9' && c.suit === card.suit) { removed = true; return false; }
-        return true;
-      });
-      if (removed) expectedDeckTotal--;
+      card._nineSpent = true;
     });
   }
   // Fours perm: a 4-card hand permanently gives its 4th card +4 pips.

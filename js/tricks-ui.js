@@ -46,7 +46,7 @@ function trickLiveDesc(trick) {
       case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);
       case 'summit':         return now(`level ${level}`);
-      case 'rising_tide':    return now(`+${(level - 1) * B.rising_tide.mult_per} mult`);
+      case 'rising_tide':    return now(`+${risingTideMult || 0} mult`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(`+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
@@ -376,6 +376,8 @@ function selectTrick(trick, fromTrickFlow = false) {
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
   assignPositionMark(trick);
   if (trick.id === 'feelin_lucky' && !trick._luckyRanks) feelinLuckyRoll(trick);
+  if (trick.id === 'nines_mult') cloudNinePickup();      // r539: brings its own 9s
+  if (trick.id === 'rising_tide') risingTideMult = 0;    // r539: counts from the pick
 
   updateTrickList();
   const lvlOverlay = document.getElementById('levelup-overlay');

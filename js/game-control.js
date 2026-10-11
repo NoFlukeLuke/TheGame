@@ -542,6 +542,7 @@ function startGame() {
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
   bonusMult_fives = 0;
   bonusMult_nines = 0;
+  risingTideMult = 0;
   bonusMult_tens = 0;
   bonusMult_compound = 0;
   spadesRelentless = 0;

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-11 · r541 · keys press, click and buzz; DISCARD latches while it waits; refusals shake the board";
+const BUILD = "2026-10-11 · r542 · the ten most out-of-line Tricks: owner's survey";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

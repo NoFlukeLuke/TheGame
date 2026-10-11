@@ -93,6 +93,8 @@ function doDiscard() {
   selected.forEach(([r,c]) => {
     const _dc = gridData[r]?.[c];
     if (!_dc || _sieve) return;
+    // Cloud Nine (r539): a 9 thrown away while it is held is destroyed, not reshuffled.
+    if (_dc.rank === '9' && !_dc._isSleight && !isWildCard(_dc) && hasTrick('nines_mult')) _dc._nineSpent = true;
     if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
     else discardToDrawPile(_dc);
   });

@@ -506,6 +506,7 @@ function cleanseRandomCurse() {
 // ── Scaling bonus accumulators ──
 let bonusMult_fives   = 0;
 let bonusMult_nines   = 0;
+let risingTideMult    = 0;   // Rising Tide (r539): 1-3 mult per level passed while held
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
 let spadesRelentless   = 0;   // Relentless Trick: spades scored since it was taken (r367)
@@ -750,6 +751,7 @@ function discardToDrawPile(card) {
   // level-clear sweep runs discardToPlayed on every cell, which is what makes a
   // temp card disappear when the level ends without anything else sweeping.
   if (card._temp) { updateDeckHud(); return; }
+  if (card._nineSpent) { expectedDeckTotal--; updateDeckHud(); cloudNineCheck(); return; }   // Cloud Nine (r539)
   drawPile.push(recycleCard(card)); updateDeckHud();
 }
 
@@ -787,6 +789,7 @@ function discardToPlayed(card) {
     return;
   }
   if (card._temp) { updateDeckHud(); return; }   // see discardToDrawPile (r278)
+  if (card._nineSpent) { expectedDeckTotal--; updateDeckHud(); cloudNineCheck(); return; }   // Cloud Nine (r539)
   playedPile.push(recycleCard(card)); updateDeckHud();
 }
 

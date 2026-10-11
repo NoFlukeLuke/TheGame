@@ -11,7 +11,7 @@ const BAL = {
   humble_roots: { pip_mult: 3 },
   summit: { pips_per_level: 2 },
   before_the_tide: { extra_mult: 5 },
-  knave_power: { per_jack: 2 },
+  knave_power: { per_jack: 1.5 },   // r539 owner: x2 per Jack was x16 with four
   rowcol_triple_pips: { flat_pips: 10 },
   right_time:     { pause_seconds: 2 },
   study_hall:     { focus: 1, every: 2 },
@@ -82,7 +82,7 @@ const BAL = {
   patience_reward: { mult: 10, seconds: 15 },
   first_play: { focus: 5 },
   monochrome: { coins: 5, seconds: 10 },
-  full_color: { pips_per_card: 16, mult_per_card: 16 },
+  full_color: { mult_mult: 1.25 },   // r539 owner: x mult per card (was +16 pips +16 mult per card)
   balanced_diet: { mult_per_card: 5 },
   number_crunch: { mult_per_card: 5 },
   cull: { focus_per_stock: 1, per: 2 },
@@ -94,7 +94,7 @@ const BAL = {
   jack_mult: { mult_per_jack: 2 },
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
-  row_power: { mult_per_card: 10 },
+  row_power: { mult_per_card: 5 },   // r539 owner: matches Stand-Up
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 1 },
   overtime:      { seconds_per_3: 1 },
@@ -105,7 +105,7 @@ const BAL = {
   five_fodder:   { credits: 5 },
   five_second:   { pause_seconds: 5 },
   life_lessons:  { cap_gain: 1 },
-  wellspring:    { per_focus: 10, mult_per: 1 },
+  wellspring:    { per_focus: 30, mult_per: 1 },   // r539 owner: per 30 Focus (was 10)
   third_down:    { focus: 3 },
   ready_set_go:  { mult: 9 },
   third_charm:   { extra_replays: 2 },
@@ -128,7 +128,7 @@ const BAL = {
   shop_discount: { per_item: 3, bulk_per_item: 5 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 6 },       // +mult per negative reward tile taken this run
-  rising_tide:   { mult_per: 1 }, // +1 mult per level passed
+  rising_tide:   { mult_min: 1, mult_max: 3 }, // r539: each level passed while held adds 1-3 mult
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   combo_score: { mult_per_type: 4 },
@@ -196,7 +196,7 @@ const BAL = {
   heartwood: { pips: 5, mult: 2 },
   fours_perm: { pips: 4 },
   fives_discard: { pips_per_five: 5 },
-  nines_mult: { mult_per_nine: 9 },
+  nines_mult: { mult_per_nine: 2, added: 9 },   // r539 owner's rework: brings its own 9s
   tens_mult: { mult_per_milestone: 3, discards_per_milestone: 9 },
   sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
   compound_mult: { mult_per_hand: 0.1 },
@@ -389,7 +389,7 @@ const DESC_TEMPLATES = {
   carry_discards: 'Unused discards carry over to the next round (max {max}).',
   carry_time: 'Unused round seconds carry over (max {max_seconds}s).',
   fives_discard: 'Each 5 discarded or played permanently adds +{pips_per_five} pips to this trick',
-  nines_mult: 'Each 9 scored permanently adds +{mult_per_nine} mult to this trick',
+  nines_mult: 'Adds {added} 9s to your deck. Each 9 scored adds +{mult_per_nine} mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick goes',
   fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
   interest: 'Score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
@@ -409,10 +409,12 @@ const DESC_TEMPLATES = {
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
   hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
   king_guard: 'Kings and Jacks score +{pips} pips and +{mult} mult',
-  full_color: 'Hands with all four suits score +{pips_per_card} pips and +{mult_per_card} mult per card',
+  full_color: 'Hands with all four suits score x{mult_mult} mult per card',
+  knave_power: 'Score ×{per_jack} pips for each Jack on the grid',
+  wellspring: 'For every {per_focus} Focus generated this game, this trick scores +{mult_per} mult',
   second_hand: 'Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips',
   sediment: 'Scores +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this round',
-  rising_tide: '+{mult_per} mult for each level passed',
+  rising_tide: 'Each level you pass while holding this adds +{mult_min} to +{mult_max} mult to it',
   ready_set_go: 'A 3-card hand containing a 3, 6 or 9 scores +{mult} mult',
   minute_hand: 'Every time the clock passes a multiple of {interval_seconds}s, your next hand scores ×{mult_mult} mult',
 };

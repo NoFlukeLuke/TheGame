@@ -1034,3 +1034,23 @@ that fires mid-fall now waits for the fall instead of being dropped.
 - `refuse()` shakes the board: `gridRefuseShake` animates `--hbx` on #grid (registered `@property`), the x
   term of the composed card transform. Reduced motion pins it to 0.
 
+
+## r542 - the ten most out-of-line Tricks, owner's survey (from the r533 steering test)
+- **Wellspring** (Rare): +1 mult per **30** Focus made this run (was 10).
+- **Lie Down** (Rare): **+5** mult per card on one-row hands (was +10; matches Stand-Up).
+- **Old Growth**: effect unchanged (it counts a card's bonus pips and replays), **Legendary**.
+- **Cloud Nine** (Epic), reworked: taking it adds `BAL.nines_mult.added` (9) 9s to the deck over
+  `ACTIVE_SUITS` and zeroes its mult (`cloudNinePickup`, from `selectTrick`); each 9 scored adds
+  +2 mult (`scalingCount`). A 9 scored or discarded while it is held is marked `_nineSpent` and is
+  destroyed on its way off the board (`discardToPlayed` / `discardToDrawPile`, `expectedDeckTotal--`).
+  When no live 9 is left on the board, in either pile or in `goalHandHeld`, the Trick leaves the
+  tray and its mult goes (`cloudNineCheck`). The old "forget the 9" removed a same-suit 9 from the
+  PILES while the scored card was still on the board, so it never removed the scored card.
+- **Rainbow** (Rare): four-suit hands score **x1.25 mult per card** (per-card x mult in the card
+  loop, like What are The Odds; was +16 pips +16 mult per card).
+- **Rising Tide**: **Rare**; `risingTideMult` (SAVE_VARS) starts at 0 when taken and each level-up
+  while held adds 1-3 (`BAL.rising_tide.mult_min/max`, level-up.js). Improvement raises both ends.
+- **Stand Up** (Common, `column_rush`) duplicated Stand-Up (Rare): `retired: true`, filtered by
+  `applyModeEntityFilter`, kept in `TRICK_POOL_ALL` so a saved run that owns it still works.
+- **Quake**, **Balance**: effect unchanged, **Rare**.
+- **Jackpot** (Legendary): **x1.5** pips per Jack on the grid (was x2; x16 with four Jacks).
