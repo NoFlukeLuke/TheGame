@@ -1078,3 +1078,22 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
 - **LEVEL outside quarter modes** (Flow) is the top-right corner block (`.rp-lvl`, `.rp-lv`,
   `updateRunProgressUI`); Poker Squares keeps its plain skull there. `.ci-level` is removed.
 - **The boss name banner (`#boss-banner`) is removed**: the briefing already names the boss.
+
+## r545 - credits chip on the right; challenges one at a time; the warning waits for the board
+- The credits chip is the RIGHT end of the bottom row (RECORDS, PAUSE, chip); `#ci-tip` aligns to its right edge.
+- **One challenge at a time** (owner): the Flow "spice" second card is gone, and a Flow or spot
+  arrival is skipped while any warning is up or any unfinished challenge card is on the board
+  (`crAnyLive`; that level's roll is spent).
+- **Timed warnings (Flow, spot) are 15s** (`CR_TELE_MS`, was 10s). The challenge round's 3s pulse is
+  unchanged and still cannot be refused.
+- **The warning only counts while the board takes taps** (`crTick` holds on `animating`, `falling`,
+  `dealPhase`, `roundEnded`). Measured before: one 3-card hand took 2 of the 10 seconds while
+  taps were blocked. (During the score tally itself the board does take taps, so that counts.)
+- **A DISCARD pressed while the board animates is queued** with its cards (`pendingAction`
+  'discard', `scheduleQueuedRetry`), like PLAY; it used to be dropped silently.
+- `crTeleOnDiscard` ignores the Flow deck editor's discard (`roundEnded`): a deck edit at the
+  marked cell's coordinates used to refuse the warning.
+- Also why refusing failed before: with two cards up, a fall card could lock discards in the
+  marked cell's line. Tested refusal (real clicks, Flow and Classic): at the warning's start, with
+  1s showing, right after another discard, with Confirm discards on. Once the count reaches 0 the
+  card lands and the cell's selection is let go (by design).

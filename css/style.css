@@ -4528,21 +4528,21 @@
   /* No width/height here: the r182 tile-frame rule further down owns the size
      (this one stated 40x53 for years and was always outranked by it). */
   #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
-  /* r544: credits are a chip at the start of the bottom row, the amount only.
-     The 1.56%->39.3% span: chip 10.5%, then RECORDS and PAUSE 12.72% each, 0.9% gutters. */
-  #stage.landscape #coin-info      { left:1.56%; top:91.68%; width:10.5%; height:6.3%; flex-direction:row; align-items:center; justify-content:center; padding:0 6px; cursor:var(--cur-default, default); }
+  /* r544: credits are a chip in the bottom row, the amount only. r545: at the right end.
+     The 1.56%->39.3% span: RECORDS and PAUSE 12.72% each, then the chip 10.5%, 0.9% gutters. */
+  #stage.landscape #coin-info      { left:28.8%; top:91.68%; width:10.5%; height:6.3%; flex-direction:row; align-items:center; justify-content:center; padding:0 6px; cursor:var(--cur-default, default); }
   #stage.landscape #coin-info .ci-main { margin:0 auto; }
-  #stage.landscape #btn-records    { position:absolute; left:12.96%; top:91.68%; width:12.72%; height:6.3%; }
-  #stage.landscape #btn-pause      { position:absolute; left:26.58%; top:91.68%; width:12.72%; height:6.3%; }
+  #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.68%; width:12.72%; height:6.3%; }
+  #stage.landscape #btn-pause      { position:absolute; left:15.18%; top:91.68%; width:12.72%; height:6.3%; }
   /* Poker Squares has no credits chip: the two buttons take the row (pre-r544 slots). */
   #stage.landscape.squares-mode #btn-records { left:1.56%;  width:18.4%; }
   #stage.landscape.squares-mode #btn-pause   { left:20.86%; width:18.44%; }
   /* The chip's hover: what the next payout would pay now (creditsTipFill, js/hud.js).
-     Sits just above the chip, over the Trick tray. Landscape only. */
+     Sits just above the chip, right edges aligned, over the Trick tray. Landscape only. */
   #ci-tip { display:none; }
   #stage.landscape #ci-tip.show {
     display:flex; flex-direction:column; gap:3px; position:absolute; z-index:80;
-    left:1.56%; bottom:calc(100% - 91.68% + 6px); min-width:150px; box-sizing:border-box;
+    right:calc(100% - 39.3%); bottom:calc(100% - 91.68% + 6px); min-width:150px; box-sizing:border-box;
     padding:6px 9px; background:#0d0f0c; border:1px solid var(--c-green); border-radius:6px;
     box-shadow:0 0 10px rgba(76,217,100,.25), 0 4px 12px rgba(0,0,0,.6); pointer-events:none;
   }

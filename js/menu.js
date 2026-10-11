@@ -1,4 +1,4 @@
-const BUILD = "2026-10-11 · r544 · desktop drops the credits bar for a credits chip; bigger score boxes; no boss name banner";
+const BUILD = "2026-10-11 · r545 · credits chip on the right; one challenge at a time; the warning waits for the board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

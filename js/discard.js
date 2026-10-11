@@ -17,7 +17,15 @@ function doDiscard() {
   // runs inside exactly that window: the goal hand set the flag and only the
   // level-up at the END of the reward chain clears it again. The editor is a
   // deliberate act on a board it owns, so it is exempt (r395); nothing else is.
-  if ((roundEnded && !(typeof deckEditFreeInteract === 'function' && deckEditFreeInteract())) || animating) return;
+  const _deckEdit = typeof deckEditFreeInteract === 'function' && deckEditFreeInteract();
+  if (roundEnded && !_deckEdit) return;
+  // r545: a DISCARD pressed while the board animates (cards leaving before a fall,
+  // a swap) is queued with its cards, like PLAY. It used to be dropped without a word,
+  // which is how a refused challenge warning could still land.
+  if (animating) {
+    if (!_deckEdit && selected.length > 0) { pendingAction = 'discard'; pendingDiscardCards = selected.map(([r,c]) => gridData[r]?.[c]).filter(Boolean); dbgEvent('info', 'discard queued (animating)'); scheduleQueuedRetry(); discardLatchSync(); }
+    return;
+  }
   // Same gate as doSwap - a boss may refuse the discard before it commits.
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
   // A discard pressed mid-fall is queued with the CARDS it was pressed on. Taps
