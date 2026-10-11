@@ -1,4 +1,4 @@
-const BUILD = "2026-10-11 · r540 · console mode: the board is one fixed box, cards stretch to fill it";
+const BUILD = "2026-10-11 · r541 · keys press, click and buzz; DISCARD latches while it waits; refusals shake the board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

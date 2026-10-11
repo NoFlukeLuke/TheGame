@@ -70,6 +70,27 @@ function sfxNoSwaps() {
   playTone({ freq: 160, type: 'square', gain: 0.10, attack: 0.002, decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.1, delay: 0.12 });
 }
 
+// A key press (r541): a short plastic snap on the way down, a lighter tick on
+// the way back up. Two noise strikes and a small low thump, all under 40ms.
+function sfxKeyClick(phase) {
+  const v = sfxVolume(); if (v <= 0) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime, up = phase === 'up';
+  const strike = (at, freq, q, g, len) => {
+    const n = Math.max(1, Math.floor(ctx.sampleRate * len)), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (fxRandom() * 2 - 1) * Math.pow(1 - i / n, 3);
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), e = ctx.createGain();
+    s.buffer = b; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; e.gain.value = g * v;
+    s.connect(f).connect(e).connect(sfxOut(ctx)); s.start(at);
+  };
+  strike(t, up ? 4200 : 3000, 3, up ? 0.10 : 0.16, 0.008);
+  strike(t + 0.004, up ? 2400 : 1500, 2, up ? 0.04 : 0.08, 0.012);
+  if (up) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.03);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07 * v, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+  o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + 0.04);
+}
 
 function sfxFlipShuffle() {
   // Rapid card flip/shuffle - quick staggered noise bursts at varying pitches

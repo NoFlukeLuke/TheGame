@@ -75,6 +75,7 @@ function setControlMode(v) {
 function setDragDiscardArmed(on) {
   dragDiscardArmed = !!on;
   document.getElementById('btn-discard')?.classList.toggle('drag-armed', dragDiscardArmed);
+  if (typeof discardLatchSync === 'function') discardLatchSync();
 }
 // The takeover screens own #grid and the two buttons; a drag there is theirs.
 function dragControlsLive() { return controlDragPlay() && ctlLiveBoard(); }

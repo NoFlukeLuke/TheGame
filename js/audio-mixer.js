@@ -65,6 +65,8 @@ const SFX_MIX = {
   no_swaps:      { bus: 'board', gain: 1.15 },
   // notices sit under everything else (owner: quieter than other sounds on average)
   print_line:    { bus: 'detail', gain: 0.5 },
+  key_click:     { bus: 'detail', gain: 0.7 },
+  key_release:   { bus: 'detail', gain: 0.7 },
   print_feed:    { bus: 'detail', gain: 0.45, gap: 30 },
   card_discard:  { bus: 'board' },
   // The forced discard is a thing happening TO you, so it rides `event` (a louder

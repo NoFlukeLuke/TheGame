@@ -446,6 +446,7 @@ function toastLayer() {
 function refuse(text, opts) {
   try { sfxNoSwaps?.(); } catch (e) {}
   if (typeof ctlHaptic === 'function') ctlHaptic('refuse');
+  if (typeof gridRefuseShake === 'function') gridRefuseShake();
   if (text) showMessage(text, (opts && opts.color) || 'var(--red)', opts);
 }
 

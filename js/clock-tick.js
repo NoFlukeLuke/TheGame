@@ -6,8 +6,8 @@
 // This used to ride the grid heartbeat (r183), a swell that fell down the board
 // on the same beat. The owner removed the board swell (r499: the Watch idle look
 // gives the board its life now); the tick kept its own timer. The cards' composed
-// transform in css/style.css still reads --hbx/--hby/--hbr/--hbs, which nothing
-// sets any more, so they sit at their defaults (see CLEANUP.md).
+// transform in css/style.css still reads --hbx/--hby/--hbr/--hbs. Only --hbx is
+// set again (r541, the refusal shake); the rest sit at their defaults (CLEANUP.md).
 const CLOCK_TICK_SEC = 10;
 let _clockTickTimer = null;
 function startClockTick() {

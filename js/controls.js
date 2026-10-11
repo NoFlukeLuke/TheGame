@@ -37,13 +37,14 @@ function ctlDiscardGate() {
     _discConfirm = { key: '', at: 0 };
     btn?.classList.remove('confirm-armed');
     if (typeof setDragDiscardArmed === 'function') setDragDiscardArmed(false);
+    discardLatchSync();
     return true;
   }
   _discConfirm = { key, at: Date.now() };
   const n = selected.length;
   showMessage(`Discard ${n} card${n > 1 ? 's' : ''}? Press DISCARD again`, 'var(--cream-dim)');
-  btn?.classList.add('confirm-armed');
-  setTimeout(() => { if (Date.now() - _discConfirm.at >= 2990) btn?.classList.remove('confirm-armed'); }, 3000);
+  btn?.classList.add('confirm-armed'); discardLatchSync();
+  setTimeout(() => { if (Date.now() - _discConfirm.at >= 2990) { btn?.classList.remove('confirm-armed'); discardLatchSync(); } }, 3000);
   return false;
 }
 
@@ -51,7 +52,7 @@ function ctlDiscardGate() {
 // navigator.vibrate exists on Android browsers; iPhones ignore it.
 function ctlHaptic(kind) {
   if (!ctlOn('ctlHaptics')) return;
-  try { navigator.vibrate?.(kind === 'refuse' ? 35 : [12, 60, 12]); } catch (e) {}
+  try { navigator.vibrate?.(kind === 'refuse' ? 35 : kind === 'press' ? 8 : [12, 60, 12]); } catch (e) {}
 }
 
 // ── Left-handed ──
@@ -133,7 +134,7 @@ window.addEventListener('keydown', e => {
     if (action === 'pause') { e.preventDefault(); togglePauseMenu(); }
     return;
   }
-  const click = id => { const b = document.getElementById(id); if (b && !b.disabled) b.click(); };
+  const click = id => { const b = document.getElementById(id); if (b && !b.disabled) { keyTap(b); b.click(); } };
   e.preventDefault();
   if (action === 'play') click('btn-play');
   else if (action === 'discard') click('btn-discard');

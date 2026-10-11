@@ -339,6 +339,7 @@ function render() {
     const _dealer = typeof dealerActive === 'function' && dealerActive();
     document.getElementById('btn-discard').disabled = (selected.length === 0 && !_dragArm && !_dealer) || (animating && !falling);
     document.getElementById('btn-discard').classList.toggle('drag-armed', !!(typeof dragDiscardArmed !== 'undefined' && dragDiscardArmed));
+    if (typeof discardLatchSync === 'function') discardLatchSync();   // r541: DISCARD held down while it waits
   }
   // Both readouts are guarded for the same reason (r237 found the second one):
   // a takeover screen rewrites this chrome, so neither element is in the DOM

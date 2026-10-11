@@ -1014,3 +1014,23 @@ centres on the box, `--fbg-pad` 0 in console mode), so band + board fill the box
 `syncSidebarsToGrid` follows the box, not the board, while it is on. The shop fills the same box.
 Open: the x/y selection readout (`#sel-count`) and the pick's MAX label lived in the board's side
 margin, which is gone, so they now overlap the keys; queued reward tabs peek into the timer row.
+
+## r539 - a queued discard keeps to its own cards (`runQueuedDiscard`, js/discard.js)
+DISCARD pressed while cards fall is queued with the CARDS selected at the press (`pendingDiscardCards`).
+Taps still select during a fall, so the old queue discarded the next hand. Cards picked since stay
+selected through the discard's fall (`discardCarryRestore`, from removeAndFall). An auto-submit timer
+that fires mid-fall now waits for the fall instead of being dropped.
+
+## r541 - keys press, click and buzz; DISCARD latches; refusals shake (`js/key-press.js`, `css/key-press.css`)
+- Every `button` (and `#swap-indicator`) takes `.key-dn` on pointerdown, held at least `KEY_MIN_DOWN_MS`
+  (80) so a quick tap shows the travel, then springs back (`keySpring`, WAAPI on standalone `translate`).
+  Buttons with their own pressed look (`KEY_OWN`) carry `.key-dn` in their `:is(:active, .key-dn)` rules;
+  any new button with its own `:active` look goes in `KEY_OWN` and gets `.key-dn` the same way. Others drop
+  2px. Keyboard shortcuts press their key (`keyTap`). Dev panel buttons are skipped.
+- Sound `sfxKeyClick('down'|'up')` (catalog `key_click` / `key_release`, detail bus). Vibration
+  `ctlHaptic('press')` 8ms, `'refuse'` 35ms (Settings -> Controls -> Vibration; Android only, iPhones ignore it).
+- **DISCARD latch** (`.key-latch`, `discardLatchSync()`, also run from `render()`): held down with a small
+  jitter while it waits: armed for the next drag, waiting for its confirm, or queued behind a fall.
+- `refuse()` shakes the board: `gridRefuseShake` animates `--hbx` on #grid (registered `@property`), the x
+  term of the composed card transform. Reduced motion pins it to 0.
+

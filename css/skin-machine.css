@@ -264,7 +264,7 @@ html.skin-machine #stage #swap-indicator, html.skin-machine #stage #swap-indicat
 html.skin-machine #stage #btn-discard   { --mc-key: linear-gradient(180deg, #ef8d64, #b9461f); --mc-key-side: #6d250e; }
 html.skin-machine #stage #swap-indicator { --mc-key: linear-gradient(180deg, #7fd8df, #2a97a2); --mc-key-side: #124e55; }
 html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disabled):hover { filter: saturate(.85) brightness(1.04); transform: translateY(-1px); }
-html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disabled):active {
+html.skin-machine #stage :is(#btn-play, #btn-discard, #swap-indicator):not(:disabled):is(:active, .key-dn) {
   transform: translateY(5px) !important; transition-duration: .05s !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -3px 0 rgba(0,0,0,.18),
               0 0 0 1px rgba(0,0,0,.6), 0 1px 0 var(--mc-key-side), 0 1px 0 1px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5) !important;
@@ -278,7 +278,7 @@ html.skin-machine #stage :is(#btn-records, #btn-pause) {
               0 0 0 1px rgba(0,0,0,.6), 0 4px 0 #1b1a17, 0 6px 8px rgba(0,0,0,.5) !important;
   transition: transform .14s cubic-bezier(.3,1.6,.5,1), box-shadow .14s cubic-bezier(.3,1.6,.5,1) !important;
 }
-html.skin-machine #stage :is(#btn-records, #btn-pause):active { transform: translateY(3px);
+html.skin-machine #stage :is(#btn-records, #btn-pause):is(:active, .key-dn) { transform: translateY(3px);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 1px rgba(0,0,0,.6), 0 1px 0 #1b1a17 !important; }
 
 /* ── Print on the housing (cream housing needs dark ink) ───────────────────── */

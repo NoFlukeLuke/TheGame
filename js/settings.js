@@ -157,7 +157,7 @@ const SETTINGS_DEF = [
     hint: 'If you go 20 seconds without playing or selecting anything, a faint shine passes over cards that make a hand.',
     type: 'toggle', default: true },
   { group: 'Controls', id: 'ctlHaptics', label: 'Vibration',
-    hint: 'Your phone buzzes when a move is not allowed, and with Idle hint. Android phones only.',
+    hint: 'Your phone buzzes lightly when you press a button, harder when a move is not allowed, and with Idle hint. Android phones only.',
     type: 'toggle', default: true },
   { group: 'Controls', id: 'ctlLeftHanded', label: 'Left-handed',
     hint: 'On a phone held upright, moves SWAP, DISCARD and PLAY to the left side of the board.',

@@ -462,7 +462,7 @@
     line-height: 1;
   }
   #skip-btn:hover { background: rgba(245, 192, 66, 0.18); border-color: rgba(245, 192, 66, 0.7); }
-  #skip-btn:active { transform: scale(0.96); }
+  #skip-btn:is(:active, .key-dn) { transform: scale(0.96); }
 
   #clock-area.skippable #clock,
   #clock-area.skippable #clock-bar-wrap { display: none; }
@@ -1049,7 +1049,7 @@
     transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
   }
   #stage:not(.landscape) #panel-swap-btn:hover { background: rgba(28, 62, 66, 0.95); color: #fff; }
-  #stage:not(.landscape) #panel-swap-btn:active { transform: scale(0.9); }
+  #stage:not(.landscape) #panel-swap-btn:is(:active, .key-dn) { transform: scale(0.9); }
   /* Landscape gives both halves their own anchored boxes, so the swap is dead weight there. */
   #stage.landscape #panel-swap-btn { display: none; }
 
@@ -2824,14 +2824,14 @@
     text-transform: uppercase; cursor: var(--cur-pointer, pointer); border-radius: 10px; padding: 13px 10px;
     transition: transform 0.07s ease, filter 0.12s ease, border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
   }
-  .pause-btn:active { transform: translateY(3px); }
+  .pause-btn:is(:active, .key-dn) { transform: translateY(3px); }
   .pause-btn-primary {
     color: #3a2a08; border: none;
     background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -4px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 10px rgba(0,0,0,0.45);
   }
   .pause-btn-primary:hover { filter: brightness(1.06); }
-  .pause-btn-primary:active { box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
+  .pause-btn-primary:is(:active, .key-dn) { box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
   .pause-btn-ghost {
     color: var(--cream); background: rgba(255,255,255,0.04);
     border: 1.5px solid var(--plastic-lo);
@@ -3680,7 +3680,7 @@
     transition: transform 0.1s;
   }
   #action-col #swap-indicator.reward-skip:hover  { transform: translateY(-1px); }
-  #action-col #swap-indicator.reward-skip:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #216ba5; }
+  #action-col #swap-indicator.reward-skip:is(:active, .key-dn) { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #216ba5; }
   /* SKIP now states its payout: word over an arrow over the gold (and Rain Check seconds). */
   #action-col #swap-indicator.reward-skip .rskip-word  { font-size: 11px; letter-spacing: 1px; line-height: 1; }
   #action-col #swap-indicator.reward-skip .rskip-arrow { font-size: 8px; line-height: 1; opacity: 0.7; margin: -1px 0; }
@@ -4211,7 +4211,7 @@
     transition: transform 0.07s ease, filter 0.12s ease;
   }
   #menu-start-btn:hover { filter: brightness(1.06); }
-  #menu-start-btn:active { transform: translateY(4px);
+  #menu-start-btn:is(:active, .key-dn) { transform: translateY(4px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
   /* CONTINUE - shown only when a saved run exists (see js/save.js). Sits above
      PLAY and reads as the primary action when it is there, so a returning player
@@ -4226,7 +4226,7 @@
     transition: transform 0.07s ease, filter 0.12s ease;
   }
   #menu-continue-btn:hover { filter: brightness(1.06); }
-  #menu-continue-btn:active { transform: translateY(4px);
+  #menu-continue-btn:is(:active, .key-dn) { transform: translateY(4px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.22), 0 1px 0 #0f7a63; }
   .menu-continue-sub {
     font-family: 'Share Tech Mono', monospace; font-weight: 400; font-size: 10px; letter-spacing: 1px;
@@ -4368,7 +4368,7 @@
     transition: transform 0.07s ease, filter 0.12s ease;
   }
   .mode-card-play:hover { filter: brightness(1.06); }
-  .mode-card-play:active { transform: translateY(3px);
+  .mode-card-play:is(:active, .key-dn) { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
   .mode-arrow {
     flex: 0 0 auto; align-self: center; width: 44px; height: 44px; border-radius: 50%; cursor: var(--cur-pointer, pointer);
@@ -5008,14 +5008,14 @@
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 8px rgba(0,0,0,0.4) !important;
   }
   .btn-play:not(:disabled):hover { filter: brightness(1.06); }
-  .btn-play:not(:disabled):active { transform: translateY(3px);
+  .btn-play:not(:disabled):is(:active, .key-dn) { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f !important; }
   .btn-discard {
     background: linear-gradient(180deg, #ff9068, var(--c-coral) 55%, #d6431c) !important;
     color:#fff !important; text-shadow:0 1px 1px rgba(0,0,0,0.4) !important;
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -3px 0 rgba(0,0,0,0.28), 0 4px 0 #a9330f, 0 6px 8px rgba(0,0,0,0.4) !important;
   }
-  .btn-discard:not(:disabled):active { transform: translateY(3px);
+  .btn-discard:not(:disabled):is(:active, .key-dn) { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.28), 0 1px 0 #a9330f !important; }
   /* PLAY / DISCARD never gray out - they always read as live caps (r100) */
   .btn-play:disabled, .btn-discard:disabled { opacity: 1 !important; cursor: var(--cur-pointer, pointer) !important; }
@@ -6132,7 +6132,7 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
   box-shadow: 0 0 7px rgba(255,47,142,0.45);
   z-index: 4;
 }
-.clock-boss:active { transform: translateY(-50%) scale(0.92); }
+.clock-boss:is(:active, .key-dn) { transform: translateY(-50%) scale(0.92); }
 /* r377: #clock-area's own position and padding are gone. The padding held room
    for the mark by shrinking nothing - an absolutely positioned child's
    containing block is the PADDING BOX, padding included, so #vclock-fill ran

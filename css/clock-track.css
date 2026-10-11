@@ -160,7 +160,7 @@ body.reduced-motion .clk-mark { box-shadow: none; }
 /* In portrait the mark is the END of the bar, so it rides in flow rather than
    being pinned to the right of the whole clock area. */
 #stage.flow-mode:not(.landscape) #clock-boss  { position: static; transform: none; margin-left: 2px; }
-#stage.flow-mode:not(.landscape) #clock-boss:active { transform: scale(0.92); }
+#stage.flow-mode:not(.landscape) #clock-boss:is(:active, .key-dn) { transform: scale(0.92); }
 
 /* ── PORTRAIT: the board's bottom margin (r377, EMPTY since r394) ──
    r377 moved HAND SIZE and COINS in here to leave the top bar to the clock.
