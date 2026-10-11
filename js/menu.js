@@ -1,4 +1,4 @@
-const BUILD = "2026-10-11 · r543 · quarter modes hide the LEVEL readout";
+const BUILD = "2026-10-11 · r544 · desktop drops the credits bar for a credits chip; bigger score boxes; no boss name banner";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

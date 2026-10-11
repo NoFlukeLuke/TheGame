@@ -1231,15 +1231,12 @@
       </div>
       <div id="focus-mult-readout" class="dim">×1.0</div>
     </div>
-    <!-- The two boss overlays sit in #grid-slot, NOT in #grid. The reward grid
+    <!-- The boss result overlay sits in #grid-slot, NOT in #grid. The reward grid
          takes #grid over and clears it with innerHTML = '' (three sites in
-         js/reward-grid.js), which DESTROYED both of these permanently the first
-         time a reward grid opened - and every round ends on one. triggerBoss then
-         threw on `banner.querySelector(...)`, half-starting the boss: active, with
-         its modifiers applied, but with no briefing, no PROCEED and no clock.
-         They are absolutely positioned over the board either way. -->
+         js/reward-grid.js), which destroyed it the first time a reward grid opened.
+         (The boss name banner that sat beside it is gone, r544: the briefing
+         already names the boss.) -->
     <div id="grid-slot">
-      <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
       <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
       <div id="grid"></div>
       <!-- How many of the allowed picks are in hand: cards on the play grid, tiles on
@@ -1274,12 +1271,17 @@
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
     <!-- On a boss round the node pips collapse into this single mark (see css/boss.css) -->
     <div class="rp-sigil">&#9760;</div>
+    <!-- Modes without quarters show LEVEL n here instead (r544, .rp-lvl) -->
+    <div class="rp-lv">1</div>
   </div>
+  <!-- r544: the credits chip, beside RECORDS / PAUSE. The amount only; hover shows
+       what the next payout would pay (#ci-tip, js/hud.js creditsTipFill). -->
   <div id="coin-info" class="v7-ls">
-    <div class="ci-level">LEVEL <b id="ci-level">1</b></div>
-    <div class="ci-main">&#128176;<b id="ci-gold">0</b><span class="ci-unit">credits</span></div>
+    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
+  </div>
+  <div id="ci-tip">
     <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
-    <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
+    <div class="ci-row"><span id="ci-bonus-name">Early finish bonus</span><span class="pos" id="ci-bonus">+0</span></div>
   </div>
   <!-- The ⏱ Time and ▲ Limits pop-ups used to live here; they now sit outside
        #cabinet (next to #dev-panel) so the stage's CSS zoom can't displace them. -->

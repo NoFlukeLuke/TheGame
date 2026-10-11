@@ -166,7 +166,12 @@ function crunchParCredits() {
 function payoutClockSeconds() {
   return crunchActive() ? crunchUnderPar() : frozenRoundSeconds;
 }
-function payoutEfficiencyName() { return crunchActive() ? 'Under Par' : 'Efficiency'; }
+function payoutEfficiencyName() { return crunchActive() ? 'Under Par' : 'Early Finish Bonus'; }
+// What that line pays for `secs` left on the clock: the payout passes the frozen
+// clock, the credits chip's hover (js/hud.js) the live one.
+function earlyFinishCredits(secs) {
+  return crunchActive() ? crunchParCredits() : Math.floor(Math.max(0, secs) / efficiencySecondsPerCoin());
+}
 function payoutEfficiencyDesc() {
   return crunchActive()
     ? `1 per ${efficiencySecondsPerCoin()}s under par (${formatTime(CRUNCH_PAR_SECONDS)})`

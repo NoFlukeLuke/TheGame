@@ -162,9 +162,8 @@
    sigil under a REVIEW label - no implied act structure. */
 #stage.survival-mode #run-progress { display: none; }
 #stage.survival-mode.landscape #run-progress.boss-sigil { display: flex; }
-/* Survival has no interest/cash-out economy - hide those readouts so the coin
-   block is just the gold total + the SHOP button. */
-#stage.survival-mode #coin-info .ci-row { display: none; }
+/* r544: and outside a boss it carries Flow's LEVEL (the credits bar that held it is gone). */
+#stage.survival-mode.landscape #run-progress.rp-lvl { display: flex; }
 
 /* ══════════════════════════════════════════════
    PEEK (r197) - put the pick panel aside and watch the board

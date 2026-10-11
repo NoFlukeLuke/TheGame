@@ -29,7 +29,7 @@ const EFX_TARGETS = {
   swaps:    ['#swap-indicator'],
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
-  level:    ['#ci-level', '#level-display'],   // r504: a challenge's -1 reward
+  level:    ['#run-progress .rp-lv', '#level-display'],   // r504: a challenge's -1 reward
 };
 // Two of these lists were pointing at ids that do not exist (r233). `#ci-coins`,
 // `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`

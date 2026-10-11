@@ -1058,5 +1058,23 @@ that fires mid-fall now waits for the fall instead of being dropped.
 ## r543 - quarter modes hide LEVEL
 Owner: the quarter/node block already shows progress toward the boss. `startGame` sets
 `#stage.act-run` from `isActMode()` (Classic, Schedule, Climb and the hidden quarter modes);
-css/style.css hides `.ci-level` (landscape credits bar) and the portrait top bar's Level stat
-under it. Flow keeps its LEVEL.
+css/style.css hides the portrait top bar's Level stat under it. Flow keeps its LEVEL
+(r544: in the landscape corner block).
+
+## r544 - desktop: no credits bar; the credits chip; no boss name banner
+- **The landscape credits bar is gone.** Its band went to the score rows: SCORE / GOAL at
+  2.78% +15.4 (30px / 21px figures), PIPS / MULT / FOCUS at 20.08% +14.7 (32px); knacks and
+  everything below are unchanged. `chipValFit` (js/hud.js) now also fits SCORE and GOAL to their
+  box with an 18px gutter, so an 8-digit figure shrinks rather than spills. Flow's reward banner
+  (`#flowr-banner`) follows the PIPS row's new box.
+- **Credits chip** = `#coin-info`, moved to the start of the bottom row (10.5%; RECORDS / PAUSE
+  12.72% each; Poker Squares hides the chip and keeps the old two slots). Amount only. Hover
+  (mouse) or tap (touch) shows `#ci-tip`, a stage-level bubble above it, refreshed every 250ms
+  while open by `creditsTipFill`: Interest (`interestPayout` x `payoutInterestMult()`, 0 while
+  frozen or withheld) and the Early Finish Bonus (`earlyFinishCredits(roundSeconds)`, the
+  function the payout pays from with the frozen clock; Crunch's Under Par included). Flow pays at
+  level-up, so its tip shows interest and Over the goal (`flowOverGoalPay`).
+- **Efficiency is now Early Finish Bonus** on the payout (`payoutEfficiencyName`) and in the walkthrough.
+- **LEVEL outside quarter modes** (Flow) is the top-right corner block (`.rp-lvl`, `.rp-lv`,
+  `updateRunProgressUI`); Poker Squares keeps its plain skull there. `.ci-level` is removed.
+- **The boss name banner (`#boss-banner`) is removed**: the briefing already names the boss.

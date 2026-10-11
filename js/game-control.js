@@ -658,7 +658,6 @@ function startGame() {
   document.getElementById('grid').classList.remove('boss-active');
   document.getElementById('clock').classList.remove('boss-mode');
   document.getElementById('clock-bar').classList.remove('boss-mode');
-  document.getElementById('boss-banner')?.classList.remove('show');
   document.getElementById('boss-result')?.classList.remove('show');
   document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
 

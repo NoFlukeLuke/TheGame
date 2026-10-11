@@ -557,7 +557,7 @@ const TUTORIAL_STEPS = [
     when: () => !!document.querySelector('#po-valued.show'),
     eyebrow: 'Payout',
     title: 'End of round pay',
-    body: () => `<b>Interest</b> - 10% of the credits you are holding.<br><br><b>Efficiency</b> - 1 credit for every <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left on the clock.<br><br><b>Unspent</b> - every swap and discard you did not use.`,
+    body: () => `<b>Interest</b> - 10% of the credits you are holding.<br><br><b>Early Finish Bonus</b> - 1 credit for every <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left on the clock.<br><br><b>Unspent</b> - every swap and discard you did not use.`,
     until: () => !tutPayoutEl(),
   },
   {

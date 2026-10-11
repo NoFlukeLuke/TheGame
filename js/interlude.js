@@ -202,14 +202,19 @@ function payoutCoinMs(i) {
   return Math.max(PAYOUT_COIN_MIN_MS, PAYOUT_COIN_FIRST_MS * Math.pow(PAYOUT_COIN_ACCEL, i));
 }
 
+// The interest multiplier the payout would use now: the Idol triples it while it
+// is on the board. Read by the payout and by the credits chip's hover (js/hud.js).
+function payoutInterestMult() {
+  return hasSleightOnGrid('idol') ? BAL.idol.interest_mult : 1;
+}
+
 async function showPayoutUI() {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // Calculate payouts
   // Idol: triple interest if still on the board at round end (consumes one charge)
-  let interestMult = 1;
+  const interestMult = payoutInterestMult();
   if (hasSleightOnGrid('idol')) {
-    interestMult = BAL.idol.interest_mult;
     for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
       const card = gridData[r]?.[c];
       if (card?._isSleight && card.sleightId === 'idol') { consumeSleightCharge(card, r, c); }
@@ -233,10 +238,7 @@ async function showPayoutUI() {
   // it again every level). The line becomes PAR instead: credits for every
   // efficiencySecondsPerCoin() seconds this round came in under CRUNCH_PAR_SECONDS.
   // Same rate, so Time and a Half still doubles it without knowing this mode exists.
-  const efficiencyCoins = _withheld ? 0
-    : (typeof crunchActive === 'function' && crunchActive())
-      ? crunchParCredits()
-      : Math.floor(frozenRoundSeconds / efficiencySecondsPerCoin());
+  const efficiencyCoins = _withheld ? 0 : earlyFinishCredits(frozenRoundSeconds);
   // Unspent (r218): swaps and discards you did NOT use pay out. Until this, a
   // round ended with leftover manipulates worth exactly nothing, so spending them
   // on anything at all was strictly better than holding them. Now holding is a

@@ -476,7 +476,7 @@ body.flowr-deck #flowr-bg .fbg-title { display: none; }
 }
 #stage.landscape #flowr-banner {
   /* the chip band's own box (see #stage.landscape #score-subboxes) */
-  left: 1.56%; right: auto; top: 24.28%; width: 37.74%; min-height: 10.5%;
+  left: 1.56%; right: auto; top: 20.08%; width: 37.74%; min-height: 14.7%;
   box-sizing: border-box;
 }
 #flowr-banner b {

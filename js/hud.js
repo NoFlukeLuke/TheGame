@@ -101,7 +101,6 @@ function updateScoreUI() {
     document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
   }
   document.getElementById('level-display').textContent = level;
-  const cl = document.getElementById('ci-level'); if (cl) cl.textContent = level;
   updateCoinsUI();
   updateRunProgressUI();
 }
@@ -176,7 +175,43 @@ function updateCoinsUI() {
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
+  creditsTipFill();
 }
+
+// ── The credits chip's hover (r544) ──
+// What the next payout would pay if the round ended now, read from the functions
+// the payout pays with (js/interlude.js). Flow pays at level-up instead
+// (flowLevelPayLines), so it shows interest and its over-the-goal line.
+function creditsTipFill() {
+  const tip = document.getElementById('ci-tip');
+  if (!tip || !tip.classList.contains('show')) return;
+  const flow = typeof survivalActive === 'function' && survivalActive();
+  const withheld = !flow && skipNextPayout;
+  const interest = (withheld || (!flow && interestFreezeRounds > 0)) ? 0
+    : interestPayout(coins, flow ? 1 : payoutInterestMult());
+  const bonus = flow ? flowOverGoalPay(Math.max(0, score - roundGoal), roundGoal)
+    : withheld ? 0 : earlyFinishCredits(roundSeconds);
+  document.getElementById('ci-interest').textContent = '+' + interest;
+  document.getElementById('ci-bonus-name').textContent = flow ? 'Over the goal' : payoutEfficiencyName();
+  document.getElementById('ci-bonus').textContent = '+' + bonus;
+}
+(function creditsTipBind() {
+  const chip = document.getElementById('coin-info'), tip = document.getElementById('ci-tip');
+  if (!chip || !tip) return;
+  let tick = null;
+  const show = on => {
+    tip.classList.toggle('show', on);
+    clearInterval(tick); tick = null;
+    if (on) { creditsTipFill(); tick = setInterval(creditsTipFill, 250); }   // the clock moves the bonus
+  };
+  chip.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') show(true); });
+  chip.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') show(false); });
+  // Touch: a tap toggles it, a tap anywhere else closes it.
+  chip.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') show(!tip.classList.contains('show')); });
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' && tip.classList.contains('show') && !chip.contains(e.target)) show(false);
+  }, true);
+})();
 
 // Run-progress block (ACT n + node pips, or the boss sigil).
 //
@@ -193,12 +228,17 @@ function updateCoinsUI() {
 function updateRunProgressUI() {
   const bossOn = (typeof bossActive !== 'undefined') && bossActive;
   const actMode = (typeof isActMode === 'function') && isActMode();
+  // r544: outside the quarter modes (Flow) the block reads LEVEL n; it lived in
+  // the credits bar, which is gone. Poker Squares counts rounds instead.
+  const lvlOn = !actMode && !bossOn && !(typeof squaresActive === 'function' && squaresActive());
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
+    rp.classList.toggle('rp-lvl', lvlOn);
+    const lv = rp.querySelector('.rp-lv'); if (lv) lv.textContent = level;
     const act = rp.querySelector('.rp-act');
     // Outside the quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
-    if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
+    if (act) act.textContent = actMode ? ('Q' + actNumber) : bossOn ? 'BOSS' : lvlOn ? 'LEVEL' : '';
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
       s.classList.toggle('on', i < nodeInAct);
       s.classList.toggle('cur', i === nodeInAct);
@@ -491,17 +531,21 @@ let lastTapTime = 0;
    three is rewritten, drop its size just enough that it fits. Reset to the
    stylesheet size first so it can also grow back. */
 (function chipValFit() {
-  const fit = el => {
-    const box = el.parentElement; if (!box) return;
+  const fit = (el, box, gutter) => {
+    box = box || el.parentElement; if (!box) return;
     el.style.fontSize = '';
-    const room = box.clientWidth - 6;
+    const cs = getComputedStyle(box);
+    const room = box.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - (gutter || 6);
     if (room <= 0) return;
-    const w = el.scrollWidth;
+    const w = Math.max(el.scrollWidth, el.offsetWidth);   // offsetWidth: #goal-display is an inline span
     if (w > room) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * room / w).toFixed(1) + 'px';
   };
-  ['pips-val', 'mult-val', 'focus-val'].forEach(id => {
+  // r544: SCORE and GOAL grew with their boxes, so a long figure is fitted to the
+  // box too, clear of the tray's inner ring (18px).
+  [['pips-val'], ['mult-val'], ['focus-val'], ['score-total-num', 'score-center', 18], ['goal-display', 'score-left', 18]].forEach(([id, boxId, gutter]) => {
     const el = document.getElementById(id); if (!el) return;
-    new MutationObserver(() => fit(el)).observe(el, { childList: true, characterData: true, subtree: true });
-    window.addEventListener('resize', () => fit(el));
+    const box = boxId ? document.getElementById(boxId) : null;
+    new MutationObserver(() => fit(el, box, gutter)).observe(el, { childList: true, characterData: true, subtree: true });
+    window.addEventListener('resize', () => fit(el, box, gutter));
   });
 })();

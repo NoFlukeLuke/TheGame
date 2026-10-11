@@ -151,7 +151,7 @@ html.skin-machine #stage #grid {
    Their own text-shadows are dropped: the filter draws the bloom. Not on the small
    labels (SCORE, GOAL...): thresholded at portrait's 6px they break into dots. */
 html.skin-machine #cabinet #cab-screen #stage :is(#score-total-num, #goal-display, #score-to-go, .subbox-val,
-  .ci-main, .ci-level, #focus-mult-readout, #trick-tray-count, #hand-name),
+  .ci-main, #focus-mult-readout, #trick-tray-count, #hand-name),
 html.skin-machine #mc-flip :is(.mcf-top, .mcf-bot, .mcf-flap) > span {
   filter: url(#mc-crisp); text-shadow: none !important;
 }
@@ -302,11 +302,8 @@ html.skin-machine #stage #score-progress-bar-wrap {
 html.skin-machine #stage #score-progress-bar { border-radius: 0 !important; opacity: .55; }
 html.skin-machine #stage #score-left > :not(#score-progress-bar-wrap) { position: relative; z-index: 1; }
 
-/* Desktop credits bar: level at one end, credits at the other, no emoji. */
-html.skin-machine #stage.landscape #coin-info { justify-content: space-between !important; }
-html.skin-machine #stage.landscape #coin-info .ci-level { border-right: none !important; padding-right: 0 !important; }
+/* Desktop credits chip (r544): the amount, centred, no emoji. */
 html.skin-machine #stage.landscape #coin-info .ci-main b { font-size: 16px !important; }
-html.skin-machine #stage.landscape #coin-info .ci-main .ci-unit { font-size: 9px !important; margin-left: 4px; }
 
 /* Keys (the SWAP and credits emoji are removed by js/machine-skin.js): the words are engraved in the plastic and filled with white
    enamel (a dark lip above each stroke where the cut is in shadow, a lit lip below). */

@@ -702,20 +702,6 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 
   updateClockUI();
 
-  // Banner. Guarded: this is cosmetic, and an unguarded lookup here used to abort
-  // triggerBoss PART WAY THROUGH - bossActive already true and the modifiers
-  // already applied, but no briefing, no PROCEED and no clock. A boss must never
-  // fail to start because a decoration is missing.
-  const banner = document.getElementById('boss-banner');
-  if (banner) {
-    const title = banner.querySelector('.boss-banner-title');
-    if (title) title.textContent = preset.name;
-    const sub = document.getElementById('boss-banner-sub');
-    if (sub) sub.textContent = preset.flavor;
-    banner.classList.add('show');
-    setTimeout(() => banner.classList.remove('show'), 2400);
-  }
-
   // Objective HUD
   showBossObjectiveHUD(preset);
   // Anything that switches Tricks off (Voidwright, Censor) shows as greyed tiles

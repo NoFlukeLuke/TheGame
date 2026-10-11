@@ -312,10 +312,10 @@
   }
   #stage.landscape #score-progress-bar-wrap { width: 70%; }
   #stage.landscape .score-subbox { height: 42px; max-height: 42px; }
-  #stage.landscape #score-total-num { font-size: 22px; }
-  #stage.landscape #score-to-go { font-size: 16px; }
-  #stage.landscape #score-goal-label { font-size: 8px; }
-  #stage.landscape #score-total-label { font-size: 8px; }
+  #stage.landscape #score-total-num { font-size: 30px; }
+  #stage.landscape #score-to-go { font-size: 21px; }
+  #stage.landscape #score-goal-label { font-size: 9px; }
+  #stage.landscape #score-total-label { font-size: 9px; }
   #stage.landscape .subbox-val { font-size: 15px; }
   #stage.landscape .subbox-label { font-size: 6px; }
   #stage.landscape #trick-panel {
@@ -3034,40 +3034,6 @@
     50%      { box-shadow: 0 0 36px rgba(192,57,43,0.55), inset 0 0 28px rgba(192,57,43,0.28); }
   }
 
-  /* Boss banner - slides in at top of grid when boss starts */
-  #boss-banner {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%) scale(0.6);
-    z-index: 60;
-    pointer-events: none;
-    opacity: 0;
-    text-align: center;
-    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
-  }
-  #boss-banner.show {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  .boss-banner-title {
-    font-family: 'Cinzel', serif;
-    font-weight: 900;
-    font-size: 38px;
-    letter-spacing: 6px;
-    color: var(--red);
-    text-shadow:
-      0 0 12px rgba(192,57,43,0.7),
-      0 2px 8px rgba(0,0,0,0.9);
-    margin-bottom: 6px;
-  }
-  .boss-banner-sub {
-    font-family: 'Cinzel', serif;
-    font-size: 13px;
-    letter-spacing: 4px;
-    color: var(--cream);
-    text-transform: uppercase;
-  }
-
   /* Boss timer - replaces the clock visually during boss */
   #clock.boss-mode { color: var(--red); }
   #clock-bar.boss-mode { background: linear-gradient(90deg, #c0392b, #e84a3a); }
@@ -4488,17 +4454,18 @@
      preview and the buttons); the TRICK TRAY IS UNCHANGED at 21.7%, because
      its chips are 79px in a 77px content box already (r376) and it has none.
      The stack, top to bottom, now runs:
-       (r440: credits first) 2.78 +6.5 | 11.18 +11.2 | 24.28 +10.5 | 36.68 +6.9 |
-       45.48 +20.7 | 68.08 +21.7 | 91.68 +6.3  -> 97.98
+       (r544: the credits bar is gone, its band went to the two score rows)
+       2.78 +15.4 | 20.08 +14.7 | 36.68 +6.9 | 45.48 +20.7 | 68.08 +21.7 |
+       91.68 +6.3 (credits chip, RECORDS, PAUSE)  -> 97.98
      Anything positioned against one of these (the Flow reward banner takes the
      chip row's box, css/flow-rewards.css) has to move with it. */
-  #stage.landscape #score-center   { left:1.56%;  top:11.18%;  width:18.9%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  #stage.landscape #score-left     { left:22.0%;  top:11.18%;  width:17.3%;  height:11.2%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:18.9%;  height:15.4%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:22.0%;  top:2.78%;  width:17.3%;  height:15.4%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
   /* clock readout + timer bar span the grid's width (grid: left 45% → right 90%) */
   #stage.landscape #clock-area     { position:absolute; left:45%; top:2.78%; width:7%; height:6.94%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
   #stage.landscape #vclock         { left:52.5%; top:2.78%; width:37.5%; height:6.94%; overflow:hidden; display:block; }
   /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
-  #stage.landscape #score-subboxes { left:1.56%;  top:24.28%; width:37.74%; height:10.5%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #score-subboxes { left:1.56%;  top:20.08%; width:37.74%; height:14.7%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
   #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
@@ -4561,12 +4528,26 @@
   /* No width/height here: the r182 tile-frame rule further down owns the size
      (this one stated 40x53 for years and was always outranked by it). */
   #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
-  /* money: compact single-row bar (replaces the old tall coin chip) */
-  #stage.landscape #coin-info      { left:1.56%; top:2.78%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; padding:0 8px; }
-  /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
-     The same 1.56%→39.3% span, now 2 equal slots of 18.4% with the 0.9% gutter. */
-  #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.68%; width:18.4%; height:6.3%; }
-  #stage.landscape #btn-pause      { position:absolute; left:20.86%; top:91.68%; width:18.44%; height:6.3%; }
+  /* r544: credits are a chip at the start of the bottom row, the amount only.
+     The 1.56%->39.3% span: chip 10.5%, then RECORDS and PAUSE 12.72% each, 0.9% gutters. */
+  #stage.landscape #coin-info      { left:1.56%; top:91.68%; width:10.5%; height:6.3%; flex-direction:row; align-items:center; justify-content:center; padding:0 6px; cursor:var(--cur-default, default); }
+  #stage.landscape #coin-info .ci-main { margin:0 auto; }
+  #stage.landscape #btn-records    { position:absolute; left:12.96%; top:91.68%; width:12.72%; height:6.3%; }
+  #stage.landscape #btn-pause      { position:absolute; left:26.58%; top:91.68%; width:12.72%; height:6.3%; }
+  /* Poker Squares has no credits chip: the two buttons take the row (pre-r544 slots). */
+  #stage.landscape.squares-mode #btn-records { left:1.56%;  width:18.4%; }
+  #stage.landscape.squares-mode #btn-pause   { left:20.86%; width:18.44%; }
+  /* The chip's hover: what the next payout would pay now (creditsTipFill, js/hud.js).
+     Sits just above the chip, over the Trick tray. Landscape only. */
+  #ci-tip { display:none; }
+  #stage.landscape #ci-tip.show {
+    display:flex; flex-direction:column; gap:3px; position:absolute; z-index:80;
+    left:1.56%; bottom:calc(100% - 91.68% + 6px); min-width:150px; box-sizing:border-box;
+    padding:6px 9px; background:#0d0f0c; border:1px solid var(--c-green); border-radius:6px;
+    box-shadow:0 0 10px rgba(76,217,100,.25), 0 4px 12px rgba(0,0,0,.6); pointer-events:none;
+  }
+  #ci-tip .ci-row { display:flex; justify-content:space-between; gap:14px; font-family:'Share Tech Mono',monospace; font-size:10px; color:#f4f1ea; white-space:nowrap; }
+  #ci-tip .ci-row .pos { color:var(--c-green); }
   /* focus meter hugs the grid's left edge; grid + clock bar shifted right for the wider left column */
   #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
@@ -4592,11 +4573,6 @@
      from the live loadout now (js/clock-track.js). */
   #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
   #coin-info .ci-main b { font-size:19px; }
-  #coin-info .ci-unit { font-size:8px; letter-spacing:.5px; text-transform:uppercase; margin-left:2px; }
-  #coin-info .ci-level { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.5px; padding-right:8px; border-right:1px solid rgba(255,255,255,.12); color:var(--cream-dim); display:flex; align-items:baseline; gap:4px; white-space:nowrap; }
-  #coin-info .ci-level b { font-family:'Cinzel',serif; font-size:15px; color:var(--cream); }
-  #coin-info .ci-row { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:8px; color:var(--cream-dim); }
-  #coin-info .ci-row .pos { color:var(--green); }
   #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
   #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
   #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
@@ -4607,6 +4583,10 @@
   #limits-popup .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
   /* .rp-block internals - shared by the landscape box (#run-progress) and the
      portrait top-bar copy (#run-progress-pt), so both read identically. */
+  /* r544: modes without quarters (Flow) read LEVEL n here (.rp-lvl, updateRunProgressUI). */
+  .rp-block .rp-lv { display:none; }
+  #stage.landscape #run-progress.rp-lvl .rp-nodes, #stage.landscape #run-progress.rp-lvl .rp-sigil { display:none; }
+  #stage.landscape #run-progress.rp-lvl .rp-lv { display:block; font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:#fff; line-height:1; text-shadow:0 0 10px rgba(255,255,255,0.28); }
   .rp-block .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
   .rp-block .rp-nodes { display:flex; gap:3px; align-items:center; }
   .rp-block .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
@@ -4955,7 +4935,7 @@
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,
-  #interact-costs .ic-h, #coin-info .ci-row, #interact-costs .ic-r,
+  #interact-costs .ic-h, #ci-tip .ci-row, #interact-costs .ic-r,
   #limits-popup .ic-h, #limits-popup .ic-r {
     font-family:'Share Tech Mono',monospace !important;
   }
@@ -4995,7 +4975,7 @@
 
   /* Coin / cost figures */
   #coin-info .ci-main { color: var(--c-green) !important; }
-  #coin-info .ci-row .pos, #interact-costs .ic-r span:last-child,
+  #ci-tip .ci-row .pos, #interact-costs .ic-r span:last-child,
   #limits-popup .ic-r span:last-child { color: var(--c-mint) !important; }
   #interact-costs .ic-h, #limits-popup .ic-h { color: var(--c-cyan) !important; }
 
@@ -5104,7 +5084,7 @@
   }
   #stage.landscape #score-subboxes { gap:5px; padding:0 !important; justify-content:space-between; }
   #stage.landscape .score-subbox { height:100%; max-height:none; }
-  #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val, #stage.landscape #focus-box .subbox-val { font-size:25px; color:#fff !important; }
+  #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val, #stage.landscape #focus-box .subbox-val { font-size:32px; color:#fff !important; }
   #stage.landscape .subbox-times { flex:0 0 auto; width:7px; justify-content:center; font-size:10px; }
   /* Fused chip + the grid-screen location chip wear the same tray. */
   #score-subboxes #pmf-merged { --tray-c:var(--gold, #d4a857); --tray-set:var(--tray-rings); inset:0; background:linear-gradient(180deg,#3a2c08,#201802) !important; border-radius:6px; }
@@ -5255,11 +5235,6 @@
   /* Compact one-line money bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info .ci-main { font-size: 13px; }
   #stage.landscape #coin-info .ci-main b { font-size: 16px; }
-  #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 3px; font-size: 8px; white-space: nowrap; }
-  /* r419: the level readout is set exactly like the credits one (same face, size and
-     number size) so the tray reads as one line of two matching figures. */
-  #stage.landscape #coin-info .ci-level { font-family:'Orbitron',sans-serif !important; font-size:8px; letter-spacing:.5px; text-transform:uppercase; font-weight:700; color:var(--c-green); align-items:baseline; gap:4px; }
-  #stage.landscape #coin-info .ci-level b { font-family:'Orbitron',sans-serif !important; font-size:16px; font-weight:700; color:var(--c-green) !important; letter-spacing:0; }
 
   /* ── Reward-grid-style trick tiles: CRT/neon card, rarity = border color ── */
   #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
@@ -5337,7 +5312,6 @@
 #stage.no-game-clock #game-timer-stat { display: none; }
 /* Quarter modes (.act-run, set in startGame from isActMode()) show no LEVEL: the
    quarter/node block already says how far the run is toward the boss. */
-#stage.act-run #coin-info .ci-level,
 #stage.act-run #top-bar > .top-stat:has(#level-display) { display: none !important; }
 
 
@@ -6211,9 +6185,7 @@ body.reduced-motion .clock-boss { animation: none; }
 
 /* r453 - the small trays' text is white, so it never reads as part of the border
    (score/goal are teal-bordered, credits green). The goal's progress bar keeps its colour. */
-#stage #score-total-label, #stage #score-goal-label,
-#stage #coin-info .ci-level, #stage #coin-info .ci-level b,
-#stage.landscape #coin-info .ci-level, #stage.landscape #coin-info .ci-level b { color: #f4f1ea !important; }
+#stage #score-total-label, #stage #score-goal-label { color: #f4f1ea !important; }
 #stage #score-total-num, #stage #goal-display, #stage #score-to-go,
 #stage #coin-info .ci-main, #stage #coin-info .ci-main b {
   color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.28) !important;
