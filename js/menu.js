@@ -1,4 +1,4 @@
-const BUILD = "2026-10-11 · r542 · the ten most out-of-line Tricks: owner's survey";
+const BUILD = "2026-10-11 · r543 · quarter modes hide the LEVEL readout";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

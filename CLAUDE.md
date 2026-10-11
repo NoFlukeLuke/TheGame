@@ -1054,3 +1054,9 @@ that fires mid-fall now waits for the fall instead of being dropped.
   `applyModeEntityFilter`, kept in `TRICK_POOL_ALL` so a saved run that owns it still works.
 - **Quake**, **Balance**: effect unchanged, **Rare**.
 - **Jackpot** (Legendary): **x1.5** pips per Jack on the grid (was x2; x16 with four Jacks).
+
+## r543 - quarter modes hide LEVEL
+Owner: the quarter/node block already shows progress toward the boss. `startGame` sets
+`#stage.act-run` from `isActMode()` (Classic, Schedule, Climb and the hidden quarter modes);
+css/style.css hides `.ci-level` (landscape credits bar) and the portrait top bar's Level stat
+under it. Flow keeps its LEVEL.

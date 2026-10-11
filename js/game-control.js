@@ -417,6 +417,9 @@ function startGame() {
   // without quarters have nothing to show there, so it is hidden for them. It was
   // the legacy 20-minute game clock until r427.
   document.getElementById('stage')?.classList.toggle('no-game-clock', !isActMode());
+  // Quarter modes hide the LEVEL readout: the quarter/node block already shows
+  // where the run is (owner, r543).
+  document.getElementById('stage')?.classList.toggle('act-run', isActMode());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;

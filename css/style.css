@@ -5335,6 +5335,10 @@
    (.no-game-clock, set in startGame from !isActMode()). It was the legacy
    20-minute game clock until r427. Level keeps its own slot beside it. */
 #stage.no-game-clock #game-timer-stat { display: none; }
+/* Quarter modes (.act-run, set in startGame from isActMode()) show no LEVEL: the
+   quarter/node block already says how far the run is toward the boss. */
+#stage.act-run #coin-info .ci-level,
+#stage.act-run #top-bar > .top-stat:has(#level-display) { display: none !important; }
 
 
 /* ══════════════════════════════════════════════
