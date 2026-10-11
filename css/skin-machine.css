@@ -328,3 +328,18 @@ html.skin-machine #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap
 html.skin-machine #stage:not(.landscape) #selected-cards { background: none !important; box-shadow: none !important; border-color: transparent !important; }
 html.skin-machine #stage:not(.landscape) #selected-cards::before,
 html.skin-machine #stage:not(.landscape) #selected-cards::after { content: none !important; display: none !important; }
+
+/* ── r540: the board is one fixed box (js/grid-metrics.js gridFillOn) ─────────
+   The biggest rectangle between the Focus column (right of the 41.35% seam) and
+   the keys, from under the timer to the bottom edge. Every board state (play,
+   rewards, the chain's hand-over, the shop) uses it, so nothing slides; it beats
+   the inline pin js/grid-metrics.js gridSlotPin writes. The Flow reward panel
+   loses its outer pad and sits inside the box. */
+html.skin-machine #stage.landscape:not(.squares-mode) #grid-slot {
+  left: 46.85% !important; width: 43.9% !important; top: 11.11% !important; height: 87.4% !important;
+}
+html.skin-machine #stage.landscape { --fbg-pad: 0px; }
+html.skin-machine body.gp-fillhead #stage.landscape #grid { margin-top: 15px !important; }
+html.skin-machine body.gp-fillhead #stage.landscape #flowr-bg { top: 50% !important; }
+html.skin-machine body.gp-fillhead #stage.landscape #flowr-stack {
+  bottom: calc(50% + var(--fbg-h, var(--grid-h, 0px)) / 2 + 7.5px) !important; }

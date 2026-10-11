@@ -1001,3 +1001,16 @@ time mark on the card and the same white plate.
 - **One sound per event:** `rewindTime` already plays `playRewindFX`, and `pauseRound`'s `beginClockFreeze`
   plays the click, so their plates pass `sfx: false` (the pause plate plays it only for an extension of a
   running pause). Measured: a new pause and a rewind each played their sound twice before.
+
+## r540 - console mode: the board is one fixed box (`gridFillOn`, js/grid-metrics.js)
+Owner: the board's outline is a fixed screen; cards change shape to fill it as rows and columns
+change. In console mode, landscape, not Poker Squares: `#grid-slot` is the biggest box between the
+Focus column and the keys, under the timer (css/skin-machine.css, `!important`, so it also beats the
+reward states and `gridSlotPin`), and `gridFillMetrics` fills it exactly (no card aspect, fractional
+CARD_W / CARD_H, gap from `gapForCardW`). Measured: 328 x 367 design px at every size from 4x4 to
+7x7 (the normal look's 4x4 is 274 x 350); timer, Focus bar and keys never move. A Flow reward board
+gives up the panel's 15px title band (`body.gp-fillhead`: #grid drops by half a band, `#flowr-bg`
+centres on the box, `--fbg-pad` 0 in console mode), so band + board fill the box exactly.
+`syncSidebarsToGrid` follows the box, not the board, while it is on. The shop fills the same box.
+Open: the x/y selection readout (`#sel-count`) and the pick's MAX label lived in the board's side
+margin, which is gone, so they now overlap the keys; queued reward tabs peek into the timer row.

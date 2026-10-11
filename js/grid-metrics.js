@@ -83,7 +83,41 @@ function gridSameBoxMetrics() {
   applyGridMetricsToDOM();
 }
 
+// FIXED BOX (r540, owner; console mode first). The board is one fixed
+// rectangle: the biggest that fits between the Focus column and the keys, under
+// the timer (css/skin-machine.css places #grid-slot there). Cards stop keeping
+// the playing-card shape and stretch to fill it, whatever the rows and columns,
+// so the board, the Focus bar and the timer never move. Reward screens use the
+// same box; a Flow reward board gives up the height of its panel's title band
+// so band and board fill the box together.
+function gridFillOn() {
+  if (!(typeof trayMachineOn === 'function' && trayMachineOn())) return false;
+  const st = document.getElementById('stage');
+  if (!st || !st.classList.contains('landscape') || st.classList.contains('squares-mode')) return false;
+  return !(typeof sqSlotInset === 'function' && sqSlotInset());
+}
+function gridFillMetrics() {
+  const slot = measureGridSlot();
+  const b = document.body.classList;
+  const head = (b.contains('gp-active') && typeof survivalActive === 'function' && survivalActive()
+                && !(typeof shopGridActive !== 'undefined' && shopGridActive)) ? 15 : 0;   // the panel's --fbg-head
+  const cols = gridCols, rows = gridRows;
+  GRID_PAD = GRID_PAD_BASE;
+  const inner = (gap) => ({
+    w: (slot.w - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (cols - 1)) / cols,
+    h: (slot.h - head - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (rows - 1)) / rows });
+  let c = inner(CARD_GAP_BASE);
+  const gap = gapForCardW(Math.min(c.w, c.h / CARD_ASPECT));
+  c = inner(gap);
+  CARD_GAP = gap; CARD_W = c.w; CARD_H = c.h; CARD_STEP = CARD_H + CARD_GAP;
+  // The board drops by half the band and the panel centres on the box (css), so
+  // band + board fill the box exactly.
+  b.toggle('gp-fillhead', head > 0);
+  applyGridMetricsToDOM();
+}
+
 function recomputeGridMetrics() {
+  if (gridFillOn()) { gridFillMetrics(); return; }
   if (gridSameBoxOn()) { gridSameBoxMetrics(); return; }
   const cols = gridCols, rows = gridRows;
   // Fit cards to the MEASURED slot so the grid always fills the available area
@@ -249,7 +283,8 @@ function syncSidebarsToGrid() {
   const grid = document.getElementById('grid');
   if (!grid) return;
   const s = stage.getBoundingClientRect();
-  const g = grid.getBoundingClientRect();
+  // Fixed box (r540): the sidebars follow the box, not a reward board inside it.
+  const g = (gridFillOn() ? document.getElementById('grid-slot') : grid).getBoundingClientRect();
   if (s.width < 10 || g.width < 10) return;
   const pct  = px => px / s.width  * 100;
   const pctH = px => px / s.height * 100;
@@ -275,7 +310,8 @@ function syncSidebarsToGrid() {
     // ~9 design px (1.2%) past the grid, so the meter has to clear that too or the
     // panel's edge sits over it.
     const b = document.body.classList;
-    const gap = (b.contains('gp-active') || b.contains('flowr-hold') || b.contains('flowr-deck')) ? 1.6 : 0.4;
+    const gap = gridFillOn() ? 0.4
+      : (b.contains('gp-active') || b.contains('flowr-hold') || b.contains('flowr-deck')) ? 1.6 : 0.4;
     fLeft = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - gap);
     focus.style.left   = fLeft + '%';
     focus.style.top    = pctH(g.top - s.top) + '%';

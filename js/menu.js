@@ -1,4 +1,4 @@
-const BUILD = "2026-10-10 · r539 · a queued discard keeps to its own cards";
+const BUILD = "2026-10-11 · r540 · console mode: the board is one fixed box, cards stretch to fill it";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
