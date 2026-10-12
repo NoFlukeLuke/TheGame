@@ -320,9 +320,10 @@ const ROUND_DURATION = 180;
 // Leftover clock -> credits, the payout's "Efficiency" line (js/interlude.js) and
 // Survival's per-clear bonus (js/survival.js). ONE constant so the two economies
 // cannot drift. r213 doubled it to 5; r278 puts it back to 10 (owner's call - the
-// player was ending runs drowning in credits, and this paid in every mode). The
-// Time and a Half knack halves the interval, i.e. doubles the payout.
-const EFFICIENCY_SECONDS_PER_COIN = 10;
+// player was ending runs drowning in credits, and this paid in every mode). r546
+// halves it again, 10 -> 20 (owner: Classic paid too much; Flow does not use it).
+// The Time and a Half knack halves the interval, i.e. doubles the payout.
+const EFFICIENCY_SECONDS_PER_COIN = 20;
 // Every reader goes through this, never the raw constant, so the knack reaches
 // the payout figure, the printed labels, the count-up tick and Survival at once.
 function efficiencySecondsPerCoin() {

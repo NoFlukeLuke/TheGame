@@ -126,10 +126,13 @@ const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize');
 // Owner: leftover SWAPS reroll the reward TYPE and leftover DISCARDS reroll the
 // OPTIONS, free up to what you finished the round holding, then escalating gold.
 // They no longer pay credits. The score over the goal stops carrying into the
-// next round and pays 1 credit per `overPct`% over instead, and interest (1 per
-// 10 held, the shared capped line) is paid at each level-up.
+// next round and pays credits instead, and interest (1 per 10 held, the shared
+// capped line) is paid at each level-up.
 // `split` switches the reroll half off (back to the shared pool, stock pays gold).
-const FLOWE_DEF = { split: true, overPct: 15, multiStep: 10 };
+// r546 (owner): the over-the-goal pay is front-loaded (`overSteps`). Each step is
+// "percent over:credits added on reaching it": 10% over pays 5, 25% two more,
+// then one more at 50, 100 and 200 (10 at most). It was 1 per 15%, uncapped.
+const FLOWE_DEF = { split: true, overSteps: '10:5, 25:2, 50:1, 100:1, 200:1', multiStep: 10 };
 const FLOWE_KEY = 'lethe.flowEcon.v1';   // OVERRIDES ONLY
 let flowEcon = (() => {
   try { return Object.assign({}, FLOWE_DEF, JSON.parse(localStorage.getItem(FLOWE_KEY) || '{}')); }
@@ -146,16 +149,32 @@ function flowSplitRerolls() {
 }
 // Credits for the score over the goal. ONE function, read by the payment and
 // by the breakdown that quotes it.
+function flowOverSteps() {
+  const parse = t => String(t).split(',').map(x => x.split(':').map(Number))
+    .filter(p => p[0] > 0 && p[1] > 0).sort((a, b) => a[0] - b[0]);
+  const st = parse(flowEcon.overSteps || '');
+  return st.length ? st : parse(FLOWE_DEF.overSteps);
+}
 function flowOverGoalPay(over, goal) {
   if (!(goal > 0) || !(over > 0)) return 0;
-  return Math.floor((over / goal) * 100 / Math.max(1, flowEcon.overPct || 15));
+  const pct = over / goal * 100;
+  return flowOverSteps().reduce((t, [p, c]) => t + (pct >= p ? c : 0), 0);
+}
+// The breakdown's note: "5 at 10%, +2 at 25%, +1 at 50, 100, 200%".
+function flowOverGoalNote() {
+  const out = [];
+  flowOverSteps().forEach(([p, c], i) => {
+    const last = out[out.length - 1];
+    if (i > 1 && last && last.c === c) last.p.push(p); else out.push({ c, p: [p] });
+  });
+  return out.map((g, i) => `${i ? '+' : ''}${g.c} at ${g.p.join(', ')}%`).join(', ');
 }
 // Every line a Flow level-up pays, for the payment and the breakdown alike.
 function flowLevelPayLines(over, goal, held, unspent) {
   const lines = [{ label: 'Level clear', amt: SURVIVAL_LEVEL_COINS }];
   const og = flowOverGoalPay(over, goal);
   lines.push({ label: `Over the goal (+${goal > 0 ? Math.floor(Math.max(0, over) / goal * 100) : 0}%)`,
-               note: `1 per ${flowEcon.overPct}%`, amt: og });
+               note: flowOverGoalNote(), amt: og });
   lines.push({ label: 'Interest', note: interestPayoutDesc(held), amt: interestPayout(held) });
   if (!flowEcon.split) lines.push({ label: 'Unused stock', note: unspentPayoutDesc(), amt: unspentPayout(unspent) });
   return lines;
@@ -2599,7 +2618,7 @@ function flowrDevSync() {
   flowrSyncChipPicker();
   const on = document.getElementById('dev-flowr-on'); if (on) on.checked = cfg.on;
   const sp = document.getElementById('dev-flowe-split'); if (sp) sp.checked = !!flowEcon.split;
-  const ov = document.getElementById('dev-flowe-over'); if (ov) ov.value = flowEcon.overPct;
+  const ov = document.getElementById('dev-flowe-over'); if (ov) ov.value = flowOverSteps().map(p => p.join(':')).join(', ');
   const ms = document.getElementById('dev-flowe-step'); if (ms) ms.value = flowEcon.multiStep;
   cfg.counts.forEach((v, i) => {
     const el = document.getElementById('dev-flowr-c' + i);

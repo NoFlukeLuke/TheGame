@@ -1,4 +1,4 @@
-const BUILD = "2026-10-11 · r545 · credits chip on the right; one challenge at a time; the warning waits for the board";
+const BUILD = "2026-10-12 · r546 · Flow pays front-loaded credits over the goal; efficiency pays half";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

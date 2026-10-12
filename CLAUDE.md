@@ -358,7 +358,7 @@ Choices persist overrides-only in `lethe.cardAnims.v1`. "Current" rows are stand
 
 ## r441 - Flow economy: split rerolls, no score carry-over, shop as a reward
 - **Split rerolls** (`flowSplitRerolls()`, dev -> Flow, `lethe.flowEcon.v1`, default on): on every Flow pick, SWAP becomes REROLL REWARD TYPE and grows, DISCARD becomes REROLL OPTIONS and shrinks (`#stage.gp-split`, css/grid-pick.css). Free up to the swaps / discards the round ended with (`flowRrSnapshot`, taken at the goal clear and at the boss chain), then `PICK_REROLL_STEP` x paid this level-up. The tray loses its REROLL and CONFIRM tiles (`pickRerollAction` tiles carry `reroll:true` + `_roll`; the DISCARD reroll calls `_roll`) and gains QUEUE (spreads the tab stack, also on hover) and SKIP. A type reroll on the ordinary pick turns it into a one-step chain.
-- **Score over the goal no longer carries** into the next round (Survival engine). Flow pays it: 1 credit per `flowEcon.overPct` (15)% over. Flow also pays interest (`interestPayout`) at each level-up; unused stock pays only when split is off. `flowLevelPayLines` is the one source; the Round breakdown prints it under "Paid at level-up".
+- **Score over the goal no longer carries** into the next round (Survival engine). Flow pays it, front-loaded (r546, `flowEcon.overSteps`). Flow also pays interest (`interestPayout`) at each level-up; unused stock pays only when split is off. `flowLevelPayLines` is the one source; the Round breakdown prints it under "Paid at level-up".
 - **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds (r448) pick3 25 / tricks 25 / shop 10 / cards 7 / deck 7 / sleights 8 / limits 8 / improve 4 / knacks 6; a full trick tray drops tricks to 18 and splits the 7 over cards/deck/limits/improve (`flowrOddsNow`); r476: before the first boss tricks get +5, added after that cap. The chance of 2+ rewards BUILDS UP (r449, `flowrRollCount`, `flowrPrdMisses` in SAVE_VARS): the table chance plus `flowEcon.multiStep` (10, dev -> Flow) per single-reward level-up in a row, reset on a multi. Average rate 62% -> 66%.
 - **Forced kinds:** no TRICKS reward by the 3rd level-up since the last boss makes it the first reward; no KNACKS reward before a boss puts one in the boss chain (`flowrLvSinceBoss`, `flowrTricksSeen`, `flowrKnacksSeen`, in SAVE_VARS).
 - **A boss refills swaps and discards** in Survival/Flow (`triggerBoss`, before the modifiers).
@@ -1097,3 +1097,13 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
   marked cell's line. Tested refusal (real clicks, Flow and Classic): at the warning's start, with
   1s showing, right after another discard, with Confirm discards on. Once the count reaches 0 the
   card lands and the cell's selection is let go (by design).
+
+## r546 - Flow's over-the-goal pay is front-loaded; efficiency pays half
+- **Flow** (owner: more credits so the shop matters): `flowOverGoalPay` reads `flowOverSteps()`, a
+  step table in `flowEcon.overSteps` ("percent over:credits added"), default `10:5, 25:2, 50:1, 100:1,
+  200:1`: 10% over pays 5, 25% pays 7, 50% 8, 100% 9, 200% and up 10. Was 1 per 15%, uncapped (0 at
+  10%, 1 at 25%, 6 at 100%). The breakdown note (`flowOverGoalNote`) and the credits chip read the same
+  function. Dev -> Flow takes the table as text; `lethe.flowEcon.v1` stays overrides only (`overPct` is gone).
+- **Efficiency** (`EFFICIENCY_SECONDS_PER_COIN`) 10 -> 20: Classic / Schedule's leftover-time line,
+  Crunch's par line and non-Flow Survival pay half. Time and a Half makes it 10. Classic stays 3:00.
+

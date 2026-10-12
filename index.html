@@ -819,7 +819,7 @@
       <input id="dev-flowe-split" type="checkbox" onchange="setFlowEcon('split', this.checked)" style="accent-color:var(--gold);"> Split rerolls (swaps reroll the type, discards reroll the options; stock pays no gold)
     </label>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">
-      1 credit per <input id="dev-flowe-over" type="number" min="1" max="100" step="1" style="width:50px;" onchange="setFlowEcon('overPct', Math.max(1, +this.value || 15))">% over the goal
+      Over the goal pays (% over:credits added) <input id="dev-flowe-over" type="text" style="width:170px;" onchange="setFlowEcon('overSteps', this.value.trim() || FLOWE_DEF.overSteps); flowrDevSync()">
     </label>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">
       Extra-reward chance +<input id="dev-flowe-step" type="number" min="0" max="100" step="1" style="width:50px;" onchange="setFlowEcon('multiStep', Math.max(0, +this.value || 0))">% per level-up that paid one (resets after a multi)
