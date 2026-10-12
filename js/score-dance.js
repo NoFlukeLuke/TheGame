@@ -785,7 +785,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
   { const _fEl = document.getElementById('focus-val'); if(_fEl) _fEl.textContent = _fmtFocus(preHandFocus); }
   const scoreAfter = score, scoreBefore = score - finalScore;
-  const levelScale = Math.pow(1.1, level - 1);
+  const levelScale = levelPipScale();
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
   const basePips = Math.round(handBasePips(hand) * levelScale), baseMult = handBaseMult(hand, handCells.length);
 

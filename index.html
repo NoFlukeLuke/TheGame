@@ -133,6 +133,8 @@
 <div id="dev-panel" style="display:none;">
   <div id="dev-panel-bar">
     <span id="dev-panel-title">SETTINGS</span>
+    <input id="dev-search" type="search" placeholder="Search" autocomplete="off" spellcheck="false"
+      oninput="devSearch(this.value)" onkeydown="event.stopPropagation(); if (event.key === 'Escape') { this.value = ''; devSearch(''); }">
     <span id="build-stamp"></span>
     <button id="dev-panel-close" onclick="toggleDevPanel()">CLOSE</button>
   </div>
@@ -553,6 +555,13 @@
     <div class="dev-section-title">Where a hand's value comes from</div>
     <div class="dev-note">Changes apply to the next hand scored. Existing runs keep playing.</div>
     <div id="dev-scoring-model"></div>
+  </div>
+  <div class="dev-section" data-group="hands">
+    <div class="dev-section-title">Level growth</div>
+    <div class="dev-note">A hand's bonus pips grow 10% per level (x1.1 at level 2, x2.4 at level 10, x5.6 at level 19). Off: they stay at their level 1 value. Goals are not changed.</div>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
+      <input id="dev-level-growth" type="checkbox" onchange="devSetLevelGrowth(this.checked)" style="accent-color:var(--gold);"> Bonus pips grow each level
+    </label>
   </div>
   <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: building it</div>

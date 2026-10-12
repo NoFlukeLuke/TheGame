@@ -39,6 +39,23 @@
     color: var(--gold);
     text-shadow: 0 0 12px rgba(255, 176, 46, 0.45);
   }
+  /* r547: the search box (devSearch). */
+  #dev-search {
+    flex: 0 1 190px; min-width: 70px;
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    background: #1a1510; color: var(--cream);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+  }
+  #dev-search:focus { outline: none; border-color: var(--gold-dim); }
+  #dev-group-pop-body.dev-searching .dev-section::before {
+    content: attr(data-where);
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    color: var(--cream-dim); text-transform: uppercase;
+  }
+  #dev-group-pop-body .dev-hit {
+    outline: 1px solid var(--gold); outline-offset: 1px; border-radius: 3px;
+    background-color: rgba(255, 176, 46, 0.14);
+  }
   #dev-panel-bar #build-stamp {
     font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
     color: rgba(244, 236, 214, 0.34);

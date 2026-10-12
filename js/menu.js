@@ -1,4 +1,4 @@
-const BUILD = "2026-10-12 · r546 · Flow pays front-loaded credits over the goal; efficiency pays half";
+const BUILD = "2026-10-12 · r547 · level growth switch, card ladder scoring, dev panel search";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

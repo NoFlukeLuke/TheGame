@@ -43,7 +43,8 @@ function AUD_init(cfg) {
   limits.grid_rows.current = cfg.rows; limits.grid_cols.current = cfg.cols;
   limits.selection.current = cfg.maxHand;
   gridRows = cfg.rows; gridCols = cfg.cols;
-  if (cfg.scoring) scoringModel = cfg.scoring;     // classic / mult_ladder / hand_size (js/focus-config.js)
+  if (cfg.scoring) scoringModel = cfg.scoring;     // classic / mult_ladder / hand_size / card_ladder (js/focus-config.js)
+  levelGrowthOn = cfg.levelGrowth !== false;      // r547: --noLevelGrowth
   bossActive = false;
   gameTimerPaused = false; roundEnded = false; isPaused = false;   // startGame leaves the clock held for the deal
   const seen = new Set(), all = [];

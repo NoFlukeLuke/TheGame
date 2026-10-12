@@ -6,7 +6,7 @@
 //
 //   node tools/sim/trick-audit.js [--deals 30] [--grids 100] [--workers 4]
 //                                 [--passes loadouts,focus,time,hold,levels,pairs,steer]
-//                                 [--scoring classic|mult_ladder|hand_size] [--steerIds a,b]
+//                                 [--scoring classic|mult_ladder|hand_size|card_ladder] [--noLevelGrowth] [--steerIds a,b]
 //                                 [--out tools/sim/out/trick-audit.json] [--cfg '{"level":12}']
 //
 // Output: one JSON file with the settings, the pool (live names, rarities and
@@ -39,7 +39,8 @@ const DEFAULTS = {
   baseBuffMult: 2, baseBuffMultAmt: 4,    // 2 cards +4 mult
   focusLevels: 8, focusRuns: 150,
   levelUpSeconds: 15,     // time on the reward screens between levels (the speed bonus clock keeps running)
-  scoring: 'classic',     // the scoring model: classic / mult_ladder / hand_size
+  scoring: 'classic',     // the scoring model: classic / mult_ladder / hand_size / card_ladder
+  levelGrowth: true,      // false: a hand's base pips do not grow 1.1x per level (r547)
   steerGrids: 100,        // steer pass: boards searched per Trick
   steerSamples: 2,        //   random draws behind each discard
   steerCands: 8,          //   discard groups tried per board
@@ -137,6 +138,7 @@ async function main() {
   const cfg = Object.assign({}, DEFAULTS, JSON.parse(arg('cfg', '{}')));
   cfg.grids = parseInt(arg('grids', cfg.grids), 10);
   cfg.scoring = arg('scoring', cfg.scoring);
+  if (process.argv.includes('--noLevelGrowth')) cfg.levelGrowth = false;
   const deals = parseInt(arg('deals', '30'), 10);
   const nWorkers = parseInt(arg('workers', '4'), 10);
   const out = arg('out', path.join(__dirname, 'out', 'trick-audit.json'));

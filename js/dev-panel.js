@@ -198,6 +198,7 @@ function devRenderGroupMenu() {
   }).join('');
 }
 function devOpenGroup(g) {
+  devSearchReset();
   const def = DEV_GROUPS.find(d => d.g === g);
   document.getElementById('dev-group-menu').style.display = 'none';
   document.getElementById('dev-group-pop').style.display = 'flex';
@@ -208,13 +209,20 @@ function devOpenGroup(g) {
     sec.style.display = (sec.dataset.group || '').split(' ').includes(g) ? '' : 'none';
   });
   document.getElementById('dev-group-pop-body').scrollTop = 0;
+  devRenderGroupContent(g);
+  if (g === 'cardanim') openCardAnimLab();
+  devSetupCollapse(g);
+  devApplyDock(g);
+}
+// Fills a tab's generated rows. Also run for every tab by the search (r547), so
+// rows built on opening can be found before their tab has been opened.
+function devRenderGroupContent(g) {
   if (g === 'bonuses') { devRenderImprove(); devRenderCardStates(); devRenderLimits(); }
   if (g === 'hands')   { devSyncNs(); devRenderFocusPanel(); }
   if (g === 'focus')   devRenderFocusPanel();
   if (g === 'prob')    { devRenderProbTables(); if (typeof flowrDevSync === 'function') flowrDevSync(); }
   if (g === 'deck')    devRenderDeckDesign();
   if (g === 'hud')     devSyncAesthetics();
-  if (g === 'cardanim') openCardAnimLab();
   if (g === 'tools')   { devRenderTips(); devRefreshSeed(); devSyncSaveSection(); }
   if (g === 'modes')   { devRenderModes(); renderSpectrumDev(); devRenderGoalPanel(); syncMatch3DevToggles();
                          const s = document.getElementById('dev-sv-board'); if (s) s.value = svBoardMode; }
@@ -226,10 +234,72 @@ function devOpenGroup(g) {
     if (typeof flowrDevSync === 'function') flowrDevSync();
   }
   if (g === 'modes') devRenderSquares();
-  devSetupCollapse(g);
-  devApplyDock(g);
+}
+
+// ── SEARCH (r547) ──
+// The box in the panel's title bar. Typing lists every section, on every tab,
+// whose text holds what was typed (as a phrase, spaces collapsed; if no section
+// does, every word anywhere in the section); each section
+// names the tab(s) it lives on, and the lines that match are lit. The Trick and
+// Knack lists are filtered by it too. Clearing it (or Escape, or BACK) returns
+// to the tab menu.
+function devSearch(q) {
+  const ph = String(q || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const body = document.getElementById('dev-group-pop-body'); if (!body) return;
+  if (!ph) { devCloseGroup(); return; }
+  if (!body.classList.contains('dev-searching')) {
+    DEV_GROUPS.forEach(d => { if (d.g !== 'cardanim') try { devRenderGroupContent(d.g); } catch (e) {} });
+    body.classList.add('dev-searching');
+  }
+  devFilterTricks(ph); devFilterKnacks(ph);
+  const flat = el => (el.textContent || '').toLowerCase().replace(/\s+/g, ' ');
+  const secs = [...body.querySelectorAll('.dev-section')].filter(sec => (sec.dataset.group || '').trim());
+  const words = ph.split(' ');
+  const loose = !secs.some(sec => flat(sec).includes(ph));
+  const has = v => loose ? words.some(w => v.includes(w)) : v.includes(ph);
+  devUndock();
+  document.getElementById('dev-group-menu').style.display = 'none';
+  document.getElementById('dev-group-pop').style.display = 'flex';
+  body.querySelectorAll('.dev-hit').forEach(el => el.classList.remove('dev-hit'));
+  const label = g => (DEV_GROUPS.find(d => d.g === g) || {}).label || g;
+  let n = 0;
+  body.querySelectorAll('.dev-section').forEach(sec => {
+    const groups = (sec.dataset.group || '').split(' ').filter(Boolean);
+    const v = flat(sec);
+    const hit = groups.length > 0 && (loose ? words.every(w => v.includes(w)) : v.includes(ph));
+    sec.style.display = hit ? '' : 'none';
+    sec.classList.remove('dev-collapsible', 'dev-collapsed');
+    if (!hit) return;
+    n++;
+    sec.dataset.where = groups.map(label).join(' \u00b7 ');
+    // Light the smallest element holding each match (an option lights its menu).
+    const tw = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT);
+    for (let t = tw.nextNode(); t; t = tw.nextNode()) {
+      if (!has(t.nodeValue.toLowerCase().replace(/\s+/g, ' '))) continue;
+      const el = t.parentElement && (t.parentElement.closest('select') || t.parentElement);
+      if (el && el !== sec) el.classList.add('dev-hit');
+    }
+  });
+  document.getElementById('dev-group-pop-title').textContent = n ? `${n} found` : 'Nothing found';
+  body.scrollTop = 0;
+}
+// Leaves search mode without touching which tab shows (the caller decides).
+function devSearchReset() {
+  const body = document.getElementById('dev-group-pop-body');
+  if (body) {
+    body.classList.remove('dev-searching');
+    body.querySelectorAll('.dev-hit').forEach(el => el.classList.remove('dev-hit'));
+  }
+  const inp = document.getElementById('dev-search');
+  if (inp && inp.value) {
+    inp.value = '';
+    // Put the Trick / Knack lists back to their own boxes' filters.
+    devFilterTricks(document.getElementById('dev-trick-search')?.value || '');
+    devFilterKnacks(document.getElementById('dev-knack-search')?.value || '');
+  }
 }
 function devCloseGroup() {
+  devSearchReset();
   devUndock();
   document.getElementById('dev-group-menu').style.display = '';
   document.getElementById('dev-group-pop').style.display = 'none';
@@ -766,6 +836,8 @@ const SCORING_MODEL_COPY = {
                 'All pips come from the cards you actually played. Hand type still pays immediately, through the mult.'],
   hand_size:   ['Mult is just how many cards you played',
                 'No bonus pips and no mult ladder. Hand type is then worth only the Focus it gives.'],
+  card_ladder: ['Card ladder: card n in the hand adds n mult',
+                'No bonus pips. The 1st card +1 mult, the 2nd +2, the 3rd +3, again on every replay: a 3-card hand is 6, 12 if every card replays. Hand type is worth only its Focus.'],
 };
 
 // One stepper: a sentence, a [-] [number] [+] group, and a unit.
@@ -834,9 +906,17 @@ function devSetScoringModel(model) {
   devRenderFocusPanel();
 }
 
+function devSetLevelGrowth(on) {
+  levelGrowthOn = !!on;
+  try { if (on) localStorage.removeItem('levelGrowth'); else localStorage.setItem('levelGrowth', 'off'); } catch (e) {}
+  _devSafeRender();
+  devRenderFocusPanel();
+}
+
 function devResetFocusTunables() {
   ['focusDecayBaseMs','focusBeatDurationMs','focusMultStartNodes','focusMultPerNode',
-   'focusSpeedFormula','focusSpeedParams','scoringModel'].forEach(k => localStorage.removeItem(k));
+   'focusSpeedFormula','focusSpeedParams','scoringModel','levelGrowth'].forEach(k => localStorage.removeItem(k));
+  levelGrowthOn       = true;
   focusDecayBaseMs    = 2000;
   focusBeatDurationMs = 300;
   focusMultStartNodes = FOCUS_THRESHOLD;
@@ -867,6 +947,7 @@ function devRenderFocusPanel() {
   fill('dev-scoring-model', SCORING_MODELS
     .map(m => _devRadioRow('dev-scoring', m, scoringModel, SCORING_MODEL_COPY[m][0], SCORING_MODEL_COPY[m][1], 'devSetScoringModel'))
     .join(''));
+  const lg = document.getElementById('dev-level-growth'); if (lg) lg.checked = levelGrowthOn;
 
   fill('dev-focus-speed-mode', Object.keys(FOCUS_SPEED_MODES)
     .map(k => _devRadioRow('dev-focus-speed', k, focusSpeedFormula, FOCUS_SPEED_MODES[k].name, '', 'devSetFocusSpeedFormula'))

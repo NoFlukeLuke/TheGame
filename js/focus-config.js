@@ -94,9 +94,29 @@ let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs'
 // Every read of the hand's pips/mult goes through handBasePips/handBaseMult, so
 // a model applies everywhere at once: the scorer, findBestHand's comparisons,
 // the payout breakdown and the RECORDS Hands tab.
-const SCORING_MODELS = ['classic', 'mult_ladder', 'hand_size'];
+//   card_ladder (r547) base pips 0, and card n of the hand (scoring order) adds n
+//               mult every time it scores: a 3-card hand is 1+2+3 = 6, 12 if every
+//               card replays once, 9 if only the third does. Paid on the card in
+//               calcScore's card loop (handCardLadder), so the base mult is 0.
+const SCORING_MODELS = ['classic', 'mult_ladder', 'hand_size', 'card_ladder'];
 let scoringModel = localStorage.getItem('scoringModel') || 'classic';
 if (!SCORING_MODELS.includes(scoringModel)) scoringModel = 'classic';
+
+// Level growth: a hand's base pips x 1.1^(level-1). Dev -> Hand Scoring switches
+// it off (key 'levelGrowth' is stored only when off). levelPipScale() is the one
+// reader: the scorer, the dance, the hand preview.
+let levelGrowthOn = localStorage.getItem('levelGrowth') !== 'off';
+function levelPipScale() { return levelGrowthOn ? Math.pow(1.1, level - 1) : 1; }
+// Card ladder (r547): what card n of the hand adds to mult each time it scores.
+function handCardLadder(n) { return scoringModel === 'card_ladder' ? n : 0; }
+// Its total for a hand before replays (1 + 2 + ... + k over the cards that score),
+// for the live MULT readout before the hand is played.
+function handLadderTotal(cells) {
+  if (scoringModel !== 'card_ladder' || !cells) return 0;
+  const k = cells.filter(([r, c]) => { const x = gridData[r]?.[c];
+    return x && !(typeof isWildCard === 'function' && (isWildCard(x) || isWarehouseCard(x))); }).length;
+  return k * (k + 1) / 2;
+}
 
 // Natural Scaling (r190) rides BOTH of these rather than patching calcScore,
 // so it applies under either scoring model and the RECORDS Hands tab - which
@@ -114,6 +134,9 @@ function handBaseMult(handName, cellCount) {
   const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[handName];
   if (!b) return 0;
   const ns = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(handName).mult : 0;
+  // card_ladder: the cards pay the mult (handCardLadder), so a scored hand's base
+  // is 0. With no cells (hand ranking, the Hands tab) it falls back to the table.
+  if (scoringModel === 'card_ladder') return ((typeof cellCount === 'number' && cellCount > 0) ? 0 : b.mult) + ns;
   if (scoringModel !== 'hand_size') return b.mult + ns;
   return ((typeof cellCount === 'number' && cellCount > 0) ? cellCount : b.mult) + ns;
 }

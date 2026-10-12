@@ -92,7 +92,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // 1. Base pips (scaled by level) + card pips.
   // handBasePips is 0 in the no-pips scoring models, so all pips then come from
   // the cards themselves (see SCORING_MODELS in js/focus-config.js).
-  const levelScale = Math.pow(1.1, level - 1);
+  const levelScale = levelPipScale();
   // ── Layered hands (r198) ──
   // One shape can be several hands at once: a same-suit run is a Run AND a Flush.
   // handLayersFor returns every hand this play pays for, one per family, primary
@@ -225,7 +225,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // `_wc(pred) x rate` sweeps, which is the SAME SUM - but a sweep cannot tell the
   // dance which card earned it, so every one of them animated in the end lump.
   // Emitting per card here is what lets "+1 mult for a heart" fire on the heart.
-  let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0;
+  let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0, _ladMult = 0;
   // Per-card MULT, in scoring order: what each card adds every time it scores,
   // what it adds on its first scoring only, its own x mult, and how many times
   // it scores. Replayed against `mult` below (see _cardMultSeq's use).
@@ -643,6 +643,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // accumulators are kept purely as LEDGER totals - the contributions tab wants
     // one row per Trick, not one per card - and the rep loop is what moves `mult`.
     let _cmAdd = 0, _cmOnce = 0;
+    // Card ladder scoring model (r547): card n of the hand adds n mult every time it scores.
+    const _ld = _G ? 0 : handCardLadder(_ladPos[r + '-' + c] || 0);
+    if (_ld) { _cmAdd += _ld; _ladMult += _ld * _retrig; _ev('_ladder', 'mult+', _ld, 'card'); }
     if (hasTrick('heart_double') && _isHeartC) { const _v = BAL.heart_double.heart_mult; _cmAdd += _v; _hdMult += _v * _retrig; _ev('heart_double','mult+',_v); }
     if (hasTrick('jack_mult') && baseRank === 'J') { const _v = BAL.jack_mult.mult_per_jack; _cmAdd += _v; _jmMult += _v * _retrig; _ev('jack_mult','mult+',_v); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { const _v = BAL.king_guard.mult; _cmAdd += _v; _kgMult += _v * _retrig; _ev('king_guard','mult+',_v); }
@@ -750,6 +753,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_xd) _cp.sapling = (_cp.sapling || 0) + _xd;
   };
   const _scores = c => !!c && !((typeof isWildCard === 'function') && (isWildCard(c) || isWarehouseCard(c)));
+  // Card ladder (r547): each hand card that scores is numbered 1, 2, 3... in scoring
+  // order. A wild (scores nothing) and a kicker (not part of the hand) take no number.
+  const _ladPos = {};
+  if (scoringModel === 'card_ladder') {
+    const _hk = new Set(_handOnly.map(([r, c]) => r + '-' + c));
+    let _ln = 0;
+    _scoreCells.forEach(([r, c]) => { if (_hk.has(r + '-' + c) && _scores(gridData[r]?.[c])) _ladPos[r + '-' + c] = ++_ln; });
+  }
   _scoreCells.forEach((cell, ci) => {
     const _real = gridData[cell[0]]?.[cell[1]];
     const _gh = (typeof cardGhostFor === 'function') ? cardGhostFor(_real) : null;
@@ -762,6 +773,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   });
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
+  _lastHandLadderMult = _ladMult;  // the card ladder's total, for the round breakdown
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
   _lastHandQrlReplayCut = _qrlReplayCut;
   _lastHandClubHits = _clubHits;   // snapshot for Hard Labour's round ladder (advanced in playHand, r346)
@@ -1453,6 +1465,7 @@ function foldContribution(label, kind, amount) {
 // Snapshot a hand's contribution rows from PRISTINE state (call early in playHand,
 // before per-hand mutations like Ripple cooldown / Snowball permPips change the
 // numbers). Returns rows to fold later; does not touch the tally yet.
+let _lastHandLadderMult = 0;
 function captureRoundContrib(result) {
   if (!result) return null;
   const { hand, handCells } = result;
@@ -1464,7 +1477,7 @@ function captureRoundContrib(result) {
   // Base + raw card pips (everything not attributed to a bonus entity).
   const base = HAND_BASE[hand];
   if (base) {
-    const levelScale = Math.pow(1.1, level - 1);
+    const levelScale = levelPipScale();
     // A layered hand pays every family's base, so the breakdown has to count them
     // all or it reports less base than calcScore actually used (see calcScore).
     const _layers = (typeof handLayersFor === 'function') ? handLayersFor(hand, handCells) : [hand];
@@ -1482,6 +1495,7 @@ function captureRoundContrib(result) {
     let _bm = handBaseMult(hand, handCells.length);
     _extra.forEach(h => { if (HAND_BASE[h]) _bm += handBaseMult(h, handCells.length); });
     if (_bm) rows.push({ label: _extra.length ? 'Base (' + _layers.join(' + ') + ')' : 'Base (hand type)', kind: 'mult', amount: _bm });
+    if (_lastHandLadderMult) rows.push({ label: 'Card ladder', kind: 'mult', amount: _lastHandLadderMult });
   }
   return rows;
 }

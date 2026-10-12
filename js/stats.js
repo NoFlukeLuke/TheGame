@@ -10,6 +10,7 @@ const HAND_FORMULAS = new Proxy({}, {
     // scorer will not pay.
     const p = handBasePips(name), m = handBaseMult(name);
     if (typeof scoringModel !== 'undefined' && scoringModel === 'hand_size') return `x cards played`;
+    if (typeof scoringModel !== 'undefined' && scoringModel === 'card_ladder') return `card n adds n mult`;
     return p ? `Base ${p} pips x ${m} mult` : `x${m} mult, no bonus pips`;
   },
 });

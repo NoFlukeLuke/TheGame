@@ -1107,3 +1107,24 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
 - **Efficiency** (`EFFICIENCY_SECONDS_PER_COIN`) 10 -> 20: Classic / Schedule's leftover-time line,
   Crunch's par line and non-Flow Survival pay half. Time and a Half makes it 10. Classic stays 3:00.
 
+## r547 - level growth switch, the card ladder scoring model, dev panel search
+- **Level growth** (dev -> Hand Scoring -> Level growth, key `levelGrowth`, stored only when off):
+  `levelPipScale()` (js/focus-config.js) is the one reader of a hand's base pips x 1.1^(level-1)
+  (calcScore, captureRoundContrib, the preview chips, the dance). Off = 1. Goals are untouched. Default on.
+- **Card ladder** (`scoringModel 'card_ladder'`, dev -> Hand Scoring -> Where a hand's value comes
+  from, and Custom -> Hand values): no base pips, base mult 0, and card n of the hand (scoring order,
+  numbering only cards that score: a wild or a kicker takes no number) adds n mult every time it
+  scores, on the card (`handCardLadder`, `_ladPos`, timeline id `_ladder`, source 'card'). Measured:
+  three Kings 1+2+3 = 6 mult, 12 with every card replaying once, 9 with only the third. The preview's
+  MULT is `handLadderTotal(cells)`; the round breakdown shows a "Card ladder" mult row
+  (`_lastHandLadderMult`). `handBaseMult(h)` with no cells (hand ranking, Records) falls back to the
+  table, so the partition still prefers the bigger hand. Real hands through PLAY: no timeline drift.
+  TBD: a wild pays no ladder mult (like its pips).
+- **Dev panel search** (`#dev-search`, the title bar; `devSearch`): lists every section on every tab
+  holding the typed phrase (spaces collapsed; if none does, every word anywhere), each headed by the
+  tab(s) it lives on, the matching lines lit (`.dev-hit`). It renders every tab's generated rows first
+  (`devRenderGroupContent`, split out of `devOpenGroup`; the card animation lab is not opened) and
+  filters the Trick and Knack lists with the same text. Escape, BACK or opening a tab clears it
+  (`devSearchReset`).
+- tools/sim/trick-audit.js takes `--scoring card_ladder` and `--noLevelGrowth`.
+

@@ -99,6 +99,8 @@ const PICKER_AXES = [
         desc: 'A hand type is worth its multiplier and nothing else. Every pip in the hand comes off the cards you played, so which cards you reach for matters more than which shape they make.' },
       { id: 'hand_size',  name: 'Card count',    tag: 'SIZE IS ALL',
         desc: 'No base pips, and the mult is simply how many cards you played. A seven-card hand is x7 whatever it is. Hand type stops being a price list and becomes only a Focus source.' },
+      { id: 'card_ladder', name: 'Card ladder',  tag: 'CARD N = N MULT',
+        desc: 'No base pips. The first card scored adds +1 mult, the second +2, the third +3, again on every replay: a 3-card hand is 6 mult, 12 if every card replays. Hand type is only a Focus source.' },
     ],
   },
 ];
@@ -200,7 +202,7 @@ function pickerSummaryLine(c) {
   if (c.clock !== 'standard') bits.push(c.clock === 'none' ? 'no clock' : PICKER_CLOCK_SECONDS[c.clock] / 60 + ':00 rounds');
   if (c.bosses === 'no') bits.push('no bosses');
   if (c.autoPlay === 'auto') bits.push('auto-submit');
-  if (c.scoring !== 'classic') bits.push(c.scoring === 'hand_size' ? 'card-count scoring' : 'mult-only scoring');
+  if (c.scoring !== 'classic') bits.push({ hand_size: 'card-count scoring', card_ladder: 'card-ladder scoring' }[c.scoring] || 'mult-only scoring');
   if (c.timeCost === 'no' && c.clock !== 'none') bits.push('free interacts');
   return bits.join(' · ');
 }

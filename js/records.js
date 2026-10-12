@@ -426,6 +426,12 @@ function _recHandsFoot() {
          + 'many cards you played, and pips come only from the cards themselves. What a hand '
          + 'type is worth to you is the Focus it gives.';
   }
+  if (m === 'card_ladder') {
+    return 'In this mode the hand type does not change your score directly. Pips come only from '
+         + 'the cards, and each card adds its place in the hand as mult: the first card +1, the '
+         + 'second +2, and so on, again every time it replays. What a hand type is worth to you is '
+         + 'the Focus it gives.';
+  }
   if (m === 'mult_ladder') {
     return 'In this mode pips come only from the cards you play. The hand type sets the mult and '
          + 'the Focus it adds to the meter. Tricks, Knacks and your Focus multiplier build on top.';
@@ -476,7 +482,7 @@ function recordsRenderHands() {
     const pips  = handBasePips(name);
     const mult  = handBaseMult(name);
     const focus = HAND_FOCUS[name] || 0;
-    const sizeMult = (typeof scoringModel !== 'undefined') && scoringModel === 'hand_size';
+    const sizeMult = (typeof scoringModel !== 'undefined') && (scoringModel === 'hand_size' || scoringModel === 'card_ladder');
     // pips/mult above already INCLUDE Natural Scaling (handBasePips/handBaseMult
     // fold it in), so this only splits out how much of the quote this run earned.
     const ns    = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(name) : { pips: 0, mult: 0 };
@@ -488,7 +494,7 @@ function recordsRenderHands() {
     return `<div class="rec-hand">
       <span class="rh-n">${name}</span>
       <span class="rh-v rh-p">${pips}${gain}</span>
-      <span class="rh-v rh-m">${sizeMult ? 'cards' : 'x' + mult}${gainM}</span>
+      <span class="rh-v rh-m">${sizeMult ? (scoringModel === 'card_ladder' ? '1+2+..' : 'cards') : 'x' + mult}${gainM}</span>
       <span class="rh-v rh-f">${focus || 0}</span>
       <span class="rh-v rh-b">${sizeMult || !pips ? '&middot;' : base.toLocaleString()}</span>
     </div>`;

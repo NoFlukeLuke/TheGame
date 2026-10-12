@@ -223,7 +223,7 @@ function render() {
     if (bestHandResult) {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
-        const levelScale = Math.pow(1.1, level - 1);
+        const levelScale = levelPipScale();
         // Every component, not just the one that named the hand - the chips have
         // to quote what calcScore will actually seed, or a layered hand reads as
         // the smaller of the two hands it is about to pay.
@@ -232,6 +232,7 @@ function render() {
           ? handLayersFor(bestHandResult.hand, bestHandResult.handCells) : [bestHandResult.hand];
         let basePips = 0, baseMult = 0;
         _names.forEach(h => { if (!HAND_BASE[h]) return; basePips += Math.round(handBasePips(h) * levelScale); baseMult += handBaseMult(h, _n); });
+        baseMult += handLadderTotal(bestHandResult.handCells);
         updateDanceSubboxes(basePips, baseMult);
       }
     } else {
@@ -251,7 +252,7 @@ function render() {
   if (bestHandResult && selected.length >= 2) {
     const { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore } = bestHandResult;
     const base = HAND_BASE[hand];
-    const levelScale = Math.pow(1.1, level - 1);
+    const levelScale = levelPipScale();
     const scaledBasePips = Math.round(handBasePips(hand) * levelScale);
     const cards = handCells.map(([r,c]) => gridData[r][c]);
     const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardId(card)]||0), 0);

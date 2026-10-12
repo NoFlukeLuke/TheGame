@@ -151,7 +151,8 @@ of any size, and asks whether the Trick paid on the hand it picked (the bare
 score of that very hand, same board, same stock used). The headline number is
 the average over the four sizes with a swap and a discard: a player who plays
 a spread of hand lengths and steers each one. `--scoring mult_ladder` (or
-`hand_size`) runs it under another scoring model (js/focus-config.js).
+`hand_size`, `card_ladder`) runs it under another scoring model (js/focus-config.js);
+`--noLevelGrowth` turns off the 1.1x-per-level growth of a hand's base pips.
 
 How the search is made affordable: every connected shape of 2-5 cells is
 listed once; a shape is only sent to `handComponentsFor` (~0.3ms) if its ranks
