@@ -1137,3 +1137,10 @@ round became 3:00 from round 2 on. Both caps are gone (also in reward-grid's mid
 `tickAltarEffects`); the countdown leaves the clock as computed. Crunch still takes its round-cap penalty
 off the bank there. Measured round 2 starts (50s left, Time Bank + a +15s tile): Classic / Schedule
 180 -> 225, Custom short 180 -> 165, Custom long 180 -> 285; plain 180, penalty 175, Crunch and Flow carry.
+
+## r549 - Stopwatch is a pause (owner)
+`startStopwatch` (js/discard.js) keeps its open-ended hold (until the next hand, 6s a charge) but now
+follows every pause rule: The Rerun can miss it (nothing spent), Time Slip rewinds the seconds it holds
+(`stopwatchSecsLeft`) and spends it, Long Pause makes a charge last 9s (`sleightTimedDrain(card, step)`),
+and it bumps `pauseInstanceGame` / `pausesThisRound` / the Vulture's first pause, throws a pause plate and
+clicks. Its text says pause, not freeze.

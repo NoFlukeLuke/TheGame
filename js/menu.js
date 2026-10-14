@@ -1,4 +1,4 @@
-const BUILD = "2026-10-14 · r548 · round-start bonus seconds go above Starting Time";
+const BUILD = "2026-10-14 · r549 · Stopwatch is a pause";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

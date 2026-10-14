@@ -110,11 +110,12 @@ function sleightSecsLeft(card) {
 }
 // Spend one second. Returns false once the Sleight is spent (and takes it off
 // the board - a spent timed Sleight has nothing left to give).
-function sleightTimedDrain(card) {
+// `step` is the share of a second this tick spends (Stopwatch under Long Pause: 1/1.5).
+function sleightTimedDrain(card, step = 1) {
   const def = sleightDef(card);
   if (!def?.secsPerCharge || typeof card._usesLeft !== 'number') return true;
-  card._chargeSecsUsed = (card._chargeSecsUsed || 0) + 1;
-  if (card._chargeSecsUsed >= def.secsPerCharge) { card._usesLeft--; card._chargeSecsUsed = 0; }
+  card._chargeSecsUsed = (card._chargeSecsUsed || 0) + step;
+  if (card._chargeSecsUsed >= def.secsPerCharge - 1e-6) { card._usesLeft--; card._chargeSecsUsed = 0; }
   if (card._usesLeft > 0) return true;
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) gridData[r][c] = null;
   refuse(`${def.name} is spent`, { color: 'var(--cream-dim)' });

@@ -459,19 +459,39 @@ function pauseRound(seconds, srcId, srcSource) {
 }
 
 // ── Stopwatch sleight ─────────────────────────────────────────────────────────
-// Freezes the clock (a NORMAL pause, so Phoenix/Falcon etc. still apply) until the
-// next played hand's scoring animation settles. Swaps/discards/selection keep it
-// frozen. 60s of use as 10 charges of 6s each (timed charges, r356); spent at 0.
+// PAUSES the clock until the next played hand's scoring animation settles.
+// Swaps/discards/selection keep it paused. 60s of use as 10 charges of 6s each
+// (timed charges, r356); spent at 0. It is a pause like any other (r549, owner):
+// The Rerun can miss it, Time Slip can rewind its seconds instead, Long Pause makes
+// each charge last 1.5x as long, and it counts for Hummingbird, Patient Rulers, The
+// Vulture's first pause and the pause tallies. It skips pauseRound only because its
+// length is open-ended.
+function stopwatchSecsLeft(card) {
+  const def = sleightDef(card);
+  return Math.max(0, card._usesLeft * def.secsPerCharge - (card._chargeSecsUsed || 0));
+}
 function startStopwatch(card, r, c) {
   if (stopwatchActive || !card) return;
   if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) return;
+  if (typeof bossRerunMisses === 'function' && bossRerunMisses()) { showMessage('⏸ MISSED', 'var(--red)'); return; }
+  // Time Slip: rewind the seconds this Stopwatch holds, and it is spent.
+  if (card._usesLeft !== 'infinite' && hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
+    rewindTime(stopwatchSecsLeft(card), '⏮️ Time Slip - rewound instead of paused!', 'time_slip', 'knack');
+    card._usesLeft = 1; card._chargeSecsUsed = sleightDef(card).secsPerCharge;
+    sleightTimedDrain(card, 0);
+    return;
+  }
+  pauseInstanceGame++; pausesThisRound++;
+  if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }
   stopwatchActive = true;
   stopwatchCardPos = { card, r, c };
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
+  const _wasFrozen = typeof clockFrozen !== 'undefined' && clockFrozen;
   if (typeof beginClockFreeze === 'function') beginClockFreeze();
-  showMessage('⏱️ Stopwatch - clock frozen', '#5aa9e6');
+  if (typeof entityEffectFX === 'function') entityEffectFX('pause', null, { id: 'stopwatch', source: 'sleight', sfx: _wasFrozen });
+  showMessage('⏱️ Stopwatch - clock paused until your next hand', '#5aa9e6');
   if (stopwatchTimer) clearInterval(stopwatchTimer);
   stopwatchTimer = setInterval(() => {
     if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
@@ -485,9 +505,9 @@ function startStopwatch(card, r, c) {
     if (gameTimerPaused) return; // don't drain while a menu/shop/event has the game suspended
     if (card._usesLeft === 'infinite') return;
     pausedSecondsRound++; // Albatross counts frozen seconds
-    // Timed charges (r356): every 6 frozen seconds spend one charge; the helper
-    // takes a spent Stopwatch off the board wherever a fall has moved it.
-    if (!sleightTimedDrain(card)) endStopwatch();
+    // Timed charges (r356): every 6 paused seconds spend one charge (9 with Long
+    // Pause); the helper takes a spent Stopwatch off the board wherever a fall has moved it.
+    if (!sleightTimedDrain(card, hasKnack('long_pause') ? 1 / BAL.long_pause.multiplier : 1)) endStopwatch();
   }, 1000);
 }
 // Is the active Stopwatch still on the board? By IDENTITY, not by cell - a
@@ -508,6 +528,7 @@ function endStopwatch() {
   // Only actually release the clock if no normal pause is still counting down.
   if (pauseSecondsLeft <= 0) {
     pipeTimerPaused = false;
+    firstPauseActive = false;   // the first continuous pause stretch is over (Vulture)
     const clockEl = document.getElementById('clock');
     if (clockEl) clockEl.classList.remove('clock-paused');
     if (typeof endClockFreeze === 'function') endClockFreeze();
