@@ -803,7 +803,7 @@ function confirmAltar() {
 function tickAltarEffects() {
   altarEffects.forEach(eff => {
     if (eff.type === 'time_boost') {
-      roundSeconds = Math.min(roundSeconds + eff.value, crunchNoRoundCap(limits.round_time.current + 60));
+      roundSeconds += eff.value;   // r548: no ceiling, like every round-start bonus
       updateClockUI();
     }
     eff.roundsLeft--;

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-12 · r547 · level growth switch, card ladder scoring, dev panel search";
+const BUILD = "2026-10-14 · r548 · round-start bonus seconds go above Starting Time";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

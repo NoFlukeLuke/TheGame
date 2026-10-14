@@ -1128,3 +1128,12 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
   (`devSearchReset`).
 - tools/sim/trick-audit.js takes `--scoring card_ladder` and `--noLevelGrowth`.
 
+
+## r548 - round-start seconds carry above Starting Time
+`computeRoundResources` capped the round's seconds at Starting Time, and `show321Countdown` then wound the
+clock to Starting Time and capped it again. So Time Bank, Clock Tower, +15s / +25s Round, Rain Check
+(outside Flow), The Investment and Slow Start / Mystery -15s all did nothing, and a Custom 2:00 or 4:00
+round became 3:00 from round 2 on. Both caps are gone (also in reward-grid's mid-round `finishTimer` and
+`tickAltarEffects`); the countdown leaves the clock as computed. Crunch still takes its round-cap penalty
+off the bank there. Measured round 2 starts (50s left, Time Bank + a +15s tile): Classic / Schedule
+180 -> 225, Custom short 180 -> 165, Custom long 180 -> 285; plain 180, penalty 175, Crunch and Flow carry.

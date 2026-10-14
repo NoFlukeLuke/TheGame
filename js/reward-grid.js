@@ -1951,11 +1951,10 @@ function closeRewardGrid() {
   const finishTimer = () => {
     // Timer-based / dev mid-round: no round-start reset follows, so apply any pending
     // reward deltas to the LIVE round now (otherwise they'd be silently lost).
-    const _secCap = Math.max(ROUND_DURATION, limits.round_time.current);
+    // No Starting Time ceiling (r548), as at a round start: a penalty bites from the next round.
     discards     = Math.max(0, discards + nextRoundDiscardDelta);
     swaps        = Math.max(0, swaps    + nextRoundSwapDelta);
-    roundSeconds = Math.max(1, Math.min(_secCap, roundSeconds + nextRoundSecondsDelta));
-    if (roundPenaltySeconds > 0) roundSeconds = Math.max(1, Math.min(roundSeconds, _secCap - roundPenaltySeconds));
+    roundSeconds = Math.max(1, roundSeconds + nextRoundSecondsDelta);
     playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
     discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;
     nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;

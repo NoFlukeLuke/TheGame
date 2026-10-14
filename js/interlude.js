@@ -612,38 +612,11 @@ async function show321Countdown() {
   // Settings -> Skip -> Screen transitions (r380): the count still runs, quickly,
   // because the new board is falling in underneath it.
   const PER_NUM  = (typeof skipOn === 'function' && skipOn('transitions')) ? 150 : 500;
-  const TOTAL_MS = PER_NUM * 3;
-  const startSecs   = roundSeconds;
-  const refillStart = performance.now();
-  let refillDone = false;
-
-  let refillPausedMs = 0, refillPauseMark = 0;
-  // In Crunch there is nothing to refill: the clock is the QUARTER's allowance
-  // and it CARRIES into this round. The animation below winds roundSeconds from
-  // its current value up to limits.round_time.current, which here is a wind DOWN
-  // from 13:00 to 3:00 - it was destroying ten minutes on the first round of
-  // every run, and doing it by writing the global rather than by reading it, so
-  // the guard has to be on the animation and not on the value it leaves behind.
-  const _crunchNoRefill = (typeof crunchActive === 'function' && crunchActive());
-  function tickRefill() {
-    if (refillDone) return;
-    if (_crunchNoRefill) { refillDone = true; return; }
-    // The clock refill is driven off wall time too, so it has to discount paused time
-    // or the clock would fill while the count is held.
-    if (countdownPaused) {
-      if (!refillPauseMark) refillPauseMark = performance.now();
-      requestAnimationFrame(tickRefill); return;
-    }
-    if (refillPauseMark) { refillPausedMs += performance.now() - refillPauseMark; refillPauseMark = 0; }
-    const elapsed  = performance.now() - refillStart - refillPausedMs;
-    const progress = Math.min(elapsed / TOTAL_MS, 1);
-    const _target  = limits.round_time.current + ((typeof crStartBonus === 'function') ? crStartBonus() : 0);   // + an audit's minute
-    roundSeconds   = Math.round(startSecs + (_target - startSecs) * progress);
-    updateClockUI();
-    if (progress < 1) requestAnimationFrame(tickRefill);
-    else refillDone = true;
-  }
-  requestAnimationFrame(tickRefill);
+  // The clock already holds this round's start: triggerLevelUp / startGame worked it
+  // out, bonuses and penalties included. Until r548 it was wound here to Starting Time
+  // and then capped at it, which threw away every round-start bonus and turned a
+  // Custom 2:00 or 4:00 round into 3:00 from round 2 on. Crunch carries its bank.
+  updateClockUI();
 
   beginCountdown();
   sfxCountdown321();
@@ -657,20 +630,10 @@ async function show321Countdown() {
   }
   endCountdown();
 
-  refillDone   = true;
-  // Keep the round-start value triggerLevelUp/startGame already computed (it includes
-  // carry-over time, +15s buffs, etc.), but cap it at the penalized round-time limit so
-  // permanent "-5s round cap" debuffs (roundPenaltySeconds) actually stick. Previously this
-  // line force-reset to the full limit, silently wiping every time penalty.
-  // In Crunch the clock is the QUARTER's allowance, not a round's, and it opens
-  // legitimately far above the round-time limit (13:00 against 3:00). Capping it
-  // here cut it to the limit on the first round of every run and silently
-  // destroyed ten minutes. The round-cap PENALTY still bites - it is damage the
-  // player took - it just comes off the bank instead of off a limit.
-  roundSeconds = (typeof crunchActive === 'function' && crunchActive())
-    ? Math.max(10, roundSeconds - roundPenaltySeconds)
-    : Math.max(10, Math.min(roundSeconds, limits.round_time.current - roundPenaltySeconds
-        + ((typeof crStartBonus === 'function') ? crStartBonus() : 0)));   // a Schedule audit's extra minute
+  // In Crunch the clock is the QUARTER's allowance, so the round-cap PENALTY (damage
+  // the player took) comes off the bank here. Everywhere else it is already in the
+  // round's start (computeRoundResources).
+  if (typeof crunchActive === 'function' && crunchActive()) roundSeconds = Math.max(10, roundSeconds - roundPenaltySeconds);
   updateClockUI();
   overlay.classList.remove('show');
 

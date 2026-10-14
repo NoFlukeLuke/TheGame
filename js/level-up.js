@@ -18,16 +18,19 @@ function computeRoundResources() {
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
   const _roundDur = currentRoundDuration();
   const baseSeconds  = Math.max(10, (_roundDur - roundPenaltySeconds) + limitTimeBonus);
-  const secCap = Math.max(_roundDur, limits.round_time.current);
 
   let d   = Math.min(99, baseDiscards + accumulatedDiscards) + nextRoundDiscardDelta;
   let s   = Math.min(99, baseSwaps    + accumulatedSwaps)    + nextRoundSwapDelta;
-  let sec = Math.min(secCap, baseSeconds + accumulatedSeconds + nextRoundSecondsDelta);
+  // No ceiling (r548). This used to be capped at Starting Time, and the countdown then
+  // wound the clock to it, so Clock Tower, +15s / +25s Round, Rain Check and Time Bank
+  // added nothing on a full clock (measured: 3:00 where 3:45 was owed). Like a rewind,
+  // a round-start bonus carries the clock above Starting Time.
+  let sec = baseSeconds + accumulatedSeconds + nextRoundSecondsDelta;
 
   // Round-start knack effects.
   // Swap Shop / Harvest are already in baseSwaps / baseDiscards above. They were
   // also added here until r525, so each paid twice what it said (+4, not +2).
-  if (hasKnack('time_bank'))      sec = Math.min(secCap, sec + BAL.time_bank.seconds);
+  if (hasKnack('time_bank'))      sec += BAL.time_bank.seconds;
 
   // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
   // (applyTempoLimitOnce), so the normal computation above already reflects it via the
