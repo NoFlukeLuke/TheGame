@@ -135,3 +135,7 @@ body.reward-active.reward-penalty #stage { background: radial-gradient(ellipse a
   100% { transform: translate(0, 0) scale(1); filter: none; }
 }
 body.reduced-motion .cr-loss-hit { animation-duration: 1ms; }
+
+/* r555: the touching tier wears a hand beside its glyph */
+#grid .cr-card .cr-glyph .cr-touch { font-size: 9px; margin-left: 2px; vertical-align: top; opacity: .9; }
+#grid .cr-card.cr-won .cr-glyph .cr-touch { display: none; }

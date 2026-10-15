@@ -159,19 +159,36 @@ function _crBigTarget(mult) {
   return _crRound10(Math.max(50, med * mult));
 }
 const _crL = (...p) => p.map(([d, n]) => ({ d, n }));
+// r555 (owner): TWO TIERS OF EVERY ASK. The ladders below are the ask met ANYWHERE
+// on the board. The same ask with the counted hand TOUCHING the card is one
+// difficulty higher (each tier's d + 1, capped at 3; a tier that would repeat a
+// difficulty is dropped, since a raise to the same payout is no raise).
+const _crTouch = l => { const out = []; l.forEach(t => { const d = Math.min(3, t.d + 1); if (!out.length || out[out.length - 1].d < d) out.push({ d, n: t.n }); }); return out; };
+// Cards a hand type needs. "Playing 3 of any hand is tough unless the hand is one
+// under your Selection Size" (owner): a hand that takes EVERY selected card has to
+// come up whole, with no spare, so it gets the TIGHT ladder; one that leaves a card
+// over gets the EASY one. The hand lists are by board availability (r178 survey:
+// Pair on every board, Run of 3 73%, Straight 34%, Flush 17%, Four of a Kind 1-2%).
+const CR_HAND_SIZE = { 'Pair': 2, 'Three of a Kind': 3, 'Run of 3': 3, 'Two Pair': 4, 'Run of 4': 4, 'Four of a Kind': 4,
+                       'Straight': 5, 'Flush': 5, 'Full House': 5, 'Straight Flush': 5 };
 // Every type the board can actually support right now, with its ladder.
 function crTypeDefs() {
   const sel = limits.selection.current, can = _crCanMake(), out = [];
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : ['♠', '♥', '♦', '♣'];
-  const named = (list, ladderOf) => list.filter(h => can.has(h)).forEach(h => out.push({ kind: 'hand', hand: h, ladder: ladderOf(h) }));
-  out.push({ kind: 'touch', ladder: _crL([1, 4], [2, 5], [3, 8]) });
-  named(CR_HANDS_LOW, () => _crL([1, 3], [2, 5], [3, 7]));
-  named(CR_HANDS_MID, h => h === 'Straight' ? _crL([2, 2], [3, 4]) : _crL([2, 3], [3, 5]));
-  named(CR_HANDS_TOP, h => h === 'Four of a Kind' ? _crL([3, 1]) : _crL([2, 1], [3, 2]));
-  if (sel >= 3) out.push({ kind: 'suit', suit: _crPick(suits), per: 3, ladder: _crL([sel === 3 ? 3 : 2, 1]) });
-  if (sel >= 4) out.push({ kind: 'size', per: 4, ladder: _crL([1, 2], [3, 5]) });
-  if (can.size >= 3) out.push({ kind: 'types', ladder: can.size >= 5 ? _crL([2, 3], [3, 5]) : _crL([2, 3], [3, can.size]).filter((t, i, a) => i === 0 || t.n > a[0].n) });
-  out.push({ kind: 'big', ladder: _crL([2, _crBigTarget(1.3)], [3, _crBigTarget(1.8)]) });
+  // Every ask but the fall cards and "N hands touching" comes in both tiers.
+  const both = t => { out.push({ ...t, touch: false }); out.push({ ...t, touch: true, ladder: _crTouch(t.ladder) }); };
+  const tight = h => (CR_HAND_SIZE[h] || 3) >= sel;
+  const named = (list, easy, hard) => list.filter(h => can.has(h)).forEach(h => both({ kind: 'hand', hand: h, ladder: tight(h) ? hard(h) : easy(h) }));
+  out.push({ kind: 'touch', ladder: _crL([1, 3], [2, 5], [3, 7]) });
+  named(CR_HANDS_LOW, () => _crL([1, 3], [2, 5], [3, 7]), () => _crL([1, 2], [2, 3], [3, 5]));
+  named(CR_HANDS_MID, () => _crL([1, 2], [2, 3], [3, 5]), () => _crL([2, 1], [3, 2]));
+  named(CR_HANDS_TOP, h => h === 'Four of a Kind' ? _crL([2, 1], [3, 2]) : _crL([2, 1], [3, 2]), () => _crL([3, 1]));
+  // Three of a suit in one hand: never at Selection 3 (a three-card flush is the
+  // whole hand, owner: "crazy hard"); at 4 the hand has one spare card.
+  if (sel >= 4) both({ kind: 'suit', suit: _crPick(suits), per: 3, ladder: sel === 4 ? _crL([2, 1], [3, 2]) : _crL([1, 1], [2, 2], [3, 3]) });
+  if (sel >= 4) both({ kind: 'size', per: 4, ladder: sel === 4 ? _crL([2, 1], [3, 2]) : _crL([1, 2], [2, 4], [3, 6]) });
+  if (can.size >= 3) both({ kind: 'types', ladder: can.size >= 5 ? _crL([2, 3], [3, 5]) : _crL([2, 3], [3, can.size]).filter((t, i, a) => i === 0 || t.n > a[0].n) });
+  both({ kind: 'big', ladder: _crL([2, _crBigTarget(1.3)], [3, _crBigTarget(1.8)]) });
   out.push({ kind: 'colfall', ladder: _crL([1, 2], [2, 3], [3, 5]) });
   out.push({ kind: 'rowhit', ladder: _crL([1, 2], [2, 3], [3, 5]) });
   return out;
@@ -192,9 +209,11 @@ const CR_HAND_W = { 'Two Pair': 0.8, 'Run of 4': 0.8, 'Straight': 0.6, 'Flush': 
                     'Four of a Kind': 0.25, 'Straight Flush': 0.25 };
 const CR_UNPLAYED_W = 0.6, CR_UNPLAYED_AFTER = 5;
 function crReqWeight(t) {
-  if (t.kind !== 'hand') return 1;
+  // r555: the two tiers of one ask share a little more than one ask's weight.
+  const two = ('touch' in t) ? 0.6 : 1;
+  if (t.kind !== 'hand') return two;
   const plays = crHandPlays || {}, total = Object.values(plays).reduce((a, b) => a + b, 0);
-  return (CR_HAND_W[t.hand] ?? 1) * (total >= CR_UNPLAYED_AFTER && !plays[t.hand] ? CR_UNPLAYED_W : 1);
+  return two * (CR_HAND_W[t.hand] ?? 1) * (total >= CR_UNPLAYED_AFTER && !plays[t.hand] ? CR_UNPLAYED_W : 1);
 }
 function crTarget(q) { return q.ladder[q.tier].n; }
 function crDiff(q) { return q.ladder[q.tier].d; }
@@ -225,13 +244,14 @@ function crReqShort(q) {
 function crReqText(q, tier) {
   if (!q) return '';
   const n = q.ladder[tier == null ? q.tier : tier].n;
+  const T = q.touch ? ' The hand must touch this card.' : '';   // r555: the touching tier
   switch (q.kind) {
     case 'touch':   return `Score ${n} hands that touch this card.`;
-    case 'hand':    return n > 1 ? `Score ${n} ${q.hand}s.` : `Score a ${q.hand}.`;
-    case 'suit':    return `Score a hand with ${q.per} or more ${q.suit} cards.`;
-    case 'size':    return `Score ${n} hands of ${q.per} or more cards.`;
-    case 'big':     return `Score ${n.toLocaleString()} or more in one hand.`;
-    case 'types':   return `Score ${n} different hand types.`;
+    case 'hand':    return (n > 1 ? `Score ${n} ${q.hand}s.` : `Score a ${q.hand}.`) + T;
+    case 'suit':    return `Score a hand with ${q.per} or more ${q.suit} cards.` + T;
+    case 'size':    return `Score ${n} hands of ${q.per} or more cards.` + T;
+    case 'big':     return `Score ${n.toLocaleString()} or more in one hand.` + T;
+    case 'types':   return `Score ${n} different hand types.` + T;
     // r517 (owner): either kind takes an IMPACT both ways: the card falls, or a card lands on it.
     case 'colfall': return `Impact this card ${n} times: make it fall, or land a card on it. No discards in its column.`;
     case 'rowhit':  return `Impact this card ${n} times: land a card on it, or make it fall. No discards in its row.`;
@@ -263,7 +283,7 @@ function crCardFaceHTML(card) {
     ? `<div class="cr-timer${q.timeLeft <= 10 ? ' low' : ''}" style="--crt:${Math.max(0, q.timeLeft / (q.timeMax || CR_FLOW_TIME))}"><b>${q.timeLeft}s</b></div>` : '';
   const more = crCanRaise(q) ? `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>` : '';
   return `<div class="cr-head">${head}</div>`
-       + `<div class="cr-glyph">${CR_GLYPH[q.kind] || '⚑'}</div>`
+       + `<div class="cr-glyph">${CR_GLYPH[q.kind] || '⚑'}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
        + `<div class="cr-req">${crReqShort(q)}</div>`
        + prog + more + timer;
 }
@@ -451,6 +471,8 @@ function crOnHand(hand, handCells, finalScore) {
     const q = cd.cr;
     if (q.done || !q.ladder) continue;
     let inc = false;
+    // r555: the touching tier counts only hands that touch the card.
+    if (q.touch && !touches(r, c)) continue;
     switch (q.kind) {
       case 'touch': if (touches(r, c)) { q.prog++; inc = true; } break;
       case 'hand':  if (hand === q.hand) { q.prog++; inc = true; } break;

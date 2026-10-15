@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r554 · double scaling: a hand family climbs the ladder and gains pips as you play it";
+const BUILD = "2026-10-15 · r555 · challenge cards: every ask has a touching tier; tight hands ask less";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
