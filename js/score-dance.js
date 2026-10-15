@@ -815,8 +815,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   else { const savedPFM = lastPreFocusMult; contrib=[]; _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM; }
   const timeline = _ledger.timeline || [];
   const fmtM = m => (m%1===0)?m:m.toFixed(1);
-  // Cells in SCORING order (the timeline's card indices point here, and scoring
-  // order is not selection order once the Selection Scoring knack is owned).
+  // Cells in SCORING order (the timeline's card indices point here). Since r553
+  // scoring order IS selection order; the helper stays so the two never drift.
   const scoreCells = (typeof scoringOrderCells === 'function') ? scoringOrderCells(handCells) : handCells.slice();
   const repsByCard = (_ledger.cards||[]).map(c=>c.reps||1);
   // r234: THE PREVIEW IS LAID OUT IN SCORING ORDER, not selection order.

@@ -352,7 +352,7 @@ function startGame() {
   // mode WITHOUT one falls back to, so a custom run cannot leave its model behind
   // for the next Classic run. startGame is the single point both are set from.
   scoringModel = ACTIVE_MODE.scoringModel
-              || (localStorage.getItem('scoringModel') || 'classic');
+              || (localStorage.getItem(SCORING_MODEL_KEY) || SCORING_MODEL_DEFAULT);
   // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
   // gets the pristine table back.
   applyModeHandValues();

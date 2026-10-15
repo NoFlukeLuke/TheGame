@@ -174,12 +174,12 @@ function canBeOrderedRun(cells) {
   return tryCombos(0, []);
 }
 
-// Order cards are scored in. Default: reading order (top→bottom, left→right).
-// A future Knack ('selection_scoring') flips this back to selection (tap) order.
-function scoringOrderCells(cells) {
-  if (hasKnack('selection_scoring')) return cells.slice();
-  return cells.slice().sort((a,b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
-}
+// Order cards are scored in: THE ORDER THEY WERE PICKED (r553, owner). It used to
+// be reading order (top to bottom, left to right), which made the card ladder's
+// numbering (card n adds n mult) a fact of the board rather than a choice. Taps
+// and drags both push onto `selected` in order, so the selection IS the order.
+// One function, so the scorer, the dance and the preview strip never disagree.
+function scoringOrderCells(cells) { return cells.slice(); }
 
 // Rank values for adjacency (Ace counts as both low=1 and high=14). Used by Ripple.
 function _rankValsFor(rk) { return rankRunVals(rk); }

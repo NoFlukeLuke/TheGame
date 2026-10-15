@@ -99,13 +99,27 @@ let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs'
 //               card replays once, 9 if only the third does. Paid on the card in
 //               calcScore's card loop (handCardLadder), so the base mult is 0.
 const SCORING_MODELS = ['classic', 'mult_ladder', 'hand_size', 'card_ladder'];
-let scoringModel = localStorage.getItem('scoringModel') || 'classic';
-if (!SCORING_MODELS.includes(scoringModel)) scoringModel = 'classic';
+// r553 (owner): THE CARD LADDER IS THE GAME. The dev panel's choice is stored only
+// when it differs (key bumped from 'scoringModel', whose stored 'classic' was the
+// old default and is dropped rather than read).
+const SCORING_MODEL_DEFAULT = 'card_ladder';
+const SCORING_MODEL_KEY = 'lethe.scoringModel.v2';
+let scoringModel = localStorage.getItem(SCORING_MODEL_KEY) || SCORING_MODEL_DEFAULT;
+if (!SCORING_MODELS.includes(scoringModel)) scoringModel = SCORING_MODEL_DEFAULT;
+try { localStorage.removeItem('scoringModel'); } catch (e) {}
+function storeScoringModel(m) {
+  try { if (m === SCORING_MODEL_DEFAULT) localStorage.removeItem(SCORING_MODEL_KEY); else localStorage.setItem(SCORING_MODEL_KEY, m); } catch (e) {}
+}
 
-// Level growth: a hand's base pips x 1.1^(level-1). Dev -> Hand Scoring switches
-// it off (key 'levelGrowth' is stored only when off). levelPipScale() is the one
-// reader: the scorer, the dance, the hand preview.
-let levelGrowthOn = localStorage.getItem('levelGrowth') !== 'off';
+// Level growth: a hand's base pips x 1.1^(level-1). OFF by default since r553
+// (owner): the card ladder has no base pips to grow, and Natural Scaling v2 is
+// what makes hands grow. Dev -> Hand Scoring switches it on (key 'levelGrowth'
+// is stored only when on; the pre-r553 'off' value reads as off too).
+// levelPipScale() is the one reader: the scorer, the dance, the hand preview.
+let levelGrowthOn = localStorage.getItem('levelGrowth') === 'on';
+function storeLevelGrowth(on) {
+  try { if (on) localStorage.setItem('levelGrowth', 'on'); else localStorage.removeItem('levelGrowth'); } catch (e) {}
+}
 function levelPipScale() { return levelGrowthOn ? Math.pow(1.1, level - 1) : 1; }
 // Card ladder (r547): what card n of the hand adds to mult each time it scores.
 function handCardLadder(n) { return scoringModel === 'card_ladder' ? n : 0; }

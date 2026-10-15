@@ -831,13 +831,13 @@ const FOCUS_SPEED_MODES = {
 
 const SCORING_MODEL_COPY = {
   classic:     ['Hand type sets both pips and mult',
-                'The shipped table. A Straight is worth 40 pips and x5 before your cards are counted.'],
+                'The old priced table (the default before r553). A Straight is worth 40 pips and x5 before your cards are counted.'],
   mult_ladder: ['Hand type sets mult only, no bonus pips',
                 'All pips come from the cards you actually played. Hand type still pays immediately, through the mult.'],
   hand_size:   ['Mult is just how many cards you played',
                 'No bonus pips and no mult ladder. Hand type is then worth only the Focus it gives.'],
-  card_ladder: ['Card ladder: card n in the hand adds n mult',
-                'No bonus pips. The 1st card +1 mult, the 2nd +2, the 3rd +3, again on every replay: a 3-card hand is 6, 12 if every card replays. Hand type is worth only its Focus.'],
+  card_ladder: ['Card ladder: card n in the hand adds n mult (the game since r553)',
+                'No bonus pips. Cards are numbered in the order you picked them: the 1st +1 mult, the 2nd +2, the 3rd +3, again on every replay. A 3-card hand is 6, 12 if every card replays. Hand type is worth only its Focus.'],
 };
 
 // One stepper: a sentence, a [-] [number] [+] group, and a unit.
@@ -898,7 +898,7 @@ function devSetFocusSpeedFormula(formula) {
 function devSetScoringModel(model) {
   if (!SCORING_MODELS.includes(model)) return;
   scoringModel = model;
-  localStorage.setItem('scoringModel', model);
+  storeScoringModel(model);
   // The preview slot and the RECORDS Hands tab both read the model, and the
   // selected-hand readout is rebuilt by render().
   _devSafeRender();
@@ -908,15 +908,15 @@ function devSetScoringModel(model) {
 
 function devSetLevelGrowth(on) {
   levelGrowthOn = !!on;
-  try { if (on) localStorage.removeItem('levelGrowth'); else localStorage.setItem('levelGrowth', 'off'); } catch (e) {}
+  storeLevelGrowth(levelGrowthOn);
   _devSafeRender();
   devRenderFocusPanel();
 }
 
 function devResetFocusTunables() {
   ['focusDecayBaseMs','focusBeatDurationMs','focusMultStartNodes','focusMultPerNode',
-   'focusSpeedFormula','focusSpeedParams','scoringModel','levelGrowth'].forEach(k => localStorage.removeItem(k));
-  levelGrowthOn       = true;
+   'focusSpeedFormula','focusSpeedParams','scoringModel',SCORING_MODEL_KEY,'levelGrowth'].forEach(k => localStorage.removeItem(k));
+  levelGrowthOn       = false;
   focusDecayBaseMs    = 2000;
   focusBeatDurationMs = 300;
   focusMultStartNodes = FOCUS_THRESHOLD;
@@ -925,7 +925,7 @@ function devResetFocusTunables() {
   focusSpeedParams    = { linear: { max_bonus: 12, slope: 1.5 },
                           stepped: { t1: 2, bonus1: 6, t2: 5, bonus2: 2 },
                           exponential: { max_bonus: 8 } };
-  scoringModel        = 'classic';
+  scoringModel        = SCORING_MODEL_DEFAULT;
   recomputeFocusDecayInterval();
   _devSafeRender();
   devRenderFocusPanel();
