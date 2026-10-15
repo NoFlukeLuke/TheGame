@@ -65,7 +65,7 @@ const BOSS_PRESETS = [
   // Contingency Plan knack stretches the timings.
   {
     id: 'the_metronome',
-    name: 'THE METRONOME',
+    name: 'TIME DILATION',   // r561 (owner): was THE METRONOME, which clashed with the Metronome knack
     flavor: 'It keeps your time now',
     brief: 'The clock runs at your Focus multiplier. At ×3 Focus, three seconds leave the clock every second.',
     objective: { type: 'score' },

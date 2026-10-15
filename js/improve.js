@@ -230,7 +230,8 @@ function syncOwnedEntityDescs() {
   [typeof acquiredTricks !== 'undefined' ? acquiredTricks : [],
    typeof trickTray      !== 'undefined' ? trickTray      : [],
    typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []].forEach(list => {
-    (list || []).forEach(e => { const src = e && from(e.id); if (src && src.desc) e.desc = src.desc; });
+    // The name too (r561): a renamed entity in a saved run shows its current name.
+    (list || []).forEach(e => { const src = e && from(e.id); if (src && src.desc) e.desc = src.desc; if (src && src.name) e.name = src.name; });
   });
 }
 

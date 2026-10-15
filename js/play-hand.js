@@ -744,17 +744,17 @@ function playHand() {
   lastHandRoundSeconds = roundSeconds; // for The Heron, snapshotted AFTER this hand's own check above
 
   // Traveler: a hand that doesn't extend a same-type streak (streakCount stays at 1) counts;
-  // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hoarder House).
+  // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hyperphagia).
   if (hasTrick('mockingbird') && streakCount === 1) {
     _altSwapCount++;
     if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); noteMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
   }
 
-  // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
+  // Hyperphagia (was Hoarder House): playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
   {
     const _mgf = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
     const _sec = _mgf > 0 ? _mgf * trickFires('magpie') : 0;
-    if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House - rewound ${_sec}s`);
+    if (_sec > 0) rewindTime(_sec, `🏚️ Hyperphagia - rewound ${_sec}s`);
   }
 
   // Clockmaker knack: a single hand scoring ≥30% of the round goal rewinds the clock.

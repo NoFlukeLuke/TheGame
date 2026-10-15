@@ -93,7 +93,7 @@ function startRoundTimer() {
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     if (quotaIntroHold) return;  // the Line Quotas explainer card is up (js/level-types.js)
     if (match3NoTimer()) return; // Zen / infinite dev mode: the clock never runs down
-    // One clock, one tick (r205). Under The Metronome bossClockStep() returns the
+    // One clock, one tick (r205). Under Time Dilation (the_metronome) bossClockStep() returns the
     // live Focus multiplier instead of 1, with a fractional carry so x1.4 really
     // costs 1.4s/s rather than rounding away.
     roundSeconds -= (bossActive && typeof bossClockStep === 'function') ? bossClockStep() : 1;

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r560 · Flow Tricks share from the tray, shop needs credits";
+const BUILD = "2026-10-15 · r561 · Time Dilation boss, Hyperphagia Trick";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

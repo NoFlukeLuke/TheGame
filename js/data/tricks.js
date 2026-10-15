@@ -75,7 +75,7 @@ const TRICK_POOL = [
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay' },
   { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Scores +10 pips for every 10 seconds elapsed this round' },
   { id:'kingfisher',     name:'The Kingfisher',      tier:'rare',      tags:['time','mult'],      desc:'+1 mult for every 2 seconds the clock has been paused or rewound this round' },
-  { id:'magpie',         name:'Hoarder House',       tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1s for every 2 swaps + discards you hold' },
+  { id:'magpie',         name:'Hyperphagia',       tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1s for every 2 swaps + discards you hold' },
   { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['resource','streak'],desc:'Every 4 hands you play without a same-type streak grants +1 swap' },
   { id:'starling',       name:'Type A',              tier:'rare',      tags:['resource','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
   { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)' },

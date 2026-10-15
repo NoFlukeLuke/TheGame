@@ -1251,3 +1251,9 @@ the r448 full-tray cap (a full tray already makes Tricks non-viable) and the r47
 **Shop** (`FLOWR_DEF.shop`): weight 0 until credits are over `min` (25); over `rich` (50) its weight
 takes +`richBonus` (5). Both maps are overrides-only in `lethe.flowRewards.v2` like `odds`.
 Measured (4,000 first-slot rolls): 90.4% Tricks, every miss paid Tricks on the next chain.
+
+## r561 - renames (owner): Time Dilation, Hyperphagia
+Display names only, ids frozen: boss `the_metronome` is **TIME DILATION** (it clashed with the Metronome
+knack), Trick `magpie` is **Hyperphagia** (was Hoarder House, beside the Hoarder knack).
+`syncOwnedEntityDescs` now copies the pool's `name` onto owned copies as well as `desc`, so a saved run
+shows the current name.

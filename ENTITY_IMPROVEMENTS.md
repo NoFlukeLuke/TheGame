@@ -117,7 +117,7 @@ which is the cheap majority the system can ship on first.
 | Hourglass | epic | Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger | +15% chance | every 30 seconds instead of every minute |  | O1 BAL · O2 code | Claude |
 | Sediment | rare | Gains +10 pips for every 10 seconds of round time elapsed (resets each round) | +10 pips per interval | does not reset between rounds |  | O1 BAL · O2 code | Claude |
 | The Kingfisher | epic | +1 mult for every 5 seconds the clock has been paused or rewound this round | +1 mult per interval | every 3 seconds instead of 5 (-1s per improvement, min 2s) |  | O1 BAL · O2 BAL | Claude |
-| Hoarder House | epic | Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold | +1 second | every unspent swap or discard counts, not every 2 |  | O1 code · O2 BAL | Claude |
+| Hyperphagia | epic | Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold | +1 second | every unspent swap or discard counts, not every 2 |  | O1 code · O2 BAL | Claude |
 | Traveler | rare | Every 3 hands you play without a same-type streak grants +1 swap | +1 swap | every 2 hands instead of 3 (-1 per improvement, min 1) |  | O1 code · O2 code | Claude |
 | Type A | rare | Every 2nd hand of an unbroken same-type streak grants +1 discard | +1 discard | every hand of the streak counts, not every 2nd |  | O1 code · O2 code | Claude |
 | The Phoenix | mythic | While the clock is paused, the Focus multiplier applies twice | the Focus multiplier applies a third time | also applies for 3 seconds after a pause ends |  | O1 code · O2 code | Claude |

@@ -1140,7 +1140,7 @@ function clearBossEffects() {
 }
 
 // How many whole seconds the boss clock should consume this tick. Normally 1;
-// under The Metronome it runs at the live Focus multiplier, with a fractional
+// under Time Dilation (the_metronome) it runs at the live Focus multiplier, with a fractional
 // carry so ×1.4 doesn't round away to ×1.
 function bossClockStep() {
   if (!bossTimeFromFocus) return 1;

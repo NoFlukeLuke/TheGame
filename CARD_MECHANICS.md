@@ -184,7 +184,7 @@ const NOTICE_DEFS = [
    entity in the game already reads.
 
 3. **A deadline is SECONDS REMAINING tested as "the clock has passed this", never an
-   interval fired at.** This is The Quota boss's rule (r217): The Metronome can
+   interval fired at.** This is The Quota boss's rule (r217): Time Dilation (the_metronome) can
    consume several seconds in one tick, so a deadline waited for by equality is
    stepped straight over.
 
