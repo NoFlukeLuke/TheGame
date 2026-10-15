@@ -1144,3 +1144,13 @@ follows every pause rule: The Rerun can miss it (nothing spent), Time Slip rewin
 (`stopwatchSecsLeft`) and spends it, Long Pause makes a charge last 9s (`sleightTimedDrain(card, step)`),
 and it bumps `pauseInstanceGame` / `pausesThisRound` / the Vulture's first pause, throws a pause plate and
 clicks. Its text says pause, not freeze.
+
+## r550 - one wording for time (owner)
+A rewind reads "rewind(s) the clock Ns", a pause "pause(s) the clock for Ns", a card's time buff adds
+"when scored" (label form "+4s rewind" / "+3s pause"), a round-start bonus "starts with +Ns". Notices:
+"<Name> - rewound Ns" / "paused Ns". The time Tricks, Knacks and Sleights with BAL numbers now have
+`DESC_TEMPLATES` (high_water, dam_holding, five_second, four_horseman, double_jeopardy, rain_check,
+temporal_rift, vulture, wait_four_it, sundial, metronome, replay_rewind, syncopation, last_call, snooze), so an
+improvement prints its number (Five Second Rule's two 5s had made it unrewritable). `flowrBuffDoes(b, v, plural)`
+is the verb phrase for a buffed card ("score +3 mult" / "rewind the clock 3s when scored"). Keyword `pause` has
+its own colour (`.kw-pause`, css/tooltip.css). The Time pop-up and Records say Starting Time, not Max Time.

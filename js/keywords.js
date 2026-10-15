@@ -45,7 +45,7 @@ const KEYWORD_DEFS = [
     name:'Credits',  def:'The shop currency. Earned from rounds, rewards and selling.' },
   { key:'time',      cls:'kw-time',    terms:['seconds','second','time'], basic:true,
     name:'Time',     def:'The round clock. It runs down while you play; at zero the round ends.' },
-  { key:'pause',     cls:'kw-time',    terms:['pause','paused','pauses'],
+  { key:'pause',     cls:'kw-pause',   terms:['pause','paused','pauses'],   // r550: its own colour, not the clock's
     name:'Pause',    def:'Freezes the round clock for a moment - you act for free while it is held.' },
   { key:'rewind',    cls:'kw-rewind',  terms:['rewind','rewinds','rewound'],
     name:'Rewind',   def:'Moves the clock backward, re-entering time you already spent.' },

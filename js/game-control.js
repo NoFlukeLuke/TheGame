@@ -196,7 +196,7 @@ function updateInteractCosts() {
   else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
   swap = Math.round(swap * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-swap', `${swap}s`);
-  // Max time = round cap minus permanent (−5s) penalties.
+  // Starting Time less permanent (−5s) penalties. Not a ceiling: rewinds and round-start bonuses go above it.
   const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
   const cap  = Math.max(base, limits.round_time.current) - (roundPenaltySeconds || 0);
   set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(Math.max(0, cap)) : `${cap}s`);

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-14 · r549 · Stopwatch is a pause";
+const BUILD = "2026-10-15 · r550 · one wording for rewind and pause";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

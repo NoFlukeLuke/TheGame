@@ -1790,7 +1790,7 @@ const FLOWR_DECK_OPS = [
   { id: 'focus',  buff: { key: 'focus',  range: [1, 2, 1],      word: 'Focus'  }, icon: '◉', name: 'Focus Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards grant +1 to +2 Focus when they score.' },
   { id: 'time',   buff: { key: 'time',   range: [1, 5, 1],      word: 's'      }, icon: '⏱', name: 'Time Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards put +1 to +5 seconds back on the clock when they score.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards rewind the clock 1s to 5s when scored.' },
   { id: 'replay', buff: { key: 'retrig', range: [1, 2, 1],      word: 'replay' }, icon: '↻', name: 'Replay Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards replay +1 to +2 times.' },
   { id: 'xmult',  buff: { key: 'xmult',  range: [1.5, 3, 0.5],  word: '× mult', x: true }, icon: '⨉', name: '×Mult Buff',
@@ -2465,7 +2465,12 @@ const FLOWR_PACK_OFFERS = 3;
 function flowrBuffLabel(b, v) {
   if (!b) return '';
   if (b.x) return `×${v} ${String(b.word).replace('× ', '')}`;
-  return `+${v}${b.word === 's' ? 's' : ' ' + b.word}`;
+  return `+${v}${b.word === 's' ? 's rewind' : ' ' + b.word}`;
+}
+// What a buffed card does, as a verb phrase: "score +3 mult", or for time "rewind the clock 3s when scored".
+function flowrBuffDoes(b, v, plural) {
+  if (b && b.word === 's') return `${plural ? 'rewind' : 'rewinds'} the clock ${v}s when scored`;
+  return `${plural ? 'score' : 'scores'} ${flowrBuffLabel(b, v)}`;
 }
 
 // The ranks and suits a pack may be built from are the ones THE RUN'S DECK
@@ -2564,7 +2569,7 @@ function flowrShowCardsPick() {
     icon: p.suit, emoji: p.suit, rarity: 'rare', tag: 'CARDS',
     label: `${p.ranks[0]}-${p.ranks[p.ranks.length - 1]} ${p.suit}`,
     desc: `${p.ranks.length} cards join your deck: ${p.ranks.map(r => r + p.suit).join(', ')}. `
-        + `Each one scores ${p.label}.`,
+        + `Each one ${flowrBuffDoes(p.op.buff, p.value)}.`,
   }));
   openGridPick({
     title: FLOWR_KINDS.cards.label(), tone: 'reward',

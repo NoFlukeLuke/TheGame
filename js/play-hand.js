@@ -357,7 +357,7 @@ function playHand() {
       const _cd = gridData[r]?.[c];
       if (_cd && _cd.rank && qrlBuffOn(_cd, 'time')) _cardSecs += (permTime[cardId(_cd)] || 0);
     });
-    if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ +${_cardSecs}s from your cards`);
+    if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ Your cards - rewound ${_cardSecs}s`);
   }
   // Card Market payday cards: credits carried by the individual cards in this
   // hand. REPLAY-WEIGHTED (unlike permTime): a card that scored three times pays

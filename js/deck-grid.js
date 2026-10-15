@@ -408,7 +408,7 @@ function buffBits(e) {
   if (e.xpips)    flat.push(`\u00d7${e.xpips} pips`);
   if (e.xmult)    flat.push(`\u00d7${e.xmult} mult`);
   if (e.retrig)   flat.push(`+${e.retrig} replay`);
-  if (e.time)     flat.push(`+${e.time}s`);
+  if (e.time)     flat.push(`+${e.time}s rewind`);   // r550: say which kind of time
   if (e.coin)     flat.push(`+${e.coin} credits`);
   if (e.growPips) scale.push(`+${e.growPips} pips`);
   if (e.growMult) scale.push(`+${e.growMult} mult`);

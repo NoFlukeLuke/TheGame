@@ -1056,8 +1056,8 @@ function renderOvertime() {
 
   body.appendChild(evLabel('ON THE CLOCK'));
   body.appendChild(makeChoiceEl({
-    icon:'⏳', name:`+${OVERTIME_SECONDS} seconds`,
-    desc:`Put ${formatTime(OVERTIME_SECONDS)} back on the quarter's clock, right now.`,
+    icon:'⏳', name:`Rewind ${OVERTIME_SECONDS}s`,
+    desc:`Rewind the quarter's clock ${OVERTIME_SECONDS}s, right now.`,
   }));
 
   body.appendChild(evLabel('THE COST · BOTH APPLY', true));
@@ -1536,7 +1536,7 @@ function confirmWorkshop() {
 const MARKET_BOONS = [
   { key:'pips',   icon:'🔨', rarity:'common', tag:'+30 pips',    e:{ pips:30 } },
   { key:'mult',   icon:'✨', rarity:'rare',   tag:'+5 mult',     e:{ mult:5 } },
-  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4 seconds',  e:{ time:4 } },
+  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4s rewind',  e:{ time:4 } },
   { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 } },
   { key:'coin',   icon:'💰', rarity:'common', tag:'+2 credits',  e:{ coin:2 } },
 ];

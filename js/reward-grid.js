@@ -520,7 +520,7 @@ function _generateRewardContent() {
       const pack = flowrBuildPacks()[0];
       if (pack) return { icon: '🃏', label: 'Card Pack', tier: 'epic',
         cardFace: { rank: pack.ranks[0], suit: pack.suit },
-        desc: `${pack.ranks.length} cards join your deck: ${pack.ranks.map(r => r + pack.suit).join(', ')}. Each one scores ${pack.label}.`,
+        desc: `${pack.ranks.length} cards join your deck: ${pack.ranks.map(r => r + pack.suit).join(', ')}. Each one ${flowrBuffDoes(pack.op.buff, pack.value)}.`,
         apply: () => flowrGrantPack(pack) };
     }
     if (typeof FLOWR_DECK_OPS !== 'undefined') {
@@ -532,7 +532,7 @@ function _generateRewardContent() {
       const n = flowrQtyRoll(3);
       const rare = flowrOpWeight(op) <= 6;
       return { icon: op.icon, label: op.name, tier: rare ? 'epic' : 'rare', cardFace: { rank, suit },
-        desc: `${face} and ${n - 1 > 0 ? `up to ${n - 1} more random card${n - 1 === 1 ? '' : 's'}` : 'no other card'} score ${lbl}.`,
+        desc: `${face} and ${n - 1 > 0 ? `up to ${n - 1} more random card${n - 1 === 1 ? '' : 's'}` : 'no other card'} ${flowrBuffDoes(op.buff, v, true)}.`,
         apply: () => {
           const t = resolveDeckCard(card); const picks = t ? [t] : [];
           const rest = everyDeckCard().filter(cd => cd !== t && !(typeof isWildCard === 'function' && isWildCard(cd)));
@@ -1161,7 +1161,7 @@ function enterRewardButtonMode() {
     // Rain Check (Trick) adds its seconds to the label too, since it changes what SKIP is worth.
     swap.innerHTML = `<span class="rskip-word">SKIP</span><span class="rskip-arrow">\u2193</span>`
                    + `<span class="rskip-gain">+${BAL.reward_skip.gold}\u00a0\ud83d\udcb0</span>`
-                   + (hasTrick('rain_check') ? `<span class="rskip-gain rskip-gain-time">+${BAL.rain_check.seconds}s</span>` : '');
+                   + (hasTrick('rain_check') ? `<span class="rskip-gain rskip-gain-time">${(typeof flowActive === 'function' && flowActive()) ? `\u23ea${BAL.rain_check.seconds}s` : `+${BAL.rain_check.seconds}s`}</span>` : '');
     swap.onclick = skipRewardGrid;
     // The penalty grid has no skip: the slot says how many you must take.
     if (penaltyGridActive()) swap.innerHTML = `<span class="rskip-word">TAKE</span><span class="rskip-gain">${penaltyPickCount()}</span>`;

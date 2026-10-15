@@ -545,20 +545,20 @@ function crCollect(cd) {
   const d = q.ladder[q.banked].d, st = crStake(d);
   coins += st.credits; updateCoinsUI();
   crRepaint(cd); crFxSolve(cd);
-  if (typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - +${st.secs}s`);
+  if (typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - rewound ${st.secs}s`);
   const bonus = d >= CR_BONUS_D;
   if (q.src === 'seq' && crRound) {
     if (bonus) crRound.minis = (crRound.minis || 0) + 1;
     const left = CR_CARDS - crRound.solved;
-    const pay = `+${st.credits} credits · +${st.secs}s${bonus ? ' · +1 mini grid' : ''}`;
+    const pay = `+${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid' : ''}`;
     showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${pay}`
                          : `⚑ All ${CR_CARDS} challenges done · ${pay} · prize grid earned`, 'var(--gold)');
   } else if (q.src === 'flow') {
     if (bonus) crFlowState().rewardDelta++;
-    showMessage(`⚑ Challenge done · +${st.credits} credits · +${st.secs}s${bonus ? ' · +1 reward next level-up' : ''}`, 'var(--gold)');
+    showMessage(`⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 reward next level-up' : ''}`, 'var(--gold)');
   } else if (q.src === 'spot') {
     if (bonus) crSpotState().minis++;
-    showMessage(`⚑ Challenge done · +${st.credits} credits · +${st.secs}s${bonus ? ' · +1 mini grid after the round' : ''}`, 'var(--gold)');
+    showMessage(`⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid after the round' : ''}`, 'var(--gold)');
   }
   crQueue.push(cd._id);
   setTimeout(crDrain, 700);

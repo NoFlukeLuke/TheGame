@@ -142,8 +142,8 @@ function paySpectrumFixture(def, card, r, c) {
   // pauseRound / rewindTime throw their OWN particle, so they are told where the
   // payer is rather than being thrown a second one on top of it - two plates for
   // one payout is exactly the doubled vocabulary r233 spent a pass removing.
-  if (p.pause_seconds) { pauseRound(p.pause_seconds, def.id, 'sleight'); bits.push(`${p.pause_seconds}s pause`); }
-  if (p.seconds)  { const g = rewindTime(p.seconds, null, def.id, 'sleight'); if (g > 0) bits.push(`+${g}s`); }
+  if (p.pause_seconds) { pauseRound(p.pause_seconds, def.id, 'sleight'); bits.push(`paused ${p.pause_seconds}s`); }
+  if (p.seconds)  { const g = rewindTime(p.seconds, null, def.id, 'sleight'); if (g > 0) bits.push(`rewound ${g}s`); }
   if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); fx('credits', p.coins); }
   noteMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
   // Paid, so it goes. The charge is NOT consumed here - spectrumFixtureExit's

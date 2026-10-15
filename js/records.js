@@ -408,7 +408,7 @@ function recordsRenderTime() {
   ].map(([k, v, d]) => `<div class="rec-lim"><div class="rec-lim-top"><span>${k}</span><span class="rec-lim-v">${v}</span></div><div class="rec-lim-desc">${d}</div></div>`).join('');
   const facts = [
     ['Time remaining', fmt(roundSeconds)],
-    ['Round length',   fmt(cap)],
+    ['Starting Time',  fmt(cap)],
     ['Clock paused',   `${pausesThisRound || 0}×`],
     ['Clock rewound',  `${rewindsThisRound || 0}×`],
   ].map(([k, v]) => `<div class="rec-stat"><span class="rec-stat-v">${v}</span><span class="rec-stat-l">${k}</span></div>`).join('');
