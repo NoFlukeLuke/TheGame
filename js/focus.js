@@ -475,7 +475,8 @@ function focusDecayTick() {
 // cannot be left half-applied by whichever path happened to restart the timer.
 function focusDecayIntervalNow() {
   const k = (typeof bossFocusDecayScale === 'function') ? bossFocusDecayScale() : 1;
-  return Math.max(200, Math.round(focusDecayIntervalMs * k));
+  const f = (typeof overtimeFocusFade === 'function') ? overtimeFocusFade() : 1;   // Overtime's Restless Focus
+  return Math.max(200, Math.round(focusDecayIntervalMs * k / f));
 }
 
 function startFocusDecay() {

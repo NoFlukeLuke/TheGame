@@ -610,7 +610,11 @@ function guidedPickOffer(type, d) {
 function guidedPickThreeOffers() {
   const pools = guidedPickPools();
   const out = [];
-  for (let i = 0; i < 3; i++) {
+  // Overtime skipped (r562, js/overtime.js): one of the three is a time entity.
+  const gift = (typeof overtimeTakeGift === 'function') ? overtimeTakeGift() : null;
+  const go = gift && guidedPickOffer(gift.type, gift.def);
+  if (go) { out.push(go); if (pools[gift.type]) pools[gift.type] = pools[gift.type].filter(x => x.id !== gift.def.id); }
+  for (let i = out.length; i < 3; i++) {
     const type = guidedPickType(pools);
     if (!type) break;
     const tierOf = (type === 'trick') ? (e => e.tier || 'common') : (e => e.rarity || 'common');

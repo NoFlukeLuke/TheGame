@@ -120,6 +120,12 @@ function currentRoundDuration() {
   // Survival banks leftover time into it and Flow uses a flat one, so it is not
   // simply the mode's round length, and the clock bar needs the real denominator.
   if (bossActive) return bossWindowDuration;
+  // Overtime (r562): every round length the mode has, once taken (js/overtime.js).
+  const _ot = (typeof overtimeLenMult === 'function') ? overtimeLenMult() : 1;
+  return _ot === 1 ? modeRoundDuration() : Math.round(modeRoundDuration() * _ot);
+}
+// The mode's own round length, before Overtime.
+function modeRoundDuration() {
   if (typeof flowActive === 'function' && flowActive()) return flowSessionSeconds();
   // Crunch: the clock is the QUARTER's allowance, not a round's. This is what
   // startGame seeds the act bank from and what the clock bar fills against, so

@@ -327,8 +327,10 @@ const EFFICIENCY_SECONDS_PER_COIN = 20;
 // Every reader goes through this, never the raw constant, so the knack reaches
 // the payout figure, the printed labels, the count-up tick and Survival at once.
 function efficiencySecondsPerCoin() {
-  return (typeof hasKnack === 'function' && hasKnack('time_and_a_half'))
+  const base = (typeof hasKnack === 'function' && hasKnack('time_and_a_half'))
     ? EFFICIENCY_SECONDS_PER_COIN / 2 : EFFICIENCY_SECONDS_PER_COIN;
+  // Overtime's Early finish docked (r562): the line pays a quarter, so a credit takes 4x the seconds.
+  return base * ((typeof overtimeLeftoverMult === 'function') ? overtimeLeftoverMult() : 1);
 }
 // Unused swaps and discards -> credits, the payout's "Unused stock" line
 // (js/interlude.js) and its Survival/Flow mirror (js/survival.js). Same rule as
@@ -358,9 +360,14 @@ function unspentPayout(actions) {
 // a Sleight whose whole printed effect is "x3 interest", silently doing nothing
 // for the entire second half of every run. Capped base x Idol reads as what it
 // is: the line pays at most 10, and the Idol triples that.
-function interestPayout(credits, mult) {
+// The interest cap, after Overtime's Interest capped (r562). Paid and printed from here.
+function interestCap() {
   const R = _payoutRes();
-  const base = _payoutCapped(Math.floor(Math.max(0, credits) / 10), R.interest_cap);
+  if (R.interest_cap == null) return null;
+  return Math.round(R.interest_cap * ((typeof overtimeInterestMult === 'function') ? overtimeInterestMult() : 1));
+}
+function interestPayout(credits, mult) {
+  const base = _payoutCapped(Math.floor(Math.max(0, credits) / 10), interestCap());
   return base * (mult || 1);
 }
 
@@ -389,7 +396,7 @@ function interestPayoutDesc(credits, mult, creditsHTML) {
   const R = _payoutRes();
   const shown = creditsHTML != null ? creditsHTML : credits;
   return `10% of ${shown}` + ((mult || 1) > 1 ? ` × ${mult} (Idol)` : '')
-       + _payoutCapNote(R.interest_cap, (mult || 1) > 1 ? ' before the Idol' : '');
+       + _payoutCapNote(interestCap(), (mult || 1) > 1 ? ' before the Idol' : '');
 }
 function _payoutCapNote(cap, extra) {
   if (cap == null) return '';

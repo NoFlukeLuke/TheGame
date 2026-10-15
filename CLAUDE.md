@@ -1257,3 +1257,19 @@ Display names only, ids frozen: boss `the_metronome` is **TIME DILATION** (it cl
 knack), Trick `magpie` is **Hyperphagia** (was Hoarder House, beside the Hoarder knack).
 `syncOwnedEntityDescs` now copies the pool's `name` onto owned copies as well as `desc`, so a saved run
 shows the current name.
+
+## r562 - Overtime in every event mode (`js/overtime.js`, owner's design)
+Offered once per run wherever events run and the round clock can end a round (`overtimeOfferable`, in
+`EVENT_REQUIRES`). Taking it makes every round length the mode has `OVERTIME_LEN_MULT` (1.3) longer for
+the run, boss rounds included: `currentRoundDuration` multiplies `modeRoundDuration()` (the old body), and
+`triggerBoss` scales `bossWindowDuration` by `overtimeBossMult()`. **`startingTimeSeconds()`**
+(js/level-up.js) is the one Starting Time figure (round start, the Time pop-up, Records). Then three of
+`OVERTIME_COSTS` (8) are dealt, unseen until now; the tapped one is AVOIDED and the other two apply for good
+(`overtimeRun.costs`, in SAVE_VARS). Each cost has one reader: quota `goalPenaltyMult` x1.15 (printed only as
+"higher quotas"), play `extraPlayCostPerm` +5, discard `extraDiscardCostPerm` +2, fade
+`focusDecayIntervalNow` / 1.5, leftover `efficiencySecondsPerCoin` x4, interest `interestCap()` x0.5,
+boss_short the boss window x0.7 instead of x1.3, clock_miss 50% of `rewindTime` / `pauseRound` /
+Stopwatch do nothing (`overtimeClockMisses`). **Skip** (`skipEvent` -> `skipOvertime`) silently sets
+`overtimeRun.gift`: the next reward grid carries a guaranteed time Trick / Knack / Sleight
+(`makeOvertimeGiftTile`), or the Schedule's pick shows one first (`guidedPickThreeOffers`).
+`OVERTIME_GIFT_IDS` lists them by id. The Crunch-only +90s version in js/events.js is gone.

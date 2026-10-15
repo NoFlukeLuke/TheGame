@@ -691,6 +691,10 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   //
   // The boss now simply sets the round clock to its window and lets the ordinary
   // round timer run.
+  // Overtime (r562): the window is longer like every round, or cut by Short reviews.
+  // Not in Crunch, whose boss is fought on whatever the quarter's bank has left.
+  if (typeof overtimeBossMult === 'function' && !(typeof crunchActive === 'function' && crunchActive()))
+    bossWindowDuration = Math.max(10, Math.round(bossWindowDuration * overtimeBossMult()));
   roundSeconds = bossWindowDuration;
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');

@@ -206,7 +206,9 @@ const INSIGHTS = [
   { id: 'events', screen: 'any', title: 'Skipping is an option',
     anchor: ['#event-panel', '#event-overlay'],
     body: 'A meeting is one decision and then it is over. Nothing on it is compulsory.',
-    when: () => !!document.querySelector('#event-overlay.show') },
+    // Not on a screen with no Skip (Overtime's cost step, r562).
+    when: () => !!document.querySelector('#event-overlay.show')
+      && getComputedStyle(document.getElementById('event-skip') || document.body).display !== 'none' },
 
   // ── the schedule ──────────────────────────────────────────────────────────
   { id: 'schedule', screen: 'any', title: 'Read the whole schedule first',

@@ -668,9 +668,25 @@ function _generateRewardContent() {
   // there is, so the first boss kill was landing all four on a 9-tile board - four
   // guaranteed limit upgrades stacked in one payout, which is not what a prize is
   // for. It also has a hard ceiling on limit tiles overall (below).
+  // Overtime skipped (r562, js/overtime.js): the next grid carries a time Trick,
+  // Knack or Sleight. Silent: it is an ordinary-looking tile, just guaranteed.
+  function makeOvertimeGiftTile() {
+    const g = (typeof overtimeTakeGift === 'function') ? overtimeTakeGift() : null;
+    if (!g) return null;
+    const d = g.def;
+    _usedThisGrid.add(d.id);
+    if (g.type === 'trick') return { icon: '★', label: d.name, desc: d.desc, tier: d.tier || 'rare',
+      entity: 'trick', rarity: d.tier || 'rare', _trick: d, _guaranteed: true, apply: () => injectTrickAfterReward(d) };
+    if (g.type === 'sleight') return { icon: d.emoji || '\u{1F0CF}', emoji: d.emoji || '\u{1F0CF}', label: d.name, desc: d.desc,
+      tier: d.rarity || 'rare', entity: 'sleight', rarity: d.rarity || 'rare', _guaranteed: true,
+      uses: (d.durability === 'infinite' || d.durability == null) ? '∞' : d.durability, apply: () => grantSleight(d) };
+    return { icon: d.emoji, emoji: d.emoji, label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
+      entity: 'knack', _knackId: d.id, _guaranteed: true,
+      apply: () => { acquiredKnacks.push({ ...d }); updateKnackList?.(); noteMessage(`+ ${d.name}`, 'var(--gold)'); } };
+  }
   function buildGuaranteedRewardTiles() {
     if (MINI) return [];
-    const out = [ makeLimitBreakPayload() ];
+    const out = [ makeLimitBreakPayload(), makeOvertimeGiftTile() ];
     if (!PRIZE && rewardGridsSeen <= 5) {
       out.push(makeGrowthTile());
       out.push(makeLimitUpgradeTile('selection', 1));

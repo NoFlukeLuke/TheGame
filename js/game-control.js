@@ -197,8 +197,7 @@ function updateInteractCosts() {
   swap = Math.round(swap * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-swap', `${swap}s`);
   // Starting Time less permanent (−5s) penalties. Not a ceiling: rewinds and round-start bonuses go above it.
-  const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
-  const cap  = Math.max(base, limits.round_time.current) - (roundPenaltySeconds || 0);
+  const cap  = (typeof startingTimeSeconds === 'function') ? startingTimeSeconds() : ROUND_DURATION;
   set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(Math.max(0, cap)) : `${cap}s`);
   set('ic-paused',  `${pausesThisRound  || 0}×`);
   set('ic-rewound', `${rewindsThisRound || 0}×`);
@@ -470,6 +469,7 @@ function startGame() {
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
   playHandCostThisRound = 0; discardCostThisRound = 0;
   goalPenaltyMult = 1; focusRatePenalty = 1; skipNextPayout = false;
+  overtimeRun = { taken: false, costs: [], gift: false };   // js/overtime.js
   pendingEntityLockout = null; entityLockout = null;
   luckModifiers = 0;
   deadCells = new Set(); riderTrickId = null; interestFreezeRounds = 0;

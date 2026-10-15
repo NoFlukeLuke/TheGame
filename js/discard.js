@@ -305,7 +305,9 @@ function rewindCeiling() { return Infinity; }
 function rewindTime(seconds, label, srcId, srcSource) {
   // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
   // ever reached from playHand and the round tick, never from calcScore.
-  if (typeof bossRerunMisses === 'function' && seconds > 0 && bossRerunMisses()) {
+  // Overtime's Unreliable clock (r562) misses the same way, on its own coin.
+  if (seconds > 0 && ((typeof bossRerunMisses === 'function' && bossRerunMisses())
+      || (typeof overtimeClockMisses === 'function' && overtimeClockMisses()))) {
     showMessage('⏪ MISSED', 'var(--red)');
     return 0;
   }
@@ -405,7 +407,8 @@ function pauseRound(seconds, srcId, srcSource) {
   if (!seconds || seconds <= 0) return;
   // The Rerun (boss): a coin flip on every pause, rolled before Time Slip so a
   // missed pause cannot become a rewind through the back door.
-  if (typeof bossRerunMisses === 'function' && bossRerunMisses()) {
+  if ((typeof bossRerunMisses === 'function' && bossRerunMisses())
+      || (typeof overtimeClockMisses === 'function' && overtimeClockMisses())) {
     showMessage('⏸ MISSED', 'var(--red)');
     return;
   }
@@ -476,7 +479,8 @@ function stopwatchSecsLeft(card) {
 function startStopwatch(card, r, c) {
   if (stopwatchActive || !card) return;
   if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) return;
-  if (typeof bossRerunMisses === 'function' && bossRerunMisses()) { showMessage('⏸ MISSED', 'var(--red)'); return; }
+  if ((typeof bossRerunMisses === 'function' && bossRerunMisses())
+      || (typeof overtimeClockMisses === 'function' && overtimeClockMisses())) { showMessage('⏸ MISSED', 'var(--red)'); return; }
   // Time Slip: rewind the seconds this Stopwatch holds, and it is spent.
   if (card._usesLeft !== 'infinite' && hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
     rewindTime(stopwatchSecsLeft(card), '⏮️ Time Slip - rewound instead of paused!', 'time_slip', 'knack');

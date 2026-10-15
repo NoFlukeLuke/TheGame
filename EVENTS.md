@@ -150,7 +150,7 @@ sell on every visit.
 | 14 | Spin to Improve | `the_draw` | **B** | stake 3 of your own, get 2 tiers. Good shape. |
 | 15 | Entity Slots | `the_payline` | **B** | 1 in 16 for 16 credits. Priced about right. |
 | 16 | Coin Flip | `wager` | **B** | targets a RANDOM card, which kills the decision. |
-| 17 | Overtime | `overtime` | **B** | Crunch only. The model every trade event should copy. |
+| 17 | Overtime | `overtime` | **B** | Every event mode with a round clock (r562). Rounds 30% longer; avoid one of three hidden costs, keep two. |
 | 18 | The Trade | `crossroads` | **C** | half-price legendaries. Costs are near-free. |
 | 19 | Two and a Catch | `twin_path` | **C** | two Tricks for a catch that expires in one round. |
 | 20 | The Gamble | `gamble` | **C** | the "bad" door is worth about eight seconds. |
@@ -213,8 +213,8 @@ roll on a two-thirds chance of a Trick**, and the worst case costs about eight s
 The double-or-nothing half is fine and is the only part with a real stake in it.
 
 **Do.** Drop the doors mode, or make the bad door **permanent**. The Overtime cost list
-(`OVERTIME_COSTS`, six permanent downsides, all already written and all already shown up
-front) is exactly the right severity and can be reused as-is.
+(`OVERTIME_COSTS`, js/overtime.js, eight permanent downsides) is the right severity and can
+be reused as-is.
 
 #### 19. Two and a Catch (`twin_path`)
 **Now.** Two Tricks drawn on the rarity table, plus one catch you cannot refuse. The
@@ -255,16 +255,24 @@ or drop it.
 
 ### TIER B - right shape, wrong numbers
 
-#### 17. Overtime (`overtime`) - the model
-**Now.** Crunch only. +90 seconds on the quarter clock. The cost is **two** permanent
-downsides, rolled from six and **shown before you decide**.
+#### 17. Overtime (`overtime`, js/overtime.js)
+**Now (r562, owner's design).** Offered once per run in every mode with events and a round
+clock (not Flow, which has no events; not a no-clock Custom run). Taking it makes every round
+length the mode has 30% longer for the rest of the run, boss rounds included
+(`overtimeLenMult`, read by `currentRoundDuration` and `triggerBoss`). Then three costs are
+dealt from eight, **unseen until now**: the player picks one to avoid and the other two last
+the rest of the run. The eight: higher quotas (goals x1.15, never printed as a number), hands
++5s, discards +2s a card, Focus fades 1.5x as fast, leftover time pays 75% less, the interest
+cap is halved, boss rounds 30% shorter (instead of 30% longer), rewinds and pauses have a 50%
+chance not to happen. **Skipping** it silently puts a time Trick, Knack or Sleight into the
+next reward (`overtimeTakeGift`: the reward grid's guaranteed tiles, or the Schedule's pick).
 
-**Why it is the model.** The decision is "is ninety seconds worth exactly these two
-things", and both halves are on screen. Nothing is random after the fact, nothing expires,
-and it cannot be gamed. **Every trade event in the roster should be built like this.**
+Before r562 it was Crunch only: +90 seconds on the quarter clock for two of six costs shown
+up front.
 
-**Do.** Nothing to Overtime. Reuse `OVERTIME_COSTS` in The Gamble, Two and a Catch and
-The Trade.
+**Sim (r562, 150 runs each, Classic, taken after round 3).** The bot wins ~99% at base, so
+the numbers barely separate: +30% time alone read 93% (noise). With the +30%: discards +2s
+a card 81%, one swap less 90%, Focus gain -25% 93%, -40% 73%. Treat as a hint, not a measure.
 
 #### 16. Coin Flip (`wager`)
 **Now.** Three stakes, all 50/50 (r211 fixed the odds correctly). Small: a card gets

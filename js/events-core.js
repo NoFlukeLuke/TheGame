@@ -49,10 +49,8 @@ const EVENT_NO_REPEAT = 4;
 // listed, and **an id absent from the table is ELIGIBLE** - a missing row must
 // never silently remove an event from the game.
 const EVENT_REQUIRES = {
-  // Crunch only: everywhere else the clock is a ROUND's and it refills, so +90s
-  // is either most of a round for a downside that bites next round, or clamped
-  // away. See js/crunch-mode.js.
-  overtime:     () => (typeof crunchActive === 'function') && crunchActive(),
+  // Once a run, wherever the clock can end a round (js/overtime.js, r562).
+  overtime:     () => typeof overtimeOfferable === 'function' && overtimeOfferable(),
   // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
   crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
   rehearsal:    () => (trickTray || []).length > 0,
@@ -122,6 +120,12 @@ function closeEvent() {
   if (fn) fn();
 }
 
+// The Skip button. An event may react to being skipped (Overtime's gift, js/overtime.js).
+function skipEvent() {
+  if (activeEventId === 'overtime' && typeof skipOvertime === 'function') skipOvertime();
+  closeEvent();
+}
+
 function setEventConfirm(enabled) {
   const btn = document.getElementById('event-confirm');
   if (btn) btn.disabled = !enabled;
@@ -168,7 +172,7 @@ function confirmEvent() {
 // openEvent's pool, confirmEvent's handler map, renderEventShell's renderer map,
 // recentEventIds and the dev panel's generated list.
 const EVENT_META = {
-  overtime:    { name:'Overtime',         flavor:'Ninety seconds back. It comes out of something else.' },
+  overtime:    { name:'Overtime',         flavor:'Longer rounds, for a price.' },
   confluence:  { name:'Theme Draft',     flavor:'Pick a theme. Then pick one reward from it.' },
   crossroads:  { name:'The Trade',       flavor:'Every offer here gives you something and takes something.' },
   gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },

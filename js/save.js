@@ -99,6 +99,7 @@ const SAVE_VARS = [
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',
+  'overtimeRun',               // r562: Overtime taken, its two costs, and the skip gift (js/overtime.js)
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──

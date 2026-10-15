@@ -399,7 +399,7 @@ function recordsRenderTime() {
   if (typeof updateInteractCosts === 'function') updateInteractCosts(); // refresh the hidden pop-up's values
   const g = id => document.getElementById(id)?.textContent ?? '·';
   const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
-  const cap = Math.max(dur, limits.round_time.current) - (roundPenaltySeconds || 0);
+  const cap = (typeof startingTimeSeconds === 'function') ? startingTimeSeconds() : dur;
   const fmt = s => (typeof formatTime === 'function') ? formatTime(Math.max(0, s)) : `${s}s`;
   const rows = [
     ['Play a hand',    g('ic-play'),    'Time charged when you submit a hand.'],

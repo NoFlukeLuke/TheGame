@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r561 · Time Dilation boss, Hyperphagia Trick";
+const BUILD = "2026-10-15 · r562 · Overtime in every event mode: longer rounds, avoid one of three costs";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -5,10 +5,17 @@ function drainLevelUpQueue() {
 // Compute the resource values (discards / swaps / seconds) a new round should start with.
 // Single source of truth - used by the round-start reset AND by reward-grid hover projections.
 // Folds in limit-breaks, carry-over knacks, round-start knacks, and pending next-round deltas.
+// A round's Starting Time before carried and next-round seconds: the mode's round
+// length (x Overtime), less permanent penalties, plus Starting Time upgrades. The
+// one formula: computeRoundResources starts rounds from it, and the Time pop-up
+// and Records print it (r562; they used to work it out on their own).
+function startingTimeSeconds() {
+  const dur = Math.round(modeRoundDuration() * ((typeof overtimeLenMult === 'function') ? overtimeLenMult() : 1));
+  return Math.max(10, dur - (roundPenaltySeconds || 0) + (limits.round_time.current - limits.round_time.base));
+}
 function computeRoundResources() {
   const limitDiscardBonus = limits.discards.current   - limits.discards.base;
   const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
-  const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
 
   // Both seed from the LIMIT's own base, so the round-start stock can never drift from
   // the number the Limits screen prints. Discards used to seed from a hardcoded 4 against
@@ -16,8 +23,7 @@ function computeRoundResources() {
   const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards + knackBossGrowth.extra_discards : 0);
   const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps + knackBossGrowth.extra_swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
-  const _roundDur = currentRoundDuration();
-  const baseSeconds  = Math.max(10, (_roundDur - roundPenaltySeconds) + limitTimeBonus);
+  const baseSeconds  = startingTimeSeconds();
 
   let d   = Math.min(99, baseDiscards + accumulatedDiscards) + nextRoundDiscardDelta;
   let s   = Math.min(99, baseSwaps    + accumulatedSwaps)    + nextRoundSwapDelta;
