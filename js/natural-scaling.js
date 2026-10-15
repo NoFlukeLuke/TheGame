@@ -36,6 +36,86 @@ Object.entries(NS_FAMILIES).forEach(([fam, names]) =>
 let nsEnabled = localStorage.getItem('nsEnabled') !== '0';        // default ON
 
 // ══════════════════════════════════════════════
+// DOUBLE SCALING (r554, owner) - the FAMILY climbs the card ladder, and gains pips
+// ══════════════════════════════════════════════
+// The default since r554. The card ladder (r547/r553) pays card n of a hand n
+// mult. Double scaling grows a hand on BOTH axes from how often you play its
+// FAMILY (set / run / flush):
+//
+//   mult  every `multEvery` plays of a family, that family moves ONE STEP up the
+//         ladder: card n of a hand in it pays n + step mult. Step 1 makes a
+//         3-card hand 2+3+4 = 9 instead of 6.
+//   pips  every `pipsEvery` plays, every card in a hand of that family pays
+//         `pipsPer` more pips, once per replay, added before its x pips.
+//
+// The two rates are set so the two sides keep up with each other: the mult step
+// is big and rare, the pips come in small and often, and after the same number
+// of plays each has roughly doubled a 3-card hand. Shipped numbers (multEvery 30,
+// pipsEvery 8, pipsPer 1) after 60 plays of one family: mult 6 -> 12 (step 2),
+// a 7.3-pip average card -> 14.3, so the hand's value is about x4 (owner's
+// target for a full four-quarter run; "start with 4"). Bigger hands grow a
+// little less on the mult side (15 -> 25 for five cards), which is the ladder
+// already preferring them. Dev -> Hand Scoring has the three knobs.
+//
+// A hand in two families (a same-suit run) takes the BEST family on each axis,
+// and `recordNaturalScale` credits every component's families, so it feeds both.
+// Under the per-hand TABLE model (below, the r282 design) none of this runs;
+// `nsModel` picks one. The Drought stops it paying like the table's bonus.
+const NS_MODELS = ['double', 'table'];
+const NS_MODEL_KEY = 'lethe.nsModel.v1';          // stored only when 'table'
+let nsModel = localStorage.getItem(NS_MODEL_KEY) === 'table' ? 'table' : 'double';
+function setNsModel(m) {
+  nsModel = NS_MODELS.includes(m) ? m : 'double';
+  try { if (nsModel === 'double') localStorage.removeItem(NS_MODEL_KEY); else localStorage.setItem(NS_MODEL_KEY, nsModel); } catch (e) {}
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
+}
+const NS2_DEFAULT = { multEvery: 30, pipsEvery: 8, pipsPer: 1 };
+const NS2_KEY = 'lethe.nsDouble.v1';              // OVERRIDES ONLY
+let ns2 = (() => { try { return Object.assign({}, NS2_DEFAULT, JSON.parse(localStorage.getItem(NS2_KEY) || '{}')); } catch (e) { return Object.assign({}, NS2_DEFAULT); } })();
+function setNs2(k, v) {
+  if (!(k in NS2_DEFAULT)) return;
+  v = Math.max(k === 'pipsPer' ? 0 : 1, Math.min(999, parseInt(v, 10) || 0));
+  ns2[k] = v;
+  const ov = {};
+  Object.keys(NS2_DEFAULT).forEach(key => { if (ns2[key] !== NS2_DEFAULT[key]) ov[key] = ns2[key]; });
+  try { if (Object.keys(ov).length) localStorage.setItem(NS2_KEY, JSON.stringify(ov)); else localStorage.removeItem(NS2_KEY); } catch (e) {}
+  if (typeof clearHandCompCache === 'function') clearHandCompCache();
+}
+function resetNs2() { ns2 = Object.assign({}, NS2_DEFAULT); try { localStorage.removeItem(NS2_KEY); } catch (e) {} }
+// Plays per family this run. In SAVE_VARS; reset with the other accumulators.
+let nsFamPlays = {};
+function nsDoubleOn() { return nsEnabled && nsModel === 'double'; }
+function nsFamStep(fam) { return Math.floor(((nsFamPlays || {})[fam] || 0) / Math.max(1, ns2.multEvery)); }
+function nsFamPips(fam) { return Math.floor(((nsFamPlays || {})[fam] || 0) / Math.max(1, ns2.pipsEvery)) * (ns2.pipsPer || 0); }
+// What a hand made of these component names grows by: the best step and the best
+// pips across every family those hands belong to. Zero when off, or under the
+// Drought (the same guard the table's bonus uses).
+function nsHandGrowth(names) {
+  const none = { step: 0, pips: 0 };
+  if (!nsDoubleOn()) return none;
+  if (typeof bossNoScaling !== 'undefined' && bossNoScaling && bossActive
+      && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored())) return none;
+  let step = 0, pips = 0;
+  (names || []).forEach(n => (NS_HAND_FAMILIES[n] || []).forEach(f => {
+    step = Math.max(step, nsFamStep(f)); pips = Math.max(pips, nsFamPips(f));
+  }));
+  return { step, pips };
+}
+// Anything earned at all this run (the Drought's "is there something to take").
+function nsAnythingEarned() {
+  if (nsDoubleOn()) return Object.keys(NS_FAMILIES).some(f => nsFamStep(f) || nsFamPips(f));
+  return Object.keys(nsBonus || {}).some(k => nsBonus[k] && (nsBonus[k].pips || nsBonus[k].mult));
+}
+// One line per family, for the dev panel and RECORDS.
+function nsFamilySummary() {
+  return Object.keys(NS_FAMILIES).map(f => {
+    const p = (nsFamPlays || {})[f] || 0;
+    return `${f}: ${p} played, step +${nsFamStep(f)} mult per card, +${nsFamPips(f)} pips per card`
+      + ` (next mult at ${Math.ceil((p + 1) / ns2.multEvery) * ns2.multEvery}, next pips at ${Math.ceil((p + 1) / ns2.pipsEvery) * ns2.pipsEvery})`;
+  }).join('\n');
+}
+
+// ══════════════════════════════════════════════
 // THE RATE TABLE (r282) - every hand type earns at its OWN rate
 // ══════════════════════════════════════════════
 // It used to be three global sliders - pips per hand, mult per hand, every N
@@ -131,7 +211,7 @@ function nsRateDefault(name) { return NS_RATE_DEFAULTS[name] || NS_RATE_FALLBACK
 let nsPlays = {};
 let nsBonus = {};
 
-function resetNaturalScaling() { nsPlays = {}; nsBonus = {}; }
+function resetNaturalScaling() { nsPlays = {}; nsBonus = {}; nsFamPlays = {}; }
 
 function nsSlot(name) { return nsBonus[name] || (nsBonus[name] = { pips: 0, mult: 0 }); }
 
@@ -144,6 +224,8 @@ function nsSlot(name) { return nsBonus[name] || (nsBonus[name] = { pips: 0, mult
 // always has: it is already the top of the table.)
 function naturalScaleBonus(handName) {
   if (!nsEnabled) return { pips: 0, mult: 0 };
+  // Double scaling (r554) grows the CARDS, not the hand's base; see nsHandGrowth.
+  if (nsModel === 'double') return { pips: 0, mult: 0 };
   // The Drought (boss): everything this run has earned counts for nothing until
   // the round is over. The accumulator is untouched - it simply stops paying.
   if (typeof bossNoScaling !== 'undefined' && bossNoScaling && bossActive
@@ -176,6 +258,13 @@ function recordNaturalScale(handName, cells) {
     // High Card has no family and must never scale - it is the escape valve.
     if (!NS_HAND_FAMILIES[name]) return;
     nsPlays[name] = (nsPlays[name] || 0) + 1;
+    // Double scaling (r554): the FAMILY is what is counted. A Straight Flush
+    // credits run and flush; two Sets of 3 credit set twice.
+    if (nsModel === 'double') {
+      if (!nsFamPlays) nsFamPlays = {};
+      NS_HAND_FAMILIES[name].forEach(f => { nsFamPlays[f] = (nsFamPlays[f] || 0) + 1; });
+      return;
+    }
     const r = nsRate(name);
     const every = Math.max(1, r.every | 0);
     if (nsPlays[name] % every !== 0) return;
@@ -269,6 +358,7 @@ function naturalScaleRows() {
 
 // One line per hand type that has been played, for the dev panel and RECORDS.
 function naturalScaleSummary() {
+  if (nsModel === 'double') return nsFamilySummary();
   const rows = Object.keys(HAND_BASE)
     .filter(n => nsPlays[n] || (nsBonus[n] && (nsBonus[n].pips || nsBonus[n].mult)))
     .map(n => {

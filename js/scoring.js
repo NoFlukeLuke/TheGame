@@ -70,6 +70,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
   if (_handOnly !== cells && !(typeof kickersScore === 'function' && kickersScore())) cells = _handOnly;
   const _handN = _handOnly.length;
+  // Double scaling (r554): what this hand's families have earned, read once per
+  // hand. `step` rides the card ladder, `pips` is added to each card's pips.
+  const _ns2 = (typeof nsHandGrowth === 'function')
+    ? nsHandGrowth(_comp ? _comp.components.map(k => k.name) : [handName]) : { step: 0, pips: 0 };
+  let _nsPipsTot = 0, _nsMultTot = 0;
   const _scoreCells = scoringOrderCells(cells);
   const cards = _scoreCells.map(([r,c]) => gridData[r][c]);
   // ── THE WILD IS INVISIBLE TO EVERY RANK AND SUIT COUNT (r325) ──
@@ -454,6 +459,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pp = (_G || !qrlBuffOn(card, 'pips')) ? 0 : (permPips[_eKey] || 0);   // QRL (r484): a buff this hand did not pick pays nothing
     cp += _pp;
     if (!_G) bPip('sapling', _pp);
+    // Double scaling pips (r554): the family's earned pips, on every card, every replay.
+    if (!_G && _ns2.pips) { cp += _ns2.pips; _ev('_nsPips', 'pip+', _ns2.pips, 'card'); }
     // Right Place: marked row/column cards score +flat pips
     if (!_G && cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
@@ -643,9 +650,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // accumulators are kept purely as LEDGER totals - the contributions tab wants
     // one row per Trick, not one per card - and the rep loop is what moves `mult`.
     let _cmAdd = 0, _cmOnce = 0;
-    // Card ladder scoring model (r547): card n of the hand adds n mult every time it scores.
-    const _ld = _G ? 0 : handCardLadder(_ladPos[r + '-' + c] || 0);
+    // Card ladder scoring model (r547): card n of the hand adds n mult every time it
+    // scores. r554: plus the family's double-scaling step on every numbered card
+    // (under the other models the step alone).
+    const _lp = _G ? 0 : (_ladPos[r + '-' + c] || 0);
+    const _ld = _lp ? handCardLadder(_lp) + _ns2.step : 0;
     if (_ld) { _cmAdd += _ld; _ladMult += _ld * _retrig; _ev('_ladder', 'mult+', _ld, 'card'); }
+    if (_lp && _ns2.step) _nsMultTot += _ns2.step * _retrig;
+    if (!_G && !_mute && _ns2.pips) _nsPipsTot += _ns2.pips * _retrig;
     if (hasTrick('heart_double') && _isHeartC) { const _v = BAL.heart_double.heart_mult; _cmAdd += _v; _hdMult += _v * _retrig; _ev('heart_double','mult+',_v); }
     if (hasTrick('jack_mult') && baseRank === 'J') { const _v = BAL.jack_mult.mult_per_jack; _cmAdd += _v; _jmMult += _v * _retrig; _ev('jack_mult','mult+',_v); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { const _v = BAL.king_guard.mult; _cmAdd += _v; _kgMult += _v * _retrig; _ev('king_guard','mult+',_v); }
@@ -755,8 +767,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _scores = c => !!c && !((typeof isWildCard === 'function') && (isWildCard(c) || isWarehouseCard(c)));
   // Card ladder (r547): each hand card that scores is numbered 1, 2, 3... in scoring
   // order. A wild (scores nothing) and a kicker (not part of the hand) take no number.
+  // Numbered under every model since r554: the double-scaling step pays on each
+  // numbered card, and handCardLadder is 0 outside the card ladder.
   const _ladPos = {};
-  if (scoringModel === 'card_ladder') {
+  {
     const _hk = new Set(_handOnly.map(([r, c]) => r + '-' + c));
     let _ln = 0;
     _scoreCells.forEach(([r, c]) => { if (_hk.has(r + '-' + c) && _scores(gridData[r]?.[c])) _ladPos[r + '-' + c] = ++_ln; });
@@ -774,6 +788,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
   _lastHandLadderMult = _ladMult;  // the card ladder's total, for the round breakdown
+  _lastHandNsPips = _nsPipsTot; _lastHandNsMult = _nsMultTot;   // double scaling's share of it (r554)
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
   _lastHandQrlReplayCut = _qrlReplayCut;
   _lastHandClubHits = _clubHits;   // snapshot for Hard Labour's round ladder (advanced in playHand, r346)
@@ -1466,6 +1481,7 @@ function foldContribution(label, kind, amount) {
 // before per-hand mutations like Ripple cooldown / Snowball permPips change the
 // numbers). Returns rows to fold later; does not touch the tally yet.
 let _lastHandLadderMult = 0;
+let _lastHandNsPips = 0, _lastHandNsMult = 0;   // double scaling (r554), read by the breakdown
 function captureRoundContrib(result) {
   if (!result) return null;
   const { hand, handCells } = result;

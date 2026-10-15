@@ -443,8 +443,13 @@ function _recHandsFoot() {
 // under all of them, since handBasePips/handBaseMult carry it.
 function _recHandsFootFull() {
   const ns = (typeof nsEnabled !== 'undefined' && nsEnabled)
-    ? ' Playing a hand permanently raises THAT HAND, and nothing else - so a hand you have played'
-      + ' forty times can out-score one you have never reached. Green is what this run has earned.'
+    ? ((typeof nsModel !== 'undefined' && nsModel === 'double')
+        ? ' Playing hands of one FAMILY (sets, runs, flushes) grows every card in that family: every '
+          + ns2.pipsEvery + ' plays each card pays +' + ns2.pipsPer + ' pips, every ' + ns2.multEvery
+          + ' plays the family climbs one step of the mult ladder. '
+          + (typeof nsFamilySummary === 'function' ? nsFamilySummary().replace(/\n/g, ' · ') : '')
+        : ' Playing a hand permanently raises THAT HAND, and nothing else - so a hand you have played'
+          + ' forty times can out-score one you have never reached. Green is what this run has earned.')
     : '';
   const lay = (typeof layeredHandsEnabled !== 'undefined' && layeredHandsEnabled)
     ? ' Cards that are two hands at once pay for both, and score twice.'

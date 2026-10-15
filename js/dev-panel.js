@@ -456,6 +456,31 @@ function devSetNs(k, v) {
   _devSafeRender();
 }
 function devResetNs() { resetNaturalScaling(); devSyncNs(); }
+// ── Double scaling (r554) ──
+function devSetNsModel(m) { setNsModel(m); devSyncNs(); _devSafeRender(); }
+const NS2_TUNABLES = [
+  { key: 'multEvery', label: 'Mult step every (family plays)', min: 1, max: 999, step: 1, dp: 0 },
+  { key: 'pipsEvery', label: 'Pips every (family plays)',      min: 1, max: 999, step: 1, dp: 0 },
+  { key: 'pipsPer',   label: 'Pips per grant (per card)',      min: 0, max: 99,  step: 1, dp: 0 },
+];
+function devTuneNs2(key, dir, typed) {
+  const t = NS2_TUNABLES.find(x => x.key === key); if (!t) return;
+  let v = (dir === 0) ? parseFloat(typed) : ns2[key] + dir * t.step;
+  if (!isFinite(v)) v = ns2[key];
+  setNs2(key, Math.min(t.max, Math.max(t.min, Math.round(v))));
+  devSyncNs(); _devSafeRender();
+}
+function devResetNs2() { resetNs2(); devSyncNs(); _devSafeRender(); }
+// What one family at N plays does to a 3-card hand of 7.3-pip cards (the deck's
+// average card), so a knob change can be read as a growth factor at once.
+function devNs2Projection() {
+  const avg = 7.3, k = 3, base = avg * k * (k * (k + 1) / 2);
+  return [30, 60, 90].map(n => {
+    const step = Math.floor(n / Math.max(1, ns2.multEvery)), pips = Math.floor(n / Math.max(1, ns2.pipsEvery)) * ns2.pipsPer;
+    const v = (avg + pips) * k * (k * (k + 1) / 2 + k * step);
+    return `${n} plays: x${(v / base).toFixed(1)} (step +${step}, +${pips} pips a card)`;
+  }).join(' · ');
+}
 // The RATES, not the accumulators (r282) - the two reset buttons are deliberately
 // separate, because "start this hand's growth over" and "go back to the shipped
 // growth rate" are different questions.
@@ -576,6 +601,16 @@ function devSyncNs() {
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
+  const dbl = (typeof nsModel !== 'undefined') && nsModel === 'double';
+  const mh = document.getElementById('dev-ns-model');
+  if (mh) mh.innerHTML = _devRadioRow('dev-ns-model', 'double', nsModel, 'Double scaling: the family climbs the ladder and gains pips', 'The game since r554. One counter per family.', 'devSetNsModel')
+                       + _devRadioRow('dev-ns-model', 'table', nsModel, 'Per-hand table', 'The r282 design: each hand type earns its own base pips and mult at its own rate.', 'devSetNsModel');
+  const dh = document.getElementById('dev-ns-double'); if (dh) dh.style.display = dbl ? '' : 'none';
+  const th = document.getElementById('dev-ns-table'); if (th) th.style.display = dbl ? 'none' : '';
+  const kn = document.getElementById('dev-ns2-knobs');
+  if (kn) kn.innerHTML = NS2_TUNABLES.map(t => _devStepper({ ...t, get: () => ns2[t.key] }, 'devTuneNs2')).join('')
+    + `<div class="dev-row"><button class="dev-btn" onclick="devResetNs2()">Reset double scaling to 30 / 8 / 1</button></div>`;
+  const pj = document.getElementById('dev-ns2-proj'); if (pj) pj.textContent = devNs2Projection();
   const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;
   const fm = document.getElementById('dev-flushmin'); if (fm) fm.value = flushOverlayMin;
   devRenderNsRows();

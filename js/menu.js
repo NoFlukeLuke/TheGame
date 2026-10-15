@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r553 · card ladder is the game, level growth off, cards score in the order picked";
+const BUILD = "2026-10-15 · r554 · double scaling: a hand family climbs the ladder and gains pips as you play it";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

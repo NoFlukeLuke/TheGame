@@ -147,11 +147,10 @@ const INSIGHTS = [
     body: 'A replay scores one card again. It pays what the card earned, not the hand\'s base.',
     when: () => typeof replaysThisRound !== 'undefined' && replaysThisRound > 0 },
 
-  { id: 'natural_scaling', title: 'That hand type is getting better',
+  { id: 'natural_scaling', title: 'That hand family is getting better',
     anchor: ['#hand-name'],
-    body: 'Every hand type earns a permanent bonus each time you play it, and only that type. RECORDS &rsaquo; Hands shows what each is worth now.',
-    when: () => typeof nsBonus !== 'undefined'
-             && Object.values(nsBonus).some(v => v && ((v.pips || 0) > 0 || (v.mult || 0) > 0)) },
+    body: 'Playing hands of one family (sets, runs, flushes) grows every card in that family: more pips on each card, and higher up the mult ladder. RECORDS &rsaquo; Hands shows where each family stands.',
+    when: () => typeof nsAnythingEarned === 'function' && nsAnythingEarned() },
 
   // ── what you own ──────────────────────────────────────────────────────────
   { id: 'knacks', screen: 'any', title: 'You own a {knack}',

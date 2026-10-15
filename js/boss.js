@@ -552,8 +552,7 @@ function bossPresetIsLive(preset) {
   if (mods.includes('play_fee_credits') && (typeof coins !== 'undefined' ? coins : 0) < 15) return false;
   // The Drought pays nothing out of Natural Scaling. Before anything has been
   // earned there is nothing to take away and the boss is a plain score round.
-  if (mods.includes('no_natural_scaling') && typeof nsBonus !== 'undefined'
-      && !Object.keys(nsBonus || {}).some(k => nsBonus[k] && (nsBonus[k].pips || nsBonus[k].mult))) return false;
+  if (mods.includes('no_natural_scaling') && typeof nsAnythingEarned === 'function' && !nsAnythingEarned()) return false;
   return true;
 }
 

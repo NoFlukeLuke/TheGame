@@ -269,7 +269,19 @@
       <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
       Natural scaling on
     </label>
+    <div id="dev-ns-model"></div>
+    <div id="dev-ns-double">
+      <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:4px 0;">
+        Double scaling (r554): the FAMILY you play (sets, runs, flushes) grows on both axes. Every
+        <b>mult every</b> plays the family climbs one step of the card ladder (card n pays n + step mult).
+        Every <b>pips every</b> plays each card in the family pays <b>pips per</b> more pips, once per replay.
+        Shipped: 30 / 8 / 1, about x4 on a 3-card hand after 60 plays of one family.
+      </div>
+      <div id="dev-ns2-knobs"></div>
+      <div id="dev-ns2-proj" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:4px 0;"></div>
+    </div>
     <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
+    <div id="dev-ns-table">
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:6px 0 2px;">
       <b>BASE P</b> / <b>BASE M</b> are the hand's own value (editable; Spectrum and Poker Squares keep
       their own tables). <b>NOW</b> is what it scores right now: base plus everything earned, pips x mult,
@@ -284,6 +296,7 @@
       play - a gold row is one you have moved off the shipped table.
     </div>
     <div id="dev-ns-rows"></div>
+    </div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetNs()">Reset earned</button>
       <button class="dev-btn" onclick="devResetNsRates()">Reset rates to default</button>
