@@ -98,7 +98,8 @@ function growCardScaling(cards, counts) {
 // number, which is what a stat line wants: "+30 pips" reads as a fact about the
 // card, and "Scales +4 pips each time it's played" beside it cannot be mistaken
 // for one.
-function cardBuffLines(k) {
+// `card` (the object) is needed for a pause buff, which lives on the card (`_vulturePause`).
+function cardBuffLines(k, card) {
   const lines = [];
   const pp = permPips[k] || 0, pm = permMult[k] || 0;
   const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
@@ -110,6 +111,10 @@ function cardBuffLines(k) {
   if (xp > 1) lines.push(`\u00d7${xp} pips`);
   if (xm > 1) lines.push(`\u00d7${xm} mult`);
   if (re) lines.push(`+${re} replay`);
+  // r551: time buffs say which kind they are (they were missing from every list).
+  const pt = permTime[k] || 0;
+  if (pt) lines.push(`Rewinds the clock ${pt}s when scored`);
+  if (card && card._vulturePause) lines.push(`Pauses the clock for ${card._vulturePause}s when scored`);
   const pf = (typeof permFocus !== 'undefined' && permFocus[k]) || 0;
   if (pf) lines.push(`+${pf} Focus when played`);
   const pc = (typeof permCoins !== 'undefined' && permCoins[k]) || 0;   // r392: the coin card
@@ -164,15 +169,17 @@ function cardBuffLines(k) {
 const CARD_BAND_FAMILIES = [
   { id: 'pips',   corner: 'tl', per: 5, color: '#3a6fca', lite: '#a9c8f7', dark: '#16305c', of: (k, card) => permPips[k] || 0 },
   { id: 'mult',   corner: 'tr', per: 5, color: '#c0392b', lite: '#f2ada4', dark: '#5c1a13', of: (k, card) => permMult[k] || 0 },
-  // Seconds: the Card Market's rewind card AND The Vulture / Wait Four It /
-  // Temporal Rift's pause, summed, because the owner named them as one family
-  // ("5 seconds if pause or rewind"). The payout vocabulary makes time WHITE
-  // (PARTICLE_CFG.colors.time) and r296 proved near-white cannot mark a cream
-  // card, so the band inverts it the way r233 inverted the clock plate - black
-  // on a cream card, and white on Spectrum's near-black one, which is what the
-  // ink rule below picks for it. Its `dark` is its own colour: black and white
-  // are already the two extremes and there is no third ink to reach for.
-  { id: 'time',   corner: 'bl', per: 5, color: '#141210', lite: '#ffffff', dark: '#141210', of: (k, card) => (permTime[k] || 0) + (card._vulturePause || 0) },
+  // Seconds, one corner, two marks (r551, owner: the card must say which kind).
+  // REWIND (permTime: Card Market, Time Buff, Temporal Rift) keeps r299's black:
+  // the payout vocabulary makes time WHITE (PARTICLE_CFG.colors.time) and r296
+  // proved near-white cannot mark a cream card, so the band inverts it the way
+  // r233 inverted the clock plate - black on cream, white on Spectrum's
+  // near-black card. Its `dark` is its own colour: there is no third ink.
+  // PAUSE (`_vulturePause`: The Vulture, Wait Four It) is green, the pause
+  // keyword's hue darkened to sit on cream. A card holds one time buff
+  // (cardTimeBuffed), so the two never share the corner.
+  { id: 'rewind', corner: 'bl', per: 5, color: '#141210', lite: '#ffffff', dark: '#141210', of: (k, card) => permTime[k] || 0 },
+  { id: 'pause',  corner: 'bl', per: 5, color: '#5f8f12', lite: '#d6f59a', dark: '#2d4708', of: (k, card) => card._vulturePause || 0 },
   // Replays have no colour in the payout vocabulary and Echo Location's #e0ddd0
   // is near-white, so green: the only high-contrast hue no other payout family
   // has taken, and the same one the scaling arrow uses for the neighbouring idea.
@@ -467,7 +474,7 @@ function buffCapFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 // Reads through cardBuffLines() rather than testing the seven perm* stores by
 // hand, so a buff kind added later is counted here for free.
 function buffedDeckCards() {
-  return everyDeckCard().filter(c => cardBuffLines(cardId(c)).length > 0);
+  return everyDeckCard().filter(c => cardBuffLines(cardId(c), c).length > 0);
 }
 
 // ── CARD CURSES (reward-grid debuffs) ──

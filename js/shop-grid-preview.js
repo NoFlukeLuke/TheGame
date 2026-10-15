@@ -453,7 +453,7 @@ function shopOwnedOfKind(cat) {
     return (typeof buffedDeckCards === 'function' ? buffedDeckCards() : []).map(c => ({
       name: `${c.rank}${c.suit}`, entity: null, icon: c.suit, rarity: 'common',
       cardFace: { rank: c.rank, suit: c.suit },
-      desc: cardBuffLines(cardId(c)).join(' \u00b7 ') }));
+      desc: cardBuffLines(cardId(c), c).join(' \u00b7 ') }));
 
   // IMPROVE: everything you own that still has a tier left to buy.
   if (cat === 'improve')

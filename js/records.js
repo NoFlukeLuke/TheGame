@@ -127,7 +127,7 @@ function recordsDeckToggle(k)   { if (k === 'grid') recordsDeckGrid = !recordsDe
 // What one card carries, as plain lines: buffs, curse, card states.
 function recordsCardLines(card) {
   const k = cardId(card);
-  const lines = cardBuffLines(k).slice();
+  const lines = cardBuffLines(k, card).slice();
   const cu = cardCurses[k], cd = cu ? CURSE_DEFS[cu.id] : null;
   if (cd) lines.push(`Cursed: ${cd.name} - ${cd.desc}`);
   if (typeof cardStateList === 'function')

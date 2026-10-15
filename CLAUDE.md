@@ -1154,3 +1154,10 @@ temporal_rift, vulture, wait_four_it, sundial, metronome, replay_rewind, syncopa
 improvement prints its number (Five Second Rule's two 5s had made it unrewritable). `flowrBuffDoes(b, v, plural)`
 is the verb phrase for a buffed card ("score +3 mult" / "rewind the clock 3s when scored"). Keyword `pause` has
 its own colour (`.kw-pause`, css/tooltip.css). The Time pop-up and Records say Starting Time, not Max Time.
+
+## r551 - a card says which time buff it holds (owner)
+`CARD_BAND_FAMILIES` splits r299's one `time` family into `rewind` (permTime, black, as before) and `pause`
+(`_vulturePause`, green #5f8f12), both in the bottom-left corner (a card holds one time buff, `cardTimeBuffed`).
+`cardBuffLines(k, card)` now lists "Rewinds the clock Ns when scored" / "Pauses the clock for Ns when scored"
+(it listed neither), so the card tooltip, Records, the shop's card list and `buffedDeckCards` (The Price's
+targets) see time buffs. Pass the card: a pause lives on the card object, not in a perm store.

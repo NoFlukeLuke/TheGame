@@ -869,7 +869,7 @@ function hideCardTooltip() {
 // hover only shows when there is something to say.
 function cardTooltipSections(r, c, card) {
   const k = cardId(card), own = [], cell = [];
-  cardBuffLines(k).forEach(l => own.push(l));
+  cardBuffLines(k, card).forEach(l => own.push(l));
   const cu = typeof cardCurses !== 'undefined' && cardCurses[k];
   if (cu && CURSE_DEFS[cu.id]) { const d = CURSE_DEFS[cu.id]; own.push(`${d.icon} ${d.name}: ${d.desc} (${cu.left} to go)`); }
   if (typeof cardStateList === 'function')
