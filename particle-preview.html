@@ -79,6 +79,9 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
 /* shape variants */
 .sh-diamond .pt-box{transform:rotate(45deg);border-radius:var(--pt-round)}
 .sh-diamond .pt-lab{transform:rotate(-45deg)}
+/* r552: the rewind / pause mark above the number (mirrors css/dance.css) */
+.pt-lab.pt-has-ico{display:inline-flex;flex-direction:column;align-items:center;gap:.06em}
+.pt-ico{display:block;width:.9em;height:.54em;fill:currentColor}
 .sh-square  .pt-box{border-radius:var(--pt-round)}
 .sh-circle  .pt-box{border-radius:50%}
 .sh-pill    .pt-box{border-radius:999px;width:auto;padding:0 calc(var(--pt-size)*.30)}
@@ -249,11 +252,16 @@ function lighten(hex, pct){
 }
 
 // One plate. Mirrors ptPlateEl in js/score-dance.js.
-function plateEl(c, kind, label, scale){
+// Mirrors PT_ICONS in js/score-dance.js.
+const PT_ICONS = {
+  rewind: '<svg class="pt-ico" viewBox="0 0 20 12"><path d="M10 0L0 6l10 6zM20 0L10 6l10 6z"/></svg>',
+  pause:  '<svg class="pt-ico" viewBox="0 0 20 12"><path d="M3.5 0h5v12h-5zM11.5 0h5v12h-5z"/></svg>',
+};
+function plateEl(c, kind, label, scale, icon){
   const bg = c.colors[kind];
   const el = document.createElement('div');
   el.className = 'pt sh-' + (c.shapes[kind] || c.shape);
-  el.innerHTML = `<div class="pt-box"><span class="pt-lab">${label}</span></div>`;
+  el.innerHTML = `<div class="pt-box"><span class="pt-lab${icon ? ' pt-has-ico' : ''}">${icon ? PT_ICONS[icon] : ''}${label}</span></div>`;
   el.style.setProperty('--pt-size', (c.size*scale)+'px');
   el.style.setProperty('--pt-font', (c.font*scale)+'px');
   el.style.setProperty('--pt-round', c.round+'px');
@@ -280,7 +288,7 @@ function fadesFor(c){
   const ms = Math.min(c.fadeMs, c.dur * .25);
   return [ { opacity:1 }, { opacity:1, offset: 1 - ms/c.dur }, { opacity: 1 - c.fade/100 } ];
 }
-function fireOne(kind, label, srcEl, trail){
+function fireOne(kind, label, srcEl, trail, icon){
   const c = cfg(), K = KINDS[kind];
   const src = srcEl || document.getElementById(kind==='pipAdd' ? 'srcCard' : kind==='multMul'||kind==='pipMul' ? 'srcSleight' : 'srcTrick');
   const tgt = document.getElementById(K.target);
@@ -295,20 +303,20 @@ function fireOne(kind, label, srcEl, trail){
   // Furthest-back first: these are body-level siblings at one z-index, so DOM
   // order is paint order and the real plate has to go in last to sit on top.
   for(let i = n; i >= 1; i--){
-    const g = plateEl(c, kind, label, scale);
+    const g = plateEl(c, kind, label, scale, icon);
     g.querySelector('.pt-box').style.opacity = (c.trailFade * (1 - (i-1)/n)).toFixed(3);
     document.body.appendChild(g);
     g.animate(frames, Object.assign({}, tw, { delay: c.dur*c.trailLag*i, fill: 'both' }));
     g.animate(fades, Object.assign({}, fw, { delay: c.dur*c.trailLag*i, fill: 'both' }));
     setTimeout(()=>g.remove(), c.dur*(1+c.trailLag*i)+60);
   }
-  const el = plateEl(c, kind, label, scale);
+  const el = plateEl(c, kind, label, scale, icon);
   document.body.appendChild(el);
   el.animate(frames, tw);
   el.animate(fades, fw);
   setTimeout(()=>{ el.remove(); bump(K.target); }, c.dur);
 }
-function fireRewind(){ blipN = 0; fireOne('time', '+12s', document.getElementById('srcTrick'), cfg().trail); }
+function fireRewind(){ blipN = 0; fireOne('time', '12s', document.getElementById('srcTrick'), cfg().trail, 'rewind'); }
 // Thirty blips back to back - the only way to see what the growth curve actually
 // does, which is the whole reason it is three numbers rather than one.
 function fireRun(){

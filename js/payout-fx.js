@@ -72,6 +72,7 @@ function efxTargetEl(kind) {
 // `fxKind` is the effect (rewind / pause / credits...) and decides the ghost trail;
 // `currency` is where it flies to and which colour family it wears.
 function efxFly(srcEl, currency, label, color, fxKind, scale) {
+  const icon = (fxKind === 'rewind' || fxKind === 'pause') ? fxKind : null;   // r552: say which kind of time
   const target = efxTargetEl(currency);
   if (!target) return 0;
   const src = srcEl && srcEl.getBoundingClientRect && srcEl.getBoundingClientRect();
@@ -81,7 +82,7 @@ function efxFly(srcEl, currency, label, color, fxKind, scale) {
   if (typeof ptLaunch === 'function') {
     const style = EFX_STYLE[fxKind || currency] || EFX_STYLE.time;
     ptLaunch(a, b, style.plate || currency, label, color, dur,
-             { trail: (typeof ptTrail === 'function') ? ptTrail(fxKind || currency) : 0, scale: scale || 1 });
+             { trail: (typeof ptTrail === 'function') ? ptTrail(fxKind || currency) : 0, scale: scale || 1, icon });
   }
   // The readout itself acknowledges the hit, so the flight has a destination that
   // reacts rather than a number that silently changed some time earlier.
@@ -118,7 +119,10 @@ function entityEffectFX(kind, amount, opts) {
   // flies into all say which currency this is - so the label is the NUMBER alone.
   // An icon beside it doubled the label's width on a 40px diamond and pushed the
   // digits off the plate. An effect with no number still shows its icon.
-  const label = o.label || (n === null ? style.icon : `${sign}${n}${unit}`);
+  // A rewind or pause plate carries its mark above the number (ptPlateEl), so it drops the
+  // "+" and, with no number (Stopwatch), shows the mark alone.
+  const _ico = kind === 'rewind' || kind === 'pause';
+  const label = o.label || (n === null ? (_ico ? '' : style.icon) : `${_ico ? '' : sign}${n}${unit}`);
   efxFly(srcEl, currency, label, o.color || style.color, kind);
   if (o.sfx !== false) efxSound(kind);
 }

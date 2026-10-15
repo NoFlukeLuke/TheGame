@@ -1161,3 +1161,12 @@ its own colour (`.kw-pause`, css/tooltip.css). The Time pop-up and Records say S
 `cardBuffLines(k, card)` now lists "Rewinds the clock Ns when scored" / "Pauses the clock for Ns when scored"
 (it listed neither), so the card tooltip, Records, the shop's card list and `buffedDeckCards` (The Price's
 targets) see time buffs. Pass the card: a pause lives on the card object, not in a perm store.
+
+## r552 - a time chip says rewind or pause; a pause flashes like a rewind (owner)
+`ptPlateEl(kind, label, scale, color, icon)` puts a mark above the number in the plate's ink (`PT_ICONS`,
+inline SVG: two left triangles = rewind, two bars = pause; `.pt-has-ico` / `.pt-ico` in css/dance.css).
+`efxFly` passes it for `rewind` / `pause`, which drop the "+" (Stopwatch shows the mark alone); the ghosts
+carry it too. `pauseRound` now does what `rewindTime` does: a floater by the clock (`showTimeCost(text,
+color)`, green "⏸ Ns") and a quiet `noteMessage` ("⏸ <Name> - paused Ns", name from `timeSrcName`). Neither
+prints a slip (NOTICES.md rule). Every pauseRound call from a Trick or Knack now passes its id, so the chip
+flies from that tray tile. particle-preview.html mirrors the mark on its rewind demo.

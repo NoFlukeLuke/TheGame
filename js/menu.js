@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r551 · cards mark a rewind black and a pause green";
+const BUILD = "2026-10-15 · r552 · time chips show a rewind or pause mark";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

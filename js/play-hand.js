@@ -101,7 +101,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
           // duplicate into a different Trick (four chances at the good half).
           const _fhm = fourHorsemanRoll(handCells);
           if (_fhm === 2) totalFocus += BAL.four_horseman.focus * _fhf;
-          else if (_fhm === 3) pauseRound(BAL.four_horseman.pause * _fhf);
+          else if (_fhm === 3) pauseRound(BAL.four_horseman.pause * _fhf, 'four_horseman', 'trick');
         }
       }
       // Wait Four It: permanently buff the 4th card (scoring order) with +2s pause when
@@ -116,7 +116,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // ── 5-card-hand family ── "a 5-card hand" is a real 5-card hand (r339)
     if (realHandOfSize(handCells, 5)) {
       totalFocus += _rsum() * BAL.five_stack.focus_per_card * trickFires('five_stack'); // +Focus/card (pips+mult handled in calcScore)
-      pauseRound(BAL.five_second.pause_seconds * trickFires('five_second'));                       // Five Second Rule → pause 5s
+      pauseRound(BAL.five_second.pause_seconds * trickFires('five_second'), 'five_second', 'trick');                       // Five Second Rule → pause 5s
       // no face cards → +1 Focus limit, this Trick's gains capped at +15 for the run.
       // The under-cap test runs BEFORE trickFires so a prime is never spent on a gain
       // that cannot land (r296's "ask only when about to pay").
@@ -152,11 +152,11 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // THIS one included - runsPlayedRound is bumped later in playHand, so +1 here.
     if (_isRunHand) pauseRound(BAL.high_water.pause_per_run * (runsPlayedRound + 1) * trickFires('high_water'), 'high_water', 'trick');
     // Dam Holding…: every Run pauses the clock a flat few seconds
-    if (_isRunHand) pauseRound(BAL.dam_holding.pause * trickFires('dam_holding'));
+    if (_isRunHand) pauseRound(BAL.dam_holding.pause * trickFires('dam_holding'), 'dam_holding', 'trick');
     // Sundial knack: a hand where every card shares a column pauses the clock
-    if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
+    if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds, 'sundial', 'knack');
     // Metronome knack: playing this round's target hand type pauses the clock
-    if (hasKnack('metronome') && hand === metronomeHandType) pauseRound(BAL.metronome.seconds);
+    if (hasKnack('metronome') && hand === metronomeHandType) pauseRound(BAL.metronome.seconds, 'metronome', 'knack');
     // Double Jeopardy: each secretly marked cell pays 15s the first time a hand
     // scores from it, then is spent. Two cells in one hand pay twice.
     if (hasTrick('double_jeopardy') && doubleJeopardyCells.length) {
@@ -654,7 +654,7 @@ function playHand() {
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
-  { const _rt = _scoredCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time')); }
+  { const _rt = _scoredCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time'), 'right_time', 'trick'); }
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);

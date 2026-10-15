@@ -231,7 +231,8 @@ function discardCarryRestore() {
 // ══════════════════════════════════════════════
 // TIME COST FLASH
 // ══════════════════════════════════════════════
-function showTimeCost(label) {
+// The floater by the clock. Red for a cost; rewindTime and pauseRound pass their own colour.
+function showTimeCost(label, color = '#e05555') {
   let el = document.getElementById('time-cost-flash');
   if (!el) {
     el = document.createElement('div');
@@ -246,6 +247,7 @@ function showTimeCost(label) {
     document.getElementById('clock-area')?.appendChild(el);
   }
   el.textContent = label;
+  el.style.color = color; el.style.textShadow = `0 0 8px ${color}99`;
   el.style.transition = 'none';
   el.style.opacity = '1';
   el.style.top = '-4px';
@@ -253,6 +255,13 @@ function showTimeCost(label) {
   el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
   el.style.top = '-22px';
   el.style.opacity = '0';
+}
+// The name a time payout is logged under (r552).
+function timeSrcName(id) {
+  if (!id) return '';
+  const e = [...(typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : []), ...(typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : []),
+             ...(typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : [])].find(x => x && x.id === id);
+  return e ? e.name : '';
 }
 
 // ── Rewind: give round seconds back (clock counts down, so rewinding = adding time) ──
@@ -318,17 +327,7 @@ function rewindTime(seconds, label, srcId, srcSource) {
   if (typeof tickBossApproach === 'function') tickBossApproach();
   // Infinity-mirror copies under every card + the reversed swell (js/clock-fx.js)
   if (typeof playRewindFX === 'function') playRewindFX();
-  const el = document.getElementById('time-cost-flash') ||
-    (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
-      `position:absolute; pointer-events:none; z-index:300; font-family:'Cinzel',serif; font-size:13px; font-weight:700;
-       color:#5aa9e6; text-shadow:0 0 8px rgba(90,169,230,0.6); left:50%; transform:translateX(-50%); opacity:0;`;
-      document.getElementById('clock-area')?.appendChild(e); return e; })();
-  el.style.color = '#5aa9e6'; el.style.textShadow = '0 0 8px rgba(90,169,230,0.6)';
-  el.textContent = `⏪ +${gained}s`;
-  el.style.transition = 'none'; el.style.opacity = '1'; el.style.top = '-4px';
-  void el.offsetWidth;
-  el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
-  el.style.top = '-22px'; el.style.opacity = '0';
+  showTimeCost(`⏪ +${gained}s`, '#5aa9e6');
   if (label) noteMessage(label, '#5aa9e6', { icon: '\u23ea' });
   // The symbol flies from the entity that caused it to the clock it changed
   // (js/entity-fx.js). `srcId` is optional - without it the flight still happens,
@@ -436,6 +435,10 @@ function pauseRound(seconds, srcId, srcSource) {
   // One click click per pause (r534): beginClockFreeze plays it when the clock stops,
   // so the plate only plays it for an extension of a pause already running.
   if (typeof entityEffectFX === 'function') entityEffectFX('pause', Math.round(seconds), { id: srcId, source: srcSource, sfx: _wasFrozen });
+  // Like a rewind (r552): a floater by the clock and a quiet line in the notice log.
+  showTimeCost(`⏸ ${Math.round(seconds)}s`, '#c6f26b');
+  const _pn = timeSrcName(srcId);
+  noteMessage(`⏸ ${_pn ? _pn + ' - paused' : 'Clock paused'} ${Math.round(seconds)}s`, '#c6f26b');
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {
@@ -491,6 +494,7 @@ function startStopwatch(card, r, c) {
   const _wasFrozen = typeof clockFrozen !== 'undefined' && clockFrozen;
   if (typeof beginClockFreeze === 'function') beginClockFreeze();
   if (typeof entityEffectFX === 'function') entityEffectFX('pause', null, { id: 'stopwatch', source: 'sleight', sfx: _wasFrozen });
+  showTimeCost('⏸', '#c6f26b');
   showMessage('⏱️ Stopwatch - clock paused until your next hand', '#5aa9e6');
   if (stopwatchTimer) clearInterval(stopwatchTimer);
   stopwatchTimer = setInterval(() => {

@@ -99,6 +99,9 @@ body.dance-paused #selected-cards.dnc-active * {
 }
 .dnc-particle.pt-diamond .pt-box{ transform:rotate(45deg); border-radius:var(--pt-round,4px); }
 .dnc-particle.pt-diamond .pt-lab{ transform:rotate(-45deg); }
+/* r552: a rewind / pause mark above the number, in the plate's ink. */
+.dnc-particle .pt-lab.pt-has-ico{ display:inline-flex; flex-direction:column; align-items:center; gap:.06em; }
+.dnc-particle .pt-ico{ display:block; width:.9em; height:.54em; fill:currentColor; }
 .dnc-particle.pt-square  .pt-box{ border-radius:var(--pt-round,4px); }
 .dnc-particle.pt-circle  .pt-box{ border-radius:50%; }
 .dnc-particle.pt-pill    .pt-box{ border-radius:999px; width:auto; padding:0 calc(var(--pt-size,46px)*.30); }

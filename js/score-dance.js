@@ -457,12 +457,21 @@ function dncBlipScale(){
 // Build one plate. TWO nested elements, deliberately: the OUTER is what the flight
 // animates, so the diamond's own 45deg rotation has to live on an inner box or the
 // flight's transform would overwrite it every frame. The label counter-rotates.
-function ptPlateEl(kind, label, scale, color){
+// `icon` ('rewind' | 'pause') puts a small mark above the number, drawn in the
+// plate's ink (r552, owner): a rewind plate and a pause plate are both the white
+// clock plate, and the mark is what says which one it is.
+const PT_ICONS = {
+  rewind: '<svg class="pt-ico" viewBox="0 0 20 12" aria-hidden="true"><path d="M10 0L0 6l10 6zM20 0L10 6l10 6z"/></svg>',
+  pause:  '<svg class="pt-ico" viewBox="0 0 20 12" aria-hidden="true"><path d="M3.5 0h5v12h-5zM11.5 0h5v12h-5z"/></svg>',
+};
+function ptPlateEl(kind, label, scale, color, icon){
   const C = PARTICLE_CFG, bg = (C.colors && C.colors[kind]) || color || '#d4a857';
   const el = document.createElement('div');
   el.className = 'dnc-particle pt-' + ptShape(kind);
   el.innerHTML = '<span class="pt-box"><span class="pt-lab"></span></span>';
-  el.querySelector('.pt-lab').textContent = label;
+  const lab = el.querySelector('.pt-lab');
+  if (icon && PT_ICONS[icon]) { lab.classList.add('pt-has-ico'); lab.innerHTML = PT_ICONS[icon]; if (label) lab.appendChild(document.createTextNode(label)); }
+  else lab.textContent = label;
   el.style.color = color || bg;               // only read by the no-plate shape
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
   el.style.setProperty('--pt-size', (C.size * DANCE_CFG.pScaleMul * scale) + 'px');
@@ -525,7 +534,7 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   const lag  = (C.trailLag  === undefined) ? .06 : C.trailLag;
   const fade = (C.trailFade === undefined) ? .42 : C.trailFade;
   for(let i = trail; i >= 1; i--){
-    const g = ptPlateEl(kind, label, scale, color);
+    const g = ptPlateEl(kind, label, scale, color, o.icon);
     g.style.left = x+'px'; g.style.top = y+'px';
     // Opacity carries the fall-off, not the colour: a white plate cannot be
     // lightened any further, and time particles are white plates.
@@ -537,7 +546,7 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
     anim(g, fades, Object.assign({}, fw, { delay: dur * lag * i, fill: 'both' }));
     later(()=>g.remove(), dur * (1 + lag*i) + 60);
   }
-  const el = ptPlateEl(kind, label, scale, color);
+  const el = ptPlateEl(kind, label, scale, color, o.icon);
   el.style.left = x+'px'; el.style.top = y+'px';
   document.body.appendChild(el);
   anim(el, frames, tw);
