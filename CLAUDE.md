@@ -1273,3 +1273,8 @@ Stopwatch do nothing (`overtimeClockMisses`). **Skip** (`skipEvent` -> `skipOver
 `overtimeRun.gift`: the next reward grid carries a guaranteed time Trick / Knack / Sleight
 (`makeOvertimeGiftTile`), or the Schedule's pick shows one first (`guidedPickThreeOffers`).
 `OVERTIME_GIFT_IDS` lists them by id. The Crunch-only +90s version in js/events.js is gone.
+
+## r563 - 3-line Line Quotas: goals 80 / 90 / 100%
+`QUOTA_LINE_EASE3` deals one of 80%, 90%, 100% of the per-line goal to each line of a 3-line round, at
+random; 2-line rounds are unchanged. Each HUD meter's `flex-grow` is (its goal / the biggest)^3, so the
+three read as about half, three quarters and full width.

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r562 · Overtime in every event mode: longer rounds, avoid one of three costs";
+const BUILD = "2026-10-15 · r563 · 3-line Line Quotas goals at 80 / 90 / 100%, meters sized to match";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -35,6 +35,7 @@ const GOAL_RELAY_BARS        = 3;
 const QUOTA_RELAY_SHARE      = 0.30;  // each bar is this share of the goal
 const QUOTA_RELAY_CARRY      = 0.5;   // share of a bar's overflow that reaches the next
 const QUOTA_LINE_SHARE       = { 2: 0.60, 3: 0.45 };   // per line, by how many lines
+const QUOTA_LINE_EASE3       = [0.8, 0.9, 1];   // r563: a 3-line round's goals, one each, dealt to random lines
 const QUOTA_LINES_REWARDS    = 3;     // Flow: a cleared LINES round pays at least this many rewards
 const QUOTA_LINE_COLORS      = ['#5ee6ee', '#ff6fd8', '#ffc24a'];   // line i on the board = meter i in the HUD
 const QUOTA_INTRO_KEY        = 'lethe.lineQuotaIntro.v1';   // how many times the explainer has shown
@@ -71,6 +72,10 @@ function roundQuotaBuild(kind) {
   // `shown` is what the board and HUD draw: it trails `prog` and catches up with
   // the score tally (roundQuotaClimb), so a line fills as the score climbs.
   lines.forEach((l, i) => { l.target = t; l.prog = 0; l.shown = 0; l.hue = i; });
+  if (n === 3) {
+    const k = [...QUOTA_LINE_EASE3].sort(() => Math.random() - 0.5);
+    lines.forEach((l, i) => { l.target = _q10(t * k[i]); });
+  }
   return { kind: 'lines', lines, announced: false };
 }
 
@@ -379,6 +384,8 @@ function roundQuotaPaintHud() {
     }
     m.style.setProperty('--qc', _qColor(l));
     m.style.setProperty('--qf', Math.min(1, _qShown(l) / l.target));
+    // A smaller goal draws a shorter meter: cubed, so 80/90/100% reads as about 1/2, 3/4, full.
+    m.style.flexGrow = Math.pow(l.target / Math.max(...q.lines.map(x => x.target)), 3).toFixed(3);
     m.classList.toggle('q-done', _qShown(l) >= l.target);
   });
   box.querySelectorAll('.q-meter').forEach(m => { if (+m.dataset.qi >= q.lines.length) m.remove(); });
