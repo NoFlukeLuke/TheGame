@@ -254,7 +254,12 @@ function flowRerollType() {
 function flowrSplitTiles() {
   const out = [];
   const rest = flowrQueue ? flowrQueue.length - flowrIdx : 0;
-  if (rest > 1) out.push({ icon: '\u2630', label: 'Queue', sub: `${rest} rewards`,
+  // r564: console mode shows the queue on the location screen, so its tile is Peek
+  // (the pick-of-three already carries one of its own).
+  if (flowrConsoleOn()) {
+    const has = gridPickState && (gridPickState.actions || []).some(a => a && a.label === 'Peek');
+    if (!has) out.push({ icon: '\ud83d\udc41', label: 'Peek', sub: 'view grid', onClick: () => gridPeekFan(true) });
+  } else if (rest > 1) out.push({ icon: '\u2630', label: 'Queue', sub: `${rest} rewards`,
     cls: flowrQueueOpen ? 'gp-act-on' : '', onClick: () => flowrToggleQueue() });
   if (gridPickState && gridPickState.onSkip) out.push({ icon: '\u23ed', label: 'Skip', sub: 'take none',
     onClick: () => gridPickSkipNow() });
@@ -1623,10 +1628,47 @@ function flowrRenderStack() {
       + `<span>${flowrKindShort(kind)}</span></div>`;
   }).join('');
   host.insertBefore(el, bg);
+  flowrLocPaint();
 }
 let _flowrLastIdx = -1;
+// ── CONSOLE MODE: the reward queue is in the LOCATION screen (r564, owner) ──
+// The left column's location screen reads REWARD and holds one tile per step
+// left in the chain, each in its step's colour: the current one on top at the
+// left, the queued ones behind it, each peeking out to the RIGHT with its name.
+// The board's panel carries no title band and no tab stack there (css). Other
+// looks keep the tabs. Repainted from flowrRenderStack; cleared with the chain.
+function flowrConsoleOn() { return typeof trayMachineOn === 'function' && trayMachineOn(); }
+function flowrLocPaint() {
+  const loc = document.getElementById('screen-location');
+  const on = !!(flowrQueue && flowrConsoleOn() && loc);
+  document.body.classList.toggle('flowr-loc', on);
+  if (!on) { loc?.querySelector('.loc-steps')?.remove(); return; }
+  let box = loc.querySelector('.loc-steps');
+  if (!box) { box = document.createElement('div'); box.className = 'loc-steps'; loc.appendChild(box); }
+  const rest = flowrQueue.slice(flowrIdx);
+  box.style.setProperty('--n', rest.length);
+  box.innerHTML = '<span class="loc-rtag">REWARD</span><span class="loc-row">'
+    + rest.map((k, i) => {
+      const m = FLOWR_KINDS[k] || FLOWR_KINDS.pick3;
+      return `<span class="loc-step${i ? '' : ' loc-cur'}" style="--c:${m.color};--i:${i};z-index:${20 - i}">`
+        + `<b>${flowrKindShort(k)}</b></span>`;
+    }).join('') + '</span>';
+  // Widths as fractions of the row, so nothing has to be measured (the screen may
+  // not be laid out yet). Each queued tile shows a sliver `sp` of the row at its right
+  // end. On a phone the slivers are bare colour strips and the current name keeps the room.
+  const n = rest.length, land = document.getElementById('stage')?.classList.contains('landscape');
+  const sp = n > 1 ? (land ? Math.min(0.24, 0.64 / (n - 1)) : 0.045) : 0, wp = 1 - sp * (n - 1);
+  box.classList.toggle('loc-thin', sp < 0.11);
+  [...box.querySelector('.loc-row').children].forEach((t, i) => {
+    t.style.left = (i * sp * 100).toFixed(2) + '%'; t.style.width = (wp * 100).toFixed(2) + '%';
+    if (i) t.firstChild.style.maxWidth = `calc(100% * ${sp.toFixed(4)} / ${wp.toFixed(4)} - 8px)`;
+  });
+}
+
 function flowrClearStack() {
   flowrStepActions = null;
+  document.body.classList.remove('flowr-loc');
+  document.querySelector('#screen-location .loc-steps')?.remove();
   try { flowrReleaseOverlay(); } catch (e) {}
   document.getElementById('flowr-stack')?.remove();
   document.getElementById('flowr-bg')?.remove();

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r563 · 3-line Line Quotas goals at 80 / 90 / 100%, meters sized to match";
+const BUILD = "2026-10-15 · r564 · console mode: rewards named in the location screen, hand bulbs on PLAY, Peek fans the offers";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -88,8 +88,7 @@ function gridSameBoxMetrics() {
 // the timer (css/skin-machine.css places #grid-slot there). Cards stop keeping
 // the playing-card shape and stretch to fill it, whatever the rows and columns,
 // so the board, the Focus bar and the timer never move. Reward screens use the
-// same box; a Flow reward board gives up the height of its panel's title band
-// so band and board fill the box together.
+// same box (r564: their title is on the location screen, so they fill it whole).
 function gridFillOn() {
   if (!(typeof trayMachineOn === 'function' && trayMachineOn())) return false;
   const st = document.getElementById('stage');
@@ -98,21 +97,16 @@ function gridFillOn() {
 }
 function gridFillMetrics() {
   const slot = measureGridSlot();
-  const b = document.body.classList;
-  const head = (b.contains('gp-active') && typeof survivalActive === 'function' && survivalActive()
-                && !(typeof shopGridActive !== 'undefined' && shopGridActive)) ? 15 : 0;   // the panel's --fbg-head
+  // r564: no title band to make room for; the reward title is on the location screen.
   const cols = gridCols, rows = gridRows;
   GRID_PAD = GRID_PAD_BASE;
   const inner = (gap) => ({
     w: (slot.w - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (cols - 1)) / cols,
-    h: (slot.h - head - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (rows - 1)) / rows });
+    h: (slot.h - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (rows - 1)) / rows });
   let c = inner(CARD_GAP_BASE);
   const gap = gapForCardW(Math.min(c.w, c.h / CARD_ASPECT));
   c = inner(gap);
   CARD_GAP = gap; CARD_W = c.w; CARD_H = c.h; CARD_STEP = CARD_H + CARD_GAP;
-  // The board drops by half the band and the panel centres on the box (css), so
-  // band + board fill the box exactly.
-  b.toggle('gp-fillhead', head > 0);
   applyGridMetricsToDOM();
 }
 

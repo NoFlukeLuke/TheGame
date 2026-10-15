@@ -101,7 +101,11 @@ function sbPlaces(st, z, sr) {
   // (js/portrait-panel.js), so while Knacks show, that same box stands in for it.
   const vis = id => { const e = document.getElementById(id); return e && e.offsetParent && e.offsetWidth ? e : null; };
   const hp = land ? vis('selected-cards') : (vis('hand-preview-area') || vis('knack-carousel-wrap'));
-  if (s.hand) out.hand = hp
+  // Console mode (r564, owner): the hand size is a column on the PLAY key, like the
+  // swaps and discards on theirs.
+  const machine = typeof trayMachineOn === 'function' && trayMachineOn();
+  if (s.hand && machine) { if (!document.body.classList.contains('grid-screen')) out.hand = keyCol('btn-play', s.hand.n); }
+  else if (s.hand) out.hand = hp
     ? trayRow(hp, s.hand.n, sbCfg.trick, roomBelow(hp, land ? ['trick-tray-area'] : ['sel-count', 'grid', 'trick-tray-area']))
     : trayRow(document.getElementById('sel-count'), s.hand.n, 'mid');
   return out;
@@ -125,7 +129,7 @@ function sbPaint(force) {
     if (!box) { box = document.createElement('div'); box.className = `sb-grp sb-${g}`; l.appendChild(box); }
     box.classList.toggle('sb-col', p.dir === 'col' && !p.split);
     box.classList.toggle('sb-split', !!p.split);
-    box.classList.toggle('sb-flush', g === 'swap' || g === 'disc');
+    box.classList.toggle('sb-flush', g === 'swap' || g === 'disc' || (g === 'hand' && p.dir === 'col'));
     box.style.cssText = `left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px;--sb:${p.size.toFixed(1)}px;gap:${SB_GAP}px`
       + (p.split ? `;width:${p.w.toFixed(1)}px;--sb-rows:${p.split}` : '');
     while (box.children.length < s.n) box.appendChild(document.createElement('i'));

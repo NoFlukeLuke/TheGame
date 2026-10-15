@@ -336,10 +336,6 @@ html.skin-machine #stage.landscape:not(.squares-mode) #grid-slot {
   left: 46.85% !important; width: 43.9% !important; top: 11.11% !important; height: 87.4% !important;
 }
 html.skin-machine #stage.landscape { --fbg-pad: 0px; }
-html.skin-machine body.gp-fillhead #stage.landscape #grid { margin-top: 15px !important; }
-html.skin-machine body.gp-fillhead #stage.landscape #flowr-bg { top: 50% !important; }
-html.skin-machine body.gp-fillhead #stage.landscape #flowr-stack {
-  bottom: calc(50% + var(--fbg-h, var(--grid-h, 0px)) / 2 + 7.5px) !important; }
 
 /* ── r558: nothing prints on the housing ─────────────────────────────────── */
 /* The Focus gauge is a screen: on a reward or shop board it stays as a dark pane
@@ -366,3 +362,69 @@ html.skin-machine #stage.landscape #sel-count[data-mc="1"] { font-size: 11px; ju
 html.skin-machine #stage.landscape #sel-count[data-mc="1"], html.skin-machine #stage.landscape #sel-count[data-mc="1"] :is(#sel-count-val, #sel-count-hand) {
   color: rgba(214,207,187,.85) !important;   /* on the glass, not the housing: light ink in both cases */
 }
+
+/* ── r564: the reward queue lives in the LOCATION screen (js/flow-rewards.js flowrLocPaint) ──
+   The screen reads REWARD; one tile per step left, in its step's colour. The current
+   tile is on top at the left; the queued ones sit behind it, offset to the right so
+   each shows a sliver with its name right-aligned in it. The board's panel loses its
+   title band, its THEN text and its tab stack. */
+html.skin-machine body.flowr-loc #screen-location > .loc-tag,
+html.skin-machine body.flowr-loc #screen-location > .loc-name { display: none !important; }
+html.skin-machine body.flowr-loc #screen-location { position: relative; }
+html.skin-machine #screen-location .loc-steps {
+  position: absolute; inset: 5px 8px 6px; display: flex; flex-direction: column; gap: 3px; z-index: 1;
+}
+html.skin-machine #screen-location .loc-rtag {
+  flex: 0 0 auto; text-align: left; font-size: 8px; letter-spacing: 2px; color: rgba(214,207,187,.75);
+}
+html.skin-machine #screen-location .loc-row { position: relative; flex: 1 1 auto; }
+html.skin-machine #screen-location .loc-step {
+  position: absolute; top: 0; bottom: 0;   /* left / width: flowrLocPaint, from the row's box */
+  display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box;
+  padding: 0 5px; border-radius: 4px; overflow: hidden;
+  background: var(--c); color: #120f0a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.25), 2px 0 4px rgba(0,0,0,.55);
+  filter: brightness(.82) saturate(.9);
+}
+html.skin-machine #screen-location .loc-step b {
+  font-weight: 400; font-size: 9px; letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-align: right;
+}
+html.skin-machine #screen-location .loc-step.loc-cur {
+  justify-content: center; filter: none; animation: locCurIn .32s cubic-bezier(.2,.8,.3,1.15);
+}
+html.skin-machine #screen-location .loc-step.loc-cur b { font-size: 17px; letter-spacing: 2px; max-width: none; }
+@keyframes locCurIn { from { transform: translateX(14%); opacity: .4; } to { transform: none; opacity: 1; } }
+body.reduced-motion #screen-location .loc-step.loc-cur { animation: none; }
+html.skin-machine body.flowr-loc #flowr-bg { --fbg-head: 0px !important; }
+html.skin-machine body.flowr-loc #flowr-bg :is(.fbg-title, .fbg-next),
+html.skin-machine body.flowr-loc #flowr-stack,
+html.skin-machine body.flowr-loc #flowr-fall :is(.ffl-tab, .ffl-title) { display: none !important; }
+/* r564: the timer and its bar stay lit on reward and shop boards (they used to fold
+   away); the topline that used to stand in for them stays off the housing. */
+html.skin-machine body.grid-screen #stage.landscape :is(#clock-area, #vclock) {
+  opacity: 1 !important; transform: none !important;
+}
+html.skin-machine body.grid-screen #stage.landscape #grid-topline { display: none !important; }
+html.skin-machine #screen-location .loc-steps.loc-thin .loc-step:not(.loc-cur) b { display: none; }
+html.skin-machine #stage:not(.landscape) #screen-location .loc-step.loc-cur b { font-size: 14px; letter-spacing: 1px; }
+
+/* ── r564: Peek fans the offers small over the foot of the board (js/grid-pick.js gridPeekFan) ── */
+body.gp-peeking :is(#flowr-bg, #flowr-stack) { visibility: hidden !important; }
+#gp-peek-fan {
+  position: absolute; left: 50%; bottom: 3%; width: 0; height: 0; z-index: 30; pointer-events: none;
+}
+#gp-peek-fan .gpf-tile {
+  --a: calc((var(--i) - (var(--n) - 1) / 2) * 20deg);
+  position: absolute; left: -29px; bottom: 0; width: 58px; height: 58px; padding: 0;
+  border: 0; background: none; pointer-events: auto; cursor: var(--cur-pointer, pointer);
+  transform-origin: 50% 230%;
+  transform: rotate(var(--a));
+  transition: transform .18s ease, filter .18s ease;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.7));
+  animation: gpfIn .32s cubic-bezier(.2,.8,.3,1.2) both; animation-delay: calc(var(--i) * 45ms);
+}
+#gp-peek-fan .gpf-tile:hover { transform: rotate(var(--a)) translateY(-8px) scale(1.08); }
+#gp-peek-fan .gpf-tile > * { width: 100% !important; height: 100% !important; margin: 0 !important; }
+#gp-peek-fan .gpf-tile .rwd-name, #gp-peek-fan .gpf-tile .rwd-glyph { display: none !important; }
+@keyframes gpfIn { from { transform: rotate(0deg) translateY(40px) scale(.4); opacity: 0; } }
+body.reduced-motion #gp-peek-fan .gpf-tile { animation: none; }

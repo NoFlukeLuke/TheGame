@@ -520,6 +520,10 @@ function survivalHideContrib() {
 // panel itself is pointer-events:none while peeking - a restore button inside it
 // would be unreachable.
 function survivalTogglePeek() {
+  // r564: console mode peeks with the offers fanned small over the board.
+  if (typeof flowrConsoleOn === 'function' && flowrConsoleOn() && typeof gridPeekFan === 'function') {
+    survivalHideContrib(); gridPeekFan(!gridPeekFanOn()); return;
+  }
   const ov = survivalPickOverlay();
   if (!ov.classList.contains('show')) return;
   ov.classList.toggle('sv-peek');

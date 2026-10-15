@@ -1278,3 +1278,19 @@ Stopwatch do nothing (`overtimeClockMisses`). **Skip** (`skipEvent` -> `skipOver
 `QUOTA_LINE_EASE3` deals one of 80%, 90%, 100% of the per-line goal to each line of a 3-line round, at
 random; 2-line rounds are unchanged. Each HUD meter's `flex-grow` is (its goal / the biggest)^3, so the
 three read as about half, three quarters and full width.
+
+## r564 - console mode: rewards named on the location screen; hand bulbs on PLAY; Peek fans the offers (owner)
+- **The timer and its bar stay lit** on reward and shop boards (css/skin-machine.css); `#grid-topline`
+  stays off the housing. The Focus gauge keeps r558's dimmed pane.
+- **Hand size is a column of bulbs on the PLAY key** (`sbPlaces`, js/stock-bulbs.js, `keyCol('btn-play')`,
+  flush like SWAP / DEFER), in both orientations, not while a grid screen holds the key (CONFIRM).
+- **The reward queue is the LOCATION screen** (`flowrLocPaint`, js/flow-rewards.js, from
+  `flowrRenderStack`; `body.flowr-loc`): it reads REWARD and holds one tile per step left, each in its
+  step's colour, the current one on top at the left and the queued ones behind it, offset to the right
+  so each shows a sliver with its name. Widths are fractions of the row (`sp`, `wp`), no measuring; a
+  phone gets bare colour strips (`.loc-thin`). The board's panel loses its title band (`--fbg-head` 0),
+  `.fbg-next` and the tab stack, so `gridFillMetrics` no longer reserves a band (r540's `gp-fillhead` is gone).
+- **Peek** (`gridPeekFan`, js/grid-pick.js): replaces the Queue tile on chain screens (`flowrSplitTiles`;
+  the pick-of-three keeps its own Peek, which `survivalTogglePeek` routes here). It hands the board back
+  and fans the offers' objects small over the board's foot (`#gp-peek-fan`, no names); a tap on one, or
+  any `gridPickRender`, brings the pick back. `flowrConsoleOn()` is the one test for all of this.

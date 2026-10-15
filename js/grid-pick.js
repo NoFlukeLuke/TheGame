@@ -705,6 +705,7 @@ let _gpDeal = null;
 
 // Draw (or redraw) the taken-over board from gridPickState.
 function gridPickRender(animateIn) {
+  gridPeekFanClear();
   const gridEl = gridPickTakeover();
   if (!gridEl) return;
   const { offers, actions, onChoose } = gridPickState;
@@ -891,7 +892,49 @@ function gridPickSetShown(on) {
   }
 }
 
+// ── PEEK, console mode (r564, owner) ────────────────────────────────────────
+// Peek hands the board back, and the offers do not vanish: each shrinks to its
+// object alone (no name, no description) and they fan out over the foot of the
+// board, so every card on it can be seen and the choice is still in view. Tap any
+// of them (or Peek again) to bring the pick back. gridPickRender clears the fan,
+// so a reroll or a confirm taken while peeking cannot leave it behind.
+let _gpPeek = null;
+function gridPeekFanOn() { return !!_gpPeek; }
+function gridPeekFanClear() {
+  if (!_gpPeek) return;
+  _gpPeek.remove(); _gpPeek = null;
+  document.body.classList.remove('gp-peeking');
+}
+function gridPeekFan(on) {
+  if (!gridPickState) return;
+  if (!on) { if (_gpPeek) gridPickSetShown(true); return; }
+  if (_gpPeek) return;
+  const arts = [...document.querySelectorAll('#grid .gp-opt')].map(o => {
+    const a = o.querySelector('.gp-art .reward-cell, .gp-art .gp-icon');
+    return a ? a.cloneNode(true) : null;
+  }).filter(Boolean);
+  if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true);
+  gridPickSetShown(false);
+  const slot = document.getElementById('grid-slot'); if (!slot) return;
+  const fan = document.createElement('div');
+  fan.id = 'gp-peek-fan';
+  fan.style.setProperty('--n', arts.length);
+  arts.forEach((a, i) => {
+    a.removeAttribute('data-float-key');
+    const b = document.createElement('button');
+    b.className = 'gpf-tile'; b.style.setProperty('--i', i);
+    b.appendChild(a);
+    b.addEventListener('click', e => { e.stopPropagation(); gridPeekFan(false); });
+    fan.appendChild(b);
+  });
+  slot.appendChild(fan);
+  _gpPeek = fan;
+  document.body.classList.add('gp-peeking');
+  try { sfxShopOpen?.(); } catch (e) {}
+}
+
 function closeGridPick() {
+  gridPeekFanClear();
   gridPickReturnButtons();
   gridPickRelease();
   gridPickState = null;
