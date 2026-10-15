@@ -1498,6 +1498,12 @@ function flowrRenderStack() {
   let title = bg.querySelector('.fbg-title');
   if (!title) { title = document.createElement('div'); title.className = 'fbg-title'; bg.appendChild(title); }
   title.textContent = flowrKindShort(rest[0]);
+  // r558: console mode's fixed box has no room above it for the queued tabs (they
+  // peeked into the timer band), so there the queue is text at the band's right end
+  // (css/skin-machine.css shows it and stands the tab stack down).
+  let next = bg.querySelector('.fbg-next');
+  if (!next) { next = document.createElement('div'); next.className = 'fbg-next'; bg.appendChild(next); }
+  next.textContent = rest.length > 1 ? 'THEN ' + rest.slice(1).map(flowrKindShort).join(' · ') : '';
 
   // ── THE PANEL TURNS OVER BETWEEN STEPS (r380) ──
   // Owner: "the animation between choices could use some more va va voom, it

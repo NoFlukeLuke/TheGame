@@ -340,3 +340,29 @@ html.skin-machine body.gp-fillhead #stage.landscape #grid { margin-top: 15px !im
 html.skin-machine body.gp-fillhead #stage.landscape #flowr-bg { top: 50% !important; }
 html.skin-machine body.gp-fillhead #stage.landscape #flowr-stack {
   bottom: calc(50% + var(--fbg-h, var(--grid-h, 0px)) / 2 + 7.5px) !important; }
+
+/* ── r558: nothing prints on the housing ─────────────────────────────────── */
+/* The Focus gauge is a screen: on a reward or shop board it stays as a dark pane
+   with its fill dimmed, and the MAX note prints inside it, not on the housing. */
+html.skin-machine body.grid-screen #stage.landscape #focus-bar-outer {
+  opacity: 1 !important; visibility: visible !important; transform: none !important; pointer-events: none;
+}
+html.skin-machine body.grid-screen #stage.landscape #focus-bar-outer > * { opacity: .22; }
+html.skin-machine body.grid-screen #stage.landscape #focus-max-note {
+  bottom: 9px; z-index: 2; color: rgba(214,207,187,.8); font-size: 7px; left: 6px; right: 6px;
+}
+/* The fixed box has no room above it: the queued rewards are text in the panel's
+   title band (.fbg-next, js/flow-rewards.js) and the tab stack stands down. */
+html.skin-machine #stage.landscape #flowr-stack { display: none !important; }
+#flowr-bg .fbg-next { display: none; }
+html.skin-machine #stage.landscape #flowr-bg .fbg-next {
+  display: flex; align-items: center; position: absolute; right: 10px; top: 0;
+  height: calc(var(--fbg-head, 15px) + 4px);
+  font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 1.5px;
+  color: var(--fc, #5ad4c0); opacity: .65; white-space: nowrap; pointer-events: none;
+}
+/* With bulbs off the x/y readout is placed on the preview tray's edge (js/hud.js). */
+html.skin-machine #stage.landscape #sel-count[data-mc="1"] { font-size: 11px; justify-content: center; }
+html.skin-machine #stage.landscape #sel-count[data-mc="1"], html.skin-machine #stage.landscape #sel-count[data-mc="1"] :is(#sel-count-val, #sel-count-hand) {
+  color: rgba(214,207,187,.85) !important;   /* on the glass, not the housing: light ink in both cases */
+}

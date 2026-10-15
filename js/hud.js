@@ -166,6 +166,33 @@ function updateSelectionUI() {
   vEl.textContent = `${n}/${cap}`;
   cEl.classList.toggle('below', n > 0 && n < min);
   cEl.classList.toggle('full',  n >= cap);
+  placeSelCountConsole(cEl);
+}
+// r558: console mode's board box (r540) has no side gutter for the x/y readout,
+// so with the stock bulbs off it sits on the hand preview tray's lower edge,
+// where the bulbs would be. Placed from live rects in the slot's design px (the
+// readout is a child of #grid-slot); every other look clears the inline box.
+function placeSelCountConsole(cEl) {
+  const stage = document.getElementById('stage');
+  const on = typeof trayMachineOn === 'function' && trayMachineOn()
+    && stage && stage.classList.contains('landscape')
+    && !(typeof sbCfg !== 'undefined' && sbCfg.on);
+  if (!on) {
+    if (cEl.dataset.mc) { cEl.dataset.mc = ''; ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach(k => cEl.style[k] = ''); }
+    return;
+  }
+  // The strip itself, not #hand-preview-area: in landscape that wrapper is static and has no box (r480).
+  const slot = document.getElementById('grid-slot'), hp = document.getElementById('selected-cards');
+  if (!slot || !hp || !hp.offsetWidth) return;
+  const s = slot.getBoundingClientRect(), h = hp.getBoundingClientRect();
+  if (s.width < 10 || h.width < 10) return;
+  const z = s.width / slot.offsetWidth;   // zoomed rect -> design px (CLAUDE.md: never mix the two)
+  cEl.dataset.mc = '1';
+  cEl.style.left   = ((h.left - s.left) / z) + 'px';
+  cEl.style.width  = (h.width / z) + 'px';
+  cEl.style.top    = ((h.bottom - s.top) / z - 16) + 'px';
+  cEl.style.height = '14px';
+  cEl.style.right = 'auto'; cEl.style.bottom = 'auto';
 }
 
 function updateCoinsUI() {

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r557 · stock bulbs on by default; Flow pays 5 a level and more over the goal";
+const BUILD = "2026-10-15 · r558 · console mode: the gauge stays a screen, the queue is text in the band, the x/y readout moves";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
