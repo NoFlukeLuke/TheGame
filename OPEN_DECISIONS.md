@@ -123,7 +123,11 @@ That conversion exposed a live bug worth remembering: `rewindTime` clamped to
 Flush destroyed 110 seconds and reported nothing. The ceiling is now
 `max(currentRoundDuration(), roundStartSeconds, roundSeconds)`.
 
-## 7. Natural Scaling inverts the hand ladder - largely addressed in r282
+## 7. Natural Scaling inverts the hand ladder - largely addressed in r282, superseded by r554
+
+**r554: the shipped model is DOUBLE SCALING** (a family climbs the card ladder and gains pips;
+CLAUDE.md r554). The per-hand table below still exists under dev -> Hand Scaling -> Per-hand
+table, so this item only applies when that model is switched back on.
 
 **r281 measurement, against the flat rate that shipped then** (`nsPipsPerHand` 2,
 `nsMultPerHand` 0, `nsEveryHands` 1, applied to all nineteen hand types alike):
@@ -234,3 +238,14 @@ then 24/23/22) purely by raising the sample size. Before trusting a number from 
   median level among runs that cleared round 1 was **22 for the r318 deck against 19
   for Classic**, worst run 14 against 2 - consistent with the pricing break above,
   and the direction to expect from a deck paying rare-hand prices for common hands.
+
+## 9. The goal curve under the card ladder and double scaling (r553 / r554)
+
+The curve (`goalForLevel`) was tuned against the classic table with level growth on. Both are
+off now. Measured with tools/sim (Classic, native curve, handTime 6, 24 runs each): main 91.7%
+bot wins, r553 (card ladder, no level growth) 87.5%, r554 (double scaling on) 75%. Deaths sit at
+levels 13-17 in every case. The sim's spread at 24 runs is wide (OPEN_DECISIONS 8), the bot
+never steers toward one family (a player will, and double scaling pays that), and the r278
+calibration called 93.8% "a good bit too easy". So: the curve probably wants raising once the
+owner has played a few runs on r554, and the number to turn is the goal tuner's growth, not the
+scaling knobs. Not touched this pass.

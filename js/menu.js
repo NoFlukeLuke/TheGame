@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r558 · console mode: the gauge stays a screen, the queue is text in the band, the x/y readout moves";
+const BUILD = "2026-10-15 · r559 · docs: r553-r558 in CLAUDE.md, goal-curve note, sim gap";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

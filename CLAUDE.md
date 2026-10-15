@@ -909,7 +909,9 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
 ## r525 - knacks grow after bosses; Flow boss goal; Swap Shop / Harvest paid twice
 - **Swap Shop, Harvest, Curator** (`KNACK_BOSS_GROW`, js/limits.js): each boss beaten (`endBoss` success),
   each owned one has `KNACK_BOSS_GROW_PCT` (60%) to give 1 more (`knackBossGrowth`, in SAVE_VARS, reset
-  in startGame), read by `computeRoundResources` and `trickCapacity`. Curator stays +1. TBD: per mode.
+  in startGame), read by `computeRoundResources` and `trickCapacity`. Curator stays +1. One number in
+  every mode (decided r558: Classic, Schedule and Flow all beat four bosses a run, so a per-mode table
+  would buy nothing and the knack's sentence would have to change per mode).
 - **Swap Shop / Harvest double count fixed:** `computeRoundResources` added them in baseSwaps/baseDiscards
   AND again under "round-start knack effects", so each paid +4 while saying +2.
 - **Flow boss goal** (`flowBossGoalLevel`, js/flow-mode.js): boss N's goal is `goalForLevel(1 + 5N)`
@@ -1101,7 +1103,8 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
 ## r546 - Flow's over-the-goal pay is front-loaded; efficiency pays half
 - **Flow** (owner: more credits so the shop matters): `flowOverGoalPay` reads `flowOverSteps()`, a
   step table in `flowEcon.overSteps` ("percent over:credits added"), default `10:5, 25:2, 50:1, 100:1,
-  200:1`: 10% over pays 5, 25% pays 7, 50% 8, 100% 9, 200% and up 10. Was 1 per 15%, uncapped (0 at
+  200:1`: 10% over pays 5, 25% pays 7, 50% 8, 100% 9, 200% and up 10 (r557: `10:5, 25:3, 50:2, 100:1,
+  200:1`, so 5 / 8 / 10 / 11 / 12). Was 1 per 15%, uncapped (0 at
   10%, 1 at 25%, 6 at 100%). The breakdown note (`flowOverGoalNote`) and the credits chip read the same
   function. Dev -> Flow takes the table as text; `lethe.flowEcon.v1` stays overrides only (`overPct` is gone).
 - **Efficiency** (`EFFICIENCY_SECONDS_PER_COIN`) 10 -> 20: Classic / Schedule's leftover-time line,
@@ -1119,7 +1122,7 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
   MULT is `handLadderTotal(cells)`; the round breakdown shows a "Card ladder" mult row
   (`_lastHandLadderMult`). `handBaseMult(h)` with no cells (hand ranking, Records) falls back to the
   table, so the partition still prefers the bigger hand. Real hands through PLAY: no timeline drift.
-  TBD: a wild pays no ladder mult (like its pips).
+  A wild pays no ladder mult and takes no number (owner, r553).
 - **Dev panel search** (`#dev-search`, the title bar; `devSearch`): lists every section on every tab
   holding the typed phrase (spaces collapsed; if none does, every word anywhere), each headed by the
   tab(s) it lives on, the matching lines lit (`.dev-hit`). It renders every tab's generated rows first
@@ -1170,3 +1173,63 @@ carry it too. `pauseRound` now does what `rewindTime` does: a floater by the clo
 color)`, green "⏸ Ns") and a quiet `noteMessage` ("⏸ <Name> - paused Ns", name from `timeSrcName`). Neither
 prints a slip (NOTICES.md rule). Every pauseRound call from a Trick or Knack now passes its id, so the chip
 flies from that tray tile. particle-preview.html mirrors the mark on its rewind demo.
+
+## r553 - the card ladder is the game; level growth off; cards score in the order picked (owner)
+- `scoringModel` defaults to `card_ladder` (`SCORING_MODEL_DEFAULT`, js/focus-config.js; key
+  `lethe.scoringModel.v2`, stored only when different; the old `scoringModel` key is dropped on load).
+  `startGame`'s fallback and the Custom picker default read the same constant.
+- **Level growth is OFF** (`levelGrowthOn`, key `levelGrowth` stored only as `'on'`). Nothing scales
+  base pips by level now; double scaling (r554) is what grows hands.
+- **`scoringOrderCells` returns selection order.** The card ladder numbers cards in the order they
+  were picked (first tap = card 1), so pick order is a decision. The dance's strip, Wait Four It's
+  4th card and Pivot read the same function. The old 'selection_scoring' knack hook is gone.
+- A wild takes no number and pays no ladder mult.
+
+## r554 - double scaling: a hand FAMILY climbs the ladder and gains pips (`js/natural-scaling.js`)
+`nsModel` 'double' (default; 'table' keeps the r282 per-hand rate table, `lethe.nsModel.v1` stored
+only when chosen). `nsFamPlays` counts plays per family (set / run / flush; a same-suit run credits
+both; in SAVE_VARS). Every `ns2.multEvery` (30) family plays the family is one step up the ladder:
+card n pays n + step mult (`_ns2.step` rides the `_ladder` event; cards are numbered under every
+model, `handCardLadder` is 0 outside the card ladder). Every `ns2.pipsEvery` (8) plays each card in
+a hand of that family pays `ns2.pipsPer` (1) more pips, once per replay, before its x pips (timeline
+`_nsPips`, source card). `nsHandGrowth(names)` takes the best family on each axis; the Drought zeroes
+it. Knobs in `lethe.nsDouble.v1`, overrides only; dev -> Hand Scoring has the model radio, three
+steppers and a 30 / 60 / 90-play projection (60 plays of one family = about x4 on a 3-card hand:
+mult 6 -> 12, a 7.3-pip card -> 14.3). `handLadderTotal` adds k x step so the preview MULT quotes it;
+`_lastHandNsPips` / `_lastHandNsMult` carry the share for the breakdown. `naturalScaleBonus` is 0
+under double; `nsAnythingEarned()` is what the Drought and the scaling tip ask.
+**Sim note** (tools/sim Classic, native curve, handTime 6, 24 runs): main 91.7% bot wins, r553
+87.5%, r554 75%; wide spread at that sample size, and the bot never steers toward a family. The
+survival sim is broken ("reading 'seed'") on main as well.
+
+## r555 - challenge cards: every ask has a TOUCHING tier; a hand that takes the whole selection asks less
+`crTypeDefs`: every ask but the fall cards and "N hands touching" comes in two tiers. The base ladder
+is the ask met anywhere; the touching tier (`q.touch`, `_crTouch`: each d + 1 capped at 3, repeats
+dropped) counts only hands orthogonally touching the card (`crOnHand`), wears ✋ beside the glyph
+(`.cr-touch`) and says so in the text. A hand that needs every selected card (`CR_HAND_SIZE` >=
+Selection Size) gets the TIGHT ladder (low 2/3/5, mid 1 then 2 at d2-3, top one at d3), one with a
+spare card the EASY one (low 3/5/7, mid 2/3/5, top 1/2). Three of a suit is never asked at Selection
+3; at 4 it is d2/d3, at 5+ it starts at d1; hands of 4+ cards likewise. "N hands touching" is 3/5/7.
+Two tiers of one ask weigh 0.6 each. Saved cards without `touch` are the anywhere tier.
+
+## r556 - the Challenge Dial knack (`challenge_dial`, rare)
+`challengeDial` (+1 / -1, SAVE_VARS, +1 on a new run; js/challenge-round.js). `crChanceMult()` is
+1 +- `BAL.challenge_dial.pct` (25) / 100 while owned, multiplied into Flow's per-level roll and the
+node modes' spot roll. A double-tap on its tray chip (`knackDoubleTap`, js/hud.js: a second click on
+the same chip within 350ms) flips it (`crDialFlip`, prints the direction); the chip carries
+`kc-dial-up` / `kc-dial-down` (a + or minus badge on the diamond) and the tooltip's live block reads
+NOW. Banned where no challenge card is ever dealt (`crModeHasCards`: Flow or a node mode).
+
+## r557 - stock bulbs on by default; Flow pays 5 a level clear and more over the goal (owner)
+`SB_DEFAULT.on` 1 (the store holds only what differs; with bulbs on the landscape x/y readout is
+hidden). `SURVIVAL_LEVEL_COINS` 3 -> 5. `FLOWE_DEF.overSteps` `10:5, 25:3, 50:2, 100:1, 200:1`.
+
+## r558 - console mode: nothing prints on the housing (owner: r540's three leftovers)
+On a reward or shop board the Focus gauge stays as a dark pane (fill at 22%) and the MAX note prints
+inside its foot. The queued reward tabs are hidden in console landscape (no room above the fixed
+box); the queue is text at the right end of the panel's title band (`.fbg-next`, "THEN PICK 3 ·
+LIMITS", written by `flowrRenderStack`). With the bulbs off, `placeSelCountConsole` (js/hud.js, from
+`updateSelectionUI`) lays the x/y readout on the hand preview screen's lower edge from live rects
+in the slot's design px, light ink; every other look clears the inline box. Pit (the default) is
+untouched. Decided this pass, no code: Prime Time keeps the universal `0 1 2 3 4 7` improvement
+ladder (its 5th improvement is 3 steps like every entity); knack boss growth stays one number.
