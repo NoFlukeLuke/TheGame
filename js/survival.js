@@ -618,7 +618,9 @@ function survivalChoose(i) {
 // Route each option type to the existing grant primitive.
 function survivalGrant(opt) {
   switch (opt.type) {
-    case 'trick':   return injectTrickAfterReward(opt.data);   // false = refused, tray full
+    case 'trick': { const ok = injectTrickAfterReward(opt.data);   // false = refused, tray full
+                    if (ok && typeof flowrNoteTrickTaken === 'function') flowrNoteTrickTaken(opt.data);
+                    return ok; }
     case 'sleight': grantSleight(opt.data); noteMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
     case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); noteMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
     case 'limit': { const _say = `${opt.icon} ${limitDeltaText(opt.data.id, 1)} ${opt.data.label}`;   // before the increment moves it

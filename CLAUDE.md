@@ -359,8 +359,8 @@ Choices persist overrides-only in `lethe.cardAnims.v1`. "Current" rows are stand
 ## r441 - Flow economy: split rerolls, no score carry-over, shop as a reward
 - **Split rerolls** (`flowSplitRerolls()`, dev -> Flow, `lethe.flowEcon.v1`, default on): on every Flow pick, SWAP becomes REROLL REWARD TYPE and grows, DISCARD becomes REROLL OPTIONS and shrinks (`#stage.gp-split`, css/grid-pick.css). Free up to the swaps / discards the round ended with (`flowRrSnapshot`, taken at the goal clear and at the boss chain), then `PICK_REROLL_STEP` x paid this level-up. The tray loses its REROLL and CONFIRM tiles (`pickRerollAction` tiles carry `reroll:true` + `_roll`; the DISCARD reroll calls `_roll`) and gains QUEUE (spreads the tab stack, also on hover) and SKIP. A type reroll on the ordinary pick turns it into a one-step chain.
 - **Score over the goal no longer carries** into the next round (Survival engine). Flow pays it, front-loaded (r546, `flowEcon.overSteps`). Flow also pays interest (`interestPayout`) at each level-up; unused stock pays only when split is off. `flowLevelPayLines` is the one source; the Round breakdown prints it under "Paid at level-up".
-- **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds (r448) pick3 25 / tricks 25 / shop 10 / cards 7 / deck 7 / sleights 8 / limits 8 / improve 4 / knacks 6; a full trick tray drops tricks to 18 and splits the 7 over cards/deck/limits/improve (`flowrOddsNow`); r476: before the first boss tricks get +5, added after that cap. The chance of 2+ rewards BUILDS UP (r449, `flowrRollCount`, `flowrPrdMisses` in SAVE_VARS): the table chance plus `flowEcon.multiStep` (10, dev -> Flow) per single-reward level-up in a row, reset on a multi. Average rate 62% -> 66%.
-- **Forced kinds:** no TRICKS reward by the 3rd level-up since the last boss makes it the first reward; no KNACKS reward before a boss puts one in the boss chain (`flowrLvSinceBoss`, `flowrTricksSeen`, `flowrKnacksSeen`, in SAVE_VARS).
+- **Shop is a reward kind** (`shop`, odds 10): a free visit; closing it (`flowrShopStep`) advances the chain. Odds (r448) pick3 25 / tricks 25 / shop 10 / cards 7 / deck 7 / sleights 8 / limits 8 / improve 4 / knacks 6; a full trick tray drops tricks to 18 and splits the 7 over cards/deck/limits/improve (`flowrOddsNow`); r476: before the first boss tricks get +5, added after that cap. **Superseded by r560:** Tricks' share comes from the tray, the shop needs credits. The chance of 2+ rewards BUILDS UP (r449, `flowrRollCount`, `flowrPrdMisses` in SAVE_VARS): the table chance plus `flowEcon.multiStep` (10, dev -> Flow) per single-reward level-up in a row, reset on a multi. Average rate 62% -> 66%.
+- **Forced kinds:** no KNACKS reward before a boss puts one in the boss chain (`flowrKnacksSeen`, in SAVE_VARS). The Tricks-by-the-3rd-level-up rule went in r560.
 - **A boss refills swaps and discards** in Survival/Flow (`triggerBoss`, before the modifiers).
 
 ## r443 - steps 4-5: swap and fly-to-preview looks (`js/card-anims.js`)
@@ -1233,3 +1233,21 @@ LIMITS", written by `flowrRenderStack`). With the bulbs off, `placeSelCountConso
 in the slot's design px, light ink; every other look clears the inline box. Pit (the default) is
 untouched. Decided this pass, no code: Prime Time keeps the universal `0 1 2 3 4 7` improvement
 ladder (its 5th improvement is 3 steps like every entity); knack boss growth stays one number.
+
+## r560 - Flow: Tricks' share comes from the tray; the shop needs credits (`js/flow-rewards.js`)
+Owner's rule. **Tricks** are no longer a weight in the odds table (`FLOWR_DEF.trick`, dev -> Flow
+"Tricks share"): the run's first reward chain opens on a Tricks screen `first` (90)% of the time, and
+a miss rolls that slot from the other kinds and makes the NEXT chain's first slot Tricks
+(`flowrFirstTrick` 'roll' / 'owed' / 'done', `flowrFirstTrickSlot`, in SAVE_VARS; the walkthrough's
+plain pick is not a chain, so the first real chain rolls it). After that every slot is Tricks at
+`base` (70) minus `step` (10) per Trick in the tray, never under `floor` (30): `flowrTrickShare()`
+over `flowrTrickCount()`, which counts the tray less the Tricks taken from a PICK OF THREE
+(`flowrPick3Tricks`, ids noted by `flowrNoteTrickTaken` from `survivalGrant` unless the live screen
+is the chain's Tricks step, in SAVE_VARS). Selling a counted Trick raises the share again. The
+table's other weights split what Tricks leave in their own ratios (`flowrOddsNow`); the dev panel's
+TRICKS field is read-only. Within one chain a second Tricks screen is damped like any repeat, so the
+measured per-screen share at an empty tray is ~57%. Gone: the r441 Tricks-by-the-3rd-level-up rule,
+the r448 full-tray cap (a full tray already makes Tricks non-viable) and the r476 first-quarter +5.
+**Shop** (`FLOWR_DEF.shop`): weight 0 until credits are over `min` (25); over `rich` (50) its weight
+takes +`richBonus` (5). Both maps are overrides-only in `lethe.flowRewards.v2` like `odds`.
+Measured (4,000 first-slot rolls): 90.4% Tricks, every miss paid Tricks on the next chain.

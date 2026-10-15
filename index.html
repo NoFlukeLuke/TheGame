@@ -855,6 +855,20 @@
       <label>5 <input id="dev-flowr-c4" type="number" min="0" max="999" step="0.5" style="width:44px;" onchange="flowrDevSet('count', this.value, 4)"></label>
       <span id="dev-flowr-counts-out" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);"></span>
     </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-trick">
+      <span>Tricks share:</span>
+      <label>first reward <input id="dev-flowr-trick-first" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'first')">%</label>
+      <label>then <input id="dev-flowr-trick-base" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'base')">%</label>
+      <label>minus <input id="dev-flowr-trick-step" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'step')">% per Trick held</label>
+      <label>floor <input id="dev-flowr-trick-floor" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'floor')">%</label>
+    </div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A missed first roll makes the next level-up's first reward a Tricks screen. A Trick taken from a pick of three is held but not counted. The weights below split what Tricks leave.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-shop">
+      <span>Shop:</span>
+      <label>needs credits over <input id="dev-flowr-shop-min" type="number" min="0" max="9999" step="1" style="width:50px;" onchange="flowrDevSet('shop', this.value, 'min')"></label>
+      <label>over <input id="dev-flowr-shop-rich" type="number" min="0" max="9999" step="1" style="width:50px;" onchange="flowrDevSet('shop', this.value, 'rich')"></label>
+      <label>its weight takes +<input id="dev-flowr-shop-richBonus" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('shop', this.value, 'richBonus')"></label>
+    </div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">Weights, not percentages - they are normalised, so a column that does not sum to 100 still plays the ratios you set. The arrow beside each is the share it MEASURES at, which is not the weight: a kind already drawn in a chain is damped to 30% of its weight for the rest of it, and PICK 3 to nothing - so pick 3 pays for every repeat that does not happen and the others gain a little.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-odds"></div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">EARLY overrides apply while level &lt;= 5. Blank means "use the standard share"; 0 means "never".</div>

@@ -71,10 +71,20 @@ const FLOWR_DEF  = {
   // panel prints what a row actually comes out as).
   // r391: +10 moved from 1 to 2 (owner: "tune up the chances of a second").
   counts: [38, 42, 10, 6, 4],
-  // Share of every reward screen. Sums to 100 as given.
-  // r441: PICK 3 and TRICKS are the two most common (owner), and the SHOP is a
-  // reward at 10.
-  odds: { pick3: 25, tricks: 25, shop: 10, cards: 7, deck: 7, sleights: 8, limits: 8, improve: 4, knacks: 6 },
+  // Share of every reward screen AFTER Tricks take theirs (r548): the Tricks
+  // share is `trick` below, and these weights split the rest in their ratios.
+  // r441: PICK 3 is the most common of the rest (owner), the SHOP is a reward
+  // at 10. A `tricks` key here is ignored.
+  odds: { pick3: 25, shop: 10, cards: 7, deck: 7, sleights: 8, limits: 8, improve: 4, knacks: 6 },
+  // r548 (owner): TRICKS take a share of every screen set by the TRAY, not the
+  // table. The run's first reward is a Tricks screen `first`% of the time, and
+  // a miss makes the next level-up's first reward one. After that the share is
+  // `base` minus `step` per Trick in the tray that came from a Tricks screen
+  // (one taken from a pick of three does not count), never under `floor`.
+  trick: { first: 90, base: 70, step: 10, floor: 30 },
+  // r548 (owner): the SHOP is offered only with credits over `min`, and over
+  // `rich` its weight takes +`richBonus`.
+  shop: { min: 25, rich: 50, richBonus: 5 },
   // THE ONLY THING THAT STILL CARES ABOUT WHEN: the opening levels lean toward
   // LIMITS and switch IMPROVE off, because early on there is almost nothing
   // owned worth improving and a limit compounds for the rest of the run. It is
@@ -260,13 +270,64 @@ function flowrToggleQueue(on) {
 }
 
 // ── Pseudo-forced kinds (r441) ──
-// Owner: a TRICKS reward at least once before each boss - if none has come by
-// the 3rd level-up since the last boss, it is that level-up's first reward. And
-// if no KNACKS reward came before a boss, the boss payout carries one.
-let flowrLvSinceBoss = 0, flowrTricksSeen = false, flowrKnacksSeen = false;
+// Owner: if no KNACKS reward came before a boss, the boss payout carries one.
+// (The r441 "Tricks by the 3rd level-up since the boss" rule went in r548: the
+// tray-set share below keeps Tricks common on its own.)
+let flowrKnacksSeen = false;
 function flowrNoteSeen(k) {
-  if (k === 'tricks') flowrTricksSeen = true;
   if (k === 'knacks') flowrKnacksSeen = true;
+}
+
+// ── The TRICKS share (r548, owner) ──
+// 'roll' until the run's first reward chain is built, 'owed' after a missed
+// first roll (the next chain's first slot is Tricks), 'done' after. In SAVE_VARS.
+let flowrFirstTrick = 'roll';
+// Ids of the Tricks taken from a PICK OF THREE this run (the ordinary pick or
+// the chain's pick3 step). They sit in the tray but do not lower the share.
+let flowrPick3Tricks = [];
+// Tricks in the tray that count against the share: every tray entry less the
+// pick-of-three ones still in it. Selling one raises the share again.
+function flowrTrickCount() {
+  const ids = flowrPick3Tricks.slice();
+  let n = 0;
+  ((typeof trickTray !== 'undefined' && trickTray) || []).forEach(t => {
+    const i = ids.indexOf(t.id);
+    if (i >= 0) ids.splice(i, 1); else n++;
+  });
+  return n;
+}
+// Percent of every reward screen that is a Tricks screen, from the tray.
+function flowrTrickShare() {
+  const t = flowrCfg().trick;
+  return Math.max(0, Math.min(100, Math.max(t.floor, t.base - t.step * flowrTrickCount())));
+}
+// Called from survivalGrant with the Trick just put in the tray: remembers it
+// as a pick-of-three Trick unless the live screen is the chain's Tricks step.
+function flowrNoteTrickTaken(trick) {
+  if (!trick || !(typeof survivalActive === 'function' && survivalActive())) return;
+  if (flowrQueue && flowrQueue[flowrIdx] === 'tricks') return;
+  flowrPick3Tricks.push(trick.id);
+}
+// The run's first reward chain: slot 0 is Tricks `first`% of the time; a miss
+// rolls slot 0 from the other kinds and owes the next chain a Tricks first slot.
+// Mutates `queue` and `taken`; returns true when it set the slot.
+function flowrFirstTrickSlot(queue, odds, taken) {
+  if (flowrFirstTrick === 'done' || !queue.length) return false;
+  if (!flowrKindViable('tricks')) { flowrFirstTrick = 'done'; return false; }
+  const hit = flowrFirstTrick === 'owed' || Math.random() * 100 < flowrCfg().trick.first;
+  const was = queue[0];
+  if (hit) queue[0] = 'tricks';
+  else {
+    const o = Object.assign({}, odds); delete o.tricks;
+    queue[0] = flowrKindViable2(flowrRollKind(o));
+    if (queue[0] === 'tricks') queue[0] = 'pick3';
+  }
+  if (taken && was !== queue[0]) {
+    taken[was] = Math.max(0, (taken[was] || 0) - 1);
+    taken[queue[0]] = (taken[queue[0]] || 0) + 1;
+  }
+  flowrFirstTrick = hit ? 'done' : 'owed';
+  return true;
 }
 
 // The vocabulary, never a typed word - Settings -> Display -> Wording moves
@@ -299,6 +360,8 @@ function flowrCfg() {
     // new kind landing beside it.
     odds:  flowrMerge(FLOWR_DEF.odds,  ov.odds),
     early: flowrMerge(FLOWR_DEF.early, ov.early),
+    trick: flowrMerge(FLOWR_DEF.trick, ov.trick),
+    shop:  flowrMerge(FLOWR_DEF.shop,  ov.shop),
   };
 }
 // Merge an override map over the defaults. A stored NULL is how "the owner
@@ -324,6 +387,8 @@ function flowrSaveCfg(cfg) {
   };
   const od = diff(cfg.odds, FLOWR_DEF.odds);   if (od) ov.odds = od;
   const ed = diff(cfg.early, FLOWR_DEF.early); if (ed) ov.early = ed;
+  const td = diff(cfg.trick, FLOWR_DEF.trick); if (td) ov.trick = td;
+  const sd = diff(cfg.shop,  FLOWR_DEF.shop);  if (sd) ov.shop  = sd;
   try {
     if (Object.keys(ov).length) localStorage.setItem(FLOWR_KEY, JSON.stringify(ov));
     else localStorage.removeItem(FLOWR_KEY);
@@ -336,7 +401,7 @@ let flowrIdx          = 0;
 let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
-function flowrResetRun() { flowrPrdMisses = 0; flowrLvSinceBoss = 0; flowrTricksSeen = false; flowrKnacksSeen = false; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
+function flowrResetRun() { flowrPrdMisses = 0; flowrKnacksSeen = false; flowrFirstTrick = 'roll'; flowrPick3Tricks = []; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
 function flowrChainActive() { return !!flowrQueue; }
 // True while a chain screen that is NOT the ordinary pick is up - what stops
 // survivalUpdateRerollBtn stamping survival's four actions over this step's row.
@@ -398,15 +463,19 @@ function flowrOddsNow() {
   const cfg = flowrCfg();
   const o = Object.assign({}, cfg.odds);
   if (flowrEarly()) Object.assign(o, cfg.early);
-  // r448: a FULL TRICK TRAY drops Tricks to 18 and spreads the rest over card
-  // pack, deck edit, limits and improve (owner).
-  if (typeof trickTrayFull === 'function' && trickTrayFull() && (o.tricks || 0) > 18) {
-    const spare = o.tricks - 18; o.tricks = 18;
-    ['cards', 'deck', 'limits', 'improve'].forEach(k => { o[k] = (o[k] || 0) + spare / 4; });
-  }
-  // r476: the first quarter (no boss beaten yet) gives Tricks +5, added AFTER
-  // the full-tray cap so nothing takes it back (owner).
-  if ((typeof survivalBossesBeaten !== 'undefined' ? survivalBossesBeaten : 0) === 0) o.tricks = (o.tricks || 0) + 5;
+  // r548 (owner): the SHOP needs credits over shop.min; over shop.rich it takes
+  // +richBonus. (The r448 full-tray cap and the r476 first-quarter +5 went with
+  // the tray-set Tricks share below.)
+  const c = (typeof coins !== 'undefined') ? coins : 0;
+  if (c <= cfg.shop.min) o.shop = 0;
+  else if (c > cfg.shop.rich) o.shop = (o.shop || 0) + cfg.shop.richBonus;
+  // r548: TRICKS take flowrTrickShare() percent of every screen; the other
+  // kinds split the rest in the ratios the table sets.
+  const share = flowrTrickShare();
+  const others = FLOWR_KIND_IDS.filter(k => k !== 'tricks');
+  const rest = others.reduce((s2, k) => s2 + Math.max(0, o[k] || 0), 0);
+  others.forEach(k => { o[k] = rest ? Math.max(0, o[k] || 0) / rest * (100 - share) : 0; });
+  o.tricks = share;
   return o;
 }
 
@@ -519,7 +588,6 @@ function flowrMaybeStart() {
   // describe a pick of three. The chain explains itself later through a tip
   // (js/insights.js, flow_chain) the first time a real one rolls.
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;
-  flowrLvSinceBoss++;
   // A Flow challenge card solved (+1) or failed (-1) since the last level-up
   // (js/challenge-round.js). Never below one reward.
   const _crd = (typeof crTakeFlowRewardDelta === 'function') ? crTakeFlowRewardDelta() : 0;
@@ -539,7 +607,9 @@ function flowrMaybeStart() {
     queue.push(k);
     taken[k] = (taken[k] || 0) + 1;
   }
-  if (!flowrTricksSeen && flowrLvSinceBoss >= 3 && !queue.includes('tricks') && flowrKindViable('tricks')) queue[0] = 'tricks';
+  // r548: the run's first chain opens on Tricks trick.first% of the time, or
+  // owes it to the next one.
+  flowrFirstTrickSlot(queue, odds, taken);
   queue.forEach(flowrNoteSeen);
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
   if (n <= 1 && queue[0] === 'pick3') return false;
@@ -622,8 +692,8 @@ function flowrStartBossChain(bossName) {
     taken[k] = (taken[k] || 0) + 1;
   }
   if (!flowrKnacksSeen && !queue.includes('knacks') && flowrKindViable('knacks')) queue[1] = 'knacks';
-  // A new boss cycle starts: the forcing counters reset.
-  flowrLvSinceBoss = 0; flowrTricksSeen = false; flowrKnacksSeen = false;
+  // A new boss cycle starts: the forcing counter resets.
+  flowrKnacksSeen = false;
   queue.forEach(flowrNoteSeen);
   flowRrSnapshot();
   flowrBossChain = true;
@@ -2657,31 +2727,43 @@ function flowrDevSync() {
   };
   mk(document.getElementById('dev-flowr-odds'),  'odds',  '');
   mk(document.getElementById('dev-flowr-early'), 'early', '-');
+  // r548: the Tricks share and the shop gates.
+  [['trick', 'first'], ['trick', 'base'], ['trick', 'step'], ['trick', 'floor'],
+   ['shop', 'min'], ['shop', 'rich'], ['shop', 'richBonus']].forEach(([f, k]) => {
+    const el = document.getElementById(`dev-flowr-${f}-${k}`);
+    if (el && document.activeElement !== el) el.value = cfg[f][k];
+  });
 
   const live = flowrOddsNow();
   const sim  = flowrSimShare(20000);      // what the damping actually delivers
   FLOWR_KIND_IDS.forEach(k => {
     const eo = document.getElementById('dev-flowr-odds-' + k);
-    if (eo && document.activeElement !== eo) eo.value = cfg.odds[k];
+    // Tricks' weight is the live share (r548), not a table entry: read-only.
+    if (k === 'tricks') { if (eo) { eo.value = live.tricks.toFixed(0); eo.disabled = true; eo.title = 'Set by the tray, see the Tricks share row'; } }
+    else if (eo && document.activeElement !== eo) eo.value = cfg.odds[k];
     const pc = eo && eo.parentElement.querySelector('.dev-flowr-pct');
     // The MEASURED share, not the weight normalised - see flowrSimShare.
     if (pc) pc.textContent = ' \u2192' + (sim[k] || 0).toFixed(1) + '%';
     const ee = document.getElementById('dev-flowr-early-' + k);
     // BLANK means "no override", which is not the same as 0 ("never") - so an
     // absent key writes an empty field rather than a zero the owner never set.
-    if (ee && document.activeElement !== ee) ee.value = (cfg.early[k] == null) ? '' : cfg.early[k];
+    if (k === 'tricks') { if (ee) { ee.value = ''; ee.disabled = true; } }
+    else if (ee && document.activeElement !== ee) ee.value = (cfg.early[k] == null) ? '' : cfg.early[k];
   });
 
   const ph = document.getElementById('dev-flowr-phase');
   if (ph) ph.textContent = `${flowrEarly() ? 'EARLY table (level <= ' + FLOWR_EARLY_LEVELS + ')' : 'standard table'}`
     + ` \u00b7 level ${typeof level !== 'undefined' ? level : '?'} \u00b7 ${flowrExtraEarned} extra earned`
-    + ` \u00b7 live: ` + FLOWR_KIND_IDS.filter(k => (live[k] || 0) > 0).map(k => flowrKindShort(k) + ' ' + live[k]).join(', ');
+    + ` \u00b7 Tricks in tray counted: ${flowrTrickCount()} \u00b7 first Tricks: ${flowrFirstTrick}`
+    + ` \u00b7 live: ` + FLOWR_KIND_IDS.filter(k => (live[k] || 0) > 0).map(k => flowrKindShort(k) + ' ' + (+live[k].toFixed(1))).join(', ');
 }
 function flowrDevSet(field, value, i) {
   const cfg = flowrCfg();
   if (field === 'on')    cfg.on = !!value;
   if (field === 'count') cfg.counts[i] = Math.max(0, Math.min(999, parseFloat(value) || 0));
   if (field === 'odds')  cfg.odds[i]   = Math.max(0, Math.min(100, parseFloat(value) || 0));   // i is the kind id
+  if (field === 'trick') cfg.trick[i]  = Math.max(0, Math.min(100, parseFloat(value) || 0));   // i is first/base/step/floor
+  if (field === 'shop')  cfg.shop[i]   = Math.max(0, Math.min(9999, parseFloat(value) || 0));  // i is min/rich/richBonus
   if (field === 'early') {
     const raw = String(value).trim();
     if (raw === '') delete cfg.early[i];                                                       // blank = no override
