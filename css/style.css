@@ -6195,3 +6195,11 @@ body.reduced-motion .clock-boss { animation: none; }
    webfont) returns onto a second line rather than spilling off both edges.
    js/fit-text.js fitWrapIfClipped. */
 .fit-wrap { overflow-wrap: anywhere !important; word-break: normal !important; white-space: normal !important; }
+
+/* r556: the Challenge Dial's chip wears its direction */
+.knack-chip.kc-dial-up .rwd-diamond::before, .knack-chip.kc-dial-down .rwd-diamond::before {
+  content: '+'; position: absolute; right: -4px; top: -4px; z-index: 2; width: 12px; height: 12px; border-radius: 50%;
+  font: 700 10px/12px 'Orbitron', sans-serif; text-align: center; color: #111; background: var(--gold, #f5c042);
+  transform: rotate(-45deg);   /* the diamond is turned 45deg; the sign is not */
+}
+.knack-chip.kc-dial-down .rwd-diamond::before { content: '\2212'; background: var(--red, #ff5a6a); color: #fff; }

@@ -230,6 +230,8 @@ function survivalEntityBanned(id) {
   // More Better (r362) only earns in modes that open a reward grid EVERY round -
   // the Guided crossroads and the Schedule sell grids as occasional stops.
   if (id === 'more_better' && !modeHasFrequentRewardGrid()) return true;
+  // r556: the Challenge Dial turns a chance that only Flow and the node modes roll.
+  if (id === 'challenge_dial' && typeof crModeHasCards === 'function' && !crModeHasCards()) return true;
   // The clock entities assume a round clock that REFILLS: First Wind measures its
   // grace window against ROUND_DURATION, and Carry Time banks the round's unused
   // seconds. Flow is the shipped mode with neither, and a picker-built run that

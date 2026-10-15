@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r555 · challenge cards: every ask has a touching tier; tight hands ask less";
+const BUILD = "2026-10-15 · r556 · the Challenge Dial knack: double-tap for 25% more or fewer challenge cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

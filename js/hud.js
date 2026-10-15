@@ -285,7 +285,7 @@ function updateKnackList() {
   el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
     // r391: the chip draws the SAME diamond the pick screens draw (entity-tile.js),
     // so a Knack looks like one object whether offered or owned.
-    `<div class="knack-chip kc-obj rar-${t.rarity || 'common'}" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}"><div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(t.emoji)}</span></div></div>`
+    `<div class="knack-chip kc-obj rar-${t.rarity || 'common'}${t.id === 'challenge_dial' ? (challengeDial < 0 ? ' kc-dial-down' : ' kc-dial-up') : ''}" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}"><div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(t.emoji)}</span></div></div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
   // Landscape scrolls the row by hand (no scrollbar - css) since r237; the
@@ -300,11 +300,26 @@ function updateKnackList() {
     chip.addEventListener('mouseleave', () => scheduleKnackHoverHide());
     chip.addEventListener('click', (e) => {
       e.stopPropagation();
+      // r556: a second click on the same chip within the double-tap window turns a
+      // knack that has something to turn (knackDoubleTap). The tooltip toggle
+      // below still runs, so the bubble shows the new state at once.
+      const now = performance.now();
+      if (_knackTapId === id && now - _knackTapAt < 350) { _knackTapAt = 0; knackDoubleTap(id, chip); }
+      else { _knackTapId = id; _knackTapAt = now; }
       const tt = document.getElementById('knack-tooltip');
-      if (tt && tt.dataset.knackId === id && tt.classList.contains('show')) hideKnackTooltip();
+      if (tt && tt.dataset.knackId === id && tt.classList.contains('show') && _knackTapAt) hideKnackTooltip();
       else showKnackTooltip(chip, id);
     });
   });
+}
+// Double-tap on a tray chip. Today only the Challenge Dial listens.
+let _knackTapId = null, _knackTapAt = 0;
+function knackDoubleTap(id, chip) {
+  if (id !== 'challenge_dial' || typeof crDialFlip !== 'function') return;
+  crDialFlip();
+  updateKnackList();
+  const fresh = document.querySelector(`.knack-chip[data-knack-id="${id}"]`);
+  if (fresh) showKnackTooltip(fresh, id);
 }
 
 // Slow horizontal auto-scroll for an overflowing chip row (knacks / tricks).
@@ -346,6 +361,12 @@ function scheduleKnackHoverHide() { cancelKnackHoverHide(); _knackHoverTimer = s
 function knackLiveDesc(k) {
   if (!k) return '';
   const base = k.desc || '';
+  // r556: the dial's current direction.
+  if (k.id === 'challenge_dial') {
+    if (typeof challengeDial === 'undefined' || (typeof hasKnack === 'function' && !hasKnack('challenge_dial'))) return base;
+    const pct = (typeof BAL !== 'undefined' && BAL.challenge_dial && BAL.challenge_dial.pct) || 25;
+    return base + `<div class="kn-reveal"><span class="kn-reveal-q">NOW</span><b>${challengeDial < 0 ? `${pct}% fewer challenges` : `${pct}% more challenges`}</b><span>Double-tap the chip to turn it.</span></div>`;
+  }
   if (k.id !== 'advance_notice') return base;
   // Belt and braces: the dev panel can put a chip on screen for a knack the
   // run does not own, and an unowned Advance Notice must not reveal anything.

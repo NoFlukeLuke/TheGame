@@ -509,6 +509,7 @@ function startGame() {
   acquiredKnacks  = [];
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   knackBossGrowth = { extra_swaps: 0, extra_discards: 0, curator: 0 };   // js/limits.js
+  if (typeof challengeDial !== 'undefined') challengeDial = 1;            // js/challenge-round.js (r556)
   earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
   syncTrickTrayUI();   // show the Trick tray for the new game

@@ -48,7 +48,25 @@ const CR_TELE_MS = { seq: 3000, flow: 15000, spot: 15000 };   // how long the ce
 
 const CR_FLOW_TIME = 60;                 // a Flow card's own clock
 const CR_FLOW_PER_CYCLE = 2;             // cards per boss cycle
-const CR_FLOW_LEVEL_CHANCE = 0.5;        // r528: chance a Flow level opens with a card (while the cycle has room)
+const CR_FLOW_LEVEL_CHANCE = 0.5;
+// r556: the Challenge Dial knack. +1 = more challenges, -1 = fewer, by
+// BAL.challenge_dial.pct of the chance either way. Flipped by a double-tap on
+// its tray chip (knackDoubleTap, js/hud.js). In SAVE_VARS; +1 on a new run.
+let challengeDial = 1;
+function crChanceMult() {
+  if (typeof hasKnack !== 'function' || !hasKnack('challenge_dial')) return 1;
+  return 1 + (challengeDial < 0 ? -1 : 1) * ((BAL.challenge_dial && BAL.challenge_dial.pct) || 25) / 100;
+}
+function crDialFlip() {
+  challengeDial = challengeDial < 0 ? 1 : -1;
+  const pct = (BAL.challenge_dial && BAL.challenge_dial.pct) || 25;
+  if (typeof showMessage === 'function') showMessage(challengeDial > 0 ? `Challenge Dial: ${pct}% more challenges` : `Challenge Dial: ${pct}% fewer challenges`, 'var(--gold)');
+}
+// Does this mode deal challenge cards at all (Flow's level cards, the node modes'
+// spot cards and challenge rounds)? The dial is a dead pick anywhere else.
+function crModeHasCards() {
+  return (typeof flowActive === 'function' && flowActive()) || (typeof isActMode === 'function' && isActMode());
+}        // r528: chance a Flow level opens with a card (while the cycle has room)
 const CR_FLOW_LEVEL_DELAY = [3, 8];      // ...whose warning appears this many live seconds into the level          // ...this many seconds after the first
 const CR_FLOW_BOSS_GAP = 60;             // no card within a minute of a boss
 const CR_FLOW_TIER_W = [45, 40, 15];     // how often a Flow card's ladder STARTS at difficulty 1 / 2 / 3
@@ -690,7 +708,7 @@ function crFlowLevelStart() {
   st.rolled = level; st.at = null;
   const S = (typeof flowSessionSeconds === 'function') ? flowSessionSeconds() : 300;
   if ((st.used || 0) >= CR_FLOW_PER_CYCLE || roundSeconds > S - CR_FLOW_BOSS_GAP) return;
-  if (Math.random() >= CR_FLOW_LEVEL_CHANCE) return;
+  if (Math.random() >= CR_FLOW_LEVEL_CHANCE * crChanceMult()) return;
   const [a, b] = CR_FLOW_LEVEL_DELAY;
   st.at = roundSeconds - Math.round(a + Math.random() * (b - a));
 }
@@ -747,7 +765,7 @@ function crSpotRoll() {
   // startRoundTimer also runs on resumes (pause, dev panel, a shop): one roll a level.
   if (st.rolled === level) return;
   st.rolled = level; st.at = null;
-  if (!crSpotMayRun() || Math.random() >= CR_SPOT_CHANCE) return;
+  if (!crSpotMayRun() || Math.random() >= CR_SPOT_CHANCE * crChanceMult()) return;
   const hi = roundSeconds - 15, lo = CR_FLOW_TIME + 10;
   if (hi <= lo) return;
   st.at = Math.round(lo + Math.random() * (hi - lo));
