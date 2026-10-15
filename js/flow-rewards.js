@@ -132,7 +132,7 @@ const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize');
 // r546 (owner): the over-the-goal pay is front-loaded (`overSteps`). Each step is
 // "percent over:credits added on reaching it": 10% over pays 5, 25% two more,
 // then one more at 50, 100 and 200 (10 at most). It was 1 per 15%, uncapped.
-const FLOWE_DEF = { split: true, overSteps: '10:5, 25:2, 50:1, 100:1, 200:1', multiStep: 10 };
+const FLOWE_DEF = { split: true, overSteps: '10:5, 25:3, 50:2, 100:1, 200:1', multiStep: 10 };   // r557: 25% over pays 8, 50% 10, 100% 11, 200% 12 (was 7 / 8 / 9 / 10)
 const FLOWE_KEY = 'lethe.flowEcon.v1';   // OVERRIDES ONLY
 let flowEcon = (() => {
   try { return Object.assign({}, FLOWE_DEF, JSON.parse(localStorage.getItem(FLOWE_KEY) || '{}')); }

@@ -11,7 +11,7 @@
 // The x/y readouts they replace are hidden (visibility, so tips still find them).
 // Dev -> HUD & Display -> Aesthetics -> Stock bulbs. Store holds only overrides.
 const SB_KEY = 'lethe.stockBulbs.v1';
-const SB_DEFAULT = { on: 0, trick: 'rim' };
+const SB_DEFAULT = { on: 1, trick: 'rim' };   // r557 (owner): bulbs on by default; the store holds only what differs
 let sbCfg = (() => { try { return { ...SB_DEFAULT, ...JSON.parse(localStorage.getItem(SB_KEY) || '{}') }; } catch (e) { return { ...SB_DEFAULT }; } })();
 const SB_SIZE = 8;        // design px, one bulb
 const SB_GAP  = 2;        // design px between bulbs

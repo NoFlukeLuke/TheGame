@@ -32,7 +32,7 @@ const SURVIVAL_GOAL_ROUND_TO = 50;    // goal rounding step (500 would snap 750 
 // Endless (post-run) scaling: the per-level GROWTH accelerates 65%, i.e. Classic's
 // +35%/level becomes +57.75%/level. Applied only after the 5-boss run is continued.
 const SURVIVAL_ENDLESS_ACCEL = 1.65;
-const SURVIVAL_LEVEL_COINS   = 3;     // flat coins per goal cleared
+const SURVIVAL_LEVEL_COINS   = 5;     // flat coins per goal cleared (r557, owner: Flow needs more cash; was 3)
 const SURVIVAL_COINS_PER_10S = 1;     // + this per EFFICIENCY_SECONDS_PER_COIN left on the goal timer
                                       // (the constant is shared with the payout's Efficiency line - js/data/cards.js)
 const SURVIVAL_SHOP_COST     = 5;     // coins to open the shop from the pick screen

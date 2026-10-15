@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r556 · the Challenge Dial knack: double-tap for 25% more or fewer challenge cards";
+const BUILD = "2026-10-15 · r557 · stock bulbs on by default; Flow pays 5 a level and more over the goal";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
