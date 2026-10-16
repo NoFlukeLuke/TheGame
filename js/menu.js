@@ -1,4 +1,4 @@
-const BUILD = "2026-10-15 · r564 · console mode: rewards named in the location screen, hand bulbs on PLAY, Peek fans the offers";
+const BUILD = "2026-10-16 · r565 · console mode: gaps round the board and timer, clear-glass bulbs, the reward queue answers hover and tap";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -324,9 +324,9 @@ function syncSidebarsToGrid() {
                 : Math.max(leftColumnRightPct() + 0.1, fLeft + fw / 2 - readoutW / 2);
     clockArea.style.left  = cLeft + '%';
     clockArea.style.width = readoutW + '%';
-    const barLeft = Math.max(cLeft + readoutW + 0.6, gLeft);
+    const barLeft = Math.max(cLeft + readoutW + (gridFillOn() ? 1.4 : 0.6), gLeft);   // r565: a gap in console mode
     vclock.style.left  = barLeft + '%';
-    vclock.style.width = Math.max(6, (gLeft + gWidth) - barLeft) + '%';
+    vclock.style.width = Math.max(6, (gLeft + gWidth) - barLeft - (gridFillOn() ? 1 : 0)) + '%';   // r565: clear of LEVEL
   }
 }
 

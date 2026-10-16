@@ -1,5 +1,5 @@
 /* ══ STOCK BULBS (r497, js/stock-bulbs.js) ══
-   Pilot lamps: a domed lens in a dark ring, a fine diffusion grid in the glass.
+   Pilot lamps: a domed lens in a dark ring, a glare mark on the glass (r565: no grid).
    --on 0 = unlit, 1 = lit, past 1 = the flash when a limit goes up. */
 @property --on { syntax: '<number>'; inherits: true; initial-value: 0; }
 #sb-layer { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 60; pointer-events: none; }
@@ -11,7 +11,7 @@
 /* on a key: the lens alone, flush in the plastic (no ring) */
 .sb-flush .sb-b { background: none; }
 .sb-flush .sb-b::before { inset: 0; }
-.sb-flush .sb-b::after { inset: 14% 44% 56% 22%; }
+.sb-flush .sb-b::after { inset: 13% 50% 59% 19%; }
 .sb-b { --c: 255, 200, 90; --on: 0; position: relative; display: block; flex: none;
   width: var(--sb, 8px); height: var(--sb, 8px); border-radius: 50%;
   background: radial-gradient(circle, #4a4a48 0 56%, #121212 60% 70%, #5c5850 74% 80%, #1b1b1a 84%); }
@@ -19,14 +19,13 @@
 .sb-b.sb-on { --on: 1; }
 .sb-b::before { content: ''; position: absolute; inset: 17%; border-radius: 50%;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.30) 0 .5px, transparent .5px 1.5px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,.30) 0 .5px, transparent .5px 1.5px),
     radial-gradient(circle at 50% 56%, rgba(255,238,200, calc(.8 * min(var(--on), 1.3))) 0 16%, transparent 55%),
     radial-gradient(circle at 50% 55%, rgba(var(--c), calc(.16 + .84 * var(--on))) 0 35%, rgba(var(--c), calc(.08 + .55 * var(--on))) 100%);
   box-shadow: 0 0 calc(var(--sb, 8px) * .5 * var(--on)) calc(var(--sb, 8px) * .15 * var(--on)) rgba(var(--c), .55),
               0 0 calc(var(--sb, 8px) * 1.1 * var(--on)) calc(var(--sb, 8px) * .3 * var(--on)) rgba(var(--c), .22);
   filter: saturate(calc(.2 + .8 * min(var(--on), 1))) brightness(calc(.5 + .6 * var(--on))); }
-.sb-b::after { content: ''; position: absolute; inset: 22% 42% 52% 26%; border-radius: 50%; background: rgba(255,255,255,.4); }
+.sb-b::after { content: ''; position: absolute; inset: 20% 46% 54% 22%; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: rgba(255,255,255,.75); transform: rotate(-35deg); }
 @keyframes sbExtend {
   0% { --on: 0; } 6% { --on: .5; } 9% { --on: 0; } 15% { --on: .7; } 19% { --on: .1; } 24% { --on: .9; } 28% { --on: .2; }
   38% { --on: 1.9; } 55% { --on: 1.6; } 100% { --on: 1; } }
@@ -43,7 +42,11 @@ html.skin-machine #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) 
 /* with the number still showing, word and number share the key's height */
 html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 12px !important; letter-spacing: -2px; }
 html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) #swap-count { font-size: 14px !important; line-height: 1; }
-/* an unlit lens on a key is dark glass, not a hole */
-.sb-flush .sb-b:not(.sb-on) { background: radial-gradient(circle, rgba(18,16,12,.5) 0 66%, transparent 70%); }
+/* an unlit lens on a key is clear glass (r565): the key's own colour shows through it,
+   with a soft rim and a little shade at the bottom, not a dark hole */
+.sb-flush .sb-b:not(.sb-on) { background: radial-gradient(circle, transparent 0 62%, rgba(0,0,0,.28) 66%, transparent 74%); }
+.sb-flush .sb-b:not(.sb-on)::before {
+  background: radial-gradient(circle at 50% 35%, rgba(255,255,255,.16) 0 35%, rgba(0,0,0,.06) 60%, rgba(0,0,0,.2) 100%);
+  filter: none; box-shadow: inset 0 -1px 1px rgba(0,0,0,.18); }
 /* Console mode with numbers: DEFER's count goes on its own line under the word */
 html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #btn-discard #disc-count { display: block; margin-top: 4px; line-height: 1; }

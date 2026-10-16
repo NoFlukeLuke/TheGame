@@ -259,6 +259,8 @@ function flowrSplitTiles() {
   if (flowrConsoleOn()) {
     const has = gridPickState && (gridPickState.actions || []).some(a => a && a.label === 'Peek');
     if (!has) out.push({ icon: '\ud83d\udc41', label: 'Peek', sub: 'view grid', onClick: () => gridPeekFan(true) });
+    // r565: Queue walks the rewards on the location screen.
+    if (rest > 1) out.push({ icon: '\u2630', label: 'Queue', sub: `${rest} rewards`, onClick: () => flowrLocCycle() });
   } else if (rest > 1) out.push({ icon: '\u2630', label: 'Queue', sub: `${rest} rewards`,
     cls: flowrQueueOpen ? 'gp-act-on' : '', onClick: () => flowrToggleQueue() });
   if (gridPickState && gridPickState.onSkip) out.push({ icon: '\u23ed', label: 'Skip', sub: 'take none',
@@ -1642,9 +1644,15 @@ function flowrLocPaint() {
   const loc = document.getElementById('screen-location');
   const on = !!(flowrQueue && flowrConsoleOn() && loc);
   document.body.classList.toggle('flowr-loc', on);
+  flowrLocCycleStop();
   if (!on) { loc?.querySelector('.loc-steps')?.remove(); return; }
   let box = loc.querySelector('.loc-steps');
-  if (!box) { box = document.createElement('div'); box.className = 'loc-steps'; loc.appendChild(box); }
+  if (!box) {
+    box = document.createElement('div'); box.className = 'loc-steps'; loc.appendChild(box);
+    // r565: a tap walks the queue (each reward to the front for 1.5s, twice); a
+    // second tap stops it. On a mouse, hovering a tile brings it forward (css).
+    box.addEventListener('click', e => { e.stopPropagation(); _flowrLocCycle ? flowrLocCycleStop() : flowrLocCycle(); });
+  }
   const rest = flowrQueue.slice(flowrIdx);
   box.style.setProperty('--n', rest.length);
   box.innerHTML = '<span class="loc-rtag">REWARD</span><span class="loc-row">'
@@ -1657,7 +1665,11 @@ function flowrLocPaint() {
   // not be laid out yet). Each queued tile shows a sliver `sp` of the row at its right
   // end. On a phone the slivers are bare colour strips and the current name keeps the room.
   const n = rest.length, land = document.getElementById('stage')?.classList.contains('landscape');
-  const sp = n > 1 ? (land ? Math.min(0.24, 0.64 / (n - 1)) : 0.045) : 0, wp = 1 - sp * (n - 1);
+  // r565: a phone lays the row out as flex instead: the current tile just wide
+  // enough for its name, the queued ones sharing the rest (css .loc-flex).
+  box.classList.toggle('loc-flex', !land);
+  if (!land) return;
+  const sp = n > 1 ? Math.min(0.24, 0.64 / (n - 1)) : 0, wp = 1 - sp * (n - 1);
   box.classList.toggle('loc-thin', sp < 0.11);
   [...box.querySelector('.loc-row').children].forEach((t, i) => {
     t.style.left = (i * sp * 100).toFixed(2) + '%'; t.style.width = (wp * 100).toFixed(2) + '%';
@@ -1665,8 +1677,37 @@ function flowrLocPaint() {
   });
 }
 
+// The queue walk: each step left takes the front of the row in turn, its name on
+// its colour with "n/N", `FLOWR_LOC_SHOW` each, `FLOWR_LOC_LOOPS` times through.
+const FLOWR_LOC_SHOW = 1500, FLOWR_LOC_LOOPS = 2;
+let _flowrLocCycle = null;
+function flowrLocCycle() {
+  const row = document.querySelector('#screen-location .loc-steps .loc-row');
+  if (!row || !flowrQueue) return;
+  flowrLocCycleStop();
+  const rest = flowrQueue.slice(flowrIdx), n = rest.length;
+  const ov = document.createElement('span'); ov.className = 'loc-peek'; row.appendChild(ov);
+  let k = 0;
+  const step = () => {
+    if (k >= n * FLOWR_LOC_LOOPS) { flowrLocCycleStop(); return; }
+    const i = k % n, m = FLOWR_KINDS[rest[i]] || FLOWR_KINDS.pick3;
+    ov.style.setProperty('--c', m.color);
+    ov.innerHTML = `<b>${flowrKindShort(rest[i])}</b><i>${i + 1}/${n}</i>`;
+    ov.classList.remove('lp-in'); void ov.offsetWidth; ov.classList.add('lp-in');
+    try { sfxKeyClick?.('down'); } catch (e) {}
+    k++; _flowrLocCycle.t = setTimeout(step, FLOWR_LOC_SHOW);
+  };
+  _flowrLocCycle = { ov, t: 0 };
+  step();
+}
+function flowrLocCycleStop() {
+  if (!_flowrLocCycle) return;
+  clearTimeout(_flowrLocCycle.t); _flowrLocCycle.ov.remove(); _flowrLocCycle = null;
+}
+
 function flowrClearStack() {
   flowrStepActions = null;
+  flowrLocCycleStop();
   document.body.classList.remove('flowr-loc');
   document.querySelector('#screen-location .loc-steps')?.remove();
   try { flowrReleaseOverlay(); } catch (e) {}

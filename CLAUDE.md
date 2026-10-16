@@ -1294,3 +1294,16 @@ three read as about half, three quarters and full width.
   the pick-of-three keeps its own Peek, which `survivalTogglePeek` routes here). It hands the board back
   and fans the offers' objects small over the board's foot (`#gp-peek-fan`, no names); a tap on one, or
   any `gridPickRender`, brings the pick back. `flowrConsoleOn()` is the one test for all of this.
+
+## r565 - console mode: gaps, clear-glass bulbs, the reward queue answers hover and tap (owner)
+- **Gaps:** the fixed box is 43.05% wide (r540's 43.9%), 11 design px clear of the keys; in console
+  mode the timer bar starts 1.4% after the readout (0.6 elsewhere) and stops 1% short of the box's
+  right edge, clear of LEVEL (`syncSidebarsToGrid`).
+- **Bulbs** (css/stock-bulbs.css, every look): no diffusion grid; a glare mark top-left. An unlit bulb
+  on a key is clear glass (soft rim, light shade), so the key's colour shows through.
+- **Reward queue:** on a mouse, hovering a queued tile on the location screen brings it to the front
+  with its name; a tap (any pointer) or the **Queue** tile, back beside Peek, runs `flowrLocCycle`: each
+  step left takes the front for `FLOWR_LOC_SHOW` (1500ms), `FLOWR_LOC_LOOPS` (2) times through,
+  with "n/N" (`.loc-peek`); a second tap stops it. A phone lays the row out as flex (`.loc-flex`):
+  the current tile as wide as its name, the queued ones sharing the rest, a name shown only where a
+  tile is over 34px wide (container query).
