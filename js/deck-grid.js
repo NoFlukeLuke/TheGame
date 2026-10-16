@@ -20,6 +20,16 @@ let permMult = {};   // { "A-♠": 1, ... }
 let permXPips  = {}; // { "A-♠": 2, ... } multiplies that card's pip contribution (default 1)
 let permXMult  = {}; // { "A-♠": 2, ... } multiplies total mult per scored card of this key (default 1)
 let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pips (default 0)
+// r567 FODDER (owner): a card that is free to move. Swapping or discarding it costs
+// no time and no stock; it still counts as a swap or a discard for every Trick
+// and Knack. permFodder holds the permanent kind (deck editor op, SAVE_VARS);
+// `_fodderTemp` on the card object is Turnover's kind, and dies with the object
+// when the card leaves the board (recycleCard keeps only DURABLE_CARD_FIELDS).
+let permFodder = {};
+function cardIsFodder(card) {
+  if (!card || !card.rank || card._isSleight || card._isStone || card._isTrick) return false;
+  return !!(card._fodderTemp || permFodder[cardId(card)]);
+}
 // Seconds this card puts BACK on the clock when it scores (the Card Market's time
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
@@ -119,6 +129,8 @@ function cardBuffLines(k, card) {
   if (pf) lines.push(`+${pf} Focus when played`);
   const pc = (typeof permCoins !== 'undefined' && permCoins[k]) || 0;   // r392: the coin card
   if (pc) lines.push(`+${pc} credits when played`);
+  if (permFodder[k]) lines.push('Fodder: swap or discard it free');
+  else if (card && card._fodderTemp) lines.push('Fodder until it leaves the board: swap or discard it free');
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
   // "pips" while the tile that granted the buff said "work" (r198's rule, r294's

@@ -6203,3 +6203,15 @@ body.reduced-motion .clock-boss { animation: none; }
   transform: rotate(-45deg);   /* the diamond is turned 45deg; the sign is not */
 }
 .knack-chip.kc-dial-down .rwd-diamond::before { content: '\2212'; background: var(--red, #ff5a6a); color: #fff; }
+
+/* r567: FODDER - a card that is free to swap or discard. The mark is the DISCARD
+   key's own red, glowing, bottom-left (the bands' corner it shares with time marks). */
+.card .fodder-badge {
+  position: absolute; left: 3px; bottom: 2px; z-index: 3;
+  font-size: 10px; line-height: 1; color: var(--red, #c0392b);
+  text-shadow: 0 0 4px rgba(192,57,43,.9), 0 0 9px rgba(192,57,43,.6);
+  animation: fodder-glow 1.6s ease-in-out infinite;
+}
+.card.fodder-temp .fodder-badge { animation-duration: .9s; }
+@keyframes fodder-glow { 0%, 100% { opacity: .75; } 50% { opacity: 1; text-shadow: 0 0 6px rgba(255,90,74,1), 0 0 14px rgba(255,90,74,.7); } }
+body.reduced-motion .card .fodder-badge { animation: none; }

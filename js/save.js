@@ -103,7 +103,7 @@ const SAVE_VARS = [
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──
-  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins', 'permFocus',
+  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins', 'permFocus', 'permFodder',
   'permPipsGrow', 'permMultGrow', 'cardCurses',
   // Card states (r278). cardIdleSecs is deliberately NOT saved: the save point is
   // the START of a round and the fuses reset there anyway, so restoring last

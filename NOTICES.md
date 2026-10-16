@@ -39,7 +39,7 @@ The dev panel's own messages always print.
 | boss.js:354 |  The Hollow claims a card |
 | card-states.js:442 |  ♛ Royal Favour - a Queen leaves the board |
 | card-states.js:468 |  n.text |
-| card-states.js:491 |  ♻ Turnover - a stale card is replaced |
+| card-states.js | ♻ Turnover: N cards now Fodder (noteMessage, r567) |
 | card-states.js:575 |  ${def.icon} ${out.note} |
 | card-states.js:723 |  \u2637 Roll Call - ${pull.length} more ${rank}${pull.length === 1 ? '' : 's'} join the han |
 | challenge.js:82 |  CHALLENGE! |

@@ -39,7 +39,9 @@ function doDiscard() {
   // Guard: block discard when out of discards. Mirrors the swap guard in input.js.
   // Hoarder is the one bypass - its whole text is "discards no longer count against
   // the discard limit", so it must not be stopped by that limit either.
-  if (discards <= 0 && !hasKnack('hoarder')) {
+  // r567: a selection of nothing but Fodder costs no stock, so it is never refused for stock.
+  const _allFodder = typeof cardIsFodder === 'function' && selected.every(([r, c]) => cardIsFodder(gridData[r]?.[c]));
+  if (discards <= 0 && !hasKnack('hoarder') && !_allFodder) {
     const btn = document.getElementById('btn-discard');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
     refuse('No discards left');
@@ -107,7 +109,9 @@ function doDiscard() {
     else discardToDrawPile(_dc);
   });
   // Hoarder: discards don't count against limit (but cost 2× time below)
-  if (!hasKnack('hoarder')) discards--;
+  // r567: Fodder takes no stock either, when every card thrown away is Fodder.
+  const _fodderN = (typeof cardIsFodder === 'function') ? discardedCards.filter(cardIsFodder).length : 0;
+  if (!hasKnack('hoarder') && _fodderN < discardedCards.length) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
@@ -120,7 +124,8 @@ function doDiscard() {
   if (usingFreeDiscard) freeDiscardsLeft--;
   // interactTimeCostMult() is 0 when the mode does not bill the clock at all and
   // Flow's half rate when it does, so this site needs no second test (r326).
-  const timeCost = usingFreeDiscard ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult() * interactTimeCostMult());
+  // r567: a Fodder card bills no seconds; the others pay their per-card cost.
+  const timeCost = usingFreeDiscard ? 0 : Math.round((discardedCards.length - _fodderN) * perCardCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);

@@ -542,6 +542,7 @@ function startGame() {
   permCoins  = {};
   permFocus  = {};
   permPipsGrow = {}; permMultGrow = {};
+  permFodder = {};   // r567
   cardCurses = {};
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
   bonusMult_fives = 0;

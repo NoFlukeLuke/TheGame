@@ -28,7 +28,7 @@ const KNACK_POOL = [
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       rarity:'rare',   desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your tricks is primed: it fires an extra time on your next hand.' },
   { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a round a card on the board is marked. Score it and it takes a random buff.' },
-  { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds is discarded and a fresh one falls in. Costs you nothing.' },
+  { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.' },
   // r556 (owner): a dial you turn by double-tapping the chip. challengeDial (js/challenge-round.js) holds its direction.
   { id:'challenge_dial',  emoji:'🎚️',  name:'Challenge Dial',   rarity:'rare',   desc:'Challenge cards show up 25% more often. Double-tap this to make them 25% rarer instead, and back.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       rarity:'common', desc:'All clock pauses last 1.5× as long.' },

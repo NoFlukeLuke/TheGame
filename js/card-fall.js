@@ -140,6 +140,7 @@ function renderCardAppearance(card, r, c, {
     isSwapPending ? 'swap-pending' : '',
     (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',
     curse ? 'cursed' : '',
+    (typeof cardIsFodder === 'function' && cardIsFodder(card)) ? (card._fodderTemp && !permFodder[cardId(card)] ? 'fodder fodder-temp' : 'fodder') : '',
     bothClass.trim(),
     rcWoodpecker.trim(),
     _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
@@ -159,6 +160,7 @@ function renderCardAppearance(card, r, c, {
   const innerHTML = `
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
+    ${(typeof cardIsFodder === 'function' && cardIsFodder(card)) ? `<div class="fodder-badge" title="Fodder: swap or discard it free${card._fodderTemp && !permFodder[cardId(card)] ? ' (until it leaves the board)' : ''}">♻</div>` : ''}
     ${combinedLabel}${_coin}
     ${isWild
         // The Fog hides RANKS, and a wild has none to hide - so it is drawn in

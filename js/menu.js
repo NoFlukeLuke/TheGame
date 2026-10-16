@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r566 · cleanup: Terminal look, Jack Mult and Heart Double gone; Climb is a hidden mode";
+const BUILD = "2026-10-16 · r567 · Fodder: a card that is free to swap or discard; Turnover hands it out";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

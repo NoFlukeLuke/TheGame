@@ -312,7 +312,7 @@ const PRIZE_TIER_W   = [30, 55, 12, 3];
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
   hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, rewind the clock {seconds}s, pause the clock for {seconds}s, or a trick primed or forced.',
-  turnover:   'Any card you leave alone for {idle_seconds} seconds is discarded and a fresh one falls in. Costs you nothing.',
+  turnover:   'Any card you leave alone for {idle_seconds} seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.',
   challenge_dial: 'Challenge cards show up {pct}% more often. Double-tap this to make them {pct}% rarer instead, and back.',
   autopilot: 'Costs {focus_cost} Focus when it lands on the board. {delay_seconds}s later it plays the best hand on the board, waits for the cards to fall, and repeats, up to {max_hands} hands or until no hand is left. Hand 2 applies Focus twice, hand 3 three times, and so on. Each hand it plays spends a charge. Then it discards itself.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult. Discards itself after {life_seconds}s on the board.',

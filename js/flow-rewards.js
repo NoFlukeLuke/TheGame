@@ -1942,6 +1942,9 @@ const FLOWR_DECK_OPS = [
     desc: 'Select a card, then APPLY. 1-3 cards next to it leave the run for good.' },
   { id: 'copy', adj: true, max: 3, icon: '⧉', name: 'Stamp',
     desc: 'Select a card, then APPLY. 1-3 cards next to it become copies of it.' },
+  // r567: a flag, not a number, so it is its own op rather than a buff row.
+  { id: 'fodder', fodder: true, icon: '♻', name: 'Fodder',
+    desc: 'Pick up to 3 touching cards, then APPLY. Each becomes Fodder: swapping or discarding it costs no time and no stock.' },
   { id: 'pips',   buff: { key: 'pips',   range: [10, 15, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +10 to +15 pips.' },
   { id: 'mult',   buff: { key: 'mult',   range: [8, 12, 1],     word: 'mult'   }, icon: '✖', name: 'Mult Buff',
@@ -1974,7 +1977,7 @@ const FLOWR_DECK_OPS = [
 const FLOWR_OP_WEIGHTS = {
   suit2: 2, rank2: 2,
   copy: 6, xmult: 6, xpips: 6, replay: 6,
-  focus: 10, time: 10, coins: 10, rank: 10, del: 10,
+  focus: 10, time: 10, coins: 10, rank: 10, del: 10, fodder: 8,
   pips: 16, mult: 16, suit: 16,
 };
 function flowrOpWeight(op) { return FLOWR_OP_WEIGHTS[op.id] ?? 8; }
@@ -2138,7 +2141,7 @@ function flowrDeckBanner() {
   const el = document.createElement('div');
   el.id = 'flowr-banner';
   const _g = 'Double-tap a card, or pick 2 and press SWAP';
-  if (op.buff || op.dual) {
+  if (op.buff || op.dual || op.fodder) {
     el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · ${_g} · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
     el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · ${_g} · <i id="fb-count">none</i></span>`;
@@ -2199,7 +2202,7 @@ function flowrDeckSyncUI() {
   const op = _flowrDeckOp; if (!op) return;
   const n = _flowrDeckSel.length;
   const cnt = document.getElementById('fb-count');
-  if (cnt) cnt.textContent = (op.buff || op.dual) ? `${n}/${flowrSelMax(op)}`
+  if (cnt) cnt.textContent = (op.buff || op.dual || op.fodder) ? `${n}/${flowrSelMax(op)}`
                                      : (n ? `${_flowrDeckSel[0].cd.rank}${_flowrDeckSel[0].cd.suit}` : 'none');
   const btn = document.getElementById('btn-play'); if (btn) btn.disabled = n === 0;
   // DISCARD is lit by the same selection APPLY is. It is OPTIMISTIC (r389's
@@ -2398,7 +2401,21 @@ function flowrDeckConfirm() {
   flowrClearLift();   // a half-made swap is not part of the op
   if (_flowrDeckOp.adj) { const s0 = _flowrDeckSel[0]; flowrAdjApply(s0.r, s0.c, s0.cd); }
   else if (_flowrDeckOp.dual) flowrDualConfirm();
+  else if (_flowrDeckOp.fodder) flowrFodderConfirm();
   else flowrBuffConfirm();
+}
+// r567: every picked card becomes Fodder (no roll: the op is the decision).
+function flowrFodderConfirm() {
+  if (_flowrDeckBusy || !_flowrDeckSel.length) return;
+  _flowrDeckBusy = true;
+  const op = _flowrDeckOp, sel = _flowrDeckSel.slice();
+  const _pb = document.getElementById('btn-play'); if (_pb) _pb.disabled = true;
+  sel.forEach((s, i) => setTimeout(() => { flowrRevealCard(s.el, true); permFodder[cardId(s.cd)] = 1; }, FLOWR_REVEAL_MS * (i + 1)));
+  setTimeout(() => {
+    try { render(); } catch (e) {}
+    noteMessage(`${op.icon} Fodder on ${sel.length} card${sel.length === 1 ? '' : 's'}`, '#ff6a52');
+    flowrDeckEnd();
+  }, FLOWR_REVEAL_MS * (sel.length + 1) + 420);
 }
 
 // r392 SECOND SUIT / SECOND RANK. Each selected card rolls; a hit takes the

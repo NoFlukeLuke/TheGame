@@ -136,9 +136,11 @@ function doSwap(r1, c1, r2, c2) {
   // is actually measured. Pivot's own cell never counts as touching itself.
   const _pivotCell = pivotForSwap(r1, c1, r2, c2);
   const freeThisSwap = swapTouchesLivePivot(r1, c1, r2, c2) || sleightFreeSwapPending;
+  // r567: a swap that moves a Fodder card costs no stock and no time (it still counts as a swap).
+  const _fodderSwap = typeof cardIsFodder === 'function' && (cardIsFodder(gridData[r1]?.[c1]) || cardIsFodder(gridData[r2]?.[c2]));
 
   // Guard: block swap when out of swaps (Steady Hand or a free swap bypasses limit)
-  if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap) {
+  if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
     refuse('No swaps left');
@@ -201,7 +203,7 @@ function doSwap(r1, c1, r2, c2) {
   }
 
   // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
-  if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  if (!hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) swaps--;
   swapsUsedRound++;   // every swap ACTION, free or not (the No Takebacks challenge)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
@@ -209,7 +211,7 @@ function doSwap(r1, c1, r2, c2) {
   // flat spendRoundTime(SWAP_TIME_COST) on top of this, which made the 3rd swap of
   // a round cost 14s while the UI said 4s. One charge only now.
   let swapTimeCost = BAL._resources.swap_seconds;
-  if (freeThisSwap || hasKnack('free_swaps')) swapTimeCost = 0;
+  if (freeThisSwap || _fodderSwap || hasKnack('free_swaps')) swapTimeCost = 0;
   else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
   swapTimeCost = Math.round(swapTimeCost * bossInteractMult() * interactTimeCostMult());
   if (swapTimeCost > 0) {

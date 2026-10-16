@@ -404,12 +404,17 @@ function cardStateBoardCards() {
 function cardStatesTick() {
   const board = cardStateBoardCards();
   const live = new Set();
-  board.forEach(([card]) => {
+  board.forEach(([card, r, c]) => {
     const k = cardId(card);
     live.add(k);
+    // r567: a card that MOVED (fell, was swapped) has not been "left alone".
+    const pos = r * 1000 + c;
+    if (_cardLastPos[k] !== undefined && _cardLastPos[k] !== pos) cardIdleSecs[k] = 0;
+    _cardLastPos[k] = pos;
     cardIdleSecs[k] = (cardIdleSecs[k] || 0) + 1;
   });
-  for (const k in cardIdleSecs) if (!live.has(k)) delete cardIdleSecs[k];
+  for (const k in cardIdleSecs) if (!live.has(k)) { delete cardIdleSecs[k]; delete _cardLastPos[k]; }
+  cardStateTurnover(board);
 
   // The r213 Hollow lesson: removeAndFall takes the `falling` lock, and starting
   // one on top of a swap, a score or another fall cuts that animation short. A
@@ -470,26 +475,24 @@ function cardStateFireDue(board) {
     return;
   }
 
-  // Turnover: one card per tick, the longest-idle one. NOT the whole board at
-  // once - at a round's start every card has aged together, so a sweep would be
-  // a board wipe on one tick rather than the churn this is meant to be. One a
-  // second trickles them out, and each replacement then ages on its own clock,
-  // so the knack self-staggers after the first pass.
-  //
-  // FREE of both stock AND the clock, which is the knack's whole printed text.
-  // That is not a discount being generous: billing it at 3s a card costs a full
-  // board about 48 seconds of a 180-second round, so a priced Turnover is not a
-  // weaker Turnover, it is an unplayable one.
+}
+// r567 TURNOVER, reworked (owner, POST_LAUNCH 2): it no longer acts for you. A card
+// left alone for BAL.turnover.idle_seconds becomes FODDER (free to swap or discard,
+// still counted) until it leaves the board; the player decides what to do with it.
+// `_fodderTemp` lives on the card object, so recycleCard drops it on the way out.
+let _cardLastPos = {};
+function cardStateTurnover(board) {
   if (typeof hasKnack !== 'function' || !hasKnack('turnover')) return;
   const t = cardStateTurnoverSeconds();
-  let worst = null, worstIdle = t - 1;
-  board.forEach(([card, r, c]) => {
-    const idle = cardIdleSecs[cardId(card)] || 0;
-    if (idle > worstIdle) { worstIdle = idle; worst = [r, c]; }
+  let made = 0;
+  board.forEach(([card]) => {
+    if (card._fodderTemp || (typeof cardIsFodder === 'function' && cardIsFodder(card))) return;
+    if ((cardIdleSecs[cardId(card)] || 0) < t) return;
+    card._fodderTemp = true; made++;
   });
-  if (!worst) return;
-  if (typeof showMessage === 'function') showMessage('♻ Turnover - a stale card is replaced', '#3aa76d');
-  cardStateRemove([worst], [], { free: true });
+  if (!made) return;
+  if (typeof noteMessage === 'function') noteMessage(`♻ Turnover: ${made} card${made === 1 ? '' : 's'} now Fodder`, '#ff6a52');
+  if (typeof render === 'function' && !animating && !falling) { try { render(); } catch (e) {} }
 }
 
 // The one place a state takes a card off the board.
@@ -740,7 +743,7 @@ function rollCallAugment(result, selCells) {
 // on every cell and that refuses them), but their state and idle entries are
 // keyed by an id nothing will ever hold again, so they are swept here.
 function cardStatesResetRound() {
-  cardIdleSecs = {};
+  cardIdleSecs = {}; _cardLastPos = {};
   cardStateBackfillQueue = {};
 }
 
