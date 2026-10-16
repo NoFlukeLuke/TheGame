@@ -1409,3 +1409,8 @@ from three landed chips to the SCORE climbing: A Current (pmf-merge), B Two-step
 mult combine, then that number and Focus), C Collide and press (Focus stamps the product, once per
 application), D Working shown (the sum written out under the row). Plus the r571 multi-apply beat.
 Timing knobs mirror `PMF_CFG`. The owner picks; the pick goes into `js/pmf-merge.js`.
+
+## r576 - a bulb inside each stock bulb (owner)
+Each `.sb-b` holds a `<b>` (made with it in `sbPaint`): a small glass round over a screw base,
+painted between the lens (`::before`) and the glare (`::after`). Unlit it is a faint outline seen
+through the clear glass; lit, the outline brightens and a hot filament glows in the round.

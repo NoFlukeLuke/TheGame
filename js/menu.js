@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r575 · docs for r566 to r574";
+const BUILD = "2026-10-16 · r576 · a bulb inside each stock bulb";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
