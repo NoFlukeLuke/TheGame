@@ -13,7 +13,7 @@ counter that visibly moved.
 New notices: `showMessage` / `refuse` to print, `noteMessage` to stay quiet.
 The dev panel's own messages always print.
 
-## Printed (215)
+## Printed (235)
 | where | text |
 |---|---|
 | boss-effects.js:207 |  Objective ${before.toLocaleString()} → ${roundGoal.toLocaleString()} |
@@ -231,8 +231,28 @@ The dev panel's own messages always print.
 | tricks-ui.js:116 | refuse Trick slots full (${trickTray.length}/${trickCapacity()}). Sell one first. |
 | tricks-ui.js:305 |  🍀 Feelin Lucky rerolled: ${t._luckyRanks.join('  |
 | tricks-ui.js:418 |  dragDiscardArmed ? 'Drag to discard' : 'Discard cancelled' |
+| reserve.js:62 |  You are already holding cards (refuse) |
+| reserve.js:65 |  Reserve needs ${cost} Focus (refuse) |
+| reserve.js:79 |  Reserve: tap a card to swap one in, or DISCARD it. Double-tap the Focus bar for one more (first time only) |
+| focus-knacks.js:62 |  ${knack} needs ${cost} Focus (refuse) |
+| focus-knacks.js:71 |  Free Hand: swaps and discards are free for ${n}s |
+| focus-knacks.js:75 |  Already charged: play a hand (refuse) |
+| focus-knacks.js:78 |  Charged: the first card of your next hand takes a buff |
+| focus-knacks.js:96 |  Wait for the board (refuse) |
+| focus-knacks.js:110 |  Shuffle Up |
+| focus-knacks.js:120 |  Double Down: Focus applies twice for the next ${n} hands |
+| focus-knacks.js:133 |  Overdrive cooling down: ${s}s (refuse) |
+| focus-knacks.js:135 |  Overdrive needs ${per} Focus (refuse) |
+| focus-knacks.js:136 |  Place or discard the cards you hold first (refuse) |
+| focus-knacks.js:141 |  OVERDRIVE |
+| focus-knacks.js:188 |  Overdrive off after ${k} hands · ${s}s cooldown |
+| sweep.js:104 |  All Hands cannot run in a boss round (refuse) |
+| sweep.js:109 |  All Hands: let the board settle first (refuse) |
+| sweep.js:111 |  All Hands: no hand on the board (refuse) |
+| sweep.js:121 |  ALL HANDS: ${n} hands |
+| events-pairs.js:129 |  That card is known safe: flip a new one, or its match (refuse) |
 
-## Quiet (116)
+## Quiet (126)
 | where | text |
 |---|---|
 | combos-aim.js:141 |  🪞 Reflect leaves the board |
@@ -351,3 +371,13 @@ The dev panel's own messages always print.
 | survival.js:602 |  ${opt.icon} ${opt.name}! |
 | survival.js:603 |  ${opt.icon} ${opt.name}! |
 | survival.js:605 |  _say |
+| reserve.js:73 |  Reserve: +1 card for ${cost} Focus |
+| focus-knacks.js:92 |  Charged Card: ${card} ${buff} |
+| focus-knacks.js:211 |  Free Hand over |
+| sleights-runtime.js:8 |  📌 Keeper: ${mode} between rounds |
+| events-pairs.js:203 |  Pairs: ${a} and ${b} join the deck |
+| events-pairs.js:210 |  Pairs: two more ${card} in the deck |
+| events-pairs.js:225 |  Pairs: ${op} on ${n} cards |
+| events-pairs.js:230 |  Pairs: ${buff} on ${n} cards |
+| events-pairs.js:236 |  Pairs: ${curse} on ${card} |
+| events-pairs.js:239 |  Pairs: two stones in the deck |

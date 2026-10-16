@@ -46,6 +46,7 @@ Three sections:
 | **seconds** | `permTime` | rewinds the clock N seconds when scored | through `rewindTime`, never a raw `roundSeconds +=` |
 | **scaling pips** | `permPipsGrow` | NOT scored: how much `permPips` rises per play | applied by `growCardScaling` after the score commits |
 | **scaling mult** | `permMultGrow` | NOT scored: how much `permMult` rises per play | same |
+| **Fodder** (r567) | `permFodder` (flag), or `_fodderTemp` on the card for Turnover's kind | swapping or discarding it costs no stock and no seconds; still counts for every Trick and Knack. `cardIsFodder(card)` is the one read; `.fodder-badge` the mark | not scored |
 
 **Flat and scaling are different things and the wording is the type** (r209):
 flat says *"scores +5 mult when played"*, scaling says *"scales +1 mult each time
@@ -246,14 +247,12 @@ refuse it.
 
 ### The Turnover knack (rare)
 
-Any card you leave alone for 60 seconds is discarded and a fresh one falls in.
-Free of stock and of the clock.
-
-**One card per tick, the longest-idle one.** Not the whole board at once: at a
-round's start every card has aged together, so a sweep would be a board wipe on one
-tick rather than the churn this is meant to be. One a second trickles them out, and
-each replacement then ages on its own clock, so the knack self-staggers after the
-first pass.
+r567: it no longer discards anything. Any card left alone for `BAL.turnover.idle_seconds`
+(45) becomes **temporary Fodder** (`_fodderTemp`): free to swap or discard, the player
+chooses. `cardStateTurnover` marks every card past the threshold on the round tick; a
+card that MOVED (fell, was swapped) is not idle (`_cardLastPos`), and selecting does not
+reset it. The mark leaves with the card (`recycleCard`). The warning ring in the last
+15 seconds stays.
 
 ### Adding a state
 

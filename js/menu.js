@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r574 · score-merge-preview.html: four ways the chips become the score";
+const BUILD = "2026-10-16 · r575 · docs for r566 to r574";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

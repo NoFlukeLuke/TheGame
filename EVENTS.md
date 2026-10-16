@@ -156,6 +156,7 @@ sell on every visit.
 | 20 | The Gamble | `gamble` | **C** | the "bad" door is worth about eight seconds. |
 | 21 | Free Pick | `merchant` | **C** | three free entities, no cost of any kind. |
 | 22 | Theme Draft | `confluence` | **C** | a filtered reward grid with no trade at all. |
+| 23 | Pairs | `pairs` | new (r573) | the matching game: 16 cards face down, 8 pairs (4 buffed ranks, 2 rare deck ops, 2 penalties). 30% free until a penalty pair, 70% three tries. Not yet rated in play. |
 
 **8 tier A · 9 tier B · 5 tier C.** The roster is healthier than it feels from play, and
 the reason it feels worse is section 2.1: the five tier-C screens and the weakest tier-A

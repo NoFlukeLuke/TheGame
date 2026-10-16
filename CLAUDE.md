@@ -94,7 +94,8 @@ every 5 nodes, four quarters (`QUARTERS_PER_RUN`).
 ### Key globals
 - `gridData[r][c]`: a card object, a special card, or `null`. `gridRows`/`gridCols` from `limits`.
 - `drawPile` / `playedPile`. Scored cards go to `playedPile`, reshuffled into `drawPile` at
-  level-up (`flushPlayedDeck`). **The board persists between rounds** (r332): only holes refill.
+  level-up (`flushPlayedDeck`). **The board redeals between rounds** (r568; r332's persisting board
+  is what the Keeper Sleight brings back, `boardKeepsCard`).
 - `selected`, `score`, `coins`, `swaps`, `discards`, `roundSeconds`, `level`, `roundGoal`.
 - `limits` / `LIMITS_DEF`: upgradeable caps. `makeLimitRow(def)` is the one row builder.
 - `ACTIVE_MODE`: a `MODES` entry. Modes are **flags** (`survival`, `map`, `guided`, `numeric`,
@@ -1307,3 +1308,104 @@ three read as about half, three quarters and full width.
   with "n/N" (`.loc-peek`); a second tap stops it. A phone lays the row out as flex (`.loc-flex`):
   the current tile as wide as its name, the queued ones sharing the rest, a name shown only where a
   tile is over 34px wide (container query).
+
+## r566 - cleanup: the Terminal look, Jack Mult and Heart Double are gone; Climb is hidden
+Owner's calls. `css/terminal-skin.css` + `js/terminal-skin.js` (the r471 prototype) are deleted with
+their hooks in card-anims, card-fall, level-up, audio-assets and dev-panel. Jack Mult and Heart Double
+(scored and described, in no pool) lost their BAL rows, templates and calcScore lines. Climb (the 1 to
+15 deck) is in `MODE_HIDDEN_LIST` (dev -> Modes). Decks are the normal deck with wilds, six suits and
+Spectrum; OPEN_DECISIONS 8 is closed.
+
+## r567 - Fodder; Turnover hands it out (`js/deck-grid.js`, `js/card-states.js`)
+**Fodder** is a card buff: swapping or discarding the card costs no stock and no seconds, and still
+counts for every Trick and Knack. `permFodder` (by cardId, SAVE_VARS) is the permanent kind,
+`card._fodderTemp` the temporary one (dies with `recycleCard`); **`cardIsFodder(card)` is the one
+read** (doDiscard, doSwap, cardBuffLines). Mark: `.fodder-badge`, a recycle sign in the DISCARD key's
+red, drawn inside `renderCardAppearance`. The deck editor has a Fodder op (up to 3 touching cards, no
+roll, weight 8); card packs skip it. **Turnover** no longer discards anything: `cardStateTurnover`
+marks every card idle for `BAL.turnover.idle_seconds` (45) as temporary Fodder (quiet notice). A card
+that moved is not idle (`_cardLastPos`); selecting does not reset it.
+
+## r568 - the board redeals; the Keeper holds it (`js/deck-grid.js`, `js/data/sleights.js`)
+With no Keeper on the board every card leaves for `playedPile` at the round's end and the next round
+deals a full board (the pre-r332 rule; Flow's `survivalRecycleBoard` likewise). **Keeper** (rare,
+double_tap, infinite) keeps it: `_keepMode` on the board card is `'both'` (the r332 board), `'cards'`
+(other Sleights leave) or `'sleights'` (cards leave, kept Sleights settle to the bottom of their
+columns, `boardSettleKept`); a double-tap cycles it (`keeperCycle`), no charge, no round lock.
+`boardKeeper()` / `boardKeepMode()` / `boardKeepsCard(card)`; `boardPersists()` is now "a Keeper is on
+the board". The round-end sweep (`showLevelUpScreen_fallOnly`, `survivalDealNext`) asks per card.
+
+## r569 - the Reserve: double-tap the Focus bar (`js/reserve.js`)
+The Focus bar's double-tap is ONE gesture, hit-tested by rectangle at document level (the bar can sit
+under `#grid-slot`'s box); `focusTapHandler()` gives it to the newest owned Focus knack (r571) or the
+Reserve. `reserveOpen()` spends `BAL.reserve.open` (10) Focus for `BAL.reserve.cards` (3) fresh random
+TEMP cards (`makeTempCard`), each `BAL.reserve.buff_chance` (75%) likely to carry one deck-editor buff
+(`rollEditorBuff`: the editor's rows, weights and values). While cards are held a double-tap buys one
+more for `BAL.reserve.more` (5); under the cost it refuses. The stack is Dealer's Choice's
+(`dealerHand.mode 'reserve'`): cursor-follow on a mouse, docked in the preview tray on touch. Placing
+sends the old card to the back of the draw pile and counts as nothing (no swap, no time, no hooks);
+DISCARD throws the top card away for nothing. Not on a reward screen, the deck editor, the map, a pause
+or the deal.
+
+## r570 - the Card Counter's queue is on the hand preview (`js/queue-views.js`)
+The button under the Focus bar is gone. With the knack, a double-tap on `#selected-cards` (rectangle
+hit-test, like the bar) toggles `#preview-queue`: the next `gridCols x 2` draw-pile cards over the
+preview's live box, left to right as they will fall, next card first and outlined, zoomed to one row.
+Hidden while the board animates or falls (the tally lives there), on reward screens, the deck editor
+and while a held stack is docked there (`previewQueueHidden()`).
+
+## r571 - the Focus knacks (`js/focus-knacks.js`)
+One family, one at a time: owning one replaces the Reserve on the bar's double-tap and bans the rest
+from every offer (`focusKnackOfferBanned`, asked by `survivalEntityBanned`) until it is sold.
+`FOCUS_TAP_KNACKS`: **Free Hand** (rare; 10 Focus: swaps and discards free of time and stock for 10
+live seconds, `freeHandSecs`, treated like Fodder in doSwap / doDiscard), **Charged Card** (rare; 10
+Focus: the first scoring card of the next hand takes a deck-editor buff, `chargedCardApply` in
+playHand), **Shuffle Up** (common; 10 Focus: every ordinary unblocked card changes place and deals in
+again), **Double Down** (epic; 10 Focus: Focus applies twice for the next 3 hands, `focusDoubleHands`
+-> `focusExtraApplies`), **Overdrive** (epic; 5 Focus a hand: the board's best hand is selected loud
+and played, again until Focus is short; hand k scores x(1 + 0.5k) mult, timeline event `overdrive`
+after Siphon; every hand but the last scores fast via the dance's `skipBeats`; `sfxOverdriveHit(k)`
+per hand; then a 45s cooldown). State in SAVE_VARS; `#focus-chip` on the bar reads what is live.
+**Autoplayed hands make no Focus of their own** (`autoplayNoFocus()`: Overdrive, Autopilot, All
+Hands zero the complexity and speed terms in `generateHandFocus`; Tricks and Knacks still pay).
+**Loud selection** (`body.autoplay-loud`, `sfxCardSelectLoud`): Autopilot and Overdrive select with
+the sound twice, the bigger hover and a beat before the play. **Focus applying again is a bigger
+beat**: `focus-beat-big` on `#focus-box` and `#focus-meter-wrap` with `sfxFocusAgain(k)`, a tone up
+per application, in the classic set and all four packs.
+
+## r572 - All Hands (`js/sweep.js`, `css/sweep.css`)
+Legendary double_tap Sleight, 2 charges, no cost (id `all_hands`; `clean_sweep` is a Trick). It reads
+the board like a page: at each free card `sweepHands()` takes the best hand that card can anchor out of
+the still-free cards (Autopilot's shape search with a fixed start, one kicker allowed, 12 hands at
+most). Show phase: the cards are selected one by one, faster as it goes, a beat per hand
+(`sfxOverdriveHit(i)`), picked hands keep a hued ring (`.sweep-locked`, repainted by `sweepPaint()`
+from render's tail). Score phase: **each hand goes through the real `playHand` with `_sweepSilent`**
+(no dance, no fall, no goal check; Tricks, families, counters, time, credits and the Focus multiplier
+apply; Roll Call and the Ringer stand down; the score display is suppressed). Finale: one strip of
+every card, clones fly in, one `removeAndFall('play')` takes them all (the Sleight too, with its
+charges), per-hand plates fly at PIPS / MULT, the boxes climb to the sums, `pmfMergeIn` /
+`pmfFlyToScore` / score climb / `pmfSplitOut`. Then, if `roundQuotaMet()`, `_sweepEndRound` takes
+the dance's goal exit (`flashRoundEnd`, clock frozen, `bossSettleWin` / `survivalShowPick` /
+`startInterlude`). Refused in a boss round and while the board is busy. Taps, PLAY and DISCARD are
+off while it runs (`sweepRunning()`); `sweepReset` on a new run.
+
+## r573 - the Pairs event (`js/events-pairs.js`, `css/pairs-event.css`)
+Sixteen cards face down in a 4x4, eight pairs: 4 RANK pairs (two cards of one rank, random suits, two
+deck-editor buffs each; a match is the rank alone; both join the deck with their buffs), 2 OP pairs (a
+rarer deck op from `PAIRS_RARE_OPS`, applied to random deck cards: Stamp copies one twice, a dual op
+gives two cards a second suit / neighbouring rank, a buff op lands one rolled value on two), 2 PENALTY
+pairs A and B that match only like with like (A curses a random deck card, a board card only when the
+piles are empty; B puts two stones in the draw pile, gone at the next boss). Two forms rolled first:
+30% FREE (flip until a penalty pair matches, Leave between pairs), 70% THREE TRIES (Leave after any
+completed pair). Never mid-pair (Leave disabled with one card up). **The penalty rule:** with a
+penalty card turned first the second flip must be unseen or a known card of the same penalty; a known
+safe card shakes and is refused. `_pairsFit` sizes the tiles to the room under the title and over the
+sticky buttons (offsetTop chained to the panel) and `#event-overlay.ev-pairs` zooms the panel .8 so
+four rows show unscrolled. Confirm is hidden; `renderEventShell` restores its display.
+
+## r574 - score-merge-preview.html
+Standalone (no game imports): a mock score panel and four ways PIPS x MULT x FOCUS become the score,
+from three landed chips to the SCORE climbing: A Current (pmf-merge), B Two-step fuse (owner: pips and
+mult combine, then that number and Focus), C Collide and press (Focus stamps the product, once per
+application), D Working shown (the sum written out under the row). Plus the r571 multi-apply beat.
+Timing knobs mirror `PMF_CFG`. The owner picks; the pick goes into `js/pmf-merge.js`.
