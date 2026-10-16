@@ -1434,3 +1434,14 @@ through the clear glass; lit, the outline brightens and a hot filament glows in 
   added to the hand's base and to `ledger.basePips` / `baseMult`.
 - **Event tour**: `index.html?events` (js/event-tour.js), verdicts in `lethe.eventTour.v1`.
 
+## r583 - pixel icons on the entity tiles (`tools/icons/`, `js/data/icons.js`, `js/px-icons.js`)
+Owner: the emoji go. Every glyph `emGlyph` (js/entity-tile.js) draws (Trick categories, Knacks,
+Sleights, reward tiles; 133 of them) is a 16px, three-tone cell of `assets/icons/entities.png`,
+pixelated by `tools/icons/build.js` from game-icons.net SVGs (CC BY 3.0; authors listed in
+`assets/icons/CREDITS.md` and the handbook's Credits). `tools/icons/manifest.js` is the one
+place that says which icon and colour a glyph gets; the three outputs are GENERATED, rerun the
+tool. Keyed by emoji, so a glyph with no row keeps its emoji, and the emoji rides hidden inside
+the icon span (`.px-ico > i`) so dev -> Aesthetics -> **Entity art** (`lethe.pxIcons.v1`, stored
+only when off, `html.px-emoji`) flips back without a re-render. `--px-sheet` on `<html>` carries
+the sheet url with a content hash. Not yet converted: the places that print `t.emoji` as text
+(tooltip titles, Records lines, the event slot reels, the dev lists).

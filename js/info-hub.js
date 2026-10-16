@@ -76,6 +76,7 @@ const INFO_GROUPS = [
   ['schedule','The schedule'],
   ['pressure','Pressure'],
   ['modes',   'Modes'],
+  ['credits', 'Credits'],
 ];
 
 const INFO_TOPICS = [
@@ -395,6 +396,13 @@ const INFO_TOPICS = [
       'Focus builds from placing next to matching cards, placing quickly, and completing a paying line. It drains slowly.',
       '3 swaps and 3 discards per grid, both on placed cards only. They come back when the grid scores.',
       'Two grids, one score. The daily 3x3 and 4x4 grids are unchanged: every tile at once, valued from the real three- and four-card poker pay tables.',
+    ] },
+
+  // ── Credits ───────────────────────────────────────────────────────────────
+  { id: 'icon_credits', group: 'credits', title: 'Icons and type',
+    body: [
+      () => `The pictures on Tricks, Knacks, Sleights and reward tiles are pixel versions of icons from game-icons.net, by ${(typeof PX_ICON_AUTHORS !== 'undefined' ? PX_ICON_AUTHORS : []).join(', ')}. CC BY 3.0 (creativecommons.org/licenses/by/3.0). The list of icons is in assets/icons/CREDITS.md.`,
+      'VT323 is by Peter Hull, under the SIL Open Font License.',
     ] },
 ];
 

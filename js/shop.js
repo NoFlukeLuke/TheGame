@@ -98,26 +98,27 @@ function triggerShop() {
 // Each shop tile reuses the reward grid's entity look - rarity = neon border,
 // Orbitron name, scanlines, sleight tab, knack diamond - with a price chip
 // pinned to the corner. Descriptions live in the shared reward tooltip on hover.
+// Glyphs go through emGlyph (r583) like every other tile, so the pixel icon shows here too.
 function buildShopTileInner(p) {
   if (p._cardBuff) {
     // A buffed-card offer: the card's face large, the buff as the name band.
     return `<div class="stc-face">${p.icon}</div><div class="rwd-name">${p.sub || ''}</div>`;
   }
   if (p.entity === 'knack') {
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon)}</span></div>`
          + `<div class="rwd-name">${p.label}</div>`;
   }
   if (p.entity === 'trick') {
     // Shop shows the real trick glyph (you're deciding what to buy) rather than
     // the reward grid's mystery placeholder.
-    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${p.emoji || '✦'}</div><div class="rwd-name">${p.label}</div>`;
+    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${emGlyph(p.emoji || '✦')}</div><div class="rwd-name">${p.label}</div>`;
   }
   if (p.entity === 'sleight') {
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || '🃏'}</div><div class="rwd-name">${p.label}</div>`
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || '🃏')}</div><div class="rwd-name">${p.label}</div>`
          + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
   }
   // upgrade / resource tile: icon + name + progress sub-line
-  return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`
+  return `<div class="reward-icon">${emGlyph(p.icon)}</div><div class="rwd-name">${p.label}</div>`
        + (p.sub ? `<div class="shop-tile-sub">${p.sub}</div>` : '');
 }
 

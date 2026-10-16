@@ -1,0 +1,15 @@
+/* ══ PIXEL ICONS (r583) ═══════════════════════════════════════════════════
+   A glyph emGlyph (js/entity-tile.js) found in PX_ICONS is a cell of the sheet
+   (assets/icons/entities.png: PX_ICON_SIZE px tall, one cell per icon), sized
+   in em so every box that sized its emoji by font-size gets the same picture.
+   --px-sheet is written on <html> by js/px-icons.js, which also sets
+   html.px-emoji when the setting is off: then the hidden emoji shows instead. */
+.rwd-em.px-ico {
+  width: 1em; height: 1em; vertical-align: -0.12em;
+  background-image: var(--px-sheet); background-repeat: no-repeat;
+  background-size: auto 1em; background-position: calc(var(--ix, 0) * -1em) 0;
+  image-rendering: pixelated; transform: none;
+}
+.rwd-em.px-ico > i { display: none; font-style: normal; }
+html.px-emoji .rwd-em.px-ico { width: auto; height: auto; background: none; transform: scale(var(--egs, 1)); }
+html.px-emoji .rwd-em.px-ico > i { display: inline; }

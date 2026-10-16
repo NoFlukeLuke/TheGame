@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r582 · docs for the events pass (r576-r581)";
+const BUILD = "2026-10-16 · r583 · pixel icons for entity art (game-icons.net)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

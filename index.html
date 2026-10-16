@@ -72,6 +72,8 @@
 <link rel="stylesheet" href="css/cursor.css">
 <link rel="stylesheet" href="css/print-toast.css">
 <link rel="stylesheet" href="css/card-anims.css">
+<link rel="stylesheet" href="css/px-icons.css">
+<link rel="stylesheet" href="css/terminal-skin.css">
 <link rel="stylesheet" href="css/card-face.css">
 <link rel="stylesheet" href="css/stock-bulbs.css">
 <link rel="stylesheet" href="css/skin-machine.css">
@@ -617,6 +619,12 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Cards are
       <select id="dev-card-face" onchange="setCardFace(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="print">printed (pixel type)</option><option value="phosphor">phosphor screens</option><option value="classic">classic serif</option></select>
+    </label>
+
+    <div class="dev-subtitle">Entity art</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Tricks, Knacks, Sleights and tiles show
+      <select id="dev-px-icons" onchange="setPxIcons(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="pixel">pixel icons</option><option value="emoji">emoji</option></select>
     </label>
 
     <div class="dev-subtitle">Stock bulbs</div>
@@ -1523,6 +1531,7 @@
 <script src="js/deck-design.js"></script>
 <script src="js/data/audio-manifest.js"></script>
 <script src="js/data/tricks.js"></script>
+<script src="js/data/icons.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/fit-text.js"></script>
 <script src="js/entity-tile.js"></script>
@@ -1651,6 +1660,7 @@
 <script src="js/tray-pit.js"></script>
 <script src="js/machine-skin.js"></script>
 <script src="js/card-face.js"></script>
+<script src="js/px-icons.js"></script>
 <script src="js/stock-bulbs.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>

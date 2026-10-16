@@ -25,8 +25,13 @@ function emGlyph(g) {
   const s = (typeof emojiInkScale === 'function') ? emojiInkScale(g) : 1;
   // A glyph that needs no correction is emitted without the property rather
   // than with `--egs:1`, so the markup stays quiet in the common case.
-  return s === 1 ? `<span class="rwd-em">${g}</span>`
-                 : `<span class="rwd-em" style="--egs:${s}">${g}</span>`;
+  const egs = s === 1 ? '' : `--egs:${s}`;
+  // r583: a PIXEL ICON stands in for the emoji (js/data/icons.js, drawn from the
+  // sheet by css/px-icons.css). The emoji rides along hidden inside it, so the
+  // Entity art setting (js/px-icons.js) can show it again with no re-render.
+  const ix = (typeof PX_ICONS !== 'undefined') ? PX_ICONS[g] : undefined;
+  if (ix != null) return `<span class="rwd-em px-ico" style="${egs ? egs + ';' : ''}--ix:${ix}"><i>${g}</i></span>`;
+  return egs ? `<span class="rwd-em" style="${egs}">${g}</span>` : `<span class="rwd-em">${g}</span>`;
 }
 
 function entityTileInner(p, { mystery = false } = {}) {
