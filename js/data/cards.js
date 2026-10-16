@@ -435,6 +435,10 @@ function cardCan(card, action) {
   if (card._isReshuffle) return action === 'fall' || action === 'render';
   if (card._isStone) {
     // Stones can be drawn, fall, render, and be swapped. Nothing else.
+    // Junk (r576) also passes 'discard', so the pile functions take it back into
+    // the deck at the round's end instead of deleting it like a stone. It still
+    // cannot be SELECTED, so the player has no way to discard it by hand.
+    if (card._junk && action === 'discard') return true;
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';
   }
   if (card._isSleight) {

@@ -1955,10 +1955,12 @@ const FLOWR_DECK_OPS = [
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards rewind the clock 1s to 5s when scored.' },
   { id: 'replay', buff: { key: 'retrig', range: [1, 2, 1],      word: 'replay' }, icon: '↻', name: 'Replay Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards replay +1 to +2 times.' },
-  { id: 'xmult',  buff: { key: 'xmult',  range: [1.5, 3, 0.5],  word: '× mult', x: true }, icon: '⨉', name: '×Mult Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply the mult by ×1.5 to ×3.' },
-  { id: 'xpips',  buff: { key: 'xpips',  range: [1.25, 2, 0.25], word: '× pips', x: true }, icon: '∗', name: '×Pips Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply their pips by ×1.25 to ×2.' },
+  // r576 (owner): x1.5 flat on every card editor surface. An EVENT buffs harder
+  // (EVENT_X_BUFF below): x2 pips, x3 mult.
+  { id: 'xmult',  buff: { key: 'xmult',  range: [1.5, 1.5, 0.5],  word: '× mult', x: true }, icon: '⨉', name: '×Mult Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply the mult by ×1.5.' },
+  { id: 'xpips',  buff: { key: 'xpips',  range: [1.5, 1.5, 0.25], word: '× pips', x: true }, icon: '∗', name: '×Pips Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards multiply their pips by ×1.5.' },
   // r392: the card that SCORES CREDITS (the gold coin face).
   { id: 'coins',  buff: { key: 'coin',   range: [1, 3, 1],      word: 'credits' }, icon: '🪙', name: 'Coin Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards pay +1 to +3 credits when they score.' },
@@ -1974,16 +1976,21 @@ const FLOWR_DECK_OPS = [
 // TODO.md). Rarest: the two dual ops. Then Stamp and the x buffs; then Focus and
 // Time; then the flat buffs and Suit Spread. Rank Pull, Cut, Replay and Coin are
 // placed by guess. Read by the deck-edit pick AND the reward grid's card tiles.
+// r576 (owner): the two multipliers are 3x rarer than an ordinary buff (the
+// flat buffs average ~12), and Replay, Second Suit and Second Rank are EVENT
+// ONLY (EVENT_ONLY_OPS): no editor, grid tile, reserve or pack draws them.
 const FLOWR_OP_WEIGHTS = {
   suit2: 2, rank2: 2,
-  copy: 6, xmult: 6, xpips: 6, replay: 6,
+  copy: 6, xmult: 4, xpips: 4, replay: 6,
   focus: 10, time: 10, coins: 10, rank: 10, del: 10, fodder: 8,
   pips: 16, mult: 16, suit: 16,
 };
 function flowrOpWeight(op) { return FLOWR_OP_WEIGHTS[op.id] ?? 8; }
 // Weighted draw of n DIFFERENT ops, optionally from a filtered list.
-function flowrDrawOps(n, list) {
-  const pool = (list || FLOWR_DECK_OPS).slice(), out = [];
+const EVENT_ONLY_OPS = new Set(['replay', 'suit2', 'rank2']);
+function flowrDrawOps(n, list, opts) {
+  const ev = !!(opts && opts.event);
+  const pool = (list || FLOWR_DECK_OPS).filter(o => ev || !EVENT_ONLY_OPS.has(o.id)), out = [];
   while (out.length < n && pool.length) {
     const tot = pool.reduce((t, o) => t + flowrOpWeight(o), 0);
     let x = Math.random() * tot, k = 0;
@@ -2482,6 +2489,31 @@ function flowrQtyRoll(max) {
   return max;
 }
 
+// THE TWO MULTIPLIERS ARE WORTH MORE IN AN EVENT (r576, owner). Every card
+// editor surface buffs x pips and x mult at x1.5; when an EVENT hands one out it
+// is x2 pips or x3 mult. Every event that rolls a buff goes through these two,
+// so the event value is written once.
+const EVENT_X_BUFF = { xpips: 2, xmult: 3 };
+function buffValueFor(op, event) {
+  if (event && op && EVENT_X_BUFF[op.id] != null) return EVENT_X_BUFF[op.id];
+  return flowrValRoll(op.buff.range);
+}
+// n DIFFERENT buff rows, weighted by FLOWR_OP_WEIGHTS, each with its value.
+// opts.event lets the event-only rows in (Replay) and buffs at event strength;
+// opts.only / opts.skip filter the rows by id. -> [{ op, v, label, e }]
+function rollBuffs(n, opts) {
+  const o = opts || {};
+  let rows = FLOWR_DECK_OPS.filter(x => x.buff);
+  if (o.only) rows = rows.filter(x => o.only.includes(x.id));
+  if (o.skip) rows = rows.filter(x => !o.skip.includes(x.id));
+  return flowrDrawOps(n, rows, { event: !!o.event }).map(op => {
+    let v = buffValueFor(op, !!o.event);
+    if (o.mult && !op.buff.x) v = Math.round(v * o.mult);
+    else if (o.mult && op.buff.x) v = Math.round((1 + (v - 1) * o.mult) * 100) / 100;
+    return { op, v, label: flowrBuffLabel(op.buff, v), e: { [op.buff.key]: v } };
+  });
+}
+
 // Weighted-low roll over an inclusive numeric range with a step.
 function flowrValRoll(range) {
   const [lo, hi, step] = range;
@@ -2702,7 +2734,7 @@ function flowrBuildPacks() {
   if (!windows.length) return [];
   const faces = flowrPackFaces();
   const suitPool = shuffle([...faces.suits]);
-  const buffPool = shuffle(FLOWR_DECK_OPS.filter(o => o.buff).slice());
+  const buffPool = shuffle(FLOWR_DECK_OPS.filter(o => o.buff && !EVENT_ONLY_OPS.has(o.id)).slice());   // r576: Replay is event-only
   const winPool  = shuffle(windows.slice());
   const out = [];
   for (let i = 0; i < FLOWR_PACK_OFFERS && buffPool.length; i++) {

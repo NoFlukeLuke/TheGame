@@ -26,8 +26,8 @@ function _pairsRankCard(rank) {
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : ['♠', '♥', '♦', '♣'];
   const suit = suits[Math.floor(Math.random() * suits.length)];
   const rows = FLOWR_DECK_OPS.filter(o => o.buff);
-  const ops = (typeof flowrDrawOps === 'function') ? flowrDrawOps(2, rows) : rows.slice(0, 2);
-  const buffs = ops.map(op => ({ op, v: flowrValRoll(op.buff.range) }));
+  const ops = (typeof flowrDrawOps === 'function') ? flowrDrawOps(2, rows, { event: true }) : rows.slice(0, 2);
+  const buffs = ops.map(op => ({ op, v: buffValueFor(op, true) }));   // r576: event strength
   return { rank, suit, buffs };
 }
 
@@ -35,7 +35,7 @@ function _pairsBuild() {
   const ranks = ((typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : ['2','3','4','5','6','7','8','9','10','J','Q','K','A']).slice();
   for (let i = ranks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ranks[i], ranks[j]] = [ranks[j], ranks[i]]; }
   const ops = (typeof flowrDrawOps === 'function')
-    ? flowrDrawOps(2, FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)))
+    ? flowrDrawOps(2, FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)), { event: true })
     : FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)).slice(0, 2);
   const curseIds = Object.keys(CURSE_DEFS);
   const curse = curseIds[Math.floor(Math.random() * curseIds.length)];
@@ -224,7 +224,7 @@ function _pairsPay(a, t) {
       if (typeof clearHandCompCache === 'function') clearHandCompCache();
       noteMessage(`Pairs: ${op.name} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, '#e8b0ff');
     } else if (op.buff) {
-      const v = flowrValRoll(op.buff.range);
+      const v = buffValueFor(op, true);   // r576: event strength
       const picks = _pairsPickCards(2);
       picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
       noteMessage(`Pairs: ${flowrBuffLabel(op.buff, v)} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)');

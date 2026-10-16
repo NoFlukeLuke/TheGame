@@ -1,96 +1,137 @@
-function confluencePoolForTheme(theme) {
-  const ownedTrick     = new Set((acquiredTricks  || []).map(b => b.id));
-  const ownedKnacks = new Set((acquiredKnacks   || []).map(t => t.id));
-  const ownedSleights = grantedSleightIds;
-  const items = [];
-  TRICK_POOL.filter(b => !ownedTrick.has(b.id) && b.tags?.some(t => theme.trickTags.includes(t)))
-    .forEach(b => items.push({ type:'trick', icon:'★', name:b.name, desc:b.desc, rarity:b.tier, payload:b }));
-  theme.knackIds.forEach(id => {
-    const t = KNACK_POOL.find(t => t.id === id);
-    if (t && !ownedKnacks.has(t.id))
-      items.push({ type:'knack', icon:t.emoji, name:t.name, desc:t.desc, rarity:'legendary', payload:t });
+// ══════════════════════════════════════════════
+// ENGINE HELPERS (r576) - read js/data/engines.js
+// ══════════════════════════════════════════════
+// Free Pick and Theme Draft both offer pieces of an ENGINE (pieces that feed
+// each other) rather than of a tag. These are the one place "do you own it" and
+// "may it be offered" are asked for an engine member, so the two events cannot
+// disagree.
+function engineOwns(kind, id) {
+  if (kind === 'trick')   return typeof ownsTrick === 'function' && ownsTrick(id);
+  if (kind === 'knack')   return typeof hasKnack === 'function' && hasKnack(id);
+  if (kind === 'sleight') return typeof grantedSleightIds !== 'undefined' && grantedSleightIds.has(id);
+  return false;
+}
+function engineDef(kind, id) {
+  const pool = kind === 'trick' ? TRICK_POOL : kind === 'knack' ? KNACK_POOL : SLEIGHT_POOL;
+  return pool.find(e => e.id === id) || null;
+}
+// May this member be OFFERED right now: not owned, in this run's pool (a mode can
+// filter Tricks out of TRICK_POOL), not banned by the mode, and not a fixture.
+function engineOfferable(kind, id) {
+  if (engineOwns(kind, id)) return false;
+  const def = engineDef(kind, id);
+  if (!def) return false;
+  if (typeof offerBannedGlobal === 'function' && offerBannedGlobal(id)) return false;
+  if (kind === 'sleight' && !(typeof sleightOfferable === 'function' && sleightOfferable(def))) return false;
+  return true;
+}
+const ENGINE_KINDS = [['trick', 'tricks'], ['sleight', 'sleights'], ['knack', 'knacks']];
+function engineOwnedCount(eng) {
+  let n = 0;
+  ENGINE_KINDS.forEach(([kind, key]) => eng[key].forEach(id => { if (engineOwns(kind, id)) n++; }));
+  return n;
+}
+// Every offerable member of an engine as an event item, optionally one kind.
+function engineMissing(eng, onlyKind) {
+  const out = [];
+  ENGINE_KINDS.forEach(([kind, key]) => {
+    if (onlyKind && kind !== onlyKind) return;
+    eng[key].forEach(id => {
+      if (!engineOfferable(kind, id)) return;
+      const def = engineDef(kind, id);
+      out.push({ type: kind, id, icon: kind === 'trick' ? '★' : def.emoji, name: def.name, desc: def.desc,
+                 rarity: (kind === 'trick' ? def.tier : def.rarity) || 'common', payload: def, engine: eng });
+    });
   });
-  SLEIGHT_POOL.filter(j => !ownedSleights.has(j.id) && sleightOfferable(j) && j.tags?.some(t => theme.sleightTags.includes(t)))
-    .forEach(j => items.push({ type:'sleight', icon:j.emoji, name:j.name, desc:j.desc, rarity:j.rarity, payload:j }));
-  // shuffle and cap at 3
-  const a = [...items]; for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
-  return a.slice(0, 3);
+  return out;
+}
+// One item from a list, through the shared rarity draw (js/luck.js), so Luck
+// tilts an event's offers exactly as it tilts every other offer.
+function enginePickOne(items) {
+  if (!items.length) return null;
+  return (typeof pickEntityByRarity === 'function') ? (pickEntityByRarity(items, i => i.rarity) || items[0]) : items[0];
+}
+// Grant an engine item through the ordinary paths. A Trick that does not fit the
+// tray is refused at SELECTION (engineRefuseFull), so this never bounces one.
+function engineGrant(item) {
+  if (item.type === 'trick') injectTrickAfterReward(item.payload);
+  else if (item.type === 'knack') { acquiredKnacks.push({ ...item.payload }); updateKnackList?.(); noteMessage(`+ ${item.name}`, 'var(--gold)'); }
+  else if (item.type === 'sleight') grantSleight(item.payload);
+}
+// r277: a full tray refuses a Trick where you choose it, not after.
+function engineRefuseFull(item) {
+  if (item && item.type === 'trick' && typeof trickTrayFull === 'function' && trickTrayFull()) {
+    if (typeof refuseTrickCapacity === 'function') refuseTrickCapacity();
+    return true;
+  }
+  return false;
+}
+function engineTag(eng) {
+  const n = engineOwnedCount(eng);
+  return `${eng.icon} ${eng.name}${n ? ` · you own ${n}` : ''}`;
 }
 
+// ══════════════════════════════════════════════
+// EVENT: THEME DRAFT (confluence) - r576 rework
+// ══════════════════════════════════════════════
+// One engine, LOCKED: no choice between themes (owner). It offers a Trick, a
+// Sleight and a card carrying the engine's buff at twice the card editor's
+// value; take two of the three. An engine you have started is preferred.
+const CONFLUENCE_TAKE = 2;
+function confluenceThemes() {
+  return ENGINES.filter(e => engineMissing(e, 'trick').length && engineMissing(e, 'sleight').length);
+}
+// The engine's buff at twice the editor's value: flat buffs doubled, a multiplier
+// buff doubles its part above x1 (x1.5 -> x2), a replay is +2.
+function confluenceBuff(eng) {
+  const op = FLOWR_DECK_OPS.find(o => o.id === eng.buff && o.buff) || FLOWR_DECK_OPS.find(o => o.id === 'pips');
+  const base = flowrValRoll(op.buff.range);
+  const v = op.buff.x ? Math.round((1 + (base - 1) * 2) * 100) / 100 : (op.id === 'replay' ? 2 : base * 2);
+  return { op, v, label: flowrBuffLabel(op.buff, v), e: { [op.buff.key]: v } };
+}
 function renderConfluence() {
-  eventState.phase = 'theme';
-  eventState.selectedTheme = null;
-  eventState.selectedItem  = null;
-  // Pick 3 random themes
-  const themes = [...CONFLUENCE_THEMES]; for (let i=themes.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [themes[i],themes[j]]=[themes[j],themes[i]]; }
-  eventState.themes = themes.slice(0, 3);
   const body = document.getElementById('event-body');
-  const lbl = document.createElement('div');
-  lbl.className = 'ev-label';
-  lbl.textContent = 'PICK A THEME';
-  body.appendChild(lbl);
-  const row = document.createElement('div');
-  row.className = 'event-theme-row';
-  eventState.themes.forEach((theme, i) => {
-    const btn = document.createElement('div');
-    btn.className = 'event-theme-btn';
-    btn.innerHTML = `<div class="etb-icon">${theme.icon}</div><div class="etb-name">${theme.name}</div>`;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.event-theme-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      eventState.selectedTheme = theme;
-      showConfluenceItems(theme);
-    });
-    row.appendChild(btn);
-  });
-  body.appendChild(row);
-  eventState.itemsContainer = document.createElement('div');
-  eventState.itemsContainer.className = 'ev-stack';
-  body.appendChild(eventState.itemsContainer);
-}
-
-function showConfluenceItems(theme) {
-  const pool = confluencePoolForTheme(theme);
-  eventState.items = pool;
-  eventState.selectedItem = null;
-  setEventConfirm(false);
-  const c = eventState.itemsContainer;
-  c.innerHTML = '';
-  if (pool.length === 0) {
-    c.innerHTML = evEmptyHTML('Nothing left in this theme. Try another.');
-    setEventConfirm(true); // allow skip
-    return;
+  const themes = confluenceThemes();
+  if (!themes.length) { body.innerHTML = evEmptyHTML('Nothing left to draft.'); setEventConfirm(true); return; }
+  const started = themes.filter(e => engineOwnedCount(e) > 0);
+  const eng = evShuffle(started.length ? started : themes)[0];
+  const card = evShuffle(everyDeckCard().filter(c => !(typeof isWildCard === 'function' && isWildCard(c))))[0];
+  const items = [
+    { ...enginePickOne(engineMissing(eng, 'trick')) },
+    { ...enginePickOne(engineMissing(eng, 'sleight')) },
+  ];
+  if (card) {
+    const b = confluenceBuff(eng);
+    items.push({ type: 'card', card, buff: b, icon: b.op.icon, rarity: 'epic', name: `${card.rank}${card.suit} · ${b.label}`,
+                 desc: `${card.rank}${card.suit} in your deck scores ${b.label} for good. Twice what the card editor gives.` });
   }
-  const lbl = document.createElement('div');
-  lbl.className = 'ev-label';
-  lbl.textContent = 'PICK ONE';
-  c.appendChild(lbl);
-  pool.forEach(item => {
-    const el = makeChoiceEl({ icon:item.icon, rarity:item.rarity, name:item.name, desc:item.desc,
-      tile: evItemTile(item),
+  eventState.themeEngine = eng;
+  eventState.themeItems = items;
+  eventState.themePicked = [];
+  body.appendChild(evLabel(`THEME: ${eng.icon} ${eng.name.toUpperCase()}`));
+  body.appendChild(evNote(eng.desc));
+  const sync = () => setEventConfirm(eventState.themePicked.length === Math.min(CONFLUENCE_TAKE, items.length));
+  items.forEach(item => {
+    const extra = item.type === 'card' && typeof evCardChip === 'function' ? evCardChip(item.card) : '';
+    const el = makeChoiceEl({ icon: item.icon, rarity: item.rarity, name: item.name, desc: item.desc, extra,
+      tile: item.type === 'card' ? null : evItemTile(item),
+      cost: item.type === 'card' ? 'CARD BUFF' : item.type.toUpperCase(),
       onClick: () => {
-        c.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.selectedItem = item;
-        setEventConfirm(true);
-      }
-    });
-    c.appendChild(el);
+        const at = eventState.themePicked.indexOf(item);
+        if (at >= 0) { eventState.themePicked.splice(at, 1); el.classList.remove('selected'); sync(); return; }
+        if (eventState.themePicked.length >= CONFLUENCE_TAKE || engineRefuseFull(item)) return;
+        eventState.themePicked.push(item); el.classList.add('selected'); sync();
+      } });
+    body.appendChild(el);
   });
+  sync();
 }
-
 function confirmConfluence() {
-  const item = eventState.selectedItem;
-  if (!item) { closeEvent(); return; }
-  if (item.type === 'trick') {
-    injectTrickAfterReward(item.payload);
-  } else if (item.type === 'knack') {
-    acquiredKnacks.push({ ...item.payload });
-    updateKnackList?.();
-    noteMessage(`+ ${item.name}`, 'var(--gold)');
-  } else if (item.type === 'sleight') {
-    grantSleight(item.payload);
-  }
+  (eventState.themePicked || []).forEach(item => {
+    if (item.type !== 'card') { engineGrant(item); return; }
+    const t = resolveDeckCard(item.card);
+    if (t) { enhanceCardKey(cardId(t), item.buff.e); noteMessage(`${t.rank}${t.suit}: ${item.buff.label}`, 'var(--gold)'); }
+  });
   closeEvent();
 }
 
@@ -428,104 +469,117 @@ function evShuffle(arr) {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: THE FORGE  (this-or-that card enhancement)
+// EVENT: CARD UPGRADE (forge) - r576 rework, SCALING only
 // ══════════════════════════════════════════════
-// AN OPTION BUFFS SEVERAL CARDS (r294, owner's numbers): a SCALING option takes
-// TWO cards, every other option takes THREE. The counts are the trade - a
-// scaling buff is worth more per card, so it reaches fewer of them - and they
-// are what makes the two kinds visibly different things to pick between rather
-// than two sentences to read closely.
+// Owner: "offers you permanent scaling buffs for either pips or mult. either 10
+// pips or 4 mult. and each time its triggered it gains that much more for the
+// next play ... you choose two cards, one of them gets one of the buffs ... spend
+// money for a chance to buff both cards."
 //
-// It is a real power increase on what this event used to pay, and deliberately
-// so: one card in a 52-card deck is a card you may not draw, and three of them
-// is a buff you will actually meet.
+// A scaling buff is the flat buff plus the same again per play ({ pips: 10,
+// growPips: 10 }): it scores +10, then +20, then +30. growCardScaling
+// (js/deck-grid.js) does the growing after each scoring hand.
 //
-// The wording is buffOfferLine / buffOfferName (js/deck-grid.js) and not a
-// sentence typed here - see that file for why FLAT says BUFF and SCALING says
-// SCALES.
-const FORGE_SCALE_CARDS = 2;
-const FORGE_FLAT_CARDS  = 3;
-const FORGE_BOONS = [
-  { icon: '🔨',  rarity: 'common', e: { pips: 30 } },
-  { icon: '⚒️', rarity: 'rare',   e: { xpips: 2 } },
-  { icon: '✨',  rarity: 'common', e: { mult: 5 } },
-  { icon: '💥',  rarity: 'epic',   e: { xmult: 2 } },
-  { icon: '🔁',  rarity: 'rare',   e: { retrig: 1 } },
-  { icon: '📈',  rarity: 'epic',   e: { growMult: 1 } },
-  { icon: '🌱',  rarity: 'rare',   e: { growPips: 4 } },
-];
+// The two cards are picked from a sample of the deck drawn here, not off the
+// board: between rounds the board has usually been swept back into the deck
+// (r568), so there is nothing on it to point at.
+const FORGE_SAMPLE = 8;
+function forgeBuffs() {
+  const B = BAL.forge;
+  return [
+    { key: 'pips', icon: '🔨', rarity: 'rare', name: `+${B.pips} pips, growing`, e: { pips: B.pips, growPips: B.pips },
+      desc: `The card scores +${B.pips} pips, and ${B.pips} more every time it scores.` },
+    { key: 'mult', icon: '📈', rarity: 'epic', name: `+${B.mult} mult, growing`, e: { mult: B.mult, growMult: B.mult },
+      desc: `The card scores +${B.mult} mult, and ${B.mult} more every time it scores.` },
+  ];
+}
 function renderForge() {
   const body = document.getElementById('event-body');
-  const all = allDeckCards();
-  if (!eventEligible('forge')) {
-    body.innerHTML = evEmptyHTML('No cards to upgrade.');
-    setEventConfirm(true); return;
-  }
-  // No 'PICK AN UPGRADE' label: the panel's own title says CARD UPGRADE and its
-  // flavour line says to take one, so a third telling only cost a row of a
-  // panel that already scrolls.
-
-  // One shuffled pool handed out in order, so an option's cards are distinct
-  // and two options rarely name the same card. It WRAPS rather than running
-  // short: a deck thinned below eight cards still gets three full options, with
-  // a card appearing twice, which beats an option that silently buffs one.
-  const pool = evShuffle(all);
-  let cursor = 0;
-  const take = (n) => {
-    const out = [];
-    for (let i = 0; i < n; i++) out.push(pool[cursor++ % pool.length]);
-    return out;
-  };
-
-  const chosen = evShuffle(FORGE_BOONS).slice(0, 3).map(b => {
-    const scaling = buffIsScaling(b.e);
-    const cards = take(scaling ? FORGE_SCALE_CARDS : FORGE_FLAT_CARDS);
-    return { ...b, cards, scaling };
-  });
-
-  eventState.forgeChoice = null;
-  chosen.forEach(opt => {
-    // The faces are drawn as real mini playing cards under the sentence, so the
-    // sentence says "these three cards" rather than listing them a second time.
-    const subject = cardCountPhrase(opt.cards.length);
-    const el = makeChoiceEl({
-      icon: opt.icon, rarity: opt.rarity,
-      name: buffOfferName(opt.e),
-      desc: buffOfferLine(opt.e, subject, opt.cards.length > 1),
-      cls: 'ec-forge',
-      extra: `<div class="ev-cardchips ec-facerow">` +
-        opt.cards.map(c => `<span class="ev-cardchip${['♥','♦'].includes(c.suit) ? ' red' : ''}">${cardLabel(c)}</span>`).join('') +
-        `</div>`,
+  const pool = allDeckCards().filter(c => !(typeof isWildCard === 'function' && isWildCard(c)));
+  if (pool.length < 2) { body.innerHTML = evEmptyHTML('Not enough cards to upgrade.'); setEventConfirm(true); eventState.forgeNone = true; return; }
+  const s = eventState;
+  s.forgeBuff = null; s.forgeCards = []; s.forgeBoth = false; s.forgeDone = false;
+  s.forgeSample = evShuffle(pool).slice(0, FORGE_SAMPLE);
+  s.forgeBothPrice = priceOf(BAL.forge.both_price);
+  body.appendChild(evLabel('1 · THE BUFF'));
+  forgeBuffs().forEach(b => {
+    const el = makeChoiceEl({ icon: b.icon, rarity: b.rarity, name: b.name, desc: b.desc, cls: 'forge-buff',
       onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.forgeChoice = opt;
-        setEventConfirm(true);
-      }
-    });
+        if (s.forgeDone) return;
+        body.querySelectorAll('.forge-buff').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected'); s.forgeBuff = b; forgeSync();
+      } });
     body.appendChild(el);
   });
-}
-// Every card is re-resolved at apply time: this screen was built from a
-// snapshot and a card can leave the run in between (the r192 rule).
-function applyForgeChoice(opt) {
-  const hit = [];
-  const seen = new Set();
-  opt.cards.forEach(c => {
-    const t = resolveDeckCard(c);
-    if (!t) return;
-    const k = cardId(t);
-    if (seen.has(k)) return;      // a wrapped pool can hand out one card twice
-    seen.add(k);
-    enhanceCardKey(k, opt.e);
-    hit.push(cardLabel(t));
+  body.appendChild(evLabel('2 · TWO CARDS · ONE OF THEM GETS IT'));
+  const chips = document.createElement('div'); chips.className = 'ev-cardchips'; chips.id = 'forge-chips';
+  s.forgeSample.forEach(card => {
+    const chip = document.createElement('span');
+    chip.className = 'ev-cardchip' + (['♥', '♦'].includes(card.suit) ? ' red' : '');
+    chip.textContent = (typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`;
+    chip._card = card;
+    chip.addEventListener('click', () => {
+      if (s.forgeDone) return;
+      const at = s.forgeCards.indexOf(card);
+      if (at >= 0) s.forgeCards.splice(at, 1);
+      else if (s.forgeCards.length < 2) s.forgeCards.push(card);
+      forgeSync();
+    });
+    chips.appendChild(chip);
   });
-  if (!hit.length) { showMessage('Those cards have left the run', 'var(--c-coral)'); return; }
-  noteMessage(`${buffJoin(hit)}: ${buffOfferName(opt.e)}`, 'var(--gold)');
+  body.appendChild(chips);
+  const both = makeChoiceEl({ icon: '🪙', rarity: 'legendary', name: 'Try for both', cls: 'forge-both',
+    desc: `A coin flip: heads, both cards get the buff. Tails, one card still does.`, cost: `${s.forgeBothPrice} credits`,
+    onClick: () => {
+      if (s.forgeDone || coins < s.forgeBothPrice) return;
+      s.forgeBoth = !s.forgeBoth; both.classList.toggle('selected', s.forgeBoth); forgeSync();
+    } });
+  if (coins < s.forgeBothPrice) both.classList.add('locked');
+  body.appendChild(both);
+  forgeSync();
+}
+function forgeSync() {
+  const s = eventState;
+  document.querySelectorAll('#forge-chips .ev-cardchip').forEach(ch => ch.classList.toggle('picked', s.forgeCards.includes(ch._card)));
+  setEventConfirm(!!s.forgeBuff && s.forgeCards.length === 2);
 }
 function confirmForge() {
-  if (eventState.forgeChoice) { applyForgeChoice(eventState.forgeChoice); render(); }
-  closeEvent();
+  const s = eventState;
+  if (s.forgeNone || s.forgeDone) { closeEvent(); return; }
+  if (!s.forgeBuff || s.forgeCards.length !== 2) { closeEvent(); return; }
+  s.forgeDone = true;
+  setEventConfirm(false);
+  document.getElementById('event-skip').style.display = 'none';
+  const body = document.getElementById('event-body');
+  const stage = document.createElement('div'); stage.className = 'evt-host'; body.appendChild(stage);
+  evReveal(s.forgeBoth ? stage : document.getElementById('forge-chips'));
+  const winIdx = Math.floor(Math.random() * 2);
+  let bothWon = false;
+  let p = Promise.resolve();
+  if (s.forgeBoth && coins >= s.forgeBothPrice) {
+    coins -= s.forgeBothPrice; updateCoinsUI?.();
+    bothWon = Math.random() < BAL.forge.both_chance;
+    const coin = evCoin(stage);
+    p = coin.flip(bothWon ? 'heads' : 'tails').then(() => coin.caption(bothWon ? 'BOTH CARDS' : 'ONE CARD', bothWon ? 'win' : 'lose'));
+  }
+  p.then(() => {
+    const chips = [...document.querySelectorAll('#forge-chips .ev-cardchip')].filter(ch => s.forgeCards.includes(ch._card));
+    const winners = bothWon ? s.forgeCards.slice() : [s.forgeCards[winIdx]];
+    // Alternate the highlight between the two picks, then land on the result.
+    let k = 0;
+    const flips = bothWon ? 0 : 7 + winIdx;
+    const step = () => {
+      chips.forEach((ch, i) => ch.classList.toggle('picked', bothWon || i === k % 2));
+      if (k < flips) { k++; if (typeof sfxClockTick === 'function') try { sfxClockTick(); } catch (e) {} setTimeout(step, 90 + k * 18); return; }
+      winners.forEach(card => { const t = resolveDeckCard(card); if (t) enhanceCardKey(cardId(t), s.forgeBuff.e); });
+      chips.forEach(ch => ch.classList.toggle('picked', winners.includes(ch._card)));
+      const names = winners.map(c => `${c.rank}${c.suit}`).join(' and ');
+      const res = evNote(`<b>${names}</b> ${winners.length > 1 ? 'score' : 'scores'} ${s.forgeBuff.name}.`); stage.appendChild(res); evReveal(res);
+      if (typeof sfxRewardGood === 'function') try { sfxRewardGood(); } catch (e) {}
+      const btn = document.getElementById('event-confirm'); if (btn) { btn.textContent = 'DONE'; btn.disabled = false; }
+    };
+    step();
+  });
 }
 
 // ══════════════════════════════════════════════
@@ -701,49 +755,44 @@ function confirmWager() {
 // EVENT: WANDERING MERCHANT
 // ══════════════════════════════════════════════
 function renderMerchant() {
-  // 2 legendary/rare Tricks + 1 sleight or knack - all free (it's a gift event, not a shop)
-  const ownedTrick     = new Set((acquiredTricks||[]).map(b=>b.id));
-  const ownedKnacks = new Set((acquiredKnacks ||[]).map(t=>t.id));
-  const legends = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='legendary'||b.tier==='rare'));
-  const knacks  = KNACK_POOL.filter(t=>!ownedKnacks.has(t.id));
-  const sleights  = SLEIGHT_POOL.filter(j=>!grantedSleightIds.has(j.id) && sleightOfferable(j) && (j.rarity==='rare'||j.rarity==='legendary'));
-  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
+  // r576 rework (owner): offer only the MISSING PIECES OF AN ENGINE you have
+  // started - "if you have something that gives replays, give a knack that buffs
+  // based on replays". One offer per engine, the engines you have the most of
+  // first. With fewer than three engines started, the rest are starters from
+  // engines you have not touched. Free: take one.
+  const engines = evShuffle(ENGINES).map(e => ({ e, n: engineOwnedCount(e), miss: engineMissing(e) }))
+    .filter(x => x.miss.length);
+  const started = engines.filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+  const fresh   = engines.filter(x => x.n === 0);
   const items = [];
-  sh(legends).slice(0,2).forEach(b => items.push({ type:'trick', icon:'★', rarity:b.tier, name:b.name, desc:b.desc, payload:b }));
-  if (knacks.length>0 && Math.random()<0.5) { const t=sh(knacks)[0]; items.push({ type:'knack', icon:t.emoji, rarity:'legendary', name:t.name, desc:t.desc, payload:t }); }
-  else if (sleights.length>0) { const j=sh(sleights)[0]; items.push({ type:'sleight', icon:j.emoji, rarity:j.rarity, name:j.name, desc:j.desc, payload:j }); }
-  // cap at 3, shuffle
-  eventState.merchantItems = sh(items).slice(0,3);
+  const take = list => list.forEach(x => {
+    if (items.length >= 3) return;
+    const pick = enginePickOne(x.miss.filter(m => !items.some(i => i.id === m.id)));
+    if (pick) items.push(pick);
+  });
+  take(started); take(fresh);
+  eventState.merchantItems = items;
   eventState.merchantPick  = null;
   const body = document.getElementById('event-body');
-  const lbl = document.createElement('div');
-  lbl.className = 'ev-label';
-  lbl.textContent = 'TAKE ONE';
-  body.appendChild(lbl);
-  if (eventState.merchantItems.length === 0) {
-    body.innerHTML += evEmptyHTML('Nothing here you do not already own.');
-    setEventConfirm(true); return;
-  }
-  eventState.merchantItems.forEach(item => {
-    const el = makeChoiceEl({ icon:item.icon, rarity:item.rarity, name:item.name, desc:item.desc,
-      tile: evItemTile(item),
+  body.appendChild(evLabel(started.length ? 'PIECES OF YOUR ENGINES · TAKE ONE' : 'TAKE ONE'));
+  if (!items.length) { body.innerHTML += evEmptyHTML('Nothing here you do not already own.'); setEventConfirm(true); return; }
+  items.forEach(item => {
+    const el = makeChoiceEl({ icon: item.icon, rarity: item.rarity, name: item.name, desc: item.desc,
+      tile: evItemTile(item), cost: engineTag(item.engine),
       onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        if (engineRefuseFull(item)) return;
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
         eventState.merchantPick = item;
         setEventConfirm(true);
-      }
-    });
+      } });
     body.appendChild(el);
   });
 }
 
 function confirmMerchant() {
   const item = eventState.merchantPick;
-  if (!item) { closeEvent(); return; }
-  if (item.type === 'trick') { injectTrickAfterReward(item.payload); }
-  else if (item.type === 'knack') { acquiredKnacks.push({...item.payload}); updateKnackList?.(); noteMessage(`+ ${item.name}`,'var(--gold)'); }
-  else if (item.type === 'sleight') { grantSleight(item.payload); }
+  if (item) engineGrant(item);
   closeEvent();
 }
 
@@ -1327,7 +1376,7 @@ function renderRehearsal() {
     setEventConfirm(true); return;
   }
   eventState.rehearsePick = null;
-  body.appendChild(evNote('One Trick fires an extra time on every hand, for the rest of the run. It does not run out.'));
+  body.appendChild(evNote(`One Trick fires an extra time on every hand, for the rest of the run. Cost: <b>${BAL.rehearsal.junk} junk cards</b> go into your deck. Junk takes up a space on the board and cannot be played or discarded.`));
   trickTray.forEach(t => {
     const rank = t._rank || 0;
     const el = makeChoiceEl({
@@ -1354,12 +1403,21 @@ function confirmRehearsal() {
   } else if (eventState.rehearsePick) {
     const t = eventState.rehearsePick;
     t._rank = (t._rank || 0) + 1;
-    noteMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand`, 'var(--gold)');
+    if (typeof addJunkToDeck === 'function') addJunkToDeck(BAL.rehearsal.junk);   // r576: the cost
+    noteMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand · ${BAL.rehearsal.junk} junk in your deck`, 'var(--gold)');
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }
   closeEvent();
 }
 
+// r576 (owner): Reinforce adds 20% of the Sleight's CURRENT ceiling, rounded up,
+// never under the old flat +2 - so a big Sleight gains a big step and repeat
+// visits compound. One function, read by the offer text and the apply.
+function workshopCapGain(def) {
+  const cap = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+  if (cap === null) return 0;
+  return Math.max(BAL.workshop.cap_bonus, Math.ceil(cap * BAL.workshop.cap_pct));
+}
 // ─── EVENT: THE WORKSHOP (Sleight upgrade) ───
 // Sleights run on charges and, once spent, sit inert or leave the deck. Nothing
 // in the game raised a charge CEILING before this.
@@ -1389,7 +1447,7 @@ function renderWorkshop() {
 
   const reinforce = makeChoiceEl({
     icon:'⚙️', rarity:'epic', name:'Reinforce',
-    desc:`One Sleight permanently gains +${BAL.workshop.cap_bonus} maximum charges, and refills to that new ceiling.`,
+    desc:`One Sleight's charge ceiling goes up by ${Math.round(BAL.workshop.cap_pct * 100)}% (at least +${BAL.workshop.cap_bonus}) for good, and it refills to the new ceiling.`,
     onClick: () => {
       body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
       reinforce.classList.add('selected');
@@ -1417,7 +1475,7 @@ function showWorkshopPicker(owned) {
     const el = makeChoiceEl({
       icon: def.emoji || '◈', rarity: def.rarity, name: def.name,
       tile: { entity:'sleight', id:def.id, emoji:def.emoji || '◈', label:def.name, uses:(card._usesLeft ?? cap) },
-      desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + BAL.workshop.cap_bonus}.`,
+      desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + workshopCapGain(def)}.`,
       onClick: () => {
         wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
@@ -1444,7 +1502,7 @@ function confirmWorkshop() {
   } else if (eventState.workshopPick === 'reinforce' && eventState.workshopCard) {
     const def = sleightDef(eventState.workshopCard);
     if (def) {
-      sleightCapBonus[def.id] = (sleightCapBonus[def.id] || 0) + BAL.workshop.cap_bonus;
+      sleightCapBonus[def.id] = (sleightCapBonus[def.id] || 0) + workshopCapGain(def);
       // Refill every copy to the NEW ceiling, not just the one that was picked -
       // the bonus is stored per sleightId, so they all share it.
       allOwnedSleightCards().forEach(c => {
@@ -1586,6 +1644,23 @@ function renderDeckTrim() {
   eventState.trimTier = null;
   eventState.trimCards = [];
   body.appendChild(evNote('Every card you cut is gone for the rest of the run. The fewer cards in the deck, the more often the ones you kept come round.'));
+  // r576: the junk other events put in your deck comes out here.
+  const junk = (typeof junkCards === 'function') ? junkCards().length : 0;
+  if (junk) {
+    const jPrice = priceOf(BAL.deck_trim.junk_each) * junk, jAfford = coins >= jPrice;
+    const jel = makeChoiceEl({ icon: '✕', rarity: 'rare', name: `Clear your junk (${junk})`,
+      desc: `Every junk card leaves your deck.`, cost: `${jPrice} credits`, cls: jAfford ? '' : 'locked',
+      onClick: () => {
+        if (!jAfford) return;
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        jel.classList.add('selected');
+        document.getElementById('trim-card-picker')?.remove();
+        eventState.trimTier = { junk: true, price: jPrice, cards: 0 };
+        eventState.trimCards = [];
+        setEventConfirm(true);
+      } });
+    body.appendChild(jel);
+  }
 
   // r234: PRICE_MULT at the read site (BAL is rebuilt by applyEntityTiers).
   // A free tier stays free - priceOf() no-ops on 0.
@@ -1652,6 +1727,10 @@ function showTrimCardPicker(pool, tier) {
 
 function confirmDeckTrim() {
   const tier = eventState.trimTier;
+  if (tier && tier.junk) {
+    if (coins >= tier.price) { coins -= tier.price; updateCoinsUI?.(); const n = cutJunk(Infinity); noteMessage(`${n} junk card${n === 1 ? '' : 's'} cleared`, 'var(--gold)'); }
+    closeEvent(); return;
+  }
   if (!tier || (eventState.trimCards || []).length !== tier.cards) { closeEvent(); return; }
   if (coins < tier.price) { closeEvent(); return; }
   coins -= tier.price;

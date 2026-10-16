@@ -94,6 +94,47 @@ function injectStonesIntoDeck(count) {
   updateDeckHud();
 }
 
+// ── JUNK (r576) ── an empty card that BELONGS to your deck.
+// A stone is a boss's: it is deleted at the round end or the boss purge. Junk is
+// the event cost the owner asked for ("adding crap cards to your deck as a gamble
+// cost"): it rides the stone rules for everything a card on the board does - it
+// falls, it can be swapped aside, it can never be selected, played or discarded -
+// but it leaves the board at the round's end into the played pile and comes
+// back. It is a real member of the audited deck (rank '?', counted), so adding
+// and cutting it moves expectedDeckTotal. Deck Trim and Clean Up can cut it.
+function makeJunkCard() { return stampId({ rank: '?', suit: 'junk', _isStone: true, _junk: true }); }
+function isJunkCard(c) { return !!(c && c._junk); }
+function addJunkToDeck(count) {
+  for (let i = 0; i < count; i++) {
+    const pos = Math.floor(Math.random() * (drawPile.length + 1));
+    drawPile.splice(pos, 0, makeJunkCard());
+  }
+  expectedDeckTotal += count;
+  updateDeckHud();
+}
+// Where the junk is: the piles first, then the board.
+function junkCards() {
+  const out = [];
+  drawPile.forEach(c => { if (isJunkCard(c)) out.push(c); });
+  playedPile.forEach(c => { if (isJunkCard(c)) out.push(c); });
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isJunkCard(gridData[r]?.[c])) out.push(gridData[r][c]);
+  return out;
+}
+// Cut up to `count` junk cards out of the run (all of it with Infinity). A cut on
+// the board refills the cell from the deck, as the stone purge does.
+function cutJunk(count) {
+  let left = count, cut = 0;
+  for (const pile of [drawPile, playedPile]) {
+    for (let i = pile.length - 1; i >= 0 && left > 0; i--) if (isJunkCard(pile[i])) { pile.splice(i, 1); left--; cut++; }
+  }
+  for (let r = 0; r < gridRows && left > 0; r++) for (let c = 0; c < gridCols && left > 0; c++) {
+    if (isJunkCard(gridData[r]?.[c])) { gridData[r][c] = drawCard() || null; left--; cut++; }
+  }
+  expectedDeckTotal -= cut;
+  updateDeckHud();
+  return cut;
+}
+
 // Drop `count` stones straight onto live cells, displacing the cards that were
 // there back into the deck. Boss-start only (The Stone Lord).
 function placeStonesOnGrid(count) {
@@ -117,11 +158,12 @@ function placeStonesOnGrid(count) {
 
 function purgeStonesFromDeck() {
   // Remove all stones from drawPile, playedPile, and grid
-  drawPile = drawPile.filter(c => !c._isStone);
-  playedPile = playedPile.filter(c => !c._isStone);
+  // Junk (r576) is yours, not the boss's: it stays.
+  drawPile = drawPile.filter(c => !c._isStone || c._junk);
+  playedPile = playedPile.filter(c => !c._isStone || c._junk);
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
-      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge) {
+      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge && !gridData[r][c]._junk) {
         gridData[r][c] = drawCard() || null; // refill with a real card
       }
     }

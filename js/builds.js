@@ -42,7 +42,7 @@ const BUILD_TYPES = [
   { key:'trick',   label:() => entityLabel('trick', true).toUpperCase(),   pool:() => TRICK_POOL,   rar:'tier'    },
   { key:'sleight', label:() => entityLabel('sleight', true).toUpperCase(), pool:() => SLEIGHT_POOL, rar:'rarity'  },
   { key:'knack',   label:() => entityLabel('knack', true).toUpperCase(),   pool:() => KNACK_POOL,   rar:'rarity'  },
-  { key:'event',   label:'EVENTS',   pool:() => Object.keys(EVENT_META).map(id => ({
+  { key:'event',   label:'EVENTS',   pool:() => liveEventIds().map(id => ({
       id, name: EVENT_META[id].name, desc: EVENT_META[id].flavor, rarity:'rare', emoji:'✧' })), rar:'rarity' },
 ];
 const BUILD_RARITIES = ['common','rare','epic','legendary'];

@@ -66,7 +66,7 @@ const PROB_TABLES = [
     rows: () => REWARD_PRIZE_CATS.map(c => ({ k: c.kind, label: c.kind, get: () => c.weight, set: v => { c.weight = v; } })) },
 
   { id: 'deckops', group: 'Deck editing', type: 'w', title: 'Deck edit operations',
-    desc: 'Which card operations the Flow deck editor offers (three are drawn without repeats), and which card tiles the reward grid offers. suit2/rank2 are the dual cards.',
+    desc: 'Which card operations the Flow deck editor offers (three are drawn without repeats), and which card tiles the reward grid offers. suit2/rank2 are the dual cards. replay, suit2 and rank2 are EVENT ONLY: only an event draws them, and an event buffs x pips at x2 and x mult at x3 where every editor buffs both at x1.5.',
     how: 'Ratios. A higher weight means that operation shows up more often among the three. Operations missing from the table count as 8.',
     rows: () => _ptObjRows(FLOWR_OP_WEIGHTS) },
   { id: 'dual', group: 'Deck editing', type: 'p1', title: 'Dual card chance',

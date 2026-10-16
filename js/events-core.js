@@ -1,10 +1,4 @@
-const CONFLUENCE_THEMES = [
-  { id:'time',      icon:'⏱',  name:'Time',      desc:'Bend the clock.',           trickTags:['time'],              knackIds:['time_bank','free_swaps','free_discards'], sleightTags:['time'] },
-  { id:'suits',     icon:'♥',  name:'Suits',     desc:'One family, one purpose.',  trickTags:['suit'],              knackIds:[],                                        sleightTags:['suit'] },
-  { id:'resources', icon:'🔄', name:'Resources', desc:'Discards and swaps as power.', trickTags:['resource','discard'], knackIds:['hoarder','steady_hand'],             sleightTags:['resource'] },
-  { id:'focus',     icon:'🎯', name:'Focus',     desc:'Concentration unlocks mastery.', trickTags:['focus'],         knackIds:['lucky_seven','combo_keeper'],           sleightTags:['focus'] },
-  { id:'scaling',   icon:'📈', name:'Scaling',   desc:'Grow stronger with each hand.', trickTags:['scaling','mult'], knackIds:[],                          sleightTags:['scaling'] },
-];
+// CONFLUENCE_THEMES (tag-based themes) were replaced by ENGINES, js/data/engines.js (r576).
 
 // Shared mutable state for the active event
 let eventState = {};
@@ -19,6 +13,23 @@ let afterEventFn = null;
 // otherwise near certain.
 let recentEventIds = [];
 const EVENT_NO_REPEAT = 4;
+
+// ══════════════════════════════════════════════
+// ARCHIVED EVENTS (r576) - kept, never offered
+// ══════════════════════════════════════════════
+// Owner's cuts after the r482 review (EVENTS.md, "THE OWNER'S VERDICT"). Their
+// code stays exactly where it is and the dev panel can still open them, so a cut
+// is reversible by deleting a line here. Nothing that DRAWS an event may offer
+// one: openEvent, Guided's crossroads, the Schedule's tiles and the Builds
+// browser all read liveEventIds(), directly or through eligibleEventIds().
+const EVENT_ARCHIVED = new Set([
+  'bench',        // Pick a Card: the reward grid's card tile with an extra tap
+  'twin_path',    // Two and a Catch: randomness too hard to read (POST_LAUNCH.md)
+  'bargain',      // The Price: grid goods on both sides of the trade
+  'crossroads',   // The Trade: the same
+  'wager',        // the old Coin Flip, replaced by the r576 flip events
+]);
+function liveEventIds() { return Object.keys(EVENT_META).filter(id => !EVENT_ARCHIVED.has(id)); }
 
 // ══════════════════════════════════════════════
 // EVENT ELIGIBILITY (r248) - an event you cannot use is never OFFERED
@@ -62,6 +73,8 @@ const EVENT_REQUIRES = {
   the_payline:  () => evImprovables().length >= 2,
   // Needs a Sleight whose charge ceiling can actually move (infinite returns null).
   workshop:     () => allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null).length > 0,
+  // r576: Theme Draft needs one engine with a Trick and a Sleight left to offer.
+  confluence:   () => confluenceThemes().length > 0,
   // Needs cards to work on.
   the_floor:    () => everyDeckCard().length >= SLOT_REELS,
   bench:        () => drawPile.some(c => c && c.rank && !c._isSleight),
@@ -86,14 +99,14 @@ function eventEligible(id) {
 // through this; falling back to the unfiltered list is deliberate, the same rule
 // `recentEventIds` follows - never hand back an empty pool.
 function eligibleEventIds(ids) {
-  const list = ids || Object.keys(EVENT_META);
+  const list = (ids || liveEventIds()).filter(id => !EVENT_ARCHIVED.has(id));
   const ok = list.filter(eventEligible);
   return ok.length ? ok : list;
 }
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate','overtime','pairs'];
+  const pool = liveEventIds();
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const usable = eligibleEventIds(pool);
   const fresh = usable.filter(id => !recentEventIds.includes(id));
@@ -174,19 +187,19 @@ function confirmEvent() {
 // recentEventIds and the dev panel's generated list.
 const EVENT_META = {
   overtime:    { name:'Overtime',         flavor:'Longer rounds, for a price.' },
-  confluence:  { name:'Theme Draft',     flavor:'Pick a theme. Then pick one reward from it.' },
+  confluence:  { name:'Theme Draft',     flavor:'One theme. A Trick, a Sleight and a buffed card from it. Take two.' },
   crossroads:  { name:'The Trade',       flavor:'Every offer here gives you something and takes something.' },
   gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },
-  merchant:    { name:'Free Pick',       flavor:'Three items you will not see in the Mart. Take one, no charge.' },
+  merchant:    { name:'Free Pick',       flavor:'Three pieces that fit what you are building. Take one, free.' },
   altar:       { name:'The Investment',  flavor:'Pay now. It pays you back over the next few rounds.' },
   spring:      { name:'Clean Up',        flavor:'Cut cards out of your deck, or put back what you have lost.' },
   twin_path:   { name:'Two and a Catch', flavor:'Two Tricks. One downside, and you cannot refuse it.' },
-  forge:       { name:'Card Upgrade',    flavor:'Three upgrades, each already assigned to its cards. Take one.' },
+  forge:       { name:'Card Upgrade',    flavor:'A buff that grows every time it scores. Pick two cards; one of them gets it.' },
   bargain:     { name:'The Price',       flavor:'Every offer here costs you something first.' },
   wager:       { name:'Coin Flip',       flavor:'Even odds. You pick how much is riding on it.' },
   shift_change:{ name:'Tray Order',      flavor:'Put your Tricks in the order you want them to fire.' },
   bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
-  rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time, every hand, for the rest of the run.' },
+  rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time every hand, for good. It costs three junk cards.' },
   workshop:    { name:'Maintenance',     flavor:'Top up every Sleight, or raise one charge ceiling for good.' },
   market:      { name:'Card Market',     flavor:'Buy cards for your deck. Each one comes with something extra.' },
   deck_trim:   { name:'Deck Trim',       flavor:'A thinner deck draws what you need more often. Cut as deep as you can pay for.' },
@@ -317,6 +330,14 @@ function evNote(html) {
   return d;
 }
 function evEmptyHTML(text) { return `<div class="ev-empty">${text}</div>`; }
+// Mini playing cards for a choice's `extra` row (the Forge's look), one or many.
+function evCardChips(cards) {
+  const list = (Array.isArray(cards) ? cards : [cards]).filter(Boolean);
+  const lab = c => (typeof cardLabel === 'function') ? cardLabel(c) : `${c.rank}${c.suit}`;
+  return `<div class="ev-cardchips ec-facerow">${list.map(c =>
+    `<span class="ev-cardchip${['♥', '♦'].includes(c.suit) ? ' red' : ''}">${lab(c)}</span>`).join('')}</div>`;
+}
+function evCardChip(card) { return evCardChips([card]); }
 
 // ══════════════════════════════════════════════
 // EVENT: CONFLUENCE

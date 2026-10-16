@@ -397,8 +397,10 @@ function devStartMode(id) {
 
 function devRenderEvents() {
   const el = document.getElementById('dev-event-btns'); if (!el) return;
-  el.innerHTML = Object.keys(EVENT_META).map(id =>
-    `<button class="dev-btn" onclick="devTriggerEvent('${id}')">${EVENT_META[id].name}</button>`).join('');
+  const btn = id => `<button class="dev-btn" onclick="devTriggerEvent('${id}')">${EVENT_META[id].name}</button>`;
+  const live = liveEventIds(), gone = Object.keys(EVENT_META).filter(id => EVENT_ARCHIVED.has(id));
+  el.innerHTML = live.map(btn).join('')
+    + (gone.length ? `<div class="dev-sub" style="flex-basis:100%;margin-top:6px;opacity:.7">ARCHIVED (never offered)</div>${gone.map(btn).join('')}` : '');
 }
 
 // ── Item float sliders (FLOAT_CFG lives in js/float-anim.js) ──

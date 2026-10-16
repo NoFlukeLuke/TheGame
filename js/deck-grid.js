@@ -670,8 +670,9 @@ function everyDeckCard() {
       const cd = gridData[r]?.[c];
       if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
     }
-  drawPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
-  playedPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
+  // r576: a stone or junk card in a pile is not a card to buff, curse or copy.
+  drawPile.forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd); });
+  playedPile.forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd); });
   return out;
 }
 // A reward tile picks its victim when the grid is BUILT and applies it when the
@@ -703,6 +704,7 @@ function recycleCard(card) {
     out.rank = queenUpgradedRank(card.rank);
   }
   for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
+  if (card._junk) { out._isStone = true; out._junk = true; }   // r576: junk survives its trip through the deck
   if (typeof climbRecycle === 'function') climbRecycle(card, out);   // r398
   return out;
 }

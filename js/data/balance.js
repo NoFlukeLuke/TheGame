@@ -161,8 +161,9 @@ const BAL = {
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   // ── Upgrade events (r194) ──
-  rehearsal: { consolation_credits: 12 },
-  workshop:  { cap_bonus: 2, consolation_credits: 12 },
+  rehearsal: { consolation_credits: 12, junk: 3 },   // r576: Extra Rep costs 3 junk cards
+  forge: { pips: 10, mult: 4, both_price: 10, both_chance: 0.5 },   // r576: scaling only; both_price runs through priceOf
+  workshop:  { cap_bonus: 2, cap_pct: 0.2, consolation_credits: 12 },   // r576: +20% of the ceiling, never under cap_bonus
   // ── Card Market (r211) - buy cards INTO the deck, each carrying one effect ──
   // Three on offer, priced by how strong the effect is. The card itself is a copy
   // of one already in the deck, so the market can never hand out a rank or suit
@@ -171,7 +172,7 @@ const BAL = {
   // ── Deck Trim (r211) - the frequent-removal event ──
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.
-  deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ] },
+  deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ], junk_each: 2 },   // r576: clearing junk, per card, through priceOf
   // ── Guided (r219): what a slot costs to fill with something other than a round. ──
   guided: {
     price_shop: 12, price_reward: 10, price_event: 6,

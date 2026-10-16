@@ -49,7 +49,7 @@ const SLOT_LINES = [
 // function runs through lexProse and the vocabulary can change mid-run.
 const SLOT_BUFFS = [
   { e:{ pips:25 } }, { e:{ mult:4 } }, { e:{ pips:40 } },
-  { e:{ retrig:1 } }, { e:{ mult:7 } }, { e:{ xmult:2 } },
+  { e:{ retrig:1 } }, { e:{ mult:7 } }, { e:{ xmult:3 } },   // r576: an event's x mult is x3 (EVENT_X_BUFF)
 ];
 let slotBuffIdx = 0;
 
