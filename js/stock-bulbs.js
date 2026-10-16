@@ -132,7 +132,7 @@ function sbPaint(force) {
     box.classList.toggle('sb-flush', g === 'swap' || g === 'disc' || (g === 'hand' && p.dir === 'col'));
     box.style.cssText = `left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px;--sb:${p.size.toFixed(1)}px;gap:${SB_GAP}px`
       + (p.split ? `;width:${p.w.toFixed(1)}px;--sb-rows:${p.split}` : '');
-    while (box.children.length < s.n) box.appendChild(document.createElement('i'));
+    while (box.children.length < s.n) { const b = document.createElement('i'); b.appendChild(document.createElement('b')); box.appendChild(b); }
     while (box.children.length > s.n) box.lastChild.remove();
     const prev = _sbLast[g];
     [...box.children].forEach((b, i) => {
