@@ -43,41 +43,29 @@
 }
 
 /* ── The Card Counter focus queue ── */
-#focus-queue-btn {
-  flex: 0 0 auto; width: 22px; height: 15px; padding: 0; line-height: 13px;
-  font-size: 9px; text-align: center;
-  color: var(--gold-dim, #b8a468); background: rgba(10, 8, 5, 0.6);
-  border: 1px solid #3a3530; border-radius: 3px; cursor: var(--cur-pointer, pointer);
+/* r570: the draw queue lays over the hand preview (js/queue-views.js places it
+   from the live rect in design px). A double-tap on the preview toggles it. */
+#preview-queue {
+  position: absolute; display: none; z-index: 7; box-sizing: border-box;
+  align-items: center; justify-content: center; gap: 2px; padding: 6px;
+  background: rgba(8, 6, 12, 0.86); border: 1px solid #4a4160; border-radius: 6px;
+  pointer-events: none;
 }
-#focus-queue-btn:hover { color: #f4ecd6; border-color: #6a604e; }
-#focus-queue-btn.on { color: #b9a0ff; border-color: #6a4fae; }
-
-#focus-meter-wrap.fq-on #focus-bar-outer,
-#focus-meter-wrap.fq-on #focus-mult-readout { display: none !important; }
-
-#focus-queue-list { display: none; }
-#focus-meter-wrap.fq-on #focus-queue-list {
-  display: flex; flex: 1; min-height: 0; width: 100%;
-  flex-direction: column; align-items: center; justify-content: flex-start;
-  gap: 2px; overflow: hidden; position: relative; z-index: 1;
+#preview-queue .pq-label {
+  position: absolute; top: 2px; left: 6px;
+  font: 500 7px 'Share Tech Mono', monospace; letter-spacing: 1.5px; color: #b9a0ff; opacity: .85;
 }
-/* A fixed 40x53 card, zoomed by JS to what the column affords. The card is
-   position:absolute (the base .card rule), so the slot is its box. */
+/* A fixed 40x53 card, zoomed by JS to what the strip affords. The card is
+   position:absolute by the base .card rule, so the slot is its box. */
 .fq-slot {
   position: relative; flex: 0 0 auto;
   width: 40px; height: 53px;
   --card-w: 40px; --card-h: 53px;
 }
 .fq-slot.fq-next { outline: 1px solid #d9c66a; outline-offset: 1px; border-radius: 5px; }
-.fq-slot .fq-card { pointer-events: none; cursor: var(--cur-default, default); }
+.fq-slot .fq-card { position: absolute !important; left: 0 !important; top: 0 !important; pointer-events: none; cursor: var(--cur-default, default); }
 .fq-empty {
   font: 500 8px 'Share Tech Mono', monospace; letter-spacing: 1px;
   color: rgba(244, 236, 214, 0.35); align-self: center; margin: auto;
 }
 
-/* Grid-takeover screens fade the focus bar (r237); the queue face and its
-   button follow the same rule rather than floating over the shop. */
-body.grid-screen #stage.landscape #focus-queue-list,
-body.grid-screen #stage.landscape #focus-queue-btn {
-  opacity: 0; pointer-events: none; transition: opacity 0.3s;
-}

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r569 · the Reserve: double-tap the Focus bar, 10 Focus buys three placeable temp cards";
+const BUILD = "2026-10-16 · r570 · the Card Counter queue lives on the hand preview: double-tap it";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

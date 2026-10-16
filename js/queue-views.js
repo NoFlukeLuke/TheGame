@@ -12,12 +12,12 @@
 //    how many cards sit in front of it. Without the knack the queue shows only
 //    the ORDER (left to right); the count is what the knack sells.
 //
-// 2. THE CARD COUNTER knack gives the Focus bar a second face. A small button
-//    below the bar (#focus-queue-btn) swaps the bar for a column of mini cards:
-//    the next gridCols x 2 cards off the draw pile, top card next. The cards
-//    are the real renderCardAppearance markup at a fixed 40x53 and the slot is
-//    scaled with `zoom` - a transform would fight the .card transform stack
-//    (--hb*/--frzr/--grds compose there), zoom does not.
+// 2. THE CARD COUNTER knack: a double-tap on the hand preview lays the draw
+//    queue over it (r570; it used to be a button below the Focus bar): the next
+//    gridCols x 2 cards off the draw pile, next card first, left to right. The
+//    cards are the real renderCardAppearance markup at a fixed 40x53 and the
+//    slot is scaled with `zoom` - a transform would fight the .card transform
+//    stack (--hb*/--frzr/--grds compose there), zoom does not.
 //
 // Both views READ the pile and never touch it. Two honest limits, both
 // documented behaviours of the draw hook: The Hand of Famine can substitute a
@@ -147,89 +147,91 @@ function renderSleightQueue() {
 // ── The Card Counter focus queue ────────────────────────────────────────────
 function focusQueueAllowed() {
   if (!_qvHasKnack(FOCUS_QUEUE_KNACK)) return false;
-  // Squares hides the whole focus wrap; no queue to hang there.
   if (typeof squaresActive === 'function' && squaresActive()) return false;
   return true;
 }
 
-// Runs every tick: creates the button when the knack arrives, removes it (and
-// closes the view) when the knack goes.
+// r570 (owner): THE DRAW QUEUE LIVES ON THE HAND PREVIEW. A double-tap on the
+// preview strip toggles it; the queue is a strip of mini cards laid over the
+// preview's box, next card first, left to right, 2x the column count. Placed
+// from the live rect each tick (the strip moves between looks), in the stage's
+// design px. Hidden while a hand is scoring there, on a reward screen, and
+// while a held stack is docked in it. The old button below the Focus bar is gone.
 function focusQueueSync() {
-  const wrap = document.getElementById('focus-meter-wrap');
-  if (!wrap) return;
-  let btn = document.getElementById('focus-queue-btn');
-  if (!focusQueueAllowed()) {
-    if (btn) btn.remove();
-    if (focusQueueOn) { focusQueueOn = false; focusQueueApply(); }
-    return;
-  }
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = 'focus-queue-btn'; btn.type = 'button'; btn.textContent = '🂠';
-    btn.title = 'Show the draw queue';
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      focusQueueOn = !focusQueueOn;
-      focusQueueApply();
-    });
-    wrap.appendChild(btn);   // last child = below the bar and the readout
-  }
+  if (!focusQueueAllowed() && focusQueueOn) { focusQueueOn = false; focusQueueApply(); }
 }
-
+function previewQueueHost() {
+  const sc = document.getElementById('selected-cards');
+  if (sc && sc.offsetWidth && sc.offsetHeight) return sc;
+  const hp = document.getElementById('hand-preview-area');
+  return (hp && hp.offsetWidth) ? hp : null;
+}
+function previewQueueHidden() {
+  // While a hand scores there (the tally holds `animating`; the stage's dnc-active
+  // class lingers until the next hand, so it is not the test).
+  if ((typeof animating !== 'undefined' && animating) || (typeof falling !== 'undefined' && falling)) return true;
+  const b = document.body.classList;
+  if (b.contains('grid-screen') || b.contains('pick-active') || b.contains('flowr-deck')) return true;
+  if (typeof dealerActive === 'function' && dealerActive() && typeof dealerFollowsCursor === 'function' && !dealerFollowsCursor()) return true;
+  return false;
+}
 function focusQueueApply() {
-  const wrap = document.getElementById('focus-meter-wrap');
-  if (!wrap) return;
-  wrap.classList.toggle('fq-on', focusQueueOn);
-  const btn = document.getElementById('focus-queue-btn');
-  if (btn) {
-    btn.classList.toggle('on', focusQueueOn);
-    btn.title = focusQueueOn ? 'Show the Focus bar' : 'Show the draw queue';
-  }
-  const listEl = document.getElementById('focus-queue-list');
-  if (!focusQueueOn) { if (listEl) listEl.remove(); return; }
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  stage.classList.toggle('pq-on', focusQueueOn);
+  const el = document.getElementById('preview-queue');
+  if (!focusQueueOn) { if (el) el.remove(); _qvSig = ''; return; }
   renderFocusQueue();
 }
+let _pqTapAt = 0;
+function previewQueueTap(e) {
+  if (!focusQueueAllowed() || !e) return;
+  if (e.target && e.target.closest && e.target.closest('button, #dev-panel, #dealer-layer')) return;
+  const host = previewQueueHost(); if (!host) return;
+  const r = host.getBoundingClientRect();
+  if (!(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) return;
+  const now = performance.now();
+  if (now - _pqTapAt < 350) { _pqTapAt = 0; focusQueueOn = !focusQueueOn; focusQueueApply(); try { sfxCardSelect?.(); } catch (err) {} }
+  else _pqTapAt = now;
+}
+document.addEventListener('pointerup', previewQueueTap, true);
 
 function renderFocusQueue() {
-  const wrap = document.getElementById('focus-meter-wrap');
-  if (!wrap || !focusQueueOn) return;
-  let listEl = document.getElementById('focus-queue-list');
-  if (!listEl) {
-    listEl = document.createElement('div'); listEl.id = 'focus-queue-list';
-    wrap.insertBefore(listEl, wrap.firstChild);
-  }
+  const stage = document.getElementById('stage');
+  if (!stage || !focusQueueOn) return;
+  let el = document.getElementById('preview-queue');
+  if (!el) { el = document.createElement('div'); el.id = 'preview-queue'; stage.appendChild(el); }
+  const host = previewQueueHost();
+  if (!host || previewQueueHidden()) { el.style.display = 'none'; return; }
+  // The box, in the stage's design px (the rect is zoomed; offsetWidth is not).
+  const s = stage.getBoundingClientRect(), h = host.getBoundingClientRect();
+  const z = s.width / (stage.offsetWidth || s.width) || 1;
+  el.style.left = ((h.left - s.left) / z) + 'px'; el.style.top = ((h.top - s.top) / z) + 'px';
+  el.style.width = (h.width / z) + 'px'; el.style.height = (h.height / z) + 'px';
+  el.style.display = 'flex';
   const cols = (typeof gridCols === 'number' && gridCols > 0) ? gridCols : 4;
-  const n = cols * 2;
-  const cards = (typeof drawPile !== 'undefined' ? drawPile : []).slice(0, n);
-  listEl.innerHTML = '';
-  if (!cards.length) {
-    listEl.innerHTML = '<div class="fq-empty">EMPTY</div>';
-    return;
-  }
-  // Fixed 40x53 cards (the CARD_MIN floor, where the face is still tuned to be
-  // legible), zoomed down to what the column affords. The measurement is the
-  // element's OWN px - zoom-immune, the r160 rule.
-  const GAP = 2, CW = 40, CH = 53;
-  const H = listEl.clientHeight || 300;
-  const W = listEl.clientWidth || 26;
-  const z = Math.max(0.3, Math.min(0.85,
-    (H - (cards.length - 1) * GAP) / cards.length / CH,
-    W / CW));
+  const cards = (typeof drawPile !== 'undefined' ? drawPile : []).slice(0, cols * 2);
+  el.innerHTML = '';
+  if (!cards.length) { el.innerHTML = '<div class="fq-empty">EMPTY</div>'; return; }
+  // Fixed 40x53 cards zoomed to what the strip affords, one row, next card first.
+  const GAP = 2, CW = 40, CH = 53, PAD = 6;
+  const W = h.width / z - PAD * 2, H = h.height / z - PAD * 2;
+  const zc = Math.max(0.3, Math.min(0.85, (W - (cards.length - 1) * GAP) / cards.length / CW, H / CH));
   cards.forEach((card, i) => {
     const slot = document.createElement('div');
     slot.className = 'fq-slot' + (i === 0 ? ' fq-next' : '');
-    slot.style.zoom = z;
+    slot.style.zoom = zc;
     try {
-      // revealFog: a queue card is not a board card, and The Fog's whole rule
-      // is about the board. -1,-1 lands on no marked line, hold or mark.
       const { className, innerHTML } = renderCardAppearance(card, -1, -1, { revealFog: true });
       const d = document.createElement('div');
       d.className = className + ' fq-card';
       d.innerHTML = innerHTML;
       slot.appendChild(d);
     } catch (e) { slot.textContent = '🂠'; }
-    listEl.appendChild(slot);
+    el.appendChild(slot);
   });
+  const lab = document.createElement('div'); lab.className = 'pq-label'; lab.textContent = 'NEXT';
+  el.appendChild(lab);
 }
 
 // ── The refresh tick ────────────────────────────────────────────────────────
@@ -237,11 +239,14 @@ let _qvSig = '';
 function queueViewsTick() {
   focusQueueSync();
   const showingSleights = trayView === 'sleights';
-  const showingFq = focusQueueOn && !!document.getElementById('focus-queue-list');
+  const showingFq = focusQueueOn;
   if (!showingSleights && !showingFq) { _qvSig = ''; return; }
+  // The preview's box moves between looks and screens; its visibility is part of the signature.
+  let sig = '';
+  if (showingFq) { const host = previewQueueHost(); const r = host ? host.getBoundingClientRect() : null; sig += (previewQueueHidden() ? 'H' : 'V') + (r ? Math.round(r.left) + 'x' + Math.round(r.top) + 'x' + Math.round(r.width) : '0'); }
   const dp = (typeof drawPile !== 'undefined') ? drawPile : [];
   const cols = (typeof gridCols === 'number' && gridCols > 0) ? gridCols : 4;
-  let sig = dp.length + ':' + cols + ':' + (_qvHasKnack(SLEIGHT_COUNT_KNACK) ? 1 : 0);
+  sig += dp.length + ':' + cols + ':' + (_qvHasKnack(SLEIGHT_COUNT_KNACK) ? 1 : 0);
   const head = Math.min(dp.length, cols * 2);
   for (let i = 0; i < head; i++) sig += ',' + (dp[i] && dp[i]._id != null ? dp[i]._id : '?');
   dp.forEach((c, i) => { if (c && c._isSleight) sig += '|' + i + (c.sleightId || '') + (c._usesLeft ?? ''); });
