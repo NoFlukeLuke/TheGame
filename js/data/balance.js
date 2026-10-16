@@ -163,7 +163,9 @@ const BAL = {
   // ── Upgrade events (r194) ──
   rehearsal: { consolation_credits: 12, junk: 3 },   // r576: Extra Rep costs 3 junk cards
   forge: { pips: 10, mult: 4, both_price: 10, both_chance: 0.5 },
-  reschedule: { price: 8 },   // r579: through priceOf (16 on screen)
+  reschedule: { price: 8 },
+  state_change: { common: 4, rare: 6, epic: 8, legendary: 12 },   // r580: by the state's tier, through priceOf
+  rewire: { junk: 2 },                                             // r580: junk cards into the deck   // r579: through priceOf (16 on screen)
   flip_events: { reflip: 10, keep_cap: 15, ladder_focus: 5 },   // r578: reflip and keep_cap through priceOf (20 / 30 on screen)   // r576: scaling only; both_price runs through priceOf
   workshop:  { cap_bonus: 2, cap_pct: 0.2, consolation_credits: 12 },   // r576: +20% of the ceiling, never under cap_bonus
   // ── Card Market (r211) - buy cards INTO the deck, each carrying one effect ──

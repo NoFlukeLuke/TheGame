@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r579 · Wild Cards, Stand-In, Trick Gamble, Reschedule, Grid Spinner, Static Bonus, Luck Dice";
+const BUILD = "2026-10-16 · r580 · structural events: State Change, Rewire";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -300,3 +300,143 @@ function confirmLuckDice() {
     s.ldPhase = 'done'; evConfirmBtn('DONE', true);
   });
 }
+
+// ══════════════════════════════════════════════
+// THE STRUCTURAL EVENTS (r580) - owner: structural buffs are event-only
+// ══════════════════════════════════════════════
+// Two events pay the structural families (EVENTS.md, the card-buff value
+// split): State Change sells a card state for credits; Rewire pays a replay, a
+// second suit or a second rank and costs junk cards in the deck.
+
+// A row of 8 sampled deck cards to pick up to `max` from, in order.
+function evCardPick(body, id, cards, max, s, full) {
+  const chips = document.createElement('div'); chips.className = 'ev-cardchips'; chips.id = id;
+  s.picks = [];
+  const sync = () => chips.querySelectorAll('.ev-cardchip').forEach(ch => {
+    ch.classList.toggle('picked', s.picks.includes(ch._card));
+    ch.classList.toggle('qrl-full', !!(full && full(ch._card)));
+  });
+  cards.forEach(card => {
+    const chip = document.createElement('span');
+    chip.className = 'ev-cardchip' + (['♥', '♦'].includes(card.suit) ? ' red' : '');
+    chip.textContent = (typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`;
+    chip._card = card;
+    chip.addEventListener('click', () => {
+      if (s.done) return;
+      if (full && full(card)) { refuse('Quarter resource limit (QRL) reached'); return; }
+      const at = s.picks.indexOf(card);
+      if (at >= 0) s.picks.splice(at, 1);
+      else if (s.picks.length < max) s.picks.push(card);
+      else if (max === 1) s.picks = [card];
+      sync(); s.onPick && s.onPick();
+    });
+    chips.appendChild(chip);
+  });
+  body.appendChild(chips);
+  return sync;
+}
+const evFace = c => `${c.rank}${c.suit}`;
+function evSampleCards(n, filter) {
+  const pool = everyDeckCard().filter(c => !isWildCard(c) && (!filter || filter(c)));
+  return evShuffle(pool).slice(0, n);
+}
+
+// ── STATE CHANGE: a card state, bought for credits ──
+function stateChangePrice(def) { return priceOf(BAL.state_change[def.tier] || BAL.state_change.rare); }
+function stateChangeOffers() {
+  let pool = Object.keys(CARD_STATE_DEFS).filter(id => id !== 'fleeting').map(id => ({ id, ...CARD_STATE_DEFS[id] }));
+  const out = [];
+  for (let i = 0; i < 3 && pool.length; i++) {
+    const d = pickEntityByRarity(pool, x => x.tier || 'common');
+    out.push(d); pool = pool.filter(x => x.id !== d.id);
+  }
+  return out;
+}
+function renderStateChange() {
+  const s = eventState, body = evBodyEl();
+  s.scState = null; s.done = false;
+  body.appendChild(evLabel('1 · THE STATE'));
+  stateChangeOffers().forEach(d => {
+    const price = stateChangePrice(d);
+    const el = makeChoiceEl({ icon: d.icon, rarity: d.tier, name: d.name, desc: d.desc, cost: `${price} credits`, cls: 'sc-opt',
+      onClick: () => {
+        if (s.done || coins < price) return;
+        body.querySelectorAll('.sc-opt').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected'); s.scState = d; stateChangeSync();
+      } });
+    if (coins < price) el.classList.add('locked');
+    body.appendChild(el);
+  });
+  body.appendChild(evLabel('2 · THE CARD'));
+  s.onPick = stateChangeSync;
+  evCardPick(body, 'sc-chips', evSampleCards(8), 1, s);
+  stateChangeSync();
+}
+function stateChangeSync() {
+  const s = eventState;
+  setEventConfirm(!!s.scState && s.picks.length === 1 && coins >= stateChangePrice(s.scState));
+}
+function confirmStateChange() {
+  const s = eventState;
+  if (!s.scState || s.picks.length !== 1) return;
+  const price = stateChangePrice(s.scState);
+  if (coins < price) return;
+  const t = resolveDeckCard(s.picks[0]);
+  if (!t) { closeEvent(); return; }
+  coins -= price; updateCoinsUI?.();
+  addCardState(t, s.scState.id, 1);
+  noteMessage(`${evFace(t)} is ${s.scState.name}`, 'var(--gold)');
+  closeEvent();
+}
+
+// ── REWIRE: replay, second suit or second rank, for junk ──
+const REWIRE_OPS = [
+  { id: 'replay', icon: '↻', name: 'Replay', desc: 'Both cards replay once more every time they score, for good.' },
+  { id: 'suit2',  icon: '♠♥', name: 'Second Suit', desc: 'The first card takes the second card’s suit as a second suit. It counts as either suit in a flush and fires Tricks for both.' },
+  { id: 'rank2',  icon: '7/8', name: 'Second Rank', desc: 'The first card takes the second card’s rank as a second rank. It fills two ranks in a run or a set and fires Tricks for both.' },
+];
+function renderRewire() {
+  const s = eventState, body = evBodyEl();
+  s.rwOp = null; s.done = false;
+  body.appendChild(evNote(`Costs <b>${BAL.rewire.junk}</b> junk cards shuffled into your deck.`));
+  body.appendChild(evLabel('1 · THE CHANGE'));
+  REWIRE_OPS.forEach(o => {
+    const el = makeChoiceEl({ icon: o.icon, rarity: 'epic', name: o.name, desc: o.desc, cls: 'rw-opt',
+      onClick: () => {
+        if (s.done) return;
+        body.querySelectorAll('.rw-opt').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected'); s.rwOp = o.id;
+        s.picks = s.picks.filter(c => !rewireFull(c));
+        s.rwSync(); rewireSync();
+      } });
+    body.appendChild(el);
+  });
+  body.appendChild(evLabel('2 · TWO CARDS, IN ORDER'));
+  s.onPick = rewireSync;
+  s.rwSync = evCardPick(body, 'rw-chips', evSampleCards(8, c => !c.suit2 && !c.rank2), 2, s, rewireFull);
+  s.rwNote = document.createElement('div'); body.appendChild(s.rwNote);
+  rewireSync();
+}
+function rewireFull(card) {
+  const s = eventState;
+  return s.rwOp === 'replay' && typeof qrlCardFull === 'function' && qrlCardFull(card, 'retrig');
+}
+function rewireSync() {
+  const s = eventState;
+  s.rwNote.innerHTML = s.picks.length
+    ? `<div class="ev-note">${s.picks.map((c, i) => `${i ? 'Second' : 'First'}: <b>${evFace(c)}</b>`).join(' · ')}</div>` : '';
+  setEventConfirm(!!s.rwOp && s.picks.length === 2);
+}
+function confirmRewire() {
+  const s = eventState;
+  if (!s.rwOp || s.picks.length !== 2) return;
+  const [a, b] = s.picks.map(c => resolveDeckCard(c));
+  if (!a || !b) { closeEvent(); return; }
+  if (s.rwOp === 'replay') { enhanceCardKey(cardId(a), { retrig: 1 }); enhanceCardKey(cardId(b), { retrig: 1 }); }
+  else if (s.rwOp === 'suit2') a.suit2 = b.suit;
+  else a.rank2 = b.rank;
+  clearHandCompCache();
+  addJunkToDeck(BAL.rewire.junk);
+  noteMessage(s.rwOp === 'replay' ? `${evFace(a)} and ${evFace(b)} replay` : `${evFace(a)} is now ${s.rwOp === 'suit2' ? `${a.suit}/${a.suit2}` : `${a.rank}/${a.rank2}`}`, 'var(--gold)');
+  closeEvent();
+}

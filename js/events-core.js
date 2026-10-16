@@ -88,6 +88,8 @@ const EVENT_REQUIRES = {
   trick_gamble: () => trickGambleChoices().length >= 2,
   reschedule:   () => isActMode() && bossesEnabled() && rescheduleBosses().length > 0 && coins >= reschedulePrice(),
   grid_spinner: () => LIMITS_DEF.some(d => limitCanIncrement(d.id)),
+  state_change: () => everyDeckCard().length > 0 && coins >= priceOf(BAL.state_change.rare),
+  rewire:       () => everyDeckCard().filter(c => !isWildCard(c) && !c.suit2 && !c.rank2).length >= 2,
   keep_it:      () => { const p = guidedPickPools(); return p.knack.length + p.sleight.length + (trickTrayFull() ? 0 : p.trick.length) > 0; },
   wager:        () => allDeckCards().length > 0,
   // Needs a liability on the record to clear.
@@ -189,6 +191,8 @@ function confirmEvent() {
     grid_spinner: confirmGridSpinner,
     static_bonus: confirmStaticBonus,
     luck_dice:   confirmLuckDice,
+    state_change: confirmStateChange,
+    rewire:      confirmRewire,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -241,6 +245,9 @@ const EVENT_META = {
   grid_spinner:{ name:'Grid Spinner',    flavor:'Stop the light. Its rank is how much your grid grows.' },
   static_bonus:{ name:'Static Bonus',    flavor:'Two wheels: pips or mult, and how much.' },
   luck_dice:   { name:'Luck Dice',       flavor:'Two dice, multiplied. Your Luck moves by the result.' },
+  // r580: the structural events
+  state_change:{ name:'State Change',    flavor:'Buy a card state and choose the card it goes on.' },
+  rewire:      { name:'Rewire',          flavor:'A replay, a second suit or a second rank, paid for in junk.' },
 };
 
 function renderEventShell(id) {
@@ -289,6 +296,8 @@ function renderEventShell(id) {
     grid_spinner: renderGridSpinner,
     static_bonus: renderStaticBonus,
     luck_dice:   renderLuckDice,
+    state_change: renderStateChange,
+    rewire:      renderRewire,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it
