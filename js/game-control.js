@@ -641,6 +641,7 @@ function startGame() {
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   if (typeof lockboxStash !== 'undefined') lockboxStash = [];   // r576: the Card Market's cards are per run
+  wildsUnbound = false; staticPips = 0; staticMult = 0;          // r579: Wild Cards, Static Bonus
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
   // its printed values - clearing the map alone would leave the previous run's
   // improved numbers live for the whole of this one.

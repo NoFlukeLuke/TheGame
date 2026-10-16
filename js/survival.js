@@ -254,6 +254,8 @@ function survivalEntityBanned(id) {
   const _noRefill = (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock())
                  || (typeof crunchActive === 'function' && crunchActive());
   if (_noRefill && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id)) return true;
+  // r578: Stand-In needs wilds in the deck.
+  if (id === 'stand_in' && typeof deckWildCount === 'function' && deckWildCount() === 0) return true;
   // r571: one Focus knack at a time (js/focus-knacks.js).
   if (typeof focusKnackOfferBanned === 'function' && focusKnackOfferBanned(id)) return true;
   return false;

@@ -97,6 +97,7 @@ const SAVE_VARS = [
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'lockboxStash', 'entityTier',
+  'wildsUnbound', 'staticPips', 'staticMult',   // r579: Wild Cards and Static Bonus events
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',
   'overtimeRun',               // r562: Overtime taken, its two costs, and the skip gift (js/overtime.js)

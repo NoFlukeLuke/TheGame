@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r578 · flip events: Keep It, Hot Streak, Prize Ladder, Call It, Plinko";
+const BUILD = "2026-10-16 · r579 · Wild Cards, Stand-In, Trick Gamble, Reschedule, Grid Spinner, Static Bonus, Luck Dice";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

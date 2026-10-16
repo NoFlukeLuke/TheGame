@@ -110,3 +110,9 @@
 .mk-face span { font-size: 13px; margin-left: 1px; }
 .mk-buffs { font-family: 'Share Tech Mono', monospace; font-size: 9px; line-height: 1.25; color: #4b2f8f; margin-top: 3px; }
 .mk-plain { color: #8a7d60; }
+
+/* r579: two toys side by side (Static Bonus wheels, Luck Dice), the spinner's rank cards */
+.evt-pair { display: flex; gap: 22px; justify-content: center; align-items: flex-start; flex-wrap: wrap; width: 100%; }
+.evt-pair .evt-host { margin: 0; }
+.evt-rank { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #1a1622; }
+#rs-list.evt-fresh { animation: evt-land .4s ease-out; }

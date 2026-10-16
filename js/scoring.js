@@ -47,6 +47,8 @@ function trickPickOne(salt, cells) {
   return Math.floor(_detReplayRand(c0[0] * 31 + c0[1] * 7 + salt, handsPlayedRound) * 3);
 }
 
+// Static Bonus (r579, js/events-extra.js): flat pips / mult on every hand's base. In SAVE_VARS.
+let staticPips = 0, staticMult = 0;
 function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
@@ -90,6 +92,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // exalt payout onto the wrong card.
   const _handCards = (_handOnly === cells) ? cards : _handOnly.map(([r,c]) => gridData[r][c]);
   const _natCards = (typeof naturalCards === 'function') ? naturalCards(_handCards) : _handCards;
+  // Stand-In (r578): with the knack a wild scores as the card it stands in for,
+  // through the ordinary per-card loop (pips, buffs, per-card Tricks, a ladder
+  // number). Hand-level tallies still read _natCards: the wild has no rank there.
+  const _wildProxy = (_comp && hasKnack('stand_in')) ? standInProxies(_comp.components) : {};
   // Predicted post-update streak count for THIS hand (playHand updates streakCount/lastHandType
   // only after calcScore runs, so reading streakCount directly here is one hand stale).
   const _effStreak = (lastHandType !== null && handName === lastHandType) ? streakCount + 1 : 1;
@@ -127,7 +133,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(_allCells) : null;
   // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
   // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
-  let totalPips = Math.round(handBasePips(handName) * levelScale);
+  let totalPips = Math.round(handBasePips(handName) * levelScale) + staticPips;   // Static Bonus (r579): flat, unscaled
   _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide (r539): the mult it has built, 1-3 per level passed while held (level-up.js)
@@ -393,7 +399,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // position Tricks, no replay bookkeeping - it replays exactly as often as the
   // real card, and its events land in the same card beat, right behind it.
   const _scoreOne = ([r, c], _ci, _ghost, _pend) => {
-    const card = _ghost || gridData[r][c];
+    const card = _ghost || _wildProxy[r + '-' + c] || gridData[r][c];
     const _G = !!_ghost;
     // ── A WILD CONTRIBUTES NOTHING (r325) ──
     // No pips and none of its per-card Tricks, which is the whole of the card's
@@ -771,7 +777,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   {
     const _hk = new Set(_handOnly.map(([r, c]) => r + '-' + c));
     let _ln = 0;
-    _scoreCells.forEach(([r, c]) => { if (_hk.has(r + '-' + c) && _scores(gridData[r]?.[c])) _ladPos[r + '-' + c] = ++_ln; });
+    _scoreCells.forEach(([r, c]) => { if (_hk.has(r + '-' + c) && (_scores(gridData[r]?.[c]) || _wildProxy[r + '-' + c])) _ladPos[r + '-' + c] = ++_ln; });
   }
   _scoreCells.forEach((cell, ci) => {
     const _real = gridData[cell[0]]?.[cell[1]];
@@ -849,7 +855,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
-  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult;
+  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult;
 
   // Layered hands: every other component adds its base mult too. Additive, not
   // multiplied - two hands' worth of ladder, not the product of them.
@@ -1428,9 +1434,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // second hand's worth of base pips and mult directly, with no ledger call, so
     // they belong HERE rather than as events - they are part of what the hand is
     // worth before anything fires.
-    ledger.basePips  = Math.round(handBasePips(handName) * levelScale)
+    ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips
                      + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
-    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult
+    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult
                      + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
   }
 

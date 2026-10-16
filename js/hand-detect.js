@@ -396,8 +396,10 @@ function _handShape(cells) {
   // rather than inherited from a list that a mode could change.
   const _anyWhite = cards.some(c => isWhiteCard(c));
   const _anyWild  = wilds > 0;
-  const allSameSuitStrict = !_anyWhite && !_anyWild && ACTIVE_SUITS.some(s =>
-    cards.every(c => isWarehouseCard(c) || c.suit === s || c.suit2 === s)
+  // r578: the Wild Cards event (wildsFlushOn) lets a wild stand in for any suit.
+  const _wildSuit = _anyWild && typeof wildsFlushOn === 'function' && wildsFlushOn();
+  const allSameSuitStrict = !_anyWhite && (!_anyWild || _wildSuit) && ACTIVE_SUITS.some(s =>
+    cards.every(c => isWarehouseCard(c) || (_wildSuit && isWildCard(c)) || c.suit === s || c.suit2 === s)
   );
 
   // Run check: combined cards can use either rank value - try all combos
@@ -573,6 +575,8 @@ function rankHandForGroup(cells) {
 function flushOverlayFor(cells) {
   const bySuit = {};
   const _wh = cells.filter(([r, c]) => isWarehouseCard(gridData[r][c]));
+  // r578: freed wilds (wildsFlushOn) join any suit's group as one card each.
+  const _wd = (typeof wildsFlushOn === 'function' && wildsFlushOn()) ? cells.filter(([r, c]) => isWildCard(gridData[r][c])) : [];
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
     if (isWarehouseCard(card)) return;
@@ -591,11 +595,11 @@ function flushOverlayFor(cells) {
   let best = null;
   Object.keys(bySuit).forEach(s => {
     const seen = new Set(), uniq = [];
-    [...bySuit[s], ..._wh].forEach(cl => { const k = cl[0] + ',' + cl[1]; if (!seen.has(k)) { seen.add(k); uniq.push(cl); } });
+    [...bySuit[s], ..._wh, ..._wd].forEach(cl => { const k = cl[0] + ',' + cl[1]; if (!seen.has(k)) { seen.add(k); uniq.push(cl); } });
     const group = uniq.slice(0, HAND_MAX_CARDS);
     if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
     // A Warehouse is one cell and two cards of the flush; a double suit likewise.
-    const size = Math.min(HAND_MAX_CARDS, bySuit[s].length + _wh.length * 2);
+    const size = Math.min(HAND_MAX_CARDS, bySuit[s].length + _wh.length * 2 + _wd.length);
     const name = FLUSH_BY_SIZE[size];
     if (size < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };

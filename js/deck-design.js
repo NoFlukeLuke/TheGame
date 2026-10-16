@@ -147,6 +147,11 @@ const WILD_PER_SUIT_KEY = 'lethe.wildPerSuit.v1';
 const WILD_RUNS_KEY     = 'lethe.wildRuns.v1';
 let wildsPerSuit = (() => { try { const v = parseFloat(localStorage.getItem(WILD_PER_SUIT_KEY)); return Number.isFinite(v) ? Math.max(0, Math.min(4, v)) : 1; } catch (e) { return 1; } })();
 let wildsInRuns  = (() => { try { return localStorage.getItem(WILD_RUNS_KEY) === '1'; } catch (e) { return false; } })();
+// r578: the Wild Cards event frees the wilds for the rest of a run: they then
+// complete runs (as the dev switch above does) and flushes too. Run state, in SAVE_VARS.
+let wildsUnbound = false;
+function wildsRunOn() { return wildsInRuns || wildsUnbound; }
+function wildsFlushOn() { return wildsUnbound; }
 try { localStorage.removeItem('lethe.wildCount'); localStorage.removeItem('lethe.deckDesign.v3'); localStorage.removeItem('lethe.runOrder.v1'); } catch (e) {}
 function setWildsPerSuit(n) {
   wildsPerSuit = Math.max(0, Math.min(4, +n || 0));
@@ -187,13 +192,13 @@ function rankRunVals(rank) {
   // run". With wilds-in-runs on (dev -> Deck) it may stand in for any value the
   // deck holds. Tested HERE and not left to RANK_ORDER: the line below ends
   // `?? 0`, so an unknown rank would come back as [0].
-  if (typeof isWildRank === 'function' && isWildRank(rank)) return wildsInRuns ? wildRunVals() : [];
+  if (typeof isWildRank === 'function' && isWildRank(rank)) return wildsRunOn() ? wildRunVals() : [];
   if (rankIsOffLadder(rank)) return [];
   return rank === 'A' ? [1, 14] : [RANK_ORDER[rank] ?? 0];
 }
 // Cheap cache-key fragment. handComponentsFor memoises on the cards, so a toggle
 // flipped mid-run would otherwise be served stale answers.
-function deckLadderKey() { return (deckCourtsOffLadder ? 'C' : 'c') + (deckDesignActive() ? '6' : '4') + (wildsInRuns ? 'W' : 'w'); }
+function deckLadderKey() { return (deckCourtsOffLadder ? 'C' : 'c') + (deckDesignActive() ? '6' : '4') + (wildsRunOn() ? 'W' : 'w') + (wildsFlushOn() ? 'F' : ''); }
 
 // ── THE RUN ORDER RULE (r272) ── retired from the dev panel in r409; 'off' is
 // the game. The test stays so _handShape's call site does not change.

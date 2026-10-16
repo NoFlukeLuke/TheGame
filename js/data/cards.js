@@ -103,6 +103,47 @@ function isWildCard(card) { return !!card && card.rank === WILD_RANK; }
 function isWarehouseCard(card) { return !!card && card._isSleight && card.sleightId === 'warehouse'; }
 function naturalCards(cards) { return (cards || []).filter(c => c && !isWildRank(c.rank) && !isWarehouseCard(c)); }
 function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && isWildRank(c.rank) ? 1 : 0), 0); }
+// ── STAND-IN (r578): what a wild scores as ──
+// cell key -> a proxy card { _id (the wild's), rank, suit } for every wild in the
+// hand, read by calcScore with the Stand-In knack. In a set: the set's rank (the
+// rank with the fewest naturals, so a Full House's wild joins the short side). In
+// a run: the rank of the run's lowest card. In a flush alone: a 2 of the flush
+// suit. A set or run beats the flush in a stacked hand. Read-only.
+function standInProxies(components) {
+  const out = {};
+  const flushNames = Object.values(FLUSH_BY_SIZE), runNames = Object.values(RUN_BY_SIZE).concat('Straight Flush');
+  const at = ([r, c]) => gridData[r]?.[c];
+  const val = (rank, hi) => rank === 'A' ? (hi ? 14 : 1) : (RANK_ORDER[rank] || 0);
+  const proxy = (w, rank, suit) => ({ _id: w._id, rank, suit, _standIn: true });
+  (components || []).forEach(k => {
+    if (flushNames.includes(k.name)) return;
+    const wilds = k.cells.filter(cl => isWildCard(at(cl)) && !out[cl[0] + '-' + cl[1]]);
+    if (!wilds.length) return;
+    const nat = k.cells.map(at).filter(c => c && c.rank && !isWildCard(c) && !isWarehouseCard(c));
+    if (!nat.length) return;
+    if (runNames.includes(k.name)) {
+      const hi = nat.some(c => c.rank !== 'A' && val(c.rank) >= 8);
+      const low = nat.reduce((a, c) => val(c.rank, hi) < val(a.rank, hi) ? c : a);
+      wilds.forEach(cl => { out[cl[0] + '-' + cl[1]] = proxy(at(cl), low.rank, WILD_SUIT); });
+      return;
+    }
+    const counts = {};
+    nat.forEach(c => { counts[c.rank] = (counts[c.rank] || 0) + 1; });
+    wilds.forEach(cl => {
+      const rank = Object.keys(counts).sort((a, b) => counts[a] - counts[b] || val(b, true) - val(a, true))[0];
+      counts[rank]++;
+      out[cl[0] + '-' + cl[1]] = proxy(at(cl), rank, WILD_SUIT);
+    });
+  });
+  (components || []).forEach(k => {
+    if (!flushNames.includes(k.name)) return;
+    const nat = k.cells.map(at).filter(c => c && c.suit && !isWildCard(c) && !isWarehouseCard(c));
+    const suit = (typeof ACTIVE_SUITS !== 'undefined' ? ACTIVE_SUITS : []).find(s => nat.length && nat.every(c => c.suit === s || c.suit2 === s));
+    if (!suit) return;
+    k.cells.forEach(cl => { if (isWildCard(at(cl)) && !out[cl[0] + '-' + cl[1]]) out[cl[0] + '-' + cl[1]] = proxy(at(cl), '2', suit); });
+  });
+  return out;
+}
 
 // How many wilds this mode's deck carries. Four by default (owner's number), in
 // the classic four-suit deck and the six-suit deck alike - which between them is

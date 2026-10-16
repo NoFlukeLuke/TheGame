@@ -83,6 +83,11 @@ const EVENT_REQUIRES = {
   forge:        () => allDeckCards().length > 0,
   plinko:       () => allDeckCards().length > 0,
   // r578: something rare-or-better left to offer.
+  // r579
+  wild_cards:   () => wildCardCount() > 0 && wildCardsOptions().length > 0 && deckWildCount() > 0,
+  trick_gamble: () => trickGambleChoices().length >= 2,
+  reschedule:   () => isActMode() && bossesEnabled() && rescheduleBosses().length > 0 && coins >= reschedulePrice(),
+  grid_spinner: () => LIMITS_DEF.some(d => limitCanIncrement(d.id)),
   keep_it:      () => { const p = guidedPickPools(); return p.knack.length + p.sleight.length + (trickTrayFull() ? 0 : p.trick.length) > 0; },
   wager:        () => allDeckCards().length > 0,
   // Needs a liability on the record to clear.
@@ -178,6 +183,12 @@ function confirmEvent() {
     prize_ladder: confirmLadder,
     call_it:     confirmCallIt,
     plinko:      confirmPlinko,
+    wild_cards:  confirmWildCards,
+    trick_gamble: confirmTrickGamble,
+    reschedule:  confirmReschedule,
+    grid_spinner: confirmGridSpinner,
+    static_bonus: confirmStaticBonus,
+    luck_dice:   confirmLuckDice,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -223,6 +234,13 @@ const EVENT_META = {
   prize_ladder:{ name:'Prize Ladder',    flavor:'Four flips, a bigger prize on every rung.' },
   call_it:     { name:'Call It',         flavor:'Pick your path, then call the coin.' },
   plinko:      { name:'Plinko',          flavor:'Drop the ball. Green edits your cards; red curses three.' },
+  // r579 (js/events-extra.js)
+  wild_cards:  { name:'Wild Cards',      flavor:'Free your wilds, or double them.' },
+  trick_gamble:{ name:'Trick Gamble',    flavor:'Two Tricks. One improves twice, the other is deleted.' },
+  reschedule:  { name:'Reschedule',      flavor:'Your next two bosses. Pay to swap them for others.' },
+  grid_spinner:{ name:'Grid Spinner',    flavor:'Stop the light. Its rank is how much your grid grows.' },
+  static_bonus:{ name:'Static Bonus',    flavor:'Two wheels: pips or mult, and how much.' },
+  luck_dice:   { name:'Luck Dice',       flavor:'Two dice, multiplied. Your Luck moves by the result.' },
 };
 
 function renderEventShell(id) {
@@ -265,6 +283,12 @@ function renderEventShell(id) {
     prize_ladder: renderPrizeLadder,
     call_it:     renderCallIt,
     plinko:      renderPlinko,
+    wild_cards:  renderWildCards,
+    trick_gamble: renderTrickGamble,
+    reschedule:  renderReschedule,
+    grid_spinner: renderGridSpinner,
+    static_bonus: renderStaticBonus,
+    luck_dice:   renderLuckDice,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it
