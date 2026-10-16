@@ -128,8 +128,10 @@ function dealerBuildLayer() {
   const cap = document.createElement('div');
   cap.className = 'dl-cap';
   const cur = dealerHand.cards[0];
-  cap.textContent = (dealerHand.mode === 'reserve' ? 'RESERVE · ' : '') + `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
-    + (cur._dealerBuff ? ' · ' + buffOfferName(cur._dealerBuff) : '') + `  (${dealerHand.cards.length} left)`;
+  cap.textContent = (dealerHand.mode === 'reserve' ? 'RESERVE · ' : dealerHand.mode === 'lockbox' ? 'LOCKBOX · ' : '') + `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
+    + (cur._dealerBuff ? ' · ' + buffOfferName(cur._dealerBuff)
+       : dealerHand.mode === 'lockbox' && typeof cardBuffLines === 'function' && cardBuffLines(cardId(cur)).length
+         ? ' · ' + cardBuffLines(cardId(cur)).join(', ') : '') + `  (${dealerHand.cards.length} left)`;
   layer.appendChild(cap);
   dealerHand.cap = cap;
   document.body.classList.add('dealer-holding');
@@ -280,6 +282,7 @@ function dealerPlaceAt(r, c) {
   dealerHand.pendingAt = null;
   const old = gridData[r]?.[c];
   if (!old) return;
+  if (dealerHand.mode === 'lockbox' && old === dealerHand.box) { dealerClose(true); return; }   // r576: tap the box to close it
   if (isCellBlocked(r, c) || old._isStone || old._isTrick || !cardCan(old, 'discard')) {
     refuse('That card cannot be replaced'); return;
   }
@@ -304,9 +307,11 @@ function dealerPlaceAt(r, c) {
   if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave([[r, c]]);
   if (old._isSleight) discardToPlayed(old); else discardToDrawPile(old);
   gridData[r][c] = card;
-  if (dealerHand.mode === 'reserve') {
+  if (dealerHand.mode === 'reserve' || dealerHand.mode === 'lockbox') {
     // The Reserve (r569, js/reserve.js): the old card goes to the back of the deck
-    // and nothing else happens - no time, no stock, no hook, no count.
+    // and nothing else happens - no time, no stock, no hook, no count. The
+    // Lockbox (r576, js/lockbox.js) the same, and its card joins the deck.
+    if (dealerHand.mode === 'lockbox' && typeof lockboxPlaced === 'function') lockboxPlaced(card);
     if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r, c]]);
   } else {
   // Counts as a swap: time, the round's swap tally, and the swap hooks. No stock.
@@ -340,6 +345,7 @@ function dealerPlaceAt(r, c) {
 // ── DISCARD: throw the top card away ─────────────
 function dealerDiscardTop() {
   if (!dealerActive() || animating) return;
+  if (dealerHand.mode === 'lockbox') { if (typeof lockboxNext === 'function') lockboxNext(); return; }   // r576: a bought card is not thrown away
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
   const el = dealerHand.els[0];
   if (el) {

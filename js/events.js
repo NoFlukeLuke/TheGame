@@ -1515,112 +1515,73 @@ function confirmWorkshop() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: CARD MARKET  (id 'market', r211)
+// EVENT: CARD MARKET (id 'market') - r576 rework: stocks the Lockbox
 // ══════════════════════════════════════════════
-// Buy cards INTO your deck. Every other event either hands you an entity or
-// upgrades one you already own; this is the only place the deck itself gets
-// bigger on purpose, and each card arrives carrying exactly one effect so the
-// purchase is legible: a 9♦ that scores +30 pips, a Q♠ that plays twice.
+// Owner: "pick from a bunch of cards, 50% to have a random buff, 5% chance to
+// have 2, but these go into a new feature ... a stash or reserve ... the event
+// lets you buy as many as you can afford ... lets go with 5."
 //
-// The card offered is always a COPY OF ONE ALREADY IN YOUR DECK. That is not
-// laziness - it is what keeps the market mode-safe. Spectrum has no court cards
-// and no suits, Six Suits has two extra ones, and the deck tuner can switch
-// values off entirely; inventing a rank and a suit here would be the one place in
-// the game that can put an illegal card into play.
-//
-// Multi-buy: tap to add, tap again to drop, total runs at the bottom. Confirm
-// buys everything in the basket. Nothing is charged until Confirm.
-const MARKET_BOONS = [
-  { key:'pips',   icon:'🔨', rarity:'common', tag:'+30 pips',    e:{ pips:30 } },
-  { key:'mult',   icon:'✨', rarity:'rare',   tag:'+5 mult',     e:{ mult:5 } },
-  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4s rewind',  e:{ time:4 } },
-  { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 } },
-  { key:'coin',   icon:'💰', rarity:'common', tag:'+2 credits',  e:{ coin:2 } },
-];
-// The wording is buffOfferName (js/deck-grid.js) rather than a clause typed per
-// row - these read "scores 30 extra pips every time it is played", which is the
-// sentence r294 took off the flat side everywhere else. Read at USE time, never
-// baked into the table: buffOfferName runs through lexProse, and the player can
-// change the vocabulary mid-run.
-
+// The cards do NOT join the deck when bought: they go into the Lockbox
+// (js/lockbox.js) and join the deck when you place one on the board. The first
+// purchase puts a Lockbox Sleight into your deck. Buffs roll at EVENT strength
+// (rollBuffs, js/flow-rewards.js), so an x mult here is x3.
+const MARKET_OFFERS = 8;
+function marketCardPrice() { return priceOf(BAL.market.card_price); }
+function marketRollCard() {
+  const ranks = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : ['♠', '♥', '♦', '♣'];
+  const card = stampId({ rank: ranks[Math.floor(Math.random() * ranks.length)], suit: suits[Math.floor(Math.random() * suits.length)] });
+  const r = Math.random();
+  const n = r < BAL.market.two_buffs ? 2 : r < BAL.market.two_buffs + BAL.market.one_buff ? 1 : 0;
+  const buffs = n ? rollBuffs(n, { event: true }) : [];
+  return { card, buffs };
+}
 function renderMarket() {
   const body = document.getElementById('event-body');
-  const source = allDeckCards();
-  if (!eventEligible('market')) {
-    body.innerHTML = evEmptyHTML('No deck to copy from.');
-    setEventConfirm(true); return;
-  }
-  eventState.marketBasket = [];
-  const picks = evShuffle(source);
-  const boons = evShuffle(MARKET_BOONS).slice(0, BAL.market.offers);
-  eventState.marketOffers = boons.map((b, i) => {
-    const card = picks[i % picks.length];
-    return { boon: b, card, price: priceOf(BAL.market.prices[b.key]) };
-  });
-
-  body.appendChild(evNote('Each of these adds one new card to your deck, carrying the effect shown. Buy as many as you can pay for.'));
-
-  const total = document.createElement('div');
-  const refresh = () => {
-    const cost = marketBasketCost();
-    total.textContent = eventState.marketBasket.length
-      ? `${eventState.marketBasket.length} card${eventState.marketBasket.length > 1 ? 's' : ''} · ${cost} of your ${coins} credits`
-      : `You have ${coins} credits`;
-    total.classList.toggle('danger', cost > coins);
-    body.querySelectorAll('.event-choice').forEach((el, i) => {
-      const off = eventState.marketOffers[i];
-      if (!off) return;
-      const inBasket = eventState.marketBasket.includes(off);
-      el.classList.toggle('selected', inBasket);
-      // Grey out what this basket can no longer afford, rather than letting the
-      // player build a basket that Confirm would then silently trim.
-      el.classList.toggle('locked', !inBasket && cost + off.price > coins);
+  const s = eventState;
+  s.marketOffers = Array.from({ length: MARKET_OFFERS }, marketRollCard);
+  s.marketBasket = [];
+  const price = marketCardPrice();
+  body.appendChild(evNote(`${price} credits each. In a round, double-tap the Lockbox to place one; a placed card joins your deck.`));
+  const grid = document.createElement('div'); grid.className = 'mk-grid'; grid.id = 'mk-grid';
+  s.marketOffers.forEach((off, i) => {
+    const el = document.createElement('div');
+    el.className = 'mk-card' + (['♥', '♦'].includes(off.card.suit) ? ' red' : '') + (off.buffs.length ? ' mk-buffed' : '');
+    el.innerHTML = `<div class="mk-face">${off.card.rank}<span>${off.card.suit}</span></div>` +
+      `<div class="mk-buffs">${off.buffs.length ? off.buffs.map(b => `<div>${b.label}</div>`).join('') : '<div class="mk-plain">plain</div>'}</div>`;
+    el.addEventListener('click', () => {
+      const at = s.marketBasket.indexOf(off);
+      if (at >= 0) s.marketBasket.splice(at, 1);
+      else if ((s.marketBasket.length + 1) * price <= coins) s.marketBasket.push(off);
+      else { if (typeof refuse === 'function') refuse('Not enough credits'); return; }
+      marketSync();
     });
-    setEventConfirm(eventState.marketBasket.length > 0 && cost <= coins);
-  };
-
-  eventState.marketOffers.forEach(off => {
-    const el = makeChoiceEl({
-      icon: off.boon.icon, rarity: off.boon.rarity,
-      name: `${cardLabel(off.card)} · ${off.boon.tag}`,
-      desc: `A new ${cardLabel(off.card)} joins your deck, buffed with ${buffOfferName(off.boon.e)}.`,
-      cost: `${off.price} credits`,
-      onClick: () => {
-        const i = eventState.marketBasket.indexOf(off);
-        if (i >= 0) eventState.marketBasket.splice(i, 1);
-        else {
-          if (marketBasketCost() + off.price > coins) return;
-          eventState.marketBasket.push(off);
-        }
-        refresh();
-      }
-    });
-    body.appendChild(el);
+    off.el = el;
+    grid.appendChild(el);
   });
-
-  total.className = 'ev-total';
-  body.appendChild(total);
-  refresh();
+  body.appendChild(grid);
+  const lbl = evLabel(''); lbl.id = 'mk-total'; body.appendChild(lbl);
+  marketSync();
 }
-function marketBasketCost() {
-  return (eventState.marketBasket || []).reduce((s, o) => s + o.price, 0);
+function marketSync() {
+  const s = eventState, price = marketCardPrice();
+  s.marketOffers.forEach(off => off.el && off.el.classList.toggle('picked', s.marketBasket.includes(off)));
+  const n = s.marketBasket.length;
+  const t = document.getElementById('mk-total');
+  if (t) t.textContent = n ? `${n} CARD${n > 1 ? 'S' : ''} · ${n * price} OF ${coins} CREDITS` : `YOU HAVE ${coins} CREDITS`;
+  setEventConfirm(n > 0 && n * price <= coins);
 }
 function confirmMarket() {
-  const basket = eventState.marketBasket || [];
-  const cost = marketBasketCost();
+  const s = eventState, basket = s.marketBasket || [], cost = basket.length * marketCardPrice();
   if (!basket.length || cost > coins) { closeEvent(); return; }
   coins -= cost;
   updateCoinsUI?.();
   basket.forEach(off => {
-    // The effect lands on the COPY, never on the card it was copied from -
-    // otherwise buying a 9♦ would buff the 9♦ already in your deck and the new
-    // one would arrive plain. copyCardToDeck hands back the card it made, which
-    // is the only way to get this right when the basket holds two of one face.
-    const made = copyCardToDeck(off.card);
-    if (made) enhanceCardKey(cardId(made), off.boon.e);
+    off.buffs.forEach(b => enhanceCardKey(cardId(off.card), b.e));
+    lockboxStash.push(off.card);
   });
-  noteMessage(`${basket.length} card${basket.length > 1 ? 's' : ''} added to your deck`, 'var(--gold)');
-  render();
+  lockboxEnsureOwned();
+  noteMessage(`${basket.length} card${basket.length > 1 ? 's' : ''} in your Lockbox`, 'var(--gold)');
   closeEvent();
 }
 

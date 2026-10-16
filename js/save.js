@@ -96,7 +96,7 @@ const SAVE_VARS = [
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray',
-  'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
+  'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'lockboxStash', 'entityTier',
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',
   'overtimeRun',               // r562: Overtime taken, its two costs, and the skip gift (js/overtime.js)

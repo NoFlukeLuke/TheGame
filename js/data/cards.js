@@ -454,7 +454,9 @@ function cardCan(card, action) {
     return action === 'render';
   }
   // Snared curse: the card is stuck - no swapping or discarding until it lifts
-  if (card.rank && typeof cardCurses !== 'undefined' && cardCurses[cardKey(card.rank, card.suit)]?.id === 'snared'
+  // r576: by cardId, as every curse is (r192). This read used the card's FACE, so
+  // Snared never stopped a swap or a discard.
+  if (card.rank && typeof cardCurses !== 'undefined' && cardCurses[cardId(card)]?.id === 'snared'
       && (action === 'swap' || action === 'discard')) return false;
   // The Recall: cards of the withdrawn rank sit on the board doing nothing.
   if (typeof isCardRecalled === 'function' && isCardRecalled(card)) return action === 'fall' || action === 'render';

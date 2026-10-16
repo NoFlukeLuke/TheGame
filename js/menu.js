@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r576 · events pass 1: archive, toys, buff table, engines, junk, forge";
+const BUILD = "2026-10-16 · r577 · events pass 2: Card Market + Lockbox, Snared fix";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

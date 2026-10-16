@@ -38,6 +38,7 @@ const SLEIGHT_POOL = [
   // r568: the board redeals between rounds by default; the Keeper holds it. Its _keepMode
   // ('both' / 'cards' / 'sleights', double-tap cycles) lives on the board card (js/deck-grid.js boardKeepsCard).
   { id:'keeper',         name:'Keeper',         emoji:'📌', rarity:'rare',      activation:'double_tap', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['grid','position'],   desc:'While on the grid, the board stays as it is between rounds instead of redealing. Double-tap to choose what stays: everything, the cards, or the Sleights.' },
+  { id:'lockbox',        name:'Lockbox',        emoji:'🔐', rarity:'rare',      activation:'double_tap', durability:'infinite', eventOnly:true, defaultRank:null, defaultSuit:null, tags:['grid'],   desc:'Double-tap: take out the cards you bought at the Card Market. Tap a card on the board to put one in its place; it joins your deck. Cards you do not place stay in the box.' },
   { id:'dealers_choice', name:"Dealer's Choice", emoji:'🃏', rarity:'rare', activation:'double_tap', durability:3, defaultRank:null, defaultSuit:null, tags:['swap','position'], desc:'Double-tap: hold three cards using ranks on the board (most carry a buff). Tap a card to swap the top one in, or DISCARD to throw it away. Uses no swaps or discards, only time. Held cards last this level. (3 charges)' },
   // r572: All Hands plays every hand on the board in reading order (js/sweep.js).
   { id:'all_hands',      name:'All Hands',      emoji:'🧹', rarity:'legendary', activation:'double_tap', durability:2, defaultRank:null, defaultSuit:null, tags:['autoplay','scoring'], desc:'Double-tap: plays every hand on the board, left to right, top to bottom, all at once. No cost. The hands make no speed or complexity Focus. Not in a boss round. (2 charges)' },
@@ -76,7 +77,8 @@ const SLEIGHT_POOL = [
 // SLEIGHT_POOL (sleightDef / rendering look them up there) but filtered out of
 // every offer pool.
 const SLEIGHT_FIXTURES = new Set(['shift_swap', 'recycler', 'time_clock', 'petty_cash']);
-function sleightOfferable(def) { return !!def && !SLEIGHT_FIXTURES.has(def.id); }
+// r576: an `eventOnly` Sleight (the Lockbox) comes from its event and nowhere else.
+function sleightOfferable(def) { return !!def && !SLEIGHT_FIXTURES.has(def.id) && !def.eventOnly; }
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
 // ══════════════════════════════════════════════

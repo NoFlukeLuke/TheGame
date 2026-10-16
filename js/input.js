@@ -417,6 +417,8 @@ function onCardTap(r, c) {
       lastTapTime = 0; lastTapCell = null;
       // Keeper (r568): double-tap cycles what the board keeps between rounds. No charge, no lock.
       if (jdef.id === 'keeper') { hideSleightGridTooltip(); keeperCycle(jcard); spinSleightTile(r, c); render(); return; }
+      // Lockbox (r576, js/lockbox.js): opens the cards bought at the Card Market. No charge, no lock.
+      if (jdef.id === 'lockbox') { hideSleightGridTooltip(); lockboxToggle(jcard, r, c); return; }
       // Stopwatch: custom freeze (not the once-per-round-locked charge model). Double-tap toggles.
       if (jdef.id === 'stopwatch') {
         hideSleightGridTooltip();

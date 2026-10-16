@@ -640,6 +640,7 @@ function startGame() {
   if (typeof mapResetRun === 'function') mapResetRun();        // Map mode: generate the board (js/map-mode.js)
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
+  if (typeof lockboxStash !== 'undefined') lockboxStash = [];   // r576: the Card Market's cards are per run
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
   // its printed values - clearing the map alone would leave the previous run's
   // improved numbers live for the whole of this one.

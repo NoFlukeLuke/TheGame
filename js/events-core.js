@@ -79,7 +79,7 @@ const EVENT_REQUIRES = {
   the_floor:    () => everyDeckCard().length >= SLOT_REELS,
   bench:        () => drawPile.some(c => c && c.rank && !c._isSleight),
   deck_trim:    () => springCuttableCards().length > 0,
-  market:       () => allDeckCards().length > 0,
+  market:       () => coins >= marketCardPrice(),   // r576: one card is the least you can buy
   forge:        () => allDeckCards().length > 0,
   wager:        () => allDeckCards().length > 0,
   // Needs a liability on the record to clear.
@@ -201,7 +201,7 @@ const EVENT_META = {
   bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
   rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time every hand, for good. It costs three junk cards.' },
   workshop:    { name:'Maintenance',     flavor:'Top up every Sleight, or raise one charge ceiling for good.' },
-  market:      { name:'Card Market',     flavor:'Buy cards for your deck. Each one comes with something extra.' },
+  market:      { name:'Card Market',     flavor:'Buy cards into your Lockbox, then put them on the board when you want them.' },
   deck_trim:   { name:'Deck Trim',       flavor:'A thinner deck draws what you need more often. Cut as deep as you can pay for.' },
   reassignment:{ name:'Trade a Trick',   flavor:'Give up a Trick. It comes back as a Knack or a Sleight, picked at random.' },
   the_draw:    { name:'Spin to Improve', flavor:'Choose three of your own. The wheel picks one and improves it twice.' },

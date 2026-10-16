@@ -97,3 +97,16 @@
 }
 .junk-card .junk-glyph { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: calc(var(--card-h, 75px) * .3); color: #77738a; line-height: 1; }
 .junk-card .junk-word  { font-family: 'Share Tech Mono', monospace; font-size: calc(var(--card-h, 75px) * .13); letter-spacing: 2px; color: #8c88a0; }
+
+/* ── Card Market (r576) - the offer grid ── */
+.mk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; margin: 6px 0; }
+.mk-card { border-radius: 6px; padding: 5px 3px 4px; min-height: 66px; box-sizing: border-box; cursor: var(--cur-pointer, pointer);
+  background: linear-gradient(170deg, #f7f0dc, #ddd2b4); color: #1a1730; text-align: center;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 3px 6px rgba(0,0,0,.4); transition: transform .08s; }
+.mk-card.red { color: #b0261a; }
+.mk-card.mk-buffed { box-shadow: 0 0 0 2px var(--c-purple), 0 3px 8px rgba(154,108,255,.4); }
+.mk-card.picked { transform: translateY(-3px); box-shadow: 0 0 0 3px var(--c-mint), 0 0 14px var(--c-mint); }
+.mk-face { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; line-height: 1.1; }
+.mk-face span { font-size: 13px; margin-left: 1px; }
+.mk-buffs { font-family: 'Share Tech Mono', monospace; font-size: 9px; line-height: 1.25; color: #4b2f8f; margin-top: 3px; }
+.mk-plain { color: #8a7d60; }

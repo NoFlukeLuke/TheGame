@@ -168,7 +168,7 @@ const BAL = {
   // Three on offer, priced by how strong the effect is. The card itself is a copy
   // of one already in the deck, so the market can never hand out a rank or suit
   // the mode does not use (Spectrum has no courts, Six Suits has two extra suits).
-  market: { offers: 3, prices: { pips: 8, mult: 12, time: 10, replay: 18, coin: 6 } },
+  market: { card_price: 2.5, one_buff: 0.50, two_buffs: 0.05 },   // r576: shows as 5 at PRICE_MULT 2 (owner: "lets go with 5"); 45% plain
   // ── Deck Trim (r211) - the frequent-removal event ──
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.
