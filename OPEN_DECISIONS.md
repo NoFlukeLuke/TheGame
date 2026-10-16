@@ -190,7 +190,11 @@ So an inverted rung no longer costs the player a card or a hand - it only means 
 hand pays more when they choose to play it, which is r198 behaving as designed. Whatever
 the table is tuned to, both guards hold.
 
-## 8. The weighted deck's hand prices (r318) - parked by the owner
+## 8. The weighted deck's hand prices (r318) - CLOSED (r566)
+
+**Closed.** The owner's decks are the normal deck with wilds, six suits and Spectrum; the weighted
+deck's tuning went in r409, Climb (the 1 to 15 deck) is a hidden mode since r566, and the card
+ladder makes hand prices moot. Kept for the measurement method only.
 
 `js/deck-design.js`'s weighted deck was retuned in r318 to the owner's brief (runs
 most common, sets about two thirds of runs, flushes level with sets) and hits it:

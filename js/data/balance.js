@@ -91,7 +91,6 @@ const BAL = {
   long_road: { mult_per_card: 2 },
   still_water: { mult_per_interval: 5 },
   wild_heart: { mult_per_ace: 2 },
-  jack_mult: { mult_per_jack: 2 },
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
   row_power: { mult_per_card: 5 },   // r539 owner: matches Stand-Up
@@ -132,7 +131,6 @@ const BAL = {
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   combo_score: { mult_per_type: 4 },
-  heart_double: { heart_mult: 1 },
   full_house_streak: { focus: 10 },
   blackjack_bonus: { pip_mult: 3 },
   double_bloom: { mult_mult: 1.5 },
@@ -341,12 +339,10 @@ const DESC_TEMPLATES = {
   blackjack_bonus: 'If the face values of your cards total exactly 21, score ×{pip_mult} pips',
   face_value: 'Face cards (J/Q/K) score +{face_pips} pips',
   court_of_leaves: 'Face cards (J/Q/K) score +{pips} pips',
-  jack_mult: 'Jacks add +{mult_per_jack} mult each',
   ten_strong: 'Tens score +{pips} pips each',
   power_two: 'Cards ranked 2 score +{pips} pips each',
   lucky_three: 'Any 3 in a hand adds +{mult} mult',
   rich_soil: 'All cards score +{mult} mult',
-  heart_double: 'Each scored heart adds +{heart_mult} mult',
   number_crunch: 'Hands with 4+ different ranks score +{mult_per_card} mult per card',
   shape_square: 'A 2×2 shaped hand adds +{focus} Focus',
   shape_cross: 'A 5 card + shaped hand adds +{focus} Focus',

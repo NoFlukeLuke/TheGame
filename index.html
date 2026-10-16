@@ -68,7 +68,6 @@
 <link rel="stylesheet" href="css/cursor.css">
 <link rel="stylesheet" href="css/print-toast.css">
 <link rel="stylesheet" href="css/card-anims.css">
-<link rel="stylesheet" href="css/terminal-skin.css">
 <link rel="stylesheet" href="css/card-face.css">
 <link rel="stylesheet" href="css/stock-bulbs.css">
 <link rel="stylesheet" href="css/skin-machine.css">
@@ -609,16 +608,6 @@
        type of stuff it can all go in aesthetics"). -->
   <div class="dev-section" data-group="hud" data-affects-info="1">
     <div class="dev-section-title">Aesthetics</div>
-    <div class="dev-subtitle">Terminal look</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
-      The cold-machine prototype: in-round chrome drains to amber monochrome, card motion goes
-      mechanical (no arcs, no bounce), board sounds go relay and solenoid. Cards are untouched.
-    </div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
-      <input id="dev-term-skin" type="checkbox" onchange="setTermSkin(this.checked)" style="accent-color:var(--gold);">
-      Terminal look on
-    </label>
-
     <div class="dev-subtitle">Card face</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Cards are
@@ -1649,7 +1638,6 @@
 <script src="js/machine-skin.js"></script>
 <script src="js/card-face.js"></script>
 <script src="js/stock-bulbs.js"></script>
-<script src="js/terminal-skin.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

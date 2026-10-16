@@ -78,9 +78,6 @@ const CARD_ANIM_DEFAULT = { swap: 'leapfrog', fly: 'pinball', discard: 'sink', c
 // Which look a kind uses. A look that is not built yet reads as 'current'.
 function cardAnimChoice(kind) {
   let id = _cardAnimPick[kind] || CARD_ANIM_DEFAULT[kind] || 'current';
-  // The Terminal look (r471, js/terminal-skin.js) answers over the stored pick
-  // while it is on, and stands aside - picks untouched - when it is off.
-  if (typeof termSkinAnim === 'function') id = termSkinAnim(kind, id);
   return cardAnimRunner(kind, id) ? id : 'current';
 }
 function setCardAnimChoice(kind, id) {

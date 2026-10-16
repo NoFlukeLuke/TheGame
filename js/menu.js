@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r565 · console mode: gaps round the board and timer, clear-glass bulbs, the reward queue answers hover and tap";
+const BUILD = "2026-10-16 · r566 · cleanup: Terminal look, Jack Mult and Heart Double gone; Climb is a hidden mode";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -273,7 +273,7 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 // `guided` and `spectrum` (r380): dev panel -> Modes, and Spectrum is still
 // Custom's colour deck. (Survival's mode entry went in r417, Six Suits' in r416;
 // the Survival ENGINE stays because Flow runs on it.)
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'guided', 'spectrum'];
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'guided', 'spectrum', 'climb'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'Four suits. Four quarters, each five rounds and then a review. Reach each round\'s goal before the clock runs out. Between rounds you pick a path on the reward grid, and some paths lead to the shop or a meeting.' },

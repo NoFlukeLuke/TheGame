@@ -230,7 +230,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // `_wc(pred) x rate` sweeps, which is the SAME SUM - but a sweep cannot tell the
   // dance which card earned it, so every one of them animated in the end lump.
   // Emitting per card here is what lets "+1 mult for a heart" fire on the heart.
-  let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0, _ladMult = 0;
+  let _kgMult = 0, _pmMult = 0, _ogMult = 0, _ladMult = 0;
   // Per-card MULT, in scoring order: what each card adds every time it scores,
   // what it adds on its first scoring only, its own x mult, and how many times
   // it scores. Replayed against `mult` below (see _cardMultSeq's use).
@@ -658,8 +658,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_ld) { _cmAdd += _ld; _ladMult += _ld * _retrig; _ev('_ladder', 'mult+', _ld, 'card'); }
     if (_lp && _ns2.step) _nsMultTot += _ns2.step * _retrig;
     if (!_G && !_mute && _ns2.pips) _nsPipsTot += _ns2.pips * _retrig;
-    if (hasTrick('heart_double') && _isHeartC) { const _v = BAL.heart_double.heart_mult; _cmAdd += _v; _hdMult += _v * _retrig; _ev('heart_double','mult+',_v); }
-    if (hasTrick('jack_mult') && baseRank === 'J') { const _v = BAL.jack_mult.mult_per_jack; _cmAdd += _v; _jmMult += _v * _retrig; _ev('jack_mult','mult+',_v); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { const _v = BAL.king_guard.mult; _cmAdd += _v; _kgMult += _v * _retrig; _ev('king_guard','mult+',_v); }
     const _pmv = (_G || !qrlBuffOn(card, 'mult')) ? 0 : (permMult[_eKey] || 0);
     if (_pmv) { _cmAdd += _pmv; _pmMult += _pmv * _retrig; _proc('perm_mult'); _ev('perm_mult','mult+',_pmv); }
@@ -996,8 +994,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
   let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
 
-  // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
-  if (_hdMult) { bMultQ('heart_double', _hdMult, 1); }
 
   if (mult < 1) mult = 1; // nothing may drop mult below 1
 
@@ -1014,7 +1010,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Per-rank mult
   const _aceCount   = _natCards.filter(c => c.rank === 'A').length;
   const _threeCount = _natCards.filter(c => c.rank === '3').length;
-  if (_jmMult) { bMultQ('jack_mult', _jmMult, 1); }
   if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
   if (hasTrick('light_touch') && realHandOfSize(cells, 2)) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
