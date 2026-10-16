@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score merge preview - TheGame</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Cinzel:wght@700&family=Crimson+Pro:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   SCORE MERGE PREVIEW  (standalone, r574)
+   How the three chips (PIPS x MULT x FOCUS) become one number and reach the
+   SCORE. Nothing here imports the game: a mock score panel in the game's own
+   look, and each idea written out in full so it can be watched side by side.
+   The settled idea goes into js/pmf-merge.js; the Focus multi-apply beat
+   (last section) is what r571 shipped, shown here so the two can be judged
+   together.
+   ══════════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box}
+body{margin:0;background:#0a0908;color:#e8dcc0;font-family:'Share Tech Mono',monospace;display:flex;min-height:100vh;overflow-x:hidden}
+#stageWrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:26px}
+#panel{width:330px;flex:0 0 330px;background:#12100d;border-left:1px solid #3a3229;padding:14px;overflow-y:auto;height:100vh}
+h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:2px;margin:0 0 4px;color:#c9a84c}
+h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;margin:16px 0 6px;color:#8fd6a8;border-bottom:1px solid #2a251e;padding-bottom:4px}
+.row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11px}
+.row label{flex:1;min-width:52px;color:#a89878;white-space:nowrap}
+.row input[type=range]{flex:1.4;min-width:0}
+.row input[type=number]{width:62px;background:#1c1813;border:1px solid #3a3229;color:#e8dcc0;font-family:inherit;font-size:11px;padding:2px 4px;border-radius:3px}
+.val{width:46px;text-align:right;color:#e8c56b;font-size:11px}
+button{font-family:'Share Tech Mono',monospace;background:#1c1813;border:1px solid #4a4032;color:#e8dcc0;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+button:hover{background:#2a2419;border-color:#c9a84c}
+button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.note{font-family:'Crimson Pro',serif;font-size:12px;line-height:1.35;opacity:.7;margin:2px 0 8px}
+pre{background:#0d0b09;border:1px solid #2a251e;padding:8px;font-size:10px;white-space:pre-wrap;color:#cbb98f}
+
+/* ── the mock score panel, in the game's look ── */
+#hud{zoom:1.9;width:330px;display:flex;flex-direction:column;gap:8px}
+.box{background:#0a0808;border:1px solid #3a3229;border-radius:5px;text-align:center;padding:5px 6px}
+#score-box{height:64px;display:flex;flex-direction:column;justify-content:center;transition:transform .18s ease}
+#score-box.pop{animation:boxPop .36s ease}
+@keyframes boxPop{30%{transform:scale(1.09)}}
+.lab{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:#a89878}
+#score-val{font-family:'Cinzel',serif;font-size:30px;font-weight:700;line-height:1;color:#fff}
+#row{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;height:62px}
+.chip{position:relative;flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:transform var(--d,340ms) cubic-bezier(.4,.1,.3,1),opacity var(--d,340ms) ease}
+.chip .lab{font-size:7px}
+.chip .v{font-family:'Cinzel',serif;font-size:19px;font-weight:700;line-height:1.1}
+#pips .v{color:#5588ee}#mult .v{color:#dd4444}#focus .v{color:#cf8cff}
+.times{font-family:'Cinzel',serif;font-size:11px;color:#8a7f6a;transition:opacity 200ms,transform 200ms}
+.chip.jit{animation:jit .3s ease-in-out 2}
+.chip.jit-hard{animation:jitHard .22s ease-in-out 3}
+@keyframes jit{0%,100%{transform:translate(0,0)}25%{transform:translate(1.4px,-1.2px)}50%{transform:translate(-1.3px,1.1px)}75%{transform:translate(1.1px,.9px)}}
+@keyframes jitHard{0%,100%{transform:translate(0,0)}20%{transform:translate(3px,-2px) rotate(.8deg)}40%{transform:translate(-3px,2px) rotate(-.8deg)}60%{transform:translate(2px,2px)}80%{transform:translate(-2px,-2px)}}
+.chip.gone{opacity:0;pointer-events:none}
+.fused{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.6);opacity:0;min-width:120px;height:58px;
+  display:flex;align-items:center;justify-content:center;border:1px solid #c9a84c;background:#0a0808;border-radius:5px;
+  box-shadow:0 0 14px -2px rgba(201,168,76,.6);transition:transform var(--d,340ms) cubic-bezier(.3,1.4,.5,1),opacity var(--d,340ms) ease}
+.fused.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.fused .v{font-family:'Cinzel',serif;font-size:30px;font-weight:700;color:#fff;line-height:1}
+.fused.gold .v{color:#f5c042}
+.fused.left{left:33%}.fused.right{left:67%}
+.flash{position:absolute;inset:-6px;border-radius:8px;background:radial-gradient(circle,rgba(255,255,255,.55),transparent 60%);opacity:0;pointer-events:none}
+#ghost{position:fixed;z-index:9;pointer-events:none;display:none}
+/* Focus beats */
+#focus.beat{animation:fbeat .32s ease}
+#focus.beat-big{animation:fbeatBig .46s cubic-bezier(.2,1.4,.4,1)}
+@keyframes fbeat{35%{transform:scale(1.14)}}
+@keyframes fbeatBig{25%{transform:scale(1.34);box-shadow:0 0 18px 4px rgba(207,140,255,.9)}60%{transform:scale(1.08)}}
+#bar{height:7px;background:#1a1420;border:1px solid #3a2d4a;border-radius:4px;overflow:hidden}
+#bar i{display:block;height:100%;width:55%;background:linear-gradient(90deg,#7a3fd0,#cf8cff)}
+#bar.beat-big{animation:barBig .46s ease}
+@keyframes barBig{30%{transform:scaleY(1.9);filter:brightness(1.6)}}
+.strip{font-family:'Cinzel',serif;font-size:13px;color:#cbb98f;text-align:center;min-height:16px;letter-spacing:1px}
+.strip b{color:#fff}
+#sfx{font-size:10px;color:#8fd6a8;opacity:.8;min-height:14px;text-align:center}
+</style>
+</head>
+<body>
+<div id="stageWrap">
+  <div id="hud">
+    <div class="box" id="score-box"><div class="lab">SCORE</div><div id="score-val">1,250</div></div>
+    <div id="row">
+      <div class="chip box" id="pips"><div class="lab">PIPS</div><div class="v">40</div></div>
+      <div class="times">×</div>
+      <div class="chip box" id="mult"><div class="lab">MULT</div><div class="v">6</div></div>
+      <div class="times">×</div>
+      <div class="chip box" id="focus"><div class="lab">FOCUS</div><div class="v">×1.5</div></div>
+      <div class="fused" id="fuse1"><div class="flash"></div><div class="v">0</div></div>
+      <div class="fused" id="fuse2"><div class="flash"></div><div class="v">0</div></div>
+    </div>
+    <div class="strip" id="strip"></div>
+    <div id="bar"><i></i></div>
+    <div id="sfx"></div>
+  </div>
+  <div class="note" style="max-width:560px;text-align:center">A mock of the score panel at the desktop zoom. Pick an idea on the right; the numbers and the speed are live.</div>
+</div>
+<div class="fused" id="ghost"><div class="v">0</div></div>
+
+<div id="panel">
+  <h1>SCORE MERGE PREVIEW</h1>
+  <div class="note">How PIPS × MULT × FOCUS become the hand's score and reach SCORE. Each idea runs the whole beat, from three chips landed on their totals to the SCORE climbing.</div>
+  <h2>NUMBERS</h2>
+  <div class="row"><label>Pips</label><input type="number" id="nPips" value="40"></div>
+  <div class="row"><label>Mult</label><input type="number" id="nMult" value="6"></div>
+  <div class="row"><label>Focus ×</label><input type="number" id="nFocus" value="1.5" step="0.1"></div>
+  <div class="row"><label>Focus applies</label><input type="number" id="nApply" value="1" min="1" max="5"></div>
+  <div class="row"><label>Speed</label><input type="range" id="speed" min="0.25" max="3" step="0.05" value="1"><span class="val" id="speedV">1.00x</span></div>
+
+  <h2>IDEAS</h2>
+  <div class="btns"><button class="go" onclick="run('current')">A · Current</button></div>
+  <div class="note">What ships: all three chips jitter together and slide into one chip reading the score; a smaller copy peels off to SCORE; the number climbs.</div>
+  <div class="btns"><button class="go" onclick="run('twostep')">B · Two-step fuse</button></div>
+  <div class="note">Owner's idea. PIPS and MULT jitter and combine into one chip (pips × mult). Then that chip and FOCUS jitter and merge into the score. Two beats, so the multiplication is read twice.</div>
+  <div class="btns"><button class="go" onclick="run('press')">C · Collide and press</button></div>
+  <div class="note">PIPS and MULT crash together with a flash and the product pops out bigger. FOCUS then drops onto it like a stamp: the chip is pressed, shakes, and the number multiplies up under it. One extra press per extra Focus application.</div>
+  <div class="btns"><button class="go" onclick="run('strip')">D · Working shown</button></div>
+  <div class="note">The three chips stay put. A line under the row writes the sum out as it happens: 40 × 6 = 240, then × 1.5 = 360, each step with its chip's jitter, and the finished line condenses into the fused chip and leaves for SCORE.</div>
+
+  <h2>FOCUS APPLIED MORE THAN ONCE (shipped, r571)</h2>
+  <div class="btns"><button onclick="focusBeats()">Play the beats</button></div>
+  <div class="note">Set Focus applies above 1. The first application is the ordinary beat; each extra one is a bigger thump on the chip and the bar with a rising sound (sfxFocusAgain(k) in the game, named here as text).</div>
+
+  <h2>TIMING (ms, at 1x)</h2>
+  <div class="row"><label>Jitter</label><input type="number" id="tJit" value="300"></div>
+  <div class="row"><label>Merge</label><input type="number" id="tMerge" value="340"></div>
+  <div class="row"><label>Settle</label><input type="number" id="tSettle" value="90"></div>
+  <div class="row"><label>Fly</label><input type="number" id="tFly" value="380"></div>
+  <div class="row"><label>Climb</label><input type="number" id="tClimb" value="300"></div>
+  <div class="row"><label>Split</label><input type="number" id="tSplit" value="300"></div>
+  <div class="btns"><button onclick="dump()">Dump PMF_CFG</button><button onclick="reset()">Reset</button></div>
+  <pre id="out">PMF_CFG = { jitter: 300, merge: 340, settle: 90, split: 300 }</pre>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const wait = ms => new Promise(r => setTimeout(r, ms / sp()));
+const sp = () => +$('speed').value;
+$('speed').oninput = () => $('speedV').textContent = sp().toFixed(2) + 'x';
+const T = k => +$('t' + k).value;
+const fmt = n => Math.round(n).toLocaleString();
+let scoreBase = 1250, running = false;
+function say(s){ $('sfx').textContent = s; }
+function nums(){ const p=+$('nPips').value, m=+$('nMult').value, f=+$('nFocus').value, k=Math.max(1,+$('nApply').value|0);
+  return { p, m, f, k, score: p*m*Math.pow(f,k) }; }
+function setChips(n){ $('pips').querySelector('.v').textContent=n.p; $('mult').querySelector('.v').textContent=n.m; $('focus').querySelector('.v').textContent='×'+n.f; }
+function dur(ms){ $('row').style.setProperty('--d', Math.round(ms/sp())+'ms'); }
+function jitter(ids, hard){ ids.forEach(id=>{ const e=$(id); e.classList.remove('jit','jit-hard'); void e.offsetWidth; e.classList.add(hard?'jit-hard':'jit'); }); }
+function unjit(){ ['pips','mult','focus'].forEach(id=>$(id).classList.remove('jit','jit-hard')); }
+function move(id, dx, dy, scale){ $(id).style.transform = `translate(${dx}px,${dy||0}px) scale(${scale||1})`; }
+function centreOf(el){ const r=el.getBoundingClientRect(); return { x:r.left+r.width/2, y:r.top+r.height/2 }; }
+function centreDx(id, toward){ const a=centreOf($(id)), b=centreOf(toward); return (b.x-a.x)/1.9; }   // divide out the mock zoom
+function showFused(id, text, pos, gold){ const f=$(id); f.querySelector('.v').textContent=text; f.classList.remove('left','right','gold'); if(pos) f.classList.add(pos); if(gold) f.classList.add('gold'); void f.offsetWidth; f.classList.add('show'); }
+function hideFused(id){ $(id).classList.remove('show'); }
+function flash(id){ const f=$(id).querySelector('.flash'); f.animate([{opacity:0},{opacity:1,offset:.15},{opacity:0}],{duration:360/sp()}); }
+async function fly(fromEl, total){
+  const g=$('ghost'); g.querySelector('.v').textContent=fmt(total); const a=fromEl.getBoundingClientRect(), b=$('score-val').getBoundingClientRect();
+  g.style.cssText=`display:flex;left:${a.left}px;top:${a.top}px;width:${a.width}px;height:${a.height}px;opacity:1;transform:none;transition:none`;
+  const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
+  await g.animate([{transform:'scale(.72)',opacity:.95},{transform:`translate(${dx*.62}px,${dy*.62}px) scale(.56)`,opacity:1,offset:.65},{transform:`translate(${dx}px,${dy}px) scale(.24)`,opacity:0}],{duration:T('Fly')/sp(),easing:'cubic-bezier(.4,.1,.3,1)',fill:'forwards'}).finished;
+  g.style.display='none'; const sb=$('score-box'); sb.classList.remove('pop'); void sb.offsetWidth; sb.classList.add('pop'); say('tick');
+}
+async function climb(total){ const el=$('score-val'), from=scoreBase, to=scoreBase+total, st=performance.now(), d=T('Climb')/sp();
+  await new Promise(res=>{ (function tk(now){ const t=Math.min((now-st)/d,1), e=1-Math.pow(1-t,3); el.textContent=fmt(from+(to-from)*e); if(t<1) requestAnimationFrame(tk); else res(); })(st); });
+  scoreBase=to; }
+async function split(){ dur(T('Split')); ['pips','mult','focus'].forEach(id=>{ $(id).classList.remove('gone'); $(id).style.transform=''; }); document.querySelectorAll('.times').forEach(t=>{t.style.opacity='';t.style.transform='';}); hideFused('fuse1'); hideFused('fuse2'); await wait(T('Split')); $('strip').innerHTML=''; }
+function reset(){ running=false; unjit(); ['pips','mult','focus'].forEach(id=>{ $(id).classList.remove('gone'); $(id).style.transform=''; }); document.querySelectorAll('.times').forEach(t=>{t.style.opacity='';t.style.transform='';}); hideFused('fuse1'); hideFused('fuse2'); $('strip').innerHTML=''; say(''); setChips(nums()); }
+function timesHide(){ document.querySelectorAll('.times').forEach(t=>{ t.style.opacity='0'; t.style.transform='scaleX(.2)'; }); }
+
+// ── A: current ──────────────────────────────────────────────────────────────
+async function current(n){
+  jitter(['pips','mult','focus']); say('score tick'); await wait(T('Jit')); unjit();
+  dur(T('Merge')); const c=centreOf($('row'));
+  ['pips','mult','focus'].forEach(id=>{ const a=centreOf($(id)); move(id,(c.x-a.x)/1.9,0,.4); $(id).classList.add('gone'); });
+  timesHide(); showFused('fuse1', fmt(n.score)); say('focus beat');
+  await wait(T('Merge')+T('Settle'));
+  await fly($('fuse1'), n.score); await climb(n.score); await split();
+}
+// ── B: two-step fuse (owner) ────────────────────────────────────────────────
+async function twostep(n){
+  jitter(['pips','mult']); say('score tick'); await wait(T('Jit')); unjit();
+  dur(T('Merge')); const f1=$('fuse1'); f1.classList.add('left'); const target=centreOf(f1);
+  ['pips','mult'].forEach(id=>{ move(id,(target.x-centreOf($(id)).x)/1.9,0,.4); $(id).classList.add('gone'); });
+  document.querySelector('.times').style.opacity='0';
+  showFused('fuse1', fmt(n.p*n.m), 'left'); say('fuse (low)');
+  await wait(T('Merge')+T('Settle'));
+  // second beat: the product and FOCUS
+  jitter(['focus']); f1.classList.add('jit'); say('score tick'); await wait(T('Jit')); unjit(); f1.classList.remove('jit');
+  const c=centreOf($('row'));
+  f1.style.transition=`left ${Math.round(T('Merge')/sp())}ms cubic-bezier(.4,.1,.3,1), transform ${Math.round(T('Merge')/sp())}ms, opacity ${Math.round(T('Merge')/sp())}ms`;
+  f1.style.left='50%'; f1.style.transform='translate(-50%,-50%) scale(.5)'; f1.style.opacity='0';
+  move('focus',(c.x-centreOf($('focus')).x)/1.9,0,.4); $('focus').classList.add('gone'); timesHide();
+  showFused('fuse2', fmt(n.score), null, true); say('focus beat (higher)');
+  await wait(T('Merge')+T('Settle'));
+  f1.style.cssText=''; hideFused('fuse1');
+  await fly($('fuse2'), n.score); await climb(n.score); await split();
+}
+// ── C: collide and press ────────────────────────────────────────────────────
+async function press(n){
+  jitter(['pips','mult'], true); say('rattle'); await wait(T('Jit')); unjit();
+  dur(Math.round(T('Merge')*.6)); const f1=$('fuse1'); f1.classList.add('left'); const target=centreOf(f1);
+  ['pips','mult'].forEach(id=>{ move(id,(target.x-centreOf($(id)).x)/1.9,0,.9); });
+  await wait(T('Merge')*.6);
+  ['pips','mult'].forEach(id=>$(id).classList.add('gone')); document.querySelector('.times').style.opacity='0';
+  showFused('fuse1', fmt(n.p*n.m), 'left'); flash('fuse1'); say('impact (low thud + ring)');
+  f1.animate([{transform:'translate(-50%,-50%) scale(.6)'},{transform:'translate(-50%,-50%) scale(1.22)',offset:.5},{transform:'translate(-50%,-50%) scale(1)'}],{duration:T('Merge')/sp(),easing:'ease-out'});
+  await wait(T('Merge')+T('Settle'));
+  // FOCUS drops onto the product, once per application
+  let v=n.p*n.m;
+  for(let k=0;k<n.k;k++){
+    const fc=$('focus'); const a=centreOf(fc), b=centreOf(f1);
+    fc.style.transition='none'; fc.style.zIndex='5';
+    await fc.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${(b.x-a.x)/1.9}px,${-22}px) scale(1.25)`,offset:.45,easing:'ease-out'},{transform:`translate(${(b.x-a.x)/1.9}px,${(b.y-a.y)/1.9}px) scale(1)`,easing:'cubic-bezier(.6,0,.9,.4)'}],{duration:Math.round(T('Merge')*(k?.7:1))/sp(),fill:'forwards'}).finished;
+    v*=n.f; f1.querySelector('.v').textContent=fmt(v); flash('fuse1'); say(k?`press ${k+1} (sfxFocusAgain ${k})`:'press (focus beat)');
+    f1.animate([{transform:'translate(-50%,-50%) scaleY(1)'},{transform:'translate(-50%,-46%) scaleY(.78)',offset:.3},{transform:'translate(-50%,-52%) scale(1.12)',offset:.65},{transform:'translate(-50%,-50%) scale(1)'}],{duration:360/sp(),easing:'ease-out'});
+    await fc.animate([{transform:`translate(${(b.x-a.x)/1.9}px,${(b.y-a.y)/1.9}px) scale(1)`,opacity:1},{transform:`translate(${(b.x-a.x)/1.9}px,${(b.y-a.y)/1.9}px) scale(.3)`,opacity:0}],{duration:200/sp(),fill:'forwards'}).finished;
+    if(k<n.k-1){ fc.getAnimations().forEach(x=>x.cancel()); fc.style.transform=''; await wait(140); }
+  }
+  $('focus').getAnimations().forEach(x=>x.cancel()); $('focus').style.zIndex=''; $('focus').classList.add('gone'); $('focus').style.transform=''; timesHide();
+  f1.classList.add('gold'); await wait(T('Settle'));
+  await fly(f1, n.score); await climb(n.score); await split();
+}
+// ── D: working shown ────────────────────────────────────────────────────────
+async function strip(n){
+  const s=$('strip');
+  jitter(['pips']); s.innerHTML=`<b>${n.p}</b>`; say('tick'); await wait(T('Jit')*.6);
+  jitter(['mult']); s.innerHTML=`<b>${n.p}</b> × <b>${n.m}</b>`; say('tick'); await wait(T('Jit')*.6);
+  s.innerHTML=`${n.p} × ${n.m} = <b>${fmt(n.p*n.m)}</b>`; say('fuse (low)'); await wait(T('Settle')+120);
+  let v=n.p*n.m;
+  for(let k=0;k<n.k;k++){ jitter(['focus']); v*=n.f; s.innerHTML=`${fmt(v/n.f)} × ${n.f} = <b>${fmt(v)}</b>`; say(k?`focus again ${k}`:'focus beat'); await wait(T('Jit')*.7); }
+  unjit();
+  dur(T('Merge')); ['pips','mult','focus'].forEach(id=>$(id).classList.add('gone')); timesHide();
+  showFused('fuse1', fmt(n.score), null, true); s.innerHTML=''; say('fuse (high)');
+  await wait(T('Merge')+T('Settle'));
+  await fly($('fuse1'), n.score); await climb(n.score); await split();
+}
+// ── the shipped multi-apply beats ───────────────────────────────────────────
+async function focusBeats(){
+  const n=nums(); const fc=$('focus'), bar=$('bar');
+  fc.classList.remove('beat','beat-big'); void fc.offsetWidth; fc.classList.add('beat'); say('focus beat'); await wait(240);
+  for(let k=1;k<n.k;k++){ fc.classList.remove('beat','beat-big'); bar.classList.remove('beat-big'); void fc.offsetWidth; fc.classList.add('beat-big'); bar.classList.add('beat-big'); say(`sfxFocusAgain(${k}): a tone up each time`); await wait(240); }
+}
+async function run(which){
+  if(running) return; running=true; reset(); const n=nums();
+  try { await ({current, twostep, press, strip})[which](n); } catch(e){ console.error(e); }
+  running=false;
+}
+function dump(){ $('out').textContent=`PMF_CFG = { jitter: ${T('Jit')}, merge: ${T('Merge')}, settle: ${T('Settle')}, split: ${T('Split')} }   // fly ${T('Fly')}, climb ${T('Climb')}`; }
+reset();
+</script>
+</body>
+</html>

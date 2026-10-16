@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r573 · the Pairs event: sixteen cards face down";
+const BUILD = "2026-10-16 · r574 · score-merge-preview.html: four ways the chips become the score";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
