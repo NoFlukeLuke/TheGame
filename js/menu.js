@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r577 · events pass 2: Card Market + Lockbox, Snared fix";
+const BUILD = "2026-10-16 · r578 · flip events: Keep It, Hot Streak, Prize Ladder, Call It, Plinko";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -162,7 +162,8 @@ const BAL = {
   // score compounds across a round rather than doubling once.
   // ── Upgrade events (r194) ──
   rehearsal: { consolation_credits: 12, junk: 3 },   // r576: Extra Rep costs 3 junk cards
-  forge: { pips: 10, mult: 4, both_price: 10, both_chance: 0.5 },   // r576: scaling only; both_price runs through priceOf
+  forge: { pips: 10, mult: 4, both_price: 10, both_chance: 0.5 },
+  flip_events: { reflip: 10, keep_cap: 15, ladder_focus: 5 },   // r578: reflip and keep_cap through priceOf (20 / 30 on screen)   // r576: scaling only; both_price runs through priceOf
   workshop:  { cap_bonus: 2, cap_pct: 0.2, consolation_credits: 12 },   // r576: +20% of the ceiling, never under cap_bonus
   // ── Card Market (r211) - buy cards INTO the deck, each carrying one effect ──
   // Three on offer, priced by how strong the effect is. The card itself is a copy

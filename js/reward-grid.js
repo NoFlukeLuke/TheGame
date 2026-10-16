@@ -20,7 +20,7 @@
 // It REPLACES the post-boss reward grid rather than being shown after it - one
 // grid, not two. Survival and Flow have no reward grid at all (they run a
 // pick-of-three), so they keep their bonus pick.
-let rewardGridMode = 'normal';   // 'normal' | 'prize' | 'penalty' | 'mini'
+let rewardGridMode = 'normal';   // 'normal' | 'prize' | 'penalty' | 'mini' | 'callit'
 function prizeGridActive() { return rewardGridMode === 'prize'; }
 // ── PENALTY GRID (r444) ──────────────────────────────────────────────────────
 // The inverse of the prize grid: what a failed challenge round costs
@@ -53,6 +53,24 @@ function openMiniGrid(done) {
   _penaltyDone = done || null;
   openRewardGrid();
 }
+// ── CALL IT (r578) ───────────────────────────────────────────────────────────
+// The Call It event's grid (js/events-flip.js): an ordinary full-size grid with no
+// destination, no guaranteed tiles and no mysteries. The path is exactly your
+// Selection Size, no skip. CONFIRM asks heads or tails; a right call pays every
+// reward on the path, a wrong one every penalty. Hands back like the mini grid.
+function callItGridActive() { return rewardGridMode === 'callit'; }
+let callItVisitIndex = 0;
+function openCallItGrid(done) {
+  rewardGridMode = 'callit';
+  rewardGridContext = 'callit';
+  _penaltyDone = done || null;
+  openRewardGrid();
+  showMessage(`Pick ${penaltyPickCount()} tiles, then call it`, 'var(--gold)', { ms: 3000 });
+}
+function devOpenCallItGrid() {
+  if (typeof closeDevPanel === 'function') closeDevPanel();
+  openCallItGrid(() => { gameTimerPaused = false; if (gridData && gridData[0]) { startRoundTimer(); render(); } });
+}
 function devOpenMiniGrid() {
   if (typeof closeDevPanel === 'function') closeDevPanel();
   openMiniGrid(() => { gameTimerPaused = false; if (gridData && gridData[0]) { startRoundTimer(); render(); } });
@@ -73,6 +91,7 @@ function generateRewardContent() {
   // reward grids a seed deals.
   if (penaltyGridActive()) return withSeededRng(_generateRewardContent, 'penalty', penaltyVisitIndex++);
   if (miniGridActive()) return withSeededRng(_generateRewardContent, 'mini', miniVisitIndex++);
+  if (callItGridActive()) return withSeededRng(_generateRewardContent, 'callit', callItVisitIndex++);
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
 // Weighted reward-grid tile categories (r409: hoisted, tunable in dev).
@@ -109,7 +128,7 @@ const REWARD_BUFF_CATS = [
 ];
 
 function _generateRewardContent() {
-  const PRIZE = prizeGridActive(), MINI = miniGridActive();
+  const PRIZE = prizeGridActive(), MINI = miniGridActive(), CALLIT = callItGridActive();
   // Two smaller in each direction, never below 3x3. The mini grid is always 3x3.
   const ROWS = MINI ? 3 : PRIZE ? Math.max(3, limits.grid_rows.current - 2) : limits.grid_rows.current;
   const COLS = MINI ? 3 : PRIZE ? Math.max(3, limits.grid_cols.current - 2) : limits.grid_cols.current;
@@ -685,7 +704,7 @@ function _generateRewardContent() {
       apply: () => { acquiredKnacks.push({ ...d }); updateKnackList?.(); noteMessage(`+ ${d.name}`, 'var(--gold)'); } };
   }
   function buildGuaranteedRewardTiles() {
-    if (MINI) return [];
+    if (MINI || CALLIT) return [];
     const out = [ makeLimitBreakPayload(), makeOvertimeGiftTile() ];
     if (!PRIZE && rewardGridsSeen <= 5) {
       out.push(makeGrowthTile());
@@ -716,7 +735,7 @@ function _generateRewardContent() {
   // cleared unread by finishInterludeRoute - the player picks 'Next: Event',
   // pays a tile for it, and NOTHING HAPPENS. Guided was excluded when it landed
   // and the map was missed. Owner's call: on the map an event is an event TILE.
-  const NO_DEST = PRIZE || MINI
+  const NO_DEST = PRIZE || MINI || CALLIT
     || (typeof guidedActive === 'function' && guidedActive())
     || (typeof mapActive === 'function' && mapActive())
     // Survival/Flow reach a STANDARD grid through the pick-of-three's rare
@@ -749,12 +768,12 @@ function _generateRewardContent() {
   // tissue of builds). Non-trick buffs are converted at random until met.
   // A prize grid is 9 tiles at its smallest, several of them guaranteed upgrades -
   // demanding 5 Tricks there would crowd everything else out.
-  const MIN_TRICK_TILES = MIN_TRICK_TILES_FOR(PRIZE || MINI);
+  const MIN_TRICK_TILES = MIN_TRICK_TILES_FOR(PRIZE || MINI || CALLIT);
   {
     const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
     let trickCount = 0;
     const convertible = [];
-    for (let i = (PRIZE || MINI ? 0 : 1); i < shuffledBuff.length; i++) {
+    for (let i = (NO_DEST ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
       // An improve tile is not a Trick offer and must not be converted into one.
@@ -785,6 +804,16 @@ function _generateRewardContent() {
       pick = cand; break;
     }
     grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
+  }
+
+  // Call It stakes what you can see: no mystery on either side.
+  if (CALLIT) {
+    const plainDebuffs = debuffs.filter(d => d.tier !== 'mystery');
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const cell = grid[r][c]; if (!cell?.payload?._mystery) continue;
+      if (cell.kind === 'debuff') { if (plainDebuffs.length) cell.payload = weightedPick(plainDebuffs); }
+      else for (let k = 0; k < 8 && cell.payload._mystery; k++) cell.payload = makeBuff();
+    }
   }
 
   // The tutorial rewrites its FIRST grid into a Trick → liability → Mart row so
@@ -990,7 +1019,7 @@ function openPrizeGrid() {
 let rewardSwapReady = false, rewardSwapLift = null, rewardTapKey = null, rewardTapAt = 0;
 function openRewardGrid() {
   gameTimerPaused = true;
-  if (!penaltyGridActive() && !miniGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
+  if (!penaltyGridActive() && !miniGridActive() && !callItGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardPickOrder = [];
@@ -1012,11 +1041,11 @@ function openRewardGrid() {
   // missed every OTHER act mode - Six Suits, Spectrum, Orientation and now Guided
   // all route their post-boss prize grid through here with nodeInAct 5 and were
   // silently getting the ordinary tint. isActMode() is the real question.
-  document.body.classList.toggle('reward-boss', !miniGridActive() && (rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5)));
+  document.body.classList.toggle('reward-boss', !miniGridActive() && !callItGridActive() && (rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5)));
   document.body.classList.toggle('reward-prize', prizeGridActive());
   document.body.classList.toggle('reward-penalty', penaltyGridActive());
   if (penaltyGridActive()) document.body.classList.remove('reward-boss');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : penaltyGridActive() ? 'PENALTIES' : miniGridActive() ? 'BONUS' : 'REWARDS', 'reward');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : penaltyGridActive() ? 'PENALTIES' : miniGridActive() ? 'BONUS' : callItGridActive() ? 'CALL IT' : 'REWARDS', 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -1180,7 +1209,7 @@ function enterRewardButtonMode() {
                    + (hasTrick('rain_check') ? `<span class="rskip-gain rskip-gain-time">${(typeof flowActive === 'function' && flowActive()) ? `\u23ea${BAL.rain_check.seconds}s` : `+${BAL.rain_check.seconds}s`}</span>` : '');
     swap.onclick = skipRewardGrid;
     // The penalty grid has no skip: the slot says how many you must take.
-    if (penaltyGridActive()) swap.innerHTML = `<span class="rskip-word">TAKE</span><span class="rskip-gain">${penaltyPickCount()}</span>`;
+    if (penaltyGridActive() || callItGridActive()) swap.innerHTML = `<span class="rskip-word">TAKE</span><span class="rskip-gain">${penaltyPickCount()}</span>`;
   }
 }
 function exitRewardButtonMode() {
@@ -1197,6 +1226,7 @@ function exitRewardButtonMode() {
 function skipRewardGrid() {
   if (rewardConfirmed || rewardDealing) return;
   if (penaltyGridActive()) { refuse(`Pick ${penaltyPickCount()} penalties`); return; }
+  if (callItGridActive()) { refuse(`Pick ${penaltyPickCount()} tiles, then call it`); return; }
   rewardConfirmed = true;
   coins += BAL.reward_skip.gold; updateCoinsUI();
   let _msg = `Skipped rewards · +${BAL.reward_skip.gold} gold`;
@@ -1473,7 +1503,7 @@ function renderRewardGrid() {
 
 // Effective reward-grid pick cap = the Selection Size limit + Greedy Boi's reward-grid-only bonus.
 function rewardSelectionCap() {
-  if (penaltyGridActive()) return penaltyPickCount();
+  if (penaltyGridActive() || callItGridActive()) return penaltyPickCount();
   return limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0);
 }
 
@@ -1492,7 +1522,7 @@ function rewardSelectionCap() {
 // handMinSelection(): Tagalong lifts the floor for HANDS (r326) and has nothing to
 // say about how many tiles a reward path has to take.
 function rewardMinPicks() {
-  if (penaltyGridActive()) return penaltyPickCount();   // exactly that many
+  if (penaltyGridActive() || callItGridActive()) return penaltyPickCount();   // exactly that many
   const min = (typeof minSelection === 'function') ? minSelection() : 1;
   return Math.max(1, Math.min(min, rewardSelectionCap()));
 }
@@ -1833,6 +1863,16 @@ async function confirmRewardPath() {
   const disc = document.getElementById('btn-discard');
   if (play) play.disabled = true;
   if (disc) disc.disabled = true;
+  // Call It: the coin decides which half of the path you keep.
+  if (callItGridActive()) {
+    const won = await callItAsk();
+    const keep = new Set();
+    rewardSelected.forEach(key => {
+      const [r, c] = key.split('-').map(Number);
+      if ((rewardCells[r][c].kind === 'debuff') !== won) keep.add(key);
+    });
+    rewardSelected = keep;
+  }
   // Fly the claimed items to their homes / drop the rest, THEN apply + continue.
   rewardDealing = true;   // block re-render from clobbering the flying tiles
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
@@ -1871,7 +1911,7 @@ function closeRewardGrid() {
   // Tear down the on-grid reward step: restore the action buttons, clear the
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
-  document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize', 'reward-penalty');
+  document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize', 'reward-penalty', 'reward-callit');
   rewardGridMode = 'normal';   // one prize grid per boss; the next grid is ordinary
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;
@@ -1999,7 +2039,7 @@ function closeRewardGrid() {
   };
 
   // The penalty and mini grids hand control back to whoever opened them (crSettle).
-  if (rewardGridContext === 'penalty' || rewardGridContext === 'mini') {
+  if (rewardGridContext === 'penalty' || rewardGridContext === 'mini' || rewardGridContext === 'callit') {
     const done = _penaltyDone; _penaltyDone = null;
     if (pendingLimitBreak) { pendingLimitBreak = false; openLimitBreakEvent(() => { if (typeof done === 'function') done(); }); return; }
     if (typeof done === 'function') done();

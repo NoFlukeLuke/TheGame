@@ -81,6 +81,9 @@ const EVENT_REQUIRES = {
   deck_trim:    () => springCuttableCards().length > 0,
   market:       () => coins >= marketCardPrice(),   // r576: one card is the least you can buy
   forge:        () => allDeckCards().length > 0,
+  plinko:       () => allDeckCards().length > 0,
+  // r578: something rare-or-better left to offer.
+  keep_it:      () => { const p = guidedPickPools(); return p.knack.length + p.sleight.length + (trickTrayFull() ? 0 : p.trick.length) > 0; },
   wager:        () => allDeckCards().length > 0,
   // Needs a liability on the record to clear.
   clean_slate:  () => CLEAN_SLATE_FIXES.some(f => { try { return f.has(); } catch (e) { return false; } }),
@@ -170,6 +173,11 @@ function confirmEvent() {
     the_payline: confirmPayline,
     clean_slate: confirmCleanSlate,
     pairs:       confirmPairs,
+    keep_it:     confirmKeepIt,
+    hot_streak:  confirmLadder,
+    prize_ladder: confirmLadder,
+    call_it:     confirmCallIt,
+    plinko:      confirmPlinko,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -209,6 +217,12 @@ const EVENT_META = {
   clean_slate: { name:'Clean Slate',      flavor:'One penalty comes off your record for good.' },
   the_payline: { name:'Entity Slots',    flavor:'Three reels of what you own. Three alike and it improves a tier.' },
   pairs:       { name:'Pairs',           flavor:'Sixteen cards face down. Match a pair and keep what it holds.' },
+  // r578: the flip set (js/events-flip.js)
+  keep_it:     { name:'Keep It',         flavor:'Choose a reward, then flip for it.' },
+  hot_streak:  { name:'Hot Streak',      flavor:'Double or nothing, up to four flips.' },
+  prize_ladder:{ name:'Prize Ladder',    flavor:'Four flips, a bigger prize on every rung.' },
+  call_it:     { name:'Call It',         flavor:'Pick your path, then call the coin.' },
+  plinko:      { name:'Plinko',          flavor:'Drop the ball. Green edits your cards; red curses three.' },
 };
 
 function renderEventShell(id) {
@@ -217,6 +231,7 @@ function renderEventShell(id) {
   document.getElementById('event-flavor').textContent = meta.flavor;
   document.getElementById('event-body').innerHTML = '';
   document.getElementById('event-confirm').disabled = true;
+  document.getElementById('event-confirm').textContent = 'Confirm';
   document.getElementById('event-confirm').style.display = '';   // r573: Pairs hides it
   document.getElementById('event-overlay').classList.toggle('ev-pairs', id === 'pairs');   // r573: Pairs zooms its panel down
   document.getElementById('event-skip').style.display = 'inline-block';
@@ -245,6 +260,11 @@ function renderEventShell(id) {
     the_payline: renderPayline,
     clean_slate: renderCleanSlate,
     pairs:       renderPairs,
+    keep_it:     renderKeepIt,
+    hot_streak:  renderHotStreak,
+    prize_ladder: renderPrizeLadder,
+    call_it:     renderCallIt,
+    plinko:      renderPlinko,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it
