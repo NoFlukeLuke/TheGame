@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r571 · the Focus knacks: Free Hand, Charged Card, Shuffle Up, Double Down, Overdrive";
+const BUILD = "2026-10-16 · r572 · All Hands: the Sleight that plays every hand on the board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

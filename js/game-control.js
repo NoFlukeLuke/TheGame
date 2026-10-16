@@ -429,6 +429,7 @@ function startGame() {
   // Reset focus meter
   focusNodes = 0;
   if (typeof autopilotReset === 'function') autopilotReset();
+  if (typeof sweepReset === 'function') sweepReset();   // r572
   growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
   growthSpurtMaxedThisRound = false;
   siphonMultX = 1;               // clear any pending Siphon charge

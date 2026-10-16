@@ -347,6 +347,7 @@ function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
   // Autopilot (r474) has the board while it runs.
   if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
+  if (typeof sweepRunning === 'function' && sweepRunning()) return;   // r572: All Hands has the board
   // The Pick (r244) owns the board outright while it is open, so it intercepts
   // ABOVE the `animating` guard - that flag is routinely still true from the
   // un-explode's flights, and a tap that silently does nothing reads as broken.
@@ -432,6 +433,8 @@ function onCardTap(r, c) {
         return;
       }
       hideSleightGridTooltip();
+      // All Hands (r572, js/sweep.js): plays every hand on the board. It leaves with them.
+      if (jdef.id === 'all_hands') { sweepStart(jcard, r, c); return; }
       // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then it leaves the grid (spent).
       if (jdef.id === 'capacitor') {
         if (focusNodes < BAL.capacitor.focus_cost) { refuse(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, { color: 'var(--cream-dim)' }); return; }

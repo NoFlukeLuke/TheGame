@@ -42,7 +42,8 @@ function freeHandActive() { return freeHandSecs > 0; }
 // Autoplay generates no Focus of its own: no complexity, no speed bonus
 // (generateHandFocus). Tricks and Knacks that pay Focus still do.
 function autoplayNoFocus() {
-  return !!_overdriveRun || (typeof autopilotRunning === 'function' && autopilotRunning());
+  return !!_overdriveRun || (typeof autopilotRunning === 'function' && autopilotRunning())
+    || (typeof sweepRunning === 'function' && sweepRunning());   // r572: All Hands's hands
 }
 function overdriveFastHand() { return _ovFast; }
 function overdriveMultX() { return _overdriveRun ? _overdriveMultX : 1; }

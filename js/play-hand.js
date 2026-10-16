@@ -174,7 +174,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
 
-  // Clean Sweep: if this hand + the previous cover a full row or column, +5 Focus and +5 credits
+  // All Hands: if this hand + the previous cover a full row or column, +5 Focus and +5 credits
   if (hasTrick('clean_sweep')) {
     const _csCur = handCells.map(([r,c]) => r + '-' + c);
     const _csWin = new Set([..._csCur, ..._cleanSweepPrev]);
@@ -187,7 +187,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (_csf > 0) {
         addFocus(BAL.clean_sweep.focus * _csf, 'clean_sweep');
         grantEntityCoins(BAL.clean_sweep.credits * _csf, 'trick', 'clean_sweep');
-        noteMessage(`Clean Sweep! +${BAL.clean_sweep.focus * _csf} Focus, +${BAL.clean_sweep.credits * _csf} credits`, '#5aa9e6');
+        noteMessage(`All Hands! +${BAL.clean_sweep.focus * _csf} Focus, +${BAL.clean_sweep.credits * _csf} credits`, '#5aa9e6');
       }
       _cleanSweepPrev = [];
     } else {
@@ -215,6 +215,8 @@ function playHand() {
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
+  // r572: while All Hands picks its hands out, PLAY (button, key, auto-submit) is off.
+  if (typeof sweepRunning === 'function' && sweepRunning() && !sweepSilent()) { dbgEvent('info', 'play ignored (sweep)'); return; }
   // r472: Flow's boss wipe (flowTriggerBoss -> bossApproachWipe -> triggerBoss) is
   // ~1s of live board. A hand clearing the goal there opened the reward chain on
   // top of the boss and soft-locked it.
@@ -244,7 +246,9 @@ function playHand() {
   // because it can MAKE the hand rather than merely improve one - a lone Roll
   // Call 7 with three other 7s on the board is a Four of a Kind that
   // findBestHand, which only ever builds connected subsets, could never find.
-  const _rollCall = (typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
+  // r572: a sweep's hands are fixed; Roll Call and the Ringer could pull a card another hand holds.
+  const _sweeping = typeof sweepSilent === 'function' && sweepSilent();
+  const _rollCall = (!_sweeping && typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
   if (_rollCall) { result = _rollCall.result; selected = [...selected, ..._rollCall.cells]; }
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
@@ -265,7 +269,7 @@ function playHand() {
   // Marker intercept on purpose: a hand that is about to fizzle must not spend a
   // Ringer charge. The added cell joins `selected` so it is removed with the rest,
   // and joins handCells so the dance flies it into the preview.
-  const _ringer = (typeof ringerAugment === 'function') ? ringerAugment(result, selected) : null;
+  const _ringer = (!_sweeping && typeof ringerAugment === 'function') ? ringerAugment(result, selected) : null;
   if (_ringer) {
     result = _ringer.result;
     selected = [...selected, _ringer.cell];
@@ -591,7 +595,7 @@ function playHand() {
   // Suppressed during/just-after a boss: the boss objective system + post-boss reward
   // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
   // already set bossActive=false above.)
-  if (!_bossThisHand && !bossActive && roundQuotaMet() && !goalReachedThisRound) {
+  if (!_bossThisHand && !bossActive && !_sweeping && roundQuotaMet() && !goalReachedThisRound) {   // r572: a sweep checks the goal after its finale
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
@@ -813,7 +817,7 @@ function playHand() {
       }
     }
   }
-  // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)
+  // (All Hands's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)
 
   // ── Card curses: apply per-score effects and work them off ──
   // Each scored cursed card ticks its curse down; at 0 the curse lifts.
@@ -936,8 +940,9 @@ function playHand() {
   selected = [];
 
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
-  // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
-  playScoreDance(result, toRemove);
+  // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp.
+  // r572: a All Hands hand is recorded instead; the sweep's finale flies, falls and tallies.
+  if (_sweeping) sweepRecord(result, toRemove); else playScoreDance(result, toRemove);
   runHandPriming(hand, handCells, result._bankContrib);
   scalingCount(hand, _scoredCells, _handRetrigByCell);
   climbAfterHand(_scoredCells);   // r398

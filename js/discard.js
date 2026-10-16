@@ -1,4 +1,5 @@
 function doDiscard() {
+  if (typeof sweepRunning === 'function' && sweepRunning()) { dbgEvent('info', 'discard ignored (sweep)'); return; }   // r572
   // On grid-takeover screens the Discard button is repurposed: CLEAR (reward),
   // and in the shop it is still THE DISCARD BUTTON (r307) - it spends a discard
   // on what is selected. With row labels selected that is a REROLL of those
