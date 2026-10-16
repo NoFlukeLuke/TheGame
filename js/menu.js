@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r572 · All Hands: the Sleight that plays every hand on the board";
+const BUILD = "2026-10-16 · r573 · the Pairs event: sixteen cards face down";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

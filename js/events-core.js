@@ -93,7 +93,7 @@ function eligibleEventIds(ids) {
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate','overtime'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate','overtime','pairs'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const usable = eligibleEventIds(pool);
   const fresh = usable.filter(id => !recentEventIds.includes(id));
@@ -156,6 +156,7 @@ function confirmEvent() {
     the_floor:   confirmFloor,
     the_payline: confirmPayline,
     clean_slate: confirmCleanSlate,
+    pairs:       confirmPairs,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -194,6 +195,7 @@ const EVENT_META = {
   the_floor:   { name:'Card Slots',      flavor:'Your deck on five reels. Buy lines, and a winning line upgrades the cards that made it.' },
   clean_slate: { name:'Clean Slate',      flavor:'One penalty comes off your record for good.' },
   the_payline: { name:'Entity Slots',    flavor:'Three reels of what you own. Three alike and it improves a tier.' },
+  pairs:       { name:'Pairs',           flavor:'Sixteen cards face down. Match a pair and keep what it holds.' },
 };
 
 function renderEventShell(id) {
@@ -202,6 +204,8 @@ function renderEventShell(id) {
   document.getElementById('event-flavor').textContent = meta.flavor;
   document.getElementById('event-body').innerHTML = '';
   document.getElementById('event-confirm').disabled = true;
+  document.getElementById('event-confirm').style.display = '';   // r573: Pairs hides it
+  document.getElementById('event-overlay').classList.toggle('ev-pairs', id === 'pairs');   // r573: Pairs zooms its panel down
   document.getElementById('event-skip').style.display = 'inline-block';
   document.getElementById('event-skip').textContent = 'Skip';
   const renderers = {
@@ -227,6 +231,7 @@ function renderEventShell(id) {
     the_floor:   renderFloor,
     the_payline: renderPayline,
     clean_slate: renderCleanSlate,
+    pairs:       renderPairs,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it
