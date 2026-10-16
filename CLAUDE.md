@@ -25,7 +25,7 @@ superseded is history, not current code. The other reference docs:
 |---|---|
 | `TERMINOLOGY.md` | what things are called. Code ids are frozen; only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else |
 | `CARD_EFFECTS.md` | everything that can be true of one card: buffs, curses, boss states, card states |
-| `EVENTS.md` | the 22 events, what each does, which tier |
+| `EVENTS.md` | the event roster; its last section is what ships (31 live, r581) |
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
@@ -1414,3 +1414,23 @@ Timing knobs mirror `PMF_CFG`. The owner picks; the pick goes into `js/pmf-merge
 Each `.sb-b` holds a `<b>` (made with it in `sbPaint`): a small glass round over a screw base,
 painted between the lens (`::before`) and the glare (`::after`). Unlit it is a faint outline seen
 through the clear glass; lit, the outline brightens and a hot filament glows in the round.
+
+## r576-r581 - the events pass (EVENTS.md, "THE ROSTER AS BUILT")
+- **Archived events** (`EVENT_ARCHIVED`, js/events-core.js) are never offered; every draw goes
+  through `liveEventIds()` / `eligibleEventIds()`. A new event registers in EVENT_META, the
+  renderer map, the handler map and (if it can be useless) EVENT_REQUIRES.
+- **Event toys** (js/event-toys.js): `evCoin`, `evWheel`, `evDie`, `evPlinko`, `evStopper`. A toy
+  is HANDED its result (rolled with Math.random first) and only shows it; cosmetic jitter is
+  `fxRandom`. `evReveal(el)` scrolls a result into view inside the event panel.
+- **Board screens after an event**: `evRunScreens(['pick3', 'limits', 'improve_random'...])`
+  (js/events-flip.js) hides the panel and the veil, runs them, then closes the event.
+- **Call It** is `rewardGridMode 'callit'` (`openCallItGrid(done)`): no destination, no
+  guaranteed tiles, no mysteries, exactly Selection Size, no skip; confirm calls `callItAsk`.
+- **Junk cards** (js/boss.js) and the **Lockbox** (js/lockbox.js, `lockboxStash` in SAVE_VARS,
+  the held stack's 'lockbox' mode in js/dealers-choice.js).
+- **Freed wilds**: `wildsUnbound` (run state) -> `wildsRunOn()` / `wildsFlushOn()`, both in
+  `deckLadderKey`. **Stand-In**: `standInProxies` swaps a wild for a proxy card in calcScore's
+  per-card loop. **Static Bonus**: `staticPips` / `staticMult` (declared in scoring.js) are
+  added to the hand's base and to `ledger.basePips` / `baseMult`.
+- **Event tour**: `index.html?events` (js/event-tour.js), verdicts in `lethe.eventTour.v1`.
+

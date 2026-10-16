@@ -2,8 +2,11 @@
 
 **Read this before touching `js/events.js`, `js/events-core.js`, `js/events-upgrade.js`
 or `js/events-slots.js`.** It is the same kind of document as OPEN_DECISIONS.md: measured
-findings and a recommendation per item, left for the owner to decide on. Nothing here has
-been changed in the code.
+findings and a recommendation per item, left for the owner to decide on.
+
+**What ships now is the last section, "THE ROSTER AS BUILT (r576-r581)".** The audit
+below it and the owner's verdict were written before that pass and are history where
+they disagree with it.
 
 Written against **r356**. Every number in it was read out of the running game, not
 estimated. Where something is a judgement rather than a measurement it says so.
@@ -553,3 +556,77 @@ A multiplier buff is **worth less outside an event**, and the two multipliers ar
 
 **Two structural events** are wanted, paying those four families in different ways and at
 different costs. Neither is built.
+
+---
+
+# THE ROSTER AS BUILT (r576-r581)
+
+The owner's verdict above, built, plus the event list from the same conversation. **This
+section outranks everything above it.** 31 events are live; 5 are archived. Play them one by
+one at **`index.html?events`** (the event tour, js/event-tour.js): KEEP / EDIT / CUT and a
+note per event, COPY ALL to paste the list back. The owner will cut and edit from there.
+
+## Archived (never offered)
+
+`EVENT_ARCHIVED` in js/events-core.js. The code stays and the dev panel still opens them;
+deleting a line brings one back. Every draw site reads `liveEventIds()` / `eligibleEventIds()`.
+
+| event | why |
+|---|---|
+| Pick a Card (`bench`) | the reward grid's card tile with an extra tap |
+| Two and a Catch (`twin_path`) | randomness too hard to read (POST_LAUNCH.md) |
+| The Price (`bargain`), The Trade (`crossroads`) | grid goods on both sides of the trade |
+| Coin Flip (`wager`) | replaced by the flip events below |
+
+Limit Break is not an event and stays out of the pool.
+
+## Reworked (r576-r577)
+
+| event | now |
+|---|---|
+| Free Pick (`merchant`) | three pieces of engines you are already building (`ENGINES`, js/data/engines.js) |
+| Theme Draft (`confluence`) | one engine; a Trick, a Sleight and a card at event buff strength; take two |
+| Card Upgrade (`forge`) | +10 pips or +4 mult, growing each time it scores; two cards, one random gets it; 20 credits buys a coin flip for both |
+| Extra Rep (`rehearsal`) | costs 3 junk cards in the deck |
+| Maintenance (`workshop`) | the ceiling raise is 20% of the printed charges (at least 2) |
+| Deck Trim (`deck_trim`) | can also clear your junk, 4 credits a card |
+| Card Market (`market`) | 8 cards, 5 credits each (50% one buff, 5% two); bought cards go into the **Lockbox** |
+
+**Junk cards** (js/boss.js `makeJunkCard`): a dead card in the deck that cannot be played,
+only discarded for free. `addJunkToDeck(n)` keeps the deck audit. **Lockbox**
+(js/lockbox.js): an event-only double-tap Sleight; double-tap shows the stash on the held
+stack, a tap places the top card for free (it joins the deck), DISCARD rotates, tapping the
+box closes it.
+
+**Card buffs by surface** (js/flow-rewards.js `buffValueFor`): x pips and x mult are x1.5
+on the card editor and grid, x2 / x3 in an event, and 3x rarer than the flat buffs.
+Replay, second suit and second rank are event-only (`EVENT_ONLY_OPS`).
+
+## New (r578-r580)
+
+| event | file | what it does |
+|---|---|---|
+| Keep It (`keep_it`) | events-flip.js | three rare-or-better entities; choose one, flip; tails loses it unless you pay half your credits (at most 30) to flip again |
+| Hot Streak (`hot_streak`) | events-flip.js | up to 4 flips, each heads adds a pick of three; stop and take them, a tails loses all; a first tails can be re-flipped for 20 |
+| Prize Ladder (`prize_ladder`) | events-flip.js | same ladder: +5 Focus limit / a limit and a pick of three / a random improvement / all three again |
+| Call It (`call_it`) | events-flip.js + reward-grid.js | a full reward grid (no skip, path exactly your Selection Size), then call heads or tails: right pays the rewards on the path, wrong the penalties |
+| Plinko (`plinko`) | events-flip.js | 7 bins, even odds: a card editor (one buff on up to 3 cards) or 3 random cards cursed |
+| Wild Cards (`wild_cards`) | events-extra.js | repeatable: wilds complete runs and flushes for the run, or double the wilds |
+| Trick Gamble (`trick_gamble`) | events-extra.js | two Tricks; one random improves twice, the other is deleted |
+| Reschedule (`reschedule`) | events-extra.js | act modes: this quarter's and next quarter's boss; 16 credits rerolls both |
+| Grid Spinner (`grid_spinner`) | events-extra.js | stop a light over A A A 2 2 2 3 3 4; place that many rows and columns; past the max, random limits |
+| Static Bonus (`static_bonus`) | events-extra.js | two wheels: pips or mult, quarter x 4/5/6 (x3 for pips); added to every hand's base for the run |
+| Luck Dice (`luck_dice`) | events-extra.js | (-3..3) x (-2,-1,3,4,5,6) added to Luck |
+| State Change (`state_change`) | events-extra.js | structural: buy a card state (priced by tier) for a card you choose |
+| Rewire (`rewire`) | events-extra.js | structural: a replay on two cards, or a second suit / rank; costs 2 junk cards |
+
+**Stand-In** (knack, rare): a wild scores as the card it stands in for (set: that rank; run:
+the run's lowest card; flush alone: a 2 of the flush suit). `standInProxies` in
+js/data/cards.js; calcScore runs the wild through the ordinary per-card loop as that card.
+
+## Discussed, not built
+
+The max-round-time-for-credits gamble, spending unused swaps and discards as currency
+(improvements or Sleight recharges), the probability event, the Limit Break rework, and
+the slot machine redesigns (TODO 0d).
+

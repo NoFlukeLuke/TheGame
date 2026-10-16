@@ -13,13 +13,10 @@ a playable build.
 
 ## 1. EVENTS - the rest of the roster rework
 
-`EVENTS.md`'s "THE OWNER'S VERDICT" section is the full decision list. **None of it is
-built.** What is in scope before launch is a judgement call per item; what is parked here is
-everything that needs a new system underneath it:
+Most of `EVENTS.md`'s verdict is built (r576-r581: see "THE ROSTER AS BUILT" there; the
+two structural events, junk cards, the Card Market's Lockbox). What is still parked:
 
-- **The two structural events** (scaling buffs, replays, second suit / rank, card states).
-  They need the card-buff weight table landed first.
-- **Junk cards** and **arrival costs** (TODO 0c): nothing in the game costs you a deck slot,
-  and there is no "a card landed" hook at all. Three reworked events wait on this.
+- **Arrival costs** (TODO 0c): a card that bills you when it lands. There is no "a card
+  landed" hook yet.
 - **The slot machines** (TODO 0d): Card Slots and Entity Slots both need a design pass.
 - **Two and a Catch** (TODO 0e), parked until the pairing can be tailored.

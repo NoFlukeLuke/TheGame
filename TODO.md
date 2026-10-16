@@ -29,7 +29,9 @@ x mult / x pips / Focus, which have no mark on the card yet (CARD_EFFECTS.md).
 
 ## 0c. JUNK CARDS - a deck cost worth paying with (owner, r484)
 
-**The hook is pre-launch work; the events that spend it are POST_LAUNCH.md.**
+**Junk cards are BUILT (r576):** `makeJunkCard` / `addJunkToDeck` / `cutJunk` in js/boss.js,
+a dead card that can only be discarded (free). Extra Rep costs 3, Rewire 2, Deck Trim clears
+them. Still open below: arrival costs and the stone that breaks what is under it.
 
 There is **nothing in the game that costs you a card slot**, and several events want one.
 Today's three curses (`CURSE_DEFS`, js/deck-grid.js) all fire **when the card scores** and

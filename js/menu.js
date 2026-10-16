@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r581 · event tour (?events)";
+const BUILD = "2026-10-16 · r582 · docs for the events pass (r576-r581)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
