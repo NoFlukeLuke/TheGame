@@ -673,6 +673,8 @@ function survivalSpreadFreeze() {
 // in Flow could never stay buffed. Keeping the board fixes it wholesale rather
 // than by repairing the copy.
 function survivalRecycleBoard() {
+  // r568: with a Keeper on the board the keep path in survivalDealNext does the
+  // per-card work; without one the whole board is recycled (the default again).
   if (typeof boardPersists === 'function' && boardPersists()) { flushPlayedDeck(); return; }
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
@@ -715,7 +717,8 @@ function survivalDealNext() {
   // prize grid already covered it), or when a picked Limit changed the board's
   // dimensions, the redeal below is the only correct answer.
   const _sameDims = gridRows === limits.grid_rows.current && gridCols === limits.grid_cols.current;
-  if (svBoardMode !== 'redeal' && _sameDims && !survivalSkipCarryover && Array.isArray(svGoalCells)) {
+  const _keepMode = (typeof boardKeepMode === 'function') ? boardKeepMode() : null;
+  if ((svBoardMode !== 'redeal' || _keepMode) && _sameDims && !survivalSkipCarryover && Array.isArray(svGoalCells)) {
     // Undo the spread-freeze: survivalSpreadFreeze holds every surviving card
     // 20% outward with fill:forwards WAAPI animations, which pin transform
     // until they are CANCELLED (the r281 gridTileFallIn lesson).
@@ -724,10 +727,15 @@ function survivalDealNext() {
       el.style.zIndex = '';
     });
     const cells = svGoalCells.filter(([r, c]) => gridData[r]?.[c]);
-    if (svBoardMode === 'keep_nosleights') {
+    {
+      // r568: the Keeper's mode (or the dev 'keep_nosleights' switch) names what else leaves.
       const inList = new Set(cells.map(([r, c]) => `${r}-${c}`));
-      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
-        if (gridData[r]?.[c]?._isSleight && !inList.has(`${r}-${c}`)) cells.push([r, c]);
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+        const cd = gridData[r]?.[c];
+        if (!cd || inList.has(`${r}-${c}`)) continue;
+        const goes = _keepMode ? !boardKeepsCard(cd) : (svBoardMode === 'keep_nosleights' && cd._isSleight);
+        if (goes) { cells.push([r, c]); inList.add(`${r}-${c}`); }
+      }
     }
     svGoalCells = null;
     goalHandCards = null;               // the discardToPlayed sweep below banks them
@@ -763,6 +771,7 @@ function survivalDealNext() {
       if (card) discardToPlayed(card);   // the 'play' accounting removeAndFall did
       if (gridData[r]) gridData[r][c] = null;
     });
+    if (typeof boardSettleKept === 'function') boardSettleKept();   // r568: kept Sleights settle
     // Fill the holes, draining any queued Backfill copy first - removeAndFall's
     // own refill asks cardStatesDrawFor before the deck, and a queue left unread
     // would surface on the next fall instead.

@@ -41,6 +41,7 @@ function renderCardAppearance(card, r, c, {
     const _maxCh = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
+      : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')
       : (card._usesLeft === 'infinite' ? '∞' : (_maxCh ? `${card._usesLeft}/${_maxCh}` : card._usesLeft));
     // An AIM sleight (Reflect / Soul Mirror) is drawn tilted with a direction arrow,
     // and a spent one is greyed. Both used to live ONLY in render()'s own sleight

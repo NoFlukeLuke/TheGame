@@ -150,17 +150,17 @@ async function showLevelUpScreen_fallOnly() {
         }, 0);
       }));
     }
-    if (!_persist) {
-      for (let c = 0; c < gridCols; c++) {
-        const card = gridData[r][c];
-        if (card) {
-          discardToPlayed(card);
-          gridData[r][c] = null; // clear immediately so HUD reflects the move
-        }
+    // r568: every card the Keeper does not hold leaves for the played pile.
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r][c];
+      if (card && !(typeof boardKeepsCard === 'function' && boardKeepsCard(card))) {
+        discardToPlayed(card);
+        gridData[r][c] = null; // clear immediately so HUD reflects the move
       }
-      updateDeckHud();
     }
+    updateDeckHud();
   }
+  if (typeof boardSettleKept === 'function') boardSettleKept();
   await Promise.all(fallPromises);
   flushPlayedDeck();
 

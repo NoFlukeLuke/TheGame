@@ -1,4 +1,12 @@
 function sleightDef(card) { return SLEIGHT_POOL.find(j => j.id === card.sleightId); }
+// r568: the Keeper's face reads what it holds; double-tap cycles it (js/input.js).
+const KEEPER_LABELS = { both: 'KEEPS ALL', cards: 'KEEPS CARDS', sleights: 'KEEPS SLEIGHTS' };
+function keeperModeLabel(card) { const m = (typeof boardKeepMode === 'function' && KEEP_MODES.includes(card._keepMode)) ? card._keepMode : 'both'; return KEEPER_LABELS[m]; }
+function keeperCycle(card) {
+  const i = KEEP_MODES.indexOf(card._keepMode || 'both');
+  card._keepMode = KEEP_MODES[(i + 1) % KEEP_MODES.length];
+  if (typeof noteMessage === 'function') noteMessage(`\ud83d\udccc Keeper: ${keeperModeLabel(card).toLowerCase()} between rounds`, 'var(--gold)');
+}
 
 // ── Sleight card FACE (r172, reworked r175) ────────────────────────────────
 // A Sleight is a card in the deck, so it wears a card's furniture: an index in
@@ -827,6 +835,7 @@ function showSleightGridTooltip(r, c, card) {
   if (card._inert) uses += ' · INERT (cannot be swapped or discarded)';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
+              : def.id === 'keeper' ? 'DOUBLE-TAP TO CHOOSE WHAT STAYS'
               : def.activation === 'double_tap' ? (INERT_ON_USE_SLEIGHTS.has(def.id)
                   ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND · INERT AFTER USE${_usedLock}`
                   : 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE')

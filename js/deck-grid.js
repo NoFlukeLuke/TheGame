@@ -871,11 +871,47 @@ function releaseGoalHand() {
   updateDeckHud?.();
 }
 
+// r568 (owner): THE BOARD REDEALS BETWEEN ROUNDS. The r332 rule is inverted:
+// every card leaves for playedPile at the round's end and the next round deals
+// a full board. The KEEPER sleight (js/data/sleights.js) holds it while it is on
+// the grid; its `_keepMode` (double-tap cycles it) decides what stays:
+//   'both'     everything stays (the r332 board)
+//   'cards'    the cards stay, every other Sleight leaves (the Keeper stays)
+//   'sleights' the Sleights stay and settle to the bottom of their columns, the cards leave
+// boardKeepsCard(card) is the one read at both round-end sweeps (js/interlude.js
+// and Flow's survivalDealNext); boardPersists() stays the coarse answer.
+function boardKeeper() {
+  if (typeof gridData === 'undefined' || !Array.isArray(gridData)) return null;
+  for (const row of gridData) for (const cd of (row || [])) if (cd && cd._isSleight && cd.sleightId === 'keeper') return cd;
+  return null;
+}
+const KEEP_MODES = ['both', 'cards', 'sleights'];
+function boardKeepMode() { const k = boardKeeper(); return k ? (KEEP_MODES.includes(k._keepMode) ? k._keepMode : 'both') : null; }
+function boardKeepsCard(card) {
+  if (!card) return false;
+  if (card._isTrick) return true;
+  const m = boardKeepMode();
+  if (!m) return false;
+  if (card._isSleight) return card.sleightId === 'keeper' || m !== 'cards';
+  return m !== 'sleights';
+}
 function boardPersists() {
-  if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return true;
+  if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return false;
   if (ACTIVE_MODE.match3) return false;
   if (typeof squaresActive === 'function' && squaresActive()) return false;
-  return true;
+  return !!boardKeepMode();
+}
+// With only the Sleights kept they settle to the bottom of their columns, so the
+// new cards deal in above them. Voids are skipped like a fall does.
+function boardSettleKept() {
+  if (boardKeepMode() !== 'sleights') return;
+  const voidAt = (r, c) => typeof isCellVoid === 'function' && isCellVoid(r, c);
+  for (let c = 0; c < gridCols; c++) {
+    const kept = [];
+    for (let r = gridRows - 1; r >= 0; r--) { if (gridData[r][c] && !voidAt(r, c)) kept.push(gridData[r][c]); if (!voidAt(r, c)) gridData[r][c] = null; }
+    let i = 0;
+    for (let r = gridRows - 1; r >= 0 && i < kept.length; r--) { if (voidAt(r, c)) continue; gridData[r][c] = kept[i++]; }
+  }
 }
 
 // Resize gridData to the live gridRows/gridCols, KEEPING every in-bounds cell.

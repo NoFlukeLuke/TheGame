@@ -413,6 +413,8 @@ function onCardTap(r, c) {
     if (jdef?.activation === 'double_tap' && isDoubleTap) {
       const jcard = gridData[r][c];
       lastTapTime = 0; lastTapCell = null;
+      // Keeper (r568): double-tap cycles what the board keeps between rounds. No charge, no lock.
+      if (jdef.id === 'keeper') { hideSleightGridTooltip(); keeperCycle(jcard); spinSleightTile(r, c); render(); return; }
       // Stopwatch: custom freeze (not the once-per-round-locked charge model). Double-tap toggles.
       if (jdef.id === 'stopwatch') {
         hideSleightGridTooltip();

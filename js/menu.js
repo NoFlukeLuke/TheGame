@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r567 · Fodder: a card that is free to swap or discard; Turnover hands it out";
+const BUILD = "2026-10-16 · r568 · the board redeals between rounds; the Keeper sleight holds it (all, cards or Sleights)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

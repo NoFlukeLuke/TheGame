@@ -90,6 +90,7 @@ function render() {
         const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
+          : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')
           : (card._usesLeft === 'infinite' ? '∞' : (_maxChJ ? `${card._usesLeft}/${_maxChJ}` : card._usesLeft));
         const _isAim = AIM_SLEIGHTS.has(def?.id);
         // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
