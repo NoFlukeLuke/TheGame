@@ -6215,3 +6215,36 @@ body.reduced-motion .clock-boss { animation: none; }
 .card.fodder-temp .fodder-badge { animation-duration: .9s; }
 @keyframes fodder-glow { 0%, 100% { opacity: .75; } 50% { opacity: 1; text-shadow: 0 0 6px rgba(255,90,74,1), 0 0 14px rgba(255,90,74,.7); } }
 body.reduced-motion .card .fodder-badge { animation: none; }
+
+/* r571: AUTOPLAY IS LOUD. While Overdrive or Autopilot picks hands, a selected card
+   lifts and glows harder than a hand you picked yourself. */
+body.autoplay-loud .card.selected {
+  border-color: #ffd36a !important;
+  box-shadow: 0 0 14px 3px rgba(255,211,106,.75), 0 0 28px rgba(255,120,60,.45) !important;
+  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 7px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.16)) !important;
+  z-index: 8;
+}
+/* The Focus knacks' chip on the bar (js/focus-knacks.js). */
+#focus-chip {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 44;
+  white-space: nowrap; padding: 2px 5px; border-radius: 4px;
+  font: 700 7px 'Share Tech Mono', monospace; letter-spacing: 1px;
+  color: #efe6ff; background: rgba(60, 30, 110, .92); border: 1px solid #a07cff;
+  box-shadow: 0 0 8px rgba(160,124,255,.5); pointer-events: none;
+}
+#focus-chip.fc-hot { color: #fff1dc; background: rgba(140, 40, 20, .92); border-color: #ff8a52; box-shadow: 0 0 10px rgba(255,138,82,.7); }
+#stage:not(.landscape) #focus-chip { bottom: auto; top: -4px; transform: translate(-50%, -100%); }
+/* r571: Focus applying AGAIN is a bigger beat than the first one. */
+@keyframes focusBoxBeatBig {
+  0%   { box-shadow: 0 0 0 0 rgba(192, 122, 238, 0); transform: scale(1); }
+  30%  { box-shadow: 0 0 26px 9px rgba(192, 122, 238, .95); transform: scale(1.14); }
+  100% { box-shadow: 0 0 0 0 rgba(192, 122, 238, 0); transform: scale(1); }
+}
+#focus-box.focus-beat-big { animation: focusBoxBeatBig .5s cubic-bezier(.2,.8,.2,1); }
+@keyframes focusMeterBeatBig {
+  0%   { box-shadow: 0 0 0 0 rgba(192, 122, 238, 0); transform: scale(1); }
+  30%  { box-shadow: 0 0 22px 8px rgba(192, 122, 238, .9); transform: scale(1.12); }
+  100% { box-shadow: 0 0 0 0 rgba(192, 122, 238, 0); transform: scale(1); }
+}
+#focus-meter-wrap.beat-big { animation: focusMeterBeatBig .5s cubic-bezier(.2,.8,.2,1); }
+html.skin-machine #stage #focus-meter-wrap.beat-big { animation: none; }

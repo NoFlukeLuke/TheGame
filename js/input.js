@@ -137,7 +137,8 @@ function doSwap(r1, c1, r2, c2) {
   const _pivotCell = pivotForSwap(r1, c1, r2, c2);
   const freeThisSwap = swapTouchesLivePivot(r1, c1, r2, c2) || sleightFreeSwapPending;
   // r567: a swap that moves a Fodder card costs no stock and no time (it still counts as a swap).
-  const _fodderSwap = typeof cardIsFodder === 'function' && (cardIsFodder(gridData[r1]?.[c1]) || cardIsFodder(gridData[r2]?.[c2]));
+  const _fodderSwap = (typeof cardIsFodder === 'function' && (cardIsFodder(gridData[r1]?.[c1]) || cardIsFodder(gridData[r2]?.[c2])))
+                   || (typeof freeHandActive === 'function' && freeHandActive());   // r571: Free Hand's window
 
   // Guard: block swap when out of swaps (Steady Hand or a free swap bypasses limit)
   if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) {

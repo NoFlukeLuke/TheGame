@@ -189,6 +189,23 @@ const VEGAS_PACK = {
 
   // The hand. Bells stacked into a chord, how many depends on what it paid, over
   // a cabinet thump. A big hand is MORE EVENTS, never one louder one.
+  // r571: Focus again - the Focus beat's bells a tone up per application, after a short relay.
+  focus_again: (k) => {
+    const up = 2 * (k || 1);
+    dRelay({ gain: 0.1, pitch: 1.3, weight: 0.5, verb: 0.1 });
+    dThump({ freq: 190, to: 58, dur: 0.3, gain: 0.17, sat: 0.6, verb: 0.2, delay: 0.05 });
+    vgBell(7 + up, { dur: 1.3, gain: 0.14, delay: 0.06, verb: 0.42 });
+    vgBell(19 + up, { dur: 0.9, gain: 0.08, delay: 0.09, verb: 0.42 });
+  },
+  // r571: Overdrive's hit per hand - a detent, a thump and two bells climbing a tone per hand.
+  overdrive_hit: (k) => {
+    const up = 2 * ((k || 1) - 1);
+    vgDetent({ gain: 0.1, pitch: 1.2 + k * 0.05, verb: 0.1 });
+    dThump({ freq: 160, to: 46, dur: 0.3, gain: 0.2, sat: 0.6, verb: 0.18, delay: 0.01 });
+    vgBell(0 + up, { dur: 0.7, gain: 0.11, delay: 0.03, verb: 0.3 });
+    vgBell(7 + up, { dur: 0.6, gain: 0.08, delay: 0.07, verb: 0.3 });
+    if (k >= 3) vgHopper(2 + k, { spread: 0.25, gain: 0.04, delay: 0.1 });
+  },
   hand_scored: (finalScore) => {
     const tier = packScoreTier(finalScore);
     dThump({ freq: 170, to: 48, dur: 0.36, gain: 0.2 + tier * 0.02, sat: 0.6, verb: 0.2 });
@@ -456,6 +473,19 @@ const HIGHROLLER_PACK = {
 
   // The hand. A stab whose chord grows with what it paid: a fifth for a small
   // one, a full stacked lydian chord for a big one.
+  focus_again: (k) => {
+    const up = 2 * (k || 1);
+    hrRise({ dur: 0.22, gain: 0.07, from: 600, to: 4500, verb: 0.25 });
+    hrHit({ gain: 0.19, delay: 0.22, size: 1.05, verb: 0.32 });
+    hrBrass(7 + up, { dur: 0.85, gain: 0.1, delay: 0.22, bite: 7, verb: 0.4 });
+    hrChime(19 + up, { dur: 1.4, gain: 0.05, delay: 0.26, verb: 0.45 });
+  },
+  overdrive_hit: (k) => {
+    const up = 2 * ((k || 1) - 1);
+    hrHit({ gain: 0.2 + Math.min(k, 5) * 0.01, size: 0.8, verb: 0.28 });
+    hrBrass(0 + up, { dur: 0.5, gain: 0.1, delay: 0.01, bite: 7, verb: 0.3 });
+    hrBrass(7 + up, { dur: 0.5, gain: 0.07, delay: 0.04, bite: 8, verb: 0.3 });
+  },
   hand_scored: (finalScore) => {
     const tier = packScoreTier(finalScore);
     hrHit({ gain: 0.26 + tier * 0.015, size: 1, verb: 0.3 });
@@ -677,6 +707,19 @@ const NEON_PACK = {
     neBell(19, { dur: 0.7, gain: 0.07, delay: 0.21, verb: 0.3 });
   },
 
+  focus_again: (k) => {
+    const up = 2 * (k || 1);
+    dSweep({ kind: 'noise', from: 800, to: 7500, dur: 0.18, gain: 0.05, q: 1.4, up: true, verb: 0.22 });
+    neKick({ gain: 0.26, delay: 0.18, size: 1.15, verb: 0.14 });
+    neSaw(7 + up, { dur: 0.6, gain: 0.12, delay: 0.18, bite: 10, verb: 0.3 });
+    neBell(19 + up, { dur: 0.7, gain: 0.07, delay: 0.19, verb: 0.3 });
+  },
+  overdrive_hit: (k) => {
+    const up = 2 * ((k || 1) - 1);
+    neKick({ gain: 0.24, size: 0.85, verb: 0.1 });
+    neSaw(0 + up, { dur: 0.4, gain: 0.12, delay: 0.01, bite: 9, verb: 0.26 });
+    neBlip(12 + up, { dur: 0.06, gain: 0.07, delay: 0.05, duty: 0.16, verb: 0.16 });
+  },
   hand_scored: (finalScore) => {
     const tier = packScoreTier(finalScore);
     neKick({ gain: 0.3 + tier * 0.015, size: 1, verb: 0.12 });
@@ -876,6 +919,19 @@ const LOUNGE_PACK = {
     [0, 4, 7, 11].forEach((s, i) => loKey(s, { dur: 1.2, gain: 0.085, delay: 0.22 + i * 0.015, verb: 0.34 }));
   },
 
+  focus_again: (k) => {
+    const up = 2 * (k || 1);
+    loBrush({ dur: 0.2, gain: 0.045, freq: 700, to: 3600, verb: 0.22 });
+    loThump({ gain: 0.19, delay: 0.2, size: 1, verb: 0.26 });
+    [0, 4, 7, 11].forEach((s, i) => loKey(s + up, { dur: 1.2, gain: 0.085, delay: 0.2 + i * 0.015, verb: 0.34 }));
+  },
+  overdrive_hit: (k) => {
+    const up = 2 * ((k || 1) - 1);
+    loThump({ gain: 0.18, size: 0.85, verb: 0.22 });
+    loBass(0 + up, { dur: 0.45, gain: 0.12, verb: 0.14 });
+    loKey(7 + up, { dur: 0.7, gain: 0.09, delay: 0.03, verb: 0.3 });
+    loVibe(12 + up, { dur: 0.8, gain: 0.05, delay: 0.07, verb: 0.34 });
+  },
   hand_scored: (finalScore) => {
     const tier = packScoreTier(finalScore);
     loThump({ gain: 0.2 + tier * 0.012, size: 1, verb: 0.26 });

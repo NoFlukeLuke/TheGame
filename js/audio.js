@@ -540,6 +540,25 @@ function sfxMultiGoal(count) {
 
 // Focus beat - a swelling tone that resolves into a bright pop, signalling the focus
 // multiplier is applying to the mult.
+// r571: the Focus multiplier applying AGAIN (Double Down, Marathon, Autopilot...):
+// the Focus beat a tone higher per application, with a short rise in front.
+// Everything that pays out rises (the r234 rule); k is the application number.
+function sfxFocusAgain(k) {
+  const up = Math.pow(2, (2 * (k || 1)) / 12);
+  playNoise({ gain: 0.03, attack: 0.04, release: 0.08, delay: 0 });
+  playTone({ freq: 320 * up, type: 'sine', gain: 0.1, attack: 0.015, decay: 0.06, sustain: 0.45, release: 0.12, duration: 0.22, delay: 0.06 });
+  playTone({ freq: 640 * up, type: 'sine', gain: 0.07, attack: 0.012, decay: 0.05, sustain: 0.35, release: 0.14, duration: 0.24, delay: 0.08 });
+  playTone({ freq: 960 * up, type: 'triangle', gain: 0.035, attack: 0.01, decay: 0.05, sustain: 0.3, release: 0.16, duration: 0.26, delay: 0.1 });
+}
+// r571: Overdrive's hit, one per autoplayed hand: transient, body, tail, the root
+// a tone up per hand so a run of hands climbs. Bigger than a select, smaller than
+// a goal.
+function sfxOverdriveHit(k) {
+  const up = Math.pow(2, (2 * ((k || 1) - 1)) / 12);
+  playNoise({ gain: 0.09, attack: 0.001, release: 0.06 });
+  playTone({ freq: 110, type: 'triangle', gain: 0.14, attack: 0.002, decay: 0.08, sustain: 0.2, release: 0.14, duration: 0.14 });
+  [1, 1.5, 2].forEach((ratio, i) => playTone({ freq: 261.6 * up * ratio, type: 'square', gain: 0.07 - i * 0.015, attack: 0.004, decay: 0.08, sustain: 0.25, release: 0.22, duration: 0.3, delay: 0.02 + i * 0.03 }));
+}
 function sfxFocusBeat() {
   // Low swell
   playTone({

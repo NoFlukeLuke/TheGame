@@ -71,7 +71,7 @@ function autopilotEngage(card) {
   autopilotRun = { card, k: 0 };
   selected = [];
   showMessage('AUTOPILOT ENGAGED', 'var(--c-cyan, #16c8d8)');
-  document.body.classList.add('autopilot-on');
+  document.body.classList.add('autopilot-on', 'autoplay-loud');
   _apPoll();
 }
 
@@ -99,16 +99,24 @@ function _apPoll() {
   autopilotRun.k++;
   _autopilotHandK = autopilotRun.k;
   selected = cells;
-  const _before = handsPlayed;
-  try { render(); playHand(); } finally { _autopilotHandK = 0; }
-  if (handsPlayed > _before && _card._usesLeft !== 'infinite') { _card._usesLeft--; render(); }
-  if (autopilotRun) setTimeout(_apPoll, 350);
+  // r571 (owner): the selection is loud: louder select sound, bigger hover, a
+  // beat to see it before the play.
+  render();
+  if (typeof sfxCardSelectLoud === 'function') sfxCardSelectLoud();
+  setTimeout(() => {
+    if (!autopilotRun) return;
+    _autopilotHandK = autopilotRun.k;
+    const _before = handsPlayed;
+    try { playHand(); } finally { _autopilotHandK = 0; }
+    if (handsPlayed > _before && _card._usesLeft !== 'infinite') { _card._usesLeft--; render(); }
+    if (autopilotRun) setTimeout(_apPoll, 350);
+  }, 320);
 }
 
 function autopilotStop() {
   const run = autopilotRun;
   autopilotRun = null; _autopilotHandK = 0;
-  document.body.classList.remove('autopilot-on');
+  document.body.classList.remove('autopilot-on', 'autoplay-loud');
   if (!run) return;
   showMessage(`Autopilot off after ${run.k} hand${run.k === 1 ? '' : 's'}`, 'var(--cream-dim)');
   // It leaves the board and cycles back with its charges, like Whetstone. If the
@@ -185,4 +193,4 @@ function autopilotBestHand() {
 }
 
 // A new run (startGame) clears any run in flight.
-function autopilotReset() { autopilotRun = null; _autopilotHandK = 0; document.body.classList.remove('autopilot-on'); }
+function autopilotReset() { autopilotRun = null; _autopilotHandK = 0; document.body.classList.remove('autopilot-on', 'autoplay-loud'); }

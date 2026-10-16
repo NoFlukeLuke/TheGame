@@ -40,7 +40,8 @@ function doDiscard() {
   // Hoarder is the one bypass - its whole text is "discards no longer count against
   // the discard limit", so it must not be stopped by that limit either.
   // r567: a selection of nothing but Fodder costs no stock, so it is never refused for stock.
-  const _allFodder = typeof cardIsFodder === 'function' && selected.every(([r, c]) => cardIsFodder(gridData[r]?.[c]));
+  const _freeHand = typeof freeHandActive === 'function' && freeHandActive();   // r571: Free Hand's window
+  const _allFodder = _freeHand || (typeof cardIsFodder === 'function' && selected.every(([r, c]) => cardIsFodder(gridData[r]?.[c])));
   if (discards <= 0 && !hasKnack('hoarder') && !_allFodder) {
     const btn = document.getElementById('btn-discard');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
@@ -110,7 +111,7 @@ function doDiscard() {
   });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   // r567: Fodder takes no stock either, when every card thrown away is Fodder.
-  const _fodderN = (typeof cardIsFodder === 'function') ? discardedCards.filter(cardIsFodder).length : 0;
+  const _fodderN = _freeHand ? discardedCards.length : ((typeof cardIsFodder === 'function') ? discardedCards.filter(cardIsFodder).length : 0);
   if (!hasKnack('hoarder') && _fodderN < discardedCards.length) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a

@@ -31,6 +31,12 @@ const KNACK_POOL = [
   { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.' },
   // r556 (owner): a dial you turn by double-tapping the chip. challengeDial (js/challenge-round.js) holds its direction.
   { id:'challenge_dial',  emoji:'🎚️',  name:'Challenge Dial',   rarity:'rare',   desc:'Challenge cards show up 25% more often. Double-tap this to make them 25% rarer instead, and back.' },
+  // ── Focus knacks (r571): what a double-tap on the Focus bar does. One at a time (js/focus-knacks.js). ──
+  { id:'free_hand',       emoji:'🖐️',  name:'Free Hand',        rarity:'rare',   desc:'Double-tap the Focus bar: spend 10 Focus and swaps and discards cost no time and no stock for 10 seconds. Replaces the Reserve.' },
+  { id:'charged_card',    emoji:'🔋',  name:'Charged Card',     rarity:'rare',   desc:'Double-tap the Focus bar: spend 10 Focus and the first card of your next hand takes a random buff. Replaces the Reserve.' },
+  { id:'shuffle_up',      emoji:'🔀',  name:'Shuffle Up',       rarity:'common', desc:'Double-tap the Focus bar: spend 10 Focus and every card on the board changes place. Replaces the Reserve.' },
+  { id:'double_down',     emoji:'✌️',  name:'Double Down',      rarity:'epic',   desc:'Double-tap the Focus bar: spend 10 Focus and Focus applies twice for your next 3 hands. Replaces the Reserve.' },
+  { id:'overdrive',       emoji:'⚡',  name:'Overdrive',        rarity:'epic',   desc:'Double-tap the Focus bar: the board plays its best hand for 5 Focus, again and again until Focus runs out. Hand 1 scores x1.5 mult, hand 2 x2, and so on. These hands make no Focus of their own. Then 45 seconds to cool down. Replaces the Reserve.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       rarity:'common', desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8s.' },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5s.' },

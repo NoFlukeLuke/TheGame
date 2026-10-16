@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r570 · the Card Counter queue lives on the hand preview: double-tap it";
+const BUILD = "2026-10-16 · r571 · the Focus knacks: Free Hand, Charged Card, Shuffle Up, Double Down, Overdrive";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

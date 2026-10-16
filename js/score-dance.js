@@ -744,7 +744,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const chain = dncChain;
   // Third hand of a burst and beyond: no fly-in, no card beats. Straight to the
   // fuse and the throw. A goal hand always plays in full - it ends the round.
-  const skipBeats = chain >= 2 && !isGoalHand;
+  const skipBeats = (chain >= 2 || (typeof overdriveFastHand === 'function' && overdriveFastHand())) && !isGoalHand;   // r571: Overdrive's hands before its last
   const outHandScore = _dncOutHandScore;            // the hand we are cutting short
   _dncOutHandScore = result.finalScore || 0;
   dncCutAt = -1e9;                                  // consumed - one handoff per cut
@@ -1131,10 +1131,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // The multiplier applied AGAIN (Phoenix / Kaleidoscope, r343): a second, quicker
     // thump right behind the first - the prime's heartbeat idea - with the focus
     // sound doubled, one per extra application.
+    // r571 (owner): each extra application is a BIGGER beat with its own rising
+    // sound (sfxFocusAgain(k), a tone up per application), on the box and the bar.
     for (let _fk = 0; _fk < targetFocusExtra; _fk++) {
-      await dwait(200); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-      const fb2=document.getElementById('focus-box'); if(fb2){ fb2.classList.remove('focus-beat'); void fb2.offsetWidth; fb2.classList.add('focus-beat'); }
-      if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+      await dwait(240); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      const fb2=document.getElementById('focus-box'); if(fb2){ fb2.classList.remove('focus-beat','focus-beat-big'); void fb2.offsetWidth; fb2.classList.add('focus-beat-big'); }
+      const fw2=document.getElementById('focus-meter-wrap'); if(fw2){ fw2.classList.remove('beat-big'); void fw2.offsetWidth; fw2.classList.add('beat-big'); }
+      if(typeof sfxFocusAgain==='function') sfxFocusAgain(_fk + 1); else if(typeof sfxFocusBeat==='function') sfxFocusBeat();
     }
     await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }

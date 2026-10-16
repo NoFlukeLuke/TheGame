@@ -207,6 +207,12 @@ const BAL = {
   turnover:   { idle_seconds: 45 },
   challenge_dial: { pct: 25 },   // r556: how far the dial turns the challenge chance, either way
   reserve: { open: 10, more: 5, cards: 3, buff_chance: 0.75 },   // r569: the Focus bar's double-tap (js/reserve.js)
+  // r571: the Focus knacks (js/focus-knacks.js)
+  free_hand:    { focus: 10, seconds: 10 },
+  charged_card: { focus: 10 },
+  shuffle_up:   { focus: 10 },
+  double_down:  { focus: 10, hands: 3 },
+  overdrive:    { focus_per_hand: 5, mult_step: 0.5, cooldown: 45 },
   // Card states (r278, js/card-states.js). Not an entity, so improve.js never
   // touches these - they are the states' own numbers, in one place.
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
@@ -315,6 +321,11 @@ const DESC_TEMPLATES = {
   hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, rewind the clock {seconds}s, pause the clock for {seconds}s, or a trick primed or forced.',
   turnover:   'Any card you leave alone for {idle_seconds} seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.',
   challenge_dial: 'Challenge cards show up {pct}% more often. Double-tap this to make them {pct}% rarer instead, and back.',
+  free_hand:    'Double-tap the Focus bar: spend {focus} Focus and swaps and discards cost no time and no stock for {seconds} seconds. Replaces the Reserve.',
+  charged_card: 'Double-tap the Focus bar: spend {focus} Focus and the first card of your next hand takes a random buff. Replaces the Reserve.',
+  shuffle_up:   'Double-tap the Focus bar: spend {focus} Focus and every card on the board changes place. Replaces the Reserve.',
+  double_down:  'Double-tap the Focus bar: spend {focus} Focus and Focus applies twice for your next {hands} hands. Replaces the Reserve.',
+  overdrive:    'Double-tap the Focus bar: the board plays its best hand for {focus_per_hand} Focus, again and again until Focus runs out. Hand 1 scores x1.5 mult, hand 2 x2, and so on. These hands make no Focus of their own. Then {cooldown} seconds to cool down. Replaces the Reserve.',
   autopilot: 'Costs {focus_cost} Focus when it lands on the board. {delay_seconds}s later it plays the best hand on the board, waits for the cards to fall, and repeats, up to {max_hands} hands or until no hand is left. Hand 2 applies Focus twice, hand 3 three times, and so on. Each hand it plays spends a charge. Then it discards itself.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult. Discards itself after {life_seconds}s on the board.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',

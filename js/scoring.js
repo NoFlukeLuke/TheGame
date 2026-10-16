@@ -1300,6 +1300,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
     _ev('siphon', 'mult*', siphonMultX, 'sleight');
   }
+  // Overdrive (r571, knack): hand k of its run scores x(1 + 0.5k) mult, read-only here.
+  { const _ox = (typeof overdriveMultX === 'function') ? overdriveMultX() : 1;
+    if (_ox > 1) { mult = Math.round(mult * _ox * 10) / 10; _ev('overdrive', 'mult*', _ox, 'knack'); } }
   // Legacy (sleight): ×3 the whole mult. It used to be applied at SCORE level in
   // playHand, where the arithmetic was identical (s = pips × mult) but nothing on
   // screen said why the number jumped - the same legibility problem r190 fixed for
@@ -1782,6 +1785,7 @@ function focusExtraApplies(handName, cells) {
     }
     // Autopilot (r474): hand k of a run applies Focus k times.
     if (typeof autopilotFocusExtra === 'function') n += autopilotFocusExtra();
+    if (typeof focusDoubleHands !== 'undefined' && focusDoubleHands > 0) n++;   // Double Down (r571)
   } catch (e) {}
   return n;
 }

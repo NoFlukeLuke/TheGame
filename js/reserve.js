@@ -22,20 +22,25 @@ let _focusTapAt = 0;
 
 function reserveActive() { return typeof dealerActive === 'function' && dealerActive() && dealerHand.mode === 'reserve'; }
 
+// One buff off the deck editor's own buff rows, at the editor's odds and values.
+// Shared with the Charged Card knack (js/focus-knacks.js).
+function rollEditorBuff() {
+  const ops = (typeof FLOWR_DECK_OPS !== 'undefined') ? FLOWR_DECK_OPS.filter(o => o.buff) : [];
+  if (!ops.length) return null;
+  const op = (typeof flowrDrawOps === 'function') ? flowrDrawOps(1, ops)[0] : ops[Math.floor(Math.random() * ops.length)];
+  if (!op) return null;
+  const v = (typeof flowrValRoll === 'function') ? flowrValRoll(op.buff.range) : op.buff.range[0];
+  return { [op.buff.key]: v };
+}
 // Fresh random cards; most carry one deck-editor buff.
 function reserveRollCards(n) {
   const out = [];
-  const ops = (typeof FLOWR_DECK_OPS !== 'undefined') ? FLOWR_DECK_OPS.filter(o => o.buff) : [];
   for (let i = 0; i < n; i++) {
     const card = makeTempCard(ACTIVE_RANKS[Math.floor(Math.random() * ACTIVE_RANKS.length)],
                               ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)]);
-    if (ops.length && Math.random() < reserveCfg('buff_chance')) {
-      const op = (typeof flowrDrawOps === 'function') ? flowrDrawOps(1, ops)[0] : ops[Math.floor(Math.random() * ops.length)];
-      if (op) {
-        const v = (typeof flowrValRoll === 'function') ? flowrValRoll(op.buff.range) : op.buff.range[0];
-        card._dealerBuff = { [op.buff.key]: v };
-        enhanceCardKey(cardId(card), card._dealerBuff);
-      }
+    if (Math.random() < reserveCfg('buff_chance')) {
+      const e = rollEditorBuff();
+      if (e) { card._dealerBuff = e; enhanceCardKey(cardId(card), e); }
     }
     out.push(card);
   }

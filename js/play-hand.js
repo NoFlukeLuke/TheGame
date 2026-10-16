@@ -6,7 +6,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Focus on top, so they multiply every other Focus source in the run instead of
     // stacking beside it. focusRateMods() reads the whole loadout in one place.
     const _fr = focusRateMods();
-    const handFocus = Math.round((HAND_FOCUS[hand] || 0) * _fr.complexity);
+    // r571: an autoplayed hand (Overdrive, Autopilot) makes no Focus of its own.
+    const _auto = typeof autoplayNoFocus === 'function' && autoplayNoFocus();
+    const handFocus = _auto ? 0 : Math.round((HAND_FOCUS[hand] || 0) * _fr.complexity);
     const now = Date.now();
     const secondsSinceLast = lastHandTime > 0 ? (now - lastHandTime) / 1000 : Infinity;
     // window > 1 DILATES the speed curve: the clock is read as if less time had
@@ -15,7 +17,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // is applied AFTER the rate mods and before the floor, so an Overclock or a
     // Flywheel still doubles what is left rather than being cancelled by it.
     const _halfSpeed = FOCUS_HALF_SPEED_HANDS.has(hand) ? 0.5 : 1;
-    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
+    const speedBonus = _auto ? 0 : Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
     let totalFocus = handFocus + speedBonus;
     // Rhythm: +1 focus per hand
     totalFocus += 1 * trickFires('rhythm');
@@ -290,6 +292,8 @@ function playHand() {
   // reads this rather than handCells. With Pip In a kicker is in it.
   const _scoredCells = (_tagCells.length && !(typeof kickersScore === 'function' && kickersScore()))
     ? handCells.filter(([r, c]) => !_tagCells.some(([tr, tc]) => tr === r && tc === c)) : handCells;
+  // Charged Card (r571): the first card of this hand takes its buff before scoring.
+  if (typeof chargedCardApply === 'function') chargedCardApply(handCells);
   // Snapshot contribution breakdown now, from pristine pre-mutation state.
   // Folded into the round tally at the commit points below (goal / normal).
   const _contribSnapshot = captureRoundContrib(result);
@@ -466,6 +470,7 @@ function playHand() {
   }
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
+  if (typeof focusKnacksAfterHand === 'function') focusKnacksAfterHand();   // r571: Double Down's count, Overdrive's x mult
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   // Minute Hand's charge is spent here rather than inside calcScore because
