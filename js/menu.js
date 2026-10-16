@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r568 · the board redeals between rounds; the Keeper sleight holds it (all, cards or Sleights)";
+const BUILD = "2026-10-16 · r569 · the Reserve: double-tap the Focus bar, 10 Focus buys three placeable temp cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

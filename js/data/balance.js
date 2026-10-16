@@ -206,6 +206,7 @@ const BAL = {
   hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
   turnover:   { idle_seconds: 45 },
   challenge_dial: { pct: 25 },   // r556: how far the dial turns the challenge chance, either way
+  reserve: { open: 10, more: 5, cards: 3, buff_chance: 0.75 },   // r569: the Focus bar's double-tap (js/reserve.js)
   // Card states (r278, js/card-states.js). Not an entity, so improve.js never
   // touches these - they are the states' own numbers, in one place.
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },

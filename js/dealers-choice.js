@@ -128,7 +128,7 @@ function dealerBuildLayer() {
   const cap = document.createElement('div');
   cap.className = 'dl-cap';
   const cur = dealerHand.cards[0];
-  cap.textContent = `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
+  cap.textContent = (dealerHand.mode === 'reserve' ? 'RESERVE · ' : '') + `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
     + (cur._dealerBuff ? ' · ' + buffOfferName(cur._dealerBuff) : '') + `  (${dealerHand.cards.length} left)`;
   layer.appendChild(cap);
   dealerHand.cap = cap;
@@ -304,6 +304,11 @@ function dealerPlaceAt(r, c) {
   if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave([[r, c]]);
   if (old._isSleight) discardToPlayed(old); else discardToDrawPile(old);
   gridData[r][c] = card;
+  if (dealerHand.mode === 'reserve') {
+    // The Reserve (r569, js/reserve.js): the old card goes to the back of the deck
+    // and nothing else happens - no time, no stock, no hook, no count.
+    if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r, c]]);
+  } else {
   // Counts as a swap: time, the round's swap tally, and the swap hooks. No stock.
   swapsUsedRound++;
   dealerBill(dealerSwapSeconds());
@@ -315,6 +320,7 @@ function dealerPlaceAt(r, c) {
   if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r, c]]);
   if (typeof feedWhetstones === 'function') feedWhetstones([[r, c]]);
   if (typeof juryRigRoll === 'function') juryRigRoll([[r, c]]);
+  }
   try { sfxCardSelect(); } catch (e) {}
   selected = [];
   dealerShift();
@@ -345,8 +351,10 @@ function dealerDiscardTop() {
       { duration: 380, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
     setTimeout(() => g.remove(), 420);
   }
-  dealerBill(dealerDiscardSeconds());
-  if (typeof bossOnInteract === 'function') bossOnInteract('discard');
+  if (dealerHand.mode !== 'reserve') {   // the Reserve's throw-away is free (r569)
+    dealerBill(dealerDiscardSeconds());
+    if (typeof bossOnInteract === 'function') bossOnInteract('discard');
+  }
   try { sfxCardDiscard(); } catch (e) {}
   dealerShift();
 }
