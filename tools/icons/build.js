@@ -11,6 +11,7 @@
 //   js/data/icons.js            PX_ICONS: glyph -> cell index, plus the sheet url
 //   assets/icons/CREDITS.md     every icon with its author (CC BY 3.0)
 // --dump prints each icon as text so a change can be judged without a browser.
+// --style multi colours by depth (outline, body, a second hue in the core); --size 32 gives it room.
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -26,6 +27,7 @@ const OUT_SHEET = arg('--sheet', 'assets/icons/entities.png');
 const OUT_JS = arg('--js', 'js/data/icons.js');
 const OUT_CREDITS = arg('--credits', 'assets/icons/CREDITS.md');
 const OUT_CONTACT = arg('--contact', '');   // optional big preview png
+const STYLE = arg('--style', 'tone');        // tone: three tones; multi: banded by depth with a second hue
 if (!SRC) { console.error('need --src <game-icons checkout>'); process.exit(1); }
 
 const { PALETTE, ICONS } = require('./manifest.js');
@@ -148,8 +150,47 @@ function tones(hex) {
     return out;
   }, { svgs, cuts: rows.map(r => r.cut == null ? null : !!r.cut), size: SIZE, margin: MARGIN, thresh: THRESH });
 
+  // Multi: colour by DEPTH into the ink. The rim is the dark outline, the next
+  // ring the base, and the core a second hue, so a big icon reads as drawn in
+  // several colours. Lit top edges still take the highlight.
+  function multiTones(hex) {
+    const [h, s, l] = hexToHsl(hex);
+    return {
+      edge: hslToHex(h, Math.min(1, s + .1), Math.max(0, l - .34)),
+      lo: hslToHex(h, Math.min(1, s + .1), Math.max(0, l - .18)),
+      base: hex,
+      hi: hslToHex(h, Math.max(0, s - .1), Math.min(1, l + .2)),
+      core: hslToHex((h + 42) % 360, Math.min(1, s + .05), Math.min(1, l + .06)),
+      core2: hslToHex((h + 42) % 360, Math.max(0, s - .05), Math.min(1, l + .22)),
+    };
+  }
+  function depthMap(g) {
+    const d = g.map(r => r.map(v => v ? Infinity : 0));
+    const q = [];
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (!g[y][x]) q.push([y, x]);
+    // Cells on the sheet edge count as bordering sky.
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (g[y][x] && (y === 0 || x === 0 || y === SIZE - 1 || x === SIZE - 1)) { d[y][x] = 1; q.push([y, x]); }
+    while (q.length) { const [y, x] = q.shift();
+      for (const [dy, dx] of [[1,0],[-1,0],[0,1],[0,-1]]) { const ny = y + dy, nx = x + dx;
+        if (ny < 0 || nx < 0 || ny >= SIZE || nx >= SIZE || !g[ny][nx]) continue;
+        if (d[ny][nx] > d[y][x] + 1) { d[ny][nx] = d[y][x] + 1; q.push([ny, nx]); } } }
+    return d;
+  }
+  const shaded = STYLE === 'multi' ? grids.map((g, i) => {
+    const t = multiTones(PALETTE[rows[i].color]);
+    const d = depthMap(g);
+    const coreAt = Math.max(3, Math.round(SIZE / 10));
+    return g.map((row, y) => row.map((v, x) => {
+      if (!v) return null;
+      const up = y > 0 && g[y - 1][x];
+      if (d[y][x] === 1) return (!up && y > 0) ? t.hi : t.edge;
+      if (d[y][x] === 2) return (!up || (y > 1 && !g[y - 2][x])) ? t.base : t.lo;
+      if (d[y][x] < coreAt) return t.base;
+      return (y > 0 && d[y - 1][x] < coreAt) ? t.core2 : t.core;
+    }));
+  }) :
   // Shade: an ink cell with sky above is lit, one with nothing below is in shadow.
-  const shaded = grids.map((g, i) => {
+  grids.map((g, i) => {
     const t = tones(PALETTE[rows[i].color]);
     return g.map((row, y) => row.map((v, x) => {
       if (!v) return null;
@@ -165,8 +206,7 @@ function tones(hex) {
 
   if (DUMP) shaded.forEach((g, i) => {
     console.log(rows[i].glyph, rows[i].icon, rows[i].color);
-    const t = tones(PALETTE[rows[i].color]);
-    console.log(g.map(r => r.map(c => c == null ? '·' : c === t.hi ? '▓' : c === t.lo ? '░' : '█').join('')).join('\n'));
+    console.log(g.map(r => r.map(c => c == null ? '·' : '█').join('')).join('\n'));
   });
 
   // Compose the sheet (and the contact sheet) in the page and take PNGs back.

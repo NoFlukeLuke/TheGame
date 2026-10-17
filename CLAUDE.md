@@ -1445,3 +1445,11 @@ the icon span (`.px-ico > i`) so dev -> Aesthetics -> **Entity art** (`lethe.pxI
 only when off, `html.px-emoji`) flips back without a re-render. `--px-sheet` on `<html>` carries
 the sheet url with a content hash. Not yet converted: the places that print `t.emoji` as text
 (tooltip titles, Records lines, the event slot reels, the dev lists).
+
+## r584 - knack diamond squared and dark; Sleights lose the logo plate (owner)
+`.rwd-diamond` (css/style.css) has no rounding, no inlay ring (`::after` is gone) and a flat fill of the
+rarity colour darkened (`color-mix(var(--rc) 38%, #0d0b08)`) with a 1.5px lighter edge; the owned chip
+follows. The Sleight tile's and the board card's `::before` no longer paint the upper-left plate; the
+icon is centred over the name band (tile padding `4% 0 38% 0`, board `12% 0 34% 0` to clear the corner
+rank mark). `tools/icons/build.js --style multi` colours by depth (outline, body, a second hue in the
+core) for a bigger grid (`--size 32 --margin 2`); previewed for the owner, not shipped.

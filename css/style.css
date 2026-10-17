@@ -3441,12 +3441,10 @@
     /* One layered background is both parts: the logo plate is a hard stop over
        the body, sized to the UPPER LEFT rather than run full height, so the card
        needs no second element and the name gets the full width underneath. */
+    /* r584 (owner): no logo plate. The tier BANDS (r275) sit above the card
+       stock and below the logo and the name for free, because those are real
+       CHILD elements and a child always paints above its parent's ::before. */
     background:
-      linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
-        no-repeat 0 0 / 100% 62%,
-      /* the tier BANDS (r275) - above the card stock, below the logo plate's
-         wash, and below the logo and the name for free, because those are real
-         CHILD elements and a child always paints above its parent's ::before. */
       var(--bands, none),
       var(--body);
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000),
@@ -3474,8 +3472,8 @@
     width: min(100cqw, calc(100cqh * 1.37)); aspect-ratio: 1.37;
     display: flex;
   }
-  .reward-cell.entity-sleight .rwd-art {           /* the logo plate, upper-left */
-    padding: 0 56% 38% 0;
+  .reward-cell.entity-sleight .rwd-art {           /* the logo, centred over the name band (r584) */
+    padding: 4% 0 38% 0;
     align-items: center; justify-content: center;
     font-size: 37cqw; filter: none;   /* the old 21px at a 57px frame, scaled */
   }
@@ -3502,21 +3500,18 @@
   }
 
   /* knack diamond: beige molded plastic + neon inset ring */
+  /* r584 (owner): a square diamond, no rounding, no colour inlay. The fill is
+     the rarity colour darkened; a 1px lighter edge keeps it off the tray. */
   .rwd-diamond {
-    position: relative; width: 58%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 9px;
-    background: linear-gradient(150deg, var(--plastic-hi), var(--plastic) 55%, var(--plastic-lo));
-    box-shadow: 0 0 0 2px var(--plastic-deep), inset 0 2px 0 rgba(255,255,255,0.6),
-                inset 0 -3px 4px rgba(0,0,0,0.2), 0 5px 12px rgba(0,0,0,0.5), 0 0 12px -3px var(--rc);
+    position: relative; width: 58%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 0;
+    background: color-mix(in srgb, var(--rc) 38%, #0d0b08);
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000), 0 5px 12px rgba(0,0,0,0.5), 0 0 12px -3px var(--rc);
     display: flex; align-items: center; justify-content: center;
   }
-  .rwd-diamond::after {
-    content: ''; position: absolute; inset: 12%; border-radius: 5px;
-    border: 2.5px solid var(--rc); box-shadow: 0 0 8px -1px var(--rc), inset 0 0 6px -2px var(--rc);
-  }
+  .rwd-diamond::after { content: none; }
   /* r391: the owned-Knack chip wears the pick screen's diamond. */
   .knack-chip.kc-obj { background: none !important; border: none !important; box-shadow: none !important; overflow: visible; }
-  .knack-chip.kc-obj .rwd-diamond { width: 70%; border-radius: 5px; }
-  .knack-chip.kc-obj .rwd-diamond::after { border-width: 1.5px; border-radius: 3px; }
+  .knack-chip.kc-obj .rwd-diamond { width: 70%; }
   .knack-chip.kc-obj .rwd-diamond-emoji { font-size: .62em; }
   .knack-chip.rar-common    { --rc: var(--c-mint); }
   .knack-chip.rar-rare      { --rc: var(--c-cyan); }
@@ -5546,10 +5541,7 @@
   left: 0; right: 0; top: 50%; aspect-ratio: 1.37;
   transform: translateY(-50%);
   border-radius: 4px;
-  background:
-    linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
-      no-repeat 0 0 / 100% 62%,
-    var(--sl-body);
+  background: var(--sl-body);   /* r584: no logo plate */
 }
 /* The resting rarity edge moves onto the CARD. Left on the cell it outlined the
    empty slot the card is centred in, which is the one thing the letterbox is
@@ -5574,8 +5566,8 @@
   top: 50%; bottom: auto; transform: translateY(-50%);
   aspect-ratio: 1.37; display: flex; pointer-events: none;
 }
-.trick-card.sleight-card .sleight-card-emoji {   /* the logo plate, upper-left */
-  padding: 0 56% 38% 0;
+.trick-card.sleight-card .sleight-card-emoji {   /* the logo, centred over the name band (r584) */
+  padding: 12% 0 34% 0;   /* a little lower than the tile's: the corner mark sits top-right */
   align-items: center; justify-content: center;
   font-size: calc(var(--card-h, 75px) * 0.20) !important;
 }

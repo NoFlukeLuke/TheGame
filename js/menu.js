@@ -1,4 +1,4 @@
-const BUILD = "2026-10-16 · r583 · pixel icons for entity art (game-icons.net)";
+const BUILD = "2026-10-17 · r584 · square dark knack diamond, Sleights lose the logo plate";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
