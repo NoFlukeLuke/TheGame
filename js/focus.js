@@ -131,7 +131,7 @@ function syncFocusMeterState() {
   const cap = focusCapNodes();
   // Capacity can grow mid-run (Expanse / Quick Draw) - keep the bar's node count in sync.
   if (focusNodeEls.length !== cap) buildFocusMeter();
-  const total = Math.min(focusNodes, cap);
+  const total = Math.min(focusShownNodes(), cap);
   // Meter-wide glow color tracks the current top of the fill.
   document.documentElement.style.setProperty('--focus-color', focusNodeColor(Math.max(0, total - 1), cap));
   focusNodeEls.forEach((node, i) => {
@@ -143,7 +143,63 @@ function syncFocusMeterState() {
   applyFocusGlow();
   // The machine panel's multiplier rides on top of the fill (css/skin-machine.css).
   document.getElementById('focus-meter-wrap')?.style.setProperty('--focus-fill', (cap > 0 ? total / cap : 0).toFixed(3));
+  focusPlaceReadout(total);
   updateFocusMultReadout();
+}
+// r585: the machine panel's multiplier sits on the top lit tick (the first tick when
+// none is lit), measured from the laid-out nodes. Offsets ignore the fill's jitter.
+function _focusOffY(el) { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; }
+function focusPlaceReadout(total) {
+  const wrap = document.getElementById('focus-meter-wrap');
+  const node = focusNodeEls[Math.max(total, 1) - 1];
+  if (!wrap || !node) return;
+  if (!(typeof trayMachineOn === 'function' && trayMachineOn()) || !wrap.offsetHeight) {
+    wrap.style.removeProperty('--focus-top'); return; }
+  const fromBottom = wrap.offsetHeight - (_focusOffY(node) - _focusOffY(wrap));
+  wrap.style.setProperty('--focus-top', fromBottom.toFixed(1) + 'px');
+}
+
+// ── r585: a reward screen HOLDS the gauge (machine panel) ──
+// While a reward or shop board is up the fill stops shaking and shows where the last
+// round ended, off-white (.focus-held). Back on the board it drains to the live value.
+let _focusHold = null, _focusDrain = null;
+const FOCUS_DRAIN_MS = 900, FOCUS_DRAIN_WAIT_MS = 4000;
+function focusShownNodes() {
+  if (_focusHold != null) return _focusHold;
+  return _focusDrain ? Math.max(focusNodes, Math.round(_focusDrain.shown)) : focusNodes;
+}
+function focusHoldOn() {
+  if (!(typeof trayMachineOn === 'function' && trayMachineOn())) return;
+  if (_focusHold == null) _focusHold = _focusDrain ? focusShownNodes() : focusNodes;
+  _focusDrain = null;
+  document.getElementById('focus-meter-wrap')?.classList.add('focus-held');
+  syncFocusMeterState();
+}
+function focusHoldOff() {
+  if (_focusHold == null) return;
+  _focusDrain = { shown: _focusHold, from: _focusHold, start: 0, wait: performance.now() + FOCUS_DRAIN_WAIT_MS };
+  _focusHold = null;
+  document.getElementById('focus-meter-wrap')?.classList.remove('focus-held');
+  syncFocusMeterState();
+  requestAnimationFrame(focusDrainStep);
+}
+// The live value usually drops a moment after the board comes back (the level-up's
+// reset), so the drain waits up to FOCUS_DRAIN_WAIT_MS for it, then runs.
+function focusDrainStep(ts) {
+  const d = _focusDrain;
+  if (!d) return;
+  if (!d.start) {
+    if (focusNodes >= d.from) {
+      if (performance.now() > d.wait) { _focusDrain = null; syncFocusMeterState(); return; }
+      requestAnimationFrame(focusDrainStep); return;
+    }
+    d.start = ts;
+  }
+  const t = Math.min(1, (ts - d.start) / FOCUS_DRAIN_MS);
+  d.shown = d.from - (d.from - focusNodes) * (1 - Math.pow(1 - t, 2));
+  if (t >= 1) _focusDrain = null;
+  syncFocusMeterState();
+  if (_focusDrain) requestAnimationFrame(focusDrainStep);
 }
 
 // Updates the multiplier readout text + active/dim state. Optionally pulses.
@@ -238,7 +294,7 @@ function focusFxLoop(ts) {
     if (other) other.style.transform = '';
   }
   if (outer) {
-    const jf = focusReduceMotion() ? 0 : focusJitterFrac();
+    const jf = (focusReduceMotion() || _focusHold != null) ? 0 : focusJitterFrac();
     const amp = FOCUS_FX.jitterMaxPx * jf;
     if (amp > 0.05) {
       const interval = 45 + (1 - jf) * 95;      // ~140ms slow → ~45ms fast when fuller

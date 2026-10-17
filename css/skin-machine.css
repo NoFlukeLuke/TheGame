@@ -192,17 +192,17 @@ html.skin-machine #stage #focus-bar-outer {
   box-shadow: inset 0 4px 9px rgba(0,0,0,.95), inset 0 -1px 0 rgba(255,255,255,.07),
               0 -2px 0 var(--mc-cut-dk), 0 1px 0 var(--mc-cut-lt) !important;
   transform: none !important;                       /* the screen never moves (focus.js shakes the fill instead) */
-  padding: 22px 6px 5px !important;                  /* head room for the multiplier at max Focus */
+  padding: 30px 4px 5px !important;                  /* head room for the multiplier (and the MAX note) at max Focus */
   overflow: hidden !important;
 }
-html.skin-machine #stage #focus-active-segment { width: 62% !important; margin: 0 auto; will-change: transform; }
+html.skin-machine #stage #focus-active-segment { width: 80% !important; margin: 0 auto; will-change: transform; }
 html.skin-machine #stage #focus-meter-wrap { justify-content: stretch !important; padding-bottom: 0 !important; }
 html.skin-machine #stage #focus-meter-wrap > #focus-bar-outer { flex: 1 1 auto; height: 100%; }
 /* The multiplier rides on top of the fill: --focus-fill (0..1, focus.js) inside the
    space the nodes use (22px head room on top, 5px at the bottom). */
 html.skin-machine #stage #focus-mult-readout {
   position: absolute !important; left: 50% !important; top: auto !important; z-index: 42;
-  bottom: calc(6px + var(--focus-fill, 0) * (100% - 28px)) !important;
+  bottom: calc(var(--focus-top, calc(6px + var(--focus-fill, 0) * (100% - 36px))) + 2px) !important;   /* r585: on the top lit tick */
   translate: -50% 0; padding: 0 !important; font-size: 10px !important; letter-spacing: -.5px !important; pointer-events: none;
   transition: bottom .12s ease-out;
   animation: none !important; white-space: nowrap; max-width: 100%;   /* r511: fits the gauge; its pulse grew it onto the housing */
@@ -343,9 +343,17 @@ html.skin-machine #stage.landscape { --fbg-pad: 0px; }
 html.skin-machine body.grid-screen #stage.landscape #focus-bar-outer {
   opacity: 1 !important; visibility: visible !important; transform: none !important; pointer-events: none;
 }
-html.skin-machine body.grid-screen #stage.landscape #focus-bar-outer > * { opacity: .22; }
+/* r585: the fill is held where the round ended, still and off-white (js/focus.js
+   focusHoldOn), its multiplier with it; MAX sits in the head room, wrapped to fit. */
+html.skin-machine #stage #focus-meter-wrap.focus-held .focus-node.filled {
+  background: #e6dfca !important; box-shadow: 0 0 3px rgba(230,223,202,.45) !important; }
+html.skin-machine body.grid-screen #stage.landscape #focus-mult-readout {
+  opacity: 1 !important; visibility: visible !important; transform: none !important; }
+html.skin-machine #stage #focus-meter-wrap.focus-held #focus-mult-readout {
+  color: #e6dfca !important; text-shadow: none !important; }
 html.skin-machine body.grid-screen #stage.landscape #focus-max-note {
-  bottom: 9px; z-index: 2; color: rgba(214,207,187,.8); font-size: 7px; left: 6px; right: 6px;
+  top: 5px; bottom: auto; z-index: 43; color: rgba(214,207,187,.8); font-size: 6px; line-height: 1;
+  letter-spacing: .3px; left: 2px; right: 2px; white-space: nowrap;
 }
 /* The fixed box has no room above it: the queued rewards are text in the panel's
    title band (.fbg-next, js/flow-rewards.js) and the tab stack stands down. */

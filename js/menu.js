@@ -1,4 +1,4 @@
-const BUILD = "2026-10-17 · r584 · square dark knack diamond, Sleights lose the logo plate";
+const BUILD = "2026-10-17 · r585 · Focus gauge holds on rewards and drains; bulbs seen through glass";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

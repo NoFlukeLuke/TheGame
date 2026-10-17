@@ -133,6 +133,7 @@ function enterGridScreenHud(locLabel, tone) {
   }
   _gridHudPending = null;
   document.body.classList.add('grid-screen');
+  if (typeof focusHoldOn === 'function') focusHoldOn();
   const loc = document.getElementById('screen-location');
   if (loc) {
     loc.className = 'tone-' + tone;
@@ -175,6 +176,7 @@ function exitGridScreenHud() {
   // put grid-screen back on over a live round.
   _gridHudPending = null;
   document.body.classList.remove('grid-screen');
+  if (typeof focusHoldOff === 'function') focusHoldOff();
   const sc = document.getElementById('selected-cards'); if (sc) sc.innerHTML = '';
 }
 

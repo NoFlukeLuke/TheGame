@@ -1453,3 +1453,17 @@ follows. The Sleight tile's and the board card's `::before` no longer paint the 
 icon is centred over the name band (tile padding `4% 0 38% 0`, board `12% 0 34% 0` to clear the corner
 rank mark). `tools/icons/build.js --style multi` colours by depth (outline, body, a second hue in the
 core) for a bigger grid (`--size 32 --margin 2`); previewed for the owner, not shipped.
+
+## r585 - console Focus gauge: held on rewards, drains back; bulbs seen through glass (owner)
+- **Readout on the top lit tick** (`focusPlaceReadout`, js/focus.js): `--focus-top` on `#focus-meter-wrap`
+  is measured from the node's offsets (immune to the fill's jitter); with nothing lit it sits on the
+  first tick. Ticks are 80% of the gauge (was 62%); head room is 30px so x2.0 at max fits.
+- **Hold** (`focusHoldOn` / `focusHoldOff`, from `enterGridScreenHud` / `exitGridScreenHud`, machine skin
+  only): a reward or shop board shows the fill where the round ended (`_focusHold`, read through
+  `focusShownNodes()`), still (no jitter) and off-white (`.focus-held`), with its multiplier; MAX is one
+  line in the head room. Back on the board the shown value drains to the live one over `FOCUS_DRAIN_MS`
+  (900), waiting up to 4s for the level-up's reset to land.
+- **Stock bulbs:** the r576 bulb shape is replaced by the top of a bulb under the cover: a round glass top
+  in a dark socket ring with a short coil across it (grey and dark unlit; a hot core in the cover's
+  colour lit), between the cover's tint (`::before`) and glare (`::after`).
+
