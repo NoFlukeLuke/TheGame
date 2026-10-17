@@ -332,9 +332,7 @@ html.skin-machine #stage:not(.landscape) #selected-cards::after { content: none 
    rewards, the chain's hand-over, the shop) uses it, so nothing slides; it beats
    the inline pin js/grid-metrics.js gridSlotPin writes. The Flow reward panel
    loses its outer pad and sits inside the box. */
-html.skin-machine #stage.landscape:not(.squares-mode) #grid-slot {
-  left: 46.85% !important; width: 43.05% !important; top: 11.11% !important; height: 87.4% !important;   /* r565: 12px clear of the keys */
-}
+/* r586: the box itself is placed in css/style.css (#stage.grid-fill), every look. */
 html.skin-machine #stage.landscape { --fbg-pad: 0px; }
 
 /* ── r558: nothing prints on the housing ─────────────────────────────────── */

@@ -89,20 +89,27 @@ function gridSameBoxMetrics() {
 // the playing-card shape and stretch to fill it, whatever the rows and columns,
 // so the board, the Focus bar and the timer never move. Reward screens use the
 // same box (r564: their title is on the location screen, so they fill it whole).
+// r586: every look, not only console mode.
 function gridFillOn() {
-  if (!(typeof trayMachineOn === 'function' && trayMachineOn())) return false;
   const st = document.getElementById('stage');
   if (!st || !st.classList.contains('landscape') || st.classList.contains('squares-mode')) return false;
   return !(typeof sqSlotInset === 'function' && sqSlotInset());
 }
 function gridFillMetrics() {
   const slot = measureGridSlot();
-  // r564: no title band to make room for; the reward title is on the location screen.
+  // r564: console mode has no title band (the reward title is on the location screen).
+  // r586: the other looks keep the Flow panel's band, so a reward board gives up its
+  // height: the board drops by half of it and the panel centres on the box (css).
+  const b = document.body.classList;
+  const head = (!(typeof flowrConsoleOn === 'function' && flowrConsoleOn())
+                && b.contains('gp-active') && typeof survivalActive === 'function' && survivalActive()
+                && !(typeof shopGridActive !== 'undefined' && shopGridActive)) ? 15 : 0;   // the panel's --fbg-head
+  b.toggle('gp-fillhead', head > 0);
   const cols = gridCols, rows = gridRows;
   GRID_PAD = GRID_PAD_BASE;
   const inner = (gap) => ({
     w: (slot.w - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (cols - 1)) / cols,
-    h: (slot.h - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (rows - 1)) / rows });
+    h: (slot.h - head - GRID_PAD * 2 - GRID_BORDER * 2 - gap * (rows - 1)) / rows });
   let c = inner(CARD_GAP_BASE);
   const gap = gapForCardW(Math.min(c.w, c.h / CARD_ASPECT));
   c = inner(gap);
@@ -111,7 +118,11 @@ function gridFillMetrics() {
 }
 
 function recomputeGridMetrics() {
-  if (gridFillOn()) { gridFillMetrics(); return; }
+  // The class places #grid-slot (css/style.css r586), so it is set before the slot is measured.
+  const fill = gridFillOn();
+  document.getElementById('stage')?.classList.toggle('grid-fill', fill);
+  if (!fill) document.body.classList.remove('gp-fillhead');
+  if (fill) { gridFillMetrics(); return; }
   if (gridSameBoxOn()) { gridSameBoxMetrics(); return; }
   const cols = gridCols, rows = gridRows;
   // Fit cards to the MEASURED slot so the grid always fills the available area

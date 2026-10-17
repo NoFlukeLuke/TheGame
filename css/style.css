@@ -6240,3 +6240,19 @@ body.autoplay-loud .card.selected {
 }
 #focus-meter-wrap.beat-big { animation: focusMeterBeatBig .5s cubic-bezier(.2,.8,.2,1); }
 html.skin-machine #stage #focus-meter-wrap.beat-big { animation: none; }
+
+/* ── r586: the board is one fixed box in every look (js/grid-metrics.js gridFillOn) ──
+   r540's console box, now the normal look's too: the biggest rectangle between the
+   Focus column and the keys, under the timer. Play, rewards and the shop all use it,
+   so nothing slides; !important beats the reward states and gridSlotPin's inline px.
+   The Flow panel loses its outer pad; outside console mode it keeps its title band,
+   so a reward board drops by half the band and the panel centres on the box. */
+#stage.landscape.grid-fill:not(.squares-mode) #grid-slot {
+  left: 46.85% !important; width: 43.05% !important; top: 11.11% !important; height: 87.4% !important;
+}
+#stage.landscape.grid-fill { --fbg-pad: 0px; }
+body.gp-fillhead #stage.landscape.grid-fill #grid { margin-top: 15px !important; }
+body.gp-fillhead #stage.landscape.grid-fill #flowr-bg { top: 50% !important; }
+body.gp-fillhead #stage.landscape.grid-fill #flowr-stack {
+  bottom: calc(50% + var(--fbg-h, var(--grid-h, 0px)) / 2 + 7.5px) !important; }
+

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-17 · r585 · Focus gauge holds on rewards and drains; bulbs seen through glass";
+const BUILD = "2026-10-17 · r586 · the fixed board box in every look";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

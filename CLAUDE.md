@@ -1467,3 +1467,12 @@ core) for a bigger grid (`--size 32 --margin 2`); previewed for the owner, not s
   in a dark socket ring with a short coil across it (grey and dark unlit; a hot core in the cover's
   colour lit), between the cover's tint (`::before`) and glare (`::after`).
 
+
+## r586 - the fixed board box in every look (owner)
+r540's console box is now the normal look's too. `gridFillOn()` no longer asks for the machine skin
+(still landscape, not Poker Squares); `recomputeGridMetrics` sets `#stage.grid-fill` before it
+measures, and css/style.css places `#grid-slot` from that class (46.85% / 11.11%, 43.05% x 87.4%,
+`!important`), with `--fbg-pad` 0. Outside console mode the Flow panel keeps its 15px title band,
+so `gridFillMetrics` brings r540's `body.gp-fillhead` back for it (the board drops half a band, the
+panel centres on the box). Measured at 1440x820, pit and console alike: box 322 x 367 design px at
+350,47 on play, a Tricks reward and the deck editor. Portrait is unchanged.
