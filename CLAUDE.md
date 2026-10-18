@@ -1499,3 +1499,17 @@ The pick's rows are not equal: `gpRows(r, h)` / `gpPickBox` (js/grid-pick.js) ma
 `gpBox` (shared with the payout) is unchanged. Measured: desktop Flow rewards 99 x 262, action tiles
 46 x 70 (r588: 223 / 109; before r588: 252 / 80); phone Flow 87 x 287 and 41 x 61; a phone outside
 Flow is unchanged (its cell, 44 x 58, is already under 1.5x).
+
+## r590 - a reward is two tiles in its rarity colour (owner)
+Each pick-of-three choice is an ENTITY tile (`.gp-head`: tag, art, name; 60% of the choice) over a
+DESCRIPTION tile (`.gp-body`), a board gap apart (`--gp-gap`, written by `gridPickRender`). `.gp-opt` is
+only the frame (tap, tooltip, the picked lift) and paints nothing. Both tiles are the rarity colour way
+darker (`--rc` from `.gp-opt.rar-*`, mixed into near black; css/grid-pick.css); picked = mint ring over
+the tint. **An offer with no rarity of its own wears one from how often it is drawn**:
+`rarityForShare(share)` (js/luck.js, `SHARE_RARITY`: 10%+ common, 6%+ rare, 2.5%+ epic, else
+legendary), fed by `flowrOpRarity(op)` (share of the deck editor's `FLOWR_OP_WEIGHTS` draw; card packs
+use their buff's op) and `limitRarity(d)` (share of `LIMITS_DEF` weights). Display only. Today: Pip /
+Mult Buff and Suit Spread common; Focus, Time, Coin, Rank Pull, Cut, Fodder rare; Stamp, x buffs
+(and event-only Replay) epic; Second Suit / Rank legendary. Limits common but Luck and Focus Cap rare,
+Trick Slots epic. The art cap now reads `60cqh - 42px`. Measured: desktop Flow choice 99 x 262 =
+154 + 6 + 102; phone Flow 169 / 112; phone Classic 70 / 46 (3-4 description lines, r588 had 2).

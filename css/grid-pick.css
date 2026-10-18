@@ -24,34 +24,43 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5);
 }
 
-/* A CHOICE - 2 cells wide, 2 tall (r588; 3 tall from r292). Neutral plastic
-   border: rarity colour stays on the object inside, where it means rarity.
+/* A CHOICE - 2 cells wide, 2 tall (r588; 3 tall from r292), drawn as TWO
+   TILES a board gap apart (r590, owner): .gp-head is the entity and its name,
+   .gp-body the description. .gp-opt is only the frame that holds them: it
+   takes the tap, carries the tooltip and lifts when picked, and paints nothing.
 
-   TWO BLOCKS, NOT ONE CENTRED GROUP. The tile used to centre object + name +
-   description together as one run of children, so whatever the contents did not
-   use was split between the top and the FOOT of the tile - and that foot, the
-   same band on all three tiles at once, is the second of the two dead rows.
-   .gp-head is the top two thirds (the entity and its name) and .gp-body the
-   rest. The leftover is now INSIDE a block that is visibly a block, rather
-   than bare tile pretending to be one. */
+   Both tiles are the offer's RARITY COLOUR, way darker (--rc mixed into near
+   black). An offer with no rarity of its own (a deck op, a card pack, a limit)
+   wears one from how often it is drawn (rarityForShare, js/luck.js). */
 #grid .gp-opt {
   position: absolute; z-index: 3; box-sizing: border-box;
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-  gap: 2px; padding: 5px 5px 4px;
-  border-radius: 8px; cursor: var(--cur-pointer, pointer); overflow: hidden;
-  background: linear-gradient(180deg, rgba(27,23,16,0.96), rgba(14,12,8,0.98));
-  border: 1.5px solid rgba(183,172,147,0.5);
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
-  transition: border-color 0.14s ease, box-shadow 0.16s ease, transform 0.12s ease;
+  display: flex; flex-direction: column; gap: var(--gp-gap, 6px);
+  cursor: var(--cur-pointer, pointer);
+  transition: transform 0.12s ease;
 }
-#grid .gp-opt:hover {
-  border-color: var(--cream, #f0e6c8);
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 13px rgba(240,230,200,0.26), 0 6px 14px rgba(0,0,0,0.55);
+#grid .gp-opt.rar-common    { --rc: var(--c-mint,    #35d59b); }
+#grid .gp-opt.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
+#grid .gp-opt.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
+#grid .gp-opt.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+#grid .gp-opt :is(.gp-head, .gp-body) {
+  box-sizing: border-box; width: 100%; border-radius: 8px; overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--rc, #b7ac93) 45%, #1a1712);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
+  transition: border-color 0.14s ease, box-shadow 0.16s ease;
+}
+#grid .gp-opt .gp-head {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rc, #b7ac93) 22%, #0b0a08),
+                                      color-mix(in srgb, var(--rc, #b7ac93) 12%, #070605));
+}
+#grid .gp-opt .gp-body { background: color-mix(in srgb, var(--rc, #b7ac93) 9%, #070605); }
+#grid .gp-opt:hover :is(.gp-head, .gp-body) {
+  border-color: color-mix(in srgb, var(--rc, #b7ac93) 60%, var(--cream, #f0e6c8));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 13px rgba(240,230,200,0.2), 0 6px 14px rgba(0,0,0,0.55);
 }
 /* PICKED (r280). A tap marks the tile; CONFIRM is what takes it. Mint, because
    that is the colour CONFIRM wears on every other screen in the flow, so the
    tile and the button that commits it read as one thing. It must beat :hover -
-   the pointer is on the tile you just tapped. */
+   the pointer is on the tile you just tapped. The rarity tint stays under it. */
 /* r281: it also LIFTS AND SWELLS, on the board card's own two numbers
    (-2.5px, x1.0875 - see "SELECTION IS A WHOLE-CELL STATE" in css/style.css),
    so "I picked this" moves the same way on every screen that asks you to pick
@@ -59,11 +68,13 @@
    a dark tile the mint was reading as a hover. */
 #grid .gp-opt.gp-sel,
 #grid .gp-opt.gp-sel:hover {
-  border-color: var(--c-mint, #35d59b);
   z-index: 5;
   transform: translateY(-2.5px) scale(1.0875);
+}
+#grid .gp-opt.gp-sel :is(.gp-head, .gp-body),
+#grid .gp-opt.gp-sel:hover :is(.gp-head, .gp-body) {
+  border-color: var(--c-mint, #35d59b);
   box-shadow: inset 0 0 0 2px rgba(53,213,155,0.5), 0 0 19px rgba(53,213,155,0.5), 0 8px 17px rgba(0,0,0,0.6);
-  background: linear-gradient(180deg, rgba(26,44,36,0.96), rgba(10,20,15,0.98));
 }
 
 .gp-tag {
@@ -90,14 +101,15 @@
 .gp-art-sleight .gp-art { --gp-ar: 1.37; }      /* the business card's */
 .gp-art-knack   .gp-art { --gp-ar: 1; }         /* the cert diamond */
 .gp-art-plain   .gp-art { --gp-ar: 1.2; }
-/* A SHORT TILE SHRINKS THE ART, NOT THE WORDS (r588). The tile is 2 cells tall
-   (was 3), and where the board keeps the card shape (a phone outside Flow) that
-   is too short for a full-width object, the name and a description. The art is
-   capped so the head (tag, art, name) fits its two thirds of the tile; 30px is
-   the tag and a one-line name. The tile is the size container: gpBox gives it
-   an explicit size, which container-type: size needs. */
+/* A SHORT TILE SHRINKS THE ART, NOT THE WORDS (r588). Where the board keeps the
+   card shape (a phone outside Flow) the choice is too short for a full-width
+   object, the name and a description. The art is capped so the entity tile
+   (tag, art, name) fits its 60% of the choice; 42px is the gap's share, the
+   tile's padding and border, the tag and a one-line name. The choice is the
+   size container: gpPickBox gives it an explicit size, which
+   container-type: size needs. */
 #grid .gp-opt { container-type: size; }
-#grid .gp-opt .gp-art { width: min(100%, (66.67cqh - 30px) * (var(--gp-ar))); min-height: 0; }
+#grid .gp-opt .gp-art { width: min(100%, (60cqh - 42px) * (var(--gp-ar))); min-height: 0; }
 .gp-art .reward-cell {
   position: relative; width: 100%; height: 100%; margin: 0;
   transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)) scale(var(--fs, 1));
@@ -116,36 +128,28 @@
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.4px;
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
 }
-/* THE TOP BLOCK - the entity and its name, in the tile's top two thirds (two
-   of three cells until r588, when the tile went to two cells). `min-height`
-   rather than `flex-basis`, deliberately: the basis form is a HARD two thirds
-   and a block taller than that (a big board, a name that wraps to two lines)
-   would be cut by the tile's overflow:hidden. This way
-   it takes its content's height and is only ever PADDED UP to two thirds, so
-   the split is exact at every board size the game produces and safe at the ones
-   it does not. */
+/* THE ENTITY TILE - the entity and its name, 60% of the choice (r590; the top
+   two thirds before). `min-height` rather than `flex-basis`, deliberately: the
+   basis form is a HARD share and a block taller than that (a name that wraps
+   to two lines) would be cut by the tile's overflow:hidden. This way it takes
+   its content's height and is only ever PADDED UP to 60%; the description tile
+   gives way. */
 .gp-head {
-  flex: 0 0 auto; width: 100%; min-height: 66.67%;
+  flex: 0 0 auto; width: 100%; min-height: calc((100% - var(--gp-gap, 6px)) * 0.6);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 5px 5px 4px;
 }
-/* THE DESCRIPTION BLOCK - the bottom third, and a real block: a recessed
-   plate with its own edge. That is the difference between "the words sit in the
+/* THE DESCRIPTION TILE - the rest of the choice, and a real block with its own
+   edge. That is the difference between "the words sit in the
    lower half" and "there is nothing down here" - a short description leaves room
    INSIDE a panel, which reads as a panel, where the same gap on bare tile read as
    a dead row. min-height:0 lets it shrink below its content so the clamp (not the
    tile) decides how much shows; overflow:hidden keeps the ellipsis mark inside it
    when the text and the mark both land on the last line of room. */
 .gp-body {
-  flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;
+  flex: 1 1 0; width: 100%; min-height: 0; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 4px 4px 3px; border-radius: 5px;
-  background: rgba(0,0,0,0.30);
-  box-shadow: inset 0 0 0 1px rgba(183,172,147,0.11);
-}
-/* Picked: the plate lifts with the tile rather than staying a hole in it. */
-#grid .gp-opt.gp-sel .gp-body {
-  background: rgba(4,18,13,0.42);
-  box-shadow: inset 0 0 0 1px rgba(53,213,155,0.22);
+  padding: 4px 5px 3px;
 }
 /* 7.5px, not 9 (r280, owner's call): the only way to read more of a description
    inside a fixed tile is to set it smaller. The line clamp here is only the

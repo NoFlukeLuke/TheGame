@@ -1999,6 +1999,12 @@ function flowrDrawOps(n, list, opts) {
   }
   return out;
 }
+// r590: an op's rarity is its share of the editor's draw, so the event-only ops
+// (outside that draw) read rarer still.
+function flowrOpRarity(op) {
+  const tot = FLOWR_DECK_OPS.filter(o => !EVENT_ONLY_OPS.has(o.id)).reduce((t, o) => t + flowrOpWeight(o), 0);
+  return rarityForShare(flowrOpWeight(op) / (tot || 1));
+}
 const FLOWR_DUAL_MAX = 4;
 let FLOWR_DUAL_CHANCE = 0.5;   // per card, luck-scaled
 function flowrSelMax(op) { return op && op.dual ? FLOWR_DUAL_MAX : FLOWR_BUFF_MAX; }
@@ -2046,7 +2052,7 @@ function flowrDeckActive() { return !!_flowrDeckOp; }
 function flowrShowDeckPick() {
   let ops = flowrDrawOps(3);   // r392: weighted by FLOWR_OP_WEIGHTS
   const toOffer = op => ({ entity: 'deckop', id: op.id, icon: op.icon, emoji: op.icon,
-                           label: op.name, desc: op.desc, rarity: 'rare', tag: 'DECK' });
+                           label: op.name, desc: op.desc, rarity: flowrOpRarity(op), tag: 'DECK' });
   // r441: the deck pick rerolls like every other screen.
   const rerollAct = () => pickRerollAction(() => { ops = flowrDrawOps(3); gridPickRefresh(ops.map(toOffer), null); });
   flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
@@ -2774,7 +2780,7 @@ function flowrShowCardsPick() {
   flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
   const tiles = () => _flowrPacks.map((p, i) => ({
     entity: 'cardpack', id: 'pack' + i, artKind: 'pack', artHTML: flowrPackArtHTML(p),
-    icon: p.suit, emoji: p.suit, rarity: 'rare', tag: 'CARDS',
+    icon: p.suit, emoji: p.suit, rarity: flowrOpRarity(p.op), tag: 'CARDS',   // r590: the buff it carries
     label: `${p.ranks[0]}-${p.ranks[p.ranks.length - 1]} ${p.suit}`,
     desc: `${p.ranks.length} cards join your deck: ${p.ranks.map(r => r + p.suit).join(', ')}. `
         + `Each one ${flowrBuffDoes(p.op.buff, p.value)}.`,

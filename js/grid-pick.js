@@ -281,12 +281,12 @@ function gridPickTileHTML(p, i) {
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
   const kind = p.artKind || (isEnt ? p.entity : 'plain');
-  // TWO BLOCKS (r292). .gp-head is the top two cells - the entity and its name,
-  // nothing else - and .gp-body the two beneath. They are wrappers rather than
-  // four loose children because the halves have to be SIZED against the tile
-  // (css/grid-pick.css): a flat child list can only be centred as one group,
-  // which is what pooled the tile's slack at its foot and read as a dead row.
-  return `<div class="gp-opt gp-art-${kind}" data-gp="${i}" data-et="${tip}">`
+  // TWO BLOCKS (r292). .gp-head is the entity and its name, nothing else, and
+  // .gp-body the description; r590 draws them as two tiles a board gap apart.
+  // They are wrappers rather than four loose children because the halves have
+  // to be SIZED against the tile (css/grid-pick.css): a flat child list can only
+  // be centred as one group, which pooled the tile's slack at its foot.
+  return `<div class="gp-opt gp-art-${kind} rar-${rar}" data-gp="${i}" data-et="${tip}">`
     + `<div class="gp-head">`
     + (p.tag ? `<div class="gp-tag rar-${rar}">${p.tag}</div>` : '')
     + `<div class="gp-art" data-float-key="gp-${i}-${p.id || p.label || ''}">${art}</div>`
@@ -760,9 +760,11 @@ function gridPickRender(animateIn) {
     }
   }
 
-  // The options themselves, 2 cells wide and 2 tall.
+  // The options themselves, 2 cells wide and 2 tall. --gp-gap splits each
+  // into its entity tile and its description tile (r590).
   offers.forEach((p, i) => {
-    put(gridPickTileHTML(p, i), gpPickBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H));
+    put(gridPickTileHTML(p, i), gpPickBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H)
+      + `--gp-gap:${CARD_GAP}px;`);
   });
 
   gridPickRenderActions(animateIn);
