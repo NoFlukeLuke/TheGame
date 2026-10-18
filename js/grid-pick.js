@@ -231,6 +231,25 @@ function gpBox(r, c, w, h) {
        + `width:${w * cw + (w - 1) * g}px;height:${h * ch + (h - 1) * g}px;`;
 }
 
+// THE PICK'S ROWS ARE NOT EQUAL (r589, owner). The action row is at most
+// GP_ACT_TALL x a cell's width tall (never more than a cell), so its tiles stay
+// squarish when the board stretches its rows to fill a fixed box; the reward
+// rows above share what that frees. gpRows(r, h) is the top and height of rows
+// r..r+h-1 in board px; gpPickBox is gpBox on those rows.
+const GP_ACT_TALL = 1.5;
+function gpRows(r, h) {
+  const last = GP_ROWS - 1;
+  const span = GP_ROWS * CARD_H + last * CARD_GAP;
+  const ah = Math.min(CARD_H, Math.round(CARD_W * GP_ACT_TALL));
+  if (r >= last) return { top: GRID_PAD + span - ah, h: ah };
+  const rh = (span - ah - last * CARD_GAP) / last;
+  return { top: GRID_PAD + r * (rh + CARD_GAP), h: h * rh + (h - 1) * CARD_GAP };
+}
+function gpPickBox(r, c, w, h) {
+  const y = gpRows(r, h);
+  return `left:${cellLeft(c)}px;top:${y.top}px;width:${w * CARD_W + (w - 1) * CARD_GAP}px;height:${y.h}px;`;
+}
+
 // The payload the tooltip reads. Built here rather than taken from the object's
 // own data-et, because a LIMIT has no object at all and would otherwise be the
 // one offer on this screen with nothing to read.
@@ -737,13 +756,13 @@ function gridPickRender(animateIn) {
       const inOpt = r >= GP_OPT_ROW && r < GP_OPT_ROW + GP_OPT_H
                  && c >= startCol && c < startCol + span;
       if (inOpt) continue;
-      put('<div class="gp-amb"></div>', gpBox(r, c, 1, 1));
+      put('<div class="gp-amb"></div>', gpPickBox(r, c, 1, 1));
     }
   }
 
   // The options themselves, 2 cells wide and 2 tall.
   offers.forEach((p, i) => {
-    put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H));
+    put(gridPickTileHTML(p, i), gpPickBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H));
   });
 
   gridPickRenderActions(animateIn);
@@ -796,13 +815,13 @@ function gridPickRenderActions(animateIn) {
   const acts = (split ? (actions || []).filter(a => a && !a.reroll).concat(flowrSplitTiles()) : (actions || [])).slice(0, cols);
   for (let c = 0; c < cols; c++) {
     const a = acts[c];
-    if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpBox(GP_ROWS - 1, c, 1, 1)); continue; }
+    if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpPickBox(GP_ROWS - 1, c, 1, 1)); continue; }
     const el = put(
       `<div class="gp-act${a.cls ? ' ' + a.cls : ''}${a.disabled ? ' gp-act-off' : ''}">`
       + `<div class="gp-act-icon">${a.icon || ''}</div>`
       + `<div class="gp-act-label">${a.label || ''}</div>`
       + (a.sub ? `<div class="gp-act-sub">${a.sub}</div>` : '')
-      + `</div>`, gpBox(GP_ROWS - 1, c, 1, 1));
+      + `</div>`, gpPickBox(GP_ROWS - 1, c, 1, 1));
     if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); if (gridPickState && gridPickState.leaving) return; a.onClick(); });
   }
 
@@ -815,19 +834,18 @@ function gridPickRenderActions(animateIn) {
     + `<div class="gp-act-icon">\u2713</div>`
     + `<div class="gp-act-label">Confirm</div>`
     + `<div class="gp-act-sub">TAP AN OPTION</div>`
-    + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1));
+    + `</div>`, gpPickBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1));
   conf.addEventListener('click', e => { e.stopPropagation(); gridPickConfirm(); });
   // SKIP (r380), in the same region as CONFIRM: a strip along its foot, so the
   // two controls that END the screen are always in one place. One tap, because
   // it is labelled; CONFIRM-with-nothing-picked still arms a skip too.
   if (gridPickState.onSkip) {
-    const cw = (typeof CARD_W === 'number' ? CARD_W : 57), ch = (typeof CARD_H === 'number' ? CARD_H : 75);
-    const g = (typeof CARD_GAP === 'number' ? CARD_GAP : 5);
-    const w = GP_CONFIRM_W * cw + (GP_CONFIRM_W - 1) * g, sh = Math.round(ch * 0.34);
-    conf.style.height = (ch - sh - 3) + 'px';
+    const row = gpRows(GP_ROWS - 1, 1), sh = Math.round(row.h * 0.34);
+    const w = GP_CONFIRM_W * CARD_W + (GP_CONFIRM_W - 1) * CARD_GAP;
+    conf.style.height = (row.h - sh - 3) + 'px';
     conf.classList.add('gp-confirm-sk');
     const sk = put(`<div class="gp-act gp-skip"><div class="gp-act-label">Skip</div></div>`,
-      `left:${cellLeft(GP_ACT_COLS)}px;top:${cellTop(GP_ROWS - 1) + ch - sh}px;width:${w}px;height:${sh}px;`);
+      `left:${cellLeft(GP_ACT_COLS)}px;top:${row.top + row.h - sh}px;width:${w}px;height:${sh}px;`);
     sk.addEventListener('click', e => { e.stopPropagation(); gridPickSkipNow(); });
   }
   if (own) gridDealTiles(own);

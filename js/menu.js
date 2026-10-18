@@ -1,4 +1,4 @@
-const BUILD = "2026-10-18 · r588 · the reward pick is 3 rows: rewards 2 cells tall";
+const BUILD = "2026-10-18 · r589 · the pick's action row is at most 1.5x a cell's width tall";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

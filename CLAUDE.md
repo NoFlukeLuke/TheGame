@@ -1492,3 +1492,10 @@ taller (80 -> 109px). Where the board keeps the card shape (a phone outside Flow
 the whole pick is a row shorter, so the art is capped by tile height (`#grid .gp-opt` is a size
 container, `.gp-art` width `min(100%, (66.67cqh - 30px) * --gp-ar)`, css/grid-pick.css) and the
 description keeps 2 lines (phone Classic tile 91 x 119, was 91 x 180 with 5 lines).
+
+## r589 - the pick's action row is short (owner)
+The pick's rows are not equal: `gpRows(r, h)` / `gpPickBox` (js/grid-pick.js) make the action row
+`min(CARD_H, CARD_W x GP_ACT_TALL)` tall (`GP_ACT_TALL` 1.5) and the two reward rows share the rest.
+`gpBox` (shared with the payout) is unchanged. Measured: desktop Flow rewards 99 x 262, action tiles
+46 x 70 (r588: 223 / 109; before r588: 252 / 80); phone Flow 87 x 287 and 41 x 61; a phone outside
+Flow is unchanged (its cell, 44 x 58, is already under 1.5x).
