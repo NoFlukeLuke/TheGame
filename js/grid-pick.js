@@ -68,8 +68,8 @@
 // The entity object AND the bare icon (a limit has no object) both drift.
 const GRID_PICK_FLOAT_SEL = '.gp-art .reward-cell, .gp-art .gp-icon';
 
-const GP_COLS = 6, GP_ROWS = 4;   // the board this screen asks for
-const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells: 2 for the entity, 1 for the words
+const GP_COLS = 6, GP_ROWS = 3;   // the board this screen asks for (r588: 4 -> 3, owner)
+const GP_OPT_W = 2, GP_OPT_H = 2; // each option, in cells: the entity and its name over the words
 const GP_OPT_ROW = 0;             // options start at the top - there is no ambience row above them
 
 // CONFIRM owns the last cells of the action row, on EVERY screen that comes
@@ -741,7 +741,7 @@ function gridPickRender(animateIn) {
     }
   }
 
-  // The options themselves, 2 cells wide and 3 tall.
+  // The options themselves, 2 cells wide and 2 tall.
   offers.forEach((p, i) => {
     put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H));
   });
@@ -753,7 +753,7 @@ function gridPickRender(animateIn) {
 }
 
 // ── THE ACTION ROW ALONE (r378) ─────────────────────────────────────────────
-// Row 4: the screen's own actions as TILES (owner spec r256 - Survival's reroll
+// The last row: the screen's own actions as TILES (owner spec r256 - Survival's reroll
 // is a tile on the board, not a button under a panel) in the cells to the LEFT
 // of CONFIRM, then ambience for the cells no action claimed.
 //

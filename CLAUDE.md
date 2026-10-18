@@ -1483,3 +1483,12 @@ Sleight tile's `.rwd-art` pads `max(3px, 4%)` on top and the board card's `.slei
 tile icon 3.0 design px below the card top, board 6.7. The board Sleight's markup comes from
 `sleightFaceHTML` in js/sleights-runtime.js (render.js and card-fall.js carry older copies);
 it printed the raw emoji, so board Sleights never showed the pixel icon until now.
+
+## r588 - the reward pick is 3 rows (owner)
+`GP_ROWS` 4 -> 3 and `GP_OPT_H` 3 -> 2 (js/grid-pick.js): every pick-of-three's rewards are 2 cells
+tall, the action row is the last. Where the board is a fixed box (landscape, Flow on a phone) the
+rows stretch to fill it, so rewards got shorter (desktop Flow 252 -> 223px) and the action row
+taller (80 -> 109px). Where the board keeps the card shape (a phone outside Flow, Poker Squares)
+the whole pick is a row shorter, so the art is capped by tile height (`#grid .gp-opt` is a size
+container, `.gp-art` width `min(100%, (66.67cqh - 30px) * --gp-ar)`, css/grid-pick.css) and the
+description keeps 2 lines (phone Classic tile 91 x 119, was 91 x 180 with 5 lines).

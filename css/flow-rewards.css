@@ -561,7 +561,7 @@ body.reduced-motion #grid .card.flowr-jig { animation: none; }
    screen about the deck is made of cards, and a restyle there moves both.
    The chips are inert here (the tile is what takes the tap), and the cards
    overlap like a held hand so three of them fit a two-cell art box. */
-.gp-art-pack .gp-art { aspect-ratio: 1.55; align-items: center; }
+.gp-art-pack .gp-art { --gp-ar: 1.55; align-items: center; }
 .flowr-pack-art {
   display: flex; align-items: center; justify-content: center;
   width: 100%; height: 100%;

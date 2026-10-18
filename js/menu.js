@@ -1,4 +1,4 @@
-const BUILD = "2026-10-18 · r587 · Sleight icons keep 3px off the card top; board Sleights draw the pixel icon";
+const BUILD = "2026-10-18 · r588 · the reward pick is 3 rows: rewards 2 cells tall";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
