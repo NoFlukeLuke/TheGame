@@ -1476,3 +1476,10 @@ measures, and css/style.css places `#grid-slot` from that class (46.85% / 11.11%
 so `gridFillMetrics` brings r540's `body.gp-fillhead` back for it (the board drops half a band, the
 panel centres on the box). Measured at 1440x820, pit and console alike: box 322 x 367 design px at
 350,47 on play, a Tricks reward and the deck editor. Portrait is unchanged.
+## r587 - Sleight icons keep 3px off the card's top; the board card's real renderer draws the icon
+Owner: a buffer above the icon, and an icon too tall is cut off a pixel below the card's edge. The
+Sleight tile's `.rwd-art` pads `max(3px, 4%)` on top and the board card's `.sleight-card-emoji`
+`max(3px, 12%)`; both carry `clip-path: inset(1px 0 0 0)` (their box IS the card band). Measured:
+tile icon 3.0 design px below the card top, board 6.7. The board Sleight's markup comes from
+`sleightFaceHTML` in js/sleights-runtime.js (render.js and card-fall.js carry older copies);
+it printed the raw emoji, so board Sleights never showed the pixel icon until now.

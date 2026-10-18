@@ -1,4 +1,4 @@
-const BUILD = "2026-10-17 · r586 · the fixed board box in every look";
+const BUILD = "2026-10-18 · r587 · Sleight icons keep 3px off the card top; board Sleights draw the pixel icon";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

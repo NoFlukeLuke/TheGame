@@ -59,7 +59,7 @@ function sleightFaceHTML(card, def, usesStr) {
   return `<div class="sleight-index ${tone} sl-k-${f.kind}${numeric ? ' sl-num' : ''}">`
        +   `<span class="sl-rank">${f.rank}</span><span class="sl-suit">${f.suit}</span>`
        + `</div>`
-       + `<div class="sleight-card-emoji">${def?.emoji || '🃏'}</div>`
+       + `<div class="sleight-card-emoji">${emGlyph(def?.emoji || '🃏')}</div>`
        + `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>`
        + `<div class="sleight-card-uses">${usesStr}</div>`;
 }

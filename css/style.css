@@ -3473,7 +3473,10 @@
     display: flex;
   }
   .reward-cell.entity-sleight .rwd-art {           /* the logo, centred over the name band (r584) */
-    padding: 4% 0 38% 0;
+    /* r587 (owner): at least 3px of card above the icon; an icon too tall for
+       the band is cut off 1px below the card's top edge (the box IS the card). */
+    padding: max(3px, 4%) 0 38% 0;
+    clip-path: inset(1px 0 0 0);
     align-items: center; justify-content: center;
     font-size: 37cqw; filter: none;   /* the old 21px at a 57px frame, scaled */
   }
@@ -5567,7 +5570,8 @@
   aspect-ratio: 1.37; display: flex; pointer-events: none;
 }
 .trick-card.sleight-card .sleight-card-emoji {   /* the logo, centred over the name band (r584) */
-  padding: 12% 0 34% 0;   /* a little lower than the tile's: the corner mark sits top-right */
+  padding: max(3px, 12%) 0 34% 0;   /* a little lower than the tile's: the corner mark sits top-right */
+  clip-path: inset(1px 0 0 0);      /* r587: never past the card's top edge */
   align-items: center; justify-content: center;
   font-size: calc(var(--card-h, 75px) * 0.20) !important;
 }
