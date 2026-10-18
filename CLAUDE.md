@@ -1483,3 +1483,20 @@ Sleight tile's `.rwd-art` pads `max(3px, 4%)` on top and the board card's `.slei
 tile icon 3.0 design px below the card top, board 6.7. The board Sleight's markup comes from
 `sleightFaceHTML` in js/sleights-runtime.js (render.js and card-fall.js carry older copies);
 it printed the raw emoji, so board Sleights never showed the pixel icon until now.
+
+## r588 - the event layouts lab (`js/event-grid-lab.js`, `css/event-grid-lab.css`)
+Owner: every event should live on the board. A look preview, nothing is granted: `index.html?evgrid`
+(or dev -> Events & Bosses -> Event layouts) starts a Classic run, pauses it, and turns the board
+into one of six sample events, one per shape (two options, three rungs then cards, pick an
+entity, several steps, a gamble, buy several), with the real words, card faces and entity tiles.
+Four layouts: **Marquee** (a merged prompt cell on top, options as cells; with room the prompt
+is a left column), **Pages** (a screen per step, cells turn over between them), **Focus** (a
+title strip and small cells; a tap opens one across the board), **Terminal** (the board is one
+amber screen; the event types out, options are numbered lines). Three rooms: in the box, **zoom
+in** (a transform on `#camera` until the box fills the screen's height, about +15% at 1440x820,
+and the board widens to all that is in view; cleared at rest, camera.js rule 2), **slide off**
+(every laid-out box outside the board slides out its nearer edge on the standalone `translate`,
+the board takes the stage). "Only when the text won't fit" measures the step in the box first.
+Cells are absolutely placed in cell units and keyed, so a redraw moves surviving cells (FLIP on
+left/top/width/height) and turns new ones in. Text is `N px x var(--fit)`, fitted on a hidden
+copy at the target size; the panel prints the smallest text as drawn on screen.

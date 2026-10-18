@@ -400,6 +400,7 @@ function devRenderEvents() {
   const btn = id => `<button class="dev-btn" onclick="devTriggerEvent('${id}')">${EVENT_META[id].name}</button>`;
   const live = liveEventIds(), gone = Object.keys(EVENT_META).filter(id => EVENT_ARCHIVED.has(id));
   el.innerHTML = `<button class="dev-btn" onclick="location.search='?events'">Event Tour (one by one, with verdicts)</button>`
+    + `<button class="dev-btn" onclick="location.search='?evgrid'">Event layouts (events drawn on the board, a look preview)</button>`
     + `<div class="dev-sub" style="flex-basis:100%;margin-top:6px;opacity:.7">OPEN ONE</div>`
     + live.map(btn).join('')
     + (gone.length ? `<div class="dev-sub" style="flex-basis:100%;margin-top:6px;opacity:.7">ARCHIVED (never offered)</div>${gone.map(btn).join('')}` : '');

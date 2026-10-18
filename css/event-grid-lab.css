@@ -1,0 +1,255 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   EVENT GRID LAB (r588) - js/event-grid-lab.js. Events drawn as the board.
+   STAGE PX throughout: #egl is a child of #stage and carries the cabinet zoom.
+   Every text size is N px x var(--fit): the lab shrinks a cell's words until
+   they stay inside it and reports the smallest.
+   ══════════════════════════════════════════════════════════════════════════ */
+body.egl-on #grid { visibility: hidden; }
+
+#egl {
+  position: absolute; z-index: 60; box-sizing: border-box;
+  border-radius: 8px; border: 1px solid #000;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(76,107,47,0.46),
+              inset 0 0 0 3px rgba(0,0,0,0.55), inset 0 0 0 4px rgba(76,107,47,0.24), 0 0 18px rgba(0,0,0,0.6);
+}
+/* In a bigger room whatever the board does not cover goes dark, so the edges of
+   the HUD left in view (zoom) or on their way out (slide) stay out of it. */
+#egl::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 200vmax rgba(5,4,3,0); transition: box-shadow .5s ease; }
+#egl.egl-roomy::before { box-shadow: 0 0 0 200vmax rgba(5,4,3,0.86); }
+#egl .egl-board { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+#egl .egl-measure { visibility: hidden; pointer-events: none; inset: auto; left: 0; top: 0; }
+
+/* ── A CELL ─────────────────────────────────────────────────────────────── */
+.egl-cell {
+  position: absolute; box-sizing: border-box; overflow: hidden;
+  border-radius: 7px; display: flex; flex-direction: column;
+  background: linear-gradient(180deg, rgba(27,23,16,0.96), rgba(14,12,8,0.98));
+  border: 1.5px solid rgba(183,172,147,0.42);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
+  transition: border-color .14s ease, box-shadow .16s ease, transform .14s ease, background .14s ease;
+  color: var(--cream, #f0e6c8);
+}
+.egl-cell[onclick], .egl-opt, .egl-card, .egl-shop, .egl-act { cursor: var(--cur-pointer, pointer); }
+.egl-fit { --fit: 1; flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; padding: 4px 5px; box-sizing: border-box; }
+/* Inert filler: the same black card the pick of three uses, so the board still reads as a board. */
+.egl-amb { background: linear-gradient(180deg, #0c0a07, #060504); border: 1px solid rgba(183,172,147,0.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5); border-radius: 6px; }
+
+/* ── THE PROMPT ─────────────────────────────────────────────────────────── */
+.egl-prompt {
+  background: linear-gradient(180deg, rgba(38,32,64,0.97), rgba(14,12,24,0.98));
+  border-color: rgba(122,99,200,0.75);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 22px rgba(122,99,200,0.18), 0 3px 10px rgba(0,0,0,0.55);
+}
+.egl-prompt .egl-fit { gap: calc(3px * var(--fit)); padding: 6px 9px; }
+.egl-kick { font: 700 calc(6px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 3px; color: #b39cf5; opacity: .85; }
+.egl-kick:empty { display: none; }
+.egl-name { font: 800 calc(15px * var(--fit))/1.05 'Orbitron', sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #fff;
+  text-shadow: 0 0 10px rgba(179,156,245,0.7), 0 2px 3px #000; }
+.egl-flav { font: calc(9.5px * var(--fit))/1.3 'Crimson Pro', serif; color: rgba(240,230,200,0.78); }
+.egl-note { font: calc(8.5px * var(--fit))/1.35 'Crimson Pro', serif; color: rgba(240,230,200,0.62); max-width: 34em; }
+.egl-note b { color: var(--cream, #f0e6c8); }
+.egl-lab { margin-top: calc(2px * var(--fit)); font: 700 calc(6.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 2.5px; color: #b39cf5; }
+.egl-big .egl-name { font-size: calc(19px * var(--fit)); }
+.egl-big .egl-flav { font-size: calc(11.5px * var(--fit)); }
+.egl-big .egl-note { font-size: calc(10px * var(--fit)); }
+.egl-big .egl-lab  { font-size: calc(7.5px * var(--fit)); }
+/* PAGES' first screen: the prompt is the board. */
+.egl-p-hero .egl-fit { gap: calc(7px * var(--fit)); padding: 14px 18px; }
+.egl-p-hero .egl-kick { font-size: calc(7.5px * var(--fit)); }
+.egl-p-hero .egl-name { font-size: calc(24px * var(--fit)); letter-spacing: 3px; }
+.egl-p-hero .egl-flav { font-size: calc(13px * var(--fit)); }
+.egl-p-hero .egl-note { font-size: calc(11px * var(--fit)); }
+.egl-p-hero .egl-lab  { font-size: calc(8px * var(--fit)); margin-top: calc(8px * var(--fit)); }
+.egl-p-hero.egl-big .egl-name { font-size: calc(30px * var(--fit)); }
+.egl-p-hero.egl-big .egl-flav { font-size: calc(15px * var(--fit)); }
+.egl-p-hero.egl-big .egl-note { font-size: calc(12.5px * var(--fit)); }
+/* The strip: a title line over the rule, one row tall. */
+.egl-p-strip .egl-fit { align-items: stretch; justify-content: center; gap: calc(2px * var(--fit)); padding: 3px 8px; text-align: left; }
+.egl-s1 { display: flex; align-items: baseline; gap: 8px; }
+.egl-sn { font: 800 calc(10.5px * var(--fit)) 'Orbitron', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; color: #fff;
+  text-shadow: 0 0 8px rgba(179,156,245,0.6); white-space: nowrap; }
+.egl-sl { flex: 1; font: 700 calc(6.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 2px; color: #b39cf5; white-space: nowrap; }
+.egl-dots { display: flex; gap: 3px; align-self: center; }
+.egl-dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(179,156,245,0.25); }
+.egl-dots i.past { background: rgba(179,156,245,0.6); }
+.egl-dots i.on { background: #fff; box-shadow: 0 0 6px #b39cf5; }
+.egl-s2 { font: calc(8px * var(--fit))/1.3 'Crimson Pro', serif; color: rgba(240,230,200,0.66); }
+.egl-s2 b { color: var(--cream, #f0e6c8); }
+
+/* ── AN OPTION ──────────────────────────────────────────────────────────── */
+.egl-opt { --rc: rgba(183,172,147,0.5); box-shadow: inset 0 2px 0 var(--rc), inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5); }
+.egl-opt.rar-common    { --rc: var(--c-mint, #35d59b); }
+.egl-opt.rar-rare      { --rc: var(--c-cyan, #16c8d8); }
+.egl-opt.rar-epic      { --rc: var(--c-purple, #9a6cff); }
+.egl-opt.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+.egl-opt.egl-debuff { --rc: var(--c-red, #ff4b3e); border-color: rgba(255,75,62,0.55);
+  background: linear-gradient(180deg, rgba(44,16,14,0.96), rgba(18,8,7,0.98)); }
+.egl-opt .egl-fit { gap: calc(4px * var(--fit)); padding: 6px 7px; }
+.egl-opt:hover { border-color: var(--cream, #f0e6c8); }
+.egl-sel, .egl-sel:hover {
+  border-color: var(--c-mint, #35d59b); z-index: 5; transform: translateY(-2px) scale(1.04);
+  background: linear-gradient(180deg, rgba(26,44,36,0.96), rgba(10,20,15,0.98));
+  box-shadow: inset 0 0 0 2px rgba(53,213,155,0.5), 0 0 16px rgba(53,213,155,0.45), 0 7px 15px rgba(0,0,0,0.6);
+}
+.egl-ico { font-size: calc(22px * var(--fit)); line-height: 1; min-height: calc(24px * var(--fit)); display: flex; align-items: center;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); color: var(--gold, #ffb02e); font-family: 'Orbitron', sans-serif; font-weight: 800; }
+.egl-ot { font: 700 calc(9.5px * var(--fit))/1.12 'Orbitron', sans-serif; letter-spacing: .4px; color: var(--cream, #f0e6c8); }
+.egl-ox { font: calc(8px * var(--fit))/1.32 'Crimson Pro', serif; color: rgba(240,230,200,0.74); }
+.egl-cost { margin-top: calc(3px * var(--fit)); font: 700 calc(6.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 1.5px; text-transform: uppercase; color: #ff9a8e; }
+.egl-big .egl-ico { font-size: calc(30px * var(--fit)); min-height: calc(32px * var(--fit)); }
+.egl-big .egl-ot  { font-size: calc(11.5px * var(--fit)); }
+.egl-big .egl-ox  { font-size: calc(10px * var(--fit)); }
+.egl-big .egl-cost{ font-size: calc(7.5px * var(--fit)); }
+/* FOCUS: the small cell says what it is; the opened one says everything. */
+.egl-compact .egl-fit { justify-content: center; padding-top: 4px; }
+.egl-compact .egl-cost { margin-top: 0; }
+.egl-detail, .egl-detail.egl-sel, .egl-detail:hover { transform: none; }
+.egl-detail .egl-fit { justify-content: center; gap: calc(7px * var(--fit)); padding: 10px 14px; }
+.egl-detail .egl-ico { font-size: calc(34px * var(--fit)); min-height: calc(36px * var(--fit)); }
+.egl-detail .egl-ot  { font-size: calc(13px * var(--fit)); }
+.egl-detail .egl-ox  { font-size: calc(10.5px * var(--fit)); max-width: 30em; }
+.egl-detail .egl-cost{ margin-top: 4px; font-size: calc(8px * var(--fit)); }
+.egl-detail.egl-big .egl-ot { font-size: calc(16px * var(--fit)); }
+.egl-detail.egl-big .egl-ox { font-size: calc(12.5px * var(--fit)); }
+/* An entity: the real tile (js/entity-tile.js), sized to its own aspect. */
+.egl-tag { font: 700 calc(5.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #0e0c0a; background: var(--rc); padding: 1px 5px; border-radius: 999px; }
+.egl-art { width: calc(62% * var(--fit)); max-width: calc(78px * var(--fit)); aspect-ratio: 20 / 19; flex: 0 0 auto; display: flex; }
+.egl-art .reward-cell { position: relative; width: 100%; height: 100%; margin: 0; }
+.egl-detail .egl-art { max-width: calc(96px * var(--fit)); width: calc(30% * var(--fit)); }
+.egl-ent .egl-ox { padding: calc(3px * var(--fit)) calc(4px * var(--fit)); border-radius: 5px; background: rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 0 1px rgba(183,172,147,0.11); align-self: stretch; }
+
+/* ── CARDS ──────────────────────────────────────────────────────────────── */
+/* The real face (renderCardAppearance), sized by --card-w / --card-h on the cell. */
+.egl-card, .egl-shop { background: transparent; border: 0; box-shadow: none; overflow: visible; }
+.egl-card .card, .egl-shop-face .card { left: 2px; top: 2px; pointer-events: none; }
+.egl-card:hover .card { background: #fffaee; }
+.egl-card.egl-sel, .egl-shop.egl-sel { background: transparent; box-shadow: none; }
+.egl-card.egl-sel .card, .egl-shop.egl-sel .card { border-color: var(--c-mint, #35d59b); box-shadow: 0 0 0 2px var(--c-mint, #35d59b), 0 0 14px rgba(53,213,155,0.6); }
+.egl-shop { display: flex; flex-direction: column; }
+.egl-shop-face { position: relative; flex: 0 0 auto; height: calc(var(--card-h) + 4px); }
+.egl-shop-b { flex: 1 1 auto; padding: 1px 2px; justify-content: center; border-radius: 0 0 6px 6px; margin: 0 2px 2px;
+  background: rgba(0,0,0,0.55); font: calc(7.5px * var(--fit))/1.15 'Crimson Pro', serif; color: rgba(240,230,200,0.85); }
+.egl-sh11 .egl-shop-b { font-size: calc(6px * var(--fit)); }
+.egl-sh22 .egl-shop-b { font-size: calc(10px * var(--fit)); }
+.egl-shop:not(.egl-buffed) .egl-shop-b { color: rgba(240,230,200,0.4); }
+
+/* ── HOT STREAK: a coin and a staircase ─────────────────────────────────── */
+.egl-coin { align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 60%, rgba(255,176,46,0.12), rgba(10,8,5,0.98) 70%); }
+.egl-coinhost { zoom: .85; display: flex; justify-content: center; }
+.egl-coinhost .evt-host { margin: 0; }
+.egl-coinhost .evt-coin-cap { font-size: 9px; letter-spacing: 1px; text-align: center; max-width: 9em; line-height: 1.2; }
+.egl-rung { justify-content: flex-end; }
+.egl-rung .egl-bar { position: absolute; left: 4px; right: 4px; bottom: 4px; height: calc((100% - 8px) * var(--lv)); border-radius: 4px;
+  background: rgba(255,176,46,0.08); box-shadow: inset 0 0 0 1px rgba(255,176,46,0.25); transition: background .3s, box-shadow .3s; }
+.egl-rung .egl-fit { position: relative; justify-content: flex-end; gap: 1px; padding-bottom: 8px; }
+.egl-rung b { font: 800 calc(16px * var(--fit)) 'Orbitron', sans-serif; color: rgba(240,230,200,0.5); }
+.egl-rung i { font: normal calc(7px * var(--fit))/1.1 'Share Tech Mono', monospace; color: rgba(240,230,200,0.6); }
+.egl-rung.egl-lit .egl-bar { background: linear-gradient(180deg, rgba(255,206,43,0.75), rgba(255,140,30,0.45)); box-shadow: 0 0 14px rgba(255,176,46,0.6); }
+.egl-rung.egl-lit b, .egl-rung.egl-lit i { color: #1a1104; }
+.egl-rung.egl-next { border-color: var(--gold, #ffb02e); animation: egl-pulse 1.1s ease-in-out infinite; }
+.egl-rung.egl-lost .egl-bar { background: rgba(255,75,62,0.35); box-shadow: inset 0 0 0 1px var(--c-red, #ff4b3e); }
+@keyframes egl-pulse { 50% { box-shadow: inset 0 0 0 1px rgba(255,176,46,0.6), 0 0 12px rgba(255,176,46,0.4); } }
+
+/* ── THE OUTCOME ────────────────────────────────────────────────────────── */
+.egl-result { border-color: rgba(53,213,155,0.6); background: linear-gradient(180deg, rgba(14,34,26,0.97), rgba(8,14,11,0.98)); }
+.egl-result .egl-fit { gap: calc(6px * var(--fit)); }
+.egl-result .egl-kick { color: var(--c-mint, #35d59b); font-size: calc(7px * var(--fit)); }
+.egl-rl { font: calc(11px * var(--fit))/1.35 'Crimson Pro', serif; color: var(--cream, #f0e6c8); }
+.egl-result.egl-big .egl-rl { font-size: calc(13px * var(--fit)); }
+
+/* ── THE ACTION ROW ─────────────────────────────────────────────────────── */
+.egl-act { border-radius: 6px; background: linear-gradient(180deg, rgba(24,21,15,0.96), rgba(12,10,7,0.98)); }
+.egl-act .egl-fit { gap: 1px; padding: 2px 3px; }
+.egl-act b { font: 700 calc(7px * var(--fit)) 'Orbitron', sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--cream, #f0e6c8); white-space: nowrap; }
+.egl-act i { font: normal calc(6px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: .4px; color: var(--c-yellow, #ffce2b);
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.egl-act:hover { border-color: var(--c-yellow, #ffce2b); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 11px rgba(255,206,43,0.3); }
+.egl-go { border-color: var(--c-mint, #35d59b); background: linear-gradient(180deg, rgba(31,168,119,0.30), rgba(8,32,24,0.95)); }
+.egl-go b { font-size: calc(8.5px * var(--fit)); letter-spacing: 1.6px; }
+.egl-go i { color: var(--cream, #f0e6c8); }
+.egl-go:hover { border-color: #7dffce; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 13px rgba(53,213,155,0.42); }
+.egl-off { opacity: .42; cursor: var(--cur-no, not-allowed); }
+.egl-off:hover { border-color: rgba(183,172,147,0.42); box-shadow: none; }
+.egl-go.egl-off i { color: var(--cream-dim, #9a8d70); }
+.egl-nav b { font-size: calc(14px * var(--fit)); }
+
+/* ── TERMINAL ───────────────────────────────────────────────────────────── */
+/* One screen: the board, its cells and the gaps between them are all glass. */
+#egl:has(.egl-board[data-lay="terminal"]) { background: #070503; }
+#egl:has(.egl-board[data-lay="terminal"])::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 20; border-radius: inherit;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px),
+              radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+[data-lay="terminal"] .egl-cell { background: transparent; border: 0; box-shadow: none; border-radius: 3px;
+  color: #ffb02e; font-family: 'VT323 Local', 'VT323', monospace; text-shadow: 0 0 6px rgba(255,176,46,0.55); }
+[data-lay="terminal"] .egl-fit { align-items: stretch; text-align: left; justify-content: flex-start; padding: 1px 6px; }
+.egl-term .egl-fit { padding: 6px 8px; }
+.egl-tl { font-size: calc(11px * var(--fit)); line-height: 1.12; white-space: pre-wrap; min-height: 1em; }
+.egl-t-h { color: #ffd27a; }
+.egl-t-dim { color: rgba(255,176,46,0.5); }
+.egl-t-good { color: #7dffb0; text-shadow: 0 0 6px rgba(125,255,176,0.5); }
+.egl-t-bad { color: #ff6a52; text-shadow: 0 0 6px rgba(255,106,82,0.5); }
+.egl-type { animation: egl-type .32s steps(24, end) var(--d, 0ms) both; }
+@keyframes egl-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.egl-cursor { display: inline-block; width: .55em; height: 1em; background: #ffb02e; align-self: flex-start;
+  font-size: calc(11px * var(--fit)); animation: egl-blink 1s steps(1) infinite; box-shadow: 0 0 6px rgba(255,176,46,0.6); }
+@keyframes egl-blink { 50% { opacity: 0; } }
+.egl-tm .egl-fit { justify-content: center; }
+.egl-tm-l { display: flex; align-items: baseline; gap: 5px; font-size: calc(11px * var(--fit)); line-height: 1.05; white-space: nowrap; }
+.egl-tm-l u { flex: 1; text-decoration: none; border-bottom: 1px dotted rgba(255,176,46,0.45); min-width: 8px; transform: translateY(-3px); }
+.egl-tm-l em { font-style: normal; color: #ffd27a; }
+.egl-tm-x { font-size: calc(9.5px * var(--fit)); line-height: 1.05; color: rgba(255,176,46,0.7); padding-left: 2.6em; }
+.egl-tcard .egl-fit { font-size: calc(11px * var(--fit)); white-space: nowrap; justify-content: center; }
+.egl-tcard span { color: rgba(255,176,46,0.65); }
+[data-lay="terminal"] .egl-tm:hover { background: rgba(255,176,46,0.12); }
+/* Picked: inverse video. */
+[data-lay="terminal"] .egl-sel, [data-lay="terminal"] .egl-sel:hover { transform: none; background: #ffb02e; box-shadow: 0 0 10px rgba(255,176,46,0.5); }
+[data-lay="terminal"] .egl-sel *, [data-lay="terminal"] .egl-sel { color: #120b02 !important; text-shadow: none; }
+[data-lay="terminal"] .egl-sel .egl-tm-l u { border-color: rgba(18,11,2,0.5); }
+.egl-tact .egl-fit { align-items: center; justify-content: center; font-size: calc(11px * var(--fit)); white-space: nowrap; }
+.egl-tact:hover { background: rgba(255,176,46,0.12); }
+.egl-tact.egl-go { color: #7dffb0; text-shadow: 0 0 6px rgba(125,255,176,0.55); }
+.egl-tact.egl-off { opacity: .4; }
+.egl-trung .egl-tm-l b { color: #ffd27a; font-weight: normal; }
+.egl-trung.egl-lit { color: #7dffb0; }
+.egl-trung.egl-lost { color: #ff6a52; }
+.egl-trung.egl-next { animation: egl-tnext 1s steps(1) infinite; }
+@keyframes egl-tnext { 50% { background: rgba(255,176,46,0.14); } }
+[data-lay="terminal"] .egl-tamb { background: transparent; border: 0; box-shadow: none; }
+
+/* ── THE PANEL (body-level, viewport px) ────────────────────────────────── */
+#egl-panel { position: fixed; left: 12px; bottom: 12px; z-index: 99990; width: 290px; box-sizing: border-box;
+  background: rgba(14, 12, 22, .96); border: 1px solid #4b4370; border-radius: 10px; color: #e9e2cc;
+  font: 12px/1.3 'Share Tech Mono', ui-monospace, monospace; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+#egl-panel .eglp-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #2c2744; }
+#egl-panel .eglp-head b { letter-spacing: 2px; color: #b9a7ff; }
+#egl-panel .eglp-n { flex: 1; text-align: right; color: #9b93b5; }
+#egl-panel .eglp-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+#egl-panel.folded .eglp-body { display: none; }
+#egl-panel.eglp-right { left: auto; right: 12px; }
+#egl-panel.folded .eglp-head { border-bottom: 0; }
+#egl-panel .eglp-row { display: flex; gap: 5px; align-items: center; }
+#egl-panel button { flex: 1; background: #1d1930; color: #e9e2cc; border: 1px solid #4b4370; border-radius: 6px;
+  padding: 6px 3px; font: inherit; font-size: 11px; letter-spacing: 1px; cursor: var(--cur-pointer, pointer); }
+#egl-panel button:hover { border-color: #8f7fe0; }
+#egl-panel button.on { background: #2f2560; border-color: #b9a7ff; color: #fff; }
+#egl-panel button:disabled { opacity: .35; cursor: var(--cur-no, not-allowed); }
+#egl-panel .eglp-head button, #egl-panel .eglp-prev, #egl-panel .eglp-next { flex: 0 0 28px; padding: 3px 0; }
+#egl-panel .eglp-ev { flex: 1; text-align: center; }
+#egl-panel .eglp-name { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; color: #fff; }
+#egl-panel .eglp-shape { color: #8a83a3; font-size: 11px; }
+#egl-panel .eglp-lab { margin-top: 3px; font-size: 10px; letter-spacing: 2.5px; color: #8a83a3; }
+#egl-panel .eglp-note { color: #b8b0cc; font-size: 11px; min-height: 2.6em; }
+#egl-panel .eglp-need { display: flex; gap: 6px; align-items: center; color: #b8b0cc; font-size: 11px; cursor: var(--cur-pointer, pointer); }
+#egl-panel .eglp-metric { padding: 6px 8px; border-radius: 6px; background: #0b0a12; color: #9b93b5; font-size: 11px; }
+#egl-panel .eglp-metric b { color: #fff; }
+@media (max-width: 700px) {
+  #egl-panel { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; }
+}
