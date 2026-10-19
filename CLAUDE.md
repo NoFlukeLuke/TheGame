@@ -1500,3 +1500,20 @@ the board takes the stage). "Only when the text won't fit" measures the step in 
 Cells are absolutely placed in cell units and keyed, so a redraw moves surviving cells (FLIP on
 left/top/width/height) and turns new ones in. Text is `N px x var(--fit)`, fitted on a hidden
 copy at the target size; the panel prints the smallest text as drawn on screen.
+
+## r589 - event layouts lab, round two (owner: Terminal stays, Marquee was the best of the rest)
+The lab now shows three crossings of Marquee and Terminal beside both originals (Pages, Focus and
+zoom are gone; slide-off stays): **WALL** (Marquee's plan, every cell its own small amber screen,
+picked = the screen lit solid), **READOUT** (one amber screen on the top half over a row of matte
+keys with a lamp; touching or pointing at a key prints its full text on the screen, `eglHover` /
+`egl.inspect`), **WIREFRAME** (one amber glass with Marquee drawn on it: the prompt in a double box,
+each option a single box with its title on the top border). Every layout lays out on 12 half-cell
+rows. Two screens follow the owner's designs in every layout and always keep the board's box:
+**Card Market** is the board itself, `gridRows x gridCols` cards that all carry a buff (the real
+odds of a second), bought by tapping (`shopgrid`); real faces wear their bands by writing the
+offer's buffs to the stores for one render (`eglFaceBuffed`). **Deck Trim's cut** is the whole deck
+in one column per suit, a rank to a row from the Ace down, wilds last, six rows in view
+(`deckcols`, `eglDeckCols`, `EGL_DECK_ROWS`); it scrolls a row at a time from up / down arrows laid
+over the Focus bar (`#egl-scroll`, hold to repeat), the mouse wheel or a drag (`--vr` on the view).
+Text that does not fit overflows (`.egl-fit > * { flex-shrink: 0 }`, `justify-content: safe
+center`) so the fit pass can see it. Prefs moved to `lethe.eventGridLab.v2`.

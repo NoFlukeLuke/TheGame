@@ -1,4 +1,4 @@
-const BUILD = "2026-10-18 · r588 · Event layouts lab: events drawn on the board, four layouts, three rooms";
+const BUILD = "2026-10-18 · r589 · Event layouts lab: three Marquee x Terminal hybrids, the market board, the suit-column cut";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -1,55 +1,64 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EVENT GRID LAB (r588) - what events could look like if they lived on the board
+// EVENT GRID LAB (r588, reworked r589) - events drawn as the board
 // ═══════════════════════════════════════════════════════════════════════════
-// Owner: "I'd like for all events to exist only in the grid ... I'd like to see
-// some options for the different types of events." A LOOK preview: nothing here
-// is granted and no real event handler runs. Open index.html?evgrid (or dev ->
+// Owner: every event should live on the board. A LOOK preview: nothing here is
+// granted and no real event handler runs. Open index.html?evgrid (or dev ->
 // Events & Bosses -> Event layouts). It starts a Classic run, pauses it, and
-// draws one of six sample events (one per event shape) over the board in one of
-// four layouts, in one of three rooms:
-//   box    the board's own outline; nothing else moves
-//   zoom   the camera pushes in until the board fills the screen's height, and
-//          the board widens to everything still in view
-//   slide  the side panels slide off the edges and the board takes the stage
-// "Only when it won't fit" stays in the box until a step's text would shrink
-// past EGL_NEED_FIT (or its cards need a second page), then takes the chosen
-// room for that step alone.
+// turns the board into one of six sample events, one per shape an event takes.
 //
-// The samples use the real events' words, card faces and entity tiles, so the
-// squeeze shown is the squeeze the game would have. The layer is #egl, a child
-// of #stage placed in design px; its cells are absolutely placed in cell units
-// like the pick of three, and every redraw is KEYED, so a cell that survives a
-// change moves to its new box (FLIP) and only new cells turn over.
-// Text that would overflow its cell is shrunk (--fit), measured first on a
-// hidden copy of the board at the target size, and the panel prints the
-// smallest text as drawn on screen.
+// r589, after the owner's first look: Terminal stays, Marquee was the best of
+// the rest, so the lab now shows three ways of crossing the two (WALL, READOUT,
+// WIREFRAME) beside both originals. Zoom is gone; slide-off stays as an option.
+// Two screens follow the owner's own designs in every layout:
+//   Card Market  the board itself, full of buffed cards, the words above it
+//   Deck Trim    the deck in one column per suit, a rank to a row, six rows
+//                showing; arrows on the Focus bar scroll it (so do the mouse
+//                wheel and a drag)
+// Those two always stay in the board's own box.
+//
+// The layer is #egl, a child of #stage placed in design px. Every layout lays
+// out on twelve half-cell rows; a piece is one cell or a merged run of cells,
+// and every redraw is KEYED, so a cell that survives a change moves to its new
+// box (FLIP) and only new cells turn over. The two card screens are one piece
+// each holding their own grid (`eglViewPiece`), because they need the board's
+// column count and a scroll. Text is N px x var(--fit), fitted on a hidden copy
+// of the board first; the panel prints the smallest as drawn on screen.
 
-const EGL_KEY = 'lethe.eventGridLab.v1';
-const EGL_ROWS = 6;          // cell rows on every layout but the terminal
-const EGL_TERM_ROWS = 12;    // the terminal's rows are text lines, half a cell
-const EGL_CELL = 55;         // target cell width, design px: sets the column count
+const EGL_KEY = 'lethe.eventGridLab.v2';
+const EGL_ROWS = 12;          // half-cell rows, on every layout
+const EGL_CELL = 55;          // target cell width, design px: sets the column count
 const EGL_PAD = 6, EGL_GAP = 5;
-const EGL_NEED_FIT = 0.85;   // "only when it won't fit" goes wide below this
-const EGL_MS = 560;          // a room change or a cell's move
+const EGL_NEED_FIT = 0.85;    // "only when it won't fit" goes wide below this
+const EGL_MS = 560;           // a room change or a cell's move
 const EGL_EASE = 'cubic-bezier(.62,0,.24,1)';
-const EGL_REFLIP = 20;       // Hot Streak's second chance, as the event prices it
+const EGL_REFLIP = 20;        // Hot Streak's second chance, as the event prices it
+const EGL_DECK_ROWS = 6;      // rows of the deck's suit columns in view at once
 const EGL_LAYOUTS = {
-  marquee:  { name: 'MARQUEE',  note: 'One big prompt cell on top, the options as cells under it. With room, the prompt becomes a column on the left.' },
-  pages:    { name: 'PAGES',    note: 'A screen per step: the prompt gets the whole board, then each step, then the outcome. The cells turn over between screens.' },
-  focus:    { name: 'FOCUS',    note: 'A one-line title and small option cells. Tap one and it opens across the board with its full text.' },
-  terminal: { name: 'TERMINAL', note: 'The board is one screen and the event prints onto it. Options are numbered lines.' },
+  wall:     { name: 'WALL',      note: 'Marquee as a wall of small amber screens: the prompt on the big one, every option and card on its own.' },
+  readout:  { name: 'READOUT',   note: 'One amber screen over a row of keys. Touching a key prints its full text on the screen; the keys only carry a name.' },
+  wire:     { name: 'WIREFRAME', note: 'One amber screen with Marquee drawn on it in lines: the prompt in a double box, each option and card in its own box.' },
+  terminal: { name: 'TERMINAL',  note: 'The original: the event prints onto one screen, options are numbered lines.' },
+  marquee:  { name: 'MARQUEE',   note: 'The original: a big prompt cell on top, options as cells under it.' },
 };
-const EGL_ROOMS = { box: 'IN THE BOX', zoom: 'ZOOM IN', slide: 'SLIDE OFF' };
+const EGL_COMBINED = ['wall', 'readout', 'wire'];
+const EGL_ROOMS = { box: 'IN THE BOX', slide: 'SLIDE OFF' };
+// Where each buff key's value lives on a card (the stores in js/deck-grid.js).
+const eglStores = () => ({ pips: permPips, mult: permMult, time: permTime, retrig: permRetrig,
+                           xpips: permXPips, xmult: permXMult, focus: permFocus, coin: permCoins });
 
-let egl = null;              // the open lab, or null
-const eglPrefs = { ev: 0, lay: 'marquee', room: 'box', need: false };
-try { Object.assign(eglPrefs, JSON.parse(localStorage.getItem(EGL_KEY) || '{}') || {}); } catch (e) {}
+let egl = null;               // the open lab, or null
+const eglPrefs = { ev: 0, lay: 'wall', room: 'box', need: false, right: false };
+try {
+  localStorage.removeItem('lethe.eventGridLab.v1');   // r588's layouts are gone
+  Object.assign(eglPrefs, JSON.parse(localStorage.getItem(EGL_KEY) || '{}') || {});
+} catch (e) {}
 function eglSavePrefs() { try { localStorage.setItem(EGL_KEY, JSON.stringify(eglPrefs)); } catch (e) {} }
 const eglTxt = v => (typeof v === 'function' ? v() : v) || '';
 const eglEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const eglPlain = s => String(s || '').replace(/<[^>]*>/g, '');
 const eglCol = s => (typeof colorizeKeywords === 'function') ? colorizeKeywords(s || '') : (s || '');
 const eglRand = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
+const eglIsView = st => !!st && (st.t === 'shopgrid' || st.t === 'deckcols');
 
 // ── THE SAMPLES ─────────────────────────────────────────────────────────────
 // One per shape an event takes. Built when the lab opens, from the live run.
@@ -58,17 +67,18 @@ function eglSamples() {
   const nW = (typeof deckWildCount === 'function') ? deckWildCount() : 4;
   const tiers = BAL.deck_trim.tiers.map(t => ({ ...t, price: priceOf(t.price) }));
   const tier = () => tiers[(egl.picks[0] || [])[0]] || tiers[0];
-  const order = { '♠': 0, '♥': 1, '♣': 2, '♦': 3 };
-  const rv = r => ({ J: 11, Q: 12, K: 13, A: 14 }[r] || +r || 0);
-  const deck = ((typeof springCuttableCards === 'function') ? springCuttableCards() : drawPile).filter(c => c && c.rank)
-    .slice().sort((a, b) => (order[a.suit] ?? 9) - (order[b.suit] ?? 9) || rv(a.rank) - rv(b.rank));
+  const deck = everyDeckCard();
   const tricks = ['common', 'rare', 'epic'].map(r => TRICK_POOL.filter(t => t.tier === r && !t.retired && t.desc)
     .sort((a, b) => Math.abs(a.desc.length - 80) - Math.abs(b.desc.length - 80))[0]).filter(Boolean);
   const pct = Math.round(((typeof OVERTIME_LEN_MULT !== 'undefined') ? OVERTIME_LEN_MULT - 1 : 0.3) * 100);
   const costs = (typeof OVERTIME_COSTS !== 'undefined') ? evShuffle(OVERTIME_COSTS.slice()).slice(0, 3) : [];
   const price = marketCardPrice();
-  const offers = Array.from({ length: MARKET_OFFERS }, marketRollCard);
-  const cardName = c => `${c.rank}${c.suit}`;
+  // Owner: the market is the board, full of buffed cards. The real event's odds
+  // of a second buff hold among them.
+  const two = BAL.market.two_buffs / (BAL.market.two_buffs + BAL.market.one_buff);
+  const offers = Array.from({ length: (gridRows || 4) * (gridCols || 4) }, () =>
+    ({ card: marketRollCard().card, buffs: rollBuffs(Math.random() < two ? 2 : 1, { event: true }) }));
+  const cardName = c => `${c.rank}${c.suit || ''}`;
   const meta = id => EVENT_META[id] || { name: id, flavor: '' };
   return [
     { id: 'wild_cards', shape: 'two options', ...meta('wild_cards'),
@@ -76,13 +86,13 @@ function eglSamples() {
         { icon: W, title: 'Wilds run free', text: 'For the rest of the run, wilds also complete runs and flushes.', rar: 'rare' },
         { icon: W + W, title: 'Double the wilds', text: `${nW} more wilds go into your deck (${nW} → ${nW * 2}).`, rar: 'rare' }] }],
       result: () => (egl.picks[0] || [])[0] === 1 ? [`+${nW} wilds go into your deck.`] : ['Wilds now complete runs and flushes.'] },
-    { id: 'deck_trim', shape: 'three rungs, then cards', ...meta('deck_trim'),
+    { id: 'deck_trim', shape: 'three rungs, then the deck', ...meta('deck_trim'),
       steps: [
         { t: 'choice', label: 'HOW DEEP', note: 'Every card you cut is gone for the rest of the run. The fewer cards in the deck, the more often the ones you kept come round.',
           opts: tiers.map(t => ({ icon: '✂️', title: `Cut ${t.cards} card${t.cards > 1 ? 's' : ''}`,
             text: t.price === 0 ? 'Free. Pick one card and it leaves the run.' : `Pick ${t.cards} cards and they leave the run.`,
             cost: t.price === 0 ? 'No charge' : `${t.price} credits`, rar: t.cards >= 4 ? 'epic' : t.cards >= 2 ? 'rare' : 'common' })) },
-        { t: 'cards', label: () => `PICK ${tier().cards} CARD${tier().cards > 1 ? 'S' : ''} TO CUT`, note: 'Your draw pile.', cards: deck, pick: () => tier().cards }],
+        { t: 'deckcols', label: () => `PICK ${tier().cards} TO CUT`, note: 'Your deck, one column per suit.', cards: deck, pick: () => tier().cards }],
       result: () => { const c = (egl.picks[1] || []).map(i => cardName(deck[i])); const t = tier();
         return [`${c.join(', ') || 'Nothing'} ${c.length > 1 ? 'leave' : 'leaves'} the run.`, t.price ? `-${t.price} credits.` : 'No charge.']; } },
     { id: 'merchant', shape: 'pick an entity', ...meta('merchant'),
@@ -105,21 +115,21 @@ function eglSamples() {
         if (!L.n) return ['You walked away with nothing.'];
         return [`${L.n} ${L.n === 1 ? 'pick' : 'picks'} of three, one after another.`]; } },
     { id: 'market', shape: 'buy several', ...meta('market'),
-      steps: [{ t: 'shop', label: `${price} CREDITS EACH`, note: `In a round, double-tap the Lockbox to place one; a placed card joins your deck.`, items: offers, price }],
+      steps: [{ t: 'shopgrid', label: `${price} CREDITS EACH`, note: 'Tap the cards you want. They go into your Lockbox.', items: offers, price }],
       result: () => { const n = (egl.picks[0] || []).length;
         return n ? [`${n} card${n > 1 ? 's go' : ' goes'} into your Lockbox.`, `-${n * price} credits.`] : ['You left without buying.']; } },
   ];
 }
 
 // ── STATE ───────────────────────────────────────────────────────────────────
-function eglStep()  { return egl.done || egl.step < 0 ? null : egl.ev.steps[egl.step]; }
+function eglStep()  { return egl.done ? null : egl.ev.steps[egl.step]; }
 function eglPicks() { return egl.picks[egl.step] || (egl.picks[egl.step] = []); }
-function eglNeed(st) { return !st ? 0 : st.t === 'cards' ? eglTxt(st.pick) : (st.t === 'shop' || st.t === 'ladder') ? 0 : 1; }
+function eglNeed(st) { return !st ? 0 : (st.t === 'deckcols') ? eglTxt(st.pick) : (st.t === 'shopgrid' || st.t === 'ladder') ? 0 : 1; }
 function eglReady() { const st = eglStep(); return !st || eglPicks().length >= eglNeed(st); }
 function eglStart(deal = true) {
   egl.ev = egl.samples[eglPrefs.ev];
-  egl.step = eglPrefs.lay === 'pages' ? -1 : 0;
-  egl.picks = []; egl.done = false; egl.skipped = false; egl.focus = null; egl.page = 0;
+  egl.step = 0; egl.picks = []; egl.done = false; egl.skipped = false;
+  egl.inspect = null; egl.dvRow = 0;
   egl.ladder = { n: 0, busy: false, over: false, lost: false, reflip: false, used: false, cap: null, log: [] };
   egl.seen = new Set();
   if (deal) egl.board.querySelectorAll(':scope > .egl-cell').forEach(el => el.remove());
@@ -128,37 +138,34 @@ function eglStart(deal = true) {
 function eglTap(i) {
   const st = eglStep(); if (!st || egl.ladder.busy) return;
   const p = eglPicks(), at = p.indexOf(i);
-  if (st.t === 'shop') {
+  egl.inspect = i;
+  if (st.t === 'shopgrid') {
     if (at >= 0) p.splice(at, 1);
     else if ((p.length + 1) * st.price <= coins) p.push(i);
     else { eglShake(); return; }
-  } else if (st.t === 'cards') {
+  } else if (st.t === 'deckcols') {
     if (at >= 0) p.splice(at, 1);
     else { p.push(i); if (p.length > eglNeed(st)) p.shift(); }
-  } else {
-    egl.picks[egl.step] = [i];
-    if (egl.lay === 'focus') egl.focus = i;
-  }
+  } else egl.picks[egl.step] = [i];
   eglDraw();
 }
+// READOUT prints whatever the pointer rests on, before it is tapped.
+function eglHover(i) { if (egl.lay !== 'readout' || egl.inspect === i || egl.ladder.busy) return; egl.inspect = i; eglDraw(); }
 function eglNext() {
   if (egl.done) { eglClose(true); return; }
-  if (egl.step < 0) { egl.step = 0; eglDraw({ turn: true }); return; }
   const st = eglStep();
-  if (st.t === 'ladder') { const L = egl.ladder; if (L.over) { egl.done = true; eglDraw({ turn: egl.lay === 'pages' }); } else eglFlip(L.reflip); return; }
+  if (st.t === 'ladder') { const L = egl.ladder; if (L.over) { egl.done = true; eglDraw(); } else eglFlip(L.reflip); return; }
   if (!eglReady()) { eglShake(); return; }
-  egl.focus = null; egl.page = 0;
+  egl.inspect = null; egl.dvRow = 0;
   if (egl.step < egl.ev.steps.length - 1) egl.step++; else egl.done = true;
-  eglDraw({ turn: egl.lay === 'pages' });
+  eglDraw();
 }
 function eglSkip() {
   const L = egl.ladder;
   if (eglStep()?.t === 'ladder' && (L.n || L.reflip)) { L.over = true; egl.done = true; }   // STOP / WALK AWAY
   else { egl.done = true; egl.skipped = true; }
-  egl.focus = null;
-  eglDraw({ turn: egl.lay === 'pages' });
+  eglDraw();
 }
-function eglBack() { egl.focus = null; eglDraw(); }
 function eglFlip(paid) {
   const L = egl.ladder; if (L.busy || L.over) return;
   if (paid) { if (coins < EGL_REFLIP) { eglShake(); return; } L.used = true; }
@@ -178,48 +185,32 @@ function eglFlip(paid) {
 }
 
 // ── GEOMETRY ────────────────────────────────────────────────────────────────
-function eglGeom(rect, rows) {
-  const cols = Math.max(4, Math.min(12, Math.round(rect.w / EGL_CELL)));
+function eglGeom(rect) {
+  const rows = EGL_ROWS, cols = Math.max(4, Math.min(12, Math.round(rect.w / EGL_CELL)));
   const cw = (rect.w - 2 * EGL_PAD - (cols - 1) * EGL_GAP) / cols;
   const ch = (rect.h - 2 * EGL_PAD - (rows - 1) * EGL_GAP) / rows;
   return { rect, cols, rows, cw, ch, wide: cols >= 9,
     box: (c, r, w, h) => ({ l: EGL_PAD + c * (cw + EGL_GAP), t: EGL_PAD + r * (ch + EGL_GAP),
                             w: w * cw + (w - 1) * EGL_GAP, h: h * ch + (h - 1) * EGL_GAP }) };
 }
-const eglRows = () => egl.lay === 'terminal' ? EGL_TERM_ROWS : EGL_ROWS;
 function eglLandscape() { return !!document.getElementById('stage')?.classList.contains('landscape'); }
-// The stage's zoom and viewport origin with the camera at rest (it carries no
-// transform at play; the zoom room is the only thing here that gives it one).
-// Read once with the camera at rest (open, and after a resize puts it back), so
-// a redraw mid-dolly never reads a half-moved stage.
-function eglRebase() {
-  const st = document.getElementById('stage'), r = st.getBoundingClientRect();
-  egl.base = { z: r.width / st.offsetWidth, sw: st.offsetWidth, sh: st.offsetHeight, sx: r.left, sy: r.top };
-}
-function eglBase() { if (!egl.base) eglRebase(); return egl.base; }
-function eglBoxRect() {
-  const st = document.getElementById('stage'), s = st.getBoundingClientRect(), g = document.getElementById('grid-slot').getBoundingClientRect();
-  const z = s.width / st.offsetWidth;
+function eglZoom() { const st = document.getElementById('stage'); return st.getBoundingClientRect().width / st.offsetWidth; }
+// An element's box in #stage design px.
+function eglDesignRect(el) {
+  const st = document.getElementById('stage'), s = st.getBoundingClientRect(), g = el.getBoundingClientRect(), z = s.width / st.offsetWidth;
   return { x: (g.left - s.left) / z, y: (g.top - s.top) / z, w: g.width / z, h: g.height / z };
 }
-// Where the board goes in a room: its rect in stage design px, and the camera.
+const eglBoxRect = () => eglDesignRect(document.getElementById('grid-slot'));
 function eglRoomTarget(room) {
-  const box = eglBoxRect(), B = eglBase();
-  if (room === 'slide') return { rect: { x: 8, y: 8, w: B.sw - 16, h: B.sh - 16 }, k: 1, tx: 0, ty: 0, slide: true };
-  if (room !== 'zoom') return { rect: box, k: 1, tx: 0, ty: 0, slide: false };
-  const vw = innerWidth, vh = innerHeight, m = 6;
-  const k = (vh - 2 * m) / (box.h * B.z);
-  const cx = B.sx + (box.x + box.w / 2) * B.z, cy = B.sy + (box.y + box.h / 2) * B.z;
-  const tx = -(cx - vw / 2) * k, ty = -(cy - vh / 2) * k;
-  const sx = vw / 2 + tx + k * (B.sx - vw / 2), sy = vh / 2 + ty + k * (B.sy - vh / 2), u = B.z * k;
-  const x0 = -sx / u, x1 = (vw - sx) / u, y0 = -sy / u, y1 = (vh - sy) / u;
-  return { rect: { x: x0 + 4, y: y0 + 4, w: x1 - x0 - 8, h: y1 - y0 - 8 }, k, tx, ty, slide: false };
+  const st = document.getElementById('stage');
+  return room === 'slide' ? { rect: { x: 8, y: 8, w: st.offsetWidth - 16, h: st.offsetHeight - 16 }, slide: true }
+                          : { rect: eglBoxRect(), slide: false };
 }
+// The two card screens are the board, so they keep its box.
 function eglRoomNow() {
-  if (!eglLandscape()) return 'box';
+  if (!eglLandscape() || eglIsView(eglStep())) return 'box';
   if (!eglPrefs.need || eglPrefs.room === 'box') return eglPrefs.room;
-  const m = eglMeasure(eglBoxRect());
-  return (m.fit < EGL_NEED_FIT || m.paged) ? eglPrefs.room : 'box';
+  return eglMeasure(eglBoxRect()).fit < EGL_NEED_FIT ? eglPrefs.room : 'box';
 }
 
 // ── THE ROOM ────────────────────────────────────────────────────────────────
@@ -227,21 +218,20 @@ function eglRoomNow() {
 // wrappers, with the way it leaves: up if it sits over the board, else out the
 // nearer side. Things lying over the board itself (the goal flash) stay.
 function eglSlideTargets() {
-  const st = document.getElementById('stage'), s = st.getBoundingClientRect(), z = s.width / st.offsetWidth;
-  const g = eglBoxRect(), out = [];
+  const st = document.getElementById('stage'), g = eglBoxRect(), out = [];
   const walk = par => [...par.children].forEach(el => {
-    if (el.id === 'egl' || el.id === 'grid-slot' || el.tagName === 'SCRIPT') return;
+    if (el.id === 'egl' || el.id === 'egl-scroll' || el.id === 'grid-slot' || el.tagName === 'SCRIPT') return;
     const cs = getComputedStyle(el);
     if (cs.display === 'contents') { walk(el); return; }
     if (cs.display === 'none' || cs.position === 'fixed') return;
     const r0 = el.getBoundingClientRect(); if (!r0.width || !r0.height) return;
-    const r = { x: (r0.left - s.left) / z, y: (r0.top - s.top) / z, w: r0.width / z, h: r0.height / z };
+    const r = eglDesignRect(el);
     const ix = Math.max(0, Math.min(r.x + r.w, g.x + g.w) - Math.max(r.x, g.x)), iy = Math.max(0, Math.min(r.y + r.h, g.y + g.h) - Math.max(r.y, g.y));
     if (ix * iy > r.w * r.h * 0.5) return;
     const cx = r.x + r.w / 2;
     if (r.y + r.h <= g.y + 2 && cx > g.x && cx < g.x + g.w) out.push({ el, dx: 0, dy: -(r.y + r.h + 24), d: g.y - r.y - r.h });
     else if (cx < g.x + g.w / 2) out.push({ el, dx: -(r.x + r.w + 24), dy: 0, d: g.x - r.x - r.w });
-    else out.push({ el, dx: s.width / z - r.x + 24, dy: 0, d: r.x - g.x - g.w });
+    else out.push({ el, dx: st.offsetWidth - r.x + 24, dy: 0, d: r.x - g.x - g.w });
   });
   walk(st);
   return out;
@@ -260,92 +250,139 @@ function eglSetSlide(on) {
   clearTimeout(egl.slideT);
   if (!on) egl.slideT = setTimeout(() => (egl.slideEls || []).forEach(({ el }) => { el.style.transition = ''; }), EGL_MS + 200);
 }
-function eglSetCamera(T) {
-  const cam = document.getElementById('camera'); if (!cam) return;
-  if (T.k === egl.k && T.tx === egl.tx && T.ty === egl.ty) return;
-  const ms = Math.round(EGL_MS * 1.25);
-  cam.style.transition = `transform ${ms}ms ${EGL_EASE}`;
-  cam.style.transform = `translate(${T.tx}px, ${T.ty}px) scale(${T.k})`;
-  egl.k = T.k; egl.tx = T.tx; egl.ty = T.ty;
-  clearTimeout(egl.camT);
-  // At rest the camera must carry NO transform (js/camera.js, rule 2).
-  if (T.k === 1) egl.camT = setTimeout(() => { cam.style.transition = 'none'; cam.style.transform = ''; void cam.offsetWidth; cam.style.transition = ''; }, ms + 40);
-}
 function eglSetRect(rect, animate) {
   const L = egl.layer, prev = egl.rect;
   Object.assign(L.style, { left: rect.x + 'px', top: rect.y + 'px', width: rect.w + 'px', height: rect.h + 'px' });
   egl.rect = rect;
-  if (!animate || !prev || (prev.x === rect.x && prev.y === rect.y && prev.w === rect.w && prev.h === rect.h)) return false;
+  if (!animate || !prev || (prev.x === rect.x && prev.y === rect.y && prev.w === rect.w && prev.h === rect.h)) return;
   L.getAnimations().forEach(a => a.cancel());
   L.animate([{ left: prev.x + 'px', top: prev.y + 'px', width: prev.w + 'px', height: prev.h + 'px' },
              { left: rect.x + 'px', top: rect.y + 'px', width: rect.w + 'px', height: rect.h + 'px' }],
             { duration: EGL_MS, easing: EGL_EASE });
-  return true;
 }
 
 // ── PIECES ──────────────────────────────────────────────────────────────────
-// A piece is one cell or one merged run of cells: { key, cls, html, c, r, w, h,
-// tap, card, from }. A layout returns the pieces; eglFill adds the inert black
-// cards wherever none landed, so the board always reads as a board.
-let _eglPaged = false;
+// A piece is one cell or a merged run of cells: { key, cls, html, c, r, w, h,
+// tap, hover, hoverAt }. A layout returns the pieces; eglFill puts an empty cell
+// wherever none landed, two rows tall where it can, so the board stays a board.
 function eglPieces(G) {
-  _eglPaged = false;
-  const P = ({ marquee: eglLayMarquee, pages: eglLayPages, focus: eglLayFocus, terminal: eglLayTerminal })[egl.lay](G);
-  return egl.lay === 'terminal' ? P : eglFill(P, G);
+  const st = eglStep(), L = egl.lay;
+  let P;
+  if (L === 'terminal') P = eglLayTerminal(G);
+  else if (eglIsView(st)) P = eglLayView(G);
+  else if (L === 'readout') P = eglLayReadout(G);
+  else P = eglLayMarquee(G);
+  return eglFill(P, G);
 }
 function eglFill(P, G) {
   const used = new Set();
   P.forEach(p => { for (let r = p.r; r < p.r + p.h; r++) for (let c = p.c; c < p.c + p.w; c++) used.add(c + ':' + r); });
-  for (let r = 0; r < G.rows; r++) for (let c = 0; c < G.cols; c++)
-    if (!used.has(c + ':' + r)) P.push({ key: `amb:${c}:${r}`, cls: 'egl-amb', c, r, w: 1, h: 1 });
+  for (let r = 0; r < G.rows; r++) for (let c = 0; c < G.cols; c++) {
+    if (used.has(c + ':' + r)) continue;
+    const h = (r + 1 < G.rows && !used.has(c + ':' + (r + 1))) ? 2 : 1;
+    for (let k = 0; k < h; k++) used.add(c + ':' + (r + k));
+    P.push({ key: `amb:${c}:${r}:${h}`, cls: 'egl-amb', c, r, w: 1, h });
+  }
   return P;
 }
 const eglSk = () => egl.done ? 'out' : 's' + egl.step;   // a step's pieces are new pieces
 
-function eglPromptHTML(mode) {
+// Lines that type out the first time they are drawn (egl.seen), then stay put.
+function eglLinesHTML(lines, min) {
+  let fresh = 0;
+  const html = lines.map(([cls, t], i) => {
+    const k = `${egl.lay}|${eglSk()}|${i}|${t}`, isNew = !egl.seen.has(k);
+    if (!egl.measuring) egl.seen.add(k);
+    return `<div class="egl-tl ${cls}${isNew ? ' egl-type' : ''}" style="--d:${isNew ? fresh++ * 150 : 0}ms">${t ? eglEsc(t) : '&nbsp;'}</div>`;
+  }).join('');
+  return `<div class="egl-fit" data-min="${min}">${html}<span class="egl-cursor"></span></div>`;
+}
+function eglOutcome() { return egl.skipped ? ['Skipped. Nothing changes.'] : egl.ev.result(); }
+// The prompt as amber lines: all of it, or the one-line head of a card screen.
+function eglPromptLines(head) {
   const ev = egl.ev, st = eglStep();
-  const lab = egl.done ? 'OUTCOME' : eglTxt((st || ev.steps[0]).label);
-  const note = egl.done ? '' : egl.step < 0 ? (ev.steps[0].note || '') : (st.note || '');
-  if (mode === 'strip') {
-    const n = ev.steps.length + (egl.lay === 'pages' ? 2 : 1), at = egl.done ? n - 1 : egl.step + (egl.lay === 'pages' ? 1 : 0);
-    const dots = Array.from({ length: n }, (_, i) => `<i class="${i === at ? 'on' : i < at ? 'past' : ''}"></i>`).join('');
-    return `<div class="egl-fit egl-strip-in" data-min="6.5"><div class="egl-s1"><b class="egl-sn">${eglEsc(ev.name)}</b>`
-         + `<span class="egl-sl">${eglEsc(lab)}</span><span class="egl-dots">${dots}</span></div>`
-         + `<div class="egl-s2">${note || eglEsc(ev.flavor)}</div></div>`;
+  const lab = egl.done ? (egl.skipped ? 'SKIPPED' : 'DONE') : eglTxt(st.label);
+  const note = egl.done ? '' : eglPlain(st.note || '');
+  if (head) return [['egl-t-n2', `${ev.name.toUpperCase()} // ${lab}`]];
+  return [['egl-t-n', ev.name.toUpperCase()], ['egl-t-f', ev.flavor], ...(note ? [['egl-t-x', note]] : []), ['egl-t-l', `> ${lab}`]];
+}
+// What the screen says about the thing last touched (READOUT, and the head of
+// TERMINAL's card screens).
+function eglInspectLines() {
+  const st = eglStep(), i = egl.inspect, L = egl.ladder;
+  if (!st) return eglOutcome().map(l => ['egl-t-good', eglPlain(l)]);
+  if (st.t === 'ladder') return L.log.length ? L.log.slice(-3).map(l => [/LOST|TAILS/.test(l) ? 'egl-t-bad' : /HEADS/.test(l) ? 'egl-t-good' : '', l])
+                                             : [['egl-t-dim', 'FLIP TO CLIMB A RUNG.']];
+  if (st.t === 'shopgrid') {
+    const it = st.items[i], n = eglPicks().length;
+    const basket = ['egl-t-c', `BASKET ${n} · ${n * st.price} OF ${coins} CREDITS`];
+    if (!it) return [['egl-t-dim', eglPlain(st.note)], basket];
+    return [['egl-t-h', `> ${it.card.rank}${it.card.suit} · ${eglCodes(it.card, it.buffs).join(' · ')}`], basket];
   }
-  return `<div class="egl-fit" data-min="${mode === 'hero' ? 9.5 : 8}"><div class="egl-kick">${egl.step < 0 || mode === 'full' ? 'EVENT' : ''}</div>`
-       + `<div class="egl-name">${eglEsc(ev.name)}</div><div class="egl-flav">${eglEsc(ev.flavor)}</div>`
-       + (note ? `<div class="egl-note">${note}</div>` : '')
-       + `<div class="egl-lab">${eglEsc(lab)}</div></div>`;
-}
-function eglPrompt(mode, c, r, w, h, big) {
-  return { key: 'prompt-' + mode, cls: `egl-prompt egl-p-${mode}${big ? ' egl-big' : ''}`, html: eglPromptHTML(mode), c, r, w, h };
-}
-function eglResult(R, big) {
-  const lines = egl.skipped ? ['Skipped. Nothing changes.'] : egl.ev.result();
-  return [{ key: 'result', cls: 'egl-result' + (big ? ' egl-big' : ''), ...R,
-    html: `<div class="egl-fit" data-min="9"><div class="egl-kick">${egl.skipped ? 'SKIPPED' : 'DONE'}</div>`
-        + lines.map(l => `<div class="egl-rl">${eglCol(l)}</div>`).join('') + `</div>` }];
+  if (st.t === 'deckcols') {
+    const cd = st.cards[i], p = eglPicks();
+    const cut = ['egl-t-c', `CUT ${p.length} OF ${eglNeed(st)}: ${p.map(j => st.cards[j].rank + (st.cards[j].suit || '')).join(' ') || '-'}`];
+    if (!cd) return [['egl-t-dim', eglPlain(st.note)], cut];
+    const codes = eglCodes(cd);
+    return [['egl-t-h', `> ${cd.rank}${cd.suit || ''} · ${codes.length ? codes.join(' · ') : 'PLAIN'}`], cut];
+  }
+  const o = st.opts[i];
+  if (!o) return [['egl-t-dim', 'TOUCH A KEY TO READ IT.']];
+  return [['egl-t-h', `> [${i + 1}] ${(o.title || o.name).toUpperCase()}${o.rar && st.t === 'entities' ? ' · ' + o.rar.toUpperCase() : ''}`],
+          ['', eglPlain(o.text || o.desc)], ...(o.cost ? [['egl-t-c', `COST · ${o.cost.toUpperCase()}`]] : [])];
 }
 
-// The action row: what the step can do, as cells. Secondary actions take a
-// cell each from the left, the commit takes two (three with room) at the right.
+// The prompt piece, in each layout's own material.
+function eglPromptPiece(R, head) {
+  const L = egl.lay, mode = head ? 'head' : 'full';
+  if (L === 'marquee') return { key: 'prompt-' + mode, cls: `egl-prompt egl-p-${head ? 'strip' : 'full'}${!head && R.h > 6 ? ' egl-big' : ''}`, html: eglMarqueePromptHTML(head), ...R };
+  if (L === 'readout') {
+    const lines = head ? [...eglPromptLines(true), ...eglInspectLines()] : [...eglPromptLines(false), ['egl-t-rule', ''], ...eglInspectLines()];
+    return { key: 'screen-' + mode, cls: 'egl-screen', html: eglLinesHTML(lines, 9), ...R };
+  }
+  if (L === 'wire') {
+    const lines = head ? [['egl-t-x', eglPlain(eglStep()?.note || '')]] : eglPromptLines(false).filter(l => l[0] !== 'egl-t-n');
+    const leg = head ? `${egl.ev.name.toUpperCase()} // ${eglTxt(eglStep().label)}` : `EVENT · ${egl.ev.name.toUpperCase()}`;
+    return { key: 'prompt-' + mode, cls: 'egl-prompt', html: `<div class="egl-wb egl-wb2"><span class="egl-leg">${eglEsc(leg)}</span>${eglLinesHTML(lines, 9)}</div>`, ...R };
+  }
+  // WALL: a screen of its own
+  const lines = head ? [...eglPromptLines(true), ['egl-t-x', eglPlain(eglStep()?.note || '')]] : eglPromptLines(false);
+  return { key: 'prompt-' + mode, cls: 'egl-prompt', html: eglLinesHTML(lines, 9), ...R };
+}
+function eglMarqueePromptHTML(head) {
+  const ev = egl.ev, st = eglStep();
+  const lab = egl.done ? 'OUTCOME' : eglTxt(st.label), note = egl.done ? '' : (st.note || '');
+  if (head) return `<div class="egl-fit egl-strip-in" data-min="6.5"><div class="egl-s1"><b class="egl-sn">${eglEsc(ev.name)}</b>`
+                 + `<span class="egl-sl">${eglEsc(lab)}</span></div><div class="egl-s2">${note || eglEsc(ev.flavor)}</div></div>`;
+  return `<div class="egl-fit" data-min="8"><div class="egl-kick">EVENT</div>`
+       + `<div class="egl-name">${eglEsc(ev.name)}</div><div class="egl-flav">${eglEsc(ev.flavor)}</div>`
+       + (note ? `<div class="egl-note">${note}</div>` : '') + `<div class="egl-lab">${eglEsc(lab)}</div></div>`;
+}
+function eglResult(R) {
+  const L = egl.lay, lines = eglOutcome();
+  if (L === 'marquee') return [{ key: 'result', cls: 'egl-result', ...R,
+    html: `<div class="egl-fit" data-min="9"><div class="egl-kick">${egl.skipped ? 'SKIPPED' : 'DONE'}</div>`
+        + lines.map(l => `<div class="egl-rl">${eglCol(l)}</div>`).join('') + `</div>` }];
+  const body = eglLinesHTML([['egl-t-l', egl.skipped ? '> SKIPPED' : '> DONE'], ...lines.map(l => ['egl-t-good', eglPlain(l)])], 10);
+  return [{ key: 'result', cls: 'egl-result', ...R,
+    html: L === 'wire' ? `<div class="egl-wb egl-wb2"><span class="egl-leg">OUTCOME</span>${body}</div>` : body }];
+}
+
+// The action row: secondary actions from the left, the commit at the right.
 function eglActs() {
   const st = eglStep(), L = egl.ladder, acts = [];
   let go = { label: 'CONFIRM', sub: '', off: false, on: eglNext };
   if (egl.done) go = { label: 'DONE', sub: 'back to the board', on: eglNext };
-  else if (egl.step < 0) { acts.push({ label: 'SKIP', on: eglSkip }); go = { label: 'BEGIN', sub: '›', on: eglNext }; }
   else if (st.t === 'ladder') {
     if (L.busy) go = { label: 'FLIP', sub: '...', off: true };
     else if (L.over) go = { label: L.n && !L.lost ? 'TAKE THEM' : 'DONE', sub: '', on: eglNext };
     else if (L.reflip) { acts.push({ label: 'WALK AWAY', on: eglSkip }); go = { label: 'FLIP AGAIN', sub: `${EGL_REFLIP} credits`, on: eglNext }; }
     else { acts.push(L.n ? { label: 'STOP', sub: `take ${L.n}`, on: eglSkip } : { label: 'SKIP', on: eglSkip }); go = { label: 'FLIP', sub: L.n ? `for ${L.n + 1}` : 'heads or tails', on: eglNext }; }
   } else {
-    if (egl.lay === 'focus' && egl.focus != null) acts.push({ label: 'BACK', on: eglBack });
-    else if (!st.noSkip) acts.push({ label: 'SKIP', on: eglSkip });
+    if (!st.noSkip) acts.push({ label: 'SKIP', on: eglSkip });
     const p = eglPicks(), need = eglNeed(st), last = egl.step === egl.ev.steps.length - 1;
-    if (st.t === 'shop') go = { label: p.length ? `BUY ${p.length}` : 'LEAVE', sub: p.length ? `${p.length * st.price} credits` : 'buy nothing', on: eglNext };
-    else if (st.t === 'cards') go = { label: last ? 'CONFIRM' : 'NEXT', sub: `${p.length} of ${need} picked`, off: p.length < need, on: eglNext };
+    if (st.t === 'shopgrid') go = { label: p.length ? `BUY ${p.length}` : 'LEAVE', sub: p.length ? `${p.length * st.price} credits` : 'buy nothing', on: eglNext };
+    else if (st.t === 'deckcols') go = { label: last ? 'CUT' : 'NEXT', sub: `${p.length} of ${need} picked`, off: p.length < need, on: eglNext };
     else {
       const o = st.opts[p[0]];
       go = { label: last ? 'CONFIRM' : 'NEXT', sub: o ? (o.title || o.name) : 'tap an option', off: !o, on: eglNext };
@@ -353,18 +390,20 @@ function eglActs() {
   }
   return { acts, go };
 }
-function eglActions(A, term, navPages) {
-  const { acts, go } = eglActs(), sw = (term || A.w >= 9) ? 2 : 1, P = [];
-  const gw = term ? (navPages ? 2 : Math.min(4, A.w - sw)) : A.w >= 9 ? 3 : 2;
+// The amber screens print their keys as [ BRACKETS ]; MARQUEE's and READOUT's are tiles.
+function eglActions(A) {
+  const { acts, go } = eglActs(), P = [], term = egl.lay === 'wall' || egl.lay === 'wire' || egl.lay === 'terminal';
+  const sw = (term || A.w >= 9) ? 2 : 1, gw = term ? Math.min(4, A.w - sw) : A.w >= 9 ? 3 : 2;
+  const h = A.h || 1, small = h < 2 ? ' egl-act1' : '';
   let c = A.c;
   acts.forEach(a => {
     if (c + sw > A.c + A.w - gw) return;
-    P.push({ key: 'act-' + a.label, cls: 'egl-act' + (term ? ' egl-tact' : ''), c, r: A.r, w: sw, h: 1, tap: a.on,
-      html: term ? `<div class="egl-fit" data-min="7" data-chrome>[ ${a.label} ]</div>` : `<div class="egl-fit" data-min="5.5" data-chrome><b>${a.label}</b>${a.sub ? `<i>${a.sub}</i>` : ''}</div>` });
+    P.push({ key: 'act-' + a.label, cls: 'egl-act' + small + (term ? ' egl-tact' : ''), c, r: A.r, w: sw, h, tap: a.on,
+      html: term ? `<div class="egl-fit" data-min="7" data-chrome>[ ${a.label} ]</div>`
+                 : `<div class="egl-fit" data-min="5.5" data-chrome><b>${a.label}</b>${a.sub ? `<i>${a.sub}</i>` : ''}</div>` });
     c += sw;
   });
-  if (navPages) P.push(...eglNav(navPages, [{ c, r: A.r, w: 1, h: 1 }, { c: c + 1, r: A.r, w: 1, h: 1 }], term));
-  P.push({ key: 'act-go', cls: 'egl-act egl-go' + (go.off ? ' egl-off' : '') + (term ? ' egl-tact' : ''), c: A.c + A.w - gw, r: A.r, w: gw, h: 1,
+  P.push({ key: 'act-go', cls: 'egl-act egl-go' + small + (go.off ? ' egl-off' : '') + (term ? ' egl-tact' : ''), c: A.c + A.w - gw, r: A.r, w: gw, h,
     tap: go.off ? eglShake : go.on,
     html: term ? `<div class="egl-fit" data-min="7" data-chrome>[ ${go.label}${go.sub ? ' · ' + eglEsc(go.sub).toUpperCase() : ''} ]</div>`
                : `<div class="egl-fit" data-min="6" data-chrome><b>${go.label}</b>${go.sub ? `<i>${eglEsc(go.sub)}</i>` : ''}</div>` });
@@ -372,17 +411,15 @@ function eglActions(A, term, navPages) {
 }
 
 // ── STEP BODIES ─────────────────────────────────────────────────────────────
-// R is the region in cells; mode is 'full' (everything shown), 'compact' (icon
-// and name; a tap opens it) or 'menu' (the terminal's numbered lines).
-function eglBody(R, mode, G) {
-  const st = eglStep();
+// mode: 'full' (MARQUEE, WALL), 'keys' (READOUT: a name only, the words go to
+// the screen), 'box' (WIREFRAME), 'menu' (TERMINAL's numbered lines).
+const eglBodyMode = () => ({ marquee: 'full', wall: 'full', readout: 'keys', wire: 'box', terminal: 'menu' })[egl.lay];
+function eglBody(R, G) {
+  const st = eglStep(), mode = eglBodyMode();
   if (!st) return [];
-  if (st.t === 'cards') return eglCardsBody(st, R, mode, G);
-  if (st.t === 'shop') return eglShopBody(st, R, mode, G);
-  if (st.t === 'ladder') return eglLadderBody(st, R, mode, G);
+  if (st.t === 'ladder') return eglLadderBody(st, R, mode);
   return eglOptsBody(st, R, mode, G);
 }
-// Spread n tiles of width w over R, centred, in as many rows as fit.
 function eglSpread(n, R, w, h) {
   const per = Math.max(1, Math.floor(R.w / w)), rows = Math.ceil(n / per), out = [];
   const r0 = R.r + Math.max(0, Math.floor((R.h - rows * h) / 2));
@@ -393,109 +430,43 @@ function eglSpread(n, R, w, h) {
   return out;
 }
 function eglOptHTML(st, o, i, mode) {
-  if (st.t === 'entities') {
-    const art = (typeof entityTileHTML === 'function')
-      ? entityTileHTML({ entity: o.entity, id: o.id, emoji: o.emoji, label: o.name }, o.rar, { tip: false, extraClass: 'egl-obj' }) : '';
-    if (mode === 'menu') return `<div class="egl-fit" data-min="7"><div class="egl-tm-l"><b>[${i + 1}]</b> ${eglEsc(o.name.toUpperCase())}<u></u><em>${o.rar.toUpperCase()}</em></div><div class="egl-tm-x">${eglEsc(eglPlain(o.desc))}</div></div>`;
-    return `<div class="egl-fit" data-min="${mode === 'detail' ? 9 : 7}"><div class="egl-tag rar-${o.rar}">${o.rar}</div><div class="egl-art">${art}</div>`
-         + `<div class="egl-ot">${eglEsc(o.name)}</div>${mode === 'compact' ? '' : `<div class="egl-ox">${eglCol(o.desc)}</div>`}</div>`;
-  }
-  const ico = (typeof emGlyph === 'function') ? emGlyph(o.icon) : o.icon;
-  if (mode === 'menu') return `<div class="egl-fit" data-min="7"><div class="egl-tm-l"><b>[${i + 1}]</b> ${eglEsc(o.title.toUpperCase())}<u></u><em>${eglEsc((o.cost || '').toUpperCase())}</em></div><div class="egl-tm-x">${eglEsc(eglPlain(o.text))}</div></div>`;
-  return `<div class="egl-fit" data-min="${mode === 'detail' ? 9 : 7}"><div class="egl-ico">${ico}</div><div class="egl-ot">${eglEsc(o.title)}</div>`
-       + (mode === 'compact' ? '' : `<div class="egl-ox">${eglCol(o.text)}</div>`)
+  const ent = st.t === 'entities';
+  const art = ent && (typeof entityTileHTML === 'function')
+    ? entityTileHTML({ entity: o.entity, id: o.id, emoji: o.emoji, label: o.name }, o.rar, { tip: false, extraClass: 'egl-obj' }) : '';
+  const ico = ent ? `<div class="egl-art">${art}</div>` : `<div class="egl-ico">${(typeof emGlyph === 'function') ? emGlyph(o.icon) : o.icon}</div>`;
+  const title = ent ? o.name : o.title, text = ent ? o.desc : o.text, tag = ent ? o.rar : (o.cost || '');
+  if (mode === 'menu') return `<div class="egl-fit" data-min="7"><div class="egl-tm-l"><b>[${i + 1}]</b> ${eglEsc(title.toUpperCase())}<u></u><em>${eglEsc(tag.toUpperCase())}</em></div><div class="egl-tm-x">${eglEsc(eglPlain(text))}</div></div>`;
+  if (mode === 'keys') return `<i class="egl-led"></i><div class="egl-fit" data-min="7">${ico}<div class="egl-ot">${eglEsc(title)}</div>`
+                            + (tag ? `<div class="egl-cost">${eglEsc(tag)}</div>` : '') + `</div>`;
+  if (mode === 'box') return `<div class="egl-wb"><span class="egl-leg">[${i + 1}] ${eglEsc(title.toUpperCase())}</span>`
+                           + `<div class="egl-fit" data-min="8">${ico}<div class="egl-ox">${eglEsc(eglPlain(text))}</div>`
+                           + (tag ? `<div class="egl-cost">${eglEsc(tag.toUpperCase())}</div>` : '') + `</div></div>`;
+  const amber = egl.lay !== 'marquee';
+  return `<div class="egl-fit" data-min="7">${ent ? `<div class="egl-tag rar-${o.rar}">${o.rar}</div>` : ''}${ico}<div class="egl-ot">${eglEsc(title)}</div>`
+       + `<div class="egl-ox">${amber ? eglEsc(eglPlain(text)) : eglCol(text)}</div>`
        + (o.cost ? `<div class="egl-cost">${eglEsc(o.cost)}</div>` : '') + `</div>`;
 }
-function eglOptCls(st, o, i, extra) {
-  const sel = eglPicks().includes(i);
-  return `egl-opt${st.t === 'entities' ? ' egl-ent' : ''}${o.rar ? ' rar-' + o.rar : ''}${st.tone === 'debuff' ? ' egl-debuff' : ''}${sel ? ' egl-sel' : ''} ${extra || ''}`;
-}
 function eglOptsBody(st, R, mode, G) {
-  const n = st.opts.length, sk = eglSk(), P = [];
+  const n = st.opts.length, sk = eglSk(), P = [], sel = eglPicks();
+  const cls = (o, i, extra) => `egl-opt${st.t === 'entities' ? ' egl-ent' : ''}${o.rar ? ' rar-' + o.rar : ''}${st.tone === 'debuff' ? ' egl-debuff' : ''}`
+                             + `${sel.includes(i) ? ' egl-sel' : ''}${egl.inspect === i ? ' egl-insp' : ''} ${extra || ''}`;
   if (mode === 'menu') {
     const h = Math.max(1, Math.min(3, Math.floor(R.h / n)));
-    st.opts.forEach((o, i) => P.push({ key: `${sk}:o${i}`, cls: eglOptCls(st, o, i, 'egl-tm'), c: R.c, r: R.r + i * h, w: R.w, h, tap: () => eglTap(i), html: eglOptHTML(st, o, i, 'menu') }));
+    st.opts.forEach((o, i) => P.push({ key: `${sk}:o${i}`, cls: cls(o, i, 'egl-tm'), c: R.c, r: R.r + i * h, w: R.w, h, tap: () => eglTap(i), html: eglOptHTML(st, o, i, 'menu') }));
     return P;
   }
-  if (mode === 'compact' && egl.focus != null) {
-    const i = egl.focus, o = st.opts[i];
-    return [{ key: `${sk}:detail`, from: `${sk}:o${i}`, cls: eglOptCls(st, o, i, 'egl-detail' + (G.wide ? ' egl-big' : '')), ...R, html: eglOptHTML(st, o, i, 'detail') }];
-  }
   let w, h;
-  if (mode === 'compact') { w = Math.min(G.wide ? 3 : 2, Math.max(1, Math.floor(R.w / n))); h = Math.min(R.h, 2); }
-  else if (n === 1) { w = Math.min(R.w, G.wide ? 5 : 4); h = R.h; }
+  if (n === 1) { w = Math.min(R.w, G.wide ? 5 : 4); h = R.h; }
   else if (R.w >= n * 2) { w = Math.floor(R.w / n); h = R.h; }
   else { w = R.w; h = Math.max(1, Math.floor(R.h / n)); }
   eglSpread(n, R, w, h).forEach((b, i) => {
     const o = st.opts[i];
-    P.push({ key: `${sk}:o${i}`, cls: eglOptCls(st, o, i, mode === 'compact' ? 'egl-compact' : (G.wide ? 'egl-big' : '')), ...b, tap: () => eglTap(i), html: eglOptHTML(st, o, i, mode) });
+    P.push({ key: `${sk}:o${i}`, cls: cls(o, i, G.wide && mode === 'full' ? 'egl-big' : ''), ...b,
+      tap: () => eglTap(i), hover: () => eglHover(i), html: eglOptHTML(st, o, i, mode) });
   });
   return P;
 }
-function eglCardFace(card) {
-  let a = null;
-  try { a = renderCardAppearance(card, 0, 0, { revealFog: true }); } catch (e) {}
-  return a ? `<div class="${a.className}">${a.innerHTML}</div>` : `<div class="card">${card.rank}${card.suit}</div>`;
-}
-// Cards a page at a time. A page that cannot hold them all gives up its last
-// two cells to ‹ and ›; how many pages it took is part of the comparison.
-function eglPaging(N, cap, reserve) {
-  if (N <= cap) return { per: N, pages: 1 };
-  _eglPaged = true;
-  const per = Math.max(1, cap - reserve);
-  return { per, pages: Math.ceil(N / per) };
-}
-function eglNav(pages, at, term) {
-  const P = [];
-  const go = d => { egl.page = Math.max(0, Math.min(pages - 1, egl.page + d)); eglDraw(); };
-  [['‹', -1, egl.page === 0], ['›', 1, egl.page >= pages - 1]].forEach(([g, d, off], j) =>
-    P.push({ key: 'nav' + d, cls: 'egl-act egl-nav' + (off ? ' egl-off' : '') + (term ? ' egl-tact' : ''), ...at[j], tap: off ? null : () => go(d),
-      html: `<div class="egl-fit" data-min="6" data-chrome><b>${g}</b><i>${egl.page + 1}/${pages}</i></div>` }));
-  return P;
-}
-function eglCardsBody(st, R, mode, G) {
-  const cards = st.cards, p = eglPicks(), sk = eglSk(), P = [];
-  const cw = mode === 'menu' ? 2 : 1;
-  const per = Math.floor(R.w / cw);
-  const pg = eglPaging(cards.length, per * R.h, mode === 'menu' ? 0 : 2);
-  egl.page = Math.min(egl.page, pg.pages - 1);
-  const first = egl.page * pg.per;
-  cards.slice(first, first + pg.per).forEach((cd, j) => {
-    const i = first + j, sel = p.includes(i);
-    const b = { c: R.c + (j % per) * cw, r: R.r + Math.floor(j / per), w: cw, h: 1 };
-    if (mode === 'menu') P.push({ key: `${sk}:c${i}`, cls: 'egl-tm egl-tcard' + (sel ? ' egl-sel' : ''), ...b, tap: () => eglTap(i),
-      html: `<div class="egl-fit" data-min="7">${sel ? '[×]' : '[ ]'} ${cd.rank}${cd.suit}</div>` });
-    else P.push({ key: `${sk}:c${i}`, cls: 'egl-card' + (sel ? ' egl-sel' : ''), ...b, card: true, tap: () => eglTap(i), html: eglCardFace(cd) });
-  });
-  if (pg.pages > 1) {
-    const at = mode === 'menu' ? null : [{ c: R.c + R.w - 2, r: R.r + R.h - 1, w: 1, h: 1 }, { c: R.c + R.w - 1, r: R.r + R.h - 1, w: 1, h: 1 }];
-    if (at) P.push(...eglNav(pg.pages, at));
-    else egl.termNav = pg.pages;
-  }
-  return P;
-}
-function eglShopBody(st, R, mode, G) {
-  const items = st.items, p = eglPicks(), sk = eglSk(), P = [], n = items.length;
-  const buffTxt = it => it.buffs.length ? it.buffs.map(b => b.label).join(' · ') : 'plain';
-  if (mode === 'menu') {
-    const cw = Math.max(3, Math.floor(R.w / 2)), per = Math.floor(R.w / cw);
-    items.forEach((it, i) => {
-      const sel = p.includes(i);
-      P.push({ key: `${sk}:s${i}`, cls: 'egl-tm egl-tcard' + (sel ? ' egl-sel' : ''), c: R.c + (i % per) * cw, r: R.r + Math.floor(i / per), w: cw, h: 1, tap: () => eglTap(i),
-        html: `<div class="egl-fit" data-min="7">${sel ? '[×]' : '[ ]'} ${it.card.rank}${it.card.suit} <span>${eglEsc(eglPlain(buffTxt(it)))}</span></div>` });
-    });
-    return P;
-  }
-  const sizes = [[2, 2], [1, 2], [1, 1]];
-  const [w, h] = sizes.find(([w, h]) => Math.ceil(n / Math.max(1, Math.floor(R.w / w))) * h <= R.h) || [1, 1];
-  eglSpread(n, R, w, h).forEach((b, i) => {
-    const it = items[i], sel = p.includes(i);
-    P.push({ key: `${sk}:s${i}`, cls: `egl-shop egl-sh${w}${h}` + (sel ? ' egl-sel' : '') + (it.buffs.length ? ' egl-buffed' : ''), ...b, card: true, tap: () => eglTap(i),
-      html: `<div class="egl-shop-face">${eglCardFace(it.card)}</div><div class="egl-fit egl-shop-b" data-min="5.5"><div>${eglCol(buffTxt(it))}</div></div>` });
-  });
-  return P;
-}
-function eglLadderBody(st, R, mode, G) {
+function eglLadderBody(st, R, mode) {
   const L = egl.ladder, P = [], n = st.rungs.length;
   const cls = i => (L.lost && i < L.n ? ' egl-lost' : !L.lost && i < L.n ? ' egl-lit' : (!L.over && !L.reflip && i === L.n) ? ' egl-next' : '');
   if (mode === 'menu') {
@@ -507,96 +478,162 @@ function eglLadderBody(st, R, mode, G) {
   const rw = Math.max(1, Math.floor((R.w - 2) / n)), wc = R.w - n * rw;
   P.push({ key: 'coin', cls: 'egl-coin', c: R.c, r: R.r, w: wc, h: R.h, html: `<div class="egl-coinhost"></div>` });
   st.rungs.forEach((t, i) => P.push({ key: 'rung' + i, cls: 'egl-rung' + cls(i), c: R.c + wc + i * rw, r: R.r, w: rw, h: R.h,
-    html: `<div class="egl-bar" style="--lv:${(i + 1) / n}"></div><div class="egl-fit" data-min="7"><b>${i + 1}</b><i>${eglEsc(t)}</i></div>` }));
+    html: (mode === 'keys' ? '<i class="egl-led"></i>' : '') + `<div class="egl-bar" style="--lv:${(i + 1) / n}"></div><div class="egl-fit" data-min="7"><b>${i + 1}</b><i>${eglEsc(t)}</i></div>` }));
   return P;
 }
 
-// ── THE FOUR LAYOUTS ────────────────────────────────────────────────────────
-function eglLayMarquee(G) {
-  const P = [];
-  if (G.wide) {
-    const pw = G.cols >= 11 ? 4 : 3, R = { c: pw, r: 0, w: G.cols - pw, h: G.rows - 1 };
-    P.push(eglPrompt('full', 0, 0, pw, G.rows, true));
-    P.push(...(egl.done ? eglResult(R, true) : eglBody(R, 'full', G)), ...eglActions({ c: pw, r: G.rows - 1, w: G.cols - pw }));
+// ── THE CARD SCREENS ────────────────────────────────────────────────────────
+function eglCardFace(card) {
+  let a = null;
+  try { a = renderCardAppearance(card, 0, 0, { revealFog: true }); } catch (e) {}
+  return a ? `<div class="${a.className}">${a.innerHTML}</div>` : `<div class="card">${card.rank}${card.suit}</div>`;
+}
+// A market card is not owned, so its buffs are written to the stores for this
+// one render and taken straight back out; the face then wears its real bands.
+function eglFaceBuffed(card, buffs) {
+  const k = cardId(card), S = eglStores(), undo = [];
+  buffs.forEach(b => Object.entries(b.e || {}).forEach(([key, v]) => {
+    const s = S[key]; if (!s) return;
+    undo.push([s, k in s, s[k]]); s[k] = v;
+  }));
+  try { return eglCardFace(card); }
+  finally { undo.reverse().forEach(([s, had, old]) => { if (had) s[k] = old; else delete s[k]; }); }
+}
+// A card's buffs in a few words: the offer's own labels, or what the deck card holds.
+function eglCodes(card, buffs) {
+  if (buffs) return buffs.map(b => eglPlain(b.label).toUpperCase());
+  const k = cardId(card), S = eglStores(), v = key => (S[key] && S[key][k]) || 0, out = [];
+  if (v('pips')) out.push(`+${v('pips')} PIPS`);
+  if (v('mult')) out.push(`+${v('mult')} MULT`);
+  if (v('xpips') > 1) out.push(`×${v('xpips')} PIPS`);
+  if (v('xmult') > 1) out.push(`×${v('xmult')} MULT`);
+  if (v('retrig')) out.push(`${v('retrig')} REPLAY`);
+  if (v('time')) out.push(`+${v('time')}S REWIND`);
+  if (v('focus')) out.push(`+${v('focus')} FOCUS`);
+  if (v('coin')) out.push(`+${v('coin')} CREDITS`);
+  return out;
+}
+// The deck in one column per suit, a rank to a row from the Ace down, wilds last.
+// A rank no suit holds has no row; a rank one suit holds twice has two.
+function eglDeckCols(cards) {
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS.slice() : ['♠', '♥', '♦', '♣'];
+  const rv = r => ({ J: 11, Q: 12, K: 13, A: 14 }[r] || +r || 0);
+  const ranks = ((typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS.slice() : ['2','3','4','5','6','7','8','9','10','J','Q','K','A'])
+    .sort((a, b) => rv(b) - rv(a));
+  const W = typeof WILD_RANK !== 'undefined' ? WILD_RANK : '✶';
+  if (!ranks.includes(W)) ranks.push(W);
+  const used = new Set(), rows = [];
+  ranks.forEach(rk => {
+    const per = suits.map(s => cards.reduce((a, c, i) => (c.rank === rk && c.suit === s ? a.concat(i) : a), []));
+    per.forEach(a => a.forEach(i => used.add(i)));
+    const n = Math.max(0, ...per.map(a => a.length));
+    for (let k = 0; k < n; k++) rows.push(per.map(a => a[k] ?? -1));
+  });
+  const rest = cards.map((c, i) => i).filter(i => !used.has(i));
+  for (let j = 0; j < rest.length; j += suits.length) rows.push(suits.map((s, k) => rest[j + k] ?? -1));
+  return { cols: suits.length, rows };
+}
+// Which material a card takes: the real face (MARQUEE, READOUT), a screen of its
+// own (WALL) or a line drawing on the shared glass (WIREFRAME, TERMINAL).
+const eglCardStyle = () => ({ marquee: 'face', readout: 'face', wall: 'phos', wire: 'line', terminal: 'line' })[egl.lay];
+function eglSlotHTML(s, style, cw, ch, sel, cut) {
+  if (!s) return `<div class="egl-vs egl-vempty"></div>`;
+  const on = sel.includes(s.i) ? (cut ? ' egl-vcut' : ' egl-vbuy') : '', insp = egl.inspect === s.i ? ' egl-insp' : '';
+  if (style === 'face') {
+    const fh = s.buffs ? ch * 0.66 : ch;
+    const lab = s.buffs ? `<div class="egl-fit egl-vlab" data-min="6"><div>${eglCol(s.buffs.map(b => b.label).join(' · '))}</div></div>` : '';
+    return `<div class="egl-vs${on}${insp}" data-i="${s.i}" style="--card-w:${(cw - 2).toFixed(1)}px;--card-h:${(fh - 2).toFixed(1)}px">`
+         + `<div class="egl-vface">${s.buffs ? eglFaceBuffed(s.card, s.buffs) : eglCardFace(s.card)}</div>${lab}<i class="egl-x">CUT</i></div>`;
+  }
+  const red = s.card.suit === '♥' || s.card.suit === '♦' ? ' egl-red' : '';
+  const codes = eglCodes(s.card, s.buffs);
+  return `<div class="egl-vs egl-tc egl-tc-${style}${red}${on}${insp}${codes.length ? ' egl-tcb' : ''}" data-i="${s.i}">`
+       + `<b>${eglEsc(s.card.rank)}</b><i>${s.card.suit || ''}</i>${codes.length ? `<em>${codes.map(eglEsc).join('<br>')}</em>` : ''}<u>CUT</u></div>`;
+}
+function eglViewPiece(R, G) {
+  const st = eglStep(), b = G.box(R.c, R.r, R.w, R.h), style = eglCardStyle(), cut = st.t === 'deckcols';
+  let cols, rows, slots, vis;
+  if (cut) {
+    const D = eglDeckCols(st.cards);
+    cols = D.cols; rows = D.rows.length; vis = Math.min(EGL_DECK_ROWS, rows);
+    slots = D.rows.flat().map(i => i < 0 ? null : { i, card: st.cards[i] });
   } else {
-    const R = { c: 0, r: 2, w: G.cols, h: G.rows - 3 };
-    P.push(eglPrompt('full', 0, 0, G.cols, 2));
-    P.push(...(egl.done ? eglResult(R) : eglBody(R, 'full', G)), ...eglActions({ c: 0, r: G.rows - 1, w: G.cols }));
+    cols = gridCols || 4; rows = Math.ceil(st.items.length / cols); vis = rows;
+    slots = st.items.map((it, i) => ({ i, card: it.card, buffs: it.buffs }));
+  }
+  const pad = 3, gap = 4;
+  const cw = (b.w - 2 * pad - (cols - 1) * gap) / cols, ch = (b.h - 2 * pad - (vis - 1) * gap) / vis;
+  if (!egl.measuring) egl.view = { rows, vis };
+  const sel = eglPicks();
+  const html = `<div class="egl-vw" style="--vc:${cols};--vh:${ch.toFixed(2)}px;--vg:${gap}px">`
+             + slots.map(s => eglSlotHTML(s, style, cw, ch, sel, cut)).join('') + `</div>`;
+  return { key: `${eglSk()}:view`, cls: `egl-view egl-v-${style}${cut ? ' egl-v-cut' : ''}`, ...R, html,
+    tap: e => { if (egl.dragged) return; const s = e.target.closest('[data-i]'); if (s) eglTap(+s.dataset.i); },
+    hoverAt: e => { const s = e.target.closest('[data-i]'); if (s) eglHover(+s.dataset.i); } };
+}
+
+// ── THE LAYOUTS ─────────────────────────────────────────────────────────────
+// MARQUEE, WALL and WIREFRAME share Marquee's plan: prompt on top (a column on
+// the left with room), options under it, the action row at the foot.
+function eglLayMarquee(G) {
+  const P = [], ah = egl.lay === 'wire' ? 1 : 2;
+  if (G.wide) {
+    const pw = G.cols >= 11 ? 4 : 3, R = { c: pw, r: 0, w: G.cols - pw, h: G.rows - ah };
+    P.push(eglPromptPiece({ c: 0, r: 0, w: pw, h: G.rows }));
+    P.push(...(egl.done ? eglResult(R) : eglBody(R, G)), ...eglActions({ c: pw, r: G.rows - ah, w: G.cols - pw, h: ah }));
+  } else {
+    const R = { c: 0, r: 4, w: G.cols, h: G.rows - 4 - ah };
+    P.push(eglPromptPiece({ c: 0, r: 0, w: G.cols, h: 4 }));
+    P.push(...(egl.done ? eglResult(R) : eglBody(R, G)), ...eglActions({ c: 0, r: G.rows - ah, w: G.cols, h: ah }));
   }
   return P;
 }
-function eglLayPages(G) {
-  const P = [], R = { c: 0, r: 0, w: G.cols, h: G.rows - 1 };
-  if (egl.step < 0 && !egl.done) P.push(eglPrompt('hero', 0, 0, G.cols, G.rows - 1, G.wide));
-  else if (egl.done) P.push(...eglResult(R, true));
-  else { P.push(eglPrompt('strip', 0, 0, G.cols, 1)); P.push(...eglBody({ c: 0, r: 1, w: G.cols, h: G.rows - 2 }, 'full', G)); }
-  P.push(...eglActions({ c: 0, r: G.rows - 1, w: G.cols }));
+// READOUT: half the board is the screen; the keys and the action row share the
+// rest. Keys too many to stand side by side (a phone) stack, so they get more.
+function eglLayReadout(G) {
+  const st = eglStep(), n = st && st.opts ? st.opts.length : 0, sh = n > 1 && G.cols < n * 2 ? 4 : 6;
+  const P = [eglPromptPiece({ c: 0, r: 0, w: G.cols, h: sh })];
+  if (!egl.done) P.push(...eglBody({ c: 0, r: sh, w: G.cols, h: G.rows - sh - 2 }, G));
+  P.push(...eglActions({ c: 0, r: G.rows - 2, w: G.cols, h: 2 }));
   return P;
 }
-function eglLayFocus(G) {
-  const P = [eglPrompt('strip', 0, 0, G.cols, 1)], R = { c: 0, r: 1, w: G.cols, h: G.rows - 2 };
-  P.push(...(egl.done ? eglResult(R, G.wide) : eglBody(R, 'compact', G)), ...eglActions({ c: 0, r: G.rows - 1, w: G.cols }));
-  return P;
+// A card screen: a head over the cards, the action row one half-row tall.
+function eglLayView(G) {
+  const hh = egl.lay === 'readout' ? 3 : 2;
+  return [eglPromptPiece({ c: 0, r: 0, w: G.cols, h: hh }, true), eglViewPiece({ c: 0, r: hh, w: G.cols, h: G.rows - hh - 1 }, G),
+          ...eglActions({ c: 0, r: G.rows - 1, w: G.cols, h: 1 })];
 }
-// The terminal prints: every line it has shown before stays put, the new ones
-// type out in order (egl.seen).
 function eglTermLines() {
   const ev = egl.ev, st = eglStep(), L = egl.ladder, out = [];
-  out.push(['egl-t-h', `EVENT // ${ev.name.toUpperCase()}`], ['', ev.flavor], ['', ' ']);
-  if (egl.done) { out.push(['egl-t-h', egl.skipped ? '> SKIPPED' : '> DONE']); (egl.skipped ? ['Nothing changes.'] : ev.result()).forEach(l => out.push(['', eglPlain(l)])); out.push(['egl-t-dim', ' '], ['egl-t-dim', 'PRESS DONE TO RETURN TO THE BOARD']); return out; }
-  if (st.note) out.push(['', eglPlain(st.note)], ['', ' ']);
+  out.push(['egl-t-h', `EVENT // ${ev.name.toUpperCase()}`], ['', ev.flavor], ['', '']);
+  if (egl.done) { out.push(['egl-t-h', egl.skipped ? '> SKIPPED' : '> DONE']); eglOutcome().forEach(l => out.push(['', eglPlain(l)])); out.push(['egl-t-dim', ''], ['egl-t-dim', 'PRESS DONE TO RETURN TO THE BOARD']); return out; }
+  if (st.note) out.push(['', eglPlain(st.note)], ['', '']);
   if (st.t === 'ladder') L.log.forEach(l => out.push([/LOST|TAILS/.test(l) ? 'egl-t-bad' : /HEADS/.test(l) ? 'egl-t-good' : '', l]));
-  out.push(['egl-t-h', `> ${eglTxt(st.label)}${st.t === 'cards' ? ` (${eglPicks().length}/${eglNeed(st)})` : ''}`]);
+  out.push(['egl-t-h', `> ${eglTxt(st.label)}`]);
   return out;
-}
-function eglTermHTML() {
-  let fresh = 0;
-  const html = eglTermLines().map(([cls, t], i) => {
-    const k = `${eglSk()}|${i}|${t}`, isNew = !egl.seen.has(k);
-    if (!egl.measuring) egl.seen.add(k);
-    return `<div class="egl-tl ${cls}${isNew ? ' egl-type' : ''}" style="--d:${isNew ? fresh++ * 170 : 0}ms">${eglEsc(t)}</div>`;
-  }).join('');
-  return `<div class="egl-fit" data-min="8">${html}<span class="egl-cursor"></span></div>`;
 }
 function eglLayTerminal(G) {
   const st = eglStep(), P = [];
-  egl.termNav = 0;
-  let menu = 0;
-  if (st) menu = st.t === 'cards' ? Math.min(G.wide ? 11 : 7, Math.ceil(st.cards.length / Math.floor(G.cols / 2)))
-              : st.t === 'shop' ? Math.ceil(st.items.length / Math.floor(G.cols / Math.max(3, Math.floor(G.cols / 2))))
-              : st.t === 'ladder' ? st.rungs.length : Math.min(st.opts.length * 2, G.rows - 5);
+  if (eglIsView(st)) {
+    const lines = [['egl-t-h', `EVENT // ${egl.ev.name.toUpperCase()} // ${eglTxt(st.label)}`], ...eglInspectLines()];
+    return [{ key: 'screen-head', cls: 'egl-term', c: 0, r: 0, w: G.cols, h: 3, html: eglLinesHTML(lines, 8) },
+            eglViewPiece({ c: 0, r: 3, w: G.cols, h: G.rows - 4 }, G), ...eglActions({ c: 0, r: G.rows - 1, w: G.cols, h: 1 })];
+  }
+  const menu = !st ? 0 : st.t === 'ladder' ? st.rungs.length : Math.min(st.opts.length * 2, G.rows - 5);
   let S, R;
   if (G.wide && menu) { const half = Math.floor(G.cols / 2); S = { c: 0, r: 0, w: half, h: G.rows - 1 }; R = { c: half, r: 0, w: G.cols - half, h: G.rows - 1 }; }
   else { S = { c: 0, r: 0, w: G.cols, h: G.rows - 1 - menu }; R = { c: 0, r: G.rows - 1 - menu, w: G.cols, h: menu }; }
-  P.push({ key: 'screen', cls: 'egl-term', ...S, html: eglTermHTML() });
-  if (st && menu) P.push(...eglBody(R, 'menu', G));
-  P.push(...eglActions({ c: 0, r: G.rows - 1, w: G.cols }, true, egl.termNav));
-  // The terminal is one screen: whatever no line claimed is screen too.
-  return eglFill(P, G).map(p => p.cls === 'egl-amb' ? { ...p, cls: 'egl-amb egl-tamb' } : p);
+  P.push({ key: 'screen', cls: 'egl-term', ...S, html: eglLinesHTML(eglTermLines(), 8) });
+  if (st && menu) P.push(...eglBody(R, G));
+  P.push(...eglActions({ c: 0, r: G.rows - 1, w: G.cols, h: 1 }));
+  return P;
 }
 
 // ── DRAWING ─────────────────────────────────────────────────────────────────
-function eglBuild(host, pieces, G, keyed) {
-  const els = new Map();
-  pieces.forEach(p => {
-    const el = document.createElement('div');
-    el.className = 'egl-cell ' + (p.cls || '');
-    el.innerHTML = p.html || '';
-    eglPlace(el, p, G);
-    host.appendChild(el);
-    if (keyed) els.set(p.key, el);
-  });
-  return els;
-}
 function eglPlace(el, p, G) {
   const b = G.box(p.c, p.r, p.w, p.h);
   el.style.left = b.l + 'px'; el.style.top = b.t + 'px'; el.style.width = b.w + 'px'; el.style.height = b.h + 'px';
-  el.dataset.d = (p.c + p.r) * 26;
-  if (p.card) {
-    const face = p.cls.includes('egl-shop') ? (p.cls.includes('egl-sh11') ? 0.62 : 0.6) : 1;
-    el.style.setProperty('--card-w', Math.max(10, b.w - 4) + 'px');
-    el.style.setProperty('--card-h', Math.max(10, b.h * face - 4) + 'px');
-  }
+  el.dataset.d = (p.c + p.r) * 20;
 }
 // Shrink each .egl-fit until its text stays inside its cell: a binary search
 // over --fit, 0.5 to 1. Returns the smallest fit and smallest text (design px).
@@ -620,13 +657,21 @@ function eglFitAll(host) {
 function eglMeasure(rect) {
   const host = egl.measure;
   host.style.width = rect.w + 'px'; host.style.height = rect.h + 'px';
-  const G = eglGeom(rect, eglRows());
+  const G = eglGeom(rect);
   egl.measuring = true;
-  const els = eglBuild(host, eglPieces(G), G, true);
+  const pieces = eglPieces(G);
   egl.measuring = false;
+  const els = new Map();
+  pieces.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'egl-cell ' + (p.cls || '');
+    el.innerHTML = p.html || '';
+    eglPlace(el, p, G);
+    host.appendChild(el);
+    els.set(p.key, el);
+  });
   const m = eglFitAll(host);
-  m.paged = _eglPaged;
-  m.fits = new Map([...els].map(([k, el]) => [k, el.querySelector('.egl-fit')?._fit ?? 1]));
+  m.fits = new Map([...els].map(([k, el]) => [k, [...el.querySelectorAll('.egl-fit')].map(f => f._fit)]));
   host.innerHTML = '';
   return m;
 }
@@ -636,16 +681,16 @@ function eglDraw(opts = {}) {
   const moved = room !== egl.room || opts.relayout;
   egl.room = room;
   eglSetSlide(!!T.slide);
-  eglSetCamera(T);
   egl.layer.classList.toggle('egl-roomy', room !== 'box');
   eglSetRect(T.rect, moved && !opts.instant);
-  const G = eglGeom(T.rect, eglRows());
-  egl.board.dataset.lay = egl.measure.dataset.lay = egl.lay;
+  egl.layer.dataset.lay = egl.lay;
+  const G = eglGeom(T.rect);
   const m = eglMeasure(T.rect);
-  const pieces = eglPieces(G);
-  eglReconcile(pieces, G, m.fits, { turn: !!opts.turn, animate: !opts.instant });
-  egl.metric = { fit: m.fit, px: m.px, k: T.k, paged: _eglPaged, room };
+  eglReconcile(eglPieces(G), G, m.fits, { turn: !!opts.turn, animate: !opts.instant });
+  egl.metric = { fit: m.fit, px: m.px, room };
   eglMountCoin();
+  eglMountView();
+  eglScrollPaint();
   eglPanelPaint();
 }
 function eglReconcile(pieces, G, fits, { turn, animate }) {
@@ -659,44 +704,33 @@ function eglReconcile(pieces, G, fits, { turn, animate }) {
       prev = { l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
       el.getAnimations().forEach(a => a.cancel());
     } else {
-      el = document.createElement('div'); el.dataset.k = p.key; board.appendChild(el); born.push({ el, p });
+      el = document.createElement('div'); el.dataset.k = p.key; board.appendChild(el); born.push(el);
     }
     const cls = 'egl-cell ' + (p.cls || '');
     if (el.className !== cls) el.className = cls;
     if (el._html !== p.html) { el.innerHTML = p.html || ''; el._html = p.html; }
-    el.onclick = p.tap ? e => { e.stopPropagation(); p.tap(); } : null;
+    el.onclick = p.tap ? e => { e.stopPropagation(); p.tap(e); } : null;
+    el.onmouseenter = p.hover || null;
+    el.onmouseover = p.hoverAt || null;
     eglPlace(el, p, G);
-    const fe = el.querySelector('.egl-fit'); if (fe) fe.style.setProperty('--fit', fits.get(p.key) ?? 1);
+    (fits.get(p.key) || []).forEach((f, j) => { const fe = el.querySelectorAll('.egl-fit')[j]; if (fe) fe.style.setProperty('--fit', f); });
     const b = G.box(p.c, p.r, p.w, p.h);
     if (prev && animate && (Math.abs(prev.l - b.l) > 0.5 || Math.abs(prev.t - b.t) > 0.5 || Math.abs(prev.w - b.w) > 0.5 || Math.abs(prev.h - b.h) > 0.5))
       el.animate([{ left: prev.l + 'px', top: prev.t + 'px', width: prev.w + 'px', height: prev.h + 'px' },
                   { left: b.l + 'px', top: b.t + 'px', width: b.w + 'px', height: b.h + 'px' }], { duration: EGL_MS, easing: EGL_EASE });
   });
-  // The dead fold away, edge-on; on a page turn, in a wave from the top left.
+  // The dead fold away edge-on; a layout change folds them in a wave from the top left.
   old.forEach((el, k) => {
     if (seen.has(k)) return;
-    el._dying = true; el.onclick = null; el.classList.add('egl-dying');
+    el._dying = true; el.onclick = null; el.onmouseenter = null; el.onmouseover = null; el.classList.add('egl-dying');
     if (!animate) { el.remove(); return; }
     const a = el.animate([{ transform: 'perspective(520px) rotateY(0deg)', opacity: 1 }, { transform: 'perspective(520px) rotateY(90deg)', opacity: 0.3 }],
       { duration: 190, delay: turn ? +el.dataset.d : 0, easing: 'ease-in', fill: 'forwards' });
     a.finished.then(() => el.remove(), () => el.remove());
   });
-  // The new turn in from the other edge. One growing out of a cell that just
-  // left (FOCUS's detail) opens from that cell's box instead.
   if (!animate) return;
-  born.forEach(({ el, p }) => {
-    const src = p.from && old.get(p.from);
-    if (src) {
-      const b = G.box(p.c, p.r, p.w, p.h), s = { l: src.offsetLeft, t: src.offsetTop, w: src.offsetWidth, h: src.offsetHeight };
-      src.remove();
-      el.animate([{ left: s.l + 'px', top: s.t + 'px', width: s.w + 'px', height: s.h + 'px' }, { left: b.l + 'px', top: b.t + 'px', width: b.w + 'px', height: b.h + 'px' }],
-        { duration: 380, easing: EGL_EASE });
-      el.firstElementChild?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: 220, fill: 'backwards' });
-      return;
-    }
-    el.animate([{ transform: 'perspective(520px) rotateY(-90deg)', opacity: 0.3 }, { transform: 'perspective(520px) rotateY(0deg)', opacity: 1 }],
-      { duration: 240, delay: (turn ? 250 : 0) + +el.dataset.d, easing: 'ease-out', fill: 'backwards' });
-  });
+  born.forEach(el => el.animate([{ transform: 'perspective(520px) rotateY(-90deg)', opacity: 0.3 }, { transform: 'perspective(520px) rotateY(0deg)', opacity: 1 }],
+    { duration: 240, delay: (turn ? 250 : 0) + +el.dataset.d, easing: 'ease-out', fill: 'backwards' }));
 }
 function eglMountCoin() {
   const host = egl.board.querySelector('.egl-coin:not(.egl-dying) .egl-coinhost');
@@ -710,11 +744,81 @@ function eglShake() {
   if (typeof sfxRefuse === 'function') try { sfxRefuse(); } catch (e) {}
 }
 
+// ── SCROLLING THE DECK ──────────────────────────────────────────────────────
+// The suit columns scroll a row at a time: the arrows on the Focus bar, the
+// mouse wheel over the cards, or a drag. --vr on the view is the top row.
+function eglScrollMax() { const V = egl.view; return V ? Math.max(0, V.rows - V.vis) : 0; }
+function eglScrollBy(d) {
+  const n = Math.max(0, Math.min(eglScrollMax(), egl.dvRow + d));
+  if (n === egl.dvRow) return false;
+  egl.dvRow = n;
+  egl.board.querySelector('.egl-view:not(.egl-dying)')?.style.setProperty('--vr', n);
+  eglScrollPaint();
+  if (typeof sfxKeyClick === 'function') try { sfxKeyClick('up'); } catch (e) {}
+  return true;
+}
+function eglMountView() {
+  const el = egl.board.querySelector('.egl-view:not(.egl-dying)');
+  if (!el) return;
+  egl.dvRow = Math.min(egl.dvRow, eglScrollMax());
+  el.style.setProperty('--vr', egl.dvRow);
+  if (el._wired || !el.classList.contains('egl-v-cut')) return;
+  el._wired = true;
+  let acc = 0, y0 = null, step = 40;
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    acc += e.deltaY;
+    if (Math.abs(acc) >= 40) { eglScrollBy(Math.sign(acc)); acc = 0; }
+  }, { passive: false });
+  el.addEventListener('pointerdown', e => { y0 = e.clientY; egl.dragged = false; step = (el.querySelector('.egl-vs')?.getBoundingClientRect().height || 40) * 0.7; });
+  el.addEventListener('pointermove', e => {
+    if (y0 == null) return;
+    const dy = e.clientY - y0;
+    if (Math.abs(dy) >= step) { eglScrollBy(dy < 0 ? 1 : -1); y0 = e.clientY; egl.dragged = true; }
+  });
+  const end = () => { y0 = null; setTimeout(() => { if (egl) egl.dragged = false; }, 0); };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); el.addEventListener('pointerleave', end);
+}
+// Owner: for this screen, up and down arrows appear on the Focus bar. They sit
+// over it while the deck is open and go when it closes.
+function eglScrollPaint() {
+  let sc = document.getElementById('egl-scroll');
+  const fm = document.getElementById('focus-meter-wrap'), st = egl && !egl.closing && !egl.done ? eglStep() : null;
+  const on = st && st.t === 'deckcols' && egl.room === 'box' && eglScrollMax() > 0 && fm && fm.offsetWidth;
+  if (!on) { sc?.classList.remove('on'); return; }
+  if (!sc) {
+    sc = document.createElement('div'); sc.id = 'egl-scroll';
+    sc.innerHTML = '<button class="egl-sc-b" data-d="-1" aria-label="Scroll up">▲</button><div class="egl-sc-t"><i></i></div>'
+                 + '<button class="egl-sc-b" data-d="1" aria-label="Scroll down">▼</button>';
+    document.getElementById('stage').appendChild(sc);
+    // A press steps once; holding it keeps stepping.
+    sc.querySelectorAll('.egl-sc-b').forEach(b => {
+      let t = null;
+      const stop = () => { clearTimeout(t); clearInterval(t); t = null; };
+      b.addEventListener('pointerdown', e => {
+        e.preventDefault(); stop();
+        const d = +b.dataset.d;
+        if (!egl || !eglScrollBy(d)) return;
+        t = setTimeout(() => { t = setInterval(() => { if (!egl || !eglScrollBy(d)) stop(); }, 110); }, 320);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+    });
+  }
+  const r = eglDesignRect(fm);
+  Object.assign(sc.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+  sc.dataset.lay = egl.lay;
+  const V = egl.view, max = eglScrollMax(), th = sc.querySelector('.egl-sc-t i');
+  th.style.top = (egl.dvRow / V.rows * 100) + '%';
+  th.style.height = (V.vis / V.rows * 100) + '%';
+  sc.querySelector('[data-d="-1"]').disabled = egl.dvRow <= 0;
+  sc.querySelector('[data-d="1"]').disabled = egl.dvRow >= max;
+  sc.classList.add('on');
+}
+
 // ── OPEN AND CLOSE ──────────────────────────────────────────────────────────
 // The board's own cards turn edge-on and the event's cells turn in behind
-// them; closing is the same in reverse.
-// The turned-away cards hold edge-on (fill forwards) until the board is
-// hidden, and only then hand their rotate back (eglBoardHidden).
+// them; closing is the same in reverse. The turned-away cards hold edge-on
+// (fill forwards) until the board is hidden, then hand their rotate back.
 let _eglBoardAnims = [];
 function eglTurnBoard(out) {
   const cards = [...document.querySelectorAll('#grid > .card, #grid > .trick-card')];
@@ -741,11 +845,12 @@ function eglOpen() {
   const layer = document.createElement('div'); layer.id = 'egl';
   layer.innerHTML = '<div class="egl-board"></div><div class="egl-board egl-measure" aria-hidden="true"></div>';
   document.getElementById('stage').appendChild(layer);
-  egl = { layer, board: layer.firstChild, measure: layer.lastChild, samples: eglSamples(), room: 'box', rect: null, k: 1, tx: 0, ty: 0, slid: false };
+  egl = { layer, board: layer.firstChild, measure: layer.lastChild, samples: eglSamples(), room: 'box', rect: null, slid: false };
   eglPrefs.ev = Math.min(eglPrefs.ev, egl.samples.length - 1);
-  if (!EGL_LAYOUTS[eglPrefs.lay]) eglPrefs.lay = 'marquee';
+  if (!EGL_LAYOUTS[eglPrefs.lay]) eglPrefs.lay = 'wall';
+  if (!EGL_ROOMS[eglPrefs.room]) eglPrefs.room = 'box';
   egl.lay = eglPrefs.lay;
-  eglRebase();
+  layer.dataset.lay = egl.lay;
   eglPanelBuild();
   layer.style.visibility = 'hidden';
   eglSetRect(eglBoxRect(), false);
@@ -754,20 +859,19 @@ function eglOpen() {
   addEventListener('resize', egl.onResize);
 }
 // DONE: the event turns back into the board, which is what the real thing does
-// once it has paid; the lab then deals the same event again so it can be read
-// twice.
+// once it has paid; the lab then deals the same event again.
 function eglClose(again) {
   if (!egl || egl.closing) return;
   egl.closing = true;
-  const cells = [...egl.board.children];
-  cells.forEach(el => el.animate([{ transform: 'perspective(520px) rotateY(0deg)' }, { transform: 'perspective(520px) rotateY(90deg)' }],
+  eglScrollPaint();
+  [...egl.board.children].forEach(el => el.animate([{ transform: 'perspective(520px) rotateY(0deg)' }, { transform: 'perspective(520px) rotateY(90deg)' }],
     { duration: 190, delay: +el.dataset.d || 0, easing: 'ease-in', fill: 'forwards' }));
   const room = egl.room;
   setTimeout(() => {
     if (!egl) return;
     egl.board.innerHTML = '';
     egl.room = 'box';
-    eglSetSlide(false); eglSetCamera({ k: 1, tx: 0, ty: 0 }); eglSetRect(eglBoxRect(), room !== 'box');
+    eglSetSlide(false); eglSetRect(eglBoxRect(), room !== 'box');
     egl.layer.classList.remove('egl-roomy');
     setTimeout(() => {
       if (!egl) return;
@@ -784,22 +888,16 @@ function eglClose(again) {
 }
 function eglResize() {
   if (!egl || egl.closing) return;
-  const cam = document.getElementById('camera');
   (egl.slideEls || []).forEach(({ el }) => { el.style.transition = 'none'; el.style.translate = ''; });
-  egl.slid = false; egl.slideEls = null;
-  if (cam && egl.k !== 1) { cam.style.transition = 'none'; cam.style.transform = ''; }
-  egl.k = 1; egl.tx = 0; egl.ty = 0; egl.base = null; egl.room = 'box';
+  egl.slid = false; egl.slideEls = null; egl.room = 'box';
   void document.body.offsetWidth;
-  eglRebase();
   eglDraw({ instant: true });
 }
 function eglTeardown() {
   if (!egl) return;
   removeEventListener('resize', egl.onResize);
   eglSetSlide(false);
-  const cam = document.getElementById('camera');
-  if (cam && egl.k !== 1) { cam.style.transition = 'none'; cam.style.transform = ''; }
-  egl.layer.remove(); egl.panel?.remove();
+  egl.layer.remove(); egl.panel?.remove(); document.getElementById('egl-scroll')?.remove();
   document.body.classList.remove('egl-on');
   egl = null;
 }
@@ -808,15 +906,18 @@ function eglTeardown() {
 function eglPanelBuild() {
   const p = document.createElement('div');
   p.id = 'egl-panel';
+  const lays = ids => ids.map(k => `<button data-lay="${k}">${EGL_LAYOUTS[k].name}</button>`).join('');
   p.innerHTML = `
     <div class="eglp-head"><b>EVENT LAYOUTS</b><span class="eglp-n"></span><button class="eglp-side" title="Other side">⇄</button><button class="eglp-min" title="Fold">–</button><button class="eglp-x" title="Close">×</button></div>
     <div class="eglp-body">
       <div class="eglp-row"><button class="eglp-prev">‹</button><div class="eglp-ev"><div class="eglp-name"></div><div class="eglp-shape"></div></div><button class="eglp-next">›</button></div>
-      <div class="eglp-lab">LAYOUT</div>
-      <div class="eglp-row eglp-lays">${Object.entries(EGL_LAYOUTS).map(([k, v]) => `<button data-lay="${k}">${v.name}</button>`).join('')}</div>
+      <div class="eglp-lab">MARQUEE × TERMINAL</div>
+      <div class="eglp-row">${lays(EGL_COMBINED)}</div>
+      <div class="eglp-lab">THE ORIGINALS</div>
+      <div class="eglp-row">${lays(Object.keys(EGL_LAYOUTS).filter(k => !EGL_COMBINED.includes(k)))}</div>
       <div class="eglp-note"></div>
       <div class="eglp-lab">ROOM</div>
-      <div class="eglp-row eglp-rooms">${Object.entries(EGL_ROOMS).map(([k, v]) => `<button data-room="${k}">${v}</button>`).join('')}</div>
+      <div class="eglp-row">${Object.entries(EGL_ROOMS).map(([k, v]) => `<button data-room="${k}">${v}</button>`).join('')}</div>
       <label class="eglp-need"><input type="checkbox"> only when the text won't fit</label>
       <div class="eglp-metric"></div>
       <div class="eglp-row"><button class="eglp-replay">REPLAY</button></div>
@@ -850,12 +951,10 @@ function eglPanelPaint() {
   p.querySelector('.eglp-note').textContent = EGL_LAYOUTS[egl.lay].note + (land ? '' : ' (Portrait: in the box only.)');
   // The smallest text as drawn on screen, beside the pick of three's 7.5px
   // descriptions on this screen for scale.
-  const z = eglBase().z, onScreen = (M.px || 0) * z * (M.k || 1);
-  const shrunk = M.fit < 1 ? `, shrunk to ${Math.round(M.fit * 100)}%` : '';
-  p.querySelector('.eglp-metric').innerHTML = `Smallest text <b>${onScreen.toFixed(1)}px</b> on screen${shrunk}.`
-    + `<br>Pick of three descriptions: ${(7.5 * z).toFixed(1)}px.`
-    + (M.paged ? '<br>Cards need more than one page here.' : '')
-    + (eglPrefs.need && M.room !== eglPrefs.room ? '<br>Fits in the box, so it stays there.' : '');
+  const z = eglZoom(), shrunk = M.fit < 1 ? `, shrunk to ${Math.round(M.fit * 100)}%` : '';
+  p.querySelector('.eglp-metric').innerHTML = (isFinite(M.px) ? `Smallest text <b>${(M.px * z).toFixed(1)}px</b> on screen${shrunk}.<br>` : '')
+    + `Pick of three descriptions: ${(7.5 * z).toFixed(1)}px.`
+    + (eglIsView(eglStep()) ? '<br>Card screens stay in the box.' : eglPrefs.need && M.room !== eglPrefs.room ? '<br>Fits in the box, so it stays there.' : '');
 }
 
 // ── ENTRY ───────────────────────────────────────────────────────────────────
