@@ -70,13 +70,13 @@ const EVENT_REQUIRES = {
   shift_change: () => (trickTray || []).length >= 2 && ownsPositional(),   // r590: only when position matters
   // Needs something improvable to stake or to spin between.
   the_draw:     () => evImprovables().length >= 2,
-  the_payline:  () => evImprovables().length >= 2,
+  the_payline:  () => evImprovables().length >= ENTITY_SLOT_MIN,   // r590: five entities
   // Needs a Sleight whose charge ceiling can actually move (infinite returns null).
   workshop:     () => allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null).length > 0,
   // r576: Theme Draft needs one engine with a Trick and a Sleight left to offer.
   confluence:   () => confluenceThemes().length > 0,
   // Needs cards to work on.
-  the_floor:    () => everyDeckCard().length >= SLOT_REELS,
+  the_floor:    () => floorRanks().length >= 2,
   bench:        () => drawPile.some(c => c && c.rank && !c._isSleight),
   deck_trim:    () => everyDeckCard().length > 0 && coins >= priceOf(BAL.deck_trim.step),
   market:       () => coins >= marketCardPrice(),   // r576: one card is the least you can buy
@@ -238,9 +238,9 @@ const EVENT_META = {
   deck_trim:   { name:'Deck Trim',       flavor:'' },
   reassignment:{ name:'Trade a Trick',   flavor:'' },
   the_draw:    { name:'Spin to Improve', flavor:'' },
-  the_floor:   { name:'Card Slots',      flavor:'Your deck on five reels. Buy lines, and a winning line upgrades the cards that made it.' },
+  the_floor:   { name:'Card Slots',      flavor:'' },
   clean_slate: { name:'Clean Slate',      flavor:'' },
-  the_payline: { name:'Entity Slots',    flavor:'Three reels of what you own. Three alike and it improves a tier.' },
+  the_payline: { name:'Entity Slots',    flavor:'' },
   pairs:       { name:'Pairs',           flavor:'' },
   // r578: the flip set (js/events-flip.js)
   keep_it:     { name:'Keep It',         flavor:'' },

@@ -23,7 +23,9 @@
     coins = Math.max(coins, 200); updateCoinsUI?.();
     const owned = new Set(trickTray.map(t => t.id));
     const fill = TRICK_POOL.filter(t => !owned.has(t.id) && !(typeof survivalEntityBanned === 'function' && survivalEntityBanned(t.id)));
-    while (trickTray.length < 4 && fill.length && !trickTrayFull()) injectTrickAfterReward(fill.shift());
+    // r590: enough improvable entities for Entity Slots (5) as well
+    while ((trickTray.length < 4 || evImprovables().length < 6) && fill.length && !trickTrayFull()) injectTrickAfterReward(fill.shift());
+    if (evImprovables().length < 6) KNACK_POOL.filter(k => !acquiredKnacks.some(a => a.id === k.id) && typeof canImprove === 'function' && canImprove(k.id)).slice(0, 6 - evImprovables().length).forEach(k => acquiredKnacks.push({ ...k }));
     if (!acquiredKnacks.length) { const k = KNACK_POOL.find(x => x.rarity === 'common'); if (k) { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }
     if (!grantedSleightIds.size) { const s = SLEIGHT_POOL.find(x => sleightOfferable(x) && x.durability !== 'infinite'); if (s) grantSleight(s); }
     if (!Object.keys(cardCurses).length) curseRandomCard();

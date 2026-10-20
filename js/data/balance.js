@@ -187,8 +187,8 @@ const BAL = {
   // ── r218 events ──
   reassignment: { consolation_credits: 12, price: 7.5 },   // r590: 15 credits through priceOf, or all you have
   the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
-  the_floor:    { line_cost: 6 },
-  the_payline:  { spin_cost: 8, consolation_credits: 12 },
+  the_floor:    { pull: 4 },   // r590: a pull after the free first one, through priceOf (8)
+  the_payline:  { spin_cost: 5, spin_secs: 5, consolation_credits: 12 },   // r590: pulls alternate 10 credits (priceOf) and 5s
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).

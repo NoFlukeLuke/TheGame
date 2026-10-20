@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r594 · event verdicts 5: Extra Rep (Encore, Echo, Chain) and curse cards";
+const BUILD = "2026-10-20 · r595 · event verdicts 6: slot machines with reels and a lever";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

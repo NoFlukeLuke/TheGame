@@ -193,3 +193,46 @@
 .stone-card.junk-card.curse-card { border-color: #a8323d !important; box-shadow: inset 0 0 0 1px rgba(255,77,94,.35), 0 0 10px -3px #ff4d5e; }
 .curse-card .junk-glyph { font-size: calc(var(--card-h, 75px) * .26); }
 .curse-card .junk-word { color: #ff8a8a; }
+
+/* ── r590: the slot machine (js/event-slot-machine.js) ── */
+.evt-slot-cab { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+  background: linear-gradient(180deg, #2a2236, #17121f); border: 2px solid #4a3d5e;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.4), 0 6px 14px rgba(0,0,0,.55); }
+.evt-slot-window { position: relative; display: flex; gap: 6px; padding: 6px; border-radius: 8px; background: #08070c;
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.9), 0 0 0 2px #0d0b12; }
+.evt-reel { position: relative; width: var(--sl-w); height: calc(var(--sl-h) * 3); overflow: hidden; border-radius: 5px;
+  background: linear-gradient(180deg, #cfc6b0 0%, #f5efdf 22%, #fffaf0 50%, #f5efdf 78%, #cfc6b0 100%); }
+.evt-reel-strip { will-change: transform; }
+.evt-reel-strip.evt-reel-blur { filter: blur(1.4px); }
+.evt-sym { height: var(--sl-h); display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  border-bottom: 1px solid rgba(0,0,0,.08); font-family: 'Orbitron', sans-serif; font-weight: 900; color: #1a1622; }
+.evt-sym.evt-sym-win { background: radial-gradient(circle, rgba(240,192,64,.85), rgba(240,192,64,.25)); animation: evt-win-blink .45s ease-in-out 4; }
+@keyframes evt-win-blink { 50% { filter: brightness(1.6); } }
+.evt-reel-land { animation: evt-reel-land .18s ease-out; }
+@keyframes evt-reel-land { 0% { transform: translateY(2px); } 100% { transform: none; } }
+.evt-payline { position: absolute; left: 2px; right: 2px; top: calc(6px + var(--sl-h)); height: var(--sl-h); pointer-events: none;
+  border-top: 2px solid rgba(240,192,64,.85); border-bottom: 2px solid rgba(240,192,64,.85);
+  box-shadow: 0 0 12px rgba(240,192,64,.45), inset 0 0 14px rgba(240,192,64,.18); }
+.evt-slot-glass { position: absolute; inset: 6px; pointer-events: none; border-radius: 5px;
+  background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 74%, rgba(0,0,0,.55) 100%),
+              linear-gradient(115deg, rgba(255,255,255,.12) 0 18%, rgba(255,255,255,0) 30%); }
+.evt-tease .evt-reel:last-child { box-shadow: 0 0 0 2px #ff5a4e, 0 0 16px #ff5a4e; }
+.evt-slot-won .evt-slot-cab { border-color: #f0c040; box-shadow: 0 0 22px rgba(240,192,64,.55), inset 0 2px 0 rgba(255,255,255,.08); }
+/* the lever: a slot, an arm that shortens toward you as it comes down, a red ball */
+.evt-lever { position: relative; width: 52px; height: 140px; perspective: 220px; }
+.evt-lever-slot { position: absolute; left: 50%; top: 62px; width: 14px; height: 16px; margin-left: -7px; border-radius: 4px; background: #08070c; box-shadow: inset 0 2px 4px #000, 0 0 0 2px #3a3046; }
+.evt-lever-arm { --lv: 0; position: absolute; left: 50%; top: 14px; width: 6px; height: 56px; margin-left: -3px; transform-origin: 50% 100%;
+  transform: rotateX(calc(var(--lv) * -165deg)); transform-style: preserve-3d;
+  background: linear-gradient(90deg, #8d8f99, #e8eaf0 45%, #6b6d77); border-radius: 3px; }
+.evt-lever-knob { position: absolute; top: -13px; left: 50%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffb3aa, #e53b2c 45%, #7a140c 100%); box-shadow: 0 3px 6px rgba(0,0,0,.6);
+  transform: rotateX(calc(var(--lv) * 165deg)); cursor: var(--cur-pointer, grab); touch-action: none; }
+.evt-lever.off .evt-lever-knob { filter: grayscale(.8) brightness(.6); cursor: var(--cur-no, not-allowed); }
+.evt-lever-cap { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; line-height: 1.4; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--cream-dim); }
+.evt-lever:not(.off) .evt-lever-cap { color: var(--c-yellow, #f0c040); }
+/* card ranks and entity tiles on the reels */
+.evt-sym .sl-rank { font-size: 24px; }
+.evt-sym .sl-rank.red { color: #c0392b; }
+.evt-sym .sl-ent { pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.evt-sym .sl-ent .reward-cell { position: relative; width: 42px; height: 56px; margin: 0; }
+.evt-sym .sl-ent .entity-knack { zoom: .8; }
