@@ -19,8 +19,8 @@ const { execSync } = require('child_process');
 const args = process.argv.slice(2);
 const arg = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const SRC = arg('--src');
-const SIZE = +arg('--size', 16);
-const MARGIN = +arg('--margin', 1);
+const SIZE = +arg('--size', 32);              // r605 (owner): 32, readable on the desktop tray; 16 was r583's
+const MARGIN = +arg('--margin', Math.max(1, Math.round(SIZE / 16)));
 const THRESH = +arg('--thresh', 0.42);
 const DUMP = args.includes('--dump');
 const OUT_SHEET = arg('--sheet', 'assets/icons/entities.png');

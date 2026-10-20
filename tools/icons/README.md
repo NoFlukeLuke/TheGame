@@ -9,7 +9,8 @@ credits file (`assets/icons/CREDITS.md`).
 2. Edit `manifest.js`: one row per emoji, the icon's name (`author/name`, or a bare name), a palette colour.
 3. Run `node tools/icons/build.js --src /tmp/game-icons` (needs Playwright's Chromium; in the cloud
    session `NODE_PATH=/opt/node-tools/node_modules`). `--dump` prints every icon as text,
-   `--contact out.png` writes a 4x contact sheet to look at, `--size 24` changes the grid.
+   `--contact out.png` writes a 4x contact sheet to look at, `--size 24` changes the grid
+   (default 32 since r605; the margin follows, 1 cell per 16).
 4. Commit the three outputs with the manifest.
 
 How a cell is made: the SVG is drawn at 512px, its white paint is the ink (a badge icon's black

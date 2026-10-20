@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r604 · Every Trick has a category icon: birds by name, 3 / 4 / 5 badges, a magic hat for Sleight Tricks";
+const BUILD = "2026-10-20 · r605 · Pixel icons drawn on a 32px grid (was 16)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

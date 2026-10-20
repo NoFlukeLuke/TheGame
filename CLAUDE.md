@@ -1690,3 +1690,12 @@ Horse-man, Wait Four It / Five Stack, Five for Fodder, Five Second Rule, the lit
 Into existing rows: Release Valve, Life Lessons, Wellspring (🎯); Old Growth (🌱); Stand-Up, Double
 Jeopardy (📍); Landfill (🗑️, shares the Hoarder's trash can). Sheet rebuilt: 138 icons. No live
 Trick is left without a row; no Trick is in two.
+
+## r605 - pixel icons on a 32px grid (owner)
+`tools/icons/build.js` defaults to `--size 32` (margin `SIZE / 16`, so 2); the sheet is 4416 x 32
+(138 icons, 54 KB). Nothing else assumed 16: the tile CSS sizes icons in em (`background-size: auto
+1em`), and the light icons' outline is now one sheet pixel from `--px-cell` (1 / `PX_ICON_SIZE` em,
+written on `<html>` by js/px-icons.js). Owner's reasoning, measured: a desktop tray icon is ~58
+screen px, so a 16 grid gave 3.6 screen px per block (chunky, detail lost), 32 gives ~1.8 (still
+reads as pixels, much clearer), 64 would be ~0.9 (no visible pixels). Verified at 1440x820 and
+420x900 (DPR 3): tray, event Free Pick and phone strips draw the new sheet, outline 1 sheet px.

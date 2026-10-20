@@ -14,6 +14,7 @@ function pxIconsApply() {
   h.classList.toggle('px-emoji', !pxIconsOn);
   if (typeof PX_ICON_SHEET !== 'undefined') {
     h.style.setProperty('--px-sheet', `url("${new URL(PX_ICON_SHEET, location.href).href}")`);   // absolute: a url() in a custom property resolves against the stylesheet that reads it
+    h.style.setProperty('--px-cell', (1 / (typeof PX_ICON_SIZE !== 'undefined' ? PX_ICON_SIZE : 32)) + 'em');   // one sheet pixel, for the light icons' outline
     // Fetch the sheet now, not on the first reward screen.
     if (pxIconsOn && !pxIconsApply._warm) { pxIconsApply._warm = new Image(); pxIconsApply._warm.src = PX_ICON_SHEET; }
   }

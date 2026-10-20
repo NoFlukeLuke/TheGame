@@ -2,7 +2,7 @@
 
 The pixel icons in `entities.png` are made from icons on https://game-icons.net,
 licensed CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Each was reduced
-to a 16px grid and recoloured by `tools/icons/build.js`.
+to a 32px grid and recoloured by `tools/icons/build.js`.
 
 ## badges
 
