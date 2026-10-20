@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r597 · merge main (reward pick, score fuse, event layouts lab) into the event verdicts";
+const BUILD = "2026-10-20 · r598 · double scaling: every 15 plays, two ladder steps a grant";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

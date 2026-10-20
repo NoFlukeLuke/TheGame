@@ -465,6 +465,7 @@ const NS2_TUNABLES = [
   { key: 'multEvery', label: 'Mult step every (family plays)', min: 1, max: 999, step: 1, dp: 0 },
   { key: 'pipsEvery', label: 'Pips every (family plays)',      min: 1, max: 999, step: 1, dp: 0 },
   { key: 'pipsPer',   label: 'Pips per grant (per card)',      min: 0, max: 99,  step: 1, dp: 0 },
+  { key: 'multStep',  label: 'Mult per grant (ladder steps)',   min: 1, max: 99,  step: 1, dp: 0 },
 ];
 function devTuneNs2(key, dir, typed) {
   const t = NS2_TUNABLES.find(x => x.key === key); if (!t) return;
@@ -478,8 +479,8 @@ function devResetNs2() { resetNs2(); devSyncNs(); _devSafeRender(); }
 // average card), so a knob change can be read as a growth factor at once.
 function devNs2Projection() {
   const avg = 7.3, k = 3, base = avg * k * (k * (k + 1) / 2);
-  return [30, 60, 90].map(n => {
-    const step = Math.floor(n / Math.max(1, ns2.multEvery)), pips = Math.floor(n / Math.max(1, ns2.pipsEvery)) * ns2.pipsPer;
+  return [15, 30, 60, 90].map(n => {
+    const step = Math.floor(n / Math.max(1, ns2.multEvery)) * (ns2.multStep || 1), pips = Math.floor(n / Math.max(1, ns2.pipsEvery)) * ns2.pipsPer;
     const v = (avg + pips) * k * (k * (k + 1) / 2 + k * step);
     return `${n} plays: x${(v / base).toFixed(1)} (step +${step}, +${pips} pips a card)`;
   }).join(' · ');

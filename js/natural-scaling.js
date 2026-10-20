@@ -42,9 +42,9 @@ let nsEnabled = localStorage.getItem('nsEnabled') !== '0';        // default ON
 // mult. Double scaling grows a hand on BOTH axes from how often you play its
 // FAMILY (set / run / flush):
 //
-//   mult  every `multEvery` plays of a family, that family moves ONE STEP up the
-//         ladder: card n of a hand in it pays n + step mult. Step 1 makes a
-//         3-card hand 2+3+4 = 9 instead of 6.
+//   mult  every `multEvery` plays of a family, that family moves `multStep` steps
+//         up the ladder: card n of a hand in it pays n + step mult. One grant of 2
+//         makes a 3-card hand 3+4+5 = 12 instead of 6.
 //   pips  every `pipsEvery` plays, every card in a hand of that family pays
 //         `pipsPer` more pips, once per replay, added before its x pips.
 //
@@ -69,7 +69,8 @@ function setNsModel(m) {
   try { if (nsModel === 'double') localStorage.removeItem(NS_MODEL_KEY); else localStorage.setItem(NS_MODEL_KEY, nsModel); } catch (e) {}
   if (typeof clearHandCompCache === 'function') clearHandCompCache();
 }
-const NS2_DEFAULT = { multEvery: 30, pipsEvery: 8, pipsPer: 1 };
+// r598 (owner): every 15 plays on both sides, and a mult grant is TWO steps (card n pays n + 2 per grant).
+const NS2_DEFAULT = { multEvery: 15, pipsEvery: 15, pipsPer: 1, multStep: 2 };
 const NS2_KEY = 'lethe.nsDouble.v1';              // OVERRIDES ONLY
 let ns2 = (() => { try { return Object.assign({}, NS2_DEFAULT, JSON.parse(localStorage.getItem(NS2_KEY) || '{}')); } catch (e) { return Object.assign({}, NS2_DEFAULT); } })();
 function setNs2(k, v) {
@@ -85,7 +86,7 @@ function resetNs2() { ns2 = Object.assign({}, NS2_DEFAULT); try { localStorage.r
 // Plays per family this run. In SAVE_VARS; reset with the other accumulators.
 let nsFamPlays = {};
 function nsDoubleOn() { return nsEnabled && nsModel === 'double'; }
-function nsFamStep(fam) { return Math.floor(((nsFamPlays || {})[fam] || 0) / Math.max(1, ns2.multEvery)); }
+function nsFamStep(fam) { return Math.floor(((nsFamPlays || {})[fam] || 0) / Math.max(1, ns2.multEvery)) * (ns2.multStep || 1); }
 function nsFamPips(fam) { return Math.floor(((nsFamPlays || {})[fam] || 0) / Math.max(1, ns2.pipsEvery)) * (ns2.pipsPer || 0); }
 // What a hand made of these component names grows by: the best step and the best
 // pips across every family those hands belong to. Zero when off, or under the

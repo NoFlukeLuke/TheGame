@@ -1607,3 +1607,11 @@ JS it does not load.
 - `sfxRewardTaken` (catalog `reward_taken`, every pack) plays when a reward is taken
   (`rewardTransitionOut` with `chosen` or `taken`). Printer notices within `PT_CFG.groupMs`
   (500) of the slip's LAST line join that slip.
+
+## r598 - double scaling: every 15 plays, two ladder steps a grant (owner)
+`NS2_DEFAULT` is `multEvery` 15, `pipsEvery` 15, `pipsPer` 1 and a new `multStep` 2: every 15 plays of
+a family its cards pay 2 more mult each (card n pays n + 2 per grant) and, separately, 1 more pip each.
+`nsFamStep` is rungs x `multStep`; dev -> Hand Scoring has the fourth stepper and the projection now
+reads at 15 / 30 / 60 / 90 plays. The store is overrides only, so r554's numbers are gone unless typed.
+A same-suit run still credits both families and takes the BEST family's step and pips, not the sum;
+each card in it already scores twice (run and flush), so the ladder pays per component.
