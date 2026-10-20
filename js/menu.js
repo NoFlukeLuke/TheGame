@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r592 · event verdicts 3: the deck picker in every card event, Clean Up, Rewire x3, Pairs 12";
+const BUILD = "2026-10-20 · r593 · event verdicts 4: bought cards on the Focus bar, The Investment, Maintenance, Tray Order";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

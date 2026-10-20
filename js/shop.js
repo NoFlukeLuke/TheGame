@@ -20,6 +20,7 @@ const SHOP_LIMIT_STEP     = priceOf(5);
 // trickSellValue / knackSellValue live in js/shop-grid-preview.js (owner spec).
 function sellTrick(trick) {
   if (!trick) return;
+  if (typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id)) { refuse('That Trick is locked by The Investment'); return; }
   if (typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(trick)) { if (typeof hideTrickTooltip === 'function') hideTrickTooltip(); return; }
   const idx = trickTray.findIndex(b => b.id === trick.id);
   if (idx >= 0) trickTray.splice(idx, 1);

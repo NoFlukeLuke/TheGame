@@ -470,6 +470,8 @@ function maybeFamineDrawSwap(card) { return card; }
 
 // Is a Trick currently disabled by Voidwright phase?
 function isTrickDisabledByBoss(trickId) {
+  // r590: The Investment can lock Tricks too. Every "is this Trick switched off" read goes through here.
+  if (typeof altarTrickLocked === 'function' && altarTrickLocked(trickId)) return true;
   if (!bossActive) return false;
   if (hasSleightOnGrid('fight_power')) return false; // Fight the Power ignores boss effects
   if (typeof bossTrickBlackedOut === 'function' && bossTrickBlackedOut(trickId)) return true; // The Censor

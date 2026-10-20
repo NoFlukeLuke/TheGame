@@ -781,73 +781,99 @@ function confirmMerchant() {
 // ══════════════════════════════════════════════
 // EVENT: ALTAR
 // ══════════════════════════════════════════════
-function renderAltar() {
-  const offerings = [
-    { icon:'🕯️', name:'+3 mult for 3 rounds', rarity:'rare',
-      desc:'Give up 2 discards now. Every hand scores +3 mult for the next 3 rounds.',
-      cost:'Costs 2 discards',
-      canTake: () => discards >= 2,
-      apply: () => { discards = Math.max(0, discards-2); altarEffects.push({ type:'mult_boost', value:3, roundsLeft:3 }); noteMessage('+3 mult for 3 rounds', 'var(--gold)'); render(); }
-    },
-    { icon:'⌛', name:'+20s for 2 rounds', rarity:'rare',
-      desc:'Pay 10 credits. The next 2 rounds start with 20 extra seconds on the clock.',
-      cost:'Costs 10 credits',
-      canTake: () => coins >= 10,
-      apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); noteMessage('+20s for 2 rounds', 'var(--gold)'); }
-    },
-    { icon:'🌑', name:'Half goal for 4 rounds', rarity:'legendary',
-      desc:'Give up one of your Tricks, chosen at random. The next 4 rounds need only half the score.',
-      cost:'Costs 1 random Trick',
-      canTake: () => acquiredTricks.length > 0,
+// r590 (owner): bigger stakes and more of them; credits-for-time is gone (time
+// is credits in many modes). Three of these are offered, each a cost now or over
+// the next rounds for a gain over the next rounds. Numbers scale with the
+// quarter (Q) where the owner asked: +8 mult x Q.
+// Effects live in altarEffects ({ type, value, roundsLeft }), ticked at each
+// round start (tickAltarEffects, js/level-up.js). READ BY: getAltarMultBoost /
+// altarPipBoost (calcScore's starting mult and pips, and the ledger base),
+// tickAltarEffects (goal, swaps, clock), altarTrickLocked (isTrickDisabledByBoss,
+// the sells), altarFocusMult (focusRateMods).
+// (Before r590 nothing read the mult boost or the half goal: both did nothing.)
+function altarQ() { return (typeof qrlQuarter === 'function') ? qrlQuarter() : 1; }
+function altarOfferings() {
+  const Q = altarQ();
+  return [
+    { id: 'discards', icon: '🕯️', rarity: 'rare', name: `+${8 * Q} mult for 3 rounds`,
+      desc: `Every hand scores +${8 * Q} mult for the next 3 rounds.`, cost: 'Costs 5 discards next round',
+      canTake: () => true,
+      apply: () => { nextRoundDiscardDelta -= 5; altarEffects.push({ type: 'mult_boost', value: 8 * Q, roundsLeft: 3 }); } },
+    { id: 'tricks', icon: '🌑', rarity: 'legendary', name: 'Half goals for 4 rounds',
+      desc: 'The next 4 rounds need half the score.', cost: '2 random Tricks are switched off and their slots locked for those 4 rounds',
+      canTake: () => (trickTray || []).length >= 2,
       apply: () => {
-        const i=Math.floor(Math.random()*acquiredTricks.length);
-        const lost=acquiredTricks.splice(i,1)[0];
-        altarEffects.push({ type:'goal_reduce', value:0.5, roundsLeft:4 });
-        noteMessage(`Gave up ${lost.name} · goal halved for 4 rounds`, 'var(--gold)'); render();
-      }
-    },
+        const ids = evShuffle(trickTray.map(t => t.id)).slice(0, 2);
+        altarEffects.push({ type: 'goal_reduce', value: 0.5, roundsLeft: 4 }, { type: 'trick_lock', ids, roundsLeft: 4 });
+        renderTrickTray?.();
+        const names = ids.map(id => (trickTray.find(t => t.id === id) || {}).name).join(' and ');
+        showMessage(`${names} locked for 4 rounds`, 'var(--red)');
+      } },
+    { id: 'swaps', icon: '🧱', rarity: 'rare', name: `+${18 * Q} pips for 3 rounds`,
+      desc: `Every hand scores +${18 * Q} pips for the next 3 rounds.`, cost: 'No swaps for the next 2 rounds',
+      canTake: () => true,
+      apply: () => { altarEffects.push({ type: 'swap_tax', roundsLeft: 2 }, { type: 'pip_boost', value: 18 * Q, roundsLeft: 3 }); } },
+    { id: 'time', icon: '⏳', rarity: 'epic', name: 'Double Focus for 3 rounds',
+      desc: 'Hands make twice the Focus for the next 3 rounds.', cost: 'The next 3 rounds start 30 seconds shorter',
+      canTake: () => !(typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()),
+      apply: () => { altarEffects.push({ type: 'time_tax', value: 30, roundsLeft: 3 }, { type: 'focus_fast', value: 2, roundsLeft: 3 }); } },
+    { id: 'payout', icon: '🧾', rarity: 'rare', name: `+${5 * Q} mult for 4 rounds`,
+      desc: `Every hand scores +${5 * Q} mult for the next 4 rounds.`, cost: 'Your next payout pays nothing',
+      canTake: () => !skipNextPayout,
+      apply: () => { skipNextPayout = true; altarEffects.push({ type: 'mult_boost', value: 5 * Q, roundsLeft: 4 }); } },
   ];
+}
+function renderAltar() {
+  const offerings = evShuffle(altarOfferings().filter(o => o.canTake())).slice(0, 3);
   eventState.altarPick = null;
   const body = document.getElementById('event-body');
   offerings.forEach(off => {
-    const locked = !off.canTake();
-    const el = makeChoiceEl({ icon:off.icon, rarity:off.rarity, name:off.name, desc:off.desc, cost:off.cost,
-      cls: locked ? 'locked' : '',
+    const el = makeChoiceEl({ icon: off.icon, rarity: off.rarity, name: off.name, desc: off.desc, cost: off.cost,
       onClick: () => {
-        if (locked) return;
-        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
         eventState.altarPick = off;
         setEventConfirm(true);
-      }
-    });
+      } });
     body.appendChild(el);
   });
 }
 
 function confirmAltar() {
-  if (eventState.altarPick) { eventState.altarPick.apply(); }
+  const off = eventState.altarPick;
+  if (off) { off.apply(); noteMessage(off.name, 'var(--gold)'); render?.(); }
   closeEvent();
 }
 
-// ── Altar tick: called at start of each round ──
+// ── Altar tick: called at each round start, after the round's goal and stock are set ──
+// An effect applies to `roundsLeft` rounds counted from the first round start it sees.
 function tickAltarEffects() {
-  altarEffects.forEach(eff => {
-    if (eff.type === 'time_boost') {
-      roundSeconds += eff.value;   // r548: no ceiling, like every round-start bonus
-      updateClockUI();
-    }
-    eff.roundsLeft--;
-  });
+  altarEffects.forEach(eff => { if (eff.started) eff.roundsLeft--; else eff.started = true; });
   altarEffects = altarEffects.filter(e => e.roundsLeft > 0);
+  altarEffects.forEach(eff => {
+    if (eff.type === 'time_boost') { roundSeconds += eff.value; updateClockUI(); }   // a save made before r590
+    if (eff.type === 'time_tax')   { roundSeconds = Math.max(10, roundSeconds - eff.value); updateClockUI(); }
+    if (eff.type === 'swap_tax')   { swaps = 0; }
+  });
+  const g = getAltarGoalMultiplier();
+  if (g !== 1) roundGoal = Math.max(50, Math.round(roundGoal * g / 50) * 50);
+  if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
 function getAltarMultBoost() {
-  return altarEffects.filter(e => e.type === 'mult_boost').reduce((s,e) => s + e.value, 0);
+  return (altarEffects || []).filter(e => e.started && e.type === 'mult_boost').reduce((s, e) => s + e.value, 0);
 }
-
+function altarPipBoost() {
+  return (altarEffects || []).filter(e => e.started && e.type === 'pip_boost').reduce((s, e) => s + e.value, 0);
+}
+function altarFocusMult() {
+  return (altarEffects || []).filter(e => e.started && e.type === 'focus_fast').reduce((s, e) => s * e.value, 1);
+}
+function altarTrickLocked(id) {
+  return (altarEffects || []).some(e => e.type === 'trick_lock' && e.ids && e.ids.includes(id));
+}
 function getAltarGoalMultiplier() {
-  const eff = altarEffects.find(e => e.type === 'goal_reduce');
+  const eff = (altarEffects || []).find(e => e.started && e.type === 'goal_reduce');
   return eff ? eff.value : 1;
 }
 
@@ -1052,6 +1078,13 @@ function confirmTwinPath() {
 // and needs no drag: tap a Trick to lift it, tap a second to trade their places.
 // Tapping the lifted Trick again puts it back down. Nothing is committed until
 // Confirm, and Skip leaves the tray exactly as it was.
+// r590 (owner): Tray Order only turns up when something cares about tray order:
+// an owned entity tagged 'positional' (Inspirato, Double Take, Prime Times,
+// Mirror today; tag a new one in its data row and this reads it).
+function ownsPositional() {
+  const has = e => e && Array.isArray(e.tags) && e.tags.includes('positional');
+  return (trickTray || []).some(has) || (acquiredKnacks || []).some(has);
+}
 function renderShiftChange() {
   const body = document.getElementById('event-body');
   const tray = (typeof trickTray !== 'undefined' && trickTray) ? trickTray : [];
@@ -1071,12 +1104,6 @@ function renderShiftChange() {
 
   // Work on a copy - the real tray is only written on Confirm.
   eventState.shiftOrder = tray.slice();
-  eventState.shiftLifted = null;
-
-  const lbl = document.createElement('div');
-  lbl.className = 'ev-label';
-  lbl.textContent = 'TAP TWO TRICKS TO SWAP THEM';
-  body.appendChild(lbl);
 
   const row = document.createElement('div');
   row.id = 'shift-row';
@@ -1095,51 +1122,79 @@ function renderShiftChange() {
     b.addEventListener('click', () => { fn(); renderShiftRow(); });
     return b;
   };
-  tools.appendChild(mkTool('↔ Reverse', () => { eventState.shiftOrder.reverse(); eventState.shiftLifted = null; }));
-  tools.appendChild(mkTool('↺ Reset',   () => { eventState.shiftOrder = tray.slice(); eventState.shiftLifted = null; }));
+  tools.appendChild(mkTool('↔ Reverse', () => { eventState.shiftOrder.reverse(); }));
+  tools.appendChild(mkTool('↺ Reset',   () => { eventState.shiftOrder = tray.slice(); }));
   body.appendChild(tools);
 
-  renderShiftRow();
+  requestAnimationFrame(renderShiftRow);   // it measures the row
   setEventConfirm(true);
   document.getElementById('event-skip').textContent = 'Leave as it is';
 }
 
+// r590 (owner): drag a Trick to its new place. It follows the pointer; the
+// Tricks between its old and new place slide over with a slight rubber band, and
+// on release it snaps in. The row is one line: slots shrink to fit the tray.
+const SHIFT_GAP = 8, SHIFT_EASE = 'cubic-bezier(.3,1.45,.5,1)';
 function renderShiftRow() {
   const row = document.getElementById('shift-row');
   if (!row) return;
   const RARS = ['common','rare','epic','legendary'];
   const order = eventState.shiftOrder || [];
   row.innerHTML = '';
-  order.forEach((trick, i) => {
+  const n = order.length;
+  const w = Math.max(30, Math.min(56, Math.floor((row.clientWidth || 340) - SHIFT_GAP * (n - 1)) / n));
+  const step = w + SHIFT_GAP;
+  row.style.height = Math.round(w * 74 / 56 + 14) + 'px';
+  row.style.setProperty('--sh-w', w + 'px');
+  const left0 = Math.max(0, ((row.clientWidth || 340) - (n * step - SHIFT_GAP)) / 2);
+  const slots = order.map((trick, i) => {
     const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
     const slot = document.createElement('div');
-    slot.className = 'shift-slot' + (eventState.shiftLifted === i ? ' lifted' : '');
-    // The same entity tile the reward grid, the Mart and your tray all draw
-    // (js/entity-tile.js) - a Trick looks like itself here too.
+    slot.className = 'shift-slot';
+    slot.style.left = (left0 + i * step) + 'px';
     slot.innerHTML = `<div class="shift-num">${i + 1}</div>`
-                   + entityTileHTML({ entity: 'trick', label: trick.name, emoji: trickEmoji(trick) }, rar);
-    slot.addEventListener('click', () => {
-      if (eventState.shiftLifted === null)      eventState.shiftLifted = i;      // lift
-      else if (eventState.shiftLifted === i)    eventState.shiftLifted = null;   // put back down
-      else {                                                                     // trade places
-        const a = eventState.shiftLifted;
-        [order[a], order[i]] = [order[i], order[a]];
-        eventState.shiftLifted = null;
-      }
-      renderShiftRow();
-    });
+                   + entityTileHTML({ entity: 'trick', id: trick.id, label: trick.name, emoji: trickEmoji(trick) }, rar, { tip: false });
+    slot.addEventListener('pointerdown', e => shiftDragStart(e, i, slots, step));
     row.appendChild(slot);
+    return slot;
   });
   fitEntityNames(row, '.rwd-name', { maxLines: 2, minPx: 5 });
-
   const hint = document.getElementById('shift-hint');
-  if (hint) {
-    const lifted = eventState.shiftLifted;
-    hint.textContent = lifted === null
-      ? 'Slot 1 is first, and the last slot is last - both matter to Inspirato.'
-      : `${order[lifted].name} is lifted - tap another Trick to trade places, or tap it again to put it back.`;
-    hint.classList.toggle('active', lifted !== null);
-  }
+  if (hint) hint.textContent = 'Drag a Trick to a new place.';
+}
+function shiftDragStart(e, from, slots, step) {
+  e.preventDefault();
+  const order = eventState.shiftOrder, el = slots[from], row = el.parentElement;
+  const z = row.getBoundingClientRect().width / (row.offsetWidth || 1) || 1;
+  const x0 = e.clientX;
+  let to = from, moved = false;
+  el.classList.add('dragging');
+  el.style.transition = 'none';
+  slots.forEach((s, j) => { if (j !== from) s.style.transition = `transform .2s ${SHIFT_EASE}`; });
+  const move = ev => {
+    const dx = (ev.clientX - x0) / z;
+    if (Math.abs(dx) > 3) moved = true;
+    el.style.transform = `translate(${dx}px, -6px) scale(1.08)`;
+    const t = Math.max(0, Math.min(order.length - 1, Math.round(from + dx / step)));
+    if (t !== to) { to = t; try { sfxCardSelect?.(); } catch (er) {} }
+    slots.forEach((s, j) => {
+      if (j === from) return;
+      const shift = (from < to && j > from && j <= to) ? -step : (to < from && j >= to && j < from) ? step : 0;
+      s.style.transform = shift ? `translateX(${shift}px)` : '';
+    });
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+    el.classList.remove('dragging');
+    el.style.transition = `transform .22s ${SHIFT_EASE}`;
+    el.style.transform = `translateX(${(to - from) * step}px)`;
+    if (!moved || to === from) { el.style.transform = ''; return; }
+    setTimeout(() => {
+      const [t] = order.splice(from, 1); order.splice(to, 0, t);
+      renderShiftRow();
+    }, 230);
+  };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
 }
 
 function confirmShiftChange() {
@@ -1330,7 +1385,7 @@ function renderWorkshop() {
   eventState.workshopCard = null;
 
   const service = makeChoiceEl({
-    icon:'🧰', rarity:'common', name:'Service', desc:`Refill every Sleight you own to full charges (${owned.length} held).`,
+    icon:'🧰', rarity:'common', name:'Service', desc:`Refill every Sleight's charges (${owned.length} held).`,
     onClick: () => {
       body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
       service.classList.add('selected');
@@ -1341,9 +1396,24 @@ function renderWorkshop() {
   });
   body.appendChild(service);
 
+  // r590 (owner): a middle option, 3 random Sleights +1 charge each.
+  const ids = [...new Set(owned.map(c => sleightDef(c)?.id).filter(Boolean))];
+  const tune = makeChoiceEl({
+    icon:'🔧', rarity:'rare', name:'Tune-up',
+    desc:`${Math.min(3, ids.length)} random Sleight${ids.length === 1 ? '' : 's'} hold 1 more charge.`,
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+      tune.classList.add('selected');
+      eventState.workshopPick = 'tune';
+      document.getElementById('workshop-picker')?.remove();
+      setEventConfirm(true);
+    }
+  });
+  body.appendChild(tune);
+
   const reinforce = makeChoiceEl({
     icon:'⚙️', rarity:'epic', name:'Reinforce',
-    desc:`One Sleight's charge ceiling goes up by ${Math.round(BAL.workshop.cap_pct * 100)}% (at least +${BAL.workshop.cap_bonus}) for good, and it refills to the new ceiling.`,
+    desc:`One Sleight holds ${Math.round(BAL.workshop.cap_pct * 100)}% more charges (at least ${BAL.workshop.cap_bonus}) and refills.`,
     onClick: () => {
       body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
       reinforce.classList.add('selected');
@@ -1395,6 +1465,13 @@ function confirmWorkshop() {
       if (cap !== null && (c._usesLeft || 0) < cap) { c._usesLeft = cap; n++; }
     });
     noteMessage(n ? `${n} Sleight${n > 1 ? 's' : ''} refilled` : 'All Sleights already full', 'var(--gold)');
+  } else if (eventState.workshopPick === 'tune') {
+    const defs = evShuffle([...new Set(allOwnedSleightCards().map(c => sleightDef(c)).filter(d => d && sleightMaxCharges(d) !== null))]).slice(0, 3);
+    defs.forEach(def => {
+      sleightCapBonus[def.id] = (sleightCapBonus[def.id] || 0) + 1;
+      allOwnedSleightCards().forEach(c => { if (c.sleightId === def.id) c._usesLeft = (c._usesLeft || 0) + 1; });
+    });
+    showMessage(defs.length ? `+1 charge: ${defs.map(d => d.name).join(', ')}` : 'No Sleights to tune', 'var(--gold)');
   } else if (eventState.workshopPick === 'reinforce' && eventState.workshopCard) {
     const def = sleightDef(eventState.workshopCard);
     if (def) {
@@ -1411,15 +1488,15 @@ function confirmWorkshop() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: CARD MARKET (id 'market') - r576 rework: stocks the Lockbox
+// EVENT: CARD MARKET (id 'market') - r576 rework: bought cards wait in a stash (r590: the Focus bar opens it)
 // ══════════════════════════════════════════════
 // Owner: "pick from a bunch of cards, 50% to have a random buff, 5% chance to
 // have 2, but these go into a new feature ... a stash or reserve ... the event
 // lets you buy as many as you can afford ... lets go with 5."
 //
-// The cards do NOT join the deck when bought: they go into the Lockbox
-// (js/lockbox.js) and join the deck when you place one on the board. The first
-// purchase puts a Lockbox Sleight into your deck. Buffs roll at EVENT strength
+// The cards do NOT join the deck when bought: they wait in the stash
+// (js/lockbox.js), opened by a double-tap on the Focus bar, and join the deck
+// when you place one on the board. Buffs roll at EVENT strength
 // (rollBuffs, js/flow-rewards.js), so an x mult here is x3.
 const MARKET_OFFERS = 8;
 function marketCardPrice() { return priceOf(BAL.market.card_price); }
@@ -1438,7 +1515,7 @@ function renderMarket() {
   s.marketOffers = Array.from({ length: MARKET_OFFERS }, marketRollCard);
   s.marketBasket = [];
   const price = marketCardPrice();
-  body.appendChild(evNote(`${price} credits each. In a round, double-tap the Lockbox to place one; a placed card joins your deck.`));
+  body.appendChild(evNote(`${price} credits each. In a round, double-tap the Focus bar to put them on the board.`));
   const grid = document.createElement('div'); grid.className = 'mk-grid'; grid.id = 'mk-grid';
   s.marketOffers.forEach((off, i) => {
     const el = document.createElement('div');
@@ -1476,8 +1553,7 @@ function confirmMarket() {
     off.buffs.forEach(b => enhanceCardKey(cardId(off.card), b.e));
     lockboxStash.push(off.card);
   });
-  lockboxEnsureOwned();
-  noteMessage(`${basket.length} card${basket.length > 1 ? 's' : ''} in your Lockbox`, 'var(--gold)');
+  noteMessage(`${basket.length} card${basket.length > 1 ? 's' : ''} bought`, 'var(--gold)');
   closeEvent();
 }
 

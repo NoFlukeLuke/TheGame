@@ -62,6 +62,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // _comp is taken from the cells as passed, before any strip: the components of
   // a stripped selection can differ from the ones the player actually played.
   const _allCells = cells;
+  const _altarPips = (typeof altarPipBoost === 'function') ? altarPipBoost() : 0;
+  const _altarMult = (typeof getAltarMultBoost === 'function') ? getAltarMultBoost() : 0;
   const _comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
   let _handOnly = cells;
   if (_comp) {
@@ -133,7 +135,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(_allCells) : null;
   // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
   // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
-  let totalPips = Math.round(handBasePips(handName) * levelScale) + staticPips;   // Static Bonus (r579): flat, unscaled
+  let totalPips = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips;   // Static Bonus (r579), The Investment (r590): flat, unscaled
   _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide (r539): the mult it has built, 1-3 per level passed while held (level-up.js)
@@ -855,7 +857,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
-  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult;
+  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult;
 
   // Layered hands: every other component adds its base mult too. Additive, not
   // multiplied - two hands' worth of ladder, not the product of them.
@@ -1437,9 +1439,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // second hand's worth of base pips and mult directly, with no ledger call, so
     // they belong HERE rather than as events - they are part of what the hand is
     // worth before anything fires.
-    ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips
+    ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips
                      + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
-    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult
+    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult
                      + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
   }
 

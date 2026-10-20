@@ -67,7 +67,7 @@ const EVENT_REQUIRES = {
   rehearsal:    () => (trickTray || []).length > 0,
   reassignment: () => (trickTray || []).length > 0,
   // Tray ORDER is the whole screen, so one Trick is not a decision.
-  shift_change: () => (trickTray || []).length >= 2,
+  shift_change: () => (trickTray || []).length >= 2 && ownsPositional(),   // r590: only when position matters
   // Needs something improvable to stake or to spin between.
   the_draw:     () => evImprovables().length >= 2,
   the_payline:  () => evImprovables().length >= 2,
@@ -233,8 +233,8 @@ const EVENT_META = {
   shift_change:{ name:'Tray Order',      flavor:'Put your Tricks in the order you want them to fire.' },
   bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
   rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time every hand, for good. It costs three junk cards.' },
-  workshop:    { name:'Maintenance',     flavor:'Top up every Sleight, or raise one charge ceiling for good.' },
-  market:      { name:'Card Market',     flavor:'Buy cards into your Lockbox, then put them on the board when you want them.' },
+  workshop:    { name:'Maintenance',     flavor:'Refill your Sleights, or give them more charges.' },
+  market:      { name:'Card Market',     flavor:'Buy cards now, put them on the board when you want them.' },
   deck_trim:   { name:'Deck Trim',       flavor:'' },
   reassignment:{ name:'Trade a Trick',   flavor:'' },
   the_draw:    { name:'Spin to Improve', flavor:'' },
