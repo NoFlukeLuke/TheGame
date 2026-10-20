@@ -34,6 +34,26 @@ function evToBoard() {
   document.getElementById('event-overlay')?.classList.remove('show');
   document.getElementById('next-goal-bg')?.classList.remove('show');
 }
+// The event panel fades and sinks away, then `done` runs (r596, owner: Call It
+// needs "transitions between screens"). evOverlayIn is the way back: the panel
+// rises in over the board. Settings -> Skip -> Screen transitions makes both instant.
+const EV_FADE_MS = 280;
+function evOverlayOut(done) {
+  const ov = document.getElementById('event-overlay');
+  const end = () => { ov?.classList.remove('show', 'ev-out', 'ev-in'); document.getElementById('next-goal-bg')?.classList.remove('show'); done && done(); };
+  if (!ov || !ov.classList.contains('show') || (typeof rtSkipping === 'function' && rtSkipping())) { end(); return; }
+  ov.classList.remove('ev-in'); ov.classList.add('ev-out');
+  setTimeout(end, EV_FADE_MS);
+}
+function evOverlayIn() {
+  const ov = document.getElementById('event-overlay');
+  if (!ov) return;
+  ov.classList.remove('ev-out');
+  ov.classList.add('show');
+  if (typeof rtSkipping === 'function' && rtSkipping()) return;
+  ov.classList.remove('ev-in'); void ov.offsetWidth; ov.classList.add('ev-in');
+  setTimeout(() => ov.classList.remove('ev-in'), EV_FADE_MS + 40);
+}
 function evRunScreens(steps, done) {
   const list = steps.slice();
   const next = () => {
@@ -313,11 +333,12 @@ function renderCallIt() {
   evConfirmBtn('OPEN THE GRID', true);
 }
 function confirmCallIt() {
-  evToBoard();
-  openCallItGrid(() => closeEvent());
+  evConfirmBtn('OPEN THE GRID', false);
+  evOverlayOut(() => openCallItGrid(() => closeEvent()));
 }
 // Resolves true when the call is right. Rolled before the coin is shown.
 function callItAsk() {
+  if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;   // or a redraw pins it back over the coin
   if (typeof hideRewardTooltip === 'function') hideRewardTooltip();
   return new Promise(res => {
     const ov = document.getElementById('event-overlay');
@@ -335,16 +356,15 @@ function callItAsk() {
       coin.flip(side).then(() => {
         const won = side === pick;
         coin.caption(`${side.toUpperCase()} · ${won ? 'REWARDS' : 'PENALTIES'}`, won ? 'win' : 'lose');
-        setTimeout(() => {
-          ov.classList.remove('show');
+        setTimeout(() => evOverlayOut(() => {
           if (confirm) confirm.style.display = '';
           res(won);
-        }, 1100);
+        }), 1100);
       });
     };
     row.appendChild(evButton('HEADS', () => call('heads')));
     row.appendChild(evButton('TAILS', () => call('tails')));
-    ov.classList.add('show');
+    evOverlayIn();
     const panel = document.getElementById('event-panel'); if (panel) panel.scrollTop = 0;
   });
 }

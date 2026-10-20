@@ -236,3 +236,13 @@
 .evt-sym .sl-ent { pointer-events: none; display: flex; align-items: center; justify-content: center; }
 .evt-sym .sl-ent .reward-cell { position: relative; width: 42px; height: 56px; margin: 0; }
 .evt-sym .sl-ent .entity-knack { zoom: .8; }
+
+/* Screen to screen (r596): the event panel sinks out, and rises back in over the board. */
+#event-overlay.ev-out { animation: ev-ov-out .28s ease-in forwards; pointer-events: none; }
+#event-overlay.ev-out #event-panel { animation: ev-panel-out .28s ease-in forwards; }
+#event-overlay.ev-in { animation: ev-ov-in .28s ease-out; }
+#event-overlay.ev-in #event-panel { animation: ev-panel-in .28s cubic-bezier(.2,1.2,.4,1); }
+@keyframes ev-ov-out { to { opacity: 0; } }
+@keyframes ev-ov-in { from { opacity: 0; } }
+@keyframes ev-panel-out { to { transform: translateY(14px) scale(.96); } }
+@keyframes ev-panel-in { from { transform: translateY(18px) scale(.95); } }

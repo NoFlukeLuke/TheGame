@@ -2627,7 +2627,7 @@ function flowrDeckEnd() {
   // r393: a reward-grid dual tile runs this editor on the round's own board and
   // hands back to the round instead of the Flow chain.
   if (flowrDeckDone) { const cb = flowrDeckDone; flowrDeckDone = null; try { render(); } catch (e) {} setTimeout(cb, 700); return; }
-  if (typeof rewardTransitionOut === 'function') rewardTransitionOut(() => flowrAfterStep(), { breathe: 800 });
+  if (typeof rewardTransitionOut === 'function') rewardTransitionOut(() => flowrAfterStep(), { breathe: 800, taken: true });
   else flowrAfterStep();
 }
 let flowrPendingDual = null, flowrDeckDone = null;

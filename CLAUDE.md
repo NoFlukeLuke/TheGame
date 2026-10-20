@@ -1517,3 +1517,18 @@ in one column per suit, a rank to a row from the Ace down, wilds last, six rows 
 over the Focus bar (`#egl-scroll`, hold to repeat), the mouse wheel or a drag (`--vr` on the view).
 Text that does not fit overflows (`.egl-fit > * { flex-shrink: 0 }`, `justify-content: safe
 center`) so the fit pass can see it. Prefs moved to `lethe.eventGridLab.v2`.
+
+## r590-r596 - the event tour verdicts (EVENTS.md, "AFTER THE TOUR")
+- **Owner's rule, game wide:** describe the mechanic and stop; never explain the consequence.
+  One explainer per event screen (an empty flavor line is hidden).
+- **Shared pieces:** `evDeckPicker` (js/event-picker.js, every card event picks from the whole
+  deck by suit column), `evSlotMachine` (js/event-slot-machine.js, reels + lever), the physics
+  `evCoin`, `evDoubleOrFlip`, `EVENT_SKIP` (priced skips), `evOverlayOut` / `evOverlayIn`
+  (panel fades, Call It). **Curse cards** (js/boss.js): junk with a debuff (Leech, Smog), cannot
+  be played, swapped or discarded, back into the deck after 120s; only Clean Slate removes them.
+- Bought Card Market cards wait on the Focus bar (double-tap, ahead of the Reserve). Tricks
+  tagged `positional` gate Tray Order. The Investment's boosts and half goal are now read
+  (they did nothing before r593). Overtime's boss cost is Tough reviews (+25% boss goal).
+- `sfxRewardTaken` (catalog `reward_taken`, every pack) plays when a reward is taken
+  (`rewardTransitionOut` with `chosen` or `taken`). Printer notices within `PT_CFG.groupMs`
+  (500) of the slip's LAST line join that slip.

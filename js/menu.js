@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r595 · event verdicts 6: slot machines with reels and a lever";
+const BUILD = "2026-10-20 · r596 · event verdicts 7: reward taken sound, printer merging, Call It fades";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

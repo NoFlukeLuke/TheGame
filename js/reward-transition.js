@@ -35,12 +35,15 @@ function rtSkipping() { return typeof skipOn === 'function' && skipOn('transitio
 
 // done: runs once, after the board has left. opts.chosen: the tile that was
 // taken (it lifts rather than scatters). opts.breathe: override the hold.
+// opts.taken: a reward was taken with no tile to lift (the deck editor). A taken
+// reward sounds sfxRewardTaken as the hold starts (r596), transitions or not.
 function rewardTransitionOut(done, opts = {}) {
   let called = false;
   const finish = () => { if (called) return; called = true;
     const g = document.getElementById('grid'); if (g) g.style.zIndex = '';
     try { done && done(); } catch (e) { console.error('[RT] continuation threw', e); } };
   const grid = document.getElementById('grid');
+  if (opts.chosen || opts.taken) { try { sfxRewardTaken?.(); } catch (e) {} }
   if (rtSkipping() || !grid) { finish(); return; }
   if (typeof hideEntityTooltip === 'function') { try { hideEntityTooltip(true); } catch (e) {} }
   const chosen = opts.chosen || null;

@@ -1,7 +1,8 @@
 // ══ PRINTER NOTICES (r432, reworked r435) ═══════════════════════════════════
 // The top-of-screen notices print on black tractor-feed paper that comes down
 // from the top edge of the game screen. Notices that arrive together share ONE
-// slip. Each line is printed out of sight (the print sound) and then fed down
+// slip: each notice within PT_CFG.groupMs of the one before adds a line to it.
+// Each line is printed out of sight (the print sound) and then fed down
 // already written (the feed sound). A finished slip hangs PT_CFG.holdPerLine a
 // line (longer lines longer, see ptLineHold) and is then pulled back up into the
 // top. A notice that arrives while a slip is still up finishes that slip at once
@@ -13,7 +14,7 @@
 // can already see; it prints nothing. The old plate toast is the fallback.
 
 const PT_CFG = {
-  groupMs: 160,        // notices this close together share a slip
+  groupMs: 500,        // a notice this soon after the last one adds a line to its slip (owner, r596)
   holdPerLine: 2000,   // how long a finished slip hangs, per line of average length
   avgChars: 26,        // an average notice (measured over every showMessage text)
   longScale: 0.5,      // a line N% longer than average hangs N * longScale % longer
@@ -74,12 +75,13 @@ function printToast(text, color, opts) {
       return same.el;
     }
   }
-  // Join the slip if it opened a moment ago, otherwise pull it back now.
-  if (s && (now - s.opened > PT_CFG.groupMs || s.lines.length >= PT_CFG.maxLines)) ptPull(s);
+  // Join the slip if its last notice came a moment ago, otherwise pull it back now.
+  if (s && (now - s.last > PT_CFG.groupMs || s.lines.length >= PT_CFG.maxLines)) ptPull(s);
   if (!_ptSlip) _ptSlip = ptNewSlip(layer, now);
   const slip = _ptSlip;
   const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1 };
   slip.lines.push(line); slip.queue.push(line);
+  slip.last = now; clearTimeout(slip.hold);
   if (!slip.busy) ptPrintNext(slip);
   return slip.el;
 }
@@ -93,7 +95,7 @@ function ptNewSlip(layer, now) {
   el.classList.add('pt-empty');                      // nothing shows until the first line is fed
   layer.appendChild(el);
   const slip = { el, paper: el.firstChild, box: el.firstChild.firstChild, lines: [], queue: [],
-                 opened: now, busy: false, done: false, timers: [], width: 0, pinned: false };
+                 opened: now, last: now, busy: false, done: false, timers: [], width: 0, pinned: false };
   el.addEventListener('pointerdown', e => e.stopPropagation());
   el.addEventListener('click', e => {
     e.stopPropagation();

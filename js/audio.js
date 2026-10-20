@@ -256,6 +256,23 @@ function sfxRewardSelect() {
   playTone({ freq: 990, type: 'sine',     gain: 0.05, attack: 0.003, decay: 0.03, sustain: 0.15, release: 0.08, duration: 0.05, delay: 0.02 });
 }
 
+// A reward is taken (r596). Owner: rewards "don't get much of a sound effect"
+// as they leave. A soft thunk as the choice locks in, then two bright bell notes
+// (C6, G6) with a high shimmer: the sound of the thing becoming yours. Plays on
+// the breathe beat of rewardTransitionOut, before the board explodes out.
+function sfxRewardTaken() {
+  if (typeof _crVoice !== 'function') return;
+  _crVoice((ctx, v, t, out) => {
+    _crTone(ctx, out, t, 190, 58, 0.2, 0.22 * v, 'sine');
+    _crHit(ctx, out, t, _crNoise(ctx, 0.03, p => 1 - p), 0.07 * v, 'bandpass', 2600, 1.2);
+    [[1046.5, 0.05], [1568, 0.13]].forEach(([f, d]) => {
+      _crTone(ctx, out, t + d, f, f, 0.6, 0.085 * v, 'triangle');
+      _crTone(ctx, out, t + d, f * 2, f * 2, 0.32, 0.028 * v, 'sine');
+    });
+    _crTone(ctx, out, t + 0.2, 2637, 2637, 0.5, 0.018 * v, 'sine');
+  });
+}
+
 function sfxCountdown321() {
   // Three deep ticks
   [0, 1, 2].forEach(i => {
