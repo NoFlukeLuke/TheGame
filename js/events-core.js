@@ -225,7 +225,7 @@ const EVENT_META = {
   gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },
   merchant:    { name:'Free Pick',       flavor:'Three pieces that fit what you are building. Take one, free.' },
   altar:       { name:'The Investment',  flavor:'Pay now. It pays you back over the next few rounds.' },
-  spring:      { name:'Clean Up',        flavor:'Cut cards out of your deck, or put back what you have lost.' },
+  spring:      { name:'Clean Up',        flavor:'Cut cards out of your deck, or undo a downside.' },
   twin_path:   { name:'Two and a Catch', flavor:'Two Tricks. One downside, and you cannot refuse it.' },
   forge:       { name:'Card Upgrade',    flavor:'A buff that grows every time it scores. Pick two cards; one of them gets it.' },
   bargain:     { name:'The Price',       flavor:'Every offer here costs you something first.' },
@@ -257,7 +257,7 @@ const EVENT_META = {
   luck_dice:   { name:'Luck Dice',       flavor:'' },
   // r580: the structural events
   state_change:{ name:'State Change',    flavor:'Buy a card state and choose the card it goes on.' },
-  rewire:      { name:'Rewire',          flavor:'A replay, a second suit or a second rank, paid for in junk.' },
+  rewire:      { name:'Rewire',          flavor:'A replay, a second suit or a second rank. Up to three times.' },
 };
 
 function renderEventShell(id) {

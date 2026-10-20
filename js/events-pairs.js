@@ -1,10 +1,10 @@
 // ── EVENT: PAIRS (r573) ──────────────────────────────────────────────────────
 //
-// Sixteen cards face down in a 4x4. Eight pairs:
-//   4 RANK pairs: two cards of one rank, random suits, two buffs each (rows and
+// Twelve cards face down in a 3x4 (r590, owner: was sixteen). Six pairs:
+//   3 RANK pairs: two cards of one rank, random suits, two buffs each (rows and
 //     values from the deck editor's buff table). A match is the RANK: suit and
 //     buffs may differ. Both cards join the deck with their buffs.
-//   2 OP pairs: a rarer deck op (Stamp, x mult, x pips, Replay, Second Suit,
+//   1 OP pair: a rarer deck op (Stamp, x mult, x pips, Replay, Second Suit,
 //     Second Rank), applied to random deck cards on a match.
 //   2 PENALTY pairs, A and B, which match only like with like: A puts a curse
 //     on a random deck card (a board card if the deck is empty); B puts two
@@ -13,6 +13,8 @@
 // Two forms (owner): 30% FREE - keep flipping until a penalty pair matches, or
 // leave between pairs. 70% THREE TRIES - three pairs of flips, leave after any
 // completed pair. Never mid-pair. A pair that does not match flips back.
+// When it is over, ONE LAST TRY buys one more pair for a quarter of your
+// credits (the amount is printed), once.
 // Having turned a penalty card first, the second flip must be a card not yet
 // seen, or a known card of the same penalty: a known safe card is refused.
 
@@ -21,6 +23,7 @@ const PAIRS_TRIES = 3;
 const PAIRS_FLIP_MS = 420;
 const PAIRS_BACK_MS = 900;
 const PAIRS_RARE_OPS = ['copy', 'xmult', 'xpips', 'replay', 'suit2', 'rank2'];
+const PAIRS_RANK_PAIRS = 3, PAIRS_OP_PAIRS = 1;
 
 function _pairsRankCard(rank) {
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : ['♠', '♥', '♦', '♣'];
@@ -35,12 +38,12 @@ function _pairsBuild() {
   const ranks = ((typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : ['2','3','4','5','6','7','8','9','10','J','Q','K','A']).slice();
   for (let i = ranks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ranks[i], ranks[j]] = [ranks[j], ranks[i]]; }
   const ops = (typeof flowrDrawOps === 'function')
-    ? flowrDrawOps(2, FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)), { event: true })
-    : FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)).slice(0, 2);
+    ? flowrDrawOps(PAIRS_OP_PAIRS, FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)), { event: true })
+    : FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)).slice(0, PAIRS_OP_PAIRS);
   const curseIds = Object.keys(CURSE_DEFS);
   const curse = curseIds[Math.floor(Math.random() * curseIds.length)];
   const tiles = [];
-  ranks.slice(0, 4).forEach(rank => { for (let k = 0; k < 2; k++) tiles.push({ kind: 'rank', key: 'rank:' + rank, card: _pairsRankCard(rank) }); });
+  ranks.slice(0, PAIRS_RANK_PAIRS).forEach(rank => { for (let k = 0; k < 2; k++) tiles.push({ kind: 'rank', key: 'rank:' + rank, card: _pairsRankCard(rank) }); });
   ops.forEach(op => { for (let k = 0; k < 2; k++) tiles.push({ kind: 'op', key: 'op:' + op.id, op }); });
   for (let k = 0; k < 2; k++) tiles.push({ kind: 'pen', key: 'pen:A', pen: 'A', curse });
   for (let k = 0; k < 2; k++) tiles.push({ kind: 'pen', key: 'pen:B', pen: 'B' });
@@ -89,7 +92,8 @@ function renderPairs() {
     grid.appendChild(el);
   });
   body.appendChild(grid);
-  const note = evNote('Rank pairs match on the rank alone. <b>A</b> matches A and <b>B</b> matches B: a curse, or stones.'); note.id = 'mt-note'; body.appendChild(note);
+  const note = evNote(`${s.tiles.length} cards face down. Find a match and face the consequence.`); note.id = 'mt-note'; body.appendChild(note);
+  s.lastRow = evRow(body);
   const confirm = document.getElementById('event-confirm'); if (confirm) confirm.style.display = 'none';
   _pairsSync();
   _pairsFit();
@@ -114,9 +118,25 @@ function _pairsFit() {
 
 function _pairsNote(html) { const n = document.getElementById('mt-note'); if (n) n.innerHTML = html; }
 
+function pairsLastPrice() { return Math.max(1, Math.round(coins / 4)); }
 function _pairsSync() {
   const s = eventState, skip = document.getElementById('event-skip');
   if (!skip) return;
+  // ONE LAST TRY: once, when the game is over with a pair still face down.
+  if (s.lastRow) {
+    s.lastRow.innerHTML = '';
+    if (s.over && !s.lastUsed && coins >= 1 && s.tiles.some(t => !t.done)) {
+      const price = pairsLastPrice();
+      s.lastRow.appendChild(evButton(`ONE LAST TRY · ${price} credits`, () => {
+        if (coins < price) return;
+        coins -= price; updateCoinsUI?.();
+        s.lastUsed = true; s.over = false; s.free = false; s.tries = 1;
+        _pairsNote('One last pair.');
+        _pairsSync();
+      }));
+      evReveal(s.lastRow);
+    }
+  }
   const left = s.free ? '' : ` · ${s.tries} ${s.tries === 1 ? 'try' : 'tries'} left`;
   skip.textContent = (s.over ? 'Done' : 'Leave') + (s.over ? '' : left);
   skip.disabled = !!s.open || s.busy;

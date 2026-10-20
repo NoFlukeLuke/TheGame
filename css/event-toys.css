@@ -185,3 +185,7 @@
 .evt-drop-track::before { left: 0; } .evt-drop-track::after { right: 0; }
 .evt-ball-drag { cursor: var(--cur-pointer, grab); touch-action: none; box-shadow: 0 0 0 3px rgba(240,192,64,.35), 0 0 12px rgba(240,192,64,.6); }
 .evt-drop-hint { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--cream-dim); }
+/* r590: Clean Up's peek at the last grid */
+.spring-peek { display: grid; grid-template-columns: repeat(var(--sp-cols, 4), auto); gap: 4px; justify-content: center; margin: 4px auto 8px; }
+.spring-peek .edp-card { cursor: var(--cur-default, default); }
+.spring-peek .sp-empty { color: #3d3756; text-align: center; align-self: center; }

@@ -480,10 +480,8 @@ function evShuffle(arr) {
 // growPips: 10 }): it scores +10, then +20, then +30. growCardScaling
 // (js/deck-grid.js) does the growing after each scoring hand.
 //
-// The two cards are picked from a sample of the deck drawn here, not off the
-// board: between rounds the board has usually been swept back into the deck
-// (r568), so there is nothing on it to point at.
-const FORGE_SAMPLE = 8;
+// The two cards are picked from the whole deck (the deck picker, r590), not off
+// the board: between rounds the board has been swept back into the deck (r568).
 function forgeBuffs() {
   const B = BAL.forge;
   return [
@@ -498,8 +496,7 @@ function renderForge() {
   const pool = allDeckCards().filter(c => !(typeof isWildCard === 'function' && isWildCard(c)));
   if (pool.length < 2) { body.innerHTML = evEmptyHTML('Not enough cards to upgrade.'); setEventConfirm(true); eventState.forgeNone = true; return; }
   const s = eventState;
-  s.forgeBuff = null; s.forgeCards = []; s.forgeBoth = false; s.forgeDone = false;
-  s.forgeSample = evShuffle(pool).slice(0, FORGE_SAMPLE);
+  s.forgeBuff = null; s.forgeBoth = false; s.forgeDone = false;
   s.forgeBothPrice = priceOf(BAL.forge.both_price);
   body.appendChild(evLabel('1 · THE BUFF'));
   forgeBuffs().forEach(b => {
@@ -512,22 +509,8 @@ function renderForge() {
     body.appendChild(el);
   });
   body.appendChild(evLabel('2 · TWO CARDS · ONE OF THEM GETS IT'));
-  const chips = document.createElement('div'); chips.className = 'ev-cardchips'; chips.id = 'forge-chips';
-  s.forgeSample.forEach(card => {
-    const chip = document.createElement('span');
-    chip.className = 'ev-cardchip' + (['♥', '♦'].includes(card.suit) ? ' red' : '');
-    chip.textContent = (typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`;
-    chip._card = card;
-    chip.addEventListener('click', () => {
-      if (s.forgeDone) return;
-      const at = s.forgeCards.indexOf(card);
-      if (at >= 0) s.forgeCards.splice(at, 1);
-      else if (s.forgeCards.length < 2) s.forgeCards.push(card);
-      forgeSync();
-    });
-    chips.appendChild(chip);
-  });
-  body.appendChild(chips);
+  s.picker = evDeckPicker(body, { max: 2, cards: pool, onChange: forgeSync, locked: () => s.forgeDone });
+  s.forgeCards = s.picker.picks;
   const both = makeChoiceEl({ icon: '🪙', rarity: 'legendary', name: 'Try for both', cls: 'forge-both',
     desc: `A coin flip: heads, both cards get the buff. Tails, one card still does.`, cost: `${s.forgeBothPrice} credits`,
     onClick: () => {
@@ -540,7 +523,6 @@ function renderForge() {
 }
 function forgeSync() {
   const s = eventState;
-  document.querySelectorAll('#forge-chips .ev-cardchip').forEach(ch => ch.classList.toggle('picked', s.forgeCards.includes(ch._card)));
   setEventConfirm(!!s.forgeBuff && s.forgeCards.length === 2);
 }
 function confirmForge() {
@@ -552,7 +534,7 @@ function confirmForge() {
   document.getElementById('event-skip').style.display = 'none';
   const body = document.getElementById('event-body');
   const stage = document.createElement('div'); stage.className = 'evt-host'; body.appendChild(stage);
-  evReveal(s.forgeBoth ? stage : document.getElementById('forge-chips'));
+  evReveal(s.forgeBoth ? stage : s.picker.el);
   const winIdx = Math.floor(Math.random() * 2);
   let bothWon = false;
   let p = Promise.resolve();
@@ -563,7 +545,7 @@ function confirmForge() {
     p = coin.flip(bothWon ? 'heads' : 'tails').then(() => coin.caption(bothWon ? 'BOTH CARDS' : 'ONE CARD', bothWon ? 'win' : 'lose'));
   }
   p.then(() => {
-    const chips = [...document.querySelectorAll('#forge-chips .ev-cardchip')].filter(ch => s.forgeCards.includes(ch._card));
+    const chips = s.forgeCards.map(c => [...s.picker.el.querySelectorAll('.edp-card')].find(el => el._card === c)).filter(Boolean);
     const winners = bothWon ? s.forgeCards.slice() : [s.forgeCards[winIdx]];
     // Alternate the highlight between the two picks, then land on the result.
     let k = 0;
@@ -883,187 +865,102 @@ function getAltarGoalMultiplier() {
 // and the deck really can hold two 7♠ - the Mart sells duplicates - so a
 // face-deduped list would hide one of them and a face-matched splice would take
 // whichever copy it found first.
-const SPRING_CUTS = {
-  cut4: { count: 4, distinctRanks: true },
-  cut2: { count: 2, distinctRanks: false },
-};
+// r590 (owner): three options. Cut 8 cards at random from the grid you just
+// played (PEEK shows it); cut any 3 cards you choose; or undo one downside from
+// a grid or an event (the Clean Slate list). The grid is the live board when it
+// has cards (the event tour), else the last board the round-end sweep recorded
+// (lastBoard, by card id, so it survives the cards being rebuilt and a save).
+const SPRING_RANDOM = 8, SPRING_CHOOSE = 3;
+let lastBoard = null;   // { rows, cols, ids } (js/interlude.js); in SAVE_VARS
+function springGridCards() {
+  const live = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) { const cd = gridData[r]?.[c]; if (cd && cd.rank && !cd._isSleight && !cd._isStone) live.push(cd); }
+  if (live.length) return { rows: gridRows, cols: gridCols, cells: (gridData || []).flat().map(cd => live.includes(cd) ? cd : null) };
+  if (!lastBoard || !lastBoard.ids) return null;
+  const deck = everyDeckCard();
+  return { rows: lastBoard.rows, cols: lastBoard.cols, cells: lastBoard.ids.map(id => (id != null && deck.find(c => c._id === id)) || null) };
+}
+function springLiveFixes() { return CLEAN_SLATE_FIXES.filter(f => { try { return f.has(); } catch (e) { return false; } }); }
 
 function renderSpring() {
-  eventState.springPick = null;
-  eventState.springCards = [];
-  const body = document.getElementById('event-body');
-  body.appendChild(evNote('Cards you cut are gone for the rest of the run. A thinner deck draws what you want more often.'));
-
-  const cuttable = springCuttableCards();
-
-  const addCut = (key, opts) => {
-    const cfg = SPRING_CUTS[key];
-    const el = makeChoiceEl({
-      icon: opts.icon, rarity: opts.rarity, name: opts.name, desc: opts.desc,
-      cls: cuttable.length < cfg.count ? 'locked' : '',
-      onClick: () => {
-        if (cuttable.length < cfg.count) return;
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.springPick = key;
-        eventState.springCards = [];
-        showSpringCardPicker(cuttable, cfg);
-        setEventConfirm(false);
-      }
-    });
-    body.appendChild(el);
+  const s = eventState, body = document.getElementById('event-body');
+  s.springPick = null; s.springFix = null;
+  const grid = springGridCards(), gridCards = grid ? grid.cells.filter(Boolean) : [];
+  const pick = (key, el) => {
+    body.querySelectorAll('.spring-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected'); s.springPick = key;
+    document.getElementById('spring-sub')?.remove();
+    const sub = document.createElement('div'); sub.id = 'spring-sub'; el.after(sub);
+    return sub;
   };
+  const sync = () => setEventConfirm(
+    (s.springPick === 'random' && gridCards.length > 0) ||
+    (s.springPick === 'choose' && s.picker && s.picker.picks.length > 0) ||
+    (s.springPick === 'fix' && !!s.springFix));
 
-  addCut('cut4', { icon:'✂️', rarity:'rare', name:'Cut 4 cards, all different ranks',
-    desc:'Pick four cards from your draw pile. No two of them may share a rank.' });
-  addCut('cut2', { icon:'✂️', rarity:'common', name:'Cut 2 cards, your choice',
-    desc:'Pick any two cards from your draw pile. They can be the same rank, the same card twice over, anything.' });
+  const rnd = makeChoiceEl({ icon: '🎲', rarity: 'rare', name: `Cut ${SPRING_RANDOM} at random`,
+    desc: `${Math.min(SPRING_RANDOM, gridCards.length)} random cards from your last grid leave your deck.`, cls: 'spring-opt' + (gridCards.length ? '' : ' locked'),
+    onClick: () => { if (!gridCards.length) return; pick('random', rnd); sync(); } });
+  body.appendChild(rnd);
+  if (gridCards.length) {
+    const row = evRow(body);
+    const peek = evButton('PEEK AT THE GRID', () => {
+      const open = document.getElementById('spring-peek');
+      if (open) { open.remove(); peek.textContent = 'PEEK AT THE GRID'; return; }
+      const box = document.createElement('div'); box.id = 'spring-peek'; box.className = 'spring-peek';
+      box.style.setProperty('--sp-cols', grid.cols);
+      box.innerHTML = grid.cells.map(cd => cd
+        ? `<span class="edp-card${['♥', '♦'].includes(cd.suit) ? ' red' : ''}${isWildCard(cd) ? ' wild' : ''}">${isWildCard(cd) ? WILD_RANK : cd.rank + cd.suit}</span>`
+        : '<span class="sp-empty">·</span>').join('');
+      row.after(box); peek.textContent = 'HIDE THE GRID'; evReveal(box);
+    }, true);
+    row.appendChild(peek);
+  }
 
-  // Put resources back. PERMANENT: it repairs the LIMIT, not that round's stock,
-  // so a swap lost to Two and a Catch or the Auditor is actually given back
-  // rather than handed over for one round and then lost again.
-  const short = springResourceShortfall();
-  const restoreDesc = (short.swaps || short.discards)
-    ? `Your swap and discard limits go back to ${limits.swaps.base} and ${limits.discards.base} for good, and this round's stock refills.`
-    : `Nothing of yours is missing, so take the increase instead: +1 swap and +1 discard per round, permanently.`;
-  const restoreOpt = makeChoiceEl({
-    icon:'🔧', rarity:'common', name: (short.swaps || short.discards) ? 'Put your limits back' : '+1 swap and +1 discard',
-    desc: restoreDesc,
+  const choose = makeChoiceEl({ icon: '✂️', rarity: 'rare', name: `Cut any ${SPRING_CHOOSE}`,
+    desc: `Choose up to ${SPRING_CHOOSE} cards from your deck.`, cls: 'spring-opt',
     onClick: () => {
-      body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
-      restoreOpt.classList.add('selected');
-      eventState.springPick = 'restore_resources';
-      eventState.springCards = [];
-      document.getElementById('spring-card-picker')?.remove();
-      setEventConfirm(true);
-    }
-  });
-  body.appendChild(restoreOpt);
+      const sub = pick('choose', choose);
+      s.picker = evDeckPicker(sub, { max: SPRING_CHOOSE, onChange: sync });
+      sync();
+    } });
+  body.appendChild(choose);
 
-  // Unchanged behaviour, plain wording.
-  const cleanseOpt = makeChoiceEl({
-    icon:'✨', rarity:'rare', name:'Undo a downside',
-    desc:'Reverse one of the permanent downsides taken from an earlier reward grid. Gives back +1 discard.',
+  const fixes = springLiveFixes();
+  const fix = makeChoiceEl({ icon: '✨', rarity: 'epic', name: 'Undo a downside',
+    desc: fixes.length ? 'One downside from a grid or an event is reversed.' : 'Nothing to undo.', cls: 'spring-opt' + (fixes.length ? '' : ' locked'),
     onClick: () => {
-      body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
-      cleanseOpt.classList.add('selected');
-      eventState.springPick = 'cleanse_debuff';
-      eventState.springCards = [];
-      document.getElementById('spring-card-picker')?.remove();
-      setEventConfirm(true);
-    }
-  });
-  body.appendChild(cleanseOpt);
-}
-
-// Every ordinary card in the draw pile, as individual cards.
-function springCuttableCards() {
-  return (drawPile || []).filter(c => c && c.rank && !c._isSleight && !c._isStone);
-}
-
-// How far below their base each resource limit currently sits. Below BASE, not
-// below whatever the player has upgraded to: this option repairs damage, it is
-// not a free copy of every limit upgrade they skipped.
-function springResourceShortfall() {
-  return {
-    swaps:    Math.max(0, limits.swaps.base    - limits.swaps.current),
-    discards: Math.max(0, limits.discards.base - limits.discards.current),
-  };
-}
-
-function showSpringCardPicker(pool, cfg) {
-  document.getElementById('spring-card-picker')?.remove();
-  const body = document.getElementById('event-body');
-  // The label lives INSIDE the removable wrapper - the picker is rebuilt every
-  // time the player changes their mind about which cut they want, and appending
-  // the label separately stacks a fresh copy each time (the trap r194 hit).
-  const wrap = document.createElement('div');
-  wrap.id = 'spring-card-picker';
-  const label = evLabel('');
-  wrap.appendChild(label);
-  const chips = document.createElement('div');
-  chips.className = 'ev-cardchips';
-
-  const refresh = () => {
-    const n = eventState.springCards.length;
-    label.textContent = cfg.distinctRanks
-      ? `PICK ${cfg.count} CARDS, ALL DIFFERENT RANKS  ·  ${n}/${cfg.count}`
-      : `PICK ${cfg.count} CARDS  ·  ${n}/${cfg.count}`;
-    const ranksTaken = new Set(eventState.springCards.map(c => c.rank));
-    chips.querySelectorAll('.ev-cardchip').forEach(chip => {
-      const card = chip._card;
-      const picked = eventState.springCards.includes(card);
-      chip.classList.toggle('picked', picked);
-      // A rank already used is greyed out rather than silently refusing the tap.
-      const blocked = !picked && cfg.distinctRanks && ranksTaken.has(card.rank);
-      chip.classList.toggle('blocked', blocked);
-    });
-    setEventConfirm(n === cfg.count);
-  };
-
-  pool.forEach(card => {
-    const chip = document.createElement('div');
-    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
-    chip.textContent = card.rank + card.suit;
-    chip._card = card;
-    chip.addEventListener('click', () => {
-      const i = eventState.springCards.indexOf(card);
-      if (i >= 0) eventState.springCards.splice(i, 1);
-      else {
-        if (eventState.springCards.length >= cfg.count) return;
-        if (cfg.distinctRanks && eventState.springCards.some(c => c.rank === card.rank)) return;
-        eventState.springCards.push(card);
-      }
-      refresh();
-    });
-    chips.appendChild(chip);
-  });
-  wrap.appendChild(chips);
-  body.appendChild(wrap);
-  refresh();
+      if (!fixes.length) return;
+      const sub = pick('fix', fix);
+      s.springFix = null;
+      fixes.forEach(f => {
+        const el = makeChoiceEl({ icon: f.icon, rarity: f.rarity, name: f.name, desc: f.desc(), cls: 'spring-fix',
+          onClick: () => { sub.querySelectorAll('.spring-fix').forEach(e => e.classList.remove('selected')); el.classList.add('selected'); s.springFix = f; sync(); } });
+        sub.appendChild(el);
+      });
+      sync();
+    } });
+  body.appendChild(fix);
+  s.springGrid = gridCards;
 }
 
 function confirmSpring() {
-  switch (eventState.springPick) {
-    case 'cut4':
-    case 'cut2': {
-      // Splice by identity, never by face - see the note at the top of this event.
-      let cut = 0;
-      eventState.springCards.forEach(card => {
-        const idx = drawPile.indexOf(card);
-        if (idx >= 0) { drawPile.splice(idx, 1); cut++; }
-      });
-      if (cut) {
-        expectedDeckTotal -= cut;
-        updateDeckHud?.();
-        noteMessage(`${cut} card${cut > 1 ? 's' : ''} cut from the deck`, 'var(--gold)');
-      }
-      break;
-    }
-    case 'restore_resources': {
-      const short = springResourceShortfall();
-      if (short.swaps || short.discards) {
-        limits.swaps.current    = Math.max(limits.swaps.current,    limits.swaps.base);
-        limits.discards.current = Math.max(limits.discards.current, limits.discards.base);
-        noteMessage(`Limits restored - ${limits.swaps.base} swaps, ${limits.discards.base} discards`, 'var(--gold)');
-      } else {
-        limits.swaps.current    = Math.min(limits.swaps.max,    limits.swaps.current + 1);
-        limits.discards.current = Math.min(limits.discards.max, limits.discards.current + 1);
-        noteMessage('+1 swap, +1 discard per round', 'var(--gold)');
-      }
-      // Refill this round's stock up to the repaired limits too, so the fix is
-      // visible now rather than only from the next round.
-      swaps    = Math.max(swaps,    limits.swaps.current);
-      discards = Math.max(discards, limits.discards.current);
-      onLimitChanged('swaps'); onLimitChanged('discards');
-      render();
-      break;
-    }
-    case 'cleanse_debuff':
-      // Unchanged from before r211 - the owner confirmed this one reads right.
-      discards = Math.min(discards + 1, limits.discards.current + 2);
-      render(); noteMessage('+1 discard restored', 'var(--gold)'); break;
-  }
+  const s = eventState;
+  if (s.springPick === 'random') {
+    const pool = s.springGrid.slice(), out = [];
+    while (out.length < SPRING_RANDOM && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    const names = out.map(c => isWildCard(c) ? WILD_RANK : c.rank + c.suit).join(' ');
+    const cut = cutCardsFromDeck(out.map(c => resolveDeckCard(c) || c));
+    showMessage(`Cut ${cut}: ${names}`, 'var(--gold)');
+  } else if (s.springPick === 'choose' && s.picker && s.picker.picks.length) {
+    const cut = cutCardsFromDeck(s.picker.picks.slice());
+    noteMessage(`${cut} card${cut === 1 ? '' : 's'} cut from the deck`, 'var(--gold)');
+  } else if (s.springPick === 'fix' && s.springFix) {
+    let say = '';
+    try { say = s.springFix.fix(); } catch (e) {}
+    noteMessage(say || 'Cleared', 'var(--gold)');
+  } else return;
+  if (typeof gridData !== 'undefined' && gridData[0] && gridData[0].length === gridCols) { try { render(); } catch (e) {} }
   closeEvent();
 }
 

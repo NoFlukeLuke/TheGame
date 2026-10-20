@@ -357,7 +357,7 @@ function callItAsk() {
 // editor (one of three buffs at the ordinary card-editor strength, on up to
 // three cards you choose). Red curses three random cards.
 const PLINKO_BINS = [1, 0, 1, 0, 1, 0, 1];
-const PLINKO_SAMPLE = 8, PLINKO_CARDS = 3, PLINKO_CURSES = 3;
+const PLINKO_CARDS = 3, PLINKO_CURSES = 3;
 function renderPlinko() {
   const s = eventState, body = evBodyEl();
   s.plPhase = 'drop';
@@ -389,8 +389,9 @@ function plinkoCurse() {
 function plinkoEditor() {
   const s = eventState, body = evBodyEl();
   body.innerHTML = '';
-  document.getElementById('event-flavor').textContent = 'Card editor: pick a buff, then the cards it goes on.';
-  s.plPhase = 'edit'; s.plBuff = null; s.plCards = [];
+  const fl = document.getElementById('event-flavor');
+  fl.textContent = 'Card editor: pick a buff, then the cards it goes on.'; fl.style.display = '';
+  s.plPhase = 'edit'; s.plBuff = null;
   s.plBuffs = rollBuffs(3);
   body.appendChild(evLabel('1 · THE BUFF'));
   s.plBuffs.forEach(b => {
@@ -399,30 +400,15 @@ function plinkoEditor() {
         if (s.plPhase !== 'edit') return;
         body.querySelectorAll('.pl-buff').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected'); s.plBuff = b;
-        s.plCards = s.plCards.filter(c => !plinkoFull(c));
+        const keep = s.picker.picks.filter(c => !plinkoFull(c)); s.picker.picks.length = 0; s.picker.picks.push(...keep);
         plinkoSync();
       } });
     body.appendChild(el);
   });
   body.appendChild(evLabel(`2 · UP TO ${PLINKO_CARDS} CARDS`));
-  const pool = allDeckCards().filter(c => !(typeof isWildCard === 'function' && isWildCard(c)));
-  const chips = document.createElement('div'); chips.className = 'ev-cardchips'; chips.id = 'pl-chips';
-  evShuffle(pool).slice(0, PLINKO_SAMPLE).forEach(card => {
-    const chip = document.createElement('span');
-    chip.className = 'ev-cardchip' + (['♥', '♦'].includes(card.suit) ? ' red' : '');
-    chip.textContent = (typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`;
-    chip._card = card;
-    chip.addEventListener('click', () => {
-      if (s.plPhase !== 'edit') return;
-      if (plinkoFull(card)) { refuse('Quarter resource limit (QRL) reached'); return; }
-      const at = s.plCards.indexOf(card);
-      if (at >= 0) s.plCards.splice(at, 1);
-      else if (s.plCards.length < PLINKO_CARDS) s.plCards.push(card);
-      plinkoSync();
-    });
-    chips.appendChild(chip);
-  });
-  body.appendChild(chips);
+  s.picker = evDeckPicker(body, { max: PLINKO_CARDS, onChange: plinkoSync, locked: () => s.plPhase !== 'edit',
+    cards: everyDeckCard().filter(c => !isWildCard(c)),
+    blocked: c => plinkoFull(c) ? 'Quarter resource limit (QRL) reached' : '' });
   evConfirmBtn('APPLY', false);
   if (typeof sfxRewardGood === 'function') try { sfxRewardGood(); } catch (e) {}
 }
@@ -432,17 +418,15 @@ function plinkoFull(card) {
 }
 function plinkoSync() {
   const s = eventState;
-  document.querySelectorAll('#pl-chips .ev-cardchip').forEach(ch => {
-    ch.classList.toggle('picked', s.plCards.includes(ch._card));
-    ch.classList.toggle('qrl-full', plinkoFull(ch._card));
-  });
-  evConfirmBtn('APPLY', !!s.plBuff && s.plCards.length > 0);
+  s.picker.sync();
+  evConfirmBtn('APPLY', !!s.plBuff && s.picker.picks.length > 0);
 }
 function plinkoApply() {
   const s = eventState;
-  if (!s.plBuff || !s.plCards.length) return;
-  s.plCards.forEach(card => { const t = resolveDeckCard(card); if (t) enhanceCardKey(cardId(t), s.plBuff.e); });
-  const names = s.plCards.map(c => `${c.rank}${c.suit}`).join(', ');
+  const picks = s.picker ? s.picker.picks : [];
+  if (!s.plBuff || !picks.length) return;
+  picks.forEach(card => { const t = resolveDeckCard(card); if (t) enhanceCardKey(cardId(t), s.plBuff.e); });
+  const names = picks.map(c => `${c.rank}${c.suit}`).join(', ');
   noteMessage(`${s.plBuff.label}: ${names}`, 'var(--gold)');
   s.plPhase = 'done';
   closeEvent();
