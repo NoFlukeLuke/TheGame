@@ -1647,3 +1647,12 @@ less sets `html.fa-pix` (pixelated). Dev -> Aesthetics -> Floppy art switches ba
 drawn disc at 400 x 380; files starting `_` are never loaded. The owner uploads straight to main on
 GitHub (the folder's README says how). Verified with a test `floppy.png` (removed before commit): the
 pick, the tray and the reward grid drew it, icons on its label, no page errors.
+
+## r600 - the owner's floppy art, fitted (`assets/art/floppy/`, `js/floppy-art.js`)
+The first upload was named `common v1.png` / `rare v1.png` / `epic v1.png` / `mythic v1.png` and
+drawn shutter-down. Renamed to the loader's names (`mythic` is `legendary`) and turned 180 degrees
+(lossless, pixel for pixel). The art is 109 x 120, so `FLOPPY_ART_PIXEL_MAX` is 128 (was 64) and it
+draws sharp. A portrait file letterboxes inside the 20:19 disc box (`contain`); the icon box still
+lands on the body below the shutter. The folder's README says to rename before uploading and to
+keep the shutter on top. Verified at 1440x820: Flow Tricks pick, tray, reward grid, shop; no page errors.
+

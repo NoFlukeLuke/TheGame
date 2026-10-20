@@ -9,13 +9,13 @@
 // Nothing lists what was uploaded, so the five files are asked for once at load;
 // each one found sets `--fa-<rarity>` and `html.fa-<rarity>`, which the stylesheet
 // reads. A missing file is one quiet request and changes nothing.
-// Art 64px wide or smaller is pixel art and is drawn without smoothing (`html.fa-pix`).
+// Art 128px wide or smaller is pixel art and is drawn without smoothing (`html.fa-pix`).
 // Dev -> HUD & Display -> Aesthetics -> Floppy art switches back to the drawn disc
 // (`lethe.floppyArt.v1`, stored only when off).
 const FLOPPY_ART_DIR = 'assets/art/floppy/';
 const FLOPPY_ART_TIERS = ['common', 'rare', 'epic', 'legendary'];
 const FLOPPY_ART_FALLBACK = 'floppy';
-const FLOPPY_ART_PIXEL_MAX = 64;
+const FLOPPY_ART_PIXEL_MAX = 128;
 const FLOPPY_ART_KEY = 'lethe.floppyArt.v1';
 let floppyArtOn = (() => { try { return localStorage.getItem(FLOPPY_ART_KEY) !== 'off'; } catch (e) { return true; } })();
 let floppyArtFound = null;   // { name: widthPx } once the probe is done

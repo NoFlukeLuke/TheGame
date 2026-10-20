@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r599 · merge: no names on entities and your floppy art, with main's r592-r598";
+const BUILD = "2026-10-20 · r600 · your floppy art: renamed, turned right way up, drawn sharp";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

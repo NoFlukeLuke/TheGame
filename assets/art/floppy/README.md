@@ -5,7 +5,8 @@ The Trick's own icon is still drawn on top of it, on the label.
 
 ## File names
 
-Lower case, exactly as written:
+Lower case, exactly as written. GitHub keeps the name the file has on your computer, so rename
+it before uploading (`common v1.png` is not found; `common.png` is):
 
 | file | used for |
 |---|---|
@@ -21,12 +22,14 @@ that, upload one per rarity (or `floppy.png` plus the ones you want to differ).
 ## The picture
 
 - **PNG with a transparent background.**
+- **Shutter at the top**, label area at the bottom, the way `_template.png` is drawn. The game
+  draws the file exactly as uploaded; it never turns it.
 - **400 x 380 pixels**, or any size in that shape (20 x 19 for pixel art, 800 x 760, ...).
   A different shape still works, but it is shrunk to fit and leaves gaps.
 - **The icon goes in the box from (40, 166) to (360, 345)** on a 400 x 380 picture: the dashed
   box in `_guide.png`. Keep that area plain, like a label.
 - `_template.png` is today's drawn disc at full size, to start from.
-- **64 pixels wide or smaller counts as pixel art** and is drawn sharp instead of smoothed.
+- **128 pixels wide or smaller counts as pixel art** and is drawn sharp instead of smoothed.
 - An improved Trick still gets its gold stripes across the bottom-left corner.
 - `_template.png` and `_guide.png` start with `_`, so the game never uses them.
 
