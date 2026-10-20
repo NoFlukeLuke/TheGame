@@ -106,7 +106,17 @@ function confirmTrickGamble() {
     const ti = trickTray.findIndex(t => t.id === L.id); if (ti >= 0) trickTray.splice(ti, 1);
     const ai = acquiredTricks.findIndex(t => t.id === L.id); if (ai >= 0) acquiredTricks.splice(ai, 1);
     renderTrickTray();
-    els[1 - win].classList.add('locked');
+    // r590 (owner): the deleted one fades out; the winner redraws with its new art
+    // (the tier class gives the disc its bands and colour, the badge its version).
+    els[1 - win].classList.add('tg-gone');
+    const tile = els[win].querySelector('.ec-tile');
+    if (tile && typeof entityTileHTML === 'function') {
+      const em = (typeof trickEmoji === 'function') ? trickEmoji(W) : '✦';
+      tile.innerHTML = entityTileHTML({ entity: 'trick', id: W.id, emoji: em, label: W.name }, W.tier || 'common');
+      tile.classList.remove('tg-up'); void tile.offsetWidth; tile.classList.add('tg-up');
+      const nm = tile.querySelector('.rwd-name'); if (nm && typeof fitRewardName === 'function') requestAnimationFrame(() => fitRewardName(nm));
+    }
+    const desc = els[win].querySelector('.ec-desc'); if (desc) desc.textContent = `v${entityTierOf(W.id) + 1}.0`;
     const n = evNote(`<b>${W.name}</b> is now v${entityTierOf(W.id) + 1}.0. <b>${L.name}</b> is gone.`);
     evBodyEl().appendChild(n); evReveal(n);
     try { sfxRewardGood?.(); } catch (e) {}
@@ -171,20 +181,26 @@ function confirmReschedule() {
 // ══════════════════════════════════════════════
 // GRID SPINNER - stop the light, grow the grid
 // ══════════════════════════════════════════════
-// Nine rank cards, A A A 2 2 2 3 3 4, shuffled, under a fast light. The rank you
-// stop on is how many rows and columns you add, split as you like. Past the
-// grid's maximum, each point left becomes +1 to a random other limit.
-const SPINNER_RANKS = ['A', 'A', 'A', '2', '2', '2', '3', '3', '4'];
+// Sixteen cards (r590, owner: +1 four, 2 stones, +1 two, +1 three; padded to a
+// 4x4 with an Ace and a two): A x4, 2 x5, 3 x3, 4 x2, stone x2. The light
+// follows a new pattern every time (evGridPath), 10% faster than before, and
+// fades off each card it leaves. The rank you stop on is how many rows and
+// columns you add, split as you like; a stone adds nothing. Past the grid's
+// maximum, each point left becomes +1 to a random other limit.
+const SPINNER_CARDS = ['A', 'A', 'A', 'A', '2', '2', '2', '2', '2', '3', '3', '3', '4', '4', 'stone', 'stone'];
+const SPINNER_STEP_MS = 56;
 function renderGridSpinner() {
   const s = eventState, body = evBodyEl();
   s.gsLeft = 0; s.gsPhase = 'spin';
   body.appendChild(evNote('Tap to stop the light on a rank. Increase your row and/or column limits that many times.'));
-  const deal = evShuffle(SPINNER_RANKS.slice());
-  evStopper(deal.map(r => `<span class="evt-rank">${r}</span>`), body, { stepMs: 62 }).then(i => {
-    s.gsLeft = deal[i] === 'A' ? 1 : +deal[i];
+  const deal = evShuffle(SPINNER_CARDS.slice());
+  const face = r => r === 'stone' ? '<span class="evt-rank evt-stone">STONE</span>' : `<span class="evt-rank">${r}</span>`;
+  evStopper(deal.map(face), body, { cols: 4, stepMs: SPINNER_STEP_MS, order: evGridPath(4, 4) }).then(i => {
+    s.gsLeft = deal[i] === 'stone' ? 0 : deal[i] === 'A' ? 1 : +deal[i];
     s.gsPhase = 'grow'; evSkipShown(false);
     s.gsRow = evRow(body);
     s.gsNote = document.createElement('div'); body.appendChild(s.gsNote);
+    if (!s.gsLeft) { s.gsRow.innerHTML = '<div class="evt-big lose" style="width:100%">STONE · NOTHING</div>'; s.gsPhase = 'done'; evConfirmBtn('DONE', true); evReveal(s.gsRow); return; }
     spinnerSync();
     evReveal(s.gsRow);
   });
@@ -235,14 +251,25 @@ function confirmGridSpinner() { if (eventState.gsPhase === 'done') closeEvent();
 // card ladder is about the same score.
 // staticPips / staticMult are declared in js/scoring.js, which reads them.
 const STATIC_STEPS = [4, 5, 6];
+// The type wheel (r590, owner): mostly a plus, one blank (the event ends there)
+// and one minus (the amount is taken off every hand).
+const STATIC_KINDS = [
+  { kind: 'pips', sign: 1,  label: '+PIPS', color: '#4d8dff' },
+  { kind: 'mult', sign: 1,  label: '+MULT', color: '#ff5a4e' },
+  { kind: 'pips', sign: 1,  label: '+PIPS', color: '#3f74d6' },
+  { kind: 'mult', sign: 1,  label: '+MULT', color: '#d9483e' },
+  { kind: null,   sign: 0,  label: 'BLANK', color: '#3a3552' },
+  { kind: 'pips', sign: -1, label: '−PIPS', color: '#1d1a2c' },
+];
 function staticQuarter() { return (typeof qrlQuarter === 'function') ? qrlQuarter() : 1; }
 function staticAmount(kind, step) { return staticQuarter() * step * (kind === 'pips' ? 3 : 1); }
+function staticAdd(kind, n) { if (kind === 'pips') staticPips += n; else staticMult += n; }
 function renderStaticBonus() {
   const s = eventState, body = evBodyEl();
   s.sbPhase = 'spin';
   body.appendChild(evNote(`Two wheels: what buff and how much. Every hand gets this bonus moving forward.${staticPips || staticMult ? ` You have <b>${fmtSigned(staticPips)} pips</b> and <b>${fmtSigned(staticMult)} mult</b> now.` : ''}`));
   const row = document.createElement('div'); row.className = 'evt-pair'; body.appendChild(row);
-  s.sbKind = evWheel(['PIPS', 'MULT', 'PIPS', 'MULT', 'PIPS', 'MULT'].map(l => ({ label: l, color: l === 'PIPS' ? '#4d8dff' : '#ff5a4e', ink: '#fff' })), row, { title: 'Pips or mult' });
+  s.sbKind = evWheel(STATIC_KINDS.map(k => ({ label: k.label, color: k.color, ink: '#fff' })), row, { title: 'What buff' });
   s.sbRow = row;
   s.sbOut = document.createElement('div'); body.appendChild(s.sbOut);
   evConfirmBtn('SPIN', true);
@@ -252,23 +279,60 @@ function confirmStaticBonus() {
   if (s.sbPhase === 'done') { closeEvent(); return; }
   if (s.sbPhase !== 'spin') return;
   s.sbPhase = 'busy'; evSkipShown(false); evConfirmBtn('SPIN', false);
-  const kindIdx = Math.floor(Math.random() * 6), kind = kindIdx % 2 ? 'mult' : 'pips';
+  const kindIdx = Math.floor(Math.random() * STATIC_KINDS.length), K = STATIC_KINDS[kindIdx];
   const stepIdx = Math.floor(Math.random() * 6), step = STATIC_STEPS[stepIdx % 3];
   evReveal(s.sbRow);
   s.sbKind.spin(kindIdx).then(() => {
-    const segs = [0, 1, 2, 0, 1, 2].map(i => ({ label: `+${staticAmount(kind, STATIC_STEPS[i])}`,
-      color: ['#2a6b5a', '#35d59b', '#1f8f6a'][i], ink: '#fff' }));
-    const amt = evWheel(segs, s.sbRow, { title: `How much ${kind}` });
-    return _etWait(350).then(() => amt.spin(stepIdx));
-  }).then(() => {
-    const n = staticAmount(kind, step);
-    if (kind === 'pips') staticPips += n; else staticMult += n;
-    const res = document.createElement('div'); res.className = 'evt-big win';
-    res.textContent = `+${n} ${kind.toUpperCase()} ON EVERY HAND`;
-    s.sbOut.appendChild(res); evReveal(res);
-    try { sfxRewardGood?.(); } catch (e) {}
-    s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+    if (!K.kind) {
+      const res = document.createElement('div'); res.className = 'evt-big'; res.textContent = 'NOTHING';
+      s.sbOut.appendChild(res); evReveal(res);
+      s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+      return;
+    }
+    const sg = K.sign > 0 ? '+' : '−';
+    const segs = [0, 1, 2, 0, 1, 2].map(i => ({ label: `${sg}${staticAmount(K.kind, STATIC_STEPS[i])}`,
+      color: K.sign > 0 ? ['#2a6b5a', '#35d59b', '#1f8f6a'][i] : ['#5c1d1d', '#8f2b2b', '#6e2222'][i], ink: '#fff' }));
+    const amt = evWheel(segs, s.sbRow, { title: `How much ${K.kind}` });
+    return _etWait(350).then(() => amt.spin(stepIdx)).then(() => {
+      const n = K.sign * staticAmount(K.kind, step);
+      staticAdd(K.kind, n);
+      const res = document.createElement('div');
+      const paint = v => { res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} ${K.kind.toUpperCase()} ON EVERY HAND`; };
+      paint(n);
+      s.sbOut.appendChild(res); evReveal(res);
+      try { (n > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
+      s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+      evDoubleOrFlip(s.sbOut, n, d => { staticAdd(K.kind, d); }, paint);
+    });
   });
+}
+
+// ── Double or flip (r590, owner): after a Static Bonus or Luck Dice result, pay a
+// quarter of your credits (the amount is printed, never the fraction) to flip a
+// coin: heads doubles the result, tails turns it the other way round.
+function doubleFlipPrice() { return Math.max(1, Math.round(coins / 4)); }
+function evDoubleOrFlip(parent, n, add, paint) {
+  if (!n || coins < 1) return;
+  const price = doubleFlipPrice();
+  const row = evRow(parent);
+  const btn = evButton(`FLIP FOR IT · ${price} credits`, () => {
+    if (coins < price) return;
+    coins -= price; updateCoinsUI?.();
+    row.innerHTML = '';
+    evConfirmBtn('DONE', false);
+    const coin = evCoin(parent);
+    evReveal(coin.el);
+    const side = Math.random() < 0.5 ? 'heads' : 'tails';
+    coin.flip(side).then(() => {
+      const now = side === 'heads' ? 2 * n : -n;
+      add(now - n);
+      coin.caption(side === 'heads' ? 'HEADS · DOUBLED' : 'TAILS · TURNED', side === 'heads' ? 'win' : 'lose');
+      if (paint) paint(now);
+      try { (now > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
+      evConfirmBtn('DONE', true);
+    });
+  }, true);
+  row.appendChild(btn);
 }
 
 // ══════════════════════════════════════════════
@@ -298,10 +362,15 @@ function confirmLuckDice() {
     const res = document.createElement('div'); res.className = 'evt-big ' + (n > 0 ? 'win' : 'lose');
     res.textContent = `${a > 0 ? a : `(${a})`} × ${b > 0 ? b : `(${b})`} = ${n > 0 ? '+' : ''}${n} LUCK`;
     s.ldOut.appendChild(res);
-    s.ldOut.appendChild(evNote(`Luck ${was} → ${luckTotal()}`));
+    const line = evNote(`Luck ${was} → ${luckTotal()}`);
+    s.ldOut.appendChild(line);
     evReveal(res);
     try { (n > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
     s.ldPhase = 'done'; evConfirmBtn('DONE', true);
+    evDoubleOrFlip(s.ldOut, n, d => { luckModifiers += d; }, v => {
+      res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} LUCK`;
+      line.innerHTML = `Luck ${was} → ${luckTotal()}`;
+    });
   });
 }
 

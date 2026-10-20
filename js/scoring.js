@@ -1364,6 +1364,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // x2 here. It was the one entry on this list whose printed text described cards
   // replaying rather than a multiplier.
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
+  // A negative Static Bonus (r590) can leave a hand's pips below zero: the floor is
+  // a timeline event, so the PIPS chip lands on 0 with the score, not under it.
+  if (totalPips < 0) { _ev('_floor', 'pip+', -totalPips, 'static'); totalPips = 0; }
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
   lastCalcPips = totalPips;

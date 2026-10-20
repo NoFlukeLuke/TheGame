@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r590 · event verdicts 1: explainers, Deck Trim pricing, the deck picker, Trade a Trick, Reschedule, Overtime";
+const BUILD = "2026-10-20 · r591 · event verdicts 2: physics coin, Static Bonus and Luck Dice flips, secured rungs, Keep It scenes, spinner, Plinko";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

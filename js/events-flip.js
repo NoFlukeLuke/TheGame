@@ -96,31 +96,53 @@ function keepItOffers() {
   return out;
 }
 function keepItPrice() { return Math.min(priceOf(BAL.flip_events.keep_cap), Math.ceil(coins / 2)); }
+// Two scenes (r590, owner): choose the reward; the offers fade out and "Now flip
+// for it." fades in with the chosen one and the coin. A win pays and ends it; a
+// loss shows the price of another flip (the amount, never "half").
 function renderKeepIt() {
   const s = eventState, body = evBodyEl();
   s.kiOffers = keepItOffers(); s.kiPick = -1; s.kiPhase = 'pick';
   if (!s.kiOffers.length) { body.innerHTML = evEmptyHTML('Nothing left to offer.'); s.kiNone = true; evConfirmBtn('DONE', true); return; }
-  body.appendChild(evNote(`Heads, it is yours. Tails, it is gone, unless you pay half your credits (at most ${priceOf(BAL.flip_events.keep_cap)}) to flip again.`));
+  s.kiScene = document.createElement('div'); s.kiScene.className = 'evt-scene'; body.appendChild(s.kiScene);
+  s.kiScene.appendChild(evNote('Choose a reward.'));
   s.kiEls = s.kiOffers.map((o, i) => {
     const el = makeChoiceEl({ tile: { entity: o.entity, emoji: o.emoji, label: o.label }, rarity: o.rarity, name: o.label, desc: o.desc,
       onClick: () => {
         if (s.kiPhase !== 'pick') return;
         s.kiEls.forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected'); s.kiPick = i; evConfirmBtn('FLIP', true);
+        el.classList.add('selected'); s.kiPick = i; evConfirmBtn('TAKE IT', true);
       } });
-    body.appendChild(el);
+    s.kiScene.appendChild(el);
     return el;
   });
-  evConfirmBtn('FLIP', false);
+  evConfirmBtn('TAKE IT', false);
+}
+// Fade one scene out and the next in, inside the event body.
+function evSceneSwap(old, build) {
+  return new Promise(res => {
+    old.classList.add('evt-scene-out');
+    setTimeout(() => {
+      const next = document.createElement('div'); next.className = 'evt-scene evt-scene-in';
+      old.replaceWith(next); build(next);
+      const panel = document.getElementById('event-panel'); if (panel) panel.scrollTop = 0;
+      requestAnimationFrame(() => next.classList.remove('evt-scene-in'));
+      res(next);
+    }, _etFast() ? 0 : 260);
+  });
 }
 function confirmKeepIt() {
   const s = eventState;
   if (s.kiNone || s.kiPhase === 'done') { closeEvent(); return; }
+  if (s.kiPhase === 'flip') { keepItFlip(false); return; }
   if (s.kiPhase !== 'pick' || s.kiPick < 0) return;
-  s.kiEls.forEach((e, i) => { if (i !== s.kiPick) e.classList.add('locked'); });
-  s.kiCoin = evCoin(evBodyEl());
-  s.kiRow = evRow(evBodyEl());
-  keepItFlip(false);
+  s.kiPhase = 'swap'; evConfirmBtn('FLIP', false); evSkipShown(false);
+  const o = s.kiOffers[s.kiPick];
+  evSceneSwap(s.kiScene, sc => {
+    sc.appendChild(evNote('Now flip for it.'));
+    sc.appendChild(makeChoiceEl({ tile: { entity: o.entity, emoji: o.emoji, label: o.label }, rarity: o.rarity, name: o.label, desc: o.desc, cls: 'ki-chosen' }));
+    s.kiCoin = evCoin(sc);
+    s.kiRow = evRow(sc);
+  }).then(sc => { s.kiScene = sc; s.kiPhase = 'flip'; evConfirmBtn('FLIP', true); });
 }
 function keepItFlip(paid) {
   const s = eventState;
@@ -130,7 +152,7 @@ function keepItFlip(paid) {
     coins -= price; updateCoinsUI?.();
   }
   s.kiPhase = 'busy';
-  evSkipShown(false); evConfirmBtn('FLIP', false); s.kiRow.innerHTML = '';
+  evConfirmBtn('FLIP', false); s.kiRow.innerHTML = '';
   evReveal(s.kiCoin.el);
   const side = evFlipSide();
   s.kiCoin.flip(side).then(() => {
@@ -139,12 +161,13 @@ function keepItFlip(paid) {
       const o = s.kiOffers[s.kiPick];
       try { o.apply(); } catch (e) { console.error('[KEEP IT] apply failed', e); }
       s.kiCoin.caption(`HEADS · ${o.label.toUpperCase()} IS YOURS`, 'win');
+      try { sfxRewardGood?.(); } catch (e) {}
       evConfirmBtn('DONE', true);
       return;
     }
     s.kiCoin.caption('TAILS', 'lose');
     const price = keepItPrice();
-    if (price >= 1) s.kiRow.appendChild(evButton(`FLIP AGAIN · ${price} credits`, () => keepItFlip(true)));
+    if (price >= 1) { s.kiRow.appendChild(evButton(`FLIP AGAIN · ${price} credits`, () => keepItFlip(true))); evReveal(s.kiRow); }
     evConfirmBtn('WALK AWAY', true);
   });
 }
@@ -153,7 +176,8 @@ function keepItFlip(paid) {
 // THE LADDER - Hot Streak and Prize Ladder share it
 // ══════════════════════════════════════════════
 // Up to four flips. Each heads climbs a rung; stop whenever and take every rung
-// you hold. A tails loses them all. A tails on the FIRST flip (nothing held)
+// you hold. A tails loses them all, except rungs a ladder SECURES: with
+// cfg.secure = 2 (Prize Ladder) the first two rungs are kept once two heads land. A tails on the FIRST flip (nothing held)
 // can be flipped again for `reflip` credits, as often as you pay, but once a
 // heads has landed no flip can be bought back.
 function evLadder(cfg) {
@@ -172,11 +196,14 @@ function evLadder(cfg) {
   ladderSync();
 }
 function ladderPrice() { return priceOf(BAL.flip_events.reflip); }
+function ladderSecured(L) { return L.cfg.secure && L.n >= L.cfg.secure ? L.cfg.secure : 0; }
 function ladderSync() {
   const L = eventState.ladder; if (!L) return;
   [...L.ladder.children].forEach((d, i) => {
-    d.classList.toggle('on', !L.lost && i < L.n);
-    d.classList.toggle('lost', L.lost && i < L.lostAt);
+    const safe = i < ladderSecured(L);
+    d.classList.toggle('on', (!L.lost || safe) && i < L.n);
+    d.classList.toggle('secured', safe);
+    d.classList.toggle('lost', L.lost && !safe && i < L.lostAt);
     d.classList.toggle('next', !L.over && !L.reflipOpen && i === L.n);
   });
   L.row.innerHTML = '';
@@ -185,7 +212,7 @@ function ladderSync() {
   if (L.reflipOpen) {
     const b = evButton(`FLIP AGAIN · ${ladderPrice()} credits`, () => ladderFlip(true));
     b.disabled = coins < ladderPrice();
-    L.row.appendChild(b);
+    L.row.appendChild(b); evReveal(L.row);
     evConfirmBtn('WALK AWAY', true);
     return;
   }
@@ -207,11 +234,16 @@ function ladderFlip(paid) {
     L.busy = false;
     if (side === 'heads') {
       L.n++;
-      L.coin.caption(`HEADS · RUNG ${L.n}`, 'win');
+      L.coin.caption(L.cfg.secure && L.n === L.cfg.secure ? `HEADS · RUNGS 1-${L.n} SECURED` : `HEADS · RUNG ${L.n}`, 'win');
       if (L.n >= L.cfg.rungs.length) { ladderCash(); return; }
     } else if (L.n === 0) {
       L.reflipOpen = true;
       L.coin.caption('TAILS', 'lose');
+    } else if (ladderSecured(L)) {
+      const keep = ladderSecured(L);
+      L.lost = true; L.lostAt = L.n;
+      L.coin.caption(`TAILS · RUNGS 1-${keep} KEPT`, 'lose');
+      L.n = keep; ladderCash(); return;
     } else {
       L.lost = true; L.lostAt = L.n; L.over = true;
       L.coin.caption('TAILS · ALL LOST', 'lose');
@@ -251,6 +283,7 @@ function renderHotStreak() {
 function renderPrizeLadder() {
   const f = BAL.flip_events.ladder_focus;
   evLadder({
+    secure: 2,
     note: 'Each heads adds the next prize. Get two heads and secure the first two rewards. Getting tails loses any unsecured rewards.',
     rungs: [`+${f} Focus limit`, 'A limit, then a pick of three', 'A random improvement', 'All three again'],
     cash: (n, lines) => {
@@ -338,7 +371,7 @@ function confirmPlinko() {
   if (s.plPhase !== 'drop') return;
   s.plPhase = 'busy';
   evSkipShown(false); evConfirmBtn('DROP', false);
-  const bin = evPlinkoRoll(PLINKO_BINS.length);
+  const bin = evPlinkoRoll(PLINKO_BINS.length, s.plBoard.offset());
   s.plBoard.drop(bin).then(() => setTimeout(() => (PLINKO_BINS[bin] ? plinkoEditor() : plinkoCurse()), 350));
 }
 function plinkoCurse() {
