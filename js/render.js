@@ -1,0 +1,396 @@
+function render() {
+  // Marked-row / marked-column lines (js/entity-fx.js) are torn down HERE, above
+  // the two early returns - otherwise a reward grid inherits
+  // the lines from the last hand and wears them until the play board comes back.
+  // They are DRAWN at the bottom of this function, once the cards are in the DOM.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
+  // Selection readout first - it is the one thing that must stay true on BOTH sides of
+  // the reward-grid early return below.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
+  // While the reward grid occupies the play #grid, its own renderer owns the DOM.
+  // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
+  if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
+  // A GRID PICK OWNS #grid THE SAME WAY, and until r377 nothing said so - the
+  // owner's "strange occasional bug where the options for the pick three don't
+  // stay". render() does not clear #grid, it APPENDS cards into it and only
+  // reconciles elements carrying [data-card-id], so a stray repaint during a
+  // pick deals the whole board over the option tiles (and since r332 the board
+  // PERSISTS between rounds, so gridData is full at exactly that moment - the
+  // cards are there to be drawn). It can throw as well: the pick asks for a
+  // 6x4 board and gridData may be 4 rows, so gridData[4][c] is a read off
+  // undefined. The pick's own renderer is the only thing entitled to paint
+  // here; Survival's PEEK is the one place the board is wanted back, and it
+  // releases the takeover first (gridPickSetShown), so this test is false there.
+  if (typeof gridPickState !== 'undefined' && gridPickState && gridScreenSaved) return;
+  // Boss cell overlays (quarantine crosses, dark cells, contamination) are
+  // absolutely-positioned siblings of the cards, so they have to be repainted
+  // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
+  // is marked.
+  if (typeof renderBossCellOverlays === 'function' && typeof bossActive !== 'undefined' && bossActive) renderBossCellOverlays();
+  // Dead Drop cells outlive the boss round, so they get their own pass.
+  if (typeof renderDeadCellOverlays === 'function') renderDeadCellOverlays();
+  const gridEl = document.getElementById('grid');
+  ensureBoardPattern(gridEl);
+  const reachable = getReachable();
+  const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;
+
+  // Build map of current DOM card elements by card _id
+  const existingEls = {};
+  gridEl.querySelectorAll('[data-card-id]').forEach(el => {
+    existingEls[el.dataset.cardId] = el;
+  });
+
+  const seenIds = new Set();
+
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r]?.[c];   // the ROW can be missing too (r377) - see the note on !card below
+      const key = `${r}-${c}`;
+      const isChallenge = !!(challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c && card === null);
+      // !card, not `card === null` (r373). An UNDEFINED cell passed this guard
+      // and threw on card._id two lines down: gridData is ragged for as long as
+      // a takeover screen has resized gridRows/gridCols out from under a deal
+      // animation whose completion callback then calls render() (level-up.js).
+      // Reproduced through a grid-pick opened mid-deal. null and undefined both
+      // mean "no card here", and this is the hazard _devSafeRender only half
+      // covers - it checks gridData has ROWS, not that the rows hold cells.
+      if (!card && !isChallenge) continue;
+
+      // During deal phase, skip rendering cards into the grid - temp-anim elements handle visuals
+      if (dealPhase) continue;
+
+      const cardId = isChallenge ? 'challenge' : String(card._id);
+      seenIds.add(cardId);
+
+      // ── Stone card path (boss-injected obstacle) ──
+      if (!isChallenge && card._isStone) {
+        let div = existingEls[cardId];
+        if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
+        div.dataset.row = r; div.dataset.col = c;
+        div.style.left = cellLeft(c) + 'px';
+        if (!animating && !falling) div.style.top = cellTop(r) + "px";
+        const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
+        const { className, innerHTML } = renderCardAppearance(card, r, c, { isSwapPending });
+        div.className = className; div.innerHTML = innerHTML;
+        continue;
+      }
+
+      // ── Sleight card path ──
+      if (!isChallenge && card._isSleight) {
+        const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+        let div = existingEls[cardId];
+        if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
+        div.dataset.row = r; div.dataset.col = c;
+        div.style.left = cellLeft(c) + 'px';
+        if (!animating && !falling) div.style.top = cellTop(r) + 'px';
+        const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
+        const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
+        // An 'adjacent' fixture counts hands scored beside it, so show that progress
+        // (1/2) instead of its charges - same rule as renderCardAppearance.
+        const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+        const usesStr = def?.activation === 'adjacent'
+          ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
+          : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')
+          : (card._usesLeft === 'infinite' ? '∞' : (_maxChJ ? `${card._usesLeft}/${_maxChJ}` : card._usesLeft));
+        const _isAim = AIM_SLEIGHTS.has(def?.id);
+        // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
+        // not .card, so none of the .card.selected.hand-valid / .hand-ready /
+        // .unreachable states ever reached it - picking one into a hand looked
+        // different from picking any other card. Same flags, same class names.
+        const _readyJ = handReadyForSubmit && selIdxJ >= 0;
+        const _validJ = !_readyJ && selIdxJ >= 0 && !!bestHandResult;
+        const _unreachJ = reachable && !reachable.has(key) && selIdxJ < 0;
+        const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
+                      + (_unreachJ ? ' unreachable' : '')
+                      + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+                      + (card._inert ? ' sleight-inert' : '')
+                      // className is rewritten wholesale below, so an in-flight
+                      // double-tap spin has to be carried across the repaint.
+                      + (div.classList.contains('sl-spin') ? ' sl-spin' : '');
+        if (_isAim) {
+          const dir = card._aimDir || (card._aimDir = 'up');
+          div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
+          div.innerHTML =
+            `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
+              `<div class="sleight-card-emoji">${emGlyph(def?.emoji||'🪞')}</div>` +
+            `</div>` +
+            `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
+          // No div.onclick here (r326): the grid's own pointerup handler already
+          // routes a tap on any [data-row] tile into onCardTap, so an onclick on
+          // top of it fired onCardTap TWICE per physical click. On a double_tap
+          // Sleight that was the Magnet bug the owner reported: ONE click read
+          // as a double tap (call 1 stamped lastTapCell, call 2 saw it inside
+          // 350ms) and armed it, and a REAL double tap armed on the first click
+          // and hit the "tapping Magnet cancels" intercept on the second - so
+          // the printed gesture was the one gesture that could never work.
+          attachLongPress(div, r, c);
+          continue;
+        }
+        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
+        div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
+        div.onclick = null;   // see the aim-sleight note above - pointerup owns the tap
+        attachLongPress(div, r, c);
+        continue;
+      }
+
+      const isReach      = reachable ? reachable.has(key) : true;
+      const isSwapPend   = swapPending && swapPending[0]===r && swapPending[1]===c;
+      const isSel        = selected.some(([sr,sc])=>sr===r&&sc===c);
+      const selIdx       = selected.findIndex(([sr,sc])=>sr===r&&sc===c);
+      const isHandReady  = handReadyForSubmit && isSel;
+      const isHandValid  = !isHandReady && isSel && !!bestHandResult;
+      // r254: a selected card the best hand DROPS (r201 penalty card). Its pips
+      // will be subtracted and the card consumed - say so before the commit.
+      // r385: a KICKER is painted red only while it is BILLED (Tagalong makes it
+      // free). r326: a TAGALONG is painted the same way, and that is the point. It is
+      // inside the hand and in none of its components, so it costs pips and clock
+      // exactly as a dropped card costs pips - and until now it was drawn as an
+      // ordinary member of the hand, which is why a 7-card selection carrying two
+      // passengers read as "RUN 3 x2" with nothing at all saying the other cards
+      // were doing nothing. One class, one meaning: this card is not part of the
+      // hand and you are paying for it.
+      const isPenalty    = isSel && !!bestHandResult
+        && ((bestHandResult.penaltyCells || []).some(([pr, pc]) => pr === r && pc === c)
+         || ((bestHandResult.tagalongPips > 0 || bestHandResult.tagalongSeconds > 0)
+             && (bestHandResult.tagalongCells || []).some(([pr, pc]) => pr === r && pc === c)));
+
+      const { className, innerHTML } = renderCardAppearance(card, r, c, {
+        isSel, selIdx, isHandReady, isHandValid, isPenalty,
+        isSwapPending: isSwapPend,
+        isReachable: isReach,
+        isChallenge,
+      });
+
+      let div = existingEls[cardId];
+      if (!div) {
+        div = document.createElement('div');
+        div.dataset.cardId = cardId;
+        div.dataset.row = r; div.dataset.col = c;
+        div.style.left = cellLeft(c) + 'px';
+        div.style.top  = cellTop(r) + 'px';
+        div.style.opacity = '1';
+        gridEl.appendChild(div);
+      }
+      div.dataset.row = r; div.dataset.col = c;
+      div.style.left = cellLeft(c) + 'px';
+      if (!animating && !falling) div.style.top = cellTop(r) + "px";
+      div.className = className;
+      div.innerHTML = innerHTML;
+      if (!isChallenge) attachLongPress(div, r, c);
+
+      if (isChallenge) {
+        div.addEventListener('click', e => { e.stopPropagation(); toggleChallengeTooltip(div); div.dataset.tooltipPinned = challengeTooltipVisible ? '1' : ''; });
+        div.addEventListener('mouseenter', () => { if (!div.dataset.tooltipPinned) showChallengeTooltip(div); });
+        div.addEventListener('mouseleave', () => { if (!div.dataset.tooltipPinned) hideChallengeTooltip(); });
+      }
+    }
+  }
+
+  // Remove elements for cards no longer in the grid
+  Object.entries(existingEls).forEach(([id, el]) => {
+    if (!seenIds.has(id) && !el.classList.contains('removing')) {
+      el.remove();
+    }
+  });
+
+  // Update deck HUD on every render - catches grid mutations from any source
+  updateDeckHud();
+
+  // r200: below the minimum selection there is no play, however good the hand is.
+  const _belowMin = (typeof handMinSelection === 'function') && selected.length > 0 && selected.length < handMinSelection();
+
+  // Hand preview
+  // POKER SQUARES OWNS THIS PANEL. Its three polyomino tiles live in
+  // #selected-cards - they ARE "the hand you are about to play" - and this block
+  // clears the element unconditionally, so any stray render() would wipe them.
+  // Guarded rather than ordered around: render() is called from dozens of places.
+  // While a dance runs the block below is skipped entirely, but the LABEL still has to
+  // follow a new live selection (r401): the tally's hold (js/hud.js) stops it being
+  // blanked, and only a selection that actually names a hand gets through it.
+  if (danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
+  }
+  if (!danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
+    // Owner request: the preview no longer reacts to selection - it stays empty (inert)
+    // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
+    // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
+    // The preview CARDS stay inert until a hand is submitted (r99), but the hand
+    // NAME is live from the first selection - it is what you need before you
+    // commit, and with layered hands it is the only place the second hand shows.
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
+    const cardsEl = document.getElementById('selected-cards');
+    cardsEl.innerHTML = '';
+    if (bestHandResult) {
+      const base = HAND_BASE[bestHandResult.hand];
+      if (base) {
+        const levelScale = levelPipScale();
+        // Every component, not just the one that named the hand - the chips have
+        // to quote what calcScore will actually seed, or a layered hand reads as
+        // the smaller of the two hands it is about to pay.
+        const _n = bestHandResult.handCells?.length;
+        const _names = (typeof handLayersFor === 'function')
+          ? handLayersFor(bestHandResult.hand, bestHandResult.handCells) : [bestHandResult.hand];
+        let basePips = 0, baseMult = 0;
+        _names.forEach(h => { if (!HAND_BASE[h]) return; basePips += Math.round(handBasePips(h) * levelScale); baseMult += handBaseMult(h, _n); });
+        baseMult += handLadderTotal(bestHandResult.handCells);
+        updateDanceSubboxes(basePips, baseMult);
+      }
+    } else {
+      const pipsEl = document.getElementById('pips-val');
+      const multEl = document.getElementById('mult-val');
+      if (pipsEl) animateDigitEl(pipsEl, 0);
+      if (multEl) animateDigitEl(multEl, 0);
+    }
+    // FOCUS box tracks the live focus multiplier (the multiplier the next hand will START at,
+    // before that hand's own Focus is added - see generateHandFocus / the dance's focus beat)
+    const _fvEl = document.getElementById('focus-val');
+    if (_fvEl) { const _fm = focusMultiplier(); _fvEl.textContent = (_fm === 1) ? '×1' : '×' + _fm.toFixed(1); }
+  }
+
+  // Score breakdown
+  const breakdownEl = document.getElementById('score-breakdown');
+  if (bestHandResult && selected.length >= 2) {
+    const { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore } = bestHandResult;
+    const base = HAND_BASE[hand];
+    const levelScale = levelPipScale();
+    const scaledBasePips = Math.round(handBasePips(hand) * levelScale);
+    const cards = handCells.map(([r,c]) => gridData[r][c]);
+    const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardId(card)]||0), 0);
+
+    const bonusLines = [];
+    if (hasTrick('rich_soil')) bonusLines.push({ label:'Rich Soil', val:`+${BAL.rich_soil.mult*handCells.length} mult`, type:'mult' });
+    if (hasTrick('court_of_leaves') && cards.some(c=>['J','Q','K'].includes(c.rank))) bonusLines.push({ label:'Court of Leaves', val:'+pips', type:'pip' });
+    if (hasTrick('still_water')) {
+      const elapsedSinceSwap = lastSwapRoundSeconds !== null
+        ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
+        : Math.max(0, roundStartSeconds - roundSeconds);
+      const swMult = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
+      if (swMult > 0) bonusLines.push({ label:'Eagle Eye', val:`+${swMult} mult`, type:'mult' });
+    }
+    if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
+    if (hasTrick('hummingbird') && pauseInstanceGame + rewindInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${(pauseInstanceGame+rewindInstanceGame)*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
+    if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
+    if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:'Sediment', val:`+${_sp} pips`, type:'pip' }); }
+    if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
+    if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
+    if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
+    if (pendingHandMult > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingHandMult} mult`, type:'mult' });
+    if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:'Minute Hand', val:`x${BAL.minute_hand.mult_mult} mult`, type:'mult' });
+    const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
+    const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
+    if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
+    if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:'Quake', val:`+${BAL.kindred.mult_per_card*_setMax} mult`, type:'mult' });
+    if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
+    if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) { const _crp = trickPickOne(0, handCells); bonusLines.push(_crp === 0 ? { label:'Rogue Wave', val:`+${BAL.correct_run.pips} pips`, type:'pip' } : _crp === 1 ? { label:'Rogue Wave', val:`+${BAL.correct_run.mult} mult`, type:'mult' } : { label:'Rogue Wave', val:`+${BAL.correct_run.focus} Focus`, type:'focus' }); }
+    if (hasTrick('early_bird') && roundFractionRemaining()>2/3) bonusLines.push({ label:'Early Bird', val:`+${BAL.early_bird.pips_per_card*cards.length} pips`, type:'pip' });
+    if (hasTrick('kindling')) {
+      const _previewStreak = (lastHandType !== null && hand === lastHandType) ? streakCount + 1 : 1;
+      if (_previewStreak > 1) bonusLines.push({ label:`Kindling ×${_previewStreak}`, val:`+${BAL.kindling.mult_per_streak*_previewStreak} mult`, type:'mult' });
+    }
+
+    // Suits neutral by default - preview only shows active Trick effects
+    const clubCnt  = cards.filter(c => c.suit==='♣'||c.suit2==='♣').length;
+    const heartCnt = cards.filter(c => c.suit==='♥'||c.suit2==='♥').length;
+    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${BAL.club_double.base * Math.pow(2, clubsScoredRound) * (Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
+
+    breakdownEl.innerHTML = `
+      <div class="sb-row"><span class="sb-label">Base pips (lv${level})</span><span class="sb-value">${scaledBasePips}</span></div>
+      <div class="sb-row"><span class="sb-label">Card pips (${handCells.length} cards)</span><span class="sb-value">+${cardPipsTotal}</span></div>
+      <div class="sb-row"><span class="sb-label">Base mult</span><span class="sb-value">×${base.mult}</span></div>
+      ${bonusLines.map(b => {
+        let cls = (b.type==='score') ? 'highlight' : '';
+        if (b.type === 'time') cls += ' spade-halo';
+        const style = (b.type === 'coin') ? 'style="color:var(--gold)"' : '';
+        return `<div class="sb-row"><span class="sb-label">${withSuitHalo(b.label)}</span><span class="sb-value ${cls}" ${style}>${withSuitHalo(b.val)}</span></div>`;
+      }).join('')}
+      ${penaltyPips > 0 ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Penalty (${penaltyCells.length} unused)</span><span class="sb-value" style="color:var(--red)">−${penaltyPips}</span></div>` : ''}
+      ${(bestHandResult.tagalongPips > 0 || bestHandResult.tagalongSeconds > 0) ? `<div class="sb-row"><span class="sb-label" style="color:var(--red)">Kicker (${bestHandResult.tagalongCells.length})</span><span class="sb-value" style="color:var(--red)">${bestHandResult.tagalongPips > 0 ? '−' + bestHandResult.tagalongPips : ''}${bestHandResult.tagalongSeconds > 0 ? ` · −${bestHandResult.tagalongSeconds}s` : ''}</span></div>` : ''}
+      <div class="sb-divider"></div>
+      <div class="sb-total"><span class="sb-label">SCORE</span><span class="sb-value">${finalScore.toLocaleString()}</span></div>
+    `;
+  } else {
+    breakdownEl.innerHTML = '';
+  }
+
+  // Buttons
+  // ON A GRID-TAKEOVER SCREEN THESE TWO BUTTONS ARE NOT PLAY AND DISCARD.
+  // The shop repurposes them as BUY and LEAVE and the reward grid as CONFIRM
+  // and CLEAR (enterShopGridButtons / the reward pair), and those screens own
+  // the disabled state - the shop's own LEAVE is ALWAYS enabled, because it is
+  // the only way off that screen. A render that ran while one was up wrote
+  // `selected.length === 0` over it and left the player with no exit, and then
+  // threw on #disc-count, which the takeover has removed from the DOM. Nothing
+  // calls render() during the shop today, so this is a guard rather than a
+  // sighting - but "the button that leaves is dead" is not a failure mode worth
+  // leaving one repaint away.
+  // Poker Squares owns all three buttons too (CONFIRM / DISCARD / END TURN) and
+  // paints them from sqPaintButtons, so render() must not write over them.
+  const _takeover = (typeof squaresActive === 'function' && squaresActive())
+                 || (typeof shopGridActive !== 'undefined' && shopGridActive)
+                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+                 || (typeof flowrDeckActive === 'function' && flowrDeckActive())
+                 || (typeof gridPickState !== 'undefined' && !!gridPickState);
+  if (!_takeover) {
+    // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
+    // disabled rather than lighting up on a selection it will never submit.
+    document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
+    // DRAG TO PLAY (r409): with nothing selected, DISCARD arms the next drag
+    // instead, so it has to stay pressable on an empty selection.
+    const _dragArm = typeof controlDragPlay === 'function' && controlDragPlay();
+    const _dealer = typeof dealerActive === 'function' && dealerActive();
+    document.getElementById('btn-discard').disabled = (selected.length === 0 && !_dragArm && !_dealer) || (animating && !falling);
+    document.getElementById('btn-discard').classList.toggle('drag-armed', !!(typeof dragDiscardArmed !== 'undefined' && dragDiscardArmed));
+    if (typeof discardLatchSync === 'function') discardLatchSync();   // r541: DISCARD held down while it waits
+  }
+  // Both readouts are guarded for the same reason (r237 found the second one):
+  // a takeover screen rewrites this chrome, so neither element is in the DOM
+  // for the length of it and an unguarded write throws mid-render.
+  { const _dc = document.getElementById('disc-count'); if (_dc) _dc.textContent = `(${discards})`; }
+  { const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent = swaps; }
+  // ARMED: exactly two cards selected and stock to spend, so tapping SWAP will
+  // do something. It is the only thing that teaches the button - the gesture
+  // (double-tap to lift, tap a neighbour) is not guessable, and r326's click
+  // handler had been live and unadvertised ever since. Guarded on _takeover for
+  // the reason the two `disabled` writes above are: the shop, the reward grid,
+  // Poker Squares and the grid pick all repurpose this element, and a stray
+  // class from the play screen would light THEIR button. doSwap still owns
+  // every rule (adjacency, curses, Pivot, boss refusals), so this is optimistic
+  // by design: a swap the board refuses still says so out loud.
+  { const _si = document.getElementById('swap-indicator');
+    if (_si) _si.classList.toggle('swap-armed',
+      !_takeover && selected.length === 2 && swaps > 0 && !roundEnded && !(animating && !falling)); }
+
+  // Marked-row / marked-column lines. Drawn last, for the same reason
+  // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the
+  // board empty" test is a DOM query, which would be a render out of date if it
+  // ran before the card loop above (js/entity-fx.js).
+  if (typeof renderLineMarkers === 'function') renderLineMarkers();
+  if (typeof renderQuotaLines === 'function') renderQuotaLines();
+  if (typeof crPaintLocks === 'function') crPaintLocks();   // fall-type challenge cards' locked lines
+  if (typeof sweepPaint === 'function') sweepPaint();       // r572: All Hands's picked hands
+  // A card dealt in while the clock is frozen arrives untilted - put it back in
+  // line with the rest of the held board (js/clock-fx.js). No-ops when running.
+  if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
+  if (typeof bossGradientPaint === 'function') bossGradientPaint();
+  if (typeof cardAnimAfterRender === 'function') cardAnimAfterRender();   // r445: the select ripple
+}
+
+// THE BOARD PATTERN'S ELEMENT (r409, css/hypno.css). It lives INSIDE #grid, as
+// its first child, so it paints above the board's own background and below the
+// line markers and the cards in every case - including while #grid is its own
+// stacking context. Every screen that borrows #grid empties it with innerHTML,
+// so this puts it back whenever render() draws the play board again, which is
+// the one place that is known to happen. FIRST matters: it is z-index 0 among
+// #grid's positioned children, and those tie on tree order. Nothing else
+// prepends to #grid, so once it is first it stays first, and moving it would
+// restart its turn. Whether it SHOWS is CSS (body.board-pattern, the setting).
+function ensureBoardPattern(gridEl) {
+  if (!gridEl || gridEl.firstElementChild?.id === 'board-hypno') return;
+  let el = document.getElementById('board-hypno');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'board-hypno';
+    el.setAttribute('aria-hidden', 'true');
+  }
+  gridEl.prepend(el);
+}

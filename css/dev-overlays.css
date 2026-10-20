@@ -1,0 +1,1164 @@
+  /* ═══════════════ SETTINGS / DEV PANEL - centred arcade pop-up (r117) ═══════════════
+     Was a full-screen `position:fixed;inset:0` black sheet. It's now a bounded, on-theme
+     dialog: a sticky title bar with the LETHE marquee treatment, an internally-scrolling
+     body, and a dimmed backdrop produced by a huge box-shadow spread (so no extra wrapper
+     element is needed in the markup). #dev-panel keeps its inline display:none/flex. */
+  #dev-panel {
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(660px, 94vw);
+    max-height: min(82vh, 760px);
+    z-index: 499;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;                 /* the body scrolls, not the shell */
+    border: 1px solid var(--gold-dim);
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, #17130d 0%, #100d09 42%, #0b0907 100%);
+    box-shadow:
+      0 0 0 100vmax rgba(0, 0, 0, 0.82),          /* full-viewport dim, no extra element */
+      0 26px 70px rgba(0, 0, 0, 0.75),
+      0 0 26px rgba(255, 176, 46, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+  /* Title bar - echoes the cabinet marquee (thin gold rule + wide-tracked caps). */
+  #dev-panel-bar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 13px 16px;
+    background: linear-gradient(180deg, rgba(255,176,46,0.13), rgba(255,176,46,0.02));
+    border-bottom: 1px solid var(--gold-dim);
+    border-radius: 13px 13px 0 0;
+  }
+  #dev-panel-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 800;
+    font-size: 13px; letter-spacing: 5px; text-transform: uppercase;
+    color: var(--gold);
+    text-shadow: 0 0 12px rgba(255, 176, 46, 0.45);
+  }
+  /* r547: the search box (devSearch). */
+  #dev-search {
+    flex: 0 1 190px; min-width: 70px;
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    background: #1a1510; color: var(--cream);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+  }
+  #dev-search:focus { outline: none; border-color: var(--gold-dim); }
+  #dev-group-pop-body.dev-searching .dev-section::before {
+    content: attr(data-where);
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    color: var(--cream-dim); text-transform: uppercase;
+  }
+  #dev-group-pop-body .dev-hit {
+    outline: 1px solid var(--gold); outline-offset: 1px; border-radius: 3px;
+    background-color: rgba(255, 176, 46, 0.14);
+  }
+  #dev-panel-bar #build-stamp {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    color: rgba(244, 236, 214, 0.34);
+    text-align: right; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #dev-panel-close {
+    flex: 0 0 auto;
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 10px; letter-spacing: 2px;
+    background: linear-gradient(180deg, rgba(255,176,46,0.16), rgba(255,176,46,0.04));
+    border: 1px solid var(--gold-dim); color: var(--gold);
+    padding: 6px 13px; border-radius: 6px; cursor: var(--cur-pointer, pointer);
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #dev-panel-close:hover { background: linear-gradient(180deg, rgba(255,176,46,0.3), rgba(255,176,46,0.1)); color: #fff; }
+  /* Scrolling body - this is what makes the pop-up "fit" instead of running off-screen. */
+  #dev-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 14px 16px 18px;
+  }
+  #dev-panel-body::-webkit-scrollbar { width: 9px; }
+  #dev-panel-body::-webkit-scrollbar-track { background: rgba(0,0,0,0.35); border-radius: 5px; }
+  #dev-panel-body::-webkit-scrollbar-thumb { background: rgba(255,176,46,0.28); border-radius: 5px; }
+  #dev-panel-body::-webkit-scrollbar-thumb:hover { background: rgba(255,176,46,0.45); }
+
+  /* ── Group menu + sub-pop-ups (r139) ─────────────────────────────────────
+     The panel opens on a tiled menu of groups; picking one shows only that
+     group's sections. Replaces the old single long scroll of everything. */
+  #dev-group-menu {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px;
+  }
+  .dev-group-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 10px; color: var(--cream); cursor: var(--cur-pointer, pointer); text-align: left;
+    transition: background .12s, border-color .12s, transform .08s;
+  }
+  .dev-group-btn:hover  { background: rgba(255,176,46,0.10); border-color: var(--gold-dim); }
+  .dev-group-btn:active { transform: translateY(1px); }
+  .dev-group-btn .dg-icon  { font-size: 14px; color: var(--gold); line-height: 1; }
+  .dev-group-btn .dg-label { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; }
+  .dev-group-btn .dg-sub   { font-family:'Courier New',monospace; font-size:8px; color: var(--cream-dim); line-height:1.3; }
+
+  #dev-group-pop { display: none; flex-direction: column; gap: 10px; min-height: 0; }
+  #dev-group-pop-bar { display: flex; align-items: center; gap: 10px; }
+  #dev-group-back {
+    font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; padding:5px 9px;
+    background: rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px;
+    color: var(--cream); cursor: var(--cur-pointer, pointer);
+  }
+  #dev-group-back:hover { border-color: var(--gold-dim); color: var(--gold); }
+  #dev-group-pop-title { font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color: var(--gold); text-transform: uppercase; }
+  #dev-group-pop-body { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+  /* labelled slider row used by the Item Float tuner */
+  .dev-slider-row { display:flex; align-items:center; gap:8px; }
+  .dev-slider-row > span { font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream); min-width:104px; }
+  .dev-slider-row > span b { font-family:'Courier New',monospace; color:var(--gold); }
+  .dev-slider-row > input[type=range] { flex:1; accent-color: var(--gold); }
+
+  .dev-section { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .dev-section-title { font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .dev-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor: var(--cur-pointer, pointer); flex:1; min-width:60px; }
+  .dev-btn:active { background:rgba(244,234,213,0.14); }
+
+  /* Spectrum deck tuner (dev panel → Spectrum) - one chip per value / colour. */
+  .dev-spec-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+  .dev-spec-chip {
+    font-family:'Share Tech Mono',monospace; font-size:12px; min-width:30px; padding:5px 7px;
+    background:rgba(244,234,213,0.04); border:1px solid var(--border); border-radius:5px;
+    color:rgba(244,234,213,0.35); cursor: var(--cur-pointer, pointer); line-height:1;
+  }
+  .dev-spec-chip.on { background:rgba(255,215,0,0.14); border-color:var(--gold); color:var(--cream); }
+  .dev-spec-chip:active { transform:translateY(1px); }
+  .dev-trick-item { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:4px; gap:8px; }
+  .dev-trick-name { font-family:'Cinzel',serif; font-size:9px; color:var(--cream); letter-spacing:1px; }
+  .dev-trick-add { font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor: var(--cur-pointer, pointer); white-space:nowrap; }
+  #dev-event-log { font-family:'Courier New',monospace; font-size:9px; color:var(--cream-dim); line-height:1.6; max-height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-radius:4px; padding:6px 8px; white-space:pre-wrap; word-break:break-all; }
+  #dev-event-log .log-error { color:#ff6b6b; }
+  #dev-event-log .log-warn  { color:#f0c040; }
+  #dev-event-log .log-ok    { color:#5aaa5a; }
+  #dev-log-copy { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor: var(--cur-pointer, pointer); }
+  #dev-log-clear { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--cream-dim); cursor: var(--cur-pointer, pointer); }
+
+  /* ═══════════════ EVENT OVERLAY (r183 rework) ═══════════════
+     Events used to be a black sheet with a serif heading and some bordered
+     boxes: correct information, no relationship to anything else in the game.
+     They now use the REWARD GRID's material, because that is the screen an
+     Event always arrives from - a cool indigo wash instead of the warm board,
+     CRT tiles with scanlines and a neon rarity edge, Orbitron names, and the
+     same green CONFIRM / muted secondary buttons.
+
+     The rules of the language, so the next screen matches:
+       · rarity is the border colour (--rc), never the background
+       · a downside is RED and says so; nothing else is red
+       · names are Orbitron caps; prose is Crimson Pro; labels are Share Tech Mono
+       · one bezel: 2px plastic ring + neon glow + inner scanlines            */
+
+  #event-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    /* The reward grid's cool indigo wash, so the two screens read as one place. */
+    background:
+      radial-gradient(circle at 50% 16%, rgba(90,70,160,0.24), transparent 62%),
+      rgba(10,9,22,0.96);
+    z-index: 300;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 14px;
+    overflow-y: auto;
+    gap: 0;
+  }
+  #event-overlay.show { display: flex; }
+
+  /* The console the whole event sits in. */
+  #event-panel {
+    position: relative;
+    width: 100%; max-width: 420px;
+    max-height: calc(100dvh - 36px);
+    display: flex; flex-direction: column; align-items: center;
+    box-sizing: border-box;
+    padding: 0 18px 18px;
+    border: 1px solid #33314e;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #17162a 0%, #100e1d 46%, #0a0913 100%);
+    box-shadow:
+      0 0 0 2px var(--plastic-lo),
+      0 0 26px -4px rgba(140,110,230,0.55),
+      0 26px 70px rgba(0,0,0,0.75),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Scanlines over the whole console, behind the content. */
+  #event-panel::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    border-radius: 13px;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  #event-panel > * { position: relative; z-index: 1; }
+
+  /* Marquee bar - the same treatment as the dev panel's title bar. */
+  #event-bar {
+    position: sticky; top: 0; z-index: 3;
+    width: calc(100% + 36px); margin: 0 -18px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 16px;
+    border-bottom: 1px solid #3a3560;
+    border-radius: 13px 13px 0 0;
+    /* Two layers, and the bottom one is OPAQUE on purpose: the panel scrolls
+       under this bar, and a see-through bar lets a tile read straight through
+       the title. */
+    background:
+      linear-gradient(180deg, rgba(140,110,230,0.20), rgba(140,110,230,0.03)),
+      linear-gradient(180deg, #191830, #14122400);
+    background-color: #17162a;
+  }
+  #event-eyebrow {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 4px; text-transform: uppercase;
+    color: #b39cf5; text-shadow: 0 0 10px rgba(179,156,245,0.6);
+  }
+  /* Three idle indicator lamps - cabinet furniture, no state attached. */
+  #event-bar-dots { display: flex; gap: 5px; }
+  #event-bar-dots i {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #b39cf5; opacity: 0.45;
+    box-shadow: 0 0 6px rgba(179,156,245,0.8);
+    animation: ev-lamp 2.6s ease-in-out infinite;
+  }
+  #event-bar-dots i:nth-child(2) { animation-delay: 0.35s; }
+  #event-bar-dots i:nth-child(3) { animation-delay: 0.7s; }
+  @keyframes ev-lamp { 0%,100% { opacity: 0.22; } 50% { opacity: 0.95; } }
+
+  /* The console's pause chip. An event and a Limit Break are full-screen panels
+     over the whole stage, so the play screen's PAUSE button is not merely hidden -
+     it is painted over, and the menu was unreachable for the whole screen. The bar
+     is the one part that never scrolls away, so the chip rides it, and the pause
+     overlay (z-index 420) sits above both panels so it paints correctly on top.
+     The lamps and the chip are grouped so the bar stays eyebrow-left / rest-right. */
+  .con-bar-right { display: flex; align-items: center; gap: 11px; }
+  .con-pause {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; line-height: 1;
+    padding: 4px 8px;
+    color: #b39cf5;
+    background: rgba(140,110,230,0.10);
+    border: 1px solid #3a3560;
+    border-radius: 6px;
+    cursor: var(--cur-pointer, pointer);
+    transition: background 0.14s, color 0.14s, border-color 0.14s;
+  }
+  .con-pause:hover {
+    background: rgba(140,110,230,0.26);
+    border-color: #7a63c8;
+    color: #e6dcff;
+  }
+
+  #event-name {
+    font-family: 'Orbitron', sans-serif; font-weight: 800;
+    font-size: 19px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: #fff; text-align: center; margin-bottom: 5px;
+    text-shadow: 0 0 14px rgba(179,156,245,0.75), 0 2px 3px #000;
+  }
+  #event-flavor {
+    font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.5;
+    color: rgba(240,230,200,0.72); text-align: center;
+    max-width: 320px; margin-bottom: 16px;
+  }
+  #event-body { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 100%; }
+  /* DO NOT widen #event-panel with a viewport media query. The overlay lives
+     INSIDE #stage, which carries the cabinet's CSS `zoom` (~1.9 on a 1440px
+     desktop), so its 420px is already about 800 real pixels on screen - a media
+     query on the VIEWPORT width sees 1440 and widens something that was never
+     narrow. Measured at 560px the panel covered three quarters of the display and
+     the prose ran to 90 characters a line. The px here are stage px; leave them. */
+  /* Sticky footer. A long event (Twin Path, the Confluence's second step) scrolls
+     inside the panel, and CONFIRM must never be the thing you have to go looking
+     for - it rides the bottom edge with the panel's own material behind it. */
+  #event-actions {
+    position: sticky; bottom: 0; z-index: 3;
+    display: flex; gap: 10px; justify-content: center;
+    width: calc(100% + 36px); margin: 18px -18px -18px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid #33314e;
+    border-radius: 0 0 13px 13px;
+    background: linear-gradient(180deg, rgba(16,14,29,0.96), #0a0913 42%);
+  }
+
+  /* Section labels / notes / empty states inside an event body. These used to be
+     written as inline cssText in js/events.js, a dozen near-identical copies. */
+  .ev-label {
+    width: 100%; text-align: left;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: #b39cf5; opacity: 0.85;
+  }
+  .ev-label.danger { color: #ff7a86; }
+  .ev-note {
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5;
+    color: rgba(240,230,200,0.72); text-align: center; max-width: 320px;
+  }
+  .ev-empty {
+    font-family: 'Crimson Pro', serif; font-size: 12px;
+    color: var(--cream-dim); text-align: center; padding: 10px 0;
+  }
+
+  /* Event buttons. CONFIRM is the reward grid's green; SKIP is the muted
+     secondary. Both were browser-default grey buttons before r183. */
+  #event-actions button, .ev-btn {
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 11px 24px; border-radius: 7px; cursor: var(--cur-pointer, pointer);
+    transition: filter 0.12s ease, opacity 0.12s ease;
+  }
+  #event-confirm, .ev-btn {
+    border: 1px solid var(--c-mint);
+    background: linear-gradient(180deg, #7dffce, var(--c-mint) 55%, #1fa877);
+    color: #06251a;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 3px 0 #178a5e, 0 6px 12px rgba(0,0,0,0.45);
+  }
+  #event-confirm:not(:disabled):hover, .ev-btn:hover { filter: brightness(1.12); }
+  #event-confirm:disabled { opacity: 0.32; cursor: var(--cur-no, not-allowed); box-shadow: none; }
+  #event-skip {
+    border: 1px solid #4a4570;
+    background: rgba(179,156,245,0.07);
+    color: rgba(240,230,200,0.6);
+  }
+  #event-skip:hover { border-color: #b39cf5; color: #fff; }
+
+  /* ── Generic event choice card ────────────────────────────────────────────
+     A CRT tile laid out sideways: neon art disc on the left, name and text on
+     the right. Rarity drives --rc exactly as it does on a reward tile, so an
+     epic offered by an Event and an epic on the grid are the same colour. */
+  .event-choice {
+    position: relative;
+    width: 100%; box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 0;
+    background: linear-gradient(180deg, #15110b, #0a0906);
+    border: 2px solid var(--rc, var(--plastic-deep));
+    border-radius: 9px; padding: 11px 13px;
+    cursor: var(--cur-pointer, pointer); text-align: left; user-select: none;
+    color: var(--cream);
+    overflow: hidden;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -2px var(--rc, transparent),
+                inset 0 0 14px -5px var(--rc, transparent), 0 5px 12px rgba(0,0,0,0.5);
+    transition: transform 0.12s ease, box-shadow 0.14s ease, filter 0.12s ease;
+  }
+  .event-choice::after {   /* scanlines, same recipe as .reward-cell.entity */
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  .event-choice > * { position: relative; z-index: 2; }
+  .event-choice.rar-common    { --rc: var(--c-mint); }
+  .event-choice.rar-rare      { --rc: var(--c-cyan); }
+  .event-choice.rar-epic      { --rc: var(--c-purple); }
+  .event-choice.rar-legendary { --rc: var(--c-magenta); }
+  .event-choice:hover  { transform: translateY(-2px); filter: brightness(1.08); }
+  .event-choice.selected {
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 18px rgba(140,110,230,0.8),
+                inset 0 0 12px rgba(140,110,230,0.28), 0 5px 12px rgba(0,0,0,0.5);
+    border-color: #b39cf5 !important;
+  }
+  /* A downside is red and nothing else is, so it can never be mistaken for a
+     rarity. It also gets a hazard stripe down its left edge. */
+  .event-choice.debuff {
+    --rc: #ff4d5e;
+    background: linear-gradient(180deg, #1c0d10, #0b0608);
+  }
+  .event-choice.debuff::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; z-index: 2;
+    background: repeating-linear-gradient(135deg, #ff4d5e 0 5px, #3a0d13 5px 10px);
+    opacity: 0.75;
+  }
+  .event-choice.debuff .ec-name { color: #ffd7db; }
+  .event-choice.locked { opacity: 0.3; cursor: var(--cur-no, not-allowed); filter: grayscale(0.6); }
+  .event-choice.locked:hover { transform: none; }
+
+  .ec-top  { display: flex; align-items: center; gap: 10px; }
+  /* The icon gets a neon disc rather than sitting loose in the text. */
+  .ec-icon {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; line-height: 1;
+    background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.09), rgba(0,0,0,0.5));
+    border: 1px solid var(--rc, var(--plastic-deep));
+    box-shadow: 0 0 10px -3px var(--rc, transparent), inset 0 0 10px -4px var(--rc, transparent);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+  }
+  /* When the offer IS an entity, the disc is replaced by the SHARED entity tile
+     (js/entity-tile.js) at a size that fits a row - so the Trick an Event offers
+     you is visibly the same object as the Trick on the reward grid, in the Mart
+     and in your tray. The tile brings its own rarity edge; the slot only sizes it.
+     Its own name is hidden because the row prints the name in full right beside
+     it - the same deliberate exception the tray's fanned chips make. */
+  .ec-tile {
+    flex: 0 0 auto; width: 46px; height: 61px;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .ec-tile .reward-cell {
+    position: relative; width: 46px; height: 61px; margin: 0;
+  }
+  .ec-info { flex: 1; min-width: 0; }
+  /* An entity offer reads as a COLUMN (r239): the object on top - at its own
+     ratio, wearing its own name, exactly as it will sit in the tray - and the
+     title and description beneath it. The tile keeps its label now for the
+     same reason: it is a picture of the thing you will own. */
+  .event-choice.has-tile .ec-top { flex-direction: column; gap: 6px; }
+  /* Two across: a tile choice is a COLUMN and much taller than a text row, so
+     a tray-length list (Rehearsal over 10 Tricks) would otherwise be a long
+     scroll. Event bodies wrap their choices in ad-hoc divs, so the CONTAINER
+     is found by :has() rather than named - any div directly holding a tile
+     choice becomes a wrapping row, and the labels and notes sharing it take a
+     full line of their own. */
+  #event-panel div:has(> .event-choice.has-tile) {
+    /* flex-direction must be restated: #event-body is a flex COLUMN, and a
+       column with wrap never wraps at auto height - it just stayed one per
+       line, centred, which looked like :has() failing. */
+    display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px;
+    justify-content: center; align-items: stretch;
+  }
+  #event-panel div:has(> .event-choice.has-tile) > .ev-label,
+  #event-panel div:has(> .event-choice.has-tile) > .ev-note { flex: 1 1 100%; }
+  .event-choice.has-tile { width: calc(50% - 8px); }
+  .event-choice.has-tile .ec-tile,
+  .event-choice.has-tile .ec-tile .reward-cell { width: 56px; height: 72px; }
+  .event-choice.has-tile .ec-info { flex: 0 0 auto; width: 100%; text-align: center; }
+  .event-choice.has-tile .ec-desc { text-align: center; }
+  .ec-rarity {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--rc, var(--cream-dim)); text-shadow: 0 0 6px var(--rc, transparent);
+  }
+  .ec-name {
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 11.5px; letter-spacing: 0.6px; text-transform: uppercase;
+    color: #fff; margin-top: 2px; line-height: 1.2;
+    text-shadow: 0 0 8px var(--rc, rgba(255,255,255,0.35)), 0 1px 2px #000;
+  }
+  .ec-desc {
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.45;
+    color: rgba(240,230,200,0.8); margin-top: 7px;
+  }
+  /* An offer carrying an `extra` puts it beside the sentence rather than under
+     it. flex-basis keeps the sentence from collapsing to one word before the
+     row wraps. */
+  .ec-descrow {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 4px 10px; margin-top: 7px;
+  }
+  .ec-descrow .ec-desc { flex: 1 1 210px; min-width: 0; margin-top: 0; }
+  .ec-cost {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px;
+    color: #ff8a95; margin-top: 6px;
+  }
+  .ec-tag {
+    display: inline-block; font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; letter-spacing: 1px; padding: 2px 6px; border-radius: 3px;
+    background: rgba(179,156,245,0.13); color: #b39cf5;
+    margin-top: 5px; margin-right: 3px;
+  }
+
+  /* ── SHIFT CHANGE: reorder your Trick tray (r182) ────────────────────────
+     The Tricks are drawn with the shared entity tile (js/entity-tile.js), so the
+     row you are rearranging is made of the same cards you see everywhere else.
+     It wraps rather than scrolls sideways: a full tray is 5-10 Tricks and a
+     hidden second half would be an easy thing to forget you owned. */
+  /* r590: one row, slots placed by left (js renderShiftRow) and dragged. */
+  #shift-row { position: relative; width: 100%; min-height: 90px; margin: 10px 0 4px; touch-action: none; }
+  .shift-slot {
+    position: absolute; top: 8px; width: var(--sh-w, 56px); height: calc(var(--sh-w, 56px) * 74 / 56);
+    cursor: var(--cur-pointer, grab); user-select: none; touch-action: none;
+  }
+  .shift-slot.dragging { z-index: 10; filter: brightness(1.15) drop-shadow(0 8px 10px rgba(0,0,0,.6)); cursor: grabbing; }
+  .shift-slot > .reward-cell { width: 100%; height: 100%; padding: 3px 2px 4px; cursor: var(--cur-pointer, pointer); }
+  .shift-slot .rwd-art   { font-size: 24px; top: 13%; }
+  .shift-slot .rwd-glyph { font-size: 9px; top: 4px; }
+  .shift-slot .rwd-name  { font-size: 7px; letter-spacing: 0; }
+  /* Slot number - this is the whole point of the screen, so it is legible rather
+     than decorative. */
+  .shift-num {
+    position: absolute; top: -6px; left: -6px; z-index: 6;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 900;
+    background: var(--gold); color: #16120a;
+    box-shadow: 0 0 8px -1px var(--gold), 0 2px 4px rgba(0,0,0,0.6);
+  }
+  /* A lifted Trick is held out of the row and pulses, so it is obvious which one
+     the next tap will trade with. */
+  .shift-slot.lifted { transform: translateY(-8px); filter: brightness(1.2); }
+  .shift-slot.lifted > .reward-cell {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 18px -2px var(--gold), inset 0 0 12px -4px var(--gold);
+    animation: shift-lift 1.1s ease-in-out infinite;
+  }
+  @keyframes shift-lift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+  #shift-hint {
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.45;
+    color: rgba(240,230,200,0.72); text-align: center; min-height: 2.2em; margin-top: 4px;
+  }
+  #shift-hint.active { color: #b39cf5; }
+  #shift-tools { display: flex; gap: 8px; justify-content: center; }
+  .shift-tool {
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 7px 14px; border-radius: 6px; cursor: var(--cur-pointer, pointer);
+    border: 1px solid #4a4570; background: rgba(179,156,245,0.07);
+    color: rgba(240,230,200,0.62);
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .shift-tool:hover { border-color: #b39cf5; color: #fff; }
+
+  /* ═══════════ TRICK SLOTS FULL / CHOOSE A TRICK TO LOSE (r183) ═══════════
+     The screen you meet when a Trick will not fit, or when something takes one
+     off you. It was a black sheet of grey text boxes; it is now the same console
+     as the reward grid and the events, with two differences that carry meaning:
+
+       · it is RED-lit, not indigo. Every other console gives you something. This
+         one takes something away, and the room should say so before you read it.
+       · each row carries the REAL entity tile (js/entity-tile.js). You are
+         picking between things you own, and they should look like the things you
+         picked up, not like list items. */
+  #trick-lose-picker {
+    display: none;
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(circle at 50% 16%, rgba(190,40,60,0.20), transparent 62%),
+      rgba(14,7,8,0.96);
+    z-index: 500;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 18px 14px;
+    overflow-y: auto;
+  }
+  #trick-lose-picker.show { display: flex; }
+
+  #blp-panel {
+    position: relative;
+    width: 100%; max-width: 420px;
+    max-height: calc(100dvh - 36px);
+    display: flex; flex-direction: column; align-items: center;
+    box-sizing: border-box;
+    padding: 0 18px 18px;
+    border: 1px solid #4a2028;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #241214 0%, #180c0e 46%, #0e0709 100%);
+    box-shadow:
+      0 0 0 2px var(--plastic-lo),
+      0 0 26px -4px rgba(255,77,94,0.45),
+      0 26px 70px rgba(0,0,0,0.78),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  #blp-panel::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    border-radius: 13px;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  #blp-panel > * { position: relative; z-index: 1; }
+
+  #blp-bar {
+    position: sticky; top: 0; z-index: 3;
+    width: calc(100% + 36px); margin: 0 -18px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 16px;
+    border-bottom: 1px solid #4a2028;
+    border-radius: 13px 13px 0 0;
+    /* Opaque base - see #event-bar. */
+    background:
+      linear-gradient(180deg, rgba(255,77,94,0.18), rgba(255,77,94,0.03)),
+      linear-gradient(180deg, #2a1418, #1a0d1000);
+    background-color: #241214;
+  }
+  #blp-eyebrow {
+    font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:4px;
+    text-transform:uppercase; color:#ff8a95; text-shadow:0 0 10px rgba(255,77,94,0.55);
+  }
+  /* Live slot count - the number the whole screen is about. */
+  #blp-count {
+    font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1.5px;
+    color:#ffd7db; background:rgba(0,0,0,0.4); border:1px solid #4a2028;
+    border-radius:5px; padding:2px 7px;
+  }
+
+  #blp-title {
+    font-family:'Orbitron',sans-serif; font-weight:800;
+    font-size:18px; letter-spacing:2.2px; text-transform:uppercase;
+    color:#fff; text-align:center; margin-bottom:5px;
+    text-shadow:0 0 14px rgba(255,77,94,0.7), 0 2px 3px #000;
+  }
+  #blp-sub {
+    font-family:'Crimson Pro',serif; font-size:13px; line-height:1.5;
+    color:rgba(240,230,200,0.72); text-align:center; max-width:320px; margin-bottom:14px;
+  }
+
+  /* ── The incoming Trick (replace mode only) ──
+     Shown as a tile above the divider so the trade has two visible sides. */
+  /* Laid out as a ROW, not a column: stacked it ate ~180px and pushed the list
+     you are supposed to be choosing from below the fold on every screen. */
+  #blp-incoming { display:none; }
+  #blp-incoming.show {
+    display:grid; grid-template-columns:auto 1fr; align-items:center;
+    column-gap:12px; row-gap:2px;
+    width:100%; box-sizing:border-box; padding:11px 13px; margin-bottom:14px;
+    border:1px dashed #4a4570; border-radius:10px;
+    background:radial-gradient(circle at 12% 0%, rgba(140,110,230,0.16), transparent 70%);
+  }
+  .blp-inc-label {
+    grid-column:2; align-self:end;
+    font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:3px;
+    text-transform:uppercase; color:#b39cf5;
+  }
+  .blp-inc-tile { grid-column:1; grid-row:1 / span 2; width:54px; height:72px; }
+  .blp-inc-tile > .reward-cell { width:100%; height:100%; padding:3px 2px 4px; cursor: var(--cur-default, default); }
+  .blp-inc-tile .rwd-art   { font-size:23px; top:12%; }
+  .blp-inc-tile .rwd-glyph { font-size:8px; top:3px; }
+  .blp-inc-tile .rwd-name  { font-size:6.5px; letter-spacing:0; }
+  .blp-inc-desc {
+    grid-column:2; align-self:start;
+    font-family:'Crimson Pro',serif; font-size:12.5px; line-height:1.45;
+    color:rgba(240,230,200,0.8);
+  }
+
+  /* ── The rows you are choosing between ── */
+  #blp-list  { display:flex; flex-direction:column; gap:8px; width:100%; }
+  #blp-actions {
+    position: sticky; bottom: 0; z-index: 3;
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    width: calc(100% + 36px); margin: 18px -18px -18px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid #4a2028;
+    border-radius: 0 0 13px 13px;
+    background: linear-gradient(180deg, rgba(24,12,14,0.96), #0e0709 42%);
+  }
+
+  .blp-item.rar-common    { --rc: var(--c-mint); }
+  .blp-item.rar-rare      { --rc: var(--c-cyan); }
+  .blp-item.rar-epic      { --rc: var(--c-purple); }
+  .blp-item.rar-legendary { --rc: var(--c-magenta); }
+  .blp-item {
+    position:relative;
+    width:100%; box-sizing:border-box;
+    display:flex; align-items:center; gap:11px;
+    background:linear-gradient(180deg,#1c0f11,#0d0708);
+    border:2px solid #3a2024; border-radius:9px; padding:9px 11px;
+    cursor: var(--cur-pointer, pointer); text-align:left; color:var(--cream); user-select:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
+    transition:transform 0.12s ease, border-color 0.14s ease, box-shadow 0.14s ease, filter 0.12s ease;
+  }
+  .blp-item:hover { transform:translateY(-2px); border-color:#ff4d5e; filter:brightness(1.08); }
+  .blp-item.selected {
+    border-color:#ff4d5e;
+    box-shadow:0 0 18px -2px rgba(255,77,94,0.75), inset 0 0 14px -6px rgba(255,77,94,0.9);
+  }
+  /* The tile keeps its own rarity colour; the ROW is what turns red when picked,
+     so "this is the one I am losing" never gets confused with "this is an epic". */
+  .blp-item-tile { flex:0 0 auto; width:50px; height:66px; }
+  .blp-item-tile > .reward-cell { width:100%; height:100%; padding:3px 2px 4px; cursor: var(--cur-pointer, pointer); }
+  .blp-item-tile .rwd-art   { font-size:21px; top:13%; }
+  .blp-item-tile .rwd-glyph { font-size:8px; top:3px; }
+  /* The row prints the name in full right next to the tile, so the tile's own
+     6.5px copy of it is noise. Art only here - the same deliberate exception the
+     portrait tray makes when it fans its chips. */
+  .blp-item-tile .rwd-name  { display:none; }
+  .blp-item-tile .rwd-art   { top:50%; transform:translateY(-50%); }
+  .blp-item-body { flex:1; min-width:0; }
+  .blp-item-tier {
+    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--rc, var(--cream-dim)); text-shadow:0 0 6px var(--rc, transparent);
+  }
+  .blp-item-name {
+    font-family:'Orbitron',sans-serif; font-weight:700; font-size:11.5px;
+    letter-spacing:0.6px; text-transform:uppercase; color:#fff; margin-top:2px; line-height:1.2;
+  }
+  .blp-item-desc {
+    font-family:'Crimson Pro',serif; font-size:12px; line-height:1.4;
+    color:rgba(240,230,200,0.72); margin-top:5px;
+  }
+  /* A struck-through marker that only appears on the row you have picked. */
+  .blp-item-mark {
+    flex:0 0 auto; width:22px; height:22px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:10px;
+    color:#2a0a0e; background:#ff4d5e; box-shadow:0 0 10px -1px #ff4d5e;
+    opacity:0; transform:scale(0.6); transition:opacity 0.14s ease, transform 0.14s ease;
+  }
+  .blp-item.selected .blp-item-mark { opacity:1; transform:scale(1); }
+  .blp-item.selected .blp-item-tile { filter:grayscale(0.5) brightness(0.85); }
+
+  /* Buttons - REMOVE is the red action, SKIP is the muted way out. */
+  #blp-actions button {
+    font-family:'Orbitron',sans-serif; font-weight:700;
+    font-size:10px; letter-spacing:2px; text-transform:uppercase;
+    padding:11px 22px; border-radius:7px; cursor: var(--cur-pointer, pointer);
+    transition:filter 0.12s ease, opacity 0.12s ease;
+  }
+  #blp-confirm {
+    border:1px solid #ff4d5e;
+    background:linear-gradient(180deg,#ff8a95,#e03b4c 55%,#a4162a);
+    color:#2a0a0e;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,0.35), 0 3px 0 #7d1020, 0 6px 12px rgba(0,0,0,0.45);
+  }
+  #blp-confirm:not(:disabled):hover { filter:brightness(1.12); }
+  #blp-confirm:disabled { opacity:0.32; cursor: var(--cur-no, not-allowed); box-shadow:none; }
+  #blp-cancel {
+    border:1px solid #4a3540; background:rgba(255,138,149,0.07); color:rgba(240,230,200,0.6);
+  }
+  #blp-cancel:hover { border-color:#ff8a95; color:#fff; }
+
+  /* A plain vertical stack of choices - the Confluence's second step. */
+  .ev-stack { width:100%; display:flex; flex-direction:column; gap:9px; margin-top:8px; }
+
+  /* ── Cleansing Spring's deck picker → actual little playing cards ─────────
+     It was a wrap of bordered text chips. A screen about your DECK should be
+     made of cards, so each one is a cream mini-card with the suit in its own
+     colour, and the pick is a gold ring rather than a nudged box-shadow. */
+  .ev-cardchips {
+    display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+    margin-top:8px; max-width:340px;
+    max-height: 168px; overflow-y: auto; overscroll-behavior: contain;
+    padding: 2px;
+  }
+  .ev-cardchip {
+    min-width: 30px; padding: 5px 6px; border-radius: 4px;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    background: #f4efe2; color: #1a1a1a;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
+    text-align: center; cursor: var(--cur-pointer, pointer); user-select: none; line-height: 1;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    transition: transform 0.1s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  }
+  .ev-cardchip.red { color: #c0392b; }
+  .ev-cardchip.qrl-full { opacity: .35; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }   /* QRL (r484) */
+  .ev-cardchip:hover { transform: translateY(-2px); }
+  .ev-cardchip.picked {
+    border-color: var(--c-yellow);
+    box-shadow: 0 0 0 2px var(--c-yellow), 0 0 14px -2px var(--c-yellow), 0 2px 5px rgba(0,0,0,0.5);
+    transform: translateY(-2px);
+  }
+  /* Clean Up's four-different-ranks cut greys out a rank already taken, rather
+     than silently refusing the tap. */
+  .ev-cardchip.blocked {
+    opacity: 0.24; cursor: var(--cur-no, not-allowed); filter: grayscale(0.8);
+  }
+  .ev-cardchip.blocked:hover { transform: none; }
+
+  /* ── The Forge's face row (r294) ──────────────────────────────────────────
+     An option buffs two or three cards, so the tile has to SHOW which - the
+     same mini playing cards Clean Up's picker is made of, but as a readout
+     rather than a control: no hover lift, no pointer, and the click belongs to
+     the option underneath. Left-aligned and unwrapped, because it sits under a
+     left-aligned sentence and three faces always fit. */
+  .ec-forge .ec-facerow {
+    flex: 0 0 auto; justify-content: flex-start; flex-wrap: wrap;
+    margin-top: 0; max-width: none; max-height: none; overflow: visible;
+  }
+  .ec-forge .ec-facerow .ev-cardchip {
+    cursor: inherit; pointer-events: none;
+    padding: 4px 7px; font-size: 12px; min-width: 26px;
+  }
+  .ec-forge .ec-facerow .ev-cardchip:hover { transform: none; }
+
+  /* Running total on the Card Market's basket. */
+  .ev-total {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    color: var(--c-mint); text-align: center;
+    margin-top: 4px;
+  }
+  .ev-total.danger { color: #ff7a86; }
+
+  /* ── Confluence theme buttons → keyword keys on a console ─────────────────
+     Molded plastic keycaps with a phosphor legend. Picking one lights it. */
+  .event-theme-row { display:flex; gap:9px; width:100%; justify-content:center; flex-wrap:wrap; }
+  .event-theme-btn {
+    position: relative;
+    flex:1; min-width:64px; max-width:96px;
+    background: linear-gradient(180deg, #1a1728, #0e0c18);
+    border: 2px solid #3a3560; border-radius: 9px;
+    padding: 11px 6px 9px;
+    cursor: var(--cur-pointer, pointer); text-align: center; user-select: none;
+    color: var(--cream);
+    box-shadow: 0 0 0 2px var(--plastic-lo), inset 0 1px 0 rgba(255,255,255,0.07), 0 3px 0 #06050c;
+    transition: transform 0.1s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  }
+  .event-theme-btn:hover  { border-color: #6f66a8; transform: translateY(-1px); }
+  .event-theme-btn:active { transform: translateY(1px); box-shadow: 0 0 0 2px var(--plastic-lo), 0 1px 0 #06050c; }
+  .event-theme-btn.selected {
+    border-color: #b39cf5;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 16px -2px rgba(179,156,245,0.9),
+                inset 0 0 14px -6px rgba(179,156,245,0.9), 0 3px 0 #06050c;
+  }
+  .etb-icon { font-size:19px; line-height:1; filter: drop-shadow(0 0 6px rgba(179,156,245,0.5)); }
+  .etb-name {
+    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1.5px;
+    color:#b39cf5; text-transform:uppercase; margin-top:5px;
+  }
+  .event-theme-btn.selected .etb-name { color:#fff; text-shadow:0 0 8px rgba(179,156,245,0.9); }
+
+  /* ── Gamble doors → face-down cabinet panels ─────────────────────────────
+     Shut, a door is a dark CRT panel with a big phosphor numeral and its own
+     scanlines. Open, the border alone carries good (mint) or bad (red). */
+  .door-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .event-door {
+    position: relative; overflow: hidden;
+    width:92px; height:120px;
+    background: linear-gradient(180deg, #17162a, #0a0913);
+    border: 2px solid #3a3560; border-radius: 9px;
+    cursor: var(--cur-pointer, pointer); display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    user-select: none;
+    box-shadow: 0 0 0 2px var(--plastic-lo), inset 0 0 18px -8px rgba(179,156,245,0.7), 0 5px 12px rgba(0,0,0,0.55);
+    transition: transform 0.12s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  }
+  .event-door::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.2) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  .event-door > * { position: relative; z-index: 2; }
+  .event-door:hover:not(.chosen):not(.revealed) { border-color:#b39cf5; transform: translateY(-3px); }
+  .event-door.chosen {
+    border-color:#b39cf5;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 20px -2px rgba(179,156,245,0.9), inset 0 0 16px -6px rgba(179,156,245,0.8);
+  }
+  .event-door.revealed-good {
+    border-color: var(--c-mint); cursor: var(--cur-default, default);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 20px -3px var(--c-mint), inset 0 0 16px -6px var(--c-mint);
+  }
+  .event-door.revealed-bad {
+    border-color: #ff4d5e; cursor: var(--cur-default, default);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 20px -3px #ff4d5e, inset 0 0 16px -6px #ff4d5e;
+  }
+  .door-num {
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:30px;
+    color:#b39cf5; text-shadow: 0 0 14px rgba(179,156,245,0.8);
+  }
+  .door-inner { display:none; flex-direction:column; align-items:center; gap:5px; padding:8px; text-align:center; }
+  .event-door.revealed .door-num   { display:none; }
+  .event-door.revealed .door-inner { display:flex; }
+  .door-icon { font-size:22px; line-height:1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+  .door-dname {
+    font-family:'Orbitron',sans-serif; font-weight:700; font-size:8px;
+    letter-spacing:0.5px; text-transform:uppercase; color:#fff; line-height:1.2;
+    text-shadow: 0 1px 2px #000;
+  }
+
+  /* Sleight grid cards */
+  .sleight-card {
+    background: linear-gradient(160deg,#160d22,#0a0612) !important;
+    border: 2px solid #8844cc !important;
+    box-shadow: 0 0 8px rgba(136,68,204,0.4);
+  }
+  .sleight-card-emoji { font-size:calc(var(--card-h, 75px) * 0.25); line-height:1; }
+  .sleight-card-name  { font-size:calc(var(--card-h, 75px) * 0.095); color:#cc88ff; font-family:'Cinzel',serif; letter-spacing:0.3px; text-align:center; line-height:1.2; padding:0 2px; }
+  .sleight-card-uses  { font-size:calc(var(--card-h, 75px) * 0.105); color:var(--gold-dim); margin-top:1px; }
+  /* Aim sleights (Reflect, Soul Mirror) + Mirror tray chip */
+  .sleight-aim-inner {
+    width:100%; height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px;
+    transform-style:preserve-3d;
+    transition: transform .3s cubic-bezier(.22,.61,.36,1);
+  }
+  .aim-arrow {
+    position:absolute; left:50%; top:50%; line-height:1; pointer-events:none;
+    font-size:calc(var(--card-h, 75px) * 0.22); font-weight:700;
+    color:var(--gold); text-shadow:0 0 6px rgba(232,184,75,0.85);
+    transition: transform .3s ease;
+  }
+  .aim-arrow.aim-up    { transform: translate(-50%,-50%) translateY(calc(var(--card-h, 75px) * -0.36)); }
+  .aim-arrow.aim-down  { transform: translate(-50%,-50%) translateY(calc(var(--card-h, 75px) *  0.36)); }
+  .aim-arrow.aim-left  { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) * -0.30)); }
+  .aim-arrow.aim-right { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) *  0.30)); }
+  .trick-tray-chip.trick-mirror { transition: transform .2s ease; }
+  /* Sleight tooltip (shown on single-tap, like Trick tooltip) */
+  /* Body-level (see placeCardTooltip), so these are REAL viewport px, not stage px. */
+  .sleight-tooltip {
+    position: fixed; z-index: 640;
+    background:#1e1a0e; border:1px solid #8844cc;
+    border-radius:6px; padding:10px 12px; width:max-content; max-width:min(260px, calc(100vw - 20px));
+    box-sizing: border-box; white-space: normal;
+    overflow-wrap: break-word;
+    font-family:'Cinzel',serif; pointer-events:none;
+  }
+  .sleight-tooltip-name { font-size:13px; color:#cc88ff; margin-bottom:4px; }
+  .sleight-tooltip-desc { font-size:13px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
+  .sleight-tooltip-uses { font-size:11px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; margin-top:5px; }
+  .sleight-tooltip-hint { font-size:9px; color:var(--gold-dim); margin-top:6px; letter-spacing:0.5px; }
+
+/* ── Channel change (js/channel-change.js) ────────────────────────────────────
+   Full-viewport CRT transition layers. They sit above every screen - the Mart
+   overlay is a body-level z-index:250 - so they live on <body>, not in #stage. */
+#channel-fx { position: fixed; inset: 0; z-index: 900; pointer-events: none; display: none; }
+#channel-fx.on { display: block; }
+#cc-static { position:absolute; inset:0; opacity:0; mix-blend-mode:screen;
+  background-repeat:repeat; background-size:180px 180px; }
+#cc-roll { position:absolute; left:0; right:0; height:22%; top:-30%; opacity:0;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.85) 22%,rgba(0,0,0,.92) 78%,rgba(0,0,0,0) 100%);
+  box-shadow:0 0 24px 6px rgba(0,0,0,.7); }
+#cc-flash { position:absolute; inset:0; opacity:0; background:#fff; }
+#cc-osd { position:absolute; top:22px; left:26px; opacity:0;
+  font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:3px; color:#8dff9f;
+  text-shadow:0 0 8px rgba(120,255,150,.8); background:rgba(0,0,0,.45); padding:5px 10px; border-radius:3px; }
+
+  /* ── Focus + scoring tunables (r179) ──
+     A sentence, then a [-] [number] [+] stepper. Steppers rather than sliders
+     because these are exact values worth typing, and the rows read as sentences
+     rather than as the formula they drive. */
+  .dev-note {
+    font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.35;
+    color: var(--cream-dim); margin: -2px 0 8px;
+  }
+  .dev-preview {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.3px;
+    color: var(--gold-dim); margin-top: 8px; line-height: 1.5;
+    /* pre-line so a multi-line preview (the goal curves) keeps its breaks */
+    white-space: pre-line;
+  }
+  .dev-tune {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 5px 0; border-bottom: 1px solid rgba(58, 48, 32, 0.4);
+  }
+  .dev-tune:last-child { border-bottom: none; }
+  .dev-tune-label {
+    font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.3;
+    color: var(--cream); flex: 1; min-width: 0;
+  }
+  .dev-tune-ctl { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+  .dev-step {
+    width: 26px; height: 26px; flex: 0 0 auto; cursor: var(--cur-pointer, pointer);
+    font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700; line-height: 1;
+    color: var(--gold); background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border); border-radius: 5px;
+  }
+  .dev-step:hover  { background: rgba(255, 255, 255, 0.13); color: var(--cream); }
+  .dev-step:active { transform: translateY(1px); }
+  .dev-tune-num {
+    width: 62px; text-align: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    color: var(--cream); background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border); border-radius: 5px; padding: 4px 2px;
+  }
+  .dev-tune-unit {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--cream-dim); min-width: 18px;
+  }
+  /* Radio rows: title plus one line saying what it means. */
+  .dev-pick {
+    display: flex; align-items: flex-start; gap: 8px; cursor: var(--cur-pointer, pointer);
+    padding: 7px 8px; margin-bottom: 4px; border-radius: 6px;
+    border: 1px solid var(--border); background: rgba(255, 255, 255, 0.03);
+  }
+  .dev-pick.on { border-color: var(--gold); background: rgba(201, 168, 76, 0.10); }
+  .dev-pick input { accent-color: var(--gold); margin-top: 2px; flex: 0 0 auto; }
+  .dev-pick-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .dev-pick-body b {
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; font-weight: 700; color: var(--cream);
+  }
+  .dev-pick-body i {
+    font-family: 'Crimson Pro', serif; font-size: 11px; font-style: normal;
+    line-height: 1.35; color: var(--cream-dim);
+  }
+  .dev-pick-body i:empty { display: none; }
+
+  /* ══════════════════════════════════════════════
+     r197 EVENTS - the wheel and the two slot machines
+     Same material as the rest of the event console: rarity lives on --rc, the
+     panel supplies the ground, and nothing here is styled inline (see the
+     "Event visual language" note in CLAUDE.md).
+     ══════════════════════════════════════════════ */
+
+  /* ── The Draw's wheel ── */
+  .ev-wheel {
+    position: relative; overflow: hidden;
+    margin: 10px auto; max-width: 300px;
+    border: 2px solid rgba(255,255,255,0.28); border-radius: 6px;
+    background: rgba(10,8,26,0.72);
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.7);
+  }
+  .ev-wheel::after {   /* the window's own edge, over the moving strip */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+  }
+  .ev-wheel.landed { border-color: var(--c-yellow); box-shadow: 0 0 16px -2px var(--c-yellow), inset 0 0 18px rgba(0,0,0,0.7); }
+  .ev-wheel-strip { will-change: transform; }
+  .ev-wheel-cell {
+    height: 58px; box-sizing: border-box;
+    display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-left: 3px solid var(--rc, rgba(255,255,255,0.3));
+  }
+  .ev-wheel-cell .ewc-icon { font-size: 20px; line-height: 1; }
+  .ev-wheel-cell .ewc-name {
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* ── Shared reel machine ── */
+  .slot-machine {
+    display: flex; gap: 5px; justify-content: center;
+    margin: 10px auto; padding: 7px;
+    border: 2px solid rgba(255,255,255,0.28); border-radius: 6px;
+    background: rgba(10,8,26,0.72);
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.7);
+    max-width: 100%;
+  }
+  .slot-reel {
+    flex: 1 1 0; min-width: 0; overflow: hidden;
+    border-radius: 4px; background: rgba(0,0,0,0.35);
+    transition: box-shadow 0.18s ease;
+  }
+  .slot-reel.stopped { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
+  .slot-strip { will-change: transform; }
+  .slot-cell {
+    height: 46px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    padding: 3px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .slot-cell .ev-cardchip { cursor: var(--cur-default, default); box-shadow: none; }
+  .slot-cell .ev-cardchip:hover { transform: none; }
+  .slot-cell.slot-win {
+    background: rgba(245,192,66,0.22);
+    box-shadow: inset 0 0 0 2px var(--c-yellow);
+  }
+  .slot-ent { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; }
+  .slot-ent .se-icon { font-size: 17px; }
+  .slot-ent .se-name {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    text-transform: uppercase; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* Line buttons double as the Payline's read-only reel list, hence .on with no
+     hover affordance of its own. */
+  .slot-lines { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 6px 0; }
+  .slot-linebtn { font-size: 9px; padding: 4px 7px; opacity: 0.45; }
+  .slot-linebtn.on { opacity: 1; border-color: var(--c-yellow); color: var(--c-yellow); }
+
+/* Natural Scaling table (r282): name + the four RATE columns + the two EARNED
+   columns + a plays/growth readout. One grid template on every row INCLUDING the
+   header, so the header cannot drift out of line with the fields under it. */
+.dev-ns-row { display:grid; grid-template-columns:minmax(0,1fr) 40px 40px 78px 44px 48px 44px 24px 46px 48px 62px;
+  align-items:center; gap:4px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
+.dev-ns-row .dev-ns-name { min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dev-ns-row input { width:100%; box-sizing:border-box; background:#1a1510; color:var(--cream);
+  border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
+.dev-ns-row input.dev-ns-alt { width:14px; justify-self:center; accent-color:var(--gold); }
+.dev-ns-row .dev-ns-plays { text-align:right; opacity:0.7; font-family:'Share Tech Mono',monospace; font-size:10px; }
+/* The header carries no inputs, so its cells are the labels themselves. */
+.dev-ns-head { color:var(--gold-dim); font-family:'Share Tech Mono',monospace; font-size:9px;
+  letter-spacing:1px; border-bottom:1px solid var(--border); padding-bottom:2px; margin-bottom:3px; }
+.dev-ns-head > span { text-align:center; }
+.dev-ns-head .dev-ns-name { text-align:left; }
+.dev-ns-head .dev-ns-plays { text-align:right; }
+/* A row moved off the shipped table. */
+.dev-ns-row.dev-ns-tuned .dev-ns-name { color:var(--gold); }
+.dev-ns-row.dev-ns-tuned input { border-color:var(--gold-dim); }
+
+/* ── NARROW: THE HAND NAME TAKES ITS OWN LINE (r304) ──────────────────────
+   The name column is the only flexible one (minmax(0,1fr)) and the seven field
+   columns are fixed at 316px plus gaps, so on a phone it is what gives: #dev-panel
+   is min(660px, 94vw), and at 420 and 390 wide the name measured EXACTLY 0px.
+   Every row read as a line of unlabelled numbers - the hand the numbers belong to
+   was not narrow, it was gone.
+
+   Scrolling the table sideways was the other option and is worse: the name would
+   then be the part you had to scroll AWAY from the numbers to read, which is the
+   complaint. So the name spans the full row on its own line and the fields sit
+   under it, at slightly tighter widths so the plays/growth readout still fits.
+   The header gets the same treatment, which is what keeps it in line with the
+   fields (the one rule this table has). */
+@media (max-width: 560px) {
+  .dev-ns-row { grid-template-columns:30px 28px 58px 30px 34px 30px 16px 34px 34px minmax(44px,1fr); gap:3px; margin:5px 0; }
+  .dev-ns-row .dev-ns-plays { white-space:nowrap; font-size:9px; }
+  .dev-ns-row .dev-ns-name { grid-column:1 / -1; font-size:11.5px; line-height:1.15; }
+  .dev-ns-row input { font-size:10px; padding:1px 2px; }
+  .dev-ns-head { padding-bottom:3px; }
+  .dev-ns-head .dev-ns-name { font-size:9px; letter-spacing:1px; color:var(--gold-dim); }
+  /* Each row is now two lines, so they need a line between them to read as rows. */
+  .dev-ns-row:not(.dev-ns-head) { border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; }
+}
+
+
+/* ── Weighted deck editor (r273) - one stepper per rank, 13 across ── */
+.dev-wgrid { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+.dev-wrank { display:flex; align-items:center; gap:2px; padding:2px 3px;
+  border:1px solid rgba(212,175,95,0.28); border-radius:4px; background:rgba(0,0,0,0.25); }
+.dev-wrank.off { opacity:0.42; }
+.dev-wrank b { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--gold-dim);
+  min-width:16px; text-align:center; }
+.dev-wrank i { font-family:'Share Tech Mono',monospace; font-style:normal; font-size:12px;
+  color:var(--cream); min-width:16px; text-align:center; }
+.dev-wbtn { font-family:'Share Tech Mono',monospace; font-size:12px; line-height:1;
+  width:18px; height:18px; padding:0; cursor: var(--cur-pointer, pointer); color:var(--cream);
+  background:rgba(212,175,95,0.14); border:1px solid rgba(212,175,95,0.34); border-radius:3px; }
+.dev-wbtn:hover { background:rgba(212,175,95,0.3); }
+
+/* r368 - the Squares group's rows */
+.dev-sq-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid rgba(201,168,76,0.12);
+}
+.dev-sq-lab { font-family: 'Crimson Pro', serif; font-size: 12.5px; color: var(--cream); }
+.dev-sq-row.moved .dev-sq-lab { color: var(--gold); font-weight: 600; }
+.dev-sq-ctl { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.dev-sq-val {
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--gold);
+  min-width: 56px; text-align: center;
+}
+.dev-sq-step {
+  width: 22px; height: 22px; border: 1px solid var(--gold-dim); border-radius: 4px;
+  background: #1a1510; color: var(--gold); cursor: var(--cur-pointer, pointer); font-size: 13px; line-height: 1;
+}
+.dev-sq-step:hover { background: var(--gold); color: #0e0c0a; }
+.dev-sq-hint {
+  grid-column: 1 / -1; font-family: 'Crimson Pro', serif; font-size: 10.5px;
+  line-height: 1.4; color: rgba(240,230,200,0.5);
+}
+select.dev-sq-in {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; background: #1a1510;
+  color: var(--gold); border: 1px solid var(--gold-dim); border-radius: 4px; padding: 3px 5px;
+  max-width: 190px;
+}
+
+/* r409: Hand Scoring's NOW column, and the Probabilities tab */
+.dev-ns-row .dev-ns-now { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--c-mint,#7fe3c0); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dev-pt-group { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:2px; color:var(--gold); margin:14px 0 4px; border-top:1px solid #3a3428; padding-top:8px; }
+.dev-pt { margin:6px 0 10px; }
+.dev-pt-head { display:flex; align-items:center; gap:8px; font-family:'Crimson Pro',serif; font-size:13px; color:var(--cream); }
+.dev-pt-kind { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); }
+.dev-pt-head .dev-pt-reset { margin-left:auto; padding:2px 8px; font-size:10px; }
+.dev-pt-how { margin-top:2px; }
+.dev-pt-rows { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:4px 10px; margin-top:4px; }
+.dev-pt-row { display:grid; grid-template-columns:minmax(0,1fr) 54px 12px 44px; align-items:center; gap:4px; font-family:'Crimson Pro',serif; font-size:12px; color:var(--cream); }
+.dev-pt-row .dev-pt-k { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dev-pt-row input { width:100%; box-sizing:border-box; background:#1a1510; color:var(--cream); border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-family:'Share Tech Mono',monospace; font-size:11px; }
+.dev-pt-row i { font-style:normal; font-size:10px; color:var(--cream-dim); }
+.dev-pt-row .dev-pt-share { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); text-align:right; }
+.dev-pt-row.dev-pt-tuned .dev-pt-k { color:var(--gold); }
+.dev-pt-row.dev-pt-tuned input { border-color:var(--gold-dim); }
+.dev-hidden-mode { flex-basis:100%; display:flex; flex-direction:column; align-items:flex-start; flex-wrap:wrap; align-items:center; gap:6px; margin:4px 0; }
+
+/* r426: collapsible sections and the docked panel */
+.dev-section.dev-collapsible > .dev-section-title,
+.dev-section.dev-collapsible > h4 { cursor:pointer; user-select:none; display:flex; align-items:center; gap:6px; font-size:10px; }
+.dev-section.dev-collapsible > .dev-section-title::before,
+.dev-section.dev-collapsible > h4::before { content:'\25BE'; display:inline-block; transition:transform .15s; }
+.dev-section.dev-collapsed > .dev-section-title::before,
+.dev-section.dev-collapsed > h4::before { transform:rotate(-90deg); }
+.dev-section.dev-collapsed > *:not(.dev-section-title):not(h4) { display:none !important; }
+.dev-section.dev-collapsed { gap:0; }
+#dev-panel.dev-docked { transform:none; border-radius:10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.75), 0 0 18px rgba(255,176,46,0.12), inset 0 1px 0 rgba(255,255,255,0.07); }

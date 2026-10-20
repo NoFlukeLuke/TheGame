@@ -1,0 +1,524 @@
+function drainLevelUpQueue() {
+  triggerLevelUp();
+}
+
+// Compute the resource values (discards / swaps / seconds) a new round should start with.
+// Single source of truth - used by the round-start reset AND by reward-grid hover projections.
+// Folds in limit-breaks, carry-over knacks, round-start knacks, and pending next-round deltas.
+// A round's Starting Time before carried and next-round seconds: the mode's round
+// length (x Overtime), less permanent penalties, plus Starting Time upgrades. The
+// one formula: computeRoundResources starts rounds from it, and the Time pop-up
+// and Records print it (r562; they used to work it out on their own).
+function startingTimeSeconds() {
+  const dur = Math.round(modeRoundDuration() * ((typeof overtimeLenMult === 'function') ? overtimeLenMult() : 1));
+  return Math.max(10, dur - (roundPenaltySeconds || 0) + (limits.round_time.current - limits.round_time.base));
+}
+function computeRoundResources() {
+  const limitDiscardBonus = limits.discards.current   - limits.discards.base;
+  const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
+
+  // Both seed from the LIMIT's own base, so the round-start stock can never drift from
+  // the number the Limits screen prints. Discards used to seed from a hardcoded 4 against
+  // a limit base of 3, which handed out one discard more than the limit every round.
+  const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards + knackBossGrowth.extra_discards : 0);
+  const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps + knackBossGrowth.extra_swaps : 0);
+  // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
+  const baseSeconds  = startingTimeSeconds();
+
+  let d   = Math.min(99, baseDiscards + accumulatedDiscards) + nextRoundDiscardDelta;
+  let s   = Math.min(99, baseSwaps    + accumulatedSwaps)    + nextRoundSwapDelta;
+  // No ceiling (r548). This used to be capped at Starting Time, and the countdown then
+  // wound the clock to it, so Clock Tower, +15s / +25s Round, Rain Check and Time Bank
+  // added nothing on a full clock (measured: 3:00 where 3:45 was owed). Like a rewind,
+  // a round-start bonus carries the clock above Starting Time.
+  let sec = baseSeconds + accumulatedSeconds + nextRoundSecondsDelta;
+
+  // Round-start knack effects.
+  // Swap Shop / Harvest are already in baseSwaps / baseDiscards above. They were
+  // also added here until r525, so each paid twice what it said (+4, not +2).
+  if (hasKnack('time_bank'))      sec += BAL.time_bank.seconds;
+
+  // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
+  // (applyTempoLimitOnce), so the normal computation above already reflects it via the
+  // limitSwapBonus / limitDiscardBonus deltas - and any later limit increases flow through
+  // untouched, keeping the door open to combos.
+  return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
+}
+
+function triggerLevelUp() {
+  // During a boss, the legacy goal-based level-up flow is suppressed.
+  // The new XP-grid level-up (Step 2) will replace this entirely; for now,
+  // we just skip the old round-reset to avoid disrupting the boss.
+  if (bossActive) return;
+  clearInterval(roundInterval);
+  roundInterval = null;
+  // One vertical line on the clock per level-up, on the clocks that SPAN
+  // level-ups (Flow's session clock, Crunch's act bank). Taken here, before
+  // anything below can move roundSeconds. js/clock-track.js.
+  if (typeof clockMarkLevelUp === 'function') clockMarkLevelUp();
+  goalReachedThisRound = false;
+  roundEnded = false;
+  // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.
+  if (hasKnack('growth_spurt') && growthSpurtMaxedThisRound) grantRandomLimit('🌱 Growth Spurt');
+  growthSpurtMaxedThisRound = false;
+
+  // Apply any pending grid-size changes for the new round, then resize cards.
+  // Must happen before Trick re-placement and the deal animation populate gridData.
+  gridRows = limits.grid_rows.current;
+  gridCols = limits.grid_cols.current;
+  // Short Staffed (reward-grid penalty): one row or column is missing for this
+  // round only. Consumed here, at the one place the round's dimensions are set,
+  // so the shrink flows through recomputeGridMetrics and the gridData conform
+  // below exactly as a limit change would - a smaller board is a thing the game
+  // already knows how to deal.
+  if (nextRoundGridShrink === 'rows') gridRows = Math.max(3, gridRows - 1);
+  if (nextRoundGridShrink === 'cols') gridCols = Math.max(3, gridCols - 1);
+  if (nextRoundGridShrink) {
+    showMessage(`Short staffed: one ${nextRoundGridShrink === 'rows' ? 'row' : 'column'} down`, 'var(--red)');
+    nextRoundGridShrink = null;
+  }
+  recomputeGridMetrics();
+  // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
+  // conformGridToDims (js/deck-grid.js) DISCARDS an out-of-bounds card to
+  // playedPile rather than dropping it. That did not matter while the round-end
+  // fall banked every card first; with a persisting board (r332) it is the one
+  // card that would otherwise leave the run without anything saying so. The
+  // flushPlayedDeck() further down then cycles it back in, which is exactly what
+  // the old comment here claimed was already happening.
+  conformGridToDims();
+
+  // Survival: capture leftover clock time (for coins + boss bank) and the score
+  // OVERFLOW above the just-cleared goal - the overflow seeds the next round so
+  // every point counts toward the next goal (owner spec). Must read these BEFORE
+  // roundGoal is recomputed and score is zeroed below.
+  let _svLeftover = 0, _svOverflow = 0;
+  if (survivalActive()) {
+    _svLeftover = (typeof flowActive === 'function' && flowActive()) ? 0 : Math.max(0, roundSeconds);
+    // Post-boss BONUS round carries nothing (no goal was cleared); a normal clear
+    // carries the score overflow above the goal into the next round.
+    _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
+    // r399: a Line Quotas round is won by its lines, not its total, so the total
+    // can sit far past the goal - carrying that would hand the next round a start.
+    if (typeof roundQuota !== 'undefined' && roundQuota && roundQuota.kind === 'lines') _svOverflow = 0;
+  }
+
+  // The goal the round that just finished was measured against. Captured HERE,
+  // above the level bump: roundGoal is recomputed four lines down and is the
+  // NEXT round's target from that point on, so reading it any later records the
+  // wrong number. Read by the between-rounds score panel (js/hud.js), which also
+  // uses it as its "a round has finished" test.
+  lastRoundGoal = roundGoal;
+
+  // Unspent swaps and discards pay credits (r218). Captured HERE, at the top,
+  // because the base reset below overwrites both with the NEW round's values -
+  // and Survival/Flow pay from survivalAfterLevelUp, which runs further down this
+  // same function, well after that reset.
+  //
+  // Classic does NOT use this: its payout screen runs from startInterlude, which
+  // happens BEFORE triggerLevelUp, so there the live swaps/discards are still the
+  // finished round's and are read directly. Two paths, opposite sides of the
+  // reset - hence one captured figure and one live read rather than one of each.
+  //
+  // Read BEFORE the carry-over knacks bank them, so the figure is what you
+  // finished the round holding; Carry Swaps / Carry Discards then also carry it,
+  // which is the knack doing its job.
+  frozenUnspentActions = Math.max(0, swaps) + Math.max(0, discards);
+
+  level++;
+  // Rising Tide (r539): each level passed while held adds a 1-3 mult roll.
+  if (hasTrick('rising_tide')) { const _r = BAL.rising_tide; risingTideMult += _r.mult_min + Math.floor(Math.random() * (_r.mult_max - _r.mult_min + 1)); }
+  // This round's score target, from zero
+  // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
+  // survival curve in Survival/Flow and applies Zen's doubling, and it is what
+  // the dev panel's Goals group retunes live.
+  roundGoal = goalForLevel(level);
+  // Quota Revision (reward-grid penalty): every future goal is permanently raised.
+  // Applied AFTER the curve rather than inside it - the curve is r197's to tune,
+  // and this lifts whatever it produced. Rounded to 50 so the number on the HUD
+  // stays one a player can hold in their head.
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
+  // Guided's elite: a challenge level raises THIS round's goal. Applied after the
+  // curve and the penalty, so it lifts whatever they produced rather than racing
+  // them (js/guided-mode.js).
+  if (typeof guidedApplyPendingChallenge === 'function') guidedApplyPendingChallenge();
+  // Map mode's boss quota is FIXED at map build; overrides the curve's figure.
+  if (typeof mapApplyPendingGoal === 'function') mapApplyPendingGoal();
+  // r399: a Flow level may roll a shaped goal, and a hard round may name one
+  // (js/level-types.js). Last, so it is cut from the final goal.
+  if (typeof levelTypeMaybeArm === 'function') levelTypeMaybeArm();
+  // A challenge round armed for this round goes live (js/challenge-round.js).
+  if (typeof crOnLevelUp === 'function') crOnLevelUp();
+  // Bank the completed round's score for the end-of-run display. In Survival the
+  // overflow is carried to the next round, so only the counted portion is banked.
+  // r441: the overflow NO LONGER CARRIES (owner). It is recorded instead and
+  // paid as credits by survivalAfterLevelUp (flowOverGoalPay).
+  svLastOverflow = _svOverflow; svLastGoal = roundGoal;
+  _svOverflow = 0;
+  totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
+  // What the round just finished was worth, kept for the between-rounds score
+  // panel (js/hud.js). It has to be captured HERE: the next line zeroes `score`,
+  // and every screen that would want to show it - the reward grid, a shop, an
+  // event - opens after that. In Survival the overflow is carried into the next
+  // round rather than banked, so the round was worth what was counted, not what
+  // was on the clock when it cleared. (lastRoundGoal is captured further up,
+  // before the level bump moves roundGoal on.)
+  lastRoundScore = survivalActive() ? Math.max(0, score - _svOverflow) : score;
+  // Life Lessons: each completed round permanently raises max Focus
+  if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
+  score = survivalActive() ? _svOverflow : 0;  // Survival carries overflow; others start fresh
+
+  // Reset round
+  flushPlayedDeck(); // played cards rejoin the pool for the new round
+  // Spectrum: a rank/colour change made in the dev tuner during the round lands
+  // here, at the boundary - never under the player's hand mid-round.
+  if (typeof spectrumApplyPendingDeck === 'function') spectrumApplyPendingDeck();
+  if (typeof deckDesignApplyPending === 'function') deckDesignApplyPending();
+
+  // Bank unused resources before resetting
+  if (hasKnack('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);
+  if (hasKnack('carry_discards')) accumulatedDiscards = Math.min(BAL.carry_discards.max, accumulatedDiscards + discards);
+  // NOTE: banks the round's UNUSED seconds, which assumes the clock is reset below.
+  // Flow's is not (it carries across level-ups), so carry_time would pay out the same
+  // seconds every level - which is why it is in FLOW_BANNED_ENTITIES.
+  if (hasKnack('carry_time'))     accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
+
+  // Base reset - resource values computed by computeRoundResources() (single source of truth).
+  const _rr = computeRoundResources();
+  discards     = _rr.discards;
+  swaps        = _rr.swaps;
+  // Flow: swaps and discards refresh per level as usual, but the CLOCK does not -
+  // the five minutes span every goal cleared inside them. flowNextRoundSeconds keeps
+  // the running countdown, and only refills it at run start and after an inspection.
+  // Crunch carries for the same reason Flow does and a stronger one: the
+  // allowance is the QUARTER's, so refilling it here would hand back the whole
+  // clock at every level and the mode would have no cost at all.
+  roundSeconds = (typeof crunchActive === 'function' && crunchActive())
+               ? crunchNextRoundSeconds(roundSeconds)
+               : (typeof flowNextRoundSeconds === 'function' && flowActive())
+               ? flowNextRoundSeconds(roundSeconds) : _rr.seconds;
+  if (typeof crApplyStartTime === 'function') crApplyStartTime();   // the Schedule audit's extra minute
+  match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
+  match3PendingSettle = true; // the round's fresh board settles when its timer starts
+  // Per-action time-cost debuffs active this round = permanent + next-round-only.
+  playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
+  discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;
+  // Next-round-only deltas have now been folded in - clear them.
+  nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
+  nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
+
+  // ── Knack effects at round start ──
+  if (hasKnack('inheritance')) { coins += BAL.inheritance.coins; updateCoinsUI(); }
+  // Reset Combo Keeper state each round (knack starts each round armed)
+  streakSaveArmed = true;
+  streakSaveProgress = 0;
+
+  // Clear accumulators now that they've been applied
+  if (hasKnack('carry_discards')) accumulatedDiscards = 0;
+  if (hasKnack('carry_swaps'))    accumulatedSwaps    = 0;
+  if (hasKnack('carry_time'))     accumulatedSeconds  = 0;
+  lastSwapTime = 0;
+  lastSwapRoundSeconds = null;
+  lastHandRoundSeconds = null;
+  firstHandThisRound = true;
+  freeDiscardsLeft = 2;
+  cardsDiscardedRound = 0;
+  swapsUsedRound = 0;
+  discardsUsedRound = 0;
+  focusGenRound = 0;
+  handsPlayedRound = 0;
+  runsPlayedRound  = 0;
+  clubsScoredRound = 0;
+  setsPlayedRound  = 0;
+  runStreak        = 0;
+  handTypesRound   = new Set();
+  assemblyMarkCount = 0;   // Assembly Line
+  markCount_groove  = 0;   // Groove
+  markCount_overtime = 0;  // Overtime
+  _cleanSweepPrev   = [];  // Clean Sweep
+  _perMinuteFired   = {};  // once-per-minute gate (Study Hall, Ley Line)
+  fullHouseThisRound = 0;
+  roundContributions = {};
+  roundHandsScored = 0;
+  tickAltarEffects();
+  // Reset the once-per-round activation lock on double_tap / on_swap sleights
+  for (let _jr = 0; _jr < gridRows; _jr++) for (let _jc = 0; _jc < gridCols; _jc++) {
+    const _jcard = gridData[_jr][_jc];
+    if (_jcard?._isSleight) _jcard._usedThisRound = false;
+  }
+  // Reflect fires once per round; the lock is released with the on_swap sleights'.
+  if (typeof reflectUsedThisRound !== 'undefined') reflectUsedThisRound = false;
+  // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
+  if (hasKnack('coin_toss')) {
+    let _refilled = 0;
+    ownedSleightCards().forEach(card => {
+      if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
+      const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+      const cap = sleightMaxCharges(def) ?? card._usesLeft;
+      // COUNTABLE, capped at the sleight's max charges. The 0.5 lived here as a
+      // literal until r196 - it is BAL.coin_toss.chance now, like every other
+      // tunable number, which is also what lets Luck reach it.
+      const _ctN = luckRoll(BAL.coin_toss.chance) * BAL.coin_toss.charges;
+      for (let i = 0; i < _ctN && card._usesLeft < cap; i++) { card._usesLeft++; _refilled++; }
+    });
+    if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
+  }
+  setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
+  fireSleightsAtRoundStart();
+  fireSleightsOnDraw();
+  // Reset focus meter at the start of every round (r395: one helper, js/focus.js)
+  resetFocusMeter();
+  // Recompute decay interval (Meditation may be acquired/lost between rounds)
+  recomputeFocusDecayInterval();
+  // Tunnel Vision: start each round with 5 focus
+  if (hasTrick('tunnel_vision')) addFocus(5);
+  // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
+  pausedSecondsRound = 0;
+  rewoundSecondsRound = 0;
+  pausesThisRound = 0;
+  rewindsThisRound = 0;
+  retriggersThisRound = 0;
+  replaysThisRound = 0;
+  timeManipRound = 0;
+  understudyNextMark = BAL.understudy.interval_seconds;
+  if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
+  // The card-state fuses refresh every level (owner's spec), so a charged card
+  // you were holding does not blow up the instant the next round deals.
+  if (typeof cardStatesResetRound === 'function') cardStatesResetRound();
+  forcedTrickIds = [];
+  // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
+  lastHandRankKey = null;
+  _altSwapCount = 0;
+  doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
+  firstPauseStartedRound = false;
+  firstPauseActive = false;
+  woodpeckerCardId = null;
+  woodpeckerActiveBlock = -1;
+  // Metronome knack: pick this round's target hand type from those the player can actually make.
+  if (hasKnack('metronome')) {
+    const _ach = achievableHandTypes();
+    metronomeHandType = _ach[Math.floor(Math.random() * _ach.length)] || null;
+    if (metronomeHandType) showMessage('🥁 Metronome: ' + metronomeHandType, '#5aa9e6');
+  } else metronomeHandType = null;
+  // Shady Tree sleight: pick this round's "shady" column.
+  shadyColumn = Math.floor(Math.random() * gridCols);
+  // Lighthouse sleight: its favored column alternates first ↔ last each round.
+  lighthouseColumn = (lighthouseFlip++ % 2 === 0) ? 0 : gridCols - 1;
+  // Tempo knack: restart the alternating swap/discard drip, swap first.
+  tempoElapsed = 0; tempoNextIsSwap = true;
+  // Stopwatch: clear any lingering freeze/timer from the previous round.
+  stopwatchActive = false;
+  if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }
+  stopwatchCardPos = null;
+  selected = [];
+
+  // Sapling trick - give perm pips to 3 distinct normal cards
+  if (hasTrick('sapling')) {
+    const eligible = [];
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r]?.[c];
+        if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank)
+          eligible.push(card);
+      }
+    // supplement with draw pile if not enough on grid
+    drawPile.forEach(card => { if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank) eligible.push(card); });
+    for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
+    eligible.slice(0, 3).forEach(card => {
+      const k = cardId(card);
+      permPips[k] = (permPips[k]||0) + 5;
+    });
+  }
+
+  // Survival: pay coins (flat + leftover-time bonus) and bank leftover time toward
+  // the next boss. Skipped on the post-boss bonus round (no goal cleared).
+  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover, frozenUnspentActions);
+
+  updateScoreUI();
+
+  // Mark whether a challenge should spawn when the round starts (after all bonuses picked)
+  challengeActive = false;
+  challengeCard = null;
+
+  showLevelUpScreen();
+}
+
+async function showLevelUpScreen() {
+  // Survival: its own on-brand pick-of-three (Trick/Sleight/Knack/Limit) opens over
+  // the frozen board; the deal happens after the player picks. No grid placement,
+  // no reward grid - see js/survival.js.
+  // Survival: the pick already happened (shown during the goal dance / post-boss).
+  // triggerLevelUp reaches here on CHOOSE, so just deal the next round.
+  if (survivalActive()) { survivalDealNext(); return; }
+
+  // Match-3 modes have their own between-rounds flow: a genuine pick-of-three
+  // that goes to the side TRAY (never the grid), no reserved grid slots. The
+  // legacy path below places Tricks on the board and derives its option count
+  // from empty grid cells - which is why match-3 was offering just one.
+  if (match3Active()) { showMatch3LevelUpScreen(); return; }
+
+  animating = true;
+  selected = [];
+  const gridEl = document.getElementById('grid');
+
+  sfxLevelUp();
+  // Fill the holes (the board persists, r332).
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
+
+  // ── Hide grid visually until 3-2-1 fires - deal anims handle the reveal ──
+  dealPhase = true;
+  // Remove all card DOM elements from the previous round immediately
+  const _gridEl = document.getElementById('grid');
+  _gridEl?.querySelectorAll('[data-card-id]').forEach(el => el.remove());
+  // Defensive: scrub any leftover boss visual state so a post-boss round starts clean
+  // (blocked-cell overlays, stray temp-anim clones, boss-active styling).
+  _gridEl?.querySelectorAll('.blocked-cell, .temp-anim').forEach(el => el.remove());
+  // The marked row/column lines are leftover board state in exactly the same
+  // sense (js/entity-fx.js). They cannot be guarded inside render(): this clear
+  // removes the card elements directly and no render runs before the next deal,
+  // so lines from the finished round would hang over an empty well through the
+  // whole payout. rowColBonuses is untouched, so the next board draws them again.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
+  _gridEl?.classList.remove('boss-active');
+
+  // ── Grid is now populated; deal animations start in show321Countdown ──
+  dealAnims = [];
+
+  animating = false;
+
+  // Rewards came from the reward screens; deal straight into the next round.
+  // (The legacy pick-1-of-3 Trick overlay that used to sit in an else branch
+  // here went in r414 - every mode takes this path now.)
+  skipTrickChoiceOverlay = false;
+  showNextGoalFlash().then(() => show321Countdown()).then(() => {
+    gameTimerPaused = false;
+    sfxRoundStart();
+    updateClockUI();
+    render();
+    if (forceBossNextRound) {
+      forceBossNextRound = false;
+      // Crunch names the window explicitly: whatever is left in the act bank.
+      // Passing it rather than letting triggerBoss default keeps the boss's
+      // clock and the bank the same number, so there is never a second
+      // countdown to keep in step. Every other mode passes null and defaults.
+      triggerBoss(null, (typeof crunchBossWindow === 'function') ? crunchBossWindow() : null);
+      // boss takes over timing - do NOT call startRoundTimer()
+    } else {
+      startRoundTimer();
+    }
+  });
+}
+
+// ── Deal animations: called from show321Countdown when 3-2-1 starts ──
+//
+// THE WHOLE BOARD DEALS AT ONCE (r394). Owner: "there's an odd bug where after
+// choosing an option the grid deals like 4 cards in one corner, normally the
+// top right, and then the rest gets dealt, which is odd and wrong. The whole
+// grid should deal in at the same time."
+//
+// It was not a bug so much as a cascade nobody had measured. The old timing was
+// column-major with a 60ms column offset AND a 252ms offset per row WITHIN a
+// column (colReadyAt), which interleaves into a ROW-BY-ROW deal from the bottom:
+// filmed at 1440x820 and 420x900, the bottom row landed first (4 cards, t=200 to
+// 420ms, left to right - so the first card lands in a corner), then a pause, then
+// row 2, then row 1, then row 0, with the last card down at 1453ms. A second and
+// a half of a board arriving in four instalments.
+//
+// `together` starts every card the SAME distance above its own cell and drops
+// them in unison, with a small random jitter so a sixteen-card board does not
+// read as one rigid object. The whole deal is over in about half a second.
+//
+// A UNIFORM DROP IS PART OF IT, not a detail. The cascade's drop distance was
+// `(gridRows - r) * CARD_STEP`, so the top row started FOUR cells above the board
+// - well outside #grid-slot, over the trays - which is only invisible while that
+// row is also the last to move. Dropped together they would all be visible up
+// there at once.
+//
+// `cascade` is the pre-r394 timing, kept as an Aesthetics option.
+const DEAL_STYLE_KEY = 'lethe.dealStyle.v1';
+let dealStyle = (() => { try { const v = localStorage.getItem(DEAL_STYLE_KEY);
+  if (v === 'together' || v === 'cascade') return v; } catch (e) {} return 'together'; })();
+function setDealStyle(v) {
+  if (v !== 'together' && v !== 'cascade') return;
+  dealStyle = v;
+  try { localStorage.setItem(DEAL_STYLE_KEY, v); } catch (e) {}
+  const sel = document.getElementById('dev-deal-style'); if (sel) sel.value = v;
+}
+// How far above its cell a card starts when the board deals together, in card
+// steps, and how much the launch may vary. fxRandom, never Math.random: a
+// seeded run replaces the global and this would advance the deck stream.
+const DEAL_DROP_STEPS = 2.1;
+const DEAL_JITTER_MS  = 70;
+
+function startNewRoundDealAnims() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  // The board pattern (r409) is back before the cards fall onto it, rather than
+  // popping in under them at the render() that ends the deal.
+  if (typeof ensureBoardPattern === 'function') ensureBoardPattern(gridEl);
+
+  // Clear any existing real card elements so only temp-anims are visible
+  gridEl.querySelectorAll('[data-card-id]:not(.temp-anim)').forEach(el => el.remove());
+
+  dealPhase = true; // suppress render() from placing real cards until anims finish
+
+  const FALL_DUR   = 420;
+  const COL_OFFSET = 60;
+  const BOUNCE_PX  = 8;
+  const SQUISH     = 0.10;
+  const colReadyAt = {};
+  const together   = (dealStyle !== 'cascade');
+  const rnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
+  dealAnims = [];
+
+  for (let c = 0; c < gridCols; c++) {
+    for (let r = gridRows - 1; r >= 0; r--) {
+      const card = gridData[r][c];
+      if (!card) continue;
+      const destX      = cellLeft(c);
+      const destY      = cellTop(r);
+      const fromAbove  = together ? DEAL_DROP_STEPS : (gridRows - r);
+      const startY     = destY - fromAbove * CARD_STEP;
+      const dropDist   = fromAbove * CARD_STEP;
+      const colBase    = c * COL_OFFSET;
+      const entryStart = together
+        ? Math.round(rnd() * DEAL_JITTER_MS)
+        : Math.max(colBase, colReadyAt[c] || colBase);
+      if (!together) colReadyAt[c] = entryStart + FALL_DUR * 0.6;
+
+      const tempEl = buildCardAnimEl(card, r, c);
+      tempEl.style.left    = destX + 'px';
+      tempEl.style.top     = startY + 'px';
+      tempEl.style.opacity = '0';
+      tempEl.dataset.cardId = String(card._id);
+      tempEl.dataset.row    = r;
+      tempEl.dataset.col    = c;
+      tempEl.style.cssText  = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${startY}px;opacity:0;pointer-events:none;z-index:10;`;
+      gridEl.appendChild(tempEl);
+
+      dealAnims.push(tempEl.animate([
+        { opacity: 0, transform: 'translateY(0) scaleY(1)' },
+        { opacity: 1, transform: 'translateY(0) scaleY(1)',                                              offset: 0.06 },
+        { opacity: 1, transform: `translateY(${dropDist * 0.55}px) scaleY(0.96)`,                       offset: 0.55, easing: 'ease-in' },
+        { opacity: 1, transform: `translateY(${dropDist + BOUNCE_PX}px) scaleY(${1 - SQUISH})`,         offset: 0.83 },
+        { opacity: 1, transform: `translateY(${dropDist - BOUNCE_PX * 0.7}px) scaleY(${1 + SQUISH})`,   offset: 0.91 },
+        { opacity: 1, transform: `translateY(${dropDist + BOUNCE_PX * 0.3}px) scaleY(${1 - SQUISH * 0.2})`, offset: 0.96 },
+        { opacity: 1, transform: `translateY(${dropDist}px) scaleY(1)` },
+      ], { duration: FALL_DUR, delay: entryStart, easing: 'ease-in', fill: 'forwards' }));
+    }
+  }
+
+  // allSettled, not all: a cancelled deal animation REJECTS its `finished`,
+  // and with no rejection path dealPhase and animating stayed true for good -
+  // render() then draws no cards at all (r470).
+  Promise.allSettled(dealAnims.map(a => a.finished)).then(() => {
+    gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
+    dealAnims = [];
+    dealPhase = false; // re-enable normal render
+    animating = false;
+    render();
+  });
+}
+

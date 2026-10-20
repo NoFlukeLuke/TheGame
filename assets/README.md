@@ -1,0 +1,66 @@
+# assets/ - your own sound, music and images
+
+Everything in here is a plain file the browser downloads at run time. There is no
+build step: drop a file in the right folder, list it in `js/data/audio-manifest.js`,
+push, and GitHub Pages serves it.
+
+## Folders
+
+| folder | what goes in it |
+|---|---|
+| `assets/music/`    | background music tracks (`.mp3`, `.ogg`, `.m4a`) |
+| `assets/sfx/`      | short one-shot sound effects, under about 2 seconds |
+| `assets/ambience/` | long beds - room tone, machine hum - played as tracks |
+| `assets/icons/`    | the pixel icon sheet the entity tiles draw. Generated: see `tools/icons/README.md` |
+| `assets/art/floppy/` | your own picture of the Trick floppy disc, one per rarity: see `assets/art/floppy/README.md` |
+
+**Short effect or long bed?** Anything much over two seconds is a bed, not an
+effect: it will still be playing when the next one fires. Put those in
+`assets/ambience/` and list them in the `music` block, where they get their own
+on/off switch. `off: true` on a track means it starts switched off.
+
+## Adding a music track
+
+1. Put the file in `assets/music/`, e.g. `assets/music/lobby-hum.mp3`.
+2. Add one line to the `music` list in `js/data/audio-manifest.js`.
+3. It shows up in Settings -> Music playlist, where it can be switched on or off.
+
+## Replacing a sound effect
+
+Every sound in the game has an id (see Settings -> Sound effects). Put a file in
+`assets/sfx/` and point that id at it in the `sfx` block of the manifest.
+
+Sounds resolve in this order, first hit wins:
+
+1. switched off in Settings -> silence
+2. **Use my sound files** is on and a file is listed -> your file
+3. a **sound pack** is chosen and covers it -> the pack's version
+4. otherwise -> the classic coded sound
+
+So a file only ever replaces the one id it is listed under, a bad path falls back
+rather than going silent, and the whole lot can be switched off at once with the
+**Use my sound files** toggle.
+
+## Sound packs
+
+Settings -> Audio -> Sound pack, or the switcher at the top of the sound board:
+
+- **Vegas Floor** - a slot cabinet: relays, coin hoppers, struck bells, reel
+  detents. The default.
+- **High Roller** - cinematic: sub drops, brass, taiko and a long hall.
+- **Neon** - the casino app: FM bells, supersaws, tight sub kicks.
+- **Lounge** - warm analogue: Rhodes, vibes, tape thumps, brushed noise. The quiet
+  one, and deliberately not the small one.
+
+**Your own sound files are OFF by default.** Files beat packs, and the six sounds
+listed in `js/data/audio-manifest.js` are the ones you hear most, so leaving files
+on meant a pack was never heard where it matters. Switch **Use my sound files** back
+on any time and your files take over again.
+
+## Rules of thumb
+
+- **Keep files small.** Under ~4 MB per music track, under ~200 KB per effect.
+  The whole game is downloaded every visit and GitHub Pages caps a repo at 1 GB.
+- **Use MP3** unless you have a reason not to. Every browser plays it.
+- **Only upload audio you have the right to use.** This site is public.
+- Filenames: lower case, dashes instead of spaces, no accents.

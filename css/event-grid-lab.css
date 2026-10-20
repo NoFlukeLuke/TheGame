@@ -1,0 +1,498 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   EVENT GRID LAB (r588, r589, r593) - js/event-grid-lab.js. Events drawn as the board.
+   STAGE PX throughout: #egl is a child of #stage and carries the cabinet zoom.
+   Every text size is N px x var(--fit): the lab shrinks a cell's words until
+   they stay inside it and reports the smallest. #egl[data-lay] is the layout;
+   rules with no layout in them are MARQUEE's, the others override.
+   r593: the amber screens take their colours from the lab's phosphor palette,
+   --wf-<name> written on #egl from EGL_PALETTE, and nothing else.
+   ══════════════════════════════════════════════════════════════════════════ */
+body.egl-on #grid { visibility: hidden; }
+
+#egl {
+  --am: var(--wf-amber, #ffb02e); --am-hi: var(--wf-bright, #ffd98a); --am-dim: rgba(255,176,46,0.55); --am-glow: rgba(255,176,46,0.55);
+  --am-good: var(--wf-mint, #94ecb0); --am-bad: var(--wf-coral, #ff7656); --glass: #070503;
+  position: absolute; z-index: 60; box-sizing: border-box;
+  border-radius: 8px; border: 1px solid #000;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(76,107,47,0.46),
+              inset 0 0 0 3px rgba(0,0,0,0.55), inset 0 0 0 4px rgba(76,107,47,0.24), 0 0 18px rgba(0,0,0,0.6);
+}
+/* With the side panels slid off, whatever the board does not cover goes dark. */
+#egl::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 200vmax rgba(5,4,3,0); transition: box-shadow .5s ease; }
+#egl.egl-roomy::before { box-shadow: 0 0 0 200vmax rgba(5,4,3,0.86); }
+#egl .egl-board { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+#egl .egl-measure { visibility: hidden; pointer-events: none; inset: auto; left: 0; top: 0; }
+
+/* ── A CELL ─────────────────────────────────────────────────────────────── */
+.egl-cell {
+  position: absolute; box-sizing: border-box; overflow: hidden;
+  border-radius: 7px; display: flex; flex-direction: column;
+  background: linear-gradient(180deg, rgba(27,23,16,0.96), rgba(14,12,8,0.98));
+  border: 1.5px solid rgba(183,172,147,0.42);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
+  transition: border-color .14s ease, box-shadow .16s ease, transform .14s ease, background .14s ease;
+  color: var(--cream, #f0e6c8);
+}
+.egl-opt, .egl-act, .egl-vs[data-i] { cursor: var(--cur-pointer, pointer); }
+.egl-fit { --fit: 1; flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+  align-items: center; justify-content: safe center; text-align: center; padding: 4px 5px; box-sizing: border-box; }
+/* Words never squeeze each other: a child that does not fit overflows, and --fit is what shrinks. */
+.egl-fit > * { flex-shrink: 0; }
+/* Inert filler: the black card the pick of three uses, so the board still reads as a board. */
+.egl-amb { background: linear-gradient(180deg, #0c0a07, #060504); border: 1px solid rgba(183,172,147,0.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5); border-radius: 6px; }
+
+/* ── MARQUEE: the prompt ────────────────────────────────────────────────── */
+.egl-prompt {
+  background: linear-gradient(180deg, rgba(38,32,64,0.97), rgba(14,12,24,0.98));
+  border-color: rgba(122,99,200,0.75);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 22px rgba(122,99,200,0.18), 0 3px 10px rgba(0,0,0,0.55);
+}
+.egl-prompt .egl-fit { gap: calc(3px * var(--fit)); padding: 6px 9px; }
+.egl-kick { font: 700 calc(6px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 3px; color: #b39cf5; opacity: .85; }
+.egl-name { font: 800 calc(15px * var(--fit))/1.05 'Orbitron', sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #fff;
+  text-shadow: 0 0 10px rgba(179,156,245,0.7), 0 2px 3px #000; }
+.egl-flav { font: calc(9.5px * var(--fit))/1.3 'Crimson Pro', serif; color: rgba(240,230,200,0.78); }
+.egl-note { font: calc(8.5px * var(--fit))/1.35 'Crimson Pro', serif; color: rgba(240,230,200,0.62); max-width: 34em; }
+.egl-note b { color: var(--cream, #f0e6c8); }
+.egl-lab { margin-top: calc(2px * var(--fit)); font: 700 calc(6.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 2.5px; color: #b39cf5; }
+.egl-big .egl-name { font-size: calc(19px * var(--fit)); }
+.egl-big .egl-flav { font-size: calc(11.5px * var(--fit)); }
+.egl-big .egl-note { font-size: calc(10px * var(--fit)); }
+.egl-big .egl-lab  { font-size: calc(7.5px * var(--fit)); }
+.egl-p-strip .egl-fit { align-items: stretch; justify-content: safe center; gap: calc(2px * var(--fit)); padding: 3px 8px; text-align: left; }
+.egl-s1 { display: flex; align-items: baseline; gap: 8px; }
+.egl-sn { font: 800 calc(10.5px * var(--fit)) 'Orbitron', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; color: #fff;
+  text-shadow: 0 0 8px rgba(179,156,245,0.6); white-space: nowrap; }
+.egl-sl { flex: 1; font: 700 calc(6.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 2px; color: #b39cf5; white-space: nowrap; }
+.egl-s2 { font: calc(8px * var(--fit))/1.3 'Crimson Pro', serif; color: rgba(240,230,200,0.66); }
+
+/* ── MARQUEE: an option ─────────────────────────────────────────────────── */
+.egl-opt { --rc: rgba(183,172,147,0.5); box-shadow: inset 0 2px 0 var(--rc), inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5); }
+.egl-opt.rar-common    { --rc: var(--c-mint, #35d59b); }
+.egl-opt.rar-rare      { --rc: var(--c-cyan, #16c8d8); }
+.egl-opt.rar-epic      { --rc: var(--c-purple, #9a6cff); }
+.egl-opt.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+.egl-opt.egl-debuff { --rc: var(--c-red, #ff4b3e); border-color: rgba(255,75,62,0.55);
+  background: linear-gradient(180deg, rgba(44,16,14,0.96), rgba(18,8,7,0.98)); }
+.egl-opt .egl-fit { gap: calc(4px * var(--fit)); padding: 6px 7px; }
+.egl-opt:hover { border-color: var(--cream, #f0e6c8); }
+.egl-sel, .egl-sel:hover {
+  border-color: var(--c-mint, #35d59b); z-index: 5; transform: translateY(-2px) scale(1.04);
+  background: linear-gradient(180deg, rgba(26,44,36,0.96), rgba(10,20,15,0.98));
+  box-shadow: inset 0 0 0 2px rgba(53,213,155,0.5), 0 0 16px rgba(53,213,155,0.45), 0 7px 15px rgba(0,0,0,0.6);
+}
+.egl-ico { font-size: calc(22px * var(--fit)); line-height: 1; min-height: calc(24px * var(--fit)); display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); color: var(--gold, #ffb02e); font-family: 'Orbitron', sans-serif; font-weight: 800; }
+.egl-ot { font: 700 calc(9.5px * var(--fit))/1.12 'Orbitron', sans-serif; letter-spacing: .4px; color: var(--cream, #f0e6c8); }
+.egl-ox { font: calc(8px * var(--fit))/1.32 'Crimson Pro', serif; color: rgba(240,230,200,0.74); }
+.egl-cost { margin-top: calc(3px * var(--fit)); font: 700 calc(6.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 1.5px; text-transform: uppercase; color: #ff9a8e; }
+.egl-big .egl-ico { font-size: calc(30px * var(--fit)); min-height: calc(32px * var(--fit)); }
+.egl-big .egl-ot  { font-size: calc(11.5px * var(--fit)); }
+.egl-big .egl-ox  { font-size: calc(10px * var(--fit)); }
+.egl-tag { font: 700 calc(5.5px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #0e0c0a; background: var(--rc); padding: 1px 5px; border-radius: 999px; }
+.egl-art { width: calc(62% * var(--fit)); max-width: calc(78px * var(--fit)); aspect-ratio: 20 / 19; flex: 0 0 auto; display: flex; }
+.egl-art .reward-cell { position: relative; width: 100%; height: 100%; margin: 0; }
+.egl-ent .egl-ox { padding: calc(3px * var(--fit)) calc(4px * var(--fit)); border-radius: 5px; background: rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 0 1px rgba(183,172,147,0.11); align-self: stretch; }
+
+/* ── HOT STREAK: a coin and a staircase ─────────────────────────────────── */
+.egl-coin { align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 60%, rgba(255,176,46,0.12), rgba(10,8,5,0.98) 70%); }
+.egl-coinhost { zoom: .85; display: flex; justify-content: center; }
+.egl-coinhost .evt-host { margin: 0; }
+.egl-coinhost .evt-coin-cap { font-size: 9px; letter-spacing: 1px; text-align: center; max-width: 9em; line-height: 1.2; }
+.egl-rung { justify-content: flex-end; }
+.egl-rung .egl-bar { position: absolute; left: 4px; right: 4px; bottom: 4px; height: calc((100% - 8px) * var(--lv)); border-radius: 4px;
+  background: rgba(255,176,46,0.08); box-shadow: inset 0 0 0 1px rgba(255,176,46,0.25); transition: background .3s, box-shadow .3s; }
+.egl-rung .egl-fit { position: relative; justify-content: flex-end; gap: 1px; padding-bottom: 8px; }
+.egl-rung b { font: 800 calc(16px * var(--fit)) 'Orbitron', sans-serif; color: rgba(240,230,200,0.5); }
+.egl-rung i { font: normal calc(7px * var(--fit))/1.1 'Share Tech Mono', monospace; color: rgba(240,230,200,0.6); }
+.egl-rung.egl-lit .egl-bar { background: linear-gradient(180deg, rgba(255,206,43,0.75), rgba(255,140,30,0.45)); box-shadow: 0 0 14px rgba(255,176,46,0.6); }
+.egl-rung.egl-lit b, .egl-rung.egl-lit i { color: #1a1104; }
+.egl-rung.egl-next { border-color: var(--gold, #ffb02e); animation: egl-pulse 1.1s ease-in-out infinite; }
+.egl-rung.egl-lost .egl-bar { background: rgba(255,75,62,0.35); box-shadow: inset 0 0 0 1px var(--c-red, #ff4b3e); }
+@keyframes egl-pulse { 50% { box-shadow: inset 0 0 0 1px rgba(255,176,46,0.6), 0 0 12px rgba(255,176,46,0.4); } }
+
+/* ── MARQUEE: the outcome and the action row ────────────────────────────── */
+.egl-result { border-color: rgba(53,213,155,0.6); background: linear-gradient(180deg, rgba(14,34,26,0.97), rgba(8,14,11,0.98)); }
+.egl-result .egl-fit { gap: calc(6px * var(--fit)); }
+.egl-result .egl-kick { color: var(--c-mint, #35d59b); font-size: calc(7px * var(--fit)); }
+.egl-rl { font: calc(11px * var(--fit))/1.35 'Crimson Pro', serif; color: var(--cream, #f0e6c8); }
+.egl-act { border-radius: 6px; background: linear-gradient(180deg, rgba(24,21,15,0.96), rgba(12,10,7,0.98)); }
+.egl-act .egl-fit { gap: 1px; padding: 2px 3px; }
+.egl-act b { font: 700 calc(7px * var(--fit)) 'Orbitron', sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--cream, #f0e6c8); white-space: nowrap; }
+.egl-act i { font: normal calc(6px * var(--fit)) 'Share Tech Mono', monospace; letter-spacing: .4px; color: var(--c-yellow, #ffce2b);
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.egl-act1 .egl-fit { flex-direction: row; gap: 6px; }
+.egl-act:hover { border-color: var(--c-yellow, #ffce2b); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 11px rgba(255,206,43,0.3); }
+.egl-go { border-color: var(--c-mint, #35d59b); background: linear-gradient(180deg, rgba(31,168,119,0.30), rgba(8,32,24,0.95)); }
+.egl-go b { font-size: calc(8.5px * var(--fit)); letter-spacing: 1.6px; }
+.egl-go i { color: var(--cream, #f0e6c8); }
+.egl-go:hover { border-color: #7dffce; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 13px rgba(53,213,155,0.42); }
+.egl-off { opacity: .42; cursor: var(--cur-no, not-allowed); }
+.egl-off:hover { border-color: rgba(183,172,147,0.42); box-shadow: none; }
+
+/* ══ THE AMBER SCREENS: shared by WALL, READOUT's screen, WIREFRAME, TERMINAL ══ */
+#egl:not([data-lay="marquee"]) .egl-tl, #egl:not([data-lay="marquee"]) .egl-tact,
+#egl[data-lay="wall"] .egl-cell, #egl[data-lay="wire"] .egl-cell, #egl[data-lay="terminal"] .egl-cell, .egl-screen, .egl-tc {
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px var(--am-glow);
+}
+.egl-tl { font-size: calc(11px * var(--fit)); line-height: 1.12; white-space: pre-wrap; min-height: 1em; text-align: left; align-self: stretch; }
+.egl-t-n  { font-size: calc(21px * var(--fit)); line-height: 1; color: var(--am-hi); letter-spacing: 1px; margin-bottom: calc(3px * var(--fit)); }
+.egl-t-n2 { font-size: calc(14px * var(--fit)); line-height: 1.05; color: var(--am-hi); letter-spacing: .5px; }
+.egl-t-f  { font-size: calc(13px * var(--fit)); }
+.egl-t-x  { font-size: calc(11.5px * var(--fit)); color: rgba(255,176,46,0.78); }
+.egl-t-l  { font-size: calc(12.5px * var(--fit)); color: var(--am-hi); margin-top: calc(3px * var(--fit)); }
+.egl-t-h  { color: var(--am-hi); }
+.egl-t-c  { color: var(--am-bad); text-shadow: 0 0 6px rgba(255,118,86,0.45); }
+.egl-t-dim { color: var(--wf-dim); }
+.egl-t-good { color: var(--am-good); text-shadow: 0 0 6px rgba(148,236,176,0.5); }
+.egl-t-bad { color: var(--am-bad); text-shadow: 0 0 6px rgba(255,118,86,0.5); }
+.egl-t-rule { min-height: 0; height: 0; margin: calc(5px * var(--fit)) 0; border-top: 1px dashed var(--wf-dim); }
+/* Typing (eglTypeScan): the words not typed yet keep their room, unseen. */
+.egl-tu { visibility: hidden; }
+/* THE cursor, one on the board (eglCursorPlace). No width of its own, so it never
+   moves a word; the block hangs off it in the colour of the text it sits in. */
+#egl-cur { display: inline-block; position: relative; width: 0; height: 1em; vertical-align: -0.14em; font-style: normal; }
+#egl-cur::after { content: ''; position: absolute; left: 1px; top: 0; width: .5em; height: 1em; background: currentColor;
+  box-shadow: 0 0 6px currentColor; animation: egl-blink 1.06s steps(1) infinite; }
+#egl-cur.typing::after { animation: none; }
+@keyframes egl-blink { 50% { opacity: 0; } }
+/* Keywords keep their colour, as the nearest phosphor (EGL_PALETTE). */
+#egl:not([data-lay="marquee"]) [class*="kw-"] { font-weight: normal; text-shadow: 0 0 5px; }
+#egl:not([data-lay="marquee"]) :is(.kw-pips, .kw-xpips, .kw-hand) { color: var(--wf-sky); }
+#egl:not([data-lay="marquee"]) :is(.kw-mult, .kw-xmult, .kw-discard, .kw-trick, .kw-bad) { color: var(--wf-coral); }
+#egl:not([data-lay="marquee"]) .kw-focus { color: var(--wf-violet); }
+#egl:not([data-lay="marquee"]) :is(.kw-score, .kw-credits, .kw-buy, .kw-knack) { color: var(--wf-gold); }
+#egl:not([data-lay="marquee"]) :is(.kw-time, .kw-swap) { color: var(--wf-teal); }
+#egl:not([data-lay="marquee"]) :is(.kw-rewind, .kw-sleight) { color: var(--wf-cream); }
+#egl:not([data-lay="marquee"]) .kw-pause { color: var(--wf-sage); }
+#egl:not([data-lay="marquee"]) :is(.kw-play, .kw-limit, .kw-reward) { color: var(--wf-mint); }
+#egl:not([data-lay="marquee"]) :is(.kw-replay, .kw-wild) { color: var(--wf-rose); }
+#egl:not([data-lay="marquee"]) :is(.kw-sell, .kw-board, .kw-round) { color: var(--wf-bright); }
+#egl:not([data-lay="marquee"]) .kw-streak { color: var(--wf-amber); }
+#egl:not([data-lay="marquee"]) .kw-r-common { color: var(--wf-mint); }
+#egl:not([data-lay="marquee"]) .kw-r-rare { color: var(--wf-teal); }
+#egl:not([data-lay="marquee"]) .kw-r-epic { color: var(--wf-violet); }
+#egl:not([data-lay="marquee"]) .kw-r-legendary { color: var(--wf-rose); }
+/* A rarity word, the same way. */
+.egl-rar { font: calc(13px * var(--fit))/1 'VT323 Local', 'VT323', monospace; letter-spacing: 2px; color: var(--rc); text-shadow: 0 0 6px; }
+/* Scan lines, glare and edge falloff: one glass for the whole board, or one per screen. */
+#egl[data-lay="wire"]::after, #egl[data-lay="terminal"]::after, .egl-screen::after, #egl[data-lay="wall"] .egl-cell::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 20; border-radius: inherit;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px),
+              radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+/* A pixel icon or an entity tile on the glass: its own colours, warmed a little
+   (r593; the r589 all-amber filter lost a Trick's picture in its label). */
+#egl[data-lay="wall"] .egl-ico, #egl[data-lay="wire"] .egl-ico, #egl[data-lay="wall"] .egl-art, #egl[data-lay="wire"] .egl-art {
+  filter: sepia(.28) saturate(1.1) drop-shadow(0 0 5px rgba(255,176,46,0.35));
+}
+#egl:not([data-lay="marquee"]) .egl-opt.rar-common    { --rc: var(--wf-mint); }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-rare      { --rc: var(--wf-teal); }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-epic      { --rc: var(--wf-violet); }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-legendary { --rc: var(--wf-rose); }
+#egl:not([data-lay="marquee"]) .egl-ico { color: var(--am); }
+
+/* ══ WALL: Marquee as a wall of small screens ═════════════════════════════ */
+#egl[data-lay="wall"] { background: linear-gradient(180deg, #1b1813, #100e0b); }
+#egl[data-lay="wall"] .egl-cell {
+  background: radial-gradient(ellipse at 50% 42%, #1c1408 0%, #0a0704 68%, #040302 100%);
+  border: 2px solid #2b2721; border-radius: 9px / 11px;
+  box-shadow: inset 0 0 14px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(0,0,0,0.8), 0 0 0 1px #000, 0 2px 4px rgba(0,0,0,0.6);
+}
+#egl[data-lay="wall"] .egl-amb { background: radial-gradient(ellipse at 35% 25%, #171512 0%, #080706 70%); }
+#egl[data-lay="wall"] .egl-amb::after { background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.05), transparent 50%); }
+#egl[data-lay="wall"] .egl-prompt .egl-fit, #egl[data-lay="wall"] .egl-result .egl-fit { align-items: stretch; justify-content: safe center; padding: 7px 10px; }
+#egl[data-lay="wall"] .egl-opt .egl-fit { gap: calc(5px * var(--fit)); }
+#egl[data-lay="wall"] .egl-ot { font: calc(15px * var(--fit))/1 'VT323 Local', 'VT323', monospace; color: var(--am-hi); letter-spacing: .5px; text-transform: uppercase; }
+#egl[data-lay="wall"] .egl-ox { font: calc(12px * var(--fit))/1.1 'VT323 Local', 'VT323', monospace; color: rgba(255,176,46,0.8); }
+#egl[data-lay="wall"] .egl-cost, #egl[data-lay="wall"] .egl-tag { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-bad); background: none; padding: 0; letter-spacing: 1px; }
+#egl[data-lay="wall"] .egl-tag { color: var(--am-dim); }
+#egl[data-lay="wall"] .egl-opt:hover { border-color: #5c4c2c; }
+#egl[data-lay="wall"] .egl-debuff .egl-ot { color: #ffb09a; }
+#egl[data-lay="wall"] .egl-sel { transform: none; border-color: #6a5326;
+  background: radial-gradient(ellipse at 50% 42%, #ffc24f 0%, #e3900f 80%); box-shadow: 0 0 16px rgba(255,176,46,0.55), 0 0 0 1px #000; }
+#egl[data-lay="wall"] .egl-sel *, #egl[data-lay="wall"] .egl-sel { color: #160c01 !important; text-shadow: none; }
+#egl[data-lay="wall"] .egl-sel .egl-ico, #egl[data-lay="wall"] .egl-sel .egl-art { filter: grayscale(1) brightness(.2); }
+#egl[data-lay="wall"] .egl-rung b { font: calc(22px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-dim); }
+#egl[data-lay="wall"] .egl-rung i { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-dim); }
+#egl[data-lay="wall"] .egl-rung.egl-lit b, #egl[data-lay="wall"] .egl-rung.egl-lit i { color: #1a1104; text-shadow: none; }
+#egl[data-lay="wall"] .egl-rung.egl-next { border-color: #6a5326; }
+
+/* ══ READOUT: one screen over a row of keys ═══════════════════════════════ */
+#egl[data-lay="readout"] { background: linear-gradient(180deg, #1f1b16, #12100c); }
+.egl-screen { background: var(--glass); border: 2px solid #000; border-radius: 8px;
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(255,176,46,0.08), 0 1px 0 rgba(255,255,255,0.06); }
+.egl-screen .egl-fit { align-items: stretch; justify-content: flex-start; padding: 7px 10px; }
+/* The keys: matte caps with a printed legend and a lamp that lights when picked. */
+#egl[data-lay="readout"] .egl-opt, #egl[data-lay="readout"] .egl-act, #egl[data-lay="readout"] .egl-amb,
+#egl[data-lay="readout"] .egl-rung, #egl[data-lay="readout"] .egl-coin, #egl[data-lay="readout"] .egl-result {
+  background: linear-gradient(180deg, #2d2822 0%, #1d1914 100%); border: 1px solid #0b0907; border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -3px 0 rgba(0,0,0,0.45), 0 3px 0 #0a0806, 0 5px 9px rgba(0,0,0,0.55);
+  transition: transform .08s ease, box-shadow .08s ease, filter .12s ease;
+}
+#egl[data-lay="readout"] .egl-amb { filter: brightness(.6); }
+#egl[data-lay="readout"] .egl-opt:hover, #egl[data-lay="readout"] .egl-act:hover { filter: brightness(1.15); border-color: #0b0907; }
+#egl[data-lay="readout"] .egl-insp { filter: brightness(1.12); }
+#egl[data-lay="readout"] .egl-sel, #egl[data-lay="readout"] .egl-sel:hover {
+  transform: translateY(2px); border-color: #0b0907; background: linear-gradient(180deg, #27231d 0%, #1a1612 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.45), 0 1px 0 #0a0806, 0 2px 4px rgba(0,0,0,0.5); }
+#egl[data-lay="readout"] .egl-opt .egl-fit { gap: calc(4px * var(--fit)); }
+#egl[data-lay="readout"] .egl-ot, #egl[data-lay="readout"] .egl-act b { font: 700 calc(9px * var(--fit))/1.1 'Share Tech Mono', monospace;
+  letter-spacing: 1px; text-transform: uppercase; color: #ece3c8; }
+#egl[data-lay="readout"] .egl-cost { font: calc(7px * var(--fit)) 'Share Tech Mono', monospace; color: rgba(236,227,200,0.55); }
+#egl[data-lay="readout"] .egl-act i { color: rgba(236,227,200,0.55); }
+#egl[data-lay="readout"] .egl-go b { color: var(--am-good); }
+#egl[data-lay="readout"] .egl-art { width: calc(44% * var(--fit)); }
+.egl-led { position: absolute; top: 6px; right: 7px; width: 5px; height: 5px; border-radius: 50%; z-index: 2;
+  background: #3a2c12; box-shadow: inset 0 1px 1px rgba(0,0,0,0.6); transition: background .12s, box-shadow .12s; }
+.egl-sel .egl-led { background: var(--am-good); box-shadow: 0 0 6px var(--am-good), 0 0 2px #fff inset; }
+#egl[data-lay="readout"] .egl-rung.egl-lit .egl-led { background: var(--am); box-shadow: 0 0 6px var(--am); }
+#egl[data-lay="readout"] .egl-rung.egl-lost .egl-led { background: var(--am-bad); box-shadow: 0 0 6px var(--am-bad); }
+#egl[data-lay="readout"] .egl-rung b, #egl[data-lay="readout"] .egl-rung i { font-family: 'Share Tech Mono', monospace; color: rgba(236,227,200,0.7); }
+#egl[data-lay="readout"] .egl-rung .egl-bar { left: 8px; right: 8px; background: rgba(0,0,0,0.25); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
+#egl[data-lay="readout"] .egl-rung.egl-next { border-color: #0b0907; animation: none; }
+
+/* ══ WIREFRAME: Marquee drawn in lines on one screen ══════════════════════ */
+#egl[data-lay="wire"] { background: var(--glass); }
+#egl[data-lay="wire"] .egl-cell { background: transparent; border: 0; box-shadow: none; overflow: visible; }
+#egl[data-lay="wire"] .egl-amb { background: transparent; border: 0; box-shadow: none; }
+.egl-wb { position: absolute; inset: 7px 2px 2px; display: flex; flex-direction: column; box-sizing: border-box;
+  border: 1px solid rgba(255,176,46,0.7); box-shadow: 0 0 5px rgba(255,176,46,0.25), inset 0 0 5px rgba(255,176,46,0.10);
+  transition: border-color .12s, background .12s; }
+.egl-wb2 { border: 3px double var(--am); }
+.egl-leg { position: absolute; top: -0.62em; left: 7px; max-width: calc(100% - 14px); padding: 0 4px; z-index: 2;
+  background: var(--glass); color: var(--am-hi); font: 12px/1 'VT323 Local', 'VT323', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.egl-wb > .egl-fit { padding: 8px 7px 5px; gap: calc(4px * var(--fit)); }
+/* A label that is still typing opens its gap in the line as it types. */
+.egl-leg.egl-ty { background: transparent; }
+.egl-leg.egl-ty > span:not(.egl-tu) { background: var(--glass); box-shadow: -4px 0 0 var(--glass); }
+#egl[data-lay="wire"] .egl-prompt .egl-fit, #egl[data-lay="wire"] .egl-result .egl-fit { align-items: stretch; justify-content: safe center; }
+#egl[data-lay="wire"] .egl-ox { font: calc(12px * var(--fit))/1.1 'VT323 Local', 'VT323', monospace; color: rgba(255,176,46,0.82); }
+#egl[data-lay="wire"] .egl-cost { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-bad); letter-spacing: 1px; }
+/* An entity is the picture alone, large; the tooltip carries its words (r593). */
+#egl[data-lay="wire"] .egl-ent .egl-fit { gap: calc(6px * var(--fit)); }
+#egl[data-lay="wire"] .egl-ent .egl-art { width: calc(94% * var(--fit)); max-width: calc(128px * var(--fit)); cursor: var(--cur-pointer, pointer);
+  filter: sepia(.18) saturate(1.05) drop-shadow(0 0 7px color-mix(in srgb, var(--rc) 45%, transparent)); }
+/* The name, just above the picture (r600): sized so most names take two lines,
+   three at most, then an ellipsis. Words never break. */
+.egl-wb-ent > .egl-fit { padding: 6px 4px 5px; }
+/* Two lines are kept for every name, the text at their foot, so the pictures line up. */
+.egl-enw { align-self: stretch; display: flex; flex-direction: column; justify-content: flex-end; min-height: 2em;
+  font: calc(16px * var(--fit))/1 'VT323 Local', 'VT323', monospace; }
+.egl-en { font: inherit; letter-spacing: .3px; color: var(--am-hi);
+  text-align: center; overflow-wrap: normal; word-break: keep-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden; }
+/* Stacked into wide strips (a phone): the picture, then the name and rarity. */
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-fit { flex-direction: row; gap: calc(12px * var(--fit)); padding-top: 4px; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-art { width: auto; height: calc(96% * var(--fit)); max-width: none; order: -1; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-enw { align-self: center; flex: 1 1 0; min-height: 0; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-en { text-align: left; }
+#egl[data-lay="wire"] .egl-ent:hover .egl-art { filter: sepia(.08) saturate(1.1) brightness(1.08) drop-shadow(0 0 9px color-mix(in srgb, var(--rc) 70%, transparent)); }
+#egl[data-lay="wire"] .egl-opt:hover .egl-wb { border-color: var(--am-hi); }
+#egl[data-lay="wire"] .egl-debuff .egl-wb { border-color: rgba(255,106,82,0.75); }
+#egl[data-lay="wire"] .egl-sel, #egl[data-lay="wire"] .egl-sel:hover { transform: none; background: transparent; box-shadow: none; }
+#egl[data-lay="wire"] .egl-sel .egl-wb { border: 3px double var(--am-hi); background: rgba(255,176,46,0.10); }
+#egl[data-lay="wire"] .egl-sel .egl-leg { background: var(--am); color: #120b02; text-shadow: none; }
+#egl[data-lay="wire"] .egl-coin { background: transparent; }
+#egl[data-lay="wire"] .egl-rung { border: 1px solid rgba(255,176,46,0.45); }
+#egl[data-lay="wire"] .egl-rung .egl-bar { background: repeating-linear-gradient(0deg, rgba(255,176,46,0.18) 0 2px, transparent 2px 5px); box-shadow: none; }
+#egl[data-lay="wire"] .egl-rung.egl-lit .egl-bar { background: repeating-linear-gradient(0deg, var(--am) 0 2px, transparent 2px 4px); box-shadow: 0 0 8px var(--am-glow); }
+#egl[data-lay="wire"] .egl-rung b, #egl[data-lay="wire"] .egl-rung i { font-family: 'VT323 Local', 'VT323', monospace; color: var(--am-hi); }
+#egl[data-lay="wire"] .egl-rung b { font-size: calc(22px * var(--fit)); }
+#egl[data-lay="wire"] .egl-rung.egl-lit b, #egl[data-lay="wire"] .egl-rung.egl-lit i { color: var(--glass); text-shadow: none; }
+#egl[data-lay="wire"] .egl-rung.egl-next { border-color: var(--am-hi); animation: egl-tnext 1s steps(1) infinite; }
+#egl[data-lay="wire"] .egl-tact { border: 1px solid rgba(255,176,46,0.55); border-radius: 0; margin: 2px 0; }
+
+/* ══ TERMINAL: the board is one screen ════════════════════════════════════ */
+#egl[data-lay="terminal"] { background: var(--glass); }
+#egl[data-lay="terminal"] .egl-cell { background: transparent; border: 0; box-shadow: none; border-radius: 3px; }
+#egl[data-lay="terminal"] .egl-amb { background: transparent; border: 0; box-shadow: none; }
+#egl[data-lay="terminal"] .egl-fit { align-items: stretch; text-align: left; justify-content: flex-start; padding: 1px 6px; }
+.egl-term .egl-fit { padding: 6px 8px; }
+.egl-tm .egl-fit { justify-content: safe center; }
+.egl-tm-l { display: flex; align-items: baseline; gap: 5px; font-size: calc(11px * var(--fit)); line-height: 1.05; white-space: nowrap; }
+.egl-tm-l u { flex: 1; text-decoration: none; border-bottom: 1px dotted rgba(255,176,46,0.45); min-width: 8px; transform: translateY(-3px); }
+.egl-tm-l em { font-style: normal; color: var(--am-hi); }
+.egl-tm-x { font-size: calc(9.5px * var(--fit)); line-height: 1.05; color: rgba(255,176,46,0.7); padding-left: 2.6em; }
+#egl[data-lay="terminal"] .egl-tm:hover { background: rgba(255,176,46,0.12); }
+#egl[data-lay="terminal"] .egl-sel, #egl[data-lay="terminal"] .egl-sel:hover { transform: none; background: var(--am); box-shadow: 0 0 10px var(--am-glow); }
+#egl[data-lay="terminal"] .egl-sel *, #egl[data-lay="terminal"] .egl-sel { color: #120b02 !important; text-shadow: none; }
+#egl[data-lay="terminal"] .egl-sel .egl-tm-l u { border-color: rgba(18,11,2,0.5); }
+.egl-trung .egl-tm-l b { color: var(--am-hi); font-weight: normal; }
+.egl-trung.egl-lit { color: var(--am-good); }
+.egl-trung.egl-lost { color: var(--am-bad); }
+.egl-trung.egl-next { animation: egl-tnext 1s steps(1) infinite; }
+@keyframes egl-tnext { 50% { background: rgba(255,176,46,0.14); } }
+/* The bracketed keys every amber screen uses. */
+.egl-tact { background: transparent !important; border: 0; box-shadow: none !important; }
+.egl-tact .egl-fit { align-items: center !important; justify-content: center !important; font-size: calc(11px * var(--fit)); white-space: nowrap; }
+.egl-tact:hover { background: rgba(255,176,46,0.12) !important; }
+.egl-tact.egl-go { color: var(--am-good); text-shadow: 0 0 6px rgba(125,255,176,0.55); }
+.egl-tact.egl-off { opacity: .4; }
+#egl[data-lay="wall"] .egl-tact { background: radial-gradient(ellipse at 50% 42%, #1c1408 0%, #0a0704 80%) !important; }
+
+/* ══ THE CARD SCREENS (the market's board, the deck's suit columns) ═══════ */
+.egl-view { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 4px; touch-action: none; overflow: hidden !important; }
+#egl .egl-cell.egl-view::after { display: none; }
+.egl-vw { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: repeat(var(--vc), 1fr);
+  grid-auto-rows: var(--vh); gap: var(--vg);
+  transform: translateY(calc(var(--vr, 0) * (var(--vh) + var(--vg)) * -1)); transition: transform .26s cubic-bezier(.25,.8,.3,1); }
+.egl-vs { position: relative; min-width: 0; }
+.egl-vempty { justify-self: center; width: var(--cw); border: 1px dashed rgba(183,172,147,0.16); border-radius: 5px; box-sizing: border-box; }
+#egl:not([data-lay="marquee"]) .egl-vempty { border-color: color-mix(in srgb, var(--wf-dim) 45%, transparent); }
+/* The real face (MARQUEE, READOUT). A market card's buffs print on a strip under it. */
+.egl-vface { position: relative; width: calc(var(--card-w) + 2px); height: calc(var(--card-h) + 2px); margin: 0 auto; }
+.egl-vs .card { left: 1px; top: 1px; pointer-events: none; }
+.egl-vs[data-i]:hover .card { background: #fffaee; }
+.egl-vlab { position: absolute; left: 2px; right: 2px; bottom: 0; top: calc(var(--card-h) + 3px); padding: 1px 2px; border-radius: 0 0 5px 5px;
+  background: rgba(0,0,0,0.62); font: calc(7px * var(--fit))/1.1 'Crimson Pro', serif; color: rgba(240,230,200,0.9); }
+#egl[data-lay="readout"] .egl-vlab { font: calc(8px * var(--fit))/1 'VT323 Local', 'VT323', monospace; color: var(--am); background: var(--glass);
+  text-shadow: 0 0 5px var(--am-glow); border: 1px solid #000; }
+.egl-vbuy .card { border-color: var(--c-mint, #35d59b); box-shadow: 0 0 0 2px var(--c-mint, #35d59b), 0 0 12px rgba(53,213,155,0.6); }
+.egl-vbuy::before { content: '\2713'; position: absolute; top: -3px; right: -3px; z-index: 3; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--c-mint, #35d59b); color: #06251a; font: 700 9px/13px sans-serif; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.egl-x { display: none; }
+.egl-vcut .card { filter: grayscale(.8) brightness(.55); }
+.egl-vcut .egl-x { display: flex; position: absolute; top: 1px; left: 50%; width: var(--card-w); height: var(--card-h); translate: -50% 0; align-items: center; justify-content: center; z-index: 3; border-radius: 5px;
+  border: 2px solid #ff4b3e; color: #ff4b3e; font: 800 11px 'Orbitron', sans-serif; letter-spacing: 2px; text-shadow: 0 0 6px rgba(255,75,62,0.7), 0 1px 2px #000;
+  background: repeating-linear-gradient(45deg, rgba(255,75,62,0.22) 0 3px, transparent 3px 7px); font-style: normal; }
+/* A text card (r593): a playing card's shape (--cw by the slot's height), drawn as
+   a screen of its own (WALL) or in lines on the shared glass (WIREFRAME,
+   TERMINAL). Sized from its own box (container units), so it reads the same at
+   every board size. --sc is the suit's phosphor, --kc a buff's.
+   r600: laid out like the game's face (rank over suit, 24% and 29% of the
+   card's height) so the game's corner marks fit round it. Isolated, so the
+   bands' z-index -1 paints over the card and under its words, as on a card. */
+.egl-tc { --sc: var(--wf-cream); position: relative; justify-self: center; width: var(--cw); height: 100%; box-sizing: border-box;
+  container-type: size; isolation: isolate; border-radius: 4px; overflow: hidden; color: var(--sc);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--sc) 55%, transparent); }
+.egl-s-he { --sc: var(--wf-coral); }
+.egl-s-di { --sc: var(--wf-gold); }
+.egl-s-cl { --sc: var(--wf-sky); }
+.egl-s-wild { --sc: var(--wf-rose); }
+.egl-tc .egl-cid { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.egl-tc .egl-cr { font-size: 24cqh; line-height: 1; text-align: center; }
+.egl-tc .egl-cr small { display: block; font-size: .72em; line-height: .9; }
+.egl-tc .egl-cs { font-size: 29cqh; line-height: 1; margin-top: 1px; }
+.egl-tc .egl-s2 { color: var(--sc); margin-left: 1px; }
+/* A market card: rank and suit on one line, its offer under them. */
+.egl-tcb .egl-cid { flex-direction: row; gap: 1px; }
+.egl-tcb .egl-cr, .egl-tcb .egl-cs { font-size: 18cqh; margin: 0; }
+.egl-tcb .egl-cr small { display: inline; }
+.egl-cb { display: flex; flex-direction: column; align-items: center; gap: 3cqh; margin-top: 6cqh; }   /* cq units on a child: the card is the container */
+.egl-cb em { --kc: var(--am); font-style: normal; display: flex; flex-direction: column; align-items: center; line-height: .86; color: var(--kc);
+  text-shadow: 0 0 5px color-mix(in srgb, var(--kc) 55%, transparent); }
+.egl-cb strong { font-weight: normal; font-size: 30cqw; }
+.egl-cb small { font-size: 17cqw; letter-spacing: .3px; }
+/* Buff colours follow the corner bands (EGL_BAND_INK): pips sky, mult coral,
+   rewind cream, replay mint; Focus and credits have no band, so the palette's. */
+.egl-k-pips, .egl-k-xpips { --kc: var(--wf-sky) !important; }
+.egl-k-mult, .egl-k-xmult { --kc: var(--wf-coral) !important; }
+.egl-k-focus  { --kc: var(--wf-violet) !important; }
+.egl-k-time   { --kc: var(--wf-cream) !important; }
+.egl-k-retrig { --kc: var(--wf-mint) !important; }
+.egl-k-coin   { --kc: var(--wf-gold) !important; }
+/* The game's card marks (eglCardMarks), placed as on a card. */
+.egl-tc .card-xmark { position: absolute; top: 1%; z-index: 3; font: 34cqw/1 'VT323 Local', 'VT323', monospace; font-style: normal;
+  text-shadow: 0 0 2px #000, 0 0 5px currentColor; pointer-events: none; }
+.egl-tc .card-xmark.cx-tl { left: 7%; color: var(--wf-sky); }
+.egl-tc .card-xmark.cx-tr { right: 7%; color: var(--wf-coral); }
+.egl-mk { position: absolute; z-index: 3; font-style: normal; line-height: 1; pointer-events: none; }
+.egl-mk-curse { top: 3%; right: 6%; font-size: 26cqw; filter: drop-shadow(0 1px 1px rgba(0,0,0,.8)); }
+.egl-mk-curse b { position: absolute; right: -32%; bottom: -34%; font: 17cqw/1 'VT323 Local', 'VT323', monospace; color: var(--wf-sage);
+  background: #0c1006; border: 1px solid var(--wf-sage); border-radius: 3px; padding: 0 1px; text-shadow: none; }
+.egl-tc.egl-cursed { border-color: var(--wf-sage); box-shadow: 0 0 8px color-mix(in srgb, var(--wf-sage) 55%, transparent),
+  inset 0 0 7px color-mix(in srgb, var(--wf-sage) 25%, transparent); }
+.egl-mk-fodder { left: 6%; bottom: 3%; font-size: 24cqw; color: var(--wf-coral); text-shadow: 0 0 5px var(--wf-coral); }
+.egl-mk-grow { left: 50%; bottom: 2%; translate: -50% 0; font-size: 22cqw; color: var(--wf-mint); text-shadow: 0 0 5px var(--wf-mint); }
+.egl-mk-coin { left: 50%; top: 50%; translate: -50% -50%; width: 62%; aspect-ratio: 1; border-radius: 50%; z-index: -1;
+  border: 1px solid var(--wf-gold); background: color-mix(in srgb, var(--wf-gold) 12%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--wf-gold) 50%, transparent), inset 0 0 6px color-mix(in srgb, var(--wf-gold) 30%, transparent); }
+.egl-tc .card-state-badge { position: absolute; top: 2%; left: 4%; z-index: 3; padding: 0 2px; border-radius: 3px; font-size: 20cqw; line-height: 1;
+  color: #14100a; background: var(--csc, var(--wf-gold)); text-shadow: none; }
+.egl-tc u { display: none; }
+.egl-tc-line { border: 1px solid color-mix(in srgb, var(--sc) 62%, transparent);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--sc) 22%, transparent), inset 0 0 5px color-mix(in srgb, var(--sc) 9%, transparent); }
+.egl-tc-phos { background: radial-gradient(ellipse at 50% 42%, #1c1408 0%, #0a0704 70%, #040302 100%); border: 2px solid #2b2721;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 0 0 1px #000; }
+.egl-tc-phos::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px); }
+.egl-tc:hover { filter: brightness(1.3); }
+/* Picked: the card lights solid in its own colour. */
+.egl-tc.egl-vbuy { background: var(--sc); border-color: var(--sc); box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 60%, transparent); }
+.egl-tc.egl-vbuy, .egl-tc.egl-vbuy * { color: #140b01 !important; text-shadow: none !important; }
+.egl-tc.egl-vbuy::before { display: none; }
+.egl-tc.egl-vcut { border-color: var(--am-bad); box-shadow: 0 0 10px rgba(255,118,86,0.45); }
+.egl-tc.egl-vcut > :not(u) { opacity: .28; }
+.egl-tc.egl-vcut u { display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; text-decoration: none;
+  color: var(--am-bad); font-size: 30cqw; letter-spacing: 1px; background: rgba(255,118,86,0.12); text-shadow: 0 0 6px rgba(255,118,86,0.6); }
+
+/* ══ TRANSITIONS (r593): copies of the two screens, under the glass ══════════ */
+.egl-tr { position: absolute; inset: 0; z-index: 10; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.egl-face { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; backface-visibility: hidden; }
+.egl-face > .egl-cell { pointer-events: none; }
+/* CONSOLE: one tall column (old screen, the command and its output, new screen)
+   that scrolls up a line at a time. */
+.egl-con-col { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+.egl-con-out { padding: 0 10px; }
+.egl-con-l { height: 13px; font: 13px/13px 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px var(--am-glow);
+  white-space: pre; overflow: hidden; }
+.egl-con-cmd { color: var(--am-hi); }
+.egl-con-cmd::after { content: ''; display: inline-block; width: .5em; height: 1em; vertical-align: -0.14em; margin-left: 1px;
+  background: currentColor; box-shadow: 0 0 6px currentColor; }
+.egl-con-good { color: var(--am-good); text-shadow: 0 0 6px rgba(148,236,176,0.5); }
+
+/* ══ THE FOCUS BAR'S ARROWS (the deck's suit columns) ═════════════════════ */
+#egl-scroll { position: absolute; z-index: 61; display: none; flex-direction: column; gap: 4px; padding: 4px 3px; box-sizing: border-box;
+  background: #070503; border: 1px solid #000; border-radius: 6px; box-shadow: inset 0 0 10px rgba(0,0,0,0.9); }
+#egl-scroll.on { display: flex; animation: egl-sc-in .25s ease-out; }
+@keyframes egl-sc-in { from { opacity: 0; transform: scaleY(.6); } }
+.egl-sc-b { flex: 0 0 22%; min-height: 0; padding: 0; border-radius: 5px; cursor: var(--cur-pointer, pointer);
+  background: linear-gradient(180deg, #1d150a, #0e0a05); border: 1px solid rgba(255,176,46,0.55); color: var(--am, #ffb02e);
+  font: 16px/1 'VT323 Local', 'VT323', monospace; text-shadow: 0 0 6px rgba(255,176,46,0.6); box-shadow: 0 0 6px rgba(255,176,46,0.15); }
+.egl-sc-b:hover:not(:disabled) { border-color: #ffd27a; color: #ffd27a; box-shadow: 0 0 10px rgba(255,176,46,0.35); }
+.egl-sc-b:disabled { opacity: .3; cursor: var(--cur-no, not-allowed); box-shadow: none; }
+.egl-sc-t { position: relative; flex: 1 1 auto; width: 34%; align-self: center; border: 1px solid rgba(255,176,46,0.35); border-radius: 3px; }
+.egl-sc-t i { position: absolute; left: 1px; right: 1px; border-radius: 2px; background: #ffb02e; box-shadow: 0 0 6px rgba(255,176,46,0.6);
+  transition: top .26s cubic-bezier(.25,.8,.3,1); }
+
+/* ── THE PANEL (body-level, viewport px) ────────────────────────────────── */
+#egl-panel { position: fixed; left: 12px; bottom: 12px; z-index: 99990; width: 290px; box-sizing: border-box;
+  background: rgba(14, 12, 22, .96); border: 1px solid #4b4370; border-radius: 10px; color: #e9e2cc;
+  font: 12px/1.3 'Share Tech Mono', ui-monospace, monospace; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+#egl-panel .eglp-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #2c2744; }
+#egl-panel .eglp-head b { letter-spacing: 2px; color: #b9a7ff; }
+#egl-panel .eglp-n { flex: 1; text-align: right; color: #9b93b5; }
+#egl-panel .eglp-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+#egl-panel.folded .eglp-body { display: none; }
+#egl-panel.eglp-right { left: auto; right: 12px; }
+#egl-panel.folded .eglp-head { border-bottom: 0; }
+#egl-panel .eglp-row { display: flex; gap: 5px; align-items: center; }
+#egl-panel button { flex: 1; background: #1d1930; color: #e9e2cc; border: 1px solid #4b4370; border-radius: 6px;
+  padding: 6px 3px; font: inherit; font-size: 11px; letter-spacing: 1px; cursor: var(--cur-pointer, pointer); }
+#egl-panel button:hover { border-color: #8f7fe0; }
+#egl-panel button.on { background: #2f2560; border-color: #b9a7ff; color: #fff; }
+#egl-panel button:disabled { opacity: .35; cursor: var(--cur-no, not-allowed); }
+#egl-panel .eglp-head button, #egl-panel .eglp-prev, #egl-panel .eglp-next { flex: 0 0 28px; padding: 3px 0; }
+#egl-panel .eglp-ev { flex: 1; text-align: center; }
+#egl-panel .eglp-name { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; color: #fff; }
+#egl-panel .eglp-shape { color: #8a83a3; font-size: 11px; }
+#egl-panel .eglp-lab { margin-top: 3px; font-size: 10px; letter-spacing: 2.5px; color: #8a83a3; }
+#egl-panel .eglp-lab i { font-style: normal; letter-spacing: 0; color: #6a6386; }
+#egl-panel .eglp-wrap { flex-wrap: wrap; }
+#egl-panel .eglp-wrap button { flex: 1 1 28%; }
+#egl-panel .eglp-pal { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+#egl-panel .eglp-pal i { height: 14px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4); }
+#egl-panel .eglp-note { color: #b8b0cc; font-size: 11px; min-height: 2.6em; }
+#egl-panel .eglp-need { display: flex; gap: 6px; align-items: center; color: #b8b0cc; font-size: 11px; cursor: var(--cur-pointer, pointer); }
+#egl-panel .eglp-metric { padding: 6px 8px; border-radius: 6px; background: #0b0a12; color: #9b93b5; font-size: 11px; }
+#egl-panel .eglp-metric b { color: #fff; }
+@media (max-width: 700px) {
+  #egl-panel { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; }
+}

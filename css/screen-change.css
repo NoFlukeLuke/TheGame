@@ -1,0 +1,32 @@
+/* ══ SCREEN CHANGE (r532) - js/screen-change.js ═════════════════════════════
+   The turn: a dark cavity behind the revolving panel and a copy of the housing
+   that revolves with it. Both are first children of #stage, so every part of
+   the panel paints over them. The shutter: two housing plates in a box clipped
+   to the screen's recess, so they come out from under the bezel. */
+.sc-cavity {
+  position: absolute; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, #0b0a09 0%, #030303 70%);
+  box-shadow: inset 0 0 40px #000, inset 0 0 0 2px #000;
+}
+.sc-plate { position: absolute; pointer-events: none; backface-visibility: hidden; }
+.sc-hide { visibility: hidden !important; }
+
+.sc-shutter { position: absolute; z-index: 300; overflow: hidden; pointer-events: auto; border-radius: 6px; }
+.sc-door {
+  position: absolute; left: 0; right: 0; height: calc(50% + 1px); display: block;
+  /* not the machine skin: a dark brushed plate */
+  background: repeating-linear-gradient(90deg, #1d1c1a 0 2px, #222120 2px 3px), #1f1e1c;
+}
+.sc-door-top { top: 0; transform: translateY(-102%);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.65), inset 0 -3px 0 rgba(255,255,255,.08), 0 6px 10px rgba(0,0,0,.55); }
+.sc-door-bot { bottom: 0; transform: translateY(102%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.12), inset 0 3px 0 rgba(0,0,0,.4), 0 -6px 10px rgba(0,0,0,.55); }
+/* the machine skin: the door is a piece of the housing */
+.sc-door { overflow: hidden; }
+.sc-skin { position: absolute; display: block; pointer-events: none; }
+.sc-door::after { z-index: 1; }
+/* the seam where they meet, and a finger grip on each */
+.sc-door::after { content: ""; position: absolute; left: 50%; width: 18%; height: 4px; transform: translateX(-50%);
+  border-radius: 2px; background: rgba(0,0,0,.35); box-shadow: 0 1px 0 rgba(255,255,255,.12); }
+.sc-door-top::after { bottom: 10px; }
+.sc-door-bot::after { top: 10px; }

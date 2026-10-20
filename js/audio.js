@@ -1,0 +1,723 @@
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone({ freq = 440, type = 'sine', gain = 0.18, attack = 0.005,
+                    decay = 0.08, sustain = 0.4, release = 0.25, duration = 0.35,
+                    detune = 0, delay = 0 } = {}) {
+  gain *= sfxVolume();          // Settings → master volume / mute (js/settings.js)
+  if (gain <= 0) return;
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const env = ctx.createGain();
+  const now = ctx.currentTime + delay;
+
+  osc.type = type;
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(gain, now + attack);
+  env.gain.linearRampToValueAtTime(gain * sustain, now + attack + decay);
+  env.gain.linearRampToValueAtTime(0, now + duration + release);
+
+  osc.connect(env);
+  env.connect(sfxOut(ctx));
+  osc.start(now);
+  osc.stop(now + duration + release + 0.05);
+}
+
+function playNoise({ gain = 0.05, attack = 0.002, release = 0.06, delay = 0 } = {}) {
+  gain *= sfxVolume();
+  if (gain <= 0) return;
+  const ctx = getAudioCtx();
+  const bufSize = ctx.sampleRate * (release + 0.1);
+  const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = fxRandom() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const env = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 800;
+  filter.Q.value = 0.8;
+  const now = ctx.currentTime + delay;
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(gain, now + attack);
+  env.gain.exponentialRampToValueAtTime(0.0001, now + attack + release);
+  src.connect(filter);
+  filter.connect(env);
+  env.connect(sfxOut(ctx));
+  src.start(now);
+  src.stop(now + release + 0.15);
+}
+
+// ── Individual sound designs ──
+
+function sfxCardSelect() {
+  // Soft wooden tap - quick noise burst + low thud (+20% louder)
+  playNoise({ gain: 0.084, attack: 0.001, release: 0.05 });
+  playTone({ freq: 180, type: 'triangle', gain: 0.108, attack: 0.002,
+             decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.06 });
+}
+
+function sfxNoSwaps() {
+  // Descending "nuh-uh" - two short low tones
+  playTone({ freq: 220, type: 'square', gain: 0.10, attack: 0.002, decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.1 });
+  playTone({ freq: 160, type: 'square', gain: 0.10, attack: 0.002, decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.1, delay: 0.12 });
+}
+
+// A key press (r541): a short plastic snap on the way down, a lighter tick on
+// the way back up. Two noise strikes and a small low thump, all under 40ms.
+function sfxKeyClick(phase) {
+  const v = sfxVolume(); if (v <= 0) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime, up = phase === 'up';
+  const strike = (at, freq, q, g, len) => {
+    const n = Math.max(1, Math.floor(ctx.sampleRate * len)), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (fxRandom() * 2 - 1) * Math.pow(1 - i / n, 3);
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), e = ctx.createGain();
+    s.buffer = b; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; e.gain.value = g * v;
+    s.connect(f).connect(e).connect(sfxOut(ctx)); s.start(at);
+  };
+  strike(t, up ? 4200 : 3000, 3, up ? 0.10 : 0.16, 0.008);
+  strike(t + 0.004, up ? 2400 : 1500, 2, up ? 0.04 : 0.08, 0.012);
+  if (up) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.03);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07 * v, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+  o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + 0.04);
+}
+
+function sfxFlipShuffle() {
+  // Rapid card flip/shuffle - quick staggered noise bursts at varying pitches
+  const ctx = getAudioCtx();
+  const flipCount = 5;
+  for (let i = 0; i < flipCount; i++) {
+    const d = i * 0.055;
+    playNoise({ gain: 0.09 - i * 0.01, attack: 0.001, release: 0.04, delay: d });
+    playTone({ freq: 220 + i * 60, type: 'triangle', gain: 0.07 - i * 0.008,
+               attack: 0.001, decay: 0.03, sustain: 0.05, release: 0.04, duration: 0.05, delay: d });
+  }
+}
+
+// ── Discard (r205) ───────────────────────────────────────────────────────────
+// There was no discard sound at all: discarding reused sfxFlipShuffle, the riffle
+// that also plays when a hand flies to the preview, so binning cards and scoring
+// them opened the same way. This is a dry downward sweep - a card thrown onto a
+// pile, not shuffled into one.
+//
+// `loud` is for The Marker's forced discard (a marked card eating the hand you
+// just played). That is not something you did, so it has to announce itself over
+// a normal discard; 1.7x and a touch lower is enough to read as "that was not you"
+// without leaving the mix.
+function sfxCardDiscard(loud) {
+  const g = loud ? 1.7 : 1;
+  playNoise({ gain: 0.075 * g, attack: 0.001, release: 0.07 });
+  playTone({ freq: loud ? 150 : 190, type: 'triangle', gain: 0.085 * g,
+             attack: 0.002, decay: 0.05, sustain: 0.08, release: 0.10, duration: 0.09 });
+  playTone({ freq: loud ? 96 : 124, type: 'sine', gain: 0.070 * g,
+             attack: 0.003, decay: 0.06, sustain: 0.06, release: 0.14, duration: 0.12, delay: 0.055 });
+  if (loud) playNoise({ gain: 0.055, attack: 0.001, release: 0.11, delay: 0.055 });
+}
+
+function sfxHandScored(finalScore) {
+  // Ascending chime - pitch and brightness scale with score
+  const base = Math.min(Math.max(finalScore, 10), 2000);
+  const rootFreq = 261.6 + (base / 2000) * 400; // C4 to ~E5
+  const chord = [1, 1.26, 1.5, 2]; // minor-ish triad + octave
+  chord.forEach((ratio, i) => {
+    playTone({
+      freq: rootFreq * ratio,
+      type: 'triangle',
+      gain: 0.13 - i * 0.02,
+      attack: 0.005,
+      decay: 0.12,
+      sustain: 0.3,
+      release: 0.4,
+      duration: 0.5,
+      delay: i * 0.07,
+    });
+  });
+  // Soft shimmer on top
+  playTone({ freq: rootFreq * 4, type: 'sine', gain: 0.05, attack: 0.01,
+             decay: 0.1, sustain: 0.1, release: 0.5, duration: 0.6, delay: 0.15 });
+}
+
+function sfxSuccess() {
+  // Brief celebratory chime - major triad arpeggio with bell shimmer
+  // Distinct from sfxVictory (which is longer/grander)
+  const root = 523.3; // C5
+  [[1, 0],     // C
+   [1.26, 0.06], // E (major third)
+   [1.5, 0.12]   // G (perfect fifth)
+  ].forEach(([ratio, delay]) => {
+    playTone({
+      freq: root * ratio,
+      type: 'triangle',
+      gain: 0.16,
+      attack: 0.005,
+      decay: 0.1,
+      sustain: 0.4,
+      release: 0.5,
+      duration: 0.4,
+      delay,
+    });
+  });
+  // Bell shimmer on top
+  playTone({ freq: root * 4, type: 'sine', gain: 0.05, attack: 0.01,
+             decay: 0.1, sustain: 0.15, release: 0.6, duration: 0.5, delay: 0.18 });
+}
+
+function sfxVictory() {
+  // Triumphant rising chord
+  const ctx = getAudioCtx();
+  [[261.6, 0], [329.6, 0.06], [392.0, 0.12], [523.3, 0.2], [659.3, 0.3]].forEach(([freq, delay]) => {
+    playTone({ freq, type: 'triangle', gain: 0.18, attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.6, duration: 1.0, delay });
+    playTone({ freq: freq * 2, type: 'sine', gain: 0.06, attack: 0.02, decay: 0.15, sustain: 0.3, release: 0.5, duration: 0.8, delay: delay + 0.03 });
+  });
+}
+
+// A Flow boss win (r409): a short brass call - three pickups and a held top
+// note - with the pack's own VICTORY landing on the held note, so the fanfare
+// sounds like whichever pack is selected as well as like a fanfare. The call
+// itself is coded (packs leave boss_fanfare to this), which is what makes it the
+// same recognisable figure in every pack.
+function sfxBossFanfare() {
+  const C5 = 523.3, G4 = 392.0, E5 = 659.3, G5 = 784.0;
+  const call = [[G4, 0, 0.11], [G4, 0.12, 0.11], [G4, 0.24, 0.11], [C5, 0.38, 0.22], [E5, 0.62, 0.22], [G5, 0.86, 0.9]];
+  call.forEach(([f, d, dur], i) => {
+    const last = i === call.length - 1;
+    playTone({ freq: f, type: 'sawtooth', gain: last ? 0.09 : 0.075, attack: 0.012, decay: 0.08,
+               sustain: 0.6, release: last ? 1.1 : 0.12, duration: dur, delay: d });
+    playTone({ freq: f, type: 'square', gain: 0.035, attack: 0.02, decay: 0.08,
+               sustain: 0.5, release: last ? 1.0 : 0.1, duration: dur, delay: d + 0.006 });
+    playTone({ freq: f / 2, type: 'triangle', gain: last ? 0.12 : 0.06, attack: 0.01, decay: 0.1,
+               sustain: 0.5, release: last ? 1.3 : 0.12, duration: dur, delay: d });
+  });
+  // the pack's victory on the held note; its own wrapper picks the bus
+  setTimeout(() => { try { sfxVictory(); } catch (e) {} }, 860);
+}
+
+function sfxHeartbeat(gain = 1.0) {
+  // Two-thump heartbeat: lub-dub. It used to connect straight to the destination
+  // to stay loud while the other effects ducked - which also meant it ignored
+  // sfxVolume() entirely, so mute never silenced it (the same bug sfxWinExplode
+  // had). It now rides the `alert` bus, whose duckTo is 1: nothing ducks it, and
+  // the volume sliders reach it like everything else.
+  const vol = sfxVolume();
+  if (vol <= 0) return;
+  const ctx = getAudioCtx();
+  [[0, 0.18], [0.18, 0.12]].forEach(([delay, g]) => {
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(sfxOut(ctx));
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, ctx.currentTime + delay);
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + delay + 0.12);
+    gainNode.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gainNode.gain.linearRampToValueAtTime(g * gain * vol, ctx.currentTime + delay + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.22);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + 0.25);
+  });
+}
+
+function sfxCoin() {
+  playTone({ freq: 1318.5, type: 'sine', gain: 0.18, attack: 0.005, decay: 0.08, sustain: 0.1, release: 0.3, duration: 0.4 });
+  playTone({ freq: 1760, type: 'sine', gain: 0.08, attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.2, duration: 0.3, delay: 0.04 });
+}
+
+// Reward-resolve sounds (r110): good = punchy rising chime, bad = low dissonant
+// buzz, reveal = quick rising shimmer for a Mystery morphing into its outcome.
+function sfxRewardGood() {
+  playTone({ freq: 783.99,  type: 'triangle', gain: 0.16, attack: 0.004, decay: 0.05, sustain: 0.30, release: 0.24, duration: 0.10, delay: 0.00 });
+  playTone({ freq: 1046.50, type: 'triangle', gain: 0.16, attack: 0.004, decay: 0.05, sustain: 0.30, release: 0.24, duration: 0.10, delay: 0.05 });
+  playTone({ freq: 1318.51, type: 'triangle', gain: 0.15, attack: 0.004, decay: 0.05, sustain: 0.30, release: 0.28, duration: 0.12, delay: 0.10 });
+}
+function sfxRewardBad() {
+  playTone({ freq: 190, type: 'sawtooth', gain: 0.15, attack: 0.004, decay: 0.06, sustain: 0.55, release: 0.16, duration: 0.17 });
+  playTone({ freq: 138, type: 'square',   gain: 0.09, attack: 0.004, decay: 0.06, sustain: 0.55, release: 0.14, duration: 0.17 });
+}
+function sfxRewardReveal() {
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+    playTone({ freq: f, type: 'sine', gain: 0.10, attack: 0.01, decay: 0.04, sustain: 0.30, release: 0.14, duration: 0.08, delay: i * 0.06 }));
+}
+
+// Picking a tile on the reward grid (r186). There was no sound on selection at
+// all before - only on the resolve. Short and dry: it fires once per tile and a
+// path is up to five taps.
+function sfxRewardSelect() {
+  playTone({ freq: 660, type: 'triangle', gain: 0.10, attack: 0.002, decay: 0.03, sustain: 0.2, release: 0.09, duration: 0.06 });
+  playTone({ freq: 990, type: 'sine',     gain: 0.05, attack: 0.003, decay: 0.03, sustain: 0.15, release: 0.08, duration: 0.05, delay: 0.02 });
+}
+
+// A reward is taken (r596). Owner: rewards "don't get much of a sound effect"
+// as they leave. A soft thunk as the choice locks in, then two bright bell notes
+// (C6, G6) with a high shimmer: the sound of the thing becoming yours. Plays on
+// the breathe beat of rewardTransitionOut, before the board explodes out.
+function sfxRewardTaken() {
+  if (typeof _crVoice !== 'function') return;
+  _crVoice((ctx, v, t, out) => {
+    _crTone(ctx, out, t, 190, 58, 0.2, 0.22 * v, 'sine');
+    _crHit(ctx, out, t, _crNoise(ctx, 0.03, p => 1 - p), 0.07 * v, 'bandpass', 2600, 1.2);
+    [[1046.5, 0.05], [1568, 0.13]].forEach(([f, d]) => {
+      _crTone(ctx, out, t + d, f, f, 0.6, 0.085 * v, 'triangle');
+      _crTone(ctx, out, t + d, f * 2, f * 2, 0.32, 0.028 * v, 'sine');
+    });
+    _crTone(ctx, out, t + 0.2, 2637, 2637, 0.5, 0.018 * v, 'sine');
+  });
+}
+
+function sfxCountdown321() {
+  // Three deep ticks
+  [0, 1, 2].forEach(i => {
+    playTone({ freq: 220, type: 'square', gain: 0.12, attack: 0.005, decay: 0.05, sustain: 0.1, release: 0.15, duration: 0.2, delay: i * 1.0 });
+  });
+}
+
+function sfxRoundStart() {
+  // Bright upward swoosh - round begins
+  playTone({ freq: 440, type: 'sine', gain: 0.15, attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3, duration: 0.5 });
+  playTone({ freq: 880, type: 'sine', gain: 0.08, attack: 0.02, decay: 0.1, sustain: 0.1, release: 0.3, duration: 0.4, delay: 0.08 });
+}
+
+// ══ THE REWARD COUNTER (r378) ════════════════════════════════════════════════
+// Owner: *"Can we make the sound bears for the reward count up have longer or
+// bigger tails? So the interruption feels more substantial?"*
+//
+// The counter card used to fire sfxLevelUp() and sfxSuccess() together and then
+// sfxSuccess() again per bump - three sounds written for three other moments,
+// all of them SHORT. A beat the whole tally is now held for (r376) needs a tail:
+// something that rings on past its own attack, so the pause reads as the game
+// stopping to tell you something rather than as a chime going off.
+//
+// `step` is the bump index: 0 is the card landing on x1, 1 the first extra, and
+// so on. THE ROOT CLIMBS A FOURTH ACROSS THE RUN and the tail gets LONGER with
+// it, so a x5 is audibly the biggest of them without simply being the loudest -
+// a fifth copy of one sound at one pitch reads as a stutter.
+//
+// The classic set has no reverb send (playTone connects dry at sfxOut), so the
+// tail here IS the release: 2.2s on the bell, 2.6s on the swell under it. The
+// four packs each carry their own reward_count with a real verb send.
+function sfxRewardCount(step = 0) {
+  const k = Math.min(step, 5);
+  const root = 392.0 * Math.pow(2, (k * 2) / 12);          // G4, up a tone a bump
+  const tail = 1.5 + k * 0.18;
+  // The strike: a triad that rings, each partial quieter and longer than the last.
+  [[1, 0.20, 0], [1.5, 0.155, 0.045], [2, 0.13, 0.09], [3, 0.075, 0.14]].forEach(([r, g, d]) => {
+    playTone({ freq: root * r, type: 'triangle', gain: g, attack: 0.004,
+               decay: 0.10, sustain: 0.42, release: tail, duration: 0.16, delay: d });
+  });
+  // The swell UNDER it is what makes the beat feel heavy rather than bright - a
+  // low sine with a slow attack, so it arrives after the strike and outlasts it.
+  playTone({ freq: root / 4, type: 'sine', gain: 0.185, attack: 0.09,
+             decay: 0.20, sustain: 0.62, release: tail + 0.4, duration: 0.5 });
+  playTone({ freq: root / 2, type: 'sine', gain: 0.10, attack: 0.07,
+             decay: 0.18, sustain: 0.5, release: tail, duration: 0.42, delay: 0.03 });
+  playNoise({ gain: 0.075, attack: 0.002, release: 0.12 });   // the transient
+}
+
+function sfxLevelUp() {
+  // Warm arpeggiated flourish - pentatonic run upward
+  const notes = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 659.3];
+  notes.forEach((freq, i) => {
+    playTone({
+      freq,
+      type: 'triangle',
+      gain: 0.14,
+      attack: 0.01,
+      decay: 0.15,
+      sustain: 0.4,
+      release: 0.5,
+      duration: 0.6,
+      delay: i * 0.08,
+    });
+    // Octave harmonic for warmth
+    playTone({
+      freq: freq * 2,
+      type: 'sine',
+      gain: 0.05,
+      attack: 0.01,
+      decay: 0.1,
+      sustain: 0.2,
+      release: 0.4,
+      duration: 0.5,
+      delay: i * 0.08 + 0.02,
+    });
+  });
+}
+
+function sfxShopOpen() {
+  // Gentle shimmer - high bell tones with reverb-like tail
+  const bells = [523.3, 659.3, 783.9, 1046.5];
+  bells.forEach((freq, i) => {
+    playTone({
+      freq,
+      type: 'sine',
+      gain: 0.1 - i * 0.015,
+      attack: 0.005,
+      decay: 0.2,
+      sustain: 0.15,
+      release: 0.8,
+      duration: 0.9,
+      delay: i * 0.12,
+      detune: i % 2 === 0 ? 4 : -4,
+    });
+  });
+  // Soft noise shimmer
+  playNoise({ gain: 0.03, attack: 0.01, release: 0.3, delay: 0.05 });
+}
+
+function sfxChallengeAppear() {
+  [440, 370, 415, 554].forEach((freq, i) => {
+    playTone({ freq, type: 'triangle', gain: 0.12, attack: 0.01,
+               decay: 0.1, sustain: 0.2, release: 0.3, duration: 0.35, delay: i * 0.1 });
+  });
+  playNoise({ gain: 0.04, attack: 0.01, release: 0.2, delay: 0.05 });
+}
+
+function sfxChallengeWin() {
+  const notes = [523.3, 659.3, 783.9, 1046.5, 1318.5];
+  notes.forEach((freq, i) => {
+    playTone({ freq, type: 'triangle', gain: 0.13, attack: 0.005,
+               decay: 0.1, sustain: 0.3, release: 0.4, duration: 0.5, delay: i * 0.07 });
+    playTone({ freq: freq * 1.5, type: 'sine', gain: 0.05, attack: 0.005,
+               decay: 0.08, sustain: 0.15, release: 0.3, duration: 0.4, delay: i * 0.07 + 0.02 });
+  });
+}
+
+function sfxChallengeFail() {
+  [415, 370, 330, 277, 247].forEach((freq, i) => {
+    playTone({ freq, type: 'square', gain: 0.10, attack: 0.005,
+               decay: 0.15, sustain: 0.25, release: 0.2, duration: 0.35, delay: i * 0.13 });
+  });
+  playTone({ freq: 80, type: 'sine', gain: 0.18, attack: 0.005,
+             decay: 0.3, sustain: 0.1, release: 0.4, duration: 0.5, delay: 0.65 });
+}
+
+// Quick tick for score climbing. Very short, low-volume so rapid ticks don't get annoying.
+function sfxScoreTick() {
+  playTone({
+    freq: 1400,
+    type: 'square',
+    gain: 0.025,
+    attack: 0.001,
+    decay: 0.008,
+    sustain: 0.02,
+    release: 0.02,
+    duration: 0.04,
+  });
+}
+
+// Per-card pop chirp. Short triangle blip with a sine overtone, suit-tinted.
+function sfxCardPop(suit) {
+  // Spectrum colours: spread the seven across the same register as the suits.
+  if (typeof COLOR_HEX !== 'undefined' && COLOR_HEX[suit]) {
+    const i = COLORS.indexOf(suit);
+    playTone({ freq: 200 + i * 24, type:'triangle', gain:0.06, attack:0.001, decay:0.02, sustain:0.08, release:0.07, duration:0.11 });
+    return;
+  }
+  const baseFreq = suit === '♥' ? 280
+                : suit === '♦' ? 320
+                : suit === '♣' ? 240
+                : 200; // ♠
+  playTone({
+    freq: baseFreq,
+    type: 'triangle',
+    gain: 0.06,
+    attack: 0.001,
+    decay: 0.02,
+    sustain: 0.08,
+    release: 0.07,
+    duration: 0.11,
+  });
+  playTone({
+    freq: baseFreq * 2.5,
+    type: 'sine',
+    gain: 0.025,
+    attack: 0.002,
+    decay: 0.025,
+    sustain: 0.05,
+    release: 0.05,
+    duration: 0.09,
+  });
+}
+
+// Quiet pop when a focus node detaches (quieter than sfxCardPop).
+function sfxFocusNodePop() {
+  playTone({
+    freq: 360,
+    type: 'triangle',
+    gain: 0.022,
+    attack: 0.001,
+    decay: 0.015,
+    sustain: 0.04,
+    release: 0.04,
+    duration: 0.06,
+  });
+}
+
+// Quieter downward whoosh while the focus node falls.
+function sfxFocusNodeDrop() {
+  playTone({
+    freq: 160,
+    type: 'sawtooth',
+    gain: 0.015,
+    attack: 0.005,
+    decay: 0.03,
+    sustain: 0.08,
+    release: 0.12,
+    duration: 0.18,
+  });
+  playTone({
+    freq: 90,
+    type: 'sine',
+    gain: 0.012,
+    attack: 0.005,
+    decay: 0.04,
+    sustain: 0.1,
+    release: 0.12,
+    duration: 0.2,
+  });
+}
+
+// Per-particle escalating tone. Step starts at 0, climbs with each call.
+// Two types: 'pip' = lower base, 'mult' = higher base.
+let _particleStep = 0;
+function resetParticleStep() { _particleStep = 0; }
+// TWO sounds, not one (r191). Each particle is a short attack tick and then a
+// pitched body a beat behind it - "t-ding", not "ding". Two transients that close
+// together read as one event with a shape, which is what makes a long run of them
+// sound like a counter ratcheting rather than like a row of identical bleeps; the
+// old version layered its overtone SIMULTANEOUSLY, which just made one thicker
+// bleep. PARTICLE_GAP is the whole effect: below ~25ms the two fuse into a click,
+// above ~90ms they separate into two events.
+const PARTICLE_GAP = 0.045;
+
+function sfxParticleStep(type = 'pip') {
+  const i = _particleStep++;
+  const baseFreq = type === 'mult' ? 520 : 380;
+  const step = type === 'mult' ? 70 : 55;
+  const freq = baseFreq + i * step;
+
+  // 1. The tick: bright, tiny, no pitch to speak of. The "t".
+  playTone({
+    freq: freq * (type === 'mult' ? 3.1 : 2.7),
+    type: 'square',
+    gain: 0.030,
+    attack: 0.001,
+    decay: 0.012,
+    sustain: 0.05,
+    release: 0.02,
+    duration: 0.028,
+  });
+
+  // 2. The body: the note that actually carries the climb. The "ding".
+  playTone({
+    freq,
+    type: 'triangle',
+    gain: 0.08,
+    attack: 0.002,
+    decay: 0.04,
+    sustain: 0.1,
+    release: 0.06,
+    duration: 0.12,
+    delay: PARTICLE_GAP,
+  });
+  playTone({
+    freq: freq * 2,
+    type: 'sine',
+    gain: 0.030,
+    attack: 0.002,
+    decay: 0.03,
+    sustain: 0.08,
+    release: 0.05,
+    duration: 0.1,
+    delay: PARTICLE_GAP,
+  });
+}
+
+function sfxMultiGoal(count) {
+  for (let i = 0; i < count; i++) {
+    const delay = i * 0.28;
+    const freq = 660 + i * 180; // rises with each ding
+    playTone({ freq, type: 'square', gain: 0.13, attack: 0.003,
+               decay: 0.06, sustain: 0.12, release: 0.1, duration: 0.22, delay });
+    playTone({ freq: freq * 2, type: 'sine', gain: 0.07, attack: 0.003,
+               decay: 0.05, sustain: 0.08, release: 0.08, duration: 0.18, delay: delay + 0.01 });
+    // Coin shimmer noise between dings
+    playNoise({ gain: 0.025, attack: 0.002, release: 0.06, delay: delay + 0.04 });
+  }
+}
+
+// Focus beat - a swelling tone that resolves into a bright pop, signalling the focus
+// multiplier is applying to the mult.
+// r571: the Focus multiplier applying AGAIN (Double Down, Marathon, Autopilot...):
+// the Focus beat a tone higher per application, with a short rise in front.
+// Everything that pays out rises (the r234 rule); k is the application number.
+function sfxFocusAgain(k) {
+  const up = Math.pow(2, (2 * (k || 1)) / 12);
+  playNoise({ gain: 0.03, attack: 0.04, release: 0.08, delay: 0 });
+  playTone({ freq: 320 * up, type: 'sine', gain: 0.1, attack: 0.015, decay: 0.06, sustain: 0.45, release: 0.12, duration: 0.22, delay: 0.06 });
+  playTone({ freq: 640 * up, type: 'sine', gain: 0.07, attack: 0.012, decay: 0.05, sustain: 0.35, release: 0.14, duration: 0.24, delay: 0.08 });
+  playTone({ freq: 960 * up, type: 'triangle', gain: 0.035, attack: 0.01, decay: 0.05, sustain: 0.3, release: 0.16, duration: 0.26, delay: 0.1 });
+}
+// r571: Overdrive's hit, one per autoplayed hand: transient, body, tail, the root
+// a tone up per hand so a run of hands climbs. Bigger than a select, smaller than
+// a goal.
+function sfxOverdriveHit(k) {
+  const up = Math.pow(2, (2 * ((k || 1) - 1)) / 12);
+  playNoise({ gain: 0.09, attack: 0.001, release: 0.06 });
+  playTone({ freq: 110, type: 'triangle', gain: 0.14, attack: 0.002, decay: 0.08, sustain: 0.2, release: 0.14, duration: 0.14 });
+  [1, 1.5, 2].forEach((ratio, i) => playTone({ freq: 261.6 * up * ratio, type: 'square', gain: 0.07 - i * 0.015, attack: 0.004, decay: 0.08, sustain: 0.25, release: 0.22, duration: 0.3, delay: 0.02 + i * 0.03 }));
+}
+function sfxFocusBeat() {
+  // Low swell
+  playTone({
+    freq: 320,
+    type: 'sine',
+    gain: 0.08,
+    attack: 0.02,
+    decay: 0.06,
+    sustain: 0.4,
+    release: 0.08,
+    duration: 0.18,
+  });
+  // Mid harmonic
+  playTone({
+    freq: 640,
+    type: 'sine',
+    gain: 0.06,
+    attack: 0.012,
+    decay: 0.05,
+    sustain: 0.35,
+    release: 0.1,
+    duration: 0.2,
+    delay: 0.02,
+  });
+  // Bright pop on top
+  playTone({
+    freq: 1100,
+    type: 'triangle',
+    gain: 0.07,
+    attack: 0.003,
+    decay: 0.04,
+    sustain: 0.2,
+    release: 0.12,
+    duration: 0.18,
+    delay: 0.05,
+  });
+  // Sparkle
+  playTone({
+    freq: 2200,
+    type: 'sine',
+    gain: 0.035,
+    attack: 0.004,
+    decay: 0.05,
+    sustain: 0.15,
+    release: 0.1,
+    duration: 0.16,
+    delay: 0.08,
+  });
+}
+
+// ══════════════════════════════════════════════
+// CLOCK SOUNDS (r183) - see js/clock-fx.js
+// ══════════════════════════════════════════════
+
+// A single quiet clock tick, on the heartbeat wave every 10s. Deliberately at
+// the very bottom of the mix: it plays six times a minute for a whole run, so
+// anything you can actually notice becomes maddening. Escapement click (a tiny
+// high noise pip) plus a short wooden body under it.
+function sfxClockTick() {
+  playNoise({ gain: 0.012, attack: 0.001, release: 0.018 });
+  playTone({ freq: 1750, type: 'square', gain: 0.010, attack: 0.001,
+             decay: 0.014, sustain: 0.05, release: 0.03, duration: 0.02 });
+  playTone({ freq: 430,  type: 'triangle', gain: 0.016, attack: 0.001,
+             decay: 0.02,  sustain: 0.06, release: 0.05, duration: 0.03 });
+}
+
+// CLICK CLICK - the clock has been PAUSED (r534, owner). A stopwatch button: two
+// equal, dry clicks `PAUSE_CLICK_GAP` apart, no ring, so it cannot be mistaken for
+// a rewind (a swell that winds up). Every pack keeps the same rhythm in its own voice.
+const PAUSE_CLICK_GAP = 0.085;
+function sfxTickTock() {
+  [0, PAUSE_CLICK_GAP].forEach(delay => {
+    playNoise({ gain: 0.07, attack: 0.0008, release: 0.014, delay });
+    playTone({ freq: 2600, type: 'square', gain: 0.04, attack: 0.0008,
+               decay: 0.008, sustain: 0.04, release: 0.016, duration: 0.012, delay });
+    playTone({ freq: 640, type: 'triangle', gain: 0.085, attack: 0.001,
+               decay: 0.02, sustain: 0.05, release: 0.03, duration: 0.03, delay });
+  });
+}
+
+// REWIND - a tape played backwards. A normal sound is a hit that decays; this is
+// the mirror image of that, so the envelope SWELLS from nothing and then stops
+// dead, and the pitch sweeps UP instead of down. playTone's envelope only decays,
+// so this one is built on raw nodes.
+function sfxRewind() {
+  const vol = (typeof sfxVolume === 'function') ? sfxVolume() : 1;
+  if (vol <= 0) return;
+  const ctx  = getAudioCtx();
+  const now  = ctx.currentTime;
+  const dur  = 0.62;
+  const dest = sfxOut(ctx);
+
+  // Two detuned saws sweeping upward - the "wind back" itself.
+  [[196, 0], [196, 9]].forEach(([f, det]) => {
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    const lp  = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(420, now);
+    lp.frequency.exponentialRampToValueAtTime(3200, now + dur);
+    osc.type = 'sawtooth';
+    osc.detune.value = det;
+    osc.frequency.setValueAtTime(f, now);
+    osc.frequency.exponentialRampToValueAtTime(f * 3.4, now + dur);
+    // Reversed envelope: silence → full, then cut off in 25ms.
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.exponentialRampToValueAtTime(0.075 * vol, now + dur);
+    env.gain.linearRampToValueAtTime(0, now + dur + 0.025);
+    osc.connect(lp); lp.connect(env); env.connect(dest);
+    osc.start(now); osc.stop(now + dur + 0.08);
+  });
+
+  // Tape hiss swelling with it, through a filter that opens as it goes.
+  const bufSize = Math.floor(ctx.sampleRate * (dur + 0.1));
+  const buffer  = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data    = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (fxRandom() * 2 - 1);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.Q.value = 1.1;
+  bp.frequency.setValueAtTime(600, now);
+  bp.frequency.exponentialRampToValueAtTime(4200, now + dur);
+  const nEnv = ctx.createGain();
+  nEnv.gain.setValueAtTime(0.0001, now);
+  nEnv.gain.exponentialRampToValueAtTime(0.05 * vol, now + dur);
+  nEnv.gain.linearRampToValueAtTime(0, now + dur + 0.025);
+  src.connect(bp); bp.connect(nEnv); nEnv.connect(dest);
+  src.start(now); src.stop(now + dur + 0.1);
+}
+
+// ── Hook sounds into game events ──
+// Sounds are called directly at their trigger sites above.
+
+// ══════════════════════════════════════════════
+// DEV MODE
+// ══════════════════════════════════════════════
+let devMode = localStorage.getItem('devMode') === 'true';
+let devFallSpeed = 1;
+let devAnimSpeed = 5; // t/s for score animation
+let devPanelOpen = false;
+
+// Card counter HUD visibility - default hidden, toggleable via dev panel. Persisted.
+let showDeckHud = (localStorage.getItem('showDeckHud') === 'true');
+

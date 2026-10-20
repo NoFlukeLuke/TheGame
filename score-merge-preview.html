@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score merge preview - TheGame</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Cinzel:wght@700;900&family=Crimson+Pro:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/skin-machine.css">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   SCORE MERGE PREVIEW  (r592)
+   THE REAL THING: this page loads js/pmf-merge.js and the shipped css/style.css,
+   with the game's own score-panel markup inside a #stage at the desktop zoom.
+   What runs here is byte for byte what runs in a hand. The game's sounds are
+   named in the line under the panel; the housing's mask (console mode hides the
+   flying number between screens) lives in js/machine-skin.js and is not loaded,
+   so here the ghost shows all the way.
+   ══════════════════════════════════════════════════════════════════ */
+html, body { height: auto; min-height: 100vh; overflow: auto; }
+body { margin: 0; background: #0a0908; color: #e8dcc0; font-family: 'Share Tech Mono', monospace; display: flex; }
+#stageWrap { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 18px; }
+#panel { width: 330px; flex: 0 0 330px; background: #12100d; border-left: 1px solid #3a3229; padding: 14px; overflow-y: auto; height: 100vh; box-sizing: border-box; }
+#panel h1 { font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 2px; margin: 0 0 4px; color: #c9a84c; }
+#panel h2 { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px; margin: 16px 0 6px; color: #8fd6a8; border-bottom: 1px solid #2a251e; padding-bottom: 4px; }
+.row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 11px; }
+.row label { flex: 1; min-width: 52px; color: #a89878; white-space: nowrap; }
+.row input[type=range] { flex: 1.4; min-width: 0; }
+.row input[type=number], .row select { width: 120px; background: #1c1813; border: 1px solid #3a3229; color: #e8dcc0; font-family: inherit; font-size: 11px; padding: 2px 4px; border-radius: 3px; }
+.val { width: 46px; text-align: right; color: #e8c56b; font-size: 11px; }
+#panel button { font-family: 'Share Tech Mono', monospace; background: #1c1813; border: 1px solid #4a4032; color: #e8dcc0; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+#panel button:hover { background: #2a2419; border-color: #c9a84c; }
+#panel button.go { background: #1d3a28; border-color: #8fd6a8; color: #bff0d0; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.note { font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.35; opacity: .7; margin: 2px 0 8px; }
+pre { background: #0d0b09; border: 1px solid #2a251e; padding: 8px; font-size: 10px; white-space: pre-wrap; color: #cbb98f; }
+/* The stage is only its score panel here. */
+#cabinet { zoom: var(--stage-zoom, 1.9); height: 158px; overflow: hidden; background: #0a0908 !important; box-shadow: none !important; border-radius: 0 !important; }
+#stage { position: relative; width: 747px; height: 420px; }
+#sfx { font-size: 11px; color: #8fd6a8; min-height: 14px; text-align: center; }
+/* The pit's painted tray is JS (js/tray-pit.js), not loaded here: a plain dark panel stands in. */
+html:not(.skin-machine) #score-panel { background: #14110e !important; }
+</style>
+</head>
+<body>
+<div id="stageWrap">
+  <div id="cabinet"><div id="stage" class="landscape">
+    <div id="top-strip">
+      <div class="panel-box" id="score-panel">
+        <div id="score-panel-inner">
+          <div id="score-subboxes">
+            <div class="score-subbox" id="pips-box"><div class="subbox-label">PIPS</div><div class="subbox-val" id="pips-val">40</div></div>
+            <div class="subbox-times">×</div>
+            <div class="score-subbox" id="mult-box"><div class="subbox-label">MULT</div><div class="subbox-val" id="mult-val">6</div></div>
+            <div class="subbox-times">×</div>
+            <div class="score-subbox" id="focus-box"><div class="subbox-label">FOCUS</div><div class="subbox-val" id="focus-val">×1.5</div></div>
+            <div id="screen-location" style="display:none"><span class="loc-tag">LOCATION</span><span class="loc-name">·</span></div>
+          </div>
+          <div id="score-center"><span id="score-total-label">Score</span><div id="score-total-num">1,250</div></div>
+          <div id="score-left"><div id="score-goal-label">GOAL</div><div id="score-to-go"><span id="goal-display">5,000</span></div><div id="score-progress-bar-wrap"><div id="score-progress-bar" style="width:25%"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div id="sfx"></div>
+  <div class="note" style="max-width:560px;text-align:center">The game's own score panel, CSS and merge code (js/pmf-merge.js). Pick a look on the right and press Run; the numbers and the speed are live.</div>
+</div>
+
+<div id="panel">
+  <h1>SCORE MERGE PREVIEW</h1>
+  <div class="note">How PIPS × MULT × FOCUS become the hand's score and reach SCORE. This runs the shipped js/pmf-merge.js on the real markup and stylesheet.</div>
+  <h2>NUMBERS</h2>
+  <div class="row"><label>Pips</label><input type="number" id="nPips" value="40"></div>
+  <div class="row"><label>Mult</label><input type="number" id="nMult" value="6"></div>
+  <div class="row"><label>Focus ×</label><input type="number" id="nFocus" value="1.5" step="0.1"></div>
+  <div class="row"><label>Speed</label><input type="range" id="speed" min="0.25" max="3" step="0.05" value="1"><span class="val" id="speedV">1.00x</span></div>
+  <h2>LOOK</h2>
+  <div class="row"><label>Fuse by</label><select id="look" onchange="setPmfLook(this.value)"><option value="auto">auto</option><option value="slide">slide (melt)</option><option value="hold">hold (console)</option><option value="one">one step (old)</option></select></div>
+  <div class="row"><label>Console mode</label><input type="checkbox" id="console" onchange="setConsole(this.checked)"></div>
+  <div class="note"><b>slide</b>: PIPS and MULT jitter and slide into each other; blob copies behind them melt through a goo filter (blur, then alpha contrast) while the numbers crossfade sharp; the product chip grows in. Then it and FOCUS do the same into the score. <b>hold</b>: nothing moves (the screens are set in the housing): the values jitter, PIPS fades and MULT takes the product, MULT fades and FOCUS takes the score, and the ghost flies up. In the game the housing hides it between screens.</div>
+  <div class="btns"><button class="go" onclick="run()">Run</button><button onclick="resetAll()">Reset</button></div>
+  <h2>TIMING (ms, at 1x)</h2>
+  <div class="row"><label>Jitter</label><input type="number" id="tjitter" value="300"></div>
+  <div class="row"><label>Merge</label><input type="number" id="tmerge" value="380"></div>
+  <div class="row"><label>Settle</label><input type="number" id="tsettle" value="90"></div>
+  <div class="row"><label>Hold (console)</label><input type="number" id="thold" value="260"></div>
+  <div class="row"><label>Split</label><input type="number" id="tsplit" value="300"></div>
+  <div class="btns"><button onclick="dump()">Dump PMF_CFG</button></div>
+  <pre id="out"></pre>
+</div>
+
+<script>
+// Stubs for what the merge asks the game for.
+let _console = false;
+function trayMachineOn() { return _console; }
+function sfxScoreTick() { say('score tick'); }
+function sfxFocusBeat() { say('focus beat'); }
+function say(s) { const e = document.getElementById('sfx'); e.textContent = s; }
+</script>
+<script src="js/pmf-merge.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function fitZoom() { document.getElementById('cabinet').style.setProperty('--stage-zoom', Math.max(1, Math.min((innerWidth - 400) / 747, 2.2)).toFixed(3)); }
+addEventListener('resize', fitZoom); fitZoom();
+$('speed').oninput = () => $('speedV').textContent = (+$('speed').value).toFixed(2) + 'x';
+function setConsole(on) { _console = on; document.documentElement.classList.toggle('skin-machine', on); }
+function readCfg() { ['jitter', 'merge', 'settle', 'hold', 'split'].forEach(k => { PMF_CFG[k] = +$('t' + k).value || PMF_CFG[k]; }); }
+function dump() { $('out').textContent = 'const PMF_CFG = {\n' + Object.entries(PMF_CFG).map(([k, v]) => `  ${k}: ${v},`).join('\n') + '\n};'; }
+let scoreBase = 1250, running = false;
+function setChips() { $('pips-val').textContent = +$('nPips').value; $('mult-val').textContent = +$('nMult').value; $('focus-val').textContent = '×' + (+$('nFocus').value); }
+function resetAll() { pmfResetNow(); running = false; setChips(); $('score-total-num').textContent = scoreBase.toLocaleString(); say(''); }
+async function climb(total) {
+  const el = $('score-total-num'), from = scoreBase, to = scoreBase + total, st = performance.now(), d = 300 / (+$('speed').value);
+  await new Promise(res => { (function tk(now) { const t = Math.min((now - st) / d, 1), e = 1 - Math.pow(1 - t, 3); el.textContent = Math.round(from + (to - from) * e).toLocaleString(); if (t < 1) requestAnimationFrame(tk); else res(); })(st); });
+  scoreBase = to;
+}
+async function run() {
+  if (running) return; running = true; readCfg(); setChips(); say('');
+  const pips = +$('nPips').value, mult = +$('nMult').value, focus = +$('nFocus').value, speed = +$('speed').value;
+  const total = Math.round(pips * mult * focus);
+  try {
+    const ok = await pmfMergeIn(total, { speed, pips, mult });
+    if (ok) { await pmfFlyToScore({ speed }); await climb(total); }
+    await pmfSplitOut({ speed });
+  } catch (e) { console.error(e); }
+  running = false;
+}
+dump(); setChips();
+</script>
+</body>
+</html>

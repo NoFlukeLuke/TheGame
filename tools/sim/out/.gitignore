@@ -1,0 +1,2 @@
+# Raw audit runs are large; only the summary sheet and CSV are kept.
+*.json

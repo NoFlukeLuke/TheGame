@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Channel Change Tuner</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-purple:#9a6cff; --c-mint:#35d59b; --c-coral:#ff6a3c;
+    --phosphor:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684; --border:#3a3020;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0d0a06;font-family:'Orbitron',sans-serif;color:var(--cream);min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;}
+  h1{font-size:17px;letter-spacing:4px;color:var(--phosphor);text-shadow:0 0 12px rgba(255,176,46,.5);}
+  .sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:-6px;
+    text-align:center;line-height:1.7;max-width:780px;}
+
+  /* ── the TV: a CRT bezel wrapping the two mock screens ── */
+  .tv{width:760px;max-width:96vw;padding:16px;border-radius:20px;position:relative;
+    background:linear-gradient(180deg,var(--plastic-hi),var(--plastic) 40%,var(--plastic-lo));
+    box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.7),inset 0 -4px 0 rgba(0,0,0,.15);}
+  .screen-wrap{position:relative;border-radius:10px;overflow:hidden;background:#05060a;
+    box-shadow:inset 0 0 0 3px #1a1712, inset 0 0 40px rgba(0,0,0,.9);
+    height:340px;}
+  /* the picture itself — everything that a channel change distorts lives in here */
+  #picture{position:absolute;inset:0;transform-origin:center center;will-change:transform,filter;}
+  .chan{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+  .chan.on{display:flex;}
+
+  /* channel 1 — the play screen */
+  #ch-play{background:radial-gradient(ellipse at 50% 20%,#12212b,#05060a 75%);}
+  #ch-play .cards{display:grid;grid-template-columns:repeat(4,54px);gap:7px;}
+  #ch-play .c{height:72px;border-radius:5px;background:#f7f2e6;border:2px solid #c9bfa5;
+    display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700;color:#1a1510;}
+  #ch-play .c.r{color:#b8323f;}
+  /* channel 2 — the mart */
+  #ch-mart{background:radial-gradient(ellipse at 50% 20%,#2a1d06,#0b0906 75%);}
+  #ch-mart .brand{font-family:'Cinzel',serif;font-size:26px;letter-spacing:5px;color:var(--phosphor);text-shadow:0 0 18px rgba(255,176,46,.6);}
+  #ch-mart .shelf{display:flex;gap:10px;}
+  #ch-mart .t{width:60px;height:80px;border-radius:4px;border:2px solid var(--rc,var(--c-mint));
+    background:radial-gradient(120% 80% at 50% 0%,color-mix(in srgb,var(--rc,var(--c-mint)) 22%,#0b0906),#0b0906);
+    box-shadow:0 0 12px -2px var(--rc,var(--c-mint));display:flex;align-items:center;justify-content:center;font-size:26px;}
+  .label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);letter-spacing:2px;}
+
+  /* ── transition layers, stacked above the picture ── */
+  #static{position:absolute;inset:0;opacity:0;pointer-events:none;mix-blend-mode:screen;
+    background-repeat:repeat;background-size:180px 180px;}
+  #rollbar{position:absolute;left:0;right:0;height:22%;top:-30%;pointer-events:none;opacity:0;
+    background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.85) 22%,rgba(0,0,0,.92) 78%,rgba(0,0,0,0) 100%);
+    box-shadow:0 0 24px 6px rgba(0,0,0,.7);}
+  #flash{position:absolute;inset:0;pointer-events:none;opacity:0;background:#fff;}
+  #osd{position:absolute;top:14px;left:16px;pointer-events:none;opacity:0;
+    font-family:'Share Tech Mono',monospace;font-size:15px;letter-spacing:3px;color:#8dff9f;
+    text-shadow:0 0 8px rgba(120,255,150,.8);background:rgba(0,0,0,.45);padding:5px 10px;border-radius:3px;}
+  /* permanent CRT dressing so the mock reads like the cabinet */
+  .scan{position:absolute;inset:0;pointer-events:none;z-index:5;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.20) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;}
+  .glare{position:absolute;inset:0;pointer-events:none;z-index:6;
+    background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.10),transparent 60%);}
+
+  .panel{width:760px;max-width:96vw;display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));
+    gap:8px 18px;background:rgba(255,255,255,.03);border:1px solid #2a2416;border-radius:10px;padding:14px 16px;}
+  .row{display:flex;align-items:center;gap:9px;}
+  .row label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);min-width:106px;}
+  .row b{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--phosphor);min-width:46px;text-align:right;}
+  .row input[type=range]{flex:1;accent-color:var(--phosphor);}
+  .btns{width:760px;max-width:96vw;display:flex;gap:9px;flex-wrap:wrap;justify-content:center;}
+  button{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;padding:9px 15px;border-radius:6px;
+    background:rgba(255,176,46,.1);border:1px solid #5a4a12;color:var(--phosphor);cursor:pointer;}
+  button:hover{background:rgba(255,176,46,.2);}
+  button.big{font-size:12px;padding:12px 26px;background:rgba(255,176,46,.2);}
+  button.alt{color:var(--c-cyan);border-color:#16606a;background:rgba(22,200,216,.08);}
+  button.on{background:var(--c-mint);color:#04241a;border-color:var(--c-mint);}
+  #readout{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--c-mint);text-align:center;line-height:1.8;}
+  #cfg-out{width:760px;max-width:96vw;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);
+    background:#070f0c;border:1px solid #1c3a30;border-radius:8px;padding:10px 12px;white-space:pre;overflow-x:auto;}
+</style>
+</head>
+<body>
+
+<h1>CHANNEL CHANGE</h1>
+<div class="sub">
+  The CRT transition for moving between screens — play &harr; Mart, rewards, events.
+  Four stacked effects: <b>static</b>, <b>vertical roll</b>, <b>collapse to a line</b>, and <b>RGB split</b>,
+  plus an optional channel-number readout.<br>
+  Presets pick a character; the sliders tune it. The picture swaps at the collapse, the way a real set does.
+</div>
+
+<div class="tv">
+  <div class="screen-wrap">
+    <div id="picture">
+      <div class="chan on" id="ch-play">
+        <div class="label">CH 01 &middot; OBLIVISCORE</div>
+        <div class="cards" id="play-cards"></div>
+      </div>
+      <div class="chan" id="ch-mart">
+        <div class="brand">LETHE MART</div>
+        <div class="label">CH 02 &middot; AUTHORIZED TERMINAL</div>
+        <div class="shelf" id="mart-shelf"></div>
+      </div>
+    </div>
+    <div id="static"></div>
+    <div id="rollbar"></div>
+    <div id="flash"></div>
+    <div id="osd">CH 02</div>
+    <div class="scan"></div>
+    <div class="glare"></div>
+  </div>
+</div>
+
+<div class="btns">
+  <button class="big" onclick="changeChannel()">CHANGE CHANNEL</button>
+  <button onclick="preset('snap')">SNAP</button>
+  <button onclick="preset('classic')">CLASSIC</button>
+  <button onclick="preset('rough')">ROUGH</button>
+  <button onclick="preset('degauss')">DEGAUSS</button>
+  <button class="alt" id="osd-btn" onclick="toggleOsd()">OSD: ON</button>
+</div>
+
+<div class="panel" id="panel"></div>
+<div id="readout"></div>
+<div id="cfg-out"></div>
+
+<script>
+// ── config ───────────────────────────────────────────────────────────────────
+const PRESETS = {
+  // A quick, clean flick — barely interrupts play.
+  snap:    { dur:340, static:0.35, roll:0.5, collapse:0.85, split:2,  flash:0.45, hold:60 },
+  // The default: a real set changing channels. Rolls, collapses, snaps back.
+  classic: { dur:520, static:0.60, roll:1.0, collapse:1.00, split:4,  flash:0.60, hold:90 },
+  // Tired old TV — heavy static, big roll, slow lock.
+  rough:   { dur:780, static:0.95, roll:1.6, collapse:1.00, split:7,  flash:0.55, hold:150 },
+  // Power-cycle look: collapse to a line and bloom back, almost no static.
+  degauss: { dur:620, static:0.15, roll:0.2, collapse:1.00, split:9,  flash:1.00, hold:120 },
+};
+let CFG = { ...PRESETS.classic };
+let osdOn = true;
+let current = 'play';
+
+const PARAMS = [
+  ['dur',      'Duration',    120, 1400, 20,   'ms'],
+  ['static',   'Static',        0,    1, 0.05, ''],
+  ['roll',     'Roll',          0,    3, 0.1,  '×'],
+  ['collapse', 'Collapse',      0,    1, 0.05, ''],
+  ['split',    'RGB split',     0,   16, 0.5,  'px'],
+  ['flash',    'Flash',         0,    1, 0.05, ''],
+  ['hold',     'Black hold',    0,  400, 10,   'ms'],
+];
+
+function buildPanel() {
+  document.getElementById('panel').innerHTML = PARAMS.map(([k,label,min,max,step,unit]) =>
+    `<div class="row"><label>${label}</label>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${CFG[k]}"
+             oninput="CFG['${k}']=+this.value; document.getElementById('v-${k}').textContent=this.value+'${unit}'; refresh();">
+      <b id="v-${k}">${CFG[k]}${unit}</b></div>`).join('');
+}
+
+// ── noise tiles: a few pre-rendered frames, cycled, so static crawls ─────────
+const NOISE = [];
+(function buildNoise(){
+  for (let n = 0; n < 4; n++) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 90;
+    const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(90, 90);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.random() * 255;
+      img.data[i] = img.data[i+1] = img.data[i+2] = v;
+      img.data[i+3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    NOISE.push(`url(${cv.toDataURL()})`);
+  }
+})();
+
+// ── mock screen content ──────────────────────────────────────────────────────
+const RANKS=['A','K','Q','J','10','9','8','7','6','5','4','3','2'], SUITS=['♠','♥','♦','♣'];
+document.getElementById('play-cards').innerHTML =
+  Array.from({length:16},(_,i)=>{ const s=SUITS[i%4];
+    return `<div class="c${'♥♦'.includes(s)?' r':''}">${RANKS[i%RANKS.length]}${s}</div>`; }).join('');
+const RC=['--c-mint','--c-cyan','--c-purple','--c-yellow','--c-magenta'], EM=['✦','▶','♦','▲','◎'];
+document.getElementById('mart-shelf').innerHTML =
+  EM.map((e,i)=>`<div class="t" style="--rc:var(${RC[i]})">${e}</div>`).join('');
+
+// ── the transition ───────────────────────────────────────────────────────────
+// Three phases, all driven off one rAF clock:
+//   0 → tearOut : picture destabilises (static in, roll starts, RGB split widens)
+//   tearOut     : COLLAPSE to a line + flash — the channel is swapped right here
+//   → end       : bloom back out, roll settles, static falls away
+let busy = false;
+function changeChannel(to) {
+  if (busy) return; busy = true;
+  const target = to || (current === 'play' ? 'mart' : 'play');
+  const pic    = document.getElementById('picture');
+  const stat   = document.getElementById('static');
+  const roll   = document.getElementById('rollbar');
+  const flash  = document.getElementById('flash');
+  const osd    = document.getElementById('osd');
+
+  const D = CFG.dur, HOLD = CFG.hold, TOTAL = D + HOLD;
+  const tearOut = D * 0.42;              // the moment of collapse
+  const t0 = performance.now();
+  let swapped = false;
+
+  if (osdOn) osd.textContent = target === 'mart' ? 'CH 02' : 'CH 01';
+
+  function frame(now) {
+    const t = now - t0;
+    if (t >= TOTAL) { settle(); return; }
+
+    // progress into (0..1) and out of (0..1) the collapse
+    const pIn  = Math.min(1, t / tearOut);
+    const pOut = t < tearOut + HOLD ? 0 : Math.min(1, (t - tearOut - HOLD) / (D - tearOut));
+    const inCollapse = t >= tearOut && t < tearOut + HOLD;
+
+    if (!swapped && t >= tearOut) {          // swap under cover of the collapse
+      document.getElementById('ch-' + current).classList.remove('on');
+      document.getElementById('ch-' + target).classList.add('on');
+      swapped = true;
+    }
+
+    // vertical squeeze: 1 → collapsed → 1 (overshoots slightly on the way back)
+    let sy;
+    if (inCollapse)      sy = 1 - CFG.collapse * 0.997;
+    else if (t < tearOut) sy = 1 - CFG.collapse * 0.997 * ease(pIn);
+    else                  sy = (1 - CFG.collapse * 0.997) + (CFG.collapse * 0.997) * overshoot(pOut);
+    // horizontal bloom as it collapses (a CRT line stretches wide)
+    const sx = 1 + 0.06 * CFG.collapse * (1 - Math.abs(sy));
+
+    pic.style.transform = `scale(${sx.toFixed(4)}, ${Math.max(0.003, sy).toFixed(4)})`;
+
+    // RGB split peaks at the collapse
+    const splitAmt = CFG.split * (inCollapse ? 1 : (t < tearOut ? ease(pIn) : 1 - ease(pOut)));
+    pic.style.filter = splitAmt > 0.05
+      ? `drop-shadow(${splitAmt.toFixed(1)}px 0 rgba(255,0,64,.55)) drop-shadow(${(-splitAmt).toFixed(1)}px 0 rgba(0,190,255,.55))`
+      : 'none';
+
+    // static: strongest around the swap
+    const sAmt = CFG.static * (inCollapse ? 1 : (t < tearOut ? ease(pIn) : 1 - ease(pOut)));
+    stat.style.opacity = sAmt.toFixed(3);
+    stat.style.backgroundImage = NOISE[Math.floor(t / 45) % NOISE.length];
+
+    // roll bar sweeps down through the picture as it locks on
+    if (CFG.roll > 0.02) {
+      const laps = CFG.roll;
+      const y = ((t / TOTAL) * laps % 1) * 160 - 30;
+      roll.style.opacity = (0.85 * (1 - pOut)).toFixed(3);
+      roll.style.top = y.toFixed(1) + '%';
+    } else roll.style.opacity = '0';
+
+    // white flash on the collapse
+    flash.style.opacity = (inCollapse ? CFG.flash : (t > tearOut ? CFG.flash * (1 - ease(pOut)) * 0.5 : 0)).toFixed(3);
+
+    // channel readout fades in with the new picture and lingers
+    if (osdOn) osd.style.opacity = (t < tearOut ? 0 : Math.min(1, pOut * 2)).toFixed(2);
+
+    requestAnimationFrame(frame);
+  }
+
+  function settle() {
+    pic.style.transform = ''; pic.style.filter = '';
+    stat.style.opacity = '0'; roll.style.opacity = '0'; flash.style.opacity = '0';
+    current = target; busy = false;
+    if (osdOn) { setTimeout(() => { osd.style.transition = 'opacity .4s'; osd.style.opacity = '0';
+                                    setTimeout(()=>osd.style.transition='', 420); }, 700); }
+    else osd.style.opacity = '0';
+    refresh();
+  }
+  requestAnimationFrame(frame);
+}
+const ease      = p => p * p * (3 - 2 * p);                       // smoothstep
+const overshoot = p => { const s = 1.24; return 1 + (--p) * p * ((s + 1) * p + s); };
+
+function preset(name) { CFG = { ...PRESETS[name] }; buildPanel(); refresh(); changeChannel(); }
+function toggleOsd() {
+  osdOn = !osdOn;
+  const b = document.getElementById('osd-btn');
+  b.textContent = 'OSD: ' + (osdOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', osdOn);
+  if (!osdOn) document.getElementById('osd').style.opacity = '0';
+}
+function refresh() {
+  document.getElementById('readout').innerHTML =
+    `now showing <b>${current === 'play' ? 'CH 01 · play' : 'CH 02 · mart'}</b> · ` +
+    `collapse at <b>${Math.round(CFG.dur * 0.42)}ms</b>, held <b>${CFG.hold}ms</b>, ` +
+    `total <b>${CFG.dur + CFG.hold}ms</b>`;
+  document.getElementById('cfg-out').textContent =
+    'CHANNEL_CHANGE = ' + JSON.stringify(CFG, null, 2).replace(/"/g, '');
+}
+
+buildPanel();
+document.getElementById('osd-btn').classList.add('on');
+refresh();
+</script>
+</body>
+</html>

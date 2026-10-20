@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shop Preview — LETHE Mart v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-purple:#9a6cff; --c-mint:#35d59b; --c-coral:#ff6a3c;
+    --phosphor:#ffb02e; --gold:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684;
+    --panel:#14100b; --border:#46381f;
+    --rar-common:var(--c-mint); --rar-rare:var(--c-cyan); --rar-epic:var(--c-purple); --rar-legendary:var(--c-yellow); --rar-mythic:var(--c-magenta);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:#0a0a12; font-family:'Orbitron',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px;}
+  .cabinet{width:1040px; height:600px; border-radius:22px; padding:16px;
+    background:linear-gradient(160deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+    box-shadow:0 0 0 2px var(--plastic-deep), 0 24px 60px rgba(0,0,0,0.6);}
+  .screen{width:100%; height:100%; border-radius:12px; position:relative; overflow:hidden;
+    background:radial-gradient(ellipse at 62% 30%, #211a0c 0%, #0d0a06 82%);
+    box-shadow:inset 0 0 60px rgba(0,0,0,0.8), inset 0 0 0 2px #2a2416;}
+  .screen::after{content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px); mix-blend-mode:overlay;}
+  .shop{position:absolute; inset:0; display:grid; grid-template-columns:200px 1fr 232px; grid-template-rows:1fr; gap:10px; padding:12px;}
+  .tag{position:absolute; top:7px; left:50%; transform:translateX(-50%); font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:3px; color:var(--cream-dim); opacity:.5; z-index:5;}
+
+  /* ══ LEFT: player loadout — matches the in-game left column ══ */
+  .loadout{display:flex; flex-direction:column; gap:8px; min-height:0;}
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px 8px; position:relative;}
+  .panel .pt{font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--cream-dim); text-transform:uppercase; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;}
+  .panel .pt .cnt{font-family:'Share Tech Mono',monospace; opacity:.7;}
+  .p-knacks{border-top:2px solid var(--c-yellow);}
+  .p-sleights{border-top:2px solid var(--c-cyan);}
+  .p-tricks{border-top:2px solid var(--c-coral); flex:1;}
+  .knack-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .knack{width:30px; height:30px; transform:rotate(45deg); border-radius:6px; flex-shrink:0;
+    background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+    box-shadow:0 0 0 2px var(--plastic-deep), inset 0 2px 0 rgba(255,255,255,0.6), 0 0 10px -3px var(--rc,var(--c-mint)); position:relative; display:flex; align-items:center; justify-content:center;}
+  .knack::after{content:''; position:absolute; inset:14%; border-radius:4px; border:2px solid var(--rc,var(--c-mint)); box-shadow:0 0 6px -1px var(--rc,var(--c-mint));}
+  .knack span{transform:rotate(-45deg); font-size:14px;}
+  .row{display:flex; gap:6px; flex-wrap:wrap;}
+  .mini-sleight{width:44px; height:60px; border-radius:6px; position:relative; padding:3px;
+    background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.25px solid var(--rc); color:#1a1510;
+    box-shadow:0 2px 5px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;}
+  .mini-sleight .c{position:absolute; top:1px; left:3px; font-family:'Share Tech Mono',monospace; font-size:8px; font-weight:700;}
+  .mini-sleight .a{font-size:17px;} .mini-sleight .u{position:absolute; bottom:1px; right:3px; font-size:7px; color:#6a5;}
+  .mini-trick{width:38px; height:48px; position:relative; color:#fff;
+    background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906);
+    border:1.5px solid var(--rc); border-radius:3px;
+    clip-path:polygon(0 6px,6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px));
+    box-shadow:0 0 8px -2px var(--rc); display:flex; align-items:center; justify-content:center;}
+  .mini-trick .a{font-size:20px;}
+  .suit-red{color:#c0392b;} .suit-blk{color:#1a1510;}
+  /* settings chips at bottom (like the game's Stats/Deck/Time/Pause) */
+  .settings{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:auto;}
+  .schip{font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--cream); background:#1a1510; border:1px solid var(--border); border-radius:6px; padding:7px 4px; text-align:center;}
+
+  /* ══ CENTER: shop catalog ══ */
+  .main{display:flex; flex-direction:column; gap:7px; min-height:0;}
+  /* Featured strip — spotlight ~50% taller, can hold ANY entity */
+  .feat{display:grid; grid-template-columns:1.5fr 1fr 108px; gap:8px; height:104px;}
+  .special{border:1.5px solid var(--rc); border-radius:10px; padding:8px 10px; background:linear-gradient(180deg,#15110b,#0a0906); display:flex; align-items:center; gap:10px;}
+  .special .stag{font-size:8px; letter-spacing:2px; color:var(--rc); text-shadow:0 0 6px var(--rc);}
+  .special .sname{font-size:12px; font-weight:700; text-transform:uppercase; color:#fff; margin-top:2px;}
+  .special .sdesc{font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); margin-top:3px;}
+  .wheel{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;}
+  .wheel-mini{width:56px; height:56px; border-radius:50%;
+    background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
+    box-shadow:0 0 0 2px #0b0906, 0 0 12px -2px #fff;}
+  .freezer{border:1.5px dashed var(--c-cyan); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--c-cyan); background:rgba(22,200,216,0.05); text-align:center;}
+  .freezer .fi{font-size:24px;} .freezer .ft{font-size:7px; letter-spacing:2px; margin-top:3px;}
+
+  .sec{border:1px solid #2a2416; border-radius:9px; padding:6px 9px 7px; background:linear-gradient(180deg,#120e08,#0b0906); position:relative;}
+  .sec.tricks{border-color:#5a4a12; box-shadow:inset 0 0 22px -8px rgba(255,176,46,0.18);}
+  .sec.tall{padding-bottom:14px;}                     /* limits + tools: ~60% thicker */
+  .sec .sh{font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--cream-dim); display:flex; justify-content:space-between; align-items:center;}
+  .sec.tricks .sh{color:var(--phosphor);}
+  .sec .sh .slots{font-family:'Share Tech Mono',monospace; font-size:8px; opacity:.7;}
+  /* LEFT-ALIGNED items + horizontal scroll when a section overflows */
+  .rowc{display:flex; gap:9px; margin-top:6px; align-items:flex-start; justify-content:flex-start; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; padding-bottom:2px;}
+  .rowc::-webkit-scrollbar{height:5px;} .rowc::-webkit-scrollbar-thumb{background:#3a3020; border-radius:3px;}
+  .scrollfade{position:absolute; right:1px; top:22px; bottom:8px; width:34px; pointer-events:none; border-radius:0 8px 8px 0;
+    background:linear-gradient(90deg,transparent,#0b0906 78%);}
+  .scrollfade::after{content:'›'; position:absolute; right:6px; top:50%; transform:translateY(-50%); color:var(--cream-dim); font-size:18px;}
+
+  .rowc.tools{gap:9px;}
+  .tool{min-width:200px; border:1px dashed var(--c-coral); border-radius:9px; padding:8px 10px; background:linear-gradient(180deg,#1c1109,#120b06); display:flex; flex-direction:column; gap:3px;}
+  .tool .tt{font-size:9px; letter-spacing:1px; color:var(--c-coral); text-transform:uppercase; display:flex; justify-content:space-between;}
+  .tool .tt .tp{font-family:'Share Tech Mono',monospace; color:var(--phosphor);}
+  .tool .td{font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream); line-height:1.35;}
+
+  /* shop entity looks */
+  .sleight{width:60px; height:84px; border-radius:7px; position:relative; padding:5px; flex-shrink:0;
+    background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.5px solid var(--rc); color:#1a1510;
+    box-shadow:0 3px 8px rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .sleight .corner{position:absolute; top:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:700; line-height:1;}
+  .sleight .corner.br{top:auto; left:auto; bottom:2px; right:4px; transform:rotate(180deg);}
+  .sleight .art{font-size:21px; line-height:1;} .sleight .nm{font-size:7px; font-weight:700; text-transform:uppercase; text-align:center; margin-top:2px;}
+  .sleight .uses{position:absolute; bottom:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:7px; color:#6a5;}
+  .trick{width:72px; height:92px; position:relative; padding:7px 5px; color:#fff; flex-shrink:0;
+    background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906);
+    border:2px solid var(--rc); border-radius:4px;
+    clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+    box-shadow:0 0 12px -2px var(--rc), inset 0 0 16px -6px var(--rc); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;}
+  .trick .emblem{font-size:8px; color:var(--rc); letter-spacing:2px; text-shadow:0 0 6px var(--rc);}
+  .trick .art{font-size:27px; line-height:1;} .trick .nm{font-size:8px; font-weight:700; text-transform:uppercase; text-align:center; text-shadow:0 0 6px var(--rc);}
+  .limit{min-width:158px; height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-radius:7px; flex-shrink:0;
+    background:linear-gradient(180deg,#0e1a16,#08110d); border-left:4px solid var(--c-mint); position:relative;}
+  .limit .ico{font-size:16px; color:var(--c-mint);} .limit .body{display:flex; flex-direction:column; line-height:1.1;}
+  .limit .lname{font-size:8px; letter-spacing:1px; color:var(--c-mint); text-transform:uppercase;} .limit .lprog{font-family:'Share Tech Mono',monospace; font-size:11px; color:#cfe;}
+  .limit .lprice{margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--phosphor);}
+  .price{position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px;}
+  .freeze{position:absolute; bottom:3px; right:4px; z-index:3; font-size:10px; opacity:.55;}
+  .r-common{--rc:var(--rar-common);} .r-rare{--rc:var(--rar-rare);} .r-epic{--rc:var(--rar-epic);} .r-legendary{--rc:var(--rar-legendary);} .r-mythic{--rc:var(--rar-mythic);}
+
+  /* limit hover tooltip (always shows current limit) */
+  .ltip{position:absolute; z-index:20; background:linear-gradient(180deg,#15110b,#0b0906); border:1.5px solid var(--c-mint); border-radius:8px; padding:7px 10px;
+    box-shadow:0 0 0 2px rgba(0,0,0,0.4), 0 0 14px -2px var(--c-mint); font-family:'Share Tech Mono',monospace;}
+  .ltip .lt-n{font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:#fff; text-transform:uppercase;}
+  .ltip .lt-d{font-size:10px; color:var(--c-mint); margin-top:3px;}
+  .ltip .lt-s{font-size:9px; color:var(--cream-dim); margin-top:2px;}
+
+  /* ══ RIGHT: LETHE Mart checkout ══ */
+  .checkout{display:flex; flex-direction:column; border:1px solid var(--plastic-deep); border-radius:10px; background:linear-gradient(180deg,#141009,#0b0906); padding:10px; min-height:0;}
+  .mart-brand{font-weight:900; font-size:16px; letter-spacing:3px; color:var(--phosphor); text-shadow:0 0 10px rgba(255,176,46,0.5); text-align:center;}
+  .mart-brand small{display:block; font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:2px; color:var(--cream-dim); margin-top:2px;}
+  .wallet{font-family:'Share Tech Mono',monospace; font-size:15px; color:var(--phosphor); background:#0c0a06; border:1px solid var(--plastic-deep); border-radius:7px; padding:6px; text-align:center; margin:8px 0;}
+  .ch{font-size:10px; letter-spacing:2px; color:var(--phosphor); border-bottom:1px solid #2a2416; padding-bottom:5px; display:flex; justify-content:space-between; align-items:center;}
+  .ch small{font-size:8px; color:var(--cream-dim);}
+  .rcpt{flex:1; display:flex; flex-direction:column; gap:5px; padding:8px 0; overflow:hidden;}
+  .rline{display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); border-bottom:1px dotted #241c10; padding-bottom:4px;}
+  .rline .x{color:var(--c-magenta);}
+  .drop{border:1px dashed #3a3020; border-radius:7px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:9px; text-align:center; padding:9px 4px; margin-top:2px;}
+  .sum{border-top:1px solid #2a2416; padding-top:6px;}
+  .sum .srow{display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim);}
+  .sum .srow.disc{color:var(--c-mint);}
+  .sum .grand{display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;}
+  .sum .grand span:first-child{font-size:10px; color:var(--cream-dim);}
+  .sum .grand s{color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:11px;}
+  .sum .grand b{color:var(--phosphor); font-family:'Share Tech Mono',monospace; font-size:20px;}
+  .checkoutbtn{margin-top:8px; font-weight:900; letter-spacing:2px; font-size:12px; color:#06251a; text-align:center; padding:11px; border-radius:8px;
+    background:linear-gradient(180deg,#7dffce,var(--c-mint) 55%,#1fa877); box-shadow:inset 0 2px 0 rgba(255,255,255,0.5),0 3px 0 #178a5e;}
+  .foot{display:flex; gap:7px; margin-top:7px;}
+  .fbtn{flex:1; text-align:center; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:8px; border-radius:7px; border:1px solid var(--plastic-deep); color:var(--cream-dim);}
+  .fbtn.leave{border-color:var(--c-coral); color:var(--c-coral);}
+</style>
+</head>
+<body>
+<div class="cabinet">
+  <div class="screen">
+    <div class="tag">▚ CH.07 · SHOP ▚</div>
+    <div class="shop">
+
+      <!-- LEFT: your loadout (game-styled) -->
+      <div class="loadout">
+        <div class="panel p-knacks">
+          <div class="pt"><span>Knacks</span><span class="cnt">3</span></div>
+          <div class="knack-row">
+            <div class="knack" style="--rc:var(--c-mint)"><span>🕊️</span></div>
+            <div class="knack" style="--rc:var(--c-cyan)"><span>⏳</span></div>
+            <div class="knack" style="--rc:var(--c-cyan)"><span>🔥</span></div>
+          </div>
+        </div>
+        <div class="panel p-sleights">
+          <div class="pt"><span>Sleights · in deck</span><span class="cnt">2</span></div>
+          <div class="row">
+            <div class="mini-sleight r-rare"><span class="c suit-red">A♦</span><span class="a">📢</span></div>
+            <div class="mini-sleight r-common"><span class="c suit-blk">7♣</span><span class="a">🔋</span><span class="u">∞</span></div>
+          </div>
+        </div>
+        <div class="panel p-tricks">
+          <div class="pt"><span>Tricks</span><span class="cnt">4 / 5</span></div>
+          <div class="row">
+            <div class="mini-trick r-rare"><span class="a">🔥</span></div>
+            <div class="mini-trick r-epic"><span class="a">🏠</span></div>
+            <div class="mini-trick r-common"><span class="a">📋</span></div>
+            <div class="mini-trick r-legendary"><span class="a">🎯</span></div>
+          </div>
+        </div>
+        <div class="settings">
+          <div class="schip">📊 Stats</div><div class="schip">🃏 Deck</div>
+          <div class="schip">⏱ Time</div><div class="schip">⏸ Pause</div>
+        </div>
+      </div>
+
+      <!-- CENTER: shop catalog -->
+      <div class="main">
+        <div class="feat">
+          <div class="special" style="--rc:var(--c-yellow)">
+            <div class="trick r-legendary" style="--rc:var(--c-yellow); width:64px; height:84px;"><div class="emblem">✦ TRICK</div><div class="art">🃏</div><div class="nm">Blueprint</div></div>
+            <div><div class="stag">★ SPOTLIGHT · 50% OFF</div><div class="sname">Blueprint</div><div class="sdesc">Copies the Trick to its right.<br><s style="color:#8a7">💰22</s> → 💰11 today only</div></div>
+          </div>
+          <div class="special wheel" style="--rc:var(--c-magenta)"><div class="wheel-mini"></div><div style="text-align:center"><div class="stag">◎ SPIN · 💰10</div><div class="sdesc">win any item · 1-in-10 jackpot</div></div></div>
+          <div class="freezer"><div class="fi">❄</div><div class="ft">FREEZER<br>drop to keep</div></div>
+        </div>
+
+        <div class="sec tricks">
+          <div class="sh"><span>★ Tricks (featured)</span><span class="slots">3 / 3 slots</span></div>
+          <div class="rowc">
+            <div class="trick r-rare"><span class="price">💰8</span><div class="emblem">✦ TRICK</div><div class="art">🔥</div><div class="nm">Wildfire</div><span class="freeze">❄</span></div>
+            <div class="trick r-epic"><span class="price">💰12</span><div class="emblem">✦ TRICK</div><div class="art">🎲</div><div class="nm">Loaded Dice</div><span class="freeze">❄</span></div>
+            <div class="trick r-rare"><span class="price">💰8</span><div class="emblem">✦ TRICK</div><div class="art">🔥</div><div class="nm">Wildfire</div><span class="freeze">❄</span></div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sh"><span>Sleights ▶</span><span class="slots">4 / 4 slots · scrolls →</span></div>
+          <div class="rowc">
+            <div class="sleight r-rare"><span class="price">💰12</span><span class="corner suit-red">A♦</span><span class="corner br suit-red">A♦</span><div class="art">🎇</div><div class="nm">Flare</div></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">7♣</span><span class="corner br suit-blk">7♣</span><div class="art">🔀</div><div class="nm">Pivot</div><span class="uses">3×</span></div>
+            <div class="sleight r-epic"><span class="price">💰16</span><span class="corner suit-red">K♥</span><span class="corner br suit-red">K♥</span><div class="art">🪞</div><div class="nm">Mirror</div><span class="uses">2×</span></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">9♠</span><span class="corner br suit-blk">9♠</span><div class="art">⚓</div><div class="nm">Anchor</div><span class="uses">1×</span></div>
+            <div class="sleight r-rare"><span class="price">💰12</span><span class="corner suit-red">Q♦</span><span class="corner br suit-red">Q♦</span><div class="art">🧲</div><div class="nm">Magnet</div><span class="uses">3×</span></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">4♠</span><span class="corner br suit-blk">4♠</span><div class="art">🎯</div><div class="nm">Sniper</div><span class="uses">2×</span></div>
+          </div>
+          <div class="scrollfade"></div>
+        </div>
+
+        <div class="sec tall">
+          <div class="sh"><span>Limit Upgrades ▲</span><span class="slots">2 / 2 slots</span></div>
+          <div class="rowc">
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Grid Rows</span><span class="lprog">4 → 5</span></div><span class="lprice">💰15</span></div>
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Selection</span><span class="lprog">3 → 4</span></div><span class="lprice">💰15</span></div>
+          </div>
+          <!-- sample "always-on" limit tooltip -->
+          <div class="ltip" style="left:16px; top:-6px;"><div class="lt-n">▲ Grid Rows</div><div class="lt-d">now 4 → 5</div><div class="lt-s">Rows in the playing grid · max 7</div></div>
+        </div>
+
+        <div class="sec tall">
+          <div class="sh"><span>Tools 🛠</span><span class="slots">2 / 2 slots</span></div>
+          <div class="rowc tools">
+            <div class="tool"><div class="tt"><span>⚡ Recharge Bay</span><span class="tp">💰12</span></div><div class="td">Recharge 1 sleight ×3, or 3 sleights ×1. (shows because sleights appeared)</div></div>
+            <div class="tool"><div class="tt"><span>✦ Trick Tinker</span><span class="tp">💰14</span></div><div class="td">Improve 1 random Trick you own (bigger bonus / looser use).</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: LETHE Mart brand + checkout -->
+      <div class="checkout">
+        <div class="mart-brand">LETHE MART<small>AUTHORIZED TERMINAL</small></div>
+        <div class="wallet">💰 132</div>
+        <div class="ch"><span>🧾 CHECKOUT</span><small>2 items</small></div>
+        <div class="rcpt">
+          <div class="rline"><span>🔥 Wildfire</span><span>💰8 <span class="x">✕</span></span></div>
+          <div class="rline"><span>🎇 Flare</span><span>💰12 <span class="x">✕</span></span></div>
+          <div class="drop">drag items here<br>to add to cart</div>
+        </div>
+        <div class="sum">
+          <div class="srow"><span>subtotal</span><span>💰20</span></div>
+          <div class="srow disc"><span>bundle −10% (cap 25%)</span><span>−💰2</span></div>
+          <div class="grand"><span>total</span><span><s>💰20</s> <b>💰18</b></span></div>
+          <div class="checkoutbtn">CHECKOUT</div>
+          <div class="foot"><div class="fbtn">🎲 Reroll 8</div><div class="fbtn leave">⏻ Leave</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

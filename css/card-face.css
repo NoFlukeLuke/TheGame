@@ -1,0 +1,45 @@
+/* ══ CARD FACE (r497, js/card-face.js) ══
+   html.cf-print    : the printout's pixel type, dot-printed (the default)
+   html.cf-phosphor : the card is a little screen, rank and suit glow in the suit colour
+   html.cf-classic  : the old serif face (style.css as written) */
+@font-face { font-family: 'VT323 Local'; src: url('../fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
+
+/* ── print ── */
+html.cf-print .card .rank,
+html.cf-print .mini-card .mini-rank {
+  font-family: 'VT323 Local', 'VT323', monospace !important; font-weight: 400 !important;
+  font-size-adjust: none !important; letter-spacing: 0;
+  filter: url(#cf-dot);
+}
+html.cf-print .card .rank { font-size: calc(var(--card-h, 75px) * 0.36); line-height: .8; }
+html.cf-print .card .suit { filter: url(#cf-dot); }
+html.cf-print .mini-card .mini-rank { font-size: 14px; }
+
+/* ── phosphor ── */
+html.cf-phosphor .card { --pg: 150, 255, 170; }
+html.cf-phosphor .card:not(.stone-card):not(.challenge-card) {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.42) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 45%, #121712, #050605);
+  border-color: rgba(var(--pg), .32);
+  box-shadow: inset 0 0 calc(var(--card-h, 75px) * .14) rgba(var(--pg), .10);
+}
+html.cf-phosphor .card.suit-hearts   { --pg: 255, 110, 90; }
+html.cf-phosphor .card.suit-diamonds { --pg: 255, 190, 80; }
+html.cf-phosphor .card.suit-clubs    { --pg: 110, 190, 255; }
+html.cf-phosphor .card.suit-crowns   { --pg: 230, 140, 255; }
+html.cf-phosphor .card.suit-moons    { --pg: 120, 240, 230; }
+html.cf-phosphor .card.wild-card     { --pg: 200, 140, 255; }
+html.cf-phosphor .card:hover:not(.unreachable):not(.stone-card) { background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.42) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 45%, #1a221a, #070907); }
+html.cf-phosphor .card .rank, html.cf-phosphor .card .suit,
+html.cf-phosphor .card .wild-glyph, html.cf-phosphor .card .wild-label {
+  color: rgb(var(--pg)) !important;
+  text-shadow: 0 0 3px rgba(var(--pg), .9), 0 0 10px rgba(var(--pg), .45) !important;
+}
+html.cf-phosphor .card .rank {
+  font-family: 'VT323 Local', 'VT323', monospace !important; font-weight: 400 !important;
+  font-size-adjust: none !important; font-size: calc(var(--card-h, 75px) * 0.38); line-height: .8;
+}
+html.cf-phosphor .card.selected { border-color: rgb(var(--pg)); box-shadow: 0 0 10px rgba(var(--pg), .55), inset 0 0 14px rgba(var(--pg), .2); }

@@ -1,0 +1,724 @@
+const DOUBLE_TAP_MS = 350;
+
+let isSwiping = false;
+let swipeStopped = false;
+
+// Auto-submit
+const AUTO_SUBMIT_DELAY = 2000;      // ms - long enough to change your mind
+const AUTO_SUBMIT_DELAY_FAST = 350;  // ms - autoPlayHands: steering, not choosing
+// A valid hand has always submitted itself on a timer; `autoPlayHands` only sets
+// how long that timer is. That is deliberately ALL it does - a separate auto-play
+// path would be a second way into playHand to keep in step with this one.
+function autoSubmitDelay() {
+  return (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.autoPlayHands)
+    ? AUTO_SUBMIT_DELAY_FAST
+    : (typeof ctlAutoPlayMs === 'function' ? ctlAutoPlayMs() : AUTO_SUBMIT_DELAY);
+}
+let autoSubmitTimer = null;
+let handReadyForSubmit = false; // true once an invalid card is hit mid-swipe
+
+function cancelAutoSubmit() {
+  if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
+  if (dragPlayTimer) { clearTimeout(dragPlayTimer); dragPlayTimer = null; }
+  handReadyForSubmit = false;
+}
+
+// Watchdog: a play/discard submitted mid-animation is queued (pendingAction), then
+// auto-executed here once the animating/falling flags settle. Double-safe with the
+// falling-complete flush - whichever fires first clears pendingAction atomically.
+let _queuedRetries = 0;
+function scheduleQueuedRetry() {
+  _queuedRetries = 0;
+  (function retry() {
+    if (!pendingAction) return;
+    if (animating || falling) {
+      if (_queuedRetries++ > 60) { dbgEvent('warn', 'queued action timed out', { pendingAction }); pendingAction = null; return; }
+      setTimeout(retry, 60); return;
+    }
+    const q = pendingAction; pendingAction = null;
+    dbgEvent('info', 'executing queued ' + q + ' (animation settled)');
+    if (q === 'play') playHand();
+    else if (q === 'discard') runQueuedDiscard();
+  })();
+}
+
+// ── CONTROLS: DRAG TO PLAY (r409) ──
+// Settings > Controls. 'drag': a left drag (or a finger drag) that gathers a
+// hand plays it on release, and tapping DISCARD with nothing selected arms the
+// NEXT drag to discard instead - which is how a phone gets the desktop's
+// right-drag discard. Taps still select and PLAY still plays, so this only adds.
+let controlMode = 'tap';
+let dragDiscardArmed = false;
+// The grace after a drag release (Settings > Controls > After a drag): while
+// it runs, a tap still adds a card and restarts the wait. dragGrace outlives
+// cancelAutoSubmit on purpose - the tap path cancels and re-schedules, and the
+// re-schedule is what re-arms this timer.
+let dragGrace = false, dragPlayTimer = null;
+function armDragPlay() {
+  if (dragPlayTimer) { clearTimeout(dragPlayTimer); dragPlayTimer = null; }
+  if (!selected.length) { dragGrace = false; return; }
+  if (!findBestHand(selected)) return;          // keep the grace; a tap may yet make the hand
+  handReadyForSubmit = true;
+  dragPlayTimer = setTimeout(() => {
+    dragPlayTimer = null;
+    if (!dragGrace || animating || falling || !dragControlsLive()) return;
+    dragGrace = false; handReadyForSubmit = false;
+    if (selected.length && findBestHand(selected)) playHand();
+  }, ctlDragGraceMs());
+}
+function controlDragPlay() { return controlMode === 'drag'; }
+function setControlMode(v) {
+  controlMode = v === 'drag' ? 'drag' : 'tap';
+  if (controlMode !== 'drag') dragDiscardArmed = false;
+  if (typeof gridData !== 'undefined' && gridData.length && gridData[0] && typeof render === 'function') { try { render(); } catch (e) {} }
+}
+function setDragDiscardArmed(on) {
+  dragDiscardArmed = !!on;
+  document.getElementById('btn-discard')?.classList.toggle('drag-armed', dragDiscardArmed);
+  if (typeof discardLatchSync === 'function') discardLatchSync();
+}
+// The takeover screens own #grid and the two buttons; a drag there is theirs.
+function dragControlsLive() { return controlDragPlay() && ctlLiveBoard(); }
+
+function scheduleAutoSubmit() {
+  cancelAutoSubmit();
+  // Drag to play: the release IS the submit, so no timer may fire mid-drag.
+  if (dragControlsLive() && document.getElementById('grid')?._pointerStart?.moved) return;
+  if (dragGrace) { armDragPlay(); render(); return; }
+  // Match-3: hands are never submitted by selection - matches play themselves.
+  // Selection exists purely to choose cards to DISCARD.
+  if (match3Active()) return;
+  if (danceAbortController) return; // dance in progress, don't schedule
+  const result = selected.length >= 2 ? findBestHand(selected) : null;
+  if (!result) return; // no valid hand, don't schedule
+  // r200: never auto-fire a hand the player is not allowed to play yet.
+  if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) return;
+  handReadyForSubmit = true;
+  render(); // trigger pulse immediately
+  if (autoSubmitDelay() <= 0) return;   // Settings > Controls > Auto-play: Off
+  // Tutorial: the early steps teach "select, look at the preview, then press
+  // PLAY". A 2s auto-play would fire the hand out from under the lesson, so the
+  // countdown is suppressed while those steps are up (the pulse still shows).
+  if (typeof tutorialHoldsAutoSubmit === 'function' && tutorialHoldsAutoSubmit()) return;
+  // A hand finished while cards are still falling waits for them (it used to be
+  // dropped). Any change to the selection cancels the wait.
+  let _waits = 0;
+  const fire = () => {
+    autoSubmitTimer = null;
+    if ((animating || falling) && _waits++ < 100) { autoSubmitTimer = setTimeout(fire, 60); return; }
+    handReadyForSubmit = false;
+    if (!animating && !falling && selected.length >= 2 && selected.length >= handMinSelection()) playHand();
+  };
+  autoSubmitTimer = setTimeout(fire, autoSubmitDelay());
+}
+
+function cardAt(el) {
+  let node = el;
+  while (node && node !== document.getElementById('grid')) {
+    if (node.classList && (node.classList.contains('card') || node.classList.contains('trick-card')) && node.dataset.row !== undefined)
+      return [parseInt(node.dataset.row), parseInt(node.dataset.col)];
+    node = node.parentElement;
+  }
+  return null;
+}
+
+function doSwap(r1, c1, r2, c2) {
+  // A boss may refuse the action outright (The Turnstile with no fare). Checked
+  // FIRST, before anything commits - bossOnInteract runs after the swap has
+  // already happened, which is right for a cost and useless for a gate.
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('swap')) return;
+  // Pivot (r205): it works by SITTING on the grid, not by being swapped. Any card
+  // touching a Pivot that still has charges swaps for FREE; if one Pivot touches
+  // BOTH ends of the swap, both cards take a permanent mult buff and that Pivot
+  // spends a charge and leaves the board. Brushing past a Pivot with only one end
+  // of the swap gets the free swap and nothing else - no buff, no discard.
+  // Resolved BEFORE the cards move, so "adjacent at the time of the swap" is what
+  // is actually measured. Pivot's own cell never counts as touching itself.
+  const _pivotCell = pivotForSwap(r1, c1, r2, c2);
+  const freeThisSwap = swapTouchesLivePivot(r1, c1, r2, c2) || sleightFreeSwapPending;
+  // r567: a swap that moves a Fodder card costs no stock and no time (it still counts as a swap).
+  const _fodderSwap = (typeof cardIsFodder === 'function' && (cardIsFodder(gridData[r1]?.[c1]) || cardIsFodder(gridData[r2]?.[c2])))
+                   || (typeof freeHandActive === 'function' && freeHandActive());   // r571: Free Hand's window
+
+  // Guard: block swap when out of swaps (Steady Hand or a free swap bypasses limit)
+  if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) {
+    const btn = document.getElementById('btn-swap');
+    if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
+    refuse('No swaps left');
+    swapPending = null; render(); return;
+  }
+  const notAdjacent = Math.abs(r1-r2) + Math.abs(c1-c2) !== 1;
+  // Free Range is a KNACK, `free_range_t` (js/data/knacks.js). This tested
+  // hasTrick('free_range') - a Trick id that does not exist in any pool - so
+  // the whole printed effect ("swap any two non-adjacent cards") had never
+  // once fired, while its downside DID: level-up.js takes a swap off the base
+  // for owning it. The knack was strictly negative. Found in r307 while
+  // mirroring this rule into the shop.
+  //
+  // A Pivot touching BOTH ends also waives adjacency (owner call). The eight
+  // cells around a Pivot are mostly NOT orthogonally adjacent to each other, so
+  // without this "swap freely all around it" only ever fired on the few pairs
+  // that happened to be neighbours anyway - the free swap worked, the freedom
+  // did not. Both-ends is _pivotCell, resolved above before anything moved.
+  // Wanderer (r354): while a live one sits on the grid, ANY two cards may swap
+  // regardless of position. Still spends swap stock; each distance swap spends
+  // one of its charges. Free Range and a both-ends Pivot are asked first, so a
+  // Wanderer charge is only spent when nothing else was already allowing it.
+  // The Queen's Royal Reach (r358) swaps along its lines at any distance.
+  const _royalSwap = notAdjacent && (hasRoyalReach(gridData[r1]?.[c1]) || hasRoyalReach(gridData[r2]?.[c2])) && onQueenLine(r1, c1, r2, c2);
+  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_royalSwap) ? liveWanderer() : null;
+  if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_wanderer && !_royalSwap) {
+    const btn = document.getElementById('btn-swap');
+    if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
+      setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
+    refuse('Those cards are not next to each other');
+    swapPending = null;
+    render();
+    return;
+  }
+  // Capture card IDs and old positions for FLIP animation (before data swap)
+  const _swId1 = gridData[r1]?.[c1]?._id;
+  const _swId2 = gridData[r2]?.[c2]?._id;
+  const _swDx = cellLeft(c2) - cellLeft(c1);
+  const _swDy = cellTop(r2) - cellTop(r1);
+
+  const tmp = gridData[r1][c1];
+  gridData[r1][c1] = gridData[r2][c2];
+  gridData[r2][c2] = tmp;
+
+  // Pivot payout: both swapped cards take +5 permanent mult, keyed by card identity
+  // (cardId), so the buff follows that one physical card through the deck. The Pivot
+  // is spent and discarded below - but only if a real card actually took the buff.
+  let _pivotSpent = null;
+  if (_pivotCell) {
+    let _buffed = 0;
+    [[r1,c1],[r2,c2]].forEach(([r,c]) => {
+      const card = gridData[r][c];
+      if (card && !card._isSleight && card.rank) {
+        const k = cardId(card);
+        permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
+        _buffed++;
+      }
+    });
+    if (_buffed) { _pivotSpent = _pivotCell; showMessage(`🔃 Pivot - both cards +${BAL.pivot.mult} mult`, 'var(--gold)'); }
+  }
+
+  // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
+  if (!hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) swaps--;
+  swapsUsedRound++;   // every swap ACTION, free or not (the No Takebacks challenge)
+  if (sleightFreeSwapPending) sleightFreeSwapPending = false;
+  // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
+  // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
+  // flat spendRoundTime(SWAP_TIME_COST) on top of this, which made the 3rd swap of
+  // a round cost 14s while the UI said 4s. One charge only now.
+  let swapTimeCost = BAL._resources.swap_seconds;
+  if (freeThisSwap || _fodderSwap || hasKnack('free_swaps')) swapTimeCost = 0;
+  else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
+  swapTimeCost = Math.round(swapTimeCost * bossInteractMult() * interactTimeCostMult());
+  if (swapTimeCost > 0) {
+    roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
+    showTimeCost(`-${swapTimeCost}s`);
+  }
+  updateClockUI();
+  if (typeof bossOnInteract === 'function') bossOnInteract('swap');
+  lastSwapTime = Date.now();
+  lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
+  resetFocusDecayTimer();
+  cullPay();   // Cull (r351): a swap pays too, read after the swap is paid for
+  selected = [];
+  swapPending = null;
+  // Card states (r278): a swap is an INTERACTION, so it resets both cards' fuses.
+  // That is a real lever rather than a side effect - moving a charged card buys
+  // it another full fuse, at the cost of a swap and the clock, and it is the only
+  // way to hold a state you are not ready to spend yet.
+  if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r1, c1], [r2, c2]]);
+  // on_swap sleights (Dazed reshuffle, Pivot charge/message) fire after the swap
+  fireSleightsOnSwap(r1, c1, r2, c2);
+  feedWhetstones([[r1, c1], [r2, c2]]);  // Whetstone sharpens on adjacent swaps
+  juryRigRoll([[r1, c1], [r2, c2]]);     // Jury-Rig: charge-restore roll per adjacent Sleight
+  render();
+  // FLIP swap animation: snap to new position in render(), then animate back from old
+  if (_swDx * _swDx + _swDy * _swDy > 0) {
+    const _swGridEl = document.getElementById('grid');
+    const _el1 = _swId1 ? _swGridEl.querySelector(`[data-card-id="${_swId1}"]`) : null;
+    const _el2 = _swId2 ? _swGridEl.querySelector(`[data-card-id="${_swId2}"]`) : null;
+    // r437: the look is the chosen one (dev -> Card Animations); _el1 is the card picked first.
+    cardAnimSwap(_el1, _el2, _swDx, _swDy);
+  }
+  // Pivot leaves the board once the swap has landed. Deferred behind the 220ms FLIP
+  // above because discardSleightAfterUse spins the tile and then runs removeAndFall,
+  // which takes the `falling` lock - starting that on top of the swap animation
+  // would cut the swap short.
+  if (_wanderer) {
+    const _wc = _wanderer[0];
+    if (_wc._usesLeft > 1) { _wc._usesLeft--; render(); }
+    else setTimeout(() => {
+      let _at = null;
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === _wc) _at = [r, c];
+      if (_at) discardSleightAfterUse(_wc, _at[0], _at[1]);
+    }, cardSwapMs() + 40);
+  }
+  if (_pivotSpent) {
+    const [_pr, _pc] = _pivotSpent;
+    setTimeout(() => {
+      const _pv = gridData[_pr]?.[_pc];
+      if (_pv?._isSleight && _pv.sleightId === 'pivot') discardSleightAfterUse(_pv, _pr, _pc);
+    }, cardSwapMs() + 40);
+  }
+  // Match-3: a swap is the player's main way to CREATE a match - resolve the
+  // board once the swap animation has landed. (The swap itself stays manual;
+  // only the resulting matches play themselves.)
+  if (match3Active()) setTimeout(() => match3Resolve(), cardSwapMs() + 20);
+}
+
+// Remove a card from selection, then keep only the largest connected component.
+// Ties broken by keeping the component containing the lowest selection index.
+function deselect(r, c) {
+  const idx = selected.findIndex(([sr,sc]) => sr===r && sc===c);
+  if (idx === -1) return;
+
+  const remaining = selected.filter((_,i) => i !== idx);
+  if (remaining.length === 0) { selected = []; dragGrace = false; render(); return; }
+
+  // Find connected components among remaining
+  const inRemaining = new Set(remaining.map(([r,c]) => `${r}-${c}`));
+  const visited = new Set();
+  const components = [];
+
+  for (const cell of remaining) {
+    const k = `${cell[0]}-${cell[1]}`;
+    if (visited.has(k)) continue;
+    // BFS
+    const comp = [];
+    const queue = [cell];
+    while (queue.length) {
+      const [cr,cc] = queue.shift();
+      const ck = `${cr}-${cc}`;
+      if (visited.has(ck)) continue;
+      visited.add(ck);
+      comp.push([cr,cc]);
+      getNeighbors(cr,cc).forEach(([nr,nc]) => {
+        if (inRemaining.has(`${nr}-${nc}`) && !visited.has(`${nr}-${nc}`))
+          queue.push([nr,nc]);
+      });
+    }
+    components.push(comp);
+  }
+
+  // Keep largest; tie-break by lowest original selection index
+  let best = components[0];
+  for (const comp of components) {
+    if (comp.length > best.length) { best = comp; continue; }
+    if (comp.length === best.length) {
+      const bestMinIdx = Math.min(...best.map(([r,c]) => selected.findIndex(([sr,sc])=>sr===r&&sc===c)));
+      const compMinIdx = Math.min(...comp.map(([r,c]) => selected.findIndex(([sr,sc])=>sr===r&&sc===c)));
+      if (compMinIdx < bestMinIdx) best = comp;
+    }
+  }
+
+  // Preserve original selection order for the winning component
+  const bestSet = new Set(best.map(([r,c]) => `${r}-${c}`));
+  selected = selected.filter(([r,c]) => bestSet.has(`${r}-${c}`));
+  scheduleAutoSubmit();
+  render();
+}
+
+function tryAddToSelection(r, c) {
+  const _card = gridData[r]?.[c];
+  const _cs = dbgCardStr(_card);
+  if (selected.length >= limits.selection.current) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
+  if (isCellBlocked(r, c)) { dbgEvent('warn', `add blocked: cell blocked [${r},${c}]`); return false; }
+  if (!cardCan(gridData[r]?.[c], 'select')) { dbgEvent('warn', `add blocked: cardCan=false [${r},${c}] ${_cs}`); return false; }
+  const key = `${r}-${c}`;
+  if (selected.some(([sr,sc]) => sr===r && sc===c)) return false;
+  const reachable = getReachable();
+  if (reachable && !reachable.has(key)) { dbgEvent('warn', `add blocked: not reachable [${r},${c}]`); return false; }
+  selected.push([r, c]);
+  dbgEvent('info', `selected [${r},${c}] ${_cs} (total:${selected.length})`);
+  sfxCardSelect();
+  scheduleAutoSubmit();
+  render();
+  return true;
+}
+
+let _dtBefore = null;   // the selection before the first tap of a possible double-tap
+// ── Tap handler (called on pointerup when pointer didn't move) ──
+function onCardTap(r, c) {
+  if (_longPressActive) { _longPressActive = false; return; }
+  // Autopilot (r474) has the board while it runs.
+  if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
+  if (typeof sweepRunning === 'function' && sweepRunning()) return;   // r572: All Hands has the board
+  // The Pick (r244) owns the board outright while it is open, so it intercepts
+  // ABOVE the `animating` guard - that flag is routinely still true from the
+  // un-explode's flights, and a tap that silently does nothing reads as broken.
+  if (typeof pickActive !== 'undefined' && pickActive) { pickSelect(r, c); return; }
+  // Dev: a card state is armed and this tap charges the card (r278). Above the
+  // `animating` guard for the Pick's reason - the dev panel's own flow is not
+  // play and a tap that silently does nothing reads as broken - and it returns
+  // false the moment nothing is armed, so ordinary play never reaches it.
+  if (typeof devCardStateApplyTap === 'function' && devCardStateApplyTap(r, c)) return;
+  if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
+  const _card = gridData[r]?.[c];
+  const _cardStr = dbgCardStr(_card);
+  dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, swapPending: !!swapPending, selected: selected.length });
+  if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
+  // ── Dealer's Choice: holding cards - a tap swaps the top one in ──
+  if (typeof dealerActive === 'function' && dealerActive()) { dealerPlaceAt(r, c); return; }
+  // ── Magnet: armed and waiting for a target-rank tap ──
+  if (magnetArmed) {
+    // Tapping Magnet itself (or its cell) cancels the arming.
+    if (magnetArmed.r === r && magnetArmed.c === c) {
+      magnetArmed = null; showMessage('Magnet cancelled', 'var(--cream-dim)'); render(); return;
+    }
+    const _t = gridData[r]?.[c];
+    if (!_t || !_t.rank || _t._isSleight || _t._isStone || _t._isTrick) {
+      showMessage('Tap a normal card to pull its rank', 'var(--cream-dim)'); return;
+    }
+    const _m = magnetArmed; magnetArmed = null;
+    const _moved = magnetCluster(_m.r, _m.c, _t.rank);
+    showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
+    // With something pulled the Magnet has already been discarded as part of the
+    // pull; with nothing to pull it leaves the ordinary way, charge spent.
+    if (!_moved) discardSleightAfterUse(_m.card, _m.r, _m.c);
+    return;
+  }
+  // Block null cells
+  if (gridData[r][c] === null) { dbgEvent('warn', `tap blocked: null cell [${r},${c}]`); return; }
+  // Block boss-obstructed cells
+  if (isCellBlocked(r, c)) { dbgEvent('warn', `tap blocked: cell blocked [${r},${c}]`); return; }
+  // A challenge round card: a tap reads what it asks for (js/challenge-round.js).
+  if (gridData[r]?.[c]?._isChallenge) { if (typeof crTap === 'function') crTap(r, c); return; }
+  if (gridData[r]?.[c]?._isReshuffle) { reshuffleTap(r, c); return; }
+  // Block challenge card taps
+  if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) { dbgEvent('warn', `tap blocked: challenge card`); return; }
+  // Block non-swappable cards entirely (e.g. challenge card)
+  // Aim sleights (Reflect, Soul Mirror): a single tap rotates aim; no select/swap.
+  {
+    const _ac = gridData[r]?.[c];
+    if (_ac?._isSleight && AIM_SLEIGHTS.has(sleightDef(_ac)?.id)) {
+      cycleSleightAim(_ac);
+      render();
+      return;
+    }
+  }
+  if (!cardCan(gridData[r]?.[c], 'select') && !cardCan(gridData[r]?.[c], 'swap')) { dbgEvent('warn', `tap blocked: cardCan=false`, { card: _cardStr }); return; }
+
+  const now = Date.now();
+  const isDoubleTap = lastTapCell &&
+    lastTapCell[0] === r && lastTapCell[1] === c &&
+    (now - lastTapTime) < DOUBLE_TAP_MS;
+
+  // Sleights select/swap like normal cards (tooltip shown via long-press).
+  // double_tap-activated sleights (none in current pool) would intercept here:
+  if (gridData[r]?.[c]?._isSleight) {
+    const jdef = sleightDef(gridData[r][c]);
+    if (jdef?.activation === 'double_tap' && isDoubleTap) {
+      const jcard = gridData[r][c];
+      lastTapTime = 0; lastTapCell = null;
+      // Keeper (r568): double-tap cycles what the board keeps between rounds. No charge, no lock.
+      if (jdef.id === 'keeper') { hideSleightGridTooltip(); keeperCycle(jcard); spinSleightTile(r, c); render(); return; }
+      // Lockbox (r576, js/lockbox.js): opens the cards bought at the Card Market. No charge, no lock.
+      if (jdef.id === 'lockbox') { hideSleightGridTooltip(); lockboxToggle(jcard, r, c); return; }
+      // Stopwatch: custom freeze (not the once-per-round-locked charge model). Double-tap toggles.
+      if (jdef.id === 'stopwatch') {
+        hideSleightGridTooltip();
+        if (stopwatchActive && stopwatchCardPos && stopwatchCardPos.card === jcard) {
+          endStopwatch(); showMessage('⏱️ Stopwatch - stopped', 'var(--cream-dim)');
+        } else if (!stopwatchActive) {
+          if (jcard._usesLeft !== 'infinite' && jcard._usesLeft <= 0) refuse('Stopwatch is spent', { color: 'var(--cream-dim)' });
+          else { spinSleightTile(r, c); startStopwatch(jcard, r, c); }
+        }
+        return;
+      }
+      if (!sleightCanActivateThisRound(jcard)) {
+        refuse(`${jdef.name} already used this round`, { color: 'var(--cream-dim)' });
+        return;
+      }
+      hideSleightGridTooltip();
+      // All Hands (r572, js/sweep.js): plays every hand on the board. It leaves with them.
+      if (jdef.id === 'all_hands') { sweepStart(jcard, r, c); return; }
+      // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then it leaves the grid (spent).
+      if (jdef.id === 'capacitor') {
+        if (focusNodes < BAL.capacitor.focus_cost) { refuse(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, { color: 'var(--cream-dim)' }); return; }
+        removeFocus(BAL.capacitor.focus_cost);
+        roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
+        grantEntityCoins(BAL.capacitor.credits, 'sleight', 'capacitor');
+        // The payout is the particle, not a toast (r326): the credits plate flies
+        // from the card to the coin readout with the coin sound; the time cost
+        // already flashed off the clock above.
+        if (typeof entityEffectFX === 'function')
+          entityEffectFX('credits', BAL.capacitor.credits,
+            { srcEl: document.querySelector(`#grid [data-card-id="${jcard._id}"]`), id: 'capacitor', source: 'sleight' });
+        selected = []; sleightUseInPlace(jcard, r, c);   // INERT on use (r341), stays on the grid
+        return;
+      }
+      // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid - it
+      // cycles back into the deck with its remaining charges, or is spent on its last charge.
+      if (jdef.id === 'siphon') {
+        if (focusNodes < BAL.siphon.focus_cost) { refuse(`Siphon needs ${BAL.siphon.focus_cost} Focus`, { color: 'var(--cream-dim)' }); return; }
+        removeFocus(BAL.siphon.focus_cost);
+        siphonMultX = BAL.siphon.mult;
+        showMessage(`🩸 Siphon - next hand ×${BAL.siphon.mult} mult!`, 'var(--gold)');
+        selected = []; discardSleightAfterUse(jcard, r, c);
+        return;
+      }
+      // Magnet: don't fire yet - arm it and wait for the player to tap a target card.
+      // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
+      if (jdef.id === 'dealers_choice') { dealerOpen(jcard, r, c); return; }
+      if (jdef.id === 'magnet') {
+        magnetArmed = { r, c, card: jcard };
+        showMessage('Magnet armed - tap a card to pull its rank', '#8fd0ff');
+        render();
+        return;
+      }
+      // Piggy Bank (and any future INERT_ON_USE sleight): fire in place, go inert (r341).
+      // Amplifier / Snooze: fire, then leave the grid (discard-on-use, r164).
+      applySleightGridEffect(jdef.id, r, c);
+      selected = [];
+      if (INERT_ON_USE_SLEIGHTS.has(jdef.id)) sleightUseInPlace(jcard, r, c);
+      else discardSleightAfterUse(jcard, r, c);
+      return;
+    }
+    // otherwise fall through to normal selection/swap handling below
+  }
+
+
+  // Handle swap-pending
+  if (swapPending) {
+    const [pr, pc] = swapPending;
+    if (r === pr && c === pc) {
+      // Same card - cancel swap
+      swapPending = null;
+      render();
+    } else {
+      doSwap(pr, pc, r, c);
+    }
+    lastTapTime = 0; lastTapCell = null;
+    return;
+  }
+
+  // Double-tap a card that was IN a playable selection -> play it (Settings >
+  // Controls). The first tap of the pair deselected it, so the selection from
+  // before that tap is put back. A double-tap on a card that was not selected
+  // still lifts it for a swap: you do not swap mid-selection.
+  if (isDoubleTap && ctlOn('ctlDoubleTapPlay') && _dtBefore && _dtBefore.r === r && _dtBefore.c === c
+      && _dtBefore.wasSel && _dtBefore.sel.length >= 2 && findBestHand(_dtBefore.sel)) {
+    selected = _dtBefore.sel; _dtBefore = null;
+    lastTapTime = 0; lastTapCell = null;
+    cancelAutoSubmit(); playHand();
+    return;
+  }
+  // Double-tap → enter swap mode
+  if (isDoubleTap) {
+    cancelAutoSubmit();
+    swapPending = [r, c];
+    selected = [];
+    lastTapTime = 0; lastTapCell = null;
+    render();
+    return;
+  }
+
+  _dtBefore = { r, c, sel: selected.map(x => [...x]), wasSel: selected.some(([sr,sc]) => sr===r && sc===c) };
+  // Already selected → deselect with component logic
+  if (selected.some(([sr,sc]) => sr===r && sc===c)) {
+    deselect(r, c);
+  } else {
+    // Try to add; if not reachable, clear and start fresh
+    const reachable = getReachable();
+    const key = `${r}-${c}`;
+    if (reachable && !reachable.has(key)) {
+      cancelAutoSubmit();
+      selected = [[r, c]];
+      sfxCardSelect();
+      scheduleAutoSubmit();
+      render();
+    } else {
+      tryAddToSelection(r, c);
+    }
+  }
+
+  lastTapCell = [r, c];
+  lastTapTime = now;
+}
+
+// ── Pointer event handlers on the grid ──
+const gridEl2 = document.getElementById('grid');
+
+// THE PICK OWNS THE BOARD OUTRIGHT WHILE IT IS OPEN, so it is exempt from BOTH
+// flags here (r356). `onCardTap` already intercepts above its own `animating`
+// check, but that was never reached: this is the guard that decides, and
+// `roundEnded` - added to it in r254 - is true for the whole interlude, which is
+// exactly when the pick runs. `animating` is routinely still true from the
+// un-explode's flights, which is the r244 reason for the same exemption one
+// level down. A tap that silently does nothing reads as broken, and did.
+gridEl2.addEventListener('pointerdown', e => {
+  const _pick = typeof pickOwnsBoard === 'function' && pickOwnsBoard();
+  if (!_pick && (animating || roundEnded)) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
+  const cell = cardAt(e.target);
+  if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }
+  gridEl2.setPointerCapture(e.pointerId);
+  isSwiping = false;
+  swipeStopped = false;
+  // RIGHT-DRAG DISCARDS (desktop). Button 2 runs the same swipe-select as a left
+  // drag, and the release spends a discard on whatever it gathered. Mouse only:
+  // there is no right button on a finger, and contextmenu is already suppressed
+  // on the grid. The Schedule's pen also right-drags, but the map has no cards
+  // in gridData so cardAt() bails above before this can ever collide with it.
+  gridEl2._pointerStart = { r: cell[0], c: cell[1], moved: false,
+                            rightBtn: e.pointerType === 'mouse' && e.button === 2 };
+});
+
+gridEl2.addEventListener('pointermove', e => {
+  // Deliberately NOT exempt for the pick: a pick is a tap, so leaving the swipe
+  // blocked keeps `ps.moved` false and a small drag still reads as the tap it
+  // was meant to be. pointerup carries no guard of its own, so the tap lands.
+  if (animating || roundEnded || !gridEl2._pointerStart) return;
+  // Dealer's Choice: a drag carries the held cards, it does not select.
+  if (typeof dealerActive === 'function' && dealerActive()) return;
+  const cell = cardAt(document.elementFromPoint(e.clientX, e.clientY));
+  if (!cell) return;
+  const [r, c] = cell;
+  const ps = gridEl2._pointerStart;
+
+  // Detect movement
+  if (r !== ps.r || c !== ps.c) {
+    if (!ps.moved) {
+      // First movement - officially start swipe, add the origin card first
+      ps.moved = true;
+      isSwiping = true;
+      swipeStopped = false;
+      // Guard: don't start a swipe on a stone, Trick, or void cell
+      const originCard = gridData[ps.r]?.[ps.c];
+      if (isCellBlocked(ps.r, ps.c) || !originCard || !cardCan(originCard, 'select')) {
+        swipeStopped = true;
+        return;
+      }
+      // Only start fresh if no selection yet, or origin isn't part of selection
+      const originKey = `${ps.r}-${ps.c}`;
+      if (!selected.some(([sr,sc]) => sr===ps.r && sc===ps.c)) {
+        // Origin not in selection - check if it's reachable
+        const reachable = getReachable();
+        if (reachable && !reachable.has(originKey)) {
+          // Not adjacent to existing selection - start fresh
+          selected = [[ps.r, ps.c]];
+          ps.added = [originKey];
+        } else {
+          if (tryAddToSelection(ps.r, ps.c)) ps.added = [originKey];
+        }
+      }
+    }
+
+    if (isSwiping && !swipeStopped) {
+      const key = `${r}-${c}`;
+      if (selected.some(([sr,sc]) => sr===r && sc===c)) {
+        // Drag back onto the previous card drops the last one (Settings >
+        // Controls), but only cards this drag added. Otherwise a swipe over a
+        // selected card is ignored.
+        const n = selected.length, prev = selected[n - 2], last = selected[n - 1];
+        if (ctlOn('ctlDragBack') && n >= 2 && prev[0] === r && prev[1] === c
+            && ps.added && ps.added.some(k => k === `${last[0]}-${last[1]}`)) {
+          selected.pop(); ps.added.pop();
+          swipeStopped = false;
+          sfxCardSelect(); scheduleAutoSubmit(); render();
+        }
+        return;
+      }
+      // Skip non-selectable cells (stones, Tricks, voids)
+      if (isCellBlocked(r, c)) return;
+      const cardAtCell = gridData[r]?.[c];
+      if (!cardAtCell || !cardCan(cardAtCell, 'select')) return;
+      const reachable = getReachable();
+      if (reachable && !reachable.has(key)) {
+        // Not reachable - stop swipe here, don't add
+        swipeStopped = true;
+        return;
+      }
+      if (selected.length < limits.selection.current) {
+        selected.push([r, c]);
+        (ps.added || (ps.added = [])).push(key);
+        dbgEvent('info', `swipe-add [${r},${c}] (total:${selected.length})`);
+        sfxCardSelect();
+        scheduleAutoSubmit();
+        render();
+      }
+    }
+  }
+});
+
+gridEl2.addEventListener('pointerup', e => {
+  const ps = gridEl2._pointerStart;
+  // Right-drag release = discard the selection the drag just built. A right
+  // CLICK with no movement deliberately does nothing - the gesture is select-
+  // then-release, and a stray right click discarding a standing selection would
+  // be a destructive misfire. doDiscard() owns every guard (stock, curses,
+  // boss refusals) and clears the selection itself.
+  if (ps && ps.rightBtn) {
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    if (ps.moved && selected.length > 0) { cancelAutoSubmit(); if (ctlDiscardGate()) doDiscard(); }
+    return;
+  }
+  // Dealer's Choice: a finger drag released over a card places the held card
+  // there; a plain tap lands on the cell it started on.
+  if (ps && typeof dealerActive === 'function' && dealerActive()) {
+    const _dc = cardAt(document.elementFromPoint(e.clientX, e.clientY)) || [ps.r, ps.c];
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    onCardTap(_dc[0], _dc[1]);
+    return;
+  }
+  // Drag to play (r409): the release submits what the drag gathered - a
+  // discard if DISCARD was armed, otherwise the hand. playHand/doDiscard own
+  // every rule; a drag that made no hand just leaves its selection standing.
+  if (ps && ps.moved && dragControlsLive() && selected.length > 0) {
+    isSwiping = false; swipeStopped = false; gridEl2._pointerStart = null;
+    cancelAutoSubmit();
+    if (dragDiscardArmed) { if (ctlDiscardGate()) { setDragDiscardArmed(false); doDiscard(); } }
+    else if (ctlDragGraceMs() > 0) { dragGrace = true; armDragPlay(); render(); }
+    else if (findBestHand(selected)) playHand();
+    else scheduleAutoSubmit();
+    return;
+  }
+  if (ps && !ps.moved) {
+    hideCardTooltip();
+    onCardTap(ps.r, ps.c);
+  }
+  isSwiping = false;
+  swipeStopped = false;
+  gridEl2._pointerStart = null;
+});
+
+gridEl2.addEventListener('pointercancel', () => {
+  isSwiping = false;
+  swipeStopped = false;
+  gridEl2._pointerStart = null;
+});
+
+gridEl2.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── The swap stock indicator PERFORMS a swap when exactly two cards are
+// selected. It was a pure readout during play (the reward grid and Poker
+// Squares repurpose it via el.onclick, which is why this is addEventListener -
+// both bindings coexist and the guard below stands down whenever a takeover
+// screen owns the button). doSwap owns every rule: adjacency, Free Range,
+// Pivot, stock, boss refusals.
+document.getElementById('swap-indicator')?.addEventListener('click', () => {
+  const takeover = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
+    || (typeof shopGridActive !== 'undefined' && shopGridActive)
+    || (typeof squaresActive === 'function' && squaresActive())
+    || (typeof mapActive === 'function' && mapActive());
+  if (takeover || animating || roundEnded || falling) return;
+  if (selected.length !== 2) {
+    if (selected.length > 0) refuse('Select exactly 2 cards to swap them', { color: 'var(--cream-dim)' });
+    return;
+  }
+  const [[r1, c1], [r2, c2]] = selected;
+  cancelAutoSubmit();
+  doSwap(r1, c1, r2, c2);
+});
+
+// ══════════════════════════════════════════════
+// FOCUS GENERATION (r95)
+// ══════════════════════════════════════════════
+// All the Focus a hand EARNS - hand-type value, speed bonus, and every focus Trick.
+// Called from playHand BEFORE the hand's score is locked in, so the Focus the hand builds
+// up multiplies THIS hand (previously a hand's Focus only kicked in on the NEXT hand).
+// `vultureSec` is the retrigger-aware Vulture pause snapshot captured in playHand.

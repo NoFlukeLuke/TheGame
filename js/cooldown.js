@@ -1,0 +1,264 @@
+// ══════════════════════════════════════════════
+// COOLDOWN / DISABLE TIMER WIDGET  (r209)
+// ══════════════════════════════════════════════
+// ONE widget, used by everything that is temporarily unavailable or temporarily
+// charged: a countdown ring with the seconds left in the middle, plus a grey-out
+// of the host element while it is inactive.
+//
+// The rule that shapes the whole file: the widget NEVER re-renders its host.
+// A Trick chip lives inside a marquee/fan that measures itself on build
+// (js/tricks-ui.js, js/portrait-panel.js), and a card element is reused across
+// renders by _id - rebuilding either four times a second would restart the
+// marquee and throw away in-flight card animations. So `cdPaint` creates one
+// `.cd-badge` child the first time and afterwards only writes its text and its
+// `--cd-p` custom property; the ring is a conic-gradient reading that property.
+//
+// Two things ask the widget a question and it answers in ONE shape:
+//   cdForTrick(trickId)  ·  cdForCard(card, r, c)   →  null, or
+//   { mode, left, total, count, label, color }
+//     mode 'off'      - switched off by a boss. Greyed, red ring, counts down.
+//     mode 'cooldown' - the effect has fired and is waiting. Greyed, amber ring.
+//     mode 'primed'   - charged and ready. NOT greyed; shows a charge count.
+// A new timed entity is one row in TRICK_TIMERS or one entry in the card map -
+// no new painting code, no new CSS.
+
+const CD_COLORS = { off: '#d8474b', cooldown: '#e8a13a', primed: '#8a5cf0' };
+
+// ── How long is "one cycle" for the once-per-minute Tricks ──────────────────
+// firesThisMinute() (js/scoring.js) gates on whole round-minutes, so the wait is
+// always "until the clock crosses the next minute boundary".
+const CD_PER_MINUTE_TRICKS = ['study_hall'];
+
+function cdRoundElapsed() {
+  if (typeof roundStartSeconds === 'undefined' || typeof roundSeconds === 'undefined') return 0;
+  return Math.max(0, roundStartSeconds - roundSeconds);
+}
+// Seconds until the round clock crosses the next multiple of `every`.
+function cdUntilNextMark(every) {
+  const e = cdRoundElapsed();
+  const left = every - (e % every);
+  return left === 0 ? every : left;
+}
+
+// ── The per-Trick timer table ───────────────────────────────────────────────
+// Each entry returns the widget shape (or null when the Trick has nothing to
+// say right now). Anything a boss switched off is handled ahead of this table,
+// so an entry only has to describe the Trick's OWN rhythm.
+const TRICK_TIMERS = {
+  // Once-per-minute gates. _perMinuteFired holds the minute index each id last
+  // fired in; equal to the current minute means it has already gone this minute.
+  _perMinute(id) {
+    if (typeof _perMinuteFired === 'undefined') return null;
+    const minute = Math.floor(cdRoundElapsed() / 60);
+    if (_perMinuteFired[id] !== minute) return null;          // ready
+    return { mode: 'cooldown', left: cdUntilNextMark(60), total: 60 };
+  },
+  // Minute Hand: every 30s mark charges the next hand. Primed shows the charge;
+  // otherwise it counts down to the next mark.
+  minute_hand() {
+    if (typeof minuteHandCharges !== 'undefined' && minuteHandCharges > 0) {
+      return { mode: 'primed', count: minuteHandCharges, label: 'hand' };
+    }
+    return { mode: 'cooldown', left: cdUntilNextMark(BAL.minute_hand.interval_seconds), total: BAL.minute_hand.interval_seconds };
+  },
+  // (The Cuckoo left this table in r346: it fires per HAND now, not on a clock,
+  // so there is no honest countdown to draw.)
+  // The Woodpecker marks a new card every interval; the ring counts down to the
+  // next mark, violet while a mark is standing on the board.
+  woodpecker() {
+    const iv = BAL.woodpecker.interval_seconds;
+    const left = cdUntilNextMark(iv);
+    return woodpeckerCardId
+      ? { mode: 'primed', left, total: iv, label: 'marked' }
+      : { mode: 'cooldown', left, total: iv };
+  },
+};
+
+// A Trick's live widget state, or null for "nothing to show".
+function cdForTrick(trickId) {
+  // 1. A boss switched it off. That beats the Trick's own rhythm - it cannot
+  //    fire at all, so showing its cooldown would be a lie.
+  if (typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(trickId)) {
+    const left = (typeof bossTrickOffSecondsLeft === 'function') ? bossTrickOffSecondsLeft(trickId) : null;
+    const total = (typeof bossTrickOffTotal === 'function') ? bossTrickOffTotal(trickId) : null;
+    return { mode: 'off', left, total };
+  }
+  // 2. Primed (the Understudy knack, the Rehearsal event's permanent rank, and
+  //    the tray-order Tricks that prime their neighbours).
+  const tray = (typeof trickTray !== 'undefined' ? trickTray : []) || [];
+  const t = tray.find(x => x.id === trickId);
+  // _rank is a PERMANENT prime (the Extra Rep event) and fires exactly like a
+  // temporary one - trickFires() is 1 + _primed + _rank + mirrors - so the badge
+  // has to count both or a rehearsed Trick reads as unprimed for the whole run.
+  const primed = t ? ((t._primed || 0) + (t._rank || 0)) : 0;
+  if (primed > 0 && trickId !== 'minute_hand') return { mode: 'primed', count: primed };
+  // 3. Its own rhythm.
+  if (TRICK_TIMERS[trickId]) return TRICK_TIMERS[trickId](trickId);
+  if (CD_PER_MINUTE_TRICKS.includes(trickId)) return TRICK_TIMERS._perMinute(trickId);
+  return null;
+}
+
+// A card's live widget state. Today the only source is a boss hold (The Hold),
+// which is the point of putting the lookup here rather than inside the boss.
+function cdForCard(card, r, c) {
+  if (typeof bossCardHoldSecondsLeft === 'function') {
+    const info = bossCardHoldSecondsLeft(card);
+    if (info) return { mode: 'off', left: info.left, total: info.total };
+  }
+  // The Recall's withdrawn ranks (r213). Same treatment as a held card, because
+  // it is the same thing from the player's side: this card is on the board and
+  // you cannot use it yet, and here is when you can. Before this a withdrawn
+  // card looked completely ordinary and you discovered it by tapping it.
+  if (typeof bossRecallSecondsLeft === 'function') {
+    const info = bossRecallSecondsLeft(card);
+    if (info) return { mode: 'off', left: info.left, total: info.total };
+  }
+  // A card-state fuse, or the Turnover knack's idle clock (r278). Mode 'primed'
+  // and NOT 'cooldown', which matters: 'off' and 'cooldown' grey the host, and a
+  // fuse is the opposite of unavailable - the card is perfectly playable and the
+  // ring is the reason to hurry up and play it.
+  // A Sleight with a board lifespan (r371, Whetstone): the ring counts down to
+  // it discarding itself. 'primed' so the card is not greyed - it still works.
+  if (typeof sleightLifeLeft === 'function') {
+    const l = sleightLifeLeft(card);
+    if (l) return { mode: 'primed', left: l.left, total: l.total };
+  }
+  if (typeof cardStateFuse === 'function') {
+    const f = cardStateFuse(card);
+    if (f && f.left > 0) return { mode: 'primed', left: f.left, total: f.total };
+  }
+  return null;
+}
+
+// ── Painting ────────────────────────────────────────────────────────────────
+// Creates the badge once, then only writes text + --cd-p. `info === null`
+// removes the badge and the grey-out, so a Trick coming back off cooldown
+// cleans up without its host being rebuilt.
+function cdPaint(el, info) {
+  if (!el) return;
+  const badge = el.querySelector(':scope > .cd-badge');
+  if (!info) {
+    if (badge) badge.remove();
+    el.querySelectorAll(':scope > .cd-wash').forEach(w => w.remove());
+    el.classList.remove('cd-inactive', 'cd-off', 'cd-cooldown', 'cd-primed');
+    return;
+  }
+  let b = badge;
+  if (!b) {
+    b = document.createElement('div');
+    b.className = 'cd-badge';
+    b.innerHTML = '<span class="cd-num"></span>';
+    el.appendChild(b);
+  }
+  const mode = info.mode;
+  // Greyed only when the element genuinely cannot act. A primed entity is
+  // MORE available than usual, so it keeps its colour.
+  const dim = (mode === 'off' || mode === 'cooldown');
+  el.classList.toggle('cd-inactive', dim);
+  // The wash is what greys the host (see css/entity-fx.css for why it is not a
+  // filter). Created once, removed the moment the host is available again.
+  // A Trick tray chip switched off by a boss ALREADY drains itself and stamps OFF
+  // (.trick-off, r188). Washing it as well double-dims it, so on that one host the
+  // widget contributes only the ring - which is the part r188 could not give it.
+  const selfDims = el.classList.contains('trick-off');
+  let wash = el.querySelector(':scope > .cd-wash');
+  if (dim && !selfDims && !wash) { wash = document.createElement('div'); wash.className = 'cd-wash'; el.appendChild(wash); }
+  if ((!dim || selfDims) && wash) wash.remove();
+  el.classList.toggle('cd-off',      mode === 'off');
+  el.classList.toggle('cd-cooldown', mode === 'cooldown');
+  el.classList.toggle('cd-primed',   mode === 'primed');
+  b.classList.toggle('cd-b-primed', mode === 'primed');
+  // A charge count (primed with no clock) prints the count; anything with a
+  // clock prints whole seconds and fills the ring by how much is left.
+  //
+  // A COUNT is not a COUNTDOWN (r267). The ring is a clock face, and under a
+  // charge count it draws a full circle that never moves - which reads as a
+  // timer that has stuck. A count-only badge is a violet PILL instead (+2), and
+  // the shape is also what tells it apart from the improvement tier's brass
+  // v2.0 in the opposite corner.
+  const num = b.querySelector('.cd-num');
+  b.classList.toggle('cd-b-count', info.left == null && info.count != null);
+  if (info.left == null) {
+    num.textContent = info.count != null ? ('+' + info.count) : '·';
+    b.style.setProperty('--cd-p', '1');
+  } else {
+    num.textContent = String(Math.max(0, Math.ceil(info.left)));
+    const total = info.total || Math.max(1, info.left);
+    b.style.setProperty('--cd-p', String(Math.max(0, Math.min(1, info.left / total))));
+  }
+  b.style.setProperty('--cd-c', CD_COLORS[mode] || CD_COLORS.cooldown);
+  b.title = mode === 'off' ? 'Switched off' : mode === 'cooldown' ? 'Recharging'
+          : (info.count != null ? `Primed: fires ${info.count} extra time${info.count === 1 ? '' : 's'}` : 'Primed');
+}
+
+// ── The driver ──────────────────────────────────────────────────────────────
+// One 250ms interval walks the three host surfaces and repaints in place. It is
+// deliberately cheap: a handful of querySelectorAll calls over rows that hold at
+// most ~20 elements, and every write is a text node or a custom property.
+let cdTicker = null;
+
+// Deliberately NOT gated on gameTimerPaused: the clocks these rings read are
+// round-seconds and boss wall-time, both of which already stop when the game
+// does, so the numbers hold on their own. Skipping the sweep instead would leave
+// a stale ring on screen through a shop or a pause menu.
+function cdSweep() {
+  // Trick chips (tray + its marquee clones + the portrait fan all carry the id).
+  document.querySelectorAll('#trick-tray-list [data-trick-id]').forEach(chip => {
+    cdPaint(chip, cdForTrick(chip.dataset.trickId));
+  });
+  // Grid cards.
+  const gridEl = document.getElementById('grid');
+  if (gridEl && typeof gridData !== 'undefined' && !(typeof rewardOnGrid !== 'undefined' && rewardOnGrid)) {
+    gridEl.querySelectorAll('[data-card-id][data-row]').forEach(el => {
+      const r = +el.dataset.row, c = +el.dataset.col;
+      const card = gridData[r]?.[c];
+      cdPaint(el, card ? cdForCard(card, r, c) : null);
+    });
+  }
+  // Knack chips - the Understudy knack counts down to its next prime here.
+  document.querySelectorAll('#knack-list [data-knack-id]').forEach(chip => {
+    cdPaint(chip, (typeof cdForKnack === 'function') ? cdForKnack(chip.dataset.knackId) : null);
+  });
+}
+
+function cdStartTicker() {
+  if (cdTicker) return;
+  cdTicker = setInterval(() => { try { cdSweep(); } catch (e) { console.error('[CD] sweep failed', e); } }, 250);
+}
+function cdStopTicker() {
+  if (cdTicker) { clearInterval(cdTicker); cdTicker = null; }
+  document.querySelectorAll('.cd-badge').forEach(b => b.remove());
+  document.querySelectorAll('.cd-inactive,.cd-off,.cd-cooldown,.cd-primed')
+    .forEach(el => el.classList.remove('cd-inactive', 'cd-off', 'cd-cooldown', 'cd-primed'));
+}
+
+// The Understudy knack (r209): primes a random Trick every 30 seconds. Its chip
+// carries the countdown to the next prime, so the knack and the Trick it primes
+// both speak through the same widget.
+function cdForKnack(knackId) {
+  if (knackId !== 'understudy') return null;
+  if (typeof hasKnack !== 'function' || !hasKnack('understudy')) return null;
+  const every = (typeof BAL !== 'undefined' && BAL.understudy) ? BAL.understudy.interval_seconds : 30;
+  return { mode: 'cooldown', left: cdUntilNextMark(every), total: every };
+}
+
+// ── The card-side hook into renderCardAppearance ────────────────────────────
+// render() rewrites a card's className and innerHTML wholesale, so the badge has
+// to be part of that markup or it would be wiped and re-added by the next sweep
+// - a visible flicker on every deal, swap and score. cdPaint still owns the
+// per-second updates; this is only what the card is born with.
+function cardCooldownParts(card, r, c) {
+  const info = (card && card.rank) ? cdForCard(card, r, c) : null;
+  if (!info) return { cls: '', html: '' };
+  const left = info.left == null ? null : Math.max(0, Math.ceil(info.left));
+  const p = (info.left == null || !info.total) ? 1 : Math.max(0, Math.min(1, info.left / info.total));
+  const color = CD_COLORS[info.mode] || CD_COLORS.cooldown;
+  const dim = info.mode === 'off' || info.mode === 'cooldown';
+  return {
+    cls: `cd-${info.mode}` + (dim ? ' cd-inactive' : ''),
+    html: (dim ? '<div class="cd-wash"></div>' : '')
+        + `<div class="cd-badge${left == null && info.count != null ? ' cd-b-count' : ''}"`
+        + ` style="--cd-p:${p};--cd-c:${color}">`
+        + `<span class="cd-num">${left == null ? (info.count != null ? '+' + info.count : '\u00b7') : left}</span></div>`,
+  };
+}

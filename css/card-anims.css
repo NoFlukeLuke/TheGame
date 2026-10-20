@@ -1,0 +1,90 @@
+/* ══ CARD ANIMATIONS LAB (r436) - js/card-anims.js ═══════════════════════════
+   Dev panel -> Card Animations. A mock board of real card faces with the
+   settings laid over it. Body-level and fixed, above the dev panel. */
+#ca-lab {
+  position: fixed; inset: 0; z-index: 5000; display: flex; align-items: stretch;
+  background: radial-gradient(ellipse at 40% 45%, #163024 0%, #0b1510 60%, #060907 100%);
+  font-family: 'Share Tech Mono', monospace; color: var(--cream, #f0e2c0);
+}
+#ca-stage { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; min-width: 0; }
+#ca-board { position: relative; --card-w: 64px; --card-h: 86px; }
+#ca-board .card { cursor: var(--cur-pointer, pointer); }
+#ca-board .card.ca-pick { box-shadow: 0 0 0 2.5px #ffe9a8, 0 0 14px rgba(255,233,168,.6); }
+#ca-tray { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #3a3128; border-radius: 8px; background: #0f0c09; }
+#ca-tray span { font-size: 11px; letter-spacing: 2px; color: var(--cream-dim, #a89878); }
+#ca-slots { display: flex; gap: 8px; }
+#ca-slots i { position: relative; width: 44px; height: 59px; border: 1px dashed #4a4034; border-radius: 5px; --card-w: 40px; --card-h: 55px; display: flex; align-items: center; justify-content: center; }
+#ca-slots .card { position: relative !important; }
+
+#ca-panel {
+  flex: 0 0 360px; max-width: 46vw; overflow: auto; padding: 14px; border-left: 1px solid #3a3128;
+  background: rgba(16,13,10,.94);
+}
+#ca-head { display: flex; align-items: center; justify-content: space-between; }
+#ca-head b { font-family: Orbitron, sans-serif; letter-spacing: 2px; font-size: 15px; }
+#ca-close { background: none; border: 1px solid #3a3128; color: var(--cream, #f0e2c0); border-radius: 6px; width: 30px; height: 30px; cursor: var(--cur-pointer, pointer); }
+.ca-sub { font-size: 12px; line-height: 1.45; color: var(--cream-dim, #a89878); margin: 8px 0 12px; }
+.ca-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; padding: 10px 0; border-top: 1px solid #2a231b; }
+.ca-lbl { grid-column: 1 / -1; font-size: 13px; }
+.ca-lbl small { display: block; font-size: 11px; color: var(--cream-dim, #a89878); margin-top: 2px; }
+.ca-row select { background: #1a1510; color: var(--cream, #f0e2c0); border: 1px solid #4a4034; border-radius: 5px; padding: 5px; font: inherit; font-size: 12px; min-width: 0; }
+.ca-desc { grid-column: 1 / -1; font-size: 11px; color: #c9b88f; line-height: 1.4; min-height: 0; }
+.ca-desc:empty { display: none; }
+.ca-btn { background: #10201a; color: #7fe3b0; border: 1px solid #35d59b; border-radius: 6px; padding: 5px 12px; font: inherit; font-size: 12px; cursor: var(--cur-pointer, pointer); }
+#ca-reset { margin-top: 10px; width: 100%; }
+
+@media (max-width: 760px), (orientation: portrait) {
+  #ca-lab { flex-direction: column; }
+  #ca-stage { flex: 0 0 auto; padding: 14px 0; }
+  #ca-board { --card-w: 52px; --card-h: 70px; }
+  #ca-slots i { width: 36px; height: 48px; --card-w: 32px; --card-h: 44px; }
+  #ca-panel { flex: 1; max-width: none; border-left: 0; border-top: 1px solid #3a3128; }
+}
+
+/* ── look overlays (r445): drawn inside a card while its look plays ───────── */
+@property --ca-burn { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+.ca-burn, .ca-charge, .ca-chain, .ca-static, .ca-stampring { position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; z-index: 5; }
+.ca-burn {
+  background: linear-gradient(115deg, #000 0, #2a0e04 calc(var(--ca-burn) - 18%), #ff7a1a calc(var(--ca-burn) - 8%), #ffd36b calc(var(--ca-burn) - 3%), transparent var(--ca-burn));
+  mix-blend-mode: multiply;
+}
+.ca-charge { background: linear-gradient(to top, #ffe9a8 0%, #ffd36bcc 40%, #fff6 100%); mix-blend-mode: screen; }
+.ca-stampring { inset: -6px; border: 2px solid var(--ca-ring, #ffe9a8); border-radius: 10px; box-shadow: 0 0 6px color-mix(in srgb, var(--ca-ring, #ffe9a8) 45%, transparent); animation: caRing calc(860ms * var(--ca-k, 1)) cubic-bezier(.2,.6,.35,1) forwards; }
+@keyframes caRing { from { scale: .85; opacity: .6; } to { scale: 1.9; opacity: 0; } }
+.ca-chain {
+  inset: 38% -10%; transform-origin: left center; rotate: -14deg;
+  background: repeating-linear-gradient(90deg, #8d8a84 0 7px, #2d2a26 7px 9px, #c9c4bb 9px 14px, #2d2a26 14px 16px);
+  border-radius: 4px; box-shadow: 0 2px 4px #0009, inset 0 1px 0 #fff6;
+}
+.ca-static { background-color: #777; background-repeat: repeat; background-size: 60px 60px; image-rendering: pixelated; overflow: hidden; opacity: 0; }
+/* scan lines over the snow, and the dark bar that rolls down through it */
+.ca-static::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #0000 0 2px, #0005 2px 3px); }
+.ca-static .ca-roll { position: absolute; left: 0; right: 0; height: 28%; top: -30%;
+  background: linear-gradient(180deg, #0000, #000b 30%, #000c 70%, #0000); animation: caRoll calc(420ms * var(--ca-k, 1)) linear infinite; }
+@keyframes caRoll { to { top: 110%; } }
+.ca-snipline { position: absolute; pointer-events: none; z-index: 22;
+  background: linear-gradient(to top right, transparent calc(50% - 1px), #1a1510 calc(50% - .5px), #1a1510 calc(50% + .5px), transparent calc(50% + 1px));
+  animation: caSnip calc(240ms * var(--ca-k, 1)) ease-out forwards; }
+@keyframes caSnip { from { opacity: 0; clip-path: inset(0 100% 0 0); } 40% { opacity: 1; } to { opacity: 0; clip-path: inset(0 0 0 0); } }
+
+/* Attention: selected cards hover and sway, the rest settle back */
+@keyframes caHover { 0%, 100% { translate: 0 0; rotate: -1.44deg; } 50% { translate: 0 -3.6px; rotate: 1.44deg; } }
+.ca-idle-attention .card.selected, .ca-idle-watch .card.selected { animation: caHover 1.5s ease-in-out infinite; }
+.ca-idle-attention #grid:has(.card.selected) .card:not(.selected),
+.ca-idle-attention #ca-board:has(.card.selected) .card:not(.selected) { scale: .96; opacity: .78; transition: scale .25s, opacity .25s; }
+/* Gaze: the board gives its cards depth so a lean reads as a tilt. r474: 900px
+   made a 9 degree turn move a card's edges under 1%, which read as nothing.
+   The card's own transitions are listed again so adding rotate keeps them. */
+.ca-gazing { perspective: 320px; }
+.ca-gazing .card { transition: border-color .1s, box-shadow .1s, opacity .15s, rotate .18s ease-out; }
+.ca-gazing.ca-wander .card { transition: border-color .1s, box-shadow .1s, opacity .15s, rotate 1.6s ease-in-out; }
+.ca-gazing.ca-fixed .card { transition: border-color .1s, box-shadow .1s, opacity .15s, rotate .4s cubic-bezier(.3,.7,.4,1); }
+.ca-standin { pointer-events: none; }
+body.reduced-motion .ca-idle-attention .card.selected, body.reduced-motion .ca-idle-watch .card.selected { animation: none; }
+#ca-all { margin-top: 10px; width: 100%; }
+.ca-row.ca-playing { background: rgba(53,213,155,.08); box-shadow: -3px 0 0 #35d59b; }
+
+/* speed (r474) */
+.ca-speed { display: grid; grid-template-columns: 1fr 120px 42px; gap: 4px 8px; align-items: center; font-size: 12px; padding: 8px 0 4px; }
+.ca-speed small { grid-column: 1 / -1; color: var(--cream-dim, #a89878); font-size: 11px; line-height: 1.4; margin-bottom: 4px; }
+.ca-speed output { text-align: right; color: #7fe3b0; }

@@ -1,0 +1,198 @@
+/* ══════════════════════════════════════════════
+   SETTINGS (r155) - player-facing options screen.
+   Outside #stage (body-level) like Records / the dev panel: the cabinet's CSS
+   `zoom` would otherwise scale its fixed positioning.
+   ══════════════════════════════════════════════ */
+
+#settings-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 9998;
+  align-items: center; justify-content: center; padding: 4vh 3vw;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.95) 0%, rgba(11,10,28,0.98) 72%);
+}
+#settings-overlay.show { display: flex; }
+
+#settings-panel {
+  width: 100%; max-width: 520px; max-height: 92vh;
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(20,16,11,0.97), rgba(11,9,6,0.98));
+  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 6px #17120c, 0 24px 60px rgba(0,0,0,0.65);
+}
+
+#settings-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; border-bottom: 1px solid rgba(183,172,147,0.22);
+  background: linear-gradient(180deg, rgba(255,206,43,0.07), transparent);
+}
+.set-brand {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 14px; letter-spacing: 5px;
+  color: var(--c-yellow, #ffce2b); text-transform: uppercase;
+}
+#set-close {
+  cursor: var(--cur-pointer, pointer); border-radius: 8px; padding: 5px 11px; font-size: 14px;
+  color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.05);
+  border: 1.5px solid var(--plastic-lo, #b7ac93); transition: all 0.12s ease;
+}
+#set-close:hover { border-color: var(--c-coral, #ff6a3c); color: var(--c-coral, #ff6a3c); }
+
+#settings-body { padding: 12px 16px 16px; overflow-y: auto; flex: 1; }
+.set-group-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px;
+  color: var(--c-mint, #35d59b); text-transform: uppercase;
+  margin: 15px 0 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(183,172,147,0.2);
+}
+#settings-body > .set-group-title:first-child { margin-top: 0; }
+
+.set-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 9px 0; border-bottom: 1px solid rgba(183,172,147,0.09);
+}
+.set-row-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.set-label { font-family: 'Crimson Pro', serif; font-size: 14.5px; color: var(--cream, #f0e6c8); }
+.set-hint { font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.35; color: var(--cream-dim, #8a7d60); }
+
+/* toggle switch */
+.set-switch {
+  flex: 0 0 auto; width: 44px; height: 24px; border-radius: 999px; cursor: var(--cur-pointer, pointer);
+  background: rgba(255,255,255,0.08); border: 1.5px solid var(--plastic-lo, #b7ac93);
+  position: relative; transition: background 0.15s ease, border-color 0.15s ease;
+}
+.set-switch .set-knob {
+  position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--cream-dim, #8a7d60); transition: left 0.15s ease, background 0.15s ease;
+}
+.set-switch.on { background: rgba(53,213,155,0.28); border-color: var(--c-mint, #35d59b); }
+.set-switch.on .set-knob { left: 22px; background: var(--c-mint, #35d59b); }
+
+/* slider */
+.set-slider-wrap { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
+.set-slider-wrap input[type=range] { width: 130px; accent-color: var(--c-yellow, #ffce2b); cursor: var(--cur-pointer, pointer); }
+.set-slider-v {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--c-yellow, #ffce2b);
+  min-width: 34px; text-align: right;
+}
+
+/* segmented select */
+.set-seg { display: flex; gap: 3px; flex: 0 0 auto; }
+.set-seg-b {
+  cursor: var(--cur-pointer, pointer); padding: 5px 10px; border-radius: 7px;
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  color: var(--cream-dim, #8a7d60); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(183,172,147,0.25); transition: all 0.12s ease;
+}
+.set-seg-b:hover { color: var(--cream, #f0e6c8); }
+.set-seg-b.on { color: #0e0c0a; font-weight: 700; background: var(--c-yellow, #ffce2b); border-color: var(--c-yellow, #ffce2b); }
+
+#settings-foot { padding: 11px 16px; border-top: 1px solid rgba(183,172,147,0.22); text-align: center; }
+.set-reset {
+  cursor: var(--cur-pointer, pointer); padding: 8px 18px; border-radius: 9px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--cream-dim, #8a7d60);
+  background: rgba(255,255,255,0.04); border: 1.5px solid var(--plastic-lo, #b7ac93);
+  transition: all 0.12s ease;
+}
+.set-reset:hover { color: var(--c-coral, #ff6a3c); border-color: var(--c-coral, #ff6a3c); }
+
+/* ══ Setting effects ══ */
+/* Reduced motion: kill the idle/ambient drift (float-anim publishes --fx/--fy/--fr
+   custom properties, so zeroing them stops the drift without touching the
+   transforms those elements also use for hover/selection). */
+body.reduced-motion .m-item,
+body.reduced-motion .reward-cell {
+  --fx: 0px !important; --fy: 0px !important; --fr: 0deg !important; --fs: 1 !important;
+}
+body.reduced-motion #grid .card { --hbx: 0px !important; --hby: 0px !important; --hbr: 0deg !important; --hbs: 1 !important; }
+body.reduced-motion #cabinet::before,
+body.reduced-motion #cabinet::after { animation: none !important; }
+
+/* No screen shake: the real shake animations are the reward-grid hit/mystery
+   shakes and the focus-meter jitter. */
+body.no-shake .reward-hit,
+body.no-shake .reward-mshake { animation: none !important; }
+body.no-shake #focus-meter-wrap, body.no-shake #focus-bar-outer { transform: none !important; }
+body.big-text #records-body,
+body.big-text #settings-body,
+body.big-text .gp-desc,
+body.big-text .rec-ent-desc { font-size: 1.12em; }
+body.high-contrast .card { border-width: 2px !important; border-color: #2a2418 !important; }
+body.high-contrast .card .rank,
+body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
+
+
+/* ── Action rows (Run save/resume - r158) ────────────────────────────────────
+   Buttons rather than a stored preference, so they get their own control
+   styling alongside the switches and segmented selects. They also STACK: a
+   toggle's label can share a line with its control, but three buttons plus a
+   status line squeeze the text column into a two-word ribbon if they don't. */
+.set-row.set-row-action { flex-direction: column; align-items: stretch; gap: 8px; }
+.set-row.set-row-action .set-row-text { width: 100%; }
+.set-row.set-row-action .set-actions { justify-content: flex-start; }
+/* A row with no label or hint is just its control - don't reserve the text column. */
+.set-row.set-row-bare { justify-content: flex-start; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: 0 0 auto; }
+.set-action-b {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: var(--cur-pointer, pointer); white-space: nowrap;
+  padding: 8px 12px; border-radius: 7px;
+  color: var(--c-cyan, #7fd4dd);
+  background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0));
+  border: 1px solid var(--c-cyan, #7fd4dd);
+  transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+}
+.set-action-b:hover:not([disabled]) { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+.set-action-b.primary {
+  color: #3a2a08; border-color: #b5820f;
+  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #e8b84b) 55%, #e0a814);
+}
+.set-action-b.primary:hover:not([disabled]) { filter: brightness(1.06); }
+.set-action-b[disabled] { opacity: 0.4; cursor: var(--cur-default, default); }
+#settings-run-msg {
+  font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--gold, #d4a857);
+  min-height: 18px; padding: 6px 2px 0; text-align: right;
+}
+
+/* ── Tabs (r380) ── one group at a time. Sticky so the row stays reachable
+   while a long group scrolls under it; it carries an opaque base for that. */
+.set-tabs {
+  position: sticky; top: -12px; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: -12px -16px 10px; padding: 10px 16px 9px;
+  background: #0f0c08; border-bottom: 1px solid rgba(183,172,147,0.2);
+}
+.set-tab {
+  cursor: var(--cur-pointer, pointer); border-radius: 999px; padding: 5px 11px; min-height: 28px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--cream-dim, #8a7d60); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(183,172,147,0.28); transition: all 0.12s ease;
+}
+.set-tab:hover { color: var(--cream, #f0e6c8); border-color: var(--plastic-lo, #b7ac93); }
+.set-tab.on {
+  color: #0b0a07; background: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b);
+}
+#settings-body > .set-tabs + .set-group-title { margin-top: 2px; }
+
+/* Drag to play (r409): DISCARD armed so the next drag discards. */
+.btn-discard.drag-armed { box-shadow: 0 0 0 2px #fff, 0 0 14px 3px var(--red); animation: dragArmPulse 1s ease-in-out infinite alternate; }
+@keyframes dragArmPulse { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+
+/* Controls (r436) */
+.set-key { min-width: 64px; font-family: 'Share Tech Mono', monospace; }
+.set-key.listening { background: var(--gold, #f0c040); color: #111; animation: dragArmPulse .6s ease-in-out infinite alternate; }
+.btn-discard.confirm-armed { box-shadow: 0 0 0 2px #fff, 0 0 12px 2px var(--red); }
+/* Left-handed: the portrait board row is mirrored, so the action column sits on the left. */
+body.left-handed #stage:not(.landscape) #grid-and-buttons { flex-direction: row-reverse; }
+/* Idle hint: one faint diagonal shine across each card of a playable hand, staggered. */
+.idle-shine { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 4; }
+.idle-shine::before { content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.38), transparent);
+  transform: skewX(-12deg); animation: idleShine 1.1s ease-in-out var(--d, 0ms) both; }
+@keyframes idleShine { from { left: -60%; opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } to { left: 120%; opacity: 0; } }
+body.reduced-motion .idle-shine::before { animation-duration: 2s; }
+
+/* r471: the bug report, shown only when the clipboard refused it */
+#bug-report-text { display:block; width:100%; height:160px; margin-top:8px; box-sizing:border-box;
+  font:11px/1.4 'Courier New', monospace; color:var(--cream); background:rgba(0,0,0,0.5);
+  border:1px solid rgba(201,168,76,0.35); border-radius:4px; resize:vertical; }

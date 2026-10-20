@@ -1,0 +1,352 @@
+// ══════════════════════════════════════════════════════════════════════════
+// ENTITY TOOLTIP - one tooltip for every entity surface (shop, wheel, reward
+// grid, trays). Replaces the per-screen tooltips that each had to be wired by
+// hand, which is why most of the Mart had none at all.
+//
+// Two things it does that the old ones didn't:
+//
+//  1. KEYWORD DEFINITIONS. Mechanic words in the description are coloured
+//     (js/keywords.js) and every distinct one gets a definition card beside the
+//     tooltip, so the vocabulary is never assumed.
+//
+//  2. SPACE-AWARE PLACEMENT. It measures the gap on all four sides of the anchor
+//     and opens into whichever has the most room - horizontally first, then it
+//     clamps vertically. The definition rail goes on the tooltip's outer side,
+//     flipping to the other side if that would run off screen.
+// ══════════════════════════════════════════════════════════════════════════
+
+let _etEl = null, _etHideTimer = null;
+
+function ensureEntityTooltip() {
+  if (_etEl) return _etEl;
+  _etEl = document.createElement('div');
+  _etEl.id = 'entity-tip';
+  _etEl.innerHTML = `<div class="et-card">
+      <div class="et-head"><span class="et-name"></span><span class="et-rar"></span></div>
+      <div class="et-more-slot"></div>
+      <div class="et-type"></div>
+      <div class="et-desc"></div>
+      <div class="et-meta"></div>
+      <div class="et-actions"></div>
+    </div>
+    <div class="et-defs"></div>`;
+  document.body.appendChild(_etEl);
+  // No hover-to-keep-alive listeners: the tooltip is pointer-events:none (see
+  // css/tooltip.css) precisely so it can never swallow a click meant for a tile
+  // underneath it, and an element that takes no pointer events cannot receive
+  // pointerenter either. Nothing to bind.
+  return _etEl;
+}
+
+const ET_RARITY_COLOR = {
+  common:'--c-mint', rare:'--c-cyan', epic:'--c-purple',
+  legendary:'--c-magenta',
+};
+
+// ── INTERACTIVE MODE (r182) ─────────────────────────────────────────────────
+// A tap now OPENS the tooltip rather than acting on the tile, and the tooltip
+// carries the actions (PIN, ADD TO CART). That needs pointer events, which the
+// bubble deliberately refuses in its default hover mode - it is up to 560px wide
+// and lies straight over its neighbours, so accepting clicks there would eat the
+// clicks meant for them (the old "can't add the ones on the right" bug).
+//
+// The fix is a BACKDROP. In interactive mode a transparent full-screen layer
+// goes in underneath the bubble: the bubble itself takes clicks, and every click
+// anywhere else lands on the backdrop and simply dismisses it. Nothing is ever
+// silently swallowed, and the surface behind is never clicked through by mistake.
+let _etBackdrop = null;
+function ensureEntityBackdrop() {
+  if (_etBackdrop && document.body.contains(_etBackdrop)) return _etBackdrop;
+  _etBackdrop = document.createElement('div');
+  _etBackdrop.id = 'entity-tip-backdrop';
+  _etBackdrop.addEventListener('pointerdown', e => { e.stopPropagation(); hideEntityTooltip(true); });
+  document.body.appendChild(_etBackdrop);
+  return _etBackdrop;
+}
+
+// payload: { label/name, desc, rarity/tier, type, emoji, price, uses, meta[] }
+// opts:    { actions: [{ label, cls, disabled, onClick }] } - passing any action
+//          puts the tooltip in interactive mode (see above).
+// Keyword names and definitions are authored in the gamer wording, like every
+// other stored string, and translated on the way to the screen (r198).
+const _lexP = t => (typeof lexProse === 'function') ? lexProse(t) : String(t == null ? '' : t);
+
+function showEntityTooltip(anchorEl, p, opts = {}) {
+  if (!anchorEl || !p) return;
+  clearTimeout(_etHideTimer);
+  const el = ensureEntityTooltip();
+  const rar  = ET_RARITY_COLOR[p.rarity] ? p.rarity : (ET_RARITY_COLOR[p.tier] ? p.tier : 'common');
+  const desc = p.desc || '';
+
+  // `wide` (the portrait pick, r333): a broader card is a SHORTER card, which is
+  // what lets the read sit in the centred board's top margin instead of pushing
+  // the board itself to the slot's foot to make room.
+  el.classList.toggle('et-wide', !!opts.wide);
+  el.style.setProperty('--rc', `var(${ET_RARITY_COLOR[rar]})`);
+  el.querySelector('.et-name').textContent = p.label || p.name || '';
+  el.querySelector('.et-rar').textContent  = tierLabel(p.type || p.entity, rar);
+  const typeEl = el.querySelector('.et-type');
+  typeEl.textContent = (p.type || p.entity || '').toString().toUpperCase();
+  typeEl.style.display = typeEl.textContent ? '' : 'none';
+  el.querySelector('.et-desc').innerHTML = highlightKeywords(desc);
+
+  const meta = [];
+  if (p.price != null) meta.push(`💰 ${p.price}`);
+  if (p.uses  != null) meta.push(`${p.uses} uses`);
+  if (Array.isArray(p.meta)) meta.push(...p.meta);
+  const metaEl = el.querySelector('.et-meta');
+  metaEl.innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+  metaEl.style.display = meta.length ? '' : 'none';
+
+  // Definition cards for every mechanic word used - BUILT, BUT COLLAPSED (r288).
+  // The rail only paints once the + in the card's corner is pressed. It is built
+  // up front rather than on demand because the tooltip is re-shown constantly by
+  // hover and a second render path would be a second thing to keep in step.
+  el.classList.remove('kw-open');
+  el.querySelector('.et-defs').innerHTML = kwDefsHTML(desc);
+  const moreSlot = el.querySelector('.et-more-slot');
+  moreSlot.innerHTML = kwMoreHTML(desc);
+  // Opening the rail makes the bubble STICKY, and that is the load-bearing part.
+  // In hover mode the card is pointer-events:none (r170), so the rail cannot be
+  // hovered, scrolled or read without the pointer falling through it onto the
+  // board and dismissing the whole thing. Asking for the definitions is a
+  // deliberate act, so it turns the preview into something you are reading: the
+  // card and rail take clicks and the backdrop catches everything else.
+  wireKwMore(el, moreSlot, (open) => {
+    if (open) ensureEntityBackdrop().classList.add('show');
+    placeEntityTooltip(anchorEl, el, opts.prefer);
+  });
+
+  // actions row - present only in interactive mode
+  const acts = Array.isArray(opts.actions) ? opts.actions : [];
+  const actEl = el.querySelector('.et-actions');
+  actEl.innerHTML = '';
+  acts.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'et-act' + (a.cls ? ' ' + a.cls : '');
+    b.textContent = a.label;
+    b.disabled = !!a.disabled;
+    b.addEventListener('click', e => { e.stopPropagation(); a.onClick && a.onClick(); });
+    // The backdrop listens on pointerdown, so stop that here too or pressing a
+    // button would dismiss the bubble out from under the click.
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+    actEl.appendChild(b);
+  });
+  actEl.style.display = acts.length ? '' : 'none';
+  el.classList.toggle('interactive', acts.length > 0);
+  if (acts.length) ensureEntityBackdrop().classList.add('show');
+  else if (_etBackdrop) _etBackdrop.classList.remove('show');
+
+  el.classList.add('show');
+  placeEntityTooltip(anchorEl, el, opts.prefer);
+}
+
+// `now` skips the grace delay - used when a click outside dismisses the bubble,
+// where a 60ms fade-out would let the next tap land on a tooltip already on its
+// way out.
+function hideEntityTooltip(now = false) {
+  // An OPEN definition rail is sticky: the player asked for it, so only an
+  // explicit dismissal (the backdrop, a new tooltip, a screen closing) takes it
+  // away. A hover drifting off the anchor must not, or the rail would be
+  // unreadable - reaching it means leaving the tile that opened it.
+  if (!now && _etEl && _etEl.classList.contains('kw-open')) return;
+  clearTimeout(_etHideTimer);
+  if (_etBackdrop) _etBackdrop.classList.remove('show');
+  const kill = () => { if (_etEl) { _etEl.classList.remove('show', 'interactive', 'kw-open'); } };
+  if (now) kill(); else _etHideTimer = setTimeout(kill, 60);
+}
+function entityTooltipOpen() { return !!(_etEl && _etEl.classList.contains('show')); }
+// True while the bubble is showing action buttons. Surfaces check this so a
+// stray hover cannot close the buttons a click just opened.
+function entityTooltipInteractive() { return !!(_etEl && _etEl.classList.contains('interactive')); }
+
+// Open into whichever side has the most room. Horizontal first - the definition
+// rail makes the tooltip wide, so left/right is the decision that matters - then
+// clamp vertically, preferring to centre on the anchor.
+function placeEntityTooltip(anchorEl, el, prefer) {
+  const GAP = 12, PAD = 8;
+  const a = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  // Measure at natural size before positioning.
+  el.style.left = '0px'; el.style.top = '0px';
+  el.classList.remove('flip');
+  const w = el.offsetWidth, h = el.offsetHeight;
+
+  // prefer:'above' - the portrait pick screens (r326). The board there is
+  // narrow, so the side placement below always clamps the bubble ONTO the
+  // tiles being compared; the pick pushes its board to the foot of the slot
+  // exactly so this band above the tiles exists. Falls through to the side
+  // placement when there genuinely is no room up there.
+  if (prefer === 'above' && a.top - GAP - PAD >= Math.min(h, 90)) {
+    let x = a.left + a.width / 2 - w / 2;
+    x = Math.max(PAD, Math.min(x, vw - w - PAD));
+    let y = Math.max(PAD, a.top - GAP - h);
+    el.style.left = Math.round(x) + 'px';
+    el.style.top  = Math.round(y) + 'px';
+    return;
+  }
+
+  const spaceRight = vw - a.right, spaceLeft = a.left;
+  const openRight  = spaceRight >= spaceLeft;
+  // The definition rail sits on the OUTER side, so it flips with the tooltip:
+  // opening leftwards puts the rail left of the card too.
+  el.classList.toggle('flip', !openRight);
+
+  let x = openRight ? a.right + GAP : a.left - GAP - w;
+  x = Math.max(PAD, Math.min(x, vw - w - PAD));
+
+  // Vertically: centre on the anchor, then clamp. If the anchor is very tall or
+  // the tooltip very long, fall back to whichever of above/below has more room.
+  let y = a.top + a.height / 2 - h / 2;
+  if (y < PAD || y + h > vh - PAD) {
+    const spaceBelow = vh - a.bottom, spaceAbove = a.top;
+    y = (spaceBelow >= spaceAbove) ? a.bottom + GAP - h * 0 : a.top - GAP - h;
+    if (spaceBelow >= spaceAbove) y = Math.min(a.top, vh - h - PAD);
+  }
+  y = Math.max(PAD, Math.min(y, vh - h - PAD));
+
+  el.style.left = Math.round(x) + 'px';
+  el.style.top  = Math.round(y) + 'px';
+}
+
+// Convenience: wire hover (and long-press on touch) for one element.
+function attachEntityTooltip(el, payloadOrFn) {
+  if (!el) return;
+  const get = () => (typeof payloadOrFn === 'function' ? payloadOrFn() : payloadOrFn);
+  el.addEventListener('pointerenter', () => showEntityTooltip(el, get()));
+  el.addEventListener('pointerleave', hideEntityTooltip);
+  // Touch: the tooltip follows a tap-and-hold, and any scroll/lift dismisses it.
+  let lp = null;
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    lp = setTimeout(() => showEntityTooltip(el, get()), 380);
+  });
+  const clearLp = () => { if (lp) { clearTimeout(lp); lp = null; } };
+  el.addEventListener('pointerup', clearLp);
+  el.addEventListener('pointercancel', clearLp);
+}
+
+
+// ── DELEGATED TOOLTIPS (r254) - a tile that describes itself is enough ──────
+// entityTileHTML (js/entity-tile.js) stamps `data-et` (the URI-encoded payload)
+// on every frame it draws for a real entity. These two listeners are the other
+// half: hover, or a 430ms touch press, opens the shared tooltip for ANY such
+// element, so a new surface gets tooltips by drawing the tile rather than by
+// remembering to wire them. Surfaces with richer bubbles of their own (the
+// reward grid's attachRewardTooltip, the Mart shelf, the Trick tray's
+// sell/discard bubble) never carry the attribute, so the two cannot fight.
+let _etDelegateEl = null, _etDelegateLp = null;
+function _etReadData(el) {
+  try { return JSON.parse(decodeURIComponent(el.dataset.et)); } catch (e) { return null; }
+}
+document.addEventListener('pointerover', e => {
+  if (e.pointerType === 'touch') return;
+  // The + chip is the one part of a hover bubble that takes pointer events, so
+  // the pointer CAN land inside the tooltip. Crossing onto it must keep the
+  // bubble alive rather than read as "left the tile" (r288).
+  if (e.target && e.target.closest && e.target.closest('#entity-tip')) {
+    clearTimeout(_etHideTimer); return;
+  }
+  const el = e.target && e.target.closest ? e.target.closest('[data-et]') : null;
+  if (el === _etDelegateEl) return;
+  // An interactive bubble (PIN / ADD TO CART) is a click's result - a passing
+  // hover must not tear it down.
+  if (entityTooltipInteractive()) return;
+  const wasOurs = !!_etDelegateEl;
+  _etDelegateEl = el;
+  if (!el) { if (wasOurs) hideEntityTooltip(); return; }
+  const p = _etReadData(el);
+  if (p) showEntityTooltip(el, p);
+});
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  const el = e.target && e.target.closest ? e.target.closest('[data-et]') : null;
+  if (!el) return;
+  _etDelegateLp = setTimeout(() => {
+    _etDelegateLp = null;
+    if (!entityTooltipInteractive()) { const p = _etReadData(el); if (p) showEntityTooltip(el, p); }
+  }, 430);
+});
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => {
+  if (_etDelegateLp) { clearTimeout(_etDelegateLp); _etDelegateLp = null; }
+}));
+
+// The boss-peek / hand-log placement rule, shared (r254): centred on the
+// anchor, below it when there is room, flipped above when there is not,
+// clamped on screen - in raw viewport px, because every bubble that calls this
+// lives outside #cabinet. The shop's tooltip uses it (placeTipSmart's
+// roomiest-side rule kept opening across the shelf being read there).
+function placeTipBelow(anchorEl, tip, opts = {}) {
+  const GAP = opts.gap != null ? opts.gap : 8, PAD = 6;
+  const a = anchorEl.getBoundingClientRect();
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = a.left + a.width / 2 - w / 2;
+  left = Math.max(PAD, Math.min(window.innerWidth - w - PAD, left));
+  let top = a.bottom + GAP;
+  if (top + h > window.innerHeight - PAD) top = Math.max(PAD, a.top - h - GAP);
+  tip.style.left = Math.round(left) + 'px';
+  tip.style.top  = Math.round(top) + 'px';
+}
+
+// ── shared placement for the OTHER tooltips ─────────────────────────────────
+// The trick-tray / knack / reward tooltips keep their own markup (they carry
+// buttons), but they should still obey the same rule: open into whichever side
+// has the most room, horizontally and vertically. Anchors a plain fixed-position
+// bubble beside an element.
+function placeTipSmart(anchorEl, tip, opts = {}) {
+  const GAP = opts.gap != null ? opts.gap : 10, PAD = 6;
+  const a = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const w = tip.offsetWidth || 180, h = tip.offsetHeight || 80;
+
+  // Prefer the side of the ANCHOR with more room. If neither side fits the
+  // bubble, fall back to above/below and centre horizontally instead.
+  const spaceRight = vw - a.right, spaceLeft = a.left;
+  const spaceBelow = vh - a.bottom, spaceAbove = a.top;
+  let x, y;
+  if (Math.max(spaceRight, spaceLeft) >= w + GAP + PAD) {
+    x = (spaceRight >= spaceLeft) ? a.right + GAP : a.left - GAP - w;
+    y = a.top + a.height / 2 - h / 2;
+  } else {
+    x = a.left + a.width / 2 - w / 2;
+    y = (spaceBelow >= spaceAbove) ? a.bottom + GAP : a.top - GAP - h;
+  }
+  tip.style.left = Math.round(Math.max(PAD, Math.min(x, vw - w - PAD))) + 'px';
+  tip.style.top  = Math.round(Math.max(PAD, Math.min(y, vh - h - PAD))) + 'px';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONFIRM A DESTRUCTIVE ACTION, INSIDE THE BUBBLE (r278)
+//
+// Selling and discarding are one tap away now that a tap opens the actions
+// (they used to need a press-and-hold to reach), so they need a second beat
+// between the thumb and a Trick leaving the run for good.
+//
+// It swaps the action ROW IN PLACE rather than opening a second surface: the
+// bubble is what the player is already looking at, and a modal over a 200px
+// popup is a screen for a much bigger decision than this.
+//
+// **Cancel RE-SHOWS the bubble, it does not restore the markup.** Putting the
+// old innerHTML back would restore the buttons without their listeners - dead
+// controls that look alive - so the caller hands over the one call that
+// rebuilds the whole bubble, wiring and all.
+// ══════════════════════════════════════════════════════════════════════════
+function tipConfirmAction(rowEl, { question, confirmLabel = 'Yes', danger = false, onYes, onCancel }) {
+  if (!rowEl) return;
+  rowEl.classList.add('tip-confirming');
+  rowEl.innerHTML =
+    `<div class="tip-confirm-q">${question}</div>` +
+    `<div class="tip-confirm-row">` +
+      `<button class="tip-btn tip-btn-yes${danger ? ' danger' : ''}">${confirmLabel}</button>` +
+      `<button class="tip-btn tip-btn-no">Cancel</button>` +
+    `</div>`;
+  rowEl.querySelector('.tip-btn-yes').addEventListener('click', e => {
+    e.stopPropagation();
+    if (typeof onYes === 'function') onYes();
+  });
+  rowEl.querySelector('.tip-btn-no').addEventListener('click', e => {
+    e.stopPropagation();
+    if (typeof onCancel === 'function') onCancel();
+  });
+}

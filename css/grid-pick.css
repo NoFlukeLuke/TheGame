@@ -1,0 +1,375 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   GRID PICK (r254, rebuilt r256) - the pick-of-three IS the board.
+   See js/grid-pick.js.
+
+   There is NO overlay and NO backdrop here. The tiles are children of #grid,
+   absolutely placed in cell units by JS exactly as the cards are, so the pick
+   inhabits the board rather than covering it.
+
+   STAGE PX throughout: #grid carries the cabinet's zoom (~1.9x on a desktop),
+   so size against a ~51x67 cell, not against the viewport.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* AMBIENCE. Inert black cards filling whatever the options and the action tiles
+   do not claim - the board still reads as a board. Since r292 the options start
+   at row 0, so that is the action row's spare cells (and, on a two-option pick,
+   the columns beside them) rather than a whole row above.
+   Same silhouette as a dealt card, no face.
+   Never interactive: a dead cell that responds to a tap reads as broken. */
+#grid .gp-amb {
+  position: absolute; z-index: 2; pointer-events: none;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #0c0a07, #060504);
+  border: 1px solid rgba(183,172,147,0.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5);
+}
+
+/* A CHOICE - 2 cells wide, 2 tall (r588; 3 tall from r292), drawn as TWO
+   TILES a board gap apart (r590, owner): .gp-head is the entity and its name,
+   .gp-body the description. .gp-opt is only the frame that holds them: it
+   takes the tap, carries the tooltip and lifts when picked, and paints nothing.
+
+   Both tiles are the offer's RARITY COLOUR, way darker (--rc mixed into near
+   black). An offer with no rarity of its own (a deck op, a card pack, a limit)
+   wears one from how often it is drawn (rarityForShare, js/luck.js). */
+#grid .gp-opt {
+  position: absolute; z-index: 3; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: var(--gp-gap, 6px);
+  cursor: var(--cur-pointer, pointer);
+  transition: transform 0.12s ease;
+}
+#grid .gp-opt.rar-common    { --rc: var(--c-mint,    #35d59b); }
+#grid .gp-opt.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
+#grid .gp-opt.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
+#grid .gp-opt.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+#grid .gp-opt :is(.gp-head, .gp-body) {
+  box-sizing: border-box; width: 100%; border-radius: 8px; overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--rc, #b7ac93) 45%, #1a1712);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
+  transition: border-color 0.14s ease, box-shadow 0.16s ease;
+}
+#grid .gp-opt .gp-head {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rc, #b7ac93) 22%, #0b0a08),
+                                      color-mix(in srgb, var(--rc, #b7ac93) 12%, #070605));
+}
+#grid .gp-opt .gp-body { background: color-mix(in srgb, var(--rc, #b7ac93) 9%, #070605); }
+#grid .gp-opt:hover :is(.gp-head, .gp-body) {
+  border-color: color-mix(in srgb, var(--rc, #b7ac93) 60%, var(--cream, #f0e6c8));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 13px rgba(240,230,200,0.2), 0 6px 14px rgba(0,0,0,0.55);
+}
+/* PICKED (r280). A tap marks the tile; CONFIRM is what takes it. Mint, because
+   that is the colour CONFIRM wears on every other screen in the flow, so the
+   tile and the button that commits it read as one thing. It must beat :hover -
+   the pointer is on the tile you just tapped. The rarity tint stays under it. */
+/* r281: it also LIFTS AND SWELLS, on the board card's own two numbers
+   (-2.5px, x1.0875 - see "SELECTION IS A WHOLE-CELL STATE" in css/style.css),
+   so "I picked this" moves the same way on every screen that asks you to pick
+   something off the board. The ring thickened to 2px with it: at 1px inset on
+   a dark tile the mint was reading as a hover. */
+#grid .gp-opt.gp-sel,
+#grid .gp-opt.gp-sel:hover {
+  z-index: 5;
+  transform: translateY(-2.5px) scale(1.0875);
+}
+#grid .gp-opt.gp-sel :is(.gp-head, .gp-body),
+#grid .gp-opt.gp-sel:hover :is(.gp-head, .gp-body) {
+  border-color: var(--c-mint, #35d59b);
+  box-shadow: inset 0 0 0 2px rgba(53,213,155,0.5), 0 0 19px rgba(53,213,155,0.5), 0 8px 17px rgba(0,0,0,0.6);
+}
+
+.gp-tag {
+  flex: 0 0 auto;
+  font-family: 'Share Tech Mono', monospace; font-size: 6px; letter-spacing: 1.5px;
+  color: #0e0c0a; background: var(--rc, var(--c-mint, #35d59b));
+  padding: 1px 5px; border-radius: 999px; text-transform: uppercase; font-weight: 700;
+}
+.gp-tag.rar-common    { --rc: var(--c-mint,    #35d59b); }
+.gp-tag.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
+.gp-tag.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
+.gp-tag.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+
+/* THE OBJECT. The art box is given the OBJECT'S OWN ASPECT, so the object
+   fills it rather than letterboxing inside a taller box and leaving a gap
+   between the icon and the name (r256). The frame must be position:relative -
+   r239: the object's band is an abspos pseudo anchoring to the nearest
+   positioned ancestor. Only the ART floats.
+   NOT pointer-events:none: a click on the object has to bubble to .gp-opt,
+   which is what selects it and opens the read (r280 - .gp-opt carries the
+   data-et payload now, so the hover target is the whole tile). */
+.gp-art { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; aspect-ratio: var(--gp-ar); }
+.gp-art-trick   .gp-art { --gp-ar: 20 / 19; }   /* the floppy's real ratio */
+.gp-art-sleight .gp-art { --gp-ar: 1.37; }      /* the business card's */
+.gp-art-knack   .gp-art { --gp-ar: 1; }         /* the cert diamond */
+.gp-art-plain   .gp-art { --gp-ar: 1.2; }
+/* A SHORT TILE SHRINKS THE ART, NOT THE WORDS (r588). Where the board keeps the
+   card shape (a phone outside Flow) the choice is too short for a full-width
+   object, the name and a description. The art is capped so the entity tile
+   (tag, art, name) fits its 60% of the choice; 42px is the gap's share, the
+   tile's padding and border, the tag and a one-line name. The choice is the
+   size container: gpPickBox gives it an explicit size, which
+   container-type: size needs. */
+#grid .gp-opt { container-type: size; }
+#grid .gp-opt .gp-art { width: min(100%, (60cqh - 42px) * (var(--gp-ar))); min-height: 0; }
+.gp-art .reward-cell {
+  position: relative; width: 100%; height: 100%; margin: 0;
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)) scale(var(--fs, 1));
+}
+.gp-icon {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg));
+}
+
+/* NAME then DESCRIPTION, a paragraph break under the object - not a gap.
+   11px, up 2 from r280's 9 (owner's call): the name is the tile's title and the
+   fourth cell is the room to say it at a readable size. */
+.gp-name {
+  flex: 0 0 auto; margin-top: 3px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.4px;
+  color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
+}
+/* THE ENTITY TILE - the entity and its name, 60% of the choice (r590; the top
+   two thirds before). `min-height` rather than `flex-basis`, deliberately: the
+   basis form is a HARD share and a block taller than that (a name that wraps
+   to two lines) would be cut by the tile's overflow:hidden. This way it takes
+   its content's height and is only ever PADDED UP to 60%; the description tile
+   gives way. */
+.gp-head {
+  flex: 0 0 auto; width: 100%; min-height: calc((100% - var(--gp-gap, 6px)) * 0.6);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 5px 5px 4px;
+}
+/* THE DESCRIPTION TILE - the rest of the choice, and a real block with its own
+   edge. That is the difference between "the words sit in the
+   lower half" and "there is nothing down here" - a short description leaves room
+   INSIDE a panel, which reads as a panel, where the same gap on bare tile read as
+   a dead row. min-height:0 lets it shrink below its content so the clamp (not the
+   tile) decides how much shows; overflow:hidden keeps the ellipsis mark inside it
+   when the text and the mark both land on the last line of room. */
+.gp-body {
+  flex: 1 1 0; width: 100%; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 4px 5px 3px;
+}
+/* 7.5px, not 9 (r280, owner's call): the only way to read more of a description
+   inside a fixed tile is to set it smaller. The line clamp here is only the
+   value before gpFitDesc measures the block (js/grid-pick.js) - it is a
+   pre-measure default, not the shipped number of lines. */
+.gp-desc {
+  font-family: 'Crimson Pro', serif; font-size: 7.5px; line-height: 1.3;
+  color: var(--cream-dim, #9a8d70); text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* PORTRAIT takes it one step down (owner's call). A phone's board is the same
+   6 x 5 cells in a much narrower slot, so a line of description holds far fewer
+   words there; one step smaller is one step more of the sentence per line.
+   Scoped #stage:not(.landscape) so the landscape rule above is untouched - the
+   pattern every portrait rule in this codebase follows. */
+#stage:not(.landscape) .gp-desc { font-size: 7px; }
+/* THE ELLIPSIS is a MARK, not a control. It says the description is clamped;
+   the tap that reads the rest is the tap on the TILE, which also picks it - so
+   this must never take a pointer event of its own or a player reaching for the
+   rest of the sentence would fail to select the thing they were reading. */
+.gp-more { display: none; }
+.gp-opt.gp-clipped .gp-more {
+  display: block; width: 100%; text-align: center; pointer-events: none;
+  font-family: 'Crimson Pro', serif; font-size: 10px; line-height: 1;
+  color: var(--c-yellow, #ffce2b); letter-spacing: 1px;
+}
+
+/* AN ACTION TILE (r256). A screen's own controls - Survival's reroll, peek,
+   breakdown and shop - are cells in the bottom row, not buttons under a panel.
+   One cell each; the cells no action claims stay ambience. */
+#grid .gp-act {
+  position: absolute; z-index: 3; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; padding: 3px 2px; text-align: center;
+  border-radius: 6px; cursor: var(--cur-pointer, pointer); overflow: hidden;
+  background: linear-gradient(180deg, rgba(24,21,15,0.96), rgba(12,10,7,0.98));
+  border: 1.5px solid rgba(183,172,147,0.42);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 2px 7px rgba(0,0,0,0.45);
+  transition: border-color 0.14s ease, box-shadow 0.16s ease;
+}
+#grid .gp-act:hover {
+  border-color: var(--c-yellow, #ffce2b);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 11px rgba(255,206,43,0.3);
+}
+#grid .gp-act.gp-act-off { opacity: 0.42; cursor: var(--cur-no, not-allowed); }
+#grid .gp-act.gp-act-off:hover { border-color: rgba(183,172,147,0.42); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+.gp-act-icon  { font-size: 15px; line-height: 1; }
+.gp-act-label {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 6.5px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--cream, #f0e6c8); line-height: 1.1;
+}
+.gp-act-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 6px; letter-spacing: 0.5px;
+  color: var(--c-yellow, #ffce2b);
+}
+/* The shop tile is the one that costs credits, so it is the one that is gold. */
+#grid .gp-act.gp-act-buy { border-color: rgba(255,206,43,0.55); }
+
+/* CONFIRM (r280) - two cells at the end of the action row, on every screen that
+   comes through here. Mint, the flow's commit colour, and it names what it is
+   about to take so the last thing read before committing is the choice itself.
+   Same stacked layout as its neighbours in the row - only wider, greener and
+   carrying a name. */
+#grid .gp-act.gp-confirm {
+  padding: 3px 7px;
+  background: linear-gradient(180deg, rgba(31,168,119,0.30), rgba(8,32,24,0.95));
+  border-color: var(--c-mint, #35d59b);
+}
+#grid .gp-act.gp-confirm:hover {
+  border-color: #7dffce;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 13px rgba(53,213,155,0.42);
+}
+#grid .gp-act.gp-confirm .gp-act-icon  { font-size: 12px; color: var(--c-mint, #35d59b); }
+#grid .gp-act.gp-confirm .gp-act-label { font-size: 8px; letter-spacing: 1.6px; }
+/* The chosen name sits under the word CONFIRM and is CLIPPED, never wrapped:
+   these names run past 12 characters and a second line would push the label out
+   of a tile one cell tall. min-width:0 is what lets a flex child shrink far
+   enough for text-overflow to bite at all. */
+#grid .gp-act.gp-confirm .gp-act-sub {
+  max-width: 100%; min-width: 0; color: var(--cream, #f0e6c8);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* With a SKIP strip under it the tile is shorter than icon + word + name, so the
+   name was clipped off the bottom. Drop the tick (the word says it) and pack. */
+#grid .gp-act.gp-confirm.gp-confirm-sk { gap: 0; padding: 2px 7px; }
+#grid .gp-act.gp-confirm.gp-confirm-sk .gp-act-icon { display: none; }
+#grid .gp-act.gp-confirm.gp-confirm-sk .gp-act-sub { font-size: 7px; line-height: 1.2; }
+/* Nothing picked yet: it says so and refuses the tap (.gp-act-off). */
+#grid .gp-act.gp-confirm.gp-act-off .gp-act-sub {
+  color: var(--cream-dim, #9a8d70); font-size: 5.5px; letter-spacing: 0.5px;
+}
+
+/* ── PRE-r256 PANEL LAYOUTS, kept for revert ──────────────────────────────
+   Two earlier passes drew the pick OVER the board instead of as the board: an
+   #grid-pick overlay inside #grid-slot with a radial backdrop, first as a flex
+   row filling the slot's height (r254) and then as cell-measured tiles in a
+   centred board box (r255). Both are superseded by the takeover above; kept
+   commented rather than deleted while the on-board direction is settled.
+
+   #grid-pick { position:absolute; inset:0; z-index:44; display:none;
+     background: radial-gradient(ellipse at center, rgba(8,11,6,0.55) 0%, rgba(8,11,6,0.86) 100%); }
+   #grid-pick.show { display:flex; align-items:center; justify-content:center; }
+   #grid-pick .gp-board { position:relative; width:var(--grid-w,100%); height:var(--grid-h,100%); }
+   #grid-pick .gp-row   { position:absolute; inset:0; }
+   #grid-pick .gp-head  { position:absolute; left:0; right:0; top:0;
+     display:flex; flex-direction:column; align-items:center; justify-content:center; }
+   .gp-kicker { font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:3px; color:var(--c-mint,#35d59b); }
+   .gp-title  { font-family:'Orbitron',sans-serif; font-weight:900; font-size:14px; letter-spacing:4px; }
+   #sv-pick-cards.gp-row { display:flex; gap:var(--gp-gap,10px); justify-content:center; align-items:flex-start; }
+   #sv-pick-cards.gp-row .gp-opt { flex:1 1 0; max-width:var(--gp-tile-w,150px); height:min(var(--gp-tile-h,200px),100%); }
+   (r254 only) .gp-art { flex:1 1 auto; min-height:0; }  .gp-desc { -webkit-line-clamp:4; }
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* The x/y selection readout means nothing on ANY board-takeover screen (there
+   is no hand being built), and it sits in the slot margin right beside the
+   grid. body.gp-active is set by gridScreenTakeover, so the pick and the tiled
+   payout both get it. */
+body.gp-active #sel-count { display: none !important; }
+
+/* ── THE ROUND BREAKDOWN, READ OVER THE BOARD (r282) ────────────────────────
+   The reader's markup is `#survival-pick-overlay` / `#sv-pick-contrib` for
+   historical reasons (it was Survival's alone until the Schedule's pick gained
+   the same tile), but the behaviour belongs to THIS screen, so the rules are
+   here beside the tiles they dim.
+
+   The list is centred and tall enough to lie across all three options, so while
+   it is open the board is DIMMED AND INERT and the overlay takes the taps. That
+   is the fix for a reader that silently ate a tile click; see
+   survivalToggleContrib. Nothing here applies unless .sv-reading is on, so the
+   resting screen is untouched. */
+#survival-pick-overlay.sv-reading {
+  pointer-events: auto;
+  background: radial-gradient(ellipse at 50% 50%, rgba(8,11,6,0.62) 30%, rgba(8,11,6,0.86) 100%);
+}
+/* An opaque plate: the list used to be read against the option tiles behind it. */
+#survival-pick-overlay.sv-reading #sv-pick-contrib.show {
+  background: linear-gradient(180deg, rgba(24,21,15,0.985), rgba(12,10,7,0.99));
+  border-color: rgba(183,172,147,0.5);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 10px 26px rgba(0,0,0,0.6);
+}
+/* The board behind it is not the thing being read. */
+body.gp-reading #grid .gp-opt,
+body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }
+
+/* ── #grid MUST OUTRANK A SIBLING PANEL WHILE IT IS BORROWED (r380) ────────
+   #grid is position:relative with z-index auto, so it is NOT a stacking
+   context and its tiles (z-index 2) beat #flowr-bg - a LATER sibling at
+   z-index 0 - on their own. The instant anything gives #grid a transform it
+   becomes a stacking context, its children's z-index is contained, and the
+   panel paints over the whole board. That is exactly what flashRoundEnd's
+   1.4s .round-end-flash was doing at the end of every Flow tally, and it is
+   the owner's "the options black out for a second when the score finishes".
+
+   The real fix is that flashRoundEnd no longer paints on a board it does not
+   own (js/score-anims.js). This is the guard that stops the NEXT transform -
+   a boss effect, a future animation - re-opening it: while a screen has the
+   board, #grid is explicitly above the panel, transform or no transform.
+   Scoped to the takeover so a live round's boss overlays (z-index 12-15,
+   children of #grid) are not suddenly contained by it. */
+body.gp-active #grid { z-index: 1; }
+/* r470: the same guard for the OTHER two between-round takeovers. The deck
+   editor (body.flowr-deck) and the reward grid (body.reward-active) sit over
+   #flowr-bg in a Flow chain, and since r468 the default idle look keeps
+   .ca-gazing (a perspective, so a stacking context) on #grid at all times -
+   which put the panel over the real cards and the owner's "the deck editor
+   opens the grid and the cards are invisible". Same scope rule as above: a
+   between-round takeover only, never a live round. */
+body.flowr-deck #grid, body.reward-active #grid { z-index: 1; }
+/* r391: a PICKED tile lifts and glows past the board's top edge, and it must
+   draw OVER the title tabs (#flowr-stack, z 8) - it already does when it flies
+   out (the explode lifts #grid to 350), so drawing under them first read as a
+   jump. #grid is a stacking context here, so the whole board goes up; nothing
+   but the picked tile reaches the tabs. */
+body.gp-active #grid:has(.gp-sel) { z-index: 9; }
+
+/* SKIP (r380) - a strip at CONFIRM's foot. Muted, so it never reads as the
+   thing to press; the two controls that end a pick share one region. */
+#grid .gp-act.gp-skip {
+  padding: 1px 6px; flex-direction: row;
+  background: linear-gradient(180deg, rgba(60,56,72,0.55), rgba(18,16,26,0.95));
+  border-color: rgba(154,141,112,0.55);
+}
+#grid .gp-act.gp-skip .gp-act-label { font-size: 7px; letter-spacing: 2px; color: var(--cream-dim, #9a8d70); }
+#grid .gp-act.gp-skip:hover { border-color: #d9cba4; }
+#grid .gp-act.gp-skip:hover .gp-act-label { color: var(--cream, #f0e6c8); }
+
+/* r381: PLAY-as-CONFIRM greys out until an option is picked. */
+#btn-play.reward-buy:disabled {
+  filter: grayscale(1) brightness(.55) !important;
+  opacity: .6 !important; cursor: var(--cur-default, default);
+}
+/* ── Reward transition (r380, js/reward-transition.js) ──
+   The beat before a board leaves: the taken tile holds and glows, the rest
+   step back. */
+#grid.rt-has-chosen > *:not(.rt-chosen):not(.rc-line) { filter: brightness(.45) saturate(.6); transition: filter .25s ease; }
+#grid .rt-chosen { z-index: 6; box-shadow: 0 0 0 2px #f4f0ff, 0 0 26px rgba(160,120,255,.75) !important; }
+
+/* ── r441: Flow's split rerolls ──
+   SWAP grows into REROLL REWARD TYPE, DISCARD shrinks into REROLL OPTIONS; PLAY
+   is CONFIRM as on every pick. The column still ends where it did. */
+#stage.landscape #swap-indicator, #stage.landscape #btn-discard {
+  transition: top .35s cubic-bezier(.2,.8,.3,1), height .35s cubic-bezier(.2,.8,.3,1);
+}
+#stage.landscape.gp-split #swap-indicator { height: 27.5%; }
+#stage.landscape.gp-split #btn-discard    { top: 40%; height: 21.5%; }
+#swap-indicator.gp-rr-type, #btn-discard.gp-rr-opt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  writing-mode: horizontal-tb; text-align: center; cursor: var(--cur-pointer, pointer);
+}
+#swap-indicator.gp-rr-type .rr-word, #btn-discard.gp-rr-opt .rr-word {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px; line-height: 1.25;
+}
+#swap-indicator.gp-rr-type .rr-n, #btn-discard.gp-rr-opt .rr-n {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; opacity: .85;
+}
+#swap-indicator.gp-rr-off { opacity: .4; pointer-events: none; }
+.gp-act.gp-act-on { outline: 2px solid var(--cream, #f4ead5); outline-offset: -3px; }
+
+/* r529: a same-box Flow reward screen sits where the play board does, so the
+   panel's title band and queued tabs take the room the topline used. The left
+   column already shows the level and credits. */
+body.gp-samebox #stage.landscape #grid-topline { opacity: 0 !important; pointer-events: none; }

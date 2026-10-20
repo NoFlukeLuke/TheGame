@@ -1,0 +1,148 @@
+  #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
+    overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
+  #stage.landscape #selected-cards.dnc-active{ height:20.7%; min-height:0; overflow:visible; flex-direction:column; align-items:stretch; justify-content:center; z-index:60; }   /* same box as at rest (style.css): the tray never resizes when cards fly in */
+  #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
+  #selected-cards.dnc-active .dnc-row.hand{min-height:58px;}
+  #selected-cards.dnc-active .dnc-lab:empty{display:none;}
+  #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
+    transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
+  /* items = clipped viewport; track = the sliding strip of cards (scrolls left as a large hand scores) */
+  #selected-cards.dnc-active .dnc-items{display:flex;align-items:center;flex:1;min-width:0;overflow:hidden;}
+  #selected-cards.dnc-active .dnc-track{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:nowrap;padding:8px 0;
+    transition:transform .38s cubic-bezier(.4,.6,.3,1);will-change:transform;}
+  .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  /* r503: a Sleight in the preview. It never flowed in the row (it is .trick-card,
+     absolute on the board, not .card); now it does. Its face is a landscape business
+     card letterboxed in a portrait tile, so here the tile turns a quarter and grows by
+     the card's own h/w (75/57), which stands the business card up to fill the slot.
+     Standalone rotate/scale, so the dance's pops and flashes on `transform` compose. */
+  #selected-cards .trick-card.sleight-card{position:relative !important;flex:0 0 auto;will-change:auto;transition:none;cursor:var(--cur-default, default);}
+  .dnc-outer.dnc-turn{align-items:center;justify-content:center;}
+  .dnc-outer.dnc-turn > .sleight-card{rotate:90deg;scale:var(--dnc-turn-k, 1.316);}
+  /* ── Portrait preview sizing (r160) ──
+     fitPortraitPreviewCards() publishes --card-w/--card-h (the card size) and
+     --dnc-lap (the margin between cards - NEGATIVE when the hand has to overlap
+     to fit the strip). The track's own gap is zeroed so --dnc-lap is the single
+     source of spacing. Later cards are later in the DOM, so they paint on top and
+     the row reads as a fan; the rim keeps each card's edge legible against the
+     one under it. Cards can now be tall enough that the row exceeds the strip -
+     .dnc-active is already overflow:visible / z-index:60 for exactly that. */
+  #stage:not(.landscape) #selected-cards.dnc-active .dnc-row.hand{min-height:0;}
+  #stage:not(.landscape) #selected-cards.dnc-active .dnc-items{justify-content:center;}
+  #stage:not(.landscape) #selected-cards.dnc-active .dnc-track{gap:0;padding:3px 0;}
+  #stage:not(.landscape) #selected-cards.dnc-active .dnc-outer + .dnc-outer{margin-left:var(--dnc-lap,4px);}
+  #stage:not(.landscape) #selected-cards.dnc-active .dnc-outer .card{box-shadow:-2px 0 6px rgba(0,0,0,0.55);}
+  .dnc-card{width:30px;height:42px;border-radius:5px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 2px 5px rgba(0,0,0,.5);font-family:'Crimson Pro',serif;}
+  .dnc-card .r{font-size:14px;line-height:1;} .dnc-card .s{font-size:11px;line-height:1;}
+  .dnc-card.red{color:#a0030b;}
+  .dnc-chip{height:34px;min-width:34px;padding:0 6px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;transform-origin:center;background:rgba(212,168,87,0.14);border:1px solid rgba(212,168,87,0.5);
+    font-size:7px;letter-spacing:.2px;color:var(--cream);text-align:center;max-width:64px;line-height:1.05;}
+  .dnc-jitter{animation:dnc-jitter .1s linear infinite;}
+  @keyframes dnc-jitter{0%{transform:translate(0,0) rotate(0) scale(1);}
+   20%{transform:translate(calc(-0.9px*var(--dnc-jit)),calc(0.7px*var(--dnc-jit))) rotate(calc(-1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   40%{transform:translate(calc(0.9px*var(--dnc-jit)),calc(-0.7px*var(--dnc-jit))) rotate(calc(1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   60%{transform:translate(calc(-0.6px*var(--dnc-jit)),calc(-0.5px*var(--dnc-jit))) rotate(calc(-0.7deg*var(--dnc-jit))) scale(1);}
+   80%{transform:translate(calc(0.6px*var(--dnc-jit)),0) rotate(calc(0.7deg*var(--dnc-jit))) scale(1);}
+   100%{transform:translate(0,0) rotate(0) scale(1);}}
+  .dnc-pulse{animation:dnc-pulse var(--dnc-dur) ease;}
+  @keyframes dnc-pulse{0%{transform:scale(1);}50%{transform:scale(calc(1 + .12*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-flash{animation:dnc-flash var(--dnc-dur) ease;}
+  @keyframes dnc-flash{0%{filter:brightness(1);transform:scale(1);}40%{filter:brightness(calc(1 + .7*var(--dnc-mag)));transform:scale(calc(1 + .03*var(--dnc-mag)));}100%{filter:brightness(1);transform:scale(1);}}
+  .dnc-pop{animation:dnc-pop var(--dnc-dur) cubic-bezier(.34,1.56,.64,1);}
+  @keyframes dnc-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--dnc-mag)));}70%{transform:scale(calc(1 - .05*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
+    font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
+  /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
+
+/* ── Paused dance (r197) ───────────────────────────────────────────────────
+   The dance's WAAPI animations are held by the registry in js/dance-clock.js,
+   which can call .pause() on each one. These are the CLASS-driven keyframes -
+   jitter, pop, pulse, flash, the particle's own float - which are not WAAPI
+   animations and so have to be held by CSS instead. */
+body.dance-paused .dnc-jitter,
+body.dance-paused .dnc-pop,
+body.dance-paused .dnc-pulse,
+body.dance-paused .dnc-flash,
+body.dance-paused .dnc-particle,
+body.dance-paused .dnc-card,
+body.dance-paused #selected-cards.dnc-active * {
+  animation-play-state: paused !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SCORE PARTICLE PLATES (r221) - tuned in particle-preview.html
+   ══════════════════════════════════════════════════════════════════
+   A particle was bare serif text over a board of cream playing cards and a lit
+   HUD - the one thing in the game most often unreadable. It is a small coloured
+   DIAMOND lettered in white now: the colour says which chip is changing before
+   the number is read, and an opaque plate is legible over anything behind it.
+
+   .dnc-particle is the FLIGHT element (js/score-dance.js animates its transform);
+   .pt-box is the plate. They have to be separate elements because a diamond IS a
+   45deg rotation, and on one element the flight's transform would overwrite it
+   every frame. The label counter-rotates so the text stays upright. */
+.dnc-particle .pt-box{
+  display:flex; align-items:center; justify-content:center;
+  width:var(--pt-size,46px); height:var(--pt-size,46px);
+  background:var(--pt-bg,#2f6bd8);
+  border:var(--pt-bw,1.5px) solid var(--pt-bc,#7ba2e8);
+  box-shadow:0 0 var(--pt-glow,10px) var(--pt-bg,#2f6bd8), 0 2px 6px rgba(0,0,0,.7);
+}
+.dnc-particle .pt-lab{
+  font-family:'Orbitron',sans-serif; font-weight:900;
+  color:var(--pt-ink,#fff); font-size:var(--pt-font,16px);
+  line-height:1; white-space:nowrap; letter-spacing:.5px;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+}
+.dnc-particle.pt-diamond .pt-box{ transform:rotate(45deg); border-radius:var(--pt-round,4px); }
+.dnc-particle.pt-diamond .pt-lab{ transform:rotate(-45deg); }
+/* r552: a rewind / pause mark above the number, in the plate's ink. */
+.dnc-particle .pt-lab.pt-has-ico{ display:inline-flex; flex-direction:column; align-items:center; gap:.06em; }
+.dnc-particle .pt-ico{ display:block; width:.9em; height:.54em; fill:currentColor; }
+.dnc-particle.pt-square  .pt-box{ border-radius:var(--pt-round,4px); }
+.dnc-particle.pt-circle  .pt-box{ border-radius:50%; }
+.dnc-particle.pt-pill    .pt-box{ border-radius:999px; width:auto; padding:0 calc(var(--pt-size,46px)*.30); }
+/* The pre-r221 look, kept as a shape option: no plate, the label alone. */
+.dnc-particle.pt-none .pt-box{ background:none; border:none; box-shadow:none; width:auto; height:auto; }
+.dnc-particle.pt-none .pt-lab{ font-family:'Crimson Pro',serif; color:currentColor;
+  text-shadow:0 0 3px #000, 0 2px 6px rgba(0,0,0,.9); }
+
+body.reduced-motion .dnc-particle .pt-box{ box-shadow:none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   THE GOAL HAND'S SKIP (r280) - js/score-dance.js, dncMountFF
+   ══════════════════════════════════════════════════════════════════
+   Mounted into #selected-cards for the goal hand only. ABSOLUTELY POSITIONED,
+   so it is not a row of the dance stage and cannot push the cards around;
+   #selected-cards is a positioned element in BOTH orientations (absolute in
+   landscape, relative in portrait), so one rule anchors it in both.
+   It sits top-right: the hand-name label owns the left 44px of the landscape
+   frame, and the cards are centred. */
+/* The band above the cards is all the room there is: measured at 1440x820 the
+   dance stage starts 13.5 stage px above the preview cards, so the chip has to
+   come in under that or it sits on the hand you just played. */
+#dnc-ff {
+  position: absolute; right: 2px; top: 1px; z-index: 8;
+  display: flex; align-items: center; gap: 3px; line-height: 1;
+  padding: 1px 5px; border-radius: 4px; cursor: var(--cur-pointer, pointer);
+  font-family: 'Orbitron', sans-serif; font-size: 6.5px; letter-spacing: 1.2px;
+  background: rgba(10, 14, 12, 0.86);
+  color: var(--cream-dim, #8a7d60);
+  border: 1px solid var(--plastic-deep, #85795f);
+  opacity: 0.72;
+  transition: color .12s, border-color .12s, opacity .12s;
+}
+#dnc-ff:hover { opacity: 1; color: var(--phosphor, #ffb02e); border-color: var(--phosphor, #ffb02e); }
+#dnc-ff .ff-gl { font-size: 7px; line-height: 1; }
+/* Pressed: it has done its one job, so it goes quiet and stops taking taps
+   rather than disappearing - a control vanishing under the finger reads as a
+   misfire. */
+#dnc-ff.ff-on {
+  opacity: 0.4; pointer-events: none;
+  color: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b);
+}
+#stage:not(.landscape) #dnc-ff { right: 2px; top: 1px; padding: 2px 4px; font-size: 6px; letter-spacing: 1px; }
+body.reduced-motion #dnc-ff { transition: none; }

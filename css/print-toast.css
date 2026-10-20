@@ -1,0 +1,69 @@
+/* ══ PRINTER NOTICES (r432, reworked r435) - js/print-toast.js ════════════════
+   Black tractor-feed paper that comes down from the top edge of the game screen,
+   holes down both sides, a dark green bar every other line, text in the notice's
+   own UI colour. The layer is placed over #stage in raw viewport px and clips to
+   it, which is what makes the paper appear from the screen's own top edge. Sizes
+   are plain px, matching the plate toasts this replaced. */
+#pt-layer { position: fixed; z-index: 900; pointer-events: none; overflow: hidden; }
+
+.pt-slip {
+  --lh: 22px; --edge: 13px; --hole: 6px;
+  position: absolute; left: 50%; top: -6px; width: min(var(--ptw, 300px), calc(100% - 24px));
+  transform: translateX(-50%);
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.8));
+}
+.pt-paper {
+  position: relative;
+  padding: 12px calc(var(--edge) + 12px) 6px;
+  background: var(--pt-paper, #0d0b09);
+  border-left: 1px solid #ffffff10; border-right: 1px solid #ffffff10;
+  /* real holes down both edges: the board shows through them */
+  -webkit-mask:
+    radial-gradient(circle calc(var(--hole) / 2) at calc(var(--edge) / 2 + 1px) 50%, #0000 96%, #000) 0 0 / 50% calc(var(--lh) * 1.2) repeat-y,
+    radial-gradient(circle calc(var(--hole) / 2) at calc(100% - var(--edge) / 2 - 1px) 50%, #0000 96%, #000) 100% 0 / 50% calc(var(--lh) * 1.2) repeat-y;
+  mask:
+    radial-gradient(circle calc(var(--hole) / 2) at calc(var(--edge) / 2 + 1px) 50%, #0000 96%, #000) 0 0 / 50% calc(var(--lh) * 1.2) repeat-y,
+    radial-gradient(circle calc(var(--hole) / 2) at calc(100% - var(--edge) / 2 - 1px) 50%, #0000 96%, #000) 100% 0 / 50% calc(var(--lh) * 1.2) repeat-y;
+}
+/* the perforations beside the holes */
+.pt-paper::before, .pt-paper::after { content: ""; position: absolute; top: 0; bottom: 0; border-left: 1px dashed #ffffff1c; }
+.pt-paper::before { left: calc(var(--edge) + 3px); }
+.pt-paper::after  { right: calc(var(--edge) + 3px); }
+
+.pt-lines { display: flex; flex-direction: column; }
+.pt-line {
+  min-height: var(--lh); line-height: var(--lh); color: var(--ink, #f0e2c0); overflow-wrap: anywhere;
+  font-family: 'VT323', 'Share Tech Mono', monospace; font-size: var(--fpx, 21px); letter-spacing: .5px;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--ink, #f0e2c0) 45%, transparent);
+  /* the printed line jumps down into view in jerks, not a glide */
+  animation: ptFeed 110ms steps(3) both;
+}
+/* a dark green bar every other line, counted from the oldest so it stays put as
+   new lines push in above */
+.pt-line:nth-last-child(even) { background: var(--pt-bar, #151f17); margin: 0 -12px; padding: 0 12px; }
+@keyframes ptFeed { from { margin-top: calc(var(--lh) * -1); } to { margin-top: 0; } }
+/* dot-matrix: the ink is rows of dots, not a solid stroke */
+.pt-t { -webkit-mask: repeating-linear-gradient(#000 0 2px, #0008 0 3px); mask: repeating-linear-gradient(#000 0 2px, #0008 0 3px); }
+.pt-x { display: inline-block; margin-left: .5em; padding: 0 .3em; border: 1.5px solid currentColor; border-radius: 3px;
+        line-height: 1; font-size: .85em; transform: rotate(-6deg); }
+.pt-empty { visibility: hidden; }
+
+/* r510: a tap pulls the slip back; the pin keeps it up */
+.pt-slip { pointer-events: auto; cursor: var(--cur-pointer, pointer); }
+.pt-slip .pt-paper { padding-right: calc(var(--edge) + 32px); }   /* room for the pin */
+.pt-pulled { pointer-events: none; }
+.pt-pin {
+  position: absolute; top: 4px; right: calc(var(--edge) + 6px); width: 22px; height: 22px; padding: 0;
+  border: 1px solid #ffffff22; border-radius: 4px; background: #0008; cursor: var(--cur-pointer, pointer);
+  font-size: 12px; line-height: 20px; opacity: .45; filter: grayscale(1); transition: opacity .12s, filter .12s;
+}
+.pt-pin:hover { opacity: .9; }
+.pt-pinned .pt-pin { opacity: 1; filter: none; border-color: var(--c-yellow, #ffce2b); }
+
+/* pulled back up into the top of the screen */
+.pt-pulled { animation: ptPull var(--pt-pull, 280ms) steps(5) forwards; }
+@keyframes ptPull { to { transform: translate(-50%, -105%); } }
+
+body.reduced-motion .pt-line { animation: none; }
+body.reduced-motion .pt-pulled { animation: none; opacity: 0; }
+body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }

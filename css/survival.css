@@ -1,0 +1,218 @@
+/* ══════════════════════════════════════════════
+   SURVIVAL MODE - pick-of-three + on-demand shop button (r131+)
+   Arcade/LETHE look, matched to the main-menu + pause-menu reskin.
+   ══════════════════════════════════════════════ */
+
+/* ── Pick-of-three (r256) ────────────────────────────────────────────────
+   THE PICK IS THE BOARD NOW. The head, the three choices and the reroll /
+   peek / breakdown / shop controls are all TILES in #grid, styled by
+   css/grid-pick.css. What is left here is the overlay that carries the two
+   things that are panels by nature: the round BREAKDOWN (a text list) and the
+   button that brings a peeked pick back.
+
+   The overlay is INERT - it must never take a pointer event, or it would
+   swallow the taps meant for the tiles on the board underneath it. */
+#survival-pick-overlay {
+  display: none;
+  position: absolute; inset: 0;
+  z-index: 180;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#survival-pick-overlay.show { display: flex; }
+/* Only these two children are live. */
+#survival-pick-overlay #sv-pick-contrib.show,
+#survival-pick-overlay #sv-peek-restore { pointer-events: auto; }
+
+/* Peek: the pick tiles come off the board and the real cards are rendered back
+   (js/grid-pick.js, gridPickSetShown). This button is what brings it back, and
+   it lives OUTSIDE anything that could be hidden with the pick. */
+#sv-peek-restore { display: none; }
+#survival-pick-overlay.sv-peek #sv-peek-restore {
+  display: block; position: absolute; left: 6px; bottom: 6px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 9px; letter-spacing: 2px;
+  cursor: var(--cur-pointer, pointer); color: #0e0c0a; border: none; border-radius: 8px; padding: 6px 10px;
+  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b) 60%, #e0a814);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 0 #b5820f;
+}
+
+/* ── PRE-r256 PANEL, kept for revert ──────────────────────────────────────
+   The pick used to be a bordered panel with its own head, a flex row of three
+   cards and a footer of buttons, floated over the board (and, between r254 and
+   r255, mounted inside #grid-slot). Superseded by the board takeover; kept
+   commented rather than deleted while the on-board direction is settled.
+
+   #stage.landscape #survival-pick-overlay { justify-content: flex-end; padding-right: 2.5%; }
+   #survival-pick-overlay.show::before { content:""; position:absolute; inset:0;
+     background: radial-gradient(ellipse at 50% 50%, rgba(11,10,28,0.20) 40%, rgba(11,10,28,0.55) 100%); }
+   #stage.landscape #survival-pick-overlay.show::before { display:none; }
+   #survival-pick-panel { position:relative; pointer-events:auto; width:100%; height:100%;
+     display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 8px 7px;
+     border-radius:10px; background: linear-gradient(180deg, rgba(20,16,11,0.96), rgba(11,9,6,0.97));
+     box-shadow: 0 0 0 2px var(--plastic-lo,#b7ac93), 0 0 0 5px #17120c, 0 16px 40px rgba(0,0,0,0.6);
+     animation: sv-panel-in 0.24s cubic-bezier(.2,.8,.3,1); }
+   @keyframes sv-panel-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+   .sv-pick-head { display:flex; flex-direction:column; align-items:center; gap:1px; }
+   .sv-pick-kicker { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:3px; color:var(--c-mint,#35d59b); }
+   .sv-pick-title  { font-family:'Orbitron',sans-serif; font-weight:900; font-size:17px; letter-spacing:5px; }
+   #sv-pick-cards { width:100%; flex:1 1 auto; min-height:0; }
+   .sv-pick-foot { display:flex; align-items:stretch; gap:7px; margin-top:2px; }
+   #sv-pick-reroll, #sv-pick-contrib-btn, #sv-pick-shop { ...buttons, now .gp-act tiles... }
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── RUN COMPLETE (5 bosses) - retire or continue endless ── */
+#survival-complete-overlay {
+  display: none; position: absolute; inset: 0; z-index: 200;
+  align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, rgba(36,29,63,0.93) 0%, rgba(11,10,28,0.97) 70%);
+}
+#survival-complete-overlay.show { display: flex; }
+#sv-complete-panel {
+  width: 100%; max-width: 340px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 22px 22px 18px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(20,16,11,0.96), rgba(11,9,6,0.97));
+  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 5px #17120c, 0 18px 44px rgba(0,0,0,0.6);
+}
+.sv-c-kicker { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--c-mint, #35d59b); }
+.sv-c-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; letter-spacing: 5px;
+  background: linear-gradient(180deg, #fff2c8, var(--c-yellow, #ffce2b) 55%, var(--c-coral, #ff6a3c));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#sv-complete-stats { width: 100%; margin: 4px 0 2px; }
+.sv-c-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.75;
+  color: var(--cream-dim, #8a7d60); border-bottom: 1px solid rgba(183,172,147,0.14);
+}
+.sv-c-row b { color: var(--cream, #f0e6c8); font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+.sv-c-btns { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.sv-c-btn {
+  width: 100%; cursor: var(--cur-pointer, pointer); border-radius: 9px; padding: 10px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 2px;
+  text-transform: uppercase; transition: filter 0.12s ease, transform 0.07s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.sv-c-btn:is(:active, .key-dn) { transform: translateY(2px); }
+.sv-c-primary {
+  color: #3a2a08; border: none;
+  background: linear-gradient(180deg, #ffb06a, var(--c-coral, #ff6a3c) 60%, #d9491f);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 4px 0 #a5361a, 0 6px 10px rgba(0,0,0,0.45);
+}
+.sv-c-primary:hover { filter: brightness(1.07); }
+.sv-c-ghost {
+  color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.04);
+  border: 1.5px solid var(--plastic-lo, #b7ac93);
+}
+.sv-c-ghost:hover { border-color: var(--c-mint, #35d59b); color: var(--c-mint, #35d59b); }
+.sv-c-note { font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.4; color: var(--cream-dim, #8a7d60); }
+.sv-c-note b { color: var(--c-coral, #ff6a3c); }
+
+/* Contributions dropdown - reuses the payout's .contrib-* row markup. */
+#sv-pick-contrib { display: none; }
+#sv-pick-contrib.show {
+  display: block; width: 100%; margin-top: 4px;
+  max-height: 180px; overflow-y: auto;
+  padding: 8px 10px; border-radius: 9px;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(183,172,147,0.28);
+  text-align: left;
+}
+#sv-pick-contrib .contrib-group-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2px;
+  color: var(--c-mint, #35d59b); text-transform: uppercase; margin: 6px 0 2px;
+}
+#sv-pick-contrib .contrib-group-title:first-child { margin-top: 0; }
+#sv-pick-contrib .contrib-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.5;
+  color: var(--cream, #f0e6c8);
+}
+#sv-pick-contrib .contrib-count { font-size: 9px; color: var(--cream-dim, #8a7d60); margin-left: 5px; }
+#sv-pick-contrib .contrib-val { font-family: 'Share Tech Mono', monospace; font-size: 11px; white-space: nowrap; }
+#sv-pick-contrib .contrib-pip  { color: #8fb7ff; }
+#sv-pick-contrib .contrib-mult { color: #ff8f8f; }
+#sv-pick-contrib .contrib-coin { color: var(--gold, #e8b33a); }
+#sv-pick-contrib .contrib-fx   { color: var(--c-mint, #35d59b); }
+#sv-pick-contrib .contrib-empty { font-family: 'Crimson Pro', serif; font-size: 12px; color: var(--cream-dim, #8a7d60); }
+
+/* ── On-demand shop button by the coins chip (Survival only) ── */
+.survival-shop-btn {
+  display: none;                 /* JS adds .sv-on only in Survival */
+  font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+  cursor: var(--cur-pointer, pointer); color: #0e0c0a;
+  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b) 60%, #e0a814);
+  border: none; border-radius: 7px; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 0 #b5820f, 0 3px 5px rgba(0,0,0,0.4);
+  transition: filter 0.12s ease, transform 0.07s ease;
+}
+.survival-shop-btn:hover { filter: brightness(1.06); }
+.survival-shop-btn:is(:active, .key-dn) { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 0 #b5820f; }
+.survival-shop-btn.sv-cant-afford { filter: grayscale(0.5) brightness(0.85); }
+
+/* Top-bar (portrait) variant sits inline next to the coins value. */
+#coins-shop-btn.sv-on { display: inline-block; font-size: 9px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+/* Landscape coin-info variant is a full-width chip under the gold readout. */
+#ci-shop-btn.sv-on { display: block; font-size: 10px; padding: 5px 8px; margin-top: 6px; width: 100%; text-align: center; }
+
+/* Act-mode run-progress block (ACT n + node pips + boss skull) is meaningless in
+   endless Survival - hide it so the HUD doesn't imply a 3-Act structure.
+   EXCEPT on a boss round (r160): Survival runs real bosses, and the boss sigil
+   belongs in the same place it lives in every other mode. .boss-sigil already
+   collapses the node pips to the single mark, so what shows here is just the
+   sigil under a REVIEW label - no implied act structure. */
+#stage.survival-mode #run-progress { display: none; }
+#stage.survival-mode.landscape #run-progress.boss-sigil { display: flex; }
+/* r544: and outside a boss it carries Flow's LEVEL (the credits bar that held it is gone). */
+#stage.survival-mode.landscape #run-progress.rp-lvl { display: flex; }
+
+/* ══════════════════════════════════════════════
+   PEEK (r197) - put the pick panel aside and watch the board
+   ══════════════════════════════════════════════
+   The pick opens while the goal dance is still playing, so it covers the finale
+   it is celebrating. Peeking takes the panel out of the way; #sv-peek-restore
+   brings it back. See survivalTogglePeek in js/survival.js. */
+
+/* Same square chrome as the breakdown toggle beside it. */
+#sv-pick-peek {
+  cursor: var(--cur-pointer, pointer); font-size: 14px; line-height: 1; color: var(--cream, #f0e6c8);
+  background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
+  border-radius: 9px; padding: 0 12px;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.07s ease;
+}
+#sv-pick-peek:hover { border-color: var(--c-cyan, #4fd6ff); background: rgba(79,214,255,0.08); }
+#sv-pick-peek:is(:active, .key-dn) { transform: translateY(2px); }
+
+/* Peeking: the panel fades out and stops taking clicks. It is NOT display:none -
+   the fade has to be visible, or the panel reads as having been dismissed for
+   good rather than set aside. */
+#survival-pick-overlay.sv-peek #survival-pick-panel {
+  opacity: 0; pointer-events: none;
+  transform: scale(0.97);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#survival-pick-overlay.sv-peek.show::before { opacity: 0; transition: opacity 0.18s ease; }
+
+/* The way back. Lives outside the panel (which is inert while peeking) and sits
+   out of the board's way in the corner the panel came from. */
+#sv-peek-restore {
+  display: none;
+  position: absolute; right: 10px; bottom: 10px;
+  pointer-events: auto; cursor: var(--cur-pointer, pointer);
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2px;
+  color: #0e0c0a; border: none; border-radius: 9px; padding: 8px 12px;
+  background: linear-gradient(180deg, #8ff0cb, var(--c-mint, #35d59b) 60%, #1f9d72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 3px 0 #167a57, 0 4px 8px rgba(0,0,0,0.45);
+  animation: sv-peek-in 0.18s ease;
+}
+#survival-pick-overlay.sv-peek #sv-peek-restore { display: block; }
+/* Landscape docks it bottom-LEFT, over the Records/Pause row. Bottom-right there
+   sits on the corner of the grid, which is the one thing you peeked to see;
+   neither of those two buttons is usable during a pick anyway. */
+#stage.landscape #sv-peek-restore { left: 10px; right: auto; }
+#sv-peek-restore:is(:active, .key-dn) { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 0 #167a57; }
+@keyframes sv-peek-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* r232: the on-grid shop is opened FROM the pick screen and takes the board the
+   pick sits over, so openShopGrid peeks the panel aside. While the shop owns the
+   screen the restore button must not be able to recall the panel over it. */
+body.shop-active #sv-peek-restore { display: none !important; }

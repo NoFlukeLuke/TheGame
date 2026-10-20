@@ -1,0 +1,42 @@
+/* ══════════════════════════════════════════════
+   FIXED MENU SIZE (r407)
+   Records, Settings, the handbook and History are one FIXED box: 75% of the
+   screen on desktop, 85% on a phone, width capped against the height on an
+   ultrawide. The box never resizes while open; content that runs short leaves
+   space and an empty state says so inside the box.
+   --menu-z (js/menu-size.js) zooms the CONTENT up so type reads at a normal
+   game size (about 16px body at 1080p) instead of 12px. The box is divided
+   by it so the zoom cannot change the box's on-screen size.
+   ══════════════════════════════════════════════ */
+:root { --menu-z: 1; --menu-w: min(75vw, 142vh); --menu-h: 75vh; }
+@media (max-aspect-ratio: 1/1), (max-width: 700px) {
+  :root { --menu-w: 88vw; --menu-h: 85vh; }
+}
+#records-panel, #settings-panel, #info-panel, #history-panel {
+  zoom: var(--menu-z);
+  width: calc(var(--menu-w) / var(--menu-z)) !important;
+  max-width: none !important;
+  height: calc(var(--menu-h) / var(--menu-z)) !important;
+  max-height: none !important;
+  flex: 0 0 auto;
+}
+
+/* Tooltips take the same content zoom, on their CHILDREN and never on the tooltip
+   itself: the placement code writes left/top in viewport px onto the host, and zoom
+   would multiply them. At 1.4 the 232px card is ~325px, about 22% of a 1440 desktop;
+   a phone stays at zoom 1. --tip-z is that zoom times Settings -> Larger text
+   (--text-z 1.15). It is declared on body, where big-text sets --text-z, and
+   inherited by the body-level tooltips.
+   r455: the older tooltips (Trick tray, Knack, reward grid, Sleight, challenge,
+   Poker Squares) take it too. Each host's px max-width and padding are scaled
+   with it, or the zoomed text would wrap inside the old 200px box. */
+body { --tip-z: calc(var(--menu-z, 1) * var(--text-z, 1)); }
+body.big-text { --text-z: 1.15; }
+#entity-tip > .et-card, #entity-tip > .et-defs,
+:is(#trick-tooltip, #knack-tooltip, #reward-tooltip, #challenge-tooltip, .sleight-tooltip,
+  #sleight-grid-tooltip, #card-enh-tooltip, #sq-tip) > * { zoom: var(--tip-z); }
+#trick-tooltip { max-width: calc(200px * var(--tip-z)) !important; padding: calc(8px * var(--tip-z)) calc(10px * var(--tip-z)) !important; }
+#knack-tooltip { max-width: min(calc(200px * var(--tip-z)), calc(100vw - 20px)) !important; padding: calc(8px * var(--tip-z)) calc(10px * var(--tip-z)) !important; }
+#reward-tooltip { max-width: calc(214px * var(--tip-z)) !important; padding: calc(9px * var(--tip-z)) calc(11px * var(--tip-z)) !important; }
+#challenge-tooltip { max-width: calc(240px * var(--tip-z)) !important; padding: calc(10px * var(--tip-z)) calc(14px * var(--tip-z)) !important; }
+.sleight-tooltip { max-width: min(calc(260px * var(--tip-z)), calc(100vw - 20px)) !important; padding: calc(10px * var(--tip-z)) calc(12px * var(--tip-z)) !important; }

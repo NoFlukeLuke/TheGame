@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Scoring &amp; Economy FX Tuner</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;700&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-mint:#35d59b; --c-purple:#b07dea;
+    --phosphor:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684;
+    --card-bg:#f7f2e6; --card-border:#c9bfa5; --red:#e05555;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0d0a06;font-family:'Orbitron',sans-serif;color:var(--cream);min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px 20px 60px;}
+  h1{font-size:17px;letter-spacing:4px;color:var(--phosphor);text-shadow:0 0 12px rgba(255,176,46,.5);}
+  h2{font-size:12px;letter-spacing:3px;color:var(--c-cyan);margin:14px 0 -4px;}
+  .sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);text-align:center;line-height:1.6;max-width:860px;}
+  .sub b{color:var(--phosphor);}
+
+  /* ── mock cabinet stage: just enough of the real HUD to judge the FX in place ── */
+  .stage{width:880px;max-width:97vw;border-radius:12px;position:relative;padding:16px;
+    background:radial-gradient(ellipse at 50% 25%,#211a0c,#0d0a06 82%);
+    box-shadow:inset 0 0 60px rgba(0,0,0,.8),inset 0 0 0 2px #2a2416;
+    display:grid;grid-template-columns:250px 1fr;gap:14px;overflow:hidden;}
+  .stage::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:9;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px);mix-blend-mode:overlay;}
+  .col{display:flex;flex-direction:column;gap:8px;}
+  .box{background:#12100a;border:1px solid #2a2416;border-radius:7px;padding:7px 9px;position:relative;}
+  .box .lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--cream-dim);}
+  .box .val{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:var(--phosphor);line-height:1.1;}
+  #score-box{border-top:2px solid var(--c-magenta);}
+  #pips-box{border-top:2px solid #5588ee;}  #pips-box .val{color:#7aa8ff;}
+  #mult-box{border-top:2px solid var(--red);} #mult-box .val{color:#ff7b7b;}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+  /* time bar — stands in for #vclock */
+  #timebar-wrap{position:relative;height:var(--barH,30px);border:1px solid #2a2416;border-radius:6px;overflow:visible;background:#0a0806;}
+  #timebar-fill{position:absolute;inset:0;width:62%;border-radius:5px;
+    background:linear-gradient(90deg,var(--c-mint),var(--c-cyan));opacity:.85;}
+  #timebar-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Share Tech Mono',monospace;font-size:calc(var(--barH,30px)*.52);color:#06110f;font-weight:700;z-index:2;}
+
+  /* focus meter — a vertical strip of nodes */
+  #focus-wrap{display:flex;flex-direction:column-reverse;gap:2px;padding:5px;background:#0a0806;
+    border:1px solid #2a2416;border-radius:6px;position:relative;}
+  .fnode{height:7px;border-radius:2px;background:#1d1a12;}
+  .fnode.on{background:var(--c-mint);box-shadow:0 0 6px -1px var(--c-mint);}
+
+  #credit-box{border-top:2px solid var(--c-yellow);display:flex;align-items:center;gap:8px;}
+  #credit-box .val{color:var(--c-yellow);}
+
+  #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-content:start;}
+  .card{aspect-ratio:57/75;border-radius:5px;background:var(--card-bg);border:2px solid var(--card-border);
+    display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;
+    font-size:15px;font-weight:700;color:#1a1510;position:relative;}
+  .card.red{color:#b8323f;}
+  .card.lit{box-shadow:0 0 0 2px var(--phosphor),0 0 16px -2px var(--phosphor);}
+  #tricks{display:flex;gap:6px;margin-top:8px;}
+  .trick{flex:1;height:44px;border-radius:5px;border:2px solid var(--c-mint);background:linear-gradient(180deg,#15110b,#0a0906);
+    display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;
+    font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--c-mint);position:relative;}
+
+  /* ── the FX themselves ── */
+  .fx{position:fixed;z-index:200;pointer-events:none;white-space:nowrap;will-change:transform,opacity;}
+  .coin{position:fixed;z-index:201;pointer-events:none;font-size:17px;will-change:transform,opacity;}
+
+  /* ── controls ── */
+  .panel{width:880px;max-width:97vw;background:rgba(255,255,255,.03);border:1px solid #2a2416;border-radius:10px;padding:12px 14px;}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:5px 20px;}
+  .row{display:flex;align-items:center;gap:8px;min-width:0;}
+  .row label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);
+    flex:0 0 104px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row b{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--phosphor);
+    flex:0 0 52px;text-align:right;white-space:nowrap;}
+  /* min-width:0 is the fix: a range input has an intrinsic min width that stops
+     flex from shrinking it, so the value chip overflowed into the next column. */
+  .row input[type=range]{flex:1 1 auto;min-width:0;accent-color:var(--phosphor);}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
+  button{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;padding:8px 13px;border-radius:6px;
+    background:rgba(255,176,46,.1);border:1px solid #5a4a12;color:var(--phosphor);cursor:pointer;}
+  button:hover{background:rgba(255,176,46,.2);}
+  button.alt{color:var(--c-cyan);border-color:#16606a;background:rgba(22,200,216,.08);}
+  button.on{background:var(--phosphor);color:#1a1206;}
+  .variants{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;}
+  .variants button{font-size:9px;padding:7px 11px;}
+  #cfg-out{width:880px;max-width:97vw;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);
+    background:#070f0c;border:1px solid #1c3a30;border-radius:8px;padding:10px 12px;white-space:pre;overflow-x:auto;max-height:230px;}
+  .note{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--c-mint);text-align:center;max-width:860px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<h1>SCORING &amp; ECONOMY FX</h1>
+<div class="sub">
+  Four families of feedback, tuned live. <b>1</b> numbers popping out of cards/Tricks and flying to PIPS·MULT·SCORE ·
+  <b>2</b> a time charge over the clock bar · <b>3</b> Focus gains · <b>4</b> credits in and out, one coin at a time.<br>
+  The <b>Current</b> preset on each is what the game does today, so every other option is a visible delta.
+</div>
+
+<div class="stage" id="stage">
+  <div class="col">
+    <div class="box" id="score-box"><div class="lbl">SCORE</div><div class="val" id="score-val">1,240</div></div>
+    <div class="duo">
+      <div class="box" id="pips-box"><div class="lbl">PIPS</div><div class="val" id="pips-val">0</div></div>
+      <div class="box" id="mult-box"><div class="lbl">MULT</div><div class="val" id="mult-val">0</div></div>
+    </div>
+    <div class="box"><div class="lbl">ROUND CLOCK</div>
+      <div id="timebar-wrap" style="margin-top:5px"><div id="timebar-fill"></div><div id="timebar-txt">2:41</div></div>
+    </div>
+    <div class="box" id="credit-box"><div><div class="lbl">CREDITS</div><div class="val" id="credit-val">48</div></div></div>
+    <div id="tricks">
+      <div class="trick" id="trick-a">TORRENT</div>
+      <div class="trick" id="trick-b">LEY LINE</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:26px 1fr;gap:8px;">
+    <div id="focus-wrap"></div>
+    <div id="grid"></div>
+  </div>
+</div>
+
+<!-- ════════ 1 · SCORE POPS ════════ -->
+<h2>1 · SCORE POPS</h2>
+<div class="sub">Numbers leaving a card or Trick and flying into PIPS / MULT. Same flight time as today by default — the presets change <b>size and contrast</b>, not speed.</div>
+<div class="panel">
+  <div class="variants" id="pop-variants"></div>
+  <div class="grid2" id="pop-sliders"></div>
+  <div class="btns">
+    <button onclick="demoHand()">▶ Score a hand</button>
+    <button class="alt" onclick="demoTrick()">▶ Trick fires</button>
+    <button class="alt" onclick="demoBig()">▶ Big number (+480)</button>
+  </div>
+</div>
+
+<!-- ════════ 2 · TIME CHARGE ════════ -->
+<h2>2 · TIME CHARGE</h2>
+<div class="sub">A cost over the clock bar: swells past full size, wobbles, then shrinks away. Size is a multiple of the <b>bar height</b>.</div>
+<div class="panel">
+  <div class="variants" id="time-variants"></div>
+  <div class="grid2" id="time-sliders"></div>
+  <div class="btns">
+    <button onclick="demoTime(-8)">▶ −8s</button>
+    <button onclick="demoTime(-3)">▶ −3s (discard)</button>
+    <button onclick="demoTime(-14)">▶ −14s (swap, 3rd+)</button>
+    <button class="alt" onclick="demoTime(+15)">▶ +15s (gain)</button>
+  </div>
+</div>
+
+<!-- ════════ 3 · FOCUS ════════ -->
+<h2>3 · FOCUS</h2>
+<div class="sub">Same engine as the time charge, positive tint, no unit — just <b>+3</b>. Rises off the meter instead of sitting over it.</div>
+<div class="panel">
+  <div class="grid2" id="focus-sliders"></div>
+  <div class="btns">
+    <button onclick="demoFocus(3)">▶ +3</button>
+    <button onclick="demoFocus(12)">▶ +12</button>
+    <button class="alt" onclick="demoFocus(-10)">▶ −10 (boss drain)</button>
+  </div>
+</div>
+
+<!-- ════════ 4 · CREDITS ════════ -->
+<h2>4 · CREDITS</h2>
+<div class="sub">One coin at a time, fast. <b>Gain</b> drops in from above with a rising blip; <b>spend</b> falls out of the bottom with the same blip pitched unnaturally low.</div>
+<div class="panel">
+  <div class="grid2" id="coin-sliders"></div>
+  <div class="btns">
+    <button onclick="demoCoins(6)">▶ +6 credits</button>
+    <button onclick="demoCoins(12)">▶ +12 credits</button>
+    <button class="alt" onclick="demoCoins(-5)">▶ −5 credits</button>
+    <button id="sound-btn" onclick="toggleSound()">SOUND: ON</button>
+  </div>
+</div>
+
+<div class="note" id="readout">Pick a preset, drag sliders, fire a demo. The config below is what gets copied into the game.</div>
+<div id="cfg-out"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG — every slider writes here; the dump at the bottom is copy-paste ready.
+// ══════════════════════════════════════════════
+const FX = {
+  pop: {
+    // "Current" = today's .dnc-particle + dncFly, measured from the live game:
+    // 15px Crimson Pro × pScale 2.6 = 39px, soft drop shadow, 550ms flight.
+    size: 39, weight: 700, font: 'crimson',
+    stroke: 0, strokeAlpha: 0.85,       // dark outline width in px — the main contrast lever
+    glow: 0, shadow: 4, shadowAlpha: 0.85,
+    flight: 550, popScale: 1.15, popAt: 20, endScale: 0.9, arc: 0,
+  },
+  time: {
+    sizeMult: 1.8,                       // × the clock bar's height
+    grow: 170, peak: 1.22, settle: 110, hold: 90, shrink: 260,
+    wobbleDeg: 9, wobbleCycles: 2.5, ease: 2.2, rise: 0,
+    stroke: 3, glow: 14,
+  },
+  focus: {
+    sizeMult: 1.5, grow: 160, peak: 1.25, settle: 100, hold: 70, shrink: 300,
+    wobbleDeg: 5, wobbleCycles: 2, ease: 2.0, rise: 46,
+    stroke: 3, glow: 16,
+  },
+  coin: { step: 70, dist: 54, size: 17, spread: 9, pitchDown: -9, fly: 380 },
+};
+
+// ── Presets ───────────────────────────────────────────────────────────────────
+const POP_PRESETS = {
+  'Current (today)':  { size:39, weight:700, font:'crimson', stroke:0, glow:0,  shadow:4,  shadowAlpha:.85, popScale:1.15, endScale:.9,  arc:0 },
+  'Punch':            { size:56, weight:900, font:'orbitron',stroke:5, glow:0,  shadow:6,  shadowAlpha:1,   popScale:1.30, endScale:.85, arc:0 },
+  'Neon':             { size:52, weight:900, font:'orbitron',stroke:2, glow:26, shadow:3,  shadowAlpha:.9,  popScale:1.28, endScale:.8,  arc:18 },
+  'Emboss':           { size:60, weight:900, font:'cinzel',  stroke:6, glow:8,  shadow:10, shadowAlpha:1,   popScale:1.22, endScale:.9,  arc:26 },
+  'Ticker (mono)':    { size:46, weight:700, font:'mono',    stroke:4, glow:12, shadow:4,  shadowAlpha:1,   popScale:1.10, endScale:.95, arc:0 },
+};
+const TIME_PRESETS = {
+  'Current (today)': { sizeMult:0.45, grow:60, peak:1, settle:0, hold:120, shrink:420, wobbleDeg:0, wobbleCycles:0, ease:1, stroke:0, glow:8 },
+  'Stamp':           { sizeMult:1.8, grow:170, peak:1.22, settle:110, hold:90, shrink:260, wobbleDeg:9, wobbleCycles:2.5, ease:2.2, stroke:3, glow:14 },
+  'Slam':            { sizeMult:2.2, grow:110, peak:1.40, settle:90,  hold:60, shrink:200, wobbleDeg:14, wobbleCycles:3.5, ease:3.0, stroke:5, glow:20 },
+  'Wobbler':         { sizeMult:1.7, grow:220, peak:1.15, settle:140, hold:160, shrink:320, wobbleDeg:18, wobbleCycles:5, ease:1.6, stroke:3, glow:12 },
+};
+
+const FONTS = { crimson:"'Crimson Pro',serif", orbitron:"'Orbitron',sans-serif", cinzel:"'Cinzel',serif", mono:"'Share Tech Mono',monospace" };
+
+// ── Slider plumbing ───────────────────────────────────────────────────────────
+function mkSliders(hostId, group, defs) {
+  const host = document.getElementById(hostId);
+  host.innerHTML = '';
+  defs.forEach(d => {
+    const row = document.createElement('div'); row.className = 'row';
+    const val = FX[group][d.k];
+    row.innerHTML = `<label>${d.label}</label>
+      <input type="range" min="${d.min}" max="${d.max}" step="${d.step}" value="${val}" data-g="${group}" data-k="${d.k}">
+      <b>${val}${d.unit||''}</b>`;
+    const input = row.querySelector('input'), out = row.querySelector('b');
+    input.oninput = () => { FX[group][d.k] = parseFloat(input.value); out.textContent = input.value + (d.unit||''); dumpCfg(); };
+    host.appendChild(row);
+  });
+}
+function syncSliders(group) {
+  document.querySelectorAll(`input[data-g="${group}"]`).forEach(i => {
+    const v = FX[group][i.dataset.k];
+    if (v === undefined) return;
+    i.value = v; i.parentElement.querySelector('b').textContent = v + (i.parentElement.querySelector('b').textContent.match(/[a-z%×]+$/i)?.[0] || '');
+  });
+}
+function mkVariants(hostId, presets, group, extra) {
+  const host = document.getElementById(hostId); host.innerHTML = '';
+  Object.keys(presets).forEach((name, i) => {
+    const b = document.createElement('button');
+    b.textContent = name;
+    b.onclick = () => {
+      Object.assign(FX[group], presets[name]);
+      [...host.children].forEach(c => c.classList.remove('on'));
+      b.classList.add('on');
+      if (extra) extra();
+      syncSliders(group); dumpCfg();
+    };
+    if (i === 0) b.classList.add('on');
+    host.appendChild(b);
+  });
+}
+
+mkVariants('pop-variants', POP_PRESETS, 'pop', () => mkSliders('pop-sliders', 'pop', POP_DEFS));
+mkVariants('time-variants', TIME_PRESETS, 'time', () => mkSliders('time-sliders', 'time', TIME_DEFS));
+
+const POP_DEFS = [
+  { k:'size',        label:'font size',     min:20, max:96,  step:1,   unit:'px' },
+  { k:'weight',      label:'weight',        min:400,max:900, step:100 },
+  { k:'stroke',      label:'dark outline',  min:0,  max:10,  step:.5,  unit:'px' },
+  { k:'glow',        label:'glow',          min:0,  max:40,  step:1,   unit:'px' },
+  { k:'shadow',      label:'drop shadow',   min:0,  max:16,  step:1,   unit:'px' },
+  { k:'shadowAlpha', label:'shadow alpha',  min:0,  max:1,   step:.05 },
+  { k:'flight',      label:'flight time',   min:150,max:1200,step:10,  unit:'ms' },
+  { k:'popScale',    label:'pop scale',     min:1,  max:2,   step:.05, unit:'×' },
+  { k:'popAt',       label:'pop at',        min:5,  max:60,  step:1,   unit:'%' },
+  { k:'endScale',    label:'landing scale', min:.4, max:1.4, step:.05, unit:'×' },
+  { k:'arc',         label:'arc height',    min:0,  max:90,  step:2,   unit:'px' },
+];
+const TIME_DEFS = [
+  { k:'sizeMult',     label:'size (× bar)',   min:.3, max:3.5, step:.05, unit:'×' },
+  { k:'grow',         label:'grow',           min:40, max:600, step:10,  unit:'ms' },
+  { k:'peak',         label:'overshoot',      min:1,  max:1.8, step:.02, unit:'×' },
+  { k:'settle',       label:'recede',         min:0,  max:400, step:10,  unit:'ms' },
+  { k:'hold',         label:'hold',           min:0,  max:600, step:10,  unit:'ms' },
+  { k:'shrink',       label:'shrink + fade',  min:80, max:900, step:10,  unit:'ms' },
+  { k:'wobbleDeg',    label:'wobble angle',   min:0,  max:30,  step:1,   unit:'°' },
+  { k:'wobbleCycles', label:'wobble cycles',  min:0,  max:8,   step:.5 },
+  { k:'ease',         label:'acceleration',   min:1,  max:4,   step:.1 },
+  { k:'rise',         label:'rise',           min:-40,max:120, step:2,   unit:'px' },
+  { k:'stroke',       label:'dark outline',   min:0,  max:10,  step:.5,  unit:'px' },
+  { k:'glow',         label:'glow',           min:0,  max:40,  step:1,   unit:'px' },
+];
+const FOCUS_DEFS = TIME_DEFS;
+const COIN_DEFS = [
+  { k:'step',      label:'per-coin gap',  min:20, max:260, step:5,  unit:'ms' },
+  { k:'fly',       label:'coin flight',   min:120,max:900, step:10, unit:'ms' },
+  { k:'dist',      label:'travel',        min:20, max:160, step:2,  unit:'px' },
+  { k:'size',      label:'coin size',     min:10, max:40,  step:1,  unit:'px' },
+  { k:'spread',    label:'sideways drift',min:0,  max:40,  step:1,  unit:'px' },
+  { k:'pitchDown', label:'spend pitch',   min:-24,max:0,   step:1,  unit:' st' },
+];
+mkSliders('pop-sliders','pop',POP_DEFS);
+mkSliders('time-sliders','time',TIME_DEFS);
+mkSliders('focus-sliders','focus',FOCUS_DEFS);
+mkSliders('coin-sliders','coin',COIN_DEFS);
+
+// ══════════════════════════════════════════════
+// FX 1 — score pops (card/Trick → PIPS/MULT)
+// ══════════════════════════════════════════════
+// The dark outline is what actually buys contrast over a bright card face:
+// -webkit-text-stroke paints OUTSIDE the glyph, so a light number keeps a hard
+// edge on any background without losing weight.
+function popStyle(cfg, color) {
+  const sh = [];
+  if (cfg.shadow > 0) sh.push(`0 ${Math.round(cfg.shadow/3)}px ${cfg.shadow}px rgba(0,0,0,${cfg.shadowAlpha})`);
+  if (cfg.glow > 0)  sh.push(`0 0 ${cfg.glow}px ${color}`, `0 0 ${cfg.glow*2}px ${color}`);
+  return `font-family:${FONTS[cfg.font]};font-size:${cfg.size}px;font-weight:${cfg.weight};color:${color};
+    -webkit-text-stroke:${cfg.stroke}px rgba(6,4,2,${cfg.strokeAlpha ?? .85});paint-order:stroke fill;
+    text-shadow:${sh.join(',') || 'none'};`;
+}
+function fly(srcEl, dstEl, label, color, onLand) {
+  const c = FX.pop;
+  const a = srcEl.getBoundingClientRect(), b = dstEl.getBoundingClientRect();
+  const el = document.createElement('div'); el.className = 'fx'; el.textContent = label;
+  el.style.cssText = popStyle(c, color) + `left:${a.left+a.width/2}px;top:${a.top+a.height/2}px;`;
+  document.body.appendChild(el);
+  const dx = (b.left+b.width/2)-(a.left+a.width/2), dy = (b.top+b.height/2)-(a.top+a.height/2);
+  const mid = c.arc ? [{ transform:`translate(calc(-50% + ${dx*0.5}px),calc(-50% + ${dy*0.5 - c.arc}px)) scale(${(c.popScale+c.endScale)/2})`, opacity:1, offset:.62 }] : [];
+  el.animate([
+    { transform:'translate(-50%,-50%) scale(.6)', opacity:0 },
+    { transform:`translate(-50%,-50%) scale(${c.popScale})`, opacity:1, offset:c.popAt/100 },
+    ...mid,
+    { transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(${c.endScale})`, opacity:0 },
+  ], { duration:c.flight, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' });
+  setTimeout(() => el.remove(), c.flight + 60);
+  return new Promise(res => setTimeout(() => { onLand && onLand(); res(); }, c.flight));
+}
+async function demoHand() {
+  const cards = [...document.querySelectorAll('#grid .card')].slice(0,3);
+  cards.forEach(c => c.classList.add('lit'));
+  const pips = document.getElementById('pips-box'), mult = document.getElementById('mult-box');
+  let p = 0, m = 0;
+  setVal('pips-val', 0); setVal('mult-val', 0);
+  for (const card of cards) {
+    const v = 8 + Math.floor(Math.random()*6);
+    await fly(card, pips, '+'+v, '#7aa8ff', () => { p += v; setVal('pips-val', p); bump(pips); blip(660); });
+    await wait(90);
+  }
+  await fly(document.getElementById('trick-a'), mult, '+3', '#c79bff', () => { m += 3; setVal('mult-val', m); bump(mult); blip(880); });
+  cards.forEach(c => c.classList.remove('lit'));
+  await wait(180);
+  const total = p * (m||1);
+  await fly(pips, document.getElementById('score-box'), '+'+total.toLocaleString(), '#ffd35c',
+    () => { setVal('score-val', (1240+total).toLocaleString()); bump(document.getElementById('score-box')); blip(520); });
+}
+async function demoTrick() {
+  const t = document.getElementById('trick-b');
+  t.style.boxShadow = '0 0 0 3px var(--c-mint),0 0 22px -2px var(--c-mint)';
+  await fly(t, document.getElementById('pips-box'), '+45', '#8dffc8', () => { setVal('pips-val', 45); bump(document.getElementById('pips-box')); blip(700); });
+  t.style.boxShadow = '';
+}
+async function demoBig() {
+  await fly(document.querySelectorAll('#grid .card')[5], document.getElementById('score-box'), '+480', '#ffd35c',
+    () => { bump(document.getElementById('score-box')); blip(500); });
+}
+
+// ══════════════════════════════════════════════
+// FX 2/3 — the swell-wobble-shrink stamp (time charges, focus)
+// ══════════════════════════════════════════════
+// One shared driver: grow past full size → recede to full → hold (wobbling) →
+// shrink + fade. `ease` is the acceleration exponent on the growth curve.
+function stamp(anchorEl, text, color, cfg, opts = {}) {
+  const r = anchorEl.getBoundingClientRect();
+  const barH = opts.barH || r.height;
+  const px = Math.round(barH * cfg.sizeMult);
+  const el = document.createElement('div'); el.className = 'fx'; el.textContent = text;
+  const sh = [`0 2px 6px rgba(0,0,0,.9)`];
+  if (cfg.glow > 0) sh.push(`0 0 ${cfg.glow}px ${color}`, `0 0 ${cfg.glow*2}px ${color}`);
+  el.style.cssText = `font-family:${FONTS.orbitron};font-weight:900;font-size:${px}px;color:${color};
+    -webkit-text-stroke:${cfg.stroke}px rgba(6,4,2,.9);paint-order:stroke fill;text-shadow:${sh.join(',')};
+    left:${r.left + r.width/2}px;top:${r.top + r.height/2}px;`;
+  document.body.appendChild(el);
+
+  const total = cfg.grow + cfg.settle + cfg.hold + cfg.shrink;
+  const T = t => (cfg.grow + cfg.settle + cfg.hold) * t / total;   // helper: ms → offset
+  const frames = [];
+  const at = ms => Math.min(1, ms / total);
+  const tf = (s, deg, dy) => `translate(calc(-50% + 0px),calc(-50% + ${dy}px)) scale(${s}) rotate(${deg}deg)`;
+
+  frames.push({ transform: tf(0.2, 0, 0), opacity: 0, offset: 0, easing: `cubic-bezier(${(1/cfg.ease).toFixed(2)},0,.2,1)` });
+  frames.push({ transform: tf(cfg.peak, 0, -cfg.rise*0.35), opacity: 1, offset: at(cfg.grow) });
+  frames.push({ transform: tf(1, 0, -cfg.rise*0.5), opacity: 1, offset: at(cfg.grow + cfg.settle) });
+
+  // Wobble across the hold, sampled so the rotation reads as a quick shake.
+  const holdStart = cfg.grow + cfg.settle, steps = Math.max(1, Math.round(cfg.wobbleCycles * 4));
+  for (let i = 1; i <= steps; i++) {
+    const f = i / steps;
+    const deg = cfg.wobbleDeg * Math.sin(f * cfg.wobbleCycles * Math.PI * 2) * (1 - f * 0.35);
+    frames.push({ transform: tf(1, deg, -cfg.rise * (0.5 + 0.2*f)), opacity: 1, offset: at(holdStart + cfg.hold * f) });
+  }
+  frames.push({ transform: tf(0.45, 0, -cfg.rise), opacity: 0, offset: 1 });
+
+  el.animate(frames, { duration: total, fill: 'forwards' });
+  setTimeout(() => el.remove(), total + 80);
+  return total;
+}
+function demoTime(sec) {
+  const bar = document.getElementById('timebar-wrap');
+  const gain = sec > 0;
+  const total = stamp(bar, (gain ? '+' : '−') + Math.abs(sec) + 's', gain ? '#35d59b' : '#ff5b5b', FX.time, { barH: bar.getBoundingClientRect().height });
+  say(`time stamp · ${total}ms total`);
+  if (!gain) blip(180, 'saw');
+  else blip(760);
+}
+function demoFocus(n) {
+  const fw = document.getElementById('focus-wrap');
+  const up = n > 0;
+  const total = stamp(fw, (up ? '+' : '−') + Math.abs(n), up ? '#8dffc8' : '#ff7bb0', FX.focus, { barH: 30 });
+  say(`focus stamp · ${total}ms total`);
+  blip(up ? 940 : 300, up ? 'sine' : 'saw');
+  // light up the meter to match
+  const nodes = [...document.querySelectorAll('.fnode')];
+  let lit = nodes.filter(x => x.classList.contains('on')).length;
+  lit = Math.max(0, Math.min(nodes.length, lit + (up ? n : n)));
+  nodes.forEach((x, i) => x.classList.toggle('on', i < lit));
+}
+
+// ══════════════════════════════════════════════
+// FX 4 — credits, one coin at a time
+// ══════════════════════════════════════════════
+async function demoCoins(n) {
+  const c = FX.coin, box = document.getElementById('credit-box');
+  const gain = n > 0, count = Math.abs(n);
+  let val = parseInt(document.getElementById('credit-val').textContent, 10);
+  for (let i = 0; i < count; i++) {
+    const r = box.getBoundingClientRect();
+    const el = document.createElement('div'); el.className = 'coin'; el.textContent = '🪙';
+    const dx = (Math.random()*2 - 1) * c.spread;
+    el.style.cssText = `font-size:${c.size}px;left:${r.left + r.width*0.5 + dx}px;top:${r.top + r.height/2}px;`;
+    document.body.appendChild(el);
+    const from = gain ? -c.dist : 0, to = gain ? 0 : c.dist;
+    el.animate([
+      { transform:`translate(-50%,calc(-50% + ${from}px)) scale(${gain?.7:1})`, opacity: gain ? 0 : 1 },
+      { transform:`translate(-50%,calc(-50% + ${from + (to-from)*0.6}px)) scale(1.05)`, opacity: 1, offset:.55 },
+      { transform:`translate(-50%,calc(-50% + ${to}px)) scale(${gain?1:.7})`, opacity: gain ? 1 : 0 },
+    ], { duration: c.fly, easing: gain ? 'cubic-bezier(.2,.8,.3,1)' : 'cubic-bezier(.5,0,.8,.4)', fill:'forwards' });
+    setTimeout(() => el.remove(), c.fly + 40);
+    // The sign floats with the first coin only, so a 12-credit payout isn't 12 labels.
+    if (i === 0) {
+      const s = document.createElement('div'); s.className = 'fx';
+      s.textContent = (gain ? '+' : '−') + count;
+      s.style.cssText = popStyle({ ...FX.pop, size: Math.round(FX.pop.size*0.7) }, gain ? '#ffd35c' : '#ff7b7b')
+        + `left:${r.right - 6}px;top:${r.top + r.height/2}px;`;
+      document.body.appendChild(s);
+      s.animate([{ transform:'translate(-50%,-50%) scale(.6)', opacity:0 },
+                 { transform:'translate(-50%,-140%) scale(1.1)', opacity:1, offset:.35 },
+                 { transform:'translate(-50%,-260%) scale(.9)', opacity:0 }],
+                { duration: c.step*count + 320, easing:'ease-out', fill:'forwards' });
+      setTimeout(() => s.remove(), c.step*count + 380);
+    }
+    setTimeout(() => {
+      val += gain ? 1 : -1;
+      setVal('credit-val', val);
+      bump(box);
+      // Losing money is the same blip, pitched unnaturally low — cheaper and more
+      // legible than a second sample, and it reads as "wrong" immediately.
+      coinBlip(gain ? 0 : c.pitchDown);
+    }, c.fly * 0.72 + i * 0);
+    await wait(c.step);
+  }
+  say(`${count} coins · ${(count*c.step + c.fly)|0}ms total`);
+}
+
+// ══════════════════════════════════════════════
+// helpers
+// ══════════════════════════════════════════════
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function setVal(id, v) { document.getElementById(id).textContent = v; }
+function bump(el) { el.animate([{transform:'scale(1)'},{transform:'scale(1.09)'},{transform:'scale(1)'}], {duration:200,easing:'ease-out'}); }
+function say(t) { document.getElementById('readout').textContent = t; }
+
+let soundOn = true, actx = null;
+function toggleSound() { soundOn = !soundOn; const b = document.getElementById('sound-btn'); b.textContent = 'SOUND: ' + (soundOn?'ON':'OFF'); b.classList.toggle('on', soundOn); }
+function ctx() { return actx || (actx = new (window.AudioContext||window.webkitAudioContext)()); }
+function blip(freq, type='sine') {
+  if (!soundOn) return;
+  const a = ctx(), o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, a.currentTime);
+  g.gain.setValueAtTime(0.0001, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.09, a.currentTime + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.16);
+  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + 0.18);
+}
+// A coin "chink": two partials, detuned. `semitones` shifts BOTH — a negative
+// value gives the same sound played wrong, which is the point.
+function coinBlip(semitones = 0) {
+  if (!soundOn) return;
+  const a = ctx(), r = Math.pow(2, semitones/12);
+  [1180, 1720].forEach((f, i) => {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(f * r, a.currentTime);
+    g.gain.setValueAtTime(0.0001, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(i ? 0.035 : 0.06, a.currentTime + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.13);
+    o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + 0.15);
+  });
+}
+
+// ── build the mock board ──
+(function build() {
+  const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'], SUITS = ['♠','♥','♦','♣'];
+  const g = document.getElementById('grid');
+  for (let i = 0; i < 16; i++) {
+    const s = SUITS[Math.floor(Math.random()*4)], r = RANKS[Math.floor(Math.random()*13)];
+    const d = document.createElement('div');
+    d.className = 'card' + (s === '♥' || s === '♦' ? ' red' : '');
+    d.innerHTML = `${r}<span style="font-size:12px">${s}</span>`;
+    g.appendChild(d);
+  }
+  const fw = document.getElementById('focus-wrap');
+  for (let i = 0; i < 18; i++) { const n = document.createElement('div'); n.className = 'fnode' + (i < 6 ? ' on' : ''); fw.appendChild(n); }
+})();
+
+function dumpCfg() {
+  document.getElementById('cfg-out').textContent =
+    '// paste into the game once the feel is right\n' +
+    'const FX_CFG = ' + JSON.stringify(FX, null, 2) + ';';
+}
+dumpCfg();
+</script>
+</body>
+</html>

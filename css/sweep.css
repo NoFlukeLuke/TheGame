@@ -1,0 +1,13 @@
+/* All Hands (r572, js/sweep.js): the hands it has picked keep a hued ring on the
+   board while the rest are picked, and the finale's preview strip holds every card. */
+#grid .card.sweep-locked {
+  border-color: hsl(var(--sw-h, 40) 90% 65%) !important;
+  box-shadow: 0 0 10px 2px hsl(var(--sw-h, 40) 90% 60% / .75), inset 0 0 0 1px hsl(var(--sw-h, 40) 90% 75% / .8) !important;
+  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 3px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.05)) !important;
+  z-index: 6;
+}
+#selected-cards.sweep-stage .dnc-track { overflow: visible; }
+#selected-cards.sweep-stage .dnc-outer .sweep-card {
+  outline: 1px solid hsl(var(--sw-h, 40) 90% 65% / .9);
+  outline-offset: -1px;
+}

@@ -1,0 +1,33 @@
+/* The Pairs event (r573, js/events-pairs.js): a 4x4 of face-down cards in the event panel. */
+.mt-grid { --mt-w: 64px; --mt-h: 86px; --mt-k: 1; display: grid; grid-template-columns: repeat(3, var(--mt-w)); gap: 5px; justify-content: center; margin: 8px 0 6px; perspective: 700px; }
+.mt-tile { width: var(--mt-w); height: var(--mt-h); cursor: var(--cur-pointer, pointer); user-select: none; }
+.mt-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .42s cubic-bezier(.4,.1,.3,1); }
+.mt-tile.mt-up .mt-inner, .mt-tile.mt-done .mt-inner { transform: rotateY(180deg); }
+.mt-tile.mt-done { cursor: var(--cur-default, default); }
+.mt-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+.mt-front {
+  background: repeating-linear-gradient(45deg, #1b1a30 0 6px, #141327 6px 12px);
+  border: 2px solid #3a3560; color: #6f68a8; font: 900 calc(26px * var(--mt-k)) 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 14px -6px rgba(179,156,245,.6), 0 4px 10px rgba(0,0,0,.5);
+}
+.mt-tile:not(.mt-up):not(.mt-done):hover .mt-front { border-color: #b39cf5; }
+.mt-back { transform: rotateY(180deg); zoom: var(--mt-k); background: var(--card-bg, #f4ead5); color: #1a1a1a; border: 2px solid #c9bb95; padding: 3px; gap: 2px; }
+.mt-back.mt-op { background: #1c1b32; color: #e8e0ff; border-color: #6a5bd1; }
+.mt-back.mt-pen { background: #2a1416; color: #ffd0d4; border-color: #b23a46; }
+.mt-rank { font: 900 22px 'Cinzel', serif; line-height: 1; }
+.mt-rank.red { color: #c0243a; }
+.mt-suit { font-size: 16px; margin-left: 1px; }
+.mt-buffs { font: 700 8px 'Share Tech Mono', monospace; line-height: 1.25; color: #3a2d7a; }
+.mt-ico { font-size: 24px; line-height: 1; }
+.mt-name { font: 700 9px 'Orbitron', sans-serif; letter-spacing: .3px; line-height: 1.15; }
+.mt-pen { position: absolute; top: 2px; right: 5px; font: 900 11px 'Orbitron', sans-serif; color: #ff8a94; }
+.mt-tile.mt-good .mt-back { box-shadow: 0 0 0 2px var(--c-mint), 0 0 16px -2px var(--c-mint); }
+.mt-tile.mt-bad .mt-back { box-shadow: 0 0 0 2px #ff4d5e, 0 0 16px -2px #ff4d5e; }
+.mt-tile.mt-done { opacity: .78; }
+.mt-tile.mt-shake { animation: mtShake .32s ease; }
+@keyframes mtShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
+.mt-win { color: var(--c-mint); } .mt-loss { color: #ff7a86; }
+#mt-note { min-height: 16px; }
+/* The panel sits inside #stage's zoom and is capped at the display's height, so a
+   4x4 that must show whole without a scroll takes the panel a size down. */
+#event-overlay.ev-pairs #event-panel { zoom: .8; }

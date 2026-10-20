@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Pick · un-explode preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{ --cream:#e8e4d8; --gold:#ffd76a; }
+*{box-sizing:border-box}
+body{margin:0;background:#0b0d13;color:var(--cream);font-family:'Share Tech Mono',monospace;
+     display:flex;min-height:100vh;gap:18px;padding:18px;flex-wrap:wrap}
+h1{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:3px;color:var(--gold);margin:0 0 4px}
+.note{font-size:11px;opacity:.6;line-height:1.5;margin:0 0 14px;max-width:340px}
+#panel{width:360px;flex:0 0 360px}
+#stageWrap{flex:1;min-width:560px;display:flex;flex-direction:column;align-items:center;gap:14px}
+#board{position:relative;width:520px;height:520px;background:#11141d;border:2px solid #2a3348;border-radius:10px}
+.pc{position:absolute;width:88px;height:118px;border-radius:7px;background:#f2eee1;color:#1a1a1a;
+    border:1px solid #cdc7b4;box-shadow:0 2px 6px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Crimson Pro',Georgia,serif;font-size:27px;font-weight:700;cursor:pointer}
+.pc .s{font-size:19px;line-height:1}
+.pc.red{color:#b3242b}
+.pc.chosen{outline:3px solid var(--gold);outline-offset:1px;box-shadow:0 0 16px rgba(255,215,106,.55);z-index:8}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:11px}
+.row label{flex:1;opacity:.85}
+.row input[type=range]{flex:1.4}
+.row output{width:56px;text-align:right;color:var(--gold)}
+select,button{font-family:inherit;background:#1a2030;color:var(--cream);
+     border:1.5px solid #3a4a6a;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:11px}
+button:hover{filter:brightness(1.3)}
+button.go{border-color:#3aa76d;color:#8fe3b4}
+button.alt{border-color:#c0392b;color:#e79b95}
+#btns{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+#dump{width:100%;height:190px;background:#070910;color:#9ad9a0;border:1px solid #2a3348;
+      border-radius:6px;font-family:inherit;font-size:10.5px;padding:8px;white-space:pre;overflow:auto}
+hr{border:0;border-top:1px solid #222b3d;margin:14px 0}
+/* the real bar, copied from css/payout-pick.css so the preview shows the shipped thing */
+#bar{display:none;align-items:center;gap:10px;padding:8px 12px;background:#10131c;
+     border:2px solid #3a4a6a;border-radius:10px;box-shadow:0 6px 26px rgba(0,0,0,.6);flex-wrap:wrap;justify-content:center}
+#bar.show{display:flex}
+#bar .t{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold)}
+#bar .sub{font-size:10px;opacity:.65}
+#bar .op{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 9px;
+    background:color-mix(in srgb, var(--pko) 16%, #0c0f16);border:1.5px solid var(--pko);
+    border-radius:7px;text-align:left}
+#bar .op b{font-size:11px;letter-spacing:1px;color:var(--pko)}
+#bar .op i{font-style:normal;font-size:9px;opacity:.78}
+</style></head><body>
+
+<div id="panel">
+  <h1>THE PICK</h1>
+  <p class="note">The board comes back after the payout so one card can be picked off it.
+  This is the <b>un-explode</b>: the goal finale's blast played backwards, nearest the
+  centre landing first. Tune it here, then Dump and paste the block into
+  <b>js/payout-pick.js</b>. A fresh load of this page dumps a block byte-identical to
+  the shipped one - keep it that way.</p>
+
+  <div class="row"><label>start distance</label><input type="range" id="dist" min="40" max="420" step="10"><output id="o-dist"></output></div>
+  <div class="row"><label>extra random</label><input type="range" id="distVar" min="0" max="300" step="10"><output id="o-distVar"></output></div>
+  <div class="row"><label>start spin</label><input type="range" id="spin" min="0" max="360" step="10"><output id="o-spin"></output></div>
+  <div class="row"><label>start scale</label><input type="range" id="scale" min="0.3" max="1" step="0.01"><output id="o-scale"></output></div>
+  <div class="row"><label>flight</label><input type="range" id="dur" min="200" max="2000" step="20"><output id="o-dur"></output></div>
+  <div class="row"><label>stagger</label><input type="range" id="stagger" min="0" max="120" step="2"><output id="o-stagger"></output></div>
+  <div class="row"><label>easing</label>
+    <select id="easing">
+      <option>cubic-bezier(.2,.75,.3,1)</option>
+      <option>cubic-bezier(.25,.6,.35,1)</option>
+      <option>cubic-bezier(.16,1,.3,1)</option>
+      <option>ease-out</option><option>linear</option>
+    </select></div>
+
+  <div id="btns">
+    <button class="go" id="b-un">UN-EXPLODE</button>
+    <button class="alt" id="b-ex">explode (the finale)</button>
+    <button id="b-reset">reset board</button>
+    <button id="b-dump">Dump PICK_CFG</button>
+  </div>
+  <hr>
+  <textarea id="dump" readonly spellcheck="false"></textarea>
+</div>
+
+<div id="stageWrap">
+  <div id="bar"></div>
+  <div id="board"></div>
+  <p class="note" style="max-width:520px">Tap a card to see the operation bar the game shows.
+  <b>Explode</b> is the real finale's geometry (200-340px out, +-160deg, scale .82, 900ms) so the two can be
+  compared directly.</p>
+</div>
+
+<script>
+// Shipped values. A fresh load must dump exactly this.
+const PICK_CFG = {
+  dist:    200,
+  distVar: 140,
+  spin:    160,
+  scale:   0.82,
+  dur:     760,
+  stagger: 26,
+  easing:  'cubic-bezier(.2,.75,.3,1)',
+};
+const KEYS = ['dist','distVar','spin','scale','dur','stagger'];
+const RANKS = ['A','10','7','K','4','Q','9','2','J','5','8','3','6','A','10','7'];
+const SUITS = ['♠','♥','♦','♣'];
+const board = document.getElementById('board'), bar = document.getElementById('bar');
+let cards = [];
+
+function build() {
+  board.innerHTML = ''; cards = [];
+  const n = 4, gap = 10, w = 88, h = 118;
+  const ox = (520 - (n*w + (n-1)*gap)) / 2, oy = (520 - (n*h + (n-1)*gap)) / 2;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const i = r*n + c, s = SUITS[(i*3+r) % 4];
+    const el = document.createElement('div');
+    el.className = 'pc' + (s === '♥' || s === '♦' ? ' red' : '');
+    el.style.left = (ox + c*(w+gap)) + 'px';
+    el.style.top  = (oy + r*(h+gap)) + 'px';
+    el.innerHTML = RANKS[i] + '<span class="s">' + s + '</span>';
+    el.onclick = () => { cards.forEach(x => x.classList.remove('chosen')); el.classList.add('chosen'); showOps(RANKS[i] + s); };
+    board.appendChild(el); cards.push(el);
+  }
+  showPrompt();
+}
+
+function showPrompt() {
+  bar.className = 'show';
+  bar.innerHTML = '<span class="t">PICK A CARD</span><span class="sub">one card off this board, one thing done to it</span>';
+}
+function showOps(face) {
+  bar.className = 'show';
+  const ops = [['✦ Boost','+12 pips, permanently','#3a6fca'],
+               ['⧉ Copy','a second one, shuffled into the deck','#3aa76d'],
+               ['✕ Remove','gone from the run for good','#c0392b']];
+  bar.innerHTML = '<span class="t">' + face + '</span>'
+    + ops.map(o => '<span class="op" style="--pko:'+o[2]+'"><b>'+o[0]+'</b><i>'+o[1]+'</i></span>').join('');
+}
+
+// The same vector the game uses: the ray from the board's centre through the card.
+function vec(el) {
+  const br = board.getBoundingClientRect(), r = el.getBoundingClientRect();
+  let ax = (r.left + r.width/2) - (br.left + br.width/2);
+  let ay = (r.top + r.height/2) - (br.top + br.height/2);
+  const len = Math.hypot(ax, ay) || 1;
+  return { x: ax/len, y: ay/len, d: len };
+}
+
+function unexplode() {
+  const rows = cards.map(el => ({ el, v: vec(el) })).sort((a,b) => a.v.d - b.v.d);
+  rows.forEach((row, i) => {
+    const dist = PICK_CFG.dist + Math.random() * PICK_CFG.distVar;
+    const rot  = (Math.random()*2 - 1) * PICK_CFG.spin;
+    row.el.animate([
+      { transform:`translate(${row.v.x*dist}px,${row.v.y*dist}px) rotate(${rot}deg) scale(${PICK_CFG.scale})`, opacity:0 },
+      { transform:'translate(0,0) rotate(0) scale(1)', opacity:1 },
+    ], { duration: PICK_CFG.dur, delay: i * PICK_CFG.stagger, easing: PICK_CFG.easing, fill:'backwards' });
+  });
+  showPrompt();
+}
+
+// The real finale, for comparison (js/score-dance.js).
+function explode() {
+  bar.className = '';
+  cards.forEach(el => {
+    const v = vec(el), dist = 200 + Math.random()*140, rot = (Math.random()*2-1)*160;
+    el.animate([{ transform:'translate(0,0) rotate(0) scale(1)', opacity:1 },
+      { transform:`translate(${v.x*dist}px,${v.y*dist}px) rotate(${rot}deg) scale(.82)`, opacity:0 }],
+      { duration:900, easing:'cubic-bezier(.25,.6,.35,1)', fill:'forwards' });
+  });
+}
+
+function dump() {
+  document.getElementById('dump').value =
+    'const PICK_CFG = {\n'
+  + `  dist:    ${PICK_CFG.dist},   // px the card starts out from its cell, along the centre ray\n`
+  + `  distVar: ${PICK_CFG.distVar},   // extra random distance on top\n`
+  + `  spin:    ${PICK_CFG.spin},   // max degrees it starts rotated by, either way\n`
+  + `  scale:   ${PICK_CFG.scale},  // how small it starts\n`
+  + `  dur:     ${PICK_CFG.dur},   // ms of flight\n`
+  + `  stagger: ${PICK_CFG.stagger},    // ms between cards, nearest the centre first\n`
+  + `  easing:  '${PICK_CFG.easing}',\n};`;
+}
+
+KEYS.forEach(k => {
+  const el = document.getElementById(k), out = document.getElementById('o-' + k);
+  el.value = PICK_CFG[k]; out.textContent = PICK_CFG[k];
+  el.oninput = () => { PICK_CFG[k] = parseFloat(el.value); out.textContent = el.value; dump(); };
+});
+const ez = document.getElementById('easing');
+ez.value = PICK_CFG.easing;
+ez.onchange = () => { PICK_CFG.easing = ez.value; dump(); };
+
+document.getElementById('b-un').onclick    = unexplode;
+document.getElementById('b-ex').onclick    = explode;
+document.getElementById('b-reset').onclick = () => { build(); };
+document.getElementById('b-dump').onclick  = dump;
+
+build(); dump();
+setTimeout(unexplode, 350);
+</script>
+</body></html>
