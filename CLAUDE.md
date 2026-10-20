@@ -1518,6 +1518,81 @@ over the Focus bar (`#egl-scroll`, hold to repeat), the mouse wheel or a drag (`
 Text that does not fit overflows (`.egl-fit > * { flex-shrink: 0 }`, `justify-content: safe
 center`) so the fit pass can see it. Prefs moved to `lethe.eventGridLab.v2`.
 
+## r588-r590 numbering
+Two sessions shipped r588 and r589 in parallel: the event layouts lab (the two sections
+above) and the reward pick (the three below). The merge that joined them is r591.
+
+## r588 - the reward pick is 3 rows (owner)
+`GP_ROWS` 4 -> 3 and `GP_OPT_H` 3 -> 2 (js/grid-pick.js): every pick-of-three's rewards are 2 cells
+tall, the action row is the last. Where the board is a fixed box (landscape, Flow on a phone) the
+rows stretch to fill it, so rewards got shorter (desktop Flow 252 -> 223px) and the action row
+taller (80 -> 109px). Where the board keeps the card shape (a phone outside Flow, Poker Squares)
+the whole pick is a row shorter, so the art is capped by tile height (`#grid .gp-opt` is a size
+container, `.gp-art` width `min(100%, (66.67cqh - 30px) * --gp-ar)`, css/grid-pick.css) and the
+description keeps 2 lines (phone Classic tile 91 x 119, was 91 x 180 with 5 lines).
+
+## r589 - the pick's action row is short (owner)
+The pick's rows are not equal: `gpRows(r, h)` / `gpPickBox` (js/grid-pick.js) make the action row
+`min(CARD_H, CARD_W x GP_ACT_TALL)` tall (`GP_ACT_TALL` 1.5) and the two reward rows share the rest.
+`gpBox` (shared with the payout) is unchanged. Measured: desktop Flow rewards 99 x 262, action tiles
+46 x 70 (r588: 223 / 109; before r588: 252 / 80); phone Flow 87 x 287 and 41 x 61; a phone outside
+Flow is unchanged (its cell, 44 x 58, is already under 1.5x).
+
+## r590 - a reward is two tiles in its rarity colour (owner)
+Each pick-of-three choice is an ENTITY tile (`.gp-head`: tag, art, name; 60% of the choice) over a
+DESCRIPTION tile (`.gp-body`), a board gap apart (`--gp-gap`, written by `gridPickRender`). `.gp-opt` is
+only the frame (tap, tooltip, the picked lift) and paints nothing. Both tiles are the rarity colour way
+darker (`--rc` from `.gp-opt.rar-*`, mixed into near black; css/grid-pick.css); picked = mint ring over
+the tint. **An offer with no rarity of its own wears one from how often it is drawn**:
+`rarityForShare(share)` (js/luck.js, `SHARE_RARITY`: 10%+ common, 6%+ rare, 2.5%+ epic, else
+legendary), fed by `flowrOpRarity(op)` (share of the deck editor's `FLOWR_OP_WEIGHTS` draw; card packs
+use their buff's op) and `limitRarity(d)` (share of `LIMITS_DEF` weights). Display only. Today: Pip /
+Mult Buff and Suit Spread common; Focus, Time, Coin, Rank Pull, Cut, Fodder rare; Stamp, x buffs
+(and event-only Replay) epic; Second Suit / Rank legendary. Limits common but Luck and Focus Cap rare,
+Trick Slots epic. The art cap now reads `60cqh - 42px`. Measured: desktop Flow choice 99 x 262 =
+154 + 6 + 102; phone Flow 169 / 112; phone Classic 70 / 46 (3-4 description lines, r588 had 2).
+
+## r592 - the two-step score fuse (`js/pmf-merge.js`)
+`pmfMergeIn(score, { speed, signal, pips, mult })` fuses in TWO STEPS when the chips' totals are
+passed (the dance passes `_finalPips` / `_finalMult`, All Hands its sums; the interrupt handoff
+passes none and keeps the one-step look): PIPS and MULT jitter and combine into one chip reading
+pips x mult, then that chip and FOCUS jitter and combine into the score; the ghost flies to SCORE,
+the row splits back out. Looks (dev -> Aesthetics -> Score merge, `lethe.pmfLook.v1` overrides
+only, Preview button runs the beat on the live row): **auto** (hold in console mode, slide
+elsewhere), **slide** (the chips move on WAAPI and MELT: a `.pmf-goo` layer behind them carries
+blob copies through the SVG `#pmf-goo` filter, blur then alpha contrast, while the numbers
+crossfade sharp on top; the fused chip is placed by JS, left / width), **hold** (nothing moves:
+the values jitter, PIPS fades and MULT takes the product, MULT fades and FOCUS takes the score in
+gold; the ghost is a body-level flier the housing masks), **one** (r157). `pmfFlyToScore` flies
+from whatever the look fused on (`_pmfFlyFrom`). `score-merge-preview.html` loads the real file,
+the real CSS and the game's score-panel markup; the pit's painted tray and the housing mask are
+JS it does not load.
+
+## r593 - event layouts lab, round three: WIREFRAME in the box (owner's pick)
+- **Palette** (`EGL_PALETTE`, js/event-grid-lab.js): twelve phosphors with the amber's warmth, written
+  onto #egl as `--wf-<name>`; the amber layouts' CSS reads only those. Keywords (`.kw-*`), rarity words
+  (`.egl-rar`), suits (`.egl-s-*`: spades cream, hearts coral, diamonds gold, clubs sky, wilds rose) and
+  buffs (`.egl-k-<buff key>`) each take the nearest one. Shown as swatches in the lab panel.
+- **Entities** are drawn large with no description; the box label names them, so the tile's own name is
+  hidden and the icon fills the label with a dark outline (a cream or white pixel icon vanished on the
+  Trick's cream label). Pointing at one or tapping it opens the game's own tooltip (`data-et`,
+  `showEntityTooltip`). Stacked strips (a phone) put the picture beside its rarity (`.egl-flat`).
+- **Typing** (Settings -> Display -> **Text speed**: Normal / Fast (2x) / Instant; `textTypeCps()` in
+  js/settings.js, 160 / 320 / 0 characters a second). An element marked by `eglTy(key)` types once
+  (`egl.seen`); its untyped text stays laid out but hidden (`.egl-tu`), so the fit pass stays true. A
+  live line (a running count) types once and then changes in place. A tap on the board finishes it.
+- **One cursor** (`#egl-cur`, zero width, the block hangs off it): with the text while it types, then
+  at the end of the prompt until a choice is made, then in the chosen box (CONFIRM on a card screen),
+  then the outcome.
+- **Card screens** lay out as a 6 x 6 board: words across the top row and a half, cards in the middle
+  four columns at a playing card's shape (`EGL_CARD_RATIO` 0.714, `EGL_VIEW_ROWS` 4 rows in view), keys
+  in the last half row. Measured at 1440x820: cards 39 x 55 design px, a 6 x 6 board's card. Text cards
+  are sized from their own box (container units).
+- **Transitions** (lab panel, `eglPrefs.tr`): CONSOLE (default; a command types at the foot, its output
+  scrolls the old screen up and the new one in after it) and CUBE (the board turns like a cube), both
+  run between two copies of the screens (`eglSnap`; open and close copy the game's own #grid). FLIP is
+  r588's. Reduced motion takes FLIP; a room change (slide-off) moves the r588 way.
+
 ## r590-r596 - the event tour verdicts (EVENTS.md, "AFTER THE TOUR")
 - **Owner's rule, game wide:** describe the mechanic and stop; never explain the consequence.
   One explainer per event screen (an empty flavor line is hidden).

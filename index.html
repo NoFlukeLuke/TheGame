@@ -641,6 +641,13 @@
       <button class="dev-btn" onclick="screenChangePreview()">Preview</button>
     </label>
 
+    <div class="dev-subtitle">Score merge (how PIPS x MULT x FOCUS become the score)</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      The chips fuse by
+      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (hold in console mode, slide elsewhere)</option><option value="slide">slide (two steps, the chips melt together)</option><option value="hold">hold (two steps, nothing moves: the next screen takes the number)</option><option value="one">one step (all three at once)</option></select>
+      <button class="dev-btn" onclick="pmfPreview()">Preview</button>
+    </label>
+
     <div class="dev-subtitle">Tray look</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Trays are

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r596 · event verdicts 7: reward taken sound, printer merging, Call It fades";
+const BUILD = "2026-10-20 · r597 · merge main (reward pick, score fuse, event layouts lab) into the event verdicts";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

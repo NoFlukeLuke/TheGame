@@ -227,6 +227,10 @@ const SETTINGS_DEF = [
     type: 'select', default: 'numbers', options: [['numbers','Numbers'], ['bulbs','Bulbs']],
     get: () => (typeof sbCfg !== 'undefined' && sbCfg.on) ? 'bulbs' : 'numbers',
     apply: v => { if (typeof sbSet === 'function') sbSet('on', v === 'bulbs' ? 1 : 0); } },
+  // r593: event text types out a character at a time (textTypeCps, below).
+  { group: 'Display', id: 'textSpeed', label: 'Text speed',
+    hint: 'How fast event text types out. Tap the screen to show it all at once.',
+    type: 'select', default: 'normal', options: [['normal','Normal'], ['fast','Fast (2x)'], ['instant','Instant']] },
   { group: 'Display', id: 'printToasts', label: 'Printer notices',
     hint: 'Notices print on paper that drops from the top of the screen. Turn off for plain boxes.',
     type: 'toggle', default: true, apply: v => { printToastsOn = !!v; } },
@@ -256,6 +260,14 @@ const SETTINGS_DEF = [
       return rows;
     } },
 ];
+
+// Characters a second that event text types at (0 = Instant). The one reader of
+// the Text speed row.
+const TEXT_TYPE_CPS = 160;
+function textTypeCps() {
+  const v = (typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.textSpeed) || 'normal';
+  return v === 'instant' ? 0 : v === 'fast' ? TEXT_TYPE_CPS * 2 : TEXT_TYPE_CPS;
+}
 
 // Effects volume used by the audio engine (0 when muted). Master x effects.
 // Every playTone / playNoise / sample multiplies its gain by this, so it is the
