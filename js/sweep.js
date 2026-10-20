@@ -286,7 +286,7 @@ async function _sweepFinale(run, recs) {
   await wait(220);
   // Fuse the chips onto the sweep's total, throw it at SCORE, run the number up.
   if (typeof pmfMergeIn === 'function') {
-    await pmfMergeIn(sumScore, { speed: 1 });
+    await pmfMergeIn(sumScore, { speed: 1, pips: sumPips, mult: sumMult });
     if (_sweepRun !== run) return;
     if (typeof pmfFlyToScore === 'function') await pmfFlyToScore({ speed: 1 });
     if (_sweepRun !== run) return;

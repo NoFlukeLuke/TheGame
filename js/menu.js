@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r591 · merge: reward pick rows and rarity tiles with the event layouts lab";
+const BUILD = "2026-10-20 · r592 · the two-step score fuse: slide and melt, or hold in console mode";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

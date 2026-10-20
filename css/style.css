@@ -730,6 +730,34 @@
   }
   /* Landscape has a wider row to fill, so the fused number can be bigger. */
   #stage.landscape .pmf-merged-val { font-size: 34px; }
+  /* r592: the two-step fuse (js/pmf-merge.js). In the two-step the fused chip is
+     placed by JS (left / width) and the chips move on WAAPI, so the one-step
+     transitions stand down; the goo layer melts blob copies of the chips behind
+     them (SVG #pmf-goo: blur, then alpha contrast); the step-1 number is plain,
+     the score is gold. */
+  #score-subboxes.pmf-two .score-subbox, #score-subboxes.pmf-two .subbox-times { transition: none; position: relative; z-index: 2; }   /* over the blob layer */
+  #score-subboxes.pmf-two #pmf-merged { right: auto; transform: scale(0.6); }
+  #score-subboxes.pmf-two #pmf-merged.show { transform: scale(1); }
+  #pmf-merged.pmf-jitter { animation: pmfJitter 0.3s ease-in-out 2; }
+  #pmf-merged.pmf-step1 .pmf-merged-val { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.35); }
+  #pmf-merged.pmf-gold .pmf-merged-val { color: #f5c042; text-shadow: 0 0 14px rgba(245,192,66,0.6); }
+  .pmf-goo { position: absolute; inset: -14px; pointer-events: none; z-index: 1; filter: url(#pmf-goo); }
+  .pmf-blob { position: absolute; border-radius: 6px; background: #2e2408; }
+  .pmf-blob.pmf-blob-gold { background: #3a2c08; }
+  /* The ghost that flies to SCORE wears the fused chip's look. */
+  .pmf-ghost {
+    display: flex; align-items: center; justify-content: center; border-radius: 5px;
+    background: linear-gradient(180deg, #3a2c08, #201802); border: 1px solid var(--gold, #d4a857);
+    box-shadow: 0 0 14px -2px rgba(212,168,87,0.55);
+  }
+  .pmf-ghost .pmf-merged-val { color: #f5c042; font-size: 25px; }
+  /* The hold look (console mode): only the VALUES move, and only a little. */
+  @keyframes pmfJitVal {
+    0%,100% { transform: translate(0,0); } 20% { transform: translate(-1.5px,1px); } 40% { transform: translate(1.5px,-1px); }
+    60% { transform: translate(-1px,-1px); } 80% { transform: translate(1px,1px); }
+  }
+  .subbox-val.pmf-jit-val { animation: pmfJitVal 0.22s ease-in-out 3; display: inline-block; }
+  .subbox-val.pmf-hold-score { color: #f5c042 !important; text-shadow: 0 0 10px rgba(245,192,66,0.6); }
 
   /* ══════════════════════════════════════════════
      PORTRAIT SCORE PANEL - PMF half / SCORE-over-GOAL half (r157)

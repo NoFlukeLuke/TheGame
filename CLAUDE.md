@@ -1551,3 +1551,19 @@ Mult Buff and Suit Spread common; Focus, Time, Coin, Rank Pull, Cut, Fodder rare
 (and event-only Replay) epic; Second Suit / Rank legendary. Limits common but Luck and Focus Cap rare,
 Trick Slots epic. The art cap now reads `60cqh - 42px`. Measured: desktop Flow choice 99 x 262 =
 154 + 6 + 102; phone Flow 169 / 112; phone Classic 70 / 46 (3-4 description lines, r588 had 2).
+
+## r592 - the two-step score fuse (`js/pmf-merge.js`)
+`pmfMergeIn(score, { speed, signal, pips, mult })` fuses in TWO STEPS when the chips' totals are
+passed (the dance passes `_finalPips` / `_finalMult`, All Hands its sums; the interrupt handoff
+passes none and keeps the one-step look): PIPS and MULT jitter and combine into one chip reading
+pips x mult, then that chip and FOCUS jitter and combine into the score; the ghost flies to SCORE,
+the row splits back out. Looks (dev -> Aesthetics -> Score merge, `lethe.pmfLook.v1` overrides
+only, Preview button runs the beat on the live row): **auto** (hold in console mode, slide
+elsewhere), **slide** (the chips move on WAAPI and MELT: a `.pmf-goo` layer behind them carries
+blob copies through the SVG `#pmf-goo` filter, blur then alpha contrast, while the numbers
+crossfade sharp on top; the fused chip is placed by JS, left / width), **hold** (nothing moves:
+the values jitter, PIPS fades and MULT takes the product, MULT fades and FOCUS takes the score in
+gold; the ghost is a body-level flier the housing masks), **one** (r157). `pmfFlyToScore` flies
+from whatever the look fused on (`_pmfFlyFrom`). `score-merge-preview.html` loads the real file,
+the real CSS and the game's score-panel markup; the pit's painted tray and the housing mask are
+JS it does not load.
