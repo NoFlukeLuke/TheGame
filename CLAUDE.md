@@ -1551,3 +1551,18 @@ Mult Buff and Suit Spread common; Focus, Time, Coin, Rank Pull, Cut, Fodder rare
 (and event-only Replay) epic; Second Suit / Rank legendary. Limits common but Luck and Focus Cap rare,
 Trick Slots epic. The art cap now reads `60cqh - 42px`. Measured: desktop Flow choice 99 x 262 =
 154 + 6 + 102; phone Flow 169 / 112; phone Classic 70 / 46 (3-4 description lines, r588 had 2).
+
+## r592 - no names on Tricks, Sleights or Knacks; big icons (owner)
+`entityTileInner` (js/entity-tile.js), the live shop's `buildShopTileInner` (js/shop.js) and the board
+Sleight card (`sleightFaceHTML`, plus the aim copies in js/render.js / js/card-fall.js) draw no
+`.rwd-name` / `.sleight-card-name`. The name is in the tooltip, or printed beside the object by a
+screen with room (the pick's `.gp-name`, an event's `.ec-name`). Plain, debuff and card-face tiles keep
+their names. Icons (css/style.css): the floppy's label runs 41% to 93% of the disc and the icon fills
+it (`--disc` on the tile = the disc's width, 42% of it); the business card's icon is centred, 56% of
+the card's width (`--card`), still 3px clear of the top and clipped at it (r587); the knack diamond is
+64% of the frame's shorter side (`.reward-cell.entity-knack` is a size container) and its icon 60% of
+the diamond (`.rwd-diamond` is an inline-size container; the tray chips use the same rule); the board
+Sleight's icon is 0.36 x the cell height, centred. **A reward-grid Trick shows its own icon**
+(`buildRewardTileInner`, from `p._trick`); only a tile with no Trick behind it keeps the mystery ✦.
+Measured at 1440x820: tray floppy icon 30 design px (frame 72 x 68), board Sleight icon 28.5 in a
+68 x 79 cell, pick floppy 82 art box; 420x900 tray 14-16, board 15. No name element on any of them.

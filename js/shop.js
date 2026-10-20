@@ -104,17 +104,16 @@ function buildShopTileInner(p) {
     // A buffed-card offer: the card's face large, the buff as the name band.
     return `<div class="stc-face">${p.icon}</div><div class="rwd-name">${p.sub || ''}</div>`;
   }
+  // r592: a Trick, Sleight or Knack carries no name (js/entity-tile.js); the
+  // tooltip names it.
   if (p.entity === 'knack') {
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon)}</span></div>`
-         + `<div class="rwd-name">${p.label}</div>`;
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon)}</span></div>`;
   }
   if (p.entity === 'trick') {
-    // Shop shows the real trick glyph (you're deciding what to buy) rather than
-    // the reward grid's mystery placeholder.
-    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${emGlyph(p.emoji || '✦')}</div><div class="rwd-name">${p.label}</div>`;
+    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${emGlyph(p.emoji || '✦')}</div>`;
   }
   if (p.entity === 'sleight') {
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || '🃏')}</div><div class="rwd-name">${p.label}</div>`
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || '🃏')}</div>`
          + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
   }
   // upgrade / resource tile: icon + name + progress sub-line

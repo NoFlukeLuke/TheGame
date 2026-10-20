@@ -8,9 +8,13 @@
 // surface wraps its own frame around .reward-cell.entity and fills it from here,
 // so the tile you picked up is the tile you own is the tile you see for sale.
 //
-// The one deliberate difference stays: on the REWARD GRID a Trick hides its
-// emoji behind a ✦ (you are picking a mystery off a board). Everywhere you
-// already know what the thing is, the emoji shows. That is the `mystery` flag.
+// The one deliberate difference stays: a reward-grid Trick tile that names no
+// Trick yet hides its emoji behind a ✦. That is the `mystery` flag.
+//
+// r592 (owner): a Trick, Sleight or Knack carries NO NAME. The object is its
+// icon, drawn large; the name is in the tooltip, or printed beside the object
+// by a screen that has room (the pick's .gp-name, an event's .ec-name).
+// Plain resource, debuff and card-face tiles keep their names.
 //
 // p: { entity/type, label/name, emoji, icon, uses, cardFace }
 // ══════════════════════════════════════════════════════════════════════════
@@ -54,15 +58,15 @@ function entityTileInner(p, { mystery = false } = {}) {
   const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier + 1}.0</div>` : '';
 
   if (kind === 'knack')
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon || '♛')}</span></div>` + name + tierBadge;
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon || '♛')}</span></div>` + tierBadge;
 
   if (kind === 'trick')
     return `<div class="rwd-glyph">✦</div>`
          + `<div class="rwd-art${mystery ? ' rwd-art-ph' : ''}">${emGlyph(mystery ? '✦' : (p.emoji || p.icon || '✦'))}</div>`
-         + name + tierBadge;
+         + tierBadge;
 
   if (kind === 'sleight')
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || p.icon || '🃏')}</div>` + name
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || p.icon || '🃏')}</div>`
          + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '') + tierBadge;
 
   // Card-face tiles (blessed / cursed / cull): mini playing card + name. The

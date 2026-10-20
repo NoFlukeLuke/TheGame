@@ -1254,9 +1254,13 @@ function rewardTypeLabel(p, kind) {
 }
 // The reward grid's tile contents come from the shared builder (js/entity-tile.js)
 // so a Trick/Sleight/Knack is drawn identically here, in the Mart, in your tray
-// and in the cart. `mystery` is the grid's one deliberate difference: a Trick you
-// have not picked yet shows a ✦ instead of its category emoji.
-function buildRewardTileInner(p) { return entityTileInner(p, { mystery: p.entity === 'trick' }); }
+// and in the cart. r592: the tile carries no name, so a Trick tile shows the
+// Trick's own icon; only a tile with no Trick behind it yet keeps the ✦.
+function buildRewardTileInner(p) {
+  if (p.entity === 'trick' && p._trick)
+    return entityTileInner({ ...p, emoji: (typeof trickEmoji === 'function' ? trickEmoji(p._trick) : p._trick.emoji) || '✦' });
+  return entityTileInner(p, { mystery: p.entity === 'trick' });
+}
 // Owner rule: names never overflow the tile. The name wraps at spaces and a
 // too-long single word hyphenates (CSS). Here we shrink the font only if the
 // wrapped/hyphenated name is still too tall (more than MAX_LINES) or too wide

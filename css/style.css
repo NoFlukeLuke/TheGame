@@ -3225,6 +3225,7 @@
   .reward-cell.entity-knack {
     border: none; background: transparent; box-shadow: none;
     justify-content: center; gap: 8px; overflow: visible;
+    container-type: size;   /* r592: the diamond fits both axes (see .rwd-diamond) */
   }
   .reward-cell.entity-knack::after, .reward-cell.entity-knack::before { content: none; }
   .reward-cell.entity-knack.selected .rwd-diamond {
@@ -3337,6 +3338,10 @@
      A background-position percentage is solved for the geometry: a layer with
      its left edge at L% and width W% sits at position-x L/(100-W)*100%. */
   .reward-cell.entity-trick {
+    /* The disc's width, for its children's padding and type (r592). Percent
+       padding resolves against the FRAME's width, which is not the disc's in a
+       frame wider than the disc. Unregistered, so it resolves in the child. */
+    --disc: min(100cqw, 100cqh * 20 / 19);
     --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
     /* The shutter's default material: DULL GREY = unimproved (r274). */
     --shut: linear-gradient(180deg, #9c9c98 0%, #72726f 50%, #8a8a87 100%);
@@ -3364,9 +3369,10 @@
       linear-gradient(#1b1e22, #1b1e22) no-repeat 55.2% 12% / 18.9% 21.1%,
       /* the metal shutter - its MATERIAL is the improvement tier (r274) */
       var(--shut) no-repeat 71.7% 7% / 54% 36%,
-      /* the cream label plate */
+      /* the cream label plate: 41% to 93% of the disc's height (r592; to 91%
+         while a name sat on its bottom edge) */
       linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
-        no-repeat 50% 82% / 86% 50%,
+        no-repeat 50% 85.4% / 86% 52%,
       /* the tier BANDS - see below. Under the label on purpose. */
       var(--bands, none),
       var(--body);
@@ -3376,34 +3382,25 @@
   .reward-cell.entity-trick::after { content: none; }
   /* The star was how a Trick announced itself. The silhouette does that now. */
   .reward-cell.entity-trick .rwd-glyph { display: none; }
-  /* Emoji and name both sit ON THE LABEL, in dark ink - the one place in the
-     tile system where a name is not light-on-dark. Same band construction as
-     the business card's children: each is stretched to the disc's own box with
-     aspect-ratio, then PADDED into its region. Padding percentages resolve
-     against WIDTH, and the disc's height is 95% of its width - these numbers
-     fold that in (39% of width = 41% of height, the label's top edge). */
+  /* The icon sits ON THE LABEL (r592: the whole label; there is no name).
+     Same band construction as the business card's children: each is stretched
+     to the disc's own box with aspect-ratio, then PADDED into its region, in
+     units of the disc's width (--disc). The disc's height is 95% of its width,
+     so the label's 41% to 93% of height is 39% to 88.4% of width. */
   .reward-cell.entity-trick .rwd-art,
-  .reward-cell.entity-trick .rwd-name,
   .reward-cell.entity-trick .rwd-uses {
     position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
     top: 50%; transform: translate(-50%, -50%); margin: 0;
     width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
     display: flex;
   }
-  .reward-cell.entity-trick .rwd-art {      /* the label's upper half */
-    padding: 39% 9% 27% 9%;
+  .reward-cell.entity-trick .rwd-art {      /* the label, 2.5% of the disc inside its edges */
+    padding: calc(var(--disc) * .415) calc(var(--disc) * .1) calc(var(--disc) * .0865);
     align-items: center; justify-content: center;
-    /* Type scales WITH the disc (33.5cqw = the old 19px at a 57px frame), so
-       the object is the same picture at 34px in Records and 119px in the shop
-       rather than a fixed-size emoji drowning one and rattling in the other. */
-    font-size: 33.5cqw; filter: none;
-  }
-  .reward-cell.entity-trick .rwd-name {     /* the label's bottom edge */
-    z-index: 2; padding: 0 11% 10.5% 11%;
-    align-items: flex-end; justify-content: center;
-    text-align: center; line-height: 1.05;
-    font-size: max(6px, 17.5cqw);
-    color: #221d15; text-shadow: none;
+    /* Type scales WITH the disc, so the object is the same picture at 34px in
+       Records and 119px in the shop. 42% of the disc fills the label's 44.9%
+       content height (r592; 33.5% under the name before). */
+    font-size: calc(var(--disc) * .42); filter: none;
   }
   .reward-cell.entity-trick .rwd-uses {
     z-index: 3; padding: 0 9% 10.5% 0;
@@ -3426,6 +3423,7 @@
      line, so it lands inside the card by construction rather than by a number
      that would have to be kept in step. */
   .reward-cell.entity-sleight {
+    --card: min(100cqw, 100cqh * 1.37);   /* the card's width (r592; see --disc) */
     --body: color-mix(in srgb, var(--rc) 72%, #191510);
     clip-path: none;
     background: none; border: none; box-shadow: none;
@@ -3465,27 +3463,21 @@
      height from the frame's two dimensions, and this is what avoids a per-child
      magic offset that would drift on every surface. */
   .reward-cell.entity-sleight .rwd-art,
-  .reward-cell.entity-sleight .rwd-name,
   .reward-cell.entity-sleight .rwd-uses {
     position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
     top: 50%; transform: translate(-50%, -50%); margin: 0;
     width: min(100cqw, calc(100cqh * 1.37)); aspect-ratio: 1.37;
     display: flex;
   }
-  .reward-cell.entity-sleight .rwd-art {           /* the logo, centred over the name band (r584) */
+  .reward-cell.entity-sleight .rwd-art {           /* the logo, centred on the card (r592: no name band) */
     /* r587 (owner): at least 3px of card above the icon; an icon too tall for
-       the band is cut off 1px below the card's top edge (the box IS the card). */
-    padding: max(3px, 4%) 0 38% 0;
+       the box is cut off 1px below the card's top edge (the box IS the card). */
+    padding: max(3px, var(--card) * .07) 0 calc(var(--card) * .07) 0;
     clip-path: inset(1px 0 0 0);
     align-items: center; justify-content: center;
-    font-size: 37cqw; filter: none;   /* the old 21px at a 57px frame, scaled */
-  }
-  .reward-cell.entity-sleight .rwd-name {          /* the band along the bottom */
-    z-index: 2; padding: 0 16% 5% 5%;
-    align-items: flex-end; justify-content: center;
-    text-align: center; line-height: 1.05;
-    font-size: max(6px, 17.5cqw);
-    color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.75);
+    /* The card is 73% of its width tall: 56% fills the 59% between the pads,
+       and leaves the bottom-right corner to the charge count. */
+    font-size: calc(var(--card) * .56); filter: none;
   }
   .reward-cell.entity-sleight .rwd-tab { display: none; }
   /* The charge count has to sit on the CARD's bottom-right, not the frame's,
@@ -3493,7 +3485,7 @@
      So the element is stretched to the card's own box with `aspect-ratio` and
      its text pushed into the corner - the same construction that positions the
      card itself, rather than a hardcoded inset that would drift per surface. */
-  .reward-cell.entity-sleight .rwd-uses {          /* the corner the name leaves */
+  .reward-cell.entity-sleight .rwd-uses {          /* the bottom-right corner */
     z-index: 3; padding: 0 5% 4% 0;
     align-items: flex-end; justify-content: flex-end;
     background: none; border-radius: 0;
@@ -3505,22 +3497,28 @@
   /* knack diamond: beige molded plastic + neon inset ring */
   /* r584 (owner): a square diamond, no rounding, no colour inlay. The fill is
      the rarity colour darkened; a 1px lighter edge keeps it off the tray. */
+  /* r592: no name under it, so the diamond takes the frame. Its corners reach
+     sqrt(2) x its side, so 64% of the frame's shorter side is 91% corner to
+     corner. It is a container so its icon can size against it. */
   .rwd-diamond {
     position: relative; width: 58%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 0;
+    container-type: inline-size;
     background: color-mix(in srgb, var(--rc) 38%, #0d0b08);
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000), 0 5px 12px rgba(0,0,0,0.5), 0 0 12px -3px var(--rc);
     display: flex; align-items: center; justify-content: center;
   }
   .rwd-diamond::after { content: none; }
+  .reward-cell.entity-knack .rwd-diamond { width: calc(min(100cqw, 100cqh) * .64); }
   /* r391: the owned-Knack chip wears the pick screen's diamond. */
   .knack-chip.kc-obj { background: none !important; border: none !important; box-shadow: none !important; overflow: visible; }
   .knack-chip.kc-obj .rwd-diamond { width: 70%; }
-  .knack-chip.kc-obj .rwd-diamond-emoji { font-size: .62em; }
   .knack-chip.rar-common    { --rc: var(--c-mint); }
   .knack-chip.rar-rare      { --rc: var(--c-cyan); }
   .knack-chip.rar-epic      { --rc: var(--c-purple); }
   .knack-chip.rar-legendary { --rc: var(--c-magenta); }
-  .rwd-diamond-emoji { transform: rotate(-45deg); font-size: 26px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+  /* The biggest upright square inside the turned one is 70.7% of its side; 60%
+     keeps the icon inside the diamond (r592; a fixed 26px before). */
+  .rwd-diamond-emoji { transform: rotate(-45deg); font-size: 60cqw; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
 
   /* ══ SELECTION IS A WHOLE-CELL STATE (r281) ═══════════════════════════════
      Owner: picking a Trick on the boss grid "doesn't highlight the whole cell
@@ -5406,7 +5404,7 @@
   font-size: calc(var(--card-h, 75px) * 0.30) !important; text-align: center;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
 }
-.sleight-card .sleight-card-name {
+.sleight-card .sleight-card-name {   /* r592: no longer drawn; kept for a stale copy */
   position: relative; z-index: 3; width: 100%; box-sizing: border-box;
   /* Symmetric side padding keeps the name centred while reserving the corners:
      the charge count sits top-right and the selection badge bottom-right, and a
@@ -5562,28 +5560,19 @@
    card's height out from the cell's two dimensions, and a per-child offset would
    drift the moment --card-h moved. */
 .trick-card.sleight-card .sleight-card-emoji,
-.trick-card.sleight-card .sleight-card-name,
 .trick-card.sleight-card .sleight-index,
 .trick-card.sleight-card .sleight-card-uses {
   position: absolute; left: 0; right: 0; width: auto; height: auto;
   top: 50%; bottom: auto; transform: translateY(-50%);
   aspect-ratio: 1.37; display: flex; pointer-events: none;
 }
-.trick-card.sleight-card .sleight-card-emoji {   /* the logo, centred over the name band (r584) */
-  padding: max(3px, 12%) 0 34% 0;   /* a little lower than the tile's: the corner mark sits top-right */
+.trick-card.sleight-card .sleight-card-emoji {   /* the logo, centred on the card (r592: no name band) */
+  padding: max(3px, 9%) 0 9% 0;
   clip-path: inset(1px 0 0 0);      /* r587: never past the card's top edge */
   align-items: center; justify-content: center;
-  font-size: calc(var(--card-h, 75px) * 0.20) !important;
-}
-.trick-card.sleight-card .sleight-card-name {    /* the band along the bottom */
-  z-index: 3; padding: 0 16% 5% 5%;
-  align-items: flex-end; justify-content: center;
-  background: none; text-align: center; line-height: 1.05;
-  font-size: calc(var(--card-h, 75px) * 0.088) !important;
-  /* WORDS ARE ATOMIC here too (r182). The old rule broke anywhere, which was
-     survivable on a full-width centred name and is not in a padded band -
-     "Warehouse" came out "WAREH / OUSE". */
-  overflow-wrap: normal; word-break: keep-all; hyphens: none;
+  /* 36% of the cell's height is 47% of the card's width: it fits the 55% between
+     the pads and clears the corner mark (top-right) and the charge count. */
+  font-size: calc(var(--card-h, 75px) * 0.36) !important;
 }
 .trick-card.sleight-card .sleight-index {        /* the corner mark, top-right */
   z-index: 4; padding: 4% 5% 0 0;
@@ -5594,7 +5583,7 @@
 .trick-card.sleight-card .sleight-index .sl-suit {
   font-size: calc(var(--card-h, 75px) * 0.115); margin-top: 0;
 }
-.trick-card.sleight-card .sleight-card-uses {    /* the corner the name leaves */
+.trick-card.sleight-card .sleight-card-uses {    /* the bottom-right corner */
   z-index: 4; padding: 0 5% 4% 0;
   align-items: flex-end; justify-content: flex-end;
   background: none; border-radius: 0;

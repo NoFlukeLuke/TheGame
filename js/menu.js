@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r591 · merge: reward pick rows and rarity tiles with the event layouts lab";
+const BUILD = "2026-10-20 · r592 · Tricks, Sleights and Knacks carry no name; their icons are drawn large";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
