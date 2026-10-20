@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r592 · Tricks, Sleights and Knacks carry no name; their icons are drawn large";
+const BUILD = "2026-10-20 · r593 · upload your own Trick floppy art to assets/art/floppy";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

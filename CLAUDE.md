@@ -1566,3 +1566,16 @@ Sleight's icon is 0.36 x the cell height, centred. **A reward-grid Trick shows i
 (`buildRewardTileInner`, from `p._trick`); only a tile with no Trick behind it keeps the mystery ✦.
 Measured at 1440x820: tray floppy icon 30 design px (frame 72 x 68), board Sleight icon 28.5 in a
 68 x 79 cell, pick floppy 82 art box; 420x900 tray 14-16, board 15. No name element on any of them.
+
+## r593 - the owner's floppy art (`js/floppy-art.js`, `assets/art/floppy/`)
+A PNG in `assets/art/floppy/` replaces the CSS-drawn Trick disc: `common.png` / `rare.png` / `epic.png` /
+`legendary.png`, and `floppy.png` for a rarity with none. Nothing lists the uploads, so the five files are
+requested once at load (`floppyArtProbe`); each found sets `--fa-<rarity>` (absolute url, like
+`--px-sheet`) and `html.fa-<rarity>`. css/style.css then paints the disc's `::before` as
+`var(--bands), var(--fa) center / contain` (no notch clip, no painted edge): same 20:19 box, so the icon
+stays on the label (padded box 40,166 to 360,345 on 400 x 380, drawn in `_guide.png`). Art 64px wide or
+less sets `html.fa-pix` (pixelated). Dev -> Aesthetics -> Floppy art switches back to the drawn disc
+(`lethe.floppyArt.v1`, stored only when off) and says how many files it found. `_template.png` is the
+drawn disc at 400 x 380; files starting `_` are never loaded. The owner uploads straight to main on
+GitHub (the folder's README says how). Verified with a test `floppy.png` (removed before commit): the
+pick, the tray and the reward grid drew it, icons on its label, no page errors.

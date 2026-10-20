@@ -12,6 +12,7 @@ push, and GitHub Pages serves it.
 | `assets/sfx/`      | short one-shot sound effects, under about 2 seconds |
 | `assets/ambience/` | long beds - room tone, machine hum - played as tracks |
 | `assets/icons/`    | the pixel icon sheet the entity tiles draw. Generated: see `tools/icons/README.md` |
+| `assets/art/floppy/` | your own picture of the Trick floppy disc, one per rarity: see `assets/art/floppy/README.md` |
 
 **Short effect or long bed?** Anything much over two seconds is a bed, not an
 effect: it will still be playing when the next one fires. Put those in

@@ -3380,6 +3380,20 @@
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, #000);
   }
   .reward-cell.entity-trick::after { content: none; }
+  /* THE OWNER'S FLOPPY ART (r593, js/floppy-art.js). An uploaded PNG takes the
+     drawn disc's place in the same 20:19 box, fitted whole (contain). Its own
+     silhouette replaces the notch clip and the painted rarity edge. The tier
+     BANDS stay, on top of it, so an improved Trick still says so. */
+  html.fa-common    .reward-cell.entity-trick.rar-common::before    { --fa: var(--fa-common); }
+  html.fa-rare      .reward-cell.entity-trick.rar-rare::before      { --fa: var(--fa-rare); }
+  html.fa-epic      .reward-cell.entity-trick.rar-epic::before      { --fa: var(--fa-epic); }
+  html.fa-legendary .reward-cell.entity-trick.rar-legendary::before { --fa: var(--fa-legendary); }
+  :is(html.fa-common .reward-cell.entity-trick.rar-common, html.fa-rare .reward-cell.entity-trick.rar-rare,
+      html.fa-epic .reward-cell.entity-trick.rar-epic, html.fa-legendary .reward-cell.entity-trick.rar-legendary)::before {
+    clip-path: none; box-shadow: none;
+    background: var(--bands, none), var(--fa) center / contain no-repeat;
+  }
+  html.fa-pix .reward-cell.entity-trick::before { image-rendering: pixelated; }
   /* The star was how a Trick announced itself. The silhouette does that now. */
   .reward-cell.entity-trick .rwd-glyph { display: none; }
   /* The icon sits ON THE LABEL (r592: the whole label; there is no name).
