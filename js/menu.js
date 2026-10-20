@@ -1,4 +1,4 @@
-const BUILD = "2026-10-18 · r590 · pick rewards are two tiles in a dark rarity colour";
+const BUILD = "2026-10-20 · r591 · merge: reward pick rows and rarity tiles with the event layouts lab";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -1484,6 +1484,44 @@ tile icon 3.0 design px below the card top, board 6.7. The board Sleight's marku
 `sleightFaceHTML` in js/sleights-runtime.js (render.js and card-fall.js carry older copies);
 it printed the raw emoji, so board Sleights never showed the pixel icon until now.
 
+## r588 - the event layouts lab (`js/event-grid-lab.js`, `css/event-grid-lab.css`)
+Owner: every event should live on the board. A look preview, nothing is granted: `index.html?evgrid`
+(or dev -> Events & Bosses -> Event layouts) starts a Classic run, pauses it, and turns the board
+into one of six sample events, one per shape (two options, three rungs then cards, pick an
+entity, several steps, a gamble, buy several), with the real words, card faces and entity tiles.
+Four layouts: **Marquee** (a merged prompt cell on top, options as cells; with room the prompt
+is a left column), **Pages** (a screen per step, cells turn over between them), **Focus** (a
+title strip and small cells; a tap opens one across the board), **Terminal** (the board is one
+amber screen; the event types out, options are numbered lines). Three rooms: in the box, **zoom
+in** (a transform on `#camera` until the box fills the screen's height, about +15% at 1440x820,
+and the board widens to all that is in view; cleared at rest, camera.js rule 2), **slide off**
+(every laid-out box outside the board slides out its nearer edge on the standalone `translate`,
+the board takes the stage). "Only when the text won't fit" measures the step in the box first.
+Cells are absolutely placed in cell units and keyed, so a redraw moves surviving cells (FLIP on
+left/top/width/height) and turns new ones in. Text is `N px x var(--fit)`, fitted on a hidden
+copy at the target size; the panel prints the smallest text as drawn on screen.
+
+## r589 - event layouts lab, round two (owner: Terminal stays, Marquee was the best of the rest)
+The lab now shows three crossings of Marquee and Terminal beside both originals (Pages, Focus and
+zoom are gone; slide-off stays): **WALL** (Marquee's plan, every cell its own small amber screen,
+picked = the screen lit solid), **READOUT** (one amber screen on the top half over a row of matte
+keys with a lamp; touching or pointing at a key prints its full text on the screen, `eglHover` /
+`egl.inspect`), **WIREFRAME** (one amber glass with Marquee drawn on it: the prompt in a double box,
+each option a single box with its title on the top border). Every layout lays out on 12 half-cell
+rows. Two screens follow the owner's designs in every layout and always keep the board's box:
+**Card Market** is the board itself, `gridRows x gridCols` cards that all carry a buff (the real
+odds of a second), bought by tapping (`shopgrid`); real faces wear their bands by writing the
+offer's buffs to the stores for one render (`eglFaceBuffed`). **Deck Trim's cut** is the whole deck
+in one column per suit, a rank to a row from the Ace down, wilds last, six rows in view
+(`deckcols`, `eglDeckCols`, `EGL_DECK_ROWS`); it scrolls a row at a time from up / down arrows laid
+over the Focus bar (`#egl-scroll`, hold to repeat), the mouse wheel or a drag (`--vr` on the view).
+Text that does not fit overflows (`.egl-fit > * { flex-shrink: 0 }`, `justify-content: safe
+center`) so the fit pass can see it. Prefs moved to `lethe.eventGridLab.v2`.
+
+## r588-r590 numbering
+Two sessions shipped r588 and r589 in parallel: the event layouts lab (the two sections
+above) and the reward pick (the three below). The merge that joined them is r591.
+
 ## r588 - the reward pick is 3 rows (owner)
 `GP_ROWS` 4 -> 3 and `GP_OPT_H` 3 -> 2 (js/grid-pick.js): every pick-of-three's rewards are 2 cells
 tall, the action row is the last. Where the board is a fixed box (landscape, Flow on a phone) the
