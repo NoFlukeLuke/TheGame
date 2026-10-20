@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EVENT GRID LAB (r588, r589, r590) - events drawn as the board
+// EVENT GRID LAB (r588, r589, r593) - events drawn as the board
 // ═══════════════════════════════════════════════════════════════════════════
 // Owner: every event should live on the board. A LOOK preview: nothing here is
 // granted and no real event handler runs. Open index.html?evgrid (or dev ->
@@ -7,7 +7,7 @@
 // turns the board into one of six sample events, one per shape an event takes.
 //
 // r589: three crossings of Marquee and Terminal (WALL, READOUT, WIREFRAME)
-// beside both originals. r590, the owner's pick: WIREFRAME in the box, with
+// beside both originals. r593, the owner's pick: WIREFRAME in the box, with
 //   - a 12-colour phosphor palette (EGL_PALETTE) so keywords, rarities, suits
 //     and buffs keep something of their own colour on the amber glass
 //   - an entity drawn large with no description; pointing at it or tapping it

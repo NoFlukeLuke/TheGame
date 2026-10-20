@@ -1518,7 +1518,57 @@ over the Focus bar (`#egl-scroll`, hold to repeat), the mouse wheel or a drag (`
 Text that does not fit overflows (`.egl-fit > * { flex-shrink: 0 }`, `justify-content: safe
 center`) so the fit pass can see it. Prefs moved to `lethe.eventGridLab.v2`.
 
-## r590 - event layouts lab, round three: WIREFRAME in the box (owner's pick)
+## r588-r590 numbering
+Two sessions shipped r588 and r589 in parallel: the event layouts lab (the two sections
+above) and the reward pick (the three below). The merge that joined them is r591.
+
+## r588 - the reward pick is 3 rows (owner)
+`GP_ROWS` 4 -> 3 and `GP_OPT_H` 3 -> 2 (js/grid-pick.js): every pick-of-three's rewards are 2 cells
+tall, the action row is the last. Where the board is a fixed box (landscape, Flow on a phone) the
+rows stretch to fill it, so rewards got shorter (desktop Flow 252 -> 223px) and the action row
+taller (80 -> 109px). Where the board keeps the card shape (a phone outside Flow, Poker Squares)
+the whole pick is a row shorter, so the art is capped by tile height (`#grid .gp-opt` is a size
+container, `.gp-art` width `min(100%, (66.67cqh - 30px) * --gp-ar)`, css/grid-pick.css) and the
+description keeps 2 lines (phone Classic tile 91 x 119, was 91 x 180 with 5 lines).
+
+## r589 - the pick's action row is short (owner)
+The pick's rows are not equal: `gpRows(r, h)` / `gpPickBox` (js/grid-pick.js) make the action row
+`min(CARD_H, CARD_W x GP_ACT_TALL)` tall (`GP_ACT_TALL` 1.5) and the two reward rows share the rest.
+`gpBox` (shared with the payout) is unchanged. Measured: desktop Flow rewards 99 x 262, action tiles
+46 x 70 (r588: 223 / 109; before r588: 252 / 80); phone Flow 87 x 287 and 41 x 61; a phone outside
+Flow is unchanged (its cell, 44 x 58, is already under 1.5x).
+
+## r590 - a reward is two tiles in its rarity colour (owner)
+Each pick-of-three choice is an ENTITY tile (`.gp-head`: tag, art, name; 60% of the choice) over a
+DESCRIPTION tile (`.gp-body`), a board gap apart (`--gp-gap`, written by `gridPickRender`). `.gp-opt` is
+only the frame (tap, tooltip, the picked lift) and paints nothing. Both tiles are the rarity colour way
+darker (`--rc` from `.gp-opt.rar-*`, mixed into near black; css/grid-pick.css); picked = mint ring over
+the tint. **An offer with no rarity of its own wears one from how often it is drawn**:
+`rarityForShare(share)` (js/luck.js, `SHARE_RARITY`: 10%+ common, 6%+ rare, 2.5%+ epic, else
+legendary), fed by `flowrOpRarity(op)` (share of the deck editor's `FLOWR_OP_WEIGHTS` draw; card packs
+use their buff's op) and `limitRarity(d)` (share of `LIMITS_DEF` weights). Display only. Today: Pip /
+Mult Buff and Suit Spread common; Focus, Time, Coin, Rank Pull, Cut, Fodder rare; Stamp, x buffs
+(and event-only Replay) epic; Second Suit / Rank legendary. Limits common but Luck and Focus Cap rare,
+Trick Slots epic. The art cap now reads `60cqh - 42px`. Measured: desktop Flow choice 99 x 262 =
+154 + 6 + 102; phone Flow 169 / 112; phone Classic 70 / 46 (3-4 description lines, r588 had 2).
+
+## r592 - the two-step score fuse (`js/pmf-merge.js`)
+`pmfMergeIn(score, { speed, signal, pips, mult })` fuses in TWO STEPS when the chips' totals are
+passed (the dance passes `_finalPips` / `_finalMult`, All Hands its sums; the interrupt handoff
+passes none and keeps the one-step look): PIPS and MULT jitter and combine into one chip reading
+pips x mult, then that chip and FOCUS jitter and combine into the score; the ghost flies to SCORE,
+the row splits back out. Looks (dev -> Aesthetics -> Score merge, `lethe.pmfLook.v1` overrides
+only, Preview button runs the beat on the live row): **auto** (hold in console mode, slide
+elsewhere), **slide** (the chips move on WAAPI and MELT: a `.pmf-goo` layer behind them carries
+blob copies through the SVG `#pmf-goo` filter, blur then alpha contrast, while the numbers
+crossfade sharp on top; the fused chip is placed by JS, left / width), **hold** (nothing moves:
+the values jitter, PIPS fades and MULT takes the product, MULT fades and FOCUS takes the score in
+gold; the ghost is a body-level flier the housing masks), **one** (r157). `pmfFlyToScore` flies
+from whatever the look fused on (`_pmfFlyFrom`). `score-merge-preview.html` loads the real file,
+the real CSS and the game's score-panel markup; the pit's painted tray and the housing mask are
+JS it does not load.
+
+## r593 - event layouts lab, round three: WIREFRAME in the box (owner's pick)
 - **Palette** (`EGL_PALETTE`, js/event-grid-lab.js): twelve phosphors with the amber's warmth, written
   onto #egl as `--wf-<name>`; the amber layouts' CSS reads only those. Keywords (`.kw-*`), rarity words
   (`.egl-rar`), suits (`.egl-s-*`: spades cream, hearts coral, diamonds gold, clubs sky, wilds rose) and

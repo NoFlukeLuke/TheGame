@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r590 · Event layouts lab: Wireframe in the box, phosphor palette, typed text, one cursor, playing-card frames, console and cube transitions";
+const BUILD = "2026-10-20 · r593 · Event layouts lab: Wireframe in the box, phosphor palette, typed text, one cursor, playing-card frames, console and cube transitions";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

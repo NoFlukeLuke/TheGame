@@ -159,6 +159,15 @@ function pickEntityByRarity(pool, tierOf, weights, tiers) {
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
+
+// r590 (owner): an offer with no rarity of its own (a deck op, a card pack, a
+// limit) wears one from how often it is drawn, its share of its table's weight.
+// Display only: nothing rolls on it.
+const SHARE_RARITY = [[0.10, 'common'], [0.06, 'rare'], [0.025, 'epic']];
+function rarityForShare(share) {
+  for (const [min, tier] of SHARE_RARITY) if (share >= min) return tier;
+  return 'legendary';
+}
 // Survival and Flow ban entities their mode cannot support, and CLAUDE.md is
 // explicit that "a new offer path must call survivalEntityBanned or the bans
 // leak". The reward grid had its own closure for this; lifting it here means the

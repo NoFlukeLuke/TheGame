@@ -1,10 +1,10 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   EVENT GRID LAB (r588, r589, r590) - js/event-grid-lab.js. Events drawn as the board.
+   EVENT GRID LAB (r588, r589, r593) - js/event-grid-lab.js. Events drawn as the board.
    STAGE PX throughout: #egl is a child of #stage and carries the cabinet zoom.
    Every text size is N px x var(--fit): the lab shrinks a cell's words until
    they stay inside it and reports the smallest. #egl[data-lay] is the layout;
    rules with no layout in them are MARQUEE's, the others override.
-   r590: the amber screens take their colours from the lab's phosphor palette,
+   r593: the amber screens take their colours from the lab's phosphor palette,
    --wf-<name> written on #egl from EGL_PALETTE, and nothing else.
    ══════════════════════════════════════════════════════════════════════════ */
 body.egl-on #grid { visibility: hidden; }
@@ -187,7 +187,7 @@ body.egl-on #grid { visibility: hidden; }
               radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
 }
 /* A pixel icon or an entity tile on the glass: its own colours, warmed a little
-   (r590; the r589 all-amber filter lost a Trick's picture in its label). */
+   (r593; the r589 all-amber filter lost a Trick's picture in its label). */
 #egl[data-lay="wall"] .egl-ico, #egl[data-lay="wire"] .egl-ico, #egl[data-lay="wall"] .egl-art, #egl[data-lay="wire"] .egl-art {
   filter: sepia(.28) saturate(1.1) drop-shadow(0 0 5px rgba(255,176,46,0.35));
 }
@@ -274,7 +274,7 @@ body.egl-on #grid { visibility: hidden; }
 #egl[data-lay="wire"] .egl-prompt .egl-fit, #egl[data-lay="wire"] .egl-result .egl-fit { align-items: stretch; justify-content: safe center; }
 #egl[data-lay="wire"] .egl-ox { font: calc(12px * var(--fit))/1.1 'VT323 Local', 'VT323', monospace; color: rgba(255,176,46,0.82); }
 #egl[data-lay="wire"] .egl-cost { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-bad); letter-spacing: 1px; }
-/* An entity is the picture alone, large; the tooltip carries its words (r590). */
+/* An entity is the picture alone, large; the tooltip carries its words (r593). */
 #egl[data-lay="wire"] .egl-ent .egl-fit { gap: calc(6px * var(--fit)); }
 #egl[data-lay="wire"] .egl-ent .egl-art { width: calc(94% * var(--fit)); max-width: calc(128px * var(--fit)); cursor: var(--cur-pointer, pointer);
   filter: sepia(.18) saturate(1.05) drop-shadow(0 0 7px color-mix(in srgb, var(--rc) 45%, transparent)); }
@@ -355,7 +355,7 @@ body.egl-on #grid { visibility: hidden; }
 .egl-vcut .egl-x { display: flex; position: absolute; top: 1px; left: 50%; width: var(--card-w); height: var(--card-h); translate: -50% 0; align-items: center; justify-content: center; z-index: 3; border-radius: 5px;
   border: 2px solid #ff4b3e; color: #ff4b3e; font: 800 11px 'Orbitron', sans-serif; letter-spacing: 2px; text-shadow: 0 0 6px rgba(255,75,62,0.7), 0 1px 2px #000;
   background: repeating-linear-gradient(45deg, rgba(255,75,62,0.22) 0 3px, transparent 3px 7px); font-style: normal; }
-/* A text card (r590): a playing card's shape (--cw by the slot's height), drawn as
+/* A text card (r593): a playing card's shape (--cw by the slot's height), drawn as
    a screen of its own (WALL) or in lines on the shared glass (WIREFRAME,
    TERMINAL). Sized from its own box (container units), so it reads the same at
    every board size. --sc is the suit's phosphor, --kc a buff's. */
@@ -396,7 +396,7 @@ body.egl-on #grid { visibility: hidden; }
 .egl-tc.egl-vcut u { display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; text-decoration: none;
   color: var(--am-bad); font-size: 30cqw; letter-spacing: 1px; background: rgba(255,118,86,0.12); text-shadow: 0 0 6px rgba(255,118,86,0.6); }
 
-/* ══ TRANSITIONS (r590): copies of the two screens, under the glass ══════════ */
+/* ══ TRANSITIONS (r593): copies of the two screens, under the glass ══════════ */
 .egl-tr { position: absolute; inset: 0; z-index: 10; overflow: hidden; border-radius: inherit; pointer-events: none; }
 .egl-face { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; backface-visibility: hidden; }
 .egl-face > .egl-cell { pointer-events: none; }

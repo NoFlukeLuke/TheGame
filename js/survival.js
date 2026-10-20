@@ -291,7 +291,7 @@ function survivalMakeOption(type, data) {
   // Say how much, not just which - Starting Time moves by 15 and Focus Cap by 3,
   // and a card reading only 'Starting Time' promised the same as a +1. See
   // limitDeltaText in js/limits.js, which also handles the clamp near the cap.
-  if (type === 'limit')   return { type, data, id: data.id, name: `${data.label} ${limitDeltaText(data.id, 1)}`, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: 'common' };
+  if (type === 'limit')   return { type, data, id: data.id, name: `${data.label} ${limitDeltaText(data.id, 1)}`, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: limitRarity(data) };
   return null;
 }
 

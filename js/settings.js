@@ -227,7 +227,7 @@ const SETTINGS_DEF = [
     type: 'select', default: 'numbers', options: [['numbers','Numbers'], ['bulbs','Bulbs']],
     get: () => (typeof sbCfg !== 'undefined' && sbCfg.on) ? 'bulbs' : 'numbers',
     apply: v => { if (typeof sbSet === 'function') sbSet('on', v === 'bulbs' ? 1 : 0); } },
-  // r590: event text types out a character at a time (textTypeCps, below).
+  // r593: event text types out a character at a time (textTypeCps, below).
   { group: 'Display', id: 'textSpeed', label: 'Text speed',
     hint: 'How fast event text types out. Tap the screen to show it all at once.',
     type: 'select', default: 'normal', options: [['normal','Normal'], ['fast','Fast (2x)'], ['instant','Instant']] },

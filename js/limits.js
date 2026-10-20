@@ -265,6 +265,12 @@ function onLimitChanged(id) {
   }
   // grid_rows / grid_cols take effect at next round start (see grid sizing work)
 }
+// r590: a limit's rarity on a pick is its share of the limit draw (def.weight).
+function limitRarity(d) {
+  const tot = LIMITS_DEF.reduce((t, x) => t + (x.weight ?? 1), 0);
+  return rarityForShare((d.weight ?? 1) / (tot || 1));
+}
+
 // Weighted sample WITHOUT replacement from limit defs (respects def.weight, default 1).
 // Used by the shop, the Limit Break event, and reward-grid limit tiles so rare
 // limits (e.g. trick_slots at 0.4) show up proportionally less often.
