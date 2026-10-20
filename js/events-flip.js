@@ -241,7 +241,7 @@ function confirmLadder() {
 // ── HOT STREAK: each heads adds a pick of three ──
 function renderHotStreak() {
   evLadder({
-    note: `Each heads adds a pick of three. Stop when you like and take them; a tails loses them all. A first tails can be flipped again for ${ladderPrice()} credits.`,
+    note: 'Each heads adds a pick of three. Stop any time and keep them. Tails loses them all.',
     rungs: ['1 pick', '2 picks', '3 picks', '4 picks'],
     cash: (n, lines) => { lines.push(`<b>${n}</b> ${n === 1 ? 'pick' : 'picks'} of three, one after another.`); return Array(n).fill('pick3'); },
   });
@@ -251,7 +251,7 @@ function renderHotStreak() {
 function renderPrizeLadder() {
   const f = BAL.flip_events.ladder_focus;
   evLadder({
-    note: `Each heads adds the next prize. Stop when you like and take them; a tails loses them all. A first tails can be flipped again for ${ladderPrice()} credits.`,
+    note: 'Each heads adds the next prize. Get two heads and secure the first two rewards. Getting tails loses any unsecured rewards.',
     rungs: [`+${f} Focus limit`, 'A limit, then a pick of three', 'A random improvement', 'All three again'],
     cash: (n, lines) => {
       const twice = n >= 4 ? 2 : 1;
@@ -328,7 +328,6 @@ const PLINKO_SAMPLE = 8, PLINKO_CARDS = 3, PLINKO_CURSES = 3;
 function renderPlinko() {
   const s = eventState, body = evBodyEl();
   s.plPhase = 'drop';
-  body.appendChild(evNote(`Green: a card editor, one buff on up to ${PLINKO_CARDS} cards you choose. Red: ${PLINKO_CURSES} random cards are cursed.`));
   s.plBoard = evPlinko(PLINKO_BINS.map(g => ({ label: g ? 'EDIT' : 'CURSE', cls: g ? 'good' : 'bad' })), body);
   evConfirmBtn('DROP', true);
 }

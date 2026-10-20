@@ -116,3 +116,45 @@
 .evt-pair .evt-host { margin: 0; }
 .evt-rank { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #1a1622; }
 #rs-list.evt-fresh { animation: evt-land .4s ease-out; }
+
+/* r590: the Gamble's chosen door is unmistakable: raised, gold, tagged, the others dimmed */
+.door-pick { display: none; position: absolute; top: 6px; left: 0; right: 0; text-align: center; z-index: 3;
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 8px; letter-spacing: 1.5px; color: #1a1408; }
+.door-pick::before { content: ''; position: absolute; inset: -3px 10px; background: var(--c-yellow, #f0c040); border-radius: 3px; z-index: -1; }
+.event-door.chosen .door-pick { display: block; }
+.event-door.chosen { transform: translateY(-6px) scale(1.06); }
+.event-door.chosen:not(.revealed) { border-color: var(--c-yellow, #f0c040);
+  box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 22px -2px var(--c-yellow, #f0c040), inset 0 0 16px -6px var(--c-yellow, #f0c040); }
+.door-row.has-pick .event-door:not(.chosen) { opacity: .5; }
+.door-row.has-pick .event-door.revealed:not(.chosen) { opacity: .75; }
+.evt-die-faces b { font-family: 'Share Tech Mono', monospace; font-size: 9px; font-weight: 400; color: var(--cream-dim); margin-right: 2px; align-self: center; }
+
+/* ── r590: the deck picker (js/event-picker.js): one column per suit, a rank to a row ── */
+.edp { width: 100%; max-width: 420px; margin: 4px auto; }
+.edp-head, .edp-row { display: grid; grid-template-columns: repeat(var(--edp-cols, 4), 1fr); gap: 4px; }
+.edp-head { padding: 0 26px 3px 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; text-align: center; color: #e9e2cc; }
+.edp-head .red { color: #ff6a5c; }
+.edp-wrap { position: relative; display: flex; gap: 4px; }
+.edp-view { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scroll-snap-type: y proximity;
+  border: 1px solid #3a3352; border-radius: 6px; padding: 4px; background: rgba(8,7,14,.6); }
+.edp-row { padding: 2px 0; scroll-snap-align: start; }
+.edp-cell { display: flex; gap: 2px; justify-content: center; min-height: 22px; }
+.edp-cell.empty::before { content: '·'; color: #3d3756; align-self: center; }
+.edp-wilds { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; border-top: 1px dashed #3a3352; margin-top: 2px; padding-top: 4px; }
+.edp-card { position: relative; min-width: 30px; padding: 4px 4px; border-radius: 4px; background: #f4efe2; color: #1a1a1a;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; line-height: 1; text-align: center;
+  border: 1.5px solid rgba(255,255,255,.35); box-shadow: 0 2px 4px rgba(0,0,0,.45); cursor: var(--cur-pointer, pointer); user-select: none;
+  transition: transform .1s ease, box-shadow .14s ease, border-color .14s ease; }
+.edp-card.red { color: #c0392b; }
+.edp-card.wild { background: linear-gradient(160deg, #f4efe2, #d8cde9); color: #4b2f88; }
+.edp-card.buffed::after, .edp-card.cursed::before { content: ''; position: absolute; top: -1px; width: 0; height: 0; border-style: solid; }
+.edp-card.buffed::after { right: -1px; border-width: 0 7px 7px 0; border-color: transparent var(--c-yellow, #f0c040) transparent transparent; }
+.edp-card.cursed::before { left: -1px; border-width: 7px 7px 0 0; border-color: #ff4d5e transparent transparent transparent; }
+.edp-card:hover { transform: translateY(-1px); }
+.edp-card.picked { border-color: var(--c-yellow, #f0c040); box-shadow: 0 0 0 2px var(--c-yellow, #f0c040), 0 0 12px -2px var(--c-yellow, #f0c040); transform: translateY(-1px); }
+.edp-card.picked[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -7px; right: -6px; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--c-yellow, #f0c040); color: #1a1408; font-size: 8px; line-height: 13px; border: 0; }
+.edp-card.blocked { opacity: .3; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }
+.edp-arrows { display: none; flex-direction: column; gap: 4px; width: 22px; }
+.edp-scrolls .edp-arrows { display: flex; }
+.edp-arrows button { flex: 1; min-height: 24px; padding: 0; border-radius: 5px; border: 1px solid #4b4370; background: #1d1930; color: #e9e2cc; font-size: 9px; cursor: var(--cur-pointer, pointer); }

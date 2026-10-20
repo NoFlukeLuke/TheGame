@@ -67,12 +67,12 @@ function trickGambleChoices() { return (trickTray || []).filter(t => canImprove(
 function renderTrickGamble() {
   const s = eventState, body = evBodyEl();
   s.tgPicks = []; s.tgDone = false;
-  body.appendChild(evNote('Choose two. One of them improves twice; the other is deleted. You do not choose which.'));
+  body.appendChild(evNote('Choose two Tricks. One of them is improved twice, the other is deleted. You do not choose which.'));
   const wrap = document.createElement('div'); wrap.className = 'ev-choice-grid'; body.appendChild(wrap);
   s.tgEls = trickGambleChoices().map(t => {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦';
     const el = makeChoiceEl({ tile: { entity: 'trick', id: t.id, emoji: em, label: t.name }, rarity: t.tier, name: t.name,
-      desc: `v${entityTierOf(t.id) + 1}.0 → v${Math.min(IMPROVE_MAX_TIER, entityTierOf(t.id) + 2) + 1}.0 if it wins`,
+      desc: `v${entityTierOf(t.id) + 1}.0 → v${Math.min(IMPROVE_MAX_TIER, entityTierOf(t.id) + 2) + 1}.0`,
       onClick: () => {
         if (s.tgDone) return;
         const at = s.tgPicks.indexOf(t);
@@ -127,7 +127,7 @@ function rescheduleBosses() {
   if (nx) out.push({ when: 'NEXT QUARTER', p: nx });
   return out;
 }
-function reschedulePrice() { return priceOf(BAL.reschedule.price); }
+function reschedulePrice() { return priceOf(BAL.reschedule.price + BAL.reschedule.step * (eventState.rsRolls || 0)); }
 function rescheduleDraw(oldId) {
   let p = null;
   for (let k = 0; k < 6; k++) { p = nextBossPreset(); if (p && p.id !== oldId) break; }
@@ -144,24 +144,28 @@ function rescheduleList(body) {
 }
 function renderReschedule() {
   const body = evBodyEl();
-  eventState.rsDone = false;
-  body.appendChild(evNote(`Reroll both for ${reschedulePrice()} credits. The new ones are drawn from the bosses you have not met.`));
+  eventState.rsRolls = 0;
+  body.appendChild(evNote('Below are your next two bosses. Pay to reroll them or face them as is.'));
   rescheduleList(body);
-  evConfirmBtn(`REROLL · ${reschedulePrice()}`, coins >= reschedulePrice());
+  rescheduleSync();
+}
+function rescheduleSync() {
+  const s = eventState, left = BAL.reschedule.rolls - s.rsRolls;
+  evConfirmBtn(left > 0 ? `REROLL · ${reschedulePrice()}` : 'NO REROLLS LEFT', left > 0 && coins >= reschedulePrice());
 }
 function confirmReschedule() {
   const s = eventState;
-  if (s.rsDone) { closeEvent(); return; }
-  if (coins < reschedulePrice()) return;
+  if (s.rsRolls >= BAL.reschedule.rolls || coins < reschedulePrice()) return;
   coins -= reschedulePrice(); updateCoinsUI?.();
-  s.rsDone = true; evSkipShown(false);
+  s.rsRolls++;
+  const skip = document.getElementById('event-skip'); if (skip) skip.textContent = 'Done';
   if (actBossId) { const p = rescheduleDraw(actBossId); if (p) actBossId = p.id; }
   if (nextActBossId) { const p = rescheduleDraw(nextActBossId); if (p) nextActBossId = p.id; }
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
   const list = rescheduleList(evBodyEl());
   list.classList.add('evt-fresh'); evReveal(list);
   try { sfxRewardReveal?.(); } catch (e) {}
-  evConfirmBtn('DONE', true);
+  rescheduleSync();
 }
 
 // ══════════════════════════════════════════════
@@ -174,7 +178,7 @@ const SPINNER_RANKS = ['A', 'A', 'A', '2', '2', '2', '3', '3', '4'];
 function renderGridSpinner() {
   const s = eventState, body = evBodyEl();
   s.gsLeft = 0; s.gsPhase = 'spin';
-  body.appendChild(evNote('Tap to stop the light. Its rank is how many rows and columns your grid grows by. At the maximum grid, each one left becomes +1 to a random limit.'));
+  body.appendChild(evNote('Tap to stop the light on a rank. Increase your row and/or column limits that many times.'));
   const deal = evShuffle(SPINNER_RANKS.slice());
   evStopper(deal.map(r => `<span class="evt-rank">${r}</span>`), body, { stepMs: 62 }).then(i => {
     s.gsLeft = deal[i] === 'A' ? 1 : +deal[i];
@@ -236,7 +240,7 @@ function staticAmount(kind, step) { return staticQuarter() * step * (kind === 'p
 function renderStaticBonus() {
   const s = eventState, body = evBodyEl();
   s.sbPhase = 'spin';
-  body.appendChild(evNote(`Every hand starts with it, for the rest of the run.${staticPips || staticMult ? ` You have <b>+${staticPips} pips</b> and <b>+${staticMult} mult</b> now.` : ''}`));
+  body.appendChild(evNote(`Two wheels: what buff and how much. Every hand gets this bonus moving forward.${staticPips || staticMult ? ` You have <b>${fmtSigned(staticPips)} pips</b> and <b>${fmtSigned(staticMult)} mult</b> now.` : ''}`));
   const row = document.createElement('div'); row.className = 'evt-pair'; body.appendChild(row);
   s.sbKind = evWheel(['PIPS', 'MULT', 'PIPS', 'MULT', 'PIPS', 'MULT'].map(l => ({ label: l, color: l === 'PIPS' ? '#4d8dff' : '#ff5a4e', ink: '#fff' })), row, { title: 'Pips or mult' });
   s.sbRow = row;
@@ -278,7 +282,7 @@ function renderLuckDice() {
   s.ldPhase = 'roll';
   body.appendChild(evNote(`Luck is <b>${luckTotal()}</b>.`));
   const row = document.createElement('div'); row.className = 'evt-pair'; body.appendChild(row);
-  s.ldA = evDie(LUCK_DIE_A, row); s.ldB = evDie(LUCK_DIE_B, row);
+  s.ldA = evDie(LUCK_DIE_A, row, 'Faces:'); s.ldB = evDie(LUCK_DIE_B, row, 'Faces:');
   s.ldOut = document.createElement('div'); body.appendChild(s.ldOut);
   evConfirmBtn('ROLL', true);
 }

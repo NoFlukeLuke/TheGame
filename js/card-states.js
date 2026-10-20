@@ -136,7 +136,7 @@ const CARD_STATE_DEFS = {
   // ── The duality states ────────────────────────────────────────────────────
   deadline: {
     name: 'Deadline', icon: '⏱', color: '#e8a13a', tier: 'epic', fuse: 60,
-    desc: 'Play it and two random tricks fire. Leave it 60 seconds and it deletes itself.',
+    desc: 'Play it and two random tricks are force-triggered. Leave it 60 seconds and it deletes itself.',
     use(ctx) {
       let fired = 0, names = [];
       for (let i = 0; i < 2; i++) {
@@ -169,7 +169,7 @@ const CARD_STATE_DEFS = {
 
   review: {
     name: 'Review', icon: '↗', color: '#d9a129', tier: 'rare', fuse: 60,
-    desc: 'Play it for a 1 in 5 chance to improve a trick. Leave it 60 seconds for a 1 in 2 chance to knock a tier off one (luck lowers that).',
+    desc: 'Play it for a 1 in 5 chance to improve a trick. Leave it 60 seconds for a 1 in 2 chance to knock a tier off one.',
     use(ctx) {
       const B = cardStateBal();
       if (luckRoll(B.review_up) <= 0) return { note: 'Review - no change' };

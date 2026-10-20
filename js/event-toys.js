@@ -125,9 +125,9 @@ function evWheel(segs, parent, opts) {
 // ── DIE ─────────────────────────────────────────────────────────────────────
 // evDie(faces, parent) -> { el, roll(value) -> Promise<value> }
 // faces are numbers; a negative face is printed red.
-function evDie(faces, parent) {
+function evDie(faces, parent, label) {
   const host = _etHost('evt-die-host', parent);
-  host.innerHTML = `<div class="evt-die"><span></span></div><div class="evt-die-faces">${faces.map(f =>
+  host.innerHTML = `<div class="evt-die"><span></span></div><div class="evt-die-faces">${label ? `<b>${label}</b>` : ''}${faces.map(f =>
     `<i class="${f < 0 ? 'neg' : ''}">${f > 0 ? '+' + f : f}</i>`).join('')}</div>`;
   const die = host.querySelector('.evt-die'), face = die.querySelector('span');
   const paint = v => { face.textContent = v > 0 ? '+' + v : String(v); die.classList.toggle('neg', v < 0); };

@@ -78,7 +78,7 @@ const EVENT_REQUIRES = {
   // Needs cards to work on.
   the_floor:    () => everyDeckCard().length >= SLOT_REELS,
   bench:        () => drawPile.some(c => c && c.rank && !c._isSleight),
-  deck_trim:    () => springCuttableCards().length > 0,
+  deck_trim:    () => everyDeckCard().length > 0 && coins >= priceOf(BAL.deck_trim.step),
   market:       () => coins >= marketCardPrice(),   // r576: one card is the least you can buy
   forge:        () => allDeckCards().length > 0,
   plinko:       () => allDeckCards().length > 0,
@@ -143,9 +143,19 @@ function closeEvent() {
   if (fn) fn();
 }
 
-// The Skip button. An event may react to being skipped (Overtime's gift, js/overtime.js).
+// The Skip button. An event may react to being skipped (Overtime's gift, js/overtime.js),
+// or price it: EVENT_SKIP[id] = { label, run } (r590, owner). Skipping is always allowed;
+// a cost takes what you have when you cannot pay all of it.
+const EVENT_SKIP = {
+  reschedule: { label: () => `Face them · +${priceOf(BAL.reschedule.skip_pay)} credits`,
+                run: () => { if (eventState.rsRolls) return; coins += priceOf(BAL.reschedule.skip_pay); updateCoinsUI?.(); } },
+  luck_dice:  { label: () => `Skip · ${priceOf(BAL.luck_dice.skip_cost)} credits`,
+                run: () => { coins = Math.max(0, coins - priceOf(BAL.luck_dice.skip_cost)); updateCoinsUI?.(); } },
+};
 function skipEvent() {
   if (activeEventId === 'overtime' && typeof skipOvertime === 'function') skipOvertime();
+  const sk = EVENT_SKIP[activeEventId];
+  if (sk) sk.run();
   closeEvent();
 }
 
@@ -225,26 +235,26 @@ const EVENT_META = {
   rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time every hand, for good. It costs three junk cards.' },
   workshop:    { name:'Maintenance',     flavor:'Top up every Sleight, or raise one charge ceiling for good.' },
   market:      { name:'Card Market',     flavor:'Buy cards into your Lockbox, then put them on the board when you want them.' },
-  deck_trim:   { name:'Deck Trim',       flavor:'A thinner deck draws what you need more often. Cut as deep as you can pay for.' },
-  reassignment:{ name:'Trade a Trick',   flavor:'Give up a Trick. It comes back as a Knack or a Sleight, picked at random.' },
-  the_draw:    { name:'Spin to Improve', flavor:'Choose three of your own. The wheel picks one and improves it twice.' },
+  deck_trim:   { name:'Deck Trim',       flavor:'' },
+  reassignment:{ name:'Trade a Trick',   flavor:'' },
+  the_draw:    { name:'Spin to Improve', flavor:'' },
   the_floor:   { name:'Card Slots',      flavor:'Your deck on five reels. Buy lines, and a winning line upgrades the cards that made it.' },
-  clean_slate: { name:'Clean Slate',      flavor:'One penalty comes off your record for good.' },
+  clean_slate: { name:'Clean Slate',      flavor:'' },
   the_payline: { name:'Entity Slots',    flavor:'Three reels of what you own. Three alike and it improves a tier.' },
-  pairs:       { name:'Pairs',           flavor:'Sixteen cards face down. Match a pair and keep what it holds.' },
+  pairs:       { name:'Pairs',           flavor:'' },
   // r578: the flip set (js/events-flip.js)
-  keep_it:     { name:'Keep It',         flavor:'Choose a reward, then flip for it.' },
-  hot_streak:  { name:'Hot Streak',      flavor:'Double or nothing, up to four flips.' },
-  prize_ladder:{ name:'Prize Ladder',    flavor:'Four flips, a bigger prize on every rung.' },
+  keep_it:     { name:'Keep It',         flavor:'' },
+  hot_streak:  { name:'Hot Streak',      flavor:'' },
+  prize_ladder:{ name:'Prize Ladder',    flavor:'' },
   call_it:     { name:'Call It',         flavor:'Pick your path, then call the coin.' },
   plinko:      { name:'Plinko',          flavor:'Drop the ball. Green edits your cards; red curses three.' },
   // r579 (js/events-extra.js)
   wild_cards:  { name:'Wild Cards',      flavor:'Free your wilds, or double them.' },
-  trick_gamble:{ name:'Trick Gamble',    flavor:'Two Tricks. One improves twice, the other is deleted.' },
-  reschedule:  { name:'Reschedule',      flavor:'Your next two bosses. Pay to swap them for others.' },
-  grid_spinner:{ name:'Grid Spinner',    flavor:'Stop the light. Its rank is how much your grid grows.' },
-  static_bonus:{ name:'Static Bonus',    flavor:'Two wheels: pips or mult, and how much.' },
-  luck_dice:   { name:'Luck Dice',       flavor:'Two dice, multiplied. Your Luck moves by the result.' },
+  trick_gamble:{ name:'Trick Gamble',    flavor:'' },
+  reschedule:  { name:'Reschedule',      flavor:'' },
+  grid_spinner:{ name:'Grid Spinner',    flavor:'' },
+  static_bonus:{ name:'Static Bonus',    flavor:'' },
+  luck_dice:   { name:'Luck Dice',       flavor:'' },
   // r580: the structural events
   state_change:{ name:'State Change',    flavor:'Buy a card state and choose the card it goes on.' },
   rewire:      { name:'Rewire',          flavor:'A replay, a second suit or a second rank, paid for in junk.' },
@@ -253,14 +263,16 @@ const EVENT_META = {
 function renderEventShell(id) {
   const meta = EVENT_META[id];
   document.getElementById('event-name').textContent   = meta.name;
-  document.getElementById('event-flavor').textContent = meta.flavor;
+  const _fl = document.getElementById('event-flavor');
+  _fl.textContent = meta.flavor || '';
+  _fl.style.display = meta.flavor ? '' : 'none';   // r590: one explainer per screen
   document.getElementById('event-body').innerHTML = '';
   document.getElementById('event-confirm').disabled = true;
   document.getElementById('event-confirm').textContent = 'Confirm';
   document.getElementById('event-confirm').style.display = '';   // r573: Pairs hides it
   document.getElementById('event-overlay').classList.toggle('ev-pairs', id === 'pairs');   // r573: Pairs zooms its panel down
   document.getElementById('event-skip').style.display = 'inline-block';
-  document.getElementById('event-skip').textContent = 'Skip';
+  document.getElementById('event-skip').textContent = EVENT_SKIP[id] ? EVENT_SKIP[id].label() : 'Skip';
   const renderers = {
     overtime:    renderOvertime,
     confluence: renderConfluence,
@@ -391,6 +403,7 @@ function evCardChips(cards) {
     `<span class="ev-cardchip${['♥', '♦'].includes(c.suit) ? ' red' : ''}">${lab(c)}</span>`).join('')}</div>`;
 }
 function evCardChip(card) { return evCardChips([card]); }
+function fmtSigned(n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n); }
 
 // ══════════════════════════════════════════════
 // EVENT: CONFLUENCE

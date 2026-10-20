@@ -103,7 +103,7 @@ function renderConfluence() {
   if (card) {
     const b = confluenceBuff(eng);
     items.push({ type: 'card', card, buff: b, icon: b.op.icon, rarity: 'epic', name: `${card.rank}${card.suit} · ${b.label}`,
-                 desc: `${card.rank}${card.suit} in your deck scores ${b.label} for good. Twice what the card editor gives.` });
+                 desc: `${card.rank}${card.suit} ${flowrBuffDoes(b.op.buff, b.v)}.` });
   }
   eventState.themeEngine = eng;
   eventState.themeItems = items;
@@ -291,11 +291,11 @@ function renderGambleDoors() {
   [0,1,2].forEach(i => {
     const door = document.createElement('div');
     door.className = 'event-door';
-    door.innerHTML = `<div class="door-num">${i+1}</div><div class="door-inner"><div class="door-icon"></div><div class="door-dname"></div></div>`;
+    door.innerHTML = `<div class="door-pick">YOUR PICK</div><div class="door-num">${i+1}</div><div class="door-inner"><div class="door-icon"></div><div class="door-dname"></div></div>`;
     door.addEventListener('click', () => {
       if (eventState.doorsRevealed) return;
       row.querySelectorAll('.event-door').forEach(d=>d.classList.remove('chosen'));
-      door.classList.add('chosen');
+      door.classList.add('chosen'); row.classList.add('has-pick');
       eventState.chosenDoor = i;
       setEventConfirm(true);
     });
@@ -346,7 +346,7 @@ function renderGambleDouble() {
   const body = document.getElementById('event-body');
   const info = document.createElement('div');
   info.className = 'ev-note';
-  info.textContent = 'Even odds. Win and you keep your Trick and gain another; lose and the one you staked is gone. Pick which one is riding on it.';
+  info.textContent = 'Stake a Trick on a coin flip. Win: a new Trick. Lose: the staked one is gone.';
   body.appendChild(info);
   const ownedTrick = acquiredTricks || [];
   // A STAGE gate, not an entry gate: the Gamble's doors play fine with no Tricks
@@ -488,9 +488,9 @@ function forgeBuffs() {
   const B = BAL.forge;
   return [
     { key: 'pips', icon: '🔨', rarity: 'rare', name: `+${B.pips} pips, growing`, e: { pips: B.pips, growPips: B.pips },
-      desc: `The card scores +${B.pips} pips, and ${B.pips} more every time it scores.` },
+      desc: `The card scales +${B.pips} pips each time it scores.` },
     { key: 'mult', icon: '📈', rarity: 'epic', name: `+${B.mult} mult, growing`, e: { mult: B.mult, growMult: B.mult },
-      desc: `The card scores +${B.mult} mult, and ${B.mult} more every time it scores.` },
+      desc: `The card scales +${B.mult} mult each time it scores.` },
   ];
 }
 function renderForge() {
@@ -1431,7 +1431,6 @@ function renderWorkshop() {
   }
   eventState.workshopPick = null;
   eventState.workshopCard = null;
-  body.appendChild(evNote('Charges are per run, not per round. Service refills what you have; reinforcing raises the ceiling for good.'));
 
   const service = makeChoiceEl({
     icon:'🧰', rarity:'common', name:'Service', desc:`Refill every Sleight you own to full charges (${owned.length} held).`,
@@ -1588,122 +1587,53 @@ function confirmMarket() {
 // ══════════════════════════════════════════════
 // EVENT: DECK TRIM  (id 'deck_trim', r211)
 // ══════════════════════════════════════════════
-// The counterweight to the Card Market, and the answer to "removal comes up too
-// rarely". Clean Up gives you one cut on the rare occasions it turns up; this is
-// a whole screen of them, priced by size, and the smallest one is free so the
-// event is never a dead draw at 0 credits.
-//
-// Unlike Clean Up's four-different-ranks rule this puts no shape on the cut - you
-// pick whatever you want gone. The price is the constraint.
+// The counterweight to the Card Market: you pick whatever you want gone, and the
+// price is the constraint.
+// r590 (owner): pick any cards from the deck. The first costs 8, the second 16,
+// the third 24 and so on, no card more than 128. Junk can still be cleared here.
+function trimCardPrice(k) { return Math.min(priceOf(BAL.deck_trim.cap), priceOf(BAL.deck_trim.step) * k); }   // the k-th card, from 1
+function trimTotal(n) { let t = 0; for (let k = 1; k <= n; k++) t += trimCardPrice(k); return t; }
 function renderDeckTrim() {
   const body = document.getElementById('event-body');
-  const pool = springCuttableCards();          // shared with Clean Up
+  const s = eventState;
   if (!eventEligible('deck_trim')) {
-    body.innerHTML = evEmptyHTML('Nothing in the draw pile to cut.');
+    body.innerHTML = evEmptyHTML('Nothing in your deck to cut.');
     setEventConfirm(true); return;
   }
-  eventState.trimTier = null;
-  eventState.trimCards = [];
-  body.appendChild(evNote('Every card you cut is gone for the rest of the run. The fewer cards in the deck, the more often the ones you kept come round.'));
-  // r576: the junk other events put in your deck comes out here.
+  s.trimJunk = false;
+  body.appendChild(evNote('Permanently remove any cards from your deck.'));
   const junk = (typeof junkCards === 'function') ? junkCards().length : 0;
+  s.trimJunkPrice = priceOf(BAL.deck_trim.junk_each) * junk;
   if (junk) {
-    const jPrice = priceOf(BAL.deck_trim.junk_each) * junk, jAfford = coins >= jPrice;
     const jel = makeChoiceEl({ icon: '✕', rarity: 'rare', name: `Clear your junk (${junk})`,
-      desc: `Every junk card leaves your deck.`, cost: `${jPrice} credits`, cls: jAfford ? '' : 'locked',
+      desc: 'Every junk card leaves your deck.', cost: `${s.trimJunkPrice} credits`, cls: 'trim-junk',
       onClick: () => {
-        if (!jAfford) return;
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        jel.classList.add('selected');
-        document.getElementById('trim-card-picker')?.remove();
-        eventState.trimTier = { junk: true, price: jPrice, cards: 0 };
-        eventState.trimCards = [];
-        setEventConfirm(true);
+        if (!s.trimJunk && coins < trimDue(s.picker.picks.length, true)) { refuse('Not enough credits'); return; }
+        s.trimJunk = !s.trimJunk; jel.classList.toggle('selected', s.trimJunk); trimSync();
       } });
     body.appendChild(jel);
   }
-
-  // r234: PRICE_MULT at the read site (BAL is rebuilt by applyEntityTiers).
-  // A free tier stays free - priceOf() no-ops on 0.
-  BAL.deck_trim.tiers.map(t => ({ ...t, price: priceOf(t.price) })).forEach(tier => {
-    const afford = coins >= tier.price;
-    const enough = pool.length >= tier.cards;
-    const el = makeChoiceEl({
-      icon:'✂️',
-      rarity: tier.cards >= 4 ? 'epic' : (tier.cards >= 2 ? 'rare' : 'common'),
-      name: `Cut ${tier.cards} card${tier.cards > 1 ? 's' : ''}`,
-      desc: tier.price === 0
-        ? 'Free. Pick one card and it leaves the run.'
-        : `Pick ${tier.cards} cards and they leave the run.`,
-      cost: tier.price === 0 ? 'No charge' : `${tier.price} credits`,
-      cls: (afford && enough) ? '' : 'locked',
-      onClick: () => {
-        if (!afford || !enough) return;
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.trimTier = tier;
-        eventState.trimCards = [];
-        showTrimCardPicker(pool, tier);
-        setEventConfirm(false);
-      }
-    });
-    body.appendChild(el);
-  });
+  s.trimSum = document.createElement('div'); s.trimSum.className = 'ev-total';
+  body.appendChild(s.trimSum);
+  s.picker = evDeckPicker(body, { max: 99, onChange: trimSync,
+    blocked: card => (!s.picker || s.picker.picks.includes(card) || coins >= trimDue(s.picker.picks.length + 1, s.trimJunk)) ? '' : 'Not enough credits' });
+  trimSync();
 }
-
-function showTrimCardPicker(pool, tier) {
-  document.getElementById('trim-card-picker')?.remove();
-  const body = document.getElementById('event-body');
-  // Label inside the wrapper, same reason as every other rebuildable picker here.
-  const wrap = document.createElement('div');
-  wrap.id = 'trim-card-picker';
-  const label = evLabel('');
-  wrap.appendChild(label);
-  const chips = document.createElement('div');
-  chips.className = 'ev-cardchips';
-  const refresh = () => {
-    const n = eventState.trimCards.length;
-    label.textContent = `PICK ${tier.cards} CARD${tier.cards > 1 ? 'S' : ''} TO CUT  ·  ${n}/${tier.cards}`;
-    chips.querySelectorAll('.ev-cardchip').forEach(chip =>
-      chip.classList.toggle('picked', eventState.trimCards.includes(chip._card)));
-    setEventConfirm(n === tier.cards);
-  };
-  pool.forEach(card => {
-    const chip = document.createElement('div');
-    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
-    chip.textContent = card.rank + card.suit;
-    chip._card = card;
-    chip.addEventListener('click', () => {
-      const i = eventState.trimCards.indexOf(card);
-      if (i >= 0) eventState.trimCards.splice(i, 1);
-      else if (eventState.trimCards.length < tier.cards) eventState.trimCards.push(card);
-      refresh();
-    });
-    chips.appendChild(chip);
-  });
-  wrap.appendChild(chips);
-  body.appendChild(wrap);
-  refresh();
+function trimDue(n, junk) { return trimTotal(n) + (junk ? eventState.trimJunkPrice : 0); }
+function trimSync() {
+  const s = eventState, n = s.picker.picks.length, due = trimDue(n, s.trimJunk);
+  s.trimSum.textContent = `${n} card${n === 1 ? '' : 's'} · ${due} credits · next card ${trimCardPrice(n + 1)}`;
+  s.picker.sync();
+  setEventConfirm((n > 0 || s.trimJunk) && coins >= due);
 }
-
 function confirmDeckTrim() {
-  const tier = eventState.trimTier;
-  if (tier && tier.junk) {
-    if (coins >= tier.price) { coins -= tier.price; updateCoinsUI?.(); const n = cutJunk(Infinity); noteMessage(`${n} junk card${n === 1 ? '' : 's'} cleared`, 'var(--gold)'); }
-    closeEvent(); return;
-  }
-  if (!tier || (eventState.trimCards || []).length !== tier.cards) { closeEvent(); return; }
-  if (coins < tier.price) { closeEvent(); return; }
-  coins -= tier.price;
-  updateCoinsUI?.();
-  let cut = 0;
-  eventState.trimCards.forEach(card => {
-    const idx = drawPile.indexOf(card);      // by identity, never by face
-    if (idx >= 0) { drawPile.splice(idx, 1); cut++; }
-  });
-  if (cut) { expectedDeckTotal -= cut; updateDeckHud?.(); }
-  noteMessage(`${cut} card${cut === 1 ? '' : 's'} cut from the deck`, 'var(--gold)');
-  render();
+  const s = eventState;
+  if (!s.picker) { closeEvent(); return; }
+  const n = s.picker.picks.length, due = trimDue(n, s.trimJunk);
+  if ((!n && !s.trimJunk) || coins < due) return;
+  coins -= due; updateCoinsUI?.();
+  if (s.trimJunk) { const j = cutJunk(Infinity); noteMessage(`${j} junk card${j === 1 ? '' : 's'} cleared`, 'var(--gold)'); }
+  if (n) { const cut = cutCardsFromDeck(s.picker.picks.slice()); noteMessage(`${cut} card${cut === 1 ? '' : 's'} cut from the deck`, 'var(--gold)'); }
   closeEvent();
 }
 
@@ -1722,37 +1652,37 @@ const CLEAN_SLATE_FIXES = [
   { id:'goal',   icon:'📉', rarity:'epic',
     name:'Quota revision',
     has:  () => goalPenaltyMult > 1,
-    desc: () => `Every future goal is raised ${Math.round((goalPenaltyMult - 1) * 100)}%. Put it back to normal.`,
+    desc: () => `Every goal is raised ${Math.round((goalPenaltyMult - 1) * 100)}%.`,
     fix:  () => { goalPenaltyMult = 1; return 'Goals back to normal'; } },
   { id:'time',   icon:'⏱', rarity:'rare',
     name:'Shortened rounds',
     has:  () => roundPenaltySeconds > 0,
-    desc: () => `Rounds start ${roundPenaltySeconds}s short. Give the seconds back.`,
+    desc: () => `Rounds start ${roundPenaltySeconds}s short.`,
     fix:  () => { const n = roundPenaltySeconds; roundPenaltySeconds = 0; return `+${n}s back on every round`; } },
   { id:'play',   icon:'🎟', rarity:'rare',
     name:'Play surcharge',
     has:  () => extraPlayCostPerm > 0,
-    desc: () => `Playing a hand costs ${extraPlayCostPerm}s extra. Clear it.`,
+    desc: () => `Playing a hand costs ${extraPlayCostPerm}s extra.`,
     fix:  () => { extraPlayCostPerm = 0; return 'Playing is free again'; } },
   { id:'curses', icon:'🩸', rarity:'epic',
     name:'Cursed cards',
     has:  () => Object.keys(cardCurses || {}).length > 0,
-    desc: () => `${Object.keys(cardCurses).length} card${Object.keys(cardCurses).length === 1 ? ' is' : 's are'} cursed. Lift all of them.`,
+    desc: () => `${Object.keys(cardCurses).length} card${Object.keys(cardCurses).length === 1 ? ' is' : 's are'} cursed.`,
     fix:  () => { const n = Object.keys(cardCurses).length; cardCurses = {}; return `${n} curse${n === 1 ? '' : 's'} lifted`; } },
   { id:'dead',   icon:'⬛', rarity:'rare',
     name:'Dead cells',
     has:  () => (deadCells && deadCells.size > 0),
-    desc: () => `${deadCells.size} cell${deadCells.size === 1 ? '' : 's'} on the board score nothing. Bring them back.`,
+    desc: () => `${deadCells.size} cell${deadCells.size === 1 ? '' : 's'} on the board score nothing.`,
     fix:  () => { const n = deadCells.size; deadCells = new Set(); return `${n} cell${n === 1 ? '' : 's'} restored`; } },
   { id:'freeze', icon:'❄', rarity:'common',
     name:'Interest freeze',
     has:  () => interestFreezeRounds > 0,
-    desc: () => `Interest is frozen for ${interestFreezeRounds} more round${interestFreezeRounds === 1 ? '' : 's'}. Thaw it.`,
+    desc: () => `Interest is frozen for ${interestFreezeRounds} more round${interestFreezeRounds === 1 ? '' : 's'}.`,
     fix:  () => { interestFreezeRounds = 0; return 'Interest paying again'; } },
   { id:'payout', icon:'🚫', rarity:'common',
     name:'Withheld payout',
     has:  () => !!skipNextPayout,
-    desc: () => 'Your next payout pays nothing. Release it.',
+    desc: () => 'Your next payout pays nothing.',
     fix:  () => { skipNextPayout = false; return 'Payout released'; } },
 ];
 
@@ -1768,7 +1698,7 @@ function renderCleanSlate() {
     setEventConfirm(true); return;
   }
   eventState.slatePick = null;
-  body.appendChild(evNote('One of these comes off your record for good.'));
+  body.appendChild(evNote('A previous mistake is undone. Choose your greatest regret below.'));
   live.forEach(f => {
     const el = makeChoiceEl({
       icon: f.icon, rarity: f.rarity, name: f.name, desc: f.desc(),

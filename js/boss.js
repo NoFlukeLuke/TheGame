@@ -738,6 +738,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (typeof overtimeBossMult === 'function' && !(typeof crunchActive === 'function' && crunchActive()))
     bossWindowDuration = Math.max(10, Math.round(bossWindowDuration * overtimeBossMult()));
   roundSeconds = bossWindowDuration;
+  if (typeof overtimeBossGoalMult === 'function' && overtimeBossGoalMult() !== 1) roundGoal = Math.ceil(roundGoal * overtimeBossGoalMult());
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');

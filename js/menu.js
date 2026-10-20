@@ -1,4 +1,4 @@
-const BUILD = "2026-10-18 · r589 · Event layouts lab: three Marquee x Terminal hybrids, the market board, the suit-column cut";
+const BUILD = "2026-10-20 · r590 · event verdicts 1: explainers, Deck Trim pricing, the deck picker, Trade a Trick, Reschedule, Overtime";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
