@@ -108,7 +108,7 @@ const TRICK_POOL = [
   { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['position','shape','focus'], desc:'A + shaped hand adds +25 Focus' },
   { id:'shape_line',     name:'Straight Shot',       tier:'epic',      tags:['position','shape','mult'], desc:"5-card hands played in a straight line add every card's pip value to mult" },
   { id:'corner_retrigger', name:'Cornered',          tier:'rare',      tags:['position','pips'], desc:'Corner cards score ×pips equal to the whole minutes left on the clock' },
-  { id:'two_corners',    name:'Stretch',             tier:'epic',      tags:['position','mult'], desc:'When a hand has 2 or more corner cards, each corner card scores ×4 mult' },
+  { id:'two_corners',    name:'Ornery',              tier:'epic',      tags:['position','mult'], desc:'Corner cards score ×2 mult' },
   { id:'edge_pips',      name:'On the Edge',         tier:'common',    tags:['position','pips'], desc:'Hands where all cards are on an edge score +15 pips per card' },
   { id:'wide_span_mult', name:'Inclusive',           tier:'rare',      tags:['position','mult'], desc:'Hands spanning the full width or height of the grid score +25 mult' },
   { id:'column_rush',    name:'Stand Up',            tier:'common',    retired:true, desc:'Hands with cards from only one column score +5 mult per card' },

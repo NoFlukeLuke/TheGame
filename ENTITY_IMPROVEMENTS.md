@@ -145,7 +145,7 @@ which is the cheap majority the system can ship on first.
 | Crossroads | rare | A + shaped hand adds +25 Focus | +25 Focus | a T or an L shape also counts |  | O1 BAL · O2 code | Claude |
 | Straight Shot | epic | 5-card hands played in a straight line add the first and last card's pip values to mult | adds double the two cards pip values | 4-card straight lines also count |  | O1 code · O2 code | Claude |
 | Cornered | rare | Corner cards multiply the running pips by the whole minutes left on the clock | +1 to the minute count it multiplies by | the cells next to each corner count as corners |  | O1 code · O2 code | Claude |
-| Stretch | epic | When a hand has 2 or more corner cells, each corner card scores ×2 mult | +1x mult | a single corner cell is enough |  | O1 BAL · O2 code | Claude |
+| Ornery | epic | Corner cards score ×2 mult | +1x mult | |  | O1 BAL · O2 code | Claude |
 | On the Edge | common | Hands where all cards are on the outer edge score +15 pips per card | +15 pips per card | all but one card on the edge qualifies |  | O1 BAL · O2 code | Claude |
 | Inclusive | rare | Hands spanning the full width or height of the grid score +25 mult | +25 mult | spanning all but one row or column qualifies |  | O1 BAL · O2 code | Claude |
 | Stand Up | common | Hands with cards from only one column score +2 mult per card | +2 mult per card | hands with cards from no more than 2 columns |  | O1 BAL · O2 code | Claude |

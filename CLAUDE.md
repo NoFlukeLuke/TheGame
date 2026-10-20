@@ -1719,3 +1719,11 @@ reads as pixels, much clearer), 64 would be ~0.9 (no visible pixels). Verified a
   catalog `boss_jump`, returns a stop function). Refused (`refuse`) while the board is busy or the
   clock is stopped. While it runs, `bossJumpRunning()` blocks onCardTap, the grid's pointerdown,
   playHand, doDiscard, doSwap and the Focus bar; the pause menu (`isPaused`) holds it.
+
+## r607 - Stretch is ORNERY: corner cards score x2 mult (owner)
+Trick `two_corners` (id frozen), epic. Was "2+ corner cards in a hand: each corner card x4 mult",
+applied as one lump in the hand-level x mult block. Now every card in a corner cell scores x2 mult
+(`BAL.two_corners.mult_mult` 2) with no count needed, as a per-card x mult in calcScore's card loop
+(`_xl`, beside Rainbow), so it fires on the card's beat, once per replay; ghosts and wilds don't
+fire it. Pick order matters like any per-card x mult: three Kings with the corner picked first
+mult 7, picked last 12 (no Trick: 6). Played through PLAY in Classic: no timeline drift.

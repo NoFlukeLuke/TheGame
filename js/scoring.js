@@ -729,6 +729,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
         if (_rf > 1) _xl.push({ id: 'relentless', f: _rf });
       }
       if (_flRanks && _flRanks.includes(baseRank)) _xl.push({ id: 'feelin_lucky', f: BAL.feelin_lucky.mult_mult });
+      // Ornery (r607): a card in a corner cell, x mult on the card, once per replay.
+      if (!_G && hasTrick('two_corners') && isCorner(r, c)) _xl.push({ id: 'two_corners', f: BAL.two_corners.mult_mult });
     }
     _xl.forEach(x => { if (x.id !== 'perm_mult') _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); });
     // The EVENTS are emitted here, where they belong on the timeline. The
@@ -1111,11 +1113,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Rank multipliers
   if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q' || c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMultX('royal_trio', BAL.royal_trio.mult_mult, mult - _pre); }
   if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _km = Math.pow(BAL.knave_power.per_jack, _jg); const _pre = totalPips; totalPips = Math.round(totalPips * _km); bPipX('knave_power', _km, totalPips - _pre); } }
-  // Stretch: when a hand has 2+ corner cells, each corner card multiplies the running mult ×2
-  if (hasTrick('two_corners')) {
-    const _nc = cornerCells(cells).length;
-    if (_nc >= 2) { const _tcm = Math.pow(BAL.two_corners.mult_mult, _nc); const _pre = mult; mult = Math.round(mult * _tcm * 10) / 10; bMultX('two_corners', _tcm, mult - _pre); }
-  }
   // Scalper: ×(1 + 0.25 per missing Sleight charge) mult - figured once, now
   if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.mult_mult_per_missing * _miss; const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('scalper', _m, mult - _pre); } }
   // Minute Hand: charged by every 30s mark, spent by the next hand. Read-only here -
@@ -1424,7 +1421,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   //
   // Echoes: same hand type as the previous hand retriggers each card (handled in the per-card loop above).
   // The Falcon: Focus-doubling while paused is handled in playHand's focus-generation block.
-  // Hands of Blue (2x2) and Crossroads (+ shape) now add Focus in playHand; Stretch is a x mult above.
+  // Hands of Blue (2x2) and Crossroads (+ shape) now add Focus in playHand; Ornery is a per-card x mult in the card loop.
 
   // 5. Focus multiplier - separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;

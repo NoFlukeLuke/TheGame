@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r606 · Double-tap a marked challenge cell to bring it now; double-tap the clock skull to skip to the boss";
+const BUILD = "2026-10-20 · r607 · Stretch is Ornery: corner cards score x2 mult";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
