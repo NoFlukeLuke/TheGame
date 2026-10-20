@@ -1677,3 +1677,16 @@ drawn shutter-down. Renamed to the loader's names (`mythic` is `legendary`) and 
 draws sharp. A portrait file letterboxes inside the 20:19 disc box (`contain`); the icon box still
 lands on the body below the shutter. The folder's README says to rename before uploading and to
 keep the shutter on top. Verified at 1440x820: Flow Tricks pick, tray, reward grid, shop; no page errors.
+
+## r604 - every Trick has a category icon (owner)
+`TRICK_CATEGORIES` (js/data/tricks.js) only picks a Trick's icon. Owner's rule: effect decides, but a
+theme in the NAME wins. 26 Tricks had no row and drew the fallback white sparkles. Now: **birds**
+(🐦, game-icons `lorc/sparrow`, brown) are every bird name: The Swift, Cuckoo, Woodpecker,
+Hummingbird, Albatross, Vulture, Phoenix, plus Early Bird, Night Owl, The Heron, Eagle Eye and The
+Kingfisher moved off the stopwatch (Hyperphagia and Traveler were birds once, renamed, and stay).
+**3️⃣ / 4️⃣ / 5️⃣** (`badges/number-N`, orange): 3rd Down, Ready Set Go / Four Eyes, 4x4, Four
+Horse-man, Wait Four It / Five Stack, Five for Fodder, Five Second Rule, the little guys. **🪄**
+(`magic-hat`, violet; 🎩 is already Old Tricks' and The Ringer's top hat): Magician, Scalper.
+Into existing rows: Release Valve, Life Lessons, Wellspring (🎯); Old Growth (🌱); Stand-Up, Double
+Jeopardy (📍); Landfill (🗑️, shares the Hoarder's trash can). Sheet rebuilt: 138 icons. No live
+Trick is left without a row; no Trick is in two.

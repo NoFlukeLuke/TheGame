@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r603 · notes: the card ladder and Stand-In";
+const BUILD = "2026-10-20 · r604 · Every Trick has a category icon: birds by name, 3 / 4 / 5 badges, a magic hat for Sleight Tricks";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

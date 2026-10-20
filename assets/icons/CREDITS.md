@@ -6,6 +6,9 @@ to a 16px grid and recoloured by `tools/icons/build.js`.
 
 ## badges
 
+- 3️⃣ number-3
+- 4️⃣ number-4
+- 5️⃣ number-5
 - 🌿 leaf
 - ⏬ arrow-down
 - ⬇️ arrow-down
@@ -29,6 +32,7 @@ to a 16px grid and recoloured by `tools/icons/build.js`.
 - 🧮 gold-stack
 - 🎲 dice-six-faces-five
 - 🔀 card-exchange
+- 🪄 magic-hat
 - 📋 checklist
 - 🗑️ trash-can
 - 🗑 trash-can
@@ -87,6 +91,7 @@ to a 16px grid and recoloured by `tools/icons/build.js`.
 - ⭐ beveled-star
 - ★ beveled-star
 - 💎 cut-diamond
+- 🐦 sparrow
 - 🛡️ bordered-shield
 - 🕊️ dove
 - 🪶 feather

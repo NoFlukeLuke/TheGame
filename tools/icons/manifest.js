@@ -45,6 +45,11 @@ const ICONS = [
   { glyph: '⭐', icon: 'beveled-star',      color: 'gold'   },  // legendary misc
   { glyph: '★',  icon: 'beveled-star',      color: 'gold'   },  // reward tile
   { glyph: '💎', icon: 'cut-diamond',       color: 'cyan'   },  // multipliers
+  { glyph: '🐦', icon: 'lorc/sparrow',      color: 'brown'  },  // birds (r604: by name)
+  { glyph: '3️⃣', icon: 'badges/number-3',   color: 'orange' },  // 3-card hands
+  { glyph: '4️⃣', icon: 'badges/number-4',   color: 'orange' },  // 4-card hands
+  { glyph: '5️⃣', icon: 'badges/number-5',   color: 'orange' },  // 5-card hands
+  { glyph: '🪄', icon: 'magic-hat',          color: 'violet' },  // Sleights (🎩 is Old Tricks' top hat)
   // Knacks (js/data/knacks.js)
   { glyph: '🂠', icon: 'card-pickup',       color: 'cream'  },  // Card Counter
   { glyph: '📋', icon: 'checklist',         color: 'cream'  },  // Advance Notice; reward tile

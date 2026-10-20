@@ -210,26 +210,35 @@ const TRICK_POOL = [
 // ── Trick category → emoji ──
 // One emoji per effect category (mirrors the section groupings in TRICK_POOL).
 // Used on the reward-pick and shop cards so each Trick shows emoji + name, with
-// the full description reserved for the tooltip.
+// the full description reserved for the tooltip. The emoji picks the Trick's
+// pixel icon (tools/icons/manifest.js). r604 (owner): a theme in the NAME wins
+// over the effect, so every bird is a bird and the Three / Four / Five Tricks
+// wear their number; a Trick in no row falls back to the white sparkles.
 const TRICK_CATEGORIES = [
   { emoji:'🪜', ids:['overgrowth','long_road','river_run','correct_run','tide_table','undertow','high_water','dam_holding','wave_amp'] }, // Runs
   { emoji:'👯', ids:['kindred','double_bloom','high_pair','rare_bloom','full_house_streak','pair_pips','two_pair_mult','richter','eye_of_storm','ripple','undue_influence','encore','shaky_foundation'] }, // Pairs / sets
   { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
-  { emoji:'🌱', ids:['rich_soil','first_fruits','sapling'] }, // Per-card pips
-  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher','magpie','mockingbird','starling','rain_check','deep_breath'] }, // Timing
+  { emoji:'🌱', ids:['rich_soil','first_fruits','sapling','old_growth'] }, // Per-card pips
+  { emoji:'⏱️', ids:['closing_time','quick_draw','steady_pace','momentum','first_play','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','magpie','mockingbird','starling','rain_check','deep_breath'] }, // Timing
   { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak','rerun','chorus'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift'] }, // Position
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift','stand_up','double_jeopardy'] }, // Position
   { emoji:'📈', ids:['rising_tide'] }, // Level scaling
   { emoji:'🧮', ids:['interest','portfolio','compound_mult','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
-  { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','hyper_focus','overclock'] }, // Focus
+  { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','hyper_focus','overclock','release_valve','life_lessons','wellspring'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
   { emoji:'💎', ids:['obsessed','buried_treasure','relentless','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
+  { emoji:'🐦', ids:['swift','cuckoo','woodpecker','hummingbird','albatross','vulture','phoenix','early_bird','night_owl','patience_reward','still_water','kingfisher'] }, // Birds (by name)
+  { emoji:'3️⃣', ids:['third_down','ready_set_go'] }, // 3-card hands
+  { emoji:'4️⃣', ids:['four_eyes','four_by_four','four_horseman','wait_four_it'] }, // 4-card hands
+  { emoji:'5️⃣', ids:['five_stack','five_fodder','five_second','little_guys'] }, // 5-card hands
+  { emoji:'🪄', ids:['magician','scalper'] }, // Sleights
+  { emoji:'🗑️', ids:['landfill'] }, // Discards and swaps
 ];
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
