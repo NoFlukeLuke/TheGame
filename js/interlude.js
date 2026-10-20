@@ -132,6 +132,7 @@ async function showLevelUpScreen_fallOnly() {
   const gridEl = document.getElementById('grid');
   const gridBottom = gridEl.offsetHeight + 80;
   const fallPromises = [];
+  if (typeof lastBoard !== 'undefined') lastBoard = { rows: gridRows, cols: gridCols, ids: [] };
 
   for (let r = gridRows - 1; r >= 0; r--) {
     for (let c = 0; c < gridCols; c++) {
@@ -153,6 +154,8 @@ async function showLevelUpScreen_fallOnly() {
     // r568: every card the Keeper does not hold leaves for the played pile.
     for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
+      // r590: the board as it was, by card id, for Clean Up's "your last grid".
+      if (typeof lastBoard !== 'undefined' && lastBoard) lastBoard.ids[r * gridCols + c] = (card && card.rank && !card._isSleight && !card._isStone) ? card._id : null;
       if (card && !(typeof boardKeepsCard === 'function' && boardKeepsCard(card))) {
         discardToPlayed(card);
         gridData[r][c] = null; // clear immediately so HUD reflects the move

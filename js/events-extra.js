@@ -67,12 +67,12 @@ function trickGambleChoices() { return (trickTray || []).filter(t => canImprove(
 function renderTrickGamble() {
   const s = eventState, body = evBodyEl();
   s.tgPicks = []; s.tgDone = false;
-  body.appendChild(evNote('Choose two. One of them improves twice; the other is deleted. You do not choose which.'));
+  body.appendChild(evNote('Choose two Tricks. One of them is improved twice, the other is deleted. You do not choose which.'));
   const wrap = document.createElement('div'); wrap.className = 'ev-choice-grid'; body.appendChild(wrap);
   s.tgEls = trickGambleChoices().map(t => {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦';
     const el = makeChoiceEl({ tile: { entity: 'trick', id: t.id, emoji: em, label: t.name }, rarity: t.tier, name: t.name,
-      desc: `v${entityTierOf(t.id) + 1}.0 → v${Math.min(IMPROVE_MAX_TIER, entityTierOf(t.id) + 2) + 1}.0 if it wins`,
+      desc: `v${entityTierOf(t.id) + 1}.0 → v${Math.min(IMPROVE_MAX_TIER, entityTierOf(t.id) + 2) + 1}.0`,
       onClick: () => {
         if (s.tgDone) return;
         const at = s.tgPicks.indexOf(t);
@@ -106,7 +106,17 @@ function confirmTrickGamble() {
     const ti = trickTray.findIndex(t => t.id === L.id); if (ti >= 0) trickTray.splice(ti, 1);
     const ai = acquiredTricks.findIndex(t => t.id === L.id); if (ai >= 0) acquiredTricks.splice(ai, 1);
     renderTrickTray();
-    els[1 - win].classList.add('locked');
+    // r590 (owner): the deleted one fades out; the winner redraws with its new art
+    // (the tier class gives the disc its bands and colour, the badge its version).
+    els[1 - win].classList.add('tg-gone');
+    const tile = els[win].querySelector('.ec-tile');
+    if (tile && typeof entityTileHTML === 'function') {
+      const em = (typeof trickEmoji === 'function') ? trickEmoji(W) : '✦';
+      tile.innerHTML = entityTileHTML({ entity: 'trick', id: W.id, emoji: em, label: W.name }, W.tier || 'common');
+      tile.classList.remove('tg-up'); void tile.offsetWidth; tile.classList.add('tg-up');
+      const nm = tile.querySelector('.rwd-name'); if (nm && typeof fitRewardName === 'function') requestAnimationFrame(() => fitRewardName(nm));
+    }
+    const desc = els[win].querySelector('.ec-desc'); if (desc) desc.textContent = `v${entityTierOf(W.id) + 1}.0`;
     const n = evNote(`<b>${W.name}</b> is now v${entityTierOf(W.id) + 1}.0. <b>${L.name}</b> is gone.`);
     evBodyEl().appendChild(n); evReveal(n);
     try { sfxRewardGood?.(); } catch (e) {}
@@ -127,7 +137,7 @@ function rescheduleBosses() {
   if (nx) out.push({ when: 'NEXT QUARTER', p: nx });
   return out;
 }
-function reschedulePrice() { return priceOf(BAL.reschedule.price); }
+function reschedulePrice() { return priceOf(BAL.reschedule.price + BAL.reschedule.step * (eventState.rsRolls || 0)); }
 function rescheduleDraw(oldId) {
   let p = null;
   for (let k = 0; k < 6; k++) { p = nextBossPreset(); if (p && p.id !== oldId) break; }
@@ -144,43 +154,53 @@ function rescheduleList(body) {
 }
 function renderReschedule() {
   const body = evBodyEl();
-  eventState.rsDone = false;
-  body.appendChild(evNote(`Reroll both for ${reschedulePrice()} credits. The new ones are drawn from the bosses you have not met.`));
+  eventState.rsRolls = 0;
+  body.appendChild(evNote('Below are your next two bosses. Pay to reroll them or face them as is.'));
   rescheduleList(body);
-  evConfirmBtn(`REROLL · ${reschedulePrice()}`, coins >= reschedulePrice());
+  rescheduleSync();
+}
+function rescheduleSync() {
+  const s = eventState, left = BAL.reschedule.rolls - s.rsRolls;
+  evConfirmBtn(left > 0 ? `REROLL · ${reschedulePrice()}` : 'NO REROLLS LEFT', left > 0 && coins >= reschedulePrice());
 }
 function confirmReschedule() {
   const s = eventState;
-  if (s.rsDone) { closeEvent(); return; }
-  if (coins < reschedulePrice()) return;
+  if (s.rsRolls >= BAL.reschedule.rolls || coins < reschedulePrice()) return;
   coins -= reschedulePrice(); updateCoinsUI?.();
-  s.rsDone = true; evSkipShown(false);
+  s.rsRolls++;
+  const skip = document.getElementById('event-skip'); if (skip) skip.textContent = 'Done';
   if (actBossId) { const p = rescheduleDraw(actBossId); if (p) actBossId = p.id; }
   if (nextActBossId) { const p = rescheduleDraw(nextActBossId); if (p) nextActBossId = p.id; }
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
   const list = rescheduleList(evBodyEl());
   list.classList.add('evt-fresh'); evReveal(list);
   try { sfxRewardReveal?.(); } catch (e) {}
-  evConfirmBtn('DONE', true);
+  rescheduleSync();
 }
 
 // ══════════════════════════════════════════════
 // GRID SPINNER - stop the light, grow the grid
 // ══════════════════════════════════════════════
-// Nine rank cards, A A A 2 2 2 3 3 4, shuffled, under a fast light. The rank you
-// stop on is how many rows and columns you add, split as you like. Past the
-// grid's maximum, each point left becomes +1 to a random other limit.
-const SPINNER_RANKS = ['A', 'A', 'A', '2', '2', '2', '3', '3', '4'];
+// Sixteen cards (r590, owner: +1 four, 2 stones, +1 two, +1 three; padded to a
+// 4x4 with an Ace and a two): A x4, 2 x5, 3 x3, 4 x2, stone x2. The light
+// follows a new pattern every time (evGridPath), 10% faster than before, and
+// fades off each card it leaves. The rank you stop on is how many rows and
+// columns you add, split as you like; a stone adds nothing. Past the grid's
+// maximum, each point left becomes +1 to a random other limit.
+const SPINNER_CARDS = ['A', 'A', 'A', 'A', '2', '2', '2', '2', '2', '3', '3', '3', '4', '4', 'stone', 'stone'];
+const SPINNER_STEP_MS = 56;
 function renderGridSpinner() {
   const s = eventState, body = evBodyEl();
   s.gsLeft = 0; s.gsPhase = 'spin';
-  body.appendChild(evNote('Tap to stop the light. Its rank is how many rows and columns your grid grows by. At the maximum grid, each one left becomes +1 to a random limit.'));
-  const deal = evShuffle(SPINNER_RANKS.slice());
-  evStopper(deal.map(r => `<span class="evt-rank">${r}</span>`), body, { stepMs: 62 }).then(i => {
-    s.gsLeft = deal[i] === 'A' ? 1 : +deal[i];
+  body.appendChild(evNote('Tap to stop the light on a rank. Increase your row and/or column limits that many times.'));
+  const deal = evShuffle(SPINNER_CARDS.slice());
+  const face = r => r === 'stone' ? '<span class="evt-rank evt-stone">STONE</span>' : `<span class="evt-rank">${r}</span>`;
+  evStopper(deal.map(face), body, { cols: 4, stepMs: SPINNER_STEP_MS, order: evGridPath(4, 4) }).then(i => {
+    s.gsLeft = deal[i] === 'stone' ? 0 : deal[i] === 'A' ? 1 : +deal[i];
     s.gsPhase = 'grow'; evSkipShown(false);
     s.gsRow = evRow(body);
     s.gsNote = document.createElement('div'); body.appendChild(s.gsNote);
+    if (!s.gsLeft) { s.gsRow.innerHTML = '<div class="evt-big lose" style="width:100%">STONE · NOTHING</div>'; s.gsPhase = 'done'; evConfirmBtn('DONE', true); evReveal(s.gsRow); return; }
     spinnerSync();
     evReveal(s.gsRow);
   });
@@ -231,14 +251,25 @@ function confirmGridSpinner() { if (eventState.gsPhase === 'done') closeEvent();
 // card ladder is about the same score.
 // staticPips / staticMult are declared in js/scoring.js, which reads them.
 const STATIC_STEPS = [4, 5, 6];
+// The type wheel (r590, owner): mostly a plus, one blank (the event ends there)
+// and one minus (the amount is taken off every hand).
+const STATIC_KINDS = [
+  { kind: 'pips', sign: 1,  label: '+PIPS', color: '#4d8dff' },
+  { kind: 'mult', sign: 1,  label: '+MULT', color: '#ff5a4e' },
+  { kind: 'pips', sign: 1,  label: '+PIPS', color: '#3f74d6' },
+  { kind: 'mult', sign: 1,  label: '+MULT', color: '#d9483e' },
+  { kind: null,   sign: 0,  label: 'BLANK', color: '#3a3552' },
+  { kind: 'pips', sign: -1, label: '−PIPS', color: '#1d1a2c' },
+];
 function staticQuarter() { return (typeof qrlQuarter === 'function') ? qrlQuarter() : 1; }
 function staticAmount(kind, step) { return staticQuarter() * step * (kind === 'pips' ? 3 : 1); }
+function staticAdd(kind, n) { if (kind === 'pips') staticPips += n; else staticMult += n; }
 function renderStaticBonus() {
   const s = eventState, body = evBodyEl();
   s.sbPhase = 'spin';
-  body.appendChild(evNote(`Every hand starts with it, for the rest of the run.${staticPips || staticMult ? ` You have <b>+${staticPips} pips</b> and <b>+${staticMult} mult</b> now.` : ''}`));
+  body.appendChild(evNote(`Two wheels: what buff and how much. Every hand gets this bonus moving forward.${staticPips || staticMult ? ` You have <b>${fmtSigned(staticPips)} pips</b> and <b>${fmtSigned(staticMult)} mult</b> now.` : ''}`));
   const row = document.createElement('div'); row.className = 'evt-pair'; body.appendChild(row);
-  s.sbKind = evWheel(['PIPS', 'MULT', 'PIPS', 'MULT', 'PIPS', 'MULT'].map(l => ({ label: l, color: l === 'PIPS' ? '#4d8dff' : '#ff5a4e', ink: '#fff' })), row, { title: 'Pips or mult' });
+  s.sbKind = evWheel(STATIC_KINDS.map(k => ({ label: k.label, color: k.color, ink: '#fff' })), row, { title: 'What buff' });
   s.sbRow = row;
   s.sbOut = document.createElement('div'); body.appendChild(s.sbOut);
   evConfirmBtn('SPIN', true);
@@ -248,23 +279,60 @@ function confirmStaticBonus() {
   if (s.sbPhase === 'done') { closeEvent(); return; }
   if (s.sbPhase !== 'spin') return;
   s.sbPhase = 'busy'; evSkipShown(false); evConfirmBtn('SPIN', false);
-  const kindIdx = Math.floor(Math.random() * 6), kind = kindIdx % 2 ? 'mult' : 'pips';
+  const kindIdx = Math.floor(Math.random() * STATIC_KINDS.length), K = STATIC_KINDS[kindIdx];
   const stepIdx = Math.floor(Math.random() * 6), step = STATIC_STEPS[stepIdx % 3];
   evReveal(s.sbRow);
   s.sbKind.spin(kindIdx).then(() => {
-    const segs = [0, 1, 2, 0, 1, 2].map(i => ({ label: `+${staticAmount(kind, STATIC_STEPS[i])}`,
-      color: ['#2a6b5a', '#35d59b', '#1f8f6a'][i], ink: '#fff' }));
-    const amt = evWheel(segs, s.sbRow, { title: `How much ${kind}` });
-    return _etWait(350).then(() => amt.spin(stepIdx));
-  }).then(() => {
-    const n = staticAmount(kind, step);
-    if (kind === 'pips') staticPips += n; else staticMult += n;
-    const res = document.createElement('div'); res.className = 'evt-big win';
-    res.textContent = `+${n} ${kind.toUpperCase()} ON EVERY HAND`;
-    s.sbOut.appendChild(res); evReveal(res);
-    try { sfxRewardGood?.(); } catch (e) {}
-    s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+    if (!K.kind) {
+      const res = document.createElement('div'); res.className = 'evt-big'; res.textContent = 'NOTHING';
+      s.sbOut.appendChild(res); evReveal(res);
+      s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+      return;
+    }
+    const sg = K.sign > 0 ? '+' : '−';
+    const segs = [0, 1, 2, 0, 1, 2].map(i => ({ label: `${sg}${staticAmount(K.kind, STATIC_STEPS[i])}`,
+      color: K.sign > 0 ? ['#2a6b5a', '#35d59b', '#1f8f6a'][i] : ['#5c1d1d', '#8f2b2b', '#6e2222'][i], ink: '#fff' }));
+    const amt = evWheel(segs, s.sbRow, { title: `How much ${K.kind}` });
+    return _etWait(350).then(() => amt.spin(stepIdx)).then(() => {
+      const n = K.sign * staticAmount(K.kind, step);
+      staticAdd(K.kind, n);
+      const res = document.createElement('div');
+      const paint = v => { res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} ${K.kind.toUpperCase()} ON EVERY HAND`; };
+      paint(n);
+      s.sbOut.appendChild(res); evReveal(res);
+      try { (n > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
+      s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+      evDoubleOrFlip(s.sbOut, n, d => { staticAdd(K.kind, d); }, paint);
+    });
   });
+}
+
+// ── Double or flip (r590, owner): after a Static Bonus or Luck Dice result, pay a
+// quarter of your credits (the amount is printed, never the fraction) to flip a
+// coin: heads doubles the result, tails turns it the other way round.
+function doubleFlipPrice() { return Math.max(1, Math.round(coins / 4)); }
+function evDoubleOrFlip(parent, n, add, paint) {
+  if (!n || coins < 1) return;
+  const price = doubleFlipPrice();
+  const row = evRow(parent);
+  const btn = evButton(`FLIP FOR IT · ${price} credits`, () => {
+    if (coins < price) return;
+    coins -= price; updateCoinsUI?.();
+    row.innerHTML = '';
+    evConfirmBtn('DONE', false);
+    const coin = evCoin(parent);
+    evReveal(coin.el);
+    const side = Math.random() < 0.5 ? 'heads' : 'tails';
+    coin.flip(side).then(() => {
+      const now = side === 'heads' ? 2 * n : -n;
+      add(now - n);
+      coin.caption(side === 'heads' ? 'HEADS · DOUBLED' : 'TAILS · TURNED', side === 'heads' ? 'win' : 'lose');
+      if (paint) paint(now);
+      try { (now > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
+      evConfirmBtn('DONE', true);
+    });
+  }, true);
+  row.appendChild(btn);
 }
 
 // ══════════════════════════════════════════════
@@ -278,7 +346,7 @@ function renderLuckDice() {
   s.ldPhase = 'roll';
   body.appendChild(evNote(`Luck is <b>${luckTotal()}</b>.`));
   const row = document.createElement('div'); row.className = 'evt-pair'; body.appendChild(row);
-  s.ldA = evDie(LUCK_DIE_A, row); s.ldB = evDie(LUCK_DIE_B, row);
+  s.ldA = evDie(LUCK_DIE_A, row, 'Faces:'); s.ldB = evDie(LUCK_DIE_B, row, 'Faces:');
   s.ldOut = document.createElement('div'); body.appendChild(s.ldOut);
   evConfirmBtn('ROLL', true);
 }
@@ -294,10 +362,15 @@ function confirmLuckDice() {
     const res = document.createElement('div'); res.className = 'evt-big ' + (n > 0 ? 'win' : 'lose');
     res.textContent = `${a > 0 ? a : `(${a})`} × ${b > 0 ? b : `(${b})`} = ${n > 0 ? '+' : ''}${n} LUCK`;
     s.ldOut.appendChild(res);
-    s.ldOut.appendChild(evNote(`Luck ${was} → ${luckTotal()}`));
+    const line = evNote(`Luck ${was} → ${luckTotal()}`);
+    s.ldOut.appendChild(line);
     evReveal(res);
     try { (n > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
     s.ldPhase = 'done'; evConfirmBtn('DONE', true);
+    evDoubleOrFlip(s.ldOut, n, d => { luckModifiers += d; }, v => {
+      res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} LUCK`;
+      line.innerHTML = `Luck ${was} → ${luckTotal()}`;
+    });
   });
 }
 
@@ -308,38 +381,7 @@ function confirmLuckDice() {
 // split): State Change sells a card state for credits; Rewire pays a replay, a
 // second suit or a second rank and costs junk cards in the deck.
 
-// A row of 8 sampled deck cards to pick up to `max` from, in order.
-function evCardPick(body, id, cards, max, s, full) {
-  const chips = document.createElement('div'); chips.className = 'ev-cardchips'; chips.id = id;
-  s.picks = [];
-  const sync = () => chips.querySelectorAll('.ev-cardchip').forEach(ch => {
-    ch.classList.toggle('picked', s.picks.includes(ch._card));
-    ch.classList.toggle('qrl-full', !!(full && full(ch._card)));
-  });
-  cards.forEach(card => {
-    const chip = document.createElement('span');
-    chip.className = 'ev-cardchip' + (['♥', '♦'].includes(card.suit) ? ' red' : '');
-    chip.textContent = (typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`;
-    chip._card = card;
-    chip.addEventListener('click', () => {
-      if (s.done) return;
-      if (full && full(card)) { refuse('Quarter resource limit (QRL) reached'); return; }
-      const at = s.picks.indexOf(card);
-      if (at >= 0) s.picks.splice(at, 1);
-      else if (s.picks.length < max) s.picks.push(card);
-      else if (max === 1) s.picks = [card];
-      sync(); s.onPick && s.onPick();
-    });
-    chips.appendChild(chip);
-  });
-  body.appendChild(chips);
-  return sync;
-}
 const evFace = c => `${c.rank}${c.suit}`;
-function evSampleCards(n, filter) {
-  const pool = everyDeckCard().filter(c => !isWildCard(c) && (!filter || filter(c)));
-  return evShuffle(pool).slice(0, n);
-}
 
 // ── STATE CHANGE: a card state, bought for credits ──
 function stateChangePrice(def) { return priceOf(BAL.state_change[def.tier] || BAL.state_change.rare); }
@@ -354,13 +396,13 @@ function stateChangeOffers() {
 }
 function renderStateChange() {
   const s = eventState, body = evBodyEl();
-  s.scState = null; s.done = false;
+  s.scState = null;
   body.appendChild(evLabel('1 · THE STATE'));
   stateChangeOffers().forEach(d => {
     const price = stateChangePrice(d);
     const el = makeChoiceEl({ icon: d.icon, rarity: d.tier, name: d.name, desc: d.desc, cost: `${price} credits`, cls: 'sc-opt',
       onClick: () => {
-        if (s.done || coins < price) return;
+        if (coins < price) return;
         body.querySelectorAll('.sc-opt').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected'); s.scState = d; stateChangeSync();
       } });
@@ -368,20 +410,19 @@ function renderStateChange() {
     body.appendChild(el);
   });
   body.appendChild(evLabel('2 · THE CARD'));
-  s.onPick = stateChangeSync;
-  evCardPick(body, 'sc-chips', evSampleCards(8), 1, s);
+  s.picker = evDeckPicker(body, { max: 1, onChange: stateChangeSync });
   stateChangeSync();
 }
 function stateChangeSync() {
   const s = eventState;
-  setEventConfirm(!!s.scState && s.picks.length === 1 && coins >= stateChangePrice(s.scState));
+  setEventConfirm(!!s.scState && s.picker.picks.length === 1 && coins >= stateChangePrice(s.scState));
 }
 function confirmStateChange() {
   const s = eventState;
-  if (!s.scState || s.picks.length !== 1) return;
+  if (!s.scState || s.picker.picks.length !== 1) return;
   const price = stateChangePrice(s.scState);
   if (coins < price) return;
-  const t = resolveDeckCard(s.picks[0]);
+  const t = resolveDeckCard(s.picker.picks[0]);
   if (!t) { closeEvent(); return; }
   coins -= price; updateCoinsUI?.();
   addCardState(t, s.scState.id, 1);
@@ -389,32 +430,41 @@ function confirmStateChange() {
   closeEvent();
 }
 
-// ── REWIRE: replay, second suit or second rank, for junk ──
+// ── REWIRE: replay, second suit or second rank, for junk; up to three times ──
 const REWIRE_OPS = [
-  { id: 'replay', icon: '↻', name: 'Replay', desc: 'Both cards replay once more every time they score, for good.' },
-  { id: 'suit2',  icon: '♠♥', name: 'Second Suit', desc: 'The first card takes the second card’s suit as a second suit. It counts as either suit in a flush and fires Tricks for both.' },
-  { id: 'rank2',  icon: '7/8', name: 'Second Rank', desc: 'The first card takes the second card’s rank as a second rank. It fills two ranks in a run or a set and fires Tricks for both.' },
+  { id: 'replay', icon: '↻', name: 'Replay', desc: 'Both cards replay once more when they score.' },
+  { id: 'suit2',  icon: '♠♥', name: 'Second Suit', desc: 'The first card takes the second card’s suit as a second suit.' },
+  { id: 'rank2',  icon: '7/8', name: 'Second Rank', desc: 'The first card takes the second card’s rank as a second rank.' },
 ];
+const REWIRE_TIMES = 3;
 function renderRewire() {
   const s = eventState, body = evBodyEl();
-  s.rwOp = null; s.done = false;
-  body.appendChild(evNote(`Costs <b>${BAL.rewire.junk}</b> junk cards shuffled into your deck.`));
+  s.rwOp = null; s.rwDone = 0;
+  body.appendChild(evNote(`(${BAL.rewire.junk} junk cards are added to your deck.)`));
   body.appendChild(evLabel('1 · THE CHANGE'));
   REWIRE_OPS.forEach(o => {
     const el = makeChoiceEl({ icon: o.icon, rarity: 'epic', name: o.name, desc: o.desc, cls: 'rw-opt',
       onClick: () => {
-        if (s.done) return;
         body.querySelectorAll('.rw-opt').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected'); s.rwOp = o.id;
-        s.picks = s.picks.filter(c => !rewireFull(c));
-        s.rwSync(); rewireSync();
+        const keep = s.picker.picks.filter(c => !rewireFull(c)); s.picker.picks.length = 0; s.picker.picks.push(...keep);
+        s.picker.sync(); rewireSync();
       } });
     body.appendChild(el);
   });
-  body.appendChild(evLabel('2 · TWO CARDS, IN ORDER'));
-  s.onPick = rewireSync;
-  s.rwSync = evCardPick(body, 'rw-chips', evSampleCards(8, c => !c.suit2 && !c.rank2), 2, s, rewireFull);
+  s.rwLabel = evLabel(''); body.appendChild(s.rwLabel);
+  s.rwSlot = document.createElement('div'); body.appendChild(s.rwSlot);
   s.rwNote = document.createElement('div'); body.appendChild(s.rwNote);
+  rewireBuildPicker();
+}
+// Rebuilt after each use: a card that just took a second suit or rank leaves the offer.
+function rewireBuildPicker() {
+  const s = eventState;
+  s.rwSlot.innerHTML = '';
+  s.rwLabel.textContent = `2 · TWO CARDS, IN ORDER${s.rwDone ? ` · ${s.rwDone} OF ${REWIRE_TIMES} DONE` : ''}`;
+  s.picker = evDeckPicker(s.rwSlot, { max: 2, ordered: true, onChange: rewireSync,
+    cards: everyDeckCard().filter(c => !isWildCard(c) && !c.suit2 && !c.rank2),
+    blocked: c => rewireFull(c) ? 'Quarter resource limit (QRL) reached' : '' });
   rewireSync();
 }
 function rewireFull(card) {
@@ -422,15 +472,14 @@ function rewireFull(card) {
   return s.rwOp === 'replay' && typeof qrlCardFull === 'function' && qrlCardFull(card, 'retrig');
 }
 function rewireSync() {
-  const s = eventState;
-  s.rwNote.innerHTML = s.picks.length
-    ? `<div class="ev-note">${s.picks.map((c, i) => `${i ? 'Second' : 'First'}: <b>${evFace(c)}</b>`).join(' · ')}</div>` : '';
-  setEventConfirm(!!s.rwOp && s.picks.length === 2);
+  const s = eventState, p = s.picker.picks;
+  s.rwNote.innerHTML = p.length ? `<div class="ev-note">${p.map((c, i) => `${i ? 'Second' : 'First'}: <b>${evFace(c)}</b>`).join(' · ')}</div>` : '';
+  evConfirmBtn('REWIRE', !!s.rwOp && p.length === 2);
 }
 function confirmRewire() {
   const s = eventState;
-  if (!s.rwOp || s.picks.length !== 2) return;
-  const [a, b] = s.picks.map(c => resolveDeckCard(c));
+  if (!s.rwOp || s.picker.picks.length !== 2) return;
+  const [a, b] = s.picker.picks.map(c => resolveDeckCard(c));
   if (!a || !b) { closeEvent(); return; }
   if (s.rwOp === 'replay') { enhanceCardKey(cardId(a), { retrig: 1 }); enhanceCardKey(cardId(b), { retrig: 1 }); }
   else if (s.rwOp === 'suit2') a.suit2 = b.suit;
@@ -438,5 +487,8 @@ function confirmRewire() {
   clearHandCompCache();
   addJunkToDeck(BAL.rewire.junk);
   noteMessage(s.rwOp === 'replay' ? `${evFace(a)} and ${evFace(b)} replay` : `${evFace(a)} is now ${s.rwOp === 'suit2' ? `${a.suit}/${a.suit2}` : `${a.rank}/${a.rank2}`}`, 'var(--gold)');
-  closeEvent();
+  s.rwDone++;
+  if (s.rwDone >= REWIRE_TIMES) { closeEvent(); return; }
+  const skip = document.getElementById('event-skip'); if (skip) skip.textContent = 'Done';
+  rewireBuildPicker();
 }

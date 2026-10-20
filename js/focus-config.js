@@ -263,6 +263,8 @@ function focusRateMods() {
   // of the two on purpose: speed is something you can play around by hurrying,
   // whereas the hand's listed Focus is the floor you cannot out-run.
   if (typeof focusRatePenalty === 'number' && focusRatePenalty > 1) m.complexity /= focusRatePenalty;
+  // The Investment's Double Focus (r590).
+  if (typeof altarFocusMult === 'function') { const _af = altarFocusMult(); m.complexity *= _af; m.speed *= _af; }
   if (typeof hasTrick === 'function') {
     if (hasTrick('overclock'))     m.speed      *= BAL.overclock.speed_mult;
   }

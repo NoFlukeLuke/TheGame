@@ -34,6 +34,26 @@ function evToBoard() {
   document.getElementById('event-overlay')?.classList.remove('show');
   document.getElementById('next-goal-bg')?.classList.remove('show');
 }
+// The event panel fades and sinks away, then `done` runs (r596, owner: Call It
+// needs "transitions between screens"). evOverlayIn is the way back: the panel
+// rises in over the board. Settings -> Skip -> Screen transitions makes both instant.
+const EV_FADE_MS = 280;
+function evOverlayOut(done) {
+  const ov = document.getElementById('event-overlay');
+  const end = () => { ov?.classList.remove('show', 'ev-out', 'ev-in'); document.getElementById('next-goal-bg')?.classList.remove('show'); done && done(); };
+  if (!ov || !ov.classList.contains('show') || (typeof rtSkipping === 'function' && rtSkipping())) { end(); return; }
+  ov.classList.remove('ev-in'); ov.classList.add('ev-out');
+  setTimeout(end, EV_FADE_MS);
+}
+function evOverlayIn() {
+  const ov = document.getElementById('event-overlay');
+  if (!ov) return;
+  ov.classList.remove('ev-out');
+  ov.classList.add('show');
+  if (typeof rtSkipping === 'function' && rtSkipping()) return;
+  ov.classList.remove('ev-in'); void ov.offsetWidth; ov.classList.add('ev-in');
+  setTimeout(() => ov.classList.remove('ev-in'), EV_FADE_MS + 40);
+}
 function evRunScreens(steps, done) {
   const list = steps.slice();
   const next = () => {
@@ -96,31 +116,53 @@ function keepItOffers() {
   return out;
 }
 function keepItPrice() { return Math.min(priceOf(BAL.flip_events.keep_cap), Math.ceil(coins / 2)); }
+// Two scenes (r590, owner): choose the reward; the offers fade out and "Now flip
+// for it." fades in with the chosen one and the coin. A win pays and ends it; a
+// loss shows the price of another flip (the amount, never "half").
 function renderKeepIt() {
   const s = eventState, body = evBodyEl();
   s.kiOffers = keepItOffers(); s.kiPick = -1; s.kiPhase = 'pick';
   if (!s.kiOffers.length) { body.innerHTML = evEmptyHTML('Nothing left to offer.'); s.kiNone = true; evConfirmBtn('DONE', true); return; }
-  body.appendChild(evNote(`Heads, it is yours. Tails, it is gone, unless you pay half your credits (at most ${priceOf(BAL.flip_events.keep_cap)}) to flip again.`));
+  s.kiScene = document.createElement('div'); s.kiScene.className = 'evt-scene'; body.appendChild(s.kiScene);
+  s.kiScene.appendChild(evNote('Choose a reward.'));
   s.kiEls = s.kiOffers.map((o, i) => {
     const el = makeChoiceEl({ tile: { entity: o.entity, emoji: o.emoji, label: o.label }, rarity: o.rarity, name: o.label, desc: o.desc,
       onClick: () => {
         if (s.kiPhase !== 'pick') return;
         s.kiEls.forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected'); s.kiPick = i; evConfirmBtn('FLIP', true);
+        el.classList.add('selected'); s.kiPick = i; evConfirmBtn('TAKE IT', true);
       } });
-    body.appendChild(el);
+    s.kiScene.appendChild(el);
     return el;
   });
-  evConfirmBtn('FLIP', false);
+  evConfirmBtn('TAKE IT', false);
+}
+// Fade one scene out and the next in, inside the event body.
+function evSceneSwap(old, build) {
+  return new Promise(res => {
+    old.classList.add('evt-scene-out');
+    setTimeout(() => {
+      const next = document.createElement('div'); next.className = 'evt-scene evt-scene-in';
+      old.replaceWith(next); build(next);
+      const panel = document.getElementById('event-panel'); if (panel) panel.scrollTop = 0;
+      requestAnimationFrame(() => next.classList.remove('evt-scene-in'));
+      res(next);
+    }, _etFast() ? 0 : 260);
+  });
 }
 function confirmKeepIt() {
   const s = eventState;
   if (s.kiNone || s.kiPhase === 'done') { closeEvent(); return; }
+  if (s.kiPhase === 'flip') { keepItFlip(false); return; }
   if (s.kiPhase !== 'pick' || s.kiPick < 0) return;
-  s.kiEls.forEach((e, i) => { if (i !== s.kiPick) e.classList.add('locked'); });
-  s.kiCoin = evCoin(evBodyEl());
-  s.kiRow = evRow(evBodyEl());
-  keepItFlip(false);
+  s.kiPhase = 'swap'; evConfirmBtn('FLIP', false); evSkipShown(false);
+  const o = s.kiOffers[s.kiPick];
+  evSceneSwap(s.kiScene, sc => {
+    sc.appendChild(evNote('Now flip for it.'));
+    sc.appendChild(makeChoiceEl({ tile: { entity: o.entity, emoji: o.emoji, label: o.label }, rarity: o.rarity, name: o.label, desc: o.desc, cls: 'ki-chosen' }));
+    s.kiCoin = evCoin(sc);
+    s.kiRow = evRow(sc);
+  }).then(sc => { s.kiScene = sc; s.kiPhase = 'flip'; evConfirmBtn('FLIP', true); });
 }
 function keepItFlip(paid) {
   const s = eventState;
@@ -130,7 +172,7 @@ function keepItFlip(paid) {
     coins -= price; updateCoinsUI?.();
   }
   s.kiPhase = 'busy';
-  evSkipShown(false); evConfirmBtn('FLIP', false); s.kiRow.innerHTML = '';
+  evConfirmBtn('FLIP', false); s.kiRow.innerHTML = '';
   evReveal(s.kiCoin.el);
   const side = evFlipSide();
   s.kiCoin.flip(side).then(() => {
@@ -139,12 +181,13 @@ function keepItFlip(paid) {
       const o = s.kiOffers[s.kiPick];
       try { o.apply(); } catch (e) { console.error('[KEEP IT] apply failed', e); }
       s.kiCoin.caption(`HEADS · ${o.label.toUpperCase()} IS YOURS`, 'win');
+      try { sfxRewardGood?.(); } catch (e) {}
       evConfirmBtn('DONE', true);
       return;
     }
     s.kiCoin.caption('TAILS', 'lose');
     const price = keepItPrice();
-    if (price >= 1) s.kiRow.appendChild(evButton(`FLIP AGAIN · ${price} credits`, () => keepItFlip(true)));
+    if (price >= 1) { s.kiRow.appendChild(evButton(`FLIP AGAIN · ${price} credits`, () => keepItFlip(true))); evReveal(s.kiRow); }
     evConfirmBtn('WALK AWAY', true);
   });
 }
@@ -153,7 +196,8 @@ function keepItFlip(paid) {
 // THE LADDER - Hot Streak and Prize Ladder share it
 // ══════════════════════════════════════════════
 // Up to four flips. Each heads climbs a rung; stop whenever and take every rung
-// you hold. A tails loses them all. A tails on the FIRST flip (nothing held)
+// you hold. A tails loses them all, except rungs a ladder SECURES: with
+// cfg.secure = 2 (Prize Ladder) the first two rungs are kept once two heads land. A tails on the FIRST flip (nothing held)
 // can be flipped again for `reflip` credits, as often as you pay, but once a
 // heads has landed no flip can be bought back.
 function evLadder(cfg) {
@@ -172,11 +216,14 @@ function evLadder(cfg) {
   ladderSync();
 }
 function ladderPrice() { return priceOf(BAL.flip_events.reflip); }
+function ladderSecured(L) { return L.cfg.secure && L.n >= L.cfg.secure ? L.cfg.secure : 0; }
 function ladderSync() {
   const L = eventState.ladder; if (!L) return;
   [...L.ladder.children].forEach((d, i) => {
-    d.classList.toggle('on', !L.lost && i < L.n);
-    d.classList.toggle('lost', L.lost && i < L.lostAt);
+    const safe = i < ladderSecured(L);
+    d.classList.toggle('on', (!L.lost || safe) && i < L.n);
+    d.classList.toggle('secured', safe);
+    d.classList.toggle('lost', L.lost && !safe && i < L.lostAt);
     d.classList.toggle('next', !L.over && !L.reflipOpen && i === L.n);
   });
   L.row.innerHTML = '';
@@ -185,7 +232,7 @@ function ladderSync() {
   if (L.reflipOpen) {
     const b = evButton(`FLIP AGAIN · ${ladderPrice()} credits`, () => ladderFlip(true));
     b.disabled = coins < ladderPrice();
-    L.row.appendChild(b);
+    L.row.appendChild(b); evReveal(L.row);
     evConfirmBtn('WALK AWAY', true);
     return;
   }
@@ -207,11 +254,16 @@ function ladderFlip(paid) {
     L.busy = false;
     if (side === 'heads') {
       L.n++;
-      L.coin.caption(`HEADS · RUNG ${L.n}`, 'win');
+      L.coin.caption(L.cfg.secure && L.n === L.cfg.secure ? `HEADS · RUNGS 1-${L.n} SECURED` : `HEADS · RUNG ${L.n}`, 'win');
       if (L.n >= L.cfg.rungs.length) { ladderCash(); return; }
     } else if (L.n === 0) {
       L.reflipOpen = true;
       L.coin.caption('TAILS', 'lose');
+    } else if (ladderSecured(L)) {
+      const keep = ladderSecured(L);
+      L.lost = true; L.lostAt = L.n;
+      L.coin.caption(`TAILS · RUNGS 1-${keep} KEPT`, 'lose');
+      L.n = keep; ladderCash(); return;
     } else {
       L.lost = true; L.lostAt = L.n; L.over = true;
       L.coin.caption('TAILS · ALL LOST', 'lose');
@@ -241,7 +293,7 @@ function confirmLadder() {
 // ── HOT STREAK: each heads adds a pick of three ──
 function renderHotStreak() {
   evLadder({
-    note: `Each heads adds a pick of three. Stop when you like and take them; a tails loses them all. A first tails can be flipped again for ${ladderPrice()} credits.`,
+    note: 'Each heads adds a pick of three. Stop any time and keep them. Tails loses them all.',
     rungs: ['1 pick', '2 picks', '3 picks', '4 picks'],
     cash: (n, lines) => { lines.push(`<b>${n}</b> ${n === 1 ? 'pick' : 'picks'} of three, one after another.`); return Array(n).fill('pick3'); },
   });
@@ -251,7 +303,8 @@ function renderHotStreak() {
 function renderPrizeLadder() {
   const f = BAL.flip_events.ladder_focus;
   evLadder({
-    note: `Each heads adds the next prize. Stop when you like and take them; a tails loses them all. A first tails can be flipped again for ${ladderPrice()} credits.`,
+    secure: 2,
+    note: 'Each heads adds the next prize. Get two heads and secure the first two rewards. Getting tails loses any unsecured rewards.',
     rungs: [`+${f} Focus limit`, 'A limit, then a pick of three', 'A random improvement', 'All three again'],
     cash: (n, lines) => {
       const twice = n >= 4 ? 2 : 1;
@@ -280,11 +333,12 @@ function renderCallIt() {
   evConfirmBtn('OPEN THE GRID', true);
 }
 function confirmCallIt() {
-  evToBoard();
-  openCallItGrid(() => closeEvent());
+  evConfirmBtn('OPEN THE GRID', false);
+  evOverlayOut(() => openCallItGrid(() => closeEvent()));
 }
 // Resolves true when the call is right. Rolled before the coin is shown.
 function callItAsk() {
+  if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;   // or a redraw pins it back over the coin
   if (typeof hideRewardTooltip === 'function') hideRewardTooltip();
   return new Promise(res => {
     const ov = document.getElementById('event-overlay');
@@ -302,16 +356,15 @@ function callItAsk() {
       coin.flip(side).then(() => {
         const won = side === pick;
         coin.caption(`${side.toUpperCase()} · ${won ? 'REWARDS' : 'PENALTIES'}`, won ? 'win' : 'lose');
-        setTimeout(() => {
-          ov.classList.remove('show');
+        setTimeout(() => evOverlayOut(() => {
           if (confirm) confirm.style.display = '';
           res(won);
-        }, 1100);
+        }), 1100);
       });
     };
     row.appendChild(evButton('HEADS', () => call('heads')));
     row.appendChild(evButton('TAILS', () => call('tails')));
-    ov.classList.add('show');
+    evOverlayIn();
     const panel = document.getElementById('event-panel'); if (panel) panel.scrollTop = 0;
   });
 }
@@ -324,11 +377,10 @@ function callItAsk() {
 // editor (one of three buffs at the ordinary card-editor strength, on up to
 // three cards you choose). Red curses three random cards.
 const PLINKO_BINS = [1, 0, 1, 0, 1, 0, 1];
-const PLINKO_SAMPLE = 8, PLINKO_CARDS = 3, PLINKO_CURSES = 3;
+const PLINKO_CARDS = 3, PLINKO_CURSES = 3;
 function renderPlinko() {
   const s = eventState, body = evBodyEl();
   s.plPhase = 'drop';
-  body.appendChild(evNote(`Green: a card editor, one buff on up to ${PLINKO_CARDS} cards you choose. Red: ${PLINKO_CURSES} random cards are cursed.`));
   s.plBoard = evPlinko(PLINKO_BINS.map(g => ({ label: g ? 'EDIT' : 'CURSE', cls: g ? 'good' : 'bad' })), body);
   evConfirmBtn('DROP', true);
 }
@@ -339,7 +391,7 @@ function confirmPlinko() {
   if (s.plPhase !== 'drop') return;
   s.plPhase = 'busy';
   evSkipShown(false); evConfirmBtn('DROP', false);
-  const bin = evPlinkoRoll(PLINKO_BINS.length);
+  const bin = evPlinkoRoll(PLINKO_BINS.length, s.plBoard.offset());
   s.plBoard.drop(bin).then(() => setTimeout(() => (PLINKO_BINS[bin] ? plinkoEditor() : plinkoCurse()), 350));
 }
 function plinkoCurse() {
@@ -357,8 +409,9 @@ function plinkoCurse() {
 function plinkoEditor() {
   const s = eventState, body = evBodyEl();
   body.innerHTML = '';
-  document.getElementById('event-flavor').textContent = 'Card editor: pick a buff, then the cards it goes on.';
-  s.plPhase = 'edit'; s.plBuff = null; s.plCards = [];
+  const fl = document.getElementById('event-flavor');
+  fl.textContent = 'Card editor: pick a buff, then the cards it goes on.'; fl.style.display = '';
+  s.plPhase = 'edit'; s.plBuff = null;
   s.plBuffs = rollBuffs(3);
   body.appendChild(evLabel('1 · THE BUFF'));
   s.plBuffs.forEach(b => {
@@ -367,30 +420,15 @@ function plinkoEditor() {
         if (s.plPhase !== 'edit') return;
         body.querySelectorAll('.pl-buff').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected'); s.plBuff = b;
-        s.plCards = s.plCards.filter(c => !plinkoFull(c));
+        const keep = s.picker.picks.filter(c => !plinkoFull(c)); s.picker.picks.length = 0; s.picker.picks.push(...keep);
         plinkoSync();
       } });
     body.appendChild(el);
   });
   body.appendChild(evLabel(`2 · UP TO ${PLINKO_CARDS} CARDS`));
-  const pool = allDeckCards().filter(c => !(typeof isWildCard === 'function' && isWildCard(c)));
-  const chips = document.createElement('div'); chips.className = 'ev-cardchips'; chips.id = 'pl-chips';
-  evShuffle(pool).slice(0, PLINKO_SAMPLE).forEach(card => {
-    const chip = document.createElement('span');
-    chip.className = 'ev-cardchip' + (['♥', '♦'].includes(card.suit) ? ' red' : '');
-    chip.textContent = (typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`;
-    chip._card = card;
-    chip.addEventListener('click', () => {
-      if (s.plPhase !== 'edit') return;
-      if (plinkoFull(card)) { refuse('Quarter resource limit (QRL) reached'); return; }
-      const at = s.plCards.indexOf(card);
-      if (at >= 0) s.plCards.splice(at, 1);
-      else if (s.plCards.length < PLINKO_CARDS) s.plCards.push(card);
-      plinkoSync();
-    });
-    chips.appendChild(chip);
-  });
-  body.appendChild(chips);
+  s.picker = evDeckPicker(body, { max: PLINKO_CARDS, onChange: plinkoSync, locked: () => s.plPhase !== 'edit',
+    cards: everyDeckCard().filter(c => !isWildCard(c)),
+    blocked: c => plinkoFull(c) ? 'Quarter resource limit (QRL) reached' : '' });
   evConfirmBtn('APPLY', false);
   if (typeof sfxRewardGood === 'function') try { sfxRewardGood(); } catch (e) {}
 }
@@ -400,17 +438,15 @@ function plinkoFull(card) {
 }
 function plinkoSync() {
   const s = eventState;
-  document.querySelectorAll('#pl-chips .ev-cardchip').forEach(ch => {
-    ch.classList.toggle('picked', s.plCards.includes(ch._card));
-    ch.classList.toggle('qrl-full', plinkoFull(ch._card));
-  });
-  evConfirmBtn('APPLY', !!s.plBuff && s.plCards.length > 0);
+  s.picker.sync();
+  evConfirmBtn('APPLY', !!s.plBuff && s.picker.picks.length > 0);
 }
 function plinkoApply() {
   const s = eventState;
-  if (!s.plBuff || !s.plCards.length) return;
-  s.plCards.forEach(card => { const t = resolveDeckCard(card); if (t) enhanceCardKey(cardId(t), s.plBuff.e); });
-  const names = s.plCards.map(c => `${c.rank}${c.suit}`).join(', ');
+  const picks = s.picker ? s.picker.picks : [];
+  if (!s.plBuff || !picks.length) return;
+  picks.forEach(card => { const t = resolveDeckCard(card); if (t) enhanceCardKey(cardId(t), s.plBuff.e); });
+  const names = picks.map(c => `${c.rank}${c.suit}`).join(', ');
   noteMessage(`${s.plBuff.label}: ${names}`, 'var(--gold)');
   s.plPhase = 'done';
   closeEvent();

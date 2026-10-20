@@ -161,9 +161,10 @@ const BAL = {
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   // ── Upgrade events (r194) ──
-  rehearsal: { consolation_credits: 12, junk: 3 },   // r576: Extra Rep costs 3 junk cards
-  forge: { pips: 10, mult: 4, both_price: 10, both_chance: 0.5 },
-  reschedule: { price: 8 },
+  rehearsal: { consolation_credits: 12, encore_curses: 2, echo_curses: 4, chain_curses: 2, chain_cursed: 2 },   // r590: paid in curse cards
+  forge: { pips: 8, mult: 5, both_price: 10, both_chance: 0.5 },   // r590 (owner): +8 pips / +5 mult a score
+  reschedule: { price: 8, step: 1, rolls: 10, skip_pay: 10 },   // r590: 16, +2 a reroll, up to 10; skipping pays 20 (all through priceOf)
+  luck_dice: { skip_cost: 10 },                                  // r590: skipping costs 20 through priceOf
   state_change: { common: 4, rare: 6, epic: 8, legendary: 12 },   // r580: by the state's tier, through priceOf
   rewire: { junk: 2 },                                             // r580: junk cards into the deck   // r579: through priceOf (16 on screen)
   flip_events: { reflip: 10, keep_cap: 15, ladder_focus: 5 },   // r578: reflip and keep_cap through priceOf (20 / 30 on screen)   // r576: scaling only; both_price runs through priceOf
@@ -176,17 +177,18 @@ const BAL = {
   // ── Deck Trim (r211) - the frequent-removal event ──
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.
-  deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ], junk_each: 2 },   // r576: clearing junk, per card, through priceOf
+  deck_trim: { step: 4, cap: 64, junk_each: 2,   // r590: card k costs 8k, capped at 128; junk 4 a card (all through priceOf)
+               tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ] },   // tiers: read only by the layouts lab's sample (js/event-grid-lab.js)
   // ── Guided (r219): what a slot costs to fill with something other than a round. ──
   guided: {
     price_shop: 12, price_reward: 10, price_event: 6,
   },
   clean_slate:  { consolation_credits: 14 },
   // ── r218 events ──
-  reassignment: { consolation_credits: 12 },
+  reassignment: { consolation_credits: 12, price: 7.5 },   // r590: 15 credits through priceOf, or all you have
   the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
-  the_floor:    { line_cost: 6 },
-  the_payline:  { spin_cost: 8, consolation_credits: 12 },
+  the_floor:    { pull: 4 },   // r590: a pull after the free first one, through priceOf (8)
+  the_payline:  { spin_cost: 5, spin_secs: 5, consolation_credits: 12 },   // r590: pulls alternate 10 credits (priceOf) and 5s
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).

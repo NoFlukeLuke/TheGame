@@ -128,7 +128,7 @@ function dealerBuildLayer() {
   const cap = document.createElement('div');
   cap.className = 'dl-cap';
   const cur = dealerHand.cards[0];
-  cap.textContent = (dealerHand.mode === 'reserve' ? 'RESERVE · ' : dealerHand.mode === 'lockbox' ? 'LOCKBOX · ' : '') + `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
+  cap.textContent = (dealerHand.mode === 'reserve' ? 'RESERVE · ' : dealerHand.mode === 'lockbox' ? 'BOUGHT · ' : '') + `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
     + (cur._dealerBuff ? ' · ' + buffOfferName(cur._dealerBuff)
        : dealerHand.mode === 'lockbox' && typeof cardBuffLines === 'function' && cardBuffLines(cardId(cur)).length
          ? ' · ' + cardBuffLines(cardId(cur)).join(', ') : '') + `  (${dealerHand.cards.length} left)`;
@@ -282,7 +282,7 @@ function dealerPlaceAt(r, c) {
   dealerHand.pendingAt = null;
   const old = gridData[r]?.[c];
   if (!old) return;
-  if (dealerHand.mode === 'lockbox' && old === dealerHand.box) { dealerClose(true); return; }   // r576: tap the box to close it
+  if (dealerHand.mode === 'lockbox' && dealerHand.box && old === dealerHand.box) { dealerClose(true); return; }   // r576: a saved run's Lockbox closes on a tap
   if (isCellBlocked(r, c) || old._isStone || old._isTrick || !cardCan(old, 'discard')) {
     refuse('That card cannot be replaced'); return;
   }

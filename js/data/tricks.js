@@ -40,7 +40,7 @@ const TRICK_POOL = [
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3 pips' },
   // ── Rank-specific pips / mult ──
   { id:'first_light',    name:'First Light',         tier:'common',    desc:'Aces score 21 pips' },
-  { id:'wild_heart',     name:'Inspirato',           tier:'epic',      desc:'When an Ace scores, prime your first and last Tricks' },
+  { id:'wild_heart',     name:'Inspirato',           tier:'epic',      tags:['positional'], desc:'When an Ace scores, prime your first and last Tricks' },
   { id:'face_value',     name:'Face Value',          tier:'common',    desc:'Face cards (J/Q/K) score +10 pips' },
   { id:'king_guard',     name:'Men of Repute',       tier:'common',    desc:'Kings and Jacks score +5 pips and +5 mult' },
   { id:'knave_power',    name:'Jackpot',              tier:'legendary', desc:'Score ×1.5 pips for each Jack on the grid' },
@@ -130,8 +130,8 @@ const TRICK_POOL = [
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['scaling','mult','value'], desc:'Every 9 cards discarded permanently adds +3 mult to this trick' },
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['scaling','pips','value'], desc:'Every 6th card scored permanently gains a random +1–6 pips' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['scaling','pips','value'], desc:'4-card hands permanently give the 4th card +4 pips' },
-  { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','value'], desc:'Each 2 scored force triggers your rightmost Trick' },
-  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
+  { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['positional','retrigger','value'], desc:'Each 2 scored force triggers your rightmost Trick' },
+  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['positional','retrigger','prime'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
   { id:'eights_retrigger', name:'Sideways to Infinity', tier:'rare',   tags:['retrigger','value'], desc:'Each scored 8 replays once for each other 8 in the hand' },
   { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['scaling','grid','value'], desc:'Scoring a card adjacent to a Queen permanently increases that card\'s rank (after it scores). Queens are automatically discarded after they\'ve been on the grid for 45 seconds' },
   { id:'aces_absorb',    name:'Ace Absorb',          tier:'legendary', tags:['scaling','value'], desc:'When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand)' },
@@ -140,7 +140,7 @@ const TRICK_POOL = [
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Score +pips equal to time remaining ÷ 2' },
   { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['pips','discard'], desc:'+2 mult per card discarded this round' },
   { id:'spade_flood',    name:'Dark Matter',         tier:'epic',      tags:['suit','pips'], desc:'All-Spade hands add the remaining round time as pips' },
-  { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['utility'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
+  { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['positional','utility'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+4 mult for every distinct hand type played this round' },
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time' },

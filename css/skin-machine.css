@@ -161,6 +161,8 @@ html.skin-machine #mc-flip :is(.mcf-top, .mcf-bot, .mcf-flap) > span {
 html.skin-machine #cabinet #cab-screen #stage #pips-val  { color: #5cc8ff !important; }
 html.skin-machine #cabinet #cab-screen #stage #mult-val  { color: #ff6a52 !important; }
 html.skin-machine #cabinet #cab-screen #stage #focus-val { color: #cf8cff !important; }
+/* r592: the hold look's score on the FOCUS screen: gold, no shadow (#mc-crisp thresholds a shadow into a block). */
+html.skin-machine #cabinet #cab-screen #stage #focus-val.pmf-hold-score { color: #f5c042 !important; text-shadow: none !important; }
 
 /* r511: a card in flight, a Trick in flight, and the lifted / pinned Trick wear the board's
    screen door themselves (same lines and grille as #grid::after), so it does not drop off

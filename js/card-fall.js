@@ -27,6 +27,10 @@ function renderCardAppearance(card, r, c, {
   if (card._isReshuffle) return { className: 'card stone-card rs-card', innerHTML: reshuffleFaceHTML() };
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
+    if (card._curseCard && typeof CURSE_CARD_DEFS !== 'undefined' && CURSE_CARD_DEFS[card._curseCard]) {   // r590: a curse card
+      const d = CURSE_CARD_DEFS[card._curseCard];
+      return { className: 'card stone-card junk-card curse-card', innerHTML: `<div class="junk-glyph">${d.icon}</div><div class="junk-word">${d.name.toUpperCase()}</div>` };
+    }
     if (card._junk) return {   // r576: junk, an empty card that stays in your deck
       className: `card stone-card junk-card${isSwapPending ? ' swap-pending' : ''}`,
       innerHTML: `<div class="junk-glyph">✕</div><div class="junk-word">JUNK</div>`,

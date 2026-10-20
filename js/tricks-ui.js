@@ -188,7 +188,7 @@ function renderTrickTray() {
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
     // tip:false - the chip's own tap bubble (read + hold for sell/discard)
     // already covers this tile; the delegated data-et bubble would double it.
-    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
+    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (bossOff ? `<div class="trick-off-mark">${typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id) ? 'LOCKED' : 'OFF'}</div>` : '');
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';

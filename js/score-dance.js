@@ -1322,7 +1322,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // let the SCORE climb below run against the fused chip. (js/pmf-merge.js)
   if(typeof pmfMergeIn==='function'){
     const _mspeed = skipBeats ? 3.2 : (dncFF ? DANCE_CFG.ff : dncPace());
-    await pmfMergeIn(finalScore, { speed: _mspeed, signal: sig });
+    await pmfMergeIn(finalScore, { speed: _mspeed, signal: sig, pips: _finalPips, mult: _finalMult });   // r592: the two-step fuse reads the chips' totals
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     // ── THE THROW ── the fused chip flies into the SCORE. This beat is never
     // skipped, at any burst depth: it is the one moment that says "this hand

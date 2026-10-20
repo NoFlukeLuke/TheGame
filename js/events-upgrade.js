@@ -34,6 +34,21 @@ function evImprovables() {
   return out;
 }
 
+// Trade a Trick (r590, owner): the new entity is at least one rarity higher, and
+// the trade costs `price` credits, or everything you have when that is less.
+function evTierUp(tier) { return EV_TIER_ORDER[Math.min(3, Math.max(0, EV_TIER_ORDER.indexOf(tier)) + 1)]; }
+function reassignPrice() { return Math.max(0, Math.min(priceOf(BAL.reassignment.price), coins)); }
+function evDrawEntityUp(kind, tier) {
+  const floor = EV_TIER_ORDER.indexOf(evTierUp(tier));
+  const banned = id => (typeof survivalEntityBanned === 'function') && survivalEntityBanned(id);
+  const owned = new Set((acquiredKnacks || []).map(k => k.id));
+  const pool = (kind === 'knack'
+    ? KNACK_POOL.filter(k => !owned.has(k.id) && !banned(k.id))
+    : SLEIGHT_POOL.filter(x => !grantedSleightIds.has(x.id) && (typeof sleightOfferable !== 'function' || sleightOfferable(x)) && !banned(x.id)))
+    .filter(e => EV_TIER_ORDER.indexOf(e.rarity || 'common') >= floor);
+  return (pool.length && pickEntityByRarity(pool, e => e.rarity || 'common')) || evDrawEntity(kind, tier);
+}
+
 // Shared draw: a random entity of `kind` at `minTier` or better that the run does
 // not already hold. Falls back DOWN the tier ladder rather than returning nothing,
 // because an empty-handed conversion would be strictly worse than not playing.
@@ -74,7 +89,7 @@ function renderReassignment() {
   }
   eventState.reassignTrick = null;
   eventState.reassignKind  = null;
-  body.appendChild(evNote('Give up one Trick and it comes back in another form, at its own tier or better. What you get is drawn at random.'));
+  body.appendChild(evNote(`Give up one Trick. It comes back as a Knack or a Sleight, at least one rarity higher. Costs <b>${reassignPrice()}</b> credits.`));
 
   const label = evLabel('THE TRICK YOU GIVE UP');
   body.appendChild(label);
@@ -111,13 +126,13 @@ function showReassignKinds(trick) {
   wrap.id = 'ev-reassign-kinds';
   wrap.appendChild(evLabel('THE FORM IT COMES BACK AS'));
   [
-    { kind:'knack',   icon:'♦', name:'As a Knack',   desc:'A rule change that holds for the whole run. Never drawn, never lost.' },
-    { kind:'sleight', icon:'▶', name:'As a Sleight', desc:'A card shuffled into your deck. It falls, swaps and plays like any other.' },
+    { kind:'knack',   icon:'♦', name:'As a Knack' },
+    { kind:'sleight', icon:'▶', name:'As a Sleight' },
   ].forEach(opt => {
     const preview = evDrawEntity(opt.kind, trick.tier);
     const el = makeChoiceEl({
-      icon: opt.icon, rarity: trick.tier, name: opt.name,
-      desc: opt.desc + (preview ? '' : ' <b>Nothing left to draw in this form.</b>'),
+      icon: opt.icon, rarity: evTierUp(trick.tier), name: opt.name,
+      desc: preview ? `${evTierUp(trick.tier)} or better` : 'Nothing left to draw in this form.',
       onClick: () => {
         if (!preview) return;
         wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
@@ -141,8 +156,10 @@ function confirmReassignment() {
   }
   const t = eventState.reassignTrick, kind = eventState.reassignKind;
   if (!t || !kind) { closeEvent(); return; }
-  const got = evDrawEntity(kind, t.tier);
+  const got = evDrawEntityUp(kind, t.tier);
   if (!got) { showMessage('Nothing to reassign into', 'var(--cream-dim)'); closeEvent(); return; }
+  const price = reassignPrice();
+  coins -= price; updateCoinsUI?.();
   // Give the Trick up first, so a tray at capacity has room and the deck audit
   // never sees both halves of the trade at once.
   const i = trickTray.findIndex(x => x.id === t.id);

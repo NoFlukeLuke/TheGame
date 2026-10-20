@@ -704,7 +704,7 @@ function recycleCard(card) {
     out.rank = queenUpgradedRank(card.rank);
   }
   for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
-  if (card._junk) { out._isStone = true; out._junk = true; }   // r576: junk survives its trip through the deck
+  if (card._junk) { out._isStone = true; out._junk = true; if (card._curseCard) out._curseCard = card._curseCard; }   // r576: junk survives its trip through the deck (r590: and its curse)
   if (typeof climbRecycle === 'function') climbRecycle(card, out);   // r398
   return out;
 }

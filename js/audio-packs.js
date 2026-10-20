@@ -319,6 +319,7 @@ const VEGAS_PACK = {
   },
   reward_reveal: () => dRun(5, (f, at, i) => vgCoin(4 + i * 3, { gain: 0.06, delay: at, verb: 0.34 }), { step: 0.055 }),
   reward_select: () => { vgDetent({ gain: 0.2, pitch: 1.25, verb: 0.14 }); dWood({ freq: 260, dur: 0.07, gain: 0.11, verb: 0.1 }); },
+  reward_taken: () => { dWood({ freq: 150, dur: 0.12, gain: 0.16, verb: 0.14 }); vgBell(0, { dur: 1.0, gain: 0.1, delay: 0.05, verb: 0.4 }); vgBell(7, { dur: 1.2, gain: 0.09, delay: 0.13, verb: 0.42 }); vgCoin(12, { gain: 0.05, delay: 0.2 }); },
 
   // A warning bell, struck once and left to ring over a rising floor.
   chal_appear: () => {
@@ -578,6 +579,7 @@ const HIGHROLLER_PACK = {
   },
   reward_reveal: () => dRun(5, (f, at, i) => hrChime(dDegree('whole', i) + 12, { dur: 1.0, gain: 0.055, delay: at, verb: 0.5 }), { step: 0.06 }),
   reward_select: () => { dClick({ dur: 0.012, freq: 2400, q: 0.9, gain: 0.11, kind: 'pink', verb: 0.14 }); dThump({ freq: 200, to: 80, dur: 0.09, gain: 0.17, sat: 0.4, verb: 0.16 }); },
+  reward_taken: () => { hrHit({ gain: 0.14, size: 0.9, verb: 0.3 }); hrChime(12, { dur: 1.6, gain: 0.08, delay: 0.05, verb: 0.5 }); hrChime(19, { dur: 1.9, gain: 0.07, delay: 0.13, verb: 0.5 }); },
 
   // Suspense: a whole-tone cluster has no home note, so it cannot resolve and the
   // ear keeps waiting for it to.
@@ -809,6 +811,7 @@ const NEON_PACK = {
   reward_bad:  () => { neSaw(-14, { dur: 0.45, gain: 0.12, bite: 2.2, verb: 0.2, voices: 5, detune: 30 }); neKick({ gain: 0.2, size: 1.3, verb: 0.12 }); neBlip(-14, { dur: 0.22, gain: 0.06, duty: 0.5, to: -21, verb: 0.14 }); },
   reward_reveal: () => dRun(6, (f, at, i) => neBell(dDegree('lydian', i + 7), { dur: 0.35, gain: 0.05, delay: at, verb: 0.3 }), { step: 0.05 }),
   reward_select: () => { neBlip(24, { dur: 0.035, gain: 0.12, duty: 0.14, verb: 0.16 }); neKick({ gain: 0.16, size: 0.55, verb: 0.08 }); },
+  reward_taken: () => { neKick({ gain: 0.2, size: 0.9, verb: 0.1 }); neBell(12, { dur: 0.5, gain: 0.15, delay: 0.05, verb: 0.3 }); neBell(19, { dur: 0.7, gain: 0.13, delay: 0.13, verb: 0.3 }); },
 
   chal_appear: () => {
     dSweep({ kind: 'noise', from: 300, to: 4000, dur: 0.9, gain: 0.07, q: 1.4, up: true, verb: 0.34 });
@@ -1022,6 +1025,7 @@ const LOUNGE_PACK = {
   reward_bad:  () => { loThump({ gain: 0.2, size: 1.3, verb: 0.26 }); loKey(-13, { dur: 0.9, gain: 0.1, verb: 0.28, bright: 0.5 }); loBass(-17, { dur: 0.9, gain: 0.13, verb: 0.16 }); },
   reward_reveal: () => dRun(5, (f, at, i) => loVibe(dDegree('majPent', i + 4), { dur: 0.8, gain: 0.05, delay: at, verb: 0.4 }), { step: 0.06 }),
   reward_select: () => { loBrush({ dur: 0.04, gain: 0.09, freq: 2000, to: 1100, verb: 0.16 }); loKey(12, { dur: 0.22, gain: 0.12, verb: 0.22 }); },
+  reward_taken: () => { loThump({ gain: 0.16, size: 0.9, verb: 0.24 }); loVibe(12, { dur: 1.1, gain: 0.075, delay: 0.05, verb: 0.4 }); loVibe(19, { dur: 1.3, gain: 0.065, delay: 0.13, verb: 0.4 }); },
 
   chal_appear: () => {
     loBrush({ dur: 0.8, gain: 0.055, freq: 300, to: 2200, verb: 0.34 });

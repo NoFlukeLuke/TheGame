@@ -93,6 +93,7 @@ const SFX_MIX = {
   reward_good:   { bus: 'event' },
   reward_bad:    { bus: 'event' },
   reward_reveal: { bus: 'event', gain: 0.90 },
+  reward_taken:  { bus: 'event' },
   chal_appear:   { bus: 'event' },
 
   // ── headline ──

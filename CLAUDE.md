@@ -1552,7 +1552,75 @@ Mult Buff and Suit Spread common; Focus, Time, Coin, Rank Pull, Cut, Fodder rare
 Trick Slots epic. The art cap now reads `60cqh - 42px`. Measured: desktop Flow choice 99 x 262 =
 154 + 6 + 102; phone Flow 169 / 112; phone Classic 70 / 46 (3-4 description lines, r588 had 2).
 
-## r592 - no names on Tricks, Sleights or Knacks; big icons (owner)
+## r592 - the two-step score fuse (`js/pmf-merge.js`)
+`pmfMergeIn(score, { speed, signal, pips, mult })` fuses in TWO STEPS when the chips' totals are
+passed (the dance passes `_finalPips` / `_finalMult`, All Hands its sums; the interrupt handoff
+passes none and keeps the one-step look): PIPS and MULT jitter and combine into one chip reading
+pips x mult, then that chip and FOCUS jitter and combine into the score; the ghost flies to SCORE,
+the row splits back out. Looks (dev -> Aesthetics -> Score merge, `lethe.pmfLook.v1` overrides
+only, Preview button runs the beat on the live row): **auto** (hold in console mode, slide
+elsewhere), **slide** (the chips move on WAAPI and MELT: a `.pmf-goo` layer behind them carries
+blob copies through the SVG `#pmf-goo` filter, blur then alpha contrast, while the numbers
+crossfade sharp on top; the fused chip is placed by JS, left / width), **hold** (nothing moves:
+the values jitter, PIPS fades and MULT takes the product, MULT fades and FOCUS takes the score in
+gold; the ghost is a body-level flier the housing masks), **one** (r157). `pmfFlyToScore` flies
+from whatever the look fused on (`_pmfFlyFrom`). `score-merge-preview.html` loads the real file,
+the real CSS and the game's score-panel markup; the pit's painted tray and the housing mask are
+JS it does not load.
+
+## r593 - event layouts lab, round three: WIREFRAME in the box (owner's pick)
+- **Palette** (`EGL_PALETTE`, js/event-grid-lab.js): twelve phosphors with the amber's warmth, written
+  onto #egl as `--wf-<name>`; the amber layouts' CSS reads only those. Keywords (`.kw-*`), rarity words
+  (`.egl-rar`), suits (`.egl-s-*`: spades cream, hearts coral, diamonds gold, clubs sky, wilds rose) and
+  buffs (`.egl-k-<buff key>`) each take the nearest one. Shown as swatches in the lab panel.
+- **Entities** are drawn large with no description; the box label names them, so the tile's own name is
+  hidden and the icon fills the label with a dark outline (a cream or white pixel icon vanished on the
+  Trick's cream label). Pointing at one or tapping it opens the game's own tooltip (`data-et`,
+  `showEntityTooltip`). Stacked strips (a phone) put the picture beside its rarity (`.egl-flat`).
+- **Typing** (Settings -> Display -> **Text speed**: Normal / Fast (2x) / Instant; `textTypeCps()` in
+  js/settings.js, 160 / 320 / 0 characters a second). An element marked by `eglTy(key)` types once
+  (`egl.seen`); its untyped text stays laid out but hidden (`.egl-tu`), so the fit pass stays true. A
+  live line (a running count) types once and then changes in place. A tap on the board finishes it.
+- **One cursor** (`#egl-cur`, zero width, the block hangs off it): with the text while it types, then
+  at the end of the prompt until a choice is made, then in the chosen box (CONFIRM on a card screen),
+  then the outcome.
+- **Card screens** lay out as a 6 x 6 board: words across the top row and a half, cards in the middle
+  four columns at a playing card's shape (`EGL_CARD_RATIO` 0.714, `EGL_VIEW_ROWS` 4 rows in view), keys
+  in the last half row. Measured at 1440x820: cards 39 x 55 design px, a 6 x 6 board's card. Text cards
+  are sized from their own box (container units).
+- **Transitions** (lab panel, `eglPrefs.tr`): CONSOLE (default; a command types at the foot, its output
+  scrolls the old screen up and the new one in after it) and CUBE (the board turns like a cube), both
+  run between two copies of the screens (`eglSnap`; open and close copy the game's own #grid). FLIP is
+  r588's. Reduced motion takes FLIP; a room change (slide-off) moves the r588 way.
+
+## r590-r596 - the event tour verdicts (EVENTS.md, "AFTER THE TOUR")
+- **Owner's rule, game wide:** describe the mechanic and stop; never explain the consequence.
+  One explainer per event screen (an empty flavor line is hidden).
+- **Shared pieces:** `evDeckPicker` (js/event-picker.js, every card event picks from the whole
+  deck by suit column), `evSlotMachine` (js/event-slot-machine.js, reels + lever), the physics
+  `evCoin`, `evDoubleOrFlip`, `EVENT_SKIP` (priced skips), `evOverlayOut` / `evOverlayIn`
+  (panel fades, Call It). **Curse cards** (js/boss.js): junk with a debuff (Leech, Smog), cannot
+  be played, swapped or discarded, back into the deck after 120s; only Clean Slate removes them.
+- Bought Card Market cards wait on the Focus bar (double-tap, ahead of the Reserve). Tricks
+  tagged `positional` gate Tray Order. The Investment's boosts and half goal are now read
+  (they did nothing before r593). Overtime's boss cost is Tough reviews (+25% boss goal).
+- `sfxRewardTaken` (catalog `reward_taken`, every pack) plays when a reward is taken
+  (`rewardTransitionOut` with `chosen` or `taken`). Printer notices within `PT_CFG.groupMs`
+  (500) of the slip's LAST line join that slip.
+
+## r598 - double scaling: every 15 plays, two ladder steps a grant (owner)
+`NS2_DEFAULT` is `multEvery` 15, `pipsEvery` 15, `pipsPer` 1 and a new `multStep` 2: every 15 plays of
+a family its cards pay 2 more mult each (card n pays n + 2 per grant) and, separately, 1 more pip each.
+`nsFamStep` is rungs x `multStep`; dev -> Hand Scoring has the fourth stepper and the projection now
+reads at 15 / 30 / 60 / 90 plays. The store is overrides only, so r554's numbers are gone unless typed.
+A same-suit run still credits both families and takes the BEST family's step and pips, not the sum;
+each card in it already scores twice (run and flush), so the ladder pays per component.
+
+## r592-r593 numbering, again
+The reward pick branch's r592 (no names) and r593 (floppy art), below, ran in parallel with
+main's r592-r598 above. The merge that joined them is r599.
+
+## r592 (pick branch) - no names on Tricks, Sleights or Knacks; big icons (owner)
 `entityTileInner` (js/entity-tile.js), the live shop's `buildShopTileInner` (js/shop.js) and the board
 Sleight card (`sleightFaceHTML`, plus the aim copies in js/render.js / js/card-fall.js) draw no
 `.rwd-name` / `.sleight-card-name`. The name is in the tooltip, or printed beside the object by a
@@ -1567,7 +1635,7 @@ Sleight's icon is 0.36 x the cell height, centred. **A reward-grid Trick shows i
 Measured at 1440x820: tray floppy icon 30 design px (frame 72 x 68), board Sleight icon 28.5 in a
 68 x 79 cell, pick floppy 82 art box; 420x900 tray 14-16, board 15. No name element on any of them.
 
-## r593 - the owner's floppy art (`js/floppy-art.js`, `assets/art/floppy/`)
+## r593 (pick branch) - the owner's floppy art (`js/floppy-art.js`, `assets/art/floppy/`)
 A PNG in `assets/art/floppy/` replaces the CSS-drawn Trick disc: `common.png` / `rare.png` / `epic.png` /
 `legendary.png`, and `floppy.png` for a rarity with none. Nothing lists the uploads, so the five files are
 requested once at load (`floppyArtProbe`); each found sets `--fa-<rarity>` (absolute url, like

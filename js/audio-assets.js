@@ -81,6 +81,7 @@ const SFX_CATALOG = [
   { id: 'reward_bad',    fn: 'sfxRewardBad',       group: 'Economy', label: 'Reward - bad' },
   { id: 'reward_reveal', fn: 'sfxRewardReveal',    group: 'Economy', label: 'Reward - reveal' },
   { id: 'reward_select', fn: 'sfxRewardSelect',    group: 'Economy', label: 'Reward - tile picked' },
+  { id: 'reward_taken',  fn: 'sfxRewardTaken',     group: 'Economy', label: 'Reward - taken', note: 'A pick is confirmed and the board leaves.' },
 
   // Challenges
   { id: 'chal_appear',   fn: 'sfxChallengeAppear', group: 'Challenge', label: 'Challenge appears' },

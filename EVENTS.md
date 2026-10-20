@@ -4,7 +4,7 @@
 or `js/events-slots.js`.** It is the same kind of document as OPEN_DECISIONS.md: measured
 findings and a recommendation per item, left for the owner to decide on.
 
-**What ships now is the last section, "THE ROSTER AS BUILT (r576-r581)".** The audit
+**What ships now is the last section, "AFTER THE TOUR (r590-r596)", on top of "THE ROSTER AS BUILT (r576-r581)".** The audit
 below it and the owner's verdict were written before that pass and are history where
 they disagree with it.
 
@@ -629,4 +629,73 @@ js/data/cards.js; calcScore runs the wild through the ordinary per-card loop as 
 The max-round-time-for-credits gamble, spending unused swaps and discards as currency
 (improvements or Sleight recharges), the probability event, the Limit Break rework, and
 the slot machine redesigns (TODO 0d).
+
+---
+
+# AFTER THE TOUR (r590-r596)
+
+The owner played every event through the tour (r589 build) and sent KEEP / EDIT notes.
+**This section outranks everything above it.** KEEP as they were: Free Pick, Wild Cards.
+
+**The rule every event now follows** (owner, game wide): describe the mechanic and stop.
+Never explain the consequence. One explainer per screen: where the body has one, the flavor
+line is blank and `renderEventShell` hides it.
+
+## Shared pieces
+
+| piece | file | what |
+|---|---|---|
+| Deck picker | js/event-picker.js | `evDeckPicker`: one column per suit, Ace down, wilds last, six rows in view (arrows, wheel, drag); gold corner buffed, red cursed. `cutCardsFromDeck(list)` |
+| Slot machine | js/event-slot-machine.js | `evSlotMachine`: fixed reel strips behind a 3-row window, staggered snapping stops, a tease on the last reel, a lever to drag or tap |
+| Physics coin | js/event-toys.js | `evCoin`: a rimmed disc tossed under gravity, two bounces, settles on the decided face |
+| Double or flip | js/events-extra.js | `evDoubleOrFlip`: a quarter of your credits (printed); heads doubles, tails turns it the other way |
+| Priced skips | js/events-core.js | `EVENT_SKIP`: the skip button says what it pays or costs |
+| Curse cards | js/boss.js | junk with a debuff (Leech: an adjacent hand costs 2s; Smog: adjacent hands x0.8 mult). Cannot be played, swapped or discarded; back into the deck after 120s on the board; removed only by Clean Slate's "Curse cards" |
+| Screen fades | js/events-flip.js | `evOverlayOut(done)` / `evOverlayIn()`: the panel sinks out to the board and rises back in. Call It uses them |
+
+## What changed, event by event
+
+| event | now |
+|---|---|
+| Overtime | Short reviews is gone; **Tough reviews**: boss rounds need 25% more score. Boss windows keep Overtime's length |
+| Theme Draft | no comparison to the editor |
+| The Gamble | the picked door rises, turns gold, YOUR PICK |
+| The Investment | three of five trades, scaled by quarter: +8xQ mult 3 rounds (5 discards next round); half goals 4 rounds (2 random Tricks switched off, slots locked); +18xQ pips 3 rounds (no swaps 2 rounds); double Focus 3 rounds (rounds start 30s shorter); +5xQ mult 4 rounds (next payout nothing). Its boosts and half goal were never read before r593 |
+| Clean Up | cut 8 at random from your last grid (PEEK), cut any 3 you choose, or undo one downside |
+| Card Upgrade | +8 pips or +5 mult that grows each time it scores; two cards from the deck picker |
+| Tray Order | only with a `positional` Trick (tag in js/data/tricks.js); drag with snapping and a slight rubber band |
+| Extra Rep | pick the upgrade then the Trick: Encore (one more firing a hand, 2 curse cards), Echo (each firing fires again, 4), Chain (each firing force-triggers another Trick, 2 curse cards and 2 cards cursed) |
+| Maintenance | Service (refill) / Tune-up (3 random Sleights +1 charge) / Reinforce (one Sleight +20%) |
+| Card Market | bought cards wait on the Focus bar: double-tap it to open them. No Lockbox Sleight |
+| Deck Trim | any cards from the whole deck: 8, 16, 24... credits a card, none over 128 |
+| Trade a Trick | at least one rarity higher; 15 credits or all you have |
+| Card Slots | three rank reels (absent ranks left off), middle row only, 1 in 7 to win; a win buffs every card of that rank. First pull free, then 8 |
+| Clean Slate | "A previous mistake is undone. Choose your greatest regret below." Downsides only |
+| Entity Slots | three reels of your improvable entities; any row, column or diagonal of three improves it. 1 in 3 at 5 entities down to 1 in 7 at 14+. Pulls cost 10 credits and 5 seconds alternately. Needs 5 |
+| Pairs | 12 cards; ONE LAST TRY for a quarter of your credits, once |
+| Keep It | two scenes: "Choose a reward." then "Now flip for it."; a loss shows FLIP AGAIN with its price |
+| Hot Streak | the physics coin; owner's explainer |
+| Prize Ladder | the second heads secures rungs 1-2; credits shown only afterwards |
+| Call It | fades between the panel, the grid and the coin |
+| Plinko | half speed, bounces, a 20px slider before the drop (leans the odds up to 12%); the card editor is the deck picker |
+| Trick Gamble | the deleted Trick fades out; the winner redraws with its new art |
+| Reschedule | up to 10 rerolls, 16 then +2 each; skipping pays 20 |
+| Grid Spinner | 16 cards (A x4, 2 x5, 3 x3, 4 x2, stone x2), a new path every spin, 10% faster, a fading trail |
+| Static Bonus | type wheel +PIPS, +MULT, +PIPS, +MULT, BLANK, -PIPS; blank ends it; then double or flip |
+| Luck Dice | "Faces:"; skipping costs 20 (or all you have); then double or flip |
+| State Change | the deck picker; Deadline's Tricks are "force-triggered" |
+| Rewire | the deck picker, up to three times, 2 junk cards each |
+
+## Outside the events (same notes)
+
+- A reward taken (pick of three, every Flow chain step, the deck editor) plays
+  `sfxRewardTaken` (catalog `reward_taken`, a voice in every pack) as the board holds.
+- Printer notices: a notice within 0.5s of the last one adds a line to its slip
+  (`PT_CFG.groupMs` 500, measured from the slip's last line, not its first).
+
+## Left for the event layouts chat
+
+The owner is redoing how events are displayed in another session. Putting events on the
+board itself (Pairs as a 5x4 with blank outer columns, Card Upgrade in the deck editor's
+grid) waits for that.
 

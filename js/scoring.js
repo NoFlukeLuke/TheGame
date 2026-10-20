@@ -62,6 +62,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // _comp is taken from the cells as passed, before any strip: the components of
   // a stripped selection can differ from the ones the player actually played.
   const _allCells = cells;
+  const _altarPips = (typeof altarPipBoost === 'function') ? altarPipBoost() : 0;
+  const _altarMult = (typeof getAltarMultBoost === 'function') ? getAltarMultBoost() : 0;
   const _comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
   let _handOnly = cells;
   if (_comp) {
@@ -133,7 +135,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(_allCells) : null;
   // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
   // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
-  let totalPips = Math.round(handBasePips(handName) * levelScale) + staticPips;   // Static Bonus (r579): flat, unscaled
+  let totalPips = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips;   // Static Bonus (r579), The Investment (r590): flat, unscaled
   _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide (r539): the mult it has built, 1-3 per level passed while held (level-up.js)
@@ -855,7 +857,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
-  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult;
+  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult;
 
   // Layered hands: every other component adds its base mult too. Additive, not
   // multiplied - two hands' worth of ladder, not the product of them.
@@ -1215,6 +1217,20 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_md) { mult      += _md; bMultQ('primed', _md, 1); const e = _ev(t.id, 'mult+', _md); if (e) e.prime = true; }
     }
   });
+  // Extra Rep's ENCORE (r590): one more firing's worth each hand, per stack -
+  // the Trick's hand delta divided by how many times it fired. Same emit and
+  // ledger as a prime, so the dance pops the Trick for it.
+  trickTray.forEach(t => {
+    if (!(t._encore > 0)) return;
+    const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
+    if (!_pd && !_md) return;
+    const _n = Math.max(1, _procs[t.id] || 1);
+    const _p1 = Math.round(_pd / _n), _m1 = Math.round(_md / _n * 10) / 10;
+    for (let k = 0; k < t._encore; k++) {
+      if (_p1) { totalPips += _p1; bPipQ('primed', _p1, 1); const e = _ev(t.id, 'pip+',  _p1); if (e) e.prime = true; }
+      if (_m1) { mult      += _m1; bMultQ('primed', _m1, 1); const e = _ev(t.id, 'mult+', _m1); if (e) e.prime = true; }
+    }
+  });
   // FORCED fires (r234, js/force-trick.js). Sits here, beside priming, because it
   // is the same question - "fire this Trick again" - asked of a Trick that did
   // NOT fire. The prime loop above returns early on an empty `_cp`/`_cm`, so an
@@ -1234,6 +1250,19 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _fi = _t2 ? forceableTrickIds().filter(id => id !== 'twos_retrigger') : [];
     if (_fi.length) for (let k = 0; k < _t2; k++) _forceIds.push(_fi[_fi.length - 1]);
   }
+  // Extra Rep's CHAIN (r590): each time a chained Trick fired this hand, a random
+  // other Trick is forced. "Random" is a hash of the hand count, so the preview,
+  // the score and the dance agree.
+  if (typeof forceableTrickIds === 'function') trickTray.forEach((t, ti) => {
+    if (!(t._chain > 0) || !(_cp[t.id] || _cm[t.id])) return;
+    const pool = forceableTrickIds().filter(id => id !== t.id);
+    if (!pool.length) return;
+    const fires = Math.max(1, _procs[t.id] || 1) * t._chain;
+    for (let k = 0; k < fires; k++) {
+      const h = (Math.imul((handsPlayedRound || 0) + 1, 2654435761) + Math.imul(k + 1, 40503) + ti * 977) >>> 0;
+      _forceIds.push(pool[h % pool.length]);
+    }
+  });
   if (_forceIds.length && typeof trickForcedPayout === 'function') {
     // A forced fire may MULTIPLY a hand; it may not REPLACE it. Forcing pays the
     // Trick's real value, and a Trick's real value spans two orders of magnitude:
@@ -1360,10 +1389,15 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // The Grind (boss): a hand type pays less every time you repeat it inside its
   // window. Read-only here; playHand is what pushes the history.
   if (typeof bossGrindMult === 'function') _xs('_grind', bossGrindMult(handName), 'boss');
+  // Smog curse cards (r590, js/boss.js): x0.8 mult for each one touching the hand.
+  if (typeof curseCardsTouching === 'function') { const _sm = curseCardsTouching(_allCells, 'smog'); if (_sm) _xs('_smog', Math.pow(CURSE_CARD_DEFS.smog.mult, _sm), 'curse'); }
   // Low and Behold is a PER-CARD REPLAY now (see _labOn in the card loop), not a
   // x2 here. It was the one entry on this list whose printed text described cards
   // replaying rather than a multiplier.
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
+  // A negative Static Bonus (r590) can leave a hand's pips below zero: the floor is
+  // a timeline event, so the PIPS chip lands on 0 with the score, not under it.
+  if (totalPips < 0) { _ev('_floor', 'pip+', -totalPips, 'static'); totalPips = 0; }
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
   lastCalcPips = totalPips;
@@ -1434,9 +1468,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // second hand's worth of base pips and mult directly, with no ledger call, so
     // they belong HERE rather than as events - they are part of what the hand is
     // worth before anything fires.
-    ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips
+    ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips
                      + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
-    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult
+    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult
                      + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
   }
 

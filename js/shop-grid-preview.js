@@ -372,7 +372,7 @@ function buildShopSellStock() {
   const items = [];
   (acquiredKnacks || []).forEach((k, idx) => items.push({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
     price: knackSellValue(), sell: () => { const i = acquiredKnacks.findIndex(x => x.id === k.id); if (i >= 0) acquiredKnacks.splice(i, 1); updateKnackList?.(); } }));
-  const trickList = trickTray;
+  const trickList = (trickTray || []).filter(t => !(typeof altarTrickLocked === 'function' && altarTrickLocked(t.id)));   // r590
   (trickList || []).forEach(t => items.push({ entity:'trick', label:t.name, desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
     price: trickSellValue(t), trick: t, sell: () => sellOwnedTrick(t) }));
   ownedSleightInstances().forEach(inst => {

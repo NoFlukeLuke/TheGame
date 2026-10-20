@@ -12,7 +12,7 @@
 // below, so a resumed run carries it and no site keeps its own copy.
 let overtimeRun = { taken: false, costs: [], gift: false };
 const OVERTIME_LEN_MULT  = 1.3;   // every round length, once taken
-const OVERTIME_BOSS_CUT  = 0.7;   // 'boss_short': boss rounds this long instead (of their normal length)
+const OVERTIME_BOSS_GOAL = 1.25;  // 'boss_hard' (r590, owner): boss rounds need this much more score; their window keeps Overtime's length
 const OVERTIME_QUOTA     = 1.15;  // 'quota': every future goal (never printed: "higher quotas")
 const OVERTIME_PLAY_SECS = 5;     // 'play': each hand played costs this many seconds more
 const OVERTIME_DISC_SECS = 2;     // 'discard': each discarded card costs this many seconds more
@@ -34,8 +34,8 @@ const OVERTIME_COSTS = [
     apply: () => 'leftover time pays less' },
   { id: 'interest',   icon: '🏦', name: 'Interest capped',     desc: `The interest cap is halved.`,
     apply: () => 'interest cap halved' },
-  { id: 'boss_short', icon: '⏱', name: 'Short reviews',       desc: `Boss rounds are ${Math.round((1 - OVERTIME_BOSS_CUT) * 100)}% shorter.`,
-    apply: () => 'boss rounds shorter' },
+  { id: 'boss_hard',  icon: '☠', name: 'Tough reviews',       desc: `Boss rounds need ${Math.round((OVERTIME_BOSS_GOAL - 1) * 100)}% more score.`,
+    apply: () => 'boss rounds need more' },
   { id: 'clock_miss', icon: '🎲', name: 'Unreliable clock',    desc: `Rewinds and pauses have a ${Math.round(OVERTIME_MISS * 100)}% chance not to happen.`,
     apply: () => 'rewinds and pauses can miss' },
 ];
@@ -44,11 +44,10 @@ const OVERTIME_COSTS = [
 function otHas(id) { return !!(overtimeRun && overtimeRun.costs && overtimeRun.costs.includes(id)); }
 // Every non-boss round length (currentRoundDuration).
 function overtimeLenMult() { return overtimeRun && overtimeRun.taken ? OVERTIME_LEN_MULT : 1; }
-// A boss round's window (triggerBoss): longer like every round, or cut by 'boss_short'.
-function overtimeBossMult() {
-  if (!overtimeRun || !overtimeRun.taken) return 1;
-  return otHas('boss_short') ? OVERTIME_BOSS_CUT : OVERTIME_LEN_MULT;
-}
+// A boss round's window (triggerBoss): longer like every round. Its goal: raised by 'boss_hard'.
+// (r590: 'boss_short' cut the window below its normal length while the reward made it longer.)
+function overtimeBossMult() { return overtimeRun && overtimeRun.taken ? OVERTIME_LEN_MULT : 1; }
+function overtimeBossGoalMult() { return otHas('boss_hard') ? OVERTIME_BOSS_GOAL : 1; }
 function overtimeFocusFade()   { return otHas('fade') ? OVERTIME_FADE : 1; }                 // focusDecayIntervalNow
 function overtimeLeftoverMult(){ return otHas('leftover') ? 1 / OVERTIME_LEFTOVER : 1; }    // seconds per credit
 function overtimeInterestMult(){ return otHas('interest') ? OVERTIME_INTEREST : 1; }        // interestCap

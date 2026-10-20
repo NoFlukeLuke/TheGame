@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r593 · upload your own Trick floppy art to assets/art/floppy";
+const BUILD = "2026-10-20 · r599 · merge: no names on entities and your floppy art, with main's r592-r598";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
