@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r593 · event verdicts 4: bought cards on the Focus bar, The Investment, Maintenance, Tray Order";
+const BUILD = "2026-10-20 · r594 · event verdicts 5: Extra Rep (Encore, Echo, Chain) and curse cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

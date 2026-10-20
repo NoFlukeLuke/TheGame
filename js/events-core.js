@@ -232,7 +232,7 @@ const EVENT_META = {
   wager:       { name:'Coin Flip',       flavor:'Even odds. You pick how much is riding on it.' },
   shift_change:{ name:'Tray Order',      flavor:'Put your Tricks in the order you want them to fire.' },
   bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
-  rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time every hand, for good. It costs three junk cards.' },
+  rehearsal:   { name:'Extra Rep',       flavor:'Make one Trick fire more. It costs curse cards.' },
   workshop:    { name:'Maintenance',     flavor:'Refill your Sleights, or give them more charges.' },
   market:      { name:'Card Market',     flavor:'Buy cards now, put them on the board when you want them.' },
   deck_trim:   { name:'Deck Trim',       flavor:'' },

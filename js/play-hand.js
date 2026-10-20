@@ -699,6 +699,11 @@ function playHand() {
     if (typeof showTimeCost === 'function') showTimeCost(`-${playHandCostThisRound}s`);
     updateClockUI();
   }
+  // Leech curse cards (r590, js/boss.js): each one touching the hand costs its seconds.
+  if (typeof curseCardsTouching === 'function') {
+    const _lc = curseCardsTouching(playedCells, 'leech') * CURSE_CARD_DEFS.leech.secs;
+    if (_lc > 0) { roundSeconds = Math.max(1, roundSeconds - _lc); if (typeof showTimeCost === 'function') showTimeCost(`-${_lc}s`); updateClockUI(); }
+  }
 
   // ── Boss bookkeeping, deliberately HERE ───────────────────────────────────
   // This is after `score += finalScore` and after checkBossObjective, which is the

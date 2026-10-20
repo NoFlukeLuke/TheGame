@@ -161,7 +161,7 @@ const BAL = {
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   // ── Upgrade events (r194) ──
-  rehearsal: { consolation_credits: 12, junk: 3 },   // r576: Extra Rep costs 3 junk cards
+  rehearsal: { consolation_credits: 12, encore_curses: 2, echo_curses: 4, chain_curses: 2, chain_cursed: 2 },   // r590: paid in curse cards
   forge: { pips: 8, mult: 5, both_price: 10, both_chance: 0.5 },   // r590 (owner): +8 pips / +5 mult a score
   reschedule: { price: 8, step: 1, rolls: 10, skip_pay: 10 },   // r590: 16, +2 a reroll, up to 10; skipping pays 20 (all through priceOf)
   luck_dice: { skip_cost: 10 },                                  // r590: skipping costs 20 through priceOf

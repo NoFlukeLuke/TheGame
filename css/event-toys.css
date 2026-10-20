@@ -189,3 +189,7 @@
 .spring-peek { display: grid; grid-template-columns: repeat(var(--sp-cols, 4), auto); gap: 4px; justify-content: center; margin: 4px auto 8px; }
 .spring-peek .edp-card { cursor: var(--cur-default, default); }
 .spring-peek .sp-empty { color: #3d3756; text-align: center; align-self: center; }
+/* r590: a curse card is junk with a red edge and its curse named */
+.stone-card.junk-card.curse-card { border-color: #a8323d !important; box-shadow: inset 0 0 0 1px rgba(255,77,94,.35), 0 0 10px -3px #ff4d5e; }
+.curse-card .junk-glyph { font-size: calc(var(--card-h, 75px) * .26); }
+.curse-card .junk-word { color: #ff8a8a; }

@@ -1315,11 +1315,33 @@ function confirmBench() {
   closeEvent();
 }
 
-// ─── EVENT: REHEARSAL (Trick upgrade) ───
-// Permanently primes one Trick: it fires its effect an extra time, every hand,
-// for the rest of the run. Generic by construction - calcScore duplicates
-// whatever pip/mult delta the Trick reported, so this works on all of them
-// without a line of per-Trick code.
+// ─── EVENT: EXTRA REP (Trick upgrade) ───
+// r590 (owner): three upgrades for one Trick, each paid in curse cards (js/boss.js):
+//   encore - it fires one more time each hand (one firing's worth, once a hand):
+//            calcScore's `_encore` loop, beside priming.
+//   echo   - every time it fires, it fires again: the permanent prime `_rank`
+//            (what Extra Rep always was).
+//   chain  - every time it fires, a random other Trick is force-triggered:
+//            `_chain`, pushed into calcScore's forced-fire block (deterministic per hand).
+const REHEARSAL_UPS = [
+  { id: 'encore', icon: '➕', rarity: 'rare', name: 'Encore', desc: 'The Trick fires one more time each hand.',
+    cost: () => `${BAL.rehearsal.encore_curses} curse cards`,
+    apply: t => { t._encore = (t._encore || 0) + 1; addCurseCardsToDeck(BAL.rehearsal.encore_curses); } },
+  { id: 'echo', icon: '🔁', rarity: 'legendary', name: 'Echo', desc: 'Every time the Trick fires, it fires again.',
+    cost: () => `${BAL.rehearsal.echo_curses} curse cards`,
+    apply: t => { t._rank = (t._rank || 0) + 1; addCurseCardsToDeck(BAL.rehearsal.echo_curses); } },
+  { id: 'chain', icon: '⛓', rarity: 'epic', name: 'Chain', desc: 'Every time the Trick fires, a random other Trick is force-triggered.',
+    cost: () => `${BAL.rehearsal.chain_curses} curse cards and ${BAL.rehearsal.chain_cursed} of your cards cursed`,
+    apply: t => { t._chain = (t._chain || 0) + 1; addCurseCardsToDeck(BAL.rehearsal.chain_curses);
+                  for (let k = 0; k < BAL.rehearsal.chain_cursed; k++) curseRandomCard(); } },
+];
+function rehearsalTag(t) {
+  const bits = [];
+  if (t._encore) bits.push(`encore ×${t._encore}`);
+  if (t._rank) bits.push(`echo ×${t._rank}`);
+  if (t._chain) bits.push(`chain ×${t._chain}`);
+  return bits.length ? ` · ${bits.join(', ')}` : '';
+}
 function renderRehearsal() {
   const body = document.getElementById('event-body');
   if (!eventEligible('rehearsal')) {
@@ -1327,36 +1349,41 @@ function renderRehearsal() {
     eventState.rehearseNone = true;
     setEventConfirm(true); return;
   }
-  eventState.rehearsePick = null;
-  body.appendChild(evNote(`One Trick fires an extra time on every hand, for the rest of the run. Cost: <b>${BAL.rehearsal.junk} junk cards</b> go into your deck. Junk takes up a space on the board and cannot be played or discarded.`));
-  trickTray.forEach(t => {
-    const rank = t._rank || 0;
-    const el = makeChoiceEl({
-      icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
-      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
-      rarity: t.tier,
-      name: t.name + (rank ? ` · rehearsed ×${rank + 1}` : ''),
-      desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
+  eventState.rehearseUp = null; eventState.rehearsePick = null;
+  body.appendChild(evNote('Curse cards cannot be played, swapped or discarded.'));
+  body.appendChild(evLabel('1 · THE UPGRADE'));
+  REHEARSAL_UPS.forEach(u => {
+    const el = makeChoiceEl({ icon: u.icon, rarity: u.rarity, name: u.name, desc: u.desc, cost: u.cost(), cls: 'rh-up',
       onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.rehearsePick = t;
-        setEventConfirm(true);
-      }
-    });
+        body.querySelectorAll('.rh-up').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected'); eventState.rehearseUp = u; rehearsalSync();
+      } });
+    body.appendChild(el);
+  });
+  body.appendChild(evLabel('2 · THE TRICK'));
+  trickTray.forEach(t => {
+    const em = (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦';
+    const el = makeChoiceEl({
+      icon: em, tile: { entity: 'trick', id: t.id, emoji: em, label: t.name },
+      rarity: t.tier, name: t.name + rehearsalTag(t),
+      desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc, cls: 'rh-trick',
+      onClick: () => {
+        body.querySelectorAll('.rh-trick').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected'); eventState.rehearsePick = t; rehearsalSync();
+      } });
     body.appendChild(el);
   });
 }
+function rehearsalSync() { setEventConfirm(!!eventState.rehearseUp && !!eventState.rehearsePick); }
 function confirmRehearsal() {
   if (eventState.rehearseNone) {
     coins += BAL.rehearsal.consolation_credits;
     updateCoinsUI?.();
     noteMessage(`+${BAL.rehearsal.consolation_credits} credits`, 'var(--gold)');
-  } else if (eventState.rehearsePick) {
-    const t = eventState.rehearsePick;
-    t._rank = (t._rank || 0) + 1;
-    if (typeof addJunkToDeck === 'function') addJunkToDeck(BAL.rehearsal.junk);   // r576: the cost
-    noteMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand · ${BAL.rehearsal.junk} junk in your deck`, 'var(--gold)');
+  } else if (eventState.rehearseUp && eventState.rehearsePick) {
+    const t = eventState.rehearsePick, u = eventState.rehearseUp;
+    u.apply(t);
+    showMessage(`${t.name}: ${u.name} · ${u.cost()}`, 'var(--gold)');
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }
   closeEvent();
@@ -1642,6 +1669,11 @@ const CLEAN_SLATE_FIXES = [
     has:  () => Object.keys(cardCurses || {}).length > 0,
     desc: () => `${Object.keys(cardCurses).length} card${Object.keys(cardCurses).length === 1 ? ' is' : 's are'} cursed.`,
     fix:  () => { const n = Object.keys(cardCurses).length; cardCurses = {}; return `${n} curse${n === 1 ? '' : 's'} lifted`; } },
+  { id:'curse_cards', icon:'🃏', rarity:'epic',
+    name:'Curse cards',
+    has:  () => typeof curseCardsAll === 'function' && curseCardsAll().length > 0,
+    desc: () => `${curseCardsAll().length} curse card${curseCardsAll().length === 1 ? ' is' : 's are'} in your deck.`,
+    fix:  () => { const n = clearCurseCards(); return `${n} curse card${n === 1 ? '' : 's'} removed`; } },
   { id:'dead',   icon:'⬛', rarity:'rare',
     name:'Dead cells',
     has:  () => (deadCells && deadCells.size > 0),

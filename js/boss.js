@@ -103,7 +103,50 @@ function injectStonesIntoDeck(count) {
 // back. It is a real member of the audited deck (rank '?', counted), so adding
 // and cutting it moves expectedDeckTotal. Deck Trim and Clean Up can cut it.
 function makeJunkCard() { return stampId({ rank: '?', suit: 'junk', _isStone: true, _junk: true }); }
-function isJunkCard(c) { return !!(c && c._junk); }
+// Plain junk only: a curse card is junk too, but nothing clears it but undoing a curse.
+function isJunkCard(c) { return !!(c && c._junk && !c._curseCard); }
+
+// ── CURSE CARDS (r590, owner) ── junk that carries a debuff. It cannot be played,
+// swapped or discarded; after CURSE_CARD_LIFE seconds on the board it goes back
+// into the deck (curseCardTick, js/card-states.js). Only undoing a curse removes
+// it (Clean Slate, Clean Up). Extra Rep is the first thing that costs them.
+const CURSE_CARD_LIFE = 120;
+const CURSE_CARD_DEFS = {
+  leech: { name: 'Leech', icon: '🩸', desc: 'Playing a hand next to it costs 2s.', secs: 2 },
+  smog:  { name: 'Smog',  icon: '☁',  desc: 'Hands next to it score ×0.8 mult.', mult: 0.8 },
+};
+function makeCurseCard(kind) {
+  const k = kind || Object.keys(CURSE_CARD_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_CARD_DEFS).length)];
+  return stampId({ rank: '?', suit: 'junk', _isStone: true, _junk: true, _curseCard: k });
+}
+function isCurseCard(c) { return !!(c && c._curseCard); }
+function addCurseCardsToDeck(n) {
+  for (let i = 0; i < n; i++) drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, makeCurseCard());
+  expectedDeckTotal += n;
+  updateDeckHud();
+}
+function curseCardsAll() {
+  const out = [];
+  [drawPile, playedPile].forEach(p => p.forEach(c => { if (isCurseCard(c)) out.push(c); }));
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData[r]?.[c])) out.push(gridData[r][c]);
+  return out;
+}
+function clearCurseCards() {
+  let n = 0;
+  for (const p of [drawPile, playedPile]) for (let i = p.length - 1; i >= 0; i--) if (isCurseCard(p[i])) { p.splice(i, 1); n++; }
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData[r]?.[c])) { gridData[r][c] = drawCard() || null; n++; }
+  expectedDeckTotal -= n; updateDeckHud();
+  return n;
+}
+// How many curse cards of `kind` sit orthogonally next to any of `cells`. Read-only.
+function curseCardsTouching(cells, kind) {
+  const seen = new Set();
+  (cells || []).forEach(([r, c]) => [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].forEach(([rr, cc]) => {
+    const cd = gridData[rr]?.[cc];
+    if (cd && cd._curseCard === kind) seen.add(rr * 100 + cc);
+  }));
+  return seen.size;
+}
 function addJunkToDeck(count) {
   for (let i = 0; i < count; i++) {
     const pos = Math.floor(Math.random() * (drawPile.length + 1));

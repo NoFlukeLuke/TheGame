@@ -415,6 +415,7 @@ function cardStatesTick() {
   });
   for (const k in cardIdleSecs) if (!live.has(k)) { delete cardIdleSecs[k]; delete _cardLastPos[k]; }
   cardStateTurnover(board);
+  if (curseCardTick()) return;
 
   // The r213 Hollow lesson: removeAndFall takes the `falling` lock, and starting
   // one on top of a swap, a score or another fall cuts that animation short. A
@@ -424,6 +425,28 @@ function cardStatesTick() {
 
   if (queenFavourTick(board)) return;
   cardStateFireDue(board);
+}
+
+// Curse cards (r590, js/boss.js): seconds on the board by card id; at CURSE_CARD_LIFE
+// the card goes back into the deck (it is never deleted). Counted every tick, moved
+// only when the board is still (the r213 rule, as below). Returns true when it moved.
+let curseCardSecs = {};
+function curseCardTick() {
+  if (typeof CURSE_CARD_LIFE === 'undefined' || typeof gridData === 'undefined') return false;
+  const due = [], live = new Set();
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd._curseCard) continue;
+    const k = cardId(cd); live.add(k);
+    curseCardSecs[k] = (curseCardSecs[k] || 0) + 1;
+    if (curseCardSecs[k] >= CURSE_CARD_LIFE) due.push([r, c]);
+  }
+  for (const k in curseCardSecs) if (!live.has(k)) delete curseCardSecs[k];
+  if (!due.length || animating || falling || (typeof roundEnded !== 'undefined' && roundEnded)) return false;
+  due.forEach(([r, c]) => { const cd = gridData[r][c]; delete curseCardSecs[cardId(cd)];
+    drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, recycleCard(cd)); });
+  removeAndFall(due, 'discard');
+  return true;
 }
 
 // Royal Favour (r350): a Queen that has been on the board for its time is
