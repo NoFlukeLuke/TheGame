@@ -17,6 +17,9 @@ picture on a white disc is not), the ink's box is fitted into the grid with a 1p
 ink when at least 42% of it is covered, and ink is shaded in three tones of the row's colour:
 lit where the sky is above, shadow where nothing is below. `cut: true` on a row takes the holes
 in the ink (a stencil) instead of the ink.
+A row whose palette colour is light (luminance >= `--light`, 0.65: today cream and white) is
+listed in `PX_ICON_LIGHT`; `emGlyph` tags it `.px-light` and css/px-icons.css outlines it, or it
+vanishes on a light ground like the Trick's cream label.
 
 The game keys icons by the EMOJI, not the entity, so two entities with one emoji share a picture.
 A glyph with no row keeps its emoji. Dev -> HUD & Display -> Aesthetics -> Entity art switches

@@ -185,9 +185,10 @@ function eglTap(i) {
     if (pl) try { showEntityTooltip(el, pl); } catch (e) {}
   }
 }
-// READOUT prints whatever the pointer rests on, before it is tapped.
+// READOUT prints whatever the pointer rests on, before it is tapped; so does a
+// card screen in every layout (its cards carry marks, not words).
 function eglHover(i) {
-  if (egl.lay !== 'readout' || egl.inspect === i || egl.ladder.busy || egl.busy || eglTyping()) return;
+  if ((egl.lay !== 'readout' && !eglIsView(eglStep())) || egl.inspect === i || egl.ladder.busy || egl.busy || eglTyping()) return;
   egl.inspect = i; eglDraw();
 }
 function eglNext() {
@@ -357,11 +358,11 @@ function eglInspectLines() {
                                              : [['egl-t-dim', 'FLIP TO CLIMB A RUNG.']];
   if (st.t === 'shopgrid') {
     const it = st.items[i];
-    return [...(it ? [['egl-t-h', `> ${it.card.rank}${it.card.suit} · ${eglCodes(it.card, it.buffs).map(c => c.v + ' ' + c.w).join(' · ')}`]] : []), eglStatusLine()];
+    return [...(it ? [['egl-t-h', `> ${it.card.rank}${it.card.suit} · ${eglCodes(it.card, it.buffs).map(c => c.v + ' ' + c.w).join(' · ')}`, 0, 1]] : []), eglStatusLine()];
   }
   if (st.t === 'deckcols') {
     const cd = st.cards[i], codes = cd ? eglCodes(cd) : [];
-    return [...(cd ? [['egl-t-h', `> ${cd.rank}${cd.suit || ''} · ${codes.length ? codes.map(c => c.v + ' ' + c.w).join(' · ') : 'PLAIN'}`]] : []), eglStatusLine()];
+    return [...(cd ? [['egl-t-h', `> ${cd.rank}${cd.rank2 ? '/' + cd.rank2 : ''}${cd.suit || ''}${cd.suit2 || ''} · ${codes.length ? codes.map(c => (c.v + ' ' + c.w).trim()).join(' · ') : 'PLAIN'}`, 0, 1]] : []), eglStatusLine()];
   }
   const o = st.opts[i];
   if (!o) return [['egl-t-dim', 'TOUCH A KEY TO READ IT.']];
@@ -389,12 +390,12 @@ function eglPromptPiece(R, head) {
   }
   const note = eglStep()?.note || '';
   if (L === 'wire') {
-    const lines = head ? [['egl-t-x', note, 1], eglStatusLine()] : eglPromptLines(false).filter(l => l[0] !== 'egl-t-n');
+    const lines = head ? [['egl-t-x', note, 1], ...eglInspectLines()] : eglPromptLines(false).filter(l => l[0] !== 'egl-t-n');
     const leg = head ? `${egl.ev.name.toUpperCase()} // ${eglTxt(eglStep().label)}` : `EVENT · ${egl.ev.name.toUpperCase()}`;
     return { key: 'prompt-' + mode, cls: 'egl-prompt', html: `<div class="egl-wb egl-wb2"><span class="egl-leg${eglTy('leg|' + eglSk() + '|' + leg)}>${eglEsc(leg)}</span>${eglLinesHTML(lines, 9)}</div>`, ...R };
   }
   // WALL: a screen of its own
-  const lines = head ? [...eglPromptLines(true), ['egl-t-x', note, 1], eglStatusLine()] : eglPromptLines(false);
+  const lines = head ? [...eglPromptLines(true), ['egl-t-x', note, 1], ...eglInspectLines()] : eglPromptLines(false);
   return { key: 'prompt-' + mode, cls: 'egl-prompt', html: eglLinesHTML(lines, 9), ...R };
 }
 function eglMarqueePromptHTML(head) {
@@ -491,7 +492,10 @@ function eglOptHTML(st, o, i, mode) {
   if (mode === 'box') {
     const ty = f => eglTy(`opt|${eglSk()}|${i}|${f}`);
     const leg = `<span class="egl-leg${ty('l')}>[${i + 1}] ${eglEsc(title.toUpperCase())}</span>`;
-    if (ent) return `<div class="egl-wb">${leg}<div class="egl-fit" data-min="8">${ico}<div class="egl-rar rar-${o.rar}${ty('r')}>${eglEsc(o.rar.toUpperCase())}</div></div></div>`;
+    // An entity's box has no label (owner): its border closes, and the name sits
+    // just above the picture, three lines at most.
+    if (ent) return `<div class="egl-wb egl-wb-ent"><div class="egl-fit" data-min="8"><div class="egl-enw"><div class="egl-en${ty('n')}>${eglEsc(title.toUpperCase())}</div></div>`
+                  + `${ico}<div class="egl-rar rar-${o.rar}${ty('r')}>${eglEsc(o.rar.toUpperCase())}</div></div></div>`;
     return `<div class="egl-wb">${leg}<div class="egl-fit" data-min="8">${ico}<div class="egl-ox${ty('x')}>${eglCol(text)}</div>`
          + (tag ? `<div class="egl-cost${ty('c')}>${eglEsc(tag.toUpperCase())}</div>` : '') + `</div></div>`;
   }
@@ -542,16 +546,33 @@ function eglCardFace(card) {
   try { a = renderCardAppearance(card, 0, 0, { revealFog: true }); } catch (e) {}
   return a ? `<div class="${a.className}">${a.innerHTML}</div>` : `<div class="card">${card.rank}${card.suit}</div>`;
 }
-// A market card is not owned, so its buffs are written to the stores for this
-// one render and taken straight back out; the face then wears its real bands.
-function eglFaceBuffed(card, buffs) {
+// A market card is not owned, so its buffs are written to the stores for one
+// render and taken straight back out; the face then wears its real marks.
+function eglWithBuffs(card, buffs, fn) {
   const k = cardId(card), S = eglStores(), undo = [];
-  buffs.forEach(b => Object.entries(b.e || {}).forEach(([key, v]) => {
+  (buffs || []).forEach(b => Object.entries(b.e || {}).forEach(([key, v]) => {
     const s = S[key]; if (!s) return;
     undo.push([s, k in s, s[k]]); s[k] = v;
   }));
-  try { return eglCardFace(card); }
+  try { return fn(); }
   finally { undo.reverse().forEach(([s, had, old]) => { if (had) s[k] = old; else delete s[k]; }); }
+}
+const eglFaceBuffed = (card, buffs) => eglWithBuffs(card, buffs, () => eglCardFace(card));
+// A card's marks on the amber screens (r600, owner): the game's own set, as
+// renderCardAppearance draws it, in the palette: the corner bands and x marks
+// (cardBandsHTML with palette inks), a curse's badge, Fodder, a coin, the
+// scaling arrow and a card state.
+const EGL_BAND_INK = { pips: 'var(--wf-sky)', mult: 'var(--wf-coral)', rewind: 'var(--wf-cream)', pause: 'var(--wf-sage)', replay: 'var(--wf-mint)' };
+function eglCardMarks(card) {
+  const k = cardId(card), curse = cardCurses[k], cd = curse && CURSE_DEFS[curse.id];
+  const grow = (permPipsGrow[k] || 0) || (permMultGrow[k] || 0);
+  const html = (typeof cardBandsHTML === 'function' ? cardBandsHTML(card, f => EGL_BAND_INK[f.id] || 'var(--wf-amber)') : '')
+    + (cd ? `<i class="egl-mk egl-mk-curse">${emGlyph(cd.icon)}<b>${curse.left}</b></i>` : '')
+    + ((typeof cardIsFodder === 'function' && cardIsFodder(card)) ? '<i class="egl-mk egl-mk-fodder">♻</i>' : '')
+    + (grow ? '<i class="egl-mk egl-mk-grow">↗</i>' : '')
+    + ((typeof permCoins !== 'undefined' && permCoins[k]) ? '<i class="egl-mk egl-mk-coin"></i>' : '')
+    + ((typeof cardStateBadgeHTML === 'function') ? cardStateBadgeHTML(card) : '');
+  return { html, cls: cd ? ' egl-cursed' : '' };
 }
 // A card's buffs as { v: '+12', w: 'PIPS', k: buff key }: the offer's own
 // labels, or what a deck card holds.
@@ -570,6 +591,11 @@ function eglCodes(card, buffs) {
   if (v('time')) out.push({ v: `+${v('time')}s`, w: 'REWIND', k: 'time' });
   if (v('focus')) out.push({ v: `+${v('focus')}`, w: 'FOCUS', k: 'focus' });
   if (v('coin')) out.push({ v: `+${v('coin')}`, w: 'CREDITS', k: 'coin' });
+  if (card._vulturePause) out.push({ v: `+${card._vulturePause}s`, w: 'PAUSE', k: 'pause' });
+  if ((typeof permPipsGrow !== 'undefined' && permPipsGrow[k]) || (typeof permMultGrow !== 'undefined' && permMultGrow[k])) out.push({ v: 'SCALING', w: '', k: 'grow' });
+  if (typeof cardIsFodder === 'function' && cardIsFodder(card)) out.push({ v: 'FODDER', w: '', k: 'fodder' });
+  const cu = cardCurses[k], cdef = cu && CURSE_DEFS[cu.id];
+  if (cdef) out.push({ v: cdef.name.toUpperCase(), w: `${cu.left} LEFT`, k: 'curse' });
   return out;
 }
 // The deck in one column per suit, a rank to a row from the Ace down, wilds last.
@@ -604,11 +630,15 @@ function eglSlotHTML(s, style, cw, ch, sel, cut) {
     return `<div class="egl-vs${on}${insp}" data-i="${s.i}" style="--card-w:${(fw - 2).toFixed(1)}px;--card-h:${(fh - 2).toFixed(1)}px">`
          + `<div class="egl-vface">${s.buffs ? eglFaceBuffed(s.card, s.buffs) : eglCardFace(s.card)}</div>${lab}<i class="egl-x">CUT</i></div>`;
   }
-  const codes = eglCodes(s.card, s.buffs), wild = s.card.rank === (typeof WILD_RANK !== 'undefined' ? WILD_RANK : '✶');
-  return `<div class="egl-vs egl-tc egl-tc-${style} egl-s-${wild ? 'wild' : eglSuitCls(s.card.suit)}${on}${insp}${codes.length ? ' egl-tcb' : ''}" data-i="${s.i}">`
-       + `<span class="egl-cr">${eglEsc(s.card.rank)}</span><span class="egl-cs">${s.card.suit || ''}</span>`
-       + (codes.length ? `<span class="egl-cb">${codes.map(c => `<em class="egl-k-${c.k}"><strong>${eglEsc(c.v)}</strong><small>${eglEsc(c.w)}</small></em>`).join('')}</span>` : '')
-       + `<u>CUT</u></div>`;
+  // A deck card wears its marks only (the head line says what they are); a market
+  // card prints its offer as well.
+  const c = s.card, wild = c.rank === (typeof WILD_RANK !== 'undefined' ? WILD_RANK : '✶');
+  const codes = s.buffs ? eglCodes(c, s.buffs) : [], mk = eglWithBuffs(c, s.buffs, () => eglCardMarks(c));
+  const suit2 = c.suit2 ? `<span class="egl-s2 egl-s-${eglSuitCls(c.suit2)}">${c.suit2}</span>` : '';
+  return `<div class="egl-vs egl-tc egl-tc-${style} egl-s-${wild ? 'wild' : eglSuitCls(c.suit)}${on}${insp}${codes.length ? ' egl-tcb' : ''}${mk.cls}" data-i="${s.i}">`
+       + `<span class="egl-cid"><span class="egl-cr">${eglEsc(c.rank)}${c.rank2 ? `<small>${eglEsc(c.rank2)}</small>` : ''}</span><span class="egl-cs">${c.suit || ''}${suit2}</span></span>`
+       + (codes.length ? `<span class="egl-cb">${codes.map(x => `<em class="egl-k-${x.k}"><strong>${eglEsc(x.v)}</strong><small>${eglEsc(x.w)}</small></em>`).join('')}</span>` : '')
+       + mk.html + `<u>CUT</u></div>`;
 }
 function eglViewPiece(R, G) {
   const st = eglStep(), b = G.box(R.c, R.r, R.w, R.h), style = eglCardStyle(), cut = st.t === 'deckcols';

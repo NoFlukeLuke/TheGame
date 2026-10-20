@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r600 · your floppy art: renamed, turned right way up, drawn sharp";
+const BUILD = "2026-10-20 · r601 · your floppy art: renamed, turned right way up, drawn sharp";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

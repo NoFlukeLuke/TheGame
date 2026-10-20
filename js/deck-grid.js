@@ -344,13 +344,15 @@ function cardBandPaint(bands, angle) {
   return `linear-gradient(${angle}deg, ${stops.join(',')})`;
 }
 
-function cardBandsHTML(card) {
+// `inkOf(family)`, when given, chooses the ink instead (r600: the event screens
+// draw the same bands in their own palette); the geometry is unchanged.
+function cardBandsHTML(card, inkOf) {
   if (!card || !card.rank) return '';
   const k = cardId(card), faceL = cardBandLuma(cardFaceColor(card)), byCorner = {};
   CARD_BAND_FAMILIES.forEach(f => {
     const n = cardBandCount(f.of(k, card) || 0, f.per);
     if (!n) return;
-    const ink = cardBandInk(f, faceL);
+    const ink = inkOf ? inkOf(f) : cardBandInk(f, faceL);
     const slot = byCorner[f.corner] || (byCorner[f.corner] = { bands: [], ink });
     for (let i = 0; i < n; i++) slot.bands.push({ ink });
   });

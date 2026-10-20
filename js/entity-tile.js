@@ -34,7 +34,9 @@ function emGlyph(g) {
   // sheet by css/px-icons.css). The emoji rides along hidden inside it, so the
   // Entity art setting (js/px-icons.js) can show it again with no re-render.
   const ix = (typeof PX_ICONS !== 'undefined') ? PX_ICONS[g] : undefined;
-  if (ix != null) return `<span class="rwd-em px-ico" style="${egs ? egs + ';' : ''}--ix:${ix}"><i>${g}</i></span>`;
+  // r600: a light icon (cream, white) is outlined, or it vanishes on a light ground.
+  const lt = (typeof PX_ICON_LIGHT !== 'undefined' && PX_ICON_LIGHT.includes(ix)) ? ' px-light' : '';
+  if (ix != null) return `<span class="rwd-em px-ico${lt}" style="${egs ? egs + ';' : ''}--ix:${ix}"><i>${g}</i></span>`;
   return egs ? `<span class="rwd-em" style="${egs}">${g}</span>` : `<span class="rwd-em">${g}</span>`;
 }
 
