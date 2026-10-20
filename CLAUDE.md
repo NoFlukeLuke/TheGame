@@ -1517,3 +1517,28 @@ in one column per suit, a rank to a row from the Ace down, wilds last, six rows 
 over the Focus bar (`#egl-scroll`, hold to repeat), the mouse wheel or a drag (`--vr` on the view).
 Text that does not fit overflows (`.egl-fit > * { flex-shrink: 0 }`, `justify-content: safe
 center`) so the fit pass can see it. Prefs moved to `lethe.eventGridLab.v2`.
+
+## r590 - event layouts lab, round three: WIREFRAME in the box (owner's pick)
+- **Palette** (`EGL_PALETTE`, js/event-grid-lab.js): twelve phosphors with the amber's warmth, written
+  onto #egl as `--wf-<name>`; the amber layouts' CSS reads only those. Keywords (`.kw-*`), rarity words
+  (`.egl-rar`), suits (`.egl-s-*`: spades cream, hearts coral, diamonds gold, clubs sky, wilds rose) and
+  buffs (`.egl-k-<buff key>`) each take the nearest one. Shown as swatches in the lab panel.
+- **Entities** are drawn large with no description; the box label names them, so the tile's own name is
+  hidden and the icon fills the label with a dark outline (a cream or white pixel icon vanished on the
+  Trick's cream label). Pointing at one or tapping it opens the game's own tooltip (`data-et`,
+  `showEntityTooltip`). Stacked strips (a phone) put the picture beside its rarity (`.egl-flat`).
+- **Typing** (Settings -> Display -> **Text speed**: Normal / Fast (2x) / Instant; `textTypeCps()` in
+  js/settings.js, 160 / 320 / 0 characters a second). An element marked by `eglTy(key)` types once
+  (`egl.seen`); its untyped text stays laid out but hidden (`.egl-tu`), so the fit pass stays true. A
+  live line (a running count) types once and then changes in place. A tap on the board finishes it.
+- **One cursor** (`#egl-cur`, zero width, the block hangs off it): with the text while it types, then
+  at the end of the prompt until a choice is made, then in the chosen box (CONFIRM on a card screen),
+  then the outcome.
+- **Card screens** lay out as a 6 x 6 board: words across the top row and a half, cards in the middle
+  four columns at a playing card's shape (`EGL_CARD_RATIO` 0.714, `EGL_VIEW_ROWS` 4 rows in view), keys
+  in the last half row. Measured at 1440x820: cards 39 x 55 design px, a 6 x 6 board's card. Text cards
+  are sized from their own box (container units).
+- **Transitions** (lab panel, `eglPrefs.tr`): CONSOLE (default; a command types at the foot, its output
+  scrolls the old screen up and the new one in after it) and CUBE (the board turns like a cube), both
+  run between two copies of the screens (`eglSnap`; open and close copy the game's own #grid). FLIP is
+  r588's. Reduced motion takes FLIP; a room change (slide-off) moves the r588 way.

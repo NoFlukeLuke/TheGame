@@ -1,15 +1,17 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   EVENT GRID LAB (r588, r589) - js/event-grid-lab.js. Events drawn as the board.
+   EVENT GRID LAB (r588, r589, r590) - js/event-grid-lab.js. Events drawn as the board.
    STAGE PX throughout: #egl is a child of #stage and carries the cabinet zoom.
    Every text size is N px x var(--fit): the lab shrinks a cell's words until
    they stay inside it and reports the smallest. #egl[data-lay] is the layout;
    rules with no layout in them are MARQUEE's, the others override.
+   r590: the amber screens take their colours from the lab's phosphor palette,
+   --wf-<name> written on #egl from EGL_PALETTE, and nothing else.
    ══════════════════════════════════════════════════════════════════════════ */
 body.egl-on #grid { visibility: hidden; }
 
 #egl {
-  --am: #ffb02e; --am-hi: #ffd27a; --am-dim: rgba(255,176,46,0.55); --am-glow: rgba(255,176,46,0.55);
-  --am-good: #7dffb0; --am-bad: #ff6a52; --glass: #070503;
+  --am: var(--wf-amber, #ffb02e); --am-hi: var(--wf-bright, #ffd98a); --am-dim: rgba(255,176,46,0.55); --am-glow: rgba(255,176,46,0.55);
+  --am-good: var(--wf-mint, #94ecb0); --am-bad: var(--wf-coral, #ff7656); --glass: #070503;
   position: absolute; z-index: 60; box-sizing: border-box;
   border-radius: 8px; border: 1px solid #000;
   background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
@@ -145,27 +147,54 @@ body.egl-on #grid { visibility: hidden; }
 .egl-t-x  { font-size: calc(11.5px * var(--fit)); color: rgba(255,176,46,0.78); }
 .egl-t-l  { font-size: calc(12.5px * var(--fit)); color: var(--am-hi); margin-top: calc(3px * var(--fit)); }
 .egl-t-h  { color: var(--am-hi); }
-.egl-t-c  { color: #ff9a6a; text-shadow: 0 0 6px rgba(255,120,80,0.45); }
-.egl-t-dim { color: rgba(255,176,46,0.5); }
-.egl-t-good { color: var(--am-good); text-shadow: 0 0 6px rgba(125,255,176,0.5); }
-.egl-t-bad { color: var(--am-bad); text-shadow: 0 0 6px rgba(255,106,82,0.5); }
-.egl-t-rule { min-height: 0; height: 0; margin: calc(5px * var(--fit)) 0; border-top: 1px dashed rgba(255,176,46,0.35); }
-.egl-type { animation: egl-type .32s steps(24, end) var(--d, 0ms) both; }
-@keyframes egl-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
-.egl-cursor { display: none; }
-#egl:not([data-lay="marquee"]) .egl-cursor { display: inline-block; width: .55em; height: 1em; background: var(--am); align-self: flex-start; flex: 0 0 auto;
-  font-size: calc(11px * var(--fit)); animation: egl-blink 1s steps(1) infinite; box-shadow: 0 0 6px var(--am-glow); }
+.egl-t-c  { color: var(--am-bad); text-shadow: 0 0 6px rgba(255,118,86,0.45); }
+.egl-t-dim { color: var(--wf-dim); }
+.egl-t-good { color: var(--am-good); text-shadow: 0 0 6px rgba(148,236,176,0.5); }
+.egl-t-bad { color: var(--am-bad); text-shadow: 0 0 6px rgba(255,118,86,0.5); }
+.egl-t-rule { min-height: 0; height: 0; margin: calc(5px * var(--fit)) 0; border-top: 1px dashed var(--wf-dim); }
+/* Typing (eglTypeScan): the words not typed yet keep their room, unseen. */
+.egl-tu { visibility: hidden; }
+/* THE cursor, one on the board (eglCursorPlace). No width of its own, so it never
+   moves a word; the block hangs off it in the colour of the text it sits in. */
+#egl-cur { display: inline-block; position: relative; width: 0; height: 1em; vertical-align: -0.14em; font-style: normal; }
+#egl-cur::after { content: ''; position: absolute; left: 1px; top: 0; width: .5em; height: 1em; background: currentColor;
+  box-shadow: 0 0 6px currentColor; animation: egl-blink 1.06s steps(1) infinite; }
+#egl-cur.typing::after { animation: none; }
 @keyframes egl-blink { 50% { opacity: 0; } }
+/* Keywords keep their colour, as the nearest phosphor (EGL_PALETTE). */
+#egl:not([data-lay="marquee"]) [class*="kw-"] { font-weight: normal; text-shadow: 0 0 5px; }
+#egl:not([data-lay="marquee"]) :is(.kw-pips, .kw-xpips, .kw-hand) { color: var(--wf-sky); }
+#egl:not([data-lay="marquee"]) :is(.kw-mult, .kw-xmult, .kw-discard, .kw-trick, .kw-bad) { color: var(--wf-coral); }
+#egl:not([data-lay="marquee"]) .kw-focus { color: var(--wf-violet); }
+#egl:not([data-lay="marquee"]) :is(.kw-score, .kw-credits, .kw-buy, .kw-knack) { color: var(--wf-gold); }
+#egl:not([data-lay="marquee"]) :is(.kw-time, .kw-swap) { color: var(--wf-teal); }
+#egl:not([data-lay="marquee"]) :is(.kw-rewind, .kw-sleight) { color: var(--wf-cream); }
+#egl:not([data-lay="marquee"]) .kw-pause { color: var(--wf-sage); }
+#egl:not([data-lay="marquee"]) :is(.kw-play, .kw-limit, .kw-reward) { color: var(--wf-mint); }
+#egl:not([data-lay="marquee"]) :is(.kw-replay, .kw-wild) { color: var(--wf-rose); }
+#egl:not([data-lay="marquee"]) :is(.kw-sell, .kw-board, .kw-round) { color: var(--wf-bright); }
+#egl:not([data-lay="marquee"]) .kw-streak { color: var(--wf-amber); }
+#egl:not([data-lay="marquee"]) .kw-r-common { color: var(--wf-mint); }
+#egl:not([data-lay="marquee"]) .kw-r-rare { color: var(--wf-teal); }
+#egl:not([data-lay="marquee"]) .kw-r-epic { color: var(--wf-violet); }
+#egl:not([data-lay="marquee"]) .kw-r-legendary { color: var(--wf-rose); }
+/* A rarity word, the same way. */
+.egl-rar { font: calc(13px * var(--fit))/1 'VT323 Local', 'VT323', monospace; letter-spacing: 2px; color: var(--rc); text-shadow: 0 0 6px; }
 /* Scan lines, glare and edge falloff: one glass for the whole board, or one per screen. */
 #egl[data-lay="wire"]::after, #egl[data-lay="terminal"]::after, .egl-screen::after, #egl[data-lay="wall"] .egl-cell::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 20; border-radius: inherit;
   background: repeating-linear-gradient(180deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px),
               radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
 }
-/* A pixel icon or an entity tile drawn in phosphor. */
+/* A pixel icon or an entity tile on the glass: its own colours, warmed a little
+   (r590; the r589 all-amber filter lost a Trick's picture in its label). */
 #egl[data-lay="wall"] .egl-ico, #egl[data-lay="wire"] .egl-ico, #egl[data-lay="wall"] .egl-art, #egl[data-lay="wire"] .egl-art {
-  filter: grayscale(1) sepia(1) saturate(4.5) hue-rotate(-12deg) brightness(1.05) drop-shadow(0 0 4px rgba(255,176,46,0.5));
+  filter: sepia(.28) saturate(1.1) drop-shadow(0 0 5px rgba(255,176,46,0.35));
 }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-common    { --rc: var(--wf-mint); }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-rare      { --rc: var(--wf-teal); }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-epic      { --rc: var(--wf-violet); }
+#egl:not([data-lay="marquee"]) .egl-opt.rar-legendary { --rc: var(--wf-rose); }
 #egl:not([data-lay="marquee"]) .egl-ico { color: var(--am); }
 
 /* ══ WALL: Marquee as a wall of small screens ═════════════════════════════ */
@@ -181,7 +210,7 @@ body.egl-on #grid { visibility: hidden; }
 #egl[data-lay="wall"] .egl-opt .egl-fit { gap: calc(5px * var(--fit)); }
 #egl[data-lay="wall"] .egl-ot { font: calc(15px * var(--fit))/1 'VT323 Local', 'VT323', monospace; color: var(--am-hi); letter-spacing: .5px; text-transform: uppercase; }
 #egl[data-lay="wall"] .egl-ox { font: calc(12px * var(--fit))/1.1 'VT323 Local', 'VT323', monospace; color: rgba(255,176,46,0.8); }
-#egl[data-lay="wall"] .egl-cost, #egl[data-lay="wall"] .egl-tag { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: #ff9a6a; background: none; padding: 0; letter-spacing: 1px; }
+#egl[data-lay="wall"] .egl-cost, #egl[data-lay="wall"] .egl-tag { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-bad); background: none; padding: 0; letter-spacing: 1px; }
 #egl[data-lay="wall"] .egl-tag { color: var(--am-dim); }
 #egl[data-lay="wall"] .egl-opt:hover { border-color: #5c4c2c; }
 #egl[data-lay="wall"] .egl-debuff .egl-ot { color: #ffb09a; }
@@ -239,9 +268,25 @@ body.egl-on #grid { visibility: hidden; }
 .egl-leg { position: absolute; top: -0.62em; left: 7px; max-width: calc(100% - 14px); padding: 0 4px; z-index: 2;
   background: var(--glass); color: var(--am-hi); font: 12px/1 'VT323 Local', 'VT323', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .egl-wb > .egl-fit { padding: 8px 7px 5px; gap: calc(4px * var(--fit)); }
+/* A label that is still typing opens its gap in the line as it types. */
+.egl-leg.egl-ty { background: transparent; }
+.egl-leg.egl-ty > span:not(.egl-tu) { background: var(--glass); box-shadow: -4px 0 0 var(--glass); }
 #egl[data-lay="wire"] .egl-prompt .egl-fit, #egl[data-lay="wire"] .egl-result .egl-fit { align-items: stretch; justify-content: safe center; }
 #egl[data-lay="wire"] .egl-ox { font: calc(12px * var(--fit))/1.1 'VT323 Local', 'VT323', monospace; color: rgba(255,176,46,0.82); }
-#egl[data-lay="wire"] .egl-cost { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: #ff9a6a; letter-spacing: 1px; }
+#egl[data-lay="wire"] .egl-cost { font: calc(11px * var(--fit)) 'VT323 Local', 'VT323', monospace; color: var(--am-bad); letter-spacing: 1px; }
+/* An entity is the picture alone, large; the tooltip carries its words (r590). */
+#egl[data-lay="wire"] .egl-ent .egl-fit { gap: calc(6px * var(--fit)); }
+#egl[data-lay="wire"] .egl-ent .egl-art { width: calc(94% * var(--fit)); max-width: calc(128px * var(--fit)); cursor: var(--cur-pointer, pointer);
+  filter: sepia(.18) saturate(1.05) drop-shadow(0 0 7px color-mix(in srgb, var(--rc) 45%, transparent)); }
+/* Stacked into wide strips (a phone): the picture beside its rarity. */
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-fit { flex-direction: row; gap: calc(12px * var(--fit)); padding-top: 6px; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-art { width: auto; height: calc(96% * var(--fit)); max-width: none; }
+/* The box's label already names it, so the tile's own name goes and the icon
+   takes the label, outlined: a cream or white icon vanished on the cream label. */
+#egl[data-lay="wire"] .egl-ent .rwd-name, #egl[data-lay="wire"] .egl-ent .rwd-tier { visibility: hidden; }
+#egl[data-lay="wire"] .egl-ent .reward-cell.entity-trick .rwd-art { padding: 41% 10% 12% 10%; font-size: 38cqw; }
+#egl[data-lay="wire"] .egl-ent .rwd-em.px-ico { filter: drop-shadow(1px 0 0 #2a2116) drop-shadow(-1px 0 0 #2a2116) drop-shadow(0 1px 0 #2a2116) drop-shadow(0 -1px 0 #2a2116); }
+#egl[data-lay="wire"] .egl-ent:hover .egl-art { filter: sepia(.08) saturate(1.1) brightness(1.08) drop-shadow(0 0 9px color-mix(in srgb, var(--rc) 70%, transparent)); }
 #egl[data-lay="wire"] .egl-opt:hover .egl-wb { border-color: var(--am-hi); }
 #egl[data-lay="wire"] .egl-debuff .egl-wb { border-color: rgba(255,106,82,0.75); }
 #egl[data-lay="wire"] .egl-sel, #egl[data-lay="wire"] .egl-sel:hover { transform: none; background: transparent; box-shadow: none; }
@@ -289,13 +334,13 @@ body.egl-on #grid { visibility: hidden; }
 .egl-view { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 4px; touch-action: none; overflow: hidden !important; }
 #egl .egl-cell.egl-view::after { display: none; }
 .egl-vw { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: repeat(var(--vc), 1fr);
-  grid-auto-rows: var(--vh); gap: var(--vg); padding: 3px;
+  grid-auto-rows: var(--vh); gap: var(--vg);
   transform: translateY(calc(var(--vr, 0) * (var(--vh) + var(--vg)) * -1)); transition: transform .26s cubic-bezier(.25,.8,.3,1); }
 .egl-vs { position: relative; min-width: 0; }
-.egl-vempty { border: 1px dashed rgba(183,172,147,0.16); border-radius: 5px; }
-#egl:not([data-lay="marquee"]) .egl-vempty { border-color: rgba(255,176,46,0.14); }
+.egl-vempty { justify-self: center; width: var(--cw); border: 1px dashed rgba(183,172,147,0.16); border-radius: 5px; box-sizing: border-box; }
+#egl:not([data-lay="marquee"]) .egl-vempty { border-color: color-mix(in srgb, var(--wf-dim) 45%, transparent); }
 /* The real face (MARQUEE, READOUT). A market card's buffs print on a strip under it. */
-.egl-vface { position: relative; height: calc(var(--card-h) + 2px); }
+.egl-vface { position: relative; width: calc(var(--card-w) + 2px); height: calc(var(--card-h) + 2px); margin: 0 auto; }
 .egl-vs .card { left: 1px; top: 1px; pointer-events: none; }
 .egl-vs[data-i]:hover .card { background: #fffaee; }
 .egl-vlab { position: absolute; left: 2px; right: 2px; bottom: 0; top: calc(var(--card-h) + 3px); padding: 1px 2px; border-radius: 0 0 5px 5px;
@@ -307,31 +352,64 @@ body.egl-on #grid { visibility: hidden; }
   background: var(--c-mint, #35d59b); color: #06251a; font: 700 9px/13px sans-serif; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
 .egl-x { display: none; }
 .egl-vcut .card { filter: grayscale(.8) brightness(.55); }
-.egl-vcut .egl-x { display: flex; position: absolute; inset: 1px; align-items: center; justify-content: center; z-index: 3; border-radius: 5px;
+.egl-vcut .egl-x { display: flex; position: absolute; top: 1px; left: 50%; width: var(--card-w); height: var(--card-h); translate: -50% 0; align-items: center; justify-content: center; z-index: 3; border-radius: 5px;
   border: 2px solid #ff4b3e; color: #ff4b3e; font: 800 11px 'Orbitron', sans-serif; letter-spacing: 2px; text-shadow: 0 0 6px rgba(255,75,62,0.7), 0 1px 2px #000;
   background: repeating-linear-gradient(45deg, rgba(255,75,62,0.22) 0 3px, transparent 3px 7px); font-style: normal; }
-/* A text card: a screen of its own (WALL) or a line drawing on the glass (WIREFRAME, TERMINAL). */
-.egl-tc { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 5px; overflow: hidden; }
-.egl-tc b { font-weight: normal; font-size: calc(var(--vh) * .46); line-height: .9; color: var(--am-hi); }
-.egl-tc i { font-style: normal; font-size: calc(var(--vh) * .3); line-height: 1; }
-.egl-tc.egl-red, .egl-tc.egl-red b { color: var(--am-bad); text-shadow: 0 0 6px rgba(255,106,82,0.5); }
-.egl-tcb b, .egl-tcb i { position: absolute; top: 3px; font-size: calc(var(--vh) * .25); }
-.egl-tcb b { left: 5px; } .egl-tcb i { left: calc(5px + 1.3em); top: 4px; font-size: calc(var(--vh) * .2); }
-.egl-tc em { font-style: normal; margin-top: calc(var(--vh) * .18); font-size: calc(var(--vh) * .19); line-height: 1.05; text-align: center; color: var(--am-hi); text-shadow: 0 0 5px var(--am-glow); }
+/* A text card (r590): a playing card's shape (--cw by the slot's height), drawn as
+   a screen of its own (WALL) or in lines on the shared glass (WIREFRAME,
+   TERMINAL). Sized from its own box (container units), so it reads the same at
+   every board size. --sc is the suit's phosphor, --kc a buff's. */
+.egl-tc { --sc: var(--wf-cream); position: relative; justify-self: center; width: var(--cw); height: 100%; box-sizing: border-box;
+  container-type: size; border-radius: 4px; overflow: hidden; color: var(--sc); text-shadow: 0 0 6px color-mix(in srgb, var(--sc) 55%, transparent); }
+.egl-s-he { --sc: var(--wf-coral); }
+.egl-s-di { --sc: var(--wf-gold); }
+.egl-s-cl { --sc: var(--wf-sky); }
+.egl-s-wild { --sc: var(--wf-rose); }
+.egl-tc .egl-cr { position: absolute; left: 8%; top: 3%; font-size: 36cqw; line-height: .9; }
+.egl-tc .egl-cs { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-46%); text-align: center; font-size: 62cqw; line-height: 1; }
+.egl-tcb .egl-cs { left: auto; right: 9%; top: 5%; transform: none; font-size: 30cqw; }
+.egl-cb { position: absolute; left: 3%; right: 3%; top: 31%; bottom: 3%; display: flex; flex-direction: column; justify-content: center; gap: 3cqh; }
+.egl-cb em { --kc: var(--am); font-style: normal; display: flex; flex-direction: column; align-items: center; line-height: .86; color: var(--kc);
+  text-shadow: 0 0 5px color-mix(in srgb, var(--kc) 55%, transparent); }
+.egl-cb strong { font-weight: normal; font-size: 30cqw; }
+.egl-cb small { font-size: 17cqw; letter-spacing: .3px; }
+.egl-k-pips, .egl-k-xpips { --kc: var(--wf-sky) !important; }
+.egl-k-mult, .egl-k-xmult { --kc: var(--wf-coral) !important; }
+.egl-k-focus  { --kc: var(--wf-violet) !important; }
+.egl-k-time   { --kc: var(--wf-cream) !important; }
+.egl-k-retrig { --kc: var(--wf-rose) !important; }
+.egl-k-coin   { --kc: var(--wf-gold) !important; }
 .egl-tc u { display: none; }
+.egl-tc-line { border: 1px solid color-mix(in srgb, var(--sc) 62%, transparent);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--sc) 22%, transparent), inset 0 0 5px color-mix(in srgb, var(--sc) 9%, transparent); }
 .egl-tc-phos { background: radial-gradient(ellipse at 50% 42%, #1c1408 0%, #0a0704 70%, #040302 100%); border: 2px solid #2b2721;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 0 0 1px #000; }
 .egl-tc-phos::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
   background: repeating-linear-gradient(180deg, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px); }
-.egl-tc-line { border: 1px solid rgba(255,176,46,0.6); box-shadow: 0 0 5px rgba(255,176,46,0.2), inset 0 0 5px rgba(255,176,46,0.08); }
-.egl-tc-line.egl-red { border-color: rgba(255,106,82,0.6); }
-.egl-tc:hover { filter: brightness(1.25); }
-.egl-tc.egl-vbuy { background: var(--am); border-color: var(--am-hi); box-shadow: 0 0 12px var(--am-glow); }
-.egl-tc.egl-vbuy *, .egl-tc.egl-vbuy { color: #140b01 !important; text-shadow: none !important; }
-.egl-tc.egl-vcut { border-color: var(--am-bad); box-shadow: 0 0 10px rgba(255,106,82,0.45); }
-.egl-tc.egl-vcut b, .egl-tc.egl-vcut i, .egl-tc.egl-vcut em { opacity: .3; }
+.egl-tc:hover { filter: brightness(1.3); }
+/* Picked: the card lights solid in its own colour. */
+.egl-tc.egl-vbuy { background: var(--sc); border-color: var(--sc); box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 60%, transparent); }
+.egl-tc.egl-vbuy, .egl-tc.egl-vbuy * { color: #140b01 !important; text-shadow: none !important; }
+.egl-tc.egl-vbuy::before { display: none; }
+.egl-tc.egl-vcut { border-color: var(--am-bad); box-shadow: 0 0 10px rgba(255,118,86,0.45); }
+.egl-tc.egl-vcut > :not(u) { opacity: .28; }
 .egl-tc.egl-vcut u { display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; text-decoration: none;
-  color: var(--am-bad); font-size: calc(var(--vh) * .36); letter-spacing: 2px; background: rgba(255,106,82,0.12); }
+  color: var(--am-bad); font-size: 30cqw; letter-spacing: 1px; background: rgba(255,118,86,0.12); text-shadow: 0 0 6px rgba(255,118,86,0.6); }
+
+/* ══ TRANSITIONS (r590): copies of the two screens, under the glass ══════════ */
+.egl-tr { position: absolute; inset: 0; z-index: 10; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.egl-face { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; backface-visibility: hidden; }
+.egl-face > .egl-cell { pointer-events: none; }
+/* CONSOLE: one tall column (old screen, the command and its output, new screen)
+   that scrolls up a line at a time. */
+.egl-con-col { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+.egl-con-out { padding: 0 10px; }
+.egl-con-l { height: 13px; font: 13px/13px 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px var(--am-glow);
+  white-space: pre; overflow: hidden; }
+.egl-con-cmd { color: var(--am-hi); }
+.egl-con-cmd::after { content: ''; display: inline-block; width: .5em; height: 1em; vertical-align: -0.14em; margin-left: 1px;
+  background: currentColor; box-shadow: 0 0 6px currentColor; }
+.egl-con-good { color: var(--am-good); text-shadow: 0 0 6px rgba(148,236,176,0.5); }
 
 /* ══ THE FOCUS BAR'S ARROWS (the deck's suit columns) ═════════════════════ */
 #egl-scroll { position: absolute; z-index: 61; display: none; flex-direction: column; gap: 4px; padding: 4px 3px; box-sizing: border-box;
@@ -369,6 +447,11 @@ body.egl-on #grid { visibility: hidden; }
 #egl-panel .eglp-name { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; color: #fff; }
 #egl-panel .eglp-shape { color: #8a83a3; font-size: 11px; }
 #egl-panel .eglp-lab { margin-top: 3px; font-size: 10px; letter-spacing: 2.5px; color: #8a83a3; }
+#egl-panel .eglp-lab i { font-style: normal; letter-spacing: 0; color: #6a6386; }
+#egl-panel .eglp-wrap { flex-wrap: wrap; }
+#egl-panel .eglp-wrap button { flex: 1 1 28%; }
+#egl-panel .eglp-pal { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+#egl-panel .eglp-pal i { height: 14px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4); }
 #egl-panel .eglp-note { color: #b8b0cc; font-size: 11px; min-height: 2.6em; }
 #egl-panel .eglp-need { display: flex; gap: 6px; align-items: center; color: #b8b0cc; font-size: 11px; cursor: var(--cur-pointer, pointer); }
 #egl-panel .eglp-metric { padding: 6px 8px; border-radius: 6px; background: #0b0a12; color: #9b93b5; font-size: 11px; }
