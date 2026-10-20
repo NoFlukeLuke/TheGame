@@ -138,3 +138,5 @@ const PX_ICONS = {
   "🧊": 131,
   "🪨": 132,
 };
+// Icons light enough to need an outline (palette colour luminance >= 0.65).
+const PX_ICON_LIGHT = [2, 14, 20, 21, 23, 24, 31, 33, 35, 41, 53, 54, 55, 62, 64, 65, 70, 74, 84, 87, 93, 111, 112];

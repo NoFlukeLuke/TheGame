@@ -11,5 +11,11 @@
   image-rendering: pixelated; transform: none;
 }
 .rwd-em.px-ico > i { display: none; font-style: normal; }
+/* r600: a light icon (PX_ICON_LIGHT: the cream and white rows) takes a dark
+   outline one sheet pixel wide (1/16 em), so it reads on a light ground like the
+   Trick's cream label. Darker icons are left as drawn. */
+html:not(.px-emoji) .rwd-em.px-ico.px-light {
+  filter: drop-shadow(.0625em 0 0 #2a2116) drop-shadow(-.0625em 0 0 #2a2116) drop-shadow(0 .0625em 0 #2a2116) drop-shadow(0 -.0625em 0 #2a2116);
+}
 html.px-emoji .rwd-em.px-ico { width: auto; height: auto; background: none; transform: scale(var(--egs, 1)); }
 html.px-emoji .rwd-em.px-ico > i { display: inline; }

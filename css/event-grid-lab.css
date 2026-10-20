@@ -278,14 +278,20 @@ body.egl-on #grid { visibility: hidden; }
 #egl[data-lay="wire"] .egl-ent .egl-fit { gap: calc(6px * var(--fit)); }
 #egl[data-lay="wire"] .egl-ent .egl-art { width: calc(94% * var(--fit)); max-width: calc(128px * var(--fit)); cursor: var(--cur-pointer, pointer);
   filter: sepia(.18) saturate(1.05) drop-shadow(0 0 7px color-mix(in srgb, var(--rc) 45%, transparent)); }
-/* Stacked into wide strips (a phone): the picture beside its rarity. */
-#egl[data-lay="wire"] .egl-ent.egl-flat .egl-fit { flex-direction: row; gap: calc(12px * var(--fit)); padding-top: 6px; }
-#egl[data-lay="wire"] .egl-ent.egl-flat .egl-art { width: auto; height: calc(96% * var(--fit)); max-width: none; }
-/* The box's label already names it, so the tile's own name goes and the icon
-   takes the label, outlined: a cream or white icon vanished on the cream label. */
-#egl[data-lay="wire"] .egl-ent .rwd-name, #egl[data-lay="wire"] .egl-ent .rwd-tier { visibility: hidden; }
-#egl[data-lay="wire"] .egl-ent .reward-cell.entity-trick .rwd-art { padding: 41% 10% 12% 10%; font-size: 38cqw; }
-#egl[data-lay="wire"] .egl-ent .rwd-em.px-ico { filter: drop-shadow(1px 0 0 #2a2116) drop-shadow(-1px 0 0 #2a2116) drop-shadow(0 1px 0 #2a2116) drop-shadow(0 -1px 0 #2a2116); }
+/* The name, just above the picture (r600): sized so most names take two lines,
+   three at most, then an ellipsis. Words never break. */
+.egl-wb-ent > .egl-fit { padding: 6px 4px 5px; }
+/* Two lines are kept for every name, the text at their foot, so the pictures line up. */
+.egl-enw { align-self: stretch; display: flex; flex-direction: column; justify-content: flex-end; min-height: 2em;
+  font: calc(16px * var(--fit))/1 'VT323 Local', 'VT323', monospace; }
+.egl-en { font: inherit; letter-spacing: .3px; color: var(--am-hi);
+  text-align: center; overflow-wrap: normal; word-break: keep-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden; }
+/* Stacked into wide strips (a phone): the picture, then the name and rarity. */
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-fit { flex-direction: row; gap: calc(12px * var(--fit)); padding-top: 4px; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-art { width: auto; height: calc(96% * var(--fit)); max-width: none; order: -1; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-enw { align-self: center; flex: 1 1 0; min-height: 0; }
+#egl[data-lay="wire"] .egl-ent.egl-flat .egl-en { text-align: left; }
 #egl[data-lay="wire"] .egl-ent:hover .egl-art { filter: sepia(.08) saturate(1.1) brightness(1.08) drop-shadow(0 0 9px color-mix(in srgb, var(--rc) 70%, transparent)); }
 #egl[data-lay="wire"] .egl-opt:hover .egl-wb { border-color: var(--am-hi); }
 #egl[data-lay="wire"] .egl-debuff .egl-wb { border-color: rgba(255,106,82,0.75); }
@@ -358,27 +364,58 @@ body.egl-on #grid { visibility: hidden; }
 /* A text card (r593): a playing card's shape (--cw by the slot's height), drawn as
    a screen of its own (WALL) or in lines on the shared glass (WIREFRAME,
    TERMINAL). Sized from its own box (container units), so it reads the same at
-   every board size. --sc is the suit's phosphor, --kc a buff's. */
+   every board size. --sc is the suit's phosphor, --kc a buff's.
+   r600: laid out like the game's face (rank over suit, 24% and 29% of the
+   card's height) so the game's corner marks fit round it. Isolated, so the
+   bands' z-index -1 paints over the card and under its words, as on a card. */
 .egl-tc { --sc: var(--wf-cream); position: relative; justify-self: center; width: var(--cw); height: 100%; box-sizing: border-box;
-  container-type: size; border-radius: 4px; overflow: hidden; color: var(--sc); text-shadow: 0 0 6px color-mix(in srgb, var(--sc) 55%, transparent); }
+  container-type: size; isolation: isolate; border-radius: 4px; overflow: hidden; color: var(--sc);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--sc) 55%, transparent); }
 .egl-s-he { --sc: var(--wf-coral); }
 .egl-s-di { --sc: var(--wf-gold); }
 .egl-s-cl { --sc: var(--wf-sky); }
 .egl-s-wild { --sc: var(--wf-rose); }
-.egl-tc .egl-cr { position: absolute; left: 8%; top: 3%; font-size: 36cqw; line-height: .9; }
-.egl-tc .egl-cs { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-46%); text-align: center; font-size: 62cqw; line-height: 1; }
-.egl-tcb .egl-cs { left: auto; right: 9%; top: 5%; transform: none; font-size: 30cqw; }
-.egl-cb { position: absolute; left: 3%; right: 3%; top: 31%; bottom: 3%; display: flex; flex-direction: column; justify-content: center; gap: 3cqh; }
+.egl-tc .egl-cid { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.egl-tc .egl-cr { font-size: 24cqh; line-height: 1; text-align: center; }
+.egl-tc .egl-cr small { display: block; font-size: .72em; line-height: .9; }
+.egl-tc .egl-cs { font-size: 29cqh; line-height: 1; margin-top: 1px; }
+.egl-tc .egl-s2 { color: var(--sc); margin-left: 1px; }
+/* A market card: rank and suit on one line, its offer under them. */
+.egl-tcb .egl-cid { flex-direction: row; gap: 1px; }
+.egl-tcb .egl-cr, .egl-tcb .egl-cs { font-size: 18cqh; margin: 0; }
+.egl-tcb .egl-cr small { display: inline; }
+.egl-cb { display: flex; flex-direction: column; align-items: center; gap: 3cqh; margin-top: 6cqh; }   /* cq units on a child: the card is the container */
 .egl-cb em { --kc: var(--am); font-style: normal; display: flex; flex-direction: column; align-items: center; line-height: .86; color: var(--kc);
   text-shadow: 0 0 5px color-mix(in srgb, var(--kc) 55%, transparent); }
 .egl-cb strong { font-weight: normal; font-size: 30cqw; }
 .egl-cb small { font-size: 17cqw; letter-spacing: .3px; }
+/* Buff colours follow the corner bands (EGL_BAND_INK): pips sky, mult coral,
+   rewind cream, replay mint; Focus and credits have no band, so the palette's. */
 .egl-k-pips, .egl-k-xpips { --kc: var(--wf-sky) !important; }
 .egl-k-mult, .egl-k-xmult { --kc: var(--wf-coral) !important; }
 .egl-k-focus  { --kc: var(--wf-violet) !important; }
 .egl-k-time   { --kc: var(--wf-cream) !important; }
-.egl-k-retrig { --kc: var(--wf-rose) !important; }
+.egl-k-retrig { --kc: var(--wf-mint) !important; }
 .egl-k-coin   { --kc: var(--wf-gold) !important; }
+/* The game's card marks (eglCardMarks), placed as on a card. */
+.egl-tc .card-xmark { position: absolute; top: 1%; z-index: 3; font: 34cqw/1 'VT323 Local', 'VT323', monospace; font-style: normal;
+  text-shadow: 0 0 2px #000, 0 0 5px currentColor; pointer-events: none; }
+.egl-tc .card-xmark.cx-tl { left: 7%; color: var(--wf-sky); }
+.egl-tc .card-xmark.cx-tr { right: 7%; color: var(--wf-coral); }
+.egl-mk { position: absolute; z-index: 3; font-style: normal; line-height: 1; pointer-events: none; }
+.egl-mk-curse { top: 3%; right: 6%; font-size: 26cqw; filter: drop-shadow(0 1px 1px rgba(0,0,0,.8)); }
+.egl-mk-curse b { position: absolute; right: -32%; bottom: -34%; font: 17cqw/1 'VT323 Local', 'VT323', monospace; color: var(--wf-sage);
+  background: #0c1006; border: 1px solid var(--wf-sage); border-radius: 3px; padding: 0 1px; text-shadow: none; }
+.egl-tc.egl-cursed { border-color: var(--wf-sage); box-shadow: 0 0 8px color-mix(in srgb, var(--wf-sage) 55%, transparent),
+  inset 0 0 7px color-mix(in srgb, var(--wf-sage) 25%, transparent); }
+.egl-mk-fodder { left: 6%; bottom: 3%; font-size: 24cqw; color: var(--wf-coral); text-shadow: 0 0 5px var(--wf-coral); }
+.egl-mk-grow { left: 50%; bottom: 2%; translate: -50% 0; font-size: 22cqw; color: var(--wf-mint); text-shadow: 0 0 5px var(--wf-mint); }
+.egl-mk-coin { left: 50%; top: 50%; translate: -50% -50%; width: 62%; aspect-ratio: 1; border-radius: 50%; z-index: -1;
+  border: 1px solid var(--wf-gold); background: color-mix(in srgb, var(--wf-gold) 12%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--wf-gold) 50%, transparent), inset 0 0 6px color-mix(in srgb, var(--wf-gold) 30%, transparent); }
+.egl-tc .card-state-badge { position: absolute; top: 2%; left: 4%; z-index: 3; padding: 0 2px; border-radius: 3px; font-size: 20cqw; line-height: 1;
+  color: #14100a; background: var(--csc, var(--wf-gold)); text-shadow: none; }
 .egl-tc u { display: none; }
 .egl-tc-line { border: 1px solid color-mix(in srgb, var(--sc) 62%, transparent);
   box-shadow: 0 0 5px color-mix(in srgb, var(--sc) 22%, transparent), inset 0 0 5px color-mix(in srgb, var(--sc) 9%, transparent); }

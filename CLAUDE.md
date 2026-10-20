@@ -1647,3 +1647,24 @@ less sets `html.fa-pix` (pixelated). Dev -> Aesthetics -> Floppy art switches ba
 drawn disc at 400 x 380; files starting `_` are never loaded. The owner uploads straight to main on
 GitHub (the folder's README says how). Verified with a test `floppy.png` (removed before commit): the
 pick, the tray and the reward grid drew it, icons on its label, no page errors.
+
+## r600 - light icons outlined; event names and card marks (owner)
+- **Light pixel icons** (cream and white rows, 23 of 133): `tools/icons/build.js` now also writes
+  `PX_ICON_LIGHT` (rows whose palette colour has luminance >= `--light`, 0.65) into js/data/icons.js;
+  `emGlyph` tags them `.px-light` and css/px-icons.css gives them a dark outline one sheet pixel wide
+  (`.0625em`, four drop-shadows), everywhere. Darker icons are untouched. The tool reproduced the
+  shipped sheet byte for byte before the change; the sheet itself did not change.
+- **Why The Woodpecker and The Cuckoo look alike:** 27 Tricks are in no `TRICK_CATEGORIES` row, so
+  `trickEmoji` gives them the fallback ✦, drawn as the white sparkles icon. Owner to decide.
+- **Event lab, WIREFRAME entities:** the box has no label (its border closes); the name is printed
+  just above the picture (`.egl-enw` / `.egl-en`, 16px VT323, two lines kept so the pictures line
+  up, clamped at three with an ellipsis). Measured at 1440x820: all 169 live Trick names take one
+  or two lines (132 / 37) and no word is wider than the box.
+- **Event cards wear the game's marks** (`eglCardMarks`): `cardBandsHTML(card, inkOf)` takes an
+  optional ink chooser (geometry unchanged) and the lab passes palette inks (`EGL_BAND_INK`: pips sky,
+  mult coral, rewind cream, pause sage, replay mint); x marks, the curse badge with its count (and
+  the card's sage glow), Fodder, the coin ring, the scaling arrow and a card state are drawn where a
+  card draws them. Text cards are laid out like the face (rank 24%, suit 29% of the height) so the
+  corner marks fit. A deck card shows marks only; pointing at it or tapping it prints its buffs and
+  curse in the top box (`eglHover` now also runs on card screens). Container units on a container
+  resolve against its ANCESTOR: spacing inside the card is on its children.
