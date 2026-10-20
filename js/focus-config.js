@@ -126,13 +126,15 @@ function handCardLadder(n) { return scoringModel === 'card_ladder' ? n : 0; }
 // Its total for a hand before replays (1 + 2 + ... + k over the cards that score),
 // for the live MULT readout before the hand is played.
 // r554: plus the family's double-scaling step on every numbered card.
+// A wild is not numbered unless Stand-In stands it in for a card, as in calcScore.
 function handLadderTotal(cells) {
   if (!cells) return 0;
+  const comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
+  const prox = (comp && typeof hasKnack === 'function' && hasKnack('stand_in')) ? standInProxies(comp.components) : {};
   const k = cells.filter(([r, c]) => { const x = gridData[r]?.[c];
-    return x && !(typeof isWildCard === 'function' && (isWildCard(x) || isWarehouseCard(x))); }).length;
+    return x && (prox[r + '-' + c] || !(typeof isWildCard === 'function' && (isWildCard(x) || isWarehouseCard(x)))); }).length;
   let step = 0;
   if (typeof nsHandGrowth === 'function' && typeof handComponentsFor === 'function') {
-    const comp = handComponentsFor(cells);
     step = nsHandGrowth(comp ? comp.components.map(x => x.name) : []).step;
   }
   return (scoringModel === 'card_ladder' ? k * (k + 1) / 2 : 0) + k * step;
