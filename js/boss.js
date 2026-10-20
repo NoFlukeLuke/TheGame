@@ -983,7 +983,9 @@ function bindBossBriefReopen() {
 // closes it - a bubble you cannot dismiss over a live board is worse than no
 // bubble. It is bound once and both copies (top-bar and landscape) are wired,
 // because only one of them has a rect in any given orientation.
-let _clockBossOpen = false;
+// r606: a DOUBLE-tap skips to the boss (js/boss-jump.js); its first tap has
+// opened the bubble, the second closes it on the way.
+let _clockBossOpen = false, _clockBossTapAt = 0;
 function bindClockBossPeek() {
   ['clock-boss', 'vclock-boss'].forEach(id => {
     const el = document.getElementById(id);
@@ -991,6 +993,13 @@ function bindClockBossPeek() {
     el._clockBossBound = true;
     el.addEventListener('click', (e) => {
       e.stopPropagation();
+      const now = Date.now();
+      if (now - _clockBossTapAt < DOUBLE_TAP_MS) {
+        _clockBossTapAt = 0; hideBossPeek(); _clockBossOpen = false;
+        if (typeof bossJumpStart === 'function') bossJumpStart();
+        return;
+      }
+      _clockBossTapAt = now;
       if (_clockBossOpen) { hideBossPeek(); _clockBossOpen = false; return; }
       showBossPeek(el);
       _clockBossOpen = true;
@@ -1257,7 +1266,8 @@ function bossPeekHTML() {
        + (p.brief  ? `<div class="bp-brief">${p.brief}</div>`   : '')
        + `<div class="bp-note">${(typeof actBossId !== 'undefined' && actBossId && p.id === actBossId)
             ? 'Locked in for this quarter.'
-            : 'Forecast. Gaining Tricks can change which boss is next.'}</div>`;
+            : 'Forecast. Gaining Tricks can change which boss is next.'}</div>`
+       + ((typeof flowActive === 'function' && flowActive()) ? `<div class="bp-note">Double-tap the skull on the clock to start it now.</div>` : '');
 }
 
 function showBossPeek(anchor) {

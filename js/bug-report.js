@@ -50,9 +50,9 @@ function _brArg(a) {
 // Which functions are traced, and how loudly. `quiet` ones log no arguments.
 const BR_TRACE = [
   // bosses
-  'triggerBoss', 'startBossTimer', 'endBoss', 'flowTriggerBoss', 'flowEndBoss',
+  'triggerBoss', 'startBossTimer', 'endBoss', 'flowTriggerBoss', 'flowEndBoss', 'bossJumpStart',
   // challenge cards
-  'crBeginArrival', 'crLand', 'crTap', 'crRaise', 'crCollect', 'crFail', 'crDrain',
+  'crBeginArrival', 'crTeleNow', 'crLand', 'crTap', 'crRaise', 'crCollect', 'crFail', 'crDrain',
   'crOnClockOut', 'crSettle', 'crSpotSettle', 'crTakePrize', 'crFlowSpawn', 'crFlowCancel',
   // between rounds
   'onRoundEnd', 'flashRoundEnd', 'startInterlude', 'triggerLevelUp', 'rolloverQuarter',

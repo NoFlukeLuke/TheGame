@@ -115,7 +115,9 @@ function _baScheduleBeat() {
   const left = bossApproachSecondsLeft();
   if (left === null) return;
   const t = Math.min(1, Math.max(0, 1 - left / cfg.warnSeconds));
-  const gap = cfg.beatSlowMs + (cfg.beatFastMs - cfg.beatSlowMs) * t;
+  // r606: skipping to the boss (js/boss-jump.js) runs the clock fast; the beat keeps up.
+  const pace = typeof bossJumpPace === 'function' ? bossJumpPace() : 1;
+  const gap = (cfg.beatSlowMs + (cfg.beatFastMs - cfg.beatSlowMs) * t) / pace;
   _baBeatTimer = setTimeout(() => {
     // gameTimerPaused covers the Mart, the pick screen and the pause menu - the
     // dread should not thump away behind a menu.
@@ -123,7 +125,7 @@ function _baScheduleBeat() {
       sfxHeartbeat(0.5 + 0.7 * t);
     }
     _baScheduleBeat();
-  }, Math.max(200, Math.round(gap)));
+  }, Math.max(200 / pace, Math.round(gap)));
 }
 
 // ══════════════════════════════════════════════

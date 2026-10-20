@@ -114,6 +114,7 @@ const SFX_CATALOG = [
     note: 'Once per heartbeat wave for a whole round, so it sits at the very bottom of the mix.' },
   { id: 'tick_tock',     fn: 'sfxTickTock',        group: 'Time',    label: 'Clock frozen' },
   { id: 'rewind',        fn: 'sfxRewind',          group: 'Time',    label: 'Time rewound' },
+  { id: 'boss_jump',     fn: 'sfxBossJump',        group: 'Time',    label: 'Skip to the boss', args: [2.4] },
 
   // Match-3
   { id: 'm3_match',      fn: 'sfxMatch3Match',     group: 'Match-3', label: 'Match found',  args: [1] },

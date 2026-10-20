@@ -114,6 +114,7 @@ const SFX_MIX = {
   clock_tick:    { bus: 'detail', gain: 0.80, gap: 120 },
   tick_tock:     { bus: 'event',  gain: 0.95 },
   rewind:        { bus: 'event' },
+  boss_jump:     { bus: 'event' },
 };
 
 const SFX_DUCK_ATTACK  = 0.025;   // dip fast - the point is to clear the way NOW

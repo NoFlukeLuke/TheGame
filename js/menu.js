@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r605 · Pixel icons drawn on a 32px grid (was 16)";
+const BUILD = "2026-10-20 · r606 · Double-tap a marked challenge cell to bring it now; double-tap the clock skull to skip to the boss";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

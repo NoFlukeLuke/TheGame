@@ -1699,3 +1699,23 @@ written on `<html>` by js/px-icons.js). Owner's reasoning, measured: a desktop t
 screen px, so a 16 grid gave 3.6 screen px per block (chunky, detail lost), 32 gives ~1.8 (still
 reads as pixels, much clearer), 64 would be ~0.9 (no visible pixels). Verified at 1440x820 and
 420x900 (DPR 3): tray, event Free Pick and phone strips draw the new sheet, outline 1 sheet px.
+
+## r606 - double-tap a marked challenge cell; double-tap the clock's skull (owner)
+- **Challenge now** (`crTeleNow(r, c)`, js/challenge-round.js): a double-tap on a cell a challenge
+  warning marks (Flow, spot, or a challenge round's pulse) lands the card at once through `crLand`.
+  Caught in `onCardTap` above the Sleight and swap branches, so it beats a double_tap Sleight in the
+  cell and the swap lift; the card there can still be swapped as the second card, or with two
+  selected and SWAP. The first tap's selection change is undone (`_dtBefore`). The first two
+  warnings of a run say so.
+- **Skip to the boss** (`js/boss-jump.js`, `css/boss-jump.css`): Flow only. A double-tap on the
+  clock's skull (`bindClockBossPeek`, js/boss.js; the first tap opens the peek, which now says so)
+  drains the session clock and ends in `flowTriggerBoss`, as 0:00 would. The round tick is stopped,
+  so the skipped seconds run nothing; a pause or Stopwatch on the clock is let go. The last
+  `BOSS_APPROACH_CFG.warnSeconds` drain at `BOSS_JUMP_SPEED` (8x) so the approach count shows;
+  seconds above them drain in at most `BOSS_JUMP_FAST_MS` (1.5s), so 5:00 takes ~2.8s. Every
+  document animation runs at 8x for the drain (`bossJumpSpeedAnims`, playbackRate, restored after),
+  the heartbeat reads `bossJumpPace()`, and `#bj-osd` (a child of #grid: the VCR's two-triangle
+  mark and a rolling tracking band) is drawn over the board. Sound `sfxBossJump(sec)` (js/audio.js,
+  catalog `boss_jump`, returns a stop function). Refused (`refuse`) while the board is busy or the
+  clock is stopped. While it runs, `bossJumpRunning()` blocks onCardTap, the grid's pointerdown,
+  playHand, doDiscard, doSwap and the Focus bar; the pause menu (`isPaused`) holds it.

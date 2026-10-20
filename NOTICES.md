@@ -13,7 +13,7 @@ counter that visibly moved.
 New notices: `showMessage` / `refuse` to print, `noteMessage` to stay quiet.
 The dev panel's own messages always print.
 
-## Printed (235)
+## Printed (236)
 | where | text |
 |---|---|
 | boss-effects.js:207 |  Objective ${before.toLocaleString()} → ${roundGoal.toLocaleString()} |
@@ -36,6 +36,7 @@ The dev panel's own messages always print.
 | boss-effects.js:788 |  ${where} OF THE BOARD PAYS MOST |
 | boss-effects.js:928 |  🪶 taken: ${labels} |
 | boss-effects.js:961 |  −${lost} Focus |
+| boss-jump.js:44 | refuse The clock is not running / Wait for the board |
 | boss.js:354 |  The Hollow claims a card |
 | card-states.js:442 |  ♛ Royal Favour - a Queen leaves the board |
 | card-states.js:468 |  n.text |

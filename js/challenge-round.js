@@ -380,7 +380,7 @@ function crBeginArrival(src, tier, idx) {
     const st = src === 'flow' ? crFlowState() : crSpotState();
     if ((st.hints || 0) < 2) {
       st.hints = (st.hints || 0) + 1;
-      showMessage(`⚑ A challenge card lands on the marked cell in ${t.left}s. Discard the card there to refuse it.`, 'var(--c-amber, #ffb347)', { ms: 4600 });
+      showMessage(`⚑ A challenge card lands on the marked cell in ${t.left}s. Double-tap the cell to bring it now; discard the card there to refuse it.`, 'var(--c-amber, #ffb347)', { ms: 4600 });
     }
   }
   crTelePaint(t);
@@ -407,6 +407,17 @@ function crTeleOnDiscard(cells) {
     sfxChallengeDodge();
     noteMessage('⚑ Challenge refused');
   }
+}
+// r606 (owner): a double-tap on a marked cell lands its challenge now (onCardTap,
+// above the swap lift: the card in that cell can still be swapped as the SECOND
+// card, or with two selected and SWAP). False when no warning marks the cell.
+function crTeleNow(r, c) {
+  const t = crTele.find(x => x.r === r && x.c === c);
+  if (!t) return false;
+  clearTimeout(t.timer);
+  t.left = null;   // the tick stops counting it; crLand waits out a busy board itself
+  crLand(t);
+  return true;
 }
 function crTelePaint(t) {
   const g = document.getElementById('grid'); if (!g || typeof cellLeft !== 'function') return;

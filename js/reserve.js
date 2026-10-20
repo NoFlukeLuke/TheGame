@@ -100,6 +100,7 @@ function focusTapHandler() {
 // some layouts (the slot is a later sibling), so a listener on the bar itself can
 // be shadowed. A tap on a card or a button is never a bar tap.
 function focusBarTap(e) {
+  if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606
   if (e && e.target && e.target.closest && e.target.closest('button, .card, .trick-card, #dev-panel')) return;
   const wrap = document.getElementById('focus-meter-wrap');
   if (!wrap || !e) return;

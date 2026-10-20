@@ -707,6 +707,57 @@ function sfxRewind() {
   src.start(now); src.stop(now + dur + 0.1);
 }
 
+// FAST FORWARD (r606): the Flow clock running out at speed (js/boss-jump.js).
+// The rewind's tape turned the other way: two detuned saws climbing for the
+// whole drain with a tape flutter on them, and hiss that opens as they go.
+// Returns a stop function, so a pause mid-drain does not leave it playing.
+function sfxBossJump(sec = 2.4) {
+  const vol = (typeof sfxVolume === 'function') ? sfxVolume() : 1;
+  if (vol <= 0) return () => {};
+  const ctx  = getAudioCtx();
+  const now  = ctx.currentTime;
+  const dur  = Math.max(0.4, sec);
+  const dest = sfxOut(ctx);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, now);
+  env.gain.exponentialRampToValueAtTime(vol, now + 0.08);
+  env.gain.setValueAtTime(vol, now + dur - 0.06);
+  env.gain.linearRampToValueAtTime(0, now + dur);
+  env.connect(dest);
+  // Tape flutter: a fast wobble on the level, quickening with the tape.
+  const lfo = ctx.createOscillator(), depth = ctx.createGain(), wob = ctx.createGain();
+  lfo.frequency.setValueAtTime(9, now); lfo.frequency.exponentialRampToValueAtTime(26, now + dur);
+  depth.gain.value = 0.35; wob.gain.value = 0.65;
+  lfo.connect(depth); depth.connect(wob.gain); wob.connect(env);
+  const nodes = [lfo];
+  [[220, 0], [220, 11]].forEach(([f, det]) => {
+    const osc = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+    osc.type = 'sawtooth'; osc.detune.value = det;
+    osc.frequency.setValueAtTime(f, now);
+    osc.frequency.exponentialRampToValueAtTime(f * 4, now + dur);
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(700, now);
+    lp.frequency.exponentialRampToValueAtTime(4200, now + dur);
+    g.gain.value = 0.05;
+    osc.connect(lp); lp.connect(g); g.connect(wob);
+    nodes.push(osc);
+  });
+  const n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = fxRandom() * 2 - 1;
+  const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain();
+  src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 1.1;
+  bp.frequency.setValueAtTime(900, now); bp.frequency.exponentialRampToValueAtTime(5200, now + dur);
+  ng.gain.value = 0.035;
+  src.connect(bp); bp.connect(ng); ng.connect(wob);
+  nodes.push(src);
+  nodes.forEach(o => { o.start(now); o.stop(now + dur + 0.05); });
+  return () => {
+    const t = ctx.currentTime;
+    try { env.gain.cancelScheduledValues(t); env.gain.setValueAtTime(env.gain.value, t); env.gain.linearRampToValueAtTime(0, t + 0.04); } catch (e) {}
+    nodes.forEach(o => { try { o.stop(t + 0.06); } catch (e) {} });
+  };
+}
+
 // ── Hook sounds into game events ──
 // Sounds are called directly at their trigger sites above.
 

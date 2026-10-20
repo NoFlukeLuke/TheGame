@@ -123,6 +123,7 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
+  if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606
   // A boss may refuse the action outright (The Turnstile with no fare). Checked
   // FIRST, before anything commits - bossOnInteract runs after the swap has
   // already happened, which is right for a cost and useless for a gate.
@@ -348,6 +349,7 @@ function onCardTap(r, c) {
   // Autopilot (r474) has the board while it runs.
   if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
   if (typeof sweepRunning === 'function' && sweepRunning()) return;   // r572: All Hands has the board
+  if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606: the clock is running out
   // The Pick (r244) owns the board outright while it is open, so it intercepts
   // ABOVE the `animating` guard - that flag is routinely still true from the
   // un-explode's flights, and a tap that silently does nothing reads as broken.
@@ -407,6 +409,17 @@ function onCardTap(r, c) {
   const isDoubleTap = lastTapCell &&
     lastTapCell[0] === r && lastTapCell[1] === c &&
     (now - lastTapTime) < DOUBLE_TAP_MS;
+
+  // r606: a double-tap on a cell a challenge warning marks brings the challenge in
+  // now (js/challenge-round.js). The first tap's selection change is undone first.
+  if (isDoubleTap && !swapPending && typeof crTele !== 'undefined' && crTele.some(t => t.r === r && t.c === c)) {
+    if (_dtBefore && _dtBefore.r === r && _dtBefore.c === c) selected = _dtBefore.sel.filter(([sr, sc]) => !(sr === r && sc === c));
+    _dtBefore = null; lastTapTime = 0; lastTapCell = null;
+    cancelAutoSubmit();
+    crTeleNow(r, c);
+    render();
+    return;
+  }
 
   // Sleights select/swap like normal cards (tooltip shown via long-press).
   // double_tap-activated sleights (none in current pool) would intercept here:
@@ -553,6 +566,7 @@ const gridEl2 = document.getElementById('grid');
 // level down. A tap that silently does nothing reads as broken, and did.
 gridEl2.addEventListener('pointerdown', e => {
   const _pick = typeof pickOwnsBoard === 'function' && pickOwnsBoard();
+  if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606: no input while the clock runs out
   if (!_pick && (animating || roundEnded)) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
   const cell = cardAt(e.target);
   if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }

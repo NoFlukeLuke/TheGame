@@ -1,0 +1,31 @@
+/* ══ SKIP TO THE BOSS (r606, js/boss-jump.js) ══════════════════════════════
+   Double-tap the skull on Flow's clock: the clock runs out fast. Everything
+   else on screen is sped up from JS (every animation's playbackRate); these
+   are the two things drawn for it, which keep their own pace. */
+#grid #bj-osd {
+  position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: hidden;
+}
+#bj-osd .bj-mark {
+  position: absolute; left: 8px; top: 6px; width: 40px; height: 24px;
+  fill: #f4f1e6; stroke: #120d08; stroke-width: 1.6px; paint-order: stroke; stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px rgba(0,0,0,0.75));
+  animation: bj-blink 0.5s steps(1, end) infinite;
+}
+/* A tape's tracking band: a stripe of light and dark lines rolling down the
+   screen, readable on cream cards and dark glass alike. */
+#bj-osd .bj-track {
+  position: absolute; left: 0; right: 0; top: -14%; height: 12%;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.16) 0 2px, rgba(255,255,255,0.16) 2px 4px);
+  -webkit-mask: linear-gradient(to bottom, transparent, #000 35% 65%, transparent);
+          mask: linear-gradient(to bottom, transparent, #000 35% 65%, transparent);
+  animation: bj-roll 0.7s linear infinite;
+}
+@keyframes bj-blink { 0% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes bj-roll  { from { transform: translateY(0); } to { transform: translateY(1000%); } }
+/* The skull the double-tap landed on stays lit for the drain. */
+#stage.boss-jump .clock-boss {
+  background: var(--c-magenta, #ff2f8e); color: #1a0d16;
+  box-shadow: 0 0 14px rgba(255,47,142,0.95);
+}
+body.reduced-motion #bj-osd .bj-track { display: none; }
+body.reduced-motion #bj-osd .bj-mark { animation: none; }
