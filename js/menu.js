@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r602 · card ladder: a Stand-In wild counts in the MULT readout";
+const BUILD = "2026-10-20 · r603 · notes: the card ladder and Stand-In";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

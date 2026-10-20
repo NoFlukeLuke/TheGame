@@ -1123,7 +1123,8 @@ css/style.css hides the portrait top bar's Level stat under it. Flow keeps its L
   MULT is `handLadderTotal(cells)`; the round breakdown shows a "Card ladder" mult row
   (`_lastHandLadderMult`). `handBaseMult(h)` with no cells (hand ranking, Records) falls back to the
   table, so the partition still prefers the bigger hand. Real hands through PLAY: no timeline drift.
-  A wild pays no ladder mult and takes no number (owner, r553).
+  A wild pays no ladder mult and takes no number (owner, r553), unless Stand-In stands it in for a
+  card: then it is numbered, in calcScore and in `handLadderTotal`'s MULT readout alike (r602).
 - **Dev panel search** (`#dev-search`, the title bar; `devSearch`): lists every section on every tab
   holding the typed phrase (spaces collapsed; if none does, every word anywhere), each headed by the
   tab(s) it lives on, the matching lines lit (`.dev-hit`). It renders every tab's generated rows first
