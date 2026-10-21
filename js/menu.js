@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r612 · Classic: improvements 1.5x as likely with a full Trick tray; improved art repaints at once";
+const BUILD = "2026-10-21 · r613 · Board Sleights wear their improvement bands; full-tray improvements x2";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

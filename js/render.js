@@ -126,7 +126,7 @@ function render() {
           attachLongPress(div, r, c);
           continue;
         }
-        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
+        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + sleightTierClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
         div.onclick = null;   // see the aim-sleight note above - pointerup owns the tap
         attachLongPress(div, r, c);

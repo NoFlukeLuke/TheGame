@@ -1793,3 +1793,15 @@ repeated set "2 SETS OF 3"; other repeats keep x2 (RUN OF 3 x2). Measured: 77 PA
   the reward grid's improve tile used to repaint; the shop, events, Flow's improve step and the Review
   state left the old bands and badge up until something else redrew the tray. A Sleight on the BOARD
   draws no tier bands at all (only its tiles do); not changed.
+
+## r613 - board Sleights wear their improvement bands; full-tray improvements x2 (owner)
+- `sleightTierClass(def)` (js/sleights-runtime.js) gives the board card the tile's `tier-N`
+  (render.js and card-fall.js); the band rules are `:is(.reward-cell, .trick-card.sleight-card).tier-N`
+  and the board card's `::before` paints `var(--bands, none), var(--sl-body)`, so the stripes cross
+  the business card's bottom-left corner as on its tile. Aim Sleights (no card body) are left out.
+  `improveRepaintArt` also runs `sleightBoardRetier()`, which rewrites the class on the board's
+  Sleight cards in place (no render(), safe under a takeover). Measured at 1440x820 and 420x900:
+  tiers 1/2/3/5 drawn, the class changed on the next microtask with no render() call.
+- `IMPROVE_FULL_TRAY_MULT` 1.5 -> 2. Measured (4,000 grids, 4x4, past the first 5): Tricks only
+  3.2% -> 6.2% of buff tiles (grids with one 20% -> 36%); with a Knack and Sleight 8% -> 16%
+  (44% -> 70.7%); one slot free unchanged (8%).

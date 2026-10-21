@@ -258,6 +258,7 @@ function improveRepaintArt() {
     _improveRepaintQueued = false;
     if (typeof renderTrickTray === 'function') renderTrickTray();
     if (typeof updateKnackList === 'function') updateKnackList();
+    if (typeof sleightBoardRetier === 'function') sleightBoardRetier();   // r613: board Sleights wear bands
   });
 }
 

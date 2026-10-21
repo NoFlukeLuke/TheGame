@@ -48,6 +48,22 @@ function sleightRarityClass(def) {
   const r = def && def.rarity;
   return ['common','rare','epic','legendary','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
 }
+// The board card wears its improvement bands like its tiles do (r613, owner).
+function sleightTierClass(def) {
+  const c = (def && def.id && typeof entityTierClass === 'function') ? entityTierClass({ type: 'sleight', id: def.id }) : '';
+  return c ? ' ' + c : '';
+}
+// Re-tier the board's Sleight cards in place when a tier changes (improveRepaintArt).
+// Only the class moves, so no render(): that is not safe while a screen holds #grid,
+// and then there is no board Sleight card here to update anyway.
+function sleightBoardRetier() {
+  if (typeof gridData === 'undefined' || !Array.isArray(gridData)) return;
+  document.querySelectorAll('#grid .trick-card.sleight-card:not(.aim-sleight)').forEach(el => {
+    const card = gridData[+el.dataset.row]?.[+el.dataset.col];
+    const def = card && card._isSleight && typeof sleightDef === 'function' ? sleightDef(card) : null;
+    el.className = el.className.replace(/\s*\btier-\d\b/g, '') + sleightTierClass(def);
+  });
+}
 
 // Markup shared by both render paths (js/render.js and js/card-fall.js) so the
 // grid, the fall animation and the hand preview can never disagree.

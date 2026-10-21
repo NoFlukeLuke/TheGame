@@ -62,7 +62,7 @@ const PROB_TABLES = [
     rows: () => REWARD_BUFF_CATS.map(c => ({ k: c.kind, label: c.kind, get: () => c.weight, set: v => { c.weight = v; } })) },
   { id: 'rgimprove', group: 'Reward grid', type: 'n', title: 'Improve tiles, Classic with a full Trick tray',
     desc: 'In Classic, while every Trick slot is full, a reward or prize grid tile is an improvement this many times as often as the table says. The improve rows are scaled so the chance itself is multiplied.',
-    how: '1 turns it off. At 1.5 a tile that was an improvement 8% of the time is one 12% of the time.',
+    how: '1 turns it off. At 2 a tile that was an improvement 8% of the time is one 16% of the time.',
     rows: () => [{ k: 'v', label: 'Times as often', get: () => IMPROVE_FULL_TRAY_MULT, set: v => { IMPROVE_FULL_TRAY_MULT = v; } }] },
   { id: 'rgprize', group: 'Reward grid', type: 'w', title: 'Prize grid tiles',
     desc: 'The same roll for the prize grid after a review. No common resource tiles here: entities and permanent upgrades only.',

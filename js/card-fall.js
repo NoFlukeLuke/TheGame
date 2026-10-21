@@ -68,7 +68,7 @@ function renderCardAppearance(card, r, c, {
       };
     }
     return {
-      className: `trick-card sleight-card${sleightRarityClass(def)}${isSwapPending ? ' swap-pending' : ''}`
+      className: `trick-card sleight-card${sleightRarityClass(def)}${sleightTierClass(def)}${isSwapPending ? ' swap-pending' : ''}`
                + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
                + (card._inert ? ' sleight-inert' : ''),
       innerHTML: sleightFaceHTML(card, def, usesStr),
