@@ -1777,3 +1777,19 @@ Pair above two Pairs and is left to the partition. The comp cache key now carrie
 repeated set "2 SETS OF 3"; other repeats keep x2 (RUN OF 3 x2). Measured: 77 PAIR, 777 SET OF 3,
 7788 TWO PAIR, 77788 FULL HOUSE, 777888 2 SETS OF 3, 7788KK TWO PAIR + PAIR. A real 7788 played by tap
 (1440x820, 420x900): preview TWO PAIR, `crOnHand` received "Two Pair", no drift.
+
+## r612 - Classic: more improvements with a full Trick tray; improved art repaints at once (owner)
+- **Improve tiles x1.5** (`rewardImproveBoost`, js/reward-grid.js, from `makeBuff`): in a Classic-shaped
+  run (`isActMode()`, not Guided, not the Schedule) while `trickTrayFull()`, the improve rows of the
+  reward / prize grid table are scaled so the CHANCE a tile is an improvement is `IMPROVE_FULL_TRAY_MULT`
+  (1.5) times the table's (raising the weights 1.5x would only give x1.43). Dev -> Probabilities,
+  "Improve tiles, Classic with a full Trick tray". Measured on a 4x4, past the first 5 grids, 4,000
+  grids each: owning only Tricks 3.2% of buff tiles -> 4.8% (grids with one 20% -> 29%); with an
+  improvable Knack and Sleight 8% -> 12% (44% -> 59.5%); a free slot unchanged (8.3%). An improve_knack
+  / improve_sleight tile with nothing of that type to improve still falls back to a Trick, which is
+  why owning only Tricks gives so few.
+- **Art follows the tier** (`improveRepaintArt`, js/improve.js): `improveEntity` and `downgradeEntity`
+  repaint the Trick tray and the Knack strip (one microtask, so a multi-step grant paints once). Only
+  the reward grid's improve tile used to repaint; the shop, events, Flow's improve step and the Review
+  state left the old bands and badge up until something else redrew the tray. A Sleight on the BOARD
+  draws no tier bands at all (only its tiles do); not changed.

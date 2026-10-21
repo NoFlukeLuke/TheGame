@@ -126,6 +126,23 @@ const REWARD_BUFF_CATS = [
   { weight:  3, kind: 'improve_knack' },
   { weight:  3, kind: 'improve_sleight' },
 ];
+// Classic with the Trick tray full (r612, owner): a reward tile is an improvement
+// IMPROVE_FULL_TRAY_MULT times as often. The improve rows are scaled so the CHANCE
+// is that multiple, not the weight (10 of 107 -> 15 of 112 would only be x1.43).
+// Measured before (4x4, past the first 5 grids, tray full): 3.2% of tiles with only
+// Tricks to improve, 8% with a Knack and a Sleight too (20% / 44% of grids show one).
+let IMPROVE_FULL_TRAY_MULT = 1.5;
+function rewardImproveBoost(cats) {
+  const _classic = isActMode() && !(typeof guidedActive === 'function' && guidedActive())
+                                && !(typeof mapActive === 'function' && mapActive());
+  if (!_classic || !(typeof trickTrayFull === 'function' && trickTrayFull())) return cats;
+  const isImp = c => String(c.kind).startsWith('improve_'), M = IMPROVE_FULL_TRAY_MULT;
+  const w = cats.reduce((s, c) => s + (isImp(c) ? c.weight : 0), 0);
+  const all = cats.reduce((s, c) => s + c.weight, 0);
+  if (!w || M * w >= all) return cats;
+  const k = M * (all - w) / (all - M * w);
+  return cats.map(c => isImp(c) ? { ...c, weight: c.weight * k } : c);
+}
 
 function _generateRewardContent() {
   const PRIZE = prizeGridActive(), MINI = miniGridActive(), CALLIT = callItGridActive();
@@ -603,6 +620,7 @@ function _generateRewardContent() {
   function makeBuff() {
     let cats = PRIZE ? prizeCategories : buffCategories;
     if (PRIZE && _limitTilesThisGrid >= PRIZE_MAX_LIMIT_TILES) cats = cats.filter(c => c.kind !== 'limit_up');
+    cats = rewardImproveBoost(cats);
     const cat = weightedPick(cats);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();

@@ -240,7 +240,25 @@ function improveEntity(id) {
   if (!canImprove(id)) return 0;
   entityTier[id] = entityTierOf(id) + 1;
   applyEntityTiers();
+  improveRepaintArt();
   return entityTier[id];
+}
+
+// THE ART FOLLOWS THE TIER AT ONCE (r612, owner). The tray chips carry the tier's
+// bands and badge, and they were only redrawn by callers that remembered to (the
+// reward grid did; the shop, events, Flow's improve step and the Review state did
+// not), so an improved Trick kept its old art until something else repainted the
+// tray. Every improve and downgrade now repaints here. Coalesced to one paint per
+// task, so a multi-step grant (The Draw) still paints once, before the next frame.
+let _improveRepaintQueued = false;
+function improveRepaintArt() {
+  if (_improveRepaintQueued) return;
+  _improveRepaintQueued = true;
+  queueMicrotask(() => {
+    _improveRepaintQueued = false;
+    if (typeof renderTrickTray === 'function') renderTrickTray();
+    if (typeof updateKnackList === 'function') updateKnackList();
+  });
 }
 
 // Knock one tier OFF. The counterpart to improveEntity, and the first thing in
@@ -254,6 +272,7 @@ function downgradeEntity(id) {
   if (cur <= 0) return 0;
   entityTier[id] = cur - 1;
   applyEntityTiers();
+  improveRepaintArt();
   return entityTier[id];
 }
 

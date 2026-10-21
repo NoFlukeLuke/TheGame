@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r611 · Two pairs are a Two Pair again; the preview reads PAIR, TWO PAIR, SET OF N, 2 SETS OF 3";
+const BUILD = "2026-10-21 · r612 · Classic: improvements 1.5x as likely with a full Trick tray; improved art repaints at once";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
