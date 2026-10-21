@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r636 · the deck editor's swap tip is a printed notice (first 10 edits, then every 5th) with a don't-show-again eye button; Amplifier scores the level x3 mult, +1x an improvement";
+const BUILD = "2026-10-21 · r637 · Chorus multiplies on each replay's beat (x1.5), not in one lump at the end of the hand";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

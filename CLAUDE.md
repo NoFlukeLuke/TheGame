@@ -2167,3 +2167,14 @@ preview name and tooltips still use the game's. Owner's note for later: a RANK c
   (3) mult (was a flat +10, and its notice typed +5). `IMPROVE_STEP` makes an improvement +1x, so the
   tiers read x3 x4 x5 x6 x7 x10 (the 5th is the usual triple step). Measured: level 4, double-tap by
   mouse, +12 mult in the next hand's base, spent after it.
+
+## r637 - Chorus fires on the replay (owner)
+Chorus (Trick `chorus`, epic) was one x(1.75 ^ extra replays) lump in the hand-level x mult block.
+Now it is a per-card x mult in calcScore's card loop (`_xl`, last in the card's beat): x`BAL.chorus.
+mult_mult` (1.5) on each REPLAY of a card, not its first scoring, real card only (not a dual ghost).
+Its `_xl` entry and timeline event carry `replay: true`, the reverse of `once`: `_cardMultSeq` skips
+it on rep 0, and the dance's beat filter skips it on rep 0 (js/score-dance.js). Improvements follow
+the generic x-step: x1.5 x2 x2.5 x3 x3.5 x5. Rerun is still the hand-level lump.
+Measured by tap, dev mode on, a Run of 3 with replays 2 / 3 / 1 under the card ladder: plates
+x1.5 on card 1's replay and card 2's two replays, none elsewhere; MULT chip 1 > 3 > 5 > 10.5 >
+18.8 > 21.8, the ledger's 21.75; no timeline drift at 1440x820 and 420x900.

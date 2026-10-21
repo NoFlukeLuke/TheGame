@@ -1284,7 +1284,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // replay-weighted count). So a replayed card re-pops and re-fires
       // everything else, but not those, or the chip drifts above the real total.
       // `vals` (Hard Labour, r461): an event worth a different amount on each replay.
-      const beatEvents = (rep === 0 ? step.events : step.events.filter(ev => !ev.once))
+      // `replay` (Chorus, r637) is the reverse of `once`: replays only, never rep 0.
+      const beatEvents = (rep === 0 ? step.events.filter(ev => !ev.replay) : step.events.filter(ev => !ev.once))
         .map(ev => ev.vals ? Object.assign({}, ev, { value: ev.vals[rep] }) : ev);
       const applies = beatEvents.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
       await dncWait(beatDur);

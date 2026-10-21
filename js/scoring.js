@@ -779,8 +779,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_flRanks && _flRanks.includes(baseRank)) _xl.push({ id: 'feelin_lucky', f: BAL.feelin_lucky.mult_mult });
       // Ornery (r607): a card in a corner cell, x mult on the card, once per replay.
       if (!_G && hasTrick('two_corners') && isCorner(r, c)) _xl.push({ id: 'two_corners', f: BAL.two_corners.mult_mult });
+      // Chorus (r637, owner): x mult on each REPLAY of the card, on that beat, last in
+      // it. `replay`: not on the card's first scoring (the dance skips it on rep 0).
+      if (!_G && hasTrick('chorus') && _retrig > 1) _xl.push({ id: 'chorus', f: BAL.chorus.mult_mult, replay: true });
     }
-    _xl.forEach(x => { if (x.id !== 'perm_mult') _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); });
+    _xl.forEach(x => { if (x.id !== 'perm_mult') { const e = _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); if (e && x.replay) e.replay = true; } });
     // The EVENTS are emitted here, where they belong on the timeline. The
     // ARITHMETIC is banked and run in `_cardMultSeq` further down, because `mult`
     // itself does not exist yet - it is declared below this loop, and reading it
@@ -937,7 +940,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     for (let k = 0; k < m.reps; k++) {
       const a = m.add + (k === 0 ? m.once : 0);
       mult += a;
-      m.xl.forEach(x => { const _pre = mult; mult *= x.f; _d[x.id] = (_d[x.id] || 0) + (mult - _pre); });
+      m.xl.forEach(x => { if (x.replay && k === 0) return; const _pre = mult; mult *= x.f; _d[x.id] = (_d[x.id] || 0) + (mult - _pre); });
     }
     Object.keys(_d).forEach(id => bMultQ(id, _d[id], 1));
   });
@@ -1192,17 +1195,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // ── r179 multiplier batch - triggers the ×pips/×mult pools had never covered ──
   // Replays: _reps[i] is this card's total scoring iterations, so the extras are
-  // sum(_reps) - cards.length. Rerun takes them as pips, Chorus as mult.
+  // sum(_reps) - cards.length. Rerun takes them as pips. (Chorus is per card, in the
+  // card loop since r637.)
   const _replayExtras = Math.max(0, _reps.reduce((a, b) => a + b, 0) - cards.length);
-  // Rerun / Chorus (r346): a FACTOR per replay, compounding - x1.2 pips / x1.75 mult
-  // each time a card is replayed - rather than the old additive step.
+  // Rerun (r346): a FACTOR per replay, compounding - x1.25 pips each time a card is
+  // replayed - rather than the old additive step.
   if (_replayExtras > 0 && hasTrick('rerun')) {
     const _m = Math.pow(BAL.rerun.pip_mult, _replayExtras);
     const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('rerun', _m, totalPips - _pre);
-  }
-  if (_replayExtras > 0 && hasTrick('chorus')) {
-    const _m = Math.pow(BAL.chorus.mult_mult, _replayExtras);
-    const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('chorus', _m, mult - _pre);
   }
   // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
   if (hasTrick('deep_breath') && pipeTimerPaused) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }

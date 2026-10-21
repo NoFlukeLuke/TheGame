@@ -17,7 +17,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | undertow | Undertow | Runs score ×2 pips, +×0.5 per card beyond 3 | xpips hand run size scores |
 | high_water | High Water | Runs pause the clock for 1s for each Run played this round | time hand run |
 | rerun | Rerun | ×1.25 pips each time a card is replayed | xpips card scores |
-| chorus | Chorus | ×1.75 mult each time a card is replayed | xmult card scores |
+| chorus | Chorus | ×1.5 mult each time a card is replayed | xmult card scores |
 | deep_breath | Deep Breath | Score ×2 pips while the clock is paused | xpips hand pause scores |
 | interest | Interest | Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3 | xpips hand scores |
 | portfolio | Portfolio | Score ×1 mult, +×0.25 for every card on the grid with a buff | xmult hand buffed scores |

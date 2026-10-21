@@ -163,7 +163,7 @@ const BAL = {
   rerun:       { pip_mult: 1.25 },
   deep_breath: { pip_mult: 2 },
   interest:    { pip_mult_per_10_credits: 0.1, max_pip_mult: 3 },
-  chorus:      { mult_mult: 1.75 },
+  chorus:      { mult_mult: 1.5 },   // r637: on each replay's beat
   portfolio:   { mult_mult_per_card: 0.25 },
   // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
@@ -502,6 +502,7 @@ const DESC_TEMPLATES = {
   tide_table: 'Runs score ×{mult_base} mult, +×{mult_step} per Run scored this round',
   undertow: 'Runs score ×{pip_mult_base} pips, +×{pip_mult_step} per card beyond 3',
   rerun: '×{pip_mult} pips each time a card is replayed',
+  chorus: '×{mult_mult} mult each time a card is replayed',
   portfolio: 'Score ×1 mult, +×{mult_mult_per_card} for every card on the grid with a buff',
   double_bloom: 'Hands containing a pair (pair, 2 pair, full house) score ×{mult_mult} mult',
   full_house_streak: 'Full Houses score +{focus} Focus',

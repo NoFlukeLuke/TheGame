@@ -12,7 +12,7 @@ const TRICK_POOL = [
   // credits, buffed cards on the grid, and the Focus level itself. Every one of them
   // reads in the PIPS or MULT chip, which a ×score never did.
   { id:'rerun',       name:'Rerun',       tier:'epic',   desc:'×1.25 pips each time a card is replayed', tags:['xpips','card','scores'] },
-  { id:'chorus',      name:'Chorus',      tier:'epic',   desc:'×1.75 mult each time a card is replayed', tags:['xmult','card','scores'] },
+  { id:'chorus',      name:'Chorus',      tier:'epic',   desc:'×1.5 mult each time a card is replayed', tags:['xmult','card','scores'] },
   { id:'deep_breath', name:'Deep Breath', tier:'rare',   desc:'Score ×2 pips while the clock is paused', tags:['xpips','hand','pause','scores'] },
   { id:'interest',    name:'Interest',    tier:'rare',   desc:'Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3', tags:['xpips','hand','scores'] },
   { id:'portfolio',   name:'Portfolio',   tier:'epic',   desc:'Score ×1 mult, +×0.25 for every card on the grid with a buff', tags:['xmult','hand','buffed','scores'] },
