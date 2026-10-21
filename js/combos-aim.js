@@ -214,6 +214,7 @@ let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effec
 // on purpose - the Trick marks a place on the board, not a card (a deliberate
 // exception to r192's card-keyed rule). Each cell pays once, then leaves the list.
 let doubleJeopardyCells = []; // [{ r, c }]
+let heartwoodExtraCells = []; // [{ r, c }] Heartwood's secret extra cell(s) this round (r625, the 5th improvement). In SAVE_VARS.
 function pickDoubleJeopardyCells() {
   const all = [];
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) all.push({ r, c });

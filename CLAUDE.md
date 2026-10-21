@@ -1935,3 +1935,46 @@ print and apply; Rogue Wave A Q K up and down true, mixed false; a crafted pair 
 than a pair of 7s; Heron +10 / +12 mult after the wait; Woodpecker mark 1-1 before and after the hand;
 Perfect Ten +6 mult at the 18th card; Kaleidoscope 3 suits -> 2 extra applies, 1 suit -> 0; Ripple's
 badge read 2 on selection, through the tally and for 3s after; no drift, no page errors.
+
+## r625 - the owner's epic Trick pass (from TRICKS_EPIC.xlsx)
+- **Numbers** (BAL, templates for every epic id so improvements print): Tide Table x1.25 +x0.5,
+  Undertow x2, Rerun x1.25, Portfolio +x0.25, Collapsing Columns 15, Double Dutch 20, Ley Line +2,
+  Hands of Blue +24 mult +16 Focus, Clean Sweep 8 / 4, Acorns 0.025 (**rare**), Royal Favour 30s,
+  Heartwood +5 / +5, Landfill +5 (**+3 in Flow**, `mult_per_flow`), Four Horse-man 24 / 24 / 8 / 8s,
+  Even Better x2.25, Critical x5, Threepeat 9s / +27 / +9 **or all three** (`all_chance` 20%, silent),
+  Blood Diamonds +25 mult as well, D6 pips **or mult** (coin flip), Encore **common**.
+- **Knacks now** (same ids, `retired:true` on the Tricks, KNACK_POOL rows): **Move as One** (2+ Tricks
+  share a keyword; a random one fires again each time ALL of them fire), **Rain Check**, **Wait For
+  Iiiit** (in Flow: +5% per level-up that paid a single reward, `flowrSingleRewards` in SAVE_VARS,
+  Luck-free). `hasTrick || hasKnack` at every Rain Check read.
+- **Temporal Rift is new**: a card scored where a row and a column effect intersect FORCE-TRIGGERS the
+  Trick in tray position 3 (through `forcedTrickIds` / `trickCanForce`, once per replay, +`chance_extra`
+  per improvement for a second trigger). The old +3s rewind buff is gone.
+- **Custom ladders** (`IMPROVE_PLAN`): Inspirato alternates +1 prime and a rolled extra rank
+  (`_heartRanks`, `rollExtraRanks`); Double Jeopardy +10s a tier and primes a random Trick from the 3rd;
+  Hourglass alternates +10% and -10s; Blood Diamonds cycles credits / mult / seconds; Threepeat doubles
+  one payout a tier (5th: all three, all_chance 35%); Perfect Timing a second replay chance 33% a tier
+  (over 100% = a sure second and the rest a third; 5th marks a second line, `perfectTimingExtraLine`,
+  `_fixed`); Hands of Blue +8 mult / +4 Focus; **Straight Shot** improves twice: the 1st jumps to tier 3
+  (buffed pip values count), the 2nd to tier 5 (any 5-card hand spanning 6 rows + columns, `lineSpanTotal`);
+  Clean Sweep +4 Focus / +4 credits; Cloud Nine +3 9s and +2 mult a tier (`cloudNineAddNines`), 5th never
+  deletes itself (`no_delete`); Dark Matter 1st = clubs or spades, 2nd-4th +x0.5 on the time, 5th = any
+  hand with a spade or club (`suits` 0 / 1 / 2); Temporal Rift +3% a tier; Heartwood alternates +10
+  pips / +10 mult, 5th both + a secret second cell (`heartwoodExtraCells`, SAVE_VARS, rolled per level);
+  Four Horse-man doubles one payout a tier, 5th pays 2 of the 4 (`fourHorsemanPicks`); **Undue Influence**
+  improves once, straight to tier 5 (also pays the face-card count); Patient Rulers +0.75, 5th adds 3
+  rolled ranks (`_prRanks`); Even Better alternates +11% / +0.4, 5th evens replay; What are The Odds
+  +0.35, 5th odds replay; Critical +1, 5th adds a rolled family (`_critFamily`); Twinners +1, 5th sets
+  replay; Marathon +1 apply / flushes / sets; Kaleidoscope +N applies; Landfill +5 / +3 a tier.
+  **`IMPROVE_HOOKS`** run from `improveEntity` (tier jumps, rolls, deck adds). Plan values are rounded
+  to 3 decimals.
+- Per-card replay sources added to `_srcs` for QRL: `evb`, `wod`, `twn`; a second Perfect Timing
+  replay is `pt`'s count. The Vulture only skips cards already holding its pause.
+- `fillDescTemplate` nests one level: `[[k>N:...[[k<M:...]]]]`.
+Measured in headless Chromium at 1440x820 through `?tricks=epic`, dev mode on: every epic ladder
+improves to tier 5 (Straight Shot in 2 steps, Undue Influence in 1, Cloud Nine added 15 9s, Perfect Timing
+added a line, Inspirato / Patient Rulers / Critical rolled their ranks and family); Temporal Rift with a
+row and a column mark on a card forced Quake once (527 vs 186 unforced) and played with no drift; Dark
+Matter 173s all spades / 0 mixed, tier 1 clubs+spades 173, tier 5 with a heart 432 (x2.5); Four Horse-man
+picks 1 then 2 of 4; Marathon 1 / 2 applies then flushes, sets at 5; Kaleidoscope 2 -> 4 at tier 2;
+Twinners tier 5 scored 6451 vs 605; five real hands through PLAY, no drift, no page errors.

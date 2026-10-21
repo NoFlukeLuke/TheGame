@@ -123,6 +123,7 @@ const SAVE_VARS = [
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'nsPlays', 'nsBonus', 'nsFamPlays', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerCell', 'doubleJeopardyCells',
+  'heartwoodExtraCells', 'flowrSingleRewards',   // r625
   // ── Round/run counters ──
   'handsPlayedRound', 'queenUpgradePending', 'queenBoardSecs', 'studyHallCards', 'runsPlayedRound', 'clubsScoredRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',

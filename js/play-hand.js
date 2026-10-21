@@ -49,14 +49,15 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // Gnomes: each rank-5-and-below card scored adds its rank in Focus (Ace = 1)
     {
-      const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
-      const _btl = handCells.reduce((s,[r,c]) => s + (_rv[gridData[r]?.[c]?.rank] || 0) * _rp(r, c), 0);
+      // r625: ranks at or under BAL.before_the_tide.max_rank (improvements raise it); Ace is 1.
+      const _rvOf = rk => { const v = rk === 'A' ? 1 : (RANK_ORDER[rk] || 0); return v >= 1 && v <= BAL.before_the_tide.max_rank ? v : 0; };
+      const _btl = handCells.reduce((s,[r,c]) => s + _rvOf(gridData[r]?.[c]?.rank) * _rp(r, c), 0);
       if (_btl) totalFocus += _btl * trickFires('before_the_tide');
     }
     // Lucky Sevens: +3 Focus per 7 scored
     { const _sv = _rsum(cd => cd?.rank === '7'); if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
     // Threepeat: hand pip-sum divisible by 3 → one of rewind / mult / Focus
-    { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && trickPickOne(911, handCells) === 2) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
+    { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(2, handCells)) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
     // Wildfire: reaching a same-hand streak of 3 adds Focus
     if (hasTrick('wildfire') && lastHandType === hand && streakCount + 1 === 3) totalFocus += BAL.wildfire.focus * trickFires('wildfire');
     // The Falcon: hands played while the clock is paused add +10 Focus
@@ -103,9 +104,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
         if (_fhf) {
           // One roll, paid once per firing - re-rolling per firing would turn a
           // duplicate into a different Trick (four chances at the good half).
-          const _fhm = fourHorsemanRoll(handCells);
-          if (_fhm === 2) totalFocus += BAL.four_horseman.focus * _fhf;
-          else if (_fhm === 3) pauseRound(BAL.four_horseman.pause * _fhf, 'four_horseman', 'trick');
+          const _fhp = fourHorsemanPicks(handCells);   // r625: two picks at the 5th improvement
+          if (_fhp.includes(2)) totalFocus += BAL.four_horseman.focus * _fhf;
+          if (_fhp.includes(3)) pauseRound(BAL.four_horseman.pause * _fhf, 'four_horseman', 'trick');
         }
       }
       // Wait Four It: permanently buff the 4th card (scoring order) with +2s pause when
@@ -168,6 +169,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (_djHits.length) {
         doubleJeopardyCells = doubleJeopardyCells.filter(m => !_djHits.includes(m));
         pauseRound(BAL.double_jeopardy.pause_seconds * _djHits.length * trickFires('double_jeopardy'), 'double_jeopardy', 'trick');
+        // r625: from the 3rd improvement a hit also primes a random other Trick.
+        if (BAL.double_jeopardy.prime_random) { const _djP = trickTray.filter(t => t.id !== 'double_jeopardy'); if (_djP.length) primeTrick(_djP[Math.floor(Math.random() * _djP.length)], _djHits.length, { src: 'double_jeopardy' }); }
       }
     }
     // Vulture buff: scored cards carrying the permanent "+Ns pause" buff pause the clock, counting
@@ -669,7 +672,7 @@ function playHand() {
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
-    if (_ps % 3 === 0 && hasTrick('ninesong') && trickPickOne(911, handCells) === 0) {
+    if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(0, handCells)) {
       const _ns = BAL.ninesong.seconds * trickFires('ninesong');
       if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
     }
@@ -799,7 +802,8 @@ function playHand() {
     setsPlayedRound++;
     // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
     if (handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
-      const _ui = setsPlayedRound * trickFires('undue_influence');
+      const _uiFaces = BAL.undue_influence.faces ? handCells.filter(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank)).length : 0;   // r625: improved once, the face cards pay too
+      const _ui = (setsPlayedRound + _uiFaces) * trickFires('undue_influence');
       if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); noteMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
   }
@@ -813,17 +817,7 @@ function playHand() {
   // REWIND when scored (permTime - the r211 pipeline, paid through rewindTime). The
   // once-per-minute gate is gone with the owner's new text; "time buffs do not stack"
   // is now the limiter, so each intersection card can only ever take it once.
-  if (hasTrick('temporal_rift')) {
-    const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && !cardTimeBuffed(gridData[r][c]));
-    if (_tr) {
-      const _trc = gridData[_tr[0]]?.[_tr[1]];
-      if (_trc) {
-        const _trk = cardId(_trc);
-        permTime[_trk] = (permTime[_trk] || 0) + BAL.temporal_rift.rewind;
-        showMessage('Temporal Rift! +' + BAL.temporal_rift.rewind + 's rewind when scored', '#5aa9e6');
-      }
-    }
-  }
+  // Temporal Rift (r625): force-triggers the 3rd Trick per intersecting card; armed in calcScore's force list.
   // (All Hands's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)
 
   // ── Card curses: apply per-score effects and work them off ──
@@ -869,12 +863,13 @@ function playHand() {
   if (firstHandThisRound) firstHandThisRound = false;
 
   // Heartwood - dead center card
-  const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
-  if (hasTrick('heartwood') && handCells.some(([r,c])=>r===_hwR&&c===_hwC)) {
-    const k = cardId(gridData[_hwR][_hwC]);
+  // r625: the 5th improvement adds a second, secret cell (heartwoodExtraCells, rolled each round).
+  if (hasTrick('heartwood')) heartwoodCellsNow().forEach(([hr, hc]) => {
+    if (!handCells.some(([r,c]) => r === hr && c === hc) || !gridData[hr]?.[hc]) return;
+    const k = cardId(gridData[hr][hc]);
     permPips[k] = (permPips[k]||0) + BAL.heartwood.pips;
     permMult[k] = (permMult[k]||0) + BAL.heartwood.mult;
-  }
+  });
 
   // ── Suit effects (applied per scoring card) ──
   const scoringCards = _scoredCells.map(([r,c]) => gridData[r][c]);
@@ -1009,8 +1004,28 @@ function cloudNinePickup() {
   for (let i = 0; i < n; i++) copyCardToDeck({ rank: '9', suit: suits[i % suits.length] });
   if (n) showMessage(`Cloud Nine: ${n} 9s added to your deck`, 'var(--gold)');
 }
-function cloudNineCheck() {
+// r625: an improvement adds more 9s to the deck.
+function cloudNineAddNines(n) {
   if (!hasTrick('nines_mult')) return;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  for (let i = 0; i < n; i++) copyCardToDeck({ rank: '9', suit: suits[Math.floor(Math.random() * suits.length)] });
+  if (n) showMessage(`Cloud Nine: ${n} more 9s added to your deck`, 'var(--gold)');
+}
+// Heartwood's cells this round: the centre, plus the secret extra cell(s) at the 5th improvement (r625).
+function heartwoodCellsNow() {
+  const out = [[Math.floor(gridRows / 2), Math.floor(gridCols / 2)]];
+  (heartwoodExtraCells || []).forEach(m => out.push([m.r, m.c]));
+  return out;
+}
+function heartwoodRollExtraCells() {
+  heartwoodExtraCells = [];
+  if (!hasTrick('heartwood') || (BAL.heartwood.cells || 1) < 2) return;
+  const cr = Math.floor(gridRows / 2), cc = Math.floor(gridCols / 2), all = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (r !== cr || c !== cc) all.push({ r, c });
+  for (let i = 1; i < BAL.heartwood.cells && all.length; i++) heartwoodExtraCells.push(all.splice(Math.floor(Math.random() * all.length), 1)[0]);
+}
+function cloudNineCheck() {
+  if (!hasTrick('nines_mult') || BAL.nines_mult.no_delete) return;   // r625: the 5th improvement keeps it
   const live = c => c && c.rank === '9' && !c._nineSpent && !c._temp;
   if (everyDeckCard().some(live) || (goalHandHeld || []).some(live)) return;
   const i = trickTray.findIndex(t => t.id === 'nines_mult');
@@ -1088,7 +1103,8 @@ function scalingCount(hand, handCells, reps) {
       if (hasTrick('sixes_perm') && cardsScoredTotal % BAL.sixes_perm.interval === 0) {
         const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
         const k = cardId(card);
-        permPips[k] = (permPips[k] || 0) + roll;
+        if (Math.random() < 0.5) permPips[k] = (permPips[k] || 0) + roll;   // r625: pips or mult, a coin flip
+        else permMult[k] = (permMult[k] || 0) + roll;
       }
     }
   });
@@ -1119,10 +1135,14 @@ function runHandPriming(hand, handCells, bankedContrib) {
     });
   }
   // Inspirato: a scored Ace primes the first and last tray Tricks
-  if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
-    primeTrick(trickTray[0], 1, { src: 'wild_heart' });
-    const _last = trickTray[trickTray.length - 1];
-    if (_last !== trickTray[0]) primeTrick(_last, 1, { src: 'wild_heart' });
+  // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
+  if (hasTrick('wild_heart') && trickTray.length) {
+    const _whT = trickTray.find(t => t.id === 'wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
+    if (handCells.some(([r,c]) => _whRanks.includes(gridData[r]?.[c]?.rank))) {
+      primeTrick(trickTray[0], BAL.wild_heart.primes, { src: 'wild_heart' });
+      const _last = trickTray[trickTray.length - 1];
+      if (_last !== trickTray[0]) primeTrick(_last, BAL.wild_heart.primes, { src: 'wild_heart' });
+    }
   }
   // Prime Times (r349): a hand that scores a prime rank primes your leftmost
   // Trick (itself excluded - priming Prime Times would do nothing).

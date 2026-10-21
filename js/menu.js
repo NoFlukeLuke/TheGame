@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r624 · The owner's rare Trick pass: numbers, six custom improvement ladders, Heron, Resonance, Kaleidoscope, Woodpecker, Crossroads, Perfect Ten, chance counts on chips, unplayable-hand Tricks offered less";
+const BUILD = "2026-10-21 · r625 · The owner's epic Trick pass: numbers, 24 custom improvement ladders with hooks, Temporal Rift force-triggers, Move as One / Rain Check / Wait For Iiiit are Knacks";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
