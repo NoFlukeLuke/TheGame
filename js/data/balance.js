@@ -509,7 +509,7 @@ const DESC_TEMPLATES = {
   before_the_tide: 'Each rank {max_rank} or lower card scored adds its rank in Focus',
   royal_trio: 'A hand containing a King and one other Royal scores ×{mult_mult} mult',
   frozen_moment: 'Hands played while the clock is paused add +{focus} Focus',
-  perfect_timing: 'Cards scored in a marked row or column replay [[chance2<0.995:once[[chance2>0:, with a {chance2_pct}% chance of a second replay]]]][[chance2>0.995:twice]][[extra_line:. A second line is marked]]',
+  perfect_timing: 'Cards scored in a marked row or column replay [[chance2<0.995:once[[chance2>0:, with a {chance2_pct}% chance of a second replay]]]][[chance2>0.995:twice]][[extra_line:. A second line is marked, that line replays once]]',
   sixes_perm: 'Every {interval}th card scored permanently gains a random +{roll_min}–{roll_max} pips or mult',
   hourglass: 'Each time the clock passes a {interval_seconds}s mark: {chance_pct}% chance a random card on the grid gains +1 replay (permanent buff)',
   clean_sweep: 'Use every cell of any row or column within two hands to add +{focus} Focus and +{credits} credits',

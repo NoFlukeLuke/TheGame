@@ -19,7 +19,7 @@
 
 const IA_KEY = 'lethe.improveAnim.v1';
 const IA_LOOKS = ['lift', 'stamp', 'flip'];
-const IA_DEFAULT = { look: 'lift', speed: 1, size: 42, hold: 900, stepGap: 420 };
+const IA_DEFAULT = { look: 'stamp', speed: 1, size: 46, hold: 1100, stepGap: 420 };   // r632 (owner): stamp, on the board's screen
 let iaCfg = (() => {
   const c = { ...IA_DEFAULT };
   try { Object.assign(c, JSON.parse(localStorage.getItem(IA_KEY) || '{}')); } catch (e) {}
@@ -155,14 +155,22 @@ function iaDescHTML(before, after) {
 }
 
 // ── The play ────────────────────────────────────────────────────────────────
+// The scene is a SCREEN laid over the board's box (r632, owner): an amber glass
+// like the event screens, opaque, so it replaces whatever the board holds. The
+// header and the sentence TYPE out at the game's text speed with one block
+// cursor; the tile pops / rises / flips in above the text and its new tier is
+// stamped on; the version and the changed numbers move in place. Every step of
+// a many-tiered grant, and every later improvement of the same Trick, runs
+// IA_STEP_SPEED (10%) faster than the one before (k = 1.1 ^ (tier - 1)).
+const IA_STEP_SPEED = 1.1;
 let _iaLayer = null;
 function iaLayer(S) {
   if (!_iaLayer || !_iaLayer.isConnected) {
     _iaLayer = document.createElement('div'); _iaLayer.id = 'ia-layer';
     _iaLayer.innerHTML = '<button id="ia-skip" type="button"><span class="ia-ff">⏩</span> FAST FORWARD</button>';
     _iaLayer.querySelector('#ia-skip').addEventListener('click', e => { e.stopPropagation(); improveAnimSkip(); });
-    document.body.appendChild(_iaLayer);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && _iaRunning) improveAnimSkip(); });
+    document.body.appendChild(_iaLayer);
   }
   // Zoomed like the stage, so every length inside is design px: the box itself
   // is given in design px too (its viewport px divided by the zoom, r503's rule).
@@ -170,7 +178,6 @@ function iaLayer(S) {
   s.zoom = S.z;
   s.left = (S.sr.left / S.z) + 'px'; s.top = (S.sr.top / S.z) + 'px'; s.width = S.st.offsetWidth + 'px'; s.height = S.st.offsetHeight + 'px';
   _iaLayer.classList.add('ia-on');
-  _iaLayer.classList.toggle('ia-many', _iaQueue.length > 0 || (_iaCurrent && _iaCurrent.steps > 1));
   return _iaLayer;
 }
 function iaTeardown() {
@@ -180,9 +187,48 @@ const iaWait = (ms, ctl) => new Promise(res => { if (ctl.skipped) return res(); 
 function iaAnim(el, frames, opts, ctl) {
   if (ctl.skipped) { return Promise.resolve(); }
   const a = el.animate(frames, opts); ctl.anims.push(a);
-  return a.finished.catch(() => {}).then(() => { if (opts.fill !== 'forwards' && opts.fill !== 'both') return; /* keep */ });
+  return a.finished.catch(() => {});
 }
 function iaSfx(name, k) { try { if (typeof window[name] === 'function') window[name](k); } catch (e) {} }
+// A step's length: the look's speed, then the step's own speed-up.
+function iaMsK(ms, k) { return iaMs(ms) / (k || 1); }
+
+// ── Typing, the event screens' way ──────────────────────────────────────────
+// Every character of a line is its own span, hidden until typed (the room is
+// held, so nothing reflows); a changed number is one unit. One cursor, moved
+// after each unit; it blinks while idle.
+function iaTypeWrap(el) {
+  const walk = n => {
+    [...n.childNodes].forEach(c => {
+      if (c.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        for (const ch of c.textContent) { const i = document.createElement('i'); i.className = 'ia-ch ia-tu'; i.textContent = ch; frag.appendChild(i); }
+        c.replaceWith(frag);
+      } else if (c.classList && c.classList.contains('ia-num')) c.classList.add('ia-tu');
+      else walk(c);
+    });
+  };
+  walk(el);
+}
+function iaCursor(scene) {
+  let c = scene.querySelector('.ia-cur');
+  if (!c) { c = document.createElement('i'); c.className = 'ia-cur'; }
+  return c;
+}
+async function iaType(scene, el, ctl, k) {
+  const cur = iaCursor(scene);
+  const units = [...el.querySelectorAll('.ia-tu')];
+  const cps = (typeof textTypeCps === 'function') ? textTypeCps() : 160;
+  const per = cps > 0 ? 1000 / cps / (k || 1) : 0;
+  cur.classList.add('typing');
+  for (const u of units) {
+    if (ctl.skipped || per === 0) { units.forEach(x => x.classList.remove('ia-tu')); break; }
+    u.classList.remove('ia-tu'); u.after(cur);
+    if (u.textContent !== ' ') await iaWait(per, ctl);
+  }
+  const last = units[units.length - 1]; if (last) last.after(cur);
+  cur.classList.remove('typing');
+}
 
 async function iaPlay(entry) {
   const S = iaStage(); if (!S) return;
@@ -194,17 +240,21 @@ async function iaPlay(entry) {
   _iaCurrent = ctl;
   layer.classList.toggle('ia-many', _iaQueue.length > 0 || ctl.steps > 1);
 
-  // Where it comes from and where it goes. The board's box is the target; the
-  // tray chip (if drawn) is the source, else it pops from the centre.
+  // The board's box is the screen; the tray chip (if drawn) is where the tile
+  // comes from and goes back to, else it pops from the screen's middle.
   const grid = document.getElementById('grid-slot') || document.getElementById('grid');
   const g = grid ? iaRectOf(grid, S) : { l: 0, t: 0, w: S.st.offsetWidth, h: S.st.offsetHeight };
   const chip = iaChipFor(ent.id, type);
   const src = chip ? iaRectOf(chip.querySelector('.reward-cell') || chip, S) : null;
   const size = Math.max(60, Math.min(g.w, g.h) * (iaCfg.size / 100));
+  const rar = ent.tier || ent.rarity || 'common';
   const scene = document.createElement('div'); scene.className = `ia-scene ia-${iaCfg.look} ia-${type}`;
   scene.style.setProperty('--ia-size', size + 'px');
-  // The tile: a stack of one copy per tier, the current one on top. Each copy is
-  // the real entity tile at that tier (so the bands and the badge are the game's).
+  const screen = document.createElement('div'); screen.className = 'ia-screen';
+  screen.style.left = g.l + 'px'; screen.style.top = g.t + 'px'; screen.style.width = g.w + 'px'; screen.style.height = g.h + 'px';
+  screen.innerHTML = `<div class="ia-head">&gt; IMPROVING <b class="ia-name rar-${rar}">${iaEsc(ent.name).toUpperCase()}</b></div>`
+    + `<div class="ia-term"><div class="ia-ver"></div><div class="ia-desc"></div></div>`;
+  // The tile: one copy per tier, the real entity tile at that tier, the current one shown.
   const tile = document.createElement('div'); tile.className = 'ia-tile';
   const layers = [];
   for (let t = entry.from; t <= entry.to; t++) {
@@ -212,38 +262,43 @@ async function iaPlay(entry) {
     l.dataset.tier = t; l.innerHTML = iaTileHTML(ent, type, t); tile.appendChild(l); layers.push(l);
   }
   const fx = document.createElement('div'); fx.className = 'ia-fx'; tile.appendChild(fx);
-  // The sentence: name, the tier, the description with its numbers marked.
-  const panel = document.createElement('div'); panel.className = 'ia-panel';
-  const rar = ent.tier || ent.rarity || 'common';
-  panel.innerHTML = `<div class="ia-name rar-${rar}">${iaEsc(ent.name)}</div><div class="ia-ver"><span class="ia-v-old">v${entry.from + 1}.0</span><span class="ia-v-arrow">→</span><span class="ia-v-new">v${entry.from + 2}.0</span></div><div class="ia-desc"></div>`;
-  scene.appendChild(tile); scene.appendChild(panel); layer.appendChild(scene);
-  const descEl = panel.querySelector('.ia-desc');
-  const setDesc = (before, after) => { const d = iaDescHTML(before, after); descEl.innerHTML = d.html; descEl.classList.toggle('ia-desc-whole', d.whole); return d; };
-  let prevDesc = entry.before; setDesc(prevDesc, entry.steps[0].desc);
-
-  // Geometry: the tile lands centred on the board, a little above the middle,
-  // the panel under it. The source is the chip's rect (design px).
-  const cx = g.l + g.w / 2, cy = g.t + g.h * 0.44;
+  screen.appendChild(tile); scene.appendChild(screen); layer.appendChild(scene);
+  const head = screen.querySelector('.ia-head'), term = screen.querySelector('.ia-term');
+  const verEl = term.querySelector('.ia-ver'), descEl = term.querySelector('.ia-desc');
+  const headH = 24, pad = 10;
   tile.style.width = size + 'px'; tile.style.height = size + 'px';
-  tile.style.left = (cx - size / 2) + 'px'; tile.style.top = (cy - size / 2) + 'px';
-  panel.style.left = (g.l + g.w * 0.08) + 'px'; panel.style.width = (g.w * 0.84) + 'px'; panel.style.top = (cy + size / 2 + 10) + 'px';
+  tile.style.left = ((g.w - size) / 2) + 'px'; tile.style.top = (pad + headH + 6) + 'px';
+  term.style.top = (pad + headH + 6 + size + 10) + 'px';
+  const cx = g.l + g.w / 2, cy = g.t + pad + headH + 6 + size / 2;
   const from = src ? { x: src.l + src.w / 2 - cx, y: src.t + src.h / 2 - cy, s: Math.max(0.12, src.w / size) } : { x: 0, y: 0, s: 0.2 };
+  const setVer = (a, b) => { verEl.innerHTML = `<b class="ia-num ia-ver-num"><span class="ia-n-old">v${a + 1}.0</span><span class="ia-n-new">v${b + 1}.0</span></b>`; };
+  const setDesc = (before, after) => { const d = iaDescHTML(before, after); descEl.innerHTML = d.html; descEl.classList.toggle('ia-desc-whole', d.whole); };
   if (chip) chip.classList.add('ia-away');
 
-  const look = IA_RUN[iaCfg.look] || IA_RUN.lift;
+  const look = IA_RUN[iaCfg.look] || IA_RUN.stamp;
+  const k0 = Math.pow(IA_STEP_SPEED, Math.max(0, entry.from));   // the Nth improvement of this Trick is faster
   try {
-    await look.arrive(tile, panel, from, ctl);
+    // the screen comes on (a CRT: a line that opens), the header types, the tile arrives
+    iaSfx('sfxPrintFeed');
+    await iaAnim(screen, [{ clipPath: 'inset(50% 0 50% 0)', opacity: .6 }, { clipPath: 'inset(0 0 0 0)', opacity: 1 }], { duration: iaMsK(180, k0), easing: 'ease-out', fill: 'forwards' }, ctl);
+    iaTypeWrap(head);
+    const typing = iaType(scene, head, ctl, k0);
+    await Promise.all([typing, look.arrive(tile, from, ctl, k0)]);
+    let prevDesc = entry.before;
+    setVer(entry.from, entry.steps[0].tier); setDesc(prevDesc, entry.steps[0].desc);
+    iaTypeWrap(verEl); iaTypeWrap(descEl);
+    await iaType(scene, verEl, ctl, k0); await iaType(scene, descEl, ctl, k0);
     for (let i = 0; i < entry.steps.length; i++) {
-      const step = entry.steps[i];
-      if (i) { setDesc(prevDesc, step.desc); await iaWait(iaMs(iaCfg.stepGap), ctl); }
-      panel.querySelector('.ia-v-new').textContent = `v${step.tier + 1}.0`;
-      await look.band(tile, layers[i], layers[i + 1], panel, ctl);
-      panel.querySelector('.ia-v-old').textContent = `v${step.tier + 1}.0`;
+      const step = entry.steps[i], k = Math.pow(IA_STEP_SPEED, Math.max(0, step.tier - 1));
+      if (i) { setVer(step.tier - 1, step.tier); setDesc(prevDesc, step.desc); await iaWait(iaMsK(iaCfg.stepGap, k), ctl); }
+      await look.band(tile, layers[i], layers[i + 1], term, ctl, k);
       prevDesc = step.desc;
-      descEl.classList.add('ia-done');
     }
-    await iaWait(iaMs(iaCfg.hold), ctl);
-    await look.leave(tile, panel, from, ctl);
+    const kEnd = Math.pow(IA_STEP_SPEED, Math.max(0, entry.to - 1));
+    await iaWait(iaMsK(iaCfg.hold, kEnd), ctl);
+    await look.leave(tile, from, ctl, kEnd);
+    iaSfx('sfxPrintFeed');
+    await iaAnim(screen, [{ clipPath: 'inset(0 0 0 0)', opacity: 1 }, { clipPath: 'inset(50% 0 50% 0)', opacity: .5 }], { duration: iaMsK(150, kEnd), easing: 'ease-in', fill: 'forwards' }, ctl);
   } finally {
     scene.remove();
     if (chip) { chip.classList.remove('ia-away'); const tray = chip.closest('#trick-tray-area, #knack-tray-area, #knack-list-area, .tray'); if (tray && typeof trayFxKick === 'function') trayFxKick(tray, 'in'); }
@@ -251,126 +306,113 @@ async function iaPlay(entry) {
   }
 }
 
-// The numbers change: each marked number plays its own small move, staggered.
-function iaRollNumbers(panel, kind, ctl) {
-  const nums = [...panel.querySelectorAll('.ia-num:not(.ia-rolled)')];
+// The version and the changed numbers move: each marked number plays its own
+// small move, staggered.
+function iaRollNumbers(term, kind, ctl, k) {
+  const nums = [...term.querySelectorAll('.ia-num:not(.ia-rolled)')];
   const ps = nums.map((n, i) => (async () => {
-    await iaWait(iaMs(90 * i), ctl);
+    await iaWait(iaMsK(90 * i, k), ctl);
     n.classList.add('ia-rolled', 'ia-' + kind);
     const o = n.querySelector('.ia-n-old'), w = n.querySelector('.ia-n-new');
     if (kind === 'roll') {
       await Promise.all([
-        iaAnim(o, [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-110%)', opacity: 0 }], { duration: iaMs(260), easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' }, ctl),
-        iaAnim(w, [{ transform: 'translateY(110%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: iaMs(300), easing: 'cubic-bezier(.2,.9,.3,1.2)', fill: 'forwards' }, ctl)]);
+        iaAnim(o, [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-110%)', opacity: 0 }], { duration: iaMsK(260, k), easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' }, ctl),
+        iaAnim(w, [{ transform: 'translateY(110%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: iaMsK(300, k), easing: 'cubic-bezier(.2,.9,.3,1.2)', fill: 'forwards' }, ctl)]);
     } else if (kind === 'stamp') {
-      await iaAnim(o, [{ opacity: 1 }, { opacity: .55 }], { duration: iaMs(120), fill: 'forwards' }, ctl);
-      await iaAnim(w, [{ transform: 'scale(2.2) rotate(-8deg)', opacity: 0 }, { transform: 'scale(1) rotate(-4deg)', opacity: 1, offset: .55 }, { transform: 'scale(1.08) rotate(-4deg)', offset: .75 }, { transform: 'scale(1) rotate(-4deg)', opacity: 1 }], { duration: iaMs(320), easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' }, ctl);
+      await iaAnim(o, [{ opacity: 1 }, { opacity: .55 }], { duration: iaMsK(120, k), fill: 'forwards' }, ctl);
+      await iaAnim(w, [{ transform: 'scale(2.2) rotate(-8deg)', opacity: 0 }, { transform: 'scale(1) rotate(-4deg)', opacity: 1, offset: .55 }, { transform: 'scale(1.08) rotate(-4deg)', offset: .75 }, { transform: 'scale(1) rotate(-4deg)', opacity: 1 }], { duration: iaMsK(320, k), easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' }, ctl);
     } else {
       await Promise.all([
-        iaAnim(o, [{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-60%)', opacity: 0 }], { duration: iaMs(240), easing: 'ease-in', fill: 'forwards' }, ctl),
-        iaAnim(w, [{ transform: 'translateX(60%)', opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }], { duration: iaMs(300), easing: 'cubic-bezier(.2,.9,.3,1.1)', fill: 'forwards' }, ctl)]);
+        iaAnim(o, [{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-60%)', opacity: 0 }], { duration: iaMsK(240, k), easing: 'ease-in', fill: 'forwards' }, ctl),
+        iaAnim(w, [{ transform: 'translateX(60%)', opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }], { duration: iaMsK(300, k), easing: 'cubic-bezier(.2,.9,.3,1.1)', fill: 'forwards' }, ctl)]);
     }
   })());
-  const whole = panel.querySelector('.ia-desc-whole');
-  if (whole) ps.push(iaAnim(whole, [{ opacity: .35 }, { opacity: 1 }], { duration: iaMs(400), fill: 'forwards' }, ctl));
+  const whole = term.querySelector('.ia-desc-whole');
+  if (whole) ps.push(iaAnim(whole, [{ opacity: .35 }, { opacity: 1 }], { duration: iaMsK(400, k), fill: 'forwards' }, ctl));
   return Promise.all(ps);
 }
-function iaFlash(tile, ctl, ms) {
+function iaFlash(tile, ctl, ms, k) {
   const f = document.createElement('div'); f.className = 'ia-flash'; tile.querySelector('.ia-fx').appendChild(f);
-  return iaAnim(f, [{ opacity: 0 }, { opacity: .9, offset: .2 }, { opacity: 0 }], { duration: iaMs(ms || 360), fill: 'forwards' }, ctl).then(() => f.remove());
+  return iaAnim(f, [{ opacity: 0 }, { opacity: .9, offset: .2 }, { opacity: 0 }], { duration: iaMsK(ms || 360, k), fill: 'forwards' }, ctl).then(() => f.remove());
 }
 
+// The tile's part of each look. arrive / leave take the tile between the tray
+// chip and its place on the screen; band puts the next tier on.
 const IA_RUN = {
   // LIFT: rises out of the tray on an arc, grows; the new band wipes in from the
   // bottom-left corner behind a bright edge; the numbers roll like a counter.
   lift: {
-    async arrive(tile, panel, from, ctl) {
-      iaSfx('sfxPrintFeed');
-      const p1 = iaAnim(tile, [
+    async arrive(tile, from, ctl, k) {
+      await iaAnim(tile, [
         { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s})`, opacity: from.s < 0.2 ? 0 : 1 },
         { transform: `translate(${from.x * 0.35}px, ${from.y * 0.35 - 30}px) scale(${(from.s + 1) / 2 + 0.1})`, opacity: 1, offset: .55 },
-        { transform: 'translate(0, 0) scale(1)', opacity: 1 }], { duration: iaMs(560), easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'forwards' }, ctl);
-      const p2 = iaAnim(panel, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: iaMs(380), delay: iaMs(240), easing: 'ease-out', fill: 'forwards' }, ctl);
-      await Promise.all([p1, p2]);
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 }], { duration: iaMsK(560, k), easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'forwards' }, ctl);
     },
-    async band(tile, oldL, newL, panel, ctl) {
+    async band(tile, oldL, newL, term, ctl, k) {
       newL.classList.add('ia-shown');
       const sweep = document.createElement('div'); sweep.className = 'ia-sweep'; tile.querySelector('.ia-fx').appendChild(sweep);
       iaSfx('sfxSuccess');
       const wipe = iaAnim(newL, [
         { clipPath: 'polygon(-10% 110%, -10% 110%, -10% 110%)' },
-        { clipPath: 'polygon(-10% 110%, -10% -130%, 230% 110%)' }], { duration: iaMs(620), easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' }, ctl);
-      const sw = iaAnim(sweep, [{ transform: 'translate(-70%, 70%) rotate(45deg)', opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .8 }, { transform: 'translate(70%, -70%) rotate(45deg)', opacity: 0 }], { duration: iaMs(620), easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' }, ctl).then(() => sweep.remove());
-      const nums = iaWait(iaMs(200), ctl).then(() => iaRollNumbers(panel, 'roll', ctl));
+        { clipPath: 'polygon(-10% 110%, -10% -130%, 230% 110%)' }], { duration: iaMsK(620, k), easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' }, ctl);
+      const sw = iaAnim(sweep, [{ transform: 'translate(-70%, 70%) rotate(45deg)', opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .8 }, { transform: 'translate(70%, -70%) rotate(45deg)', opacity: 0 }], { duration: iaMsK(620, k), easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' }, ctl).then(() => sweep.remove());
+      const nums = iaWait(iaMsK(200, k), ctl).then(() => iaRollNumbers(term, 'roll', ctl, k));
       await Promise.all([wipe, sw, nums]);
       oldL.classList.remove('ia-shown');
-      await iaFlash(tile, ctl, 300);
+      await iaFlash(tile, ctl, 300, k);
     },
-    async leave(tile, panel, from, ctl) {
-      const p1 = iaAnim(tile, [
+    async leave(tile, from, ctl, k) {
+      await iaAnim(tile, [
         { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-        { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s})`, opacity: from.s < 0.2 ? 0 : 1 }], { duration: iaMs(420), easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }, ctl);
-      const p2 = iaAnim(panel, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(10px)' }], { duration: iaMs(260), easing: 'ease-in', fill: 'forwards' }, ctl);
-      await Promise.all([p1, p2]);
+        { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s})`, opacity: from.s < 0.2 ? 0 : 1 }], { duration: iaMsK(420, k), easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }, ctl);
     },
   },
-  // STAMP: pops up at the centre; the new tier is slammed down onto it from
-  // above (a shake, a ring); the old number is struck and the new one stamped.
+  // STAMP: pops up; the new tier is slammed down onto it from above (a shake, a
+  // ring); the old number is struck and the new one stamped beside it.
   stamp: {
-    async arrive(tile, panel, from, ctl) {
-      iaSfx('sfxPrintFeed');
-      const p1 = iaAnim(tile, [
+    async arrive(tile, from, ctl, k) {
+      await iaAnim(tile, [
         { transform: 'translate(0, 0) scale(.2)', opacity: 0 },
         { transform: 'translate(0, 0) scale(1.14)', opacity: 1, offset: .7 },
-        { transform: 'translate(0, 0) scale(1)', opacity: 1 }], { duration: iaMs(420), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }, ctl);
-      const p2 = iaAnim(panel, [{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: iaMs(300), delay: iaMs(180), easing: 'ease-out', fill: 'forwards' }, ctl);
-      await Promise.all([p1, p2]);
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 }], { duration: iaMsK(420, k), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }, ctl);
     },
-    async band(tile, oldL, newL, panel, ctl) {
+    async band(tile, oldL, newL, term, ctl, k) {
       newL.classList.add('ia-shown');
-      await iaAnim(newL, [{ transform: 'scale(1.9)', opacity: 0, filter: 'brightness(2)' }, { transform: 'scale(1)', opacity: 1, filter: 'brightness(1.6)' }], { duration: iaMs(240), easing: 'cubic-bezier(.6,0,1,.6)', fill: 'forwards' }, ctl);
+      await iaAnim(newL, [{ transform: 'scale(1.9)', opacity: 0, filter: 'brightness(2)' }, { transform: 'scale(1)', opacity: 1, filter: 'brightness(1.6)' }], { duration: iaMsK(240, k), easing: 'cubic-bezier(.6,0,1,.6)', fill: 'forwards' }, ctl);
       oldL.classList.remove('ia-shown');
       iaSfx('sfxPrintTear'); iaSfx('sfxSuccess');
       const ring = document.createElement('div'); ring.className = 'ia-ring'; tile.appendChild(ring);
-      const r = iaAnim(ring, [{ transform: 'scale(.6)', opacity: .9 }, { transform: 'scale(1.9)', opacity: 0 }], { duration: iaMs(520), easing: 'ease-out', fill: 'forwards' }, ctl).then(() => ring.remove());
-      const shake = iaAnim(tile, [{ transform: 'translate(0,0) rotate(0)' }, { transform: 'translate(-5px, 3px) rotate(-2.5deg)', offset: .2 }, { transform: 'translate(5px, -2px) rotate(2deg)', offset: .45 }, { transform: 'translate(-3px, 1px) rotate(-1deg)', offset: .7 }, { transform: 'translate(0,0) rotate(0)' }], { duration: iaMs(340), easing: 'ease-out', fill: 'forwards' }, ctl);
-      const nums = iaRollNumbers(panel, 'stamp', ctl);
-      await Promise.all([r, shake, nums, iaFlash(tile, ctl, 240)]);
+      const r = iaAnim(ring, [{ transform: 'scale(.6)', opacity: .9 }, { transform: 'scale(1.9)', opacity: 0 }], { duration: iaMsK(520, k), easing: 'ease-out', fill: 'forwards' }, ctl).then(() => ring.remove());
+      const shake = iaAnim(tile, [{ transform: 'translate(0,0) rotate(0)' }, { transform: 'translate(-5px, 3px) rotate(-2.5deg)', offset: .2 }, { transform: 'translate(5px, -2px) rotate(2deg)', offset: .45 }, { transform: 'translate(-3px, 1px) rotate(-1deg)', offset: .7 }, { transform: 'translate(0,0) rotate(0)' }], { duration: iaMsK(340, k), easing: 'ease-out', fill: 'forwards' }, ctl);
+      await Promise.all([r, shake, iaRollNumbers(term, 'stamp', ctl, k), iaFlash(tile, ctl, 240, k)]);
     },
-    async leave(tile, panel, from, ctl) {
-      const p1 = iaAnim(tile, [
+    async leave(tile, from, ctl, k) {
+      await iaAnim(tile, [
         { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-        { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s})`, opacity: from.s < 0.2 ? 0 : 1 }], { duration: iaMs(380), easing: 'cubic-bezier(.5,0,.7,.3)', fill: 'forwards' }, ctl);
-      const p2 = iaAnim(panel, [{ opacity: 1 }, { opacity: 0 }], { duration: iaMs(220), fill: 'forwards' }, ctl);
-      await Promise.all([p1, p2]);
+        { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s})`, opacity: from.s < 0.2 ? 0 : 1 }], { duration: iaMsK(380, k), easing: 'cubic-bezier(.5,0,.7,.3)', fill: 'forwards' }, ctl);
     },
   },
-  // FLIP: slides to the centre, turns over on its vertical axis; the new tier is
-  // on the back; the old sentence slides out left, the new one in from the right.
+  // FLIP: slides in, turns over on its vertical axis; the new tier is on the
+  // back; the old number slides out left, the new one in from the right.
   flip: {
-    async arrive(tile, panel, from, ctl) {
-      iaSfx('sfxPrintFeed');
+    async arrive(tile, from, ctl, k) {
       tile.classList.add('ia-3d');
-      const p1 = iaAnim(tile, [
+      await iaAnim(tile, [
         { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s}) rotateY(-25deg)`, opacity: from.s < 0.2 ? 0 : 1 },
-        { transform: 'translate(0, 0) scale(1) rotateY(0)', opacity: 1 }], { duration: iaMs(480), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }, ctl);
-      const p2 = iaAnim(panel, [{ opacity: 0, transform: 'translateX(-30px)' }, { opacity: 1, transform: 'translateX(0)' }], { duration: iaMs(340), delay: iaMs(200), easing: 'ease-out', fill: 'forwards' }, ctl);
-      await Promise.all([p1, p2]);
+        { transform: 'translate(0, 0) scale(1) rotateY(0)', opacity: 1 }], { duration: iaMsK(480, k), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }, ctl);
     },
-    async band(tile, oldL, newL, panel, ctl) {
+    async band(tile, oldL, newL, term, ctl, k) {
       iaSfx('sfxPrintFeed');
-      await iaAnim(tile, [{ transform: 'rotateY(0)' }, { transform: 'rotateY(90deg)' }], { duration: iaMs(260), easing: 'cubic-bezier(.5,0,1,.6)', fill: 'forwards' }, ctl);
+      await iaAnim(tile, [{ transform: 'rotateY(0)' }, { transform: 'rotateY(90deg)' }], { duration: iaMsK(260, k), easing: 'cubic-bezier(.5,0,1,.6)', fill: 'forwards' }, ctl);
       oldL.classList.remove('ia-shown'); newL.classList.add('ia-shown');
       iaSfx('sfxSuccess');
-      const back = iaAnim(tile, [{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(12deg)', offset: .7 }, { transform: 'rotateY(0)' }], { duration: iaMs(380), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }, ctl);
-      await Promise.all([back, iaRollNumbers(panel, 'slide', ctl), iaFlash(tile, ctl, 300)]);
+      const back = iaAnim(tile, [{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(12deg)', offset: .7 }, { transform: 'rotateY(0)' }], { duration: iaMsK(380, k), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }, ctl);
+      await Promise.all([back, iaRollNumbers(term, 'slide', ctl, k), iaFlash(tile, ctl, 300, k)]);
     },
-    async leave(tile, panel, from, ctl) {
-      const p1 = iaAnim(tile, [
+    async leave(tile, from, ctl, k) {
+      await iaAnim(tile, [
         { transform: 'translate(0, 0) scale(1) rotateY(0)', opacity: 1 },
-        { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s}) rotateY(25deg)`, opacity: from.s < 0.2 ? 0 : 1 }], { duration: iaMs(400), easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }, ctl);
-      const p2 = iaAnim(panel, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(30px)' }], { duration: iaMs(240), easing: 'ease-in', fill: 'forwards' }, ctl);
-      await Promise.all([p1, p2]);
+        { transform: `translate(${from.x}px, ${from.y}px) scale(${from.s}) rotateY(25deg)`, opacity: from.s < 0.2 ? 0 : 1 }], { duration: iaMsK(400, k), easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }, ctl);
     },
   },
 };

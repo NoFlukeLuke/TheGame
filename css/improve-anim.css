@@ -46,38 +46,49 @@
 .ia-flash { position: absolute; inset: 0; background: #fff6d8; mix-blend-mode: screen; opacity: 0; border-radius: 8px; }
 .ia-ring { position: absolute; inset: -6%; border: 3px solid #f2cf72; border-radius: 12px; box-shadow: 0 0 14px #f2cf72aa, inset 0 0 14px #f2cf7266; }
 
-/* the sentence under the tile */
-.ia-panel {
-  position: absolute; text-align: center; opacity: 0;
-  padding: 8px 12px 10px; border-radius: 8px;
-  background: #0d0b09ee; border: 1px solid #ffffff22; box-shadow: 0 6px 18px #000a;
+/* THE SCREEN (r632): the board's box as an amber glass, like the event screens;
+   the tile sits in its upper half, the header and the sentence type out under it */
+.ia-screen {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a;
+  position: absolute; box-sizing: border-box; overflow: hidden; pointer-events: auto;
+  border-radius: 8px; border: 1px solid #000;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(76,107,47,.24);
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
 }
-.ia-name { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 1px; color: var(--rc, var(--cream)); }
-.ia-name.rar-common    { --rc: var(--c-mint); }
-.ia-name.rar-rare      { --rc: var(--c-cyan); }
-.ia-name.rar-epic      { --rc: var(--c-purple); }
-.ia-name.rar-legendary { --rc: var(--c-magenta); }
-.ia-ver { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #f2cf72; letter-spacing: 1px; margin: 2px 0 6px; }
-.ia-ver .ia-v-arrow { margin: 0 6px; opacity: .7; }
-.ia-ver .ia-v-new { color: #fff6d8; text-shadow: 0 0 8px #f2cf72; }
-.ia-desc { font-family: 'Crimson Pro', serif; font-size: 15px; line-height: 1.35; color: var(--cream, #f0e2c0); }
+.ia-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; }
+.ia-head { position: absolute; left: 10px; top: 8px; right: 10px; font-size: 17px; line-height: 24px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; color: var(--am-hi); }
+.ia-head .ia-name { font-weight: normal; }
+.ia-name.rar-common    { color: #94ecb0; text-shadow: 0 0 6px #94ecb088; }
+.ia-name.rar-rare      { color: #82dccb; text-shadow: 0 0 6px #82dccb88; }
+.ia-name.rar-epic      { color: #d6a8ff; text-shadow: 0 0 6px #d6a8ff88; }
+.ia-name.rar-legendary { color: #ff8fb8; text-shadow: 0 0 6px #ff8fb888; }
+.ia-screen .ia-tile { z-index: 2; }
+.ia-term { position: absolute; left: 12px; right: 12px; bottom: 8px; text-align: left; font-size: 16px; line-height: 1.18; overflow: hidden; }
+.ia-ver { color: var(--am-hi); font-size: 18px; margin-bottom: 4px; }
+.ia-desc { color: var(--am); white-space: pre-wrap; }
+/* typing: a character holds its room before it is typed */
+.ia-ch { font-style: normal; }
+.ia-tu { visibility: hidden; }
+.ia-cur { display: inline-block; position: relative; width: 0; height: 1em; vertical-align: -0.14em; font-style: normal; }
+.ia-cur::after { content: ''; position: absolute; left: 1px; top: 0; width: .5em; height: 1em; background: currentColor; box-shadow: 0 0 6px currentColor; animation: iaBlink 1.06s steps(1) infinite; }
+.ia-cur.typing::after { animation: none; }
+@keyframes iaBlink { 50% { opacity: 0; } }
 /* old and new share one cell, so the box is as wide as the wider number */
-.ia-num { display: inline-grid; justify-items: center; vertical-align: bottom; font-weight: 700; white-space: nowrap; }
-.ia-num .ia-n-old { grid-area: 1 / 1; color: var(--cream, #f0e2c0); }
-.ia-num .ia-n-new { grid-area: 1 / 1; opacity: 0; color: #ffe27a; text-shadow: 0 0 8px #f2c94c99; }
-/* roll (lift): the old number leaves upward, the new comes up from below, clipped to the line */
+.ia-num { display: inline-grid; justify-items: center; vertical-align: bottom; white-space: nowrap; }
+.ia-num .ia-n-old { grid-area: 1 / 1; color: var(--am-hi); }
+.ia-num .ia-n-new { grid-area: 1 / 1; opacity: 0; color: #fff1d8; text-shadow: 0 0 8px #ffe066aa; }
 .ia-num.ia-roll { overflow: hidden; line-height: 1.2; }
-/* stamp: the new number lands beside the struck old one */
-.ia-num.ia-stamp .ia-n-old { text-decoration: line-through; text-decoration-color: var(--red, #e5533c); text-decoration-thickness: 2px; }
 .ia-num.ia-stamp { grid-auto-flow: column; column-gap: .35em; }
+.ia-num.ia-stamp .ia-n-old { text-decoration: line-through; text-decoration-color: #ff7656; text-decoration-thickness: 2px; }
 .ia-num.ia-stamp .ia-n-new { grid-area: auto; transform-origin: 50% 70%; }
-/* slide (flip): old out left, new in from the right */
 .ia-num.ia-slide { overflow: hidden; line-height: 1.2; }
+body.big-text .ia-term { font-size: 18px; }
 
 /* the real chip steps aside while its copy is up (opacity only, like the lift) */
 #trick-tray-list .trick-tray-chip.ia-away, .knack-chip.ia-away { opacity: 0 !important; transition: opacity .1s; }
 
-body.big-text .ia-desc { font-size: 17px; }
 body.reduced-motion #ia-skip { animation: none; }
 
 /* the ?improve preview page's panel */

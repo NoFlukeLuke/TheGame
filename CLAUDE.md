@@ -2057,3 +2057,19 @@ tier 4 (`chance2` 1; it was 1.32); tier 5 marks a second line. `fillDescTemplate
 decimals (`[[chance2>0.995:twice]]`). **`index.html?improve`** (becomes `?tricks=epic&improve`
 before the tour reads it) hides the tour's panel (`body.ia-lab-on`) and shows `#ia-lab`: a key per
 look (plays it on the tray's Trick), 3 TIERS, and the speed / size / hold sliders.
+
+## r632 - the improvement animation is a SCREEN on the board (owner)
+`iaPlay` lays `.ia-screen` over the board's box (`#grid-slot` rect, opaque amber glass styled like the
+event screens, scanlines, VT323) so it replaces whatever the board holds. "> IMPROVING NAME" types out
+at the game's text speed (`textTypeCps`; every character is an `.ia-ch` span hidden by `.ia-tu` until
+typed, one `.ia-cur` block cursor), the tile pops / rises / flips in above the text (the three looks
+keep their tile moves; **stamp** is the default now, size 46%, hold 1100), then the version line
+("v1.0", a `.ia-num` that moves to "v2.0" with the look's number move) and the sentence type out, and
+each step stamps the next tier and moves the changed numbers in place. **Speed-up:** every step of a
+many-tiered grant, and every later improvement of the same Trick, runs `IA_STEP_SPEED` (1.1x) faster
+than the one before (`k = 1.1 ^ (tier - 1)`, through `iaMsK`). The screen comes on and goes off like a
+CRT (`clip-path` from a line). **Perfect Timing** (owner): the second replay chance belongs to the
+Trick's own line; the 5th improvement's second line (`_fixed`) replays once (`_ptMain` in calcScore).
+Measured at 1440x820 and 420x900 through `?improve`: the screen matches the board box to the pixel, the
+header and sentence type (77 characters, cursor present), the version reads v1.0 then v2.0, a 3-tier
+preview counts v1 -> v4, no page errors.

@@ -541,7 +541,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_rl && BAL.rowcol_retrigger.chance2 > 0) _rl += luckRollDet(BAL.rowcol_retrigger.chance2, (card._id || 0) + 7929, handsPlayedRound);
     let _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
     // r625: an improved Perfect Timing rolls a second (past 100%, a third) replay after the sure one.
-    let _ptN = _pt ? 1 + (BAL.perfect_timing.chance2 > 0 ? luckRollDet(BAL.perfect_timing.chance2, (card._id || 0) + 7939, handsPlayedRound) : 0) : 0;
+    // r632 (owner): the second chance belongs to the Trick's own line; the 5th improvement's second line replays once.
+    const _ptMain = _pt && rowColBonuses.some(b => b.id === 'perfect_timing' && !b._fixed && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
+    let _ptN = _pt ? 1 + (_ptMain && BAL.perfect_timing.chance2 > 0 ? luckRollDet(BAL.perfect_timing.chance2, (card._id || 0) + 7939, handsPlayedRound) : 0) : 0;
     let _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
     let _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
       ? luckRollDet(BAL.ripple.chance, (card._id || 0) + 7717, handsPlayedRound) : 0;

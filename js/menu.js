@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r631 · Perfect Timing capped at a sure second replay; ?improve is the improvement animation preview page";
+const BUILD = "2026-10-21 · r632 · The improvement animation is a screen on the board: amber glass, typed text, the tile stamped in the grid; steps speed up 10%; Perfect Timing's second line replays once";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
