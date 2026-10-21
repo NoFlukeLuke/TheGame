@@ -218,7 +218,7 @@ which is the cheap majority the system can ship on first.
 | Four Horse-man | epic | 4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause | +16 pips, +8 mult, +4 Focus or +4 seconds, whichever is rolled | rolls twice | 5-card hands also count | O1 BAL · O2 code · O3 code | Claude |
 | Wait Four It | rare | 4-card hands permanently buff their 4th card to pause the clock 1 second when scored | +1 second | buffs the 2nd and the 4th card |  | O1 BAL · O2 code | Claude |
 | Undue Influence | epic | A Set containing a face card grants credits equal to the number of Sets you have played this round | double the credits | any Set counts, face card or not |  | O1 code · O2 code | Claude |
-| Encore | epic | Sets made of only odd-ranked cards score a second time | +1 extra scoring | Sets of only even-ranked cards also count |  | O1 code · O2 code | Claude |
+| Encore | epic | Odd-ranked cards in a set replay once | +1 extra scoring | |  | O1 code · O2 code | Claude |
 | Shaky Foundation | common | Every other Set scores +15 mult | +15 mult | every Set counts, not every other one |  | O1 BAL · O2 code | Claude |
 | Dam Holding… | rare | Runs pause the clock 3 seconds | +3 seconds | any hand holding 3 cards in sequence counts |  | O1 BAL · O2 code | Claude |
 | Wave Amplification | common | Consecutively played Runs score +10 pips × the current Run streak | +10 pips per streak | one non-Run hand no longer breaks the streak |  | O1 BAL · O2 code | Claude |

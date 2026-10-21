@@ -1727,3 +1727,12 @@ applied as one lump in the hand-level x mult block. Now every card in a corner c
 (`_xl`, beside Rainbow), so it fires on the card's beat, once per replay; ghosts and wilds don't
 fire it. Pick order matters like any per-card x mult: three Kings with the corner picked first
 mult 7, picked last 12 (no Trick: 6). Played through PLAY in Classic: no timeline drift.
+
+## r608 - Encore: odd-ranked cards in a set replay once (owner)
+Trick `encore`, epic. Was "a set hand made only of odd-ranked cards replays every card". Now each
+odd-ranked card (A 3 5 7 9, `_rankIsOddRank`) that sits in a SET component of the hand replays once,
+whatever else the hand holds (`_encoreCells` in calcScore: the cells of `_comp`'s set-family
+components; with no component list, the whole hand if `handName` is a set). An odd card in a run
+layered on the set, a kicker, a wild and every even card get nothing. Still one QRL replay source
+('enc'). Measured: 7 7 8 8 replays the 7s only (reps 2,2,1,1); 9 9 9 all three; 5 6 7 nothing.
+Played by tap at 1440x820 and 420x900: no timeline drift.

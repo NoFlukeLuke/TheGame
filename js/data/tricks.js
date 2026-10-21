@@ -189,7 +189,7 @@ const TRICK_POOL = [
   { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['time'],            desc:'4-card hands permanently buff their 4th card: it pauses the clock for 2s when scored (time buffs do not stack)' },
   // ── Set add-ons (r124) ──
   { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Set hands you have played this round' },
-  { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Set-type hands made of only odd-ranked cards replay each card' },
+  { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Odd-ranked cards in a set replay once' },
   { id:'shaky_foundation',name:'Shaky Foundation',   tier:'common',    tags:['mult','set'],      desc:'Every other Set scores +15 mult' },
   // ── r359: the 9.23 sheet's new Tricks ──
   { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['mult','suit','credits'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },

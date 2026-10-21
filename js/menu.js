@@ -1,4 +1,4 @@
-const BUILD = "2026-10-20 · r607 · Stretch is Ornery: corner cards score x2 mult";
+const BUILD = "2026-10-21 · r608 · Encore: odd-ranked cards in a set replay once";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -354,8 +354,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _slSumPips = 0;
   const _crMins = hasTrick('corner_retrigger') ? Math.floor(roundSeconds / 60) : 0;
   const _crSet = new Set(_crMins >= 1 ? cornerCells(cells).map(([_r,_c]) => _r + '-' + _c) : []);
-  // Encore: an all-odd-rank Set hand scores a second time (whole-hand replay via +1 retrig per card).
-  const _encoreHand = hasTrick('encore') && isSetHand(handName) && _natCards.length > 0 && _natCards.every(c => ['A','3','5','7','9'].includes(c.rank));
+  // Encore (r608): an odd-ranked card in a set replays once. Only the cells of a set
+  // component count, so an odd card in a run layered on the set does not.
+  const _encoreCells = !hasTrick('encore') ? null : new Set((_comp
+    ? _comp.components.filter(k => handHasFamily([k.name], 'set')).flatMap(k => k.cells)
+    : (handHasFamily([handName], 'set') ? cells : [])).map(([_r, _c]) => _r + '-' + _c));
   // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
   const _wfiChance = hasTrick('wait_for_it') ? negativeTilesTakenRun * BAL.wait_for_it.chance_per : 0;
   // High Roller (knack): each card has (credits + Luck)% chance to replay. Luck
@@ -537,7 +540,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Every replay SOURCE on this card and what it gives. QRL (r484): only the
     // `qrlLimit()` biggest sources pay; a cut source is switched off here so the
     // ledger rows below never bill it. Layered-hand replays are not a source.
-    let _enc = _encoreHand, _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
+    let _enc = !!_encoreCells && _encoreCells.has(_cKey) && _rankIsOddRank(baseRank), _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
     const _srcs = [
       ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _pt ? 1 : 0], ['res', _res ? 2 : 0], ['rip', _rip],
       ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? 1 : 0], ['re', _re],
