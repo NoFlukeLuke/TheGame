@@ -492,12 +492,15 @@ function holdHandNameLabel(on) { _handNameHeld = !!on; }
 function handLabelHTML(runs) {
   return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
-    const x = k > 1 ? `<u>x${k}</u>` : '';
     // A numeric size reads "OF N" (owner spec, r333): SET / OF 3, RUN / OF 4.
     // Word sizes (TWO / PAIR, FULL / HOUSE, HIGH / CARD) print as they are -
-    // the break is always between whole words, never inside one.
-    const sz = l && /^\d/.test(l.size) ? 'OF ' + l.size : (l && l.size);
-    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${sz}${x}</i></span>`
+    // the break is always between whole words, never inside one. A repeated set
+    // reads "2 SETS / OF 3" (r611, owner); any other repeat keeps its x2.
+    const num = l && /^\d/.test(l.size);
+    if (l && num && l.fam === 'SET' && k > 1) return `<span class="hn-l"><b>${k} SETS</b><i>OF ${l.size}</i></span>`;
+    const x = k > 1 ? `<u>x${k}</u>` : '';
+    const sz = l ? (num ? 'OF ' + l.size : l.size) : '';
+    return l ? `<span class="hn-l"><b>${l.fam}</b>${sz || x ? `<i>${sz}${x}</i>` : ''}</span>`
              : `<span class="hn-l"><b>${n}</b>${x}</span>`;
   }).join('<span class="hn-plus">+</span>');
 }
@@ -526,7 +529,7 @@ function updateHandNameLabel(result, force) {
     ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
     : [];
   // Repeats are real (two Sets of 3), but printing SET 3 + SET 3 in a 44px column
-  // is not - so a repeat collapses to a count: SET 3 x2.
+  // is not - so a repeat collapses to a count: 2 SETS OF 3, RUN OF 3 x2.
   const runs = [];
   names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
   names = runs;

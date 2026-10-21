@@ -746,8 +746,9 @@ function handComponentsFor(cells) {
   // for cells whose cards have not moved, so the entries must not be reused.
   // The run LADDER is in the key for the same reason the knack is: turning the
   // courts off the ladder changes the answer for cells whose cards have not moved.
+  // So does the scoring model (r611: the card ladder names two Pairs a Two Pair).
   const _maxTag = (typeof tagalongMax === 'function') ? tagalongMax() : 0;
-  const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin
+  const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin + 'M' + scoringModel
     + 'T' + (_maxTag === Infinity ? '*' : _maxTag)
     + 'A' + ((typeof activeHands !== 'undefined' && activeHands) ? activeHands.size : 0)
     + deckLadderKey() + runOrderKey() + '|' + _compKey(cells);
@@ -766,6 +767,18 @@ function handComponentsFor(cells) {
       name: p.name,
       cells: cells.filter((_, i) => p.mask & (1 << i)),
     }));
+    // TWO PAIRS ARE A TWO PAIR (r611, owner). Under the card ladder a scored hand's
+    // base is 0, so the partition's sum of table mults (Pair 2 + Pair 2 > Two Pair 3)
+    // is not what the hand pays, and it split every two-pair hand into two Pairs:
+    // Two Pair was never played, its challenge could not be met and Aftershock never
+    // fired. Classic prices them (Two Pair 90 > 40 + 40) and is left to the partition.
+    if (scoringModel === 'card_ladder') {
+      const pi = comps.reduce((a, c, i) => c.name === 'Pair' ? a.concat(i) : a, []);
+      if (pi.length >= 2) {
+        const both = comps[pi[0]].cells.concat(comps[pi[1]].cells);
+        if (rankHandForGroup(both) === 'Two Pair') { comps.splice(pi[1], 1); comps[pi[0]] = { name: 'Two Pair', cells: both }; }
+      }
+    }
     if (layeredHandsEnabled && !comps.some(c => c.name === 'Straight Flush')) {
       const fl = flushOverlayFor(cells);
       if (fl) comps.push(fl);

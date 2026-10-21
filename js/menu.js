@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r610 · Bigger score chips on desktop, smaller on a phone, 15% less growth, a gentler tally speed-up; improvement bands fit the floppy art";
+const BUILD = "2026-10-21 · r611 · Two pairs are a Two Pair again; the preview reads PAIR, TWO PAIR, SET OF N, 2 SETS OF 3";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

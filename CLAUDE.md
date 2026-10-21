@@ -1762,3 +1762,18 @@ a two-suit Queen among them once. Played by tap at 1440x820 and 420x900: no time
   background size; the bands layer is sized to it (`--fab`), so they cross the art's own corner.
 Measured by tap at 1440x820 and 420x900: plates 57.5 / 41.4px, pace after 6 payouts 1.265 (was 1.34),
 no timeline drift; tray screenshots show the bands inside every disc at tiers 1, 2, 3 and 5.
+
+## r611 - two pairs are a Two Pair; the preview names (owner)
+**The bug:** under the card ladder (the default since r553) `_bestRankPartition` still chose by the sum of
+table mults (`handWorth`), and Pair 2 + Pair 2 beat Two Pair 3, so every two-pair hand was split into two
+Pair components: primary Pair, label "SET OF 2 x2". Two Pair was never played, a Two Pair challenge could
+not be met (`crOnHand` matches the primary name) and Aftershock ("Two Pair scores x2 pips") never fired.
+Full House was not affected (Three 3 + Pair 2 ties Full House 5 and the whole hand wins the tie).
+**Fix:** `handComponentsFor`'s `buildFrom` merges the first two Pair components into one Two Pair
+(`rankHandForGroup` of their cells must say Two Pair) when `scoringModel === 'card_ladder'`; a scored
+hand's base is 0 there, so the score is unchanged (7 7 8 8: 300 either way). Classic already prices Two
+Pair above two Pairs and is left to the partition. The comp cache key now carries the scoring model.
+**Labels** (`HAND_LABEL`, `handLabelHTML`): Pair reads PAIR (no size line), other sets SET OF N, a
+repeated set "2 SETS OF 3"; other repeats keep x2 (RUN OF 3 x2). Measured: 77 PAIR, 777 SET OF 3,
+7788 TWO PAIR, 77788 FULL HOUSE, 777888 2 SETS OF 3, 7788KK TWO PAIR + PAIR. A real 7788 played by tap
+(1440x820, 420x900): preview TWO PAIR, `crOnHand` received "Two Pair", no drift.

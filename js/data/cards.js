@@ -262,7 +262,8 @@ function handTypeListed(name) {
 // column. A numeric size is printed as "OF N" by handLabelHTML (owner spec,
 // r333: "SET / OF 3", "RUN / OF 4", "TWO / PAIR" - words never broken). A
 // layered hand prints one of these per layer, stacked. Straight Flush is both
-// families at once, so it says so rather than picking one.
+// families at once, so it says so rather than picking one. r611 (owner): a Pair
+// reads PAIR (one word, no size); the other sets stay SET OF N.
 const HAND_LABEL = {
   'Run of 3':        { fam:'RUN',   size:'3' },
   'Run of 4':        { fam:'RUN',   size:'4' },
@@ -270,7 +271,7 @@ const HAND_LABEL = {
   'Flush of 3':      { fam:'FLUSH', size:'3' },
   'Flush of 4':      { fam:'FLUSH', size:'4' },
   'Flush':           { fam:'FLUSH', size:'5' },
-  'Pair':            { fam:'SET',   size:'2' },
+  'Pair':            { fam:'PAIR',  size:'' },
   'Two Pair':        { fam:'TWO',   size:'PAIR' },
   'Three of a Kind': { fam:'SET',   size:'3' },
   'Full House':      { fam:'FULL',  size:'HOUSE' },
