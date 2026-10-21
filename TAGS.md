@@ -149,7 +149,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | heartwood | Heartwood | When scored, the center-most card gains +5 pips & +5 mult | deck pips mult card position scaling scores |
 | landfill | Landfill | Score +5 mult per card for every discard or swap used this round (+3 i | mult card discard swap scores |
 | old_growth | Old Growth | Cards add their pip value to mult | mult card scores |
-| magician | Magician | +50 pips if this is your only Trick, or +6 mult for each Sleight you o | pips mult hand tricks sleights scores |
+| magician | Magician | +50 pips if you own no Sleights, or +6 mult for each Sleight you own | pips mult hand sleights scores |
 | stand_up | Stand-Up | Hands with cards from only one column score +10 mult per card | mult card position scores |
 | scalper | Scalper | Score ×1 mult, +×0.25 per charge your Sleights are missing | xmult hand sleights scores |
 | five_stack | Five Stack | Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus | pips mult focus card size scores |
@@ -281,7 +281,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | clockmaker | Clockmaker | Any time a single hand scores at least 30% of the round goal, rewind t | time hand |
 | high_and_mighty | High and Mighty | The highest-ranked cards in each scored hand replay once. | replay card scores |
 | low_and_behold | Low and Behold | Any played hand containing the grid’s lowest rank replays the whole ha | replay hand scores |
-| down_and_back_in | Down and Back In | Discarding the grid’s highest rank grants +1 discard or swap (alternat | stock credits other discard |
+| down_and_back_in | Down and Back In | Discarding a card of the grid’s highest rank grants +2 discards or +2 | stock credits other discard |
 | muscle_memory | Buddy System | Whenever a Trick is primed, a different Trick is primed too. | prime other tricks |
 | curator | Curator | +1 Trick Slot. After each boss you beat, 60% chance it gives 1 more. | limit other boss scaling chance |
 | short_suit | Short Suit | Flush of 3 and Flush of 4 become scorable hands. | other flush size |
@@ -381,10 +381,11 @@ fires again". Pick: `prime`.
 ### 11. `tricks` now gates Tray Order (js/events.js ownsPositional reads it)
 The old gate was 'positional' on Inspirato, Double Take, Prime Times, Mirror. `tricks` is on
 those four plus `temporal_rift` (position 3: order matters), `alignment` (tray slot: order
-matters), and also `magician`, `move_as_one`, `understudy`, `muscle_memory`, `surveyor`,
+matters), and also `move_as_one`, `understudy`, `muscle_memory`, `surveyor`,
 `leveler`, `district`, where order does NOT matter. Pick: tag by the text; if the Shift Change
 event turning up for a Magician owner is wrong, the event needs its own list or a narrower
-read. (Flagged in the report; events.js was not touched.)
+read. (Flagged in the report; events.js was not touched.) r635: Magician no longer reads the
+tray (its pips need no Sleights owned), so it lost `tricks`.
 
 ### 12. `line` = only Tricks that put a mark on the grid
 `POSITION_ASSIGN_IDS` (Right Place, Power Line, Echo Location, Perfect Timing, Right Time,

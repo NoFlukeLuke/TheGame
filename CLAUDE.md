@@ -2125,3 +2125,30 @@ preview name and tooltips still use the game's. Owner's note for later: a RANK c
   hands, best hand, time, credits, cards scored / discarded, MOST USED (`trickFireTotals`, totalled
   in playHand from `_trickFiredThisHand`, in SAVE_VARS), the build as tiles, DETAILS (the quarter
   table), PEEK (hold or tap: the panel fades to show the board), SAVE BUILD (`saveBuildRecord`).
+
+## r635 - Down and Back In, Magician, the shop under a sale, the Focus readout, the phone Reserve (owner)
+- **Down and Back In** (knack): a discard holding ANY card of the grid's top rank pays (it needed
+  every card of that rank), and the grant is `BAL.down_and_back_in.grant` (2) discards or swaps,
+  alternating, plus 5 credits. Description from `DESC_TEMPLATES`. Measured by tap: one of two Queens
+  discarded paid +2; a discard with no top-rank card paid nothing.
+- **Magician**: +50 pips while you own NO Sleight (`magicianNoSleights()`, was "the only Trick in the
+  tray"), else +6 mult per Sleight. Lost the `tricks` tag.
+- **The shop showed the board's cards over its shelves** after a Trick or Knack was sold from the
+  tray: `sellTrick` / `sellKnack` called `render()`, which deals the board into #grid. `render()`
+  now returns while `shopGridActive` (like the grid pick), and a sale repaints the shop instead
+  (`shopOrBoardRepaint`, js/shop.js).
+- **Console Focus readout always above the lit chips** (`focusPlaceReadout`, js/focus.js): a gain
+  lit the chips one by one (`runFocusAnimQueue`) and never moved the readout, so it sat up to 258px
+  down inside them (measured at 1440x820). `addFocus` now places it at the new top BEFORE the first
+  chip lights, a rise jumps (`.fr-rise`, no ease), and the gap counts the fill's shake
+  (`FOCUS_FX.jitterMaxPx` x `focusJitterFrac()`). Sampled every frame over seven gains: 2.5-6px
+  clear at 1440x820 and 420x900.
+- **Held stack on touch** (Reserve, Dealer's Choice, Lockbox; js/dealers-choice.js): docks in the
+  hand preview's FIRST SLOT at the size a played card takes there (`dealerDockSlot`; portrait sizes it
+  with `portraitPreviewCardW`, split out of `fitPortraitPreviewCards`), each card behind a small step
+  right (`DL_DOCK_STEP_X`). The cards fly in from their source (`dealerFlyIn`: the Focus bar's fill
+  top via `reserveSourceRect`, or the Sleight), growing, on a shallow arc, `DL_FLY_STAGGER` (80ms)
+  apart, `cardFlyMs(400)` long, one card pop each. Portrait shows the preview half while cards are
+  held (`dealerPanelHold`; `dealerClose` and `portraitDanceEnd` hand the view back). It used to dock
+  at the centre of the strip's right half, which in Stacked bars is the Tricks bar. Measured at
+  420x900: slot 229,255 58x77 against a played hand's first card at 231,255 58x77. Mouse unchanged.

@@ -49,7 +49,7 @@ function trickLiveDesc(trick) {
       case 'summit':         return now(`level ${level}`);
       case 'rising_tide':    return now(`+${risingTideMult || 0} mult`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
-      case 'magician':       return now(magicianSolo() ? `+${B.magician?.solo_pips ?? 50} pips, your only Trick` : `+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
+      case 'magician':       return now(magicianNoSleights() ? `+${B.magician?.solo_pips ?? 50} pips, no Sleights` : `+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
       // ── capped Focus-limit growers (r340): current earned of max ──
       case 'quick_draw':     return now(`+${focusCapGains['quick_draw'] || 0} of ${B.quick_draw?.cap ?? 10} Focus limit`);

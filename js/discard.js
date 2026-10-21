@@ -158,7 +158,8 @@ function doDiscard() {
     const newTens  = Math.floor((cardsDiscardedTotal + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);
     bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
   }
-  // Down and Back In: discarding the grid's entire top rank refunds a resource + coins.
+  // Down and Back In: discarding ANY card of the grid's top rank (r635, owner: it used to
+  // need every card of that rank) grants BAL.grant swaps or discards, alternating, + coins.
   // gridData still holds the discarded cards here (removeAndFall runs last), so the "top
   // rank" is measured against the board as it was when the player chose to discard.
   if (hasKnack('down_and_back_in')) {
@@ -170,9 +171,10 @@ function doDiscard() {
       if (_v > _hi) { _hi = _v; _hiCards.length = 0; _hiCards.push(_cd); }
       else if (_v === _hi) _hiCards.push(_cd);
     }
-    if (_hi > 0 && _hiCards.length && _hiCards.every(hc => discardedCards.includes(hc))) {
-      if (_dabiSwapNext) { swaps++; noteMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
-      else { discards++; noteMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+    if (_hi > 0 && _hiCards.some(hc => discardedCards.includes(hc))) {
+      const _g = BAL.down_and_back_in.grant || 1;
+      if (_dabiSwapNext) { swaps += _g; noteMessage(`Down and Back In: +${_g} swaps, +${BAL.down_and_back_in.coins} credits`, 'var(--gold)'); }
+      else { discards += _g; noteMessage(`Down and Back In: +${_g} discards, +${BAL.down_and_back_in.coins} credits`, 'var(--gold)'); }
       _dabiSwapNext = !_dabiSwapNext;
       grantEntityCoins(BAL.down_and_back_in.coins, 'trick', 'down_and_back_in');
     }

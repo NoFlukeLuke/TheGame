@@ -32,10 +32,10 @@ const BAL = {
   sands_of_time: { divisor: 2 },
   discard_pips: { mult_per: 4 },
   landfill: { mult_per: 5, mult_per_flow: 3 },   // r625: Flow pays the smaller one
-  magician: { mult_per_sleight: 6, solo_pips: 50 },   // r623: solo_pips while Magician is the only Trick in the tray
+  magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
   stand_up: { mult_per_card: 10 },
   scalper: { mult_mult_per_missing: 0.25 },
-  down_and_back_in: { coins: 5 },
+  down_and_back_in: { coins: 5, grant: 2 },   // r635: grant swaps or discards, alternating
   short_change: { coins: 1 },
   scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
@@ -471,7 +471,8 @@ const DESC_TEMPLATES = {
   more_better: 'Each reward grid where you select {min_tiles}+ tiles permanently adds +{mult} mult to this trick',
   tunnel_vision: 'Start each round with {focus} Focus',
   rhythm: 'Each hand played adds {focus} additional Focus',
-  magician: '+{solo_pips} pips if this is your only Trick, or +{mult_per_sleight} mult for each Sleight you own',
+  down_and_back_in: 'Discarding a card of the grid’s highest rank grants +{grant} discards or +{grant} swaps (alternating) and +{coins} credits.',
+  magician: '+{solo_pips} pips if you own no Sleights, or +{mult_per_sleight} mult for each Sleight you own',
   four_eyes: '4-card hands score +{mult} mult',
   four_by_four: 'Cards scored in the 4th and 6th columns score +{pips} pips',
   shaky_foundation: 'Every other Set scores +{mult} mult',

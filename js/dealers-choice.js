@@ -19,6 +19,13 @@
 // anything inside #cabinet inherits its CSS zoom. On a mouse it trails the
 // cursor like a ribbon and settles into a gentle drift when the cursor stops; on
 // touch it docks under the board and only follows a finger while it drags.
+//
+// r635 (owner): on touch the stack docks in the hand preview's FIRST SLOT, at the
+// size a played card takes there, each card behind it a small step to the right
+// (dealerDockSlot). The cards fly in from where they came from (the Focus bar, the
+// Sleight), growing as they go and a beat apart, the way a played hand flies to the
+// preview (dealerFlyIn). In portrait the strip shows its preview half while cards are
+// held (dealerPanelHold), and goes back when the stack closes.
 
 let dealerHand = null;   // { cards: [card...], els: [...], pos: [{x,y,vx,vy,rot}...] }
 const DEALER_DEFAULTS = { cards: 3, buff_chance: 0.75 };
@@ -75,6 +82,7 @@ function dealerOpen(jcard, r, c) {
   const sx = src ? src.left + src.width / 2 : innerWidth / 2, sy = src ? src.top + src.height / 2 : innerHeight / 2;
   dealerHand = { cards, els: [], pos: cards.map(() => ({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 })), still: 0, t0: performance.now() };
   dealerBuildLayer();
+  dealerFlyIn(src);
   try { sfxFlipShuffle(); } catch (e) {}
   showMessage(`🃏 Dealer's Choice - tap a card to swap one in, or DISCARD it`, '#8fd0ff');
   discardSleightAfterUse(jcard, r, c);
@@ -82,16 +90,23 @@ function dealerOpen(jcard, r, c) {
 }
 
 function dealerClose(repaint) {
+  const pv = dealerHand && dealerHand.pvPrev;
   dealerHand = null;
   const layer = document.getElementById('dealer-layer');
   if (layer) layer.remove();
   if (_dealerRaf) { cancelAnimationFrame(_dealerRaf); _dealerRaf = 0; }
   document.body.classList.remove('dealer-holding');
+  if (pv && typeof isPortraitLayout === 'function' && isPortraitLayout()) {
+    // A dance still using the preview puts the view back itself when it ends.
+    if (typeof danceAbortController !== 'undefined' && danceAbortController) _pvBeforeDance = pv;
+    else if (portraitPanelView === 'preview') setPortraitPanelView(pv, { auto: true });
+  }
   if (repaint && typeof render === 'function' && gridData?.[0] && !animating && !falling) { try { render(); } catch (e) {} }
 }
 
 // ── the layer ────────────────────────────────────
 function dealerCardSize() {
+  if (!dealerFollowsCursor()) { const slot = dealerDockSlot(); if (slot) return { w: Math.round(slot.w), h: Math.round(slot.h) }; }
   const g = document.querySelector('#grid .card');
   const rc = g?.getBoundingClientRect();
   const w = rc && rc.width ? rc.width : 60, h = rc && rc.height ? rc.height : 80;
@@ -109,6 +124,7 @@ function dealerBuildLayer() {
   if (!layer) { layer = document.createElement('div'); layer.id = 'dealer-layer'; document.body.appendChild(layer); }
   layer.innerHTML = '';
   if (!dealerHand) return;
+  dealerPanelHold();
   const { w, h } = dealerCardSize();
   layer.style.setProperty('--card-w', w + 'px');
   layer.style.setProperty('--card-h', h + 'px');
@@ -151,8 +167,11 @@ document.addEventListener('pointercancel', _dealerLift, { passive: true });
 
 // Card i's anchor (its top-left) when the stack is held at point (ax, ay).
 // Each card sits below and to the left of the one in front of it, overlapping
-// only enough to keep its own corner index visible.
-function dealerSlot(i, ax, ay, w, h, curScale) {
+// only enough to keep its own corner index visible. Docked in the hand preview
+// (r635) the stack is tight: each card a small step right of the one in front.
+const DL_DOCK_STEP_X = 0.14, DL_DOCK_STEP_Y = 0.025;
+function dealerSlot(i, ax, ay, w, h, curScale, mode) {
+  if (mode === 'dock') return { x: ax + w * DL_DOCK_STEP_X * i, y: ay + h * DL_DOCK_STEP_Y * i };
   const dx = -w * DL_STEP_X, dy = h * DL_STEP_Y;
   const cw = w * curScale;
   // The current card's top-left is the anchor; the others step from its foot.
@@ -167,18 +186,71 @@ function dealerTarget() {
   // the right of the pointer, so the card sits under it and the click is clear.
   if (follow) return { x: _dealerMouse.x - w + 7, y: _dealerMouse.y - 7, mode: 'cursor' };
   if (_dealerTouch) return { x: _dealerTouch.x - w * 0.6, y: _dealerTouch.y - h * 1.2 - 34, mode: 'finger' };
-  // Docked (touch): in the hand preview's tray, which is empty while cards are
-  // held - the right half of the portrait strip, or #selected-cards in
-  // landscape. Failing both, just under the board so its bottom row stays clear.
+  // Docked (touch): the hand preview's first slot (r635). The preview is empty
+  // while cards are held. Failing that, the old dock box, then under the board.
+  const slot = dealerDockSlot();
+  if (slot) return { x: slot.x, y: slot.y, mode: 'dock' };
   const n = dealerHand.cards.length - 1;
   const stackW = w * 1.2 + w * DL_STEP_X * n, stackH = h * 1.2 + h * DL_STEP_Y * n;
   const box = dealerDockBox();
   if (box) return { x: box.left + box.width / 2 - stackW / 2 + w * DL_STEP_X * n,
-                    y: box.top + Math.max(4, box.height / 2 - stackH / 2), mode: 'dock' };
+                    y: box.top + Math.max(4, box.height / 2 - stackH / 2), mode: 'box' };
   const g = document.getElementById('grid')?.getBoundingClientRect();
-  if (!g) return { x: innerWidth / 2, y: innerHeight - stackH - 8, mode: 'dock' };
+  if (!g) return { x: innerWidth / 2, y: innerHeight - stackH - 8, mode: 'box' };
   return { x: g.left + g.width / 2 - stackW / 2 + w * DL_STEP_X * n,
-           y: Math.min(g.bottom + 4, innerHeight - stackH - 6), mode: 'dock' };
+           y: Math.min(g.bottom + 4, innerHeight - stackH - 6), mode: 'box' };
+}
+// r635: where a played hand's first card lands in the preview, and its size, in
+// viewport px. Portrait: the dance fills #hand-preview-area's content box (an empty
+// #selected-cards has no height), sized as the dance sizes one card
+// (portraitPreviewCardW). Landscape: #selected-cards' own box and --card-w / --card-h.
+// null while the box is hidden.
+const DL_PREVIEW_PAD = 4;   // #selected-cards.dnc-active's side padding in portrait (css/style.css)
+function dealerDockSlot() {
+  const portrait = typeof isPortraitLayout === 'function' && isPortraitLayout() && typeof portraitPreviewCardW === 'function';
+  const host = document.getElementById(portrait ? 'hand-preview-area' : 'selected-cards');
+  const rc = host && host.getBoundingClientRect();
+  if (!rc || !rc.width || !rc.height) return null;
+  const z = rc.width / (host.offsetWidth || rc.width) || 1, cs = getComputedStyle(host);
+  const padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
+  let w, h, left = parseFloat(cs.paddingLeft) || 0;
+  if (portrait) {
+    left += DL_PREVIEW_PAD + PORTRAIT_PREVIEW_CFG.edgePad;
+    w = portraitPreviewCardW(1, host.clientWidth - left * 2);
+    if (w == null) return null;
+    h = Math.round(w / PORTRAIT_PREVIEW_CFG.aspect);
+  } else {
+    w = parseFloat(cs.getPropertyValue('--card-w')) || 42;
+    h = parseFloat(cs.getPropertyValue('--card-h')) || 55;
+  }
+  const inH = host.offsetHeight - padT - padB;
+  return { x: rc.left + left * z, y: rc.top + (padT + Math.max(0, (inH - h) / 2)) * z, w: w * z, h: h * z };
+}
+// Portrait shows Knacks or the hand preview in the strip's second half; the stack
+// docks in the preview, so it shows while cards are held (put back by dealerClose).
+function dealerPanelHold() {
+  if (!dealerHand || dealerHand.pvPrev !== undefined) return;
+  dealerHand.pvPrev = null;
+  if (dealerFollowsCursor() || typeof isPortraitLayout !== 'function' || !isPortraitLayout()) return;
+  if (portraitPanelView !== 'preview') { dealerHand.pvPrev = portraitPanelView; setPortraitPanelView('preview', { auto: true }); }
+  else if (typeof _pvBeforeDance !== 'undefined' && _pvBeforeDance) dealerHand.pvPrev = _pvBeforeDance;
+}
+function dealerHoldsPreview() { return dealerActive() && dealerHand.pvPrev !== undefined && !dealerFollowsCursor(); }
+
+// r635: on touch, cards `from` onward fly in from `rect` (viewport px) to their slots,
+// growing from the source's width to their own, DL_FLY_STAGGER apart. The loop flies
+// them; a card waiting its turn is hidden.
+const DL_FLY_MS = 400, DL_FLY_STAGGER = 80;
+function dealerFlyIn(rect, from = 0) {
+  if (!dealerHand || !rect || dealerFollowsCursor() || document.body.classList.contains('reduced-motion')) return;
+  const { w } = dealerHand.size;
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  const s0 = Math.max(0.25, Math.min(1.5, (rect.width || w) / w));
+  const at = performance.now(), ms = typeof cardFlyMs === 'function' ? cardFlyMs(DL_FLY_MS) : DL_FLY_MS;
+  for (let i = from; i < dealerHand.cards.length; i++) {
+    const p = dealerHand.pos[i];
+    if (p) p.fly = { at: at + (i - from) * DL_FLY_STAGGER, ms, cx, cy, s0 };
+  }
 }
 function dealerDockBox() {
   const stage = document.getElementById('stage');
@@ -207,12 +279,34 @@ function dealerStartLoop() {
     const { w, h } = dealerHand.size;
     const tgt = dealerTarget();
     const touch = layer?.classList.contains('dl-touch');
-    const curScale = touch ? 1.2 : 1;
+    // Touch: the current card is 1.2x under a dragging finger, and slot-sized in the
+    // preview (r635), easing between the two.
+    const kWant = touch && tgt.mode !== 'dock' ? 1.2 : 1;
+    dealerHand.curK = dealerHand.curK == null ? kWant : dealerHand.curK + (kWant - dealerHand.curK) * Math.min(1, dt * 12);
+    const curScale = dealerHand.curK;
     let speed = 0;
     dealerHand.cards.forEach((card, i) => {
       const p = dealerHand.pos[i], el = dealerHand.els[i];
       if (!p || !el) return;
-      const s = dealerSlot(i, tgt.x, tgt.y, w, h, curScale);
+      const s = dealerSlot(i, tgt.x, tgt.y, w, h, curScale, tgt.mode);
+      // r635: flying in (dealerFlyIn). Eased out along a shallow arc, growing and
+      // straightening; then the spring takes over from rest at the slot.
+      if (p.fly) {
+        const f = p.fly, u = (now - f.at) / f.ms;
+        el.style.opacity = u < 0 ? '0' : '';
+        if (u < 1) {
+          if (u >= 0 && !f.went) { f.went = true; try { sfxCardPop(cardColorSuit(card)); } catch (e) {} }
+          const e = u <= 0 ? 0 : 1 - Math.pow(1 - u, 3);
+          const x0 = f.cx - w * f.s0 / 2, y0 = f.cy - h * f.s0 / 2;
+          const lift = Math.min(60, Math.hypot(s.x - x0, s.y - y0) * 0.18) * Math.sin(Math.PI * e);
+          p.x = x0 + (s.x - x0) * e; p.y = y0 + (s.y - y0) * e - lift;
+          p.vx = p.vy = 0; p.rot = -10 * (1 - e);
+          el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg) scale(${f.s0 + ((i === 0 ? curScale : 1) - f.s0) * e})`;
+          speed = Infinity;
+          return;
+        }
+        p.fly = null; p.x = s.x; p.y = s.y; p.vx = p.vy = 0; p.rot = 0;
+      }
       // Each card further back is a looser spring, so the stack trails.
       // The top card is a stiff spring (nearly pinned to the cursor); each card
       // behind it is looser, so the rest trail like a ribbon.
@@ -239,6 +333,7 @@ function dealerStartLoop() {
     dealerHand.still = speed < 40 ? Math.min(1, dealerHand.still + dt * 1.5) : Math.max(0, dealerHand.still - dt * 6);
     if (dealerHand.cap) {
       const p0 = dealerHand.pos[0];
+      dealerHand.cap.style.opacity = p0 && p0.fly ? '0' : '';   // r635: shown once the top card lands
       const cw = dealerHand.cap.offsetWidth || 0;
       const cx = Math.max(4, Math.min(p0.x, innerWidth - cw - 4));
       dealerHand.cap.style.transform = `translate(${cx}px, ${p0.y + h * curScale + 4}px)`;

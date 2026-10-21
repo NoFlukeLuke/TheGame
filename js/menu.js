@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r634 · Builds rebuilt on the tag table: filter dropdowns, group by, fuzzy search, draft rail with warnings, synergies, odds, stats, improvement ladder, test drive; the finale screen; tracked builds star offers; every entity tagged";
+const BUILD = "2026-10-21 · r635 · Down and Back In: any top-rank card, +2 swaps or discards; Magician pays pips with no Sleights; the shop no longer shows the board after a sale; the Console Focus readout stays above the lit chips; phone Reserve cards fly from the Focus bar to the preview's first slot";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

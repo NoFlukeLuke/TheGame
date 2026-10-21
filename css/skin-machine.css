@@ -204,11 +204,13 @@ html.skin-machine #stage #focus-meter-wrap > #focus-bar-outer { flex: 1 1 auto; 
    space the nodes use (22px head room on top, 5px at the bottom). */
 html.skin-machine #stage #focus-mult-readout {
   position: absolute !important; left: 50% !important; top: auto !important; z-index: 42;
-  bottom: calc(var(--focus-top, calc(6px + var(--focus-fill, 0) * (100% - 36px))) + 2px) !important;   /* r585: on the top lit tick */
+  bottom: var(--focus-top, calc(8px + var(--focus-fill, 0) * (100% - 36px))) !important;   /* r585: on the top lit tick; r635: the gap and the shake are in --focus-top */
   translate: -50% 0; padding: 0 !important; font-size: 10px !important; letter-spacing: -.5px !important; pointer-events: none;
   transition: bottom .12s ease-out;
   animation: none !important; white-space: nowrap; max-width: 100%;   /* r511: fits the gauge; its pulse grew it onto the housing */
 }
+/* r635: rising, it jumps straight to the new top so the filling ticks never pass it. */
+html.skin-machine #stage #focus-meter-wrap.fr-rise #focus-mult-readout { transition: none !important; }
 /* r511: the screens are set in the housing, so they never grow or shake: a hand's pops
    and jitters become a brightness flash on the glass. */
 html.skin-machine #stage :is(#score-center, #score-left, .score-subbox, #pmf-merged):is(.box-popping, .subbox-pop) {

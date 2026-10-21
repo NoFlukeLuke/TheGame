@@ -167,7 +167,7 @@ const TRICK_POOL = [
   // ── Combo batch (r83): payoffs / sleight-charge synergies ──
   { id:'landfill',       name:'Landfill',            tier:'epic',    tags:['mult','card','discard','swap','scores'],  desc:'Score +5 mult per card for every discard or swap used this round (+3 in Flow)' },
   { id:'old_growth',     name:'Old Growth',          tier:'legendary',      tags:['mult','card','scores'],  desc:'Cards add their pip value to mult' },
-  { id:'magician',       name:'Magician',            tier:'common',      tags:['pips','mult','hand','tricks','sleights','scores'],  desc:'+50 pips if this is your only Trick, or +6 mult for each Sleight you own' },
+  { id:'magician',       name:'Magician',            tier:'common',      tags:['pips','mult','hand','sleights','scores'],  desc:'+50 pips if you own no Sleights, or +6 mult for each Sleight you own' },
   { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['mult','card','position','scores'],  desc:'Hands with cards from only one column score +10 mult per card' },
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['xmult','hand','sleights','scores'],  desc:'Score ×1 mult, +×0.25 per charge your Sleights are missing' },
   // ── 5-card-hand family (r103) ──

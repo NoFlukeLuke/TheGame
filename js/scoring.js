@@ -1031,9 +1031,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_pmMult) { bMultQ('perm_mult', _pmMult); }
   // Old Growth: each scored card also adds its pip value to mult (per replay)
   if (_ogMult) { bMultQ('old_growth', _ogMult); }
-  // Magician (r623): alone in the tray it pays flat pips instead of the Sleight mult.
+  // Magician (r623, r635): with no Sleight owned it pays flat pips instead of the Sleight mult.
   if (hasTrick('magician')) {
-    if (magicianSolo()) { totalPips += BAL.magician.solo_pips; bPip('magician', BAL.magician.solo_pips); }
+    if (magicianNoSleights()) { totalPips += BAL.magician.solo_pips; bPip('magician', BAL.magician.solo_pips); }
     else { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
   }
   // Landfill: +mult per card for every discard or swap used this round
@@ -1825,10 +1825,9 @@ function heronMult() {
   const since = (typeof lastHandRoundSeconds !== 'undefined' && lastHandRoundSeconds !== null) ? lastHandRoundSeconds - roundSeconds : roundStartSeconds - roundSeconds;
   return Math.max(0, Math.floor(since)) * BAL.patience_reward.mult_per_second;
 }
-// Magician (r623): the pips side pays only while it is the only Trick in the tray.
-function magicianSolo() {
-  return typeof trickTray !== 'undefined' && !trickTray.some(t => t && t.id !== 'magician');
-}
+// Magician (r635, owner): the pips side pays only while you own no Sleight (r623 asked
+// for it to be the only Trick in the tray).
+function magicianNoSleights() { return ownedSleightCount() === 0; }
 
 function isEffectIntersection(r, c) {
   return rowColBonuses.some(b => b.axis === 'row' && b.index === r) &&

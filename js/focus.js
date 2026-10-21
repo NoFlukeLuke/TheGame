@@ -148,6 +148,12 @@ function syncFocusMeterState() {
 }
 // r585: the machine panel's multiplier sits on the top lit tick (the first tick when
 // none is lit), measured from the laid-out nodes. Offsets ignore the fill's jitter.
+// r635 (owner): it must ALWAYS be above the lit ticks. Two things put it among them:
+// a gain lit the ticks one by one (runFocusAnimQueue) without moving it, so addFocus
+// now places it at the new top BEFORE the first tick lights, and a rise jumps there at
+// once (.fr-rise drops the ease) so no tick can catch it; and the fill's shake moves
+// the ticks up to its amplitude, so it clears that too.
+const FOCUS_READOUT_GAP = 2;   // px between the top lit tick (at its highest shake) and the readout
 function _focusOffY(el) { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; }
 function focusPlaceReadout(total) {
   const wrap = document.getElementById('focus-meter-wrap');
@@ -155,7 +161,10 @@ function focusPlaceReadout(total) {
   if (!wrap || !node) return;
   if (!(typeof trayMachineOn === 'function' && trayMachineOn()) || !wrap.offsetHeight) {
     wrap.style.removeProperty('--focus-top'); return; }
-  const fromBottom = wrap.offsetHeight - (_focusOffY(node) - _focusOffY(wrap));
+  const shake = (focusReduceMotion() || _focusHold != null) ? 0 : FOCUS_FX.jitterMaxPx * focusJitterFrac();
+  const fromBottom = wrap.offsetHeight - (_focusOffY(node) - _focusOffY(wrap)) + FOCUS_READOUT_GAP + shake;
+  const was = parseFloat(wrap.style.getPropertyValue('--focus-top'));
+  wrap.classList.toggle('fr-rise', !(fromBottom <= was));
   wrap.style.setProperty('--focus-top', fromBottom.toFixed(1) + 'px');
 }
 
@@ -345,6 +354,8 @@ function addFocus(amount, srcId, srcSource) {
     focusNodeEls.forEach((n, i) => { if (i < prev) { const c = focusNodeColor(i, c0); n.classList.add('filled'); n.style.background = c; n.style.boxShadow = '0 0 3px ' + c; } });
   }
   const newTotal = Math.min(focusNodes, focusCapNodes());
+  // r635: the readout goes to the new top first; the ticks then fill up to it.
+  focusPlaceReadout(Math.max(newTotal, Math.min(focusShownNodes(), focusCapNodes())));
   for (let i = prev; i < newTotal; i++) focusAnimQueue.push({ nodeIdx: i });
   runFocusAnimQueue();
 }

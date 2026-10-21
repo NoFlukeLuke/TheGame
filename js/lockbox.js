@@ -39,6 +39,7 @@ function lockboxToggle(jcard) {
   const cards = lockboxStash.slice();
   dealerHand = { mode: 'lockbox', box: jcard || null, cards, els: [], pos: cards.map(() => ({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 })), still: 0, t0: performance.now() };
   dealerBuildLayer();
+  if (typeof dealerFlyIn === 'function') dealerFlyIn(jcard ? src : reserveSourceRect());
   if (!lockboxToggle._told) { lockboxToggle._told = true; showMessage('Bought cards: tap a card to put one in its place. DISCARD shows the next. Double-tap the Focus bar to put them away', '#8fd0ff'); }
   dealerStartLoop();
   try { sfxFlipShuffle(); } catch (e) {}

@@ -85,6 +85,12 @@ function portraitDanceBegin() {
 }
 function portraitDanceEnd() {
   if (!isPortraitLayout()) return;
+  // r635: a held stack docks in the preview and puts the view back when it closes.
+  if (typeof dealerHoldsPreview === 'function' && dealerHoldsPreview()) {
+    if (dealerHand.pvPrev == null) dealerHand.pvPrev = _pvBeforeDance || portraitPanelUserView;
+    _pvBeforeDance = null;
+    return;
+  }
   setPortraitPanelView(_pvBeforeDance || portraitPanelUserView, { auto: true });
   _pvBeforeDance = null;
 }
@@ -166,10 +172,26 @@ function fitPortraitPreviewCards() {
   if (!n) return;
 
   const cfg   = PORTRAIT_PREVIEW_CFG;
+  const avail = items.clientWidth - cfg.edgePad * 2;
+  const w = portraitPreviewCardW(n, avail);
+  if (w == null) return;                                // not laid out yet
+  const h = Math.round(w / cfg.aspect);
+
+  // Pitch between cards: as much as the row affords, capped at a normal gap.
+  const step = (n > 1) ? Math.min(Math.floor((avail - w) / (n - 1)), w + cfg.gap) : 0;
+  stage.style.setProperty('--card-w', w + 'px');
+  stage.style.setProperty('--card-h', h + 'px');
+  stage.style.setProperty('--dnc-lap', (n > 1 ? step - w : 0) + 'px');
+}
+
+// The card width the portrait preview gives an n-card hand in `avail` px of row, or
+// null before the strip is laid out. r635: split out so the held stack (Reserve,
+// Dealer's Choice, Lockbox) lands at the size a played card takes there.
+function portraitPreviewCardW(n, avail) {
+  const cfg   = PORTRAIT_PREVIEW_CFG;
   const strip = document.getElementById('trick-panel');
   const stripH = strip ? strip.clientHeight : 92;
-  const avail  = items.clientWidth - cfg.edgePad * 2;
-  if (stripH < 10 || avail < 20) return;               // not laid out yet
+  if (stripH < 10 || avail < 20) return null;
 
   // r383: THE CARD IS CLAMPED TO THE PREVIEW HALF'S CONTENT BOX, and that is
   // what finally fixed the hand name being cut off. The height came from
@@ -194,16 +216,9 @@ function fitPortraitPreviewCards() {
   // r515 (owner): stacked bars have the room, so a card is 90% of the bar's
   // height (no cardScale), still narrowed if the hand would not fit.
   const stacked = document.body.classList.contains('pt-stacked') && host;
-  const w = stacked
+  return stacked
     ? Math.max(cfg.minW, Math.floor(Math.min(wByWidth, host.clientHeight * cfg.stackedFill * cfg.aspect)))
     : Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight) * cfg.cardScale));
-  const h = Math.round(w / cfg.aspect);
-
-  // Pitch between cards: as much as the row affords, capped at a normal gap.
-  const step = (n > 1) ? Math.min(Math.floor((avail - w) / (n - 1)), w + cfg.gap) : 0;
-  stage.style.setProperty('--card-w', w + 'px');
-  stage.style.setProperty('--card-h', h + 'px');
-  stage.style.setProperty('--dnc-lap', (n > 1 ? step - w : 0) + 'px');
 }
 
 // ══════════════════════════════════════════════

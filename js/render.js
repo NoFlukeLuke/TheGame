@@ -22,6 +22,11 @@ function render() {
   // here; Survival's PEEK is the one place the board is wanted back, and it
   // releases the takeover first (gridPickSetShown), so this test is false there.
   if (typeof gridPickState !== 'undefined' && gridPickState && gridScreenSaved) return;
+  // THE SHOP OWNS #grid TOO (r635). Selling a Trick or Knack from the tray while the
+  // shop was up ran render() (sellTrick / sellKnack), which dealt the play board's cards
+  // over the shelves: the owner's "the cards peek through the shop". renderShopGrid is
+  // the only thing that paints there; the buttons and counts below are the shop's too.
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing

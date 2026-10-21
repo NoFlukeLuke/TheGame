@@ -52,7 +52,7 @@ const KNACK_POOL = [
   // ── Combo batch (r83) ──
   { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  rarity:'rare',   desc:'The highest-ranked cards in each scored hand replay once.', tags:['replay','card','scores'] },
   { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   rarity:'rare',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.', tags:['replay','hand','scores'] },
-  { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.', tags:['stock','credits','other','discard'] },
+  { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding a card of the grid’s highest rank grants +2 discards or +2 swaps (alternating) and +5 credits.', tags:['stock','credits','other','discard'] },
   { id:'muscle_memory',   emoji:'🤝',  name:'Buddy System',     rarity:'common', desc:'Whenever a Trick is primed, a different Trick is primed too.', tags:['prime','other','tricks'] },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:`+1 Trick Slot. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['limit','other','boss','scaling','chance'] },
   { id:'short_suit',      emoji:'🃏',  name:'Short Suit',       rarity:'rare',   desc:'Flush of 3 and Flush of 4 become scorable hands.', tags:['other','flush','size'] },

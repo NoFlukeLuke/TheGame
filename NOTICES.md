@@ -258,8 +258,8 @@ The dev panel's own messages always print.
 |---|---|
 | combos-aim.js:141 |  🪞 Reflect leaves the board |
 | discard.js:146 |  Five for Fodder! +' + _fc + ' credits |
-| discard.js:148 |  Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins |
-| discard.js:149 |  Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins |
+| discard.js:176 |  Down and Back In: +${_g} swaps, +${BAL.down_and_back_in.coins} credits |
+| discard.js:177 |  Down and Back In: +${_g} discards, +${BAL.down_and_back_in.coins} credits |
 | discard.js:278 |  label |
 | events-slots.js:292 |  ${eventState.floorWon} cards improved |
 | events-slots.js:407 |  +${BAL.the_payline.consolation_credits} credits |

@@ -65,22 +65,36 @@ function reserveOpen() {
   if (focusNodes < cost) { refuse(`Reserve needs ${cost} Focus`); return; }
   removeFocus(cost);
   const cards = reserveRollCards(more ? 1 : reserveCfg('cards'));
-  const src = document.getElementById('focus-bar-outer')?.getBoundingClientRect();
+  const src = reserveSourceRect();
   const sx = src ? src.left + src.width / 2 : innerWidth / 2, sy = src ? src.top + src.height / 2 : innerHeight / 2;
   if (more) {
+    const from = dealerHand.cards.length;
     cards.forEach(c => { dealerHand.cards.push(c); dealerHand.pos.push({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 }); });
     dealerBuildLayer();
+    dealerFlyIn(src, from);
     noteMessage(`Reserve: +1 card for ${cost} Focus`);
   } else {
     selected = []; swapPending = null;
     if (typeof cancelAutoSubmit === 'function') cancelAutoSubmit();
     dealerHand = { mode: 'reserve', cards, els: [], pos: cards.map(() => ({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 })), still: 0, t0: performance.now() };
     dealerBuildLayer();
+    dealerFlyIn(src);
     if (!reserveOpen._told) { reserveOpen._told = true; showMessage('Reserve: tap a card to swap one in, or DISCARD it. Double-tap the Focus bar for one more', '#8fd0ff'); }
     dealerStartLoop();
   }
   try { sfxFlipShuffle(); } catch (e) {}
   if (typeof dbgEvent === 'function') dbgEvent('info', `reserve ${more ? '+1' : 'open'} (-${cost} Focus)`);
+}
+
+// Where Reserve cards come from (r635): the Focus bar, at the top of what is left
+// of the fill (the bar's foot when it is empty), a bar-wide square in viewport px.
+function reserveSourceRect() {
+  const bar = document.getElementById('focus-bar-outer')?.getBoundingClientRect();
+  if (!bar || !bar.width) return null;
+  const node = (typeof focusNodeEls !== 'undefined' && focusNodes > 0) ? focusNodeEls[Math.min(focusNodes, focusNodeEls.length) - 1] : null;
+  const nr = node && node.getBoundingClientRect();
+  const cy = nr && nr.height ? nr.top : bar.bottom - bar.width / 2;
+  return { left: bar.left, top: cy - bar.width / 2, width: bar.width, height: bar.width };
 }
 
 // ── The Focus bar's double-tap ──────────────────────────────────────────────

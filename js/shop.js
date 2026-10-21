@@ -31,7 +31,7 @@ function sellTrick(trick) {
   noteMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
   if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
   if (typeof renderTrickTray === 'function') renderTrickTray();
-  render();
+  shopOrBoardRepaint();
 }
 
 function sellKnack(knack) {
@@ -43,7 +43,13 @@ function sellKnack(knack) {
   noteMessage(`Sold ${knack.name} · +${v} credits`, 'var(--gold)');
   if (typeof hideKnackTooltip === 'function') hideKnackTooltip();
   if (typeof updateKnackList === 'function') updateKnackList();
-  render();
+  shopOrBoardRepaint();
+}
+// A sale can happen with the shop up (the tray is always live): repaint the shop, whose
+// prices and owned counts just changed, not the board (r635).
+function shopOrBoardRepaint() {
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) renderShopGrid();
+  else render();
 }
 
 function shopLimitPrice(def) {
