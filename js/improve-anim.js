@@ -395,3 +395,31 @@ async function improveAnimPreview(tiers) {
   _iaQueue.push({ id, from, to: steps[steps.length - 1].tier, before, steps });
   await improveAnimFlush();
 }
+
+// ── The preview page: index.html?improve ────────────────────────────────────
+// Rides the Trick tour (a Classic run with one Trick in the tray) and puts a
+// small panel on the screen: a key per look, one for a 3-tier run, and the
+// sliders. ?improve alone becomes ?tricks=epic&improve before the tour reads it
+// (this file loads first). Nothing here runs without the flag.
+(function () {
+  if (!/[?&]improve\b/.test(location.search)) return;
+  if (!/[?&]tricks\b/.test(location.search)) { try { history.replaceState(null, '', location.pathname + '?tricks=epic&improve'); } catch (e) {} }
+  const build = () => {
+    document.body.classList.add('ia-lab-on');   // the tour's panel stays hidden (css), whenever it is built
+    const el = document.createElement('div'); el.id = 'ia-lab';
+    el.innerHTML = `<div class="ia-lab-t">IMPROVEMENT ANIMATION</div>
+      <div class="ia-lab-row">${IA_LOOKS.map(l => `<button data-look="${l}">${l.toUpperCase()}</button>`).join('')}<button data-tiers="3">3 TIERS</button></div>
+      <label>Speed <input type="range" min="0.4" max="2.5" step="0.05" data-k="speed"> <span data-v="speed"></span></label>
+      <label>Size <input type="range" min="20" max="70" step="1" data-k="size"> <span data-v="size"></span></label>
+      <label>Hold <input type="range" min="0" max="3000" step="50" data-k="hold"> <span data-v="hold"></span></label>
+      <div class="ia-lab-n">A look's key plays it on the tray's Trick. Picked look: <b data-v="look"></b>. Settings save in this browser.</div>`;
+    document.body.appendChild(el);
+    const sync = () => { el.querySelectorAll('[data-look]').forEach(b => b.classList.toggle('on', b.dataset.look === iaCfg.look)); el.querySelector('[data-v=look]').textContent = iaCfg.look;
+      [['speed', v => v.toFixed(2) + 'x'], ['size', v => v + '%'], ['hold', v => v + 'ms']].forEach(([k, f]) => { el.querySelector(`[data-k=${k}]`).value = iaCfg[k]; el.querySelector(`[data-v=${k}]`).textContent = f(iaCfg[k]); }); };
+    el.querySelectorAll('[data-look]').forEach(b => b.onclick = () => { iaSet('look', b.dataset.look); sync(); improveAnimPreview(1); });
+    el.querySelector('[data-tiers]').onclick = () => improveAnimPreview(3);
+    el.querySelectorAll('input[data-k]').forEach(i => i.oninput = () => { iaSet(i.dataset.k, i.value); sync(); });
+    sync();
+  };
+  window.addEventListener('load', () => setTimeout(build, 2600));
+})();

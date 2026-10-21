@@ -509,7 +509,7 @@ const DESC_TEMPLATES = {
   before_the_tide: 'Each rank {max_rank} or lower card scored adds its rank in Focus',
   royal_trio: 'A hand containing a King and one other Royal scores ×{mult_mult} mult',
   frozen_moment: 'Hands played while the clock is paused add +{focus} Focus',
-  perfect_timing: 'Cards scored in a marked row or column replay once[[chance2>0:[[chance2<1:, with a {chance2_pct}% chance of a second replay]]]][[chance2>1: and again, with a {chance2_pctover}% chance of a third]][[extra_line:. A second line is marked]]',
+  perfect_timing: 'Cards scored in a marked row or column replay [[chance2<0.995:once[[chance2>0:, with a {chance2_pct}% chance of a second replay]]]][[chance2>0.995:twice]][[extra_line:. A second line is marked]]',
   sixes_perm: 'Every {interval}th card scored permanently gains a random +{roll_min}–{roll_max} pips or mult',
   hourglass: 'Each time the clock passes a {interval_seconds}s mark: {chance_pct}% chance a random card on the grid gains +1 replay (permanent buff)',
   clean_sweep: 'Use every cell of any row or column within two hands to add +{focus} Focus and +{credits} credits',
@@ -537,7 +537,7 @@ const DESC_TEMPLATES = {
 // may nest one level.
 function fillDescTemplate(t, p) {
   const cond = (k, op, n) => { const v = p[k] || 0, lim = n == null ? 0 : +n; return op === '<' ? v < lim : v > lim; };
-  const re = /\[\[(\w+)(?:([<>])(-?\d+))?:((?:[^\[\]]|\[(?!\[)|\](?!\]))*)\]\]/g;
+  const re = /\[\[(\w+)(?:([<>])(-?\d+(?:\.\d+)?))?:((?:[^\[\]]|\[(?!\[)|\](?!\]))*)\]\]/g;
   for (let i = 0; i < 3; i++) t = t.replace(re, (m, k, op, n, txt) => (cond(k, op || '>', n) ? txt : ''));
   return t.replace(/\{(\w+)\}/g, (m, k) => {
     if (k in p) return p[k];

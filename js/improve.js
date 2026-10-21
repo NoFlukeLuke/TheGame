@@ -138,7 +138,7 @@ const IMPROVE_PLAN = {
   // doubles one of the three in turn; the 5th doubles all three and lifts the silent all-three chance
   ninesong:         t => ({ seconds: 9 * [1, 2, 2, 2, 4, 8][t], mult: 27 * [1, 1, 2, 2, 2, 4][t], focus: 9 * [1, 1, 1, 2, 2, 4][t], all_chance: t >= 5 ? 0.35 : 0.2 }),
   // a second replay chance, +33% a tier (past 100% a third); the 5th adds a second marked line
-  perfect_timing:   t => ({ chance2: [0, 0.33, 0.66, 0.99, 1.32, 1.32][t], extra_line: t >= 5 ? 1 : 0 }),
+  perfect_timing:   t => ({ chance2: [0, 0.33, 0.66, 0.99, 1, 1][t], extra_line: t >= 5 ? 1 : 0 }),   // r631 (owner): capped at a sure second replay
   // +8 mult, +4 Focus, alternating; the 5th does both
   shape_square:     t => ({ mult: 24 + 8 * [0, 1, 1, 2, 2, 3][t], focus: 16 + 4 * [0, 0, 1, 1, 2, 3][t] }),
   // improves only twice: the first jumps to tier 3 (buffed pips count), the second to tier 5 (6 rows + columns count)

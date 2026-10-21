@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r630 · reward grid: good tiles dark gold, bad tiles dark red";
+const BUILD = "2026-10-21 · r631 · Perfect Timing capped at a sure second replay; ?improve is the improvement animation preview page";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

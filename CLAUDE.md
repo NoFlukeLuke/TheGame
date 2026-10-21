@@ -2051,3 +2051,9 @@ With no outline (r625, pick branch) the fill carries the tile's kind. On the rew
 tile's `#5c1219 -> #2f080c` (were `#221d0e -> #14110a` and `#24101a -> #140a10`). Destination and
 mystery-outcome tiles keep theirs. Verified at 1440x820 and 420x900 (Flow, real click): no page errors.
 
+## r631 - Perfect Timing capped; the `?improve` preview page (owner)
+Perfect Timing's second replay chance is 33 / 66 / 99% at tiers 1-3 and a SURE second replay from
+tier 4 (`chance2` 1; it was 1.32); tier 5 marks a second line. `fillDescTemplate` conditions take
+decimals (`[[chance2>0.995:twice]]`). **`index.html?improve`** (becomes `?tricks=epic&improve`
+before the tour reads it) hides the tour's panel (`body.ia-lab-on`) and shows `#ia-lab`: a key per
+look (plays it on the tray's Trick), 3 TIERS, and the speed / size / hold sliders.
