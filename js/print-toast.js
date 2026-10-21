@@ -32,7 +32,7 @@ const PT_CFG = {
 
 let printToastsOn = true;          // Settings > Display > Printer notices
 let _ptLayer = null, _ptSlip = null, _ptPinned = [];
-// r626: the recent notices, printed (ink) and quiet (noteMessage, dim), for the drawer.
+// r627: the recent notices, printed (ink) and quiet (noteMessage, dim), for the drawer.
 const PT_HISTORY_MAX = 40;
 const ptHistory = [];
 function ptHistoryPush(text, ink, quiet) {

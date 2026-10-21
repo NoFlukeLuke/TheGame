@@ -68,7 +68,7 @@ body.reduced-motion .pt-line { animation: none; }
 body.reduced-motion .pt-pulled { animation: none; opacity: 0; }
 body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }
 
-/* ── r626: the paper corner and the drawer ─────────────────────────────────── */
+/* ── r627: the paper corner and the drawer ─────────────────────────────────── */
 #pt-tab {
   position: absolute; left: calc(50% + var(--ptw, 340px) / 2 + 10px); top: 0; width: 44px; height: 26px;
   pointer-events: auto; cursor: var(--cur-pointer, pointer);

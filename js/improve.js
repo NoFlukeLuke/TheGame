@@ -349,7 +349,7 @@ function improveEntity(id) {
     if (typeof jump === 'number' && jump > entityTier[id]) { entityTier[id] = Math.min(IMPROVE_MAX_TIER, jump); applyEntityTiers(); hook(entityTier[id], ownedTrickObj(id)); }
   }
   improveRepaintArt();
-  // r626: the improvement animation (js/improve-anim.js) plays from a queue, so a
+  // r627: the improvement animation (js/improve-anim.js) plays from a queue, so a
   // many-tiered grant is one scene and a sequence can hold it until its end.
   if (typeof improveAnimNote === 'function') improveAnimNote(id, _was, entityTier[id], _descWas, _impDescOf(id));
   return entityTier[id];
