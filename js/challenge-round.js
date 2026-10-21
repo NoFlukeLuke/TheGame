@@ -586,6 +586,12 @@ function crRaise(cd) {
   q.tier++; q.hold = null;
   crRepaint(cd); crFxRaise(cd);
   noteMessage(`⚑ Raised: ${crReqText(q)}`);
+  // r615 (owner): in a challenge round a raised card has already counted, so the
+  // next card is sent for now rather than when the raised one leaves.
+  if (q.src === 'seq' && !q.sentNext && crLive() && crRound.solved < CR_CARDS) {
+    q.sentNext = true;
+    setTimeout(() => crBeginArrival('seq', crRound.solved + 1, crRound.solved), 700);
+  }
   if (q.prog >= crTarget(q)) crAdvance(cd);   // already there: banks at once
 }
 // Take the banked tier's payout. In a challenge round the next card follows.
@@ -664,7 +670,7 @@ function crDrain() {
         const again = crFindById(id);
         if (again) { gridData[again[0]][again[1]] = drawCard() || null; render(); }
       });
-      if (cd.cr.src === 'seq') nextSeq = true;
+      if (cd.cr.src === 'seq' && !cd.cr.sentNext) nextSeq = true;
     }
   }
   if (nextSeq && crLive() && crRound.solved < CR_CARDS) setTimeout(() => crBeginArrival('seq', crRound.solved + 1, crRound.solved), 700);
@@ -816,13 +822,14 @@ function crSpotSettle() {
 
 // ── The challenge round's clock and settlement ──────────────────────────────
 function crOnClockOut() {
-  // A cleared, unanswered round card takes its payout; a raised one is lost and
-  // no longer counts as done.
+  // A cleared, unanswered round card takes its payout. A raised one that did not
+  // reach its tier loses the banked payout but STILL counts as done (r615, owner:
+  // clearing a tier completes the challenge; a raise only bets the payout).
   for (const [, , cd] of crCards()) {
     const q = cd.cr;
     if (q.src !== 'seq' || q.done || !q.ladder) continue;
     if (crCleared(q)) crCollect(cd);
-    else if (q.counted && crRound) { q.counted = false; crRound.solved--; }
+    else if (q.counted) { q.done = 'lost'; crRepaint(cd); crFxFail(cd); }
   }
   // Goal met and every card done, but no hand ended the round (the last card
   // cleared by a fall): end it through the interlude so the prize and mini grids

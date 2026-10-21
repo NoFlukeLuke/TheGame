@@ -1814,3 +1814,14 @@ repeated set "2 SETS OF 3"; other repeats keep x2 (RUN OF 3 x2). Measured: 77 PA
   `woodpeckerCardId`). Every `interval_seconds` a random cell holding a card that can score is
   marked; the mark stays when cards fall or swap, whatever card scores from that cell replays
   `retrigger_count` times, and that hand spends the mark. Ring, cooldown widget and description follow.
+
+## r615 - challenge rounds: a cleared tier stays done (owner)
+Bug report: in Classic, clearing a challenge's first tier but not the raised one still gave the
+penalty grid. Two causes in js/challenge-round.js: `crOnClockOut` un-counted a raised card that
+had not reached its tier (`solved--`), and the next card only arrived when a card LEFT the board,
+so a raise held cards 2 and 3 back until the clock ran out. Now a raised round card that falls
+short at clock-out is marked lost (its banked payout is lost) but stays counted, and `crRaise`
+sends for the next card at once (`q.sentNext`, so `crDrain` does not send a second one when the
+raised card leaves). Superseded in r465's notes: "then it no longer counts". Measured in Classic:
+card 1 cleared and raised, card 2 arrived ~1s later; cards 2 and 3 solved; clock out with the
+raise open ended through the interlude with 3/3 solved and no penalty grid.

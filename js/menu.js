@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r614 · Focus speeds the score animation 2x at most; the Woodpecker marks a cell";
+const BUILD = "2026-10-21 · r615 · Challenge rounds: a cleared tier stays done when a raise falls short";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
