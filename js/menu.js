@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r616 · Challenge rounds: a missed raise fails; the next card comes at the first clear";
+const BUILD = "2026-10-21 · r617 · Classic full-tray boost doubles only Trick improvements";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

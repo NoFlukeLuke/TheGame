@@ -1835,3 +1835,12 @@ the next card the moment a card first counts (`q.sentNext`; `crDrain` sends only
 it). Measured in Classic: card 2 landed ~4s after card 1's first clear (0.7s + the 3s pulse) with card
 1 still waiting; raise made + cards 2 and 3 solved -> ended through the interlude, 3/3, no penalty;
 raise missed -> 2/3, lost (penalty grid).
+
+## r617 - the full-tray boost doubles only Trick improvements (owner)
+`rewardImproveBoost` now scales only the `improve_trick` row (exact-chance scaling as before), so in
+Classic with every Trick slot full an Improve a Trick tile is `IMPROVE_FULL_TRAY_MULT` (2) times as
+likely and Knack / Sleight improvements keep the table's rate. Measured (4,000 grids, 4x4, past the
+first 5, owning an improvable Knack and Sleight): Improve a Trick 3.0% -> 6.2% of buff tiles, Knack
+2.2% -> 2.2%, Sleight 2.5% -> 2.3% (noise); any improvement 7.7% -> 10.7% of tiles, 44% -> 55% of grids.
+Owning only Tricks: 6.2% of tiles, 36% of grids (unchanged from r613, since only Trick improvements
+could appear there).

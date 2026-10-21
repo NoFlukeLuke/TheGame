@@ -126,9 +126,10 @@ const REWARD_BUFF_CATS = [
   { weight:  3, kind: 'improve_knack' },
   { weight:  3, kind: 'improve_sleight' },
 ];
-// Classic with the Trick tray full (r612, owner; x2 since r613): a reward tile is an improvement
-// IMPROVE_FULL_TRAY_MULT times as often. The improve rows are scaled so the CHANCE
-// is that multiple, not the weight (10 of 107 -> 15 of 112 would only be x1.43).
+// Classic with the Trick tray full (r612, owner; x2 since r613; Tricks only since r617):
+// a reward tile is an IMPROVE-A-TRICK tile IMPROVE_FULL_TRAY_MULT times as often. Knack
+// and Sleight improvements keep the table's rate. The row is scaled so the CHANCE is
+// that multiple, not the weight (4 of 107 -> 8 of 111 would only be x1.93).
 // Measured before (4x4, past the first 5 grids, tray full): 3.2% of tiles with only
 // Tricks to improve, 8% with a Knack and a Sleight too (20% / 44% of grids show one).
 let IMPROVE_FULL_TRAY_MULT = 2;   // r613 (owner): was 1.5
@@ -136,7 +137,7 @@ function rewardImproveBoost(cats) {
   const _classic = isActMode() && !(typeof guidedActive === 'function' && guidedActive())
                                 && !(typeof mapActive === 'function' && mapActive());
   if (!_classic || !(typeof trickTrayFull === 'function' && trickTrayFull())) return cats;
-  const isImp = c => String(c.kind).startsWith('improve_'), M = IMPROVE_FULL_TRAY_MULT;
+  const isImp = c => c.kind === 'improve_trick', M = IMPROVE_FULL_TRAY_MULT;
   const w = cats.reduce((s, c) => s + (isImp(c) ? c.weight : 0), 0);
   const all = cats.reduce((s, c) => s + c.weight, 0);
   if (!w || M * w >= all) return cats;
