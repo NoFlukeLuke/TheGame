@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r627 · The improvement animation (lift / stamp / flip) with FAST FORWARD; notices over it hang longer; the paper corner opens a drawer of recent notices";
+const BUILD = "2026-10-21 · r628 · The improvement animation (lift / stamp / flip) with FAST FORWARD; notices over it hang longer; the paper corner opens a drawer of recent notices";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

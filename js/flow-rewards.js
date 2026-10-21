@@ -1885,7 +1885,7 @@ function flowrShowEntityStep(kind) {
   try { sfxShopOpen?.(); } catch (e) {}
 }
 
-// r626: an improve pick plays its animation (js/improve-anim.js) before the chain
+// r627: an improve pick plays its animation (js/improve-anim.js) before the chain
 // moves on; any other pick continues at once.
 function flowrAfterImprove(next) {
   if (typeof improveAnimFlush !== 'function') { next(); return; }

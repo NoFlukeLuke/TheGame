@@ -1897,7 +1897,7 @@ async function confirmRewardPath() {
     rewardSelected = keep;
   }
   // Fly the claimed items to their homes / drop the rest, THEN apply + continue.
-  // r626: improvements queue their animation and play it LAST, after every tile.
+  // r627: improvements queue their animation and play it LAST, after every tile.
   if (typeof improveAnimHold === 'function') improveAnimHold(true);
   rewardDealing = true;   // block re-render from clobbering the flying tiles
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
