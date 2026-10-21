@@ -402,6 +402,7 @@ const INFO_TOPICS = [
   { id: 'icon_credits', group: 'credits', title: 'Icons and type',
     body: [
       () => `The pictures on Tricks, Knacks, Sleights and reward tiles are pixel versions of icons from game-icons.net, by ${(typeof PX_ICON_AUTHORS !== 'undefined' ? PX_ICON_AUTHORS : []).join(', ')}. CC BY 3.0 (creativecommons.org/licenses/by/3.0). The list of icons is in assets/icons/CREDITS.md.`,
+      'The playing cards are Pixel Cards by Jfred (jfredd.itch.io/pixel-cards), CC0; the Joker is the wild card.',
       'VT323 is by Peter Hull, under the SIL Open Font License.',
     ] },
 ];

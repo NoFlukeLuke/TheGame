@@ -1,5 +1,6 @@
 /* ══ CARD FACE (r497, js/card-face.js) ══
-   html.cf-print    : the printout's pixel type, dot-printed (the default)
+   html.cf-pixel    : Jfred's Pixel Cards (r633, the default): corner index + centre art from a sheet
+   html.cf-print    : the printout's pixel type, dot-printed
    html.cf-phosphor : the card is a little screen, rank and suit glow in the suit colour
    html.cf-classic  : the old serif face (style.css as written) */
 @font-face { font-family: 'VT323 Local'; src: url('../fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
@@ -43,3 +44,26 @@ html.cf-phosphor .card .rank {
   font-size-adjust: none !important; font-size: calc(var(--card-h, 75px) * 0.38); line-height: .8;
 }
 html.cf-phosphor .card.selected { border-color: rgb(var(--pg)); box-shadow: 0 0 10px rgba(var(--pg), .55), inset 0 0 14px rgba(var(--pg), .2); }
+
+/* ── pixel (r633) ── the pack's cream stock and grey edge; the face is three sprite pieces
+   (js card-face.js cardFaceSpriteHTML) scaled by --k, the card's height over the source's 75,
+   so pixels stay square whatever shape the cell is. The art is centred across the card at its
+   source height; the index sits at its source corner, and once more turned round bottom-right. */
+html.cf-pixel { --card-bg: #fff9ef; --card-border: #d0cbc0; }
+html.cf-pixel .card.has-pxf .rank, html.cf-pixel .card.has-pxf .suit,
+html.cf-pixel .card.has-pxf .wild-glyph, html.cf-pixel .card.has-pxf .wild-label { display: none; }
+html.cf-pixel .card.wild-card { border-style: solid; border-color: #c9b7f0; }
+html.cf-pixel .card.wild-card:hover:not(.unreachable) { background: #fffaee; }
+.pxf { display: none; }   /* another look keeps its text face; a re-render is not needed to switch */
+html.cf-pixel .pxf {
+  display: block; position: absolute; pointer-events: none; z-index: 0;
+  --k: calc(var(--card-h, 75px) / 75);
+  width: calc(var(--w) * var(--k)); height: calc(var(--h) * var(--k));
+  background-image: var(--cfs); background-repeat: no-repeat;
+  background-size: calc(var(--cfs-w) * var(--k)) calc(var(--cfs-h) * var(--k));
+  background-position: calc(var(--x) * var(--k) * -1) calc(var(--y) * var(--k) * -1);
+  image-rendering: pixelated;
+}
+.pxf-art { left: 50%; top: calc((var(--ay) - 1) * var(--k)); transform: translateX(-50%); }
+.pxf-ix { left: calc(var(--ix) * var(--k)); top: calc(var(--iy) * var(--k)); }
+.pxf-ix.pxf-br { left: auto; top: auto; right: calc(var(--ix) * var(--k)); bottom: calc(var(--iy) * var(--k)); transform: rotate(180deg); }

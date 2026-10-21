@@ -136,7 +136,14 @@ function renderCardAppearance(card, r, c, {
   const isWild = (typeof isWildCard === 'function') && isWildCard(card);
   const _dual = (typeof cardIsDual === 'function') && cardIsDual(card);
   const _coin = (typeof cardCoinHTML === 'function') ? cardCoinHTML(card) : '';
+  // r633: the pixel card look draws the face from Jfred's sheet (js/card-face.js); when it
+  // has pieces for this card the text rank / suit / wild glyph are hidden by css (.has-pxf).
+  const _pxf = (typeof cardFaceSpriteHTML === 'function')
+    ? cardFaceSpriteHTML(card, { isWild, isNum, dual: _dual,
+        fogged: !isWild && typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog) })
+    : '';
   const className = [
+    _pxf ? 'has-pxf' : '',
     'card',
     isWild ? 'wild-card' : '',
     isNum ? 'num-card' : '',
@@ -169,7 +176,7 @@ function renderCardAppearance(card, r, c, {
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${(typeof cardIsFodder === 'function' && cardIsFodder(card)) ? `<div class="fodder-badge" title="Fodder: swap or discard it free${card._fodderTemp && !permFodder[cardId(card)] ? ' (until it leaves the board)' : ''}">♻</div>` : ''}
-    ${combinedLabel}${_coin}
+    ${combinedLabel}${_coin}${_pxf}
     ${isWild
         // The Fog hides RANKS, and a wild has none to hide - so it is drawn in
         // full even under the Fog rather than reading as a '?' the player would

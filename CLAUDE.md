@@ -2073,3 +2073,20 @@ Trick's own line; the 5th improvement's second line (`_fixed`) replays once (`_p
 Measured at 1440x820 and 420x900 through `?improve`: the screen matches the board box to the pixel, the
 header and sentence type (77 characters, cursor present), the version reads v1.0 then v2.0, a 3-tier
 preview counts v1 -> v4, no page errors.
+
+## r633 - the cards are Jfred's Pixel Cards; the Joker is the wild (`tools/cards/`, `js/data/card-faces.js`)
+Owner's pick: Pixel Cards by Jfred (CC0, jfredd.itch.io/pixel-cards; credited in `assets/cards/jfred/
+CREDITS.md` and the handbook). The pack is 50x75 faces; the board's cells are not that shape (r586 fills
+the box), so a face is CUT INTO PIECES by `tools/cards/build.js` (Playwright, like the icons): the corner
+INDEX (rank over suit, x 2..9 y 2..18 of the source) and the centre ART (x 10..39), ink only, into
+`assets/cards/jfred/faces.png` (art cells in the top row, index cells beneath) with `CARD_FACES` ('♥K' ->
+sheet boxes + where they sat on the card; 'joker' is art only). `cardFaceSpriteHTML` (js/card-face.js)
+emits three `.pxf` divs scaled by `--k` = card height / 75: art centred at its source height, the index at
+its corner and again rotated bottom-right; `renderCardAppearance` adds them and `has-pxf`, and
+css/card-face.css hides the text rank / suit / wild glyph under `html.cf-pixel`. Card face `pixel` is the
+default (`CARD_LOOK_DEFAULT`; the store holds only another choice, so nobody needs a migration); print,
+phosphor and classic stay in dev -> Aesthetics -> Card face. No sprite (so the printed face on the cream
+stock) for numeric cards, dual cards, a fogged rank and the six-suit deck's extra suits. The pack colours
+spades navy and clubs green where the game's `--suit-spades` / `--suit-clubs` are black and blue; the
+preview name and tooltips still use the game's. Owner's note for later: a RANK could be made wild
+(`isWildRank` is the one check) and given the Joker face the same way.

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r632 · The improvement animation is a screen on the board: amber glass, typed text, the tile stamped in the grid; steps speed up 10%; Perfect Timing's second line replays once";
+const BUILD = "2026-10-21 · r633 · the cards are Jfred's Pixel Cards; the Joker is the wild";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
