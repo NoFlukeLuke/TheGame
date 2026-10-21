@@ -1103,7 +1103,9 @@ function renderRewardTiles(animateIn = false) {
 
       const div = document.createElement('div');
       div.className = [
-        'reward-cell', 'on-grid', cell.kind,
+        // rg-tile (r625): the reward grid's own tiles, so its look (bigger Tricks,
+        // pixel corners) stays off the shop and Guided tiles that share on-grid.
+        'reward-cell', 'on-grid', 'rg-tile', cell.kind,
         p.entity ? 'entity' : '',
         p.entity ? 'entity-' + p.entity : '',
         p.entity ? 'rar-' + rewardRarity(p) : '',

@@ -1935,3 +1935,17 @@ print and apply; Rogue Wave A Q K up and down true, mixed false; a crafted pair 
 than a pair of 7s; Heron +10 / +12 mult after the wait; Woodpecker mark 1-1 before and after the hand;
 Perfect Ten +6 mult at the 18th card; Kaleidoscope 3 suits -> 2 extra applies, 1 suit -> 0; Ripple's
 badge read 2 on selection, through the tally and for 3s after; no drift, no page errors.
+
+## r625 - reward grid tiles: bigger Tricks, pixel corners (owner)
+The reward grid's own tiles carry `.rg-tile` (js/reward-grid.js), so the shop and Guided tiles that
+share `.on-grid` are untouched. **Tricks** take `--dz: 1.12`: the disc's width is one variable now,
+`--disc` = min(frame) x `--dz` (default 1), read by the disc, its label, its charge count and the tier
+stamp's letterbox (`--lbv` / `--lbh`, css/entity-fx.css, equal to the old values at 1). Measured: disc
+68.3 in a 61 content box at 1440x820 (61 before), 60.5 in 54 at 420x900; the frame has no box of its
+own, so the disc uses the padding. **Every other tile but the Knack diamond and the Sleight card**
+has no border and no radius: its fill is `::before`, `background: var(--rbg)` (each tile kind now
+sets `--rbg`), clipped to a stepped pixel rounded rect (`--pxc`, three `--pxs` 2px steps a corner).
+The tile itself is not clipped, so a selected tile's ring is chained `drop-shadow`s of that fill
+(white, then violet, then the glow), which follow the steps; the wash is clipped the same way. The
+prize grid's gold ring is a drop-shadow glow on those tiles.
+

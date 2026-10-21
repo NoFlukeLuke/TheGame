@@ -3140,7 +3140,8 @@
     position: relative;
     border-radius: 8px;
     border: 2px solid #33314e;
-    background: linear-gradient(160deg, #17162a, #0d0c18);
+    --rbg: linear-gradient(160deg, #17162a, #0d0c18);
+    background: var(--rbg);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3161,9 +3162,9 @@
     box-sizing: border-box;
     overflow: hidden;
   }
-  .reward-cell.buff      { border-color: #d8a43a;  background: linear-gradient(160deg, #221d0e, #14110a); }
-  .reward-cell.debuff    { border-color: #b23a4a;  background: linear-gradient(160deg, #24101a, #140a10); }
-  .reward-cell.dest      { border-color: #8844cc;  background: linear-gradient(160deg, #1c1030, #100a1c); }
+  .reward-cell.buff      { border-color: #d8a43a;  --rbg: linear-gradient(160deg, #221d0e, #14110a); background: var(--rbg); }
+  .reward-cell.debuff    { border-color: #b23a4a;  --rbg: linear-gradient(160deg, #24101a, #140a10); background: var(--rbg); }
+  .reward-cell.dest      { border-color: #8844cc;  --rbg: linear-gradient(160deg, #1c1030, #100a1c); background: var(--rbg); }
   .reward-cell.dest .reward-tier { color: #bb88ff; }
   /* .reward-cell.selected is defined ONCE, further down - see
      "SELECTION IS A WHOLE-CELL STATE" (r281). Two definitions of a state that
@@ -3369,7 +3370,7 @@
     /* The disc's width, for its children's padding and type (r592). Percent
        padding resolves against the FRAME's width, which is not the disc's in a
        frame wider than the disc. Unregistered, so it resolves in the child. */
-    --disc: min(100cqw, 100cqh * 20 / 19);
+    --disc: calc(min(100cqw, 100cqh * 20 / 19) * var(--dz, 1));
     --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
     /* The shutter's default material: DULL GREY = unimproved (r274). */
     --shut: linear-gradient(180deg, #9c9c98 0%, #72726f 50%, #8a8a87 100%);
@@ -3388,7 +3389,7 @@
   .reward-cell.entity-trick::before {
     content: ''; position: absolute; z-index: 0; mix-blend-mode: normal;
     left: 50%; top: 50%; right: auto; bottom: auto;
-    width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+    width: var(--disc); aspect-ratio: 20 / 19;
     transform: translate(-50%, -50%);
     /* the corner notch - the strongest "this is a floppy" cue at 40px */
     clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
@@ -3435,7 +3436,7 @@
   .reward-cell.entity-trick .rwd-uses {
     position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
     top: 50%; transform: translate(-50%, -50%); margin: 0;
-    width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+    width: var(--disc); aspect-ratio: 20 / 19;
     display: flex;
   }
   .reward-cell.entity-trick .rwd-art {      /* the label, 2.5% of the disc inside its edges */
@@ -3450,7 +3451,7 @@
     z-index: 3; padding: 0 9% 10.5% 0;
     align-items: flex-end; justify-content: flex-end;
     background: none; border-radius: 0;
-    font-size: max(6px, 15.8cqw);
+    font-size: max(6px, 15.8cqw * var(--dz, 1));
     color: #221d15; text-shadow: none;
     pointer-events: none;
   }
@@ -3662,6 +3663,41 @@
 
   /* ── reward grid rendered ON the play #grid (r100): tiles positioned like cards ── */
   .reward-cell.on-grid { position: absolute; padding: 5px; }
+
+  /* ── THE REWARD GRID'S OWN TILES (r625, owner) ─────────────────────────────
+     Tricks are drawn 12% larger (--dz scales the disc in its frame; the frame
+     has no box of its own, so the disc may use the padding). Every other tile
+     but the Knack diamond and the Sleight card loses its outline and its round
+     corners: the fill is a stepped PIXEL rounded rect, three steps of --pxs per
+     corner (3, 1, 1). The fill is ::before, clipped, so the tile itself is not:
+     a selected tile's ring is drop-shadows of that fill, which follow the steps
+     (a box-shadow ring would be a rectangle). */
+  #grid .reward-cell.rg-tile.entity-trick { --dz: 1.12; overflow: visible; }
+  #grid .reward-cell.rg-tile:not(.entity) {
+    --pxs: 2px;
+    --pxc: polygon(
+      0 calc(3 * var(--pxs)), var(--pxs) calc(3 * var(--pxs)), var(--pxs) var(--pxs), calc(3 * var(--pxs)) var(--pxs), calc(3 * var(--pxs)) 0,
+      calc(100% - 3 * var(--pxs)) 0, calc(100% - 3 * var(--pxs)) var(--pxs), calc(100% - var(--pxs)) var(--pxs), calc(100% - var(--pxs)) calc(3 * var(--pxs)), 100% calc(3 * var(--pxs)),
+      100% calc(100% - 3 * var(--pxs)), calc(100% - var(--pxs)) calc(100% - 3 * var(--pxs)), calc(100% - var(--pxs)) calc(100% - var(--pxs)), calc(100% - 3 * var(--pxs)) calc(100% - var(--pxs)), calc(100% - 3 * var(--pxs)) 100%,
+      calc(3 * var(--pxs)) 100%, calc(3 * var(--pxs)) calc(100% - var(--pxs)), var(--pxs) calc(100% - var(--pxs)), var(--pxs) calc(100% - 3 * var(--pxs)), 0 calc(100% - 3 * var(--pxs)));
+    border: none; border-radius: 0; background: none; box-shadow: none;
+  }
+  /* z-index -1 stays inside the tile: its transform makes a stacking context. */
+  #grid .reward-cell.rg-tile:not(.entity)::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--rbg); clip-path: var(--pxc);
+  }
+  #grid .reward-cell.rg-tile.selected:not(.entity)::after { border-radius: 0; clip-path: var(--pxc); }
+  #grid .reward-cell.rg-tile.selected:not(.entity) {
+    box-shadow: none !important;
+    filter: drop-shadow(2px 0 0 #efe8ff) drop-shadow(-2px 0 0 #efe8ff) drop-shadow(0 2px 0 #efe8ff) drop-shadow(0 -2px 0 #efe8ff)
+            drop-shadow(2px 0 0 #6c4ac8) drop-shadow(-2px 0 0 #6c4ac8) drop-shadow(0 2px 0 #6c4ac8) drop-shadow(0 -2px 0 #6c4ac8)
+            drop-shadow(0 0 10px rgba(160,124,255,0.6)) drop-shadow(0 8px 10px rgba(0,0,0,0.5));
+  }
+  /* The prize grid's gold glow (below, body.reward-prize) as a glow of the shape. */
+  body.reward-prize #grid .reward-cell.rg-tile:not(.entity, .selected) {
+    box-shadow: none; filter: drop-shadow(0 0 7px rgba(226,178,66,0.35));
+  }
   /* reward-step action buttons: green CONFIRM (was Play) / yellow CLEAR (was Discard) */
   .btn-play.reward-buy, #stage.landscape #btn-play.reward-buy {
     background: linear-gradient(180deg, #7dffce, var(--c-mint) 55%, #1fa877) !important;
@@ -3728,7 +3764,8 @@
   /* a Mystery morphed into its outcome: neon green (good) / magenta (bad) tile */
   .reward-cell.reward-good, .reward-cell.reward-bad {
     border: 2px solid var(--rc);
-    background: linear-gradient(180deg, #15110b, #0a0906);
+    --rbg: linear-gradient(180deg, #15110b, #0a0906);
+    background: var(--rbg);
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -1px var(--rc), inset 0 0 14px -4px var(--rc), 0 6px 14px rgba(0,0,0,0.5);
   }
   .reward-cell.reward-good { --rc: var(--c-mint); }

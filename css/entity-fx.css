@@ -245,8 +245,8 @@ body.reduced-motion .rc-line-ring { animation-name: none; }
    HOST - the tray chip, the card, the knack chip - not to the .reward-cell, so
    these selectors cannot reach it, and it is a live status marker shared with
    hosts that have no letterbox at all. Its home is the tile's corner. */
-.reward-cell.entity-trick    { --lbv: max(0px, (100cqh - 100cqw * 19 / 20) / 2);
-                               --lbh: max(0px, (100cqw - 100cqh * 20 / 19) / 2); }
+.reward-cell.entity-trick    { --lbv: calc((100cqh - var(--disc) * 19 / 20) / 2);   /* --disc: css/style.css */
+                               --lbh: calc((100cqw - var(--disc)) / 2); }
 .reward-cell.entity-sleight  { --lbv: max(0px, (100cqh - 100cqw / 1.37) / 2);
                                --lbh: max(0px, (100cqw - 100cqh * 1.37) / 2); }
 .reward-cell.entity-trick    > .rwd-tier,
