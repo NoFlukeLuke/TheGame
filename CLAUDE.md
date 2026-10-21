@@ -1852,10 +1852,10 @@ holding found sections is lit with their count (`data-hits`, `.dev-tab-hit`); th
 results alone; a resize across the line relays the live search. Measured at 1440x820: menu column
 200px, panel 1080; 420x900 unchanged.
 
-## r619 - Flow reward count: 35 / 35 / 18 / 9 / 3 (owner)
+## r619 / r621 - Flow reward count: 33 / 34 / 18 / 10 / 5 (owner)
 `FLOWR_DEF.counts` (js/flow-rewards.js) is the chance of 1 / 2 / 3 / 4 / 5 rewards at a Flow
-level-up; was 38 / 42 / 10 / 6 / 4. More than one reward is 65% at the base (was 62%), three or
-more 30% (was 20%). `flowEcon.multiStep` (10) still adds to that per single-reward level-up in a
+level-up; was 38 / 42 / 10 / 6 / 4 (r619 briefly 35 / 35 / 18 / 9 / 3). More than one reward is
+67% at the base (was 62%), three or more 33% (was 20%). `flowEcon.multiStep` (10) still adds to that per single-reward level-up in a
 row. The store is overrides only, so a browser that typed this row keeps playing the same.
 ## r620 - the Trick tour and the Trick balance sheet (`js/trick-tour.js`, `tools/trick-sheet.*`)
 - **Trick tour**: `index.html?tricks` (common; `?tricks=rare|epic|legendary|all`; dev -> Bonuses -> Add
