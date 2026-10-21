@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r613 · Board Sleights wear their improvement bands; full-tray improvements x2";
+const BUILD = "2026-10-21 · r614 · Focus speeds the score animation 2x at most; the Woodpecker marks a cell";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -54,8 +54,7 @@ const CARD_MARK_META = {
   temporal_rift:      { color: '#7ec8e3', glyph: '\u23f8', name: 'Temporal Rift',
     covers: (r, c) => hasTrick('temporal_rift') && isEffectIntersection(r, c) },
   woodpecker:         { color: '#5aaa5a', glyph: '\u26cf', name: 'The Woodpecker',
-    covers: (r, c) => typeof woodpeckerCardId !== 'undefined' && woodpeckerCardId
-                      && gridData[r]?.[c] && cardId(gridData[r][c]) === woodpeckerCardId },
+    covers: (r, c) => typeof woodpeckerCell !== 'undefined' && woodpeckerCell === `${r}-${c}` },
   // Heartwood's cell is Math.floor(rows/2) x Math.floor(cols/2) - the same
   // expression play-hand.js uses, so the mark can never point at a different
   // cell from the one that actually gets the buff.

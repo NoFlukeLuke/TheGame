@@ -1805,3 +1805,12 @@ repeated set "2 SETS OF 3"; other repeats keep x2 (RUN OF 3 x2). Measured: 77 PA
 - `IMPROVE_FULL_TRAY_MULT` 1.5 -> 2. Measured (4,000 grids, 4x4, past the first 5): Tricks only
   3.2% -> 6.2% of buff tiles (grids with one 20% -> 36%); with a Knack and Sleight 8% -> 16%
   (44% -> 70.7%); one slot free unchanged (8%).
+
+## r614 - Focus speeds animations 2x at most; the Woodpecker marks a cell
+- `caFocusPace` (js/card-anims.js) is capped at `CA_FOCUS_PACE_MAX` (2): the score tally (`tally2`)
+  and the card looks / flights (`focus2`) never run more than twice as fast from Focus. With the
+  default 1.5 at Focus x2 the cap is reached at Focus x3 (it used to reach 2.5x at x4).
+- **The Woodpecker marks a CELL** (owner): `woodpeckerCell` ('r-c', in SAVE_VARS; replaces
+  `woodpeckerCardId`). Every `interval_seconds` a random cell holding a card that can score is
+  marked; the mark stays when cards fall or swap, whatever card scores from that cell replays
+  `retrigger_count` times, and that hand spends the mark. Ring, cooldown widget and description follow.

@@ -103,7 +103,7 @@ function renderCardAppearance(card, r, c, {
   const hasPip = pp > 0, hasMult = pm > 0;
   const isCombined = !!card.combined;
 
-  const rcWoodpecker = woodpeckerCardId && card && cardId(card) === woodpeckerCardId ? ' rc-woodpecker' : '';
+  const rcWoodpecker = woodpeckerCell && woodpeckerCell === `${r}-${c}` ? ' rc-woodpecker' : '';
   // The shared "what affected what" highlight (r209, divided in r296 -
   // js/entity-fx.js): a RING around the card in the owning Trick's colour,
   // DIVIDED EVENLY when several marked lines cross this cell rather than naming

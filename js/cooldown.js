@@ -63,12 +63,12 @@ const TRICK_TIMERS = {
   },
   // (The Cuckoo left this table in r346: it fires per HAND now, not on a clock,
   // so there is no honest countdown to draw.)
-  // The Woodpecker marks a new card every interval; the ring counts down to the
+  // The Woodpecker marks a new cell every interval; the ring counts down to the
   // next mark, violet while a mark is standing on the board.
   woodpecker() {
     const iv = BAL.woodpecker.interval_seconds;
     const left = cdUntilNextMark(iv);
-    return woodpeckerCardId
+    return woodpeckerCell
       ? { mode: 'primed', left, total: iv, label: 'marked' }
       : { mode: 'cooldown', left, total: iv };
   },

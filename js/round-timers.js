@@ -152,16 +152,19 @@ function startRoundTimer() {
     if (typeof focusKnacksTick === 'function') focusKnacksTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)
-    // The Woodpecker (r348): every interval a new random card is marked, replacing
-    // any mark still standing. A tick with no legal card (mid-fall, a blocked
-    // board) does not spend the block - it tries again on the next tick.
+    // The Woodpecker (r348, a cell since r614): every interval a new random cell is
+    // marked, replacing any mark still standing. Only a cell holding a card that can
+    // score is picked; a tick with none (mid-fall, a blocked board) does not spend
+    // the block - it tries again on the next tick.
     if (hasTrick('woodpecker')) {
       const _blk = Math.floor(_elapsedRound / BAL.woodpecker.interval_seconds);
       if (_blk !== woodpeckerActiveBlock && !animating && !falling) {
-        const _pool = hallmarkCandidates().filter(cd => cardId(cd) !== woodpeckerCardId);
+        const _pool = [];
+        hallmarkCandidates().forEach(cd => { for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+          if (gridData[r]?.[c] === cd && `${r}-${c}` !== woodpeckerCell) _pool.push(`${r}-${c}`); });
         if (_pool.length) {
           woodpeckerActiveBlock = _blk;
-          woodpeckerCardId = cardId(_pool[Math.floor(Math.random() * _pool.length)]);
+          woodpeckerCell = _pool[Math.floor(Math.random() * _pool.length)];
           render(); // show the highlight + trigger the peck animation
         }
       }

@@ -116,7 +116,7 @@ Temporal Rift's rewind (`permTime`). Every grant site asks `cardTimeBuffed(card)
 
 **Marks from the 9.24 pass (r348, r350):** Double Jeopardy marks two CELLS
 secretly (`doubleJeopardyCells` - cell-keyed on purpose, nothing is drawn); The
-Woodpecker marks a CARD every 30s (`woodpeckerCardId`, spent when scored);
+Woodpecker marks a CELL every 30s (`woodpeckerCell`, "r-c"; r614, was a card; spent when a hand scores from it);
 Royal Favour stamps a +1 rank on a card that scored beside a Queen as it goes
 into the pile (`queenUpgradePending`, applied in `recycleCard`).
 

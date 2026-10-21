@@ -110,9 +110,11 @@ function caFocusNow() {
 }
 // How much faster Focus makes things: `key` (focus2 for the card looks, tally2 for
 // the score tally, js/dance-clock.js) is the multiplier at Focus x2, linear from x1.
+// Owner (r614): Focus never makes anything more than CA_FOCUS_PACE_MAX (2) times as fast.
+const CA_FOCUS_PACE_MAX = 2;
 function caFocusPace(key) {
   const f = Math.min(4, Math.max(1, caFocusNow() || 1));
-  return 1 + (f - 1) * ((caSpeedCfg[key] || 1) - 1);
+  return Math.min(CA_FOCUS_PACE_MAX, 1 + (f - 1) * ((caSpeedCfg[key] || 1) - 1));
 }
 function caSpeedNow() { return Math.max(0.05, caSpeedCfg.speed) * caFocusPace('focus2'); }
 const caSlow = () => 1 / caSpeedNow();

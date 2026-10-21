@@ -516,9 +516,9 @@ function playHand() {
       if (trickFires('buried_treasure')) grantEntityCoins(_after - _before, 'trick', 'buried_treasure');
     }
   }
-  // The Woodpecker's mark is spent by the hand that scores it (the replays were
-  // paid in calcScore, which is read-only, so the mark comes off here).
-  if (woodpeckerCardId && result.handCells.some(([r, c]) => gridData[r]?.[c] && cardId(gridData[r][c]) === woodpeckerCardId)) woodpeckerCardId = null;
+  // The Woodpecker's mark is spent by the hand that scores from its cell (the replays
+  // were paid in calcScore, which is read-only, so the mark comes off here).
+  if (woodpeckerCell && result.handCells.some(([r, c]) => `${r}-${c}` === woodpeckerCell)) woodpeckerCell = null;
   // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
   // Cleared here rather than in calcScore for the speculative-re-score reason
   // given there.

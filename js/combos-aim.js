@@ -224,9 +224,10 @@ let firstPauseStartedRound = false; // a clock pause has begun this round (Vultu
 let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
 let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
 let _lastRetrigByCell = {};      // { 'r-c': replayCount } from the last calcScore (playHand reads for replay-aware coin/time)
-// The Woodpecker (r348): a new CARD is marked every interval, keyed by cardId so
-// the mark rides the card as it falls. Scoring it spends the mark.
-let woodpeckerCardId = null;
+// The Woodpecker (r348; a CELL since r614, owner): every interval a board cell is
+// marked, as 'r-c'. The mark stays put when cards fall or swap; whatever card scores
+// from that cell replays, and that hand spends the mark.
+let woodpeckerCell = null;
 let woodpeckerActiveBlock = -1; // index of the interval block already marked
 let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
 let shadyColumn = 0;            // Shady Tree sleight: the "shady" column this round
