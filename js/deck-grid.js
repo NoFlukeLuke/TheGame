@@ -566,6 +566,7 @@ let swapsUsedRound      = 0; // swap actions this round (the No Takebacks challe
 let discardsUsedRound   = 0; // discard actions this round (Landfill)
 let cardsScoredTotal  = 0;
 let nineSecondsCounter = 0;
+let trickFireTotals = {};   // r634: Trick id -> hands it fired in this run (js/finale.js)
 let highestHandScore = 0;
 let highestHandName  = null;
 let gameStartTime    = 0;

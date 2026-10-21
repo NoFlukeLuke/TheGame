@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r633 · the cards are Jfred's Pixel Cards; the Joker is the wild";
+const BUILD = "2026-10-21 · r634 · Builds rebuilt on the tag table: filter dropdowns, group by, fuzzy search, draft rail with warnings, synergies, odds, stats, improvement ladder, test drive; the finale screen; tracked builds star offers; every entity tagged";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

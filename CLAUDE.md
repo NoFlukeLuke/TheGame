@@ -2090,3 +2090,38 @@ stock) for numeric cards, dual cards, a fogged rank and the six-suit deck's extr
 spades navy and clubs green where the game's `--suit-spades` / `--suit-clubs` are black and blue; the
 preview name and tooltips still use the game's. Owner's note for later: a RANK could be made wild
 (`isWildRank` is the one check) and given the Joker face the same way.
+## r634 - Builds rebuilt on the tag table; the finale; tracked builds (owner's brief)
+- **Tags** (`js/data/tags.js`, `TAGS.md`, `tools/verify-tags.js`): every Trick, Sleight and Knack row
+  carries `tags:` from one closed vocabulary in four groups: PAYS (pips, mult, xpips, xmult, focus,
+  time, credits, replay, stock, deck, board, limit, prime, luck, info, shield), SCOPE (exactly one of
+  card / hand / other), WHEN (run, set, flush, size, rank, suit, position, streak, clock, pause,
+  discard, swap, buffed, wild, sleights, tricks, level, reward, shop, boss, challenge), HOW (scores,
+  scaling, chance, line, cost). Sleight activation is the row's `activation`, not a tag. The old
+  tags (replay/retrigger, position/positional, coins/credits) are gone; Tray Order's gate reads
+  `TRAY_ORDER_IDS` in js/events.js, not a tag. TAGS.md ends with the 22 judgement calls for the owner.
+- **Builds** (`js/builds.js`, `css/builds.css`, console look): a top bar of multi-select dropdowns
+  (TYPE, RARITY, FILE found / not found / locked, PAYS, SCOPE, WHEN, HOW, SLEIGHT activation), each
+  option counted over what the other dropdowns leave; ticked options repeat as chips with an x;
+  GROUP BY rarity / type / A to Z / a tag group; only matches are drawn, no gaps. Search box is
+  approximate (`bvEdit`, one edit for 4+ letters, two for 7+, prefixes) and secondary; `/` focuses
+  it, Escape clears or closes. Records: the object tile, name, rarity, description, tag chips,
+  + DRAFT, and `v2..v5` (the improvement ladder read by applying tiers 1-4 for a moment; v6 shows
+  only once `improveTierSeen(id, 5)`, written by `improveEntity` to `lethe.tierSeen.v1`). Left
+  column: the draft (tiles, `draftWarnings`: Trick Slots, one Focus knack, retired), SAVE, TRACK IN
+  RUNS, TEST DRIVE, codes; saved builds; VIEW toggles: synergies (`bvSynergy`: shared WHEN tags,
+  replay + per-card, prime + scoring Trick; tap a record to pin), offer odds (`bvOdds`: the tier's
+  share of ENTITY_TIER_W over the tier's members of that type), run stats (`bvStatsFor`, from run
+  history by name), unfound and locked files. State in `lethe.builds.v2`, overrides only. The canvas
+  scrolls; +/- is CSS zoom. Under 760px the rail is a drawer.
+- **Tracked build:** `entityTileHTML` adds `.requisitioned` (a star) to an offer of an entity on
+  the tracked build that is not owned (`entityOwnedNow`). The pause menu's BUILDS button
+  (`pauseBuildsToggle`, js/finale.js) picks which saved build is tracked.
+- **Test drive** (`testDriveDraft` -> `lethe.testDrive.v1` -> `launchTestDrive` from bootstrap):
+  one Classic round, the walkthrough ended, the draft granted 600ms in (Sleights to the top of the
+  draw pile). `startInterlude` and `showFinale` read `testDriveActive()`; the finale then offers
+  BACK TO BUILDS (`lethe.openBuilds.v1`, read at boot).
+- **Finale** (`js/finale.js`, `css/finale.css`): `showFinale(kind)` replaces #end-overlay's
+  report in onGameWin / onGameEnd: the last round's score against its goal as a bar, rounds,
+  hands, best hand, time, credits, cards scored / discarded, MOST USED (`trickFireTotals`, totalled
+  in playHand from `_trickFiredThisHand`, in SAVE_VARS), the build as tiles, DETAILS (the quarter
+  table), PEEK (hold or tap: the panel fades to show the board), SAVE BUILD (`saveBuildRecord`).

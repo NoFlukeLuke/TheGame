@@ -48,6 +48,7 @@
 <link rel="stylesheet" href="css/insights.css">
 <link rel="stylesheet" href="css/info-hub.css">
 <link rel="stylesheet" href="css/builds.css">
+<link rel="stylesheet" href="css/finale.css">
 <link rel="stylesheet" href="css/hypno.css">
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/office-photo.css">
@@ -1393,6 +1394,8 @@
     <div id="pause-stripe"></div>
     <button id="btn-resume" class="pause-btn pause-btn-primary">▶ Resume</button>
     <button id="btn-pause-settings" class="pause-btn pause-btn-ghost" onclick="openSettings(false)">⚙ Settings</button>
+    <button id="btn-pause-builds" class="pause-btn pause-btn-ghost" onclick="pauseBuildsToggle()">★ Builds</button>
+    <div id="pause-builds" style="display:none;"></div>
     <button id="btn-pause-newrun" class="pause-btn pause-btn-ghost" onclick="restartRun()">↻ New Run</button>
     <button id="btn-pause-home" class="pause-btn pause-btn-ghost" onclick="quitToMainMenu()">⌂ Home</button>
     <div id="pause-settings">
@@ -1573,6 +1576,7 @@
 <script src="js/data/cards.js"></script>
 <script src="js/deck-design.js"></script>
 <script src="js/data/audio-manifest.js"></script>
+<script src="js/data/tags.js"></script>
 <script src="js/data/tricks.js"></script>
 <script src="js/data/icons.js"></script>
 <script src="js/data/card-faces.js"></script>
@@ -1667,6 +1671,7 @@
 <script src="js/shop.js"></script>
 <script src="js/shop-grid-preview.js"></script>
 <script src="js/builds.js"></script>
+<script src="js/finale.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>

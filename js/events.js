@@ -1079,10 +1079,12 @@ function confirmTwinPath() {
 // Tapping the lifted Trick again puts it back down. Nothing is committed until
 // Confirm, and Skip leaves the tray exactly as it was.
 // r590 (owner): Tray Order only turns up when something cares about tray order:
-// an owned entity tagged 'positional' (Inspirato, Double Take, Prime Times,
-// Mirror today; tag a new one in its data row and this reads it).
+// an owned entity whose effect depends on TRAY ORDER (r634: the `tricks` tag
+// in js/data/tags.js is wider, it also covers Magician-style counts, so the
+// order-sensitive ones are named here). Add a new one to TRAY_ORDER_IDS.
+const TRAY_ORDER_IDS = new Set(['wild_heart', 'twos_retrigger', 'prime_times', 'mirror', 'temporal_rift', 'alignment']);
 function ownsPositional() {
-  const has = e => e && Array.isArray(e.tags) && e.tags.includes('positional');
+  const has = e => e && TRAY_ORDER_IDS.has(e.id);
   return (trickTray || []).some(has) || (acquiredKnacks || []).some(has);
 }
 function renderShiftChange() {

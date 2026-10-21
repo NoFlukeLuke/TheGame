@@ -158,10 +158,24 @@ function entityTipPayloadFor(p, rarity) {
 // tray uses it, because its tap already opens its own bubble with SELL/DISCARD
 // and two bubbles on one chip is one too many.
 function entityTileHTML(p, rarity, { mystery = false, extraClass = '', tip = true } = {}) {
+  // r634: a tracked build (BUILDS -> TRACK IN RUNS) stars its entities on every
+  // offer. Owned ones carry no star: the tray is not an offer.
+  if (!mystery && p.id && typeof isRequisitioned === 'function' && isRequisitioned(p.id) && !entityOwnedNow(p.id))
+    extraClass = (extraClass ? extraClass + ' ' : '') + 'requisitioned';
   let tipAttr = '';
   if (tip && !mystery) {
     const tp = entityTipPayloadFor(p, rarity);
     if (tp) tipAttr = ` data-et="${encodeURIComponent(JSON.stringify(tp))}"`;
   }
   return `<div class="${entityTileClass(p, rarity, extraClass)}"${tipAttr}>${entityTileInner(p, { mystery })}</div>`;
+}
+
+// Owned in the live run, any type (r634). Read by the requisition star.
+function entityOwnedNow(id) {
+  try {
+    if (typeof hasTrick === 'function' && hasTrick(id)) return true;
+    if (typeof hasKnack === 'function' && hasKnack(id)) return true;
+    if (typeof grantedSleightIds !== 'undefined' && grantedSleightIds.has(id)) return true;
+  } catch (e) {}
+  return false;
 }

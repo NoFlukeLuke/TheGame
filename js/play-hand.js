@@ -551,6 +551,9 @@ function playHand() {
     noteMessage('🎯 LUCKY SEVEN - +1 SWAP', '#c9a84c');
   }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
+  // r634: which Tricks fired this hand (trickFires() records the ask), totalled
+  // for the finale's MOST USED (js/finale.js). SAVE_VARS carries it.
+  if (typeof _trickFiredThisHand !== 'undefined') _trickFiredThisHand.forEach(id => { trickFireTotals[id] = (trickFireTotals[id] || 0) + 1; });
   // The quarter keeps its own best, for the run report's per-quarter row.
   if (typeof recordQuarterBest === 'function') recordQuarterBest(hand, finalScore);
   if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound++;

@@ -4,7 +4,8 @@ if (typeof applyLexiconToDOM === 'function') applyLexiconToDOM();
 // The pause menu's NEW RUN reloads with a note asking for a run of the same mode
 // (js/game-control.js). The menu never shows; the run starts once the page is built.
 const _newRunReq = (typeof takeNewRunRequest === 'function') ? takeNewRunRequest() : null;
-if (!_newRunReq) initMainMenu();
+const _testDriveReq = (typeof takeTestDriveRequest === 'function') ? takeTestDriveRequest() : null;
+if (!_newRunReq && !_testDriveReq) initMainMenu();
 else document.getElementById('main-menu-overlay')?.classList.remove('show');   // starts shown in index.html
 // The red SCORE / GOAL chips (and the top-bar act readout) reopen a boss's
 // briefing. Bound once - each handler no-ops unless a boss is running.
@@ -165,6 +166,13 @@ document.addEventListener('webkitfullscreenchange', onFsChange);
 if (_newRunReq) {
   const _go = () => { try { launchNewRun(_newRunReq); } catch (e) { console.error('[new run] failed', e); initMainMenu(); } };
   if (document.readyState === 'complete') _go(); else window.addEventListener('load', _go, { once: true });
+} else if (_testDriveReq) {
+  // BUILDS -> TEST DRIVE (r634, js/builds.js): one Classic round with the draft granted.
+  const _go = () => { try { launchTestDrive(_testDriveReq); } catch (e) { console.error('[test drive] failed', e); initMainMenu(); } };
+  if (document.readyState === 'complete') _go(); else window.addEventListener('load', _go, { once: true });
 }
+
+// BACK TO BUILDS from a test drive's finale (js/finale.js): the menu opens on the catalogue.
+try { if (sessionStorage.getItem('lethe.openBuilds.v1')) { sessionStorage.removeItem('lethe.openBuilds.v1'); window.addEventListener('load', () => setTimeout(() => { try { openBuilds(); } catch (e) {} }, 300), { once: true }); } } catch (e) {}
 
 window.LETHE_BOOT_OK = true;

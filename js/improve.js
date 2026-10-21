@@ -352,6 +352,7 @@ function improveEntity(id) {
   // r627: the improvement animation (js/improve-anim.js) plays from a queue, so a
   // many-tiered grant is one scene and a sequence can hold it until its end.
   if (typeof improveAnimNote === 'function') improveAnimNote(id, _was, entityTier[id], _descWas, _impDescOf(id));
+  if (entityTier[id] >= IMPROVE_MAX_TIER) markTierSeen(id, IMPROVE_MAX_TIER);
   return entityTier[id];
 }
 // The printed sentence of an entity as the player sees it (the owned copy, else the pool's).
@@ -364,6 +365,24 @@ function _impDescOf(id) {
   }
   return '';
 }
+
+// Tiers the player has REACHED, across runs (r634, owner): the Builds screen
+// prints an entity's v2 to v5 freely and its v6 only once it has been taken
+// there in a run. A collection log like js/discovery.js, not run state.
+const TIER_SEEN_KEY = 'lethe.tierSeen.v1';
+let _tierSeen = null;
+function _tierSeenMap() {
+  if (_tierSeen) return _tierSeen;
+  try { _tierSeen = JSON.parse(localStorage.getItem(TIER_SEEN_KEY) || '{}') || {}; } catch (e) { _tierSeen = {}; }
+  return _tierSeen;
+}
+function markTierSeen(id, tier) {
+  const m = _tierSeenMap();
+  if ((m[id] || 0) >= tier) return;
+  m[id] = tier;
+  try { localStorage.setItem(TIER_SEEN_KEY, JSON.stringify(m)); } catch (e) {}
+}
+function improveTierSeen(id, tier) { return (_tierSeenMap()[id] || 0) >= tier; }
 
 // THE ART FOLLOWS THE TIER AT ONCE (r612, owner). The tray chips carry the tier's
 // bands and badge, and they were only redrawn by callers that remembered to (the

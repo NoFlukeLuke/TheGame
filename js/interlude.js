@@ -7,6 +7,8 @@
 // is reached identically either way.
 async function startInterlude(opts) {
   opts = opts || {};
+  // r634: a test drive (BUILDS) is one round; its goal cleared opens the finale.
+  if (typeof testDriveActive === 'function' && testDriveActive()) { showFinale('drive'); return; }
   interludeActive = true;
 
   // Duck gain was set up by goal-reach (set to 0.4). Reuse it; lazy-init if missing.

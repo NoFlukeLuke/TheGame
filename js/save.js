@@ -50,7 +50,7 @@ function _saveWrite(name, v) {
 // startGame() has already set them correctly.
 const SAVE_VARS = [
   // ── Run progression ──
-  'level', 'score', 'totalScore', 'lastRoundScore', 'lastRoundGoal', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
+  'level', 'score', 'totalScore', 'lastRoundScore', 'lastRoundGoal', 'roundGoal', 'coins', 'leaves', 'handsPlayed', 'trickFireTotals',
   'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'luckModifiers', 'knackBossGrowth', 'challengeDial', 'freeHandSecs', 'chargedCardPending', 'focusDoubleHands', 'overdriveCd',

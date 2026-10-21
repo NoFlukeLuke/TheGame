@@ -432,15 +432,8 @@ function onGameWin() {
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory('win');       // log it before the numbers are reset
-  const overlay = document.getElementById('end-overlay');
-  const title   = document.getElementById('end-title');
-  title.textContent = 'VICTORY';
-  title.className   = 'victory';
-
-  // The full run report - quarter by quarter, then the run totals (js/quarter.js).
-  // A won run has already closed every quarter through rolloverQuarter.
-  document.getElementById('end-stats').innerHTML = runReportHTML();
-  overlay.classList.add('show');
+  // r634: the finale (js/finale.js) over the board; the old #end-overlay is its fallback.
+  showFinale('win');
 }
 
 function onGameEnd(gameover) {
@@ -450,15 +443,7 @@ function onGameEnd(gameover) {
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory(gameover ? 'loss' : 'timeup');
-  const overlay = document.getElementById('end-overlay');
-  const title = document.getElementById('end-title');
-  title.textContent = gameover ? 'GAME OVER' : "TIME'S UP";
-  title.className = gameover ? 'gameover' : 'timeup';
-
-  // The same report a win gets. A run that ended badly still deserves the account
-  // of itself; the quarter it died in comes through as a partial row.
-  document.getElementById('end-stats').innerHTML = runReportHTML();
-  overlay.classList.add('show');
+  showFinale(gameover ? 'loss' : 'timeup');
 }
 
 // ══════════════════════════════════════════════
