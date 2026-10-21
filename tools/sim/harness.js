@@ -144,6 +144,7 @@ function load(opts = {}) {
     Promise, Symbol, Error, TypeError, RangeError, parseInt, parseFloat, isNaN, isFinite,
     Infinity, NaN, undefined,
     structuredClone: (x) => JSON.parse(JSON.stringify(x)),
+    URL, URLSearchParams,   // r620: js/px-icons.js builds the icon sheet's absolute url at load
     MutationObserver: class { observe() {} disconnect() {} takeRecords() { return []; } },
     ResizeObserver: class { observe() {} unobserve() {} disconnect() {} },
     IntersectionObserver: class { observe() {} unobserve() {} disconnect() {} },

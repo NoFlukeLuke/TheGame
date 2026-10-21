@@ -68,6 +68,7 @@
 <link rel="stylesheet" href="css/pairs-event.css">
 <link rel="stylesheet" href="css/event-toys.css">
 <link rel="stylesheet" href="css/event-tour.css">
+<link rel="stylesheet" href="css/trick-tour.css">
 <link rel="stylesheet" href="css/event-grid-lab.css">
 <link rel="stylesheet" href="css/menu-size.css">
 <link rel="stylesheet" href="css/tray-fx.css">
@@ -536,6 +537,13 @@
   <!-- ADD TRICK -->
   <div class="dev-section" data-group="bonuses">
     <div class="dev-section-title">Add Trick</div>
+    <div class="dev-row" style="margin-bottom:6px;">
+      <button class="dev-btn" onclick="location.search='?tricks'">Trick Tour: common (one by one, numbers live)</button>
+      <button class="dev-btn" onclick="location.search='?tricks=rare'">rare</button>
+      <button class="dev-btn" onclick="location.search='?tricks=epic'">epic</button>
+      <button class="dev-btn" onclick="location.search='?tricks=legendary'">legendary</button>
+      <button class="dev-btn" onclick="location.search='?tricks=all'">all</button>
+    </div>
     <input id="dev-trick-search" type="text" placeholder="Search trick name..." oninput="devFilterTricks(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
     <div id="dev-trick-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
@@ -1689,6 +1697,7 @@
 <script src="js/bug-report.js"></script>
 <script src="js/blank-ui.js"></script>
 <script src="js/event-tour.js"></script>
+<script src="js/trick-tour.js"></script>
 <script src="js/event-grid-lab.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->

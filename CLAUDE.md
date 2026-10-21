@@ -1857,3 +1857,21 @@ results alone; a resize across the line relays the live search. Measured at 1440
 level-up; was 38 / 42 / 10 / 6 / 4. More than one reward is 65% at the base (was 62%), three or
 more 30% (was 20%). `flowEcon.multiStep` (10) still adds to that per single-reward level-up in a
 row. The store is overrides only, so a browser that typed this row keeps playing the same.
+## r620 - the Trick tour and the Trick balance sheet (`js/trick-tour.js`, `tools/trick-sheet.*`)
+- **Trick tour**: `index.html?tricks` (common; `?tricks=rare|epic|legendary|all`; dev -> Bonuses -> Add
+  Trick has the buttons). Like the event tour: a Classic run, walkthrough ended, the round goal put at
+  1e12 so the round never ends, one Trick at a time alone in the tray, score zeroed per Trick, hands
+  played for real. The panel shows the tile, the live description and **every number the Trick has in
+  BAL as an input**: a change writes `BAL_BASE` and runs `applyEntityTiers()` (the one sanctioned
+  write), so the next hand scores with it and the text reads it. Numbers, KEEP / EDIT / CUT and a note
+  persist per Trick in `lethe.trickTour.v1` and are re-applied at the tour's start; COPY ALL prints
+  verdicts with `key old -> new`. CLOCK: HELD / RUNNING (`gameTimerPaused`; Tricks in `CLOCK_IDS`
+  start running), REFILL (score, Focus, stock, clock back to the round's start); a running clock is
+  topped up before it hits 0. `OFF_BOARD` lists what the board cannot show (More Better, Sapling...).
+- **Sheet**: `node tools/trick-sheet.js common` dumps the tier through the sim harness (live
+  descriptions, BAL numbers, templates, tags); `python3 tools/trick-sheet.py <json> --out X.xlsx
+  [--audit report.csv]` writes one row per BAL number with yellow NEW VALUE / Verdict / Notes columns, an
+  x-factor formula, and the Trick audit's measurements matched by name (share of score, x on a hand,
+  fires %). The r621 run: `tools/sim/out/trick-audit-r621.json.gz`, card ladder scoring, 6 deals x 40 grids.
+- The sim harness now defines `URL` / `URLSearchParams` (js/px-icons.js built the icon sheet url at
+  load and every sim had failed to load the game since r583).

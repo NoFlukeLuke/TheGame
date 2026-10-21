@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r619 · Flow reward count defaults 35 / 35 / 18 / 9 / 3";
+const BUILD = "2026-10-21 · r620 · Trick tour (?tricks): the common Tricks one by one with their numbers live; the Trick balance sheet";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
