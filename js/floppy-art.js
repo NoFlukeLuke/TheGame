@@ -19,6 +19,13 @@ const FLOPPY_ART_PIXEL_MAX = 128;
 const FLOPPY_ART_KEY = 'lethe.floppyArt.v1';
 let floppyArtOn = (() => { try { return localStorage.getItem(FLOPPY_ART_KEY) !== 'off'; } catch (e) { return true; } })();
 let floppyArtFound = null;   // { name: widthPx } once the probe is done
+let floppyArtRatio = {};     // { name: width / height }
+// The art's drawn box inside the drawn disc's 20:19 box (`contain`), as a background
+// size. The improvement bands are laid over THAT box (r610), so they sit on the art's
+// own bottom-left corner instead of in the empty strip beside a narrower picture.
+function floppyArtBandBox(r) {
+  return r <= 20 / 19 ? `${(95 * r).toFixed(2)}% 100%` : `100% ${(100 / (0.95 * r)).toFixed(2)}%`;
+}
 
 function floppyArtApply() {
   const h = document.documentElement;
@@ -30,8 +37,9 @@ function floppyArtApply() {
     h.classList.toggle('fa-' + t, on);
     if (on) {
       h.style.setProperty('--fa-' + t, `url("${new URL(FLOPPY_ART_DIR + name + '.png', location.href).href}")`);   // absolute, as --px-sheet
+      h.style.setProperty('--fa-' + t + '-bs', floppyArtBandBox(floppyArtRatio[name] || 20 / 19));
       if (found[name] <= FLOPPY_ART_PIXEL_MAX) pix = true;
-    } else h.style.removeProperty('--fa-' + t);
+    } else { h.style.removeProperty('--fa-' + t); h.style.removeProperty('--fa-' + t + '-bs'); }
   });
   h.classList.toggle('fa-pix', pix);
   const sel = document.getElementById('dev-floppy-art');
@@ -55,7 +63,7 @@ function setFloppyArt(v) {
   const done = () => { if (--left === 0) { floppyArtFound = found; floppyArtApply(); } };
   names.forEach(name => {
     const img = new Image();
-    img.onload = () => { found[name] = img.naturalWidth; done(); };
+    img.onload = () => { found[name] = img.naturalWidth; floppyArtRatio[name] = img.naturalWidth / img.naturalHeight; done(); };
     img.onerror = done;
     img.src = FLOPPY_ART_DIR + name + '.png';
   });

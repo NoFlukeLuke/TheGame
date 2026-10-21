@@ -3412,14 +3412,16 @@
      drawn disc's place in the same 20:19 box, fitted whole (contain). Its own
      silhouette replaces the notch clip and the painted rarity edge. The tier
      BANDS stay, on top of it, so an improved Trick still says so. */
-  html.fa-common    .reward-cell.entity-trick.rar-common::before    { --fa: var(--fa-common); }
-  html.fa-rare      .reward-cell.entity-trick.rar-rare::before      { --fa: var(--fa-rare); }
-  html.fa-epic      .reward-cell.entity-trick.rar-epic::before      { --fa: var(--fa-epic); }
-  html.fa-legendary .reward-cell.entity-trick.rar-legendary::before { --fa: var(--fa-legendary); }
+  html.fa-common    .reward-cell.entity-trick.rar-common::before    { --fa: var(--fa-common);    --fab: var(--fa-common-bs); }
+  html.fa-rare      .reward-cell.entity-trick.rar-rare::before      { --fa: var(--fa-rare);      --fab: var(--fa-rare-bs); }
+  html.fa-epic      .reward-cell.entity-trick.rar-epic::before      { --fa: var(--fa-epic);      --fab: var(--fa-epic-bs); }
+  html.fa-legendary .reward-cell.entity-trick.rar-legendary::before { --fa: var(--fa-legendary); --fab: var(--fa-legendary-bs); }
   :is(html.fa-common .reward-cell.entity-trick.rar-common, html.fa-rare .reward-cell.entity-trick.rar-rare,
       html.fa-epic .reward-cell.entity-trick.rar-epic, html.fa-legendary .reward-cell.entity-trick.rar-legendary)::before {
     clip-path: none; box-shadow: none;
-    background: var(--bands, none), var(--fa) center / contain no-repeat;
+    /* The bands cover the art's own drawn box (--fab, js/floppy-art.js), not the
+       20:19 box, or a narrower picture leaves them hanging off its left edge (r610). */
+    background: var(--bands, none) center / var(--fab, 100% 100%) no-repeat, var(--fa) center / contain no-repeat;
   }
   html.fa-pix .reward-cell.entity-trick::before { image-rendering: pixelated; }
   /* The star was how a Trick announced itself. The silhouette does that now. */

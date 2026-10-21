@@ -88,11 +88,12 @@ function dncSetPaused(on) {
 }
 
 // ── Acceleration ────────────────────────────────────────────────────────────
-// Compounding, so the wind-up is felt rather than merely measured: at +5% a
-// tick, 43 payouts reach the 8x ceiling. An ordinary hand pays out a handful of
+// Compounding, so the wind-up is felt rather than merely measured: at +4% a
+// tick, 54 payouts reach the 8x ceiling (r610, owner: 20% gentler than +5%,
+// which took 43). An ordinary hand pays out a handful of
 // ticks and barely moves; a long one through a full tray runs away, which is the
 // point.
-const DNC_ACCEL_STEP = 0.05;  // +5% of the CURRENT pace per payout tick
+const DNC_ACCEL_STEP = 0.04;  // +4% of the CURRENT pace per payout tick
 const DNC_ACCEL_MAX  = 8;     // ceiling, as a multiple of this dance's base pace
 let dncAccel = 1;
 

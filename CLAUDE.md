@@ -1746,3 +1746,19 @@ as a third argument (`pays(card, x, at)`), passed to the ghost check too, so a d
 does not pay it twice. The hand-level `onEdge` field is gone. Measured on a 4x4: three Kings down
 column 1 from the top pay +15 (one edge card); three Queens on the top row and right column pay +45,
 a two-suit Queen among them once. Played by tap at 1440x820 and 420x900: no timeline drift.
+
+## r610 - score chips, tally speed-up, bands on the floppy art (owner)
+- **Chip size by layout:** `ptPlateEl` multiplies by `ptOrientScale()`: `DANCE_CFG.pScaleLand` 1.25 on
+  `#stage.landscape` (desktop), `pScalePort` 0.9 in portrait. Base plate 46px -> 57.5 desktop, 41.4 phone.
+  Every plate (dance, payout fx, challenge penalty) goes through it.
+- **Growth 15% less:** `PARTICLE_CFG.growStep` 2.5 -> 2.125 (40 payouts: x2.09, was x2.37; ceiling x3
+  unchanged). Dev store is `lethe.blipGrow.v3`; a v2 store is carried over once with its growStep x0.85
+  and removed. Reset reads `BLIP_DEFAULTS` (the shipped values, kept before any store is laid over).
+  particle-preview.html matches (default 2.125, slider step 0.125).
+- **Tally speed-up 20% gentler:** `DNC_ACCEL_STEP` 0.05 -> 0.04 per payout (8x ceiling at 54 payouts, was 43).
+- **Improvement bands on the owner's floppy art:** the art (109 x 120) is drawn `contain` in the 20:19 disc
+  box, so it is 86% as wide and the bands, laid over the whole box, hung off its left edge.
+  `floppyArtBandBox(ratio)` (js/floppy-art.js) writes `--fa-<rarity>-bs`, the art's drawn box as a
+  background size; the bands layer is sized to it (`--fab`), so they cross the art's own corner.
+Measured by tap at 1440x820 and 420x900: plates 57.5 / 41.4px, pace after 6 payouts 1.265 (was 1.34),
+no timeline drift; tray screenshots show the bands inside every disc at tiers 1, 2, 3 and 5.

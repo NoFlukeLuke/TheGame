@@ -58,6 +58,9 @@ const DANCE_CFG = {
   // "+15%". pScale above is the OLD bare-text scale and is now unused by the
   // plate shapes - it still drives the no-plate fallback.
   pScaleMul:1.15,
+  // r610 (owner): desktop (landscape) plates are bigger, phone (portrait) plates a
+  // little smaller, on top of pScaleMul. Read by ptOrientScale().
+  pScaleLand:1.25, pScalePort:0.9,
   // Base tally speed multiplier for ordinary hands. 1 = full speed (ordinary
   // hands are NOT globally sped up - only a hand interrupted by a NEW hand
   // fast-forwards, via danceInterruptMode below). Kept as a hook the win finale's
@@ -113,7 +116,8 @@ const PARTICLE_CFG = {
   // it, which is what a realistic hand actually feels: at 40 payouts the last
   // plate was 1.05^35 = x5.5 (clamped to the x3 ceiling) and is now 1.025^35 =
   // x2.37, i.e. under the cap and still visibly building.
-  growStart: 5, growStep: 2.5, growMax: 3,
+  // r610 (owner): 15% less growth, 2.5 -> 2.125 (40 payouts: x2.09).
+  growStart: 5, growStep: 2.125, growMax: 3,
   colors: {
     pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
     pipMul:  '#0e2a5d',      // a multiply is the same hue, deeper
@@ -464,8 +468,13 @@ const PT_ICONS = {
   rewind: '<svg class="pt-ico" viewBox="0 0 20 12" aria-hidden="true"><path d="M10 0L0 6l10 6zM20 0L10 6l10 6z"/></svg>',
   pause:  '<svg class="pt-ico" viewBox="0 0 20 12" aria-hidden="true"><path d="M3.5 0h5v12h-5zM11.5 0h5v12h-5z"/></svg>',
 };
+function ptOrientScale(){
+  const st = document.getElementById('stage');
+  return (st && st.classList.contains('landscape')) ? DANCE_CFG.pScaleLand : DANCE_CFG.pScalePort;
+}
 function ptPlateEl(kind, label, scale, color, icon){
   const C = PARTICLE_CFG, bg = (C.colors && C.colors[kind]) || color || '#d4a857';
+  const zs = DANCE_CFG.pScaleMul * ptOrientScale() * scale;
   const el = document.createElement('div');
   el.className = 'dnc-particle pt-' + ptShape(kind);
   el.innerHTML = '<span class="pt-box"><span class="pt-lab"></span></span>';
@@ -474,8 +483,8 @@ function ptPlateEl(kind, label, scale, color, icon){
   else lab.textContent = label;
   el.style.color = color || bg;               // only read by the no-plate shape
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
-  el.style.setProperty('--pt-size', (C.size * DANCE_CFG.pScaleMul * scale) + 'px');
-  el.style.setProperty('--pt-font', (C.font * DANCE_CFG.pScaleMul * scale) + 'px');
+  el.style.setProperty('--pt-size', (C.size * zs) + 'px');
+  el.style.setProperty('--pt-font', (C.font * zs) + 'px');
   el.style.setProperty('--pt-round', C.round + 'px');
   el.style.setProperty('--pt-bw', C.borderW + 'px');
   el.style.setProperty('--pt-bg', bg);

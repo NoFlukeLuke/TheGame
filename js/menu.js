@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r609 · On the Edge: each card scored on an edge scores +15 pips";
+const BUILD = "2026-10-21 · r610 · Bigger score chips on desktop, smaller on a phone, 15% less growth, a gentler tally speed-up; improvement bands fit the floppy art";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

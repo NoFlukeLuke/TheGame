@@ -427,11 +427,11 @@ function devSetBlip(k, v) {
   const lab = document.getElementById('dev-blip-' + k + '-val');
   if (lab) lab.textContent = (+v).toString();
   try { const o = {}; BLIP_KEYS.forEach(x => o[x] = PARTICLE_CFG[x]);
-        localStorage.setItem('lethe.blipGrow.v2', JSON.stringify(o)); } catch (e) {}
+        localStorage.setItem('lethe.blipGrow.v3', JSON.stringify(o)); } catch (e) {}
 }
 function devResetBlip() {
-  try { localStorage.removeItem('lethe.blipGrow.v2'); } catch (e) {}
-  if (typeof PARTICLE_CFG !== 'undefined') { PARTICLE_CFG.growStart = 5; PARTICLE_CFG.growStep = 2.5; PARTICLE_CFG.growMax = 3; }
+  try { localStorage.removeItem('lethe.blipGrow.v3'); } catch (e) {}
+  if (typeof PARTICLE_CFG !== 'undefined') BLIP_KEYS.forEach(k => { PARTICLE_CFG[k] = BLIP_DEFAULTS[k]; });
   devSyncBlipSliders();
 }
 function devSyncBlipSliders() {
@@ -442,9 +442,19 @@ function devSyncBlipSliders() {
     if (lab) lab.textContent = String(PARTICLE_CFG[k]);
   });
 }
-// Restore at load, before any hand is played.
+// The shipped values, kept before any stored tuning is laid over them (Reset reads these).
+const BLIP_DEFAULTS = (typeof PARTICLE_CFG !== 'undefined') ? Object.fromEntries(BLIP_KEYS.map(k => [k, PARTICLE_CFG[k]])) : {};
+// Restore at load, before any hand is played. r610: a v2 store is carried over once
+// with its growStep cut 15%, as the shipped default was (owner: "15% less growth").
 (function(){ try {
-  const raw = localStorage.getItem('lethe.blipGrow.v2'); if (!raw) return;
+  let raw = localStorage.getItem('lethe.blipGrow.v3');
+  const v2 = localStorage.getItem('lethe.blipGrow.v2');
+  if (v2) {
+    if (!raw) { const o2 = JSON.parse(v2); if (typeof o2.growStep === 'number') o2.growStep = Math.round(o2.growStep * 85) / 100;
+                raw = JSON.stringify(o2); localStorage.setItem('lethe.blipGrow.v3', raw); }
+    localStorage.removeItem('lethe.blipGrow.v2');
+  }
+  if (!raw) return;
   const o = JSON.parse(raw); if (typeof PARTICLE_CFG === 'undefined') return;
   BLIP_KEYS.forEach(k => { if (typeof o[k] === 'number') PARTICLE_CFG[k] = o[k]; });
 } catch (e) {} })();
