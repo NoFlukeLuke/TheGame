@@ -1736,3 +1736,13 @@ components; with no component list, the whole hand if `handName` is a set). An o
 layered on the set, a kicker, a wild and every even card get nothing. Still one QRL replay source
 ('enc'). Measured: 7 7 8 8 replays the 7s only (reps 2,2,1,1); 9 9 9 all three; 5 6 7 nothing.
 Played by tap at 1440x820 and 420x900: no timeline drift.
+
+## r609 - On the Edge pays per card on an edge (owner)
+Trick `edge_pips`, common. Was "+15 pips per card when EVERY card of the hand is on an edge". Now
+each scored card in an edge cell (top / bottom row, left / right column; `isOnEdge([at])`) scores
++15 pips (`BAL.edge_pips.pips_per_card`), whatever the rest of the hand is. It stays a
+`PER_CARD_PAYERS` row (replay-weighted, fires on the card's beat); `pays` now takes the card's cell
+as a third argument (`pays(card, x, at)`), passed to the ghost check too, so a dual card's ghost
+does not pay it twice. The hand-level `onEdge` field is gone. Measured on a 4x4: three Kings down
+column 1 from the top pay +15 (one edge card); three Queens on the top row and right column pay +45,
+a two-suit Queen among them once. Played by tap at 1440x820 and 420x900: no timeline drift.

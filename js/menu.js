@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r608 · Encore: odd-ranked cards in a set replay once";
+const BUILD = "2026-10-21 · r609 · On the Edge: each card scored on an edge scores +15 pips";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

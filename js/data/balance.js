@@ -366,7 +366,7 @@ const DESC_TEMPLATES = {
   shape_square: 'A 2×2 shaped hand adds +{focus} Focus',
   shape_cross: 'A 5 card + shaped hand adds +{focus} Focus',
   two_corners: 'Corner cards score ×{mult_mult} mult',
-  edge_pips: 'Hands where all cards are on an edge score +{pips_per_card} pips per card',
+  edge_pips: 'Cards scored on an edge score +{pips_per_card} pips',
   column_rush: 'Hands with cards from only one column score +{mult_per_card} mult per card',
   row_power: 'Hands with cards from only one row score +{mult_per_card} mult per card',
   right_time: 'Cards scored in a marked row or column pause the clock for {pause_seconds}s',

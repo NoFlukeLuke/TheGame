@@ -254,7 +254,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // The rows below are that whole class, so a new one is a row rather than a
   // fix. Each is `{ id, cond, pays }`:
   //   cond(x)        - does it fire for this hand at all, evaluated ONCE up front
-  //   pays(card, x)   - { pip, mult } for THIS card, or nothing
+  //   pays(card, x, at) - { pip, mult } for THIS card, or nothing; `at` is its [r, c]
   //
   // TWO RULES:
   //   1. REPLAY-WEIGHTED (r236). A card that scores three times pays these three
@@ -276,7 +276,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     { id:'night_owl',     cond:x => x.lateThird,                      pays:()  => ({ mult: BAL.night_owl.mult_per_card }) },
     { id:'overgrowth',    cond:x => x.isRun,                          pays:()  => ({ pip:  BAL.overgrowth.pips_per_card }) },
     { id:'long_road',     cond:x => x.isRun,                          pays:()  => ({ mult: BAL.long_road.mult_per_card }) },
-    { id:'edge_pips',     cond:x => x.onEdge,                         pays:()  => ({ pip:  BAL.edge_pips.pips_per_card }) },
+    { id:'edge_pips',     cond:() => true,                            pays:(c,x,at) => isOnEdge([at]) ? ({ pip: BAL.edge_pips.pips_per_card }) : null },   // r609: per card on an edge cell
     { id:'balanced_diet', cond:x => x.suitCount === 2,                pays:()  => ({ mult: BAL.balanced_diet.mult_per_card }) },
     { id:'column_rush',   cond:x => x.allSameCol,                     pays:()  => ({ mult: BAL.column_rush.mult_per_card }) },
     { id:'row_power',     cond:x => x.allSameRow,                     pays:()  => ({ mult: BAL.row_power.mult_per_card }) },
@@ -318,7 +318,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     orderedRun: _pcIsRun && canBeOrderedRun(cells),
     earlyThird: _pcFrac > 2/3,
     lateThird:  _pcFrac <= 1/3,
-    onEdge:     isOnEdge(cells),
     suitCount:  new Set(_natCards.map(c => cardColorSuit(c))).size,
     allSameCol: cells.every(([, cc]) => cc === cells[0][1]),
     allSameRow: cells.every(([rr]) => rr === cells[0][0]),
@@ -687,10 +686,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // events drop their `once` flag - the dance repeats the whole beat, which is
     // what makes the chip fly once per replay with no work at the dance's end.
     _pcLive.forEach(row => {
-      const p = row.pays(card, _pcCtx); if (!p) return;
+      const p = row.pays(card, _pcCtx, [r, c]); if (!p) return;
       // A ghost only re-pays a row that reads the card's RANK or SUIT: if a
       // blank identity pays the same, the row is about position or the hand.
-      if (_G) { const p0 = row.pays({ ...card, rank: '', suit: '' }, _pcCtx);
+      if (_G) { const p0 = row.pays({ ...card, rank: '', suit: '' }, _pcCtx, [r, c]);
                 if (p0 && (p0.pip || 0) === (p.pip || 0) && (p0.mult || 0) === (p.mult || 0)) return; }
       if (p.pip)  { _pcPips[row.id] = (_pcPips[row.id]||0) + p.pip  * _retrig; _ev(row.id,'pip+', p.pip,  'trick'); for (let _i = 0; _i < _retrig; _i++) _repPips[_i] += p.pip; }
       if (p.mult) { _pcMult[row.id] = (_pcMult[row.id]||0) + p.mult * _retrig; _cmAdd += p.mult; _ev(row.id,'mult+',p.mult, 'trick'); }
