@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r626 · Builds: records lead with the real object (floppy art, business card, cert diamond, pixel icons); keyword axis skips the broad words; filter tags by family with counts; portrait rail is a drawer";
+const BUILD = "2026-10-21 · r627 · The improvement animation (lift / stamp / flip) with FAST FORWARD; notices over it hang longer; the paper corner opens a drawer of recent notices";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

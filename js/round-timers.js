@@ -462,6 +462,7 @@ const noticeLog = [];
 function noteMessage(text) {
   if (!text) return;
   noticeLog.push(String(text)); if (noticeLog.length > 60) noticeLog.shift();
+  if (typeof ptHistoryPush === 'function') ptHistoryPush(text, null, true);   // r627: the notice drawer lists it, dim
 }
 
 function showMessage(text, color, opts) {

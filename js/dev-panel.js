@@ -73,6 +73,7 @@ function openDevPanel() {
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
+  if (typeof iaDevSync === 'function') iaDevSync();   // r626: the improvement animation controls
   devSyncBlipSliders();
   devSyncNs();
   devSyncCcSliders();

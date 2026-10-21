@@ -1879,12 +1879,18 @@ function flowrShowEntityStep(kind) {
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag,
     })),
     actions: flowrStepActions ? flowrStepActions() : [],
-    onChoose: (i) => { flowrGrantOffer(_flowrStepOffers[i]); _flowrStepOffers = null; flowrAfterStep(); },
+    onChoose: (i) => { flowrGrantOffer(_flowrStepOffers[i]); _flowrStepOffers = null; flowrAfterImprove(flowrAfterStep); },
     onSkip: () => { _flowrStepOffers = null; rainCheckPay(); flowrAfterStep(); },
   });
   try { sfxShopOpen?.(); } catch (e) {}
 }
 
+// r626: an improve pick plays its animation (js/improve-anim.js) before the chain
+// moves on; any other pick continues at once.
+function flowrAfterImprove(next) {
+  if (typeof improveAnimFlush !== 'function') { next(); return; }
+  improveAnimFlush().then(next, next);
+}
 function flowrGrantOffer(opt) {
   if (!opt) return;
   if (opt.type === 'improve') {

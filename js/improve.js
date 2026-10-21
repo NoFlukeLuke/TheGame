@@ -338,7 +338,8 @@ function syncOwnedEntityDescs() {
 // Raise one entity's tier. Returns the new tier, or 0 when nothing happened.
 function improveEntity(id) {
   if (!canImprove(id)) return 0;
-  entityTier[id] = entityTierOf(id) + 1;
+  const _was = entityTierOf(id), _descWas = _impDescOf(id);
+  entityTier[id] = _was + 1;
   applyEntityTiers();
   // r625: a hook may jump the tier (Straight Shot, Undue Influence) or roll
   // something onto the owned Trick; the tiers are applied again after a jump.
@@ -348,7 +349,20 @@ function improveEntity(id) {
     if (typeof jump === 'number' && jump > entityTier[id]) { entityTier[id] = Math.min(IMPROVE_MAX_TIER, jump); applyEntityTiers(); hook(entityTier[id], ownedTrickObj(id)); }
   }
   improveRepaintArt();
+  // r626: the improvement animation (js/improve-anim.js) plays from a queue, so a
+  // many-tiered grant is one scene and a sequence can hold it until its end.
+  if (typeof improveAnimNote === 'function') improveAnimNote(id, _was, entityTier[id], _descWas, _impDescOf(id));
   return entityTier[id];
+}
+// The printed sentence of an entity as the player sees it (the owned copy, else the pool's).
+function _impDescOf(id) {
+  const o = (typeof ownedTrickObj === 'function' && ownedTrickObj(id))
+    || (typeof acquiredKnacks !== 'undefined' && acquiredKnacks.find(k => k && k.id === id));
+  if (o && o.desc) return o.desc;
+  for (const p of [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : [], typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [], typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []]) {
+    const e = p.find(x => x && x.id === id); if (e) return e.desc || '';
+  }
+  return '';
 }
 
 // THE ART FOLLOWS THE TIER AT ONCE (r612, owner). The tray chips carry the tier's

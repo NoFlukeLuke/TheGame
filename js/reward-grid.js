@@ -1897,6 +1897,8 @@ async function confirmRewardPath() {
     rewardSelected = keep;
   }
   // Fly the claimed items to their homes / drop the rest, THEN apply + continue.
+  // r626: improvements queue their animation and play it LAST, after every tile.
+  if (typeof improveAnimHold === 'function') improveAnimHold(true);
   rewardDealing = true;   // block re-render from clobbering the flying tiles
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
   rewardDealing = false;
@@ -1911,6 +1913,7 @@ async function confirmRewardPath() {
     try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
+  if (typeof improveAnimHold === 'function') { improveAnimHold(false); try { await improveAnimFlush(); } catch (e) {} }
   // More Better: every reward grid confirmed with 3+ tiles (all tiles count) permanently grows the trick.
   if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles && !penaltyGridActive()) {
     bonusMult_morebetter += BAL.more_better.mult;

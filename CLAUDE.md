@@ -1994,3 +1994,36 @@ The "files open" count is taken over the pools, not the clusters (it read 920 / 
 grouping); retired Tricks are not catalogued (317 records). Under 700px wide the rail is a drawer
 behind a DRAFT button in the bar (`.rail-open`), the zoom controls hidden. Still unbuilt:
 `isRequisitioned` has no reader, so FILE WITH PROCUREMENT flags nothing in a run.
+
+## r627 - the improvement animation; FAST FORWARD; the notice drawer (owner)
+- **Improvement animation** (`js/improve-anim.js`, `css/improve-anim.css`): an improved Trick (or
+  Knack / Sleight) comes to the middle of the board as a stack of the real entity tile at every
+  tier, the new tier's band comes in on its corner while the sentence under it changes (changed
+  numbers are marked by the `improveDeltaHTML` rule: same sentence, numbers differ), then it goes
+  back to the tray (`trayFxKick 'in'`). Looks (`iaCfg.look`): **lift** (default; rises from the
+  chip on an arc, the band wipes in from the corner behind a bright edge, numbers roll like a
+  counter), **stamp** (pops up at the centre, the band is slammed on with a shake and a ring, the
+  old number struck and the new stamped), **flip** (slides in, turns over, the new tier is on the
+  back, the sentence slides). `improveEntity` QUEUES (`improveAnimNote`; a many-tiered grant is
+  one scene with a step per tier) and `improveAnimFlush()` plays the queue: on its own a moment
+  later, or at the END of a sequence that holds it (`improveAnimHold`: the reward grid's confirm
+  awaits it after every tile; Flow's improve step waits before the next step, `flowrAfterImprove`).
+  **FAST FORWARD** (`#ia-skip`, top centre of the stage, or Escape) ends the whole sequence.
+  Layer `#ia-layer` is body-level over the stage, zoomed, so everything inside is design px. Dev
+  -> Aesthetics -> Improvement animation: look, speed, tile size (% of the board), hold, Preview
+  and Preview 3 tiers (`improveAnimPreview(n)`, plays without improving). Store
+  `lethe.improveAnim.v1`, overrides only. Off for reduced motion / skip transitions.
+- **Notices over the change hang longer**: a printer line printed while the animation runs holds
+  `PT_CFG.overChangeHold` (1.6x) its usual time (`line.holdMul`).
+- **The paper corner and the drawer** (`js/print-toast.js`): the printer layer exists from load.
+  `#pt-tab`, a folded corner just right of where slips hang, peeks out when the mouse is within
+  `PT_CFG.tabZone` (36px) of the top edge (a touch screen shows it faintly all the time); a click
+  or a `tabDrag` (28px) drag down opens `#pt-drawer`: one slip of the last `drawerLines` (14)
+  notices, newest first, printed lines in their ink and quiet `noteMessage` lines dim
+  (`ptHistory`, filled by printToast and noteMessage). A click anywhere, the corner, Escape or a
+  new notice pulls it back. A tap on a hanging slip still pulls it (r510).
+Measured in headless Chromium at 1440x820 (and 420x900): the tile lands centred on the board box
+(984 vs 984) at 42% of it; all three looks play and end with the layer off and the chip back; a
+3-tier preview skipped by FAST FORWARD after 1.5s ended in 1.9s; a notice printed during it holds
+1.6x; a real `improveEntity` played and the chip redrew with its band; the corner peeks at 12px
+from the top, opens on click and on a 50px drag, closes on a click elsewhere and on a new notice.
