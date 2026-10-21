@@ -475,8 +475,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (!_G && cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
     if (!_G && _fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
-    // 4x4: cards scored in the 4th column (index 3) score +pips
-    if (!_G && hasTrick('four_by_four') && c === fourByFourCol()) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
+    // 4x4: cards scored in the 4th column (index 3), and the 6th (r623), score +pips
+    if (!_G && hasTrick('four_by_four') && fourByFourCols().includes(c)) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
     // Permanent ×pips enhancement (The Forge / Bargain / Wager events, the deck
     // editor). r399: EVERY flat +pips on the card lands before it (owner: "the
     // plus must happen first so the xpips can be applied to both the card's
@@ -951,14 +951,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     else if (_crp === 1) { mult += BAL.correct_run.mult; bMult('correct_run', BAL.correct_run.mult); }
   }
   if (_pcMult.tidal_force) { bMultQ('tidal_force', _pcMult.tidal_force, 1); }
-  // Row/col +5 mult per affected card
+  // Power Line: +mult per affected card (BAL.rowcol_mult.mult, r623)
   cells.forEach(([r, c]) => {
     const matches = rowColBonuses.filter(b => b.id === 'rowcol_mult' && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
     // Emitted, but NOT billed to _cp/_cm: this bonus has never had a contributions
     // row and adding one would change what that tab reports. The timeline needs it
     // regardless - a mult the dance cannot see is a mult that makes the chip drift.
-    if (matches.length) _ev('rowcol_mult', 'mult+', matches.length * 5);
-    mult += matches.length * 5;
+    if (matches.length) _ev('rowcol_mult', 'mult+', matches.length * BAL.rowcol_mult.mult);
+    mult += matches.length * BAL.rowcol_mult.mult;
   });
 
   // Straight Shot: a 5-card hand in a straight line adds every card's modified pips to mult
@@ -979,8 +979,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_pmMult) { bMultQ('perm_mult', _pmMult); }
   // Old Growth: each scored card also adds its pip value to mult (per replay)
   if (_ogMult) { bMultQ('old_growth', _ogMult); }
-  // Magician: +3 mult per Sleight owned
-  if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
+  // Magician (r623): alone in the tray it pays flat pips instead of the Sleight mult.
+  if (hasTrick('magician')) {
+    if (magicianSolo()) { totalPips += BAL.magician.solo_pips; bPip('magician', BAL.magician.solo_pips); }
+    else { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
+  }
   // Landfill: +mult per card for every discard or swap used this round
   if (hasTrick('landfill')) { const _a = _handN * (discardsUsedRound + swapsUsedRound) * BAL.landfill.mult_per; if (_a) { mult += _a; bMult('landfill', _a); } }
   // Compost: +mult per card discarded this round
@@ -1738,10 +1741,17 @@ function pruneRowColBonuses() {
   if (typeof renderLineMarkers === 'function') renderLineMarkers();
 }
 
-// 4x4's column: its registry line, which clampRowColBonuses keeps on the board.
-function fourByFourCol() {
-  const b = rowColBonuses.find(x => x.id === 'four_by_four');
-  return b ? b.index : 3;
+// 4x4's columns (r623: the 4th AND the 6th): its registry lines that are on
+// the board. The 4th is clamped to the last column of a smaller board; the 6th
+// is a fixed line (`_fixed`) that pays and draws only once the board is 6 wide.
+function fourByFourCols() {
+  const out = [];
+  rowColBonuses.forEach(b => { if (b.id === 'four_by_four' && b.index < gridCols && !out.includes(b.index)) out.push(b.index); });
+  return out.length ? out : [Math.min(3, gridCols - 1)];
+}
+// Magician (r623): the pips side pays only while it is the only Trick in the tray.
+function magicianSolo() {
+  return typeof trickTray !== 'undefined' && !trickTray.some(t => t && t.id !== 'magician');
 }
 
 function isEffectIntersection(r, c) {
@@ -1972,7 +1982,7 @@ function clampRowColBonuses() {
   rowColBonuses.forEach(b => {
     const span = b.axis === 'row' ? limits.grid_rows.current : limits.grid_cols.current;
     const max  = Math.max(0, span - 1);
-    if (b.index <= max) return;
+    if (b.index <= max || b._fixed) return;   // a fixed line (4x4's 6th column) waits for its column
     // finalizePositionMark rewrites the Trick's printed description to name the
     // line, so moving the mark without it would leave the tray quoting a row
     // that is not there any more.
@@ -2030,6 +2040,8 @@ function assignPositionMark(trick) {
     trick._posAssigned = true;
     const _cols = (typeof limits !== 'undefined' && limits.grid_cols) ? limits.grid_cols.current : gridCols;
     finalizePositionMark(trick, 'col', Math.min(3, _cols - 1));
+    // r623: the 6th column too, a fixed line that pays and draws only on a board 6 wide.
+    if (!rowColBonuses.some(b => b.id === 'four_by_four' && b._fixed)) rowColBonuses.push({ id: 'four_by_four', axis: 'col', index: 5, _fixed: true });
     return;
   }
   if (!POSITION_ASSIGN_IDS.includes(trick.id)) return;

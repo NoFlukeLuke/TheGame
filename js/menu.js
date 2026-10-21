@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r622 · The common Trick sheet rebuilt on an audit of the current code";
+const BUILD = "2026-10-21 · r623 · The owner's common Trick balance pass applied; Magician, Five for Fodder, 4x4 and Power Line reworked; sheets for every tier";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

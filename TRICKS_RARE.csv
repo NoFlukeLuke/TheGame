@@ -1,0 +1,82 @@
+#,Trick,id,Rarity,Category,What it does (live text),Number,Now,NEW VALUE,x factor,Share of score,x on a hand,Fires %,Audit note,Verdict,Notes,Template,Tags
+1,Torrent,river_run,rare,Runs,Runs add +1 Focus per card,focus_per_card,1,,,,1.0,0,pays in Focus,,,Runs add +{focus_per_card} Focus per card,
+2,Rogue Wave,correct_run,rare,Runs,"Runs played in correct sequential order score one of the following: +80 pips, +20 mult, +10 Focus",pips,80,,,0.29,1.15,11,Normal,,,"Runs played in correct sequential order score one of the following: +{pips} pips, +{mult} mult, +{focus} Focus",
+,,,,,,mult,20,,,,,,,,,,
+,,,,,,focus,10,,,,,,,,,,
+3,Deep Breath,deep_breath,rare,Timing,Score ×2 pips while the clock is paused,pip_mult,2,,,0.01,1.0,4,Barely pays,,,,
+4,Interest,interest,rare,Accumulating,"Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3",pip_mult_per_10_credits,0.1,,,0.37,1.19,78,Low,,,"Score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}",
+,,,,,,max_pip_mult,3,,,,,,,,,,
+5,Quake,kindred,rare,Pairs / sets,Sets score +5 mult per card in the largest set,mult_per_card,5,,,0.81,1.42,39,High,,,,
+6,Resonance,high_pair,rare,Pairs / sets,Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card,focus_per_card,2,,,,1.0,0,pays in Focus,,,,
+7,Ripple,ripple,rare,Pairs / sets,Cards adjacent in rank to another card in the hand have a 50% chance to replay,chance,0.5,,,0.62,1.33,38,High,,,,
+8,Deluge,deluge,rare,Flush / hand shape,Flushes rewind the clock 15s,seconds,15,,,,1.0,0,pays in Time,,,Flushes rewind the clock {seconds}s,
+9,Release Valve,release_valve,rare,Focus,"Each time you hit your Focus limit, gain +1 swap and +1 discard and lose 16 Focus.",focus_drop,16,,,,1.0,0,pays in Credits / stock,,,"Each time you hit your Focus limit, gain +1 swap and +1 discard and lose {focus_drop} Focus.",
+10,Full Load,heavy_hand,rare,Flush / hand shape,5-card hands score +10 pips per card,pips_per_card,10,,,0.11,1.06,7,High,,,5-card hands score +{pips_per_card} pips per card,
+11,Every Day Essentials,humble_roots,rare,Rank,Rank-6-and-below cards score their rank ×3 pips,pip_mult,3,,,1.17,1.61,65,High,,,,
+12,First Fruits,first_fruits,rare,Per-card pips,Each card in the first hand each round permanently gains +3 pips,pips,3,,,0.38,1.2,69,Low,,,Each card in the first hand each round permanently gains +{pips} pips,
+13,Sapling,sapling,rare,Per-card pips,"Each level, 3 cards permanently gain +5 pips","(in code, no BAL number)",,,,0.51,1.27,66,Normal,,,,
+14,Near Extinction,closing_time,rare,Timing,"In the last third of the round, each scored card replays","(in code, no BAL number)",,,,0.03,1.01,1,Barely pays,,,,
+15,The Heron,patience_reward,rare,Birds (timing),Hands played 15+ seconds after the previous hand score +10 mult,mult,10,,,0.07,1.03,4,Barely pays,,,,
+,,,,,,seconds,15,,,,,,,,,,
+16,Head Start,first_play,rare,Timing,"The round's first hand adds +5 Focus; each hand after adds 1 less, down to 0",focus,5,,,,1.0,0,pays in Focus,,,,
+17,Eagle Eye,still_water,rare,Birds (timing),Score +5 mult for every 10 seconds elapsed without using a swap,mult_per_interval,5,,,1.35,1.71,55,Normal,,,,
+18,The Swift,swift,rare,Birds (timing),+5 mult for every 10 seconds elapsed this round,mult_per_interval,5,,,2.21,2.15,78,High,,,,
+,,,,,,interval_seconds,10,,,,,,,,,,
+19,The Woodpecker,woodpecker,rare,Birds (timing),Marks a random cell once every 30 seconds; a card scored from the marked cell replays 2x,interval_seconds,30,,,-0.0,1.0,2,Barely pays,,,,
+,,,,,,retrigger_count,2,,,,,,,,,,
+20,The Hummingbird,hummingbird,rare,Birds (timing),+2 mult for every clock pause or rewind triggered this game,mult_per_pause,2,,,0.12,1.06,19,Barely pays,,,,
+21,The Albatross,albatross,rare,Birds (timing),+5 pips for every second the clock has spent paused this round,pips_per_second,5,,,0.0,1.0,0,Barely pays,,,,
+22,Quarter Chime,quarter_chime,rare,Timing,"Every time the clock passes a multiple of 15s, your next hand scores +45 pips",pips,45,,,1.18,1.61,39,Normal,,,,"time, pips"
+23,Minute Hand,minute_hand,rare,Timing,"Every time the clock passes a multiple of 30s, your next hand scores ×2 mult",mult_mult,2,,,0.26,1.14,32,Low,,,"Every time the clock passes a multiple of {interval_seconds}s, your next hand scores ×{mult_mult} mult","time, mult"
+,,,,,,interval_seconds,30,,,,,,,,,,
+24,Sediment,sediment,rare,Timing,Scores +10 pips for every 10 seconds elapsed this round,interval_seconds,10,,,1.36,1.71,78,Normal,,,Scores +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this round,"time, pips"
+,,,,,,pips_per_interval,10,,,,,,,,,,
+25,The Kingfisher,kingfisher,rare,Birds (timing),+1 mult for every 2 seconds the clock has been paused or rewound this round,interval_seconds,2,,,0.01,1.01,3,Barely pays,,,,"time, mult"
+,,,,,,mult_per_interval,1,,,,,,,,,,
+26,Traveler,mockingbird,rare,Timing,Every 4 hands you play without a same-type streak grants +1 swap,"(in code, no BAL number)",,,,,1.0,0,pays in Credits / stock,,,,"resource, streak"
+27,Type A,starling,rare,Timing,Every 2nd hand of an unbroken same-type streak grants +1 discard,"(in code, no BAL number)",,,,,1.0,0,pays in Credits / stock,,,,"resource, streak"
+28,Wildfire,wildfire,rare,Streaks,Reaching a same-hand streak of 3 adds +5 Focus,focus,5,,,,1.0,0,pays in Focus,,,,
+29,Rainbow,full_color,rare,Suits,Hands with all four suits score x1.25 mult per card,mult_mult,1.25,,,0.02,1.01,4,Normal,,,Hands with all four suits score x{mult_mult} mult per card,
+30,Balance,balanced_diet,rare,Suits,Hands with exactly 2 suits score +5 mult per card,mult_per_card,5,,,1.03,1.54,41,High,,,,
+31,Lucky Sevens,lucky_sevens,rare,Numbers,+3 Focus for each 7 scored or discarded,focus,3,,,,1.0,0,pays in Focus,,,,
+32,Prime Time,prime_time,rare,Numbers,"Prime-ranked cards (A,2,3,5,7) score +23 pips",pips_per_card,23,,,1.79,1.93,62,Outlier,,,,
+33,Odd One In,odd_squad,rare,Numbers,Odd-ranked cards score +3 mult,mult_per_card,3,,,0.89,1.46,66,Normal,,,,
+34,Diversity,number_crunch,rare,Rank spread,Hands with 4+ different ranks score +5 mult per card,mult_per_card,5,,,0.49,1.26,24,Outlier,,,Hands with 4+ different ranks score +{mult_per_card} mult per card,
+35,Echo Location,rowcol_retrigger,rare,Position,Cards scored in a marked row or column have a 67% chance to replay,chance,0.6666666666666666,,,0.36,1.19,26,Normal,,,Cards scored in a marked row or column have a {chance_pct}% chance to replay,"replay, position"
+36,Right Time,right_time,rare,Position,Cards scored in a marked row or column pause the clock for 2s,pause_seconds,2,,,,1.0,0,pays in Time,,,Cards scored in a marked row or column pause the clock for {pause_seconds}s,"time, position"
+37,Study Hall,study_hall,rare,Focus,Every 2 cards scored adds +1 Focus,focus,1,,,,1.0,0,pays in Focus,,,Every {every} cards scored adds +{focus} Focus,focus
+,,,,,,every,2,,,,,,,,,,
+38,Crossroads,shape_cross,rare,Position,A 5 card + shaped hand adds +25 Focus,focus,25,,,,1.0,0,pays in Focus,,,A 5 card + shaped hand adds +{focus} Focus,"position, shape, focus"
+39,Cornered,corner_retrigger,rare,Position,Corner cards score ×pips equal to the whole minutes left on the clock,"(in code, no BAL number)",,,,0.13,1.07,13,Low,,,,"position, pips"
+40,Inclusive,wide_span_mult,rare,Position,Hands spanning the full width or height of the grid score +25 mult,mult,25,,,0.01,1.0,1,Normal,,,,"position, mult"
+41,Lie Down,row_power,rare,Position,Hands with cards from only one row score +5 mult per card,mult_per_card,5,,,0.49,1.25,18,Low,,,Hands with cards from only one row score +{mult_per_card} mult per card,
+42,Groove,groove,rare,Position,Scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.,focus_per_2,1,,,,1.05,17,pays in Focus,,,Scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.,"focus, position, scaling"
+43,Overtime,overtime,rare,Position,Every hand rewinds the clock 1s for every 3 cards you have scored from this Trick's marked row or column. Resets each round.,seconds_per_3,1,,,,1.0,0,pays in Time,,,Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each round.,"time, position, scaling"
+44,Rising Tide,rising_tide,rare,Level,Each level you pass while holding this adds +1 to +3 mult to it,mult_min,1,,,5.68,3.96,100,Outlier,,,Each level you pass while holding this adds +{mult_min} to +{mult_max} mult to it,
+,,,,,,mult_max,3,,,,,,,,,,
+45,Plan Ahead,plan_ahead,rare,Accumulating,Every 3rd hand adds Focus equal to your average hands per round,every,3,,,,1.0,0,pays in Focus,,,,"focus, scaling"
+46,Penny Saved,fives_discard,rare,Accumulating,Each 5 discarded or played permanently adds +5 pips to this trick,pips_per_five,5,,,6.65,4.47,100,Outlier,,,Each 5 discarded or played permanently adds +{pips_per_five} pips to this trick,"scaling, pips, value"
+47,Perfect Ten,tens_mult,rare,Accumulating,Every 9 cards discarded permanently adds +3 mult to this trick,mult_per_milestone,3,,,2.34,2.22,100,High,,,Every {discards_per_milestone} cards discarded permanently adds +{mult_per_milestone} mult to this trick,"scaling, mult, value"
+,,,,,,discards_per_milestone,9,,,,,,,,,,
+48,Double Take,twos_retrigger,rare,Accumulating,Each 2 scored force triggers your rightmost Trick,"(in code, no BAL number)",,,,0.11,1.06,14,Low,,,,"positional, retrigger, value"
+49,Prime Times,prime_times,rare,Accumulating,"Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick","(in code, no BAL number)",,,,0.08,1.04,32,Barely pays,,,,"positional, retrigger, prime"
+50,Sideways to Infinity,eights_retrigger,rare,Accumulating,Each scored 8 replays once for each other 8 in the hand,"(in code, no BAL number)",,,,0.02,1.01,1,Low,,,,"retrigger, value"
+51,Sands of Time,sands_of_time,rare,Situational,Score +pips equal to time remaining ÷ 2,divisor,2,,,3.78,2.97,100,Outlier,,,Score +pips equal to time remaining ÷ {divisor},
+52,Mirror,mirror,rare,Situational,Tap to tilt left or right; mimics the effect of the Trick it reflects.,"(in code, no BAL number)",,,,0.14,1.07,54,Barely pays,,,,"positional, utility"
+53,Wild Side,wild_side,rare,Situational,"+6 mult, scaling, for every negative reward tile you take",mult_per,6,,,,1.0,0,Dead in Flow pays in Dead in Flow,,,,"mult, scaling, risk"
+54,Meditation,meditation,rare,Focus,Focus decays 2 seconds slower,"(in code, no BAL number)",,,,,1.0,0,pays in Focus,,,,focus
+55,Kaleidoscope,kaleidoscope,rare,Focus,Playing four or more suits in a hand applies the Focus multiplier a second time,"(in code, no BAL number)",,,,0.01,1.0,1,Low,,,,focus
+56,Flow State,flow_state,rare,Focus,"While focus is ×1.5 or higher, score +10 pips per card",pips_per_card,10,,,0.72,1.38,39,Normal,,,"While focus is ×1.5 or higher, score +{pips_per_card} pips per card","focus, pips"
+57,Hyper Focus,hyper_focus,rare,Focus,Each card scored adds mult equal to 2x your Focus multiplier,focus_mult,2,,,1.95,2.02,100,High,,,Each card scored adds mult equal to {focus_mult}x your Focus multiplier,"focus, mult"
+58,Stand-Up,stand_up,rare,Position,Hands with cards from only one column score +5 mult per card,mult_per_card,5,,,0.58,1.3,19,Normal,,,,"sleight, pips"
+59,Scalper,scalper,rare,Sleights,"Score ×1 mult, +×0.25 per charge your Sleights are missing",mult_mult_per_missing,0.25,,,0.96,1.5,100,Normal,,,,"sleight, pips"
+60,the little guys,little_guys,rare,5-card hands,A 5-card hand with no face cards increases your Focus limit by 1 (max +15),cap_gain,1,,,,0.98,10,pays in Focus,,,,focus
+,,,,,,cap,15,,,,,,,,,,
+61,Five Second Rule,five_second,rare,5-card hands,5-card hands pause the clock for 5s,pause_seconds,5,,,,1.0,0,pays in Time,,,5-card hands pause the clock for {pause_seconds}s,time
+62,Life Lessons,life_lessons,rare,Focus,Each round you complete increases your Focus limit by 1,cap_gain,1,,,,1.0,0,pays in Focus,,,,focus
+63,Wellspring,wellspring,rare,Focus,"For every 30 Focus generated this game, this trick scores +1 mult",per_focus,30,,,3.4,2.77,100,Outlier,,,"For every {per_focus} Focus generated this game, this trick scores +{mult_per} mult","focus, pips, scaling"
+,,,,,,mult_per,1,,,,,,,,,,
+64,3rd Down,third_down,rare,3-card hands,3-card hands add +3 Focus,focus,3,,,,1.0,0,pays in Focus,,,,focus
+65,3rd Time's a Charm,third_charm,rare,Misc,The 3rd card of a hand replays 2x,extra_replays,2,,,1.49,1.78,59,High,,,,replay
+66,Wait Four It,wait_four_it,rare,4-card hands,4-card hands permanently buff their 4th card: it pauses the clock for 2s when scored (time buffs do not stack),pause,2,,,,1.0,0,pays in Time,,,4-card hands permanently buff their 4th card: it pauses the clock for {pause}s when scored (time buffs do not stack),time
+67,Dam Holding…,dam_holding,rare,Runs,Runs pause the clock for 3s,pause,3,,,,1.0,0,pays in Time,,,Runs pause the clock for {pause}s,time

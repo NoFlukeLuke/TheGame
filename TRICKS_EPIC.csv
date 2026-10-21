@@ -1,0 +1,74 @@
+#,Trick,id,Rarity,Category,What it does (live text),Number,Now,NEW VALUE,x factor,Share of score,x on a hand,Fires %,Audit note,Verdict,Notes,Template,Tags
+1,Tide Table,tide_table,epic,Runs,"Runs score ×1 mult, +×0.25 per Run scored this round",mult_step,0.25,,,0.42,1.15,38,Normal,,,,
+2,Undertow,undertow,epic,Runs,"Runs score ×1.5 pips, +×0.5 per card beyond 3",pip_mult_base,1.5,,,0.83,1.3,38,Outlier,,,,
+,,,,,,pip_mult_step,0.5,,,,,,,,,,
+3,High Water,high_water,epic,Runs,Runs pause the clock for 1s for each Run played this round,pause_per_run,1,,,,1.0,0,pays in Time,,,Runs pause the clock for {pause_per_run}s for each Run played this round,
+4,Rerun,rerun,epic,Streaks,×1.2 pips each time a card is replayed,pip_mult,1.2,,,0.04,1.01,4,Low,,,,
+5,Chorus,chorus,epic,Streaks,×1.75 mult each time a card is replayed,mult_mult,1.75,,,0.24,1.09,9,High,,,,
+6,Portfolio,portfolio,epic,Accumulating,"Score ×1 mult, +×0.15 for every card on the grid with a buff",mult_mult_per_card,0.15,,,1.08,1.39,100,Normal,,,,
+7,Overclock,overclock,epic,Focus,The Focus speed bonus is multiplied by 2.,speed_mult,2,,,,1.0,0,pays in Focus,,,The Focus speed bonus is multiplied by {speed_mult}.,
+8,Magnitude,double_bloom,epic,Pairs / sets,Hands containing a pair score ×1.5 mult,mult_mult,1.5,,,0.64,1.23,51,Normal,,,,
+9,Bedrock,rare_bloom,epic,Pairs / sets,Four of a Kind permanently buffs its 4 cards +8 pips each,perm_pips,8,,,-0.0,1.0,10,Barely pays,,,,
+10,Collapsing Columns,full_house_streak,epic,Pairs / sets,Full Houses score +10 Focus,focus,10,,,,1.0,0,pays in Focus,,,,
+11,Double Dutch,two_pair_mult,epic,Pairs / sets,Play 3 hands with a pair within 30s to add +16 Focus,focus,16,,,,1.0,1,pays in Focus,,,,
+,,,,,,window_ms,30000,,,,,,,,,,
+,,,,,,need_count,3,,,,,,,,,,
+12,Eye of the Storm,eye_of_storm,epic,Pairs / sets,Hands played in the middle third of the round replay the highest-ranked card(s) 2x,"(in code, no BAL number)",,,,0.33,1.12,7,Low,,,,
+13,Inspirato,wild_heart,epic,Rank,"When an Ace scores, prime your first and last Tricks",mult_per_ace,2,,,0.02,1.01,5,Barely pays,,,,positional
+14,Gnomes,before_the_tide,epic,Rank,Each rank 5 or lower card scored adds its rank in Focus,extra_mult,5,,,,1.0,0,pays in Focus,,,,
+15,Heads of State,royal_trio,epic,Rank,A hand containing a King and one other Royal scores ×2 mult,mult_mult,2,,,0.22,1.08,11,Normal,,,,
+16,The Falcon,frozen_moment,epic,Timing,Hands played while the clock is paused add +10 Focus,focus,10,,,,1.0,0,pays in Focus,,,,
+17,The Cuckoo,cuckoo,epic,Birds (timing),Every other hand pauses the clock for 1s for every 5 replays triggered this round,hands_between,2,,,,1.0,8,pays in Time,,,,
+,,,,,,per_replays,5,,,,,,,,,,
+18,Double Jeopardy,double_jeopardy,epic,Position,"2 cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15s each",pause_seconds,15,,,,1.0,0,pays in Time,,,"{cells} cells are secretly marked at round start; the first time you score from those cells, pause the clock for {pause_seconds}s each",
+,,,,,,cells,2,,,,,,,,,,
+19,The Vulture,vulture,epic,Birds (timing),Cards discarded during the round’s first pause permanently pause the clock for 3s when scored (time buffs do not stack),pause_seconds,3,,,,1.0,0,pays in Time,,,Cards discarded during the round’s first pause permanently pause the clock for {pause_seconds}s when scored (time buffs do not stack),
+20,Hourglass,hourglass,epic,Timing,"Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay",chance,0.5,,,0.17,1.06,15,Low,,,,"time, retrigger"
+21,Hyperphagia,magpie,epic,Timing,Each hand rewinds the clock 1s for every 2 swaps + discards you hold,actions_per_second,2,,,,1.0,2,pays in Time,,,,"time, resource"
+22,Blood Diamonds,monochrome,epic,Suits,Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds,coins,5,,,,1.0,0,pays in Credits / stock,,,Hands containing exclusively hearts AND diamonds grant +{coins} credits but cost {seconds} seconds,
+,,,,,,seconds,10,,,,,,,,,,
+23,Threepeat,ninesong,epic,Numbers,"If the hand's pip total is divisible by 3, one of the following happens: rewind the clock 9s, +9 mult, +9 Focus",seconds,9,,,0.41,1.15,14,Low,,,"If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus",
+,,,,,,mult,9,,,,,,,,,,
+,,,,,,focus,9,,,,,,,,,,
+24,Perfect Timing,perfect_timing,epic,Position,Cards scored in a marked row or column replay once,"(in code, no BAL number)",,,,0.99,1.35,39,High,,,,"replay, position"
+25,Ley Line,rowcol_perm_double,epic,Position,Cards scored at the intersection of a row effect and a column effect permanently gain +1 mult,perm_mult,1,,,0.0,1.0,0,Barely pays,,,Cards scored at the intersection of a row effect and a column effect permanently gain +{perm_mult} mult,"mult, position, scaling"
+26,Hands of Blue,shape_square,epic,Position,A 2×2 shaped hand adds +16 Focus,focus,16,,,,1.0,0,pays in Focus,,,A 2×2 shaped hand adds +{focus} Focus,"position, shape, focus"
+27,Straight Shot,shape_line,epic,Position,5-card hands played in a straight line add every card's pip value to mult,"(in code, no BAL number)",,,,0.01,1.0,1,Low,,,,"position, shape, mult"
+28,Ornery,two_corners,epic,Position,Corner cards score ×2 mult,mult_mult,2,,,0.31,1.11,23,Normal,,,Corner cards score ×{mult_mult} mult,"position, mult"
+29,Assembly Line,assembly_line,epic,Position,Cards scored in a marked row or column score +1 mult for every card played from that line this round,mult_per_prior,1,,,0.53,1.19,36,Low,,,Cards scored in a marked row or column score +{mult_per_prior} mult for every card played from that line this round,"mult, position, scaling"
+30,Feng Shui,feng_shui,epic,Position,Permanently scores +3 pips for each hand scored with a row or column buff,pips_per_hand,3,,,0.68,1.24,17,Normal,,,Permanently scores +{pips_per_hand} pips for each hand scored with a row or column buff,"pips, position, scaling"
+31,Clean Sweep,clean_sweep,epic,Position,Use every cell of any row or column within two hands to add +5 Focus and +5 credits,focus,5,,,,1.0,0,pays in Focus,,,,"focus, position"
+,,,,,,credits,5,,,,,,,,,,
+32,Compound,compound_mult,epic,Accumulating,Each hand played permanently adds +0.1 mult to this trick,mult_per_hand,0.1,,,2.69,1.96,100,High,,,Each hand played permanently adds +{mult_per_hand} mult to this trick,
+33,Acorns,acorns,epic,Accumulating,"Each card scored scales this trick +0.1 Focus, starting at +0; grants its whole-number Focus each hand",focus_per_card,0.1,,,,1.0,0,pays in Focus,,,,"focus, scaling"
+34,Cloud Nine,nines_mult,epic,Accumulating,"Adds 9 9s to your deck. Each 9 scored adds +2 mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick goes",mult_per_nine,2,,,12.71,5.54,100,Outlier,,,"Adds {added} 9s to your deck. Each 9 scored adds +{mult_per_nine} mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick goes","scaling, mult, value"
+,,,,,,added,9,,,,,,,,,,
+35,D6,sixes_perm,epic,Accumulating,Every 6th card scored permanently gains a random +1–6 pips,roll_min,1,,,0.68,1.24,71,Normal,,,,"scaling, pips, value"
+,,,,,,roll_max,6,,,,,,,,,,
+,,,,,,interval,6,,,,,,,,,,
+36,Royal Favour,queens_upgrade,epic,Accumulating,Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are automatically discarded after they've been on the grid for 45 seconds,queen_seconds,45,,,,1.0,0,Not measured pays in Not measured,,,,"scaling, grid, value"
+37,Dark Matter,spade_flood,epic,Situational,All-Spade hands add the remaining round time as pips,time_div,1,,,0.47,1.17,6,Low,,,,"suit, pips"
+38,Move as One,move_as_one,epic,Variety,"If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time","(in code, no BAL number)",,,,-0.0,1.0,10,Barely pays,,,,synergy
+39,Rain Check,rain_check,epic,Timing,"Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)",seconds,30,,,,1.0,0,pays in Time,,,"Skipping a reward: the next round starts with +{seconds}s (in Flow, rewind the clock {seconds}s)",time
+40,Temporal Rift,temporal_rift,epic,Position,A card scored where a row and column effect intersect permanently rewinds the clock 3s when scored (time buffs do not stack),rewind,3,,,,1.0,0,pays in Time,,,A card scored where a row and column effect intersect permanently rewinds the clock {rewind}s when scored (time buffs do not stack),"time, position, scaling"
+41,Wait For Iiiit,wait_for_it,epic,Situational,Each negative reward tile taken this run gives every scored card a +2% chance to replay,chance_per,0.02,,,,1.0,2,Dead in Flow pays in Dead in Flow,,,,"replay, scaling, risk"
+42,Heartwood,heartwood,epic,Misc,"When scored, the center-most card gains +5 pips & +2 mult",pips,5,,,0.81,1.29,41,Normal,,,"When scored, the center-most card gains +{pips} pips & +{mult} mult",
+,,,,,,mult,2,,,,,,,,,,
+43,Landfill,landfill,epic,Discards,Score +1 mult per card for every discard or swap used this round,mult_per,1,,,1.42,1.51,57,Normal,,,,"discard, mult"
+44,Four Horse-man,four_horseman,epic,4-card hands,"4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or pause the clock for 4s",pips,16,,,0.47,1.17,30,Low,,,"4-card hands grant a random bonus: +{pips} pips, +{mult} mult, +{focus} Focus, or pause the clock for {pause}s","pips, mult, focus, time"
+,,,,,,mult,8,,,,,,,,,,
+,,,,,,focus,4,,,,,,,,,,
+,,,,,,pause,4,,,,,,,,,,
+45,Undue Influence,undue_influence,epic,Pairs / sets,A Set containing a face card grants credits equal to the number of Set hands you have played this round,"(in code, no BAL number)",,,,,1.0,0,pays in Credits / stock,,,,"credits, set"
+46,Encore,encore,epic,Pairs / sets,Odd-ranked cards in a set replay once,"(in code, no BAL number)",,,,1.3,1.46,41,High,,,,"replay, set"
+47,Patient Rulers,patient_rulers,epic,Multipliers,"If you have paused or rewound the clock this round, face cards score x1.5 mult",mult_mult,1.5,,,0.0,1.0,0,Barely pays,,,,"mult, face, pause"
+48,Even Better,even_better,epic,Multipliers,Even-ranked cards have a 66% chance to score x2.2 pips,chance,0.66,,,0.55,1.2,47,Low,,,,"pips, value, luck"
+,,,,,,pip_mult,2.2,,,,,,,,,,
+49,What are The Odds,what_odds,epic,Multipliers,Odd-ranked cards score x1.7 mult,mult_mult,1.7,,,1.27,1.46,66,Outlier,,,,"mult, value"
+50,Critical,critical,epic,Multipliers,Flush type hands score x3 mult,mult_mult,3,,,0.01,1.0,17,Normal,,,,"mult, flush"
+51,Twinners,twinners,epic,Multipliers,Set type hands score x3 pips,pip_mult,3,,,4.02,2.44,81,Outlier,,,,"pips, set"
+52,Feelin Lucky,feelin_lucky,epic,Multipliers,"Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells",mult_mult,1.25,,,0.42,1.15,64,Normal,,,,"mult, value, luck"
+,,,,,,ranks,5,,,,,,,,,,
+,,,,,,sell_cost_share,0.3,,,,,,,,,,
+,,,,,,rerolls,3,,,,,,,,,,
+53,Marathon,marathon,epic,Multipliers,Run type hands apply the Focus multiplier twice,"(in code, no BAL number)",,,,0.26,1.09,20,Low,,,,"focus, run"

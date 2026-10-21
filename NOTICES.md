@@ -257,7 +257,7 @@ The dev panel's own messages always print.
 | where | text |
 |---|---|
 | combos-aim.js:141 |  🪞 Reflect leaves the board |
-| discard.js:122 |  Five for Fodder! +' + BAL.five_fodder.credits + ' credits |
+| discard.js:146 |  Five for Fodder! +' + _fc + ' credits |
 | discard.js:148 |  Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins |
 | discard.js:149 |  Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins |
 | discard.js:278 |  label |

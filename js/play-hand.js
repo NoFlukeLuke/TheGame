@@ -19,8 +19,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     const _halfSpeed = FOCUS_HALF_SPEED_HANDS.has(hand) ? 0.5 : 1;
     const speedBonus = _auto ? 0 : Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
     let totalFocus = handFocus + speedBonus;
-    // Rhythm: +1 focus per hand
-    totalFocus += 1 * trickFires('rhythm');
+    // Rhythm: +Focus per hand (BAL.rhythm.focus)
+    totalFocus += BAL.rhythm.focus * trickFires('rhythm');
     // Kaleidoscope no longer pays flat Focus here (r343): four or more suits in a
     // hand now applies the Focus multiplier a second time - see focusExtraApplies
     // in js/scoring.js, where both fMult sites read it.
@@ -129,7 +129,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       }
     }
     if (totalFocus > 0) addFocus(totalFocus);
-    // Quick Draw: hands played within 2 seconds of the previous add +1 Focus limit (max +10)
+    // Quick Draw: hands played within BAL.quick_draw.window_ms of the previous add +1 Focus limit (max +10)
     if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms
         && hasTrick('quick_draw') && (focusCapGains['quick_draw'] || 0) < BAL.quick_draw.cap) {
       const _qd = gainFocusCap('quick_draw', BAL.quick_draw.cap_gain * trickFires('quick_draw'), BAL.quick_draw.cap);

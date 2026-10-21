@@ -62,8 +62,8 @@ function doDiscard() {
   }
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
-  // Five for Fodder wants a VALID 5-card hand (r339) - judged now, while the cards are still on the grid.
-  const _fodder5 = hasTrick('five_fodder') && realHandOfSize(selected, 5);
+  // Five for Fodder (r623): any VALID hand pays its size in credits - judged now, while the cards are still on the grid.
+  const _fodderHand = hasTrick('five_fodder') && realHandOfSize(selected, selected.length) ? selected.length : 0;
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
@@ -140,10 +140,11 @@ function doDiscard() {
   cardsDiscardedTotal += count;
   cardsDiscardedRound += count;
   discardsUsedRound++;
-  // Five for Fodder: discarding a 5-card hand grants credits
-  if (_fodder5) {
-    grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
-    noteMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
+  // Five for Fodder: discarding a valid hand grants its size in credits
+  if (_fodderHand) {
+    const _fc = _fodderHand * BAL.five_fodder.credits_per_card;
+    grantEntityCoins(_fc, 'trick', 'five_fodder');
+    noteMessage('Five for Fodder! +' + _fc + ' credits', 'var(--gold)');
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
   if (hasTrick('fives_discard')) {

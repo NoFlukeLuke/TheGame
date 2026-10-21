@@ -1,0 +1,17 @@
+#,Trick,id,Rarity,Category,What it does (live text),Number,Now,NEW VALUE,x factor,Share of score,x on a hand,Fires %,Audit note,Verdict,Notes,Template,Tags
+1,Richter,richter,legendary,Pairs / sets,Four of a Kind scores ×3 mult and +10 Focus,mult_mult,3,,,0.0,1.0,0,Barely pays,,,,
+,,,,,,focus,10,,,,,,,,,,
+2,Twenty-One,blackjack_bonus,legendary,Flush / hand shape,"If the face values of your cards total exactly 21, score ×3 pips",pip_mult,3,,,0.02,1.01,1,Low,,,"If the face values of your cards total exactly 21, score ×{pip_mult} pips",
+3,Jackpot,knave_power,legendary,Rank,Score ×1.5 pips for each Jack on the grid,per_jack,1.5,,,1.59,2.05,95,High,,,Score ×{per_jack} pips for each Jack on the grid,
+4,The Phoenix,phoenix,legendary,Birds (timing),"While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)","(in code, no BAL number)",,,,0.0,1.0,0,Barely pays,,,,
+5,Hard Labour,club_double,legendary,Suits,"Each club scored this round adds more and more pips: doubles each time, starting at 1",base,1,,,0.28,1.19,48,Low,,,,"suit, pips"
+6,Ace Absorb,aces_absorb,legendary,Accumulating,"When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand)",chance,0.5,,,,1.0,0,Not measured pays in Not measured,,,,"scaling, value"
+7,Monopoly,monopoly,legendary,Accumulating,"When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand)","(in code, no BAL number)",,,,,,,,,,,"scaling, value"
+8,Old Growth,old_growth,legendary,Per-card pips,Cards add their pip value to mult,"(in code, no BAL number)",,,,5.55,4.67,100,Outlier,,,,"scaling, mult"
+9,Five Stack,five_stack,legendary,5-card hands,"Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus",pips,20,,,1.15,1.76,25,Outlier,,,,"pips, mult, focus"
+,,,,,,mult,5,,,,,,,,,,
+,,,,,,focus_per_card,1,,,,,,,,,,
+10,Obsessed,obsessed,legendary,Multipliers,Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5,per_credits,100,,,0.13,1.08,63,Barely pays,,,,"mult, suit, credits"
+11,Buried Treasure,buried_treasure,legendary,Multipliers,Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits,luck_share,0.5,,,,1.0,0,pays in Credits / stock,,,,"credits, suit, luck"
+,,,,,,credit_mult,1.1,,,,,,,,,,
+12,Relentless,relentless,legendary,Multipliers,Each spade scores x0.05 mult for every spade scored since you took this (replays count). No effect until it passes x1,mult_per_spade,0.05,,,0.28,1.18,50,Low,,,Each spade scores x{mult_per_spade} mult for every spade scored since you took this (replays count). No effect until it passes x1,"mult, suit, scaling"

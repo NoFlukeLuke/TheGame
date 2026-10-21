@@ -122,6 +122,7 @@ function renderLineMarkers(opts) {
   const byLine = new Map();
   rowColBonuses.forEach(b => {
     const span = b.axis === 'row' ? GEO.rows : GEO.cols;
+    if (b._fixed && b.index >= span) return;   // r623: 4x4's 6th column is not drawn on a narrower board
     const idx  = Math.max(0, Math.min(b.index, span - 1));
     const k = `${b.axis}-${idx}`;
     if (!byLine.has(k)) byLine.set(k, []);

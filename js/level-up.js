@@ -269,8 +269,8 @@ function triggerLevelUp() {
   resetFocusMeter();
   // Recompute decay interval (Meditation may be acquired/lost between rounds)
   recomputeFocusDecayInterval();
-  // Tunnel Vision: start each round with 5 focus
-  if (hasTrick('tunnel_vision')) addFocus(5);
+  // Tunnel Vision: start each round with Focus (BAL.tunnel_vision.focus)
+  if (hasTrick('tunnel_vision')) addFocus(BAL.tunnel_vision.focus);
   // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
   pausedSecondsRound = 0;
   rewoundSecondsRound = 0;

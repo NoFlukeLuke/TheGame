@@ -1875,3 +1875,24 @@ row. The store is overrides only, so a browser that typed this row keeps playing
   fires %). The r622 run: `tools/sim/out/trick-audit-r622.json.gz`, card ladder scoring, 6 deals x 40 grids.
 - The sim harness now defines `URL` / `URLSearchParams` (js/px-icons.js built the icon sheet url at
   load and every sim had failed to load the game since r583).
+
+## r623 - the owner's common Trick balance pass (from TRICKS_COMMON.xlsx)
+Numbers in `BAL` (js/data/balance.js), descriptions regenerated; `DESC_TEMPLATES` added for every
+common Trick the sheet touched, so an improvement prints its number. Plain raises: Cascade 20, Storm
+10, Tidal Forces 15, Nimble 30, First Light 42, Face Value 20, Men of Repute pips 10, Rich Soil 3, Early
+Bird 20, Night Owl 10, Quick Draw 3s, Tick-Tock 4, Second Hand 30 / 20, Kindling 8, Get Even 16, Right
+Place 25, Middle Management 8, Compost 4, Combo Score 6, More Better 9, Cull 2, Ready Set Go 18, Four
+Eyes 24, Shaky Foundation 18, Wave Amplification 15. Numbers that lived in code are BAL rows now:
+`rowcol_mult.mult` 15 (Power Line), `tunnel_vision.focus` 10, `rhythm.focus` 2. Mechanics:
+- **Magician**: `solo_pips` 50 while it is the only Trick in the tray (`magicianSolo()`, hand-level
+  pips), else `mult_per_sleight` 6 per Sleight; one or the other, never both.
+- **Five for Fodder**: any VALID hand discarded (`realHandOfSize(selected, selected.length)`) pays its
+  size x `credits_per_card` (1); the 5-card rule is gone.
+- **4x4**: pips 24 on the 4th AND the 6th column. The 6th is a second registry line
+  `{ id:'four_by_four', index:5, _fixed:true }` that `clampRowColBonuses` leaves alone, `renderLineMarkers`
+  does not draw on a narrower board, and `fourByFourCols()` (replaces `fourByFourCol`) pays only when
+  `gridCols` reaches it. Measured: lines [3, 5f], cols [3] at 4 wide and [3, 5] at 6 wide, one line drawn.
+Measured by tap at 1440x820 through the Trick tour: Cascade +20 x3, Power Line +15 per card on its
+line, Magician alone +50 pips then +12 mult beside Rich Soil with two Sleights, a 3-card hand discarded
+under Five for Fodder paid +3 credits, a real hand played with no timeline drift. TRICKS_RARE / EPIC /
+LEGENDARY .xlsx + .csv at the root are the other tiers' sheets (owner: "make the sheet for the rest").
