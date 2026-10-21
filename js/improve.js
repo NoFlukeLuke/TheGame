@@ -72,6 +72,7 @@ const IMPROVE_MUL = new Set([
 // for that entity - nothing else on it scales.
 //   ENTITY_IMPROVEMENTS.md, "Improve option 1", is the source of truth.
 const IMPROVE_STEP = {
+  amplifier:      { mult_per_level: 1 },   // r636: x3 the level, +1x an improvement
   first_light:    { worth: 10 },        // Aces worth 21; the sheet says +10, not +21
   rising_tide:    { mult_min: 1, mult_max: 1 },   // r539: each level's roll, 1-3 -> 2-4 -> ...
   face_value:     { face_pips: 5 },     // face cards 15; the sheet says +5

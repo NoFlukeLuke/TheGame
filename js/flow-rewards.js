@@ -2113,6 +2113,7 @@ function flowrDeckBegin(op) {
   // changes size, and it does so behind the falling panel of the step before.
   flowrPinPanelSoon();
   flowrDeckBanner();
+  flowrDeckHintMaybePrint();
   // The board's own action column is the editor's: PLAY becomes APPLY for the
   // buff ops (the shop's BUY pattern - save the markup, restore on exit).
   // render()'s button guard skips its disabled writes while flowrDeckActive().
@@ -2163,13 +2164,31 @@ function flowrDeckBanner() {
   const op = _flowrDeckOp;
   const el = document.createElement('div');
   el.id = 'flowr-banner';
-  const _g = 'Double-tap a card, or pick 2 and press SWAP';
+  // r636: the swap gesture moved to a printed notice (flowrDeckHintMaybePrint).
   if (op.buff || op.dual || op.fodder) {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · ${_g} · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Pick up to ${flowrSelMax(op)} touching cards, then APPLY or DISCARD · <i id="fb-count">0/${flowrSelMax(op)}</i></span>`;
   } else {
-    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · ${_g} · <i id="fb-count">none</i></span>`;
+    el.innerHTML = `<b>${op.name}</b><span id="fb-note">Select a card, then press APPLY · <i id="fb-count">none</i></span>`;
   }
   host.appendChild(el);
+}
+
+// r636 (owner): how to swap cards in the editor prints as a notice on the first
+// DECK_HINT_FIRST deck edits, then on every DECK_HINT_EVERY-th, until the notice's
+// eye button turns it off for good. Store { n: deck edits so far, off }.
+const DECK_HINT_KEY = 'lethe.deckEditHint.v1', DECK_HINT_FIRST = 10, DECK_HINT_EVERY = 5;
+function flowrDeckHintStore(st) {
+  if (st) { try { localStorage.setItem(DECK_HINT_KEY, JSON.stringify(st)); } catch (e) {} return st; }
+  try { return JSON.parse(localStorage.getItem(DECK_HINT_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function flowrDeckHintMaybePrint() {
+  const st = flowrDeckHintStore();
+  if (st.off) return;
+  st.n = (st.n || 0) + 1;
+  flowrDeckHintStore(st);
+  if (st.n > DECK_HINT_FIRST && (st.n - DECK_HINT_FIRST) % DECK_HINT_EVERY) return;
+  showMessage('Swap cards: double-tap one, or pick 2 and press SWAP', '#8fd0ff',
+    { mute: () => flowrDeckHintStore(Object.assign(flowrDeckHintStore(), { off: true })) });
 }
 
 function flowrDeckFindCell(el) {

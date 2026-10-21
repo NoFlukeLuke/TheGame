@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r635 · Down and Back In: any top-rank card, +2 swaps or discards; Magician pays pips with no Sleights; the shop no longer shows the board after a sale; the Console Focus readout stays above the lit chips; phone Reserve cards fly from the Focus bar to the preview's first slot";
+const BUILD = "2026-10-21 · r636 · the deck editor's swap tip is a printed notice (first 10 edits, then every 5th) with a don't-show-again eye button; Amplifier scores the level x3 mult, +1x an improvement";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

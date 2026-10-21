@@ -251,7 +251,7 @@ const BAL = {
   the_bomb: { pips: 3 },
   bellhop: { swaps: 2, discards: 1 },
   cash_out: { coins: 10 },
-  amplifier: { mult: 10 },
+  amplifier: { mult_per_level: 3 },   // r636: the next hand scores level x this
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
   whetstone:  { mult_per_event: 2, life_seconds: 90 },
@@ -418,7 +418,7 @@ const DESC_TEMPLATES = {
   fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
   interest: 'Score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
-  amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
+  amplifier: 'Double-tap: the next hand scores mult equal to the current level x{mult_per_level}. (5 charges)',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',
   rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',

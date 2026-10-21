@@ -2152,3 +2152,18 @@ preview name and tooltips still use the game's. Owner's note for later: a RANK c
   held (`dealerPanelHold`; `dealerClose` and `portraitDanceEnd` hand the view back). It used to dock
   at the centre of the strip's right half, which in Stacked bars is the Tricks bar. Measured at
   420x900: slot 229,255 58x77 against a played hand's first card at 231,255 58x77. Mouse unchanged.
+
+## r636 - the deck editor's swap tip is a notice; printed notices can be turned off; Amplifier (owner)
+- **Deck editor banner** (`flowrDeckBanner`) no longer says how to swap. That line prints as a
+  notice instead (`flowrDeckHintMaybePrint`, from `flowrDeckBegin`): on the first `DECK_HINT_FIRST`
+  (10) deck edits, then every `DECK_HINT_EVERY` (5)th (15, 20, 25...). Store `lethe.deckEditHint.v1`
+  `{ n, off }`.
+- **A printed notice can carry a "don't show this again" button**: `showMessage(text, color,
+  { mute: fn })` prints an eye-with-a-line icon (`.pt-mute`, `PT_EYE_OFF`, js/print-toast.js) after
+  the line; a tap calls `fn`, pulls the slip and logs a quiet "Notice hidden" line for the drawer.
+  The plate toast (printer notices off) has no button. Measured: tapped at 1440x820 and on a touch
+  420x900, the store read `off: true` and the next deck edit printed nothing.
+- **Amplifier** (Sleight): the next hand scores the current `level` x `BAL.amplifier.mult_per_level`
+  (3) mult (was a flat +10, and its notice typed +5). `IMPROVE_STEP` makes an improvement +1x, so the
+  tiers read x3 x4 x5 x6 x7 x10 (the 5th is the usual triple step). Measured: level 4, double-tap by
+  mouse, +12 mult in the next hand's base, spent after it.

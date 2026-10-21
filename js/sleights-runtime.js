@@ -728,9 +728,12 @@ function applySleightGridEffect(id, r, c) {
     case 'cash_out':
       grantEntityCoins(BAL.cash_out.coins, 'sleight', 'cash_out');
       _fx('credits', BAL.cash_out.coins); break;
-    case 'amplifier':
-      sleightAmplifierMult += BAL.amplifier.mult;
-      showMessage('📢 Amplifier - next hand +5 mult!', 'var(--gold)'); break;
+    case 'amplifier': {
+      // r636 (owner): level x mult_per_level (3, +1 an improvement).
+      const _amp = Math.max(1, level || 1) * BAL.amplifier.mult_per_level;
+      sleightAmplifierMult += _amp;
+      showMessage(`📢 Amplifier - next hand +${_amp} mult!`, 'var(--gold)'); break;
+    }
     case 'snooze':
       // pauseRound with a named source throws the pause plate at the clock.
       pauseRound(BAL.snooze.seconds, 'snooze', 'sleight'); break;

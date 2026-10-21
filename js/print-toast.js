@@ -8,6 +8,8 @@
 // top. A notice that arrives while a slip is still up finishes that slip at once
 // and pulls it back. Tapping a slip pulls it back; its pin keeps it up (r510):
 // pinned slips stack at the top and new slips hang below them.
+// A notice given `opts.mute` (a function) prints an eye-slash button after its text
+// (r636): a tap calls it, which turns that notice off, and pulls the slip.
 //
 // showMessage (js/round-timers.js) hands every notice here while the setting is
 // on, so no call site changed. noteMessage is for things the player just did and
@@ -93,7 +95,7 @@ function printToast(text, color, opts) {
   const slip = _ptSlip;
   ptHistoryPush((o.icon ? o.icon + ' ' : '') + text, ptLineInk(color), false);
   if (_ptDrawer) ptDrawerClose();
-  const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1,
+  const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1, mute: o.mute || null,
                  holdMul: (typeof improveAnimRunning === 'function' && improveAnimRunning()) ? PT_CFG.overChangeHold : 1 };
   slip.lines.push(line); slip.queue.push(line);
   slip.last = now; clearTimeout(slip.hold);
@@ -114,8 +116,10 @@ function ptNewSlip(layer, now) {
   el.addEventListener('pointerdown', e => e.stopPropagation());
   el.addEventListener('click', e => {
     e.stopPropagation();
-    if (e.target.closest('.pt-pin')) ptSetPinned(slip, !slip.pinned);
-    else ptPull(slip);
+    if (e.target.closest('.pt-pin')) { ptSetPinned(slip, !slip.pinned); return; }
+    const mb = e.target.closest('.pt-mute'), ln = mb && slip.lines.find(l => l.el && l.el.contains(mb));
+    if (ln && ln.mute) { try { ln.mute(); } catch (err) {} ln.mute = null; noteMessage('Notice hidden: ' + ln.text); }
+    ptPull(slip);
   });
   return slip;
 }
@@ -173,10 +177,15 @@ function ptFeedLine(slip, line) {
   el.className = 'pt-line'; el.style.setProperty('--ink', line.ink);
   el.innerHTML = '<span class="pt-t"></span>';
   el.firstChild.textContent = (line.icon ? line.icon + ' ' : '') + line.text;
+  if (line.mute) el.insertAdjacentHTML('beforeend', `<button class="pt-mute" title="Don't show this again" aria-label="Don't show this again">${PT_EYE_OFF}</button>`);
   line.el = el;
   slip.box.insertBefore(el, slip.box.firstChild);    // the newest line is at the head
   slip.el.classList.remove('pt-empty');
 }
+
+// An eye with a line through it: "don't show this again".
+const PT_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3.5 3.5l17 17"/></svg>';
 
 function ptArmHold(slip) {
   clearTimeout(slip.hold);

@@ -13,7 +13,7 @@ counter that visibly moved.
 New notices: `showMessage` / `refuse` to print, `noteMessage` to stay quiet.
 The dev panel's own messages always print.
 
-## Printed (236)
+## Printed (237)
 | where | text |
 |---|---|
 | boss-effects.js:207 |  Objective ${before.toLocaleString()} → ${roundGoal.toLocaleString()} |
@@ -100,6 +100,7 @@ The dev panel's own messages always print.
 | events.js:1099 |  The catch: goal +15% |
 | flow-mode.js:117 |  ⚠ BOSS |
 | flow-rewards.js:1012 |  ${boss ? flowrBossPassedText() : 'GOAL CLEARED'} · ×${n} REWARDS |
+| flow-rewards.js:2190 |  Swap cards: double-tap one, or pick 2 and press SWAP (deck edits 1-10, then every 5th; its eye button turns it off, r636) |
 | flow-rewards.js:1840 | refuse Pick an ordinary card |
 | flow-rewards.js:1889 | refuse That would split the group |
 | flow-rewards.js:1892 | refuse Up to ${flowrSelMax(op)} cards |
@@ -218,7 +219,7 @@ The dev panel's own messages always print.
 | sleights-runtime.js:681 |  🔁 Echo - next hand scores twice! |
 | sleights-runtime.js:698 |  💣 Bomb - ${_cnt} cards +3 pips! |
 | sleights-runtime.js:702 |  📜 Legacy - next hand ×3! |
-| sleights-runtime.js:708 |  📢 Amplifier - next hand +5 mult! |
+| sleights-runtime.js:735 |  📢 Amplifier - next hand +${_amp} mult! |
 | sleights-runtime.js:724 |  ⏬ Sandbagger - needs a pair |
 | sleights-runtime.js:1010 |  The Ringer - ${added.rank}${added.suit // ''} joins the hand |
 | spectrum.js:76 |  Deck rebuilt - ${ACTIVE_RANKS.length} values × ${ACTIVE_SUITS.length} colours = ${expected |
@@ -253,9 +254,10 @@ The dev panel's own messages always print.
 | sweep.js:121 |  ALL HANDS: ${n} hands |
 | events-pairs.js:129 |  That card is known safe: flip a new one, or its match (refuse) |
 
-## Quiet (126)
+## Quiet (127)
 | where | text |
 |---|---|
+| print-toast.js:121 |  Notice hidden: <the notice> |
 | combos-aim.js:141 |  🪞 Reflect leaves the board |
 | discard.js:146 |  Five for Fodder! +' + _fc + ' credits |
 | discard.js:176 |  Down and Back In: +${_g} swaps, +${BAL.down_and_back_in.coins} credits |
