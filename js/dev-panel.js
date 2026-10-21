@@ -188,7 +188,7 @@ function devRenderGroupMenu() {
   const el = document.getElementById('dev-group-menu'); if (!el) return;
   el.innerHTML = DEV_GROUPS.map(d => {
     let sub = ''; try { sub = d.sub(); } catch (e) {}
-    return `<button class="dev-group-btn" onclick="devOpenGroup('${d.g}')">
+    return `<button class="dev-group-btn" data-g="${d.g}" onclick="devOpenGroup('${d.g}')">
       <span class="dg-icon">${d.icon}</span>
       <span class="dg-label">${d.label}</span>
       <span class="dg-sub">${sub}</span>
@@ -241,6 +241,13 @@ function devRenderGroupContent(g) {
 // names the tab(s) it lives on, and the lines that match are lit. The Trick and
 // Knack lists are filtered by it too. Clearing it (or Escape, or BACK) returns
 // to the tab menu.
+// r607 (owner): on a desktop the tab menu does not go away while searching. The
+// panel widens (`#dev-panel.dev-search-wide`) and the menu is a column on the
+// left of the results, each tab carrying how many of the found sections it
+// holds (`data-hits`; a tab with none is dimmed). A tap on a tab opens it as
+// usual. A phone keeps the results alone.
+function devSearchWide() { return window.innerWidth >= DEV_SEARCH_WIDE_MIN; }
+const DEV_SEARCH_WIDE_MIN = 900;
 function devSearch(q) {
   const ph = String(q || '').toLowerCase().replace(/\s+/g, ' ').trim();
   const body = document.getElementById('dev-group-pop-body'); if (!body) return;
@@ -256,11 +263,14 @@ function devSearch(q) {
   const loose = !secs.some(sec => flat(sec).includes(ph));
   const has = v => loose ? words.some(w => v.includes(w)) : v.includes(ph);
   devUndock();
-  document.getElementById('dev-group-menu').style.display = 'none';
+  const wide = devSearchWide();
+  document.getElementById('dev-panel').classList.toggle('dev-search-wide', wide);
+  document.getElementById('dev-group-menu').style.display = wide ? '' : 'none';
   document.getElementById('dev-group-pop').style.display = 'flex';
   body.querySelectorAll('.dev-hit').forEach(el => el.classList.remove('dev-hit'));
   const label = g => (DEV_GROUPS.find(d => d.g === g) || {}).label || g;
   let n = 0;
+  const perTab = {};
   body.querySelectorAll('.dev-section').forEach(sec => {
     const groups = (sec.dataset.group || '').split(' ').filter(Boolean);
     const v = flat(sec);
@@ -269,6 +279,7 @@ function devSearch(q) {
     sec.classList.remove('dev-collapsible', 'dev-collapsed');
     if (!hit) return;
     n++;
+    groups.forEach(g => { perTab[g] = (perTab[g] || 0) + 1; });
     sec.dataset.where = groups.map(label).join(' \u00b7 ');
     // Light the smallest element holding each match (an option lights its menu).
     const tw = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT);
@@ -279,7 +290,14 @@ function devSearch(q) {
     }
   });
   document.getElementById('dev-group-pop-title').textContent = n ? `${n} found` : 'Nothing found';
+  document.querySelectorAll('#dev-group-menu .dev-group-btn').forEach(b => {
+    const k = perTab[b.dataset.g] || 0;
+    b.dataset.hits = k ? String(k) : '';
+    b.classList.toggle('dev-tab-hit', k > 0);
+    b.classList.toggle('dev-tab-miss', k === 0);
+  });
   body.scrollTop = 0;
+  const pop = document.getElementById('dev-group-pop'); if (pop) pop.scrollTop = 0;
 }
 // Leaves search mode without touching which tab shows (the caller decides).
 function devSearchReset() {
@@ -288,6 +306,10 @@ function devSearchReset() {
     body.classList.remove('dev-searching');
     body.querySelectorAll('.dev-hit').forEach(el => el.classList.remove('dev-hit'));
   }
+  const panel = document.getElementById('dev-panel'); if (panel) panel.classList.remove('dev-search-wide');
+  document.querySelectorAll('#dev-group-menu .dev-group-btn').forEach(b => {
+    b.dataset.hits = ''; b.classList.remove('dev-tab-hit', 'dev-tab-miss');
+  });
   const inp = document.getElementById('dev-search');
   if (inp && inp.value) {
     inp.value = '';
@@ -1592,4 +1614,10 @@ function devApplyDock(g) {
   el.style.width = (box.w - pad * 2) + 'px'; el.style.height = (box.h - pad * 2) + 'px';
   el.style.maxHeight = 'none';
 }
-window.addEventListener('resize', () => { if (devPanelOpen && devDockTab) devApplyDock(devDockTab); });
+window.addEventListener('resize', () => {
+  if (!devPanelOpen) return;
+  if (devDockTab) devApplyDock(devDockTab);
+  // A search laid out for a desktop or a phone follows the window across the line.
+  const inp = document.getElementById('dev-search');
+  if (inp && inp.value && document.getElementById('dev-panel').classList.contains('dev-search-wide') !== devSearchWide()) devSearch(inp.value);
+});

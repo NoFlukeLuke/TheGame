@@ -1844,3 +1844,10 @@ first 5, owning an improvable Knack and Sleight): Improve a Trick 3.0% -> 6.2% o
 2.2% -> 2.2%, Sleight 2.5% -> 2.3% (noise); any improvement 7.7% -> 10.7% of tiles, 44% -> 55% of grids.
 Owning only Tricks: 6.2% of tiles, 36% of grids (unchanged from r613, since only Trick improvements
 could appear there).
+## r618 - dev panel search on a desktop keeps the tab menu (owner)
+At `DEV_SEARCH_WIDE_MIN` (900px) and up, a search widens the panel (`#dev-panel.dev-search-wide`,
+1080px) and lays the tab menu as a column left of the results, both scrolling on their own. A tab
+holding found sections is lit with their count (`data-hits`, `.dev-tab-hit`); the rest are dimmed
+(`.dev-tab-miss`). A tab click opens it and leaves the search as before. Narrower windows keep the
+results alone; a resize across the line relays the live search. Measured at 1440x820: menu column
+200px, panel 1080; 420x900 unchanged.

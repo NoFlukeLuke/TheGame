@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r617 · Classic full-tray boost doubles only Trick improvements";
+const BUILD = "2026-10-21 · r618 · Dev panel search on a desktop keeps the tab menu beside the results";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
