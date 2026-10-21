@@ -27,10 +27,21 @@ const PT_CFG = {
   pullMs: 280,         // the slip being pulled back up
   fontPx: 21,          // px (VT323 runs small: 21 reads like the old 15px toast)
   paper: '#0d0b09', bar: '#151f17',
+  overChangeHold: 1.6, // r627: a line printed while the improvement animation runs hangs this much longer
 };
 
 let printToastsOn = true;          // Settings > Display > Printer notices
 let _ptLayer = null, _ptSlip = null, _ptPinned = [];
+// r627: the recent notices, printed (ink) and quiet (noteMessage, dim), for the drawer.
+const PT_HISTORY_MAX = 40;
+const ptHistory = [];
+function ptHistoryPush(text, ink, quiet) {
+  if (!text) return;
+  const last = ptHistory[ptHistory.length - 1];
+  if (last && last.text === String(text)) { last.n = (last.n || 1) + 1; return; }
+  ptHistory.push({ text: String(text), ink: ink || null, quiet: !!quiet, n: 1 });
+  if (ptHistory.length > PT_HISTORY_MAX) ptHistory.shift();
+}
 
 // The layer is laid over the game screen in raw viewport px and clips to it, so
 // the paper appears from the screen's top edge and falls out of its bottom. It is
@@ -40,6 +51,7 @@ function ptLayer() {
     _ptLayer = document.createElement('div');
     _ptLayer.id = 'pt-layer';
     document.body.appendChild(_ptLayer);
+    ptTabBuild(_ptLayer);
   }
   const st = document.getElementById('stage');
   let r = st && st.getBoundingClientRect();
@@ -79,7 +91,10 @@ function printToast(text, color, opts) {
   if (s && (now - s.last > PT_CFG.groupMs || s.lines.length >= PT_CFG.maxLines)) ptPull(s);
   if (!_ptSlip) _ptSlip = ptNewSlip(layer, now);
   const slip = _ptSlip;
-  const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1 };
+  ptHistoryPush((o.icon ? o.icon + ' ' : '') + text, ptLineInk(color), false);
+  if (_ptDrawer) ptDrawerClose();
+  const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1,
+                 holdMul: (typeof improveAnimRunning === 'function' && improveAnimRunning()) ? PT_CFG.overChangeHold : 1 };
   slip.lines.push(line); slip.queue.push(line);
   slip.last = now; clearTimeout(slip.hold);
   if (!slip.busy) ptPrintNext(slip);
@@ -132,7 +147,7 @@ function ptSetPinned(slip, on) {
 // longScale of how much longer it is (twice the length: 1.5x the time).
 function ptLineHold(line) {
   const n = [...((line.icon ? line.icon + ' ' : '') + line.text)].length;
-  return PT_CFG.holdPerLine * (1 + PT_CFG.longScale * Math.max(0, n / PT_CFG.avgChars - 1));
+  return PT_CFG.holdPerLine * (1 + PT_CFG.longScale * Math.max(0, n / PT_CFG.avgChars - 1)) * (line.holdMul || 1);
 }
 
 function ptLater(slip, ms, fn) { const t = setTimeout(fn, ms); slip.timers.push(t); return t; }
@@ -242,3 +257,84 @@ function sfxPrintFeed() {
     o.connect(g).connect(sfxOut(ctx)); o.start(t + 0.05); o.stop(t + 0.16);
   });
 }
+
+// ── THE PAPER CORNER AND THE DRAWER (r627, owner) ───────────────────────────
+// A folded corner of paper hangs just inside the top edge of the screen. It is
+// out of sight until the mouse comes within PT_CFG.tabZone px of the top (a
+// touch screen shows it faintly all the time); pointing at it brings it out;
+// a click, or dragging it down PT_CFG.tabDrag px, pulls the DRAWER down: one
+// long slip of the last PT_CFG.drawerLines notices, newest at the top, printed
+// lines in their ink and quiet (noteMessage) lines dim. A click anywhere, the
+// corner again, Escape, or a new notice pulls it back up.
+PT_CFG.tabZone = 36; PT_CFG.tabDrag = 28; PT_CFG.drawerLines = 14; PT_CFG.drawerWidth = 400;
+let _ptTab = null, _ptDrawer = null, _ptTabTouch = false;
+function ptTabBuild(layer) {
+  if (_ptTab) return;
+  _ptTab = document.createElement('div');
+  _ptTab.id = 'pt-tab'; _ptTab.title = 'Recent notices';
+  _ptTab.innerHTML = '<div class="pt-tab-paper"></div>';
+  layer.appendChild(_ptTab);
+  _ptTabTouch = !!(window.matchMedia && matchMedia('(hover: none)').matches);
+  _ptTab.classList.toggle('pt-tab-touch', _ptTabTouch);
+  // near the top edge: peek
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || !_ptLayer) return;
+    const top = parseFloat(_ptLayer.style.top) || 0;
+    const near = e.clientY - top < PT_CFG.tabZone && e.clientY >= top - 2;
+    _ptTab.classList.toggle('pt-tab-peek', near || !!_ptDrawer);
+  }, { passive: true });
+  // a click toggles; a drag down opens
+  let drag = null;
+  _ptTab.addEventListener('pointerdown', e => { e.stopPropagation(); drag = { y: e.clientY, opened: false }; _ptTab.setPointerCapture?.(e.pointerId); });
+  _ptTab.addEventListener('pointermove', e => {
+    if (!drag || drag.opened) return;
+    const d = e.clientY - drag.y;
+    _ptTab.style.setProperty('--pt-tab-pull', Math.max(0, Math.min(PT_CFG.tabDrag, d)) + 'px');
+    if (d > PT_CFG.tabDrag && !_ptDrawer) { drag.opened = true; ptDrawerOpen(); }
+  });
+  const up = e => {
+    if (!drag) return;
+    const was = drag; drag = null; _ptTab.style.removeProperty('--pt-tab-pull');
+    if (!was.opened) { _ptDrawer ? ptDrawerClose() : ptDrawerOpen(); }
+  };
+  _ptTab.addEventListener('pointerup', up); _ptTab.addEventListener('pointercancel', up);
+  _ptTab.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('pointerdown', e => { if (_ptDrawer && !e.target.closest('#pt-drawer, #pt-tab')) ptDrawerClose(); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && _ptDrawer) ptDrawerClose(); });
+}
+function ptDrawerOpen() {
+  if (_ptDrawer) return;
+  const layer = ptLayer();
+  if (_ptSlip) ptPull(_ptSlip);
+  const el = document.createElement('div');
+  el.id = 'pt-drawer'; el.className = 'pt-slip pt-drawer';
+  el.style.setProperty('--ptw', PT_CFG.drawerWidth + 'px');
+  el.style.top = ptPinBottom() + 'px';
+  const rows = ptHistory.slice(-PT_CFG.drawerLines).reverse();
+  const lines = rows.length
+    ? rows.map(h => `<div class="pt-line${h.quiet ? ' pt-quiet' : ''}" style="--ink:${h.ink || 'var(--cream, #f0e2c0)'}"><span class="pt-t"></span>${h.n > 1 ? `<span class="pt-x">x${h.n}</span>` : ''}</div>`).join('')
+    : '<div class="pt-line pt-quiet"><span class="pt-t">no notices yet</span></div>';
+  el.innerHTML = `<div class="pt-paper"><div class="pt-lines"><div class="pt-line pt-head"><span class="pt-t">RECENT NOTICES</span></div>${lines}</div></div>`;
+  // the texts go in as text, never as markup
+  const ts = el.querySelectorAll('.pt-line:not(.pt-head) .pt-t');
+  rows.forEach((h, i) => { if (ts[i]) ts[i].textContent = h.text; });
+  el.addEventListener('pointerdown', e => e.stopPropagation());
+  el.addEventListener('click', e => { e.stopPropagation(); ptDrawerClose(); });
+  layer.appendChild(el);
+  _ptDrawer = el;
+  _ptTab.classList.add('pt-tab-open', 'pt-tab-peek');
+  try { sfxPrintFeed?.(); } catch (e) {}
+}
+function ptDrawerClose() {
+  const el = _ptDrawer; if (!el) return;
+  _ptDrawer = null;
+  _ptTab.classList.remove('pt-tab-open');
+  try { sfxPrintFeed?.(); } catch (e) {}
+  el.style.setProperty('--pt-pull', PT_CFG.pullMs + 'ms');
+  el.classList.add('pt-pulled');
+  setTimeout(() => el.remove(), PT_CFG.pullMs + 60);
+}
+// The layer (and its paper corner) exist from the start, not from the first
+// notice, and follow the stage when the window changes.
+addEventListener('load', () => { try { ptLayer(); } catch (e) {} });
+addEventListener('resize', () => { if (_ptLayer) { try { ptLayer(); } catch (e) {} } });

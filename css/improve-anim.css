@@ -1,0 +1,81 @@
+/* ══ THE IMPROVEMENT ANIMATION (r627) - js/improve-anim.js ═══════════════════
+   A body-level layer laid over #stage (viewport px, zoomed like the stage, so
+   everything inside is design px). The scene is a stack of real entity tiles,
+   one per tier, and a panel with the sentence under it. */
+#ia-layer { position: fixed; z-index: 880; pointer-events: none; display: none; overflow: hidden; }
+#ia-layer.ia-on { display: block; }
+
+/* FAST FORWARD: top centre, prominent, only while a sequence runs */
+#ia-skip {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+  pointer-events: auto; cursor: var(--cur-pointer, pointer);
+  font-family: 'Orbitron', 'Share Tech Mono', monospace; font-size: 13px; letter-spacing: 1.5px; font-weight: 700;
+  color: #1a1206; background: linear-gradient(#ffe88a, #f2c94c 60%, #c9961e);
+  border: 2px solid #fff3c0; border-radius: 6px; padding: 7px 16px 6px;
+  box-shadow: 0 0 0 2px #0008, 0 4px 14px #000a, 0 0 18px #f2c94c88;
+  animation: iaSkipIn .28s ease-out both, iaSkipPulse 1.6s .3s ease-in-out infinite;
+}
+#ia-skip .ia-ff { font-size: 15px; vertical-align: -1px; }
+#ia-skip:hover { filter: brightness(1.12); }
+#ia-skip:active, #ia-skip.key-dn { transform: translateX(-50%) translateY(2px); }
+@keyframes iaSkipIn { from { opacity: 0; transform: translateX(-50%) translateY(-18px); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes iaSkipPulse { 0%, 100% { box-shadow: 0 0 0 2px #0008, 0 4px 14px #000a, 0 0 14px #f2c94c66; } 50% { box-shadow: 0 0 0 2px #0008, 0 4px 14px #000a, 0 0 26px #f2c94ccc; } }
+
+.ia-scene { position: absolute; inset: 0; pointer-events: none; }
+.ia-tile {
+  position: absolute; width: var(--ia-size); height: var(--ia-size);
+  transform-origin: 50% 50%; will-change: transform; pointer-events: auto; cursor: var(--cur-pointer, pointer);
+  filter: drop-shadow(0 10px 18px #000c);
+}
+.ia-tile.ia-3d { transform-style: preserve-3d; }
+.ia-scene.ia-flip .ia-tile { perspective: 700px; }
+.ia-tier { position: absolute; inset: 0; display: none; }
+.ia-tier.ia-shown { display: block; }
+.ia-tier > .reward-cell { width: 100%; height: 100%; margin: 0; }
+.ia-tier .reward-cell.rar-common    { --rc: var(--c-mint); }
+.ia-tier .reward-cell.rar-rare      { --rc: var(--c-cyan); }
+.ia-tier .reward-cell.rar-epic      { --rc: var(--c-purple); }
+.ia-tier .reward-cell.rar-legendary { --rc: var(--c-magenta); }
+.ia-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 6px; }   /* the sweep and the flash stay on the tile; the ring is a sibling */
+/* the bright edge that leads the band wipe (lift) */
+.ia-sweep {
+  position: absolute; left: 50%; top: 50%; width: 220%; height: 10%; margin: -5% 0 0 -110%;
+  background: linear-gradient(to bottom, #fff0, #fff6d8 40%, #f2cf72 55%, #fff0);
+  mix-blend-mode: screen; opacity: 0; filter: blur(1px);
+}
+.ia-flash { position: absolute; inset: 0; background: #fff6d8; mix-blend-mode: screen; opacity: 0; border-radius: 8px; }
+.ia-ring { position: absolute; inset: -6%; border: 3px solid #f2cf72; border-radius: 12px; box-shadow: 0 0 14px #f2cf72aa, inset 0 0 14px #f2cf7266; }
+
+/* the sentence under the tile */
+.ia-panel {
+  position: absolute; text-align: center; opacity: 0;
+  padding: 8px 12px 10px; border-radius: 8px;
+  background: #0d0b09ee; border: 1px solid #ffffff22; box-shadow: 0 6px 18px #000a;
+}
+.ia-name { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 1px; color: var(--rc, var(--cream)); }
+.ia-name.rar-common    { --rc: var(--c-mint); }
+.ia-name.rar-rare      { --rc: var(--c-cyan); }
+.ia-name.rar-epic      { --rc: var(--c-purple); }
+.ia-name.rar-legendary { --rc: var(--c-magenta); }
+.ia-ver { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #f2cf72; letter-spacing: 1px; margin: 2px 0 6px; }
+.ia-ver .ia-v-arrow { margin: 0 6px; opacity: .7; }
+.ia-ver .ia-v-new { color: #fff6d8; text-shadow: 0 0 8px #f2cf72; }
+.ia-desc { font-family: 'Crimson Pro', serif; font-size: 15px; line-height: 1.35; color: var(--cream, #f0e2c0); }
+/* old and new share one cell, so the box is as wide as the wider number */
+.ia-num { display: inline-grid; justify-items: center; vertical-align: bottom; font-weight: 700; white-space: nowrap; }
+.ia-num .ia-n-old { grid-area: 1 / 1; color: var(--cream, #f0e2c0); }
+.ia-num .ia-n-new { grid-area: 1 / 1; opacity: 0; color: #ffe27a; text-shadow: 0 0 8px #f2c94c99; }
+/* roll (lift): the old number leaves upward, the new comes up from below, clipped to the line */
+.ia-num.ia-roll { overflow: hidden; line-height: 1.2; }
+/* stamp: the new number lands beside the struck old one */
+.ia-num.ia-stamp .ia-n-old { text-decoration: line-through; text-decoration-color: var(--red, #e5533c); text-decoration-thickness: 2px; }
+.ia-num.ia-stamp { grid-auto-flow: column; column-gap: .35em; }
+.ia-num.ia-stamp .ia-n-new { grid-area: auto; transform-origin: 50% 70%; }
+/* slide (flip): old out left, new in from the right */
+.ia-num.ia-slide { overflow: hidden; line-height: 1.2; }
+
+/* the real chip steps aside while its copy is up (opacity only, like the lift) */
+#trick-tray-list .trick-tray-chip.ia-away, .knack-chip.ia-away { opacity: 0 !important; transition: opacity .1s; }
+
+body.big-text .ia-desc { font-size: 17px; }
+body.reduced-motion #ia-skip { animation: none; }

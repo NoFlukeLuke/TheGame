@@ -126,6 +126,7 @@ function load(opts = {}) {
     location: { href: 'file:///index.html', search: '', hash: '', reload: () => {} },
     performance: { now: () => Date.now() },
     requestAnimationFrame: (fn) => 0,
+    queueMicrotask: (fn) => { try { fn(); } catch (e) {} },
     cancelAnimationFrame: () => {},
     setTimeout: () => 0,
     clearTimeout: () => {},

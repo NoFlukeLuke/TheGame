@@ -100,6 +100,14 @@ const IMPROVE_STEP = {
   patience_reward:{ mult_per_second: 0.5 },
   first_play:     { focus: 1 },
   quarter_chime:  { pips: 30 },
+  // r625, the owner's epic sheet
+  rerun:          { pip_mult: 0.25 },
+  royal_trio:     { mult_mult: 1 },
+  frozen_moment:  { focus: 5 },
+  before_the_tide:{ max_rank: 1 },
+  kaleidoscope:   { extra: 1 },
+  landfill:       { mult_per: 5, mult_per_flow: 3 },
+  feelin_lucky:   { mult_mult: 0.75 },
 };
 
 // Ladders that are not "the number again" (r624, the owner's rare sheet). A
@@ -118,7 +126,70 @@ const IMPROVE_PLAN = {
   swift:            t => ({ mult_per_interval: 6 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
   // +1 replay a tier, +2 for the 5th
   woodpecker:       t => ({ retrigger_count: 3 + [0, 1, 2, 3, 4, 6][t] }),
+  // ── r625, the owner's epic sheet ──
+  // one more prime, then one more rolled rank, alternating; the 5th does both
+  wild_heart:       t => ({ primes: 1 + [0, 1, 1, 2, 2, 3][t], extra_ranks: [0, 0, 1, 1, 2, 3][t] }),
+  // +10s a tier; from the 3rd a hit also primes a random Trick
+  double_jeopardy:  t => ({ pause_seconds: 15 + 10 * [0, 1, 2, 3, 4, 7][t], prime_random: t >= 3 ? 1 : 0 }),
+  // +10% chance, then 10s sooner, alternating; the 5th does both
+  hourglass:        t => ({ chance: 0.5 + 0.1 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 60 - 10 * [0, 0, 1, 1, 2, 3][t] }),
+  // +5 credits, +10 mult, 2s cheaper, round and round; the 5th does all three
+  monochrome:       t => ({ coins: 5 + 5 * [0, 1, 1, 1, 2, 3][t], mult: 25 + 10 * [0, 0, 1, 1, 1, 2][t], seconds: 10 - 2 * [0, 0, 0, 1, 1, 2][t] }),
+  // doubles one of the three in turn; the 5th doubles all three and lifts the silent all-three chance
+  ninesong:         t => ({ seconds: 9 * [1, 2, 2, 2, 4, 8][t], mult: 27 * [1, 1, 2, 2, 2, 4][t], focus: 9 * [1, 1, 1, 2, 2, 4][t], all_chance: t >= 5 ? 0.35 : 0.2 }),
+  // a second replay chance, +33% a tier (past 100% a third); the 5th adds a second marked line
+  perfect_timing:   t => ({ chance2: [0, 0.33, 0.66, 0.99, 1.32, 1.32][t], extra_line: t >= 5 ? 1 : 0 }),
+  // +8 mult, +4 Focus, alternating; the 5th does both
+  shape_square:     t => ({ mult: 24 + 8 * [0, 1, 1, 2, 2, 3][t], focus: 16 + 4 * [0, 0, 1, 1, 2, 3][t] }),
+  // improves only twice: the first jumps to tier 3 (buffed pips count), the second to tier 5 (6 rows + columns count)
+  shape_line:       t => ({ buffs: t >= 3 ? 1 : 0, span6: t >= 5 ? 1 : 0 }),
+  // +4 Focus, +4 credits, alternating; the 5th does both
+  clean_sweep:      t => ({ focus: 8 + 4 * [0, 1, 1, 2, 2, 3][t], credits: 4 + 4 * [0, 0, 1, 1, 2, 3][t] }),
+  // +2 mult per 9 and 3 more 9s a tier (the 9s land through IMPROVE_HOOKS); the 5th stops it deleting itself
+  nines_mult:       t => ({ mult_per_nine: 2 + 2 * t, added: 9 + 3 * t, no_delete: t >= 5 ? 1 : 0 }),
+  // clubs join at the 1st, x0.5 more time a tier from the 2nd, any club or spade at the 5th
+  spade_flood:      t => ({ suits: t >= 5 ? 2 : t >= 1 ? 1 : 0, time_mult: [1, 1, 1.5, 2, 2.5, 2.5][t] }),
+  // +3% a tier of a second force trigger per card
+  temporal_rift:    t => ({ chance_extra: 0.03 * t }),
+  // +10 pips, +10 mult, alternating; the 5th does both and adds a second secret cell
+  heartwood:        t => ({ pips: 5 + 10 * [0, 1, 1, 2, 2, 3][t], mult: 5 + 10 * [0, 0, 1, 1, 2, 3][t], cells: t >= 5 ? 2 : 1 }),
+  // each number by its base in turn; the 5th does all four and pays two of them
+  four_horseman:    t => ({ pips: 24 * (1 + [0, 1, 1, 1, 1, 2][t]), mult: 24 * (1 + [0, 0, 1, 1, 1, 2][t]), focus: 8 * (1 + [0, 0, 0, 1, 1, 2][t]), pause: 8 * (1 + [0, 0, 0, 0, 1, 2][t]), picks: t >= 5 ? 2 : 1 }),
+  // improves once, straight to tier 5
+  undue_influence:  t => ({ faces: t >= 1 ? 1 : 0 }),
+  // +0.75 a tier; the 5th extends to 3 rolled ranks (rolled through IMPROVE_HOOKS)
+  patient_rulers:   t => ({ mult_mult: 1.5 + 0.75 * t, extra_ranks: t >= 5 ? 3 : 0 }),
+  // +11% chance, +0.4x, alternating; the 5th does both and even cards replay
+  even_better:      t => ({ chance: 0.66 + 0.11 * [0, 1, 1, 2, 2, 3][t], pip_mult: 2.25 + 0.4 * [0, 0, 1, 1, 2, 3][t], replay: t >= 5 ? 1 : 0 }),
+  what_odds:        t => ({ mult_mult: 1.7 + 0.35 * t, replay: t >= 5 ? 1 : 0 }),
+  critical:         t => ({ mult_mult: 5 + t, extra_family: t >= 5 ? 1 : 0 }),
+  twinners:         t => ({ pip_mult: 3 + t, replay: t >= 5 ? 1 : 0 }),
+  // one more application, then flushes, then more applications; sets at the 5th
+  marathon:         t => ({ extra: [1, 2, 2, 3, 4, 4][t], flush: t >= 2 ? 1 : 0, sets: t >= 5 ? 1 : 0 }),
 };
+
+// What an improvement DOES beyond its numbers (r625): a tier jump, a roll kept on
+// the owned Trick, cards into the deck. Run by improveEntity after the tiers are
+// applied, with the tier just reached. The owned Trick object (if any) is passed.
+const IMPROVE_HOOKS = {
+  shape_line: (tier, t) => { if (tier === 1 || tier === 2) return 3; if (tier === 4) return 5; },   // two improvements: 3, then 5
+  undue_influence: tier => (tier >= 1 && tier < 5) ? 5 : undefined,
+  nines_mult: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
+  wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, ['A']); },
+  patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, ['J', 'Q', 'K']); },
+  critical: (tier, t) => { if (t && BAL.critical.extra_family && !t._critFamily) t._critFamily = Math.random() < 0.5 ? 'set' : 'run'; },
+  perfect_timing: (tier, t) => { if (BAL.perfect_timing.extra_line && typeof perfectTimingExtraLine === 'function') perfectTimingExtraLine(t); },
+};
+// `n` distinct ranks, none in `not`, kept on the Trick under `key` (rolled once
+// per count, so an earlier roll stays when the count grows).
+function rollExtraRanks(t, key, n, not) {
+  const have = t[key] || [];
+  if (have.length >= n) { if (have.length > n) t[key] = have.slice(0, n); return; }
+  const pool = Object.keys(RANK_ORDER).filter(r => RANK_ORDER[r] >= 1 && RANK_ORDER[r] <= 13 && r !== '1' && !not.includes(r) && !have.includes(r));
+  while (have.length < n && pool.length) have.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  t[key] = have;
+}
+function ownedTrickObj(id) { return (typeof trickTray !== 'undefined' && trickTray.find(t => t && t.id === id)) || null; }
 
 // Pristine BAL, captured at load before anything can have improved. One level
 // deep is enough - every BAL entry is a flat object of numbers.
@@ -216,7 +287,7 @@ function applyEntityTiers() {
     for (const k in base) BAL[id][k] = base[k];          // reset first, so a tier can go down
     if (IMPROVE_PLAN[id]) {                               // r624: a ladder of its own, no generic step
       const v = IMPROVE_PLAN[id](Math.min(IMPROVE_MAX_TIER, entityTierOf(id)));
-      for (const k in v) if (v[k] !== undefined) BAL[id][k] = v[k];
+      for (const k in v) if (v[k] !== undefined) BAL[id][k] = typeof v[k] === 'number' ? Math.round(v[k] * 1000) / 1000 : v[k];
       return;
     }
     if (!steps || !plan) return;
@@ -267,10 +338,31 @@ function syncOwnedEntityDescs() {
 // Raise one entity's tier. Returns the new tier, or 0 when nothing happened.
 function improveEntity(id) {
   if (!canImprove(id)) return 0;
-  entityTier[id] = entityTierOf(id) + 1;
+  const _was = entityTierOf(id), _descWas = _impDescOf(id);
+  entityTier[id] = _was + 1;
   applyEntityTiers();
+  // r625: a hook may jump the tier (Straight Shot, Undue Influence) or roll
+  // something onto the owned Trick; the tiers are applied again after a jump.
+  const hook = IMPROVE_HOOKS[id];
+  if (hook) {
+    const jump = hook(entityTier[id], ownedTrickObj(id));
+    if (typeof jump === 'number' && jump > entityTier[id]) { entityTier[id] = Math.min(IMPROVE_MAX_TIER, jump); applyEntityTiers(); hook(entityTier[id], ownedTrickObj(id)); }
+  }
   improveRepaintArt();
+  // r627: the improvement animation (js/improve-anim.js) plays from a queue, so a
+  // many-tiered grant is one scene and a sequence can hold it until its end.
+  if (typeof improveAnimNote === 'function') improveAnimNote(id, _was, entityTier[id], _descWas, _impDescOf(id));
   return entityTier[id];
+}
+// The printed sentence of an entity as the player sees it (the owned copy, else the pool's).
+function _impDescOf(id) {
+  const o = (typeof ownedTrickObj === 'function' && ownedTrickObj(id))
+    || (typeof acquiredKnacks !== 'undefined' && acquiredKnacks.find(k => k && k.id === id));
+  if (o && o.desc) return o.desc;
+  for (const p of [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : [], typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [], typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []]) {
+    const e = p.find(x => x && x.id === id); if (e) return e.desc || '';
+  }
+  return '';
 }
 
 // THE ART FOLLOWS THE TIER AT ONCE (r612, owner). The tray chips carry the tier's

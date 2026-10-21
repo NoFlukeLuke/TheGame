@@ -68,7 +68,8 @@ function doDiscard() {
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   // Time buffs do not stack (r342): a card already carrying one is skipped.
-  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !cardTimeBuffed(c)) c._vulturePause = BAL.vulture.pause_seconds; });
+  // r625 (owner): a card takes the Vulture's pause once; a time buff from another source does not block it.
+  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !c._vulturePause) c._vulturePause = BAL.vulture.pause_seconds; });
   // on_discard sleights fire with their grid position before removal.
   // Snapshot the non-sleight cards discarded alongside so Sandbagger can check for a low pair.
   _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
@@ -380,9 +381,9 @@ function handleClockMarks(secs) {
     showMessage(`🕐 Minute Hand - next hand x${BAL.minute_hand.mult_mult} mult`, '#cc88ff');
   }
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
-  if (secs % 60 === 0) {
+  if (secs % 60 === 0 || (hasTrick('hourglass') && secs % BAL.hourglass.interval_seconds === 0)) {
     // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
-    const _hgN = hasTrick('hourglass') ? luckRoll(BAL.hourglass.chance) : 0;
+    const _hgN = hasTrick('hourglass') && secs % BAL.hourglass.interval_seconds === 0 ? luckRoll(BAL.hourglass.chance) : 0;   // r625: the mark moves with improvements
     for (let _hg = 0; _hg < _hgN; _hg++) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];

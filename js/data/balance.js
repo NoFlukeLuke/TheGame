@@ -10,7 +10,7 @@ const BAL = {
   face_value: { face_pips: 20 },
   humble_roots: { pip_mult: 3 },
   summit: { pips_per_level: 2 },
-  before_the_tide: { extra_mult: 5 },
+  before_the_tide: { max_rank: 5 },   // r625: ranks at or under this pay their rank in Focus (improvements raise it)
   knave_power: { per_jack: 1.5 },   // r539 owner: x2 per Jack was x16 with four
   rowcol_triple_pips: { flat_pips: 25 },
   rowcol_mult: { mult: 15 },              // r623: was 5, typed in scoring.js
@@ -19,7 +19,7 @@ const BAL = {
   right_time:     { pause_seconds: 2 },
   study_hall:     { focus: 2, every: 2 },
   high_water:     { pause_per_run: 1 },
-  rowcol_perm_double: { perm_mult: 1 },
+  rowcol_perm_double: { perm_mult: 2 },
   wide_span_mult: { mult: 50 },
   hidden_pair: { pips: 12 },
   twin_sprouts: { pips: 15 },
@@ -28,10 +28,10 @@ const BAL = {
   triple_threat: { pips: 20 },
   early_bird: { pips_per_card: 20 },
   kindling: { mult_per_streak: 8 },
-  spade_flood: { time_div: 1 },
+  spade_flood: { time_div: 1, time_mult: 1, suits: 0 },   // r625: suits 0 all spades / 1 all clubs or spades / 2 any club or spade; time_mult by IMPROVE_PLAN
   sands_of_time: { divisor: 2 },
   discard_pips: { mult_per: 4 },
-  landfill: { mult_per: 1 },
+  landfill: { mult_per: 5, mult_per_flow: 3 },   // r625: Flow pays the smaller one
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r623: solo_pips while Magician is the only Trick in the tray
   stand_up: { mult_per_card: 10 },
   scalper: { mult_mult_per_missing: 0.25 },
@@ -52,19 +52,19 @@ const BAL = {
   frozen_moment: { focus: 10 },
   swift: { mult_per_interval: 6, interval_seconds: 10 },   // r624: improvements alternate +2 mult / -2s (IMPROVE_PLAN)
   cuckoo: { hands_between: 2, per_replays: 5 },
-  clean_sweep: { focus: 5, credits: 5 },
+  clean_sweep: { focus: 8, credits: 4 },
   obsessed:        { per_credits: 100 },
   relentless:      { mult_per_spade: 0.05 },
   buried_treasure: { luck_share: 0.5, credit_mult: 1.1 },
-  patient_rulers:  { mult_mult: 1.5 },
-  even_better:     { chance: 0.66, pip_mult: 2.2 },
-  what_odds:       { mult_mult: 1.7 },
-  critical:        { mult_mult: 3 },
-  twinners:        { pip_mult: 3 },
+  patient_rulers:  { mult_mult: 1.5, extra_ranks: 0 },           // r625: the 5th improvement adds 3 random ranks (rolled on the Trick)
+  even_better:     { chance: 0.66, pip_mult: 2.25, replay: 0 },   // r625: replay 1 = even cards replay (5th improvement)
+  what_odds:       { mult_mult: 1.7, replay: 0 },
+  critical:        { mult_mult: 5, extra_family: 0 },             // r625: 5th improvement extends to sets or runs (rolled on the Trick)
+  twinners:        { pip_mult: 3, replay: 0 },
   feelin_lucky:    { mult_mult: 1.25, ranks: 5, sell_cost_share: 0.3, rerolls: 3 },
-  double_jeopardy: { pause_seconds: 15, cells: 2 },
+  double_jeopardy: { pause_seconds: 15, cells: 2, prime_random: 0 },   // r625: prime_random from the 3rd improvement (IMPROVE_PLAN)
   aces_absorb: { chance: 0.5 },
-  queens_upgrade: { queen_seconds: 45 },
+  queens_upgrade: { queen_seconds: 30 },
   woodpecker: { interval_seconds: 30, retrigger_count: 3 },   // r624: the mark is never spent; a new cell every interval
   hummingbird: { mult_per_pause: 3 },
   albatross: { pips_per_second: 10 },
@@ -78,13 +78,13 @@ const BAL = {
   kindred: { mult_per_card: 15 },
   tidal_force: { mult_per_card: 15 },
   rare_bloom: { perm_pips: 8 },
-  two_pair_mult: { focus: 16, window_ms: 30000, need_count: 3 },
+  two_pair_mult: { focus: 20, window_ms: 30000, need_count: 3 },
   threes_run: { mult: 9 },
   lucky_three: { mult: 2 },
   light_touch: { mult: 30 },
   patience_reward: { mult_per_second: 2 },   // r624: mult = this x the seconds since the last hand
   first_play: { focus: 5 },
-  monochrome: { coins: 5, seconds: 10 },
+  monochrome: { coins: 5, seconds: 10, mult: 25 },   // r625: pays mult too; IMPROVE_PLAN cycles the three
   full_color: { mult_mult: 1.25 },   // r539 owner: x mult per card (was +16 pips +16 mult per card)
   balanced_diet: { mult_per_card: 10 },
   number_crunch: { mult_per_card: 8 },
@@ -93,7 +93,7 @@ const BAL = {
   odd_squad: { mult_per_card: 7 },
   long_road: { mult_per_card: 10 },
   still_water: { mult_per_interval: 10 },
-  wild_heart: { mult_per_ace: 2 },
+  wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
   row_power: { mult_per_card: 12 },
@@ -113,16 +113,16 @@ const BAL = {
   third_charm:   { extra_replays: 2 },
   four_eyes:     { mult: 24 },
   four_by_four:  { pips: 24 },
-  four_horseman: { pips: 16, mult: 8, focus: 4, pause: 4 },
+  four_horseman: { pips: 24, mult: 24, focus: 8, pause: 8, picks: 1 },   // r625: picks 2 at the 5th improvement
   wait_four_it:  { pause: 2 },
   shaky_foundation: { mult: 18 },
   wave_amp:      { pips_per_streak: 15 },
   dam_holding:   { pause: 3 },
-  acorns:        { focus_per_card: 0.1 },
+  acorns:        { focus_per_card: 0.025 },
   plan_ahead:    { every: 3, times: 2 },   // r624: Focus = times x the average hands per round
   more_better:   { mult: 9, min_tiles: 3 },
   rain_check:    { seconds: 30 },
-  temporal_rift: { rewind: 3 },
+  temporal_rift: { chance_extra: 0 },   // r625: force-triggers the 3rd Trick per intersecting card; chance_extra = one more per tier
 
   // Shop multi-buy discount (js/shop-grid-preview.js): % off per ADDITIONAL item
   // in the connected group. Bulk Buyer raises the rate to bulk_per_item. No cap of
@@ -131,10 +131,10 @@ const BAL = {
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 6 },       // +mult per negative reward tile taken this run
   rising_tide:   { mult_min: 5, mult_max: 10 }, // each level passed while held adds this much mult (r624: 5-10)
-  wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
+  wait_for_it:   { chance_per: 0.03, flow_per: 0.05 },  // +replay chance per negative reward tile taken; in Flow per single-reward level-up, luck-free (r625, a knack)
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   combo_score: { mult_per_type: 6 },
-  full_house_streak: { focus: 10 },
+  full_house_streak: { focus: 15 },
   blackjack_bonus: { pip_mult: 3 },
   double_bloom: { mult_mult: 1.5 },
   richter: { mult_mult: 3, focus: 10 },
@@ -144,22 +144,27 @@ const BAL = {
   perfect_storm: { pip_mult: 5 },
   extinction: { mult_mult: 2 },
   lucky_sevens: { focus: 5 },
-  ninesong: { seconds: 9, mult: 9, focus: 9 },
+  ninesong: { seconds: 9, mult: 27, focus: 9, all_chance: 0.2 },   // r625: all_chance = all three at once (silent; 0.35 at the 5th improvement)
   royal_trio: { mult_mult: 2 },
   prime_time: { pips_per_card: 29 },
-  shape_square: { focus: 16 },
+  shape_square: { focus: 16, mult: 24 },
+  shape_line: { buffs: 0, span6: 0 },         // r625: buffs = count buffed pips; span6 = 6 rows + columns in all count as a line
+  perfect_timing: { chance2: 0, extra_line: 0 },   // r625: a second replay chance; a second marked line at the 5th
+  kaleidoscope: { extra: 0 },                 // r625: applications past the suit count
+  marathon: { extra: 1, flush: 0, sets: 0 },  // r625: extra applications on runs; flush / sets extend them
+  undue_influence: { faces: 0 },              // r625: 1 = also pays the face cards in the hand
   shape_cross: { focus: 25, mult: 25 },   // r624: the + shape pays mult as well
   two_corners: { mult_mult: 2 },
   correct_run: { pips: 80, mult: 20, focus: 10 },
-  tide_table: { mult_step: 0.25 },
-  undertow: { pip_mult_base: 1.5, pip_mult_step: 0.5 },
+  tide_table: { mult_base: 1.25, mult_step: 0.5 },
+  undertow: { pip_mult_base: 2, pip_mult_step: 0.5 },
   // ── r179 multiplier batch: ×pips / ×mult on triggers the pools had never used ──
   // (replays, a paused clock, credits held, buffed cards on the grid, Focus level)
-  rerun:       { pip_mult: 1.2 },
+  rerun:       { pip_mult: 1.25 },
   deep_breath: { pip_mult: 2 },
   interest:    { pip_mult_per_10_credits: 0.1, max_pip_mult: 3 },
   chorus:      { mult_mult: 1.75 },
-  portfolio:   { mult_mult_per_card: 0.15 },
+  portfolio:   { mult_mult_per_card: 0.25 },
   // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
@@ -201,10 +206,10 @@ const BAL = {
   governor:       { window_mult: 1.5 },
   // ── play/round-side: accumulators & permanent gains ──
   first_fruits: { pips: 5, hands: 1 },   // r624: the first `hands` hands of a round (IMPROVE_PLAN alternates pips / hands)
-  heartwood: { pips: 5, mult: 2 },
+  heartwood: { pips: 5, mult: 5, cells: 1 },   // r625: cells 2 = a second secret cell (5th improvement)
   fours_perm: { pips: 8 },
   fives_discard: { pips_per_five: 5 },
-  nines_mult: { mult_per_nine: 2, added: 9 },   // r539 owner's rework: brings its own 9s
+  nines_mult: { mult_per_nine: 2, added: 9, no_delete: 0 },   // r539 owner's rework: brings its own 9s; r625: no_delete at the 5th improvement
   tens_mult: { mult_per_milestone: 3, discards_per_milestone: 9 },
   sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
   compound_mult: { mult_per_hand: 0.1 },
@@ -228,7 +233,7 @@ const BAL = {
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
   payout_pick: { pips: 12 },
   second_hand: { pips: 30, mult: 20 },
-  hourglass: { chance: 0.5 },
+  hourglass: { chance: 0.5, interval_seconds: 60 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
   kingfisher: { interval_seconds: 2, mult_per_interval: 2 },
   magpie: { actions_per_second: 2 },
@@ -366,7 +371,7 @@ const DESC_TEMPLATES = {
   lucky_three: 'Any 3 in a hand adds +{mult} mult',
   rich_soil: 'All cards score +{mult} mult',
   number_crunch: 'Hands with 4+ different ranks score +{mult_per_card} mult per card',
-  shape_square: 'A 2×2 shaped hand adds +{focus} Focus',
+  shape_square: 'A 2×2 shaped hand scores +{mult} mult and adds +{focus} Focus',
   shape_cross: 'A 5 card + shaped hand adds +{focus} Focus and +{mult} mult',
   two_corners: 'Corner cards score ×{mult_mult} mult',
   edge_pips: 'Cards scored on an edge score +{pips_per_card} pips',
@@ -379,7 +384,7 @@ const DESC_TEMPLATES = {
   groove:        'Scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
   assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card played from that line this round',
   overtime:      "Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each round.",
-  feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a row or column buff',
+  feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a positional buff (row or column effects)',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}',
   discard_pips: '+{mult_per} mult per card discarded this round',
   dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
@@ -409,7 +414,7 @@ const DESC_TEMPLATES = {
   carry_discards: 'Unused discards carry over to the next round (max {max}).',
   carry_time: 'The next round starts with the seconds this round ends with (max {max_seconds}s).',
   fives_discard: 'Each 5 discarded or played permanently adds +{pips_per_five} pips to this trick',
-  nines_mult: 'Adds {added} 9s to your deck. Each 9 scored adds +{mult_per_nine} mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick goes',
+  nines_mult: 'Adds {added} 9s to your deck. Each 9 scored adds +{mult_per_nine} mult to this trick. A 9 that scores or is discarded is destroyed[[no_delete<1:; when none are left, this trick deletes itself]]',
   fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
   interest: 'Score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
@@ -426,11 +431,11 @@ const DESC_TEMPLATES = {
   high_water: 'Runs pause the clock for {pause_per_run}s for each Run played this round',
   dam_holding: 'Runs pause the clock for {pause}s',
   five_second: '5-card hands pause the clock for {pause_seconds}s',
-  four_horseman: '4-card hands grant a random bonus: +{pips} pips, +{mult} mult, +{focus} Focus, or pause the clock for {pause}s',
-  double_jeopardy: '{cells} cells are secretly marked at round start; the first time you score from those cells, pause the clock for {pause_seconds}s each',
+  four_horseman: '4-card hands grant [[picks>1:{picks} of these]][[picks<2:a random bonus]]: +{pips} pips, +{mult} mult, +{focus} Focus, [[picks<2:or ]]pause the clock for {pause}s',
+  double_jeopardy: '{cells} cells are secretly marked at round start; the first time you score from those cells, pause the clock for {pause_seconds}s each[[prime_random: and prime a random Trick]]',
   rain_check: 'Skipping a reward: the next round starts with +{seconds}s (in Flow, rewind the clock {seconds}s)',
-  temporal_rift: 'A card scored where a row and column effect intersect permanently rewinds the clock {rewind}s when scored (time buffs do not stack)',
-  vulture: 'Cards discarded during the round’s first pause permanently pause the clock for {pause_seconds}s when scored (time buffs do not stack)',
+  temporal_rift: 'A card scored where a row and column effect intersect force triggers the Trick in position 3[[chance_extra:, with a {chance_extra_pct}% chance of a second trigger]]',
+  vulture: 'Cards discarded during the round’s first pause permanently gain a {pause_seconds}s pause (cannot stack from a single source)',
   wait_four_it: '4-card hands permanently buff their 4th card: it pauses the clock for {pause}s when scored (time buffs do not stack)',
   sundial: 'Hands where every card shares a column pause the clock for {seconds}s.',
   metronome: 'Each round a hand type you can make is chosen; playing that hand type pauses the clock for {seconds}s.',
@@ -438,8 +443,8 @@ const DESC_TEMPLATES = {
   syncopation: 'Play this in a hand of a different type than your previous hand: pause the clock for {seconds}s. (3 charges)',
   last_call: 'Discard this: rewind the clock {seconds}s. (3 charges)',
   snooze: 'Double-tap: pause the clock for {seconds}s, then Snooze returns to your deck. (5 charges)',
-  monochrome: 'Hands containing exclusively hearts AND diamonds grant +{coins} credits but cost {seconds} seconds',
-  ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus",
+  monochrome: 'Hands containing exclusively hearts AND diamonds score +{mult} mult and grant +{coins} credits but cost {seconds} seconds',
+  ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus, or all three",
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds}s.',
   piggy_bank: 'Double-tap: gain {coins} credits, once per round. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)',
@@ -492,13 +497,48 @@ const DESC_TEMPLATES = {
   plan_ahead: 'Every 3rd hand adds Focus equal to {times}x your average hands per round',
   stand_up: 'Hands with cards from only one column score +{mult_per_card} mult per card',
   wait_four_it: '4-card hands permanently buff their 4th card with a {pause}s pause (cannot stack from this source)',
+  // r625: the epic Tricks the owner's sheet renumbered or reworked
+  tide_table: 'Runs score ×{mult_base} mult, +×{mult_step} per Run scored this round',
+  undertow: 'Runs score ×{pip_mult_base} pips, +×{pip_mult_step} per card beyond 3',
+  rerun: '×{pip_mult} pips each time a card is replayed',
+  portfolio: 'Score ×1 mult, +×{mult_mult_per_card} for every card on the grid with a buff',
+  double_bloom: 'Hands containing a pair (pair, 2 pair, full house) score ×{mult_mult} mult',
+  full_house_streak: 'Full Houses score +{focus} Focus',
+  two_pair_mult: 'Play {need_count} hands with a pair within 30s to add +{focus} Focus',
+  wild_heart: 'When an Ace[[extra_ranks: or [[extra_ranks<2:a rolled rank]][[extra_ranks>1:one of {extra_ranks} rolled ranks]]]] scores, prime your first and last Tricks[[primes>1: {primes} times]]',
+  before_the_tide: 'Each rank {max_rank} or lower card scored adds its rank in Focus',
+  royal_trio: 'A hand containing a King and one other Royal scores ×{mult_mult} mult',
+  frozen_moment: 'Hands played while the clock is paused add +{focus} Focus',
+  perfect_timing: 'Cards scored in a marked row or column replay once[[chance2>0:[[chance2<1:, with a {chance2_pct}% chance of a second replay]]]][[chance2>1: and again, with a {chance2_pctover}% chance of a third]][[extra_line:. A second line is marked]]',
+  sixes_perm: 'Every {interval}th card scored permanently gains a random +{roll_min}–{roll_max} pips or mult',
+  hourglass: 'Each time the clock passes a {interval_seconds}s mark: {chance_pct}% chance a random card on the grid gains +1 replay (permanent buff)',
+  clean_sweep: 'Use every cell of any row or column within two hands to add +{focus} Focus and +{credits} credits',
+  acorns: 'Each card scored scales this trick +{focus_per_card} Focus, starting at +0; adds its whole-number Focus each hand',
+  queens_upgrade: "Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are automatically discarded after they've been on the grid for {queen_seconds} seconds",
+  spade_flood: '[[suits<1:All-Spade hands]][[suits>0:[[suits<2:Hands of only clubs and/or spades]]]][[suits>1:Hands with a spade or a club]] add the remaining round time[[time_mult>1: ×{time_mult}]] as pips',
+  wait_for_it: 'Each negative reward tile taken this run gives every scored card a +{chance_per_pct}% chance to replay. In Flow: each level-up that pays a single reward gives +{flow_per_pct}% instead, Luck aside',
+  kaleidoscope: 'Apply the Focus multiplier a number of times equal to the number of suits in the hand[[extra: +{extra}]]',
+  landfill: 'Score +{mult_per} mult per card for every discard or swap used this round (+{mult_per_flow} in Flow)',
+  undue_influence: 'A Set containing a face card grants credits equal to the number of Set hands you have played this round[[faces:. Also pays credits equal to the number of face cards in the hand]]',
+  patient_rulers: 'If you have paused or rewound the clock this round, face cards[[extra_ranks: and {extra_ranks} rolled ranks]] score x{mult_mult} mult',
+  even_better: 'Even-ranked cards have a {chance_pct}% chance to score x{pip_mult} pips[[replay: and replay once]]',
+  what_odds: 'Odd-ranked cards score x{mult_mult} mult[[replay: and replay once]]',
+  critical: 'Flush type hands[[extra_family: and one rolled family]] score x{mult_mult} mult',
+  twinners: 'Set type hands score x{pip_mult} pips[[replay: and every card replays once]]',
+  feelin_lucky: 'Five randomly rolled ranks score x{mult_mult} mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells',
+  marathon: 'Run type hands[[flush: and flushes]][[sets: and sets]] apply the Focus multiplier [[extra<2:one extra time]][[extra>1:{extra} extra times]]',
+  shape_line: '5-card hands [[span6>0:that include 6 total rows and/or columns (e.g. 3 rows + 3 columns, 4 rows + 2 columns)]][[span6<1:played in a straight line]] add every card\'s pip value[[buffs: (including buffs)]] to mult',
 };
 // {key} prints the raw value; {key_pct} prints it as a percentage, which is how
 // every chance entity wants to read ("a 50% chance", not "a 0.5 chance").
 // [[key:text]] keeps the text only while p[key] > 0; [[key>N:text]] only while
-// p[key] > N (r624: a second replay chance that is 0 until improved, a plural).
+// p[key] > N, [[key<N:text]] only while p[key] < N (r624: a second replay chance
+// that is 0 until improved, a plural). Inner [[ ]] resolve first, so a block
+// may nest one level.
 function fillDescTemplate(t, p) {
-  t = t.replace(/\[\[(\w+)(?:>(\d+))?:([^\]]*)\]\]/g, (m, k, n, txt) => ((p[k] || 0) > (n == null ? 0 : +n) ? txt : ''));
+  const cond = (k, op, n) => { const v = p[k] || 0, lim = n == null ? 0 : +n; return op === '<' ? v < lim : v > lim; };
+  const re = /\[\[(\w+)(?:([<>])(-?\d+))?:((?:[^\[\]]|\[(?!\[)|\](?!\]))*)\]\]/g;
+  for (let i = 0; i < 3; i++) t = t.replace(re, (m, k, op, n, txt) => (cond(k, op || '>', n) ? txt : ''));
   return t.replace(/\{(\w+)\}/g, (m, k) => {
     if (k in p) return p[k];
     if (k.endsWith('_pctover')) { const b = k.slice(0, -8); if (b in p) return Math.round((p[b] - 1) * 100); }

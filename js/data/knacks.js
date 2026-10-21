@@ -1,4 +1,8 @@
 const KNACK_POOL = [
+  // ── r625 (owner): three Tricks became Knacks. Same ids, so BAL and the templates carry over. ──
+  { id:'move_as_one',   emoji:'🔀',  name:'Move as One',      rarity:'epic',   desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered' },
+  { id:'rain_check',    emoji:'⏱️',  name:'Rain Check',       rarity:'epic',   desc:'Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)' },
+  { id:'wait_for_it',   emoji:'🎲',  name:'Wait For Iiiit',   rarity:'epic',   desc:'Each negative reward tile taken this run gives every scored card a +3% chance to replay. In Flow: each level-up that pays a single reward gives +5% instead, Luck aside' },
   // ── Queue-view knacks (r329, js/queue-views.js) ──
   { id:'head_count',      emoji:'🔢',  name:'Head Count',       rarity:'common', desc:'The Sleight queue (the button on your Trick tray) shows how many cards sit in front of each Sleight.' },
   { id:'card_counter',    emoji:'🂠',  name:'Card Counter',     rarity:'rare',   desc:'Double-tap the hand preview to see the draw queue: the next cards in draw order, left to right, 2x your column count. Double-tap again to put it away.' },

@@ -67,3 +67,34 @@
 body.reduced-motion .pt-line { animation: none; }
 body.reduced-motion .pt-pulled { animation: none; opacity: 0; }
 body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }
+
+/* ── r627: the paper corner and the drawer ─────────────────────────────────── */
+#pt-tab {
+  position: absolute; left: calc(50% + var(--ptw, 340px) / 2 + 10px); top: 0; width: 44px; height: 26px;
+  pointer-events: auto; cursor: var(--cur-pointer, pointer);
+  transform: translateY(calc(-100% + var(--pt-tab-pull, 0px))); transition: transform .18s ease-out;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.8));
+}
+#pt-tab.pt-tab-peek { transform: translateY(calc(-62% + var(--pt-tab-pull, 0px))); }
+#pt-tab:hover, #pt-tab.pt-tab-open { transform: translateY(calc(-30% + var(--pt-tab-pull, 0px))); }
+#pt-tab.pt-tab-touch { transform: translateY(-70%); opacity: .55; }
+#pt-tab.pt-tab-touch.pt-tab-open { transform: translateY(-30%); opacity: 1; }
+/* the corner: paper with one dog-ear folded over, perforations on the left */
+.pt-tab-paper {
+  position: absolute; inset: 0; background: var(--pt-paper, #0d0b09);
+  border: 1px solid #ffffff18; border-top: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 55%, 72% 100%, 0 100%);
+}
+.pt-tab-paper::before { content: ""; position: absolute; left: 7px; top: 0; bottom: 0; border-left: 1px dashed #ffffff22; }
+.pt-tab-paper::after {
+  content: ""; position: absolute; right: 0; bottom: 0; width: 13px; height: 13px;
+  background: linear-gradient(225deg, #0000 50%, #3a3326 50%, #1c1813 100%);
+  border-top-left-radius: 2px;
+}
+.pt-drawer { animation: ptDrawerDown 320ms steps(6) both; }
+.pt-drawer .pt-paper { padding-right: calc(var(--edge) + 12px); max-height: 70vh; overflow: hidden; }
+@keyframes ptDrawerDown { from { transform: translate(-50%, -105%); } to { transform: translate(-50%, 0); } }
+.pt-drawer .pt-line { animation: none; }
+.pt-drawer .pt-head { color: var(--c-yellow, #ffce2b); letter-spacing: 2px; border-bottom: 1px dashed #ffffff22; margin-bottom: 2px; }
+.pt-drawer .pt-quiet { color: #8a8273; text-shadow: none; }
+body.reduced-motion .pt-drawer { animation: none; }

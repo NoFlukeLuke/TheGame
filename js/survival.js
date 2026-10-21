@@ -568,7 +568,7 @@ function survivalReroll() {
 // Rain Check (r362): skipping a reward adds time - to the next round in
 // Survival, straight onto the session clock in Flow (Flow does not refill).
 function rainCheckPay() {
-  if (!hasTrick('rain_check')) return;
+  if (!hasTrick('rain_check') && !hasKnack('rain_check')) return;   // r625: a Knack
   const s = BAL.rain_check.seconds * trickFires('rain_check');
   if (typeof flowActive === 'function' && flowActive()) rewindTime(s, null, 'rain_check', 'trick');
   else { nextRoundSecondsDelta += s; showMessage(`Rain Check · +${s}s next round`, 'var(--gold)'); }

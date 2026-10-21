@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r625 · reward grid: Tricks 12% larger; other tiles lose the outline and get pixel corners";
+const BUILD = "2026-10-21 · r629 · merge: reward grid pixel tiles and bigger Tricks, with main's r625-r628";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

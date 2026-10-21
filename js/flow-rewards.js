@@ -410,7 +410,7 @@ let flowrIdx          = 0;
 let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
-function flowrResetRun() { flowrPrdMisses = 0; flowrKnacksSeen = false; flowrFirstTrick = 'roll'; flowrPick3Tricks = []; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
+function flowrResetRun() { flowrPrdMisses = 0; flowrSingleRewards = 0; flowrKnacksSeen = false; flowrFirstTrick = 'roll'; flowrPick3Tricks = []; flowrQueueOpen = false; flowrQueue = null; flowrIdx = 0; flowrExtraEarned = 0; flowrBossChain = false; flowrBossLuckOn = false; flowrClearStack(); }
 function flowrChainActive() { return !!flowrQueue; }
 // True while a chain screen that is NOT the ordinary pick is up - what stops
 // survivalUpdateRerollBtn stamping survival's four actions over this step's row.
@@ -444,6 +444,7 @@ function flowrPickWeighted(keys, weights) {
 // dry spells still happen; a drought just gets shorter as it goes. (r448 was
 // Dota's exact PRD, which at a 62% base forced a multi by the 3rd try.)
 let flowrPrdMisses = 0;   // level-ups in a row that paid one reward. In SAVE_VARS.
+let flowrSingleRewards = 0;   // level-ups that paid exactly one reward, all run (Wait For Iiiit, r625). In SAVE_VARS.
 function flowrMultiChance() {
   const w = flowrCfg().counts.slice(0, FLOWR_MAX);
   const ls = (typeof luckScale === 'function') ? luckScale() : 1;
@@ -637,6 +638,7 @@ function flowrArm(queue, counterOpts) {
   // and must not wait on an animation - but nothing is SHOWN until the board is
   // still. See flowrWhenBoardStill.
   if (n > 1) flowrExtraEarned += n - 1;
+  if (n === 1) flowrSingleRewards++;   // r625: Wait For Iiiit's Flow counter
   // THE TALLY WAITS FOR THIS (r376). The finale awaits flowrIntroWait() right
   // after the winners land in the preview, so the order the player sees is
   // explode -> fly -> counter -> (options deal in AND the tally resumes
@@ -1877,12 +1879,18 @@ function flowrShowEntityStep(kind) {
       label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag,
     })),
     actions: flowrStepActions ? flowrStepActions() : [],
-    onChoose: (i) => { flowrGrantOffer(_flowrStepOffers[i]); _flowrStepOffers = null; flowrAfterStep(); },
+    onChoose: (i) => { flowrGrantOffer(_flowrStepOffers[i]); _flowrStepOffers = null; flowrAfterImprove(flowrAfterStep); },
     onSkip: () => { _flowrStepOffers = null; rainCheckPay(); flowrAfterStep(); },
   });
   try { sfxShopOpen?.(); } catch (e) {}
 }
 
+// r627: an improve pick plays its animation (js/improve-anim.js) before the chain
+// moves on; any other pick continues at once.
+function flowrAfterImprove(next) {
+  if (typeof improveAnimFlush !== 'function') { next(); return; }
+  improveAnimFlush().then(next, next);
+}
 function flowrGrantOffer(opt) {
   if (!opt) return;
   if (opt.type === 'improve') {

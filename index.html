@@ -22,6 +22,7 @@
 <title>Poker Grid - Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/tray-lift.css">
+<link rel="stylesheet" href="css/improve-anim.css">
 <link rel="stylesheet" href="css/tray-zigzag.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/climb.css">
@@ -656,6 +657,23 @@
       The screen changes by
       <select id="dev-screen-change" onchange="setScreenChange(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="turn">turning (the right side revolves)</option><option value="shutter">shutter (housing plates close over it)</option><option value="none">cutting (no move)</option></select>
       <button class="dev-btn" onclick="screenChangePreview()">Preview</button>
+    </label>
+
+    <div class="dev-subtitle">Improvement animation (a Trick improved comes to the board)</div>
+    <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Look
+      <select id="dev-ia-look" onchange="iaSet('look', this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="lift">lift (rises from the tray, the band wipes in, numbers roll)</option><option value="stamp">stamp (pops up, the band is slammed on, numbers struck and stamped)</option><option value="flip">flip (turns over, the new tier is on the back, the sentence slides)</option></select>
+      <button class="dev-btn" onclick="improveAnimPreview(1)">Preview</button>
+      <button class="dev-btn" onclick="improveAnimPreview(3)">Preview 3 tiers</button>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Speed <input id="dev-ia-speed" type="range" min="0.4" max="2.5" step="0.05" value="1" oninput="iaSet('speed', this.value)" style="width:120px"> <span id="dev-ia-speed-v">1.00x</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Tile size (% of the board) <input id="dev-ia-size" type="range" min="20" max="70" step="1" value="42" oninput="iaSet('size', this.value)" style="width:120px"> <span id="dev-ia-size-v">42%</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Hold after the change <input id="dev-ia-hold" type="range" min="0" max="3000" step="50" value="900" oninput="iaSet('hold', this.value)" style="width:120px"> <span id="dev-ia-hold-v">900ms</span>
     </label>
 
     <div class="dev-subtitle">Score merge (how PIPS x MULT x FOCUS become the score)</div>
@@ -1643,6 +1661,7 @@
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
 <script src="js/tray-lift.js"></script>
+<script src="js/improve-anim.js"></script>
 <script src="js/tray-zigzag.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/shop-grid-preview.js"></script>

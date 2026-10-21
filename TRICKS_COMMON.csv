@@ -49,5 +49,6 @@
 37,"Ready, Set, Go",ready_set_go,common,3-card hands,"A 3-card hand containing a 3, 6 or 9 scores +18 mult",mult,18,,,0.31,1.13,12,Low,,,"A 3-card hand containing a 3, 6 or 9 scores +{mult} mult",mult
 38,Four Eyes,four_eyes,common,4-card hands,4-card hands score +24 mult,mult,24,,,0.8,1.34,26,Normal,,,4-card hands score +{mult} mult,mult
 39,4x4,four_by_four,common,4-card hands,Cards scored in the 4th and 6th columns score +24 pips,pips,24,,,1.04,1.44,54,High,,,Cards scored in the 4th and 6th columns score +{pips} pips,"pips, position"
-40,Shaky Foundation,shaky_foundation,common,Pairs / sets,Every other Set scores +18 mult,mult,18,,,1.57,1.67,28,High,,,Every other Set scores +{mult} mult,"mult, set"
-41,Wave Amplification,wave_amp,common,Runs,Consecutively played Runs score +15 pips × the streak count,pips_per_streak,15,,,0.41,1.17,38,Low,,,Consecutively played Runs score +{pips_per_streak} pips × the streak count,"pips, streak"
+40,Encore,encore,common,Pairs / sets,Odd-ranked cards in a set replay once,"(in code, no BAL number)",,,,1.3,1.46,41,High,,,,"replay, set"
+41,Shaky Foundation,shaky_foundation,common,Pairs / sets,Every other Set scores +18 mult,mult,18,,,1.57,1.67,28,High,,,Every other Set scores +{mult} mult,"mult, set"
+42,Wave Amplification,wave_amp,common,Runs,Consecutively played Runs score +15 pips × the streak count,pips_per_streak,15,,,0.41,1.17,38,Low,,,Consecutively played Runs score +{pips_per_streak} pips × the streak count,"pips, streak"

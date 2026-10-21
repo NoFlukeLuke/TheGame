@@ -290,6 +290,7 @@ function triggerLevelUp() {
   lastHandRankKey = null;
   _altSwapCount = 0;
   doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
+  if (typeof heartwoodRollExtraCells === 'function') heartwoodRollExtraCells();   // r625
   firstPauseStartedRound = false;
   firstPauseActive = false;
   woodpeckerCell = null;

@@ -120,8 +120,8 @@ function skipOvertime() { if (overtimeRun) overtimeRun.gift = true; }
 // never drops one.
 const OVERTIME_GIFT_IDS = {
   trick:   ['high_water', 'dam_holding', 'five_second', 'double_jeopardy', 'cuckoo', 'right_time', 'deluge',
-            'overtime', 'magpie', 'rain_check', 'temporal_rift', 'vulture', 'wait_four_it'],
-  knack:   ['time_bank', 'carry_time', 'long_pause', 'sundial', 'metronome', 'time_slip', 'replay_rewind',
+            'overtime', 'magpie', 'vulture', 'wait_four_it'],
+  knack:   ['rain_check', 'time_bank', 'carry_time', 'long_pause', 'sundial', 'metronome', 'time_slip', 'replay_rewind',
             'deja_vu', 'clockmaker'],
   sleight: ['syncopation', 'rewind', 'last_call', 'sandbag', 'snooze', 'shady_tree', 'stopwatch'],
 };

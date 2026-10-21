@@ -382,3 +382,6 @@ The dev panel's own messages always print.
 | events-pairs.js:230 |  Pairs: ${buff} on ${n} cards |
 | events-pairs.js:236 |  Pairs: ${curse} on ${card} |
 | events-pairs.js:239 |  Pairs: two stones in the deck |
+
+
+r627: the paper corner at the top edge (mouse near the top, or always faint on touch) opens a drawer of the last 14 notices, printed lines in their ink and quiet lines dim. Both kinds are listed there, so a quiet line is still findable.
