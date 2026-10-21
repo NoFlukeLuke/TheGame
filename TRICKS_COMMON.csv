@@ -6,43 +6,48 @@
 5,Tidal Forces,tidal_force,common,Flush / hand shape,Flushes score +15 mult per card,mult_per_card,15,,,0.03,1.01,1,Low,,,Flushes score +{mult_per_card} mult per card,
 6,Unsummit,summit,common,Flush / hand shape,The highest-ranking card in each hand scores +(level x 2) pips.,pips_per_level,2,,,3.94,2.67,100,Outlier,,,The highest-ranking card in each hand scores +(level x {pips_per_level}) pips.,
 7,Nimble,light_touch,common,Flush / hand shape,2-card hands score +30 mult,mult,30,,,1.3,1.55,25,Normal,,,2-card hands score +{mult} mult,
-8,First Light,first_light,common,Rank,Aces score 42 pips,worth,42,,,0.16,1.07,21,Low,,,Aces score {worth} pips,
-9,Face Value,face_value,common,Rank,Face cards (J/Q/K) score +20 pips,face_pips,20,,,0.48,1.21,40,Normal,,,Face cards (J/Q/K) score +{face_pips} pips,
-10,Men of Repute,king_guard,common,Rank,Kings and Jacks score +10 pips and +5 mult,pips,10,,,0.77,1.33,33,High,,,Kings and Jacks score +{pips} pips and +{mult} mult,
+8,Release Valve,release_valve,common,Focus,"Each time you hit your Focus limit, gain +1 swap and +1 discard and lose 16 Focus.",swaps,1,,,,1.0,0,pays in Credits / stock,,,"Each time you hit your Focus limit, gain +{swaps} swap[[swaps>1:s]] and +{discards} discard[[discards>1:s]] and lose {focus_drop} Focus.",
+,,,,,,discards,1,,,,,,,,,,
+,,,,,,focus_drop,16,,,,,,,,,,
+9,First Light,first_light,common,Rank,Aces score 42 pips,worth,42,,,0.16,1.07,21,Low,,,Aces score {worth} pips,
+10,Face Value,face_value,common,Rank,Face cards (J/Q/K) score +20 pips,face_pips,20,,,0.48,1.21,40,Normal,,,Face cards (J/Q/K) score +{face_pips} pips,
+11,Men of Repute,king_guard,common,Rank,Kings and Jacks score +10 pips and +5 mult,pips,10,,,0.77,1.33,33,High,,,Kings and Jacks score +{pips} pips and +{mult} mult,
 ,,,,,,mult,5,,,,,,,,,,
-11,Rich Soil,rich_soil,common,Per-card pips,All cards score +3 mult,mult,3,,,1.12,1.48,100,Normal,,,All cards score +{mult} mult,
-12,Early Bird,early_bird,common,Birds (timing),Hands played in the first third of the round score +20 pips per card,pips_per_card,20,,,1.51,1.64,92,High,,,Hands played in the first third of the round score +{pips_per_card} pips per card,
-13,Night Owl,night_owl,common,Birds (timing),Hands played in the last third of the round score +10 mult per card,mult_per_card,10,,,0.02,1.01,1,Barely pays,,,Hands played in the last third of the round score +{mult_per_card} mult per card,
-14,Quick Draw,quick_draw,common,Timing,Hands played within 3 seconds of the previous hand add +1 to your Focus limit (max +10),window_ms,3000,,,,1.0,0,pays in Focus,,,,
+12,Every Day Essentials,humble_roots,common,Rank,Rank-6-and-below cards score their rank ×3 pips,pip_mult,3,,,1.17,1.61,65,High,,,,
+13,Rich Soil,rich_soil,common,Per-card pips,All cards score +3 mult,mult,3,,,1.12,1.48,100,Normal,,,All cards score +{mult} mult,
+14,Early Bird,early_bird,common,Birds (timing),Hands played in the first third of the round score +20 pips per card,pips_per_card,20,,,1.51,1.64,92,High,,,Hands played in the first third of the round score +{pips_per_card} pips per card,
+15,Night Owl,night_owl,common,Birds (timing),Hands played in the last third of the round score +10 mult per card,mult_per_card,10,,,0.02,1.01,1,Barely pays,,,Hands played in the last third of the round score +{mult_per_card} mult per card,
+16,Near Extinction,closing_time,common,Timing,"In the last third of the round, each scored card replays","(in code, no BAL number)",,,,0.03,1.01,1,Barely pays,,,,
+17,Quick Draw,quick_draw,common,Timing,Hands played within 3 seconds of the previous hand add +1 to your Focus limit (max +10),window_ms,3000,,,,1.0,0,pays in Focus,,,,
 ,,,,,,cap_gain,1,,,,,,,,,,
 ,,,,,,cap,10,,,,,,,,,,
-15,Tick-Tock,ticktock,common,Timing,"Every time the clock ends in a 0, gain +4 Focus",focus,4,,,,1.0,0,pays in Focus,,,"Every time the clock ends in a 0, gain +{focus} Focus","time, focus"
-16,Second Hand,second_hand,common,Timing,"Every time the clock passes a multiple of 10s, your next hand scores either +20 mult or +30 pips",pips,30,,,1.09,1.46,59,Normal,,,"Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips","time, pips"
+18,Tick-Tock,ticktock,common,Timing,"Every time the clock ends in a 0, gain +4 Focus",focus,4,,,,1.0,0,pays in Focus,,,"Every time the clock ends in a 0, gain +{focus} Focus","time, focus"
+19,Second Hand,second_hand,common,Timing,"Every time the clock passes a multiple of 10s, your next hand scores either +20 mult or +30 pips",pips,30,,,1.09,1.46,59,Normal,,,"Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips","time, pips"
 ,,,,,,mult,20,,,,,,,,,,
-17,Kindling,kindling,common,Streaks,Same-hand streaks score +8 mult × the streak count,mult_per_streak,8,,,0.76,1.32,27,Normal,,,Same-hand streaks score +{mult_per_streak} mult × the streak count,
-18,Echoes,echo_hand,common,Streaks,Playing the same hand type as the previous hand replays each card,"(in code, no BAL number)",,,,1.12,1.48,27,Normal,,,,
-19,Get Even,even_score,common,Numbers,Even-ranked cards score +16 pips,pips_per_card,16,,,0.46,1.2,59,Low,,,Even-ranked cards score +{pips_per_card} pips,
-20,Right Place,rowcol_triple_pips,common,Position,Cards scored in a marked row or column score +25 pips,flat_pips,25,,,0.43,1.18,33,Normal,,,Cards scored in a marked row or column score +{flat_pips} pips,"pips, position"
-21,Power Line,rowcol_mult,common,Position,Cards scored in a marked row or column score +15 mult,mult,15,,,1.07,1.46,54,Normal,,,Cards scored in a marked row or column score +{mult} mult,"mult, position"
-22,On the Edge,edge_pips,common,Position,Cards scored on an edge score +15 pips,pips_per_card,15,,,1.94,1.82,76,High,,,Cards scored on an edge score +{pips_per_card} pips,"position, pips"
-23,Middle Management,fours_perm,common,Accumulating,4-card hands permanently give the 4th card +8 pips,pips,8,,,0.31,1.13,48,Low,,,4-card hands permanently give the 4th card +{pips} pips,"scaling, pips, value"
-24,Compost,discard_pips,common,Situational,+4 mult per card discarded this round,mult_per,4,,,0.66,1.28,29,Low,,,+{mult_per} mult per card discarded this round,"pips, discard"
-25,Combo Score,combo_score,common,Variety,+6 mult for every distinct hand type played this round,mult_per_type,6,,,3.19,2.35,84,Outlier,,,+{mult_per_type} mult for every distinct hand type played this round,
-26,More Better,more_better,common,Accumulating,Each reward grid where you select 3+ tiles permanently adds +9 mult to this trick,mult,9,,,,,,,,,Each reward grid where you select {min_tiles}+ tiles permanently adds +{mult} mult to this trick,"mult, scaling"
+20,Kindling,kindling,common,Streaks,Same-hand streaks score +8 mult × the streak count,mult_per_streak,8,,,0.76,1.32,27,Normal,,,Same-hand streaks score +{mult_per_streak} mult × the streak count,
+21,Echoes,echo_hand,common,Streaks,Playing the same hand type as the previous hand replays each card,"(in code, no BAL number)",,,,1.12,1.48,27,Normal,,,,
+22,Get Even,even_score,common,Numbers,Even-ranked cards score +16 pips,pips_per_card,16,,,0.46,1.2,59,Low,,,Even-ranked cards score +{pips_per_card} pips,
+23,Right Place,rowcol_triple_pips,common,Position,Cards scored in a marked row or column score +25 pips,flat_pips,25,,,0.43,1.18,33,Normal,,,Cards scored in a marked row or column score +{flat_pips} pips,"pips, position"
+24,Power Line,rowcol_mult,common,Position,Cards scored in a marked row or column score +15 mult,mult,15,,,1.07,1.46,54,Normal,,,Cards scored in a marked row or column score +{mult} mult,"mult, position"
+25,On the Edge,edge_pips,common,Position,Cards scored on an edge score +15 pips,pips_per_card,15,,,1.94,1.82,76,High,,,Cards scored on an edge score +{pips_per_card} pips,"position, pips"
+26,Middle Management,fours_perm,common,Accumulating,4-card hands permanently give the 4th card +8 pips,pips,8,,,0.31,1.13,48,Low,,,4-card hands permanently give the 4th card +{pips} pips,"scaling, pips, value"
+27,Compost,discard_pips,common,Situational,+4 mult per card discarded this round,mult_per,4,,,0.66,1.28,29,Low,,,+{mult_per} mult per card discarded this round,"pips, discard"
+28,Combo Score,combo_score,common,Variety,+6 mult for every distinct hand type played this round,mult_per_type,6,,,3.19,2.35,84,Outlier,,,+{mult_per_type} mult for every distinct hand type played this round,
+29,More Better,more_better,common,Accumulating,Each reward grid where you select 3+ tiles permanently adds +9 mult to this trick,mult,9,,,,,,,,,Each reward grid where you select {min_tiles}+ tiles permanently adds +{mult} mult to this trick,"mult, scaling"
 ,,,,,,min_tiles,3,,,,,,,,,,
-27,Tunnel Vision,tunnel_vision,common,Focus,Start each round with 10 Focus,focus,10,,,,1.0,0,pays in Focus,,,Start each round with {focus} Focus,focus
-28,First Wind,first_wind,common,Focus,Focus does not decay for the first 45 seconds of a round,"(in code, no BAL number)",,,,,,,,,,,focus
-29,Rhythm,rhythm,common,Focus,Each hand played adds 2 additional Focus,focus,2,,,,1.0,0,pays in Focus,,,Each hand played adds {focus} additional Focus,focus
-30,Cull,cull,common,Focus,Discarding or swapping adds +2 Focus per 2 remaining swaps and discards,focus_per_stock,2,,,,1.0,3,pays in Focus,,,Discarding or swapping adds +{focus_per_stock} Focus per {per} remaining swaps and discards,focus
+30,Tunnel Vision,tunnel_vision,common,Focus,Start each round with 10 Focus,focus,10,,,,1.0,0,pays in Focus,,,Start each round with {focus} Focus,focus
+31,First Wind,first_wind,common,Focus,Focus does not decay for the first 45 seconds of a round,"(in code, no BAL number)",,,,,,,,,,,focus
+32,Rhythm,rhythm,common,Focus,Each hand played adds 2 additional Focus,focus,2,,,,1.0,0,pays in Focus,,,Each hand played adds {focus} additional Focus,focus
+33,Cull,cull,common,Focus,Discarding or swapping adds +2 Focus per 2 remaining swaps and discards,focus_per_stock,2,,,,1.0,3,pays in Focus,,,Discarding or swapping adds +{focus_per_stock} Focus per {per} remaining swaps and discards,focus
 ,,,,,,per,2,,,,,,,,,,
-31,Expanse,expanse,common,Focus,"Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus",cap_gain,1,,,,1.0,0,pays in Focus,,,,focus
+34,Expanse,expanse,common,Focus,"Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus",cap_gain,1,,,,1.0,0,pays in Focus,,,,focus
 ,,,,,,cap,10,,,,,,,,,,
 ,,,,,,keep_fraction,0.5,,,,,,,,,,
-32,Magician,magician,common,Sleights,"+50 pips if this is your only Trick, or +6 mult for each Sleight you own",mult_per_sleight,6,,,2.68,2.14,100,High,,,"+{solo_pips} pips if this is your only Trick, or +{mult_per_sleight} mult for each Sleight you own","sleight, mult"
+35,Magician,magician,common,Sleights,"+50 pips if this is your only Trick, or +6 mult for each Sleight you own",mult_per_sleight,6,,,2.68,2.14,100,High,,,"+{solo_pips} pips if this is your only Trick, or +{mult_per_sleight} mult for each Sleight you own","sleight, mult"
 ,,,,,,solo_pips,50,,,,,,,,,,
-33,Five for Fodder,five_fodder,common,5-card hands,Discarding a valid hand grants the hand size in credits,credits_per_card,1,,,,1.0,0,pays in Credits / stock,,,,"credits, discard"
-34,"Ready, Set, Go",ready_set_go,common,3-card hands,"A 3-card hand containing a 3, 6 or 9 scores +18 mult",mult,18,,,0.31,1.13,12,Low,,,"A 3-card hand containing a 3, 6 or 9 scores +{mult} mult",mult
-35,Four Eyes,four_eyes,common,4-card hands,4-card hands score +24 mult,mult,24,,,0.8,1.34,26,Normal,,,4-card hands score +{mult} mult,mult
-36,4x4,four_by_four,common,4-card hands,Cards scored in the 4th and 6th columns score +24 pips,pips,24,,,1.04,1.44,54,High,,,Cards scored in the 4th and 6th columns score +{pips} pips,"pips, position"
-37,Shaky Foundation,shaky_foundation,common,Pairs / sets,Every other Set scores +18 mult,mult,18,,,1.57,1.67,28,High,,,Every other Set scores +{mult} mult,"mult, set"
-38,Wave Amplification,wave_amp,common,Runs,Consecutively played Runs score +15 pips × the streak count,pips_per_streak,15,,,0.41,1.17,38,Low,,,Consecutively played Runs score +{pips_per_streak} pips × the streak count,"pips, streak"
+36,Five for Fodder,five_fodder,common,5-card hands,Discarding a valid hand grants the hand size in credits,credits_per_card,1,,,,1.0,0,pays in Credits / stock,,,,"credits, discard"
+37,"Ready, Set, Go",ready_set_go,common,3-card hands,"A 3-card hand containing a 3, 6 or 9 scores +18 mult",mult,18,,,0.31,1.13,12,Low,,,"A 3-card hand containing a 3, 6 or 9 scores +{mult} mult",mult
+38,Four Eyes,four_eyes,common,4-card hands,4-card hands score +24 mult,mult,24,,,0.8,1.34,26,Normal,,,4-card hands score +{mult} mult,mult
+39,4x4,four_by_four,common,4-card hands,Cards scored in the 4th and 6th columns score +24 pips,pips,24,,,1.04,1.44,54,High,,,Cards scored in the 4th and 6th columns score +{pips} pips,"pips, position"
+40,Shaky Foundation,shaky_foundation,common,Pairs / sets,Every other Set scores +18 mult,mult,18,,,1.57,1.67,28,High,,,Every other Set scores +{mult} mult,"mult, set"
+41,Wave Amplification,wave_amp,common,Runs,Consecutively played Runs score +15 pips × the streak count,pips_per_streak,15,,,0.41,1.17,38,Low,,,Consecutively played Runs score +{pips_per_streak} pips × the streak count,"pips, streak"

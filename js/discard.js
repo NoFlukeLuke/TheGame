@@ -151,10 +151,10 @@ function doDiscard() {
     const fivesCount = discardedCards.filter(c => c.rank === '5').length;
     bonusMult_fives += fivesCount * BAL.fives_discard.pips_per_five;
   }
-  // Perfect Ten: every 10 total discards adds +1 mult
+  // Perfect Ten: every N cards discarded or played (r624) adds mult
   if (hasTrick('tens_mult')) {
-    const prevTens = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
-    const newTens  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
+    const prevTens = Math.floor((cardsDiscardedTotal - count + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);
+    const newTens  = Math.floor((cardsDiscardedTotal + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);
     bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
   }
   // Down and Back In: discarding the grid's entire top rank refunds a resource + coins.

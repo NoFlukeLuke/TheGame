@@ -155,9 +155,27 @@ function pickEntityByRarity(pool, tierOf, weights, tiers) {
   // back an epic, not a fresh roll that could land higher than it rolled.
   for (let i = ti; i >= 0; i--) {
     const t = pool.filter(x => tierOf(x) === T[i]);
-    if (t.length) return t[Math.floor(Math.random() * t.length)];
+    if (t.length) return offerWeightedPick(t);
   }
-  return pool[Math.floor(Math.random() * pool.length)];
+  return offerWeightedPick(pool);
+}
+// r624 (owner): a Trick for a hand you cannot play yet (a 4- or 5-card hand under
+// the current Selection Size, a flush before flushes are unlocked) is still offered,
+// at OFFER_NEED_W.unplayable % of its usual weight. TRICK_NEEDS (js/data/tricks.js)
+// says which Tricks need what. Anything else in the pool weighs 1.
+const OFFER_NEED_W = { unplayable: 50 };
+function offerWeightMult(x) {
+  const need = x && x.id && typeof TRICK_NEEDS !== 'undefined' ? TRICK_NEEDS[x.id] : null;
+  if (!need) return 1;
+  const sel = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5;
+  const short = (need.size && need.size > sel) || (need.hand && typeof handIsActive === 'function' && !handIsActive(need.hand));
+  return short ? OFFER_NEED_W.unplayable / 100 : 1;
+}
+function offerWeightedPick(list) {
+  const w = list.map(offerWeightMult), total = w.reduce((a, b) => a + b, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < list.length; i++) { roll -= w[i]; if (roll <= 0) return list[i]; }
+  return list[list.length - 1];
 }
 
 // r590 (owner): an offer with no rarity of its own (a deck op, a card pack, a

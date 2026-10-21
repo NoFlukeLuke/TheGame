@@ -40,10 +40,12 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // throws there (caught in a browser run).
     if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells) && trickPickOne(0, handCells) === 2)
       totalFocus += BAL.correct_run.focus * trickFires('correct_run');
-    // Resonance: Pairs/Two Pairs containing a 2 or 4 add +2 Focus per card
-    if ((hand === 'Pair' || hand === 'Two Pair') &&
-        handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
-      totalFocus += _rsum() * BAL.high_pair.focus_per_card * trickFires('high_pair');
+    // Resonance (r624): any hand with a pair in it (Pair, Two Pair, Full House, a
+    // pair layered under anything) that holds a 2 or a 4 adds Focus per card.
+    if (hasTrick('high_pair') && handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
+      const _hpComps = (typeof handComponentsFor === 'function' && handComponentsFor(handCells)?.components) || [];
+      const _hpPair = ['Pair', 'Two Pair', 'Full House'].includes(hand) || _hpComps.some(c => ['Pair', 'Two Pair', 'Full House'].includes(c.name));
+      if (_hpPair) totalFocus += _rsum() * BAL.high_pair.focus_per_card * trickFires('high_pair');
     }
     // Gnomes: each rank-5-and-below card scored adds its rank in Focus (Ace = 1)
     {
@@ -91,7 +93,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     { const _acf = Math.floor(bonusFocus_acorns); if (_acf > 0) totalFocus += _acf * trickFires('acorns'); }
     // Plan Ahead: every 3rd hand of the round adds Focus = average hands per round so far
     if ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0) {
-      totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level))) * trickFires('plan_ahead');
+      totalFocus += BAL.plan_ahead.times * Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level))) * trickFires('plan_ahead');
     }
     // ── 4-card-hand family ──
     if (handCells.length === 4) {
@@ -516,9 +518,8 @@ function playHand() {
       if (trickFires('buried_treasure')) grantEntityCoins(_after - _before, 'trick', 'buried_treasure');
     }
   }
-  // The Woodpecker's mark is spent by the hand that scores from its cell (the replays
-  // were paid in calcScore, which is read-only, so the mark comes off here).
-  if (woodpeckerCell && result.handCells.some(([r, c]) => `${r}-${c}` === woodpeckerCell)) woodpeckerCell = null;
+  // The Woodpecker's mark is never spent (r624, owner): a cell stays marked until the
+  // next interval moves it, whatever scores from it.
   // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
   // Cleared here rather than in calcScore for the speculative-re-score reason
   // given there.
@@ -857,17 +858,15 @@ function playHand() {
     showMessage('Bedrock! +' + BAL.rare_bloom.perm_pips + ' pips to those cards', '#e8c56b');
   }
 
-  // First hand this round
-  if (firstHandThisRound) {
-    if (hasTrick('first_fruits')) {
-      handCells.forEach(([r,c]) => {
-        const k = cardId(gridData[r][c]);
-        permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
-      });
-    }
-    // (Head Start's +5 Focus now fires in generateHandFocus, before scoring, so it helps this hand.)
-    firstHandThisRound = false;
+  // First Fruits (r624): the first `hands` hands of a round (handsPlayedRound already
+  // counts this hand here). Head Start's Focus fires in generateHandFocus, before scoring.
+  if (hasTrick('first_fruits') && handsPlayedRound <= BAL.first_fruits.hands) {
+    handCells.forEach(([r,c]) => {
+      const k = cardId(gridData[r][c]);
+      permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
+    });
   }
+  if (firstHandThisRound) firstHandThisRound = false;
 
   // Heartwood - dead center card
   const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
@@ -1075,6 +1074,12 @@ function scalingCount(hand, handCells, reps) {
   if (hasTrick('fours_perm') && handCells.length === 4) {
     const _fc = gridData[handCells[3][0]]?.[handCells[3][1]];
     if (_fc) { const k = cardId(_fc); permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips; }
+  }
+  // Perfect Ten (r624): played cards count toward its milestone as well as discards.
+  if (hasTrick('tens_mult')) {
+    const _tnN = _cells.reduce((s, x) => s + x.n, 0), _tnD = BAL.tens_mult.discards_per_milestone;
+    const _tnPrev = Math.floor((cardsDiscardedTotal + cardsScoredTotal) / _tnD), _tnNow = Math.floor((cardsDiscardedTotal + cardsScoredTotal + _tnN) / _tnD);
+    bonusMult_tens += (_tnNow - _tnPrev) * BAL.tens_mult.mult_per_milestone;
   }
   // Lucky Roll (sixes_perm): every Nth card scored rolls permanent pips onto it.
   _cells.forEach(({ card, n }) => {

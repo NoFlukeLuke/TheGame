@@ -650,8 +650,8 @@ function magnetCountDiscards(cards) {
   discardsUsedRound += count;
   if (hasTrick('fives_discard')) bonusMult_fives += cards.filter(c => c.rank === '5').length * BAL.fives_discard.pips_per_five;
   if (hasTrick('tens_mult')) {
-    const prev = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
-    const now  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
+    const prev = Math.floor((cardsDiscardedTotal - count + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);   // r624: played cards count too
+    const now  = Math.floor((cardsDiscardedTotal + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);
     bonusMult_tens += (now - prev) * BAL.tens_mult.mult_per_milestone;
   }
 }

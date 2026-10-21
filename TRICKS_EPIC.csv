@@ -52,23 +52,24 @@
 39,Rain Check,rain_check,epic,Timing,"Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)",seconds,30,,,,1.0,0,pays in Time,,,"Skipping a reward: the next round starts with +{seconds}s (in Flow, rewind the clock {seconds}s)",time
 40,Temporal Rift,temporal_rift,epic,Position,A card scored where a row and column effect intersect permanently rewinds the clock 3s when scored (time buffs do not stack),rewind,3,,,,1.0,0,pays in Time,,,A card scored where a row and column effect intersect permanently rewinds the clock {rewind}s when scored (time buffs do not stack),"time, position, scaling"
 41,Wait For Iiiit,wait_for_it,epic,Situational,Each negative reward tile taken this run gives every scored card a +2% chance to replay,chance_per,0.02,,,,1.0,2,Dead in Flow pays in Dead in Flow,,,,"replay, scaling, risk"
-42,Heartwood,heartwood,epic,Misc,"When scored, the center-most card gains +5 pips & +2 mult",pips,5,,,0.81,1.29,41,Normal,,,"When scored, the center-most card gains +{pips} pips & +{mult} mult",
+42,Kaleidoscope,kaleidoscope,epic,Focus,Apply the Focus multiplier a number of times equal to the number of suits in the hand,"(in code, no BAL number)",,,,0.01,1.0,1,Low,,,,focus
+43,Heartwood,heartwood,epic,Misc,"When scored, the center-most card gains +5 pips & +2 mult",pips,5,,,0.81,1.29,41,Normal,,,"When scored, the center-most card gains +{pips} pips & +{mult} mult",
 ,,,,,,mult,2,,,,,,,,,,
-43,Landfill,landfill,epic,Discards,Score +1 mult per card for every discard or swap used this round,mult_per,1,,,1.42,1.51,57,Normal,,,,"discard, mult"
-44,Four Horse-man,four_horseman,epic,4-card hands,"4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or pause the clock for 4s",pips,16,,,0.47,1.17,30,Low,,,"4-card hands grant a random bonus: +{pips} pips, +{mult} mult, +{focus} Focus, or pause the clock for {pause}s","pips, mult, focus, time"
+44,Landfill,landfill,epic,Discards,Score +1 mult per card for every discard or swap used this round,mult_per,1,,,1.42,1.51,57,Normal,,,,"discard, mult"
+45,Four Horse-man,four_horseman,epic,4-card hands,"4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or pause the clock for 4s",pips,16,,,0.47,1.17,30,Low,,,"4-card hands grant a random bonus: +{pips} pips, +{mult} mult, +{focus} Focus, or pause the clock for {pause}s","pips, mult, focus, time"
 ,,,,,,mult,8,,,,,,,,,,
 ,,,,,,focus,4,,,,,,,,,,
 ,,,,,,pause,4,,,,,,,,,,
-45,Undue Influence,undue_influence,epic,Pairs / sets,A Set containing a face card grants credits equal to the number of Set hands you have played this round,"(in code, no BAL number)",,,,,1.0,0,pays in Credits / stock,,,,"credits, set"
-46,Encore,encore,epic,Pairs / sets,Odd-ranked cards in a set replay once,"(in code, no BAL number)",,,,1.3,1.46,41,High,,,,"replay, set"
-47,Patient Rulers,patient_rulers,epic,Multipliers,"If you have paused or rewound the clock this round, face cards score x1.5 mult",mult_mult,1.5,,,0.0,1.0,0,Barely pays,,,,"mult, face, pause"
-48,Even Better,even_better,epic,Multipliers,Even-ranked cards have a 66% chance to score x2.2 pips,chance,0.66,,,0.55,1.2,47,Low,,,,"pips, value, luck"
+46,Undue Influence,undue_influence,epic,Pairs / sets,A Set containing a face card grants credits equal to the number of Set hands you have played this round,"(in code, no BAL number)",,,,,1.0,0,pays in Credits / stock,,,,"credits, set"
+47,Encore,encore,epic,Pairs / sets,Odd-ranked cards in a set replay once,"(in code, no BAL number)",,,,1.3,1.46,41,High,,,,"replay, set"
+48,Patient Rulers,patient_rulers,epic,Multipliers,"If you have paused or rewound the clock this round, face cards score x1.5 mult",mult_mult,1.5,,,0.0,1.0,0,Barely pays,,,,"mult, face, pause"
+49,Even Better,even_better,epic,Multipliers,Even-ranked cards have a 66% chance to score x2.2 pips,chance,0.66,,,0.55,1.2,47,Low,,,,"pips, value, luck"
 ,,,,,,pip_mult,2.2,,,,,,,,,,
-49,What are The Odds,what_odds,epic,Multipliers,Odd-ranked cards score x1.7 mult,mult_mult,1.7,,,1.27,1.46,66,Outlier,,,,"mult, value"
-50,Critical,critical,epic,Multipliers,Flush type hands score x3 mult,mult_mult,3,,,0.01,1.0,17,Normal,,,,"mult, flush"
-51,Twinners,twinners,epic,Multipliers,Set type hands score x3 pips,pip_mult,3,,,4.02,2.44,81,Outlier,,,,"pips, set"
-52,Feelin Lucky,feelin_lucky,epic,Multipliers,"Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells",mult_mult,1.25,,,0.42,1.15,64,Normal,,,,"mult, value, luck"
+50,What are The Odds,what_odds,epic,Multipliers,Odd-ranked cards score x1.7 mult,mult_mult,1.7,,,1.27,1.46,66,Outlier,,,,"mult, value"
+51,Critical,critical,epic,Multipliers,Flush type hands score x3 mult,mult_mult,3,,,0.01,1.0,17,Normal,,,,"mult, flush"
+52,Twinners,twinners,epic,Multipliers,Set type hands score x3 pips,pip_mult,3,,,4.02,2.44,81,Outlier,,,,"pips, set"
+53,Feelin Lucky,feelin_lucky,epic,Multipliers,"Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells",mult_mult,1.25,,,0.42,1.15,64,Normal,,,,"mult, value, luck"
 ,,,,,,ranks,5,,,,,,,,,,
 ,,,,,,sell_cost_share,0.3,,,,,,,,,,
 ,,,,,,rerolls,3,,,,,,,,,,
-53,Marathon,marathon,epic,Multipliers,Run type hands apply the Focus multiplier twice,"(in code, no BAL number)",,,,0.26,1.09,20,Low,,,,"focus, run"
+54,Marathon,marathon,epic,Multipliers,Run type hands apply the Focus multiplier twice,"(in code, no BAL number)",,,,0.26,1.09,20,Low,,,,"focus, run"

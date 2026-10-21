@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r623 · The owner's common Trick balance pass applied; Magician, Five for Fodder, 4x4 and Power Line reworked; sheets for every tier";
+const BUILD = "2026-10-21 · r624 · The owner's rare Trick pass: numbers, six custom improvement ladders, Heron, Resonance, Kaleidoscope, Woodpecker, Crossroads, Perfect Ten, chance counts on chips, unplayable-hand Tricks offered less";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

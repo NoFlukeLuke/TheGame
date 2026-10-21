@@ -278,9 +278,10 @@ function render() {
     if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:'Minute Hand', val:`x${BAL.minute_hand.mult_mult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
-    if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
+    if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${BAL.overgrowth.pips_per_card*cards.length} pips`, type:'pip' });
     if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:'Quake', val:`+${BAL.kindred.mult_per_card*_setMax} mult`, type:'mult' });
-    if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
+    if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${BAL.long_road.mult_per_card*cards.length} mult`, type:'mult' });
+    if (hasTrick('patience_reward') && typeof heronMult === 'function') { const _hm = heronMult(); if (_hm > 0) bonusLines.push({ label:'The Heron', val:`+${_hm} mult`, type:'mult' }); }
     if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) { const _crp = trickPickOne(0, handCells); bonusLines.push(_crp === 0 ? { label:'Rogue Wave', val:`+${BAL.correct_run.pips} pips`, type:'pip' } : _crp === 1 ? { label:'Rogue Wave', val:`+${BAL.correct_run.mult} mult`, type:'mult' } : { label:'Rogue Wave', val:`+${BAL.correct_run.focus} Focus`, type:'focus' }); }
     if (hasTrick('early_bird') && roundFractionRemaining()>2/3) bonusLines.push({ label:'Early Bird', val:`+${BAL.early_bird.pips_per_card*cards.length} pips`, type:'pip' });
     if (hasTrick('kindling')) {
@@ -373,6 +374,7 @@ function render() {
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
   if (typeof bossGradientPaint === 'function') bossGradientPaint();
   if (typeof cardAnimAfterRender === 'function') cardAnimAfterRender();   // r445: the select ripple
+  if (typeof chanceCountPaint === 'function') chanceCountPaint();         // r624: hit counts on chance Tricks
 }
 
 // THE BOARD PATTERN'S ELEMENT (r409, css/hypno.css). It lives INSIDE #grid, as

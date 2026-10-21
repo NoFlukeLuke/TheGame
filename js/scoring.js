@@ -505,10 +505,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // hash-vs-threshold shape as Wait For Iiiit, off the same BAL number.
     let _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger')
       ? luckRollDet(BAL.rowcol_retrigger.chance, (card._id || 0) + 7919, handsPlayedRound) : 0;
+    // r624: an improved Echo Location rolls a SECOND replay, only after the first lands.
+    if (_rl && BAL.rowcol_retrigger.chance2 > 0) _rl += luckRollDet(BAL.rowcol_retrigger.chance2, (card._id || 0) + 7929, handsPlayedRound);
     let _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
     let _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
     let _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
       ? luckRollDet(BAL.ripple.chance, (card._id || 0) + 7717, handsPlayedRound) : 0;
+    if (_rip && BAL.ripple.chance2 > 0) _rip += luckRollDet(BAL.ripple.chance2, (card._id || 0) + 7727, handsPlayedRound);   // r624: the second chance
     let _refl = reflectAimsAt(r, c);
     let _soul = soulMirrorRankCount(baseRank);
     // Echo (sleight): armed by playing it, every card in the hand replays twice.
@@ -1029,8 +1032,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hand-size
   if (hasTrick('light_touch') && realHandOfSize(cells, 2)) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
   // Timing mult - Near Extinction's retrigger is handled in the per-card loop above.
-  // The Heron: hands played 15+ round-seconds after the previous score +mult
-  if (hasTrick('patience_reward') && lastHandRoundSeconds !== null && (lastHandRoundSeconds - roundSeconds) >= BAL.patience_reward.seconds) { mult += BAL.patience_reward.mult; bMult('patience_reward', BAL.patience_reward.mult); }
+  // The Heron (r624): mult = mult_per_second x the round-seconds since the last hand
+  // (since the round's start for its first hand).
+  if (hasTrick('patience_reward')) { const _a = heronMult(); if (_a) { mult += _a; bMult('patience_reward', _a); } }
+  // Crossroads (r624): the + shape pays mult as well as Focus (the Focus is paid in generateHandFocus).
+  if (hasTrick('shape_cross') && isCross(cells) && realHandOfSize(cells, 5)) { mult += BAL.shape_cross.mult; bMult('shape_cross', BAL.shape_cross.mult); }
   // Suit conditions
   const _allRed   = cards.every(c => c.suit === '♥' || c.suit === '♦');
   const _allBlack = cards.every(c => c.suit === '♣' || c.suit === '♠');
@@ -1749,6 +1755,13 @@ function fourByFourCols() {
   rowColBonuses.forEach(b => { if (b.id === 'four_by_four' && b.index < gridCols && !out.includes(b.index)) out.push(b.index); });
   return out.length ? out : [Math.min(3, gridCols - 1)];
 }
+// The Heron (r624): whole seconds since the last hand this round (since the round
+// started for the first hand) x mult_per_second. Read by calcScore, the preview
+// line and the tray's live line, so the three agree.
+function heronMult() {
+  const since = (typeof lastHandRoundSeconds !== 'undefined' && lastHandRoundSeconds !== null) ? lastHandRoundSeconds - roundSeconds : roundStartSeconds - roundSeconds;
+  return Math.max(0, Math.floor(since)) * BAL.patience_reward.mult_per_second;
+}
 // Magician (r623): the pips side pays only while it is the only Trick in the tray.
 function magicianSolo() {
   return typeof trickTray !== 'undefined' && !trickTray.some(t => t && t.id !== 'magician');
@@ -1830,7 +1843,7 @@ function focusExtraApplies(handName, cells) {
         if (cd.suit) su.add(cardColorSuit(cd));
         if (cd.suit2) su.add(cd.suit2);
       });
-      if (su.size >= 4) n++;
+      if (su.size > 1) n += su.size - 1;   // r624: once per suit in the hand (the first application is the hand's own)
     }
     // Autopilot (r474): hand k of a run applies Focus k times.
     if (typeof autopilotFocusExtra === 'function') n += autopilotFocusExtra();

@@ -110,6 +110,10 @@ const PROB_TABLES = [
     desc: 'How often each 4-cell tile shape is dealt, from the same bag.',
     how: 'Ratios. I is the straight bar and is kept light on purpose.',
     rows: () => _ptArrRows(SQ_SHAPE_W[4], ['I', 'O', 'T', 'S', 'Z', 'J', 'L']), after: () => { if (typeof sqBags !== 'undefined') sqBags = {}; } },
+  { id: 'offerneed', group: 'Rarity', type: 'p', title: 'Tricks for hands you cannot play yet',
+    desc: 'A Trick that needs a bigger hand than your Selection Size allows, or a flush before flushes are unlocked (TRICK_NEEDS), is still offered, at this share of its usual weight within its tier.',
+    how: '100 offers them as often as any other Trick of the tier; 0 never offers them until the hand is playable.',
+    rows: () => _ptObjRows(OFFER_NEED_W, { unplayable: 'Weight, % of normal' }) },
 ];
 
 // The shipped values, taken before any override lands.

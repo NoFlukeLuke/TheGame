@@ -374,8 +374,8 @@ function onFocusMaxed() {
   }
   let dropFlat = 0;    // flat Focus losses (Release Valve's 16); combined with keepFrac by taking the LOWER target
   if (hasTrick('release_valve')) {
-    swaps++; discards++;
-    showMessage(`🎚️ Release Valve - +1 swap, +1 discard, -${BAL.release_valve.focus_drop} Focus`, 'var(--gold)');
+    swaps += BAL.release_valve.swaps; discards += BAL.release_valve.discards;   // r624: improvements raise these
+    showMessage(`🎚️ Release Valve - +${BAL.release_valve.swaps} swap, +${BAL.release_valve.discards} discard, -${BAL.release_valve.focus_drop} Focus`, 'var(--gold)');
     if (!animating && !falling) render();
     dropFlat = Math.max(dropFlat, BAL.release_valve.focus_drop); // lose 16 Focus (r346, was half)
   }

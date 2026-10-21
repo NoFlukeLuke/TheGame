@@ -107,7 +107,7 @@ The dev panel's own messages always print.
 | flow-rewards.js:1919 | refuse Pick at least 2 touching cards |
 | flow-rewards.js:1999 | refuse No ordinary card next to that one |
 | focus.js:301 |  🌌 Expanse - Focus limit +${_ex} |
-| focus.js:313 |  🎚️ Release Valve - +1 swap, +1 discard, -${BAL.release_valve.focus_drop} Focus |
+| focus.js:313 |  🎚️ Release Valve - +${BAL.release_valve.swaps} swap, +${BAL.release_valve.discards} discard, -${BAL.release_valve.focus_drop} Focus |
 | focus.js:322 |  🌱 Growth Spurt - max Focus −${BAL.growth_spurt.cap_reduction} |
 | grid-pick.js:117 | refuse Not enough credits |
 | guided-mode.js:531 |  Challenge met · +${ch.credits} credits |

@@ -94,6 +94,30 @@ const IMPROVE_STEP = {
   replay_rewind:  { chance: 0.20 },
   prime_time:     { pips_per_card: 11 }, // owner: +11 per improvement, not +23
   hyper_focus:    { focus_mult: 1 },     // 2x Focus -> 3x -> 4x
+  // r624, the owner's rare sheet
+  heavy_hand:     { pips_per_card: 10 },
+  high_pair:      { focus_per_card: 2 },
+  patience_reward:{ mult_per_second: 0.5 },
+  first_play:     { focus: 1 },
+  quarter_chime:  { pips: 30 },
+};
+
+// Ladders that are not "the number again" (r624, the owner's rare sheet). A
+// function of the tier returning the values to write over the pristine row;
+// an undefined value leaves that number alone. An entity listed here takes no
+// generic step at all. Index = tier 0..5.
+const IMPROVE_PLAN = {
+  // a second replay chance, rolled only after the first succeeds; the 5th sets both to 77%
+  ripple:           t => ({ chance: t >= 5 ? 0.77 : undefined, chance2: [0, 0.33, 0.44, 0.55, 0.66, 0.77][t] }),
+  rowcol_retrigger: t => ({ chance: t >= 5 ? 0.77 : undefined, chance2: [0, 0.33, 0.44, 0.55, 0.66, 0.77][t] }),
+  // +1 swap, +1 discard, -4 Focus lost, round and round; the 5th does all three
+  release_valve:    t => ({ swaps: 1 + [0, 1, 1, 1, 2, 3][t], discards: 1 + [0, 0, 1, 1, 1, 2][t], focus_drop: 16 - 4 * [0, 0, 0, 1, 1, 2][t] }),
+  // +5 pips, then one more hand, alternating; the 5th does both
+  first_fruits:     t => ({ pips: 5 + 5 * [0, 1, 1, 2, 2, 3][t], hands: 1 + [0, 0, 1, 1, 2, 3][t] }),
+  // +2 mult, then 2s less, alternating: +10 every 6s at tier 4; the 5th does both
+  swift:            t => ({ mult_per_interval: 6 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
+  // +1 replay a tier, +2 for the 5th
+  woodpecker:       t => ({ retrigger_count: 3 + [0, 1, 2, 3, 4, 6][t] }),
 };
 
 // Pristine BAL, captured at load before anything can have improved. One level
@@ -178,7 +202,7 @@ function improveStepsFor(id) {
 }
 
 // True when improving this entity would actually change a number.
-function canImprove(id) { return !!improveStepsFor(id) && entityTierOf(id) < IMPROVE_MAX_TIER; }
+function canImprove(id) { return (!!IMPROVE_PLAN[id] || !!improveStepsFor(id)) && entityTierOf(id) < IMPROVE_MAX_TIER; }
 
 // Recompute every entity's numbers from the pristine table. Called whenever a
 // tier changes, and on restore.
@@ -190,6 +214,11 @@ function applyEntityTiers() {
     const steps = improveSteps(entityTierOf(id));
     const plan  = improveStepsFor(id);
     for (const k in base) BAL[id][k] = base[k];          // reset first, so a tier can go down
+    if (IMPROVE_PLAN[id]) {                               // r624: a ladder of its own, no generic step
+      const v = IMPROVE_PLAN[id](Math.min(IMPROVE_MAX_TIER, entityTierOf(id)));
+      for (const k in v) if (v[k] !== undefined) BAL[id][k] = v[k];
+      return;
+    }
     if (!steps || !plan) return;
     for (const k in plan) {
       const [step] = plan[k];

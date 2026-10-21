@@ -1896,3 +1896,42 @@ Measured by tap at 1440x820 through the Trick tour: Cascade +20 x3, Power Line +
 line, Magician alone +50 pips then +12 mult beside Rich Soil with two Sleights, a 3-card hand discarded
 under Five for Fodder paid +3 credits, a real hand played with no timeline drift. TRICKS_RARE / EPIC /
 LEGENDARY .xlsx + .csv at the root are the other tiers' sheets (owner: "make the sheet for the rest").
+
+## r624 - the owner's rare Trick pass (from TRICKS_RARE.xlsx)
+- **Numbers:** Quake 15, Resonance 4, Ripple 66%, Full Load 20, First Fruits 5, Eagle Eye 10, Swift 6,
+  Woodpecker 3x, Hummingbird 3, Albatross 10, Quarter Chime 60, Kingfisher +2 per 2s, Balance 10, Lucky
+  Sevens 5, Prime Time 29, Odd One In 7, Diversity 8, Study Hall 2, Inclusive 50, Lie Down 12, Rising
+  Tide 5-10, Flow State 15, Stand-Up 10. **Rarity:** Release Valve, Every Day Essentials and Near
+  Extinction are common; Kaleidoscope is epic. **Sapling** is retired (never offered; a saved run keeps it).
+- **Custom improvement ladders** (`IMPROVE_PLAN` in js/improve.js, a function of the tier that writes
+  over the pristine row; such an entity takes no generic step): Ripple and Echo Location gain a SECOND
+  replay chance (`chance2`: 33 / 44 / 55 / 66%, rolled only after the first replay lands, salts 7727 /
+  7929; the 5th sets both chances to 77%); Release Valve cycles +1 swap, +1 discard, -4 Focus lost (5th:
+  all three); First Fruits alternates +5 pips and one more hand (`hands`; 5th both); The Swift alternates
+  +2 mult and -2s (5th both: +12 every 4s); The Woodpecker +1 replay a tier, +2 at the 5th. Plain steps
+  added to `IMPROVE_STEP`: Full Load +10, Resonance +2, Heron +0.5, Head Start +1, Quarter Chime +30.
+  `fillDescTemplate` takes `[[key:text]]` (kept while the number is > 0) and `[[key>N:text]]`, for the
+  second-chance clause and plurals.
+- **Mechanics:** **The Heron** adds `mult_per_second` x the whole seconds since the last hand this round
+  (`heronMult()`, js/scoring.js; the preview line and the tray's live line read it). **Resonance** pays on
+  any hand with a Pair / Two Pair / Full House component that holds a 2 or a 4. **Kaleidoscope** applies
+  Focus once per suit in the hand (`focusExtraApplies` adds suits - 1). **The Woodpecker's** mark is never
+  spent; a cell stays marked until the interval moves it. **Crossroads** pays +25 mult as well as Focus.
+  **Perfect Ten** counts cards played as well as discarded (`cardsScoredTotal + cardsDiscardedTotal`, at
+  the discard sites and in `scalingCount`). **Plan Ahead** pays `times` (2) x the average. **Rogue Wave**
+  verified: a run tapped in order, up or down, qualifies; out of order does not.
+- **Chance counts** (`js/chance-count.js`, `css/chance-count.css`): a chip in `CHANCE_TRICK_IDS` (Ripple,
+  Echo Location, Wait For Iiiit, Even Better) wears a gold count of its procs from the last calcScore
+  (`_lastHandProcs`): the preview's while a hand is selected, the banked hand's from PLAY (playHand is
+  wrapped; `handsPlayed` rising marks a real hand) through the tally (`danceAbortController` up) and
+  `CC_HOLD_MS` (3s) after; a new selection or hand replaces it. Painted from render's tail and a 250ms tick.
+- **Offers** (`offerWeightMult`, js/luck.js; `TRICK_NEEDS`, js/data/tricks.js): a Trick for a hand size
+  above the Selection Size, or a flush before flushes unlock, is offered at `OFFER_NEED_W.unplayable`
+  (50)% of its weight within its tier (dev -> Probabilities, "Tricks for hands you cannot play yet").
+  `pickEntityByRarity` picks within the tier by that weight now (`offerWeightedPick`).
+- The preview's Cascade and Storm lines read BAL (they typed 10 and 2).
+Measured in headless Chromium at 1440x820 through the rare tour, dev mode on: every ladder's six tiers
+print and apply; Rogue Wave A Q K up and down true, mixed false; a crafted pair of 2s paid 13 more Focus
+than a pair of 7s; Heron +10 / +12 mult after the wait; Woodpecker mark 1-1 before and after the hand;
+Perfect Ten +6 mult at the 18th card; Kaleidoscope 3 suits -> 2 extra applies, 1 suit -> 0; Ripple's
+badge read 2 on selection, through the tally and for 3s after; no drift, no page errors.
