@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r618 · Dev panel search on a desktop keeps the tab menu beside the results";
+const BUILD = "2026-10-21 · r619 · Flow reward count defaults 35 / 35 / 18 / 9 / 3";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

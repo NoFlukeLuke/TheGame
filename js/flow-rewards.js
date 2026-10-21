@@ -70,7 +70,9 @@ const FLOWR_DEF  = {
   // means a retune that does not add up still plays the ratios it sets (the dev
   // panel prints what a row actually comes out as).
   // r391: +10 moved from 1 to 2 (owner: "tune up the chances of a second").
-  counts: [38, 42, 10, 6, 4],
+  // r619 (owner): 35 / 35 / 18 / 9 / 3 (was 38 / 42 / 10 / 6 / 4): a single
+  // reward is a little rarer and three or more come about twice as often.
+  counts: [35, 35, 18, 9, 3],
   // Share of every reward screen AFTER Tricks take theirs (r548): the Tricks
   // share is `trick` below, and these weights split the rest in their ratios.
   // r441: PICK 3 is the most common of the rest (owner), the SHOP is a reward

@@ -1851,3 +1851,9 @@ holding found sections is lit with their count (`data-hits`, `.dev-tab-hit`); th
 (`.dev-tab-miss`). A tab click opens it and leaves the search as before. Narrower windows keep the
 results alone; a resize across the line relays the live search. Measured at 1440x820: menu column
 200px, panel 1080; 420x900 unchanged.
+
+## r619 - Flow reward count: 35 / 35 / 18 / 9 / 3 (owner)
+`FLOWR_DEF.counts` (js/flow-rewards.js) is the chance of 1 / 2 / 3 / 4 / 5 rewards at a Flow
+level-up; was 38 / 42 / 10 / 6 / 4. More than one reward is 65% at the base (was 62%), three or
+more 30% (was 20%). `flowEcon.multiStep` (10) still adds to that per single-reward level-up in a
+row. The store is overrides only, so a browser that typed this row keeps playing the same.
