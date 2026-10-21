@@ -570,7 +570,12 @@ function crAdvance(cd) {
   if (q.done) return;
   if (q.prog >= crTarget(q) && q.banked < q.tier) {
     q.banked = q.tier;
-    if (q.src === 'seq' && crRound && !q.counted) { q.counted = true; crRound.solved++; }
+    if (q.src === 'seq' && crRound && !q.counted) {
+      q.counted = true; crRound.solved++;
+      // r616 (owner): the next round card is sent for now, not when this one leaves the
+      // board, so the take-or-raise pause and a raise never eat the round's clock.
+      if (!q.sentNext) { q.sentNext = true; if (crLive() && crRound.solved < CR_CARDS) setTimeout(() => crBeginArrival('seq', crRound.solved + 1, crRound.solved), 700); }
+    }
     if (q.tier >= q.ladder.length - 1) { crCollect(cd); return; }
     q.hold = CR_CLEAR_HOLD;
     crRepaint(cd); crFxClear(cd);
@@ -586,12 +591,6 @@ function crRaise(cd) {
   q.tier++; q.hold = null;
   crRepaint(cd); crFxRaise(cd);
   noteMessage(`⚑ Raised: ${crReqText(q)}`);
-  // r615 (owner): in a challenge round a raised card has already counted, so the
-  // next card is sent for now rather than when the raised one leaves.
-  if (q.src === 'seq' && !q.sentNext && crLive() && crRound.solved < CR_CARDS) {
-    q.sentNext = true;
-    setTimeout(() => crBeginArrival('seq', crRound.solved + 1, crRound.solved), 700);
-  }
   if (q.prog >= crTarget(q)) crAdvance(cd);   // already there: banks at once
 }
 // Take the banked tier's payout. In a challenge round the next card follows.
@@ -822,14 +821,13 @@ function crSpotSettle() {
 
 // ── The challenge round's clock and settlement ──────────────────────────────
 function crOnClockOut() {
-  // A cleared, unanswered round card takes its payout. A raised one that did not
-  // reach its tier loses the banked payout but STILL counts as done (r615, owner:
-  // clearing a tier completes the challenge; a raise only bets the payout).
+  // A cleared, unanswered round card takes its payout; a raised one that did not
+  // make its tier is a fail and no longer counts as done.
   for (const [, , cd] of crCards()) {
     const q = cd.cr;
     if (q.src !== 'seq' || q.done || !q.ladder) continue;
     if (crCleared(q)) crCollect(cd);
-    else if (q.counted) { q.done = 'lost'; crRepaint(cd); crFxFail(cd); }
+    else if (q.counted && crRound) { q.counted = false; crRound.solved--; }
   }
   // Goal met and every card done, but no hand ended the round (the last card
   // cleared by a fall): end it through the interlude so the prize and mini grids

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r615 · Challenge rounds: a cleared tier stays done when a raise falls short";
+const BUILD = "2026-10-21 · r616 · Challenge rounds: a missed raise fails; the next card comes at the first clear";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

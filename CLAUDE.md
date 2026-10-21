@@ -1825,3 +1825,13 @@ sends for the next card at once (`q.sentNext`, so `crDrain` does not send a seco
 raised card leaves). Superseded in r465's notes: "then it no longer counts". Measured in Classic:
 card 1 cleared and raised, card 2 arrived ~1s later; cards 2 and 3 solved; clock out with the
 raise open ended through the interlude with 3/3 solved and no penalty grid.
+
+## r616 - challenge rounds: a missed raise fails again; the next card comes at the first clear (owner)
+Owner: a raise you do not make IS a fail (r615's "stays counted" is reverted: `crOnClockOut` un-counts
+it, as before). The bug was that a raise you DID make could still fail the round: the next round card
+was only sent when a card LEFT the board, so the take-or-raise pause (6s), a raise and the hold after a
+made raise all ran down the clock before cards 2 and 3 could even arrive. Now `crAdvance` sends for
+the next card the moment a card first counts (`q.sentNext`; `crDrain` sends only for a card without
+it). Measured in Classic: card 2 landed ~4s after card 1's first clear (0.7s + the 3s pulse) with card
+1 still waiting; raise made + cards 2 and 3 solved -> ended through the interlude, 3/3, no penalty;
+raise missed -> 2/3, lost (penalty grid).
