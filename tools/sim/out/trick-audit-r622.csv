@@ -1,0 +1,168 @@
+name,tier,type,flag,ratio_any,ratio_plan,pts,pips,mult,x_any,x_plan,fire_any,fire_plan,desc
+Release Valve,rare,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"Each time you hit your Focus limit, gain +1 swap and +1 discard and lose 16 Focus."
+Traveler,rare,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Every 4 hands you play without a same-type streak grants +1 swap
+Type A,rare,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Every 2nd hand of an unbroken same-type streak grants +1 discard
+Blood Diamonds,epic,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Hands containing exclusively hearts AND diamonds grant +5 credits but cost 10 seconds
+Five for Fodder,common,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Discarding a valid 5-card hand grants +5 credits
+Undue Influence,epic,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,A Set containing a face card grants credits equal to the number of Set hands you have played this round
+Buried Treasure,legendary,Credits / stock,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits
+Wild Side,rare,Dead in Flow,Dead in Flow,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"+6 mult, scaling, for every negative reward tile you take"
+Wait For Iiiit,epic,Dead in Flow,Dead in Flow,,,0.0,0.0,0.0,1.0,1.0,0.02,0.004,Each negative reward tile taken this run gives every scored card a +2% chance to replay
+Torrent,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Runs add +1 Focus per card
+Overclock,epic,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,The Focus speed bonus is multiplied by 2.
+Resonance,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card
+Collapsing Columns,epic,Focus,-,,,0.0,0.0,0.0,1.0,0.999,0.001,0.031,Full Houses score +10 Focus
+Double Dutch,epic,Focus,-,,,0.0,0.0,0.0,0.999,0.999,0.005,0.005,Play 3 hands with a pair within 30s to add +16 Focus
+Gnomes,epic,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Each rank 5 or lower card scored adds its rank in Focus
+Quick Draw,common,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Hands played within 2 seconds of the previous hand add +1 to your Focus limit (max +10)
+Head Start,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"The round's first hand adds +5 Focus; each hand after adds 1 less, down to 0"
+The Falcon,epic,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Hands played while the clock is paused add +10 Focus
+Tick-Tock,common,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"Every time the clock ends in a 0, gain +2 Focus"
+Wildfire,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.006,Reaching a same-hand streak of 3 adds +5 Focus
+Lucky Sevens,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,+3 Focus for each 7 scored or discarded
+Study Hall,rare,Focus,-,,,0.0,0.0,0.0,1.0,0.999,0.001,0.031,Every 2 cards scored adds +1 Focus
+Hands of Blue,epic,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,A 2×2 shaped hand adds +16 Focus
+Crossroads,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,A 5 card + shaped hand adds +25 Focus
+Groove,rare,Focus,-,,,0.0,0.0,0.0,1.052,1.036,0.167,0.167,Scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.
+Clean Sweep,epic,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Use every cell of any row or column within two hands to add +5 Focus and +5 credits
+Acorns,epic,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"Each card scored scales this trick +0.1 Focus, starting at +0; grants its whole-number Focus each hand"
+Plan Ahead,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Every 3rd hand adds Focus equal to your average hands per round
+Meditation,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Focus decays 2 seconds slower
+Tunnel Vision,common,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Start each round with 5 focus
+Rhythm,common,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Each hand played adds 1 additional focus
+Cull,common,Focus,-,,,0.0,0.0,0.0,1.0,0.999,0.034,0.077,Discarding or swapping adds +1 Focus per 2 remaining swaps and discards
+Expanse,common,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus"
+the little guys,rare,Focus,-,,,0.0,0.0,0.0,0.981,0.983,0.098,0.098,A 5-card hand with no face cards increases your Focus limit by 1 (max +15)
+Life Lessons,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Each round you complete increases your Focus limit by 1
+3rd Down,rare,Focus,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,3-card hands add +3 Focus
+Royal Favour,epic,Not measured,Not measured,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are automatically discarded after they've been on the grid for 45 seconds
+Ace Absorb,legendary,Not measured,Not measured,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand)"
+Cloud Nine,epic,Score,Outlier,12.707,3.054,1056.732,0.0,26.0,5.54,2.34,1.0,1.0,"Adds 9 9s to your deck. Each 9 scored adds +2 mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick goes"
+Penny Saved,rare,Score,Outlier,6.649,2.941,913.444,60.0,0.0,4.467,2.286,1.0,1.0,Each 5 discarded or played permanently adds +5 pips to this trick
+Rising Tide,rare,Score,Outlier,5.68,2.098,557.153,0.0,16.0,3.962,1.917,1.0,1.0,Each level you pass while holding this adds +1 to +3 mult to it
+Old Growth,legendary,Score,Outlier,5.552,2.379,1459.755,0.0,23.043,4.667,4.4,1.0,1.0,Cards add their pip value to mult
+Twinners,epic,Score,Outlier,4.018,4.435,565.675,42.343,0.0,2.436,2.946,0.81,0.983,Set type hands score x3 pips
+Unsummit,common,Score,Outlier,3.937,2.309,337.504,31.62,0.0,2.671,1.913,1.0,1.0,The highest-ranking card in each hand scores +(level x 2) pips.
+Sands of Time,rare,Score,Outlier,3.783,1.642,458.614,38.28,0.0,2.973,1.718,1.0,1.0,Score +pips equal to time remaining ÷ 2
+Wellspring,rare,Score,Outlier,3.395,1.234,381.797,0.0,11.0,2.771,1.539,1.0,1.0,"For every 30 Focus generated this game, this trick scores +1 mult"
+Combo Score,common,Score,Outlier,3.189,1.047,271.861,0.0,7.2,2.353,1.414,0.845,0.845,+4 mult for every distinct hand type played this round
+Compound,epic,Score,High,2.687,0.605,167.404,0.0,4.8,1.96,1.265,1.0,1.0,Each hand played permanently adds +0.1 mult to this trick
+Magician,common,Score,High,2.679,0.877,215.532,0.0,6.0,2.137,1.347,1.0,1.0,+3 mult for each Sleight you own
+Perfect Ten,rare,Score,High,2.34,0.746,186.718,0.0,6.0,2.22,1.326,1.0,1.0,Every 9 cards discarded permanently adds +3 mult to this trick
+The Swift,rare,Score,High,2.21,0.852,327.38,0.0,8.025,2.153,1.372,0.775,0.775,+5 mult for every 10 seconds elapsed this round
+Hyper Focus,rare,Score,High,1.954,1.7,411.285,0.0,7.535,2.019,1.743,1.0,1.0,Each card scored adds mult equal to 2x your Focus multiplier
+On the Edge,common,Score,High,1.937,2.879,289.156,18.863,0.0,1.822,2.138,0.759,0.988,Cards scored on an edge score +15 pips
+Prime Time,rare,Score,Outlier,1.79,3.643,394.008,23.345,0.0,1.933,2.592,0.624,0.988,"Prime-ranked cards (A,2,3,5,7) score +23 pips"
+Jackpot,legendary,Score,High,1.587,0.725,399.46,28.265,0.0,2.048,2.036,0.95,0.95,Score ×1.5 pips for each Jack on the grid
+Shaky Foundation,common,Score,High,1.571,0.306,157.377,0.0,4.2,1.667,1.121,0.28,0.16,Every other Set scores +15 mult
+Early Bird,common,Score,High,1.514,1.226,237.356,13.527,0.0,1.642,1.485,0.917,0.917,Hands played in the first third of the round score +5 pips per card
+3rd Time's a Charm,rare,Score,High,1.492,2.336,374.257,9.619,3.35,1.778,2.021,0.595,1.0,The 3rd card of a hand replays 2x
+Landfill,epic,Score,Normal,1.418,0.536,188.379,0.0,3.487,1.507,1.235,0.568,0.568,Score +1 mult per card for every discard or swap used this round
+Sediment,rare,Score,Normal,1.364,0.624,198.444,16.122,0.0,1.711,1.273,0.775,0.775,Scores +10 pips for every 10 seconds elapsed this round
+Eagle Eye,rare,Score,Normal,1.355,0.574,181.491,0.0,4.612,1.707,1.251,0.552,0.552,Score +5 mult for every 10 seconds elapsed without using a swap
+Nimble,common,Score,Normal,1.301,0.0,35.222,0.0,2.475,1.552,1.0,0.247,0.0,2-card hands score +10 mult
+Encore,epic,Score,High,1.298,1.727,168.457,5.371,1.353,1.464,1.758,0.405,0.688,Odd-ranked cards in a set replay once
+What are The Odds,epic,Score,Outlier,1.274,3.238,236.622,0.0,4.631,1.455,2.42,0.657,0.933,Odd-ranked cards score x1.7 mult
+Quarter Chime,rare,Score,Normal,1.177,0.655,212.449,17.887,0.0,1.614,1.286,0.385,0.385,"Every time the clock passes a multiple of 15s, your next hand scores +45 pips"
+Every Day Essentials,rare,Score,High,1.169,1.635,182.876,13.914,0.0,1.61,1.715,0.65,0.9,Rank-6-and-below cards score their rank ×3 pips
+Five Stack,legendary,Score,Outlier,1.149,4.659,1599.759,21.569,5.338,1.759,7.659,0.25,1.0,"Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus"
+Echoes,common,Score,Normal,1.12,1.383,352.636,7.321,2.093,1.475,1.547,0.268,0.291,Playing the same hand type as the previous hand replays each card
+Rich Soil,common,Score,Normal,1.12,0.725,135.231,0.0,2.813,1.475,1.287,1.0,1.0,All cards score +1 mult
+Second Hand,common,Score,Normal,1.086,0.356,112.663,3.15,1.481,1.461,1.141,0.586,0.617,"Every time the clock passes a multiple of 10s, your next hand scores either +5 mult or +10 pips"
+Portfolio,epic,Score,Normal,1.083,0.862,129.138,0.0,2.829,1.387,1.378,0.998,1.0,"Score ×1 mult, +×0.15 for every card on the grid with a buff"
+Power Line,common,Score,Normal,1.073,1.317,207.634,0.0,3.636,1.455,1.521,0.54,0.875,Cards scored in a marked row or column score +5 mult
+4x4,common,Score,High,1.036,2.403,235.694,12.24,0.0,1.44,1.95,0.535,0.933,Cards scored in the 4th column score +16 pips
+Balance,rare,Score,High,1.03,2.524,242.867,0.0,5.891,1.537,2.103,0.405,0.817,Hands with exactly 2 suits score +5 mult per card
+Perfect Timing,epic,Score,High,0.988,2.506,214.165,5.617,1.625,1.353,2.099,0.392,0.904,Cards scored in a marked row or column replay once
+Scalper,rare,Score,Normal,0.964,1.144,228.156,0.0,4.639,1.503,1.5,1.0,1.0,"Score ×1 mult, +×0.25 per charge your Sleights are missing"
+Odd One In,rare,Score,Normal,0.885,0.838,138.837,0.0,3.232,1.462,1.366,0.657,0.921,Odd-ranked cards score +3 mult
+Cascade,common,Score,Outlier,0.842,3.062,264.628,15.303,0.0,1.357,2.211,0.375,0.983,Runs score +10 pips per card
+Undertow,epic,Score,Outlier,0.832,3.15,271.554,13.883,0.0,1.297,2.382,0.375,0.963,"Runs score ×1.5 pips, +×0.5 per card beyond 3"
+Heartwood,epic,Score,Normal,0.812,0.949,114.75,3.2,1.172,1.29,1.416,0.414,0.875,"When scored, the center-most card gains +5 pips & +2 mult"
+Quake,rare,Score,High,0.811,1.869,302.876,0.0,4.438,1.423,1.817,0.39,0.838,Sets score +5 mult per card in the largest set
+Four Eyes,common,Score,Normal,0.795,1.277,123.987,0.0,3.15,1.337,1.505,0.263,0.558,4-card hands score +12 mult
+Men of Repute,common,Score,High,0.771,1.892,186.758,2.378,2.578,1.327,1.748,0.33,0.904,Kings and Jacks score +5 pips and +5 mult
+Kindling,common,Score,Normal,0.76,0.347,100.69,0.0,2.77,1.323,1.137,0.268,0.267,Same-hand streaks score +4 mult × the streak count
+Flow State,rare,Score,Normal,0.719,0.706,217.098,9.778,0.0,1.375,1.309,0.388,0.388,"While focus is ×1.5 or higher, score +10 pips per card"
+Feng Shui,epic,Score,Normal,0.68,0.315,0.0,0.0,0.0,1.243,1.138,0.167,0.167,Permanently scores +3 pips for each hand scored with a row or column buff
+D6,epic,Score,Normal,0.676,0.566,90.45,5.71,0.0,1.242,1.248,0.714,0.946,Every 6th card scored permanently gains a random +1–6 pips
+Compost,common,Score,Low,0.664,0.235,83.897,0.0,2.115,1.282,1.093,0.287,0.287,+2 mult per card discarded this round
+Magnitude,epic,Score,Normal,0.638,0.863,76.397,0.0,1.685,1.228,1.378,0.505,0.792,Hands containing a pair score ×1.5 mult
+Ripple,rare,Score,High,0.625,1.771,262.072,6.519,1.798,1.326,1.774,0.378,0.928,Cards adjacent in rank to another card in the hand have a 50% chance to replay
+Stand-Up,rare,Score,Normal,0.585,0.872,80.933,0.0,2.044,1.305,1.381,0.193,0.317,Hands with cards from only one column score +5 mult per card
+Even Better,epic,Score,Low,0.55,0.656,116.336,5.007,0.0,1.196,1.288,0.468,0.845,Even-ranked cards have a 66% chance to score x2.2 pips
+Storm,common,Score,Normal,0.542,1.4,177.39,0.0,3.007,1.23,1.554,0.375,0.887,Runs score +2 mult per card
+Assembly Line,epic,Score,Low,0.526,0.581,79.473,0.0,1.678,1.188,1.255,0.357,0.731,Cards scored in a marked row or column score +1 mult for every card played from that line this round
+Sapling,rare,Score,Normal,0.514,0.686,81.035,6.219,0.0,1.268,1.3,0.66,0.942,"Each level, 3 cards permanently gain +5 pips"
+Diversity,rare,Score,Outlier,0.494,3.829,318.215,0.0,5.457,1.258,2.674,0.236,1.0,Hands with 4+ different ranks score +5 mult per card
+Lie Down,rare,Score,Low,0.487,0.447,35.116,0.0,1.512,1.254,1.195,0.182,0.188,Hands with cards from only one row score +5 mult per card
+Face Value,common,Score,Normal,0.484,0.91,113.056,7.5,0.0,1.205,1.36,0.4,0.858,Face cards (J/Q/K) score +10 pips
+Four Horse-man,epic,Score,Low,0.47,0.139,44.905,0.84,0.723,1.168,1.061,0.3,0.28,"4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or pause the clock for 4s"
+Dark Matter,epic,Score,Low,0.47,0.224,13.679,8.055,0.0,1.168,1.098,0.055,0.046,All-Spade hands add the remaining round time as pips
+Get Even,common,Score,Low,0.462,0.497,56.629,3.9,0.0,1.196,1.196,0.593,0.963,Even-ranked cards score +4 pips
+Right Place,common,Score,Normal,0.429,0.869,47.289,3.85,0.0,1.182,1.344,0.332,0.746,Cards scored in a marked row or column score +10 pips
+Tide Table,epic,Score,Normal,0.424,0.951,184.189,0.0,2.411,1.151,1.417,0.378,0.912,"Runs score ×1 mult, +×0.25 per Run scored this round"
+Aftershock,common,Score,Normal,0.422,0.9,73.936,5.997,0.0,1.179,1.356,0.237,0.439,Two Pair scores ×2 pips
+Feelin Lucky,epic,Score,Normal,0.419,1.0,90.242,0.0,1.743,1.15,1.438,0.637,0.967,"Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells"
+Threepeat,epic,Score,Low,0.41,0.228,48.127,0.0,1.215,1.146,1.1,0.135,0.225,"If the hand's pip total is divisible by 3, one of the following happens: rewind the clock 9s, +9 mult, +9 Focus"
+Wave Amplification,common,Score,Low,0.409,0.61,106.674,6.5,0.0,1.173,1.241,0.375,0.767,Consecutively played Runs score +10 pips × the streak count
+First Fruits,rare,Score,Low,0.378,0.495,81.9,4.811,0.0,1.197,1.216,0.695,0.958,Each card in the first hand each round permanently gains +3 pips
+Interest,rare,Score,Low,0.371,0.442,76.835,5.614,0.0,1.193,1.193,0.784,0.795,"Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3"
+Echo Location,rare,Score,Normal,0.365,1.024,147.356,3.282,1.181,1.19,1.448,0.262,0.645,Cards scored in a marked row or column have a 67% chance to replay
+Eye of the Storm,epic,Score,Low,0.332,0.15,81.04,1.78,0.505,1.119,1.066,0.072,0.072,Hands played in the middle third of the round replay the highest-ranked card(s) 2x
+Middle Management,common,Score,Low,0.314,0.325,53.589,3.01,0.0,1.133,1.128,0.484,0.775,4-card hands permanently give the 4th card +4 pips
+Ornery,epic,Score,Normal,0.31,1.418,60.073,0.0,1.428,1.111,1.622,0.23,0.708,Corner cards score ×2 mult
+"Ready, Set, Go",common,Score,Low,0.307,0.072,25.682,0.0,1.075,1.13,1.028,0.118,0.053,"A 3-card hand containing a 3, 6 or 9 scores +9 mult"
+Rogue Wave,rare,Score,Normal,0.292,1.024,123.635,3.8,1.25,1.152,1.448,0.11,0.303,"Runs played in correct sequential order score one of the following: +80 pips, +20 mult, +10 Focus"
+Hard Labour,legendary,Score,Low,0.284,0.538,145.222,8.467,0.0,1.188,1.769,0.482,0.75,"Each club scored this round adds more and more pips: doubles each time, starting at 1"
+Relentless,legendary,Score,Low,0.277,0.329,112.778,0.0,1.911,1.183,1.47,0.5,0.8,Each spade scores x0.05 mult for every spade scored since you took this (replays count). No effect until it passes x1
+Minute Hand,rare,Score,Low,0.259,0.308,70.683,0.0,1.781,1.135,1.135,0.321,0.321,"Every time the clock passes a multiple of 30s, your next hand scores ×2 mult"
+Marathon,epic,Score,Low,0.257,0.603,94.787,0.0,0.0,1.092,1.264,0.201,0.472,Run type hands apply the Focus multiplier twice
+Chorus,epic,Score,High,0.243,1.599,216.2,0.0,2.436,1.087,1.701,0.085,0.393,×1.75 mult each time a card is replayed
+Heads of State,epic,Score,Normal,0.222,1.196,80.821,0.0,1.176,1.079,1.524,0.11,0.608,A hand containing a King and one other Royal scores ×2 mult
+Hourglass,epic,Score,Low,0.171,0.508,35.488,1.02,0.27,1.061,1.223,0.15,0.443,"Each time the clock passes a minute mark, there is a 50% chance to give a random card on the grid +1 replay"
+First Light,common,Score,Low,0.159,0.347,33.289,2.482,0.0,1.067,1.137,0.207,0.587,Aces score 21 pips
+Mirror,rare,Score,Barely pays,0.141,0.182,57.286,0.0,1.156,1.073,1.079,0.535,0.656,Tap to tilt left or right; mimics the effect of the Trick it reflects.
+Cornered,rare,Score,Low,0.13,0.319,19.059,1.823,0.0,1.068,1.139,0.128,0.352,Corner cards score ×pips equal to the whole minutes left on the clock
+Obsessed,legendary,Score,Barely pays,0.126,0.145,37.716,0.0,0.853,1.083,1.207,0.634,0.77,Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5
+The Hummingbird,rare,Score,Barely pays,0.123,0.047,0.0,0.0,0.0,1.064,1.02,0.189,0.229,+2 mult for every clock pause or rewind triggered this game
+Full Load,rare,Score,High,0.111,1.613,87.831,2.925,0.0,1.058,1.705,0.065,0.686,5-card hands score +10 pips per card
+Double Take,rare,Score,Low,0.107,0.469,25.685,0.487,0.239,1.056,1.205,0.135,0.5,Each 2 scored force triggers your rightmost Trick
+Prime Times,rare,Score,Barely pays,0.079,0.147,33.656,2.133,0.067,1.041,1.064,0.324,0.482,"Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick"
+The Heron,rare,Score,Barely pays,0.068,0.031,12.097,0.0,0.35,1.035,1.014,0.035,0.035,Hands played 15+ seconds after the previous hand score +10 mult
+Rerun,epic,Score,Low,0.042,0.356,38.944,1.36,0.0,1.015,1.156,0.045,0.302,×1.2 pips each time a card is replayed
+Enriched,common,Score,Normal,0.033,0.765,35.575,1.25,0.0,1.014,1.302,0.013,0.25,Flushes score +100 pips
+Near Extinction,rare,Score,Barely pays,0.028,0.036,9.315,0.286,0.066,1.015,1.016,0.01,0.01,"In the last third of the round, each scored card replays"
+Tidal Forces,common,Score,Low,0.028,0.65,41.688,0.0,0.425,1.012,1.257,0.013,0.25,Flushes score +5 mult per card
+Inspirato,epic,Score,Barely pays,0.022,0.027,5.188,0.0,0.044,1.008,1.012,0.051,0.072,"When an Ace scores, prime your first and last Tricks"
+Twenty-One,legendary,Score,Low,0.021,0.223,7.361,0.525,0.0,1.014,1.319,0.013,0.254,"If the face values of your cards total exactly 21, score ×3 pips"
+Sideways to Infinity,rare,Score,Low,0.02,0.406,8.138,0.275,0.053,1.011,1.178,0.007,0.188,Each scored 8 replays once for each other 8 in the hand
+Night Owl,common,Score,Barely pays,0.019,0.015,2.495,0.0,0.075,1.008,1.006,0.01,0.01,Hands played in the last third of the round score +3 mult per card
+Rainbow,rare,Score,Normal,0.018,0.888,17.442,0.0,0.28,1.009,1.388,0.045,0.6,Hands with all four suits score x1.25 mult per card
+Straight Shot,epic,Score,Low,0.015,0.482,4.459,0.0,0.135,1.005,1.211,0.005,0.133,5-card hands played in a straight line add every card's pip value to mult
+Critical,epic,Score,Normal,0.013,1.085,91.571,0.0,1.125,1.005,1.476,0.169,0.464,Flush type hands score x3 mult
+The Kingfisher,rare,Score,Barely pays,0.011,0.003,0.0,0.0,0.0,1.006,1.001,0.032,0.032,+1 mult for every 2 seconds the clock has been paused or rewound this round
+Kaleidoscope,rare,Score,Low,0.01,0.206,11.089,0.0,0.0,1.005,1.09,0.013,0.166,Playing four or more suits in a hand applies the Focus multiplier a second time
+Deep Breath,rare,Score,Barely pays,0.009,0.072,0.0,0.0,0.0,1.005,1.031,0.043,0.129,Score ×2 pips while the clock is paused
+Inclusive,rare,Score,Normal,0.009,0.922,4.303,0.0,0.125,1.005,1.403,0.005,0.342,Hands spanning the full width or height of the grid score +25 mult
+Richter,legendary,Score,Barely pays,0.004,0.003,1.233,0.0,0.03,1.003,1.005,0.003,0.004,Four of a Kind scores ×3 mult and +10 Focus
+The Albatross,rare,Score,Barely pays,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,+5 pips for every second the clock has spent paused this round
+The Phoenix,legendary,Score,Barely pays,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)"
+Ley Line,epic,Score,Barely pays,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Cards scored at the intersection of a row effect and a column effect permanently gain +1 mult
+Patient Rulers,epic,Score,Barely pays,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"If you have paused or rewound the clock this round, face cards score x1.5 mult"
+The Woodpecker,rare,Score,Barely pays,-0.001,-0.0,0.0,0.0,0.0,1.0,1.0,0.02,0.004,Marks a random cell once every 30 seconds; a card scored from the marked cell replays 2x
+Bedrock,epic,Score,Barely pays,-0.003,-0.003,0.0,0.0,0.0,0.999,0.999,0.099,0.167,Four of a Kind permanently buffs its 4 cards +8 pips each
+Move as One,epic,Score,Barely pays,-0.003,-0.003,0.0,0.0,0.0,0.999,0.999,0.099,0.167,"If 3+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time"
+High Water,epic,Time,-,,,0.0,0.0,0.0,1.0,0.998,0.0,0.011,Runs pause the clock for 1s for each Run played this round
+Deluge,rare,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Flushes rewind the clock 15s
+The Cuckoo,epic,Time,-,,,0.0,0.0,0.0,0.997,0.989,0.082,0.168,Every other hand pauses the clock for 1s for every 5 replays triggered this round
+Double Jeopardy,epic,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"2 cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15s each"
+The Vulture,epic,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Cards discarded during the round’s first pause permanently pause the clock for 3s when scored (time buffs do not stack)
+Hyperphagia,epic,Time,-,,,0.0,0.0,0.0,0.999,0.999,0.018,0.018,Each hand rewinds the clock 1s for every 2 swaps + discards you hold
+Right Time,rare,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Cards scored in a marked row or column pause the clock for 2s
+Overtime,rare,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.003,0.003,Every hand rewinds the clock 1s for every 3 cards you have scored from this Trick's marked row or column. Resets each round.
+Rain Check,epic,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,"Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)"
+Temporal Rift,epic,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,A card scored where a row and column effect intersect permanently rewinds the clock 3s when scored (time buffs do not stack)
+Five Second Rule,rare,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,5-card hands pause the clock for 5s
+Wait Four It,rare,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,4-card hands permanently buff their 4th card: it pauses the clock for 2s when scored (time buffs do not stack)
+Dam Holding…,rare,Time,-,,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,Runs pause the clock for 3s

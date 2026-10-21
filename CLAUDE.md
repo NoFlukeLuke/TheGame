@@ -1872,6 +1872,6 @@ row. The store is overrides only, so a browser that typed this row keeps playing
   descriptions, BAL numbers, templates, tags); `python3 tools/trick-sheet.py <json> --out X.xlsx
   [--audit report.csv]` writes one row per BAL number with yellow NEW VALUE / Verdict / Notes columns, an
   x-factor formula, and the Trick audit's measurements matched by name (share of score, x on a hand,
-  fires %). The r621 run: `tools/sim/out/trick-audit-r621.json.gz`, card ladder scoring, 6 deals x 40 grids.
+  fires %). The r622 run: `tools/sim/out/trick-audit-r622.json.gz`, card ladder scoring, 6 deals x 40 grids.
 - The sim harness now defines `URL` / `URLSearchParams` (js/px-icons.js built the icon sheet url at
   load and every sim had failed to load the game since r583).

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r621 · Flow reward count defaults 33 / 34 / 18 / 10 / 5";
+const BUILD = "2026-10-21 · r622 · The common Trick sheet rebuilt on an audit of the current code";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
