@@ -2044,3 +2044,10 @@ sets `--rbg`), clipped to a stepped pixel rounded rect (`--pxc`, three `--pxs` 2
 The tile itself is not clipped, so a selected tile's ring is chained `drop-shadow`s of that fill
 (white, then violet, then the glow), which follow the steps; the wash is clipped the same way. The
 prize grid's gold ring is a drop-shadow glow on those tiles.
+
+## r630 - reward grid fills: dark gold and dark red (owner)
+With no outline (r625, pick branch) the fill carries the tile's kind. On the reward grid only
+(`#grid .rg-tile`, not the shop or Guided), a buff tile's `--rbg` is `#5a4512 -> #2e2307` and a debuff
+tile's `#5c1219 -> #2f080c` (were `#221d0e -> #14110a` and `#24101a -> #140a10`). Destination and
+mystery-outcome tiles keep theirs. Verified at 1440x820 and 420x900 (Flow, real click): no page errors.
+

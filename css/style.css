@@ -3687,6 +3687,9 @@
     content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
     background: var(--rbg); clip-path: var(--pxc);
   }
+  /* With no outline the fill carries the kind (r630, owner): dark gold, dark red. */
+  #grid .reward-cell.rg-tile.buff:not(.entity)   { --rbg: linear-gradient(160deg, #5a4512, #2e2307); }
+  #grid .reward-cell.rg-tile.debuff:not(.entity) { --rbg: linear-gradient(160deg, #5c1219, #2f080c); }
   #grid .reward-cell.rg-tile.selected:not(.entity)::after { border-radius: 0; clip-path: var(--pxc); }
   #grid .reward-cell.rg-tile.selected:not(.entity) {
     box-shadow: none !important;

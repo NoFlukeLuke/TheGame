@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r629 · merge: reward grid pixel tiles and bigger Tricks, with main's r625-r628";
+const BUILD = "2026-10-21 · r630 · reward grid: good tiles dark gold, bad tiles dark red";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
