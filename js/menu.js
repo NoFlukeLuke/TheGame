@@ -1,4 +1,4 @@
-const BUILD = "2026-10-21 · r625 · The owner's epic Trick pass: numbers, 24 custom improvement ladders with hooks, Temporal Rift force-triggers, Move as One / Rain Check / Wait For Iiiit are Knacks";
+const BUILD = "2026-10-21 · r626 · Builds: records lead with the real object (floppy art, business card, cert diamond, pixel icons); keyword axis skips the broad words; filter tags by family with counts; portrait rail is a drawer";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

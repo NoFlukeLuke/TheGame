@@ -1978,3 +1978,19 @@ row and a column mark on a card forced Quake once (527 vs 186 unforced) and play
 Matter 173s all spades / 0 mixed, tier 1 clubs+spades 173, tier 5 with a heart 432 (x2.5); Four Horse-man
 picks 1 then 2 of 4; Marathon 1 / 2 applies then flushes, sets at 5; Kaleidoscope 2 -> 4 at tier 2;
 Twinners tier 5 scored 6451 vs 605; five real hands through PLAY, no drift, no page errors.
+## r626 - Builds: the object, the keyword axis, the phone rail (`js/builds.js`)
+The main menu's BUILDS browser (the Procurement Catalogue, r230s; HISTORY.md "Definitions open on a
++") printed a raw emoji per record, so it stopped matching the game at r583. Each record now leads
+with `entityTileHTML` in a 46 x 58 box (`.bv-tile`; 30 x 38 zoomed out): the floppy with the owner's
+art, the business card with its charge count, the cert diamond, each with its pixel icon. No id is
+passed, so no tier stamp or bands (a run's property, not the catalogue's). The rail's minis are the
+same tiles. Events keep a glyph. **Keywords:** `broad: true` on KEYWORD_DEFS rows hand, score, play,
+round, time, grid (a third of the 286 live records mention "hand"); `buildKeywordsOf` skips them for
+grouping and filtering, tooltips still colour them. The filter panel lists keywords in
+`BUILD_KW_FAMILIES` order (scoring, clock, actions, hands, board, things) with a live count each,
+hiding any no record mentions; keyword clusters on the canvas sort by family then size, the
+leftover bucket reads GENERAL. "clock" joined the time terms (46 descriptions said it uncoloured).
+The "files open" count is taken over the pools, not the clusters (it read 920 / 920 under keyword
+grouping); retired Tricks are not catalogued (317 records). Under 700px wide the rail is a drawer
+behind a DRAFT button in the bar (`.rail-open`), the zoom controls hidden. Still unbuilt:
+`isRequisitioned` has no reader, so FILE WITH PROCUREMENT flags nothing in a run.

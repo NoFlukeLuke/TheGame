@@ -12,8 +12,18 @@
 //             The chosen sub-group's label sits above its cluster.
 //
 // ZOOM        Two tiers. At/above BUILD_TOOLTIP_ZOOM every record shows its full
-//             text; below it, icon + name only. Zooming further out just makes
+//             text; below it, object + name only. Zooming further out just makes
 //             those smaller - nothing is removed, it simply stops being legible.
+//
+// ART         r626: a record leads with the OBJECT every offer surface draws
+//             (entityTileHTML: the floppy with the owner's art, the business
+//             card, the cert diamond, each with its pixel icon). It used to
+//             print the raw emoji, which stopped matching the game at r583.
+//
+// KEYWORDS    r626: the keyword axis skips rows marked `broad` in KEYWORD_DEFS
+//             (hand, score, play, round, time, grid: a third of all records
+//             mention "hand"), and the filter panel lists the rest by family
+//             with a live count, hiding any with no record behind it.
 //
 // FILE STATE  Undiscovered entities read as FILE MISSING (a stuck-on note);
 //             task-gated ones read as AUTHORIZATION REQUIRED. Both can be hidden.
@@ -39,7 +49,8 @@ const BUILD_TOOLTIP_ZOOM = 0.62;   // at/above this, full records; below, icon +
 let draftBuild = { name: '', tricks: [], sleights: [], knacks: [] };
 
 const BUILD_TYPES = [
-  { key:'trick',   label:() => entityLabel('trick', true).toUpperCase(),   pool:() => TRICK_POOL,   rar:'tier'    },
+  // A retired Trick (r542: Stand Up, kept in the pool for saved runs that own it) is not catalogued.
+  { key:'trick',   label:() => entityLabel('trick', true).toUpperCase(),   pool:() => TRICK_POOL.filter(t => !t.retired), rar:'tier' },
   { key:'sleight', label:() => entityLabel('sleight', true).toUpperCase(), pool:() => SLEIGHT_POOL, rar:'rarity'  },
   { key:'knack',   label:() => entityLabel('knack', true).toUpperCase(),   pool:() => KNACK_POOL,   rar:'rarity'  },
   { key:'event',   label:'EVENTS',   pool:() => liveEventIds().map(id => ({
@@ -52,6 +63,19 @@ function buildEntityEmoji(e, type) {
   if (type === 'knack')  return e.emoji || '♦';
   if (type === 'sleight')return e.emoji || '🃏';
   return e.emoji || '✧';
+}
+// The object itself (r626): the same tile the pick, the shop, the tray and
+// Records draw, in a fixed box so the disc / card / diamond letterbox inside it
+// (the frames are size containers). No id is passed on purpose: the tier stamp
+// and the improvement bands belong to a run, and this is the catalogue. Events
+// have no object; they keep a glyph.
+function buildEntityTile(e, type, rar) {
+  const g = buildEntityEmoji(e, type);
+  if (type === 'event' || typeof entityTileHTML !== 'function')
+    return `<span class="bv-tile bv-tile-ev">${emGlyph(g)}</span>`;
+  const uses = type === 'sleight' && e.durability != null
+    ? (e.durability === 'infinite' ? '\u221e' : e.durability + 'x') : undefined;
+  return `<span class="bv-tile">${entityTileHTML({ entity: type, emoji: g, label: e.name, uses }, rar, { tip: false })}</span>`;
 }
 function buildEntityRarity(e, def) { return e[def.rar] || e.rarity || e.tier || 'common'; }
 
@@ -83,6 +107,7 @@ function ensureBuildsOverlay() {
       <span class="bv-title">PROCUREMENT CATALOGUE</span>
       <span class="bv-sub" id="bv-count"></span>
       <div class="bv-bar-right">
+        <button class="bv-chip bv-rail-btn" id="bv-rail-btn">DRAFT</button>
         <button class="bv-chip" id="bv-group-btn">GROUP: RARITY</button>
         <button class="bv-chip" id="bv-filter-btn">&#9673; FILTERS</button>
         <button class="bv-chip" id="bv-zoom-out">&minus;</button>
@@ -113,7 +138,7 @@ function ensureBuildsOverlay() {
       <div class="bv-f-sec">RARITY</div>
       <div class="bv-f-tags" id="bv-rar-tags"></div>
       <div class="bv-f-sec">KEYWORD</div>
-      <div class="bv-f-tags" id="bv-kw-tags"></div>
+      <div id="bv-kw-tags"></div>
       <div class="bv-f-foot"><button class="bv-clear" id="bv-clear-filters">CLEAR ALL</button></div>
     </div>`;
   document.body.appendChild(el);
@@ -129,7 +154,10 @@ function bindBuildsControls(el) {
     renderBuilds();
   };
   const fp = el.querySelector('#bv-filters');
-  el.querySelector('#bv-filter-btn').onclick = () => fp.classList.toggle('show');
+  el.querySelector('#bv-filter-btn').onclick = () => { fp.classList.toggle('show'); el.classList.remove('rail-open'); };
+  // Narrow screens (a phone upright): the rail is a drawer over the canvas,
+  // opened from the bar. Wide screens never see the button (css/builds.css).
+  el.querySelector('#bv-rail-btn').onclick = () => { el.classList.toggle('rail-open'); fp.classList.remove('show'); };
   el.querySelector('#bv-filters-close').onclick = () => fp.classList.remove('show');
   el.querySelector('#bv-mode-highlight').onclick = () => setBuildsFilterMode('highlight');
   el.querySelector('#bv-mode-isolate').onclick  = () => setBuildsFilterMode('isolate');
@@ -226,14 +254,48 @@ function buildsGroupsFor(def) {
   }
   const by = {};
   pool.forEach(e => {
-    const kws = keywordsIn(e.desc || '');
-    if (!kws.length) (by['·'] = by['·'] || { label:'NO KEYWORDS', cls:'', items:[] }).items.push(e);
+    const kws = buildKeywordsOf(e);
+    if (!kws.length) (by['·'] = by['·'] || { label:'GENERAL', cls:'', items:[], fam: 99 }).items.push(e);
     kws.forEach(k => {
-      by[k.key] = by[k.key] || { label: k.name.toUpperCase(), cls: k.cls, items: [] };
+      by[k.key] = by[k.key] || { label: k.name.toUpperCase(), cls: k.cls, items: [], fam: buildKwFamilyIndex(k.key) };
       by[k.key].items.push(e);
     });
   });
-  return Object.values(by).sort((a, b) => b.items.length - a.items.length);
+  // Family order first (scoring, clock, actions...), biggest cluster first inside one.
+  return Object.values(by).sort((a, b) => a.fam - b.fam || b.items.length - a.items.length);
+}
+
+// ── the keyword axis (r626) ─────────────────────────────────────────────────
+// `keywordsIn` answers "which mechanics does this text mention" and the browser
+// used all of it. Measured over the 286 live records: "hand" is in 101, "score"
+// in 65, "round" 53, "time" 50, "play" 34, "grid" 30. A filter a third of the
+// catalogue passes is not a filter, and a cluster of 67 is not a neighbourhood.
+// Those rows carry `broad: true` in KEYWORD_DEFS; they keep their colour in
+// every tooltip and are simply not an axis here. The hand FAMILIES (run, set,
+// flush, pair) stay: "basic" means not worth defining, not not worth building
+// around.
+function buildKeywordsOf(e) {
+  return keywordsIn(e.desc || '').filter(k => !k.broad);
+}
+// The filter panel lists keywords by family, in this order, each with the
+// number of records behind it; a keyword no record mentions is not offered.
+const BUILD_KW_FAMILIES = [
+  { label: 'SCORING',  keys: ['pips','mult','xpips','xmult','focus','speed_bonus','goal','streak','retrigger'] },
+  { label: 'CLOCK',    keys: ['pause','rewind'] },
+  { label: 'ACTIONS',  keys: ['swap','discard','draw','sell','buy'] },
+  { label: 'HANDS',    keys: ['run','set','flush','pair','straight'] },
+  { label: 'BOARD',    keys: ['row','column','corner','adjacent','selection','deck','suit','rank','wild'] },
+  { label: 'THINGS',   keys: ['trick','sleight','knack','limit','credits','reward','shop','curse','stone','boss','level'] },
+];
+function buildKwFamilyIndex(key) {
+  const i = BUILD_KW_FAMILIES.findIndex(f => f.keys.includes(key));
+  return i < 0 ? BUILD_KW_FAMILIES.length : i;
+}
+// Records per keyword over every pool, for the panel's counts.
+function buildKwCounts() {
+  const n = {};
+  BUILD_TYPES.forEach(def => def.pool().forEach(e => buildKeywordsOf(e).forEach(k => { n[k.key] = (n[k.key] || 0) + 1; })));
+  return n;
 }
 
 function buildsMatches(e) {
@@ -243,7 +305,7 @@ function buildsMatches(e) {
     if (!buildsActiveRarities.has(r)) return false;
   }
   if (buildsActiveKeywords.size) {
-    const keys = keywordsIn(e.desc || '').map(k => k.key);
+    const keys = buildKeywordsOf(e).map(k => k.key);
     if (!keys.some(k => buildsActiveKeywords.has(k))) return false;
   }
   return true;
@@ -256,13 +318,14 @@ function renderBuilds() {
   if (!canvas) return;
   document.getElementById('bv-group-btn').textContent = 'GROUP: ' + buildsGroupMode.toUpperCase();
 
+  // Counted over the pools, not the groups: under the keyword grouping a record
+  // sits in every cluster it mentions, and the bar used to read 920 / 920.
   let open = 0, total = 0;
+  BUILD_TYPES.forEach(def => def.pool().forEach(e => { total++; if (fileState(e.id) === 'open') open++; }));
   const html = BUILD_TYPES.map(def => {
     const groups = buildsGroupsFor(def).map(g => {
       const cards = g.items.map(e => {
-        total++;
         const st = fileState(e.id);
-        if (st === 'open') open++;
         if (!buildsShowHidden && st !== 'open') return '';
         const match = buildsMatches(e);
         if (buildsFiltersActive() && buildsFilterMode === 'isolate' && !match) return '';
@@ -283,6 +346,9 @@ function renderBuilds() {
 
   canvas.innerHTML = html;
   document.getElementById('bv-count').textContent = `${open} / ${total} files open`;
+  const nDraft = draftBuild.tricks.length + draftBuild.sleights.length + draftBuild.knacks.length;
+  const rb = document.getElementById('bv-rail-btn');
+  if (rb) rb.textContent = nDraft ? `DRAFT ${nDraft}` : 'DRAFT';
   canvas.querySelectorAll('.bv-entity').forEach(el => {
     el.onclick = () => toggleDraftEntity(el.dataset.type, el.dataset.id);
   });
@@ -310,10 +376,10 @@ function buildEntityHTML(e, def, state, match) {
   }
   return `<div class="${cls}" data-type="${def.key}" data-id="${e.id}">
     <div class="bv-head">
-      <span class="bv-emoji">${buildEntityEmoji(e, def.key)}</span>
-      <span class="bv-name">${e.name}</span>
+      ${buildEntityTile(e, def.key, rar)}
+      <span class="bv-head-text"><span class="bv-name">${e.name}</span>
+      <span class="bv-rar">${tierLabel(def.key, rar)}</span></span>
     </div>
-    <div class="bv-rar">${rar}</div>
     <div class="bv-desc">${highlightKeywords(e.desc || '')}</div>
     ${inDraft ? '<div class="bv-tick">&#10003; ON REQUISITION</div>' : ''}
   </div>`;
@@ -342,7 +408,7 @@ function renderBuildsRail() {
     ? ids.map(id => { const e = find(pool, id); if (!e) return '';
         const r = e.tier || e.rarity || 'common';
         return `<div class="bv-mini r-${r}" data-type="${type}" data-id="${id}" title="${e.name}">
-          <span>${buildEntityEmoji(e, type)}</span></div>`; }).join('')
+          ${buildEntityTile(e, type, r)}</div>`; }).join('')
     : `<span class="bv-empty">${empty}</span>`;
 
   el.innerHTML = `
@@ -379,9 +445,17 @@ function renderBuildsFilterTags() {
   if (!rt || !kt) return;
   rt.innerHTML = BUILD_RARITIES.map(r =>
     `<button class="bv-tag r-${r} ${buildsActiveRarities.has(r)?'on':''}" data-r="${r}">${r}</button>`).join('');
-  kt.innerHTML = KEYWORD_DEFS.map(d =>
-    `<button class="bv-tag ${buildsActiveKeywords.has(d.key)?'on':''}" data-k="${d.key}">
-       <span class="kw ${d.cls}">${d.name}</span></button>`).join('');
+  const counts = buildKwCounts();
+  const tag = d => `<button class="bv-tag ${buildsActiveKeywords.has(d.key)?'on':''}" data-k="${d.key}">
+       <span class="kw ${d.cls}">${d.name}</span><i>${counts[d.key]}</i></button>`;
+  const listed = new Set();
+  const fams = BUILD_KW_FAMILIES.map(f => ({ label: f.label,
+    defs: f.keys.map(k => KEYWORD_DEFS.find(d => d.key === k)).filter(d => d && !d.broad && counts[d.key]) }));
+  fams.forEach(f => f.defs.forEach(d => listed.add(d.key)));
+  const rest = KEYWORD_DEFS.filter(d => !d.broad && counts[d.key] && !listed.has(d.key));
+  if (rest.length) fams.push({ label: 'OTHER', defs: rest });
+  kt.innerHTML = fams.filter(f => f.defs.length).map(f =>
+    `<div class="bv-f-fam">${f.label}</div><div class="bv-f-tags">${f.defs.map(tag).join('')}</div>`).join('');
   rt.querySelectorAll('.bv-tag').forEach(b => b.onclick = () => {
     const r = b.dataset.r;
     buildsActiveRarities.has(r) ? buildsActiveRarities.delete(r) : buildsActiveRarities.add(r);

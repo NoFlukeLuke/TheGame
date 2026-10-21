@@ -33,8 +33,9 @@
   letter-spacing:2px; text-transform:uppercase; color:var(--gold-dim); margin-bottom:5px; }
 #builds-overlay .bv-prow{ display:flex; flex-wrap:wrap; gap:4px; min-height:30px; align-items:center; }
 #builds-overlay .bv-empty{ font-family:'Share Tech Mono',monospace; font-size:9px; color:#5f563f; }
-#builds-overlay .bv-mini{ width:30px; height:30px; border-radius:5px; display:flex; align-items:center; justify-content:center;
-  font-size:15px; cursor: var(--cur-pointer, pointer); background:rgba(255,255,255,.05); border:1.5px solid var(--rc,var(--c-mint)); }
+#builds-overlay .bv-mini{ width:34px; height:40px; border-radius:5px; display:flex; align-items:center; justify-content:center;
+  cursor: var(--cur-pointer, pointer); background:rgba(255,255,255,.05); border:1.5px solid var(--rc,var(--c-mint)); }
+#builds-overlay .bv-mini .bv-tile .reward-cell{ width:28px; height:36px; }
 #builds-overlay .bv-mini:hover{ filter:brightness(1.2); }
 
 #builds-overlay .bv-actions{ display:flex; flex-direction:column; gap:5px; margin-top:2px; }
@@ -86,14 +87,21 @@
 #builds-overlay .bv-entity:hover{ transform:translateY(-2px); box-shadow:0 0 20px -4px var(--rc,var(--c-mint)); }
 #builds-overlay .bv-entity.dim{ opacity:.2; }
 #builds-overlay .bv-entity.in-draft{ box-shadow:0 0 0 2px var(--c-mint), 0 0 22px -4px var(--c-mint); }
-#builds-overlay .bv-head{ display:flex; align-items:center; gap:6px; }
-#builds-overlay .bv-emoji{ font-size:17px; line-height:1; flex:0 0 auto; }
+#builds-overlay .bv-head{ display:flex; align-items:center; gap:8px; }
+/* THE OBJECT (r626): the tile every offer surface draws, in a stated box so the
+   disc / card / diamond letterbox inside it (their frames are size containers).
+   It is a picture here: the record itself takes the click. */
+#builds-overlay .bv-tile{ flex:0 0 auto; display:flex; pointer-events:none; }
+#builds-overlay .bv-tile .reward-cell{ position:relative; width:46px; height:58px; margin:0; padding:0; }
+#builds-overlay .bv-tile .reward-cell .rwd-name{ display:none; }
+#builds-overlay .bv-tile-ev{ width:46px; height:58px; align-items:center; justify-content:center; font-size:22px; color:var(--c-purple); }
+#builds-overlay .bv-head-text{ display:flex; flex-direction:column; gap:3px; min-width:0; }
 #builds-overlay .bv-name{ font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; letter-spacing:.4px;
   text-transform:uppercase; color:#fff; line-height:1.2;
   /* words are atomic - fitEntityName shrinks instead of breaking (r182) */
   overflow-wrap:normal; word-break:keep-all; hyphens:none; }
 #builds-overlay .bv-rar{ font-family:'Share Tech Mono',monospace; font-size:7.5px; letter-spacing:2px;
-  text-transform:uppercase; color:var(--rc,var(--c-mint)); margin-top:3px; }
+  text-transform:uppercase; color:var(--rc,var(--c-mint)); }
 #builds-overlay .bv-desc{ font-family:'Share Tech Mono',monospace; font-size:9.5px; line-height:1.5;
   color:#d9cfb4; margin-top:5px; overflow-wrap:anywhere; }
 #builds-overlay .bv-tick{ font-family:'Orbitron',sans-serif; font-size:7px; letter-spacing:1.5px; color:var(--c-mint); margin-top:5px; }
@@ -119,7 +127,9 @@
 #builds-overlay .bv-far .bv-rar,
 #builds-overlay .bv-far .bv-tick,
 #builds-overlay .bv-far .bv-note-sub{ display:none; }
-#builds-overlay .bv-far .bv-entity{ width:150px; min-height:0; padding:7px 8px; }
+#builds-overlay .bv-far .bv-entity{ width:150px; min-height:0; padding:5px 8px; }
+#builds-overlay .bv-far .bv-tile .reward-cell,
+#builds-overlay .bv-far .bv-tile-ev{ width:30px; height:38px; }
 #builds-overlay .bv-far .bv-note{ width:120px; padding:7px 6px; }
 
 /* filter panel */
@@ -139,12 +149,32 @@
 #builds-overlay .bv-f-sec{ font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim);
   margin:9px 0 5px; }
 #builds-overlay .bv-f-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+#builds-overlay .bv-f-fam{ font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:2px; color:#6f6449; margin:7px 0 3px; }
+#builds-overlay .bv-tag i{ font-style:normal; color:#6f6449; margin-left:5px; font-size:8px; }
+#builds-overlay .bv-tag.on i{ color:var(--cream); }
 #builds-overlay .bv-tag{ font-family:'Share Tech Mono',monospace; font-size:9px; padding:4px 7px; border-radius:4px;
   background:rgba(255,255,255,.04); border:1px solid #2a2416; color:var(--cream); cursor: var(--cur-pointer, pointer); text-transform:capitalize; }
 #builds-overlay .bv-tag.on{ background:rgba(255,176,46,.2); border-color:var(--phosphor); }
 #builds-overlay .bv-f-foot{ margin-top:10px; }
 #builds-overlay .bv-clear{ width:100%; font-family:'Orbitron',sans-serif; font-size:8.5px; letter-spacing:1.5px;
   padding:7px; border-radius:5px; background:rgba(255,90,106,.1); border:1px solid #4a2028; color:#e08a92; cursor: var(--cur-pointer, pointer); }
+
+/* ── narrow screens (a phone upright): the rail is a drawer ─────────────── */
+#builds-overlay .bv-rail-btn{ display:none; }
+@media (max-width: 700px){
+  #builds-overlay .bv-bar{ gap:6px; padding:7px 8px; flex-wrap:wrap; }
+  #builds-overlay .bv-title{ font-size:10px; letter-spacing:2px; }
+  #builds-overlay .bv-sub{ display:none; }
+  #builds-overlay .bv-zoom, #builds-overlay #bv-zoom-in, #builds-overlay #bv-zoom-out{ display:none; }
+  #builds-overlay .bv-rail-btn{ display:inline-block; }
+  #builds-overlay .bv-body{ position:relative; }
+  #builds-overlay .bv-rail{ position:absolute; left:0; top:0; bottom:0; width:min(260px, 84vw); flex:none;
+    transform:translateX(-102%); transition:transform .18s; box-shadow:8px 0 24px rgba(0,0,0,.55); }
+  #builds-overlay.rail-open .bv-rail{ transform:none; }
+  #builds-overlay.rail-open .bv-rail-btn{ background:var(--c-mint); color:#04241a; border-color:var(--c-mint); }
+  #builds-overlay .bv-filters{ right:6px; left:6px; width:auto; top:auto; max-height:70vh; }
+  #builds-overlay .bv-canvas{ padding:12px 12px 80px; }
+}
 
 #bv-toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(14px); z-index:660;
   font-family:'Share Tech Mono',monospace; font-size:11px; color:#04241a; background:var(--c-mint);

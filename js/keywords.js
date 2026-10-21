@@ -15,6 +15,11 @@
 // noise even when the rail IS open. It still gets its colour, it just never gets
 // a card. See keywordDefsIn below.
 //
+// `broad: true` (r626) is a third, separate flag for the BUILDS browser: a word
+// so common across the catalogue that it is no axis to group or filter by
+// (hand: 101 of 286 records; score 65; round 53; time 50; play 34; grid 30).
+// It keeps its colour and its basic/defined status; js/builds.js skips it.
+//
 // The term list was built by scanning every desc in TRICK_POOL / KNACK_POOL /
 // SLEIGHT_POOL, not guessed - see the frequency counts in the r143 commit.
 // Order matters: multi-word terms are matched before single words, so
@@ -35,7 +40,7 @@ const KEYWORD_DEFS = [
     name:'Focus',    def:'The meter beside the grid. It builds as you play and adds a score multiplier; it decays if you stall.' },
   { key:'speed_bonus', cls:'kw-focus', terms:['speed bonus'],
     name:'Speed bonus', def:'Extra Focus for playing a hand quickly after the previous one. It is largest the moment a hand lands and fades over the next few seconds. Pair, Flush of 3 and Flush of 4 earn only half of it.' },
-  { key:'score',     cls:'kw-score',   terms:['score'], basic:true,
+  { key:'score',     cls:'kw-score',   terms:['score'], broad:true, basic:true,
     name:'Score',    def:'Your points this round. Reach the round Goal to move on.' },
   { key:'goal',      cls:'kw-score',   terms:['goal'],
     name:'Goal',     def:'The score you must reach before the clock runs out to finish the round.' },
@@ -43,7 +48,7 @@ const KEYWORD_DEFS = [
   // ── economy / resources ──
   { key:'credits',   cls:'kw-credits', terms:['credits','credit','gold'],
     name:'Credits',  def:'The shop currency. Earned from rounds, rewards and selling.' },
-  { key:'time',      cls:'kw-time',    terms:['seconds','second','time'], basic:true,
+  { key:'time',      cls:'kw-time',    terms:['seconds','second','time','clock'], broad:true, basic:true,   // r626: 'clock' (46 descriptions) coloured like 'seconds'
     name:'Time',     def:'The round clock. It runs down while you play; at zero the round ends.' },
   { key:'pause',     cls:'kw-pause',   terms:['pause','paused','pauses'],   // r550: its own colour, not the clock's
     name:'Pause',    def:'Freezes the round clock for a moment - you act for free while it is held.' },
@@ -57,7 +62,7 @@ const KEYWORD_DEFS = [
   { key:'discard',   cls:'kw-discard', terms:['discards','discard','discarded','discarding'],
     name:'Discard',  def:'Throw selected cards away and draw replacements. Limited per round by the Discards limit.',
     live:() => `Current max: ${limits.discards.current}.` },
-  { key:'play',      cls:'kw-play',    terms:['played','plays','play'], basic:true,
+  { key:'play',      cls:'kw-play',    terms:['played','plays','play'], broad:true, basic:true,
     name:'Play',     def:'Submitting a selected hand to score it.' },
   { key:'sell',      cls:'kw-sell',    terms:['sell','sold','sells'],
     name:'Sell',     def:'Trade an owned Trick or Knack back for credits - always less than it cost.' },
@@ -81,7 +86,7 @@ const KEYWORD_DEFS = [
     name:'Straight', def:'Five cards in consecutive rank order.' },
   { key:'streak',    cls:'kw-streak',  terms:['streak','streaks'],
     name:'Streak',   def:'Playing the same hand type repeatedly. Streaks build bonuses and break when you switch.' },
-  { key:'hand',      cls:'kw-hand',    terms:['hands','hand'], basic:true,
+  { key:'hand',      cls:'kw-hand',    terms:['hands','hand'], broad:true, basic:true,
     name:'Hand',     def:'The set of connected cards you select and play together.' },
 
   // ── board ──
@@ -95,7 +100,7 @@ const KEYWORD_DEFS = [
     name:'Column',   def:'A vertical line of grid cells.' },
   { key:'corner',    cls:'kw-board',   terms:['corners','corner'], basic:true,
     name:'Corner',   def:'One of the four cells at the extremes of the grid.' },
-  { key:'grid',      cls:'kw-board',   terms:['grid','board'], basic:true,
+  { key:'grid',      cls:'kw-board',   terms:['grid','board'], broad:true, basic:true,
     name:'Grid',     def:'The playing field of cards. Its size is upgradeable.' },
   { key:'deck',      cls:'kw-board',   terms:['deck'], basic:true,
     name:'Deck',     def:'Every card you own. Scored cards return to it and are reshuffled each round.' },
@@ -121,7 +126,7 @@ const KEYWORD_DEFS = [
     name:'Stone',    def:'An inert blocker that occupies a grid cell and cannot be played.' },
   { key:'boss',      cls:'kw-bad',     terms:['boss','bosses'],
     name:'Boss',     def:'The round that ends each Act, with a modifier that changes the rules.' },
-  { key:'round',     cls:'kw-round',   terms:['rounds','round'],
+  { key:'round',     cls:'kw-round',   terms:['rounds','round'], broad:true,
     name:'Round',    def:'One timed attempt at a Goal. Clearing it advances you a node.' },
   { key:'level',     cls:'kw-round',   terms:['level','levels'],
     name:'Level',    def:'How far into the run you are. Goals scale with it.',
