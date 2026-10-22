@@ -699,3 +699,10 @@ The owner is redoing how events are displayed in another session. Putting events
 board itself (Pairs as a 5x4 with blank outer columns, Card Upgrade in the deck editor's
 grid) waits for that.
 
+
+## r644 - Line Shift
+`line_shift`, "Move your marked lines. Two effects can trade places." Offered only with two or more
+position effects on the board (`lineShiftEntries().length >= 2`). Tap an effect, then the row or
+column it moves to; a line another effect holds swaps the two; District lets a line be shared.
+Confirm writes every change through `finalizePositionMark`; Leave keeps the lines. The Surveyor /
+Leveler chooser moved onto the same wireframe look, as a screen on the board (js/board-screen.js).

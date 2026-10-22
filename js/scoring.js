@@ -2165,7 +2165,13 @@ function queuePositionChooser(trick, axes, district) {
   _posChooserQueue.push({ trick, axes, district });
   if (!_posChooserActive) showNextPositionChooser();
 }
+// r644 (owner): the chooser is a BOARD SCREEN (js/board-screen.js), the event
+// lab's wireframe look over the board's box: one box per line, the effects
+// already on a line printed inside it, the provisional default lit. PEEK hides
+// the glass so the board's own line markers can be read; KEEP takes the default.
 function showNextPositionChooser() {
+  const up = (typeof boardScreenOpenNow === 'function') ? boardScreenOpenNow() : null;
+  if (up && up._posChooser) up.close(true);
   const existing = document.getElementById('pos-chooser'); if (existing) existing.remove();
   if (!_posChooserQueue.length) { _posChooserActive = false; return; }
   _posChooserActive = true;
@@ -2174,45 +2180,46 @@ function showNextPositionChooser() {
   const anyFree = axes.some(axis => { const n = axis === 'row' ? gridRows : gridCols;
     for (let i = 0; i < n; i++) if (!rowColBonuses.some(x => x._trickRef !== trick && x.axis === axis && x.index === i)) return true; return false; });
   const allowAll = district || !anyFree;
-
-  const ov = document.createElement('div');
-  ov.id = 'pos-chooser';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:\'Crimson Pro\',serif;';
-  const axisWords = axes.map(a => a === 'row' ? 'row' : 'column').join(' or ');
-  const title = document.createElement('div');
-  title.style.cssText = 'color:var(--gold);font-size:17px;text-align:center;max-width:320px;line-height:1.4;';
-  title.innerHTML = `${trick.emoji || '📍'} <b>${trick.name}</b><br><span style="color:#cdb56a;font-size:12px;">Choose the ${axisWords} it marks</span>`;
-  ov.appendChild(title);
-
+  const word = a => a === 'row' ? 'row' : 'column';
+  const axisWords = axes.map(word).join(' or ');
+  const body = document.createElement('div');
+  const note = document.createElement('div'); note.className = 'bs-note';
+  note.textContent = `Choose the ${axisWords} ${trick.name} marks.`;
+  body.appendChild(note);
+  let ctl = null;
+  const commit = (axis, i, chosen) => {
+    // markPositionAxisTaken: the player's own pick is what the run alternates
+    // off, not the provisional default assignPositionMark already committed.
+    if (chosen) { finalizePositionMark(trick, axis, i); markPositionAxisTaken(axis); if (typeof noteMessage === 'function') noteMessage(`${trick.name} → ${word(axis)} ${i + 1}`, 'var(--gold)'); }
+    if (ctl) ctl.close(true);
+    showNextPositionChooser();
+  };
   axes.forEach(axis => {
     const n = axis === 'row' ? gridRows : gridCols;
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:340px;';
-    if (axes.length > 1) { const lab = document.createElement('div'); lab.textContent = axis === 'row' ? 'Rows' : 'Columns'; lab.style.cssText = 'color:#cdb56a;font-size:11px;width:100%;text-align:center;'; row.appendChild(lab); }
+    if (axes.length > 1) { const lab = document.createElement('div'); lab.className = 'bs-sub'; lab.textContent = axis === 'row' ? 'ROWS' : 'COLUMNS'; body.appendChild(lab); }
+    const grid = document.createElement('div'); grid.className = 'bs-lines';
     for (let i = 0; i < n; i++) {
-      const b = document.createElement('button');
-      b.textContent = (axis === 'row' ? 'R' : 'C') + (i + 1);
-      const takenByOther = rowColBonuses.some(x => x._trickRef !== trick && x.axis === axis && x.index === i);
-      const blocked = takenByOther && !allowAll;
-      const current = trick._posAxis === axis && trick._posIndex === i; // provisional default
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'bs-line';
+      const others = rowColBonuses.filter(x => x._trickRef !== trick && x.axis === axis && x.index === i);
+      const blocked = others.length > 0 && !allowAll;
+      const current = trick._posAxis === axis && trick._posIndex === i;   // provisional default
       b.disabled = blocked;
-      b.style.cssText = `min-width:42px;padding:8px 10px;border-radius:8px;font-size:13px;`
-        + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor: var(--cur-no, not-allowed);'
-          : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor: var(--cur-pointer, pointer);`);
-      // markPositionAxisTaken: the player's own pick is what the run alternates
-      // off, not the provisional default assignPositionMark already committed.
-      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); markPositionAxisTaken(axis); if (typeof showMessage === 'function') noteMessage(`${trick.name} → ${axis === 'row' ? 'row' : 'column'} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
-      row.appendChild(b);
+      if (current) b.classList.add('bs-cur-line');
+      const names = others.map(x => (typeof lineFXMeta === 'function') ? lineFXMeta(x.id).name : x.id);
+      b.innerHTML = `<b>${word(axis).toUpperCase()} ${i + 1}</b><small>${names.length ? names.map(x => bsEsc(x)).join(', ') : 'free'}</small>`;
+      if (!blocked) b.addEventListener('click', () => commit(axis, i, true));
+      grid.appendChild(b);
     }
-    ov.appendChild(row);
+    body.appendChild(grid);
   });
-
-  const hint = document.createElement('div');
-  hint.textContent = 'Click outside to keep the highlighted default';
-  hint.style.cssText = 'color:#8a7a3a;font-size:10px;';
-  ov.appendChild(hint);
-  ov.addEventListener('click', e => { if (e.target === ov) showNextPositionChooser(); }); // keep provisional
-  document.body.appendChild(ov);
+  const keepLabel = `KEEP ${word(trick._posAxis).toUpperCase()} ${trick._posIndex + 1}`;
+  ctl = (typeof boardScreenOpen === 'function') ? boardScreenOpen({
+    cls: 'bs-pos', head: `> ${trick.name.toUpperCase()}: MARK A ${axes.map(a => word(a).toUpperCase()).join(' OR ')}`,
+    html: body, peek: true,
+    keys: [{ label: keepLabel, primary: true, fn: () => commit(trick._posAxis, trick._posIndex, false) }],
+  }) : null;
+  if (!ctl) { commit(trick._posAxis, trick._posIndex, false); return; }
+  ctl._posChooser = true;
 }
 
 // ══════════════════════════════════════════════

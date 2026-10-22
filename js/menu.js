@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r643 · the card ratio's slack is one even gap, frame included; swap and fall travel by the drawn card";
+const BUILD = "2026-10-22 · r644 · console mode is the default skin; the row chooser, the Limit Break and a new Line Shift event; aimed tray landings; bigger console preview cards; the card flight lands at the slot's shape; no selection numbers, no Attention shrink; the skull peeks on hover";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

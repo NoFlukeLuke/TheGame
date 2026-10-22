@@ -65,7 +65,7 @@ const CARD_ANIM_KINDS = [
       { id: 'current', name: 'Current: lift' },
       { id: 'ripple',    name: 'A · Ripple', step: 7, desc: 'Selecting sends a small wave through the cards around it.' },
       { id: 'gaze',      name: 'B · Gaze', step: 7, desc: 'Cards lean toward the pointer (tilting the phone on mobile).' },
-      { id: 'attention', name: 'C · Attention', step: 7, desc: 'Selected cards hover and sway; the rest settle back.' },
+      { id: 'attention', name: 'C · Attention', step: 7, desc: 'Selected cards hover and sway.' },
       { id: 'watch',     name: 'D · Watch', step: 7, desc: 'Selected cards hover and sway. With nothing selected the cards look around slightly; once one is selected the rest turn, just barely, to the newest and hold.' },
     ] },
 ];

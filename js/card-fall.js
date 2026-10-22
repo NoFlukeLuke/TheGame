@@ -173,7 +173,6 @@ function renderCardAppearance(card, r, c, {
   const combinedLabel = '';
 
   const innerHTML = `
-    ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${(typeof cardIsFodder === 'function' && cardIsFodder(card)) ? `<div class="fodder-badge" title="Fodder: swap or discard it free${card._fodderTemp && !permFodder[cardId(card)] ? ' (until it leaves the board)' : ''}">♻</div>` : ''}
     ${combinedLabel}${_coin}${_pxf}

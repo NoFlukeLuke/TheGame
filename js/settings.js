@@ -219,7 +219,7 @@ const SETTINGS_DEF = [
   // js/stock-bulbs.js), not stored here, so the dev panel and Settings never disagree.
   { group: 'Display', id: 'consoleMode', label: 'Console mode',
     hint: 'The game is built into an 80s computer: cream housing, glass screens, a flip clock and engraved keys.',
-    type: 'toggle', default: false,
+    type: 'toggle', default: true,   // r644: console mode ships on
     get: () => typeof trayMachineOn === 'function' && trayMachineOn(),
     apply: v => { if (typeof trayPitSet === 'function') trayPitSet('on', v ? 3 : 1); } },
   { group: 'Display', id: 'stockBulbs', label: 'Stock display',

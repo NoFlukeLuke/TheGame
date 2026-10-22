@@ -23,7 +23,7 @@
 // (`ring`, % of the way from the rim to the floor; `ringGlow` its glow, 0 = no ring).
 const TRAY_PIT_KEY = 'lethe.trayPit.v2';
 // r498 (owner): light from below, shallow 3-step walls, full tray colour, a ring 10% down.
-const TRAY_PIT_DEFAULT = { on: 1, depth: 6, steps: 3, persp: 100, view: 15, tint: 100, light: 'below', floor: 0, ring: 10, ringGlow: 100 };
+const TRAY_PIT_DEFAULT = { on: 3, depth: 6, steps: 3, persp: 100, view: 15, tint: 100, light: 'below', floor: 0, ring: 10, ringGlow: 100 };
 let trayPit = (() => {
   const d = Object.assign({}, TRAY_PIT_DEFAULT);
   try {
@@ -37,6 +37,7 @@ let trayPit = (() => {
   return d;
 })();
 // on: 0 = glowing lines, 1 = pit, 2 = machine panel (charcoal), 3 = machine panel (cream).
+// r644 (owner): 3 (console mode) is the default; the store holds only another choice.
 // The machine panel is css/skin-machine.css (r471); it uses the pit's three reactions.
 function trayPitOn() { return trayPit.on >= 1; }
 function trayPitDrawn() { return trayPit.on === 1; }

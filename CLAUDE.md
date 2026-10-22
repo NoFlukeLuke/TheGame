@@ -2242,3 +2242,35 @@ card. Measured at 1440x820, game ratio: 4x4 gaps 14 13 14 13 15 (were 10 16 16 1
 20 20 21, 6x6 10 10 9 10; a 4x7's vertical gaps 31 32 31 32 32. A real swap across a column started
 at translate -76.5 against a drawn distance of 76.5 (no pop); a discard's column landed on its drawn
 x. 420x900 unchanged (6 6 6 6 6). No page errors.
+## r644 - console by default; board screens; Line Shift; aimed landings (owner)
+- **Console mode is the default skin** (`TRAY_PIT_DEFAULT.on` 3, js/tray-pit.js; the store is
+  overrides only, so a browser that chose the pit keeps it). Settings -> Display -> Console mode
+  defaults on. r471's "pit stays the default" is superseded.
+- **The board screen** (`js/board-screen.js`, `css/board-screen.css`): `boardScreenOpen({ head,
+  html, keys, peek })` lays the improvement animation's amber glass over `#grid-slot` (body-level
+  layer `#bs-layer`, zoomed like the stage), types the header at the game's text speed, holds
+  wireframe boxes (`.bs-note`, `.bs-lines` / `.bs-line`) and a row of keys. **PEEK** makes the
+  glass clear so the board under it can be read (its line markers), BACK brings it back.
+- **Surveyor / Leveler's row chooser** is a board screen (`showNextPositionChooser`,
+  js/scoring.js): one box per line with the effects already on it, the provisional default lit,
+  KEEP ROW N takes the default; `#pos-chooser` is gone.
+- **The Limit Break** in console mode, landscape, is laid over the board's box (`lbConsolePlace`,
+  js/limit-break.js; the overlay sits inside #cabinet, so the panel's zoom is `S.z / k`) and
+  css/board-screen.css draws it as the amber glass. Elsewhere the full-screen panel stays.
+- **Line Shift** (event `line_shift`, js/events.js): offered only with 2+ position effects
+  (`lineShiftEntries`, in EVENT_REQUIRES). Tap an effect, then the line it moves to; a line
+  another effect holds swaps the two (District lets them share). Confirm writes through
+  `finalizePositionMark`; Leave keeps the lines.
+- **Tray landings are aimed and slower** (`trayEntityLand`, js/tray-fx.js): the tile tapped in the
+  last 8s (`.reward-cell`, `.gp-opt`, `.event-choice`, never a tray chip; a document pointerdown
+  listener) is where the chip comes from: a body-level copy flies from that tile's box, at that
+  tile's size, to the chip's own box in 780ms, then the chip shows. No source: the drop-in, 700ms.
+- **Desktop console preview cards are 50 x 66** (was 42 x 55; css/skin-machine.css): the hand name
+  is a band along the top of the preview screen instead of a 44px column at its left.
+- **The card flight lands at the slot's exact box** (`flyGridCardToSlot`): the look's `scale(v)`
+  becomes `scale(v, v * k)` with k eased in toward the slot's height ratio. The fixed box's cells
+  are not the preview's shape, so a 73 x 85 card used to land 49 tall against a 55 slot and the
+  real card popped in bigger. Measured: 96.1 x 127.4 vs 96.1 x 126.9 viewport px at 1440x820.
+- **No selection-order numbers on cards** (`.sel-num` markup gone from render.js / card-fall.js).
+  **Attention no longer shrinks or dims the unselected cards.** **Hovering the clock's skull**
+  shows the boss peek on a mouse; a click still pins it and a double-click skips to the boss.

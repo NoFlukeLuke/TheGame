@@ -475,3 +475,16 @@ html.skin-machine #screen-location .loc-flex .loc-step:not(.loc-cur) {
 html.skin-machine #screen-location .loc-flex .loc-step:not(.loc-cur) b { font-size: 8px; }
 @container (max-width: 34px) { html.skin-machine #screen-location .loc-flex .loc-step b { display: none; } }
 html.skin-machine #stage:not(.landscape) #screen-location .loc-peek b { font-size: 13px; }
+
+/* ── r644 (owner): bigger preview cards on the desktop console ─────────────
+   The hand name is a BAND along the top of the preview screen instead of a 44px
+   column at its left, so the cards take the screen's width: 50 x 66 (was 42 x 55),
+   five across with 4px gaps in the 282px screen. The dance's track gives up its
+   8px padding so the taller card still fits the 87px screen. */
+html.skin-machine #stage.landscape #hand-name { width: 37.74%; height: 15px; flex-direction: row; justify-content: flex-start; align-items: center; gap: 6px; padding: 3px 10px 0; line-height: 1; }
+html.skin-machine #stage.landscape #hand-name .hn-l { display: inline-flex; flex-direction: row; gap: 4px; align-items: baseline; }
+html.skin-machine #stage.landscape #trick-panel #hand-name.hn-layered { font-size: 9px; line-height: 1; letter-spacing: 0; }
+html.skin-machine body:not(.shop-active) #stage.landscape #selected-cards { --card-w: 50px; --card-h: 66px; padding: 16px 8px 3px; gap: 4px; }
+html.skin-machine #stage.landscape #selected-cards.dnc-active { padding: 15px 6px 3px; }
+html.skin-machine #stage.landscape #selected-cards.dnc-active .dnc-track { padding: 0; gap: 4px; }
+html.skin-machine #stage.landscape #selected-cards.dnc-active .dnc-row.hand { min-height: 0; }

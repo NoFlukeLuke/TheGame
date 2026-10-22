@@ -68,6 +68,8 @@ const EVENT_REQUIRES = {
   reassignment: () => (trickTray || []).length > 0,
   // Tray ORDER is the whole screen, so one Trick is not a decision.
   shift_change: () => (trickTray || []).length >= 2 && ownsPositional(),   // r590: only when position matters
+  // r644: two position effects whose lines can trade places (js/events.js, Line Shift).
+  line_shift:   () => lineShiftEntries().length >= 2,
   // Needs something improvable to stake or to spin between.
   the_draw:     () => evImprovables().length >= 2,
   the_payline:  () => evImprovables().length >= ENTITY_SLOT_MIN,   // r590: five entities
@@ -179,6 +181,7 @@ function confirmEvent() {
     bargain:     confirmBargain,
     wager:       confirmWager,
     shift_change: confirmShiftChange,
+    line_shift:  confirmLineShift,
     bench:       confirmBench,
     rehearsal:   confirmRehearsal,
     workshop:    confirmWorkshop,
@@ -231,6 +234,7 @@ const EVENT_META = {
   bargain:     { name:'The Price',       flavor:'Every offer here costs you something first.' },
   wager:       { name:'Coin Flip',       flavor:'Even odds. You pick how much is riding on it.' },
   shift_change:{ name:'Tray Order',      flavor:'Put your Tricks in the order you want them to fire.' },
+  line_shift:  { name:'Line Shift',      flavor:'Move your marked lines. Two effects can trade places.' },
   bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
   rehearsal:   { name:'Extra Rep',       flavor:'Make one Trick fire more. It costs curse cards.' },
   workshop:    { name:'Maintenance',     flavor:'Refill your Sleights, or give them more charges.' },
@@ -286,6 +290,7 @@ function renderEventShell(id) {
     bargain:     renderBargain,
     wager:       renderWager,
     shift_change: renderShiftChange,
+    line_shift:  renderLineShift,
     bench:       renderBench,
     rehearsal:   renderRehearsal,
     workshop:    renderWorkshop,

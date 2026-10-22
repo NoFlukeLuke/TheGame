@@ -212,14 +212,55 @@ function trayFxWatchTriggers() {
   window.dncReleaseReal = wrapped;
 }
 
-// An entity dropping into its tray: large and soft above it, settling into place.
+// An entity dropping into its tray. r644 (owner): slower, and AIMED. The tile
+// tapped in the last TRAY_LAND_FROM_MS (the pick's choice, a reward grid tile, a
+// shop tile, an event choice; never a tray chip) is where the chip comes FROM: a
+// body-level copy of the chip starts on that tile's box, at that tile's size,
+// and flies on an arc to the chip's own box, then the chip itself shows. With no
+// source it drops in from above as before.
+let _trayLandSrc = null;
+const TRAY_LAND_FROM_MS = 8000, TRAY_LAND_MS = 780, TRAY_DROP_MS = 700;
+document.addEventListener('pointerdown', e => {
+  const t = e.target && e.target.closest && e.target.closest('.reward-cell, .gp-opt, .event-choice, .shop-tile');
+  if (!t || t.closest('#trick-tray-area, #knack-carousel-wrap, #tray-lift, #ia-layer, #bs-layer')) return;
+  const r = t.getBoundingClientRect(); if (!r.width) return;
+  _trayLandSrc = { r, at: performance.now() };
+}, true);
 function trayEntityLand(chip) {
   if (!chip || !chip.animate || document.body.classList.contains('reduced-motion')) return;
-  chip.animate([
-    { scale: '1.8', translate: '0 -45%', opacity: 0, filter: 'blur(3px) brightness(1.7)' },
-    { scale: '.88', translate: '0 4%', opacity: 1, filter: 'blur(0px) brightness(1.25)', offset: .62 },
-    { scale: '1.04', translate: '0 0', opacity: 1, filter: 'blur(0px) brightness(1.05)', offset: .82 },
-    { scale: '1', translate: '0 0', opacity: 1, filter: 'none' }], { duration: 520, easing: 'cubic-bezier(.3,.6,.35,1)' });
+  const src = (_trayLandSrc && (performance.now() - _trayLandSrc.at) < TRAY_LAND_FROM_MS) ? _trayLandSrc.r : null;
+  const dst = chip.getBoundingClientRect();
+  if (!src || !dst.width || !chip.offsetWidth) {
+    chip.animate([
+      { scale: '1.8', translate: '0 -45%', opacity: 0, filter: 'blur(3px) brightness(1.7)' },
+      { scale: '.88', translate: '0 4%', opacity: 1, filter: 'blur(0px) brightness(1.25)', offset: .62 },
+      { scale: '1.04', translate: '0 0', opacity: 1, filter: 'blur(0px) brightness(1.05)', offset: .82 },
+      { scale: '1', translate: '0 0', opacity: 1, filter: 'none' }], { duration: TRAY_DROP_MS, easing: 'cubic-bezier(.3,.6,.35,1)' });
+    return;
+  }
+  _trayLandSrc = null;
+  // The copy is drawn at the chip's zoom, so its px are design px (r503's rule).
+  const zoom = dst.width / chip.offsetWidth || 1;
+  const c = document.createElement('div'); c.className = chip.className; c.innerHTML = chip.innerHTML;
+  c.style.cssText = `position:fixed;left:${dst.left / zoom}px;top:${dst.top / zoom}px;width:${chip.offsetWidth}px;height:${chip.offsetHeight}px;zoom:${zoom};margin:0;z-index:400;pointer-events:none;transform-origin:center;`;
+  document.body.appendChild(c);
+  const dx = (src.left + src.width / 2 - (dst.left + dst.width / 2)) / zoom;
+  const dy = (src.top + src.height / 2 - (dst.top + dst.height / 2)) / zoom;
+  const s0 = Math.max(.6, Math.min(3, src.width / dst.width));   // the tile's size, so it leaves at the size it was tapped
+  chip.style.visibility = 'hidden';
+  const a = c.animate([
+    { translate: `${dx}px ${dy}px`, scale: s0, opacity: 0, filter: 'brightness(1.6)' },
+    { translate: `${dx}px ${dy}px`, scale: s0, opacity: 1, filter: 'brightness(1.6)', offset: .1 },
+    { translate: `${dx * .5}px ${dy * .5 - 26}px`, scale: (s0 + 1) / 2 * 1.08, opacity: 1, filter: 'brightness(1.3)', offset: .56 },
+    { translate: '0 0', scale: 1.06, opacity: 1, filter: 'brightness(1.1)', offset: .9 },
+    { translate: '0 0', scale: 1, opacity: 1, filter: 'brightness(1)' }], { duration: TRAY_LAND_MS, easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' });
+  let finished = false;
+  const done = () => {
+    if (finished) return; finished = true;
+    chip.style.visibility = ''; c.remove();
+    try { chip.animate([{ scale: '1.06', filter: 'brightness(1.3)' }, { scale: '1', filter: 'none' }], { duration: 220, easing: 'ease-out' }); } catch (e) {}
+  };
+  a.onfinish = done; setTimeout(done, TRAY_LAND_MS + 120);
 }
 // An entity leaving: a copy sinks into the tray where it was, shrinking and darkening.
 function trayEntitySink(rect, html, cls, zoom) {

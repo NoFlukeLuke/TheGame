@@ -703,6 +703,18 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId){
   // r437: the flight's shape is the chosen look (dev -> Card Animations, js/card-anims.js).
   // Every look keeps this duration, because the dance times its beats to it.
   const look = cardFlyLook(dx, dy, sc, idx||0, oh, lookId);
+  // r644 (owner): the copy lands at the slot's EXACT box. Every look scales by
+  // one number (width to width), but the board's cells (the fixed box, r586)
+  // and the preview's cards are different shapes: a 73 x 85 board card scaled
+  // to the slot's 42 wide landed 49 tall against a 55 slot, and the real card
+  // then popped in bigger. The y scale is eased in with the x scale's progress
+  // toward sc, so the card leaves its cell at its own shape and arrives at the
+  // slot's. A Sleight that stands up (side) keeps the uniform scale.
+  const ky = (!side && s.height && t.height) ? (t.height / s.height) / (sc || 1) : 1;
+  if (isFinite(ky) && ky > 0 && Math.abs(ky - 1) > 0.005) {
+    const prog = v => (Math.abs(sc - 1) < 1e-3) ? (Math.abs(v - 1) < 1e-3 ? 0 : 1) : Math.max(0, Math.min(1, (v - 1) / (sc - 1)));
+    look.frames = look.frames.map(f => Object.assign({}, f, { transform: String(f.transform).replace(/scale\(([-\d.e]+)\)/g, (m, v) => `scale(${v}, ${(+v) * (1 + (ky - 1) * prog(+v))})`) }));
+  }
   // The turn goes on the END of each frame's transform, after the flight's
   // translate, so the path is not turned with the card (a standalone rotate would be).
   const _tEl = side && slotEl.firstElementChild, _ts = _tEl && getComputedStyle(_tEl);

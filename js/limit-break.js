@@ -44,7 +44,32 @@ function openLimitBreakEvent(onClose) {
 
   renderLimitBreak();
   document.getElementById('limitbreak-overlay').classList.add('show');
+  lbConsolePlace();
 }
+
+// r644 (owner): in console mode, landscape, the Limit Break is a SCREEN on the
+// board: the panel is laid over the board's box (js/board-screen.js measures it)
+// and css/board-screen.css draws it as the amber event glass. Elsewhere the
+// full-screen panel stays. Re-placed on resize while it is up.
+function lbConsoleOn() {
+  const st = document.getElementById('stage');
+  return typeof trayMachineOn === 'function' && trayMachineOn() && st && st.classList.contains('landscape') && typeof bsStage === 'function';
+}
+function lbConsolePlace() {
+  const ov = document.getElementById('limitbreak-overlay'), panel = document.getElementById('lb-panel');
+  if (!ov || !panel || !ov.classList.contains('show')) return;
+  const S = lbConsoleOn() ? bsStage() : null;
+  if (!S) { ov.classList.remove('lb-console'); panel.style.cssText = ''; return; }
+  const g = bsBoardBox(S);
+  ov.classList.add('lb-console');
+  // The overlay sits inside #cabinet, so the cabinet's zoom (k) is already on
+  // it (placePauseMenu's rule, js/game-control.js); the panel's own zoom makes
+  // up the difference so its px are design px wherever the overlay lives.
+  panel.style.cssText = 'zoom:1;';
+  const k = (ov.getBoundingClientRect().width / ov.offsetWidth) || 1;
+  panel.style.cssText = `position:fixed;zoom:${S.z / k};left:${(S.sr.left / S.z + g.l)}px;top:${(S.sr.top / S.z + g.t)}px;width:${g.w}px;height:${g.h}px;max-width:none;max-height:none;margin:0;`;
+}
+window.addEventListener('resize', () => lbConsolePlace());
 
 // The locked-in pick, as a RECEIPT rather than a tile. It used to be drawn as a
 // full .lb-offer at the top of stage 2, which is the wrong weight for it: at
@@ -326,7 +351,8 @@ function lbDone() {
 }
 
 function closeLimitBreak() {
-  document.getElementById('limitbreak-overlay').classList.remove('show');
+  document.getElementById('limitbreak-overlay').classList.remove('show', 'lb-console');
+  document.getElementById('lb-panel').style.cssText = '';
   lbOffers = [];
   lbPrimaryPick = null;
   lbSecondPick = null;

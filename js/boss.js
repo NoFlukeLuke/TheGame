@@ -985,24 +985,37 @@ function bindBossBriefReopen() {
 // because only one of them has a rect in any given orientation.
 // r606: a DOUBLE-tap skips to the boss (js/boss-jump.js); its first tap has
 // opened the bubble, the second closes it on the way.
-let _clockBossOpen = false, _clockBossTapAt = 0;
+let _clockBossOpen = false, _clockBossTapAt = 0, _clockBossHover = false;   // r644: hover shows the peek on a mouse
 function bindClockBossPeek() {
   ['clock-boss', 'vclock-boss'].forEach(id => {
     const el = document.getElementById(id);
     if (!el || el._clockBossBound) return;
     el._clockBossBound = true;
+    // r644 (owner): on a mouse, pointing at the skull shows the peek; leaving
+    // hides it again unless a click pinned it. A click still pins / unpins and a
+    // double-click still skips to the boss (r606).
+    el.addEventListener('mouseenter', (e) => {
+      if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+      if (_clockBossOpen) return;
+      showBossPeek(el); _clockBossHover = true;
+    });
+    el.addEventListener('mouseleave', () => {
+      if (!_clockBossHover) return;
+      _clockBossHover = false;
+      if (!_clockBossOpen) hideBossPeek();
+    });
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const now = Date.now();
       if (now - _clockBossTapAt < DOUBLE_TAP_MS) {
-        _clockBossTapAt = 0; hideBossPeek(); _clockBossOpen = false;
+        _clockBossTapAt = 0; hideBossPeek(); _clockBossOpen = false; _clockBossHover = false;
         if (typeof bossJumpStart === 'function') bossJumpStart();
         return;
       }
       _clockBossTapAt = now;
-      if (_clockBossOpen) { hideBossPeek(); _clockBossOpen = false; return; }
+      if (_clockBossOpen) { hideBossPeek(); _clockBossOpen = false; _clockBossHover = false; return; }
       showBossPeek(el);
-      _clockBossOpen = true;
+      _clockBossOpen = true; _clockBossHover = false;
     });
   });
   if (!document._clockBossDismiss) {

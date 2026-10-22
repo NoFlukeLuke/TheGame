@@ -1,0 +1,128 @@
+/* ══ THE BOARD SCREEN (r644) - js/board-screen.js ══════════════════════════
+   A body-level layer over #stage, zoomed like it (design px inside). The screen
+   is the board's box as an amber glass: the improvement animation's (r632) and
+   the event lab's WIREFRAME (r593). A header types, the body holds boxes, keys
+   sit at the foot. PEEK hides the glass so the board under it can be read. */
+#bs-layer { position: fixed; z-index: 10001; pointer-events: none; display: none; overflow: hidden; }
+#bs-layer.bs-on { display: block; }
+.bs-screen {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  position: absolute; box-sizing: border-box; overflow: hidden; pointer-events: auto;
+  display: flex; flex-direction: column;
+  border-radius: 8px; border: 1px solid #000;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(76,107,47,.24), 0 0 0 2px #0008;
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
+  cursor: var(--cur-default, default);
+}
+.bs-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 5;
+  background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; }
+.bs-head { flex: 0 0 auto; padding: 8px 10px 4px; font-size: 17px; line-height: 24px; letter-spacing: 1px; color: var(--am-hi); min-height: 24px; }
+.bs-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 2px 10px 6px; display: flex; flex-direction: column; gap: 6px; }
+.bs-keys { flex: 0 0 auto; display: flex; gap: 6px; padding: 4px 10px 8px; justify-content: flex-end; }
+.bs-key {
+  font: inherit; font-size: 16px; letter-spacing: 1px; line-height: 1; padding: 6px 12px 5px;
+  color: var(--am); background: transparent; border: 1px solid var(--am-dim); border-radius: 3px;
+  text-shadow: inherit; cursor: var(--cur-pointer, pointer);
+}
+.bs-key:hover { background: rgba(255,176,46,.14); border-color: var(--am); }
+.bs-key.bs-primary { background: var(--am); color: var(--am-ink); text-shadow: none; border-color: var(--am-hi); }
+.bs-key.bs-primary:hover { filter: brightness(1.1); }
+.bs-key.bs-dim { opacity: .45; }
+.bs-key:disabled { opacity: .35; cursor: var(--cur-no, not-allowed); }
+/* typing (the improvement screen's way): a character holds its room, then shows */
+.bs-ch { font-style: normal; }
+.bs-tu { visibility: hidden; }
+.bs-cur { display: inline-block; position: relative; width: 0; height: 1em; vertical-align: -0.14em; font-style: normal; }
+.bs-cur::after { content: ''; position: absolute; left: 1px; top: 0; width: .5em; height: 1em; background: currentColor; box-shadow: 0 0 6px currentColor; animation: bsBlink 1.06s steps(1) infinite; }
+.bs-cur.typing::after { animation: none; }
+@keyframes bsBlink { 50% { opacity: 0; } }
+/* PEEK: the glass goes clear and only the keys stay */
+.bs-screen.bs-peeking { background: none; box-shadow: none; border-color: transparent; }
+.bs-screen.bs-peeking::after { content: none; }
+.bs-screen.bs-peeking .bs-head, .bs-screen.bs-peeking .bs-body { visibility: hidden; }
+.bs-screen.bs-peeking .bs-keys { pointer-events: auto; }
+.bs-screen.bs-peeking .bs-key:not(.bs-peek-key) { visibility: hidden; }
+.bs-screen.bs-peeking .bs-peek-key { background: var(--am); color: var(--am-ink); text-shadow: none; }
+
+/* ── wireframe boxes: a prompt in a double box, a choice in a single box with its title on the border ── */
+.bs-note { font-size: 15px; line-height: 1.15; color: var(--am); padding: 4px 6px; border: 3px double var(--am-dim); }
+.bs-sub { font-size: 14px; line-height: 1.1; color: var(--am-dim); letter-spacing: 1px; margin-top: 2px; }
+.bs-lines { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+.bs-line {
+  position: relative; box-sizing: border-box; min-height: 40px; padding: 10px 5px 4px; text-align: left;
+  font: inherit; font-size: 14px; line-height: 1.05; color: var(--am); background: transparent;
+  border: 1px solid var(--am-dim); border-radius: 2px; text-shadow: inherit; cursor: var(--cur-pointer, pointer);
+}
+.bs-line > b { position: absolute; left: 5px; top: -8px; padding: 0 3px; font-weight: normal; font-size: 13px; letter-spacing: 1px; background: #0e150a; color: var(--am-hi); line-height: 1; }
+.bs-line small { display: block; font-size: 12px; line-height: 1.05; color: var(--am-dim); white-space: normal; }
+.bs-line.bs-cur-line { border-color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi), 0 0 8px rgba(255,176,46,.35); }
+.bs-line.bs-cur-line > b { color: var(--am-ink); background: var(--am-hi); }
+.bs-line:hover:not(:disabled) { background: rgba(255,176,46,.12); }
+.bs-line:disabled { opacity: .35; cursor: var(--cur-no, not-allowed); }
+.bs-line.bs-mine small { color: var(--am); }
+
+/* ── LIMIT BREAK on the board (r644, console mode, landscape; js/limit-break.js) ──
+   #lb-panel is placed over the board's box by lbConsolePlace (fixed, zoomed, so
+   its px are design px); the overlay only blocks taps. The panel takes the amber
+   glass, the offers become wireframe boxes, the keys the screen's keys. */
+html.skin-machine #limitbreak-overlay.lb-console { display: block; padding: 0; background: rgba(0,0,0,.18); overflow: hidden; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  border-radius: 8px; border: 1px solid #000; padding: 0 10px 0;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(76,107,47,.24), 0 0 0 2px #0008;
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
+  scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
+}
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel::before { background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; border-radius: 8px; z-index: 4; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-bar {
+  width: calc(100% + 20px); margin: 0 -10px 6px; padding: 7px 10px 3px; border: 0; border-radius: 0;
+  background: #0e150a; box-shadow: 0 2px 0 #0e150a;
+}
+html.skin-machine #limitbreak-overlay.lb-console #lb-bar-dots { display: none; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-eyebrow { font-family: inherit; font-size: 17px; letter-spacing: 1px; color: var(--am-hi); text-shadow: inherit; text-transform: none; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-eyebrow::before { content: '> '; }
+html.skin-machine #limitbreak-overlay.lb-console .con-pause { color: var(--am); border-color: var(--am-dim); background: transparent; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-title { font-family: inherit; font-weight: normal; font-size: 19px; letter-spacing: 1px; color: var(--am-hi); text-shadow: inherit; margin-bottom: 2px; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sub { font-family: inherit; font-size: 15px; line-height: 1.15; color: var(--am); margin-bottom: 8px; padding: 4px 6px; border: 3px double var(--am-dim); max-width: none; width: 100%; box-sizing: border-box; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-second-title,
+html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice-title { font-family: inherit; font-size: 14px; letter-spacing: 1px; color: var(--am-dim); opacity: 1; text-transform: uppercase; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-offers { gap: 8px; margin: 10px 0 4px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer {
+  width: 92px; min-height: 0; padding: 12px 5px 6px; border-radius: 2px; border: 1px solid var(--am-dim);
+  background: transparent; color: var(--am); font-family: inherit; transition: none; overflow: visible;
+}
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer:hover:not(.disabled) { transform: none; border-color: var(--am); background: rgba(255,176,46,.12); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer.selected { transform: none; border-color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi), 0 0 8px rgba(255,176,46,.35); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer.blind { border-style: dashed; border-color: var(--am-dim); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer.blind.selected { border-color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer.taken { border-color: var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-tag { top: -8px; right: auto; left: 5px; padding: 0 3px; font-size: 12px; background: #0e150a; color: var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-icon { font-size: 22px; margin-bottom: 4px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-label { font-size: 15px; letter-spacing: 0; line-height: 1.05; margin-bottom: 2px; color: var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-gain { font-family: inherit; font-size: 15px; color: var(--am-hi); text-shadow: inherit; margin-bottom: 3px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc { font-family: inherit; font-size: 13px; line-height: 1.1; color: var(--am-dim); -webkit-line-clamp: 4; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc .kw, html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc [class^="kw-"] { color: var(--am); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-prog, html.skin-machine #limitbreak-overlay.lb-console .lb-offer-maxed-badge { font-size: 12px; color: var(--am); margin-top: 3px; letter-spacing: 0; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-taken.lb-bar { border: 1px solid var(--am-dim); border-radius: 2px; background: transparent; font-family: inherit; font-size: 14px; padding: 5px 8px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-tk-check, html.skin-machine #limitbreak-overlay.lb-console .lb-tk-tag,
+html.skin-machine #limitbreak-overlay.lb-console .lb-tk-gain, html.skin-machine #limitbreak-overlay.lb-console .lb-tk-name,
+html.skin-machine #limitbreak-overlay.lb-console .lb-tk-prog { color: var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice { border-top-color: var(--am-dim); padding-top: 8px; gap: 5px; max-width: none; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice-hint { font-family: inherit; font-size: 14px; color: var(--am-dim); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn { font-family: inherit; font-size: 14px; letter-spacing: 0; padding: 5px 8px; border-radius: 2px; background: transparent; border: 1px solid #c0453f; color: var(--am); text-shadow: inherit; transition: none; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn:hover:not(:disabled) { background: rgba(255,176,46,.12); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn.active { border-color: var(--am-hi); color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console #lb-actions {
+  width: calc(100% + 20px); margin: 10px -10px 0; padding: 6px 10px 8px; bottom: 0; gap: 6px; justify-content: flex-end;
+  border-top: 0; border-radius: 0; background: #0e150a;
+}
+html.skin-machine #limitbreak-overlay.lb-console #lb-confirm, html.skin-machine #limitbreak-overlay.lb-console #lb-done {
+  font-family: inherit; font-weight: normal; font-size: 16px; letter-spacing: 1px; line-height: 1; text-transform: uppercase;
+  padding: 6px 12px 5px; margin: 0; border-radius: 3px; box-shadow: none; transition: none;
+  color: var(--am); background: transparent; border: 1px solid var(--am-dim); text-shadow: inherit;
+}
+html.skin-machine #limitbreak-overlay.lb-console #lb-confirm:not(:disabled) { background: var(--am); color: var(--am-ink); text-shadow: none; border-color: var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console #lb-confirm:not(:disabled):hover { filter: brightness(1.1); }
+html.skin-machine #limitbreak-overlay.lb-console #lb-done:hover { background: rgba(255,176,46,.14); border-color: var(--am); color: var(--am); }

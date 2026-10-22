@@ -1738,3 +1738,93 @@ function confirmCleanSlate() {
   }
   closeEvent();
 }
+
+// ══ LINE SHIFT (r644, owner) ═══════════════════════════════════════════════
+// Move your position Tricks' marked lines. Offered only with two or more
+// position effects on the board (EVENT_REQUIRES). Tap an effect, then the line
+// it goes to: a free line takes it, a line another effect holds SWAPS the two
+// (both keep their axis). With District a line may be shared. Confirm writes
+// every change through finalizePositionMark; Skip leaves the lines as they are.
+function lineShiftEntries() {
+  if (typeof rowColBonuses === 'undefined') return [];
+  return rowColBonuses.filter(b => b._trickRef && !b._fixed && POSITION_ASSIGN_IDS.includes(b.id));
+}
+function renderLineShift() {
+  const body = document.getElementById('event-body');
+  if (!eventEligible('line_shift')) {
+    eventState.lineShiftPayout = BAL.shift_change ? BAL.shift_change.consolation_credits : 15;
+    body.appendChild(makeChoiceEl({ icon: '📍', name: 'Nothing to move',
+      desc: `You need two position effects before their lines can trade places. Take ${eventState.lineShiftPayout} credits for turning up.` }));
+    setEventConfirm(true);
+    document.getElementById('event-skip').textContent = 'Leave';
+    return;
+  }
+  // Work on a copy: { trick, axis, index } per effect. The registry is only written on Confirm.
+  eventState.lines = lineShiftEntries().map(b => ({ trick: b._trickRef, id: b.id, axis: b.axis, index: b.index, axis0: b.axis, index0: b.index }));
+  eventState.linePick = 0;
+  const wrap = document.createElement('div'); wrap.id = 'lsh-wrap';
+  wrap.innerHTML = `<div id="lsh-effects"></div><div id="lsh-hint"></div><div id="lsh-lines"></div>`;
+  body.appendChild(wrap);
+  const tools = document.createElement('div'); tools.id = 'shift-tools';
+  const reset = document.createElement('button'); reset.className = 'shift-tool'; reset.textContent = '↺ Reset';
+  reset.addEventListener('click', () => { eventState.lines.forEach(l => { l.axis = l.axis0; l.index = l.index0; }); renderLineShiftBody(); });
+  tools.appendChild(reset); body.appendChild(tools);
+  renderLineShiftBody();
+  setEventConfirm(true);
+  document.getElementById('event-skip').textContent = 'Leave as it is';
+}
+function renderLineShiftBody() {
+  const L = eventState.lines || [], pick = eventState.linePick || 0;
+  const word = a => a === 'row' ? 'row' : 'column';
+  const fx = document.getElementById('lsh-effects'), lines = document.getElementById('lsh-lines'), hint = document.getElementById('lsh-hint');
+  if (!fx || !lines) return;
+  fx.innerHTML = '';
+  L.forEach((l, i) => {
+    const rar = ['common', 'rare', 'epic', 'legendary'].includes(l.trick.tier) ? l.trick.tier : 'common';
+    const meta = (typeof lineFXMeta === 'function') ? lineFXMeta(l.id) : { color: '#c9a84c' };
+    const chip = document.createElement('div');
+    chip.className = 'lsh-chip' + (i === pick ? ' picked' : '') + ((l.axis !== l.axis0 || l.index !== l.index0) ? ' moved' : '');
+    chip.style.setProperty('--lc', meta.color);
+    chip.innerHTML = entityTileHTML({ entity: 'trick', id: l.trick.id, label: l.trick.name, emoji: trickEmoji(l.trick) }, rar, { tip: false })
+      + `<div class="lsh-name">${l.trick.name}</div><div class="lsh-where">${word(l.axis)} ${l.index + 1}</div>`;
+    chip.addEventListener('click', () => { eventState.linePick = i; renderLineShiftBody(); });
+    fx.appendChild(chip);
+  });
+  const cur = L[pick]; if (!cur) return;
+  const axis = cur.axis, n = axis === 'row' ? gridRows : gridCols;
+  const district = typeof hasKnack === 'function' && hasKnack('district');
+  if (hint) hint.textContent = `Tap the ${word(axis)} ${cur.trick.name} moves to. A ${word(axis)} another effect holds swaps the two.`;
+  lines.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'lsh-line';
+    const here = L.filter(l => l !== cur && l.axis === axis && l.index === i);
+    const fixed = (typeof rowColBonuses !== 'undefined' ? rowColBonuses : []).filter(x => x.axis === axis && x.index === i && !L.some(l => l.id === x.id && l.trick === x._trickRef));
+    const mine = cur.index === i;
+    if (mine) b.classList.add('mine');
+    const names = here.map(l => l.trick.name).concat(fixed.map(x => (typeof lineFXMeta === 'function') ? lineFXMeta(x.id).name : x.id));
+    b.innerHTML = `<b>${word(axis).toUpperCase()} ${i + 1}</b><small>${names.length ? names.join(', ') : 'free'}</small>`;
+    if (!mine) b.addEventListener('click', () => {
+      if (here.length && !district) {   // swap with the first effect there
+        const other = here[0]; other.index = cur.index;
+      }
+      cur.index = i;
+      renderLineShiftBody();
+    });
+    lines.appendChild(b);
+  }
+}
+function confirmLineShift() {
+  if (eventState.lineShiftPayout) {
+    coins += eventState.lineShiftPayout; updateCoinsUI();
+    noteMessage(`+${eventState.lineShiftPayout} credits`, 'var(--gold)');
+    return;
+  }
+  const L = eventState.lines || [];
+  let moved = 0;
+  L.forEach(l => {
+    if (l.axis === l.axis0 && l.index === l.index0) return;
+    finalizePositionMark(l.trick, l.axis, l.index); moved++;
+    noteMessage(`${l.trick.name} → ${l.axis === 'row' ? 'row' : 'column'} ${l.index + 1}`, 'var(--gold)');
+  });
+  if (!moved) noteMessage('Lines kept', 'var(--cream-dim)');
+}
