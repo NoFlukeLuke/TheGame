@@ -184,7 +184,7 @@ function updateInteractCosts() {
   }
   // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
   set('ic-play', `${playHandCostThisRound || 0}s`);
-  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
+  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Spoiled (id hoarder), + reward debuff.
   let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
   else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }

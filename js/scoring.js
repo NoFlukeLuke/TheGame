@@ -1205,7 +1205,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('rerun', _m, totalPips - _pre);
   }
   // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
-  if (hasTrick('deep_breath') && pipeTimerPaused) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }
+  if (hasTrick('deep_breath') && clockPausedForHand()) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }
   // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
   if (hasTrick('interest') && coins > 0) {
     const _m = Math.min(BAL.interest.max_pip_mult, 1 + Math.floor(coins / 10) * BAL.interest.pip_mult_per_10_credits);
@@ -1318,6 +1318,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       const _reps = retrigByKey[r + '-' + c] || 1, _cid = (gridData[r]?.[c]?._id) || 0;
       for (let k = 0; k < _reps; k++) _forceIds.push(_rt);
       if (BAL.temporal_rift.chance_extra > 0 && _detReplayRand(_cid + 7951, handsPlayedRound) < BAL.temporal_rift.chance_extra) _forceIds.push(_rt);
+    });
+  }
+  // 4x4 (r635, a Knack, owner): every scored 4 (and Queen from the 5th improvement)
+  // rolls `chance` to force-trigger the Trick in tray slot 4, once per replay.
+  // Deterministic per card, replay and hand, so the preview and the score agree.
+  if (hasKnack('four_by_four') && typeof forceableTrickIds === 'function' && trickTray[3]) {
+    const _ft = trickTray[3].id;
+    if (forceableTrickIds().includes(_ft)) _scoreCells.forEach(([r, c]) => {
+      const cd = gridData[r]?.[c];
+      if (!cd || !(cd.rank === '4' || (BAL.four_by_four.queens && cd.rank === 'Q'))) return;
+      const _reps = retrigByKey[r + '-' + c] || 1, _cid = cd._id || 0;
+      for (let k = 0; k < _reps; k++) if (_detReplayRand(_cid + 4441 + k * 7919, handsPlayedRound) < BAL.four_by_four.chance) _forceIds.push(_ft);
     });
   }
   // Extra Rep's CHAIN (r590): each time a chained Trick fired this hand, a random
@@ -1895,7 +1907,7 @@ function focusExtraApplies(handName, cells) {
       // r625: `extra` applications on a run; flushes and sets join as it improves.
       if (handHasFamily(_names, 'run') || (BAL.marathon.flush && handHasFamily(_names, 'flush')) || (BAL.marathon.sets && handHasFamily(_names, 'set'))) n += BAL.marathon.extra;
     }
-    if (hasTrick('phoenix') && (pipeTimerPaused || handTriggersPause(handName, cells))) n++;
+    if (hasTrick('phoenix') && (clockPausedForHand() || handTriggersPause(handName, cells))) n++;
     if (hasTrick('kaleidoscope')) {
       // Four or more suits in the hand. Same counting the old +4 Focus effect used:
       // white counts as white, a combined card counts both suits, a wild counts none.

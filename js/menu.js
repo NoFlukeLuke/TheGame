@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r644 · console mode is the default skin; the row chooser, the Limit Break and a new Line Shift event; aimed tray landings; bigger console preview cards; the card flight lands at the slot's shape; no selection numbers, no Attention shrink; the skull peeks on hover";
+const BUILD = "2026-10-22 · r645 · 4x4 is a rare Knack (scored 4s may force the Trick in slot 4); v6 names; a played hand ends every pause; V6_NAMES_AND_LADDERS.xlsx";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

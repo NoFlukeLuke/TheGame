@@ -61,7 +61,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Wildfire: reaching a same-hand streak of 3 adds Focus
     if (hasTrick('wildfire') && lastHandType === hand && streakCount + 1 === 3) totalFocus += BAL.wildfire.focus * trickFires('wildfire');
     // The Falcon: hands played while the clock is paused add +10 Focus
-    if (pipeTimerPaused) totalFocus += BAL.frozen_moment.focus * trickFires('frozen_moment');
+    if (clockPausedForHand()) totalFocus += BAL.frozen_moment.focus * trickFires('frozen_moment');
     // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
     if (isSquare(handCells)) totalFocus += BAL.shape_square.focus * trickFires('shape_square');
     if (isCross(handCells) && realHandOfSize(handCells, 5))  totalFocus += BAL.shape_cross.focus  * trickFires('shape_cross');
@@ -282,6 +282,8 @@ function playHand() {
   }
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
+  // r635: the hand ends every running pause (js/discard.js); it still scores as played in it.
+  if (typeof endPausesForPlay === 'function') endPausesForPlay();
   const { hand, handCells, penaltyCells, penaltyPips } = result;
   // Kickers (r326, renamed r385): cards inside the hand that no component claims.
   // Every hand may carry one; Tagalong allows more and makes them free. Unless

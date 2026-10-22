@@ -51,7 +51,7 @@ const KEYWORD_DEFS = [
   { key:'time',      cls:'kw-time',    terms:['seconds','second','time','clock'], broad:true, basic:true,   // r626: 'clock' (46 descriptions) coloured like 'seconds'
     name:'Time',     def:'The round clock. It runs down while you play; at zero the round ends.' },
   { key:'pause',     cls:'kw-pause',   terms:['pause','paused','pauses'],   // r550: its own colour, not the clock's
-    name:'Pause',    def:'Freezes the round clock for a moment - you act for free while it is held.' },
+    name:'Pause',    get def() { return (typeof pauseEndsOnPlay === 'undefined' || pauseEndsOnPlay) ? 'Stops the round clock for a number of seconds. Playing a hand ends every pause; that hand still counts as played while paused.' : 'Freezes the round clock for a moment - you act for free while it is held.'; } },
   { key:'rewind',    cls:'kw-rewind',  terms:['rewind','rewinds','rewound'],
     name:'Rewind',   def:'Moves the clock backward, re-entering time you already spent.' },
 

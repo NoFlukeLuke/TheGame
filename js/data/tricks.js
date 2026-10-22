@@ -184,7 +184,7 @@ const TRICK_POOL = [
   { id:'third_charm',    name:"3rd Time's a Charm",  tier:'rare',      tags:['replay','card','scores'],          desc:'The 3rd card of a hand replays 2x' },
   // ── 4-card-hand family (r123) ──
   { id:'four_eyes',      name:'Four Eyes',           tier:'common',    tags:['mult','hand','size','scores'],            desc:'4-card hands score +24 mult' },
-  { id:'four_by_four',   name:'4x4',                 tier:'common',    tags:['pips','card','position','scores','line'], desc:'Cards scored in the 4th and 6th columns score +24 pips' },
+  { id:'four_by_four',   name:'4x4',                 tier:'common',    retired:true, tags:['pips','card','position','scores','line'], desc:'Cards scored in the 4th and 6th columns score +24 pips' },
   { id:'four_horseman',  name:'Four Horse-man',      tier:'epic',      tags:['pips','mult','focus','time','hand','size','scores','chance'], desc:'4-card hands grant a random bonus: +24 pips, +24 mult, +8 Focus, or pause the clock for 8s' },
   { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['deck','time','card','size','scaling'],            desc:'4-card hands permanently buff their 4th card with a 2s pause (cannot stack from this source)' },
   // ── Set add-ons (r124) ──

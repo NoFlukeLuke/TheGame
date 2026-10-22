@@ -39,7 +39,7 @@ function doDiscard() {
   { const _lock = (typeof crDiscardLocked === 'function') ? crDiscardLocked(selected) : null; if (_lock) { refuse(_lock); return; } }
   if (typeof dragGrace !== 'undefined') dragGrace = false;
   // Guard: block discard when out of discards. Mirrors the swap guard in input.js.
-  // Hoarder is the one bypass - its whole text is "discards no longer count against
+  // Spoiled (id hoarder) is the one bypass - its whole text is "discards no longer count against
   // the discard limit", so it must not be stopped by that limit either.
   // r567: a selection of nothing but Fodder costs no stock, so it is never refused for stock.
   const _freeHand = typeof freeHandActive === 'function' && freeHandActive();   // r571: Free Hand's window
@@ -112,7 +112,7 @@ function doDiscard() {
     if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
     else discardToDrawPile(_dc);
   });
-  // Hoarder: discards don't count against limit (but cost 2× time below)
+  // Spoiled (id hoarder): discards don't count against limit (but cost 2× time below)
   // r567: Fodder takes no stock either, when every card thrown away is Fodder.
   const _fodderN = _freeHand ? discardedCards.length : ((typeof cardIsFodder === 'function') ? discardedCards.filter(cardIsFodder).length : 0);
   if (!hasKnack('hoarder') && _fodderN < discardedCards.length) discards--;
@@ -409,6 +409,38 @@ function cullPay() {
   if (!hasTrick('cull')) return;
   const _n = Math.floor((Math.max(0, swaps) + Math.max(0, discards)) / BAL.cull.per) * BAL.cull.focus_per_stock;
   if (_n > 0) addFocus(_n * trickFires('cull'), 'cull', 'trick');
+}
+
+// A hand ends every pause (r635, owner). The default; dev -> Change the game now
+// switches it off (`lethe.pauseEnds.v1`, stored only when off). Rewinds keep
+// their seconds; a pause now lasts until its time runs out OR the next hand.
+// The hand that ends a pause still counts as played during it: everything that
+// asks "is the clock paused" while scoring asks clockPausedForHand(), which stays
+// true for the rest of that playHand (cleared on the next microtask). A pause
+// this hand grants starts after the end, so it runs into the next hand.
+// The Stopwatch is untouched: it already holds until the hand's tally settles.
+let pauseEndsOnPlay = (() => { try { return localStorage.getItem('lethe.pauseEnds.v1') !== '0'; } catch (e) { return true; } })();
+function pauseEndsSetEnabled(on) {
+  pauseEndsOnPlay = !!on;
+  try { on ? localStorage.removeItem('lethe.pauseEnds.v1') : localStorage.setItem('lethe.pauseEnds.v1', '0'); } catch (e) {}
+}
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => { const cb = document.getElementById('dev-pause-ends'); if (cb) cb.checked = pauseEndsOnPlay; });
+let _handPlayedInPause = false;
+function clockPausedForHand() { return pipeTimerPaused || _handPlayedInPause; }
+// Called by playHand once the hand is committed, before anything is scored.
+function endPausesForPlay() {
+  if (!pauseEndsOnPlay) return;
+  if (pipeTimerPaused && !_handPlayedInPause) { _handPlayedInPause = true; Promise.resolve().then(() => { _handPlayedInPause = false; }); }
+  if (!(pauseSecondsLeft > 0)) return;
+  if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
+  pauseSecondsLeft = 0;
+  firstPauseActive = false;   // the first continuous pause stretch is over (Vulture)
+  if (stopwatchActive) return;
+  pipeTimerPaused = false;
+  const clockEl = document.getElementById('clock');
+  if (clockEl) clockEl.classList.remove('clock-paused');
+  if (typeof endClockFreeze === 'function') endClockFreeze();
+  updateClockUI();
 }
 
 function pauseRound(seconds, srcId, srcSource) {

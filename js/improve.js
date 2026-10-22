@@ -127,6 +127,8 @@ const IMPROVE_PLAN = {
   swift:            t => ({ mult_per_interval: 6 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
   // +1 replay a tier, +2 for the 5th
   woodpecker:       t => ({ retrigger_count: 3 + [0, 1, 2, 3, 4, 6][t] }),
+  // r635 (owner): 44% +16% an improvement, capped at 100%; the 5th adds Queens
+  four_by_four:     t => ({ chance: Math.min(1, 0.44 + 0.16 * Math.min(t, 4)), queens: t >= 5 ? 1 : 0 }),
   // ── r625, the owner's epic sheet ──
   // one more prime, then one more rolled rank, alternating; the 5th does both
   wild_heart:       t => ({ primes: 1 + [0, 1, 1, 2, 2, 3][t], extra_ranks: [0, 0, 1, 1, 2, 3][t] }),
@@ -306,6 +308,7 @@ function applyEntityTiers() {
   [typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : [],
    typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
    typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []].forEach(p => p.forEach(e => {
+     if (e) v6NameApply(e);
      if (!e || !BAL_BASE[e.id]) return;
      if (typeof DESC_TEMPLATES !== 'undefined' && DESC_TEMPLATES[e.id]) return;  // generated already
      if (DESC_BASE[e.id] == null) return;
@@ -313,6 +316,16 @@ function applyEntityTiers() {
      rewriteDescForTier(e);
   }));
   syncOwnedEntityDescs();
+}
+
+// V6 names (r635, owner; js/data/v6-names.js): at tier 5 an entity listed there
+// takes its v6 name, below it the base name (captured the first time it is seen,
+// so a later rename in the pool row is still the base).
+const NAME_BASE = {};
+function v6NameApply(e) {
+  if (typeof V6_NAMES === 'undefined' || !V6_NAMES[e.id]) return;
+  if (!(e.id in NAME_BASE)) NAME_BASE[e.id] = e.name;
+  e.name = entityTierOf(e.id) >= IMPROVE_MAX_TIER ? V6_NAMES[e.id] : NAME_BASE[e.id];
 }
 
 // The pools hold the canonical entity; what the player OWNS are copies made at

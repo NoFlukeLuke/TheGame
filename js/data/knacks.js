@@ -11,7 +11,7 @@ const KNACK_POOL = [
   { id:'free_swaps',      emoji:'🕊️',  name:'Free Swaps',       rarity:'common', desc:'Swapping cards costs no time.', tags:['stock','other','swap'] },
   { id:'free_discards',   emoji:'🪶',  name:'Free Discards',    rarity:'common', desc:'Discarding costs no time.', tags:['stock','other','discard'] },
   { id:'steady_hand',     emoji:'♾️',  name:'Steady Hand',      rarity:'common', desc:'Swaps no longer count against the swap limit, but cost 2× time.', tags:['stock','other','swap','cost'] },
-  { id:'hoarder',         emoji:'🗑️',  name:'Hoarder',          rarity:'common', desc:'Discards no longer count against the discard limit, but cost 2× time.', tags:['stock','other','discard','cost'] },
+  { id:'hoarder',         emoji:'🗑️',  name:'Spoiled',          rarity:'common', desc:'Discards no longer count against the discard limit, but cost 2× time.', tags:['stock','other','discard','cost'] },
   { id:'time_bank',       emoji:'⏳',  name:'Time Bank',        rarity:'rare',   desc:'Every round starts with +30s.', tags:['time','other','start'] },
   { id:'inheritance',     emoji:'💰',  name:'Inheritance',      rarity:'rare',   desc:'Start each round with +5 credits.', tags:['credits','other','start'] },
   { id:'short_change',    emoji:'🤏',  name:'Short Change',     rarity:'common', desc:'Each hand you play with fewer cards than your hand size earns 1 credit.', tags:['credits','hand','size'] },
@@ -86,6 +86,7 @@ const KNACK_POOL = [
   { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you hit your Focus limit, gain 8 credits, then Focus resets to a third of the limit.', tags:['credits','other','cost'] },
   { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your Focus limit is 10 lower. At the end of each round, gain credits equal to half your current Focus.', tags:['credits','focus','other','level','cost'] },
   { id:'knock_on',     emoji:'🔗',  name:'Knock-On',      rarity:'rare', desc:'Whenever a limit other than Focus Cap goes up, another random limit goes up too.', tags:['limit','other'] },
+  { id:'four_by_four', emoji:'4️⃣',  name:'4x4',           rarity:'rare', desc:'Scored 4s have a 44% chance to force trigger the Trick in slot 4', tags:['retrigger','card','rank','chance','tricks'] },
   { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'rare', desc:'Each time you hit your Focus limit, the limit drops by 5. If you hit it during a round, a random limit rises by 1 at the end of that round.', tags:['limit','focus','other','level','cost'] },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 to your Focus limit.', tags:['focus','other'] },

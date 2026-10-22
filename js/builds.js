@@ -438,7 +438,7 @@ function bvLadderHTML(x) {
   entityTier[x.id] = was; applyEntityTiers();
   const seen = (typeof improveTierSeen === 'function') && improveTierSeen(x.id, 5);
   rows.push(seen
-    ? (() => { entityTier[x.id] = 5; applyEntityTiers(); const d = (TRICK_POOL_ALL.find(e => e.id === x.id) || SLEIGHT_POOL.find(e => e.id === x.id) || KNACK_POOL.find(e => e.id === x.id) || {}).desc || ''; entityTier[x.id] = was; applyEntityTiers(); return `<div class="bv-lrow"><b>v6</b><span>${highlightKeywords(d)}</span></div>`; })()
+    ? (() => { entityTier[x.id] = 5; applyEntityTiers(); const d = (TRICK_POOL_ALL.find(e => e.id === x.id) || SLEIGHT_POOL.find(e => e.id === x.id) || KNACK_POOL.find(e => e.id === x.id) || {}).desc || ''; entityTier[x.id] = was; applyEntityTiers(); const nm = (typeof V6_NAMES !== 'undefined' && V6_NAMES[x.id]) ? `<i>${V6_NAMES[x.id]}.</i> ` : ''; return `<div class="bv-lrow"><b>v6</b><span>${nm}${highlightKeywords(d)}</span></div>`; })()
     : `<div class="bv-lrow bv-ldim"><b>v6</b><span>Not discovered yet. Improve this in a run to v6 to read it.</span></div>`);
   return `<div class="bv-ladder">${rows.join('')}</div>`;
 }

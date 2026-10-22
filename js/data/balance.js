@@ -112,7 +112,7 @@ const BAL = {
   ready_set_go:  { mult: 18 },
   third_charm:   { extra_replays: 2 },
   four_eyes:     { mult: 24 },
-  four_by_four:  { pips: 24 },
+  four_by_four:  { pips: 24, chance: 0.44, queens: 0 },   // r635: a Knack; pips is the retired Trick's (saved runs only)
   four_horseman: { pips: 24, mult: 24, focus: 8, pause: 8, picks: 1 },   // r625: picks 2 at the 5th improvement
   wait_four_it:  { pause: 2 },
   shaky_foundation: { mult: 18 },
@@ -474,7 +474,7 @@ const DESC_TEMPLATES = {
   down_and_back_in: 'Discarding a card of the grid’s highest rank grants +{grant} discards or +{grant} swaps (alternating) and +{coins} credits.',
   magician: '+{solo_pips} pips if you own no Sleights, or +{mult_per_sleight} mult for each Sleight you own',
   four_eyes: '4-card hands score +{mult} mult',
-  four_by_four: 'Cards scored in the 4th and 6th columns score +{pips} pips',
+  four_by_four: 'Scored 4s[[queens: and Queens]] have a {chance_pct}% chance to force trigger the Trick in slot 4',
   shaky_foundation: 'Every other Set scores +{mult} mult',
   wave_amp: 'Consecutively played Runs score +{pips_per_streak} pips × the streak count',
   // r624: the rare Tricks the owner's sheet renumbered or reworked

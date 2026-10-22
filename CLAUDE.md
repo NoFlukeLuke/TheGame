@@ -2274,3 +2274,29 @@ x. 420x900 unchanged (6 6 6 6 6). No page errors.
 - **No selection-order numbers on cards** (`.sel-num` markup gone from render.js / card-fall.js).
   **Attention no longer shrinks or dims the unselected cards.** **Hovering the clock's skull**
   shows the boss peek on a mouse; a click still pins it and a double-click skips to the boss.
+## r645 - 4x4 is a Knack; v6 names; a hand ends every pause (owner)
+- **4x4** (`four_by_four`) is a rare **Knack** (the common Trick is `retired`, kept for saved runs; its
+  `pips` stays in BAL for them). Every scored 4 rolls `BAL.four_by_four.chance` to force-trigger the Trick in
+  tray slot 4, once per replay, in calcScore's force block beside Temporal Rift (deterministic per card,
+  replay and hand). `IMPROVE_PLAN`: 44 / 60 / 76 / 92 / 100%, and the 5th improvement sets `queens` (Queens
+  roll too). Measured: three 4s, slot 4 Cascade: 342 unforced, 702 one force, 967 two or more (force cap);
+  25,000 rolls landed 44.3%.
+- **v6 names** (`V6_NAMES`, js/data/v6-names.js, content only): at tier 5 an entity listed there takes its
+  v6 name (`v6NameApply` in `applyEntityTiers`, base kept in `NAME_BASE`; `syncOwnedEntityDescs` copies it
+  onto owned copies). Builds prints it on the v6 row. Shipped: Aftershock -> Metashock, Alignment -> Perfect
+  Alignment, Bellhop -> Bell Captain, Buddy System -> Friends with Benefits, Capacitor -> Supercapacitor,
+  Cascade -> Cataract, Coin Toss -> Weighted Coin, Collector -> Hoarder, 4x4 -> 4x4 Queen. The **Hoarder
+  knack is now Spoiled** (id `hoarder`). Amplifier was given as Amplifier, so it is unchanged.
+- **A played hand ends every pause** (`endPausesForPlay`, js/discard.js, called in playHand once the hand
+  is committed; dev -> Change the game now -> Pauses, `lethe.pauseEnds.v1`, stored only when off). Rewinds
+  are untouched. The hand that ends a pause still counts as played in it: The Falcon, Deep Breath and The
+  Phoenix ask `clockPausedForHand()` (live pause OR `_handPlayedInPause`, cleared on the next microtask).
+  A pause this hand grants starts after the end. The Stopwatch is untouched (it already ends with the
+  hand's tally). The Pause keyword tooltip states the rule while it is on. Measured by tap at 1440x820
+  and 420x900: a 30s pause ends on PLAY, Deep Breath pays on that hand, Dam Holding's own 3s pause runs
+  after it, switch off keeps the pause counting down.
+- **`V6_NAMES_AND_LADDERS.xlsx`** (root): every Trick, Knack and Sleight but the nine named, with three v6
+  name suggestions, today's ladder, a proposed v2-v6 ladder in the owner's alternating style (236 of them;
+  the owner's own ladders are kept and marked), yellow columns for the owner's picks, and notes. Found
+  while building it: **Free Hand, Charged Card, Shuffle Up and Double Down get MORE expensive when
+  improved** (the generic rule adds the base to their Focus cost). Not fixed; flagged in the sheet.

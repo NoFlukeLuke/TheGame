@@ -161,7 +161,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | ready_set_go | Ready, Set, Go | A 3-card hand containing a 3, 6 or 9 scores +18 mult | mult hand size rank scores |
 | third_charm | 3rd Time's a Charm | The 3rd card of a hand replays 2x | replay card scores |
 | four_eyes | Four Eyes | 4-card hands score +24 mult | mult hand size scores |
-| four_by_four | 4x4 | Cards scored in the 4th and 6th columns score +24 pips | pips card position scores line |
+| four_by_four | 4x4 (Knack, r635) | Scored 4s have a 44% chance to force trigger the Trick in slot 4 | retrigger card rank chance tricks |
 | four_horseman | Four Horse-man | 4-card hands grant a random bonus: +24 pips, +24 mult, +8 Focus, or pa | pips mult focus time hand size scores chance |
 | wait_four_it | Wait Four It | 4-card hands permanently buff their 4th card with a 2s pause (cannot s | deck time card size scaling |
 | undue_influence | Undue Influence | A Set containing a face card grants credits equal to the number of Set | credits hand set rank |
@@ -243,7 +243,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | free_swaps | Free Swaps | Swapping cards costs no time. | stock other swap |
 | free_discards | Free Discards | Discarding costs no time. | stock other discard |
 | steady_hand | Steady Hand | Swaps no longer count against the swap limit, but cost 2× time. | stock other swap cost |
-| hoarder | Hoarder | Discards no longer count against the discard limit, but cost 2× time. | stock other discard cost |
+| hoarder | Spoiled | Discards no longer count against the discard limit, but cost 2× time. | stock other discard cost |
 | time_bank | Time Bank | Every round starts with +30s. | time other start |
 | inheritance | Inheritance | Start each round with +5 credits. | credits other start |
 | short_change | Short Change | Each hand you play with fewer cards than your hand size earns 1 credit | credits hand size |
