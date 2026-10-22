@@ -80,6 +80,7 @@ function gridSameBoxMetrics() {
   CARD_W = (tw - (gridCols - 1) * P.gap) / gridCols;
   CARD_H = (th - (gridRows - 1) * P.gap) / gridRows;
   CARD_STEP = CARD_H + CARD_GAP;
+  CARD_VIS_W = CARD_W; CARD_VIS_H = CARD_H; CARD_CX = CARD_CY = 0;   // a reward screen fills its cells
   applyGridMetricsToDOM();
 }
 
@@ -90,6 +91,40 @@ function gridSameBoxMetrics() {
 // so the board, the Focus bar and the timer never move. Reward screens use the
 // same box (r564: their title is on the location screen, so they fill it whole).
 // r586: every look, not only console mode.
+// CARD RATIO (r641, owner's option 1). In the fixed box the CELL is whatever the
+// rows and columns make it (1.16 tall on a 4x4 at 1440x820), and the card used to
+// stretch to it. Now the card keeps a chosen shape INSIDE the cell and the slack
+// becomes gap: CARD_W / CARD_H stay the cell (every step and hit test reads them),
+// CARD_VIS_W / CARD_VIS_H are what the card is drawn at (--card-w / --card-h) and
+// CARD_CX / CARD_CY centre it in the cell (--card-cx / --card-cy, a margin on
+// #grid's cards, css/style.css). Dev -> Aesthetics -> Card ratio; the store
+// (lethe.cardRatio.v1) holds only a choice other than the default.
+const CARD_RATIOS = { fill: 0, game: 75 / 57, pack: 1.5 };
+const CARD_RATIO_DEFAULT = 'game';
+let CARD_VIS_W = 57, CARD_VIS_H = 75, CARD_CX = 0, CARD_CY = 0;
+let cardRatioChoice = (() => {
+  try { const v = localStorage.getItem('lethe.cardRatio.v1'); return v in CARD_RATIOS ? v : CARD_RATIO_DEFAULT; }
+  catch (e) { return CARD_RATIO_DEFAULT; }
+})();
+function cardRatioValue() { return CARD_RATIOS[cardRatioChoice] || 0; }
+function cardRatioSync() { const sel = document.getElementById('dev-card-ratio'); if (sel) sel.value = cardRatioChoice; }
+function setCardRatio(v) {
+  if (!(v in CARD_RATIOS)) return;
+  cardRatioChoice = v;
+  try { v === CARD_RATIO_DEFAULT ? localStorage.removeItem('lethe.cardRatio.v1') : localStorage.setItem('lethe.cardRatio.v1', v); } catch (e) {}
+  cardRatioSync();
+  recomputeGridMetrics();
+  if (typeof _devSafeRender === 'function') _devSafeRender();
+}
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', cardRatioSync);
+// The drawn card for a cell of w x h: the chosen shape, as big as fits, centred.
+function cardVisualFor(w, h) {
+  const R = cardRatioValue();
+  if (!R) { CARD_VIS_W = w; CARD_VIS_H = h; CARD_CX = CARD_CY = 0; return; }
+  CARD_VIS_W = Math.min(w, h / R); CARD_VIS_H = Math.min(h, w * R);
+  CARD_CX = (w - CARD_VIS_W) / 2; CARD_CY = (h - CARD_VIS_H) / 2;
+}
+
 function gridFillOn() {
   const st = document.getElementById('stage');
   if (!st || !st.classList.contains('landscape') || st.classList.contains('squares-mode')) return false;
@@ -114,10 +149,13 @@ function gridFillMetrics() {
   const gap = gapForCardW(Math.min(c.w, c.h / CARD_ASPECT));
   c = inner(gap);
   CARD_GAP = gap; CARD_W = c.w; CARD_H = c.h; CARD_STEP = CARD_H + CARD_GAP;
+  cardVisualFor(CARD_W, CARD_H);
   applyGridMetricsToDOM();
 }
 
 function recomputeGridMetrics() {
+  // Outside the fixed box the cell IS the card.
+  CARD_VIS_W = CARD_W; CARD_VIS_H = CARD_H; CARD_CX = CARD_CY = 0;
   // The class places #grid-slot (css/style.css r586), so it is set before the slot is measured.
   const fill = gridFillOn();
   document.getElementById('stage')?.classList.toggle('grid-fill', fill);
@@ -221,8 +259,13 @@ function applyGridMetricsToDOM() {
   // a chasm - so a tight board takes the shallow set (css/style.css).
   gridEl.classList.toggle('grid-tight', GRID_PAD < GRID_PAD_BASE);
   // Push live card size to CSS custom props so .card / fonts can react
-  document.documentElement.style.setProperty('--card-w', CARD_W + 'px');
-  document.documentElement.style.setProperty('--card-h', CARD_H + 'px');
+  // The drawn card (r641): the cell, or the chosen shape centred in it.
+  if (!(CARD_VIS_W > 0) || CARD_VIS_W > CARD_W) { CARD_VIS_W = CARD_W; CARD_CX = 0; }
+  if (!(CARD_VIS_H > 0) || CARD_VIS_H > CARD_H) { CARD_VIS_H = CARD_H; CARD_CY = 0; }
+  document.documentElement.style.setProperty('--card-w', CARD_VIS_W + 'px');
+  document.documentElement.style.setProperty('--card-h', CARD_VIS_H + 'px');
+  document.documentElement.style.setProperty('--card-cx', CARD_CX + 'px');
+  document.documentElement.style.setProperty('--card-cy', CARD_CY + 'px');
   // The grid's real footprint, so anything anchored in the EMPTY MARGIN of
   // #grid-slot can size itself against it in CSS alone. #grid is centred in the
   // slot, so that margin is (slot - grid) / 2 on each side - which is where the

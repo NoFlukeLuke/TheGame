@@ -2207,3 +2207,15 @@ challenge cards and numeric cards keep their own look.
 - **Tags:** `prime` is `retrigger` (a Trick firing again: primes, mirrors, force-triggers); new
   `charges` (PAYS), `start` and `replays` (WHEN); Focus-apply Tricks, relative-rank Tricks and
   round-start entities retagged per the owner. TAGS.md ends with DECISIONS and STILL OPEN.
+
+## r641 - cards keep a playing card's shape inside the fixed box (owner's option 1)
+The fixed box (r540 / r586) made the CELL the card, so a desktop 4x4 drew cards at 1.16 tall (the
+game's card is 1.32, the pack's 1.50). Now `gridFillMetrics` keeps `CARD_W` / `CARD_H` as the cell
+(every step, span and hit test reads them) and draws the card at `CARD_VIS_W` / `CARD_VIS_H`
+(`cardVisualFor`: the chosen shape, as big as fits), centred by `CARD_CX` / `CARD_CY`; `applyGridMetricsToDOM`
+writes `--card-w` / `--card-h` from the drawn size and `--card-cx` / `--card-cy`, a margin on `#grid`'s
+cards (css/style.css). The slack is gap. Every other metrics path draws the cell. **Dev -> Aesthetics ->
+Card ratio** (`setCardRatio`, `lethe.cardRatio.v1`, stored only off the default): a playing card
+(1.32, default), the pack's shape (1.5), stretched to the cell (the r586 look). Measured at 1440x820 on a
+4x4: cell 71 x 82; game 63 x 82 (ratio 1.30, 4px each side), pack 55 x 82 (1.49, 8px), fill 71 x 82
+(1.15); on a 6x6 game 42 x 55, pack 36 x 55, fill 47 x 55. Portrait is untouched (the cell already keeps the card shape there).

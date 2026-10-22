@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r640 · Builds: COMPARE (a sandbox board scored by up to four builds, with a tally and per-Trick fire counts), the section jump strip; the owner's tag decisions (retrigger, charges, round start, replays)";
+const BUILD = "2026-10-22 · r641 · cards keep a playing card's shape inside the fixed box; dev Card ratio";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
