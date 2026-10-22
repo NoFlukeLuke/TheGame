@@ -29,6 +29,12 @@ html.skin-machine {
   --mc-cut-dk: rgba(0,0,0,.6); --mc-cut-lt: rgba(255,255,255,.1);
   --mc-print: #d6cfbb; --mc-screw: #8d877a; --mc-dirt: 20,14,6;
   --mc-font: 'VT323 Local', 'VT323', 'Share Tech Mono', monospace;
+  /* The tube (the screen door on every screen), one place. --mc-scan-w is the black
+     horizontal line's thickness: 0 is off (this test), .5px the thinnest that draws, 1px
+     the old look. --mc-scan is its darkness (#grid lightens it). The grille's three
+     stripes: the blue one's tint is half the old rgb(210 215 255). */
+  --mc-scan-w: 0px; --mc-scan: .34;
+  --mc-grille-r: rgb(255 205 205); --mc-grille-g: rgb(205 255 210); --mc-grille-b: rgb(233 235 255);
   /* grain: fine noise, dark and light specks (r501: 20% fainter) */
   --mc-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .56 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   --mc-grain-lt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .4 -.144'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -128,8 +134,8 @@ html.skin-machine body:not(.flowr-deck) #stage #grid::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 40; border-radius: inherit;
   mix-blend-mode: multiply;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,var(--mc-scan, .34)) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgb(255 205 205) 0 1px, rgb(205 255 210) 1px 2px, rgb(210 215 255) 2px 3px);
+    repeating-linear-gradient(0deg, rgba(0,0,0,var(--mc-scan)) 0 var(--mc-scan-w), transparent var(--mc-scan-w) 3px),
+    repeating-linear-gradient(90deg, var(--mc-grille-r) 0 1px, var(--mc-grille-g) 1px 2px, var(--mc-grille-b) 2px 3px);
   opacity: var(--mc-tube, .85);
 }
 html.skin-machine #stage #grid { --mc-scan: .18; --mc-tube: .55; }   /* lighter over the cards, so faces stay crisp */
@@ -173,8 +179,8 @@ html.skin-machine :is(.mc-door-t, #tray-lift) .reward-cell.entity-trick::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 40; border-radius: inherit;
   mix-blend-mode: multiply;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgb(255 205 205) 0 1px, rgb(205 255 210) 1px 2px, rgb(210 215 255) 2px 3px);
+    repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 var(--mc-scan-w), transparent var(--mc-scan-w) 3px),
+    repeating-linear-gradient(90deg, var(--mc-grille-r) 0 1px, var(--mc-grille-g) 1px 2px, var(--mc-grille-b) 2px 3px);
   opacity: .55;
 }
 html.skin-machine :is(.mc-door-t, #tray-lift) .reward-cell.entity-trick::after {
