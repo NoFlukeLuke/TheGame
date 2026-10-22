@@ -389,7 +389,15 @@ let playHandCostThisRound = 0;     // extra seconds per hand this round
 let discardCostThisRound  = 0;     // extra seconds per discarded card this round
 let challengeOverlayTimer = null;
 let isChallengeTrickPick = false; // true when selectTrick is called from a challenge reward, not a level-up
-let coins = 0;
+// Credits. r649: an accessor on the global object rather than a plain `let`, so
+// every change, from any of the sixty-odd `coins +=` / `coins -=` sites, passes
+// through one setter (Middle Man counts them, js/scoring.js middleManOnCredits).
+let _coinsVal = 0;
+Object.defineProperty(globalThis, 'coins', {
+  configurable: true,
+  get() { return _coinsVal; },
+  set(v) { const d = v - _coinsVal; _coinsVal = v; if (d && typeof middleManOnCredits === 'function') middleManOnCredits(d); },
+});
 
 // ══════════════════════════════════════════════
 // BOSS SYSTEM (v1)

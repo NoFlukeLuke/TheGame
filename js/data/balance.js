@@ -139,6 +139,7 @@ const BAL = {
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 6 },       // +mult per negative reward tile taken this run
   rising_tide:   { mult_min: 5, mult_max: 10 }, // each level passed while held adds this much mult (r624: 5-10)
+  middle_man:    { mult_per: 3, anywhere: 0 },  // r649: mult per credit change in a round; anywhere = between rounds too (the 5th improvement)
   wait_for_it:   { chance_per: 0.03, flow_per: 0.05 },  // +replay chance per negative reward tile taken; in Flow per single-reward level-up, luck-free (r625, a knack)
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   combo_score: { mult_per_type: 6 },
@@ -485,6 +486,7 @@ const DESC_TEMPLATES = {
   second_hand: 'Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips',
   sediment: 'Scores +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this round',
   rising_tide: 'Each level you pass while holding this adds +{mult_min} to +{mult_max} mult to it',
+  middle_man: 'Each time you gain or [[anywhere<1:lose credits during a round]][[anywhere:spend credits, anywhere]], this gains +{mult_per} mult',
   ready_set_go: 'A 3-card hand containing a 3, 6 or 9 scores +{mult} mult',
   minute_hand: 'Every time the clock passes a multiple of {interval_seconds}s, your next hand scores ×{mult_mult} mult',
   // r623: the common Tricks the owner's sheet renumbered, so an improvement prints its number

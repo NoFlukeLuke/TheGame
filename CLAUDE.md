@@ -2402,3 +2402,28 @@ slot" and the handbook's "Time slots and two visits" read the rule in force; the
 tip had said leaving early costs a fee, and now say it pays credits. Measured: real taps at 1440x820
 and 420x900 (non-adjacent pair taken, skip paid 6, a map walked to the review, one real round back to
 the map at 1/2); 4,000 random walks per rule: 0 strands, no slot past 2, pick 9.62 tiles a run, old 9.88.
+
+## r649 - Rerun and the per-card x review (owner)
+Rerun (Trick `rerun`, epic) was one x(1.25 ^ extra replays) lump in the hand-level x pips block. Now
+x`BAL.rerun.pip_mult` (1.25) multiplies the WHOLE running pip total on each REPLAY of a real card (not its
+first scoring, not a dual ghost, not a muted card), after the card's own x pips: a pip* event with
+`scope: 'total'` (r461) and `replay: true` (r637), banked by `_bankCell` (`_pend.rr`, reps 1..n-1, between the
+card's x pips and its ghost) so calcScore and the dance agree. The dance's x plate label shows two decimals
+(x1.25 printed x1.3). **Review:** every other card-scoped x Trick (Rainbow, Ornery, What are The Odds,
+Obsessed, Relentless, Patient Rulers, Feelin Lucky, Even Better, Every Day Essentials, Cornered, Chorus) and
+the x pips / x mult card buffs already fire on the card. The hand-level ones left are whole-hand conditions
+(hand type, run length, credits, clock, Sleight charges) or count cards on the GRID (Jackpot, Portfolio, Smog
+curse cards), with no scored card to land on. Measured by tap, dev mode on, QRL off, replays 2 / 3 / 1:
+x1.25 on card 1's replay and card 2's two replays only, PIPS 10 > 25 > 35 > 56 > 83 > 94 (ledger 93.81); with
+Chorus, with a x2 pips buff on the replayed card, and a two-suit card replayed: no drift at 1440x820 and 420x900.
+
+## r649 - Middle Man (owner)
+Rare Trick `middle_man`: each time credits change while a round is live it gains `BAL.middle_man.mult_per`
+(3) mult, paid every hand (`middleManMult`, SAVE_VARS, reset per run and on pickup; tray live line).
+**`coins` is an accessor on the global object** (js/combos-aim.js), so every `coins +=` / `-=` site passes one
+setter (`middleManOnCredits`, js/scoring.js). Live = the run has started, `roundEnded` is false, and no grid
+screen, pick, map, deck editor, shop or event is up (`middleManRoundLive`). `IMPROVE_PLAN`: +2 a tier to the
+4th (5 7 9 11); the 5th keeps 11 and sets `anywhere`, so changes between rounds count too (shop, events,
+interlude payouts, each change once); the description swaps by template condition. Category row: the abacus.
+Measured by tap at 1440x820 and 420x900: a +2 credits card mid-round 0 -> 3 and the next hand scored mult+3;
+a shop buy at tier 0 left it alone; at tier 5 a buy took it 6 -> 17. The vm sim harness loads and counts.

@@ -4,7 +4,7 @@ The one vocabulary every Trick, Sleight and Knack is described in: `js/data/tags
 PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Rerun
 `node tools/verify-tags.js` after editing a row; `--tables <file>` regenerates the tables.
 
-## TRICK_POOL (177)
+## TRICK_POOL (178)
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
@@ -116,6 +116,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | overtime | Overtime | Every hand rewinds the clock 1s for every 3 cards you have scored from | time hand position line |
 | feng_shui | Feng Shui | Permanently scores +3 pips for each hand scored with a positional buff | pips hand position scores scaling |
 | clean_sweep | Clean Sweep | Use every cell of any row or column within two hands to add +8 Focus a | focus credits hand position |
+| middle_man | Middle Man | Each time you gain or lose credits during a round, this gains +3 mult | mult hand scores scaling |
 | rising_tide | Rising Tide | Each level you pass while holding this adds +5 to +10 mult to it | mult hand level scores scaling chance |
 | compound_mult | Compound | Each hand played permanently adds +0.1 mult to this trick | mult hand scores scaling |
 | acorns | Acorns | Each card scored scales this trick +0.025 Focus, starting at +0; adds  | focus hand scaling |

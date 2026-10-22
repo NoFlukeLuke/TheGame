@@ -528,6 +528,7 @@ function cleanseRandomCurse() {
 let bonusMult_fives   = 0;
 let bonusMult_nines   = 0;
 let risingTideMult    = 0;   // Rising Tide (r539): 1-3 mult per level passed while held
+let middleManMult     = 0;   // Middle Man (r649): mult earned by credit changes while held
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
 let spadesRelentless   = 0;   // Relentless Trick: spades scored since it was taken (r367)

@@ -142,6 +142,8 @@ const IMPROVE_PLAN = {
   assembly_line:    t => ({ mult_per_prior: 2 + 2 * Math.min(4, t), mult_per_flow: 1 + Math.min(4, t), lines: t >= 5 ? 2 : 1 }),
   // Lie Up (r646, INSEPARABLE): +16 mult a tier; the 5th loosens the shape to no more than 2 rows or 2 columns
   lie_up:           t => ({ mult: 24 + 16 * t, span: t >= 5 ? 2 : 1 }),
+  // r649: +2 mult a tier to the 4th; the 5th counts credit changes anywhere instead
+  middle_man:       t => ({ mult_per: 3 + 2 * Math.min(t, 4), anywhere: t >= 5 ? 1 : 0 }),
   // ── r625, the owner's epic sheet ──
   // one more prime, then one more rolled rank, alternating; the 5th does both
   wild_heart:       t => ({ primes: 1 + [0, 1, 1, 2, 2, 3][t], extra_ranks: [0, 0, 1, 1, 2, 3][t] }),

@@ -199,6 +199,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Rising Tide (r539): the mult it has built, 1-3 per level passed while held (level-up.js)
   const risingTideBonus = hasTrick('rising_tide') ? risingTideMult : 0;
+  const middleManBonus = hasTrick('middle_man') ? middleManMult : 0;
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
   const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
@@ -852,21 +853,29 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // The card's x pips, last in its beat, on the whole running total.
     const _xpOn = _xp !== 1 && !_mute && cardCurses[_eKey]?.id !== 'leaden';
     if (_xpOn) { _proc('sapling'); const _xe = _ev('sapling', 'pip*', _xp, 'trick', undefined, 'none'); if (_xe) _xe.scope = 'total'; }
+    // Rerun (r649, owner): x pips on the whole running total on each REPLAY of the
+    // card, after its own x pips; not its first scoring, not a dual ghost (the
+    // `replay` flag, r637). Banked by `_bankCell`, like the card's x pips.
+    const _rrOn = !_G && !_mute && _retrig > 1 && hasTrick('rerun');
+    if (_rrOn) { const _re = _ev('rerun', 'pip*', BAL.rerun.pip_mult, 'trick', undefined, 'none'); if (_re) { _re.scope = 'total'; _re.replay = true; } }
     _pend[_G ? 'ghost' : 'real'] = _repPips;
-    if (!_G) _pend.xp = _xpOn ? _xp : 1;
+    if (!_G) { _pend.xp = _xpOn ? _xp : 1; _pend.rr = _rrOn ? BAL.rerun.pip_mult : 1; }
   };
   // Adds a cell's banked pips to the total in the dance's order: for each replay,
-  // the card's pips, then its x pips on the running total, then its ghost's pips.
+  // the card's pips, then its x pips on the running total, then Rerun on a replay
+  // (r649), then its ghost's pips.
   let _hlPips = 0;
   const _bankCell = pd => {
     const n = Math.max(pd.real ? pd.real.length : 0, pd.ghost ? pd.ghost.length : 0);
-    let _xd = 0;
+    let _xd = 0, _rd = 0, _rn = 0;
     for (let _i = 0; _i < n; _i++) {
       if (pd.real) totalPips += pd.real[_i];
       if (pd.xp !== 1) { const _pre = totalPips; totalPips *= pd.xp; _xd += totalPips - _pre; }
+      if (_i > 0 && pd.rr !== 1) { const _pre = totalPips; totalPips *= pd.rr; _rd += totalPips - _pre; _rn++; }
       if (pd.ghost) totalPips += pd.ghost[_i];
     }
     if (_xd) _cp.sapling = (_cp.sapling || 0) + _xd;
+    if (_rn) { _cp.rerun = (_cp.rerun || 0) + _rd; _proc('rerun'); }
   };
   const _scores = c => !!c && !((typeof isWildCard === 'function') && (isWildCard(c) || isWarehouseCard(c)));
   // Card ladder (r547): each hand card that scores is numbered 1, 2, 3... in scoring
@@ -884,7 +893,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _gh = (typeof cardGhostFor === 'function') ? cardGhostFor(_real) : null;
     const rc = hasTrick('club_double') && _scores(_real) && _real.suit === '♣' ? 1 : 0;
     const gc = hasTrick('club_double') && _scores(_gh) && _gh.suit === '♣' ? 1 : 0;
-    const _pend = { k0: clubsScoredRound + _clubHits, stride: rc + gc, rc, xp: 1 };
+    const _pend = { k0: clubsScoredRound + _clubHits, stride: rc + gc, rc, xp: 1, rr: 1 };
     _scoreOne(cell, ci, null, _pend);
     if (_gh) _scoreOne(cell, ci, _gh, _pend);
     _bankCell(_pend);
@@ -1000,6 +1009,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('lie_up') && lieUpShape(cells)) { mult += BAL.lie_up.mult; bMult('lie_up', BAL.lie_up.mult); }
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
+  if (middleManBonus > 0) { mult += middleManBonus; bMult('middle_man', middleManBonus); }
   // Second Hand's mult outcome, accrued as the clock passed 10s marks.
   if (pendingHandMult > 0) { mult += pendingHandMult; bMult('second_hand', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
@@ -1243,16 +1253,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (handName === 'Four of a Kind' && hasTrick('extinction')) { const _pre = mult; mult = Math.round(mult * BAL.extinction.mult_mult * 10) / 10; bMultX('extinction', BAL.extinction.mult_mult, mult - _pre); }
 
   // ── r179 multiplier batch - triggers the ×pips/×mult pools had never covered ──
-  // Replays: _reps[i] is this card's total scoring iterations, so the extras are
-  // sum(_reps) - cards.length. Rerun takes them as pips. (Chorus is per card, in the
-  // card loop since r637.)
-  const _replayExtras = Math.max(0, _reps.reduce((a, b) => a + b, 0) - cards.length);
-  // Rerun (r346): a FACTOR per replay, compounding - x1.25 pips each time a card is
-  // replayed - rather than the old additive step.
-  if (_replayExtras > 0 && hasTrick('rerun')) {
-    const _m = Math.pow(BAL.rerun.pip_mult, _replayExtras);
-    const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('rerun', _m, totalPips - _pre);
-  }
+  // Rerun (r649) and Chorus (r637) were lumps here, x(factor ^ replays). Both fire
+  // on the card's replay beat now: see the card loop and `_bankCell`.
   // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
   if (hasTrick('deep_breath') && clockPausedForHand()) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }
   // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
@@ -1651,6 +1653,23 @@ function grantEntityCoins(amount, source, id) {
   coins += n;
   if (typeof updateCoinsUI === 'function') updateCoinsUI();
   foldContribution(contribDisplayName(source, id), 'coin', n);
+}
+
+// Middle Man (r649): each change to `coins` (the setter in js/combos-aim.js) while a
+// round is live adds BAL.middle_man.mult_per to its mult; from the 5th improvement
+// (`anywhere`) every change counts, between rounds too.
+function middleManRoundLive() {
+  if (typeof gameStartTime === 'undefined' || !gameStartTime) return false;
+  if (typeof roundEnded !== 'undefined' && roundEnded) return false;
+  const b = document.body.classList;
+  if (b.contains('grid-screen') || b.contains('gp-active') || b.contains('map-active') || b.contains('flowr-deck') || b.contains('shop-active')) return false;
+  if (document.getElementById('event-overlay')?.classList.contains('show')) return false;
+  return true;
+}
+function middleManOnCredits(d) {
+  if (!d || typeof hasTrick !== 'function' || !hasTrick('middle_man') || typeof BAL === 'undefined' || !BAL.middle_man) return;
+  if (!BAL.middle_man.anywhere && !middleManRoundLive()) return;
+  middleManMult += BAL.middle_man.mult_per;
 }
 
 function foldContribution(label, kind, amount) {

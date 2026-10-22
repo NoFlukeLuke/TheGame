@@ -48,6 +48,7 @@ function trickLiveDesc(trick) {
       case 'sapling':        return now(`${level - 1} levels applied`);
       case 'summit':         return now(`level ${level}`);
       case 'rising_tide':    return now(`+${risingTideMult || 0} mult`);
+      case 'middle_man':     return now(`+${middleManMult || 0} mult`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(magicianNoSleights() ? `+${B.magician?.solo_pips ?? 50} pips, no Sleights` : `+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
@@ -386,6 +387,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   if (trick.id === 'nines_mult') cloudNinePickup();      // r539: brings its own 9s
   if (trick.id === 'rising_tide') risingTideMult = 0;    // r539: counts from the pick
   if (trick.id === 'assembly_line') asmLine = { prev: null, cur: 0 };   // r646: counts from the pick; this round stands in until one ends
+  if (trick.id === 'middle_man') middleManMult = 0;      // r649: likewise
 
   updateTrickList();
   const lvlOverlay = document.getElementById('levelup-overlay');

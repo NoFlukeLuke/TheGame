@@ -1198,7 +1198,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const evKind = ev => ev.op==='pip+' ? 'pipAdd' : ev.op==='pip*' ? 'pipMul'
                      : ev.op==='mult+' ? 'multAdd' : 'multMul';
   const evLabel = ev => ev.op==='pip+'||ev.op==='mult+' ? '+'+(ev.op==='pip+'?Math.round(ev.value):fmtM(ev.value))
-                                                        : '\u00d7'+fmtM(Math.round(ev.value*100)/100);
+                                                        : '\u00d7'+(Math.round(ev.value*100)/100);   // r649: two decimals (x1.25 read x1.3)
   const evColor = ev => ev.op==='pip+' ? (ev.id==='_card'?COL.card:COL.pipAdd)
                       : ev.op==='pip*' ? COL.pipMul : ev.op==='mult+' ? COL.multAdd : COL.multMul;
 

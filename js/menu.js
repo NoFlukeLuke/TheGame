@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r648 · the Schedule: take any 2 tiles in a time slot, adjacent or not; the old walk is a dev option";
+const BUILD = "2026-10-22 · r649 · Rerun multiplies on each replay's beat; the per-card x review; Middle Man (rare Trick)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
