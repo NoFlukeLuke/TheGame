@@ -899,9 +899,10 @@ function injectTrickAfterReward(trick) {
   // Guarding here as well as at the selection sites is deliberate - plenty of
   // grants arrive with nothing to select (a wheel prize, an event payout, a
   // Mystery tile), and those have to bounce rather than vanish.
-  if (trickTrayFull()) return refuseTrickCapacity();
+  if (trickTrayFullFor(trick.id)) return refuseTrickCapacity();
   trickTray.push(trick);
   selectTrick(trick, true);
+  if (typeof inseparableCheck === 'function') inseparableCheck();   // r646: both halves of a pair in the tray fuse now
   renderTrickTray();
   return true;
 }
@@ -1568,7 +1569,7 @@ function rewardTrickSlotGain(p) {
   if (p.entity === 'knack' && p._knackId === 'curator' && !hasKnack('curator')) return 1 + (knackBossGrowth.curator || 0);
   return 0;
 }
-function rewardTakesTrickSlot(p) { return !!p && p.entity === 'trick' && !p._improve && !p._applied; }
+function rewardTakesTrickSlot(p) { return !!p && p.entity === 'trick' && !p._improve && !p._applied && !(p._trick && typeof inseparableCompletes === 'function' && inseparableCompletes(p._trick.id)); }   // r646: a pair's second half frees a slot
 function rewardTrickRoom(keys) {
   let room = trickCapacity() - trickTray.length;
   for (const k of keys) {

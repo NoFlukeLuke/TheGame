@@ -1,10 +1,10 @@
-# Entity tags (r640)
+# Entity tags (r640, tables regenerated r646)
 
 The one vocabulary every Trick, Sleight and Knack is described in: `js/data/tags.js` (groups
 PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Rerun
 `node tools/verify-tags.js` after editing a row; `--tables <file>` regenerates the tables.
 
-## TRICK_POOL (171)
+## TRICK_POOL (177)
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
@@ -106,7 +106,13 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | column_rush (retired) | Stand Up | Hands with cards from only one column score +5 mult per card | mult card position scores |
 | row_power | Lie Down | Hands with cards from only one row score +12 mult per card | mult card position scores |
 | groove | Groove | This trick scales +1 Focus for every 2 cards scored from a marked row  | focus hand position line |
-| assembly_line | Assembly Line | Cards scored in a marked row or column score +1 mult for every card pl | mult card position scores line |
+| assembly_line | Assembly Line | Cards scored in a marked row or column score +2 mult for every card pl | mult card position scores line |
+| line_xpips | Live Wire | Cards scored in a marked row or column score ×1.2 pips | xpips card position scores line |
+| line_xmult | High Voltage | Cards scored in a marked row or column score ×1.2 mult | xmult card position scores line |
+| obligatory | Obligatory | Cards scored in a marked row or column have a 25% chance to force-trig | retrigger card position tricks chance line |
+| suggestive | Suggestive | Cards scored in a marked row or column have a 35% chance to prime the  | retrigger card position tricks chance line |
+| coin_sword | Coin and the Sword | Cards scored in a marked row or column have a 10% chance to pay credit | credits mult card position chance scores line |
+| lie_up | Lie Up | Hands with cards from only one row or only one column score +24 mult | mult hand position scores |
 | overtime | Overtime | Every hand rewinds the clock 1s for every 3 cards you have scored from | time hand position line |
 | feng_shui | Feng Shui | Permanently scores +3 pips for each hand scored with a positional buff | pips hand position scores scaling |
 | clean_sweep | Clean Sweep | Use every cell of any row or column within two hands to add +8 Focus a | focus credits hand position |
@@ -149,7 +155,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | landfill | Landfill | Score +5 mult per card for every discard or swap used this round (+3 i | mult card discard swap scores |
 | old_growth | Old Growth | Cards add their pip value to mult | mult card scores |
 | magician | Magician | +50 pips if you own no Sleights, or +6 mult for each Sleight you own | pips mult hand sleights scores |
-| stand_up | Stand-Up | Hands with cards from only one column score +10 mult per card | mult card position scores |
+| stand_up | Stand-Up | Hands with cards from only one column score +12 mult per card | mult card position scores |
 | scalper | Scalper | Score ×1 mult, +×0.25 per charge your Sleights are missing | xmult hand sleights scores |
 | five_stack | Five Stack | Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus | pips mult focus card size scores |
 | little_guys | the little guys | A 5-card hand with no face cards increases your Focus limit by 1 (max  | focus hand size rank scaling |
@@ -161,7 +167,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | ready_set_go | Ready, Set, Go | A 3-card hand containing a 3, 6 or 9 scores +18 mult | mult hand size rank scores |
 | third_charm | 3rd Time's a Charm | The 3rd card of a hand replays 2x | replay card scores |
 | four_eyes | Four Eyes | 4-card hands score +24 mult | mult hand size scores |
-| four_by_four | 4x4 (Knack, r635) | Scored 4s have a 44% chance to force trigger the Trick in slot 4 | retrigger card rank chance tricks |
+| four_by_four (retired) | 4x4 | Cards scored in the 4th and 6th columns score +24 pips | pips card position scores line |
 | four_horseman | Four Horse-man | 4-card hands grant a random bonus: +24 pips, +24 mult, +8 Focus, or pa | pips mult focus time hand size scores chance |
 | wait_four_it | Wait Four It | 4-card hands permanently buff their 4th card with a 2s pause (cannot s | deck time card size scaling |
 | undue_influence | Undue Influence | A Set containing a face card grants credits equal to the number of Set | credits hand set rank |
@@ -192,7 +198,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | pivot | Pivot! | Cards touching Pivot swap for free. Swap two of its neighbours togethe | stock deck mult other swap position scaling scores |
 | echo_play | Echo | Play this in any hand: each card replays 2x. (3 charges) | replay card scores |
 | the_naturalist | Naturalist | Play this: each other scored card permanently gains +3 pips. | deck pips card scaling scores |
-| bellhop | Bellhop | Play this: gain +2 swaps and +1 discard. (5 charges) | stock hand |
+| bellhop | Bellhop | Play this: gain +2 swaps and +2 discards. (5 charges) | stock hand |
 | syncopation | Syncopation | Play this in a hand of a different type than your previous hand: pause | time hand streak |
 | rewind | Rewind | Play this in a hand to rewind the clock 1s for each card in the hand,  | time hand size |
 | the_bomb | Bomb | Discard this: every card on the grid permanently gains +3 pips. (2 cha | deck pips other scaling scores |
@@ -296,13 +302,13 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | martyr | Martyr | Discarding a non-discard Sleight restores 1 charge to all Sleights on  | other sleights discard charges |
 | surveyor | Surveyor | When you gain a position Trick, you choose which column it marks. | other tricks position line |
 | leveler | Leveler | When you gain a position Trick, you choose which row it marks. | other tricks position line |
-| alignment | Alignment | Position Tricks automatically mark the column matching their tray slot | other tricks position line |
 | district | District | Position Tricks may share a row or column instead of spreading onto se | other tricks position line |
 | tempo | Tempo | When acquired, sets your swap and discard limits to 2. Every 15 second | stock other clock cost |
 | jury_rig | Jury-Rig | Swapping or discarding a card adjacent to a Sleight has a 50% chance t | other sleights position swap discard chance charges |
 | dividend | Dividend | Each time you hit your Focus limit, gain 8 credits, then Focus resets  | credits other cost |
 | trade_winds | Trade Winds | Your Focus limit is 10 lower. At the end of each round, gain credits e | credits focus other level cost |
 | knock_on | Knock-On | Whenever a limit other than Focus Cap goes up, another random limit go | limit other |
+| four_by_four | 4x4 | Scored 4s have a 44% chance to force trigger the Trick in slot 4 | retrigger card rank chance tricks |
 | growth_spurt | Growth Spurt | Each time you hit your Focus limit, the limit drops by 5. If you hit i | limit focus other level cost |
 | stimulants | Stimulants | +10 to your Focus limit. | focus other |
 | long_fuse | Long Fuse | You have 2× as long to earn the same Focus speed bonus. | focus other |

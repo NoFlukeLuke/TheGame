@@ -60,7 +60,7 @@ function engineGrant(item) {
 }
 // r277: a full tray refuses a Trick where you choose it, not after.
 function engineRefuseFull(item) {
-  if (item && item.type === 'trick' && typeof trickTrayFull === 'function' && trickTrayFull()) {
+  if (item && item.type === 'trick' && typeof trickTrayFullFor === 'function' && trickTrayFullFor(item.id || (item.data && item.data.id))) {
     if (typeof refuseTrickCapacity === 'function') refuseTrickCapacity();
     return true;
   }
@@ -1082,7 +1082,7 @@ function confirmTwinPath() {
 // an owned entity whose effect depends on TRAY ORDER (r634: the `tricks` tag
 // in js/data/tags.js is wider, it also covers Magician-style counts, so the
 // order-sensitive ones are named here). Add a new one to TRAY_ORDER_IDS.
-const TRAY_ORDER_IDS = new Set(['wild_heart', 'twos_retrigger', 'prime_times', 'mirror', 'temporal_rift', 'alignment']);
+const TRAY_ORDER_IDS = new Set(['wild_heart', 'twos_retrigger', 'prime_times', 'mirror', 'temporal_rift', 'obligatory', 'suggestive']);   // r646: Alignment is gone; Obligatory / Suggestive read a tray slot
 function ownsPositional() {
   const has = e => e && TRAY_ORDER_IDS.has(e.id);
   return (trickTray || []).some(has) || (acquiredKnacks || []).some(has);

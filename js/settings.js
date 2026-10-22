@@ -189,17 +189,8 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
     type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],
     apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
-  // THE BOARD PATTERN (r409, css/hypno.css). A faint wheel turning behind the
-  // cards, inside the board and nowhere else. It replaces the r391 whole-screen
-  // pattern (`hypno`) and the r408 opt-in board copy (`hypnoBoard`), and it is a
-  // NEW id on purpose: a stored value beats a default, and saveSettings writes
-  // every setting, so most players carry a stored `hypno` that says nothing about
-  // what they chose. A fresh id means everyone starts from this default.
-  // It is painted once and only TURNED, in small steps, which the compositor does
-  // without repainting, over an area the size of the board (the whole-screen
-  // version was four layers the size of the screen's diagonal). Measured in a
-  // software-rendered browser: 60 fps on and off at phone size and at 1100x620,
-  // 53-59 against 60 at 1440x820. With a graphics card it is nothing.
+  // r646 (owner): the turning board pattern (r409, `boardPattern`) is gone, with
+  // its element and its stylesheet rules; `#hypno-screen` stays as the CRT's floor.
   // r486: the portrait trays (js/tray-zigzag.js, css/tray-zigzag.css).
   { group: 'Display', id: 'trickTrayLayout', label: 'Trick tray on a phone',
     hint: 'Zigzag: Tricks alternate up and down and take turns coming forward. Tilted: Tricks lean back side by side and take turns turning flat.',
@@ -238,10 +229,6 @@ const SETTINGS_DEF = [
     hint: 'A themed pointer instead of the system one. Turn off to use your normal cursor.',
     type: 'toggle', default: true,
     apply: v => document.documentElement.classList.toggle('os-cursor', !v) },
-  { group: 'Display', id: 'boardPattern', label: 'Board pattern',
-    hint: 'A faint turning pattern behind the cards on the board. Motion follows Reduced motion.',
-    type: 'toggle', default: true,
-    apply: v => document.body.classList.toggle('board-pattern', !!v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },

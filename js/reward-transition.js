@@ -53,7 +53,7 @@ function rewardTransitionOut(done, opts = {}) {
     // The board pattern (r409, css/hypno.css) is the board's floor, not a tile:
     // it must not be flung off with what is on it.
     const els = [...grid.children].filter(el =>
-      !el.classList.contains('rc-line') && el.tagName !== 'CANVAS' && el.id !== 'board-hypno' && el.offsetWidth > 0);
+      !el.classList.contains('rc-line') && el.tagName !== 'CANVAS' && el.offsetWidth > 0);
     if (!els.length) { finish(); return; }
     // THE EXPLOSION PAINTS OVER EVERYTHING (r385). Owner: "they draw over one
     // part of the options tray and under part of it ... make them draw over and

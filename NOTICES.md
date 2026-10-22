@@ -387,3 +387,6 @@ The dev panel's own messages always print.
 
 
 r627: the paper corner at the top edge (mouse near the top, or always faint on touch) opens a drawer of the last 14 notices, printed lines in their ink and quiet lines dim. Both kinds are listed there, so a quiet line is still findable.
+| inseparable.js:60 |  ${pa.name} + ${pb.name} are inseparable: ${fused.name} (quiet, r646) |
+| play-hand.js (scalingCount) |  + Suggestive primed ${t.name} (quiet, r646) |
+| play-hand.js (scalingCount) |  ¢ Coin and the Sword +${paid} credits (quiet, r646) |

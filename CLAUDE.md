@@ -2300,3 +2300,51 @@ x. 420x900 unchanged (6 6 6 6 6). No page errors.
   the owner's own ladders are kept and marked), yellow columns for the owner's picks, and notes. Found
   while building it: **Free Hand, Charged Card, Shuffle Up and Double Down get MORE expensive when
   improved** (the generic rule adds the base to their Focus cost). Not fixed; flagged in the sheet.
+## r646 - Inseparable Tricks; five line Tricks; the owner's Trick notes (owner)
+- **INSEPARABLE** (`js/inseparable.js`, pairs in `js/data/inseparable.js`, `css/inseparable.css`,
+  suggestions in `INSEPARABLE.md`): both halves of a pair in the tray fuse into ONE Trick
+  (`inseparableCheck`, from `injectTrickAfterReward`): the fused row is an ordinary
+  `TRICK_POOL_ALL` row with `fused: true` (never offered: `survivalEntityBanned`,
+  `pickEntityByRarity`), takes the first half's slot, keeps the higher tier. Drawn RED with both
+  parts' icons (`entityTileInner` reads `inseparableDef`; `.fused` on the cell and the chip; a faint
+  pulse under the pointer). **A full tray takes a pair's second half** (`trickTrayFullFor(id)`,
+  every refusal site; `rewardTakesTrickSlot`). The fusion plays on the improvement animation's
+  screen (`iaPlayFuse`: the two discs come in from the sides, slam together, flare, the fused disc
+  types its line; dev -> Aesthetics -> "Preview inseparable"). Shipped pair: **Lie Up** = Lie Down +
+  Stand-Up, +24 mult for a hand from one row or one column, +16 a tier, v6 no more than 2 rows or 2
+  columns (`lieUpShape`).
+- **Fix:** `improveAnimFlush` set `_iaRunning` after a runner that could finish synchronously (every
+  entry skipped), so the flag stayed "running" for good and no later note flushed.
+- **Line Tricks** (`POSITION_ASSIGN_IDS`, `LINE_FX_META`): **Live Wire** (epic, `line_xpips`, x1.2
+  pips per card, on the card's beat beside Cornered), **High Voltage** (epic, `line_xmult`, x1.2
+  mult per card, in `_xl`), **Obligatory** (epic: 25% per card per replay to force-trigger the Trick
+  in the tray slot of the line's number, `markedLinesAt` / `lineSlotTrick`, beside Temporal Rift),
+  **Suggestive** (epic: 35% to PRIME that slot's Trick, rolled in `scalingCount` since primes are
+  spent there), **Coin and the Sword** (rare: 10% per card of credits = hand size, paid in
+  `scalingCount`; 20% of +25% of your credits as mult, `coinSwordMult`, hand-level; the live line
+  prints the mult). Ladders in `IMPROVE_PLAN`: +0.2x / +10% a tier (Coin and the Sword alternates
+  both chances +10% with the credit share +15%); **the 5th improvement marks a SECOND line at the
+  base value** (`markExtraLine(id)`, registry `_extra: true`, on the other axis when a free line is
+  there; `markedLineKind(r, c, id)` says main / extra, main wins at a crossing; BAL `line2` /
+  `chance2` hold the base). Perfect Timing's second line goes through the same function (a pre-r635
+  save's carries `_fixed`). **`positionDescApply(trick)`** writes the line names into the sentence
+  ("row 4", "column 2 (its second line)", "tray slot 4") and `syncOwnedEntityDescs` re-applies it
+  after an improvement (the label used to be lost there).
+- **Assembly Line**: +2 mult per line card for every card played from the line LAST round (+1 in
+  Flow, counting the last quarter); `asmLine { prev, cur }` (SAVE_VARS), `asmLinePerCard()`,
+  `asmLineRollover` from the round reset (not Flow) and `survivalBossBookkeeping` (Flow); with no
+  finished round since the pick, the current round stands in. +2 / +1 a tier, v6 a second line.
+- **The Woodpecker**: 2 replays (3 plays); v2 3, v3 25% of one more every time, v4 4, v5 33%, v6 50%
+  (`chance_extra`, rolled with `_detReplayRand`, Luck-free by the owner's word).
+- **Bellhop** +2 swaps +2 discards, alternating +2 a tier, v6 both. **Stand-Up** +12.
+- **Gone:** the Alignment knack and the turning board pattern (`#board-hypno`, Settings -> Board
+  pattern; `css/hypno.css` keeps only the CRT's floor). The owner's "delete 4x4" met r645's 4x4
+  Knack mid-flight: the Knack stays, the common Trick stays retired as r645 left it.
+- Measured in headless Chromium at 1440x820 and 420x900 (`?tricks=epic`, dev mode on): Live Wire
+  x1.2 then x2.0 at v6 with its second line at x1.2 (a crossing pays the main line); High Voltage
+  x1.2 per card; Obligatory at 100% forced Cascade (535 vs 189); Suggestive at 100% primed the slot's
+  Trick 3 times from 3 cards; Coin and the Sword at 100% paid +9 credits and +30 mult (3 x 25% of
+  40); Assembly Line's second hand paid line cards x (3 x 2); Lie Down + Stand-Up with a full tray
+  of 5 fused into Lie Up in slot 5, +24 on a row, +104 and an L shape at v6; real hands through PLAY
+  with no timeline drift and no page errors. The tour page's `[DECK AUDIT]` warning is pre-existing
+  (identical on r645).

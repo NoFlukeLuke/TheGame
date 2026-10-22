@@ -32,7 +32,13 @@ const LINE_FX_META = {
   groove:             { color: '#c86bd8', glyph: '♪', name: 'Groove' },
   assembly_line:      { color: '#3aa76d', glyph: '▲', name: 'Assembly Line' },
   overtime:           { color: '#e07c3a', glyph: '⏮', name: 'Overtime' },
-  four_by_four:       { color: '#7fd6c2', glyph: '4', name: '4x4' },
+  four_by_four:       { color: '#7fd6c2', glyph: '4', name: '4x4' },   // the retired Trick (r645: 4x4 is a Knack); a saved run may still draw it
+  // r646 (owner): the five new line Tricks. A 5th improvement's second line shares its Trick's colour.
+  line_xpips:         { color: '#f2c94c', glyph: '×', name: 'Live Wire' },
+  line_xmult:         { color: '#ff6a52', glyph: '×', name: 'High Voltage' },
+  obligatory:         { color: '#7fd6c2', glyph: '!', name: 'Obligatory' },
+  suggestive:         { color: '#cf8cff', glyph: '+', name: 'Suggestive' },
+  coin_sword:         { color: '#d4a017', glyph: '¢', name: 'Coin and the Sword' },
 };
 function lineFXMeta(id) { return LINE_FX_META[id] || { color: '#c9a84c', glyph: '●', name: id }; }
 
@@ -122,7 +128,7 @@ function renderLineMarkers(opts) {
   const byLine = new Map();
   rowColBonuses.forEach(b => {
     const span = b.axis === 'row' ? GEO.rows : GEO.cols;
-    if (b._fixed && b.index >= span) return;   // r623: 4x4's 6th column is not drawn on a narrower board
+    if (b._fixed && b.index >= span) return;   // a fixed line past the board is not drawn (4x4's 6th column; a pre-r646 save's Perfect Timing line)
     const idx  = Math.max(0, Math.min(b.index, span - 1));
     const k = `${b.axis}-${idx}`;
     if (!byLine.has(k)) byLine.set(k, []);

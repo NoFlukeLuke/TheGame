@@ -138,6 +138,7 @@ function luckTierPercents() {
 // `tierOf` differs by pool - Tricks carry `tier`, Sleights and Knacks carry
 // `rarity` - so it is passed in rather than guessed at.
 function pickEntityByRarity(pool, tierOf, weights, tiers) {
+  if (pool && pool.length) pool = pool.filter(x => !(x && x.fused));   // r646: a fused Trick is never drawn
   if (!pool || !pool.length) return null;
   const T = tiers   || ENTITY_TIERS;
   const W = luckTierWeights(weights || ENTITY_TIER_W).slice();

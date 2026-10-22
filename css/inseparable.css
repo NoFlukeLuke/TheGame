@@ -1,0 +1,30 @@
+/* ══ INSEPARABLE (r646) - js/inseparable.js ═══════════════════════════════════
+   A fused Trick is RED and wears both parts' icons; under the pointer, or
+   lifted / pinned / picked, it pulses faintly. Loaded after css/style.css so
+   the colour beats the rarity's. */
+.reward-cell.fused, .trick-tray-chip.fused, #stage:not(.landscape) .trick-tray-chip.fused { --rc: #ff3b3b; }
+.reward-cell.fused .rwd-art { color: #ff3b3b; }
+/* the owner's floppy art is painted per rarity; the fused disc shifts its hue to red */
+.reward-cell.entity-trick.fused::before { filter: hue-rotate(96deg) saturate(1.25) brightness(1.05); }
+/* two icons on one label: each a little smaller, side by side */
+.rwd-fused { display: inline-flex; align-items: center; justify-content: center; gap: .04em; max-width: 100%; }
+.rwd-fused > .rwd-em { font-size: .72em; }
+/* the faint pulse: pointer, lift copy, pinned tooltip, a picked offer */
+.trick-tray-chip.fused:hover .reward-cell, #tray-lift .reward-cell.fused, #trick-tray-area.tt-pinned .trick-tray-chip.fused .reward-cell,
+.reward-cell.fused:hover, .gp-opt.picked .reward-cell.fused, .reward-cell.fused.selected {
+  animation: insPulse 1.7s ease-in-out infinite;
+}
+@keyframes insPulse {
+  0%, 100% { filter: drop-shadow(0 0 0 #ff3b3b00) brightness(1); }
+  50%      { filter: drop-shadow(0 0 5px #ff3b3b88) brightness(1.08); }
+}
+body.reduced-motion .reward-cell.fused, body.reduced-motion .trick-tray-chip.fused .reward-cell { animation: none !important; }
+
+/* the fusion scene (on the improvement animation's screen) */
+.ins-scene .ia-tile { filter: drop-shadow(0 10px 18px #000c); }
+.ins-scene .ins-out .reward-cell { box-shadow: 0 0 22px #ff3b3b88; }
+.ins-ring { border-color: #ff5a5a; box-shadow: 0 0 18px #ff3b3baa, inset 0 0 18px #ff3b3b66; }
+.ins-sparks { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 3; }
+.ins-sparks > i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #fff1d8; box-shadow: 0 0 8px #ff5a5a, 0 0 14px #ff3b3b; }
+.ins-sparks > i:nth-child(odd) { background: #ff8a6a; }
+.ia-ver .ins-name { color: #ff6a6a; text-shadow: 0 0 8px #ff3b3b99; font-weight: normal; }

@@ -361,7 +361,7 @@ function AUD_apply(L, mask, g, h, ctx) {
   // Marked lines this level.
   const lineOf = id => rowColBonuses.filter(b => b.id === id);
   const onLine = (id, x) => { const ls = lineOf(id); return x.cells.filter(([r, c]) => ls.some(b => (b.axis === 'row' ? b.index === r : b.index === c))).length; };
-  assemblyMarkCount = on('assembly_line') ? prevH.reduce((n, x) => n + onLine('assembly_line', x), 0) : 0;
+  asmLine = { prev: null, cur: on('assembly_line') ? prevH.reduce((n, x) => n + onLine('assembly_line', x), 0) : 0 };   // r635: the count stands in for last round's
   const anyLine = x => x.cells.some(([r, c]) => rowColBonuses.some(b => (b.axis === 'row' ? b.index === r : b.index === c)));
   if (on('feng_shui')) {
     const key = 'fs' + mask;

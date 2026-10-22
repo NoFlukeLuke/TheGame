@@ -539,8 +539,10 @@ let negativeTilesTakenRun = 0; // count of negative (debuff) reward tiles taken 
 let bonusPips_fengshui  = 0;   // Feng Shui: permanent pips, grows when another position trick fires (per game)
 let focusGenGame  = 0;   // total Focus generated this game (Wellspring); reset on new game
 let focusGenRound = 0;   // total Focus generated this round (Feedback Loop); reset each round
-let assemblyMarkCount   = 0;   // Assembly Line: cards scored from its marked line this round (replays count)
-let _lastHandAssemblyEnd = 0;  // snapshot of assemblyMarkCount after the last scored hand
+// Assembly Line (r646): cards scored from its line(s) THIS round (.cur) and LAST round (.prev; null
+// until a round ends with the Trick owned, when .cur stands in). In SAVE_VARS; asmLineRollover (js/scoring.js).
+let asmLine = { prev: null, cur: 0 };
+let _lastHandAssemblyEnd = 0;  // the last scored hand's line cards, replays included (calcScore -> playHand)
 let studyHallCards      = 0;   // Study Hall: running count of cards scored this run; every 2nd one pays Focus
 let markCount_groove    = 0;   // Groove: cards scored from its marked line this round
 let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round

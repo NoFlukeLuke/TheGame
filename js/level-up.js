@@ -231,7 +231,9 @@ function triggerLevelUp() {
   setsPlayedRound  = 0;
   runStreak        = 0;
   handTypesRound   = new Set();
-  assemblyMarkCount = 0;   // Assembly Line
+  // Assembly Line (r646): outside Flow a round's end moves this round's count to last round's;
+  // Flow rolls over at the quarter (survivalBossBookkeeping, js/survival.js).
+  if (!(typeof flowActive === 'function' && flowActive())) asmLineRollover();
   markCount_groove  = 0;   // Groove
   markCount_overtime = 0;  // Overtime
   _cleanSweepPrev   = [];  // Clean Sweep
@@ -458,7 +460,6 @@ function startNewRoundDealAnims() {
   if (!gridEl) return;
   // The board pattern (r409) is back before the cards fall onto it, rather than
   // popping in under them at the render() that ends the deal.
-  if (typeof ensureBoardPattern === 'function') ensureBoardPattern(gridEl);
 
   // Clear any existing real card elements so only temp-anims are visible
   gridEl.querySelectorAll('[data-card-id]:not(.temp-anim)').forEach(el => el.remove());

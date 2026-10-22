@@ -68,17 +68,23 @@ async function improveAnimFlush() {
   clearTimeout(_iaTimer); _iaTimer = 0;
   if (_iaRunning) { await _iaRunning; }
   if (!_iaQueue.length) return;
-  const run = (async () => {
+  // r646: `_iaRunning` is set BEFORE the runner starts. With every entry skipped
+  // (look 'none', reduced motion) the runner used to finish synchronously, its
+  // finally clearing the flag before `_iaRunning = run` set it to a promise that
+  // had already settled - so the flag read "running" for good and no later note
+  // ever scheduled a flush.
+  let _done; const run = new Promise(res => { _done = res; });
+  _iaRunning = run;
+  (async () => {
     _iaSkip = false;
     try {
       while (_iaQueue.length) {
         const e = _iaQueue.shift();
         if (_iaSkip || iaOff()) continue;
-        try { await iaPlay(e); } catch (err) { console.error('[IMPROVE-ANIM]', err); }
+        try { await ((e.kind === 'fuse' && typeof iaPlayFuse === 'function') ? iaPlayFuse(e) : iaPlay(e)); } catch (err) { console.error('[IMPROVE-ANIM]', err); }   // r646: a fusion (js/inseparable.js) rides the same queue
       }
-    } finally { _iaRunning = false; _iaSkip = false; iaTeardown(); }
+    } finally { _iaRunning = false; _iaSkip = false; iaTeardown(); _done(); }
   })();
-  _iaRunning = run;
   await run;
 }
 function iaOff() {

@@ -62,16 +62,48 @@ function fourHorsemanPicks(cells) {
 }
 // Straight Shot (r625): distinct rows + distinct columns a hand covers (a straight line of 5 is 6).
 function lineSpanTotal(cells) { return new Set(cells.map(([r]) => r)).size + new Set(cells.map(([, c]) => c)).size; }
-// Perfect Timing's 5th improvement (r625): a second marked line, the first free one.
-function perfectTimingExtraLine(t) {
-  if (rowColBonuses.some(b => b.id === 'perfect_timing' && b._fixed)) return;
+// A SECOND marked line (r625 Perfect Timing; r646 every line Trick's 5th
+// improvement): a random free line on the OTHER axis from the Trick's own line
+// (so the two cross somewhere), else any free line, else any line. Registry entry
+// `_extra: true` (a pre-r646 save's Perfect Timing line carries `_fixed`); the
+// Trick's own line is the one without it. `markedLineKind` tells the two apart
+// for the Tricks whose second line pays the base value.
+function markExtraLine(id) {
+  if (!hasTrick(id) || rowColBonuses.some(b => b.id === id && (b._extra || b._fixed))) return;
+  const main = rowColBonuses.find(b => b.id === id && !b._extra && !b._fixed);
   const tries = [];
   for (let i = 0; i < Math.max(gridRows, gridCols); i++) { if (i < gridRows) tries.push(['row', i]); if (i < gridCols) tries.push(['col', i]); }
   const free = tries.filter(([axis, i]) => !lineOccupied(axis, i));
-  const pick = (free.length ? free : tries)[Math.floor(Math.random() * (free.length ? free : tries).length)];
+  const cross = main ? free.filter(([axis]) => axis !== main.axis) : [];
+  const pool = cross.length ? cross : free.length ? free : tries;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
   if (!pick) return;
-  rowColBonuses.push({ id: 'perfect_timing', axis: pick[0], index: pick[1], _fixed: true });
+  rowColBonuses.push({ id, axis: pick[0], index: pick[1], _extra: true });
+  const t = ownedTrickObj(id);
+  if (t) { positionDescApply(t); if (typeof updateTrickList === 'function') updateTrickList(); if (typeof renderTrickTray === 'function') renderTrickTray(); }
   if (typeof renderLineMarkers === 'function') renderLineMarkers();
+}
+// 'main' when the Trick's own line covers the cell, else 'extra' for its second
+// line, else null. Main wins at a crossing of the two.
+function markedLineKind(r, c, id) {
+  let kind = null;
+  rowColBonuses.forEach(b => {
+    if (b.id !== id || !((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c))) return;
+    if (!b._extra && !b._fixed) kind = 'main'; else if (!kind) kind = 'extra';
+  });
+  return kind;
+}
+// Every registry line of a Trick covering a cell, in registry order (both lines
+// at a crossing). Obligatory and Suggestive roll per line, since each line names
+// its own tray slot.
+function markedLinesAt(r, c, id) {
+  return rowColBonuses.filter(b => b.id === id && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
+}
+// The tray slot a marked line names (row 4 -> slot 4 -> trickTray[3]), for
+// Obligatory / Suggestive: the Trick there, or null (empty slot, or itself).
+function lineSlotTrick(b, selfId) {
+  const t = trickTray[b.index];
+  return (t && t.id !== selfId) ? t : null;
 }
 
 // Static Bonus (r579, js/events-extra.js): flat pips / mult on every hand's base. In SAVE_VARS.
@@ -369,8 +401,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // (starts from this round's persistent count; simulated locally so calcScore stays pure).
   const _cellSet = new Set(_scoreCells.map(([_hr,_hc]) => _hr + '-' + _hc));
   const _asmOn = hasTrick('assembly_line');
-  let _asmK = _asmOn ? assemblyMarkCount : 0;
-  let _asmMult = 0;
+  let _asmCards = 0;                                 // r646: cards scored from its line(s) this hand, replays included
+  const _asmPer = _asmOn ? asmLinePerCard() : 0;     // mult per line card: last round's count x the rate
+  // r646 line Tricks
+  const _lwOn = hasTrick('line_xpips'), _hvOn = hasTrick('line_xmult'), _csOn = hasTrick('coin_sword');
+  let _csHits = 0;                                   // Coin and the Sword: mult rolls that landed this hand
   // Five Stack: 5-card hands add per-card pips+mult, replay-aware (folds through the retrigger loop).
   const _fiveCard = hasTrick('five_stack') && _handN === 5;
   let _fsMult = 0;
@@ -507,7 +542,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (!_G && cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
     if (!_G && _fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
-    // 4x4: cards scored in the 4th column (index 3), and the 6th (r623), score +pips
+    // 4x4, the retired Trick (r645: 4x4 is a Knack now; a saved run may still hold the Trick): the 4th and 6th columns score +pips
     if (!_G && hasTrick('four_by_four') && fourByFourCols().includes(c)) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
     // Permanent ×pips enhancement (The Forge / Bargain / Wager events, the deck
     // editor). r399: EVERY flat +pips on the card lands before it (owner: "the
@@ -521,6 +556,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _xp = (_G || !qrlBuffOn(card, 'xpips')) ? 1 : (permXPips[_eKey] || 1);
     // Cornered: a corner card's own pips x the whole minutes left on the clock
     if (!_G && _crMins >= 1 && _crSet.has(r + '-' + c)) { const _b = cp; cp *= _crMins; bPipX('corner_retrigger', _crMins, cp - _b); }
+    // Live Wire (r646): x pips on a card in its marked line; the second line (5th improvement) pays the base value.
+    if (!_G && _lwOn) { const _k = markedLineKind(r, c, 'line_xpips'); if (_k) { const _f = _k === 'main' ? BAL.line_xpips.pip_mult : BAL.line_xpips.line2; if (_f > 0 && _f !== 1) { const _b = cp; cp *= _f; bPipX('line_xpips', _f, cp - _b); } } }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
     if (!_G && cardCurses[_eKey]?.id === 'leaden') { if (cp) _ev('leaden', 'pip*', 0, 'curse'); cp = 0; }
     // Straight Shot: sum every card's modified pips (post-buff, post-curse, pre-replay)
@@ -542,7 +579,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
     // r625: an improved Perfect Timing rolls a second (past 100%, a third) replay after the sure one.
     // r632 (owner): the second chance belongs to the Trick's own line; the 5th improvement's second line replays once.
-    const _ptMain = _pt && rowColBonuses.some(b => b.id === 'perfect_timing' && !b._fixed && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
+    const _ptMain = _pt && markedLineKind(r, c, 'perfect_timing') === 'main';
     let _ptN = _pt ? 1 + (_ptMain && BAL.perfect_timing.chance2 > 0 ? luckRollDet(BAL.perfect_timing.chance2, (card._id || 0) + 7939, handsPlayedRound) : 0) : 0;
     let _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
     let _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
@@ -586,7 +623,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _srcs = [
       ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _ptN], ['res', _res ? 2 : 0], ['rip', _rip], ['evb', _evb], ['wod', _wod], ['twn', _twn],
       ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? 1 : 0], ['re', _re],
-      ['rne', _rne ? 1 : 0], ['ech', _ech ? 1 : 0], ['wp', _wp ? BAL.woodpecker.retrigger_count : 0], ['hnm', _hnm ? 1 : 0],
+      ['rne', _rne ? 1 : 0], ['ech', _ech ? 1 : 0], ['wp', _wp ? BAL.woodpecker.retrigger_count + ((BAL.woodpecker.chance_extra > 0 && _detReplayRand((card._id || 0) + 7971, handsPlayedRound) < BAL.woodpecker.chance_extra) ? 1 : 0) : 0], ['hnm', _hnm ? 1 : 0],
       ['wfi', _wfi], ['hr', _hr], ['enc', _enc ? 1 : 0], ['lab', _lab ? 1 : 0], ['cb', _cb ? 1 : 0],
       ['3c', _3c ? BAL.third_charm.extra_replays : 0],
     ].filter(x => x[1] > 0);
@@ -627,9 +664,15 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _hlClub = hasTrick('club_double') && card.suit === '♣';
     if (_hlClub) _clubHits += _retrig;
     if (!_G && card._vulturePause) _vultureFires += card._vulturePause; // pause buff fires once per SCORE, not per replay (r342, owner's text dropped "replays stack")
-    // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
-    if (!_G && _asmOn && !_mute && cellHasRowColBonus(r, c, 'assembly_line')) {
-      for (let _ai = 0; _ai < _retrig; _ai++) { _asmMult += _asmK; _asmK++; }
+    // Assembly Line (r646): each (re)play of a card in its line(s) pays last round's count x the rate
+    if (!_G && _asmOn && !_mute && cellHasRowColBonus(r, c, 'assembly_line')) _asmCards += _retrig;
+    // Coin and the Sword (r646): mult_chance per card in its marked line, once per replay, of credit_pct of
+    // your credits as mult (paid hand-level below); the second line rolls the base odds. The credits half
+    // is rolled in playHand (scalingCount), where credits are paid.
+    if (!_G && _csOn && !_mute) {
+      const _k = markedLineKind(r, c, 'coin_sword');
+      if (_k) { const _ch = _k === 'main' ? BAL.coin_sword.mult_chance : BAL_BASE.coin_sword.mult_chance;
+        for (let _ci = 0; _ci < _retrig; _ci++) if (luckRollDet(_ch, (card._id || 0) + 7981 + _ci * 131, handsPlayedRound) > 0) _csHits++; }
     }
     // Five Stack: +mult per card, once per (re)trigger of that card
     if (!_G && _fiveCard && !_mute) _fsMult += BAL.five_stack.mult * _retrig;
@@ -782,6 +825,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       // Chorus (r637, owner): x mult on each REPLAY of the card, on that beat, last in
       // it. `replay`: not on the card's first scoring (the dance skips it on rep 0).
       if (!_G && hasTrick('chorus') && _retrig > 1) _xl.push({ id: 'chorus', f: BAL.chorus.mult_mult, replay: true });
+      // High Voltage (r646): x mult on a card in its marked line; the second line pays the base value.
+      if (!_G && _hvOn) { const _k = markedLineKind(r, c, 'line_xmult'); if (_k) { const _f = _k === 'main' ? BAL.line_xmult.mult_mult : BAL.line_xmult.line2; if (_f > 0 && _f !== 1) _xl.push({ id: 'line_xmult', f: _f }); } }
     }
     _xl.forEach(x => { if (x.id !== 'perm_mult') { const e = _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); if (e && x.replay) e.replay = true; } });
     // The EVENTS are emitted here, where they belong on the timeline. The
@@ -945,10 +990,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     Object.keys(_d).forEach(id => bMultQ(id, _d[id], 1));
   });
 
-  // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
-  if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }
+  // Assembly Line: pay the line cards counted in the per-card loop; playHand adds them to this round's count
+  if (_asmCards > 0 && _asmPer > 0) { mult += _asmCards * _asmPer; bMult('assembly_line', _asmCards * _asmPer); }
   if (_fsMult > 0) { mult += _fsMult; bMult('five_stack', _fsMult); }
-  if (_asmOn) _lastHandAssemblyEnd = _asmK;
+  if (_asmOn) _lastHandAssemblyEnd = _asmCards;
+  // Coin and the Sword (r646): every hit adds credit_pct of your credits as mult
+  if (_csHits > 0) { const _a = _csHits * coinSwordMult(); if (_a) { mult += _a; bMult('coin_sword', _a); } }
+  // Lie Up (r646, INSEPARABLE: Lie Down + Stand-Up): a hand from one row or one column; the 5th improvement takes no more than 2 of either
+  if (hasTrick('lie_up') && lieUpShape(cells)) { mult += BAL.lie_up.mult; bMult('lie_up', BAL.lie_up.mult); }
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
   // Second Hand's mult outcome, accrued as the clock passed 10s marks.
@@ -1330,6 +1379,21 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (!cd || !(cd.rank === '4' || (BAL.four_by_four.queens && cd.rank === 'Q'))) return;
       const _reps = retrigByKey[r + '-' + c] || 1, _cid = cd._id || 0;
       for (let k = 0; k < _reps; k++) if (_detReplayRand(_cid + 4441 + k * 7919, handsPlayedRound) < BAL.four_by_four.chance) _forceIds.push(_ft);
+    });
+  }
+  // Obligatory (r646, owner): each card scored in its marked line has `chance` (its
+  // second line: chance2) of force-triggering the Trick in the tray slot of that
+  // line's number (row 4 -> slot 4), once per replay. Nothing for an empty slot,
+  // itself, or a Trick that cannot be forced. Deterministic, so the preview agrees.
+  if (hasTrick('obligatory') && typeof forceableTrickIds === 'function') {
+    const _fo = forceableTrickIds();
+    cells.forEach(([r, c]) => {
+      const _reps = retrigByKey[r + '-' + c] || 1, _cid = (gridData[r]?.[c]?._id) || 0;
+      markedLinesAt(r, c, 'obligatory').forEach((b, bi) => {
+        const _t = lineSlotTrick(b, 'obligatory'); if (!_t || !_fo.includes(_t.id)) return;
+        const _ch = (b._extra || b._fixed) ? BAL.obligatory.chance2 : BAL.obligatory.chance;
+        for (let k = 0; k < _reps; k++) if (luckRollDet(_ch, _cid + 7991 + bi * 101 + k * 17, handsPlayedRound) > 0) _forceIds.push(_t.id);
+      });
     });
   }
   // Extra Rep's CHAIN (r590): each time a chained Trick fired this hand, a random
@@ -1822,14 +1886,6 @@ function pruneRowColBonuses() {
   if (typeof renderLineMarkers === 'function') renderLineMarkers();
 }
 
-// 4x4's columns (r623: the 4th AND the 6th): its registry lines that are on
-// the board. The 4th is clamped to the last column of a smaller board; the 6th
-// is a fixed line (`_fixed`) that pays and draws only once the board is 6 wide.
-function fourByFourCols() {
-  const out = [];
-  rowColBonuses.forEach(b => { if (b.id === 'four_by_four' && b.index < gridCols && !out.includes(b.index)) out.push(b.index); });
-  return out.length ? out : [Math.min(3, gridCols - 1)];
-}
 // The Heron (r624): whole seconds since the last hand this round (since the round
 // started for the first hand) x mult_per_second. Read by calcScore, the preview
 // line and the tray's live line, so the three agree.
@@ -1837,7 +1893,33 @@ function heronMult() {
   const since = (typeof lastHandRoundSeconds !== 'undefined' && lastHandRoundSeconds !== null) ? lastHandRoundSeconds - roundSeconds : roundStartSeconds - roundSeconds;
   return Math.max(0, Math.floor(since)) * BAL.patience_reward.mult_per_second;
 }
-// Magician (r635, owner): the pips side pays only while you own no Sleight (r623 asked
+// 4x4's columns (r623: the 4th AND the 6th), the retired Trick's: its registry lines
+// that are on the board. The 4th is clamped to the last column of a smaller board;
+// the 6th is a fixed line (`_fixed`) that pays and draws only once the board is 6 wide.
+function fourByFourCols() {
+  const out = [];
+  rowColBonuses.forEach(b => { if (b.id === 'four_by_four' && b.index < gridCols && !out.includes(b.index)) out.push(b.index); });
+  return out.length ? out : [Math.min(3, gridCols - 1)];
+}
+// Assembly Line (r646, owner): mult per card scored from its line = cards played
+// from the line LAST round (the last quarter in Flow) x the rate (mult_per_prior;
+// mult_per_flow in Flow). With no finished round since it was taken (asmLine.prev
+// is null) the CURRENT round's count stands in. asmLine is in SAVE_VARS; playHand
+// adds each hand's line cards to .cur, asmLineRollover moves .cur to .prev.
+function asmLinePerCard() {
+  const rate = (typeof flowActive === 'function' && flowActive()) ? BAL.assembly_line.mult_per_flow : BAL.assembly_line.mult_per_prior;
+  const n = (asmLine.prev == null) ? asmLine.cur : asmLine.prev;
+  return n * rate;
+}
+function asmLineRollover() { asmLine = { prev: asmLine.cur, cur: 0 }; }
+// Coin and the Sword (r646): the mult one hit pays, credit_pct of your credits, whole.
+function coinSwordMult() { return Math.floor(Math.max(0, coins || 0) * BAL.coin_sword.credit_pct); }
+// Lie Up (r646): the hand sits in no more than `span` rows OR no more than `span` columns.
+function lieUpShape(cells) {
+  const rows = new Set(cells.map(([r]) => r)).size, cols = new Set(cells.map(([, c]) => c)).size;
+  return rows <= BAL.lie_up.span || cols <= BAL.lie_up.span;
+}
+// Magician (r646, owner): the pips side pays only while you own no Sleight (r623 asked
 // for it to be the only Trick in the tray).
 function magicianNoSleights() { return ownedSleightCount() === 0; }
 
@@ -1962,10 +2044,13 @@ function firesThisMinute(id) {
 // ── Position-mark assignment (r102) ─────────────────────────────────────────
 // Every "position Trick" marks one grid line (a row or column). Which line it gets
 // is steered by the position knacks: Surveyor (you pick a column), Leveler (you pick a
-// row), Alignment (auto column = tray slot), District (allow >1 effect on the same line).
-// A manual chooser (Surveyor/Leveler) always beats Alignment. Assignment is idempotent
-// per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
-const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
+// row), District (allow >1 effect on the same line). r646: Alignment (auto column = tray
+// slot) is gone. Assignment is idempotent per Trick object so an upgrade (selectTrick
+// called twice) doesn't re-roll the line.
+// r646: the five new line Tricks (Live Wire, High Voltage, Obligatory, Suggestive, Coin
+// and the Sword). Their 5th improvement marks a SECOND line through markExtraLine.
+const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime',
+  'line_xpips','line_xmult','obligatory','suggestive','coin_sword'];
 
 // -- The AXIS alternates; only the INDEX is luck (r296) ----------------------
 // Every one of the eight above is printed as "a marked row or column" and the
@@ -2005,8 +2090,8 @@ function positionAxisFor(trick) {
   return POSITION_FORCED_AXIS[trick.id] || positionAxisNext;
 }
 // Advance off the axis ACTUALLY TAKEN, never off the cursor. A forced axis, the
-// Alignment knack's column and the player's own pick in the Surveyor / Leveler
-// chooser all go through here, so none of them can leave the run out of step.
+// player's own pick in the Surveyor / Leveler chooser both go through here, so
+// neither can leave the run out of step.
 // Idempotent, so the chooser confirming the provisional default costs nothing.
 function markPositionAxisTaken(axis) {
   positionAxisNext = (axis === 'row') ? 'col' : 'row';
@@ -2070,7 +2155,7 @@ function clampRowColBonuses() {
   rowColBonuses.forEach(b => {
     const span = b.axis === 'row' ? limits.grid_rows.current : limits.grid_cols.current;
     const max  = Math.max(0, span - 1);
-    if (b.index <= max || b._fixed) return;   // a fixed line (4x4's 6th column) waits for its column
+    if (b.index <= max || b._fixed) return;   // a fixed line (4x4's 6th column, a pre-r646 save's Perfect Timing second line) waits for its line
     // finalizePositionMark rewrites the Trick's printed description to name the
     // line, so moving the mark without it would leave the tray quoting a row
     // that is not there any more.
@@ -2102,15 +2187,7 @@ function finalizePositionMark(trick, axis, index) {
   rowColBonuses = rowColBonuses.filter(b => b._trickRef !== trick);  // one line per Trick object
   rowColBonuses.push({ id: trick.id, axis, index, _trickRef: trick });
   trick._posAxis = axis; trick._posIndex = index;
-  // "column", not the `col` the axis id spells - this string is printed in the
-  // tray, in Records and in the tooltip. The alternation (r296) guarantees half
-  // the position Tricks in every run land on a column, so it is now something
-  // the player reads every run rather than on a coin flip.
-  const label = `${axis === 'row' ? 'row' : 'column'} ${index + 1}`;
-  trick.desc = trick._posDescBase
-    .replace('a specific row or column', label)
-    .replace('a marked row or column', label)
-    .replace('a specific grid intersection', `(${label})`);
+  positionDescApply(trick);
   if (typeof updateTrickList === 'function') updateTrickList();
   if (typeof renderTrickTray === 'function') renderTrickTray();
   // Draw the line it just claimed, with an arrival sweep down the board, so the
@@ -2118,17 +2195,36 @@ function finalizePositionMark(trick, axis, index) {
   // rewritten tooltip (js/entity-fx.js). The line then stays for the run.
   if (typeof animateLineGrant === 'function') animateLineGrant(trick);
 }
+// Rewrite a marked Trick's description from its placeholder text to name its
+// line(s): "a marked row or column" -> "row 4"; the 5th improvement's "a second
+// line" -> "column 2"; Obligatory / Suggestive's "the tray slot of that line's
+// number" -> "tray slot 4". "column", not the `col` the axis id spells - this
+// string is printed in the tray, in Records and in the tooltip. Run from
+// finalizePositionMark, markExtraLine and syncOwnedEntityDescs (r646: the
+// regenerated sentence after an improvement used to lose the label).
+function positionDescApply(trick) {
+  if (!trick || trick._posDescBase == null || trick._posAxis == null) return;
+  const lab = b => `${b.axis === 'row' ? 'row' : 'column'} ${b.index + 1}`;
+  const main = { axis: trick._posAxis, index: trick._posIndex }, label = lab(main);
+  let d = trick._posDescBase
+    .replace('a specific row or column', label)
+    .replace('a marked row or column', label)
+    .replace('a specific grid intersection', `(${label})`)
+    .replace("the tray slot of that line's number", `tray slot ${main.index + 1}`);
+  const extra = rowColBonuses.find(b => b.id === trick.id && (b._extra || b._fixed));
+  if (extra) d = d.replace('a second line', `${lab(extra)} (its second line)`);
+  trick.desc = d;
+}
 // Decide (and, for manual choosers, prompt for) a position Trick's line at pick time.
 function assignPositionMark(trick) {
-  // 4x4 (r352) is a column effect with a FIXED line: the 4th column, or the
-  // last one a smaller board has. It joins the registry so it draws its line
-  // and counts for Ley Line / Temporal Rift, but never touches the axis cursor.
+  // 4x4 (r352), the retired Trick (a saved run may hold it; r645 made 4x4 a Knack):
+  // a column effect with a FIXED line, the 4th column or the last one a smaller
+  // board has, plus a fixed 6th (r623). It never touches the axis cursor.
   if (trick.id === 'four_by_four') {
     if (trick._posAssigned) return;
     trick._posAssigned = true;
     const _cols = (typeof limits !== 'undefined' && limits.grid_cols) ? limits.grid_cols.current : gridCols;
     finalizePositionMark(trick, 'col', Math.min(3, _cols - 1));
-    // r623: the 6th column too, a fixed line that pays and draws only on a board 6 wide.
     if (!rowColBonuses.some(b => b.id === 'four_by_four' && b._fixed)) rowColBonuses.push({ id: 'four_by_four', axis: 'col', index: 5, _fixed: true });
     return;
   }
@@ -2139,7 +2235,7 @@ function assignPositionMark(trick) {
   const axes = [];
   if (hasKnack('leveler'))  axes.push('row');
   if (hasKnack('surveyor')) axes.push('col');
-  if (axes.length) {                              // manual chooser wins over Alignment
+  if (axes.length) {                              // a manual chooser beats the alternation
     // Owning BOTH knacks offers both axes, so the provisional default is the
     // alternation's; owning one means that knack IS the axis and the cursor has
     // nothing to say. Written as one test so a forced-axis Trick also keeps its
@@ -2150,14 +2246,6 @@ function assignPositionMark(trick) {
     finalizePositionMark(trick, prov.axis, prov.index);
     markPositionAxisTaken(prov.axis);
     queuePositionChooser(trick, axes, district);
-    return;
-  }
-  if (hasKnack('alignment')) {                    // auto: column = tray slot (wraps), else next free col
-    let slot = trickTray.indexOf(trick); if (slot < 0) slot = trickTray.length;
-    let index = ((slot % gridCols) + gridCols) % gridCols;
-    if (!district) index = firstFreeAlong('col', index);
-    finalizePositionMark(trick, 'col', index);
-    markPositionAxisTaken('col');                 // the knack decided; keep the run in step with it
     return;
   }
   // Default: the AXIS alternates, the INDEX is random (and spreads unless

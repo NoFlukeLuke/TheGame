@@ -815,8 +815,8 @@ function playHand() {
   // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
   // the goal checks, called from all three dance sites (r294).
   // Compound / Acorns / Feng Shui moved to scalingCount, after the dance (r370).
-  // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
-  if (hasTrick('assembly_line')) assemblyMarkCount = _lastHandAssemblyEnd;
+  // Assembly Line (r646): this hand's line cards (replays included) join this round's count
+  if (hasTrick('assembly_line')) asmLine.cur += _lastHandAssemblyEnd;
   // Ley Line moved to scalingCount, after the dance (r370).
   // Temporal Rift (r342): a card scored at a row×column effect intersection gains +3s
   // REWIND when scored (permTime - the r211 pipeline, paid through rewindTime). The
@@ -1048,6 +1048,26 @@ function scalingCount(hand, handCells, reps) {
     .filter(x => x.card);
   // Scaling card buffs (permPipsGrow / permMultGrow): grow once per time scored.
   if (typeof growCardScaling === 'function') growCardScaling(_cells.map(x => x.card), _cells.map(x => x.n));
+  // Suggestive (r646, owner): each card scored in its marked line has `chance` (its second
+  // line: chance2) of PRIMING the Trick in the tray slot of that line's number, once per
+  // replay. Primes are spent here, not in calcScore (read-only), so this is a real roll.
+  if (hasTrick('suggestive')) {
+    for (const x of _cells) markedLinesAt(x.r, x.c, 'suggestive').forEach(b => {
+      const t = lineSlotTrick(b, 'suggestive'); if (!t) return;
+      const ch = (b._extra || b._fixed) ? BAL.suggestive.chance2 : BAL.suggestive.chance;
+      let n = 0; for (let k = 0; k < x.n; k++) n += luckRoll(ch);
+      if (n > 0 && primeTrick(t, n, { src: 'suggestive' })) noteMessage(`+ Suggestive primed ${t.name}`, '#cf8cff');
+    });
+  }
+  // Coin and the Sword (r646): the credits half. credit_chance per card in its line, once per
+  // replay, of credits equal to the hand size (the mult half is rolled in calcScore).
+  if (hasTrick('coin_sword')) {
+    let paid = 0;
+    for (const x of _cells) { const k = markedLineKind(x.r, x.c, 'coin_sword'); if (!k) continue;
+      const ch = k === 'main' ? BAL.coin_sword.credit_chance : BAL_BASE.coin_sword.credit_chance;
+      for (let i = 0; i < x.n; i++) if (luckRoll(ch) > 0) paid += handCells.length; }
+    if (paid > 0) { coins += paid; noteMessage(`¢ Coin and the Sword +${paid} credits`, '#d4a017'); if (typeof updateCoinsUI === 'function') updateCoinsUI(); }
+  }
   // Relentless (r367): spades scored since you took it. Counts only while owned.
   if (hasTrick('relentless')) {
     for (const x of _cells) {

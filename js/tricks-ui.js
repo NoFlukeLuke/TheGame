@@ -59,7 +59,8 @@ function trickLiveDesc(trick) {
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
       case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);
-      case 'assembly_line':  return roundNow(`next mark card +${assemblyMarkCount || 0} mult`);
+      case 'assembly_line':  return now(`+${typeof asmLinePerCard === 'function' ? asmLinePerCard() : 0} mult per line card · ${asmLine.cur} played from the line so far`);
+      case 'coin_sword':     return now(`a hit adds +${typeof coinSwordMult === 'function' ? coinSwordMult() : 0} mult`);
       // ── round-time / round-counter scaling (live round only) ──
       case 'swift':          return roundNow(`+${Math.floor(el / B.swift.interval_seconds) * B.swift.mult_per_interval} mult`);
       case 'sediment':       return roundNow(`+${Math.floor(el / B.sediment.interval_seconds) * B.sediment.pips_per_interval} pips`);
@@ -96,10 +97,15 @@ let _trickCountShown = 0;
 function trickTrayFull() {
   return trickTray.length >= trickCapacity();
 }
+// r646: the full tray for ONE Trick. The second half of an INSEPARABLE pair
+// (js/inseparable.js) always fits: the fusion frees a slot.
+function trickTrayFullFor(id) {
+  return trickTrayFull() && !(typeof inseparableCompletes === 'function' && inseparableCompletes(id));
+}
 // An offer that would ADD a Trick to the tray. An improve offer carries
 // entity 'trick' to draw the owned Trick, but takes no slot.
 function offerNeedsTrickSlot(p) {
-  return !!p && p.entity === 'trick' && !p._improve && trickTrayFull();
+  return !!p && p.entity === 'trick' && !p._improve && trickTrayFullFor(p.id || (p._trick && p._trick.id) || (p.data && p.data.id));
 }
 
 function pulseTrickCount() {
@@ -181,7 +187,7 @@ function renderTrickTray() {
     // suspension) is drained of colour and marked, so "which of mine is off right
     // now" is answered by looking at the tray rather than by remembering.
     const bossOff = (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(trick.id);
-    chip.className = `trick-tray-chip trick-tier-${trick.tier} rar-${rar}${bossOff ? ' trick-off' : ''}`;
+    chip.className = `trick-tray-chip trick-tier-${trick.tier} rar-${rar}${bossOff ? ' trick-off' : ''}${trick.fused ? ' fused' : ''}`;
     chip.dataset.trickId = trick.id;
     const isMirror = trick.id === 'mirror';
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
@@ -379,6 +385,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   if (trick.id === 'feelin_lucky' && !trick._luckyRanks) feelinLuckyRoll(trick);
   if (trick.id === 'nines_mult') cloudNinePickup();      // r539: brings its own 9s
   if (trick.id === 'rising_tide') risingTideMult = 0;    // r539: counts from the pick
+  if (trick.id === 'assembly_line') asmLine = { prev: null, cur: 0 };   // r646: counts from the pick; this round stands in until one ends
 
   updateTrickList();
   const lvlOverlay = document.getElementById('levelup-overlay');

@@ -327,8 +327,8 @@ function caStandIn(el, clip) {
   c.querySelectorAll('.sel-num').forEach(n => n.remove());   // the selection order badge is not part of the card
   c.style.transition = 'none'; c.style.zIndex = '0'; c.style.opacity = '1'; c.style.boxShadow = 'none';
   if (clip) c.style.clipPath = clip;
-  // before the FIRST CARD, not the first child: the board's own background layers
-  // (the swirl) come first and must stay under it
+  // before the FIRST CARD, not the first child: any background layer of the board
+  // comes first and must stay under it
   const firstCard = [...el.parentNode.children].find(n => n.classList && n.classList.contains('card') && n !== c);
   el.parentNode.insertBefore(c, firstCard || el.parentNode.firstChild);
   return c;

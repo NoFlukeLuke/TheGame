@@ -230,6 +230,8 @@ function survivalTickBossClock() {
 // Also the chokepoint for Flow's own ban list (clock entities in a mode with no round
 // clock) - every offer pool already routes through here, so one test covers both.
 function survivalEntityBanned(id) {
+  // r646: a fused (INSEPARABLE) Trick exists only through its pair, never as an offer.
+  if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
   // The reward-grid-only entities are dead picks wherever the MODE never opens
   // a reward grid - the pick-of-three loop, and the non-poker loops too.
   if (modeHasNoRewardGrid() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
@@ -597,7 +599,7 @@ function survivalChoose(i) {
   if (!opt) return;
   // A Trick with a full tray is REFUSED HERE, before the pick closes, so the
   // offer stays on the board and the player can sell one and come back (r408).
-  if (opt.type === 'trick' && typeof trickTrayFull === 'function' && trickTrayFull()) {
+  if (opt.type === 'trick' && typeof trickTrayFullFor === 'function' && trickTrayFullFor(opt.id || (opt.data && opt.data.id))) {
     refuseTrickCapacity(); return;
   }
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
@@ -882,6 +884,7 @@ function survivalTriggerBoss() {
 function survivalBossBookkeeping() {
   if (typeof flowEndBoss === 'function') flowEndBoss(); // Flow: refill the session clock on the next deal
   survivalBossesBeaten++;
+  if (typeof asmLineRollover === 'function') asmLineRollover();   // r646: Assembly Line counts the last QUARTER in Flow
   survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS; // restart the 5-minute cadence
 }
 function survivalPostBossReward() {

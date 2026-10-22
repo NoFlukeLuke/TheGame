@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r645 · 4x4 is a rare Knack (scored 4s may force the Trick in slot 4); v6 names; a played hand ends every pause; V6_NAMES_AND_LADDERS.xlsx";
+const BUILD = "2026-10-22 · r646 · Inseparable Tricks (Lie Up); five line Tricks with a second line at v6; Assembly Line counts last round; Woodpecker 2 replays + a chance; Bellhop 2/2; Stand-Up 12; Alignment and the turning board pattern are gone";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

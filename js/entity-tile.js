@@ -62,10 +62,16 @@ function entityTileInner(p, { mystery = false } = {}) {
   if (kind === 'knack')
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon || '♛')}</span></div>` + tierBadge;
 
-  if (kind === 'trick')
+  if (kind === 'trick') {
+    // r646: a fused (INSEPARABLE) Trick wears both parts' icons (js/inseparable.js).
+    const fd = (!mystery && p.id && typeof inseparableDef === 'function') ? inseparableDef(p.id) : null;
+    const art = fd
+      ? `<span class="rwd-fused">${fd.parts.map(id => emGlyph(trickEmoji(typeof inseparableRow === 'function' ? inseparableRow(id) : null))).join('')}</span>`
+      : emGlyph(mystery ? '✦' : (p.emoji || p.icon || '✦'));
     return `<div class="rwd-glyph">✦</div>`
-         + `<div class="rwd-art${mystery ? ' rwd-art-ph' : ''}">${emGlyph(mystery ? '✦' : (p.emoji || p.icon || '✦'))}</div>`
+         + `<div class="rwd-art${mystery ? ' rwd-art-ph' : ''}">${art}</div>`
          + tierBadge;
+  }
 
   if (kind === 'sleight')
     return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || p.icon || '🃏')}</div>`
@@ -108,7 +114,7 @@ function entityTierClass(p) {
 function entityTileClass(p, rarity, extra) {
   const kind = p.entity || p.type;
   return ['reward-cell', 'entity', kind ? 'entity-' + kind : '', 'rar-' + (rarity || 'common'),
-          entityTierClass(p), extra].filter(Boolean).join(' ');
+          entityTierClass(p), (kind === 'trick' && p.id && typeof inseparableDef === 'function' && inseparableDef(p.id)) ? 'fused' : '', extra].filter(Boolean).join(' ');
 }
 
 // ── The tooltip payload a tile carries with it (r254) ───────────────────────

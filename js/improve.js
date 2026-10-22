@@ -125,10 +125,23 @@ const IMPROVE_PLAN = {
   first_fruits:     t => ({ pips: 5 + 5 * [0, 1, 1, 2, 2, 3][t], hands: 1 + [0, 0, 1, 1, 2, 3][t] }),
   // +2 mult, then 2s less, alternating: +10 every 6s at tier 4; the 5th does both
   swift:            t => ({ mult_per_interval: 6 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
-  // +1 replay a tier, +2 for the 5th
-  woodpecker:       t => ({ retrigger_count: 3 + [0, 1, 2, 3, 4, 6][t] }),
-  // r635 (owner): 44% +16% an improvement, capped at 100%; the 5th adds Queens
+  // r646 (owner): 44% +16% an improvement, capped at 100%; the 5th adds Queens
   four_by_four:     t => ({ chance: Math.min(1, 0.44 + 0.16 * Math.min(t, 4)), queens: t >= 5 ? 1 : 0 }),
+  // r646 (owner): one more replay, then a Luck-free chance of one more every time, alternating; 2 replays (3 plays) to start
+  woodpecker:       t => ({ retrigger_count: [2, 3, 3, 4, 4, 4][t], chance_extra: [0, 0, 0.25, 0.25, 0.33, 0.5][t] }),
+  // r646 (owner): +2 swaps, +2 discards, alternating; the 5th does both
+  bellhop:          t => ({ swaps: 2 + 2 * [0, 1, 1, 2, 2, 3][t], discards: 2 + 2 * [0, 0, 1, 1, 2, 3][t] }),
+  // r646 line Tricks (owner): +0.2x / +10% a tier for four tiers; the 5th marks a SECOND line at the base value (line2 / chance2)
+  line_xpips:       t => ({ pip_mult: 1.2 + 0.2 * Math.min(4, t), line2: t >= 5 ? 1.2 : 0 }),
+  line_xmult:       t => ({ mult_mult: 1.2 + 0.2 * Math.min(4, t), line2: t >= 5 ? 1.2 : 0 }),
+  obligatory:       t => ({ chance: 0.25 + 0.1 * Math.min(4, t), chance2: t >= 5 ? 0.25 : 0 }),
+  suggestive:       t => ({ chance: 0.35 + 0.1 * Math.min(4, t), chance2: t >= 5 ? 0.35 : 0 }),
+  // both chances +10%, then the credit share +15%, alternating; the 5th adds the second line at the base odds
+  coin_sword:       t => ({ credit_chance: 0.1 + 0.1 * [0, 1, 1, 2, 2, 2][t], mult_chance: 0.2 + 0.1 * [0, 1, 1, 2, 2, 2][t], credit_pct: 0.25 + 0.15 * [0, 0, 1, 1, 2, 2][t], line2: t >= 5 ? 1 : 0 }),
+  // Assembly Line (r646): +2 a tier (+1 in Flow); the 5th adds a second line
+  assembly_line:    t => ({ mult_per_prior: 2 + 2 * Math.min(4, t), mult_per_flow: 1 + Math.min(4, t), lines: t >= 5 ? 2 : 1 }),
+  // Lie Up (r646, INSEPARABLE): +16 mult a tier; the 5th loosens the shape to no more than 2 rows or 2 columns
+  lie_up:           t => ({ mult: 24 + 16 * t, span: t >= 5 ? 2 : 1 }),
   // ── r625, the owner's epic sheet ──
   // one more prime, then one more rolled rank, alternating; the 5th does both
   wild_heart:       t => ({ primes: 1 + [0, 1, 1, 2, 2, 3][t], extra_ranks: [0, 0, 1, 1, 2, 3][t] }),
@@ -181,7 +194,14 @@ const IMPROVE_HOOKS = {
   wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, ['A']); },
   patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, ['J', 'Q', 'K']); },
   critical: (tier, t) => { if (t && BAL.critical.extra_family && !t._critFamily) t._critFamily = Math.random() < 0.5 ? 'set' : 'run'; },
-  perfect_timing: (tier, t) => { if (BAL.perfect_timing.extra_line && typeof perfectTimingExtraLine === 'function') perfectTimingExtraLine(t); },
+  perfect_timing: () => { if (BAL.perfect_timing.extra_line && typeof markExtraLine === 'function') markExtraLine('perfect_timing'); },
+  // r646: the line Tricks' 5th improvement marks a second line (js/scoring.js markExtraLine)
+  line_xpips:    () => { if (BAL.line_xpips.line2 && typeof markExtraLine === 'function') markExtraLine('line_xpips'); },
+  line_xmult:    () => { if (BAL.line_xmult.line2 && typeof markExtraLine === 'function') markExtraLine('line_xmult'); },
+  obligatory:    () => { if (BAL.obligatory.chance2 && typeof markExtraLine === 'function') markExtraLine('obligatory'); },
+  suggestive:    () => { if (BAL.suggestive.chance2 && typeof markExtraLine === 'function') markExtraLine('suggestive'); },
+  coin_sword:    () => { if (BAL.coin_sword.line2 && typeof markExtraLine === 'function') markExtraLine('coin_sword'); },
+  assembly_line: () => { if (BAL.assembly_line.lines > 1 && typeof markExtraLine === 'function') markExtraLine('assembly_line'); },
 };
 // `n` distinct ranks, none in `not`, kept on the Trick under `key` (rolled once
 // per count, so an earlier roll stays when the count grows).
@@ -345,7 +365,12 @@ function syncOwnedEntityDescs() {
    typeof trickTray      !== 'undefined' ? trickTray      : [],
    typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []].forEach(list => {
     // The name too (r561): a renamed entity in a saved run shows its current name.
-    (list || []).forEach(e => { const src = e && from(e.id); if (src && src.desc) e.desc = src.desc; if (src && src.name) e.name = src.name; });
+    (list || []).forEach(e => {
+      const src = e && from(e.id); if (src && src.desc) e.desc = src.desc; if (src && src.name) e.name = src.name;
+      // r646: a marked Trick's description names its line; the regenerated sentence says "a marked row or column"
+      // again, so the label is put back from the registry (it used to be lost at every improvement).
+      if (e && e._posAxis != null && typeof positionDescApply === 'function') { e._posDescBase = e.desc; positionDescApply(e); }
+    });
   });
 }
 

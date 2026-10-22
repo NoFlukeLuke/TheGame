@@ -63,7 +63,7 @@ const TRICK_POOL = [
   { id:'swift',          name:'The Swift',           tier:'rare',      desc:'+6 mult for every 10 seconds elapsed this round', tags:['mult','hand','clock','scores'] },
   { id:'cuckoo',         name:'The Cuckoo',          tier:'epic',      desc:'Every other hand pauses the clock for 1s for every 5 replays triggered this round', tags:['time','hand','replays'] },
   { id:'double_jeopardy', name:'Double Jeopardy',    tier:'epic',      desc:'2 cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15s each', tags:['time','card','position'] },
-  { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'Marks a random cell every 30 seconds; a card scored from the marked cell replays 3x', tags:['replay','card','position','clock','scores'] },
+  { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'Marks a random cell every 30 seconds; a card scored from the marked cell replays 2x', tags:['replay','card','position','clock','scores'] },
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+3 mult for every clock pause or rewind triggered this game', tags:['mult','hand','pause','scores','scaling'] },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+10 pips for every second the clock has spent paused this round', tags:['pips','hand','pause','scores'] },
   { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first pause permanently gain a 3s pause (cannot stack from a single source)', tags:['deck','time','card','discard','pause','scaling'] },
@@ -115,7 +115,15 @@ const TRICK_POOL = [
   { id:'row_power',      name:'Lie Down',            tier:'rare',    desc:'Hands with cards from only one row score +12 mult per card', tags:['mult','card','position','scores'] },
   // ── New position tricks (owner batch) ──
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','hand','position','line'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
-  { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','card','position','scores','line'],  desc:'Cards scored in a marked row or column score +1 mult for every card played from that line this round' },
+  { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','card','position','scores','line'],  desc:'Cards scored in a marked row or column score +2 mult for every card played from that line last round (+1 in Flow, counting the last quarter)' },
+  // ── r646 line Tricks (owner): a marked line, x pips / x mult / a forced fire / a prime / credits, a second line at the 5th improvement ──
+  { id:'line_xpips',     name:'Live Wire',           tier:'epic',      tags:['xpips','card','position','scores','line'], desc:'Cards scored in a marked row or column score ×1.2 pips' },
+  { id:'line_xmult',     name:'High Voltage',        tier:'epic',      tags:['xmult','card','position','scores','line'], desc:'Cards scored in a marked row or column score ×1.2 mult' },
+  { id:'obligatory',     name:'Obligatory',          tier:'epic',      tags:['retrigger','card','position','tricks','chance','line'], desc:"Cards scored in a marked row or column have a 25% chance to force-trigger the Trick in the tray slot of that line's number" },
+  { id:'suggestive',     name:'Suggestive',          tier:'epic',      tags:['retrigger','card','position','tricks','chance','line'], desc:"Cards scored in a marked row or column have a 35% chance to prime the Trick in the tray slot of that line's number" },
+  { id:'coin_sword',     name:'Coin and the Sword',  tier:'rare',      tags:['credits','mult','card','position','chance','scores','line'], desc:'Cards scored in a marked row or column have a 10% chance to pay credits equal to the hand size and a 20% chance to score mult equal to 25% of your credits' },
+  // ── r646 INSEPARABLE (js/inseparable.js): two owned Tricks fuse into one. Never offered; fused: true. ──
+  { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['mult','hand','position','scores'], desc:'Hands with cards from only one row or only one column score +24 mult' },
   { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','hand','position','line'],  desc:'Every hand rewinds the clock 1s for every 3 cards you have scored from its marked row or column this round. The count resets each round.' },
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','hand','position','scores','scaling'],  desc:'Permanently scores +3 pips for each hand scored with a positional buff (row or column effects)' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','credits','hand','position'],           desc:'Use every cell of any row or column within two hands to add +8 Focus and +4 credits' },
@@ -168,7 +176,7 @@ const TRICK_POOL = [
   { id:'landfill',       name:'Landfill',            tier:'epic',    tags:['mult','card','discard','swap','scores'],  desc:'Score +5 mult per card for every discard or swap used this round (+3 in Flow)' },
   { id:'old_growth',     name:'Old Growth',          tier:'legendary',      tags:['mult','card','scores'],  desc:'Cards add their pip value to mult' },
   { id:'magician',       name:'Magician',            tier:'common',      tags:['pips','mult','hand','sleights','scores'],  desc:'+50 pips if you own no Sleights, or +6 mult for each Sleight you own' },
-  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['mult','card','position','scores'],  desc:'Hands with cards from only one column score +10 mult per card' },
+  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['mult','card','position','scores'],  desc:'Hands with cards from only one column score +12 mult per card' },
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['xmult','hand','sleights','scores'],  desc:'Score ×1 mult, +×0.25 per charge your Sleights are missing' },
   // ── 5-card-hand family (r103) ──
   { id:'five_stack',     name:'Five Stack',          tier:'legendary',    tags:['pips','mult','focus','card','size','scores'], desc:'Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus' },
@@ -225,7 +233,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift','stand_up','double_jeopardy'] }, // Position
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift','stand_up','double_jeopardy','line_xpips','line_xmult','obligatory','suggestive','coin_sword','lie_up'] }, // Position
   { emoji:'📈', ids:['rising_tide'] }, // Level scaling
   { emoji:'🧮', ids:['interest','portfolio','compound_mult','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
@@ -235,7 +243,7 @@ const TRICK_CATEGORIES = [
   { emoji:'💎', ids:['obsessed','buried_treasure','relentless','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
   { emoji:'🐦', ids:['swift','cuckoo','woodpecker','hummingbird','albatross','vulture','phoenix','early_bird','night_owl','patience_reward','still_water','kingfisher'] }, // Birds (by name)
   { emoji:'3️⃣', ids:['third_down','ready_set_go'] }, // 3-card hands
-  { emoji:'4️⃣', ids:['four_eyes','four_by_four','four_horseman','wait_four_it'] }, // 4-card hands
+  { emoji:'4️⃣', ids:['four_eyes','four_horseman','wait_four_it'] }, // 4-card hands
   { emoji:'5️⃣', ids:['five_stack','five_fodder','five_second','little_guys'] }, // 5-card hands
   { emoji:'🪄', ids:['magician','scalper'] }, // Sleights
   { emoji:'🗑️', ids:['landfill'] }, // Discards and swaps

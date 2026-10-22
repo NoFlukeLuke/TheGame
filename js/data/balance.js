@@ -14,6 +14,14 @@ const BAL = {
   knave_power: { per_jack: 1.5 },   // r539 owner: x2 per Jack was x16 with four
   rowcol_triple_pips: { flat_pips: 25 },
   rowcol_mult: { mult: 15 },              // r623: was 5, typed in scoring.js
+  // r646 line Tricks (owner). The 5th improvement marks a SECOND line at the base value: line2 / chance2 hold it (0 = none yet).
+  line_xpips:  { pip_mult: 1.2, line2: 0 },
+  line_xmult:  { mult_mult: 1.2, line2: 0 },
+  obligatory:  { chance: 0.25, chance2: 0 },
+  suggestive:  { chance: 0.35, chance2: 0 },
+  coin_sword:  { credit_chance: 0.1, mult_chance: 0.2, credit_pct: 0.25, line2: 0 },
+  // r646 INSEPARABLE: Lie Down + Stand-Up. span 1 = one row or one column; 2 (the 5th improvement) = no more than 2 of either.
+  lie_up:      { mult: 24, span: 1 },
   tunnel_vision: { focus: 10 },           // r623: was 5, typed in level-up.js
   rhythm: { focus: 2 },                   // r623: was 1, typed in play-hand.js
   right_time:     { pause_seconds: 2 },
@@ -33,7 +41,7 @@ const BAL = {
   discard_pips: { mult_per: 4 },
   landfill: { mult_per: 5, mult_per_flow: 3 },   // r625: Flow pays the smaller one
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
-  stand_up: { mult_per_card: 10 },
+  stand_up: { mult_per_card: 12 },   // r646 (owner): 10 -> 12
   scalper: { mult_mult_per_missing: 0.25 },
   down_and_back_in: { coins: 5, grant: 2 },   // r635: grant swaps or discards, alternating
   short_change: { coins: 1 },
@@ -65,7 +73,7 @@ const BAL = {
   double_jeopardy: { pause_seconds: 15, cells: 2, prime_random: 0 },   // r625: prime_random from the 3rd improvement (IMPROVE_PLAN)
   aces_absorb: { chance: 0.5 },
   queens_upgrade: { queen_seconds: 30 },
-  woodpecker: { interval_seconds: 30, retrigger_count: 3 },   // r624: the mark is never spent; a new cell every interval
+  woodpecker: { interval_seconds: 30, retrigger_count: 2, chance_extra: 0 },   // r624: the mark is never spent; r646 (owner): 2 replays (3 plays), improvements add replays and a Luck-free chance of one more
   hummingbird: { mult_per_pause: 3 },
   albatross: { pips_per_second: 10 },
   vulture: { pause_seconds: 3 },
@@ -98,7 +106,7 @@ const BAL = {
   column_rush: { mult_per_card: 5 },
   row_power: { mult_per_card: 12 },
   groove:        { focus_per_2: 1 },
-  assembly_line: { mult_per_prior: 1 },
+  assembly_line: { mult_per_prior: 2, mult_per_flow: 1, lines: 1 },   // r646 (owner): per card played from the line LAST round (last quarter in Flow); lines 2 = the 5th improvement's second line
   overtime:      { seconds_per_3: 1 },
   shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
   feng_shui:     { pips_per_hand: 3 },
@@ -249,7 +257,7 @@ const BAL = {
   lightning_rod: { pips: 10 },
   the_catalyst: { mult: 5 },
   the_bomb: { pips: 3 },
-  bellhop: { swaps: 2, discards: 1 },
+  bellhop: { swaps: 2, discards: 2 },   // r646 (owner): improvements alternate +2 swaps / +2 discards
   cash_out: { coins: 10 },
   amplifier: { mult_per_level: 3 },   // r636: the next hand scores level x this
   piggy_bank: { coins: 5 },
@@ -382,7 +390,14 @@ const DESC_TEMPLATES = {
   cull: 'Discarding or swapping adds +{focus_per_stock} Focus per {per} remaining swaps and discards',
   rowcol_perm_double: 'Cards scored at the intersection of a row effect and a column effect permanently gain +{perm_mult} mult',
   groove:        'Scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
-  assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card played from that line this round',
+  assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card played from that line last round (+{mult_per_flow} in Flow, counting the last quarter)[[lines>1:; a second line counts and pays too]]',
+  // r646 line Tricks (owner). `line2` / `chance2` are the 5th improvement's second line, at the base value; 0 = no second line yet.
+  line_xpips: 'Cards scored in a marked row or column score ×{pip_mult} pips[[line2:; a second line scores ×{line2} pips]]',
+  line_xmult: 'Cards scored in a marked row or column score ×{mult_mult} mult[[line2:; a second line scores ×{line2} mult]]',
+  obligatory: "Cards scored in a marked row or column have a {chance_pct}% chance to force-trigger the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
+  suggestive: "Cards scored in a marked row or column have a {chance_pct}% chance to prime the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
+  coin_sword: 'Cards scored in a marked row or column have a {credit_chance_pct}% chance to pay credits equal to the hand size and a {mult_chance_pct}% chance to score mult equal to {credit_pct_pct}% of your credits[[line2:; a second line at the base odds]]',
+  lie_up: 'Hands with cards from [[span<2:only one row or only one column]][[span>1:no more than 2 rows or no more than 2 columns]] score +{mult} mult',
   overtime:      "Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each round.",
   feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a positional buff (row or column effects)',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}',
@@ -400,7 +415,7 @@ const DESC_TEMPLATES = {
   heartwood: 'When scored, the center-most card gains +{pips} pips & +{mult} mult',
   pivot: 'Cards touching Pivot swap for free. Swap two of its neighbours together and both gain +{mult} permanent mult, then Pivot leaves the board. (3 charges)',
   the_naturalist: 'Play this: each other scored card permanently gains +{pips} pips.',
-  bellhop: 'Play this: gain +{swaps} swaps and +{discards} discard. (5 charges)',
+  bellhop: 'Play this: gain +{swaps} swaps and +{discards} discards. (5 charges)',
   the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips. (2 charges)',
   cash_out: 'Discard this: gain {coins} credits. (3 charges)',
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
@@ -485,7 +500,7 @@ const DESC_TEMPLATES = {
   first_play: "The round's first hand adds +{focus} Focus; each hand after adds 1 less, down to 0",
   still_water: 'Score +{mult_per_interval} mult for every 10 seconds elapsed without using a swap',
   swift: '+{mult_per_interval} mult for every {interval_seconds} seconds elapsed this round',
-  woodpecker: 'Marks a random cell every {interval_seconds} seconds; a card scored from the marked cell replays {retrigger_count}x',
+  woodpecker: 'Marks a random cell every {interval_seconds} seconds; a card scored from the marked cell replays {retrigger_count}x[[chance_extra:, with a {chance_extra_pct}% chance of one more every time]]',
   hummingbird: '+{mult_per_pause} mult for every clock pause or rewind triggered this game',
   albatross: '+{pips_per_second} pips for every second the clock has spent paused this round',
   quarter_chime: 'Every time the clock passes a multiple of 15s, your next hand scores +{pips} pips',
