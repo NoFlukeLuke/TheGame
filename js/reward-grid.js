@@ -713,7 +713,7 @@ function _generateRewardContent() {
     if (!g) return null;
     const d = g.def;
     _usedThisGrid.add(d.id);
-    if (g.type === 'trick') return { icon: '★', label: d.name, desc: d.desc, tier: d.tier || 'rare',
+    if (g.type === 'trick') return { icon: '★', label: shownEntityName(d, 'trick'), desc: d.desc, tier: d.tier || 'rare',
       entity: 'trick', rarity: d.tier || 'rare', _trick: d, _guaranteed: true, apply: () => injectTrickAfterReward(d) };
     if (g.type === 'sleight') return { icon: d.emoji || '\u{1F0CF}', emoji: d.emoji || '\u{1F0CF}', label: d.name, desc: d.desc,
       tier: d.rarity || 'rare', entity: 'sleight', rarity: d.rarity || 'rare', _guaranteed: true,
@@ -902,6 +902,7 @@ function injectTrickAfterReward(trick) {
   if (trickTrayFullFor(trick.id)) return refuseTrickCapacity();
   trickTray.push(trick);
   selectTrick(trick, true);
+  if (typeof markDiscovered === 'function') markDiscovered(trick.id);   // r651: its name shows from the moment it is taken
   if (typeof inseparableCheck === 'function') inseparableCheck();   // r646: both halves of a pair in the tray fuse now
   renderTrickTray();
   return true;

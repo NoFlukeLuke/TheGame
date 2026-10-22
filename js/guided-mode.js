@@ -587,7 +587,7 @@ function guidedPickType(pools) {
 function guidedPickOffer(type, d) {
   if (type === 'trick') {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(d) : '★';
-    return { entity:'trick', icon: em, emoji: em, label: d.name,
+    return { entity:'trick', icon: em, emoji: em, label: shownEntityName(d, 'trick'),
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(d) : d.desc,
       tier: d.tier || 'common', rarity: d.tier || 'common',
       apply: () => injectTrickAfterReward(d) };

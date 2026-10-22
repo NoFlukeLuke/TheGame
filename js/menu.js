@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r650 · the paper corner stays on the game screen's top edge, centred; hidden on the menu";
+const BUILD = "2026-10-22 · r651 · 21 fused Tricks with the carry rule; Separation Anxiety; rare and epic Tricks undiscovered until taken; the pair jitter; the Inseparable tab in Builds; tiers read once reached; Landfill this game; Compost +2 in Flow";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

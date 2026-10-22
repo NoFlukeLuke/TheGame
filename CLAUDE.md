@@ -2437,3 +2437,41 @@ the top, every notice). The corner is centred on the stage's top edge (r627's "j
 slips hang" is superseded) and hidden while the main menu, the mode picker or the office scene is up
 (`ptTabAllowed`, `.pt-tab-off`). Measured at 1440x820 and 420x900: centre 720 / 210 on the stage's
 centre, 10px / 7px below its top edge, absent on the menu; still centred after a resize.
+## r651 - 21 fused Tricks, the carry rule, Separation Anxiety, discovery (owner)
+- **The owner's 21 pairs** (`INSEPARABLE_PAIRS`, rows in js/data/tricks.js, BAL rows and templates).
+  A fused row with **`acts: [a, b]` STANDS IN for its parts**: `hasTrick(a)` is true, a line it marks
+  serves both (`lineIdIs`), and the parts' code reads its BAL row (which holds both parts' keys)
+  through **`TB(part)`** (js/inseparable.js; every `BAL.<part>.` of the 33 act-as parts in scoring,
+  play-hand and discard became `TB('<part>').`). Payouts billed to a part land on the fused Trick
+  (`_fid` in calcScore's `_ev`, `_proc` and the b* helpers; `trickFires` finds it for primes), so its
+  chip flares and the contributions row names it. Four have their own rule: Well Adjusted (+20 / +20 a
+  hand), Men of Means (a `PER_CARD_PAYERS` row), Serenity (`handIsLine`; Focus in generateHandFocus),
+  Penny Perfect (`pennyPerfectBonus`). A fused line Trick keeps the line of the part that had one.
+- **The carry rule** (owner): `pair.carry` rows read a scaling part's bonus and count at fusion; the
+  fused Trick gets `_carry` (half the bonus, paid flat: `fusedCarry`) and `_countAdj` (minus three
+  quarters of the count, so a quarter keeps counting at the fused rate: `fusedCountAdj`). Penny
+  Perfect and Working Class use it. Owner's example 10 at +1 into +4 = 15: measured 15.
+- **Landfill** is +1 mult per swapped or discarded card THIS GAME (`landfillCount`: cardsDiscardedTotal +
+  `swapsUsedGame`, new, SAVE_VARS). **Compost** +2 in Flow (`mult_per_flow`).
+- **Separation Anxiety** (rare Knack, `survivalEntityBanned` without a fused Trick in the tray): a fused
+  Trick that fired this hand has `chance` (10%) of priming its two neighbours (scalingCount).
+  **Scoring Tricks now count as fired** (playHand adds `_lastHandProcs` ids to `_trickFiredThisHand`),
+  so the finale's MOST USED sees them too.
+- **Discovery** (js/discovery.js): a rare or epic Trick, and every fused one, prints `UNDISCOVERED` for
+  its name until it has been taken once (`shownEntityName`: the pick, the reward grid, the shop, Guided,
+  events, the entity tooltip, Builds); commons, legendaries, Sleights and Knacks keep their names.
+  `injectTrickAfterReward` marks the Trick discovered at the grant. An offer that would complete a
+  pair the player has MADE before (`lethe.inseparable.v1`, `pairDiscovered`) wears `.ins-hint`
+  (jitter, rest, repeat; css/inseparable.css) through `entityTileHTML`. **Builds**: fused Tricks are the
+  INSEPARABLE type (lexicon `inseparable`), listed only once a pair has been made; undiscovered ones read
+  UNDISCOVERED / FILE MISSING; **a ladder row reads only once that tier has been reached** in a run
+  (`markTierSeen` at every improvement; dev reveal shows all).
+- Measured in headless Chromium at 1440x820 (`?tricks=epic`, dev mode on): Hurricane scored a run to the
+  same total as Cascade + Storm (60 pips, 30 mult, billed to Hurricane); Right Place & Time kept Right
+  Place's line, paid +75 pips on three line cards and paused the clock on a real play; Men of Means +90 /
+  +60 on three Kings; Well Adjusted +20 / +20; Serenity +50 on an L, nothing on a line; Penny Perfect at
+  20 / 12 bonus and 36 cards carried 10 / 6 and read +15 / +9; Working Class at 10 at +1 read +15; Encore!
+  billed both halves of a Woodpecker replay; Lidar replayed its line; Separation Anxiety at 100% primed
+  both neighbours of a fired Hurricane; UNDISCOVERED on an untaken rare and epic, the name at once on a
+  taken one; the jitter class only after Lie Up had been made; Builds listed 22 Inseparables. No page
+  errors, no timeline drift.

@@ -39,6 +39,7 @@ const LEXICONS = {
     // Category words.
     entities: {
       trick:   { one: 'Utility', many: 'Utilities' },
+      inseparable: { one: 'Merger', many: 'Mergers' },
       sleight: { one: 'Vendor',  many: 'Vendors'   },
       knack:   { one: 'Cert',    many: 'Certs'     },
       card:    { one: 'Doc',     many: 'Docs'      },
@@ -68,6 +69,7 @@ const LEXICONS = {
     },
     entities: {
       trick:   { one: 'Trick',   many: 'Tricks'   },
+      inseparable: { one: 'Inseparable', many: 'Inseparables' },
       sleight: { one: 'Sleight', many: 'Sleights' },
       knack:   { one: 'Knack',   many: 'Knacks'   },
       card:    { one: 'Card',    many: 'Cards'    },

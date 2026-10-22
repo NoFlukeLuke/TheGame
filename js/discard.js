@@ -391,9 +391,9 @@ function handleClockMarks(secs) {
     showMessage(`🕐 Minute Hand - next hand x${BAL.minute_hand.mult_mult} mult`, '#cc88ff');
   }
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
-  if (secs % 60 === 0 || (hasTrick('hourglass') && secs % BAL.hourglass.interval_seconds === 0)) {
+  if (secs % 60 === 0 || (hasTrick('hourglass') && secs % TB('hourglass').interval_seconds === 0)) {
     // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
-    const _hgN = hasTrick('hourglass') && secs % BAL.hourglass.interval_seconds === 0 ? luckRoll(BAL.hourglass.chance) : 0;   // r625: the mark moves with improvements
+    const _hgN = hasTrick('hourglass') && secs % TB('hourglass').interval_seconds === 0 ? luckRoll(TB('hourglass').chance) : 0;   // r625: the mark moves with improvements
     for (let _hg = 0; _hg < _hgN; _hg++) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];

@@ -124,6 +124,28 @@ const TRICK_POOL = [
   { id:'coin_sword',     name:'Coin and the Sword',  tier:'rare',      tags:['credits','mult','card','position','chance','scores','line'], desc:'Cards scored in a marked row or column have a 10% chance to pay credits equal to the hand size and a 20% chance to score mult equal to 25% of your credits' },
   // ── r646 INSEPARABLE (js/inseparable.js): two owned Tricks fuse into one. Never offered; fused: true. ──
   { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['mult','hand','position','scores'], desc:'Hands with cards from only one row or only one column score +24 mult' },
+  // r651 (owner): 21 more. `acts` = the fused Trick stands in for both parts (hasTrick, their BAL row through TB(), their line); the rest have their own scoring.
+  { id:'well_adjusted',  name:'Well Adjusted',       tier:'epic',      fused:true, tags:['pips','mult','hand','scores'], desc:'Every hand scores +20 pips and +20 mult' },
+  { id:'right_place_time', name:'Right Place & Time', tier:'epic',     fused:true, acts:['rowcol_triple_pips','right_time'], tags:['pips','time','card','position','scores','line'], desc:'Cards scored in a marked row or column score +25 pips and pause the clock for 2s' },
+  { id:'short_circuit',  name:'Short Circuit',       tier:'epic',      fused:true, acts:['rowcol_mult','line_xpips'], tags:['mult','xpips','card','position','scores','line'], desc:'Cards scored in a marked row or column score +15 mult and ×1.2 pips' },
+  { id:'advanced_interrogation', name:'Advanced Interrogation', tier:'epic', fused:true, acts:['line_xmult','obligatory'], tags:['xmult','retrigger','card','position','tricks','chance','scores','line'], desc:"Cards scored in a marked row or column score ×1.2 mult and have a 25% chance to force-trigger the Trick in the tray slot of that line's number" },
+  { id:'love_of_money',  name:'Love of Money',       tier:'epic',      fused:true, acts:['obsessed','interest'], tags:['xmult','xpips','card','suit','held','scores'], desc:'Each heart applies x mult equal to 1 + (credits / 100); score ×1 pips, +0.1 for every 10 credits you hold, up to ×3' },
+  { id:'penny_perfect',  name:'Penny Perfect',       tier:'epic',      fused:true, tags:['pips','mult','hand','discard','scaling','scores'], desc:'Every 9 cards discarded or played permanently adds +5 pips and +3 mult to this trick' },
+  { id:'hurricane',      name:'Hurricane',           tier:'epic',      fused:true, acts:['overgrowth','long_road'], tags:['pips','mult','card','run','scores'], desc:'Runs score +20 pips and +10 mult per card' },
+  { id:'riptide',        name:'Riptide',             tier:'epic',      fused:true, acts:['tide_table','undertow'], tags:['xmult','xpips','hand','run','scores'], desc:'Runs score ×1.25 mult, +×0.5 per Run scored this round, and ×2 pips, +×0.5 per card beyond 3' },
+  { id:'encore_bang',    name:'Encore!',             tier:'epic',      fused:true, acts:['rerun','chorus'], tags:['xpips','xmult','card','replays','scores'], desc:'×1.25 pips and ×1.5 mult each time a card is replayed' },
+  { id:'lidar',          name:'Lidar',               tier:'epic',      fused:true, acts:['rowcol_retrigger','perfect_timing'], tags:['replay','card','position','chance','scores','line'], desc:'Cards scored in a marked row or column replay once, with a 67% chance of a second replay' },
+  { id:'erosion',        name:'Erosion',             tier:'epic',      fused:true, acts:['swift','sediment'], tags:['mult','pips','hand','clock','scores'], desc:'+6 mult and +10 pips for every 10 seconds elapsed this round' },
+  { id:'seabird',        name:'Seabird',             tier:'epic',      fused:true, acts:['albatross','kingfisher'], tags:['pips','mult','hand','pause','scores'], desc:'+10 pips for every second the clock has spent paused this round, and +8 mult for every 2 seconds paused or rewound' },
+  { id:'flood',          name:'Flood',               tier:'epic',      fused:true, acts:['dam_holding','high_water'], tags:['time','hand','run'], desc:'Runs pause the clock for 3s, plus 1s for each Run played this round' },
+  { id:'relativity',     name:'Relativity',          tier:'epic',      fused:true, acts:['hourglass','sands_of_time'], tags:['pips','replay','hand','clock','chance','scores'], desc:'Score +pips equal to time remaining ÷ 2; each time the clock passes a 60s mark, 50% chance a random card on the grid gains +1 replay' },
+  { id:'men_of_means',   name:'Men of Means',        tier:'epic',      fused:true, tags:['pips','mult','card','rank','scores'], desc:'Face cards (J/Q/K) score +30 pips and +20 mult' },
+  { id:'omega_prime',    name:'OmegaPrime',          tier:'epic',      fused:true, acts:['prime_time','prime_times'], tags:['pips','retrigger','card','rank','tricks','scores'], desc:'Prime-ranked cards (A,2,3,5,7) score +29 pips and prime your leftmost Trick' },
+  { id:'stranger_still', name:'Stranger Still',      tier:'epic',      fused:true, acts:['odd_squad','what_odds'], tags:['mult','xmult','card','rank','scores'], desc:'Odd-ranked cards score +7 mult, then x1.7 mult' },
+  { id:'can_even',       name:'Can Even',            tier:'epic',      fused:true, acts:['even_score','even_better'], tags:['pips','xpips','card','rank','chance','scores'], desc:'Even-ranked cards score +16 pips and have a 66% chance to score x2.25 pips' },
+  { id:'inferno',        name:'Inferno',             tier:'epic',      fused:true, acts:['kindling','wildfire'], tags:['mult','focus','hand','streak','scores'], desc:'Same-hand streaks score +8 mult × the streak count; reaching a streak of 3 adds +5 Focus' },
+  { id:'serenity',       name:'Serenity',            tier:'epic',      fused:true, tags:['mult','focus','hand','position','scores'], desc:'A hand that is not a straight line scores +50 mult and adds +25 Focus' },
+  { id:'working_class',  name:'Working Class',       tier:'epic',      fused:true, acts:['club_double','landfill'], tags:['pips','mult','card','suit','discard','swap','scaling','scores'], desc:'Each club scored this round adds more and more pips: doubles each time, starting at 1; score +4 mult for every swapped or discarded card this game' },
   { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','hand','position','line'],  desc:'Every hand rewinds the clock 1s for every 3 cards you have scored from its marked row or column this round. The count resets each round.' },
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','hand','position','scores','scaling'],  desc:'Permanently scores +3 pips for each hand scored with a positional buff (row or column effects)' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','credits','hand','position'],           desc:'Use every cell of any row or column within two hands to add +8 Focus and +4 credits' },
@@ -147,7 +169,7 @@ const TRICK_POOL = [
   { id:'monopoly',       name:'Monopoly',            tier:'legendary', tags:['deck','card','rank','position','scaling','cost'], modes:['spectrum'], desc:'When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand)' },
   // ── Situational pip ──
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Score +pips equal to time remaining ÷ 2', tags:['pips','hand','clock','scores'] },
-  { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['mult','hand','discard','scores'], desc:'+4 mult per card discarded this round' },
+  { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['mult','hand','discard','scores'], desc:'+4 mult per card discarded this round (+2 in Flow)' },
   { id:'spade_flood',    name:'Dark Matter',         tier:'epic',      tags:['pips','hand','suit','clock','scores'], desc:'All-Spade hands add the remaining round time as pips' },
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['retrigger','hand','tricks'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──
@@ -174,7 +196,7 @@ const TRICK_POOL = [
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'When scored, the center-most card gains +5 pips & +5 mult', tags:['deck','pips','mult','card','position','scaling','scores'] },
   // ── Combo batch (r83): payoffs / sleight-charge synergies ──
-  { id:'landfill',       name:'Landfill',            tier:'epic',    tags:['mult','card','discard','swap','scores'],  desc:'Score +5 mult per card for every discard or swap used this round (+3 in Flow)' },
+  { id:'landfill',       name:'Landfill',            tier:'epic',    tags:['mult','card','discard','swap','scores'],  desc:'Score +1 mult for every swapped or discarded card this game' },
   { id:'old_growth',     name:'Old Growth',          tier:'legendary',      tags:['mult','card','scores'],  desc:'Cards add their pip value to mult' },
   { id:'magician',       name:'Magician',            tier:'common',      tags:['pips','mult','hand','sleights','scores'],  desc:'+50 pips if you own no Sleights, or +6 mult for each Sleight you own' },
   { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['mult','card','position','scores'],  desc:'Hands with cards from only one column score +12 mult per card' },
@@ -230,11 +252,12 @@ const TRICK_CATEGORIES = [
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
   { emoji:'🌱', ids:['rich_soil','first_fruits','sapling','old_growth'] }, // Per-card pips
   { emoji:'⏱️', ids:['closing_time','quick_draw','steady_pace','momentum','first_play','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','magpie','mockingbird','starling','rain_check','deep_breath'] }, // Timing
-  { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak','rerun','chorus'] }, // Streaks
+  { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak','rerun','chorus','inferno','encore_bang'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift','stand_up','double_jeopardy','line_xpips','line_xmult','obligatory','suggestive','coin_sword','lie_up'] }, // Position
+  { emoji:'⚗️', ids:['well_adjusted','love_of_money','penny_perfect','hurricane','riptide','erosion','seabird','flood','relativity','men_of_means','omega_prime','stranger_still','can_even','working_class'] }, // r651: the rest of the fused Tricks (their tiles draw both parts' icons, js/inseparable.js)
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift','stand_up','double_jeopardy','line_xpips','line_xmult','obligatory','suggestive','coin_sword','lie_up','right_place_time','short_circuit','advanced_interrogation','lidar','serenity'] }, // Position
   { emoji:'📈', ids:['rising_tide'] }, // Level scaling
   { emoji:'🧮', ids:['middle_man','interest','portfolio','compound_mult','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip

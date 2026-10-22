@@ -399,3 +399,4 @@ r627: the paper corner at the top edge (mouse near the top, or always faint on t
 | inseparable.js:60 |  ${pa.name} + ${pb.name} are inseparable: ${fused.name} (quiet, r646) |
 | play-hand.js (scalingCount) |  + Suggestive primed ${t.name} (quiet, r646) |
 | play-hand.js (scalingCount) |  ¢ Coin and the Sword +${paid} credits (quiet, r646) |
+| play-hand.js (scalingCount) |  Separation Anxiety primed beside ${t.name} (quiet, r651) |

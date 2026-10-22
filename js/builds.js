@@ -60,8 +60,11 @@ let bvLadders = new Set();   // records with their improvement rows open
 // records read, so nothing below has to know which pool a thing came from.
 let bvAll = [];
 function bvBuildCatalogue() {
+  // r651: a rare / epic / fused Trick not yet taken prints no name (js/discovery.js); fused
+  // Tricks are the INSEPARABLE type and are listed only once one pair has been made.
   const wrap = (e, type) => ({
-    e, type, id: e.id, name: e.name || e.id, desc: e.desc || '',
+    e, type, id: e.id, name: (type === 'trick' && typeof shownEntityName === 'function') ? shownEntityName(e, 'trick') : (e.name || e.id), desc: e.desc || '',
+    fused: !!e.fused,
     rar: tierId(type === 'trick' ? e.tier : e.rarity),
     tags: Array.isArray(e.tags) ? e.tags : [],
     act: type === 'sleight' ? (e.activation || '') : '',
@@ -69,7 +72,7 @@ function bvBuildCatalogue() {
     lc: ((e.name || '') + ' ' + (e.desc || '')).toLowerCase(),
   });
   bvAll = [
-    ...TRICK_POOL_ALL.filter(t => !t.retired).map(t => wrap(t, 'trick')),
+    ...TRICK_POOL_ALL.filter(t => !t.retired && (!t.fused || (typeof anyPairDiscovered === 'function' && anyPairDiscovered()))).map(t => wrap(t, 'trick')),
     ...SLEIGHT_POOL.map(s => wrap(s, 'sleight')),
     ...KNACK_POOL.map(k => wrap(k, 'knack')),
   ];
@@ -81,7 +84,7 @@ function bvFind(type, id) { return bvAll.find(x => x.type === type && x.id === i
 // counts in a dropdown can be taken over the set every OTHER group lets through.
 function bvGroupValues(x, g) {
   switch (g) {
-    case 'type': return [x.type];
+    case 'type': return [x.fused ? 'inseparable' : x.type];
     case 'rar':  return [x.rar];
     case 'file': return [x.state];
     case 'act':  return x.act ? [x.act] : [];
@@ -140,7 +143,7 @@ function bvGroupsOf(list) {
   };
   list.forEach(x => {
     if (g === 'rarity') put(x.rar, tierLabel(x.type, x.rar).toUpperCase(), 'r-' + x.rar, x);
-    else if (g === 'type') put(x.type, entityLabel(x.type, true).toUpperCase(), 't-' + x.type, x);
+    else if (g === 'type') { const ty = x.fused ? 'inseparable' : x.type; put(ty, entityLabel(ty, true).toUpperCase(), 't-' + ty, x); }
     else if (g === 'alpha') { const L = (x.name[0] || '#').toUpperCase(); put(/[A-Z]/.test(L) ? L : '#', L, '', x); }
     else if (g === 'act') put(x.act || '·', x.act ? BV_ACT_LABEL[x.act].toUpperCase() : 'NOT A SLEIGHT', '', x);
     else {
@@ -151,7 +154,7 @@ function bvGroupsOf(list) {
   });
   let out = [...by.values()];
   if (g === 'rarity') out.sort((a, b) => BV_RARITIES.indexOf(a.key) - BV_RARITIES.indexOf(b.key));
-  else if (g === 'type') out.sort((a, b) => ['trick', 'sleight', 'knack'].indexOf(a.key) - ['trick', 'sleight', 'knack'].indexOf(b.key));
+  else if (g === 'type') out.sort((a, b) => ['trick', 'inseparable', 'sleight', 'knack'].indexOf(a.key) - ['trick', 'inseparable', 'sleight', 'knack'].indexOf(b.key));
   else if (g === 'alpha') out.sort((a, b) => a.key.localeCompare(b.key));
   else if (g === 'act') out.sort((a, b) => (a.key === '·') - (b.key === '·') || b.items.length - a.items.length);
   else { const order = tagsInGroup(g).map(d => d.id); out.sort((a, b) => (a.key === '·') - (b.key === '·') || order.indexOf(a.key) - order.indexOf(b.key)); }
@@ -293,7 +296,7 @@ function renderBuilds() {
 function renderBuildsFilters() {
   const bar = document.getElementById('bv-filters'); if (!bar) return;
   const groups = [
-    { g: 'type', label: 'TYPE', opts: ['trick', 'sleight', 'knack'].map(t => [t, entityLabel(t, true)]) },
+    { g: 'type', label: 'TYPE', opts: ['trick', ...((typeof anyPairDiscovered === 'function' && anyPairDiscovered()) ? ['inseparable'] : []), 'sleight', 'knack'].map(t => [t, entityLabel(t, true)]) },   // r651: INSEPARABLE once a pair has been made
     { g: 'rar',  label: 'RARITY', opts: BV_RARITIES.map(r => [r, tierLabel('trick', r), 'r-' + r]) },
     { g: 'file', label: 'FILE', opts: BV_FILE },
     ...TAG_GROUPS.map(tg => ({ g: tg.id, label: tg.label, note: tg.note, opts: tagsInGroup(tg.id).map(d => [d.id, d.label, d.cls]) })),
@@ -431,12 +434,16 @@ function bvLadderHTML(x) {
   const was = entityTierOf(x.id);
   const rows = [];
   for (let t = 1; t <= 4; t++) {
+    // r651 (owner): a tier reads only once it has been reached in a run (improveTierSeen; dev reveal shows all).
+    if (!(typeof improveTierSeen === 'function' && improveTierSeen(x.id, t)) && !(typeof devRevealAll !== 'undefined' && devRevealAll)) {
+      rows.push(`<div class="bv-lrow bv-ldim"><b>v${t + 1}</b><span>Not reached yet. Improve this in a run to v${t + 1} to read it.</span></div>`); continue;
+    }
     entityTier[x.id] = t; applyEntityTiers();
     const d = (TRICK_POOL_ALL.find(e => e.id === x.id) || SLEIGHT_POOL.find(e => e.id === x.id) || KNACK_POOL.find(e => e.id === x.id) || {}).desc || '';
     rows.push(`<div class="bv-lrow"><b>v${t + 1}</b><span>${highlightKeywords(d)}</span></div>`);
   }
   entityTier[x.id] = was; applyEntityTiers();
-  const seen = (typeof improveTierSeen === 'function') && improveTierSeen(x.id, 5);
+  const seen = ((typeof improveTierSeen === 'function') && improveTierSeen(x.id, 5)) || (typeof devRevealAll !== 'undefined' && devRevealAll);
   rows.push(seen
     ? (() => { entityTier[x.id] = 5; applyEntityTiers(); const d = (TRICK_POOL_ALL.find(e => e.id === x.id) || SLEIGHT_POOL.find(e => e.id === x.id) || KNACK_POOL.find(e => e.id === x.id) || {}).desc || ''; entityTier[x.id] = was; applyEntityTiers(); const nm = (typeof V6_NAMES !== 'undefined' && V6_NAMES[x.id]) ? `<i>${V6_NAMES[x.id]}.</i> ` : ''; return `<div class="bv-lrow"><b>v6</b><span>${nm}${highlightKeywords(d)}</span></div>`; })()
     : `<div class="bv-lrow bv-ldim"><b>v6</b><span>Not discovered yet. Improve this in a run to v6 to read it.</span></div>`);

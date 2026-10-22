@@ -31,6 +31,22 @@ function markDiscovered(id) {
 }
 function isDiscovered(id) { return discoveredIds.has(id); }
 
+// r651 (owner): a rare or epic Trick, and every fused (INSEPARABLE) Trick, keeps
+// its NAME to itself until it has been taken once: offers, tooltips and Builds
+// print UNDISCOVERED_NAME instead. The description still shows, so a buy is a
+// known thing with an unknown name. Commons, legendaries, Sleights and Knacks
+// print their names. Dev reveal (devRevealAll) shows everything.
+const UNDISCOVERED_NAME = 'UNDISCOVERED';
+function nameHidden(def, type) {
+  if (!def || !def.id) return false;
+  if (typeof devRevealAll !== 'undefined' && devRevealAll) return false;
+  if ((type || 'trick') !== 'trick') return false;
+  const tier = def.tier || def.rarity;
+  if (!(def.fused || tier === 'rare' || tier === 'epic')) return false;
+  return !isDiscovered(def.id);
+}
+function shownEntityName(def, type) { return nameHidden(def, type) ? UNDISCOVERED_NAME : (def && def.name) || ''; }
+
 // Entities gated behind a task. Shape: { id: 'reach act 3 without discarding' }.
 // Empty for now - the unlock-task system will fill it. Anything listed here reads
 // as AUTHORIZATION REQUIRED until its task is recorded in unlockedTasks.

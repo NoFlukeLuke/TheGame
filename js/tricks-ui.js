@@ -70,8 +70,10 @@ function trickLiveDesc(trick) {
       case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / 10)} mult`); }
       case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
       case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / sandsDivisor())} pips`);
-      case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.mult_per} mult`);
-      case 'landfill':       return roundNow(`+${((discardsUsedRound || 0) + (swapsUsedRound || 0)) * B.landfill.mult_per} mult per card`);
+      case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * ((typeof flowActive === 'function' && flowActive()) ? B.discard_pips.mult_per_flow : B.discard_pips.mult_per)} mult`);
+      case 'landfill':       return now(`+${typeof landfillCount === 'function' ? landfillCount() * B.landfill.mult_per : 0} mult`);
+      case 'working_class':  return now(`+${typeof landfillCount === 'function' ? Math.ceil(landfillCount() * (B.working_class?.mult_per ?? 4) + (typeof fusedCarry === 'function' ? fusedCarry('landfill', 'mult') : 0)) : 0} mult from swaps and discards`);
+      case 'penny_perfect':  { const p = typeof pennyPerfectBonus === 'function' ? pennyPerfectBonus() : { pips: 0, mult: 0 }; return now(`+${p.pips} pips, +${p.mult} mult`); }
       case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
       default: return base;
     }

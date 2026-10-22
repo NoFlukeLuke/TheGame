@@ -1,10 +1,10 @@
-# Entity tags (r640, tables regenerated r646)
+# Entity tags (r640, tables regenerated r651)
 
 The one vocabulary every Trick, Sleight and Knack is described in: `js/data/tags.js` (groups
 PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Rerun
 `node tools/verify-tags.js` after editing a row; `--tables <file>` regenerates the tables.
 
-## TRICK_POOL (178)
+## TRICK_POOL (199)
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
@@ -113,6 +113,27 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | suggestive | Suggestive | Cards scored in a marked row or column have a 35% chance to prime the  | retrigger card position tricks chance line |
 | coin_sword | Coin and the Sword | Cards scored in a marked row or column have a 10% chance to pay credit | credits mult card position chance scores line |
 | lie_up | Lie Up | Hands with cards from only one row or only one column score +24 mult | mult hand position scores |
+| well_adjusted | Well Adjusted | Every hand scores +20 pips and +20 mult | pips mult hand scores |
+| right_place_time | Right Place & Time | Cards scored in a marked row or column score +25 pips and pause the cl | pips time card position scores line |
+| short_circuit | Short Circuit | Cards scored in a marked row or column score +15 mult and ×1.2 pips | mult xpips card position scores line |
+| advanced_interrogation | Advanced Interrogation | Cards scored in a marked row or column score ×1.2 mult and have a 25%  | xmult retrigger card position tricks chance scores line |
+| love_of_money | Love of Money | Each heart applies x mult equal to 1 + (credits / 100); score ×1 pips, | xmult xpips card suit held scores |
+| penny_perfect | Penny Perfect | Every 9 cards discarded or played permanently adds +5 pips and +3 mult | pips mult hand discard scaling scores |
+| hurricane | Hurricane | Runs score +20 pips and +10 mult per card | pips mult card run scores |
+| riptide | Riptide | Runs score ×1.25 mult, +×0.5 per Run scored this round, and ×2 pips, + | xmult xpips hand run scores |
+| encore_bang | Encore! | ×1.25 pips and ×1.5 mult each time a card is replayed | xpips xmult card replays scores |
+| lidar | Lidar | Cards scored in a marked row or column replay once, with a 67% chance  | replay card position chance scores line |
+| erosion | Erosion | +6 mult and +10 pips for every 10 seconds elapsed this round | mult pips hand clock scores |
+| seabird | Seabird | +10 pips for every second the clock has spent paused this round, and + | pips mult hand pause scores |
+| flood | Flood | Runs pause the clock for 3s, plus 1s for each Run played this round | time hand run |
+| relativity | Relativity | Score +pips equal to time remaining ÷ 2; each time the clock passes a  | pips replay hand clock chance scores |
+| men_of_means | Men of Means | Face cards (J/Q/K) score +30 pips and +20 mult | pips mult card rank scores |
+| omega_prime | OmegaPrime | Prime-ranked cards (A,2,3,5,7) score +29 pips and prime your leftmost  | pips retrigger card rank tricks scores |
+| stranger_still | Stranger Still | Odd-ranked cards score +7 mult, then x1.7 mult | mult xmult card rank scores |
+| can_even | Can Even | Even-ranked cards score +16 pips and have a 66% chance to score x2.25  | pips xpips card rank chance scores |
+| inferno | Inferno | Same-hand streaks score +8 mult × the streak count; reaching a streak  | mult focus hand streak scores |
+| serenity | Serenity | A hand that is not a straight line scores +50 mult and adds +25 Focus | mult focus hand position scores |
+| working_class | Working Class | Each club scored this round adds more and more pips: doubles each time | pips mult card suit discard swap scaling scores |
 | overtime | Overtime | Every hand rewinds the clock 1s for every 3 cards you have scored from | time hand position line |
 | feng_shui | Feng Shui | Permanently scores +3 pips for each hand scored with a positional buff | pips hand position scores scaling |
 | clean_sweep | Clean Sweep | Use every cell of any row or column within two hands to add +8 Focus a | focus credits hand position |
@@ -133,7 +154,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | aces_absorb | Ace Absorb | When an Ace scores, 50% chance to permanently remove one random unscor | deck card rank scaling chance cost |
 | monopoly | Monopoly | When a 15 or a 20 scores, one random adjacent card is forgotten and it | deck card rank position scaling cost |
 | sands_of_time | Sands of Time | Score +pips equal to time remaining ÷ 2 | pips hand clock scores |
-| discard_pips | Compost | +4 mult per card discarded this round | mult hand discard scores |
+| discard_pips | Compost | +4 mult per card discarded this round (+2 in Flow) | mult hand discard scores |
 | spade_flood | Dark Matter | All-Spade hands add the remaining round time as pips | pips hand suit clock scores |
 | mirror | Mirror | Tap to tilt left or right; mimics the effect of the Trick it reflects. | retrigger hand tricks |
 | combo_score | Combo Score | +6 mult for every distinct hand type played this round | mult hand scores |
@@ -153,7 +174,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | flow_state | Flow State | While focus is ×1.5 or higher, score +15 pips per card | pips card scores held |
 | hyper_focus | Hyper Focus | Each card scored adds mult equal to 2x your Focus multiplier | mult card scores |
 | heartwood | Heartwood | When scored, the center-most card gains +5 pips & +5 mult | deck pips mult card position scaling scores |
-| landfill | Landfill | Score +5 mult per card for every discard or swap used this round (+3 i | mult card discard swap scores |
+| landfill | Landfill | Score +1 mult for every swapped or discarded card this game | mult card discard swap scores |
 | old_growth | Old Growth | Cards add their pip value to mult | mult card scores |
 | magician | Magician | +50 pips if you own no Sleights, or +6 mult for each Sleight you own | pips mult hand sleights scores |
 | stand_up | Stand-Up | Hands with cards from only one column score +12 mult per card | mult card position scores |
@@ -202,14 +223,14 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | bellhop | Bellhop | Play this: gain +2 swaps and +2 discards. (5 charges) | stock hand |
 | syncopation | Syncopation | Play this in a hand of a different type than your previous hand: pause | time hand streak |
 | rewind | Rewind | Play this in a hand to rewind the clock 1s for each card in the hand,  | time hand size |
-| retake | Retake | Play this in a hand: it and the cards played with it go back into the dec | deck hand |
+| retake | Retake | Play this in a hand: it and the cards played with it go back into the  | deck hand |
 | the_bomb | Bomb | Discard this: every card on the grid permanently gains +3 pips. (2 cha | deck pips other scaling scores |
 | the_legacy | Legacy | Discard this: the next hand played get x3 mult. (3 charges) | xmult hand scores |
 | cash_out | Cash Out | Discard this: gain 10 credits. (3 charges) | credits other |
 | last_call | Last Call | Discard this: rewind the clock 15s. (3 charges) | time other |
 | sandbag | Sandbagger | Discard this with a pair to rewind the clock by that pair’s rank in se | time other set rank |
-| procrastinate | Procrastinate | Discard this: the 8 cards around it go with it, costing no time. Coun | board other discard position |
-| shredder | Shredder | Discard this: deletes 1 of the cards discarded with it, for good. (3 ch | deck other discard |
+| procrastinate | Procrastinate | Discard this: the 8 cards around it go with it, costing no time. Count | board other discard position |
+| shredder | Shredder | Discard this: deletes 1 of the cards discarded with it, for good. (3 c | deck other discard |
 | lightning_rod | Lightning Rod | When swapped, the card it traded with permanently gains +10 pips. | deck pips card scaling scores |
 | the_catalyst | Catalyst | When swapped, the card it traded with permanently gains +5 mult. | deck mult card scaling scores |
 | the_wanderer | Wanderer | While on grid: allows any two cards to be swapped regardless of positi | stock other swap |
@@ -241,7 +262,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | time_clock | Time Clock | Score two hands beside this card to pause the clock for 10s, then it g | time other position |
 | petty_cash | Petty Cash | Score two hands beside this card to get +5 credits. Discards itself af | credits other position |
 
-## KNACK_POOL (76)
+## KNACK_POOL (77)
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
@@ -309,6 +330,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | martyr | Martyr | Discarding a non-discard Sleight restores 1 charge to all Sleights on  | other sleights discard charges |
 | surveyor | Surveyor | When you gain a position Trick, you choose which column it marks. | other tricks position line |
 | leveler | Leveler | When you gain a position Trick, you choose which row it marks. | other tricks position line |
+| separation_anxiety | Separation Anxiety | When an inseparable Trick triggers, 10% chance to prime the Tricks bes | retrigger other tricks chance |
 | district | District | Position Tricks may share a row or column instead of spreading onto se | other tricks position line |
 | tempo | Tempo | When acquired, sets your swap and discard limits to 2. Every 15 second | stock other clock cost |
 | jury_rig | Jury-Rig | Swapping or discarding a card adjacent to a Sleight has a 50% chance t | other sleights position swap discard chance charges |

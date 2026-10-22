@@ -232,6 +232,8 @@ function survivalTickBossClock() {
 function survivalEntityBanned(id) {
   // r646: a fused (INSEPARABLE) Trick exists only through its pair, never as an offer.
   if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
+  // r651: Separation Anxiety is offered only with a fused Trick in the tray.
+  if (id === 'separation_anxiety' && !(typeof trickTray !== 'undefined' && trickTray.some(t => t && t.fused))) return true;
   // The reward-grid-only entities are dead picks wherever the MODE never opens
   // a reward grid - the pick-of-three loop, and the non-poker loops too.
   if (modeHasNoRewardGrid() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
@@ -287,7 +289,7 @@ function survivalMakeOption(type, data) {
   if (type === 'trick' && data._gridPick)
     return { type: 'grid', data, id: data.id, name: data.name, icon: '🎁', desc: data.desc,
              tag: tierLabel('trick', 'rare').toUpperCase(), rar: 'rare' };
-  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
+  if (type === 'trick')   return { type, data, id: data.id, name: shownEntityName(data, 'trick'), icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
   if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase(), rar: data.rarity };
   if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: tierLabel('knack', data.rarity).toUpperCase(), rar: data.rarity };
   // Say how much, not just which - Starting Time moves by 15 and Focus Cap by 3,

@@ -39,6 +39,11 @@ const LINE_FX_META = {
   obligatory:         { color: '#7fd6c2', glyph: '!', name: 'Obligatory' },
   suggestive:         { color: '#cf8cff', glyph: '+', name: 'Suggestive' },
   coin_sword:         { color: '#d4a017', glyph: '¢', name: 'Coin and the Sword' },
+  // r651: the fused line Tricks (red, like their discs)
+  right_place_time:   { color: '#ff3b3b', glyph: '◆', name: 'Right Place & Time' },
+  short_circuit:      { color: '#ff5a3b', glyph: '×', name: 'Short Circuit' },
+  advanced_interrogation: { color: '#ff3b6a', glyph: '!', name: 'Advanced Interrogation' },
+  lidar:              { color: '#ff7a3b', glyph: '↻', name: 'Lidar' },
 };
 function lineFXMeta(id) { return LINE_FX_META[id] || { color: '#c9a84c', glyph: '●', name: id }; }
 

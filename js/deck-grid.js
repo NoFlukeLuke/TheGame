@@ -566,6 +566,7 @@ let safetyNetUsed       = false; // safety_net knack: once per game
 let cardsDiscardedTotal = 0;
 let cardsDiscardedRound = 0;
 let swapsUsedRound      = 0; // swap actions this round (the No Takebacks challenge)
+let swapsUsedGame       = 0; // r651: swap actions this run (Landfill); in SAVE_VARS
 let discardsUsedRound   = 0; // discard actions this round (Landfill)
 let cardsScoredTotal  = 0;
 let nineSecondsCounter = 0;

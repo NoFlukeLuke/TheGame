@@ -1,15 +1,43 @@
-# Inseparable pairs (r646)
+# Inseparable pairs (r646, r651)
 
 Two Tricks that fuse into one the moment both are in the tray (`js/inseparable.js`,
 pairs in `js/data/inseparable.js`). The fused Trick takes one slot, keeps the higher of
 the two improvement tiers, carries both effects, and is drawn RED with both icons. The
 second half of a pair can be taken with a full tray: the fusion frees a slot.
 
-## Shipped
+## Shipped (r646 Lie Up; r651 the owner's 21)
 
-| fused | parts | effect | improvements |
-|---|---|---|---|
-| **Lie Up** (`lie_up`) | Lie Down + Stand-Up | hands from one row or one column score +24 mult | +16 mult a tier; v6: hands from no more than 2 rows OR no more than 2 columns |
+| fused | parts | effect |
+|---|---|---|
+| **Lie Up** | Lie Down + Stand-Up | hands from one row or one column +24 mult; +16 a tier; v6 no more than 2 rows or 2 columns |
+| **Well Adjusted** | Early Bird + Night Owl | every hand +20 pips and +20 mult |
+| **Right Place & Time** | Right Place + Right Time | one line: +25 pips per card and a 2s pause per card |
+| **Short Circuit** | Power Line + Live Wire | one line: +15 mult per card and x1.2 pips per card |
+| **Advanced Interrogation** | High Voltage + Obligatory | one line: x1.2 mult per card and a 25% force of that slot's Trick |
+| **Love of Money** | Obsessed + Interest | hearts x mult from credits, and x pips from credits |
+| **Penny Perfect** | Penny Saved + Perfect Ten | every 9 cards played or discarded: +5 pips and +3 mult for good (carry rule) |
+| **Hurricane** | Cascade + Storm | runs +20 pips and +10 mult per card |
+| **Riptide** | Tide Table + Undertow | runs x1.25 mult (+x0.5 per run) and x2 pips (+x0.5 per card beyond 3) |
+| **Encore!** | Rerun + Chorus | x1.25 pips and x1.5 mult per replay |
+| **Lidar** | Echo Location + Perfect Timing | one line: a sure replay and a 2 in 3 chance of a second |
+| **Erosion** | The Swift + Sediment | +6 mult and +10 pips every 10 seconds |
+| **Seabird** | The Albatross + The Kingfisher | +10 pips per paused second and +8 mult per 2s paused or rewound |
+| **Flood** | Dam Holding + High Water | runs pause 3s plus 1s per run played this round |
+| **Relativity** | Hourglass + Sands of Time | +pips from time left, and the 60s-mark replay buff roll |
+| **Men of Means** | Men of Repute + Face Value | face cards +30 pips and +20 mult |
+| **OmegaPrime** | Prime Time + Prime Times | primes +29 pips and prime the leftmost Trick |
+| **Stranger Still** | Odd One In + What are The Odds | odd cards +7 mult then x1.7 mult |
+| **Can Even** | Get Even + Even Better | even cards +16 pips and a 66% chance of x2.25 pips |
+| **Inferno** | Kindling + Wildfire | streaks +8 mult x streak, a streak of 3 adds +5 Focus |
+| **Serenity** | Hands of Blue + Crossroads | a hand that is not a straight line: +50 mult and +25 Focus (the owner's line read "50 focus and 25 focus"; taken as mult and Focus) |
+| **Working Class** | Hard Labour + Landfill | club pips double each club this round; +4 mult per swapped or discarded card this game (carry rule) |
+
+**The carry rule** (owner): a scaling part brings HALF its earned bonus along as a flat
+bonus, and a quarter of what it had counted keeps counting at the fused rate. +1 mult per
+discard at 10 discards, fused at +4: 5 + 2.5 x 4 = 15. Rounded up.
+
+**Separation Anxiety** (rare Knack, offered only with a fused Trick in the tray): when a fused
+Trick fires, 10% to prime the Tricks beside it.
 
 ## Suggested pairs (owner to pick, name and price)
 

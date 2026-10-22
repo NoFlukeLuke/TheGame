@@ -59,12 +59,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Threepeat: hand pip-sum divisible by 3 → one of rewind / mult / Focus
     { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(2, handCells)) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
     // Wildfire: reaching a same-hand streak of 3 adds Focus
-    if (hasTrick('wildfire') && lastHandType === hand && streakCount + 1 === 3) totalFocus += BAL.wildfire.focus * trickFires('wildfire');
+    if (hasTrick('wildfire') && lastHandType === hand && streakCount + 1 === 3) totalFocus += TB('wildfire').focus * trickFires('wildfire');
     // The Falcon: hands played while the clock is paused add +10 Focus
     if (clockPausedForHand()) totalFocus += BAL.frozen_moment.focus * trickFires('frozen_moment');
     // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
     if (isSquare(handCells)) totalFocus += BAL.shape_square.focus * trickFires('shape_square');
     if (isCross(handCells) && realHandOfSize(handCells, 5))  totalFocus += BAL.shape_cross.focus  * trickFires('shape_cross');
+    if (hasTrick('serenity') && handCells.length > 1 && !handIsLine(handCells)) totalFocus += BAL.serenity.focus * trickFires('serenity');   // r651 fused
     // Study Hall (r205): every Nth card scored pays Focus. It used to need a marked
     // row/column AND a once-per-minute gate, which capped it at 3 fires a round for a
     // rare - the counter runs across the whole run instead, so a 5-card hand pays twice.
@@ -155,9 +156,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // deterministic 50% inside calcScore - nothing to consume here.)
     // High Water (r346): every Run pauses the clock 1s per Run played this round,
     // THIS one included - runsPlayedRound is bumped later in playHand, so +1 here.
-    if (_isRunHand) pauseRound(BAL.high_water.pause_per_run * (runsPlayedRound + 1) * trickFires('high_water'), 'high_water', 'trick');
+    if (_isRunHand) pauseRound(TB('high_water').pause_per_run * (runsPlayedRound + 1) * trickFires('high_water'), 'high_water', 'trick');
     // Dam Holding…: every Run pauses the clock a flat few seconds
-    if (_isRunHand) pauseRound(BAL.dam_holding.pause * trickFires('dam_holding'), 'dam_holding', 'trick');
+    if (_isRunHand) pauseRound(TB('dam_holding').pause * trickFires('dam_holding'), 'dam_holding', 'trick');
     // Sundial knack: a hand where every card shares a column pauses the clock
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds, 'sundial', 'knack');
     // Metronome knack: playing this round's target hand type pauses the clock
@@ -359,6 +360,9 @@ function playHand() {
   // dance. It used to advance HERE, above the canonical score, so every hand was
   // scored five rungs (or however many clubs) further up the ladder than it had climbed.
   clubHitsPending = Math.max(0, _lastHandClubHits || 0);
+  // r651: the scoring Tricks that paid this hand join the fired set (`_lastHandProcs` is this hand's calcScore, taken just above),
+  // so MOST USED counts them and Separation Anxiety sees a fused Trick fire.
+  if (typeof _lastHandProcs !== 'undefined' && typeof _trickFiredThisHand !== 'undefined') Object.keys(_lastHandProcs).forEach(id => { if (_lastHandProcs[id] > 0 && hasTrick(id)) _trickFiredThisHand.add(id); });
   // QRL (r484): say so when this hand ran into a quarter resource limit.
   if (_lastHandQrlReplayCut) qrlNotice('replay');
   if (_scoredCells.some(([r, c]) => qrlActiveKinds(gridData[r]?.[c]))) qrlNotice('buff');
@@ -674,7 +678,7 @@ function playHand() {
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
-  { const _rt = _scoredCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time'), 'right_time', 'trick'); }
+  { const _rt = _scoredCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(TB('right_time').pause_seconds * _rt * trickFires('right_time'), 'right_time', 'trick'); }
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
@@ -1060,6 +1064,13 @@ function scalingCount(hand, handCells, reps) {
       if (n > 0 && primeTrick(t, n, { src: 'suggestive' })) noteMessage(`+ Suggestive primed ${t.name}`, '#cf8cff');
     });
   }
+  // Separation Anxiety (r651 knack): a fused Trick that fired this hand has `chance` of priming the Tricks beside it.
+  if (hasKnack('separation_anxiety')) trickTray.forEach((t, i) => {
+    if (!t || !t.fused || !_trickFiredThisHand.has(t.id)) return;
+    const n = luckRoll(BAL.separation_anxiety.chance); if (!n) return;
+    [trickTray[i - 1], trickTray[i + 1]].forEach(nb => { if (nb) primeTrick(nb, n, { src: 'separation_anxiety' }); });
+    noteMessage(`Separation Anxiety primed beside ${t.name}`, '#ff5a5a');
+  });
   // Coin and the Sword (r646): the credits half. credit_chance per card in its line, once per
   // replay, of credits equal to the hand size (the mult half is rolled in calcScore).
   if (hasTrick('coin_sword')) {
@@ -1173,7 +1184,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   // Prime Times (r349): a hand that scores a prime rank primes your leftmost
   // Trick (itself excluded - priming Prime Times would do nothing).
   if (hasTrick('prime_times') && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
-    const _tt = trickTray.find(t => t.id !== 'prime_times');
+    const _tt = trickTray.find(t => t.id !== 'prime_times' && !(t.acts && t.acts.includes('prime_times')));   // r651: nor the fused OmegaPrime
     if (_tt) primeTrick(_tt, 1, { src: 'prime_times' });
   }
   if (typeof renderTrickTray === 'function') renderTrickTray();

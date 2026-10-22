@@ -576,6 +576,7 @@ function startGame() {
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
+  swapsUsedGame  = 0;   // r651: Landfill's game count
   discardsUsedRound = 0;
   focusGenRound = 0;
   cardsScoredTotal = 0;

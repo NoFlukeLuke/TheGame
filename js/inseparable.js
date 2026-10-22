@@ -25,6 +25,42 @@ function inseparablePartOf(id) {
 function inseparableRow(id) {
   return (typeof TRICK_POOL_ALL !== 'undefined' && TRICK_POOL_ALL.find(t => t && t.id === id)) || null;
 }
+// ── r651: a fused Trick STANDS IN for its parts ─────────────────────────────
+// A fused row with `acts: [a, b]` makes hasTrick(a) / hasTrick(b) true, serves
+// their lines, and its BAL row (holding both parts' keys) is what their code reads
+// through TB(part). Payouts billed to a part land on the fused Trick (_fid in
+// calcScore), so its chip flares and the contributions row names it.
+function fusedTrickFor(partId) {
+  if (typeof trickTray === 'undefined') return null;
+  return trickTray.find(t => t && t.acts && t.acts.includes(partId)) || null;
+}
+function fusedActingFor(partId) { const t = fusedTrickFor(partId); return t ? t.id : null; }
+function TB(partId) { const f = fusedActingFor(partId); return (f && BAL[f]) || BAL[partId]; }
+// The carry rule (owner): the flat bonus a fused Trick brought along, and the
+// count adjustment it keeps counting from.
+function fusedCarry(partId, axis) { const t = fusedTrickFor(partId); return (t && t._carry && t._carry[axis]) || 0; }
+function fusedCountAdj(key) {
+  if (typeof trickTray === 'undefined') return 0;
+  let n = 0; trickTray.forEach(t => { if (t && t.fused && t._countAdj && t._countAdj[key]) n += t._countAdj[key]; });
+  return n;
+}
+// Pairs the player has made at least once (a collection log, not run state).
+const INS_SEEN_KEY = 'lethe.inseparable.v1';
+let _insSeen = null;
+function inseparableSeenSet() {
+  if (_insSeen) return _insSeen;
+  try { _insSeen = new Set(JSON.parse(localStorage.getItem(INS_SEEN_KEY) || '[]')); } catch (e) { _insSeen = new Set(); }
+  return _insSeen;
+}
+function pairDiscovered(fusedId) { return inseparableSeenSet().has(fusedId) || (typeof devRevealAll !== 'undefined' && devRevealAll); }
+function markPairDiscovered(fusedId) {
+  const s = inseparableSeenSet(); if (s.has(fusedId)) return; s.add(fusedId);
+  try { localStorage.setItem(INS_SEEN_KEY, JSON.stringify([...s])); } catch (e) {}
+}
+function anyPairDiscovered() { return inseparableSeenSet().size > 0 || (typeof devRevealAll !== 'undefined' && devRevealAll); }
+// An offer of `id` would complete a pair the player has made before: the tile jitters (css/inseparable.css).
+function inseparableHint(id) { const pair = inseparablePartOf(id); return !!pair && pairDiscovered(pair.id) && inseparableCompletes(id); }
+
 // Taking `id` would complete a pair whose other half is already owned.
 function inseparableCompletes(id) {
   const pair = inseparablePartOf(id);
@@ -49,10 +85,28 @@ function inseparableFuse(pair) {
   if (ia < 0 || ib < 0) return false;
   const pa = trickTray[ia], pb = trickTray[ib];
   const tier = Math.max(typeof entityTierOf === 'function' ? entityTierOf(pa.id) : 0, typeof entityTierOf === 'function' ? entityTierOf(pb.id) : 0);
+  // r651, the carry rule (owner): half of a scaling part's earned bonus comes along
+  // as a flat bonus, and a quarter of what it had counted keeps counting at the
+  // fused rate (count adjustment = -3/4 of the count). Read while the parts still own.
+  const carry = {}, countAdj = {};
+  (pair.carry || []).forEach(c => {
+    try {
+      const b = c.bonus ? +c.bonus() || 0 : 0, n = c.count ? +c.count() || 0 : 0;
+      if (b) carry[c.axis] = (carry[c.axis] || 0) + b / 2;
+      if (c.adj && n) countAdj[c.adj] = (countAdj[c.adj] || 0) - n * 0.75;
+    } catch (e) {}
+  });
   const at = Math.min(ia, ib);
   trickTray.splice(Math.max(ia, ib), 1); trickTray.splice(at, 1);
   const fused = { ...def };
+  if (Object.keys(carry).length) fused._carry = carry;
+  if (Object.keys(countAdj).length) fused._countAdj = countAdj;
   trickTray.splice(at, 0, fused);
+  // A fused line Trick keeps the line of the part that had one (the first by tray order).
+  const lineOf = (typeof POSITION_ASSIGN_IDS !== 'undefined' && POSITION_ASSIGN_IDS.includes(fused.id)) ? [pa, pb].find(x => x && x._posAxis != null) : null;
+  if (lineOf && typeof finalizePositionMark === 'function') { fused._posAssigned = true; finalizePositionMark(fused, lineOf._posAxis, lineOf._posIndex); }
+  if (typeof markDiscovered === 'function') markDiscovered(fused.id);
+  markPairDiscovered(fused.id);
   // The higher tier carries over; the parts' tiers are cleared so a part taken
   // again later starts fresh.
   if (typeof entityTier !== 'undefined') { entityTier[fused.id] = tier; delete entityTier[pa.id]; delete entityTier[pb.id]; if (typeof applyEntityTiers === 'function') applyEntityTiers(); }

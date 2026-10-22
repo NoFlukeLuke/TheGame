@@ -39,7 +39,7 @@ function engineMissing(eng, onlyKind) {
     eng[key].forEach(id => {
       if (!engineOfferable(kind, id)) return;
       const def = engineDef(kind, id);
-      out.push({ type: kind, id, icon: kind === 'trick' ? '★' : def.emoji, name: def.name, desc: def.desc,
+      out.push({ type: kind, id, icon: kind === 'trick' ? '★' : def.emoji, name: kind === 'trick' ? shownEntityName(def, 'trick') : def.name, desc: def.desc,
                  rarity: (kind === 'trick' ? def.tier : def.rarity) || 'common', payload: def, engine: eng });
     });
   });
@@ -1367,7 +1367,7 @@ function renderRehearsal() {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦';
     const el = makeChoiceEl({
       icon: em, tile: { entity: 'trick', id: t.id, emoji: em, label: t.name },
-      rarity: t.tier, name: t.name + rehearsalTag(t),
+      rarity: t.tier, name: shownEntityName(t, 'trick') + rehearsalTag(t),
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc, cls: 'rh-trick',
       onClick: () => {
         body.querySelectorAll('.rh-trick').forEach(e => e.classList.remove('selected'));

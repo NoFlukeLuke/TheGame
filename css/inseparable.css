@@ -28,3 +28,16 @@ body.reduced-motion .reward-cell.fused, body.reduced-motion .trick-tray-chip.fus
 .ins-sparks > i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #fff1d8; box-shadow: 0 0 8px #ff5a5a, 0 0 14px #ff3b3b; }
 .ins-sparks > i:nth-child(odd) { background: #ff8a6a; }
 .ia-ver .ins-name { color: #ff6a6a; text-shadow: 0 0 8px #ff3b3b99; font-weight: normal; }
+
+/* r651: an offer that would complete a pair you have made before jitters for a
+   moment, rests, and jitters again. On the tile's frame, so every surface gets it. */
+.reward-cell.ins-hint { animation: insHint 2.6s ease-in-out infinite; }
+@keyframes insHint {
+  0%, 18%, 100% { translate: 0 0; rotate: 0deg; }
+  2%  { translate: -1.5px .5px; rotate: -1.2deg; }
+  5%  { translate: 1.5px -.5px; rotate: 1.2deg; }
+  8%  { translate: -1px 1px; rotate: -.8deg; }
+  11% { translate: 1px -1px; rotate: .8deg; }
+  14% { translate: -.5px 0; rotate: -.4deg; }
+}
+body.reduced-motion .reward-cell.ins-hint { animation: none; }

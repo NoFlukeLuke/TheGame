@@ -233,7 +233,7 @@ function shopgKnackPayloads(n) {
 function shopgTrickPayloads(n) {
   const owned = new Set(acquiredTricks.map(b => b.id));
   return shuffle(TRICK_POOL.filter(b => !owned.has(b.id))).slice(0, n)
-    .map(t => ({ entity:'trick', label:t.name, desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
+    .map(t => ({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
                  price: SHOP_TRICK_PRICES[t.tier] || 8, buy: () => injectTrickAfterReward(t) }));
 }
 function shopgSleightPayloads(n) {
@@ -373,7 +373,7 @@ function buildShopSellStock() {
   (acquiredKnacks || []).forEach((k, idx) => items.push({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
     price: knackSellValue(), sell: () => { const i = acquiredKnacks.findIndex(x => x.id === k.id); if (i >= 0) acquiredKnacks.splice(i, 1); updateKnackList?.(); } }));
   const trickList = (trickTray || []).filter(t => !(typeof altarTrickLocked === 'function' && altarTrickLocked(t.id)));   // r590
-  (trickList || []).forEach(t => items.push({ entity:'trick', label:t.name, desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
+  (trickList || []).forEach(t => items.push({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
     price: trickSellValue(t), trick: t, sell: () => sellOwnedTrick(t) }));
   ownedSleightInstances().forEach(inst => {
     const def = inst.def;

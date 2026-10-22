@@ -78,6 +78,7 @@ const KNACK_POOL = [
   // ── Position knacks (r102) - control which line a position Trick marks ──
   { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which column it marks.', tags:['other','tricks','position','line'] },
   { id:'leveler',         emoji:'📏',  name:'Leveler',          rarity:'common', desc:'When you gain a position Trick, you choose which row it marks.', tags:['other','tricks','position','line'] },
+  { id:'separation_anxiety', emoji:'🔗', name:'Separation Anxiety', rarity:'rare', desc:'When an inseparable Trick triggers, 10% chance to prime the Tricks beside it.', tags:['retrigger','other','tricks','chance'] },   // r651: offered only with a fused Trick in the tray
   { id:'district',        emoji:'🏙️',  name:'District',          rarity:'common', desc:'Position Tricks may share a row or column instead of spreading onto separate lines.', tags:['other','tricks','position','line'] },
   // ── Tempo / repair knacks (r120) ──
   { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back - alternating swap, then discard.', tags:['stock','other','clock','cost'] },

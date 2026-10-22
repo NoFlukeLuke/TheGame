@@ -152,7 +152,9 @@ function entityTipPayloadFor(p, rarity) {
     }
   }
   if (!desc) return null;
-  return { label, desc, rarity: rar || 'common', type: kind, emoji: p.emoji || p.icon, uses: p.uses };
+  // r651: a rare or epic Trick not yet taken in any run shows no name (js/discovery.js).
+  const shown = (kind === 'trick' && typeof shownEntityName === 'function') ? shownEntityName({ id: p.id, name: label, tier: rar }, 'trick') : label;
+  return { label: shown, desc, rarity: rar || 'common', type: kind, emoji: p.emoji || p.icon, uses: p.uses };
 }
 
 // A complete tile, frame and all - for surfaces that have no frame of their own
@@ -168,6 +170,9 @@ function entityTileHTML(p, rarity, { mystery = false, extraClass = '', tip = tru
   // offer. Owned ones carry no star: the tray is not an offer.
   if (!mystery && p.id && typeof isRequisitioned === 'function' && isRequisitioned(p.id) && !entityOwnedNow(p.id))
     extraClass = (extraClass ? extraClass + ' ' : '') + 'requisitioned';
+  // r651: an offer that would complete an INSEPARABLE pair the player has made before jitters (js/inseparable.js).
+  if (!mystery && p.id && (p.entity || p.type) === 'trick' && typeof inseparableHint === 'function' && inseparableHint(p.id))
+    extraClass = (extraClass ? extraClass + ' ' : '') + 'ins-hint';
   let tipAttr = '';
   if (tip && !mystery) {
     const tp = entityTipPayloadFor(p, rarity);

@@ -423,7 +423,7 @@ function improveEntity(id) {
   // r627: the improvement animation (js/improve-anim.js) plays from a queue, so a
   // many-tiered grant is one scene and a sequence can hold it until its end.
   if (typeof improveAnimNote === 'function') improveAnimNote(id, _was, entityTier[id], _descWas, _impDescOf(id));
-  if (entityTier[id] >= IMPROVE_MAX_TIER) markTierSeen(id, IMPROVE_MAX_TIER);
+  markTierSeen(id, entityTier[id]);   // r651: every tier reached is logged; Builds shows only reached tiers
   return entityTier[id];
 }
 // The printed sentence of an entity as the player sees it (the owned copy, else the pool's).
