@@ -9,9 +9,13 @@
 // back to play size and the round deals in behind the 3-2-1.
 //
 // ── The rules, as agreed with the owner ──────────────────────────────────────
-// - Movement is STRICTLY ORTHOGONAL and every step activates the tile you step
-//   on. Within a set you may visit at most 2 tiles (so the two must be
-//   vertically adjacent); moving forward enters the next set at your lane.
+// - THE PICK RULE (r648, the default): in each set you take ANY two of its solid
+//   tiles, in any order, adjacent or not, and every tile you take happens. Then
+//   you move on, and the next set may be entered at ANY lane. `mapPickRule()`.
+// - THE OLD RULE (dev -> Schedule -> Adjacent moves, `mapAdjacentRule`):
+//   movement is STRICTLY ORTHOGONAL. Within a set you may visit at most 2 tiles
+//   (so the two must be vertically adjacent); moving forward enters the next set
+//   at your lane. Free branch (below) is a variant of this rule only.
 // - Leaving a set after only ONE visit pays MAP_SKIP_BASE + MAP_SKIP_STEP * n
 //   credits (n = how many times you have skipped this run): 6, 8, 10...
 // - Set 1 is ALL LEVELS. Sets 2..5 each carry at least one level. The final
@@ -24,7 +28,9 @@
 //   kind until confirmed (they still count toward the minimums underneath).
 // - A rare 2x1 EVENT tile spans two sets lengthways. It charges ONE visit,
 //   lands you in its second set with that visit spent, and you can never go
-//   back to its first set.
+//   back to its first set. Under the pick rule it is taken like any tile of its
+//   first set (as that set's first or second pick), and the visit it spends is
+//   its second set's, so you have one more pick there.
 // - Every tile advances the difficulty curve (Guided's load-bearing rule):
 //   levels through triggerLevelUp, everything else through guidedAdvanceCurve.
 // - The boss goal is FIXED at map build: MAP_BOSS_LEVELS levels of a steeper
@@ -32,6 +38,10 @@
 //   the map before you can reach it.
 //
 // ── DEAD ENDS ARE REFUSED, NOT DISCOVERED ────────────────────────────────────
+// (The old rule. Under the pick rule a set is left for any solid tile of the
+// next, so nothing strands; mapPickCanFinish checks it rather than assumes it.
+// Generation still validates against the old rule's DP, so every map is safe
+// under both and the dev toggle can flip mid-run.)
 // Strict orthogonality + inert blanks means a route can strand you: at 2 visits
 // you must go forward, and forward can be a blank. mapCanFinishFrom() is a memo
 // DP over (lane, set, visits) that answers "can the boss still be reached from
@@ -113,8 +123,21 @@ try { mapFreeBranch = localStorage.getItem('lethe.map.freeBranch') === '1'; } ca
 function setMapFreeBranch(on) {
   mapFreeBranch = !!on;
   try { localStorage.setItem('lethe.map.freeBranch', mapFreeBranch ? '1' : '0'); } catch (e) {}
-  if (mapScreenOpen) mapRender();
+  if (mapScreenOpen) { mapRender(); mapRenderBar(); }
 }
+// r648 (owner): the default is the PICK rule, any two tiles of a set. The old
+// orthogonal walk is a dev option; stored only when on (overrides only).
+const MAP_ADJ_KEY = 'lethe.map.adjacent';
+let mapAdjacentRule = false;
+try { mapAdjacentRule = localStorage.getItem(MAP_ADJ_KEY) === '1'; } catch (e) {}
+function setMapAdjacentRule(on) {
+  mapAdjacentRule = !!on;
+  try { if (mapAdjacentRule) localStorage.setItem(MAP_ADJ_KEY, '1'); else localStorage.removeItem(MAP_ADJ_KEY); } catch (e) {}
+  if (mapScreenOpen) { mapSelected = null; mapRender(); mapRenderBar(); }
+}
+function mapPickRule() { return !mapAdjacentRule; }
+// Free branch is a variant of the old rule; under the pick rule it changes nothing.
+function mapFreeBranchOn() { return mapAdjacentRule && mapFreeBranch; }
 let mapSkips = 0;           // skips paid so far this run
 let mapBossGoal = 0;        // fixed quota, computed at run start
 let mapBossArmed = false;   // boss tile confirmed; prize grid routes to the win
@@ -484,7 +507,7 @@ function _mapStandsAt(t) {
 // The places a move may originate from. Normally just where you are; with the
 // free-branch toggle on, anywhere you have already been.
 function mapOrigins() {
-  if (!mapFreeBranch) return mapPos ? [{ lane: mapPos.lane, set: mapPos.set }] : [];
+  if (!mapFreeBranchOn()) return mapPos ? [{ lane: mapPos.lane, set: mapPos.set }] : [];
   const seen = new Set(), out = [];
   const add = (o) => { const k = o.lane + ',' + o.set; if (!seen.has(k)) { seen.add(k); out.push(o); } };
   mapTiles.forEach(t => { if (t.visited && t.kind !== 'boss') add(_mapStandsAt(t)); });
@@ -496,7 +519,7 @@ function mapOrigins() {
 // always 1 - and handing the dead-end DP a 1 there is exactly what let a
 // measured walk strand itself.
 function _mapArriveVisits(set) {
-  return mapFreeBranch ? mapVisitsInSet(set) + 1 : 1;
+  return mapFreeBranchOn() ? mapVisitsInSet(set) + 1 : 1;
 }
 function mapLegalMoves() {
   const out = [];
@@ -525,9 +548,10 @@ function mapLegalMoves() {
       .forEach(t => consider(t, { lane: t.lane, set: t.span === 2 ? 1 : 0, visits: 1 }, null));
     return out;
   }
+  if (mapPickRule()) { mapPickMoves(push); return out; }
   for (const o of mapOrigins()) {
     const { lane, set } = o;
-    const visits = mapFreeBranch ? mapVisitsInSet(set) : mapVisits;
+    const visits = mapFreeBranchOn() ? mapVisitsInSet(set) : mapVisits;
     const from = { lane, set, visits };
     // THE LAST SLOT BOOKS TWO LIKE EVERY OTHER SLOT (r293, owner's call).
     // It used to return the review and nothing else, which made the funnel the
@@ -568,6 +592,45 @@ function mapLegalMoves() {
     }
   }
   return out;
+}
+
+// THE PICK RULE (r648): any unvisited solid tile of the set you are in while it has
+// room (2 a set), or of the next set, at any lane. A 2x1 head is a tile of its
+// FIRST set and lands you in its second with that visit spent (its tail cell is
+// never a tile of its own). The funnel's forward is the boss.
+function mapPickMoves(push) {
+  const { lane, set } = mapPos;
+  const from = { lane, set, visits: mapVisits };
+  const memo = {};
+  const add = (t, after) => {
+    if (!t || t.visited || t.kind === 'blank') return;
+    if (!mapPickCanFinish(after.set, memo)) { push({ tile: t, from, doomed: true }); return; }
+    push({ tile: t, after, from });
+  };
+  const tilesOf = s => mapTiles.filter(t => t.set === s && t.kind !== 'boss');
+  if (mapVisits < 2) tilesOf(set).forEach(t => add(t, t.span === 2
+    ? { lane: t.lane, set: set + 1, visits: 1 }
+    : { lane: t.lane, set, visits: mapVisits + 1 }));
+  if (set >= MAP_SETS - 1) {
+    const boss = mapTiles.find(t => t.kind === 'boss');
+    if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
+  } else {
+    tilesOf(set + 1).forEach(t => add(t, t.span === 2
+      ? { lane: t.lane, set: set + 2, visits: 1 }
+      : { lane: t.lane, set: set + 1, visits: 1 }));
+  }
+}
+// Can the boss be reached from `set` under the pick rule? Some solid tile of the
+// next set must lead on. Every generated map passes (each middle set holds a level,
+// the funnel at least two solid tiles); it is checked so a later generation rule
+// cannot strand a run without the bar saying so.
+function mapPickCanFinish(set, memo) {
+  if (set >= MAP_SETS - 1) return true;
+  if (memo && set in memo) return memo[set];
+  const ok = mapTiles.some(t => t.set === set + 1 && t.kind !== 'blank' && t.kind !== 'boss' && !t.visited
+    && mapPickCanFinish(t.span === 2 ? set + 2 : set + 1, memo));
+  if (memo) memo[set] = ok;
+  return ok;
 }
 
 function mapMoveFor(tileId) {
@@ -700,9 +763,13 @@ function mapRender(animateIn) {
   };
   // The spine of a 2x1: the straight run from its head to its tail.
   const drawSpine = (t, cls) => { if (t.span === 2) drawSeg(entryOf(t), exitOf(t), cls); };
+  // Under the pick rule (r648) every tile of the next slot is a move, so the rails
+  // would join everything to everything: only the 2x1 spines and the walked route.
+  const _railsOn = !mapPickRule();
   for (const t of mapTiles) {
     if (t.kind === 'blank' || t.kind === 'boss') continue;
     drawSpine(t, 'ml-rail');
+    if (!_railsOn) continue;
     const fwd = t.set + (t.span === 2 ? 2 : 1);
     if (fwd > MAP_SETS) continue;
     for (let l = 0; l < MAP_LANES; l++) {
@@ -805,6 +872,16 @@ const MAP_HELP = [
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
+// r648: the pick rule's card (the default). MAP_HELP is the old rule's.
+const MAP_HELP_PICK = [
+  ['Pick', 'Take any lit obligation in this time slot or the next. Everything you take happens.'],
+  ['Two a slot', 'Book any two obligations in a slot, next to each other or not. Then move on.'],
+  ['Moving on', 'You can start the next slot on any obligation in it.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Last slot', 'Book it like any other, then the review.'],
+  ['Blocked out', 'Nothing scheduled there.'],
+];
+function mapHelpRows() { return mapPickRule() ? MAP_HELP_PICK : MAP_HELP; }
 function mapRenderBar() {
   let bar = document.getElementById('map-bar');
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
@@ -812,7 +889,7 @@ function mapRenderBar() {
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
   // Every slot books two, the last one included (r293) - so the cap is flat.
   const visits = mapPos
-    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
+    ? `${mapFreeBranchOn() ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranchOn() ? ' FREE' : ''}`
     : 'PICK A START';
   const inked = (typeof mapHasInk === 'function') && mapHasInk();
   bar.innerHTML =
@@ -838,7 +915,7 @@ function mapRenderBar() {
     `<span class="mb-coins">${coins} ◆</span>` +
     `<button id="mb-confirm" disabled>CONFIRM</button>` +
     `<div class="mb-help" id="mb-help">` +
-      MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
+      mapHelpRows().map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
     `</div>`;
   // The legend is NOT in here any more (r294): it is a body-level rail beside
   // the board, so it survives this rebuild instead of being destroyed by it.

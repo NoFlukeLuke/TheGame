@@ -336,7 +336,11 @@ const TUTORIAL_STEPS = [
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Two stops a slot',
-    body: `Move up, down or forward. Never diagonal. <b>Every step you take happens.</b><br><br>You can take two obligations in one time slot if they sit next to each other. Take only one and you pay a fee to move on, and the fee rises each time.<br><br>A move that would strand you is refused.`,
+    // r648: the default is the pick rule; the old walk is a dev option. Leaving a slot
+    // after one stop PAYS credits (the old text said it cost a fee).
+    body: () => (typeof mapPickRule === 'function' && mapPickRule())
+      ? `Take any two obligations in a time slot, next to each other or not. <b>Every one you take happens.</b><br><br>Then move on: you can start the next slot on any obligation in it. Take only one and moving on pays you credits, more each time.`
+      : `Move up, down or forward. Never diagonal. <b>Every step you take happens.</b><br><br>You can take two obligations in one time slot if they sit next to each other. Take only one and moving on pays you credits, more each time.<br><br>A move that would strand you is refused.`,
   },
   {
     id: 'schedule-go', only: 'map', anchor: () => tutEls('#grid .map-tile', '#mb-confirm'), side: 'top', next: true,

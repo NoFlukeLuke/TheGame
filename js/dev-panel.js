@@ -32,6 +32,8 @@ function syncMatch3DevToggles() {
   });
   const mfb = document.getElementById('dev-map-freebranch');
   if (mfb) mfb.checked = mapFreeBranch;
+  const madj = document.getElementById('dev-map-adjacent');
+  if (madj) madj.checked = mapAdjacentRule;
 }
 
 function applyDevMode() {

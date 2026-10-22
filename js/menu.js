@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r647 · five new Sleights (Procrastinate, Retake, Shredder, Photocopier, Logistics Assistant) and the Green Station knack";
+const BUILD = "2026-10-22 · r648 · the Schedule: take any 2 tiles in a time slot, adjacent or not; the old walk is a dev option";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

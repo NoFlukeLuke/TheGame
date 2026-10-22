@@ -2386,3 +2386,19 @@ Measured by click at 1440x820 and touch at 420x900, dev mode on: Procrastinate 9
 discard, counted 2; Shredder deck 56 -> 55 and the at-rest audit matched; Retake's hand in the draw
 pile; Photocopier 4 copies with +12 pips / x1.5 across two rows, 4 discards counted; Logistics 2
 free swaps; a spent Snooze dormant, not drawn, woken by the recharge; every ladder's six tiers.
+
+## r648 - the Schedule: pick any 2 in a set (owner)
+The default is the PICK rule (`mapPickRule()`, `mapPickMoves`, js/map-mode.js): in each time slot you
+take any two of its solid tiles, in any order, adjacent or not, then move on and may start the next
+slot on ANY of its tiles. Leaving after one still pays the skip (6, 8, 10...); the funnel books two,
+then the review; blanks stay inert. A 2x1 is taken like any tile of its FIRST slot and the visit it
+spends is its second slot's (one more pick there). `mapPickCanFinish` still refuses a doomed move;
+generation still validates with the old rule's DP (`mapCanFinishFrom`), so every map is safe under
+both and the toggle can flip mid-run. The old orthogonal walk is dev -> Schedule -> "Adjacent moves
+(old rule)" (`mapAdjacentRule`, `lethe.map.adjacent`, stored only when on); Free branch applies only
+under it (`mapFreeBranchOn`). Under the pick rule the board draws no rails (only 2x1 spines and the
+walked route). The bar's ? card (`MAP_HELP_PICK` / `mapHelpRows`), the walkthrough's "Two stops a
+slot" and the handbook's "Time slots and two visits" read the rule in force; they and the skip_cost
+tip had said leaving early costs a fee, and now say it pays credits. Measured: real taps at 1440x820
+and 420x900 (non-adjacent pair taken, skip paid 6, a map walked to the review, one real round back to
+the map at 1/2); 4,000 random walks per rule: 0 strands, no slot past 2, pick 9.62 tiles a run, old 9.88.

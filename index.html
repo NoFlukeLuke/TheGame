@@ -944,7 +944,12 @@
   </div>
   <div class="dev-section" data-group="map">
     <div class="dev-section-title">Map Mode</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch: move out from ANY tile you have already taken, not only the one you are standing on.</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Default: take any two obligations in a slot, then start the next slot anywhere. Adjacent moves brings back the old walk: up, down or forward, two a slot only if they touch.</div>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
+      <input id="dev-map-adjacent" type="checkbox" onchange="setMapAdjacentRule(this.checked)" style="accent-color:var(--gold);">
+      Adjacent moves (old rule)
+    </label>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch (old rule only): move out from ANY tile you have already taken, not only the one you are standing on.</div>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-map-freebranch" type="checkbox" onchange="setMapFreeBranch(this.checked)" style="accent-color:var(--gold);">
       Branch from any visited tile

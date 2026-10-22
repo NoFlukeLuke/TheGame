@@ -303,10 +303,17 @@ const INFO_TOPICS = [
     ] },
 
   { id: 'slots_visits', group: 'schedule', title: 'Time slots and two visits',
+    // r648: the default is the pick rule; the old walk is a dev option (mapPickRule).
     body: [
-      'You move one step at a time and EVERY step activates the obligation you land on. Moves are up, down or forward, never diagonal.',
-      'You may take at most TWO obligations in a slot, and only if they are next to each other. Moving forward always enters the next slot on your current lane.',
-      'A move that would strand you is refused rather than allowed: the bar tells you a path dead-ends instead of letting you walk into it.',
+      () => _mapPickOn()
+        ? 'EVERY obligation you take happens. You may take any TWO in a slot, next to each other or not, in any order.'
+        : 'You move one step at a time and EVERY step activates the obligation you land on. Moves are up, down or forward, never diagonal.',
+      () => _mapPickOn()
+        ? 'Then you move on, and you can start the next slot on any obligation in it.'
+        : 'You may take at most TWO obligations in a slot, and only if they are next to each other. Moving forward always enters the next slot on your current lane.',
+      () => _mapPickOn()
+        ? 'A two-slot obligation counts as one of your picks in its second slot.'
+        : 'A move that would strand you is refused rather than allowed: the bar tells you a path dead-ends instead of letting you walk into it.',
     ] },
 
   { id: 'skip_cost', group: 'schedule', title: 'Leaving a slot early',
@@ -487,6 +494,7 @@ function infoHubMatch(t, q) {
 // count-up and Survival's bonus drifted apart before r213 put them on one
 // constant - and that constant went 10 -> 5 -> 10 across three revisions. A page
 // that states a number reads it from the code that charges it.
+function _mapPickOn() { return typeof mapPickRule !== 'function' || mapPickRule(); }
 function infoBlockHTML(b) {
   const v = (typeof b === 'function') ? _infoSafe(b) : b;
   if (Array.isArray(v)) return `<ul class="info-list">${v.map(x => `<li>${infoText(typeof x === 'function' ? _infoSafe(x) : x)}</li>`).join('')}</ul>`;
