@@ -1,6 +1,7 @@
 /* ══ CARD FACE (r497, js/card-face.js) ══
-   html.cf-pixel    : Jfred's Pixel Cards (r633, the default): corner index + centre art from a sheet
-   html.cf-print    : the printout's pixel type, dot-printed
+   html.cf-print    : the printout's pixel type, dot-printed (the default)
+   html.cf-pixel    : Jfred's Pixel Cards (r633): corner index + centre art from a sheet
+   The paper looks (print, pixel, classic) sit on the pack's blank card (r639, the stock below).
    html.cf-phosphor : the card is a little screen, rank and suit glow in the suit colour
    html.cf-classic  : the old serif face (style.css as written) */
 @font-face { font-family: 'VT323 Local'; src: url('../fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
@@ -49,11 +50,29 @@ html.cf-phosphor .card.selected { border-color: rgb(var(--pg)); box-shadow: 0 0 
    (js card-face.js cardFaceSpriteHTML) scaled by --k, the card's height over the source's 75,
    so pixels stay square whatever shape the cell is. The art is centred across the card at its
    source height; the index sits at its source corner, and once more turned round bottom-right. */
-html.cf-pixel { --card-bg: #fff9ef; --card-border: #d0cbc0; }
 html.cf-pixel .card.has-pxf .rank, html.cf-pixel .card.has-pxf .suit,
 html.cf-pixel .card.has-pxf .wild-glyph, html.cf-pixel .card.has-pxf .wild-label { display: none; }
-html.cf-pixel .card.wild-card { border-style: solid; border-color: #c9b7f0; }
-html.cf-pixel .card.wild-card:hover:not(.unreachable) { background: #fffaee; }
+
+/* ── the stock (r639) ── the pack's blank card under the game's own face. A 9-slice of
+   stock.png (--cfs-stock, written on <html> by js/card-face.js): 6 source px a side, drawn
+   6 x --k wide so the stepped corners keep their shape at any cell size. The border stays
+   2px, so the card's box does not change; the image just reaches inward. A border image
+   hides border colours, so the states that used them ring the card with a box-shadow. */
+html:is(.cf-print, .cf-pixel, .cf-classic) { --card-bg: #fff9ef; --card-border: #d0cbc0; }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card:not(.stone-card):not(.challenge-card):not(.num-card) {
+  --k: calc(var(--card-h, 75px) / 75);
+  border: 2px solid transparent; border-radius: 4px; background-clip: padding-box;
+  /* --k is a LENGTH (card height / 75, so px); 6 x a length is a length, 6px x a length is not. */
+  border-image-source: var(--cfs-stock); border-image-slice: 6; border-image-width: calc(6 * var(--k)); border-image-repeat: stretch;
+  image-rendering: pixelated;
+}
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:not(.stone-card) { box-shadow: 0 0 0 1.5px #c9b7f0; }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:hover:not(.unreachable) { background: #fffaee; }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected:not(.stone-card):not(.challenge-card):not(.num-card) {
+  box-shadow: 0 0 0 1.5px #4a9eff, 0 0 7.5px rgba(74,158,255,.62);
+}
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected.hand-valid:not(.num-card) { box-shadow: 0 0 0 1.5px #4a9eff, 0 0 10px rgba(74,158,255,.62); }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected.hand-penalty:not(.num-card) { box-shadow: 0 0 0 1.5px var(--red, #d9534f), 0 0 8px rgba(217,83,79,.55); }
 .pxf { display: none; }   /* another look keeps its text face; a re-render is not needed to switch */
 html.cf-pixel .pxf {
   display: block; position: absolute; pointer-events: none; z-index: 0;

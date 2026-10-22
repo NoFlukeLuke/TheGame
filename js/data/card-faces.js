@@ -3,6 +3,7 @@
 // (ax, ay) is where the art sits on the card; i = corner index on the sheet, drawn at (ix, iy) of the
 // card and again rotated bottom-right.
 const CARD_FACE_SHEET = 'assets/cards/jfred/faces.png?v=3ff9b225';
+const CARD_FACE_STOCK = 'assets/cards/jfred/stock.png?v=00592928';   // the blank card, 50 x 75, 1px grey edge, 5px stepped corners
 const CARD_FACE_SRC_W = 50, CARD_FACE_SRC_H = 75;
 const CARD_FACE_SHEET_W = 1218, CARD_FACE_SHEET_H = 82;
 const CARD_FACES = {

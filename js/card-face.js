@@ -1,15 +1,16 @@
 // ══════════════════════════════════════════════
 // CARD FACE (r497) - how a playing card's rank and suit are drawn
 // ══════════════════════════════════════════════
-// 'pixel' (default, r633): Jfred's Pixel Cards (CC0), cut into corner index and centre art
+// 'print' (default): the printout's pixel type, dot-printed ink on the paper card.
+// 'pixel' (r633): Jfred's Pixel Cards (CC0), cut into corner index and centre art
 //   (js/data/card-faces.js, tools/cards/build.js); the Joker is the wild card's face.
-// 'print': the printout's pixel type, dot-printed ink on the paper card.
+// Every paper look sits on the pack's blank card (r639, CARD_FACE_STOCK, 9-sliced in css).
 // 'phosphor': the card is a small screen, rank and suit glowing in the suit colour.
 // 'classic': the old serif face.
 // Dev -> HUD & Display -> Aesthetics -> Card face. Store holds only a non-default choice.
 const CARD_LOOK_KEY = 'lethe.cardFace.v1';
-const CARD_LOOKS = ['pixel', 'print', 'phosphor', 'classic'];
-const CARD_LOOK_DEFAULT = 'pixel';
+const CARD_LOOKS = ['print', 'pixel', 'phosphor', 'classic'];
+const CARD_LOOK_DEFAULT = 'print';
 let cardFace = (() => {
   try { const v = localStorage.getItem(CARD_LOOK_KEY); return CARD_LOOKS.includes(v) ? v : CARD_LOOK_DEFAULT; }
   catch (e) { return CARD_LOOK_DEFAULT; }
@@ -33,6 +34,8 @@ function cardFaceApply() {
   const h = document.documentElement;
   CARD_LOOKS.forEach(l => h.classList.toggle('cf-' + l, cardFace === l));
   if (cardFace === 'print') cardFaceFilter();
+  if (typeof CARD_FACE_STOCK !== 'undefined')   // the blank card under every paper look (r639)
+    h.style.setProperty('--cfs-stock', `url("${new URL(CARD_FACE_STOCK, location.href).href}")`);
   if (cardFace === 'pixel' && typeof CARD_FACE_SHEET !== 'undefined') {
     // The sheet and its size, read by css/card-face.css. Absolute: a url() in a custom
     // property resolves against the stylesheet that reads it.

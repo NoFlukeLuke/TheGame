@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r638 · console mode screen door toned down: horizontal scan lines off for the test (--mc-scan-w, 0 = off, .5px thinnest), the grille blue stripe half as tinted; the tube knobs declared once on html.skin-machine";
+const BUILD = "2026-10-22 · r639 · the printed face is back, on the pack's blank card";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

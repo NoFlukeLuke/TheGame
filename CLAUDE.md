@@ -2178,3 +2178,14 @@ the generic x-step: x1.5 x2 x2.5 x3 x3.5 x5. Rerun is still the hand-level lump.
 Measured by tap, dev mode on, a Run of 3 with replays 2 / 3 / 1 under the card ladder: plates
 x1.5 on card 1's replay and card 2's two replays, none elsewhere; MULT chip 1 > 3 > 5 > 10.5 >
 18.8 > 21.8, the ledger's 21.75; no timeline drift at 1440x820 and 420x900.
+
+## r639 - the printed face is back, on the pack's blank card (owner)
+Card face `print` is the default again (`CARD_LOOK_DEFAULT`); `pixel` (r633's Jfred faces) stays in the
+dropdown. Every paper look (print, pixel, classic) now sits on the pack's blank card: `tools/cards/
+build.js` copies `empty.png` to `assets/cards/jfred/stock.png` (`CARD_FACE_STOCK`), js/card-face.js
+writes it to `--cfs-stock` on `<html>`, and css/card-face.css draws it as a 9-slice `border-image`
+(6 source px a side, width 6 x `--k` = card height / 75, pixelated) on `.card` with the border kept at
+2px, so the card's box is unchanged and the stepped corners hold at any cell size. A border image hides
+border colours, so the selected / valid / penalty states and the wild ring the card with a box-shadow
+instead; the old has-pip / has-mult border tints are covered (the face bands carry that). Stones,
+challenge cards and numeric cards keep their own look.
