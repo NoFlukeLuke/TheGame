@@ -294,47 +294,19 @@ function findBestHand(cells) {
     const hand = _whole.primary;
     const rawScore = calcScore(hand, detectionCells);
     restoreWilds();
+    lastKickerRefusal = null;
     return _withTagalongs({ hand, handCells: detectionCells, penaltyCells: [],
                             rawScore, penaltyPips: 0, finalScore: Math.max(0, rawScore) });
   }
-
-  // Generate all connected subsets of 2 to HAND_MAX_CARDS cards. The cap used to
-  // be 5, which is why Selection Size (max 9) bought nothing past the fifth card:
-  // the extra cards could never be in the hand and were billed as penalty pips.
-  const subsets = [];
-  const n = detectionCells.length;
-  for (let mask = 1; mask < (1 << n); mask++) {
-    const subset = detectionCells.filter((_, i) => mask & (1 << i));
-    if (subset.length < 2 || subset.length > HAND_MAX_CARDS) continue;
-    if (!isConnected(subset)) continue;
-    const hand = detectHand(subset);
-    if (hand) subsets.push({ hand, handCells: subset });
-  }
-
-  if (subsets.length === 0) { restoreWilds(); return null; }
-
-  // Score each valid subset with bonuses, pick highest
-  let best = null;
-  for (const { hand, handCells } of subsets) {
-    const penaltyCells = detectionCells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
-    const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + (isWarehouseCard(gridData[r][c]) ? 0 : cardPips(gridData[r][c].rank)), 0);
-    const rawScore = calcScore(hand, handCells);
-    // A subset's own passengers are billed here too, or the search would happily
-    // prefer a subset that carries three of them over one that carries none -
-    // they cost the same pips whether they sit inside the hand or outside it.
-    // (r385) kickerPipBill is 0 once Tagalong makes them free. On a tie a kicker
-    // loses to a penalty card: both bill the same pips and only a kicker also
-    // bills the clock, so the search must not pick the dearer of two equal hands.
-    const tagCells = handTagalongCells(handCells);
-    const tagPips = kickerPipBill(tagCells);
-    const finalScore = Math.max(0, rawScore - penaltyPips - tagPips);
-    if (!best || finalScore > best.finalScore
-        || (finalScore === best.finalScore && tagCells.length < best._tagN)) {
-      best = { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore, _tagN: tagCells.length };
-    }
-  }
+  // ── r652 (owner): WHAT YOU SELECTED IS A HAND OR IT DOES NOT PLAY ──
+  // The subset search that lived here (the best connected subset, the rest
+  // billed as PENALTY cards and consumed) is gone: a selection carrying more
+  // kickers than the allowance (one; any number with Tagalong) is refused,
+  // and so is a selection with no hand in it. The one kicker still carries
+  // its cost. penaltyCells stays a field (always empty) for its readers.
+  lastKickerRefusal = kickerOverflowFor(detectionCells);
   restoreWilds();
-  return _withTagalongs(best);
+  return null;
 }
 
 // ── What the passengers cost (r326) ──────────────────────────────────────────
@@ -701,6 +673,13 @@ const _compCache = new Map();
 //     longer choose. That only moves when a hand is PLAYED, so playHand empties
 //     the cache rather than every entry carrying a version stamp.
 function clearHandCompCache() { _compCache.clear(); }
+// r652: why a selection refused to play. Written by handComponentsFor when the
+// kickers go over the allowance (tagalongMax); findBestHand copies it into
+// lastKickerRefusal for the render that asked, so the hand label can print
+// "KICKERS 2 / 1" where a hand name would go.
+const _kickerOver = new Map();
+let lastKickerRefusal = null;
+function kickerOverflowFor(cells) { return (cells && cells.length) ? (_kickerOver.get(_compKey(cells)) || null) : null; }
 function _compKey(cells) {
   return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k.rank2 || '') + (k.suit2 || '') + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
@@ -835,7 +814,13 @@ function handComponentsFor(cells) {
   // Being ALLOWED a passenger is not the same as it being free. The cards that
   // ride along are reported by handTagalongCells and billed by findBestHand: their
   // pips come off the hand, and playHand charges their pip value in seconds.
-  if (components.length && unclaimedCount(components) > _maxTagalong) components.length = 0;
+  // r652 (owner): over the allowance the selection does not play at all (no
+  // subset search, no penalty cards); the count is kept so the hand label can
+  // say why (kickerOverflowFor).
+  if (components.length && unclaimedCount(components) > _maxTagalong) {
+    _kickerOver.set(_compKey(cells), { n: unclaimedCount(components), max: _maxTagalong });
+    components.length = 0;
+  } else _kickerOver.delete(_compKey(cells));
 
   // High Card (r200): the escape valve. It covers EVERY cell by definition, so it
   // is also what a selection falls back to when the rule above rejects a hand

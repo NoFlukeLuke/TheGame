@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r651 · 21 fused Tricks with the carry rule; Separation Anxiety; rare and epic Tricks undiscovered until taken; the pair jitter; the Inseparable tab in Builds; tiers read once reached; Landfill this game; Compost +2 in Flow";
+const BUILD = "2026-10-22 · r652 · a hand picked out of falling cards plays at once (the fall is re-entrant); a selection with more kickers than the allowance does not play; the label says KICKERS n / max";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

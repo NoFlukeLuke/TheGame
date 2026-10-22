@@ -511,7 +511,7 @@ function updateHandNameLabel(result, force) {
   // hand, or a dance stamping its own hand on at its start (`force`), always gets
   // through - otherwise the label kept the PREVIOUS hand's name while the next one was
   // being built and played (a Full House read "RUN OF 3", r401).
-  if (_handNameHeld && !force && !(result && (result.hand || result.short))) return;
+  if (_handNameHeld && !force && !(result && (result.hand || result.short || result.over))) return;
   const el = document.getElementById('hand-name');
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand
@@ -519,6 +519,13 @@ function updateHandNameLabel(result, force) {
   // r200: below the minimum selection the label states the requirement instead of
   // naming a hand. The player is looking right here to find out what they have,
   // so it is where "you cannot play this yet, and why" belongs.
+  // r652: too many kickers prints the count where a hand name would go.
+  if (result && result.over) {
+    const html = `<span class="hn-l hn-need"><b>KICKERS</b><i>${result.over.n} / ${result.over.max === Infinity ? '∞' : result.over.max}</i></span>`;
+    if (html !== _handNameKey || el.innerHTML !== html) { _handNameKey = html; el.innerHTML = html; }
+    el.classList.remove('hn-layered');
+    return;
+  }
   if (result && result.short) {
     const html = `<span class="hn-l hn-need"><b>NEED</b><i>${result.short}</i></span>`;
     if (html !== _handNameKey || el.innerHTML !== html) { _handNameKey = html; el.innerHTML = html; }

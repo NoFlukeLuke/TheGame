@@ -2475,3 +2475,25 @@ centre, 10px / 7px below its top edge, absent on the menu; still centred after a
   both neighbours of a fired Hurricane; UNDISCOVERED on an untaken rare and epic, the name at once on a
   taken one; the jitter class only after Lie Up had been made; Builds listed 22 Inseparables. No page
   errors, no timeline drift.
+
+## r652 - play out of the fall; too many kickers refuse (owner)
+- **The fall is re-entrant** (`fallSettleNow`, js/card-fall.js). A hand picked out of cards still
+  falling plays at once: `playHand` settles the live fall (its animations finish, the cards snap
+  into their cells, the card elements are rebuilt by `render()`, the fall counts for the fall-type
+  challenge cards) and marks it superseded, so its own tail, which wakes a microtask later, does
+  nothing; the drains and any queued action belong to the next fall's tail. `removeAndFall` settles
+  a fall in flight on entry too, so two falls never overlap, and a fall arriving during another's
+  300ms slide-out now waits for it instead of returning (its cards used to stay on the board). The
+  auto-submit, the drag play and a queued PLAY no longer wait for `falling`; a queued DISCARD still
+  does (r539). Taps on cards in the air were already live (the temp copies carry their cell).
+  Measured at 1440x820 and 420x900: PLAY pressed with `falling` true, 40ms later `falling` false, the
+  dance up, `handsPlayed` +1, one element per card and every card drawn; three hands in a row.
+- **A selection with more kickers than the allowance does not play** (js/hand-detect.js): the
+  whole selection is a hand or `findBestHand` returns null. The subset search and PENALTY cards
+  (r201: the best connected subset, the rest billed and consumed) are gone; `penaltyCells` stays
+  an empty field for its readers. The one kicker still carries its cost. `handComponentsFor` keeps
+  the count (`_kickerOver`, `kickerOverflowFor`), `findBestHand` copies it to `lastKickerRefusal`,
+  and the hand label prints "KICKERS 3 / 1" (`updateHandNameLabel`, `result.over`). Tagalong already
+  allows any number, free (`tagalongMax` is Infinity). Measured: a Two Pair plus one spare plays
+  (KICK 1, -2 pips, -2s); a Pair plus three spares is refused with PLAY off; with Tagalong it plays
+  with 3 free kickers.

@@ -37,6 +37,8 @@ function render() {
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;
+  // r652: a selection refused for its kickers (read right after findBestHand wrote it)
+  const _kickOver = (!bestHandResult && selected.length >= 2 && typeof lastKickerRefusal !== 'undefined') ? lastKickerRefusal : null;
 
   // Build map of current DOM card elements by card _id
   const existingEls = {};
@@ -212,7 +214,7 @@ function render() {
   // follow a new live selection (r401): the tally's hold (js/hud.js) stops it being
   // blanked, and only a selection that actually names a hand gets through it.
   if (danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
-    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : (_kickOver ? { over: _kickOver } : bestHandResult));
   }
   if (!danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
@@ -221,7 +223,7 @@ function render() {
     // The preview CARDS stay inert until a hand is submitted (r99), but the hand
     // NAME is live from the first selection - it is what you need before you
     // commit, and with layered hands it is the only place the second hand shows.
-    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : bestHandResult);
+    updateHandNameLabel(_belowMin ? { short: handMinSelection() } : (_kickOver ? { over: _kickOver } : bestHandResult));
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
     if (bestHandResult) {

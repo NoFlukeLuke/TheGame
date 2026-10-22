@@ -31,7 +31,9 @@ function scheduleQueuedRetry() {
   _queuedRetries = 0;
   (function retry() {
     if (!pendingAction) return;
-    if (animating || falling) {
+    // r652: a queued PLAY runs as soon as the slide-out ends (playHand settles a
+    // fall itself); a queued DISCARD still waits for the fall (r539).
+    if (animating || (falling && pendingAction !== 'play')) {
       if (_queuedRetries++ > 60) { dbgEvent('warn', 'queued action timed out', { pendingAction }); pendingAction = null; return; }
       setTimeout(retry, 60); return;
     }
@@ -61,7 +63,7 @@ function armDragPlay() {
   handReadyForSubmit = true;
   dragPlayTimer = setTimeout(() => {
     dragPlayTimer = null;
-    if (!dragGrace || animating || falling || !dragControlsLive()) return;
+    if (!dragGrace || animating || !dragControlsLive()) return;   // r652: a fall no longer holds the play
     dragGrace = false; handReadyForSubmit = false;
     if (selected.length && findBestHand(selected)) playHand();
   }, ctlDragGraceMs());
@@ -105,9 +107,9 @@ function scheduleAutoSubmit() {
   let _waits = 0;
   const fire = () => {
     autoSubmitTimer = null;
-    if ((animating || falling) && _waits++ < 100) { autoSubmitTimer = setTimeout(fire, 60); return; }
+    if (animating && _waits++ < 100) { autoSubmitTimer = setTimeout(fire, 60); return; }   // r652: a fall no longer holds the play
     handReadyForSubmit = false;
-    if (!animating && !falling && selected.length >= 2 && selected.length >= handMinSelection()) playHand();
+    if (!animating && selected.length >= 2 && selected.length >= handMinSelection()) playHand();
   };
   autoSubmitTimer = setTimeout(fire, autoSubmitDelay());
 }
