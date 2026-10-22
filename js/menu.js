@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r652 · a hand picked out of falling cards plays at once (the fall is re-entrant); a selection with more kickers than the allowance does not play; the label says KICKERS n / max";
+const BUILD = "2026-10-22 · r653 · the re-entrant fall is reverted: PLAY waits for the fall again, cards in the air stay tappable; the kicker refusal stays";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

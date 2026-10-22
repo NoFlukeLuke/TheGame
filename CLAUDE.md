@@ -2497,3 +2497,12 @@ centre, 10px / 7px below its top edge, absent on the menu; still centred after a
   allows any number, free (`tagalongMax` is Infinity). Measured: a Two Pair plus one spare plays
   (KICK 1, -2 pips, -2s); a Pair plus three spares is refused with PLAY off; with Tagalong it plays
   with 3 free kickers.
+
+## r653 - the re-entrant fall is reverted (owner)
+r652's play-out-of-the-fall is taken back (js/card-fall.js, js/play-hand.js, js/input.js are r651's
+again): PLAY during a fall queues until the fall lands, as before; cards in the air stay tappable, so a
+hand can be picked while they fall and submitted when they land. Owner: "as long as the cards were
+selectable, I can wait for them to fall." The kicker refusal (r652) stays. Known and OLDER than r652:
+a hand played while the previous hand is still flying to the preview cuts that dance and its cards come
+back onto the board unremoved (`cancelDance` -> `dncRestoreHiddenGridEls`, js/score-anims.js: "they were
+never removed"); the score was already banked. Not changed here.

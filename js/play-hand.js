@@ -229,9 +229,7 @@ function playHand() {
   // top of the boss and soft-locked it.
   if (typeof flowBossFighting !== 'undefined' && flowBossFighting && !bossActive) { dbgEvent('warn', 'play ignored (boss arriving)'); return; }
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) { dbgEvent('info', 'play ignored (skipping to the boss)'); return; }   // r606
-  // r652 (owner): a hand picked out of falling cards plays NOW. The fall snaps
-  // into place (fallSettleNow, js/card-fall.js) and the dance flies from the cells.
-  if (falling) { if (typeof fallSettleNow === 'function') fallSettleNow(); else { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; } }
+  if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
