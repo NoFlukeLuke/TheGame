@@ -260,6 +260,13 @@ const BAL = {
   bellhop: { swaps: 2, discards: 2 },   // r646 (owner): improvements alternate +2 swaps / +2 discards
   cash_out: { coins: 10 },
   amplifier: { mult_per_level: 3 },   // r636: the next hand scores level x this
+  // r647 (owner): new Sleights. `charges` is the cap (sleightBaseCharges); `double_spend` the v6 chance a use spends 2.
+  procrastinate: { charges: 5, discards: 0, double_spend: 0 },
+  retake: { charges: 8, copies: 0, permanent: 0, double_spend: 0 },
+  shredder: { charges: 3, deletes: 1, double_spend: 0 },
+  photocopier: { copies: 4, permanent: 0, double_spend: 0 },
+  logistics_assistant: { charges: 4, swaps: 0, max_swaps: 8 },
+  green_station: { chance: 0.3, chance2: 0 },   // r647 knack: a charge back per Sleight at round end; chance2 a second
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
   whetstone:  { mult_per_event: 2, life_seconds: 90 },
@@ -434,6 +441,12 @@ const DESC_TEMPLATES = {
   interest: 'Score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
   amplifier: 'Double-tap: the next hand scores mult equal to the current level x{mult_per_level}. (5 charges)',
+  procrastinate: 'Discard this: the 8 cards around it go with it, costing no time. Counts as 2 discards for Tricks and Knacks.[[discards: Gives +{discards} discards.]] ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',
+  retake: 'Play this in a hand: it and the cards played with it go back into the deck instead of the played pile.[[copies>0:[[copies<2: Adds a temp copy of one of the cards played to the deck.]][[copies>1:[[permanent<1: Adds temp copies of {copies} of the cards played to the deck.]][[permanent: Adds copies of {copies} of the cards played to the deck.]]]]]] ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',
+  shredder: 'Discard this: deletes [[deletes<99:{deletes} of the cards]][[deletes>98:every card]] discarded with it, for good. ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',
+  photocopier: 'Double-tap: picks a card beside it at random and makes {copies} temp copies of it, buffs and all. They replace cards in its row, then the next row; any that do not fit go into the deck.[[permanent: {permanent} of them are permanent.]] Not on a wild unless you own Stand-In. (5 charges)[[double_spend: Half the time a use spends 2 charges.]]',
+  logistics_assistant: 'Double-tap: finds swaps that make a playable hand and makes them one by one, left to right, for free. Then it discards itself.[[swaps: Gives +{swaps} swaps.]] ({charges} charges)',
+  green_station: 'Sleights have a {chance_pct}% chance to get a charge back at the end of each round[[chance2:, then a {chance2_pct}% chance of one more]]. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',
   rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',

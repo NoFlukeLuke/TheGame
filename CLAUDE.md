@@ -2348,3 +2348,41 @@ x. 420x900 unchanged (6 6 6 6 6). No page errors.
   of 5 fused into Lie Up in slot 5, +24 on a row, +104 and an L shape at v6; real hands through PLAY
   with no timeline drift and no page errors. The tour page's `[DECK AUDIT]` warning is pre-existing
   (identical on r645).
+
+## r647 - five Sleights and Green Station (owner)
+Shared: a Sleight whose charges improve keeps them in its BAL row (`charges`, read by
+`sleightBaseCharges` for grants and `sleightMaxCharges` for the cap; `durability` stays the
+printed base); `sleightTierCharges` (IMPROVE_HOOKS) gives owned copies the step, or a refill. A
+v6 `double_spend` (0.5) makes a use spend 2 that often (`sleightSpendCount`, in
+`consumeSleightCharge` and `discardSleightAfterUse`). Rarities are mine (owner did not say).
+- **Procrastinate** (rare, on_discard, 5): `procrastinateCarry` (js/discard.js) adds the 8 cells
+  around it (ordinary, discardable, unblocked, not fall-locked; Sleights stay) to the discard.
+  Carried cards cost no seconds and no stock; the discard counts 2 in `discardsUsedRound` (owner:
+  counts double for Tricks, stock is the normal 1). +2 charges a tier; v6 gives +2 discards a use.
+- **Retake** (rare, on_play, 8): every card played with it, and itself, go to a random place in
+  the DRAW pile: `retakeCards` (js/deck-grid.js), read by `discardToPlayed` (the one door into the
+  played pile), cleared at round and run start. Ladder: +1 charge, a temp copy of a played card
+  (`retakeCopies`, face only), +1, two copies, v6 refill and the copies permanent.
+- **Shredder** (rare, on_discard, 3): `shredderPick` marks `deletes` random cards discarded with it
+  (real before temp) in `shredderVictims`; doDiscard drops them and `expectedDeckTotal--`, printed.
+  +2 charges / one more deleted, alternating; v6 refill, deletes all (99).
+- **Photocopier** (epic, double_tap, 5; js/office-sleights.js): a random card beside it, left or
+  right (a wild only with Stand-In), `copies` temp copies with its buffs (`copyCardBuffs`): its row
+  left to right, then the nearest rows (below first), then the deck (owner). Replaced cards go to
+  the back of the deck and count as discards (`magnetCountDiscards`). +1 copy a tier; v6 two
+  permanent.
+- **Logistics Assistant** (epic, double_tap, 4): `logisticsNextSwap` scans adjacent pairs by column
+  then row; a swap is taken when the best playable hand either card can anchor afterwards beats
+  before (`_logBestFrom`, the sweep's search at a 400-shape budget, ~15ms). Each goes through
+  `doSwap` as a free swap (`sleightFreeSwapPending`: no stock or time, still a swap), the hand it
+  made glows and is locked; at most `max_swaps` (8); taps, PLAY and DISCARD wait
+  (`logisticsRunning`). Then it discards itself. +2 charges a tier; v6 +2 swaps a use.
+- **Green Station** (rare knack): `greenStationRecharge` (triggerLevelUp, beside Coin Toss) gives
+  each owned Sleight below its cap `chance` (30%) of a charge, then `chance2` of another. Owned, a
+  Sleight at 0 is not destroyed: `consumeSleightCharge` leaves it, `discardToPlayed` keeps it, and
+  `drawCard` passes over it (`sleightDormant`) until a charge comes back. +10% a tier; v6 chance2 30%.
+Icons: sofa, clapperboard, box cutter, paper tray, forklift, charging (144 on the sheet).
+Measured by click at 1440x820 and touch at 420x900, dev mode on: Procrastinate 9 cards for 1
+discard, counted 2; Shredder deck 56 -> 55 and the at-rest audit matched; Retake's hand in the draw
+pile; Photocopier 4 copies with +12 pips / x1.5 across two rows, 4 discards counted; Logistics 2
+free swaps; a spent Snooze dormant, not drawn, woken by the recharge; every ladder's six tiers.

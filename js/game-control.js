@@ -430,6 +430,8 @@ function startGame() {
   focusNodes = 0;
   if (typeof autopilotReset === 'function') autopilotReset();
   if (typeof sweepReset === 'function') sweepReset();   // r572
+  if (typeof retakeCards !== 'undefined') retakeCards.clear();   // r647
+  if (typeof logisticsReset === 'function') logisticsReset();   // r647
   if (typeof bossJumpReset === 'function') bossJumpReset();   // r606
   growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
   growthSpurtMaxedThisRound = false;

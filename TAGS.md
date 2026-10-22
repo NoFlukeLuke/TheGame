@@ -186,7 +186,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | dam_holding | Dam Holding… | Runs pause the clock for 3s | time hand run |
 | wave_amp | Wave Amplification | Consecutively played Runs score +15 pips × the streak count | pips hand run streak scores |
 
-## SLEIGHT_POOL (44)
+## SLEIGHT_POOL (49)
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
@@ -201,11 +201,14 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | bellhop | Bellhop | Play this: gain +2 swaps and +2 discards. (5 charges) | stock hand |
 | syncopation | Syncopation | Play this in a hand of a different type than your previous hand: pause | time hand streak |
 | rewind | Rewind | Play this in a hand to rewind the clock 1s for each card in the hand,  | time hand size |
+| retake | Retake | Play this in a hand: it and the cards played with it go back into the dec | deck hand |
 | the_bomb | Bomb | Discard this: every card on the grid permanently gains +3 pips. (2 cha | deck pips other scaling scores |
 | the_legacy | Legacy | Discard this: the next hand played get x3 mult. (3 charges) | xmult hand scores |
 | cash_out | Cash Out | Discard this: gain 10 credits. (3 charges) | credits other |
 | last_call | Last Call | Discard this: rewind the clock 15s. (3 charges) | time other |
 | sandbag | Sandbagger | Discard this with a pair to rewind the clock by that pair’s rank in se | time other set rank |
+| procrastinate | Procrastinate | Discard this: the 8 cards around it go with it, costing no time. Coun | board other discard position |
+| shredder | Shredder | Discard this: deletes 1 of the cards discarded with it, for good. (3 ch | deck other discard |
 | lightning_rod | Lightning Rod | When swapped, the card it traded with permanently gains +10 pips. | deck pips card scaling scores |
 | the_catalyst | Catalyst | When swapped, the card it traded with permanently gains +5 mult. | deck mult card scaling scores |
 | the_wanderer | Wanderer | While on grid: allows any two cards to be swapped regardless of positi | stock other swap |
@@ -215,6 +218,8 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | stopwatch | Stopwatch | Double-tap: pause the clock until your next played hand (60s of use, e | time other |
 | piggy_bank | Piggy Bank | Double-tap: gain 5 credits, once per round. Becomes inert on use: it c | credits other cost |
 | magnet | Magnet | Double-tap, then tap any card: pull every card of that rank in to repl | board other rank position cost |
+| photocopier | Photocopier | Double-tap: picks a card beside it at random and makes 4 temp copies o | board deck other position buffed |
+| logistics_assistant | Logistics Assistant | Double-tap: finds swaps that make a playable hand and makes them one b | board other swap |
 | keeper | Keeper | While on the grid, the board stays as it is between rounds instead of  | board other level |
 | lockbox | Lockbox | Double-tap: take out the cards you bought at the Card Market. Tap a ca | deck board other |
 | dealers_choice | Dealer's Choice | Double-tap: hold three cards using ranks on the board (most carry a bu | board other chance cost |
@@ -235,7 +240,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | time_clock | Time Clock | Score two hands beside this card to pause the clock for 10s, then it g | time other position |
 | petty_cash | Petty Cash | Score two hands beside this card to get +5 credits. Discards itself af | credits other position |
 
-## KNACK_POOL (75)
+## KNACK_POOL (76)
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
@@ -299,6 +304,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | greedy_boi | Greedy Boi | +2 selection size in the reward grid - grab more tiles at once. | other reward |
 | scavenger | Scavenger | Whenever a curse lifts, gain +10 coins and +1 discard next round. | credits stock other |
 | coin_toss | Coin Toss | At the start of each round, every Sleight has a 50% chance to restore  | other sleights chance charges start |
+| green_station | Green Station | Sleights have a 30% chance to get a charge back at the end of each rou | other sleights chance charges level |
 | martyr | Martyr | Discarding a non-discard Sleight restores 1 charge to all Sleights on  | other sleights discard charges |
 | surveyor | Surveyor | When you gain a position Trick, you choose which column it marks. | other tricks position line |
 | leveler | Leveler | When you gain a position Trick, you choose which row it marks. | other tricks position line |

@@ -74,6 +74,12 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🎚️ settings-knobs
 - 📌 pin
 - 🧹 broom
+- 🛋️ sofa
+- 🎬 clapperboard
+- 📃 box-cutter
+- 📠 paper-tray
+- 🚚 forklift
+- 🔌 charging
 - 🏪 shop
 - 💸 pay-money
 - 📉 chart

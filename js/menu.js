@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r646 · Inseparable Tricks (Lie Up); five line Tricks with a second line at v6; Assembly Line counts last round; Woodpecker 2 replays + a chance; Bellhop 2/2; Stand-Up 12; Alignment and the turning board pattern are gone";
+const BUILD = "2026-10-22 · r647 · five new Sleights (Procrastinate, Retake, Shredder, Photocopier, Logistics Assistant) and the Green Station knack";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

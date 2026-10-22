@@ -752,8 +752,11 @@ function shuffle(arr) {
 function deckShuffle(arr) { return withSeededRng(() => shuffle(arr), 'deck'); }
 
 function drawCard() {
-  if (drawPile.length === 0) return null; // exhausted
-  let c = stampId(drawPile.shift());
+  // r647: a dormant Sleight (0 charges, kept by Green Station) is never drawn; it
+  // waits in the pile for a charge.
+  const _i = drawPile.findIndex(cd => !(typeof sleightDormant === 'function' && sleightDormant(cd)));
+  if (_i < 0) return null; // exhausted
+  let c = stampId(drawPile.splice(_i, 1)[0]);
   // Famine modifier: bias drawn rank toward low cards. On the deck's stream - it
   // substitutes a drawn card, so it is a deck operation.
   c = withSeededRng(() => maybeFamineDrawSwap(c), 'deck');
@@ -789,10 +792,13 @@ function discardToPlayed(card) {
   // The cycled copy is a fixed field list, so _inert is dropped and it comes back
   // movable, with whatever charges it still held.
   if (!cardCan(card, 'discard') && !(card && card._isSleight && (card._inert || card.sleightId === 'reflect'))) return;
+  // Retake (r647): a card it was played with goes back into the DRAW pile instead.
+  const _pile = retakeTakes(card) ? retakePile : playedPile;
   // Sleights cycle back into the deck preserving identity & remaining charges
-  // (unless fully consumed, in which case they're dropped).
+  // (unless fully consumed, in which case they're dropped; Green Station keeps
+  // them, dormant, r647).
   if (card._isSleight) {
-    if (card._usesLeft === 'infinite' || card._usesLeft > 0) {
+    if (card._usesLeft === 'infinite' || card._usesLeft > 0 || (typeof greenStationKeeps === 'function' && greenStationKeeps())) {
       // _faceRank/_faceSuit ride along so a Sleight keeps the same printed card
       // face across a deck cycle (this rebuild is a fixed field list - anything
       // not named here is silently dropped).
@@ -807,16 +813,35 @@ function discardToPlayed(card) {
       // _whetMult too (r371): Whetstone's banked mult is "permanent", and since
       // it now leaves the board every 90s it would otherwise reset on each lap.
       // _gridSecs (its board clock) is deliberately NOT carried - a fresh lap.
-      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
-                        _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable,
-                        _adjPlays: card._adjPlays || 0, _whetMult: card._whetMult || 0, _drawFired: false });
+      _pile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
+                   _usesLeft: card._usesLeft === 'infinite' ? 'infinite' : Math.max(0, card._usesLeft), _faceMark: card._faceMark, _playable: card._playable,
+                   _adjPlays: card._adjPlays || 0, _whetMult: card._whetMult || 0, _drawFired: false });
       updateDeckHud();
     }
     return;
   }
   if (card._temp) { updateDeckHud(); return; }   // see discardToDrawPile (r278)
   if (card._nineSpent) { expectedDeckTotal--; updateDeckHud(); cloudNineCheck(); return; }   // Cloud Nine (r539)
-  playedPile.push(recycleCard(card)); updateDeckHud();
+  _pile.push(recycleCard(card)); updateDeckHud();
+}
+
+// ── Retake (r647, Sleight) ──────────────────────────────────────────────────
+// The cards of a hand played with a Retake (the Retake too) are named here when
+// it fires (fireSleightsOnPlay); discardToPlayed, the one door into the played
+// pile, sends each of them to a random place in the DRAW pile instead.
+let retakeCards = new Set();
+function retakeTakes(card) { return !!card && retakeCards.size > 0 && retakeCards.delete(card); }
+const retakePile = { push: rec => drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, rec) };
+
+// A card's buffs onto another card (r647, the Photocopier): every per-card store
+// keyed by cardId, plus the durable fields that ride on the card object. Curses
+// and card states are not buffs and stay with the original.
+const BUFF_STORES = () => [permPips, permMult, permPipsGrow, permMultGrow, permXPips, permXMult,
+                           permRetrig, permTime, permCoins, permFocus, permFodder];
+function copyCardBuffs(from, to) {
+  const a = cardId(from), b = cardId(to);
+  BUFF_STORES().forEach(st => { if (st[a] != null) st[b] = st[a]; });
+  ['combined', 'rank2', 'suit2', '_vulturePause', '_whetMult'].forEach(f => { if (from[f] !== undefined) to[f] = from[f]; });
 }
 
 // ══════════════════════════════════════════════

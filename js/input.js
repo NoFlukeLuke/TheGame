@@ -351,6 +351,7 @@ function onCardTap(r, c) {
   // Autopilot (r474) has the board while it runs.
   if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
   if (typeof sweepRunning === 'function' && sweepRunning()) return;   // r572: All Hands has the board
+  if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647: the Logistics Assistant has it
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606: the clock is running out
   // The Pick (r244) owns the board outright while it is open, so it intercepts
   // ABOVE the `animating` guard - that flag is routinely still true from the
@@ -480,6 +481,9 @@ function onCardTap(r, c) {
       // Magnet: don't fire yet - arm it and wait for the player to tap a target card.
       // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
       if (jdef.id === 'dealers_choice') { dealerOpen(jcard, r, c); return; }
+      // r647 (js/office-sleights.js): both leave through discardSleightAfterUse themselves.
+      if (jdef.id === 'photocopier') { photocopierUse(jcard, r, c); return; }
+      if (jdef.id === 'logistics_assistant') { logisticsStart(jcard, r, c); return; }
       if (jdef.id === 'magnet') {
         magnetArmed = { r, c, card: jcard };
         showMessage('Magnet armed - tap a card to pull its rank', '#8fd0ff');

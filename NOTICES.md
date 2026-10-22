@@ -13,7 +13,7 @@ counter that visibly moved.
 New notices: `showMessage` / `refuse` to print, `noteMessage` to stay quiet.
 The dev panel's own messages always print.
 
-## Printed (237)
+## Printed (241)
 | where | text |
 |---|---|
 | boss-effects.js:207 |  Objective ${before.toLocaleString()} → ${roundGoal.toLocaleString()} |
@@ -220,6 +220,10 @@ The dev panel's own messages always print.
 | sleights-runtime.js:698 |  💣 Bomb - ${_cnt} cards +3 pips! |
 | sleights-runtime.js:702 |  📜 Legacy - next hand ×3! |
 | sleights-runtime.js:735 |  📢 Amplifier - next hand +${_amp} mult! |
+| discard.js (shredderPick) |  📃 Shredder: <cards> deleted (r647) |
+| sleights-runtime.js (greenStationRecharge) |  Green Station: +N Sleight charge(s) (N back in the deck) (r647) |
+| office-sleights.js | refuse Photocopier: let the board settle first / no card beside it (to copy: a wild needs Stand-In) (r647) |
+| office-sleights.js | refuse Logistics Assistant: let the board settle first / no swap makes a hand (r647) |
 | sleights-runtime.js:724 |  ⏬ Sandbagger - needs a pair |
 | sleights-runtime.js:1010 |  The Ringer - ${added.rank}${added.suit // ''} joins the hand |
 | spectrum.js:76 |  Deck rebuilt - ${ACTIVE_RANKS.length} values × ${ACTIVE_SUITS.length} colours = ${expected |
@@ -254,9 +258,14 @@ The dev panel's own messages always print.
 | sweep.js:121 |  ALL HANDS: ${n} hands |
 | events-pairs.js:129 |  That card is known safe: flip a new one, or its match (refuse) |
 
-## Quiet (127)
+## Quiet (134)
 | where | text |
 |---|---|
+| discard.js (procrastinateCarry) |  Procrastinate: +N discards (v6, r647) |
+| discard.js (shredderPick) |  📃 Shredder: nothing to delete (r647) |
+| sleights-runtime.js |  🎬 Retake: the hand goes back into the deck / N (temp) copies into the deck (r647) |
+| office-sleights.js |  📠 Photocopier: N copies of <card>, M into the deck (r647) |
+| office-sleights.js |  🚚 Logistics Assistant: N swaps / +N swaps (v6) (r647) |
 | print-toast.js:121 |  Notice hidden: <the notice> |
 | combos-aim.js:141 |  🪞 Reflect leaves the board |
 | discard.js:146 |  Five for Fodder! +' + _fc + ' credits |

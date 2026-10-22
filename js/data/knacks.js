@@ -73,6 +73,7 @@ const KNACK_POOL = [
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.', tags:['other','reward'] },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.', tags:['credits','stock','other'] },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.', tags:['other','sleights','chance','charges','start'] },
+  { id:'green_station',   emoji:'🔌',  name:'Green Station',    rarity:'rare',   desc:'Sleights have a 30% chance to get a charge back at the end of each round. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.', tags:['other','sleights','chance','charges','level'] },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.', tags:['other','sleights','discard','charges'] },
   // ── Position knacks (r102) - control which line a position Trick marks ──
   { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which column it marks.', tags:['other','tricks','position','line'] },

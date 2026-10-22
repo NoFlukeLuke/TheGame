@@ -222,6 +222,7 @@ function playHand() {
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   // r572: while All Hands picks its hands out, PLAY (button, key, auto-submit) is off.
   if (typeof sweepRunning === 'function' && sweepRunning() && !sweepSilent()) { dbgEvent('info', 'play ignored (sweep)'); return; }
+  if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647
   // r472: Flow's boss wipe (flowTriggerBoss -> bossApproachWipe -> triggerBoss) is
   // ~1s of live board. A hand clearing the goal there opened the reward chain on
   // top of the boss and soft-locked it.

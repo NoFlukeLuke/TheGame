@@ -143,6 +143,13 @@ const ICONS = [
   { glyph: '📌', icon: 'pin',               color: 'red'    },  // Keeper
   { glyph: '🔐', icon: 'padlock',           color: 'gold'   },  // Lockbox
   { glyph: '🧹', icon: 'broom',             color: 'brown'  },  // All Hands
+  // r647 (owner): the new Sleights and Green Station
+  { glyph: '🛋️', icon: 'delapouite/sofa',         color: 'brown'  },  // Procrastinate
+  { glyph: '🎬', icon: 'delapouite/clapperboard', color: 'grey'   },  // Retake
+  { glyph: '📃', icon: 'delapouite/box-cutter',   color: 'red'    },  // Shredder
+  { glyph: '📠', icon: 'delapouite/paper-tray',   color: 'cyan'   },  // Photocopier
+  { glyph: '🚚', icon: 'delapouite/forklift',     color: 'orange' },  // Logistics Assistant
+  { glyph: '🔌', icon: 'delapouite/charging',     color: 'green'  },  // Green Station (knack)
   { glyph: '🖐️', icon: 'open-palm',         color: 'cream'  },  // Free Hand
   { glyph: '✌️', icon: 'high-five',         color: 'cream'  },  // Double Down
   // Reward tiles (js/reward-grid.js)

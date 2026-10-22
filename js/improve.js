@@ -182,6 +182,19 @@ const IMPROVE_PLAN = {
   twinners:         t => ({ pip_mult: 3 + t, replay: t >= 5 ? 1 : 0 }),
   // one more application, then flushes, then more applications; sets at the 5th
   marathon:         t => ({ extra: [1, 2, 2, 3, 4, 4][t], flush: t >= 2 ? 1 : 0, sets: t >= 5 ? 1 : 0 }),
+  // ── r647, the owner's new Sleights and Green Station ──
+  // +2 charges a tier; the 5th gives 2 discards a use and half the time spends 2 charges
+  procrastinate:    t => ({ charges: 5 + 2 * [0, 1, 2, 3, 4, 4][t], discards: t >= 5 ? 2 : 0, double_spend: t >= 5 ? 0.5 : 0 }),
+  // +1 charge, then a temp copy of a played card, alternating; the 5th refills and makes two copies permanent
+  retake:           t => ({ charges: 8 + [0, 1, 1, 2, 2, 2][t], copies: [0, 0, 1, 1, 2, 2][t], permanent: t >= 5 ? 1 : 0, double_spend: t >= 5 ? 0.5 : 0 }),
+  // +2 charges, then one more card deleted, alternating; the 5th refills and deletes them all
+  shredder:         t => ({ charges: 3 + 2 * [0, 1, 1, 2, 2, 2][t], deletes: [1, 1, 2, 2, 3, 99][t], double_spend: t >= 5 ? 0.5 : 0 }),
+  // one more copy a tier; the 5th makes two of them permanent
+  photocopier:      t => ({ copies: 4 + [0, 1, 2, 3, 4, 4][t], permanent: t >= 5 ? 2 : 0, double_spend: t >= 5 ? 0.5 : 0 }),
+  // +2 charges a tier; the 5th gives 2 swaps a use
+  logistics_assistant: t => ({ charges: 4 + 2 * [0, 1, 2, 3, 4, 4][t], swaps: t >= 5 ? 2 : 0 }),
+  // +10% a tier; the 5th adds a 30% chance of a second charge
+  green_station:    t => ({ chance: 0.3 + 0.1 * [0, 1, 2, 3, 4, 4][t], chance2: t >= 5 ? 0.3 : 0 }),
 };
 
 // What an improvement DOES beyond its numbers (r625): a tier jump, a roll kept on
@@ -202,7 +215,24 @@ const IMPROVE_HOOKS = {
   suggestive:    () => { if (BAL.suggestive.chance2 && typeof markExtraLine === 'function') markExtraLine('suggestive'); },
   coin_sword:    () => { if (BAL.coin_sword.line2 && typeof markExtraLine === 'function') markExtraLine('coin_sword'); },
   assembly_line: () => { if (BAL.assembly_line.lines > 1 && typeof markExtraLine === 'function') markExtraLine('assembly_line'); },
+  // r647: a Sleight's owned copies take its new charges (a refill where the 5th says so)
+  procrastinate: tier => sleightTierCharges('procrastinate', tier),
+  retake: tier => sleightTierCharges('retake', tier, tier >= 5),
+  shredder: tier => sleightTierCharges('shredder', tier, tier >= 5),
+  logistics_assistant: tier => sleightTierCharges('logistics_assistant', tier),
 };
+// The charges a Sleight's IMPROVE_PLAN gives at a tier, onto every owned copy: the
+// step since the last tier, or full when `refill`. Capped at the Sleight's cap.
+function sleightTierCharges(id, tier, refill) {
+  const plan = IMPROVE_PLAN[id];
+  if (!plan || typeof allOwnedSleightCards !== 'function') return;
+  const step = Math.max(0, plan(tier).charges - plan(Math.max(0, tier - 1)).charges);
+  const cap = sleightMaxCharges(SLEIGHT_POOL.find(s => s.id === id));
+  allOwnedSleightCards().forEach(c => {
+    if (c.sleightId !== id || typeof c._usesLeft !== 'number') return;
+    c._usesLeft = refill ? cap : Math.min(cap, c._usesLeft + step);
+  });
+}
 // `n` distinct ranks, none in `not`, kept on the Trick under `key` (rolled once
 // per count, so an earlier roll stays when the count grows).
 function rollExtraRanks(t, key, n, not) {

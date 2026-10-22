@@ -264,6 +264,9 @@ function triggerLevelUp() {
     });
     if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
   }
+  // Green Station (r647): a charge back per Sleight; a dormant one wakes with it.
+  if (typeof greenStationRecharge === 'function') greenStationRecharge();
+  if (typeof retakeCards !== 'undefined') retakeCards.clear();   // r647: a Retake's hand never outlives its round
   setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
   fireSleightsAtRoundStart();
   fireSleightsOnDraw();

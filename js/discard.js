@@ -1,5 +1,6 @@
 function doDiscard() {
   if (typeof sweepRunning === 'function' && sweepRunning()) { dbgEvent('info', 'discard ignored (sweep)'); return; }   // r572
+  if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) { dbgEvent('info', 'discard ignored (skipping to the boss)'); return; }   // r606
   // On grid-takeover screens the Discard button is repurposed: CLEAR (reward),
   // and in the shop it is still THE DISCARD BUTTON (r307) - it spends a discard
@@ -61,9 +62,12 @@ function doDiscard() {
     return;
   }
   selected = validSelected;
-  const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Five for Fodder (r623): any VALID hand pays its size in credits - judged now, while the cards are still on the grid.
   const _fodderHand = hasTrick('five_fodder') && realHandOfSize(selected, selected.length) ? selected.length : 0;
+  // Procrastinate (r647): its 8 neighbours join the discard. They are CARRIED: no
+  // seconds and no stock of their own, and the discard counts as 2 (discardsUsedRound).
+  const _carried = procrastinateCarry(), _procrastinated = _carried.procs > 0;
+  const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
@@ -110,12 +114,15 @@ function doDiscard() {
     // Cloud Nine (r539): a 9 thrown away while it is held is destroyed, not reshuffled.
     if (_dc.rank === '9' && !_dc._isSleight && !isWildCard(_dc) && hasTrick('nines_mult')) _dc._nineSpent = true;
     if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
+    else if (shredderVictims.has(_dc)) { expectedDeckTotal--; updateDeckHud(); }   // Shredder (r647): gone for good
     else discardToDrawPile(_dc);
   });
+  shredderVictims.clear();
   // Spoiled (id hoarder): discards don't count against limit (but cost 2× time below)
   // r567: Fodder takes no stock either, when every card thrown away is Fodder.
-  const _fodderN = _freeHand ? discardedCards.length : ((typeof cardIsFodder === 'function') ? discardedCards.filter(cardIsFodder).length : 0);
-  if (!hasKnack('hoarder') && _fodderN < discardedCards.length) discards--;
+  const _own = discardedCards.filter(c => !_carried.has(c));   // r647: carried cards pay nothing
+  const _fodderN = _freeHand ? _own.length : ((typeof cardIsFodder === 'function') ? _own.filter(cardIsFodder).length : 0);
+  if (!hasKnack('hoarder') && _fodderN < _own.length) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
@@ -129,7 +136,7 @@ function doDiscard() {
   // interactTimeCostMult() is 0 when the mode does not bill the clock at all and
   // Flow's half rate when it does, so this site needs no second test (r326).
   // r567: a Fodder card bills no seconds; the others pay their per-card cost.
-  const timeCost = usingFreeDiscard ? 0 : Math.round((discardedCards.length - _fodderN) * perCardCost * bossInteractMult() * interactTimeCostMult());
+  const timeCost = usingFreeDiscard ? 0 : Math.round((_own.length - _fodderN) * perCardCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);
@@ -140,7 +147,8 @@ function doDiscard() {
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
   cardsDiscardedRound += count;
-  discardsUsedRound++;
+  discardsUsedRound += _procrastinated ? 2 : 1;   // r647: Procrastinate counts as 2 discards
+  if (_procrastinated && BAL.procrastinate.discards) { discards += BAL.procrastinate.discards; noteMessage(`Procrastinate: +${BAL.procrastinate.discards} discards`); }
   // Five for Fodder: discarding a valid hand grants its size in credits
   if (_fodderHand) {
     const _fc = _fodderHand * BAL.five_fodder.credits_per_card;
@@ -604,3 +612,39 @@ function endStopwatch() {
 //
 // Interaction state (isSel, isSwapPending, etc.) defaults to "no interaction"
 // so it's safe to call with just (card, r, c) from animation paths.
+
+// ── Procrastinate (r647, Sleight) ───────────────────────────────────────────
+// A live Procrastinate in the selection pulls in the 8 cells around it: ordinary
+// cards that can be discarded, are not blocked or locked by a fall challenge. A
+// Sleight beside it stays (a discarded Sleight is deleted). Mutates `selected`;
+// returns the carried cards, with `procs` = how many Procrastinates fired.
+function procrastinateCarry() {
+  const out = new Set(); out.procs = 0;
+  const live = selected.filter(([r, c]) => { const cd = gridData[r]?.[c]; return cd && cd.sleightId === 'procrastinate' && (cd._usesLeft === 'infinite' || cd._usesLeft > 0); });
+  if (!live.length) return out;
+  out.procs = live.length;
+  const inSel = new Set(selected.map(([r, c]) => r + '-' + c));
+  live.forEach(([pr, pc]) => {
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const r = pr + dr, c = pc + dc, k = r + '-' + c, cd = gridData[r]?.[c];
+      if ((!dr && !dc) || inSel.has(k) || !cd || cd._isSleight || !cardCan(cd, 'discard') || isCellBlocked(r, c)) continue;
+      if (typeof crDiscardLocked === 'function' && crDiscardLocked([[r, c]])) continue;
+      inSel.add(k); selected.push([r, c]); out.add(cd);
+    }
+  });
+  return out;
+}
+// ── Shredder (r647, Sleight) ─────────────────────────────────────────────────
+// It picks its victims when it fires (applySleightGridEffect), at random from the
+// ordinary cards discarded with it (real cards before temp ones, which would leave
+// anyway); doDiscard's routing then drops them instead of returning them.
+const shredderVictims = new Set();
+function shredderPick(cards) {
+  const pool = (cards || []).filter(c => c && c.rank && !c._isSleight && !c._isStone && !shredderVictims.has(c));
+  const real = shuffle(pool.filter(c => !c._temp)), temp = shuffle(pool.filter(c => c._temp));
+  const take = [...real, ...temp].slice(0, BAL.shredder.deletes);
+  take.forEach(c => shredderVictims.add(c));
+  const names = take.filter(c => !c._temp).map(c => (isWildCard(c) ? 'a wild' : c.rank + (typeof cardColorSuit === 'function' ? cardColorSuit(c) : c.suit)));
+  if (names.length) showMessage(`📃 Shredder: ${names.join(', ')} deleted`, '#e86a5a');
+  else noteMessage('📃 Shredder: nothing to delete');
+}

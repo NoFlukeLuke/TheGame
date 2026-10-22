@@ -101,7 +101,7 @@ function grantSleight(def) {
     _isSleight: true, sleightId: def.id,
     rank: def.defaultRank ?? null, suit: def.defaultSuit ?? null,
     _id: 80000 + (Date.now() % 10000) + Math.floor(Math.random()*100),
-    _usesLeft: def.durability,
+    _usesLeft: sleightBaseCharges(def),
   };
   drawPile.push(card);
   grantedSleightIds.add(def.id);
@@ -195,14 +195,44 @@ function sleightLifeTick() {
   }
 }
 
-// Consume one charge from a sleight card at [r,c]; remove from grid when depleted.
+// Consume a charge from a sleight card at [r,c]; remove from grid when depleted.
+// r647: a Sleight whose BAL row carries `double_spend` (a v6 improvement) spends 2
+// that often. Under Green Station a spent one stays on the board to leave as usual
+// (the pile keeps it dormant, js/deck-grid.js) instead of being nulled out of the run.
 function consumeSleightCharge(card, r, c) {
   if (!card || card._usesLeft === 'infinite') return;
-  card._usesLeft--;
+  card._usesLeft = Math.max(0, card._usesLeft - sleightSpendCount(card));
   if (card._usesLeft <= 0) {
-    if (r >= 0 && c >= 0) gridData[r][c] = null;
-    noteMessage(`${sleightDef(card)?.name || 'Sleight'} consumed`, 'var(--cream-dim)');
+    if (r >= 0 && c >= 0 && !greenStationKeeps()) gridData[r][c] = null;
+    noteMessage(`${sleightDef(card)?.name || 'Sleight'} ${greenStationKeeps() ? 'is out of charges' : 'consumed'}`, 'var(--cream-dim)');
   }
+}
+// How many charges one use spends: 1, or 2 when the BAL row's `double_spend` roll hits.
+function sleightSpendCount(card) {
+  const b = card && BAL[card.sleightId];
+  return (b && b.double_spend && Math.random() < b.double_spend) ? 2 : 1;
+}
+// ── Green Station (r647, knack) ─────────────────────────────────────────────
+// Owned: a Sleight at 0 charges is not destroyed. It goes to the pile like any
+// other and lies DORMANT there (drawCard passes over it) until a charge comes back.
+function greenStationKeeps() { return typeof hasKnack === 'function' && hasKnack('green_station'); }
+function sleightDormant(card) { return !!card && card._isSleight && typeof card._usesLeft === 'number' && card._usesLeft <= 0; }
+// Round end (triggerLevelUp, beside Coin Toss): each owned Sleight below its cap
+// has BAL.green_station.chance of one charge back, and on a hit `chance2` of one more.
+function greenStationRecharge() {
+  if (!greenStationKeeps()) return;
+  const b = BAL.green_station;
+  let n = 0, woke = 0;
+  ownedSleightCards().forEach(card => {
+    if (typeof card._usesLeft !== 'number') return;
+    const cap = sleightMaxCharges(sleightDef(card));
+    if (cap === null || card._usesLeft >= cap || Math.random() >= b.chance) return;
+    const was = card._usesLeft;
+    card._usesLeft = Math.min(cap, card._usesLeft + 1 + (b.chance2 && Math.random() < b.chance2 ? 1 : 0));
+    n += card._usesLeft - was;
+    if (was <= 0) woke++;
+  });
+  if (n) showMessage(`Green Station: +${n} Sleight charge${n > 1 ? 's' : ''}${woke ? ` (${woke} back in the deck)` : ''}`, '#6aaa6a');
 }
 
 // double_tap / on_swap sleights fire at most once per round, then sit locked on the
@@ -247,7 +277,7 @@ function discardSleightAfterUse(card, r, c) {
   // double-tap sleight (r179), so it lives here rather than at the six call
   // sites; removeAndFall's fly-out would paint over it if they overlapped.
   spinSleightTile(r, c, () => {
-    if (typeof card._usesLeft === 'number') card._usesLeft--;
+    if (typeof card._usesLeft === 'number') card._usesLeft = Math.max(0, card._usesLeft - sleightSpendCount(card));
     discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
     removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
   });
@@ -400,7 +430,14 @@ let sleightCapBonus = {};   // sleightId -> extra charges above the printed dura
 function sleightMaxCharges(def) {
   if (!def || def.durability === 'infinite') return null;
   if (typeof def.durability !== 'number') return null;
-  return def.durability + (sleightCapBonus[def.id] || 0);
+  return sleightBaseCharges(def) + (sleightCapBonus[def.id] || 0);
+}
+// r647: a Sleight whose charges improve keeps them in its BAL row (`charges`), so a
+// tier raises the cap, a fresh grant and the printed "(N charges)" together.
+function sleightBaseCharges(def) {
+  if (!def) return 0;
+  const b = typeof BAL !== 'undefined' && BAL[def.id];
+  return (b && typeof b.charges === 'number' && typeof def.durability === 'number') ? b.charges : def.durability;
 }
 // Every Sleight the run currently holds, wherever it is - board, draw or played.
 function allOwnedSleightCards() {
@@ -484,6 +521,15 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (!def || def.activation !== 'on_play') return;
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
+    // Retake (r647): every card played with it, and itself, goes back into the DRAW
+    // pile (discardToPlayed reads retakeCards); from v3, copies of played cards join it.
+    if (def.id === 'retake') {
+      selectedCells.forEach(([sr, sc]) => { const cd = gridData[sr]?.[sc]; if (cd) retakeCards.add(cd); });
+      retakeCopies(selectedCells);
+      consumeSleightCharge(card, r, c);
+      noteMessage('🎬 Retake: the hand goes back into the deck');
+      return;
+    }
     // Rewind: rewind the clock by the hand size in seconds. The sleight itself counts toward the
     // size - but non-wild sleights are dropped from hand detection, so add 1 if it's not in handCells.
     if (def.id === 'rewind') {
@@ -752,6 +798,8 @@ function applySleightGridEffect(id, r, c) {
       else showMessage('⏬ Sandbagger - needs a pair', 'var(--cream-dim)');
       break;
     }
+    case 'shredder': shredderPick(_discardContextCards); break;   // r647 (js/discard.js)
+    case 'procrastinate': break;   // r647: its neighbours were already pulled in (procrastinateCarry)
     case 'piggy_bank':
       grantEntityCoins(BAL.piggy_bank.coins, 'sleight', 'piggy_bank');
       _fx('credits', BAL.piggy_bank.coins); break;
@@ -1071,4 +1119,21 @@ function ringerAugment(result, selCells) {
   showMessage(`The Ringer - ${added.rank}${added.suit || ''} joins the hand`, '#cc88ff');
   return { hand: bestHand, cell: bestCell,
            result: { ...result, hand: bestHand, handCells: [...result.handCells, bestCell] } };
+}
+
+// Retake's copies (r647): BAL.retake.copies of the ordinary cards played, face only,
+// into the draw pile at random places; temp until the 5th improvement makes them
+// permanent. A temp card in the draw pile lasts until it is drawn and leaves again.
+function retakeCopies(cells) {
+  const n = BAL.retake.copies;
+  if (!n) return;
+  const pool = shuffle(cells.map(([r, c]) => gridData[r]?.[c]).filter(cd => cd && cd.rank && !cd._isSleight && !cd._isStone));
+  const made = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const src = pool[i % pool.length];
+    if (BAL.retake.permanent) made.push(copyCardToDeck(src));
+    else { const t = makeTempCard(src.rank, src.suit); drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, t); made.push(t); }
+  }
+  updateDeckHud();
+  if (made.length) noteMessage(`🎬 Retake: ${made.length} ${BAL.retake.permanent ? '' : 'temp '}cop${made.length > 1 ? 'ies' : 'y'} into the deck`);
 }
