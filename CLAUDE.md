@@ -2219,3 +2219,7 @@ Card ratio** (`setCardRatio`, `lethe.cardRatio.v1`, stored only off the default)
 (1.32, default), the pack's shape (1.5), stretched to the cell (the r586 look). Measured at 1440x820 on a
 4x4: cell 71 x 82; game 63 x 82 (ratio 1.30, 4px each side), pack 55 x 82 (1.49, 8px), fill 71 x 82
 (1.15); on a 6x6 game 42 x 55, pack 36 x 55, fill 47 x 55. Portrait is untouched (the cell already keeps the card shape there).
+## r642 - the `held` tag (owner)
+WHEN gains `held` ("cares what you are holding"), one tag for the six rows that read something you
+hold rather than the hand: Interest, Obsessed, High Roller (credits), Buried Treasure (Luck),
+Hyperphagia (stock), Flow State (the Focus level). TAGS.md's STILL OPEN loses that item.

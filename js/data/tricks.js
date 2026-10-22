@@ -14,7 +14,7 @@ const TRICK_POOL = [
   { id:'rerun',       name:'Rerun',       tier:'epic',   desc:'×1.25 pips each time a card is replayed', tags:['xpips','card','scores','replays'] },
   { id:'chorus',      name:'Chorus',      tier:'epic',   desc:'×1.5 mult each time a card is replayed', tags:['xmult','card','scores','replays'] },
   { id:'deep_breath', name:'Deep Breath', tier:'rare',   desc:'Score ×2 pips while the clock is paused', tags:['xpips','hand','pause','scores'] },
-  { id:'interest',    name:'Interest',    tier:'rare',   desc:'Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3', tags:['xpips','hand','scores'] },
+  { id:'interest',    name:'Interest',    tier:'rare',   desc:'Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3', tags:['xpips','hand','scores','held'] },
   { id:'portfolio',   name:'Portfolio',   tier:'epic',   desc:'Score ×1 mult, +×0.25 for every card on the grid with a buff', tags:['xmult','hand','buffed','scores'] },
   // ── Focus RATE batch (r180) - see focusRateMods() in js/focus-config.js ──
   { id:'overclock',     name:'Overclock',     tier:'epic', desc:'The Focus speed bonus is multiplied by 2.', tags:['focus','other'] },
@@ -75,7 +75,7 @@ const TRICK_POOL = [
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['deck','replay','other','clock','scores','scaling','chance'], desc:'Each time the clock passes a 60s mark, there is a 50% chance to give a random card on the grid +1 replay (permanent buff)' },
   { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['pips','hand','clock','scores'],      desc:'Scores +10 pips for every 10 seconds elapsed this round' },
   { id:'kingfisher',     name:'The Kingfisher',      tier:'rare',      tags:['mult','hand','pause','scores'],      desc:'+2 mult for every 2 seconds the clock has been paused or rewound this round' },
-  { id:'magpie',         name:'Hyperphagia',       tier:'epic',      tags:['time','hand'],  desc:'Each hand rewinds the clock 1s for every 2 swaps + discards you hold' },
+  { id:'magpie',         name:'Hyperphagia',       tier:'epic',      tags:['time','hand','held'],  desc:'Each hand rewinds the clock 1s for every 2 swaps + discards you hold' },
   { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['stock','hand','streak'],desc:'Every 4 hands you play without a same-type streak grants +1 swap' },
   { id:'starling',       name:'Type A',              tier:'rare',      tags:['stock','hand','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
   { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)', tags:['focus','hand','pause','scores'] },
@@ -160,7 +160,7 @@ const TRICK_POOL = [
   { id:'cull',           name:'Cull',                tier:'common',    tags:['focus','other','discard','swap'], desc:'Discarding or swapping adds +2 Focus per 2 remaining swaps and discards' },
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus','other','scaling','cost'], desc:'Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus' },
   { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'epic',      tags:['focus','hand','suit','scores'], desc:'Apply the Focus multiplier a number of times equal to the number of suits in the hand' },
-  { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['pips','card','scores'], desc:'While focus is ×1.5 or higher, score +15 pips per card' },
+  { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['pips','card','scores','held'], desc:'While focus is ×1.5 or higher, score +15 pips per card' },
   { id:'hyper_focus',    name:'Hyper Focus',         tier:'rare',      tags:['mult','card','scores'], desc:'Each card scored adds mult equal to 2x your Focus multiplier' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'When scored, the center-most card gains +5 pips & +5 mult', tags:['deck','pips','mult','card','position','scaling','scores'] },
@@ -192,8 +192,8 @@ const TRICK_POOL = [
   { id:'encore',          name:'Encore',             tier:'common',      tags:['replay','card','set','rank','scores'],    desc:'Odd-ranked cards in a set replay once' },
   { id:'shaky_foundation',name:'Shaky Foundation',   tier:'common',    tags:['mult','hand','set','scores'],      desc:'Every other Set scores +18 mult' },
   // ── r359: the 9.23 sheet's new Tricks ──
-  { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['xmult','card','suit','scores'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
-  { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','card','suit','chance'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits' },
+  { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['xmult','card','suit','scores','held'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
+  { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','card','suit','chance','held'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.1 to your credits' },
   { id:'relentless',      name:'Relentless',         tier:'legendary', tags:['xmult','card','suit','scores','scaling'], desc:'Each spade scores x0.05 mult for every spade scored since you took this (replays count). No effect until it passes x1' },
   { id:'patient_rulers',  name:'Patient Rulers',     tier:'epic',      tags:['xmult','card','rank','pause','scores'],   desc:'If you have paused or rewound the clock this round, face cards score x1.5 mult' },
   { id:'even_better',     name:'Even Better',        tier:'epic',      tags:['xpips','card','rank','scores','chance'],   desc:'Even-ranked cards have a 66% chance to score x2.25 pips' },

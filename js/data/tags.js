@@ -82,6 +82,7 @@ const TAG_DEFS = [
   { id: 'challenge', group: 'when', label: 'Challenge', cls: 'kw-bad',    def: 'Cares about challenge cards.' },
   { id: 'start',    group: 'when', label: 'Round start', cls: 'kw-round', def: 'Fires when a round starts.' },
   { id: 'replays',  group: 'when', label: 'Replays',   cls: 'kw-replay',  def: 'Fires when a card scores again.' },
+  { id: 'held',     group: 'when', label: 'Held',      cls: 'kw-credits', def: 'Cares what you are holding: credits, Luck, stock or the Focus level.' },
 
   // ── HOW ──
   { id: 'scores',  group: 'how', label: 'Scores',   cls: 'kw-score',  def: 'Changes the hand’s score: pips, mult, x pips or x mult.' },

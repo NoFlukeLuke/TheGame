@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r641 · cards keep a playing card's shape inside the fixed box; dev Card ratio";
+const BUILD = "2026-10-22 · r642 · the held tag: Interest, Obsessed, High Roller, Buried Treasure, Hyperphagia and Flow State are findable under WHEN";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

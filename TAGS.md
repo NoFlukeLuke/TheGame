@@ -18,7 +18,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | rerun | Rerun | ×1.25 pips each time a card is replayed | xpips card scores replays |
 | chorus | Chorus | ×1.5 mult each time a card is replayed | xmult card scores replays |
 | deep_breath | Deep Breath | Score ×2 pips while the clock is paused | xpips hand pause scores |
-| interest | Interest | Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3 | xpips hand scores |
+| interest | Interest | Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3 | xpips hand scores held |
 | portfolio | Portfolio | Score ×1 mult, +×0.25 for every card on the grid with a buff | xmult hand buffed scores |
 | overclock | Overclock | The Focus speed bonus is multiplied by 2. | focus other |
 | kindred | Quake | Sets score +15 mult per card in the largest set | mult card set scores |
@@ -72,7 +72,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | hourglass | Hourglass | Each time the clock passes a 60s mark, there is a 50% chance to give a | deck replay other clock scores scaling chance |
 | sediment | Sediment | Scores +10 pips for every 10 seconds elapsed this round | pips hand clock scores |
 | kingfisher | The Kingfisher | +2 mult for every 2 seconds the clock has been paused or rewound this  | mult hand pause scores |
-| magpie | Hyperphagia | Each hand rewinds the clock 1s for every 2 swaps + discards you hold | time hand |
+| magpie | Hyperphagia | Each hand rewinds the clock 1s for every 2 swaps + discards you hold | time hand held |
 | mockingbird | Traveler | Every 4 hands you play without a same-type streak grants +1 swap | stock hand streak |
 | starling | Type A | Every 2nd hand of an unbroken same-type streak grants +1 discard | stock hand streak |
 | phoenix | The Phoenix | While the clock is paused, the Focus multiplier applies twice (hands t | focus hand pause scores |
@@ -143,7 +143,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | cull | Cull | Discarding or swapping adds +2 Focus per 2 remaining swaps and discard | focus other discard swap |
 | expanse | Expanse | Each time you hit your Focus limit, increase it by 1 (max +10), then l | focus other scaling cost |
 | kaleidoscope | Kaleidoscope | Apply the Focus multiplier a number of times equal to the number of su | focus hand suit scores |
-| flow_state | Flow State | While focus is ×1.5 or higher, score +15 pips per card | pips card scores |
+| flow_state | Flow State | While focus is ×1.5 or higher, score +15 pips per card | pips card scores held |
 | hyper_focus | Hyper Focus | Each card scored adds mult equal to 2x your Focus multiplier | mult card scores |
 | heartwood | Heartwood | When scored, the center-most card gains +5 pips & +5 mult | deck pips mult card position scaling scores |
 | landfill | Landfill | Score +5 mult per card for every discard or swap used this round (+3 i | mult card discard swap scores |
@@ -167,8 +167,8 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | undue_influence | Undue Influence | A Set containing a face card grants credits equal to the number of Set | credits hand set rank |
 | encore | Encore | Odd-ranked cards in a set replay once | replay card set rank scores |
 | shaky_foundation | Shaky Foundation | Every other Set scores +18 mult | mult hand set scores |
-| obsessed | Obsessed | Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x | xmult card suit scores |
-| buried_treasure | Buried Treasure | Each scored diamond has a chance equal to half your Luck to apply x1.1 | credits card suit chance |
+| obsessed | Obsessed | Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x | xmult card suit scores held |
+| buried_treasure | Buried Treasure | Each scored diamond has a chance equal to half your Luck to apply x1.1 | credits card suit chance held |
 | relentless | Relentless | Each spade scores x0.05 mult for every spade scored since you took thi | xmult card suit scores scaling |
 | patient_rulers | Patient Rulers | If you have paused or rewound the clock this round, face cards score x | xmult card rank pause scores |
 | even_better | Even Better | Even-ranked cards have a 66% chance to score x2.25 pips | xpips card rank scores chance |
@@ -251,7 +251,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | haggler | Haggler | Shop prices are 5% lower. | credits other shop |
 | time_and_a_half | Time and a Half | Leftover round time pays double: 1 credit per 10 seconds remaining ins | credits other level clock |
 | gross_pay | Gross Pay | Your payout lines are uncapped. Interest and unused stock pay in full. | credits other level |
-| high_roller | High Roller | Each scored card has a chance to replay equal to your credits plus you | replay card scores chance |
+| high_roller | High Roller | Each scored card has a chance to replay equal to your credits plus you | replay card scores chance held |
 | combo_keeper | Combo Keeper | Streaks survive one non-streak hand. Re-arms after 2 streak hands. | other streak |
 | lucky_seven | Lucky Seven | Every 7th hand played gives +1 swap. | stock hand |
 | extra_swaps | Swap Shop | Start each round with +2 extra swaps. After each boss you beat, 60% ch | stock other boss scaling chance start |
@@ -325,12 +325,11 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
   Rerun, Chorus, The Cuckoo, Replay Rewind). A Trick firing again is a RETRIGGER (`retrigger` in
   PAYS, which replaces `prime`: primes, mirrors, force-triggers, Move as One).
 - `charges` (PAYS, Sleight charges) is new: Coin Toss, Martyr, Jury-Rig.
+- `held` (WHEN, r642: cares what you are holding) is new, one tag for all of it: Interest, Obsessed,
+  High Roller (credits), Buried Treasure (Luck), Hyperphagia (stock), Flow State (the Focus level).
 
 ## STILL OPEN
 
-- Conditions on something HELD (credits for Interest, Obsessed, High Roller; Luck for Buried
-  Treasure; stock for Hyperphagia; the Focus level for Flow State) carry no WHEN tag. A `held`
-  tag ("cares what you hold") would cover them in one word, or one tag per thing.
 - Round START vs round END: `start` is new; round END stays `level`.
 - The registry still lacks: curses, Events, pure rule changes with no axis (Combo Keeper, Tagalong,
   Greedy Boi, Short Suit, Last Swap carry an empty PAYS).
