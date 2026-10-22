@@ -2427,3 +2427,13 @@ screen, pick, map, deck editor, shop or event is up (`middleManRoundLive`). `IMP
 interlude payouts, each change once); the description swaps by template condition. Category row: the abacus.
 Measured by tap at 1440x820 and 420x900: a +2 credits card mid-round 0 -> 3 and the next hand scored mult+3;
 a shop buy at tier 0 left it alone; at tier 5 a buy took it 6 -> 17. The vm sim harness loads and counts.
+
+## r650 - the paper corner sits top centre and follows the stage (owner)
+The notice layer (`#pt-layer`) was placed once at page load, over the main menu's monitor, and only
+re-placed when a notice printed, so the paper corner (`#pt-tab`, r627) hung over the menu and sat in
+the wrong spot in a run (measured: 509,256 422x308 against a 1436x807 stage at 1440x820).
+`ptLayerPlace()` re-lays it from `#stage`'s rect whenever that changes (a 400ms check, a mouse near
+the top, every notice). The corner is centred on the stage's top edge (r627's "just right of where
+slips hang" is superseded) and hidden while the main menu, the mode picker or the office scene is up
+(`ptTabAllowed`, `.pt-tab-off`). Measured at 1440x820 and 420x900: centre 720 / 210 on the stage's
+centre, 10px / 7px below its top edge, absent on the menu; still centred after a resize.

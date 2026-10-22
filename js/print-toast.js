@@ -55,15 +55,27 @@ function ptLayer() {
     document.body.appendChild(_ptLayer);
     ptTabBuild(_ptLayer);
   }
-  const st = document.getElementById('stage');
-  let r = st && st.getBoundingClientRect();
-  if (!r || r.width < 50 || r.height < 50) r = { left: 0, top: 0, width: innerWidth, height: innerHeight };
-  const s = _ptLayer.style;
-  s.left = r.left + 'px'; s.top = r.top + 'px'; s.width = r.width + 'px'; s.height = r.height + 'px';
+  ptLayerPlace();
   _ptLayer.style.setProperty('--fpx', PT_CFG.fontPx + 'px');
   _ptLayer.style.setProperty('--pt-paper', PT_CFG.paper);
   _ptLayer.style.setProperty('--pt-bar', PT_CFG.bar);
   return _ptLayer;
+}
+
+// r650: the layer is placed again whenever the stage moves (the menu's monitor, the
+// camera's move into play, a resize), not only when a notice prints: placed once at
+// load it stayed over the menu's monitor for the whole run and the corner wandered.
+let _ptLayerRect = '';
+function ptLayerPlace() {
+  if (!_ptLayer) return;
+  const st = document.getElementById('stage');
+  let r = st && st.getBoundingClientRect();
+  if (!r || r.width < 50 || r.height < 50) r = { left: 0, top: 0, width: innerWidth, height: innerHeight };
+  const k = [r.left, r.top, r.width, r.height].map(v => Math.round(v)).join(',');
+  if (k === _ptLayerRect) return;
+  _ptLayerRect = k;
+  const s = _ptLayer.style;
+  s.left = r.left + 'px'; s.top = r.top + 'px'; s.width = r.width + 'px'; s.height = r.height + 'px';
 }
 
 // Ink: the notice's own UI colour, which is already bright enough for black paper.
@@ -288,6 +300,7 @@ function ptTabBuild(layer) {
   // near the top edge: peek
   document.addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse' || !_ptLayer) return;
+    if (e.clientY < 120) ptLayerPlace();
     const top = parseFloat(_ptLayer.style.top) || 0;
     const near = e.clientY - top < PT_CFG.tabZone && e.clientY >= top - 2;
     _ptTab.classList.toggle('pt-tab-peek', near || !!_ptDrawer);
@@ -343,7 +356,19 @@ function ptDrawerClose() {
   el.classList.add('pt-pulled');
   setTimeout(() => el.remove(), PT_CFG.pullMs + 60);
 }
+// The corner is for a run: the main menu and the mode picker hide it (r650).
+function ptTabAllowed() {
+  const on = id => document.getElementById(id)?.classList.contains('show');
+  return !on('main-menu-overlay') && !on('mode-select-overlay') && !document.body.classList.contains('office-scene');
+}
+function ptTabSync() {
+  if (!_ptLayer) return;
+  ptLayerPlace();
+  const ok = ptTabAllowed();
+  _ptTab?.classList.toggle('pt-tab-off', !ok);
+  if (!ok && _ptDrawer) ptDrawerClose();
+}
 // The layer (and its paper corner) exist from the start, not from the first
 // notice, and follow the stage when the window changes.
-addEventListener('load', () => { try { ptLayer(); } catch (e) {} });
+addEventListener('load', () => { try { ptLayer(); ptTabSync(); } catch (e) {} setInterval(() => { try { ptTabSync(); } catch (e) {} }, 400); });
 addEventListener('resize', () => { if (_ptLayer) { try { ptLayer(); } catch (e) {} } });

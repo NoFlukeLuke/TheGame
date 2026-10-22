@@ -79,7 +79,7 @@ body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }
 
 /* ── r627: the paper corner and the drawer ─────────────────────────────────── */
 #pt-tab {
-  position: absolute; left: calc(50% + var(--ptw, 340px) / 2 + 10px); top: 0; width: 44px; height: 26px;
+  position: absolute; left: calc(50% - 22px); top: 0; width: 44px; height: 26px;
   pointer-events: auto; cursor: var(--cur-pointer, pointer);
   transform: translateY(calc(-100% + var(--pt-tab-pull, 0px))); transition: transform .18s ease-out;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.8));
@@ -88,6 +88,7 @@ body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }
 #pt-tab:hover, #pt-tab.pt-tab-open { transform: translateY(calc(-30% + var(--pt-tab-pull, 0px))); }
 #pt-tab.pt-tab-touch { transform: translateY(-70%); opacity: .55; }
 #pt-tab.pt-tab-touch.pt-tab-open { transform: translateY(-30%); opacity: 1; }
+#pt-tab.pt-tab-off { display: none; }
 /* the corner: paper with one dog-ear folded over, perforations on the left */
 .pt-tab-paper {
   position: absolute; inset: 0; background: var(--pt-paper, #0d0b09);

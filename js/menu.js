@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r649 · Rerun multiplies on each replay's beat; the per-card x review; Middle Man (rare Trick)";
+const BUILD = "2026-10-22 · r650 · the paper corner stays on the game screen's top edge, centred; hidden on the menu";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
