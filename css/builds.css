@@ -116,6 +116,15 @@
 #builds-overlay .bv-group-label.r-epic { color: var(--c-purple); } #builds-overlay .bv-group-label.r-legendary { color: var(--c-magenta); }
 #builds-overlay .bv-group-label.t-sleight { color: var(--c-cyan); } #builds-overlay .bv-group-label.t-knack { color: var(--c-yellow); }
 #builds-overlay .bv-group-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); gap: 8px; }
+#builds-overlay .bv-jump { flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px; overflow-y: auto; padding: 2px 0; }
+#builds-overlay .bv-jump:empty { display: none; }
+#builds-overlay .bv-jkey { font-family: var(--bv-font); font-size: 11px; letter-spacing: 1px; width: 34px; padding: 3px 0; border-radius: 3px; text-align: center;
+  background: linear-gradient(180deg, #3a3832, #24231f); border: 1px solid #141311; color: #9a9383; cursor: var(--cur-pointer, pointer);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 0 #121110; }
+#builds-overlay .bv-jkey.on { color: var(--bv-amber); border-color: #5a4310; }
+#builds-overlay .bv-jkey.r-common { color: var(--c-mint); } #builds-overlay .bv-jkey.r-rare { color: var(--c-cyan); }
+#builds-overlay .bv-jkey.r-epic { color: var(--c-purple); } #builds-overlay .bv-jkey.r-legendary { color: var(--c-magenta); }
+#builds-overlay .bv-compare-k { width: 100%; color: var(--bv-amber); }
 #builds-overlay .bv-none { font-size: 18px; letter-spacing: 2px; color: var(--bv-dim); padding: 40px; text-align: center; }
 
 /* one record: a small screen */
@@ -168,7 +177,7 @@
   #builds-overlay .bv-search { margin-left: 0; flex: 1 1 100%; order: 9; }
   #builds-overlay .bv-search input { width: 100%; }
   #builds-overlay .bv-rail-btn { display: inline-block; margin-left: auto; }
-  #builds-overlay #bv-zoom-in, #builds-overlay #bv-zoom-out { display: none; }
+  #builds-overlay #bv-zoom-in, #builds-overlay #bv-zoom-out, #builds-overlay .bv-jump { display: none; }
   #builds-overlay .bv-body { position: relative; padding: 8px; }
   #builds-overlay .bv-rail { position: absolute; left: 8px; top: 8px; bottom: 8px; width: min(260px, 84vw); z-index: 20; flex: none;
     transform: translateX(-110%); transition: transform .18s; }

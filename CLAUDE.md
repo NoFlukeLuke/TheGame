@@ -2189,3 +2189,21 @@ writes it to `--cfs-stock` on `<html>`, and css/card-face.css draws it as a 9-sl
 border colours, so the selected / valid / penalty states and the wild ring the card with a box-shadow
 instead; the old has-pip / has-mult border tints are covered (the face bands carry that). Stones,
 challenge cards and numeric cards keep their own look.
+## r640 - COMPARE BUILDS; the jump strip; the owner's tag decisions
+- **Compare** (`js/build-compare.js`, `css/build-compare.css`; COMPARE in the Builds bar and the
+  rail): a sandbox board (4x4 / 5x5 / 4x6 of real faces from a fresh deck) scored by up to four
+  builds (the draft and saved builds, each in a colour) at once. Tap a connected hand: every
+  column reads PIPS x MULT = SCORE live, the best lit. LOG HAND banks it (the cards are replaced
+  from the deck), so a tally per build and a per-Trick "went off n of N" count build up; the
+  logged hands are listed under the columns. A column's head opens its breakdown: the base,
+  each Trick's pips and mult for this hand, the fire bar. **The score is the game's:** `bcScore`
+  swaps the run globals calcScore reads (gridData, gridRows/Cols, trickTray, acquiredKnacks,
+  selected, streakCount, lastHandType, activeHands = every hand) for the sandbox's, runs
+  `calcScore(hand, cells, contrib, ledger)` after `resetTrickFires()`, reads the contributions and
+  `_trickFiredThisHand`, and restores in `finally`. Not simulated, and said on the panel: Focus
+  (x1), Sleights (listed, "board only"), run counters, improvements.
+- **Jump strip** (`bvJumpRender` / `bvJumpSync`): one key per group on the canvas's right edge;
+  a tap scrolls the group's label up, the group in view is lit as you scroll.
+- **Tags:** `prime` is `retrigger` (a Trick firing again: primes, mirrors, force-triggers); new
+  `charges` (PAYS), `start` and `replays` (WHEN); Focus-apply Tricks, relative-rank Tricks and
+  round-start entities retagged per the owner. TAGS.md ends with DECISIONS and STILL OPEN.

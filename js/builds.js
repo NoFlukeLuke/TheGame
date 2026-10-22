@@ -162,7 +162,7 @@ function bvGroupsOf(list) {
 // ── synergies ───────────────────────────────────────────────────────────────
 // Two records are a potential synergy when they care about the same thing
 // (a shared WHEN tag), or one makes cards score again and the other pays per
-// card, or one primes Tricks and the other is a Trick. Shown as a lit ring
+// card, or one retriggers Tricks and the other is a scoring Trick. Shown as a lit ring
 // on the matches and a dim on the rest while one record is pinned.
 function bvSynergy(a, b) {
   if (a === b) return 0;
@@ -170,7 +170,7 @@ function bvSynergy(a, b) {
   let n = 0;
   tagsInGroup('when').forEach(d => { if (A.has(d.id) && B.has(d.id)) n += 2; });
   if ((A.has('replay') && B.has('card')) || (B.has('replay') && A.has('card'))) n += 2;
-  if ((A.has('prime') && b.type === 'trick' && B.has('scores')) || (B.has('prime') && a.type === 'trick' && A.has('scores'))) n += 2;
+  if ((A.has('retrigger') && b.type === 'trick' && B.has('scores')) || (B.has('retrigger') && a.type === 'trick' && A.has('scores'))) n += 2;
   if ((A.has('focus') && B.has('focus'))) n += 1;
   if ((A.has('scaling') && B.has('scaling'))) n += 1;
   if (a.act && a.act === b.act) n += 1;
@@ -237,6 +237,7 @@ function ensureBuildsOverlay() {
       <span class="bv-sub" id="bv-count"></span>
       <label class="bv-search"><span>&#9906;</span><input id="bv-q" type="search" placeholder="search by name or words" autocomplete="off" spellcheck="false"></label>
       <button class="bv-key bv-rail-btn" id="bv-rail-btn">DRAFT</button>
+      <button class="bv-key bv-compare-btn" id="bv-compare-btn" title="Score one hand with several builds">COMPARE</button>
       <button class="bv-key" id="bv-zoom-out" title="smaller">&minus;</button>
       <button class="bv-key" id="bv-zoom-in" title="bigger">+</button>
     </div>
@@ -244,6 +245,7 @@ function ensureBuildsOverlay() {
     <div class="bv-body">
       <div class="bv-rail" id="bv-rail"></div>
       <div class="bv-scroll" id="bv-scroll"><div class="bv-canvas" id="bv-canvas"></div></div>
+      <div class="bv-jump" id="bv-jump"></div>
     </div>`;
   document.body.appendChild(el);
   const q = el.querySelector('#bv-q');
@@ -253,6 +255,9 @@ function ensureBuildsOverlay() {
   el.querySelector('#bv-zoom-in').onclick = () => bvZoom(1.15);
   el.querySelector('#bv-zoom-out').onclick = () => bvZoom(1 / 1.15);
   el.querySelector('#bv-rail-btn').onclick = () => el.classList.toggle('rail-open');
+  el.querySelector('#bv-compare-btn').onclick = () => { if (typeof bcOpen === 'function') bcOpen(); };
+  // The jump strip follows the scroll: the section in view is lit.
+  el.querySelector('#bv-scroll').addEventListener('scroll', bvJumpSync, { passive: true });
   // A click anywhere but a dropdown closes the open one.
   el.addEventListener('pointerdown', e => { if (!e.target.closest('.bv-dd')) el.querySelectorAll('.bv-dd.open').forEach(d => d.classList.remove('open')); });
   // Keys: / focuses the search; Escape closes a dropdown, else clears the search, else leaves.
@@ -361,6 +366,28 @@ function renderBuildsCanvas() {
   });
   fitEntityNames(canvas, '.bv-name', { maxLines: 2 });
   bvPaintSynergy();
+  bvJumpRender(groups);
+}
+
+// ── the section jump strip (r640) ───────────────────────────────────────────
+// One key per group on the right edge of the canvas; a tap scrolls the group's
+// label to the top, the group in view is lit as you scroll.
+function bvJumpRender(groups) {
+  const j = document.getElementById('bv-jump'); if (!j) return;
+  j.innerHTML = groups.length > 1 ? groups.map((g, i) => `<button class="bv-jkey ${g.cls}" data-i="${i}" title="${g.label} (${g.items.length})">${bv.group === 'alpha' ? g.label : g.label.slice(0, 3)}</button>`).join('') : '';
+  j.querySelectorAll('.bv-jkey').forEach(b => b.onclick = () => {
+    const sec = document.querySelectorAll('#bv-canvas .bv-group')[+b.dataset.i]; if (!sec) return;
+    const sc = document.getElementById('bv-scroll');
+    sc.scrollTo({ top: sec.offsetTop * bv.zoom - 6, behavior: 'smooth' });
+  });
+  bvJumpSync();
+}
+function bvJumpSync() {
+  const sc = document.getElementById('bv-scroll'), j = document.getElementById('bv-jump'); if (!sc || !j) return;
+  const secs = [...document.querySelectorAll('#bv-canvas .bv-group')];
+  let at = 0;
+  secs.forEach((s, i) => { if (s.offsetTop * bv.zoom <= sc.scrollTop + sc.clientHeight * 0.3) at = i; });
+  j.querySelectorAll('.bv-jkey').forEach((b, i) => b.classList.toggle('on', i === at));
 }
 
 function bvTile(x) {
@@ -480,6 +507,7 @@ function renderBuildsRail() {
       </div>
     </div>
     <div class="bv-screen" id="bv-saved"></div>
+    <div class="bv-screen"><button class="bv-key bv-compare-k" id="bv-compare-k" title="Score one hand with several builds">COMPARE BUILDS</button></div>
     <div class="bv-screen">
       <div class="bv-pt">VIEW</div>
       <label class="bv-tog ${bv.syn ? 'on' : ''}"><input type="checkbox" id="bv-syn" ${bv.syn ? 'checked' : ''}><span>Highlight potential synergies</span><small>tap a record; what shares its conditions lights up</small></label>
@@ -495,6 +523,7 @@ function renderBuildsRail() {
   el.querySelector('#bv-share').onclick = copyBuildShareCode;
   el.querySelector('#bv-load').onclick = pasteBuildShareCode;
   el.querySelector('#bv-clear-draft').onclick = () => { draftBuild = { name: '', tricks: [], sleights: [], knacks: [] }; renderBuildsRail(); renderBuildsCanvas(); };
+  el.querySelector('#bv-compare-k').onclick = () => { if (typeof bcOpen === 'function') bcOpen(); };
   const tog = (id, key, after) => { el.querySelector('#' + id).onchange = e => { bv[key] = e.target.checked; bvSave(); if (!bv.syn) bvPinned = null; renderBuildsRail(); after(); }; };
   tog('bv-syn', 'syn', bvPaintSynergy);
   tog('bv-odds', 'odds', renderBuildsCanvas);

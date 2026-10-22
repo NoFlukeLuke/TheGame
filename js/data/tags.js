@@ -18,7 +18,7 @@
 //   WHEN   what has to be true (any number, none is fine): the hand family,
 //          a rank or suit, a position, the clock, an action.
 //   HOW    `scores` if it changes the hand's PIPS / MULT / xPIPS / xMULT
-//          (the score itself); `scaling` if it grows permanently over the run
+//          (the score itself, so making Focus apply again counts); `scaling` if it grows permanently over the run
 //          (a buff that stays, a counter that climbs); `chance` if luck is
 //          rolled; `line` if it marks a row or column (Tray Order reads this).
 //
@@ -47,7 +47,8 @@ const TAG_DEFS = [
   { id: 'deck',    group: 'pays', label: 'Deck',     cls: 'kw-board',   def: 'Changes the cards in the deck: buffs, adds, removes.' },
   { id: 'board',   group: 'pays', label: 'Board',    cls: 'kw-board',   def: 'Moves or changes the cards on the grid.' },
   { id: 'limit',   group: 'pays', label: 'Limits',   cls: 'kw-limit',   def: 'Raises a limit.' },
-  { id: 'prime',   group: 'pays', label: 'Prime',    cls: 'kw-trick',   def: 'Primes a Trick to fire again.' },
+  { id: 'retrigger', group: 'pays', label: 'Retrigger', cls: 'kw-trick', def: 'Fires a Trick again: a prime, a mirror, a force-trigger.' },
+  { id: 'charges', group: 'pays', label: 'Sleight charges', cls: 'kw-sleight', def: 'Restores Sleight charges, or helps the Sleights you hold.' },
   { id: 'luck',    group: 'pays', label: 'Luck',     cls: 'kw-reward',  def: 'Changes the odds of offers or rolls.' },
   { id: 'info',    group: 'pays', label: 'Info',     cls: 'kw-round',   def: 'Shows something you could not see.' },
   { id: 'shield',  group: 'pays', label: 'Shield',   cls: 'kw-bad',     def: 'Softens a boss, a curse or a failed round.' },
@@ -79,6 +80,8 @@ const TAG_DEFS = [
   { id: 'shop',     group: 'when', label: 'Shop',      cls: 'kw-buy',     def: 'Fires in the shop.' },
   { id: 'boss',     group: 'when', label: 'Boss',      cls: 'kw-bad',     def: 'Fires on a boss.' },
   { id: 'challenge', group: 'when', label: 'Challenge', cls: 'kw-bad',    def: 'Cares about challenge cards.' },
+  { id: 'start',    group: 'when', label: 'Round start', cls: 'kw-round', def: 'Fires when a round starts.' },
+  { id: 'replays',  group: 'when', label: 'Replays',   cls: 'kw-replay',  def: 'Fires when a card scores again.' },
 
   // ── HOW ──
   { id: 'scores',  group: 'how', label: 'Scores',   cls: 'kw-score',  def: 'Changes the hand’s score: pips, mult, x pips or x mult.' },

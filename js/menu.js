@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r639 · the printed face is back, on the pack's blank card";
+const BUILD = "2026-10-22 · r640 · Builds: COMPARE (a sandbox board scored by up to four builds, with a tally and per-Trick fire counts), the section jump strip; the owner's tag decisions (retrigger, charges, round start, replays)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

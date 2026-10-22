@@ -11,8 +11,8 @@ const TRICK_POOL = [
   // ×pips and ×mult on triggers the pools had never covered: replays, a held clock,
   // credits, buffed cards on the grid, and the Focus level itself. Every one of them
   // reads in the PIPS or MULT chip, which a ×score never did.
-  { id:'rerun',       name:'Rerun',       tier:'epic',   desc:'×1.25 pips each time a card is replayed', tags:['xpips','card','scores'] },
-  { id:'chorus',      name:'Chorus',      tier:'epic',   desc:'×1.5 mult each time a card is replayed', tags:['xmult','card','scores'] },
+  { id:'rerun',       name:'Rerun',       tier:'epic',   desc:'×1.25 pips each time a card is replayed', tags:['xpips','card','scores','replays'] },
+  { id:'chorus',      name:'Chorus',      tier:'epic',   desc:'×1.5 mult each time a card is replayed', tags:['xmult','card','scores','replays'] },
   { id:'deep_breath', name:'Deep Breath', tier:'rare',   desc:'Score ×2 pips while the clock is paused', tags:['xpips','hand','pause','scores'] },
   { id:'interest',    name:'Interest',    tier:'rare',   desc:'Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3', tags:['xpips','hand','scores'] },
   { id:'portfolio',   name:'Portfolio',   tier:'epic',   desc:'Score ×1 mult, +×0.25 for every card on the grid with a buff', tags:['xmult','hand','buffed','scores'] },
@@ -27,20 +27,20 @@ const TRICK_POOL = [
   { id:'pair_pips',      name:'Aftershock',          tier:'common',    desc:'Two Pair scores ×2 pips', tags:['xpips','hand','set','scores'] },
   { id:'two_pair_mult',  name:'Double Dutch',        tier:'epic',      desc:'Play 3 hands with a pair within 30s to add +20 Focus', tags:['focus','hand','set','clock'] },
   { id:'richter',        name:'Richter',             tier:'legendary', desc:'Four of a Kind scores ×3 mult and +10 Focus', tags:['xmult','focus','hand','set','scores'] },
-  { id:'eye_of_storm',   name:'Eye of the Storm',    tier:'epic',      desc:'Hands played in the middle third of the round replay the highest-ranked card(s) 2x', tags:['replay','card','clock','scores'] },
-  { id:'ripple',         name:'Ripple',              tier:'rare',      desc:'Cards adjacent in rank to another card in the hand have a 66% chance to replay', tags:['replay','card','scores','chance'] },
+  { id:'eye_of_storm',   name:'Eye of the Storm',    tier:'epic',      desc:'Hands played in the middle third of the round replay the highest-ranked card(s) 2x', tags:['replay','card','clock','scores','rank'] },
+  { id:'ripple',         name:'Ripple',              tier:'rare',      desc:'Cards adjacent in rank to another card in the hand have a 66% chance to replay', tags:['replay','card','scores','chance','rank'] },
   // ── Flush / special hand types ──
   { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flushes score +100 pips', tags:['pips','hand','flush','scores'] },
   { id:'tidal_force',    name:'Tidal Forces',        tier:'common',    desc:'Flushes score +15 mult per card', tags:['mult','card','flush','scores'] },
   { id:'deluge',         name:'Deluge',              tier:'rare',      desc:'Flushes rewind the clock 15s', tags:['time','hand','flush'] },
-  { id:'summit',     name:'Unsummit',   tier:'common', desc:'The highest-ranking card in each hand scores +(level x 2) pips.', tags:['pips','card','scores','scaling'] },
+  { id:'summit',     name:'Unsummit',   tier:'common', desc:'The highest-ranking card in each hand scores +(level x 2) pips.', tags:['pips','card','scores','scaling','rank'] },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +30 mult', tags:['mult','hand','size','scores'] },
   { id:'release_valve',  name:'Release Valve',       tier:'common',    desc:'Each time you hit your Focus limit, gain +1 swap and +1 discard and lose 16 Focus.', tags:['stock','other','cost'] },
   { id:'heavy_hand',     name:'Full Load',           tier:'rare',      desc:'5-card hands score +20 pips per card', tags:['pips','card','size','scores'] },
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3 pips', tags:['xpips','hand','rank','scores'] },
   // ── Rank-specific pips / mult ──
   { id:'first_light',    name:'First Light',         tier:'common',    desc:'Aces score 42 pips', tags:['pips','card','rank','scores'] },
-  { id:'wild_heart',     name:'Inspirato',           tier:'epic',      tags:['prime','card','rank','tricks'], desc:'When an Ace scores, prime your first and last Tricks' },
+  { id:'wild_heart',     name:'Inspirato',           tier:'epic',      tags:['retrigger','card','rank','tricks'], desc:'When an Ace scores, prime your first and last Tricks' },
   { id:'face_value',     name:'Face Value',          tier:'common',    desc:'Face cards (J/Q/K) score +20 pips', tags:['pips','card','rank','scores'] },
   { id:'king_guard',     name:'Men of Repute',       tier:'common',    desc:'Kings and Jacks score +10 pips and +5 mult', tags:['pips','mult','card','rank','scores'] },
   { id:'knave_power',    name:'Jackpot',              tier:'legendary', desc:'Score ×1.5 pips for each Jack on the grid', tags:['xpips','hand','rank','scores'] },
@@ -49,7 +49,7 @@ const TRICK_POOL = [
   { id:'royal_trio',     name:'Heads of State',      tier:'epic',      desc:'A hand containing a King and one other Royal scores ×2 mult', tags:['xmult','hand','rank','scores'] },
   // ── Per-card pip bonuses ──
   { id:'rich_soil',      name:'Rich Soil',           tier:'common',    desc:'All cards score +3 mult', tags:['mult','card','scores'] },
-  { id:'first_fruits',   name:'First Fruits',        tier:'rare',      desc:'Each card in the first hand each round permanently gains +5 pips', tags:['deck','pips','card','scaling','scores'] },
+  { id:'first_fruits',   name:'First Fruits',        tier:'rare',      desc:'Each card in the first hand each round permanently gains +5 pips', tags:['deck','pips','card','scaling','scores','start'] },
   { id:'sapling',        name:'Sapling',             tier:'rare',      retired:true, desc:'Each level, 3 cards permanently gain +5 pips', tags:['deck','pips','other','level','scaling','scores'] },   // r624 (owner): out of the pool
   // ── Timing ──
   { id:'early_bird',     name:'Early Bird',          tier:'common',    desc:'Hands played in the first third of the round score +20 pips per card', tags:['pips','card','clock','scores'] },
@@ -61,7 +61,7 @@ const TRICK_POOL = [
   { id:'still_water',    name:'Eagle Eye',           tier:'rare',      desc:'Score +10 mult for every 10 seconds elapsed without using a swap', tags:['mult','hand','clock','scores'] },
   { id:'frozen_moment',  name:'The Falcon',          tier:'epic',      desc:'Hands played while the clock is paused add +10 Focus', tags:['focus','hand','pause'] },
   { id:'swift',          name:'The Swift',           tier:'rare',      desc:'+6 mult for every 10 seconds elapsed this round', tags:['mult','hand','clock','scores'] },
-  { id:'cuckoo',         name:'The Cuckoo',          tier:'epic',      desc:'Every other hand pauses the clock for 1s for every 5 replays triggered this round', tags:['time','hand'] },
+  { id:'cuckoo',         name:'The Cuckoo',          tier:'epic',      desc:'Every other hand pauses the clock for 1s for every 5 replays triggered this round', tags:['time','hand','replays'] },
   { id:'double_jeopardy', name:'Double Jeopardy',    tier:'epic',      desc:'2 cells are secretly marked at round start; the first time you score from those cells, pause the clock for 15s each', tags:['time','card','position'] },
   { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'Marks a random cell every 30 seconds; a card scored from the marked cell replays 3x', tags:['replay','card','position','clock','scores'] },
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+3 mult for every clock pause or rewind triggered this game', tags:['mult','hand','pause','scores','scaling'] },
@@ -78,7 +78,7 @@ const TRICK_POOL = [
   { id:'magpie',         name:'Hyperphagia',       tier:'epic',      tags:['time','hand'],  desc:'Each hand rewinds the clock 1s for every 2 swaps + discards you hold' },
   { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['stock','hand','streak'],desc:'Every 4 hands you play without a same-type streak grants +1 swap' },
   { id:'starling',       name:'Type A',              tier:'rare',      tags:['stock','hand','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
-  { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)', tags:['focus','hand','pause'] },
+  { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice (hands that trigger a pause count)', tags:['focus','hand','pause','scores'] },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same-hand streaks score +8 mult × the streak count', tags:['mult','hand','streak','scores'] },
   { id:'wildfire',       name:'Wildfire',            tier:'rare',      desc:'Reaching a same-hand streak of 3 adds +5 Focus', tags:['focus','hand','streak'] },
@@ -130,8 +130,8 @@ const TRICK_POOL = [
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['mult','hand','discard','scores','scaling'], desc:'Every 9 cards discarded or played permanently adds +3 mult to this trick' },
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['deck','pips','mult','card','scaling','scores','chance'], desc:'Every 6th card scored permanently gains a random +1–6 pips or mult' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['deck','pips','card','size','scaling','scores'], desc:'4-card hands permanently give the 4th card +8 pips' },
-  { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['prime','card','rank','tricks'], desc:'Each 2 scored force triggers your rightmost Trick (other than this one)' },
-  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['prime','card','rank','tricks'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
+  { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Each 2 scored force triggers your rightmost Trick (other than this one)' },
+  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
   { id:'eights_retrigger', name:'Sideways to Infinity', tier:'rare',   tags:['replay','card','rank','scores'], desc:'Each scored 8 replays once for each other 8 in the hand' },
   { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['deck','card','rank','position','clock','scaling','cost'], desc:"Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are automatically discarded after they've been on the grid for 30 seconds" },
   { id:'aces_absorb',    name:'Ace Absorb',          tier:'legendary', tags:['deck','card','rank','scaling','chance','cost'], desc:'When an Ace scores, 50% chance to permanently remove one random unscoring card and add its buffs to the Ace (once per hand)' },
@@ -140,26 +140,26 @@ const TRICK_POOL = [
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Score +pips equal to time remaining ÷ 2', tags:['pips','hand','clock','scores'] },
   { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['mult','hand','discard','scores'], desc:'+4 mult per card discarded this round' },
   { id:'spade_flood',    name:'Dark Matter',         tier:'epic',      tags:['pips','hand','suit','clock','scores'], desc:'All-Spade hands add the remaining round time as pips' },
-  { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['prime','hand','tricks'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
+  { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['retrigger','hand','tricks'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+6 mult for every distinct hand type played this round', tags:['mult','hand','scores'] },
-  { id:'move_as_one',    name:'Move as One',         tier:'epic',      retired:true, tags:['prime','hand','tricks'], desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered' },
+  { id:'move_as_one',    name:'Move as One',         tier:'epic',      retired:true, tags:['retrigger','hand','tricks'], desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered' },
   // ── Reward-grid meta (r128) ──
   { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','hand','reward','scores','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +9 mult to this trick' },
   { id:'rain_check',     name:'Rain Check',          tier:'epic',      retired:true, tags:['time','other','reward'],           desc:'Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)' },
   // ── Time / position (r128) ──
-  { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['prime','card','position','tricks'], desc:'A card scored where a row and column effect intersect force triggers the Trick in position 3' },
+  { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['retrigger','card','position','tricks'], desc:'A card scored where a row and column effect intersect force triggers the Trick in position 3' },
   // ── Risk / negative-tile scaling (r129) ──
   { id:'wild_side',      name:'Wild Side',           tier:'rare',      tags:['mult','hand','reward','scores','scaling'],    desc:'+6 mult, scaling, for every negative reward tile you take' },
   { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      retired:true, tags:['replay','card','reward','level','scores','scaling','chance'],  desc:'Each negative reward tile taken this run gives every scored card a +3% chance to replay. In Flow: each level-up that pays a single reward gives +5% instead, Luck aside' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'rare',    tags:['focus','other'], desc:'Focus decays 2 seconds slower' },
-  { id:'tunnel_vision',  name:'Tunnel Vision',       tier:'common',    tags:['focus','other'], desc:'Start each round with 10 Focus' },
+  { id:'tunnel_vision',  name:'Tunnel Vision',       tier:'common',    tags:['focus','other','start'], desc:'Start each round with 10 Focus' },
   { id:'first_wind',     name:'First Wind',          tier:'common',    tags:['focus','other','clock'], desc:'Focus does not decay for the first 45 seconds of a round' },
   { id:'rhythm',         name:'Rhythm',              tier:'common',    tags:['focus','hand'], desc:'Each hand played adds 2 additional Focus' },
   { id:'cull',           name:'Cull',                tier:'common',    tags:['focus','other','discard','swap'], desc:'Discarding or swapping adds +2 Focus per 2 remaining swaps and discards' },
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus','other','scaling','cost'], desc:'Each time you hit your Focus limit, increase it by 1 (max +10), then lose half your Focus' },
-  { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'epic',      tags:['focus','hand','suit'], desc:'Apply the Focus multiplier a number of times equal to the number of suits in the hand' },
+  { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'epic',      tags:['focus','hand','suit','scores'], desc:'Apply the Focus multiplier a number of times equal to the number of suits in the hand' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['pips','card','scores'], desc:'While focus is ×1.5 or higher, score +15 pips per card' },
   { id:'hyper_focus',    name:'Hyper Focus',         tier:'rare',      tags:['mult','card','scores'], desc:'Each card scored adds mult equal to 2x your Focus multiplier' },
   // ── Legendary ──
@@ -201,7 +201,7 @@ const TRICK_POOL = [
   { id:'critical',        name:'Critical',           tier:'epic',      tags:['xmult','hand','flush','scores'],          desc:'Flush type hands score x5 mult' },
   { id:'twinners',        name:'Twinners',           tier:'epic',      tags:['xpips','hand','set','scores'],            desc:'Set type hands score x3 pips' },
   { id:'feelin_lucky',    name:'Feelin Lucky',       tier:'epic',      tags:['xmult','card','rank','scores','chance','cost'],   desc:'Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells' },
-  { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','hand','run'],           desc:'Run type hands apply the Focus multiplier 1 extra time(s)' },
+  { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','hand','run','scores'],           desc:'Run type hands apply the Focus multiplier 1 extra time(s)' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time','hand','run'],            desc:'Runs pause the clock for 3s' },
   { id:'wave_amp',       name:'Wave Amplification',  tier:'common',    tags:['pips','hand','run','streak','scores'],   desc:'Consecutively played Runs score +15 pips × the streak count' },

@@ -1,9 +1,8 @@
-# Entity tags (r634)
+# Entity tags (r640)
 
-The one vocabulary every Trick, Sleight and Knack is described in: `js/data/tags.js` (groups PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below, with the judgement calls left for the owner at the end. Rerun `node tools/verify-tags.js` after editing a row; `--tables TAGS.md` regenerates the tables.
-
-
-Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.js. Order inside a cell: PAYS, SCOPE, WHEN, HOW.
+The one vocabulary every Trick, Sleight and Knack is described in: `js/data/tags.js` (groups
+PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Rerun
+`node tools/verify-tags.js` after editing a row; `--tables <file>` regenerates the tables.
 
 ## TRICK_POOL (171)
 
@@ -16,8 +15,8 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | tide_table | Tide Table | Runs score ×1.25 mult, +×0.5 per Run scored this round | xmult hand run scores |
 | undertow | Undertow | Runs score ×2 pips, +×0.5 per card beyond 3 | xpips hand run size scores |
 | high_water | High Water | Runs pause the clock for 1s for each Run played this round | time hand run |
-| rerun | Rerun | ×1.25 pips each time a card is replayed | xpips card scores |
-| chorus | Chorus | ×1.5 mult each time a card is replayed | xmult card scores |
+| rerun | Rerun | ×1.25 pips each time a card is replayed | xpips card scores replays |
+| chorus | Chorus | ×1.5 mult each time a card is replayed | xmult card scores replays |
 | deep_breath | Deep Breath | Score ×2 pips while the clock is paused | xpips hand pause scores |
 | interest | Interest | Score ×1 pips, +0.1 for every 10 credits you hold, up to ×3 | xpips hand scores |
 | portfolio | Portfolio | Score ×1 mult, +×0.25 for every card on the grid with a buff | xmult hand buffed scores |
@@ -30,18 +29,18 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | pair_pips | Aftershock | Two Pair scores ×2 pips | xpips hand set scores |
 | two_pair_mult | Double Dutch | Play 3 hands with a pair within 30s to add +20 Focus | focus hand set clock |
 | richter | Richter | Four of a Kind scores ×3 mult and +10 Focus | xmult focus hand set scores |
-| eye_of_storm | Eye of the Storm | Hands played in the middle third of the round replay the highest-ranke | replay card clock scores |
-| ripple | Ripple | Cards adjacent in rank to another card in the hand have a 66% chance t | replay card scores chance |
+| eye_of_storm | Eye of the Storm | Hands played in the middle third of the round replay the highest-ranke | replay card clock scores rank |
+| ripple | Ripple | Cards adjacent in rank to another card in the hand have a 66% chance t | replay card scores chance rank |
 | enriched | Enriched | Flushes score +100 pips | pips hand flush scores |
 | tidal_force | Tidal Forces | Flushes score +15 mult per card | mult card flush scores |
 | deluge | Deluge | Flushes rewind the clock 15s | time hand flush |
-| summit | Unsummit | The highest-ranking card in each hand scores +(level x 2) pips. | pips card scores scaling |
+| summit | Unsummit | The highest-ranking card in each hand scores +(level x 2) pips. | pips card scores scaling rank |
 | light_touch | Nimble | 2-card hands score +30 mult | mult hand size scores |
 | release_valve | Release Valve | Each time you hit your Focus limit, gain +1 swap and +1 discard and lo | stock other cost |
 | heavy_hand | Full Load | 5-card hands score +20 pips per card | pips card size scores |
 | blackjack_bonus | Twenty-One | If the face values of your cards total exactly 21, score ×3 pips | xpips hand rank scores |
 | first_light | First Light | Aces score 42 pips | pips card rank scores |
-| wild_heart | Inspirato | When an Ace scores, prime your first and last Tricks | prime card rank tricks |
+| wild_heart | Inspirato | When an Ace scores, prime your first and last Tricks | retrigger card rank tricks |
 | face_value | Face Value | Face cards (J/Q/K) score +20 pips | pips card rank scores |
 | king_guard | Men of Repute | Kings and Jacks score +10 pips and +5 mult | pips mult card rank scores |
 | knave_power | Jackpot | Score ×1.5 pips for each Jack on the grid | xpips hand rank scores |
@@ -49,7 +48,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | before_the_tide | Gnomes | Each rank 5 or lower card scored adds its rank in Focus | focus card rank |
 | royal_trio | Heads of State | A hand containing a King and one other Royal scores ×2 mult | xmult hand rank scores |
 | rich_soil | Rich Soil | All cards score +3 mult | mult card scores |
-| first_fruits | First Fruits | Each card in the first hand each round permanently gains +5 pips | deck pips card scaling scores |
+| first_fruits | First Fruits | Each card in the first hand each round permanently gains +5 pips | deck pips card scaling scores start |
 | sapling (retired) | Sapling | Each level, 3 cards permanently gain +5 pips | deck pips other level scaling scores |
 | early_bird | Early Bird | Hands played in the first third of the round score +20 pips per card | pips card clock scores |
 | night_owl | Night Owl | Hands played in the last third of the round score +10 mult per card | mult card clock scores |
@@ -60,7 +59,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | still_water | Eagle Eye | Score +10 mult for every 10 seconds elapsed without using a swap | mult hand clock scores |
 | frozen_moment | The Falcon | Hands played while the clock is paused add +10 Focus | focus hand pause |
 | swift | The Swift | +6 mult for every 10 seconds elapsed this round | mult hand clock scores |
-| cuckoo | The Cuckoo | Every other hand pauses the clock for 1s for every 5 replays triggered | time hand |
+| cuckoo | The Cuckoo | Every other hand pauses the clock for 1s for every 5 replays triggered | time hand replays |
 | double_jeopardy | Double Jeopardy | 2 cells are secretly marked at round start; the first time you score f | time card position |
 | woodpecker | The Woodpecker | Marks a random cell every 30 seconds; a card scored from the marked ce | replay card position clock scores |
 | hummingbird | The Hummingbird | +3 mult for every clock pause or rewind triggered this game | mult hand pause scores scaling |
@@ -76,7 +75,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | magpie | Hyperphagia | Each hand rewinds the clock 1s for every 2 swaps + discards you hold | time hand |
 | mockingbird | Traveler | Every 4 hands you play without a same-type streak grants +1 swap | stock hand streak |
 | starling | Type A | Every 2nd hand of an unbroken same-type streak grants +1 discard | stock hand streak |
-| phoenix | The Phoenix | While the clock is paused, the Focus multiplier applies twice (hands t | focus hand pause |
+| phoenix | The Phoenix | While the clock is paused, the Focus multiplier applies twice (hands t | focus hand pause scores |
 | kindling | Kindling | Same-hand streaks score +8 mult × the streak count | mult hand streak scores |
 | wildfire | Wildfire | Reaching a same-hand streak of 3 adds +5 Focus | focus hand streak |
 | echo_hand | Echoes | Playing the same hand type as the previous hand replays each card | replay card streak scores |
@@ -120,8 +119,8 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | tens_mult | Perfect Ten | Every 9 cards discarded or played permanently adds +3 mult to this tri | mult hand discard scores scaling |
 | sixes_perm | D6 | Every 6th card scored permanently gains a random +1–6 pips or mult | deck pips mult card scaling scores chance |
 | fours_perm | Middle Management | 4-card hands permanently give the 4th card +8 pips | deck pips card size scaling scores |
-| twos_retrigger | Double Take | Each 2 scored force triggers your rightmost Trick (other than this one | prime card rank tricks |
-| prime_times | Prime Times | Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick | prime card rank tricks |
+| twos_retrigger | Double Take | Each 2 scored force triggers your rightmost Trick (other than this one | retrigger card rank tricks |
+| prime_times | Prime Times | Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick | retrigger card rank tricks |
 | eights_retrigger | Sideways to Infinity | Each scored 8 replays once for each other 8 in the hand | replay card rank scores |
 | queens_upgrade | Royal Favour | Scoring a card adjacent to a Queen permanently increases that card's r | deck card rank position clock scaling cost |
 | aces_absorb | Ace Absorb | When an Ace scores, 50% chance to permanently remove one random unscor | deck card rank scaling chance cost |
@@ -129,21 +128,21 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | sands_of_time | Sands of Time | Score +pips equal to time remaining ÷ 2 | pips hand clock scores |
 | discard_pips | Compost | +4 mult per card discarded this round | mult hand discard scores |
 | spade_flood | Dark Matter | All-Spade hands add the remaining round time as pips | pips hand suit clock scores |
-| mirror | Mirror | Tap to tilt left or right; mimics the effect of the Trick it reflects. | prime hand tricks |
+| mirror | Mirror | Tap to tilt left or right; mimics the effect of the Trick it reflects. | retrigger hand tricks |
 | combo_score | Combo Score | +6 mult for every distinct hand type played this round | mult hand scores |
-| move_as_one (retired) | Move as One | If 2+ of your Tricks share a keyword, a random Trick sharing that keyw | prime hand tricks |
+| move_as_one (retired) | Move as One | If 2+ of your Tricks share a keyword, a random Trick sharing that keyw | retrigger hand tricks |
 | more_better | More Better | Each reward grid where you select 3+ tiles permanently adds +9 mult to | mult hand reward scores scaling |
 | rain_check (retired) | Rain Check | Skipping a reward: the next round starts with +30s (in Flow, rewind th | time other reward |
-| temporal_rift | Temporal Rift | A card scored where a row and column effect intersect force triggers t | prime card position tricks |
+| temporal_rift | Temporal Rift | A card scored where a row and column effect intersect force triggers t | retrigger card position tricks |
 | wild_side | Wild Side | +6 mult, scaling, for every negative reward tile you take | mult hand reward scores scaling |
 | wait_for_it (retired) | Wait For Iiiit | Each negative reward tile taken this run gives every scored card a +3% | replay card reward level scores scaling chance |
 | meditation | Meditation | Focus decays 2 seconds slower | focus other |
-| tunnel_vision | Tunnel Vision | Start each round with 10 Focus | focus other |
+| tunnel_vision | Tunnel Vision | Start each round with 10 Focus | focus other start |
 | first_wind | First Wind | Focus does not decay for the first 45 seconds of a round | focus other clock |
 | rhythm | Rhythm | Each hand played adds 2 additional Focus | focus hand |
 | cull | Cull | Discarding or swapping adds +2 Focus per 2 remaining swaps and discard | focus other discard swap |
 | expanse | Expanse | Each time you hit your Focus limit, increase it by 1 (max +10), then l | focus other scaling cost |
-| kaleidoscope | Kaleidoscope | Apply the Focus multiplier a number of times equal to the number of su | focus hand suit |
+| kaleidoscope | Kaleidoscope | Apply the Focus multiplier a number of times equal to the number of su | focus hand suit scores |
 | flow_state | Flow State | While focus is ×1.5 or higher, score +15 pips per card | pips card scores |
 | hyper_focus | Hyper Focus | Each card scored adds mult equal to 2x your Focus multiplier | mult card scores |
 | heartwood | Heartwood | When scored, the center-most card gains +5 pips & +5 mult | deck pips mult card position scaling scores |
@@ -177,7 +176,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | critical | Critical | Flush type hands score x5 mult | xmult hand flush scores |
 | twinners | Twinners | Set type hands score x3 pips | xpips hand set scores |
 | feelin_lucky | Feelin Lucky | Five randomly rolled ranks score x1.25 mult. Trying to sell this costs | xmult card rank scores chance cost |
-| marathon | Marathon | Run type hands apply the Focus multiplier 1 extra time(s) | focus hand run |
+| marathon | Marathon | Run type hands apply the Focus multiplier 1 extra time(s) | focus hand run scores |
 | dam_holding | Dam Holding… | Runs pause the clock for 3s | time hand run |
 | wave_amp | Wave Amplification | Consecutively played Runs score +15 pips × the streak count | pips hand run streak scores |
 
@@ -204,7 +203,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | lightning_rod | Lightning Rod | When swapped, the card it traded with permanently gains +10 pips. | deck pips card scaling scores |
 | the_catalyst | Catalyst | When swapped, the card it traded with permanently gains +5 mult. | deck mult card scaling scores |
 | the_wanderer | Wanderer | While on grid: allows any two cards to be swapped regardless of positi | stock other swap |
-| amplifier | Amplifier | Double-tap: your next hand scores +10 mult, then Amplifier returns to  | mult hand scores |
+| amplifier | Amplifier | Double-tap: the next hand scores mult equal to the current level x3. ( | mult hand scores |
 | snooze | Snooze Button | Double-tap: pause the clock for 10s, then Snooze returns to your deck. | time other |
 | shady_tree | Shady Tree | Play this from column x (changes each round) to pause the clock for 1s | time hand position |
 | stopwatch | Stopwatch | Double-tap: pause the clock until your next played hand (60s of use, e | time other |
@@ -216,7 +215,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | all_hands | All Hands | Double-tap: plays every hand on the board, left to right, top to botto | other |
 | reflect | Reflect | Tap to rotate its aim. The rank it faces replays 2x when scored. Canno | replay card rank position scores |
 | soul_mirror | Soul Mirror | Tap to rotate its aim. When the rank it faces is scored, it replays on | replay card rank position scores |
-| autopilot | Autopilot | Costs 5 Focus when it lands on the board. 30s later it plays the best  | focus other cost |
+| autopilot | Autopilot | Costs 5 Focus when it lands on the board. 30s later it plays the best  | focus other cost scores |
 | whetstone | Whetstone | Whenever an adjacent card is swapped or discarded, Whetstone gains +2  | mult hand position swap discard scores scaling |
 | entourage | Entourage | Hands score +10 mult for every other Sleight on the grid. | mult hand sleights scores |
 | lighthouse | Lighthouse | Each round Lighthouse picks either the first or last column. All hands | mult hand position scores |
@@ -234,7 +233,7 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 
 | id | name | desc (first 70) | tags |
 |---|---|---|---|
-| move_as_one | Move as One | If 2+ of your Tricks share a keyword, a random Trick sharing that keyw | prime hand tricks |
+| move_as_one | Move as One | If 2+ of your Tricks share a keyword, a random Trick sharing that keyw | retrigger hand tricks |
 | rain_check | Rain Check | Skipping a reward: the next round starts with +30s (in Flow, rewind th | time other reward |
 | wait_for_it | Wait For Iiiit | Each negative reward tile taken this run gives every scored card a +3% | replay card reward level scores scaling chance |
 | head_count | Head Count | The Sleight queue (the button on your Trick tray) shows how many cards | info other sleights |
@@ -245,8 +244,8 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | free_discards | Free Discards | Discarding costs no time. | stock other discard |
 | steady_hand | Steady Hand | Swaps no longer count against the swap limit, but cost 2× time. | stock other swap cost |
 | hoarder | Hoarder | Discards no longer count against the discard limit, but cost 2× time. | stock other discard cost |
-| time_bank | Time Bank | Every round starts with +30s. | time other |
-| inheritance | Inheritance | Start each round with +5 credits. | credits other |
+| time_bank | Time Bank | Every round starts with +30s. | time other start |
+| inheritance | Inheritance | Start each round with +5 credits. | credits other start |
 | short_change | Short Change | Each hand you play with fewer cards than your hand size earns 1 credit | credits hand size |
 | bulk_buyer | Bulk Buyer | The shop multi-buy discount is 5% per extra item instead of 3%. | credits other shop |
 | haggler | Haggler | Shop prices are 5% lower. | credits other shop |
@@ -255,34 +254,34 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | high_roller | High Roller | Each scored card has a chance to replay equal to your credits plus you | replay card scores chance |
 | combo_keeper | Combo Keeper | Streaks survive one non-streak hand. Re-arms after 2 streak hands. | other streak |
 | lucky_seven | Lucky Seven | Every 7th hand played gives +1 swap. | stock hand |
-| extra_swaps | Swap Shop | Start each round with +2 extra swaps. After each boss you beat, 60% ch | stock other boss scaling chance |
-| extra_discards | Harvest | Start each round with +2 extra discards. After each boss you beat, 60% | stock other boss scaling chance |
+| extra_swaps | Swap Shop | Start each round with +2 extra swaps. After each boss you beat, 60% ch | stock other boss scaling chance start |
+| extra_discards | Harvest | Start each round with +2 extra discards. After each boss you beat, 60% | stock other boss scaling chance start |
 | carry_swaps | Pack Rat | Unused swaps carry over to the next round (max 8). | stock other level |
 | carry_discards | Collector | Unused discards carry over to the next round (max 8). | stock other level |
 | carry_time | Clock Tower | The next round starts with the seconds this round ends with (max 60s). | time other level clock |
 | safety_net | Safety Net | Once per game: if you miss the round goal, the round goes on with 30s  | shield time other level |
 | last_swap | Last Swap | End a round with exactly one swap left and you can trade two touching  | other reward level cost |
 | free_range_t | Free Range | Can swap any two non-adjacent cards, but limited to 2 swaps per round. | stock other swap cost |
-| understudy | Understudy | Every 30 seconds one of your tricks is primed: it fires an extra time  | prime other clock tricks |
+| understudy | Understudy | Every 30 seconds one of your tricks is primed: it fires an extra time  | retrigger other clock tricks |
 | hallmark | Hallmark | Once a round a card on the board is marked. Score it and it takes a ra | deck card position scaling chance |
 | turnover | Turnover | Any card you leave alone for 45 seconds becomes Fodder until it leaves | stock other clock swap discard |
 | challenge_dial | Challenge Dial | Challenge cards show up 25% more often. Double-tap this to make them 2 | luck other challenge |
 | free_hand | Free Hand | Double-tap the Focus bar: spend 10 Focus and swaps and discards cost n | stock other swap discard cost |
 | charged_card | Charged Card | Double-tap the Focus bar: spend 10 Focus and the first card of your ne | deck other scaling chance cost |
 | shuffle_up | Shuffle Up | Double-tap the Focus bar: spend 10 Focus and every card on the board c | board other cost |
-| double_down | Double Down | Double-tap the Focus bar: spend 10 Focus and Focus applies twice for y | focus other cost |
+| double_down | Double Down | Double-tap the Focus bar: spend 10 Focus and Focus applies twice for y | focus other cost scores |
 | overdrive | Overdrive | Double-tap the Focus bar: the board plays its best hand for 5 Focus, a | xmult focus other scores cost |
 | long_pause | Long Pause | All clock pauses last 1.5× as long. | time other pause |
 | sundial | Sundial | Hands where every card shares a column pause the clock for 8s. | time hand position |
-| metronome | Metronome | Each round a hand type you can make is chosen; playing that hand type  | time hand chance |
+| metronome | Metronome | Each round a hand type you can make is chosen; playing that hand type  | time hand chance start |
 | time_slip | Time Slip | Whenever the clock would pause, 25% chance to rewind the clock that ma | time other pause chance |
-| replay_rewind | Rewound Echo | Any time a card replays, 25% chance to rewind the clock 2s. | time card chance |
+| replay_rewind | Rewound Echo | Any time a card replays, 25% chance to rewind the clock 2s. | time card chance replays |
 | deja_vu | Déjà Vu | Playing the same ranks in two hands in a row rewinds the clock 15s. | time hand rank |
 | clockmaker | Clockmaker | Any time a single hand scores at least 30% of the round goal, rewind t | time hand |
-| high_and_mighty | High and Mighty | The highest-ranked cards in each scored hand replay once. | replay card scores |
-| low_and_behold | Low and Behold | Any played hand containing the grid’s lowest rank replays the whole ha | replay hand scores |
-| down_and_back_in | Down and Back In | Discarding a card of the grid’s highest rank grants +2 discards or +2 | stock credits other discard |
-| muscle_memory | Buddy System | Whenever a Trick is primed, a different Trick is primed too. | prime other tricks |
+| high_and_mighty | High and Mighty | The highest-ranked cards in each scored hand replay once. | replay card scores rank |
+| low_and_behold | Low and Behold | Any played hand containing the grid’s lowest rank replays the whole ha | replay hand scores rank |
+| down_and_back_in | Down and Back In | Discarding a card of the grid’s highest rank grants +2 discards or +2  | stock credits other discard rank |
+| muscle_memory | Buddy System | Whenever a Trick is primed, a different Trick is primed too. | retrigger other tricks |
 | curator | Curator | +1 Trick Slot. After each boss you beat, 60% chance it gives 1 more. | limit other boss scaling chance |
 | short_suit | Short Suit | Flush of 3 and Flush of 4 become scorable hands. | other flush size |
 | old_tricks | Old Tricks | Every hand type scores with the best growth anywhere in its family - s | hand scores |
@@ -293,14 +292,14 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | shady_stimulants | Shady Stimulants | Every negative reward tile you take raises your Focus limit by 1. | focus other reward scaling |
 | greedy_boi | Greedy Boi | +2 selection size in the reward grid - grab more tiles at once. | other reward |
 | scavenger | Scavenger | Whenever a curse lifts, gain +10 coins and +1 discard next round. | credits stock other |
-| coin_toss | Coin Toss | At the start of each round, every Sleight has a 50% chance to restore  | other sleights chance |
-| martyr | Martyr | Discarding a non-discard Sleight restores 1 charge to all Sleights on  | other sleights discard |
+| coin_toss | Coin Toss | At the start of each round, every Sleight has a 50% chance to restore  | other sleights chance charges start |
+| martyr | Martyr | Discarding a non-discard Sleight restores 1 charge to all Sleights on  | other sleights discard charges |
 | surveyor | Surveyor | When you gain a position Trick, you choose which column it marks. | other tricks position line |
 | leveler | Leveler | When you gain a position Trick, you choose which row it marks. | other tricks position line |
 | alignment | Alignment | Position Tricks automatically mark the column matching their tray slot | other tricks position line |
 | district | District | Position Tricks may share a row or column instead of spreading onto se | other tricks position line |
 | tempo | Tempo | When acquired, sets your swap and discard limits to 2. Every 15 second | stock other clock cost |
-| jury_rig | Jury-Rig | Swapping or discarding a card adjacent to a Sleight has a 50% chance t | other sleights position swap discard chance |
+| jury_rig | Jury-Rig | Swapping or discarding a card adjacent to a Sleight has a 50% chance t | other sleights position swap discard chance charges |
 | dividend | Dividend | Each time you hit your Focus limit, gain 8 credits, then Focus resets  | credits other cost |
 | trade_winds | Trade Winds | Your Focus limit is 10 lower. At the end of each round, gain credits e | credits focus other level cost |
 | knock_on | Knock-On | Whenever a limit other than Focus Cap goes up, another random limit go | limit other |
@@ -310,158 +309,28 @@ Every row of TRICK_POOL, SLEIGHT_POOL and KNACK_POOL, tagged from js/data/tags.j
 | shorthand | Shorthand | Hands generate 1.5× their listed Focus. | focus other |
 | core_memories | Core Memories | Each Event you attend raises your Focus limit by 2. | focus other scaling |
 
-## QUESTIONS FOR THE OWNER
+## DECISIONS (owner, r635)
 
-Every row below is a judgement call made while tagging. The pick is what shipped in the
-data files; flip it and the row's `tags:` is the only thing to change.
+- A Focus payer that makes Focus APPLY more times is `scores` (Phoenix, Kaleidoscope, Marathon,
+  Autopilot, Double Down, Overdrive). A plain Focus payer is not.
+- A permanent card buff is `deck` + its buff kind + `scaling` + `scores`.
+- Relative rank (highest / lowest / adjacent in rank) is `rank`, like a named rank.
+- A Sleight that fires on a discard or a swap carries no `discard` / `swap` WHEN tag: its
+  activation is its own dropdown. Tricks and Knacks that fire on those actions do carry them.
+- A discard- or swap-triggered Trick is scoped `other` (the SCOPE dropdown: per card, per hand,
+  elsewhere), not `hand`.
+- `start` (WHEN, Round start) is new: Tunnel Vision, Time Bank, Inheritance, Swap Shop, Harvest,
+  First Fruits, Metronome, Coin Toss.
+- Cards scoring again are a REPLAY (`replay` in PAYS; `replays` in WHEN for what fires on one:
+  Rerun, Chorus, The Cuckoo, Replay Rewind). A Trick firing again is a RETRIGGER (`retrigger` in
+  PAYS, which replaces `prime`: primes, mirrors, force-triggers, Move as One).
+- `charges` (PAYS, Sleight charges) is new: Coin Toss, Martyr, Jury-Rig.
 
-### 1. Is a Focus payer `scores`?
-Focus multiplies the hand, but the rule given was "Focus alone is not `scores`". Applied as
-written, so none of these carry `scores`. Affects everything that only pays Focus, and in
-particular the ones that make Focus APPLY more times, which does change the hand's score:
-`phoenix`, `kaleidoscope`, `marathon` (Tricks), `autopilot` (Sleight), `double_down` (Knack).
-Pick: no `scores`.
+## STILL OPEN
 
-### 2. Is a permanent card buff both `deck` and its buff kind, and does it get `scores`?
-A buff that lands on a card for good (`rare_bloom`, `first_fruits`, `sapling`, `sixes_perm`,
-`fours_perm`, `heartwood`, `rowcol_perm_double`, `the_naturalist`, `the_bomb`,
-`lightning_rod`, `the_catalyst`, `pivot`) is tagged `deck` + `pips`/`mult` + `scaling`, and by
-the "pips in PAYS means scores" rule also `scores`, although THIS hand's score does not change.
-The time-buff ones (`vulture`, `wait_four_it`) are `deck` + `time` + `scaling`, no `scores`.
-`hourglass` (permanent +1 replay) is `deck` + `replay` + `scores` the same way. `hallmark`,
-`charged_card`, `aces_absorb`, `monopoly`, `queens_upgrade` give a buff whose kind is unknown
-or not pips/mult, so they are `deck` + `scaling` only. Pick: the mechanical rule.
-
-### 3. `scores` with no pips/mult/replay in PAYS (4 rows)
-`warehouse` and `stand_in` follow the task's wild-card rule (counts as a card and changes what
-the hand scores). `the_ringer` (pulls a card in for a better hand) and `old_tricks` (changes
-the growth a hand scores with) change the score without paying any one axis. Pick: `scores`
-on all four, PAYS empty (Ringer has `board`).
-
-### 4. Is a hand's condition on something you HOLD a WHEN tag?
-`interest` (credits held), `obsessed` (credits), `high_roller` (credits + Luck),
-`buried_treasure` (Luck), `magpie` (swaps + discards held), `flow_state` (Focus x1.5 or
-higher), `scalper` / `entourage` (Sleight state: these did get `sleights`). The registry has no
-WHEN for credits, Luck, stock or Focus level, so Interest, Obsessed, High Roller, Hyperphagia
-and Flow State carry no WHEN. Pick: none; see "missing concepts".
-
-### 5. Relative rank: is "highest / lowest / adjacent in rank" `rank`?
-`rank` was defined as named ranks or face cards. `eye_of_storm`, `summit`, `high_and_mighty`,
-`low_and_behold`, `ripple`, `down_and_back_in`, `sandbag` (pair's rank in seconds: tagged
-`rank`), `blackjack_bonus` (face values total 21: tagged `rank`), `number_crunch` (4+
-different ranks: tagged `rank`), `deja_vu` (same ranks twice: tagged `rank`). Pick: relative
-(highest / lowest / adjacent) is NOT `rank`; rank values and rank counts ARE.
-
-### 6. Replays as a CONDITION
-`rerun`, `chorus` (x per replay), `cuckoo` (per 5 replays), `replay_rewind` (when a card
-replays) react to replays; `replay` is a PAYS tag, so they carry no WHEN. Pick: none.
-
-### 7. Sleight activation vs the `discard` / `swap` WHEN tags
-Activation is not a tag, so `on_discard` / `on_swap` Sleights (`dazed`, `the_bomb`,
-`the_legacy`, `cash_out`, `last_call`, `sandbag`, `lightning_rod`, `the_catalyst`) carry no
-`discard` / `swap` WHEN, while a Trick or Knack that fires on a discard does (`cull`,
-`five_fodder`, `landfill`, `free_discards`...). `whetstone` and `pivot` got `swap` / `discard`
-because their TEXT names the action beyond their activation. Pick: as above.
-
-### 8. Scope of a discard- or swap-triggered Trick
-`cull`, `five_fodder` (Tricks), `down_and_back_in`, `martyr` (Knacks) fire on an action, not
-a hand, so they are `other`. `lucky_sevens` ("each 7 scored or discarded") is `card`. Pick: other.
-
-### 9. Scope of "its Nth card" / "the highest card" effects
-`third_charm`, `fours_perm`, `eye_of_storm`, `high_and_mighty`, `summit`, `heartwood`,
-`double_jeopardy`, `woodpecker`: the condition is hand-level but the pay lands on one card.
-Pick: `card`. `low_and_behold` ("replays the whole hand") is `hand`. `shape_line` ("add every
-card's pip value to mult") is `hand`.
-
-### 10. Force-triggers and mirrors as `prime`
-`twos_retrigger`, `temporal_rift` (force trigger), `mirror` (mimics a Trick), `move_as_one`
-(fires a Trick a second time) are not primes in code but there is no other PAYS for "a Trick
-fires again". Pick: `prime`.
-
-### 11. `tricks` now gates Tray Order (js/events.js ownsPositional reads it)
-The old gate was 'positional' on Inspirato, Double Take, Prime Times, Mirror. `tricks` is on
-those four plus `temporal_rift` (position 3: order matters), `alignment` (tray slot: order
-matters), and also `move_as_one`, `understudy`, `muscle_memory`, `surveyor`,
-`leveler`, `district`, where order does NOT matter. Pick: tag by the text; if the Shift Change
-event turning up for a Magician owner is wrong, the event needs its own list or a narrower
-read. (Flagged in the report; events.js was not touched.) r635: Magician no longer reads the
-tray (its pips need no Sleights owned), so it lost `tricks`.
-
-### 12. `line` = only Tricks that put a mark on the grid
-`POSITION_ASSIGN_IDS` (Right Place, Power Line, Echo Location, Perfect Timing, Right Time,
-Groove, Assembly Line, Overtime) plus `four_by_four` carry `line`, and the four position Knacks
-(`surveyor`, `leveler`, `alignment`, `district`) that decide where a mark goes. Readers of marks
-(`rowcol_perm_double`, `temporal_rift`, `feng_shui`) and Sleights with a column of their own
-(`shady_tree`, `lighthouse`, not drawn) do not. `double_jeopardy`, `woodpecker`, `hallmark` mark
-a CELL, not a line: `position`, no `line`. Pick: as above.
-
-### 13. Is "round start" a WHEN?
-`level` is "a round end or a level-up". Round-START payers (`tunnel_vision`, `time_bank`,
-`inheritance`, `extra_swaps`, `extra_discards`, `first_fruits`, `metronome`, `coin_toss`)
-carry no `level`. Round-END payers do (`life_lessons`, `carry_*`, `trade_winds`,
-`time_and_a_half`, `gross_pay`, `safety_net`, `keeper`, `growth_spurt`, `last_swap`). Pick: no.
-
-### 14. Does a `chance` roll include a random TARGET or a random OUTCOME?
-Random outcome (which bonus, which buff, how much): `chance` on `correct_run`, `second_hand`,
-`ninesong`, `four_horseman`, `sixes_perm`, `rising_tide`, `hallmark`, `charged_card`,
-`metronome`, `dealers_choice`. Random target only (which card / which Trick / which limit):
-no `chance` on `monopoly`, `hourglass`'s target (it has `chance` for its 50%), `move_as_one`,
-`understudy`, `growth_spurt`, `knock_on`. Pick: outcome yes, target no.
-
-### 15. Is a Focus-limit raise `focus` + `scaling`?
-`quick_draw`, `expanse`, `little_guys`, `life_lessons`, `shady_stimulants`, `core_memories`
-raise the Focus limit for the run: `focus` + `scaling`. `power_cell`, `slow_burn`, `stimulants`
-raise it while held / flat: `focus`, no `scaling`. `release_valve` LOSES Focus and raises
-nothing Focus-related, so it has `stock` + `cost` and no `focus`. `dividend` (resets Focus) and
-`growth_spurt` / `trade_winds` (lower the limit) take `cost`; the two that change the limit
-also take `focus`. Pick: as above.
-
-### 16. Is "becomes inert" a `cost`?
-`piggy_bank` and `capacitor` lock their cell after use. Capacitor already pays Focus and
-seconds; Piggy Bank's only cost is the inert card. Pick: `cost` on both.
-
-### 17. The Wanderer and Free Range
-"Any two cards may be swapped" changes the swap RULE, not its price. Tagged `stock` (the
-closest PAYS) + `swap`. Pick: `stock`; a `board` reading is also defensible.
-
-### 18. Autoplay Sleights and Knacks
-`all_hands` (no cost, plays every hand) has nothing in PAYS: it is `other` only. `autopilot`
-is `focus` + `cost`; `overdrive` is `xmult` + `focus` + `cost` + `scores`. "The hands make no
-Focus of their own" was NOT read as a `focus` payer for All Hands. Pick: as above.
-
-### 19. Eagle Eye and swaps
-`still_water` pays for seconds WITHOUT a swap; `swap` is "fires on a swap", so it got `clock`
-only. `syncopation` (a DIFFERENT hand type) did get `streak` since streak is "cares about
-repeating a hand type". Pick: as above.
-
-### 20. The Queen's `rank`
-`the_queen` is a Queen, so it joins Queen sets and rank runs: tagged `wild` + `rank`. Pick: yes.
-
-### 21. Scavenger, Core Memories, Challenge Dial
-`scavenger` fires when a CURSE lifts (no tag; `boss` would be a guess), `core_memories` per
-EVENT attended (no tag), `challenge_dial` is `luck` (changes the odds of challenge cards) +
-`challenge`. Pick: as above.
-
-### 22. Hands of Blue / Rainbow / Diversity hand size
-2x2, four suits and 4+ ranks each need 4 cards, but the text does not say so. Only Tricks whose
-text names a card count carry `size` (`undertow`'s "per card beyond 3" does). Pick: no `size`.
-
-### Tags in TAG_DEFS on 0 rows
-None. The thinnest: `luck` 1 (challenge_dial), `buffed` 1 (portfolio), `challenge` 1
-(challenge_dial), `shop` 2 (bulk_buyer, haggler), `wild` 3, `info` 3, `shield` 3, `limit` 3.
-
-### Concepts the registry lacks (left untagged)
-- A WHEN for Focus state (Flow State "x1.5 or higher", Release Valve / Expanse / Dividend /
-  Growth Spurt "hit your Focus limit").
-- A WHEN for credits or Luck held (Interest, Obsessed, High Roller, Buried Treasure).
-- A WHEN for stock held (Hyperphagia).
-- A WHEN for replays happening (Rerun, Chorus, Cuckoo, Rewound Echo).
-- A WHEN for pick / tap order (Rogue Wave "correct sequential order", 3rd Time's a Charm,
-  Wait Four It's 4th card; the card ladder makes order matter everywhere).
-- A WHEN for curses (Scavenger) and for Events (Core Memories).
-- A WHEN for round START (see 13).
-- A PAYS for "a Trick fires again" that is not a prime (Double Take, Temporal Rift, Mirror,
-  Move as One), and for "restores Sleight charges" (Coin Toss, Martyr, Jury-Rig: PAYS empty).
-- A PAYS for autoplay (All Hands, Autopilot, Overdrive).
-- A PAYS for rule changes with no axis (Combo Keeper, Short Suit, Three's a Crowd, Tagalong,
-  Greedy Boi, Last Swap: PAYS empty).
+- Conditions on something HELD (credits for Interest, Obsessed, High Roller; Luck for Buried
+  Treasure; stock for Hyperphagia; the Focus level for Flow State) carry no WHEN tag. A `held`
+  tag ("cares what you hold") would cover them in one word, or one tag per thing.
+- Round START vs round END: `start` is new; round END stays `level`.
+- The registry still lacks: curses, Events, pure rule changes with no axis (Combo Keeper, Tagalong,
+  Greedy Boi, Short Suit, Last Swap carry an empty PAYS).
