@@ -207,6 +207,7 @@ function buildCardAnimEl(card, finalR, finalC) {
   const el = document.createElement('div');
   const { className, innerHTML } = renderCardAppearance(card, finalR, finalC);
   el.className = className + ' temp-anim';
+  el.dataset.row = finalR; el.dataset.col = finalC;   // its cell's margin (r642 even gaps)
   el.innerHTML = innerHTML;
   el.style.position       = 'absolute';
   el.style.width          = CARD_W + 'px';
@@ -420,8 +421,12 @@ async function removeAndFall(removingCells, mode = 'play') {
   sortedFallPlan.forEach(({ row, col, fallBy, card }) => {
     if (!card) return;
     const startX = cellLeft(col);
-    const startY = cellTop(row);
-    const dist = fallBy * CARD_STEP;
+    // The element carries the DESTINATION row's margin (r642 even gaps), so its
+    // top is set back by the two rows' offsets and the travel is by the drawn
+    // card's real positions, not the cell step.
+    const _rowShift = cardRowOffset(row + fallBy) - cardRowOffset(row);
+    const startY = cellTop(row) - _rowShift;
+    const dist = fallBy * CARD_STEP + _rowShift;
     const colBase = (col - minActiveCol) * COL_OFFSET;
     const startAt = Math.max(colBase, colReadyAt[col] || colBase);
     colReadyAt[col] = startAt + FALL_DUR * 0.6;

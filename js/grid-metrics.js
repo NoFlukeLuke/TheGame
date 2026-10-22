@@ -96,9 +96,15 @@ function gridSameBoxMetrics() {
 // stretch to it. Now the card keeps a chosen shape INSIDE the cell and the slack
 // becomes gap: CARD_W / CARD_H stay the cell (every step and hit test reads them),
 // CARD_VIS_W / CARD_VIS_H are what the card is drawn at (--card-w / --card-h) and
-// CARD_CX / CARD_CY centre it in the cell (--card-cx / --card-cy, a margin on
-// #grid's cards, css/style.css). Dev -> Aesthetics -> Card ratio; the store
-// (lethe.cardRatio.v1) holds only a choice other than the default.
+// the slack is shared out as ONE EVEN GAP (r642, owner): the gaps between
+// cards and the gaps between the outer cards and the board's frame are all the
+// same width, so a card's offset inside its cell depends on its column (and
+// row). CARD_CX / CARD_CY are the first column's / row's offset (--card-cx /
+// --card-cy, the fallback margin); cardVisualRules() writes a margin per
+// data-col / data-row into #card-vis-style. A card never leaves its cell (the
+// last column's offset is at most the cell's slack), so hit tests on the cell
+// still hold. Dev -> Aesthetics -> Card ratio; the store (lethe.cardRatio.v1)
+// holds only a choice other than the default.
 const CARD_RATIOS = { fill: 0, game: 75 / 57, pack: 1.5 };
 const CARD_RATIO_DEFAULT = 'game';
 let CARD_VIS_W = 57, CARD_VIS_H = 75, CARD_CX = 0, CARD_CY = 0;
@@ -122,7 +128,37 @@ function cardVisualFor(w, h) {
   const R = cardRatioValue();
   if (!R) { CARD_VIS_W = w; CARD_VIS_H = h; CARD_CX = CARD_CY = 0; return; }
   CARD_VIS_W = Math.min(w, h / R); CARD_VIS_H = Math.min(h, w * R);
-  CARD_CX = (w - CARD_VIS_W) / 2; CARD_CY = (h - CARD_VIS_H) / 2;
+  CARD_CX = cardVisualOffset(gridCols, w, CARD_VIS_W, 0);
+  CARD_CY = cardVisualOffset(gridRows, h, CARD_VIS_H, 0);
+}
+// Where drawn card i sits inside cell i along one axis (a margin on top of
+// cellLeft / cellTop), with n cells of `cell` and a drawn size of `vis`: the n
+// cards and n + 1 EQUAL gaps share the board's whole padding box (the pad and
+// the cell gaps included), so the gap by the frame is the gap between cards.
+// The last card can sit a px or two left of its cell, in the cell gap, never in
+// another cell.
+function cardVisualOffset(n, cell, vis, i) {
+  n = Math.max(1, n | 0);
+  const run = n * cell + (n - 1) * CARD_GAP + 2 * GRID_PAD;
+  const g = Math.max(0, (run - n * vis) / (n + 1));
+  return g + i * (vis + g) - GRID_PAD - i * (cell + CARD_GAP);
+}
+// A drawn card's offset in its cell by column / row (0 when the card fills the
+// cell), for code that moves a card between cells by the card's real position.
+function cardColOffset(c) { return CARD_VIS_W < CARD_W - 0.01 ? cardVisualOffset(gridCols, CARD_W, CARD_VIS_W, c) : 0; }
+function cardRowOffset(r) { return CARD_VIS_H < CARD_H - 0.01 ? cardVisualOffset(gridRows, CARD_H, CARD_VIS_H, r) : 0; }
+// One margin rule per column and row (data-col / data-row, set by render.js and
+// card-fall.js), only while the drawn card is smaller than the cell.
+function cardVisualRules() {
+  let st = document.getElementById('card-vis-style');
+  if (!st) { st = document.createElement('style'); st.id = 'card-vis-style'; document.head.appendChild(st); }
+  const rules = [];
+  if (CARD_VIS_W < CARD_W - 0.01) for (let c = 0; c < gridCols; c++)
+    rules.push(`#grid > .card[data-col="${c}"], #grid > .trick-card[data-col="${c}"] { margin-left: ${cardVisualOffset(gridCols, CARD_W, CARD_VIS_W, c).toFixed(2)}px; }`);
+  if (CARD_VIS_H < CARD_H - 0.01) for (let r = 0; r < gridRows; r++)
+    rules.push(`#grid > .card[data-row="${r}"], #grid > .trick-card[data-row="${r}"] { margin-top: ${cardVisualOffset(gridRows, CARD_H, CARD_VIS_H, r).toFixed(2)}px; }`);
+  const css = rules.join('\n');
+  if (st.textContent !== css) st.textContent = css;
 }
 
 function gridFillOn() {
@@ -221,6 +257,10 @@ function recomputeGridMetrics() {
   CARD_W = w;
   CARD_H = h;
   CARD_STEP = CARD_H + CARD_GAP;
+  // Set AFTER the cell is known: the reset at the top copied the OLD cell, and a
+  // board whose cells grew (a phone back from a 4x6 reward board to its 4x4)
+  // kept drawing the smaller card (r642 fix).
+  CARD_VIS_W = CARD_W; CARD_VIS_H = CARD_H; CARD_CX = CARD_CY = 0;
   if (!document.body.classList.contains('gp-active') && !(typeof shopGridActive !== 'undefined' && shopGridActive)) {
     const sl = document.getElementById('grid-slot');
     _playGeom = { W: CARD_W, H: CARD_H, gap: CARD_GAP, pad: GRID_PAD, rows, cols,
@@ -266,6 +306,7 @@ function applyGridMetricsToDOM() {
   document.documentElement.style.setProperty('--card-h', CARD_VIS_H + 'px');
   document.documentElement.style.setProperty('--card-cx', CARD_CX + 'px');
   document.documentElement.style.setProperty('--card-cy', CARD_CY + 'px');
+  cardVisualRules();
   // The grid's real footprint, so anything anchored in the EMPTY MARGIN of
   // #grid-slot can size itself against it in CSS alone. #grid is centred in the
   // slot, so that margin is (slot - grid) / 2 on each side - which is where the

@@ -180,8 +180,10 @@ function doSwap(r1, c1, r2, c2) {
   // Capture card IDs and old positions for FLIP animation (before data swap)
   const _swId1 = gridData[r1]?.[c1]?._id;
   const _swId2 = gridData[r2]?.[c2]?._id;
-  const _swDx = cellLeft(c2) - cellLeft(c1);
-  const _swDy = cellTop(r2) - cellTop(r1);
+  // By the DRAWN card's position: with the even gaps (r642) a card's offset in
+  // its cell depends on the column, so the cell step is not the card's travel.
+  const _swDx = cellLeft(c2) + cardColOffset(c2) - cellLeft(c1) - cardColOffset(c1);
+  const _swDy = cellTop(r2) + cardRowOffset(r2) - cellTop(r1) - cardRowOffset(r1);
 
   const tmp = gridData[r1][c1];
   gridData[r1][c1] = gridData[r2][c2];

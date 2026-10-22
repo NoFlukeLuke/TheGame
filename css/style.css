@@ -1876,7 +1876,9 @@
     transform: translate(var(--hbx,0), var(--hby,0)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * var(--grds,1)));
   }
   /* r641: in the fixed box a card may be drawn smaller than its cell (Card ratio);
-     --card-cx / --card-cy (js/grid-metrics.js) centre it. Board children only. */
+     --card-cx / --card-cy (js/grid-metrics.js) are the first column's / row's
+     offset; #card-vis-style (written there) sets one per data-col / data-row so
+     every gap, frame included, is the same width (r642). Board children only. */
   #grid > .card, #grid > .trick-card { margin-left: var(--card-cx, 0px); margin-top: var(--card-cy, 0px); }
   .card.removing {
     transition: opacity 0.18s ease-in, transform 0.18s ease-in !important;

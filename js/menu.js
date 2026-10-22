@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r642 · the held tag: Interest, Obsessed, High Roller, Buried Treasure, Hyperphagia and Flow State are findable under WHEN";
+const BUILD = "2026-10-22 · r643 · the card ratio's slack is one even gap, frame included; swap and fall travel by the drawn card";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -2223,3 +2223,22 @@ Card ratio** (`setCardRatio`, `lethe.cardRatio.v1`, stored only off the default)
 WHEN gains `held` ("cares what you are holding"), one tag for the six rows that read something you
 hold rather than the hand: Interest, Obsessed, High Roller (credits), Buried Treasure (Luck),
 Hyperphagia (stock), Flow State (the Focus level). TAGS.md's STILL OPEN loses that item.
+
+## r643 - the card ratio's slack is one even gap, frame included (owner)
+r641 centred the drawn card in its cell, so the gap between cards was twice the gap by the frame
+(4x4 at 1440x820: 16 between, 10 at the frame). Now `cardVisualOffset(n, cell, vis, i)`
+(js/grid-metrics.js) shares the board's whole padding box (pad and cell gaps included) between
+the n drawn cards and n + 1 EQUAL gaps, so a card's offset in its cell depends on its column
+(and row, when the cell is taller than the ratio). `cardVisualRules()` writes one `margin-left`
+rule per `data-col` and one `margin-top` per `data-row` into `#card-vis-style` (only while the
+drawn card is smaller than the cell); `--card-cx` / `--card-cy` stay as the first column's / row's
+fallback. `cardColOffset(c)` / `cardRowOffset(r)` are the readers for code that moves a card by
+its real position: the swap's dx / dy (js/input.js) and a falling card's start and travel
+(js/card-fall.js; `buildCardAnimEl` tags its cell so a temp card takes its own margin). The last
+card may sit a px or two into the cell gap, never in another cell, so hit tests on the cell hold.
+Also fixed: `recomputeGridMetrics` reset the drawn size from the OLD cell before computing the new
+one, so a portrait board whose cells grew (back from a 4x6 reward board to a 4x4) kept the smaller
+card. Measured at 1440x820, game ratio: 4x4 gaps 14 13 14 13 15 (were 10 16 16 16 10), pack 20 20
+20 20 21, 6x6 10 10 9 10; a 4x7's vertical gaps 31 32 31 32 32. A real swap across a column started
+at translate -76.5 against a drawn distance of 76.5 (no pop); a discard's column landed on its drawn
+x. 420x900 unchanged (6 6 6 6 6). No page errors.
