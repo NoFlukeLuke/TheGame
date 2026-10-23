@@ -30,10 +30,10 @@ html.skin-machine {
   --mc-print: #d6cfbb; --mc-screw: #8d877a; --mc-dirt: 20,14,6;
   --mc-font: 'VT323 Local', 'VT323', 'Share Tech Mono', monospace;
   /* The tube (the screen door on every screen), one place. --mc-scan-w is the black
-     horizontal line's thickness: 0 is off (this test), .5px the thinnest that draws, 1px
+     horizontal line's thickness: .5px is the thinnest that draws (r639), 0 is off, 1px
      the old look. --mc-scan is its darkness (#grid lightens it). The grille's three
      stripes: the blue one's tint is half the old rgb(210 215 255). */
-  --mc-scan-w: 0px; --mc-scan: .34;
+  --mc-scan-w: .5px; --mc-scan: .34;
   --mc-grille-r: rgb(255 205 205); --mc-grille-g: rgb(205 255 210); --mc-grille-b: rgb(233 235 255);
   /* grain: fine noise, dark and light specks (r501: 20% fainter) */
   --mc-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .56 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");

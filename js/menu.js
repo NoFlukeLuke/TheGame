@@ -1,4 +1,4 @@
-const BUILD = "2026-10-22 · r653 · the re-entrant fall is reverted: PLAY waits for the fall again, cards in the air stay tappable; the kicker refusal stays";
+const BUILD = "2026-10-23 · r654 · console mode: the horizontal scan lines are back at half a pixel (--mc-scan-w .5px, the thinnest that draws)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
