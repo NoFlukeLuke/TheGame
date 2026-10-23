@@ -1,4 +1,4 @@
-const BUILD = "2026-10-23 · r656 · the Schedule's lines print their stakes (goal, credits, path, the review's boss)";
+const BUILD = "2026-10-23 · r657 · departments draft (docs only)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

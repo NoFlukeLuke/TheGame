@@ -11,7 +11,7 @@ fresh chat can pick up where the last one stopped without re-deriving it from gi
 When you finish something, delete it from here and say so in the commit. When you find work
 you are not doing, add it here rather than leaving it in a commit message nobody will read.
 
-**Other files that hold ideas or plans** (r656 count: seven besides this one). Each is a
+**Other files that hold ideas or plans** (r657 count: eight besides this one). Each is a
 parking lot for one area; anything here that grows a spec moves into its section below.
 
 | file | holds |
@@ -19,6 +19,7 @@ parking lot for one area; anything here that grows a spec moves into its section
 | `OPEN_DECISIONS.md` | balance findings left for the owner (above) |
 | `POST_LAUNCH.md` | decided work held until the itch build is out |
 | `SCHEDULE_IDEAS.md` | the ten Schedule ideas and the owner's verdicts on them |
+| `DEPARTMENTS.md` | the Schedule's departments: focuses, pairings, every tile (chunk 1) |
 | `MODE_IDEAS.md` | modes the owner described, not built |
 | `FOCUS_IDEAS.md` | Focus-driven modes and mechanics |
 | `CARD_MECHANICS.md` | hostile cards, phantoms, force triggers, draw order |
@@ -95,11 +96,12 @@ before you accept it.
 The 4 x 4 to-do list shipped in r655 and its line items (idea 1) in r656. The owner's verdicts
 on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
 
-1. **Departments** (ideas 2 and 9). A pool of eight departments, four on a map, weighted by
-   quarter (Marketing early, Accounting late). Each lane is one department: its own tile mix,
-   at least one thing unique to it (named events, a reward grid leaning to one tag), shown as a
-   column header. Later, a difficulty tier punishes one department column, one more per tier,
-   so the departments need a ranking by how good they are.
+1. **Departments** (ideas 2 and 9). Eleven departments, four on a map, favourites twice as
+   likely in their quarter. Each lane is one department: a tile focus (twice as likely in its
+   column), a reward focus (half its reward grids' entity tiles), an event pool (80%; 20% any
+   event; event tiles unlabelled), shown as a column header. Later, a difficulty tier punishes
+   one department column, one more per tier, so the departments need a ranking by how good they
+   are. Decisions and the draft lists: `DEPARTMENTS.md`.
 2. **Two bosses a quarter, and a hidden third** (idea 2). Each boss owns two lanes; enough
    bookings in a boss's lanes (owner's guess: 5) unlocks choosing it; short of both, a hidden
    third boss. Trades rewards now for an easier review.
@@ -119,6 +121,8 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
 - **Extra Mile and elites** (idea 4), until the bosses are settled. Elites ("supervisor
   reviews") are a raised goal plus a mini-boss effect; Extra Mile is an opt-in challenge on a
   line. They must read as different things. See section 3 below for the mini-boss half.
+- **Department streaks as a Knack:** booking one department in back-to-back slots pays a
+  small perk, three in a row a bigger one. Dropped from the departments (owner, r657).
 - **Gold stars** (idea 8): one starred tile a quarter, taking the star instead of the tile's
   payout, four stars unlocking something at the end. Waits for a real final boss or final
   reward to unlock.
