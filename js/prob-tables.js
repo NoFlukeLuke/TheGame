@@ -85,7 +85,7 @@ const PROB_TABLES = [
                  { k: 'relay', label: 'Relay', get: () => LEVEL_TYPE_RELAY_CHANCE, set: v => { LEVEL_TYPE_RELAY_CHANCE = v; } }] },
 
   { id: 'mapfill', group: 'Schedule map', type: 'w', title: 'Schedule obligation mix',
-    desc: 'What fills the free cells of a Schedule map once the minimums are placed (2 shops, 2 hard rounds, 3 meetings, 2 reward grids).',
+    desc: 'What fills the free cells of a Schedule map once the minimums are placed (1 shop, 1 hard round, 2 events, 1 reward grid).',
     how: 'Ratios. Raise a row to see more of that obligation on the board. Maps that fail validation are re-rolled, so extreme numbers just cost generation time.',
     rows: () => MAP_FILL_W.map(e => ({ k: e[0], label: e[0], get: () => e[1], set: v => { e[1] = v; } })) },
   { id: 'mapblank', group: 'Schedule map', type: 'w', title: 'Blank cells per map',
@@ -98,7 +98,7 @@ const PROB_TABLES = [
     rows: () => _ptObjRows(MAP_FUNNEL_SOLID_ODDS, { 2: '2 lanes', 3: '3 lanes', 4: '4 lanes' }) },
 
   { id: 'guidedx', group: 'Guided', type: 'p', title: 'Guided crossroads offers',
-    desc: 'Guided only. Each kind is rolled on its own for the four-tile crossroads; anything left empty becomes a meeting.',
+    desc: 'Guided only. Each kind is rolled on its own for the four-tile crossroads; anything left empty becomes an event.',
     how: 'Each row is an independent chance. Raising several above 50% crowds the board and the later rows get trimmed.',
     rows: () => GUIDED_ODDS.map(o => ({ k: o.kind, label: o.kind, get: () => o.chance, set: v => { o.chance = v; } })) },
 

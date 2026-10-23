@@ -2,7 +2,8 @@
 // MAP MODE (r238) - the run is a board you walk
 // ══════════════════════════════════════════════
 // EACH QUARTER is a MAP: 4 lanes x MAP_SETS sets of tiles, then a full-width
-// boss. Beat it and the quarter closes, a fresh map is drawn, and the run is
+// boss. r655 (owner): 4 x 4, the slots read TOP TO BOTTOM in both orientations,
+// drawn as a terminal to-do list (mapRender) with its toolbar at the foot. Beat it and the quarter closes, a fresh map is drawn, and the run is
 // one of those per quarter (r252) - the same shape every act mode has.
 // The grid IS the map (the same borrow the shop makes): tiles fall in like a
 // deal, you pick one, CONFIRM, the map falls out the bottom, the grid resizes
@@ -57,8 +58,12 @@
 // seams Guided already cut. The map is routing, not new machinery.
 
 const MAP_LANES = 4;
-const MAP_SETS  = 6;              // regular sets; the boss column is index MAP_SETS
-const MAP_BOSS_SET = MAP_SETS;    // 6
+const MAP_SETS  = 4;              // regular sets (r655: was 6); the boss row is index MAP_SETS
+const MAP_BOSS_SET = MAP_SETS;    // 4
+// The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
+const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2], ['reward', 1]];
+// The day the to-do list prints down its left edge: one time per slot, then the review.
+const MAP_SLOT_TIMES = ['09:00', '11:00', '13:00', '15:00', '17:00'];
 const MAP_SKIP_BASE = 4, MAP_SKIP_STEP = 2;   // skip n pays BASE + STEP*n: 6, 8, 10...
 const MAP_MAX_MYSTERY = 2;
 // Blanks are a ROLL, not a fixture: about half of maps carry two, the rest one
@@ -93,7 +98,12 @@ function mapRollBlanks() {
 // The boss quota: MAP_BOSS_LEVELS levels of a curve a notch steeper than
 // Classic's GOAL_SCALE (1.35). Computed once at run start so the map can print
 // it before the first tile is taken.
-const MAP_BOSS_LEVELS = 9;
+// r655: 9 -> 6.5 for the 4 x 4 map. A quarter is 8 bookings, not 12, so the
+// review is met around level 9, not 13 (goal 5,638 at Q1, not 11,000). 9 levels
+// would ask 12,000 there (2.1x); 6.5 asks 6,500, about 1.15x the goal of the
+// level you meet it on, where 9 asked 1.09x of level 13's. The sim bot wins the
+// 4 x 4 at 94-96% between 6 and 7 (tools/sim, an 8-tile walk, handTime 6).
+const MAP_BOSS_LEVELS = 6.5;
 // r278: 1.40 -> 1.30. A Schedule level advances on every obligation, so its own
 // per-level growth (MAP_GOAL_GROWTH, read by mapGoalForLevel in js/goal-tuning.js)
 // is much flatter than Classic's - and the review quota has to flatten with it or
@@ -173,6 +183,18 @@ function mapResetBoard() {
   if (mapActive()) mapGenerate();
 }
 
+// A saved run from the 4 x 6 schedule (before r655) holds tiles past this
+// shape's review row; its quarter is drawn again on the new shape. Run state
+// (skips, the quarter, the curve) is untouched. Called from restoreRun.
+function mapRepairShape() {
+  if (!mapActive() || !mapTiles.length) return;
+  const boss = mapTiles.find(t => t.kind === 'boss');
+  if (boss && boss.set === MAP_BOSS_SET && !mapTiles.some(t => t.set > MAP_BOSS_SET)) return;
+  const skips = mapSkips;
+  mapResetBoard();
+  mapSkips = skips;
+}
+
 // The boss quota is FIXED at map build, and ANCHORED TO THE LEVEL THE QUARTER
 // OPENS ON: MAP_BOSS_LEVELS of the steeper curve from here. At Q1 that reads
 // goalForLevel(1) = BASE_GOAL (1500 -> a 12,000 quota since the r278 retune;
@@ -216,25 +238,25 @@ const MAP_ICON_PRIORITY =
   '<svg class="mk-svg" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">' +
   '<path d="M4 3 L20 12 L4 21 Z M8.3 7.4 h2.3 v6.3 h-2.3 z M8.3 15.1 h2.3 v2.3 h-2.3 z"/></svg>';
 const MAP_KIND_META = {
-  level:      { icon: '▶', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
+  level:      { icon: '▶\uFE0E', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
                 blurb: 'An ordinary round. Clear it and take a pick of three.' },
   challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
                 blurb: 'A round with a raised goal and one extra ask. Pays credits and a knack.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
-  audit:      { icon: '⚑', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
+  audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
                 blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Solve all ${CR_CARDS} for a prize grid; run out of time and you pick penalties.` },
-  shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
+  shop:       { icon: '$', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
   reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
                 blurb: 'A board of rewards. Pick a connected path across it.' },
-  event:      { icon: '✧', name: 'MEETING',   full: 'Meeting',          cls: 'mk-event',
+  event:      { icon: '✧', name: 'EVENT',     full: 'Event',            cls: 'mk-event',
                 blurb: 'One screen, one decision. The tile names which.' },
   limitbreak: { icon: '▲', name: 'RAISE',     full: 'Raise Request',    cls: 'mk-limit',
                 blurb: 'Raise a limit, or trade one away for credits.' },
   blank:      { icon: '',  name: '',          full: 'Not scheduled',    cls: 'mk-blank',
                 blurb: 'Nothing booked there, and no way through it.' },
-  boss:       { icon: '☠', name: 'REVIEW',    full: 'Manager Review',   cls: 'mk-boss',
+  boss:       { icon: '☠\uFE0E', name: 'REVIEW',    full: 'Manager Review',   cls: 'mk-boss',
                 blurb: 'The end of the schedule, on its own quota.' },
 };
 
@@ -336,8 +358,7 @@ function _mapBuildOnce() {
 
   // Top the minimums up, counting what the funnel already placed.
   const count = k => tiles.filter(t => t.kind === k).length;
-  const needs = [['shop', 2], ['challenge', 2], ['event', 3], ['reward', 2]];
-  for (const [k, min] of needs) {
+  for (const [k, min] of MAP_MINIMUMS) {
     let missing = min - count(k);
     while (missing-- > 0 && free.length) {
       const [l, s] = free.splice(Math.floor(Math.random() * free.length), 1)[0];
@@ -421,7 +442,7 @@ function _mapValidate(tiles) {
   // build placed to satisfy them. Measured before this check: 12% of maps
   // shipped short of a minimum.
   const count = k => tiles.filter(t => t.kind === k).length;
-  if (count('shop') < 2 || count('challenge') < 2 || count('event') < 3 || count('reward') < 2) return false;
+  if (MAP_MINIMUMS.some(([k, min]) => count(k) < min)) return false;
   for (let s = 1; s <= MAP_SETS - 2; s++)
     if (!tiles.some(t => t.set === s && t.kind === 'level')) return false;
   const kindAt = (l, s) => {
@@ -647,8 +668,7 @@ function mapOpen() {
   gameTimerPaused = true;
   mapLandscape = !!document.getElementById('stage')?.classList.contains('landscape');
   mapGridSaved = { rows: gridRows, cols: gridCols };
-  if (mapLandscape) { gridRows = MAP_LANES; gridCols = MAP_SETS + 1; }
-  else              { gridRows = MAP_SETS + 1; gridCols = MAP_LANES; }
+  gridRows = MAP_SETS + 1; gridCols = MAP_LANES;   // r655: the slots read top to bottom everywhere
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('map-active');
@@ -658,13 +678,9 @@ function mapOpen() {
   mapRenderBar();
 }
 
-// lane/set -> pixel cell, honouring orientation. In landscape the run reads
-// left to right; in portrait, top to bottom.
-function _mapCellXY(lane, set) {
-  return mapLandscape
-    ? { x: cellLeft(set), y: cellTop(lane) }
-    : { x: cellLeft(lane), y: cellTop(set) };
-}
+// The map fills its box in both orientations (js/grid-metrics.js asks this):
+// it is a screen of text, not a board of card-shaped cells.
+function mapWantsFill() { return mapScreenOpen; }
 
 // THE ORIENTATION IS RE-READ ON EVERY RENDER, not just captured at open.
 // `mapLandscape` decides which way the schedule reads - left to right on a
@@ -676,8 +692,7 @@ function mapSyncOrientation() {
   const ls = !!document.getElementById('stage')?.classList.contains('landscape');
   if (ls === mapLandscape) return false;
   mapLandscape = ls;
-  if (ls) { gridRows = MAP_LANES; gridCols = MAP_SETS + 1; }
-  else    { gridRows = MAP_SETS + 1; gridCols = MAP_LANES; }
+  gridRows = MAP_SETS + 1; gridCols = MAP_LANES;
   recomputeGridMetrics();
   return true;
 }
@@ -705,131 +720,79 @@ function mapRender(animateIn) {
   const legal = mapLegalMoves();
   const legalIds  = new Set(legal.filter(m => !m.doomed).map(m => m.tile.id));
   const doomedIds = new Set(legal.filter(m => m.doomed).map(m => m.tile.id));
+  // The slot the player is in: its row is lit and its gutter says how full it is.
+  const curSet = mapPos ? Math.min(mapPos.set, MAP_SETS) : 0;
 
-  const spanW = (n) => n * (CARD_W + CARD_GAP) - CARD_GAP;
-  const spanH = (n) => n * (CARD_H + CARD_GAP) - CARD_GAP;
-  const FALL_DUR = 380, BOUNCE = 6, SQUISH = 0.08;
-
-  // ── The board under the tiles ──────────────────────────────────────────────
-  // One backdrop, one band per set, and the route: faint rails between sets
-  // plus the BRIGHT line of where you have actually walked. All of it is
-  // absolutely-positioned siblings behind the tiles (z-index 1 against their 2),
-  // drawn from the same cell metrics, so nothing here needs to know which way
-  // round the board reads.
-  const boardW = mapLandscape ? spanW(MAP_SETS + 1) : spanW(MAP_LANES);
-  const boardH = mapLandscape ? spanH(MAP_LANES)    : spanH(MAP_SETS + 1);
-  const PAD = 8;
-  const bg = document.createElement('div');
-  bg.className = 'map-board' + (mapLandscape ? ' mb-land' : ' mb-port');
-  bg.style.cssText = `left:${cellLeft(0) - PAD}px;top:${cellTop(0) - PAD}px;`
-                   + `width:${boardW + PAD * 2}px;height:${boardH + PAD * 2}px;`;
-  gridEl.appendChild(bg);
-
-  // A band per set, numbered, so the six-stop structure reads before any tile does.
-  for (let sIdx = 0; sIdx < MAP_SETS; sIdx++) {
-    const here = mapPos ? mapPos.set === sIdx : sIdx === 0;
-    const band = document.createElement('div');
-    band.className = 'map-band' + (sIdx % 2 ? ' mb-odd' : '') + (here ? ' mb-now' : '');
-    const a = _mapCellXY(0, sIdx);
-    band.style.cssText = mapLandscape
-      ? `left:${a.x - 2}px;top:${cellTop(0) - PAD + 2}px;width:${CARD_W + 4}px;height:${boardH + PAD * 2 - 4}px;`
-      : `left:${cellLeft(0) - PAD + 2}px;top:${a.y - 2}px;width:${boardW + PAD * 2 - 4}px;height:${CARD_H + 4}px;`;
-    band.innerHTML = `<span class="mbd-no">${sIdx + 1}</span>`;
-    gridEl.appendChild(band);
+  // ── THE SCREEN (r655, owner): the schedule is a TO-DO LIST on a terminal ──
+  // One amber glass over the whole board box, laid out by CSS grid rather than
+  // the card cells: a gutter of times down the left (09:00 ... 17:00), one row
+  // per time slot read TOP TO BOTTOM in both orientations, the review last, and
+  // the toolbar (#map-bar) along the foot. A tile is a to-do item: a checkbox,
+  // its glyph and its word. A two-slot event spans two rows like a calendar block.
+  const term = document.createElement('div');
+  term.className = 'map-term' + (mapLandscape ? ' mtm-land' : ' mtm-port');
+  const list = document.createElement('div');
+  list.className = 'mtm-list';
+  term.appendChild(list);
+  for (let s = 0; s <= MAP_SETS; s++) {
+    const isReview = s === MAP_SETS;
+    const row = document.createElement('div');
+    row.className = 'mtm-row' + (s === curSet && !mapBossArmed ? ' now' : '') + (isReview ? ' mtm-review' : '');
+    row.style.gridRow = String(s + 1);
+    list.appendChild(row);
+    const time = document.createElement('div');
+    time.className = 'mtm-time' + (s === curSet ? ' now' : '');
+    time.style.gridRow = String(s + 1);
+    const booked = (s === curSet && mapPos && !isReview) ? `<i>${mapVisits}/2</i>` : '';
+    time.innerHTML = `<b>${MAP_SLOT_TIMES[s] || ''}</b><span>${isReview ? 'REVIEW' : 'SLOT ' + (s + 1)}</span>${booked}`;
+    list.appendChild(time);
   }
-
-  // The route. A rail is drawn between every pair of set-adjacent solid cells;
-  // the segments you actually walked are drawn again, lit, on top of them.
-  const centreOf = (lane, set) => {
-    const { x, y } = _mapCellXY(lane, set);
-    return { x: x + CARD_W / 2, y: y + CARD_H / 2 };
-  };
-  // A 2x1 tile occupies TWO cells, so the route has to run STRAIGHT THROUGH it
-  // and only then turn: you enter at its head and leave from its tail. Drawing
-  // it as one node at the head instead put a single diagonal from the head to
-  // whatever you took next, which reads as a 45 degree short cut across a tile
-  // you actually walked the length of. Hence entry and exit rather than centre.
-  const entryOf = (t) => centreOf(t.lane, t.set);
-  const exitOf  = (t) => centreOf(t.lane, t.set + (t.span === 2 ? 1 : 0));
-  const drawSeg = (p1, p2, cls) => {
-    const dx = p2.x - p1.x, dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1) return;
-    const ln = document.createElement('div');
-    ln.className = 'map-link ' + cls;
-    ln.style.cssText = `left:${p1.x}px;top:${p1.y}px;width:${len}px;`
-                     + `transform:rotate(${Math.atan2(dy, dx)}rad);`;
-    gridEl.appendChild(ln);
-  };
-  // The spine of a 2x1: the straight run from its head to its tail.
-  const drawSpine = (t, cls) => { if (t.span === 2) drawSeg(entryOf(t), exitOf(t), cls); };
-  // Under the pick rule (r648) every tile of the next slot is a move, so the rails
-  // would join everything to everything: only the 2x1 spines and the walked route.
-  const _railsOn = !mapPickRule();
-  for (const t of mapTiles) {
-    if (t.kind === 'blank' || t.kind === 'boss') continue;
-    drawSpine(t, 'ml-rail');
-    if (!_railsOn) continue;
-    const fwd = t.set + (t.span === 2 ? 2 : 1);
-    if (fwd > MAP_SETS) continue;
-    for (let l = 0; l < MAP_LANES; l++) {
-      const n = mapCellTile(l, fwd);
-      if (!n || n.kind === 'blank') continue;
-      if (n.kind === 'boss' && l !== t.lane) continue;     // the boss is one tile
-      if (Math.abs(l - t.lane) > 1) continue;              // only a lane you could reach
-      drawSeg(exitOf(t), centreOf(n.kind === 'boss' ? t.lane : l, fwd), 'ml-rail');
-    }
-  }
-  const walked = mapTiles.filter(t => t.visited && t.step).sort((a, b) => a.step - b.step);
-  walked.forEach(t => drawSpine(t, 'ml-walked'));
-  for (let i = 1; i < walked.length; i++)
-    drawSeg(exitOf(walked[i - 1]), entryOf(walked[i]), 'ml-walked');
 
   const drawTile = (t) => {
     const face = mapTileFace(t);
-    const { x, y } = _mapCellXY(t.lane, t.set);
     const isBoss = t.kind === 'boss';
-    let w = CARD_W, h = CARD_H;
-    if (isBoss) { if (mapLandscape) h = spanH(MAP_LANES); else w = spanW(MAP_LANES); }
-    else if (t.span === 2) { if (mapLandscape) w = spanW(2); else h = spanH(2); }
-
+    const legalT = legalIds.has(t.id), doomed = doomedIds.has(t.id);
+    const missed = !t.visited && !legalT && !doomed && t.kind !== 'blank' && !isBoss && t.set <= curSet && !!mapPos;
+    const box = t.visited ? 'x' : mapSelected === t.id ? '>' : doomed ? '!' : missed ? '-' : ' ';
     const div = document.createElement('div');
     div.className = 'map-tile ' + face.cls
       + (t.visited ? ' mt-visited' : '')
-      + (legalIds.has(t.id) ? ' mt-legal' : '')
-      + (doomedIds.has(t.id) ? ' mt-doomed' : '')
+      + (legalT ? ' mt-legal' : '')
+      + (doomed ? ' mt-doomed' : '')
+      + (missed ? ' mt-missed' : '')
       + (mapSelected === t.id ? ' mt-selected' : '')
-      + (mapPosTileId === t.id ? ' mt-here' : '');
-    div.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
-    // NO NAME ON THE BOARD (r276). The glyph is the whole label; the bar names
-    // what you hover or pick, the ? legend lists every symbol with its word,
-    // and the tile's `title` still carries both for a desktop tooltip.
-    div.innerHTML =
-      `<div class="mt-wash"></div>` +
-      `<div class="mt-icon">${face.icon}</div>` +
-      (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
+      + (mapPosTileId === t.id ? ' mt-here' : '')
+      + (t.span === 2 ? ' mt-span' : '');
+    div.style.gridRow = (t.set + 1) + (t.span === 2 ? ' / span 2' : '');
+    div.style.gridColumn = isBoss ? '2 / -1' : String(t.lane + 2);
+    const word = (t.mystery && !t.revealed) ? '???' : (MAP_KIND_META[t.audit ? 'audit' : t.kind] || MAP_KIND_META.event).name;
+    div.innerHTML = t.kind === 'blank'
+      ? `<span class="mt-free">· · ·</span>`
+      : `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span></span>`
+        + `<span class="mt-name">${isBoss ? face.full : word}</span>`
+        + (isBoss ? `<span class="mt-goal">${(typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL'} ${Number(mapBossGoal || 0).toLocaleString()}</span>` : '');
     if (face.full) div.title = face.full + (mapTileDesc(t) ? ' - ' + mapTileDesc(t) : '');
-    div.onclick = () => mapTileTap(t);
-    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
-    div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
-    gridEl.appendChild(div);
-    if (animateIn) {
-      const rows = mapLandscape ? MAP_LANES : MAP_SETS + 1;
-      const r = mapLandscape ? t.lane : t.set;
-      const c = mapLandscape ? t.set : t.lane;
-      const dropDist = (rows - r) * (CARD_H + CARD_GAP);
-      div.animate([
-        { opacity: 0, transform: `translateY(${-dropDist}px) scaleY(1)` },
-        { opacity: 1, transform: `translateY(${-dropDist}px) scaleY(1)`, offset: 0.06 },
-        { opacity: 1, transform: `translateY(${-dropDist * 0.45}px) scaleY(0.96)`, offset: 0.55, easing: 'ease-in' },
-        { opacity: 1, transform: `translateY(${BOUNCE}px) scaleY(${1 - SQUISH})`, offset: 0.85 },
-        { opacity: 1, transform: `translateY(${-BOUNCE * 0.6}px) scaleY(${1 + SQUISH})`, offset: 0.93 },
-        { opacity: 1, transform: 'translateY(0) scaleY(1)' },
-      ], { duration: FALL_DUR, delay: c * 60 + r * 35, easing: 'ease-in', fill: 'both' });
+    if (t.kind !== 'blank') {
+      div.onclick = () => mapTileTap(t);
+      div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+      div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
     }
+    list.appendChild(div);
+    // The list PRINTS IN, a row at a time, the way a terminal draws a file. The
+    // animation fills BACKWARDS only: a fill that outlives it would own opacity
+    // for good, and the states above are opacity.
+    if (animateIn) div.animate([{ opacity: 0 }, { opacity: 1 }],
+      { duration: 140, delay: t.set * 90 + (isBoss ? 0 : t.lane * 28), easing: 'steps(3, end)', fill: 'backwards' });
   };
-
   mapTiles.forEach(drawTile);
+
+  // The toolbar: built empty here, filled by mapRenderBar (which every caller runs next).
+  const bar = document.createElement('div');
+  bar.id = 'map-bar';
+  term.appendChild(bar);
+  gridEl.appendChild(term);
+  if (animateIn) term.animate([{ clipPath: 'inset(50% 0 50% 0)' }, { clipPath: 'inset(0 0 0 0)' }],
+    { duration: 220, easing: 'ease-out', fill: 'backwards' });
 
   // The pen's canvas is a CHILD of #grid, which this function just emptied, so
   // it is put back here; the strokes themselves live in mapDrawStrokes and are
@@ -883,42 +846,47 @@ const MAP_HELP_PICK = [
 ];
 function mapHelpRows() { return mapPickRule() ? MAP_HELP_PICK : MAP_HELP; }
 function mapRenderBar() {
-  let bar = document.getElementById('map-bar');
-  if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
+  // r655: the toolbar is the foot of the to-do screen (mapRender builds it empty),
+  // not a body-level strip over the stage's own buttons.
+  const bar = document.getElementById('map-bar');
+  if (!bar) return;
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
+  const done = mapPos ? Math.min(mapPos.set, MAP_SETS) : 0;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
+  const crunch = (typeof crunchActive === 'function') && crunchActive();
   // Every slot books two, the last one included (r293) - so the cap is flat.
-  const visits = mapPos
-    ? `${mapFreeBranchOn() ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranchOn() ? ' FREE' : ''}`
-    : 'PICK A START';
+  const visits = mapBossArmed ? 'REVIEW NEXT'
+    : `BOOKED ${mapPos ? (mapFreeBranchOn() ? mapVisitsInSet(mapPos.set) : mapVisits) : 0}/2${mapFreeBranchOn() ? ' FREE' : ''}`;
+  const pips = Array.from({ length: MAP_SETS }, (_, i) =>
+    `<i class="${i < done ? 'on' : i === done && !mapBossArmed ? 'cur' : ''}"></i>`).join('');
   const inked = (typeof mapHasInk === 'function') && mapHasInk();
   bar.innerHTML =
-    // PAUSE lives in the bar because the bar COVERS the play screen's own PAUSE
-    // button. #map-bar is body-level in raw viewport px and grows to fit whatever
-    // the picked obligation's line says, so at 1440x820 it runs from 360px to the
-    // full width the moment a tile is picked and paints straight over the button.
-    // Measured before this: elementFromPoint on #btn-pause returned #map-bar.
-    // First in the bar, so it is in the same place however many chips are showing.
-    `<button class="mb-q mb-pause" id="mb-pause" title="Pause / menu">&#9208;</button>` +
-    `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
-    `<span class="mb-visits">${visits}</span>` +
-    `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
-    `<button class="mb-q${(typeof mapLegendOpen === 'function' && mapLegendOpen()) ? ' on' : ''}" ` +
-      `id="mb-key" title="What the obligations are">▤</button>` +
-    `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
-      `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">✎</button>` +
-    `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
-    (inked ? `<button class="mb-q" id="mb-undo" title="Undo the last stroke">↶</button>` +
-             `<button class="mb-q" id="mb-wipe" title="Clear all ink">✕</button>` : '') +
-    `<span class="mb-info" id="mb-info"></span>` +
-    `<span class="mb-skip">SKIP ${skipNext}</span>` +
-    `<span class="mb-coins">${coins} ◆</span>` +
-    `<button id="mb-confirm" disabled>CONFIRM</button>` +
+    `<span class="mb-tools">` +
+      `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
+      `<button class="mb-q${(typeof mapLegendOpen === 'function' && mapLegendOpen()) ? ' on' : ''}" ` +
+        `id="mb-key" title="What the obligations are">&#8801;</button>` +
+      `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
+        `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">&#9998;</button>` +
+      `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
+      (inked ? `<button class="mb-q" id="mb-undo" title="Undo the last stroke">&#8630;</button>` +
+               `<button class="mb-q" id="mb-wipe" title="Clear all ink">x</button>` : '') +
+    `</span>` +
+    `<div class="mb-l1">` +
+      `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
+      `<span class="mb-pips">${pips}</span>` +
+      `<span class="mb-visits">${visits}</span>` +
+      (crunch ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays this">LEAVE EARLY +${skipNext}</span>`) +
+    `</div>` +
+    `<div class="mb-l2">` +
+      `<span class="mb-cmd" id="mb-cmd"></span>` +
+      `<button id="mb-confirm" disabled>CLOCK IN</button>` +
+    `</div>` +
+    `<div class="mb-info" id="mb-info"></div>` +
     `<div class="mb-help" id="mb-help">` +
       mapHelpRows().map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
     `</div>`;
-  // The legend is NOT in here any more (r294): it is a body-level rail beside
-  // the board, so it survives this rebuild instead of being destroyed by it.
+  // The legend is NOT in here (r294): it is a body-level rail beside the board,
+  // so it survives this rebuild instead of being destroyed by it.
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
@@ -940,7 +908,6 @@ function mapRenderBar() {
       document.removeEventListener('click', off);
     }), 0);
   };
-  document.getElementById('mb-pause').onclick = (e) => { e.stopPropagation(); togglePauseMenu(); };
   document.getElementById('mb-q').onclick = cardToggle('mb-help');
   document.getElementById('mb-key').onclick = (e) => { e.stopPropagation(); mapLegendToggle(); };
   document.getElementById('mb-pen').onclick = () => mapPenToggle();
@@ -952,26 +919,49 @@ function mapRenderBar() {
   // A legend row lights its own kind and writes its sentence into this bar's
   // own info line; both live with the rail now (js/map-draw.js).
   if (typeof mapPenSyncChrome === 'function') mapPenSyncChrome();
-  if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
+  const sel = mapSelected && mapTiles.find(x => x.id === mapSelected);
+  mapBarInfo(sel || null, sel ? mapMoveFor(mapSelected) : null);
   // The x/y selection readout hides on the map (r255), and nothing else repaints
   // it while the map is up - the class goes on without a render behind it.
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
 }
 
+// The command line names the obligation you are about to clock in on (owner,
+// r655); the info line under it says what it is. Nothing picked: the prompt waits.
+function mapBarCommand(t, move) {
+  const el = document.getElementById('mb-cmd');
+  if (!el) return;
+  const cur = `<span class="mb-cur"></span>`;
+  if (!t) {
+    el.innerHTML = `<span class="mb-verb">&gt;</span> <span class="mb-wait">${mapPos ? 'PICK ONE' : 'PICK A START'}</span>${cur}`;
+    el.title = '';
+    return;
+  }
+  // The name beside CLOCK IN is the whole point of the line, so no verb eats it.
+  const face = mapTileFace(t);
+  const name = (t.kind === 'event' && t.eventName && !(t.mystery && !t.revealed)) ? t.eventName : (face.full || face.name);
+  const can = !!move && !move.doomed;
+  el.innerHTML = `<span class="mb-verb">&gt;</span> <b class="mb-name">${name}</b>${can ? cur : ''}`;
+  el.title = name;
+}
+
 function mapBarInfo(t, move) {
+  mapBarCommand(t, move);
   const el = document.getElementById('mb-info');
   if (!el) return;
-  if (!t) { el.innerHTML = ''; return; }
-  const face = mapTileFace(t);
-  const full = face.full && face.full.toUpperCase() !== face.name ? `<span class="mb-full">${face.full}</span> ` : '';
-  let s = `<b>${face.name}</b> ${full}${mapTileDesc(t)}`;
+  if (!t) {
+    el.innerHTML = mapPickRule() ? 'Book any two in a slot, in any order. Everything you book happens.'
+      : 'Move up, down or forward. Everything you book happens.';
+    return;
+  }
+  let s = mapTileDesc(t);
   if (move && !move.doomed) {
     // Crunch pays nothing for a skip (js/crunch-mode.js), so it must not be
     // advertised here either - a bar promising credits the confirm will not pay
     // is worse than saying nothing.
     if (move.from && move.after.set > move.from.set && move.from.visits === 1
         && !(typeof crunchActive === 'function' && crunchActive()))
-      s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
+      s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} credits</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
     // Crunch prices the booking. The fee is the decision in that mode, so it is
     // read off the board rather than discovered after confirming.
@@ -981,7 +971,7 @@ function mapBarInfo(t, move) {
         ? ` <i>booking costs ${_cost}s</i>`
         : ` <i>costs ${_cost}s · not enough time</i>`;
     }
-  } else if (t.visited) s += ' <i>already taken</i>';
+  } else if (t.visited) s += ' <i>done</i>';
   else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
   else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;

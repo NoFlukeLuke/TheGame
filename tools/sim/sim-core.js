@@ -294,7 +294,9 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   // per quarter: 5 levels + 1 hard round + 2 reward tiles + 1 shop + 1 event, then boss.
   for (let q = 1; q <= quarters; q++) {
     const quarterOpenLevel = level;
-    const tiles = ['level','reward','level','shop','level','hard','reward','level','event','level'];
+    // r655: a sched json's "tiles" replaces the walk (the 4x4 map books 8 a quarter).
+    const tiles = (typeof SIM_SCHED_TILES !== 'undefined' && SIM_SCHED_TILES)
+      || ['level','reward','level','shop','level','hard','reward','level','event','level'];
     for (const t of tiles) {
       if (t === 'level' || t === 'hard') {
         if (t === 'hard') roundGoal = Math.round(roundGoal * 1.25);

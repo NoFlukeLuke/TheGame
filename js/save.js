@@ -315,6 +315,8 @@ function resumeSavedRun() {
     // Guided's challenges lost their predicate to the JSON round trip - see the
     // note beside them in SAVE_VARS.
     if (typeof guidedRehydrateChallenges === 'function') guidedRehydrateChallenges();
+    // r655: a Schedule saved on the old 4 x 6 shape is drawn again as 4 x 4.
+    if (typeof mapRepairShape === 'function') mapRepairShape();
   } finally {
     _restoringSave = false;
   }

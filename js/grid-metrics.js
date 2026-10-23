@@ -197,6 +197,8 @@ function recomputeGridMetrics() {
   document.getElementById('stage')?.classList.toggle('grid-fill', fill);
   if (!fill) document.body.classList.remove('gp-fillhead');
   if (fill) { gridFillMetrics(); return; }
+  // r655: the Schedule is a screen of text and fills its box in portrait too.
+  if (typeof mapWantsFill === 'function' && mapWantsFill()) { gridFillMetrics(); return; }
   if (gridSameBoxOn()) { gridSameBoxMetrics(); return; }
   const cols = gridCols, rows = gridRows;
   // Fit cards to the MEASURED slot so the grid always fills the available area
@@ -413,10 +415,15 @@ function syncSidebarsToGrid() {
   // across the board. Centred on the focus column they cost the track nothing,
   // so the bar is a good deal longer and ends where the board does - which in
   // Flow is where the review mark sits.
+  // r655 (owner): centred on the column, the clock (60 design px with its 3px
+  // ring, wider than the column) reached back across the seam into the left
+  // panel. It now starts on the Focus column's left edge, the area is as wide as
+  // the clock really is, and the bar takes what is left.
   if (clockArea && vclock) {
-    const readoutW = 7;
-    const cLeft = fLeft === null ? gLeft
-                : Math.max(leftColumnRightPct() + 0.1, fLeft + fw / 2 - readoutW / 2);
+    const ck = document.getElementById('clock');
+    const zk = s.width / (stage.offsetWidth || s.width);
+    const readoutW = Math.max(7, ck && ck.offsetWidth ? pct((ck.offsetWidth + 6) * zk) : 0);
+    const cLeft = fLeft === null ? gLeft : Math.max(leftColumnRightPct() + 0.1, fLeft);
     clockArea.style.left  = cLeft + '%';
     clockArea.style.width = readoutW + '%';
     const barLeft = Math.max(cLeft + readoutW + (gridFillOn() ? 1.4 : 0.6), gLeft);   // r565: a gap in console mode

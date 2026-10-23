@@ -30,6 +30,7 @@ function SIM_goal(lv) {
 }
 `);
 if (sched.native) {} // no-op, SIM_goal already defined
+if (sched.tiles) G.eval(`var SIM_SCHED_TILES = ${JSON.stringify(sched.tiles)};`);
 
 
 const results = [];

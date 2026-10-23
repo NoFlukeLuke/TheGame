@@ -17,7 +17,8 @@ node runner.js <classic|schedule|survival> <runs> '<sched-json>' [handTime]
 - `{"native":true}` plays the game's own shipped curve (`goalForLevel`).
 - Otherwise: `{"base":1500,"roundTo":500,"segments":[[12,32],[99,45]]}` means
   levels up to 12 grow 32% per level, everything after 45%. Schedule also takes
-  `"bossMult"` (review quota = quarter-open goal x that); survival takes
+  `"bossMult"` (review quota = quarter-open goal x that) and `"tiles"` (the walk, r655: e.g.
+  `["level","level","level","reward","hard","shop","event","reward"]` for the 4 x 4); survival takes
   `"bossEvery"` (seconds of live play per boss, default 300).
 - `handTime` (default 12s) is the bot's pace per hand - the skill knob.
 - `sweep.sh <mode>` runs the r278 config lists into `sweep_<mode>.jsonl`.

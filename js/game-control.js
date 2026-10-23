@@ -96,10 +96,9 @@ function resumeGame() {
 // The one toggle. The in-stage PAUSE button uses it, and so do the pause chips on
 // the three screens that COVER that button, which fixing pauseGame alone could not
 // reach: an event and a Limit Break are full-screen panels over the whole stage
-// (#event-bar / #lb-bar in index.html), and the map's own bottom strip is body-level
-// and grows across the button row the moment an obligation is picked (#mb-pause,
-// js/map-mode.js). A chip goes in the one part of each screen that never scrolls
-// away - its bar.
+// (#event-bar / #lb-bar in index.html). (The Schedule's bar had one too until r655,
+// when it moved inside the board's screen.) A chip goes in the one part of each
+// screen that never scrolls away - its bar.
 function togglePauseMenu() {
   if (isPaused) resumeGame();
   else pauseGame(true);

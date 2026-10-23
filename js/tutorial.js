@@ -321,7 +321,7 @@ const TUTORIAL_STEPS = [
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Your schedule',
-    body: `You work left to right through six <b>time slots</b>. Each tile is one <b>obligation</b>: a round, a shop, a meeting, a reward board.<br><br>The column at the end is the <b>manager review</b>.`,
+    body: `Your day runs top to bottom through four <b>time slots</b>. Each line is one <b>obligation</b>: a round, a shop, an event, a reward board.<br><br>The line at the bottom is the <b>manager review</b>.`,
   },
   {
     id: 'schedule-legend', only: 'map', anchor: () => tutEl('#mb-key'), side: 'top', gate: true,
@@ -347,7 +347,7 @@ const TUTORIAL_STEPS = [
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Pick your first stop',
-    body: `Tap an obligation you can reach, then <b>CONFIRM</b>.<br><br>The first slot is all rounds.`,
+    body: `Tap an obligation you can reach, then <b>CLOCK IN</b>.<br><br>The first slot is all rounds.`,
     until: () => !tutMapOpen(),
   },
 

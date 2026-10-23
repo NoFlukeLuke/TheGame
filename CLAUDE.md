@@ -29,6 +29,7 @@ superseded is history, not current code. The other reference docs:
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
+| `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -194,8 +195,8 @@ SKIP skips, PLAY/DISCARD mirror them. Reward chrome leaves through `rewardTransi
   stay one pinned size for the chain.
 - Credits: interest and unused stock are capped at 10 (`BAL._resources`), Gross Pay lifts both.
   All payout figures and their printed labels come from one function each in `js/data/cards.js`.
-- The Schedule (`js/map-mode.js`): 4 lanes x 6 slots, orthogonal moves, dead ends refused by DP,
-  every tile advances the curve. Boss quota fixed at map build.
+- The Schedule (`js/map-mode.js`): 4 lanes x 4 slots read top to bottom (r655), any two a slot
+  (r648), dead ends refused, every tile advances the curve. Boss quota fixed at map build.
 
 ### Offers and rarity
 Four tiers: `common` `rare` `epic` `legendary` (ids frozen; `mythic` aliases to legendary).
@@ -2506,3 +2507,33 @@ selectable, I can wait for them to fall." The kicker refusal (r652) stays. Known
 a hand played while the previous hand is still flying to the preview cuts that dance and its cards come
 back onto the board unremoved (`cancelDance` -> `dncRestoreHiddenGridEls`, js/score-anims.js: "they were
 never removed"); the score was already banked. Not changed here.
+
+## r655 - the Schedule is a 4 x 4 to-do list; the desktop clock stays right of the seam (owner)
+- **Shape:** `MAP_SETS` 6 -> 4 (4 lanes x 4 slots, then the review). `MAP_MINIMUMS` is the one table
+  the build and the validator read: shop 1, challenge 1, event 2, reward 1 (was 2 / 2 / 3 / 2).
+  2,000 generated maps: no validation fallback, no strand on a random pick-rule walk. A save from the
+  4 x 6 shape is drawn again for its quarter (`mapRepairShape`, from `restoreRun`; skips kept).
+  `MAP_BOSS_LEVELS` 9 -> 6.5: a quarter is 8 bookings, so the review is met near level 9, not 13;
+  6.5 asks ~1.15x that level's goal (Q1: 6,500), where 9 asked 1.09x of level 13's. The sim takes
+  a `"tiles"` list now (tools/sim/runner.js); an 8-tile walk at handTime 6 won 94-96% at 6 and 7.
+- **Top to bottom everywhere:** `gridRows` = slots + 1, `gridCols` = lanes, in both orientations,
+  and the map fills its box in portrait too (`mapWantsFill()`, read by `recomputeGridMetrics`).
+- **The screen** (`mapRender`, css/map-mode.css, rewritten): one amber glass (the board screen's)
+  over the board's box, laid out by CSS grid, not the card cells. A gutter of times (`MAP_SLOT_TIMES`,
+  09:00 to 17:00, SLOT n, the current slot's n/2), a dashed rule a row, the current row lit. A tile
+  is a to-do item: `[ ]` / `[>]` picked (reverse video) / `[x]` done (struck) / `[-]` missed /
+  `[!]` dead end, its glyph and its word, in its kind's phosphor (the event lab's palette). A
+  two-slot event spans two rows. The review is one wide double-framed line with its quota. It
+  prints in a row at a time (`fill: 'backwards'`, so the opacity states stay CSS's).
+- **The toolbar** (`#map-bar`) is the screen's foot, inside the cabinet zoom, not a body-level
+  strip over RECORDS / PAUSE (so its own pause chip is gone): the tools in the gutter (? legend
+  pen colour undo wipe), SLOT n/4 with a pip a slot, BOOKED n/2, LEAVE EARLY +n, the command line
+  (`mapBarCommand`: "> " and the name of what you are clocking in on, an event by its own name)
+  with **CLOCK IN** (was CONFIRM), and the description under it. The legend rail is amber too.
+- **Meetings are events again** in every player-facing line (the tile reads EVENT).
+- **Desktop clock** (`syncSidebarsToGrid`): centred on the Focus column it reached back across the
+  left / right seam (the flip clock is 60 design px plus a 3px ring, the column ~36). It now starts
+  on the column's left edge, the area is the clock's own width, and the bar takes what is left:
+  at 1440x820 clock 311-377 design px (seam 308.9), bar 388-664 (was 366-664). A gap audit of every
+  landscape panel in Classic, Schedule and Flow found no other pair closer than 2 design px.
+

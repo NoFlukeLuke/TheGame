@@ -1,4 +1,4 @@
-const BUILD = "2026-10-23 · r654 · console mode: the horizontal scan lines are back at half a pixel (--mc-scan-w .5px, the thinnest that draws)";
+const BUILD = "2026-10-23 · r655 · the Schedule is a 4 x 4 to-do list read top to bottom; CLOCK IN; events; the desktop clock stays right of the seam";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -44,7 +44,7 @@ const MODES = {
   map: {
     id: 'map',
     name: 'The Schedule',
-    desc: 'Your quarter as a schedule: six time slots of obligations, then a manager review. Two obligations a slot at most, no diagonal moves, and everything you book happens.',
+    desc: 'Your quarter as a schedule: four time slots of obligations, then a manager review. Two obligations a slot at most, and everything you book happens.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -276,16 +276,16 @@ const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EX
 const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'guided', 'spectrum', 'climb'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
-              blurb: 'Four suits. Four quarters, each five rounds and then a review. Reach each round\'s goal before the clock runs out. Between rounds you pick a path on the reward grid, and some paths lead to the shop or a meeting.' },
+              blurb: 'Four suits. Four quarters, each five rounds and then a review. Reach each round\'s goal before the clock runs out. Between rounds you pick a path on the reward grid, and some paths lead to the shop or an event.' },
   // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
   // promoting the mode is one entry in MODE_FINALE_GROUP and one deletion from
   // the hidden list, with nothing to rewrite.
   crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
               blurb: 'The schedule, played on one clock for the whole quarter. Rounds use it up as you play, and every obligation that is not a round costs a flat amount of time. The review is played on what is left. At zero the run ends.' },
   map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
-              blurb: 'Each quarter is a schedule: four lanes, six time slots, then a review. Every step activates the obligation you land on: a round, a shop, a reward grid, a meeting and more. Up to two obligations per slot. Leaving a slot after one pays credits. Clearing a round offers a pick of three.' },
+              blurb: 'Each quarter is a schedule: four time slots, top to bottom, then a review. Every obligation you book happens: a round, a shop, a reward grid, an event and more. Up to two obligations per slot. Leaving a slot after one pays credits. Clearing a round offers a pick of three.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
-              blurb: 'Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, a reward grid, a pick of three or a meeting. Rounds are free. Most other offers cost credits. The goal rises with every slot.' },
+              blurb: 'Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, a reward grid, a pick of three or an event. Rounds are free. Most other offers cost credits. The goal rises with every slot.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',

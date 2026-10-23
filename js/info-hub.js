@@ -145,7 +145,7 @@ const INFO_TOPICS = [
       ['Leaden - scores no pips.',
        'Taxing - costs seconds every time it scores.',
        'Snared - cannot be swapped or discarded.'],
-      'The Clean Up meeting can take every curse off at once.',
+      'The Clean Up event can take every curse off at once.',
     ] },
 
   { id: 'card_buffs', group: 'board', title: 'FLAT and SCALING card buffs',
@@ -201,7 +201,7 @@ const INFO_TOPICS = [
     body: [
       'A {trick} is a scoring buff that sits in your tray, never on the board. It works by itself whenever its condition is met.',
       'Your tray has a HARD CAP. When it is full, a new {trick} is refused outright: the count flashes red and nothing is taken. Make room first by SELLING one, which you do by tapping it in the tray and choosing Sell.',
-      'Some {tricks} depend on their position in the tray. The Tray Order meeting changes the order.',
+      'Some {tricks} depend on their position in the tray. The Tray Order event changes the order.',
     ] },
 
   { id: 'sleights', group: 'owned', title: '{Sleights}',
@@ -226,7 +226,7 @@ const INFO_TOPICS = [
   { id: 'priming', group: 'owned', title: 'Primed - the violet +2',
     body: [
       'A PRIMED {trick} fires again on your next hand. The violet pill on the tile is how many extra fires are stacked up, and all of them go off on the same hand.',
-      'The stack is then spent. The Extra Rep meeting primes a {trick} PERMANENTLY, so that one fires an extra time every hand for the rest of the run.',
+      'The stack is then spent. The Extra Rep event primes a {trick} PERMANENTLY, so that one fires an extra time every hand for the rest of the run.',
       'A prime cannot make a {trick} fire when its condition was not met, and a {trick} that sat the hand out keeps its stack. A FORCED fire is the other thing: it ignores the condition and pays anyway.',
     ] },
 
@@ -263,11 +263,11 @@ const INFO_TOPICS = [
       'SELL shows what you own. Going back does not reroll the stock.',
     ] },
 
-  { id: 'events', group: 'between', title: 'Meetings',
+  { id: 'events', group: 'between', title: 'Events',
     body: [
-      'A meeting is a one-screen decision: a trade, a gamble, an upgrade, a clean-up. SKIP is always available.',
-      'A meeting you could not use is never offered. If you own nothing to improve, the improve meetings do not come up at all.',
-      'The same meeting never lands twice in a row.',
+      'An event is a one-screen decision: a trade, a gamble, an upgrade, a clean-up. SKIP is always available.',
+      'An event you could not use is never offered. If you own nothing to improve, the improve events do not come up at all.',
+      'The same event never lands twice in a row.',
     ] },
 
   { id: 'limits', group: 'between', title: 'Limits',
@@ -297,9 +297,10 @@ const INFO_TOPICS = [
   // ── The schedule ──────────────────────────────────────────────────────────
   { id: 'schedule', group: 'schedule', title: 'The schedule',
     body: [
-      'Your schedule is a board of OBLIGATIONS in six TIME SLOTS, read left to right, ending in the manager review.',
+      'Your schedule is a to-do list of OBLIGATIONS in four TIME SLOTS, read top to bottom, ending in the manager review.',
       'Each obligation is one thing you will do: a client account is an ordinary round. The legend button lists every kind on this schedule, and tapping a row lights up where they are.',
-      'You can draw on it. Right-drag lays ink over the board, double right-click changes colour, and it is saved with your run.',
+      'Pick an obligation and its name shows on the command line at the foot. CLOCK IN takes it.',
+      'You can draw on it. Right-drag lays ink over the list, double right-click changes colour, and it is saved with your run.',
     ] },
 
   { id: 'slots_visits', group: 'schedule', title: 'Time slots and two visits',
@@ -357,9 +358,9 @@ const INFO_TOPICS = [
   // Plain description only: what happens, in what order, and the numbers.
   { id: 'mode_map', group: 'modes', title: 'The Schedule',
     body: [
-      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: 4 lanes, 6 time slots, then the manager review.`,
+      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of 4 obligations, then the manager review.`,
       'Every step activates the obligation you land on. You can take up to two obligations in a slot, if they are next to each other. Leaving a slot after one pays credits.',
-      'Obligations: client accounts (rounds), priority accounts (hard rounds), the shop, incentive programs (reward grids), meetings (events) and raise requests (Limit Break). Some are hidden until you arrive.',
+      'Obligations: client accounts (rounds), priority accounts (hard rounds), the shop, incentive programs (reward grids), events and raise requests (Limit Break). Some are hidden until you arrive.',
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
       () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account adds a pick of two {knacks}.`,
     ] },
@@ -374,14 +375,14 @@ const INFO_TOPICS = [
   { id: 'mode_guided', group: 'modes', title: 'Guided',
     body: [
       () => `Each quarter is ${typeof GUIDED_SLOTS_PER_ACT !== 'undefined' ? GUIDED_SLOTS_PER_ACT : 8} slots, then the manager review.`,
-      'Before each slot you choose one of four offers: a round, a hard round, a reward grid, the shop, a pick of three or a meeting. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
+      'Before each slot you choose one of four offers: a round, a hard round, a reward grid, the shop, a pick of three or an event. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
       'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
       () => `Pick of three odds per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''}.`,
     ] },
   { id: 'mode_normal', group: 'modes', title: 'Classic',
     body: [
       () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
-      'Reach each round\'s {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the reward grid. The reward grid can lead to the shop or a meeting.',
+      'Reach each round\'s {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the reward grid. The reward grid can lead to the shop or an event.',
       'Passing a review opens the prize grid.',
     ] },
   { id: 'mode_spectrum', group: 'modes', title: 'Spectrum',
