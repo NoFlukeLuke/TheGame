@@ -80,6 +80,18 @@
   font-size: min(14px, 19cqw); line-height: 1; letter-spacing: .5px;
   text-transform: uppercase; white-space: nowrap; color: var(--rc);
 }
+/* r656: the line's stakes, under its word. A "+" marks a projection: the least a
+   line further down can ask. An event's word is its own name, on up to two lines. */
+#grid .map-tile .mt-stake {
+  font-size: min(13px, 17cqw); line-height: 1; letter-spacing: .3px; white-space: nowrap;
+  color: var(--am-hi); opacity: .9;
+}
+#grid .map-tile .mt-stake.mt-proj { color: var(--am); opacity: .75; }
+#grid .map-tile .mt-name.mt-ev {
+  white-space: normal; text-transform: uppercase; overflow: hidden; line-height: 1.05;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: min(13px, 17cqw);
+}
+#grid .map-tile.mt-selected .mt-stake { color: var(--am-ink); opacity: 1; }
 #grid .map-tile .mt-free { align-self: center; font-size: 13px; color: var(--am-dim); opacity: .6; letter-spacing: 2px; }
 
 /* States. A LEGAL item is lit and framed; the SELECTED one prints in reverse;
@@ -107,6 +119,8 @@
   border: 3px double color-mix(in srgb, var(--rc) 60%, transparent);
 }
 #grid .map-tile.mk-boss .mt-name { font-size: min(15px, 34cqh); }
+#grid .map-tile.mk-boss .mt-bcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#grid .map-tile.mk-boss .mt-sub { font-size: min(12px, 26cqh); color: var(--am); letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #grid .map-tile.mk-boss .mt-goal { margin-left: auto; font-size: min(15px, 34cqh); color: var(--am-hi); white-space: nowrap; }
 #grid .map-tile.mk-boss .mt-box, #grid .map-tile.mk-boss .mt-icon { font-size: min(15px, 34cqh); }
 #grid .map-tile.mk-boss.mt-legal { animation: map-boss-breath 3.4s ease-in-out infinite; }

@@ -29,6 +29,11 @@ tiles and mysteries. It has four gaps:
 - Skipping always pays the same thing.
 - Nothing links one quarter to the next.
 
+**Owner's verdicts (r656):** 1 built (line items, r656). 2 and 9 become departments, then two
+bosses a quarter with a hidden third. 3 wanted, with better words. 5 wanted. 6, 7 and 9 become
+difficulty tiers. 10 wanted, needs detail. 4 and 8 parked. The order of work is in TODO.md,
+section 1.
+
 **If you pick three to start:** 1 (line items), 3 (skip memos) and 2 (departments). They close
 three of the four gaps, and 1 is small.
 

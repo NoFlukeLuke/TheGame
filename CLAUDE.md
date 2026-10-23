@@ -2537,3 +2537,15 @@ never removed"); the score was already banked. Not changed here.
   at 1440x820 clock 311-377 design px (seam 308.9), bar 388-664 (was 366-664). A gap audit of every
   landscape panel in Classic, Schedule and Flow found no other pair closer than 2 design px.
 
+## r656 - the Schedule's line items: every line prints its stakes (owner, SCHEDULE_IDEAS.md idea 1)
+Under each word a line prints what it decides on (`mapTileStake`, js/map-mode.js): a round or a hard
+round the GOAL it will ask, the store the credits you hold, a reward board its path length
+(`rewardSelectionCap`), a raise +1 LIMIT; an event's word is its own name (two lines); the review
+names its boss under MANAGER REVIEW. The goal is read the way `triggerLevelUp` writes it
+(`mapGoalPreview`: the curve, Quota Revision, a hard round's raise, The Investment's cut via
+`mapAltarNextMult`); round 1 is the dealt goal. A line not bookable now prints the least it can ask,
+with a "+": one booking a slot in between (`mapTileSoonest`). The toolbar's info line and the tile's
+title say the same in words (`mapTileDesc(t, legalIds)`). Measured: next-booking goal 2,900 printed
+and written alike at level 3 with Quota Revision; a hard round two bookings away 4,150+, and 4,150 is
+what the curve gives there. The owner's verdicts on the other nine ideas are TODO.md section 1.
+

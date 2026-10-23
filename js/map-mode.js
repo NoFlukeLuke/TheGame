@@ -267,21 +267,88 @@ function mapTileFace(t) {
   if (t.kind === 'event' && t.eventName) return { ...m, name: t.eventName };
   return m;
 }
-function mapTileDesc(t) {
+// `legalIds` (the ids bookable now) lets the stakes say "if booked next"; without
+// it they are worked out here.
+function mapTileDesc(t, legalIds) {
   if (t.mystery && !t.revealed) return 'Unconfirmed until you commit to it.';
+  const G = mapGoalWord();
+  const st = mapTileStake(t, legalIds || mapLegalIds());
+  const goal = st && st.goal ? ` ${G} ${st.goal.toLocaleString()}${st.k > 1 ? ' or more' : ''}.` : '';
   switch (t.kind) {
-    case 'level':      return 'Play a round. Clear the goal, take the payout and a pick of three.';
-    case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb;
+    case 'level':      return `Play a round.${goal} Clear it for the payout and a pick of three.`;
+    case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
-      + `Goal +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%, pays +${t.challenge?.credits || 0} credits, plus a knack pick.`;
-    case 'shop':       return 'The company store. Buy Tricks, Sleights, Knacks and upgrades.';
-    case 'reward':     return 'Pick a path across a board of rewards.';
+      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and a knack pick.`;
+    case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
+    case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} board of rewards. Take a connected path of up to ${mapRewardPath()} tiles.`;
     case 'event':      return t.eventFlavor || 'Something happens.';
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
-    case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the schedule.')
-      + ` ${(typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL'}: ${mapBossGoal}.`;
+    case 'boss': {
+      const b = peekBossPresetSafe();
+      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapBossGoal.toLocaleString()}.`;
+    }
   }
   return '';
+}
+
+// ── LINE ITEMS (r656, owner's pick: SCHEDULE_IDEAS.md idea 1) ─────────────────
+// Every line prints its stakes: a round the goal it will ask, the store what you
+// can spend, a reward board the path you take. The goal is read the way
+// triggerLevelUp writes it (the curve, Quota Revision, a hard round's raise, The
+// Investment's cut) for the next booking. A line further down cannot be reached
+// sooner than one booking a slot, so it prints the least it can ask, with a "+".
+function mapGoalWord() { return (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL'; }
+function mapLegalIds() { return new Set(mapLegalMoves().filter(m => !m.doomed).map(m => m.tile.id)); }
+function mapRewardPath() { return (typeof rewardSelectionCap === 'function') ? rewardSelectionCap() : limits.selection.current; }
+// tickAltarEffects at the next level-up: an effect not yet started starts, a
+// started one counts down first. The goal cut that is live after it applies.
+function mapAltarNextMult() {
+  const live = (typeof altarEffects !== 'undefined' ? altarEffects : [])
+    .filter(e => e.started ? e.roundsLeft - 1 > 0 : e.roundsLeft > 0);
+  const eff = live.find(e => e.type === 'goal_reduce');
+  return eff ? eff.value : 1;
+}
+// Bookings from now until this tile, at the soonest: 1 if it is bookable now,
+// otherwise one for each slot in between (a slot cannot be skipped). Null for a
+// tile behind you.
+function mapTileSoonest(t, legalIds) {
+  if (legalIds && legalIds.has(t.id)) return 1;
+  if (t.visited) return null;
+  if (!mapPos) return t.set + 1;
+  return t.set > mapPos.set + 1 ? t.set - mapPos.set : null;
+}
+// The goal a round tile asks if it is your k-th booking from now. Round 1 rides
+// startGame's own deal, so the run's first booking does not level up.
+function mapGoalPreview(t, k) {
+  if (!mapFirstRoundDone && k === 1) return roundGoal;
+  const lv = level + k - (mapFirstRoundDone ? 0 : 1);
+  let g = goalForLevel(lv);
+  if (goalPenaltyMult > 1) g = Math.round(g * goalPenaltyMult / 50) * 50;
+  const gm = (t.kind === 'challenge' && !t.audit) ? (t.challenge?.goalMult || 1) : 1;
+  if (gm !== 1) g = Math.round(g * gm / 50) * 50;
+  if (k === 1) { const a = mapAltarNextMult(); if (a !== 1) g = Math.max(50, Math.round(g * a / 50) * 50); }
+  return g;
+}
+function mapNum(n) {
+  return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M'
+       : n >= 1e4 ? (n / 1e3).toFixed(n >= 1e5 ? 0 : 1).replace(/\.0$/, '') + 'K'
+       : n.toLocaleString();
+}
+// The short stake a line prints under its word, or null.
+function mapTileStake(t, legalIds) {
+  if (t.kind === 'blank' || t.kind === 'boss' || t.visited || (t.mystery && !t.revealed)) return null;
+  const k = mapTileSoonest(t, legalIds);
+  if (!k) return null;
+  switch (t.kind) {
+    case 'level': case 'challenge': {
+      const g = mapGoalPreview(t, k);
+      return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 ? '+' : ''}`, goal: g, k };
+    }
+    case 'shop':       return { short: `◆ ${coins}` };
+    case 'reward':     return { short: `PATH OF ${mapRewardPath()}` };
+    case 'limitbreak': return { short: '+1 LIMIT' };
+  }
+  return null;
 }
 function peekBossPresetSafe() {
   try { return (typeof peekBossPreset === 'function') ? peekBossPreset() : null; }
@@ -765,13 +832,23 @@ function mapRender(animateIn) {
       + (t.span === 2 ? ' mt-span' : '');
     div.style.gridRow = (t.set + 1) + (t.span === 2 ? ' / span 2' : '');
     div.style.gridColumn = isBoss ? '2 / -1' : String(t.lane + 2);
-    const word = (t.mystery && !t.revealed) ? '???' : (MAP_KIND_META[t.audit ? 'audit' : t.kind] || MAP_KIND_META.event).name;
+    const hidden = t.mystery && !t.revealed;
+    // An event's line is its own name; every other line is its kind's word.
+    const isEv = t.kind === 'event' && t.eventName && !hidden;
+    const word = hidden ? '???' : isEv ? t.eventName : (MAP_KIND_META[t.audit ? 'audit' : t.kind] || MAP_KIND_META.event).name;
+    const stake = mapTileStake(t, legalIds);
+    const boss = isBoss ? peekBossPresetSafe() : null;
     div.innerHTML = t.kind === 'blank'
       ? `<span class="mt-free">· · ·</span>`
+      : isBoss
+      ? `<span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span>`
+        + `<span class="mt-bcol"><span class="mt-name">${face.full}</span>${boss ? `<span class="mt-sub">${boss.name}</span>` : ''}</span>`
+        + `<span class="mt-goal">${mapGoalWord()} ${Number(mapBossGoal || 0).toLocaleString()}</span>`
       : `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span></span>`
-        + `<span class="mt-name">${isBoss ? face.full : word}</span>`
-        + (isBoss ? `<span class="mt-goal">${(typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL'} ${Number(mapBossGoal || 0).toLocaleString()}</span>` : '');
-    if (face.full) div.title = face.full + (mapTileDesc(t) ? ' - ' + mapTileDesc(t) : '');
+        + `<span class="mt-name${isEv ? ' mt-ev' : ''}">${word}</span>`
+        + (stake ? `<span class="mt-stake${stake.k > 1 ? ' mt-proj' : ''}">${stake.short}</span>` : '');
+    const desc = mapTileDesc(t, legalIds);
+    if (face.full) div.title = (isEv ? t.eventName : face.full) + (desc ? ' - ' + desc : '');
     if (t.kind !== 'blank') {
       div.onclick = () => mapTileTap(t);
       div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };

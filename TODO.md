@@ -11,6 +11,19 @@ fresh chat can pick up where the last one stopped without re-deriving it from gi
 When you finish something, delete it from here and say so in the commit. When you find work
 you are not doing, add it here rather than leaving it in a commit message nobody will read.
 
+**Other files that hold ideas or plans** (r656 count: seven besides this one). Each is a
+parking lot for one area; anything here that grows a spec moves into its section below.
+
+| file | holds |
+|---|---|
+| `OPEN_DECISIONS.md` | balance findings left for the owner (above) |
+| `POST_LAUNCH.md` | decided work held until the itch build is out |
+| `SCHEDULE_IDEAS.md` | the ten Schedule ideas and the owner's verdicts on them |
+| `MODE_IDEAS.md` | modes the owner described, not built |
+| `FOCUS_IDEAS.md` | Focus-driven modes and mechanics |
+| `CARD_MECHANICS.md` | hostile cards, phantoms, force triggers, draw order |
+| `INSEPARABLE.md` | suggested Inseparable pairs |
+
 ---
 
 ## 0. CARD EFFECTS - a probability table, and two dual-identity effects (owner, r391)
@@ -77,33 +90,38 @@ debuff you cannot refuse, none of it chosen. Worth bringing back only if the pai
 **tailored** - the debuff aimed at what the two Tricks are for, so the catch is legible
 before you accept it.
 
-## 1. MAP MODE - its own mode, owner-specced
+## 1. THE SCHEDULE - the owner's plan, in chunks (r656)
 
-The big one. Guided's crossroads answers "what next"; this answers "what is my route through
-the whole quarter", which is what every roguelike map is for.
+The 4 x 4 to-do list shipped in r655 and its line items (idea 1) in r656. The owner's verdicts
+on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
 
-**The board.** A **6 column x 4 row** grid. The play grid **animates outwards to the left** to
-make room and the tiles **fall in from above like cards** - the same movement the reward grid
-tiles already use, so it reads as part of the game rather than as a menu.
+1. **Departments** (ideas 2 and 9). A pool of eight departments, four on a map, weighted by
+   quarter (Marketing early, Accounting late). Each lane is one department: its own tile mix,
+   at least one thing unique to it (named events, a reward grid leaning to one tag), shown as a
+   column header. Later, a difficulty tier punishes one department column, one more per tier,
+   so the departments need a ranking by how good they are.
+2. **Two bosses a quarter, and a hidden third** (idea 2). Each boss owns two lanes; enough
+   bookings in a boss's lanes (owner's guess: 5) unlocks choosing it; short of both, a hidden
+   third boss. Trades rewards now for an easier review.
+3. **Skip perks** (idea 3). A word for the self-care perk of leaving a slot early; the perk
+   table (a Sleight charge, a random improvement, rarely an improvement of your choice, +2
+   selection on the next reward grid); balance so skipping never beats playing. Also new
+   names for the reward grid (it has pros and cons) and the prize grid.
+4. **Side projects** (idea 5). Two linked tiles framed together: book both under a cost, clear
+   both for a reward. Five ways to show it; twenty rewards and costs.
+5. **The Schedule's difficulty ladder** (ideas 6, 7, 9). Tier 1 any tile; tier 2 adjacent moves
+   from ANY tile already taken (the dev panel's Free branch is this today); tier 3 two of row 4
+   hidden until a neighbour is played; tier 4 the same on row 3; due-date tiles in slot 1
+   (higher goal that grows faster); punished department columns, one more per tier.
+6. **The timesheet and a clean quarter** (idea 10). Needs a fuller spec.
 
-**Theme: planning your work schedule.** Dates or times on the tiles. An act is a QUARTER, so
-months is the natural unit - open question, and worth a pass on the wording rather than a
-guess.
-
-**Movement.**
-- Choose a starting tile, then return to the map after each level.
-- Movement is **orthogonal only**.
-- You move sideways one column at a time, and **within each column you may move up or down
-  once** - so you can never take every tile in a column. That restriction is the whole
-  decision.
-- The **last tile is always the boss** and does not need to be orthogonally reachable. (Or:
-  make the 5th column only 2 tiles, so the boss IS reachable orthogonally and the rule stays
-  unbroken. Owner leaned toward whichever keeps the rule intact - decide when building.)
-
-**Contents.** Every column carries **at least one playing level**, then a mix of reward grids,
-shops, events and **challenge levels**.
-
-**Depends on:** challenge levels (see below), which are being built for Guided first.
+**Parked:**
+- **Extra Mile and elites** (idea 4), until the bosses are settled. Elites ("supervisor
+  reviews") are a raised goal plus a mini-boss effect; Extra Mile is an opt-in challenge on a
+  line. They must read as different things. See section 3 below for the mini-boss half.
+- **Gold stars** (idea 8): one starred tile a quarter, taking the star instead of the tile's
+  payout, four stars unlocking something at the end. Waits for a real final boss or final
+  reward to unlock.
 
 ---
 

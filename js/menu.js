@@ -1,4 +1,4 @@
-const BUILD = "2026-10-23 · r655 · the Schedule is a 4 x 4 to-do list read top to bottom; CLOCK IN; events; the desktop clock stays right of the seam";
+const BUILD = "2026-10-23 · r656 · the Schedule's lines print their stakes (goal, credits, path, the review's boss)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
