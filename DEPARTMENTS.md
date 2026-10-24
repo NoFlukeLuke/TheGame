@@ -1,6 +1,7 @@
-# Departments: the Schedule's lanes (chunk 1, draft r657)
+# Departments: the Schedule's lanes (chunk 1, draft r657-r658)
 
-Nothing here is built. The owner picks from these lists; events are chosen after the focuses.
+Nothing here is built. Pairings and tiles are decided (r658); the event pools and the small
+extras below are proposals waiting on the owner.
 
 ## Decided (owner, r656-r657)
 - **Eleven departments:** Sales, Marketing, Accounting, IT, HR, Operations, Legal, R&D,
@@ -13,6 +14,15 @@ Nothing here is built. The owner picks from these lists; events are chosen after
   learn each department's pool by playing.
 - **Streak perks** (booking one department in back-to-back slots) are dropped from the
   departments and parked as a possible Knack (TODO.md, section 1).
+- **(r658) Option A to start:** a department changes only what shows up in its column (tile mix,
+  rewards, events). A round booked in its column plays like any other. A small extra per
+  department (option B, list below) is for later, if the columns still feel alike.
+- **(r658) The pairings below stand.** The shop and the pick of three in a column lean toward its
+  reward focus too. An event's name stays hidden until you clock in (the command line reads
+  "> EVENT").
+- **(r658) New tiles:** TRAINING, FILING and CALENDAR SYNC go in; INTERVIEW does not. CALENDAR
+  SYNC only appears in slots 1 and 2 (later, it would confirm almost nothing).
+- **The shape stays:** 4 slots, then the review row (chunk 2 turns that row into two bosses).
 
 ## Focuses
 
@@ -56,7 +66,7 @@ enough members that half a grid can come from it without repeating.
 Mult and Per card are so common (most scoring Tricks carry them) that leaning on them changes
 little. The bottom three are thin; a grid leaning on them repeats sooner.
 
-## Departments, suggested pairings (owner to edit)
+## Departments (decided r658)
 | department | tile focus | reward focus | favourite |
 |---|---|---|---|
 | Sales | Rounds | Hand types | Q2 |
@@ -90,13 +100,55 @@ Three per quarter, two in Q4. Unused reward focuses: Per card, Mult, Pips, Betwe
 | Not scheduled | a blank cell | nothing to book |
 | REVIEW | the boss | ends the quarter |
 
-### Candidates (not built)
+### New tiles (TRAINING, FILING, CALENDAR SYNC decided r658; INTERVIEW cut)
 | tile | what it would be | cost to build |
 |---|---|---|
 | TRAINING | improve one owned Trick, Knack or Sleight of your choice | small: Flow's improve step exists |
 | FILING | the deck editor (buff, cut, copy cards) | small: Flow's deck editor exists |
-| INTERVIEW | a pick of three with no round | small: the pick exists |
 | SIDE PROJECT | a tag on two linked tiles (chunk 4) | medium |
 | OVERDUE | a tile that moves down a slot when left (chunk 5) | medium |
-| CALENDAR SYNC | confirms every mystery this quarter | small |
+| CALENDAR SYNC | confirms every mystery this quarter; slots 1 and 2 only | small |
 | Second REVIEW | the two-boss quarter (chunk 2) | large |
+
+## Event pools (proposal, r658)
+
+32 live events. An event tile in a column draws from its department's pool 80% of the time and
+from every event 20%. An event the player cannot use right now (Line Shift with fewer than two
+marked lines, Clean Slate with nothing to clean...) is skipped as today; a pool with nothing
+usable falls back to every event. Every live event is in at least one pool; **bold** = in no
+other pool, so the department can be learned by it.
+
+| department | pool |
+|---|---|
+| Sales | **Hot Streak**, **Prize Ladder**, **Keep It**, **Static Bonus** |
+| Marketing | **Plinko**, **Spin to Improve**, Theme Draft, Free Pick |
+| Accounting | **The Investment**, Card Market, Deck Trim |
+| HR | **Trade a Trick**, **Tray Order**, **Trick Gamble**, Free Pick |
+| Legal | **Overtime**, **Reschedule**, **Clean Slate**, Call It |
+| Operations | **Maintenance**, Line Shift, Clean Up |
+| R&D | **Card Upgrade**, **Rewire**, **State Change**, **The Gamble** |
+| IT | **Grid Spinner**, **Entity Slots**, Line Shift |
+| Procurement | **Card Slots**, Card Market, Deck Trim, Pairs |
+| Customer Support | **Extra Rep**, Pairs, Clean Up |
+| Communications | **Wild Cards**, **Luck Dice**, Theme Draft, Call It |
+
+## Small extras (option B, for later; owner to decide if worth building)
+
+One small thing a round booked in that column gets. Each uses a hook the game already has.
+
+| department | extra |
+|---|---|
+| Sales | +3 credits on the clear |
+| Marketing | starts with +5 Focus |
+| Accounting | +1 interest on its payout |
+| HR | +1 swap |
+| Legal | starts with +15s |
+| Operations | +1 discard |
+| R&D | its pick of three shows four |
+| IT | one random Sleight you own gets +1 charge |
+| Procurement | one card on the starting board gets a random buff for the round |
+| Customer Support | the first hand's first card replays once |
+| Communications | a random Trick is primed once |
+
+Other candidates: goal 5% lower; the first swap is free of time; Early Finish Bonus doubled;
++1 Luck for its pick of three; +1 Selection Size for the first hand.

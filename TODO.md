@@ -101,7 +101,8 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    column), a reward focus (half its reward grids' entity tiles), an event pool (80%; 20% any
    event; event tiles unlabelled), shown as a column header. Later, a difficulty tier punishes
    one department column, one more per tier, so the departments need a ranking by how good they
-   are. Decisions and the draft lists: `DEPARTMENTS.md`.
+   are. Option A to start (columns change what shows up, not how a round plays). New tiles
+   TRAINING, FILING, CALENDAR SYNC (slots 1-2 only). Decisions and the draft lists: `DEPARTMENTS.md`.
 2. **Two bosses a quarter, and a hidden third** (idea 2). Each boss owns two lanes; enough
    bookings in a boss's lanes (owner's guess: 5) unlocks choosing it; short of both, a hidden
    third boss. Trades rewards now for an easier review.
