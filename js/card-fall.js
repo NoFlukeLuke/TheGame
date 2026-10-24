@@ -209,21 +209,56 @@ function buildCardAnimEl(card, finalR, finalC) {
   el.dataset.row = finalR; el.dataset.col = finalC;   // its cell's margin (r642 even gaps)
   el.innerHTML = innerHTML;
   el.style.position       = 'absolute';
-  el.style.width          = CARD_W + 'px';
-  el.style.height         = CARD_H + 'px';
+  // r659: the DRAWN card's size, not the cell's (r641): a cell-wide copy fell wide
+  // and the card snapped thin when the board re-rendered.
+  el.style.width          = ((typeof CARD_VIS_W === 'number' && CARD_VIS_W) || CARD_W) + 'px';
+  el.style.height         = ((typeof CARD_VIS_H === 'number' && CARD_VIS_H) || CARD_H) + 'px';
   el.style.pointerEvents  = 'none';
   el.style.zIndex         = '10';
   return el;
 }
 
+// ── r652 (owner): THE FALL IS RE-ENTRANT ──────────────────────────────────
+// A hand picked out of cards still falling plays at once. The data is final
+// from a fall's first frame (gridData is written before the animations), so
+// the only thing a second fall or a play had to wait for was the DOM: temp
+// copies in flight, hidden persistent elements, and the tail that removes
+// them all, renders, and drains the deferred board work. fallSettleNow()
+// does that tail's DOM part on demand: it finishes the live fall's animations
+// (the cards snap into their cells), removes every card element, renders the
+// board, counts the fall for the fall-type challenge cards, and marks the
+// live fall SUPERSEDED so its own tail, which wakes a microtask later, does
+// nothing. The drains and any queued action then belong to whatever comes
+// next (the next fall's tail, or the play that called). playHand calls it when
+// `falling` (js/play-hand.js); removeAndFall calls it on entry, so two falls
+// can never overlap. The 300ms slide-out (`animating`) is not interruptible:
+// taps are blocked for it anyway, and a second fall arriving then waits for it
+// instead of being dropped (it used to return and leave the cards on the board).
+let _fallLive = null;
+function fallSettleNow() {
+  const f = _fallLive; if (!f || !falling) return;
+  _fallLive = null; f.superseded = true;
+  f.anims.forEach(a => { try { a.finish(); } catch (e) { try { a.cancel(); } catch (e2) {} } });
+  const gridEl = document.getElementById('grid');
+  if (gridEl) { gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove()); gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove()); }
+  falling = false;
+  dbgEvent('info', '[FALL] settled early (' + f.mode + ')');
+  render();
+  if (typeof crAfterFall === 'function') crAfterFall();   // this fall's falls and hits still count
+}
 async function removeAndFall(removingCells, mode = 'play') {
-  // Guard against re-entry while a fall is in progress
+  // A fall arriving during another's slide-out waits for it (r652; it used to
+  // return, and the cards it was given were never removed).
   if (animating) {
-    console.log('[FALL] BLOCKED by animating flag', { mode, cells: removingCells.length });
-    return;
+    console.log('[FALL] waiting on the slide-out', { mode, cells: removingCells.length });
+    let _w = 0;
+    while (animating && _w++ < 60) await new Promise(res => setTimeout(res, 30));
+    if (animating) { console.log('[FALL] BLOCKED by animating flag', { mode, cells: removingCells.length }); return; }
   }
+  if (falling) fallSettleNow();   // r652: a fall in flight snaps into place; this one takes over
   console.log('[FALL] start', { mode, cells: removingCells.length });
   animating = true;
+  const _me = { mode, anims: [], superseded: false };
   if (typeof crBeforeFall === 'function') crBeforeFall();   // fall-type challenge cards count against this
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
@@ -392,6 +427,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // Transition: slide-out done, now entering fall phase - allow selection
   animating = false;
   falling = true;
+  _fallLive = _me;   // r652: what fallSettleNow finishes
   if (typeof discardCarryRestore === 'function') discardCarryRestore();   // a queued discard's leftover selection
 
   // Hide only the persistent elements for cards that will be animated as temp elements
@@ -491,7 +527,12 @@ async function removeAndFall(removingCells, mode = 'play') {
   // change or a background tab can cancel mid-fall), and a rejection here threw
   // out of removeAndFall with `falling` stuck true - a board that ignores every
   // tap until the page is reloaded (r470).
-  await Promise.allSettled([...fallAnims, ...enterAnims].map(a => a.finished));
+  _me.anims = [...fallAnims, ...enterAnims];
+  await Promise.allSettled(_me.anims.map(a => a.finished));
+  // r652: superseded by fallSettleNow (a play or another fall took over): the
+  // DOM is already settled and the tail belongs to whatever took over.
+  if (_me.superseded) { console.log('[FALL] superseded'); return; }
+  _fallLive = null;
   gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
 

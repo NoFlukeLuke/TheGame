@@ -2550,3 +2550,22 @@ title say the same in words (`mapTileDesc(t, legalIds)`). Measured: next-booking
 and written alike at level 3 with Quota Revision; a hard round two bookings away 4,150+, and 4,150 is
 what the curve gives there. The owner's verdicts on the other nine ideas are TODO.md section 1.
 
+
+## r659 - play out of the fall is back; a cut fly-in still clears its cards; falling cards keep their shape (owner)
+- **The re-entrant fall is back** (r652's `fallSettleNow` in js/card-fall.js, js/play-hand.js, js/input.js;
+  r653's revert is undone): a hand picked out of falling cards plays at once, the fall snaps into place
+  first. Owner: "I'd like to use the newer bike with cards leaving the board before landing."
+- **A dance cut mid-fly pays its cards** (`dncPendingRemove` / `dncLeaveBoard`, js/score-dance.js). A
+  hand is scored before its dance flies the cards to the preview, and they only left gridData at the
+  dance's own removeAndFall after the fly; a hand played during the fly cut the dance first, so the
+  first hand's cards came back scored and unremoved (older than r652). `playPreviewDance` records what
+  it owes (cells and card ids), the dance pays it at its removal sites, and `playHand` pays it for the
+  dance it cuts, right after `cancelDance`; a stale note pays nothing (ids checked). The flown cards
+  are also `pointer-events: none` while hidden, so they cannot be tapped into the next hand.
+- **A falling card is built at the DRAWN size** (`buildCardAnimEl`: `CARD_VIS_W` / `CARD_VIS_H`, not the
+  cell's `CARD_W` / `CARD_H`). Since r641 the card is narrower than its cell, so the copy fell wide and
+  snapped thin when the board re-rendered. Measured at 1440x820: copies 62.5 wide against a 63.1 drawn
+  card (the cell is 71); before, 71.
+- Measured by real clicks at 1440x820 and 420x900: hand B pressed 80ms into hand A's fly: A's three
+  cards hidden and untappable (a tap on one selected nothing), gone from the board at the end, both
+  hands counted, the score 260 then 334; mid-fall play and the kicker tests unchanged; no page errors.

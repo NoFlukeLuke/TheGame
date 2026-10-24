@@ -1,4 +1,4 @@
-const BUILD = "2026-10-24 · r658 · departments: decisions, event pools and small extras proposed (docs only)";
+const BUILD = "2026-10-24 · r659 · play out of the fall is back; a hand played during the last hand's fly-in no longer leaves those cards on the board; falling cards keep the drawn card's width";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

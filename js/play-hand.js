@@ -229,7 +229,9 @@ function playHand() {
   // top of the boss and soft-locked it.
   if (typeof flowBossFighting !== 'undefined' && flowBossFighting && !bossActive) { dbgEvent('warn', 'play ignored (boss arriving)'); return; }
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) { dbgEvent('info', 'play ignored (skipping to the boss)'); return; }   // r606
-  if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
+  // r652 (owner): a hand picked out of falling cards plays NOW. The fall snaps
+  // into place (fallSettleNow, js/card-fall.js) and the dance flies from the cells.
+  if (falling) { if (typeof fallSettleNow === 'function') fallSettleNow(); else { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; } }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
@@ -263,6 +265,8 @@ function playHand() {
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
   //  in-progress dance - that was the "cards wiggle but never score" bug.)
   cancelDance();
+  // r659: a dance cut mid-fly still owes the board its cards; they leave now (js/score-dance.js).
+  if (typeof dncLeaveBoard === 'function') dncLeaveBoard();
 
   // The Marker: a marked card is discarded instead of played, and takes every other
   // marked card in the same hand with it. Checked here - after we know there is a

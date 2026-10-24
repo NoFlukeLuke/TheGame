@@ -615,7 +615,25 @@ function contribLabel(source, id){
 let dncRealEls = [];
 // Grid cards hidden while their fly-to-preview clone is airborne; restored if the dance aborts pre-removal.
 let dncHiddenGridEls = [];
-function dncRestoreHiddenGridEls(){ dncHiddenGridEls.forEach(el=>{ if(el && el.isConnected) el.style.opacity=''; }); dncHiddenGridEls=[]; }
+function dncRestoreHiddenGridEls(){ dncHiddenGridEls.forEach(el=>{ if(el && el.isConnected){ el.style.opacity=''; el.style.pointerEvents=''; } }); dncHiddenGridEls=[]; }
+// r659 (owner): the cards a dance still OWES the board. A hand is scored and
+// committed before its dance flies the cards to the preview; the cards only left
+// gridData at the dance's own removeAndFall, after the fly. A hand played during
+// that fly cut the dance before it got there, so the first hand's cards came back
+// onto the board, scored and unremoved (cancelDance's "they were never removed").
+// playPreviewDance records what it owes here; the dance pays it at its removal
+// sites, and playHand pays it for a dance it cuts (dncLeaveBoard with no gen).
+// The cards are checked by id, so a stale note (a round end, a new run) pays nothing.
+let dncPendingRemove = null;
+function dncLeaveBoard(gen){
+  const p = dncPendingRemove;
+  if(!p || (gen !== undefined && p.gen !== gen)) return false;
+  dncPendingRemove = null;
+  const cells = p.cells.filter(([r,c],i)=>{ const k = gridData[r] && gridData[r][c]; return k && k._id === p.ids[i]; });
+  if(!cells.length) return false;
+  removeAndFall(cells,'play');
+  return true;
+}
 function dncGlow(el, strong){ if(!el) return;
   el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},
     {boxShadow:`0 0 ${strong?14:8}px ${strong?4:2}px rgba(245,192,66,${strong?0.7:0.5})`, offset:.4},
@@ -694,7 +712,7 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId){
   const ow = gEl.offsetWidth || s.width, oh = gEl.offsetHeight || s.height, z = s.width / ow || 1;
   clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;zoom:${z};left:${s.left/z}px;top:${s.top/z}px;width:${ow}px;height:${oh}px;transform-origin:center center;`;
   document.body.appendChild(clone);
-  gEl.style.opacity='0'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort)
+  gEl.style.opacity='0'; gEl.style.pointerEvents='none'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort); r659: untappable too, it is already scored
   const dx=((t.left+t.width/2)-(s.left+s.width/2))/z, dy=((t.top+t.height/2)-(s.top+s.height/2))/z;
   // A Sleight stands up in the preview (.dnc-turn, css/dance.css): it turns a
   // quarter and grows as it flies, landing on its slot card's own rotate and scale.
@@ -772,6 +790,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   cancelDance();
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
+  // r659: what this dance owes the board (paid at its removal sites, or by the play that cuts it)
+  dncPendingRemove = isGoalHand ? null : { gen: myGen, cells: toRemove.map(([r,c])=>[r,c]), ids: toRemove.map(([r,c])=>(gridData[r] && gridData[r][c]) ? gridData[r][c]._id : null) };
   dncGoalLive = isGoalHand;   // holds the grid-screen HUD swap back while the tally plays (r310)
   dncResetFF(); dncSettleBlast(); resetParticleStep();
   // Portrait shares one strip between Knacks and the hand preview, and this dance
@@ -1094,7 +1114,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     //    hand still owes the player is its fuse and its throw at the score. ──
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity=''; });
     if(typeof sfxFlipShuffle==='function') sfxFlipShuffle();
-    removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
+    dncLeaveBoard(myGen); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
     const FLY_STAGGER=95/dncPace(), FLY_DUR=(typeof cardFlyMs==='function' ? cardFlyMs(400) : 400)/dncPaceNoFocus();   // r491: cardFlyMs already holds Focus   // r468: the fly look may take longer
@@ -1106,7 +1126,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     });
     await wait(previewCells.length*FLY_STAGGER + FLY_DUR);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); dncHiddenGridEls=[]; // flown cards now removed
+    if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); dncLeaveBoard(myGen); dncHiddenGridEls=[]; // flown cards now removed
   }
 
   // The outgoing hand's score count-up ran alongside the fly-in above; make sure it has
