@@ -1,4 +1,4 @@
-# Rule Sleights, a department a quarter, two-stage challenges (draft r663)
+# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r664)
 
 Nothing here is built. The owner's ideas, written up for review. Names marked
 **(owner names)** are left blank on purpose.
@@ -179,6 +179,58 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 
 Prime and Card buffs are spares, to swap in for any Standard reward that plays flat.
 
+## 7. A Trick and a Sleight that change every round (r664)
+
+You take it without knowing what it will be. At the start of each round it becomes a random
+Trick (or Sleight), drawn with no regard for rarity, and does that for the round.
+
+| | name | rarity (suggested) | description |
+|---|---|---|---|
+| Trick | (owner names) | epic | At the start of each round, becomes a random Trick of any rarity. Improvements apply to the Trick it becomes. |
+| Sleight | (owner names) | epic | At the start of each round, becomes a random Sleight of any rarity, with that Sleight's charges. Improvements apply to the Sleight it becomes. |
+
+**The flat draw** (counted from the data, r664) against an ordinary offer:
+
+| | common | rare | epic | legendary |
+|---|---|---|---|---|
+| Tricks, flat (171 live) | 24% | 38% | 31% | 7% |
+| Sleights, flat (45 live) | 18% | 49% | 24% | 9% |
+| an ordinary offer (`ENTITY_TIER_W`, no Luck) | 71% | 22% | 5.5% | 1.5% |
+
+Rare or better 76% of rounds against 29% of offers; a legendary about one round in 14
+(Tricks) or 11 (Sleights). Hence epic for both.
+
+**Both:**
+- **When:** the round's start, after the deal and before the clock runs. Taken between
+  rounds, it shows a question mark until then; taken mid-round, it changes at once. Flow:
+  each level's start (its boss comes mid-level, so the level's form stays through it).
+- **Shown:** the tile wears the form's icon plus a mark that it changes; the tooltip reads
+  "<Form> this round". A printed notice names the form when it changes.
+- **The draw:** flat (Luck does not touch it), never the same form twice in a row, only what
+  the mode can offer (`survivalEntityBanned`, `offerBanned`), never retired or fused.
+- **Its tier is the form's tier:** the form reads its BAL row at the changer's tier, custom
+  ladders (`IMPROVE_PLAN`) included. What an improvement rolls (Inspirato's ranks, Critical's
+  family) rolls fresh at each change.
+
+**Trick only:**
+- Not drawn: a Trick already in your tray; Tricks with a pickup effect (Cloud Nine adds 9s;
+  Rising Tide, Assembly Line and Middle Man count from the pick); scaling Tricks (30 of 171),
+  whose count would restart every round (see question 7).
+- A line Trick marks a random line for the round (no chooser screen at a round's start).
+- Never fuses and never completes an Inseparable pair.
+- Keeps its tray slot, so Tricks that read slots see the form there. Primes on it carry over
+  to the next form. It sells at its own price.
+
+**Sleight only:**
+- Changes wherever it is: on the board (it turns over in place), in the draw pile or the
+  played pile.
+- Takes the form's full charges each round (improved count included). Spent, it waits for the
+  next change instead of leaving the deck (see question 6).
+- Not drawn: a Sleight you own a copy of (one BAL row per id would serve both at two tiers),
+  or one that builds while it sits on the grid (Slow Burn, Whetstone).
+- Build note: the card needs a durable field marking it as the changer (`DURABLE_CARD_FIELDS`),
+  or `recycleCard` turns it into its form for good.
+
 ## 6. Open questions
 
 1. **Rule Sleights:** is the rule in force only while the card is on the grid (as written), or
@@ -190,3 +242,7 @@ Prime and Card buffs are spares, to swap in for any Standard reward that plays f
 4. **Which three departments go** (proposed: Communications, Customer Support, Procurement).
 5. **Overlap:** TODO.md's skip perks (section 1, item 3) list a Sleight charge, a random
    improvement and +2 reward grid selection too. One reward list could serve both.
+6. **The changing Sleight's charges:** the form's full charges every round, so it never runs
+   out (as written), or a pool of its own for the run (say 8), spent by every form?
+7. **Scaling Tricks in the changing Trick's draw:** left out (as written), or in, starting from
+   0 each round?

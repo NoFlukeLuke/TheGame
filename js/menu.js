@@ -1,4 +1,4 @@
-const BUILD = "2026-10-26 · r663 · design draft: rule Sleights, a department a quarter, two-stage challenges and their rewards (CHALLENGE_REWARDS.md)";
+const BUILD = "2026-10-26 · r664 · design draft: a Trick and a Sleight that become a random one each round (CHALLENGE_REWARDS.md section 7)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
