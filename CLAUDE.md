@@ -2598,3 +2598,56 @@ what the curve gives there. The owner's verdicts on the other nine ideas are TOD
   placing at once measured the old orientation. Measured at 420x900 and 1440x820 and across both
   flips: every limit name fits, no scroll on stage 1, the screen lands on the board's box.
 
+
+## r661 - the scoring queue; every card falls on its own; drag-to-play waits (owner)
+- **The scoring queue** (`js/score-dance.js`, `dncPlayOrQueue` is the one call playHand makes): a hand
+  played while another is still tallying no longer cuts it. It JOINS A QUEUE (`dncQueue`, up to
+  `DNC_QUEUE_MAX` 4 waiting, five hands in all; the sixth play is refused before anything is scored,
+  "Five hands scoring. Wait."). Its cards fly at once from the board into a dimmed strip BEHIND the
+  preview (`#dnc-queue` inside `#selected-cards` at z -1, one `.dnq-strip` per waiting hand, anchored on
+  the live hand's first card, each 9px right and 11px up, smaller and dimmer; `dncQueueLayout`, run again
+  once a dance has built its row) and leave gridData the same instant (`removeAndFall`), so nothing can
+  pick them twice. The live tally runs `dncQueuePace()` = 2^(hands waiting) faster (folded into `dncPace`,
+  so every wait, flight, fuse and climb reads it live: x2, x4, x8, x16); at x4 and up a card's beat plays
+  one payout sound, not one per plate. When a tally ends `dncQueueNext` starts the next: its strip's cards
+  come forward into their preview slots (a FLIP on the `.dnc-outer`), its strip goes. What a queued hand
+  needs later is captured when it is played (`result._q`: its card objects by cell, the score it made,
+  the Focus it was scored with, its name layers `_qLayers` read by `updateHandNameLabel`), because the
+  cells hold other cards and the globals have moved on by the time it dances. A goal hand queues the same
+  way but keeps its cards on the board for its finale; its cells are re-resolved by card id when its turn
+  comes (`svGoalCells` too). A dance cut from outside a play (round end, boss, new run) drops the queue
+  (`dncQueueClear` from `cancelDance`); every queued score is already banked, so the total just lands.
+  r173's burst handoff ('rush' / 'snap', `skipBeats` at chain 2) no longer fires for plays: no hand is
+  cut by the next, every hand plays out. Overdrive keeps its own fast hands. The preview is cleared with
+  `dncStageClear` (the strips survive). The first hand's cards also leave gridData as they lift off
+  (`flyGridCardToSlot` takes a `delay`, so every copy is made at once and the flights still stagger).
+- **Every card falls on its own** (`js/card-fall.js`, `removeAndFall` rewritten): the board's REAL card
+  elements move. gridData is written at once as before, `render()` puts every element on its final cell
+  (it always writes `top` now; r652's temp copies and hidden originals are gone), and each card that has
+  to travel gets a WAAPI animation on the standalone `translate` (plus `scale` for the squash) from where
+  it was drawn to rest, `fill: backwards` through its column's stagger, nothing left on the element after
+  (`_fallLaunch`, registry `_cardFalls` by card id). A card still in the air when another fall needs it is
+  RE-AIMED: its live trip is cancelled, its drawn position read (`_fallVisTop`, rect over the grid's zoom),
+  a new trip started from there. Cards no fall touches are never redrawn or hidden. Removed cards lose
+  their card id first (`.card-leaving`; render() neither moves nor keeps them), slide out beside the fall
+  and are dropped when their slide ends; a card already hidden (its copy flew) goes at once. **No fall
+  takes the `animating` lock**; `falling` is true while any card is in the air, and the board tail
+  (`_fallTail`: render, the drains, a queued PLAY / DISCARD, `crAfterFall` / `crDrain`) runs once when
+  the last card lands, whichever fall it came from. A fall's own promise resolves when ITS cards land
+  (Autopilot, All Hands, Match-3 await it as before). `fallSettleNow` snaps everything and runs the tail;
+  `fallCancelAll` (a new run) snaps and runs nothing; a board torn down under the last card runs no tail.
+  The selection and a pending swap FOLLOW THEIR CARDS through a fall (re-resolved after the data write);
+  a discard pressed mid-fall runs at once (r539's wait is gone; the data is final).
+- **Drag to play and auto-play** (`js/input.js`): the drag's wait timer used to DROP the play when the
+  board was busy (`animating`; before r652 any fall) and leave the hand lit waiting for nothing; it waits
+  now like the auto-play timer. Auto-play never armed while a tally was running (`danceAbortController`);
+  it does now, and the hand joins the queue. The two timers are separate: the drag wait runs only after a
+  drag, auto-play only after taps, and a tap during the drag wait re-arms the drag wait.
+Measured in headless Chromium at 1440x820 and 420x900 (dev mode on, real hands through `playHand`): no
+`.temp-anim` at any point; a second fall arriving with 11 cards in the air re-aimed them and every card
+ended on its cell with `translate: none`; a card tapped mid-air (translate -90px) was selected; a 6-hand
+burst 150ms apart queued 4, ran the tally at x16, refused the sixth, and the score display landed on
+the real total with no timeline drift; a hand picked during a tally auto-played (queued) and a drag
+with a 500ms wait played; a discard 450ms into a fall ran at once; the deck played dry under queued
+hands with no error (the Reshuffle card dealt); a queued goal hand ended the round through the
+interlude after the hand in front of it finished.

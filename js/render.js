@@ -74,7 +74,7 @@ function render() {
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
         div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
-        if (!animating && !falling) div.style.top = cellTop(r) + "px";
+        div.style.top = cellTop(r) + "px";   // r661: a falling card already sits on its final cell (its trip is a translate)
         const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
         const { className, innerHTML } = renderCardAppearance(card, r, c, { isSwapPending });
         div.className = className; div.innerHTML = innerHTML;
@@ -88,7 +88,7 @@ function render() {
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
         div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
-        if (!animating && !falling) div.style.top = cellTop(r) + 'px';
+        div.style.top = cellTop(r) + "px";   // r661: a falling card already sits on its final cell (its trip is a translate)
         const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
@@ -179,7 +179,7 @@ function render() {
       }
       div.dataset.row = r; div.dataset.col = c;
       div.style.left = cellLeft(c) + 'px';
-      if (!animating && !falling) div.style.top = cellTop(r) + "px";
+      div.style.top = cellTop(r) + "px";   // r661: a falling card already sits on its final cell (its trip is a translate)
       div.className = className;
       div.innerHTML = innerHTML;
       if (!isChallenge) attachLongPress(div, r, c);

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-25 · r660 · Schedule on a phone: the pick keeps the board's box; a big DONE DRAWING key; the schedule is a save point; the console Limit Break in portrait";
+const BUILD = "2026-10-26 · r661 · the scoring queue (a hand played mid-tally waits its turn, the tally runs x2 a waiting hand, up to five); every card falls on its own, a new fall re-aims cards in the air; drag-to-play and auto-play no longer drop a hand mid-animation";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

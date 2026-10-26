@@ -533,7 +533,7 @@ function updateHandNameLabel(result, force) {
     return;
   }
   let names = (result && result.hand)
-    ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
+    ? (result._qLayers || ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand]))   // r661: a queued hand's layers were read when it was played
     : [];
   // Repeats are real (two Sets of 3), but printing SET 3 + SET 3 in a 44px column
   // is not - so a repeat collapses to a count: 2 SETS OF 3, RUN OF 3 x2.

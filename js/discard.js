@@ -34,7 +34,9 @@ function doDiscard() {
   // A discard pressed mid-fall is queued with the CARDS it was pressed on. Taps
   // still select during a fall, so the selection at the fall's end can be the
   // next hand; discarding that instead was the bug (r539).
-  if (falling) { if (selected.length > 0) { pendingAction = 'discard'; pendingDiscardCards = selected.map(([r,c]) => gridData[r]?.[c]).filter(Boolean); dbgEvent('info', 'discard queued (falling)'); discardLatchSync(); } return; }
+  // r661: a discard mid-fall runs at once. The board's data is final from a fall's first
+  // frame and every card falls on its own (js/card-fall.js), so the cards it was pressed on
+  // are exactly the ones that go; the r539 queue-until-landed is no longer needed.
   if (selected.length === 0) return;
   // A fall-type challenge card locks discards in its line (js/challenge-round.js).
   { const _lock = (typeof crDiscardLocked === 'function') ? crDiscardLocked(selected) : null; if (_lock) { refuse(_lock); return; } }

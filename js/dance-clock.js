@@ -107,6 +107,7 @@ function dncBumpAccel(n = 1) {
 }
 // The live pace: this dance's base speed times everything it has paid out so far.
 // Every duration in the dance divides by THIS, never by dncSpeed directly.
-function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncFocusPace; }
+// r661: hands waiting in the scoring queue double the pace each (dncQueuePace, js/score-dance.js).
+function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncFocusPace * (typeof dncQueuePace === 'function' ? dncQueuePace() : 1); }
 // The pace without Focus: for lengths that already carry Focus (the card fly, cardFlyMs).
 function dncPaceNoFocus() { return dncPace() / (dncFocusPace || 1); }

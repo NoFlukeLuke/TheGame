@@ -146,3 +146,11 @@ body.reduced-motion .dnc-particle .pt-box{ box-shadow:none; }
 }
 #stage:not(.landscape) #dnc-ff { right: 2px; top: 1px; padding: 2px 4px; font-size: 6px; letter-spacing: 1px; }
 body.reduced-motion #dnc-ff { transition: none; }
+
+/* r661: the scoring queue's strips (js/score-dance.js dncQueueLayout): inside the preview
+   at z -1 (over its glass, under its rows), anchored on the live hand's first card, each
+   waiting hand further up and right, smaller and dimmer. Cards take the preview's size. */
+#selected-cards.dnc-active{isolation:isolate;}
+#selected-cards #dnc-queue{position:absolute;z-index:-1;pointer-events:none;display:none;}
+#dnc-queue .dnq-strip{position:absolute;left:0;top:0;display:flex;align-items:center;gap:4px;transform-origin:left top;transition:transform .22s ease,opacity .22s ease;}
+#grid .card-leaving{pointer-events:none;}

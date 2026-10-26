@@ -61,12 +61,18 @@ function armDragPlay() {
   if (!selected.length) { dragGrace = false; return; }
   if (!findBestHand(selected)) return;          // keep the grace; a tap may yet make the hand
   handReadyForSubmit = true;
-  dragPlayTimer = setTimeout(() => {
+  // r661: the board busy with a swap or a boss effect used to DROP the play
+  // here (and before r652 any fall did), leaving the hand lit and waiting for
+  // nothing. It waits now, like the auto-play timer below.
+  let _dw = 0;
+  const _fireDrag = () => {
     dragPlayTimer = null;
-    if (!dragGrace || animating || !dragControlsLive()) return;   // r652: a fall no longer holds the play
+    if (!dragGrace || !dragControlsLive()) return;
+    if (animating && _dw++ < 100) { dragPlayTimer = setTimeout(_fireDrag, 60); return; }
     dragGrace = false; handReadyForSubmit = false;
     if (selected.length && findBestHand(selected)) playHand();
-  }, ctlDragGraceMs());
+  };
+  dragPlayTimer = setTimeout(_fireDrag, ctlDragGraceMs());
 }
 function controlDragPlay() { return controlMode === 'drag'; }
 function setControlMode(v) {
@@ -90,7 +96,8 @@ function scheduleAutoSubmit() {
   // Match-3: hands are never submitted by selection - matches play themselves.
   // Selection exists purely to choose cards to DISCARD.
   if (match3Active()) return;
-  if (danceAbortController) return; // dance in progress, don't schedule
+  // r661: a hand picked while the last one is still tallying auto-plays too; it
+  // joins the scoring queue (js/score-dance.js). It used to never arm here.
   const result = selected.length >= 2 ? findBestHand(selected) : null;
   if (!result) return; // no valid hand, don't schedule
   // r200: never auto-fire a hand the player is not allowed to play yet.

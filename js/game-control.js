@@ -625,7 +625,8 @@ function startGame() {
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;
-  falling = false;
+  if (typeof fallCancelAll === 'function') fallCancelAll(); else falling = false;   // r661: every card in the air snaps to its cell
+  if (typeof dncQueueClear === 'function') dncQueueClear();   // r661: nothing waits to score in a new run
   pendingAction = null; pendingDiscardCards = null;
   pendingEventOverride = null;
   rewardGridContext = 'interlude';
