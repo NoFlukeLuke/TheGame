@@ -193,6 +193,14 @@
   color: var(--am-dim); background: transparent; border-color: var(--am-dim);
   opacity: .7; cursor: var(--cur-default, default);
 }
+/* While drawing, one big key in place of the two status lines ends it (owner). */
+#map-bar .mb-done {
+  grid-column: 2; grid-row: 1 / span 2; align-self: stretch; min-height: 44px;
+  font: inherit; font-size: 20px; letter-spacing: 1px; line-height: 1; text-shadow: none;
+  color: var(--am-ink); background: var(--am); border: 1px solid var(--am-hi); border-radius: 2px;
+  cursor: var(--cur-pointer, pointer);
+}
+#map-bar .mb-done:hover { filter: brightness(1.12); }
 #map-bar .mb-info {
   min-height: 2.2em; font-size: 12px; line-height: 1.1; color: var(--am-dim);
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -222,8 +230,11 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
 /* ── The pen (r263) ───────────────────────────────────────────────────────────
    A canvas over the list inside #grid. It is pointer-events:none by default
    so a RIGHT-drag still reaches the board through it and a left tap still
-   picks an obligation; only the finger mode (.pen-on) takes the taps. */
-#grid .map-draw-layer { position: absolute; z-index: 7; pointer-events: none; }
+   picks an obligation; only the finger mode (.pen-on) takes the taps.
+   It sits in the screen just before the toolbar, at the toolbar's z-index, so the
+   toolbar stays on top: at z 7 over the whole board it took the taps meant for
+   its keys, the pen chip included. */
+#grid .map-draw-layer { position: absolute; z-index: 5; pointer-events: none; }
 #grid .map-draw-layer.pen-on { pointer-events: auto; }
 
 /* ── The legend rail (r263, beside the board since r294) ─────────────────────

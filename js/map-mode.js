@@ -743,6 +743,10 @@ function mapOpen() {
   try { sfxShopOpen?.(); } catch (e) {}
   mapRender(true);
   mapRenderBar();
+  // A save point (r660, owner): saving or leaving the app here resumes on the
+  // schedule. The round-start checkpoint before it would replay a round already
+  // cleared, or, on a new run, skip the schedule for round 1.
+  if (typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
 }
 
 // The map fills its box in both orientations (js/grid-metrics.js asks this):
@@ -948,6 +952,9 @@ function mapRenderBar() {
       (inked ? `<button class="mb-q" id="mb-undo" title="Undo the last stroke">&#8630;</button>` +
                `<button class="mb-q" id="mb-wipe" title="Clear all ink">x</button>` : '') +
     `</span>` +
+    // While the pen is on, every tap on the list draws, so the two status lines
+    // give way to one big key that ends it (owner: the 16px chip was too small).
+    (mapPenOn ? `<button class="mb-done" id="mb-pen-done">&#9998; DONE DRAWING</button>` :
     `<div class="mb-l1">` +
       `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
       `<span class="mb-pips">${pips}</span>` +
@@ -957,7 +964,7 @@ function mapRenderBar() {
     `<div class="mb-l2">` +
       `<span class="mb-cmd" id="mb-cmd"></span>` +
       `<button id="mb-confirm" disabled>CLOCK IN</button>` +
-    `</div>` +
+    `</div>`) +
     `<div class="mb-info" id="mb-info"></div>` +
     `<div class="mb-help" id="mb-help">` +
       mapHelpRows().map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
@@ -966,8 +973,9 @@ function mapRenderBar() {
   // so it survives this rebuild instead of being destroyed by it.
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
-  btn.onclick = () => mapConfirm();
-  btn.disabled = !mapSelected;
+  if (btn) { btn.onclick = () => mapConfirm(); btn.disabled = !mapSelected; }
+  const doneBtn = document.getElementById('mb-pen-done');
+  if (doneBtn) doneBtn.onclick = () => mapPenToggle();
   // One card open at a time, and a one-shot outside-click close armed only
   // while one IS open - a standing document listener on a bar that is rebuilt
   // every render would stack one copy per render.
@@ -1027,7 +1035,8 @@ function mapBarInfo(t, move) {
   const el = document.getElementById('mb-info');
   if (!el) return;
   if (!t) {
-    el.innerHTML = mapPickRule() ? 'Book any two in a slot, in any order. Everything you book happens.'
+    el.innerHTML = mapPenOn ? 'Drag on the schedule to draw.'
+      : mapPickRule() ? 'Book any two in a slot, in any order. Everything you book happens.'
       : 'Move up, down or forward. Everything you book happens.';
     return;
   }

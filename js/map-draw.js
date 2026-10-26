@@ -75,7 +75,10 @@ function mapDrawMount(gridEl) {
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   cv.style.cssText = `left:0;top:0;width:${w}px;height:${h}px;`;
   if (mapPenOn) cv.style.cursor = mapPenCursor(mapPenHex());
-  gridEl.appendChild(cv);
+  // Under the toolbar, never over it (css/map-mode.css): same box as before, the
+  // screen is laid at #grid's own origin.
+  const term = gridEl.querySelector('.map-term'), bar = term && term.querySelector('#map-bar');
+  if (bar) term.insertBefore(cv, bar); else gridEl.appendChild(cv);
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
   mapDrawPaint();
@@ -115,6 +118,10 @@ function mapDrawBind(gridEl) {
   gridEl.addEventListener('contextmenu', (e) => { if (mapScreenOpen) e.preventDefault(); });
   gridEl.addEventListener('pointerdown', (e) => {
     if (!mapScreenOpen) return;
+    // The toolbar is not paper. A tap on a key there used to open a stroke, and
+    // the stroke's end rebuilt the bar under the finger, so the key never got its
+    // click: the pen could not be turned off by tapping it.
+    if (e.target.closest && e.target.closest('#map-bar')) return;
     const right = e.button === 2;
     if (!right && !(mapPenOn && e.button === 0)) return;
     e.preventDefault();

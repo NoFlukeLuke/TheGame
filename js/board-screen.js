@@ -32,7 +32,9 @@ function bsLayer(S) {
   if (!_bsLayer || !_bsLayer.isConnected) {
     _bsLayer = document.createElement('div'); _bsLayer.id = 'bs-layer';
     document.body.appendChild(_bsLayer);
-    window.addEventListener('resize', () => { if (_bsOpen) _bsOpen.place(); });
+    // After the turn (as lbConsolePlace): bootstrap toggles .landscape later, then the slot slides.
+    const go = () => { if (_bsOpen) _bsOpen.place(); };
+    window.addEventListener('resize', () => { setTimeout(go, 0); setTimeout(go, 400); });
   }
   const s = _bsLayer.style;
   s.zoom = S.z;

@@ -93,6 +93,15 @@ html.skin-machine #limitbreak-overlay.lb-console .lb-offer {
   width: 92px; min-height: 0; padding: 12px 5px 6px; border-radius: 2px; border: 1px solid var(--am-dim);
   background: transparent; color: var(--am); font-family: inherit; transition: none; overflow: visible;
 }
+/* Three across in any box: a phone's board is too narrow for three at 92 (r660). */
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel:not(.stage2) .lb-offer { flex: 1 1 0; width: auto; max-width: 92px; min-width: 0; }
+/* Stage 2's offers are rows as wide as the panel (css/style.css). The 92px box
+   above held them too, so their text spilled out of it (r660). */
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer { width: 100%; max-width: none; padding: 6px 8px; flex-wrap: wrap; row-gap: 2px; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-prog { margin-left: auto; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-desc { flex-basis: 0; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-icon { font-size: 18px; margin: 0; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-label { margin: 0; }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer:hover:not(.disabled) { transform: none; border-color: var(--am); background: rgba(255,176,46,.12); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer.selected { transform: none; border-color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi), 0 0 8px rgba(255,176,46,.35); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer.blind { border-style: dashed; border-color: var(--am-dim); }

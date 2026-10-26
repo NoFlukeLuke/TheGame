@@ -2569,3 +2569,32 @@ what the curve gives there. The owner's verdicts on the other nine ideas are TOD
 - Measured by real clicks at 1440x820 and 420x900: hand B pressed 80ms into hand A's fly: A's three
   cards hidden and untappable (a tap on one selected nothing), gone from the board at the end, both
   hands counted, the score 260 then 334; mid-fall play and the kicker tests unchanged; no page errors.
+
+## r660 - the Schedule on a phone: four fixes (owner)
+- **The pick keeps the board's box.** `gridSameBoxOn()` (js/grid-metrics.js) now holds for the
+  Schedule (`mapActive()`) as well as Survival/Flow, so its pick of three, knack pick and payout
+  are laid in the last play board's outline. On a 420x900 phone the pick was 284 x 186 under a
+  285 x 364 board (the Focus bar moved with it); now 285 x 364 at the same place. Landscape was
+  already one box (`gridFillOn`). The schedule itself still fills the whole slot (295 x 418).
+- **DONE DRAWING.** With the pen on, the toolbar's two status lines give way to one big key
+  (`#mb-pen-done`, `.mb-done`, 44 design px tall) and the info line reads "Drag on the schedule to
+  draw." Two bugs made the pen hard to leave: the canvas sat at z 7 over the whole board, toolbar
+  included, so it took every tap; and `mapDrawBind`'s pointerdown opened a stroke on a toolbar tap,
+  whose end rebuilt the bar under the finger, so the click was lost (and a dot was drawn). The
+  canvas now goes INSIDE `.map-term`, just before `#map-bar`, at the bar's z-index 5, and a
+  pointerdown inside `#map-bar` is not drawing. Ink now sits under the screen's scanlines.
+- **The schedule is a save point** (js/save.js). `mapOpen` takes a checkpoint and
+  `captureRunCheckpoint` records `meta.onMap`; `resumeSavedRun` then runs `mapBeginRun` instead of
+  the round. Before, a run saved (or auto-saved by leaving the app, r470) on the schedule resumed
+  the last round from its start, a round already cleared, and a new run saved before its first
+  CLOCK IN dropped into round 1 with no schedule. A pre-r660 save with `mapFirstRoundDone` false
+  opens the schedule too. A save mid-round still replays the round.
+- **The console Limit Break in portrait.** `lbConsoleOn()` no longer asks for landscape, so turning
+  the phone keeps the amber screen. Stage 1's three offers share one row in any box (flex, at most
+  92 wide; a limit name breaks only at its slash, `<wbr>`), stage 2's offers are rows the panel's
+  width (the console's 92px box held them too, so their text spilled; landscape included).
+  `lbConsolePlace` and the board screen's `place` run a tick after a resize and again after the
+  slot's .34s slide: bootstrap's resize handler, registered last, is what toggles `.landscape`, so
+  placing at once measured the old orientation. Measured at 420x900 and 1440x820 and across both
+  flips: every limit name fits, no scroll on stage 1, the screen lands on the board's box.
+

@@ -47,13 +47,13 @@ function openLimitBreakEvent(onClose) {
   lbConsolePlace();
 }
 
-// r644 (owner): in console mode, landscape, the Limit Break is a SCREEN on the
-// board: the panel is laid over the board's box (js/board-screen.js measures it)
-// and css/board-screen.css draws it as the amber event glass. Elsewhere the
-// full-screen panel stays. Re-placed on resize while it is up.
+// r644 (owner): in console mode the Limit Break is a SCREEN on the board: the
+// panel is laid over the board's box (js/board-screen.js measures it) and
+// css/board-screen.css draws it as the amber event glass. Outside console mode
+// the full-screen panel stays. Re-placed on resize while it is up. r660: portrait
+// too (owner: turning the phone switched it back to the old panel).
 function lbConsoleOn() {
-  const st = document.getElementById('stage');
-  return typeof trayMachineOn === 'function' && trayMachineOn() && st && st.classList.contains('landscape') && typeof bsStage === 'function';
+  return typeof trayMachineOn === 'function' && trayMachineOn() && typeof bsStage === 'function';
 }
 function lbConsolePlace() {
   const ov = document.getElementById('limitbreak-overlay'), panel = document.getElementById('lb-panel');
@@ -69,7 +69,10 @@ function lbConsolePlace() {
   const k = (ov.getBoundingClientRect().width / ov.offsetWidth) || 1;
   panel.style.cssText = `position:fixed;zoom:${S.z / k};left:${(S.sr.left / S.z + g.l)}px;top:${(S.sr.top / S.z + g.t)}px;width:${g.w}px;height:${g.h}px;max-width:none;max-height:none;margin:0;`;
 }
-window.addEventListener('resize', () => lbConsolePlace());
+// After the turn, not during it: js/bootstrap.js's resize handler (registered
+// last) is what toggles .landscape, and the board's slot then slides for .34s.
+// Placed at once it measured the old orientation's board.
+window.addEventListener('resize', () => { setTimeout(lbConsolePlace, 0); setTimeout(lbConsolePlace, 400); });
 
 // The locked-in pick, as a RECEIPT rather than a tile. It used to be drawn as a
 // full .lb-offer at the top of stage 2, which is the wrong weight for it: at
@@ -121,7 +124,7 @@ function lbOfferEl(i, taken) {
     div.innerHTML = `
       <div class="lb-offer-tag">${taken ? 'TAKEN' : (offer.blind ? '?' : '')}</div>
       <div class="lb-offer-icon">${def.icon}</div>
-      <div class="lb-offer-label">${def.label}</div>
+      <div class="lb-offer-label">${def.label.replace('/', '/<wbr>')}</div>
       <div class="lb-offer-gain">${gainTxt}</div>
       <div class="lb-offer-desc">${colorizeKeywords(def.desc)}</div>
       <div class="lb-offer-prog">${progTxt}</div>

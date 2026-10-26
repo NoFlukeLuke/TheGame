@@ -1,4 +1,4 @@
-const BUILD = "2026-10-24 · r659 · play out of the fall is back; a hand played during the last hand's fly-in no longer leaves those cards on the board; falling cards keep the drawn card's width";
+const BUILD = "2026-10-25 · r660 · Schedule on a phone: the pick keeps the board's box; a big DONE DRAWING key; the schedule is a save point; the console Limit Break in portrait";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

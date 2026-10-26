@@ -67,10 +67,12 @@ const GRID_PAD_BASE = 6, GRID_PAD_TIGHT = 3;
 // board's exact box: same slot, same outline, its cells stretched to fill it
 // instead of keeping the card shape. _playGeom is the last play board's size,
 // kept on every ordinary recompute; gridSameBoxOn() says when a takeover uses it.
+// The Schedule too (owner): on a phone its pick of three shrank to half the board.
 let _playGeom = null;
 function gridSameBoxOn() {
   return document.body.classList.contains('gp-active') && !!_playGeom
-    && typeof survivalActive === 'function' && survivalActive()
+    && ((typeof survivalActive === 'function' && survivalActive())
+        || (typeof mapActive === 'function' && mapActive()))
     && !(typeof shopGridActive !== 'undefined' && shopGridActive);
 }
 function gridSameBoxMetrics() {
