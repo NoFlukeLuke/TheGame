@@ -1,4 +1,4 @@
-# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r664)
+# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r665)
 
 Nothing here is built. The owner's ideas, written up for review. Names marked
 **(owner names)** are left blank on purpose.
@@ -187,7 +187,7 @@ Trick (or Sleight), drawn with no regard for rarity, and does that for the round
 | | name | rarity (suggested) | description |
 |---|---|---|---|
 | Trick | (owner names) | epic | At the start of each round, becomes a random Trick of any rarity. Improvements apply to the Trick it becomes. |
-| Sleight | (owner names) | epic | At the start of each round, becomes a random Sleight of any rarity, with that Sleight's charges. Improvements apply to the Sleight it becomes. |
+| Sleight | (owner names) | epic | At the start of each round, becomes a random Sleight of any rarity. Every form spends these charges. Improvements apply to the Sleight it becomes. (6 charges) |
 
 **The flat draw** (counted from the data, r664) against an ordinary offer:
 
@@ -213,9 +213,21 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
   family) rolls fresh at each change.
 
 **Trick only:**
-- Not drawn: a Trick already in your tray; Tricks with a pickup effect (Cloud Nine adds 9s;
-  Rising Tide, Assembly Line and Middle Man count from the pick); scaling Tricks (30 of 171),
-  whose count would restart every round (see question 7).
+- Not drawn: a Trick already in your tray, and (owner, r665) any Trick that grows from when
+  you take it or round by round, since a form only lasts a round. Tricks that read the whole
+  game so far ARE drawn. The 30 scaling Tricks plus Assembly Line, sorted:
+
+| | Tricks |
+|---|---|
+| **In:** reads the whole game so far | Hummingbird (pauses and rewinds this game), Wellspring (Focus made this game), Wild Side (negative tiles taken this run), Unsummit (the level) |
+| **In:** buffs cards for good, so nothing is lost when the form changes | Bedrock, First Fruits, The Vulture, Hourglass, Ley Line, D6, Middle Management, Royal Favour, Ace Absorb, Monopoly, Heartwood, Wait Four It |
+| **Out:** grows from when you take it | Middle Man, Compound, Acorns, Penny Saved, Perfect Ten, More Better, Feng Shui, Relentless, Quick Draw, Expanse, the little guys, Cloud Nine (also adds 9s on pickup) |
+| **Out:** grows round by round | Rising Tide, Life Lessons, Assembly Line |
+
+  Not tagged scaling and already drawn: Landfill (cards swapped or discarded this game) and the
+  like. Measured in code: Hummingbird reads `pauseInstanceGame + rewindInstanceGame`,
+  Wellspring `focusGenGame`, Wild Side `negativeTilesTakenRun`; Perfect Ten only counts while
+  held (`bonusMult_tens`), so it is out.
 - A line Trick marks a random line for the round (no chooser screen at a round's start).
 - Never fuses and never completes an Inseparable pair.
 - Keeps its tray slot, so Tricks that read slots see the form there. Primes on it carry over
@@ -224,8 +236,12 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 **Sleight only:**
 - Changes wherever it is: on the board (it turns over in place), in the draw pile or the
   played pile.
-- Takes the form's full charges each round (improved count included). Spent, it waits for the
-  next change instead of leaving the deck (see question 6).
+- **6 charges of its own** (owner, r665), shared by every form. Each use spends one, whatever
+  the form; a form that spends by the second (Fight the Power) spends from these. A form that
+  never spends a charge (a passive Sleight with infinite charges, Keeper) spends one at the
+  round's end if it was on the board that round. At 0 it leaves the deck for good.
+- The forms' own charge counts are not used, so an improvement that only adds charges
+  (Procrastinate, Logistics Assistant...) does nothing for the changer that round.
 - Not drawn: a Sleight you own a copy of (one BAL row per id would serve both at two tiers),
   or one that builds while it sits on the grid (Slow Burn, Whetstone).
 - Build note: the card needs a durable field marking it as the changer (`DURABLE_CARD_FIELDS`),
@@ -242,7 +258,5 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 4. **Which three departments go** (proposed: Communications, Customer Support, Procurement).
 5. **Overlap:** TODO.md's skip perks (section 1, item 3) list a Sleight charge, a random
    improvement and +2 reward grid selection too. One reward list could serve both.
-6. **The changing Sleight's charges:** the form's full charges every round, so it never runs
-   out (as written), or a pool of its own for the run (say 8), spent by every form?
-7. **Scaling Tricks in the changing Trick's draw:** left out (as written), or in, starting from
-   0 each round?
+6. **Card-buffing Tricks** (Bedrock, The Vulture, Royal Favour...) are IN the changing Trick's
+   draw: their buffs stay on the cards. Out if they count as "scaling from when you get it".
