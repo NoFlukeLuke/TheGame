@@ -2651,3 +2651,45 @@ the real total with no timeline drift; a hand picked during a tally auto-played 
 with a 500ms wait played; a discard 450ms into a fall ran at once; the deck played dry under queued
 hands with no error (the Reshuffle card dealt); a queued goal hand ended the round through the
 interlude after the hand in front of it finished.
+
+## r662 - the Schedule's tools are the keys; three key looks to choose from (owner)
+- **The Schedule borrows PLAY, DISCARD and SWAP** (js/map-mode.js `mapKeysTake` / `mapKeysSync` /
+  `mapKeysReturn`, css/map-mode.css). While the schedule is on screen PLAY is CLOCK IN, SWAP the PEN,
+  DISCARD the LEGEND; with the pen out they are DONE, COLOUR (a swatch of the pen's colour) and UNDO.
+  The play words stay in each key, hidden in place (`.mapk-keep`, display: contents), and the
+  schedule's label (`.mapk`: a glyph over the word, one letter a line) is laid over it, so every key
+  keeps its exact play size in both orientations and giving it back is unwrapping (replacing the
+  markup let the phone's flex column resize the keys). Capture listeners bound at load stop playHand /
+  doDiscard / doSwap while the keys are held and act only while the toolbar is up (`mapKeysLive`, so
+  a press during the fall-out is lost). A tool that is on stays down (`.mapk-on`); one that cannot act
+  dims its word (`.mapk-off`; the keys never grey, r100) and a press refuses (sound, buzz). render()
+  keeps off them (`_takeover` reads `mapScreenOpen`). Space / D / S press them like any key.
+- **The toolbar keeps one tool**, 30 design px: `?` (the rules card), or with the pen out and ink on
+  the list, WIPE. Its CLOCK IN button and the 16px legend / pen / colour / undo chips are gone; the
+  r660 DONE DRAWING key stays.
+- **The legend docks on the empty screens** (`mapLegendHome` / `mapLegendPlace`, js/map-draw.js): the
+  strip right of the board is the keys' now, so it covers the hand preview and the Tricks tray in
+  landscape, the top strip's two halves on a phone, as a grid of symbol + word (`--ml-cols`,
+  `--ml-fs`: the column count whose type can be biggest, 9 to 22px). With no free screen it is the
+  float card over the board. The board no longer slides for it (`mapLegendSlide` only resets).
+  Walkthrough: "The symbols" points at LEGEND (`#btn-discard`), "Pick your first stop" at the tiles
+  and CLOCK IN (`#btn-play`). The handbook's Schedule lines say the keys are its tools.
+- **Key looks, a preview for the owner** (js/key-looks.js, css/key-looks.css): PLAY, DISCARD and SWAP
+  as small pixelated screens in a 5 design px rim of the key's fixed colour that stands proud of the
+  glass, still pressing down. Stock shows as pixel squares inside the screen instead of bulbs
+  (js/stock-bulbs.js: `keyLookCfg()` size 6 / pad 9, `sbOn()` shows them whatever Stock display says,
+  the hand column goes on PLAY in either skin, a borrowed key (REROLL, CONFIRM, BUY) shows none).
+  Lit = left, hollow = used, faint = not unlocked. **A tube**: dark glass, scan lines and glare over
+  the words, words and squares glow in the key's colour. **B lcd**: a backlit panel in a pale tint
+  of the key with a dot grid and dark ink. **C pixel**: stepped corners (clip-path on the two
+  pseudo-elements), the slab under the key and a 1px black outline as drop shadows of that shape (a
+  clip would cut a box-shadow off), a black screen with a pixel grid. Selectors carry four ids to beat
+  the console keycaps. Dev -> HUD & Display -> Aesthetics -> Key look (`lethe.keyLook.v1`, stored only
+  when on) or `index.html?keys=a|b|c` for one page load. Off by default until the owner picks.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks: CLOCK IN refused with nothing
+picked and clocked in on a picked tile (by click and by Space); LEGEND docked 542 x 358 (2 columns,
+22px) on a desktop and 408 x 121 (3 columns, 14.4px) on a phone, no name clipped; PEN, a stroke,
+COLOUR (gold to sky), UNDO, WIPE and DONE; the keys came back as PLAY / DEFER / SWAP with their counts
+and a hand played; the phone keys kept 113 / 149 / 149 throughout. Every key look keeps its words
+inside the glass in both skins and sizes (measured by text rects), presses, and works on Flow's pick,
+the shop and the Schedule. No page errors.

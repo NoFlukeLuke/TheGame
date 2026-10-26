@@ -1,4 +1,4 @@
-const BUILD = "2026-10-26 · r661 · the scoring queue (a hand played mid-tally waits its turn, the tally runs x2 a waiting hand, up to five); every card falls on its own, a new fall re-aims cards in the air; drag-to-play and auto-play no longer drop a hand mid-animation";
+const BUILD = "2026-10-26 · r662 · the Schedule's tools are the keys (CLOCK IN, PEN, LEGEND; DONE, COLOUR, UNDO while drawing), the legend docks on the empty screens; three key looks to choose from (dev, Aesthetics, Key look)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

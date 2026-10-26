@@ -336,7 +336,8 @@ function render() {
                  || (typeof shopGridActive !== 'undefined' && shopGridActive)
                  || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
                  || (typeof flowrDeckActive === 'function' && flowrDeckActive())
-                 || (typeof gridPickState !== 'undefined' && !!gridPickState);
+                 || (typeof gridPickState !== 'undefined' && !!gridPickState)
+                 || (typeof mapScreenOpen !== 'undefined' && mapScreenOpen);   // r662: the keys are the schedule's tools
   if (!_takeover) {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.

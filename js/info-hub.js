@@ -298,9 +298,10 @@ const INFO_TOPICS = [
   { id: 'schedule', group: 'schedule', title: 'The schedule',
     body: [
       'Your schedule is a to-do list of OBLIGATIONS in four TIME SLOTS, read top to bottom, ending in the manager review.',
-      'Each obligation is one thing you will do: a client account is an ordinary round. The legend button lists every kind on this schedule, and tapping a row lights up where they are.',
+      'Each obligation is one thing you will do: a client account is an ordinary round.',
+      'While the schedule is up, the three keys on the right are its tools: PEN, LEGEND and CLOCK IN. LEGEND lists every kind on this schedule, and tapping a row lights up where they are.',
       'Pick an obligation and its name shows on the command line at the foot. CLOCK IN takes it.',
-      'You can draw on it. Right-drag lays ink over the list, double right-click changes colour, and it is saved with your run.',
+      'You can draw on it. PEN lets a finger or the mouse lay ink, and the keys become DONE, COLOUR and UNDO. Right-drag draws without it, double right-click changes colour, and the ink is saved with your run.',
     ] },
 
   { id: 'slots_visits', group: 'schedule', title: 'Time slots and two visits',

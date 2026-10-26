@@ -54,6 +54,9 @@ function sbStocks() {
   };
 }
 
+// r662: a key look (js/key-looks.js) shows stock as pixel squares whatever this setting says.
+function sbKeyLook() { return typeof keyLookOn === 'function' && keyLookOn(); }
+function sbOn() { return !!sbCfg.on || sbKeyLook(); }
 function sbLive() {
   const sc = document.getElementById('sel-count');
   return !!(sc && sc.classList.contains('on'))
@@ -69,7 +72,8 @@ function sbPlaces(st, z, sr) {
   // bulbs split in half, one column each side of the label (left fills first).
   const keyCol = (id, n) => {
     const k = sbRect(document.getElementById(id), st, z, sr); if (!k) return null;
-    const size = SB_SIZE, pad = 4;
+    const kl = typeof keyLookCfg === 'function' ? keyLookCfg() : null;
+    const size = kl ? kl.size : SB_SIZE, pad = kl ? kl.pad : 4;   // r662: a key look's squares sit inside the rim
     const len = m => m * size + (m - 1) * SB_GAP;
     if (len(n) <= k.h - 2 * pad) return { x: k.x + pad, y: k.y + (k.h - len(n)) / 2, dir: 'col', size };
     const rows = Math.ceil(n / 2);
@@ -93,8 +97,13 @@ function sbPlaces(st, z, sr) {
     return lim - (t.y + t.h);
   };
   const s = sbStocks();
-  if (s.swap) out.swap = keyCol('swap-indicator', s.swap.n);
-  if (s.disc) out.disc = keyCol('btn-discard', s.disc.n);
+  // r662: with a key look on, a key another screen has borrowed (REROLL, CONFIRM, BUY...)
+  // shows that screen's words alone; the squares would sit on them.
+  const own = id => !sbKeyLook() || (id === 'swap-indicator' ? !!document.querySelector('#swap-indicator .swap-word')
+    : id === 'btn-discard' ? !!document.getElementById('disc-count')
+    : !document.getElementById('btn-play')?.classList.contains('reward-buy'));
+  if (s.swap && own('swap-indicator')) out.swap = keyCol('swap-indicator', s.swap.n);
+  if (s.disc && own('btn-discard')) out.disc = keyCol('btn-discard', s.disc.n);
   const tt = document.getElementById('trick-tray-area');
   if (s.trick) out.trick = trayRow(tt, s.trick.n, sbCfg.trick, roomBelow(tt, ['btn-records', 'btn-pause', 'knack-carousel-wrap', 'grid']));
   // The hand preview's box. On a phone it shares its half of the strip with Knacks
@@ -104,7 +113,7 @@ function sbPlaces(st, z, sr) {
   // Console mode (r564, owner): the hand size is a column on the PLAY key, like the
   // swaps and discards on theirs.
   const machine = typeof trayMachineOn === 'function' && trayMachineOn();
-  if (s.hand && machine) { if (!document.body.classList.contains('grid-screen')) out.hand = keyCol('btn-play', s.hand.n); }
+  if (s.hand && (machine || sbKeyLook())) { if (!document.body.classList.contains('grid-screen') && own('btn-play')) out.hand = keyCol('btn-play', s.hand.n); }
   else if (s.hand) out.hand = hp
     ? trayRow(hp, s.hand.n, sbCfg.trick, roomBelow(hp, land ? ['trick-tray-area'] : ['sel-count', 'grid', 'trick-tray-area']))
     : trayRow(document.getElementById('sel-count'), s.hand.n, 'mid');
@@ -114,7 +123,7 @@ function sbPlaces(st, z, sr) {
 function sbPaint(force) {
   const st = document.getElementById('stage'); const l = sbLayer();
   if (!st || !l) return;
-  const on = sbCfg.on && sbLive();
+  const on = sbOn() && sbLive();
   l.style.display = on ? '' : 'none';
   if (!on) { _sbSig = ''; return; }
   const sr = st.getBoundingClientRect(), z = sr.width / (st.offsetWidth || 1);
@@ -149,10 +158,10 @@ function sbPaint(force) {
 }
 
 function sbApply() {
-  document.documentElement.classList.toggle('stock-bulbs', !!sbCfg.on);
+  document.documentElement.classList.toggle('stock-bulbs', sbOn());
   const a = document.getElementById('dev-sb-on'); if (a) a.value = sbCfg.on ? sbCfg.trick : 'off';
   clearInterval(_sbTimer); _sbTimer = 0;
-  if (sbCfg.on) _sbTimer = setInterval(() => sbPaint(false), 150);
+  if (sbOn()) _sbTimer = setInterval(() => sbPaint(false), 150);
   sbPaint(true);
 }
 function sbChoose(v) { if (v === 'off') sbSet('on', 0); else { sbCfg.trick = v; sbSet('on', 1); } }
@@ -160,6 +169,6 @@ function sbChoose(v) { if (v === 'off') sbSet('on', 0); else { sbCfg.trick = v; 
 // Selection changes paint at once rather than on the next tick.
 if (typeof updateSelectionUI === 'function') {
   const _sbUsu = updateSelectionUI;
-  updateSelectionUI = function () { const r = _sbUsu.apply(this, arguments); if (sbCfg.on) sbPaint(false); return r; };
+  updateSelectionUI = function () { const r = _sbUsu.apply(this, arguments); if (sbOn()) sbPaint(false); return r; };
 }
 if (document.body) sbApply(); else document.addEventListener('DOMContentLoaded', sbApply);

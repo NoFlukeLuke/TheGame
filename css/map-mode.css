@@ -157,7 +157,7 @@
 /* The tools sit in the time gutter, two to a row, beside the three lines. */
 #map-bar .mb-tools {
   grid-column: 1; grid-row: 1 / span 3; align-self: center;
-  display: grid; grid-template-columns: repeat(2, 16px); gap: 4px; padding-left: 3px;
+  display: grid; grid-template-columns: 30px; gap: 4px; padding-left: 3px;
 }
 #map-bar .mb-q {
   flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border-radius: 2px;
@@ -165,6 +165,8 @@
   color: var(--am); background: transparent; border: 1px solid var(--am-dim);
   cursor: var(--cur-pointer, pointer);
 }
+/* r662: the one tool left in the gutter is bigger than the old 16px chips. */
+#map-bar .mb-q.mb-big { width: 30px; height: 30px; font-size: 22px; border-width: 1px; }
 #map-bar .mb-q:hover, #map-bar .mb-q.on { background: rgba(255,176,46,.2); border-color: var(--am); color: var(--am-hi); }
 #map-bar .mb-sw { display: grid; place-items: center; }
 #map-bar .mb-sw i { width: 8px; height: 8px; border-radius: 50%; display: block; background: #f5c042; }
@@ -220,12 +222,33 @@
 
 /* The hard-round knack pick is drawn ON the board (js/grid-pick.js, r254). */
 
-/* While the map owns the screen, the round's action buttons are not part of the
-   conversation - the toolbar carries CLOCK IN. Hidden, not disabled: a greyed
-   PLAY over a schedule reads as something broken. */
-body.map-active #btn-play,
-body.map-active #btn-discard,
-body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
+/* ── The keys are the schedule's tools (r662, owner; js/map-mode.js mapKeysSync) ──
+   PLAY is CLOCK IN, SWAP the PEN, DISCARD the LEGEND; with the pen out DONE, COLOUR
+   and UNDO. A glyph over a word read top to bottom, like the keys' own words. The
+   keys never grey out (r100): a tool the schedule cannot use yet dims its word, and a
+   tool that is on (the legend up, the pen out) stays down. */
+body.map-keys .mapk-keep { display: contents; visibility: hidden; }
+body.map-keys #stage:not(.landscape) :is(#btn-play, #btn-discard, #swap-indicator) { position: relative; }
+body.map-keys .mapk {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  pointer-events: none; line-height: 1; white-space: normal;
+}
+body.map-keys .mapk-ico { font-size: 17px; line-height: 1; font-family: 'DejaVu Sans', 'Segoe UI Symbol', sans-serif; }
+body.map-keys .mapk-word { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 14px; }
+body.map-keys .mapk-w { display: block; white-space: pre; line-height: .9; text-align: center; letter-spacing: 0; }
+body.map-keys #swap-indicator .mapk-word { font-size: 13px; }
+body.map-keys #swap-indicator .mapk-ico { font-size: 14px; }
+
+body.map-keys .mapk-sw { display: block; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 6px currentColor; }
+body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-off .mapk { opacity: .6; }
+body.map-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).mapk-on { transform: translateY(3px) !important; filter: brightness(.94); }
+html.skin-machine body.map-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).mapk-on {
+  transform: translateY(5px) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -3px 0 rgba(0,0,0,.18),
+              0 0 0 1px rgba(0,0,0,.6), 0 1px 0 var(--mc-key-side), 0 1px 0 1px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5) !important;
+}
+body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-on .mapk-ico { text-shadow: 0 0 8px currentColor !important; }
 
 /* ── The pen (r263) ───────────────────────────────────────────────────────────
    A canvas over the list inside #grid. It is pointer-events:none by default
@@ -252,6 +275,19 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
   color: #ffb02e; text-shadow: 0 0 6px rgba(255,176,46,.5);
 }
 #map-legend.show { display: flex; }
+/* r662: docked on the screens the schedule leaves empty (js/map-draw.js mapLegendPlace):
+   a grid of symbol + word, --ml-cols columns at --ml-fs, filling the box. */
+#map-legend.ml-dock { padding: 5px 7px 7px; border-radius: 6px; }
+#map-legend.ml-dock .ml-head { font-size: 14px; padding: 0 2px 3px; margin-bottom: 4px; }
+#map-legend.ml-dock .ml-list {
+  display: grid; grid-template-columns: repeat(var(--ml-cols, 2), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr); gap: 2px 10px; overflow: hidden;
+}
+#map-legend.ml-dock .ml-row { font-size: var(--ml-fs, 16px); padding: 0 4px; min-height: 0; gap: .4em; }
+#map-legend.ml-dock .ml-row + .ml-row { margin-top: 0; }
+#map-legend.ml-dock .ml-chip { flex: 0 0 1.25em; width: 1.25em; height: 1.25em; font-size: .9em; }
+#map-legend.ml-dock .ml-chip .mk-svg { width: .75em; height: .75em; }
+#map-legend.ml-dock .ml-row b { font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The fallback for a strip too narrow to hold a row: centred over the board. */
 #map-legend.ml-float {
   left: 50%; top: 50%; transform: translate(-50%, -50%);

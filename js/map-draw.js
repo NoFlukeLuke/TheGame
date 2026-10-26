@@ -197,10 +197,7 @@ function mapPenCycle() {
 function mapPenSyncChrome() {
   const cv = document.getElementById('map-draw-layer');
   if (cv && mapPenOn) cv.style.cursor = mapPenCursor(mapPenHex());
-  const dot = document.getElementById('mb-sw-dot');
-  if (dot) dot.style.background = mapPenHex();
-  const pen = document.getElementById('mb-pen');
-  if (pen) pen.style.color = mapPenHex();
+  if (typeof mapKeysSync === 'function') mapKeysSync();   // r662: the COLOUR key's swatch, the PEN key's ink
 }
 // Undo and clear act on THIS orientation's ink only - the other one's is set
 // aside, not on screen, and taking it back would be undoing something invisible.
@@ -235,43 +232,18 @@ function mapLegendRows() {
   return rows;
 }
 
-// ── THE LEGEND IS A RAIL BESIDE THE BOARD (r294) ─────────────────────────────
-// It used to be a .mb-help card above the map bar, and there it did the one
-// thing a legend must not: at 396 x 303 on a phone it LAY OVER THE WHOLE BOARD,
-// so hovering a row lit up obligations nobody could see. Owner: "the legend was
-// just too little down there."
-//
-// It is now a tall panel in the empty strip to the RIGHT of the schedule - the
-// area the owner circled - so the list and the board it is describing are on
-// screen together. That strip is the same shape in both orientations, which is
-// why one rail covers both: measured at 1440x820 it is 142 x 494, at 1100x620
-// 105 x 377, and on a 420-wide phone 116 x 426.
-//
-// THE ROW IS THE SYMBOL AND THE WORD, AND THE BLURB GOES TO THE BAR. r276's
-// rule for the board is "just use the symbols, with the legend showing the
-// symbol and word", and a 105px rail has no room for a sentence anyway - nine
-// rows of wrapped prose measured over 700px tall against a 377px board. The
-// blurb lands in #mb-info instead, which is already the bar's "what is this"
-// readout, is as wide as the bar, and is empty whenever nothing is picked.
-//
-// Body-level and placed in RAW VIEWPORT PX, the same rule #map-bar and the
-// tooltips follow: anything inside #cabinet inherits its CSS zoom and would
-// have those coordinates multiplied.
-// THAT 116px WAS WRONG AND IT IS WHY THE RAIL NEVER DOCKED ON A PHONE (r298).
-// It is the leftover on BOTH sides of a centred board (stage 416 - board 301),
-// not the strip on the right - which really measures 49-60px on every phone, so
-// every one of them took the float fallback. The board is centred in its slot,
-// so the fix is to collect that slack: while the rail is docked the board SLIDES
-// LEFT to sit a gap inside the stage, and the whole leftover gathers on the
-// right. Measured strips after the slide: 83 at 390, 78 at 375, 74 at 360.
-//
-// A row then has two shapes, picked by what the strip can actually hold. Side by
-// side needs about 100px (chip 20 + gaps + the longest unbreakable name,
-// INCENTIVE, at 8.5px); a phone gets the STACKED chip instead - symbol over
-// word - which needs about 62. Below that there is still the float card.
-const MAP_LEGEND_MIN_W = 100;    // a row can hold symbol BESIDE word
-const MAP_LEGEND_NARROW_W = 62;  // a row can hold symbol OVER word
-
+// ── THE LEGEND (r294, docked on the empty screens since r662) ─────────────────
+// It began as a .mb-help card above the map bar, and there it lay over the whole
+// board on a phone, so hovering a row lit up obligations nobody could see. r294 made
+// it a rail in the strip right of the board; r662 gave that strip to the keys (they
+// are the schedule's tools), so it docks on the screens the schedule leaves empty
+// (mapLegendHome, mapLegendPlace below).
+// THE ROW IS THE SYMBOL AND THE WORD, AND THE BLURB GOES TO THE BAR. r276's rule for
+// the board is "just use the symbols, with the legend showing the symbol and word";
+// the sentence lands in #mb-info, the bar's own "what is this" line, which is empty
+// whenever nothing is picked.
+// Body-level and placed in RAW VIEWPORT PX, the rule the tooltips follow: anything
+// inside #cabinet inherits its CSS zoom and would have those coordinates multiplied.
 function mapLegendEl() { return document.getElementById('map-legend'); }
 function mapLegendOpen() { return !!mapLegendEl()?.classList.contains('show'); }
 
@@ -382,54 +354,54 @@ function mapLegendSlide(px) {
   el.style.left = (-px / (z || 1)).toFixed(2) + 'px';
 }
 
-// Dock it in the strip beside the board. A strip too narrow for even a stacked
-// row falls back to a centred card over the board - worse, but never nothing.
+// THE LEGEND DOCKS ON THE SCREENS THE SCHEDULE LEAVES EMPTY (r662). The strip right of
+// the board is the keys' now (they are the schedule's tools, js/map-mode.js), so the
+// rail would sit over PEN, LEGEND and CLOCK IN. It goes where nothing is drawn while
+// the schedule is up: the hand preview and the Tricks tray in landscape, the top strip's
+// two halves on a phone. It covers them while it is up, never the board or the keys.
+// The rows are a grid, as many columns as let the type be biggest in that box.
+function mapLegendHome() {
+  const land = !!document.getElementById('stage')?.classList.contains('landscape');
+  const ids = land ? ['selected-cards', 'trick-tray-area'] : ['trick-tray-area', 'knack-carousel-wrap', 'hand-preview-area'];
+  let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+  ids.forEach(id => {
+    const el = document.getElementById(id); if (!el || !el.offsetParent) return;
+    const q = el.getBoundingClientRect(); if (q.width < 20 || q.height < 20) return;
+    l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+  });
+  return isFinite(l) && r - l > 120 && b - t > 60 ? { left: l, top: t, width: r - l, height: b - t } : null;
+}
+const MAP_LEGEND_FS = [9, 22];   // the rows' type, viewport px, smallest and biggest
 function mapLegendPlace() {
   const el = mapLegendEl();
-  const gEl = document.getElementById('grid');
-  if (!el || !el.classList.contains('show') || !gEl) { mapLegendSlide(0); return; }
-  mapLegendSlide(0);                                   // measure the board at rest
-  let g = mapBoardRect();
-  if (!g || !g.width) return;
-  const stage = document.getElementById('stage')?.getBoundingClientRect();
-  // TWO margins, not one. `gap` separates the rail from the board and has to
-  // stay generous, or the rail reads as part of the schedule; `edge` is the
-  // margin against the stage, where 4px buys the 8px that decides whether the
-  // narrowest phone gets a rail at all.
-  const gap = 8, edge = 4;
-  const left  = Math.max(stage ? stage.left : 0, 0) + edge;
-  const right = Math.min(stage ? stage.right : window.innerWidth, window.innerWidth) - edge;
-
-  // Only ever slide when the strip cannot hold a row as it stands, and never
-  // further than the board's own left gutter - desktop keeps its board centred.
-  if (right - (g.right + gap) < MAP_LEGEND_MIN_W) {
-    const slack = Math.max(0, Math.round(g.left - left));
-    if (slack) { mapLegendSlide(slack); g = mapBoardRect(); }
+  mapLegendSlide(0);
+  if (!el || !el.classList.contains('show')) return;
+  el.classList.remove('ml-narrow');
+  const home = mapLegendHome();
+  if (!home) {
+    // No free screen to dock on: a centred card over the board, worse but never nothing.
+    const g = mapBoardRect();
+    el.classList.remove('ml-dock'); el.classList.add('ml-float');
+    el.style.left = el.style.width = el.style.top = el.style.height = '';
+    el.style.maxHeight = g ? Math.round(g.height) + 'px' : '';
+    return;
   }
-
-  const w = right - (g.right + gap);
-  el.classList.toggle('ml-narrow', w < MAP_LEGEND_MIN_W);
-  if (w >= MAP_LEGEND_NARROW_W) {
-    el.classList.remove('ml-float');
-    // A stacked row is taller, so nine of them do not fit the board's own
-    // height - the narrow rail takes the whole free column instead, from the
-    // top of the board's slot down to the bar. It still never covers the board.
-    const slot = document.getElementById('grid-slot')?.getBoundingClientRect();
-    const bar  = document.getElementById('map-bar')?.getBoundingClientRect();
-    const wide = w >= MAP_LEGEND_MIN_W;
-    const top  = wide ? g.top : Math.max(edge, Math.min(g.top, slot ? slot.top : g.top));
-    const bot  = wide ? Math.min(g.bottom, window.innerHeight - gap)
-                      : Math.min(bar && bar.top ? bar.top - edge : Infinity, window.innerHeight - edge);
-    el.style.left = Math.round(g.right + gap) + 'px';
-    el.style.width = Math.round(w) + 'px';
-    el.style.top = Math.round(top) + 'px';
-    el.style.maxHeight = Math.max(60, Math.round(bot - top)) + 'px';
-  } else {
-    mapLegendSlide(0);
-    el.classList.add('ml-float');
-    el.style.left = el.style.width = el.style.top = '';
-    el.style.maxHeight = Math.round(g.height) + 'px';
+  el.classList.remove('ml-float'); el.classList.add('ml-dock');
+  el.style.left = Math.round(home.left) + 'px'; el.style.top = Math.round(home.top) + 'px';
+  el.style.width = Math.round(home.width) + 'px'; el.style.height = Math.round(home.height) + 'px';
+  el.style.maxHeight = '';
+  // VT323 is monospace at about half an em a letter; a row is the chip (1.2em), a gap
+  // and its word. The head takes a fixed line.
+  const names = [...el.querySelectorAll('.ml-row b')].map(x => x.textContent.length);
+  const n = Math.max(1, names.length), longest = Math.max(3, ...names);
+  const W = home.width - 14, H = home.height - 14 - 20;
+  let best = { cols: 1, fs: 0 };
+  for (let cols = 1; cols <= 4; cols++) {
+    const fs = Math.min((H / Math.ceil(n / cols)) * 0.6, (W / cols - 12) / (longest * 0.5 + 1.8));
+    if (fs > best.fs + 0.01) best = { cols, fs };
   }
+  el.style.setProperty('--ml-cols', String(best.cols));
+  el.style.setProperty('--ml-fs', Math.max(MAP_LEGEND_FS[0], Math.min(MAP_LEGEND_FS[1], best.fs)).toFixed(1) + 'px');
 }
 
 // Slay the Spire's move: the named kind stays lit and everything else drops

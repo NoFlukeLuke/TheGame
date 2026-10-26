@@ -324,11 +324,12 @@ const TUTORIAL_STEPS = [
     body: `Your day runs top to bottom through four <b>time slots</b>. Each line is one <b>obligation</b>: a round, a shop, an event, a reward board.<br><br>The line at the bottom is the <b>manager review</b>.`,
   },
   {
-    id: 'schedule-legend', only: 'map', anchor: () => tutEl('#mb-key'), side: 'top', gate: true,
-    when: () => tutMapOpen() && !!tutEl('#mb-key'),
+    // r662: the legend is the DISCARD key while the schedule is up (js/map-mode.js mapKeysSync).
+    id: 'schedule-legend', only: 'map', anchor: () => tutEl('#btn-discard'), side: 'left', gate: true,
+    when: () => tutMapOpen() && document.body.classList.contains('map-keys'),
     eyebrow: 'The schedule',
     title: 'The symbols',
-    body: `<b>Press the key.</b><br><br>Hovering a row lights every obligation of that kind. Tapping a tile puts its name on the bar.`,
+    body: `<b>Press LEGEND.</b><br><br>Hovering a row lights every obligation of that kind. Tapping a tile puts its name on the bar.`,
     until: () => !!document.querySelector('#map-legend.show'),
   },
   {
@@ -343,7 +344,7 @@ const TUTORIAL_STEPS = [
       : `Move up, down or forward. Never diagonal. <b>Every step you take happens.</b><br><br>You can take two obligations in one time slot if they sit next to each other. Take only one and moving on pays you credits, more each time.<br><br>A move that would strand you is refused.`,
   },
   {
-    id: 'schedule-go', only: 'map', anchor: () => tutEls('#grid .map-tile', '#mb-confirm'), side: 'top', next: true,
+    id: 'schedule-go', only: 'map', anchor: () => tutEls('#grid .map-tile', '#btn-play'), side: 'top', next: true,
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Pick your first stop',
