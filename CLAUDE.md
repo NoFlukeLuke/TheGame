@@ -31,6 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
+| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards (r663); draft |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |

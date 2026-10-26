@@ -1,4 +1,4 @@
-const BUILD = "2026-10-26 · r662 · the Schedule's tools are the keys (CLOCK IN, PEN, LEGEND; DONE, COLOUR, UNDO while drawing), the legend docks on the empty screens; three key looks to choose from (dev, Aesthetics, Key look)";
+const BUILD = "2026-10-26 · r663 · design draft: rule Sleights, a department a quarter, two-stage challenges and their rewards (CHALLENGE_REWARDS.md)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

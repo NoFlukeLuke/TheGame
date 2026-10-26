@@ -3,6 +3,9 @@
 Nothing here is built. Pairings and tiles are decided (r658); the event pools and the small
 extras below are proposals waiting on the owner.
 
+**r663:** `CHALLENGE_REWARDS.md` proposes ONE department a quarter instead of one a lane (eight
+departments, leaning less hard, and paying the quarter's challenge cards).
+
 ## Decided (owner, r656-r657)
 - **Eleven departments:** Sales, Marketing, Accounting, IT, HR, Operations, Legal, R&D,
   Procurement, Customer Support, Communications. Each quarter's map draws four, one per lane.
