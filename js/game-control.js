@@ -553,6 +553,7 @@ function startGame() {
   bonusMult_nines = 0;
   risingTideMult = 0;
   middleManMult = 0;
+  deluxeOffers = {};
   bonusMult_tens = 0;
   bonusMult_compound = 0;
   spadesRelentless = 0;

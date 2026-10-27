@@ -197,6 +197,10 @@ const IMPROVE_PLAN = {
   logistics_assistant: t => ({ charges: 4 + 2 * [0, 1, 2, 3, 4, 4][t], swaps: t >= 5 ? 2 : 0 }),
   // +10% a tier; the 5th adds a 30% chance of a second charge
   green_station:    t => ({ chance: 0.3 + 0.1 * [0, 1, 2, 3, 4, 4][t], chance2: t >= 5 ? 0.3 : 0 }),
+  // owner: +15% a tier to 75%; the 5th keeps 75% and rolls 50% for each further improvement
+  deluxe_subscription: t => ({ chance: 0.15 * (1 + Math.min(t, 4)), chance2: t >= 5 ? 0.5 : 0 }),
+  // the number is not the point: each improvement grows the cards' buffs (IMPROVE_HOOKS.yoked)
+  yoked:            () => ({}),
 };
 
 // What an improvement DOES beyond its numbers (r625): a tier jump, a roll kept on
@@ -222,6 +226,7 @@ const IMPROVE_HOOKS = {
   retake: tier => sleightTierCharges('retake', tier, tier >= 5),
   shredder: tier => sleightTierCharges('shredder', tier, tier >= 5),
   logistics_assistant: tier => sleightTierCharges('logistics_assistant', tier),
+  yoked: tier => { yokedImprove(tier); },
 };
 // The charges a Sleight's IMPROVE_PLAN gives at a tier, onto every owned copy: the
 // step since the last tier, or full when `refill`. Capped at the Sleight's cap.

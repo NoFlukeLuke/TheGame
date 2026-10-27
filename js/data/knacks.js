@@ -74,6 +74,8 @@ const KNACK_POOL = [
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.', tags:['credits','stock','other'] },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.', tags:['other','sleights','chance','charges','start'] },
   { id:'green_station',   emoji:'🔌',  name:'Green Station',    rarity:'rare',   desc:'Sleights have a 30% chance to get a charge back at the end of each round. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.', tags:['other','sleights','chance','charges','level'] },
+  { id:'deluxe_subscription', emoji:'🎁', name:'Deluxe Subscription', rarity:'common', desc:'Tricks and Sleights you are offered have a 15% chance to come improved.', tags:['luck','other','reward','shop','chance'] },
+  { id:'yoked',           emoji:'🐂',  name:'Yoked',            rarity:'epic',   desc:'Buffs your cards gain are twice as strong. Improving this makes every buff your cards hold 25% stronger; the 5th improvement doubles them.', tags:['pips','mult','xpips','xmult','card','buffed','scores'] },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.', tags:['other','sleights','discard','charges'] },
   // ── Position knacks (r102) - control which line a position Trick marks ──
   { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which column it marks.', tags:['other','tricks','position','line'] },

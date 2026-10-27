@@ -150,6 +150,8 @@ const ICONS = [
   { glyph: '📠', icon: 'delapouite/paper-tray',   color: 'cyan'   },  // Photocopier
   { glyph: '🚚', icon: 'delapouite/forklift',     color: 'orange' },  // Logistics Assistant
   { glyph: '🔌', icon: 'delapouite/charging',     color: 'green'  },  // Green Station (knack)
+  { glyph: '🎁', icon: 'delapouite/present',      color: 'gold'   },  // Deluxe Subscription (knack)
+  { glyph: '🐂', icon: 'lorc/bull',               color: 'brown'  },  // Yoked (knack)
   { glyph: '🖐️', icon: 'open-palm',         color: 'cream'  },  // Free Hand
   { glyph: '✌️', icon: 'high-five',         color: 'cream'  },  // Double Down
   // Reward tiles (js/reward-grid.js)

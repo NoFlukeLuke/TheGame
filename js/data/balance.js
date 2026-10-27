@@ -290,6 +290,8 @@ const BAL = {
   shredder: { charges: 3, deletes: 1, double_spend: 0 },
   photocopier: { copies: 4, permanent: 0, double_spend: 0 },
   logistics_assistant: { charges: 4, swaps: 0, max_swaps: 8 },
+  deluxe_subscription: { chance: 0.15, chance2: 0 },   // knack: an offered Trick / Sleight comes improved; chance2 (5th improvement) rolls each further one
+  yoked: { mult: 2 },   // knack: card buffs gained are x this (an x buff's bonus); js/yoked.js
   green_station: { chance: 0.3, chance2: 0 },   // r647 knack: a charge back per Sleight at round end; chance2 a second
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
@@ -470,6 +472,7 @@ const DESC_TEMPLATES = {
   shredder: 'Discard this: deletes [[deletes<99:{deletes} of the cards]][[deletes>98:every card]] discarded with it, for good. ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',
   photocopier: 'Double-tap: picks a card beside it at random and makes {copies} temp copies of it, buffs and all. They replace cards in its row, then the next row; any that do not fit go into the deck.[[permanent: {permanent} of them are permanent.]] Not on a wild unless you own Stand-In. (5 charges)[[double_spend: Half the time a use spends 2 charges.]]',
   logistics_assistant: 'Double-tap: finds swaps that make a playable hand and makes them one by one, left to right, for free. Then it discards itself.[[swaps: Gives +{swaps} swaps.]] ({charges} charges)',
+  deluxe_subscription: 'Tricks and Sleights you are offered have a {chance_pct}% chance to come improved[[chance2:, then a {chance2_pct}% chance of each further improvement]].',
   green_station: 'Sleights have a {chance_pct}% chance to get a charge back at the end of each round[[chance2:, then a {chance2_pct}% chance of one more]]. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',

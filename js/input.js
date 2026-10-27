@@ -208,7 +208,7 @@ function doSwap(r1, c1, r2, c2) {
       const card = gridData[r][c];
       if (card && !card._isSleight && card.rank) {
         const k = cardId(card);
-        permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
+        permMult[k] = (permMult[k] || 0) + yokeGain('mult', BAL.pivot.mult);
         _buffed++;
       }
     });

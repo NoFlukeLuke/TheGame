@@ -2694,3 +2694,27 @@ COLOUR (gold to sky), UNDO, WIPE and DONE; the keys came back as PLAY / DEFER / 
 and a hand played; the phone keys kept 113 / 149 / 149 throughout. Every key look keeps its words
 inside the glass in both skins and sizes (measured by text rects), presses, and works on Flow's pick,
 the shop and the Schedule. No page errors.
+
+## r666 - Deluxe Subscription and Yoked (owner)
+- **Deluxe Subscription** (common knack, `js/deluxe.js`): an offered Trick or Sleight has
+  `BAL.deluxe_subscription.chance` (15%, +15% a tier to 75%) to come one improvement up; the 5th
+  improvement sets `chance2` (50%), rolled again for each further improvement. Rolled on every draw
+  (`pickEntityByRarity` -> `deluxeNote`, which wraps the old body, now `_pickEntityByRarity`), kept
+  in `deluxeOffers` (id -> tier, SAVE_VARS, reset per run). Tiles draw it (`entityShownTier`, read by
+  `entityTileInner` / `entityTierClass`; an owned Trick shows its own); taking it improves the entity
+  to that tier through `improveEntity` (`deluxeTake`, from `selectTrick` and `grantSleight`), so the
+  improvement animation plays. Measured over 4,000 draws: 14.8% / 27.8% at tiers 0 / 1; at tier 5
+  75.7% improved, each further step about half the last.
+- **Yoked** (epic knack, `js/yoked.js`): every buff a card GAINS is doubled while owned (flat x2, an x
+  buff's bonus x2: x1.5 -> x2). `enhanceCardKey` runs its payload through `yokeBuffs`; the sites that
+  write a store directly wrap their number in `yokeGain(kind, v)` (Rare Bloom, First Fruits, Heartwood,
+  the line perm mult, Fours, D6, Naturalist, Lightning Rod, Catalyst, Bomb, Hourglass, Hallmark, Pivot,
+  the level-up +5, the reward grid's +10s, the Vulture / Wait Four It pause). Penalties, a scaling
+  buff's growth and Absorb's copy are not gains. **A new buff site wraps its number in `yokeGain`.**
+  Improving it runs `yokedImprove(tier)` (IMPROVE_HOOKS) over every card store: +25% rounded down
+  (at least 1), x buffs +25% of their bonus (2 decimals), replays +1 at the 2nd and 4th improvement
+  only (owner: not printed anywhere); the 5th doubles everything. Measured: +10 pips +3 mult x1.5 +1
+  replay gained as 20 / 6 / x2 / 2, then 25 7 x2.25 2 -> 31 8 x2.56 3 -> 38 10 x2.95 3 -> 47 12 x3.44 4
+  -> 94 24 x5.88 8. Offer labels and notices still print the base value (the card holds the doubled one).
+- Icons: 🎁 `delapouite/present` gold, 🐂 `lorc/bull` brown (sheet 146 icons).
+

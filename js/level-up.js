@@ -332,7 +332,7 @@ function triggerLevelUp() {
     for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
     eligible.slice(0, 3).forEach(card => {
       const k = cardId(card);
-      permPips[k] = (permPips[k]||0) + 5;
+      permPips[k] = (permPips[k]||0) + yokeGain('pips', 5);
     });
   }
 
