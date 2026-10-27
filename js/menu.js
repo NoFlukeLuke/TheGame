@@ -1,4 +1,4 @@
-const BUILD = "2026-10-24 · r658 · departments: decisions, event pools and small extras proposed (docs only)";
+const BUILD = "2026-10-27 · r659 · the samey Schedule: six ideas and questions (docs only)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
