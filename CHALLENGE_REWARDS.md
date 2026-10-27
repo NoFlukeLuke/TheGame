@@ -1,4 +1,4 @@
-# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r665)
+# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r667)
 
 Nothing here is built. The owner's ideas, written up for review. Names marked
 **(owner names)** are left blank on purpose.
@@ -220,7 +220,7 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 | | Tricks |
 |---|---|
 | **In:** reads the whole game so far | Hummingbird (pauses and rewinds this game), Wellspring (Focus made this game), Wild Side (negative tiles taken this run), Unsummit (the level) |
-| **In:** buffs cards for good, so nothing is lost when the form changes | Bedrock, First Fruits, The Vulture, Hourglass, Ley Line, D6, Middle Management, Royal Favour, Ace Absorb, Monopoly, Heartwood, Wait Four It |
+| **In** (owner, r667): buffs cards for good, so nothing is lost when the form changes | Bedrock, First Fruits, The Vulture, Hourglass, Ley Line, D6, Middle Management, Royal Favour, Ace Absorb, Monopoly, Heartwood, Wait Four It |
 | **Out:** grows from when you take it | Middle Man, Compound, Acorns, Penny Saved, Perfect Ten, More Better, Feng Shui, Relentless, Quick Draw, Expanse, the little guys, Cloud Nine (also adds 9s on pickup) |
 | **Out:** grows round by round | Rising Tide, Life Lessons, Assembly Line |
 
@@ -258,5 +258,3 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 4. **Which three departments go** (proposed: Communications, Customer Support, Procurement).
 5. **Overlap:** TODO.md's skip perks (section 1, item 3) list a Sleight charge, a random
    improvement and +2 reward grid selection too. One reward list could serve both.
-6. **Card-buffing Tricks** (Bedrock, The Vulture, Royal Favour...) are IN the changing Trick's
-   draw: their buffs stay on the cards. Out if they count as "scaling from when you get it".

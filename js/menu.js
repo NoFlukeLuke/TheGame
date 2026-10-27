@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r666 · the Focus knacks no longer get dearer when improved: Free Hand and Double Down grow as before at 10 Focus, Charged Card and Shuffle Up get 1 Focus cheaper a step";
+const BUILD = "2026-10-27 · r667 · design draft: the changing Trick keeps the card-buffing Tricks in its draw (CHALLENGE_REWARDS.md section 7)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
