@@ -109,6 +109,14 @@ const IMPROVE_STEP = {
   kaleidoscope:   { extra: 1 },
   landfill:       { mult_per: 5, mult_per_flow: 3 },
   feelin_lucky:   { mult_mult: 0.75 },
+  // r666: the Focus knacks' `focus` is a PRICE, and the generic rule added the
+  // base to it, so every improvement made them dearer (10, 20, 30...). Only the
+  // benefit grows now (same steps as before); the two with no benefit number get
+  // 1 Focus cheaper a step (10 9 8 7 6, then 3 at the 5th).
+  free_hand:      { seconds: 10 },
+  double_down:    { hands: 3 },
+  charged_card:   { focus: -1 },
+  shuffle_up:     { focus: -1 },
 };
 
 // Ladders that are not "the number again" (r624, the owner's rare sheet). A

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-26 · r665 · design draft: the changing Sleight has 6 charges of its own; which growing Tricks the changing Trick can become (CHALLENGE_REWARDS.md section 7)";
+const BUILD = "2026-10-27 · r666 · the Focus knacks no longer get dearer when improved: Free Hand and Double Down grow as before at 10 Focus, Charged Card and Shuffle Up get 1 Focus cheaper a step";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

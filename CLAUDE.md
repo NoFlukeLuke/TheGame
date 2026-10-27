@@ -2302,7 +2302,7 @@ x. 420x900 unchanged (6 6 6 6 6). No page errors.
   name suggestions, today's ladder, a proposed v2-v6 ladder in the owner's alternating style (236 of them;
   the owner's own ladders are kept and marked), yellow columns for the owner's picks, and notes. Found
   while building it: **Free Hand, Charged Card, Shuffle Up and Double Down get MORE expensive when
-  improved** (the generic rule adds the base to their Focus cost). Not fixed; flagged in the sheet.
+  improved** (the generic rule adds the base to their Focus cost). Fixed in r666.
 ## r646 - Inseparable Tricks; five line Tricks; the owner's Trick notes (owner)
 - **INSEPARABLE** (`js/inseparable.js`, pairs in `js/data/inseparable.js`, `css/inseparable.css`,
   suggestions in `INSEPARABLE.md`): both halves of a pair in the tray fuse into ONE Trick
@@ -2694,3 +2694,13 @@ COLOUR (gold to sky), UNDO, WIPE and DONE; the keys came back as PLAY / DEFER / 
 and a hand played; the phone keys kept 113 / 149 / 149 throughout. Every key look keeps its words
 inside the glass in both skins and sizes (measured by text rects), presses, and works on Flow's pick,
 the shop and the Schedule. No page errors.
+
+## r666 - the Focus knacks no longer get dearer when improved (owner)
+Free Hand, Charged Card, Shuffle Up and Double Down keep their price in `BAL[id].focus`, and the generic
+improvement rule (`IMPROVE_ADD` has `focus`) added the base to it: 10, 20, 30... Focus a tap. Now
+`IMPROVE_STEP` names their steps: Free Hand `seconds` +10 and Double Down `hands` +3 (the same growth as
+before) at a flat 10 Focus; Charged Card and Shuffle Up, which have only the price, take `focus: -1`
+(10 9 8 7 6, then 3 at the 5th). Checked every other improvable number whose template says spend / cost /
+lose: none else rises (Monochrome's own ladder lowers its cost; Capacitor's costs are not improvable).
+Measured by a real double-tap on the Focus bar at 1440x820 and 420x900: v4 Charged Card charged 7, v6
+Shuffle Up 3, v3 Free Hand 10 for 30s, v2 Double Down 10 for 6 hands. The sheet's notes say so.
