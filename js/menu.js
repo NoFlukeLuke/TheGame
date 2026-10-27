@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r667 · design draft: the changing Trick keeps the card-buffing Tricks in its draw (CHALLENGE_REWARDS.md section 7)";
+const BUILD = "2026-10-27 · r668 · challenge cards: two stages, one reward from 16 (department or fixed), a failed card charges stage 1 in reverse, animated and printed";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

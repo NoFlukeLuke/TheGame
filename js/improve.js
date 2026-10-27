@@ -486,13 +486,17 @@ function improveRepaintArt() {
 // goes through applyEntityTiers exactly as improveEntity does, so BAL is
 // rewritten and the printed description follows the number back down - a Trick
 // that silently kept quoting its improved value would be worse than not
-// downgrading at all. Floors at 0; returns the new tier.
-function downgradeEntity(id) {
+// downgrading at all. Floors at 0; returns the new tier. r668: opts.anim plays the
+// improvement scene in reverse (a failed challenge takes an improvement back).
+function downgradeEntity(id, opts) {
   const cur = entityTierOf(id);
   if (cur <= 0) return 0;
+  const _descWas = _impDescOf(id);
   entityTier[id] = cur - 1;
   applyEntityTiers();
+  if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
   improveRepaintArt();
+  if (opts && opts.anim && typeof improveAnimNote === 'function') improveAnimNote(id, cur, entityTier[id], _descWas, _impDescOf(id));
   return entityTier[id];
 }
 

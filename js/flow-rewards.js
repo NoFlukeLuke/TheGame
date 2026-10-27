@@ -407,6 +407,11 @@ function flowrSaveCfg(cfg) {
 // ── Run state ────────────────────────────────────────────────────────────────
 let flowrQueue        = null;  // ['pick3','limits',...] for the level-up in progress
 let flowrIdx          = 0;
+// r668: a challenge card's pick rides the next chain as a step, some with a rarity
+// floor ('rare' / 'epic'): flowrQueueFloors is indexed like flowrQueue, and
+// flowrOfferFloor is the floor the step on screen draws from (flowrBuildOffers).
+let flowrQueueFloors  = null;
+let flowrOfferFloor   = null;
 let flowrExtraEarned  = 0;     // extra rewards rolled this RUN - a dev-panel stat. In SAVE_VARS.
 let _flowrBypass      = false; // survivalShowPick called BY the chain (its own pick3 step)
 
@@ -600,10 +605,11 @@ function flowrMaybeStart() {
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;
   // A Flow challenge card solved (+1) or failed (-1) since the last level-up
   // (js/challenge-round.js). Never below one reward.
-  const _crd = (typeof crTakeFlowRewardDelta === 'function') ? crTakeFlowRewardDelta() : 0;
+  // r668: a challenge card's picks join this chain as steps of their own.
+  const _crs = (typeof crTakeFlowSteps === 'function') ? crTakeFlowSteps() : [];
   // A cleared Line Quotas round pays at least QUOTA_LINES_REWARDS (js/level-types.js).
   const _qf = (typeof quotaLinesRewardFloor === 'function') ? quotaLinesRewardFloor() : 0;
-  const n = Math.max(1, _qf, Math.min(FLOWR_MAX, flowrRollCount() + _crd));
+  const n = Math.max(_crs.length ? 0 : 1, _qf, Math.min(Math.max(0, FLOWR_MAX - _crs.length), flowrRollCount()));
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
   // THIS chain is damped (see FLOWR_REPEAT_DAMP), and pick3 to nothing. A kind
@@ -620,9 +626,11 @@ function flowrMaybeStart() {
   // r548: the run's first chain opens on Tricks trick.first% of the time, or
   // owes it to the next one.
   flowrFirstTrickSlot(queue, odds, taken);
+  flowrQueueFloors = queue.map(() => null);
+  _crs.forEach(st => { queue.push(st.kind); flowrQueueFloors.push(st.floor || null); });
   queue.forEach(flowrNoteSeen);
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
-  if (n <= 1 && queue[0] === 'pick3') return false;
+  if (queue.length <= 1 && queue[0] === 'pick3') { flowrQueueFloors = null; return false; }
   flowrArm(queue, null);
   return true;
 }
@@ -767,6 +775,7 @@ function flowrShowStep() {
   if (!flowrQueue) return;
   animating = false;
   const kind = flowrQueue[flowrIdx];
+  flowrOfferFloor = (flowrQueueFloors && flowrQueueFloors[flowrIdx]) || null;
   flowrBossLuckOn = flowrBossChain && FLOWR_PICKY_KINDS.has(kind);
   flowrRenderStack();
   // The step's own board decides the panel's size, and it holds it until the
@@ -790,7 +799,7 @@ function flowrShowStep() {
 function flowrAfterStep() {
   if (!flowrQueue) return false;
   const from = flowrQueue[flowrIdx];   // the tab just chosen - it is what fades
-  flowrBossLuckOn = false;
+  flowrBossLuckOn = false; flowrOfferFloor = null;
   flowrIdx++;
   // NO flowrRenderStack() HERE (r400). flowrHandOver renders the new arrangement
   // itself, and it has to measure the OUTGOING tab first - rendering above it
@@ -944,7 +953,7 @@ function flowrEnterPanel() {
 
 function flowrFinish() {
   const _boss = flowrBossChain;
-  flowrQueue = null; flowrIdx = 0;
+  flowrQueue = null; flowrIdx = 0; flowrQueueFloors = null; flowrOfferFloor = null;
   flowrBossChain = false; flowrBossLuckOn = false; flowrQueueOpen = false;
   // The play board comes back through the machine's screen change (r532): the
   // panel and its tabs leave with the reward screen, the level-up deals the
@@ -1755,6 +1764,15 @@ function flowrDrawThree(pool, tierOf) {
   return out;
 }
 
+// r668: keep only offers at or above flowrOfferFloor's rarity (a challenge card's
+// "rare or better" pick); an empty result keeps the whole pool.
+const FLOWR_RAR_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 3 };
+function flowrFloorPool(pool, tierOf) {
+  if (!flowrOfferFloor) return pool;
+  const min = FLOWR_RAR_RANK[flowrOfferFloor] || 0;
+  const up = pool.filter(e => (FLOWR_RAR_RANK[tierOf(e)] || 0) >= min);
+  return up.length ? up : pool;
+}
 function flowrBuildOffers(kind) {
   const out = [];
   try {
@@ -1763,7 +1781,7 @@ function flowrBuildOffers(kind) {
       shuffle(pool.slice()).slice(0, 3).forEach(d => out.push(survivalMakeOption('limit', d)));
     } else if (kind === 'sleights') {
       const granted = _grantedSleightSet();
-      const pool = SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !granted.has(j.id) && sleightOfferable(j));
+      const pool = flowrFloorPool(SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !granted.has(j.id) && sleightOfferable(j)), j => j.rarity || 'common');
       const used = new Set();
       for (let i = 0; i < 3 && used.size < pool.length; i++) {
         const avail = pool.filter(j => !used.has(j.id));
@@ -1773,10 +1791,10 @@ function flowrBuildOffers(kind) {
         out.push(survivalMakeOption('sleight', pick));
       }
     } else if (kind === 'knacks') {
-      flowrDrawThree(survivalBuildPools().knack, k => k.rarity || 'common')
+      flowrDrawThree(flowrFloorPool(survivalBuildPools().knack, k => k.rarity || 'common'), k => k.rarity || 'common')
         .forEach(k => out.push(survivalMakeOption('knack', k)));
     } else if (kind === 'tricks') {
-      flowrDrawThree(flowrTrickPool(), t => t.tier || 'common')
+      flowrDrawThree(flowrFloorPool(flowrTrickPool(), t => t.tier || 'common'), t => t.tier || 'common')
         .forEach(t => out.push(survivalMakeOption('trick', t)));
     } else if (kind === 'improve') {
       // Owned, improvable, all three types - the same draw the improve reward

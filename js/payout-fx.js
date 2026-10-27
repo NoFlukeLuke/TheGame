@@ -30,6 +30,9 @@ const EFX_TARGETS = {
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
   level:    ['#run-progress .rp-lv', '#level-display'],   // r504: a challenge's -1 reward
+  tricks:   ['#trick-tray-list', '#trick-tray-area'],       // r668: a challenge's reward or penalty
+  knacks:   ['#knack-list', '#knack-carousel-wrap'],
+  hand:     ['#btn-play'],
 };
 // Two of these lists were pointing at ids that do not exist (r233). `#ci-coins`,
 // `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`

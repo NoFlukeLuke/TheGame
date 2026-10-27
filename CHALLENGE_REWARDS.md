@@ -1,7 +1,9 @@
-# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r667)
+# Rule Sleights, a department a quarter, two-stage challenges, changing entities (r663-r668)
 
-Nothing here is built. The owner's ideas, written up for review. Names marked
-**(owner names)** are left blank on purpose.
+The owner's ideas, written up for review, then decided (section 6) and being built:
+**sections 3 to 5 are built (r668, js/challenge-rewards.js)**; departments, the rule Sleights
+and the changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
+purpose.
 
 ## 1. Rule Sleights
 
@@ -98,13 +100,23 @@ events are still in at least one pool.
 - **Two stages.** Clear stage 1, then take it (tap) or raise (double-tap), as today. Unanswered,
   it takes after 6s, as today.
 - **One payout.** Stage 1 pays the reward's first tier. A raise that clears pays the second
-  tier INSTEAD (not as well). A raise that fails pays nothing.
+  tier INSTEAD (not as well). A raise that fails pays nothing, and charges the penalty.
+- **The penalty (owner, r668):** a timed card (Flow, spot) that runs out charges its reward's
+  FIRST tier in reverse (the last column of the tables below). The card shakes, a red plate
+  flies from it to what it costs, the cost lands with its own animation (a downgrade plays the
+  improvement screen backwards, a lost Trick sinks out of the tray), and a printed notice says
+  what happened. A challenge round's cards keep the penalty grid instead.
+- **Fallback:** a reward that cannot land (nothing to improve) pays the credits reward of the
+  same stage; a penalty that cannot land (no Knack to lose) takes 8 credits.
 - **What it pays comes from the department** (section 4), and from the challenge's class:
   - **Standard:** stage 1 starts at difficulty 1.
   - **Hard:** stage 1 starts at difficulty 2 or more (the line `CR_BONUS_D` already draws).
 - The card's face names both tiers of its payout, so the raise is a choice you can see.
-- Rewards that open a screen (a pick, the Limit Break) wait for the round's end, the way the
-  mini grid waits today. The rest pay at once.
+- Rewards that open a screen (a pick) open after the round's payout (Flow: as steps of the
+  next reward chain). The rest pay at once. Paid at a round's end (a cleared card nobody
+  took), time, swaps, discards and Focus wait for the next round's start.
+- **Everywhere but the Schedule** (owner, r668: no departments there for now): Standard cards
+  pay Credits, Hard cards Improvement.
 
 **The asks, cut to two stages.** Stage 1 is today's first tier, stage 2 today's second; third
 tiers go. Numbers are hands (or impacts) needed.
@@ -127,6 +139,8 @@ tiers go. Numbers are hands (or impacts) needed.
 | fall cards (IMPACT) | 2 | 3 | Standard |
 | any of the above, touching the card | same numbers | | one class up |
 
+Hand types on a board that makes only three keep one stage (it pays when it clears).
+
 A challenge round (AUDIT, Classic's node 3): card 1 is Standard, cards 2 and 3 Hard.
 
 Goes away: `CR_FLOW_STAKES` (credits and seconds by difficulty), the mini grid for a d2+ take,
@@ -138,31 +152,31 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 
 ### Standard (paid by Standard challenges)
 
-| reward | stage 1 | stage 2 | from |
+| reward | stage 1 | stage 2 | runs out (stage 1 reversed) |
 |---|---|---|---|
-| Credits | +8 credits | +20 credits | owner |
-| Time | rewind the clock 15s | rewind the clock 30s | owner |
-| Rerolls | 2 free rerolls on reward picks | 5 free rerolls | owner |
-| Reward grid size | +1 selection on your next reward grid | +2 | owner |
-| Sleight charges | +1 charge to every Sleight in your deck | every Sleight back to full charges | owner |
-| Swaps and discards | +2 swaps and +2 discards this round | +4 and +4 | new |
-| Focus twice | your next hand applies Focus twice | your next 3 hands | new (Double Down's rule) |
-| Interest | interest doubled on your next payout | doubled on every payout this quarter | new |
-| Prime | a random Trick in the tray is primed twice | every Trick in the tray is primed once | new (spare) |
-| Card buffs | 3 random cards in your deck take a random buff | 3 cards you choose take a random buff | new (spare) |
+| Credits | +8 credits | +20 credits | -8 credits |
+| Time | rewind the clock 15s | rewind the clock 30s | -15s |
+| Rerolls | 2 free rerolls on reward picks | 5 free rerolls | -2 free rerolls |
+| Reward grid size | +1 to your next reward grid's path | +2 | -1 |
+| Sleight charges | +1 charge to every Sleight in your deck | every Sleight back to full charges | -1 charge from every Sleight (none below 1) |
+| Swaps and discards | +2 swaps and +2 discards this round | +4 and +4 | -2 and -2 |
+| Focus twice | your next hand applies Focus twice | your next 3 hands | your next hand scores without Focus |
+| Interest | interest doubled on your next payout | doubled on every payout this quarter | no interest on your next payout |
+| Prime (spare, not built) | a random Trick in the tray is primed twice | every Trick in the tray is primed once | |
+| Card buffs (spare, not built) | 3 random cards in your deck take a random buff | 3 cards you choose take a random buff | |
 
 ### Hard (paid only by Hard challenges)
 
-| reward | stage 1 | stage 2 | from |
+| reward | stage 1 | stage 2 | runs out (stage 1 reversed) |
 |---|---|---|---|
-| Improvement | a random improvement | a pick of three improvements | owner |
-| Limit | +1 to a random limit | a Limit Break (you choose) | owner |
-| Trick pick | a pick of three Tricks, rare or better | epic or better | owner |
-| Focus | Focus up by half the bar | Focus to max | owner |
-| Knack pick | a pick of three Knacks | rare or better | new |
-| Sleight pick | a random Sleight on top of the draw pile | a pick of three Sleights | new |
-| Boss goal | this quarter's boss asks 5% less | 10% less | new |
-| Hand growth | your most-played hand family gains 5 plays toward its next step | 15 plays (a full step) | new (double scaling counts) |
+| Improvement | a random improvement | pick 1 of 3 improvements | a random improvement taken back |
+| Limit | +1 to a random limit | pick 1 of 3 limits to raise | -1 to a random limit |
+| Trick pick | pick 1 of 3 Tricks, rare or better | epic or better | a random Trick removed |
+| Focus | Focus up by half the bar | Focus to max | Focus down by half the bar |
+| Knack pick | pick 1 of 3 Knacks | rare or better | a random Knack removed |
+| Sleight pick | a random Sleight on top of the draw pile | pick 1 of 3 Sleights | a random Sleight removed |
+| Boss goal | the next boss asks 5% less | 10% less | the next boss asks 5% more |
+| Hand growth | your most-played hand family gains 5 plays toward its next step | 15 plays (a full step) | -5 plays |
 
 ## 5. What each department pays
 
@@ -247,14 +261,16 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 - Build note: the card needs a durable field marking it as the changer (`DURABLE_CARD_FIELDS`),
   or `recycleCard` turns it into its form for good.
 
-## 6. Open questions
+## 6. Decided (owner, r665-r668)
 
-1. **Rule Sleights:** is the rule in force only while the card is on the grid (as written), or
-   for the rest of the round once it lands? Is the charge spent on landing (as written)?
-2. **Flow and Classic** have quarters but no Schedule. Give them a department a quarter too
-   (drawn the same way), or a fixed payout (Standard: Credits; Hard: Improvement)?
-3. **A failed raise:** pays nothing (as written), or also today's penalty bursts? And does a
-   timed card (Flow, spot) that runs out before stage 1 still charge its penalty?
-4. **Which three departments go** (proposed: Communications, Customer Support, Procurement).
-5. **Overlap:** TODO.md's skip perks (section 1, item 3) list a Sleight charge, a random
-   improvement and +2 reward grid selection too. One reward list could serve both.
+1. **Rule Sleights:** the rule is in force while the card is on the grid.
+2. **Flow and Classic** get no department for now: a fixed payout (Standard: Credits; Hard:
+   Improvement).
+3. **Penalties:** yes. A card that runs out, or a raise that fails, charges its reward's first
+   tier in reverse (section 3), animated and printed.
+4. **Departments:** Communications, Customer Support and Procurement are cut.
+5. **One reward list serves both:** leaving a Schedule slot early pays from the same list
+   (section 2).
+6. **The changing Sleight** has 6 charges of its own; **the changing Trick** may become Tricks
+   that read the whole game so far or buff cards for good, never ones that grow from when you
+   take them or round by round (section 7).

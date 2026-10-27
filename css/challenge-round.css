@@ -139,3 +139,17 @@ body.reduced-motion .cr-loss-hit { animation-duration: 1ms; }
 /* r555: the touching tier wears a hand beside its glyph */
 #grid .cr-card .cr-glyph .cr-touch { font-size: 9px; margin-left: 2px; vertical-align: top; opacity: .9; }
 #grid .cr-card.cr-won .cr-glyph .cr-touch { display: none; }
+
+/* r668: what the card pays, stage 1 > stage 2, the stage it is on lit. */
+#grid .cr-card .cr-pay {
+  font-size: 9px; line-height: 1; max-width: 100%; white-space: nowrap; overflow: hidden;
+  color: #ffd9a0; opacity: .85;
+}
+#grid .cr-card .cr-pay i { font-style: normal; color: var(--cr-ink, #ffb347); }
+#grid .cr-card .cr-pay b { font-weight: 400; }
+#grid .cr-card .cr-pay b.cur { color: #ffe27a; text-shadow: 0 0 4px rgba(255, 226, 122, .8); }
+/* Sleight charges moved by a challenge: the board's Sleights flash. */
+#grid .sleight-card.crr-charge-up   { animation: crrChargeUp 0.9s ease-out; }
+#grid .sleight-card.crr-charge-down { animation: crrChargeDown 0.9s ease-out; }
+@keyframes crrChargeUp   { 0%, 100% { filter: none; } 30% { filter: brightness(1.6) drop-shadow(0 0 8px #ffe27a); } }
+@keyframes crrChargeDown { 0%, 100% { filter: none; } 30% { filter: brightness(.7) sepia(1) saturate(5) hue-rotate(-50deg) drop-shadow(0 0 8px #ff4d4d); } }

@@ -54,6 +54,7 @@ const BR_TRACE = [
   // challenge cards
   'crBeginArrival', 'crTeleNow', 'crLand', 'crTap', 'crRaise', 'crCollect', 'crFail', 'crDrain',
   'crOnClockOut', 'crSettle', 'crSpotSettle', 'crTakePrize', 'crFlowSpawn', 'crFlowCancel',
+  'crrGrant', 'crrPenaltyPlan', 'crrRunScreens', 'crrPendingApply', 'downgradeEntity',
   // between rounds
   'onRoundEnd', 'flashRoundEnd', 'startInterlude', 'triggerLevelUp', 'rolloverQuarter',
   'openGridPick', 'openPenaltyGrid', 'openEvent', 'openShopGrid', 'flowrArm', 'onGameEnd',

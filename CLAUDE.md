@@ -31,7 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
-| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards (r663), a Trick and a Sleight that change every round (r664); draft |
+| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; decided r668, being built (challenges done) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -2704,3 +2704,35 @@ before) at a flat 10 Focus; Charged Card and Shuffle Up, which have only the pri
 lose: none else rises (Monochrome's own ladder lowers its cost; Capacitor's costs are not improvable).
 Measured by a real double-tap on the Focus bar at 1440x820 and 420x900: v4 Charged Card charged 7, v6
 Shuffle Up 3, v3 Free Hand 10 for 30s, v2 Double Down 10 for 6 hands. The sheet's notes say so.
+
+## r668 - challenge cards: two stages, one reward, the reverse as the penalty (`js/challenge-rewards.js`, owner)
+CHALLENGE_REWARDS.md sections 3 to 5. Every ladder is cut to two stages (`crTypeDefs` slices;
+`_crTouch` no longer drops repeated difficulties; a one-stage ladder, hand types on a board that
+makes three, pays when it clears). A card's reward is fixed as it lands (`q.pay`,
+`crrRewardFor`): STANDARD (stage 1 difficulty 1) or HARD (`CR_BONUS_D` 2+), from
+`deptChallengePay(cls)` on the Schedule, else `CR_FIXED_PAY` (credits / improve). Stage 1 pays the
+reward's first tier, a cleared raise its second INSTEAD (`crCollect` -> `crrGrant`). A timed card
+that runs out, or a failed raise, charges the FIRST tier in reverse (`crFail` ->
+`crrPenaltyPlan`): one r504 burst whose plate flies to the readout it costs (or rises off the
+card, `crrRise`; `EFX_TARGETS` gained tricks / knacks / hand), the cost lands with its own
+animation and the notice prints after. A reward or penalty that cannot land falls back to
+credits. `CRR` holds all 16 (8 standard, 8 hard): each `say` / `face` / `can` / `give` and the
+reverse `penSay` / `penCan` / `penTo` / `take`. Picks (improve, limits, tricks with a rarity
+floor, knacks, sleights) queue in `crScreens` and open from `crSettle` after the payout
+(`crrRunScreens`, via `flowrBuildOffers` with `flowrOfferFloor`); in Flow they become steps of
+the next chain (`crFlow.steps` -> `crTakeFlowSteps` in `flowrMaybeStart`, floors in
+`flowrQueueFloors`). Paid off the clock (a cleared card nobody took), time, swaps, discards and
+Focus wait in `crPending` for a round of a LATER level (`crrPendingApply` from `crOnRoundStart`;
+resumes do not spend it). Readers: `payoutInterestMult` x `crrInterestMult`, calcScore's `fMult`
+(`crrFocusMuted`), `triggerBoss` (`crrBossGoalApply`, the review line `mapReviewGoalShown`),
+`rewardSelectionCap` (`crrGridBonus`, spent in `closeRewardGrid`). **The round clock holds while
+the improvement screen runs** (`improveAnimRunning`, round tick). `downgradeEntity(id, { anim })`
+plays the improvement scene backwards (`entry.down`, red header, loss sounds). Gone:
+`CR_FLOW_STAKES`, the mini grid for a d2+ take, Flow's +1 / -1 reward, third tiers.
+Measured in headless Chromium at 1440x820 and 420x900 by dev calls: a standard spot card paid +8
+(take) and +20 (raise); a hard card improved Cascade with the clock held (164 -> 164) and, failed,
+took it back with the reversed screen and "Cascade lost an improvement (v2.0 to v1.0)"; every
+reward's two tiers and every penalty applied once with the state diff checked; Flow chained
+`[pick3, improve, tricks]` with the Tricks step offering only epic and legendary; Classic opened
+an epic-floored Tricks pick after the payout. No page errors.
+

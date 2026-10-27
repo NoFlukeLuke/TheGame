@@ -52,12 +52,14 @@ let _iaQueue = [], _iaHold = 0, _iaTimer = 0, _iaRunning = false, _iaSkip = fals
 function improveAnimRunning() { return !!_iaRunning; }
 // improveEntity calls this BEFORE and AFTER applying a tier: `before` captures
 // the printed text, `after` closes the step. Consecutive steps of one entity
-// merge into one entry with a step per tier.
+// merge into one entry with a step per tier. r668: a tier going DOWN (a failed
+// challenge, downgradeEntity with opts.anim) plays the same scene in reverse.
 function improveAnimNote(id, fromTier, toTier, descBefore, descAfter) {
-  if (!id || toTier <= fromTier) return;
-  let e = _iaQueue.find(x => x.id === id);
-  if (!e) { e = { id, from: fromTier, to: toTier, before: descBefore, steps: [] }; _iaQueue.push(e); }
-  for (let t = fromTier + 1; t <= toTier; t++) e.steps.push({ tier: t, desc: descAfter });
+  if (!id || toTier === fromTier) return;
+  const down = toTier < fromTier, d = down ? -1 : 1;
+  let e = _iaQueue.find(x => x.id === id && !!x.down === down);
+  if (!e) { e = { id, from: fromTier, to: toTier, before: descBefore, steps: [], down }; _iaQueue.push(e); }
+  for (let t = fromTier + d; down ? t >= toTier : t <= toTier; t += d) e.steps.push({ tier: t, desc: descAfter });
   e.to = toTier;
   if (!_iaHold && !_iaRunning) { clearTimeout(_iaTimer); _iaTimer = setTimeout(() => improveAnimFlush(), 0); }
 }
@@ -195,7 +197,8 @@ function iaAnim(el, frames, opts, ctl) {
   const a = el.animate(frames, opts); ctl.anims.push(a);
   return a.finished.catch(() => {});
 }
-function iaSfx(name, k) { try { if (typeof window[name] === 'function') window[name](k); } catch (e) {} }
+let _iaDown = false;   // r668: the scene playing is a downgrade, so its stamps sound like a loss
+function iaSfx(name, k) { if (_iaDown && name === 'sfxSuccess') name = 'sfxChallengePenalty'; try { if (typeof window[name] === 'function') window[name](k); } catch (e) {} }
 // A step's length: the look's speed, then the step's own speed-up.
 function iaMsK(ms, k) { return iaMs(ms) / (k || 1); }
 
@@ -243,7 +246,7 @@ async function iaPlay(entry) {
   const layer = iaLayer(S);
   const ctl = { skipped: false, timers: [], anims: [], resolvers: [], steps: entry.steps.length,
     skip() { this.skipped = true; this.timers.forEach(clearTimeout); this.anims.forEach(a => { try { a.finish(); } catch (err) { try { a.cancel(); } catch (e2) {} } }); this.resolvers.forEach(r => r()); } };
-  _iaCurrent = ctl;
+  _iaCurrent = ctl; _iaDown = !!entry.down;
   layer.classList.toggle('ia-many', _iaQueue.length > 0 || ctl.steps > 1);
 
   // The board's box is the screen; the tray chip (if drawn) is where the tile
@@ -254,16 +257,17 @@ async function iaPlay(entry) {
   const src = chip ? iaRectOf(chip.querySelector('.reward-cell') || chip, S) : null;
   const size = Math.max(60, Math.min(g.w, g.h) * (iaCfg.size / 100));
   const rar = ent.tier || ent.rarity || 'common';
-  const scene = document.createElement('div'); scene.className = `ia-scene ia-${iaCfg.look} ia-${type}`;
+  const scene = document.createElement('div'); scene.className = `ia-scene ia-${iaCfg.look} ia-${type}${entry.down ? ' ia-down' : ''}`;
   scene.style.setProperty('--ia-size', size + 'px');
   const screen = document.createElement('div'); screen.className = 'ia-screen';
   screen.style.left = g.l + 'px'; screen.style.top = g.t + 'px'; screen.style.width = g.w + 'px'; screen.style.height = g.h + 'px';
-  screen.innerHTML = `<div class="ia-head">&gt; IMPROVING <b class="ia-name rar-${rar}">${iaEsc(ent.name).toUpperCase()}</b></div>`
+  screen.innerHTML = `<div class="ia-head">&gt; ${entry.down ? 'DOWNGRADING' : 'IMPROVING'} <b class="ia-name rar-${rar}">${iaEsc(ent.name).toUpperCase()}</b></div>`
     + `<div class="ia-term"><div class="ia-ver"></div><div class="ia-desc"></div></div>`;
   // The tile: one copy per tier, the real entity tile at that tier, the current one shown.
   const tile = document.createElement('div'); tile.className = 'ia-tile';
   const layers = [];
-  for (let t = entry.from; t <= entry.to; t++) {
+  const dir = entry.to >= entry.from ? 1 : -1;
+  for (let t = entry.from; dir > 0 ? t <= entry.to : t >= entry.to; t += dir) {
     const l = document.createElement('div'); l.className = 'ia-tier' + (t === entry.from ? ' ia-shown' : '');
     l.dataset.tier = t; l.innerHTML = iaTileHTML(ent, type, t); tile.appendChild(l); layers.push(l);
   }
@@ -296,7 +300,7 @@ async function iaPlay(entry) {
     await iaType(scene, verEl, ctl, k0); await iaType(scene, descEl, ctl, k0);
     for (let i = 0; i < entry.steps.length; i++) {
       const step = entry.steps[i], k = Math.pow(IA_STEP_SPEED, Math.max(0, step.tier - 1));
-      if (i) { setVer(step.tier - 1, step.tier); setDesc(prevDesc, step.desc); await iaWait(iaMsK(iaCfg.stepGap, k), ctl); }
+      if (i) { setVer(entry.steps[i - 1].tier, step.tier); setDesc(prevDesc, step.desc); await iaWait(iaMsK(iaCfg.stepGap, k), ctl); }
       await look.band(tile, layers[i], layers[i + 1], term, ctl, k);
       prevDesc = step.desc;
     }
@@ -308,7 +312,7 @@ async function iaPlay(entry) {
   } finally {
     scene.remove();
     if (chip) { chip.classList.remove('ia-away'); const tray = chip.closest('#trick-tray-area, #knack-tray-area, #knack-list-area, .tray'); if (tray && typeof trayFxKick === 'function') trayFxKick(tray, 'in'); }
-    _iaCurrent = null;
+    _iaCurrent = null; _iaDown = false;
   }
 }
 

@@ -210,7 +210,7 @@ function payoutCoinMs(i) {
 // The interest multiplier the payout would use now: the Idol triples it while it
 // is on the board. Read by the payout and by the credits chip's hover (js/hud.js).
 function payoutInterestMult() {
-  return hasSleightOnGrid('idol') ? BAL.idol.interest_mult : 1;
+  return (hasSleightOnGrid('idol') ? BAL.idol.interest_mult : 1) * (typeof crrInterestMult === 'function' ? crrInterestMult() : 1);
 }
 
 async function showPayoutUI() {
@@ -238,6 +238,7 @@ async function showPayoutUI() {
   const _frozen = interestFreezeRounds > 0;
   if (_frozen) interestFreezeRounds--;
   const interestCoins  = (_withheld || _frozen) ? 0 : interestPayout(coins, interestMult);
+  if (typeof crrInterestPaid === 'function') crrInterestPaid();   // r668: a challenge's one-payout double is spent
   // In Crunch the round clock IS the quarter's act bank, so paying for what is
   // left on it would pay for time the player has not finished spending (and pay
   // it again every level). The line becomes PAR instead: credits for every

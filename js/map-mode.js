@@ -285,7 +285,7 @@ function mapTileDesc(t, legalIds) {
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss': {
       const b = peekBossPresetSafe();
-      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapBossGoal.toLocaleString()}.`;
+      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapReviewGoalShown().toLocaleString()}.`;
     }
   }
   return '';
@@ -847,7 +847,7 @@ function mapRender(animateIn) {
       : isBoss
       ? `<span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span>`
         + `<span class="mt-bcol"><span class="mt-name">${face.full}</span>${boss ? `<span class="mt-sub">${boss.name}</span>` : ''}</span>`
-        + `<span class="mt-goal">${mapGoalWord()} ${Number(mapBossGoal || 0).toLocaleString()}</span>`
+        + `<span class="mt-goal">${mapGoalWord()} ${mapReviewGoalShown().toLocaleString()}</span>`
       : `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span></span>`
         + `<span class="mt-name${isEv ? ' mt-ev' : ''}">${word}</span>`
         + (stake ? `<span class="mt-stake${stake.k > 1 ? ' mt-proj' : ''}">${stake.short}</span>` : '');
@@ -1320,6 +1320,11 @@ function mapStartRound(challenge) {
 // The boss quota is FIXED - MAP_BOSS_LEVELS of the steeper curve - whatever
 // level the walk actually reached. Hooked from triggerLevelUp right after
 // guidedApplyPendingChallenge, i.e. after goalForLevel has written roundGoal.
+// The review's goal as printed: a challenge's Boss goal reward or penalty moves it (r668).
+function mapReviewGoalShown() {
+  const g = Number(mapBossGoal || 0);
+  return (g && typeof crrBossGoalShown === 'function') ? crrBossGoalShown(g) : g;
+}
 function mapApplyPendingGoal() {
   if (!mapActive()) return;
   if (mapBossArmed) roundGoal = mapBossGoal;
