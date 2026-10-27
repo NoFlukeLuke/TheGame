@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r686 · one window on a phone: the board fills its box at every size, cards keep their shape, and the schedule, picks, payout, shop, Limit Break and events all share it";
+const BUILD = "2026-10-27 · r687 · Flow bosses ask the goals of levels 10 / 16 / 20 / 24 (was 6 / 11 / 16 / 21)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
