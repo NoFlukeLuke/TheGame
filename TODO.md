@@ -184,8 +184,6 @@ Small, real, and each one already measured:
   entity triggers is therefore not actually enforced.
 - **`jack_mult` and `heart_double` have `BAL` entries and `DESC_TEMPLATES` but no
   `TRICK_POOL` entry** - scored for, described, and unobtainable.
-- **tools/sim's survival runner dies on `reading 'seed'`** (main as well as r554), so Flow cannot be
-  simmed until it is fixed. Classic runs.
 - **Match-3 and Dominoes have no boss wiring at all.** That is why they are hidden behind the
   dev panel's Modes group rather than listed in the carousel. Wiring bosses into the cascade
   is the open follow-up if either is ever to ship.

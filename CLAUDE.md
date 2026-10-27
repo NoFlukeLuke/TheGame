@@ -1205,7 +1205,8 @@ mult 6 -> 12, a 7.3-pip card -> 14.3). `handLadderTotal` adds k x step so the pr
 under double; `nsAnythingEarned()` is what the Drought and the scaling tip ask.
 **Sim note** (tools/sim Classic, native curve, handTime 6, 24 runs): main 91.7% bot wins, r553
 87.5%, r554 75%; wide spread at that sample size, and the bot never steers toward a family. The
-survival sim is broken ("reading 'seed'") on main as well.
+survival sim is broken ("reading 'seed'") on main as well. (r683: fixed; those Classic figures were
+taken with the sim's level-up bugs, see r683.)
 
 ## r555 - challenge cards: every ask has a TOUCHING tier; a hand that takes the whole selection asks less
 `crTypeDefs`: every ask but the fall cards and "N hands touching" comes in two tiers. The base ladder
@@ -3085,3 +3086,29 @@ off; plain play (no `?crfx`) unchanged. No page errors at 1440x820 or 420x900.
   (a conic gradient, 66% of a third of the square), tiled; left = nine lit with a drop-shadow glow,
   used = the eight round the edge, not unlocked = nine faint. Same style as the keys' dot words.
 - The preview (`?crfx`): look 1 says it is in the game; TODAY'S LOOK is what ships (`CRL_GAME`).
+
+## r683 - tools/sim plays again (`tools/sim/sim-core.js`, `runner.js`)
+What was broken, all in the sim (no game code changed):
+- **Schedule** crashed on its first hand in every run: `startGame` opens the schedule screen, which
+  sets the board to the schedule's shape (5 x 4 since r655) over the 4 x 4 play board. The runner now
+  closes it (`mapCloseScreen`), uses the game's own review quota unless `bossMult` is given, and walks
+  8 bookings a quarter by default. r655's "94-96%" could not have come from the committed runner.
+- **Survival** threw on its first line (`MODES.survival` went in r417). Replaced by **Flow**
+  (`SIM_runFlow`; `survival` on the command line means `flow`): one session clock across level-ups,
+  the boss at 0:00 (`flowBossGoalLevel`, `FLOW_BOSS_WINDOW`), `SURVIVAL_BOSS_COUNT` bosses to win, the
+  game's reward chain per level-up (`flowrRollCount`, `flowrRollKind`; deck edits not modelled).
+- **Classic ran but measured a different game.** The bot never took the Reshuffle card (r518), so a
+  round that drew the deck out stalled with time on the clock: that was nearly every death. It does
+  now (stuck, or board under half full). The sim's level-up threw away `computeRoundResources`' result
+  (stock never refilled, Starting Time and Time Bank never counted), never applied the Grid Rows /
+  Columns limits (every run was 4 x 4), and never reset Focus (every round after the first opened at
+  the last one's Focus). It does all three now. The subset search used `1 << i`, wrong past 31 cells.
+- The first run of every batch was the walkthrough's pinned seed (`tutorialRunSeed`); the sim turns the
+  walkthrough off.
+- `runner.js` takes a 5th argument, jobs (default one per core), and prints Reshuffles taken and stalls.
+Measured on r679's game (native curves, handTime 6, 40 runs each, so about +-15 points): Classic
+32.5% bot wins (deaths levels 16-24, at 63% of goal, 0 stalls), Schedule 77.5% (56% of deaths at the
+review), Flow 100% (each boss asks level 6 / 11 / 16 / 21's goal,
+r525, while the bot reaches level ~16 in the first five minutes: boss 1 at 2,750 against level goals
+of ~25,000). The bot faces no boss modifiers or reward-grid debuffs; take its win rates as a floor.
+

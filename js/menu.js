@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r682 · no quarter resource limit in Endless";
+const BUILD = "2026-10-27 · r683 · tools/sim plays again: the Schedule and Flow runners crashed, the bot now takes the Reshuffle card and its level-ups apply board size, stock and time";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
