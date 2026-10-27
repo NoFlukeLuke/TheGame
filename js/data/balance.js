@@ -284,6 +284,10 @@ const BAL = {
   bellhop: { swaps: 2, discards: 2 },   // r646 (owner): improvements alternate +2 swaps / +2 discards
   cash_out: { coins: 10 },
   amplifier: { mult_per_level: 3 },   // r636: the next hand scores level x this
+  // r675: the rule Sleights (js/rule-sleights.js)
+  rule_ranks: { ranks: 2 },        // ranks named when it lands; each named card replays once
+  rule_evens: { focus: 2 },        // Focus per even card scored, replay-weighted
+  rule_faces: { seconds: 2 },      // rewind per face card scored, replay-weighted
   // r647 (owner): new Sleights. `charges` is the cap (sleightBaseCharges); `double_spend` the v6 chance a use spends 2.
   procrastinate: { charges: 5, discards: 0, double_spend: 0 },
   retake: { charges: 8, copies: 0, permanent: 0, double_spend: 0 },
@@ -465,6 +469,9 @@ const DESC_TEMPLATES = {
   interest: 'Score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
   amplifier: 'Double-tap: the next hand scores mult equal to the current level x{mult_per_level}. (5 charges)',
+  rule_ranks: 'When it lands, {ranks} random ranks are named on its face. While it is on the grid, cards of those ranks replay once. Inert: it cannot be swapped or discarded, only played. (4 charges)',
+  rule_evens: 'While it is on the grid, even-ranked cards (2, 4, 6, 8, 10) score +{focus} Focus. Inert: it cannot be swapped or discarded, only played. (4 charges)',
+  rule_faces: 'While it is on the grid, face cards (J, Q, K) rewind the clock {seconds}s when scored. Inert: it cannot be swapped or discarded, only played. (4 charges)',
   procrastinate: 'Discard this: the 8 cards around it go with it, costing no time. Counts as 2 discards for Tricks and Knacks.[[discards: Gives +{discards} discards.]] ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',
   retake: 'Play this in a hand: it and the cards played with it go back into the deck instead of the played pile.[[copies>0:[[copies<2: Adds a temp copy of one of the cards played to the deck.]][[copies>1:[[permanent<1: Adds temp copies of {copies} of the cards played to the deck.]][[permanent: Adds copies of {copies} of the cards played to the deck.]]]]]] ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',
   shredder: 'Discard this: deletes [[deletes<99:{deletes} of the cards]][[deletes>98:every card]] discarded with it, for good. ({charges} charges)[[double_spend: Half the time a use spends 2 charges.]]',

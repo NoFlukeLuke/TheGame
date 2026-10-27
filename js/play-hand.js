@@ -414,6 +414,13 @@ function playHand() {
     });
     if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
   }
+  // r675: the rule Sleights. Once per scoring, so a card that replays pays again.
+  if (typeof ruleEvenFocus === 'function') {
+    const _rf = ruleEvenFocus(_scoredCells, _handRetrigByCell);
+    if (_rf > 0 && typeof addFocus === 'function') addFocus(_rf, 'rule_evens', 'sleight');
+    const _rs = ruleFaceSeconds(_scoredCells, _handRetrigByCell);
+    if (_rs > 0) rewindTime(_rs, `⏪ Face cards - rewound ${_rs}s`, 'rule_faces', 'sleight');
+  }
 
   // Short Change (r483): a hand that used fewer cards than your hand size pays
   // credits. It counts `playedCells` - everything this hand CONSUMED, which is

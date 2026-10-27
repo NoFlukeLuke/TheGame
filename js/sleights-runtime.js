@@ -76,6 +76,7 @@ function sleightFaceHTML(card, def, usesStr) {
        +   `<span class="sl-rank">${f.rank}</span><span class="sl-suit">${f.suit}</span>`
        + `</div>`
        + `<div class="sleight-card-emoji">${emGlyph(def?.emoji || '🃏')}</div>`   // r592: no name
+       + (card && card._ruleRanks ? `<div class="sleight-rule">${card._ruleRanks.join(' ')}</div>` : '')   // r675: the ranks it named
        + `<div class="sleight-card-uses">${usesStr}</div>`;
 }
 
@@ -898,6 +899,7 @@ function showSleightGridTooltip(r, c, card) {
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
+  if (card._ruleRanks) uses = `Named: ${card._ruleRanks.join(', ')} · ` + uses;   // r675: the rank rule's draw
   if (card._inert) uses += ' · INERT (cannot be swapped or discarded)';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'

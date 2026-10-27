@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r674 · merge main r672 (board screens) with r673 (departments): the quarter screen names the department";
+const BUILD = "2026-10-27 · r675 · the rule Sleights (working names): Double Shift, Even Keel, Face Time - in force while on the grid, inert, 4 charges";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

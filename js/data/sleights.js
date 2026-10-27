@@ -58,6 +58,13 @@ const SLEIGHT_POOL = [
   // ── Focus-spending sleights (r123) ──
   { id:'capacitor', name:'Capacitor', emoji:'🔋', rarity:'common', activation:'double_tap', durability:1, defaultRank:null, defaultSuit:null, tags:['credits','other','cost'], desc:'Double-tap: spend 10 Focus and 10 seconds for 10 credits. Becomes inert on use: it can no longer be swapped or discarded. (1 charge)' },
   { id:'siphon',    name:'Siphon',    emoji:'🩸', rarity:'rare',   activation:'double_tap', durability:4, defaultRank:null, defaultSuit:null, tags:['xmult','hand','scores','cost'],  desc:'Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Discards on use.' },
+  // ── Rule Sleights (r675, owner; CHALLENGE_REWARDS.md section 1). While one is on the
+  // grid its rule is in force. It lands INERT (cannot be swapped or discarded, only played)
+  // and each landing spends a charge (js/rule-sleights.js). Names are working names; the
+  // owner names them.
+  { id:'rule_ranks', name:'Double Shift', emoji:'🎟️', rarity:'epic',   activation:'passive', durability:4, defaultRank:null, defaultSuit:null, tags:['replay','card','rank','scores'], desc:'When it lands, 2 random ranks are named on its face. While it is on the grid, cards of those ranks replay once. Inert: it cannot be swapped or discarded, only played. (4 charges)' },
+  { id:'rule_evens', name:'Even Keel',    emoji:'⚖️', rarity:'common', activation:'passive', durability:4, defaultRank:null, defaultSuit:null, tags:['focus','card','rank','scores'],  desc:'While it is on the grid, even-ranked cards (2, 4, 6, 8, 10) score +2 Focus. Inert: it cannot be swapped or discarded, only played. (4 charges)' },
+  { id:'rule_faces', name:'Face Time',    emoji:'🫅', rarity:'rare',   activation:'passive', durability:4, defaultRank:null, defaultSuit:null, tags:['time','card','rank','scores'],   desc:'While it is on the grid, face cards (J, Q, K) rewind the clock 2s when scored. Inert: it cannot be swapped or discarded, only played. (4 charges)' },
   // ── Focus-capacity sleights (r104) ──
   { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus','other'], desc:'When it enters the grid: +10 Focus. While it remains on the grid: +10 to your Focus limit.' },
   { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus','other','clock'], desc:'+1 to your Focus limit for every 45 seconds this sleight spends on the grid (max +15).' },

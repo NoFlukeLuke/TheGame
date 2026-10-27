@@ -150,6 +150,7 @@ function startRoundTimer() {
     if (typeof fightPowerTick === 'function') fightPowerTick();
     if (typeof sleightLifeTick === 'function') sleightLifeTick();
     if (typeof autopilotTick === 'function') autopilotTick();
+    if (typeof ruleSleightsScan === 'function') ruleSleightsScan();   // r675: a rule Sleight that landed without a render
     if (typeof focusKnacksTick === 'function') focusKnacksTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)

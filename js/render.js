@@ -27,6 +27,9 @@ function render() {
   // over the shelves: the owner's "the cards peek through the shop". renderShopGrid is
   // the only thing that paints there; the buttons and counts below are the shop's too.
   if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
+  // r675: a rule Sleight that has just landed goes inert and states its rule,
+  // before the faces are drawn (rule_ranks prints its named ranks).
+  if (typeof ruleSleightsScan === 'function') ruleSleightsScan();
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing

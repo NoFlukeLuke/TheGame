@@ -2,7 +2,8 @@
 
 The owner's ideas, written up for review, then decided (section 6) and being built:
 **sections 3 to 5 are built (r671, js/challenge-rewards.js), section 2 too (r673,
-js/departments.js)**; the rule Sleights and the changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
+js/departments.js), and section 1's three rule Sleights (r675, js/rule-sleights.js)**; the
+changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
 purpose.
 
 ## 1. Rule Sleights
@@ -21,7 +22,10 @@ A Sleight that changes how the game works while it sits on the board.
 - Its rule is a board rule, not a card buff, so the Quarter resource limits (QRL) do not cap it.
   The replay one is a QRL replay source like any other.
 
-Descriptions in the game's Sleight style:
+**Built (r675)** under working names the owner will replace: A **Double Shift**
+(`rule_ranks`), B **Even Keel** (`rule_evens`), C **Face Time** (`rule_faces`). Improvements:
+A names one more rank a tier, B +2 Focus a tier, C +2s a tier. The named ranks print in the
+card's bottom-left corner. Descriptions in the game's Sleight style:
 
 | # | name | rarity (suggested) | description |
 |---|---|---|---|

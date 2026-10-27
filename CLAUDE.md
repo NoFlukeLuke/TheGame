@@ -2899,3 +2899,25 @@ early under Legal: "+15s at the next round's start", and round 2 started at 3:15
 Sales / R&D / Marketing / Operations paid +8 credits / +2 rerolls / Focus twice / +2 and +2 next
 round. No page errors.
 
+## r675 - the rule Sleights (`js/rule-sleights.js`, owner; working names)
+CHALLENGE_REWARDS.md section 1. Three passive Sleights, 4 charges, names for the owner to
+replace: **Double Shift** (`rule_ranks`, epic: 2 random ranks named when it lands replay once),
+**Even Keel** (`rule_evens`, common: even-ranked cards score +2 Focus), **Face Time**
+(`rule_faces`, rare: J / Q / K rewind the clock 2s when scored). The rule holds while the card is
+on the grid (owner). `ruleSleightsScan` (top of `render()`, after the takeover returns, and the
+round tick) notices a landing: `_ruleLanded`, `_inert` (the r341 word: no swap or discard, still
+selectable), one charge spent, the ranks rolled (`_ruleRanks`, BAL `rule_ranks.ranks`), and a
+printed line naming the rule. The marks are board-card fields, so `recycleCard` drops them and
+every landing is fresh; at 0 charges the card leaves the deck when it goes. Readers:
+`ruleRankReplays` is replay source `rule` in calcScore (QRL-limited like any source);
+`ruleEvenFocus` / `ruleFaceSeconds` pay in playHand beside the card Focus / time buffs, once per
+scoring. Improvements: one more rank a tier (`IMPROVE_STEP.rule_ranks`), +2 Focus, +2s. Icons
+(r675 sheet, 149 cells; the first 144 unchanged pixel for pixel): card-random, scales,
+queen-crown, plus the changing Trick's chameleon and the changing Sleight's transform. The named
+ranks print in the card's bottom-left corner (`.sleight-rule`) and in its tooltip.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, real taps): each landed inert with
+3 of 4 charges left and its printed line; swap and discard refused, select allowed; three named 7s
+replayed (retrig 2 each, preview and play); `ruleEvenFocus` gave 6 for three 4s; three Kings
+rewound 162 -> 168; played in a hand, Face Time went to the played pile with 3 charges and no
+`_inert`. No page errors.
+

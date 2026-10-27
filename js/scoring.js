@@ -625,12 +625,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // `qrlLimit()` biggest sources pay; a cut source is switched off here so the
     // ledger rows below never bill it. Layered-hand replays are not a source.
     let _enc = !!_encoreCells && _encoreCells.has(_cKey) && _rankIsOddRank(baseRank), _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
+    let _rule = (!_G && typeof ruleRankReplays === 'function') ? ruleRankReplays(baseRank) : 0;   // r675: the rank rule Sleight
     const _srcs = [
       ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _ptN], ['res', _res ? 2 : 0], ['rip', _rip], ['evb', _evb], ['wod', _wod], ['twn', _twn],
       ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? 1 : 0], ['re', _re],
       ['rne', _rne ? 1 : 0], ['ech', _ech ? 1 : 0], ['wp', _wp ? BAL.woodpecker.retrigger_count + ((BAL.woodpecker.chance_extra > 0 && _detReplayRand((card._id || 0) + 7971, handsPlayedRound) < BAL.woodpecker.chance_extra) ? 1 : 0) : 0], ['hnm', _hnm ? 1 : 0],
       ['wfi', _wfi], ['hr', _hr], ['enc', _enc ? 1 : 0], ['lab', _lab ? 1 : 0], ['cb', _cb ? 1 : 0],
-      ['3c', _3c ? BAL.third_charm.extra_replays : 0],
+      ['3c', _3c ? BAL.third_charm.extra_replays : 0], ['rule', _rule],
     ].filter(x => x[1] > 0);
     const _qL = _G ? Infinity : qrlLimit();
     if (_srcs.length > _qL) {
@@ -643,7 +644,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_cutIds.has('rne')) _rne = false; if (_cutIds.has('ech')) _ech = false; if (_cutIds.has('wp')) _wp = false;
       if (_cutIds.has('hnm')) _hnm = false; if (_cutIds.has('wfi')) _wfi = 0;    if (_cutIds.has('hr')) _hr = 0;
       if (_cutIds.has('enc')) _enc = false; if (_cutIds.has('lab')) _lab = false; if (_cutIds.has('cb')) _cb = false;
-      if (_cutIds.has('3c')) _3c = false;
+      if (_cutIds.has('3c')) _3c = false;   if (_cutIds.has('rule')) _rule = 0;
       _qrlReplayCut = true;
     }
     _srcs.forEach(x => { _retrig += x[1]; });
