@@ -30,3 +30,7 @@
   border-radius: 2px; background: rgba(0,0,0,.35); box-shadow: 0 1px 0 rgba(255,255,255,.12); }
 .sc-door-top::after { bottom: 10px; }
 .sc-door-bot::after { top: 10px; }
+
+/* r691: the fall. While it runs the board clips to its own box, so nothing drops past
+   the housing (the console clip leaves 6px at the sides and foot for falling cards). */
+#grid.sc-falling { clip-path: inset(0) !important; overflow: clip; }

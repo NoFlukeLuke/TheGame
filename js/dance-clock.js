@@ -93,7 +93,7 @@ function dncSetPaused(on) {
 // which took 43). An ordinary hand pays out a handful of
 // ticks and barely moves; a long one through a full tray runs away, which is the
 // point.
-const DNC_ACCEL_STEP = 0.04;  // +4% of the CURRENT pace per payout tick
+const DNC_ACCEL_STEP = 0.02;  // +2% of the CURRENT pace per payout tick (r691, owner: half of r610's 4%)
 const DNC_ACCEL_MAX  = 8;     // ceiling, as a multiple of this dance's base pace
 let dncAccel = 1;
 
@@ -108,6 +108,8 @@ function dncBumpAccel(n = 1) {
 // The live pace: this dance's base speed times everything it has paid out so far.
 // Every duration in the dance divides by THIS, never by dncSpeed directly.
 // r661: hands waiting in the scoring queue double the pace each (dncQueuePace, js/score-dance.js).
-function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncFocusPace * (typeof dncQueuePace === 'function' ? dncQueuePace() : 1); }
+// r691 (owner): Focus and the queue do NOT stack: whichever lifts the pace more is the lift.
+function dncBoost() { return Math.max(dncFocusPace || 1, typeof dncQueuePace === 'function' ? dncQueuePace() : 1); }
+function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncBoost(); }
 // The pace without Focus: for lengths that already carry Focus (the card fly, cardFlyMs).
 function dncPaceNoFocus() { return dncPace() / (dncFocusPace || 1); }

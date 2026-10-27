@@ -785,7 +785,8 @@ let dncQueue = [];
 let dncShowScore = null;
 function dncScoreShown(){ return dncShowScore == null ? score : dncShowScore; }
 function dncScoreHoldOff(){ dncShowScore = null; }
-function dncQueuePace(){ return Math.pow(2, dncQueue.length); }
+// r691 (owner): half the lift it was (x2 a waiting hand): 1.5, 2.5, 4.5, 8.5. Never stacked with Focus (dncBoost).
+function dncQueuePace(){ return 1 + (Math.pow(2, dncQueue.length) - 1) / 2; }
 function dncQueueFull(){ return !!danceAbortController && dncQueue.length >= DNC_QUEUE_MAX; }
 function dncQueueHost(){
   let h = document.getElementById('dnc-queue');
@@ -855,8 +856,8 @@ function dncGoalJump(entry){
   const glows = els.map(el => { el.style.zIndex = '20'; return el.animate(GOAL_GLOW_KF, { duration: 300, fill: 'forwards' }); });
   const shakes = els.map(el => el.animate(GOAL_SHAKE_KF, { duration: 150, iterations: Infinity, easing: 'linear' }));
   dncGoalJumpState = { t0: performance.now(), els, shakes, glows };
-  dbgEvent('info', 'winning hand played over the queue: ' + (dncQueue.length - 1) + ' in front, skipping them');
-  dncRequestFF();   // the hand on screen plays out at the skip speed
+  dbgEvent('info', 'winning hand played over the queue: ' + (dncQueue.length - 1) + ' in front, ' + (typeof blastOn === 'function' && blastOn() ? 'blasting them' : 'skipping them'));
+  if(!(typeof blastOn === 'function' && blastOn())) dncRequestFF();   // the hand on screen plays out at the skip speed (r691: or blasts, js/score-blast.js)
 }
 // Stops the shake; `keepGlow` leaves the winners lit for the finale's fly.
 function dncGoalJumpStop(keepGlow){
@@ -1133,7 +1134,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Settings -> Skip (r380). The SAME dance at the skip speed - dncRequestFF is
   // the goal hand's own SKIP, which lands the same numbers in the same order.
   if (typeof skipOn === 'function' && (skipOn('scoring') || (isGoalHand && skipOn('finale')))) dncRequestFF();
-  if (!isGoalHand && dncGoalWaiting()) dncRequestFF();   // r670: a winning hand is waiting behind this one
+  if (!isGoalHand && dncGoalWaiting() && !(typeof blastOn === 'function' && blastOn())) dncRequestFF();   // r670: a winning hand is waiting behind this one (r691: it blasts instead)
 
   if(isGoalHand){
     // ── WIN FINALE (runs BEFORE the tally) ──
@@ -1445,7 +1446,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       else { rm = _rnd(rm*ev.value, ev.rnd); showMult(); }
       // r661: at x4 and up (two or more hands waiting) a beat plays ONE payout sound, not one per plate.
       // r670: likewise a hand played out at the skip speed in front of a winning hand.
-      if(typeof sfxParticleStep==='function' && !((dncQueuePace() >= 4 || dncFF) && subRef._sfx)){ subRef._sfx = true; sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult'); }
+      if(typeof sfxParticleStep==='function' && !((dncQueue.length >= 2 || dncFF) && subRef._sfx)){ subRef._sfx = true; sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult'); }
     };
     const p = dncFly(src, box, evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
     return defer ? land : (awaitIt ? p : null);
@@ -1455,7 +1456,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // effect, and it cannot desync the aborts inside it.
   // r670: a hand in front of a waiting winner (dncGoalJump) skips the rest of its beats:
   // the chips land on their totals below, then it fuses, throws and climbs at the skip speed.
-  const flushed = () => !isGoalHand && !!dncGoalJumpState;
+  // r691: a deep queue (four hands in the system) cuts the beats the same way; the cut hand blasts.
+  const flushed = () => !isGoalHand && (!!dncGoalJumpState || (typeof blastQueueDeep === 'function' && blastQueueDeep()));
   let beatsCut = false;
   for(let si=0; !skipBeats && si<steps.length; si++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -1550,6 +1552,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // to some other hand's numbers - measured at 228 pips on a hand worth 226.
   const _finalPips = (typeof _ledger.finalPips === 'number') ? _ledger.finalPips : lastCalcPips;
   const _finalMult = (typeof _ledger.finalMult === 'number') ? _ledger.finalMult : lastCalcMult;
+  // r691 (owner): a hand whose beats were cut by a waiting winner or a deep queue BLASTS
+  // instead of fast-forwarding (js/score-blast.js): its cards shake, the look's beats land
+  // the chips on their totals, the cards blow out of the preview. Then the fuse as usual.
+  if(beatsCut && !dncFF && typeof scoreBlast==='function' && scoreBlast.on()){
+    await scoreBlast({ cards: cardEls, pips: { el: pipsEl, box: pipsBox, from: rp, to: _finalPips }, mult: { el: multEl, box: multBox, from: rm, to: _finalMult }, pace: dncPace(), signal: sig });
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  }
   // The walk above applies the same operations in the same order as calcScore, so
   // this should be a no-op. It is kept as a safety net - and as an alarm: if the
   // timeline ever stops describing the real arithmetic, a beat is silently lying

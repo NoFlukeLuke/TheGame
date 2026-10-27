@@ -219,7 +219,7 @@ function trayFxWatchTriggers() {
 // and flies on an arc to the chip's own box, then the chip itself shows. With no
 // source it drops in from above as before.
 let _trayLandSrc = null;
-const TRAY_LAND_FROM_MS = 8000, TRAY_LAND_MS = 780, TRAY_DROP_MS = 700;
+const TRAY_LAND_FROM_MS = 8000, TRAY_LAND_MS = 780, TRAY_DROP_MS = 700;   // x animSlow() at play (r691, owner: slower by half at the default)
 document.addEventListener('pointerdown', e => {
   const t = e.target && e.target.closest && e.target.closest('.reward-cell, .gp-opt, .event-choice, .shop-tile');
   if (!t || t.closest('#trick-tray-area, #knack-carousel-wrap, #tray-lift, #ia-layer, #bs-layer')) return;
@@ -235,7 +235,7 @@ function trayEntityLand(chip) {
       { scale: '1.8', translate: '0 -45%', opacity: 0, filter: 'blur(3px) brightness(1.7)' },
       { scale: '.88', translate: '0 4%', opacity: 1, filter: 'blur(0px) brightness(1.25)', offset: .62 },
       { scale: '1.04', translate: '0 0', opacity: 1, filter: 'blur(0px) brightness(1.05)', offset: .82 },
-      { scale: '1', translate: '0 0', opacity: 1, filter: 'none' }], { duration: TRAY_DROP_MS, easing: 'cubic-bezier(.3,.6,.35,1)' });
+      { scale: '1', translate: '0 0', opacity: 1, filter: 'none' }], { duration: TRAY_DROP_MS * (typeof animSlow === 'function' ? animSlow() : 1), easing: 'cubic-bezier(.3,.6,.35,1)' });
     return;
   }
   _trayLandSrc = null;
@@ -253,14 +253,14 @@ function trayEntityLand(chip) {
     { translate: `${dx}px ${dy}px`, scale: s0, opacity: 1, filter: 'brightness(1.6)', offset: .1 },
     { translate: `${dx * .5}px ${dy * .5 - 26}px`, scale: (s0 + 1) / 2 * 1.08, opacity: 1, filter: 'brightness(1.3)', offset: .56 },
     { translate: '0 0', scale: 1.06, opacity: 1, filter: 'brightness(1.1)', offset: .9 },
-    { translate: '0 0', scale: 1, opacity: 1, filter: 'brightness(1)' }], { duration: TRAY_LAND_MS, easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' });
+    { translate: '0 0', scale: 1, opacity: 1, filter: 'brightness(1)' }], { duration: TRAY_LAND_MS * (typeof animSlow === 'function' ? animSlow() : 1), easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' });
   let finished = false;
   const done = () => {
     if (finished) return; finished = true;
     chip.style.visibility = ''; c.remove();
     try { chip.animate([{ scale: '1.06', filter: 'brightness(1.3)' }, { scale: '1', filter: 'none' }], { duration: 220, easing: 'ease-out' }); } catch (e) {}
   };
-  a.onfinish = done; setTimeout(done, TRAY_LAND_MS + 120);
+  a.onfinish = done; setTimeout(done, TRAY_LAND_MS * (typeof animSlow === "function" ? animSlow() : 1) + 120);
 }
 // An entity leaving: a copy sinks into the tray where it was, shrinking and darkening.
 function trayEntitySink(rect, html, cls, zoom) {

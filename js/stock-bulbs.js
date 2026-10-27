@@ -84,6 +84,7 @@ function sbPlaces(st, z, sr) {
     let size = SB_SIZE, y;
     if (where === 'below') { size = Math.max(4, Math.min(SB_SIZE, (below == null ? SB_SIZE + 3 : below) - 2)); y = t.y + t.h + 1; }
     else if (where === 'mid') y = t.y + (t.h - size) / 2;
+    else if (where === 'in') y = t.y + t.h - size - 3;   // r691: inside the screen, along its lower edge
     else y = t.y + t.h - size / 2;                       // centred on the tray's lower edge
     const len = n * size + (n - 1) * SB_GAP;
     return { x: where === 'mid' ? t.x + t.w - 10 - len : t.x + (t.w - len) / 2, y, dir: 'row', size };
@@ -106,6 +107,12 @@ function sbPlaces(st, z, sr) {
   if (s.disc && own('btn-discard')) out.disc = keyCol('btn-discard', s.disc.n);
   const tt = document.getElementById('trick-tray-area');
   if (s.trick) out.trick = trayRow(tt, s.trick.n, sbCfg.trick, roomBelow(tt, ['btn-records', 'btn-pause', 'knack-carousel-wrap', 'grid']));
+  // r691 (owner): with the key look's squares the Trick row sits INSIDE its screen, along the
+  // lower edge, drawn in the tray itself behind the chips (sbPaint hosts it there).
+  if (out.trick && sbKeyLook()) {
+    const tr = sbRect(tt, st, z, sr), p = trayRow(tt, s.trick.n, 'in');
+    if (tr && p) out.trick = Object.assign(p, { inTray: true, x: p.x - tr.x, y: p.y - tr.y });
+  }
   // The hand preview's box. On a phone it shares its half of the strip with Knacks
   // (js/portrait-panel.js), so while Knacks show, that same box stands in for it.
   const vis = id => { const e = document.getElementById(id); return e && e.offsetParent && e.offsetWidth ? e : null; };
@@ -133,9 +140,13 @@ function sbPaint(force) {
   _sbSig = sig;
   for (const g of ['swap', 'disc', 'hand', 'trick']) {
     const s = stocks[g], p = places[g];
-    let box = l.querySelector(`.sb-${g}`);
+    const tray = g === 'trick' && document.getElementById('trick-tray-area');
+    let box = l.querySelector(`.sb-${g}`) || (tray && tray.querySelector(`.sb-${g}`));
     if (!s || !p) { if (box) box.remove(); continue; }
     if (!box) { box = document.createElement('div'); box.className = `sb-grp sb-${g}`; l.appendChild(box); }
+    const host = (p.inTray && tray) || l;   // r691: the Trick row lives in its tray, first child so the chips paint over it
+    if (box.parentElement !== host) host.prepend(box);
+    box.classList.toggle('sb-in', !!p.inTray);
     box.classList.toggle('sb-col', p.dir === 'col' && !p.split);
     box.classList.toggle('sb-split', !!p.split);
     box.classList.toggle('sb-flush', g === 'swap' || g === 'disc' || (g === 'hand' && p.dir === 'col'));

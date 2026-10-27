@@ -6362,3 +6362,10 @@ body.gp-fillhead #stage.landscape.grid-fill #flowr-stack {
   position: absolute; top: -2px; right: -2px; z-index: 6; pointer-events: none;
   font-size: 12px; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.85));
 }
+
+/* r691 (owner): the pause panel on the board is a screen, not a tray: its frame rings and
+   drop shadow drew past the board's box onto the housing on a phone. */
+#pause-overlay.pm-on-grid #pause-panel {
+  box-shadow: inset 0 0 46px rgba(255,176,46,0.05), inset 0 0 0 1px rgba(0,0,0,.6);
+  border-radius: 6px; overflow: hidden;
+}

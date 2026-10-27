@@ -142,7 +142,7 @@ function updateSelectionUI() {
   // Top bar: the limit, not the count.
   const el = document.getElementById('sel-display');
   if (el) {
-    el.textContent = `✋ ${limits.selection.current}`;
+    el.textContent = `${limits.selection.current}`;   // r691: no hand emoji
     el.classList.remove('sel-full');
   }
   const st = document.getElementById('sel-stat');

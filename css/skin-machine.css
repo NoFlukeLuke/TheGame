@@ -488,3 +488,33 @@ html.skin-machine body:not(.shop-active) #stage.landscape #selected-cards { --ca
 html.skin-machine #stage.landscape #selected-cards.dnc-active { padding: 15px 6px 3px; }
 html.skin-machine #stage.landscape #selected-cards.dnc-active .dnc-track { padding: 0; gap: 4px; }
 html.skin-machine #stage.landscape #selected-cards.dnc-active .dnc-row.hand { min-height: 0; }
+
+/* ── r691 (owner): nothing prints over the housing; everything under the screen door ──
+   1. The Flow reward panel (#flowr-bg) is the board's own box: no padding past it in
+      either orientation, no outer glow, no border, so its tint stays inside the screen.
+   2. The flip clock wears the tube (it is laid OVER #clock, whose door it was above).
+   3. A score plate in flight wears the tube on its plate (.pt-box clips it to the
+      diamond / circle; the lines are turned back upright on a diamond), and the fused
+      chip's ghost (.pmf-ghost) wears the whole-box door like a card.
+   4. The GOAL CLEARED counter is a child of #grid here (js/flow-rewards.js), under its door. */
+html.skin-machine #stage #flowr-bg { --fbg-pad: 0px; box-shadow: none !important; border-color: transparent !important; }
+html.skin-machine #stage:not(.landscape) #flowr-bg { --fbg-head: 0px; top: 50%; }
+html.skin-machine #mc-flip::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 40; border-radius: 3px;
+  mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,var(--mc-scan)) 0 var(--mc-scan-w), transparent var(--mc-scan-w) 3px),
+    repeating-linear-gradient(90deg, var(--mc-grille-r) 0 1px, var(--mc-grille-g) 1px 2px, var(--mc-grille-b) 2px 3px);
+  opacity: var(--mc-tube, .85);
+}
+html.skin-machine #mc-fly .dnc-particle .pt-box { position: relative; overflow: hidden; }
+html.skin-machine #mc-fly .dnc-particle .pt-box::after {
+  content: ''; position: absolute; inset: -30%; pointer-events: none; z-index: 5;
+  mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 var(--mc-scan-w), transparent var(--mc-scan-w) 3px),
+    repeating-linear-gradient(90deg, var(--mc-grille-r) 0 1px, var(--mc-grille-g) 1px 2px, var(--mc-grille-b) 2px 3px);
+  opacity: .6;
+}
+html.skin-machine #mc-fly .dnc-particle.pt-diamond .pt-box::after { transform: rotate(-45deg); }
+html.skin-machine #grid > #flowr-counter { z-index: 30; }

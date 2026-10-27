@@ -333,7 +333,7 @@ function crCardFaceHTML(card) {
              : `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>`;
   const pay = (typeof crrFaceHTML === 'function') ? crrFaceHTML(q) : '';
   return bg + `<div class="cr-head">${head}</div>`
-       + `<div class="cr-req">${crReqShort(q)}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
+       + `<div class="cr-req">${crReqShort(q)}</div>`
        + prog + pay + more;
 }
 // r677 'prompt': both answers with what each pays (r681: TAP / 2-TAP, no ask), and a bar draining

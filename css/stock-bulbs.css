@@ -72,3 +72,7 @@ html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #btn-discard #di
     radial-gradient(circle at 50% 50%, rgba(255,246,220, calc(.9 * min(var(--on), 1.2))) 0 22%,
       rgba(var(--c), calc(.35 + .55 * min(var(--on), 1))) 58%, rgba(var(--c), calc(.2 + .3 * min(var(--on), 1))) 100%);
   box-shadow: 0 0 0 1px rgba(0,0,0, calc(.3 - .2 * min(var(--on), 1))); }
+
+/* r691: the Trick row drawn inside its tray, behind the chips (js/stock-bulbs.js) */
+.sb-grp.sb-in { z-index: -1; }
+#stage #trick-tray-area:has(> .sb-in) { position: relative; isolation: isolate; }

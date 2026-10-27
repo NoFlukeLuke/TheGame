@@ -3259,3 +3259,42 @@ three; a priority account paid the reward grid (path 3) and closed to the map; a
 after-level went straight to the map; tile words and both stake lines inside their tiles. Trophy
 Case + Very Rewarding v1: "it became Amplifier · Even Keel added to your deck" (2 Sleights); at v6
 three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
+
+## r691 - console: nothing over the housing; one animation speed; the blast; the fall screen change (owner)
+- **Under the screen door** (css/skin-machine.css): the flip clock (`#mc-flip::after`) and every
+  score plate in flight (`.pt-box::after`, clipped to the plate, turned upright on a diamond) wear
+  the tube; the fused chip's ghost takes `.mc-door` like a card; the GOAL CLEARED counter is a
+  child of `#grid` in console mode (`flowrCountUp`), under its door and inside its clip. The Flow
+  panel (`#flowr-bg`) is the board's own box in both orientations: pad 0, no glow, no border.
+- **Pause menu on the board** has no frame rings past the board (`pm-on-grid`).
+- **Settings on a phone** (css/settings.css, under 640px): every row is a column, title and
+  description above the control at full width.
+- **One animation speed** (Settings -> Motion -> Animation speed, `animSpeed`: 0.5 / 1 / 2 / 4 / 6 / 8,
+  default 2; was a 0.5-16 slider default 2). `DANCE_CFG.norm = v / 2` (the tally) and
+  `animSpeedMult() = v / 4` (js/settings.js) for everything else: the card looks and the fly
+  (`caSpeedNow`), the fall (`FALL_DUR`, `COL_OFFSET`), a reward landing in its tray
+  (`trayEntityLand`), the fall screen change. **4 is what the game ran at before**; the default
+  runs everything twice as long. Focus's lift is halved (`focus2` / `tally2` 1.25), the queue's
+  lift is halved (`dncQueuePace` 1.5 / 2.5 / 4.5 / 8.5), the two never stack (`dncBoost` = the
+  bigger one, js/dance-clock.js), and the tally's per-payout wind-up is +2% (was 4).
+- **The blast** (`js/score-blast.js`, `css/score-blast.css`): a hand whose card beats are cut
+  (a winning hand waiting behind it, r670; or four hands in the system, `BLAST_QUEUE_DEEP`)
+  no longer fast-forwards: its cards shake, the look's beats land PIPS and MULT on their totals,
+  and the cards blow out of the preview (clipped to it), then the fuse as usual. Looks (dev ->
+  Aesthetics -> Blast scoring, Preview and 1-5 play each on the live preview; `lethe.scoreBlast.v1`
+  overrides only): **beats5** (default; five beats PIPS / MULT / PIPS / MULT / PIPS, a plate and a
+  tone up each), shockwave, strobe, implode, drumroll, off (the old fast forward). Sounds are
+  synthesised there (`sfxBlastBeat/Rise/Boom/Cymbal`). `dncGoalJump` and the queued hand's start
+  call `dncRequestFF` only with the blast off.
+- **Screen change `fall`** (default, js/screen-change.js): the board's items drop out of the
+  bottom of its box, bottom row first, the panel fades; the next screen's items fall in from the
+  top, left to right, with the card fall's bounce (items the game is already animating, a dealt
+  board, are left to their own trip). `#grid.sc-falling` clips to the box. The housing and the
+  keys never move; the keys' dot words change on their own (js/key-dots.js). `turn` and
+  `shutter` stay as options.
+- **Keys**: the dot words are dimmer (css/key-looks.css canvas filter); the phone's SWAP word is
+  15px and the split reroll words 13px (css/grid-pick.css).
+- **Trick stock squares** are 2 x 2 pixels, brighter, drawn INSIDE the tray along its lower edge as
+  the tray's first child at z -1 (`sb-in`, js/stock-bulbs.js; the tray isolates), behind the chips.
+- **No hand emoji**: `#sel-display` and `#sel-count-hand` print the number alone, the Selection
+  Size limit's icon is 🎴, a challenge card's touching tier is said in its text only.

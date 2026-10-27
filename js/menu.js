@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r690 · priority accounts pay the reward grid, audits their cards only; the reward tile is IT's; mysteries roll; Trophy Case + Very Rewarding combine";
+const BUILD = "2026-10-27 · r691 · console: nothing over the housing, fliers under the door; one animation speed, slow by default; the blast scoring looks; the fall screen change; phone settings, pause, keys and stock squares";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

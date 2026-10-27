@@ -366,6 +366,12 @@ body.gp-active #grid:has(.gp-sel) { z-index: 9; }
 #swap-indicator.gp-rr-type .rr-n, #btn-discard.gp-rr-opt .rr-n {
   font-family: 'Share Tech Mono', monospace; font-size: 10px; opacity: .85;
 }
+/* r691 (owner): the reroll words were the smallest print on the keys; on a phone they are
+   the keys' word size (the dots read the drawn size, js/key-dots.js). */
+#stage:not(.landscape) #swap-indicator.gp-rr-type .rr-word, #stage:not(.landscape) #btn-discard.gp-rr-opt .rr-word { font-size: 13px; }
+#stage:not(.landscape) #swap-indicator.gp-rr-type .rr-n, #stage:not(.landscape) #btn-discard.gp-rr-opt .rr-n { font-size: 13px; }
+#stage.landscape #swap-indicator.gp-rr-type .rr-word, #stage.landscape #btn-discard.gp-rr-opt .rr-word { font-size: 11px; }
+#stage.landscape #swap-indicator.gp-rr-type .rr-n, #stage.landscape #btn-discard.gp-rr-opt .rr-n { font-size: 12px; }
 #swap-indicator.gp-rr-off { opacity: .4; pointer-events: none; }
 .gp-act.gp-act-on { outline: 2px solid var(--cream, #f4ead5); outline-offset: -3px; }
 

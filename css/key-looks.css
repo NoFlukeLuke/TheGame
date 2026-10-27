@@ -30,7 +30,7 @@ html.kl #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator
 html.kl #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) { padding: calc(var(--kr) + 3px) 2px !important; }
 html.kl #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) { line-height: 0 !important; gap: 3px; }
 html.kl #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) > * { line-height: 1; }
-html.kl #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 13px !important; }
+html.kl #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 15px !important; }   /* r691: larger (was 13) */
 html.kl #cabinet #cab-screen #stage :is(#btn-discard, #btn-play, #btn-leave) { line-height: .9 !important; }
 /* Console mode sets the words at 20px; the pit's DISCARD is seven letters, so 14px there */
 html.kl:not(.skin-machine) #cabinet #cab-screen #stage :is(#btn-discard, #btn-play, #btn-leave) { font-size: 14px !important; }
@@ -46,7 +46,7 @@ html.kl .sb-b::before, html.kl .sb-b::after, html.kl .sb-b > b { display: none !
 html.kl .sb-grp.sb-swap  { --sq: 127,243,251; }
 html.kl .sb-grp.sb-disc  { --sq: 255,150,112; }
 html.kl .sb-grp.sb-hand  { --sq: 255,214,92; }
-html.kl .sb-grp.sb-trick { --sq: 230,222,200; }
+html.kl .sb-grp.sb-trick { --sq: 255,244,214; }   /* r691: brighter */
 @keyframes klSqNew { 0%, 30%, 60% { opacity: .15; } 15%, 45%, 100% { opacity: 1; } }
 html.kl .sb-b.sb-ext { animation: klSqNew 1.2s steps(1) both; }
 
@@ -92,23 +92,17 @@ html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indi
 /* r681 (owner): a stock square is 3 x 3 separate pixels with gaps, like the words' dots
    (js/key-dots.js). One pixel is the top-left 66% of a third of the square (--px); left =
    all nine lit and glowing, used = the eight round the edge, not unlocked = all nine faint. */
+/* r691 (owner): 2 x 2 pixels, brighter. One pixel is the top-left 70% of half the square
+   (--px); left = all four lit and glowing, used = four dim, not unlocked = four faint. */
 html.kl.kl-a .sb-b {
-  --px: conic-gradient(at 66% 66%, transparent 75%, var(--dc) 0);
-  --dc: rgba(var(--sq), .17);
-  box-shadow: none; background: var(--px) 0 0 / 33.34% 33.34% !important;
+  --px: conic-gradient(at 70% 70%, transparent 75%, var(--dc) 0);
+  --dc: rgba(var(--sq), .2);
+  box-shadow: none; background: var(--px) 0 0 / 50% 50% !important;
 }
-html.kl.kl-a .sb-b.sb-on {
-  --dc: rgba(var(--sq), .55);
-  background:
-    var(--px) 0 0 / 33.34% 33.34% repeat-x,
-    var(--px) 0 100% / 33.34% 33.34% repeat-x,
-    var(--px) 0 50% / 33.34% 33.34% no-repeat,
-    var(--px) 100% 50% / 33.34% 33.34% no-repeat !important;
-}
+html.kl.kl-a .sb-b.sb-on { --dc: rgba(var(--sq), .5); }
 html.kl.kl-a .sb-b.sb-on.sb-gr {
   --dc: rgb(var(--sq));
-  background: var(--px) 0 0 / 33.34% 33.34% !important;
-  filter: drop-shadow(0 0 1.5px rgba(var(--sq), .9));
+  filter: brightness(1.15) drop-shadow(0 0 2px rgba(var(--sq), .95)) drop-shadow(0 0 5px rgba(var(--sq), .5));
 }
 
 /* SWAP is armed (two cards picked): the screen says so; the old pulse drew a keycap's shadow. */
@@ -124,7 +118,8 @@ html.kl #cabinet #cab-screen #stage #swap-indicator.swap-armed:has(.swap-word) .
 html.kl.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) .kd-c {
   position: absolute; left: var(--kr); top: var(--kr); z-index: 4; pointer-events: none;
   image-rendering: pixelated;
-  filter: brightness(1.1) drop-shadow(0 0 2px rgb(var(--kc-ph))) drop-shadow(0 0 7px rgba(var(--kc), .8));
+  /* r691 (owner): the words were too bright; a softer glow, the dots' own colour a shade down */
+  filter: brightness(.9) drop-shadow(0 0 1.5px rgba(var(--kc-ph), .7)) drop-shadow(0 0 6px rgba(var(--kc), .45));
 }
 html.kl.kl-a.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave),
 html.kl.kl-a.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) * {
