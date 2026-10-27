@@ -228,6 +228,10 @@ body.kb-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).kb-on { transf
 }
 #event-overlay.ev-console .ev-btn:hover { background: rgba(255,176,46,.14); border-color: var(--am); filter: none; }
 #event-overlay.ev-console .ev-btn:disabled { opacity: .35; }
+/* r698: the Editor's rank keys, wireframe boxes like the choices */
+#event-overlay.ev-console .ed-rank { font-family: inherit; font-size: 16px; color: var(--am); background: transparent; border: 1px solid var(--am-dim); border-radius: 3px; text-shadow: inherit; }
+#event-overlay.ev-console .ed-rank:hover { background: rgba(255,176,46,.12); border-color: var(--am); }
+#event-overlay.ev-console .ed-rank.on { background: var(--am); color: #1a1206; border-color: var(--am-hi); text-shadow: none; }
 #event-overlay.ev-console #event-body :is(.kw, [class^="kw-"], [class*=" kw-"]) { color: var(--am-hi); }
 /* Same as the briefing's (css/boss.css): sized like the board screen, no font-size-adjust. */
 html.skin-machine #cabinet #cab-screen #stage #event-overlay.ev-console #event-panel,

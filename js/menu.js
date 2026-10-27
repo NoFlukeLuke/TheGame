@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r697 · merge: the scoring queue's label and tray clip (r695) with main's Reels and music (r695-r696)";
+const BUILD = "2026-10-28 · r698 · The Editor: rechoose the ranks a Trick or Knack asks for";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

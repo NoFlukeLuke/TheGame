@@ -295,6 +295,7 @@ function updateKnackList() {
   // acquiredKnacks.push sites means a future grant path gets this for free.
   // Update the tally BEFORE flipping the view: setPortraitPanelView re-runs this
   // function to re-measure the marquee, so a stale tally here recurses forever.
+  if (typeof rkPrune === 'function') rkPrune();   // r698: an Editor choice leaves with its entity
   const _knackGrew = acquiredKnacks.length > _knackCountShown;
   _knackCountShown = acquiredKnacks.length;
   if (_knackGrew && typeof portraitShowKnacks === 'function') portraitShowKnacks();

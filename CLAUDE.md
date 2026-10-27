@@ -3414,3 +3414,24 @@ true); a finished round and the menu 1x; all ten files served 200; the playlist 
 The scoring-queue branch's r695 (the label and the tray clip, above) ran in parallel with main's
 r694 / r695 (Reels) and r696 (the music). The merge that joined them is r697.
 
+## r698 - The Editor; rank conditions read one place (`js/rank-editor.js`)
+Every Trick or Knack whose condition names 3 or fewer fixed ranks reads them through
+**`rkSet(id)` / `rkHas(id, rank)`**, never a literal (`RANK_EDIT_DEFS` lists them with their
+default ranks and a `say(desc, R)` that rewrites the sentence). `editorRanks` (SAVE_VARS, reset in
+startGame) holds the rechosen ones; `rkPrune` (from renderTrickTray / updateKnackList) drops an
+edit once its entity leaves, so a copy taken again starts fresh; a fused Trick takes its part's
+edit (`from`, Men of Means <- Face Value, `rkOnPickup` in selectTrick). `syncOwnedEntityDescs`
+runs `rkDescApply` after the pool's sentence. **Improvements adapt:** Inspirato's and Patient
+Rulers' rolled extra ranks are rolled around the chosen set and re-rolled when an edit lands on
+one (`rkFixExtras`); 4x4's 5th improvement adds Queens, or the next face rank if Queens are
+chosen (`rkFourByFourRanks`); Cloud Nine adds cards of its current rank, and an edit turns up to
+`added` of its unspent old-rank cards in the piles into the new rank (`rkMoveCloudNine`). Heads of
+State edits the King; its "other Royal" is any face card that is not the chosen rank.
+**Feelin Lucky** (`lucky: true`): the Editor swaps its 5 rolled `_luckyRanks` for `RK_LUCKY_PICK`
+(3) chosen ranks and sets `_luckyFixed` (rerolls 0, sentence loses the sell clause, never listed
+again; in `CHG_FORM_FIELDS` so Temp never carries it). Console mode: the event is a board screen
+(r672); the rank keys are amber wireframe boxes (css/board-screen.css).
+**The Editor** event (`editor`, EVENTS.md): two or more such entities owned and 12 credits; pick
+one, then exactly as many ranks as it had. A new rank-condition entity goes in `RANK_EDIT_DEFS`
+and reads `rkHas`. Measured at 1440x820 and 420x900: Face Value edited to A / 5 / 9 paid +60 on
+three 5s and nothing on three Kings; the sentence, tray copy and 12-credit charge followed.

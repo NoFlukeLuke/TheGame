@@ -706,3 +706,17 @@ position effects on the board (`lineShiftEntries().length >= 2`). Tap an effect,
 column it moves to; a line another effect holds swaps the two; District lets a line be shared.
 Confirm writes every change through `finalizePositionMark`; Leave keeps the lines. The Surveyor /
 Leveler chooser moved onto the same wireframe look, as a screen on the board (js/board-screen.js).
+
+## r698 - The Editor
+`editor`, "Rechoose the ranks one Trick or Knack asks for." Offered with two or more owned
+entities whose condition names 3 or fewer fixed ranks, and the price in hand (12 credits,
+`BAL.editor.price` 6 through `priceOf`). Not in the numeric deck. Pick one entity, then exactly as
+many ranks as it had (Face Value 3, Lucky Sevens 1...); the new sentence prints before you pay.
+Listed (`RANK_EDIT_DEFS`, js/rank-editor.js): Resonance, First Light, Inspirato, Face Value, Men of
+Repute, Men of Means, Jackpot, Heads of State (the King; "one other Royal" is any face card that is
+not it), Lucky Sevens, Penny Saved, Cloud Nine, Double Take, Sideways to Infinity, Ace Absorb,
+Ready Set Go, Undue Influence, Patient Rulers, Royal Favour, and the 4x4 Knack. Not listed:
+prime / odd / even / highest / lowest / "6 and below" (families, not named ranks), Monopoly
+(Spectrum), The Queen Sleight (its own rank). **Feelin Lucky** is the one special case: its 5
+rolled ranks become 3 chosen ones, fixed for good (no more sell-to-reroll, never offered again).
+In console mode it is a screen on the board like every event (r672): PLAY reads EDIT · 12 CREDITS.
