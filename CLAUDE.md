@@ -2704,3 +2704,24 @@ before) at a flat 10 Focus; Charged Card and Shuffle Up, which have only the pri
 lose: none else rises (Monochrome's own ladder lowers its cost; Capacitor's costs are not improvable).
 Measured by a real double-tap on the Focus bar at 1440x820 and 420x900: v4 Charged Card charged 7, v6
 Shuffle Up 3, v3 Free Hand 10 for 30s, v2 Double Down 10 for 6 hands. The sheet's notes say so.
+
+## r668 - the console Limit Break's text fits its boxes (owner)
+Owner's screenshot: "Discards/Round" ran past both sides of its offer and "Starting" sat on top of
+"Time". The skin's `font-size-adjust: .56` (css/skin-machine.css) draws this panel's VT323 about
+twice its set size, while line heights were fixed multiples of the SET size (1.05 at 15px), so a
+wrapped name's lines overlapped and a long word outgrew the 92px box. css/board-screen.css: offer
+text is smaller (label 15 -> 12px, gain 15 -> 13, sentence 13 -> 11, numbers 12 -> 11, icon 22 ->
+19) and every wrapping line is `line-height: normal` (the font's own height at its drawn size).
+Stage 2 is set tighter (receipt, headings, give-up rows, keys) so its three give-up rows sit above
+the keys on a landscape board instead of under them. Every size there is `calc(Npx * var(--lbz,
+1))`. **`lbConsoleFit()`** (js/limit-break.js) is the safeguard, run after every render (a
+microtask), every placement and every font load: while the panel scrolls, the offers' sentences
+clamp shorter (`--lb-clamp` 4, 3, 2) and then all its text steps down (`--lbz`, floor
+`LB_FIT_PANEL_MIN` 0.7); then any box whose ink reaches past its own content box or its parent's
+steps its own font down (floor `LB_FIT_BOX_MIN` 0.6). Words never break mid-word; one-line boxes
+that end in "..." on purpose are left alone. Measured in headless Chromium at 420x900, 375x667,
+820x1440, 900x420, 1100x620 and 1440x820, and at 1440x820 with VT323 blocked: every limit name in
+every slot, stage 1 and stage 2 through real taps, no text outside its box, no overlapping lines,
+no scroll, and the fit pass did not need to step in. Forced: a 33-letter name and a box cut to
+75% x 85% shrank the name to fit (8px) and the panel to 0.7.
+

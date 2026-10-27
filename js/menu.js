@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r667 · design draft: the changing Trick keeps the card-buffing Tricks in its draw (CHALLENGE_REWARDS.md section 7)";
+const BUILD = "2026-10-27 · r668 · the console Limit Break's text fits its boxes: smaller, spaced by the font's own line height, and a fit pass shrinks whatever still spills";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
