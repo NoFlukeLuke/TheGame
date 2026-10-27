@@ -181,6 +181,10 @@ const ICONS = [
   { glyph: '🌀', icon: 'delapouite/transform',   color: 'cyan'   },  // the Sleight that changes every round
   // r677: the Touch-Up knack (buffs cards on the grid when a level is cleared)
   { glyph: '🖌️', icon: 'delapouite/paint-roller', color: 'gold'   },
+  // r685: Trophy Case, Stacked, Very Rewarding
+  { glyph: '🏆', icon: 'lorc/trophy',            color: 'gold'   },
+  { glyph: '📚', icon: 'delapouite/stack',       color: 'violet' },
+  { glyph: '🎁', icon: 'delapouite/present',     color: 'pink'   },
 ];
 
 module.exports = { PALETTE, ICONS };

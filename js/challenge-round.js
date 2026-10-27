@@ -651,7 +651,7 @@ function crCollect(cd) {
   const cardEl = crCardEl(cd);
   // r677 'take': the plate leaves from the figure it pays.
   const src = (crFxOn('take') && cardEl && cardEl.querySelectorAll('.cr-pay b')[q.banked]) || cardEl;
-  const said = crrGrant(crPayOf(q), q.banked, { el: src, live: !roundEnded });
+  const said = crrPayCard(q, q.banked, { el: src, live: !roundEnded, cd });   // r685: the challenge knacks (js/challenge-knacks.js)
   if (q.src === 'seq' && crRound) {
     const left = CR_CARDS - crRound.solved;
     showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${said}`
@@ -705,7 +705,12 @@ function crDrain() {
       const [r, c, cd] = h;
       crFxLeave(cd).then(() => {
         const again = crFindById(id);
-        if (again) { gridData[again[0]][again[1]] = drawCard() || null; render(); }
+        if (!again) return;
+        // r685: Trophy Case's Sleight takes the cell the card leaves, turning over as it lands.
+        const into = cd.cr.becomes; cd.cr.becomes = null;
+        gridData[again[0]][again[1]] = into || drawCard() || null; render();
+        const el = into && document.querySelector(`#grid [data-card-id="${into._id}"]`);
+        if (el && typeof el.animate === 'function') el.animate([{ rotate: 'y 90deg', scale: 1.15 }, { rotate: 'y 0deg', scale: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.9,.3,1.2)' });
       });
       if (cd.cr.src === 'seq' && !cd.cr.sentNext) nextSeq = true;
     }
@@ -843,11 +848,20 @@ function crSpotSettle() {
   crTele.filter(t => t.src === 'spot').forEach(crTeleDrop);
   for (const [r, c, cd] of crCards()) {
     if (cd.cr.src !== 'spot') continue;
-    if (crCleared(cd.cr)) showMessage(`⚑ Challenge done · ${crrGrant(crPayOf(cd.cr), cd.cr.banked, { live: false })}`, 'var(--gold)');
+    if (crCleared(cd.cr)) showMessage(`⚑ Challenge done · ${crrPayCard(cd.cr, cd.cr.banked, { live: false })}`, 'var(--gold)');
+    crReleaseBecomes(cd);
     gridData[r][c] = drawCard() || null;
   }
   crQueue = crQueue.filter(id => crFindById(id));
   return Promise.resolve();
+}
+
+// r685: a card leaving at a round's end with Trophy Case's Sleight still waiting
+// for its cell sends the Sleight into the deck instead.
+function crReleaseBecomes(cd) {
+  if (!cd || !cd.cr || !cd.cr.becomes) return;
+  drawPile.push(cd.cr.becomes); cd.cr.becomes = null;
+  if (typeof updateDeckHud === 'function') updateDeckHud();
 }
 
 // ── The challenge round's clock and settlement ──────────────────────────────
@@ -902,7 +916,8 @@ function crSettleRound() {
     if (cd.cr.src !== 'seq') continue;
     // Cleared but never taken: paid as if taken. With no clock left, what needs
     // one waits for the next round (crPending).
-    if (crCleared(cd.cr)) showMessage(`⚑ Challenge done · ${crrGrant(crPayOf(cd.cr), cd.cr.banked, { live: false })}`, 'var(--gold)');
+    if (crCleared(cd.cr)) showMessage(`⚑ Challenge done · ${crrPayCard(cd.cr, cd.cr.banked, { live: false })}`, 'var(--gold)');
+    crReleaseBecomes(cd);
     gridData[r][c] = drawCard() || null;
   }
   crQueue = [];

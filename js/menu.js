@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r684 · BRIEF_REWARD_TILE.md: the REWARD tile as the priority account's payout (brief for the challenge-rewards session, not built)";
+const BUILD = "2026-10-27 · r685 · Trophy Case, Very Rewarding and Stacked knacks; Finishing Touch; Prime and Card buffs paid";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

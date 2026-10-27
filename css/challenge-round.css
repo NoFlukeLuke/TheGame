@@ -212,3 +212,6 @@ body.crfx-raise #grid .cr-card.cr-raised { border-color: #ff5c5c; animation: cr-
   0%, 100% { box-shadow: 0 0 8px rgba(255, 92, 92, 0.5), inset 0 0 10px rgba(255, 92, 92, 0.2); }
   50%      { box-shadow: 0 0 20px rgba(255, 92, 92, 0.95), inset 0 0 14px rgba(255, 92, 92, 0.4); }
 }
+/* r685: Stacked primes a Trick from a Sleight on the grid: the Sleight flashes violet. */
+#grid .sleight-card.stk-fire { animation: stkFire 0.9s ease-out; }
+@keyframes stkFire { 0%, 100% { filter: none; } 30% { filter: brightness(1.5) drop-shadow(0 0 8px #b48cff); } }

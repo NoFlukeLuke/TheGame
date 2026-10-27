@@ -31,7 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
-| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; built r671-r676 under working names |
+| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round, the challenge knacks; built r671-r685 |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -3111,4 +3111,43 @@ Measured on r679's game (native curves, handTime 6, 40 runs each, so about +-15 
 review), Flow 100% (each boss asks level 6 / 11 / 16 / 21's goal,
 r525, while the bot reaches level ~16 in the first five minutes: boss 1 at 2,750 against level goals
 of ~25,000). The bot faces no boss modifiers or reward-grid debuffs; take its win rates as a floor.
+
+## r685 - Trophy Case, Very Rewarding, Stacked; Finishing Touch; the spare rewards paid (owner)
+- **Names:** r677's Touch-Up is **Finishing Touch** (id `touch_up`).
+- **Spares paid** (CHALLENGE_REWARDS.md sections 4-5): R&D's easy cards pay **Prime** (was Rerolls),
+  IT's pay **Card buffs** (was Reward grid size); with no department (Flow, Classic) an easy card
+  pays Credits, Prime or Card buffs at random (`CR_FIXED_PAY.std` is a list, `crrRewardFor` draws one,
+  fixed on `q.pay` when the card lands). Rerolls and Reward grid size are spares now.
+- **Every completed card pays through `crrPayCard(q, t, ctx)`** (js/challenge-knacks.js): `crCollect`,
+  `crSpotSettle` and `crSettleRound`. The Schedule's leave-early pay still calls `crrGrant` directly,
+  so the knacks below never touch it. Penalties are untouched.
+- **Trophy Case** (rare knack `trophy_case`, working name): the payout is a random Sleight
+  (`trophyCaseGrant`: `pickEntityByRarity` over Sleights you do not own, common / rare, `epic` and
+  `legend` open those rarities). `starts` is the version it arrives at: its id's tier is raised to
+  `starts - 1` (and its improvement hook run) before `grantSleight`, so the charges match. Taken in
+  a live round, the card is pulled back out of the draw pile and parked on `q.becomes`; `crDrain`
+  puts it in the cell the challenge card leaves and turns it in (`rotate: y`); a card leaving at a
+  round's end hands it to the draw pile (`crReleaseBecomes`). Paid off the clock, it goes straight
+  into the deck. Ladder: v2 epic, v3 arrives at v2, v4 at v3, v5 legendary, v6 at v5. Banned where
+  no challenge cards are dealt (`crModeHasCards`, like the Challenge Dial).
+- **Very Rewarding** (rare knack `very_rewarding`): the card's reward is granted `times` times (2,
+  then 3); the text reads "+8 credits ×3" when every grant says the same, else each is listed; a "×N"
+  plate rises off the card. From v3 one bonus reward (`veryRewardingBonus`): a random reward from
+  `CRR_STD` (easy) or `CRR_HARD` (`hard`) that can land, at stage `stage + 1`: v3 easy 1, v4 easy 2,
+  v5 hard 1, v6 hard 2. Same ban as Trophy Case.
+- **Stacked** (rare knack `stacked`, js/stacked.js): `stackedTick(elapsed)` from the round tick (the
+  marks Understudy counts by; `stackedBlock` per level). Every `seconds` of round time each Sleight
+  on the grid rolls `chance` to `primeTrick(trickTray[column], 1, { src: 'stacked' })`; the Sleight
+  flashes violet (`.stk-fire`), a "+1 PRIME" plate flies to the tray, one notice per mark names the
+  Tricks ("Cascade ×2, Power Line primed"). Ladder 25% / 30s, 35 / 30, 35 / 20, 45 / 20, 45 / 10,
+  55 / 5 (owner: alternate +10% and -10s, v6 both; the time stops at 5s).
+- Icons: lorc/trophy (🏆), delapouite/stack (📚), delapouite/present (🎁); sheet 153 cells, the first
+  150 unchanged pixel for pixel.
+Measured in headless Chromium at 1440x820 and 420x900: every ladder's six descriptions read as
+written above; 600 easy cards in Classic drew credits 199 / prime 186 / card buffs 215, hard ones an
+improvement; a real spot card (landed, cleared, taken) paid +16 credits under Very Rewarding v1 and
+"+8 credits ×3 · bonus: the next boss asks 10% less" at v6; under Trophy Case v3 the card became
+Amplifier v2.0 (5 charges) in its own cell; Stacked at v6 (chance forced to 1 for the test) primed
+the column 1 and column 2 Tricks at every 5s mark over 12s of live clock, two Sleights in one column
+priming twice. No page errors.
 

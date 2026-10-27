@@ -73,8 +73,12 @@ const KNACK_POOL = [
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.', tags:['other','reward'] },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.', tags:['credits','stock','other'] },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.', tags:['other','sleights','chance','charges','start'] },
-  // r677 (owner; working name): buffs cards on the grid when a level is cleared (js/touch-up.js)
-  { id:'touch_up',        emoji:'🖌️',  name:'Touch-Up',         rarity:'rare',   desc:'If there are no buffed cards on the grid when you complete a level, 3 random cards on the grid take a buff: +pips or +mult.', tags:['deck','card','buffed','level'] },
+  // r677 (owner; named r685): buffs cards on the grid when a level is cleared (js/touch-up.js)
+  { id:'touch_up',        emoji:'🖌️',  name:'Finishing Touch',  rarity:'rare',   desc:'If there are no buffed cards on the grid when you complete a level, 3 random cards on the grid take a buff: +pips or +mult.', tags:['deck','card','buffed','level'] },
+  // r685 (owner): Trophy Case is a working name. js/challenge-knacks.js, js/stacked.js
+  { id:'trophy_case',     emoji:'🏆',  name:'Trophy Case',      rarity:'rare',   desc:'Completed challenge cards turn into a random Sleight (common or rare) instead of paying their reward.', tags:['deck','other','challenge','sleights'] },
+  { id:'stacked',         emoji:'📚',  name:'Stacked',          rarity:'rare',   desc:'Every 30s, each Sleight on the grid has a 25% chance to prime the Trick in the tray slot of its column.', tags:['retrigger','other','sleights','position','clock','chance'] },
+  { id:'very_rewarding',  emoji:'🎁',  name:'Very Rewarding',   rarity:'rare',   desc:'Challenge cards pay their reward twice.', tags:['other','challenge'] },
   { id:'green_station',   emoji:'🔌',  name:'Green Station',    rarity:'rare',   desc:'Sleights have a 30% chance to get a charge back at the end of each round. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.', tags:['other','sleights','chance','charges','level'] },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.', tags:['other','sleights','discard','charges'] },
   // ── Position knacks (r102) - control which line a position Trick marks ──

@@ -29,9 +29,9 @@ const DEPARTMENTS = [
   { id: 'operations', name: 'Operations', tile: 'priority',   fav: 2, focus: ['stock', 'swap', 'discard'], focusWord: 'swaps and discards',
     pay: { std: 'stock', hard: 'sleights' },   events: ['workshop', 'line_shift', 'spring'] },
   { id: 'rnd',        name: 'R&D',        tile: 'mystery',    fav: 1, focus: ['scaling'], focusWord: 'growth',
-    pay: { std: 'rerolls', hard: 'improve' },  events: ['forge', 'rewire', 'state_change', 'gamble', 'wild_cards'] },
+    pay: { std: 'prime', hard: 'improve' },  events: ['forge', 'rewire', 'state_change', 'gamble', 'wild_cards'] },
   { id: 'it',         name: 'IT',         tile: 'reward',     fav: 3, focus: ['position', 'line', 'board'], focusWord: 'the board and its lines',
-    pay: { std: 'grid', hard: 'tricks' },      events: ['grid_spinner', 'the_payline', 'the_floor', 'line_shift'] },
+    pay: { std: 'cardbuff', hard: 'tricks' },      events: ['grid_spinner', 'the_payline', 'the_floor', 'line_shift'] },
 ];
 // Tuned live from dev -> Probabilities (js/prob-tables.js).
 const DEPT_CFG = { tileMult: 1.5, favMult: 2, eventPct: 60, leanPct: 33 };

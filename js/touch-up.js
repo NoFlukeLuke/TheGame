@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// TOUCH-UP (r677, owner; working name). A knack.
+// FINISHING TOUCH (r677, owner; id `touch_up`, named r685). A knack.
 // ══════════════════════════════════════════════════════════════════════════════
 // When a level is cleared (touchUpOnClear, from captureGoalHand and the challenge
 // round's two goal exits), if the grid holds no more than BAL.touch_up.max buffed
@@ -73,5 +73,5 @@ function touchUpOnClear(leaving) {
   const tray = document.getElementById('knack-list');
   if (tray && typeof trayFxTrigger === 'function') trayFxTrigger(tray);
   const k = acquiredKnacks.find(x => x && x.id === 'touch_up');
-  showMessage(`${k ? k.name : 'Touch-Up'}: ${said.join(', ')}`, '#e8c04a');
+  showMessage(`${k ? k.name : 'Finishing Touch'}: ${said.join(', ')}`, '#e8c04a');
 }

@@ -18,7 +18,9 @@
 // limits, Tricks, Knacks, Sleights) opens after the round (crScreens), or in
 // Flow as a step of the next reward chain (crFlow.steps).
 
-const CR_FIXED_PAY = { std: 'credits', hard: 'improve' };
+// r685 (owner): with no department, an easy card pays one of these at random
+// (fixed when it lands); a hard card an improvement.
+const CR_FIXED_PAY = { std: ['credits', 'prime', 'cardbuff'], hard: 'improve' };
 
 var crPending = null;        // { lv, secs, swaps, discards, focus } for the next round's start - SAVE_VARS
 var crInterestBoost = null;  // { next: payouts left, quarter } doubled interest - SAVE_VARS
@@ -33,7 +35,9 @@ function crHard(q) { return !!(q && q.ladder && q.ladder[0] && q.ladder[0].d >= 
 function crrRewardFor(q) {
   const cls = crHard(q) ? 'hard' : 'std';
   const d = (typeof deptChallengePay === 'function') ? deptChallengePay(cls) : null;
-  return (d && CRR[d]) ? d : CR_FIXED_PAY[cls];
+  if (d && CRR[d]) return d;
+  const f = CR_FIXED_PAY[cls];
+  return Array.isArray(f) ? f[Math.floor(Math.random() * f.length)] : f;
 }
 function crPayOf(q) { if (!q.pay || !CRR[q.pay]) q.pay = crrRewardFor(q); return q.pay; }
 function crrQuarter() {
