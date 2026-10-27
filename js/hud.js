@@ -77,7 +77,9 @@ function updateScoreUI() {
   if (goalLabel)  goalLabel.textContent  = between ? ('NEXT ' + goalWord) : goalWord;
   if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
 
-  const shownScore = between ? lastRoundScore : score;
+  // r670: while hands are still dancing the box shows what has been danced (js/score-dance.js).
+  const live = (typeof dncScoreShown === 'function') ? dncScoreShown() : score;
+  const shownScore = between ? lastRoundScore : live;
   // animateDigitEl rolls the digits; between rounds the number is a finished
   // fact rather than a climbing tally, so it is written straight in.
   if (!between) animateDigitEl(document.getElementById('score-total-num'), shownScore);
@@ -85,7 +87,8 @@ function updateScoreUI() {
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
     scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
-  const pct = (typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(score / roundGoal, 1);
+  const _rq = (typeof roundQuota !== 'undefined') ? roundQuota : null;
+  const pct = (_rq && typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(live / Math.max(1, roundGoal), 1);
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
   // r399: a shaped round names its own progress in the goal box (js/level-types.js).

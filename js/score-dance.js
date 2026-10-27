@@ -247,6 +247,7 @@ function handleDanceAbort(isGoalHand) {
   // Hand the portrait strip back to whichever half the player had chosen.
   if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if (stopwatchActive) endStopwatch(); // release the Stopwatch freeze if the dance was cut short
+  dncShowScore = null;   // r670: a cut dance lands the whole total
   updateScoreUI();
   const pipsValEl = document.getElementById('pips-val');
   const multValEl = document.getElementById('mult-val');
@@ -774,6 +775,16 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay){
 // made and the Focus it was scored with (the globals have moved on).
 const DNC_QUEUE_MAX = 4;   // waiting, behind the one scoring
 let dncQueue = [];
+// r670 (owner): THE SCORE BOX WAITS FOR THE TALLY. A hand is banked into `score`
+// the moment it is played, but the box shows it only when its dance climbs to
+// it: from a dance's start to its landing the dance owns the number
+// (dncShowScore follows its climb), and a hand still waiting in the queue is
+// not counted at all. updateScoreUI reads dncScoreShown(), so nothing that
+// repaints the HUD mid-tally (the hand in front landing, Flow's pick opening
+// under the goal hand) shows a total early. null = show `score`.
+let dncShowScore = null;
+function dncScoreShown(){ return dncShowScore == null ? score : dncShowScore; }
+function dncScoreHoldOff(){ dncShowScore = null; }
 function dncQueuePace(){ return Math.pow(2, dncQueue.length); }
 function dncQueueFull(){ return !!danceAbortController && dncQueue.length >= DNC_QUEUE_MAX; }
 function dncQueueHost(){
@@ -820,7 +831,42 @@ function dncQueueStrip(entry){
 }
 // A dance cut from outside a play (round end, boss, new run) drops the queue:
 // every queued hand's score is already banked, so the total just lands.
+// r670 (owner): THE WINNING HAND DOES NOT WAIT ITS TURN. Played while hands are
+// tallying, its cards stay on the board and shake in gold (you have won) while
+// every hand in front of it plays out at the skip speed (dncRequestFF, and again
+// as each queued hand starts); then its finale goes on from the blast, the
+// winners' shake standing in for the surrounding cards' (at least
+// GOAL_JUMP_MIN_MS of it, so a queue that empties at once still reads).
+const GOAL_JUMP_MIN_MS = 1000;
+const GOAL_SHAKE_KF = [
+  { transform:'translate(0,0) rotate(0)' },
+  { transform:'translate(1.3px,-1.1px) rotate(0.8deg)' },
+  { transform:'translate(-1.1px,1.3px) rotate(-0.9deg)' },
+  { transform:'translate(1.1px,1px) rotate(0.6deg)' },
+  { transform:'translate(-1.3px,-0.9px) rotate(-0.7deg)' },
+  { transform:'translate(0,0) rotate(0)' },
+];
+const GOAL_GLOW_KF = [{ boxShadow:'0 0 0 0 rgba(245,192,66,0)' }, { boxShadow:'0 0 16px 5px rgba(245,192,66,0.6)' }];
+let dncGoalJumpState = null;   // { t0, els, shakes, glows }
+function dncGoalWaiting(){ return dncQueue.some(e => e.goal && !e.dead); }
+function dncGoalJump(entry){
+  const ids = new Set(entry.result._q.ids.filter(v => v != null));
+  const els = [...(document.getElementById('grid')?.querySelectorAll('[data-card-id]') || [])].filter(el => ids.has(+el.getAttribute('data-card-id')));
+  const glows = els.map(el => { el.style.zIndex = '20'; return el.animate(GOAL_GLOW_KF, { duration: 300, fill: 'forwards' }); });
+  const shakes = els.map(el => el.animate(GOAL_SHAKE_KF, { duration: 150, iterations: Infinity, easing: 'linear' }));
+  dncGoalJumpState = { t0: performance.now(), els, shakes, glows };
+  dbgEvent('info', 'winning hand played over the queue: ' + (dncQueue.length - 1) + ' in front, skipping them');
+  dncRequestFF();   // the hand on screen plays out at the skip speed
+}
+// Stops the shake; `keepGlow` leaves the winners lit for the finale's fly.
+function dncGoalJumpStop(keepGlow){
+  const g = dncGoalJumpState; dncGoalJumpState = null; if(!g) return null;
+  g.shakes.forEach(a => { try{ a.cancel(); }catch(e){} });
+  if(!keepGlow){ g.glows.forEach(a => { try{ a.cancel(); }catch(e){} }); g.els.forEach(el => { el.style.zIndex = ''; }); }
+  return g;
+}
 function dncQueueClear(){
+  dncGoalJumpStop();
   if(!dncQueue.length) return;
   dbgEvent('info', 'scoring queue dropped (' + dncQueue.length + ')');
   dncQueue.forEach(e => { e.dead = true; const q = e.result._q; if(q && q.strip){ q.strip.remove(); q.strip = null; } });
@@ -844,7 +890,7 @@ function dncPlayOrQueue(result, toRemove, isGoalHand){
   const entry = { result, toRemove: toRemove.map(rc => [...rc]), goal: !!isGoalHand, dead: false };
   dncQueue.push(entry);
   dbgEvent('info', 'hand queued (' + dncQueue.length + ' waiting, tally x' + dncQueuePace() + ')');
-  if(isGoalHand) return;   // its cards stay on the board for the finale
+  if(isGoalHand){ dncGoalJump(entry); return; }   // its cards stay on the board for the finale
   result._q.strip = dncQueueStrip(entry);
   dncQueueLayout();
   const gridEl = document.getElementById('grid');
@@ -957,6 +1003,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
   { const _fEl = document.getElementById('focus-val'); if(_fEl) _fEl.textContent = _fmtFocus(preHandFocus); }
   const scoreAfter = _q ? _q.scoreAfter : score, scoreBefore = scoreAfter - finalScore;
+  dncShowScore = scoreBefore;   // r670: the box shows this hand only as the climb reaches it
   const levelScale = levelPipScale();
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
   const basePips = Math.round(handBasePips(hand) * levelScale), baseMult = handBaseMult(hand, handCells.length);
@@ -1086,6 +1133,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Settings -> Skip (r380). The SAME dance at the skip speed - dncRequestFF is
   // the goal hand's own SKIP, which lands the same numbers in the same order.
   if (typeof skipOn === 'function' && (skipOn('scoring') || (isGoalHand && skipOn('finale')))) dncRequestFF();
+  if (!isGoalHand && dncGoalWaiting()) dncRequestFF();   // r670: a winning hand is waiting behind this one
 
   if(isGoalHand){
     // ── WIN FINALE (runs BEFORE the tally) ──
@@ -1100,22 +1148,23 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // Keep the preview EMPTY during the jitter/explosion - the dnc-cards only
     // appear when the winners physically fly in (step 3 reveals each slot).
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
+    // r670: played over the scoring queue, the winners have been shaking since the play (dncGoalJump).
+    const jumped = dncGoalJumpState;
     // Winners: a gentle gold glow marks them while the rest jitter.
-    winEls.forEach(el => { el.style.zIndex='20'; el.animate(
-      [{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},{boxShadow:'0 0 16px 5px rgba(245,192,66,0.6)'}],
-      {duration:400, fill:'forwards'}); });
-    // 1) Surrounding cards jitter for ~2s.
-    const jitters = loseEls.map(el => el.animate([
-      {transform:'translate(0,0) rotate(0)'},
-      {transform:'translate(1.3px,-1.1px) rotate(0.8deg)'},
-      {transform:'translate(-1.1px,1.3px) rotate(-0.9deg)'},
-      {transform:'translate(1.1px,1px) rotate(0.6deg)'},
-      {transform:'translate(-1.3px,-0.9px) rotate(-0.7deg)'},
-      {transform:'translate(0,0) rotate(0)'},
-    ], {duration:150, iterations:14, easing:'linear'})); // ~2.1s
-    await Promise.race([wait(2000), dncFFSignal()]);
-    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
+    winEls.forEach(el => { if(jumped && jumped.els.includes(el)) return; el.style.zIndex='20'; el.animate(GOAL_GLOW_KF, {duration:400, fill:'forwards'}); });
+    if(jumped){
+      // They keep shaking to GOAL_JUMP_MIN_MS, then the finale goes on from the blast.
+      const left = GOAL_JUMP_MIN_MS - (performance.now() - jumped.t0);
+      if(left > 0) await Promise.race([wait(left), dncFFSignal()]);
+      dncGoalJumpStop(true);
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    } else {
+      // 1) Surrounding cards jitter for ~2s.
+      const jitters = loseEls.map(el => el.animate(GOAL_SHAKE_KF, {duration:150, iterations:14, easing:'linear'})); // ~2.1s
+      await Promise.race([wait(2000), dncFFSignal()]);
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
+    }
     // 2) Surrounding cards BLAST OUT AND COME BACK (r280 - see WIN_BLAST_CFG).
     //    Out along the ray from the board's centre, a beat at the apex, then
     //    home to the cell they left. Nearest the centre goes first and lands
@@ -1242,7 +1291,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // ── r661: the hand waited in the queue. Its cards are in the dimmed strip behind the
     //    preview; they come forward into their slots (the strip is gone from then on). ──
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
-    if(_q.ready) await Promise.race([_q.ready, wait(2500)]);
+    if(_q.ready) await Promise.race([_q.ready, wait(2500), dncFFSignal()]);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     const MOVE = Math.max(80, 260/dncPace());
     const stripSlots = [..._q.strip.querySelectorAll('.dnq-slot')];
@@ -1270,7 +1319,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       setTimeout(()=>{ if(!aborted() && typeof sfxCardPop==='function') sfxCardPop(cardColorSuit(card)); }, i*FLY_STAGGER);
     });
     dncLeaveBoard(myGen); dncHiddenGridEls=[];
-    await wait(previewCells.length*FLY_STAGGER + FLY_DUR);
+    // A skip lands the copies at once (their registered cut), so the wait goes with it.
+    await Promise.race([wait(previewCells.length*FLY_STAGGER + FLY_DUR), dncFFSignal()]);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(typeof sfxFlipShuffle==='function') sfxFlipShuffle();
   }
@@ -1394,7 +1444,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       else if(ev.op==='mult+'){ rm += ev.value; showMult(); }
       else { rm = _rnd(rm*ev.value, ev.rnd); showMult(); }
       // r661: at x4 and up (two or more hands waiting) a beat plays ONE payout sound, not one per plate.
-      if(typeof sfxParticleStep==='function' && !(dncQueuePace() >= 4 && subRef._sfx)){ subRef._sfx = true; sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult'); }
+      // r670: likewise a hand played out at the skip speed in front of a winning hand.
+      if(typeof sfxParticleStep==='function' && !((dncQueuePace() >= 4 || dncFF) && subRef._sfx)){ subRef._sfx = true; sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult'); }
     };
     const p = dncFly(src, box, evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
     return defer ? land : (awaitIt ? p : null);
@@ -1402,8 +1453,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
 
   // `!skipBeats` short-circuits the walk rather than wrapping it in a block - same
   // effect, and it cannot desync the aborts inside it.
+  // r670: a hand in front of a waiting winner (dncGoalJump) skips the rest of its beats:
+  // the chips land on their totals below, then it fuses, throws and climbs at the skip speed.
+  const flushed = () => !isGoalHand && !!dncGoalJumpState;
+  let beatsCut = false;
   for(let si=0; !skipBeats && si<steps.length; si++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    if(flushed()){ beatsCut = true; break; }
     const step = steps[si];
 
     if(step.kind === 'hand'){
@@ -1428,6 +1484,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     }
     for(let rep=0; rep<step.reps; rep++){
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      if(flushed()){ beatsCut = true; break; }
       dncActivate(cardEl);
       const subRef = { v:0 };
       // The card's own pips lead, then everything it triggered, in order. The
@@ -1497,7 +1554,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // this should be a no-op. It is kept as a safety net - and as an alarm: if the
   // timeline ever stops describing the real arithmetic, a beat is silently lying
   // to the player, and the only visible symptom is a snap at this line.
-  if(typeof devMode !== 'undefined' && devMode && !skipBeats){
+  if(typeof devMode !== 'undefined' && devMode && !skipBeats && !beatsCut){
     const _dp = Math.abs(rp - _finalPips), _dm = Math.abs(rm - _finalMult);
     if(_dp > 0.5 || _dm > 0.05) console.warn('[DANCE] timeline drift - pips', rp, 'vs', _finalPips, '| mult', rm, 'vs', _finalMult,
       '| seeded', _ledger.basePips, 'x', _ledger.baseMult, '|', timeline.map(e=>`${e.card>=0?'c'+e.card:'H'} ${e.id} ${e.op} ${e.value}`).join(' , '));
@@ -1531,6 +1588,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // and a negative tt made the cubic dip the number below the old score.
       const tt=Math.max(0,Math.min((now-st)/climb,1)), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
+      dncShowScore = cur;
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
       if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)
       if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
@@ -1559,6 +1617,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if (typeof portraitDanceEnd === 'function' && !dncQueue.length) portraitDanceEnd();   // r661: a queued hand keeps the strip
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
   if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
+  dncShowScore = dncQueue.length ? scoreAfter : null;   // r670: a hand still queued is not shown yet
   updateScoreUI();
   // The tally has landed on the real score, so the deferred takeover HUD (the
   // mid-dance pick's location swap) may come up now - and it MUST be released

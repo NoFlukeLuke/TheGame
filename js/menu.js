@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r669 · Schedule challenge cards pay credits only: no rewind, no mini grids, no prize grid after an audit";
+const BUILD = "2026-10-27 · r670 · the keys' words are lit dots that fall out and fall in; the score waits for the tally; a winning hand jumps the scoring queue";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

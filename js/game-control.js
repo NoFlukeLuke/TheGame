@@ -485,6 +485,7 @@ function startGame() {
   pendingLevelUps = 0;
   suppressScoreDisplay = false;
   heldBackScore = 0;
+  if (typeof dncScoreHoldOff === 'function') dncScoreHoldOff();
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
   pauseInstanceGame = 0; rewindInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here

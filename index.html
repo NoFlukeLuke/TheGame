@@ -671,10 +671,10 @@
       <select id="dev-sb-on" onchange="sbChoose(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">numbers</option><option value="rim">bulbs, tray bulbs on the rim</option><option value="below">bulbs, tray bulbs beneath the tray</option></select>
     </label>
 
-    <div class="dev-subtitle">Key look (preview: PLAY, DISCARD and SWAP as screens, stock as pixel squares)</div>
+    <div class="dev-subtitle">Key look (PLAY, DISCARD and SWAP as tube screens, words in dots, stock as pixel squares)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The keys look like
-      <select id="dev-key-look" onchange="setKeyLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">keycaps (today)</option><option value="a">A: tube screens</option><option value="b">B: LCD panels</option><option value="c">C: pixel art</option></select>
+      <select id="dev-key-look" onchange="setKeyLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="a">tube screens, dot words</option><option value="off">keycaps (before r670)</option></select>
     </label>
 
     <div class="dev-subtitle">Screen change (Flow rewards)</div>
@@ -1754,6 +1754,7 @@
 <script src="js/floppy-art.js"></script>
 <script src="js/stock-bulbs.js"></script>
 <script src="js/key-looks.js"></script>
+<script src="js/key-dots.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

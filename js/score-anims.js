@@ -1,5 +1,6 @@
 function cancelDance() {
   _odoGen++; // invalidates all in-flight odometer timeouts
+  if (typeof dncScoreHoldOff === 'function') dncScoreHoldOff();   // r670: a cut lands the whole total
   if (danceAbortController) {
     console.log('[DANCE] cancelDance - aborting in-progress dance');
     danceAbortController.abort();
