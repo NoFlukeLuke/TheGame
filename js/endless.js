@@ -5,7 +5,7 @@
 // FASTER from the level the run continued at: each level past it grows at
 // `1 + (scale - 1) x endlessAccel` instead of `scale` (Flow's own rule since
 // r155, goalTune('endlessAccel') 1.65, so 65% faster), applied to every mode's
-// curve through endlessGoalMult. QRL stays at Q4's limit; the next boss draws
+// curve through endlessGoalMult. QRL is off for the rest of the run (qrlLimit); the next boss draws
 // as usual. A run in endless cannot be won again: it ends on a loss or a clock
 // out, and the finale and the run history say how far it got.
 //
@@ -42,7 +42,7 @@ function endlessContinue() {
   const next = _endlessNext; _endlessNext = null;
   if (typeof drawActBoss === 'function') drawActBoss();
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
-  if (typeof showMessage === 'function') showMessage('ENDLESS. Quotas climb faster from here.', 'var(--c-coral, #ff6a3c)');
+  if (typeof showMessage === 'function') showMessage('ENDLESS. Quotas climb faster. No quarter resource limit.', 'var(--c-coral, #ff6a3c)');
   showQuarterCard(actNumber - 1, actNumber, next);
   return true;
 }

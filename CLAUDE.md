@@ -3056,8 +3056,8 @@ off; plain play (no `?crfx`) unchanged. No page errors at 1440x820 or 420x900.
   CSS are gone. The next boss exists in Endless (`peekNextActBoss`, Advance Notice). A run in
   Endless cannot be won again: it ends on a loss or clock out, the finale reads ENDLESS OVER ·
   REACHED Q6, and the run history's entry is brought up to date (`again` in
-  `recordRunToHistory`: outcome stays win, `endless: true`, `endlessOutcome`, `act`). QRL stays at
-  Q4's limit. `endlessReset` runs from startGame.
+  `recordRunToHistory`: outcome stays win, `endless: true`, `endlessOutcome`, `act`). **QRL is off
+  in Endless** (r682: `qrlLimit()` reads Infinity once `endlessRun` / `survivalEndless` is set). `endlessReset` runs from startGame.
 - Measured in headless Chromium at 1440x820 and 420x900: the finale lands on the board's box; a
   real press of SWAP continued Classic into Q5 (`endlessRun` true, the ENDLESS quarter screen with
   five boxes, the continuation ran) and the Schedule into Q5's schedule (HR, CLOCK IN back on

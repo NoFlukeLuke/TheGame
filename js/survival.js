@@ -915,7 +915,7 @@ function survivalPostBossReward() {
 function survivalContinueEndless() {
   survivalEndless = true;
   survivalEndlessFromLevel = level;   // levels beyond this one use the faster curve
-  showMessage('ENDLESS. Quotas climb faster from here.', 'var(--c-coral, #ff6a3c)');
+  showMessage('ENDLESS. Quotas climb faster. No quarter resource limit.', 'var(--c-coral, #ff6a3c)');
   rewardGridContext = 'survival'; openPrizeGrid();   // the payout the last boss earned
 }
 

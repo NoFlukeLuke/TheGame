@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r681 · Challenge card face: stage on top, clock in the background; tap press kept; stock squares are pixels";
+const BUILD = "2026-10-27 · r682 · no quarter resource limit in Endless";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
