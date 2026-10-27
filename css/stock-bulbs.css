@@ -35,9 +35,13 @@ html.stock-bulbs #trick-tray-count { visibility: hidden; }
 html.stock-bulbs #stage :is(#swap-count, #disc-count) { display: none !important; }
 html.stock-bulbs #stage.landscape #sel-count { visibility: hidden; }
 html.stock-bulbs #stage:not(.landscape) #sel-count-val { visibility: hidden; }
-/* SWAP reads top to bottom like the other keys, with bulbs on and in Console mode */
+/* SWAP reads top to bottom like the other keys, with bulbs on and in Console mode.
+   r672: one letter a line (a 1ch box the word breaks in), not upright vertical text,
+   whose glyph boxes ran 105 design px for four letters in an 83px key at 1440x820;
+   the word is 71 now and the cost sits inside the key. js/key-fit.js backs this up. */
 html:is(.stock-bulbs, .skin-machine) #stage #swap-indicator:not(.reward-skip) .swap-word {
-  writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -1px; display: inline-block; line-height: 1; }
+  display: block; width: 1.1ch; margin: 0 auto; word-break: break-all; white-space: normal;
+  letter-spacing: 0; line-height: 1; text-align: center; }
 html.skin-machine #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 14px !important; }
 /* with the number still showing, word and number share the key's height */
 html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #swap-indicator:not(.reward-skip) .swap-word { font-size: 12px !important; letter-spacing: -2px; }

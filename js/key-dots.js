@@ -17,7 +17,7 @@ const KD_OUT_SPREAD = 90;    // ms over which the old dots let go
 const KD_IN_SPREAD = 380;    // ms over which the new dots set off
 const KD_G = 2600;           // the fall, design px per s^2
 const KD_KEYS = ['swap-indicator', 'btn-discard', 'btn-play', 'btn-leave'];
-const KD_SKIP = '.kd-c, .mapk-ico, .mapk-sw';   // drawn by the browser, never as dots
+const KD_SKIP = '.kd-c, .mapk-ico, .mapk-sw, .kb-ico';   // drawn by the browser, never as dots (r672: the borrowed keys' icons too)
 
 // x = a lit dot. Rows top to bottom, space-separated.
 const KD_F7_SRC = {
@@ -95,7 +95,7 @@ let _kdRaf = 0, _kdQueued = false, _kdS = 1;   // _kdS: design px -> device px, 
 function kdRead(el, z) {
   const kr = el.getBoundingClientRect();
   const lines = [], range = document.createRange();
-  const blocks = [...el.querySelectorAll('.mapk-ico')].map(b => b.getBoundingClientRect()).filter(r => r.width && r.height)
+  const blocks = [...el.querySelectorAll('.mapk-ico, .kb-ico')].map(b => b.getBoundingClientRect()).filter(r => r.width && r.height)
     .map(r => ({ top: (r.top - kr.top) / z, bot: (r.bottom - kr.top) / z }));
   const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
   let line = null;
@@ -328,11 +328,19 @@ function kdApply() {
   const on = kdOn();
   document.documentElement.classList.toggle('kd-on', on);
   _kd.forEach(st => { if (!on && st.c.parentElement) st.c.remove(); });
+  if (!on) kdSweep();
   if (on) kdScan(true);
+}
+// r672: with the dots off, a copy of a canvas that a screen's stored key markup put
+// back (the pick, the shop, the reward grid save and restore innerHTML) is a static
+// child the size of the key, and it pushed the key's words out of the box. kdSync
+// removes copies while the dots are on; this is the sweep for when they are off.
+function kdSweep() {
+  document.querySelectorAll('canvas.kd-c').forEach(c => { const st = _kd.get(c.parentElement); if (!st || st.c !== c || !kdOn()) c.remove(); });
 }
 // Keys come and go (the shop's LEAVE): any key without a canvas gets one.
 function kdScan(instant) {
-  if (!kdOn()) return;
+  if (!kdOn()) { kdSweep(); return; }
   KD_KEYS.forEach(id => { const el = document.getElementById(id); if (el && (!_kd.has(el) || _kd.get(el).c.parentElement !== el)) kdSync(el, true);
     else if (el && instant) kdQueue(el, true); });
   _kd.forEach((st, el) => { if (!el.isConnected) { st.mo.disconnect(); _kd.delete(el); } });

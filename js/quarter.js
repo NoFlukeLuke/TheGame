@@ -146,7 +146,41 @@ function quarterCardEl() {
   return el;
 }
 
+// r672 (owner): the card is a SCREEN ON THE BOARD, typed like the event screens
+// (js/board-screen.js): "> QUARTER 1 CLOSED", the four quarters as [x] boxes,
+// "> Q2 OPENS", a CONTINUE key. A tap continues (the first tap only finishes the
+// typing), or it continues on its own after QUARTER_SCREEN_MS. The body-level card
+// below is the fallback when the board screen cannot be laid (no stage).
+const QUARTER_SCREEN_MS = 3200;
+let _qScreen = null;
+function showQuarterScreen(closed, next, done) {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(_qCardTimer);
+    const ctl = _qScreen; _qScreen = null;
+    if (ctl) ctl.close();
+    setTimeout(() => { if (typeof done === 'function') done(); }, 180);
+  };
+  const boxes = Array.from({ length: QUARTERS_PER_RUN }, (_, i) => i + 1)
+    .map(i => `<span class="qs-box${i <= closed ? ' on' : ''}">[${i <= closed ? 'x' : '&nbsp;'}] Q${i}</span>`).join('');
+  const html = `<div class="qs-wrap"><div class="qs-big">Q${closed}</div><div class="qs-kicker">QUARTER CLOSED</div>`
+    + `<div class="qs-boxes">${boxes}</div><div class="qs-next">&gt; Q${next} OPENS<i class="bs-cur"></i></div></div>`;
+  const ctl = boardScreenOpen({ head: `> QUARTER ${closed} CLOSED`, html, cls: 'qs-screen',
+    keys: [{ label: 'CONTINUE', primary: true, fn: finish }], onClose: finish });
+  if (!ctl) return false;
+  _qScreen = ctl;
+  // The screen's own pointerdown finishes the typing; a tap once it is typed continues.
+  ctl.el.addEventListener('pointerdown', () => { if (!ctl.finishTyping) finish(); }, true);
+  if (typeof sfxLevelUp === 'function') sfxLevelUp();
+  _qCardTimer = setTimeout(finish, QUARTER_SCREEN_MS);
+  return true;
+}
+
 function showQuarterCard(closed, next, done) {
+  if (typeof boardScreenOpen === 'function' && typeof bsStage === 'function' && bsStage()
+      && showQuarterScreen(closed, next, done)) return;
   const el = quarterCardEl();
   el.querySelector('#qc-closed').textContent = 'Q' + closed;
   el.querySelector('#qc-next').textContent   = 'Q' + next + ' OPENS';
@@ -177,6 +211,7 @@ function showQuarterCard(closed, next, done) {
 
 function hideQuarterCard() {
   clearTimeout(_qCardTimer);
+  if (_qScreen) { const ctl = _qScreen; _qScreen = null; ctl.close(true); }
   document.getElementById('quarter-card')?.classList.remove('show');
 }
 

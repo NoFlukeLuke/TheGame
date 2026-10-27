@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r671 · challenge cards: two stages, one reward from 16 (department or fixed), a failed card charges stage 1 in reverse, animated and printed";
+const BUILD = "2026-10-27 · r672 · events, the quarter card and the boss briefing are command-line screens on the board; the shop has three keys (DISCARD reads LEAVE); every key word fits (js/key-fit.js)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
