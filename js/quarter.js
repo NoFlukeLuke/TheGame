@@ -139,6 +139,7 @@ function quarterCardEl() {
         <div class="qc-big" id="qc-closed">Q1</div>
         <div class="qc-pips" id="qc-pips"></div>
         <div class="qc-next" id="qc-next">Q2 OPENS</div>
+        <div class="qc-dept" id="qc-dept"></div>
         <div class="qc-skip">tap to continue</div>
       </div>`;
     document.body.appendChild(el);
@@ -150,6 +151,9 @@ function showQuarterCard(closed, next, done) {
   const el = quarterCardEl();
   el.querySelector('#qc-closed').textContent = 'Q' + closed;
   el.querySelector('#qc-next').textContent   = 'Q' + next + ' OPENS';
+  // r673: the Schedule names the department the opening quarter belongs to.
+  const _d = (typeof mapActive === 'function' && mapActive() && typeof deptForQuarter === 'function') ? deptForQuarter(next) : null;
+  el.querySelector('#qc-dept').textContent = _d ? _d.name.toUpperCase() : '';
   // One pip per quarter, filled up to and including the one that just closed.
   el.querySelector('#qc-pips').innerHTML =
     Array.from({ length: QUARTERS_PER_RUN }, (_, i) => i + 1)

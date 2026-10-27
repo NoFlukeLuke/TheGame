@@ -3,8 +3,10 @@
 Nothing here is built. Pairings and tiles are decided (r658); the event pools and the small
 extras below are proposals waiting on the owner.
 
-**r663:** `CHALLENGE_REWARDS.md` proposes ONE department a quarter instead of one a lane (eight
-departments, leaning less hard, and paying the quarter's challenge cards).
+**Superseded (r673):** one department a QUARTER, not one a lane, is built: eight departments
+(Communications, Customer Support and Procurement cut), leaning less hard, paying the quarter's
+challenge cards and its leave-early. See `CHALLENGE_REWARDS.md` section 2 and js/departments.js.
+This file is the lane plan's history.
 
 ## Decided (owner, r656-r657)
 - **Eleven departments:** Sales, Marketing, Accounting, IT, HR, Operations, Legal, R&D,

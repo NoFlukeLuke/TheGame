@@ -2809,3 +2809,28 @@ reward's two tiers and every penalty applied once with the state diff checked; F
 `[pick3, improve, tricks]` with the Tricks step offering only epic and legendary; Classic opened
 an epic-floored Tricks pick after the payout. No page errors.
 
+## r673 - a department a quarter on the Schedule (`js/departments.js`, owner)
+CHALLENGE_REWARDS.md section 2 (DEPARTMENTS.md's lane plan is superseded). `DEPARTMENTS` (8):
+id, tile focus, focus tags, favourite quarter, challenge pay `{ std, hard }`, event pool.
+`deptForQuarter(q)` draws once per quarter into `mapDepts` (SAVE_VARS; reset by `mapResetRun`):
+favourite x`DEPT_CFG.favMult`, never the same one twice a run. `mapDept()` is the live one (the
+Schedule only). Leans (`DEPT_CFG`, dev -> Probabilities, "Department leans" / "shares"): the free
+cells' weights (`deptFillWeights`; a hard round or audit splits the lift with the audit share,
+`deptAuditShare`; R&D raises the mystery cap, `deptMysteryMax`); `eventPct` of a map's events from
+its pool (`deptEventPick`, no repeats); `leanPct` of entity offers narrowed to its focus tags
+AFTER the tier roll (`deptLean`, inside `pickEntityByRarity`, so rarity odds hold; entries with no
+tags, like owned-improvable lists, never match and keep the whole list). `deptChallengePay` feeds
+`crrRewardFor`. **Leaving a slot early pays the department's Standard reward, first tier**
+(`crrGrant(deptSkipPay(), 0, { live: false })` in `mapConfirm`; `mapSkipShort` / `mapSkipSay` on the
+bar; `MAP_SKIP_BASE` / `STEP` are gone). Shown: the LOCATION screen reads the department while the
+schedule is up (`enterGridScreenHud`), the quarter card's `#qc-dept`, and the ? card's first row
+(`deptHelpRow`). Handbook: Departments; the skip tip and entry say what leaving early pays.
+Measured in headless Chromium at 1440x820: 400 maps per department against none: its own kind
+level 2611 / 2541, event 1087 / 1010, shop 518 / 494, raise 311 / 283, audit 317 / 246, hard round
+297 / 252, mystery 606 / 410, incentive 620 / 568 (the minimums and set 1 are fixed, so the lift
+shows in the free cells only); events from the pool 58-64%; Trick offers carrying the focus 46% /
+46% / 41% against 21% / 24% / 17% plain (Marketing, Legal, R&D). A real round, then leaving slot 1
+early under Legal: "+15s at the next round's start", and round 2 started at 3:15. Leave-early under
+Sales / R&D / Marketing / Operations paid +8 credits / +2 rerolls / Focus twice / +2 and +2 next
+round. No page errors.
+

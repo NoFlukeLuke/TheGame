@@ -1,8 +1,8 @@
 # Rule Sleights, a department a quarter, two-stage challenges, changing entities (r663-r671)
 
 The owner's ideas, written up for review, then decided (section 6) and being built:
-**sections 3 to 5 are built (r671, js/challenge-rewards.js)**; departments, the rule Sleights
-and the changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
+**sections 3 to 5 are built (r671, js/challenge-rewards.js), section 2 too (r673,
+js/departments.js)**; the rule Sleights and the changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
 purpose.
 
 ## 1. Rule Sleights
@@ -74,8 +74,12 @@ Two favourites a quarter. A run draws four of the eight, no repeats.
 | events | 80% from its pool, 20% any | 60% from its pool, 40% any |
 | challenge payouts | none | section 4 |
 
-The department's name goes on the schedule screen's header and the quarter card. Event tiles
-stay unlabelled.
+The department's name goes on the LOCATION screen while the schedule is up, on the quarter
+card, and first on the schedule's ? card (what it leans and what its cards pay). Event tiles
+keep printing their event's name (r656).
+
+**Leaving a slot early** (owner, r673) pays the department's Standard reward, first tier (+8
+credits for Sales, +15s at the next round's start for Legal...). It was 6, 8, 10... credits.
 
 Reward focuses with no department now: Replays, Deck and buffs, Ranks and suits (plus the
 five already unused: Per card, Mult, Pips, Between rounds, Luck).

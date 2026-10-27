@@ -216,9 +216,9 @@ const INSIGHTS = [
     body: 'Every step you take happens, and you get at most two stops in a time slot. Use the legend to see what is where.',
     when: () => document.body.classList.contains('map-active') },
 
-  { id: 'skip_cost', screen: 'any', title: 'Leaving early pays credits',
+  { id: 'skip_cost', screen: 'any', title: 'Leaving early pays',
     anchor: ['#map-bar'],
-    body: 'Take only one stop in a time slot and moving on pays you credits. The pay rises each time.',
+    body: 'Take only one stop in a time slot and moving on pays you the department\'s reward. The bar shows what it is.',
     when: () => document.body.classList.contains('map-active')
              && typeof mapVisits !== 'undefined' && mapVisits === 1 },
 

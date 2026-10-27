@@ -59,6 +59,13 @@
   font-size: 20px; letter-spacing: 5px;
   color: var(--c-yellow, #ffce2b);
 }
+/* r673: the department the opening Schedule quarter belongs to */
+#quarter-card .qc-dept {
+  margin-top: 6px; min-height: 1em;
+  font-family: 'VT323', 'Share Tech Mono', monospace; font-size: 22px; letter-spacing: 4px;
+  color: var(--c-amber, #ffb347); text-shadow: 0 0 8px rgba(255, 179, 71, .55);
+}
+#quarter-card .qc-dept:empty { display: none; }
 #quarter-card .qc-skip {
   margin-top: 12px;
   font-family: 'Share Tech Mono', monospace;

@@ -17,8 +17,8 @@
 //   movement is STRICTLY ORTHOGONAL. Within a set you may visit at most 2 tiles
 //   (so the two must be vertically adjacent); moving forward enters the next set
 //   at your lane. Free branch (below) is a variant of this rule only.
-// - Leaving a set after only ONE visit pays MAP_SKIP_BASE + MAP_SKIP_STEP * n
-//   credits (n = how many times you have skipped this run): 6, 8, 10...
+// - Leaving a set after only ONE visit pays the quarter's department's Standard
+//   reward, first tier (r673, js/departments.js; it was 6, 8, 10... credits).
 // - Set 1 is ALL LEVELS. Sets 2..5 each carry at least one level. The final
 //   set is the FUNNEL: non-level tiles only, and how many of its four lanes
 //   carry one is a roll (r253). It books TWO like any other slot (r293) - at a
@@ -64,7 +64,6 @@ const MAP_BOSS_SET = MAP_SETS;    // 4
 const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2], ['reward', 1]];
 // The day the to-do list prints down its left edge: one time per slot, then the review.
 const MAP_SLOT_TIMES = ['09:00', '11:00', '13:00', '15:00', '17:00'];
-const MAP_SKIP_BASE = 4, MAP_SKIP_STEP = 2;   // skip n pays BASE + STEP*n: 6, 8, 10...
 const MAP_MAX_MYSTERY = 2;
 // Blanks are a ROLL, not a fixture: about half of maps carry two, the rest one
 // or none, so "is there a dead cell in my way" is a thing you read off the map
@@ -167,6 +166,7 @@ function mapResetRun() {
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
   mapFirstRoundDone = false;
+  if (typeof deptReset === 'function') deptReset();   // r673: a new run draws its departments afresh
   mapResetBoard();
 }
 
@@ -432,8 +432,8 @@ function _mapBuildOnce() {
       put(l, s, k);
     }
   }
-  // The rest by weight.
-  const W = MAP_FILL_W;
+  // The rest by weight. r673: the quarter's department makes its own kind likelier.
+  const W = (typeof deptFillWeights === 'function') ? deptFillWeights(MAP_FILL_W) : MAP_FILL_W;
   const wTotal = W.reduce((a, [, w]) => a + w, 0);
   while (free.length) {
     const [l, s] = free.pop();
@@ -447,7 +447,8 @@ function _mapBuildOnce() {
   // their real kind underneath - which is what lets them count toward the
   // minimums, and lets a tryhard guess at what is hidden.
   const mysteryable = tiles.filter(t => t.set > 0 && t.kind !== 'blank' && t.kind !== 'boss');
-  _mapPickN(mysteryable, Math.floor(Math.random() * (MAP_MAX_MYSTERY + 1)))
+  const _mMax = (typeof deptMysteryMax === 'function') ? deptMysteryMax(MAP_MAX_MYSTERY) : MAP_MAX_MYSTERY;
+  _mapPickN(mysteryable, Math.floor(Math.random() * (_mMax + 1)))
     .forEach(t => { t.mystery = true; });
 
   // One 2x1 event, half the time: an event in sets 2..4 absorbs the cell ahead
@@ -479,14 +480,17 @@ function _mapBuildOnce() {
         ? eligibleEventIds(Object.keys(EVENT_META)) : Object.keys(EVENT_META).slice())
     : [];
   let ei = 0;
+  const evUsed = new Set(), auditShare = (typeof deptAuditShare === 'function') ? deptAuditShare(MAP_AUDIT_SHARE) : MAP_AUDIT_SHARE;
   tiles.forEach(t => {
     if (t.kind === 'event') {
-      const id = evPool.length ? evPool[ei++ % evPool.length] : null;
+      // r673: the department's own events come up DEPT_CFG.eventPct of the time.
+      const id = (typeof deptEventPick === 'function') ? deptEventPick(evPool, evUsed) : (evPool.length ? evPool[ei++ % evPool.length] : null);
+      if (id) evUsed.add(id);
       t.eventId = id;
       t.eventName = id ? EVENT_META[id].name : 'Event';
       t.eventFlavor = id ? EVENT_META[id].flavor : '';
     }
-    if (t.kind === 'challenge' && Math.random() < MAP_AUDIT_SHARE) { t.audit = true; return; }
+    if (t.kind === 'challenge' && Math.random() < auditShare) { t.audit = true; return; }
     if (t.kind === 'challenge') {
       const ch = rollChallengeLevel();
       t.challenge = { id: ch.id, label: ch.label, goalMult: ch.goalMult, credits: ch.credits };
@@ -739,7 +743,9 @@ function mapOpen() {
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('map-active');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('SCHEDULE', 'shop');
+  // r673: the LOCATION screen names the quarter's department.
+  const _d = (typeof mapDept === 'function') ? mapDept() : null;
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(_d ? _d.name.toUpperCase() : 'SCHEDULE', 'shop');
   try { sfxShopOpen?.(); } catch (e) {}
   mapRender(true);
   mapRenderBar();
@@ -912,7 +918,7 @@ function mapTileTap(t) {
 const MAP_HELP = [
   ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
   ['Two a slot', 'A time slot will book you for two obligations at most.'],
-  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays the department\u2019s reward (on the bar).'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
@@ -921,11 +927,19 @@ const MAP_HELP_PICK = [
   ['Pick', 'Take any lit obligation in this time slot or the next. Everything you take happens.'],
   ['Two a slot', 'Book any two obligations in a slot, next to each other or not. Then move on.'],
   ['Moving on', 'You can start the next slot on any obligation in it.'],
-  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays the department\u2019s reward (on the bar).'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there.'],
 ];
-function mapHelpRows() { return mapPickRule() ? MAP_HELP_PICK : MAP_HELP; }
+function mapHelpRows() {
+  const rows = (mapPickRule() ? MAP_HELP_PICK : MAP_HELP).slice();
+  const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
+  if (d) rows.unshift(d);
+  return rows;
+}
+// r673 (owner): leaving a slot early pays the department's Standard reward, first tier.
+function mapSkipShort() { return (typeof crrShort === 'function' && typeof deptSkipPay === 'function') ? crrShort(deptSkipPay(), 0) : '+8 \u25c6'; }
+function mapSkipSay() { return (typeof crrSay === 'function' && typeof deptSkipPay === 'function') ? crrSay(deptSkipPay(), 0) : '+8 credits'; }
 function mapRenderBar() {
   // r655: the toolbar is the foot of the to-do screen (mapRender builds it empty),
   // not a body-level strip over the stage's own buttons.
@@ -933,7 +947,6 @@ function mapRenderBar() {
   if (!bar) return;
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const done = mapPos ? Math.min(mapPos.set, MAP_SETS) : 0;
-  const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
   const crunch = (typeof crunchActive === 'function') && crunchActive();
   // Every slot books two, the last one included (r293) - so the cap is flat.
   const visits = mapBossArmed ? 'REVIEW NEXT'
@@ -957,7 +970,7 @@ function mapRenderBar() {
       `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
       `<span class="mb-pips">${pips}</span>` +
       `<span class="mb-visits">${visits}</span>` +
-      (crunch ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays this">LEAVE EARLY +${skipNext}</span>`) +
+      (crunch ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays ${mapSkipSay()}">LEAVE EARLY ${mapSkipShort()}</span>`) +
     `</div>` +
     `<div class="mb-l2">` +
       `<span class="mb-cmd" id="mb-cmd"></span>` +
@@ -1039,7 +1052,7 @@ function mapBarInfo(t, move) {
     // is worse than saying nothing.
     if (move.from && move.after.set > move.from.set && move.from.visits === 1
         && !(typeof crunchActive === 'function' && crunchActive()))
-      s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} credits</i>`;
+      s += ` <i>leaving now pays ${mapSkipSay()}</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
     // Crunch prices the booking. The fee is the decision in that mode, so it is
     // read off the board rather than discovered after confirming.
@@ -1223,10 +1236,12 @@ function mapConfirm() {
   if (move.from && move.after.set > move.from.set && move.from.visits === 1
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
-    const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
-    coins += pay;
-    updateCoinsUI?.();
-    showMessage(`Left the slot early · +${pay} credits`, 'var(--gold)');
+    // r673 (owner): the department's Standard reward, first tier (CHALLENGE_REWARDS.md),
+    // paid off the clock: time, swaps, discards and Focus wait for the next round.
+    const said = (typeof crrGrant === 'function' && typeof deptSkipPay === 'function')
+      ? crrGrant(deptSkipPay(), 0, { live: false })
+      : (coins += 8, updateCoinsUI?.(), '+8 credits');
+    showMessage(`Left the slot early · ${said}`, 'var(--gold)');
   }
 
   // Crunch: the obligation's time fee, debited at CONFIRM. A level, a priority

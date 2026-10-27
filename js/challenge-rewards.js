@@ -452,6 +452,13 @@ function crrPenaltyPlan(id) {
   return plan;
 }
 
+// A stage in a few characters, for the Schedule's bar ("+8 ◆", "+15s", "FOCUS×2").
+function crrShort(id, t) {
+  const r = CRR[id] || CRR.credits; if (!r.face) return r.say(t);
+  const unit = r.face[2] != null ? r.face[2] : '';
+  return (/^\d+$/.test(r.face[t]) ? unit : `${r.face[t]}${unit ? ' ' + unit : ''}`) || r.say(t);
+}
+
 // ── On the card ─────────────────────────────────────────────────────────────
 function crrFaceHTML(q) {
   const id = crPayOf(q), r = CRR[id]; if (!r || !r.face) return '';
