@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r679 · Challenge card looks preview (index.html?crfx): four answer looks to choose from";
+const BUILD = "2026-10-27 · r680 · the finale and the goal banner on the board; records, named builds and a share image on the finale; ENDLESS past Q4 in every mode";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

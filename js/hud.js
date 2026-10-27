@@ -403,7 +403,7 @@ function knackLiveDesc(k) {
   if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
   const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
   if (!p) {
-    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN);
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun));
     return base + `<div class="kn-reveal kn-reveal-none">${last
       ? 'This is the last quarter. There is no next boss to name.'
       : 'This mode has no next quarter to look into.'}</div>`;

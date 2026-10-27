@@ -3015,3 +3015,53 @@ its timer bar sat over its pay line and it never turned red in its last 10s; bot
 `crTimed`. Measured: all three demos paid right (+20, +8, +8 on the auto-take), switches flip
 `CR_FX` and the body classes, a tap with press on starts the card's animation at once, none with it
 off; plain play (no `?crfx`) unchanged. No page errors at 1440x820 or 420x900.
+## r680 - the finale and the goal banner on the board; the finale's records, named builds, the share image; ENDLESS (owner)
+- **The finale is a board screen** (`showFinale`, js/finale.js; css/finale.css on `.bs-screen.fn-screen`):
+  "> VICTORY · CLASSIC" types; a double box says how far (Q4 CLOSED · 20 ROUNDS · 1:02:14, or
+  REACHED Q3 · ROUND 14 · 900 of 9,000) with **★ NEW BEST tags** against the run history
+  (`finaleFacts`: BEST SCORE, BEST HAND, DEEPEST RUN, MOST HANDS, FIRST WIN; the run's own
+  entry excluded); boxes for SCORE (the run's total), BEST HAND (name and score), MOST PLAYED
+  (`crHandPlays`), MOST USED (`trickFireTotals`), HANDS, CREDITS, CARDS (and discarded), TIME,
+  each value shrunk to its box (`finaleFitStats`); THE BUILD as tiles with names; DETAILS
+  (the quarter table) folded. **Keys:** PLAY = PLAY AGAIN (BACK TO BUILDS on a test drive),
+  DISCARD = HOME, SWAP = ENDLESS on a won run that can go on; on the screen PEEK, SHARE, SAVE
+  BUILD, DETAILS. Sub-views replace the body and keys (`finaleSubView` / `finaleMainView`).
+  **SAVE BUILD** types a name field on the screen (`finaleSaveView`; Enter saves) and writes
+  through `saveBuildRecord`; the key then reads SAVED "NAME". The pre-r634 `#end-overlay` is the
+  fallback with no stage. Every other sound and reset of onGameWin / onGameEnd is unchanged.
+- **The share image** (`js/finale-share.js`): `finaleShareImage(F, { all })` draws a 1200 x 675
+  PNG on a canvas: the glass, "> VICTORY" and the how-far line, the records, four boxes (score,
+  best hand, most used, hands with credits), and THE BUILD as tiles with names: the floppy art
+  (`--fa-<rarity>`, a fused Trick tinted red) with the pixel icon on its label (the sheet,
+  `PX_ICONS`; light icons outlined), the Knack diamond and the Sleight card as paths. Default:
+  one row of 8, Tricks first, then Knacks, then Sleights; **EXPAND** draws every entity in as many
+  rows as it takes (the canvas grows). The SHARE sub-view shows the image and offers SHARE (the
+  Web Share sheet, where `navigator.canShare` takes files: phones), COPY (the clipboard as PNG)
+  and SAVE PNG (a download). Nothing is fetched: fonts are the local VT323, art is the game's.
+- **The goal banner on the grid** (`goalBannerGrid`, js/goal-clear.js, `#gb-grid` in css/goal-clear.css):
+  in console mode a strip across the board's middle types "> GOAL CLEARED  1,500" (a boss win's
+  kicker over it) and leaves like the board screens; the body-level banner stays for the pit.
+- **ENDLESS** (`js/endless.js`): a won run goes on. `rolloverQuarter` keeps the continuation it
+  would have run after the quarter card (`_endlessNext`) before calling onGameWin; the finale's
+  SWAP key runs `endlessContinue`: `endlessRun` / `endlessFromLevel` (SAVE_VARS), the next boss
+  drawn, the quarter screen ("ENDLESS · QUARTER CLOSED", boxes past Q4) and then the mode's own
+  loop: Classic's rounds, the Schedule's next schedule and department (the pool reuses when all
+  four are spent), Q5, Q6... **Goals climb faster from the level the run continued at:**
+  `endlessGoalMult(lv, scale)` = `(fast / scale) ^ (lv - from)` with `fast = 1 + (scale - 1) x
+  goalTune('endlessAccel')` (1.65, Flow's rule since r155), applied in `classicGoalForLevel` and
+  `mapGoalForLevel` before rounding; Flow keeps `survivalGoalForLevel`. Measured: from level 1,
+  the next goal 2,000 -> 2,500, three on 3,500 -> 5,500. **Flow:** the fourth boss goes to the
+  finale (`survivalPostBossReward` -> onGameWin) and ENDLESS runs `survivalContinueEndless`
+  (the prize grid, then the next deal); the r155 RUN COMPLETE overlay (Retire / Continue) and its
+  CSS are gone. The next boss exists in Endless (`peekNextActBoss`, Advance Notice). A run in
+  Endless cannot be won again: it ends on a loss or clock out, the finale reads ENDLESS OVER ·
+  REACHED Q6, and the run history's entry is brought up to date (`again` in
+  `recordRunToHistory`: outcome stays win, `endless: true`, `endlessOutcome`, `act`). QRL stays at
+  Q4's limit. `endlessReset` runs from startGame.
+- Measured in headless Chromium at 1440x820 and 420x900: the finale lands on the board's box; a
+  real press of SWAP continued Classic into Q5 (`endlessRun` true, the ENDLESS quarter screen with
+  five boxes, the continuation ran) and the Schedule into Q5's schedule (HR, CLOCK IN back on
+  PLAY); the finale's keys fit; SAVE BUILD stored the typed name; SHARE drew 1200x675 and EXPAND
+  1200x763 with all 11 entities; an Endless loss read ENDLESS OVER · REACHED Q5 and updated the
+  history entry; the on-grid banner printed inside #grid; Flow's fourth boss opened the finale and
+  ENDLESS opened the prize grid. No page errors.

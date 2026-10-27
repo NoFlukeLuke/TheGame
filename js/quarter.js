@@ -115,7 +115,12 @@ function rolloverQuarter(next) {
   deadCells = new Set();     // Dead Drop cells are a quarter-long penalty
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
 
-  if (actNumber > QUARTERS_PER_RUN) { onGameWin(); return; }   // the report is the wrap-up there
+  // r680: past the last quarter the run is won, unless it already continued into
+  // Endless. The continuation is kept so the finale's ENDLESS key can run it.
+  if (actNumber > QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun)) {
+    _endlessNext = next;
+    onGameWin(); return;
+  }
   // r238: deal the new quarter's boss NOW, so the progress block can name it for
   // the whole quarter instead of guessing at it. This and startGame are the two
   // places a quarter opens.
@@ -164,11 +169,13 @@ function showQuarterScreen(closed, next, done) {
     if (ctl) ctl.close();
     setTimeout(() => { if (typeof done === 'function') done(); }, 180);
   };
-  const boxes = Array.from({ length: QUARTERS_PER_RUN }, (_, i) => i + 1)
+  // r680: an Endless run's boxes run past the fourth.
+  const endless = typeof endlessRun !== 'undefined' && endlessRun;
+  const boxes = Array.from({ length: Math.max(QUARTERS_PER_RUN, next) }, (_, i) => i + 1)
     .map(i => `<span class="qs-box${i <= closed ? ' on' : ''}">[${i <= closed ? 'x' : '&nbsp;'}] Q${i}</span>`).join('');
   // r673: the Schedule names the department the opening quarter belongs to.
   const _d = (typeof mapActive === 'function' && mapActive() && typeof deptForQuarter === 'function') ? deptForQuarter(next) : null;
-  const html = `<div class="qs-wrap"><div class="qs-big">Q${closed}</div><div class="qs-kicker">QUARTER CLOSED</div>`
+  const html = `<div class="qs-wrap"><div class="qs-big">Q${closed}</div><div class="qs-kicker">${endless ? 'ENDLESS · ' : ''}QUARTER CLOSED</div>`
     + `<div class="qs-boxes">${boxes}</div><div class="qs-next">&gt; Q${next} OPENS${_d ? ': ' + _d.name.toUpperCase() : ''}<i class="bs-cur"></i></div></div>`;
   const ctl = boardScreenOpen({ head: `> QUARTER ${closed} CLOSED`, html, cls: 'qs-screen',
     keys: [{ label: 'CONTINUE', primary: true, fn: finish }], onClose: finish });

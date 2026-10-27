@@ -585,6 +585,7 @@ function startGame() {
   highestHandName  = null;
   trickFireTotals  = {};
   if (typeof resetQuarterLog === 'function') resetQuarterLog();   // js/quarter.js
+  if (typeof endlessReset === 'function') endlessReset();          // js/endless.js (r680)
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();

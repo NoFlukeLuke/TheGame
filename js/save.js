@@ -148,7 +148,7 @@ const SAVE_VARS = [
   // The rest of the Survival loop's state. survivalBossesBeaten in particular gates the
   // 5-boss completion screen, so without it a resumed run never finishes.
   'survivalLevelsSinceKnack', 'pickRerollsLeft', 'survivalBossesBeaten',
-  'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel',
+  'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel', 'endlessRun', 'endlessFromLevel',
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
   // Flow multi-reward chain (js/flow-rewards.js, r325): extra rewards rolled

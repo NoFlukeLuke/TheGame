@@ -586,7 +586,7 @@ function peekNextActBoss() {
   // The last quarter has no next act, and saying so is better than naming a
   // boss the run will never reach. QUARTERS_PER_RUN (js/quarter.js) is the one
   // place the run's length is written down.
-  if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN) return null;
+  if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun)) return null;
   if (!nextActBossId) {
     const p = nextBossPreset();
     nextActBossId = p ? p.id : null;
