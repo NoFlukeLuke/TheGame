@@ -169,7 +169,7 @@ function updateGridTopline() {
     t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
   }
   const c = document.getElementById('gt-coins');
-  if (c && typeof coins === 'number') c.textContent = `💰 ${coins} credits`;
+  if (c && typeof coins === 'number') c.textContent = creditsTxt(coins);
 }
 function exitGridScreenHud() {
   // A pending swap belongs to the screen that is closing - a late apply would
@@ -710,14 +710,15 @@ let _shopgSwapHTML = null;
 // controls spend the same three things.
 //   swap slot  - a READOUT of the swaps you have left (the gesture is on the
 //                board itself, double-tap then tap, so this is not a button)
-//   discard    - REROLL the selected rows, or LEAVE when nothing is selected
+//   discard    - REROLL the selected rows, or LEAVE when no row is selected
 //   play       - BUY
 // The discard button is contextual rather than split in two because it is the
 // DISCARD button in both places: on the board it spends a discard on what is
 // selected, and here it does exactly that. LEAVE is what it reads when there is
-// nothing selected to spend one on, which is the state you are in when you are
-// done - and there is a second, permanent Leave in the cost readout, so the
-// exit is never sitting behind a deselect.
+// no row selected to spend one on, which is the state you are in when you are
+// done - and there is a second Leave in the cost readout, so the exit is never
+// sitting behind a deselect. r405 gave LEAVE a fourth key under REROLL; r672
+// (owner) took it back: the column is three keys, whatever they read.
 function shopSwapChipHTML() {
   const inf = (typeof hasKnack === 'function' && hasKnack('steady_hand'));
   const left = inf ? '\u221e' : (typeof swaps === 'number' ? swaps : 0);
@@ -740,12 +741,16 @@ function syncShopActionChips() {
   if (disc && shopGridActive) {
     const rows = shopgSelRows().length;
     const have = (typeof discards === 'number') ? discards : 0;
-    disc.classList.add('shop-half');
-    disc.classList.toggle('shop-idle', rows === 0);
-    disc.innerHTML = `<span class="sh-word">REROLL</span><span class="sh-sub">${rows > 0 ? rows + (rows === 1 ? ' row' : ' rows') : 'select a row'}</span>`;
+    // r672 (owner): three keys, never four. The LEAVE key under REROLL is gone; the
+    // DISCARD key reads LEAVE while no row label is selected and REROLL once one is.
+    disc.classList.add('shop-key');
+    disc.classList.toggle('shop-leave', rows === 0);
+    disc.innerHTML = rows > 0
+      ? `<span class="sh-word">REROLL</span><span class="sh-sub">${rows + (rows === 1 ? ' row' : ' rows')}</span>`
+      : `<span class="sh-word">LEAVE</span>`;
     disc.title = rows > 0
       ? `Reroll ${rows === 1 ? 'this row' : rows + ' rows'} \u00b7 ${rows} discard${rows === 1 ? '' : 's'} (you have ${have})`
-      : 'Tap a row label (the plate on the left of a row), then press this to reroll the row. Costs 1 discard.';
+      : 'Leave the shop. Tap a row label (the plate on the left of a row) to reroll that row instead, for 1 discard.';
     disc.disabled = rows > 0 && have < rows;
   }
 }
@@ -762,17 +767,6 @@ function enterShopGridButtons() {
     // then tap the tile beside it. Double-tapping a tile still does the same.
     swap.onclick = shopSwapButton;
   }
-  // LEAVE gets its own button under REROLL (the discard button is half height
-  // for the length of the shop), so the way out is always on screen.
-  if (disc && !document.getElementById('btn-leave')) {
-    const lv = document.createElement('button');
-    lv.id = 'btn-leave';
-    lv.className = 'act-btn btn-discard shop-half shop-leave';
-    lv.innerHTML = '<span class="sh-word">LEAVE</span>';
-    lv.title = 'Leave the shop';
-    lv.addEventListener('click', e => { e.stopPropagation(); closeShopGrid(); });
-    disc.insertAdjacentElement('afterend', lv);
-  }
   syncShopActionChips();
 }
 function exitShopGridButtons() {
@@ -780,9 +774,8 @@ function exitShopGridButtons() {
   const disc = document.getElementById('btn-discard');
   const swap = document.getElementById('swap-indicator');
   if (play && _shopgPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _shopgPlayHTML; }
-  document.getElementById('btn-leave')?.remove();
   if (disc && _shopgDiscHTML !== null) {
-    disc.classList.remove('reward-clear', 'shop-reroll-btn', 'shop-half', 'shop-idle');
+    disc.classList.remove('reward-clear', 'shop-reroll-btn', 'shop-key', 'shop-leave');
     disc.innerHTML = _shopgDiscHTML; disc.disabled = false; disc.title = '';
   }
   if (swap && _shopgSwapHTML !== null) {
@@ -902,7 +895,7 @@ function renderShopGrid(animateIn = false) {
           shopSwapPending === shopgLeadKey(r, c) ? 'shop-lifted' : '',
           shopSwapPending ? 'shop-drop-target' : '',
         ].filter(Boolean).join(' ');
-        const chip = p._sold ? '✓' : `💰${(shopGridMode === 'sell') ? p.price : shopEffPrice(p)}`;
+        const chip = p._sold ? '✓' : `${creditsTxt((shopGridMode === 'sell') ? p.price : shopEffPrice(p))}`;
         div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < ((shopGridMode === 'sell') ? p.price : shopEffPrice(p)) ? 'cant-afford' : '')}">${chip}</div>`;
         if (!p._sold) div.onclick = () => {
           if (div._lpJustFired) { div._lpJustFired = false; return; }   // that tap was a long-press read
@@ -1090,7 +1083,7 @@ function shopGridBuySelection() {
       if (r >= 1 && shopGridRowMeta[r - 1]) shopGridRowMeta[r - 1].pinned = true;
     }
   });
-  noteMessage(`Bought ${bought.length} - 💰${total}`, 'var(--gold)');
+  noteMessage(`Bought ${bought.length} - ${creditsTxt(total)}`, 'var(--gold)');
   shopGridSel = new Set();
   shopSelOrder = [];
   if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
@@ -1125,7 +1118,7 @@ function doShopSell(r, c) {
   coins += p.price; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
   try { sfxRewardGood?.(); } catch (e) {}
-  noteMessage(`Sold ${p.label} - +💰${p.price}`, 'var(--gold)');
+  noteMessage(`Sold ${p.label} - +${creditsTxt(p.price)}`, 'var(--gold)');
   shopGridItems = buildShopSellStock();   // refresh owned view
   renderShopGrid();
 }
@@ -1298,7 +1291,7 @@ function renderShopCostReadout() {
   let costLine;
   if (shopGridMode === 'sell') {
     costLine = `<div class="sc-line"><span>SELL MODE</span><span class="sc-off">tap to sell</span></div>`
-             + `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`;
+             + `<div class="sc-line"><span>Wallet</span><b>${creditsTxt(coins)}</b></div>`;
   } else {
     const { base, discount, total, n } = shopGridSelectionCost();
     const rows = shopgSelRows().length;
@@ -1310,11 +1303,11 @@ function renderShopCostReadout() {
       // A phone prints the discount as a notice instead (shopHintMaybePrint).
       ? (document.getElementById('stage')?.classList.contains('landscape')
           ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>−${Math.round(shopGridDiscountRate()*100)}% per extra item</span></div>`
-          : `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`)
+          : `<div class="sc-line"><span>Wallet</span><b>${creditsTxt(coins)}</b></div>`)
       : (discount > 0
-          ? `<div class="sc-line"><span>${n} items</span><span><s>💰${base}</s> <b>💰${total}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
-          : `<div class="sc-line"><span>${n} item</span><b>💰${total}</b></div>`)
-        + `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`;
+          ? `<div class="sc-line"><span>${n} items</span><span><s>${creditsTxt(base)}</s> <b>${creditsTxt(total)}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
+          : `<div class="sc-line"><span>${n} item</span><b>${creditsTxt(total)}</b></div>`)
+        + `<div class="sc-line"><span>Wallet</span><b>${creditsTxt(coins)}</b></div>`;
   }
   sc.innerHTML =
     `<div class="shop-cost">${costLine}` +

@@ -320,7 +320,13 @@ const INFO_TOPICS = [
 
   { id: 'skip_cost', group: 'schedule', title: 'Leaving a slot early',
     body: [
-      'Leave a slot after taking only one obligation and you are paid credits. The amount goes up each time you do it.',
+      'Leave a slot after taking only one obligation and you are paid the department\'s reward: the same one its easier challenge cards pay. The bar shows it.',
+    ] },
+
+  { id: 'departments', group: 'schedule', title: 'Departments',
+    body: [
+      'Each quarter belongs to one department, named on the location screen. It makes one kind of obligation more common, leans offers toward one kind of {Trick}, {Knack} or {Sleight}, and draws most of its events from its own list.',
+      'It also decides what challenge cards pay: one reward for ordinary cards, another for hard ones. A card shows its reward and what raising it pays.',
     ] },
 
   { id: 'curve', group: 'schedule', title: 'Everything advances the goal',

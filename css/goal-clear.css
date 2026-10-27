@@ -106,3 +106,20 @@ body.reduced-motion #goal-banner .gb-ring { display: none; }
   color: var(--c-yellow, #ffce2b);
   margin-bottom: 3px;
 }
+
+/* ── The banner ON THE GRID (r680, console mode; js/goal-clear.js goalBannerGrid) ──
+   A strip across the board's middle, the board screens' amber command line. */
+#gb-grid {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a;
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); z-index: 60;
+  padding: 8px 12px 9px; pointer-events: none; opacity: 0; visibility: hidden;
+  background: linear-gradient(90deg, rgba(10,13,6,0) 0%, rgba(10,13,6,.96) 8%, rgba(10,13,6,.96) 92%, rgba(10,13,6,0) 100%);
+  border-top: 1px solid rgba(76,107,47,.55); border-bottom: 1px solid rgba(76,107,47,.55);
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55); text-align: left;
+}
+#gb-grid.show { visibility: visible; animation: gbg-hold 1.7s ease forwards; }
+@keyframes gbg-hold { 0% { opacity: 0; clip-path: inset(50% 0 50% 0); } 10% { opacity: 1; clip-path: inset(0 0 0 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+#gb-grid .gbg-k { font-size: 13px; letter-spacing: 3px; color: var(--am-dim); line-height: 1; }
+#gb-grid.gb-boss .gbg-k { color: #ff9a8a; }
+#gb-grid .gbg-l { font-size: 22px; letter-spacing: 1px; line-height: 26px; min-height: 26px; color: var(--am-hi); white-space: pre; }
+body.reduced-motion #gb-grid.show { animation: none; opacity: 1; clip-path: none; }

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r666 · Deluxe Subscription and Yoked (knacks)";
+const BUILD = "2026-10-27 · r689 · Deluxe Subscription and Yoked (knacks)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

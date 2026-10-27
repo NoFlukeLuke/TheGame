@@ -1,7 +1,10 @@
-# Rule Sleights, a department a quarter, two-stage challenges, changing entities (draft r663-r665)
+# Rule Sleights, a department a quarter, two-stage challenges, changing entities (r663-r671)
 
-Nothing here is built. The owner's ideas, written up for review. Names marked
-**(owner names)** are left blank on purpose.
+The owner's ideas, written up for review, then decided (section 6) and being built:
+**sections 3 to 5 are built (r671, js/challenge-rewards.js), section 2 too (r673,
+js/departments.js), and section 1's three rule Sleights (r675, js/rule-sleights.js)**; the
+changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
+purpose.
 
 ## 1. Rule Sleights
 
@@ -19,7 +22,10 @@ A Sleight that changes how the game works while it sits on the board.
 - Its rule is a board rule, not a card buff, so the Quarter resource limits (QRL) do not cap it.
   The replay one is a QRL replay source like any other.
 
-Descriptions in the game's Sleight style:
+**Built (r675)**, named by the owner in r677: A **Double Time** (`rule_ranks`), B **Even
+Keel** (`rule_evens`), C **In Your Face** (`rule_faces`). Improvements:
+A names one more rank a tier, B +2 Focus a tier, C +2s a tier. The named ranks print in the
+card's bottom-left corner. Descriptions in the game's Sleight style:
 
 | # | name | rarity (suggested) | description |
 |---|---|---|---|
@@ -72,8 +78,12 @@ Two favourites a quarter. A run draws four of the eight, no repeats.
 | events | 80% from its pool, 20% any | 60% from its pool, 40% any |
 | challenge payouts | none | section 4 |
 
-The department's name goes on the schedule screen's header and the quarter card. Event tiles
-stay unlabelled.
+The department's name goes on the LOCATION screen while the schedule is up, on the quarter
+card, and first on the schedule's ? card (what it leans and what its cards pay). Event tiles
+keep printing their event's name (r656).
+
+**Leaving a slot early** (owner, r673) pays the department's Standard reward, first tier (+8
+credits for Sales, +15s at the next round's start for Legal...). It was 6, 8, 10... credits.
 
 Reward focuses with no department now: Replays, Deck and buffs, Ranks and suits (plus the
 five already unused: Per card, Mult, Pips, Between rounds, Luck).
@@ -98,13 +108,23 @@ events are still in at least one pool.
 - **Two stages.** Clear stage 1, then take it (tap) or raise (double-tap), as today. Unanswered,
   it takes after 6s, as today.
 - **One payout.** Stage 1 pays the reward's first tier. A raise that clears pays the second
-  tier INSTEAD (not as well). A raise that fails pays nothing.
+  tier INSTEAD (not as well). A raise that fails pays nothing, and charges the penalty.
+- **The penalty (owner, r671):** a timed card (Flow, spot) that runs out charges its reward's
+  FIRST tier in reverse (the last column of the tables below). The card shakes, a red plate
+  flies from it to what it costs, the cost lands with its own animation (a downgrade plays the
+  improvement screen backwards, a lost Trick sinks out of the tray), and a printed notice says
+  what happened. A challenge round's cards keep the penalty grid instead.
+- **Fallback:** a reward that cannot land (nothing to improve) pays the credits reward of the
+  same stage; a penalty that cannot land (no Knack to lose) takes 8 credits.
 - **What it pays comes from the department** (section 4), and from the challenge's class:
   - **Standard:** stage 1 starts at difficulty 1.
   - **Hard:** stage 1 starts at difficulty 2 or more (the line `CR_BONUS_D` already draws).
 - The card's face names both tiers of its payout, so the raise is a choice you can see.
-- Rewards that open a screen (a pick, the Limit Break) wait for the round's end, the way the
-  mini grid waits today. The rest pay at once.
+- Rewards that open a screen (a pick) open after the round's payout (Flow: as steps of the
+  next reward chain). The rest pay at once. Paid at a round's end (a cleared card nobody
+  took), time, swaps, discards and Focus wait for the next round's start.
+- **Everywhere but the Schedule** (owner, r671: no departments there for now): Standard cards
+  pay Credits, Hard cards Improvement.
 
 **The asks, cut to two stages.** Stage 1 is today's first tier, stage 2 today's second; third
 tiers go. Numbers are hands (or impacts) needed.
@@ -127,6 +147,8 @@ tiers go. Numbers are hands (or impacts) needed.
 | fall cards (IMPACT) | 2 | 3 | Standard |
 | any of the above, touching the card | same numbers | | one class up |
 
+Hand types on a board that makes only three keep one stage (it pays when it clears).
+
 A challenge round (AUDIT, Classic's node 3): card 1 is Standard, cards 2 and 3 Hard.
 
 Goes away: `CR_FLOW_STAKES` (credits and seconds by difficulty), the mini grid for a d2+ take,
@@ -138,31 +160,31 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 
 ### Standard (paid by Standard challenges)
 
-| reward | stage 1 | stage 2 | from |
+| reward | stage 1 | stage 2 | runs out (stage 1 reversed) |
 |---|---|---|---|
-| Credits | +8 credits | +20 credits | owner |
-| Time | rewind the clock 15s | rewind the clock 30s | owner |
-| Rerolls | 2 free rerolls on reward picks | 5 free rerolls | owner |
-| Reward grid size | +1 selection on your next reward grid | +2 | owner |
-| Sleight charges | +1 charge to every Sleight in your deck | every Sleight back to full charges | owner |
-| Swaps and discards | +2 swaps and +2 discards this round | +4 and +4 | new |
-| Focus twice | your next hand applies Focus twice | your next 3 hands | new (Double Down's rule) |
-| Interest | interest doubled on your next payout | doubled on every payout this quarter | new |
-| Prime | a random Trick in the tray is primed twice | every Trick in the tray is primed once | new (spare) |
-| Card buffs | 3 random cards in your deck take a random buff | 3 cards you choose take a random buff | new (spare) |
+| Credits | +8 credits | +20 credits | -8 credits |
+| Time | rewind the clock 15s | rewind the clock 30s | -15s |
+| Rerolls | 2 free rerolls on reward picks | 5 free rerolls | -2 free rerolls |
+| Reward grid size | +1 to your next reward grid's path | +2 | -1 |
+| Sleight charges | +1 charge to every Sleight in your deck | every Sleight back to full charges | -1 charge from every Sleight (none below 1) |
+| Swaps and discards | +2 swaps and +2 discards this round | +4 and +4 | -2 and -2 |
+| Focus twice | your next hand applies Focus twice | your next 3 hands | your next hand scores without Focus |
+| Interest | interest doubled on your next payout | doubled on every payout this quarter | no interest on your next payout |
+| Prime (spare, built r677) | a random Trick in the tray is primed twice | every Trick in the tray is primed once | a random primed Trick loses 2 primes |
+| Card buffs (spare, built r677) | 3 random cards in your deck take a random buff | 3 cards you choose from your deck take a random buff | 3 random buffed cards in your deck lose a buff |
 
 ### Hard (paid only by Hard challenges)
 
-| reward | stage 1 | stage 2 | from |
+| reward | stage 1 | stage 2 | runs out (stage 1 reversed) |
 |---|---|---|---|
-| Improvement | a random improvement | a pick of three improvements | owner |
-| Limit | +1 to a random limit | a Limit Break (you choose) | owner |
-| Trick pick | a pick of three Tricks, rare or better | epic or better | owner |
-| Focus | Focus up by half the bar | Focus to max | owner |
-| Knack pick | a pick of three Knacks | rare or better | new |
-| Sleight pick | a random Sleight on top of the draw pile | a pick of three Sleights | new |
-| Boss goal | this quarter's boss asks 5% less | 10% less | new |
-| Hand growth | your most-played hand family gains 5 plays toward its next step | 15 plays (a full step) | new (double scaling counts) |
+| Improvement | a random improvement | pick 1 of 3 improvements | a random improvement taken back |
+| Limit | +1 to a random limit | pick 1 of 3 limits to raise | -1 to a random limit |
+| Trick pick | pick 1 of 3 Tricks, rare or better | epic or better | a random Trick removed |
+| Focus | Focus up by half the bar | Focus to max | Focus down by half the bar |
+| Knack pick | pick 1 of 3 Knacks | rare or better | a random Knack removed |
+| Sleight pick | a random Sleight on top of the draw pile | pick 1 of 3 Sleights | a random Sleight removed |
+| Boss goal | the next boss asks 5% less | 10% less | the next boss asks 5% more |
+| Hand growth | your most-played hand family gains 5 plays toward its next step | 15 plays (a full step) | -5 plays |
 
 ## 5. What each department pays
 
@@ -174,15 +196,40 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 | HR | Sleight charges | Limit |
 | Legal | Time | Knack pick |
 | Operations | Swaps and discards | Sleight pick |
-| R&D | Rerolls | Improvement |
-| IT | Reward grid size | Trick pick |
+| R&D | Prime (r685; was Rerolls) | Improvement |
+| IT | Card buffs (r685; was Reward grid size) | Trick pick |
 
-Prime and Card buffs are spares, to swap in for any Standard reward that plays flat.
+Prime and Card buffs are spares, to swap in for any Standard reward that plays flat. Built r677
+(`CRR.prime`, `CRR.cardbuff`). r685 (owner): R&D's easy cards pay Prime and IT's pay Card buffs
+(Rerolls and Reward grid size are spares now), and in Flow and Classic, which have no department,
+an easy card pays Credits, Prime or Card buffs at random (fixed when it lands).
+- **Prime:** a primed Trick pays its effect again the next time it fires (a prime replays the
+  Trick's own payout; every prime it holds fires on that one firing, then they clear). Primed
+  twice, its next firing pays three times. Source `challenge`, so Quarter resource limits apply.
+- **Card buffs:** the Flow deck editor's buff rows at the editor's odds and values (+pips, +mult,
+  +Focus, rewind, +credits, x pips, x mult; replay and the second rank / suit are event only), but
+  on cards anywhere in the deck, not touching cards on the board, and the buff is rolled per card.
+  Stage 2 opens a board screen with the event deck picker (`crrCardPick`): choose up to 3, each
+  rolls its buff. After the round in Classic and the Schedule, a `cardpick` step of the next
+  reward chain in Flow.
 
-## 7. A Trick and a Sleight that change every round (r664)
+## 7. A Trick and a Sleight that change every round (r664; built r676)
 
 You take it without knowing what it will be. At the start of each round it becomes a random
 Trick (or Sleight), drawn with no regard for rarity, and does that for the round.
+
+**Built r676** (`js/changing.js`) under working names: **Temp** (Trick, id `changeling`, epic)
+and **Floater** (Sleight, id `floater`, epic, 6 charges). The owner names them. As built:
+- Temp stands in for its form the way a fused Trick stands in for its parts (r651): its tray
+  object carries `acts: [form]`, so the form's code runs and its payouts are billed to Temp's
+  chip. Measured: Temp as Cascade scored a Run of 3 at 534, the real Cascade 534 (none 174).
+- Before its first round it shows a lizard (its own icon); then the form's icon with a small
+  lizard on the chip. The Floater shows the form's face with a small swirl in the corner, and
+  its tooltip reads "Floater this round".
+- Improving Temp improves the form (Temp v2 as Cascade: +40 pips a card, 894 on the same hand);
+  the next form takes the same tier and the last one's tier is dropped.
+- A printed notice names each new form, the Floater's too (wherever it is).
+- Also not drawn: Mirror (its aim lives on its own chip).
 
 | | name | rarity (suggested) | description |
 |---|---|---|---|
@@ -202,7 +249,7 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 
 **Both:**
 - **When:** the round's start, after the deal and before the clock runs. Taken between
-  rounds, it shows a question mark until then; taken mid-round, it changes at once. Flow:
+  rounds, it shows its own icon until then; taken mid-round, it changes at once. Flow:
   each level's start (its boss comes mid-level, so the level's form stays through it).
 - **Shown:** the tile wears the form's icon plus a mark that it changes; the tooltip reads
   "<Form> this round". A printed notice names the form when it changes.
@@ -220,7 +267,7 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 | | Tricks |
 |---|---|
 | **In:** reads the whole game so far | Hummingbird (pauses and rewinds this game), Wellspring (Focus made this game), Wild Side (negative tiles taken this run), Unsummit (the level) |
-| **In:** buffs cards for good, so nothing is lost when the form changes | Bedrock, First Fruits, The Vulture, Hourglass, Ley Line, D6, Middle Management, Royal Favour, Ace Absorb, Monopoly, Heartwood, Wait Four It |
+| **In** (owner, r667): buffs cards for good, so nothing is lost when the form changes | Bedrock, First Fruits, The Vulture, Hourglass, Ley Line, D6, Middle Management, Royal Favour, Ace Absorb, Monopoly, Heartwood, Wait Four It |
 | **Out:** grows from when you take it | Middle Man, Compound, Acorns, Penny Saved, Perfect Ten, More Better, Feng Shui, Relentless, Quick Draw, Expanse, the little guys, Cloud Nine (also adds 9s on pickup) |
 | **Out:** grows round by round | Rising Tide, Life Lessons, Assembly Line |
 
@@ -247,16 +294,32 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 - Build note: the card needs a durable field marking it as the changer (`DURABLE_CARD_FIELDS`),
   or `recycleCard` turns it into its form for good.
 
-## 6. Open questions
+## 6. Decided (owner, r665-r671)
 
-1. **Rule Sleights:** is the rule in force only while the card is on the grid (as written), or
-   for the rest of the round once it lands? Is the charge spent on landing (as written)?
-2. **Flow and Classic** have quarters but no Schedule. Give them a department a quarter too
-   (drawn the same way), or a fixed payout (Standard: Credits; Hard: Improvement)?
-3. **A failed raise:** pays nothing (as written), or also today's penalty bursts? And does a
-   timed card (Flow, spot) that runs out before stage 1 still charge its penalty?
-4. **Which three departments go** (proposed: Communications, Customer Support, Procurement).
-5. **Overlap:** TODO.md's skip perks (section 1, item 3) list a Sleight charge, a random
-   improvement and +2 reward grid selection too. One reward list could serve both.
-6. **Card-buffing Tricks** (Bedrock, The Vulture, Royal Favour...) are IN the changing Trick's
-   draw: their buffs stay on the cards. Out if they count as "scaling from when you get it".
+1. **Rule Sleights:** the rule is in force while the card is on the grid.
+2. **Flow and Classic** get no department for now: a fixed payout (Standard: Credits; Hard:
+   Improvement).
+3. **Penalties:** yes. A card that runs out, or a raise that fails, charges its reward's first
+   tier in reverse (section 3), animated and printed.
+4. **Departments:** Communications, Customer Support and Procurement are cut.
+5. **One reward list serves both:** leaving a Schedule slot early pays from the same list
+   (section 2).
+6. **The changing Sleight** has 6 charges of its own; **the changing Trick** may become Tricks
+   that read the whole game so far or buff cards for good, never ones that grow from when you
+   take them or round by round (section 7).
+
+## 8. The challenge knacks (r685, owner)
+
+- **Trophy Case** (working name, rare): completed challenge cards turn into a random Sleight instead
+  of paying their reward. Common or rare; v2 adds epic, v3 the Sleight arrives at v2.0, v4 at v3.0,
+  v5 adds legendary, v6 it arrives at v5.0. Taken during a round, the Sleight takes the card's cell;
+  paid at a round's end, it goes into the deck. It replaces the whole payout, so Very Rewarding has
+  nothing to multiply while both are owned.
+- **Very Rewarding** (rare): challenge cards pay their reward twice; v2 three times; v3 also a
+  random easy card's stage 1 reward, v4 an easy card's stage 2, v5 a hard card's stage 1, v6 a hard
+  card's stage 2 (one bonus reward that grows, not four). Penalties are not doubled.
+- **Stacked** (rare): every 30s each Sleight on the grid has a 25% chance to prime the Trick in the
+  tray slot of its column. The ladder alternates +10% and -10s (35% / 30s, 35% / 20s, 45% / 20s,
+  45% / 10s); v6 does both, and since 10s - 10s would be nothing, the time stops at 5s (55% / 5s).
+- **Finishing Touch** is the owner's name for r677's Touch-Up.
+

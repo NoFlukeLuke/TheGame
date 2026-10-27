@@ -148,6 +148,7 @@ function refuseTrickCapacity() {
 
 function renderTrickTray() {
   pruneRowColBonuses();
+  if (typeof chgTrickGone === 'function') chgTrickGone();   // r676: Temp sold or lost: its form's borrowed tier goes
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
   // A lifted copy points at a chip this render is about to replace (r409). A
@@ -198,7 +199,7 @@ function renderTrickTray() {
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
     // tip:false - the chip's own tap bubble (read + hold for sell/discard)
     // already covers this tile; the delegated data-et bubble would double it.
-    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (bossOff ? `<div class="trick-off-mark">${typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id) ? 'LOCKED' : 'OFF'}</div>` : '');
+    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (trick.id === 'changeling' && trick._form ? `<div class="chg-badge">${emGlyph('🦎')}</div>` : '') + (bossOff ? `<div class="trick-off-mark">${typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id) ? 'LOCKED' : 'OFF'}</div>` : '');
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';
@@ -310,7 +311,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   // The + and its rail (r288). Definitions never open unasked, here or anywhere.
   tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
                 + (actions
-                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button></div>`
+                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>`
                     : '');
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
@@ -322,7 +323,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
     e.stopPropagation();
     const _fl = feelinLuckyRerollsLeft(trick);
     tipConfirmAction(_row(), {
-      question: _fl ? `Reroll its ranks for 💰${feelinLuckyRerollCost()} (30% of your credits)? ${_fl} left, then it sells.` : `Sell for 💰${_sv}?`,
+      question: _fl ? `Reroll its ranks for ${creditsTxt(feelinLuckyRerollCost())} (30% of your credits)? ${_fl} left, then it sells.` : `Sell for ${creditsTxt(_sv)}?`,
       confirmLabel: _fl ? 'Reroll' : 'Sell',
       onYes: () => sellTrick(trick), onCancel: _reopen,
     });
@@ -373,7 +374,7 @@ function feelinLuckyIntercept(t) {
   coins = Math.max(0, coins - cost); updateCoinsUI();
   t._luckySells = (t._luckySells || 0) + 1;
   feelinLuckyRoll(t);
-  showMessage(`🍀 Feelin Lucky rerolled: ${t._luckyRanks.join(' ')} (-💰${cost})`, 'var(--gold)');
+  showMessage(`🍀 Feelin Lucky rerolled: ${t._luckyRanks.join(' ')} (-${creditsTxt(cost)})`, 'var(--gold)');
   if (typeof renderTrickTray === 'function') renderTrickTray();
   return true;
 }
@@ -381,6 +382,7 @@ function feelinLuckyIntercept(t) {
 function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
+  if (trick.id === 'changeling' && typeof changelingPickup === 'function') trick = changelingPickup(trick);   // r676: its own copy, changed at once mid-round
 
   // Positional bonuses get an axis+index at pick time - steered by the position knacks
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.

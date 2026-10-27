@@ -11,20 +11,23 @@ reads the live files, nothing is copied.
 
 ```
 cd tools/sim
-node runner.js <classic|schedule|survival> <runs> '<sched-json>' [handTime]
+node runner.js <classic|schedule|flow> <runs> '<sched-json>' [handTime] [jobs]
 ```
 
 - `{"native":true}` plays the game's own shipped curve (`goalForLevel`).
 - Otherwise: `{"base":1500,"roundTo":500,"segments":[[12,32],[99,45]]}` means
   levels up to 12 grow 32% per level, everything after 45%. Schedule also takes
-  `"bossMult"` (review quota = quarter-open goal x that) and `"tiles"` (the walk, r655: e.g.
-  `["level","level","level","reward","hard","shop","event","reward"]` for the 4 x 4); survival takes
-  `"bossEvery"` (seconds of live play per boss, default 300).
-- `handTime` (default 12s) is the bot's pace per hand - the skill knob.
-- `sweep.sh <mode>` runs the r278 config lists into `sweep_<mode>.jsonl`.
+  `"bossMult"` (review quota = quarter-open goal x that; left out, the game's own
+  `MAP_BOSS_SCALE ^ (MAP_BOSS_LEVELS - 1)`) and `"tiles"` (the walk; the default is
+  `["level","level","level","reward","hard","shop","event","reward"]`, 8 bookings of the 4 x 4).
+- `flow` plays Flow (r683; `survival` is read as `flow`, the old Survival mode is gone).
+- `handTime` (default 15s) is the bot's pace per hand - the skill knob. Use 6.
+- `jobs` (r683, default one per core) splits the runs over that many processes.
+- `sweep.sh <mode>` runs the r278 config lists into `sweep_<mode>.jsonl` (old curves; kept as history).
 
 Output per config: win rate, share of deaths on boss rounds, a histogram of the
-level each loss died at, ms per run.
+level each loss died at, the death rounds' averages (hands, dry scans, Focus, % of
+goal reached, Reshuffles taken, how many stalled with time left), wall ms per run.
 
 ## What the bot does and does not do
 
@@ -33,14 +36,32 @@ Does: real deals, connected-subset search (up to 5 cards), plays the highest
 low cards, spends real interact costs, real entity draws (pick-of-three takes
 the best of 3 by tier), prefers the growth limits, real clock-mark tricks (the
 round clock is simulated per second through `handleClockMarks`), real natural
-scaling and entity improvements.
+scaling and entity improvements. Takes the Reshuffle card when the deck runs dry
+and the board is stuck or under half full (r683). Level-ups apply the board size
+limits, refill stock and time from `computeRoundResources` and reset Focus.
+Flow pays the game's own reward chain (`flowrRollCount`, `flowrRollKind`).
 
 Does not: exploit 6-7 card layered hands (perf cap), draft synergies, use
-Sleight activations, face boss modifiers, or suffer reward-grid debuffs. The
+Sleight activations, edit the deck, face boss modifiers, or suffer reward-grid debuffs. The
 first three make it WEAKER than a good player, the last two make it stronger;
 net, treat its win rate as a floor a real player clears by a wide margin.
 
-## Calibration anchors (2026-09-19, pre-deck-rework)
+## r683: what the sim measures now
+
+Before r683 the Schedule runner crashed on its first hand, the Survival runner on its first
+line (the mode is gone), and Classic ran without the Reshuffle card, without refilling stock or
+time at a level-up, always on a 4 x 4 and with Focus carried from round to round. Every number
+below this section was taken with those faults. r679's game, native curves, handTime 6, 40 runs
+each (so about +-15 points):
+
+| mode | bot win % | deaths |
+|---|---|---|
+| Classic | 32.5 | levels 16-24, at 63% of goal, 26% on a boss, 0 stalls |
+| Schedule (8 bookings a quarter) | 77.5 | 56% at the review |
+| Flow | 100 | none: boss N asks level 1 + 5N's goal (r525), the bot is near level 16 when boss 1 comes |
+| Flow, r687 bosses (levels 10 / 16 / 20 / 24) | 92.5 | all at a boss, levels 24 and 27 |
+
+## Calibration anchors (2026-09-19, pre-deck-rework, pre-r683 sim)
 
 **Use handTime 6, not 12.** The owner's pairs-for-Focus play (~5-6s a hand) earns
 the SPEED Focus bonus, which zeroes at 8s - so a 12s bot plays the whole run at

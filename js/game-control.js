@@ -485,6 +485,7 @@ function startGame() {
   pendingLevelUps = 0;
   suppressScoreDisplay = false;
   heldBackScore = 0;
+  if (typeof dncScoreHoldOff === 'function') dncScoreHoldOff();
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
   pauseInstanceGame = 0; rewindInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
@@ -585,6 +586,7 @@ function startGame() {
   highestHandName  = null;
   trickFireTotals  = {};
   if (typeof resetQuarterLog === 'function') resetQuarterLog();   // js/quarter.js
+  if (typeof endlessReset === 'function') endlessReset();          // js/endless.js (r680)
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();

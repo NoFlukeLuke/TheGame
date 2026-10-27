@@ -161,7 +161,8 @@ function _pickEntityByRarity(pool, tierOf, weights, tiers) {
   // back an epic, not a fresh roll that could land higher than it rolled.
   for (let i = ti; i >= 0; i--) {
     const t = pool.filter(x => tierOf(x) === T[i]);
-    if (t.length) return offerWeightedPick(t);
+    // r673: on the Schedule, the quarter's department leans the pick within the tier.
+    if (t.length) return offerWeightedPick(typeof deptLean === 'function' ? deptLean(t) : t);
   }
   return offerWeightedPick(pool);
 }

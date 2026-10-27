@@ -1,13 +1,10 @@
-/* ══ KEY LOOKS (r662, owner's brief; a preview, js/key-looks.js) ═══════════════
-   PLAY, DISCARD and SWAP as small pixelated screens set in a rim of the key's own
-   fixed colour, 5 design px wide and standing proud of the glass like the frame of a
-   TV. The key still travels when pressed. The stock bulbs become little pixel squares
-   inside the screen (js/stock-bulbs.js reads keyLookCfg). Three looks to choose from:
-     A  tube   dark glass, scan lines, the words and squares glow in the key's colour
-     B  lcd    a backlit panel in a pale tint of the key, a dot grid, dark ink
-     C  pixel  pixel art: stepped corners, a hard bevel and outline, a black screen
-               with a visible pixel grid
-   Dev -> HUD & Display -> Aesthetics -> Key look; index.html?keys=a|b|c for one load.
+/* ══ KEY LOOK (r662 preview; r670 the owner's pick, js/key-looks.js) ════════════
+   PLAY, DISCARD and SWAP as small tube screens set in a rim of the key's own fixed
+   colour, 5 design px wide and standing proud of the glass like the frame of a TV.
+   The key still travels when pressed. The stock bulbs are little pixel squares inside
+   the screen (js/stock-bulbs.js reads keyLookCfg), and the words are dots on a canvas
+   (js/key-dots.js), the key's own text kept in place but transparent.
+   Dev -> HUD & Display -> Aesthetics -> Key look turns it off (the old keycaps).
    Selectors carry four ids so they beat the console keycaps (css/skin-machine.css). */
 
 /* The key's colours, as r,g,b: the rim, its lit and shaded faces, and the glow. */
@@ -53,7 +50,7 @@ html.kl .sb-grp.sb-trick { --sq: 230,222,200; }
 @keyframes klSqNew { 0%, 30%, 60% { opacity: .15; } 15%, 45%, 100% { opacity: 1; } }
 html.kl .sb-b.sb-ext { animation: klSqNew 1.2s steps(1) both; }
 
-/* ── A · TUBE ─────────────────────────────────────────────────────────────── */
+/* ── the tube ─────────────────────────────────────────────────────────────── */
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) {
   border-radius: 8px !important; filter: none !important;
   background: linear-gradient(180deg, rgb(var(--kc-hi)) 0%, rgb(var(--kc)) 20%, rgb(var(--kc)) 74%, rgb(var(--kc-lo)) 100%) !important;
@@ -92,98 +89,50 @@ html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indi
 }
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):not(:disabled):is(:active, .key-dn)::before,
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):is(.key-latch, .mapk-on, .swap-armed)::before { filter: brightness(1.9); }
-html.kl.kl-a .sb-b { box-shadow: inset 0 0 0 1px rgba(var(--sq), .16); }
-html.kl.kl-a .sb-b.sb-on { box-shadow: inset 0 0 0 1px rgba(var(--sq), .6); }
-html.kl.kl-a .sb-b.sb-on.sb-gr { background: rgb(var(--sq)) !important; box-shadow: 0 0 3px rgba(var(--sq), .9), 0 0 8px rgba(var(--sq), .45); }
-
-/* ── B · LCD ──────────────────────────────────────────────────────────────── */
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) {
-  border-radius: 5px !important; filter: none !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.14), transparent 30%, rgba(0,0,0,.1)), rgb(var(--kc)) !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), inset 0 -2px 0 rgba(0,0,0,.18),
-    0 0 0 1px rgba(0,0,0,.6), 0 6px 0 rgb(var(--kc-lo)), 0 6px 0 1px rgba(0,0,0,.6), 0 9px 9px rgba(0,0,0,.45) !important;
-  transition: transform .1s ease-out, box-shadow .1s ease-out !important;
+/* r681 (owner): a stock square is 3 x 3 separate pixels with gaps, like the words' dots
+   (js/key-dots.js). One pixel is the top-left 66% of a third of the square (--px); left =
+   all nine lit and glowing, used = the eight round the edge, not unlocked = all nine faint. */
+html.kl.kl-a .sb-b {
+  --px: conic-gradient(at 66% 66%, transparent 75%, var(--dc) 0);
+  --dc: rgba(var(--sq), .17);
+  box-shadow: none; background: var(--px) 0 0 / 33.34% 33.34% !important;
 }
-/* a backlit panel in a pale tint of the key, with its dot grid */
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave)::before {
-  inset: var(--kr); border-radius: 2px; z-index: -1;
+html.kl.kl-a .sb-b.sb-on {
+  --dc: rgba(var(--sq), .55);
   background:
-    linear-gradient(90deg, rgba(20,30,20,.1) 1px, transparent 1px) 0 0 / 3px 3px,
-    linear-gradient(rgba(20,30,20,.1) 1px, transparent 1px) 0 0 / 3px 3px,
-    radial-gradient(ellipse at 50% 28%, rgba(255,255,236,.4), transparent 72%),
-    color-mix(in srgb, rgb(var(--kc-hi)) 58%, #e2ead0);
-  box-shadow: inset 0 2px 3px rgba(0,0,0,.42), inset 0 0 0 1px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.32);
-  transition: filter .1s;
+    var(--px) 0 0 / 33.34% 33.34% repeat-x,
+    var(--px) 0 100% / 33.34% 33.34% repeat-x,
+    var(--px) 0 50% / 33.34% 33.34% no-repeat,
+    var(--px) 100% 50% / 33.34% 33.34% no-repeat !important;
 }
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave)::after {
-  inset: var(--kr); border-radius: 2px; z-index: 3;
-  background: linear-gradient(170deg, rgba(255,255,255,.24), transparent 42%);
+html.kl.kl-a .sb-b.sb-on.sb-gr {
+  --dc: rgb(var(--sq));
+  background: var(--px) 0 0 / 33.34% 33.34% !important;
+  filter: drop-shadow(0 0 1.5px rgba(var(--sq), .9));
 }
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave),
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) * {
-  color: rgba(16,22,18,.9) !important; text-shadow: 1.5px 1.5px 0 rgba(16,22,18,.14) !important;
-}
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):not(:disabled):is(:active, .key-dn),
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):is(.key-latch, .mapk-on) {
-  transform: translateY(5px) !important; transition-duration: .04s !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.18),
-    0 0 0 1px rgba(0,0,0,.6), 0 1px 0 rgb(var(--kc-lo)), 0 1px 0 1px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.45) !important;
-}
-/* the backlight is brighter while the key is down or on */
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):not(:disabled):is(:active, .key-dn)::before,
-html.kl.kl-b #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):is(.key-latch, .mapk-on, .swap-armed)::before { filter: brightness(1.12) saturate(1.3); }
-html.kl.kl-b .sb-b { background: transparent !important; }
-html.kl.kl-b .sb-b.sb-on { background: rgba(16,22,18,.13) !important; }
-html.kl.kl-b .sb-b.sb-on.sb-gr { background: rgba(16,22,18,.86) !important; }
-html.kl.kl-b .sb-grp.sb-trick .sb-b.sb-on.sb-gr { background: rgb(var(--sq)) !important; }
-
-/* ── C · PIXEL ────────────────────────────────────────────────────────────── */
-/* A rounded rectangle in 2px steps, the way a sprite draws one. */
-html.kl.kl-c {
-  --px4: polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
-    100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px),
-    calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px),
-    0 4px, 2px 4px, 2px 2px, 4px 2px);
-  --px2: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px),
-    calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 2px 2px);
-}
-/* The key draws nothing itself: the rim and the screen are its two layers, cut to the
-   stepped shape, and the slab under it and the black outline round both are drop
-   shadows of that shape (a clip would cut a box-shadow off). */
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) {
-  border-radius: 0 !important; background: none !important; box-shadow: none !important;
-  filter: drop-shadow(0 4px 0 rgb(var(--kc-lo))) drop-shadow(1px 0 0 #0b0b0b) drop-shadow(-1px 0 0 #0b0b0b)
-          drop-shadow(0 1px 0 #0b0b0b) drop-shadow(0 -1px 0 #0b0b0b) !important;
-  transition: none !important;
-}
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave)::before {
-  inset: 0; z-index: -1; clip-path: var(--px4);
-  background: rgb(var(--kc));
-  box-shadow: inset 0 2px 0 rgb(var(--kc-hi)), inset 2px 0 0 rgb(var(--kc-hi)), inset 0 -2px 0 rgb(var(--kc-lo)), inset -2px 0 0 rgb(var(--kc-lo));
-}
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave)::after {
-  inset: var(--kr); z-index: -1; clip-path: var(--px2);
-  background:
-    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px) 0 0 / 3px 3px,
-    linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px) 0 0 / 3px 3px,
-    #060606;
-  box-shadow: inset 0 2px 0 #000, inset 0 0 0 1px rgb(var(--kc-lo));
-}
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave),
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) * {
-  color: rgb(var(--kc-ph)) !important; text-shadow: 1px 1px 0 rgb(var(--kc-lo)) !important;
-}
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):not(:disabled):is(:active, .key-dn),
-html.kl.kl-c #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):is(.key-latch, .mapk-on) {
-  transform: translateY(3px) !important;
-  filter: drop-shadow(0 1px 0 rgb(var(--kc-lo))) drop-shadow(1px 0 0 #0b0b0b) drop-shadow(-1px 0 0 #0b0b0b)
-          drop-shadow(0 1px 0 #0b0b0b) drop-shadow(0 -1px 0 #0b0b0b) !important;
-}
-html.kl.kl-c .sb-b { background: #1d1d1d !important; }
-html.kl.kl-c .sb-b.sb-on { background: #060606 !important; box-shadow: inset 0 0 0 1px rgb(var(--sq)); }
-html.kl.kl-c .sb-b.sb-on.sb-gr { background: rgb(var(--sq)) !important; box-shadow: inset -1px -1px 0 rgba(0,0,0,.4), 0 0 0 1px #000; }
 
 /* SWAP is armed (two cards picked): the screen says so; the old pulse drew a keycap's shadow. */
 @keyframes klArmed { 50% { opacity: .55; } }
 html.kl #cabinet #cab-screen #stage #swap-indicator.swap-armed:has(.swap-word) { animation: none !important; }
 html.kl #cabinet #cab-screen #stage #swap-indicator.swap-armed:has(.swap-word) .swap-word { animation: klArmed .9s steps(2) infinite; }
+
+/* ── the words in dots (r670, js/key-dots.js) ────────────────────────────────
+   The canvas lies over the glass and its scan lines (the dots are the screen's own
+   pixels); the glow is the canvas's own drop shadow, so it follows the dots. The DOM
+   words stay laid out, unseen, which is where the dots are read from. Icons the
+   schedule puts on its keys stay as drawn. */
+html.kl.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) .kd-c {
+  position: absolute; left: var(--kr); top: var(--kr); z-index: 4; pointer-events: none;
+  image-rendering: pixelated;
+  filter: brightness(1.1) drop-shadow(0 0 2px rgb(var(--kc-ph))) drop-shadow(0 0 7px rgba(var(--kc), .8));
+}
+html.kl.kl-a.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave),
+html.kl.kl-a.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) * {
+  color: transparent !important; text-shadow: none !important;
+}
+html.kl.kl-a.kd-on #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) :is(.mapk-ico, .mapk-ico *) {
+  color: rgb(var(--kc-ph)) !important; text-shadow: 0 0 2px rgba(var(--kc-ph), .95), 0 0 8px rgba(var(--kc), .75) !important;
+}
+/* an armed SWAP blinks its dots (the word's own blink would be read as a dim word) */
+html.kl.kd-on #cabinet #cab-screen #stage #swap-indicator.swap-armed:has(.swap-word) .swap-word { animation: none !important; }
+html.kl.kd-on #cabinet #cab-screen #stage #swap-indicator.swap-armed:has(.swap-word) .kd-c { animation: klArmed .9s steps(2) infinite; }

@@ -9,7 +9,7 @@
 //     all solved + goal              -> the reward is the PRIZE grid
 //     clock out, goal met, unsolved  -> cleared, but the PENALTY grid comes first
 //     clock out, goal not met        -> an ordinary lost round
-//   Each card pays its banked tier's credits (CR_FLOW_STAKES). Classic plays one as node
+//   Each card pays its reward (js/challenge-rewards.js). Classic plays one as node
 //   `challengeNode` of every quarter; half the Schedule's challenge tiles are an
 //   AUDIT, which adds CR_MAP_BONUS_SECONDS past the round cap.
 //
@@ -20,12 +20,12 @@
 //   level: each level rolls CR_FLOW_LEVEL_CHANCE, and its warning appears
 //   CR_FLOW_LEVEL_DELAY seconds of live play in (crFlowLevelStart). Each has its own CR_FLOW_TIME clock that
 //   only runs while the round clock does, so it waits out a level-up and resumes.
-//   Solved: + credits, + seconds and +1 reward at the next level-up. Timed out:
-//   the same amounts taken away, and one fewer reward (never below one). The
-//   amounts come from the difficulty of the card's tier (CR_FLOW_STAKES).
+//   Solved: the card's reward. Timed out: stage 1's reward in reverse.
 //
-// LADDERS (r463): every card is a ladder of tiers (see crTypeDefs). Clear a tier
-// and the card offers the next one: tap to take, double-tap to raise.
+// TWO STAGES, ONE PAYOUT (r671, owner; CHALLENGE_REWARDS.md): clear stage 1 and
+// the card offers stage 2: tap to take, double-tap to raise. A raise that clears
+// pays the reward's second tier INSTEAD of its first; one that fails pays nothing
+// and charges the penalty. What a card pays is js/challenge-rewards.js.
 //
 // THE CARD is a board object, not a hole: { _isStone, _isChallenge, cr }. Its
 // requirement, progress and clock live ON it (`cr`), so two can share a board and
@@ -70,20 +70,18 @@ function crModeHasCards() {
 const CR_FLOW_LEVEL_DELAY = [3, 8];      // ...whose warning appears this many live seconds into the level          // ...this many seconds after the first
 const CR_FLOW_BOSS_GAP = 60;             // no card within a minute of a boss
 const CR_FLOW_TIER_W = [45, 40, 15];     // how often a Flow card's ladder STARTS at difficulty 1 / 2 / 3
-// What a tier is worth by difficulty: credits and seconds in every mode. Taken at
-// difficulty 2+ (CR_BONUS_D) it also pays a reward: +1 at Flow's next level-up, a
-// free 3x3 mini grid elsewhere. A failed tier takes the same amounts away.
-const CR_FLOW_STAKES = { 1: { credits: 4, secs: 10 }, 2: { credits: 9, secs: 16 }, 3: { credits: 15, secs: 24 } };
+// r671: a card whose stage 1 is difficulty CR_BONUS_D or more is HARD and pays
+// from the hard reward list; the rest are STANDARD (js/challenge-rewards.js).
 const CR_BONUS_D = 2;
 
 var crRound = null;   // `var`: read by name from files above this one (TDZ)
-var crFlow  = null;   // { at: clock value | null, used: cards this cycle, rolled: level, rewardDelta } - in SAVE_VARS
+var crFlow  = null;   // { at: clock value | null, used: cards this cycle, rolled: level, steps } - in SAVE_VARS
 // r528: how often each hand type was played this run, so a challenge asks less for a
 // hand the player has not been making (crReqWeight). In SAVE_VARS.
 var crHandPlays = {};
 // A SPOT card: an ordinary round in a node mode (Classic, Guided, the Schedule)
 // has CR_SPOT_CHANCE of one challenge card, timed and refusable like Flow's.
-// { at: clock value to arrive at | null, minis } - in SAVE_VARS.
+// { at: clock value to arrive at | null } - in SAVE_VARS.
 var crSpot  = null;
 const CR_SPOT_CHANCE = 0.25;
 let crArmed = null;   // { source, bonusSecs } | null - in SAVE_VARS
@@ -113,6 +111,23 @@ function crCards() {
 function crFindCard(src) { const h = crCards().find(([, , cd]) => !src || cd.cr.src === src); return h ? [h[0], h[1]] : null; }
 function crFindById(id) { const h = crCards().find(([, , cd]) => cd._id === id); return h || null; }
 function crCardEl(cd) { return cd ? document.querySelector(`#grid [data-card-id="${cd._id}"]`) : null; }
+// r677 (owner, to choose from): four looks for answering a cleared card, each its own
+// switch. press: a tap answers at once. prompt: the cleared card names both choices and
+// drains toward its auto-take. take: a PAID stamp, the paid figure flies off the card, the
+// one passed up is struck. raise: a STAGE 2 stamp, the ask rolls up, the border turns red
+// while stage 1 is at risk. All off is the r671 look. Only the preview (index.html?crfx,
+// js/cr-fx-lab.js) turns them on; body.crfx-<key> gates their CSS.
+// r681 (owner): press is kept, so it is on. r688 (owner): all four are kept. border (r688,
+// a preview only): a timed card's clock is a ring round its edge that a hand sweeps away
+// clockwise, and the background stays lit.
+const CR_FX = { press: true, prompt: true, take: true, raise: true, border: false };
+if (document.body) Object.keys(CR_FX).forEach(k => document.body.classList.toggle('crfx-' + k, CR_FX[k]));
+function crFxOn(k) { return !!CR_FX[k]; }
+function crFxSet(k, on) {
+  CR_FX[k] = !!on;
+  document.body.classList.toggle('crfx-' + k, !!on);
+  crCards().forEach(([, , cd]) => crRepaint(cd));
+}
 function crOrdinary(cd) { return !!(cd && cd.rank && !cd._isStone && !cd._isSleight && !cd._isTrick); }
 function _crPick(a) { return a[Math.floor(Math.random() * a.length)]; }
 function _crPickW(a, w) {
@@ -146,6 +161,7 @@ function crOnRoundStart() {
   // charging its penalty bursts (crFailing) leaves when they end.
   for (const [, , cd] of crCards()) if (cd.cr.done && !crQueue.includes(cd._id) && !crFailing.has(cd._id)) crQueue.push(cd._id);
   if (crQueue.length) setTimeout(crDrain, 400);   // a card solved by the last hand of a round
+  if (typeof crrPendingApply === 'function') crrPendingApply();   // r671: rewards paid after the last round
   crFlowLevelStart();
   if (!crRound) { crSpotRoll(); return; }
   if (crRound.started || crRound.over) return;
@@ -179,9 +195,9 @@ function _crBigTarget(mult) {
 const _crL = (...p) => p.map(([d, n]) => ({ d, n }));
 // r555 (owner): TWO TIERS OF EVERY ASK. The ladders below are the ask met ANYWHERE
 // on the board. The same ask with the counted hand TOUCHING the card is one
-// difficulty higher (each tier's d + 1, capped at 3; a tier that would repeat a
-// difficulty is dropped, since a raise to the same payout is no raise).
-const _crTouch = l => { const out = []; l.forEach(t => { const d = Math.min(3, t.d + 1); if (!out.length || out[out.length - 1].d < d) out.push({ d, n: t.n }); }); return out; };
+// difficulty higher (each tier's d + 1, capped at 3). r671: the payout no longer
+// follows difficulty, so a tier repeating one is kept.
+const _crTouch = l => l.map(t => ({ d: Math.min(3, t.d + 1), n: t.n }));
 // Cards a hand type needs. "Playing 3 of any hand is tough unless the hand is one
 // under your Selection Size" (owner): a hand that takes EVERY selected card has to
 // come up whole, with no spare, so it gets the TIGHT ladder; one that leaves a card
@@ -200,7 +216,7 @@ function crTypeDefs() {
   out.push({ kind: 'touch', ladder: _crL([1, 3], [2, 5], [3, 7]) });
   named(CR_HANDS_LOW, () => _crL([1, 3], [2, 5], [3, 7]), () => _crL([1, 2], [2, 3], [3, 5]));
   named(CR_HANDS_MID, () => _crL([1, 2], [2, 3], [3, 5]), () => _crL([2, 1], [3, 2]));
-  named(CR_HANDS_TOP, h => h === 'Four of a Kind' ? _crL([2, 1], [3, 2]) : _crL([2, 1], [3, 2]), () => _crL([3, 1]));
+  named(CR_HANDS_TOP, () => _crL([2, 1], [3, 2]), () => _crL([3, 1], [3, 2]));
   // Three of a suit in one hand: never at Selection 3 (a three-card flush is the
   // whole hand, owner: "crazy hard"); at 4 the hand has one spare card.
   if (sel >= 4) both({ kind: 'suit', suit: _crPick(suits), per: 3, ladder: sel === 4 ? _crL([2, 1], [3, 2]) : _crL([1, 1], [2, 2], [3, 3]) });
@@ -209,6 +225,9 @@ function crTypeDefs() {
   both({ kind: 'big', ladder: _crL([2, _crBigTarget(1.3)], [3, _crBigTarget(1.8)]) });
   out.push({ kind: 'colfall', ladder: _crL([1, 2], [2, 3], [3, 5]) });
   out.push({ kind: 'rowhit', ladder: _crL([1, 2], [2, 3], [3, 5]) });
+  // r671 (owner): two stages, never three. A ladder that cannot grow (hand types
+  // when the board makes only three) keeps its one stage and pays when it clears.
+  out.forEach(t => { t.ladder = t.ladder.slice(0, 2); });
   return out;
 }
 // A card whose ladder STARTS at difficulty `b` (1-3); the nearest lower start if
@@ -244,12 +263,20 @@ function crFamily(q) {
   if (q.kind === 'touch') return 'tap';
   return 'slap';
 }
+// A hand's name as the hand preview prints it (HAND_LABEL: SET OF 3, RUN OF 4), with Two
+// Pair as 2 PAIR (r681, owner: numbers, not words, to save room on the card).
+function crHandShort(h) {
+  const l = typeof HAND_LABEL !== 'undefined' && HAND_LABEL[h];
+  if (!l) return String(h || '').toUpperCase();
+  if (l.fam === 'TWO') return '2 PAIR';
+  return l.fam + (l.size ? (/^\d/.test(l.size) ? ' OF ' : ' ') + l.size : '');
+}
 function crReqShort(q) {
   if (!q) return '';
   const n = crTarget(q);
   switch (q.kind) {
     case 'touch':   return `${n} HANDS TOUCHING`;
-    case 'hand':    return n > 1 ? `${n}× ${q.hand.toUpperCase()}` : q.hand.toUpperCase();
+    case 'hand':    return n > 1 ? `${n}× ${crHandShort(q.hand)}` : crHandShort(q.hand);
     case 'suit':    return `${q.per}${q.suit} IN A HAND`;
     case 'size':    return `${n}× ${q.per}+ CARDS`;
     case 'big':     return `${n.toLocaleString()} IN 1 HAND`;
@@ -282,28 +309,44 @@ function crProg(q) {
   if (q.kind === 'big') return [Math.min(n, q.prog), n];
   return [Math.min(n, q.prog), n];
 }
-const CR_GLYPH = { touch: '✋', hand: '♠', suit: '♣', size: '▦', big: '★', types: '≡', colfall: '⇩', rowhit: '⤓' };
-// What a tier pays (and costs): credits always; in Flow also seconds and a reward.
-function crStake(d) { return CR_FLOW_STAKES[d] || CR_FLOW_STAKES[2]; }
 
 // ── The face ────────────────────────────────────────────────────────────────
+// r681 (owner): no picture of the ask's kind; the stage on top in its difficulty's colour
+// (green / amber / red); a timed card's clock is its background, dark amber draining to
+// near black (--crt, 1 to 0), with no seconds printed.
 function crCardFaceHTML(card) {
   const q = card && card.cr;
   if (!q || !q.ladder) return '';
-  const pips = q.ladder.map((t, i) => `<span class="cr-pip d${t.d}${i <= q.banked ? ' on' : ''}${i === q.tier ? ' cur' : ''}"></span>`).join('');
   const [done, of] = crProg(q);
   let prog;
   if (q.kind === 'big') prog = `<div class="cr-num">${done >= of ? '✓' : 'best ' + done.toLocaleString()}</div>`;
   else if (of <= 5) { prog = '<div class="cr-boxes">'; for (let i = 0; i < of; i++) prog += `<span class="cr-box${i < done ? ' on' : ''}"></span>`; prog += '</div>'; }
   else prog = `<div class="cr-num">${done}/${of}</div>`;
-  const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '') + `<span class="cr-pips">${pips}</span>`;
-  const timer = crTimed(q.src) && !q.done
-    ? `<div class="cr-timer${q.timeLeft <= 10 ? ' low' : ''}" style="--crt:${Math.max(0, q.timeLeft / (q.timeMax || CR_FLOW_TIME))}"><b>${q.timeLeft}s</b></div>` : '';
-  const more = crCanRaise(q) ? `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>` : '';
-  return `<div class="cr-head">${head}</div>`
-       + `<div class="cr-glyph">${CR_GLYPH[q.kind] || '⚑'}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
-       + `<div class="cr-req">${crReqShort(q)}</div>`
-       + prog + more + timer;
+  const stage = q.ladder.length < 2 ? 'ONE STAGE' : `STAGE ${q.tier + 1}`;
+  const mark = q.done === 'won' ? '✓ ' : q.done === 'lost' ? '✗ ' : '';
+  const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '')
+             + `<span class="cr-stage d${crDiff(q)}">${mark}${stage}</span>`;
+  const crt = Math.max(0, Math.min(1, q.timeLeft / (q.timeMax || CR_FLOW_TIME))).toFixed(3);
+  const bg = !crTimed(q.src) ? '' : `<div class="cr-bg" style="--crt:${crt}"></div>`
+           + (crFxOn('border') && !q.done ? `<div class="cr-clock" style="--crt:${crt}"></div>` : '');
+  const more = !crCanRaise(q) ? '' : crFxOn('prompt') ? crMoreHTML(q)
+             : `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>`;
+  const pay = (typeof crrFaceHTML === 'function') ? crrFaceHTML(q) : '';
+  return bg + `<div class="cr-head">${head}</div>`
+       + `<div class="cr-req">${crReqShort(q)}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
+       + prog + pay + more;
+}
+// r677 'prompt': both answers with what each pays (r681: TAP / 2-TAP, no ask), and a bar draining
+// over the CR_CLEAR_HOLD live seconds before the card takes the payout itself. The face
+// is rebuilt on every render, so the bar's animation starts that far through.
+function crMoreHTML(q) {
+  const id = crPayOf(q), r = CRR[id];
+  const v = t => (r && r.face) ? crrFig(id, t) : crrShort(id, t);
+  const gone = CR_CLEAR_HOLD - (q.hold != null ? q.hold : CR_CLEAR_HOLD);
+  return `<div class="cr-more cr-more2">`
+       + `<div class="crm-row"><span>TAP</span><b>${v(0)}</b></div>`
+       + `<div class="crm-row crm-up"><span>2-TAP</span><b>${v(1)}</b></div>`
+       + `<div class="crm-hold"><i style="animation-duration:${CR_CLEAR_HOLD}s;animation-delay:-${gone}s"></i></div></div>`;
 }
 function crRepaint(cd) {
   const el = crCardEl(cd);
@@ -311,31 +354,38 @@ function crRepaint(cd) {
   el.innerHTML = crCardFaceHTML(cd);
   el.classList.toggle('cr-low', !!(crTimed(cd.cr.src) && !cd.cr.done && cd.cr.timeLeft <= 10));
   el.classList.toggle('cr-cleared', crCanRaise(cd.cr));
+  el.classList.toggle('cr-raised', crRaisedLive(cd.cr));
 }
+// Raised and still open: stage 1 is at risk (r677 'raise' draws it).
+function crRaisedLive(q) { return !!(q && q.ladder && !q.done && q.tier > 0); }
 function crShowInfo(r, c) {
   const cd = (r != null) ? gridData[r]?.[c] : (crCards()[0] || [])[2];
   if (!cd || !cd.cr || !cd.cr.ladder) return;
   const q = cd.cr, [done, of] = crProg(q);
-  const ladder = q.ladder.length > 1 ? ` Tier ${q.tier + 1} of ${q.ladder.length}.` : '';
+  const ladder = q.ladder.length > 1 ? ` Stage ${q.tier + 1} of ${q.ladder.length}.` : '';
   const extra = (q.kind !== 'big' && of > 1 ? ` (${done}/${of})` : '') + (crTimed(q.src) ? ` · ${q.timeLeft}s left` : '');
-  showMessage(`⚑ ${crReqText(q)}${extra}${ladder}`, 'var(--c-amber, #ffb347)', { ms: 3200 });
+  const pays = (typeof crrInfoText === 'function') ? ' ' + crrInfoText(q) : '';
+  showMessage(`⚑ ${crReqText(q)}${extra ? extra + '.' : ''}${ladder}${pays}`, 'var(--c-amber, #ffb347)', { ms: 4200 });
 }
 // A tap on a challenge card (input.js). On a cleared card: tap takes the banked
 // payout, double-tap raises. Otherwise it reads out what the card asks.
+// r681 (owner): the take waits 0.15s longer for a second tap than a card's double-tap (0.35s).
+const CR_TAP_WAIT_MS = 500;
 let _crTapAt = 0, _crTapId = null, _crTapTimer = null;
 function crTap(r, c) {
   const cd = gridData[r]?.[c];
   if (!cd || !cd.cr) return;
+  if (crFxOn('press') && !cd.cr.done) crFxPress(cd);
   if (!crCanRaise(cd.cr)) { crShowInfo(r, c); return; }
   const now = Date.now();
-  if (_crTapId === cd._id && now - _crTapAt < 350) {
+  if (_crTapId === cd._id && now - _crTapAt < CR_TAP_WAIT_MS) {
     clearTimeout(_crTapTimer); _crTapId = null;
     crRaise(cd);
     return;
   }
   _crTapAt = now; _crTapId = cd._id;
   clearTimeout(_crTapTimer);
-  _crTapTimer = setTimeout(() => { _crTapId = null; const h = crFindById(cd._id); if (h && crCanRaise(h[2].cr)) crCollect(h[2]); }, 360);
+  _crTapTimer = setTimeout(() => { _crTapId = null; const h = crFindById(cd._id); if (h && crCanRaise(h[2].cr)) crCollect(h[2]); }, CR_TAP_WAIT_MS + 10);
 }
 
 // ── Arrival ─────────────────────────────────────────────────────────────────
@@ -474,6 +524,7 @@ function crLand(t) {
       discardToDrawPile(cur);
     }
     const q = { ...t.q, src: t.src, idx: t.idx };
+    if (typeof crrRewardFor === 'function') q.pay = crrRewardFor(q);   // r671: what it pays is fixed as it lands
     if (crTimed(t.src)) { q.timeLeft = CR_FLOW_TIME; q.timeMax = CR_FLOW_TIME; }
     const card = { rank: '?', suit: 'stone', _isStone: true, _isChallenge: true, _id: `cr-${Date.now()}-${++crSeq}`, cr: q };
     gridData[t.r][t.c] = card;
@@ -491,6 +542,7 @@ function crLand(t) {
 // ── Scoring a hand ──────────────────────────────────────────────────────────
 // playHand, after the score is committed and BEFORE the goal check.
 function crOnHand(hand, handCells, finalScore) {
+  if (typeof crrAfterHand === 'function') crrAfterHand();   // r671: a hand scored without Focus is spent
   if (!crHandPlays) crHandPlays = {};   // a save from before r528
   if (hand) crHandPlays[hand] = (crHandPlays[hand] || 0) + 1;
   if (finalScore > 0) { crRecent.push(finalScore); if (crRecent.length > 12) crRecent.shift(); }
@@ -579,8 +631,7 @@ function crAdvance(cd) {
     if (q.tier >= q.ladder.length - 1) { crCollect(cd); return; }
     q.hold = CR_CLEAR_HOLD;
     crRepaint(cd); crFxClear(cd);
-    const st = crStake(crDiff(q)), up = crStake(q.ladder[q.tier + 1].d);
-    showMessage(`⚑ Cleared · tap to take +${st.credits}, double-tap to raise: ${crReqText(q, q.tier + 1)} (+${up.credits})`, 'var(--gold)', { ms: 4200 });
+    showMessage(`⚑ Cleared · tap to take ${crrSay(crPayOf(q), 0)}, double-tap to raise: ${crReqText(q, q.tier + 1)} (${crrSay(crPayOf(q), 1)})`, 'var(--gold)', { ms: 4200 });
     return;
   }
   crRepaint(cd); crFxIncrement(cd);
@@ -588,68 +639,59 @@ function crAdvance(cd) {
 function crRaise(cd) {
   const q = cd.cr;
   if (!crCanRaise(q)) return;
+  const was = crReqShort(q);
   q.tier++; q.hold = null;
-  crRepaint(cd); crFxRaise(cd);
+  crRepaint(cd); crFxRaise(cd, was);
   noteMessage(`⚑ Raised: ${crReqText(q)}`);
   if (q.prog >= crTarget(q)) crAdvance(cd);   // already there: banks at once
 }
-// Take the banked tier's payout. In a challenge round the next card follows.
+// Take the banked stage's payout (r671: one reward, stage 1's tier or stage 2's).
+// In a challenge round the next card follows.
 function crCollect(cd) {
   const q = cd.cr;
   if (q.done || q.banked < 0) return;
   q.done = 'won';
-  const d = q.ladder[q.banked].d, st = crStake(d);
-  coins += st.credits; updateCoinsUI();
   crRepaint(cd); crFxSolve(cd);
-  if (typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - rewound ${st.secs}s`);
-  const bonus = d >= CR_BONUS_D;
+  const cardEl = crCardEl(cd);
+  // r677 'take': the plate leaves from the figure it pays.
+  const src = (crFxOn('take') && cardEl && cardEl.querySelectorAll('.cr-pay b')[q.banked]) || cardEl;
+  const said = crrPayCard(q, q.banked, { el: src, live: !roundEnded, cd });   // r685: the challenge knacks (js/challenge-knacks.js)
   if (q.src === 'seq' && crRound) {
-    if (bonus) crRound.minis = (crRound.minis || 0) + 1;
     const left = CR_CARDS - crRound.solved;
-    const pay = `+${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid' : ''}`;
-    showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${pay}`
-                         : `⚑ All ${CR_CARDS} challenges done · ${pay} · prize grid earned`, 'var(--gold)');
-  } else if (q.src === 'flow') {
-    if (bonus) crFlowState().rewardDelta++;
-    showMessage(`⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 reward next level-up' : ''}`, 'var(--gold)');
-  } else if (q.src === 'spot') {
-    if (bonus) crSpotState().minis++;
-    showMessage(`⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid after the round' : ''}`, 'var(--gold)');
-  }
+    showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${said}`
+                         : `⚑ All ${CR_CARDS} challenges done · ${said} · prize grid earned`, 'var(--gold)');
+  } else showMessage(`⚑ Challenge done · ${said}`, 'var(--gold)');
   crQueue.push(cd._id);
-  setTimeout(crDrain, 700);
+  setTimeout(crDrain, crFxOn('take') ? 900 : 700);   // r677: the stamp is read before it goes
 }
-// The card's clock ran out short of its current tier. A raised card loses what
-// it had banked; either way the current tier's penalty is taken.
-// r504 (owner): the card STAYS on the board and charges the penalty one burst at
-// a time: each flies from the card to the readout it costs (-Ns to the clock,
-// -N to the credits, -1 reward to the level in Flow) and is charged when it
-// lands, with a hit sound. The card leaves after the last one. crFailGen guards
-// the timers against a new run (crReset).
+// The card's clock ran out short of its current stage. r671 (owner): it charges
+// stage 1's reward IN REVERSE (crrPenaltyPlan), and a raised card loses its banked
+// stage as well. r504: the card STAYS on the board and charges the penalty as a
+// burst: a red plate flies from the card to the readout it costs and the cost is
+// charged when it lands, with a hit sound and its own animation (a downgrade, a
+// Trick leaving the tray...). The card leaves after it, and the notice prints then.
+// crFailGen guards the timers against a new run (crReset).
 let crFailGen = 0;
 const crFailing = new Set();   // ids of failed cards still charging
 const CR_FAIL_LEAD = 560, CR_FAIL_STEP = 640;   // ms: the fail shake, then one burst each
 function crFail(cd) {
   const q = cd.cr;
+  const lostBank = q.banked >= 0;
   q.done = 'lost';
   crRepaint(cd); crFxFail(cd);
-  const st = crStake(crDiff(q));
-  const bonus = q.src === 'flow' && crDiff(q) >= CR_BONUS_D;
-  // The reward is taken at once: a level-up during the bursts must already see it.
-  if (bonus) crFlowState().rewardDelta--;
-  const msg = `⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s${bonus ? ' · one fewer reward next level-up' : ''}`;
-  const hits = [
-    { to: 'time', label: `-${st.secs}s`, pay: () => { roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI(); } },
-    { to: 'credits', label: `-${st.credits}`, pay: () => { coins = Math.max(0, coins - st.credits); updateCoinsUI(); } },
-  ];
-  if (bonus) hits.push({ to: 'level', label: '-1 reward' });
+  const plan = crrPenaltyPlan(crPayOf(q));
+  const hits = [{ to: plan.to, label: plan.label, pay: el => { plan.said = plan.take(el) || plan.say; } }];
   const gen = crFailGen, id = cd._id;
   crFailing.add(id);
   hits.forEach((h, i) => setTimeout(() => { if (gen === crFailGen) crFxPenalty(id, h, i); }, CR_FAIL_LEAD + i * CR_FAIL_STEP));
-  // The notice prints after the bursts: printed first, it hung over the clock the
-  // seconds burst flies into.
-  setTimeout(() => { if (gen !== crFailGen) return; crFailing.delete(id); showMessage(msg, 'var(--red)'); crQueue.push(id); crDrain(); },
-    CR_FAIL_LEAD + (hits.length - 1) * CR_FAIL_STEP + CR_FAIL_FLY + 260);
+  // The notice prints after the burst: printed first, it hung over the readout the
+  // burst flies into.
+  setTimeout(() => {
+    if (gen !== crFailGen) return;
+    crFailing.delete(id);
+    showMessage(`⚑ ${lostBank ? 'Raise failed · stage 1 lost' : 'Challenge failed'} · ${plan.said || plan.say}`, 'var(--red)');
+    crQueue.push(id); crDrain();
+  }, CR_FAIL_LEAD + (hits.length - 1) * CR_FAIL_STEP + CR_FAIL_FLY + 260);
 }
 // The card leaves (a fresh card takes its cell); in a challenge round the next
 // one is sent for. Never on top of a live fall.
@@ -667,7 +709,12 @@ function crDrain() {
       const [r, c, cd] = h;
       crFxLeave(cd).then(() => {
         const again = crFindById(id);
-        if (again) { gridData[again[0]][again[1]] = drawCard() || null; render(); }
+        if (!again) return;
+        // r685: Trophy Case's Sleight takes the cell the card leaves, turning over as it lands.
+        const into = cd.cr.becomes; cd.cr.becomes = null;
+        gridData[again[0]][again[1]] = into || drawCard() || null; render();
+        const el = into && document.querySelector(`#grid [data-card-id="${into._id}"]`);
+        if (el && typeof el.animate === 'function') el.animate([{ rotate: 'y 90deg', scale: 1.15 }, { rotate: 'y 0deg', scale: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.9,.3,1.2)' });
       });
       if (cd.cr.src === 'seq' && !cd.cr.sentNext) nextSeq = true;
     }
@@ -703,7 +750,7 @@ function crTick() {
 }
 
 // ── Flow spawning ───────────────────────────────────────────────────────────
-function crFlowState() { return crFlow || (crFlow = { at: null, used: 0, rolled: null, rewardDelta: 0 }); }
+function crFlowState() { return crFlow || (crFlow = { at: null, used: 0, rolled: null, steps: [] }); }
 // May a Flow card arrive or keep pulsing right now? Never in a boss, the
 // walkthrough, or within a minute of either end of one.
 function crFlowMayRun() {
@@ -757,15 +804,16 @@ function crFlowCancel() {
 }
 // flowEndBoss: a fresh cycle. The level the boss interrupted does not roll again.
 function crFlowNewCycle() { const st = crFlowState(); st.used = 0; st.at = null; }
-// flowrArm: what this level-up's reward count gains or loses. Spent once.
-function crTakeFlowRewardDelta() {
-  const st = crFlowState(), d = st.rewardDelta || 0;
-  st.rewardDelta = 0;
-  return d;
+// flowrMaybeStart (r671): the picks Flow's challenge cards paid since the last
+// level-up, as reward chain steps ({ kind, floor }). Spent once.
+function crTakeFlowSteps() {
+  const st = crFlowState(), out = st.steps || [];
+  st.steps = [];
+  return out;
 }
 
 // ── Spot cards (r482) ───────────────────────────────────────────────────────
-function crSpotState() { return crSpot || (crSpot = { at: null, minis: 0, hints: 0 }); }
+function crSpotState() { return crSpot || (crSpot = { at: null, hints: 0 }); }
 function crSpotMayRun() {
   if (typeof isActMode !== 'function' || !isActMode()) return false;
   if (typeof survivalActive === 'function' && survivalActive()) return false;
@@ -797,26 +845,27 @@ function crSpotTick() {
   crBeginArrival('spot', tier, 0);
 }
 // The round is over: a spot card still pulsing never lands, one on the board
-// leaves (a banked tier is paid, an open one costs nothing), and each mini grid
-// it earned opens.
+// leaves (a banked stage is paid, an open one costs nothing).
 function crSpotSettle() {
   const st = crSpotState();
   st.at = null;
   crTele.filter(t => t.src === 'spot').forEach(crTeleDrop);
   for (const [r, c, cd] of crCards()) {
     if (cd.cr.src !== 'spot') continue;
-    if (crCleared(cd.cr)) {
-      const d = cd.cr.ladder[cd.cr.banked].d, k = crStake(d);
-      coins += k.credits; updateCoinsUI();
-      if (d >= CR_BONUS_D) st.minis++;
-    }
+    if (crCleared(cd.cr)) showMessage(`⚑ Challenge done · ${crrPayCard(cd.cr, cd.cr.banked, { live: false })}`, 'var(--gold)');
+    crReleaseBecomes(cd);
     gridData[r][c] = drawCard() || null;
   }
   crQueue = crQueue.filter(id => crFindById(id));
-  const n = st.minis; st.minis = 0;
-  let p = Promise.resolve();
-  for (let i = 0; i < n; i++) p = p.then(() => new Promise(res => openMiniGrid(res)));
-  return p;
+  return Promise.resolve();
+}
+
+// r685: a card leaving at a round's end with Trophy Case's Sleight still waiting
+// for its cell sends the Sleight into the deck instead.
+function crReleaseBecomes(cd) {
+  if (!cd || !cd.cr || !cd.cr.becomes) return;
+  drawPile.push(cd.cr.becomes); cd.cr.becomes = null;
+  if (typeof updateDeckHud === 'function') updateDeckHud();
 }
 
 // ── The challenge round's clock and settlement ──────────────────────────────
@@ -836,6 +885,7 @@ function crOnClockOut() {
     if (!crRound || crRound.over || goalReachedThisRound || !roundQuotaMet()) return false;
     crRound.over = true;
     goalReachedThisRound = true; roundEnded = true;
+    if (typeof touchUpOnClear === 'function') touchUpOnClear([]);
     clearInterval(roundInterval); roundInterval = null;
     gameTimerPaused = true; frozenRoundSeconds = roundSeconds;
     if (typeof flashRoundEnd === 'function') flashRoundEnd();
@@ -846,6 +896,7 @@ function crOnClockOut() {
   if (!roundQuotaMet()) { crRound.over = false; return false; }
   crRound.result = 'lost';
   goalReachedThisRound = true;
+  if (typeof touchUpOnClear === 'function') touchUpOnClear([]);
   roundEnded = true;
   clearInterval(roundInterval); roundInterval = null;
   gameTimerPaused = true;
@@ -858,32 +909,26 @@ function crOnClockOut() {
   setTimeout(() => startInterlude(), 900);
   return true;
 }
+// r671: the picks challenge cards paid this round open last (crrRunScreens).
 function crSettle() {
   const spot = crSpotSettle();
-  if (!crRound) return spot;
-  return spot.then(crSettleRound);
+  return (crRound ? spot.then(crSettleRound) : spot).then(() => crrRunScreens());
 }
 function crSettleRound() {
   crTele.filter(t => t.src === 'seq').forEach(crTeleDrop);
   for (const [r, c, cd] of crCards()) {
     if (cd.cr.src !== 'seq') continue;
-    // Cleared but never taken: paid as if taken (no clock left to add seconds to).
-    if (crCleared(cd.cr)) {
-      const d = cd.cr.ladder[cd.cr.banked].d, st = crStake(d);
-      coins += st.credits; updateCoinsUI();
-      if (d >= CR_BONUS_D) crRound.minis = (crRound.minis || 0) + 1;
-    }
+    // Cleared but never taken: paid as if taken. With no clock left, what needs
+    // one waits for the next round (crPending).
+    if (crCleared(cd.cr)) showMessage(`⚑ Challenge done · ${crrPayCard(cd.cr, cd.cr.banked, { live: false })}`, 'var(--gold)');
+    crReleaseBecomes(cd);
     gridData[r][c] = drawCard() || null;
   }
   crQueue = [];
   if (!crRound.result) crRound.result = crRound.solved >= CR_CARDS ? 'won' : 'lost';
   crRound.over = true;
-  // Penalty grid first (a lost round), then one free mini grid per card taken at
-  // difficulty 2+, then the ordinary rewards.
-  const minis = crRound.minis || 0; crRound.minis = 0;
-  let p = crRound.result === 'lost' ? new Promise(res => openPenaltyGrid(res)) : Promise.resolve();
-  for (let i = 0; i < minis; i++) p = p.then(() => new Promise(res => openMiniGrid(res)));
-  return p;
+  // Penalty grid first (a lost round), then the cards' picks, then the ordinary rewards.
+  return crRound.result === 'lost' ? new Promise(res => openPenaltyGrid(res)) : Promise.resolve();
 }
 function crTakePrize() {
   const won = !!(crRound && crRound.result === 'won');
@@ -894,6 +939,7 @@ function crReset() {
   crFailGen++; crFailing.clear();   // drops a failed card's penalty bursts still to come
   crTele.forEach(t => { if (t.el) t.el.remove(); clearTimeout(t.timer); });
   crRound = null; crArmed = null; crFlow = null; crSpot = null; crHandPlays = {}; crTele = []; crQueue = []; crRecent = []; crFallSnap = null;
+  if (typeof crrReset === 'function') crrReset();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -963,11 +1009,36 @@ function crFxClear(cd) {
   crBurst(cd, 10, 'cr-spark', 44);
 }
 // Raised: a spring upward and a rising sweep.
-function crFxRaise(cd) {
+// r677 'raise': a STAGE 2 stamp slams across the card, the old ask rolls up out of
+// the face as the new one rolls in, the new boxes drop into the strip, the raised
+// payout pops, and red sparks replace the rings. The red border is CSS (.cr-raised).
+function crFxRaise(cd, was) {
   sfxChallengeRaise();
   const el = crCardEl(cd); if (!el) return;
   _crAnim(el, [ { translate: '0px 0px', scale: '1' }, { translate: '0px -16px', scale: '1.1', offset: 0.4 }, { translate: '0px 3px', scale: '0.96 1.04', offset: 0.75 }, { translate: '0px 0px', scale: '1' } ], { duration: 520, easing: 'cubic-bezier(.3,1.4,.5,1)' });
-  crBurst(cd, 8, 'cr-ring', 40);
+  if (!crFxOn('raise')) { crBurst(cd, 8, 'cr-ring', 40); return; }
+  crBurst(cd, 14, 'cr-spark cr-hot', 54);
+  crStamp(cd, 'crs-raise', `STAGE ${cd.cr.tier + 1}`, 1300);
+  const req = el.querySelector('.cr-req');
+  if (req && was) {
+    const old = document.createElement('div');
+    old.className = 'cr-req crs-old'; old.textContent = was;
+    req.parentNode.insertBefore(old, req);
+    old.style.top = req.offsetTop + 'px';
+    _crAnim(old, [ { translate: '0px 0px', opacity: 1 }, { translate: '0px -14px', opacity: 0 } ], { duration: 360, easing: 'ease-in' }).then(() => old.remove());
+    _crAnim(req, [ { translate: '0px 14px', opacity: 0, color: '#ff8a7a' }, { translate: '0px 14px', opacity: 0, offset: 0.35 },
+                   { translate: '0px -2px', opacity: 1, color: '#ff8a7a', offset: 0.8 }, { translate: '0px 0px', opacity: 1 } ], { duration: 640, easing: 'ease-out' });
+  }
+  const of = cd.cr.ladder[cd.cr.tier - 1] ? cd.cr.ladder[cd.cr.tier - 1].n : 0;
+  el.querySelectorAll('.cr-box').forEach((b, i) => {
+    if (i < of) return;
+    _crAnim(b, [ { translate: '0px -10px', scale: '1.6', opacity: 0 }, { translate: '0px -10px', opacity: 0, offset: 0.4 },
+                 { translate: '0px 1px', scale: '1', opacity: 1, offset: 0.8 }, { translate: '0px 0px', scale: '1', opacity: 1 } ], { duration: 700, easing: 'ease-out' });
+  });
+  const sg = el.querySelector('.cr-stage');
+  if (sg) _crAnim(sg, [ { scale: '1' }, { scale: '1.7', offset: 0.4 }, { scale: '1' } ], { duration: 560, delay: 120, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+  const up = el.querySelectorAll('.cr-pay b')[cd.cr.tier];
+  if (up) _crAnim(up, [ { scale: '1' }, { scale: '1.6', offset: 0.45 }, { scale: '1' } ], { duration: 620, delay: 200, easing: 'cubic-bezier(.3,1.5,.5,1)' });
 }
 function crFxSolve(cd) {
   sfxChallengeSolve();
@@ -975,6 +1046,34 @@ function crFxSolve(cd) {
   el.classList.add('cr-won');
   _crAnim(el, [ { scale: '1', rotate: '0deg' }, { scale: '1.25', rotate: '6deg', offset: 0.35 }, { scale: '1', rotate: '0deg' } ], { duration: 520, easing: 'cubic-bezier(.3,1.4,.5,1)' });
   crBurst(cd, 16, 'cr-spark', 60);
+  // r677 'take': a PAID stamp, kept until the card leaves (crFxLeave takes it with it).
+  if (crFxOn('take')) {
+    cd._crStamp = crStamp(cd, 'crs-take', 'PAID', 0);
+    const got = el.querySelectorAll('.cr-pay b')[cd.cr.banked];
+    if (got) _crAnim(got, [ { scale: '1' }, { scale: '1.6', offset: 0.4 }, { scale: '1' } ], { duration: 520, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+  }
+}
+// r677 'press': a tap answers at once. The card dips under the finger while a take
+// still waits out the double-tap window.
+function crFxPress(cd) {
+  const el = crCardEl(cd); if (!el) return;
+  if (typeof sfxKeyClick === 'function') sfxKeyClick('down');
+  _crAnim(el, [ { scale: '1', filter: 'brightness(1)' }, { scale: '0.86', filter: 'brightness(1.45)', offset: 0.3 }, { scale: '1', filter: 'brightness(1)' } ],
+    { duration: 240, easing: 'ease-out' });
+}
+// A stamp laid over a card. A child of #grid, not of the card: render() rebuilds a
+// card's face on every pass and would take it off. ms 0 = the caller removes it.
+function crStamp(cd, cls, text, ms) {
+  const el = crCardEl(cd), g = document.getElementById('grid');
+  if (!el || !g) return null;
+  const s = document.createElement('div');
+  s.className = 'cr-stamp ' + cls;
+  s.style.left = el.offsetLeft + 'px'; s.style.top = el.offsetTop + 'px';
+  s.style.width = el.offsetWidth + 'px'; s.style.height = el.offsetHeight + 'px';
+  s.innerHTML = `<b>${text}</b>`;
+  g.appendChild(s);
+  if (ms) setTimeout(() => s.remove(), ms);
+  return s;
 }
 function crFxFail(cd) {
   sfxChallengeExpire();
@@ -998,22 +1097,28 @@ function crFxPenalty(id, h, i) {
     crBurst(at[2], 6, 'cr-spark', 30);
   }
   sfxChallengePenaltyFire(i);
-  const fly = (typeof efxFly === 'function' && efxFly(el, CR_FAIL_TARGETS[h.to], h.label, '#ff4d4d', 'loss', CR_FAIL_PLATE)) || 0;
+  // r671: a penalty with no readout on screen (a reroll, the next boss) rises off the card.
+  const to = CR_FAIL_TARGETS[h.to] || h.to;
+  const fly = (typeof crrFly === 'function') ? crrFly(el, to, h.label, true)
+            : ((typeof efxFly === 'function' && efxFly(el, to, h.label, '#ff4d4d', 'loss', CR_FAIL_PLATE)) || 0);
   setTimeout(() => {
-    if (h.pay) h.pay();
+    if (h.pay) h.pay(el);
     sfxChallengePenalty(i);
-    const t = typeof efxTargetEl === 'function' && efxTargetEl(CR_FAIL_TARGETS[h.to]);
+    const t = to && typeof efxTargetEl === 'function' && efxTargetEl(to);
     if (t) { t.classList.remove('cr-loss-hit'); void t.offsetWidth; t.classList.add('cr-loss-hit'); setTimeout(() => t.classList.remove('cr-loss-hit'), 520); }
   }, fly);
 }
 function crFxLeave(cd) {
-  const el = crCardEl(cd);
-  if (!el) return Promise.resolve();
+  const el = crCardEl(cd), stamp = cd._crStamp;
+  cd._crStamp = null;
+  if (!el) { if (stamp) stamp.remove(); return Promise.resolve(); }
   const won = cd.cr.done === 'won';
-  return _crAnim(el, won
+  const frames = won
     ? [ { translate: '0px 0px', scale: '1', opacity: 1 }, { translate: '0px -60px', scale: '0.6', opacity: 0 } ]
-    : [ { translate: '0px 0px', scale: '1', rotate: '0deg', opacity: 1 }, { translate: '0px 30px', scale: '0.5', rotate: '18deg', opacity: 0 } ],
-    { duration: 380, easing: won ? 'cubic-bezier(.4,0,.2,1)' : 'ease-in' });
+    : [ { translate: '0px 0px', scale: '1', rotate: '0deg', opacity: 1 }, { translate: '0px 30px', scale: '0.5', rotate: '18deg', opacity: 0 } ];
+  const opts = { duration: 380, easing: won ? 'cubic-bezier(.4,0,.2,1)' : 'ease-in' };
+  if (stamp) _crAnim(stamp, frames, opts).then(() => stamp.remove());
+  return _crAnim(el, frames, opts);
 }
 
 // ── Sounds (synthesised; catalogued in js/audio-assets.js, group Challenge) ──

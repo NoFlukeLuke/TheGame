@@ -188,3 +188,86 @@ names on their tiles, the review's quota on its line, mini-boss elites (parked i
 - https://en.wikipedia.org/wiki/Griftlands
 - https://steamah.com/inscryption-how-to-benefits-campfires-with-no-risks/
 - https://backpackhero.wiki.gg/
+
+---
+
+# THE SAMEY SCHEDULE (owner's notes, r678)
+
+The owner, looking at a map after r658 (written before r673 shipped a department a QUARTER; A and D read "department" as that): three of a kind in a row feels bad; row 1 is always
+four rounds; the screen reads too samey; is three or four rounds before a review too few, or
+is a shorter game the point; and Guided (a choice between every round) lacked a gauge of how
+ready you are for the boss. Organised into six ideas with pros and cons, then questions.
+
+### A. Repeats in a slot
+Today a slot can hold three or four of one kind. **Fixes:** cap a slot at two of a kind in the
+fill; and departments (chunk 1) lean each column a different way, so rows mix on their own.
+- Pros: a cap is one line in the fill; departments do most of it anyway.
+- Cons: a cap of two on four columns makes every row two pairs; a column that leans rounds
+  can never make a row of rounds, which is fine.
+
+### B. Row 1 is always four rounds
+Why: the first booking of a quarter must be a round (play before shopping) and the funnel row
+holds no rounds, so row 1 all rounds guarantees two rounds first. **Options:**
+1. A 4x1 opener: one wide ACCOUNT tile across row 1, one booking that fills the slot (a
+   quarter becomes 7 bookings). Row 1 of later quarters can then hold anything.
+2. Row 1 is two rounds and two others, with the rule that a quarter's first booking is a round.
+3. Only Q1's row 1 is all rounds; Q2-Q4 rows mix with at least one round.
+- Pros: 1 is a clear quarter opener and the lost choice was never real (four identical
+  rounds); 2 keeps eight bookings; 3 changes nothing for the walkthrough.
+- Cons: 1 belongs to no department column; 2 and 3 let a quarter run on two rounds (see E).
+
+### C. Adjacent moves only
+r648 replaced the orthogonal walk with pick-any-two because lanes meant nothing and dead ends
+were common. The view then and now: adjacency is worth having only once columns mean
+something (departments) and generation cannot strand you; chunk 5 keeps it as difficulty tier
+2, adjacent to ANY tile already taken (today's dev "Free branch").
+- Pros: routing is back, lanes matter, each booking shapes the next slot, planning.
+- Cons: two bookings a slot from the last tile leaves one to three legal tiles, often forced;
+  dead ends need the validator and rails on the screen; adjacency from any taken tile is the
+  softer form and still gives most of the routing.
+
+### D. The screen reads samey
+Owner: a faint background tint per tile in its kind's colour, much darker and faded. **More:**
+department column headers in their own colour (chunk 1); a bigger glyph or a stamp per kind
+(URGENT on PRIORITY, a price tag on MART); tile shapes (the 2x1 event, a 4x1 opener); fewer
+identical neighbours (A); a word per row (MORNING / MIDDAY / AFTERNOON / LATE) beside the time.
+- Pros: all cheap; the tint and headers are CSS.
+- Cons: tint on amber glass goes muddy past about 12% alpha; shapes need the fill to place them.
+
+### E. How much play before a review
+Facts: a Schedule quarter is 8 bookings, 2 to 5 of them rounds (row 1 forces two, rows 2-3
+offer one or more each, the funnel none); a round is 3:00, so 6 to 15 minutes of play before
+the review. Classic plays about four rounds a quarter. **Options:**
+1. Keep it: fewer rounds, each one matters, a run stays about an hour.
+2. Five slots (10 bookings): longer quarters, more rounds and more prep.
+3. Weight the fill toward PRIORITY and AUDIT: they are rounds too, with stakes.
+4. A floor: generation guarantees a path with at least four rounds, and the fill keeps a
+   round in every row.
+5. Make the review longer instead (chunk 2's two bosses): the quarter stays short, the end
+   is bigger.
+- Pros: 1 and 5 keep the run short; 3 and 4 add play without adding bookings.
+- Cons: 2 lengthens a game the owner already finds long; 4 removes some of the choice the
+  pick rule gives.
+
+### F. A readiness gauge (what Guided lacked)
+The review line prints its quota (r656). Add what the player brings: the best hand this
+quarter next to it ("BEST 4,120 / 6,500"), or a bar on the review line that fills as the best
+hand approaches the quota.
+- Pros: every between-round choice gets a purpose (more prep, or play); it is the piece that
+  would make a Guided-style mode work.
+- Cons: one hand is not a boss round (a modifier, a window, a whole round of hands), so the
+  number can mislead; it must stay a number, not advice.
+
+### Questions to ponder
+1. How long should a quarter take, in minutes? Today about 15. Is that the problem or the point?
+2. Is a booking that is not a round play or prep? If events pay more than rounds, do you want
+   players choosing events over rounds, or rounds as the spine?
+3. Should every quarter have the same number of rounds (say four), or should it be the
+   player's choice (two to six)?
+4. Does slot 1 need a choice, or is a strong opener better?
+5. Is a row of three rounds bad because they repeat, or because they are identical? With line
+   items and departments they would differ in goal and rewards.
+6. Should columns (departments) be what makes the map readable, or the tile mix and shapes?
+7. Adjacency: a difficulty tier only, or back in the base game once departments exist?
+8. Is the review's quota the right readiness signal, or do you want your own strength next to it?
+9. Guided: remove it, or keep it as the mode with a choice between every round plus the gauge?

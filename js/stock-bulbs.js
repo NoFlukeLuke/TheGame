@@ -54,9 +54,9 @@ function sbStocks() {
   };
 }
 
-// r662: a key look (js/key-looks.js) shows stock as pixel squares whatever this setting says.
+// The key look (js/key-looks.js) draws the bulbs as pixel squares (css/key-looks.css).
 function sbKeyLook() { return typeof keyLookOn === 'function' && keyLookOn(); }
-function sbOn() { return !!sbCfg.on || sbKeyLook(); }
+function sbOn() { return !!sbCfg.on; }
 function sbLive() {
   const sc = document.getElementById('sel-count');
   return !!(sc && sc.classList.contains('on'))

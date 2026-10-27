@@ -30,6 +30,9 @@ const EFX_TARGETS = {
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
   level:    ['#run-progress .rp-lv', '#level-display'],   // r504: a challenge's -1 reward
+  tricks:   ['#trick-tray-list', '#trick-tray-area'],       // r671: a challenge's reward or penalty
+  knacks:   ['#knack-list', '#knack-carousel-wrap'],
+  hand:     ['#btn-play'],
 };
 // Two of these lists were pointing at ids that do not exist (r233). `#ci-coins`,
 // `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`
@@ -44,7 +47,7 @@ const EFX_STYLE = {
   time:     { icon: '⏱', color: '#5aa9e6', plate: 'time' },
   rewind:   { icon: '⏪', color: '#5aa9e6', plate: 'time' },
   pause:    { icon: '⏸', color: '#7fd4ff', plate: 'time' },
-  credits:  { icon: '💰', color: '#e8c56b', plate: 'credits' },
+  credits:  { icon: CREDIT_SYM, color: '#e8c56b', plate: 'credits' },
   focus:    { icon: '◈',  color: '#a25cd8', plate: 'focus' },
   swaps:    { icon: '⇄',  color: '#6fd08c', plate: 'focus' },
   discards: { icon: '✕',  color: '#e07a5f', plate: 'multAdd' },

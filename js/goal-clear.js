@@ -55,9 +55,34 @@ function goalBannerEl() {
 // on this same beat carrying its own GOAL CLEARED kicker (two banners in one place
 // is one too many), but a boss win there opens the prize grid instead, so there is
 // nothing else saying it.
+// r680 (owner): in console mode the banner is a command line ON THE GRID: a strip
+// across the board's middle (a child of #grid, like the boss jump's OSD), typing
+// "> GOAL CLEARED  1,500" (or the boss's name over it). It leaves the way the
+// board screens do. The body-level banner below stays for the other skins.
+let _gbGridTimer = null;
+function goalBannerGrid(opts) {
+  const grid = document.getElementById('grid'); if (!grid) return false;
+  let el = document.getElementById('gb-grid');
+  if (!el) { el = document.createElement('div'); el.id = 'gb-grid'; grid.appendChild(el); }
+  else if (el.parentElement !== grid) grid.appendChild(el);
+  const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';
+  const num = (typeof roundGoal === 'number') ? roundGoal.toLocaleString() : '';
+  el.className = opts.kicker ? 'gb-boss' : '';
+  el.innerHTML = `<div class="gbg-k">${opts.kicker ? opts.kicker : 'ROUND'}</div><div class="gbg-l">&gt; ${goalWord} CLEARED${num ? '  ' + num : ''}</div>`;
+  const line = el.querySelector('.gbg-l');
+  if (typeof bsType === 'function') bsType(line, {});
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(_gbGridTimer);
+  _gbGridTimer = setTimeout(() => el.classList.remove('show'), 1700);
+  return true;
+}
 function showGoalBanner(opts) {
   opts = opts || {};
   if (!opts.force && typeof survivalActive === 'function' && survivalActive()) return;
+  if (typeof trayMachineOn === 'function' && trayMachineOn() && goalBannerGrid(opts)) {
+    if (typeof sfxSuccess === 'function') sfxSuccess();
+    return;
+  }
   if (document.body.classList.contains('reduced-motion')) { /* still show it, just no burst */ }
 
   const el = goalBannerEl();
@@ -88,7 +113,8 @@ function showGoalBanner(opts) {
 }
 
 function hideGoalBanner() {
-  clearTimeout(_goalBannerTimer);
+  clearTimeout(_goalBannerTimer); clearTimeout(_gbGridTimer);
+  document.getElementById('gb-grid')?.classList.remove('show');
   document.getElementById('goal-banner')?.classList.remove('show');
 }
 

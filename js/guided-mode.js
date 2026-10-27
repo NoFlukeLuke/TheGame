@@ -212,7 +212,7 @@ function guidedRenderCrossroads(animateIn) {
       `<div class="gx-t-icon">${off.icon}</div>` +
       `<div class="gx-t-name">${off.name}</div>` +
       `<div class="gx-t-desc">${off.desc}</div>` +
-      `<div class="gx-t-price">${off.price ? off.price + ' ◆' : 'FREE'}</div>`;
+      `<div class="gx-t-price">${off.price ? creditsTxt(off.price) : 'FREE'}</div>`;
     if (afford) div.onclick = () => guidedChoose(off);
     gridEl.appendChild(div);
 
@@ -246,7 +246,7 @@ function guidedRenderCrossBar() {
     `<span class="gxb-act">Q${actNumber}</span>` +
     `<span class="gxb-slots">SLOT ${guidedSlot + 1} / ${GUIDED_SLOTS_PER_ACT}</span>` +
     `<span class="gxb-note">${left === 1 ? 'Boss next' : due <= 0 ? 'A round is due' : `${left} to the boss`}</span>` +
-    `<span class="gxb-coins">${coins} ◆</span>`;
+    `<span class="gxb-coins">${creditsTxt(coins)}</span>`;
   bar.classList.add('show');
 }
 function guidedCloseCrossroads() {
@@ -311,7 +311,7 @@ function guidedOpenNamedEvent(id, afterFn) {
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   eventState = {};
   renderEventShell(id);
-  document.getElementById('event-overlay').classList.add('show');
+  if (typeof evShow === 'function') evShow(); else document.getElementById('event-overlay').classList.add('show');
 }
 
 // The act readout's next stop, for the HUD.

@@ -34,8 +34,12 @@ function qrlQuarter() {
   if (ACTIVE_MODE && ACTIVE_MODE.flow) return Math.min(4, (typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + 1);
   return Math.max(1, Math.min(4, actNumber || 1));
 }
-// The one number. Infinity when QRL does not apply.
-function qrlLimit() { return qrlOn() ? qrlQuarter() : Infinity; }
+// A run past Q4 (r682, owner): no limit at all, in every mode.
+function qrlEndlessOff() {
+  return (typeof endlessRun !== 'undefined' && !!endlessRun) || (typeof survivalEndless !== 'undefined' && !!survivalEndless);
+}
+// The one number. Infinity when QRL does not apply, or the run is in Endless.
+function qrlLimit() { return (qrlOn() && !qrlEndlessOff()) ? qrlQuarter() : Infinity; }
 
 // A card's buff KINDS. Scaling pips/mult belong to their flat kind (what they
 // grow into). Only gains count: a minus-pips penalty always applies.

@@ -76,6 +76,7 @@
 <link rel="stylesheet" href="css/trick-tour.css">
 <link rel="stylesheet" href="css/chance-count.css">
 <link rel="stylesheet" href="css/event-grid-lab.css">
+<link rel="stylesheet" href="css/cr-fx-lab.css">
 <link rel="stylesheet" href="css/menu-size.css">
 <link rel="stylesheet" href="css/tray-fx.css">
 <link rel="stylesheet" href="css/cursor.css">
@@ -671,10 +672,10 @@
       <select id="dev-sb-on" onchange="sbChoose(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">numbers</option><option value="rim">bulbs, tray bulbs on the rim</option><option value="below">bulbs, tray bulbs beneath the tray</option></select>
     </label>
 
-    <div class="dev-subtitle">Key look (preview: PLAY, DISCARD and SWAP as screens, stock as pixel squares)</div>
+    <div class="dev-subtitle">Key look (PLAY, DISCARD and SWAP as tube screens, words in dots, stock as pixel squares)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The keys look like
-      <select id="dev-key-look" onchange="setKeyLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="off">keycaps (today)</option><option value="a">A: tube screens</option><option value="b">B: LCD panels</option><option value="c">C: pixel art</option></select>
+      <select id="dev-key-look" onchange="setKeyLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="a">tube screens, dot words</option><option value="off">keycaps (before r670)</option></select>
     </label>
 
     <div class="dev-subtitle">Screen change (Flow rewards)</div>
@@ -1254,7 +1255,7 @@
   </div>
   <div class="top-stat">
     <span class="top-label">Coins</span>
-    <span class="top-value gold" id="coins-display">💰 0</span>
+    <span class="top-value gold" id="coins-display">L¢0</span>
   </div>
 </div>
 
@@ -1647,6 +1648,7 @@
 <script src="js/score-anims.js"></script>
 <script src="js/goal-clear.js"></script>
 <script src="js/quarter.js"></script>
+<script src="js/endless.js"></script>
 <script src="js/pmf-merge.js"></script>
 <script src="js/hand-log.js"></script>
 <script src="js/score-dance.js"></script>
@@ -1666,6 +1668,8 @@
 <script src="js/guided-mode.js"></script>
 <script src="js/level-types.js"></script>
 <script src="js/challenge-round.js"></script>
+<script src="js/challenge-rewards.js"></script>
+<script src="js/departments.js"></script>
 <script src="js/reshuffle-card.js"></script>
 <script src="js/map-mode.js"></script>
 <script src="js/crunch-mode.js"></script>
@@ -1678,6 +1682,11 @@
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
 <script src="js/autopilot.js"></script>
+<script src="js/rule-sleights.js"></script>
+<script src="js/changing.js"></script>
+<script src="js/touch-up.js"></script>
+<script src="js/challenge-knacks.js"></script>
+<script src="js/stacked.js"></script>
 <script src="js/dealers-choice.js"></script>
 <script src="js/reserve.js"></script>
 <script src="js/lockbox.js"></script>
@@ -1710,6 +1719,7 @@
 <script src="js/builds.js"></script>
 <script src="js/build-compare.js"></script>
 <script src="js/finale.js"></script>
+<script src="js/finale-share.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>
@@ -1756,15 +1766,18 @@
 <script src="js/floppy-art.js"></script>
 <script src="js/stock-bulbs.js"></script>
 <script src="js/key-looks.js"></script>
+<script src="js/key-dots.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>
 <script src="js/key-press.js"></script>
+<script src="js/key-fit.js"></script>
 <script src="js/bug-report.js"></script>
 <script src="js/blank-ui.js"></script>
 <script src="js/event-tour.js"></script>
 <script src="js/trick-tour.js"></script>
 <script src="js/event-grid-lab.js"></script>
+<script src="js/cr-fx-lab.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
 

@@ -414,6 +414,13 @@ function playHand() {
     });
     if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
   }
+  // r675: the rule Sleights. Once per scoring, so a card that replays pays again.
+  if (typeof ruleEvenFocus === 'function') {
+    const _rf = ruleEvenFocus(_scoredCells, _handRetrigByCell);
+    if (_rf > 0 && typeof addFocus === 'function') addFocus(_rf, 'rule_evens', 'sleight');
+    const _rs = ruleFaceSeconds(_scoredCells, _handRetrigByCell);
+    if (_rs > 0) rewindTime(_rs, `⏪ Face cards - rewound ${_rs}s`, 'rule_faces', 'sleight');
+  }
 
   // Short Change (r483): a hand that used fewer cards than your hand size pays
   // credits. It counts `playedCells` - everything this hand CONSUMED, which is
@@ -1184,7 +1191,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   // Inspirato: a scored Ace primes the first and last tray Tricks
   // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
   if (hasTrick('wild_heart') && trickTray.length) {
-    const _whT = trickTray.find(t => t.id === 'wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
+    const _whT = ownedTrickObj('wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
     if (handCells.some(([r,c]) => _whRanks.includes(gridData[r]?.[c]?.rank))) {
       primeTrick(trickTray[0], BAL.wild_heart.primes, { src: 'wild_heart' });
       const _last = trickTray[trickTray.length - 1];

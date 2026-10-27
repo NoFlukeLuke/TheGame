@@ -150,6 +150,8 @@ const TRICK_POOL = [
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','hand','position','scores','scaling'],  desc:'Permanently scores +3 pips for each hand scored with a positional buff (row or column effects)' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','credits','hand','position'],           desc:'Use every cell of any row or column within two hands to add +8 Focus and +4 credits' },
   // ── Level scaling ──
+  // r676 (owner; CHALLENGE_REWARDS.md section 7): becomes a random Trick each round (js/changing.js). Working name.
+  { id:'changeling',     name:'Temp',                tier:'epic',    desc:'At the start of each round, becomes a random Trick of any rarity. Improvements apply to the Trick it becomes.', tags:['other','chance','start'] },
   { id:'middle_man',     name:'Middle Man',          tier:'rare',    desc:'Each time you gain or lose credits during a round, this gains +3 mult', tags:['mult','hand','scores','scaling'] },
   { id:'rising_tide',    name:'Rising Tide',         tier:'rare',    desc:'Each level you pass while holding this adds +5 to +10 mult to it', tags:['mult','hand','level','scores','scaling','chance'] },
   // ── Accumulating ──
@@ -271,10 +273,14 @@ const TRICK_CATEGORIES = [
   { emoji:'5️⃣', ids:['five_stack','five_fodder','five_second','little_guys'] }, // 5-card hands
   { emoji:'🪄', ids:['magician','scalper'] }, // Sleights
   { emoji:'🗑️', ids:['landfill'] }, // Discards and swaps
+  { emoji:'🦎', ids:['changeling'] }, // r676: changes every round (its tile shows the form's icon while it has one)
 ];
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
-function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
+function trickEmoji(trick) {
+  if (trick && trick.id === 'changeling' && trick._form) return TRICK_EMOJI[trick._form] || '✦';   // r676: Temp wears its form's icon
+  return (trick && TRICK_EMOJI[trick.id]) || '✦';
+}
 
 // r624 (owner): what a Trick needs before it can pay. `size` is the hand size it
 // asks for; `hand` a hand type that has to be unlocked. offerWeightMult (js/luck.js)

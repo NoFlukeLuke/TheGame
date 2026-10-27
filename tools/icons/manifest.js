@@ -175,6 +175,18 @@ const ICONS = [
   { glyph: '🕳', icon: 'hole',              color: 'grey'   },
   { glyph: '🧊', icon: 'lorc/ice-cube',     color: 'cyan'   },
   { glyph: '🪨', icon: 'lorc/rock',         color: 'grey'   },
+  // r675: the rule Sleights and the changing Trick and Sleight (CHALLENGE_REWARDS.md sections 1 and 7)
+  { glyph: '🎟️', icon: 'faithtoken/card-random', color: 'green'  },  // two named ranks replay
+  { glyph: '⚖️', icon: 'lorc/scales',            color: 'violet' },  // even cards make Focus
+  { glyph: '🫅', icon: 'lorc/queen-crown',       color: 'blue'   },  // face cards rewind the clock
+  { glyph: '🦎', icon: 'darkzaitzev/chameleon-glyph', color: 'green' },  // the Trick that changes every round
+  { glyph: '🌀', icon: 'delapouite/transform',   color: 'cyan'   },  // the Sleight that changes every round
+  // r677: the Touch-Up knack (buffs cards on the grid when a level is cleared)
+  { glyph: '🖌️', icon: 'delapouite/paint-roller', color: 'gold'   },
+  // r685: Trophy Case, Stacked, Very Rewarding
+  { glyph: '🏆', icon: 'lorc/trophy',            color: 'gold'   },
+  { glyph: '📚', icon: 'delapouite/stack',       color: 'violet' },
+  { glyph: '🎁', icon: 'delapouite/present',     color: 'pink'   },
 ];
 
 module.exports = { PALETTE, ICONS };

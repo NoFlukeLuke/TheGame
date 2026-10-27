@@ -77,7 +77,9 @@ function updateScoreUI() {
   if (goalLabel)  goalLabel.textContent  = between ? ('NEXT ' + goalWord) : goalWord;
   if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
 
-  const shownScore = between ? lastRoundScore : score;
+  // r670: while hands are still dancing the box shows what has been danced (js/score-dance.js).
+  const live = (typeof dncScoreShown === 'function') ? dncScoreShown() : score;
+  const shownScore = between ? lastRoundScore : live;
   // animateDigitEl rolls the digits; between rounds the number is a finished
   // fact rather than a climbing tally, so it is written straight in.
   if (!between) animateDigitEl(document.getElementById('score-total-num'), shownScore);
@@ -85,7 +87,8 @@ function updateScoreUI() {
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
     scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
-  const pct = (typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(score / roundGoal, 1);
+  const _rq = (typeof roundQuota !== 'undefined') ? roundQuota : null;
+  const pct = (_rq && typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(live / Math.max(1, roundGoal), 1);
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
   // r399: a shaped round names its own progress in the goal box (js/level-types.js).
@@ -196,9 +199,9 @@ function placeSelCountConsole(cEl) {
 }
 
 function updateCoinsUI() {
-  document.getElementById('coins-display').textContent = '💰 ' + coins;
+  document.getElementById('coins-display').textContent = creditsTxt(coins);
   if (typeof updateGridTopline === 'function') updateGridTopline();
-  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
+  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = creditsTxt(coins);
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
@@ -400,7 +403,7 @@ function knackLiveDesc(k) {
   if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
   const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
   if (!p) {
-    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN);
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun));
     return base + `<div class="kn-reveal kn-reveal-none">${last
       ? 'This is the last quarter. There is no next boss to name.'
       : 'This mode has no next quarter to look into.'}</div>`;
@@ -428,7 +431,7 @@ function showKnackTooltip(chip, id) {
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     ${kwDefsHTML(knack.desc)}
-    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
+    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>
   `;
   // r288 - the + is the only way to the definitions, on every tooltip.
   tt.classList.remove('kw-open');
@@ -441,7 +444,7 @@ function showKnackTooltip(chip, id) {
   tt.querySelector('#knack-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     tipConfirmAction(tt.querySelector('.knack-tooltip-actions'), {
-      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      question: `Sell for ${creditsTxt(_sv)}?`, confirmLabel: 'Sell',
       onYes: () => sellKnack(knack), onCancel: () => showKnackTooltip(chip, id),
     });
   });

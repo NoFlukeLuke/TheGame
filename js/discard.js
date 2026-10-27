@@ -10,8 +10,8 @@ function doDiscard() {
   if (typeof shopGridActive !== 'undefined' && shopGridActive) {
     if (typeof shopRerollSelectedRows === 'function' && shopRerollSelectedRows()) return;
     if (typeof shopgSelRows === 'function' && shopgSelRows().length) return;   // refused, not an exit
-    // r405: LEAVE is its own button now, so this one never leaves.
-    refuse('Select a row label first'); return;
+    // r672: with no row selected the key reads LEAVE and leaves (r405's fourth key is gone).
+    if (typeof closeShopGrid === 'function') closeShopGrid(); return;
   }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   // Dealer's Choice: while cards are held, DISCARD throws the top one away.

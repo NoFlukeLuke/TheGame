@@ -18,9 +18,10 @@ function renderCardAppearance(card, r, c, {
   // ── Challenge card (js/challenge-round.js) ──
   if (card._isChallenge) {
     const _q = card.cr || {};
-    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.src === 'flow' ? ' cr-flow' : '') + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
-               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
-               + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : ''),
+    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
+               + (crTimed(_q.src) && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
+               + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : '')
+               + (typeof crRaisedLive === 'function' && crRaisedLive(_q) ? ' cr-raised' : ''),
              innerHTML: crCardFaceHTML(card) };
   }
   // ── Reshuffle card (js/reshuffle-card.js) ──
@@ -46,7 +47,7 @@ function renderCardAppearance(card, r, c, {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
     // its charge count, which is the number that actually matters on the board.
-    const _maxCh = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+    const _maxCh = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
       : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')

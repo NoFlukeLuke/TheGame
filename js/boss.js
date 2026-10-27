@@ -586,7 +586,7 @@ function peekNextActBoss() {
   // The last quarter has no next act, and saying so is better than naming a
   // boss the run will never reach. QUARTERS_PER_RUN (js/quarter.js) is the one
   // place the run's length is written down.
-  if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN) return null;
+  if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun)) return null;
   if (!nextActBossId) {
     const p = nextBossPreset();
     nextActBossId = p ? p.id : null;
@@ -784,6 +784,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
     bossWindowDuration = Math.max(10, Math.round(bossWindowDuration * overtimeBossMult()));
   roundSeconds = bossWindowDuration;
   if (typeof overtimeBossGoalMult === 'function' && overtimeBossGoalMult() !== 1) roundGoal = Math.ceil(roundGoal * overtimeBossGoalMult());
+  if (typeof crrBossGoalApply === 'function') roundGoal = crrBossGoalApply(roundGoal);   // r671: a challenge's Boss goal reward or penalty
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
@@ -917,6 +918,7 @@ function showBossPreamble(preset, onProceed) {
   // transition handles that one correctly.
   const fly = _bossPreambleFlyTransform(el);
   el.classList.add('show');
+  bossBriefConsole(el, true);
   if (fly && typeof el.animate === 'function') {
     el.animate([{ transform: fly, opacity: 0 }, { transform: 'none', opacity: 1 }],
                { duration: 400, easing: 'cubic-bezier(.2,.8,.3,1)' });
@@ -924,6 +926,7 @@ function showBossPreamble(preset, onProceed) {
   // Both the ✕ and PROCEED start the round - the briefing is the gate, and
   // closing it must never leave the boss un-started.
   const go = () => {
+    if (typeof keysReturn === 'function') keysReturn();
     const back = _bossPreambleFlyTransform(el);
     if (back) el.style.transform = back;
     el.classList.remove('show');
@@ -933,6 +936,27 @@ function showBossPreamble(preset, onProceed) {
   };
   el.querySelector('.bp-go').onclick = go;
   el.querySelector('.bp-x').onclick  = go;
+}
+
+// r672 (owner): in console mode the briefing is the amber command-line screen the
+// events and the quarter card use (css/boss.css, .bp-console): the name types out
+// after a "> " prompt and, at the intro, PLAY is PROCEED (keysTake, js/key-fit.js)
+// with the in-panel key hidden. The mid-boss reopening keeps its own close only.
+function bossBriefConsole(el, intro) {
+  const on = typeof trayMachineOn === 'function' && trayMachineOn();
+  el.classList.toggle('bp-console', on);
+  if (!on) return;
+  const nm = el.querySelector('.bp-name');
+  if (nm && typeof bsType === 'function') {
+    const ctl = {};
+    bsType(nm, ctl);
+    const fin = () => { if (ctl.finishTyping) ctl.finishTyping(); el.removeEventListener('pointerdown', fin, true); };
+    el.addEventListener('pointerdown', fin, true);
+  }
+  if (intro && typeof keysTake === 'function') keysTake({
+    play: { ico: '&#9654;', word: 'PROCEED', title: 'Start the boss round', fn: () => { const b = el.querySelector('.bp-go'); if (b) b.click(); } },
+    disc: { word: '', off: true }, swap: { word: '', off: true },
+  });
 }
 
 // Re-open the briefing mid-boss as a reference. No pause, no PROCEED.
@@ -948,6 +972,7 @@ function reopenBossBrief() {
   el.innerHTML = bossBriefHTML(_bossBriefPreset, false);
   slot.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
+  bossBriefConsole(el, false);
   el.querySelector('.bp-x').onclick = () => {
     el.classList.remove('show');
     setTimeout(() => el.remove(), 320);
