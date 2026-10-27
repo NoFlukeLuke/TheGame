@@ -31,7 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
-| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; decided, being built (challenges done r671) |
+| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; built r671-r676 under working names |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -2920,4 +2920,39 @@ Measured in headless Chromium at 1440x820 and 420x900 (Classic, real taps): each
 replayed (retrig 2 each, preview and play); `ruleEvenFocus` gave 6 for three 4s; three Kings
 rewound 162 -> 168; played in a hand, Face Time went to the played pile with 3 charges and no
 `_inert`. No page errors.
+
+## r676 - Temp and Floater: a Trick and a Sleight that change every round (`js/changing.js`, owner; working names)
+CHALLENGE_REWARDS.md section 7. **Temp** (Trick `changeling`, epic) and **Floater** (Sleight
+`floater`, epic, 6 charges) each become a random one of their kind at every round's start
+(`chgRoundStart`, from `startRoundTimer` once a level, `chgLevel` in SAVE_VARS), drawn FLAT
+(no rarity, no Luck), never the same one twice in a row; taken mid-round, Temp changes at once,
+and a Floater that lands unchanged changes as it lands (`chgScan`, top of `render()`). A notice
+names each form. **Temp stands in for its form** like a fused Trick (r651): `acts: [form]` makes
+`hasTrick(form)` true, `TB(form)` falls through to the form's BAL row (Temp has NO BAL row of
+its own, keep it that way), payouts bill to Temp's chip, a line form marks a random free line
+for the round (`pickDefaultLine`, not the axis cursor) that `lineIdIs` serves.
+**`ownedTrickObj(id)` falls back to Temp while its form is `id`** (`changelingFor`), so rolled
+state (Feelin Lucky's ranks, Inspirato's, Critical's family, a line) lives on Temp and is cleared
+at each change (`CHG_FORM_FIELDS`). The tray holds a COPY of the pool row (`changelingPickup`,
+from `selectTrick`), so the pool row never carries a form. Not drawn: what the tray holds or a
+fused Trick stands in for, Mirror, and the owner's out list (`CHG_TRICK_OUT`: grows from the pick
+or round by round). It never completes an Inseparable pair (`inseparableCompletes` counts real
+tray ids). **Tiers:** the form's tier is Temp's (`entityTier[form]`), set at each change, raised by
+`IMPROVE_HOOKS.changeling` (which also runs the form's own hook) and lowered by `chgSyncTiers`
+from `downgradeEntity`; the last form's tier is dropped, and `chgTrickGone` (from
+`renderTrickTray`) drops it when Temp leaves the tray. **Floater** is a deck card whose
+`sleightId` IS its form, marked `_floater` (in `DURABLE_CARD_FIELDS` and discardToPlayed's
+Sleight rebuild). Its own charges serve every form; **`sleightCapOf(card)`** is the one cap read
+(the Floater's cap whatever it is; every `sleightMaxCharges(sleightDef(c))` became it). A form
+with infinite charges that sat on the board (`_floatSeen`) spends one at the next change; at 0
+it leaves the deck (Green Station keeps it dormant). `ownedImprovable('sleight')` lists a Floater
+as `floater`, so an improvement passes to whatever it becomes. Not drawn: Sleights you own, Slow
+Burn, Whetstone, fixtures, event-only. Marks: a lizard badge on Temp's chip (`.chg-badge`), a
+swirl in the Floater's top-right corner (`.sleight-float`).
+Measured in headless Chromium at 1440x820 and 420x900: Temp as Cascade scored a Run of 3 at 534,
+the real Cascade 534 (no Trick 174); Temp v2 raised Cascade to +40 pips a card (894); a line form
+marked row 4 and paid as Power Line; Temp as Lie Down did not complete Stand-Up; through a real
+round end the next round turned Temp into Rogue Wave and the Floater from Fresh Start (infinite,
+seen on the board: 6 -> 5 charges) into Piggy Bank, both printed; three hands by tap with dev
+mode on: no timeline drift, no page errors; selling Temp removed its line and its form.
 

@@ -74,7 +74,7 @@ const EVENT_REQUIRES = {
   the_draw:     () => evImprovables().length >= 2,
   the_payline:  () => evImprovables().length >= ENTITY_SLOT_MIN,   // r590: five entities
   // Needs a Sleight whose charge ceiling can actually move (infinite returns null).
-  workshop:     () => allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null).length > 0,
+  workshop:     () => allOwnedSleightCards().filter(c => sleightCapOf(c) !== null).length > 0,
   // r576: Theme Draft needs one engine with a Trick and a Sleight left to offer.
   confluence:   () => confluenceThemes().length > 0,
   // Needs cards to work on.

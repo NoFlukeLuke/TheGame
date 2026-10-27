@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r675 · the rule Sleights (working names): Double Shift, Even Keel, Face Time - in force while on the grid, inert, 4 charges";
+const BUILD = "2026-10-27 · r676 · Temp and Floater (working names): a Trick and a Sleight that become a random one each round";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

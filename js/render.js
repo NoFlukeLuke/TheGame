@@ -29,6 +29,7 @@ function render() {
   if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
   // r675: a rule Sleight that has just landed goes inert and states its rule,
   // before the faces are drawn (rule_ranks prints its named ranks).
+  if (typeof chgScan === 'function') chgScan();   // r676: a Floater that lands unchanged changes now
   if (typeof ruleSleightsScan === 'function') ruleSleightsScan();
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
@@ -96,7 +97,7 @@ function render() {
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
         // (1/2) instead of its charges - same rule as renderCardAppearance.
-        const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+        const _maxChJ = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
           : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')

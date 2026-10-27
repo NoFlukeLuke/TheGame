@@ -201,10 +201,23 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 
 Prime and Card buffs are spares, to swap in for any Standard reward that plays flat.
 
-## 7. A Trick and a Sleight that change every round (r664)
+## 7. A Trick and a Sleight that change every round (r664; built r676)
 
 You take it without knowing what it will be. At the start of each round it becomes a random
 Trick (or Sleight), drawn with no regard for rarity, and does that for the round.
+
+**Built r676** (`js/changing.js`) under working names: **Temp** (Trick, id `changeling`, epic)
+and **Floater** (Sleight, id `floater`, epic, 6 charges). The owner names them. As built:
+- Temp stands in for its form the way a fused Trick stands in for its parts (r651): its tray
+  object carries `acts: [form]`, so the form's code runs and its payouts are billed to Temp's
+  chip. Measured: Temp as Cascade scored a Run of 3 at 534, the real Cascade 534 (none 174).
+- Before its first round it shows a lizard (its own icon); then the form's icon with a small
+  lizard on the chip. The Floater shows the form's face with a small swirl in the corner, and
+  its tooltip reads "Floater this round".
+- Improving Temp improves the form (Temp v2 as Cascade: +40 pips a card, 894 on the same hand);
+  the next form takes the same tier and the last one's tier is dropped.
+- A printed notice names each new form, the Floater's too (wherever it is).
+- Also not drawn: Mirror (its aim lives on its own chip).
 
 | | name | rarity (suggested) | description |
 |---|---|---|---|
@@ -224,7 +237,7 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 
 **Both:**
 - **When:** the round's start, after the deal and before the clock runs. Taken between
-  rounds, it shows a question mark until then; taken mid-round, it changes at once. Flow:
+  rounds, it shows its own icon until then; taken mid-round, it changes at once. Flow:
   each level's start (its boss comes mid-level, so the level's form stays through it).
 - **Shown:** the tile wears the form's icon plus a mark that it changes; the tooltip reads
   "<Form> this round". A printed notice names the form when it changes.

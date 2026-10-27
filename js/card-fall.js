@@ -46,7 +46,7 @@ function renderCardAppearance(card, r, c, {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
     // its charge count, which is the number that actually matters on the board.
-    const _maxCh = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+    const _maxCh = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
       : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')

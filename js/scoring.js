@@ -306,7 +306,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // what it adds on its first scoring only, its own x mult, and how many times
   // it scores. Replayed against `mult` below (see _cardMultSeq's use).
   const _cardMultSeq = [];
-  const _flRanks = hasTrick('feelin_lucky') ? (trickTray.find(t => t.id === 'feelin_lucky')?._luckyRanks || null) : null;   // Feelin Lucky (r360)
+  const _flRanks = hasTrick('feelin_lucky') ? (ownedTrickObj('feelin_lucky')?._luckyRanks || null) : null;   // Feelin Lucky (r360)
 
   // ── PER-CARD PAYERS (r226) ───────────────────────────────────────────────
   // Seventeen Tricks pay "a rate x a number of CARDS" - Get Even is +2 mult per

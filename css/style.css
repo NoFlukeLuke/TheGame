@@ -6350,3 +6350,15 @@ body.gp-fillhead #stage.landscape.grid-fill #flowr-stack {
   font-family: 'VT323', 'Courier New', monospace; font-size: calc(var(--card-h, 75px) * 0.14); line-height: 1;
   color: #ffe27a; text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 4px rgba(255,226,122,.5);
 }
+/* r676: a Floater (js/changing.js) wears its own swirl in the top-right corner
+   while it is another Sleight for the round. */
+.trick-card.sleight-card .sleight-float {
+  position: absolute; top: 3%; right: 4%; z-index: 4; pointer-events: none;
+  font-size: calc(var(--card-h, 75px) * 0.16); line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.85));
+}
+/* r676: Temp (the changing Trick) in the tray: the same swirl's twin, a lizard, on its chip. */
+.chg-badge {
+  position: absolute; top: -2px; right: -2px; z-index: 6; pointer-events: none;
+  font-size: 12px; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.85));
+}

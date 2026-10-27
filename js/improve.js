@@ -253,7 +253,10 @@ function rollExtraRanks(t, key, n, not) {
   while (have.length < n && pool.length) have.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   t[key] = have;
 }
-function ownedTrickObj(id) { return (typeof trickTray !== 'undefined' && trickTray.find(t => t && t.id === id)) || null; }
+function ownedTrickObj(id) {
+  // r676: Temp (js/changing.js) holds its form's rolled state while it is that form.
+  return (typeof trickTray !== 'undefined' && trickTray.find(t => t && t.id === id)) || (typeof changelingFor === 'function' && changelingFor(id)) || null;
+}
 
 // Pristine BAL, captured at load before anything can have improved. One level
 // deep is enough - every BAL entry is a flat object of numbers.
@@ -407,6 +410,7 @@ function syncOwnedEntityDescs() {
    typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []].forEach(list => {
     // The name too (r561): a renamed entity in a saved run shows its current name.
     (list || []).forEach(e => {
+      if (e && e.id === 'changeling' && typeof changelingDescApply === 'function') { changelingDescApply(e); return; }   // r676: Temp prints its form's sentence
       const src = e && from(e.id); if (src && src.desc) e.desc = src.desc; if (src && src.name) e.name = src.name;
       // r646: a marked Trick's description names its line; the regenerated sentence says "a marked row or column"
       // again, so the label is put back from the registry (it used to be lost at every improvement).
@@ -495,6 +499,7 @@ function downgradeEntity(id, opts) {
   const _descWas = _impDescOf(id);
   entityTier[id] = cur - 1;
   applyEntityTiers();
+  if (typeof chgSyncTiers === 'function') chgSyncTiers(id);   // r676: Temp / Floater pass the tier to their form
   if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
   improveRepaintArt();
   if (opts && opts.anim && typeof improveAnimNote === 'function') improveAnimNote(id, cur, entityTier[id], _descWas, _impDescOf(id));
@@ -515,7 +520,7 @@ function ownedImprovable(type) {
   if (type === 'trick')   list = trickTray;
   if (type === 'knack')   list = (typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []) || [];
   if (type === 'sleight') list = (typeof allOwnedSleightCards === 'function')
-      ? dedupeById(allOwnedSleightCards().map(c => (typeof sleightDef === 'function' ? sleightDef(c) : null)).filter(Boolean))
+      ? dedupeById(allOwnedSleightCards().map(c => c._floater ? SLEIGHT_POOL.find(d => d.id === 'floater') : (typeof sleightDef === 'function' ? sleightDef(c) : null)).filter(Boolean))
       : [];
   return list.filter(e => e && canImprove(e.id)).map(e => ({ id: e.id, name: e.name, rarity: rar(e) }));
 }

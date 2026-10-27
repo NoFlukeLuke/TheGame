@@ -77,6 +77,7 @@ function sleightFaceHTML(card, def, usesStr) {
        + `</div>`
        + `<div class="sleight-card-emoji">${emGlyph(def?.emoji || '🃏')}</div>`   // r592: no name
        + (card && card._ruleRanks ? `<div class="sleight-rule">${card._ruleRanks.join(' ')}</div>` : '')   // r675: the ranks it named
+       + (card && card._floater ? `<div class="sleight-float">${emGlyph('🌀')}</div>` : '')   // r676: a Floater in its form this round
        + `<div class="sleight-card-uses">${usesStr}</div>`;
 }
 
@@ -226,7 +227,7 @@ function greenStationRecharge() {
   let n = 0, woke = 0;
   ownedSleightCards().forEach(card => {
     if (typeof card._usesLeft !== 'number') return;
-    const cap = sleightMaxCharges(sleightDef(card));
+    const cap = sleightCapOf(card);
     if (cap === null || card._usesLeft >= cap || Math.random() >= b.chance) return;
     const was = card._usesLeft;
     card._usesLeft = Math.min(cap, card._usesLeft + 1 + (b.chance2 && Math.random() < b.chance2 ? 1 : 0));
@@ -433,6 +434,11 @@ function sleightMaxCharges(def) {
   if (typeof def.durability !== 'number') return null;
   return sleightBaseCharges(def) + (sleightCapBonus[def.id] || 0);
 }
+// The charge cap of one card. A Floater (js/changing.js) keeps ITS cap whatever it has become.
+function sleightCapOf(card) {
+  if (card && card._floater) return sleightMaxCharges(SLEIGHT_POOL.find(d => d.id === 'floater'));
+  return sleightMaxCharges(card ? sleightDef(card) : null);
+}
 // r647: a Sleight whose charges improve keeps them in its BAL row (`charges`), so a
 // tier raises the cap, a fresh grant and the printed "(N charges)" together.
 function sleightBaseCharges(def) {
@@ -454,8 +460,7 @@ function allOwnedSleightCards() {
 
 function restoreSleightCharge(card) {
   if (!card || card._usesLeft === 'infinite') return false;
-  const def = sleightDef(card);
-  const cap = sleightMaxCharges(def);
+  const cap = sleightCapOf(card);
   if (cap === null || (card._usesLeft || 0) >= cap) return false;
   card._usesLeft = Math.min(cap, (card._usesLeft || 0) + BAL.jury_rig.charges);
   return true;
@@ -880,7 +885,7 @@ function showSleightGridTooltip(r, c, card) {
   if (!sleightEl) return;
   // Charged sleights read n/max (owner's spec, r341); max comes through
   // sleightMaxCharges so a Maintenance-reinforced ceiling is the one printed.
-  const _mxCh = sleightMaxCharges(def);
+  const _mxCh = sleightCapOf(card);
   let uses = card._usesLeft === 'infinite' ? '∞ uses'
            : (_mxCh ? `${card._usesLeft}/${_mxCh} charges` : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`);
   // Whetstone banks mult on the card itself - surface it, it's the whole point of the Sleight.
@@ -900,6 +905,7 @@ function showSleightGridTooltip(r, c, card) {
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
   if (card._ruleRanks) uses = `Named: ${card._ruleRanks.join(', ')} · ` + uses;   // r675: the rank rule's draw
+  if (card._floater) uses = `${SLEIGHT_POOL.find(d => d.id === 'floater')?.name || 'Floater'} this round · ` + uses;   // r676
   if (card._inert) uses += ' · INERT (cannot be swapped or discarded)';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'

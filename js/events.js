@@ -1404,7 +1404,7 @@ function workshopCapGain(def) {
 // in the game raised a charge CEILING before this.
 function renderWorkshop() {
   const body = document.getElementById('event-body');
-  const owned = allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null);
+  const owned = allOwnedSleightCards().filter(c => sleightCapOf(c) !== null);
   if (!eventEligible('workshop')) {
     body.innerHTML = evEmptyHTML('No Sleights with charges to service. Take the fee instead.');
     eventState.workshopNone = true;
@@ -1490,7 +1490,7 @@ function confirmWorkshop() {
   } else if (eventState.workshopPick === 'service') {
     let n = 0;
     allOwnedSleightCards().forEach(c => {
-      const cap = sleightMaxCharges(sleightDef(c));
+      const cap = sleightCapOf(c);
       if (cap !== null && (c._usesLeft || 0) < cap) { c._usesLeft = cap; n++; }
     });
     noteMessage(n ? `${n} Sleight${n > 1 ? 's' : ''} refilled` : 'All Sleights already full', 'var(--gold)');

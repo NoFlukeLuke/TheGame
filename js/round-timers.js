@@ -56,6 +56,7 @@ function startRoundTimer() {
   // r399: a shaped round (js/level-types.js) says what it is as it goes live.
   if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof crOnRoundStart === 'function') crOnRoundStart();   // a challenge round's first card
+  if (typeof chgRoundStart === 'function') chgRoundStart();     // r676: Temp and Floater change (once a level, before the save point)
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startClockTick();                 // the clock's 10s tick runs with the round (js/clock-tick.js)
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)

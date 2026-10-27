@@ -1191,7 +1191,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   // Inspirato: a scored Ace primes the first and last tray Tricks
   // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
   if (hasTrick('wild_heart') && trickTray.length) {
-    const _whT = trickTray.find(t => t.id === 'wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
+    const _whT = ownedTrickObj('wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
     if (handCells.some(([r,c]) => _whRanks.includes(gridData[r]?.[c]?.rank))) {
       primeTrick(trickTray[0], BAL.wild_heart.primes, { src: 'wild_heart' });
       const _last = trickTray[trickTray.length - 1];

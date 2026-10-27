@@ -158,7 +158,7 @@ const _crrMostPlayed = () => {
 };
 const CRR_FAM = { set: 'sets', run: 'runs', flush: 'flushes' };
 const _crrOwnedSleights = () => (typeof allOwnedSleightCards === 'function' ? allOwnedSleightCards() : [])
-  .filter(c => c && c._usesLeft !== 'infinite' && typeof sleightMaxCharges === 'function' && sleightMaxCharges(sleightDef(c)) != null);
+  .filter(c => c && c._usesLeft !== 'infinite' && typeof sleightMaxCharges === 'function' && sleightCapOf(c) != null);
 const _crrLimitPool = dir => LIMITS_DEF.filter(d => {
   const l = limits[d.id]; if (!l) return false;
   if (dir > 0) return l.current < l.max && d.id !== 'focus_cap';
@@ -221,9 +221,9 @@ const CRR = {
   charges: {
     face: ['+1', 'FULL', 'CHARGE'],
     say: t => t ? 'every Sleight back to full charges' : '+1 charge to every Sleight',
-    can: () => _crrOwnedSleights().some(c => (c._usesLeft || 0) < sleightMaxCharges(sleightDef(c))),
+    can: () => _crrOwnedSleights().some(c => (c._usesLeft || 0) < sleightCapOf(c)),
     give(t, ctx) {
-      _crrOwnedSleights().forEach(c => { const cap = sleightMaxCharges(sleightDef(c)); c._usesLeft = t ? cap : Math.min(cap, (c._usesLeft || 0) + 1); });
+      _crrOwnedSleights().forEach(c => { const cap = sleightCapOf(c); c._usesLeft = t ? cap : Math.min(cap, (c._usesLeft || 0) + 1); });
       crrFlashSleights('crr-charge-up'); crrRepaintBoard();
       if (ctx.el) crrFly(ctx.el, null, t ? 'FULL' : '+1 CHARGE');
       return '';
