@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r685 · Trophy Case, Very Rewarding and Stacked knacks; Finishing Touch; Prime and Card buffs paid";
+const BUILD = "2026-10-27 · r686 · one window on a phone: the board fills its box at every size, cards keep their shape, and the schedule, picks, payout, shop, Limit Break and events all share it";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

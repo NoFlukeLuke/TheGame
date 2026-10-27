@@ -163,9 +163,12 @@ function cardVisualRules() {
   if (st.textContent !== css) st.textContent = css;
 }
 
+// r686 (owner): portrait too. On a phone the board kept the card shape and so changed
+// outline with its rows and columns, while the schedule, the Limit Break and every
+// event filled the whole slot; now everything that sits there is one window.
 function gridFillOn() {
   const st = document.getElementById('stage');
-  if (!st || !st.classList.contains('landscape') || st.classList.contains('squares-mode')) return false;
+  if (!st || st.classList.contains('squares-mode')) return false;
   return !(typeof sqSlotInset === 'function' && sqSlotInset());
 }
 function gridFillMetrics() {
@@ -174,7 +177,8 @@ function gridFillMetrics() {
   // r586: the other looks keep the Flow panel's band, so a reward board gives up its
   // height: the board drops by half of it and the panel centres on the box (css).
   const b = document.body.classList;
-  const head = (!(typeof flowrConsoleOn === 'function' && flowrConsoleOn())
+  const land = !!document.getElementById('stage')?.classList.contains('landscape');   // the band's offset is landscape CSS
+  const head = (land && !(typeof flowrConsoleOn === 'function' && flowrConsoleOn())
                 && b.contains('gp-active') && typeof survivalActive === 'function' && survivalActive()
                 && !(typeof shopGridActive !== 'undefined' && shopGridActive)) ? 15 : 0;   // the panel's --fbg-head
   b.toggle('gp-fillhead', head > 0);

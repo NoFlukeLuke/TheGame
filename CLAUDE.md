@@ -3151,3 +3151,18 @@ Amplifier v2.0 (5 charges) in its own cell; Stacked at v6 (chance forced to 1 fo
 the column 1 and column 2 Tricks at every 5s mark over 12s of live clock, two Sleights in one column
 priming twice. No page errors.
 
+## r686 - one window on a phone (owner)
+`gridFillOn()` (js/grid-metrics.js) no longer asks for landscape (Poker Squares still opts out), so
+r586's fixed box and r641 / r643's card shape inside it now hold in portrait too: the board fills
+`#grid-slot` at every row and column count, each card keeps the playing-card shape centred in its
+cell with one even gap, and the slack goes to the gaps. Supersedes r586's and r641's "portrait is
+unchanged" and r660's same-box pick on a phone (the fill path runs before `gridSameBoxOn`). The Flow
+panel's title band is still reserved only in landscape (`gp-fillhead`'s offset is landscape CSS).
+The portrait slot CSS is untouched. Measured in headless Chromium at 420x900: before, the slot was
+295 x 418 and the schedule, Limit Break, events and row chooser filled it, while the board was
+285 x 364 at 4x4, 254 x 404 at 5x4, 285 x 293 at 4x5 and 303 x 393 at 7x7 (wider than the slot);
+now every one of them, the pick of three, the payout, the reward grid, the shop and Flow's chain is
+295 x 418 at the same place. Cards: 4x4 63x83 -> 66x87, 4x5 50x65 -> 52x68, 6x6 44x57 -> 42x55,
+7x7 40x52 -> 36x47 (it no longer spills). 375x667: everything 263 x 372. Desktop unchanged
+(1440x820 measured identical). Hands, a swap and a discard by tap, a cleared round through payout and
+reward grid, Flow's chain and shop, the Schedule from schedule to round to pick: no page errors.
