@@ -2725,3 +2725,13 @@ every slot, stage 1 and stage 2 through real taps, no text outside its box, no o
 no scroll, and the fit pass did not need to step in. Forced: a 33-letter name and a box cut to
 75% x 85% shrank the name to fit (8px) and the panel to 0.7.
 
+## r669 - the Schedule's challenge cards pay credits only (owner)
+`crCreditsOnly()` (js/challenge-round.js) is true in the Schedule (`mapActive()`). There a
+challenge card taken pays its tier's credits (4 / 9 / 15) and nothing else: no rewind, no mini
+grid, and a won audit pays no prize grid (`mapAfterLevel` clears the round's state and goes
+pick of three, then the schedule). A failed card takes credits only (one burst, no seconds).
+Notices read "+9 credits" / "-4 credits" alone. The audit's extra minute on the clock, the
+penalty grid on a lost audit and the pick of three are unchanged. Classic's challenge node and
+Flow keep the stakes table's seconds and bonuses. Measured in headless Chromium at 1440x820 and
+420x900: a won audit went tally, payout, pick of three, schedule (no PRIZE or BONUS board),
+credits 18 -> 46 across three cards with the clock untouched; a fail took 4 credits and 0s.

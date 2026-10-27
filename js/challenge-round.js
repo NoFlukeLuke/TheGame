@@ -39,6 +39,10 @@
 const CR_CARDS = 3;
 const CR_MAP_BONUS_SECONDS = 60;         // the Schedule's audit adds a minute
 function crTimed(src) { return src === 'flow' || src === 'spot'; }
+// The Schedule's challenge cards pay CREDITS ONLY (owner, r666): no rewind, no mini
+// grid, no prize grid, and a fail takes credits alone. Every other mode keeps the
+// stakes table's seconds and bonuses.
+function crCreditsOnly() { return typeof mapActive === 'function' && mapActive(); }
 const CR_TELE_MS = { seq: 3000, flow: 15000, spot: 15000 };   // how long the cell pulses first (r545: timed +5s)
 // Flow's warning marks a CELL and counts live seconds (crTick), so it waits out a
 // pause. Discarding the card in that cell refuses the challenge: the player
@@ -601,20 +605,22 @@ function crCollect(cd) {
   const d = q.ladder[q.banked].d, st = crStake(d);
   coins += st.credits; updateCoinsUI();
   crRepaint(cd); crFxSolve(cd);
-  if (typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - rewound ${st.secs}s`);
-  const bonus = d >= CR_BONUS_D;
+  const only = crCreditsOnly();
+  if (!only && typeof rewindTime === 'function') rewindTime(st.secs, `⚑ Challenge - rewound ${st.secs}s`);
+  const bonus = !only && d >= CR_BONUS_D;
   if (q.src === 'seq' && crRound) {
     if (bonus) crRound.minis = (crRound.minis || 0) + 1;
     const left = CR_CARDS - crRound.solved;
-    const pay = `+${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid' : ''}`;
+    const pay = only ? `+${st.credits} credits` : `+${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid' : ''}`;
     showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${pay}`
-                         : `⚑ All ${CR_CARDS} challenges done · ${pay} · prize grid earned`, 'var(--gold)');
+                         : `⚑ All ${CR_CARDS} challenges done · ${pay}${only ? '' : ' · prize grid earned'}`, 'var(--gold)');
   } else if (q.src === 'flow') {
     if (bonus) crFlowState().rewardDelta++;
     showMessage(`⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 reward next level-up' : ''}`, 'var(--gold)');
   } else if (q.src === 'spot') {
     if (bonus) crSpotState().minis++;
-    showMessage(`⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid after the round' : ''}`, 'var(--gold)');
+    showMessage(only ? `⚑ Challenge done · +${st.credits} credits`
+                     : `⚑ Challenge done · +${st.credits} credits · rewound ${st.secs}s${bonus ? ' · +1 mini grid after the round' : ''}`, 'var(--gold)');
   }
   crQueue.push(cd._id);
   setTimeout(crDrain, 700);
@@ -637,11 +643,12 @@ function crFail(cd) {
   const bonus = q.src === 'flow' && crDiff(q) >= CR_BONUS_D;
   // The reward is taken at once: a level-up during the bursts must already see it.
   if (bonus) crFlowState().rewardDelta--;
-  const msg = `⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits · -${st.secs}s${bonus ? ' · one fewer reward next level-up' : ''}`;
+  const only = crCreditsOnly();
+  const msg = `⚑ Challenge failed${q.banked >= 0 ? ' · banked tier lost' : ''} · -${st.credits} credits${only ? '' : ` · -${st.secs}s`}${bonus ? ' · one fewer reward next level-up' : ''}`;
   const hits = [
-    { to: 'time', label: `-${st.secs}s`, pay: () => { roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI(); } },
     { to: 'credits', label: `-${st.credits}`, pay: () => { coins = Math.max(0, coins - st.credits); updateCoinsUI(); } },
   ];
+  if (!only) hits.unshift({ to: 'time', label: `-${st.secs}s`, pay: () => { roundSeconds = Math.max(1, roundSeconds - st.secs); updateClockUI(); } });
   if (bonus) hits.push({ to: 'level', label: '-1 reward' });
   const gen = crFailGen, id = cd._id;
   crFailing.add(id);
@@ -808,7 +815,7 @@ function crSpotSettle() {
     if (crCleared(cd.cr)) {
       const d = cd.cr.ladder[cd.cr.banked].d, k = crStake(d);
       coins += k.credits; updateCoinsUI();
-      if (d >= CR_BONUS_D) st.minis++;
+      if (d >= CR_BONUS_D && !crCreditsOnly()) st.minis++;
     }
     gridData[r][c] = drawCard() || null;
   }
@@ -871,7 +878,7 @@ function crSettleRound() {
     if (crCleared(cd.cr)) {
       const d = cd.cr.ladder[cd.cr.banked].d, st = crStake(d);
       coins += st.credits; updateCoinsUI();
-      if (d >= CR_BONUS_D) crRound.minis = (crRound.minis || 0) + 1;
+      if (d >= CR_BONUS_D && !crCreditsOnly()) crRound.minis = (crRound.minis || 0) + 1;
     }
     gridData[r][c] = drawCard() || null;
   }

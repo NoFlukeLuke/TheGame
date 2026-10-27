@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r668 · the console Limit Break's text fits its boxes: smaller, spaced by the font's own line height, and a fit pass shrinks whatever still spills";
+const BUILD = "2026-10-27 · r669 · Schedule challenge cards pay credits only: no rewind, no mini grids, no prize grid after an audit";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
