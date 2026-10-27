@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r668 · challenge cards: two stages, one reward from 16 (department or fixed), a failed card charges stage 1 in reverse, animated and printed";
+const BUILD = "2026-10-27 · r671 · challenge cards: two stages, one reward from 16 (department or fixed), a failed card charges stage 1 in reverse, animated and printed";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

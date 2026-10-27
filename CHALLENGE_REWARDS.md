@@ -1,7 +1,7 @@
-# Rule Sleights, a department a quarter, two-stage challenges, changing entities (r663-r668)
+# Rule Sleights, a department a quarter, two-stage challenges, changing entities (r663-r671)
 
 The owner's ideas, written up for review, then decided (section 6) and being built:
-**sections 3 to 5 are built (r668, js/challenge-rewards.js)**; departments, the rule Sleights
+**sections 3 to 5 are built (r671, js/challenge-rewards.js)**; departments, the rule Sleights
 and the changing Trick and Sleight follow. Names marked **(owner names)** are left blank on
 purpose.
 
@@ -101,7 +101,7 @@ events are still in at least one pool.
   it takes after 6s, as today.
 - **One payout.** Stage 1 pays the reward's first tier. A raise that clears pays the second
   tier INSTEAD (not as well). A raise that fails pays nothing, and charges the penalty.
-- **The penalty (owner, r668):** a timed card (Flow, spot) that runs out charges its reward's
+- **The penalty (owner, r671):** a timed card (Flow, spot) that runs out charges its reward's
   FIRST tier in reverse (the last column of the tables below). The card shakes, a red plate
   flies from it to what it costs, the cost lands with its own animation (a downgrade plays the
   improvement screen backwards, a lost Trick sinks out of the tray), and a printed notice says
@@ -115,7 +115,7 @@ events are still in at least one pool.
 - Rewards that open a screen (a pick) open after the round's payout (Flow: as steps of the
   next reward chain). The rest pay at once. Paid at a round's end (a cleared card nobody
   took), time, swaps, discards and Focus wait for the next round's start.
-- **Everywhere but the Schedule** (owner, r668: no departments there for now): Standard cards
+- **Everywhere but the Schedule** (owner, r671: no departments there for now): Standard cards
   pay Credits, Hard cards Improvement.
 
 **The asks, cut to two stages.** Stage 1 is today's first tier, stage 2 today's second; third
@@ -261,7 +261,7 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 - Build note: the card needs a durable field marking it as the changer (`DURABLE_CARD_FIELDS`),
   or `recycleCard` turns it into its form for good.
 
-## 6. Decided (owner, r665-r668)
+## 6. Decided (owner, r665-r671)
 
 1. **Rule Sleights:** the rule is in force while the card is on the grid.
 2. **Flow and Classic** get no department for now: a fixed payout (Standard: Credits; Hard:

@@ -238,7 +238,7 @@ async function showPayoutUI() {
   const _frozen = interestFreezeRounds > 0;
   if (_frozen) interestFreezeRounds--;
   const interestCoins  = (_withheld || _frozen) ? 0 : interestPayout(coins, interestMult);
-  if (typeof crrInterestPaid === 'function') crrInterestPaid();   // r668: a challenge's one-payout double is spent
+  if (typeof crrInterestPaid === 'function') crrInterestPaid();   // r671: a challenge's one-payout double is spent
   // In Crunch the round clock IS the quarter's act bank, so paying for what is
   // left on it would pay for time the player has not finished spending (and pay
   // it again every level). The line becomes PAR instead: credits for every

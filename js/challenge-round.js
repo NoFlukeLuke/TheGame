@@ -22,7 +22,7 @@
 //   only runs while the round clock does, so it waits out a level-up and resumes.
 //   Solved: the card's reward. Timed out: stage 1's reward in reverse.
 //
-// TWO STAGES, ONE PAYOUT (r668, owner; CHALLENGE_REWARDS.md): clear stage 1 and
+// TWO STAGES, ONE PAYOUT (r671, owner; CHALLENGE_REWARDS.md): clear stage 1 and
 // the card offers stage 2: tap to take, double-tap to raise. A raise that clears
 // pays the reward's second tier INSTEAD of its first; one that fails pays nothing
 // and charges the penalty. What a card pays is js/challenge-rewards.js.
@@ -70,7 +70,7 @@ function crModeHasCards() {
 const CR_FLOW_LEVEL_DELAY = [3, 8];      // ...whose warning appears this many live seconds into the level          // ...this many seconds after the first
 const CR_FLOW_BOSS_GAP = 60;             // no card within a minute of a boss
 const CR_FLOW_TIER_W = [45, 40, 15];     // how often a Flow card's ladder STARTS at difficulty 1 / 2 / 3
-// r668: a card whose stage 1 is difficulty CR_BONUS_D or more is HARD and pays
+// r671: a card whose stage 1 is difficulty CR_BONUS_D or more is HARD and pays
 // from the hard reward list; the rest are STANDARD (js/challenge-rewards.js).
 const CR_BONUS_D = 2;
 
@@ -144,7 +144,7 @@ function crOnRoundStart() {
   // charging its penalty bursts (crFailing) leaves when they end.
   for (const [, , cd] of crCards()) if (cd.cr.done && !crQueue.includes(cd._id) && !crFailing.has(cd._id)) crQueue.push(cd._id);
   if (crQueue.length) setTimeout(crDrain, 400);   // a card solved by the last hand of a round
-  if (typeof crrPendingApply === 'function') crrPendingApply();   // r668: rewards paid after the last round
+  if (typeof crrPendingApply === 'function') crrPendingApply();   // r671: rewards paid after the last round
   crFlowLevelStart();
   if (!crRound) { crSpotRoll(); return; }
   if (crRound.started || crRound.over) return;
@@ -178,7 +178,7 @@ function _crBigTarget(mult) {
 const _crL = (...p) => p.map(([d, n]) => ({ d, n }));
 // r555 (owner): TWO TIERS OF EVERY ASK. The ladders below are the ask met ANYWHERE
 // on the board. The same ask with the counted hand TOUCHING the card is one
-// difficulty higher (each tier's d + 1, capped at 3). r668: the payout no longer
+// difficulty higher (each tier's d + 1, capped at 3). r671: the payout no longer
 // follows difficulty, so a tier repeating one is kept.
 const _crTouch = l => l.map(t => ({ d: Math.min(3, t.d + 1), n: t.n }));
 // Cards a hand type needs. "Playing 3 of any hand is tough unless the hand is one
@@ -208,7 +208,7 @@ function crTypeDefs() {
   both({ kind: 'big', ladder: _crL([2, _crBigTarget(1.3)], [3, _crBigTarget(1.8)]) });
   out.push({ kind: 'colfall', ladder: _crL([1, 2], [2, 3], [3, 5]) });
   out.push({ kind: 'rowhit', ladder: _crL([1, 2], [2, 3], [3, 5]) });
-  // r668 (owner): two stages, never three. A ladder that cannot grow (hand types
+  // r671 (owner): two stages, never three. A ladder that cannot grow (hand types
   // when the board makes only three) keeps its one stage and pays when it clears.
   out.forEach(t => { t.ladder = t.ladder.slice(0, 2); });
   return out;
@@ -476,7 +476,7 @@ function crLand(t) {
       discardToDrawPile(cur);
     }
     const q = { ...t.q, src: t.src, idx: t.idx };
-    if (typeof crrRewardFor === 'function') q.pay = crrRewardFor(q);   // r668: what it pays is fixed as it lands
+    if (typeof crrRewardFor === 'function') q.pay = crrRewardFor(q);   // r671: what it pays is fixed as it lands
     if (crTimed(t.src)) { q.timeLeft = CR_FLOW_TIME; q.timeMax = CR_FLOW_TIME; }
     const card = { rank: '?', suit: 'stone', _isStone: true, _isChallenge: true, _id: `cr-${Date.now()}-${++crSeq}`, cr: q };
     gridData[t.r][t.c] = card;
@@ -494,7 +494,7 @@ function crLand(t) {
 // ── Scoring a hand ──────────────────────────────────────────────────────────
 // playHand, after the score is committed and BEFORE the goal check.
 function crOnHand(hand, handCells, finalScore) {
-  if (typeof crrAfterHand === 'function') crrAfterHand();   // r668: a hand scored without Focus is spent
+  if (typeof crrAfterHand === 'function') crrAfterHand();   // r671: a hand scored without Focus is spent
   if (!crHandPlays) crHandPlays = {};   // a save from before r528
   if (hand) crHandPlays[hand] = (crHandPlays[hand] || 0) + 1;
   if (finalScore > 0) { crRecent.push(finalScore); if (crRecent.length > 12) crRecent.shift(); }
@@ -596,7 +596,7 @@ function crRaise(cd) {
   noteMessage(`⚑ Raised: ${crReqText(q)}`);
   if (q.prog >= crTarget(q)) crAdvance(cd);   // already there: banks at once
 }
-// Take the banked stage's payout (r668: one reward, stage 1's tier or stage 2's).
+// Take the banked stage's payout (r671: one reward, stage 1's tier or stage 2's).
 // In a challenge round the next card follows.
 function crCollect(cd) {
   const q = cd.cr;
@@ -612,7 +612,7 @@ function crCollect(cd) {
   crQueue.push(cd._id);
   setTimeout(crDrain, 700);
 }
-// The card's clock ran out short of its current stage. r668 (owner): it charges
+// The card's clock ran out short of its current stage. r671 (owner): it charges
 // stage 1's reward IN REVERSE (crrPenaltyPlan), and a raised card loses its banked
 // stage as well. r504: the card STAYS on the board and charges the penalty as a
 // burst: a red plate flies from the card to the readout it costs and the cost is
@@ -747,7 +747,7 @@ function crFlowCancel() {
 }
 // flowEndBoss: a fresh cycle. The level the boss interrupted does not roll again.
 function crFlowNewCycle() { const st = crFlowState(); st.used = 0; st.at = null; }
-// flowrMaybeStart (r668): the picks Flow's challenge cards paid since the last
+// flowrMaybeStart (r671): the picks Flow's challenge cards paid since the last
 // level-up, as reward chain steps ({ kind, floor }). Spent once.
 function crTakeFlowSteps() {
   const st = crFlowState(), out = st.steps || [];
@@ -841,7 +841,7 @@ function crOnClockOut() {
   setTimeout(() => startInterlude(), 900);
   return true;
 }
-// r668: the picks challenge cards paid this round open last (crrRunScreens).
+// r671: the picks challenge cards paid this round open last (crrRunScreens).
 function crSettle() {
   const spot = crSpotSettle();
   return (crRound ? spot.then(crSettleRound) : spot).then(() => crrRunScreens());
@@ -975,7 +975,7 @@ function crFxPenalty(id, h, i) {
     crBurst(at[2], 6, 'cr-spark', 30);
   }
   sfxChallengePenaltyFire(i);
-  // r668: a penalty with no readout on screen (a reroll, the next boss) rises off the card.
+  // r671: a penalty with no readout on screen (a reroll, the next boss) rises off the card.
   const to = CR_FAIL_TARGETS[h.to] || h.to;
   const fly = (typeof crrFly === 'function') ? crrFly(el, to, h.label, true)
             : ((typeof efxFly === 'function' && efxFly(el, to, h.label, '#ff4d4d', 'loss', CR_FAIL_PLATE)) || 0);

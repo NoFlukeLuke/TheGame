@@ -214,8 +214,8 @@ const SETTINGS_DEF = [
     get: () => typeof trayMachineOn === 'function' && trayMachineOn(),
     apply: v => { if (typeof trayPitSet === 'function') trayPitSet('on', v ? 3 : 1); } },
   { group: 'Display', id: 'stockBulbs', label: 'Stock display',
-    hint: 'How swaps, discards, hand size and Trick slots left are shown. Bulbs: green is free, blue or red is used, dim is not unlocked yet.',
-    type: 'select', default: 'numbers', options: [['numbers','Numbers'], ['bulbs','Bulbs']],
+    hint: 'How swaps, discards, hand size and Trick slots left are shown. Squares: lit is free, hollow is used, faint is not unlocked yet.',
+    type: 'select', default: 'numbers', options: [['numbers','Numbers'], ['bulbs','Squares']],
     get: () => (typeof sbCfg !== 'undefined' && sbCfg.on) ? 'bulbs' : 'numbers',
     apply: v => { if (typeof sbSet === 'function') sbSet('on', v === 'bulbs' ? 1 : 0); } },
   // r593: event text types out a character at a time (textTypeCps, below).

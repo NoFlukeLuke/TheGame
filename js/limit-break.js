@@ -59,7 +59,7 @@ function lbConsolePlace() {
   const ov = document.getElementById('limitbreak-overlay'), panel = document.getElementById('lb-panel');
   if (!ov || !panel || !ov.classList.contains('show')) return;
   const S = lbConsoleOn() ? bsStage() : null;
-  if (!S) { ov.classList.remove('lb-console'); panel.style.cssText = ''; return; }
+  if (!S) { ov.classList.remove('lb-console'); panel.style.cssText = ''; lbConsoleFit(); return; }
   const g = bsBoardBox(S);
   ov.classList.add('lb-console');
   // The overlay sits inside #cabinet, so the cabinet's zoom (k) is already on
@@ -68,7 +68,53 @@ function lbConsolePlace() {
   panel.style.cssText = 'zoom:1;';
   const k = (ov.getBoundingClientRect().width / ov.offsetWidth) || 1;
   panel.style.cssText = `position:fixed;zoom:${S.z / k};left:${(S.sr.left / S.z + g.l)}px;top:${(S.sr.top / S.z + g.t)}px;width:${g.w}px;height:${g.h}px;max-width:none;max-height:none;margin:0;`;
+  lbConsoleFit();
 }
+// THE TEXT FITS ITS BOX (r668, owner). The skin draws this panel's text about
+// twice its set size, so a name could run past an offer's border or a wrapped one
+// overlap itself. css/board-screen.css sets the sizes; this is the safeguard for
+// any limit name, orientation or font that still does not fit. First the whole
+// panel: while it scrolls, the offers' sentences clamp a line shorter (4, 3, 2)
+// and then all of its text steps down (--lbz, to LB_FIT_PANEL_MIN). Then each
+// box: one whose words reach past its own box or its parent's (a word wider than
+// the offer sets the child's box wider than the offer, so both are asked) steps
+// its own font down to LB_FIT_BOX_MIN of its size. Words never break mid-word.
+// A one-line box that ends in "..." on purpose (nowrap + ellipsis) is left alone.
+const LB_FIT_BOX_MIN = 0.6, LB_FIT_PANEL_MIN = 0.7;
+function lbInnerBox(el) {
+  const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+  const k = el.offsetWidth ? r.width / el.offsetWidth : 1;
+  const px = (v) => (parseFloat(v) || 0) * k;
+  return { l: r.left + px(cs.borderLeftWidth) + px(cs.paddingLeft), r: r.right - px(cs.borderRightWidth) - px(cs.paddingRight) };
+}
+function lbTextSpills(el) {
+  if (!el.offsetWidth || !el.textContent.trim()) return false;
+  const rg = document.createRange(); rg.selectNodeContents(el);
+  const ink = rg.getBoundingClientRect();
+  return [el, el.parentElement].some(b => { const x = b && lbInnerBox(b); return x && (ink.left < x.l - 0.5 || ink.right > x.r + 0.5); });
+}
+function lbConsoleFit() {
+  const ov = document.getElementById('limitbreak-overlay'), panel = document.getElementById('lb-panel');
+  if (!ov || !panel || !ov.classList.contains('show')) return;
+  const boxes = [...panel.querySelectorAll('#lb-eyebrow, #lb-title, #lb-sub, #lb-second-title, #lb-sacrifice-title, .lb-offer > *, #lb-taken .lb-bar > *, #lb-taken > *, .lb-sac-btn > *')];
+  boxes.forEach(el => el.style.removeProperty('font-size'));
+  panel.style.removeProperty('--lbz'); panel.style.removeProperty('--lb-clamp');
+  if (!ov.classList.contains('lb-console')) return;
+  const scrolls = () => panel.scrollHeight > panel.clientHeight + 1;
+  for (let n = 3; n >= 2 && scrolls(); n--) panel.style.setProperty('--lb-clamp', n);
+  for (let z = 0.95; z >= LB_FIT_PANEL_MIN - 0.001 && scrolls(); z -= 0.05) panel.style.setProperty('--lbz', z.toFixed(2));
+  boxes.forEach(el => {
+    const cs = getComputedStyle(el);
+    if ((cs.textOverflow === 'ellipsis' && cs.whiteSpace === 'nowrap') || !lbTextSpills(el)) return;
+    const base = parseFloat(getComputedStyle(el).fontSize) || 12;
+    for (let f = 0.95; f >= LB_FIT_BOX_MIN - 0.001 && lbTextSpills(el); f -= 0.05) el.style.fontSize = (base * f).toFixed(2) + 'px';
+  });
+}
+if (typeof document !== 'undefined' && document.fonts) {
+  document.fonts.addEventListener?.('loadingdone', () => lbConsoleFit());
+  document.fonts.ready?.then(() => lbConsoleFit());
+}
+
 // After the turn, not during it: js/bootstrap.js's resize handler (registered
 // last) is what toggles .landscape, and the board's slot then slides for .34s.
 // Placed at once it measured the old orientation's board.
@@ -144,6 +190,7 @@ function renderLimitBreak() {
 
   offersEl.innerHTML = '';
   takenEl.innerHTML = '';
+  queueMicrotask(lbConsoleFit);   // once this render (and a placement after it) is done
   // Stage 2 has four things to show at once - the receipt, the two remaining
   // offers, the price heading and three sacrifices - where stage 1 has one. The
   // class tightens the header (which by then is repeating itself) so the

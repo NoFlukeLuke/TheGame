@@ -31,7 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
-| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; decided r668, being built (challenges done) |
+| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; decided, being built (challenges done r671) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -2705,7 +2705,77 @@ lose: none else rises (Monochrome's own ladder lowers its cost; Capacitor's cost
 Measured by a real double-tap on the Focus bar at 1440x820 and 420x900: v4 Charged Card charged 7, v6
 Shuffle Up 3, v3 Free Hand 10 for 30s, v2 Double Down 10 for 6 hands. The sheet's notes say so.
 
-## r668 - challenge cards: two stages, one reward, the reverse as the penalty (`js/challenge-rewards.js`, owner)
+## r668 - the console Limit Break's text fits its boxes (owner)
+Owner's screenshot: "Discards/Round" ran past both sides of its offer and "Starting" sat on top of
+"Time". The skin's `font-size-adjust: .56` (css/skin-machine.css) draws this panel's VT323 about
+twice its set size, while line heights were fixed multiples of the SET size (1.05 at 15px), so a
+wrapped name's lines overlapped and a long word outgrew the 92px box. css/board-screen.css: offer
+text is smaller (label 15 -> 12px, gain 15 -> 13, sentence 13 -> 11, numbers 12 -> 11, icon 22 ->
+19) and every wrapping line is `line-height: normal` (the font's own height at its drawn size).
+Stage 2 is set tighter (receipt, headings, give-up rows, keys) so its three give-up rows sit above
+the keys on a landscape board instead of under them. Every size there is `calc(Npx * var(--lbz,
+1))`. **`lbConsoleFit()`** (js/limit-break.js) is the safeguard, run after every render (a
+microtask), every placement and every font load: while the panel scrolls, the offers' sentences
+clamp shorter (`--lb-clamp` 4, 3, 2) and then all its text steps down (`--lbz`, floor
+`LB_FIT_PANEL_MIN` 0.7); then any box whose ink reaches past its own content box or its parent's
+steps its own font down (floor `LB_FIT_BOX_MIN` 0.6). Words never break mid-word; one-line boxes
+that end in "..." on purpose are left alone. Measured in headless Chromium at 420x900, 375x667,
+820x1440, 900x420, 1100x620 and 1440x820, and at 1440x820 with VT323 blocked: every limit name in
+every slot, stage 1 and stage 2 through real taps, no text outside its box, no overlapping lines,
+no scroll, and the fit pass did not need to step in. Forced: a 33-letter name and a box cut to
+75% x 85% shrank the name to fit (8px) and the panel to 0.7.
+
+## r669 - the Schedule's challenge cards pay credits only (owner)
+`crCreditsOnly()` (js/challenge-round.js) is true in the Schedule (`mapActive()`). There a
+challenge card taken pays its tier's credits (4 / 9 / 15) and nothing else: no rewind, no mini
+grid, and a won audit pays no prize grid (`mapAfterLevel` clears the round's state and goes
+pick of three, then the schedule). A failed card takes credits only (one burst, no seconds).
+Notices read "+9 credits" / "-4 credits" alone. The audit's extra minute on the clock, the
+penalty grid on a lost audit and the pick of three are unchanged. Classic's challenge node and
+Flow keep the stakes table's seconds and bonuses. Measured in headless Chromium at 1440x820 and
+420x900: a won audit went tally, payout, pick of three, schedule (no PRIZE or BONUS board),
+credits 18 -> 46 across three cards with the clock untouched; a fail took 4 credits and 0s.
+
+## r670 - the score waits for the tally; a winning hand jumps the queue; the keys' words are dots (owner)
+- **The SCORE box waits for its hand's climb** (`dncShowScore` / `dncScoreShown()`, js/score-dance.js;
+  read by `updateScoreUI`, the goal bar too). A hand is banked into `score` when it is played, but from
+  a dance's start to its landing the dance owns the number (the climb writes it), and a hand still in the
+  scoring queue is not shown at all. Before, the hand in front of a queued goal hand wrote the whole
+  total (goal hand included) as it landed, and Flow's pick (`survivalShowPick`) wrote it again under the
+  goal hand's finale. A cut dance (`cancelDance`, `handleDanceAbort`) lands the whole total.
+- **A winning hand played over the queue does not wait its turn** (`dncGoalJump`): its cards stay on the
+  board and shake in gold, every hand in front of it plays out at the skip speed (`dncRequestFF` on the
+  live dance and again as each queued hand starts) with its card beats skipped (the chips land on their
+  totals, then the fuse, throw and climb), and then its finale goes on from the blast, the winners'
+  shake standing in for the surrounding cards' jitter (`GOAL_JUMP_MIN_MS`, 1s at least). A normal
+  hand's fly-in and a queued hand's strip now also end at once on a skip (their copies already land at
+  once). Measured by real taps, two hands in front: they resolved in about 1.3s (2.9s at plain skip
+  speed); the box held the pre-goal total until the goal hand's own climb (Classic and Flow, 1440x820
+  and 420x900); the round ended through the interlude / the Flow pick; no drift, no page errors.
+- **The key look is the tube (r662's A) for good**: B and C are gone, A is on by default
+  (`lethe.keyLook.v1` holds only 'off'; a stored a / b / c is A), dev -> Aesthetics -> Key look can still
+  turn it off for the old keycaps. Settings -> Display -> Stock display reads Numbers / Squares and is
+  honoured again (r662 forced squares whenever a key look was on).
+- **The keys' words are lit dots** (`js/key-dots.js`): a canvas per key (`.kd-c`, over the glass and its
+  scan lines, under nothing) draws every word on PLAY, DISCARD, SWAP and the shop's LEAVE, and on the
+  keys other screens borrow, in a 5x7 dot font (3x5 for small print; upper case), each dot the key's
+  colour with a dark outline and a visible gap, glowing by the canvas's own drop shadow. **The key's own
+  text stays in the DOM, laid out but transparent**: `kdRead` reads it back a Range per character, so
+  every screen that writes a key keeps writing it the old way. The dots keep the lines' places on a dot
+  grid (3 device px pitch or more, so the gap shows); a label that cannot keep its places is wrapped at
+  its spaces and stacked (`kdFlow`). Icons the Schedule puts on its keys (`.mapk-ico`) are drawn by the
+  browser and the dots keep clear of them. **A glyph that changes falls out** of the bottom of the glass
+  (clipped there) and `KD_IN_DELAY` (300ms) later the new one falls in from the top, its dots setting off
+  in a random order; unchanged glyphs stay lit, so a count changes one digit. Instant on a resize, with
+  reduced motion and with Skip transitions. A MutationObserver per key (and a 600ms check) catches every
+  change; a copy of the canvas saved in a screen's stored key markup is removed when it comes back.
+  Measured at 1440x820: DEFER / PLAY at a 4 px pitch (3 px dots, 1 px gaps), SWAP and the Schedule's
+  words at 3 px, REROLL REWARD TYPE / FREE 3 stacked at 3 px; 420x900 at DPR 3: 6 px and 4 px. Five
+  changes inside 900ms settled on exactly the last word's dots. Schedule keys by real clicks unchanged.
+- Found, not fixed: the headless sim's bot (tools/sim) plays no hands (every run dies at level 1 having
+  scored nothing). Same on r653, r659, r660, r661 and r665, so it is older than this pass.
+
+## r671 - challenge cards: two stages, one reward, the reverse as the penalty (`js/challenge-rewards.js`, owner)
 CHALLENGE_REWARDS.md sections 3 to 5. Every ladder is cut to two stages (`crTypeDefs` slices;
 `_crTouch` no longer drops repeated difficulties; a one-stage ladder, hand types on a board that
 makes three, pays when it clears). A card's reward is fixed as it lands (`q.pay`,
@@ -2728,7 +2798,10 @@ resumes do not spend it). Readers: `payoutInterestMult` x `crrInterestMult`, cal
 `rewardSelectionCap` (`crrGridBonus`, spent in `closeRewardGrid`). **The round clock holds while
 the improvement screen runs** (`improveAnimRunning`, round tick). `downgradeEntity(id, { anim })`
 plays the improvement scene backwards (`entry.down`, red header, loss sounds). Gone:
-`CR_FLOW_STAKES`, the mini grid for a d2+ take, Flow's +1 / -1 reward, third tiers.
+`CR_FLOW_STAKES`, the mini grid for a d2+ take, Flow's +1 / -1 reward, third tiers. **r669's
+"the Schedule's challenge cards pay credits only" is superseded** (its `crCreditsOnly` is gone):
+a Schedule card pays its ONE department reward, named on the card. r669's other half stands: a
+won audit pays no prize grid (`mapAfterLevel`).
 Measured in headless Chromium at 1440x820 and 420x900 by dev calls: a standard spot card paid +8
 (take) and +20 (raise); a hard card improved Cascade with the clock held (164 -> 164) and, failed,
 took it back with the reversed screen and "Cascade lost an improvement (v2.0 to v1.0)"; every

@@ -1531,7 +1531,7 @@ function renderRewardGrid() {
 // Effective reward-grid pick cap = the Selection Size limit + Greedy Boi's reward-grid-only bonus.
 function rewardSelectionCap() {
   if (penaltyGridActive() || callItGridActive()) return penaltyPickCount();
-  // r668: a challenge's Reward grid size reward (or penalty) moves the next ordinary or prize grid's path.
+  // r671: a challenge's Reward grid size reward (or penalty) moves the next ordinary or prize grid's path.
   const _cr = (typeof crrGridBonus === 'function' && (rewardGridMode === 'normal' || rewardGridMode === 'prize')) ? crrGridBonus() : 0;
   return Math.max(1, limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0) + _cr);
 }
@@ -1944,7 +1944,7 @@ function closeRewardGrid() {
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
   document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize', 'reward-penalty', 'reward-callit');
-  if ((rewardGridMode === 'normal' || rewardGridMode === 'prize') && typeof crrGridClosed === 'function') crrGridClosed();   // r668: the path bonus is spent
+  if ((rewardGridMode === 'normal' || rewardGridMode === 'prize') && typeof crrGridClosed === 'function') crrGridClosed();   // r671: the path bonus is spent
   rewardGridMode = 'normal';   // one prize grid per boss; the next grid is ordinary
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;

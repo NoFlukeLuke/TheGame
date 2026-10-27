@@ -81,18 +81,24 @@ html.skin-machine #limitbreak-overlay.lb-console #lb-bar {
   background: #0e150a; box-shadow: 0 2px 0 #0e150a;
 }
 html.skin-machine #limitbreak-overlay.lb-console #lb-bar-dots { display: none; }
-html.skin-machine #limitbreak-overlay.lb-console #lb-eyebrow { font-family: inherit; font-size: 17px; letter-spacing: 1px; color: var(--am-hi); text-shadow: inherit; text-transform: none; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-eyebrow { font-family: inherit; font-size: calc(17px * var(--lbz, 1)); letter-spacing: 1px; color: var(--am-hi); text-shadow: inherit; text-transform: none; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-eyebrow::before { content: '> '; }
 html.skin-machine #limitbreak-overlay.lb-console .con-pause { color: var(--am); border-color: var(--am-dim); background: transparent; }
-html.skin-machine #limitbreak-overlay.lb-console #lb-title { font-family: inherit; font-weight: normal; font-size: 19px; letter-spacing: 1px; color: var(--am-hi); text-shadow: inherit; margin-bottom: 2px; }
-html.skin-machine #limitbreak-overlay.lb-console #lb-sub { font-family: inherit; font-size: 15px; line-height: 1.15; color: var(--am); margin-bottom: 8px; padding: 4px 6px; border: 3px double var(--am-dim); max-width: none; width: 100%; box-sizing: border-box; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-title { font-family: inherit; font-weight: normal; font-size: calc(19px * var(--lbz, 1)); line-height: normal; letter-spacing: 1px; color: var(--am-hi); text-shadow: inherit; margin-bottom: 2px; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sub { font-family: inherit; font-size: calc(15px * var(--lbz, 1)); line-height: normal; color: var(--am); margin-bottom: 8px; padding: 4px 6px; border: 3px double var(--am-dim); max-width: none; width: 100%; box-sizing: border-box; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-second-title,
-html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice-title { font-family: inherit; font-size: 14px; letter-spacing: 1px; color: var(--am-dim); opacity: 1; text-transform: uppercase; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice-title { font-family: inherit; font-size: calc(13px * var(--lbz, 1)); line-height: normal; letter-spacing: 1px; color: var(--am-dim); opacity: 1; text-transform: uppercase; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-offers { gap: 8px; margin: 10px 0 4px; }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer {
   width: 92px; min-height: 0; padding: 12px 5px 6px; border-radius: 2px; border: 1px solid var(--am-dim);
   background: transparent; color: var(--am); font-family: inherit; transition: none; overflow: visible;
 }
+/* r668 (owner): the panel's text is drawn about twice its set size (the skin's
+   font-size-adjust keeps VT323 readable), so the offers' text is set smaller and
+   spaced by the font's own line height (`normal`): at 15px and 1.05 a wrapped
+   name's lines overlapped and a long word ran past the box. --lbz and --lb-clamp
+   are written by lbConsoleFit (js/limit-break.js), the safeguard for whatever
+   still does not fit. */
 /* Three across in any box: a phone's board is too narrow for three at 92 (r660). */
 html.skin-machine #limitbreak-overlay.lb-console #lb-panel:not(.stage2) .lb-offer { flex: 1 1 0; width: auto; max-width: 92px; min-width: 0; }
 /* Stage 2's offers are rows as wide as the panel (css/style.css). The 92px box
@@ -100,36 +106,43 @@ html.skin-machine #limitbreak-overlay.lb-console #lb-panel:not(.stage2) .lb-offe
 html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer { width: 100%; max-width: none; padding: 6px 8px; flex-wrap: wrap; row-gap: 2px; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-prog { margin-left: auto; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-desc { flex-basis: 0; }
-html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-icon { font-size: 18px; margin: 0; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-icon { font-size: calc(16px * var(--lbz, 1)); margin: 0; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-offer-label { margin: 0; }
+/* r668: stage 2's list (the receipt, two offers, three things to give up) is
+   taller than a landscape board, so it is set tighter and scales with --lbz. */
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 #lb-taken { margin: 2px 0; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 #lb-offers { margin: 3px 0 1px; gap: 5px; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 #lb-second-title { padding-top: 2px; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-sac-main { font-size: calc(12px * var(--lbz, 1)); line-height: normal; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-panel.stage2 .lb-sac-sub { font-size: calc(11px * var(--lbz, 1)); line-height: normal; }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer:hover:not(.disabled) { transform: none; border-color: var(--am); background: rgba(255,176,46,.12); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer.selected { transform: none; border-color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi), 0 0 8px rgba(255,176,46,.35); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer.blind { border-style: dashed; border-color: var(--am-dim); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer.blind.selected { border-color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer.taken { border-color: var(--am-hi); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer-tag { top: -8px; right: auto; left: 5px; padding: 0 3px; font-size: 12px; background: #0e150a; color: var(--am-hi); }
-html.skin-machine #limitbreak-overlay.lb-console .lb-offer-icon { font-size: 22px; margin-bottom: 4px; }
-html.skin-machine #limitbreak-overlay.lb-console .lb-offer-label { font-size: 15px; letter-spacing: 0; line-height: 1.05; margin-bottom: 2px; color: var(--am-hi); }
-html.skin-machine #limitbreak-overlay.lb-console .lb-offer-gain { font-family: inherit; font-size: 15px; color: var(--am-hi); text-shadow: inherit; margin-bottom: 3px; }
-html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc { font-family: inherit; font-size: 13px; line-height: 1.1; color: var(--am-dim); -webkit-line-clamp: 4; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-icon { font-size: calc(19px * var(--lbz, 1)); margin-bottom: 4px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-label { font-size: calc(12px * var(--lbz, 1)); letter-spacing: 0; line-height: normal; margin-bottom: 2px; color: var(--am-hi); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-gain { font-family: inherit; font-size: calc(13px * var(--lbz, 1)); line-height: normal; color: var(--am-hi); text-shadow: inherit; margin-bottom: 3px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc { font-family: inherit; font-size: calc(11px * var(--lbz, 1)); line-height: normal; color: var(--am-dim); -webkit-line-clamp: var(--lb-clamp, 4); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc .kw, html.skin-machine #limitbreak-overlay.lb-console .lb-offer-desc [class^="kw-"] { color: var(--am); }
-html.skin-machine #limitbreak-overlay.lb-console .lb-offer-prog, html.skin-machine #limitbreak-overlay.lb-console .lb-offer-maxed-badge { font-size: 12px; color: var(--am); margin-top: 3px; letter-spacing: 0; }
-html.skin-machine #limitbreak-overlay.lb-console #lb-taken.lb-bar { border: 1px solid var(--am-dim); border-radius: 2px; background: transparent; font-family: inherit; font-size: 14px; padding: 5px 8px; }
+html.skin-machine #limitbreak-overlay.lb-console .lb-offer-prog, html.skin-machine #limitbreak-overlay.lb-console .lb-offer-maxed-badge { font-size: calc(11px * var(--lbz, 1)); line-height: normal; color: var(--am); margin-top: 3px; letter-spacing: 0; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-taken.lb-bar { border: 1px solid var(--am-dim); border-radius: 2px; background: transparent; font-family: inherit; font-size: calc(13px * var(--lbz, 1)); line-height: normal; padding: 3px 8px; }
 html.skin-machine #limitbreak-overlay.lb-console .lb-tk-check, html.skin-machine #limitbreak-overlay.lb-console .lb-tk-tag,
 html.skin-machine #limitbreak-overlay.lb-console .lb-tk-gain, html.skin-machine #limitbreak-overlay.lb-console .lb-tk-name,
 html.skin-machine #limitbreak-overlay.lb-console .lb-tk-prog { color: var(--am-hi); }
-html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice { border-top-color: var(--am-dim); padding-top: 8px; gap: 5px; max-width: none; }
-html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice-hint { font-family: inherit; font-size: 14px; color: var(--am-dim); }
-html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn { font-family: inherit; font-size: 14px; letter-spacing: 0; padding: 5px 8px; border-radius: 2px; background: transparent; border: 1px solid #c0453f; color: var(--am); text-shadow: inherit; transition: none; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice { border-top-color: var(--am-dim); padding-top: 4px; gap: 4px; max-width: none; }
+html.skin-machine #limitbreak-overlay.lb-console #lb-sacrifice-hint { font-family: inherit; font-size: calc(13px * var(--lbz, 1)); line-height: normal; color: var(--am-dim); }
+html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn { font-family: inherit; font-size: calc(13px * var(--lbz, 1)); letter-spacing: 0; padding: 4px 8px; min-height: 0; border-radius: 2px; background: transparent; border: 1px solid #c0453f; color: var(--am); text-shadow: inherit; transition: none; }
 html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn:hover:not(:disabled) { background: rgba(255,176,46,.12); }
 html.skin-machine #limitbreak-overlay.lb-console .lb-sac-btn.active { border-color: var(--am-hi); color: var(--am-hi); box-shadow: inset 0 0 0 1px var(--am-hi); }
 html.skin-machine #limitbreak-overlay.lb-console #lb-actions {
-  width: calc(100% + 20px); margin: 10px -10px 0; padding: 6px 10px 8px; bottom: 0; gap: 6px; justify-content: flex-end;
+  width: calc(100% + 20px); margin: 6px -10px 0; padding: 5px 10px 6px; bottom: 0; gap: 6px; justify-content: flex-end;
   border-top: 0; border-radius: 0; background: #0e150a;
 }
 html.skin-machine #limitbreak-overlay.lb-console #lb-confirm, html.skin-machine #limitbreak-overlay.lb-console #lb-done {
-  font-family: inherit; font-weight: normal; font-size: 16px; letter-spacing: 1px; line-height: 1; text-transform: uppercase;
-  padding: 6px 12px 5px; margin: 0; border-radius: 3px; box-shadow: none; transition: none;
+  font-family: inherit; font-weight: normal; font-size: calc(15px * var(--lbz, 1)); letter-spacing: 1px; line-height: normal; text-transform: uppercase;
+  padding: 4px 10px 3px; margin: 0; border-radius: 3px; box-shadow: none; transition: none;
   color: var(--am); background: transparent; border: 1px solid var(--am-dim); text-shadow: inherit;
 }
 html.skin-machine #limitbreak-overlay.lb-console #lb-confirm:not(:disabled) { background: var(--am); color: var(--am-ink); text-shadow: none; border-color: var(--am-hi); }

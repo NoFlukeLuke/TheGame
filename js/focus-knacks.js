@@ -200,7 +200,7 @@ function focusChipSync() {
   if (freeHandSecs > 0) parts.push(`FREE ${freeHandSecs}s`);
   if (chargedCardPending) parts.push('CHARGED');
   if (focusDoubleHands > 0) parts.push(`x2 ·${focusDoubleHands}`);
-  if (typeof crFocusMute !== 'undefined' && crFocusMute > 0) parts.push(`NO FOCUS ·${crFocusMute}`);   // r668: a failed challenge
+  if (typeof crFocusMute !== 'undefined' && crFocusMute > 0) parts.push(`NO FOCUS ·${crFocusMute}`);   // r671: a failed challenge
   if (!parts.length) { if (el) el.remove(); return; }
   if (!el) { el = document.createElement('div'); el.id = 'focus-chip'; wrap.appendChild(el); }
   el.textContent = parts.join(' · ');

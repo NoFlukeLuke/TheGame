@@ -407,7 +407,7 @@ function flowrSaveCfg(cfg) {
 // ── Run state ────────────────────────────────────────────────────────────────
 let flowrQueue        = null;  // ['pick3','limits',...] for the level-up in progress
 let flowrIdx          = 0;
-// r668: a challenge card's pick rides the next chain as a step, some with a rarity
+// r671: a challenge card's pick rides the next chain as a step, some with a rarity
 // floor ('rare' / 'epic'): flowrQueueFloors is indexed like flowrQueue, and
 // flowrOfferFloor is the floor the step on screen draws from (flowrBuildOffers).
 let flowrQueueFloors  = null;
@@ -605,7 +605,7 @@ function flowrMaybeStart() {
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;
   // A Flow challenge card solved (+1) or failed (-1) since the last level-up
   // (js/challenge-round.js). Never below one reward.
-  // r668: a challenge card's picks join this chain as steps of their own.
+  // r671: a challenge card's picks join this chain as steps of their own.
   const _crs = (typeof crTakeFlowSteps === 'function') ? crTakeFlowSteps() : [];
   // A cleared Line Quotas round pays at least QUOTA_LINES_REWARDS (js/level-types.js).
   const _qf = (typeof quotaLinesRewardFloor === 'function') ? quotaLinesRewardFloor() : 0;
@@ -1764,7 +1764,7 @@ function flowrDrawThree(pool, tierOf) {
   return out;
 }
 
-// r668: keep only offers at or above flowrOfferFloor's rarity (a challenge card's
+// r671: keep only offers at or above flowrOfferFloor's rarity (a challenge card's
 // "rare or better" pick); an empty result keeps the whole pool.
 const FLOWR_RAR_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 3 };
 function flowrFloorPool(pool, tierOf) {

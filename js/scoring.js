@@ -1476,7 +1476,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
 
   // 3. Base score
-  // r668: a failed challenge can leave the next hand scoring without Focus.
+  // r671: a failed challenge can leave the next hand scoring without Focus.
   const fMult = (typeof crrFocusMuted === 'function' && crrFocusMuted()) ? 1 : focusMultiplier();
   // Flow State is a PER_CARD_PAYER now (r238) - it pays a rate per card, so it
   // fires on each card's beat like every other one. Its accumulator is added in

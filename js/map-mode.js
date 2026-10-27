@@ -245,7 +245,7 @@ const MAP_KIND_META = {
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
-                blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Solve all ${CR_CARDS} for a prize grid; run out of time and you pick penalties.` },
+                blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Each card solved pays its reward; run out of time and you pick penalties.` },
   shop:       { icon: '$', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
   reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
@@ -1320,7 +1320,7 @@ function mapStartRound(challenge) {
 // The boss quota is FIXED - MAP_BOSS_LEVELS of the steeper curve - whatever
 // level the walk actually reached. Hooked from triggerLevelUp right after
 // guidedApplyPendingChallenge, i.e. after goalForLevel has written roundGoal.
-// The review's goal as printed: a challenge's Boss goal reward or penalty moves it (r668).
+// The review's goal as printed: a challenge's Boss goal reward or penalty moves it (r671).
 function mapReviewGoalShown() {
   const g = Number(mapBossGoal || 0);
   return (g && typeof crrBossGoalShown === 'function') ? crrBossGoalShown(g) : g;
@@ -1343,12 +1343,12 @@ function mapAfterLevel() {
   mapLastWasChallenge = false;
   const done = () => mapOpen();
   if (!mapPos) { done(); return; }   // resumed pre-map edge: straight back to the map
-  // A won audit (js/challenge-round.js) pays the prize grid after the pick;
-  // its close goes back to the map (finishInterludeRoute, map branch).
-  const prize = (typeof crTakePrize === 'function') && crTakePrize();
+  // An audit (js/challenge-round.js) pays no prize grid (owner, r666): its cards
+  // paid their credits during the round and the pick of three is the round's
+  // reward. crTakePrize is still called so the round's state is cleared.
+  if (typeof crTakePrize === 'function') crTakePrize();
   guidedOpenPickThree(() => {
     if (wasChallenge) mapKnackPickTwo(done);
-    else if (prize) { rewardGridContext = 'interlude'; openPrizeGrid(); }
     else done();
   });
 }

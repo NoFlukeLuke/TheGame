@@ -30,7 +30,7 @@ const EFX_TARGETS = {
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
   level:    ['#run-progress .rp-lv', '#level-display'],   // r504: a challenge's -1 reward
-  tricks:   ['#trick-tray-list', '#trick-tray-area'],       // r668: a challenge's reward or penalty
+  tricks:   ['#trick-tray-list', '#trick-tray-area'],       // r671: a challenge's reward or penalty
   knacks:   ['#knack-list', '#knack-carousel-wrap'],
   hand:     ['#btn-play'],
 };

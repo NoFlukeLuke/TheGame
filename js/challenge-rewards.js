@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// CHALLENGE REWARDS (r668, owner; CHALLENGE_REWARDS.md sections 3 to 5)
+// CHALLENGE REWARDS (r671, owner; CHALLENGE_REWARDS.md sections 3 to 5)
 // ══════════════════════════════════════════════════════════════════════════════
 // A challenge card pays ONE reward: clearing stage 1 pays the reward's first
 // tier, a raise that clears pays its second tier instead. Which reward is fixed

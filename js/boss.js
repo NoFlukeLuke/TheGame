@@ -784,7 +784,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
     bossWindowDuration = Math.max(10, Math.round(bossWindowDuration * overtimeBossMult()));
   roundSeconds = bossWindowDuration;
   if (typeof overtimeBossGoalMult === 'function' && overtimeBossGoalMult() !== 1) roundGoal = Math.ceil(roundGoal * overtimeBossGoalMult());
-  if (typeof crrBossGoalApply === 'function') roundGoal = crrBossGoalApply(roundGoal);   // r668: a challenge's Boss goal reward or penalty
+  if (typeof crrBossGoalApply === 'function') roundGoal = crrBossGoalApply(roundGoal);   // r671: a challenge's Boss goal reward or penalty
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');

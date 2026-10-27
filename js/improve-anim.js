@@ -52,7 +52,7 @@ let _iaQueue = [], _iaHold = 0, _iaTimer = 0, _iaRunning = false, _iaSkip = fals
 function improveAnimRunning() { return !!_iaRunning; }
 // improveEntity calls this BEFORE and AFTER applying a tier: `before` captures
 // the printed text, `after` closes the step. Consecutive steps of one entity
-// merge into one entry with a step per tier. r668: a tier going DOWN (a failed
+// merge into one entry with a step per tier. r671: a tier going DOWN (a failed
 // challenge, downgradeEntity with opts.anim) plays the same scene in reverse.
 function improveAnimNote(id, fromTier, toTier, descBefore, descAfter) {
   if (!id || toTier === fromTier) return;
@@ -197,7 +197,7 @@ function iaAnim(el, frames, opts, ctl) {
   const a = el.animate(frames, opts); ctl.anims.push(a);
   return a.finished.catch(() => {});
 }
-let _iaDown = false;   // r668: the scene playing is a downgrade, so its stamps sound like a loss
+let _iaDown = false;   // r671: the scene playing is a downgrade, so its stamps sound like a loss
 function iaSfx(name, k) { if (_iaDown && name === 'sfxSuccess') name = 'sfxChallengePenalty'; try { if (typeof window[name] === 'function') window[name](k); } catch (e) {} }
 // A step's length: the look's speed, then the step's own speed-up.
 function iaMsK(ms, k) { return iaMs(ms) / (k || 1); }
