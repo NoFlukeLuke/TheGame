@@ -345,15 +345,19 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   for (let q = 1; q <= quarters; q++) {
     const quarterOpenLevel = level;
     // r655: a sched json's "tiles" replaces the walk; the default is an 8-booking 4 x 4 quarter.
+    // r689: the reward tile is IT's alone; a priority account ('hard') pays the reward
+    // grid instead of the pick of three and two knacks. 'audit' is a hard round's goal
+    // and three challenge cards' credits (the bot plays no cards), no pick of three.
     const tiles = (typeof SIM_SCHED_TILES !== 'undefined' && SIM_SCHED_TILES)
-      || ['level','level','level','reward','hard','shop','event','reward'];
+      || ['level','level','level','hard','shop','event','level','event'];
     for (const t of tiles) {
-      if (t === 'level' || t === 'hard') {
+      if (t === 'level' || t === 'hard' || t === 'audit') {
         if (t === 'hard') roundGoal = Math.round(roundGoal * 1.25);
         const res = SIM_playRound();
         if (!res.cleared) return { win: false, diedLevel: level, boss: false, diag: SIM_diag(res) };
-        SIM_grantWeighted({ trick: 55, knack: 20, sleight: 25 }, 3);   // pick-of-three
-        if (t === 'hard') { SIM_grant('knack'); SIM_grant('knack'); }  // hard-round knack pick
+        if (t === 'level') SIM_grantWeighted({ trick: 55, knack: 20, sleight: 25 }, 3);   // pick-of-three
+        if (t === 'hard') { SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); }  // reward grid
+        if (t === 'audit') { coins += 20; }   // three standard cards' credits
         SIM_levelUp(goalFn);
       } else {
         if (t === 'reward') { SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); }

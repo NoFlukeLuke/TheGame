@@ -10,8 +10,10 @@
 // paying. Common or rare at first; BAL.trophy_case.epic / .legend open those
 // rarities; .starts is the version it arrives at (v2 = one improvement). Taken
 // during a round the Sleight takes the card's cell (crDrain reads q.becomes);
-// paid at a round's end it goes into the deck. It replaces the WHOLE payout, so
-// Very Rewarding has nothing to multiply while both are owned.
+// paid at a round's end it goes into the deck. It replaces the WHOLE payout.
+// With Very Rewarding too (r689, owner: combine them) the card turns into
+// BAL.very_rewarding.times Sleights: the first takes the cell, the rest go to the
+// deck, and Very Rewarding's bonus reward is paid as usual.
 //
 // VERY REWARDING (`very_rewarding`): the card's reward pays BAL.very_rewarding.times
 // times; from v3 a bonus reward is paid too, a random easy (Standard) or hard reward
@@ -65,11 +67,17 @@ function veryRewardingBonus() {
 // THE one payout of a completed challenge card (stage `t` of its reward).
 function crrPayCard(q, t, ctx) {
   ctx = ctx || {};
-  if (typeof hasKnack === 'function' && hasKnack('trophy_case')) return trophyCasePay(q, ctx);
-  const id = crPayOf(q);
-  const n = (typeof hasKnack === 'function' && hasKnack('very_rewarding') && BAL.very_rewarding) ? BAL.very_rewarding.times : 1;
-  const said = [crrGrant(id, t, ctx)];
-  for (let i = 1; i < n; i++) said.push(crrGrant(id, t, { live: ctx.live }));
+  const has = id => typeof hasKnack === 'function' && hasKnack(id);
+  const n = (has('very_rewarding') && BAL.very_rewarding) ? BAL.very_rewarding.times : 1;
+  const said = [];
+  if (has('trophy_case')) {
+    // Only the first can take the card's cell; the rest go straight into the deck.
+    for (let i = 0; i < n; i++) said.push(trophyCasePay(q, i ? { live: ctx.live } : ctx));
+  } else {
+    const id = crPayOf(q);
+    said.push(crrGrant(id, t, ctx));
+    for (let i = 1; i < n; i++) said.push(crrGrant(id, t, { live: ctx.live }));
+  }
   let out = said.every(s => s === said[0]) && n > 1 ? `${said[0]} ×${n}` : said.join(' · ');
   if (n > 1 && ctx.el) setTimeout(() => crrRise(ctx.el, `×${n}`, CRR_GOLD, 1.3), 260);
   const bonus = n > 1 ? veryRewardingBonus() : null;

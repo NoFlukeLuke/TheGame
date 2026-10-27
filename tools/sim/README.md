@@ -19,7 +19,8 @@ node runner.js <classic|schedule|flow> <runs> '<sched-json>' [handTime] [jobs]
   levels up to 12 grow 32% per level, everything after 45%. Schedule also takes
   `"bossMult"` (review quota = quarter-open goal x that; left out, the game's own
   `MAP_BOSS_SCALE ^ (MAP_BOSS_LEVELS - 1)`) and `"tiles"` (the walk; the default is
-  `["level","level","level","reward","hard","shop","event","reward"]`, 8 bookings of the 4 x 4).
+  `["level","level","level","hard","shop","event","level","event"]`, 8 bookings of the 4 x 4;
+  r689: `hard` pays a reward grid, `audit` 20 credits, `reward` is IT's tile).
 - `flow` plays Flow (r683; `survival` is read as `flow`, the old Survival mode is gone).
 - `handTime` (default 15s) is the bot's pace per hand - the skill knob. Use 6.
 - `jobs` (r683, default one per core) splits the runs over that many processes.

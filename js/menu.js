@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r688 · credits read L¢; every challenge card look is in; the pay line is set tight; the clock-on-the-border preview";
+const BUILD = "2026-10-27 · r689 · priority accounts pay the reward grid, audits their cards only; the reward tile is IT's; mysteries roll; Trophy Case + Very Rewarding combine";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

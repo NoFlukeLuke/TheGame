@@ -3196,3 +3196,44 @@ Measured in headless Chromium at 1440x820, 420x900 and 375x667: every reward's p
 prompt inside the card on both stages, no face element past the card's edge or overlapping the
 next; the ring at 60 / 40 / 20 / 8s; the CLOCK demo ran out to a lost card; payout rows, totals and
 shop chips print L¢; no page errors.
+
+## r689 - the Schedule pays less, better: priority accounts pay the reward grid; mysteries roll (owner)
+The r684 brief (BRIEF_REWARD_TILE.md), as the owner changed it. js/map-mode.js unless named.
+- **What a cleared round pays is its tile's** (`mapAfterLevel`, read from `mapPosTileId`, so a
+  resumed round pays the same): a round the pick of three; a **priority account the reward grid**
+  (`rewardGridContext 'interlude'`, closes back to the map) and no pick of three; an **audit its
+  challenge cards and nothing else** (no pick of three). The priority account's knack pick of two
+  at +20 Luck (`mapKnackPickTwo`, `MAP_CHALLENGE_LUCK`) and `mapLastWasChallenge` are gone. The
+  first-five-grids ramp (`rewardGridsSeen`) is unchanged (owner: it may have been an overstep).
+  A priority line prints `GOAL n` and `PATH OF n` on two lines (`mapTileStake().path`).
+- **The REWARD tile is IT's alone**: `MAP_MINIMUMS` lost it; `mapMinimums()` adds one back in the
+  quarter whose department tile is `reward`; the fill's reward row is zeroed elsewhere
+  (`mapFillWeights`), the funnel offers it only there, and a map holds `MAP_REWARD_MAX` (2) at most,
+  mysteries included (the validator checks). Saved maps keep what they drew.
+- **Priority a little more common**: `MAP_AUDIT_SHARE` 0.5 -> 0.4 (fill weights unchanged). 3,000
+  maps a department: priority accounts and one-on-ones 1.06-1.36 a map (were 0.60-0.77), audits
+  0.63-0.86 (were 0.53-0.79), reward tiles 0.15-0.27 outside IT and 1.38 in it (were 1.40-1.63).
+- **Mysteries roll their kind** (`MAP_MYSTERY_W`, dev -> Probabilities, "What a mystery tile is"):
+  round 10, audit 20, priority 20, event 20, mini 15, reward 15, at build, hidden until you commit.
+  The last slot never rolls a round; a tile a minimum or a slot's only round stands on is never
+  made a mystery. A challenge mystery carries `_mx` to the naming pass (`mapRollChallenge(want)`:
+  'mini' = only `CHALLENGE_DEFS` rows with `mini`, 'task' = the rest).
+- **The mini boss is the r239 harness** (`miniBossMaybeStart`, half-strength boss modifiers, a
+  1.2-1.25x goal, credits on a clear), which priority tiles could already roll. A priority tile whose
+  ask is a `mini` row now wears its own face (`mapTileIsMini`, `mapTileMetaKey`): **1-ON-1**
+  (One-on-One, ⚔, sage `mk-mini`). It pays what a priority account pays: its credits and the
+  reward grid (owner asked what it should pay; this is the default until they say).
+- **Trophy Case + Very Rewarding combine** (js/challenge-knacks.js `crrPayCard`): the card turns
+  into `BAL.very_rewarding.times` Sleights, the first in the card's cell, the rest in the deck, and
+  Very Rewarding's bonus reward is paid as usual.
+- Words: the ? card's department row reads "Up to 2 INCENTIVE obligations" for IT; the legend's ???
+  row lists the six outcomes; the handbook's Schedule, Priority accounts entries say what each pays.
+- **Sim** (tools/sim): `hard` now pays a reward grid (no pick of three, no knacks), `audit` 20
+  credits; the default walk is `level level level hard shop event level event` (was two `reward`
+  and one `hard`). Bot wins on the new default walk (native, handTime 6) swung 35 / 57.5 / 70% over three 40-run batches and 85% over 120 (pooled 70%, 240 runs); the old walk on this code 65% (40 runs), two `hard` 75% (40) and 85% (120); r683 measured 77.5% on the old walk. The spread between identical batches is wider than the run count explains (runs are unseeded `Math.random`); not chased here.
+Measured in headless Chromium at 1440x820 and 420x900, real Schedule runs: a round paid the pick of
+three; a priority account paid the reward grid (path 3) and closed to the map; a mystery revealed
+"It was: 1-ON-1" with its stones / fog handicap live, paid +credits and the reward grid; an audit's
+after-level went straight to the map; tile words and both stake lines inside their tiles. Trophy
+Case + Very Rewarding v1: "it became Amplifier · Even Keel added to your deck" (2 Sleights); at v6
+three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
