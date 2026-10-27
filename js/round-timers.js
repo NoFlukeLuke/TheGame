@@ -56,6 +56,7 @@ function startRoundTimer() {
   // r399: a shaped round (js/level-types.js) says what it is as it goes live.
   if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof crOnRoundStart === 'function') crOnRoundStart();   // a challenge round's first card
+  if (typeof chgRoundStart === 'function') chgRoundStart();     // r676: Temp and Floater change (once a level, before the save point)
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startClockTick();                 // the clock's 10s tick runs with the round (js/clock-tick.js)
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
@@ -92,6 +93,7 @@ function startRoundTimer() {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     if (quotaIntroHold) return;  // the Line Quotas explainer card is up (js/level-types.js)
+    if (typeof improveAnimRunning === 'function' && improveAnimRunning()) return;   // r671: an improvement screen covers the board
     if (match3NoTimer()) return; // Zen / infinite dev mode: the clock never runs down
     // One clock, one tick (r205). Under Time Dilation (the_metronome) bossClockStep() returns the
     // live Focus multiplier instead of 1, with a fractional carry so x1.4 really
@@ -149,6 +151,7 @@ function startRoundTimer() {
     if (typeof fightPowerTick === 'function') fightPowerTick();
     if (typeof sleightLifeTick === 'function') sleightLifeTick();
     if (typeof autopilotTick === 'function') autopilotTick();
+    if (typeof ruleSleightsScan === 'function') ruleSleightsScan();   // r675: a rule Sleight that landed without a render
     if (typeof focusKnacksTick === 'function') focusKnacksTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND
     // now, in playHand, at 1s per 5 replays this round.)

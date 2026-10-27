@@ -17,8 +17,8 @@
 //   movement is STRICTLY ORTHOGONAL. Within a set you may visit at most 2 tiles
 //   (so the two must be vertically adjacent); moving forward enters the next set
 //   at your lane. Free branch (below) is a variant of this rule only.
-// - Leaving a set after only ONE visit pays MAP_SKIP_BASE + MAP_SKIP_STEP * n
-//   credits (n = how many times you have skipped this run): 6, 8, 10...
+// - Leaving a set after only ONE visit pays the quarter's department's Standard
+//   reward, first tier (r673, js/departments.js; it was 6, 8, 10... credits).
 // - Set 1 is ALL LEVELS. Sets 2..5 each carry at least one level. The final
 //   set is the FUNNEL: non-level tiles only, and how many of its four lanes
 //   carry one is a roll (r253). It books TWO like any other slot (r293) - at a
@@ -64,7 +64,6 @@ const MAP_BOSS_SET = MAP_SETS;    // 4
 const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2], ['reward', 1]];
 // The day the to-do list prints down its left edge: one time per slot, then the review.
 const MAP_SLOT_TIMES = ['09:00', '11:00', '13:00', '15:00', '17:00'];
-const MAP_SKIP_BASE = 4, MAP_SKIP_STEP = 2;   // skip n pays BASE + STEP*n: 6, 8, 10...
 const MAP_MAX_MYSTERY = 2;
 // Blanks are a ROLL, not a fixture: about half of maps carry two, the rest one
 // or none, so "is there a dead cell in my way" is a thing you read off the map
@@ -167,6 +166,7 @@ function mapResetRun() {
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
   mapFirstRoundDone = false;
+  if (typeof deptReset === 'function') deptReset();   // r673: a new run draws its departments afresh
   mapResetBoard();
 }
 
@@ -245,7 +245,7 @@ const MAP_KIND_META = {
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
-                blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Solve all ${CR_CARDS} for a prize grid; run out of time and you pick penalties.` },
+                blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Each card solved pays its reward; run out of time and you pick penalties.` },
   shop:       { icon: '$', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
   reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
@@ -285,7 +285,7 @@ function mapTileDesc(t, legalIds) {
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss': {
       const b = peekBossPresetSafe();
-      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapBossGoal.toLocaleString()}.`;
+      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapReviewGoalShown().toLocaleString()}.`;
     }
   }
   return '';
@@ -432,8 +432,8 @@ function _mapBuildOnce() {
       put(l, s, k);
     }
   }
-  // The rest by weight.
-  const W = MAP_FILL_W;
+  // The rest by weight. r673: the quarter's department makes its own kind likelier.
+  const W = (typeof deptFillWeights === 'function') ? deptFillWeights(MAP_FILL_W) : MAP_FILL_W;
   const wTotal = W.reduce((a, [, w]) => a + w, 0);
   while (free.length) {
     const [l, s] = free.pop();
@@ -447,7 +447,8 @@ function _mapBuildOnce() {
   // their real kind underneath - which is what lets them count toward the
   // minimums, and lets a tryhard guess at what is hidden.
   const mysteryable = tiles.filter(t => t.set > 0 && t.kind !== 'blank' && t.kind !== 'boss');
-  _mapPickN(mysteryable, Math.floor(Math.random() * (MAP_MAX_MYSTERY + 1)))
+  const _mMax = (typeof deptMysteryMax === 'function') ? deptMysteryMax(MAP_MAX_MYSTERY) : MAP_MAX_MYSTERY;
+  _mapPickN(mysteryable, Math.floor(Math.random() * (_mMax + 1)))
     .forEach(t => { t.mystery = true; });
 
   // One 2x1 event, half the time: an event in sets 2..4 absorbs the cell ahead
@@ -479,14 +480,17 @@ function _mapBuildOnce() {
         ? eligibleEventIds(Object.keys(EVENT_META)) : Object.keys(EVENT_META).slice())
     : [];
   let ei = 0;
+  const evUsed = new Set(), auditShare = (typeof deptAuditShare === 'function') ? deptAuditShare(MAP_AUDIT_SHARE) : MAP_AUDIT_SHARE;
   tiles.forEach(t => {
     if (t.kind === 'event') {
-      const id = evPool.length ? evPool[ei++ % evPool.length] : null;
+      // r673: the department's own events come up DEPT_CFG.eventPct of the time.
+      const id = (typeof deptEventPick === 'function') ? deptEventPick(evPool, evUsed) : (evPool.length ? evPool[ei++ % evPool.length] : null);
+      if (id) evUsed.add(id);
       t.eventId = id;
       t.eventName = id ? EVENT_META[id].name : 'Event';
       t.eventFlavor = id ? EVENT_META[id].flavor : '';
     }
-    if (t.kind === 'challenge' && Math.random() < MAP_AUDIT_SHARE) { t.audit = true; return; }
+    if (t.kind === 'challenge' && Math.random() < auditShare) { t.audit = true; return; }
     if (t.kind === 'challenge') {
       const ch = rollChallengeLevel();
       t.challenge = { id: ch.id, label: ch.label, goalMult: ch.goalMult, credits: ch.credits };
@@ -739,10 +743,16 @@ function mapOpen() {
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('map-active');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('SCHEDULE', 'shop');
+  // r673: the LOCATION screen names the quarter's department.
+  const _d = (typeof mapDept === 'function') ? mapDept() : null;
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(_d ? _d.name.toUpperCase() : 'SCHEDULE', 'shop');
   try { sfxShopOpen?.(); } catch (e) {}
   mapRender(true);
   mapRenderBar();
+  // A save point (r660, owner): saving or leaving the app here resumes on the
+  // schedule. The round-start checkpoint before it would replay a round already
+  // cleared, or, on a new run, skip the schedule for round 1.
+  if (typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
 }
 
 // The map fills its box in both orientations (js/grid-metrics.js asks this):
@@ -843,7 +853,7 @@ function mapRender(animateIn) {
       : isBoss
       ? `<span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span>`
         + `<span class="mt-bcol"><span class="mt-name">${face.full}</span>${boss ? `<span class="mt-sub">${boss.name}</span>` : ''}</span>`
-        + `<span class="mt-goal">${mapGoalWord()} ${Number(mapBossGoal || 0).toLocaleString()}</span>`
+        + `<span class="mt-goal">${mapGoalWord()} ${mapReviewGoalShown().toLocaleString()}</span>`
       : `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span></span>`
         + `<span class="mt-name${isEv ? ' mt-ev' : ''}">${word}</span>`
         + (stake ? `<span class="mt-stake${stake.k > 1 ? ' mt-proj' : ''}">${stake.short}</span>` : '');
@@ -908,7 +918,7 @@ function mapTileTap(t) {
 const MAP_HELP = [
   ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
   ['Two a slot', 'A time slot will book you for two obligations at most.'],
-  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays the department\u2019s reward (on the bar).'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
@@ -917,11 +927,19 @@ const MAP_HELP_PICK = [
   ['Pick', 'Take any lit obligation in this time slot or the next. Everything you take happens.'],
   ['Two a slot', 'Book any two obligations in a slot, next to each other or not. Then move on.'],
   ['Moving on', 'You can start the next slot on any obligation in it.'],
-  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays the department\u2019s reward (on the bar).'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there.'],
 ];
-function mapHelpRows() { return mapPickRule() ? MAP_HELP_PICK : MAP_HELP; }
+function mapHelpRows() {
+  const rows = (mapPickRule() ? MAP_HELP_PICK : MAP_HELP).slice();
+  const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
+  if (d) rows.unshift(d);
+  return rows;
+}
+// r673 (owner): leaving a slot early pays the department's Standard reward, first tier.
+function mapSkipShort() { return (typeof crrShort === 'function' && typeof deptSkipPay === 'function') ? crrShort(deptSkipPay(), 0) : '+8 \u25c6'; }
+function mapSkipSay() { return (typeof crrSay === 'function' && typeof deptSkipPay === 'function') ? crrSay(deptSkipPay(), 0) : '+8 credits'; }
 function mapRenderBar() {
   // r655: the toolbar is the foot of the to-do screen (mapRender builds it empty),
   // not a body-level strip over the stage's own buttons.
@@ -929,7 +947,6 @@ function mapRenderBar() {
   if (!bar) return;
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const done = mapPos ? Math.min(mapPos.set, MAP_SETS) : 0;
-  const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
   const crunch = (typeof crunchActive === 'function') && crunchActive();
   // Every slot books two, the last one included (r293) - so the cap is flat.
   const visits = mapBossArmed ? 'REVIEW NEXT'
@@ -937,37 +954,36 @@ function mapRenderBar() {
   const pips = Array.from({ length: MAP_SETS }, (_, i) =>
     `<i class="${i < done ? 'on' : i === done && !mapBossArmed ? 'cur' : ''}"></i>`).join('');
   const inked = (typeof mapHasInk === 'function') && mapHasInk();
+  // r662 (owner): the pen, its colour, undo and the legend are the right-hand keys now
+  // (mapKeysSync below). One tool is left in the gutter: the rules card, or with the pen
+  // out and ink on the list, WIPE.
   bar.innerHTML =
     `<span class="mb-tools">` +
-      `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
-      `<button class="mb-q${(typeof mapLegendOpen === 'function' && mapLegendOpen()) ? ' on' : ''}" ` +
-        `id="mb-key" title="What the obligations are">&#8801;</button>` +
-      `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
-        `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">&#9998;</button>` +
-      `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
-      (inked ? `<button class="mb-q" id="mb-undo" title="Undo the last stroke">&#8630;</button>` +
-               `<button class="mb-q" id="mb-wipe" title="Clear all ink">x</button>` : '') +
+      (mapPenOn
+        ? (inked ? `<button class="mb-q mb-big" id="mb-wipe" title="Clear all ink">&#10005;</button>` : '')
+        : `<button class="mb-q mb-big" id="mb-q" title="How the schedule works">?</button>`) +
     `</span>` +
+    // While the pen is on, every tap on the list draws, so the two status lines
+    // give way to one big key that ends it (owner: the 16px chip was too small).
+    (mapPenOn ? `<button class="mb-done" id="mb-pen-done">&#9998; DONE DRAWING</button>` :
     `<div class="mb-l1">` +
       `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
       `<span class="mb-pips">${pips}</span>` +
       `<span class="mb-visits">${visits}</span>` +
-      (crunch ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays this">LEAVE EARLY +${skipNext}</span>`) +
+      (crunch ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays ${mapSkipSay()}">LEAVE EARLY ${mapSkipShort()}</span>`) +
     `</div>` +
     `<div class="mb-l2">` +
       `<span class="mb-cmd" id="mb-cmd"></span>` +
-      `<button id="mb-confirm" disabled>CLOCK IN</button>` +
-    `</div>` +
+    `</div>`) +
     `<div class="mb-info" id="mb-info"></div>` +
     `<div class="mb-help" id="mb-help">` +
       mapHelpRows().map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
     `</div>`;
-  // The legend is NOT in here (r294): it is a body-level rail beside the board,
-  // so it survives this rebuild instead of being destroyed by it.
+  // The legend is NOT in here (r294): it is a body-level panel (docked on the empty
+  // screens since r662), so it survives this rebuild instead of being destroyed by it.
   bar.classList.add('show');
-  const btn = document.getElementById('mb-confirm');
-  btn.onclick = () => mapConfirm();
-  btn.disabled = !mapSelected;
+  const doneBtn = document.getElementById('mb-pen-done');
+  if (doneBtn) doneBtn.onclick = () => mapPenToggle();
   // One card open at a time, and a one-shot outside-click close armed only
   // while one IS open - a standing document listener on a bar that is rebuilt
   // every render would stack one copy per render.
@@ -985,14 +1001,11 @@ function mapRenderBar() {
       document.removeEventListener('click', off);
     }), 0);
   };
-  document.getElementById('mb-q').onclick = cardToggle('mb-help');
-  document.getElementById('mb-key').onclick = (e) => { e.stopPropagation(); mapLegendToggle(); };
-  document.getElementById('mb-pen').onclick = () => mapPenToggle();
-  document.getElementById('mb-pen-sw').onclick = () => mapPenCycle();
-  const undoBtn = document.getElementById('mb-undo');
-  if (undoBtn) undoBtn.onclick = () => mapDrawUndo();
+  const helpBtn = document.getElementById('mb-q');
+  if (helpBtn) helpBtn.onclick = cardToggle('mb-help');
   const wipeBtn = document.getElementById('mb-wipe');
   if (wipeBtn) wipeBtn.onclick = () => mapDrawClear();
+  mapKeysTake();
   // A legend row lights its own kind and writes its sentence into this bar's
   // own info line; both live with the rail now (js/map-draw.js).
   if (typeof mapPenSyncChrome === 'function') mapPenSyncChrome();
@@ -1027,7 +1040,8 @@ function mapBarInfo(t, move) {
   const el = document.getElementById('mb-info');
   if (!el) return;
   if (!t) {
-    el.innerHTML = mapPickRule() ? 'Book any two in a slot, in any order. Everything you book happens.'
+    el.innerHTML = mapPenOn ? 'Drag on the schedule to draw.'
+      : mapPickRule() ? 'Book any two in a slot, in any order. Everything you book happens.'
       : 'Move up, down or forward. Everything you book happens.';
     return;
   }
@@ -1038,7 +1052,7 @@ function mapBarInfo(t, move) {
     // is worse than saying nothing.
     if (move.from && move.after.set > move.from.set && move.from.visits === 1
         && !(typeof crunchActive === 'function' && crunchActive()))
-      s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} credits</i>`;
+      s += ` <i>leaving now pays ${mapSkipSay()}</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
     // Crunch prices the booking. The fee is the decision in that mode, so it is
     // read off the board rather than discovered after confirming.
@@ -1054,6 +1068,103 @@ function mapBarInfo(t, move) {
   el.innerHTML = s;
 }
 
+// ── THE KEYS ARE THE SCHEDULE'S TOOLS (r662, owner) ─────────────────────────
+// "I don't think there's a time mid map you need play, swap or discard", and the
+// toolbar's chips were tiny. While the schedule is on screen PLAY is CLOCK IN, SWAP
+// is the PEN and DISCARD is the LEGEND; with the pen out the three are the pen's own
+// tools: DONE, COLOUR and UNDO. The keys' own words stay in them, hidden, under the
+// schedule's label, and come back when the schedule closes; render() keeps off them
+// (its _takeover guard reads mapScreenOpen), and capture listeners bound at load stop
+// the board's own handlers (playHand, doDiscard, doSwap) for as long as the keys are
+// held. They act only while the toolbar is up, so a press during the fall-out is lost.
+const MAP_KEY_IDS = ['btn-play', 'btn-discard', 'swap-indicator'];
+let _mapKeysSaved = null;
+function mapKeyEls() { return MAP_KEY_IDS.map(id => document.getElementById(id)); }
+function mapKeysLive() {
+  return !!_mapKeysSaved && mapScreenOpen && !!document.getElementById('map-bar')?.classList.contains('show');
+}
+// A glyph over the word, one letter a line like the keys' own words (PLAY is P/L/A/Y);
+// a second word sits a short gap below the first.
+function mapKeyHTML(ico, word) {
+  const stack = w => `<span class="mapk-w">${[...w].join('\n')}</span>`;
+  return `<span class="mapk"><span class="mapk-ico">${ico}</span><span class="mapk-word">${word.split(' ').map(stack).join('')}</span></span>`;
+}
+function mapKeysTake() {
+  const els = mapKeyEls();
+  if (els.some(el => !el)) return;
+  if (!_mapKeysSaved) {
+    // The play words stay in the key, hidden in place (a display:contents wrapper), and
+    // the schedule's label is laid over it, so every key keeps the exact size it has in
+    // play in both orientations, and giving it back is unwrapping.
+    _mapKeysSaved = els.map(el => {
+      const keep = document.createElement('span'); keep.className = 'mapk-keep';
+      while (el.firstChild) keep.appendChild(el.firstChild);
+      el.appendChild(keep);
+      const lab = document.createElement('span'); lab.className = 'mapk'; el.appendChild(lab);
+      return { title: el.title, disabled: el.disabled };
+    });
+    document.body.classList.add('map-keys');
+  }
+  mapKeysSync();
+}
+function mapKeysSync() {
+  if (!_mapKeysSaved) return;
+  const [play, disc, swap] = mapKeyEls();
+  if (!play || !disc || !swap) return;
+  // A key the schedule cannot use right now keeps its colour (r100: the keys never grey
+  // out) and dims its word; a tool that is on (the legend up, the pen out) stays down.
+  const set = (el, html, title, on, off) => {
+    const lab = el.querySelector(':scope > .mapk');
+    if (lab && lab._html !== html) { lab.innerHTML = html; lab._html = html; }
+    el.title = title; el.disabled = false;
+    el.classList.toggle('mapk-on', !!on);
+    el.classList.toggle('mapk-off', !!off);
+  };
+  if (mapPenOn) {
+    set(swap, mapKeyHTML('&#9998;', 'DONE'), 'Stop drawing', true, false);
+    set(disc, mapKeyHTML('<i class="mapk-sw"></i>', 'COLOUR'), 'Pen colour', false, false);
+    set(play, mapKeyHTML('&#8630;', 'UNDO'), 'Undo the last stroke', false, !mapHasInk());
+  } else {
+    const move = mapSelected ? mapMoveFor(mapSelected) : null;
+    const can = !!move && !move.doomed;
+    set(swap, mapKeyHTML('&#9998;', 'PEN'), 'Draw on the schedule (right-drag works without this; double right-click changes colour)', false, false);
+    set(disc, mapKeyHTML('&#8801;', 'LEGEND'), 'What the obligations are', mapLegendOpen(), false);
+    set(play, mapKeyHTML('&#9654;', 'CLOCK IN'), can ? 'Clock in on the picked obligation' : 'Pick an obligation first', false, !can);
+  }
+  const sw = disc.querySelector('.mapk-sw'); if (sw) sw.style.background = mapPenHex();
+  const pi = swap.querySelector('.mapk .mapk-ico'); if (pi) pi.style.color = mapPenOn ? mapPenHex() : '';
+}
+function mapKeysReturn() {
+  if (!_mapKeysSaved) return;
+  mapKeyEls().forEach((el, i) => {
+    if (!el) return;
+    el.querySelector(':scope > .mapk')?.remove();
+    const keep = el.querySelector(':scope > .mapk-keep');
+    if (keep) { while (keep.firstChild) el.insertBefore(keep.firstChild, keep); keep.remove(); }
+    const sv = _mapKeysSaved[i];
+    el.title = sv.title; el.disabled = sv.disabled;
+    el.classList.remove('mapk-on', 'mapk-off');
+  });
+  _mapKeysSaved = null;
+  document.body.classList.remove('map-keys');
+}
+function mapKeyPress(i) {
+  if (!mapKeysLive()) return;
+  if (i === 0) {                      // PLAY: CLOCK IN, or UNDO with the pen out
+    if (mapPenOn) { if (mapHasInk()) mapDrawUndo(); else refuse(); return; }
+    const move = mapSelected ? mapMoveFor(mapSelected) : null;
+    if (!move || move.doomed) { refuse(); return; }
+    mapConfirm();
+  } else if (i === 1) {               // DISCARD: the LEGEND, or the pen's COLOUR
+    if (mapPenOn) mapPenCycle(); else mapLegendToggle();
+  } else mapPenToggle();              // SWAP: the PEN, or DONE
+}
+MAP_KEY_IDS.forEach((id, i) => document.getElementById(id)?.addEventListener('click', e => {
+  if (!_mapKeysSaved) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  mapKeyPress(i);
+}, true));
+
 function mapCloseScreen() {
   mapScreenOpen = false;
   mapSelected = null;
@@ -1066,6 +1177,7 @@ function mapCloseScreen() {
   if (typeof mapLegendHighlight === 'function') mapLegendHighlight(null, null);
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
+  mapKeysReturn();
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   const gridEl = document.getElementById('grid');
@@ -1124,10 +1236,12 @@ function mapConfirm() {
   if (move.from && move.after.set > move.from.set && move.from.visits === 1
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
-    const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
-    coins += pay;
-    updateCoinsUI?.();
-    showMessage(`Left the slot early · +${pay} credits`, 'var(--gold)');
+    // r673 (owner): the department's Standard reward, first tier (CHALLENGE_REWARDS.md),
+    // paid off the clock: time, swaps, discards and Focus wait for the next round.
+    const said = (typeof crrGrant === 'function' && typeof deptSkipPay === 'function')
+      ? crrGrant(deptSkipPay(), 0, { live: false })
+      : (coins += 8, updateCoinsUI?.(), '+8 credits');
+    showMessage(`Left the slot early · ${said}`, 'var(--gold)');
   }
 
   // Crunch: the obligation's time fee, debited at CONFIRM. A level, a priority
@@ -1221,6 +1335,11 @@ function mapStartRound(challenge) {
 // The boss quota is FIXED - MAP_BOSS_LEVELS of the steeper curve - whatever
 // level the walk actually reached. Hooked from triggerLevelUp right after
 // guidedApplyPendingChallenge, i.e. after goalForLevel has written roundGoal.
+// The review's goal as printed: a challenge's Boss goal reward or penalty moves it (r671).
+function mapReviewGoalShown() {
+  const g = Number(mapBossGoal || 0);
+  return (g && typeof crrBossGoalShown === 'function') ? crrBossGoalShown(g) : g;
+}
 function mapApplyPendingGoal() {
   if (!mapActive()) return;
   if (mapBossArmed) roundGoal = mapBossGoal;
@@ -1239,12 +1358,12 @@ function mapAfterLevel() {
   mapLastWasChallenge = false;
   const done = () => mapOpen();
   if (!mapPos) { done(); return; }   // resumed pre-map edge: straight back to the map
-  // A won audit (js/challenge-round.js) pays the prize grid after the pick;
-  // its close goes back to the map (finishInterludeRoute, map branch).
-  const prize = (typeof crTakePrize === 'function') && crTakePrize();
+  // An audit (js/challenge-round.js) pays no prize grid (owner, r666): its cards
+  // paid their credits during the round and the pick of three is the round's
+  // reward. crTakePrize is still called so the round's state is cleared.
+  if (typeof crTakePrize === 'function') crTakePrize();
   guidedOpenPickThree(() => {
     if (wasChallenge) mapKnackPickTwo(done);
-    else if (prize) { rewardGridContext = 'interlude'; openPrizeGrid(); }
     else done();
   });
 }

@@ -12,6 +12,8 @@
 //    scoring dance to resume. Resuming replays the current round from its start.
 //    Serialising a live mid-round would mean capturing timers, the dance, boss
 //    schedules and in-flight fall animations for very little gain.
+//    The Schedule's own screen is a save point too (r660, mapOpen): a run saved
+//    there comes back to the schedule (meta.onMap), not to the round before it.
 //
 // 2. RESTORE REUSES startGame() AS ITS BASELINE. A run touches ~130 globals; if
 //    restore only assigned the ones listed below, anything missed would keep the
@@ -78,6 +80,7 @@ const SAVE_VARS = [
   // goal stayed up with the bonus unreachable. A mini-boss re-arms from
   // startRoundTimer on resume.
   'guidedPendingChallenge', 'guidedActiveChallenge', 'roundQuota', 'crRound', 'crArmed', 'crFlow', 'crSpot', 'crHandPlays',
+  'crPending', 'crInterestBoost', 'crBossGoalMult', 'crFocusMute', 'crGridBonus', 'mapDepts', 'chgLevel', 'chgTrickForm',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
@@ -226,6 +229,8 @@ function captureRunCheckpoint() {
       // Without this the restore below falls back to Classic and the run resumes
       // as a different game to the one that was saved.
       picker: ACTIVE_MODE.picker ? { ...ACTIVE_MODE.picker } : null,
+      // Taken by mapOpen: resume opens the Schedule instead of replaying a round.
+      onMap: typeof mapScreenOpen !== 'undefined' && !!mapScreenOpen,
       level: typeof level === 'number' ? level : 1,
       act:   typeof actNumber === 'number' ? actNumber : 1,
       node:  typeof nodeInAct === 'number' ? nodeInAct : 0,
@@ -342,6 +347,15 @@ function resumeSavedRun() {
   updateClockUI();
   render();
 
+  // A Schedule saved on its schedule screen goes back to it (r660). A save from
+  // before r660 has no onMap, but a run whose first round never started was on
+  // the schedule too. mapBeginRun freezes the clock startGame armed, and mapOpen
+  // takes the fresh checkpoint.
+  if (typeof mapActive === 'function' && mapActive()
+      && (save.meta.onMap || (typeof mapFirstRoundDone !== 'undefined' && !mapFirstRoundDone))) {
+    mapBeginRun();
+    return true;
+  }
   // Restart the round clock so roundStartSeconds tracks the resumed round, then
   // take a fresh checkpoint of exactly what the player is now looking at.
   startRoundTimer();

@@ -1,5 +1,6 @@
 function cancelDance() {
   _odoGen++; // invalidates all in-flight odometer timeouts
+  if (typeof dncScoreHoldOff === 'function') dncScoreHoldOff();   // r670: a cut lands the whole total
   if (danceAbortController) {
     console.log('[DANCE] cancelDance - aborting in-progress dance');
     danceAbortController.abort();
@@ -13,6 +14,9 @@ function cancelDance() {
     // The stamp is read within the same synchronous block, so the window is
     // tiny and an unrelated cancel (round end, a boss firing) never matches it.
     dncCutAt = performance.now();
+    // r661: a dance cut from outside a play (a round end, a boss, a new run)
+    // takes the hands queued behind it with it; their scores are banked.
+    if (typeof dncQueueClear === 'function') dncQueueClear();
   }
   // Clear jitter/glow left on the aborted dance's real tray/grid elements before a successor rebinds them.
   if (typeof dncCleanupReal === 'function') dncCleanupReal();

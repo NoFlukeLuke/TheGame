@@ -462,8 +462,8 @@ function survivalShowPick(bonus = false, kicker) {
   ov.classList.remove('sv-peek');   // a fresh pick always opens in front
   survivalHideContrib(); // start collapsed
   survivalSyncPickAudio();
-  // The goal hand's score panel isn't refreshed by the (skipped) interlude - sync it
-  // so the SCORE total reflects the cleared goal while the preview dance climbs.
+  // The goal hand's score panel isn't refreshed by the (skipped) interlude - sync it.
+  // r670: the SCORE number itself waits for the tally's climb (dncScoreShown).
   if (typeof updateScoreUI === 'function') updateScoreUI();
 }
 

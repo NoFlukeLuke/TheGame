@@ -148,6 +148,7 @@ function refuseTrickCapacity() {
 
 function renderTrickTray() {
   pruneRowColBonuses();
+  if (typeof chgTrickGone === 'function') chgTrickGone();   // r676: Temp sold or lost: its form's borrowed tier goes
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
   // A lifted copy points at a chip this render is about to replace (r409). A
@@ -198,7 +199,7 @@ function renderTrickTray() {
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
     // tip:false - the chip's own tap bubble (read + hold for sell/discard)
     // already covers this tile; the delegated data-et bubble would double it.
-    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (bossOff ? `<div class="trick-off-mark">${typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id) ? 'LOCKED' : 'OFF'}</div>` : '');
+    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (trick.id === 'changeling' && trick._form ? `<div class="chg-badge">${emGlyph('🦎')}</div>` : '') + (bossOff ? `<div class="trick-off-mark">${typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id) ? 'LOCKED' : 'OFF'}</div>` : '');
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';
@@ -381,6 +382,7 @@ function feelinLuckyIntercept(t) {
 function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
+  if (trick.id === 'changeling' && typeof changelingPickup === 'function') trick = changelingPickup(trick);   // r676: its own copy, changed at once mid-round
 
   // Positional bonuses get an axis+index at pick time - steered by the position knacks
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.

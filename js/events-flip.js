@@ -32,6 +32,7 @@ function evRow(parent) { const d = document.createElement('div'); d.className = 
 // improve it becomes a pick of three.
 function evToBoard() {
   document.getElementById('event-overlay')?.classList.remove('show');
+  if (typeof evConsoleOff === 'function') evConsoleOff();   // r672: the keys go back for the board screen
   document.getElementById('next-goal-bg')?.classList.remove('show');
 }
 // The event panel fades and sinks away, then `done` runs (r596, owner: Call It
@@ -40,7 +41,7 @@ function evToBoard() {
 const EV_FADE_MS = 280;
 function evOverlayOut(done) {
   const ov = document.getElementById('event-overlay');
-  const end = () => { ov?.classList.remove('show', 'ev-out', 'ev-in'); document.getElementById('next-goal-bg')?.classList.remove('show'); done && done(); };
+  const end = () => { ov?.classList.remove('show', 'ev-out', 'ev-in'); if (typeof evConsoleOff === 'function') evConsoleOff(); document.getElementById('next-goal-bg')?.classList.remove('show'); done && done(); };
   if (!ov || !ov.classList.contains('show') || (typeof rtSkipping === 'function' && rtSkipping())) { end(); return; }
   ov.classList.remove('ev-in'); ov.classList.add('ev-out');
   setTimeout(end, EV_FADE_MS);
@@ -49,7 +50,7 @@ function evOverlayIn() {
   const ov = document.getElementById('event-overlay');
   if (!ov) return;
   ov.classList.remove('ev-out');
-  ov.classList.add('show');
+  if (typeof evShow === 'function') evShow(); else ov.classList.add('show');
   if (typeof rtSkipping === 'function' && rtSkipping()) return;
   ov.classList.remove('ev-in'); void ov.offsetWidth; ov.classList.add('ev-in');
   setTimeout(() => ov.classList.remove('ev-in'), EV_FADE_MS + 40);

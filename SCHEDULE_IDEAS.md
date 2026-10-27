@@ -191,9 +191,9 @@ names on their tiles, the review's quota on its line, mini-boss elites (parked i
 
 ---
 
-# THE SAMEY SCHEDULE (owner's notes, r659)
+# THE SAMEY SCHEDULE (owner's notes, r678)
 
-The owner, looking at a map after r658: three of a kind in a row feels bad; row 1 is always
+The owner, looking at a map after r658 (written before r673 shipped a department a QUARTER; A and D read "department" as that): three of a kind in a row feels bad; row 1 is always
 four rounds; the screen reads too samey; is three or four rounds before a review too few, or
 is a shorter game the point; and Guided (a choice between every round) lacked a gauge of how
 ready you are for the boss. Organised into six ideas with pros and cons, then questions.

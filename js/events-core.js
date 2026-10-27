@@ -74,7 +74,7 @@ const EVENT_REQUIRES = {
   the_draw:     () => evImprovables().length >= 2,
   the_payline:  () => evImprovables().length >= ENTITY_SLOT_MIN,   // r590: five entities
   // Needs a Sleight whose charge ceiling can actually move (infinite returns null).
-  workshop:     () => allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null).length > 0,
+  workshop:     () => allOwnedSleightCards().filter(c => sleightCapOf(c) !== null).length > 0,
   // r576: Theme Draft needs one engine with a Trick and a Sleight left to offer.
   confluence:   () => confluenceThemes().length > 0,
   // Needs cards to work on.
@@ -128,11 +128,12 @@ function openEvent(afterFn) {
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   eventState = {};
   renderEventShell(activeEventId);
-  document.getElementById('event-overlay').classList.add('show');
+  evShow();
 }
 
 function closeEvent() {
   document.getElementById('event-overlay').classList.remove('show');
+  evConsoleOff();
   // Core Memories knack: each Event attended permanently raises max Focus
   if (typeof hasKnack === 'function' && hasKnack('core_memories')) {
     focusCapPerm += 2;
@@ -266,6 +267,7 @@ const EVENT_META = {
 
 function renderEventShell(id) {
   const meta = EVENT_META[id];
+  _evTyped = false;   // r672: the title types out once the screen is up
   document.getElementById('event-name').textContent   = meta.name;
   const _fl = document.getElementById('event-flavor');
   _fl.textContent = meta.flavor || '';
@@ -413,3 +415,88 @@ function fmtSigned(n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
 // ══════════════════════════════════════════════
 // EVENT: CONFLUENCE
 // ══════════════════════════════════════════════
+
+// ══ r672 (owner): an event is a SCREEN on the board ════════════════════════
+// In console mode (the default skin) the event panel is laid over the board's
+// box, the way the Limit Break is (r644, lbConsolePlace): the overlay stays
+// body-level and only dims; #event-panel is fixed and zoomed so its px are
+// design px, at EV_CONSOLE_ZOOM of the stage's zoom so the panel keeps about
+// the width it was written for (a 420px panel in a 322px box). css/board-
+// screen.css draws it as the amber glass with the title typed ("> FREE PICK").
+// Its own CONFIRM / SKIP row is hidden there: the three keys are borrowed
+// (keysTake, js/key-fit.js): PLAY reads the confirm button's word, DISCARD the
+// skip button's (Skip, Continue, Leave, Done... a priced skip's cost on a sub
+// line), SWAP is idle. They mirror the live buttons, so every renderer's
+// disabled / hidden / relabelled state shows without an edit. Outside console
+// mode the full-screen panel stays, as the Limit Break's does.
+const EV_CONSOLE_ZOOM = 0.82;
+let _evTyped = false, _evKeysObs = null;
+function evConsoleOn() {
+  return typeof trayMachineOn === 'function' && trayMachineOn() && typeof bsStage === 'function';
+}
+function evShow() {
+  const ov = document.getElementById('event-overlay'); if (!ov) return;
+  ov.classList.add('show');
+  evConsolePlace();
+}
+function evConsolePlace() {
+  const ov = document.getElementById('event-overlay'), panel = document.getElementById('event-panel');
+  if (!ov || !panel || !ov.classList.contains('show')) return;
+  const S = evConsoleOn() ? bsStage() : null;
+  if (!S) { evConsoleOff(); return; }
+  const g = bsBoardBox(S), F = EV_CONSOLE_ZOOM;
+  ov.classList.add('ev-console');
+  // The overlay sits inside #stage, so the cabinet's zoom (k) is already on it
+  // (placePauseMenu's rule, js/game-control.js); the panel's own zoom makes up
+  // the difference, x F, and its offsets are divided by F: design px x S.z on screen.
+  panel.style.cssText = 'zoom:1;';
+  const k = (ov.getBoundingClientRect().width / ov.offsetWidth) || 1;
+  panel.style.cssText = `position:fixed;zoom:${(S.z * F / k).toFixed(4)};`
+    + `left:${((S.sr.left / S.z + g.l) / F).toFixed(2)}px;top:${((S.sr.top / S.z + g.t) / F).toFixed(2)}px;`
+    + `width:${(g.w / F).toFixed(2)}px;height:${(g.h / F).toFixed(2)}px;max-width:none;max-height:none;margin:0;`;
+  evKeysTake();
+  if (!_evTyped) { _evTyped = true; evTypeTitle(); }
+}
+function evConsoleOff() {
+  const ov = document.getElementById('event-overlay'), panel = document.getElementById('event-panel');
+  if (ov) ov.classList.remove('ev-console');
+  if (panel) panel.style.cssText = '';
+  evKeysReturn();
+}
+function evTypeTitle() {
+  const el = document.getElementById('event-name'), panel = document.getElementById('event-panel');
+  if (!el || !panel || typeof bsType !== 'function') return;
+  const ctl = {};
+  bsType(el, ctl);
+  const fin = () => { if (ctl.finishTyping) ctl.finishTyping(); panel.removeEventListener('pointerdown', fin, true); };
+  panel.addEventListener('pointerdown', fin, true);
+}
+// The keys read the live buttons. A priced skip ("Face them · +5 credits") puts
+// its first part on the key and the rest on a sub line.
+function evKeysSpec() {
+  const sk = document.getElementById('event-skip'), cf = document.getElementById('event-confirm');
+  const shown = b => !!b && getComputedStyle(b).display !== 'none';
+  const skT = sk ? sk.textContent.trim() : '', cfT = cf ? (cf.textContent.trim() || 'Confirm') : '';
+  const parts = skT.split(/\s*[\u00b7]\s*/), cparts = cfT.split(/\s*[\u00b7]\s*/);
+  const cfOn = shown(cf), skOn = shown(sk) && !!skT;
+  return {
+    play: { ico: '&#10003;', word: cfOn ? cparts[0].toUpperCase() : '', sub: cfOn && cparts[1] ? cparts.slice(1).join(' ') : '', off: !cfOn || cf.disabled,
+            title: cfOn ? (cf.disabled ? 'Pick something first' : cf.textContent.trim()) : '',
+            fn: () => { if (cfOn && !cf.disabled) cf.click(); else if (typeof refuse === 'function') refuse(); } },
+    disc: { ico: '&#8631;', word: skOn ? parts[0].toUpperCase() : '', sub: skOn && parts[1] ? parts.slice(1).join(' ') : '', off: !skOn || !!sk.disabled,
+            title: skOn ? skT : '',
+            fn: () => { if (skOn && !sk.disabled) sk.click(); else if (typeof refuse === 'function') refuse(); } },
+    swap: { word: '', off: true },
+  };
+}
+function evKeysTake() {
+  if (typeof keysTake !== 'function') return;
+  keysTake(evKeysSpec());
+  if (!_evKeysObs) {
+    _evKeysObs = new MutationObserver(() => { if (typeof keysTaken === 'function' && keysTaken()) keysTake(evKeysSpec()); });
+    const acts = document.getElementById('event-actions');
+    if (acts) _evKeysObs.observe(acts, { subtree: true, childList: true, characterData: true, attributes: true });
+  }
+}
+function evKeysReturn() { if (typeof keysReturn === 'function') keysReturn(); }
+window.addEventListener('resize', () => { setTimeout(evConsolePlace, 0); setTimeout(evConsolePlace, 400); });

@@ -27,6 +27,10 @@ function render() {
   // over the shelves: the owner's "the cards peek through the shop". renderShopGrid is
   // the only thing that paints there; the buttons and counts below are the shop's too.
   if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
+  // r675: a rule Sleight that has just landed goes inert and states its rule,
+  // before the faces are drawn (rule_ranks prints its named ranks).
+  if (typeof chgScan === 'function') chgScan();   // r676: a Floater that lands unchanged changes now
+  if (typeof ruleSleightsScan === 'function') ruleSleightsScan();
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
@@ -74,7 +78,7 @@ function render() {
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
         div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
-        if (!animating && !falling) div.style.top = cellTop(r) + "px";
+        div.style.top = cellTop(r) + "px";   // r661: a falling card already sits on its final cell (its trip is a translate)
         const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
         const { className, innerHTML } = renderCardAppearance(card, r, c, { isSwapPending });
         div.className = className; div.innerHTML = innerHTML;
@@ -88,12 +92,12 @@ function render() {
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
         div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
-        if (!animating && !falling) div.style.top = cellTop(r) + 'px';
+        div.style.top = cellTop(r) + "px";   // r661: a falling card already sits on its final cell (its trip is a translate)
         const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
         // (1/2) instead of its charges - same rule as renderCardAppearance.
-        const _maxChJ = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+        const _maxChJ = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
           : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')
@@ -179,7 +183,7 @@ function render() {
       }
       div.dataset.row = r; div.dataset.col = c;
       div.style.left = cellLeft(c) + 'px';
-      if (!animating && !falling) div.style.top = cellTop(r) + "px";
+      div.style.top = cellTop(r) + "px";   // r661: a falling card already sits on its final cell (its trip is a translate)
       div.className = className;
       div.innerHTML = innerHTML;
       if (!isChallenge) attachLongPress(div, r, c);
@@ -336,7 +340,8 @@ function render() {
                  || (typeof shopGridActive !== 'undefined' && shopGridActive)
                  || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
                  || (typeof flowrDeckActive === 'function' && flowrDeckActive())
-                 || (typeof gridPickState !== 'undefined' && !!gridPickState);
+                 || (typeof gridPickState !== 'undefined' && !!gridPickState)
+                 || (typeof mapScreenOpen !== 'undefined' && mapScreenOpen);   // r662: the keys are the schedule's tools
   if (!_takeover) {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
     // disabled rather than lighting up on a selection it will never submit.

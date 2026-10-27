@@ -67,7 +67,7 @@ function inseparableCompletes(id) {
   if (!pair || typeof hasTrick !== 'function') return false;
   if (hasTrick(pair.id) || hasTrick(id)) return false;
   const other = pair.parts.find(x => x !== id);
-  return !!other && hasTrick(other);
+  return !!other && trickTray.some(t => t && t.id === other);   // r676: Temp standing in for a part does not complete a pair
 }
 // Every pair whose two halves are both in the tray fuses now.
 function inseparableCheck() {

@@ -229,7 +229,8 @@ function playHand() {
   // top of the boss and soft-locked it.
   if (typeof flowBossFighting !== 'undefined' && flowBossFighting && !bossActive) { dbgEvent('warn', 'play ignored (boss arriving)'); return; }
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) { dbgEvent('info', 'play ignored (skipping to the boss)'); return; }   // r606
-  if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
+  // r652 / r661 (owner): a hand picked out of falling cards plays NOW; every card falls on
+  // its own (js/card-fall.js) and the dance flies each one from where it is drawn.
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
@@ -262,7 +263,16 @@ function playHand() {
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
   //  in-progress dance - that was the "cards wiggle but never score" bug.)
-  cancelDance();
+  // r661 (owner): a hand played while another is still tallying JOINS THE SCORING QUEUE
+  // (js/score-dance.js) instead of cutting it. Five hands at most; the sixth is refused
+  // here, before anything is scored.
+  const _queueIt = !!danceAbortController && !_sweeping;
+  if (_queueIt && typeof dncQueueFull === 'function' && dncQueueFull()) { refuse('Five hands scoring. Wait.'); dbgEvent('warn', 'play refused: scoring queue full'); return; }
+  if (!_queueIt) {
+    cancelDance();
+    // r659: a dance cut mid-fly still owes the board its cards; they leave now (js/score-dance.js).
+    if (typeof dncLeaveBoard === 'function') dncLeaveBoard();
+  }
 
   // The Marker: a marked card is discarded instead of played, and takes every other
   // marked card in the same hand with it. Checked here - after we know there is a
@@ -403,6 +413,13 @@ function playHand() {
       if (_cd && _cd.rank && qrlBuffOn(_cd, 'focus')) _cardFocus += (permFocus[cardId(_cd)] || 0);
     });
     if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
+  }
+  // r675: the rule Sleights. Once per scoring, so a card that replays pays again.
+  if (typeof ruleEvenFocus === 'function') {
+    const _rf = ruleEvenFocus(_scoredCells, _handRetrigByCell);
+    if (_rf > 0 && typeof addFocus === 'function') addFocus(_rf, 'rule_evens', 'sleight');
+    const _rs = ruleFaceSeconds(_scoredCells, _handRetrigByCell);
+    if (_rs > 0) rewindTime(_rs, `⏪ Face cards - rewound ${_rs}s`, 'rule_faces', 'sleight');
   }
 
   // Short Change (r483): a hand that used fewer cards than your hand size pays
@@ -599,7 +616,7 @@ function playHand() {
     if (typeof svGoalCells !== 'undefined') svGoalCells = toRemove.map(rc => [...rc]);
     captureGoalHand(toRemove);   // r371: taken off the board at the round's end
     commitRoundContrib(_contribSnapshot);
-    playScoreDance(result, toRemove, true /* goalHand */);
+    dncPlayOrQueue(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells, result._bankContrib);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     climbAfterHand(_scoredCells);   // r398: after the dance took its ledger
@@ -627,7 +644,7 @@ function playHand() {
     captureGoalHand(toRemove);   // r371: taken off the board at the round's end
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
-    playScoreDance(result, toRemove, true /* goalHand */);
+    dncPlayOrQueue(result, toRemove, true /* goalHand */);
     runHandPriming(hand, handCells, result._bankContrib);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     climbAfterHand(_scoredCells);   // r398: after the dance took its ledger
@@ -952,7 +969,7 @@ function playHand() {
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp.
   // r572: a All Hands hand is recorded instead; the sweep's finale flies, falls and tallies.
-  if (_sweeping) sweepRecord(result, toRemove); else playScoreDance(result, toRemove);
+  if (_sweeping) sweepRecord(result, toRemove); else dncPlayOrQueue(result, toRemove, false);
   runHandPriming(hand, handCells, result._bankContrib);
   scalingCount(hand, _scoredCells, _handRetrigByCell);
   climbAfterHand(_scoredCells);   // r398
@@ -1174,7 +1191,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   // Inspirato: a scored Ace primes the first and last tray Tricks
   // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
   if (hasTrick('wild_heart') && trickTray.length) {
-    const _whT = trickTray.find(t => t.id === 'wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
+    const _whT = ownedTrickObj('wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
     if (handCells.some(([r,c]) => _whRanks.includes(gridData[r]?.[c]?.rank))) {
       primeTrick(trickTray[0], BAL.wild_heart.primes, { src: 'wild_heart' });
       const _last = trickTray[trickTray.length - 1];

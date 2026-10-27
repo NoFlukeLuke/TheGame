@@ -73,6 +73,7 @@ const IMPROVE_MUL = new Set([
 //   ENTITY_IMPROVEMENTS.md, "Improve option 1", is the source of truth.
 const IMPROVE_STEP = {
   amplifier:      { mult_per_level: 1 },   // r636: x3 the level, +1x an improvement
+  rule_ranks:     { ranks: 1 },            // r675: one more named rank a tier (2 3 4 5 6 9)
   first_light:    { worth: 10 },        // Aces worth 21; the sheet says +10, not +21
   rising_tide:    { mult_min: 1, mult_max: 1 },   // r539: each level's roll, 1-3 -> 2-4 -> ...
   face_value:     { face_pips: 5 },     // face cards 15; the sheet says +5
@@ -109,6 +110,14 @@ const IMPROVE_STEP = {
   kaleidoscope:   { extra: 1 },
   landfill:       { mult_per: 5, mult_per_flow: 3 },
   feelin_lucky:   { mult_mult: 0.75 },
+  // r666: the Focus knacks' `focus` is a PRICE, and the generic rule added the
+  // base to it, so every improvement made them dearer (10, 20, 30...). Only the
+  // benefit grows now (same steps as before); the two with no benefit number get
+  // 1 Focus cheaper a step (10 9 8 7 6, then 3 at the 5th).
+  free_hand:      { seconds: 10 },
+  double_down:    { hands: 3 },
+  charged_card:   { focus: -1 },
+  shuffle_up:     { focus: -1 },
 };
 
 // Ladders that are not "the number again" (r624, the owner's rare sheet). A
@@ -196,6 +205,8 @@ const IMPROVE_PLAN = {
   // +2 charges a tier; the 5th gives 2 swaps a use
   logistics_assistant: t => ({ charges: 4 + 2 * [0, 1, 2, 3, 4, 4][t], swaps: t >= 5 ? 2 : 0 }),
   // +10% a tier; the 5th adds a 30% chance of a second charge
+  // r677 (owner): v2 x buffs, v3 6 cards, v4 up to 3 buffed allowed, v5 second rank / suit, v6 8 cards and up to 6
+  touch_up:         t => ({ cards: t >= 5 ? 8 : t >= 2 ? 6 : 3, max: t >= 5 ? 6 : t >= 3 ? 3 : 0, kinds: t >= 4 ? 3 : t >= 1 ? 2 : 1 }),
   green_station:    t => ({ chance: 0.3 + 0.1 * [0, 1, 2, 3, 4, 4][t], chance2: t >= 5 ? 0.3 : 0 }),
 };
 
@@ -244,7 +255,10 @@ function rollExtraRanks(t, key, n, not) {
   while (have.length < n && pool.length) have.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   t[key] = have;
 }
-function ownedTrickObj(id) { return (typeof trickTray !== 'undefined' && trickTray.find(t => t && t.id === id)) || null; }
+function ownedTrickObj(id) {
+  // r676: Temp (js/changing.js) holds its form's rolled state while it is that form.
+  return (typeof trickTray !== 'undefined' && trickTray.find(t => t && t.id === id)) || (typeof changelingFor === 'function' && changelingFor(id)) || null;
+}
 
 // Pristine BAL, captured at load before anything can have improved. One level
 // deep is enough - every BAL entry is a flat object of numbers.
@@ -398,6 +412,7 @@ function syncOwnedEntityDescs() {
    typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []].forEach(list => {
     // The name too (r561): a renamed entity in a saved run shows its current name.
     (list || []).forEach(e => {
+      if (e && e.id === 'changeling' && typeof changelingDescApply === 'function') { changelingDescApply(e); return; }   // r676: Temp prints its form's sentence
       const src = e && from(e.id); if (src && src.desc) e.desc = src.desc; if (src && src.name) e.name = src.name;
       // r646: a marked Trick's description names its line; the regenerated sentence says "a marked row or column"
       // again, so the label is put back from the registry (it used to be lost at every improvement).
@@ -478,13 +493,18 @@ function improveRepaintArt() {
 // goes through applyEntityTiers exactly as improveEntity does, so BAL is
 // rewritten and the printed description follows the number back down - a Trick
 // that silently kept quoting its improved value would be worse than not
-// downgrading at all. Floors at 0; returns the new tier.
-function downgradeEntity(id) {
+// downgrading at all. Floors at 0; returns the new tier. r671: opts.anim plays the
+// improvement scene in reverse (a failed challenge takes an improvement back).
+function downgradeEntity(id, opts) {
   const cur = entityTierOf(id);
   if (cur <= 0) return 0;
+  const _descWas = _impDescOf(id);
   entityTier[id] = cur - 1;
   applyEntityTiers();
+  if (typeof chgSyncTiers === 'function') chgSyncTiers(id);   // r676: Temp / Floater pass the tier to their form
+  if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
   improveRepaintArt();
+  if (opts && opts.anim && typeof improveAnimNote === 'function') improveAnimNote(id, cur, entityTier[id], _descWas, _impDescOf(id));
   return entityTier[id];
 }
 
@@ -502,7 +522,7 @@ function ownedImprovable(type) {
   if (type === 'trick')   list = trickTray;
   if (type === 'knack')   list = (typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []) || [];
   if (type === 'sleight') list = (typeof allOwnedSleightCards === 'function')
-      ? dedupeById(allOwnedSleightCards().map(c => (typeof sleightDef === 'function' ? sleightDef(c) : null)).filter(Boolean))
+      ? dedupeById(allOwnedSleightCards().map(c => c._floater ? SLEIGHT_POOL.find(d => d.id === 'floater') : (typeof sleightDef === 'function' ? sleightDef(c) : null)).filter(Boolean))
       : [];
   return list.filter(e => e && canImprove(e.id)).map(e => ({ id: e.id, name: e.name, rarity: rar(e) }));
 }

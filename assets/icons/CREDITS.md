@@ -21,6 +21,10 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🦉 barn-owl
 - 🪙 coinflip
 
+## darkzaitzev
+
+- 🦎 chameleon-glyph
+
 ## delapouite
 
 - 🪜 ladder
@@ -84,6 +88,12 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 💸 pay-money
 - 📉 chart
 - 🕳 hole
+- 🌀 transform
+- 🖌️ paint-roller
+
+## faithtoken
+
+- 🎟️ card-random
 
 ## lorc
 
@@ -149,6 +159,8 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🔍 magnifying-glass
 - 🧊 ice-cube
 - 🪨 rock
+- ⚖️ scales
+- 🫅 queen-crown
 
 ## priorblue
 

@@ -311,7 +311,7 @@ function guidedOpenNamedEvent(id, afterFn) {
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   eventState = {};
   renderEventShell(id);
-  document.getElementById('event-overlay').classList.add('show');
+  if (typeof evShow === 'function') evShow(); else document.getElementById('event-overlay').classList.add('show');
 }
 
 // The act readout's next stop, for the HUD.

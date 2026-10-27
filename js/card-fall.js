@@ -46,7 +46,7 @@ function renderCardAppearance(card, r, c, {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
     // its charge count, which is the number that actually matters on the board.
-    const _maxCh = (typeof sleightMaxCharges === 'function') ? sleightMaxCharges(def) : null;
+    const _maxCh = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
       : def?.id === 'keeper' ? (typeof keeperModeLabel === 'function' ? keeperModeLabel(card) : '')
@@ -209,22 +209,138 @@ function buildCardAnimEl(card, finalR, finalC) {
   el.dataset.row = finalR; el.dataset.col = finalC;   // its cell's margin (r642 even gaps)
   el.innerHTML = innerHTML;
   el.style.position       = 'absolute';
-  el.style.width          = CARD_W + 'px';
-  el.style.height         = CARD_H + 'px';
+  // r659: the DRAWN card's size, not the cell's (r641): a cell-wide copy fell wide
+  // and the card snapped thin when the board re-rendered.
+  el.style.width          = ((typeof CARD_VIS_W === 'number' && CARD_VIS_W) || CARD_W) + 'px';
+  el.style.height         = ((typeof CARD_VIS_H === 'number' && CARD_VIS_H) || CARD_H) + 'px';
   el.style.pointerEvents  = 'none';
   el.style.zIndex         = '10';
   return el;
 }
 
+// ── r661 (owner): EVERY CARD FALLS ON ITS OWN ───────────────────────────────
+// "Every card should be able to animate its fall independent of whatever else
+// is going on around it." The fall used to be one event: a 300ms slide-out that
+// locked every tap (`animating`), then temp copies of the moving cards drawn
+// over hidden real ones, then a tail that threw every element away and drew
+// the board again. A second removal mid-fall had to snap the first one flat
+// (r652's fallSettleNow), which is the hitch the owner saw.
+//
+// Now the board's REAL card elements move. gridData is written at once (as
+// before), render() puts every element on its final cell, and each card that
+// has to travel gets a WAAPI animation on the standalone `translate` property
+// from where it was drawn a moment ago to rest (0). A card still in the air
+// when another fall needs it is simply re-aimed: its live animation is
+// cancelled, its current drawn position read, and a new animation started from
+// there. Cards no fall touches are never redrawn, hidden or rebuilt. Removed
+// cards lose their card id (render() no longer knows them), slide out on their
+// own and are dropped when their slide ends; nothing waits on them and no
+// `animating` lock is taken for a fall.
+//
+// `falling` is true while ANY card is in the air (the registry below is not
+// empty). The board tail (the drains, a queued PLAY / DISCARD, the next
+// challenge card) runs once when the last card lands, whichever fall it came
+// from. A fall's own promise resolves when ITS cards have landed, so a caller
+// that awaits one (Autopilot, All Hands, Match-3) carries on as before.
+const _cardFalls = new Map();   // card id -> { anim, el }
+let _fallLive = null;           // kept for readers; the registry above is the truth
+const FALL_LEAVE_MS = 280;      // a removed card's slide-out
+// A card's drawn top inside #grid, in design px, its live translate included.
+function _fallVisTop(el, gr, z) { return (el.getBoundingClientRect().top - gr.top) / z; }
+function _fallGridScale(gridEl) { const gr = gridEl.getBoundingClientRect(); return { gr, z: (gr.width / (gridEl.offsetWidth || 1)) || 1 }; }
+function _fallForget(id, a) {
+  const rec = _cardFalls.get(id);
+  if (!rec || (a && rec.anim !== a)) return;
+  _cardFalls.delete(id);
+  if (rec.el) { rec.el.style.zIndex = ''; }
+  if (_cardFalls.size || !falling) return;
+  // The board was torn down under the last card (a round end's sweep, a new deal):
+  // nothing to settle, and the tail's render and drains belong to no board now.
+  if (rec.el && !rec.el.isConnected) { falling = false; return; }
+  _fallTail();
+}
+// Every card snaps to its cell, nothing else runs (a new run, a screen that
+// takes the board). The tail is NOT run: the caller is tearing the board down.
+function fallCancelAll() {
+  _cardFalls.forEach(({ anim, el }) => { try { anim.cancel(); } catch (e) {} if (el) el.style.zIndex = ''; });
+  _cardFalls.clear(); falling = false;
+}
+// Every card snaps to its cell NOW and the board's tail runs (the drains, a
+// queued action). For code that needs the board at rest this instant.
+function fallSettleNow() {
+  if (!_cardFalls.size) { if (falling) { falling = false; } return; }
+  _cardFalls.forEach(({ anim, el }) => { try { anim.cancel(); } catch (e) {} if (el) el.style.zIndex = ''; });
+  _cardFalls.clear();
+  dbgEvent('info', '[FALL] settled early');
+  _fallTail();
+}
+function _fallTail() {
+  falling = false;
+  console.log('[FALL] complete');
+  const queued = pendingAction;
+  pendingAction = null;
+  render();
+  // A Spectrum deck fixture that just paid out leaves the board HERE, not at the
+  // moment it paid: it pays inside playHand, above the dance, and the dance's own
+  // removeAndFall holds the falling lock until this point. Drained before the
+  // queued action so "it paid, then it left" is one beat rather than a card
+  // vanishing behind the next hand. (js/spectrum.js)
+  if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
+  if (typeof freshStartDrain === 'function') freshStartDrain();
+  if (typeof crAfterFall === 'function') crAfterFall();   // falls / hits on fall-type challenge cards
+  if (typeof crDrain === 'function') crDrain();   // a solved challenge card leaves, the next arrives
+  if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
+  else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); runQueuedDiscard(); }
+  else if (discardCarryArm) { discardCarryArm = false; if (selected.length) scheduleAutoSubmit(); }
+}
+// One card's trip to rest: from `fromY` design px above (negative) or below its
+// cell to 0, with the landing bounce. A live trip on the same card is re-aimed.
+function _fallLaunch(el, id, fromY, delay, dur, fadeIn) {
+  const BOUNCE_PX = 8, SQUISH = 0.10;
+  const prev = _cardFalls.get(id);
+  if (prev) { try { prev.anim.cancel(); } catch (e) {} }
+  const dist = -fromY;   // how far it still has to go (down is positive)
+  const tr = y => `0 ${(fromY + y).toFixed(2)}px`;
+  const frames = fadeIn ? [
+    { opacity: 0, translate: tr(0), scale: '1 1',                                        offset: 0 },
+    { opacity: 1, translate: tr(0), scale: '1 1',                                        offset: 0.06 },
+    { opacity: 1, translate: tr(dist * 0.55), scale: '1 0.96',                           offset: 0.55, easing: 'ease-in' },
+    { opacity: 1, translate: tr(dist + BOUNCE_PX), scale: `1 ${1 - SQUISH}`,             offset: 0.83 },
+    { opacity: 1, translate: tr(dist - BOUNCE_PX * 0.7), scale: `1 ${1 + SQUISH}`,       offset: 0.91 },
+    { opacity: 1, translate: tr(dist + BOUNCE_PX * 0.3), scale: `1 ${1 - SQUISH * 0.2}`, offset: 0.96 },
+    { opacity: 1, translate: '0 0px', scale: '1 1',                                      offset: 1 },
+  ] : [
+    { translate: tr(0), scale: '1 1',                                        offset: 0 },
+    { translate: tr(dist * 0.6), scale: '1 0.96',                            offset: 0.5, easing: 'ease-in' },
+    { translate: tr(dist + BOUNCE_PX), scale: `1 ${1 - SQUISH}`,             offset: 0.82 },
+    { translate: tr(dist - BOUNCE_PX * 0.7), scale: `1 ${1 + SQUISH}`,       offset: 0.91 },
+    { translate: tr(dist + BOUNCE_PX * 0.3), scale: `1 ${1 - SQUISH * 0.2}`, offset: 0.96 },
+    { translate: '0 0px', scale: '1 1',                                      offset: 1 },
+  ];
+  el.style.zIndex = '10';
+  // `backwards`: the card holds its start through its column's stagger. No
+  // forward fill: at the end `translate` is the stylesheet's (none), which IS
+  // the cell, so a finished trip leaves nothing on the element to clean up.
+  const a = el.animate(frames, { duration: dur, delay, easing: 'ease-in', fill: 'backwards' });
+  _cardFalls.set(id, { anim: a, el });
+  falling = true;
+  const done = () => _fallForget(id, a);
+  a.finished.then(done, done);
+  return a;
+}
 async function removeAndFall(removingCells, mode = 'play') {
-  // Guard against re-entry while a fall is in progress
+  // Something else holds the board (a swap look, a boss fizzle, Match-3's own
+  // step): wait for it rather than drop the cards (r652).
   if (animating) {
-    console.log('[FALL] BLOCKED by animating flag', { mode, cells: removingCells.length });
-    return;
+    console.log('[FALL] waiting on animating', { mode, cells: removingCells.length });
+    let _w = 0;
+    while (animating && _w++ < 60) await new Promise(res => setTimeout(res, 30));
+    if (animating) { console.log('[FALL] BLOCKED by animating flag', { mode, cells: removingCells.length }); return; }
   }
-  console.log('[FALL] start', { mode, cells: removingCells.length });
-  animating = true;
-  if (typeof crBeforeFall === 'function') crBeforeFall();   // fall-type challenge cards count against this
+  console.log('[FALL] start', { mode, cells: removingCells.length, inAir: _cardFalls.size });
+  // The fall-type challenge cards' snapshot is of the board BEFORE the first of
+  // any overlapping falls; the tail counts once when the last card lands.
+  if (typeof crBeforeFall === 'function' && !(typeof crFallSnap !== 'undefined' && crFallSnap)) crBeforeFall();
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);
@@ -254,97 +370,76 @@ async function removeAndFall(removingCells, mode = 'play') {
   }
 
   const gridEl = document.getElementById('grid');
+  const { gr, z } = _fallGridScale(gridEl);
 
-  // Slide removed cards toward target icon
+  // ── The removed cards leave on their own. They lose their card id first, so
+  //    render() (called below, and by every tap) neither moves nor keeps them;
+  //    their slide runs beside the fall and they are dropped when it ends. ──
   const targetId = mode === 'discard' ? 'btn-discard' : 'btn-records';
   const targetEl = document.getElementById(targetId);
   const targetRect = targetEl ? targetEl.getBoundingClientRect() : null;
-
-  const slidePromises = [];
-  // r445: a discard plays the chosen look (dev -> Card Animations, js/card-anims.js)
-  if (mode === 'discard' && typeof cardAnimExit === 'function') {
-    const els = removingCells.map(([r,c]) => gridData[r][c] && gridEl.querySelector(`[data-card-id="${gridData[r][c]._id}"]`)).filter(Boolean);
-    els.forEach(el => { el.style.transition = 'none'; });
-    slidePromises.push(cardAnimExit('discard', els, targetRect));
-  }
-  if (!(mode === 'discard' && typeof cardAnimExit === 'function')) removingCells.forEach(([r,c]) => {
-    const card = gridData[r][c];
-    if (!card) return;
-    const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
-    if (!el) return;
-    if (targetRect) {
-      const cardRect = el.getBoundingClientRect();
-      const dx = (targetRect.left + targetRect.width/2) - (cardRect.left + cardRect.width/2);
-      const dy = (targetRect.top + targetRect.height/2) - (cardRect.top + cardRect.height/2);
-      el.style.transition = 'none';
-      el.style.zIndex = '20';
-      void el.offsetWidth;
-      el.style.transition = 'transform 0.28s cubic-bezier(0.4,0,1,1), opacity 0.28s ease-in';
-      el.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
-      el.style.opacity = '0';
-      slidePromises.push(new Promise(res => setTimeout(res, 300)));
-    } else {
-      el.style.opacity = '0';
-      slidePromises.push(new Promise(res => setTimeout(res, 200)));
-    }
-  });
-  await Promise.all(slidePromises);
-
-  // Remove slid-out elements
-  gridEl.querySelectorAll('.card[style*="scale(0.3)"]').forEach(el => el.remove());
+  const leaving = [];
   removingCells.forEach(([r,c]) => {
-    const card = gridData[r][c];
-    if (card) {
-      const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
-      if (el) el.remove();
-    }
+    const card = gridData[r][c]; if (!card) return;
+    const el = gridEl.querySelector(`[data-card-id="${card._id}"]`); if (!el) return;
+    const live = _cardFalls.get(String(card._id));
+    if (live) { try { live.anim.cancel(); } catch (e) {} _cardFalls.delete(String(card._id)); }
+    el.removeAttribute('data-card-id'); el.removeAttribute('data-row'); el.removeAttribute('data-col');
+    el.classList.add('card-leaving'); el.style.pointerEvents = 'none';
+    leaving.push(el);
   });
+  // Already hidden (its copy flew to the preview, js/score-dance.js): gone at once.
+  const visibleLeaving = leaving.filter(el => { const o = el.style.opacity; if (o !== '' && +o === 0) { el.remove(); return false; } return true; });
+  let leaveMs = 0;
+  if (visibleLeaving.length) {
+    if (mode === 'discard' && typeof cardAnimExit === 'function') {
+      visibleLeaving.forEach(el => { el.style.transition = 'none'; });
+      leaveMs = 200;
+      Promise.resolve(cardAnimExit('discard', visibleLeaving, targetRect)).catch(() => {}).then(() => visibleLeaving.forEach(el => el.remove()));
+    } else {
+      leaveMs = targetRect ? FALL_LEAVE_MS : 200;
+      visibleLeaving.forEach(el => {
+        if (targetRect) {
+          const cardRect = el.getBoundingClientRect();
+          const dx = (targetRect.left + targetRect.width/2) - (cardRect.left + cardRect.width/2);
+          const dy = (targetRect.top + targetRect.height/2) - (cardRect.top + cardRect.height/2);
+          el.style.transition = 'none';
+          el.style.zIndex = '20';
+          void el.offsetWidth;
+          el.style.transition = 'transform 0.28s cubic-bezier(0.4,0,1,1), opacity 0.28s ease-in';
+          el.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
+          el.style.opacity = '0';
+        } else el.style.opacity = '0';
+        setTimeout(() => el.remove(), leaveMs + 40);
+      });
+    }
+  }
 
-  // Build fall plan BEFORE touching gridData
-  // Voids ("blocked cells") are skipped entirely in the column. Cards stack to the
-  // bottom-most non-void rows; new cards fill the top-most non-void rows.
+  // ── The plan (data only), computed from the board as it is now. Voids
+  //    ("blocked cells") are skipped: cards stack to the bottom-most non-void
+  //    rows, new cards fill the top-most. ──
   const fallPlan = [];
   const newCards = [];
   for (let col = 0; col < gridCols; col++) {
-    // Playable rows in this column, ordered TOP-to-BOTTOM
     const playableRows = [];
-    for (let r = 0; r < gridRows; r++) {
-      if (!isCellVoid(r, col)) playableRows.push(r);
-    }
+    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col)) playableRows.push(r);
     if (playableRows.length === 0) continue;
-
-    // Surviving cards in original top-to-bottom order
     const survivors = [];
     for (const r of playableRows) {
-      if (!removing.has(`${r}-${col}`) && gridData[r][col] !== null) {
-        survivors.push({ origRow: r, card: gridData[r][col] });
-      }
+      if (!removing.has(`${r}-${col}`) && gridData[r][col] !== null) survivors.push({ origRow: r, card: gridData[r][col] });
     }
     const removedCount = playableRows.length - survivors.length;
-
-    // Survivors pack to bottom of playableRows, preserving top-to-bottom order
-    // i.e. survivors[i] goes to playableRows[playableRows.length - survivors.length + i]
     survivors.forEach((entry, i) => {
       const targetRow = playableRows[playableRows.length - survivors.length + i];
       if (targetRow !== entry.origRow) {
-        const fallBy = targetRow - entry.origRow;
-        // Capture the card NOW - gridData is updated below (pre-animation), so the
-        // fall loop can no longer look it up by old position.
-        fallPlan.push({ row: entry.origRow, col, fallBy, card: entry.card });
-        if (challengeCard && challengeCard.pos[0] === entry.origRow && challengeCard.pos[1] === col) {
-          challengeCard.pos = [targetRow, col];
-        }
+        fallPlan.push({ row: entry.origRow, col, fallBy: targetRow - entry.origRow, card: entry.card });
+        if (challengeCard && challengeCard.pos[0] === entry.origRow && challengeCard.pos[1] === col) challengeCard.pos = [targetRow, col];
       }
     });
-
-    // New cards fill the holes left above the packed survivors.
-    // A queued Backfill copy fills the hole BEFORE the deck does, so a
-    // backfilled cell costs the deck nothing: no card is drawn, the Marker's
-    // one-in-ten counter does not advance, and the audit stays balanced
-    // because a temp card is not counted as a deck card (js/card-states.js).
+    // New cards fill the holes left above the packed survivors. A queued
+    // Backfill copy fills the hole BEFORE the deck does (js/card-states.js).
     // Drawn first, then stacked: when the deck runs dry the cards that did come
     // sit on the survivors and the empty cells stay at the TOP of the column.
-    // (Placing by draw order left a gap under a card that fell in.)
     const drawn = [];
     for (let i = 0; i < removedCount; i++) {
       const _bf = (typeof cardStatesDrawFor === 'function') ? cardStatesDrawFor(col) : null;
@@ -357,7 +452,19 @@ async function removeAndFall(removingCells, mode = 'play') {
     });
   }
 
-  // Update gridData NOW (before animations) so selection during fall is accurate
+  // Where every moving card is DRAWN right now (its live trip included), read
+  // before the data and the elements change under it.
+  const visTopById = {};
+  fallPlan.forEach(({ card }) => {
+    const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
+    if (el) visTopById[card._id] = _fallVisTop(el, gr, z);
+  });
+
+  // The selection and a pending swap FOLLOW THEIR CARDS through the fall (r661): a card
+  // picked before this fall may move to another cell, and a cell may be left empty.
+  const _selCards = selected.map(([r,c]) => gridData[r]?.[c] || null);
+  const _swapCard = swapPending ? (gridData[swapPending[0]]?.[swapPending[1]] || null) : null;
+  // Update gridData NOW so selection during the fall is accurate
   removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
   for (let col = 0; col < gridCols; col++) {
     const playableRows = [];
@@ -367,9 +474,7 @@ async function removeAndFall(removingCells, mode = 'play') {
       if (gridData[r][col] !== null) survivors.push(gridData[r][col]);
       gridData[r][col] = null;
     }
-    survivors.forEach((card, i) => {
-      gridData[playableRows[playableRows.length - survivors.length + i]][col] = card;
-    });
+    survivors.forEach((card, i) => { gridData[playableRows[playableRows.length - survivors.length + i]][col] = card; });
     newCards.filter(n => n.col === col).forEach(({ finalRow, card }) => {
       if (card && !isCellVoid(finalRow, col)) gridData[finalRow][col] = card;
     });
@@ -382,145 +487,78 @@ async function removeAndFall(removingCells, mode = 'play') {
   if (challengeCard) {
     for (let col = 0; col < gridCols; col++) {
       if (challengeCard.pos[1] === col) {
-        for (let r = 0; r < gridRows; r++) {
-          if (gridData[r][col] === null) { challengeCard.pos = [r, col]; break; }
-        }
+        for (let r = 0; r < gridRows; r++) { if (gridData[r][col] === null) { challengeCard.pos = [r, col]; break; } }
       }
     }
   }
-
-  // Transition: slide-out done, now entering fall phase - allow selection
-  animating = false;
-  falling = true;
+  {
+    const _at = card => { if (!card) return null; for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) return [r, c]; return null; };
+    const _sel = _selCards.map(_at).filter(Boolean);
+    if (_sel.length !== selected.length || _sel.some((rc, i) => rc[0] !== selected[i][0] || rc[1] !== selected[i][1])) { selected = _sel; if (typeof cancelAutoSubmit === 'function' && !_sel.length) cancelAutoSubmit(); }
+    if (swapPending) swapPending = _at(_swapCard);
+  }
   if (typeof discardCarryRestore === 'function') discardCarryRestore();   // a queued discard's leftover selection
 
-  // Hide only the persistent elements for cards that will be animated as temp elements
-  const fallingIds = new Set();
-  fallPlan.forEach(({ row, col, fallBy }) => {
-    const destCard = gridData[row + fallBy]?.[col];
-    if (destCard && destCard._id) fallingIds.add(String(destCard._id));
-  });
-  gridEl.querySelectorAll('[data-card-id]').forEach(el => {
-    if (fallingIds.has(el.dataset.cardId)) el.style.visibility = 'hidden';
-  });
+  // ── Every element onto its final cell (render() creates the new cards there),
+  //    with the moving cards' live trips cancelled first so the rest position
+  //    can be read without a translate on it. All synchronous: no frame paints
+  //    between the cancel and the new trip that starts from the same spot. ──
+  fallPlan.forEach(({ card }) => { const live = _cardFalls.get(String(card._id)); if (live) { try { live.anim.cancel(); } catch (e) {} _cardFalls.delete(String(card._id)); } });
+  newCards.forEach(({ card }) => { if (!card) return; const live = _cardFalls.get(String(card._id)); if (live) { try { live.anim.cancel(); } catch (e) {} _cardFalls.delete(String(card._id)); } });
+  render();
 
   const FALL_DUR = 420;
   const COL_OFFSET = 60;
-  const BOUNCE_PX = 8;
-  const SQUISH = 0.10;
   const activeCols = new Set(removingCells.map(([,c]) => c));
   const minActiveCol = activeCols.size > 0 ? Math.min(...activeCols) : 0;
-
   const colReadyAt = {};
+  const myAnims = [];
 
-  // Animate existing cards falling down as temp elements
-  const fallAnims = [];
+  // Survivors fall from where they were drawn to where they now rest.
   const sortedFallPlan = [...fallPlan].sort((a, b) => a.col !== b.col ? a.col - b.col : b.row - a.row);
-
   sortedFallPlan.forEach(({ row, col, fallBy, card }) => {
     if (!card) return;
-    const startX = cellLeft(col);
-    // The element carries the DESTINATION row's margin (r642 even gaps), so its
-    // top is set back by the two rows' offsets and the travel is by the drawn
-    // card's real positions, not the cell step.
-    const _rowShift = cardRowOffset(row + fallBy) - cardRowOffset(row);
-    const startY = cellTop(row) - _rowShift;
-    const dist = fallBy * CARD_STEP + _rowShift;
-    const colBase = (col - minActiveCol) * COL_OFFSET;
+    const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
+    if (!el) return;
+    const restTop = _fallVisTop(el, gr, z);
+    const from = (visTopById[card._id] !== undefined) ? visTopById[card._id] : (restTop - fallBy * CARD_STEP);
+    const fromY = from - restTop;
+    if (Math.abs(fromY) < 0.5) return;
+    const colBase = leaveMs + (col - minActiveCol) * COL_OFFSET;
     const startAt = Math.max(colBase, colReadyAt[col] || colBase);
     colReadyAt[col] = startAt + FALL_DUR * 0.6;
-
-    const tempEl = buildCardAnimEl(card, row + fallBy, col);
-    tempEl.style.left = startX + 'px';
-    tempEl.style.top  = startY + 'px';
-    // Make falling cards selectable mid-air: tag with destination + enable hits
-    tempEl.dataset.row = row + fallBy;
-    tempEl.dataset.col = col;
-    tempEl.dataset.cardId = String(card._id);
-    tempEl.style.pointerEvents = 'auto';
-    gridEl.appendChild(tempEl);
-
-    fallAnims.push(tempEl.animate([
-      { transform: 'translateY(0px) scaleY(1)',                                          offset: 0 },
-      { transform: `translateY(${dist * 0.6}px) scaleY(0.96)`,                          offset: 0.5, easing: 'ease-in' },
-      { transform: `translateY(${dist + BOUNCE_PX}px) scaleY(${1 - SQUISH})`,           offset: 0.82 },
-      { transform: `translateY(${dist - BOUNCE_PX * 0.7}px) scaleY(${1 + SQUISH})`,     offset: 0.91 },
-      { transform: `translateY(${dist + BOUNCE_PX * 0.3}px) scaleY(${1 - SQUISH * 0.2})`, offset: 0.96 },
-      { transform: `translateY(${dist}px) scaleY(1)`,                                   offset: 1 },
-    ], { duration: FALL_DUR, delay: startAt, easing: 'ease-in', fill: 'forwards' }));
+    myAnims.push(_fallLaunch(el, String(card._id), fromY, startAt, FALL_DUR, false));
   });
 
-  // Animate new cards entering from above
-  const enterAnims = [];
+  // New cards come in from above the board, one card height per card queued above them.
   const sortedNewCards = [...newCards].sort((a, b) => a.col !== b.col ? a.col - b.col : b.finalRow - a.finalRow);
-
   sortedNewCards.forEach(({ col, finalRow, fromAbove, card }) => {
     if (!card) return;
-    const destX = cellLeft(col);
-    const destY = cellTop(finalRow);
+    const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
+    if (!el) return;
     const minStart = Math.max(fromAbove, finalRow + 1);
-    const startY = -(minStart - finalRow) * CARD_STEP;
-    const dropDist = destY - startY;
-    const colBase = (col - minActiveCol) * COL_OFFSET;
+    const fromY = -(minStart - finalRow) * CARD_STEP - cellTop(finalRow);
+    const colBase = leaveMs + (col - minActiveCol) * COL_OFFSET;
     const entryStart = Math.max(colBase, colReadyAt[col] || colBase);
     colReadyAt[col] = entryStart + FALL_DUR * 0.6;
-
-    const tempEl = buildCardAnimEl(card, finalRow, col);
-    tempEl.style.left    = destX + 'px';
-    tempEl.style.top     = startY + 'px';
-    tempEl.style.opacity = '0';
-    // Make entering cards selectable mid-air: tag with destination + enable hits
-    tempEl.dataset.row = finalRow;
-    tempEl.dataset.col = col;
-    tempEl.dataset.cardId = String(card._id);
-    tempEl.style.pointerEvents = 'auto';
-    gridEl.appendChild(tempEl);
-
-    enterAnims.push(tempEl.animate([
-      { opacity: 0, transform: 'translateY(0) scaleY(1)' },
-      { opacity: 1, transform: 'translateY(0) scaleY(1)',                                    offset: 0.06 },
-      { opacity: 1, transform: `translateY(${dropDist * 0.55}px) scaleY(0.96)`,             offset: 0.55, easing: 'ease-in' },
-      { opacity: 1, transform: `translateY(${dropDist + BOUNCE_PX}px) scaleY(${1 - SQUISH})`,         offset: 0.83 },
-      { opacity: 1, transform: `translateY(${dropDist - BOUNCE_PX * 0.7}px) scaleY(${1 + SQUISH})`,   offset: 0.91 },
-      { opacity: 1, transform: `translateY(${dropDist + BOUNCE_PX * 0.3}px) scaleY(${1 - SQUISH * 0.2})`, offset: 0.96 },
-      { opacity: 1, transform: `translateY(${dropDist}px) scaleY(1)` },
-    ], { duration: FALL_DUR, delay: entryStart, easing: 'ease-in', fill: 'forwards' }));
+    myAnims.push(_fallLaunch(el, String(card._id), fromY, entryStart, FALL_DUR, true));
   });
 
-  // allSettled, not all: a CANCELLED animation's `finished` REJECTS (a screen
-  // change or a background tab can cancel mid-fall), and a rejection here threw
-  // out of removeAndFall with `falling` stuck true - a board that ignores every
-  // tap until the page is reloaded (r470).
-  await Promise.allSettled([...fallAnims, ...enterAnims].map(a => a.finished));
-  gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
-  gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
-
-  // gridData was already updated before animations - just clear selection and finish
-  falling = false;
-  console.log('[FALL] complete');
-
-  const queued = pendingAction;
-  pendingAction = null;
-  render();
-
-  // A Spectrum deck fixture that just paid out leaves the board HERE, not at the
-  // moment it paid: it pays inside playHand, above the dance, and the dance's own
-  // removeAndFall holds the falling lock until this point. Drained before the
-  // queued action so "it paid, then it left" is one beat rather than a card
-  // vanishing behind the next hand. (js/spectrum.js)
-  if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
-  if (typeof freshStartDrain === 'function') freshStartDrain();
-  if (typeof crAfterFall === 'function') crAfterFall();   // falls / hits on fall-type challenge cards
-  if (typeof crDrain === 'function') crDrain();   // a solved challenge card leaves, the next arrives
-
-  if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
-  else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); runQueuedDiscard(); }
-  else if (discardCarryArm) { discardCarryArm = false; if (selected.length) scheduleAutoSubmit(); }
+  if (!myAnims.length) {
+    // Nothing moved and nothing came (an empty deck, a bottom row played). The
+    // board is at rest unless another fall is still in the air.
+    if (!_cardFalls.size) { await new Promise(res => setTimeout(res, leaveMs)); if (!_cardFalls.size) _fallTail(); }
+  } else {
+    // allSettled, not all: a CANCELLED animation's `finished` REJECTS (a re-aim,
+    // a screen change, a background tab), and a rejection here threw out of
+    // removeAndFall with `falling` stuck true (r470).
+    await Promise.allSettled(myAnims.map(a => a.finished));
+  }
 
   // Match-3: the settled board may have created new matches (e.g. after the
   // player discarded). match3Resolve() self-guards, so a cascade already in
   // flight - which awaits this call - is unaffected.
-  if (mode !== 'match3' && match3Active() && !roundEnded) match3Resolve();
+  if (mode !== 'match3' && match3Active() && !roundEnded && !_cardFalls.size) match3Resolve();
 }
 
 
