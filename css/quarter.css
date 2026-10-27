@@ -74,6 +74,19 @@
 }
 body.reduced-motion #quarter-card.show .qc-panel { animation: none; opacity: 1; transform: none; }
 
+/* ── The quarter screen on the board (r672; js/quarter.js showQuarterScreen) ──
+   The board screen's amber glass: the quarter large, the four quarters as boxes,
+   the next one on a prompt line with the cursor. */
+.bs-screen.qs-screen .bs-body { justify-content: center; align-items: center; text-align: center; }
+.qs-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qs-big { font-size: 64px; line-height: 1; color: var(--am-hi); text-shadow: 0 0 14px rgba(255,176,46,.6); letter-spacing: 2px; }
+.qs-kicker { font-size: 14px; letter-spacing: 3px; color: var(--am-dim); }
+.qs-boxes { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 17px; letter-spacing: 1px; color: var(--am-dim); white-space: pre; margin-top: 4px; }
+.qs-box.on { color: var(--am-hi); }
+.qs-next { margin-top: 8px; font-size: 22px; letter-spacing: 2px; color: var(--am-hi); }
+.qs-next .bs-cur { margin-left: 2px; }
+body.reduced-motion .qs-next .bs-cur::after { animation: none; }
+
 /* ── The run report, inside #end-stats ──────────────────────────────────────
    #end-overlay is INSIDE #stage, so it carries the cabinet's CSS zoom (~1.9 on a
    1440px desktop). EVERY px in this block is a STAGE px and paints at about twice

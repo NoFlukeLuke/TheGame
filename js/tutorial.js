@@ -651,7 +651,7 @@ const TUTORIAL_STEPS = [
     body: `The shop is a board too. Each row is a category: {knacks}, {tricks}, {sleights}, card upgrades and limit upgrades.<br><br>Tap a tile to read it. Tiles that touch each other are cheaper bought together.`,
   },
   {
-    id: 'shop-buy', anchor: () => tutEls('#btn-play', '#btn-leave'), side: 'left', next: true,
+    id: 'shop-buy', anchor: () => tutEls('#btn-play', '#btn-discard'), side: 'left', next: true,
     only: 'rewardgrid',
     when: () => tutShopReady(),
     eyebrow: 'The shop',
@@ -659,7 +659,7 @@ const TUTORIAL_STEPS = [
     body: `Select what you want and press <b>BUY</b>. Tiles that touch each other are cheaper bought together.<br><br>SELL flips the board to what you own. Press <b>LEAVE</b> when you are done.`,
   },
   {
-    id: 'shop-stock', anchor: () => tutEls('#swap-indicator', '#btn-discard', '#btn-leave'), side: 'left',
+    id: 'shop-stock', anchor: () => tutEls('#swap-indicator', '#btn-discard'), side: 'left',
     only: 'rewardgrid',
     when: () => tutShopReady(),
     eyebrow: 'The shop',

@@ -2809,6 +2809,71 @@ reward's two tiers and every penalty applied once with the state diff checked; F
 `[pick3, improve, tricks]` with the Tricks step offering only epic and legendary; Classic opened
 an epic-floored Tricks pick after the payout. No page errors.
 
+## r672 - events, the quarter card and the briefing on the board; three keys, never four; every key word fits (owner)
+- **What was already on the board, in the amber command-line look:** the Limit Break
+  (r644, console mode), the Surveyor / Leveler row chooser (r644), the improvement
+  animation (r632), the Schedule (r655) and its keys (r662). **On the board but in their
+  own look:** the payout, the reward grids, the pick of three, Flow's reward chain, the
+  shop, the deck editor. **Were full-screen or body-level panels:** the 31 events
+  (`#event-overlay`), the quarter card, the boss briefing (over `#grid`, red). Now:
+- **Events are a screen on the board** (`evConsolePlace`, js/events-core.js): in console
+  mode `#event-panel` is laid over the board's box the Limit Break's way (fixed, zoomed
+  `EV_CONSOLE_ZOOM` 0.82 x the stage, so it keeps about the width it was written for),
+  css/board-screen.css draws it as the amber glass (`#event-overlay.ev-console`: the title
+  types after a "> " prompt via `bsType`, the flavour line is the double box, every
+  `.event-choice` a wireframe box, no `font-size-adjust`), and its CONFIRM / SKIP row is
+  hidden: **the keys are borrowed**. `keysTake(spec)` / `keysSync` / `keysReturn`
+  (js/key-fit.js) are the Schedule's wrap-and-overlay mechanism made general (`.kb-keep`,
+  `.kb`, `body.kb-keys`; one owner at a time; capture click listeners run the spec's `fn`).
+  PLAY reads the confirm button's word, DISCARD the skip button's ("Skip", "Continue",
+  "Leave", "Done", "Take nothing"; a priced skip's cost on a `.kb-sub` line), SWAP is
+  idle; a MutationObserver on `#event-actions` keeps them mirroring the live buttons, so
+  a renderer that disables, hides or relabels a button needs no edit. `evShow()` is the
+  one way the overlay is shown (openEvent, guidedOpenNamedEvent, evOverlayIn);
+  `evConsoleOff()` runs from closeEvent, evToBoard and evOverlayOut's end, so the pick /
+  Call It grid after an event gets the keys back. `#event-overlay` sits INSIDE #stage, so
+  the placement divides out the cabinet zoom like `lbConsolePlace`. Outside console mode
+  the full-screen panel stays, as the Limit Break's does.
+- **The quarter card is a board screen** (`showQuarterScreen`, js/quarter.js, css/quarter.css):
+  "> QUARTER 1 CLOSED" types, Q1 large, `[x] Q1 [ ] Q2 [ ] Q3 [ ] Q4`, "> Q2 OPENS" with a
+  cursor, a CONTINUE key; a tap continues (the first tap only finishes the typing), or it
+  continues on its own after `QUARTER_SCREEN_MS` (3200). `hideQuarterCard` closes it. The
+  body-level card is the fallback with no stage.
+- **The boss briefing** (`bossBriefConsole`, js/boss.js) takes the same glass in console mode
+  (`#boss-preamble.bp-console`, css/boss.css): the name types after "> ", the brief is the
+  double box, the sigil stays red, the in-panel PROCEED is hidden and **PLAY reads PROCEED**
+  (keys returned in `go`). The mid-boss reopening types too and keeps its ✕ only.
+- **Three keys, never four** (owner): the shop's fourth key (r405's `#btn-leave` under a
+  half-height REROLL) is gone. The DISCARD key reads **LEAVE** while no row label is
+  selected and **REROLL n rows** once one is (`syncShopActionChips`; `.shop-key`,
+  `.shop-leave`); `doDiscard`'s shop branch leaves instead of refusing. The readout's small
+  Leave stays. The walkthrough's shop steps anchor the three keys.
+- **Every key word fits** (owner: "SWAP on desktop doesn't fit sometimes"; measured 17
+  design px over at 1440x820 in console mode: the upright-vertical SWAP ran 105px in an
+  83px key). Two fixes. The console / bulbs SWAP word is one letter a line (a 1.1ch box the
+  word breaks in, css/stock-bulbs.css: 71px). And **`js/key-fit.js`** is the safety net
+  under every state: `keyFitAll()` measures every visible text run in each of the three
+  keys against the key's border box (`KEY_FIT_TOL` 0.75 design px) and scales the
+  font-size (and a px line-height / letter-spacing) of the key and everything inside it
+  down in 4% steps until it fits, inline `!important` (beats the skins' `!important`),
+  cleared and re-measured on every change (a MutationObserver on the keys, `<html>`,
+  `<body>` and `#stage` classes, a ResizeObserver, resize, fonts). It never changes a key's
+  box. Audited (tools: the Playwright run in this session's scratchpad) at 1440x820 and
+  420x900 across console / pit / lines, bulbs on and off, key looks A / B / C, and every
+  borrowed state: board, armed swap, shop, shop with a row, reward grid, penalty grid,
+  pick of three, event, priced skip, briefing, Flow's board and split-reroll pick, the
+  Schedule and its pen, Poker Squares. See the commit message for what the fitter had to
+  shrink.
+- **Found in r670's dot words and fixed here:** with the dot look OFF, a copy of a key's
+  canvas that a screen's stored markup put back (the pick, the shop and the reward grid save
+  and restore the keys' innerHTML) stayed as a static child the size of the key and pushed the
+  words out of the box (measured 30-64 px over). `kdSweep` (js/key-dots.js) removes such copies
+  whenever the dots are off (`kdApply`, `kdScan`); `KD_SKIP` and the blocks list also name the
+  borrowed keys' icons (`.kb-ico`), as the Schedule's.
+- Not moved, on purpose: the finale (`#end-overlay`, the run's report), the goal banner and
+  the 3-2-1 (moments, not screens), the Trick-slots-full picker (`#trick-lose-picker`),
+  Records / Settings / the handbook (menus, not transitions).
+
 ## r673 - a department a quarter on the Schedule (`js/departments.js`, owner)
 CHALLENGE_REWARDS.md section 2 (DEPARTMENTS.md's lane plan is superseded). `DEPARTMENTS` (8):
 id, tile focus, focus tags, favourite quarter, challenge pay `{ std, hard }`, event pool.

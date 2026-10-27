@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r673 · a department a quarter on the Schedule: it leans the map, the events and the offers, and pays the challenge cards and leaving early";
+const BUILD = "2026-10-27 · r674 · merge main r672 (board screens) with r673 (departments): the quarter screen names the department";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
