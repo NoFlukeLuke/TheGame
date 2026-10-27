@@ -18,7 +18,7 @@ function renderCardAppearance(card, r, c, {
   // ── Challenge card (js/challenge-round.js) ──
   if (card._isChallenge) {
     const _q = card.cr || {};
-    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (crTimed(_q.src) ? ' cr-flow' : '') + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
+    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
                + (crTimed(_q.src) && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
                + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : '')
                + (typeof crRaisedLive === 'function' && crRaisedLive(_q) ? ' cr-raised' : ''),

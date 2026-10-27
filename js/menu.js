@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r680 · the finale and the goal banner on the board; records, named builds and a share image on the finale; ENDLESS past Q4 in every mode";
+const BUILD = "2026-10-27 · r681 · Challenge card face: stage on top, clock in the background; tap press kept; stock squares are pixels";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

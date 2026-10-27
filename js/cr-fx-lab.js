@@ -8,12 +8,13 @@
 // onCardTap like a finger. Nothing is stored, and outside ?crfx every look is off.
 // The clock and the card's own timer are kept topped up so nothing runs out.
 const CRL_LOOKS = [
-  ['press',  'Instant tap response',   'The card dips and clicks the moment you tap it. Before, nothing showed for 0.36s while the game waited for a second tap.'],
-  ['prompt', 'Clearer cleared prompt', 'The cleared card says what TAP and TAP TAP pay, shows the stage 2 ask, and a bar drains over the 6s before it takes the payout itself.'],
+  ['press',  'Instant tap response',   'In the game now. The card dips and clicks the moment you tap it; a take waits 0.5s for a second tap.'],
+  ['prompt', 'Clearer cleared prompt', 'The cleared card reads TAP and 2-TAP with what each pays, over a bar that drains through the 6s before it takes the payout itself.'],
   ['take',   'Clearer take',           'A PAID stamp; the paid figure flies from the card’s pay line; the reward passed up is struck through.'],
   ['raise',  'Clearer raise',          'A STAGE 2 stamp; the ask rolls up and the new box drops in; the bigger reward lights; the border burns red while stage 1 is at risk.'],
 ];
 let _crlGen = 0;   // a new card or demo cancels the one before
+const CRL_GAME = { ...CR_FX };   // what the game ships, for TODAY'S LOOK
 
 function crlCard() { return crCards().find(([, , cd]) => !cd.cr.done) || null; }
 function crlWait(ms, gen) {
@@ -94,7 +95,7 @@ function crlOpen() {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.k) { crFxSet(b.dataset.k, !crFxOn(b.dataset.k)); crlPaint(); return; }
     const a = b.dataset.a;
-    if (a === 'all' || a === 'none') { CRL_LOOKS.forEach(([k]) => crFxSet(k, a === 'all')); crlPaint(); }
+    if (a === 'all' || a === 'none') { CRL_LOOKS.forEach(([k]) => crFxSet(k, a === 'all' || CRL_GAME[k])); crlPaint(); }
     else if (a === 'take' || a === 'raise' || a === 'wait') crlDemo(a);
     else if (a === 'new') { crlSpawn(); crlSay(''); }
     else if (a === 'clear') { if (!crlClear()) crlSay('Nothing to clear: the card is waiting for an answer, or gone. NEW CARD deals another.'); else crlSay(''); }

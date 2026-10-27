@@ -117,7 +117,9 @@ function crCardEl(cd) { return cd ? document.querySelector(`#grid [data-card-id=
 // one passed up is struck. raise: a STAGE 2 stamp, the ask rolls up, the border turns red
 // while stage 1 is at risk. All off is the r671 look. Only the preview (index.html?crfx,
 // js/cr-fx-lab.js) turns them on; body.crfx-<key> gates their CSS.
-const CR_FX = { press: false, prompt: false, take: false, raise: false };
+// r681 (owner): press is kept, so it is on.
+const CR_FX = { press: true, prompt: false, take: false, raise: false };
+if (document.body) Object.keys(CR_FX).forEach(k => document.body.classList.toggle('crfx-' + k, CR_FX[k]));
 function crFxOn(k) { return !!CR_FX[k]; }
 function crFxSet(k, on) {
   CR_FX[k] = !!on;
@@ -259,12 +261,20 @@ function crFamily(q) {
   if (q.kind === 'touch') return 'tap';
   return 'slap';
 }
+// A hand's name as the hand preview prints it (HAND_LABEL: SET OF 3, RUN OF 4), with Two
+// Pair as 2 PAIR (r681, owner: numbers, not words, to save room on the card).
+function crHandShort(h) {
+  const l = typeof HAND_LABEL !== 'undefined' && HAND_LABEL[h];
+  if (!l) return String(h || '').toUpperCase();
+  if (l.fam === 'TWO') return '2 PAIR';
+  return l.fam + (l.size ? (/^\d/.test(l.size) ? ' OF ' : ' ') + l.size : '');
+}
 function crReqShort(q) {
   if (!q) return '';
   const n = crTarget(q);
   switch (q.kind) {
     case 'touch':   return `${n} HANDS TOUCHING`;
-    case 'hand':    return n > 1 ? `${n}× ${q.hand.toUpperCase()}` : q.hand.toUpperCase();
+    case 'hand':    return n > 1 ? `${n}× ${crHandShort(q.hand)}` : crHandShort(q.hand);
     case 'suit':    return `${q.per}${q.suit} IN A HAND`;
     case 'size':    return `${n}× ${q.per}+ CARDS`;
     case 'big':     return `${n.toLocaleString()} IN 1 HAND`;
@@ -297,40 +307,41 @@ function crProg(q) {
   if (q.kind === 'big') return [Math.min(n, q.prog), n];
   return [Math.min(n, q.prog), n];
 }
-const CR_GLYPH = { touch: '✋', hand: '♠', suit: '♣', size: '▦', big: '★', types: '≡', colfall: '⇩', rowhit: '⤓' };
 
 // ── The face ────────────────────────────────────────────────────────────────
+// r681 (owner): no picture of the ask's kind; the stage on top in its difficulty's colour
+// (green / amber / red); a timed card's clock is its background, dark amber draining to
+// near black (--crt, 1 to 0), with no seconds printed.
 function crCardFaceHTML(card) {
   const q = card && card.cr;
   if (!q || !q.ladder) return '';
-  const pips = q.ladder.map((t, i) => `<span class="cr-pip d${t.d}${i <= q.banked ? ' on' : ''}${i === q.tier ? ' cur' : ''}"></span>`).join('');
   const [done, of] = crProg(q);
   let prog;
   if (q.kind === 'big') prog = `<div class="cr-num">${done >= of ? '✓' : 'best ' + done.toLocaleString()}</div>`;
   else if (of <= 5) { prog = '<div class="cr-boxes">'; for (let i = 0; i < of; i++) prog += `<span class="cr-box${i < done ? ' on' : ''}"></span>`; prog += '</div>'; }
   else prog = `<div class="cr-num">${done}/${of}</div>`;
-  const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '') + `<span class="cr-pips">${pips}</span>`;
-  const timer = crTimed(q.src) && !q.done
-    ? `<div class="cr-timer${q.timeLeft <= 10 ? ' low' : ''}" style="--crt:${Math.max(0, q.timeLeft / (q.timeMax || CR_FLOW_TIME))}"><b>${q.timeLeft}s</b></div>` : '';
+  const stage = q.ladder.length < 2 ? 'ONE STAGE' : `STAGE ${q.tier + 1}`;
+  const mark = q.done === 'won' ? '✓ ' : q.done === 'lost' ? '✗ ' : '';
+  const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '')
+             + `<span class="cr-stage d${crDiff(q)}">${mark}${stage}</span>`;
+  const bg = crTimed(q.src) ? `<div class="cr-bg" style="--crt:${Math.max(0, Math.min(1, q.timeLeft / (q.timeMax || CR_FLOW_TIME))).toFixed(3)}"></div>` : '';
   const more = !crCanRaise(q) ? '' : crFxOn('prompt') ? crMoreHTML(q)
              : `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>`;
   const pay = (typeof crrFaceHTML === 'function') ? crrFaceHTML(q) : '';
-  return `<div class="cr-head">${head}</div>`
-       + `<div class="cr-glyph">${CR_GLYPH[q.kind] || '⚑'}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
-       + `<div class="cr-req">${crReqShort(q)}</div>`
-       + prog + pay + more + timer;
+  return bg + `<div class="cr-head">${head}</div>`
+       + `<div class="cr-req">${crReqShort(q)}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
+       + prog + pay + more;
 }
-// r677 'prompt': both answers with what each pays, the stage 2 ask, and a bar draining
+// r677 'prompt': both answers with what each pays (r681: TAP / 2-TAP, no ask), and a bar draining
 // over the CR_CLEAR_HOLD live seconds before the card takes the payout itself. The face
 // is rebuilt on every render, so the bar's animation starts that far through.
 function crMoreHTML(q) {
-  const id = crPayOf(q), up = { ...q, tier: q.tier + 1 }, r = CRR[id];
+  const id = crPayOf(q), r = CRR[id];
   const v = t => (r && r.face) ? r.face[t] : crrShort(id, t);   // the pay line under it carries the unit
   const gone = CR_CLEAR_HOLD - (q.hold != null ? q.hold : CR_CLEAR_HOLD);
   return `<div class="cr-more cr-more2">`
        + `<div class="crm-row"><span>TAP</span><b>${v(0)}</b></div>`
-       + `<div class="crm-row crm-up"><span>TAP TAP</span><b>${v(1)}</b></div>`
-       + `<div class="crm-ask">▲ ${crReqShort(up)}</div>`
+       + `<div class="crm-row crm-up"><span>2-TAP</span><b>${v(1)}</b></div>`
        + `<div class="crm-hold"><i style="animation-duration:${CR_CLEAR_HOLD}s;animation-delay:-${gone}s"></i></div></div>`;
 }
 function crRepaint(cd) {
@@ -354,6 +365,8 @@ function crShowInfo(r, c) {
 }
 // A tap on a challenge card (input.js). On a cleared card: tap takes the banked
 // payout, double-tap raises. Otherwise it reads out what the card asks.
+// r681 (owner): the take waits 0.15s longer for a second tap than a card's double-tap (0.35s).
+const CR_TAP_WAIT_MS = 500;
 let _crTapAt = 0, _crTapId = null, _crTapTimer = null;
 function crTap(r, c) {
   const cd = gridData[r]?.[c];
@@ -361,14 +374,14 @@ function crTap(r, c) {
   if (crFxOn('press') && !cd.cr.done) crFxPress(cd);
   if (!crCanRaise(cd.cr)) { crShowInfo(r, c); return; }
   const now = Date.now();
-  if (_crTapId === cd._id && now - _crTapAt < 350) {
+  if (_crTapId === cd._id && now - _crTapAt < CR_TAP_WAIT_MS) {
     clearTimeout(_crTapTimer); _crTapId = null;
     crRaise(cd);
     return;
   }
   _crTapAt = now; _crTapId = cd._id;
   clearTimeout(_crTapTimer);
-  _crTapTimer = setTimeout(() => { _crTapId = null; const h = crFindById(cd._id); if (h && crCanRaise(h[2].cr)) crCollect(h[2]); }, 360);
+  _crTapTimer = setTimeout(() => { _crTapId = null; const h = crFindById(cd._id); if (h && crCanRaise(h[2].cr)) crCollect(h[2]); }, CR_TAP_WAIT_MS + 10);
 }
 
 // ── Arrival ─────────────────────────────────────────────────────────────────
@@ -1003,6 +1016,8 @@ function crFxRaise(cd, was) {
     _crAnim(b, [ { translate: '0px -10px', scale: '1.6', opacity: 0 }, { translate: '0px -10px', opacity: 0, offset: 0.4 },
                  { translate: '0px 1px', scale: '1', opacity: 1, offset: 0.8 }, { translate: '0px 0px', scale: '1', opacity: 1 } ], { duration: 700, easing: 'ease-out' });
   });
+  const sg = el.querySelector('.cr-stage');
+  if (sg) _crAnim(sg, [ { scale: '1' }, { scale: '1.7', offset: 0.4 }, { scale: '1' } ], { duration: 560, delay: 120, easing: 'cubic-bezier(.3,1.5,.5,1)' });
   const up = el.querySelectorAll('.cr-pay b')[cd.cr.tier];
   if (up) _crAnim(up, [ { scale: '1' }, { scale: '1.6', offset: 0.45 }, { scale: '1' } ], { duration: 620, delay: 200, easing: 'cubic-bezier(.3,1.5,.5,1)' });
 }

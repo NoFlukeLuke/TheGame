@@ -89,9 +89,27 @@ html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indi
 }
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):not(:disabled):is(:active, .key-dn)::before,
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave):is(.key-latch, .mapk-on, .swap-armed)::before { filter: brightness(1.9); }
-html.kl.kl-a .sb-b { box-shadow: inset 0 0 0 1px rgba(var(--sq), .16); }
-html.kl.kl-a .sb-b.sb-on { box-shadow: inset 0 0 0 1px rgba(var(--sq), .6); }
-html.kl.kl-a .sb-b.sb-on.sb-gr { background: rgb(var(--sq)) !important; box-shadow: 0 0 3px rgba(var(--sq), .9), 0 0 8px rgba(var(--sq), .45); }
+/* r681 (owner): a stock square is 3 x 3 separate pixels with gaps, like the words' dots
+   (js/key-dots.js). One pixel is the top-left 66% of a third of the square (--px); left =
+   all nine lit and glowing, used = the eight round the edge, not unlocked = all nine faint. */
+html.kl.kl-a .sb-b {
+  --px: conic-gradient(at 66% 66%, transparent 75%, var(--dc) 0);
+  --dc: rgba(var(--sq), .17);
+  box-shadow: none; background: var(--px) 0 0 / 33.34% 33.34% !important;
+}
+html.kl.kl-a .sb-b.sb-on {
+  --dc: rgba(var(--sq), .55);
+  background:
+    var(--px) 0 0 / 33.34% 33.34% repeat-x,
+    var(--px) 0 100% / 33.34% 33.34% repeat-x,
+    var(--px) 0 50% / 33.34% 33.34% no-repeat,
+    var(--px) 100% 50% / 33.34% 33.34% no-repeat !important;
+}
+html.kl.kl-a .sb-b.sb-on.sb-gr {
+  --dc: rgb(var(--sq));
+  background: var(--px) 0 0 / 33.34% 33.34% !important;
+  filter: drop-shadow(0 0 1.5px rgba(var(--sq), .9));
+}
 
 /* SWAP is armed (two cards picked): the screen says so; the old pulse drew a keycap's shadow. */
 @keyframes klArmed { 50% { opacity: .55; } }

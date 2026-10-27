@@ -3065,3 +3065,23 @@ off; plain play (no `?crfx`) unchanged. No page errors at 1440x820 or 420x900.
   1200x763 with all 11 entities; an Endless loss read ENDLESS OVER · REACHED Q5 and updated the
   history entry; the on-grid banner printed inside #grid; Flow's fourth boss opened the finale and
   ENDLESS opened the prize grid. No page errors.
+
+## r681 - the challenge card's face; the tap press kept; stock squares are pixels (owner)
+- **Press is kept** (`CR_FX.press` true; r679's switches). A take waits `CR_TAP_WAIT_MS` (500) for a
+  second tap, 0.15s longer than the 0.35s it was. Measured by click: one tap paid 0.57s after it, two
+  taps 0.4s apart raised (that gap used to be a take).
+- **The face** (`crCardFaceHTML`): no picture of the ask's kind (the ♠ / ♣ / ★ row is gone,
+  `CR_GLYPH` with it; ✋ rides after the ask). The pips are now **STAGE 1 / STAGE 2** (`.cr-stage`,
+  in the current stage's difficulty colour; ONE STAGE for a one-stage ladder; ✓ / ✗ in front once
+  done; a challenge round's 2/3 is its own small line above). Hands read as the preview prints them
+  with numbers (`crHandShort`: SET OF 3, RUN OF 4, 2 PAIR). **The clock is the background**: a timed
+  card has no bar and no seconds; `.cr-bg` (z -1 in the card's own layer, rebuilt with the face) mixes
+  dark amber (`--crt1` / `--crt2`; slate on fall cards) toward near black by `--crt` = time left / its
+  clock. The last 10s still pulse red (`cr-low`). r679's `cr-flow` timer room is gone; the face is
+  `space-evenly`, fonts up a size. Measured at 1440x820 (63 x 82 card): stage 7+10, ask 22+22, boxes
+  49+8, pay 62+10; nothing overlaps at 420x900 either.
+- **The cleared prompt** (look 2, still a preview): nearly solid (`#120b04`), no ask line, TAP / 2-TAP.
+- **Stock squares are 3 x 3 pixels** (css/key-looks.css, the tube look): `--px` is one square pixel
+  (a conic gradient, 66% of a third of the square), tiled; left = nine lit with a drop-shadow glow,
+  used = the eight round the edge, not unlocked = nine faint. Same style as the keys' dot words.
+- The preview (`?crfx`): look 1 says it is in the game; TODAY'S LOOK is what ships (`CRL_GAME`).
