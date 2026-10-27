@@ -67,7 +67,7 @@ async function startInterlude(opts) {
     return;
   }
 
-  // Map mode (r238): a cleared level pays what its tile pays (r689: a round the
+  // Map mode (r238): a cleared level pays what its tile pays (r690: a round the
   // pick of three, a priority account the reward grid, an audit nothing more)
   // and goes back to the map. The post-boss PRIZE grid still opens
   // here - its close is what routes a map run to the win (js/reward-grid.js).

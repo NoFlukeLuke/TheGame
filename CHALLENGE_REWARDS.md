@@ -313,7 +313,7 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 - **Trophy Case** (working name, rare): completed challenge cards turn into a random Sleight instead
   of paying their reward. Common or rare; v2 adds epic, v3 the Sleight arrives at v2.0, v4 at v3.0,
   v5 adds legendary, v6 it arrives at v5.0. Taken during a round, the Sleight takes the card's cell;
-  paid at a round's end, it goes into the deck. It replaces the whole payout. **r689 (owner:
+  paid at a round's end, it goes into the deck. It replaces the whole payout. **r690 (owner:
   combine them):** with Very Rewarding too, the card turns into 2 Sleights (3 from Very Rewarding's
   v2): the first takes the cell, the rest go into the deck, and Very Rewarding's bonus reward is
   paid as usual.

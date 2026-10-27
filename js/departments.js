@@ -110,7 +110,7 @@ function deptTileWord(d) {
 // The schedule's ? card: what this quarter's department does. States it and stops.
 function deptHelpRow() {
   const d = mapDept(); if (!d || typeof crrSay !== 'function') return null;
-  // r689: the reward tile is IT's alone, so IT's line says it appears rather than "more".
+  // r690: the reward tile is IT's alone, so IT's line says it appears rather than "more".
   const tiles = d.tile === 'reward' && typeof MAP_REWARD_MAX !== 'undefined'
     ? `Up to ${MAP_REWARD_MAX} ${deptTileWord(d)} obligations` : `More ${deptTileWord(d)} obligations`;
   return [d.name, `This quarter's department. ${tiles}, and offers lean to ${d.focusWord}. `

@@ -3196,8 +3196,30 @@ Measured in headless Chromium at 1440x820, 420x900 and 375x667: every reward's p
 prompt inside the card on both stages, no face element past the card's edge or overlapping the
 next; the ring at 60 / 40 / 20 / 8s; the CLOCK demo ran out to a lost card; payout rows, totals and
 shop chips print L¢; no page errors.
+## r689 - Deluxe Subscription and Yoked (owner)
+- **Deluxe Subscription** (common knack, `js/deluxe.js`): an offered Trick or Sleight has
+  `BAL.deluxe_subscription.chance` (15%, +15% a tier to 75%) to come one improvement up; the 5th
+  improvement sets `chance2` (50%), rolled again for each further improvement. Rolled on every draw
+  (`pickEntityByRarity` -> `deluxeNote`, which wraps the old body, now `_pickEntityByRarity`), kept
+  in `deluxeOffers` (id -> tier, SAVE_VARS, reset per run). Tiles draw it (`entityShownTier`, read by
+  `entityTileInner` / `entityTierClass`; an owned Trick shows its own); taking it improves the entity
+  to that tier through `improveEntity` (`deluxeTake`, from `selectTrick` and `grantSleight`), so the
+  improvement animation plays. Measured over 4,000 draws: 14.8% / 27.8% at tiers 0 / 1; at tier 5
+  75.7% improved, each further step about half the last.
+- **Yoked** (epic knack, `js/yoked.js`): every buff a card GAINS is doubled while owned (flat x2, an x
+  buff's bonus x2: x1.5 -> x2). `enhanceCardKey` runs its payload through `yokeBuffs`; the sites that
+  write a store directly wrap their number in `yokeGain(kind, v)` (Rare Bloom, First Fruits, Heartwood,
+  the line perm mult, Fours, D6, Naturalist, Lightning Rod, Catalyst, Bomb, Hourglass, Hallmark, Pivot,
+  the level-up +5, the reward grid's +10s, the Vulture / Wait Four It pause). Penalties, a scaling
+  buff's growth and Absorb's copy are not gains. **A new buff site wraps its number in `yokeGain`.**
+  Improving it runs `yokedImprove(tier)` (IMPROVE_HOOKS) over every card store: +25% rounded down
+  (at least 1), x buffs +25% of their bonus (2 decimals), replays +1 at the 2nd and 4th improvement
+  only (owner: not printed anywhere); the 5th doubles everything. Measured: +10 pips +3 mult x1.5 +1
+  replay gained as 20 / 6 / x2 / 2, then 25 7 x2.25 2 -> 31 8 x2.56 3 -> 38 10 x2.95 3 -> 47 12 x3.44 4
+  -> 94 24 x5.88 8. Offer labels and notices still print the base value (the card holds the doubled one).
+- Icons: 🎁 `delapouite/present` gold, 🐂 `lorc/bull` brown (sheet 146 icons).
 
-## r689 - the Schedule pays less, better: priority accounts pay the reward grid; mysteries roll (owner)
+## r690 - the Schedule pays less, better: priority accounts pay the reward grid; mysteries roll (owner)
 The r684 brief (BRIEF_REWARD_TILE.md), as the owner changed it. js/map-mode.js unless named.
 - **What a cleared round pays is its tile's** (`mapAfterLevel`, read from `mapPosTileId`, so a
   resumed round pays the same): a round the pick of three; a **priority account the reward grid**

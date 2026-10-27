@@ -48,7 +48,7 @@ function entityTileInner(p, { mystery = false } = {}) {
   // the Mart strip, Records and the Shift Change slots all gain it at once. It
   // needs the entity's id, which a caller may not pass - absent id, no badge,
   // which is the right answer for a resource or debuff tile anyway.
-  const _tier = (p.id && typeof entityTierOf === 'function') ? entityTierOf(p.id) : 0;
+  const _tier = (p.id && typeof entityShownTier === 'function') ? entityShownTier(p.id) : 0;   // an offer's Deluxe tier (js/deluxe.js)
   // A VERSION STAMP, not a count (r267). It used to read `+2`, which is the
   // shape every live count in the game uses - and priming now owns `+N` on the
   // opposite corner, so two different meanings would have worn one costume.
@@ -105,7 +105,7 @@ function entityTierClass(p) {
   // Tricks AND Sleights (r275): the disc and the business card both draw the
   // bands. A Knack has no object yet, so it is left out rather than guessed at.
   if ((kind !== 'trick' && kind !== 'sleight') || !p.id || typeof entityTierOf !== 'function') return '';
-  const t = entityTierOf(p.id) || 0;
+  const t = (typeof entityShownTier === 'function' ? entityShownTier(p.id) : entityTierOf(p.id)) || 0;
   return t > 0 ? 'tier-' + Math.min(t, TIER_ART_MAX) : '';
 }
 

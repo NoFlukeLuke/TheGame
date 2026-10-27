@@ -116,7 +116,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (hasTrick('wait_four_it')) {
         const _p = scoringOrderCells(handCells)[3];
         const _cd = _p && gridData[_p[0]]?.[_p[1]];
-        if (_cd && !cardTimeBuffed(_cd)) _cd._vulturePause = BAL.wait_four_it.pause * trickFires('wait_four_it');
+        if (_cd && !cardTimeBuffed(_cd)) _cd._vulturePause = yokeGain('time', BAL.wait_four_it.pause * trickFires('wait_four_it'));
       }
     }
     // ── 5-card-hand family ── "a 5-card hand" is a real 5-card hand (r339)
@@ -875,7 +875,7 @@ function playHand() {
 
   // Bedrock: Four of a Kind permanently buffs its 4 cards
   if (hand === 'Four of a Kind' && hasTrick('rare_bloom')) {
-    result.handCells.forEach(([r,c]) => { const card = gridData[r]?.[c]; if (!card || !card.rank) return; const k = cardId(card); permPips[k] = (permPips[k]||0) + BAL.rare_bloom.perm_pips; });
+    result.handCells.forEach(([r,c]) => { const card = gridData[r]?.[c]; if (!card || !card.rank) return; const k = cardId(card); permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.rare_bloom.perm_pips); });
     showMessage('Bedrock! +' + BAL.rare_bloom.perm_pips + ' pips to those cards', '#e8c56b');
   }
 
@@ -884,7 +884,7 @@ function playHand() {
   if (hasTrick('first_fruits') && handsPlayedRound <= BAL.first_fruits.hands) {
     handCells.forEach(([r,c]) => {
       const k = cardId(gridData[r][c]);
-      permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
+      permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.first_fruits.pips);
     });
   }
   if (firstHandThisRound) firstHandThisRound = false;
@@ -894,8 +894,8 @@ function playHand() {
   if (hasTrick('heartwood')) heartwoodCellsNow().forEach(([hr, hc]) => {
     if (!handCells.some(([r,c]) => r === hr && c === hc) || !gridData[hr]?.[hc]) return;
     const k = cardId(gridData[hr][hc]);
-    permPips[k] = (permPips[k]||0) + BAL.heartwood.pips;
-    permMult[k] = (permMult[k]||0) + BAL.heartwood.mult;
+    permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.heartwood.pips);
+    permMult[k] = (permMult[k]||0) + yokeGain('mult', BAL.heartwood.mult);
   });
 
   // ── Suit effects (applied per scoring card) ──
@@ -1118,7 +1118,7 @@ function scalingCount(hand, handCells, reps) {
   if (hasTrick('rowcol_perm_double')) {
     let _ln = 0;
     _cells.forEach(x => {
-      if (isEffectIntersection(x.r, x.c) && x.card.rank) { const _lk = cardId(x.card); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult * x.n; _ln += x.n; }
+      if (isEffectIntersection(x.r, x.c) && x.card.rank) { const _lk = cardId(x.card); permMult[_lk] = (permMult[_lk] || 0) + yokeGain('mult', BAL.rowcol_perm_double.perm_mult * x.n); _ln += x.n; }
     });
     if (_ln) showMessage('Ley Line! +' + (BAL.rowcol_perm_double.perm_mult * _ln) + ' mult', '#a25cd8');
   }
@@ -1142,7 +1142,7 @@ function scalingCount(hand, handCells, reps) {
   // Fours perm: a 4-card hand permanently gives its 4th card +4 pips.
   if (hasTrick('fours_perm') && handCells.length === 4) {
     const _fc = gridData[handCells[3][0]]?.[handCells[3][1]];
-    if (_fc) { const k = cardId(_fc); permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips; }
+    if (_fc) { const k = cardId(_fc); permPips[k] = (permPips[k] || 0) + yokeGain('pips', BAL.fours_perm.pips); }
   }
   // Perfect Ten (r624): played cards count toward its milestone as well as discards.
   if (hasTrick('tens_mult')) {
@@ -1157,8 +1157,8 @@ function scalingCount(hand, handCells, reps) {
       if (hasTrick('sixes_perm') && cardsScoredTotal % BAL.sixes_perm.interval === 0) {
         const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
         const k = cardId(card);
-        if (Math.random() < 0.5) permPips[k] = (permPips[k] || 0) + roll;   // r625: pips or mult, a coin flip
-        else permMult[k] = (permMult[k] || 0) + roll;
+        if (Math.random() < 0.5) permPips[k] = (permPips[k] || 0) + yokeGain('pips', roll);   // r625: pips or mult, a coin flip
+        else permMult[k] = (permMult[k] || 0) + yokeGain('mult', roll);
       }
     }
   });

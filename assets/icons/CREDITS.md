@@ -84,6 +84,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 📠 paper-tray
 - 🚚 forklift
 - 🔌 charging
+- 🎁 present
 - 🏪 shop
 - 💸 pay-money
 - 📉 chart
@@ -148,6 +149,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🕯️ candle-flame
 - 💵 cash
 - 🔐 padlock
+- 🐂 bull
 - ✌️ high-five
 - ☠ skull-crossed-bones
 - ✖ cross-mark

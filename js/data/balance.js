@@ -298,6 +298,8 @@ const BAL = {
   trophy_case: { epic: 0, legend: 0, starts: 1 },   // r685 knack: completed challenge cards become Sleights; starts = the version they arrive at
   stacked: { chance: 0.25, seconds: 30 },          // r685 knack: each Sleight on the grid may prime its column's Trick every N seconds
   very_rewarding: { times: 2, bonus: 0, hard: 0, stage: 0 },   // r685 knack: challenge rewards paid N times, then a bonus reward
+  deluxe_subscription: { chance: 0.15, chance2: 0 },   // knack: an offered Trick / Sleight comes improved; chance2 (5th improvement) rolls each further one
+  yoked: { mult: 2 },   // knack: card buffs gained are x this (an x buff's bonus); js/yoked.js
   green_station: { chance: 0.3, chance2: 0 },   // r647 knack: a charge back per Sleight at round end; chance2 a second
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
@@ -485,6 +487,7 @@ const DESC_TEMPLATES = {
   trophy_case: 'Completed challenge cards turn into a random Sleight ([[legend<1:[[epic<1:common or rare]][[epic:common, rare or epic]]]][[legend:any rarity]]) instead of paying their reward.[[starts>1: It arrives at v{starts}.0.]]',
   stacked: 'Every {seconds}s, each Sleight on the grid has a {chance_pct}% chance to prime the Trick in the tray slot of its column.',
   very_rewarding: 'Challenge cards pay their reward [[times<3:twice]][[times>2:{times} times]][[bonus:, plus a random [[hard<1:easy]][[hard:hard]] card’s stage [[stage<1:1]][[stage:2]] reward]].',
+  deluxe_subscription: 'Tricks and Sleights you are offered have a {chance_pct}% chance to come improved[[chance2:, then a {chance2_pct}% chance of each further improvement]].',
   green_station: 'Sleights have a {chance_pct}% chance to get a charge back at the end of each round[[chance2:, then a {chance2_pct}% chance of one more]]. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',

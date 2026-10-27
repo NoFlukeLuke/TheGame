@@ -2,7 +2,7 @@
 
 For the "Gameplay flights and challenge rewards" session. Owner's call, r669 chat.
 
-**Built in r689, CHANGED by the owner** (CLAUDE.md r689 is what ships; the text below is the
+**Built in r690, CHANGED by the owner** (CLAUDE.md r690 is what ships; the text below is the
 brief as written): a priority account pays the payout and the reward grid with NO pick of three;
 an audit pays its cards and nothing else (no pick of three either); the REWARD tile stays, as
 IT's tile alone (at least 1, at most 2 a map); priority accounts are a little more common

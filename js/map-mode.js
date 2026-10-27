@@ -61,7 +61,7 @@ const MAP_LANES = 4;
 const MAP_SETS  = 4;              // regular sets (r655: was 6); the boss row is index MAP_SETS
 const MAP_BOSS_SET = MAP_SETS;    // 4
 // The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
-// r689 (owner): the REWARD tile is the IT department's alone (the department whose
+// r690 (owner): the REWARD tile is the IT department's alone (the department whose
 // tile is 'reward'): one at least there, MAP_REWARD_MAX a map at most, a mystery's
 // reward board included; elsewhere only a mystery can be one. mapMinimums() is read.
 const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2]];
@@ -81,7 +81,7 @@ const MAP_BLANKS_MAX = MAP_BLANK_ODDS.length - 1;
 const MAP_FUNNEL_SOLID_ODDS = { 2: 0.25, 3: 0.40, 4: 0.35 };
 // What fills the free middle cells once the minimums are placed, by weight.
 // Share of the challenge tiles that are an AUDIT (a challenge round) rather than
-// a PRIORITY account (r444). r689 (owner: priority a little more common, now that
+// a PRIORITY account (r444). r690 (owner: priority a little more common, now that
 // it is where the reward board is): 0.5 -> 0.4. With the reward cell freed and
 // the mysteries' rolls (55% a challenge tile), 3,000 maps a department: priority
 // accounts and one-on-ones 1.06-1.36 a map (were 0.60-0.77), audits 0.63-0.86
@@ -93,7 +93,7 @@ function mapFillWeights() {
   const W = (typeof deptFillWeights === 'function') ? deptFillWeights(MAP_FILL_W) : MAP_FILL_W;
   return mapRewardTileOn() ? W : W.map(([k, w]) => [k, k === 'reward' ? 0 : w]);
 }
-// What a MYSTERY turns out to be (r689, owner), rolled at build and hidden until
+// What a MYSTERY turns out to be (r690, owner), rolled at build and hidden until
 // you commit: audit / priority are the challenge tile's two faces, mini a priority
 // account whose ask is a boss handicap at half strength (CHALLENGE_DEFS' `mini`
 // rows, r239), reward the reward board in any quarter (still MAP_REWARD_MAX a map).
@@ -265,7 +265,7 @@ const MAP_KIND_META = {
                 blurb: 'An ordinary round. Clear it and take a pick of three.' },
   challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
                 blurb: 'A round with a raised goal and one extra ask. Pays credits and a reward grid.' },
-  // r689: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
+  // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
   mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
                 blurb: 'A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and a reward grid.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
@@ -375,7 +375,7 @@ function mapTileStake(t, legalIds) {
   switch (t.kind) {
     case 'level': case 'challenge': {
       const g = mapGoalPreview(t, k);
-      // r689: a priority account (and a one-on-one) pays the reward board; its line says how long a path.
+      // r690: a priority account (and a one-on-one) pays the reward board; its line says how long a path.
       const path = (t.kind === 'challenge' && !t.audit) ? `PATH OF ${mapRewardPath()}` : null;
       return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 ? '+' : ''}`, path, goal: g, k };
     }
@@ -469,7 +469,7 @@ function _mapBuildOnce() {
     }
   }
   // The rest by weight. r673: the quarter's department makes its own kind likelier.
-  // r689: no reward row outside IT, and none past MAP_REWARD_MAX.
+  // r690: no reward row outside IT, and none past MAP_REWARD_MAX.
   const W = mapFillWeights();
   while (free.length) {
     const [l, s] = free.pop();
@@ -477,7 +477,7 @@ function _mapBuildOnce() {
     put(l, s, _mapRollW(full ? W.filter(([k]) => k !== 'reward') : W) || 'level');
   }
 
-  // Mysteries: up to MAP_MAX_MYSTERY, never in set 1, never a blank. r689 (owner):
+  // Mysteries: up to MAP_MAX_MYSTERY, never in set 1, never a blank. r690 (owner):
   // the kind under one is ROLLED from MAP_MYSTERY_W, not the cell's own. A tile a
   // minimum or a slot's one round stands on is never taken, so what the map
   // promises is on its visible tiles.
@@ -542,7 +542,7 @@ function _mapBuildOnce() {
       t.eventFlavor = id ? EVENT_META[id].flavor : '';
     }
     if (t.kind !== 'challenge') return;
-    // A mystery's roll decides the face (r689); any other challenge tile rolls the audit share.
+    // A mystery's roll decides the face (r690); any other challenge tile rolls the audit share.
     const mx = t._mx; delete t._mx;
     if (mx ? mx === 'audit' : Math.random() < auditShare) { t.audit = true; return; }
     const ch = mapRollChallenge(mx === 'mini' ? 'mini' : mx === 'priority' ? 'task' : null);
@@ -1416,7 +1416,7 @@ function mapAfterTile() {
 }
 
 // After a cleared LEVEL: payout has run (startInterlude), challenge settled.
-// r689 (owner): what the round pays is its tile's (mapPosTileId, saved, so a
+// r690 (owner): what the round pays is its tile's (mapPosTileId, saved, so a
 // resumed round pays the same). A round: the pick of three. A priority account
 // or a one-on-one: the reward board (the r684 brief's REWARD tile, folded in; its
 // knack pick of two and the pick of three are gone). An audit: its cards, nothing

@@ -873,7 +873,7 @@ function rollRewardMystery(goodChance) {
     const _c = _all.length ? _all[Math.floor(Math.random()*_all.length)] : null;
     const rank = _c ? _c.rank : '?', suit = _c ? _c.suit : '';
     return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
-      apply:()=>{ const t = resolveDeckCard(_c); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
+      apply:()=>{ const t = resolveDeckCard(_c); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k]||0)+yokeGain('pips', 10); showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }
   const roll = Math.floor(Math.random() * 5);
   if (roll === 0) return { good, icon:'💸', label:'-8 Credits', flyTo:'coins', desc:'Lose 8 credits.',
@@ -1014,7 +1014,7 @@ function applyRewardPipsCard() {
   if (cells.length === 0) return;
   const card = cells[Math.floor(Math.random() * cells.length)];
   const k = cardId(card);
-  permPips[k] = (permPips[k] || 0) + 10;
+  permPips[k] = (permPips[k] || 0) + yokeGain('pips', 10);
   render();
   showMessage('+10 PIPS', 'var(--gold)');
 }

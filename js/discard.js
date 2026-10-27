@@ -75,7 +75,7 @@ function doDiscard() {
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   // Time buffs do not stack (r342): a card already carrying one is skipped.
   // r625 (owner): a card takes the Vulture's pause once; a time buff from another source does not block it.
-  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !c._vulturePause) c._vulturePause = BAL.vulture.pause_seconds; });
+  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !c._vulturePause) c._vulturePause = yokeGain('time', BAL.vulture.pause_seconds); });
   // on_discard sleights fire with their grid position before removal.
   // Snapshot the non-sleight cards discarded alongside so Sandbagger can check for a low pair.
   _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
@@ -406,7 +406,7 @@ function handleClockMarks(secs) {
       if (spots.length) {
         const card = spots[Math.floor(Math.random() * spots.length)];
         const k = cardId(card);
-        permRetrig[k] = (permRetrig[k] || 0) + 1;
+        permRetrig[k] = (permRetrig[k] || 0) + yokeGain('retrig', 1);
         showMessage(`⏳ Hourglass - ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
         if (!animating && !falling) render();
       }

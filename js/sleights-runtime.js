@@ -99,6 +99,7 @@ function sleightAssignIdentity(card, rank, suit) {
 }
 
 function grantSleight(def) {
+  if (typeof deluxeTake === 'function') deluxeTake(def.id);   // Deluxe Subscription: arrives at the tier its offer showed
   const card = {
     _isSleight: true, sleightId: def.id,
     rank: def.defaultRank ?? null, suit: def.defaultSuit ?? null,
@@ -568,7 +569,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
         const hc2 = gridData[hr]?.[hc];
         if (hc2 && !hc2._isSleight && !hc2._isTrick && hc2.rank) {
           const k = cardId(hc2);
-          permPips[k] = (permPips[k] || 0) + BAL.the_naturalist.pips;
+          permPips[k] = (permPips[k] || 0) + yokeGain('pips', BAL.the_naturalist.pips);
           buffed++;
         }
       });
@@ -593,7 +594,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {
         const k = cardId(other);
-        permPips[k] = (permPips[k] || 0) + BAL.lightning_rod.pips;
+        permPips[k] = (permPips[k] || 0) + yokeGain('pips', BAL.lightning_rod.pips);
         showMessage('⚡ Lightning Rod - +5 pips!', '#ffd700');
         render();
       }
@@ -601,7 +602,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {
         const k = cardId(other);
-        permMult[k] = (permMult[k] || 0) + BAL.the_catalyst.mult;
+        permMult[k] = (permMult[k] || 0) + yokeGain('mult', BAL.the_catalyst.mult);
         showMessage('🧪 Catalyst - +1 perm mult!', '#cc88ff');
         render();
       }
@@ -768,7 +769,7 @@ function applySleightGridEffect(id, r, c) {
           const _card = gridData[_r]?.[_c];
           if (_card && !_card._isSleight && !_card._isTrick && !_card._isStone && _card.rank) {
             const _k = cardId(_card);
-            permPips[_k] = (_k in permPips ? permPips[_k] : 0) + BAL.the_bomb.pips;
+            permPips[_k] = (_k in permPips ? permPips[_k] : 0) + yokeGain('pips', BAL.the_bomb.pips);
             _cnt++;
           }
         }

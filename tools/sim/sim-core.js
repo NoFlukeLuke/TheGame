@@ -345,7 +345,7 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   for (let q = 1; q <= quarters; q++) {
     const quarterOpenLevel = level;
     // r655: a sched json's "tiles" replaces the walk; the default is an 8-booking 4 x 4 quarter.
-    // r689: the reward tile is IT's alone; a priority account ('hard') pays the reward
+    // r690: the reward tile is IT's alone; a priority account ('hard') pays the reward
     // grid instead of the pick of three and two knacks. 'audit' is a hard round's goal
     // and three challenge cards' credits (the bot plays no cards), no pick of three.
     const tiles = (typeof SIM_SCHED_TILES !== 'undefined' && SIM_SCHED_TILES)

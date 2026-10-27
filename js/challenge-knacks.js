@@ -11,7 +11,7 @@
 // rarities; .starts is the version it arrives at (v2 = one improvement). Taken
 // during a round the Sleight takes the card's cell (crDrain reads q.becomes);
 // paid at a round's end it goes into the deck. It replaces the WHOLE payout.
-// With Very Rewarding too (r689, owner: combine them) the card turns into
+// With Very Rewarding too (r690, owner: combine them) the card turns into
 // BAL.very_rewarding.times Sleights: the first takes the cell, the rest go to the
 // deck, and Very Rewarding's bonus reward is paid as usual.
 //
