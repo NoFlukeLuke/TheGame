@@ -34,6 +34,22 @@
     color-mix(in srgb, var(--crt2, #3c270c) calc(var(--crt, 1) * 100%), #070504) 72%,
     #050403 100%);
 }
+/* r687 'border' (a preview, CR_FX.border): the clock is a ring over the card's border, a
+   hand sweeping it away clockwise from the top (--crt 1 to 0), red in the last 10s and
+   while a raise is at risk. The background stays lit (the !important beats the inline --crt). */
+body.crfx-border #grid .cr-card .cr-bg { --crt: 1 !important; }
+#grid .cr-card .cr-clock {
+  position: absolute; inset: -2px; z-index: 2; border-radius: inherit; pointer-events: none;
+  padding: 3px; box-sizing: border-box;
+  --rc: var(--cr-ink, #ffb347);
+  background: conic-gradient(#1c1408 calc((1 - var(--crt, 1)) * 360deg), var(--rc) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  filter: drop-shadow(0 0 2px var(--rc));
+}
+body.crfx-border #grid .cr-card:has(.cr-clock) { border-color: rgba(0, 0, 0, 0.55); }
+#grid .cr-card.cr-low .cr-clock, body.crfx-raise #grid .cr-card.cr-raised .cr-clock { --rc: #ff5c5c; }
+#grid .cr-card.cr-cleared .cr-clock { --rc: #ffe27a; }
 /* cleared, waiting for an answer: tap takes, double-tap raises */
 #grid .cr-card .cr-more {
   position: absolute; left: 2px; right: 2px; top: 50%; transform: translateY(-50%);
@@ -135,7 +151,9 @@ body.reduced-motion .cr-loss-hit { animation-duration: 1ms; }
   font-size: 10px; line-height: 1; max-width: 100%; white-space: nowrap; overflow: hidden;
   color: #ffd9a0; opacity: .85;
 }
-#grid .cr-card .cr-pay i { font-style: normal; color: var(--cr-ink, #ffb347); }
+#grid .cr-card .cr-pay i { font-style: normal; color: var(--cr-ink, #ffb347); margin-right: 0.2em; }
+#grid .cr-card .cr-pay .crp-to { margin: 0 0.06em; opacity: 0.8; }
+#grid .cr-card .cr-pay.crp-word i { display: block; margin: 0 0 1px; font-size: 8px; letter-spacing: 0.04em; }
 #grid .cr-card .cr-pay b { font-weight: 400; }
 #grid .cr-card .cr-pay b.cur { color: #ffe27a; text-shadow: 0 0 4px rgba(255, 226, 122, .8); }
 /* Sleight charges moved by a challenge: the board's Sleights flash. */
@@ -144,14 +162,14 @@ body.reduced-motion .cr-loss-hit { animation-duration: 1ms; }
 @keyframes crrChargeUp   { 0%, 100% { filter: none; } 30% { filter: brightness(1.6) drop-shadow(0 0 8px #ffe27a); } }
 @keyframes crrChargeDown { 0%, 100% { filter: none; } 30% { filter: brightness(.7) sepia(1) saturate(5) hue-rotate(-50deg) drop-shadow(0 0 8px #ff4d4d); } }
 
-/* ══ r677: four looks for answering a cleared card, to choose from (CR_FX) ══════
-   Each is gated on its body class (crFxSet); none is on outside index.html?crfx. */
+/* ══ r677: four looks for answering a cleared card (CR_FX) ══════════════════════
+   Each is gated on its body class (crFxSet). r687 (owner): all four are in the game. */
 /* prompt: both answers, what each pays, the raised ask, the auto-take bar */
 #grid .cr-card .cr-more.cr-more2 {
-  display: flex; flex-direction: column; gap: 2px; padding: 4px 3px 3px; text-align: left;
+  display: flex; flex-direction: column; gap: 2px; padding: 4px 2px 3px; text-align: left;
   font-size: 10px; line-height: 1; background: #120b04;   /* r681 (owner): more opaque */
 }
-#grid .cr-card .crm-row { display: flex; justify-content: space-between; align-items: baseline; gap: 2px; white-space: nowrap; }
+#grid .cr-card .crm-row { display: flex; justify-content: space-between; align-items: baseline; gap: 1px; white-space: nowrap; }
 #grid .cr-card .crm-row span { font-size: 8px; color: #ffd9a0; }
 #grid .cr-card .crm-row b { font-weight: 400; font-size: 10px; color: #ffe27a; }
 #grid .cr-card .crm-up span { color: #ff9a86; }

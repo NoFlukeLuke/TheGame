@@ -344,7 +344,7 @@ function mapTileStake(t, legalIds) {
       const g = mapGoalPreview(t, k);
       return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 ? '+' : ''}`, goal: g, k };
     }
-    case 'shop':       return { short: `◆ ${coins}` };
+    case 'shop':       return { short: creditsTxt(coins) };
     case 'reward':     return { short: `PATH OF ${mapRewardPath()}` };
     case 'limitbreak': return { short: '+1 LIMIT' };
   }

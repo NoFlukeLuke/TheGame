@@ -2,18 +2,21 @@
 // CHALLENGE CARD LOOKS, the preview (r677, owner)
 // ══════════════════════════════════════════════
 // index.html?crfx starts a Classic run, lands a challenge card and shows a panel with
-// the four r677 looks (CR_FX, js/challenge-round.js) as switches, plus demos that play
-// a take, a raise and the 6s auto-take. It is the real card on the real board: the tap,
-// the double-tap, the payout and its flight are the game's own; a demo taps through
-// onCardTap like a finger. Nothing is stored, and outside ?crfx every look is off.
-// The clock and the card's own timer are kept topped up so nothing runs out.
+// the looks (CR_FX, js/challenge-round.js) as switches, plus demos that play a take, a
+// raise, the 6s auto-take and the card's 60s clock at 10x. It is the real card on the
+// real board: the tap, the double-tap, the payout and its flight are the game's own; a
+// demo taps through onCardTap like a finger. Nothing is stored. The round clock is kept
+// topped up; the card's own clock runs down to 6s and is refilled (r687: it used to be
+// refilled at 30s, so its drain was never seen), except in the CLOCK demo, which lets it out.
 const CRL_LOOKS = [
-  ['press',  'Instant tap response',   'In the game now. The card dips and clicks the moment you tap it; a take waits 0.5s for a second tap.'],
-  ['prompt', 'Clearer cleared prompt', 'The cleared card reads TAP and 2-TAP with what each pays, over a bar that drains through the 6s before it takes the payout itself.'],
-  ['take',   'Clearer take',           'A PAID stamp; the paid figure flies from the card’s pay line; the reward passed up is struck through.'],
-  ['raise',  'Clearer raise',          'A STAGE 2 stamp; the ask rolls up and the new box drops in; the bigger reward lights; the border burns red while stage 1 is at risk.'],
+  ['press',  'Instant tap response',   'In the game. The card dips and clicks the moment you tap it; a take waits 0.5s for a second tap.'],
+  ['prompt', 'Clearer cleared prompt', 'In the game. The cleared card reads TAP and 2-TAP with what each pays, over a bar that drains through the 6s before it takes the payout itself.'],
+  ['take',   'Clearer take',           'In the game. A PAID stamp; the paid figure flies from the card’s pay line; the reward passed up is struck through.'],
+  ['raise',  'Clearer raise',          'In the game. A STAGE 2 stamp; the ask rolls up and the new box drops in; the bigger reward lights; the border burns red while stage 1 is at risk.'],
+  ['border', 'Clock on the border',    'Preview only. The 60s clock is a ring round the card that a hand sweeps away clockwise, red in the last 10s; the background stays lit. Off: the background drains.'],
 ];
 let _crlGen = 0;   // a new card or demo cancels the one before
+let _crlFast = 0;  // the CLOCK demo's timer
 const CRL_GAME = { ...CR_FX };   // what the game ships, for TODAY'S LOOK
 
 function crlCard() { return crCards().find(([, , cd]) => !cd.cr.done) || null; }
@@ -25,6 +28,7 @@ function crlWait(ms, gen) {
 // way a marked cell's card lands.
 function crlSpawn() {
   const gen = ++_crlGen;
+  clearInterval(_crlFast); _crlFast = 0;
   crTele.slice().forEach(crTeleDrop);
   crQueue = [];
   crCards().forEach(([r, c, cd]) => { if (cd._crStamp) cd._crStamp.remove(); gridData[r][c] = drawCard() || null; });
@@ -64,6 +68,17 @@ function crlTap() {
 }
 async function crlDemo(kind) {
   const gen = crlSpawn();
+  if (kind === 'clock') {
+    // The card's own 60s in 6s, out to the end: the last 10s turn red and it fails.
+    crlSay('Demo: the card\'s 60s clock at 10x, run all the way out.');
+    _crlFast = setInterval(() => {
+      if (gen !== _crlGen) { clearInterval(_crlFast); _crlFast = 0; return; }
+      const h = crlCard(); if (!h) return;   // still landing, or done
+      const q = h[2].cr;
+      if (q.timeLeft > 1) { q.timeLeft -= 1; crRepaint(h[2]); }
+    }, 100);
+    return;
+  }
   crlSay(kind === 'take' ? 'Demo: clear stage 1, then TAP.' : kind === 'raise' ? 'Demo: clear stage 1, then TAP TAP, then clear stage 2.' : 'Demo: clear stage 1, then wait.');
   try {
     await crlWait(1200, gen); crlClear();
@@ -86,7 +101,7 @@ function crlOpen() {
       + `<span class="crl-t"><b>${i + 1}. ${name}</b><i>${what}</i></span></button>`).join('')
     + `<div class="crl-row"><button data-a="all">ALL ON</button><button data-a="none">TODAY'S LOOK</button></div>`
     + `<div class="crl-sub">WATCH</div>`
-    + `<div class="crl-row"><button data-a="take">TAKE</button><button data-a="raise">RAISE</button><button data-a="wait">WAIT 6S</button></div>`
+    + `<div class="crl-row"><button data-a="take">TAKE</button><button data-a="raise">RAISE</button><button data-a="wait">WAIT 6S</button><button data-a="clock">CLOCK ×10</button></div>`
     + `<div class="crl-sub">BY HAND</div>`
     + `<div class="crl-row"><button data-a="new">NEW CARD</button><button data-a="clear">CLEAR STAGE</button></div>`
     + `<div class="crl-say" id="crl-say"></div>`;
@@ -96,7 +111,7 @@ function crlOpen() {
     if (b.dataset.k) { crFxSet(b.dataset.k, !crFxOn(b.dataset.k)); crlPaint(); return; }
     const a = b.dataset.a;
     if (a === 'all' || a === 'none') { CRL_LOOKS.forEach(([k]) => crFxSet(k, a === 'all' || CRL_GAME[k])); crlPaint(); }
-    else if (a === 'take' || a === 'raise' || a === 'wait') crlDemo(a);
+    else if (a === 'take' || a === 'raise' || a === 'wait' || a === 'clock') crlDemo(a);
     else if (a === 'new') { crlSpawn(); crlSay(''); }
     else if (a === 'clear') { if (!crlClear()) crlSay('Nothing to clear: the card is waiting for an answer, or gone. NEW CARD deals another.'); else crlSay(''); }
   });
@@ -131,13 +146,13 @@ function crlPlace() {
       try { tutorialEnd(); } catch (e) {}
       try { coins = Math.max(coins, 40); updateCoinsUI?.(); } catch (e) {}
       try { crSpotState().at = null; } catch (e) {}
-      CRL_LOOKS.forEach(([k]) => crFxSet(k, true));
+      crFxSet('border', true);   // r687: the look being asked about starts on
       crlOpen();
       crlSpawn();
       // Nothing runs out while the owner looks.
       setInterval(() => {
         if (typeof roundSeconds === 'number' && roundSeconds < 600) { roundSeconds = 3599; roundStartSeconds = 3599; updateClockUI?.(); }
-        crCards().forEach(([, , cd]) => { if (!cd.cr.done && crTimed(cd.cr.src) && cd.cr.timeLeft < 30) cd.cr.timeLeft = CR_FLOW_TIME; });
+        if (!_crlFast) crCards().forEach(([, , cd]) => { if (!cd.cr.done && crTimed(cd.cr.src) && cd.cr.timeLeft <= 6) cd.cr.timeLeft = CR_FLOW_TIME; });
         crlPlace();
       }, 1000);
     }, 2500);

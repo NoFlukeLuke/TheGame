@@ -3166,3 +3166,24 @@ now every one of them, the pick of three, the payout, the reward grid, the shop 
 7x7 40x52 -> 36x47 (it no longer spills). 375x667: everything 263 x 372. Desktop unchanged
 (1440x820 measured identical). Hands, a swap and a discard by tap, a cleared round through payout and
 reward grid, Flow's chain and shop, the Schedule from schedule to round to pick: no page errors.
+
+## r687 - credits read L¢; every challenge card look is in; the clock-on-the-border preview (owner)
+- **The credits mark is L¢** (Lethe Corp credits): `CREDIT_SYM` / `creditsTxt(n)` in js/labels.js,
+  in front of the number (L¢12). It replaces ◆ (payout rows, totals, the Schedule's shop line,
+  Guided prices, Flow's shop tile, the challenge card) and the 💰 that marked a price or a wallet
+  (HUD, shop chips and readout, sell buttons, tooltips, notices, the payout plate with no number).
+  💰 as an ENTITY's icon (Windfall, Cash Out, Inheritance) stays. The key dot font has a ¢.
+- **All four r677 looks are on** (`CR_FX` press / prompt / take / raise). The pay line is set
+  tight (`crrFaceHTML`: "L¢+8›+20", `.crp-to`), and a word unit (REROLL, SLEIGHT, BOSS) takes its
+  own line over the figures (`.crp-word`); measured, before this 12 of 20 rewards ran off a
+  desktop card. The prompt shows the credits figure with its mark (`crrFig`: "+L¢8").
+- **`CR_FX.border`, a preview, off in the game:** a timed card's 60s clock is a ring over its
+  border (`.cr-clock`, a conic gradient masked to the border) that a hand sweeps away clockwise
+  from the top, red in the last 10s and while a raise is at risk; the background stays lit.
+  (`.cr-ring` was already the teal burst particle.) The preview (`?crfx`) starts with it on, has
+  a CLOCK ×10 demo (the card's 60s in 6s, run out), and refills the card's clock at 6s, not 30s:
+  at 30s the r681 background drain never got past half, which is why it looked like it did nothing.
+Measured in headless Chromium at 1440x820, 420x900 and 375x667: every reward's pay line and
+prompt inside the card on both stages, no face element past the card's edge or overlapping the
+next; the ring at 60 / 40 / 20 / 8s; the CLOCK demo ran out to a lost card; payout rows, totals and
+shop chips print L¢; no page errors.

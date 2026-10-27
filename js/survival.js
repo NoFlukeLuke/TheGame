@@ -201,7 +201,7 @@ function survivalAfterLevelUp(leftover, unspentActions = 0) {
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
-  if (gained > 0) noteMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
+  if (gained > 0) noteMessage(`+${creditsTxt(gained)}`, 'var(--c-yellow, #ffce2b)');
 }
 
 // Called once per second from the round tick (live play time only - the clock is
@@ -395,7 +395,7 @@ function survivalPickActions() {
     pickRerollAction(() => survivalReroll()),
     { icon: '👁', label: 'Peek', sub: 'view grid', onClick: () => survivalTogglePeek() },
     { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
-    { icon: '🛒', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} ◆`, cls: 'gp-act-buy',
+    { icon: '🛒', label: 'Shop', sub: creditsTxt(SURVIVAL_SHOP_COST), cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => survivalOpenShop() },
   ];
 }
@@ -927,7 +927,7 @@ function survivalContinueEndless() {
 function survivalOpenShop() {
   if (!survivalActive()) return;
   if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
-  if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${SURVIVAL_SHOP_COST} 💰`, 'var(--red)'); return; }
+  if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${creditsTxt(SURVIVAL_SHOP_COST)}`, 'var(--red)'); return; }
   coins -= SURVIVAL_SHOP_COST;
   updateCoinsUI();
   survivalShopFromPick = survivalPickOverlay().classList.contains('show');

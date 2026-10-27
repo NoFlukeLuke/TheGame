@@ -117,8 +117,10 @@ function crCardEl(cd) { return cd ? document.querySelector(`#grid [data-card-id=
 // one passed up is struck. raise: a STAGE 2 stamp, the ask rolls up, the border turns red
 // while stage 1 is at risk. All off is the r671 look. Only the preview (index.html?crfx,
 // js/cr-fx-lab.js) turns them on; body.crfx-<key> gates their CSS.
-// r681 (owner): press is kept, so it is on.
-const CR_FX = { press: true, prompt: false, take: false, raise: false };
+// r681 (owner): press is kept, so it is on. r687 (owner): all four are kept. border (r687,
+// a preview only): a timed card's clock is a ring round its edge that a hand sweeps away
+// clockwise, and the background stays lit.
+const CR_FX = { press: true, prompt: true, take: true, raise: true, border: false };
 if (document.body) Object.keys(CR_FX).forEach(k => document.body.classList.toggle('crfx-' + k, CR_FX[k]));
 function crFxOn(k) { return !!CR_FX[k]; }
 function crFxSet(k, on) {
@@ -324,7 +326,9 @@ function crCardFaceHTML(card) {
   const mark = q.done === 'won' ? '✓ ' : q.done === 'lost' ? '✗ ' : '';
   const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '')
              + `<span class="cr-stage d${crDiff(q)}">${mark}${stage}</span>`;
-  const bg = crTimed(q.src) ? `<div class="cr-bg" style="--crt:${Math.max(0, Math.min(1, q.timeLeft / (q.timeMax || CR_FLOW_TIME))).toFixed(3)}"></div>` : '';
+  const crt = Math.max(0, Math.min(1, q.timeLeft / (q.timeMax || CR_FLOW_TIME))).toFixed(3);
+  const bg = !crTimed(q.src) ? '' : `<div class="cr-bg" style="--crt:${crt}"></div>`
+           + (crFxOn('border') && !q.done ? `<div class="cr-clock" style="--crt:${crt}"></div>` : '');
   const more = !crCanRaise(q) ? '' : crFxOn('prompt') ? crMoreHTML(q)
              : `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>`;
   const pay = (typeof crrFaceHTML === 'function') ? crrFaceHTML(q) : '';
@@ -337,7 +341,7 @@ function crCardFaceHTML(card) {
 // is rebuilt on every render, so the bar's animation starts that far through.
 function crMoreHTML(q) {
   const id = crPayOf(q), r = CRR[id];
-  const v = t => (r && r.face) ? r.face[t] : crrShort(id, t);   // the pay line under it carries the unit
+  const v = t => (r && r.face) ? crrFig(id, t) : crrShort(id, t);
   const gone = CR_CLEAR_HOLD - (q.hold != null ? q.hold : CR_CLEAR_HOLD);
   return `<div class="cr-more cr-more2">`
        + `<div class="crm-row"><span>TAP</span><b>${v(0)}</b></div>`

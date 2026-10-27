@@ -169,7 +169,7 @@ function updateGridTopline() {
     t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
   }
   const c = document.getElementById('gt-coins');
-  if (c && typeof coins === 'number') c.textContent = `💰 ${coins} credits`;
+  if (c && typeof coins === 'number') c.textContent = creditsTxt(coins);
 }
 function exitGridScreenHud() {
   // A pending swap belongs to the screen that is closing - a late apply would
@@ -895,7 +895,7 @@ function renderShopGrid(animateIn = false) {
           shopSwapPending === shopgLeadKey(r, c) ? 'shop-lifted' : '',
           shopSwapPending ? 'shop-drop-target' : '',
         ].filter(Boolean).join(' ');
-        const chip = p._sold ? '✓' : `💰${(shopGridMode === 'sell') ? p.price : shopEffPrice(p)}`;
+        const chip = p._sold ? '✓' : `${creditsTxt((shopGridMode === 'sell') ? p.price : shopEffPrice(p))}`;
         div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < ((shopGridMode === 'sell') ? p.price : shopEffPrice(p)) ? 'cant-afford' : '')}">${chip}</div>`;
         if (!p._sold) div.onclick = () => {
           if (div._lpJustFired) { div._lpJustFired = false; return; }   // that tap was a long-press read
@@ -1083,7 +1083,7 @@ function shopGridBuySelection() {
       if (r >= 1 && shopGridRowMeta[r - 1]) shopGridRowMeta[r - 1].pinned = true;
     }
   });
-  noteMessage(`Bought ${bought.length} - 💰${total}`, 'var(--gold)');
+  noteMessage(`Bought ${bought.length} - ${creditsTxt(total)}`, 'var(--gold)');
   shopGridSel = new Set();
   shopSelOrder = [];
   if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
@@ -1118,7 +1118,7 @@ function doShopSell(r, c) {
   coins += p.price; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
   try { sfxRewardGood?.(); } catch (e) {}
-  noteMessage(`Sold ${p.label} - +💰${p.price}`, 'var(--gold)');
+  noteMessage(`Sold ${p.label} - +${creditsTxt(p.price)}`, 'var(--gold)');
   shopGridItems = buildShopSellStock();   // refresh owned view
   renderShopGrid();
 }
@@ -1291,7 +1291,7 @@ function renderShopCostReadout() {
   let costLine;
   if (shopGridMode === 'sell') {
     costLine = `<div class="sc-line"><span>SELL MODE</span><span class="sc-off">tap to sell</span></div>`
-             + `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`;
+             + `<div class="sc-line"><span>Wallet</span><b>${creditsTxt(coins)}</b></div>`;
   } else {
     const { base, discount, total, n } = shopGridSelectionCost();
     const rows = shopgSelRows().length;
@@ -1303,11 +1303,11 @@ function renderShopCostReadout() {
       // A phone prints the discount as a notice instead (shopHintMaybePrint).
       ? (document.getElementById('stage')?.classList.contains('landscape')
           ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>−${Math.round(shopGridDiscountRate()*100)}% per extra item</span></div>`
-          : `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`)
+          : `<div class="sc-line"><span>Wallet</span><b>${creditsTxt(coins)}</b></div>`)
       : (discount > 0
-          ? `<div class="sc-line"><span>${n} items</span><span><s>💰${base}</s> <b>💰${total}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
-          : `<div class="sc-line"><span>${n} item</span><b>💰${total}</b></div>`)
-        + `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`;
+          ? `<div class="sc-line"><span>${n} items</span><span><s>${creditsTxt(base)}</s> <b>${creditsTxt(total)}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
+          : `<div class="sc-line"><span>${n} item</span><b>${creditsTxt(total)}</b></div>`)
+        + `<div class="sc-line"><span>Wallet</span><b>${creditsTxt(coins)}</b></div>`;
   }
   sc.innerHTML =
     `<div class="shop-cost">${costLine}` +

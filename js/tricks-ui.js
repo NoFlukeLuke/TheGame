@@ -311,7 +311,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   // The + and its rail (r288). Definitions never open unasked, here or anywhere.
   tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
                 + (actions
-                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button></div>`
+                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>`
                     : '');
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
@@ -323,7 +323,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
     e.stopPropagation();
     const _fl = feelinLuckyRerollsLeft(trick);
     tipConfirmAction(_row(), {
-      question: _fl ? `Reroll its ranks for 💰${feelinLuckyRerollCost()} (30% of your credits)? ${_fl} left, then it sells.` : `Sell for 💰${_sv}?`,
+      question: _fl ? `Reroll its ranks for ${creditsTxt(feelinLuckyRerollCost())} (30% of your credits)? ${_fl} left, then it sells.` : `Sell for ${creditsTxt(_sv)}?`,
       confirmLabel: _fl ? 'Reroll' : 'Sell',
       onYes: () => sellTrick(trick), onCancel: _reopen,
     });
@@ -374,7 +374,7 @@ function feelinLuckyIntercept(t) {
   coins = Math.max(0, coins - cost); updateCoinsUI();
   t._luckySells = (t._luckySells || 0) + 1;
   feelinLuckyRoll(t);
-  showMessage(`🍀 Feelin Lucky rerolled: ${t._luckyRanks.join(' ')} (-💰${cost})`, 'var(--gold)');
+  showMessage(`🍀 Feelin Lucky rerolled: ${t._luckyRanks.join(' ')} (-${creditsTxt(cost)})`, 'var(--gold)');
   if (typeof renderTrickTray === 'function') renderTrickTray();
   return true;
 }

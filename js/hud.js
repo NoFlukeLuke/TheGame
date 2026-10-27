@@ -199,9 +199,9 @@ function placeSelCountConsole(cEl) {
 }
 
 function updateCoinsUI() {
-  document.getElementById('coins-display').textContent = '💰 ' + coins;
+  document.getElementById('coins-display').textContent = creditsTxt(coins);
   if (typeof updateGridTopline === 'function') updateGridTopline();
-  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
+  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = creditsTxt(coins);
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
@@ -431,7 +431,7 @@ function showKnackTooltip(chip, id) {
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     ${kwDefsHTML(knack.desc)}
-    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
+    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>
   `;
   // r288 - the + is the only way to the definitions, on every tooltip.
   tt.classList.remove('kw-open');
@@ -444,7 +444,7 @@ function showKnackTooltip(chip, id) {
   tt.querySelector('#knack-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     tipConfirmAction(tt.querySelector('.knack-tooltip-actions'), {
-      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      question: `Sell for ${creditsTxt(_sv)}?`, confirmLabel: 'Sell',
       onYes: () => sellKnack(knack), onCancel: () => showKnackTooltip(chip, id),
     });
   });

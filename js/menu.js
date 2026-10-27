@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r686 · one window on a phone: the board fills its box at every size, cards keep their shape, and the schedule, picks, payout, shop, Limit Break and events all share it";
+const BUILD = "2026-10-27 · r687 · credits read L¢; every challenge card look is in; the pay line is set tight; the clock-on-the-border preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
