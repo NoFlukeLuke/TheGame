@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r683 · tools/sim plays again: the Schedule and Flow runners crashed, the bot now takes the Reshuffle card and its level-ups apply board size, stock and time";
+const BUILD = "2026-10-27 · r684 · BRIEF_REWARD_TILE.md: the REWARD tile as the priority account's payout (brief for the challenge-rewards session, not built)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
