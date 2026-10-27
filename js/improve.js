@@ -205,6 +205,8 @@ const IMPROVE_PLAN = {
   // +2 charges a tier; the 5th gives 2 swaps a use
   logistics_assistant: t => ({ charges: 4 + 2 * [0, 1, 2, 3, 4, 4][t], swaps: t >= 5 ? 2 : 0 }),
   // +10% a tier; the 5th adds a 30% chance of a second charge
+  // r677 (owner): v2 x buffs, v3 6 cards, v4 up to 3 buffed allowed, v5 second rank / suit, v6 8 cards and up to 6
+  touch_up:         t => ({ cards: t >= 5 ? 8 : t >= 2 ? 6 : 3, max: t >= 5 ? 6 : t >= 3 ? 3 : 0, kinds: t >= 4 ? 3 : t >= 1 ? 2 : 1 }),
   green_station:    t => ({ chance: 0.3 + 0.1 * [0, 1, 2, 3, 4, 4][t], chance2: t >= 5 ? 0.3 : 0 }),
 };
 

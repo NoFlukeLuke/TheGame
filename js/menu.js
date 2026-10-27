@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r676 · Temp and Floater (working names): a Trick and a Sleight that become a random one each round";
+const BUILD = "2026-10-27 · r677 · Touch-Up knack; Prime and Card buffs challenge rewards; Double Time and In Your Face";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

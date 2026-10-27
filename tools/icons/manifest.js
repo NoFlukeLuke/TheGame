@@ -179,6 +179,8 @@ const ICONS = [
   { glyph: '🫅', icon: 'lorc/queen-crown',       color: 'blue'   },  // face cards rewind the clock
   { glyph: '🦎', icon: 'darkzaitzev/chameleon-glyph', color: 'green' },  // the Trick that changes every round
   { glyph: '🌀', icon: 'delapouite/transform',   color: 'cyan'   },  // the Sleight that changes every round
+  // r677: the Touch-Up knack (buffs cards on the grid when a level is cleared)
+  { glyph: '🖌️', icon: 'delapouite/paint-roller', color: 'gold'   },
 ];
 
 module.exports = { PALETTE, ICONS };

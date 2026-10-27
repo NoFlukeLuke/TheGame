@@ -888,6 +888,7 @@ let goalHandCards = null;   // captured at the goal, still on the board
 let goalHandHeld = [];      // lifted off the board, not yet back in the deck
 function captureGoalHand(cells) {
   goalHandCards = (cells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
+  if (typeof touchUpOnClear === 'function') touchUpOnClear(cells);   // r677: a level is cleared (js/touch-up.js)
 }
 function liftGoalHand() {
   if (!goalHandCards || !goalHandCards.length) { goalHandCards = null; return 0; }

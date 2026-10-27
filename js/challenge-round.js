@@ -819,6 +819,7 @@ function crOnClockOut() {
     if (!crRound || crRound.over || goalReachedThisRound || !roundQuotaMet()) return false;
     crRound.over = true;
     goalReachedThisRound = true; roundEnded = true;
+    if (typeof touchUpOnClear === 'function') touchUpOnClear([]);
     clearInterval(roundInterval); roundInterval = null;
     gameTimerPaused = true; frozenRoundSeconds = roundSeconds;
     if (typeof flashRoundEnd === 'function') flashRoundEnd();
@@ -829,6 +830,7 @@ function crOnClockOut() {
   if (!roundQuotaMet()) { crRound.over = false; return false; }
   crRound.result = 'lost';
   goalReachedThisRound = true;
+  if (typeof touchUpOnClear === 'function') touchUpOnClear([]);
   roundEnded = true;
   clearInterval(roundInterval); roundInterval = null;
   gameTimerPaused = true;

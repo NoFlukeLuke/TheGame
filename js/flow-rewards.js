@@ -129,8 +129,10 @@ const FLOWR_KINDS = {
   // only ever placed first in a boss chain - so it is kept out of
   // FLOWR_KIND_IDS, which is what the odds tables and the dev panel walk.
   prize:    { label: () => 'PRIZE GRID', short: 'PRIZE',    color: '#ffc94a' },
+  // r677: a challenge card's Card buffs stage 2 (js/challenge-rewards.js). Never rolled either.
+  cardpick: { label: () => 'BUFF CARDS', short: 'BUFF',     color: '#9be36b' },
 };
-const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize');
+const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize' && k !== 'cardpick');
 
 // ══════════════════════════════════════════════
 // FLOW ECONOMY (r441) - dev panel -> Flow
@@ -790,6 +792,7 @@ function flowrShowStep() {
   if (kind === 'deck')  { flowrShowDeckPick(); return; }
   if (kind === 'cards') { flowrShowCardsPick(); return; }
   if (kind === 'shop')  { flowrShopStep = true; triggerShop(); return; }
+  if (kind === 'cardpick') { crrCardPick(() => flowrAfterStep()); return; }
   flowrShowEntityStep(kind);
 }
 

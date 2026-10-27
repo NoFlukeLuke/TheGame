@@ -98,7 +98,29 @@ function crrKindPick(s, done) {
 }
 function crrRunScreens() {
   const list = crScreens.splice(0);
-  return list.reduce((p, s) => p.then(() => new Promise(res => crrKindPick(s, res))), Promise.resolve());
+  return list.reduce((p, s) => p.then(() => new Promise(res => (s.kind === 'cardpick' ? crrCardPick(res) : crrKindPick(s, res)))), Promise.resolve());
+}
+// Card buffs, stage 2 (r677): choose up to 3 cards from the whole deck (the event
+// deck picker, js/event-picker.js) on a board screen; each takes a random buff off
+// the deck editor's rows (rollEditorBuff). Also a step of Flow's next chain.
+function crrCardPick(done) {
+  if (typeof boardScreenOpen !== 'function' || typeof evDeckPicker !== 'function') { done(); return; }
+  const host = document.createElement('div'); host.className = 'crr-cardpick';
+  const note = document.createElement('div'); note.className = 'bs-note'; note.textContent = 'Choose up to 3 cards. Each takes a random buff.';
+  host.appendChild(note);
+  let picker = null, ctl = null;
+  const go = () => {
+    const picks = picker ? picker.picks.slice() : [];
+    if (!picks.length) { refuse('Choose a card first'); return; }
+    const said = picks.map(c => { const e = rollEditorBuff(); if (!e) return null; enhanceCardKey(cardId(c), e); return `${cardLabel(c)} ${_crrBuffWord(e)}`; }).filter(Boolean);
+    showMessage(`⚑ Buffed: ${said.join(', ')}`, CRR_GOLD);
+    try { sfxRewardTaken?.(); } catch (e) {}
+    ctl.close(); done();
+  };
+  ctl = boardScreenOpen({ head: '> BUFF 3 CARDS', html: host, cls: 'crr-cardpick-screen',
+    keys: [{ label: 'SKIP', fn: () => { ctl.close(); done(); } }, { label: 'CONFIRM', primary: true, fn: go }] });
+  if (!ctl) { done(); return; }
+  picker = evDeckPicker(host, { cards: _crrBuffable(), max: 3, ordered: true });
 }
 
 // ── Paid after the round: the next round's start ────────────────────────────
@@ -175,6 +197,24 @@ const _crrImproved = () => {
 };
 const _crrTrickPool = () => (typeof trickTray !== 'undefined' ? trickTray : [])
   .filter(t => t && !(typeof altarTrickLocked === 'function' && altarTrickLocked(t.id)));
+// Card buffs (r677): the deck editor's buff rows, in words; a card that can take one; a buff taken off.
+function _crrBuffWord(e) {
+  const k = Object.keys(e || {})[0], v = e && e[k];
+  return { pips: `+${v} pips`, mult: `+${v} mult`, xpips: `×${v} pips`, xmult: `×${v} mult`, time: `rewind ${v}s`,
+           focus: `+${v} Focus`, coin: `+${v} credits` }[k] || '';
+}
+const _crrBuffable = () => (typeof everyDeckCard === 'function' ? everyDeckCard() : [])
+  .filter(c => c && !c._temp && !(typeof isWildCard === 'function' && isWildCard(c)));
+const _crrBuffStores = () => [['pips', permPips, 0], ['mult', permMult, 0], ['xpips', permXPips, 1], ['xmult', permXMult, 1],
+  ['time', permTime, 0], ['focus', typeof permFocus !== 'undefined' ? permFocus : null, 0], ['coin', typeof permCoins !== 'undefined' ? permCoins : null, 0]];
+const _crrBuffsOn = c => { const k = cardId(c); return _crrBuffStores().filter(([, m, rest]) => m && m[k] != null && m[k] !== rest); };
+const _crrStripPool = () => _crrBuffable().filter(c => _crrBuffsOn(c).length);
+function _crrStripOne(c) {
+  const on = _crrBuffsOn(c); if (!on.length) return '';
+  const [name, m] = _crrRand(on), k = cardId(c), v = m[k];
+  delete m[k];
+  return _crrBuffWord({ [name]: v });
+}
 
 const CRR = {
   // ── STANDARD ──
@@ -276,6 +316,51 @@ const CRR = {
     penSay: 'no interest on your next payout', penTo: 'credits', penLabel: 'INT x0',
     penCan: () => typeof interestFreezeRounds === 'number',
     take() { interestFreezeRounds = Math.max(interestFreezeRounds, 1); },
+  },
+  // ── STANDARD spares (r677): paid by no department yet ──
+  prime: {
+    face: ['×2', 'ALL', 'PRIME'],
+    say: t => t ? `every ${_crrWord('trick')} in your tray primed once` : `a random ${_crrWord('trick')} in your tray primed twice`,
+    can: () => typeof trickTray !== 'undefined' && trickTray.length > 0,
+    give(t, ctx) {
+      const named = [];
+      if (t) trickTray.forEach(tr => { if (primeTrick(tr, 1, { src: 'challenge' })) named.push(tr.name); });
+      else for (const tr of shuffle(trickTray.slice())) if (primeTrick(tr, 2, { src: 'challenge' })) { named.push(tr.name); break; }
+      if (typeof renderTrickTray === 'function') renderTrickTray();
+      if (ctx.el && named.length) crrFly(ctx.el, 'tricks', t ? '+1 PRIME' : '+2 PRIME');
+      return named.length ? ` (${named.join(', ')})` : '';
+    },
+    penSay: `a random primed ${_crrWord('trick')} loses 2 primes`, penTo: 'tricks', penLabel: '-2 PRIME',
+    penCan: () => typeof trickTray !== 'undefined' && trickTray.some(t => (t._primed || 0) > 0),
+    take() {
+      const tr = _crrRand(trickTray.filter(t => (t._primed || 0) > 0)), n = Math.min(2, tr._primed);
+      tr._primed -= n; if (!tr._primed) delete tr._primeSrc;
+      if (typeof renderTrickTray === 'function') renderTrickTray();
+      return `${tr.name} lost ${n} prime${n === 1 ? '' : 's'}`;
+    },
+  },
+  cardbuff: {
+    face: ['3', 'PICK', 'BUFF'],
+    say: t => t ? '3 cards you choose from your deck take a random buff' : '3 random cards in your deck take a random buff',
+    can: () => _crrBuffable().length > 0 && typeof rollEditorBuff === 'function',
+    give(t, ctx) {
+      if (t) return crrScreen('cardpick');
+      const said = shuffle(_crrBuffable()).slice(0, 3).map(c => {
+        const e = rollEditorBuff(); if (!e) return null;
+        enhanceCardKey(cardId(c), e);
+        return `${cardLabel(c)} ${_crrBuffWord(e)}`;
+      }).filter(Boolean);
+      crrRepaintBoard();
+      if (ctx.el && said.length) crrFly(ctx.el, null, `+${said.length} BUFF${said.length === 1 ? '' : 'S'}`);
+      return said.length ? ` (${said.join(', ')})` : '';
+    },
+    penSay: '3 random buffed cards in your deck lose a buff', penLabel: '-3 BUFFS',
+    penCan: () => _crrStripPool().length > 0,
+    take() {
+      const said = shuffle(_crrStripPool()).slice(0, 3).map(c => `${cardLabel(c)} ${_crrStripOne(c)}`);
+      crrRepaintBoard();
+      return `buffs lost: ${said.join(', ')}`;
+    },
   },
   // ── HARD ──
   improve: {
@@ -430,7 +515,7 @@ const CRR = {
     take() { const f = _crrMostPlayed(); nsFamPlays[f] = Math.max(0, (nsFamPlays[f] || 0) - 5); return `-5 plays from ${CRR_FAM[f]}`; },
   },
 };
-const CRR_STD = ['credits', 'time', 'rerolls', 'grid', 'charges', 'stock', 'focus2', 'interest'];
+const CRR_STD = ['credits', 'time', 'rerolls', 'grid', 'charges', 'stock', 'focus2', 'interest', 'prime', 'cardbuff'];
 const CRR_HARD = ['improve', 'limit', 'tricks', 'focus', 'knacks', 'sleights', 'boss', 'growth'];
 
 function crrSay(id, t) { const r = CRR[id] || CRR.credits; return r.say(t); }

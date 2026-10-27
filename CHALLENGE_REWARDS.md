@@ -22,8 +22,8 @@ A Sleight that changes how the game works while it sits on the board.
 - Its rule is a board rule, not a card buff, so the Quarter resource limits (QRL) do not cap it.
   The replay one is a QRL replay source like any other.
 
-**Built (r675)** under working names the owner will replace: A **Double Shift**
-(`rule_ranks`), B **Even Keel** (`rule_evens`), C **Face Time** (`rule_faces`). Improvements:
+**Built (r675)**, named by the owner in r677: A **Double Time** (`rule_ranks`), B **Even
+Keel** (`rule_evens`), C **In Your Face** (`rule_faces`). Improvements:
 A names one more rank a tier, B +2 Focus a tier, C +2s a tier. The named ranks print in the
 card's bottom-left corner. Descriptions in the game's Sleight style:
 
@@ -170,8 +170,8 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 | Swaps and discards | +2 swaps and +2 discards this round | +4 and +4 | -2 and -2 |
 | Focus twice | your next hand applies Focus twice | your next 3 hands | your next hand scores without Focus |
 | Interest | interest doubled on your next payout | doubled on every payout this quarter | no interest on your next payout |
-| Prime (spare, not built) | a random Trick in the tray is primed twice | every Trick in the tray is primed once | |
-| Card buffs (spare, not built) | 3 random cards in your deck take a random buff | 3 cards you choose take a random buff | |
+| Prime (spare, built r677) | a random Trick in the tray is primed twice | every Trick in the tray is primed once | a random primed Trick loses 2 primes |
+| Card buffs (spare, built r677) | 3 random cards in your deck take a random buff | 3 cards you choose from your deck take a random buff | 3 random buffed cards in your deck lose a buff |
 
 ### Hard (paid only by Hard challenges)
 
@@ -199,7 +199,17 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 | R&D | Rerolls | Improvement |
 | IT | Reward grid size | Trick pick |
 
-Prime and Card buffs are spares, to swap in for any Standard reward that plays flat.
+Prime and Card buffs are spares, to swap in for any Standard reward that plays flat. Built r677
+(`CRR.prime`, `CRR.cardbuff`), paid by no department yet.
+- **Prime:** a primed Trick pays its effect again the next time it fires (a prime replays the
+  Trick's own payout; every prime it holds fires on that one firing, then they clear). Primed
+  twice, its next firing pays three times. Source `challenge`, so Quarter resource limits apply.
+- **Card buffs:** the Flow deck editor's buff rows at the editor's odds and values (+pips, +mult,
+  +Focus, rewind, +credits, x pips, x mult; replay and the second rank / suit are event only), but
+  on cards anywhere in the deck, not touching cards on the board, and the buff is rolled per card.
+  Stage 2 opens a board screen with the event deck picker (`crrCardPick`): choose up to 3, each
+  rolls its buff. After the round in Classic and the Schedule, a `cardpick` step of the next
+  reward chain in Flow.
 
 ## 7. A Trick and a Sleight that change every round (r664; built r676)
 

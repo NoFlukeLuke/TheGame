@@ -2956,3 +2956,35 @@ round end the next round turned Temp into Rogue Wave and the Floater from Fresh 
 seen on the board: 6 -> 5 charges) into Piggy Bank, both printed; three hands by tap with dev
 mode on: no timeline drift, no page errors; selling Temp removed its line and its form.
 
+## r677 - the Touch-Up knack; the Prime and Card buffs rewards; the rule Sleights named (owner)
+- **Names:** `rule_ranks` is **Double Time**, `rule_evens` stays **Even Keel**, `rule_faces` is
+  **In Your Face** (r675's Double Shift / Face Time). Owner keeps r671 over r669: a Schedule
+  challenge card pays its department's reward.
+- **Touch-Up** (rare knack `touch_up`, working name; `js/touch-up.js`): when a level is cleared
+  (`touchUpOnClear`, from `captureGoalHand` and the challenge round's two goal exits), if no more
+  than `BAL.touch_up.max` buffed cards are on the grid, `cards` cards on it take one random buff,
+  unbuffed cards first. The goal hand's cards are leaving, so they are neither counted nor
+  buffed. A buffed card is one with a `cardBuffLines` line or a second rank / suit
+  (`tuCardBuffed`). Kinds (`BAL.touch_up.kinds` 1 / 2 / 3): +pips / +mult, then x pips / x mult,
+  then a second rank (a neighbouring rank) / second suit, every kind on the list equally likely
+  (owner: no regard for rarity); values are the deck editor's rows (`FLOWR_DECK_OPS`,
+  `flowrValRoll`). Wilds, temp cards, Sleights and stones never take one. Ladder (`IMPROVE_PLAN`):
+  v2 x buffs, v3 6 cards, v4 up to 3 buffed allowed ("If no more than 3 buffed cards..." and
+  "Unbuffed cards first."), v5 second rank and suit, v6 8 cards and up to 6 allowed. The buffs
+  stamp in on the board (`enhanceCardKey`'s Stamp), the knack tray flares, a notice lists each
+  card. Icon 🖌️ = delapouite/paint-roller (sheet 150 cells; the first 149 unchanged pixel for pixel).
+- **Prime** and **Card buffs** (`CRR.prime`, `CRR.cardbuff`, CHALLENGE_REWARDS.md section 4): the
+  two spare Standard rewards, built, paid by no department yet. Prime: a random Trick primed twice
+  / every Trick primed once (`primeTrick`, src `challenge`); reverse: a random primed Trick loses 2
+  primes. Card buffs: 3 random deck cards take a deck-editor buff (`rollEditorBuff`) / 3 cards you
+  choose (`crrCardPick`: a board screen with the event deck picker, up to 3, CONFIRM / SKIP; after
+  the round, or Flow's `cardpick` chain step, a FLOWR_KINDS row kept out of FLOWR_KIND_IDS);
+  reverse: 3 random buffed deck cards lose one buff (`_crrStripOne`).
+Measured in headless Chromium at 1440x820 and 420x900: Touch-Up's six descriptions read as the
+owner wrote them; at v1 an unbuffed board took 3 buffs, a second clear took none, at v4 a board
+with 3 buffed cards took 6 more, all unbuffed; 1,200 v5 buffs split 223 / 213 / 182 / 179 / 199 /
+204 (mult, pips, x pips, x mult, second rank, second suit); a real goal hand by tap buffed 3 cards
+with the notice and no drift. Prime: one Trick 0 -> 2, then all +1, the reverse took 2. Card buffs:
+0 -> 3 buffed deck cards, the reverse took all 3 back; the picker chose 3 by click and buffed them;
+in Flow the chain ran Tricks then the card pick, and the next level started. No page errors.
+
