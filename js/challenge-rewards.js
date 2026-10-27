@@ -549,7 +549,10 @@ function crrFaceHTML(q) {
   const id = crPayOf(q), r = CRR[id]; if (!r || !r.face) return '';
   const unit = r.face[2] != null ? r.face[2] : (id === 'tricks' ? _crrWord('trick') : id === 'knacks' ? _crrWord('knack') : _crrWord('sleight')).toUpperCase();
   const one = q.ladder.length < 2;
-  const s = i => `<b class="${q.tier === i ? 'cur' : ''}">${r.face[i]}</b>`;
+  // r677: got = the stage paid, passed = the one a take passed up, risk = stage 1 under a
+  // raise (the 'take' / 'raise' looks draw them; nothing else does).
+  const st = i => q.done === 'won' ? (i === q.banked ? ' got' : ' passed') : (!q.done && i < q.tier ? ' risk' : '');
+  const s = i => `<b class="${q.tier === i ? 'cur' : ''}${st(i)}">${r.face[i]}</b>`;
   return `<div class="cr-pay">${unit ? `<i>${unit}</i> ` : ''}${s(0)}${one ? '' : ` › ${s(1)}`}</div>`;
 }
 // The tap read-out's last sentence: what it pays, and what it costs if it runs out.

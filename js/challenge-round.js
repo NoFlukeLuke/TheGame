@@ -111,6 +111,19 @@ function crCards() {
 function crFindCard(src) { const h = crCards().find(([, , cd]) => !src || cd.cr.src === src); return h ? [h[0], h[1]] : null; }
 function crFindById(id) { const h = crCards().find(([, , cd]) => cd._id === id); return h || null; }
 function crCardEl(cd) { return cd ? document.querySelector(`#grid [data-card-id="${cd._id}"]`) : null; }
+// r677 (owner, to choose from): four looks for answering a cleared card, each its own
+// switch. press: a tap answers at once. prompt: the cleared card names both choices and
+// drains toward its auto-take. take: a PAID stamp, the paid figure flies off the card, the
+// one passed up is struck. raise: a STAGE 2 stamp, the ask rolls up, the border turns red
+// while stage 1 is at risk. All off is the r671 look. Only the preview (index.html?crfx,
+// js/cr-fx-lab.js) turns them on; body.crfx-<key> gates their CSS.
+const CR_FX = { press: false, prompt: false, take: false, raise: false };
+function crFxOn(k) { return !!CR_FX[k]; }
+function crFxSet(k, on) {
+  CR_FX[k] = !!on;
+  document.body.classList.toggle('crfx-' + k, !!on);
+  crCards().forEach(([, , cd]) => crRepaint(cd));
+}
 function crOrdinary(cd) { return !!(cd && cd.rank && !cd._isStone && !cd._isSleight && !cd._isTrick); }
 function _crPick(a) { return a[Math.floor(Math.random() * a.length)]; }
 function _crPickW(a, w) {
@@ -299,12 +312,26 @@ function crCardFaceHTML(card) {
   const head = (q.src === 'seq' ? `<span class="cr-idx">${(q.idx || 0) + 1}/${CR_CARDS}</span>` : '') + `<span class="cr-pips">${pips}</span>`;
   const timer = crTimed(q.src) && !q.done
     ? `<div class="cr-timer${q.timeLeft <= 10 ? ' low' : ''}" style="--crt:${Math.max(0, q.timeLeft / (q.timeMax || CR_FLOW_TIME))}"><b>${q.timeLeft}s</b></div>` : '';
-  const more = crCanRaise(q) ? `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>` : '';
+  const more = !crCanRaise(q) ? '' : crFxOn('prompt') ? crMoreHTML(q)
+             : `<div class="cr-more">▲ MORE?<i>tap take · 2× raise</i></div>`;
   const pay = (typeof crrFaceHTML === 'function') ? crrFaceHTML(q) : '';
   return `<div class="cr-head">${head}</div>`
        + `<div class="cr-glyph">${CR_GLYPH[q.kind] || '⚑'}${q.touch ? '<span class="cr-touch">✋</span>' : ''}</div>`
        + `<div class="cr-req">${crReqShort(q)}</div>`
        + prog + pay + more + timer;
+}
+// r677 'prompt': both answers with what each pays, the stage 2 ask, and a bar draining
+// over the CR_CLEAR_HOLD live seconds before the card takes the payout itself. The face
+// is rebuilt on every render, so the bar's animation starts that far through.
+function crMoreHTML(q) {
+  const id = crPayOf(q), up = { ...q, tier: q.tier + 1 }, r = CRR[id];
+  const v = t => (r && r.face) ? r.face[t] : crrShort(id, t);   // the pay line under it carries the unit
+  const gone = CR_CLEAR_HOLD - (q.hold != null ? q.hold : CR_CLEAR_HOLD);
+  return `<div class="cr-more cr-more2">`
+       + `<div class="crm-row"><span>TAP</span><b>${v(0)}</b></div>`
+       + `<div class="crm-row crm-up"><span>TAP TAP</span><b>${v(1)}</b></div>`
+       + `<div class="crm-ask">▲ ${crReqShort(up)}</div>`
+       + `<div class="crm-hold"><i style="animation-duration:${CR_CLEAR_HOLD}s;animation-delay:-${gone}s"></i></div></div>`;
 }
 function crRepaint(cd) {
   const el = crCardEl(cd);
@@ -312,7 +339,10 @@ function crRepaint(cd) {
   el.innerHTML = crCardFaceHTML(cd);
   el.classList.toggle('cr-low', !!(crTimed(cd.cr.src) && !cd.cr.done && cd.cr.timeLeft <= 10));
   el.classList.toggle('cr-cleared', crCanRaise(cd.cr));
+  el.classList.toggle('cr-raised', crRaisedLive(cd.cr));
 }
+// Raised and still open: stage 1 is at risk (r677 'raise' draws it).
+function crRaisedLive(q) { return !!(q && q.ladder && !q.done && q.tier > 0); }
 function crShowInfo(r, c) {
   const cd = (r != null) ? gridData[r]?.[c] : (crCards()[0] || [])[2];
   if (!cd || !cd.cr || !cd.cr.ladder) return;
@@ -328,6 +358,7 @@ let _crTapAt = 0, _crTapId = null, _crTapTimer = null;
 function crTap(r, c) {
   const cd = gridData[r]?.[c];
   if (!cd || !cd.cr) return;
+  if (crFxOn('press') && !cd.cr.done) crFxPress(cd);
   if (!crCanRaise(cd.cr)) { crShowInfo(r, c); return; }
   const now = Date.now();
   if (_crTapId === cd._id && now - _crTapAt < 350) {
@@ -591,8 +622,9 @@ function crAdvance(cd) {
 function crRaise(cd) {
   const q = cd.cr;
   if (!crCanRaise(q)) return;
+  const was = crReqShort(q);
   q.tier++; q.hold = null;
-  crRepaint(cd); crFxRaise(cd);
+  crRepaint(cd); crFxRaise(cd, was);
   noteMessage(`⚑ Raised: ${crReqText(q)}`);
   if (q.prog >= crTarget(q)) crAdvance(cd);   // already there: banks at once
 }
@@ -603,14 +635,17 @@ function crCollect(cd) {
   if (q.done || q.banked < 0) return;
   q.done = 'won';
   crRepaint(cd); crFxSolve(cd);
-  const said = crrGrant(crPayOf(q), q.banked, { el: crCardEl(cd), live: !roundEnded });
+  const cardEl = crCardEl(cd);
+  // r677 'take': the plate leaves from the figure it pays.
+  const src = (crFxOn('take') && cardEl && cardEl.querySelectorAll('.cr-pay b')[q.banked]) || cardEl;
+  const said = crrGrant(crPayOf(q), q.banked, { el: src, live: !roundEnded });
   if (q.src === 'seq' && crRound) {
     const left = CR_CARDS - crRound.solved;
     showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${said}`
                          : `⚑ All ${CR_CARDS} challenges done · ${said} · prize grid earned`, 'var(--gold)');
   } else showMessage(`⚑ Challenge done · ${said}`, 'var(--gold)');
   crQueue.push(cd._id);
-  setTimeout(crDrain, 700);
+  setTimeout(crDrain, crFxOn('take') ? 900 : 700);   // r677: the stamp is read before it goes
 }
 // The card's clock ran out short of its current stage. r671 (owner): it charges
 // stage 1's reward IN REVERSE (crrPenaltyPlan), and a raised card loses its banked
@@ -942,11 +977,34 @@ function crFxClear(cd) {
   crBurst(cd, 10, 'cr-spark', 44);
 }
 // Raised: a spring upward and a rising sweep.
-function crFxRaise(cd) {
+// r677 'raise': a STAGE 2 stamp slams across the card, the old ask rolls up out of
+// the face as the new one rolls in, the new boxes drop into the strip, the raised
+// payout pops, and red sparks replace the rings. The red border is CSS (.cr-raised).
+function crFxRaise(cd, was) {
   sfxChallengeRaise();
   const el = crCardEl(cd); if (!el) return;
   _crAnim(el, [ { translate: '0px 0px', scale: '1' }, { translate: '0px -16px', scale: '1.1', offset: 0.4 }, { translate: '0px 3px', scale: '0.96 1.04', offset: 0.75 }, { translate: '0px 0px', scale: '1' } ], { duration: 520, easing: 'cubic-bezier(.3,1.4,.5,1)' });
-  crBurst(cd, 8, 'cr-ring', 40);
+  if (!crFxOn('raise')) { crBurst(cd, 8, 'cr-ring', 40); return; }
+  crBurst(cd, 14, 'cr-spark cr-hot', 54);
+  crStamp(cd, 'crs-raise', `STAGE ${cd.cr.tier + 1}`, 1300);
+  const req = el.querySelector('.cr-req');
+  if (req && was) {
+    const old = document.createElement('div');
+    old.className = 'cr-req crs-old'; old.textContent = was;
+    req.parentNode.insertBefore(old, req);
+    old.style.top = req.offsetTop + 'px';
+    _crAnim(old, [ { translate: '0px 0px', opacity: 1 }, { translate: '0px -14px', opacity: 0 } ], { duration: 360, easing: 'ease-in' }).then(() => old.remove());
+    _crAnim(req, [ { translate: '0px 14px', opacity: 0, color: '#ff8a7a' }, { translate: '0px 14px', opacity: 0, offset: 0.35 },
+                   { translate: '0px -2px', opacity: 1, color: '#ff8a7a', offset: 0.8 }, { translate: '0px 0px', opacity: 1 } ], { duration: 640, easing: 'ease-out' });
+  }
+  const of = cd.cr.ladder[cd.cr.tier - 1] ? cd.cr.ladder[cd.cr.tier - 1].n : 0;
+  el.querySelectorAll('.cr-box').forEach((b, i) => {
+    if (i < of) return;
+    _crAnim(b, [ { translate: '0px -10px', scale: '1.6', opacity: 0 }, { translate: '0px -10px', opacity: 0, offset: 0.4 },
+                 { translate: '0px 1px', scale: '1', opacity: 1, offset: 0.8 }, { translate: '0px 0px', scale: '1', opacity: 1 } ], { duration: 700, easing: 'ease-out' });
+  });
+  const up = el.querySelectorAll('.cr-pay b')[cd.cr.tier];
+  if (up) _crAnim(up, [ { scale: '1' }, { scale: '1.6', offset: 0.45 }, { scale: '1' } ], { duration: 620, delay: 200, easing: 'cubic-bezier(.3,1.5,.5,1)' });
 }
 function crFxSolve(cd) {
   sfxChallengeSolve();
@@ -954,6 +1012,34 @@ function crFxSolve(cd) {
   el.classList.add('cr-won');
   _crAnim(el, [ { scale: '1', rotate: '0deg' }, { scale: '1.25', rotate: '6deg', offset: 0.35 }, { scale: '1', rotate: '0deg' } ], { duration: 520, easing: 'cubic-bezier(.3,1.4,.5,1)' });
   crBurst(cd, 16, 'cr-spark', 60);
+  // r677 'take': a PAID stamp, kept until the card leaves (crFxLeave takes it with it).
+  if (crFxOn('take')) {
+    cd._crStamp = crStamp(cd, 'crs-take', 'PAID', 0);
+    const got = el.querySelectorAll('.cr-pay b')[cd.cr.banked];
+    if (got) _crAnim(got, [ { scale: '1' }, { scale: '1.6', offset: 0.4 }, { scale: '1' } ], { duration: 520, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+  }
+}
+// r677 'press': a tap answers at once. The card dips under the finger while a take
+// still waits out the double-tap window.
+function crFxPress(cd) {
+  const el = crCardEl(cd); if (!el) return;
+  if (typeof sfxKeyClick === 'function') sfxKeyClick('down');
+  _crAnim(el, [ { scale: '1', filter: 'brightness(1)' }, { scale: '0.86', filter: 'brightness(1.45)', offset: 0.3 }, { scale: '1', filter: 'brightness(1)' } ],
+    { duration: 240, easing: 'ease-out' });
+}
+// A stamp laid over a card. A child of #grid, not of the card: render() rebuilds a
+// card's face on every pass and would take it off. ms 0 = the caller removes it.
+function crStamp(cd, cls, text, ms) {
+  const el = crCardEl(cd), g = document.getElementById('grid');
+  if (!el || !g) return null;
+  const s = document.createElement('div');
+  s.className = 'cr-stamp ' + cls;
+  s.style.left = el.offsetLeft + 'px'; s.style.top = el.offsetTop + 'px';
+  s.style.width = el.offsetWidth + 'px'; s.style.height = el.offsetHeight + 'px';
+  s.innerHTML = `<b>${text}</b>`;
+  g.appendChild(s);
+  if (ms) setTimeout(() => s.remove(), ms);
+  return s;
 }
 function crFxFail(cd) {
   sfxChallengeExpire();
@@ -989,13 +1075,16 @@ function crFxPenalty(id, h, i) {
   }, fly);
 }
 function crFxLeave(cd) {
-  const el = crCardEl(cd);
-  if (!el) return Promise.resolve();
+  const el = crCardEl(cd), stamp = cd._crStamp;
+  cd._crStamp = null;
+  if (!el) { if (stamp) stamp.remove(); return Promise.resolve(); }
   const won = cd.cr.done === 'won';
-  return _crAnim(el, won
+  const frames = won
     ? [ { translate: '0px 0px', scale: '1', opacity: 1 }, { translate: '0px -60px', scale: '0.6', opacity: 0 } ]
-    : [ { translate: '0px 0px', scale: '1', rotate: '0deg', opacity: 1 }, { translate: '0px 30px', scale: '0.5', rotate: '18deg', opacity: 0 } ],
-    { duration: 380, easing: won ? 'cubic-bezier(.4,0,.2,1)' : 'ease-in' });
+    : [ { translate: '0px 0px', scale: '1', rotate: '0deg', opacity: 1 }, { translate: '0px 30px', scale: '0.5', rotate: '18deg', opacity: 0 } ];
+  const opts = { duration: 380, easing: won ? 'cubic-bezier(.4,0,.2,1)' : 'ease-in' };
+  if (stamp) _crAnim(stamp, frames, opts).then(() => stamp.remove());
+  return _crAnim(el, frames, opts);
 }
 
 // ── Sounds (synthesised; catalogued in js/audio-assets.js, group Challenge) ──

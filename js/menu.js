@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r678 · the samey Schedule: six ideas and questions (docs only)";
+const BUILD = "2026-10-27 · r679 · Challenge card looks preview (index.html?crfx): four answer looks to choose from";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

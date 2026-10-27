@@ -2988,3 +2988,30 @@ with the notice and no drift. Prime: one Trick 0 -> 2, then all +1, the reverse 
 0 -> 3 buffed deck cards, the reverse took all 3 back; the picker chose 3 by click and buffed them;
 in Flow the chain ran Tricks then the card pick, and the next level started. No page errors.
 
+
+## r679 - challenge card answer looks, to choose from (`index.html?crfx`, `js/cr-fx-lab.js`, owner)
+Verified first, by real clicks (Classic spot 1440x820, Flow 420x900): a TAP on a cleared card pays
+stage 1 (credits 0 -> 8, 0.36s after the tap: the double-tap window), a DOUBLE-TAP raises (tier 1,
+nothing paid, counts carry) and stage 2 cleared then pays +20 instead. Four looks for answering a
+cleared card, each its own switch in `CR_FX` (js/challenge-round.js; `crFxOn` / `crFxSet`,
+`body.crfx-<key>` gates the CSS at the end of css/challenge-round.css). **All off by default: the
+game is unchanged until the owner picks.** **press** (`crFxPress`): any tap on an open card dips it
+and clicks (`sfxKeyClick`) at once. **prompt** (`crMoreHTML`): the cleared card reads TAP / TAP TAP
+with each stage's figure, the stage 2 ask, and a bar draining over `CR_CLEAR_HOLD` (a CSS animation
+started `-(6 - q.hold)`s in, since render() rebuilds the face). **take**: a PAID stamp, the plate
+flies from the paid figure on the pay line, which pops; the passed-up figure is struck; the card
+leaves 900ms after (700 before). **raise** (`crFxRaise(cd, was)`): a STAGE 2 band, the old ask rolls
+out as the new rolls in, the new boxes drop in, the raised figure pops, red sparks, and `.cr-raised`
+(card-fall.js and crRepaint, `crRaisedLive`) burns the border red while stage 1 is at risk.
+Stamps are children of #grid (`crStamp`), not of the card: render() rebuilds a card's face every
+pass. Pay line states come from `crrFaceHTML` (`got` / `passed` / `risk`); under take or raise the
+line keeps its height (a crowded desktop card squeezed it to 6px and cut its text).
+**Preview** (`?crfx`): a Classic run with the real card on the real board, a panel beside it
+(over the info column; under the board on a phone) with the four switches (start all on), ALL ON /
+TODAY'S LOOK, demos TAKE / RAISE / WAIT 6S that tap through `onCardTap` with a ring where the finger
+would be, and NEW CARD / CLEAR STAGE. The clock and the card's timer are topped up. Nothing stored.
+**Fixed in passing (live):** a spot card (Classic / Schedule) never took `.cr-flow` / `.cr-low`, so
+its timer bar sat over its pay line and it never turned red in its last 10s; both now follow
+`crTimed`. Measured: all three demos paid right (+20, +8, +8 on the auto-take), switches flip
+`CR_FX` and the body classes, a tap with press on starts the card's animation at once, none with it
+off; plain play (no `?crfx`) unchanged. No page errors at 1440x820 or 420x900.
