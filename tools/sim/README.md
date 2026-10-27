@@ -59,6 +59,7 @@ each (so about +-15 points):
 | Classic | 32.5 | levels 16-24, at 63% of goal, 26% on a boss, 0 stalls |
 | Schedule (8 bookings a quarter) | 77.5 | 56% at the review |
 | Flow | 100 | none: boss N asks level 1 + 5N's goal (r525), the bot is near level 16 when boss 1 comes |
+| Flow, r687 bosses (levels 10 / 16 / 20 / 24) | 92.5 | all at a boss, levels 24 and 27 |
 
 ## Calibration anchors (2026-09-19, pre-deck-rework, pre-r683 sim)
 

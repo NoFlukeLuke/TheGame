@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r687 · credits read L¢; every challenge card look is in; the pay line is set tight; the clock-on-the-border preview";
+const BUILD = "2026-10-27 · r688 · credits read L¢; every challenge card look is in; the pay line is set tight; the clock-on-the-border preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

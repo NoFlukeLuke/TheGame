@@ -34,7 +34,7 @@
     color-mix(in srgb, var(--crt2, #3c270c) calc(var(--crt, 1) * 100%), #070504) 72%,
     #050403 100%);
 }
-/* r687 'border' (a preview, CR_FX.border): the clock is a ring over the card's border, a
+/* r688 'border' (a preview, CR_FX.border): the clock is a ring over the card's border, a
    hand sweeping it away clockwise from the top (--crt 1 to 0), red in the last 10s and
    while a raise is at risk. The background stays lit (the !important beats the inline --crt). */
 body.crfx-border #grid .cr-card .cr-bg { --crt: 1 !important; }
@@ -163,7 +163,7 @@ body.reduced-motion .cr-loss-hit { animation-duration: 1ms; }
 @keyframes crrChargeDown { 0%, 100% { filter: none; } 30% { filter: brightness(.7) sepia(1) saturate(5) hue-rotate(-50deg) drop-shadow(0 0 8px #ff4d4d); } }
 
 /* ══ r677: four looks for answering a cleared card (CR_FX) ══════════════════════
-   Each is gated on its body class (crFxSet). r687 (owner): all four are in the game. */
+   Each is gated on its body class (crFxSet). r688 (owner): all four are in the game. */
 /* prompt: both answers, what each pays, the raised ask, the auto-take bar */
 #grid .cr-card .cr-more.cr-more2 {
   display: flex; flex-direction: column; gap: 2px; padding: 4px 2px 3px; text-align: left;

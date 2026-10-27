@@ -920,6 +920,7 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
   AND again under "round-start knack effects", so each paid +4 while saying +2.
 - **Flow boss goal** (`flowBossGoalLevel`, js/flow-mode.js): boss N's goal is `goalForLevel(1 + 5N)`
   (`FLOW_BOSS_GOAL_LEVELS`), whatever level the run reached. The level-up after the boss resets it.
+  (r687: levels 10 / 16 / 20 / 24.)
 
 ## r526 - Flow goals collapsed after Continue
 `survivalEndlessFromLevel` is `Infinity` for a whole Flow run; JSON saved it as `null`, and on restore
@@ -3167,7 +3168,15 @@ now every one of them, the pick of three, the payout, the reward grid, the shop 
 (1440x820 measured identical). Hands, a swap and a discard by tap, a cleared round through payout and
 reward grid, Flow's chain and shop, the Schedule from schedule to round to pick: no page errors.
 
-## r687 - credits read L¢; every challenge card look is in; the clock-on-the-border preview (owner)
+## r687 - Flow bosses are harder (owner)
+`FLOW_BOSS_GOAL_LEVELS` (js/flow-mode.js) is a table: boss N asks `goalForLevel` of level 10 / 16 / 20 /
+24 (was 1 + 5N: 6 / 11 / 16 / 21), so 6,700 / 25,600 / 62,450 / 152,450 at default tuning (was 2,750 /
+8,400 / 25,600 / 78,050). An Endless boss past the table adds the last step again (28, 32...). Measured:
+a real Flow run started from a new-run note, skipped to the boss by `bossJumpStart`, read GOAL 6,700 at
+1440x820 and 420x900, no page errors; `tools/sim` Flow (native, handTime 6, 40 runs) 100% -> 92.5% bot
+wins, all three losses at a boss (levels 24 and 27). The bot faces no boss modifiers.
+
+## r688 - credits read L¢; every challenge card look is in; the clock-on-the-border preview (owner)
 - **The credits mark is L¢** (Lethe Corp credits): `CREDIT_SYM` / `creditsTxt(n)` in js/labels.js,
   in front of the number (L¢12). It replaces ◆ (payout rows, totals, the Schedule's shop line,
   Guided prices, Flow's shop tile, the challenge card) and the 💰 that marked a price or a wallet

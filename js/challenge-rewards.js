@@ -563,7 +563,7 @@ function crrFaceHTML(q) {
   // raise (the 'take' / 'raise' looks draw them; nothing else does).
   const st = i => q.done === 'won' ? (i === q.banked ? ' got' : ' passed') : (!q.done && i < q.tier ? ' risk' : '');
   const s = i => `<b class="${q.tier === i ? 'cur' : ''}${st(i)}">${r.face[i]}</b>`;
-  // r687 (owner): set tight, "L¢+8›+20", so two stages fit a card. A word unit (REROLL,
+  // r688 (owner): set tight, "L¢+8›+20", so two stages fit a card. A word unit (REROLL,
   // SLEIGHT) takes its own line over the figures; on one line it ran off the card.
   const word = unit && unit !== CREDIT_SYM;
   return `<div class="cr-pay${word ? ' crp-word' : ''}">${unit ? `<i>${unit}</i>` : ''}${s(0)}${one ? '' : `<span class="crp-to">›</span>${s(1)}`}</div>`;

@@ -71,7 +71,7 @@ a raw id, you are creating the next rename's problem.
 | scoring buff, side tray | `trick` | **Utility** | floppy disc, body coloured by rarity |
 | deck card with an effect | `sleight` | **Vendor** | business card, stock coloured by rarity |
 | permanent rule-changer | `knack` | **Cert** | line on your record |
-| currency | `coins` | **Credits**, marked **L¢** (Lethe Corp credits, `CREDIT_SYM` in js/labels.js, r687) | (unchanged) |
+| currency | `coins` | **Credits**, marked **L¢** (Lethe Corp credits, `CREDIT_SYM` in js/labels.js, r688) | (unchanged) |
 
 ## Scoring vocabulary
 

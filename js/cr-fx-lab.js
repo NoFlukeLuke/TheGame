@@ -6,7 +6,7 @@
 // raise, the 6s auto-take and the card's 60s clock at 10x. It is the real card on the
 // real board: the tap, the double-tap, the payout and its flight are the game's own; a
 // demo taps through onCardTap like a finger. Nothing is stored. The round clock is kept
-// topped up; the card's own clock runs down to 6s and is refilled (r687: it used to be
+// topped up; the card's own clock runs down to 6s and is refilled (r688: it used to be
 // refilled at 30s, so its drain was never seen), except in the CLOCK demo, which lets it out.
 const CRL_LOOKS = [
   ['press',  'Instant tap response',   'In the game. The card dips and clicks the moment you tap it; a take waits 0.5s for a second tap.'],
@@ -146,7 +146,7 @@ function crlPlace() {
       try { tutorialEnd(); } catch (e) {}
       try { coins = Math.max(coins, 40); updateCoinsUI?.(); } catch (e) {}
       try { crSpotState().at = null; } catch (e) {}
-      crFxSet('border', true);   // r687: the look being asked about starts on
+      crFxSet('border', true);   // r688: the look being asked about starts on
       crlOpen();
       crlSpawn();
       // Nothing runs out while the owner looks.

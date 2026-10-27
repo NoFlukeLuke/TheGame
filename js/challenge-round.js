@@ -117,7 +117,7 @@ function crCardEl(cd) { return cd ? document.querySelector(`#grid [data-card-id=
 // one passed up is struck. raise: a STAGE 2 stamp, the ask rolls up, the border turns red
 // while stage 1 is at risk. All off is the r671 look. Only the preview (index.html?crfx,
 // js/cr-fx-lab.js) turns them on; body.crfx-<key> gates their CSS.
-// r681 (owner): press is kept, so it is on. r687 (owner): all four are kept. border (r687,
+// r681 (owner): press is kept, so it is on. r688 (owner): all four are kept. border (r688,
 // a preview only): a timed card's clock is a ring round its edge that a hand sweeps away
 // clockwise, and the background stays lit.
 const CR_FX = { press: true, prompt: true, take: true, raise: true, border: false };

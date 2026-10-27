@@ -97,7 +97,7 @@ const LEXICONS = {
 //
 // Read through js/storage.js's shim, so a browser that throws on localStorage
 // still gets a working default rather than aborting this file.
-// r687 (owner): the credits mark is L¢, Lethe Corp credits. Every price, wallet and
+// r688 (owner): the credits mark is L¢, Lethe Corp credits. Every price, wallet and
 // payout prints it from here, in front of the number: L¢12.
 const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }

@@ -84,12 +84,14 @@ function flowSessionRunning() { return flowActive() && !bossActive; }
 // level's goal". Adding the delta rather than zeroing `score` means no in-progress
 // round is thrown away and no state surgery is needed - the bar simply becomes a
 // clean "earn this much more, inside the boss window".
-// r525 (owner): a Flow boss's goal ignores how many levels were cleared. Boss N is
-// set as though exactly FLOW_BOSS_GOAL_LEVELS level-ups came before it each cycle:
-// boss 1 = level 6's goal, boss 2 = level 11's, and so on.
-const FLOW_BOSS_GOAL_LEVELS = 5;
+// r525 (owner): a Flow boss's goal ignores how many levels were cleared.
+// r687 (owner): boss N asks the goal of level FLOW_BOSS_GOAL_LEVELS[N - 1] (was
+// 1 + 5N: 6 / 11 / 16 / 21). An Endless boss past the table adds the last step again.
+const FLOW_BOSS_GOAL_LEVELS = [10, 16, 20, 24];
 function flowBossGoalLevel() {
-  return 1 + FLOW_BOSS_GOAL_LEVELS * ((typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + 1);
+  const n = (typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0);
+  const t = FLOW_BOSS_GOAL_LEVELS, last = t.length - 1;
+  return n <= last ? t[n] : t[last] + (n - last) * (t[last] - t[last - 1]);
 }
 function flowTriggerBoss() {
   if (bossActive || flowBossFighting) return;
