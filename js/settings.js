@@ -238,6 +238,11 @@ const SETTINGS_DEF = [
     hint: 'A themed pointer instead of the system one. Turn off to use your normal cursor.',
     type: 'toggle', default: true,
     apply: v => document.documentElement.classList.toggle('os-cursor', !v) },
+  // r699: one layer of scan lines over every screen (js/screen-door.js).
+  { group: 'Display', id: 'screenDoor', label: 'Screen door',
+    hint: 'Fine dark lines over every screen, like an old monitor. Turn off for a plain picture.',
+    type: 'toggle', default: true,
+    apply: v => document.documentElement.classList.toggle('sd-off', !v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },

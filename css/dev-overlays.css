@@ -227,13 +227,6 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-  /* Scanlines over the whole console, behind the content. */
-  #event-panel::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    border-radius: 13px;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
-  }
   #event-panel > * { position: relative; z-index: 1; }
 
   /* Marquee bar - the same treatment as the dev panel's title bar. */
@@ -382,11 +375,6 @@
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -2px var(--rc, transparent),
                 inset 0 0 14px -5px var(--rc, transparent), 0 5px 12px rgba(0,0,0,0.5);
     transition: transform 0.12s ease, box-shadow 0.14s ease, filter 0.12s ease;
-  }
-  .event-choice::after {   /* scanlines, same recipe as .reward-cell.entity */
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
   }
   .event-choice > * { position: relative; z-index: 2; }
   .event-choice.rar-common    { --rc: var(--c-mint); }
@@ -591,12 +579,6 @@
       0 26px 70px rgba(0,0,0,0.78),
       inset 0 1px 0 rgba(255,255,255,0.06);
     overflow-y: auto; overscroll-behavior: contain;
-  }
-  #blp-panel::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    border-radius: 13px;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
   }
   #blp-panel > * { position: relative; z-index: 1; }
 
@@ -853,11 +835,6 @@
     user-select: none;
     box-shadow: 0 0 0 2px var(--plastic-lo), inset 0 0 18px -8px rgba(179,156,245,0.7), 0 5px 12px rgba(0,0,0,0.55);
     transition: transform 0.12s ease, box-shadow 0.16s ease, border-color 0.16s ease;
-  }
-  .event-door::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.2) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
   }
   .event-door > * { position: relative; z-index: 2; }
   .event-door:hover:not(.chosen):not(.revealed) { border-color:#b39cf5; transform: translateY(-3px); }

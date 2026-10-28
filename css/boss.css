@@ -166,8 +166,6 @@ html.skin-machine #boss-preamble.bp-console {
   font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
   overflow: auto; scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
 }
-html.skin-machine #boss-preamble.bp-console::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 5;
-  background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; }
 html.skin-machine #boss-preamble.bp-console .bp-x { color: var(--am); border-color: var(--am-dim); background: transparent; font-family: inherit; z-index: 6; }
 html.skin-machine #boss-preamble.bp-console .bp-sigil { font-size: 30px; align-self: flex-start; animation: none; }
 html.skin-machine #boss-preamble.bp-console .bp-sigil::before, html.skin-machine #boss-preamble.bp-console .bp-sigil::after { content: none; }
@@ -240,12 +238,6 @@ html.skin-machine #boss-preamble.bp-console #boss-trick-pools { font-family: inh
   box-shadow: inset 0 0 40px rgba(0,0,0,0.7), 0 0 0 2px rgba(0,0,0,0.5), 0 0 26px -6px var(--c-cyan, #16c8d8);
   padding: 14px 18px !important;
   gap: 2px;
-}
-/* scanlines, so it reads as something on the CRT rather than a web panel */
-#stage.landscape #payout-overlay:not(.po-tiled)::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
-  mix-blend-mode: overlay;
 }
 /* Lift the panel's contents above the scanline ::after layer. The fast-forward
    button is deliberately excluded: it is positioned in its own corner, and this

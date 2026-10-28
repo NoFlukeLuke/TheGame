@@ -183,8 +183,7 @@ body.egl-on #grid { visibility: hidden; }
 /* Scan lines, glare and edge falloff: one glass for the whole board, or one per screen. */
 #egl[data-lay="wire"]::after, #egl[data-lay="terminal"]::after, .egl-screen::after, #egl[data-lay="wall"] .egl-cell::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 20; border-radius: inherit;
-  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px),
-              radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
 }
 /* A pixel icon or an entity tile on the glass: its own colours, warmed a little
    (r593; the r589 all-amber filter lost a Trick's picture in its label). */
@@ -421,8 +420,6 @@ body.egl-on #grid { visibility: hidden; }
   box-shadow: 0 0 5px color-mix(in srgb, var(--sc) 22%, transparent), inset 0 0 5px color-mix(in srgb, var(--sc) 9%, transparent); }
 .egl-tc-phos { background: radial-gradient(ellipse at 50% 42%, #1c1408 0%, #0a0704 70%, #040302 100%); border: 2px solid #2b2721;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 0 0 1px #000; }
-.egl-tc-phos::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px); }
 .egl-tc:hover { filter: brightness(1.3); }
 /* Picked: the card lights solid in its own colour. */
 .egl-tc.egl-vbuy { background: var(--sc); border-color: var(--sc); box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 60%, transparent); }

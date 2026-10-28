@@ -722,7 +722,6 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay, opts){
   const ow = gEl.offsetWidth || s.width, oh = gEl.offsetHeight || s.height, z = s.width / ow || 1;
   clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;zoom:${z};left:${s.left/z}px;top:${s.top/z}px;width:${ow}px;height:${oh}px;transform-origin:center center;`;
   const host = strip ? dnqFlyLayer(strip) : document.body;
-  if(strip && typeof mcOn === 'function' && mcOn()) clone.classList.add('mc-door');   // the console skin's own flier layer is not this one
   host.appendChild(clone);
   gEl.style.opacity='0'; gEl.style.pointerEvents='none'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort); r659: untappable too, it is already scored
   const dx=((t.left+t.width/2)-(s.left+s.width/2))/z, dy=((t.top+t.height/2)-(s.top+s.height/2))/z;

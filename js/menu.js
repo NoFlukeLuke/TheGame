@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r698 · The Editor: rechoose the ranks a Trick or Knack asks for";
+const BUILD = "2026-10-28 · r699 · the screen door: one fixed layer of scan lines over every screen; Settings -> Display -> Screen door";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

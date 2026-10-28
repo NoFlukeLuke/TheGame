@@ -10,7 +10,6 @@
   align-items: center; justify-content: center;
   padding: 3vh 2vw;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.94) 0%, rgba(11,10,28,0.97) 72%);
 }
 #records-overlay.show { display: flex; }

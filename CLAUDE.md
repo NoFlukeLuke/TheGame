@@ -3435,3 +3435,18 @@ again; in `CHG_FORM_FIELDS` so Temp never carries it). Console mode: the event i
 one, then exactly as many ranks as it had. A new rank-condition entity goes in `RANK_EDIT_DEFS`
 and reads `rkHas`. Measured at 1440x820 and 420x900: Face Value edited to A / 5 / 9 paid +60 on
 three 5s and nothing on three Kings; the sentence, tray copy and 12-credit charge followed.
+
+## r699 - the screen door is one layer (`js/screen-door.js`, `css/screen-door.css`) (owner)
+Every scan line in the game is drawn by one canvas, `#sd-door` (body-level, fixed, z 10003, multiply),
+fixed to the display: cards falling or flying, a lifted Trick and everything else on a screen move
+UNDER the lines. Every screen gets the same lines: `SD_CFG.line` (0.5) design px dark in every
+`SD_CFG.pitch` (3), at the stage's zoom, snapped to device pixels, phased from the display's top
+(measured: 6 device px a line pair at 1440x820, 9 at 420x900 DPR 3). Console mode adds the grille.
+A screen is anything matching `SD_SCREENS` (the pit look's `#cab-screen` content box, console mode's
+windows, the amber board screens, menus and panels); `SD_COVERS` (tooltips, printer slips, the dev
+panel) are cut out of it. Elements are re-read every 200ms, rects every frame, the canvas is redrawn
+only when something changed. The ~35 per-element scan line rules (five spacings, each moving with its
+element, incl. r511's and r691's own doors on fliers, plates, the flip clock and the phosphor card face's own lines) are gone; a new
+screen goes in `SD_SCREENS`, never as its own gradient. **Settings -> Display -> Screen door**
+(`screenDoor`, default on) sets `html.sd-off`, which hides the canvas. Not screen door, left alone:
+the boss Static look, the overload look's static, the VCR tracking band, printer paper, the desk's wood, the event lab's rung bars.

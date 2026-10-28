@@ -1,0 +1,6 @@
+/* r699: the screen door (js/screen-door.js). One canvas over the whole display, fixed, so
+   the lines stay put while things move on the screens under it. Multiply: the dark lines
+   darken, the console grille tints, and nothing is ever lightened. */
+#sd-door { position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: 10003;
+  pointer-events: none; mix-blend-mode: multiply; }
+html.sd-off #sd-door { display: none; }

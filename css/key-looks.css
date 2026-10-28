@@ -68,12 +68,11 @@ html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indi
   box-shadow: inset 0 3px 4px rgba(0,0,0,.9), inset 0 0 0 1px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.3);
   transition: filter .12s;
 }
-/* scan lines and a glare, over the words */
+/* a glare over the words (the scan lines are js/screen-door.js) */
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave)::after {
   inset: var(--kr); border-radius: 4px; z-index: 3;
   background:
-    linear-gradient(165deg, rgba(255,255,255,.13), transparent 34%),
-    repeating-linear-gradient(0deg, rgba(0,0,0,.34) 0 1px, transparent 1px 3px);
+    linear-gradient(165deg, rgba(255,255,255,.13), transparent 34%);
 }
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave),
 html.kl.kl-a #cabinet #cab-screen #stage :is(#btn-play, #btn-discard, #swap-indicator, #btn-leave) * {

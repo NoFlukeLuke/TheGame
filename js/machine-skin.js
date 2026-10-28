@@ -71,13 +71,8 @@ function mcIsFlier(el) {
   const cs = getComputedStyle(el);
   return cs.position === 'fixed' && cs.pointerEvents === 'none';
 }
-// A card or Trick in flight takes its own screen door (css: .mc-door / .mc-door-t), since
-// it has left the screen whose lines it wore. A card face is an opaque box, so the lines
-// cover the element; a Trick's floppy has a cut corner, so they follow its drawn disc.
+// A flier passes under the screen door like anything else on a screen (js/screen-door.js).
 function mcAdopt(el) {
-  if (el.matches('.card, .pmf-ghost')) el.classList.add('mc-door');
-  else if (el.querySelector('.reward-cell.entity-trick') || el.matches('.reward-cell.entity-trick')) el.classList.add('mc-door-t');
-  // r691: a score plate's door is drawn on its plate (.pt-box, css/skin-machine.css), nothing to tag
   const layer = mcFlyLayer();
   layer.appendChild(el);   // fixed stays fixed: a mask makes no containing block
   _mcMaskKey = ''; mcFlyMask();

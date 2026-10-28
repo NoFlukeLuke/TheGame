@@ -9,7 +9,6 @@
   position: fixed; inset: 0; z-index: 9998;
   align-items: center; justify-content: center; padding: 4vh 3vw;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.95) 0%, rgba(11,10,28,0.98) 72%);
 }
 #settings-overlay.show { display: flex; }
