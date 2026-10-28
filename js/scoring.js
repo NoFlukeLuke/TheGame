@@ -364,7 +364,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // one gate in this table that the player cannot see coming while choosing.
     { id:'even_score',    cond:() => true,                            pays:c => _rankIsEvenRank(c.rank) ? ({ pip:  TB('even_score').pips_per_card }) : null },
     { id:'odd_squad',     cond:() => true,                            pays:c => _rankIsOddRank(c.rank)  ? ({ mult: TB('odd_squad').mult_per_card })  : null },
-    { id:'men_of_means',  cond:() => true,                            pays:c => ['J','Q','K'].includes(c.rank) ? ({ pip: BAL.men_of_means.pips, mult: BAL.men_of_means.mult }) : null },   // r651 fused: Men of Repute + Face Value
+    { id:'men_of_means',  cond:() => true,                            pays:c => rkHas('men_of_means', c.rank) ? ({ pip: BAL.men_of_means.pips, mult: BAL.men_of_means.mult }) : null },   // r651 fused: Men of Repute + Face Value
     // Quake / Shock pay per card in the LARGEST matching rank group.
     { id:'kindred',       cond:x => x.maxCount >= 2,                  pays:(c,x) => x.topRanks.has(c.rank) ? ({ mult: BAL.kindred.mult_per_card }) : null },
   ];
@@ -401,7 +401,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
-  const _eightCount = hasTrick('eights_retrigger') ? _natCards.filter(c => c.rank === '8').length : 0;
+  const _eightCount = hasTrick('eights_retrigger') ? _natCards.filter(c => rkHas('eights_retrigger', c.rank)).length : 0;
   // Set of scored cells. Assembly Line: running mark counter
   // (starts from this round's persistent count; simulated locally so calcScore stays pure).
   const _cellSet = new Set(_scoreCells.map(([_hr,_hc]) => _hr + '-' + _hc));
@@ -520,8 +520,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _origPips = _G ? 0 : cardPips(baseRank);
     if (!_G) _ev('_card', 'pip+', _origPips, 'card');   // the card's own pips lead its beat
     let rawPips = _origPips;
-    if (hasTrick('face_value') && ['J','Q','K'].includes(baseRank)) { rawPips += BAL.face_value.face_pips; bPip('face_value', BAL.face_value.face_pips); }
-    else if (hasTrick('first_light') && baseRank === 'A') { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
+    if (hasTrick('face_value') && rkHas('face_value', baseRank)) { rawPips += BAL.face_value.face_pips; bPip('face_value', BAL.face_value.face_pips); }
+    else if (hasTrick('first_light') && rkHas('first_light', baseRank)) { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
     if (hasTrick('humble_roots') && ['A','1','2','3','4','5','6'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPipX('humble_roots', BAL.humble_roots.pip_mult, rawPips - _b); }
     // Even Better (r359): a luck-scaled 66% roll per card, deterministic per hand
     // (the preview and the committed score must agree - the Wait For It rule).
@@ -531,7 +531,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('court_of_leaves') && ['J','Q','K'].includes(baseRank)) { cp += BAL.court_of_leaves.pips; bPip('court_of_leaves', BAL.court_of_leaves.pips); }
     if (hasTrick('power_two') && baseRank === '2') { cp += BAL.power_two.pips; bPip('power_two', BAL.power_two.pips); }
     if (hasTrick('ten_strong') && baseRank === '10') { cp += BAL.ten_strong.pips; bPip('ten_strong', BAL.ten_strong.pips); }
-    if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { cp += BAL.king_guard.pips; bPip('king_guard', BAL.king_guard.pips); }
+    if (hasTrick('king_guard') && rkHas('king_guard', baseRank)) { cp += BAL.king_guard.pips; bPip('king_guard', BAL.king_guard.pips); }
     if (hasTrick('dark_matter') && card._corrupted) { cp += BAL.dark_matter.pips; bPip('dark_matter', BAL.dark_matter.pips); }
     // Climb mode (r398): a card scored AT the ceiling pays a flat bonus. Timeline
     // only (source 'climb', no ledger row), the row/col +2 mult rule; it sits
@@ -571,7 +571,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Retrigger / replay: certain conditions score this card's pips an extra time
     let _retrig = 1;
     const _r2 = false; // Double Take redesigned - now duplicates a Trick, not the 2 card
-    let _r8 = hasTrick('eights_retrigger') && baseRank === '8';
+    let _r8 = hasTrick('eights_retrigger') && rkHas('eights_retrigger', baseRank);
     const _rc = false; // Cornered redesigned - now a post-loop pip multiplier, not a replay
     // Echo Location: a 50% replay, deterministic so preview == score. It was
     // `(card._id + handsPlayedRound) % 2 === 0`, which IS a fair 50% but has no
@@ -763,7 +763,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_ld) { _cmAdd += _ld; _ladMult += _ld * _retrig; _ev('_ladder', 'mult+', _ld, 'card'); }
     if (_lp && _ns2.step) _nsMultTot += _ns2.step * _retrig;
     if (!_G && !_mute && _ns2.pips) _nsPipsTot += _ns2.pips * _retrig;
-    if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { const _v = BAL.king_guard.mult; _cmAdd += _v; _kgMult += _v * _retrig; _ev('king_guard','mult+',_v); }
+    if (hasTrick('king_guard') && rkHas('king_guard', baseRank)) { const _v = BAL.king_guard.mult; _cmAdd += _v; _kgMult += _v * _retrig; _ev('king_guard','mult+',_v); }
     const _pmv = (_G || !qrlBuffOn(card, 'mult')) ? 0 : (permMult[_eKey] || 0);
     if (_pmv) { _cmAdd += _pmv; _pmMult += _pmv * _retrig; _proc('perm_mult'); _ev('perm_mult','mult+',_pmv); }
     if (!_G && hasTrick('old_growth') && !_mute && cp) { const _og = cp / _retrig; _cmAdd += _og; _ogMult += cp; _proc('old_growth'); _ev('old_growth','mult+',_og); }
@@ -817,7 +817,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (hasTrick('what_odds') && _rankIsOddRank(baseRank)) _xl.push({ id: 'what_odds', f: TB('what_odds').mult_mult });
       // Rainbow (r539): a four-suit hand, x mult on each card (was +pips +mult per card).
       if (!_G && hasTrick('full_color') && _pcCtx.suitCount === 4 && !isWildCard(card)) _xl.push({ id: 'full_color', f: BAL.full_color.mult_mult });
-      if (hasTrick('patient_rulers') && (['J','Q','K'].includes(baseRank) || (ownedTrickObj('patient_rulers')?._prRanks || []).includes(baseRank)) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });   // r625: rolled extra ranks at the 5th
+      if (hasTrick('patient_rulers') && (rkHas('patient_rulers', baseRank) || (ownedTrickObj('patient_rulers')?._prRanks || []).includes(baseRank)) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });   // r625: rolled extra ranks at the 5th
       if (hasTrick('obsessed') && _isHeartC && coins > 0) _xl.push({ id: 'obsessed', f: 1 + coins / TB('obsessed').per_credits });
       // Relentless (r367): x(0.05 per spade scored since taking it), but never
       // below x1 - so it does nothing until the 21st spade.
@@ -1045,7 +1045,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
 
   // Ready, Set, Go: a 3-card hand (or a Pair via Three's a Crowd) containing a 3, 6 or 9 scores +mult
-  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && _natCards.some(cd => cd && ['3','6','9'].includes(cd.rank))) {
+  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && _natCards.some(cd => cd && rkHas('ready_set_go', cd.rank))) {
     mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
   }
   // Four Eyes: 4-card hands score +mult
@@ -1245,8 +1245,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_maxCount >= 2 && hasTrick('double_bloom')) { const _pre = mult; mult = Math.round(mult * BAL.double_bloom.mult_mult * 10) / 10; bMultX('double_bloom', BAL.double_bloom.mult_mult, mult - _pre); }
   if (handName === 'Four of a Kind' && hasTrick('richter')) { const _pre = mult; mult = Math.round(mult * BAL.richter.mult_mult * 10) / 10; bMultX('richter', BAL.richter.mult_mult, mult - _pre); }
   // Rank multipliers
-  if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q' || c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMultX('royal_trio', BAL.royal_trio.mult_mult, mult - _pre); }
-  if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _km = Math.pow(BAL.knave_power.per_jack, _jg); const _pre = totalPips; totalPips = Math.round(totalPips * _km); bPipX('knave_power', _km, totalPips - _pre); } }
+  if (hasTrick('royal_trio') && rkRoyalTrioMet(cards)) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMultX('royal_trio', BAL.royal_trio.mult_mult, mult - _pre); }
+  if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && rkHas('knave_power', _cc.rank)) _jg++; } if (_jg > 0) { const _km = Math.pow(BAL.knave_power.per_jack, _jg); const _pre = totalPips; totalPips = Math.round(totalPips * _km); bPipX('knave_power', _km, totalPips - _pre); } }
   // Scalper: ×(1 + 0.25 per missing Sleight charge) mult - figured once, now
   if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.mult_mult_per_missing * _miss; const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('scalper', _m, mult - _pre); } }
   // Minute Hand: charged by every 30s mark, spent by the next hand. Read-only here -
@@ -1366,7 +1366,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // or not its condition was met. Itself excluded; a switched-off Trick too.
   const _forceIds = (typeof forcedTrickIds !== 'undefined') ? forcedTrickIds.slice() : [];
   if (hasTrick('twos_retrigger') && typeof forceableTrickIds === 'function') {
-    const _t2 = _natCards.filter(c => c.rank === '2').length;
+    const _t2 = _natCards.filter(c => rkHas('twos_retrigger', c.rank)).length;
     const _fi = _t2 ? forceableTrickIds().filter(id => id !== 'twos_retrigger') : [];
     if (_fi.length) for (let k = 0; k < _t2; k++) _forceIds.push(_fi[_fi.length - 1]);
   }
@@ -1390,7 +1390,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _ft = trickTray[3].id;
     if (forceableTrickIds().includes(_ft)) _scoreCells.forEach(([r, c]) => {
       const cd = gridData[r]?.[c];
-      if (!cd || !(cd.rank === '4' || (BAL.four_by_four.queens && cd.rank === 'Q'))) return;
+      if (!cd || !rkFourByFourRanks().includes(cd.rank)) return;
       const _reps = retrigByKey[r + '-' + c] || 1, _cid = cd._id || 0;
       for (let k = 0; k < _reps; k++) if (_detReplayRand(_cid + 4441 + k * 7919, handsPlayedRound) < BAL.four_by_four.chance) _forceIds.push(_ft);
     });
@@ -2181,7 +2181,7 @@ function resetPositionMarks() {
       if (!t || seen.has(t)) return;
       seen.add(t);
       delete t._posAssigned; delete t._posAxis; delete t._posIndex; delete t._posDescBase;
-      delete t._luckyRanks; delete t._luckySells;   // Feelin Lucky (r360): a new run rolls afresh
+      delete t._luckyRanks; delete t._luckySells; delete t._luckyFixed;   // Feelin Lucky (r360): a new run rolls afresh
     }));
 }
 

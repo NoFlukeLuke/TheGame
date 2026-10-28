@@ -55,7 +55,7 @@ const SAVE_VARS = [
   'level', 'score', 'totalScore', 'lastRoundScore', 'lastRoundGoal', 'roundGoal', 'coins', 'leaves', 'handsPlayed', 'trickFireTotals',
   'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
-  'luckModifiers', 'knackBossGrowth', 'challengeDial', 'freeHandSecs', 'chargedCardPending', 'focusDoubleHands', 'overdriveCd',
+  'luckModifiers', 'knackBossGrowth', 'editorRanks', 'challengeDial', 'freeHandSecs', 'chargedCardPending', 'focusDoubleHands', 'overdriveCd',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
   // Guided's act state. guidedInStop, guidedCrossroadsOpen and guidedOffers are
   // deliberately NOT saved: a checkpoint is only ever taken at the START OF A

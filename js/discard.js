@@ -71,7 +71,7 @@ function doDiscard() {
   const _carried = procrastinateCarry(), _procrastinated = _carried.procs > 0;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
-  if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
+  if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => rkHas('lucky_sevens', c?.rank)).length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   // Time buffs do not stack (r342): a card already carrying one is skipped.
   // r625 (owner): a card takes the Vulture's pause once; a time buff from another source does not block it.
@@ -114,7 +114,7 @@ function doDiscard() {
     const _dc = gridData[r]?.[c];
     if (!_dc || _sieve) return;
     // Cloud Nine (r539): a 9 thrown away while it is held is destroyed, not reshuffled.
-    if (_dc.rank === '9' && !_dc._isSleight && !isWildCard(_dc) && hasTrick('nines_mult')) _dc._nineSpent = true;
+    if (rkHas('nines_mult', _dc.rank) && !_dc._isSleight && !isWildCard(_dc) && hasTrick('nines_mult')) _dc._nineSpent = true;
     if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
     else if (shredderVictims.has(_dc)) { expectedDeckTotal--; updateDeckHud(); }   // Shredder (r647): gone for good
     else discardToDrawPile(_dc);
@@ -159,7 +159,7 @@ function doDiscard() {
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
   if (hasTrick('fives_discard')) {
-    const fivesCount = discardedCards.filter(c => c.rank === '5').length;
+    const fivesCount = discardedCards.filter(c => rkHas('fives_discard', c.rank)).length;
     bonusMult_fives += fivesCount * BAL.fives_discard.pips_per_five;
   }
   // Perfect Ten: every N cards discarded or played (r624) adds mult

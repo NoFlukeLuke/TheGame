@@ -2219,7 +2219,6 @@
     text-shadow: 0 0 24px rgba(120, 200, 255, 0.9), 0 0 64px rgba(120, 200, 255, 0.45);
     border-radius: 50%;
     background:
-      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 4px),
       radial-gradient(circle at 50% 42%, rgba(120, 200, 255, 0.16), rgba(10, 8, 20, 0.0) 68%);
     box-shadow: inset 0 0 0 2px rgba(120, 200, 255, 0.35), inset 0 0 28px rgba(120, 200, 255, 0.18);
   }
@@ -2820,7 +2819,6 @@
     z-index: 420;
     flex-direction: column; align-items: center; justify-content: center;
     background:
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.96) 0%, rgba(11,10,28,0.97) 72%);
   }
   #pause-panel {
@@ -3246,11 +3244,6 @@
     justify-content: flex-end;
     overflow: hidden;
   }
-  .reward-cell.entity::after {   /* scanlines */
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
-  }
   .reward-cell.entity::before {  /* top glare */
     content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
     background: radial-gradient(120% 70% at 30% 0%, rgba(255,255,255,0.08), transparent 46%);
@@ -3658,10 +3651,6 @@
     cursor: var(--cur-pointer, pointer); pointer-events: auto;
   }
   .tt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
-  #reward-tooltip::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px); mix-blend-mode: overlay;
-  }
   #reward-tooltip .rtt-rar  { position: relative; z-index: 2; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--rc, var(--c-cyan)); margin-bottom: 4px; text-shadow: 0 0 6px var(--rc, var(--c-cyan)); }
   #reward-tooltip .rtt-name { position: relative; z-index: 2; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #fff; margin-bottom: 5px; }
   #reward-tooltip .rtt-desc { position: relative; z-index: 2; font-size: 11px; line-height: 1.4; color: var(--cream); overflow-wrap: break-word; }
@@ -3859,12 +3848,6 @@
       inset 0 1px 0 rgba(255,255,255,0.06);
     overflow-y: auto;
     overscroll-behavior: contain;
-  }
-  #lb-panel::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    border-radius: 13px;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
   }
   #lb-panel > * { position: relative; z-index: 1; }
   #lb-bar {
@@ -4203,7 +4186,6 @@
     padding: 24px;
     overflow: hidden;
     background:
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
   }
   #main-menu-overlay::after {
@@ -4361,7 +4343,6 @@
     flex-direction: column; align-items: center; justify-content: center;
     padding: 14px; overflow: hidden;
     background:
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
   }
   #mode-select-overlay.show { display: flex; }
@@ -4801,11 +4782,10 @@
     position: relative; padding: 12px; margin: 0 6px; border-radius: 16px; background: #0b0906;
     box-shadow: inset 0 0 0 3px #2c2418, inset 0 4px 18px rgba(0,0,0,0.9), inset 0 0 60px rgba(255,176,46,0.05);
   }
-  /* scanlines + glare over the whole play screen */
+  /* glare over the whole play screen (its scan lines are js/screen-door.js) */
   #cab-screen::after {
     content:""; position:absolute; inset:12px; border-radius:8px; pointer-events:none; z-index:60;
-    background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 12%),
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 12%);
     mix-blend-mode: overlay;
   }
   #cab-screen::before {

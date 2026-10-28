@@ -54,6 +54,10 @@ const SETTINGS_DEF = [
     apply: () => { if (typeof applyMusicVolume === 'function') applyMusicVolume(); } },
   { group: 'Audio', id: 'sfxVolumePct', label: 'Sound effects', hint: 'Cards, coins, scoring, bosses.',
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  // r694: the clock ramp (js/music.js). Read there every tick; nothing to apply.
+  { group: 'Audio', id: 'musicClock', label: 'Music follows the clock',
+    hint: () => `In a run the track plays faster as the round clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
+    type: 'select', default: 'tempo', options: [['off', 'Off'], ['tempo', 'Tempo'], ['tape', 'Tape']] },
   // Sound source (r186). Files beat packs beat classic - see the resolution order
   // in js/audio-assets.js. Both rows are read there rather than applied from here,
   // so there is no `apply` to keep in step.
@@ -234,6 +238,11 @@ const SETTINGS_DEF = [
     hint: 'A themed pointer instead of the system one. Turn off to use your normal cursor.',
     type: 'toggle', default: true,
     apply: v => document.documentElement.classList.toggle('os-cursor', !v) },
+  // r699: one layer of scan lines over every screen (js/screen-door.js).
+  { group: 'Display', id: 'screenDoor', label: 'Screen door',
+    hint: 'Fine dark lines over every screen, like an old monitor. Turn off for a plain picture.',
+    type: 'toggle', default: true,
+    apply: v => document.documentElement.classList.toggle('sd-off', !v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },

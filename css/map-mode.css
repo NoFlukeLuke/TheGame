@@ -20,22 +20,21 @@
   text-shadow: 0 0 6px rgba(255,176,46,.5);
   cursor: var(--cur-default, default);
 }
-#grid .map-term::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 6;
-  background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply;
-}
 
 /* ── The list: a gutter of times, then four lanes ── */
 #grid .mtm-list {
+  --ml-lanes: 4; --ml-sets: 4; --ml-min: 52px;
   flex: 1 1 auto; min-height: 0; position: relative;
   display: grid; gap: 3px;
-  grid-template-columns: 44px repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr)) minmax(0, .62fr);
+  grid-template-columns: 44px repeat(var(--ml-lanes), minmax(0, 1fr));
+  /* r679: a row never goes under --ml-min; six slots that will not fit scroll. */
+  grid-template-rows: repeat(var(--ml-sets), minmax(var(--ml-min), 1fr)) minmax(calc(var(--ml-min) * .7), .62fr);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
 }
 /* A slot's rule: a dashed line across the list, the lit row is where you are. */
 #grid .mtm-row {
   grid-column: 1 / -1; z-index: 0; pointer-events: none;
-  margin: -2px -3px 0; border-top: 1px dashed rgba(154,111,42,.5);
+  margin: -2px 0 0; border-top: 1px dashed rgba(154,111,42,.5);
 }
 #grid .mtm-row:first-child { border-top-color: transparent; }
 #grid .mtm-row.now { background: rgba(255,176,46,.07); box-shadow: inset 2px 0 0 var(--am); }
@@ -113,6 +112,18 @@
 #grid .map-tile.mt-missed { opacity: .3 !important; border-color: transparent; cursor: var(--cur-default, default); }
 #grid .map-tile.mt-doomed .mt-box { color: #ff7656; }
 #grid .map-tile.mk-blank { border: 1px dotted rgba(154,111,42,.35); cursor: var(--cur-default, default); align-items: center; }
+/* r679: a round across the WHOLE row reads as one bar: box, glyph and word in a
+   row, its goal at the right. A half-row round (.mt-pair) keeps the item layout. */
+#grid .map-tile.mt-wide { flex-direction: row; align-items: center; gap: 8px; padding: 2px 8px; }
+#grid .map-tile.mt-wide .mt-name { font-size: min(15px, 34cqh); }
+#grid .map-tile.mt-pair { padding-left: 8px; }
+#grid .map-tile.mt-wide .mt-stake { margin-left: auto; font-size: min(14px, 30cqh); }
+#grid .map-tile.mt-wide .mt-box, #grid .map-tile.mt-wide .mt-icon { font-size: min(15px, 34cqh); }
+/* r679: a faint wash of each item's own colour, so a row of different kinds reads
+   as different at a glance (owner). */
+#grid .map-tile:not(.mk-blank):not(.mt-selected) { background: color-mix(in srgb, var(--rc) 7%, transparent); }
+#grid .map-tile.mt-legal:not(.mt-selected) { background: color-mix(in srgb, var(--rc) 11%, transparent); }
+#grid .map-tile.mt-legal:not(.mt-selected):hover { background: color-mix(in srgb, var(--rc) 18%, transparent); }
 
 /* The review: one wide item along the bottom, a double frame, its quota beside it. */
 #grid .map-tile.mk-boss {

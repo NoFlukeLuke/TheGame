@@ -27,7 +27,7 @@ const CHG_TRICK_OUT = new Set(['mirror', 'middle_man', 'compound_mult', 'acorns'
   'relentless', 'quick_draw', 'expanse', 'little_guys', 'nines_mult', 'rising_tide', 'life_lessons', 'assembly_line']);
 const CHG_SLEIGHT_OUT = new Set(['slow_burn', 'whetstone']);
 // Rolled state a form keeps on its tray object, cleared when the form changes.
-const CHG_FORM_FIELDS = ['_posAxis', '_posIndex', '_posDescBase', '_posAssigned', '_luckyRanks', '_luckySells',
+const CHG_FORM_FIELDS = ['_posAxis', '_posIndex', '_posDescBase', '_posAssigned', '_luckyRanks', '_luckySells', '_luckyFixed',
   '_heartRanks', '_prRanks', '_critFamily', '_carry', '_countAdj', '_tiltDir'];
 var chgLevel = null;      // the level whose round last changed them - SAVE_VARS
 var chgTrickForm = null;  // Temp's last form, so its tier can be dropped when Temp goes - SAVE_VARS

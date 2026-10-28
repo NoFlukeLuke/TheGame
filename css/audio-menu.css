@@ -10,7 +10,6 @@
   position: fixed; inset: 0; z-index: 10002;
   align-items: center; justify-content: center; padding: 4vh 3vw;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at 50% 40%, rgba(20,32,44,0.95) 0%, rgba(8,9,16,0.98) 72%);
 }
 .audio-overlay.show { display: flex; }

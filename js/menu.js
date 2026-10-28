@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r696 · the rising SCORE: an odometer that rolls while hands score";
+const BUILD = "2026-10-28 · r701 · the rising SCORE: an odometer that rolls while hands score (merges main r700)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -723,7 +723,6 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay, opts){
   const ow = gEl.offsetWidth || s.width, oh = gEl.offsetHeight || s.height, z = s.width / ow || 1;
   clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;zoom:${z};left:${s.left/z}px;top:${s.top/z}px;width:${ow}px;height:${oh}px;transform-origin:center center;`;
   const host = strip ? dnqFlyLayer(strip) : document.body;
-  if(strip && typeof mcOn === 'function' && mcOn()) clone.classList.add('mc-door');   // the console skin's own flier layer is not this one
   host.appendChild(clone);
   gEl.style.opacity='0'; gEl.style.pointerEvents='none'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort); r659: untappable too, it is already scored
   const dx=((t.left+t.width/2)-(s.left+s.width/2))/z, dy=((t.top+t.height/2)-(s.top+s.height/2))/z;
@@ -803,20 +802,26 @@ function dncScoreHoldOff(){ dncShowScore = null; }
 // r691 (owner): half the lift it was (x2 a waiting hand): 1.5, 2.5, 4.5, 8.5. Never stacked with Focus (dncBoost).
 function dncQueuePace(){ return 1 + (Math.pow(2, dncQueue.length) - 1) / 2; }
 function dncQueueFull(){ return !!danceAbortController && dncQueue.length >= DNC_QUEUE_MAX; }
+// r695: the host covers the preview and is clipped to the tray's screen (nothing queued
+// shows outside the tray); its one child, the anchor, sits on the live hand's first card
+// and holds the strips.
 function dncQueueHost(){
   let h = document.getElementById('dnc-queue');
-  if(!h){ h = document.createElement('div'); h.id = 'dnc-queue'; }
+  if(!h){ h = document.createElement('div'); h.id = 'dnc-queue'; h.innerHTML = '<div class="dnq-anchor"></div>'; }
   const sc = document.getElementById('selected-cards');
   if(sc && h.parentElement !== sc) sc.appendChild(h);
   return h;
 }
+const dnqAnchorEl = () => dncQueueHost().firstElementChild;
 // The preview is cleared at a dance's start and end; the queue's strips are the
 // one thing in it that must survive that.
 function dncStageClear(stage){ if(!stage) return; [...stage.children].forEach(ch => { if(ch.id !== 'dnc-queue') ch.remove(); }); }
 // The strips live INSIDE the preview (z -1: over its glass, under its rows), anchored on
 // the live hand's first card, each waiting hand further up and right, smaller and
-// darker, the next hand on top. The preview is overflow visible while it tallies, so
-// a strip can poke past its edge.
+// darker, the next hand on top. r695 (owner): never outside the tray. The host is
+// clipped to the screen's inner box (the preview itself on a desktop, the strip around it
+// on a phone), and the step up shrinks with the queue's depth so the deepest strip still
+// starts inside it (11px a hand at most).
 // r694 (owner): a waiting hand is DARKENED, not faded (DNQ_DIM, brightness by depth): the
 // cards stay opaque, so a strip hides the strips behind it as a stack of cards does. A new
 // strip is placed without a transition (its cards' flights aim at where it will stay);
@@ -833,20 +838,30 @@ function dnqAnchor(sc){
   return [(ar.left - sr.left) / z - sc.clientLeft, (ar.top - sr.top) / z - sc.clientTop];
 }
 function dncQueueLayout(){
-  const h = dncQueueHost();
-  const strips = [...h.children];
+  const h = dncQueueHost(), an = h.firstElementChild;
+  const strips = [...an.children];
   if(!strips.length){ h.style.display = 'none'; return; }
   const sc = h.parentElement; if(!sc) return;
   const a = dnqAnchor(sc);
-  if(a){ h.style.left = a[0] + 'px'; h.style.top = a[1] + 'px'; }
-  else if(h.style.display !== 'block'){ h.style.left = '8px'; h.style.top = '10px'; }
+  if(a){ an.style.left = a[0] + 'px'; an.style.top = a[1] + 'px'; }
+  else if(h.style.display !== 'block'){ an.style.left = '8px'; an.style.top = '10px'; }
   h.style.display = 'block';
+  // The clip, in the host's own box (the preview's padding box): the screen's inner edges.
+  const sr = sc.getBoundingClientRect(), z = sr.width / (sc.offsetWidth || 1) || 1;
+  const scr = dnqScreen() || sc, cr = scr.getBoundingClientRect(), cs = getComputedStyle(scr);
+  const px = v => parseFloat(v) || 0;
+  const ox = sr.left + sc.clientLeft * z, oy = sr.top + sc.clientTop * z;
+  const T = (cr.top + px(cs.borderTopWidth) * z - oy) / z, L = (cr.left + px(cs.borderLeftWidth) * z - ox) / z;
+  const R = (ox + sc.clientWidth * z - (cr.right - px(cs.borderRightWidth) * z)) / z;
+  const B = (oy + sc.clientHeight * z - (cr.bottom - px(cs.borderBottomWidth) * z)) / z;
+  h.style.clipPath = `inset(${T.toFixed(1)}px ${R.toFixed(1)}px ${B.toFixed(1)}px ${L.toFixed(1)}px)`;
+  const dy = Math.max(2, Math.min(11, ((parseFloat(an.style.top) || 0) - T - 2) / strips.length));
   const fresh = [];
   strips.forEach((s, i) => { const k = i + 1;
     if(s._dnqNew){ s._dnqNew = false; s.style.transition = 'none'; fresh.push(s); }
     s._dnqB = dnqDim(k);
     s.style.zIndex = String(10 - k);
-    s.style.transform = `translate(${9 * k}px, ${-11 * k}px) scale(${Math.max(.7, 1 - .05 * k)})`;
+    s.style.transform = `translate(${9 * k}px, ${(-dy * k).toFixed(1)}px) scale(${Math.max(.7, 1 - .05 * k)})`;
     s.style.filter = `brightness(${s._dnqB})`; });
   if(fresh.length){ void h.offsetWidth; fresh.forEach(s => { s.style.transition = ''; }); }
 }
@@ -979,7 +994,7 @@ function dncQueueStrip(entry){
     slot.appendChild(d); slot.style.opacity = '0';   // shown when its card lands (flyGridCardToSlot's reveal)
     strip.appendChild(slot); });
   strip._dnqNew = true;   // placed where it stays before any card aims at it (dncQueueLayout)
-  dncQueueHost().appendChild(strip);
+  dnqAnchorEl().appendChild(strip);
   return strip;
 }
 // A dance cut from outside a play (round end, boss, new run) drops the queue:
@@ -1776,7 +1791,6 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── Settle (same tail as playScoreDance) ──
-  if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
   dncCleanupReal();
   // r694 (owner): the hand's cards fall out of the bottom of the tray (not the goal hand's:
   // its round is over and the screen changes). The goal hand clears at once, as before.
@@ -1789,8 +1803,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(!_fell) await wait(300/(dncFF ? DANCE_CFG.ff : dncPace()));
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   // A hand waiting keeps the preview live (its strips stay where they are, over the glass);
-  // the next dance's own clear takes this row away in the frame it builds its own.
-  if(!isGoalHand && !dncQueue.some(e => !e.dead)){ stage.classList.remove('dnc-active'); dncStageClear(stage); }
+  // the next dance's own clear takes this row away in the frame it builds its own. It also
+  // keeps the label held (r695): the next dance stamps its own name, with nothing between.
+  const _waiting = !isGoalHand && dncQueue.some(e => !e.dead);
+  if(!_waiting){ stage.classList.remove('dnc-active'); dncStageClear(stage); }
+  if(!_waiting && typeof holdHandNameLabel==='function') holdHandNameLabel(false);
 
   danceAbortController = null;
   dncChain = 0; _dncOutHandScore = 0;   // the burst has landed

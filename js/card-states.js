@@ -459,7 +459,7 @@ function queenFavourTick(board) {
   const lim = BAL.queens_upgrade.queen_seconds;
   const live = new Set(), due = [];
   board.forEach(([card, r, c]) => {
-    if (card.rank !== 'Q') return;
+    if (!rkHas('queens_upgrade', card.rank)) return;
     const k = cardId(card); live.add(k);
     queenBoardSecs[k] = (queenBoardSecs[k] || 0) + 1;
     if (queenBoardSecs[k] >= lim) due.push([r, c]);

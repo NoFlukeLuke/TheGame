@@ -206,6 +206,7 @@ const BAL = {
   reschedule: { price: 8, step: 1, rolls: 10, skip_pay: 10 },   // r590: 16, +2 a reroll, up to 10; skipping pays 20 (all through priceOf)
   luck_dice: { skip_cost: 10 },                                  // r590: skipping costs 20 through priceOf
   state_change: { common: 4, rare: 6, epic: 8, legendary: 12 },   // r580: by the state's tier, through priceOf
+  editor: { price: 6 },                                            // r698: the Editor, through priceOf (12 on screen)
   rewire: { junk: 2 },                                             // r580: junk cards into the deck   // r579: through priceOf (16 on screen)
   flip_events: { reflip: 10, keep_cap: 15, ladder_focus: 5 },   // r578: reflip and keep_cap through priceOf (20 / 30 on screen)   // r576: scaling only; both_price runs through priceOf
   workshop:  { cap_bonus: 2, cap_pct: 0.2, consolation_credits: 12 },   // r576: +20% of the ceiling, never under cap_bonus

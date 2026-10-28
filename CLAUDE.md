@@ -3354,8 +3354,23 @@ from 45%. Now:
 Measured in headless Chromium at 1440x820 and 420x900, console and pit: a copy frozen mid-flight
 over the live K is hidden behind it (seen only in the gaps); five hands in a burst (three waiting,
 the blast) and a winning hand over the queue end with no page errors, no timeline drift (dev mode),
-no fly layer, strip or hidden board card left. Not changed: the hand-name label names the newest
-selection while a hand scores (r401's rule), so after queuing it reads the queued hand's name.
+no fly layer, strip or hidden board card left. (r695 changed the label: see below.)
+
+## r695 - the label names the hand scoring; nothing queued shows outside the tray (owner)
+- **The hand-name label sticks to the hand being scored** (`updateHandNameLabel`, js/hud.js):
+  while a dance holds it, only a dance stamping its own hand (`force`) gets through; a live
+  selection, NEED or KICKERS no longer does (r401's exception is gone: since the queue, every
+  queued hand stamps its own name when its turn comes). With a hand waiting, the hold also
+  lasts through the fall-out into the next dance. Measured over 5-hand bursts at 1440x820 and
+  420x900: every sample while scoring read the scoring hand's name; a one-card selection mid-
+  tally left it alone, and after the tally the label followed the selection again.
+- **Queued strips stay inside the tray** (`dncQueueLayout`): `#dnc-queue` now covers the
+  preview (`inset: 0`) and is clipped to the screen's inner box (the preview on a desktop,
+  `#hand-preview-area` on a phone); the strips hang off its child `.dnq-anchor`, which carries
+  the live hand's first-card position and the glide. The step up shrinks with depth
+  (min(11, room / strips) px) so the deepest strip starts inside. Measured (5-hand bursts, every
+  60ms): queued cards reached 53px above the desktop tray in console mode, 62 in the pit; now 0
+  painted outside the tray in console, pit and on a phone.
 
 ## r695 - Reels: a shorter spin, FOCUS is the third beat (owner)
 `BLAST_RUN.reels` (js/score-blast.js): the lever delay is 120ms and the spin before PIPS lands
@@ -3369,7 +3384,107 @@ does (`blFmtF`, ×N). The preview spins ×1 to ×2.5 and hands the readout back 
 headless Chromium at 1440x820 and 420x900 through `blastPreview('reels')`: PIPS landed, MULT
 ~400ms later, FOCUS ~400ms after that, 85 spin frames on the Focus chip; no page errors.
 
-## r696 - the rising SCORE: an odometer that rolls while hands score (owner)
+## r696 - the music: ten Kevin MacLeod tracks; the track follows the round clock (owner)
+- **Tracks** (`assets/music/`, rows in `js/data/audio-manifest.js`, licences in `assets/music/CREDITS.md`,
+  the handbook's Credits): Local Forecast - Elevator, Your Call, Eternity, Presenterator, Delightful D
+  (scene `any`: the menu too), Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech
+  (scene `game`). Kevin MacLeod (incompetech.com), **CC BY 4.0**, every one published 2006-2020. Owner's
+  rule: nothing made by AI. MacLeod is reported to have used AI tools for pieces from 2025 on, so **a new
+  track from that catalogue must be dated before 2021**; check `uploaded` in
+  incompetech.com/music/royalty-free/pieces.json. Re-encoded at 128 kbps with loudness matched
+  (ffmpeg loudnorm, -16 LUFS), 31 MB in all. The r244 `deadline` row (a file that never existed) is gone.
+- **The clock ramp** (`MUSIC_CLOCK` in js/music.js: max 1.65, curve 1.6, slew 0.5 an x per second): a
+  track with no `ramp` of its own plays at 1x as the round clock starts and `max` at 0:00, along
+  `p ^ curve` where p = 1 - roundSeconds / roundStartSeconds (every round start, boss rounds included,
+  writes `roundStartSeconds` in `startRoundTimer`; Flow's level-ups add to both, so its session clock
+  reads as one round). A held clock (`gameTimerPaused`: shop, event, reward screen, pause menu) holds the
+  rate; a finished round (`roundEnded` or no `roundInterval`) eases home to 1x, except in Flow (held until
+  the run leaves the board); the menu is 1x. Changes are slewed, so a track change mid-round picks up the
+  live rate on the next tick. The r244 manifest `ramp` (time since the track started) still works and
+  owns the rate on a track that has it. `musicSetRate(rate, pitchUp)` takes the pitch flag now.
+  **Settings -> Audio -> Music follows the clock**: Off / Tempo (default; `preservesPitch`, the key held) /
+  Tape (the pitch rises). `musicClockSet({ max, curve, slew })` tunes it from the console.
+- The dead `css/terminal-skin.css` link in index.html (the file went in r566) is removed: a 404 on every load.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, walkthrough ended): 10% of the clock
+left 1.56x, half 1.22x, 1s left 1.644x (Tape: preservesPitch false); paused held 1.644; a rewind to 160s
+glided 1.64 > 1.39 > 1.14 > 1.02 over 2.2s; the next track at 17s left read 1.555x (Tempo: preservesPitch
+true); a finished round and the menu 1x; all ten files served 200; the playlist lists them; no page errors.
+
+## r695 numbering, again
+The scoring-queue branch's r695 (the label and the tray clip, above) ran in parallel with main's
+r694 / r695 (Reels) and r696 (the music). The merge that joined them is r697.
+
+## r698 - The Editor; rank conditions read one place (`js/rank-editor.js`)
+Every Trick or Knack whose condition names 3 or fewer fixed ranks reads them through
+**`rkSet(id)` / `rkHas(id, rank)`**, never a literal (`RANK_EDIT_DEFS` lists them with their
+default ranks and a `say(desc, R)` that rewrites the sentence). `editorRanks` (SAVE_VARS, reset in
+startGame) holds the rechosen ones; `rkPrune` (from renderTrickTray / updateKnackList) drops an
+edit once its entity leaves, so a copy taken again starts fresh; a fused Trick takes its part's
+edit (`from`, Men of Means <- Face Value, `rkOnPickup` in selectTrick). `syncOwnedEntityDescs`
+runs `rkDescApply` after the pool's sentence. **Improvements adapt:** Inspirato's and Patient
+Rulers' rolled extra ranks are rolled around the chosen set and re-rolled when an edit lands on
+one (`rkFixExtras`); 4x4's 5th improvement adds Queens, or the next face rank if Queens are
+chosen (`rkFourByFourRanks`); Cloud Nine adds cards of its current rank, and an edit turns up to
+`added` of its unspent old-rank cards in the piles into the new rank (`rkMoveCloudNine`). Heads of
+State edits the King; its "other Royal" is any face card that is not the chosen rank.
+**Feelin Lucky** (`lucky: true`): the Editor swaps its 5 rolled `_luckyRanks` for `RK_LUCKY_PICK`
+(3) chosen ranks and sets `_luckyFixed` (rerolls 0, sentence loses the sell clause, never listed
+again; in `CHG_FORM_FIELDS` so Temp never carries it). Console mode: the event is a board screen
+(r672); the rank keys are amber wireframe boxes (css/board-screen.css).
+**The Editor** event (`editor`, EVENTS.md): two or more such entities owned and 12 credits; pick
+one, then exactly as many ranks as it had. A new rank-condition entity goes in `RANK_EDIT_DEFS`
+and reads `rkHas`. Measured at 1440x820 and 420x900: Face Value edited to A / 5 / 9 paid +60 on
+three 5s and nothing on three Kings; the sentence, tray copy and 12-credit charge followed.
+
+## r699 - the screen door is one layer (`js/screen-door.js`, `css/screen-door.css`) (owner)
+Every scan line in the game is drawn by one canvas, `#sd-door` (body-level, fixed, z 10003, multiply),
+fixed to the display: cards falling or flying, a lifted Trick and everything else on a screen move
+UNDER the lines. Every screen gets the same lines: `SD_CFG.line` (0.5) design px dark in every
+`SD_CFG.pitch` (3), at the stage's zoom, snapped to device pixels, phased from the display's top
+(measured: 6 device px a line pair at 1440x820, 9 at 420x900 DPR 3). Console mode adds the grille.
+A screen is anything matching `SD_SCREENS` (the pit look's `#cab-screen` content box, console mode's
+windows, the amber board screens, menus and panels); `SD_COVERS` (tooltips, printer slips, the dev
+panel) are cut out of it. Elements are re-read every 200ms, rects every frame, the canvas is redrawn
+only when something changed. The ~35 per-element scan line rules (five spacings, each moving with its
+element, incl. r511's and r691's own doors on fliers, plates, the flip clock and the phosphor card face's own lines) are gone; a new
+screen goes in `SD_SCREENS`, never as its own gradient. **Settings -> Display -> Screen door**
+(`screenDoor`, default on) sets `html.sd-off`, which hides the canvas. Not screen door, left alone:
+the boss Static look, the overload look's static, the VCR tracking band, printer paper, the desk's wood, the event lab's rung bars.
+## r700 - the Schedule: two of a kind a slot, Q1's opener shapes, the tall shape, doors preview (owner)
+- **A slot holds at most two of one kind** (`MAP_KIND_CAP`, js/map-mode.js): the fill draws a cell
+  only from kinds with room in its slot (the minimums' top-up too) and the validator refuses the
+  rest. Q1's all-rounds opener is exempt. A faint wash of each item's own colour sits on every tile
+  (css/map-mode.css, 7% at rest, 11% lit, 18% hovered).
+- **Q1's first slot is one of three shapes**, rolled once per `mapGenerate` so the validator's
+  refusals do not skew them: a round a lane (as before), one round across the WHOLE row
+  (`cols: MAP_LANES`, one booking that fills the slot: `mapTileBookings`), or two 2-wide rounds
+  (`cols: 2`, a booking each; wide shape only). From Q2 on slot 1 is a row like any other, with a
+  round guaranteed. `mapCellTile` owns every lane a wide tile covers; a whole-row tile draws as a
+  bar (`.mt-wide`), a half-row one keeps the item layout (`.mt-pair`). The old walk's origin on a
+  wide tile offers forward from every lane it covers.
+- **The tall shape** (dev -> Schedule -> "Six slots of three, one booking a slot",
+  `lethe.map.layout` = 'tall', stored only when on, next map): 3 lanes x 6 slots, ONE booking a
+  slot (`mapSlotCap()`), rounds guaranteed in slots 1, 3 and 5 (`mapLevelSets()`), no leave-early
+  pay (nothing is left behind in a slot), its own help card (`MAP_HELP_ONE`) and times
+  (`MAP_SLOT_TIMES_TALL`). `MAP_LANES` / `MAP_SETS` / `MAP_BOSS_SET` are `let`s written by
+  `mapApplyLayout` at every map build and, on a restore, read off the saved tiles
+  (`mapRepairShape`), so a save on either shape resumes as it was. The tall shape is validated
+  under the pick rule's DP only (the old walk cannot turn sideways with one booking a slot). The
+  list's rows never go under `--ml-min` (52px); a list taller than its box scrolls (`.mtm-list`
+  overflow-y) with the slot you are in kept in view. The pen's ink does not scroll with it.
+- **The pick rule's start is judged by its own DP** (`mapPickCanFinish` in `mapLegalMoves`'s
+  off-map branch; the walk's DP read a whole-row opener as lane 0 only and called it doomed).
+- **`doors-preview.html`** (standalone, no game scripts): three looks for the owner's "the next
+  three stops are doors on a floor of the office" idea (THREE DOORS, CORRIDOR, DIRECTORY with a
+  lift ride up a floor). Parked until after the itch build and an artist (TODO.md section 1).
+Measured in headless Chromium at 1440x820 and 420x900: 1,000 maps a shape, 0 validation
+fallbacks, 0 strands over random pick-rule walks, 0 slots over the cap outside Q1's opener,
+every required slot holding a round; wide openers 36 / 31 / 34% lanes / row / pairs, tall 48 /
+52; a random walk books 5.7 (wide) / 5.9 (tall) a quarter, 2.9 / 2.8 of them rounds. By real
+click: the whole-row opener booked 2/2 and the round dealt 16 cards on a 4x4; a half-row round
+1/2; the tall shape 1/1 on desktop and phone. Tall desktop list 366px in a 278px box (scrolls);
+the phone's 366 in 332. No page errors.
+## r701 - the rising SCORE: an odometer that rolls while hands score (owner)
 `js/score-rise.js`, `css/score-rise.css`. The SCORE box no longer waits for a hand's tally. The
 moment a hand is banked (`playHand`'s `score += finalScore` calls `scoreRiseNote(before)`) the box
 becomes an odometer (`#score-total-num.odo`: one clipped cell per digit of the target, a column of

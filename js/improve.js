@@ -227,8 +227,8 @@ const IMPROVE_HOOKS = {
   shape_line: (tier, t) => { if (tier === 1 || tier === 2) return 3; if (tier === 4) return 5; },   // two improvements: 3, then 5
   undue_influence: tier => (tier >= 1 && tier < 5) ? 5 : undefined,
   nines_mult: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
-  wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, ['A']); },
-  patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, ['J', 'Q', 'K']); },
+  wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, rkSet('wild_heart')); },
+  patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, rkSet('patient_rulers')); },
   critical: (tier, t) => { if (t && BAL.critical.extra_family && !t._critFamily) t._critFamily = Math.random() < 0.5 ? 'set' : 'run'; },
   perfect_timing: () => { if (BAL.perfect_timing.extra_line && typeof markExtraLine === 'function') markExtraLine('perfect_timing'); },
   // r646: the line Tricks' 5th improvement marks a second line (js/scoring.js markExtraLine)
@@ -428,6 +428,7 @@ function syncOwnedEntityDescs() {
       // r646: a marked Trick's description names its line; the regenerated sentence says "a marked row or column"
       // again, so the label is put back from the registry (it used to be lost at every improvement).
       if (e && e._posAxis != null && typeof positionDescApply === 'function') { e._posDescBase = e.desc; positionDescApply(e); }
+      if (typeof rkDescApply === 'function') rkDescApply(e);   // r698: ranks rechosen at the Editor
     });
   });
 }

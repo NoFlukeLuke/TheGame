@@ -31,7 +31,7 @@ function trickLiveDesc(trick) {
     const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
     switch (trick.id) {
       case 'move_as_one': { const q = moveAsOneQualifying(); return `${base} (${q.keys.length ? 'keyword: ' + q.keys.join(', ') : 'no keyword shared by 3 yet'})`; }
-      case 'feelin_lucky': return `${base} (ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${feelinLuckyRerollsLeft(trick)} rerolls left)`;
+      case 'feelin_lucky': return `${base} (ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${trick._luckyFixed ? 'fixed' : feelinLuckyRerollsLeft(trick) + ' rerolls left'})`;
       // ── permanent accumulators / level / owned-based (always a number) ──
       case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);
       case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);
@@ -149,6 +149,7 @@ function refuseTrickCapacity() {
 function renderTrickTray() {
   pruneRowColBonuses();
   if (typeof chgTrickGone === 'function') chgTrickGone();   // r676: Temp sold or lost: its form's borrowed tier goes
+  if (typeof rkPrune === 'function') rkPrune();   // r698: an Editor choice leaves with its entity
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
   // A lifted copy points at a chip this render is about to replace (r409). A
@@ -364,6 +365,7 @@ function feelinLuckyRoll(t) {
   t._luckyRanks = pool.slice(0, BAL.feelin_lucky.ranks);
 }
 function feelinLuckyRerollsLeft(t) {
+  if (t && t._luckyFixed) return 0;   // r698: ranks fixed at the Editor, no more rerolls
   return (t && t.id === 'feelin_lucky') ? Math.max(0, BAL.feelin_lucky.rerolls - (t._luckySells || 0)) : 0;
 }
 function feelinLuckyRerollCost() { return Math.floor(coins * BAL.feelin_lucky.sell_cost_share); }
@@ -388,6 +390,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
   assignPositionMark(trick);
   if (trick.id === 'feelin_lucky' && !trick._luckyRanks) feelinLuckyRoll(trick);
+  rkOnPickup(trick);                                     // r698: a fused Trick takes its part's Editor ranks
   if (trick.id === 'nines_mult') cloudNinePickup();      // r539: brings its own 9s
   if (trick.id === 'rising_tide') risingTideMult = 0;    // r539: counts from the pick
   if (trick.id === 'assembly_line') asmLine = { prev: null, cur: 0 };   // r646: counts from the pick; this round stands in until one ends

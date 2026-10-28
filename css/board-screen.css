@@ -15,8 +15,6 @@
   font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
   cursor: var(--cur-default, default);
 }
-.bs-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 5;
-  background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; }
 .bs-head { flex: 0 0 auto; padding: 8px 10px 4px; font-size: 17px; line-height: 24px; letter-spacing: 1px; color: var(--am-hi); min-height: 24px; }
 .bs-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 2px 10px 6px; display: flex; flex-direction: column; gap: 6px; }
 .bs-keys { flex: 0 0 auto; display: flex; gap: 6px; padding: 4px 10px 8px; justify-content: flex-end; }
@@ -75,7 +73,6 @@ html.skin-machine #limitbreak-overlay.lb-console #lb-panel {
   font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
   scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
 }
-html.skin-machine #limitbreak-overlay.lb-console #lb-panel::before { background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; border-radius: 8px; z-index: 4; }
 html.skin-machine #limitbreak-overlay.lb-console #lb-bar {
   width: calc(100% + 20px); margin: 0 -10px 6px; padding: 7px 10px 3px; border: 0; border-radius: 0;
   background: #0e150a; box-shadow: 0 2px 0 #0e150a;
@@ -186,7 +183,6 @@ body.kb-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).kb-on { transf
   font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
   scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
 }
-#event-overlay.ev-console #event-panel::before { background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; border-radius: 8px; z-index: 4; }
 #event-overlay.ev-console #event-bar {
   width: calc(100% + 20px); margin: 0 -10px 6px; padding: 6px 10px 3px; border: 0; border-radius: 0;
   background: #0e150a; box-shadow: 0 2px 0 #0e150a;
@@ -228,6 +224,10 @@ body.kb-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).kb-on { transf
 }
 #event-overlay.ev-console .ev-btn:hover { background: rgba(255,176,46,.14); border-color: var(--am); filter: none; }
 #event-overlay.ev-console .ev-btn:disabled { opacity: .35; }
+/* r698: the Editor's rank keys, wireframe boxes like the choices */
+#event-overlay.ev-console .ed-rank { font-family: inherit; font-size: 16px; color: var(--am); background: transparent; border: 1px solid var(--am-dim); border-radius: 3px; text-shadow: inherit; }
+#event-overlay.ev-console .ed-rank:hover { background: rgba(255,176,46,.12); border-color: var(--am); }
+#event-overlay.ev-console .ed-rank.on { background: var(--am); color: #1a1206; border-color: var(--am-hi); text-shadow: none; }
 #event-overlay.ev-console #event-body :is(.kw, [class^="kw-"], [class*=" kw-"]) { color: var(--am-hi); }
 /* Same as the briefing's (css/boss.css): sized like the board screen, no font-size-adjust. */
 html.skin-machine #cabinet #cab-screen #stage #event-overlay.ev-console #event-panel,

@@ -42,7 +42,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       totalFocus += BAL.correct_run.focus * trickFires('correct_run');
     // Resonance (r624): any hand with a pair in it (Pair, Two Pair, Full House, a
     // pair layered under anything) that holds a 2 or a 4 adds Focus per card.
-    if (hasTrick('high_pair') && handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
+    if (hasTrick('high_pair') && handCells.some(([r,c]) => gridData[r]?.[c] && rkHas('high_pair', gridData[r][c].rank))) {
       const _hpComps = (typeof handComponentsFor === 'function' && handComponentsFor(handCells)?.components) || [];
       const _hpPair = ['Pair', 'Two Pair', 'Full House'].includes(hand) || _hpComps.some(c => ['Pair', 'Two Pair', 'Full House'].includes(c.name));
       if (_hpPair) totalFocus += _rsum() * BAL.high_pair.focus_per_card * trickFires('high_pair');
@@ -55,7 +55,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (_btl) totalFocus += _btl * trickFires('before_the_tide');
     }
     // Lucky Sevens: +3 Focus per 7 scored
-    { const _sv = _rsum(cd => cd?.rank === '7'); if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
+    { const _sv = _rsum(cd => rkHas('lucky_sevens', cd?.rank)); if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
     // Threepeat: hand pip-sum divisible by 3 → one of rewind / mult / Focus
     { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(2, handCells)) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
     // Wildfire: reaching a same-hand streak of 3 adds Focus
@@ -829,8 +829,8 @@ function playHand() {
   if (isSetHand(hand)) {
     setsPlayedRound++;
     // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
-    if (handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
-      const _uiFaces = BAL.undue_influence.faces ? handCells.filter(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank)).length : 0;   // r625: improved once, the face cards pay too
+    if (handCells.some(([r,c]) => rkHas('undue_influence', gridData[r]?.[c]?.rank))) {
+      const _uiFaces = BAL.undue_influence.faces ? handCells.filter(([r,c]) => rkHas('undue_influence', gridData[r]?.[c]?.rank)).length : 0;   // r625: improved once, the face cards pay too
       const _ui = (setsPlayedRound + _uiFaces) * trickFires('undue_influence');
       if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); noteMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
@@ -943,21 +943,21 @@ function playHand() {
   if (hasTrick('queens_upgrade')) result.handCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     if (!card || !card.rank || isWildCard(card) || ACTIVE_RANKS.indexOf(card.rank) === -1) return;
-    const byQueen = getNeighbors(r, c).some(([nr, nc]) => { const q = gridData[nr]?.[nc]; return q && (q.rank === 'Q' || q.rank2 === 'Q'); });
+    const byQueen = getNeighbors(r, c).some(([nr, nc]) => { const q = gridData[nr]?.[nc]; return q && (rkHas('queens_upgrade', q.rank) || rkHas('queens_upgrade', q.rank2)); });
     if (byQueen) queenUpgradePending.add(cardId(card));
   });
 
   // Ace Absorb: when an Ace scores, one random adjacent non-scored card is forgotten and its bonuses added to the Ace.
   // Monopoly (Spectrum) is the same effect on a 15 or a 20 - Spectrum has no Aces, so it gets its own trigger rank set.
-  const _absorbCell = hasTrick('aces_absorb') && scoringRanks.includes('A')
-        ? result.handCells.find(([r,c]) => gridData[r][c].rank === 'A')
+  const _absorbCell = hasTrick('aces_absorb') && scoringRanks.some(rk => rkHas('aces_absorb', rk))
+        ? result.handCells.find(([r,c]) => rkHas('aces_absorb', gridData[r][c].rank))
         : hasTrick('monopoly') && scoringRanks.some(rk => MONOPOLY_RANKS.includes(rk))
         ? result.handCells.find(([r,c]) => MONOPOLY_RANKS.includes(gridData[r][c].rank))
         : null;
   // Ace Absorb (r350) reaches any card off the hand, on a 50% (Luck-scaled)
   // roll; Monopoly keeps its adjacent-only, every-time rule.
   if (_absorbCell) {
-    const _ace = gridData[_absorbCell[0]][_absorbCell[1]].rank === 'A';
+    const _ace = hasTrick('aces_absorb') && rkHas('aces_absorb', gridData[_absorbCell[0]][_absorbCell[1]].rank);
     if (!_ace) absorbAdjacentInto(_absorbCell, scoredSet);
     else if (luckRoll(BAL.aces_absorb.chance) > 0 && trickFires('aces_absorb')) absorbAdjacentInto(_absorbCell, scoredSet, true);
   }
@@ -1029,15 +1029,17 @@ function cloudNinePickup() {
   bonusMult_nines = 0;
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
   const n = BAL.nines_mult.added || 0;
-  for (let i = 0; i < n; i++) copyCardToDeck({ rank: '9', suit: suits[i % suits.length] });
-  if (n) showMessage(`Cloud Nine: ${n} 9s added to your deck`, 'var(--gold)');
+  const _r = rkSet('nines_mult')[0];
+  for (let i = 0; i < n; i++) copyCardToDeck({ rank: _r, suit: suits[i % suits.length] });
+  if (n) showMessage(`Cloud Nine: ${n} ${rkPl(_r)} added to your deck`, 'var(--gold)');
 }
 // r625: an improvement adds more 9s to the deck.
 function cloudNineAddNines(n) {
   if (!hasTrick('nines_mult')) return;
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
-  for (let i = 0; i < n; i++) copyCardToDeck({ rank: '9', suit: suits[Math.floor(Math.random() * suits.length)] });
-  if (n) showMessage(`Cloud Nine: ${n} more 9s added to your deck`, 'var(--gold)');
+  const _r = rkSet('nines_mult')[0];
+  for (let i = 0; i < n; i++) copyCardToDeck({ rank: _r, suit: suits[Math.floor(Math.random() * suits.length)] });
+  if (n) showMessage(`Cloud Nine: ${n} more ${rkPl(_r)} added to your deck`, 'var(--gold)');
 }
 // Heartwood's cells this round: the centre, plus the secret extra cell(s) at the 5th improvement (r625).
 function heartwoodCellsNow() {
@@ -1054,14 +1056,14 @@ function heartwoodRollExtraCells() {
 }
 function cloudNineCheck() {
   if (!hasTrick('nines_mult') || BAL.nines_mult.no_delete) return;   // r625: the 5th improvement keeps it
-  const live = c => c && c.rank === '9' && !c._nineSpent && !c._temp;
+  const live = c => c && rkHas('nines_mult', c.rank) && !c._nineSpent && !c._temp;
   if (everyDeckCard().some(live) || (goalHandHeld || []).some(live)) return;
   const i = trickTray.findIndex(t => t.id === 'nines_mult');
   if (i >= 0) trickTray.splice(i, 1);
   const a = acquiredTricks.findIndex(t => t.id === 'nines_mult');
   if (a >= 0) acquiredTricks.splice(a, 1);
   bonusMult_nines = 0;
-  showMessage('Cloud Nine is gone: no 9s left in your deck', 'var(--cream-dim)');
+  showMessage(`Cloud Nine is gone: no ${rkPl(rkSet('nines_mult')[0])} left in your deck`, 'var(--cream-dim)');
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
@@ -1125,7 +1127,7 @@ function scalingCount(hand, handCells, reps) {
   }
   // Penny Saved: 5s scored also count.
   if (hasTrick('fives_discard')) {
-    const _f = _cells.reduce((t, x) => t + (x.card.rank === '5' ? x.n : 0), 0);
+    const _f = _cells.reduce((t, x) => t + (rkHas('fives_discard', x.card.rank) ? x.n : 0), 0);
     bonusMult_fives += _f * BAL.fives_discard.pips_per_five;
   }
   // Cloud Nine (r539, owner's rework): each 9 scored adds to the Trick's mult (per
@@ -1135,7 +1137,7 @@ function scalingCount(hand, handCells, reps) {
   // never the scored card, so the "forgotten" 9 always came back).
   if (hasTrick('nines_mult')) {
     _cells.forEach(({ card, n }) => {
-      if (card.rank !== '9' || card._isSleight || isWildCard(card)) return;
+      if (!rkHas('nines_mult', card.rank) || card._isSleight || isWildCard(card)) return;
       bonusMult_nines += BAL.nines_mult.mult_per_nine * n;
       card._nineSpent = true;
     });
@@ -1192,7 +1194,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   // Inspirato: a scored Ace primes the first and last tray Tricks
   // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
   if (hasTrick('wild_heart') && trickTray.length) {
-    const _whT = ownedTrickObj('wild_heart'), _whRanks = ['A', ...((_whT && _whT._heartRanks) || [])];
+    const _whT = ownedTrickObj('wild_heart'), _whRanks = [...rkSet('wild_heart'), ...((_whT && _whT._heartRanks) || [])];
     if (handCells.some(([r,c]) => _whRanks.includes(gridData[r]?.[c]?.rank))) {
       primeTrick(trickTray[0], BAL.wild_heart.primes, { src: 'wild_heart' });
       const _last = trickTray[trickTray.length - 1];
