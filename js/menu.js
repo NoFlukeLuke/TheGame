@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r702 · the Schedule: two reviews a quarter and a hidden third";
+const BUILD = "2026-10-28 · r703 · the Schedule: two reviews a quarter and a hidden third (merges main r701)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -82,9 +82,11 @@ function updateScoreUI() {
   const shownScore = between ? lastRoundScore : live;
   // animateDigitEl rolls the digits; between rounds the number is a finished
   // fact rather than a climbing tally, so it is written straight in.
-  if (!between) animateDigitEl(document.getElementById('score-total-num'), shownScore);
+  // r696: while the rising score owns the box (js/score-rise.js) its wheels are the number.
+  const riseOwns = typeof scoreRiseOwns === 'function' && scoreRiseOwns() && !between;
+  if (!between && !riseOwns) animateDigitEl(document.getElementById('score-total-num'), shownScore);
   const scoreDisplayEl = document.getElementById('score-total-num');
-  if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
+  if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden' && !riseOwns) {
     scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
   const _rq = (typeof roundQuota !== 'undefined') ? roundQuota : null;

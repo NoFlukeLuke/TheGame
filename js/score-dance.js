@@ -247,6 +247,7 @@ function handleDanceAbort(isGoalHand) {
   // Hand the portrait strip back to whichever half the player had chosen.
   if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if (stopwatchActive) endStopwatch(); // release the Stopwatch freeze if the dance was cut short
+  if (typeof scoreRiseSnap === 'function') scoreRiseSnap();   // r696: the odometer lands on the total too
   dncShowScore = null;   // r670: a cut dance lands the whole total
   updateScoreUI();
   const pipsValEl = document.getElementById('pips-val');
@@ -1173,7 +1174,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
   { const _fEl = document.getElementById('focus-val'); if(_fEl) _fEl.textContent = _fmtFocus(preHandFocus); }
   const scoreAfter = _q ? _q.scoreAfter : score, scoreBefore = scoreAfter - finalScore;
-  dncShowScore = scoreBefore;   // r670: the box shows this hand only as the climb reaches it
+  // r696: while the rising score owns the box (js/score-rise.js) the dance leaves it alone.
+  const _riseOwns = () => typeof scoreRiseOwns === 'function' && scoreRiseOwns();
+  if(!_riseOwns()) dncShowScore = scoreBefore;   // r670: the box shows this hand only as the climb reaches it
   const levelScale = levelPipScale();
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
   const basePips = Math.round(handBasePips(hand) * levelScale), baseMult = handBaseMult(hand, handCells.length);
@@ -1765,7 +1768,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   }
 
   // ── SCORE climb ──
-  if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
+  if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreBefore.toLocaleString();
   const climb = skipBeats ? 140
               : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncPace()));
   let goalFlashed=false;
@@ -1775,8 +1778,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // and a negative tt made the cubic dip the number below the old score.
       const tt=Math.max(0,Math.min((now-st)/climb,1)), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
-      dncShowScore = cur;
-      if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(!_riseOwns()){ dncShowScore = cur; if(scoreEl) scoreEl.textContent=cur.toLocaleString(); }
       if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)
       if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
@@ -1793,7 +1795,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // r694 (owner): the hand's cards fall out of the bottom of the tray (not the goal hand's:
   // its round is over and the screen changes). The goal hand clears at once, as before.
   if(isGoalHand){ stage.classList.remove('dnc-active'); dncStageClear(stage); }
-  if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
+  if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreAfter.toLocaleString();
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
@@ -1814,7 +1816,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if (typeof portraitDanceEnd === 'function' && !dncQueue.length) portraitDanceEnd();   // r661: a queued hand keeps the strip
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
   if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
-  dncShowScore = dncQueue.length ? scoreAfter : null;   // r670: a hand still queued is not shown yet
+  if(_riseOwns()){ if(typeof scoreRiseRelease === 'function') scoreRiseRelease(); }   // r696: the roll hands the box back once it lands
+  else dncShowScore = dncQueue.length ? scoreAfter : null;   // r670: a hand still queued is not shown yet
   updateScoreUI();
   // The tally has landed on the real score, so the deferred takeover HUD (the
   // mid-dance pick's location swap) may come up now - and it MUST be released
