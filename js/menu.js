@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r703 · the Schedule: two reviews a quarter and a hidden third (merges main r701)";
+const BUILD = "2026-10-28 · r704 · the playlist is music only; Local Forecast is gone";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -3537,3 +3537,11 @@ map's three presets distinct. By real click: the unlocked review booked, the rou
 `actBossId` the booked preset and `forceBossNextRound` set; a locked review's info line printed
 its unlock; the hidden review booked under neither (A 4/5, B 3/5) armed its own preset; both
 unlocked on the tall shape offered a choice. No page errors.
+
+## r704 - the playlist is music only (owner)
+Local Forecast - Elevator is gone ("a little too elevator"): file, manifest row, CREDITS.md row and the
+handbook's credit line. The twelve r186 office recordings (`amb_*`: drive whirr, typing, dial tone, clock
+tick) are no longer listed in `AUDIO_MANIFEST.music`, so Settings -> Music playlist shows only the nine
+Kevin MacLeod tracks (Your Call, Eternity, Presenterator, Delightful D on the menu and in a run; Digital
+Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech in a run). The recordings stay in
+`assets/ambience/` unplayed; a stored on/off choice for an `amb_` id is ignored (no row reads it).

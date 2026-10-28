@@ -12,7 +12,6 @@ The attribution the licence asks for, per track:
 
 | file | title | year | source |
 |---|---|---|---|
-| `local-forecast-elevator.mp3` | Local Forecast - Elevator | 2013 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Local%20Forecast%20-%20Elevator.mp3 |
 | `your-call.mp3` | Your Call | 2015 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Your%20Call.mp3 |
 | `presenterator.mp3` | Presenterator | 2011 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Presenterator.mp3 |
 | `delightful-d.mp3` | Delightful D | 2016 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Delightful%20D.mp3 |
@@ -25,7 +24,7 @@ The attribution the licence asks for, per track:
 
 Standard credit line (one per track):
 
-    "Local Forecast - Elevator" Kevin MacLeod (incompetech.com)
+    "Your Call" Kevin MacLeod (incompetech.com)
     Licensed under Creative Commons: By Attribution 4.0 License
     http://creativecommons.org/licenses/by/4.0/
 

@@ -36,24 +36,9 @@ const AUDIO_MANIFEST = {
   //   { id: 'grind',  title: 'Night Shift', file: 'assets/music/night-shift.mp3', scene: 'game' },
   //   { id: 'panic',  title: 'Deadline',    file: 'assets/music/deadline.mp3',    scene: 'game', ramp: true },
   music: [
-    // ── Office ambience (r186) ──
-    // The long recordings from assets/ambience/. They are beds, not one-shot
-    // effects: 8 to 54 seconds of drive whirr, typing and dial tone, which is
-    // exactly what the cubicle on the menu wants behind it. They all carry
-    // `off: true` so the playlist starts silent and you switch on the ones you
-    // like rather than meeting twelve at once.
-    { id: 'amb_hddstart', title: 'Hard drive spinning up', file: 'assets/ambience/hard-drive-start.mp3',  scene: 'menu', off: true },
-    { id: 'amb_hddfail',  title: 'Failing hard drive',     file: 'assets/ambience/hard-drive-failing.mp3', scene: 'menu', off: true },
-    { id: 'amb_disc',     title: 'Mechanical disc',        file: 'assets/ambience/mechanical-disc.mp3',    scene: 'menu', off: true },
-    { id: 'amb_diskfail', title: 'Disk loading, failing',  file: 'assets/ambience/disk-loading-fail.mp3',  scene: 'menu', off: true },
-    { id: 'amb_dvd',      title: 'DVD drive spin',         file: 'assets/ambience/dvd-spin.mp3',           scene: 'menu', off: true },
-    { id: 'amb_floppy',   title: 'Reading a floppy',       file: 'assets/ambience/floppy-read.mp3',        scene: 'menu', off: true },
-    { id: 'amb_grind',    title: 'Startup grind',          file: 'assets/ambience/startup-grind.mp3',      scene: 'menu', off: true },
-    { id: 'amb_think',    title: 'Console thinking',       file: 'assets/ambience/console-thinking.mp3',   scene: 'menu', off: true },
-    { id: 'amb_dial',     title: 'Dial tone',              file: 'assets/ambience/phone-dial-tone.mp3',    scene: 'menu', off: true },
-    { id: 'amb_type1',    title: 'Typing (short)',         file: 'assets/ambience/typing-short.mp3',       scene: 'any',  off: true },
-    { id: 'amb_type2',    title: 'Typing (long)',          file: 'assets/ambience/typing-long.mp3',        scene: 'any',  off: true },
-    { id: 'amb_clock',    title: 'Clock tick',             file: 'assets/ambience/clock-tick.mp3',         scene: 'game', off: true },
+    // The playlist is music only (r704, owner). The r186 office recordings
+    // (drive whirr, typing, dial tone) are still in assets/ambience/ but are
+    // not listed here; nothing else plays them.
     // ── The music (r694) ──
     // Kevin MacLeod (incompetech.com), CC BY 4.0, human-composed pieces from 2006
     // to 2020; the credit lines are in assets/music/CREDITS.md. Corporate on the
@@ -61,7 +46,6 @@ const AUDIO_MANIFEST = {
     // follow the ROUND CLOCK instead (js/music.js, MUSIC_CLOCK), reaching
     // MUSIC_CLOCK.max as the clock reaches 0:00. 'any' tracks also play on the
     // menu, at 1x; 'game' tracks are the driving ones and wait for a run.
-    { id: 'elevator',     title: 'Local Forecast - Elevator', artist: 'Kevin MacLeod', file: 'assets/music/local-forecast-elevator.mp3', scene: 'any' },
     { id: 'your_call',    title: 'Your Call',              artist: 'Kevin MacLeod', file: 'assets/music/your-call.mp3',        scene: 'any' },
     { id: 'eternity',     title: 'Eternity',               artist: 'Kevin MacLeod', file: 'assets/music/eternity.mp3',         scene: 'any' },
     { id: 'presenterator',title: 'Presenterator',          artist: 'Kevin MacLeod', file: 'assets/music/presenterator.mp3',    scene: 'any' },

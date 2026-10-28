@@ -10,14 +10,14 @@ push, and GitHub Pages serves it.
 |---|---|
 | `assets/music/`    | background music tracks (`.mp3`, `.ogg`, `.m4a`). What ships and its licence: `assets/music/CREDITS.md` |
 | `assets/sfx/`      | short one-shot sound effects, under about 2 seconds |
-| `assets/ambience/` | long beds - room tone, machine hum - played as tracks |
+| `assets/ambience/` | long office recordings (drive whirr, typing, dial tone). Not played: the playlist is music only |
 | `assets/icons/`    | the pixel icon sheet the entity tiles draw. Generated: see `tools/icons/README.md` |
 | `assets/art/floppy/` | your own picture of the Trick floppy disc, one per rarity: see `assets/art/floppy/README.md` |
 
 **Short effect or long bed?** Anything much over two seconds is a bed, not an
-effect: it will still be playing when the next one fires. Put those in
-`assets/ambience/` and list them in the `music` block, where they get their own
-on/off switch. `off: true` on a track means it starts switched off.
+effect: it will still be playing when the next one fires. Beds live in
+`assets/ambience/` and are not played. The `music` list is for music only;
+`off: true` on a track means it starts switched off.
 
 ## Adding a music track
 
