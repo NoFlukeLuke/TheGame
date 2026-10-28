@@ -50,7 +50,7 @@ const EGL_LAYOUTS = {
   marquee:  { name: 'MARQUEE',   note: 'A big prompt cell on top, options as cells under it.' },
 };
 const EGL_ROOMS = { box: 'IN THE BOX', slide: 'SLIDE OFF' };
-const EGL_TRANS = { console: 'CONSOLE', cube: 'CUBE', flip: 'FLIP' };
+const EGL_TRANS = { console: 'CONSOLE', flip: 'FLIP' };   // r692: CUBE is gone (owner: no sideways rotation)
 // The phosphor palette (owner): twelve colours with the amber's warmth, so a
 // thing can keep a hint of its usual colour on the amber screens. Written onto
 // #egl as --wf-<name>; the CSS reads only those. [name, colour, what wears it]
@@ -817,12 +817,12 @@ function eglReconcile(pieces, G, fits, { turn, animate }) {
     if (seen.has(k)) return;
     el._dying = true; el.onclick = null; el.onmouseenter = null; el.onmouseover = null; el.classList.add('egl-dying');
     if (!animate) { el.remove(); return; }
-    const a = el.animate([{ transform: 'perspective(520px) rotateY(0deg)', opacity: 1 }, { transform: 'perspective(520px) rotateY(90deg)', opacity: 0.3 }],
+    const a = el.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 28px', opacity: 0 }],   // r692: a drop, not a turn
       { duration: 190, delay: turn ? +el.dataset.d : 0, easing: 'ease-in', fill: 'forwards' });
     a.finished.then(() => el.remove(), () => el.remove());
   });
   if (!animate) return;
-  born.forEach(el => el.animate([{ transform: 'perspective(520px) rotateY(-90deg)', opacity: 0.3 }, { transform: 'perspective(520px) rotateY(0deg)', opacity: 1 }],
+  born.forEach(el => el.animate([{ translate: '0 -28px', opacity: 0 }, { translate: '0 0', opacity: 1 }],
     { duration: 240, delay: (turn ? 250 : 0) + +el.dataset.d, easing: 'ease-out', fill: 'backwards' }));
 }
 function eglMountCoin() {
@@ -971,18 +971,7 @@ function eglReveal() {
 }
 function eglTrHost(cls) { const h = document.createElement('div'); h.className = 'egl-tr ' + cls; egl.layer.appendChild(h); return h; }
 function eglTransit(tr, from, to, kind) {
-  return tr === 'cube' ? eglCube(from, to, kind === 'close' ? -1 : 1) : eglConsole(from, to, eglScript(kind));
-}
-function eglCube(from, to, dir) {
-  const host = eglTrHost('egl-tr-cube'), w = egl.rect.w, ms = 720;
-  host.style.perspective = Math.round(w * 2.6) + 'px';
-  host.append(from, to);
-  [from, to].forEach(f => { f.style.transformOrigin = `50% 50% ${-w / 2}px`; });
-  const opt = { duration: ms, easing: 'cubic-bezier(.6,0,.3,1)', fill: 'forwards' };
-  from.animate([{ transform: 'rotateY(0deg)', filter: 'brightness(1)' }, { transform: `rotateY(${-90 * dir}deg)`, filter: 'brightness(.25)' }], opt);
-  const a = to.animate([{ transform: `rotateY(${90 * dir}deg)`, filter: 'brightness(.25)' }, { transform: 'rotateY(0deg)', filter: 'brightness(1)' }], opt);
-  if (typeof sfxScreenTurn === 'function') try { sfxScreenTurn(); } catch (e) {}
-  return a.finished.then(() => host.remove(), () => host.remove());
+  return eglConsole(from, to, eglScript(kind));
 }
 // The command and its output for a CONSOLE change, from what is changing.
 function eglScript(kind) {
@@ -1185,7 +1174,7 @@ function eglClose(again) {
     });
     return;
   }
-  [...egl.board.children].forEach(el => el.animate([{ transform: 'perspective(520px) rotateY(0deg)' }, { transform: 'perspective(520px) rotateY(90deg)' }],
+  [...egl.board.children].forEach(el => el.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 28px', opacity: 0 }],
     { duration: 190, delay: +el.dataset.d || 0, easing: 'ease-in', fill: 'forwards' }));
   setTimeout(() => {
     if (!egl) return;

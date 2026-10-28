@@ -206,6 +206,7 @@ const BAL = {
   reschedule: { price: 8, step: 1, rolls: 10, skip_pay: 10 },   // r590: 16, +2 a reroll, up to 10; skipping pays 20 (all through priceOf)
   luck_dice: { skip_cost: 10 },                                  // r590: skipping costs 20 through priceOf
   state_change: { common: 4, rare: 6, epic: 8, legendary: 12 },   // r580: by the state's tier, through priceOf
+  editor: { price: 6 },                                            // r698: the Editor, through priceOf (12 on screen)
   rewire: { junk: 2 },                                             // r580: junk cards into the deck   // r579: through priceOf (16 on screen)
   flip_events: { reflip: 10, keep_cap: 15, ladder_focus: 5 },   // r578: reflip and keep_cap through priceOf (20 / 30 on screen)   // r576: scaling only; both_price runs through priceOf
   workshop:  { cap_bonus: 2, cap_pct: 0.2, consolation_credits: 12 },   // r576: +20% of the ceiling, never under cap_bonus
@@ -295,6 +296,11 @@ const BAL = {
   photocopier: { copies: 4, permanent: 0, double_spend: 0 },
   logistics_assistant: { charges: 4, swaps: 0, max_swaps: 8 },
   touch_up: { cards: 3, max: 0, kinds: 1 },   // r677 knack: cards buffed at a level clear; max = buffed cards allowed on the grid; kinds 1 / 2 / 3
+  trophy_case: { epic: 0, legend: 0, starts: 1 },   // r685 knack: completed challenge cards become Sleights; starts = the version they arrive at
+  stacked: { chance: 0.25, seconds: 30 },          // r685 knack: each Sleight on the grid may prime its column's Trick every N seconds
+  very_rewarding: { times: 2, bonus: 0, hard: 0, stage: 0 },   // r685 knack: challenge rewards paid N times, then a bonus reward
+  deluxe_subscription: { chance: 0.15, chance2: 0 },   // knack: an offered Trick / Sleight comes improved; chance2 (5th improvement) rolls each further one
+  yoked: { mult: 2 },   // knack: card buffs gained are x this (an x buff's bonus); js/yoked.js
   green_station: { chance: 0.3, chance2: 0 },   // r647 knack: a charge back per Sleight at round end; chance2 a second
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
@@ -479,6 +485,10 @@ const DESC_TEMPLATES = {
   photocopier: 'Double-tap: picks a card beside it at random and makes {copies} temp copies of it, buffs and all. They replace cards in its row, then the next row; any that do not fit go into the deck.[[permanent: {permanent} of them are permanent.]] Not on a wild unless you own Stand-In. (5 charges)[[double_spend: Half the time a use spends 2 charges.]]',
   logistics_assistant: 'Double-tap: finds swaps that make a playable hand and makes them one by one, left to right, for free. Then it discards itself.[[swaps: Gives +{swaps} swaps.]] ({charges} charges)',
   touch_up: '[[max<1:If there are no buffed cards]][[max:If no more than {max} buffed cards are]] on the grid when you complete a level, {cards} random cards on the grid take a buff: [[kinds<2:+pips or +mult]][[kinds>1:+pips, +mult, ×pips[[kinds<3: or ×mult]][[kinds>2:, ×mult, a second rank or a second suit]]]].[[max: Unbuffed cards first.]]',
+  trophy_case: 'Completed challenge cards turn into a random Sleight ([[legend<1:[[epic<1:common or rare]][[epic:common, rare or epic]]]][[legend:any rarity]]) instead of paying their reward.[[starts>1: It arrives at v{starts}.0.]]',
+  stacked: 'Every {seconds}s, each Sleight on the grid has a {chance_pct}% chance to prime the Trick in the tray slot of its column.',
+  very_rewarding: 'Challenge cards pay their reward [[times<3:twice]][[times>2:{times} times]][[bonus:, plus a random [[hard<1:easy]][[hard:hard]] card’s stage [[stage<1:1]][[stage:2]] reward]].',
+  deluxe_subscription: 'Tricks and Sleights you are offered have a {chance_pct}% chance to come improved[[chance2:, then a {chance2_pct}% chance of each further improvement]].',
   green_station: 'Sleights have a {chance_pct}% chance to get a charge back at the end of each round[[chance2:, then a {chance2_pct}% chance of one more]]. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',

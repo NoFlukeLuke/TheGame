@@ -55,7 +55,7 @@ const SAVE_VARS = [
   'level', 'score', 'totalScore', 'lastRoundScore', 'lastRoundGoal', 'roundGoal', 'coins', 'leaves', 'handsPlayed', 'trickFireTotals',
   'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
-  'luckModifiers', 'knackBossGrowth', 'challengeDial', 'freeHandSecs', 'chargedCardPending', 'focusDoubleHands', 'overdriveCd',
+  'luckModifiers', 'knackBossGrowth', 'editorRanks', 'challengeDial', 'freeHandSecs', 'chargedCardPending', 'focusDoubleHands', 'overdriveCd',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
   // Guided's act state. guidedInStop, guidedCrossroadsOpen and guidedOffers are
   // deliberately NOT saved: a checkpoint is only ever taken at the START OF A
@@ -119,7 +119,7 @@ const SAVE_VARS = [
   'activeHands', 'unlockedHands', 'handsPendingUnlock', 'handTypesRound',
   '_comboAnnounced', '_comboHinted',
   // ── Trick / knack accumulators ──
-  'bonusMult_fives', 'bonusMult_nines', 'risingTideMult', 'middleManMult', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless',
+  'bonusMult_fives', 'bonusMult_nines', 'risingTideMult', 'middleManMult', 'deluxeOffers', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless',
   'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext',
@@ -148,7 +148,7 @@ const SAVE_VARS = [
   // The rest of the Survival loop's state. survivalBossesBeaten in particular gates the
   // 5-boss completion screen, so without it a resumed run never finishes.
   'survivalLevelsSinceKnack', 'pickRerollsLeft', 'survivalBossesBeaten',
-  'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel',
+  'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel', 'endlessRun', 'endlessFromLevel',
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
   // Flow multi-reward chain (js/flow-rewards.js, r325): extra rewards rolled

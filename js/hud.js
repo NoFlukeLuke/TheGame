@@ -142,7 +142,7 @@ function updateSelectionUI() {
   // Top bar: the limit, not the count.
   const el = document.getElementById('sel-display');
   if (el) {
-    el.textContent = `✋ ${limits.selection.current}`;
+    el.textContent = `${limits.selection.current}`;   // r691: no hand emoji
     el.classList.remove('sel-full');
   }
   const st = document.getElementById('sel-stat');
@@ -199,9 +199,9 @@ function placeSelCountConsole(cEl) {
 }
 
 function updateCoinsUI() {
-  document.getElementById('coins-display').textContent = '💰 ' + coins;
+  document.getElementById('coins-display').textContent = creditsTxt(coins);
   if (typeof updateGridTopline === 'function') updateGridTopline();
-  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
+  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = creditsTxt(coins);
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
@@ -295,6 +295,7 @@ function updateKnackList() {
   // acquiredKnacks.push sites means a future grant path gets this for free.
   // Update the tally BEFORE flipping the view: setPortraitPanelView re-runs this
   // function to re-measure the marquee, so a stale tally here recurses forever.
+  if (typeof rkPrune === 'function') rkPrune();   // r698: an Editor choice leaves with its entity
   const _knackGrew = acquiredKnacks.length > _knackCountShown;
   _knackCountShown = acquiredKnacks.length;
   if (_knackGrew && typeof portraitShowKnacks === 'function') portraitShowKnacks();
@@ -403,7 +404,7 @@ function knackLiveDesc(k) {
   if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
   const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
   if (!p) {
-    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN);
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun));
     return base + `<div class="kn-reveal kn-reveal-none">${last
       ? 'This is the last quarter. There is no next boss to name.'
       : 'This mode has no next quarter to look into.'}</div>`;
@@ -431,7 +432,7 @@ function showKnackTooltip(chip, id) {
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     ${kwDefsHTML(knack.desc)}
-    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
+    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>
   `;
   // r288 - the + is the only way to the definitions, on every tooltip.
   tt.classList.remove('kw-open');
@@ -444,7 +445,7 @@ function showKnackTooltip(chip, id) {
   tt.querySelector('#knack-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     tipConfirmAction(tt.querySelector('.knack-tooltip-actions'), {
-      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      question: `Sell for ${creditsTxt(_sv)}?`, confirmLabel: 'Sell',
       onYes: () => sellKnack(knack), onCancel: () => showKnackTooltip(chip, id),
     });
   });
@@ -509,12 +510,12 @@ function handLabelHTML(runs) {
 }
 
 function updateHandNameLabel(result, force) {
-  // A dance owns this label until it ends, but only against being BLANKED (render()
-  // runs mid-tally with the selection already cleared). A live selection that names a
-  // hand, or a dance stamping its own hand on at its start (`force`), always gets
-  // through - otherwise the label kept the PREVIOUS hand's name while the next one was
-  // being built and played (a Full House read "RUN OF 3", r401).
-  if (_handNameHeld && !force && !(result && (result.hand || result.short || result.over))) return;
+  // A dance owns this label until it ends: only a dance stamping its own hand on at its
+  // start (`force`) gets through. r695 (owner): the label names the hand being SCORED.
+  // r401 let a live selection through, because then the next play cut the dance and the
+  // label kept the previous hand's name; since the scoring queue (r661) every queued hand
+  // stamps its own name when its turn comes, so a selection no longer needs to.
+  if (_handNameHeld && !force) return;
   const el = document.getElementById('hand-name');
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand

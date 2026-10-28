@@ -47,7 +47,7 @@ const EFX_STYLE = {
   time:     { icon: '⏱', color: '#5aa9e6', plate: 'time' },
   rewind:   { icon: '⏪', color: '#5aa9e6', plate: 'time' },
   pause:    { icon: '⏸', color: '#7fd4ff', plate: 'time' },
-  credits:  { icon: '💰', color: '#e8c56b', plate: 'credits' },
+  credits:  { icon: CREDIT_SYM, color: '#e8c56b', plate: 'credits' },
   focus:    { icon: '◈',  color: '#a25cd8', plate: 'focus' },
   swaps:    { icon: '⇄',  color: '#6fd08c', plate: 'focus' },
   discards: { icon: '✕',  color: '#e07a5f', plate: 'multAdd' },

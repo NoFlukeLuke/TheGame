@@ -201,7 +201,7 @@ function survivalAfterLevelUp(leftover, unspentActions = 0) {
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
-  if (gained > 0) noteMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
+  if (gained > 0) noteMessage(`+${creditsTxt(gained)}`, 'var(--c-yellow, #ffce2b)');
 }
 
 // Called once per second from the round tick (live play time only - the clock is
@@ -241,7 +241,7 @@ function survivalEntityBanned(id) {
   // the Guided crossroads and the Schedule sell grids as occasional stops.
   if (id === 'more_better' && !modeHasFrequentRewardGrid()) return true;
   // r556: the Challenge Dial turns a chance that only Flow and the node modes roll.
-  if (id === 'challenge_dial' && typeof crModeHasCards === 'function' && !crModeHasCards()) return true;
+  if ((id === 'challenge_dial' || id === 'trophy_case' || id === 'very_rewarding') && typeof crModeHasCards === 'function' && !crModeHasCards()) return true;
   // The clock entities assume a round clock that REFILLS: First Wind measures its
   // grace window against ROUND_DURATION, and Carry Time banks the round's unused
   // seconds. Flow is the shipped mode with neither, and a picker-built run that
@@ -395,7 +395,7 @@ function survivalPickActions() {
     pickRerollAction(() => survivalReroll()),
     { icon: '👁', label: 'Peek', sub: 'view grid', onClick: () => survivalTogglePeek() },
     { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
-    { icon: '🛒', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} ◆`, cls: 'gp-act-buy',
+    { icon: '🛒', label: 'Shop', sub: creditsTxt(SURVIVAL_SHOP_COST), cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => survivalOpenShop() },
   ];
 }
@@ -893,7 +893,9 @@ function survivalPostBossReward() {
   survivalBossBookkeeping();
   survivalSpreadFreeze();
   if (!survivalEndless && survivalBossesBeaten >= SURVIVAL_BOSS_COUNT) {
-    setTimeout(() => showSurvivalCompleteScreen(), 420);
+    gameTimerPaused = true;
+    if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+    setTimeout(() => { if (typeof onGameWin === 'function') onGameWin(); else onGameEnd(false); }, 420);   // r680: the finale, with ENDLESS
     return;
   }
   // r188: the post-boss reward is the PRIZE GRID, not the pick-of-three. Same
@@ -905,56 +907,16 @@ function survivalPostBossReward() {
 }
 
 // ══════════════════════════════════════════════
-// RUN COMPLETE (4 bosses) - retire, or continue into accelerated endless
+// RUN COMPLETE (4 bosses) - the finale offers ENDLESS (r680, js/endless.js)
 // ══════════════════════════════════════════════
-function survivalCompleteOverlay() {
-  let el = document.getElementById('survival-complete-overlay');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'survival-complete-overlay';
-    el.innerHTML = `<div id="sv-complete-panel">
-        <div class="sv-c-kicker">CONTRACT FULFILLED</div>
-        <div class="sv-c-title">RUN COMPLETE</div>
-        <div id="sv-complete-stats"></div>
-        <div class="sv-c-btns">
-          <button id="sv-c-retire" class="sv-c-btn sv-c-ghost" onclick="survivalRetire()">⏻ Retire - bank the run</button>
-          <button id="sv-c-continue" class="sv-c-btn sv-c-primary" onclick="survivalContinueEndless()">↯ Continue - Endless</button>
-        </div>
-        <div class="sv-c-note">Endless: goals escalate <b>65% faster</b> from here. There is no second exit.</div>
-      </div>`;
-    (document.getElementById('stage') || document.body).appendChild(el);
-  }
-  return el;
-}
-
-function showSurvivalCompleteScreen() {
-  gameTimerPaused = true;
-  if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
-  const el = survivalCompleteOverlay();
-  const stats = el.querySelector('#sv-complete-stats');
-  if (stats) stats.innerHTML =
-    `<div class="sv-c-row"><span>Bosses defeated</span><b>${survivalBossesBeaten}</b></div>` +
-    `<div class="sv-c-row"><span>Goals cleared</span><b>${Math.max(0, level - 1)}</b></div>` +
-    `<div class="sv-c-row"><span>Total score</span><b>${(totalScore + score).toLocaleString()}</b></div>` +
-    `<div class="sv-c-row"><span>Credits</span><b>💰 ${coins}</b></div>`;
-  el.classList.add('show');
-  if (typeof sfxVictory === 'function') sfxVictory();
-}
-
-// Retire: end the run as a WIN (the end screen's normal stats readout).
-function survivalRetire() {
-  survivalCompleteOverlay().classList.remove('show');
-  if (typeof onGameWin === 'function') onGameWin();
-  else onGameEnd(false);
-}
-
-// Continue: goals accelerate from the NEXT level onward; rounds resume as normal.
+// The r155 RUN COMPLETE overlay (Retire / Continue) is gone: the fifth boss
+// goes to the finale like every other win, and its ENDLESS key runs this.
+// Goals accelerate from the NEXT level onward; rounds resume as normal.
 function survivalContinueEndless() {
   survivalEndless = true;
   survivalEndlessFromLevel = level;   // levels beyond this one use the faster curve
-  survivalCompleteOverlay().classList.remove('show');
-  showMessage('↯ ENDLESS - quotas accelerated', 'var(--c-coral, #ff6a3c)');
-  rewardGridContext = 'survival'; openPrizeGrid();   // the payout the 5th boss earned
+  showMessage('ENDLESS. Quotas climb faster. No quarter resource limit.', 'var(--c-coral, #ff6a3c)');
+  rewardGridContext = 'survival'; openPrizeGrid();   // the payout the last boss earned
 }
 
 // ══════════════════════════════════════════════
@@ -965,7 +927,7 @@ function survivalContinueEndless() {
 function survivalOpenShop() {
   if (!survivalActive()) return;
   if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
-  if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${SURVIVAL_SHOP_COST} 💰`, 'var(--red)'); return; }
+  if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${creditsTxt(SURVIVAL_SHOP_COST)}`, 'var(--red)'); return; }
   coins -= SURVIVAL_SHOP_COST;
   updateCoinsUI();
   survivalShopFromPick = survivalPickOverlay().classList.contains('show');

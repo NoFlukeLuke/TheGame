@@ -149,8 +149,16 @@ body.reduced-motion #dnc-ff { transition: none; }
 
 /* r661: the scoring queue's strips (js/score-dance.js dncQueueLayout): inside the preview
    at z -1 (over its glass, under its rows), anchored on the live hand's first card, each
-   waiting hand further up and right, smaller and dimmer. Cards take the preview's size. */
+   waiting hand further up and right, smaller and darker (r694: brightness, not opacity, so
+   the cards stay opaque). Cards take the preview's size. The anchor glides when it moves
+   (a hand of another size), so the strips never jump. r695: the host covers the preview
+   and is clipped to the tray's screen (dncQueueLayout), so nothing queued shows outside it. */
 #selected-cards.dnc-active{isolation:isolate;}
-#selected-cards #dnc-queue{position:absolute;z-index:-1;pointer-events:none;display:none;}
-#dnc-queue .dnq-strip{position:absolute;left:0;top:0;display:flex;align-items:center;gap:4px;transform-origin:left top;transition:transform .22s ease,opacity .22s ease;}
+#selected-cards #dnc-queue{position:absolute;inset:0;z-index:-1;pointer-events:none;display:none;}
+#dnc-queue .dnq-anchor{position:absolute;left:0;top:0;transition:left .22s ease,top .22s ease;}
+#dnc-queue .dnq-strip{position:absolute;left:0;top:0;display:flex;align-items:center;gap:4px;transform-origin:left top;transition:transform .22s ease,filter .22s ease;}
+/* r694: a queued hand's copies fly in a masked layer of their own (dnqFlyLayer): behind the
+   cards in front of them, and under the housing in console mode. Under the score plates
+   (.dnc-particle 200; #mc-fly 260 in console mode), which leave the hand in front. */
+.dnq-fly{position:fixed;inset:0;z-index:199;pointer-events:none;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 #grid .card-leaving{pointer-events:none;}

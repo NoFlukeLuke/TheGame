@@ -89,7 +89,13 @@ function mapLevelSets() {
 // r679 (owner): a slot holds at most two of one kind.
 const MAP_KIND_CAP = 2;
 // The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
-const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2], ['reward', 1]];
+// r690 (owner): the REWARD tile is the IT department's alone (the department whose
+// tile is 'reward'): one at least there, MAP_REWARD_MAX a map at most, a mystery's
+// reward board included; elsewhere only a mystery can be one. mapMinimums() is read.
+const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2]];
+const MAP_REWARD_MAX = 2;
+function mapRewardTileOn() { const d = (typeof mapDept === 'function') ? mapDept() : null; return !!d && d.tile === 'reward'; }
+function mapMinimums() { return mapRewardTileOn() ? MAP_MINIMUMS.concat([['reward', 1]]) : MAP_MINIMUMS; }
 // The day the to-do list prints down its left edge: one time per slot, then the review.
 const MAP_SLOT_TIMES_WIDE = ['09:00', '11:00', '13:00', '15:00', '17:00'];
 const MAP_SLOT_TIMES_TALL = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '17:30'];
@@ -105,9 +111,31 @@ const MAP_BLANKS_MAX = MAP_BLANK_ODDS.length - 1;
 const MAP_FUNNEL_SOLID_ODDS = { 2: 0.25, 3: 0.40, 4: 0.35 };
 // What fills the free middle cells once the minimums are placed, by weight.
 // Share of the challenge tiles that are an AUDIT (a challenge round) rather than
-// a PRIORITY account (r444).
-const MAP_AUDIT_SHARE = 0.5;
+// a PRIORITY account (r444). r690 (owner: priority a little more common, now that
+// it is where the reward board is): 0.5 -> 0.4. With the reward cell freed and
+// the mysteries' rolls (55% a challenge tile), 3,000 maps a department: priority
+// accounts and one-on-ones 1.06-1.36 a map (were 0.60-0.77), audits 0.63-0.86
+// (were 0.53-0.79), reward boards 0.15-0.27 outside IT and 1.38 in it (were 1.40-1.63).
+const MAP_AUDIT_SHARE = 0.4;
+// The reward row fills only in the IT quarter (mapFillWeights).
 const MAP_FILL_W = [['level', 30], ['event', 26], ['reward', 20], ['shop', 10], ['challenge', 10], ['limitbreak', 4]];
+function mapFillWeights() {
+  const W = (typeof deptFillWeights === 'function') ? deptFillWeights(MAP_FILL_W) : MAP_FILL_W;
+  return mapRewardTileOn() ? W : W.map(([k, w]) => [k, k === 'reward' ? 0 : w]);
+}
+// What a MYSTERY turns out to be (r690, owner), rolled at build and hidden until
+// you commit: audit / priority are the challenge tile's two faces, mini a priority
+// account whose ask is a boss handicap at half strength (CHALLENGE_DEFS' `mini`
+// rows, r239), reward the reward board in any quarter (still MAP_REWARD_MAX a map).
+// The last slot never rolls a plain round.
+const MAP_MYSTERY_W = [['level', 10], ['audit', 20], ['priority', 20], ['event', 20], ['mini', 15], ['reward', 15]];
+function _mapRollW(W) {
+  const tot = W.reduce((a, [, w]) => a + Math.max(0, w || 0), 0);
+  if (!(tot > 0)) return W.length ? W[0][0] : null;
+  let r = Math.random() * tot;
+  for (const [k, w] of W) { r -= Math.max(0, w || 0); if (r < 0) return k; }
+  return W[W.length - 1][0];
+}
 function mapRollFunnelSolid() {
   // Weights (r409: tunable in dev -> Probabilities), so normalised by the total.
   const tot = [2, 3, 4].reduce((t, k) => t + Math.max(0, MAP_FUNNEL_SOLID_ODDS[k] || 0), 0) || 1;
@@ -144,10 +172,6 @@ const MAP_BOSS_SCALE  = 1.30;
 // Schedule advances `level` about twice as fast as Classic advances per played
 // round (bought obligations move the curve too - the mode's load-bearing rule).
 const MAP_GOAL_GROWTH = 18;
-// The knack-only pick after a challenge round rolls its rarities as if the
-// player held +20 Luck (a temporary luckModifiers bump around the draw - the
-// odds shift exactly as 20 real Luck would, and nothing is permanently added).
-const MAP_CHALLENGE_LUCK = 20;
 
 function mapActive() { return !!ACTIVE_MODE && ACTIVE_MODE.map === true; }
 
@@ -187,7 +211,6 @@ let mapScreenOpen = false;
 let mapGridSaved = null;    // { rows, cols } to restore on close
 let mapSelected = null;     // tile id currently picked, pending CONFIRM
 let mapLandscape = true;    // orientation captured at open
-let mapLastWasChallenge = false;
 
 function mapResetRun() {
   // A run abandoned with the map open must not leak its screen into the next
@@ -207,7 +230,7 @@ function mapResetRun() {
 function mapResetBoard() {
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
   mapBossArmed = false; mapPosTileId = null;
-  mapScreenOpen = false; mapSelected = null; mapLastWasChallenge = false;
+  mapScreenOpen = false; mapSelected = null;
   mapBossGoal = mapQuarterBossGoal();
   if (typeof mapDrawStrokes !== 'undefined') { mapDrawStrokes = []; mapPenOn = false; }
   mapApplyLayout();
@@ -280,7 +303,10 @@ const MAP_KIND_META = {
   level:      { icon: '▶\uFE0E', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
                 blurb: 'An ordinary round. Clear it and take a pick of three.' },
   challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
-                blurb: 'A round with a raised goal and one extra ask. Pays credits and a knack.' },
+                blurb: 'A round with a raised goal and one extra ask. Pays credits and a reward grid.' },
+  // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
+  mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
+                blurb: 'A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and a reward grid.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
@@ -302,10 +328,17 @@ const MAP_KIND_META = {
 function mapTileFace(t) {
   // What the PLAYER sees - a mystery hides its kind until confirmed.
   if (t.mystery && !t.revealed) return { icon: '?', name: '???', full: 'Unconfirmed', cls: 'mk-mystery' };
-  const m = MAP_KIND_META[t.audit ? 'audit' : t.kind] || MAP_KIND_META.event;
+  const m = MAP_KIND_META[mapTileMetaKey(t)] || MAP_KIND_META.event;
   if (t.kind === 'event' && t.eventName) return { ...m, name: t.eventName };
   return m;
 }
+// A challenge tile's face: audit, one-on-one (a mini def) or priority.
+function mapTileIsMini(t) {
+  if (!t || t.kind !== 'challenge' || t.audit || !t.challenge) return false;
+  const d = (typeof CHALLENGE_DEFS !== 'undefined') ? CHALLENGE_DEFS.find(x => x.id === t.challenge.id) : null;
+  return !!(d && d.mini);
+}
+function mapTileMetaKey(t) { return t.audit ? 'audit' : mapTileIsMini(t) ? 'mini' : t.kind; }
 // `legalIds` (the ids bookable now) lets the stakes say "if booked next"; without
 // it they are worked out here.
 function mapTileDesc(t, legalIds) {
@@ -317,7 +350,7 @@ function mapTileDesc(t, legalIds) {
     case 'level':      return `Play a round.${goal} Clear it for the payout and a pick of three.`;
     case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
-      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and a knack pick.`;
+      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and a reward grid (a path of up to ${mapRewardPath()}).`;
     case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
     case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} board of rewards. Take a connected path of up to ${mapRewardPath()} tiles.`;
     case 'event':      return t.eventFlavor || 'Something happens.';
@@ -381,9 +414,11 @@ function mapTileStake(t, legalIds) {
   switch (t.kind) {
     case 'level': case 'challenge': {
       const g = mapGoalPreview(t, k);
-      return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 ? '+' : ''}`, goal: g, k };
+      // r690: a priority account (and a one-on-one) pays the reward board; its line says how long a path.
+      const path = (t.kind === 'challenge' && !t.audit) ? `PATH OF ${mapRewardPath()}` : null;
+      return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 ? '+' : ''}`, path, goal: g, k };
     }
-    case 'shop':       return { short: `◆ ${coins}` };
+    case 'shop':       return { short: creditsTxt(coins) };
     case 'reward':     return { short: `PATH OF ${mapRewardPath()}` };
     case 'limitbreak': return { short: '+1 LIMIT' };
   }
@@ -441,7 +476,7 @@ function _mapBuildOnce(opener) {
   // before the boss the same shape every map and cost the set before it a
   // second visit whenever your lane's funnel cell was one of the holes.
   const fsolid = Math.min(MAP_LANES, mapRollFunnelSolid());
-  const funnelKinds = _mapShuffle(['shop', 'reward', 'event', 'challenge', 'limitbreak']);
+  const funnelKinds = _mapShuffle(['shop', 'event', 'challenge', 'limitbreak'].concat(mapRewardTileOn() ? ['reward'] : []));
   // At two solid they sit on NON-ADJACENT lanes, which is the original funnel
   // shape: two options as far apart as the board allows.
   const allLanes = Array.from({ length: MAP_LANES }, (_, i) => i);
@@ -480,7 +515,8 @@ function _mapBuildOnce(opener) {
   const roomFor = (k, s) => inSet(k, s) < MAP_KIND_CAP;
   // Top the minimums up, counting what the funnel already placed.
   const count = k => tiles.filter(t => t.kind === k).length;
-  for (const [k, min] of MAP_MINIMUMS) {
+  const mins = mapMinimums();
+  for (const [k, min] of mins) {
     let missing = min - count(k);
     while (missing-- > 0 && free.length) {
       const ok = free.filter(([, s]) => roomFor(k, s));
@@ -491,24 +527,40 @@ function _mapBuildOnce(opener) {
     }
   }
   // The rest by weight. r673: the quarter's department makes its own kind likelier.
-  const W = (typeof deptFillWeights === 'function') ? deptFillWeights(MAP_FILL_W) : MAP_FILL_W;
+  // r690: no reward row outside IT, and none past MAP_REWARD_MAX. r679: a kind
+  // already at MAP_KIND_CAP in the slot is left out of the roll.
+  const W = mapFillWeights();
   while (free.length) {
     const [l, s] = free.pop();
-    const open = W.filter(([k]) => roomFor(k, s));
-    const wTotal = open.reduce((a, [, w]) => a + w, 0);
-    let r = Math.random() * wTotal;
-    let kind = open.length ? open[0][0] : 'level';
-    for (const [k, w] of open) { r -= w; if (r <= 0) { kind = k; break; } }
-    put(l, s, kind);
+    const full = count('reward') >= MAP_REWARD_MAX;
+    const open = W.filter(([k]) => roomFor(k, s) && !(full && k === 'reward'));
+    put(l, s, _mapRollW(open.length ? open : W.filter(([k]) => roomFor(k, s))) || 'level');
   }
 
-  // Mysteries: up to MAP_MAX_MYSTERY, never in set 1, never a blank. They keep
-  // their real kind underneath - which is what lets them count toward the
-  // minimums, and lets a tryhard guess at what is hidden.
-  const mysteryable = tiles.filter(t => t.set > 0 && t.kind !== 'blank' && t.kind !== 'boss');
+  // Mysteries: up to MAP_MAX_MYSTERY, never in set 1, never a blank. r690 (owner):
+  // the kind under one is ROLLED from MAP_MYSTERY_W, not the cell's own. A tile a
+  // minimum or a slot's one round stands on is never taken, so what the map
+  // promises is on its visible tiles.
   const _mMax = (typeof deptMysteryMax === 'function') ? deptMysteryMax(MAP_MAX_MYSTERY) : MAP_MAX_MYSTERY;
-  _mapPickN(mysteryable, Math.floor(Math.random() * (_mMax + 1)))
-    .forEach(t => { t.mystery = true; });
+  const needed = t => {
+    const vis = k => tiles.filter(x => x.kind === k && !x.mystery).length;
+    if (t.kind === 'level' && t.set >= 1 && t.set <= MAP_SETS - 2
+        && tiles.filter(x => x.set === t.set && x.kind === 'level' && !x.mystery).length < 2) return true;
+    const m = mins.find(([k]) => k === t.kind);
+    return !!m && vis(t.kind) <= m[1];
+  };
+  let mLeft = Math.floor(Math.random() * (_mMax + 1));
+  for (const t of _mapShuffle(tiles.filter(t => t.set > 0 && t.kind !== 'blank' && t.kind !== 'boss'))) {
+    if (mLeft <= 0) break;
+    if (needed(t)) continue;
+    mLeft--;
+    const MW = MAP_MYSTERY_W.filter(([k]) => !(k === 'level' && t.set === MAP_SETS - 1)
+      && !(k === 'reward' && t.kind !== 'reward' && count('reward') >= MAP_REWARD_MAX));
+    const k = _mapRollW(MW) || 'event';
+    t.mystery = true;
+    t.kind = (k === 'audit' || k === 'priority' || k === 'mini') ? 'challenge' : k;
+    if (t.kind === 'challenge') t._mx = k;   // read by the naming pass below
+  }
 
   // One 2x1 event, half the time: an event in sets 2..4 absorbs the cell ahead
   // of it. Refused when the absorbed cell is a blank, a mystery, or the only
@@ -550,13 +602,25 @@ function _mapBuildOnce(opener) {
       t.eventName = id ? EVENT_META[id].name : 'Event';
       t.eventFlavor = id ? EVENT_META[id].flavor : '';
     }
-    if (t.kind === 'challenge' && Math.random() < auditShare) { t.audit = true; return; }
-    if (t.kind === 'challenge') {
-      const ch = rollChallengeLevel();
-      t.challenge = { id: ch.id, label: ch.label, goalMult: ch.goalMult, credits: ch.credits };
-    }
+    if (t.kind !== 'challenge') return;
+    // A mystery's roll decides the face (r690); any other challenge tile rolls the audit share.
+    const mx = t._mx; delete t._mx;
+    if (mx ? mx === 'audit' : Math.random() < auditShare) { t.audit = true; return; }
+    const ch = mapRollChallenge(mx === 'mini' ? 'mini' : mx === 'priority' ? 'task' : null);
+    t.challenge = { id: ch.id, label: ch.label, goalMult: ch.goalMult, credits: ch.credits };
   });
   return tiles;
+}
+
+// A priority account's ask: any CHALLENGE_DEFS row, or only the boss handicaps
+// (`mini`) or only the rest (`task`). Falls back to the whole table.
+function mapRollChallenge(want) {
+  if (!want) return rollChallengeLevel();
+  const ok = d => { try { return !d.avail || d.avail(); } catch (e) { return false; } };
+  const pool = CHALLENGE_DEFS.filter(d => ok(d) && (want === 'mini' ? !!d.mini : !d.mini));
+  if (!pool.length) return rollChallengeLevel();
+  const d = pool[Math.floor(Math.random() * pool.length)];
+  return { ...d, rewardText: `+${d.credits} credits` };
 }
 
 function _mapPickN(arr, n) {
@@ -573,7 +637,8 @@ function _mapValidate(tiles) {
   // build placed to satisfy them. Measured before this check: 12% of maps
   // shipped short of a minimum.
   const count = k => tiles.filter(t => t.kind === k).length;
-  if (MAP_MINIMUMS.some(([k, min]) => count(k) < min)) return false;
+  if (mapMinimums().some(([k, min]) => count(k) < min)) return false;
+  if (count('reward') > MAP_REWARD_MAX) return false;
   for (const s of mapLevelSets())
     if (!tiles.some(t => t.set === s && t.kind === 'level')) return false;
   // r679: at most MAP_KIND_CAP of one kind in a slot (a wide tile counts once).
@@ -929,7 +994,7 @@ function mapRender(animateIn) {
     const hidden = t.mystery && !t.revealed;
     // An event's line is its own name; every other line is its kind's word.
     const isEv = t.kind === 'event' && t.eventName && !hidden;
-    const word = hidden ? '???' : isEv ? t.eventName : (MAP_KIND_META[t.audit ? 'audit' : t.kind] || MAP_KIND_META.event).name;
+    const word = hidden ? '???' : isEv ? t.eventName : (MAP_KIND_META[mapTileMetaKey(t)] || MAP_KIND_META.event).name;
     const stake = mapTileStake(t, legalIds);
     const boss = isBoss ? peekBossPresetSafe() : null;
     div.innerHTML = t.kind === 'blank'
@@ -940,7 +1005,8 @@ function mapRender(animateIn) {
         + `<span class="mt-goal">${mapGoalWord()} ${mapReviewGoalShown().toLocaleString()}</span>`
       : `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${face.icon}</span></span>`
         + `<span class="mt-name${isEv ? ' mt-ev' : ''}">${word}</span>`
-        + (stake ? `<span class="mt-stake${stake.k > 1 ? ' mt-proj' : ''}">${stake.short}</span>` : '');
+        + (stake ? `<span class="mt-stake${stake.k > 1 ? ' mt-proj' : ''}">${stake.short}</span>` : '')
+        + (stake && stake.path ? `<span class="mt-stake">${stake.path}</span>` : '');
     const desc = mapTileDesc(t, legalIds);
     if (face.full) div.title = (isEv ? t.eventName : face.full) + (desc ? ' - ' + desc : '');
     if (t.kind !== 'blank') {
@@ -1353,7 +1419,6 @@ function mapConfirm() {
   mapPosTileId = t.id;
   mapPos = { lane: move.after.lane, set: move.after.set };
   mapVisits = move.after.visits;
-  mapLastWasChallenge = (t.kind === 'challenge' && !t.audit);   // a priority account's knack pick
 
   switch (t.kind) {
     case 'level':
@@ -1450,62 +1515,21 @@ function mapAfterTile() {
 }
 
 // After a cleared LEVEL: payout has run (startInterlude), challenge settled.
-// Pick of three, the challenge's knack pick when earned, then the map.
+// r690 (owner): what the round pays is its tile's (mapPosTileId, saved, so a
+// resumed round pays the same). A round: the pick of three. A priority account
+// or a one-on-one: the reward board (the r684 brief's REWARD tile, folded in; its
+// knack pick of two and the pick of three are gone). An audit: its cards, nothing
+// more. The reward board closes back to the map (finishInterludeRoute).
 function mapAfterLevel() {
-  const wasChallenge = mapLastWasChallenge;
-  mapLastWasChallenge = false;
   const done = () => mapOpen();
   if (!mapPos) { done(); return; }   // resumed pre-map edge: straight back to the map
-  // An audit (js/challenge-round.js) pays no prize grid (owner, r666): its cards
-  // paid their credits during the round and the pick of three is the round's
-  // reward. crTakePrize is still called so the round's state is cleared.
+  const t = mapTiles.find(x => x.id === mapPosTileId);
+  // An audit (js/challenge-round.js) pays no prize grid (owner, r666). crTakePrize
+  // is still called so the round's state is cleared.
   if (typeof crTakePrize === 'function') crTakePrize();
-  guidedOpenPickThree(() => {
-    if (wasChallenge) mapKnackPickTwo(done);
-    else done();
-  });
-}
-
-// The challenge bonus pick: TWO knacks, drawn as if the player held +20 Luck.
-// The luck bump is a temporary window around the draw - the shared rarity table
-// is read through luckTierWeights exactly as any other draw, so "odds as if"
-// is literally true rather than approximated.
-function mapKnackPickTwo(done) {
-  const banned = id => (typeof survivalEntityBanned === 'function') && survivalEntityBanned(id);
-  const ownedK = new Set((acquiredKnacks || []).map(k => k.id));
-  let pool = KNACK_POOL.filter(k => !ownedK.has(k.id) && !banned(k.id));
-  const offers = [];
-  luckModifiers += MAP_CHALLENGE_LUCK;
-  try {
-    for (let i = 0; i < 2 && pool.length; i++) {
-      const k = (typeof pickEntityByRarity === 'function' && pickEntityByRarity(pool, e => e.rarity || 'common'))
-        || pool[Math.floor(Math.random() * pool.length)];
-      if (!k) break;
-      pool = pool.filter(x => x.id !== k.id);
-      offers.push(k);
-    }
-  } finally {
-    luckModifiers -= MAP_CHALLENGE_LUCK;
-  }
-  if (!offers.length) { done(); return; }
-
-  // Drawn ON the board (js/grid-pick.js, r254), the same overlay the free
-  // pick-of-three uses - name and description under the object, and a tooltip
-  // wherever the description clamps. This screen had no tooltips at all before.
-  openGridPick({
-    title: 'TAKE A KNACK', tone: 'reward',
-    offers: offers.map(k => ({ entity: 'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦',
-      id: k.id, label: k.name, desc: k.desc, rarity: k.rarity || 'common',
-      tag: (typeof tierLabel === 'function') ? tierLabel('knack', k.rarity || 'common') : '' })),
-    onChoose: (i) => {
-      const k = offers[i];
-      acquiredKnacks.push({ ...k });
-      updateKnackList?.();
-      noteMessage(`+ ${k.name}`, 'var(--gold)');
-      done();
-    },
-    onSkip: () => done(),
-  });
+  if (t && t.kind === 'challenge' && !t.audit) { rewardGridContext = 'interlude'; openRewardGrid(); return; }
+  if (t && t.kind === 'challenge') { done(); return; }
+  guidedOpenPickThree(done);
 }
 
 // ── Run entry ────────────────────────────────────────────────────────────────

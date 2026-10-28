@@ -150,6 +150,8 @@ const ICONS = [
   { glyph: '📠', icon: 'delapouite/paper-tray',   color: 'cyan'   },  // Photocopier
   { glyph: '🚚', icon: 'delapouite/forklift',     color: 'orange' },  // Logistics Assistant
   { glyph: '🔌', icon: 'delapouite/charging',     color: 'green'  },  // Green Station (knack)
+  { glyph: '🎁', icon: 'delapouite/present',      color: 'gold'   },  // Deluxe Subscription (knack)
+  { glyph: '🐂', icon: 'lorc/bull',               color: 'brown'  },  // Yoked (knack)
   { glyph: '🖐️', icon: 'open-palm',         color: 'cream'  },  // Free Hand
   { glyph: '✌️', icon: 'high-five',         color: 'cream'  },  // Double Down
   // Reward tiles (js/reward-grid.js)
@@ -181,6 +183,15 @@ const ICONS = [
   { glyph: '🌀', icon: 'delapouite/transform',   color: 'cyan'   },  // the Sleight that changes every round
   // r677: the Touch-Up knack (buffs cards on the grid when a level is cleared)
   { glyph: '🖌️', icon: 'delapouite/paint-roller', color: 'gold'   },
+  // r685: Trophy Case, Stacked, Very Rewarding
+  { glyph: '🏆', icon: 'lorc/trophy',            color: 'gold'   },
+  { glyph: '📚', icon: 'delapouite/stack',       color: 'violet' },
+  { glyph: '🎁', icon: 'delapouite/present',     color: 'pink'   },
+  // r692 (owner): the limits' icons (LIMITS_DEF, js/limits.js) are pixel icons too. The
+  // others (🎴 🔄 🗑 ⏱ ✦ ⚡ 🍀) already have rows above; rows and columns are new.
+  { glyph: '⬍', icon: 'delapouite/vertical-flip',   color: 'cyan'   },  // Grid Rows
+  { glyph: '⬌', icon: 'delapouite/horizontal-flip', color: 'cyan'   },  // Grid Columns
+  { glyph: '💾', icon: 'delapouite/save',            color: 'gold'   },  // Trick Slots (a floppy, like the Tricks)
 ];
 
 module.exports = { PALETTE, ICONS };

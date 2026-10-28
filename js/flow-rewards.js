@@ -1440,7 +1440,10 @@ function flowrBossCelebrate(boss, done) {
 }
 
 function flowrCountUp(n, done, kick) {
-  const host = document.getElementById('grid-slot') || document.getElementById('stage') || document.body;
+  // r691 (owner): in console mode the counter is a child of #grid, under the board's
+  // screen door and inside its clip; elsewhere it stays in the slot as before.
+  const _mc = typeof trayMachineOn === 'function' && trayMachineOn();
+  const host = (_mc && document.getElementById('grid')) || document.getElementById('grid-slot') || document.getElementById('stage') || document.body;
   document.getElementById('flowr-counter')?.remove();
   flowrApplyChipStyle();
   const el = document.createElement('div');

@@ -54,6 +54,10 @@ const SETTINGS_DEF = [
     apply: () => { if (typeof applyMusicVolume === 'function') applyMusicVolume(); } },
   { group: 'Audio', id: 'sfxVolumePct', label: 'Sound effects', hint: 'Cards, coins, scoring, bosses.',
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  // r694: the clock ramp (js/music.js). Read there every tick; nothing to apply.
+  { group: 'Audio', id: 'musicClock', label: 'Music follows the clock',
+    hint: () => `In a run the track plays faster as the round clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
+    type: 'select', default: 'tempo', options: [['off', 'Off'], ['tempo', 'Tempo'], ['tape', 'Tape']] },
   // Sound source (r186). Files beat packs beat classic - see the resolution order
   // in js/audio-assets.js. Both rows are read there rather than applied from here,
   // so there is no `apply` to keep in step.
@@ -88,10 +92,15 @@ const SETTINGS_DEF = [
   // authored; 16 is "I know what these do, get on with it". Each beat also runs 5%
   // quicker than the last within a hand (DANCE_CFG.beatAccel), so the ramp handles
   // long hands on its own and this stays a preference rather than a chore.
-  { group: 'Motion', id: 'animSpeed', label: 'Scoring speed',
-    hint: 'How fast hands tally. Higher is faster. Interrupting a hand still rushes it regardless. Default 2x.',
-    type: 'slider', min: 0.5, max: 16, step: 0.5, default: 2, unit: 'x',
-    apply: v => { const n = parseFloat(v); if (typeof DANCE_CFG !== 'undefined' && isFinite(n) && n > 0) DANCE_CFG.norm = n; } },
+  // r691 (owner): one speed for EVERYTHING that animates (the tally, the card looks, the
+  // fly to the preview, the fall, a reward landing in its tray), and the default is slow so
+  // a new player sees what happens. 2 is the default; what the old slider called 1 is 2 now,
+  // so the scale is halved on the way in: DANCE_CFG.norm = v / 2, animSlow() = 2 / v.
+  { group: 'Motion', id: 'animSpeed', label: 'Animation speed',
+    hint: 'How fast everything animates: hands tallying, cards flying and falling, rewards landing. Higher is faster.',
+    type: 'select', default: '2',
+    options: [['0.5', '0.5x'], ['1', '1x'], ['2', '2x'], ['4', '4x'], ['6', '6x'], ['8', '8x']],
+    apply: v => { const n = parseFloat(v); if (typeof DANCE_CFG !== 'undefined' && isFinite(n) && n > 0) DANCE_CFG.norm = n / 2; } },
   { group: 'Motion', id: 'reducedMotion', label: 'Reduced motion', hint: 'Cuts drifting, shaking and idle flourishes. Scoring still animates.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('reduced-motion', !!v) },
@@ -229,6 +238,11 @@ const SETTINGS_DEF = [
     hint: 'A themed pointer instead of the system one. Turn off to use your normal cursor.',
     type: 'toggle', default: true,
     apply: v => document.documentElement.classList.toggle('os-cursor', !v) },
+  // r699: one layer of scan lines over every screen (js/screen-door.js).
+  { group: 'Display', id: 'screenDoor', label: 'Screen door',
+    hint: 'Fine dark lines over every screen, like an old monitor. Turn off for a plain picture.',
+    type: 'toggle', default: true,
+    apply: v => document.documentElement.classList.toggle('sd-off', !v) },
   { group: 'Display', id: 'introReplay', type: 'action',
     label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
     buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },
@@ -251,6 +265,14 @@ const SETTINGS_DEF = [
 // Characters a second that event text types at (0 = Instant). The one reader of
 // the Text speed row.
 const TEXT_TYPE_CPS = 160;
+// r691: the one speed multiplier for every animation outside the tally (the tally reads
+// DANCE_CFG.norm, set by the same row). 4 is what the game ran at before r691; at the
+// shipped default (2) everything runs twice as long as it did, at 8 half as long.
+function animSpeedMult() {
+  const v = parseFloat(typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.animSpeed);
+  return (isFinite(v) && v > 0 ? v : 2) / 4;
+}
+function animSlow() { return 1 / animSpeedMult(); }
 function textTypeCps() {
   const v = (typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.textSpeed) || 'normal';
   return v === 'instant' ? 0 : v === 'fast' ? TEXT_TYPE_CPS * 2 : TEXT_TYPE_CPS;

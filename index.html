@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="css/survival.css">
 <link rel="stylesheet" href="css/flow-rewards.css">
 <link rel="stylesheet" href="css/screen-change.css">
+<link rel="stylesheet" href="css/score-blast.css">
 <link rel="stylesheet" href="css/grid-pick.css">
 <link rel="stylesheet" href="css/payout-grid.css">
 <link rel="stylesheet" href="css/records.css">
@@ -76,18 +77,19 @@
 <link rel="stylesheet" href="css/trick-tour.css">
 <link rel="stylesheet" href="css/chance-count.css">
 <link rel="stylesheet" href="css/event-grid-lab.css">
+<link rel="stylesheet" href="css/cr-fx-lab.css">
 <link rel="stylesheet" href="css/menu-size.css">
 <link rel="stylesheet" href="css/tray-fx.css">
 <link rel="stylesheet" href="css/cursor.css">
 <link rel="stylesheet" href="css/print-toast.css">
 <link rel="stylesheet" href="css/card-anims.css">
 <link rel="stylesheet" href="css/px-icons.css">
-<link rel="stylesheet" href="css/terminal-skin.css">
 <link rel="stylesheet" href="css/card-face.css">
 <link rel="stylesheet" href="css/stock-bulbs.css">
 <link rel="stylesheet" href="css/skin-machine.css">
 <link rel="stylesheet" href="css/key-press.css">
 <link rel="stylesheet" href="css/key-looks.css">
+<link rel="stylesheet" href="css/screen-door.css">
 <link rel="stylesheet" href="css/blank-ui.css">
 </head>
 <body class="office-pending">
@@ -680,8 +682,17 @@
     <div class="dev-subtitle">Screen change (Flow rewards)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The screen changes by
-      <select id="dev-screen-change" onchange="setScreenChange(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="turn">turning (the right side revolves)</option><option value="shutter">shutter (housing plates close over it)</option><option value="none">cutting (no move)</option></select>
+      <select id="dev-screen-change" onchange="setScreenChange(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="fall">falling (the screen drops out, the next drops in)</option><option value="console">console (a command types, the screen scrolls)</option><option value="none">cutting (no move)</option></select>
       <button class="dev-btn" onclick="screenChangePreview()">Preview</button>
+    </label>
+
+    <div class="dev-subtitle">Blast scoring (a hand in front of a winner, or 4+ hands queued)</div>
+    <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Look
+      <select id="dev-blast-look" onchange="setBlastLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="beats5">Five beats (PIPS / MULT alternating)</option><option value="shockwave">Shockwave (wind-up, one slam)</option><option value="strobe">Strobe (flash sweeps, the chips flicker)</option><option value="implode">Implode (pulled to a point, burst)</option><option value="drumroll">Drumroll (12 small plates, a crash)</option><option value="overload">Overload (the screen tears, snaps back)</option><option value="reels">Reels (slot reels, two bells)</option><option value="off">Off (fast forward, as before)</option></select>
+      <button class="dev-btn" onclick="blastPreview()">Preview</button>
+      <button class="dev-btn" onclick="blastPreview('beats5')">1</button><button class="dev-btn" onclick="blastPreview('shockwave')">2</button><button class="dev-btn" onclick="blastPreview('strobe')">3</button><button class="dev-btn" onclick="blastPreview('implode')">4</button><button class="dev-btn" onclick="blastPreview('drumroll')">5</button><button class="dev-btn" onclick="blastPreview('overload')">6</button><button class="dev-btn" onclick="blastPreview('reels')">7</button>
+      <a class="dev-btn" href="index.html?blast">Open the lab page</a>
     </label>
 
     <div class="dev-subtitle">Improvement animation (a Trick improved comes to the board)</div>
@@ -1255,11 +1266,11 @@
        statistic, not a live decision input, and it is still in Records. -->
   <div class="top-stat" id="sel-stat">
     <span class="top-label">Hand Size</span>
-    <span class="top-value" id="sel-display">✋ 0</span>
+    <span class="top-value" id="sel-display">0</span>
   </div>
   <div class="top-stat">
     <span class="top-label">Coins</span>
-    <span class="top-value gold" id="coins-display">💰 0</span>
+    <span class="top-value gold" id="coins-display">L¢0</span>
   </div>
 </div>
 
@@ -1361,7 +1372,7 @@
            children and renderRewardTiles empties it outright. It sits in the slot's
            empty margin around the centred grid (above it in portrait, beside it in
            landscape), sized off --grid-w / --grid-h. -->
-      <div id="sel-count"><span id="sel-count-hand">&#9995;</span><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
+      <div id="sel-count"><span id="sel-count-hand"></span><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->
@@ -1652,9 +1663,11 @@
 <script src="js/score-anims.js"></script>
 <script src="js/goal-clear.js"></script>
 <script src="js/quarter.js"></script>
+<script src="js/endless.js"></script>
 <script src="js/pmf-merge.js"></script>
 <script src="js/hand-log.js"></script>
 <script src="js/score-dance.js"></script>
+<script src="js/score-blast.js"></script>
   <script src="js/payout-fx.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>
@@ -1688,10 +1701,14 @@
 <script src="js/rule-sleights.js"></script>
 <script src="js/changing.js"></script>
 <script src="js/touch-up.js"></script>
+<script src="js/challenge-knacks.js"></script>
+<script src="js/stacked.js"></script>
 <script src="js/dealers-choice.js"></script>
 <script src="js/reserve.js"></script>
 <script src="js/lockbox.js"></script>
 <script src="js/focus-knacks.js"></script>
+<script src="js/deluxe.js"></script>
+<script src="js/yoked.js"></script>
 <script src="js/sweep.js"></script>
 <script src="js/office-sleights.js"></script>
 <script src="js/event-toys.js"></script>
@@ -1705,6 +1722,7 @@
 <script src="js/events-pairs.js"></script>
 <script src="js/events-flip.js"></script>
 <script src="js/events-extra.js"></script>
+<script src="js/rank-editor.js"></script>
 <script src="js/interlude.js"></script>
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
@@ -1718,6 +1736,7 @@
 <script src="js/builds.js"></script>
 <script src="js/build-compare.js"></script>
 <script src="js/finale.js"></script>
+<script src="js/finale-share.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>
@@ -1765,6 +1784,7 @@
 <script src="js/stock-bulbs.js"></script>
 <script src="js/key-looks.js"></script>
 <script src="js/key-dots.js"></script>
+<script src="js/screen-door.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>
@@ -1775,6 +1795,7 @@
 <script src="js/event-tour.js"></script>
 <script src="js/trick-tour.js"></script>
 <script src="js/event-grid-lab.js"></script>
+<script src="js/cr-fx-lab.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
 

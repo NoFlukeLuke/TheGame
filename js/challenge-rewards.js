@@ -18,7 +18,9 @@
 // limits, Tricks, Knacks, Sleights) opens after the round (crScreens), or in
 // Flow as a step of the next reward chain (crFlow.steps).
 
-const CR_FIXED_PAY = { std: 'credits', hard: 'improve' };
+// r685 (owner): with no department, an easy card pays one of these at random
+// (fixed when it lands); a hard card an improvement.
+const CR_FIXED_PAY = { std: ['credits', 'prime', 'cardbuff'], hard: 'improve' };
 
 var crPending = null;        // { lv, secs, swaps, discards, focus } for the next round's start - SAVE_VARS
 var crInterestBoost = null;  // { next: payouts left, quarter } doubled interest - SAVE_VARS
@@ -33,7 +35,9 @@ function crHard(q) { return !!(q && q.ladder && q.ladder[0] && q.ladder[0].d >= 
 function crrRewardFor(q) {
   const cls = crHard(q) ? 'hard' : 'std';
   const d = (typeof deptChallengePay === 'function') ? deptChallengePay(cls) : null;
-  return (d && CRR[d]) ? d : CR_FIXED_PAY[cls];
+  if (d && CRR[d]) return d;
+  const f = CR_FIXED_PAY[cls];
+  return Array.isArray(f) ? f[Math.floor(Math.random() * f.length)] : f;
 }
 function crPayOf(q) { if (!q.pay || !CRR[q.pay]) q.pay = crrRewardFor(q); return q.pay; }
 function crrQuarter() {
@@ -219,7 +223,7 @@ function _crrStripOne(c) {
 const CRR = {
   // ── STANDARD ──
   credits: {
-    n: [8, 20], face: ['+8', '+20', '◆'],
+    n: [8, 20], face: ['+8', '+20', CREDIT_SYM],
     say: t => `+${CRR.credits.n[t]} credits`,
     can: () => true,
     give(t, ctx) { const n = this.n[t]; coins += n; updateCoinsUI(); if (ctx.el) crrFly(ctx.el, 'credits', `+${n}`); return ''; },
@@ -537,9 +541,15 @@ function crrPenaltyPlan(id) {
   return plan;
 }
 
-// A stage in a few characters, for the Schedule's bar ("+8 ◆", "+15s", "FOCUS×2").
+// A stage's figure with the credits mark joined to it ("+L¢8"); any other figure as it is.
+function crrFig(id, t) {
+  const r = CRR[id] || CRR.credits;
+  return r.face[2] === CREDIT_SYM ? r.face[t].replace(/^([+-]?)/, '$1' + CREDIT_SYM) : r.face[t];
+}
+// A stage in a few characters, for the Schedule's bar ("+L¢8", "+15s", "FOCUS×2").
 function crrShort(id, t) {
   const r = CRR[id] || CRR.credits; if (!r.face) return r.say(t);
+  if (r.face[2] === CREDIT_SYM) return crrFig(id, t);
   const unit = r.face[2] != null ? r.face[2] : '';
   return (/^\d+$/.test(r.face[t]) ? unit : `${r.face[t]}${unit ? ' ' + unit : ''}`) || r.say(t);
 }
@@ -549,8 +559,14 @@ function crrFaceHTML(q) {
   const id = crPayOf(q), r = CRR[id]; if (!r || !r.face) return '';
   const unit = r.face[2] != null ? r.face[2] : (id === 'tricks' ? _crrWord('trick') : id === 'knacks' ? _crrWord('knack') : _crrWord('sleight')).toUpperCase();
   const one = q.ladder.length < 2;
-  const s = i => `<b class="${q.tier === i ? 'cur' : ''}">${r.face[i]}</b>`;
-  return `<div class="cr-pay">${unit ? `<i>${unit}</i> ` : ''}${s(0)}${one ? '' : ` › ${s(1)}`}</div>`;
+  // r677: got = the stage paid, passed = the one a take passed up, risk = stage 1 under a
+  // raise (the 'take' / 'raise' looks draw them; nothing else does).
+  const st = i => q.done === 'won' ? (i === q.banked ? ' got' : ' passed') : (!q.done && i < q.tier ? ' risk' : '');
+  const s = i => `<b class="${q.tier === i ? 'cur' : ''}${st(i)}">${r.face[i]}</b>`;
+  // r688 (owner): set tight, "L¢+8›+20", so two stages fit a card. A word unit (REROLL,
+  // SLEIGHT) takes its own line over the figures; on one line it ran off the card.
+  const word = unit && unit !== CREDIT_SYM;
+  return `<div class="cr-pay${word ? ' crp-word' : ''}">${unit ? `<i>${unit}</i>` : ''}${s(0)}${one ? '' : `<span class="crp-to">›</span>${s(1)}`}</div>`;
 }
 // The tap read-out's last sentence: what it pays, and what it costs if it runs out.
 function crrInfoText(q) {

@@ -89,7 +89,8 @@ function classicGoalForLevel(lv) {
   const shift = Math.max(2, Math.round(goalTune('classicLateStart')));
   const e1 = Math.max(0, Math.min(lv, shift - 1) - 1);   // steps at the early rate
   const e2 = Math.max(0, lv - (shift - 1));              // steps at the late rate
-  const g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(early, e1) * Math.pow(late, e2);
+  let g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(early, e1) * Math.pow(late, e2);
+  if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, lv >= shift ? late : early);   // r680
   if (lv <= 1) return Math.max(1, Math.round(g));
   return Math.max(step, Math.round(Math.round(g) / step) * step);
 }
@@ -100,7 +101,8 @@ function classicGoalForLevel(lv) {
 function mapGoalForLevel(lv) {
   const step  = Math.max(1, goalTune('classicRoundTo'));
   const scale = 1 + goalTune('mapGrowth') / 100;
-  const g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
+  let g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
+  if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, scale);   // r680
   if (lv <= 1) return Math.max(1, Math.round(g));
   return Math.max(step, Math.round(Math.round(g) / step) * step);
 }

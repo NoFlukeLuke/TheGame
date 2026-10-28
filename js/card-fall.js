@@ -18,9 +18,10 @@ function renderCardAppearance(card, r, c, {
   // ── Challenge card (js/challenge-round.js) ──
   if (card._isChallenge) {
     const _q = card.cr || {};
-    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.src === 'flow' ? ' cr-flow' : '') + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
-               + (_q.src === 'flow' && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
-               + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : ''),
+    return { className: 'card stone-card cr-card cr-' + crFamily(_q) + (_q.done === 'won' ? ' cr-won' : _q.done === 'lost' ? ' cr-lost' : '')
+               + (crTimed(_q.src) && !_q.done && _q.timeLeft <= 10 ? ' cr-low' : '')
+               + (typeof crCanRaise === 'function' && _q.ladder && crCanRaise(_q) ? ' cr-cleared' : '')
+               + (typeof crRaisedLive === 'function' && crRaisedLive(_q) ? ' cr-raised' : ''),
              innerHTML: crCardFaceHTML(card) };
   }
   // ── Reshuffle card (js/reshuffle-card.js) ──
@@ -507,8 +508,10 @@ async function removeAndFall(removingCells, mode = 'play') {
   newCards.forEach(({ card }) => { if (!card) return; const live = _cardFalls.get(String(card._id)); if (live) { try { live.anim.cancel(); } catch (e) {} _cardFalls.delete(String(card._id)); } });
   render();
 
-  const FALL_DUR = 420;
-  const COL_OFFSET = 60;
+  // r691 (owner): the fall is half as fast at the default animation speed (animSlow, js/settings.js)
+  const _as = typeof animSlow === 'function' ? animSlow() : 1;
+  const FALL_DUR = 420 * _as;
+  const COL_OFFSET = 60 * _as;
   const activeCols = new Set(removingCells.map(([,c]) => c));
   const minActiveCol = activeCols.size > 0 ? Math.min(...activeCols) : 0;
   const colReadyAt = {};

@@ -128,9 +128,9 @@ function hallmarkResolve(cards) {
   let note    = pick.label;
 
   switch (pick.kind) {
-    case 'mult':   permMult[k]   = (permMult[k]   || 0) + B.mult; break;
-    case 'pips':   permPips[k]   = (permPips[k]   || 0) + B.pips; break;
-    case 'replay': permRetrig[k] = (permRetrig[k] || 0) + 1;      break;
+    case 'mult':   permMult[k]   = (permMult[k]   || 0) + yokeGain('mult', B.mult); break;
+    case 'pips':   permPips[k]   = (permPips[k]   || 0) + yokeGain('pips', B.pips); break;
+    case 'replay': permRetrig[k] = (permRetrig[k] || 0) + yokeGain('retrig', 1); break;
     // Through rewindTime / pauseRound, never a raw `roundSeconds +=` - that is
     // what keeps the ⏪ floater, the Kingfisher and Albatross tallies and the
     // payout-FX particle honest (r183, r220).
@@ -139,7 +139,7 @@ function hallmarkResolve(cards) {
     case 'prime': {
       const pool = (typeof trickTray !== 'undefined' ? trickTray : []).filter(t =>
         !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
-      if (!pool.length) { note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + B.pips; break; }
+      if (!pool.length) { note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + yokeGain('pips', B.pips); break; }
       const t = pool[Math.floor(Math.random() * pool.length)];
       note = primeTrick(t, 1, { src: 'hallmark' }) ? `${t.name} primed` : `${t.name} not primed (QRL)`;
       if (typeof renderTrickTray === 'function') renderTrickTray();
@@ -147,7 +147,7 @@ function hallmarkResolve(cards) {
     }
     case 'state': {
       if (typeof cardStateIds !== 'function' || typeof addCardState !== 'function') {
-        note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + B.pips; break;
+        note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + yokeGain('pips', B.pips); break;
       }
       const ids = cardStateIds();
       const sid = ids[Math.floor(Math.random() * ids.length)];
@@ -161,7 +161,7 @@ function hallmarkResolve(cards) {
       // nothing you own can be forced to an effect, rather than rolling a
       // visible outcome worth zero.
       const t = (typeof armRandomForcedTrick === 'function') ? armRandomForcedTrick() : null;
-      if (!t) { note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + B.pips; break; }
+      if (!t) { note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + yokeGain('pips', B.pips); break; }
       note = `${t.name} forced`;
       if (typeof renderTrickTray === 'function') renderTrickTray();
       break;

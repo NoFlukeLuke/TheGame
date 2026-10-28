@@ -11,6 +11,10 @@ var SIM_CFG = {
   maxSubset: 5,
 };
 
+// r683: no run is a walkthrough. A mode's first run pins the walkthrough's seed
+// (tutorialRunSeed), so the first run of every batch was the same deal.
+if (typeof SETTINGS !== 'undefined') SETTINGS.walkthrough = false;
+
 // connected subsets of live cells, sizes 2..maxSize (bitmask enumeration)
 function SIM_connectedSubsets(maxSize) {
   const cells = [];
@@ -31,21 +35,24 @@ function SIM_connectedSubsets(maxSize) {
     }
     return out;
   });
+  // r683: masks are sums of powers of two, exact up to 53 cells. `1 << i` wrapped
+  // past 31, so a board over 31 cells (6x6 and up) found the wrong shapes. A set
+  // already expanded is skipped, so each one grows once.
+  const P2 = cells.map((_, i) => Math.pow(2, i));
   const seen = new Set();
   const out = [];
-  // grow subsets: only allow adding neighbours with index > root to halve dupes; dedupe by mask anyway
   const stack = [];
-  for (let i = 0; i < n; i++) stack.push([1 << i, i, [i]]);
+  for (let i = 0; i < n; i++) stack.push([P2[i], [i]]);
   while (stack.length) {
-    const [mask, root, mem] = stack.pop();
-    if (mem.length >= 2 && !seen.has(mask)) { seen.add(mask); out.push(mem); }
+    const [mask, mem] = stack.pop();
+    if (seen.has(mask)) continue;
+    seen.add(mask);
+    if (mem.length >= 2) out.push(mem);
     if (mem.length >= maxSize) continue;
     for (const i of mem) for (const j of adj[i]) {
-      if (mask & (1 << j)) continue;
-      const nm = mask | (1 << j);
-      if (seen.has(nm)) continue;
-      if (mem.length + 1 >= 2) { /* record on pop */ }
-      stack.push([nm, root, mem.concat([j])]);
+      if (mem.includes(j)) continue;
+      const nm = mask + P2[j];
+      if (!seen.has(nm)) stack.push([nm, mem.concat([j])]);
     }
   }
   return out.map(mem => mem.map(i => cells[i]));
@@ -103,6 +110,29 @@ function SIM_removeAndRefill(cells) {
   }
 }
 
+// r683: the deck runs dry mid-round (no mid-round reshuffle since r507) and the
+// game deals the Reshuffle card (js/reshuffle-card.js): played cards back into the
+// deck, every hole refilled, Starting Time cut for LATER rounds. The bot takes it
+// when the board is stuck or under half full. Without it every round that drew
+// the deck out stalled with time on the clock, and that was nearly every death.
+function SIM_tryReshuffle(stuck) {
+  if (drawPile.length || !playedPile.some(c => c && !c._temp)) return false;
+  let cards = 0, holes = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    if (typeof isCellVoid === 'function' && isCellVoid(r, c)) continue;
+    if (gridData[r][c]) cards++;
+    else if (!(typeof isCellBlocked === 'function' && isCellBlocked(r, c))) holes++;
+  }
+  if (!holes || cards >= RESHUFFLE_BOARD_MAX) return false;
+  if (!stuck && cards * 2 >= cards + holes) return false;
+  const lt = limits.round_time, cut = Math.min(RESHUFFLE_CAP_CUT, lt.current - (lt.min || 0));
+  if (cut <= 0) return false;
+  lt.current -= cut;
+  flushPlayedDeck();
+  SIM_removeAndRefill([]);
+  return true;
+}
+
 function SIM_spend(secs) {
   // burn clock while firing clock marks per second; honours mark-driven rewinds
   let clock = roundSeconds;
@@ -117,11 +147,12 @@ function SIM_spend(secs) {
 // one round; assumes score already holds any carry-over, roundGoal/roundSeconds set
 function SIM_playRound() {
   let clock = roundSeconds;
-  let hands = 0, dry = 0, dryActs = 0, fmSum = 0;
+  let hands = 0, dry = 0, dryActs = 0, fmSum = 0, reshuffles = 0;
   roundStartSeconds = clock;
   let decayMs = (typeof focusDecayIntervalMs === 'number' && focusDecayIntervalMs > 0) ? focusDecayIntervalMs : 2000;
   while (clock > 0 && score < roundGoal) {
     let best = SIM_bestHand();
+    if (SIM_tryReshuffle(!best)) { reshuffles++; clock = SIM_spend(2); continue; }   // double-tap + the refill
     if (!best) {
       // no hand: try a hand-making swap, then a discard, else burn scan time
       let acted = false;
@@ -165,7 +196,7 @@ function SIM_playRound() {
     clock = roundSeconds;
   }
   return { cleared: score >= roundGoal, score, hands, timeLeft: Math.max(0, clock),
-    dryActs, avgFocus: hands ? +(fmSum / hands).toFixed(2) : 1, scorePct: +(score / Math.max(1, roundGoal) * 100).toFixed(0) };
+    dryActs, reshuffles, stalled: dry > 10, avgFocus: hands ? +(fmSum / hands).toFixed(2) : 1, scorePct: +(score / Math.max(1, roundGoal) * 100).toFixed(0) };
 }
 
 // ── entity grants ──
@@ -247,18 +278,32 @@ function SIM_grantWeighted(w, bestOfN) {
   return false;
 }
 
-// manual level-up: bank score, bump level, set next goal from the schedule fn
-function SIM_levelUp(goalFn, opts) {
-  opts = opts || {};
+// Manual level-up: bank score, bump level, set next goal from the schedule fn.
+// r683: does what triggerLevelUp (js/level-up.js) does to the next round's
+// resources, which the sim had skipped: the board takes the Grid Rows / Columns
+// limits, swaps / discards / seconds come from computeRoundResources (its result
+// was thrown away, so stock never refilled and Starting Time never counted),
+// Focus resets, and Flow keeps its session clock (flowNextRoundSeconds). No mode
+// carries the score over the goal since r441. Not run: individual Tricks'
+// level-up hooks (Rising Tide, Life Lessons...), payouts, events.
+function SIM_levelUp(goalFn) {
   totalScore += Math.min(score, roundGoal);
-  const overflow = Math.max(0, score - roundGoal);
   level++;
-  score = opts.carryOver ? overflow : 0;
+  score = 0;
   roundGoal = goalFn(level);
+  gridRows = limits.grid_rows.current;
+  gridCols = limits.grid_cols.current;
   try { flushPlayedDeck(); } catch (e) {}
-  try { computeRoundResources(); } catch (e) {}
-  roundSeconds = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : 180;
+  const rr = computeRoundResources();
+  swaps = rr.swaps; discards = rr.discards;
+  roundSeconds = (typeof flowActive === 'function' && flowActive()) ? flowNextRoundSeconds(roundSeconds) : rr.seconds;
+  try { resetFocusMeter(); recomputeFocusDecayInterval(); } catch (e) {}
   try { initGridData(); } catch (e) {}
+}
+
+function SIM_diag(res) {
+  return { hands: res.hands, dryActs: res.dryActs, avgFocus: res.avgFocus, scorePct: res.scorePct,
+    reshuffles: res.reshuffles, stalled: res.stalled ? 1 : 0 };
 }
 
 // ── full runs per mode. goalFn(level) -> goal. Returns {win, diedLevel, log} ──
@@ -270,7 +315,7 @@ function SIM_runClassic(goalFn, quarters) {
     for (let node = 1; node <= 6; node++) {
       const isBoss = node === 6;
       const res = SIM_playRound();
-      if (!res.cleared) return { win: false, diedLevel: level, boss: isBoss, diag: { hands: res.hands, dryActs: res.dryActs, avgFocus: res.avgFocus, scorePct: res.scorePct } };
+      if (!res.cleared) return { win: false, diedLevel: level, boss: isBoss, diag: SIM_diag(res) };
       // between rounds: reward grid (2 draws + early-run guaranteed limit); boss pays prize grid (2 rare+)
       gridsSeen++;
       if (isBoss) {
@@ -290,20 +335,29 @@ function SIM_runClassic(goalFn, quarters) {
 
 function SIM_runSchedule(goalFn, quarters, bossMult) {
   ACTIVE_MODE = MODES.map || MODES.normal; startGame();
+  // r683: startGame opens the schedule screen, which lays the board out as the
+  // schedule (5 x 4 since r655) over the 4 x 4 play board, so the bot's first
+  // hand read a row gridData does not have and every run crashed. Clock in.
+  if (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) mapCloseScreen();
   roundGoal = goalFn(1);
-  // per quarter: 5 levels + 1 hard round + 2 reward tiles + 1 shop + 1 event, then boss.
+  // The review's quota multiplier: the game's own (mapQuarterBossGoal) unless one is given.
+  if (!bossMult) bossMult = Math.pow(MAP_BOSS_SCALE, MAP_BOSS_LEVELS - 1);
   for (let q = 1; q <= quarters; q++) {
     const quarterOpenLevel = level;
-    // r655: a sched json's "tiles" replaces the walk (the 4x4 map books 8 a quarter).
+    // r655: a sched json's "tiles" replaces the walk; the default is an 8-booking 4 x 4 quarter.
+    // r690: the reward tile is IT's alone; a priority account ('hard') pays the reward
+    // grid instead of the pick of three and two knacks. 'audit' is a hard round's goal
+    // and three challenge cards' credits (the bot plays no cards), no pick of three.
     const tiles = (typeof SIM_SCHED_TILES !== 'undefined' && SIM_SCHED_TILES)
-      || ['level','reward','level','shop','level','hard','reward','level','event','level'];
+      || ['level','level','level','hard','shop','event','level','event'];
     for (const t of tiles) {
-      if (t === 'level' || t === 'hard') {
+      if (t === 'level' || t === 'hard' || t === 'audit') {
         if (t === 'hard') roundGoal = Math.round(roundGoal * 1.25);
         const res = SIM_playRound();
-        if (!res.cleared) return { win: false, diedLevel: level, boss: false };
-        SIM_grantWeighted({ trick: 55, knack: 20, sleight: 25 }, 3);   // pick-of-three
-        if (t === 'hard') { SIM_grant('knack'); SIM_grant('knack'); }  // hard-round knack pick
+        if (!res.cleared) return { win: false, diedLevel: level, boss: false, diag: SIM_diag(res) };
+        if (t === 'level') SIM_grantWeighted({ trick: 55, knack: 20, sleight: 25 }, 3);   // pick-of-three
+        if (t === 'hard') { SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); }  // reward grid
+        if (t === 'audit') { coins += 20; }   // three standard cards' credits
         SIM_levelUp(goalFn);
       } else {
         if (t === 'reward') { SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); SIM_grantWeighted({ trick: 55, knack: 15, sleight: 10, limit: 20 }); }
@@ -313,12 +367,11 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
         level++; roundGoal = goalFn(level);
       }
     }
-    // boss: quota anchored to the level the quarter opened on
+    // boss: quota anchored to the level the quarter opened on, on the round's ordinary clock
     const quota = Math.round(goalFn(quarterOpenLevel) * bossMult / 500) * 500;
     roundGoal = Math.max(roundGoal, quota);
-    roundSeconds = 180;
     const res = SIM_playRound();
-    if (!res.cleared) return { win: false, diedLevel: level, boss: true };
+    if (!res.cleared) return { win: false, diedLevel: level, boss: true, diag: SIM_diag(res) };
     // prize grid
     SIM_grantWeighted({ trick: 60, knack: 20, sleight: 20 });
     SIM_grantWeighted({ trick: 50, knack: 20, sleight: 15, limit: 15 });
@@ -327,27 +380,52 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   return { win: true, diedLevel: level };
 }
 
-function SIM_runSurvival(goalFn, bossEvery) {
-  bossEvery = bossEvery || 300;
-  ACTIVE_MODE = MODES.survival; startGame();
+// r683: Flow, replacing the r278 Survival runner (MODES.survival went in r417, so
+// it threw on its first line). Flow cannot lose a level: goals are cleared on one
+// session clock (FLOW_SESSION_SECONDS, carried across level-ups); at 0:00 the boss
+// comes with goalForLevel(flowBossGoalLevel()) in FLOW_BOSS_WINDOW seconds, and
+// losing it ends the run. SURVIVAL_BOSS_COUNT bosses win it. Each level-up pays
+// the game's own reward chain count and kinds (flowrRollCount, flowrRollKind);
+// deck edits ('cards', 'deck') are not modelled. A board that stalls burns the
+// rest of the session.
+function SIM_flowReward(kind) {
+  if (kind === 'pick3')    return SIM_grantWeighted(SURVIVAL_PICK_WEIGHTS, 3);
+  if (kind === 'tricks')   return SIM_grant('trick', 3);
+  if (kind === 'sleights') return SIM_grant('sleight', 3);
+  if (kind === 'knacks')   return SIM_grant('knack', 3);
+  if (kind === 'limits')   return SIM_grant('limit');
+  if (kind === 'improve')  return SIM_improveRandomOwned();
+  if (kind === 'shop')     return SIM_grantWeighted({ trick: 50, knack: 20, sleight: 15, limit: 15 });
+  return false;
+}
+function SIM_runFlow(goalFn) {
+  ACTIVE_MODE = MODES.flow; startGame();
   roundGoal = goalFn(1);
-  roundSeconds = 120;
-  let liveSeconds = 0, bosses = 0;
-  for (let guard = 0; guard < 200; guard++) {
-    const isBossRound = liveSeconds >= bossEvery * (bosses + 1);
-    if (isBossRound) roundSeconds = 120;
+  for (let guard = 0; guard < 400; guard++) {
     const res = SIM_playRound();
-    liveSeconds += Math.min(120, 120 - res.timeLeft + 0);
-    if (!res.cleared) return { win: false, diedLevel: level, boss: isBossRound, bosses };
-    if (isBossRound) {
-      bosses++;
-      if (bosses >= 5) return { win: true, diedLevel: level, bosses };
-      SIM_grantWeighted({ trick: 60, knack: 20, sleight: 20 });
-      SIM_grantWeighted({ trick: 50, knack: 20, sleight: 15, limit: 15 });
+    if (res.cleared && roundSeconds > 0) {
+      let n = 1;
+      try { n = flowrRollCount(); } catch (e) {}
+      for (let i = 0; i < n; i++) { let k = 'pick3'; try { k = flowrRollKind(flowrOddsNow()); } catch (e) {} SIM_flowReward(k); }
+      SIM_levelUp(goalFn);
+      continue;
     }
-    SIM_grantWeighted(SURVIVAL_PICK_WEIGHTS, 3);
-    SIM_levelUp(goalFn, { carryOver: true });
-    roundSeconds = 120;
+    // the session is over: the boss, on a fresh deal with stock refilled (triggerBoss)
+    score = 0;
+    roundGoal = goalFn(flowBossGoalLevel());
+    const rr = computeRoundResources();
+    swaps = rr.swaps; discards = rr.discards;
+    roundSeconds = FLOW_BOSS_WINDOW;
+    try { resetFocusMeter(); } catch (e) {}
+    try { flushPlayedDeck(); initGridData(); } catch (e) {}
+    const boss = SIM_playRound();
+    if (!boss.cleared) return { win: false, diedLevel: level, boss: true, bosses: survivalBossesBeaten, diag: SIM_diag(boss) };
+    survivalBossesBeaten++;
+    if (survivalBossesBeaten >= SURVIVAL_BOSS_COUNT) return { win: true, diedLevel: level, bosses: survivalBossesBeaten };
+    SIM_grantWeighted({ trick: 60, knack: 20, sleight: 20 });
+    SIM_grantWeighted({ trick: 50, knack: 20, sleight: 15, limit: 15 });
+    flowRefillClock = true;   // flowEndBoss: the next level-up refills the session clock
+    SIM_levelUp(goalFn);
   }
-  return { win: false, diedLevel: level, bosses };
+  return { win: false, diedLevel: level, bosses: survivalBossesBeaten };
 }

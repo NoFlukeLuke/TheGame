@@ -243,7 +243,7 @@ function updateLimitsPopup() {
     const dlStr = dl ? ` <span class="lp-max" style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
     const right = def.hideMax ? `${shown}${dlStr}` : `${shown}${dlStr}<span class="lp-max">/${l.max}</span>`;
     return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
-           `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
+           `<span><span class="lp-ico">${emGlyph(def.icon)}</span>${def.label}</span>` +
            `<span>${right}</span></div>`;
   }).join('');
 }
@@ -513,6 +513,7 @@ function startGame() {
   acquiredKnacks  = [];
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   knackBossGrowth = { extra_swaps: 0, extra_discards: 0, curator: 0 };   // js/limits.js
+  editorRanks = {};   // js/rank-editor.js
   if (typeof challengeDial !== 'undefined') challengeDial = 1;            // js/challenge-round.js (r556)
   if (typeof focusKnacksReset === 'function') focusKnacksReset();          // js/focus-knacks.js (r571)
   earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
@@ -554,6 +555,7 @@ function startGame() {
   bonusMult_nines = 0;
   risingTideMult = 0;
   middleManMult = 0;
+  deluxeOffers = {};
   bonusMult_tens = 0;
   bonusMult_compound = 0;
   spadesRelentless = 0;
@@ -585,6 +587,7 @@ function startGame() {
   highestHandName  = null;
   trickFireTotals  = {};
   if (typeof resetQuarterLog === 'function') resetQuarterLog();   // js/quarter.js
+  if (typeof endlessReset === 'function') endlessReset();          // js/endless.js (r680)
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();

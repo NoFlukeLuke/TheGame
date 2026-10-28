@@ -39,7 +39,10 @@ function recordRunToHistory(outcome) {
   if (typeof gameStartTime !== 'number') return;
   // A run that ended twice (win screen then a stray end call) must not double-log.
   const list = readRunHistory();
-  if (list.length && list[0].startedAt === gameStartTime) return;
+  // r680: a won run that continued into Endless ends a second time; its entry is
+  // brought up to date (how far it got) rather than logged twice.
+  const again = list.length && list[0].startedAt === gameStartTime;
+  if (again && !(typeof endlessRun !== 'undefined' && endlessRun) && !(typeof survivalEndless !== 'undefined' && survivalEndless)) return;
 
   const entry = {
     startedAt: gameStartTime,
@@ -52,6 +55,7 @@ function recordRunToHistory(outcome) {
     score:     (typeof totalScore === 'number' ? totalScore : 0) + (typeof score === 'number' ? score : 0),
     level:     typeof level === 'number' ? level : 0,
     act:       typeof actNumber === 'number' ? actNumber : 0,
+    endless:   !!((typeof endlessRun !== 'undefined' && endlessRun) || (typeof survivalEndless !== 'undefined' && survivalEndless)),
     hands:     typeof handsPlayed === 'number' ? handsPlayed : 0,
     bestHand:      typeof highestHandName === 'string' ? highestHandName : null,
     bestHandScore: typeof highestHandScore === 'number' ? highestHandScore : 0,
@@ -60,7 +64,7 @@ function recordRunToHistory(outcome) {
     tricks:    (typeof trickTray !== 'undefined' && trickTray) ? trickTray.map(t => t.name).filter(Boolean) : [],
     knacks:    (typeof acquiredKnacks !== 'undefined' && acquiredKnacks) ? acquiredKnacks.map(k => k.name).filter(Boolean) : [],
   };
-  list.unshift(entry);
+  if (again) { entry.outcome = 'win'; entry.endlessOutcome = outcome; list[0] = entry; } else list.unshift(entry);
   writeRunHistory(list);
   updateHistoryBtn();
 }

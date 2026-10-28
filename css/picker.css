@@ -15,7 +15,6 @@
   flex-direction: column; align-items: center; justify-content: center;
   padding: 18px; overflow: hidden;
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at 50% 30%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
 }
 #picker-overlay.show { display: flex; }
@@ -28,11 +27,6 @@
   border: 2px solid #4b3f7a; border-radius: 14px;
   box-shadow: 0 0 40px rgba(122, 92, 240, 0.28), inset 0 0 60px rgba(0,0,0,0.5);
   overflow: hidden;
-}
-/* Scanlines over the whole panel, never over the text alone. */
-#picker-panel::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
 }
 
 /* ── Marquee bar ─────────────────────────────────────────────────────────── */

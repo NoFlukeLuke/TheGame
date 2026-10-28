@@ -207,7 +207,17 @@ const IMPROVE_PLAN = {
   // +10% a tier; the 5th adds a 30% chance of a second charge
   // r677 (owner): v2 x buffs, v3 6 cards, v4 up to 3 buffed allowed, v5 second rank / suit, v6 8 cards and up to 6
   touch_up:         t => ({ cards: t >= 5 ? 8 : t >= 2 ? 6 : 3, max: t >= 5 ? 6 : t >= 3 ? 3 : 0, kinds: t >= 4 ? 3 : t >= 1 ? 2 : 1 }),
+  // r685 (owner): Trophy Case v2 epic, v3 arrive at v2, v4 at v3, v5 legendary, v6 at v5
+  trophy_case:      t => ({ epic: t >= 1 ? 1 : 0, legend: t >= 4 ? 1 : 0, starts: [1, 1, 2, 3, 3, 5][t] }),
+  // Stacked alternates +10% and -10s; v6 both, the time stopping at 5s
+  stacked:          t => ({ chance: [0.25, 0.35, 0.35, 0.45, 0.45, 0.55][t], seconds: [30, 30, 20, 20, 10, 5][t] }),
+  // Very Rewarding: v2 three times; v3 a bonus easy stage 1 reward, v4 easy stage 2, v5 hard stage 1, v6 hard stage 2
+  very_rewarding:   t => ({ times: t >= 1 ? 3 : 2, bonus: t >= 2 ? 1 : 0, stage: (t === 3 || t === 5) ? 1 : 0, hard: t >= 4 ? 1 : 0 }),
   green_station:    t => ({ chance: 0.3 + 0.1 * [0, 1, 2, 3, 4, 4][t], chance2: t >= 5 ? 0.3 : 0 }),
+  // owner: +15% a tier to 75%; the 5th keeps 75% and rolls 50% for each further improvement
+  deluxe_subscription: t => ({ chance: 0.15 * (1 + Math.min(t, 4)), chance2: t >= 5 ? 0.5 : 0 }),
+  // the number is not the point: each improvement grows the cards' buffs (IMPROVE_HOOKS.yoked)
+  yoked:            () => ({}),
 };
 
 // What an improvement DOES beyond its numbers (r625): a tier jump, a roll kept on
@@ -217,8 +227,8 @@ const IMPROVE_HOOKS = {
   shape_line: (tier, t) => { if (tier === 1 || tier === 2) return 3; if (tier === 4) return 5; },   // two improvements: 3, then 5
   undue_influence: tier => (tier >= 1 && tier < 5) ? 5 : undefined,
   nines_mult: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
-  wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, ['A']); },
-  patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, ['J', 'Q', 'K']); },
+  wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, rkSet('wild_heart')); },
+  patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, rkSet('patient_rulers')); },
   critical: (tier, t) => { if (t && BAL.critical.extra_family && !t._critFamily) t._critFamily = Math.random() < 0.5 ? 'set' : 'run'; },
   perfect_timing: () => { if (BAL.perfect_timing.extra_line && typeof markExtraLine === 'function') markExtraLine('perfect_timing'); },
   // r646: the line Tricks' 5th improvement marks a second line (js/scoring.js markExtraLine)
@@ -233,6 +243,7 @@ const IMPROVE_HOOKS = {
   retake: tier => sleightTierCharges('retake', tier, tier >= 5),
   shredder: tier => sleightTierCharges('shredder', tier, tier >= 5),
   logistics_assistant: tier => sleightTierCharges('logistics_assistant', tier),
+  yoked: tier => { yokedImprove(tier); },
 };
 // The charges a Sleight's IMPROVE_PLAN gives at a tier, onto every owned copy: the
 // step since the last tier, or full when `refill`. Capped at the Sleight's cap.
@@ -417,6 +428,7 @@ function syncOwnedEntityDescs() {
       // r646: a marked Trick's description names its line; the regenerated sentence says "a marked row or column"
       // again, so the label is put back from the registry (it used to be lost at every improvement).
       if (e && e._posAxis != null && typeof positionDescApply === 'function') { e._posDescBase = e.desc; positionDescApply(e); }
+      if (typeof rkDescApply === 'function') rkDescApply(e);   // r698: ranks rechosen at the Editor
     });
   });
 }

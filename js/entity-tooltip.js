@@ -91,7 +91,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   el.querySelector('.et-desc').innerHTML = highlightKeywords(desc);
 
   const meta = [];
-  if (p.price != null) meta.push(`💰 ${p.price}`);
+  if (p.price != null) meta.push(creditsTxt(p.price));
   if (p.uses  != null) meta.push(`${p.uses} uses`);
   if (Array.isArray(p.meta)) meta.push(...p.meta);
   const metaEl = el.querySelector('.et-meta');

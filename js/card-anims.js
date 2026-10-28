@@ -96,7 +96,7 @@ function cardAnimRunner(kind, id) { return (CARD_ANIM_RUN[kind] || {})[id] || nu
 // linearly from x1. caSlow() is the length multiplier every runner's time goes
 // through (caAnim, caKeep, caWait, caOverlay, the swap and fly lengths).
 const CA_SPEED_KEY = 'lethe.cardAnimSpeed.v1';
-const CA_SPEED_DEFAULT = { speed: 0.6, focus2: 1.5, tally2: 1.5 };
+const CA_SPEED_DEFAULT = { speed: 0.6, focus2: 1.25, tally2: 1.25 };   // r691 (owner): Focus's lift halved (was 1.5 / 1.5)
 let caSpeedCfg = (() => { try { return Object.assign({}, CA_SPEED_DEFAULT, JSON.parse(localStorage.getItem(CA_SPEED_KEY)) || {}); } catch (e) { return Object.assign({}, CA_SPEED_DEFAULT); } })();
 let _caLabFocus = null;   // the lab's "preview at Focus" slider; null in the game
 function caSpeedSet(k, v) {
@@ -116,7 +116,8 @@ function caFocusPace(key) {
   const f = Math.min(4, Math.max(1, caFocusNow() || 1));
   return Math.min(CA_FOCUS_PACE_MAX, 1 + (f - 1) * ((caSpeedCfg[key] || 1) - 1));
 }
-function caSpeedNow() { return Math.max(0.05, caSpeedCfg.speed) * caFocusPace('focus2'); }
+// r691: Settings -> Motion -> Animation speed (animSpeedMult, js/settings.js) scales every look.
+function caSpeedNow() { return Math.max(0.05, caSpeedCfg.speed) * caFocusPace('focus2') * (typeof animSpeedMult === 'function' ? animSpeedMult() : 1); }
 const caSlow = () => 1 / caSpeedNow();
 const caWaitRaw = ms => new Promise(r => setTimeout(r, ms));
 const caWait = ms => caWaitRaw(ms * caSlow());

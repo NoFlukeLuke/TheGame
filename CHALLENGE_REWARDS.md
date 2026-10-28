@@ -196,11 +196,13 @@ Each reward is two tiers: stage 1 / stage 2. Owner's list first, then the new on
 | HR | Sleight charges | Limit |
 | Legal | Time | Knack pick |
 | Operations | Swaps and discards | Sleight pick |
-| R&D | Rerolls | Improvement |
-| IT | Reward grid size | Trick pick |
+| R&D | Prime (r685; was Rerolls) | Improvement |
+| IT | Card buffs (r685; was Reward grid size) | Trick pick |
 
 Prime and Card buffs are spares, to swap in for any Standard reward that plays flat. Built r677
-(`CRR.prime`, `CRR.cardbuff`), paid by no department yet.
+(`CRR.prime`, `CRR.cardbuff`). r685 (owner): R&D's easy cards pay Prime and IT's pay Card buffs
+(Rerolls and Reward grid size are spares now), and in Flow and Classic, which have no department,
+an easy card pays Credits, Prime or Card buffs at random (fixed when it lands).
 - **Prime:** a primed Trick pays its effect again the next time it fires (a prime replays the
   Trick's own payout; every prime it holds fires on that one firing, then they clear). Primed
   twice, its next firing pays three times. Source `challenge`, so Quarter resource limits apply.
@@ -305,3 +307,21 @@ Rare or better 76% of rounds against 29% of offers; a legendary about one round 
 6. **The changing Sleight** has 6 charges of its own; **the changing Trick** may become Tricks
    that read the whole game so far or buff cards for good, never ones that grow from when you
    take them or round by round (section 7).
+
+## 8. The challenge knacks (r685, owner)
+
+- **Trophy Case** (working name, rare): completed challenge cards turn into a random Sleight instead
+  of paying their reward. Common or rare; v2 adds epic, v3 the Sleight arrives at v2.0, v4 at v3.0,
+  v5 adds legendary, v6 it arrives at v5.0. Taken during a round, the Sleight takes the card's cell;
+  paid at a round's end, it goes into the deck. It replaces the whole payout. **r690 (owner:
+  combine them):** with Very Rewarding too, the card turns into 2 Sleights (3 from Very Rewarding's
+  v2): the first takes the cell, the rest go into the deck, and Very Rewarding's bonus reward is
+  paid as usual.
+- **Very Rewarding** (rare): challenge cards pay their reward twice; v2 three times; v3 also a
+  random easy card's stage 1 reward, v4 an easy card's stage 2, v5 a hard card's stage 1, v6 a hard
+  card's stage 2 (one bonus reward that grows, not four). Penalties are not doubled.
+- **Stacked** (rare): every 30s each Sleight on the grid has a 25% chance to prime the Trick in the
+  tray slot of its column. The ladder alternates +10% and -10s (35% / 30s, 35% / 20s, 45% / 20s,
+  45% / 10s); v6 does both, and since 10s - 10s would be nothing, the time stops at 5s (55% / 5s).
+- **Finishing Touch** is the owner's name for r677's Touch-Up.
+

@@ -31,7 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
-| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round; built r671-r676 under working names |
+| `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round, the challenge knacks; built r671-r685 |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -920,6 +920,7 @@ shop's multi-buy line is a printed notice on a phone (`shopHintMaybePrint`: firs
   AND again under "round-start knack effects", so each paid +4 while saying +2.
 - **Flow boss goal** (`flowBossGoalLevel`, js/flow-mode.js): boss N's goal is `goalForLevel(1 + 5N)`
   (`FLOW_BOSS_GOAL_LEVELS`), whatever level the run reached. The level-up after the boss resets it.
+  (r687: levels 10 / 16 / 20 / 24.)
 
 ## r526 - Flow goals collapsed after Continue
 `survivalEndlessFromLevel` is `Infinity` for a whole Flow run; JSON saved it as `null`, and on restore
@@ -1205,7 +1206,8 @@ mult 6 -> 12, a 7.3-pip card -> 14.3). `handLadderTotal` adds k x step so the pr
 under double; `nsAnythingEarned()` is what the Drought and the scaling tip ask.
 **Sim note** (tools/sim Classic, native curve, handTime 6, 24 runs): main 91.7% bot wins, r553
 87.5%, r554 75%; wide spread at that sample size, and the bot never steers toward a family. The
-survival sim is broken ("reading 'seed'") on main as well.
+survival sim is broken ("reading 'seed'") on main as well. (r683: fixed; those Classic figures were
+taken with the sim's level-up bugs, see r683.)
 
 ## r555 - challenge cards: every ask has a TOUCHING tier; a hand that takes the whole selection asks less
 `crTypeDefs`: every ask but the fall cards and "N hands touching" comes in two tiers. The base ladder
@@ -2989,7 +2991,466 @@ with the notice and no drift. Prime: one Trick 0 -> 2, then all +1, the reverse 
 in Flow the chain ran Tricks then the card pick, and the next level started. No page errors.
 
 
-## r679 - the Schedule: two of a kind a slot, Q1's opener shapes, the tall shape, doors preview (owner)
+## r679 - challenge card answer looks, to choose from (`index.html?crfx`, `js/cr-fx-lab.js`, owner)
+Verified first, by real clicks (Classic spot 1440x820, Flow 420x900): a TAP on a cleared card pays
+stage 1 (credits 0 -> 8, 0.36s after the tap: the double-tap window), a DOUBLE-TAP raises (tier 1,
+nothing paid, counts carry) and stage 2 cleared then pays +20 instead. Four looks for answering a
+cleared card, each its own switch in `CR_FX` (js/challenge-round.js; `crFxOn` / `crFxSet`,
+`body.crfx-<key>` gates the CSS at the end of css/challenge-round.css). **All off by default: the
+game is unchanged until the owner picks.** **press** (`crFxPress`): any tap on an open card dips it
+and clicks (`sfxKeyClick`) at once. **prompt** (`crMoreHTML`): the cleared card reads TAP / TAP TAP
+with each stage's figure, the stage 2 ask, and a bar draining over `CR_CLEAR_HOLD` (a CSS animation
+started `-(6 - q.hold)`s in, since render() rebuilds the face). **take**: a PAID stamp, the plate
+flies from the paid figure on the pay line, which pops; the passed-up figure is struck; the card
+leaves 900ms after (700 before). **raise** (`crFxRaise(cd, was)`): a STAGE 2 band, the old ask rolls
+out as the new rolls in, the new boxes drop in, the raised figure pops, red sparks, and `.cr-raised`
+(card-fall.js and crRepaint, `crRaisedLive`) burns the border red while stage 1 is at risk.
+Stamps are children of #grid (`crStamp`), not of the card: render() rebuilds a card's face every
+pass. Pay line states come from `crrFaceHTML` (`got` / `passed` / `risk`); under take or raise the
+line keeps its height (a crowded desktop card squeezed it to 6px and cut its text).
+**Preview** (`?crfx`): a Classic run with the real card on the real board, a panel beside it
+(over the info column; under the board on a phone) with the four switches (start all on), ALL ON /
+TODAY'S LOOK, demos TAKE / RAISE / WAIT 6S that tap through `onCardTap` with a ring where the finger
+would be, and NEW CARD / CLEAR STAGE. The clock and the card's timer are topped up. Nothing stored.
+**Fixed in passing (live):** a spot card (Classic / Schedule) never took `.cr-flow` / `.cr-low`, so
+its timer bar sat over its pay line and it never turned red in its last 10s; both now follow
+`crTimed`. Measured: all three demos paid right (+20, +8, +8 on the auto-take), switches flip
+`CR_FX` and the body classes, a tap with press on starts the card's animation at once, none with it
+off; plain play (no `?crfx`) unchanged. No page errors at 1440x820 or 420x900.
+## r680 - the finale and the goal banner on the board; the finale's records, named builds, the share image; ENDLESS (owner)
+- **The finale is a board screen** (`showFinale`, js/finale.js; css/finale.css on `.bs-screen.fn-screen`):
+  "> VICTORY · CLASSIC" types; a double box says how far (Q4 CLOSED · 20 ROUNDS · 1:02:14, or
+  REACHED Q3 · ROUND 14 · 900 of 9,000) with **★ NEW BEST tags** against the run history
+  (`finaleFacts`: BEST SCORE, BEST HAND, DEEPEST RUN, MOST HANDS, FIRST WIN; the run's own
+  entry excluded); boxes for SCORE (the run's total), BEST HAND (name and score), MOST PLAYED
+  (`crHandPlays`), MOST USED (`trickFireTotals`), HANDS, CREDITS, CARDS (and discarded), TIME,
+  each value shrunk to its box (`finaleFitStats`); THE BUILD as tiles with names; DETAILS
+  (the quarter table) folded. **Keys:** PLAY = PLAY AGAIN (BACK TO BUILDS on a test drive),
+  DISCARD = HOME, SWAP = ENDLESS on a won run that can go on; on the screen PEEK, SHARE, SAVE
+  BUILD, DETAILS. Sub-views replace the body and keys (`finaleSubView` / `finaleMainView`).
+  **SAVE BUILD** types a name field on the screen (`finaleSaveView`; Enter saves) and writes
+  through `saveBuildRecord`; the key then reads SAVED "NAME". The pre-r634 `#end-overlay` is the
+  fallback with no stage. Every other sound and reset of onGameWin / onGameEnd is unchanged.
+- **The share image** (`js/finale-share.js`): `finaleShareImage(F, { all })` draws a 1200 x 675
+  PNG on a canvas: the glass, "> VICTORY" and the how-far line, the records, four boxes (score,
+  best hand, most used, hands with credits), and THE BUILD as tiles with names: the floppy art
+  (`--fa-<rarity>`, a fused Trick tinted red) with the pixel icon on its label (the sheet,
+  `PX_ICONS`; light icons outlined), the Knack diamond and the Sleight card as paths. Default:
+  one row of 8, Tricks first, then Knacks, then Sleights; **EXPAND** draws every entity in as many
+  rows as it takes (the canvas grows). The SHARE sub-view shows the image and offers SHARE (the
+  Web Share sheet, where `navigator.canShare` takes files: phones), COPY (the clipboard as PNG)
+  and SAVE PNG (a download). Nothing is fetched: fonts are the local VT323, art is the game's.
+- **The goal banner on the grid** (`goalBannerGrid`, js/goal-clear.js, `#gb-grid` in css/goal-clear.css):
+  in console mode a strip across the board's middle types "> GOAL CLEARED  1,500" (a boss win's
+  kicker over it) and leaves like the board screens; the body-level banner stays for the pit.
+- **ENDLESS** (`js/endless.js`): a won run goes on. `rolloverQuarter` keeps the continuation it
+  would have run after the quarter card (`_endlessNext`) before calling onGameWin; the finale's
+  SWAP key runs `endlessContinue`: `endlessRun` / `endlessFromLevel` (SAVE_VARS), the next boss
+  drawn, the quarter screen ("ENDLESS · QUARTER CLOSED", boxes past Q4) and then the mode's own
+  loop: Classic's rounds, the Schedule's next schedule and department (the pool reuses when all
+  four are spent), Q5, Q6... **Goals climb faster from the level the run continued at:**
+  `endlessGoalMult(lv, scale)` = `(fast / scale) ^ (lv - from)` with `fast = 1 + (scale - 1) x
+  goalTune('endlessAccel')` (1.65, Flow's rule since r155), applied in `classicGoalForLevel` and
+  `mapGoalForLevel` before rounding; Flow keeps `survivalGoalForLevel`. Measured: from level 1,
+  the next goal 2,000 -> 2,500, three on 3,500 -> 5,500. **Flow:** the fourth boss goes to the
+  finale (`survivalPostBossReward` -> onGameWin) and ENDLESS runs `survivalContinueEndless`
+  (the prize grid, then the next deal); the r155 RUN COMPLETE overlay (Retire / Continue) and its
+  CSS are gone. The next boss exists in Endless (`peekNextActBoss`, Advance Notice). A run in
+  Endless cannot be won again: it ends on a loss or clock out, the finale reads ENDLESS OVER ·
+  REACHED Q6, and the run history's entry is brought up to date (`again` in
+  `recordRunToHistory`: outcome stays win, `endless: true`, `endlessOutcome`, `act`). **QRL is off
+  in Endless** (r682: `qrlLimit()` reads Infinity once `endlessRun` / `survivalEndless` is set). `endlessReset` runs from startGame.
+- Measured in headless Chromium at 1440x820 and 420x900: the finale lands on the board's box; a
+  real press of SWAP continued Classic into Q5 (`endlessRun` true, the ENDLESS quarter screen with
+  five boxes, the continuation ran) and the Schedule into Q5's schedule (HR, CLOCK IN back on
+  PLAY); the finale's keys fit; SAVE BUILD stored the typed name; SHARE drew 1200x675 and EXPAND
+  1200x763 with all 11 entities; an Endless loss read ENDLESS OVER · REACHED Q5 and updated the
+  history entry; the on-grid banner printed inside #grid; Flow's fourth boss opened the finale and
+  ENDLESS opened the prize grid. No page errors.
+
+## r681 - the challenge card's face; the tap press kept; stock squares are pixels (owner)
+- **Press is kept** (`CR_FX.press` true; r679's switches). A take waits `CR_TAP_WAIT_MS` (500) for a
+  second tap, 0.15s longer than the 0.35s it was. Measured by click: one tap paid 0.57s after it, two
+  taps 0.4s apart raised (that gap used to be a take).
+- **The face** (`crCardFaceHTML`): no picture of the ask's kind (the ♠ / ♣ / ★ row is gone,
+  `CR_GLYPH` with it; ✋ rides after the ask). The pips are now **STAGE 1 / STAGE 2** (`.cr-stage`,
+  in the current stage's difficulty colour; ONE STAGE for a one-stage ladder; ✓ / ✗ in front once
+  done; a challenge round's 2/3 is its own small line above). Hands read as the preview prints them
+  with numbers (`crHandShort`: SET OF 3, RUN OF 4, 2 PAIR). **The clock is the background**: a timed
+  card has no bar and no seconds; `.cr-bg` (z -1 in the card's own layer, rebuilt with the face) mixes
+  dark amber (`--crt1` / `--crt2`; slate on fall cards) toward near black by `--crt` = time left / its
+  clock. The last 10s still pulse red (`cr-low`). r679's `cr-flow` timer room is gone; the face is
+  `space-evenly`, fonts up a size. Measured at 1440x820 (63 x 82 card): stage 7+10, ask 22+22, boxes
+  49+8, pay 62+10; nothing overlaps at 420x900 either.
+- **The cleared prompt** (look 2, still a preview): nearly solid (`#120b04`), no ask line, TAP / 2-TAP.
+- **Stock squares are 3 x 3 pixels** (css/key-looks.css, the tube look): `--px` is one square pixel
+  (a conic gradient, 66% of a third of the square), tiled; left = nine lit with a drop-shadow glow,
+  used = the eight round the edge, not unlocked = nine faint. Same style as the keys' dot words.
+- The preview (`?crfx`): look 1 says it is in the game; TODAY'S LOOK is what ships (`CRL_GAME`).
+
+## r683 - tools/sim plays again (`tools/sim/sim-core.js`, `runner.js`)
+What was broken, all in the sim (no game code changed):
+- **Schedule** crashed on its first hand in every run: `startGame` opens the schedule screen, which
+  sets the board to the schedule's shape (5 x 4 since r655) over the 4 x 4 play board. The runner now
+  closes it (`mapCloseScreen`), uses the game's own review quota unless `bossMult` is given, and walks
+  8 bookings a quarter by default. r655's "94-96%" could not have come from the committed runner.
+- **Survival** threw on its first line (`MODES.survival` went in r417). Replaced by **Flow**
+  (`SIM_runFlow`; `survival` on the command line means `flow`): one session clock across level-ups,
+  the boss at 0:00 (`flowBossGoalLevel`, `FLOW_BOSS_WINDOW`), `SURVIVAL_BOSS_COUNT` bosses to win, the
+  game's reward chain per level-up (`flowrRollCount`, `flowrRollKind`; deck edits not modelled).
+- **Classic ran but measured a different game.** The bot never took the Reshuffle card (r518), so a
+  round that drew the deck out stalled with time on the clock: that was nearly every death. It does
+  now (stuck, or board under half full). The sim's level-up threw away `computeRoundResources`' result
+  (stock never refilled, Starting Time and Time Bank never counted), never applied the Grid Rows /
+  Columns limits (every run was 4 x 4), and never reset Focus (every round after the first opened at
+  the last one's Focus). It does all three now. The subset search used `1 << i`, wrong past 31 cells.
+- The first run of every batch was the walkthrough's pinned seed (`tutorialRunSeed`); the sim turns the
+  walkthrough off.
+- `runner.js` takes a 5th argument, jobs (default one per core), and prints Reshuffles taken and stalls.
+Measured on r679's game (native curves, handTime 6, 40 runs each, so about +-15 points): Classic
+32.5% bot wins (deaths levels 16-24, at 63% of goal, 0 stalls), Schedule 77.5% (56% of deaths at the
+review), Flow 100% (each boss asks level 6 / 11 / 16 / 21's goal,
+r525, while the bot reaches level ~16 in the first five minutes: boss 1 at 2,750 against level goals
+of ~25,000). The bot faces no boss modifiers or reward-grid debuffs; take its win rates as a floor.
+
+## r685 - Trophy Case, Very Rewarding, Stacked; Finishing Touch; the spare rewards paid (owner)
+- **Names:** r677's Touch-Up is **Finishing Touch** (id `touch_up`).
+- **Spares paid** (CHALLENGE_REWARDS.md sections 4-5): R&D's easy cards pay **Prime** (was Rerolls),
+  IT's pay **Card buffs** (was Reward grid size); with no department (Flow, Classic) an easy card
+  pays Credits, Prime or Card buffs at random (`CR_FIXED_PAY.std` is a list, `crrRewardFor` draws one,
+  fixed on `q.pay` when the card lands). Rerolls and Reward grid size are spares now.
+- **Every completed card pays through `crrPayCard(q, t, ctx)`** (js/challenge-knacks.js): `crCollect`,
+  `crSpotSettle` and `crSettleRound`. The Schedule's leave-early pay still calls `crrGrant` directly,
+  so the knacks below never touch it. Penalties are untouched.
+- **Trophy Case** (rare knack `trophy_case`, working name): the payout is a random Sleight
+  (`trophyCaseGrant`: `pickEntityByRarity` over Sleights you do not own, common / rare, `epic` and
+  `legend` open those rarities). `starts` is the version it arrives at: its id's tier is raised to
+  `starts - 1` (and its improvement hook run) before `grantSleight`, so the charges match. Taken in
+  a live round, the card is pulled back out of the draw pile and parked on `q.becomes`; `crDrain`
+  puts it in the cell the challenge card leaves and turns it in (`rotate: y`); a card leaving at a
+  round's end hands it to the draw pile (`crReleaseBecomes`). Paid off the clock, it goes straight
+  into the deck. Ladder: v2 epic, v3 arrives at v2, v4 at v3, v5 legendary, v6 at v5. Banned where
+  no challenge cards are dealt (`crModeHasCards`, like the Challenge Dial).
+- **Very Rewarding** (rare knack `very_rewarding`): the card's reward is granted `times` times (2,
+  then 3); the text reads "+8 credits ×3" when every grant says the same, else each is listed; a "×N"
+  plate rises off the card. From v3 one bonus reward (`veryRewardingBonus`): a random reward from
+  `CRR_STD` (easy) or `CRR_HARD` (`hard`) that can land, at stage `stage + 1`: v3 easy 1, v4 easy 2,
+  v5 hard 1, v6 hard 2. Same ban as Trophy Case.
+- **Stacked** (rare knack `stacked`, js/stacked.js): `stackedTick(elapsed)` from the round tick (the
+  marks Understudy counts by; `stackedBlock` per level). Every `seconds` of round time each Sleight
+  on the grid rolls `chance` to `primeTrick(trickTray[column], 1, { src: 'stacked' })`; the Sleight
+  flashes violet (`.stk-fire`), a "+1 PRIME" plate flies to the tray, one notice per mark names the
+  Tricks ("Cascade ×2, Power Line primed"). Ladder 25% / 30s, 35 / 30, 35 / 20, 45 / 20, 45 / 10,
+  55 / 5 (owner: alternate +10% and -10s, v6 both; the time stops at 5s).
+- Icons: lorc/trophy (🏆), delapouite/stack (📚), delapouite/present (🎁); sheet 153 cells, the first
+  150 unchanged pixel for pixel.
+Measured in headless Chromium at 1440x820 and 420x900: every ladder's six descriptions read as
+written above; 600 easy cards in Classic drew credits 199 / prime 186 / card buffs 215, hard ones an
+improvement; a real spot card (landed, cleared, taken) paid +16 credits under Very Rewarding v1 and
+"+8 credits ×3 · bonus: the next boss asks 10% less" at v6; under Trophy Case v3 the card became
+Amplifier v2.0 (5 charges) in its own cell; Stacked at v6 (chance forced to 1 for the test) primed
+the column 1 and column 2 Tricks at every 5s mark over 12s of live clock, two Sleights in one column
+priming twice. No page errors.
+
+## r686 - one window on a phone (owner)
+`gridFillOn()` (js/grid-metrics.js) no longer asks for landscape (Poker Squares still opts out), so
+r586's fixed box and r641 / r643's card shape inside it now hold in portrait too: the board fills
+`#grid-slot` at every row and column count, each card keeps the playing-card shape centred in its
+cell with one even gap, and the slack goes to the gaps. Supersedes r586's and r641's "portrait is
+unchanged" and r660's same-box pick on a phone (the fill path runs before `gridSameBoxOn`). The Flow
+panel's title band is still reserved only in landscape (`gp-fillhead`'s offset is landscape CSS).
+The portrait slot CSS is untouched. Measured in headless Chromium at 420x900: before, the slot was
+295 x 418 and the schedule, Limit Break, events and row chooser filled it, while the board was
+285 x 364 at 4x4, 254 x 404 at 5x4, 285 x 293 at 4x5 and 303 x 393 at 7x7 (wider than the slot);
+now every one of them, the pick of three, the payout, the reward grid, the shop and Flow's chain is
+295 x 418 at the same place. Cards: 4x4 63x83 -> 66x87, 4x5 50x65 -> 52x68, 6x6 44x57 -> 42x55,
+7x7 40x52 -> 36x47 (it no longer spills). 375x667: everything 263 x 372. Desktop unchanged
+(1440x820 measured identical). Hands, a swap and a discard by tap, a cleared round through payout and
+reward grid, Flow's chain and shop, the Schedule from schedule to round to pick: no page errors.
+
+## r687 - Flow bosses are harder (owner)
+`FLOW_BOSS_GOAL_LEVELS` (js/flow-mode.js) is a table: boss N asks `goalForLevel` of level 10 / 16 / 20 /
+24 (was 1 + 5N: 6 / 11 / 16 / 21), so 6,700 / 25,600 / 62,450 / 152,450 at default tuning (was 2,750 /
+8,400 / 25,600 / 78,050). An Endless boss past the table adds the last step again (28, 32...). Measured:
+a real Flow run started from a new-run note, skipped to the boss by `bossJumpStart`, read GOAL 6,700 at
+1440x820 and 420x900, no page errors; `tools/sim` Flow (native, handTime 6, 40 runs) 100% -> 92.5% bot
+wins, all three losses at a boss (levels 24 and 27). The bot faces no boss modifiers.
+
+## r688 - credits read L¢; every challenge card look is in; the clock-on-the-border preview (owner)
+- **The credits mark is L¢** (Lethe Corp credits): `CREDIT_SYM` / `creditsTxt(n)` in js/labels.js,
+  in front of the number (L¢12). It replaces ◆ (payout rows, totals, the Schedule's shop line,
+  Guided prices, Flow's shop tile, the challenge card) and the 💰 that marked a price or a wallet
+  (HUD, shop chips and readout, sell buttons, tooltips, notices, the payout plate with no number).
+  💰 as an ENTITY's icon (Windfall, Cash Out, Inheritance) stays. The key dot font has a ¢.
+- **All four r677 looks are on** (`CR_FX` press / prompt / take / raise). The pay line is set
+  tight (`crrFaceHTML`: "L¢+8›+20", `.crp-to`), and a word unit (REROLL, SLEIGHT, BOSS) takes its
+  own line over the figures (`.crp-word`); measured, before this 12 of 20 rewards ran off a
+  desktop card. The prompt shows the credits figure with its mark (`crrFig`: "+L¢8").
+- **`CR_FX.border`, a preview, off in the game:** a timed card's 60s clock is a ring over its
+  border (`.cr-clock`, a conic gradient masked to the border) that a hand sweeps away clockwise
+  from the top, red in the last 10s and while a raise is at risk; the background stays lit.
+  (`.cr-ring` was already the teal burst particle.) The preview (`?crfx`) starts with it on, has
+  a CLOCK ×10 demo (the card's 60s in 6s, run out), and refills the card's clock at 6s, not 30s:
+  at 30s the r681 background drain never got past half, which is why it looked like it did nothing.
+Measured in headless Chromium at 1440x820, 420x900 and 375x667: every reward's pay line and
+prompt inside the card on both stages, no face element past the card's edge or overlapping the
+next; the ring at 60 / 40 / 20 / 8s; the CLOCK demo ran out to a lost card; payout rows, totals and
+shop chips print L¢; no page errors.
+## r689 - Deluxe Subscription and Yoked (owner)
+- **Deluxe Subscription** (common knack, `js/deluxe.js`): an offered Trick or Sleight has
+  `BAL.deluxe_subscription.chance` (15%, +15% a tier to 75%) to come one improvement up; the 5th
+  improvement sets `chance2` (50%), rolled again for each further improvement. Rolled on every draw
+  (`pickEntityByRarity` -> `deluxeNote`, which wraps the old body, now `_pickEntityByRarity`), kept
+  in `deluxeOffers` (id -> tier, SAVE_VARS, reset per run). Tiles draw it (`entityShownTier`, read by
+  `entityTileInner` / `entityTierClass`; an owned Trick shows its own); taking it improves the entity
+  to that tier through `improveEntity` (`deluxeTake`, from `selectTrick` and `grantSleight`), so the
+  improvement animation plays. Measured over 4,000 draws: 14.8% / 27.8% at tiers 0 / 1; at tier 5
+  75.7% improved, each further step about half the last.
+- **Yoked** (epic knack, `js/yoked.js`): every buff a card GAINS is doubled while owned (flat x2, an x
+  buff's bonus x2: x1.5 -> x2). `enhanceCardKey` runs its payload through `yokeBuffs`; the sites that
+  write a store directly wrap their number in `yokeGain(kind, v)` (Rare Bloom, First Fruits, Heartwood,
+  the line perm mult, Fours, D6, Naturalist, Lightning Rod, Catalyst, Bomb, Hourglass, Hallmark, Pivot,
+  the level-up +5, the reward grid's +10s, the Vulture / Wait Four It pause). Penalties, a scaling
+  buff's growth and Absorb's copy are not gains. **A new buff site wraps its number in `yokeGain`.**
+  Improving it runs `yokedImprove(tier)` (IMPROVE_HOOKS) over every card store: +25% rounded down
+  (at least 1), x buffs +25% of their bonus (2 decimals), replays +1 at the 2nd and 4th improvement
+  only (owner: not printed anywhere); the 5th doubles everything. Measured: +10 pips +3 mult x1.5 +1
+  replay gained as 20 / 6 / x2 / 2, then 25 7 x2.25 2 -> 31 8 x2.56 3 -> 38 10 x2.95 3 -> 47 12 x3.44 4
+  -> 94 24 x5.88 8. Offer labels and notices still print the base value (the card holds the doubled one).
+- Icons: 🎁 `delapouite/present` gold, 🐂 `lorc/bull` brown (sheet 146 icons).
+
+## r690 - the Schedule pays less, better: priority accounts pay the reward grid; mysteries roll (owner)
+The r684 brief (BRIEF_REWARD_TILE.md), as the owner changed it. js/map-mode.js unless named.
+- **What a cleared round pays is its tile's** (`mapAfterLevel`, read from `mapPosTileId`, so a
+  resumed round pays the same): a round the pick of three; a **priority account the reward grid**
+  (`rewardGridContext 'interlude'`, closes back to the map) and no pick of three; an **audit its
+  challenge cards and nothing else** (no pick of three). The priority account's knack pick of two
+  at +20 Luck (`mapKnackPickTwo`, `MAP_CHALLENGE_LUCK`) and `mapLastWasChallenge` are gone. The
+  first-five-grids ramp (`rewardGridsSeen`) is unchanged (owner: it may have been an overstep).
+  A priority line prints `GOAL n` and `PATH OF n` on two lines (`mapTileStake().path`).
+- **The REWARD tile is IT's alone**: `MAP_MINIMUMS` lost it; `mapMinimums()` adds one back in the
+  quarter whose department tile is `reward`; the fill's reward row is zeroed elsewhere
+  (`mapFillWeights`), the funnel offers it only there, and a map holds `MAP_REWARD_MAX` (2) at most,
+  mysteries included (the validator checks). Saved maps keep what they drew.
+- **Priority a little more common**: `MAP_AUDIT_SHARE` 0.5 -> 0.4 (fill weights unchanged). 3,000
+  maps a department: priority accounts and one-on-ones 1.06-1.36 a map (were 0.60-0.77), audits
+  0.63-0.86 (were 0.53-0.79), reward tiles 0.15-0.27 outside IT and 1.38 in it (were 1.40-1.63).
+- **Mysteries roll their kind** (`MAP_MYSTERY_W`, dev -> Probabilities, "What a mystery tile is"):
+  round 10, audit 20, priority 20, event 20, mini 15, reward 15, at build, hidden until you commit.
+  The last slot never rolls a round; a tile a minimum or a slot's only round stands on is never
+  made a mystery. A challenge mystery carries `_mx` to the naming pass (`mapRollChallenge(want)`:
+  'mini' = only `CHALLENGE_DEFS` rows with `mini`, 'task' = the rest).
+- **The mini boss is the r239 harness** (`miniBossMaybeStart`, half-strength boss modifiers, a
+  1.2-1.25x goal, credits on a clear), which priority tiles could already roll. A priority tile whose
+  ask is a `mini` row now wears its own face (`mapTileIsMini`, `mapTileMetaKey`): **1-ON-1**
+  (One-on-One, ⚔, sage `mk-mini`). It pays what a priority account pays: its credits and the
+  reward grid (owner asked what it should pay; this is the default until they say).
+- **Trophy Case + Very Rewarding combine** (js/challenge-knacks.js `crrPayCard`): the card turns
+  into `BAL.very_rewarding.times` Sleights, the first in the card's cell, the rest in the deck, and
+  Very Rewarding's bonus reward is paid as usual.
+- Words: the ? card's department row reads "Up to 2 INCENTIVE obligations" for IT; the legend's ???
+  row lists the six outcomes; the handbook's Schedule, Priority accounts entries say what each pays.
+- **Sim** (tools/sim): `hard` now pays a reward grid (no pick of three, no knacks), `audit` 20
+  credits; the default walk is `level level level hard shop event level event` (was two `reward`
+  and one `hard`). Bot wins on the new default walk (native, handTime 6) swung 35 / 57.5 / 70% over three 40-run batches and 85% over 120 (pooled 70%, 240 runs); the old walk on this code 65% (40 runs), two `hard` 75% (40) and 85% (120); r683 measured 77.5% on the old walk. The spread between identical batches is wider than the run count explains (runs are unseeded `Math.random`); not chased here.
+Measured in headless Chromium at 1440x820 and 420x900, real Schedule runs: a round paid the pick of
+three; a priority account paid the reward grid (path 3) and closed to the map; a mystery revealed
+"It was: 1-ON-1" with its stones / fog handicap live, paid +credits and the reward grid; an audit's
+after-level went straight to the map; tile words and both stake lines inside their tiles. Trophy
+Case + Very Rewarding v1: "it became Amplifier · Even Keel added to your deck" (2 Sleights); at v6
+three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
+
+## r691 - console: nothing over the housing; one animation speed; the blast; the fall screen change (owner)
+- **Under the screen door** (css/skin-machine.css): the flip clock (`#mc-flip::after`) and every
+  score plate in flight (`.pt-box::after`, clipped to the plate, turned upright on a diamond) wear
+  the tube; the fused chip's ghost takes `.mc-door` like a card; the GOAL CLEARED counter is a
+  child of `#grid` in console mode (`flowrCountUp`), under its door and inside its clip. The Flow
+  panel (`#flowr-bg`) is the board's own box in both orientations: pad 0, no glow, no border.
+- **Pause menu on the board** has no frame rings past the board (`pm-on-grid`).
+- **Settings on a phone** (css/settings.css, under 640px): every row is a column, title and
+  description above the control at full width.
+- **One animation speed** (Settings -> Motion -> Animation speed, `animSpeed`: 0.5 / 1 / 2 / 4 / 6 / 8,
+  default 2; was a 0.5-16 slider default 2). `DANCE_CFG.norm = v / 2` (the tally) and
+  `animSpeedMult() = v / 4` (js/settings.js) for everything else: the card looks and the fly
+  (`caSpeedNow`), the fall (`FALL_DUR`, `COL_OFFSET`), a reward landing in its tray
+  (`trayEntityLand`), the fall screen change. **4 is what the game ran at before**; the default
+  runs everything twice as long. Focus's lift is halved (`focus2` / `tally2` 1.25), the queue's
+  lift is halved (`dncQueuePace` 1.5 / 2.5 / 4.5 / 8.5), the two never stack (`dncBoost` = the
+  bigger one, js/dance-clock.js), and the tally's per-payout wind-up is +2% (was 4).
+- **The blast** (`js/score-blast.js`, `css/score-blast.css`): a hand whose card beats are cut
+  (a winning hand waiting behind it, r670; or four hands in the system, `BLAST_QUEUE_DEEP`)
+  no longer fast-forwards: its cards shake, the look's beats land PIPS and MULT on their totals,
+  and the cards blow out of the preview (clipped to it), then the fuse as usual. Looks (dev ->
+  Aesthetics -> Blast scoring, Preview and 1-5 play each on the live preview; `lethe.scoreBlast.v1`
+  overrides only): **beats5** (default; five beats PIPS / MULT / PIPS / MULT / PIPS, a plate and a
+  tone up each), shockwave, strobe, implode, drumroll, off (the old fast forward). Sounds are
+  synthesised there (`sfxBlastBeat/Rise/Boom/Cymbal`). `dncGoalJump` and the queued hand's start
+  call `dncRequestFF` only with the blast off.
+- **Screen change `fall`** (default, js/screen-change.js): the board's items drop out of the
+  bottom of its box, bottom row first, the panel fades; the next screen's items fall in from the
+  top, left to right, with the card fall's bounce (items the game is already animating, a dealt
+  board, are left to their own trip). `#grid.sc-falling` clips to the box. The housing and the
+  keys never move; the keys' dot words change on their own (js/key-dots.js). `turn` and
+  `shutter` stay as options.
+- **Keys**: the dot words are dimmer (css/key-looks.css canvas filter); the phone's SWAP word is
+  15px and the split reroll words 13px (css/grid-pick.css).
+- **Trick stock squares** are 2 x 2 pixels, brighter, drawn INSIDE the tray along its lower edge as
+  the tray's first child at z -1 (`sb-in`, js/stock-bulbs.js; the tray isolates), behind the chips.
+- **No hand emoji**: `#sel-display` and `#sel-count-hand` print the number alone, the Selection
+  Size limit's icon is 🎴, a challenge card's touching tier is said in its text only.
+
+## r692 - Overload and Reels; the blast lab page; no turning screens; pixel icons on the limits (owner)
+- **Two more blast looks** (js/score-blast.js): **overload** (the preview screen fails: static
+  rolls, every card is torn sideways in strips, the chips flicker through the noise, one white
+  frame, then the picture is back with the figures lit and the cards gone; `noExplode`) and
+  **reels** (a lever clunk, PIPS and MULT stream figures like slot reels with a tick, PIPS lands on
+  a bell, MULT on a second, the cards are flung on that one). Seven looks and off.
+- **The lab page**: `index.html?blast` starts a Flow run and shows `#blast-lab` (a key per look
+  plays it on the real preview, USE THIS keeps the last played one, USE NONE the old fast
+  forward, EXIT). Also linked from dev -> Aesthetics -> Blast scoring.
+- **No sideways or cube rotation anywhere** (owner): the screen change's `turn` and `shutter`
+  looks are gone (`SC_LOOKS` fall / console / none; a stored turn or shutter reads as fall), and
+  **`console`** is new: "> OPEN REWARDS" or "> DEAL" types at the foot of the board (`.sc-cmd`,
+  the game's text speed), the old screen scrolls up and out, the new one scrolls up in. The event
+  lab's CUBE transition is gone and its FLIP cells drop in and out instead of turning. A fired
+  Sleight jumps and flashes in place (`sleight-spin` keyframes) instead of spinning twice.
+- **Pixel icons on the limits**: the Limit Break (offers, TAKEN bars, give-up rows), Records'
+  Limits and the Time pop-up draw `LIMITS_DEF` icons through `emGlyph`; the shop and reward tiles
+  already did. Rows and columns got rows in `tools/icons/manifest.js` (`delapouite/vertical-flip`
+  / `horizontal-flip`) and Trick Slots is a floppy (`💾`, `delapouite/save`); the sheet is rebuilt (158 icons).
+- The GOAL CLEARED counter's z-index inside `#grid` is forced (`!important`) under the door.
+
+## r693 - the blast ends on a thump (owner)
+`sfxBlastBoom` (js/score-blast.js) is the low sine drop alone: the lowpassed noise burst and
+the high crackle that ended every look (the "kssshhh") are gone, and Drumroll's cymbal
+(`sfxBlastCymbal`) is a no-op. Overload's mid-look static crackles stay.
+
+## r694 - the scoring queue: in behind, out the bottom, forward without a fade (owner)
+js/score-dance.js, css/dance.css. What was wrong, filmed at 1440x820: a queued hand's copies flew
+on body OVER the hand scoring and only then dropped behind it (a bright card popping to a dim one);
+and at the hand-over `dnc-active` came off, which took the preview's stacking with it, so the queue
+went under the glass with the old row: about 200ms of an empty tray, then the next hand faded in
+from 45%. Now:
+- **In behind.** A queued card flies in a layer of its own (`dnqFlyLayer`, one per waiting hand,
+  `.dnq-fly`, z 199: under the score plates) whose mask cuts out every card in front of it: the
+  hand scoring and the strips queued before it (`dnqHoles`, cut every frame while anything flies:
+  each card's own box, unturned if it is tilted; overlapping holes cut into pieces that do not
+  overlap; all inside the preview's screen). In console mode the mask starts from the housing's
+  (`mcScreenMaskParts`, js/machine-skin.js, also what `mcFlyMask` reads), so the copies stay under
+  the housing. The copy stays opaque, darkens to its strip's brightness over the back of the
+  flight, and lands with no pop; a strip that moved meanwhile is glided to (`dnqSettleSlot`).
+- **Darkened, not faded.** Strips are `brightness` by depth (`DNQ_DIM` 1 / .5 / .38 / .3 / .24), cards
+  opaque, so a strip hides the ones behind it. A new strip is placed without a transition (its
+  cards aim at where it stays); the host anchors on the live row's layout offsets (`dnqAnchor`, a
+  pop or a fall moves nothing) and glides (`left` / `top` .22s) when a hand of another size moves it.
+- **Out the bottom.** At the end of its tally every hand but the goal hand falls out of the tray
+  (`dncFallOut`: left to right, a small tilt each, ease-in, clipped at the screen's lower edge by
+  its own row, so the strips above are untouched); it replaces the old 300ms settle wait. Cards a
+  blast already threw away are skipped, and reduced motion skips the fall (the wait stays).
+- **Forward without a fade.** With a hand waiting the preview stays `dnc-active` between hands.
+  `dncQueueNext` measures the strip's cards before anything moves; the new row's cards take over
+  from them in one frame, as dark, and slide the little way to their slots as the darkening goes
+  (`MOVE` max(180, 380 / pace)). Measured: the tray is never empty between hands, no opacity dip.
+Measured in headless Chromium at 1440x820 and 420x900, console and pit: a copy frozen mid-flight
+over the live K is hidden behind it (seen only in the gaps); five hands in a burst (three waiting,
+the blast) and a winning hand over the queue end with no page errors, no timeline drift (dev mode),
+no fly layer, strip or hidden board card left. (r695 changed the label: see below.)
+
+## r695 - the label names the hand scoring; nothing queued shows outside the tray (owner)
+- **The hand-name label sticks to the hand being scored** (`updateHandNameLabel`, js/hud.js):
+  while a dance holds it, only a dance stamping its own hand (`force`) gets through; a live
+  selection, NEED or KICKERS no longer does (r401's exception is gone: since the queue, every
+  queued hand stamps its own name when its turn comes). With a hand waiting, the hold also
+  lasts through the fall-out into the next dance. Measured over 5-hand bursts at 1440x820 and
+  420x900: every sample while scoring read the scoring hand's name; a one-card selection mid-
+  tally left it alone, and after the tally the label followed the selection again.
+- **Queued strips stay inside the tray** (`dncQueueLayout`): `#dnc-queue` now covers the
+  preview (`inset: 0`) and is clipped to the screen's inner box (the preview on a desktop,
+  `#hand-preview-area` on a phone); the strips hang off its child `.dnq-anchor`, which carries
+  the live hand's first-card position and the glide. The step up shrinks with depth
+  (min(11, room / strips) px) so the deepest strip starts inside. Measured (5-hand bursts, every
+  60ms): queued cards reached 53px above the desktop tray in console mode, 62 in the pit; now 0
+  painted outside the tray in console, pit and on a phone.
+
+## r695 - Reels: a shorter spin, FOCUS is the third beat (owner)
+`BLAST_RUN.reels` (js/score-blast.js): the lever delay is 120ms and the spin before PIPS lands
+480ms (both a third shorter than r692's 180 / 720); MULT lands 420ms after PIPS and **FOCUS**
+420ms after that, on a third bell, so the order is short delay, pips beat, mult beat, focus
+beat, then the score total. `scoreBlast(ctx)` takes an optional `focus: { el, box, from, to }`
+(the dance passes `#focus-val` from `preHandFocus` to `targetFocus`; the chip already reads the
+target by then, FOCUS FIRST, so the reel spins back onto it; a value that does not change spins
+around itself); every look lands it after its run; `blChip` formats a focus chip as the dance
+does (`blFmtF`, ×N). The preview spins ×1 to ×2.5 and hands the readout back after. Measured in
+headless Chromium at 1440x820 and 420x900 through `blastPreview('reels')`: PIPS landed, MULT
+~400ms later, FOCUS ~400ms after that, 85 spin frames on the Focus chip; no page errors.
+
+## r696 - the music: ten Kevin MacLeod tracks; the track follows the round clock (owner)
+- **Tracks** (`assets/music/`, rows in `js/data/audio-manifest.js`, licences in `assets/music/CREDITS.md`,
+  the handbook's Credits): Local Forecast - Elevator, Your Call, Eternity, Presenterator, Delightful D
+  (scene `any`: the menu too), Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech
+  (scene `game`). Kevin MacLeod (incompetech.com), **CC BY 4.0**, every one published 2006-2020. Owner's
+  rule: nothing made by AI. MacLeod is reported to have used AI tools for pieces from 2025 on, so **a new
+  track from that catalogue must be dated before 2021**; check `uploaded` in
+  incompetech.com/music/royalty-free/pieces.json. Re-encoded at 128 kbps with loudness matched
+  (ffmpeg loudnorm, -16 LUFS), 31 MB in all. The r244 `deadline` row (a file that never existed) is gone.
+- **The clock ramp** (`MUSIC_CLOCK` in js/music.js: max 1.65, curve 1.6, slew 0.5 an x per second): a
+  track with no `ramp` of its own plays at 1x as the round clock starts and `max` at 0:00, along
+  `p ^ curve` where p = 1 - roundSeconds / roundStartSeconds (every round start, boss rounds included,
+  writes `roundStartSeconds` in `startRoundTimer`; Flow's level-ups add to both, so its session clock
+  reads as one round). A held clock (`gameTimerPaused`: shop, event, reward screen, pause menu) holds the
+  rate; a finished round (`roundEnded` or no `roundInterval`) eases home to 1x, except in Flow (held until
+  the run leaves the board); the menu is 1x. Changes are slewed, so a track change mid-round picks up the
+  live rate on the next tick. The r244 manifest `ramp` (time since the track started) still works and
+  owns the rate on a track that has it. `musicSetRate(rate, pitchUp)` takes the pitch flag now.
+  **Settings -> Audio -> Music follows the clock**: Off / Tempo (default; `preservesPitch`, the key held) /
+  Tape (the pitch rises). `musicClockSet({ max, curve, slew })` tunes it from the console.
+- The dead `css/terminal-skin.css` link in index.html (the file went in r566) is removed: a 404 on every load.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, walkthrough ended): 10% of the clock
+left 1.56x, half 1.22x, 1s left 1.644x (Tape: preservesPitch false); paused held 1.644; a rewind to 160s
+glided 1.64 > 1.39 > 1.14 > 1.02 over 2.2s; the next track at 17s left read 1.555x (Tempo: preservesPitch
+true); a finished round and the menu 1x; all ten files served 200; the playlist lists them; no page errors.
+
+## r695 numbering, again
+The scoring-queue branch's r695 (the label and the tray clip, above) ran in parallel with main's
+r694 / r695 (Reels) and r696 (the music). The merge that joined them is r697.
+
+## r698 - The Editor; rank conditions read one place (`js/rank-editor.js`)
+Every Trick or Knack whose condition names 3 or fewer fixed ranks reads them through
+**`rkSet(id)` / `rkHas(id, rank)`**, never a literal (`RANK_EDIT_DEFS` lists them with their
+default ranks and a `say(desc, R)` that rewrites the sentence). `editorRanks` (SAVE_VARS, reset in
+startGame) holds the rechosen ones; `rkPrune` (from renderTrickTray / updateKnackList) drops an
+edit once its entity leaves, so a copy taken again starts fresh; a fused Trick takes its part's
+edit (`from`, Men of Means <- Face Value, `rkOnPickup` in selectTrick). `syncOwnedEntityDescs`
+runs `rkDescApply` after the pool's sentence. **Improvements adapt:** Inspirato's and Patient
+Rulers' rolled extra ranks are rolled around the chosen set and re-rolled when an edit lands on
+one (`rkFixExtras`); 4x4's 5th improvement adds Queens, or the next face rank if Queens are
+chosen (`rkFourByFourRanks`); Cloud Nine adds cards of its current rank, and an edit turns up to
+`added` of its unspent old-rank cards in the piles into the new rank (`rkMoveCloudNine`). Heads of
+State edits the King; its "other Royal" is any face card that is not the chosen rank.
+**Feelin Lucky** (`lucky: true`): the Editor swaps its 5 rolled `_luckyRanks` for `RK_LUCKY_PICK`
+(3) chosen ranks and sets `_luckyFixed` (rerolls 0, sentence loses the sell clause, never listed
+again; in `CHG_FORM_FIELDS` so Temp never carries it). Console mode: the event is a board screen
+(r672); the rank keys are amber wireframe boxes (css/board-screen.css).
+**The Editor** event (`editor`, EVENTS.md): two or more such entities owned and 12 credits; pick
+one, then exactly as many ranks as it had. A new rank-condition entity goes in `RANK_EDIT_DEFS`
+and reads `rkHas`. Measured at 1440x820 and 420x900: Face Value edited to A / 5 / 9 paid +60 on
+three 5s and nothing on three Kings; the sentence, tray copy and 12-credit charge followed.
+
+## r699 - the screen door is one layer (`js/screen-door.js`, `css/screen-door.css`) (owner)
+Every scan line in the game is drawn by one canvas, `#sd-door` (body-level, fixed, z 10003, multiply),
+fixed to the display: cards falling or flying, a lifted Trick and everything else on a screen move
+UNDER the lines. Every screen gets the same lines: `SD_CFG.line` (0.5) design px dark in every
+`SD_CFG.pitch` (3), at the stage's zoom, snapped to device pixels, phased from the display's top
+(measured: 6 device px a line pair at 1440x820, 9 at 420x900 DPR 3). Console mode adds the grille.
+A screen is anything matching `SD_SCREENS` (the pit look's `#cab-screen` content box, console mode's
+windows, the amber board screens, menus and panels); `SD_COVERS` (tooltips, printer slips, the dev
+panel) are cut out of it. Elements are re-read every 200ms, rects every frame, the canvas is redrawn
+only when something changed. The ~35 per-element scan line rules (five spacings, each moving with its
+element, incl. r511's and r691's own doors on fliers, plates, the flip clock and the phosphor card face's own lines) are gone; a new
+screen goes in `SD_SCREENS`, never as its own gradient. **Settings -> Display -> Screen door**
+(`screenDoor`, default on) sets `html.sd-off`, which hides the canvas. Not screen door, left alone:
+the boss Static look, the overload look's static, the VCR tracking band, printer paper, the desk's wood, the event lab's rung bars.
+## r700 - the Schedule: two of a kind a slot, Q1's opener shapes, the tall shape, doors preview (owner)
 - **A slot holds at most two of one kind** (`MAP_KIND_CAP`, js/map-mode.js): the fill draws a cell
   only from kinds with room in its slot (the minimums' top-up too) and the validator refuses the
   rest. Q1's all-rounds opener is exempt. A faint wash of each item's own colour sits on every tile

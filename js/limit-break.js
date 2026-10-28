@@ -130,7 +130,7 @@ function lbTakenBarHTML(i) {
   const def = LIMITS_DEF.find(d => d.id === offer.id);
   const u = limitUnit(offer.id);
   return `<span class="lb-tk-check">✓</span><span class="lb-tk-tag">TAKEN</span>`
-       + `<span class="lb-tk-icon">${def.icon}</span><span class="lb-tk-name">${def.label}</span>`
+       + `<span class="lb-tk-icon">${emGlyph(def.icon)}</span><span class="lb-tk-name">${def.label}</span>`
        + `<span class="lb-tk-gain">+${offer._gain}${u}</span>`
        + `<span class="lb-tk-prog">${offer._from}${u} → ${limits[offer.id].current}${u}</span>`;
 }
@@ -169,7 +169,7 @@ function lbOfferEl(i, taken) {
       : limitProgressStr(offer.id, true);
     div.innerHTML = `
       <div class="lb-offer-tag">${taken ? 'TAKEN' : (offer.blind ? '?' : '')}</div>
-      <div class="lb-offer-icon">${def.icon}</div>
+      <div class="lb-offer-icon">${emGlyph(def.icon)}</div>
       <div class="lb-offer-label">${def.label.replace('/', '/<wbr>')}</div>
       <div class="lb-offer-gain">${gainTxt}</div>
       <div class="lb-offer-desc">${colorizeKeywords(def.desc)}</div>
@@ -284,11 +284,11 @@ function rollLbSacrifices() {
     // to three lines in the stage-2 column.
     const u = limitUnit(def.id), cur = limits[def.id].current;
     pool.push({ type: 'limit', id: def.id,
-      label: `${limitDeltaText(def.id, -1)} ${def.icon} ${def.label}`,
+      label: `${limitDeltaText(def.id, -1)} ${emGlyph(def.icon)} ${def.label}`,
       sub: `${cur}${u} → ${cur - limitLoss(def.id)}${u}` });
   });
   (acquiredTricks || []).forEach((b, idx) => {
-    pool.push({ type: 'trick', id: idx, label: `✖ ${trickEmoji?.(b.id) || '✦'} ${b.name}`, sub: 'lose this Trick' });
+    pool.push({ type: 'trick', id: idx, label: `✖ ${emGlyph(trickEmoji?.(b.id) || '✦')} ${b.name}`, sub: 'lose this Trick' });
   });
   (acquiredKnacks || []).forEach((t, idx) => {
     pool.push({ type: 'knack', id: idx, label: `✖ ${t.emoji || '♛'} ${t.name}`, sub: 'lose this Knack' });

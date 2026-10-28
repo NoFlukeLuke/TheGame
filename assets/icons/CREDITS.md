@@ -84,12 +84,18 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 📠 paper-tray
 - 🚚 forklift
 - 🔌 charging
+- 🎁 present
 - 🏪 shop
 - 💸 pay-money
 - 📉 chart
 - 🕳 hole
 - 🌀 transform
 - 🖌️ paint-roller
+- 📚 stack
+- 🎁 present
+- ⬍ vertical-flip
+- ⬌ horizontal-flip
+- 💾 save
 
 ## faithtoken
 
@@ -146,6 +152,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🕯️ candle-flame
 - 💵 cash
 - 🔐 padlock
+- 🐂 bull
 - ✌️ high-five
 - ☠ skull-crossed-bones
 - ✖ cross-mark
@@ -161,6 +168,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🪨 rock
 - ⚖️ scales
 - 🫅 queen-crown
+- 🏆 trophy
 
 ## priorblue
 

@@ -67,8 +67,9 @@ async function startInterlude(opts) {
     return;
   }
 
-  // Map mode (r238): a cleared level pays its pick-of-three (and a hard round's
-  // knack pick) and goes back to the map. The post-boss PRIZE grid still opens
+  // Map mode (r238): a cleared level pays what its tile pays (r690: a round the
+  // pick of three, a priority account the reward grid, an audit nothing more)
+  // and goes back to the map. The post-boss PRIZE grid still opens
   // here - its close is what routes a map run to the win (js/reward-grid.js).
   if (typeof mapActive === 'function' && mapActive() && !opts.prize) {
     mapAfterLevel();
@@ -267,7 +268,7 @@ async function showPayoutUI() {
   // Show the Idol's tripled interest right on the payout breakdown.
   const interestName = interestMult > 1 ? `Interest <span style="color:#f5c042;">🗿 ×${interestMult}</span>` : 'Interest';
   const interestDesc = interestPayoutDesc(coins, interestMult,
-    `<span style="color:#f5c042;">◆ ${coins}</span>`);
+    `<span style="color:#f5c042;">${creditsTxt(coins)}</span>`);
 
   // ── THE PAYOUT IS TILES ON THE BOARD (r255) ─────────────────────────────
   // It has rendered into #grid-slot since r101, but as ONE panel, which did not
@@ -455,7 +456,7 @@ async function showPayoutUI() {
   el.querySelector('#po-divider').classList.add('show');
   await ffSleep(200);
   el.querySelector('#po-total').classList.add('show');
-  el.querySelector('#po-total-coins').textContent = `${totalCoins} ◆`;
+  el.querySelector('#po-total-coins').textContent = creditsTxt(totalCoins);
   await ffSleep(600);
 
   // ── 5. Valued button ──
@@ -491,7 +492,7 @@ async function animateCoinFromClock() {
   const fromRect = clockEl.getBoundingClientRect();
   const toRect   = coinsEl.getBoundingClientRect();
   const coin = document.createElement('div');
-  coin.textContent = '💰';
+  coin.textContent = CREDIT_SYM;
   coin.style.cssText = `position:fixed;left:${fromRect.left + fromRect.width/2}px;top:${fromRect.top + fromRect.height/2}px;
     font-size:18px;z-index:999;pointer-events:none;transition:none;`;
   document.body.appendChild(coin);
@@ -707,8 +708,8 @@ function payoutTiledHTML(c) {
           <div class="pl-desc">${c.interestDesc}</div>
         </div>
         <div class="pl-right">
+          <span class="pl-sym">${CREDIT_SYM}</span>
           <span class="pl-coins" id="po-interest">0</span>
-          <span class="pl-sym">◆</span>
         </div>
       </div>
       <div class="po-tile payout-line" id="po-line-efficiency" data-box="3,0,6,1">
@@ -718,8 +719,8 @@ function payoutTiledHTML(c) {
         </div>
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(payoutClockSeconds())}</span>
+          <span class="pl-sym">${CREDIT_SYM}</span>
           <span class="pl-coins" id="po-efficiency">0</span>
-          <span class="pl-sym">◆</span>
         </div>
       </div>
       <div class="po-tile payout-line" id="po-line-unspent" data-box="4,0,6,1">
@@ -728,8 +729,8 @@ function payoutTiledHTML(c) {
           <div class="pl-desc">${unspentPayoutDesc()} · ${c.unspentActions} left</div>
         </div>
         <div class="pl-right">
+          <span class="pl-sym">${CREDIT_SYM}</span>
           <span class="pl-coins" id="po-unspent">0</span>
-          <span class="pl-sym">◆</span>
         </div>
       </div>
     </div>
@@ -739,7 +740,7 @@ function payoutTiledHTML(c) {
     <div class="payout-divider" id="po-divider"></div>
     <div class="po-tile payout-total" id="po-total" data-box="5,0,3,1">
       <span class="pt-label">Total</span>
-      <span class="pt-coins" id="po-total-coins">0 ◆</span>
+      <span class="pt-coins" id="po-total-coins">${creditsTxt(0)}</span>
     </div>
     <button class="payout-valued-btn po-tile" id="po-valued" data-box="5,3,3,1">Valued.</button>
     <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
@@ -822,8 +823,8 @@ function payoutPanelHTML(c) {
           <div class="pl-desc">${c.interestDesc}</div>
         </div>
         <div class="pl-right">
+          <span class="pl-sym">${CREDIT_SYM}</span>
           <span class="pl-coins" id="po-interest">0</span>
-          <span class="pl-sym">◆</span>
         </div>
       </div>
       <div class="payout-line" id="po-line-efficiency">
@@ -833,8 +834,8 @@ function payoutPanelHTML(c) {
         </div>
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(payoutClockSeconds())}</span>
+          <span class="pl-sym">${CREDIT_SYM}</span>
           <span class="pl-coins" id="po-efficiency">0</span>
-          <span class="pl-sym">◆</span>
         </div>
       </div>
       <div class="payout-line" id="po-line-unspent">
@@ -843,15 +844,15 @@ function payoutPanelHTML(c) {
           <div class="pl-desc">${unspentPayoutDesc()} · ${c.unspentActions} left</div>
         </div>
         <div class="pl-right">
+          <span class="pl-sym">${CREDIT_SYM}</span>
           <span class="pl-coins" id="po-unspent">0</span>
-          <span class="pl-sym">◆</span>
         </div>
       </div>
     </div>
     <div class="payout-divider" id="po-divider"></div>
     <div class="payout-total" id="po-total">
       <span class="pt-label">Total</span>
-      <span class="pt-coins" id="po-total-coins">0 ◆</span>
+      <span class="pt-coins" id="po-total-coins">${creditsTxt(0)}</span>
     </div>
     </div>
     <button class="payout-valued-btn" id="po-valued">Valued.</button>

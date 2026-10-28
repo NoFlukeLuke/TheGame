@@ -351,7 +351,8 @@ const INFO_TOPICS = [
 
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
-      'A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement, and it pays credits for both.',
+      'A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement. Clearing it pays a reward grid; meeting the requirement pays credits too.',
+      'A one-on-one is a priority account whose requirement is a review\u2019s modifier at half strength. Clearing it is meeting it.',
       'Missing the requirement is not failing the round. Clear the raised {GOAL} and the round passes as normal; meet the requirement too and you also take the bonus.',
     ] },
 
@@ -366,10 +367,11 @@ const INFO_TOPICS = [
   { id: 'mode_map', group: 'modes', title: 'The Schedule',
     body: [
       () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review.`,
-      'Every step activates the obligation you land on. You can take up to two obligations in a slot, if they are next to each other. Leaving a slot after one pays credits.',
-      'Obligations: client accounts (rounds), priority accounts (hard rounds), the shop, incentive programs (reward grids), events and raise requests (Limit Break). Some are hidden until you arrive.',
+      'Every step activates the obligation you land on. You can take any two obligations in a slot. Leaving a slot after one pays the department\u2019s reward.',
+      'Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (reward grids).',
+      'An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or a reward grid. You find out when you commit to it.',
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account adds a pick of two {knacks}.`,
+      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays a reward grid instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [
@@ -419,6 +421,7 @@ const INFO_TOPICS = [
       () => `The pictures on Tricks, Knacks, Sleights and reward tiles are pixel versions of icons from game-icons.net, by ${(typeof PX_ICON_AUTHORS !== 'undefined' ? PX_ICON_AUTHORS : []).join(', ')}. CC BY 3.0 (creativecommons.org/licenses/by/3.0). The list of icons is in assets/icons/CREDITS.md.`,
       'The playing cards are Pixel Cards by Jfred (jfredd.itch.io/pixel-cards), CC0; the Joker is the wild card.',
       'VT323 is by Peter Hull, under the SIL Open Font License.',
+      'The music is by Kevin MacLeod (incompetech.com), CC BY 4.0 (creativecommons.org/licenses/by/4.0): Local Forecast - Elevator, Your Call, Eternity, Presenterator, Delightful D, Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech. The list is in assets/music/CREDITS.md.',
     ] },
 ];
 

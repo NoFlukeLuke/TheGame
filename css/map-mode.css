@@ -20,10 +20,6 @@
   text-shadow: 0 0 6px rgba(255,176,46,.5);
   cursor: var(--cur-default, default);
 }
-#grid .map-term::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 6;
-  background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply;
-}
 
 /* ── The list: a gutter of times, then four lanes ── */
 #grid .mtm-list {
@@ -67,6 +63,7 @@
 #grid .map-tile.mk-level     { --rc: #94ecb0; }
 #grid .map-tile.mk-challenge { --rc: #ff7656; }
 #grid .map-tile.mk-audit     { --rc: #ff8fb8; }
+#grid .map-tile.mk-mini      { --rc: #cde37e; }   /* r690: a one-on-one */
 #grid .map-tile.mk-shop      { --rc: #ffe066; }
 #grid .map-tile.mk-reward    { --rc: #a4c6ff; }
 #grid .map-tile.mk-event     { --rc: #d6a8ff; }
@@ -340,6 +337,7 @@ body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-on .mapk-ico { 
 #map-legend .ml-row.mk-level     { --rc: #94ecb0; }
 #map-legend .ml-row.mk-challenge { --rc: #ff7656; }
 #map-legend .ml-row.mk-audit     { --rc: #ff8fb8; }
+#map-legend .ml-row.mk-mini      { --rc: #cde37e; }
 #map-legend .ml-row.mk-shop      { --rc: #ffe066; }
 #map-legend .ml-row.mk-reward    { --rc: #a4c6ff; }
 #map-legend .ml-row.mk-event     { --rc: #d6a8ff; }
