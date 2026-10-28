@@ -8,7 +8,7 @@ push, and GitHub Pages serves it.
 
 | folder | what goes in it |
 |---|---|
-| `assets/music/`    | background music tracks (`.mp3`, `.ogg`, `.m4a`) |
+| `assets/music/`    | background music tracks (`.mp3`, `.ogg`, `.m4a`). What ships and its licence: `assets/music/CREDITS.md` |
 | `assets/sfx/`      | short one-shot sound effects, under about 2 seconds |
 | `assets/ambience/` | long beds - room tone, machine hum - played as tracks |
 | `assets/icons/`    | the pixel icon sheet the entity tiles draw. Generated: see `tools/icons/README.md` |

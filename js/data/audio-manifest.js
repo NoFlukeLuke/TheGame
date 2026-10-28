@@ -28,6 +28,8 @@ const AUDIO_MANIFEST = {
   //              ramp: { every: 20, by: 0.10, max: 2.0, pitchUp: false }
   //            pitchUp false = tempo only, the key is held (musical).
   //            pitchUp true  = tape speed-up, the pitch rises with it.
+  //            A track WITHOUT `ramp` follows the round clock in a run instead
+  //            (Settings -> Audio -> Music follows the clock; js/music.js).
   //
   // Example:
   //   { id: 'lobby',  title: 'Lobby Hum',   file: 'assets/music/lobby-hum.mp3', scene: 'menu' },
@@ -52,7 +54,23 @@ const AUDIO_MANIFEST = {
     { id: 'amb_type1',    title: 'Typing (short)',         file: 'assets/ambience/typing-short.mp3',       scene: 'any',  off: true },
     { id: 'amb_type2',    title: 'Typing (long)',          file: 'assets/ambience/typing-long.mp3',        scene: 'any',  off: true },
     { id: 'amb_clock',    title: 'Clock tick',             file: 'assets/ambience/clock-tick.mp3',         scene: 'game', off: true },
-    { id: 'deadline',     title: 'Deadline',               file: 'assets/music/deadline.mp3',              scene: 'game', ramp: true },
+    // ── The music (r694) ──
+    // Kevin MacLeod (incompetech.com), CC BY 4.0, human-composed pieces from 2006
+    // to 2020; the credit lines are in assets/music/CREDITS.md. Corporate on the
+    // surface, synths underneath. None of these carries `ramp`: in a run they
+    // follow the ROUND CLOCK instead (js/music.js, MUSIC_CLOCK), reaching
+    // MUSIC_CLOCK.max as the clock reaches 0:00. 'any' tracks also play on the
+    // menu, at 1x; 'game' tracks are the driving ones and wait for a run.
+    { id: 'elevator',     title: 'Local Forecast - Elevator', artist: 'Kevin MacLeod', file: 'assets/music/local-forecast-elevator.mp3', scene: 'any' },
+    { id: 'your_call',    title: 'Your Call',              artist: 'Kevin MacLeod', file: 'assets/music/your-call.mp3',        scene: 'any' },
+    { id: 'eternity',     title: 'Eternity',               artist: 'Kevin MacLeod', file: 'assets/music/eternity.mp3',         scene: 'any' },
+    { id: 'presenterator',title: 'Presenterator',          artist: 'Kevin MacLeod', file: 'assets/music/presenterator.mp3',    scene: 'any' },
+    { id: 'delightful_d', title: 'Delightful D',           artist: 'Kevin MacLeod', file: 'assets/music/delightful-d.mp3',     scene: 'any' },
+    { id: 'lemonade',     title: 'Digital Lemonade',       artist: 'Kevin MacLeod', file: 'assets/music/digital-lemonade.mp3', scene: 'game' },
+    { id: 'newer_wave',   title: 'Newer Wave',             artist: 'Kevin MacLeod', file: 'assets/music/newer-wave.mp3',       scene: 'game' },
+    { id: 'getting_done', title: 'Getting it Done',        artist: 'Kevin MacLeod', file: 'assets/music/getting-it-done.mp3',  scene: 'game' },
+    { id: 'nowhere_land', title: 'Nowhere Land',           artist: 'Kevin MacLeod', file: 'assets/music/nowhere-land.mp3',     scene: 'game' },
+    { id: 'shiny_tech',   title: 'Shiny Tech',             artist: 'Kevin MacLeod', file: 'assets/music/shiny-tech.mp3',       scene: 'game' },
   ],
   // ── SOUND EFFECTS ────────────────────────────────────────────────────────
   // id: 'path/to/file'. The ids are listed in Settings -> Sound effects, and in

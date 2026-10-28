@@ -3324,3 +3324,29 @@ three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
 `sfxBlastBoom` (js/score-blast.js) is the low sine drop alone: the lowpassed noise burst and
 the high crackle that ended every look (the "kssshhh") are gone, and Drumroll's cymbal
 (`sfxBlastCymbal`) is a no-op. Overload's mid-look static crackles stay.
+
+## r694 - the music: ten Kevin MacLeod tracks; the track follows the round clock (owner)
+- **Tracks** (`assets/music/`, rows in `js/data/audio-manifest.js`, licences in `assets/music/CREDITS.md`,
+  the handbook's Credits): Local Forecast - Elevator, Your Call, Eternity, Presenterator, Delightful D
+  (scene `any`: the menu too), Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech
+  (scene `game`). Kevin MacLeod (incompetech.com), **CC BY 4.0**, every one published 2006-2020. Owner's
+  rule: nothing made by AI. MacLeod is reported to have used AI tools for pieces from 2025 on, so **a new
+  track from that catalogue must be dated before 2021**; check `uploaded` in
+  incompetech.com/music/royalty-free/pieces.json. Re-encoded at 128 kbps with loudness matched
+  (ffmpeg loudnorm, -16 LUFS), 31 MB in all. The r244 `deadline` row (a file that never existed) is gone.
+- **The clock ramp** (`MUSIC_CLOCK` in js/music.js: max 1.65, curve 1.6, slew 0.5 an x per second): a
+  track with no `ramp` of its own plays at 1x as the round clock starts and `max` at 0:00, along
+  `p ^ curve` where p = 1 - roundSeconds / roundStartSeconds (every round start, boss rounds included,
+  writes `roundStartSeconds` in `startRoundTimer`; Flow's level-ups add to both, so its session clock
+  reads as one round). A held clock (`gameTimerPaused`: shop, event, reward screen, pause menu) holds the
+  rate; a finished round (`roundEnded` or no `roundInterval`) eases home to 1x, except in Flow (held until
+  the run leaves the board); the menu is 1x. Changes are slewed, so a track change mid-round picks up the
+  live rate on the next tick. The r244 manifest `ramp` (time since the track started) still works and
+  owns the rate on a track that has it. `musicSetRate(rate, pitchUp)` takes the pitch flag now.
+  **Settings -> Audio -> Music follows the clock**: Off / Tempo (default; `preservesPitch`, the key held) /
+  Tape (the pitch rises). `musicClockSet({ max, curve, slew })` tunes it from the console.
+- The dead `css/terminal-skin.css` link in index.html (the file went in r566) is removed: a 404 on every load.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, walkthrough ended): 10% of the clock
+left 1.56x, half 1.22x, 1s left 1.644x (Tape: preservesPitch false); paused held 1.644; a rewind to 160s
+glided 1.64 > 1.39 > 1.14 > 1.02 over 2.2s; the next track at 17s left read 1.555x (Tempo: preservesPitch
+true); a finished round and the menu 1x; all ten files served 200; the playlist lists them; no page errors.

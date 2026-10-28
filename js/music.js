@@ -126,12 +126,14 @@ function musicRampConfig(t) {
   return c.by ? c : null;
 }
 
-function musicSetRate(rate) {
+function musicSetRate(rate, pitchUp) {
   const el = _musicEl; if (!el) return;
   const r = Math.max(0.25, Math.min(4, rate));
   // preservesPitch is the inverse of what we call pitchUp: true means "hold the
   // key and stretch time". The prefixed spellings are for older Safari/Firefox.
-  const keep = !(_rampCfg && _rampCfg.pitchUp);
+  // The manifest ramp passes its own flag; the clock ramp (below) passes the
+  // setting's; a plain reset passes nothing and holds the key.
+  const keep = !pitchUp;
   try { el.preservesPitch = keep; } catch (e) {}
   try { el.mozPreservesPitch = keep; } catch (e) {}
   try { el.webkitPreservesPitch = keep; } catch (e) {}
@@ -158,7 +160,7 @@ function musicRampTick() {
   _rampAcc += dt / 1000;
   const steps = Math.floor(_rampAcc / _rampCfg.every);
   const want = Math.min(_rampCfg.max, Math.pow(1 + _rampCfg.by, steps));
-  if (Math.abs(want - musicRate()) > 0.0005) musicSetRate(want);
+  if (Math.abs(want - musicRate()) > 0.0005) musicSetRate(want, _rampCfg.pitchUp);
 }
 
 // Override the ramp on whatever is playing right now, without editing the
@@ -285,3 +287,62 @@ function armMusicAutostart() {
   window.addEventListener('keydown', go, true);
 }
 armMusicAutostart();
+
+// ── THE CLOCK RAMP (r694) ───────────────────────────────────────────────────
+// Owner: the music speeds up the closer the round is to its end. A track with
+// no `ramp` of its own follows the ROUND CLOCK while a run is on: 1x as the
+// clock starts, MUSIC_CLOCK.max as it reaches 0:00, along `p ^ curve` where p
+// is the share of the round gone (so the first half barely moves and the last
+// minute climbs). Read off `roundSeconds / roundStartSeconds`, the same figures
+// the clock bar and "how far into the round" use: every round start, boss
+// rounds included, funnels through startRoundTimer, which writes the start;
+// Flow's level-ups add their seconds to both, so its one session clock reads
+// as one long round; a rewind past the start clamps to 1x.
+//
+// A HELD clock (shop, event, reward screen, the pause menu: gameTimerPaused)
+// holds the rate where it was. A FINISHED round (roundEnded, or no interval
+// running) eases home to 1x, except in Flow, whose clock runs on through its
+// level-ups; there the hold applies until the run leaves the board. The menu
+// is always 1x. Every change is slewed (MUSIC_CLOCK.slew per second), so a new
+// round or a pause is a glide, never a jump.
+//
+// Settings -> Audio -> Music follows the clock: off / tempo (the key is held,
+// the browser time-stretches) / tape (the pitch rises with the speed).
+// `musicClockSet({ max, curve, slew })` tunes it from the console for a session.
+const MUSIC_CLOCK = { max: 1.65, curve: 1.6, slew: 0.5 };
+const MUSIC_CLOCK_TICK = 250;   // ms
+let _clockRate = 1, _clockTape = false;
+
+function musicClockMode() {
+  const m = (typeof SETTINGS !== 'undefined') ? SETTINGS.musicClock : 'tempo';
+  return (m === 'off' || m === 'tape') ? m : 'tempo';
+}
+function musicClockSet(cfg) { Object.assign(MUSIC_CLOCK, cfg || {}); }
+
+// The rate the clock asks for right now; `cur` is handed back where it holds.
+function musicClockTarget(cur) {
+  if (musicClockMode() === 'off' || _musicScene !== 'game') return 1;
+  if (typeof roundSeconds !== 'number' || typeof roundStartSeconds !== 'number' || !(roundStartSeconds > 0)) return 1;
+  const over = (typeof roundEnded !== 'undefined' && roundEnded) || (typeof roundInterval !== 'undefined' && !roundInterval);
+  const flow = (typeof survivalActive === 'function') && survivalActive();
+  if (over) return flow ? cur : 1;
+  if ((typeof gameTimerPaused !== 'undefined' && gameTimerPaused) || (typeof pipeTimerPaused !== 'undefined' && pipeTimerPaused)) return cur;
+  const p = Math.max(0, Math.min(1, 1 - roundSeconds / roundStartSeconds));
+  return 1 + (MUSIC_CLOCK.max - 1) * Math.pow(p, MUSIC_CLOCK.curve);
+}
+
+function musicClockTick() {
+  if (_rampCfg) return;                       // a track with its own ramp owns the rate
+  const tape = musicClockMode() === 'tape';
+  const target = musicClockTarget(_clockRate);
+  const step = MUSIC_CLOCK.slew * MUSIC_CLOCK_TICK / 1000;
+  const next = _clockRate + Math.max(-step, Math.min(step, target - _clockRate));
+  // Nothing to write: the rate is where it should be and the pitch flag has not
+  // changed (a switch between Tempo and Tape at 1x still has to land).
+  if (tape === _clockTape && Math.abs(next - _clockRate) < 0.0005 && Math.abs(next - musicRate()) < 0.0005) return;
+  _clockRate = next; _clockTape = tape;
+  if (_musicEl) musicSetRate(_clockRate, tape);
+}
+// Always on: it is one comparison a quarter second, and it must also see a
+// setting change (off -> 1x) and a run ending with no track loaded yet.
+setInterval(musicClockTick, MUSIC_CLOCK_TICK);

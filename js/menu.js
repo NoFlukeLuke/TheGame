@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r693 · the blast ends on a thump, no noise burst";
+const BUILD = "2026-10-28 · r694 · ten Kevin MacLeod tracks, CC BY 4.0; the music follows the round clock, up to 1.65x at 0:00";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
