@@ -697,10 +697,16 @@ function cardFlyClone(gEl){
 // Fly a clone of a selected grid card into its preview slot, then reveal the slot's dnc-card.
 // r661: `delay` (ms) holds the launch: the copy is made and the original hidden NOW (so the
 // board can let the card go at once), the flight starts later.
-function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay){
+function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay, opts){
   delay = Math.max(0, delay || 0);
   if(!slotEl) return;
-  const reveal=()=>{ slotEl.style.opacity=''; slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
+  // r694: a card flying to a queued hand's strip (opts.queue) flies BEHIND the cards in
+  // front of it (its own masked layer, dnqFlyLayer), darkens to its strip's dim on the
+  // way, and lands without the pop: it is already the card the strip shows.
+  const strip = opts && opts.queue ? slotEl.closest('.dnq-strip') : null;
+  const reveal=()=>{ slotEl.style.opacity='';
+    if(strip){ dnqSettleSlot(slotEl, t); return; }
+    slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
   const s = gEl && gEl.getBoundingClientRect();
   const t = slotEl.getBoundingClientRect();
   // dur 0 = there is no flight to watch, just put the card in its slot. That is
@@ -715,7 +721,9 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay){
   // flew at full size with its text at 1/z (half size on a desktop).
   const ow = gEl.offsetWidth || s.width, oh = gEl.offsetHeight || s.height, z = s.width / ow || 1;
   clone.style.cssText = `position:fixed;margin:0;z-index:${_zTop};pointer-events:none;transition:none;zoom:${z};left:${s.left/z}px;top:${s.top/z}px;width:${ow}px;height:${oh}px;transform-origin:center center;`;
-  document.body.appendChild(clone);
+  const host = strip ? dnqFlyLayer(strip) : document.body;
+  if(strip && typeof mcOn === 'function' && mcOn()) clone.classList.add('mc-door');   // the console skin's own flier layer is not this one
+  host.appendChild(clone);
   gEl.style.opacity='0'; gEl.style.pointerEvents='none'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort); r659: untappable too, it is already scored
   const dx=((t.left+t.width/2)-(s.left+s.width/2))/z, dy=((t.top+t.height/2)-(s.top+s.height/2))/z;
   // A Sleight stands up in the preview (.dnc-turn, css/dance.css): it turns a
@@ -745,10 +753,16 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay){
     look.frames = look.frames.map((f, i) => { const o = f.offset ?? (n > 1 ? i / (n - 1) : 1);
       return Object.assign({}, f, { transform: `${f.transform} rotate(${rot * o}deg) scale(${1 + (k - 1) * o})` }); });
   }
+  // A queued card stays opaque and takes its strip's darkening over the back half of the flight.
+  if (strip) {
+    const b = strip._dnqB || DNQ_DIM[1], n = look.frames.length;
+    look.frames = look.frames.map((f, i) => { const o = f.offset ?? (n > 1 ? i / (n - 1) : 1), u = Math.max(0, Math.min(1, (o - .4) / .6));
+      return Object.assign({}, f, { opacity: 1, filter: `brightness(${(1 - (1 - b) * u * u * (3 - 2 * u)).toFixed(3)})` }); });
+  }
   const ghosts = [];
   for (let g = 1; g <= (look.ghosts||0); g++) {
     const gh = clone.cloneNode(true); gh.style.zIndex = _zTop - 1; gh.style.opacity = 0;
-    document.body.insertBefore(gh, clone); ghosts.push(gh);
+    host.insertBefore(gh, clone); ghosts.push(gh);
     gh.animate(look.frames.map(f => Object.assign({}, f, { opacity: (f.opacity ?? 1) * (0.42 / g) })),
       { duration: dur, delay: delay + g * 34, easing: look.easing, fill: 'both' });
   }
@@ -800,24 +814,160 @@ function dncQueueHost(){
 function dncStageClear(stage){ if(!stage) return; [...stage.children].forEach(ch => { if(ch.id !== 'dnc-queue') ch.remove(); }); }
 // The strips live INSIDE the preview (z -1: over its glass, under its rows), anchored on
 // the live hand's first card, each waiting hand further up and right, smaller and
-// dimmer, the next hand on top. The preview is overflow visible while it tallies, so
+// darker, the next hand on top. The preview is overflow visible while it tallies, so
 // a strip can poke past its edge.
+// r694 (owner): a waiting hand is DARKENED, not faded (DNQ_DIM, brightness by depth): the
+// cards stay opaque, so a strip hides the strips behind it as a stack of cards does. A new
+// strip is placed without a transition (its cards' flights aim at where it will stay);
+// after that every change glides, the host too (css/dance.css), so nothing jumps.
+const DNQ_DIM = [1, .5, .38, .3, .24];   // index = depth (0 = the hand in front)
+const dnqDim = k => DNQ_DIM[Math.min(k, DNQ_DIM.length - 1)];
+// The live hand's first card, from layout offsets (a card's pop or fall is a transform
+// and moves nothing here). Falls back to the drawn rect.
+function dnqAnchor(sc){
+  const o = sc.querySelector('.dnc-row.hand .dnc-outer'), tr = o && o.parentElement;
+  if(!o || !tr) return null;
+  if(o.offsetParent === tr && tr.offsetParent === sc) return [tr.offsetLeft + o.offsetLeft, tr.offsetTop + o.offsetTop];
+  const sr = sc.getBoundingClientRect(), z = sr.width / (sc.offsetWidth || 1) || 1, ar = o.getBoundingClientRect();
+  return [(ar.left - sr.left) / z - sc.clientLeft, (ar.top - sr.top) / z - sc.clientTop];
+}
 function dncQueueLayout(){
   const h = dncQueueHost();
   const strips = [...h.children];
   if(!strips.length){ h.style.display = 'none'; return; }
   const sc = h.parentElement; if(!sc) return;
-  const sr = sc.getBoundingClientRect(), z = sr.width / (sc.offsetWidth || 1) || 1;
-  const anchor = sc.querySelector('.dnc-row.hand .dnc-outer') || sc.querySelector('.dnc-track');
-  let left = 8, top = 10;
-  if(anchor){ const ar = anchor.getBoundingClientRect(); left = (ar.left - sr.left) / z; top = (ar.top - sr.top) / z; }
-  h.style.display = 'block'; h.style.left = left + 'px'; h.style.top = top + 'px';
+  const a = dnqAnchor(sc);
+  if(a){ h.style.left = a[0] + 'px'; h.style.top = a[1] + 'px'; }
+  else if(h.style.display !== 'block'){ h.style.left = '8px'; h.style.top = '10px'; }
+  h.style.display = 'block';
+  const fresh = [];
   strips.forEach((s, i) => { const k = i + 1;
+    if(s._dnqNew){ s._dnqNew = false; s.style.transition = 'none'; fresh.push(s); }
+    s._dnqB = dnqDim(k);
     s.style.zIndex = String(10 - k);
     s.style.transform = `translate(${9 * k}px, ${-11 * k}px) scale(${Math.max(.7, 1 - .05 * k)})`;
-    s.style.opacity = String(Math.max(.2, .5 - .08 * (k - 1))); });
+    s.style.filter = `brightness(${s._dnqB})`; });
+  if(fresh.length){ void h.offsetWidth; fresh.forEach(s => { s.style.transition = ''; }); }
 }
 window.addEventListener('resize', () => dncQueueLayout());
+// ── r694 (owner): A QUEUED HAND FLIES IN BEHIND ─────────────────────────────
+// Its copies fly in a body-level layer of their own (one per waiting hand) whose mask
+// cuts out every card in front of it: the hand that is scoring and the strips of the
+// hands queued before it. In console mode the mask starts from the housing's
+// (mcScreenMaskParts, js/machine-skin.js), so the copies are under the housing too.
+// The holes are cut again every frame while anything flies (the cards in front pop,
+// and fall when their hand is done). Holes never overlap (two crossing holes would
+// cancel each other out) and every hole is kept inside the preview's screen, so
+// cutting it (mask-composite exclude) can never open the housing.
+let _dnqFlyN = 0, _dnqFlyRaf = 0;
+function dnqScreen(){
+  const land = document.getElementById('stage')?.classList.contains('landscape');
+  return (!land && document.getElementById('hand-preview-area')) || document.getElementById('selected-cards');
+}
+function dnqFlyLayer(strip){
+  if(strip._dnqLayer && strip._dnqLayer.isConnected) return strip._dnqLayer;
+  const l = document.createElement('div'); l.className = 'dnq-fly';
+  l.id = 'dnq-fly-' + (++_dnqFlyN);   // an id: the console skin's flier watch leaves it where it is
+  l._strip = strip; strip._dnqLayer = l;
+  // A later hand is further back: its layer goes under the earlier ones.
+  document.body.insertBefore(l, document.querySelector('body > .dnq-fly'));
+  dnqFlyMask(l);
+  if(!_dnqFlyRaf) _dnqFlyRaf = requestAnimationFrame(dnqFlyTick);
+  return l;
+}
+function dnqHoles(strip){
+  const sc = document.getElementById('selected-cards'); if(!sc) return [];
+  const els = [...sc.querySelectorAll('.dnc-row.hand .dnc-outer')];
+  const host = strip && strip.parentElement;
+  if(host) for(const st of host.children){ if(st === strip) break; els.push(...st.querySelectorAll('.dnq-slot')); }
+  const scr = dnqScreen(), cr = scr && scr.getBoundingClientRect(); if(!cr) return [];
+  const z = sc.getBoundingClientRect().width / (sc.offsetWidth || 1) || 1;
+  const rs = [];
+  els.forEach(el => { const cs = getComputedStyle(el);
+    if(cs.visibility === 'hidden' || +cs.opacity < .05) return;
+    const card = el.firstElementChild || el;   // the slot is taller than its card
+    const r = card.getBoundingClientRect();
+    // A tilted card's rect is its bounding box, bigger than the card: the hole is the card
+    // itself, unturned, at its drawn size and centre (scale and turn read off the box: a
+    // w x h card turned t at scale s has a box s(w cos t + h sin t) by s(w sin t + h cos t)).
+    let x0 = r.left, y0 = r.top, x1 = r.right, y1 = r.bottom;
+    const w = card.offsetWidth * z, h = card.offsetHeight * z, d = w * w - h * h;
+    if(Math.abs(d) > 4){ const a = (r.width * w - r.height * h) / d, c = (r.height * w - r.width * h) / d, k = Math.hypot(a, c);
+      if(a > 0 && c > -.02 && isFinite(k)){ const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        x0 = cx - w * k / 2; x1 = cx + w * k / 2; y0 = cy - h * k / 2; y1 = cy + h * k / 2; } }
+    const q = v => Math.round(v * 2) / 2;
+    const l = q(Math.max(x0, cr.left)), t = q(Math.max(y0, cr.top)), rr = q(Math.min(x1, cr.right)), b = q(Math.min(y1, cr.bottom));
+    if(rr - l >= 1 && b - t >= 1) rs.push({ l, t, r: rr, b }); });
+  // Overlapping holes (a fanned phone hand, a card mid-pop) are cut into pieces that do not
+  // overlap, the same area: two crossing holes would cancel out where they cross.
+  const hit = (a, c) => a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b;
+  if(!rs.some((a, i) => rs.some((c, j) => j > i && hit(a, c)))) return rs;
+  const xs = [...new Set(rs.flatMap(a => [a.l, a.r]))].sort((m, n) => m - n);
+  const ys = [...new Set(rs.flatMap(a => [a.t, a.b]))].sort((m, n) => m - n);
+  const out = [];
+  for(let j = 0; j < ys.length - 1; j++){ const t = ys[j], b = ys[j + 1], my = (t + b) / 2; let run = null;
+    for(let i = 0; i < xs.length - 1; i++){ const l = xs[i], r = xs[i + 1], mx = (l + r) / 2;
+      if(rs.some(a => mx > a.l && mx < a.r && my > a.t && my < a.b)){ if(run && run.r === l) run.r = r; else out.push(run = { l, t, r, b }); }
+      else run = null; } }
+  return out;
+}
+function dnqFlyMask(l){
+  const base = (typeof mcOn === 'function' && mcOn() && typeof mcScreenMaskParts === 'function')
+    ? mcScreenMaskParts() : { layers: ['linear-gradient(#000, #000)'], sizes: ['100% 100%'], pos: ['0 0'] };
+  const L = [], S = [], P = [], C = [], W = [];
+  dnqHoles(l._strip).forEach(h => { L.push('linear-gradient(#000, #000)'); C.push('exclude'); W.push('xor');
+    S.push(`${(h.r - h.l).toFixed(1)}px ${(h.b - h.t).toFixed(1)}px`); P.push(`${h.l.toFixed(1)}px ${h.t.toFixed(1)}px`); });
+  base.layers.forEach((x, i) => { L.push(x); S.push(base.sizes[i]); P.push(base.pos[i]); C.push('add'); W.push('source-over'); });
+  const key = S.join() + P.join();
+  if(key === l._key) return;
+  l._key = key;
+  const st = l.style;
+  st.webkitMaskImage = st.maskImage = L.join(', ');
+  st.webkitMaskSize = st.maskSize = S.join(', ');
+  st.webkitMaskPosition = st.maskPosition = P.join(', ');
+  st.webkitMaskComposite = W.join(', '); st.maskComposite = C.join(', ');
+}
+function dnqFlyTick(){
+  _dnqFlyRaf = 0;
+  const ls = [...document.querySelectorAll('body > .dnq-fly')];
+  ls.forEach(l => { if(!l.childElementCount){ if(l._strip) l._strip._dnqLayer = null; l.remove(); } else dnqFlyMask(l); });
+  if(ls.some(l => l.isConnected)) _dnqFlyRaf = requestAnimationFrame(dnqFlyTick);
+}
+// A copy lands where its slot was when it took off. If the strip has moved since (a hand
+// in front came forward), the card glides the rest of the way instead of jumping.
+function dnqSettleSlot(slot, t){
+  const n = slot.getBoundingClientRect(); if(!t || !t.width || !n.width) return;
+  const k = n.width / (slot.offsetWidth || n.width) || 1;
+  const dx = (t.left + t.width / 2 - n.left - n.width / 2) / k, dy = (t.top + t.height / 2 - n.top - n.height / 2) / k, sc = t.width / n.width;
+  if(Math.abs(dx) < .5 && Math.abs(dy) < .5 && Math.abs(sc - 1) < .01) return;
+  slot.animate([{ translate: `${dx}px ${dy}px`, scale: String(sc) }, { translate: '0 0', scale: '1' }], { duration: 180, easing: 'ease-out' });
+}
+// ── r694 (owner): A SCORED HAND FALLS OUT OF THE BOTTOM OF THE TRAY ─────────
+// Left to right, a little apart, each with its own small tilt, accelerating, clipped at
+// the screen's lower edge (its row's clip, so the queued strips poking above the tray
+// are untouched). Resolves true once every card is out (false: none to drop, reduced
+// motion), and leaves the row hidden in place: the next dance's dncStageClear removes
+// it in the same frame it builds its own row, so the preview never collapses between.
+async function dncFallOut(stage){
+  const row = stage && stage.querySelector('.dnc-row.hand'); if(!row) return false;
+  if(document.body.classList.contains('reduced-motion')) return false;
+  const outs = [...row.querySelectorAll('.dnc-outer')].filter(o => { const cs = getComputedStyle(o); return cs.visibility !== 'hidden' && +cs.opacity > .05; });
+  const scr = dnqScreen(); if(!outs.length || !scr) return false;
+  const items = row.querySelector('.dnc-items') || row;
+  const ir = items.getBoundingClientRect(), z = ir.width / (items.offsetWidth || 1) || 1;
+  const sb = scr.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(scr).borderBottomWidth) || 0) * z;   // the inner edge
+  items.style.overflow = 'visible';
+  items.style.clipPath = `inset(-400px -12px ${-Math.max(0, (sb - ir.bottom) / z).toFixed(1)}px -12px)`;
+  const pace = dncFF ? DANCE_CFG.ff : dncPace();
+  const dur = Math.max(170, 380 / pace), stag = Math.max(18, 55 / pace);
+  await Promise.all(outs.map((o, i) => { const r = o.getBoundingClientRect(), k = r.width / (o.offsetWidth || 1) || 1;
+    const dy = (sb - r.top) / k + 4, dx = (fxRandom() - .5) * 10, rot = (fxRandom() - .5) * 16;
+    const a = dncAnimate(o, [{ translate: '0 0', rotate: '0deg' }, { translate: `${dx.toFixed(1)}px ${dy.toFixed(1)}px`, rotate: `${rot.toFixed(1)}deg` }],
+      { duration: dur, delay: i * stag, easing: 'cubic-bezier(.5,0,.9,.45)', fill: 'forwards' });
+    return a ? a.finished.catch(() => {}) : null; }));
+  row.style.visibility = 'hidden';
+  return true;
+}
 function dncQueueStrip(entry){
   const strip = document.createElement('div'); strip.className = 'dnq-strip';
   entry.toRemove.forEach(([r,c]) => { const card = entry.result._q.cards[`${r}-${c}`]; if(!card) return;
@@ -827,6 +977,7 @@ function dncQueueStrip(entry){
     d.className = className + ' preview-card'; d.innerHTML = innerHTML;
     slot.appendChild(d); slot.style.opacity = '0';   // shown when its card lands (flyGridCardToSlot's reveal)
     strip.appendChild(slot); });
+  strip._dnqNew = true;   // placed where it stays before any card aims at it (dncQueueLayout)
   dncQueueHost().appendChild(strip);
   return strip;
 }
@@ -876,6 +1027,9 @@ function dncQueueClear(){
 }
 function dncQueueNext(){
   const e = dncQueue.shift(); if(!e) return false;
+  // r694: where its cards are drawn now, before the new row moves anything: they come forward from here.
+  const q = e.result._q;
+  if(q && q.strip){ q.from = [...q.strip.querySelectorAll('.dnq-slot')].map(sl => sl.getBoundingClientRect()); q.fromB = q.strip._dnqB || DNQ_DIM[1]; }
   dncQueueLayout();
   playPreviewDance(e.result, e.toRemove, e.goal);
   return true;
@@ -903,7 +1057,7 @@ function dncPlayOrQueue(result, toRemove, isGoalHand){
   // columns fall under the flight (every card falls on its own, js/card-fall.js).
   cells.forEach(([r,c], i) => { const card = cards[`${r}-${c}`]; if(!card || !slots[i]) return;
     const gEl = gridEl && gridEl.querySelector(`[data-card-id="${card._id}"]`);
-    flyGridCardToSlot(gEl, slots[i], FLY, i);
+    flyGridCardToSlot(gEl, slots[i], FLY, i, undefined, 0, { queue: true });
     // The hidden original is this hand's, not the live dance's: it is not put
     // back if that dance is cut (dncRestoreHiddenGridEls).
     if(gEl){ const k = dncHiddenGridEls.indexOf(gEl); if(k >= 0) dncHiddenGridEls.splice(k, 1); }
@@ -1289,19 +1443,25 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(typeof sfxFlipShuffle==='function') sfxFlipShuffle();
     dncLeaveBoard(myGen); dncHiddenGridEls=[];
   } else if(_q && _q.strip){
-    // ── r661: the hand waited in the queue. Its cards are in the dimmed strip behind the
+    // ── r661: the hand waited in the queue. Its cards are in the darkened strip behind the
     //    preview; they come forward into their slots (the strip is gone from then on). ──
+    // r694 (owner): the SAME cards come forward: the row's cards take over from the strip's
+    // in one frame, where the strip drew them (dncQueueNext measured that before this row
+    // moved anything) and as dark, then slide the little way to their slots as the
+    // darkening goes. Never faded out and back in.
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     if(_q.ready) await Promise.race([_q.ready, wait(2500), dncFFSignal()]);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    const MOVE = Math.max(80, 260/dncPace());
+    const MOVE = Math.max(180, 380/dncPace());
     const stripSlots = [..._q.strip.querySelectorAll('.dnq-slot')];
+    const froms = (_q.from && _q.from.length === stripSlots.length) ? _q.from : stripSlots.map(sl => sl.getBoundingClientRect());
+    const b0 = _q.fromB || _q.strip._dnqB || DNQ_DIM[1];
     cardEls.forEach((d,i)=>{ const o=d.parentElement; if(!o) return; o.style.opacity='';
-      const from = stripSlots[i] && stripSlots[i].getBoundingClientRect(), to = o.getBoundingClientRect();
+      const from = froms[i], to = o.getBoundingClientRect();
       if(!from || !from.width || !to.width) return;
       const z = to.width / (o.offsetWidth || to.width) || 1;
       const dx=(from.left+from.width/2-to.left-to.width/2)/z, dy=(from.top+from.height/2-to.top-to.height/2)/z, sc=from.width/to.width;
-      dncAnimate(o, [{ translate:`${dx}px ${dy}px`, scale:String(sc), opacity:.45 }, { translate:'0 0', scale:'1', opacity:1 }], { duration: MOVE, easing:'ease-out' });
+      dncAnimate(o, [{ translate:`${dx}px ${dy}px`, scale:String(sc), filter:`brightness(${b0})` }, { translate:'0 0', scale:'1', filter:'brightness(1)' }], { duration: MOVE, easing:'cubic-bezier(.3,.7,.4,1)' });
     });
     _q.strip.remove(); _q.strip=null; dncQueueLayout();
     await wait(MOVE); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -1556,7 +1716,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // instead of fast-forwarding (js/score-blast.js): its cards shake, the look's beats land
   // the chips on their totals, the cards blow out of the preview. Then the fuse as usual.
   if(beatsCut && !dncFF && typeof scoreBlast==='function' && scoreBlast.on()){
-    await scoreBlast({ cards: cardEls, pips: { el: pipsEl, box: pipsBox, from: rp, to: _finalPips }, mult: { el: multEl, box: multBox, from: rm, to: _finalMult }, pace: dncPace(), signal: sig });
+    // r694: the FOCUS chip goes too (the reels look spins it as a third beat). It already
+    // reads targetFocus (FOCUS FIRST, above), so it spins from the pre-hand value back to it.
+    await scoreBlast({ cards: cardEls, pips: { el: pipsEl, box: pipsBox, from: rp, to: _finalPips }, mult: { el: multEl, box: multBox, from: rm, to: _finalMult },
+      focus: { el: focusEl, box: document.getElementById('focus-box'), from: preHandFocus, to: targetFocus }, pace: dncPace(), signal: sig });
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
   // The walk above applies the same operations in the same order as calcScore, so
@@ -1612,12 +1775,20 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
 
   // ── Settle (same tail as playScoreDance) ──
   if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
-  stage.classList.remove('dnc-active'); dncStageClear(stage); dncCleanupReal();
+  dncCleanupReal();
+  // r694 (owner): the hand's cards fall out of the bottom of the tray (not the goal hand's:
+  // its round is over and the screen changes). The goal hand clears at once, as before.
+  if(isGoalHand){ stage.classList.remove('dnc-active'); dncStageClear(stage); }
   if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
-  await wait(300/(dncFF ? DANCE_CFG.ff : dncPace())); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  const _fell = !isGoalHand && await dncFallOut(stage);
+  if(!_fell) await wait(300/(dncFF ? DANCE_CFG.ff : dncPace()));
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  // A hand waiting keeps the preview live (its strips stay where they are, over the glass);
+  // the next dance's own clear takes this row away in the frame it builds its own.
+  if(!isGoalHand && !dncQueue.some(e => !e.dead)){ stage.classList.remove('dnc-active'); dncStageClear(stage); }
 
   danceAbortController = null;
   dncChain = 0; _dncOutHandScore = 0;   // the burst has landed

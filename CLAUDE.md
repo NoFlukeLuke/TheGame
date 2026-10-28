@@ -3325,7 +3325,51 @@ three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
 the high crackle that ended every look (the "kssshhh") are gone, and Drumroll's cymbal
 (`sfxBlastCymbal`) is a no-op. Overload's mid-look static crackles stay.
 
-## r694 - the music: ten Kevin MacLeod tracks; the track follows the round clock (owner)
+## r694 - the scoring queue: in behind, out the bottom, forward without a fade (owner)
+js/score-dance.js, css/dance.css. What was wrong, filmed at 1440x820: a queued hand's copies flew
+on body OVER the hand scoring and only then dropped behind it (a bright card popping to a dim one);
+and at the hand-over `dnc-active` came off, which took the preview's stacking with it, so the queue
+went under the glass with the old row: about 200ms of an empty tray, then the next hand faded in
+from 45%. Now:
+- **In behind.** A queued card flies in a layer of its own (`dnqFlyLayer`, one per waiting hand,
+  `.dnq-fly`, z 199: under the score plates) whose mask cuts out every card in front of it: the
+  hand scoring and the strips queued before it (`dnqHoles`, cut every frame while anything flies:
+  each card's own box, unturned if it is tilted; overlapping holes cut into pieces that do not
+  overlap; all inside the preview's screen). In console mode the mask starts from the housing's
+  (`mcScreenMaskParts`, js/machine-skin.js, also what `mcFlyMask` reads), so the copies stay under
+  the housing. The copy stays opaque, darkens to its strip's brightness over the back of the
+  flight, and lands with no pop; a strip that moved meanwhile is glided to (`dnqSettleSlot`).
+- **Darkened, not faded.** Strips are `brightness` by depth (`DNQ_DIM` 1 / .5 / .38 / .3 / .24), cards
+  opaque, so a strip hides the ones behind it. A new strip is placed without a transition (its
+  cards aim at where it stays); the host anchors on the live row's layout offsets (`dnqAnchor`, a
+  pop or a fall moves nothing) and glides (`left` / `top` .22s) when a hand of another size moves it.
+- **Out the bottom.** At the end of its tally every hand but the goal hand falls out of the tray
+  (`dncFallOut`: left to right, a small tilt each, ease-in, clipped at the screen's lower edge by
+  its own row, so the strips above are untouched); it replaces the old 300ms settle wait. Cards a
+  blast already threw away are skipped, and reduced motion skips the fall (the wait stays).
+- **Forward without a fade.** With a hand waiting the preview stays `dnc-active` between hands.
+  `dncQueueNext` measures the strip's cards before anything moves; the new row's cards take over
+  from them in one frame, as dark, and slide the little way to their slots as the darkening goes
+  (`MOVE` max(180, 380 / pace)). Measured: the tray is never empty between hands, no opacity dip.
+Measured in headless Chromium at 1440x820 and 420x900, console and pit: a copy frozen mid-flight
+over the live K is hidden behind it (seen only in the gaps); five hands in a burst (three waiting,
+the blast) and a winning hand over the queue end with no page errors, no timeline drift (dev mode),
+no fly layer, strip or hidden board card left. Not changed: the hand-name label names the newest
+selection while a hand scores (r401's rule), so after queuing it reads the queued hand's name.
+
+## r695 - Reels: a shorter spin, FOCUS is the third beat (owner)
+`BLAST_RUN.reels` (js/score-blast.js): the lever delay is 120ms and the spin before PIPS lands
+480ms (both a third shorter than r692's 180 / 720); MULT lands 420ms after PIPS and **FOCUS**
+420ms after that, on a third bell, so the order is short delay, pips beat, mult beat, focus
+beat, then the score total. `scoreBlast(ctx)` takes an optional `focus: { el, box, from, to }`
+(the dance passes `#focus-val` from `preHandFocus` to `targetFocus`; the chip already reads the
+target by then, FOCUS FIRST, so the reel spins back onto it; a value that does not change spins
+around itself); every look lands it after its run; `blChip` formats a focus chip as the dance
+does (`blFmtF`, ×N). The preview spins ×1 to ×2.5 and hands the readout back after. Measured in
+headless Chromium at 1440x820 and 420x900 through `blastPreview('reels')`: PIPS landed, MULT
+~400ms later, FOCUS ~400ms after that, 85 spin frames on the Focus chip; no page errors.
+
+## r696 - the music: ten Kevin MacLeod tracks; the track follows the round clock (owner)
 - **Tracks** (`assets/music/`, rows in `js/data/audio-manifest.js`, licences in `assets/music/CREDITS.md`,
   the handbook's Credits): Local Forecast - Elevator, Your Call, Eternity, Presenterator, Delightful D
   (scene `any`: the menu too), Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech
