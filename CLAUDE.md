@@ -3368,3 +3368,31 @@ around itself); every look lands it after its run; `blChip` formats a focus chip
 does (`blFmtF`, ×N). The preview spins ×1 to ×2.5 and hands the readout back after. Measured in
 headless Chromium at 1440x820 and 420x900 through `blastPreview('reels')`: PIPS landed, MULT
 ~400ms later, FOCUS ~400ms after that, 85 spin frames on the Focus chip; no page errors.
+
+## r696 - the rising SCORE: an odometer that rolls while hands score (owner)
+`js/score-rise.js`, `css/score-rise.css`. The SCORE box no longer waits for a hand's tally. The
+moment a hand is banked (`playHand`'s `score += finalScore` calls `scoreRiseNote(before)`) the box
+becomes an odometer (`#score-total-num.odo`: one clipped cell per digit of the target, a column of
+0..9 and 0 again moved by translateY; the units wheel turns without stopping, each higher wheel
+turns over on the carry in the last tenth of the wheel below it; leading cells and their separator
+are hidden until a carry starts them) and rolls from what the box showed toward the banked total.
+A lone hand's roll takes `riseCfg.ms` (2400, divided by the tally's `DANCE_CFG.norm`); every hand
+played while it is still rolling re-plans the rest of the gap `riseCfg.step` (1.5) times faster.
+The roll owns the box (`scoreRiseOwns()`) from the first PLAY until it lands with no hand scoring
+and none waiting; then `riseHandBack` writes plain text and `dncShowScore` goes back to null.
+While it owns the box the dance leaves the number alone (its own climb still runs for the goal
+flash and the LINES meters; `_riseOwns` in `playPreviewDance`), `updateScoreUI` reads
+`dncScoreShown()` as before (the roll writes it, and calls `updateScoreUI` every 80ms for the goal
+bar) but does not write the box, and `handleDanceAbort` snaps the wheels home (`scoreRiseSnap`; so
+does a total that drops, a level-up's reset, or a screen between rounds). All Hands is untouched
+(`suppressScoreDisplay`). **The window is the digits' INK**: the content area is measured in the
+DOM (`--odo-k`, the wheel's pitch; the console font draws about 1.9em tall under its 1em line box)
+and the ink height and its top inside that area come from canvas metrics at the USED font size
+(`font-size-adjust` undone through the font's x-height), so a digit shows whole and its neighbours
+only as they roll through. Dev -> Aesthetics -> Rising score: on, a lone hand's roll, the step, a
+3-hand Preview (`scoreRisePreview`, nothing banked). Store `lethe.scoreRise.v1`, overrides only.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, real hands through `playHand`): one
+hand rolled 37 -> 176 and 25 -> 63 and handed back as plain text when its dance ended (9.9s / 7.9s
+at the default speed); a burst of three re-planned to ~1,200 points/s on a 1,000-point gap and
+landed on the total; the goal hand rolled 28 -> 202 and handed back at the round's end; the cells
+sit where the plain text's ink sat in console, pit and phone (crops compared); no page errors.

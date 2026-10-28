@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r695 · reels: shorter spin, FOCUS is the third beat (merges main's r694 scoring queue)";
+const BUILD = "2026-10-28 · r696 · the rising SCORE: an odometer that rolls while hands score";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

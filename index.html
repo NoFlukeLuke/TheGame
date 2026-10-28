@@ -40,6 +40,7 @@
 <link rel="stylesheet" href="css/flow-rewards.css">
 <link rel="stylesheet" href="css/screen-change.css">
 <link rel="stylesheet" href="css/score-blast.css">
+<link rel="stylesheet" href="css/score-rise.css">
 <link rel="stylesheet" href="css/grid-pick.css">
 <link rel="stylesheet" href="css/payout-grid.css">
 <link rel="stylesheet" href="css/records.css">
@@ -693,6 +694,14 @@
       <button class="dev-btn" onclick="blastPreview()">Preview</button>
       <button class="dev-btn" onclick="blastPreview('beats5')">1</button><button class="dev-btn" onclick="blastPreview('shockwave')">2</button><button class="dev-btn" onclick="blastPreview('strobe')">3</button><button class="dev-btn" onclick="blastPreview('implode')">4</button><button class="dev-btn" onclick="blastPreview('drumroll')">5</button><button class="dev-btn" onclick="blastPreview('overload')">6</button><button class="dev-btn" onclick="blastPreview('reels')">7</button>
       <a class="dev-btn" href="index.html?blast">Open the lab page</a>
+    </label>
+
+    <div class="dev-subtitle">Rising score (the SCORE rolls up while hands score)</div>
+    <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      <input type="checkbox" id="dev-rise-on" onchange="setScoreRise('on', this.checked)"> On
+      · a lone hand's roll <input type="number" id="dev-rise-ms" min="200" max="20000" step="100" onchange="setScoreRise('ms', this.value)" style="width:64px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-family:'Crimson Pro',serif;font-size:12px;"> ms
+      · x <input type="number" id="dev-rise-step" min="1" max="4" step="0.1" onchange="setScoreRise('step', this.value)" style="width:48px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-family:'Crimson Pro',serif;font-size:12px;"> faster per extra hand
+      <button class="dev-btn" onclick="scoreRisePreview()">Preview (3 hands)</button>
     </label>
 
     <div class="dev-subtitle">Improvement animation (a Trick improved comes to the board)</div>
@@ -1663,6 +1672,7 @@
 <script src="js/hand-log.js"></script>
 <script src="js/score-dance.js"></script>
 <script src="js/score-blast.js"></script>
+<script src="js/score-rise.js"></script>
   <script src="js/payout-fx.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>

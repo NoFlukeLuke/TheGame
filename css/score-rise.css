@@ -1,0 +1,17 @@
+/* ── r696: the rising SCORE: the box as an odometer (js/score-rise.js) ─────── */
+#score-total-num.odo { display: inline-flex; align-items: flex-end; white-space: nowrap; }
+#score-total-num.odo .odo-c {
+  display: inline-block; position: relative; overflow: hidden; vertical-align: bottom;
+  width: calc(var(--odo-w, .62) * 1em);
+  /* the window is one digit's ink (--odo-ink), placed where the text's ink sat: the
+     content area (--odo-k, the wheel's pitch) is centred on the 1em line box and the
+     ink starts --odo-off into it. Margins keep the line box at 1em. */
+  height: calc(var(--odo-ink, 1) * 1em);
+  margin-top: calc(((1 - var(--odo-k, 1)) / 2 + var(--odo-off, 0)) * 1em);
+  margin-bottom: calc((1 - var(--odo-ink, 1) - (1 - var(--odo-k, 1)) / 2 - var(--odo-off, 0)) * 1em);
+  text-align: center;
+}
+#score-total-num.odo .odo-wheel { display: block; will-change: transform; }
+#score-total-num.odo .odo-wheel > b { display: block; height: calc(var(--odo-k, 1) * 1em); line-height: calc(var(--odo-k, 1) * 1em); font-weight: inherit; }
+#score-total-num.odo .odo-s { display: inline-block; vertical-align: bottom; line-height: 1; }
+#score-total-num.odo .odo-z { display: none; }
