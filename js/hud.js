@@ -509,12 +509,12 @@ function handLabelHTML(runs) {
 }
 
 function updateHandNameLabel(result, force) {
-  // A dance owns this label until it ends, but only against being BLANKED (render()
-  // runs mid-tally with the selection already cleared). A live selection that names a
-  // hand, or a dance stamping its own hand on at its start (`force`), always gets
-  // through - otherwise the label kept the PREVIOUS hand's name while the next one was
-  // being built and played (a Full House read "RUN OF 3", r401).
-  if (_handNameHeld && !force && !(result && (result.hand || result.short || result.over))) return;
+  // A dance owns this label until it ends: only a dance stamping its own hand on at its
+  // start (`force`) gets through. r695 (owner): the label names the hand being SCORED.
+  // r401 let a live selection through, because then the next play cut the dance and the
+  // label kept the previous hand's name; since the scoring queue (r661) every queued hand
+  // stamps its own name when its turn comes, so a selection no longer needs to.
+  if (_handNameHeld && !force) return;
   const el = document.getElementById('hand-name');
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand

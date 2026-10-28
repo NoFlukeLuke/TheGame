@@ -3354,6 +3354,21 @@ from 45%. Now:
 Measured in headless Chromium at 1440x820 and 420x900, console and pit: a copy frozen mid-flight
 over the live K is hidden behind it (seen only in the gaps); five hands in a burst (three waiting,
 the blast) and a winning hand over the queue end with no page errors, no timeline drift (dev mode),
-no fly layer, strip or hidden board card left. Not changed: the hand-name label names the newest
-selection while a hand scores (r401's rule), so after queuing it reads the queued hand's name.
+no fly layer, strip or hidden board card left. (r695 changed the label: see below.)
+
+## r695 - the label names the hand scoring; nothing queued shows outside the tray (owner)
+- **The hand-name label sticks to the hand being scored** (`updateHandNameLabel`, js/hud.js):
+  while a dance holds it, only a dance stamping its own hand (`force`) gets through; a live
+  selection, NEED or KICKERS no longer does (r401's exception is gone: since the queue, every
+  queued hand stamps its own name when its turn comes). With a hand waiting, the hold also
+  lasts through the fall-out into the next dance. Measured over 5-hand bursts at 1440x820 and
+  420x900: every sample while scoring read the scoring hand's name; a one-card selection mid-
+  tally left it alone, and after the tally the label followed the selection again.
+- **Queued strips stay inside the tray** (`dncQueueLayout`): `#dnc-queue` now covers the
+  preview (`inset: 0`) and is clipped to the screen's inner box (the preview on a desktop,
+  `#hand-preview-area` on a phone); the strips hang off its child `.dnq-anchor`, which carries
+  the live hand's first-card position and the glide. The step up shrinks with depth
+  (min(11, room / strips) px) so the deepest strip starts inside. Measured (5-hand bursts, every
+  60ms): queued cards reached 53px above the desktop tray in console mode, 62 in the pit; now 0
+  painted outside the tray in console, pit and on a phone.
 

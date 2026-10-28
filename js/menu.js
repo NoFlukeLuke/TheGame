@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r694 · the scoring queue: in behind, out the bottom, forward without a fade";
+const BUILD = "2026-10-28 · r695 · the label names the hand scoring; nothing queued shows outside the tray";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
