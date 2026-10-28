@@ -1732,7 +1732,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // instead of fast-forwarding (js/score-blast.js): its cards shake, the look's beats land
   // the chips on their totals, the cards blow out of the preview. Then the fuse as usual.
   if(beatsCut && !dncFF && typeof scoreBlast==='function' && scoreBlast.on()){
-    await scoreBlast({ cards: cardEls, pips: { el: pipsEl, box: pipsBox, from: rp, to: _finalPips }, mult: { el: multEl, box: multBox, from: rm, to: _finalMult }, pace: dncPace(), signal: sig });
+    // r694: the FOCUS chip goes too (the reels look spins it as a third beat). It already
+    // reads targetFocus (FOCUS FIRST, above), so it spins from the pre-hand value back to it.
+    await scoreBlast({ cards: cardEls, pips: { el: pipsEl, box: pipsBox, from: rp, to: _finalPips }, mult: { el: multEl, box: multBox, from: rm, to: _finalMult },
+      focus: { el: focusEl, box: document.getElementById('focus-box'), from: preHandFocus, to: targetFocus }, pace: dncPace(), signal: sig });
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
   // The walk above applies the same operations in the same order as calcScore, so

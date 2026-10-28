@@ -3372,3 +3372,45 @@ no fly layer, strip or hidden board card left. (r695 changed the label: see belo
   60ms): queued cards reached 53px above the desktop tray in console mode, 62 in the pit; now 0
   painted outside the tray in console, pit and on a phone.
 
+## r695 - Reels: a shorter spin, FOCUS is the third beat (owner)
+`BLAST_RUN.reels` (js/score-blast.js): the lever delay is 120ms and the spin before PIPS lands
+480ms (both a third shorter than r692's 180 / 720); MULT lands 420ms after PIPS and **FOCUS**
+420ms after that, on a third bell, so the order is short delay, pips beat, mult beat, focus
+beat, then the score total. `scoreBlast(ctx)` takes an optional `focus: { el, box, from, to }`
+(the dance passes `#focus-val` from `preHandFocus` to `targetFocus`; the chip already reads the
+target by then, FOCUS FIRST, so the reel spins back onto it; a value that does not change spins
+around itself); every look lands it after its run; `blChip` formats a focus chip as the dance
+does (`blFmtF`, ×N). The preview spins ×1 to ×2.5 and hands the readout back after. Measured in
+headless Chromium at 1440x820 and 420x900 through `blastPreview('reels')`: PIPS landed, MULT
+~400ms later, FOCUS ~400ms after that, 85 spin frames on the Focus chip; no page errors.
+
+## r696 - the music: ten Kevin MacLeod tracks; the track follows the round clock (owner)
+- **Tracks** (`assets/music/`, rows in `js/data/audio-manifest.js`, licences in `assets/music/CREDITS.md`,
+  the handbook's Credits): Local Forecast - Elevator, Your Call, Eternity, Presenterator, Delightful D
+  (scene `any`: the menu too), Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech
+  (scene `game`). Kevin MacLeod (incompetech.com), **CC BY 4.0**, every one published 2006-2020. Owner's
+  rule: nothing made by AI. MacLeod is reported to have used AI tools for pieces from 2025 on, so **a new
+  track from that catalogue must be dated before 2021**; check `uploaded` in
+  incompetech.com/music/royalty-free/pieces.json. Re-encoded at 128 kbps with loudness matched
+  (ffmpeg loudnorm, -16 LUFS), 31 MB in all. The r244 `deadline` row (a file that never existed) is gone.
+- **The clock ramp** (`MUSIC_CLOCK` in js/music.js: max 1.65, curve 1.6, slew 0.5 an x per second): a
+  track with no `ramp` of its own plays at 1x as the round clock starts and `max` at 0:00, along
+  `p ^ curve` where p = 1 - roundSeconds / roundStartSeconds (every round start, boss rounds included,
+  writes `roundStartSeconds` in `startRoundTimer`; Flow's level-ups add to both, so its session clock
+  reads as one round). A held clock (`gameTimerPaused`: shop, event, reward screen, pause menu) holds the
+  rate; a finished round (`roundEnded` or no `roundInterval`) eases home to 1x, except in Flow (held until
+  the run leaves the board); the menu is 1x. Changes are slewed, so a track change mid-round picks up the
+  live rate on the next tick. The r244 manifest `ramp` (time since the track started) still works and
+  owns the rate on a track that has it. `musicSetRate(rate, pitchUp)` takes the pitch flag now.
+  **Settings -> Audio -> Music follows the clock**: Off / Tempo (default; `preservesPitch`, the key held) /
+  Tape (the pitch rises). `musicClockSet({ max, curve, slew })` tunes it from the console.
+- The dead `css/terminal-skin.css` link in index.html (the file went in r566) is removed: a 404 on every load.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, walkthrough ended): 10% of the clock
+left 1.56x, half 1.22x, 1s left 1.644x (Tape: preservesPitch false); paused held 1.644; a rewind to 160s
+glided 1.64 > 1.39 > 1.14 > 1.02 over 2.2s; the next track at 17s left read 1.555x (Tempo: preservesPitch
+true); a finished round and the menu 1x; all ten files served 200; the playlist lists them; no page errors.
+
+## r695 numbering, again
+The scoring-queue branch's r695 (the label and the tray clip, above) ran in parallel with main's
+r694 / r695 (Reels) and r696 (the music). The merge that joined them is r697.
+
