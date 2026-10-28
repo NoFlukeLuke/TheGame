@@ -47,6 +47,7 @@ const blAnim = (el, frames, opts) => new Promise(res => {
 });
 const BL_PIP = '#d4a857', BL_MULT = '#b07dea';
 const blFmtM = m => (m % 1 === 0) ? m : (Math.round(m * 10) / 10).toFixed(1);
+const blFmtF = f => '×' + (f % 1 === 0 ? f : f.toFixed(2).replace(/0$/, ''));   // the dance's _fmtFocus
 // The shake: a WAAPI jitter of `mag` px on the card's `translate`, replaced as it grows.
 function blShake(cards, mag, ms) {
   cards.forEach(el => {
@@ -68,7 +69,7 @@ function blPlate(from, box, kind, label, ms) {
 }
 function blChip(c, v) {
   if (!c || !c.el) return;
-  c.el.textContent = c.kind === 'pips' ? Math.round(v) : blFmtM(v);
+  c.el.textContent = c.kind === 'pips' ? Math.round(v) : c.kind === 'focus' ? blFmtF(v) : blFmtM(v);
   if (typeof dncTick === 'function') dncTick(c.el);
 }
 function blPop(c, k) {
@@ -298,31 +299,41 @@ BLAST_RUN.overload = async function ({ cards, P, M, pace, sig }) {
   } finally { ov.remove(); outers.forEach(o => { o.style.translate = ''; o.style.clipPath = ''; o.style.filter = ''; }); [P, M].forEach(c => { if (c.box) c.box.style.filter = ''; }); }
 };
 BLAST_RUN.overload.noExplode = true;
-// Reels: a lever clunk, then PIPS and MULT spin like slot reels (figures streaming past with
-// a tick), PIPS lands first on a bell, MULT on a second; the cards are flung on that one.
-BLAST_RUN.reels = async function ({ cards, P, M, pace, sig }) {
+// Reels: a lever clunk, then PIPS, MULT and FOCUS spin like slot reels (figures streaming
+// past with a tick); PIPS lands first on a bell, MULT on a second, FOCUS on a third; the
+// cards are flung on the last one. r694 (owner): the spin before the first landing is a
+// third shorter than r692's, and FOCUS is the third beat (short delay, pips, mult, focus,
+// then the score total). With no Focus chip handed in, MULT's bell is the last.
+BLAST_RUN.reels = async function ({ cards, P, M, F, pace, sig }) {
+  const reels = [P, M, F].filter(c => c && c.el);
   sfxReelLever(); blShake(cards, 1.4, 120);
-  [P, M].forEach(c => c.box && blAnim(c.box, [{ translate: '0 0' }, { translate: '0 5px' }, { translate: '0 0' }], { duration: 160, easing: 'ease-out' }));
-  await blWait(Math.max(80, 180 / pace), sig);
-  const tick = Math.max(28, 48 / pace), spinP = Math.max(300, 720 / pace), spinM = spinP + Math.max(200, 420 / pace);
+  reels.forEach(c => c.box && blAnim(c.box, [{ translate: '0 0' }, { translate: '0 5px' }, { translate: '0 0' }], { duration: 160, easing: 'ease-out' }));
+  await blWait(Math.max(55, 120 / pace), sig);
+  const tick = Math.max(28, 48 / pace), gap = Math.max(200, 420 / pace);
+  const landAt = reels.map((c, i) => Math.max(200, 480 / pace) + i * gap);
   const t0 = performance.now();
-  const spinFig = c => { const v = c.from + (c.to - c.from) * (fxRandom() * 1.4 - .1); blChip(c, Math.max(0, v)); };
-  let landedP = false, n = 0;
-  while (performance.now() - t0 < spinM) {
+  // A figure between the start and the landing (a little past either end). A Focus reel
+  // whose value does not change spins around it instead, so it still turns.
+  const spinFig = c => { const span = (c.to - c.from) || c.to * .5 || 1; const v = c.from + span * (fxRandom() * 1.4 - .1); blChip(c, Math.max(0, v)); };
+  const landed = reels.map(() => false);
+  let n = 0;
+  while (landed.some(l => !l)) {
     if (sig.aborted) return;
     const dt = performance.now() - t0;
-    if (!landedP) spinFig(P);
-    spinFig(M);
-    [landedP ? null : P, M].forEach(c => { if (c && c.el) c.el.animate([{ translate: '0 -40%', opacity: .2 }, { translate: '0 0', opacity: 1 }], { duration: tick, easing: 'linear' }); });
+    reels.forEach((c, i) => { if (landed[i]) return; spinFig(c); c.el.animate([{ translate: '0 -40%', opacity: .2 }, { translate: '0 0', opacity: 1 }], { duration: tick, easing: 'linear' }); });
     if (n++ % 2 === 0) sfxReelTick();
-    if (!landedP && dt >= spinP) { landedP = true; blChip(P, P.to); blPop(P, 1.35); sfxReelBell(0); blShake(cards, 2.4, 100); }
+    reels.forEach((c, i) => {
+      if (landed[i] || dt < landAt[i]) return;
+      landed[i] = true; blChip(c, c.to); blPop(c, 1.35 + i * .05); sfxReelBell(i);
+      if (i < reels.length - 1) blShake(cards, 2.4 + i * .8, 100); else blFlash(cards, 160, 3);
+    });
     await blWait(tick, sig);
   }
-  blChip(M, M.to); blPop(M, 1.45); sfxReelBell(1); blFlash(cards, 160, 3);
   await blWait(Math.max(40, 80 / pace), sig);
 };
 
-// The one entry. ctx: { cards, pips: { el, box, from, to }, mult: {...}, pace, signal, look? }
+// The one entry. ctx: { cards, pips: { el, box, from, to }, mult: {...}, focus?: {...}, pace, signal, look? }
+// (r694: `focus` is the FOCUS chip, spun by the reels look; every look lands it after.)
 async function scoreBlast(ctx) {
   const look = ctx.look || blastLook, run = BLAST_RUN[look];
   const cards = (ctx.cards || []).filter(Boolean);
@@ -330,10 +341,11 @@ async function scoreBlast(ctx) {
   const sig = ctx.signal || new AbortController().signal;
   const pace = Math.max(.5, ctx.pace || 1);
   const P = Object.assign({ kind: 'pips' }, ctx.pips), M = Object.assign({ kind: 'mult' }, ctx.mult);
+  const F = ctx.focus && ctx.focus.el ? Object.assign({ kind: 'focus' }, ctx.focus) : null;
   try {
-    await run({ cards, P, M, pace, sig });
+    await run({ cards, P, M, F, pace, sig });
     if (sig.aborted) return;
-    blChip(P, P.to); blChip(M, M.to);
+    blChip(P, P.to); blChip(M, M.to); if (F) blChip(F, F.to);
     if (run.noExplode) { cards.forEach(el => { const o = el.parentElement || el; o.style.visibility = 'hidden'; }); }
     else { sfxBlastBoom(true); blShakeScreen(240); await blExplode(cards, pace, sig); }
   } finally { blShakeStop(cards); }
@@ -360,11 +372,14 @@ async function blastPreview(look) {
     const { className, innerHTML } = renderCardAppearance(card, 0, i, { revealFog: true }); d.className = className + ' preview-card'; d.innerHTML = innerHTML; o.appendChild(d); track.appendChild(o); return d; });
   if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
   const pipsEl = document.getElementById('pips-val'), multEl = document.getElementById('mult-val');
-  const P = { el: pipsEl, box: document.getElementById('pips-box'), from: 44, to: 312 }, M = { el: multEl, box: document.getElementById('mult-box'), from: 3, to: 21.5 };
-  if (pipsEl) pipsEl.textContent = '44'; if (multEl) multEl.textContent = '3';
+  const focusEl = document.getElementById('focus-val');
+  const P = { el: pipsEl, box: document.getElementById('pips-box'), from: 44, to: 312 }, M = { el: multEl, box: document.getElementById('mult-box'), from: 3, to: 21.5 },
+        F = { el: focusEl, box: document.getElementById('focus-box'), from: 1, to: 2.5 };
+  if (pipsEl) pipsEl.textContent = '44'; if (multEl) multEl.textContent = '3'; if (focusEl) focusEl.textContent = '×1';
   await blWait(350);
-  await scoreBlast({ cards, pips: P, mult: M, pace: 1, look: look || blastLook });
+  await scoreBlast({ cards, pips: P, mult: M, focus: F, pace: 1, look: look || blastLook });
   await blWait(700);
+  if (typeof updateFocusMultReadout === 'function') updateFocusMultReadout();
   stage.classList.remove('dnc-active'); if (typeof dncStageClear === 'function') dncStageClear(stage);
   if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if (typeof updateSelectionUI === 'function') updateSelectionUI();

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r693 · the blast ends on a thump, no noise burst";
+const BUILD = "2026-10-28 · r694 · reels: shorter spin, FOCUS is the third beat";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

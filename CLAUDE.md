@@ -3324,3 +3324,15 @@ three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
 `sfxBlastBoom` (js/score-blast.js) is the low sine drop alone: the lowpassed noise burst and
 the high crackle that ended every look (the "kssshhh") are gone, and Drumroll's cymbal
 (`sfxBlastCymbal`) is a no-op. Overload's mid-look static crackles stay.
+
+## r694 - Reels: a shorter spin, FOCUS is the third beat (owner)
+`BLAST_RUN.reels` (js/score-blast.js): the lever delay is 120ms and the spin before PIPS lands
+480ms (both a third shorter than r692's 180 / 720); MULT lands 420ms after PIPS and **FOCUS**
+420ms after that, on a third bell, so the order is short delay, pips beat, mult beat, focus
+beat, then the score total. `scoreBlast(ctx)` takes an optional `focus: { el, box, from, to }`
+(the dance passes `#focus-val` from `preHandFocus` to `targetFocus`; the chip already reads the
+target by then, FOCUS FIRST, so the reel spins back onto it; a value that does not change spins
+around itself); every look lands it after its run; `blChip` formats a focus chip as the dance
+does (`blFmtF`, ×N). The preview spins ×1 to ×2.5 and hands the readout back after. Measured in
+headless Chromium at 1440x820 and 420x900 through `blastPreview('reels')`: PIPS landed, MULT
+~400ms later, FOCUS ~400ms after that, 85 spin frames on the Focus chip; no page errors.
