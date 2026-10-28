@@ -243,7 +243,7 @@ function updateLimitsPopup() {
     const dlStr = dl ? ` <span class="lp-max" style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
     const right = def.hideMax ? `${shown}${dlStr}` : `${shown}${dlStr}<span class="lp-max">/${l.max}</span>`;
     return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
-           `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
+           `<span><span class="lp-ico">${emGlyph(def.icon)}</span>${def.label}</span>` +
            `<span>${right}</span></div>`;
   }).join('');
 }

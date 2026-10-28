@@ -187,6 +187,11 @@ const ICONS = [
   { glyph: '🏆', icon: 'lorc/trophy',            color: 'gold'   },
   { glyph: '📚', icon: 'delapouite/stack',       color: 'violet' },
   { glyph: '🎁', icon: 'delapouite/present',     color: 'pink'   },
+  // r692 (owner): the limits' icons (LIMITS_DEF, js/limits.js) are pixel icons too. The
+  // others (🎴 🔄 🗑 ⏱ ✦ ⚡ 🍀) already have rows above; rows and columns are new.
+  { glyph: '⬍', icon: 'delapouite/vertical-flip',   color: 'cyan'   },  // Grid Rows
+  { glyph: '⬌', icon: 'delapouite/horizontal-flip', color: 'cyan'   },  // Grid Columns
+  { glyph: '💾', icon: 'delapouite/save',            color: 'gold'   },  // Trick Slots (a floppy, like the Tricks)
 ];
 
 module.exports = { PALETTE, ICONS };

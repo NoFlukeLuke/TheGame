@@ -682,16 +682,17 @@
     <div class="dev-subtitle">Screen change (Flow rewards)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The screen changes by
-      <select id="dev-screen-change" onchange="setScreenChange(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="fall">falling (the screen drops out, the next drops in)</option><option value="turn">turning (the right side revolves)</option><option value="shutter">shutter (housing plates close over it)</option><option value="none">cutting (no move)</option></select>
+      <select id="dev-screen-change" onchange="setScreenChange(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="fall">falling (the screen drops out, the next drops in)</option><option value="console">console (a command types, the screen scrolls)</option><option value="none">cutting (no move)</option></select>
       <button class="dev-btn" onclick="screenChangePreview()">Preview</button>
     </label>
 
     <div class="dev-subtitle">Blast scoring (a hand in front of a winner, or 4+ hands queued)</div>
     <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Look
-      <select id="dev-blast-look" onchange="setBlastLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="beats5">Five beats (PIPS / MULT alternating)</option><option value="shockwave">Shockwave (wind-up, one slam)</option><option value="strobe">Strobe (flash sweeps, the chips flicker)</option><option value="implode">Implode (pulled to a point, burst)</option><option value="drumroll">Drumroll (12 small plates, a crash)</option><option value="off">Off (fast forward, as before)</option></select>
+      <select id="dev-blast-look" onchange="setBlastLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="beats5">Five beats (PIPS / MULT alternating)</option><option value="shockwave">Shockwave (wind-up, one slam)</option><option value="strobe">Strobe (flash sweeps, the chips flicker)</option><option value="implode">Implode (pulled to a point, burst)</option><option value="drumroll">Drumroll (12 small plates, a crash)</option><option value="overload">Overload (the screen tears, snaps back)</option><option value="reels">Reels (slot reels, two bells)</option><option value="off">Off (fast forward, as before)</option></select>
       <button class="dev-btn" onclick="blastPreview()">Preview</button>
-      <button class="dev-btn" onclick="blastPreview('beats5')">1</button><button class="dev-btn" onclick="blastPreview('shockwave')">2</button><button class="dev-btn" onclick="blastPreview('strobe')">3</button><button class="dev-btn" onclick="blastPreview('implode')">4</button><button class="dev-btn" onclick="blastPreview('drumroll')">5</button>
+      <button class="dev-btn" onclick="blastPreview('beats5')">1</button><button class="dev-btn" onclick="blastPreview('shockwave')">2</button><button class="dev-btn" onclick="blastPreview('strobe')">3</button><button class="dev-btn" onclick="blastPreview('implode')">4</button><button class="dev-btn" onclick="blastPreview('drumroll')">5</button><button class="dev-btn" onclick="blastPreview('overload')">6</button><button class="dev-btn" onclick="blastPreview('reels')">7</button>
+      <a class="dev-btn" href="index.html?blast">Open the lab page</a>
     </label>
 
     <div class="dev-subtitle">Improvement animation (a Trick improved comes to the board)</div>

@@ -3,12 +3,11 @@
 // ══════════════════════════════════════════════
 // Owner: the game is a piece of hardware, so the screen cannot just become a
 // different screen. Flow's reward chain opens and closes through one of these:
-//   'turn'    the right-hand side of the machine (board, Focus gauge, clock, keys
-//             and the housing between them) revolves on a vertical axis like a
-//             rotating wall panel, over a dark cavity; the reward screen is on
-//             its back. Then it revolves home again.
-//   'shutter' housing plates slide out from under the screen's bezel, meet,
-//             the screen changes behind them, and they slide apart.
+//   (r692, owner: no sideways or cube rotation anywhere; the 'turn' and 'shutter'
+//    looks of r532 are gone)
+//   'console' a command types at the foot of the board ("> OPEN REWARDS", "> DEAL"),
+//             the old screen scrolls up and out of the box, the new one scrolls up in
+//             from below, like a terminal.
 //   'fall'    (r691, owner, the default) the screen's contents fall out of the bottom of
 //             the board's box and the next screen's fall in from the top. Nothing in
 //             the housing moves: the keys stay put and only their dot words change
@@ -18,17 +17,13 @@
 // the screen is visible, and runs the second half. Dev -> Aesthetics -> Screen
 // change; the store holds only a non-default choice.
 const SC_KEY = 'lethe.screenChange.v1';
-const SC_LOOKS = ['fall', 'turn', 'shutter', 'none'];
+const SC_LOOKS = ['fall', 'console', 'none'];
 const SC_DEFAULT = 'fall';
+const SC_CON_MS = 300;       // the scroll out / in, x animSlow()
+const SC_CON_STAG = 18;
 const SC_FALL_OUT = 420;     // one item's drop out of the box, x animSlow()
 const SC_FALL_IN = 560;      // one item's fall in, with its bounce
 const SC_FALL_STAG = 26;     // between columns / rows
-const SC_TURN_MS = 380;      // the turn away; the turn home is 1.3x (it settles)
-const SC_PERSP = 1100;       // design px
-const SC_SHUT_MS = 300;      // plates closing; opening is the same
-const SC_SHUT_HOLD = 160;    // closed, while the screen changes behind them
-const SC_RIGHT_LAND = ['clock-area', 'vclock', 'focus-meter-wrap', 'grid-slot', 'swap-indicator', 'btn-discard', 'btn-play'];
-const SC_RIGHT_PORT = ['focus-meter-wrap', 'grid-slot', 'swap-indicator', 'btn-discard', 'btn-play'];
 
 let scLook = (() => {
   try { const v = localStorage.getItem(SC_KEY); return SC_LOOKS.includes(v) ? v : SC_DEFAULT; }
@@ -51,7 +46,7 @@ function screenChange(swap) {
   if (off) { swap(); return; }
   _scBusy = true;
   const done = () => { _scBusy = false; };
-  try { (scLook === 'shutter' ? scShutter : scLook === 'fall' ? scFall : scTurn)(swap, done); }
+  try { (scLook === 'console' ? scConsole : scFall)(swap, done); }
   catch (e) { done(); swap(); }
 }
 
@@ -67,92 +62,6 @@ function scStage() {
 }
 const scWait = ms => new Promise(r => setTimeout(r, ms));
 const scFrames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-// The housing's own surface, for a plate that has to look like a piece of it:
-// #stage's computed background, copied onto a box of the stage's own size so
-// every layer (grain, seams, screws) lands where it does on the housing.
-function scHousingBg(el, S) {
-  const cs = getComputedStyle(S.st);
-  ['backgroundColor', 'backgroundImage', 'backgroundRepeat', 'backgroundSize', 'backgroundPosition']
-    .forEach(k => { el.style[k] = cs[k]; });
-}
-// A moving door carries a stage-sized copy, offset to the place it closes over.
-function scHousingSkin(door, S, l, t) {
-  const sk = document.createElement('b');
-  sk.className = 'sc-skin';
-  sk.style.cssText = `left:${-l}px;top:${-t}px;width:${S.st.offsetWidth}px;height:${S.st.offsetHeight}px;`;
-  scHousingBg(sk, S);
-  door.appendChild(sk);
-}
-
-// ── TURN ────────────────────────────────────────────────────────────────────
-async function scTurn(swap, done) {
-  const S = scStage(); if (!S) { swap(); done(); return; }
-  const land = S.st.classList.contains('landscape');
-  const els = (land ? SC_RIGHT_LAND : SC_RIGHT_PORT).map(id => document.getElementById(id))
-    .filter(e => e && e.offsetWidth && getComputedStyle(e).display !== 'none');
-  if (!els.length) { swap(); done(); return; }
-  // The panel: from the left seam to the stage's right edge in landscape, the
-  // board block's full width in portrait.
-  const boxes = els.map(e => scStageRect(e, S.st, S.z, S.sr));
-  let U = { l: Math.min(...boxes.map(b => b.l)), t: Math.min(...boxes.map(b => b.t)),
-            r: Math.max(...boxes.map(b => b.l + b.w)), b: Math.max(...boxes.map(b => b.t + b.h)) };
-  const W = S.st.offsetWidth, H = S.st.offsetHeight;
-  if (land) U = { l: W * 0.4135, t: 0, r: W, b: H };
-  else U = { l: 0, t: Math.max(0, U.t - 6), r: W, b: Math.min(H, U.b + 6) };
-  const ax = (U.l + U.r) / 2, ay = (U.t + U.b) / 2;
-
-  const cavity = document.createElement('div');
-  cavity.className = 'sc-cavity';
-  cavity.style.cssText = `left:${U.l}px;top:${U.t}px;width:${U.r - U.l}px;height:${U.b - U.t}px;`;
-  const plate = document.createElement('div');
-  plate.className = 'sc-plate';
-  plate.style.cssText = `left:0;top:0;width:${W}px;height:${H}px;clip-path:inset(${U.t}px ${W - U.r}px ${H - U.b}px ${U.l}px);`;
-  scHousingBg(plate, S);
-  S.st.insertBefore(plate, S.st.firstChild);
-  S.st.insertBefore(cavity, S.st.firstChild);
-
-  const parts = [{ el: plate, ox: ax, oy: ay }].concat(els.map((el, i) => ({ el, ox: ax - boxes[i].l, oy: ay - boxes[i].t })));
-  const saved = parts.map(p => p.el.style.transformOrigin);
-  parts.forEach(p => { p.el.style.transformOrigin = `${p.ox}px ${p.oy}px`; });
-  const tf = a => `perspective(${SC_PERSP}px) rotateY(${a}deg)`;
-  try { sfxScreenTurn(SC_TURN_MS); } catch (e) {}
-  const out = parts.map(p => p.el.animate([
-    { transform: tf(0), filter: 'brightness(1)' },
-    { transform: tf(-5), offset: 0.14 },
-    { transform: tf(90), filter: 'brightness(.45)' }],
-    { duration: SC_TURN_MS, easing: 'cubic-bezier(.5,0,.85,.45)', fill: 'forwards' }));
-  await Promise.all(out.map(a => a.finished.catch(() => {})));
-
-  // Edge-on: nothing of the panel shows, so the screen changes now, laid out
-  // with no transforms in the way (the board is measured off its real box).
-  parts.forEach(p => p.el.classList.add('sc-hide'));
-  out.forEach(a => a.cancel());
-  try { swap(); } catch (e) { console.error(e); }
-  await scFrames();
-
-  // The panel's back comes round. Re-measured: the swap may move a part.
-  const S2 = scStage() || S;
-  parts.forEach(p => {
-    if (p.el === plate) return;
-    const b = scStageRect(p.el, S2.st, S2.z, S2.sr);
-    p.el.style.transformOrigin = `${ax - b.l}px ${ay - b.t}px`;
-  });
-  const T2 = SC_TURN_MS * 1.3;
-  const back = parts.map(p => p.el.animate([
-    { transform: tf(-90), filter: 'brightness(.45)' },
-    { transform: tf(7), filter: 'brightness(1.05)', offset: 0.72 },
-    { transform: tf(-2.5), offset: 0.87 },
-    { transform: tf(0), filter: 'brightness(1)' }],
-    { duration: T2, easing: 'cubic-bezier(.2,.6,.35,1)', fill: 'forwards' }));
-  parts.forEach(p => p.el.classList.remove('sc-hide'));
-  setTimeout(() => { try { sfxScreenLatch(); } catch (e) {} }, T2 * 0.72);
-  await Promise.all(back.map(a => a.finished.catch(() => {})));
-  back.forEach(a => a.cancel());
-  parts.forEach((p, i) => { p.el.style.transformOrigin = saved[i]; });
-  plate.remove(); cavity.remove();
-  done();
-}
 
 // ── FALL (r691) ─────────────────────────────────────────────────────────────
 // What the board holds: its cards and tiles, by their drawn boxes. Overlay layers
@@ -220,55 +129,57 @@ async function scFall(swap, done) {
   done();
 }
 
-// ── SHUTTER ─────────────────────────────────────────────────────────────────
-// The screen's recess: the board, and the Flow reward panel when it is up.
-function scScreenRect(S) {
-  const ids = ['grid', 'flowr-bg'];
-  const rs = ids.map(id => document.getElementById(id))
-    .filter(e => e && e.offsetWidth && getComputedStyle(e).visibility !== 'hidden')
-    .map(e => scStageRect(e, S.st, S.z, S.sr));
-  if (!rs.length) return null;
-  return { l: Math.min(...rs.map(b => b.l)), t: Math.min(...rs.map(b => b.t)),
-           r: Math.max(...rs.map(b => b.l + b.w)), b: Math.max(...rs.map(b => b.t + b.h)) };
+// ── CONSOLE (r692) ──────────────────────────────────────────────────────────
+// A command line at the foot of the board types what is happening, the old screen
+// scrolls up and out, the new one scrolls up in. The command reads from what is up:
+// a pick or reward board on screen means the chain is closing (DEAL), else opening.
+function scTypeLine(el, text) {
+  const cps = typeof textTypeCps === 'function' ? textTypeCps() : 160;
+  if (!cps) { el.textContent = text; return Promise.resolve(); }
+  return new Promise(res => { let i = 0; const t = setInterval(() => { i++; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(t); res(); } }, 1000 / cps); });
 }
-function scPlaceBox(box, R) {
-  box.style.cssText = `left:${R.l}px;top:${R.t}px;width:${R.r - R.l}px;height:${R.b - R.t}px;`;
-}
-async function scShutter(swap, done) {
-  const S = scStage(); const R = S && scScreenRect(S);
-  if (!R) { swap(); done(); return; }
-  const box = document.createElement('div');
-  box.className = 'sc-shutter';
-  scPlaceBox(box, R);
-  const machine = typeof trayMachineOn === 'function' && trayMachineOn();
-  const top = document.createElement('i'), bot = document.createElement('i');
-  top.className = 'sc-door sc-door-top'; bot.className = 'sc-door sc-door-bot';
-  if (machine) { scHousingSkin(top, S, R.l, R.t); scHousingSkin(bot, S, R.l, (R.t + R.b) / 2); box.classList.add('sc-housing'); }
-  box.append(top, bot);
-  S.st.appendChild(box);
-  try { sfxScreenTurn(SC_SHUT_MS * 0.8); } catch (e) {}
-  const close = (el, from) => el.animate([
-    { transform: `translateY(${from}%)` },
-    { transform: 'translateY(0%)', offset: 0.82 },
-    { transform: `translateY(${from > 0 ? 3 : -3}%)`, offset: 0.91 },
-    { transform: 'translateY(0%)' }],
-    { duration: SC_SHUT_MS, easing: 'cubic-bezier(.55,0,.9,.5)', fill: 'forwards' });
-  const a1 = close(top, -102), a2 = close(bot, 102);
-  setTimeout(() => { try { sfxScreenLatch(); } catch (e) {} }, SC_SHUT_MS * 0.82);
-  await Promise.all([a1.finished, a2.finished].map(p => p.catch(() => {})));
+async function scConsole(swap, done) {
+  const S = scStage(), grid = document.getElementById('grid');
+  if (!S || !grid) { swap(); done(); return; }
+  const k = typeof animSlow === 'function' ? animSlow() : 1;
+  const MS = SC_CON_MS * k, STAG = SC_CON_STAG * k;
+  const gr = scStageRect(grid, S.st, S.z, S.sr);
+  const panel = document.getElementById('flowr-bg'), stack = document.getElementById('flowr-stack');
+  const closing = document.body.classList.contains('gp-active') || document.body.classList.contains('grid-screen') || !!grid.querySelector('.gp-opt, .reward-cell');
+  const cmd = closing ? 'DEAL' : 'OPEN REWARDS';
+  grid.classList.add('sc-falling');
+  const line = document.createElement('div'); line.className = 'sc-cmd';
+  line.innerHTML = '<b>&gt; </b><span></span><i></i>';
+  grid.appendChild(line);
+  try { sfxScreenTurn(MS * .6); } catch (e) {}
+  await scTypeLine(line.querySelector('span'), cmd);
+  await scWait(90 * k);
+  // OUT: the top row first, everything scrolls up past the box's top edge.
+  const kids = scGridItems(grid).map(el => ({ el, r: scStageRect(el, S.st, S.z, S.sr) }));
+  const rows = [...new Set(kids.map(x => Math.round(x.r.t / 4)))].sort((a, b) => a - b);
+  const outs = kids.map(({ el, r }) => el.animate([{ translate: '0 0' }, { translate: `0 ${(-(r.t - gr.t + r.h + 12)).toFixed(1)}px` }],
+    { duration: MS, delay: rows.indexOf(Math.round(r.t / 4)) * STAG, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }));
+  const fades = [panel, stack].filter(e => e && e.offsetWidth).map(e => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MS, fill: 'forwards' }));
+  await Promise.all(outs.concat(fades).map(a => a.finished.catch(() => {})));
+  kids.forEach(({ el }) => { el.style.visibility = 'hidden'; });
+  outs.forEach(a => a.cancel()); fades.forEach(a => a.cancel());
   try { swap(); } catch (e) { console.error(e); }
+  kids.forEach(({ el }) => { if (el.isConnected) el.style.visibility = ''; });
+  grid.appendChild(line);   // the swap may have rebuilt the board; the line stays through the scroll in
   await scFrames();
-  await scWait(SC_SHUT_HOLD);
-  // The recess the doors open on: the old and the new screen together.
-  const R2 = scScreenRect(scStage() || S);
-  if (R2) scPlaceBox(box, { l: Math.min(R.l, R2.l), t: Math.min(R.t, R2.t), r: Math.max(R.r, R2.r), b: Math.max(R.b, R2.b) });
-  try { sfxScreenTurn(SC_SHUT_MS * 0.8); } catch (e) {}
-  const open = (el, to) => el.animate([{ transform: 'translateY(0%)' }, { transform: `translateY(${to}%)` }],
-    { duration: SC_SHUT_MS, easing: 'cubic-bezier(.3,.4,.4,1)', fill: 'forwards' });
-  a1.cancel(); a2.cancel();
-  const b1 = open(top, -102), b2 = open(bot, 102);
-  await Promise.all([b1.finished, b2.finished].map(p => p.catch(() => {})));
-  box.remove();
+  // IN: the new screen scrolls up from below the box, bottom row first.
+  const S2 = scStage() || S, gr2 = scStageRect(grid, S2.st, S2.z, S2.sr);
+  const news = scGridItems(grid).filter(el => !el.getAnimations().length).map(el => ({ el, r: scStageRect(el, S2.st, S2.z, S2.sr) }));
+  const rows2 = [...new Set(news.map(x => Math.round(x.r.t / 4)))].sort((a, b) => b - a);
+  const ins = news.map(({ el, r }) => el.animate([{ translate: `0 ${(gr2.t + gr2.h - r.t + 12).toFixed(1)}px` }, { translate: '0 0' }],
+    { duration: MS, delay: rows2.indexOf(Math.round(r.t / 4)) * STAG, easing: 'cubic-bezier(.2,.6,.3,1)', fill: 'backwards' }));
+  const shows = [panel, stack].filter(e => e && e.offsetWidth).map(e => e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MS * .8, easing: 'ease-out' }));
+  line.classList.add('sc-cmd-done');
+  setTimeout(() => { try { sfxScreenLatch(); } catch (e) {} }, MS * .8);
+  await Promise.all(ins.concat(shows).map(a => a.finished.catch(() => {})));
+  ins.forEach(a => a.cancel()); shows.forEach(a => a.cancel());
+  line.remove();
+  grid.classList.remove('sc-falling');
   done();
 }
 

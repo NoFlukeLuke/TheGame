@@ -93,6 +93,9 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🖌️ paint-roller
 - 📚 stack
 - 🎁 present
+- ⬍ vertical-flip
+- ⬌ horizontal-flip
+- 💾 save
 
 ## faithtoken
 

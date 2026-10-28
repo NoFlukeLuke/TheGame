@@ -517,4 +517,4 @@ html.skin-machine #mc-fly .dnc-particle .pt-box::after {
   opacity: .6;
 }
 html.skin-machine #mc-fly .dnc-particle.pt-diamond .pt-box::after { transform: rotate(-45deg); }
-html.skin-machine #grid > #flowr-counter { z-index: 30; }
+html.skin-machine #grid > #flowr-counter { z-index: 30 !important; }   /* under #grid::after (40), the door */

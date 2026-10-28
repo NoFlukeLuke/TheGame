@@ -18,7 +18,11 @@
 //   off       the old fast forward
 // scoreBlast(ctx) is the one entry; scoreBlast.on() says whether a cut hand blasts.
 const BLAST_KEY = 'lethe.scoreBlast.v1';
-const BLAST_LOOKS = { beats5: 'Five beats', shockwave: 'Shockwave', strobe: 'Strobe', implode: 'Implode', drumroll: 'Drumroll', off: 'Off (fast forward)' };
+//   overload  the preview screen fails: the picture tears and rolls with static, the figures
+//             burn in through the noise, the picture snaps back with the cards gone
+//   reels     PIPS and MULT spin like slot reels after a lever clunk, land one at a time
+//             on a bell; the cards are flung on the second bell
+const BLAST_LOOKS = { beats5: 'Five beats', shockwave: 'Shockwave', strobe: 'Strobe', implode: 'Implode', drumroll: 'Drumroll', overload: 'Overload', reels: 'Reels', off: 'Off (fast forward)' };
 const BLAST_DEFAULT = 'beats5';
 const BLAST_QUEUE_DEEP = 3;   // hands waiting (the fourth hand in the system) makes the live hand blast
 let blastLook = (() => { try { const v = localStorage.getItem(BLAST_KEY); return BLAST_LOOKS[v] ? v : BLAST_DEFAULT; } catch (e) { return BLAST_DEFAULT; } })();
@@ -140,6 +144,28 @@ function sfxBlastBoom(big) {
     o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + .45);
   });
 }
+function sfxBlastStatic() {
+  if (typeof ptVoice !== 'function') return;
+  ptVoice((ctx, v, t) => { const n = ptNoiseBuf(ctx, .06, (ts, p) => 1 - p * .6); ptPlay(ctx, n, t, .14 * v, 'bandpass', 1800 + Math.random() * 2400, .6); });
+}
+function sfxReelLever() {
+  if (typeof ptVoice !== 'function') return;
+  ptVoice((ctx, v, t) => {
+    const n = ptNoiseBuf(ctx, .09, (ts, p) => 1 - p); ptPlay(ctx, n, t, .2 * v, 'lowpass', 500, .8);
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(38, t + .14);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.3 * v, t + .006); g.gain.exponentialRampToValueAtTime(0.0001, t + .16);
+    o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + .18);
+  });
+}
+function sfxReelTick() { if (typeof playTone === 'function') playTone({ freq: 1800, type: 'square', gain: .02, attack: .001, decay: .01, sustain: .02, release: .01, duration: .02 }); }
+function sfxReelBell(i) {
+  if (typeof playTone !== 'function') return;
+  const f = 880 * (1 + i * .34);
+  playTone({ freq: f, type: 'sine', gain: .16, attack: .002, decay: .12, sustain: .3, release: .5, duration: .55 });
+  playTone({ freq: f * 2.76, type: 'sine', gain: .05, attack: .002, decay: .08, sustain: .15, release: .3, duration: .3 });
+  playTone({ freq: f * 4.1, type: 'triangle', gain: .025, attack: .001, decay: .03, sustain: .05, release: .1, duration: .1 });
+}
 function sfxBlastCymbal() {
   if (typeof ptVoice !== 'function') return;
   ptVoice((ctx, v, t) => { const n = ptNoiseBuf(ctx, .6, (ts, p) => Math.pow(1 - p, 1.4)); ptPlay(ctx, n, t, .16 * v, 'highpass', 5000, .8); });
@@ -237,6 +263,71 @@ const BLAST_RUN = {
   },
 };
 
+// Overload: the preview screen fails. Static rolls over it, every card is torn sideways in
+// strips, the chips flicker random figures through the noise, then the picture snaps back:
+// the chips on their totals and the cards simply gone. No explosion (noExplode).
+BLAST_RUN.overload = async function ({ cards, P, M, pace, sig }) {
+  const sc = document.getElementById('selected-cards');
+  const ov = document.createElement('i'); ov.className = 'blast-static'; if (sc) sc.appendChild(ov);
+  const outers = cards.map(el => el.parentElement || el);
+  const rnd = c => c.from + (c.to - c.from) * (.2 + fxRandom() * .9);
+  const frames = 18, step = Math.max(24, 44 / pace);
+  try {
+    for (let i = 0; i < frames; i++) {
+      if (sig.aborted) return;
+      const k = i / frames;
+      outers.forEach(o => {
+        const tear = fxRandom() < .55 + k * .4;
+        o.style.translate = tear ? `${((fxRandom() - .5) * 30 * (1 + k)).toFixed(1)}px 0` : '0 0';
+        const a = Math.floor(fxRandom() * 60), b = Math.floor(fxRandom() * 40);
+        o.style.clipPath = tear && fxRandom() < .6 ? `inset(${a}% 0 ${b}% 0)` : '';
+        o.style.filter = `brightness(${(.5 + fxRandom() * 1.9).toFixed(2)}) contrast(${(1 + fxRandom() * .8).toFixed(2)})`;
+      });
+      ov.style.opacity = (.35 + fxRandom() * .55).toFixed(2);
+      ov.style.backgroundPositionY = `${Math.floor(fxRandom() * 100)}%`;
+      blChip(P, rnd(P)); blChip(M, rnd(M));
+      [P, M].forEach(c => { if (c.box) c.box.style.filter = `brightness(${(.6 + fxRandom() * 1.6).toFixed(2)})`; });
+      if (i % 3 === 0) sfxBlastStatic();
+      if (i % 5 === 2 && sc) blShakeScreen(80);
+      await blWait(step, sig);
+    }
+    // the snap: one white frame, the picture back, the cards gone, the figures lit
+    outers.forEach(o => { o.style.translate = ''; o.style.clipPath = ''; o.style.filter = ''; });
+    ov.style.opacity = '1'; ov.classList.add('blast-static-snap');
+    [P, M].forEach(c => { if (c.box) c.box.style.filter = ''; });
+    sfxBlastBoom(false);
+    await blWait(Math.max(40, 90 / pace), sig);
+    outers.forEach(o => { o.style.visibility = 'hidden'; });
+    blChip(P, P.to); blChip(M, M.to); blPop(P, 1.35); blPop(M, 1.35);
+    ov.classList.remove('blast-static-snap'); ov.style.opacity = '0';
+    await blWait(Math.max(60, 160 / pace), sig);
+  } finally { ov.remove(); outers.forEach(o => { o.style.translate = ''; o.style.clipPath = ''; o.style.filter = ''; }); [P, M].forEach(c => { if (c.box) c.box.style.filter = ''; }); }
+};
+BLAST_RUN.overload.noExplode = true;
+// Reels: a lever clunk, then PIPS and MULT spin like slot reels (figures streaming past with
+// a tick), PIPS lands first on a bell, MULT on a second; the cards are flung on that one.
+BLAST_RUN.reels = async function ({ cards, P, M, pace, sig }) {
+  sfxReelLever(); blShake(cards, 1.4, 120);
+  [P, M].forEach(c => c.box && blAnim(c.box, [{ translate: '0 0' }, { translate: '0 5px' }, { translate: '0 0' }], { duration: 160, easing: 'ease-out' }));
+  await blWait(Math.max(80, 180 / pace), sig);
+  const tick = Math.max(28, 48 / pace), spinP = Math.max(300, 720 / pace), spinM = spinP + Math.max(200, 420 / pace);
+  const t0 = performance.now();
+  const spinFig = c => { const v = c.from + (c.to - c.from) * (fxRandom() * 1.4 - .1); blChip(c, Math.max(0, v)); };
+  let landedP = false, n = 0;
+  while (performance.now() - t0 < spinM) {
+    if (sig.aborted) return;
+    const dt = performance.now() - t0;
+    if (!landedP) spinFig(P);
+    spinFig(M);
+    [landedP ? null : P, M].forEach(c => { if (c && c.el) c.el.animate([{ translate: '0 -40%', opacity: .2 }, { translate: '0 0', opacity: 1 }], { duration: tick, easing: 'linear' }); });
+    if (n++ % 2 === 0) sfxReelTick();
+    if (!landedP && dt >= spinP) { landedP = true; blChip(P, P.to); blPop(P, 1.35); sfxReelBell(0); blShake(cards, 2.4, 100); }
+    await blWait(tick, sig);
+  }
+  blChip(M, M.to); blPop(M, 1.45); sfxReelBell(1); blFlash(cards, 160, 3);
+  await blWait(Math.max(40, 80 / pace), sig);
+};
+
 // The one entry. ctx: { cards, pips: { el, box, from, to }, mult: {...}, pace, signal, look? }
 async function scoreBlast(ctx) {
   const look = ctx.look || blastLook, run = BLAST_RUN[look];
@@ -248,9 +339,9 @@ async function scoreBlast(ctx) {
   try {
     await run({ cards, P, M, pace, sig });
     if (sig.aborted) return;
-    sfxBlastBoom(true); blShakeScreen(240);
     blChip(P, P.to); blChip(M, M.to);
-    await blExplode(cards, pace, sig);
+    if (run.noExplode) { cards.forEach(el => { const o = el.parentElement || el; o.style.visibility = 'hidden'; }); }
+    else { sfxBlastBoom(true); blShakeScreen(240); await blExplode(cards, pace, sig); }
   } finally { blShakeStop(cards); }
 }
 scoreBlast.on = blastOn;
@@ -285,3 +376,39 @@ async function blastPreview(look) {
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
 }
 document.addEventListener('DOMContentLoaded', () => setBlastLook(blastLook));
+
+// ── The lab page: index.html?blast ───────────────────────────────────────────
+// Starts a Flow run and shows a panel of the looks: a tap plays one on the real preview
+// with real board cards, USE THIS makes the last played look the game's. The clock is
+// topped up so nothing runs out while the owner looks. Nothing else is stored.
+let _blastLabLast = null;
+function blastLabOpen() {
+  if (document.getElementById('blast-lab')) return;
+  const p = document.createElement('div'); p.id = 'blast-lab';
+  const looks = Object.keys(BLAST_LOOKS).filter(k => k !== 'off');
+  p.innerHTML = `<div class="bl-head">BLAST SCORING <span class="bl-now"></span></div>`
+    + `<div class="bl-row">${looks.map((k, i) => `<button class="bl-b" data-look="${k}">${i + 1} ${BLAST_LOOKS[k]}</button>`).join('')}</div>`
+    + `<div class="bl-row"><button class="bl-b bl-use" id="bl-use">USE THIS</button><button class="bl-b" id="bl-off">USE NONE (fast forward)</button><button class="bl-b" id="bl-home" onclick="location.href='index.html'">EXIT</button></div>`
+    + `<div class="bl-note">Tap a look to play it on the hand preview. USE THIS keeps the last one you played.</div>`;
+  document.body.appendChild(p);
+  const paint = () => { p.querySelector('.bl-now').textContent = 'now: ' + BLAST_LOOKS[blastLook]; p.querySelectorAll('.bl-b[data-look]').forEach(b => b.classList.toggle('bl-on', b.dataset.look === blastLook)); p.querySelectorAll('.bl-b[data-look]').forEach(b => b.classList.toggle('bl-last', b.dataset.look === _blastLabLast)); };
+  p.addEventListener('click', e => {
+    const b = e.target.closest('.bl-b'); if (!b) return;
+    if (b.dataset.look) { _blastLabLast = b.dataset.look; paint(); blastPreview(b.dataset.look); }
+    else if (b.id === 'bl-use' && _blastLabLast) { setBlastLook(_blastLabLast); paint(); }
+    else if (b.id === 'bl-off') { setBlastLook('off'); paint(); }
+  });
+  paint();
+}
+(function () {
+  if (!/[?&]blast\b/.test(location.search)) return;
+  try { window.insightsOn = () => false; } catch (e) {}
+  window.addEventListener('load', () => setTimeout(() => {
+    try { devStartMode('flow'); } catch (e) { try { ACTIVE_MODE = MODES.flow; startGame(); } catch (e2) {} }
+    setTimeout(() => {
+      try { tutorialEnd(); } catch (e) {}
+      blastLabOpen();
+      setInterval(() => { try { if (typeof roundSeconds === 'number' && roundSeconds < 600) { roundSeconds = 3599; roundStartSeconds = 3599; updateClockUI?.(); } } catch (e) {} }, 1000);
+    }, 2500);
+  }, 1200));
+})();

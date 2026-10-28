@@ -3298,3 +3298,24 @@ three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
   the tray's first child at z -1 (`sb-in`, js/stock-bulbs.js; the tray isolates), behind the chips.
 - **No hand emoji**: `#sel-display` and `#sel-count-hand` print the number alone, the Selection
   Size limit's icon is 🎴, a challenge card's touching tier is said in its text only.
+
+## r692 - Overload and Reels; the blast lab page; no turning screens; pixel icons on the limits (owner)
+- **Two more blast looks** (js/score-blast.js): **overload** (the preview screen fails: static
+  rolls, every card is torn sideways in strips, the chips flicker through the noise, one white
+  frame, then the picture is back with the figures lit and the cards gone; `noExplode`) and
+  **reels** (a lever clunk, PIPS and MULT stream figures like slot reels with a tick, PIPS lands on
+  a bell, MULT on a second, the cards are flung on that one). Seven looks and off.
+- **The lab page**: `index.html?blast` starts a Flow run and shows `#blast-lab` (a key per look
+  plays it on the real preview, USE THIS keeps the last played one, USE NONE the old fast
+  forward, EXIT). Also linked from dev -> Aesthetics -> Blast scoring.
+- **No sideways or cube rotation anywhere** (owner): the screen change's `turn` and `shutter`
+  looks are gone (`SC_LOOKS` fall / console / none; a stored turn or shutter reads as fall), and
+  **`console`** is new: "> OPEN REWARDS" or "> DEAL" types at the foot of the board (`.sc-cmd`,
+  the game's text speed), the old screen scrolls up and out, the new one scrolls up in. The event
+  lab's CUBE transition is gone and its FLIP cells drop in and out instead of turning. A fired
+  Sleight jumps and flashes in place (`sleight-spin` keyframes) instead of spinning twice.
+- **Pixel icons on the limits**: the Limit Break (offers, TAKEN bars, give-up rows), Records'
+  Limits and the Time pop-up draw `LIMITS_DEF` icons through `emGlyph`; the shop and reward tiles
+  already did. Rows and columns got rows in `tools/icons/manifest.js` (`delapouite/vertical-flip`
+  / `horizontal-flip`) and Trick Slots is a floppy (`💾`, `delapouite/save`); the sheet is rebuilt (158 icons).
+- The GOAL CLEARED counter's z-index inside `#grid` is forced (`!important`) under the door.

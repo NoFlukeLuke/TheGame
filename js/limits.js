@@ -18,7 +18,7 @@ const LIMITS_DEF = [
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
   { id: 'round_time',  label: 'Starting Time',    icon: '⏱', desc: 'Seconds you START each round with (rewinds can carry you above it)', base: 180, max: 300, min: 60, step: 15 },
-  { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, min: 1, weight: 0.4 },
+  { id: 'trick_slots', label: 'Trick Slots',      icon: '💾', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, min: 1, weight: 0.4 },
   { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, min: 10, step: 3, weight: 0.5 },
   // Luck 10 is a nudge, 100 doubles every chance effect. Step 5 so a single pick
   // is felt without one upgrade being the whole stat, and weight 0.6 because it

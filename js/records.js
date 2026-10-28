@@ -386,7 +386,7 @@ function recordsRenderLimits() {
               ENTITY_TIERS.map((t, i) => `${tierLabel('_generic', t)} ${pc[i]}%`).join(' · ') + `</span>`;
     }
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
-      <div class="rec-lim-top"><span><span class="rec-lim-ico">${def.icon}</span>${def.label}</span>
+      <div class="rec-lim-top"><span><span class="rec-lim-ico">${emGlyph(def.icon)}</span>${def.label}</span>
         <span class="rec-lim-v">${shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
       <div class="rec-bar-track"><span class="rec-bar-fill" style="width:${Math.max(0, Math.min(100, pct))}%"></span></div>
       <div class="rec-lim-desc">${extra}</div></div>`;
