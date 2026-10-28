@@ -3319,3 +3319,8 @@ three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
   already did. Rows and columns got rows in `tools/icons/manifest.js` (`delapouite/vertical-flip`
   / `horizontal-flip`) and Trick Slots is a floppy (`💾`, `delapouite/save`); the sheet is rebuilt (158 icons).
 - The GOAL CLEARED counter's z-index inside `#grid` is forced (`!important`) under the door.
+
+## r693 - the blast ends on a thump (owner)
+`sfxBlastBoom` (js/score-blast.js) is the low sine drop alone: the lowpassed noise burst and
+the high crackle that ended every look (the "kssshhh") are gone, and Drumroll's cymbal
+(`sfxBlastCymbal`) is a no-op. Overload's mid-look static crackles stay.

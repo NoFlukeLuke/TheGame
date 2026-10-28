@@ -131,13 +131,10 @@ function sfxBlastRise(sec) {
     o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + sec + .02);
   });
 }
+// r693 (owner): no noise at the end (the "kssshhh"): the boom is the low thump alone.
 function sfxBlastBoom(big) {
   if (typeof ptVoice !== 'function') return;
   ptVoice((ctx, v, t) => {
-    const noise = ptNoiseBuf(ctx, .42, (ts, p) => Math.pow(1 - p, 2.2));
-    ptPlay(ctx, noise, t, (big ? .34 : .24) * v, 'lowpass', 1800, .7);
-    const crack = ptNoiseBuf(ctx, .07, (ts, p) => 1 - p);
-    ptPlay(ctx, crack, t, .18 * v, 'highpass', 2400, 1);
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(36, t + .36);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.4 * v, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + .42);
@@ -166,10 +163,7 @@ function sfxReelBell(i) {
   playTone({ freq: f * 2.76, type: 'sine', gain: .05, attack: .002, decay: .08, sustain: .15, release: .3, duration: .3 });
   playTone({ freq: f * 4.1, type: 'triangle', gain: .025, attack: .001, decay: .03, sustain: .05, release: .1, duration: .1 });
 }
-function sfxBlastCymbal() {
-  if (typeof ptVoice !== 'function') return;
-  ptVoice((ctx, v, t) => { const n = ptNoiseBuf(ctx, .6, (ts, p) => Math.pow(1 - p, 1.4)); ptPlay(ctx, n, t, .16 * v, 'highpass', 5000, .8); });
-}
+function sfxBlastCymbal() { /* r693 (owner): the cymbal's noise is gone; the drumroll ends on the boom */ }
 
 // ── the looks ────────────────────────────────────────────────────────────────
 // Each gets the context: cards (the preview's card elements), P / M ({ el, box,

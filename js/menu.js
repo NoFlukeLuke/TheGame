@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r692 · Overload and Reels; the blast lab page (?blast); no turning screens: the fall and a console command line; pixel icons on the limits";
+const BUILD = "2026-10-28 · r693 · the blast ends on a thump, no noise burst";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
