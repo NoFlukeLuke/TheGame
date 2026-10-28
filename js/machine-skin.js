@@ -30,7 +30,9 @@ function mcFlyLayer() {
   return _mcFly;
 }
 // The mask: MC_FLY_GHOST everywhere (0: the housing hides it), fully opaque over each visible screen.
-function mcFlyMask() {
+// mcScreenMaskParts is the one list of mask layers; the scoring queue's flight layer
+// (dnqFlyMask, js/score-dance.js) cuts its holes into the same list.
+function mcScreenMaskParts() {
   const layers = [`linear-gradient(rgb(0 0 0 / ${MC_FLY_GHOST}), rgb(0 0 0 / ${MC_FLY_GHOST}))`], sizes = ['100% 100%'], pos = ['0 0'];
   const land = document.getElementById('stage')?.classList.contains('landscape');
   MC_SCREENS.forEach(id => {
@@ -45,6 +47,10 @@ function mcFlyMask() {
     sizes.push(`${Math.round(r.width)}px ${Math.round(r.height)}px`);
     pos.push(`${Math.round(r.left)}px ${Math.round(r.top)}px`);
   });
+  return { layers, sizes, pos };
+}
+function mcFlyMask() {
+  const { layers, sizes, pos } = mcScreenMaskParts();
   const key = sizes.join() + pos.join();
   if (key === _mcMaskKey) return;
   _mcMaskKey = key;

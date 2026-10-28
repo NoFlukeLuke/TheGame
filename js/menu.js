@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r693 · the blast ends on a thump, no noise burst";
+const BUILD = "2026-10-28 · r694 · the scoring queue: in behind, out the bottom, forward without a fade";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

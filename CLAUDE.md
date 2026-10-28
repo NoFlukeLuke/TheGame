@@ -3324,3 +3324,36 @@ three Sleights and "bonus: pick 1 of 3 Knacks (rare or better)". No page errors.
 `sfxBlastBoom` (js/score-blast.js) is the low sine drop alone: the lowpassed noise burst and
 the high crackle that ended every look (the "kssshhh") are gone, and Drumroll's cymbal
 (`sfxBlastCymbal`) is a no-op. Overload's mid-look static crackles stay.
+
+## r694 - the scoring queue: in behind, out the bottom, forward without a fade (owner)
+js/score-dance.js, css/dance.css. What was wrong, filmed at 1440x820: a queued hand's copies flew
+on body OVER the hand scoring and only then dropped behind it (a bright card popping to a dim one);
+and at the hand-over `dnc-active` came off, which took the preview's stacking with it, so the queue
+went under the glass with the old row: about 200ms of an empty tray, then the next hand faded in
+from 45%. Now:
+- **In behind.** A queued card flies in a layer of its own (`dnqFlyLayer`, one per waiting hand,
+  `.dnq-fly`, z 199: under the score plates) whose mask cuts out every card in front of it: the
+  hand scoring and the strips queued before it (`dnqHoles`, cut every frame while anything flies:
+  each card's own box, unturned if it is tilted; overlapping holes cut into pieces that do not
+  overlap; all inside the preview's screen). In console mode the mask starts from the housing's
+  (`mcScreenMaskParts`, js/machine-skin.js, also what `mcFlyMask` reads), so the copies stay under
+  the housing. The copy stays opaque, darkens to its strip's brightness over the back of the
+  flight, and lands with no pop; a strip that moved meanwhile is glided to (`dnqSettleSlot`).
+- **Darkened, not faded.** Strips are `brightness` by depth (`DNQ_DIM` 1 / .5 / .38 / .3 / .24), cards
+  opaque, so a strip hides the ones behind it. A new strip is placed without a transition (its
+  cards aim at where it stays); the host anchors on the live row's layout offsets (`dnqAnchor`, a
+  pop or a fall moves nothing) and glides (`left` / `top` .22s) when a hand of another size moves it.
+- **Out the bottom.** At the end of its tally every hand but the goal hand falls out of the tray
+  (`dncFallOut`: left to right, a small tilt each, ease-in, clipped at the screen's lower edge by
+  its own row, so the strips above are untouched); it replaces the old 300ms settle wait. Cards a
+  blast already threw away are skipped, and reduced motion skips the fall (the wait stays).
+- **Forward without a fade.** With a hand waiting the preview stays `dnc-active` between hands.
+  `dncQueueNext` measures the strip's cards before anything moves; the new row's cards take over
+  from them in one frame, as dark, and slide the little way to their slots as the darkening goes
+  (`MOVE` max(180, 380 / pace)). Measured: the tray is never empty between hands, no opacity dip.
+Measured in headless Chromium at 1440x820 and 420x900, console and pit: a copy frozen mid-flight
+over the live K is hidden behind it (seen only in the gaps); five hands in a burst (three waiting,
+the blast) and a winning hand over the queue end with no page errors, no timeline drift (dev mode),
+no fly layer, strip or hidden board card left. Not changed: the hand-name label names the newest
+selection while a hand scores (r401's rule), so after queuing it reads the queued hand's name.
+
