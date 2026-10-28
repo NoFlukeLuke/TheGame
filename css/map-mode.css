@@ -28,7 +28,7 @@
   display: grid; gap: 3px;
   grid-template-columns: 44px repeat(var(--ml-lanes), minmax(0, 1fr));
   /* r679: a row never goes under --ml-min; six slots that will not fit scroll. */
-  grid-template-rows: repeat(var(--ml-sets), minmax(var(--ml-min), 1fr)) minmax(calc(var(--ml-min) * .7), .62fr);
+  grid-template-rows: repeat(var(--ml-sets), minmax(var(--ml-min), 1fr)) minmax(var(--ml-min), 1fr);
   overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
 }
 /* A slot's rule: a dashed line across the list, the lit row is where you are. */
@@ -136,6 +136,25 @@
 #grid .map-tile.mk-boss .mt-goal { margin-left: auto; font-size: min(15px, 34cqh); color: var(--am-hi); white-space: nowrap; }
 #grid .map-tile.mk-boss .mt-box, #grid .map-tile.mk-boss .mt-icon { font-size: min(15px, 34cqh); }
 #grid .map-tile.mk-boss.mt-legal { animation: map-boss-breath 3.4s ease-in-out infinite; }
+/* r702: the review row holds two managers side by side (or the hidden third alone).
+   Each is a column: [ ] skull NAME, what unlocks it, the quota. */
+#grid .mtm-reviews { grid-column: 2 / -1; z-index: 1; min-width: 0; min-height: 0; display: flex; gap: 3px; }
+#grid .mtm-reviews .map-tile.mt-review {
+  flex: 1 1 0; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 2px; padding: 3px 6px; border: 3px double color-mix(in srgb, var(--rc) 60%, transparent);
+}
+#grid .mtm-reviews .mt-review .mt-line { max-width: 100%; }
+#grid .mtm-reviews .mt-review .mt-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#grid .mtm-reviews .mt-review .mt-cond { font-size: 11px; line-height: 1; letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: var(--am); }
+#grid .mtm-reviews .mt-review .mt-stake { font-size: 11px; font-style: normal; margin-left: 4px; }
+#grid .mtm-reviews .mt-review .mt-box, #grid .mtm-reviews .mt-review .mt-icon { font-size: 12px; }
+#grid .mtm-reviews .mt-review.mt-locked { opacity: .55; }
+#grid .mtm-reviews .mt-review.mt-locked .mt-cond { color: var(--am-dim); }
+#grid .mtm-reviews .mt-review:not(.mt-legal):not(.mt-visited):not(.mt-selected):not(.mt-locked):not(.mt-missed) { opacity: .85; }
+#grid .mtm-reviews .mt-review.mt-missed { opacity: .3 !important; }
+#grid .mtm-reviews .mt-review.mt-missed .mt-name { text-decoration: line-through; }
+#grid .mtm-reviews .mt-review.mt-hidden .mt-name { color: var(--am-hi); }
+#grid .mtm-reviews .mt-review.mt-selected .mt-cond { color: var(--am-ink); }
 @keyframes map-boss-breath {
   0%, 100% { box-shadow: 0 0 4px -2px var(--rc); }
   50%      { box-shadow: 0 0 14px -2px var(--rc); }

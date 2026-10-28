@@ -972,6 +972,11 @@
       <input id="dev-map-tall" type="checkbox" onchange="setMapLayoutTall(this.checked)" style="accent-color:var(--gold);">
       Six slots of three, one booking a slot
     </label>
+    <div style="display:flex;gap:10px;align-items:center;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">
+      <span>Review unlock (r702):</span>
+      <label>lanes (4x4) <input type="number" min="1" max="8" style="width:44px" value="5" onchange="MAP_BOSS_NEED.lanes = +this.value || 5"></label>
+      <label>rounds / others (3x6) <input type="number" min="1" max="6" style="width:44px" value="3" onchange="MAP_BOSS_NEED.kinds = +this.value || 3"></label>
+    </div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch (old rule only): move out from ANY tile you have already taken, not only the one you are standing on.</div>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-map-freebranch" type="checkbox" onchange="setMapFreeBranch(this.checked)" style="accent-color:var(--gold);">

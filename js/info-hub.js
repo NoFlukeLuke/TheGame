@@ -366,7 +366,7 @@ const INFO_TOPICS = [
   // Plain description only: what happens, in what order, and the numbers.
   { id: 'mode_map', group: 'modes', title: 'The Schedule',
     body: [
-      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review.`,
+      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review. Two managers wait at the end: each unlocks on what you booked (five obligations in its two lanes; on the tall schedule, three rounds for one and three other obligations for the other). Unlock one and face it; unlock both and choose; unlock neither and a random manager holds the review.`,
       'Every step activates the obligation you land on. You can take any two obligations in a slot. Leaving a slot after one pays the department\u2019s reward.',
       'Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (reward grids).',
       'An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or a reward grid. You find out when you commit to it.',

@@ -103,9 +103,9 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    one department column, one more per tier, so the departments need a ranking by how good they
    are. Option A to start (columns change what shows up, not how a round plays). New tiles
    TRAINING, FILING, CALENDAR SYNC (slots 1-2 only). Decisions and the draft lists: `DEPARTMENTS.md`.
-2. **Two bosses a quarter, and a hidden third** (idea 2). Each boss owns two lanes; enough
-   bookings in a boss's lanes (owner's guess: 5) unlocks choosing it; short of both, a hidden
-   third boss. Trades rewards now for an easier review.
+2. **Two bosses a quarter, and a hidden third** (idea 2). Built r702: each review owns two lanes
+   (wide) or a kind of booking (tall); 5 bookings in its lanes / 3 of its kind unlock it; neither,
+   a hidden third.
 3. **Skip perks** (idea 3). A word for the self-care perk of leaving a slot early; the perk
    table (a Sleight charge, a random improvement, rarely an improvement of your choice, +2
    selection on the next reward grid); balance so skipping never beats playing. Also new
@@ -118,10 +118,10 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    (higher goal that grows faster); punished department columns, one more per tier.
 6. **The timesheet and a clean quarter** (idea 10). Needs a fuller spec.
 
-**Built r679:** the two-of-a-kind cap, Q1's three opener shapes, the tall 3 x 6 shape as a dev
-switch (owner: try both, decide after play). **Open from r679:** chunk 2's "5 bookings in a
-boss's two lanes" needs lanes and 8 bookings; under the tall shape the boss choice would have to
-read KINDS booked (3+ rounds unlocks one boss, 3+ non-rounds the other, neither the hidden one).
+**Built r700:** the two-of-a-kind cap, Q1's three opener shapes, the tall 3 x 6 shape as a dev
+switch (owner: try both, decide after play). **Built r702 (chunk 2):** two reviews a quarter and
+a hidden third; the wide shape unlocks by lanes (5), the tall one by rounds / others (3). Open:
+a random walker unlocks neither 81% of the time on the wide shape; see whether real play does.
 
 **Parked:**
 - **Doors and floors** (owner, r679; after the itch build, wants an artist): each pick is three

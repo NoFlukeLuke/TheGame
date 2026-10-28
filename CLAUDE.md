@@ -3484,3 +3484,29 @@ every required slot holding a round; wide openers 36 / 31 / 34% lanes / row / pa
 click: the whole-row opener booked 2/2 and the round dealt 16 cards on a 4x4; a half-row round
 1/2; the tall shape 1/1 on desktop and phone. Tall desktop list 366px in a 278px box (scrolls);
 the phone's 366 in 332. No page errors.
+
+## r702 - two reviews a quarter and a hidden third (owner, chunk 2)
+js/map-mode.js. The review row holds TWO named managers (`kind 'boss'`, `slot 'a'` / `'b'`) and a
+hidden third (`slot 'x'`, `hidden`). Review A is the quarter's held boss (`actBossId`, so Advance
+Notice and Reschedule still speak of it); B and the hidden one carry their own `presetId`, dealt
+from the bag once per map (`mapDrawReviewPresets`). **Unlocking** (`MAP_BOSS_NEED`, dev -> Schedule):
+on the wide shape a review owns half the lanes (`t.lanes`) and unlocks at `lanes` (5) bookings in
+them (a wide tile counts once for every half it covers); on the tall shape A unlocks at `kinds` (3)
+rounds booked (level or challenge), B at 3 other obligations. `mapBossOffer()` is what the funnel
+may book: the unlocked reviews; with none unlocked and none still reachable (`mapBossReachable`:
+progress plus the bookings left that could count), the hidden one. Booking a review writes its
+preset to `actBossId` (takeActBoss hands it over); the hidden one prints "The review: NAME". The row
+(`.mtm-reviews`, css/map-mode.css) shows the two named tiles, each `[ ] skull NAME` over its condition
+(`LANES 1-2 · 3/5`, `ROUNDS · 2/3`); locked dims, out of reach is struck; once neither can be
+unlocked the hidden tile alone (`??? · NEITHER UNLOCKED`). The quota moved to the review row's
+gutter (`mapNum`). A tap on a locked review explains it (`mapBossCondSay` in `mapTileDesc`); the ?
+card has a Two reviews row; the handbook's Schedule entry says the rule. `mapListScrollSync` runs
+after the toolbar is filled too (the list only overflows once the bar has its height) and shows the
+end in the last slot. A pre-r702 save's single review tile (no `slot`) is always unlocked.
+Measured in headless Chromium at 1440x820 and 420x900, 1,000 random walks a shape: 0 strands; wide
+A 10% / B 9% / hidden 81% (a random walker spreads over the lanes; a deliberate one reached 7/5),
+tall A 65% / B 35%, both unlocked 27%, hidden 0 (six bookings always reach three of one kind); every
+map's three presets distinct. By real click: the unlocked review booked, the round dealt 16 cards with
+`actBossId` the booked preset and `forceBossNextRound` set; a locked review's info line printed
+its unlock; the hidden review booked under neither (A 4/5, B 3/5) armed its own preset; both
+unlocked on the tall shape offered a choice. No page errors.

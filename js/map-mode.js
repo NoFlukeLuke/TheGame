@@ -88,6 +88,72 @@ function mapLevelSets() {
 }
 // r679 (owner): a slot holds at most two of one kind.
 const MAP_KIND_CAP = 2;
+// r702 (owner): TWO reviews a quarter, each behind a condition, and a hidden third.
+// On the wide shape a review owns two lanes and unlocks at `lanes` bookings in
+// them; on the tall shape one unlocks at `kinds` rounds booked, the other at
+// `kinds` other obligations. Neither unlocked, and neither still reachable: a
+// random manager (`hidden`, drawn at build, unnamed until taken).
+const MAP_BOSS_NEED = { lanes: 5, kinds: 3 };
+function mapBossRule() { return mapSlotCap() === 1 ? 'kinds' : 'lanes'; }
+function mapBossTiles() { return mapTiles.filter(t => t.kind === 'boss'); }
+function mapTileIsRound(t) { return t.kind === 'level' || t.kind === 'challenge'; }
+// Review A is the quarter's held boss (actBossId: Advance Notice and Reschedule
+// still speak of it); B and the hidden one carry their own preset.
+function mapBossPreset(t) {
+  const id = (t.slot === 'a' || !t.slot) ? ((typeof actBossId !== 'undefined' && actBossId) || t.presetId) : t.presetId;
+  return (typeof BOSS_PRESETS !== 'undefined' && BOSS_PRESETS.find(p => p.id === id)) || null;
+}
+// Does a booked obligation count toward this review?
+function mapBossCounts(b, t) {
+  if (t.kind === 'boss' || t.kind === 'blank') return false;
+  if (mapBossRule() === 'lanes') {
+    const lanes = b.lanes || [];
+    for (let l = t.lane; l < t.lane + (t.cols || 1); l++) if (lanes.includes(l)) return true;
+    return false;
+  }
+  return b.slot === 'a' ? mapTileIsRound(t) : !mapTileIsRound(t);
+}
+function mapBossNeed(b) { return b.hidden ? 0 : MAP_BOSS_NEED[mapBossRule()]; }
+function mapBossProgress(b) { return mapTiles.filter(t => t.visited && mapBossCounts(b, t)).length; }
+function mapBossUnlocked(b) { return !b.hidden && (!b.slot || mapBossProgress(b) >= mapBossNeed(b)); }
+// Could this review still be unlocked with the bookings left?
+function mapBossReachable(b) {
+  if (b.hidden) return true;
+  if (mapBossUnlocked(b)) return true;
+  const cap = mapSlotCap();
+  const from = mapPos ? mapPos.set : 0;
+  const here = mapPos ? Math.max(0, cap - mapVisits) : cap;
+  const left = here + cap * Math.max(0, (MAP_SETS - 1) - from);
+  const avail = mapTiles.filter(t => !t.visited && mapBossCounts(b, t) && t.set >= from && !(t.set === from && here <= 0)).length;
+  return mapBossProgress(b) + Math.min(left, avail) >= mapBossNeed(b);
+}
+// Which review tiles the funnel may book: the unlocked ones; with none unlocked
+// and none still reachable, the hidden one.
+function mapBossOffer() {
+  const named = mapBossTiles().filter(t => !t.hidden);
+  const open = named.filter(mapBossUnlocked);
+  if (open.length) return open;
+  if (named.some(mapBossReachable)) return [];
+  return mapBossTiles().filter(t => t.hidden);
+}
+function mapBossShowHidden() {
+  const named = mapBossTiles().filter(t => !t.hidden);
+  return mapBossTiles().some(t => t.hidden) && (!named.length || !named.some(mapBossReachable));
+}
+function mapBossCondShort(b) {
+  if (b.hidden) return 'NEITHER UNLOCKED';
+  const n = mapBossProgress(b), need = mapBossNeed(b);
+  if (mapBossRule() === 'lanes') return `LANES ${b.lanes.map(l => l + 1).join('-')} · ${Math.min(n, need)}/${need}`;
+  return `${b.slot === 'a' ? 'ROUNDS' : 'OTHERS'} · ${Math.min(n, need)}/${need}`;
+}
+function mapBossCondSay(b) {
+  if (b.hidden) return 'Neither review was unlocked, so a random manager holds it.';
+  const n = mapBossProgress(b), need = mapBossNeed(b);
+  const what = mapBossRule() === 'lanes'
+    ? `${need} bookings in lanes ${b.lanes.map(l => l + 1).join(' and ')}`
+    : `${need} ${b.slot === 'a' ? 'rounds' : 'obligations that are not rounds'}`;
+  return mapBossUnlocked(b) ? `Unlocked: ${what}.` : `Unlocks at ${what} (${n} so far${mapBossReachable(b) ? '' : ', out of reach now'}).`;
+}
 // The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
 // r690 (owner): the REWARD tile is the IT department's alone (the department whose
 // tile is 'reward'): one at least there, MAP_REWARD_MAX a map at most, a mystery's
@@ -356,8 +422,9 @@ function mapTileDesc(t, legalIds) {
     case 'event':      return t.eventFlavor || 'Something happens.';
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss': {
-      const b = peekBossPresetSafe();
-      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapReviewGoalShown().toLocaleString()}.`;
+      const b = (t.hidden && !t.visited) ? null : mapBossPreset(t);
+      return (b ? b.name + '. ' : '') + (b?.brief || 'The end of the schedule.') + ` ${G}: ${mapReviewGoalShown().toLocaleString()}.`
+        + (t.slot ? ' ' + mapBossCondSay(t) : '');
     }
   }
   return '';
@@ -441,17 +508,32 @@ function mapGenerate() {
   const q1 = (typeof actNumber !== 'number') || actNumber <= 1;
   const shapes = mapSlotCap() === 2 ? ['lanes', 'row', 'pairs'] : ['lanes', 'row'];
   const opener = q1 ? shapes[Math.floor(Math.random() * shapes.length)] : null;
+  // r702: the second review and the hidden third are dealt from the bag once per
+  // map (review A is the quarter's held boss, actBossId).
+  const bosses = mapDrawReviewPresets();
   for (let attempt = 0; attempt < 80; attempt++) {
-    const tiles = _mapBuildOnce(opener);
+    const tiles = _mapBuildOnce(opener, bosses);
     if (tiles && _mapValidate(tiles)) { mapTiles = tiles; return; }
   }
   // 80 straight failures means a rule is unsatisfiable - keep the last build
   // rather than an empty map, and say so in dev.
-  mapTiles = _mapBuildOnce(opener) || [];
+  mapTiles = _mapBuildOnce(opener, bosses) || [];
   console.warn('[MAP] generation fell back past validation');
 }
 
-function _mapBuildOnce(opener) {
+function mapDrawReviewPresets() {
+  const a = (typeof actBossId !== 'undefined' && actBossId) || null;
+  const draw = (not) => {
+    if (typeof nextBossPreset !== 'function') return null;
+    let p = null;
+    for (let k = 0; k < 8; k++) { p = nextBossPreset(); if (p && !not.includes(p.id)) break; }
+    return p ? p.id : null;
+  };
+  const b = draw([a]);
+  const x = draw([a, b]);
+  return { a, b, x };
+}
+function _mapBuildOnce(opener, bosses) {
   _mapTileId = 0;
   const tiles = [];
   const put = (lane, set, kind, extra) => {
@@ -466,8 +548,15 @@ function _mapBuildOnce(opener) {
   else if (opener === 'pairs') { put(0, 0, 'level', { cols: 2 }); put(2, 0, 'level', { cols: 2 }); }
   else if (opener === 'lanes') for (let l = 0; l < MAP_LANES; l++) put(l, 0, 'level');
 
-  // The boss: one tile spanning every lane past the funnel.
-  put(0, MAP_BOSS_SET, 'boss');
+  // The reviews (r702): two named managers past the funnel, each owning half the
+  // lanes (the wide shape) or a kind of booking (the tall shape), and a hidden third.
+  const half = Math.ceil(MAP_LANES / 2);
+  const lanesA = [], lanesB = [];
+  for (let l = 0; l < MAP_LANES; l++) (l < half ? lanesA : lanesB).push(l);
+  const bz = bosses || {};
+  put(0, MAP_BOSS_SET, 'boss', { slot: 'a', lanes: lanesA, presetId: bz.a || null });
+  put(half, MAP_BOSS_SET, 'boss', { slot: 'b', lanes: lanesB, presetId: bz.b || null });
+  put(0, MAP_BOSS_SET, 'boss', { slot: 'x', hidden: true, presetId: bz.x || null });
 
   // The funnel (last set): non-level tiles, and you take exactly ONE of them
   // whatever is there - mapLegalMoves offers only the boss once you are in it.
@@ -803,8 +892,7 @@ function mapLegalMoves() {
           if (t && t.set === set) consider(t, { lane: t.lane, set, visits: visits + 1 }, from);
         }
       }
-      const boss = mapTiles.find(t => t.kind === 'boss');
-      if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
+      mapBossOffer().forEach(b => { if (!b.visited) push({ tile: b, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from }); });
       continue;
     }
     // Vertical, while the set has room.
@@ -848,8 +936,7 @@ function mapPickMoves(push) {
     ? { lane: t.lane, set: set + 1, visits: 1 }
     : { lane: t.lane, set, visits: mapVisits + mapTileBookings(t) }));
   if (set >= MAP_SETS - 1) {
-    const boss = mapTiles.find(t => t.kind === 'boss');
-    if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
+    mapBossOffer().forEach(b => { if (!b.visited) push({ tile: b, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from }); });
   } else {
     tilesOf(set + 1).forEach(t => add(t, t.span === 2
       ? { lane: t.lane, set: set + 2, visits: 1 }
@@ -969,7 +1056,9 @@ function mapRender(animateIn) {
     time.className = 'mtm-time' + (s === curSet ? ' now' : '');
     time.style.gridRow = String(s + 1);
     const booked = (s === curSet && mapPos && !isReview && mapSlotCap() > 1) ? `<i>${mapVisits}/${mapSlotCap()}</i>` : '';
-    time.innerHTML = `<b>${mapSlotTimes()[s] || ''}</b><span>${isReview ? 'REVIEW' : 'SLOT ' + (s + 1)}</span>${booked}`;
+    // r702: the review row's gutter carries the quota (the two review tiles have no room for it).
+    const quota = isReview ? `<i>${mapNum(mapReviewGoalShown())}</i>` : '';
+    time.innerHTML = `<b>${mapSlotTimes()[s] || ''}</b><span>${isReview ? 'REVIEW' : 'SLOT ' + (s + 1)}</span>${booked}${quota}`;
     list.appendChild(time);
   }
 
@@ -1021,19 +1110,46 @@ function mapRender(animateIn) {
     if (animateIn) div.animate([{ opacity: 0 }, { opacity: 1 }],
       { duration: 140, delay: t.set * 90 + (isBoss ? 0 : t.lane * 28), easing: 'steps(3, end)', fill: 'backwards' });
   };
-  mapTiles.forEach(drawTile);
+  mapTiles.forEach(t => { if (t.kind !== 'boss') drawTile(t); });
+  // r702: the review row holds the two named managers side by side, each with
+  // what unlocks it; once neither can be unlocked, the hidden third alone.
+  const revs = document.createElement('div');
+  revs.className = 'mtm-reviews';
+  revs.style.gridRow = String(MAP_SETS + 1);
+  const showHidden = mapBossShowHidden();
+  const shown = mapBossTiles().filter(t => showHidden ? t.hidden : !t.hidden);
+  shown.forEach(t => {
+    const legalT = legalIds.has(t.id);
+    const open = mapBossUnlocked(t), reach = mapBossReachable(t);
+    const box = t.visited ? 'x' : mapSelected === t.id ? '>' : (open || t.hidden) ? ' ' : reach ? ' ' : '-';
+    const p = (t.hidden && !t.visited) ? null : mapBossPreset(t);
+    const div = document.createElement('div');
+    div.className = 'map-tile mk-boss mt-review'
+      + (t.visited ? ' mt-visited' : '')
+      + (legalT ? ' mt-legal' : '')
+      + (mapSelected === t.id ? ' mt-selected' : '')
+      + (!t.hidden && !open && !t.visited ? (reach ? ' mt-locked' : ' mt-missed') : '')
+      + (t.hidden ? ' mt-hidden' : '');
+    div.innerHTML =
+      `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${MAP_KIND_META.boss.icon}</span>`
+      + `<span class="mt-name">${p ? p.name : '???'}</span></span>`
+      + `<span class="mt-cond">${mapBossCondShort(t)}</span>`;
+    div.title = 'Manager Review - ' + mapTileDesc(t, legalIds);
+    div.onclick = () => mapTileTap(t);
+    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+    div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
+    revs.appendChild(div);
+    if (animateIn) div.animate([{ opacity: 0 }, { opacity: 1 }],
+      { duration: 140, delay: MAP_SETS * 90, easing: 'steps(3, end)', fill: 'backwards' });
+  });
+  list.appendChild(revs);
 
   // The toolbar: built empty here, filled by mapRenderBar (which every caller runs next).
   const bar = document.createElement('div');
   bar.id = 'map-bar';
   term.appendChild(bar);
   gridEl.appendChild(term);
-  // A list taller than its box scrolls; the slot you are in is kept in view.
-  const nowRow = list.querySelector('.mtm-row.now');
-  if (nowRow && list.scrollHeight > list.clientHeight + 1) {
-    const top = nowRow.offsetTop - Math.max(0, (list.clientHeight - nowRow.offsetHeight) / 2);
-    list.scrollTop = Math.max(0, top);
-  }
+  mapListScrollSync();
   if (animateIn) term.animate([{ clipPath: 'inset(50% 0 50% 0)' }, { clipPath: 'inset(0 0 0 0)' }],
     { duration: 220, easing: 'ease-out', fill: 'backwards' });
 
@@ -1046,6 +1162,19 @@ function mapRender(animateIn) {
   if (typeof mapLegendReplace === 'function') mapLegendReplace();
 }
 
+// A list taller than its box scrolls; the slot you are in is kept in view, and in
+// the last slot (or with the review armed) the reviews are what matters, so the end.
+// Run after the toolbar is filled too: the bar is a flex sibling, so the list only
+// overflows once the bar has its height.
+function mapListScrollSync() {
+  const list = document.querySelector('#grid .mtm-list');
+  const nowRow = list && list.querySelector('.mtm-row.now');
+  if (!list || list.scrollHeight <= list.clientHeight + 1) return;
+  const curSet = mapPos ? Math.min(mapPos.set, MAP_SETS) : 0;
+  const top = (curSet >= MAP_SETS - 1 || mapBossArmed || !nowRow) ? list.scrollHeight
+    : nowRow.offsetTop - Math.max(0, (list.clientHeight - nowRow.offsetHeight) / 2);
+  list.scrollTop = Math.max(0, top);
+}
 function mapTileTap(t) {
   const move = mapMoveFor(t.id);
   if (move && !move.doomed) {
@@ -1095,6 +1224,10 @@ const MAP_HELP_ONE = [
 ];
 function mapHelpRows() {
   const rows = (mapSlotCap() < 2 ? MAP_HELP_ONE : mapPickRule() ? MAP_HELP_PICK : MAP_HELP).slice();
+  // r702: the two reviews.
+  rows.push(['Two reviews', mapBossRule() === 'lanes'
+    ? `Each review unlocks at ${MAP_BOSS_NEED.lanes} bookings in its two lanes. Neither unlocked: a random manager.`
+    : `One review unlocks at ${MAP_BOSS_NEED.kinds} rounds booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. Neither: a random manager.`]);
   const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
   if (d) rows.unshift(d);
   return rows;
@@ -1176,6 +1309,7 @@ function mapRenderBar() {
   // The x/y selection readout hides on the map (r255), and nothing else repaints
   // it while the map is up - the class goes on without a render behind it.
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
+  mapListScrollSync();
 }
 
 // The command line names the obligation you are about to clock in on (owner,
@@ -1228,7 +1362,8 @@ function mapBarInfo(t, move) {
     }
   } else if (t.visited) s += ' <i>done</i>';
   else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
-  else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
+  else if (t.kind === 'boss') { if (t.slot && !mapBossUnlocked(t) && !t.hidden) s += ' <i>locked</i>'; }
+  else s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
 
@@ -1437,6 +1572,9 @@ function mapConfirm() {
       return;
     }
     case 'boss':
+      // r702: the review you booked is the one you face (takeActBoss hands it over).
+      if (t.presetId && typeof actBossId !== 'undefined' && (t.slot !== 'a' || !actBossId)) actBossId = t.presetId;
+      if (t.hidden) { const hp = mapBossPreset(t); if (hp) showMessage(`The review: ${hp.name}`, 'var(--gold)'); }
       mapBossArmed = true;
       nodeInAct = 5; updateActProgressUI?.();
       if (typeof bossesEnabled !== 'function' || bossesEnabled()) forceBossNextRound = true;
