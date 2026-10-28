@@ -1,4 +1,4 @@
-const BUILD = "2026-10-27 · r678 · the samey Schedule: six ideas and questions (docs only)";
+const BUILD = "2026-10-28 · r679 · the Schedule: two of a kind a slot, Q1 opener shapes, the tall 3x6 shape (dev), doors preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

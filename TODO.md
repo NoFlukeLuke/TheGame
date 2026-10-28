@@ -118,7 +118,15 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    (higher goal that grows faster); punished department columns, one more per tier.
 6. **The timesheet and a clean quarter** (idea 10). Needs a fuller spec.
 
+**Built r679:** the two-of-a-kind cap, Q1's three opener shapes, the tall 3 x 6 shape as a dev
+switch (owner: try both, decide after play). **Open from r679:** chunk 2's "5 bookings in a
+boss's two lanes" needs lanes and 8 bookings; under the tall shape the boss choice would have to
+read KINDS booked (3+ rounds unlocks one boss, 3+ non-rounds the other, neither the hidden one).
+
 **Parked:**
+- **Doors and floors** (owner, r679; after the itch build, wants an artist): each pick is three
+  DOORS on a floor of the office, a key shows the whole schedule, and the quarter rollover is a
+  lift ride up a floor (quarters renamed floors). Three looks in `doors-preview.html`.
 - **Extra Mile and elites** (idea 4), until the bosses are settled. Elites ("supervisor
   reviews") are a raised goal plus a mini-boss effect; Extra Mile is an opt-in challenge on a
   line. They must read as different things. See section 3 below for the mini-boss half.

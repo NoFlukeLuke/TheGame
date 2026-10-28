@@ -365,7 +365,7 @@ const INFO_TOPICS = [
   // Plain description only: what happens, in what order, and the numbers.
   { id: 'mode_map', group: 'modes', title: 'The Schedule',
     body: [
-      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of 4 obligations, then the manager review.`,
+      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review.`,
       'Every step activates the obligation you land on. You can take up to two obligations in a slot, if they are next to each other. Leaving a slot after one pays credits.',
       'Obligations: client accounts (rounds), priority accounts (hard rounds), the shop, incentive programs (reward grids), events and raise requests (Limit Break). Some are hidden until you arrive.',
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',

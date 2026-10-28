@@ -57,13 +57,43 @@
 // the shop's grid-borrow pattern (openShopGrid), and the interlude/finishInterlude
 // seams Guided already cut. The map is routing, not new machinery.
 
-const MAP_LANES = 4;
-const MAP_SETS  = 4;              // regular sets (r655: was 6); the boss row is index MAP_SETS
-const MAP_BOSS_SET = MAP_SETS;    // 4
+// r679 (owner): two shapes. WIDE is 4 lanes x 4 slots, two bookings a slot (r655 / r648).
+// TALL is 3 lanes x 6 slots, ONE booking a slot (dev -> Schedule, `lethe.map.layout`,
+// stored only when tall; takes effect on the next map). The three are written by
+// mapApplyLayout from the switch when a map is built, and from the saved tiles on a
+// restore (mapRepairShape), so they always describe the tiles on screen.
+let MAP_LANES = 4;
+let MAP_SETS  = 4;                // regular sets; the boss row is index MAP_SETS
+let MAP_BOSS_SET = MAP_SETS;
+const MAP_LAYOUT_KEY = 'lethe.map.layout';
+let mapLayoutTall = false;
+try { mapLayoutTall = localStorage.getItem(MAP_LAYOUT_KEY) === 'tall'; } catch (e) {}
+function setMapLayoutTall(on) {
+  mapLayoutTall = !!on;
+  try { if (on) localStorage.setItem(MAP_LAYOUT_KEY, 'tall'); else localStorage.removeItem(MAP_LAYOUT_KEY); } catch (e) {}
+}
+function mapApplyLayout(lanes, sets) {
+  MAP_LANES = lanes || (mapLayoutTall ? 3 : 4);
+  MAP_SETS = sets || (mapLayoutTall ? 6 : 4);
+  MAP_BOSS_SET = MAP_SETS;
+}
+// Bookings a slot holds: two on the wide shape, one on the tall one.
+function mapSlotCap() { return MAP_LANES <= 3 ? 1 : 2; }
+// The slots that must hold a round: every slot but the funnel on the wide shape;
+// slots 1, 3 and 5 on the tall one (owner).
+function mapLevelSets() {
+  const out = [];
+  for (let s = 0; s <= MAP_SETS - 2; s++) if (mapSlotCap() === 2 || s % 2 === 0) out.push(s);
+  return out;
+}
+// r679 (owner): a slot holds at most two of one kind.
+const MAP_KIND_CAP = 2;
 // The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
 const MAP_MINIMUMS = [['shop', 1], ['challenge', 1], ['event', 2], ['reward', 1]];
 // The day the to-do list prints down its left edge: one time per slot, then the review.
-const MAP_SLOT_TIMES = ['09:00', '11:00', '13:00', '15:00', '17:00'];
+const MAP_SLOT_TIMES_WIDE = ['09:00', '11:00', '13:00', '15:00', '17:00'];
+const MAP_SLOT_TIMES_TALL = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '17:30'];
+function mapSlotTimes() { return MAP_SETS > 4 ? MAP_SLOT_TIMES_TALL : MAP_SLOT_TIMES_WIDE; }
 const MAP_MAX_MYSTERY = 2;
 // Blanks are a ROLL, not a fixture: about half of maps carry two, the rest one
 // or none, so "is there a dead cell in my way" is a thing you read off the map
@@ -180,6 +210,7 @@ function mapResetBoard() {
   mapScreenOpen = false; mapSelected = null; mapLastWasChallenge = false;
   mapBossGoal = mapQuarterBossGoal();
   if (typeof mapDrawStrokes !== 'undefined') { mapDrawStrokes = []; mapPenOn = false; }
+  mapApplyLayout();
   if (mapActive()) mapGenerate();
 }
 
@@ -189,7 +220,11 @@ function mapResetBoard() {
 function mapRepairShape() {
   if (!mapActive() || !mapTiles.length) return;
   const boss = mapTiles.find(t => t.kind === 'boss');
-  if (boss && boss.set === MAP_BOSS_SET && !mapTiles.some(t => t.set > MAP_BOSS_SET)) return;
+  // r679: a saved map on either shape is kept as it is; its shape is read off its tiles.
+  if (boss && (boss.set === 4 || boss.set === 6) && !mapTiles.some(t => t.set > boss.set)) {
+    mapApplyLayout(mapTiles.reduce((n, t) => Math.max(n, t.lane + (t.cols || 1)), 0) || (boss.set === 6 ? 3 : 4), boss.set);
+    return;
+  }
   const skips = mapSkips;
   mapResetBoard();
   mapSkips = skips;
@@ -216,9 +251,13 @@ function mapCellTile(lane, set) {
   for (const t of mapTiles) {
     if (t.lane === lane && t.set === set) return t;
     if (t.span === 2 && t.lane === lane && t.set + 1 === set) return t;
+    // r679: a WIDE tile (cols 2 or the whole row) owns every lane it covers.
+    if (t.cols > 1 && t.set === set && lane > t.lane && lane < t.lane + t.cols) return t;
   }
   return null;
 }
+// Bookings a wide tile spends: a whole-row opener fills its slot, a 2-wide is one.
+function mapTileBookings(t) { return (t.cols || 1) >= MAP_LANES ? mapSlotCap() : 1; }
 function mapCellSolid(lane, set) {           // a real, steppable tile lives here
   const t = mapCellTile(lane, set);
   return !!t && t.kind !== 'blank';
@@ -362,17 +401,22 @@ function peekBossPresetSafe() {
 // guarantees, then test EVERY structural rule at once and re-roll the whole map
 // if any fails - the same validate-and-redeal shape tutorialQualifyBoard uses.
 function mapGenerate() {
+  // r679: Q1's opener shape is rolled ONCE here, so a shape the validator refuses
+  // more often (four separate rounds fail the 2x2 rule more) is not drawn less.
+  const q1 = (typeof actNumber !== 'number') || actNumber <= 1;
+  const shapes = mapSlotCap() === 2 ? ['lanes', 'row', 'pairs'] : ['lanes', 'row'];
+  const opener = q1 ? shapes[Math.floor(Math.random() * shapes.length)] : null;
   for (let attempt = 0; attempt < 80; attempt++) {
-    const tiles = _mapBuildOnce();
+    const tiles = _mapBuildOnce(opener);
     if (tiles && _mapValidate(tiles)) { mapTiles = tiles; return; }
   }
   // 80 straight failures means a rule is unsatisfiable - keep the last build
   // rather than an empty map, and say so in dev.
-  mapTiles = _mapBuildOnce() || [];
+  mapTiles = _mapBuildOnce(opener) || [];
   console.warn('[MAP] generation fell back past validation');
 }
 
-function _mapBuildOnce() {
+function _mapBuildOnce(opener) {
   _mapTileId = 0;
   const tiles = [];
   const put = (lane, set, kind, extra) => {
@@ -380,8 +424,12 @@ function _mapBuildOnce() {
     tiles.push(t); return t;
   };
 
-  // Set 1: all levels - the guaranteed clean start.
-  for (let l = 0; l < MAP_LANES; l++) put(l, 0, 'level');
+  // Slot 1 (r679, owner): in Q1 it is all rounds, in one of three shapes: a round
+  // a lane, one round across the whole row (one booking fills the slot), or two
+  // 2-wide rounds (wide shape only). Q2 on, slot 1 is a row like any other.
+  if (opener === 'row') put(0, 0, 'level', { cols: MAP_LANES });
+  else if (opener === 'pairs') { put(0, 0, 'level', { cols: 2 }); put(2, 0, 'level', { cols: 2 }); }
+  else if (opener === 'lanes') for (let l = 0; l < MAP_LANES; l++) put(l, 0, 'level');
 
   // The boss: one tile spanning every lane past the funnel.
   put(0, MAP_BOSS_SET, 'boss');
@@ -392,54 +440,65 @@ function _mapBuildOnce() {
   // was always two solid and two structural blanks, which made the last choice
   // before the boss the same shape every map and cost the set before it a
   // second visit whenever your lane's funnel cell was one of the holes.
-  const fsolid = mapRollFunnelSolid();
+  const fsolid = Math.min(MAP_LANES, mapRollFunnelSolid());
   const funnelKinds = _mapShuffle(['shop', 'reward', 'event', 'challenge', 'limitbreak']);
   // At two solid they sit on NON-ADJACENT lanes, which is the original funnel
   // shape: two options as far apart as the board allows.
+  const allLanes = Array.from({ length: MAP_LANES }, (_, i) => i);
   const flanes = fsolid === 2
-    ? [[0, 2], [0, 3], [1, 3]][Math.floor(Math.random() * 3)]
-    : _mapPickN([0, 1, 2, 3], fsolid);
+    ? (MAP_LANES === 3 ? [0, 2] : [[0, 2], [0, 3], [1, 3]][Math.floor(Math.random() * 3)])
+    : _mapPickN(allLanes, fsolid);
   for (let l = 0; l < MAP_LANES; l++) {
     const i = flanes.indexOf(l);
     if (i >= 0) put(l, MAP_SETS - 1, funnelKinds[i % funnelKinds.length]);
     else put(l, MAP_SETS - 1, 'blank');
   }
 
-  // Middle sets (1 .. MAP_SETS-2): 0-2 blanks in distinct sets, one level per
-  // set, minimums topped up, the rest drawn by weight. Fewer blanks FREES cells,
-  // so the minimums only ever get easier to satisfy.
+  // The open sets (slot 1 from Q2 on, and 2 .. MAP_SETS-1): 0-2 blanks in distinct
+  // middle sets, a level in every set mapLevelSets names, minimums topped up, the
+  // rest drawn by weight. Fewer blanks FREES cells, so the minimums only ever get
+  // easier to satisfy. r679: no slot takes more than MAP_KIND_CAP of one kind.
   const midSets = [];
-  for (let s = 1; s <= MAP_SETS - 2; s++) midSets.push(s);
-  const blankSets = _mapPickN(midSets, mapRollBlanks());
+  for (let s = (opener ? 1 : 0); s <= MAP_SETS - 2; s++) midSets.push(s);
+  const blankSets = _mapPickN(midSets.filter(s => s > 0), mapRollBlanks());
+  const levelSets = mapLevelSets();
   const free = [];   // [lane, set] cells still to fill
   midSets.forEach(s => {
-    const lanes = [0, 1, 2, 3];
+    const lanes = allLanes.slice();
     if (blankSets.includes(s)) {
       const bl = lanes.splice(Math.floor(Math.random() * lanes.length), 1)[0];
       put(bl, s, 'blank');
     }
-    const lv = lanes.splice(Math.floor(Math.random() * lanes.length), 1)[0];
-    put(lv, s, 'level');
+    if (levelSets.includes(s)) {
+      const lv = lanes.splice(Math.floor(Math.random() * lanes.length), 1)[0];
+      put(lv, s, 'level');
+    }
     lanes.forEach(l => free.push([l, s]));
   });
 
+  const inSet = (k, s) => tiles.filter(t => t.set === s && t.kind === k).length;
+  const roomFor = (k, s) => inSet(k, s) < MAP_KIND_CAP;
   // Top the minimums up, counting what the funnel already placed.
   const count = k => tiles.filter(t => t.kind === k).length;
   for (const [k, min] of MAP_MINIMUMS) {
     let missing = min - count(k);
     while (missing-- > 0 && free.length) {
-      const [l, s] = free.splice(Math.floor(Math.random() * free.length), 1)[0];
-      put(l, s, k);
+      const ok = free.filter(([, s]) => roomFor(k, s));
+      if (!ok.length) break;
+      const cell = ok[Math.floor(Math.random() * ok.length)];
+      free.splice(free.indexOf(cell), 1);
+      put(cell[0], cell[1], k);
     }
   }
   // The rest by weight. r673: the quarter's department makes its own kind likelier.
   const W = (typeof deptFillWeights === 'function') ? deptFillWeights(MAP_FILL_W) : MAP_FILL_W;
-  const wTotal = W.reduce((a, [, w]) => a + w, 0);
   while (free.length) {
     const [l, s] = free.pop();
+    const open = W.filter(([k]) => roomFor(k, s));
+    const wTotal = open.reduce((a, [, w]) => a + w, 0);
     let r = Math.random() * wTotal;
-    let kind = 'level';
-    for (const [k, w] of W) { r -= w; if (r <= 0) { kind = k; break; } }
+    let kind = open.length ? open[0][0] : 'level';
+    for (const [k, w] of open) { r -= w; if (r <= 0) { kind = k; break; } }
     put(l, s, kind);
   }
 
@@ -456,12 +515,13 @@ function _mapBuildOnce() {
   // level of its set (validation would catch it, but this keeps the retry rate
   // sane).
   if (Math.random() < 0.5) {
-    const heads = tiles.filter(t => t.kind === 'event' && !t.mystery && t.set >= 1 && t.set <= MAP_SETS - 3);
+    const heads = tiles.filter(t => t.kind === 'event' && !t.mystery && !t.cols && t.set >= 1 && t.set <= MAP_SETS - 3);
     _mapShuffle(heads);
     for (const h of heads) {
       const ahead = tiles.find(t => t.lane === h.lane && t.set === h.set + 1);
       if (!ahead || ahead.kind === 'blank' || ahead.mystery) continue;
-      if (ahead.kind === 'level'
+      if (ahead.cols > 1) continue;
+      if (ahead.kind === 'level' && levelSets.includes(ahead.set)
           && tiles.filter(t => t.set === ahead.set && t.kind === 'level').length < 2) continue;
       tiles.splice(tiles.indexOf(ahead), 1);
       h.span = 2;
@@ -514,12 +574,20 @@ function _mapValidate(tiles) {
   // shipped short of a minimum.
   const count = k => tiles.filter(t => t.kind === k).length;
   if (MAP_MINIMUMS.some(([k, min]) => count(k) < min)) return false;
-  for (let s = 1; s <= MAP_SETS - 2; s++)
+  for (const s of mapLevelSets())
     if (!tiles.some(t => t.set === s && t.kind === 'level')) return false;
+  // r679: at most MAP_KIND_CAP of one kind in a slot (a wide tile counts once).
+  for (let s = 0; s < MAP_SETS; s++) {
+    const inS = tiles.filter(t => t.set === s && t.kind !== 'blank');
+    if (s === 0 && inS.every(t => t.kind === 'level')) continue;   // Q1's all-rounds opener
+    const n = {};
+    for (const t of inS) { n[t.kind] = (n[t.kind] || 0) + 1; if (n[t.kind] > MAP_KIND_CAP) return false; }
+  }
   const kindAt = (l, s) => {
     for (const t of tiles) {
       if (t.lane === l && t.set === s) return t.kind;
       if (t.span === 2 && t.lane === l && t.set + 1 === s) return t.kind;
+      if (t.cols > 1 && t.set === s && l > t.lane && l < t.lane + t.cols) return t.kind;
     }
     return null;
   };
@@ -541,7 +609,10 @@ function _mapValidate(tiles) {
   // The boss must be reachable from EVERY set-1 start under the real movement
   // rules - this is the rule that makes strict orthogonality safe to ship.
   const saved = mapTiles; mapTiles = tiles;
-  const ok = [0, 1, 2, 3].every(l => mapCanFinishFrom(l, 0, 1));
+  // r679: the tall shape (one booking a slot) is validated under the pick rule only;
+  // the old walk cannot turn sideways there, so it would refuse every map with a blank.
+  const ok = mapSlotCap() === 1 ? mapPickCanFinish(0, {})
+    : Array.from({ length: MAP_LANES }, (_, l) => l).every(l => mapCanFinishFrom(l, 0, 1)) && mapPickCanFinish(0, {});
   mapTiles = saved;
   return ok;
 }
@@ -570,7 +641,7 @@ function mapCanFinishFrom(lane, set, visits) {
     return mapCanFinishFrom(l, set + 1, 1);
   };
   if (fwd(lane)) return true;
-  if (visits < 2) {
+  if (visits < mapSlotCap()) {
     for (const dl of [-1, 1]) {
       const nl = lane + dl;
       const nt = mapCellTile(nl, set);
@@ -628,7 +699,9 @@ function mapLegalMoves() {
   // measured at 86 strands in 4,000 walks - free branching adds ORIGINS, and
   // making it also add risk is not the trade. Stricter than necessary is the
   // right side to err on when the cost is a lost run.
-  const canFinishAfter = (t, after) => mapCanFinishFrom(after.lane, after.set, after.visits);
+  // r679: under the pick rule the start is judged by the pick rule's own DP (the
+  // walk's DP read a whole-row opener as "lane 0 only" and called it doomed).
+  const canFinishAfter = (t, after) => mapPickRule() ? mapPickCanFinish(after.set, {}) : mapCanFinishFrom(after.lane, after.set, after.visits);
   const consider = (t, after, from) => {
     if (!t || t.visited || t.kind === 'blank') return;
     if (t.kind !== 'boss' && !canFinishAfter(t, after)) { push({ tile: t, from, doomed: true }); return; }
@@ -637,11 +710,17 @@ function mapLegalMoves() {
   if (!mapPos) {
     // Off-map: any solid tile in set 1.
     mapTiles.filter(t => t.set === 0 && t.kind !== 'blank' && !t.visited)
-      .forEach(t => consider(t, { lane: t.lane, set: t.span === 2 ? 1 : 0, visits: 1 }, null));
+      .forEach(t => consider(t, { lane: t.lane, set: t.span === 2 ? 1 : 0, visits: mapTileBookings(t) }, null));
     return out;
   }
   if (mapPickRule()) { mapPickMoves(push); return out; }
+  const origins = [];
   for (const o of mapOrigins()) {
+    const w = mapCellTile(o.lane, o.set);
+    if (w && w.cols > 1 && w.set === o.set) for (let l = w.lane; l < w.lane + w.cols; l++) origins.push({ lane: l, set: o.set });
+    else origins.push(o);
+  }
+  for (const o of origins) {
     const { lane, set } = o;
     const visits = mapFreeBranchOn() ? mapVisitsInSet(set) : mapVisits;
     const from = { lane, set, visits };
@@ -653,7 +732,7 @@ function mapLegalMoves() {
     // answers TRUE for every funnel cell already, because the review is
     // reachable from all four lanes.
     if (set === MAP_SETS - 1) {
-      if (visits < 2) {
+      if (visits < mapSlotCap()) {
         for (const dl of [-1, 1]) {
           const t = mapCellTile(lane + dl, set);
           if (t && t.set === set) consider(t, { lane: t.lane, set, visits: visits + 1 }, from);
@@ -664,7 +743,7 @@ function mapLegalMoves() {
       continue;
     }
     // Vertical, while the set has room.
-    if (visits < 2) {
+    if (visits < mapSlotCap()) {
       for (const dl of [-1, 1]) {
         const t = mapCellTile(lane + dl, set);
         if (t && t.set === set)  // a 2x1 tail cell is set+1's business, not this set's
@@ -700,16 +779,16 @@ function mapPickMoves(push) {
     push({ tile: t, after, from });
   };
   const tilesOf = s => mapTiles.filter(t => t.set === s && t.kind !== 'boss');
-  if (mapVisits < 2) tilesOf(set).forEach(t => add(t, t.span === 2
+  if (mapVisits < mapSlotCap()) tilesOf(set).forEach(t => add(t, t.span === 2
     ? { lane: t.lane, set: set + 1, visits: 1 }
-    : { lane: t.lane, set, visits: mapVisits + 1 }));
+    : { lane: t.lane, set, visits: mapVisits + mapTileBookings(t) }));
   if (set >= MAP_SETS - 1) {
     const boss = mapTiles.find(t => t.kind === 'boss');
     if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
   } else {
     tilesOf(set + 1).forEach(t => add(t, t.span === 2
       ? { lane: t.lane, set: set + 2, visits: 1 }
-      : { lane: t.lane, set: set + 1, visits: 1 }));
+      : { lane: t.lane, set: set + 1, visits: mapTileBookings(t) }));
   }
 }
 // Can the boss be reached from `set` under the pick rule? Some solid tile of the
@@ -810,6 +889,10 @@ function mapRender(animateIn) {
   term.className = 'map-term' + (mapLandscape ? ' mtm-land' : ' mtm-port');
   const list = document.createElement('div');
   list.className = 'mtm-list';
+  // r679: the list's shape is the map's (3 x 6 or 4 x 4). Rows never go under
+  // --ml-min; when they would, the list scrolls (overflow-y, css/map-mode.css).
+  list.style.setProperty('--ml-lanes', String(MAP_LANES));
+  list.style.setProperty('--ml-sets', String(MAP_SETS));
   term.appendChild(list);
   for (let s = 0; s <= MAP_SETS; s++) {
     const isReview = s === MAP_SETS;
@@ -820,8 +903,8 @@ function mapRender(animateIn) {
     const time = document.createElement('div');
     time.className = 'mtm-time' + (s === curSet ? ' now' : '');
     time.style.gridRow = String(s + 1);
-    const booked = (s === curSet && mapPos && !isReview) ? `<i>${mapVisits}/2</i>` : '';
-    time.innerHTML = `<b>${MAP_SLOT_TIMES[s] || ''}</b><span>${isReview ? 'REVIEW' : 'SLOT ' + (s + 1)}</span>${booked}`;
+    const booked = (s === curSet && mapPos && !isReview && mapSlotCap() > 1) ? `<i>${mapVisits}/${mapSlotCap()}</i>` : '';
+    time.innerHTML = `<b>${mapSlotTimes()[s] || ''}</b><span>${isReview ? 'REVIEW' : 'SLOT ' + (s + 1)}</span>${booked}`;
     list.appendChild(time);
   }
 
@@ -839,9 +922,10 @@ function mapRender(animateIn) {
       + (missed ? ' mt-missed' : '')
       + (mapSelected === t.id ? ' mt-selected' : '')
       + (mapPosTileId === t.id ? ' mt-here' : '')
-      + (t.span === 2 ? ' mt-span' : '');
+      + (t.span === 2 ? ' mt-span' : '')
+      + (t.cols > 1 ? ((t.cols >= MAP_LANES) ? ' mt-wide' : ' mt-pair') : '');
     div.style.gridRow = (t.set + 1) + (t.span === 2 ? ' / span 2' : '');
-    div.style.gridColumn = isBoss ? '2 / -1' : String(t.lane + 2);
+    div.style.gridColumn = isBoss ? '2 / -1' : (t.lane + 2) + (t.cols > 1 ? ' / span ' + t.cols : '');
     const hidden = t.mystery && !t.revealed;
     // An event's line is its own name; every other line is its kind's word.
     const isEv = t.kind === 'event' && t.eventName && !hidden;
@@ -878,6 +962,12 @@ function mapRender(animateIn) {
   bar.id = 'map-bar';
   term.appendChild(bar);
   gridEl.appendChild(term);
+  // A list taller than its box scrolls; the slot you are in is kept in view.
+  const nowRow = list.querySelector('.mtm-row.now');
+  if (nowRow && list.scrollHeight > list.clientHeight + 1) {
+    const top = nowRow.offsetTop - Math.max(0, (list.clientHeight - nowRow.offsetHeight) / 2);
+    list.scrollTop = Math.max(0, top);
+  }
   if (animateIn) term.animate([{ clipPath: 'inset(50% 0 50% 0)' }, { clipPath: 'inset(0 0 0 0)' }],
     { duration: 220, easing: 'ease-out', fill: 'backwards' });
 
@@ -931,8 +1021,14 @@ const MAP_HELP_PICK = [
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there.'],
 ];
+// r679: the tall shape's card, one booking a slot.
+const MAP_HELP_ONE = [
+  ['Pick', 'Take any lit obligation in this time slot. Everything you take happens.'],
+  ['One a slot', 'Book one obligation in each slot, then the next slot opens.'],
+  ['Blocked out', 'Nothing scheduled there.'],
+];
 function mapHelpRows() {
-  const rows = (mapPickRule() ? MAP_HELP_PICK : MAP_HELP).slice();
+  const rows = (mapSlotCap() < 2 ? MAP_HELP_ONE : mapPickRule() ? MAP_HELP_PICK : MAP_HELP).slice();
   const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
   if (d) rows.unshift(d);
   return rows;
@@ -950,7 +1046,7 @@ function mapRenderBar() {
   const crunch = (typeof crunchActive === 'function') && crunchActive();
   // Every slot books two, the last one included (r293) - so the cap is flat.
   const visits = mapBossArmed ? 'REVIEW NEXT'
-    : `BOOKED ${mapPos ? (mapFreeBranchOn() ? mapVisitsInSet(mapPos.set) : mapVisits) : 0}/2${mapFreeBranchOn() ? ' FREE' : ''}`;
+    : `BOOKED ${mapPos ? (mapFreeBranchOn() ? mapVisitsInSet(mapPos.set) : mapVisits) : 0}/${mapSlotCap()}${mapFreeBranchOn() ? ' FREE' : ''}`;
   const pips = Array.from({ length: MAP_SETS }, (_, i) =>
     `<i class="${i < done ? 'on' : i === done && !mapBossArmed ? 'cur' : ''}"></i>`).join('');
   const inked = (typeof mapHasInk === 'function') && mapHasInk();
@@ -970,7 +1066,7 @@ function mapRenderBar() {
       `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
       `<span class="mb-pips">${pips}</span>` +
       `<span class="mb-visits">${visits}</span>` +
-      (crunch ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays ${mapSkipSay()}">LEAVE EARLY ${mapSkipShort()}</span>`) +
+      (crunch || mapSlotCap() < 2 ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays ${mapSkipSay()}">LEAVE EARLY ${mapSkipShort()}</span>`) +
     `</div>` +
     `<div class="mb-l2">` +
       `<span class="mb-cmd" id="mb-cmd"></span>` +
@@ -1041,6 +1137,7 @@ function mapBarInfo(t, move) {
   if (!el) return;
   if (!t) {
     el.innerHTML = mapPenOn ? 'Drag on the schedule to draw.'
+      : mapSlotCap() < 2 ? 'Book one in each slot. Everything you book happens.'
       : mapPickRule() ? 'Book any two in a slot, in any order. Everything you book happens.'
       : 'Move up, down or forward. Everything you book happens.';
     return;
@@ -1050,10 +1147,11 @@ function mapBarInfo(t, move) {
     // Crunch pays nothing for a skip (js/crunch-mode.js), so it must not be
     // advertised here either - a bar promising credits the confirm will not pay
     // is worse than saying nothing.
-    if (move.from && move.after.set > move.from.set && move.from.visits === 1
+    if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()
         && !(typeof crunchActive === 'function' && crunchActive()))
       s += ` <i>leaving now pays ${mapSkipSay()}</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
+    if ((t.cols || 1) >= MAP_LANES && mapSlotCap() > 1) s += ` <i>fills the slot</i>`;
     // Crunch prices the booking. The fee is the decision in that mode, so it is
     // read off the board rather than discovered after confirming.
     if (typeof crunchActive === 'function' && crunchActive()) {
@@ -1233,7 +1331,7 @@ function mapConfirm() {
   // In Crunch the skip pays nothing at all: moving on early already saves you
   // the obligation's time fee, which is the whole currency of that mode, and
   // paying credits as well would reward the same decision twice.
-  if (move.from && move.after.set > move.from.set && move.from.visits === 1
+  if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
     // r673 (owner): the department's Standard reward, first tier (CHALLENGE_REWARDS.md),

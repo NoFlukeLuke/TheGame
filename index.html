@@ -956,6 +956,11 @@
       <input id="dev-map-adjacent" type="checkbox" onchange="setMapAdjacentRule(this.checked)" style="accent-color:var(--gold);">
       Adjacent moves (old rule)
     </label>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Tall shape (r679): six slots of three, one booking a slot, rounds guaranteed in slots 1, 3 and 5. Takes effect on the next schedule.</div>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
+      <input id="dev-map-tall" type="checkbox" onchange="setMapLayoutTall(this.checked)" style="accent-color:var(--gold);">
+      Six slots of three, one booking a slot
+    </label>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch (old rule only): move out from ANY tile you have already taken, not only the one you are standing on.</div>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
       <input id="dev-map-freebranch" type="checkbox" onchange="setMapFreeBranch(this.checked)" style="accent-color:var(--gold);">

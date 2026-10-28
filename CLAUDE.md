@@ -2988,3 +2988,38 @@ with the notice and no drift. Prime: one Trick 0 -> 2, then all +1, the reverse 
 0 -> 3 buffed deck cards, the reverse took all 3 back; the picker chose 3 by click and buffed them;
 in Flow the chain ran Tricks then the card pick, and the next level started. No page errors.
 
+
+## r679 - the Schedule: two of a kind a slot, Q1's opener shapes, the tall shape, doors preview (owner)
+- **A slot holds at most two of one kind** (`MAP_KIND_CAP`, js/map-mode.js): the fill draws a cell
+  only from kinds with room in its slot (the minimums' top-up too) and the validator refuses the
+  rest. Q1's all-rounds opener is exempt. A faint wash of each item's own colour sits on every tile
+  (css/map-mode.css, 7% at rest, 11% lit, 18% hovered).
+- **Q1's first slot is one of three shapes**, rolled once per `mapGenerate` so the validator's
+  refusals do not skew them: a round a lane (as before), one round across the WHOLE row
+  (`cols: MAP_LANES`, one booking that fills the slot: `mapTileBookings`), or two 2-wide rounds
+  (`cols: 2`, a booking each; wide shape only). From Q2 on slot 1 is a row like any other, with a
+  round guaranteed. `mapCellTile` owns every lane a wide tile covers; a whole-row tile draws as a
+  bar (`.mt-wide`), a half-row one keeps the item layout (`.mt-pair`). The old walk's origin on a
+  wide tile offers forward from every lane it covers.
+- **The tall shape** (dev -> Schedule -> "Six slots of three, one booking a slot",
+  `lethe.map.layout` = 'tall', stored only when on, next map): 3 lanes x 6 slots, ONE booking a
+  slot (`mapSlotCap()`), rounds guaranteed in slots 1, 3 and 5 (`mapLevelSets()`), no leave-early
+  pay (nothing is left behind in a slot), its own help card (`MAP_HELP_ONE`) and times
+  (`MAP_SLOT_TIMES_TALL`). `MAP_LANES` / `MAP_SETS` / `MAP_BOSS_SET` are `let`s written by
+  `mapApplyLayout` at every map build and, on a restore, read off the saved tiles
+  (`mapRepairShape`), so a save on either shape resumes as it was. The tall shape is validated
+  under the pick rule's DP only (the old walk cannot turn sideways with one booking a slot). The
+  list's rows never go under `--ml-min` (52px); a list taller than its box scrolls (`.mtm-list`
+  overflow-y) with the slot you are in kept in view. The pen's ink does not scroll with it.
+- **The pick rule's start is judged by its own DP** (`mapPickCanFinish` in `mapLegalMoves`'s
+  off-map branch; the walk's DP read a whole-row opener as lane 0 only and called it doomed).
+- **`doors-preview.html`** (standalone, no game scripts): three looks for the owner's "the next
+  three stops are doors on a floor of the office" idea (THREE DOORS, CORRIDOR, DIRECTORY with a
+  lift ride up a floor). Parked until after the itch build and an artist (TODO.md section 1).
+Measured in headless Chromium at 1440x820 and 420x900: 1,000 maps a shape, 0 validation
+fallbacks, 0 strands over random pick-rule walks, 0 slots over the cap outside Q1's opener,
+every required slot holding a round; wide openers 36 / 31 / 34% lanes / row / pairs, tall 48 /
+52; a random walk books 5.7 (wide) / 5.9 (tall) a quarter, 2.9 / 2.8 of them rounds. By real
+click: the whole-row opener booked 2/2 and the round dealt 16 cards on a 4x4; a half-row round
+1/2; the tall shape 1/1 on desktop and phone. Tall desktop list 366px in a 278px box (scrolls);
+the phone's 366 in 332. No page errors.

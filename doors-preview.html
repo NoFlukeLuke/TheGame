@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doors preview</title>
+<!-- r679: a LOOK preview for the owner, nothing is wired to the game. Three ways the
+     Schedule could show the next three stops as DOORS on a floor of the office,
+     and a lift ride up a floor between quarters. Standalone: no game script loads. -->
+<style>
+@font-face { font-family: 'VT323 Local'; src: url('fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
+:root {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  --lv: #94ecb0; --ch: #ff7656; --au: #ff8fb8; --sh: #ffe066; --rw: #a4c6ff; --ev: #d6a8ff; --li: #82dccb; --my: #fff1d8; --bo: #ff5c5c;
+}
+html, body { margin: 0; background: #1b1915; color: #ddd; font-family: 'VT323 Local', 'VT323', monospace; }
+body { padding: 18px; }
+h1 { font-size: 22px; font-weight: normal; margin: 0 0 4px; letter-spacing: 1px; color: #e8dcc0; }
+p.note { margin: 0 0 14px; font-size: 16px; color: #a89c84; max-width: 980px; }
+.bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.bar button, .screen button {
+  font: inherit; font-size: 16px; letter-spacing: 1px; padding: 5px 12px 4px; border-radius: 3px;
+  color: var(--am-ink); background: var(--am); border: 1px solid var(--am-hi); cursor: pointer;
+}
+.bar button.ghost, .screen button.ghost { color: var(--am); background: transparent; border-color: var(--am-dim); }
+.bar button.on { box-shadow: 0 0 0 2px #fff6; }
+.wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.card { background: #26231e; border: 1px solid #3a362e; border-radius: 6px; padding: 10px; }
+.card h2 { margin: 0 0 6px; font-size: 18px; font-weight: normal; color: #e8dcc0; letter-spacing: 1px; }
+.card p { margin: 0 0 8px; font-size: 14px; color: #a89c84; min-height: 54px; }
+
+/* the board's amber glass, 322 x 367 like the desktop box */
+.screen {
+  position: relative; width: 322px; height: 367px; margin: 0 auto; box-sizing: border-box; overflow: hidden;
+  border-radius: 6px; padding: 8px;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(76,107,47,.24);
+  color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.5); font-size: 15px; line-height: 1.1;
+}
+.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 9; background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; }
+.head { display: flex; justify-content: space-between; align-items: baseline; color: var(--am-hi); font-size: 16px; letter-spacing: .5px; margin-bottom: 6px; }
+.head small { color: var(--am-dim); font-size: 13px; }
+.cur { display: inline-block; width: .5em; height: 1em; background: var(--am); vertical-align: -0.1em; margin-left: 2px; animation: blink 1.06s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.foot { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 13px; color: var(--am-dim); }
+.foot button { font-size: 13px; padding: 3px 8px 2px; }
+.door { --c: var(--am); color: var(--c); cursor: pointer; }
+.door.lv { --c: var(--lv); } .door.ch { --c: var(--ch); } .door.au { --c: var(--au); } .door.sh { --c: var(--sh); } .door.rw { --c: var(--rw); } .door.ev { --c: var(--ev); } .door.li { --c: var(--li); } .door.my { --c: var(--my); }
+.door .word { text-transform: uppercase; letter-spacing: .5px; }
+.door .stake { color: var(--am-hi); font-size: 13px; }
+.door.picked { filter: brightness(1.25); }
+
+/* A. THREE DOORS: box-drawing frames side by side */
+.a-doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; height: 270px; }
+.a-door { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 8px 6px 10px; border: 2px solid color-mix(in srgb, var(--c) 55%, transparent); border-bottom-width: 4px; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--c) 8%, transparent); box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 7px color-mix(in srgb, var(--c) 10%, transparent); }
+.a-door::before { content: attr(data-n); position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 14px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 60%, transparent); padding: 1px 6px 0; }
+.a-door .knob { position: absolute; right: 9px; top: 52%; width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.a-door .glyph { font-size: 36px; line-height: 1; margin-bottom: 8px; }
+.a-door .word { font-size: 14px; text-align: center; }
+.a-door.picked { background: color-mix(in srgb, var(--c) 22%, transparent); box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 7px color-mix(in srgb, var(--c) 30%, transparent), 0 0 12px -2px var(--c); }
+.a-doors.open .a-door.picked { animation: swing .55s ease-in forwards; transform-origin: left center; }
+@keyframes swing { to { transform: perspective(300px) rotateY(-70deg); opacity: .4; } }
+
+/* B. CORRIDOR: one door ahead, two angled */
+.b-hall { position: relative; height: 270px; perspective: 420px; overflow: hidden; }
+.b-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 46%; background: repeating-linear-gradient(90deg, #0000 0 18px, color-mix(in srgb, var(--am) 14%, transparent) 18px 19px), linear-gradient(#0000, color-mix(in srgb, var(--am) 10%, transparent)); transform: perspective(300px) rotateX(55deg); transform-origin: bottom; }
+.b-door { position: absolute; bottom: 36%; width: 92px; height: 150px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; padding: 8px 4px 10px; border: 2px solid color-mix(in srgb, var(--c) 60%, transparent); border-radius: 6px 6px 0 0; background: linear-gradient(color-mix(in srgb, var(--c) 6%, #0a0d06), color-mix(in srgb, var(--c) 14%, #0a0d06)); }
+.b-door .glyph { font-size: 30px; line-height: 1; }
+.b-door .word { font-size: 13px; text-align: center; }
+.b-door .plate { position: absolute; top: 6px; font-size: 12px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 60%, transparent); padding: 1px 5px 0; }
+.b-door .knob { position: absolute; right: 8px; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.b-l { left: 10px; transform: rotateY(42deg) scale(.92); transform-origin: right center; }
+.b-m { left: 50%; transform: translateX(-50%) scale(1.06); bottom: 34%; }
+.b-r { right: 10px; transform: rotateY(-42deg) scale(.92); transform-origin: left center; }
+.b-door.picked { box-shadow: 0 0 14px -2px var(--c), inset 0 0 0 1px var(--c); }
+.b-sign { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-size: 13px; color: var(--am-dim); letter-spacing: 2px; }
+
+/* C. DIRECTORY: a floor's nameplates and the lift indicator */
+.c-dir { display: flex; flex-direction: column; gap: 6px; height: 270px; }
+.c-lift { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--am-dim); border: 1px solid var(--am-dim); padding: 4px 8px; }
+.c-lift .n { color: var(--am-hi); font-size: 22px; min-width: 2ch; text-align: center; }
+.c-lift .arrow { color: var(--lv); font-size: 18px; opacity: .3; }
+.c-lift.going .arrow { opacity: 1; animation: up .6s ease-in-out infinite; }
+@keyframes up { 50% { transform: translateY(-3px); } }
+.c-lift .dots { margin-left: auto; letter-spacing: 3px; }
+.c-plate { flex: 1; display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 8px; padding: 0 8px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); border-left: 6px solid color-mix(in srgb, var(--c) 70%, transparent); background: color-mix(in srgb, var(--c) 7%, transparent); }
+.c-plate .room { font-size: 20px; color: var(--c); }
+.c-plate .glyph { font-size: 22px; }
+.c-plate .word { font-size: 15px; }
+.c-plate .stake { text-align: right; }
+.c-plate .who { font-size: 12px; color: var(--am-dim); }
+.c-plate.picked { background: color-mix(in srgb, var(--c) 20%, transparent); box-shadow: 0 0 10px -2px var(--c); }
+/* the lift ride: the whole directory slides down out of view and a new floor's slides in from above */
+.c-dir.ride .c-plate { animation: drop .9s cubic-bezier(.5,0,.8,.4) forwards; }
+@keyframes drop { to { transform: translateY(260px); opacity: 0; } }
+.c-dir.arrive .c-plate { animation: land .7s cubic-bezier(.2,.7,.3,1) backwards; }
+@keyframes land { from { transform: translateY(-260px); opacity: 0; } }
+
+/* the whole-schedule overlay any look opens from its VIEW SCHEDULE key */
+.sched { position: absolute; inset: 8px; z-index: 8; background: #0a0d06ee; border: 1px solid var(--am-dim); padding: 8px; display: none; font-size: 13px; color: var(--am-dim); }
+.sched.show { display: block; }
+.sched b { color: var(--am-hi); font-weight: normal; display: block; margin-bottom: 4px; font-size: 15px; }
+.sched .row { display: grid; grid-template-columns: 40px repeat(3, 1fr); gap: 4px; margin-bottom: 4px; }
+.sched .row i { font-style: normal; border: 1px solid #333; padding: 2px 4px; color: var(--am); }
+.sched .row i.now { border-color: var(--am); color: var(--am-hi); }
+.sched .row i.done { opacity: .4; text-decoration: line-through; }
+</style>
+</head>
+<body>
+<h1>DOORS: three looks for "the next three stops on this floor"</h1>
+<p class="note">A look only, nothing is wired. Each screen is the board's box at desktop size. Tap a door to pick it, OPEN to walk through, VIEW SCHEDULE for the whole floor, and UP A FLOOR for the lift ride between quarters. Floors stand in for quarters here (FLOOR 2 = Q2); the game's numbers are placeholders.</p>
+<div class="bar">
+  <button class="ghost" onclick="reroll()">REROLL THE DOORS</button>
+  <span style="color:#a89c84;font-size:14px;">Every look reads the same three stops.</span>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h2>A · THREE DOORS</h2>
+    <p>Three door frames side by side, numbered like rooms. The picked door is lit; OPEN swings it. The plainest read: it is the to-do list's row of three, drawn as doors.</p>
+    <div class="screen" id="sa">
+      <div class="head"><span>&gt; FLOOR <span class="fl">2</span> · PICK A DOOR<span class="cur"></span></span><small>3 DOORS</small></div>
+      <div class="a-doors" id="a-doors"></div>
+      <div class="foot"><button class="ghost" onclick="toggleSched('sa')">VIEW SCHEDULE</button><span id="a-info">pick a door</span><button onclick="openA()">OPEN</button></div>
+      <div class="sched" id="sa-sched"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>B · CORRIDOR</h2>
+    <p>You stand in the hall: one door ahead, one each side, angled. The floor is a drawn grid. Reads as a place rather than a list, and would take real art best.</p>
+    <div class="screen" id="sb">
+      <div class="head"><span>&gt; FLOOR <span class="fl">2</span> · THE HALL<span class="cur"></span></span><small>3 DOORS</small></div>
+      <div class="b-hall" id="b-hall"><div class="b-floor"></div><div class="b-sign">·  ·  ·</div></div>
+      <div class="foot"><button class="ghost" onclick="toggleSched('sb')">VIEW SCHEDULE</button><span id="b-info">pick a door</span><button onclick="pickInfo('b')">OPEN</button></div>
+      <div class="sched" id="sb-sched"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>C · DIRECTORY</h2>
+    <p>The building directory by the lift: this floor's three rooms as nameplates, the lift indicator on top. UP A FLOOR rides the lift: the plates drop away and the next floor's land. The cheapest to build, since it is the to-do list again.</p>
+    <div class="screen" id="sc">
+      <div class="head"><span>&gt; FLOOR <span class="fl">2</span> · DIRECTORY<span class="cur"></span></span><small>3 ROOMS</small></div>
+      <div class="c-dir" id="c-dir">
+        <div class="c-lift" id="c-lift"><span class="arrow">▲</span><span>LIFT</span><span class="n" id="c-n">2</span><span class="dots">· · · ·</span></div>
+      </div>
+      <div class="foot"><button class="ghost" onclick="toggleSched('sc')">VIEW SCHEDULE</button><button class="ghost" onclick="rideUp()">UP A FLOOR</button><button onclick="pickInfo('c')">OPEN</button></div>
+      <div class="sched" id="sc-sched"></div>
+    </div>
+  </div>
+</div>
+<script>
+const KINDS = [
+  { k: 'lv', g: '▶︎', w: 'Account',   s: 'GOAL 2,000' },
+  { k: 'ch', g: '▷', w: 'Priority',  s: 'GOAL 3,000' },
+  { k: 'au', g: '⚑︎', w: 'Audit',     s: 'GOAL 2,000 +3 CARDS' },
+  { k: 'sh', g: '$',      w: 'Mart',      s: '◆ 34' },
+  { k: 'rw', g: '▦', w: 'Incentive', s: 'PATH OF 3' },
+  { k: 'ev', g: '✧', w: 'Event',     s: '' },
+  { k: 'li', g: '▲', w: 'Raise',     s: '+1 LIMIT' },
+  { k: 'my', g: '?',      w: '???',       s: '' },
+];
+let floor = 2, doors = [], picked = -1;
+function roll() {
+  const a = KINDS.slice().sort(() => Math.random() - .5);
+  doors = [a[0], a[1], a[2]];
+  if (!doors.some(d => d.k === 'lv')) doors[Math.floor(Math.random() * 3)] = KINDS[0];
+  picked = -1;
+}
+function roomNo(i) { return floor * 100 + i + 1; }
+function draw() {
+  const A = document.getElementById('a-doors'); A.className = 'a-doors'; A.innerHTML = doors.map((d, i) =>
+    `<div class="door a-door ${d.k}${picked === i ? ' picked' : ''}" data-n="${roomNo(i)}" onclick="pick(${i})"><span class="knob"></span><span class="glyph">${d.g}</span><span class="word">${d.w}</span><span class="stake">${d.s}</span></div>`).join('');
+  const B = document.getElementById('b-hall'); B.querySelectorAll('.b-door').forEach(e => e.remove());
+  ['b-l', 'b-m', 'b-r'].forEach((c, i) => { const d = doors[i]; const e = document.createElement('div');
+    e.className = `door b-door ${c} ${d.k}${picked === i ? ' picked' : ''}`; e.onclick = () => pick(i);
+    e.innerHTML = `<span class="plate">${roomNo(i)}</span><span class="knob"></span><span class="glyph">${d.g}</span><span class="word">${d.w}</span><span class="stake">${d.s}</span>`; B.appendChild(e); });
+  const C = document.getElementById('c-dir'); C.querySelectorAll('.c-plate').forEach(e => e.remove());
+  doors.forEach((d, i) => { const e = document.createElement('div'); e.className = `door c-plate ${d.k}${picked === i ? ' picked' : ''}`; e.onclick = () => pick(i);
+    e.innerHTML = `<span class="room">${roomNo(i)}</span><span><span class="glyph">${d.g}</span> <span class="word">${d.w}</span><br><span class="who">${d.k === 'lv' ? 'a client' : d.k === 'sh' ? 'the company store' : d.k === 'ev' ? 'see what it wants' : d.k === 'rw' ? 'incentive program' : d.k === 'li' ? 'raise request' : d.k === 'my' ? 'unconfirmed' : 'a hard client'}</span></span><span class="stake">${d.s}</span>`; C.appendChild(e); });
+  document.querySelectorAll('.fl').forEach(e => e.textContent = floor);
+  document.getElementById('c-n').textContent = floor;
+  const info = picked < 0 ? 'pick a door' : `> ${doors[picked].w.toUpperCase()} ${roomNo(picked)}`;
+  ['a-info', 'b-info'].forEach(id => document.getElementById(id).textContent = info);
+  document.querySelectorAll('.sched').forEach(sc => sc.innerHTML = `<b>FLOOR ${floor} · THE WHOLE SCHEDULE</b>` +
+    [1, 2, 3, 4, 5, 6].map(r => `<div class="row"><span>${floor}${r}0</span>` + [0, 1, 2].map(c => { const d = r === 2 ? doors[c] : KINDS[(r * 3 + c) % 8]; return `<i class="${r < 2 ? 'done' : r === 2 ? 'now' : ''}">${d.g} ${d.w}</i>`; }).join('') + `</div>`).join('') + `<div class="row"><span>REV</span><i style="grid-column:2/-1;color:var(--bo)">☠ MANAGER REVIEW · GOAL 6,500</i></div>`);
+}
+function pick(i) { picked = i; draw(); }
+function openA() { if (picked < 0) return; document.getElementById('a-doors').classList.add('open'); setTimeout(() => { roll(); draw(); }, 800); }
+function pickInfo(w) { if (picked < 0) return; roll(); draw(); }
+function reroll() { roll(); draw(); }
+function toggleSched(id) { document.getElementById(id + '-sched').classList.toggle('show'); }
+function rideUp() {
+  const C = document.getElementById('c-dir'), L = document.getElementById('c-lift');
+  C.classList.add('ride'); L.classList.add('going');
+  setTimeout(() => { floor++; roll(); C.classList.remove('ride'); C.classList.add('arrive'); draw(); setTimeout(() => { C.classList.remove('arrive'); L.classList.remove('going'); }, 800); }, 950);
+}
+roll(); draw();
+</script>
+</body>
+</html>

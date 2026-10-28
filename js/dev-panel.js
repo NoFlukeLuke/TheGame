@@ -34,6 +34,8 @@ function syncMatch3DevToggles() {
   if (mfb) mfb.checked = mapFreeBranch;
   const madj = document.getElementById('dev-map-adjacent');
   if (madj) madj.checked = mapAdjacentRule;
+  const mtall = document.getElementById('dev-map-tall');
+  if (mtall) mtall.checked = !!mapLayoutTall;
 }
 
 function applyDevMode() {
