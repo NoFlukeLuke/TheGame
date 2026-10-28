@@ -1,4 +1,4 @@
-const BUILD = "2026-10-28 · r694 · reels: shorter spin, FOCUS is the third beat";
+const BUILD = "2026-10-28 · r695 · reels: shorter spin, FOCUS is the third beat (merges main's r694 scoring queue)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
