@@ -674,11 +674,10 @@ const DURABLE_CARD_FIELDS = [
 // the deck at all, and hit every copy of it if it was.
 function everyDeckCard() {
   const out = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) {
-      const cd = gridData[r]?.[c];
-      if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
-    }
+  // r706: the board's own rows (see allOwnedSleightCards).
+  (gridData || []).forEach(row => (row || []).forEach(cd => {
+    if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
+  }));
   // r576: a stone or junk card in a pile is not a card to buff, curse or copy.
   drawPile.forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd); });
   playedPile.forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd); });

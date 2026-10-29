@@ -450,10 +450,9 @@ function sleightBaseCharges(def) {
 // Every Sleight the run currently holds, wherever it is - board, draw or played.
 function allOwnedSleightCards() {
   const out = [];
-  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
-    const cd = gridData[r]?.[c];
-    if (cd && cd._isSleight) out.push(cd);
-  }
+  // r706: the board's own rows, not gridRows x gridCols: a screen laid over the
+  // board (the Schedule is 5 x 4) resizes those while gridData keeps the play board.
+  (gridData || []).forEach(row => (row || []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); }));
   (typeof drawPile   !== 'undefined' ? drawPile   : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
   (typeof playedPile !== 'undefined' ? playedPile : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
   return out;

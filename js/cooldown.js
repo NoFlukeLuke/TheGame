@@ -91,7 +91,7 @@ function cdForTrick(trickId) {
   // temporary one - trickFires() is 1 + _primed + _rank + mirrors - so the badge
   // has to count both or a rehearsed Trick reads as unprimed for the whole run.
   const primed = t ? ((t._primed || 0) + (t._rank || 0)) : 0;
-  if (primed > 0 && trickId !== 'minute_hand') return { mode: 'primed', count: primed };
+  if (primed > 0 && trickId !== 'minute_hand') return { mode: 'primed', count: primed, perma: t._rank || 0 };
   // 3. Its own rhythm.
   if (TRICK_TIMERS[trickId]) return TRICK_TIMERS[trickId](trickId);
   if (CD_PER_MINUTE_TRICKS.includes(trickId)) return TRICK_TIMERS._perMinute(trickId);
@@ -178,6 +178,8 @@ function cdPaint(el, info) {
   // v2.0 in the opposite corner.
   const num = b.querySelector('.cd-num');
   b.classList.toggle('cd-b-count', info.left == null && info.count != null);
+  // r706: a permaprime (`_rank`) is permanent, so its pill is gold, not violet.
+  b.classList.toggle('cd-b-perma', !!info.perma);
   if (info.left == null) {
     num.textContent = info.count != null ? ('+' + info.count) : '·';
     b.style.setProperty('--cd-p', '1');
@@ -188,6 +190,8 @@ function cdPaint(el, info) {
   }
   b.style.setProperty('--cd-c', CD_COLORS[mode] || CD_COLORS.cooldown);
   b.title = mode === 'off' ? 'Switched off' : mode === 'cooldown' ? 'Recharging'
+          : info.perma ? `Permaprimed: fires ${info.perma} extra time${info.perma === 1 ? '' : 's'} every time, for good`
+            + (info.count > info.perma ? `. Primed: ${info.count - info.perma} more next time` : '')
           : (info.count != null ? `Primed: fires ${info.count} extra time${info.count === 1 ? '' : 's'}` : 'Primed');
 }
 

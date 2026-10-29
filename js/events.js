@@ -1330,7 +1330,7 @@ const REHEARSAL_UPS = [
   { id: 'encore', icon: '➕', rarity: 'rare', name: 'Encore', desc: 'The Trick fires one more time each hand.',
     cost: () => `${BAL.rehearsal.encore_curses} curse cards`,
     apply: t => { t._encore = (t._encore || 0) + 1; addCurseCardsToDeck(BAL.rehearsal.encore_curses); } },
-  { id: 'echo', icon: '🔁', rarity: 'legendary', name: 'Echo', desc: 'Every time the Trick fires, it fires again.',
+  { id: 'echo', icon: '🔁', rarity: 'legendary', name: 'Permaprime', desc: 'Every time the Trick fires, it fires again. For good.',
     cost: () => `${BAL.rehearsal.echo_curses} curse cards`,
     apply: t => { t._rank = (t._rank || 0) + 1; addCurseCardsToDeck(BAL.rehearsal.echo_curses); } },
   { id: 'chain', icon: '⛓', rarity: 'epic', name: 'Chain', desc: 'Every time the Trick fires, a random other Trick is force-triggered.',
@@ -1341,7 +1341,7 @@ const REHEARSAL_UPS = [
 function rehearsalTag(t) {
   const bits = [];
   if (t._encore) bits.push(`encore ×${t._encore}`);
-  if (t._rank) bits.push(`echo ×${t._rank}`);
+  if (t._rank) bits.push(`permaprime ×${t._rank}`);
   if (t._chain) bits.push(`chain ×${t._chain}`);
   return bits.length ? ` · ${bits.join(', ')}` : '';
 }
@@ -1387,6 +1387,51 @@ function confirmRehearsal() {
     const t = eventState.rehearsePick, u = eventState.rehearseUp;
     u.apply(t);
     showMessage(`${t.name}: ${u.name} · ${u.cost()}`, 'var(--gold)');
+    if (typeof renderTrickTray === 'function') renderTrickTray();
+  }
+  closeEvent();
+}
+
+// ─── EVENT: RESTRUCTURING (r706, owner) ───
+// One random Trick is permaprimed (it fires again every time it fires, for good:
+// `_rank`, js/skip-perks.js), and two OTHER Tricks are cut, at random. The Trick
+// is picked when the screen opens, the two cut only on confirm. Needs three
+// Tricks (one to promote, two to cut); a Trick The Investment has locked is
+// never cut.
+function restructureCuttable(keep) {
+  return (trickTray || []).filter(t => t && t !== keep && !(typeof altarTrickLocked === 'function' && altarTrickLocked(t.id)));
+}
+function restructureOfferable() {
+  return (trickTray || []).some(t => restructureCuttable(t).length >= 2);
+}
+function renderRestructure() {
+  const body = document.getElementById('event-body');
+  const pool = (trickTray || []).filter(t => restructureCuttable(t).length >= 2);
+  const t = pool[Math.floor(Math.random() * pool.length)];
+  eventState.rsKeep = t || null;
+  if (!t) { body.innerHTML = evEmptyHTML('Not enough Tricks to restructure.'); setEventConfirm(false); return; }
+  const em = (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦';
+  body.appendChild(evLabel('PERMAPRIMED'));
+  body.appendChild(makeChoiceEl({
+    icon: em, tile: { entity: 'trick', id: t.id, emoji: em, label: t.name },
+    rarity: t.tier, name: shownEntityName(t, 'trick') + (typeof rehearsalTag === 'function' ? rehearsalTag(t) : ''),
+    desc: 'Every time it fires, it fires again. For good.', cls: 'rs-keep selected', onClick: () => {} }));
+  body.appendChild(evLabel('CUT', true));
+  const nOther = restructureCuttable(t).length;
+  body.appendChild(evNote(nOther === 2 ? 'Your other two Tricks.' : `Two of your other ${nOther} Tricks, at random.`));
+  setEventConfirm(true);
+}
+function confirmRestructure() {
+  const t = eventState.rsKeep;
+  if (t && (trickTray || []).includes(t)) {
+    const cut = evShuffle(restructureCuttable(t)).slice(0, 2);
+    cut.forEach(c => {
+      const i = trickTray.indexOf(c); if (i >= 0) trickTray.splice(i, 1);
+      const a = acquiredTricks.findIndex(b => b.id === c.id); if (a >= 0) acquiredTricks.splice(a, 1);
+    });
+    permaprimeTrick(t);
+    showMessage(`${t.name} is permaprimed · cut: ${cut.map(c => c.name).join(', ')}`, 'var(--gold)');
+    if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }
   closeEvent();

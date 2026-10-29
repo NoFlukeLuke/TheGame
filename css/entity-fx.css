@@ -267,6 +267,8 @@ body.reduced-motion .rc-line-ring { animation-name: none; }
 #trick-tray-list .trick-tray-chip > .cd-badge.cd-b-count { right: auto; left: 2px; }
 
 .cd-b-primed { animation: cd-primed-pulse 1.5s ease-in-out infinite; }
+/* r706: a permaprime (permanent prime) pill is gold. */
+.cd-badge.cd-b-perma { --cd-c: #e8b84a !important; }
 @keyframes cd-primed-pulse {
   0%, 100% { box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 6px color-mix(in srgb, var(--cd-c) 45%, transparent); }
   50%      { box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 13px color-mix(in srgb, var(--cd-c) 95%, transparent); }

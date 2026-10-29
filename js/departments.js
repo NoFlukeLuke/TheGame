@@ -16,25 +16,26 @@
 // quarter card.
 
 const DEPARTMENTS = [
-  { id: 'sales',      name: 'Sales',      tile: 'level',      fav: 2, focus: ['run', 'set', 'flush', 'size', 'streak'], focusWord: 'hand types',
+  { id: 'sales', lunch: 'improve',      name: 'Sales',      tile: 'level',      fav: 2, focus: ['run', 'set', 'flush', 'size', 'streak'], focusWord: 'hand types',
     pay: { std: 'credits', hard: 'growth' },   events: ['hot_streak', 'prize_ladder', 'keep_it', 'static_bonus', 'rehearsal'] },
-  { id: 'marketing',  name: 'Marketing',  tile: 'event',      fav: 1, focus: ['focus'], focusWord: 'Focus',
+  { id: 'marketing', lunch: 'cardbuff',  name: 'Marketing',  tile: 'event',      fav: 1, focus: ['focus'], focusWord: 'Focus',
     pay: { std: 'focus2', hard: 'focus' },     events: ['plinko', 'the_draw', 'confluence', 'merchant', 'luck_dice'] },
-  { id: 'accounting', name: 'Accounting', tile: 'shop',       fav: 4, focus: ['credits', 'held', 'shop'], focusWord: 'credits',
+  { id: 'accounting', lunch: 'credits', name: 'Accounting', tile: 'shop',       fav: 4, focus: ['credits', 'held', 'shop'], focusWord: 'credits',
     pay: { std: 'interest', hard: 'boss' },    events: ['altar', 'market', 'deck_trim', 'pairs'] },
-  { id: 'hr',         name: 'HR',         tile: 'limitbreak', fav: 3, focus: ['tricks', 'sleights', 'charges'], focusWord: 'your loadout',
-    pay: { std: 'charges', hard: 'limit' },    events: ['reassignment', 'shift_change', 'trick_gamble', 'merchant'] },
-  { id: 'legal',      name: 'Legal',      tile: 'audit',      fav: 4, focus: ['time', 'clock', 'pause'], focusWord: 'time',
+  { id: 'hr', lunch: 'charges',         name: 'HR',         tile: 'limitbreak', fav: 3, focus: ['tricks', 'sleights', 'charges'], focusWord: 'your loadout',
+    pay: { std: 'charges', hard: 'limit' },    events: ['reassignment', 'shift_change', 'trick_gamble', 'merchant', 'restructure'] },
+  { id: 'legal', lunch: 'pick',      name: 'Legal',      tile: 'audit',      fav: 4, focus: ['time', 'clock', 'pause'], focusWord: 'time',
     pay: { std: 'time', hard: 'knacks' },      events: ['overtime', 'reschedule', 'clean_slate', 'call_it'] },
-  { id: 'operations', name: 'Operations', tile: 'priority',   fav: 2, focus: ['stock', 'swap', 'discard'], focusWord: 'swaps and discards',
+  { id: 'operations', lunch: 'stock', name: 'Operations', tile: 'priority',   fav: 2, focus: ['stock', 'swap', 'discard'], focusWord: 'swaps and discards',
     pay: { std: 'stock', hard: 'sleights' },   events: ['workshop', 'line_shift', 'spring'] },
-  { id: 'rnd',        name: 'R&D',        tile: 'mystery',    fav: 1, focus: ['scaling'], focusWord: 'growth',
+  { id: 'rnd', lunch: 'permaprime',        name: 'R&D',        tile: 'mystery',    fav: 1, focus: ['scaling'], focusWord: 'growth',
     pay: { std: 'prime', hard: 'improve' },  events: ['forge', 'rewire', 'state_change', 'gamble', 'wild_cards'] },
-  { id: 'it',         name: 'IT',         tile: 'reward',     fav: 3, focus: ['position', 'line', 'board'], focusWord: 'the board and its lines',
+  { id: 'it', lunch: 'path',         name: 'IT',         tile: 'reward',     fav: 3, focus: ['position', 'line', 'board'], focusWord: 'the board and its lines',
     pay: { std: 'cardbuff', hard: 'tricks' },      events: ['grid_spinner', 'the_payline', 'the_floor', 'line_shift'] },
 ];
 // Tuned live from dev -> Probabilities (js/prob-tables.js).
-const DEPT_CFG = { tileMult: 1.5, favMult: 2, eventPct: 60, leanPct: 33 };
+// lunchMult (r706): the department's own Long Lunch perk is this many times as likely (js/skip-perks.js).
+const DEPT_CFG = { tileMult: 1.5, favMult: 2, eventPct: 60, leanPct: 33, lunchMult: 4 };
 // The words a department's tile kind goes by (MAP_KIND_META names, read at draw time).
 const DEPT_TILE_KIND = { level: 'level', event: 'event', shop: 'shop', limitbreak: 'limitbreak', reward: 'reward',
                          audit: 'audit', priority: 'challenge', mystery: null };
@@ -114,7 +115,6 @@ function deptHelpRow() {
   const tiles = d.tile === 'reward' && typeof MAP_REWARD_MAX !== 'undefined'
     ? `Up to ${MAP_REWARD_MAX} ${deptTileWord(d)} obligations` : `More ${deptTileWord(d)} obligations`;
   return [d.name, `This quarter's department. ${tiles}, and offers lean to ${d.focusWord}. `
-    + `Challenge cards: ${crrSay(d.pay.std, 0)}. Hard ones: ${crrSay(d.pay.hard, 0)}.`];
+    + `Challenge cards: ${crrSay(d.pay.std, 0)}. Hard ones: ${crrSay(d.pay.hard, 0)}.`
+    + (mapSlotCap() > 1 && typeof lunchLikely === 'function' && lunchLikely() ? ` Long lunch: most often ${lunchLikely().say}.` : '')];
 }
-// What leaving a slot early pays: the department's Standard reward, first tier.
-function deptSkipPay() { const d = mapDept(); return d ? d.pay.std : 'credits'; }

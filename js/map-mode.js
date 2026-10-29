@@ -34,9 +34,9 @@
 //   its second set's, so you have one more pick there.
 // - Every tile advances the difficulty curve (Guided's load-bearing rule):
 //   levels through triggerLevelUp, everything else through guidedAdvanceCurve.
-// - The boss goal is FIXED at map build: MAP_BOSS_LEVELS levels of a steeper
-//   curve than Classic's, from the level the QUARTER OPENS ON, previewable from
-//   the map before you can reach it.
+// - The boss goal is FIXED at map build: a set level of the curve for each
+//   quarter (MAP_REVIEW_LEVEL, r706), previewable from the map before you can
+//   reach it.
 //
 // ── DEAD ENDS ARE REFUSED, NOT DISCOVERED ────────────────────────────────────
 // (The old rule. Under the pick rule a set is left for any solid tile of the
@@ -225,22 +225,17 @@ function mapRollBlanks() {
   }
   return MAP_BLANKS_MAX;
 }
-// The boss quota: MAP_BOSS_LEVELS levels of a curve a notch steeper than
-// Classic's GOAL_SCALE (1.35). Computed once at run start so the map can print
-// it before the first tile is taken.
-// r655: 9 -> 6.5 for the 4 x 4 map. A quarter is 8 bookings, not 12, so the
-// review is met around level 9, not 13 (goal 5,638 at Q1, not 11,000). 9 levels
-// would ask 12,000 there (2.1x); 6.5 asks 6,500, about 1.15x the goal of the
-// level you meet it on, where 9 asked 1.09x of level 13's. The sim bot wins the
-// 4 x 4 at 94-96% between 6 and 7 (tools/sim, an 8-tile walk, handTime 6).
-const MAP_BOSS_LEVELS = 6.5;
-// r278: 1.40 -> 1.30. A Schedule level advances on every obligation, so its own
-// per-level growth (MAP_GOAL_GROWTH, read by mapGoalForLevel in js/goal-tuning.js)
-// is much flatter than Classic's - and the review quota has to flatten with it or
-// the review dwarfs everything the quarter built toward. Measured in the bot
-// sweep: at 18%/level, a 14.8x quota killed 98% of failed runs AT the review;
-// 8.2x (1.30^8) splits the deaths between late obligations and the review.
-const MAP_BOSS_SCALE  = 1.30;
+// r706 (owner): a review asks a FIXED level of the curve: quarter q's review is
+// level `wide` x q on the 4 x 4 (8, 16, 24, 32) and `tall` x q on the 3 x 6 (7, 14,
+// 21, 28), whatever the walk did. Events and tiles that move a review (a Boss goal
+// reward, Overtime's tough reviews) still apply on top. `lift` multiplies the goal
+// (1 = the plain level goal). Before r706 the quota was the opening level's goal
+// x 1.30^5.5, so every booking skipped made every later review cheaper.
+const MAP_REVIEW_LEVEL = { wide: 8, tall: 7, lift: 1 };
+function mapReviewLevel(q) {
+  const per = mapSlotCap() === 1 ? MAP_REVIEW_LEVEL.tall : MAP_REVIEW_LEVEL.wide;
+  return per * Math.max(1, q || (typeof actNumber === 'number' ? actNumber : 1));
+}
 // The Schedule's per-level goal growth, percent. Its own number because the
 // Schedule advances `level` about twice as fast as Classic advances per played
 // round (bought obligations move the curve too - the mode's load-bearing rule).
@@ -304,9 +299,9 @@ function mapResetBoard() {
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
   mapBossArmed = false; mapPosTileId = null;
   mapScreenOpen = false; mapSelected = null;
-  mapBossGoal = mapQuarterBossGoal();
   if (typeof mapDrawStrokes !== 'undefined') { mapDrawStrokes = []; mapPenOn = false; }
   mapApplyLayout();
+  mapBossGoal = mapQuarterBossGoal();   // after the layout: the shape picks the review's level
   if (mapActive()) mapGenerate();
 }
 
@@ -326,17 +321,13 @@ function mapRepairShape() {
   mapSkips = skips;
 }
 
-// The boss quota is FIXED at map build, and ANCHORED TO THE LEVEL THE QUARTER
-// OPENS ON: MAP_BOSS_LEVELS of the steeper curve from here. At Q1 that reads
-// goalForLevel(1) = BASE_GOAL (1500 -> a 12,000 quota since the r278 retune;
-// the pre-r278 numbers were 1200 x 1.40^8 = 17,500). Q2 and Q3 open around
-// level 11 and 21, so they ask for what a quarter of progress from THERE is
-// worth rather than repeating Q1's number three times.
+// The boss quota is FIXED at map build: the level mapReviewLevel names, on the
+// Schedule's own curve (mapGoalForLevel, Endless's climb included).
 function mapQuarterBossGoal() {
-  const base = (typeof goalForLevel === 'function')
-    ? goalForLevel(Math.max(1, level || 1))
-    : BASE_GOAL;
-  return Math.round(base * Math.pow(MAP_BOSS_SCALE, MAP_BOSS_LEVELS - 1) / 500) * 500;
+  const lv = mapReviewLevel();
+  const base = (typeof mapGoalForLevel === 'function') ? mapGoalForLevel(lv) : BASE_GOAL;
+  const lift = MAP_REVIEW_LEVEL.lift || 1;
+  return lift === 1 ? base : Math.round(base * lift / 500) * 500;
 }
 
 // ── Tile helpers ─────────────────────────────────────────────────────────────
@@ -457,11 +448,15 @@ function mapAltarNextMult() {
 // Bookings from now until this tile, at the soonest: 1 if it is bookable now,
 // otherwise one for each slot in between (a slot cannot be skipped). Null for a
 // tile behind you.
+// r706: leaving a slot early still moves the curve one step for each booking left
+// in it, so every slot passed is worth mapSlotCap() levels whatever was booked.
 function mapTileSoonest(t, legalIds) {
-  if (legalIds && legalIds.has(t.id)) return 1;
   if (t.visited) return null;
-  if (!mapPos) return t.set + 1;
-  return t.set > mapPos.set + 1 ? t.set - mapPos.set : null;
+  const cap = mapSlotCap(), legal = !!(legalIds && legalIds.has(t.id));
+  if (!mapPos) return (legalIds && !legal && t.set === 0) ? null : t.set * cap + 1;
+  if (t.set <= mapPos.set) return legal ? 1 : null;
+  if (t.set === mapPos.set + 1 && legalIds && !legal) return null;
+  return Math.max(0, cap - mapVisits) + (t.set - mapPos.set - 1) * cap + 1;
 }
 // The goal a round tile asks if it is your k-th booking from now. Round 1 rides
 // startGame's own deal, so the run's first booking does not level up.
@@ -1210,7 +1205,7 @@ function mapTileTap(t) {
 const MAP_HELP = [
   ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
   ['Two a slot', 'A time slot will book you for two obligations at most.'],
-  ['Leaving early', 'Leaving a slot after only one obligation pays the department\u2019s reward (on the bar).'],
+  ['Long lunch', 'Leaving a slot after only one obligation is a long lunch: a perk, most often the department\u2019s (tap LONG LUNCH on the bar). The goal still moves on as if you had booked.'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
@@ -1219,7 +1214,7 @@ const MAP_HELP_PICK = [
   ['Pick', 'Take any lit obligation in this time slot or the next. Everything you take happens.'],
   ['Two a slot', 'Book any two obligations in a slot, next to each other or not. Then move on.'],
   ['Moving on', 'You can start the next slot on any obligation in it.'],
-  ['Leaving early', 'Leaving a slot after only one obligation pays the department\u2019s reward (on the bar).'],
+  ['Long lunch', 'Leaving a slot after only one obligation is a long lunch: a perk, most often the department\u2019s (tap LONG LUNCH on the bar). The goal still moves on as if you had booked.'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there.'],
 ];
@@ -1240,8 +1235,10 @@ function mapHelpRows() {
   return rows;
 }
 // r673 (owner): leaving a slot early pays the department's Standard reward, first tier.
-function mapSkipShort() { return (typeof crrShort === 'function' && typeof deptSkipPay === 'function') ? crrShort(deptSkipPay(), 0) : '+8 \u25c6'; }
-function mapSkipSay() { return (typeof crrSay === 'function' && typeof deptSkipPay === 'function') ? crrSay(deptSkipPay(), 0) : '+8 credits'; }
+// r706: leaving early is a LONG LUNCH (js/skip-perks.js). The bar names it and,
+// on a tap or a hover, the department's most likely perk; never the whole table.
+function mapSkipShort() { return 'LONG LUNCH'; }
+function mapSkipSay() { return (typeof lunchLikelySay === 'function') ? lunchLikelySay() : 'Long lunch: a random perk.'; }
 function mapRenderBar() {
   // r655: the toolbar is the foot of the to-do screen (mapRender builds it empty),
   // not a body-level strip over the stage's own buttons.
@@ -1272,7 +1269,7 @@ function mapRenderBar() {
       `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
       `<span class="mb-pips">${pips}</span>` +
       `<span class="mb-visits">${visits}</span>` +
-      (crunch || mapSlotCap() < 2 ? '' : `<span class="mb-skip" title="Leaving a slot after one obligation pays ${mapSkipSay()}">LEAVE EARLY ${mapSkipShort()}</span>`) +
+      (crunch || mapSlotCap() < 2 ? '' : `<span class="mb-skip" id="mb-skip" title="${mapSkipSay()}">${mapSkipShort()}</span>`) +
     `</div>` +
     `<div class="mb-l2">` +
       `<span class="mb-cmd" id="mb-cmd"></span>` +
@@ -1303,6 +1300,14 @@ function mapRenderBar() {
       document.removeEventListener('click', off);
     }), 0);
   };
+  // The LONG LUNCH chip: a tap (or a hover) prints the department's likely perk on the info line.
+  const lunch = document.getElementById('mb-skip');
+  if (lunch) {
+    const show = () => { const el = document.getElementById('mb-info'); if (el) el.innerHTML = mapSkipSay(); };
+    lunch.onclick = e => { e.stopPropagation(); show(); };
+    lunch.onmouseenter = show;
+    lunch.onmouseleave = () => { const sel = mapSelected && mapTiles.find(x => x.id === mapSelected); mapBarInfo(sel || null, sel ? mapMoveFor(mapSelected) : null); };
+  }
   const helpBtn = document.getElementById('mb-q');
   if (helpBtn) helpBtn.onclick = cardToggle('mb-help');
   const wipeBtn = document.getElementById('mb-wipe');
@@ -1356,7 +1361,7 @@ function mapBarInfo(t, move) {
     // is worse than saying nothing.
     if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()
         && !(typeof crunchActive === 'function' && crunchActive()))
-      s += ` <i>leaving now pays ${mapSkipSay()}</i>`;
+      s += ` <i>leaving now is a long lunch</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
     if ((t.cols || 1) >= MAP_LANES && mapSlotCap() > 1) s += ` <i>fills the slot</i>`;
     // Crunch prices the booking. The fee is the decision in that mode, so it is
@@ -1539,15 +1544,18 @@ function mapConfirm() {
   // In Crunch the skip pays nothing at all: moving on early already saves you
   // the obligation's time fee, which is the whole currency of that mode, and
   // paying credits as well would reward the same decision twice.
+  // r706 (owner): leaving early still moves the curve, one step a booking left
+  // behind, so a skip never lowers a later goal (Crunch included).
+  if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()) {
+    for (let n = mapSlotCap() - move.from.visits; n > 0; n--) guidedAdvanceCurve();
+  }
   if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
-    // r673 (owner): the department's Standard reward, first tier (CHALLENGE_REWARDS.md),
-    // paid off the clock: time, swaps, discards and Focus wait for the next round.
-    const said = (typeof crrGrant === 'function' && typeof deptSkipPay === 'function')
-      ? crrGrant(deptSkipPay(), 0, { live: false })
-      : (coins += 8, updateCoinsUI?.(), '+8 credits');
-    showMessage(`Left the slot early · ${said}`, 'var(--gold)');
+    // r706 (owner): a long lunch, one perk from js/skip-perks.js, the department's
+    // own most often (r673 paid the department's Standard reward).
+    const said = (typeof longLunch === 'function') ? longLunch() : (coins += 10, updateCoinsUI?.(), '+10 credits');
+    showMessage(`Long lunch · ${said}`, 'var(--gold)');
   }
 
   // Crunch: the obligation's time fee, debited at CONFIRM. A level, a priority
@@ -1640,8 +1648,7 @@ function mapStartRound(challenge) {
   drainLevelUpQueue();
 }
 
-// The boss quota is FIXED - MAP_BOSS_LEVELS of the steeper curve - whatever
-// level the walk actually reached. Hooked from triggerLevelUp right after
+// The boss quota is FIXED (MAP_REVIEW_LEVEL) whatever level the walk reached. Hooked from triggerLevelUp right after
 // guidedApplyPendingChallenge, i.e. after goalForLevel has written roundGoal.
 // The review's goal as printed: a challenge's Boss goal reward or penalty moves it (r671).
 function mapReviewGoalShown() {

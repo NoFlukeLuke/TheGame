@@ -57,7 +57,9 @@ function improveAnimRunning() { return !!_iaRunning; }
 function improveAnimNote(id, fromTier, toTier, descBefore, descAfter) {
   if (!id || toTier === fromTier) return;
   const down = toTier < fromTier, d = down ? -1 : 1;
-  let e = _iaQueue.find(x => x.id === id && !!x.down === down);
+  // r706: a queued fusion scene (kind 'fuse', js/inseparable.js) has the same id and no
+  // steps; improving the fused Trick before it played crashed here.
+  let e = _iaQueue.find(x => x.id === id && !!x.down === down && x.kind !== 'fuse');
   if (!e) { e = { id, from: fromTier, to: toTier, before: descBefore, steps: [], down }; _iaQueue.push(e); }
   for (let t = fromTier + d; down ? t >= toTier : t <= toTier; t += d) e.steps.push({ tier: t, desc: descAfter });
   e.to = toTier;

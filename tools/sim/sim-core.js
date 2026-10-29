@@ -340,10 +340,9 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   // hand read a row gridData does not have and every run crashed. Clock in.
   if (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) mapCloseScreen();
   roundGoal = goalFn(1);
-  // The review's quota multiplier: the game's own (mapQuarterBossGoal) unless one is given.
-  if (!bossMult) bossMult = Math.pow(MAP_BOSS_SCALE, MAP_BOSS_LEVELS - 1);
+  // r706: the review asks the goal of a fixed level a quarter (MAP_REVIEW_LEVEL);
+  // bossMult, if given, lifts it.
   for (let q = 1; q <= quarters; q++) {
-    const quarterOpenLevel = level;
     // r655: a sched json's "tiles" replaces the walk; the default is an 8-booking 4 x 4 quarter.
     // r690: the reward tile is IT's alone; a priority account ('hard') pays the reward
     // grid instead of the pick of three and two knacks. 'audit' is a hard round's goal
@@ -367,9 +366,9 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
         level++; roundGoal = goalFn(level);
       }
     }
-    // boss: quota anchored to the level the quarter opened on, on the round's ordinary clock
-    const quota = Math.round(goalFn(quarterOpenLevel) * bossMult / 500) * 500;
-    roundGoal = Math.max(roundGoal, quota);
+    // boss: the fixed review level (r706), as the game asks it (the quota alone)
+    const per = (typeof MAP_REVIEW_LEVEL !== 'undefined') ? MAP_REVIEW_LEVEL.wide : 8;
+    roundGoal = Math.round(goalFn(per * q) * (bossMult || 1) / 500) * 500;
     const res = SIM_playRound();
     if (!res.cleared) return { win: false, diedLevel: level, boss: true, diag: SIM_diag(res) };
     // prize grid

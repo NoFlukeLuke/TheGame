@@ -65,6 +65,8 @@ const EVENT_REQUIRES = {
   // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
   crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
   rehearsal:    () => (trickTray || []).length > 0,
+  // r706: one Trick to permaprime and two others to cut (js/events.js, Restructuring).
+  restructure:  () => restructureOfferable(),
   reassignment: () => (trickTray || []).length > 0,
   // Tray ORDER is the whole screen, so one Trick is not a decision.
   shift_change: () => (trickTray || []).length >= 2 && ownsPositional(),   // r590: only when position matters
@@ -188,6 +190,7 @@ function confirmEvent() {
     editor:      confirmEditor,
     bench:       confirmBench,
     rehearsal:   confirmRehearsal,
+    restructure: confirmRestructure,
     workshop:    confirmWorkshop,
     market:      confirmMarket,
     deck_trim:   confirmDeckTrim,
@@ -242,6 +245,7 @@ const EVENT_META = {
   editor:      { name:'The Editor',      flavor:'Rechoose the ranks one Trick or Knack asks for.' },
   bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
   rehearsal:   { name:'Extra Rep',       flavor:'Make one Trick fire more. It costs curse cards.' },
+  restructure: { name:'Restructuring',   flavor:'One Trick is permaprimed. Two others are cut.' },
   workshop:    { name:'Maintenance',     flavor:'Refill your Sleights, or give them more charges.' },
   market:      { name:'Card Market',     flavor:'Buy cards now, put them on the board when you want them.' },
   deck_trim:   { name:'Deck Trim',       flavor:'' },
@@ -300,6 +304,7 @@ function renderEventShell(id) {
     editor:      renderEditor,
     bench:       renderBench,
     rehearsal:   renderRehearsal,
+    restructure: renderRestructure,
     workshop:    renderWorkshop,
     market:      renderMarket,
     deck_trim:   renderDeckTrim,
