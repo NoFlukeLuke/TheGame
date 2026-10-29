@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r711 · design draft: the corporate rename sweep (RENAMES.md)";
+const BUILD = "2026-10-29 · r712 · the owner's Trick triage: four Knacks, To the Clouds, Cornery, Eye of the Storm, Focus resolves in MULT";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

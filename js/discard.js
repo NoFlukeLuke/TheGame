@@ -65,7 +65,7 @@ function doDiscard() {
   }
   selected = validSelected;
   // Five for Fodder (r623): any VALID hand pays its size in credits - judged now, while the cards are still on the grid.
-  const _fodderHand = hasTrick('five_fodder') && realHandOfSize(selected, selected.length) ? selected.length : 0;
+  const _fodderHand = (hasTrick('five_fodder') || hasKnack('five_fodder')) && realHandOfSize(selected, selected.length) ? selected.length : 0;
   // Procrastinate (r647): its 8 neighbours join the discard. They are CARRIED: no
   // seconds and no stock of their own, and the discard counts as 2 (discardsUsedRound).
   const _carried = procrastinateCarry(), _procrastinated = _carried.procs > 0;
@@ -152,23 +152,19 @@ function doDiscard() {
   cardsDiscardedRound += count;
   discardsUsedRound += _procrastinated ? 2 : 1;   // r647: Procrastinate counts as 2 discards
   if (_procrastinated && BAL.procrastinate.discards) { discards += BAL.procrastinate.discards; noteMessage(`Procrastinate: +${BAL.procrastinate.discards} discards`); }
-  // Five for Fodder: discarding a valid hand grants its size in credits
+  // For Fodder (a Knack since r708): discarding a valid hand grants its size in credits
   if (_fodderHand) {
     const _fc = _fodderHand * BAL.five_fodder.credits_per_card;
-    grantEntityCoins(_fc, 'trick', 'five_fodder');
-    noteMessage('Five for Fodder! +' + _fc + ' credits', 'var(--gold)');
+    grantEntityCoins(_fc, hasKnack('five_fodder') ? 'knack' : 'trick', 'five_fodder');
+    noteMessage('For Fodder! +' + _fc + ' credits', 'var(--gold)');
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
   if (hasTrick('fives_discard')) {
     const fivesCount = discardedCards.filter(c => rkHas('fives_discard', c.rank)).length;
     bonusMult_fives += fivesCount * BAL.fives_discard.pips_per_five;
   }
-  // Perfect Ten: every N cards discarded or played (r624) adds mult
-  if (hasTrick('tens_mult')) {
-    const prevTens = Math.floor((cardsDiscardedTotal - count + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);
-    const newTens  = Math.floor((cardsDiscardedTotal + cardsScoredTotal) / BAL.tens_mult.discards_per_milestone);
-    bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
-  }
+  // To The Nines (was Perfect Ten; r708 owner): each 9 discarded or played adds mult
+  if (hasTrick('tens_mult')) bonusMult_tens += discardedCards.filter(c => rkHas('tens_mult', c.rank)).length * TB('tens_mult').mult_per_milestone;
   // Down and Back In: discarding ANY card of the grid's top rank (r635, owner: it used to
   // need every card of that rank) grants BAL.grant swaps or discards, alternating, + coins.
   // gridData still holds the discarded cards here (removeAndFall runs last), so the "top

@@ -758,6 +758,11 @@
   }
   .subbox-val.pmf-jit-val { animation: pmfJitVal 0.22s ease-in-out 3; display: inline-block; }
   .subbox-val.pmf-hold-score { color: #f5c042 !important; text-shadow: 0 0 10px rgba(245,192,66,0.6); }
+  /* r708: Focus copies, one per extra application, staggered behind the figure (js/pmf-merge.js). */
+  #focus-box.pmf-fc-host { position: relative; }
+  #focus-box .subbox-val.pmf-fcopy-front { position: relative; z-index: 2; }
+  #focus-box .subbox-val.pmf-fcopy { position: absolute; z-index: 1; margin: 0; text-align: center; pointer-events: none;
+    white-space: nowrap; filter: brightness(var(--fc-dim, .6)); }
 
   /* ══════════════════════════════════════════════
      PORTRAIT SCORE PANEL - PMF half / SCORE-over-GOAL half (r157)

@@ -5,7 +5,7 @@ const BAL = {
   first_light: { worth: 42 },
   power_two: { pips: 4 },
   ten_strong: { pips: 7 },
-  king_guard: { pips: 10, mult: 5 },
+  king_guard: { pips: 8, mult: 8 },
   dark_matter: { pips: 5 },
   face_value: { face_pips: 20 },
   humble_roots: { pip_mult: 3 },
@@ -28,14 +28,16 @@ const BAL = {
   short_circuit: { mult: 15, pip_mult: 1.2, line2: 0 },
   advanced_interrogation: { mult_mult: 1.2, line2: 0, chance: 0.25, chance2: 0 },
   love_of_money: { per_credits: 100, pip_mult_per_10_credits: 0.1, max_pip_mult: 3 },
-  penny_perfect: { every: 9, pips: 5, mult: 3 },
+  penny_perfect: { every: 9, pips: 5, mult: 3 },   // retired r708, kept for saved runs
+  to_the_clouds: { mult_per_nine: 2, added: 9, no_delete: 0, mult_per_milestone: 3 },   // r708: Cloud Nine + To The Nines
+  cornery: { mult_mult: 2 },                                                       // r708: Ornery + Cornered
   hurricane: { pips_per_card: 20, mult_per_card: 10 },
   riptide: { mult_base: 1.25, mult_step: 0.5, pip_mult_base: 2, pip_mult_step: 0.5 },
   encore_bang: { pip_mult: 1.25, mult_mult: 1.5 },
   lidar: { chance: 2/3, chance2: 0, extra_line: 0 },
   erosion: { interval_seconds: 10, mult_per_interval: 6, pips_per_interval: 10 },
   seabird: { pips_per_second: 10, interval_seconds: 2, mult_per_interval: 8 },
-  flood: { pause: 3, pause_per_run: 1 },
+  flood: { pause: 3, pause_per_set: 1 },
   relativity: { divisor: 2, chance: 0.5, interval_seconds: 60 },
   men_of_means: { pips: 30, mult: 20 },
   omega_prime: { pips_per_card: 29 },
@@ -49,7 +51,7 @@ const BAL = {
   rhythm: { focus: 2 },                   // r623: was 1, typed in play-hand.js
   right_time:     { pause_seconds: 2 },
   study_hall:     { focus: 2, every: 2 },
-  high_water:     { pause_per_run: 1 },
+  high_water:     { pause_per_set: 1 },
   rowcol_perm_double: { perm_mult: 2 },
   wide_span_mult: { mult: 50 },
   hidden_pair: { pips: 12 },
@@ -73,8 +75,8 @@ const BAL = {
   high_pair: { focus_per_card: 4 },   // r624: any hand with a pair in it and a 2 or 4
   pair_pips: { pip_mult: 2 },
   heavy_hand: { pips_per_card: 20 },
-  quick_draw: { window_ms: 3000, cap_gain: 1, cap: 10 },
-  expanse: { cap_gain: 1, cap: 10, keep_fraction: 0.5 },
+  quick_draw: { window_ms: 3000, cap_gain: 1, cap: 10, focus_cut: 0.25, sell_bonus: 6 },   // r708 owner: costs 25% of your Focus; sells for more at max
+  expanse: { cap_gain: 1, cap: 10, keep_fraction: 0.5, sell_bonus: 6 },
   flow_state: { pips_per_card: 15 },
   hyper_focus: { focus_mult: 2 },
   club_double: { base: 1 },
@@ -123,7 +125,7 @@ const BAL = {
   even_score: { pips_per_card: 16 },
   odd_squad: { mult_per_card: 7 },
   long_road: { mult_per_card: 10 },
-  still_water: { mult_per_interval: 10 },
+  still_water: { mult_per_interval: 10, interval_seconds: 5 },
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
@@ -151,7 +153,7 @@ const BAL = {
   dam_holding:   { pause: 3 },
   acorns:        { focus_per_card: 0.025 },
   plan_ahead:    { every: 3, times: 2 },   // r624: Focus = times x the average hands per round
-  more_better:   { mult: 9, min_tiles: 3 },
+  more_better:   { mult: 12, min_tiles: 3 },
   rain_check:    { seconds: 30 },
   temporal_rift: { chance_extra: 0 },   // r625: force-triggers the 3rd Trick per intersecting card; chance_extra = one more per tier
 
@@ -244,7 +246,7 @@ const BAL = {
   fours_perm: { pips: 8 },
   fives_discard: { pips_per_five: 5 },
   nines_mult: { mult_per_nine: 2, added: 9, no_delete: 0 },   // r539 owner's rework: brings its own 9s; r625: no_delete at the 5th improvement
-  tens_mult: { mult_per_milestone: 3, discards_per_milestone: 9 },
+  tens_mult: { mult_per_milestone: 3 },   // r708 owner: To The Nines, +3 mult per 9 discarded or played
   sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
   compound_mult: { mult_per_hand: 0.1 },
   // ── clock-mark Tricks ──
@@ -458,7 +460,9 @@ const DESC_TEMPLATES = {
   first_fruits: 'Each card in the first [[hands>1:{hands} ]]hand[[hands>1:s]] each round permanently gains +{pips} pips',
   relentless: 'Each spade scores x{mult_per_spade} mult for every spade scored since you took this (replays count). No effect until it passes x1',
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
-  tens_mult: 'Every {discards_per_milestone} cards discarded or played permanently adds +{mult_per_milestone} mult to this trick',
+  quick_draw: 'Hands played within 3 seconds of the previous hand remove {focus_cut_pct}% of your Focus and add +{cap_gain} to your Focus limit (max +{cap}). When max bonus is reached, +{sell_bonus} to sell value. If sold, keep half the bonus you\'ve reached',
+  expanse: 'Each time you hit your Focus limit, increase it by {cap_gain} (max +{cap}), then lose half your Focus. When max bonus is reached, +{sell_bonus} to sell value. If sold, keep half the bonus you\'ve reached',
+  tens_mult: 'Each 9 discarded or played permanently adds +{mult_per_milestone} mult to this trick',
   heartwood: 'When scored, the center-most card gains +{pips} pips & +{mult} mult',
   pivot: 'Cards touching Pivot swap for free. Swap two of its neighbours together and both gain +{mult} permanent mult, then Pivot leaves the board. (3 charges)',
   the_naturalist: 'Play this: each other scored card permanently gains +{pips} pips.',
@@ -504,11 +508,11 @@ const DESC_TEMPLATES = {
   deluge: 'Flushes rewind the clock {seconds}s',
   // r550: time wording. A rewind reads "rewind(s) the clock Ns", a pause "pause(s) the clock
   // for Ns", a card's buff adds "when scored". Templated so an improvement shows its number.
-  high_water: 'Runs pause the clock for {pause_per_run}s for each Run played this round',
+  high_water: 'Sets pause the clock for {pause_per_set}s for each Set played this round',
   dam_holding: 'Runs pause the clock for {pause}s',
   five_second: '5-card hands pause the clock for {pause_seconds}s',
   four_horseman: '4-card hands grant [[picks>1:{picks} of these]][[picks<2:a random bonus]]: +{pips} pips, +{mult} mult, +{focus} Focus, [[picks<2:or ]]pause the clock for {pause}s',
-  double_jeopardy: '{cells} cells are secretly marked at round start; the first time you score from those cells, pause the clock for {pause_seconds}s each[[prime_random: and prime a random Trick]]',
+  double_jeopardy: '{cells} cells are secretly marked at round start; the first time you score from those cells, pause the clock for {pause_seconds}s[[prime_random: and prime a random Trick]]',
   rain_check: 'Skipping a reward: the next round starts with +{seconds}s (in Flow, rewind the clock {seconds}s)',
   temporal_rift: 'A card scored where a row and column effect intersect force triggers the Trick in position 3[[chance_extra:, with a {chance_extra_pct}% chance of a second trigger]]',
   vulture: 'Cards discarded during the round’s first pause permanently gain a {pause_seconds}s pause (cannot stack from a single source)',
@@ -519,7 +523,7 @@ const DESC_TEMPLATES = {
   syncopation: 'Play this in a hand of a different type than your previous hand: pause the clock for {seconds}s. (3 charges)',
   last_call: 'Discard this: rewind the clock {seconds}s. (3 charges)',
   snooze: 'Double-tap: pause the clock for {seconds}s, then Snooze returns to your deck. (5 charges)',
-  monochrome: 'Hands containing exclusively hearts AND diamonds score +{mult} mult and grant +{coins} credits but cost {seconds} seconds',
+  monochrome: 'Hands containing exclusively hearts AND diamonds score +{mult} mult, grant +{coins} credits, and cost {seconds} seconds',
   ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus, or all three",
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds}s.',
@@ -527,7 +531,7 @@ const DESC_TEMPLATES = {
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
   hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
   king_guard: 'Kings and Jacks score +{pips} pips and +{mult} mult',
-  full_color: 'Hands with all four suits score x{mult_mult} mult per card',
+  full_color: 'Hands with four unique suits score x{mult_mult} mult per card',
   knave_power: 'Score ×{per_jack} pips for each Jack on the grid',
   wellspring: 'For every {per_focus} Focus generated this game, this trick scores +{mult_per} mult',
   second_hand: 'Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips',
@@ -560,7 +564,7 @@ const DESC_TEMPLATES = {
   ripple: 'Cards adjacent in rank to another card in the hand have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',
   patience_reward: 'Adds mult equal to {mult_per_second}x the seconds passed since the last hand was played',
   first_play: "The round's first hand adds +{focus} Focus; each hand after adds 1 less, down to 0",
-  still_water: 'Score +{mult_per_interval} mult for every 10 seconds elapsed without using a swap',
+  still_water: 'Score +{mult_per_interval} mult for every {interval_seconds} seconds elapsed without using a swap',
   swift: '+{mult_per_interval} mult for every {interval_seconds} seconds elapsed this round',
   woodpecker: 'Marks a random cell every {interval_seconds} seconds; a card scored from the marked cell replays {retrigger_count}x[[chance_extra:, with a {chance_extra_pct}% chance of one more every time]]',
   hummingbird: '+{mult_per_pause} mult for every clock pause or rewind triggered this game',
@@ -605,13 +609,15 @@ const DESC_TEMPLATES = {
   advanced_interrogation: "Cards scored in a marked row or column score ×{mult_mult} mult and have a {chance_pct}% chance to force-trigger the Trick in the tray slot of that line's number",
   love_of_money: 'Each heart applies x mult equal to 1 + (credits / {per_credits}); score ×1 pips, +{pip_mult_per_10_credits} for every 10 credits you hold, up to ×{max_pip_mult}',
   penny_perfect: 'Every {every} cards discarded or played permanently adds +{pips} pips and +{mult} mult to this trick',
+  to_the_clouds: 'Adds {added} 9s to your deck. Each 9 scored adds +{mult_per_nine} mult to this trick, and each 9 discarded or played +{mult_per_milestone} more. A 9 that scores or is discarded is destroyed[[no_delete<1:; when none are left, this trick deletes itself]]',
+  cornery: 'Corner cards score ×{mult_mult} mult and ×pips equal to the whole minutes left on the clock',
   hurricane: 'Runs score +{pips_per_card} pips and +{mult_per_card} mult per card',
   riptide: 'Runs score ×{mult_base} mult, +×{mult_step} per Run scored this round, and ×{pip_mult_base} pips, +×{pip_mult_step} per card beyond 3',
   encore_bang: '×{pip_mult} pips and ×{mult_mult} mult each time a card is replayed',
   lidar: 'Cards scored in a marked row or column replay once, with a {chance_pct}% chance of a second replay',
   erosion: '+{mult_per_interval} mult and +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this round',
   seabird: '+{pips_per_second} pips for every second the clock has spent paused this round, and +{mult_per_interval} mult for every {interval_seconds} seconds paused or rewound',
-  flood: 'Runs pause the clock for {pause}s, plus {pause_per_run}s for each Run played this round',
+  flood: 'Runs pause the clock for {pause}s; Sets pause the clock for {pause_per_set}s for each Set played this round',
   relativity: 'Score +pips equal to time remaining ÷ {divisor}; each time the clock passes a {interval_seconds}s mark, {chance_pct}% chance a random card on the grid gains +1 replay',
   men_of_means: 'Face cards (J/Q/K) score +{pips} pips and +{mult} mult',
   omega_prime: 'Prime-ranked cards (A,2,3,5,7) score +{pips_per_card} pips and prime your leftmost Trick',

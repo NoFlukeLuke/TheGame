@@ -166,7 +166,7 @@ function triggerLevelUp() {
   // before the level bump moves roundGoal on.)
   lastRoundScore = survivalActive() ? Math.max(0, score - _svOverflow) : score;
   // Life Lessons: each completed round permanently raises max Focus
-  if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
+  if (hasTrick('life_lessons') || hasKnack('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;   // a Knack since r708; counts only rounds cleared while held
   score = survivalActive() ? _svOverflow : 0;  // Survival carries overflow; others start fresh
 
   // Reset round

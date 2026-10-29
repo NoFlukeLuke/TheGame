@@ -3702,3 +3702,36 @@ on SPEED UP; SKIP blasted once and the score landed on the banked total; a winni
 round ended; SPEED UP alone took a tally from ~9.5s to ~4.3s; with the blast off SKIP fast-forwarded;
 a queued hand came up reading SPEED UP. No page errors, no timeline drift.
 
+
+## r712 - the owner's Trick triage (the Trick Pool Triage page, rebuilt for r705); Focus resolves in MULT (owner)
+- **Knacks now** (same ids, the Trick rows `retired`, KNACK_POOL rows, `hasTrick || hasKnack` at every
+  read): **For Fodder** (`five_fodder`), **Life Lessons** (it only ever counted rounds cleared while
+  held), **Meditation** (`updateKnackList` now recomputes the decay, so it works the moment it is held),
+  **Traveler** (`mockingbird`). Their TRICK_UNLOCKS rows are gone. **Rhythm** is retired.
+- **Rarity / numbers / names:** Hourglass rare; Eagle Eye every 5s (`still_water.interval_seconds`,
+  read by scoring, render and the tray line); Men of Repute 8 / 8; Penny Saved is **Nickel Saved**;
+  Wild Side common; More Better rare, +12; Resonance common; Clean Sweep rare; Richter epic (its unlock
+  is still a won run); High Water is **One Twain**: every SET pauses the clock 1s per Set played this
+  round (`pause_per_set`, play-hand and `handTriggersPause`; Flood's Set half too). Wording on Near
+  Extinction, Rainbow, Double Jeopardy, Blood Diamonds, Type A, Wildfire.
+- **Eye of the Storm**: every hand, the cards between the first and the last (scoring order, kickers
+  out) replay 2x (`_eyeMid` in calcScore). Its clock window (clock-track) is gone.
+- **To The Nines** (was Perfect Ten, `tens_mult`): each 9 discarded or played adds +3 mult
+  (`mult_per_milestone`; discard, magnet discards and scalingCount; a rank in `RANK_EDIT_DEFS`).
+- **Expanse / Quick Draw**: at their max they sell for `sell_bonus` (6) more (`focusGrowerSellBonus`,
+  in `trickSellValue`); selling keeps half the Focus limit they added (`focusGrowerSold`, both sell
+  paths). Quick Draw's raise now costs `focus_cut` (25%) of your Focus.
+- **Pairs**: Penny Perfect is retired (its pair is gone; a saved run keeps the Trick). **To the Clouds**
+  = To The Nines + Cloud Nine (acts both; a pair's `halve` halves both parts' earned bonuses at the
+  fusion, the carry rule for parts that keep their own counters; `cloudNineCheck` deletes whichever
+  Trick stands in for Cloud Nine). **Cornery** = Ornery + Cornered (`TB('two_corners')`).
+- **Focus resolves in the MULT tray** (js/pmf-merge.js, js/score-dance.js): the FOCUS chip shows ONE
+  application's multiplier; each extra application (Kaleidoscope, Phoenix, Marathon, Double Down,
+  Autopilot) adds a staggered copy of it in the tray at the Focus beat (`pmfFocusCopyAdd`, kept inside
+  the box). The fuse's step 1 is unchanged; step 2 spends the copies back to front, then the figure,
+  each multiplying MULT's number on its own beat (hold: MULT's screen ends gold on the score; slide:
+  the fused chip stays put and each copy melts into it). `pmfMergeIn` takes `focus` / `focusN`; the
+  ghost flies from MULT. Measured, Kaleidoscope on three suits at Focus x3 (126 x 3 x 3 x 3): MULT read
+  126, 378, 1,134, 3,402 and the score landed on 3,402, console and slide, 1440x820 and 420x900; a
+  6-hand burst with the queue and the blast ended with no copies left, no drift, no page errors.
+- tools/verify-tags.js stubs `gridName` (it had failed since r707).

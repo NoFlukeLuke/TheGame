@@ -155,7 +155,9 @@ html.skin-machine #cabinet #cab-screen #stage #pips-val  { color: #5cc8ff !impor
 html.skin-machine #cabinet #cab-screen #stage #mult-val  { color: #ff6a52 !important; }
 html.skin-machine #cabinet #cab-screen #stage #focus-val { color: #cf8cff !important; }
 /* r592: the hold look's score on the FOCUS screen: gold, no shadow (#mc-crisp thresholds a shadow into a block). */
-html.skin-machine #cabinet #cab-screen #stage #focus-val.pmf-hold-score { color: #f5c042 !important; text-shadow: none !important; }
+html.skin-machine #cabinet #cab-screen #stage :is(#focus-val, #mult-val).pmf-hold-score { color: #f5c042 !important; text-shadow: none !important; }
+/* r708: a Focus copy takes the figure's phosphor. */
+html.skin-machine #cabinet #cab-screen #stage #focus-box .pmf-fcopy { color: #cf8cff !important; }
 
 /* ── Fliers under the housing (js/machine-skin.js) ─────────────────────────── */
 #mc-fly { position: fixed; inset: 0; z-index: 260; pointer-events: none;

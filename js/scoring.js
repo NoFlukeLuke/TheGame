@@ -278,11 +278,15 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Process cards sequentially so Knave Power can multiply running total
   const _handTopRankVal = hasTrick('summit')
     ? Math.max(...cells.map(([_r,_c]) => { const _k = gridData[_r][_c]?.rank; return _k === 'A' ? 14 : (RANK_ORDER[_k] || 0); })) : -1;
-  // Eye of the Storm: in the round's middle third, the highest-ranked card(s) retrigger
-  const _eyeFrac = roundFractionRemaining();
-  const _eyeStorm = hasTrick('eye_of_storm') && _eyeFrac > 1/3 && _eyeFrac <= 2/3;
+  // Eye of the Storm (r708 owner): every hand, the cards between the first and the last
+  // (in scoring order, kickers left out) replay 2x: card 2 of 3, cards 2-3 of 4, 2-4 of 5.
+  const _eyeMid = new Set();
+  if (hasTrick('eye_of_storm')) {
+    const _hk = new Set(_handOnly.map(([r, c]) => r + '-' + c));
+    const _ord = _scoreCells.map(([r, c]) => r + '-' + c).filter(k => _hk.has(k));
+    _ord.slice(1, -1).forEach(k => _eyeMid.add(k));
+  }
   const _rankHigh = rk => rk === 'A' ? 14 : (RANK_ORDER[rk] || 0);
-  const _eyeMax = _eyeStorm ? Math.max(...(_natCards.length ? _natCards : [{}]).map(c => _rankHigh(c.rank))) : -1;
   // High and Mighty (knack): the hand's highest-ranked card(s) all replay once
   const _hnmOn  = hasKnack('high_and_mighty');
   const _hnmMax = _hnmOn ? Math.max(...(_natCards.length ? _natCards : [{}]).map(c => _rankHigh(c.rank))) : -1;
@@ -586,7 +590,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // r632 (owner): the second chance belongs to the Trick's own line; the 5th improvement's second line replays once.
     const _ptMain = _pt && markedLineKind(r, c, 'perfect_timing') === 'main';
     let _ptN = _pt ? 1 + (_ptMain && TB('perfect_timing').chance2 > 0 ? luckRollDet(TB('perfect_timing').chance2, (card._id || 0) + 7939, handsPlayedRound) : 0) : 0;
-    let _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
+    let _res = _eyeMid.has(`${r}-${c}`);   // Eye of the Storm: a middle card
     let _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
       ? luckRollDet(BAL.ripple.chance, (card._id || 0) + 7717, handsPlayedRound) : 0;
     if (_rip && BAL.ripple.chance2 > 0) _rip += luckRollDet(BAL.ripple.chance2, (card._id || 0) + 7727, handsPlayedRound);   // r624: the second chance
@@ -827,7 +831,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       }
       if (_flRanks && _flRanks.includes(baseRank)) _xl.push({ id: 'feelin_lucky', f: BAL.feelin_lucky.mult_mult });
       // Ornery (r607): a card in a corner cell, x mult on the card, once per replay.
-      if (!_G && hasTrick('two_corners') && isCorner(r, c)) _xl.push({ id: 'two_corners', f: BAL.two_corners.mult_mult });
+      if (!_G && hasTrick('two_corners') && isCorner(r, c)) _xl.push({ id: 'two_corners', f: TB('two_corners').mult_mult });
       // Chorus (r637, owner): x mult on each REPLAY of the card, on that beat, last in
       // it. `replay`: not on the card's first scoring (the dance skips it on rep 0).
       if (!_G && hasTrick('chorus') && _retrig > 1) _xl.push({ id: 'chorus', f: TB('chorus').mult_mult, replay: true });
@@ -1040,7 +1044,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const elapsedSinceSwap = lastSwapRoundSeconds !== null
       ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
       : Math.max(0, roundStartSeconds - roundSeconds);
-    const _a = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
+    const _a = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / BAL.still_water.interval_seconds);
     if (_a) { mult += _a; bMult('still_water', _a); }
   }
 
@@ -2078,7 +2082,7 @@ function handTriggersPause(handName, cells) {
     if (cells.length === 4 && hasTrick('four_horseman') && fourHorsemanRoll(cells) === 3) return true;
     const _run = ['Run of 3', 'Run of 4', 'Straight', 'Straight Flush'].includes(handName);
     if (_run && hasTrick('dam_holding')) return true;
-    if (_run && hasTrick('high_water') && runsPlayedRound >= 3) return true;
+    if (isSetHand(handName) && hasTrick('high_water')) return true;           // One Twain (r708): every Set
     if (hasKnack('sundial') && cells.length > 0 && cells.every(([, c]) => c === cells[0][1])) return true;
     if (hasKnack('metronome') && handName === metronomeHandType) return true;
     if (hasTrick('double_jeopardy') && doubleJeopardyCells.length

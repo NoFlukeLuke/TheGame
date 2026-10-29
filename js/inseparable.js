@@ -96,6 +96,7 @@ function inseparableFuse(pair) {
       if (c.adj && n) countAdj[c.adj] = (countAdj[c.adj] || 0) - n * 0.75;
     } catch (e) {}
   });
+  if (pair.halve) { try { pair.halve(); } catch (e) {} }   // r708: the carry rule for parts that keep their own counters
   const at = Math.min(ia, ib);
   trickTray.splice(Math.max(ia, ib), 1); trickTray.splice(at, 1);
   const fused = { ...def };

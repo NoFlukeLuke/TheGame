@@ -137,7 +137,12 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms
         && hasTrick('quick_draw') && (focusCapGains['quick_draw'] || 0) < BAL.quick_draw.cap) {
       const _qd = gainFocusCap('quick_draw', BAL.quick_draw.cap_gain * trickFires('quick_draw'), BAL.quick_draw.cap);
-      if (_qd > 0) showMessage('Quick Draw! +' + _qd + ' Focus limit', '#a25cd8');
+      if (_qd > 0) {
+        // r708 owner: the raise costs a quarter of your Focus (like Expanse, nothing at the max).
+        const _qdCut = Math.floor(focusNodes * BAL.quick_draw.focus_cut);
+        if (_qdCut > 0) setTimeout(() => removeFocus(_qdCut), 300);
+        showMessage('Quick Draw! +' + _qd + ' Focus limit' + (_qdCut > 0 ? ', -' + _qdCut + ' Focus' : ''), '#a25cd8');
+      }
     }
     // Collapsing Columns (Full House) / Richter (Four of a Kind): +10 Focus (was a
     // threshold advance; owner's sheet prices both as a flat grant)
@@ -154,9 +159,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // (Ripple's 30s cooldown is gone, r344: each adjacent-rank card rolls its own
     // deterministic 50% inside calcScore - nothing to consume here.)
-    // High Water (r346): every Run pauses the clock 1s per Run played this round,
-    // THIS one included - runsPlayedRound is bumped later in playHand, so +1 here.
-    if (_isRunHand) pauseRound(TB('high_water').pause_per_run * (runsPlayedRound + 1) * trickFires('high_water'), 'high_water', 'trick');
+    // One Twain (High Water, r708 owner): every Set pauses the clock 1s per Set played this
+    // round, THIS one included - setsPlayedRound is bumped later in playHand, so +1 here.
+    if (isSetHand(hand)) pauseRound(TB('high_water').pause_per_set * (setsPlayedRound + 1) * trickFires('high_water'), 'high_water', 'trick');
     // Dam Holding…: every Run pauses the clock a flat few seconds
     if (_isRunHand) pauseRound(TB('dam_holding').pause * trickFires('dam_holding'), 'dam_holding', 'trick');
     // Sundial knack: a hand where every card shares a column pauses the clock
@@ -793,7 +798,7 @@ function playHand() {
 
   // Traveler: a hand that doesn't extend a same-type streak (streakCount stays at 1) counts;
   // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hyperphagia).
-  if (hasTrick('mockingbird') && streakCount === 1) {
+  if ((hasTrick('mockingbird') || hasKnack('mockingbird')) && streakCount === 1) {   // a Knack since r708
     _altSwapCount++;
     if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); noteMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
   }
@@ -1036,7 +1041,7 @@ function cloudNinePickup() {
 }
 // r625: an improvement adds more 9s to the deck.
 function cloudNineAddNines(n) {
-  if (!hasTrick('nines_mult')) return;
+  if (!hasTrick('nines_mult')) return;   // To the Clouds too (acts)
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
   const _r = rkSet('nines_mult')[0];
   for (let i = 0; i < n; i++) copyCardToDeck({ rank: _r, suit: suits[Math.floor(Math.random() * suits.length)] });
@@ -1056,15 +1061,19 @@ function heartwoodRollExtraCells() {
   for (let i = 1; i < BAL.heartwood.cells && all.length; i++) heartwoodExtraCells.push(all.splice(Math.floor(Math.random() * all.length), 1)[0]);
 }
 function cloudNineCheck() {
-  if (!hasTrick('nines_mult') || BAL.nines_mult.no_delete) return;   // r625: the 5th improvement keeps it
+  if (!hasTrick('nines_mult') || TB('nines_mult').no_delete) return;   // r625: the 5th improvement keeps it
   const live = c => c && rkHas('nines_mult', c.rank) && !c._nineSpent && !c._temp;
   if (everyDeckCard().some(live) || (goalHandHeld || []).some(live)) return;
-  const i = trickTray.findIndex(t => t.id === 'nines_mult');
+  // r708: To the Clouds stands in for Cloud Nine and goes the same way (its 9s are gone too).
+  const id = fusedActingFor('nines_mult') || 'nines_mult';
+  const gone = trickTray.find(t => t.id === id);
+  const i = trickTray.findIndex(t => t.id === id);
   if (i >= 0) trickTray.splice(i, 1);
-  const a = acquiredTricks.findIndex(t => t.id === 'nines_mult');
+  const a = acquiredTricks.findIndex(t => t.id === id);
   if (a >= 0) acquiredTricks.splice(a, 1);
   bonusMult_nines = 0;
-  showMessage(`Cloud Nine is gone: no ${rkPl(rkSet('nines_mult')[0])} left in your deck`, 'var(--cream-dim)');
+  if (id !== 'nines_mult') bonusMult_tens = 0;
+  showMessage(`${gone ? gone.name : 'Cloud Nine'} is gone: no ${rkPl(rkSet('nines_mult')[0])} left in your deck`, 'var(--cream-dim)');
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
@@ -1143,7 +1152,7 @@ function scalingCount(hand, handCells, reps) {
   if (hasTrick('nines_mult')) {
     _cells.forEach(({ card, n }) => {
       if (!rkHas('nines_mult', card.rank) || card._isSleight || isWildCard(card)) return;
-      bonusMult_nines += BAL.nines_mult.mult_per_nine * n;
+      bonusMult_nines += TB('nines_mult').mult_per_nine * n;
       card._nineSpent = true;
     });
   }
@@ -1152,11 +1161,10 @@ function scalingCount(hand, handCells, reps) {
     const _fc = gridData[handCells[3][0]]?.[handCells[3][1]];
     if (_fc) { const k = cardId(_fc); permPips[k] = (permPips[k] || 0) + yokeGain('pips', BAL.fours_perm.pips); }
   }
-  // Perfect Ten (r624): played cards count toward its milestone as well as discards.
+  // To The Nines (was Perfect Ten; r708 owner): each 9 played adds mult, once per time it scores.
   if (hasTrick('tens_mult')) {
-    const _tnN = _cells.reduce((s, x) => s + x.n, 0), _tnD = BAL.tens_mult.discards_per_milestone;
-    const _tnPrev = Math.floor((cardsDiscardedTotal + cardsScoredTotal) / _tnD), _tnNow = Math.floor((cardsDiscardedTotal + cardsScoredTotal + _tnN) / _tnD);
-    bonusMult_tens += (_tnNow - _tnPrev) * BAL.tens_mult.mult_per_milestone;
+    const _tn = _cells.reduce((t, x) => t + (rkHas('tens_mult', x.card.rank) && !x.card._isSleight && !isWildCard(x.card) ? x.n : 0), 0);
+    bonusMult_tens += _tn * TB('tens_mult').mult_per_milestone;
   }
   // Lucky Roll (sixes_perm): every Nth card scored rolls permanent pips onto it.
   _cells.forEach(({ card, n }) => {

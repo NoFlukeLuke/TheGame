@@ -17,6 +17,22 @@ function gainFocusCap(id, n, max) {
   if (add > 0) { focusCapGains[id] = cur + add; focusCapPerm += add; }
   return add;
 }
+// Expanse / Quick Draw (r708 owner): a grower with a `sell_bonus` sells for that much more
+// once it has reached its max, and selling it takes back half of what it added (rounded
+// up), so you keep half. The ledger is cleared so a copy taken again starts at 0.
+function focusGrowerSellBonus(t) {
+  const b = t && BAL[t.id];
+  return b && b.sell_bonus && (focusCapGains[t.id] || 0) >= b.cap ? b.sell_bonus : 0;
+}
+function focusGrowerSold(t) {
+  if (!t || !BAL[t.id] || !BAL[t.id].sell_bonus) return;
+  const g = focusCapGains[t.id] || 0;
+  if (!g) return;
+  focusCapPerm -= g - Math.floor(g / 2);
+  focusCapGains[t.id] = 0;
+  if (typeof focusNodes === 'number' && focusNodes > focusCapNodes()) focusNodes = focusCapNodes();
+  if (typeof buildFocusMeter === 'function') { buildFocusMeter(); syncFocusMeterState(); }
+}
 function onGridSleightCapBonus() {
   if (typeof gridData === 'undefined' || !gridData) return 0;
   let n = 0;
@@ -173,7 +189,7 @@ let focusSpeedParams = JSON.parse(localStorage.getItem('focusSpeedParams') || 'n
 
 function recomputeFocusDecayInterval() {
   let ms = focusDecayBaseMs;
-  if (typeof hasTrick === 'function' && hasTrick('meditation')) ms += 2000;
+  if (typeof hasTrick === 'function' && (hasTrick('meditation') || hasKnack('meditation'))) ms += 2000;
   focusDecayIntervalMs = ms;
   if (focusDecayTimerId !== null) {
     clearInterval(focusDecayTimerId);

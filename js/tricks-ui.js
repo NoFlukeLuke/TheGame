@@ -67,7 +67,7 @@ function trickLiveDesc(trick) {
       case 'sediment':       return roundNow(`+${Math.floor(el / B.sediment.interval_seconds) * B.sediment.pips_per_interval} pips`);
       case 'albatross':      return roundNow(`+${(pausedSecondsRound || 0) * B.albatross.pips_per_second} pips`);
       case 'kingfisher':     return roundNow(`+${Math.floor(((pausedSecondsRound || 0) + (rewoundSecondsRound || 0)) / B.kingfisher.interval_seconds) * B.kingfisher.mult_per_interval} mult`);
-      case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / 10)} mult`); }
+      case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / B.still_water.interval_seconds)} mult`); }
       case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
       case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / sandsDivisor())} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * ((typeof flowActive === 'function' && flowActive()) ? B.discard_pips.mult_per_flow : B.discard_pips.mult_per)} mult`);

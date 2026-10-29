@@ -174,6 +174,7 @@ const IMPROVE_PLAN = {
   clean_sweep:      t => ({ focus: 8 + 4 * [0, 1, 1, 2, 2, 3][t], credits: 4 + 4 * [0, 0, 1, 1, 2, 3][t] }),
   // +2 mult per 9 and 3 more 9s a tier (the 9s land through IMPROVE_HOOKS); the 5th stops it deleting itself
   nines_mult:       t => ({ mult_per_nine: 2 + 2 * t, added: 9 + 3 * t, no_delete: t >= 5 ? 1 : 0 }),
+  to_the_clouds:    t => ({ mult_per_nine: 2 + 2 * t, added: 9 + 3 * t, no_delete: t >= 5 ? 1 : 0, mult_per_milestone: 3 + 3 * t }),   // r708: Cloud Nine's ladder, and +3 a tier on the To The Nines half
   // clubs join at the 1st, x0.5 more time a tier from the 2nd, any club or spade at the 5th
   spade_flood:      t => ({ suits: t >= 5 ? 2 : t >= 1 ? 1 : 0, time_mult: [1, 1, 1.5, 2, 2.5, 2.5][t] }),
   // +3% a tier of a second force trigger per card
@@ -227,6 +228,7 @@ const IMPROVE_HOOKS = {
   shape_line: (tier, t) => { if (tier === 1 || tier === 2) return 3; if (tier === 4) return 5; },   // two improvements: 3, then 5
   undue_influence: tier => (tier >= 1 && tier < 5) ? 5 : undefined,
   nines_mult: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
+  to_the_clouds: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
   wild_heart: (tier, t) => { if (t) rollExtraRanks(t, '_heartRanks', BAL.wild_heart.extra_ranks, rkSet('wild_heart')); },
   patient_rulers: (tier, t) => { if (t) rollExtraRanks(t, '_prRanks', BAL.patient_rulers.extra_ranks, rkSet('patient_rulers')); },
   critical: (tier, t) => { if (t && BAL.critical.extra_family && !t._critFamily) t._critFamily = Math.random() < 0.5 ? 'set' : 'run'; },

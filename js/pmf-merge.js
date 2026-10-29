@@ -26,6 +26,16 @@
 //   auto   picks hold in console mode, slide elsewhere.
 // A call without pips/mult (the interrupt handoff) takes the one-step look.
 //
+// r708 (owner): Focus resolves IN THE MULT TRAY. Step 2 is no longer "the product and
+// FOCUS meet in the middle": FOCUS applies onto the product where it stands, once per
+// application. A hand whose Focus applies more than once (Kaleidoscope, Phoenix, Double
+// Down, Marathon...) shows one staggered COPY of the Focus figure per extra application
+// in the FOCUS tray (pmfFocusCopyAdd, from the dance's Focus beat); at the fuse the
+// copies are spent one by one, back first, then the figure itself, each multiplying the
+// MULT tray's number on its own beat. `opts.focus` is ONE application's multiplier and
+// `opts.focusN` how many times it applies; without them it is one application of
+// whatever turns the product into the score.
+//
 // Runs in BOTH orientations off measured rects, never an assumed layout.
 //
 // ── Where it sits in the dance ──
@@ -66,6 +76,57 @@ let _pmfFlyFrom = null;    // the element the ghost leaves from
 let _pmfFlyText = '';      // what the ghost reads
 let _pmfHoldSaved = null;  // hold look: the values' texts before the merge
 let _pmfAnims = [];        // WAAPI animations the merge owns (cancelled on reset)
+let _pmfFCopies = [];      // r708: the staggered copies of the Focus figure, front last
+let _pmfFSpent = [];       // copies a fuse has used up (faded, removed at the reset)
+
+// ── The Focus copies (r708) ──────────────────────────────────────────────────
+// Copy k sits behind the figure, `PMF_FCOPY_STEP` px right and up per step (the
+// scoring queue's stack, small), each a little darker. Children of #focus-box, so
+// they live and die with the tray; the figure itself is raised over them.
+const PMF_FCOPY_STEP = { x: 10, y: 4, max: 5 };
+function pmfFocusCopyAdd(k) {
+  const box = document.getElementById('focus-box'), val = document.getElementById('focus-val');
+  if (!box || !val || !val.getBoundingClientRect().width) return null;
+  if (getComputedStyle(box).position === 'static') box.classList.add('pmf-fc-host');
+  val.classList.add('pmf-fcopy-front');
+  const i = Math.min(k, PMF_FCOPY_STEP.max);
+  const el = document.createElement('div');
+  el.className = 'subbox-val pmf-fcopy';
+  el.textContent = val.textContent;
+  el.style.width = val.offsetWidth + 'px';
+  el.style.setProperty('--fc-dim', String(Math.max(0.3, 0.72 - 0.1 * (i - 1))));
+  el.dataset.i = i;
+  box.insertBefore(el, box.firstChild);
+  _pmfFCopies.push(el);
+  // The stack must stay inside the tray: the step shrinks so the furthest copy's ink
+  // ends at the box's inner edge (the figure is centred, so half the slack is free).
+  let ink = 0;
+  try { const rg = document.createRange(); rg.selectNodeContents(val); ink = rg.getBoundingClientRect().width; } catch (e) {}
+  const z = (box.getBoundingClientRect().width / (box.offsetWidth || 1)) || 1;
+  const room = Math.max(0, (box.clientWidth - ink / z) / 2 - 2), n = Math.max(..._pmfFCopies.map(c => +c.dataset.i || 1));
+  const sx = Math.min(PMF_FCOPY_STEP.x, room / n);
+  _pmfFCopies.forEach(c => { const j = +c.dataset.i || 1; c.style.left = (val.offsetLeft + j * sx) + 'px'; c.style.top = (val.offsetTop - j * PMF_FCOPY_STEP.y) + 'px'; });
+  try { el.animate([{ transform: 'translate(-4px,4px) scale(.7)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) {}
+  return el;
+}
+function pmfFocusCopiesClear() {
+  _pmfFCopies.concat(_pmfFSpent).forEach(el => { try { el.remove(); } catch (e) {} });
+  _pmfFCopies = []; _pmfFSpent = [];
+  const box = document.getElementById('focus-box'), val = document.getElementById('focus-val');
+  if (box) box.classList.remove('pmf-fc-host');
+  if (val) val.classList.remove('pmf-fcopy-front');
+}
+// The applications of step 2: [k, the element spent, the number after it].
+function _pmfFocusSteps(handScore, pips, mult, o) {
+  const prod = pips * mult, n = Math.max(1, Math.round(o.focusN || 1));
+  const f = (typeof o.focus === 'number' && o.focus > 0) ? o.focus : (prod > 0 ? handScore / prod : 1);
+  const out = []; let cur = prod;
+  for (let k = 1; k <= n; k++) {
+    cur = (k === n || !(prod > 0)) ? handScore : cur * f;
+    out.push({ k, n, val: cur });
+  }
+  return out;
+}
 
 function _pmfParts() {
   const wrap = document.getElementById('score-subboxes');
@@ -143,7 +204,7 @@ function _pmfSlideTo(el, from, cx, cy, scale, dur, fade) {
 }
 
 // ── Slide: two steps, the shapes melt ───────────────────────────────────────
-async function _pmfSlide(handScore, pips, mult, speed, sig, p) {
+async function _pmfSlide(handScore, pips, mult, speed, sig, p, o) {
   const { wrap, boxes, times } = p;
   const [pipsB, multB, focusB] = boxes;
   const J = PMF_CFG.jitter / speed, M = PMF_CFG.merge / speed, S = PMF_CFG.settle / speed;
@@ -178,36 +239,42 @@ async function _pmfSlide(handScore, pips, mult, speed, sig, p) {
   await _pmfWait(M * .55 + S); if (bail()) return false;
   blobs1.forEach(bl => _pmfAnim(bl, [{ opacity: 1 }, { opacity: 0 }], { duration: 160 / speed, fill: 'forwards' }));
 
-  // ── step 2: the product and FOCUS ──
-  _pmfJit([merged, focusB], true);
-  if (typeof sfxScoreTick === 'function') sfxScoreTick();
-  await _pmfWait(J); if (bail()) return false;
-  _pmfJit([merged, focusB], false);
+  // ── step 2 (r708): FOCUS applies onto the product where it stands, once per application ──
   blobs1.forEach(bl => bl.remove());
-  const m = _pmfRel(merged, wrap), f = _pmfRel(focusB, wrap);
-  const c2x = wrap.offsetWidth / 2;
-  const blobs2 = [m, f].map(r => _pmfBlob(goo, r, 'pmf-blob-gold'));
-  blobs2.forEach((bl, i) => _pmfSlideTo(bl, [m, f][i], c2x, null, .95, M, false));
-  _pmfSlideTo(focusB, f, c2x, null, .5, M, true);
-  if (times[1]) _pmfAnim(times[1], [{ opacity: 1 }, { opacity: 0 }], { duration: M * .5, fill: 'forwards' });
-  const w2 = Math.min(wrap.offsetWidth - 8, a.w * 1.7);
-  // The chip itself travels (left and width are animated, so the number stays
-  // centred in it) and takes the score half way, with a bump.
-  _pmfAnim(merged, [{ left: m.x + 'px', width: m.w + 'px' }, { left: (c2x - w2 / 2) + 'px', width: w2 + 'px' }],
-    { duration: M, easing: 'cubic-bezier(.55,0,.15,1)', fill: 'forwards' });
-  await _pmfWait(M * .5); if (bail()) return false;
-  merged.querySelector('.pmf-merged-val').textContent = _pmfFmt(handScore);
-  merged.classList.remove('pmf-step1'); merged.classList.add('pmf-gold');
-  _pmfAnim(merged.querySelector('.pmf-merged-val'), [{ transform: 'scale(.8)' }, { transform: 'scale(1.18)', offset: .45 }, { transform: 'scale(1)' }], { duration: 320 / speed, easing: 'ease-out' });
-  if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
-  await _pmfWait(M * .5 + S); if (bail()) return false;
-  blobs2.forEach(bl => _pmfAnim(bl, [{ opacity: 1 }, { opacity: 0 }], { duration: 160 / speed, fill: 'forwards' }));
+  const steps = _pmfFocusSteps(handScore, pips, mult, o);
+  for (const st of steps) {
+    // The copies are spent first, back to front; the figure itself last.
+    const src = _pmfFCopies.length ? _pmfFCopies.pop() : focusB;
+    if (src !== focusB) _pmfFSpent.push(src);
+    const last = st.k === st.n;
+    _pmfJit([merged, src], true);
+    if (typeof sfxScoreTick === 'function') sfxScoreTick();
+    await _pmfWait(st.k === 1 ? J : J * .6); if (bail()) return false;
+    _pmfJit([merged, src], false);
+    const m = _pmfRel(merged, wrap), f = _pmfRel(src, wrap);
+    const bl = _pmfBlob(goo, f, 'pmf-blob-gold');
+    _pmfSlideTo(bl, f, m.cx, m.cy, .6, M * .8, true);
+    _pmfSlideTo(src, f, m.cx, m.cy, .5, M * .8, true);
+    if (last && times[1]) _pmfAnim(times[1], [{ opacity: 1 }, { opacity: 0 }], { duration: M * .5, fill: 'forwards' });
+    if (last) {
+      const w2 = Math.min(wrap.offsetWidth - 8, a.w * 1.5);
+      _pmfAnim(merged, [{ left: m.x + 'px', width: m.w + 'px' }, { left: (m.cx - w2 / 2) + 'px', width: w2 + 'px' }],
+        { duration: M * .8, easing: 'cubic-bezier(.55,0,.15,1)', fill: 'forwards' });
+    }
+    await _pmfWait(M * .5); if (bail()) return false;
+    merged.querySelector('.pmf-merged-val').textContent = _pmfFmt(st.val);
+    if (last) { merged.classList.remove('pmf-step1'); merged.classList.add('pmf-gold'); }
+    _pmfAnim(merged.querySelector('.pmf-merged-val'), [{ transform: 'scale(.8)' }, { transform: 'scale(1.18)', offset: .45 }, { transform: 'scale(1)' }], { duration: 320 / speed, easing: 'ease-out' });
+    if (st.k > 1 && typeof sfxFocusAgain === 'function') sfxFocusAgain(st.k - 1); else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
+    await _pmfWait(M * .3 + S); if (bail()) return false;
+    _pmfAnim(bl, [{ opacity: 1 }, { opacity: 0 }], { duration: 160 / speed, fill: 'forwards' });
+  }
   _pmfFlyFrom = merged; _pmfFlyText = _pmfFmt(handScore);
   return true;
 }
 
 // ── Hold: nothing moves, the numbers hand on (console mode) ────────────────
-async function _pmfHold(handScore, pips, mult, speed, sig, p) {
+async function _pmfHold(handScore, pips, mult, speed, sig, p, o) {
   const { boxes, times } = p;
   const [pipsB, multB, focusB] = boxes;
   const pv = document.getElementById('pips-val'), mv = document.getElementById('mult-val'), fv = document.getElementById('focus-val');
@@ -229,18 +296,25 @@ async function _pmfHold(handScore, pips, mult, speed, sig, p) {
   if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
   await _pmfWait(H * .5 + S); if (bail()) return false;
 
-  // ── step 2: MULT fades, FOCUS holds the score ──
-  _pmfJitVal([mv, fv], true);
-  if (typeof sfxScoreTick === 'function') sfxScoreTick();
-  await _pmfWait(J); if (bail()) return false;
-  _pmfJitVal([mv, fv], false);
-  _pmfAnim(mv, [{ opacity: 1 }, { opacity: .12 }], { duration: H, fill: 'forwards' });
-  if (times[1]) _pmfAnim(times[1], [{ opacity: 1 }, { opacity: .15 }], { duration: H, fill: 'forwards' });
-  await _pmfWait(H * .5); if (bail()) return false;
-  fv.textContent = _pmfFmt(handScore); fv.classList.add('pmf-hold-score'); pop(focusB);
-  if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
-  await _pmfWait(H * .5 + S); if (bail()) return false;
-  _pmfFlyFrom = focusB; _pmfFlyText = _pmfFmt(handScore);
+  // ── step 2 (r708): FOCUS applies onto MULT's number, once per application ──
+  const steps = _pmfFocusSteps(handScore, pips, mult, o);
+  for (const st of steps) {
+    const copy = _pmfFCopies.length ? _pmfFCopies.pop() : null;
+    if (copy) _pmfFSpent.push(copy);
+    const src = copy || fv, last = st.k === st.n;
+    _pmfJitVal([src, mv], true);
+    if (typeof sfxScoreTick === 'function') sfxScoreTick();
+    await _pmfWait(st.k === 1 ? J : J * .6); if (bail()) return false;
+    _pmfJitVal([src, mv], false);
+    _pmfAnim(src, [{ opacity: 1 }, { opacity: copy ? 0 : .12 }], { duration: H, fill: 'forwards' });
+    if (last && times[1]) _pmfAnim(times[1], [{ opacity: 1 }, { opacity: .15 }], { duration: H, fill: 'forwards' });
+    await _pmfWait(H * .5); if (bail()) return false;
+    mv.textContent = _pmfFmt(st.val); pop(multB);
+    if (last) mv.classList.add('pmf-hold-score');
+    if (st.k > 1 && typeof sfxFocusAgain === 'function') sfxFocusAgain(st.k - 1); else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
+    await _pmfWait(H * .5 + S); if (bail()) return false;
+  }
+  _pmfFlyFrom = multB; _pmfFlyText = _pmfFmt(handScore);
   return true;
 }
 
@@ -278,15 +352,17 @@ async function pmfMergeIn(handScore, opts) {
   const speed = Math.max(0.25, o.speed || 1);
   const sig = o.signal;
   const p = _pmfParts();
-  if (!_pmfVisible(p)) return false;
+  if (!_pmfVisible(p)) { pmfFocusCopiesClear(); return false; }
+  const keep = _pmfFCopies.slice(); _pmfFCopies = [];   // the reset below must not take the copies this hand will spend
   pmfResetNow();
+  _pmfFCopies = keep.filter(el => el.isConnected);
   _pmfActive = true;
   // A pop animation still running would beat the merge on the same property.
   p.boxes.forEach(b => b.classList.remove('subbox-pop'));
   const twoStep = typeof o.pips === 'number' && typeof o.mult === 'number';
   _pmfMode = twoStep ? pmfLook() : 'one';
-  if (_pmfMode === 'hold') return _pmfHold(handScore, o.pips, o.mult, speed, sig, p);
-  if (_pmfMode === 'slide') return _pmfSlide(handScore, o.pips, o.mult, speed, sig, p);
+  if (_pmfMode === 'hold') return _pmfHold(handScore, o.pips, o.mult, speed, sig, p, o);
+  if (_pmfMode === 'slide') return _pmfSlide(handScore, o.pips, o.mult, speed, sig, p, o);
   return _pmfOne(handScore, speed, sig, p);
 }
 
@@ -363,7 +439,8 @@ async function pmfSplitOut(opts) {
     _pmfAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); _pmfAnims = [];
     if (_pmfHoldSaved) { if (pv) pv.textContent = _pmfHoldSaved.pips; if (mv) mv.textContent = _pmfHoldSaved.mult; if (fv) fv.textContent = _pmfHoldSaved.focus; }
     if (fv) fv.classList.remove('pmf-hold-score');
-    [pv, mv, ...times].forEach(el => { if (el) _pmfAnim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: D, easing: 'ease-out' }); });
+    if (mv) mv.classList.remove('pmf-hold-score');
+    [pv, mv, fv, ...times].forEach(el => { if (el) _pmfAnim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: D, easing: 'ease-out' }); });
     await _pmfWait(D);
   }
   pmfResetNow();
@@ -375,6 +452,13 @@ async function pmfSplitOut(opts) {
 function pmfResetNow() {
   _pmfActive = false; _pmfFlyFrom = null;
   _pmfAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); _pmfAnims = [];
+  pmfFocusCopiesClear();
+  // A cut hold look puts the chips' own figures back (read before the classes go).
+  if (_pmfHoldSaved) {
+    const fv = document.getElementById('focus-val'); if (fv && fv.classList.contains('pmf-hold-score')) fv.textContent = _pmfHoldSaved.focus;
+    const mv = document.getElementById('mult-val'); if (mv && mv.classList.contains('pmf-hold-score')) mv.textContent = _pmfHoldSaved.mult;
+    _pmfHoldSaved = null;
+  }
   const p = _pmfParts();
   if (p) {
     p.wrap.classList.remove('pmf-merging', 'pmf-two');
@@ -382,10 +466,6 @@ function pmfResetNow() {
     p.boxes.forEach(b => { b.classList.remove('pmf-jitter'); b.style.removeProperty('--pmf-dx'); });
     const goo = p.wrap.querySelector('.pmf-goo'); if (goo) goo.remove();
     ['pips-val', 'mult-val', 'focus-val'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('pmf-jit-val', 'pmf-hold-score'); });
-  }
-  if (_pmfHoldSaved) {
-    const fv = document.getElementById('focus-val'); if (fv && fv.classList.contains('pmf-hold-score')) fv.textContent = _pmfHoldSaved.focus;
-    _pmfHoldSaved = null;
   }
   if (_pmfMerged) {
     _pmfMerged.classList.remove('show', 'pmf-jitter', 'pmf-step1', 'pmf-gold');

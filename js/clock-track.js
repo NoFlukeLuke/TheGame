@@ -43,7 +43,6 @@ const CLOCK_BAND_SECONDS = 30;     // the texture's stripe width, in clock secon
 // rather than the round's own length, so its row does too.
 const CLOCK_WINDOW_TRICKS = [
   { id:'early_bird',   glyph:'🌅', color:'#5aa9e6', win: rs => ({ lo: rs * 2/3, hi: rs }) },
-  { id:'eye_of_storm', glyph:'🌀', color:'#c07aee', win: rs => ({ lo: rs / 3,   hi: rs * 2/3 }) },
   { id:'night_owl',    glyph:'🦉', color:'#e08a3a', win: rs => ({ lo: 0,        hi: rs / 3 }) },
   { id:'closing_time', glyph:'🔻', color:'#e04a5a', win: rs => ({ lo: 0,        hi: rs / 3 }) },
   { id:'first_wind',   glyph:'🎯', color:'#54af88',

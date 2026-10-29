@@ -28,6 +28,7 @@ const RANK_EDIT_DEFS = {
   royal_trio:      { ranks: ['K'],             say: (d, R) => d.replace('a King and one other Royal', rkOne(R[0]) + (RK_FACES.includes(R[0]) ? ' and one other Royal' : ' and one Royal')) },
   lucky_sevens:    { ranks: ['7'],             say: (d, R) => d.replace('each 7', 'each ' + rkBare(R[0])) },
   fives_discard:   { ranks: ['5'],             say: (d, R) => d.replace('Each 5', 'Each ' + rkBare(R[0])) },
+  tens_mult:       { ranks: ['9'],             say: (d, R) => d.replace('Each 9', 'Each ' + rkBare(R[0])) },
   nines_mult:      { ranks: ['9'],             say: (d, R) => d.replace(/\b9s\b/g, rkPl(R[0])).replace('Each 9', 'Each ' + rkBare(R[0])).replace('A 9 that', rkCap(rkOne(R[0])) + ' that') },
   twos_retrigger:  { ranks: ['2'],             say: (d, R) => d.replace('Each 2', 'Each ' + rkBare(R[0])) },
   eights_retrigger:{ ranks: ['8'],             say: (d, R) => d.replace('scored 8', 'scored ' + rkBare(R[0])).replace('other 8', 'other ' + rkBare(R[0])) },

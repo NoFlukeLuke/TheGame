@@ -23,9 +23,6 @@ const INSEPARABLE_PAIRS = [
   { id: 'short_circuit',          parts: ['rowcol_mult', 'line_xpips'] },
   { id: 'advanced_interrogation', parts: ['line_xmult', 'obligatory'] },
   { id: 'love_of_money',          parts: ['obsessed', 'interest'] },
-  { id: 'penny_perfect',          parts: ['fives_discard', 'tens_mult'],
-    carry: [{ part: 'fives_discard', axis: 'pips', bonus: () => bonusMult_fives, count: () => 0 },
-            { part: 'tens_mult',     axis: 'mult', bonus: () => bonusMult_tens,  count: () => cardsDiscardedTotal + cardsScoredTotal, adj: 'cards' }] },
   { id: 'hurricane',              parts: ['overgrowth', 'long_road'] },
   { id: 'riptide',                parts: ['tide_table', 'undertow'] },
   { id: 'encore_bang',            parts: ['rerun', 'chorus'] },
@@ -42,4 +39,10 @@ const INSEPARABLE_PAIRS = [
   { id: 'serenity',               parts: ['shape_square', 'shape_cross'] },
   { id: 'working_class',          parts: ['club_double', 'landfill'],
     carry: [{ part: 'landfill', axis: 'mult', bonus: () => landfillCount() * BAL.landfill.mult_per, count: () => landfillCount(), adj: 'landfill' }] },
+  // r708 (owner): Penny Perfect is gone (To The Nines now counts 9s, so its pair is Cloud Nine).
+  // To the Clouds keeps both parts' own counters; `halve` is the carry rule for them: each
+  // part's earned bonus is halved at the fusion.
+  { id: 'to_the_clouds',          parts: ['tens_mult', 'nines_mult'],
+    halve: () => { bonusMult_tens = Math.ceil(bonusMult_tens / 2); bonusMult_nines = Math.ceil(bonusMult_nines / 2); } },
+  { id: 'cornery',                parts: ['two_corners', 'corner_retrigger'] },  // Ornery + Cornered
 ];

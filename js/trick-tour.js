@@ -31,7 +31,7 @@
   // Tricks that only show with the clock running start with it running.
   const CLOCK_IDS = new Set(['early_bird', 'night_owl', 'quick_draw', 'ticktock', 'second_hand', 'first_wind',
     'patience_reward', 'still_water', 'swift', 'sediment', 'albatross', 'kingfisher', 'quarter_chime', 'minute_hand',
-    'hourglass', 'woodpecker', 'closing_time', 'eye_of_storm', 'corner_retrigger', 'sands_of_time', 'spade_flood',
+    'hourglass', 'woodpecker', 'closing_time', 'corner_retrigger', 'sands_of_time', 'spade_flood',
     'meditation', 'deep_breath', 'frozen_moment', 'cuckoo', 'phoenix', 'patient_rulers']);
   // What the board cannot show. Printed under the description.
   const OFF_BOARD = {

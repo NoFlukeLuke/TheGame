@@ -276,7 +276,7 @@ function render() {
       const elapsedSinceSwap = lastSwapRoundSeconds !== null
         ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
         : Math.max(0, roundStartSeconds - roundSeconds);
-      const swMult = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
+      const swMult = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / BAL.still_water.interval_seconds);
       if (swMult > 0) bonusLines.push({ label:'Eagle Eye', val:`+${swMult} mult`, type:'mult' });
     }
     if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }

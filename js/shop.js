@@ -27,7 +27,8 @@ function sellTrick(trick) {
   if (idx >= 0) trickTray.splice(idx, 1);
   const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
   if (aidx >= 0) acquiredTricks.splice(aidx, 1);
-  const v = trickSellValue(trick);
+  const v = trickSellValue(trick);   // read before focusGrowerSold clears the ledger
+  if (typeof focusGrowerSold === 'function') focusGrowerSold(trick);   // r708: Expanse / Quick Draw keep half
   coins += v; updateCoinsUI();
   noteMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
   if (typeof hideTrickTooltip === 'function') hideTrickTooltip();

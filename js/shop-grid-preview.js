@@ -90,7 +90,7 @@ function shopEffPrice(p) {
 
 // ── Sell-back values (owner spec) ──
 // knacks 30% of price · tricks 60% (floored) · sleights .75 × price × (charges left / max).
-function trickSellValue(t)   { return Math.floor((SHOP_TRICK_PRICES[t.tier] || 8) * 0.60); }
+function trickSellValue(t)   { return Math.floor((SHOP_TRICK_PRICES[t.tier] || 8) * 0.60) + (typeof focusGrowerSellBonus === 'function' ? focusGrowerSellBonus(t) : 0); }
 function knackSellValue()    { return Math.round(SHOP_KNACK_PRICE * 0.30); }
 function sleightSellValue(card, def) {
   const price = SHOP_SLEIGHT_PRICES[def.rarity] || 12;
@@ -397,6 +397,7 @@ function ownedSleightInstances() {
   return out;
 }
 function sellOwnedTrick(t) {
+  if (typeof focusGrowerSold === 'function') focusGrowerSold(t);   // r708: Expanse / Quick Draw keep half
   { const i = trickTray.findIndex(x => x === t || x.id === t.id); if (i >= 0) trickTray.splice(i, 1); }
   const ai = acquiredTricks.findIndex(x => x.id === t.id); if (ai >= 0) acquiredTricks.splice(ai, 1);
   if (typeof renderTrickTray === 'function') renderTrickTray();

@@ -297,7 +297,7 @@ function AUD_handPause(L, mask, h, runsSoFar, k, onLine) {
   const on = id => { const i = L.ids.indexOf(id); return i >= 0 && (mask & (1 << i)); };
   let p = 0, rw = 0;
   if (h.isRun && on('dam_holding')) p += BAL.dam_holding.pause;
-  if (h.isRun && on('high_water')) p += BAL.high_water.pause_per_run * (runsSoFar + 1);
+  if (h.isSet && on('high_water')) p += BAL.high_water.pause_per_set * ((h.setsSoFar || 0) + 1);   // r708: One Twain pays on Sets
   if (h.real5 && on('five_second')) p += BAL.five_second.pause_seconds;
   if (h.real4 && on('four_horseman') && ((k + h.cells[0][0] * 3 + h.cells[0][1] * 5) % 4) === 3) p += BAL.four_horseman.pause;
   if (on('right_time')) p += BAL.right_time.pause_seconds * onLine('right_time', h);

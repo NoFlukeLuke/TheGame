@@ -4,7 +4,7 @@ const fs = require('fs');
 const R = require('path').join(__dirname, '..') + '/';
 const code = ['js/data/tags.js', 'js/data/tricks.js', 'js/data/sleights.js', 'js/data/knacks.js']
   .map(f => fs.readFileSync(R + f, 'utf8')).join('\n');
-const stubs = 'const KNACK_BOSS_GROW_PCT = 60; const BASE_GOAL = 0;\n';
+const stubs = 'const KNACK_BOSS_GROW_PCT = 60; const BASE_GOAL = 0; const gridName = k => String(k);\n';
 const fn = new Function(stubs + code + '\nreturn { TAG_DEFS, TAG_BY_ID, TRICK_POOL, SLEIGHT_POOL, KNACK_POOL };');
 const { TAG_DEFS, TAG_BY_ID, TRICK_POOL, SLEIGHT_POOL, KNACK_POOL } = fn();
 

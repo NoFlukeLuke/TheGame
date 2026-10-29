@@ -1197,6 +1197,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const preHandFocus = _q ? _q.preFocus : lastPreHandFocus;   // FOCUS multiplier when this hand STARTED scoring
   const targetFocus = _q ? _q.focus : lastCalcFocus;       // FOCUS multiplier AFTER this hand's Focus (what actually scored it)
   const targetFocusExtra = _q ? _q.focusExtra : (lastCalcFocusExtra || 0); // extra applications (Phoenix / Kaleidoscope, r343) - captured NOW, the global is overwritten by speculative calcScores
+  // r708 (owner): the FOCUS chip shows ONE application's multiplier; each extra application
+  // is a staggered copy of it in the tray, spent one by one onto the MULT tray at the fuse.
+  const focusApplies = 1 + targetFocusExtra;
+  const focusOne = focusApplies > 1 ? Math.round(Math.pow(targetFocus, 1 / focusApplies) * 1000) / 1000 : targetFocus;
   const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(2).replace(/0$/, ''));
   // Seed the FOCUS box to the hand's starting multiplier immediately (before the fly-in), so the
   // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
@@ -1566,8 +1570,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // So the chip settles on the multiplier this hand is actually being scored with
   // before a single card scores, and the rest of the tally runs underneath a
   // FOCUS box that is already telling the truth.
+  if(typeof pmfFocusCopiesClear==='function') pmfFocusCopiesClear();
   if(focusActive){
-    if(focusEl) focusEl.textContent=_fmtFocus(targetFocus);
+    if(focusEl) focusEl.textContent=_fmtFocus(focusOne);
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
     if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
     if(typeof sfxFocusBeat==='function') sfxFocusBeat();
@@ -1580,6 +1585,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       await dwait(240); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       const fb2=document.getElementById('focus-box'); if(fb2){ fb2.classList.remove('focus-beat','focus-beat-big'); void fb2.offsetWidth; fb2.classList.add('focus-beat-big'); }
       const fw2=document.getElementById('focus-meter-wrap'); if(fw2){ fw2.classList.remove('beat-big'); void fw2.offsetWidth; fw2.classList.add('beat-big'); }
+      if(typeof pmfFocusCopyAdd==='function') pmfFocusCopyAdd(_fk + 1);   // r708: one copy per extra application
       if(typeof sfxFocusAgain==='function') sfxFocusAgain(_fk + 1); else if(typeof sfxFocusBeat==='function') sfxFocusBeat();
     }
     await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -1766,7 +1772,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // r694: the FOCUS chip goes too (the reels look spins it as a third beat). It already
     // reads targetFocus (FOCUS FIRST, above), so it spins from the pre-hand value back to it.
     await scoreBlast({ cards: cardEls, pips: { el: pipsEl, box: pipsBox, from: rp, to: _finalPips }, mult: { el: multEl, box: multBox, from: rm, to: _finalMult },
-      focus: { el: focusEl, box: document.getElementById('focus-box'), from: preHandFocus, to: targetFocus }, pace: dncPace(), signal: sig });
+      focus: { el: focusEl, box: document.getElementById('focus-box'), from: preHandFocus, to: focusOne }, pace: dncPace(), signal: sig });
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
   // The walk above applies the same operations in the same order as calcScore, so
@@ -1787,7 +1793,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // let the SCORE climb below run against the fused chip. (js/pmf-merge.js)
   if(typeof pmfMergeIn==='function'){
     const _mspeed = skipBeats ? 3.2 : (dncFF ? DANCE_CFG.ff : dncPace());
-    await pmfMergeIn(finalScore, { speed: _mspeed, signal: sig, pips: _finalPips, mult: _finalMult });   // r592: the two-step fuse reads the chips' totals
+    await pmfMergeIn(finalScore, { speed: _mspeed, signal: sig, pips: _finalPips, mult: _finalMult, focus: focusOne, focusN: focusApplies });   // r592: the two-step fuse reads the chips' totals; r708: Focus applies focusN times onto MULT
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     // ── THE THROW ── the fused chip flies into the SCORE. This beat is never
     // skipped, at any burst depth: it is the one moment that says "this hand
