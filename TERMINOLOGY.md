@@ -93,6 +93,21 @@ The tutorial framing these support:
 > output is listed here, under quota. You produce output by doing work, and you
 > can improve the output of your work through skill and focus.
 
+## Screens (r706)
+
+Structural corporate labels, like COMPANY STORE: the same in both vocabularies, not
+part of the Wording switch. Spelled out once, in `GRID_NAMES` (js/labels.js); every
+player-facing mention prints through `gridName(kind, opts)`.
+
+| screen | code id (frozen) | player word | in a sentence | HUD |
+|---|---|---|---|---|
+| buff / debuff path pick after a round | `rewardGridMode 'normal'`, `openRewardGrid`, handbook / tip id `reward_grid` | **Cost-Benefit** | the Cost-Benefit grid | COST-BENEFIT |
+| all-buff path pick after a review or a won challenge round | `rewardGridMode 'prize'`, `openPrizeGrid`, handbook / tip id `prize_grid` | **Benefits Package** | the Benefits Package | BENEFITS PACKAGE |
+
+`gridName('reward')` is the sentence form, `{ bare: true }` the name alone (titles,
+the HUD), `{ caps: true }`, `{ plural: true }`, `{ a: true }` / `{ a: 'A' }` add the
+rest. The Schedule's tile keeps its own word, INCENTIVE; what it pays is the grid.
+
 ## Rarity ladders
 
 Four tiers. Each entity type grades on its own ladder, because a floppy disc and
@@ -201,6 +216,8 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 | Knave for the People (trick `knave_power`) | **Jackpot** (the old Jackpot trick, `big_win`, was removed) |
 | Dazed & Confused (sleight `dazed`) | **Fresh Start** |
 | Three's a Crowd (trick `threes_crowd`, retired r361) | **Three's a Crowd**, now a Knack (`threes_crowd_k`) |
+| reward grid / REWARDS (the screen) | **Cost-Benefit** grid (r706) |
+| prize grid / PRIZE | **Benefits Package** (r706) |
 
 ## New ids from the 9.24 balance pass (r359-r361)
 
@@ -228,7 +245,8 @@ any distance.
 
 - **js/labels.js** - `LEXICONS` (both vocabularies), `tierLabel()`,
   `tierInitial()`, `entityLabel()`, `lexTerm()`, `lexProse()`. The only place a
-  tier or category word is spelled out.
+  tier or category word is spelled out. Also `GRID_NAMES` / `gridName()`, the
+  two grid screens' names (r706).
 - **js/data/*.js** - carry ids only. A `name:` or `desc:` here is content, not
   vocabulary, and is renamed by hand.
 - **css/*.css** - class names are ids (`rar-legendary`, `trick-tier-common`).

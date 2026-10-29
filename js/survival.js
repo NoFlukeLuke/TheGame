@@ -84,8 +84,8 @@ const SURVIVAL_PICK_WEIGHTS  = { trick: 53, sleight: 22, knack: 13, limit: 12 };
 // picked entity would - see survivalChoose and finishSurvival.
 const SURVIVAL_GRID_OFFER = {
   id: '_pick_reward_grid', _gridPick: true, tier: 'rare',
-  name: 'Reward Grid',
-  desc: 'Open a standard reward grid: pick a connected path of tiles and take everything on it.',
+  name: gridName('reward', { bare: true }),
+  desc: `Open ${gridName('reward', { a: true })}: pick a connected path of tiles and take everything on it.`,
 };
 // Guarantee: at least one Limit AND one Knack option every 4 levels. When a type
 // has not been OFFERED for this many levels, force it into the next initial draw.

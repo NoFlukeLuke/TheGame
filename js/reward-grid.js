@@ -1066,7 +1066,7 @@ function openRewardGrid() {
   document.body.classList.toggle('reward-prize', prizeGridActive());
   document.body.classList.toggle('reward-penalty', penaltyGridActive());
   if (penaltyGridActive()) document.body.classList.remove('reward-boss');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : penaltyGridActive() ? 'PENALTIES' : miniGridActive() ? 'BONUS' : callItGridActive() ? 'CALL IT' : 'REWARDS', 'reward');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? gridName('prize', { bare: true, caps: true }) : penaltyGridActive() ? 'PENALTIES' : miniGridActive() ? 'BONUS' : callItGridActive() ? 'CALL IT' : gridName('reward', { bare: true, caps: true }), 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }

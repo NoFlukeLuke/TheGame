@@ -102,6 +102,32 @@ const LEXICONS = {
 const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }
 
+// r706 (owner): the two path-pick grids have names. Every player-facing mention
+// prints from here. DISPLAY STRINGS ONLY: the code ids (`rewardGridMode` 'normal' /
+// 'prize', openRewardGrid / openPrizeGrid, the reward-* CSS classes, store keys, the
+// handbook and tip ids 'reward_grid' / 'prize_grid') stay frozen. Not part of the
+// Wording switch: like COMPANY STORE these are structural corporate labels, the same
+// in both vocabularies.
+//   reward - the buff / debuff checkerboard after a round (rewardGridMode 'normal')
+//   prize  - the all-buff grid after a review or a won challenge round ('prize')
+// `noun` is what a sentence puts after the name ("the Cost-Benefit grid"); a name
+// that is already a noun ("the Benefits Package") has none.
+const GRID_NAMES = {
+  reward: { name: 'Cost-Benefit',     noun: 'grid' },
+  prize:  { name: 'Benefits Package', noun: ''     },
+};
+// gridName('reward')                 'Cost-Benefit grid'   (in a sentence)
+// gridName('reward', { bare: true }) 'Cost-Benefit'        (a title, the HUD)
+// opts.plural adds an s, opts.caps upper-cases it, opts.a puts 'a' / 'an' in front
+// ('A' / 'An' to start a sentence: { a: 'A' }).
+function gridName(kind, opts) {
+  const o = opts || {}, g = GRID_NAMES[kind] || GRID_NAMES.reward;
+  let s = (o.bare || !g.noun) ? g.name : g.name + ' ' + g.noun;
+  if (o.plural) s += 's';
+  if (o.a) { const art = /^[aeiou]/i.test(s) ? 'an' : 'a'; s = (o.a === 'A' ? art[0].toUpperCase() + art.slice(1) : art) + ' ' + s; }
+  return o.caps ? s.toUpperCase() : s;
+}
+
 let activeLexicon = 'gamer';
 try { const v = localStorage.getItem('lethe.lexicon'); if (LEXICONS[v]) activeLexicon = v; } catch (e) {}
 

@@ -41,12 +41,12 @@ const PICKER_AXES = [
     id: 'reward', label: 'BETWEEN ROUNDS', question: 'What happens after a round?',
     note: 'This also sets the shape of the run, because the two are the same decision in the engine.',
     options: [
-      { id: 'grid',  name: 'Reward grid', tag: 'FOUR QUARTERS',
+      { id: 'grid',  name: gridName('reward', { bare: true }), tag: 'FOUR QUARTERS',
         desc: 'Payout, then a path across a board of buffs and penalties. Four quarters of five rounds and a boss, and the run ends when the last quarter closes.' },
       { id: 'slots', name: 'Eight slots', tag: 'FOUR QUARTERS',
         desc: 'A quarter is eight slots and then the boss. At each one you are dealt four things you could do with it: play a round, or buy a shop, a grid, an event or a free pick. Buying always costs a round you will not get to play.' },
       { id: 'pick3', name: 'Pick of three', tag: 'ENDLESS',
-        desc: 'Clear the goal, take one of three rewards, face a bigger goal. No reward grid, no payout screen and no end: the run lasts until you miss one. The three reward-grid-only entities are kept out of the pool.' },
+        desc: `Clear the goal, take one of three rewards, face a bigger goal. No ${gridName('reward')}, no payout screen and no end: the run lasts until you miss one. The three entities that only work on the ${gridName('reward')} are kept out of the pool.` },
     ],
   },
   {
@@ -74,9 +74,9 @@ const PICKER_AXES = [
     note: '34 presets, dealt from a bag so none repeats inside a run.',
     options: [
       { id: 'yes', name: 'On',  tag: '34 PRESETS',
-        desc: 'A boss closes every quarter, or arrives every five minutes of play in an endless run. Beating one pays a prize grid.' },
+        desc: `A boss closes every quarter, or arrives every five minutes of play in an endless run. Beating one pays ${gridName('prize', { a: true })}.` },
       { id: 'no',  name: 'Off', tag: 'NONE',
-        desc: 'No boss rounds. A quarter still closes on its last round and still pays the prize grid, it is just an ordinary round that closes it.' },
+        desc: `No boss rounds. A quarter still closes on its last round and still pays the ${gridName('prize')}, it is just an ordinary round that closes it.` },
     ],
   },
   {
@@ -197,7 +197,7 @@ function pickerActive() { return !!(typeof ACTIVE_MODE !== 'undefined' && ACTIVE
 function pickerSummaryLine(c) {
   c = c || pickerChoice;
   const deck = c.deck === 'spectrum' ? 'Spectrum' : c.deck === 'six' ? 'Six suits' : 'Four suits';
-  const rew  = c.reward === 'pick3' ? 'pick of three' : c.reward === 'slots' ? 'eight slots' : 'reward grid';
+  const rew  = c.reward === 'pick3' ? 'pick of three' : c.reward === 'slots' ? 'eight slots' : gridName('reward');
   const bits = [deck, rew];
   if (c.clock !== 'standard') bits.push(c.clock === 'none' ? 'no clock' : PICKER_CLOCK_SECONDS[c.clock] / 60 + ':00 rounds');
   if (c.bosses === 'no') bits.push('no bosses');

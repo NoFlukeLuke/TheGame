@@ -321,7 +321,7 @@ const TUTORIAL_STEPS = [
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Your schedule',
-    body: `Your day runs top to bottom through four <b>time slots</b>. Each line is one <b>obligation</b>: a round, a shop, an event, a reward board.<br><br>The line at the bottom is the <b>manager review</b>.`,
+    body: `Your day runs top to bottom through four <b>time slots</b>. Each line is one <b>obligation</b>: a round, a shop, an event, ${gridName('reward', { a: true })}.<br><br>The line at the bottom is the <b>manager review</b>.`,
   },
   {
     // r662: the legend is the DISCARD key while the schedule is up (js/map-mode.js mapKeysSync).
@@ -496,7 +496,7 @@ const TUTORIAL_STEPS = [
     id: 'tooltips', anchor: () => tutEl('#grid'), side: 'left', hold: true, next: true,
     eyebrow: 'Reading the game',
     title: 'Reading anything on screen',
-    body: `Hover with a mouse, or tap on a phone. That works on a {trick} in your tray, a {knack} chip, and any tile on a reward board or in the shop.<br><br>On the play board a tap selects a card, so press and hold there instead.`,
+    body: `Hover with a mouse, or tap on a phone. That works on a {trick} in your tray, a {knack} chip, and any tile on the ${gridName('reward')} or in the shop.<br><br>On the play board a tap selects a card, so press and hold there instead.`,
   },
   {
     // r284: limits are where most upgrades land, and the word meant nothing.
@@ -605,14 +605,14 @@ const TUTORIAL_STEPS = [
     // Let the tiles finish dealing in - `rewardDealing` also gates
     // onRewardCellClick, so showing earlier would invite taps that do nothing.
     when: () => tutRewardOpen() && !rewardDealing,
-    eyebrow: 'Rewards',
+    eyebrow: gridName('reward', { bare: true }),
     title: 'You are picking a path',
     body: `Choose a connected run of tiles and you get <b>every tile on it</b>.<br><br>Gold tiles help you. Red tiles hurt.<br><br>Tap any tile to read it. Tapping one you cannot reach costs you nothing.`,
   },
   {
     id: 'pick-trick', anchor: () => tutRewardCell(tutorialRewardPlan?.trick), side: 'left', gate: true,
     only: 'rewardgrid',
-    eyebrow: 'Rewards',
+    eyebrow: gridName('reward', { bare: true }),
     title: 'Start here',
     body: `<b>Tap this tile.</b>`,
     until: () => tutRewardPicked(tutorialRewardPlan?.trick),
@@ -620,7 +620,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'pick-debuff', anchor: () => tutRewardCell(tutorialRewardPlan?.debuff), side: 'left', gate: true,
     only: 'rewardgrid',
-    eyebrow: 'Rewards',
+    eyebrow: gridName('reward', { bare: true }),
     title: 'The bad tile',
     body: `The path has to run through this one. <b>Tap it.</b>`,
     until: () => tutRewardPicked(tutorialRewardPlan?.debuff),
@@ -628,7 +628,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'pick-dest', anchor: () => tutRewardCell(tutorialRewardPlan?.dest), side: 'left', gate: true,
     only: 'rewardgrid',
-    eyebrow: 'Rewards',
+    eyebrow: gridName('reward', { bare: true }),
     title: 'Where you go next',
     body: `This tile sends you to the <b>shop</b>. <b>Tap it.</b><br><br>Your Selection Size caps how many tiles one path can take.`,
     until: () => tutRewardPicked(tutorialRewardPlan?.dest),
@@ -636,7 +636,7 @@ const TUTORIAL_STEPS = [
   {
     id: 'reward-confirm', anchor: () => tutEl('#btn-play'), side: 'left', gate: true,
     only: 'rewardgrid',
-    eyebrow: 'Rewards',
+    eyebrow: gridName('reward', { bare: true }),
     title: 'Confirm',
     body: `Press <b>CONFIRM</b> to take the path.`,
     until: () => !tutRewardOpen(),

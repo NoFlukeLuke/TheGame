@@ -128,7 +128,7 @@ const FLOWR_KINDS = {
   // r409: the post-boss PRIZE GRID as a chain step. It is never ROLLED - it is
   // only ever placed first in a boss chain - so it is kept out of
   // FLOWR_KIND_IDS, which is what the odds tables and the dev panel walk.
-  prize:    { label: () => 'PRIZE GRID', short: 'PRIZE',    color: '#ffc94a' },
+  prize:    { label: () => gridName('prize', { caps: true }), short: () => gridName('prize', { bare: true, caps: true }), color: '#ffc94a' },
   // r677: a challenge card's Card buffs stage 2 (js/challenge-rewards.js). Never rolled either.
   cardpick: { label: () => 'BUFF CARDS', short: 'BUFF',     color: '#9be36b' },
 };
@@ -1694,6 +1694,26 @@ function flowrLocPaint() {
     t.style.left = (i * sp * 100).toFixed(2) + '%'; t.style.width = (wp * 100).toFixed(2) + '%';
     if (i) t.firstChild.style.maxWidth = `calc(100% * ${sp.toFixed(4)} / ${wp.toFixed(4)} - 8px)`;
   });
+  // r706: a long name on a narrow front tile (BENEFITS PACKAGE with 3+ steps) is
+  // fitted once the row is laid out: its type steps down on one line and on two,
+  // and whichever is bigger wins.
+  const curB = box.querySelector('.loc-cur b');
+  if (curB) requestAnimationFrame(() => flowrLocFitName(curB));
+}
+function flowrLocFitName(b) {
+  if (!b.isConnected) return;
+  const st = b.style;
+  const oneLine = () => { st.whiteSpace = st.lineHeight = st.textAlign = ''; };
+  st.fontSize = st.letterSpacing = ''; oneLine();
+  const cs = getComputedStyle(b), base = parseFloat(cs.fontSize) || 17, ls0 = parseFloat(cs.letterSpacing) || 0;
+  const fits = () => b.scrollWidth <= b.clientWidth + 0.5 && b.offsetHeight <= b.parentNode.clientHeight + 0.5;
+  const size = px => { st.fontSize = px + 'px'; st.letterSpacing = (ls0 * px / base).toFixed(2) + 'px'; };
+  const shrink = () => { let px = base; size(px); while (!fits() && px > 7) size(--px); return fits() ? px : 0; };
+  if (fits()) return;
+  const one = shrink();
+  st.whiteSpace = 'normal'; st.lineHeight = '1'; st.textAlign = 'center';
+  const two = shrink();
+  if (one >= two) { oneLine(); size(one || 7); }
 }
 
 // The queue walk: each step left takes the front of the row in turn, its name on

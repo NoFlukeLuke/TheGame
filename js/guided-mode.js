@@ -141,7 +141,7 @@ function guidedMakeOffer(kind) {
   const P = k => guidedStopPrice(k);
   if (kind === 'level')  return { kind, icon:'▶', name:'Play a round',
     desc:'Clear the goal and take the payout. This is how you earn.', price:0 };
-  if (kind === 'reward') return { kind, icon:'▦', name:'Reward grid',
+  if (kind === 'reward') return { kind, icon:'▦', name:gridName('reward', { bare: true }),
     desc:'Pick a path across the board and take everything on it.', price:P('reward') };
   if (kind === 'shop')   return { kind, icon:'🛒', name:'The Shop',
     desc:'Buy Tricks, Sleights, Knacks and limit upgrades.', price:P('shop') };

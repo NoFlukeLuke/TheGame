@@ -2667,7 +2667,7 @@
      the hand-preview slot becomes the shop cost/discount readout. ── */
   #screen-location { display:none; flex:1 1 auto; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
   #screen-location .loc-tag  { font-family:'Orbitron',sans-serif; font-size:7px; letter-spacing:2px; color:var(--cream-dim); text-transform:uppercase; }
-  #screen-location .loc-name { font-family:'Orbitron',sans-serif; font-weight:900; font-size:17px; letter-spacing:3px; text-transform:uppercase; color:var(--cream); }
+  #screen-location .loc-name { font-family:'Orbitron',sans-serif; font-weight:900; font-size:17px; letter-spacing:3px; text-transform:uppercase; color:var(--cream); text-align:center; max-width:100%; }
   #screen-location.tone-reward .loc-name { color:var(--c-mint);   text-shadow:0 0 12px rgba(53,213,155,0.55); }
   #screen-location.tone-shop   .loc-name { color:var(--phosphor); text-shadow:0 0 12px rgba(255,176,46,0.55); }
   body.grid-screen #score-subboxes .score-subbox,

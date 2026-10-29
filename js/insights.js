@@ -184,7 +184,7 @@ const INSIGHTS = [
 
   { id: 'prize_grid', screen: 'any', title: 'Nothing here is a liability',
     anchor: ['#grid'],
-    body: 'A prize grid is smaller than a reward grid. Every cell on it is a reward, and nothing common is on the board.',
+    body: `${gridName('prize', { a: 'A' })} is smaller than ${gridName('reward', { a: true })}. Every cell on it is a reward, and nothing common is on the board.`,
     when: () => typeof rewardOnGrid !== 'undefined' && rewardOnGrid
              && typeof rewardGridMode !== 'undefined' && rewardGridMode === 'prize' },
 

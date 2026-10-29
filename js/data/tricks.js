@@ -178,7 +178,7 @@ const TRICK_POOL = [
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+6 mult for every distinct hand type played this round', tags:['mult','hand','scores'] },
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      retired:true, tags:['retrigger','hand','tricks'], desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered' },
   // ── Reward-grid meta (r128) ──
-  { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','hand','reward','scores','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +9 mult to this trick' },
+  { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','hand','reward','scores','scaling'], desc:`Each ${gridName('reward')} where you select 3+ tiles permanently adds +9 mult to this trick` },
   { id:'rain_check',     name:'Rain Check',          tier:'epic',      retired:true, tags:['time','other','reward'],           desc:'Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)' },
   // ── Time / position (r128) ──
   { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['retrigger','card','position','tricks'], desc:'A card scored where a row and column effect intersect force triggers the Trick in position 3' },

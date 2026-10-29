@@ -229,7 +229,7 @@ function mapLegendRows() {
     rows.push({ cls: m.cls, icon: m.icon || '·', name: m.name || m.full, full: m.full, blurb: m.blurb || '' });
   }
   if (seen.has('mk-mystery')) rows.push({ cls: 'mk-mystery', icon: '?', name: '???', full: 'Unconfirmed',
-    blurb: 'A round, an audit, a priority account, an event, a one-on-one or a reward grid. You find out when you commit to it.' });
+    blurb: `A round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.` });
   return rows;
 }
 

@@ -659,7 +659,7 @@ function crCollect(cd) {
   if (q.src === 'seq' && crRound) {
     const left = CR_CARDS - crRound.solved;
     showMessage(left > 0 ? `⚑ Challenge ${crRound.solved}/${CR_CARDS} done · ${said}`
-                         : `⚑ All ${CR_CARDS} challenges done · ${said} · prize grid earned`, 'var(--gold)');
+                         : `⚑ All ${CR_CARDS} challenges done · ${said} · ${gridName('prize')} earned`, 'var(--gold)');
   } else showMessage(`⚑ Challenge done · ${said}`, 'var(--gold)');
   crQueue.push(cd._id);
   setTimeout(crDrain, crFxOn('take') ? 900 : 700);   // r677: the stamp is read before it goes
