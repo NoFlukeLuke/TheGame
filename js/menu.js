@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r710 · the preview button is SPEED UP then SKIP (the blast); the Tricks tray stays in its box";
+const BUILD = "2026-10-29 · r711 · design draft: the corporate rename sweep (RENAMES.md)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
