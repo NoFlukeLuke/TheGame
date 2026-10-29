@@ -34,6 +34,7 @@ superseded is history, not current code. The other reference docs:
 | `UNLOCKS.md` | every Trick's unlock goal, the Licensing and lore events, the unique goals awaiting the owner's verdict (r706) |
 | `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round, the challenge knacks; built r671-r685 |
 | `RENAMES.md` | the corporate rename sweep (r711, r714): phrase bank, six languages, proposed names, the Inseparable synergy review, the id sweep plan, the owner's answers. `RENAMES.xlsx` is the review sheet; draft |
+| `SELF_IMPROVEMENT.md` + `.xlsx` | the meta shop (r715): token tree, Morning Routine / Breakfast / Lunch picks, base nerfs; draft, the sheet is for the owner to fill in |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |

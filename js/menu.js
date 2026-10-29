@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r714 · RENAMES.xlsx: the rename review sheet (Tricks, Knacks, Sleights, fused pairs, foreign phrases)";
+const BUILD = "2026-10-29 · r715 · design draft: Self-Improvement, the meta shop (SELF_IMPROVEMENT.md + .xlsx)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
