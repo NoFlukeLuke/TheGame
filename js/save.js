@@ -80,7 +80,7 @@ const SAVE_VARS = [
   // goal stayed up with the bonus unreachable. A mini-boss re-arms from
   // startRoundTimer on resume.
   'guidedPendingChallenge', 'guidedActiveChallenge', 'roundQuota', 'crRound', 'crArmed', 'crFlow', 'crSpot', 'crHandPlays',
-  'crPending', 'crInterestBoost', 'crBossGoalMult', 'crFocusMute', 'crGridBonus', 'mapDepts', 'chgLevel', 'chgTrickForm',
+  'crPending', 'crInterestBoost', 'crBossGoalMult', 'crFocusMute', 'crGridBonus', 'crScreens', 'mapDepts', 'chgLevel', 'chgTrickForm',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──

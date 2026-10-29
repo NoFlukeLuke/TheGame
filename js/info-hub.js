@@ -320,7 +320,7 @@ const INFO_TOPICS = [
 
   { id: 'skip_cost', group: 'schedule', title: 'Long lunch',
     body: [
-      'Leave a slot after taking only one obligation and you take a long lunch: one perk, most often the department\'s own. Tap LONG LUNCH on the bar to see which. The goal still moves on as if you had booked the slot.',
+      'Leave a slot after taking only one obligation and you take a long lunch: one perk, the department\'s own more often than the rest. Tap LONG LUNCH on the bar to see which. The goal still moves on as if you had booked the slot.',
       'The perks: Sleight charges, a permaprime (a Trick fires twice every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
     ] },
 

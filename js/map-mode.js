@@ -225,16 +225,21 @@ function mapRollBlanks() {
   }
   return MAP_BLANKS_MAX;
 }
-// r706 (owner): a review asks a FIXED level of the curve: quarter q's review is
-// level `wide` x q on the 4 x 4 (8, 16, 24, 32) and `tall` x q on the 3 x 6 (7, 14,
-// 21, 28), whatever the walk did. Events and tiles that move a review (a Boss goal
+// r706 (owner): a review asks a FIXED level of the curve: Q1's review is level
+// `wide` (8) on the 4 x 4 and `tall` (7) on the 3 x 6, later quarters step on with
+// the walk (mapReviewLevel), whatever the walk did. Events and tiles that move a review (a Boss goal
 // reward, Overtime's tough reviews) still apply on top. `lift` multiplies the goal
 // (1 = the plain level goal). Before r706 the quota was the opening level's goal
 // x 1.30^5.5, so every booking skipped made every later review cheaper.
 const MAP_REVIEW_LEVEL = { wide: 8, tall: 7, lift: 1 };
+// Q1 is the owner's number; every later quarter adds one quarter of the walk
+// (its bookings plus the review's own level-up: 9 on the 4 x 4, 7 on the 3 x 6),
+// so the review keeps the same place against the rounds before it: 8 / 17 / 26 /
+// 35 wide, 7 / 14 / 21 / 28 tall.
 function mapReviewLevel(q) {
-  const per = mapSlotCap() === 1 ? MAP_REVIEW_LEVEL.tall : MAP_REVIEW_LEVEL.wide;
-  return per * Math.max(1, q || (typeof actNumber === 'number' ? actNumber : 1));
+  const first = mapSlotCap() === 1 ? MAP_REVIEW_LEVEL.tall : MAP_REVIEW_LEVEL.wide;
+  const n = Math.max(1, q || (typeof actNumber === 'number' ? actNumber : 1));
+  return first + (n - 1) * (MAP_SETS * mapSlotCap() + 1);
 }
 // The Schedule's per-level goal growth, percent. Its own number because the
 // Schedule advances `level` about twice as fast as Classic advances per played
@@ -460,14 +465,14 @@ function mapTileSoonest(t, legalIds) {
 }
 // The goal a round tile asks if it is your k-th booking from now. Round 1 rides
 // startGame's own deal, so the run's first booking does not level up.
-function mapGoalPreview(t, k) {
+function mapGoalPreview(t, k, now) {
   if (!mapFirstRoundDone && k === 1) return roundGoal;
   const lv = level + k - (mapFirstRoundDone ? 0 : 1);
   let g = goalForLevel(lv);
   if (goalPenaltyMult > 1) g = Math.round(g * goalPenaltyMult / 50) * 50;
   const gm = (t.kind === 'challenge' && !t.audit) ? (t.challenge?.goalMult || 1) : 1;
   if (gm !== 1) g = Math.round(g * gm / 50) * 50;
-  if (k === 1) { const a = mapAltarNextMult(); if (a !== 1) g = Math.max(50, Math.round(g * a / 50) * 50); }
+  if (k === 1 || now) { const a = mapAltarNextMult(); if (a !== 1) g = Math.max(50, Math.round(g * a / 50) * 50); }
   return g;
 }
 function mapNum(n) {
@@ -482,10 +487,11 @@ function mapTileStake(t, legalIds) {
   if (!k) return null;
   switch (t.kind) {
     case 'level': case 'challenge': {
-      const g = mapGoalPreview(t, k);
+      const now = !!(legalIds && legalIds.has(t.id));   // bookable now: the count is exact
+      const g = mapGoalPreview(t, k, now);
       // r690: a priority account (and a one-on-one) pays the reward board; its line says how long a path.
       const path = (t.kind === 'challenge' && !t.audit) ? `PATH OF ${mapRewardPath()}` : null;
-      return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 ? '+' : ''}`, path, goal: g, k };
+      return { short: `${mapGoalWord()} ${mapNum(g)}${k > 1 && !now ? '+' : ''}`, path, goal: g, k };
     }
     case 'shop':       return { short: creditsTxt(coins) };
     case 'reward':     return { short: `PATH OF ${mapRewardPath()}` };
@@ -1205,7 +1211,7 @@ function mapTileTap(t) {
 const MAP_HELP = [
   ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
   ['Two a slot', 'A time slot will book you for two obligations at most.'],
-  ['Long lunch', 'Leaving a slot after only one obligation is a long lunch: a perk, most often the department\u2019s (tap LONG LUNCH on the bar). The goal still moves on as if you had booked.'],
+  ['Long lunch', 'Leaving a slot after only one obligation is a long lunch: a perk, the department\u2019s own more often than the rest (tap LONG LUNCH on the bar). The goal still moves on as if you had booked.'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
@@ -1214,7 +1220,7 @@ const MAP_HELP_PICK = [
   ['Pick', 'Take any lit obligation in this time slot or the next. Everything you take happens.'],
   ['Two a slot', 'Book any two obligations in a slot, next to each other or not. Then move on.'],
   ['Moving on', 'You can start the next slot on any obligation in it.'],
-  ['Long lunch', 'Leaving a slot after only one obligation is a long lunch: a perk, most often the department\u2019s (tap LONG LUNCH on the bar). The goal still moves on as if you had booked.'],
+  ['Long lunch', 'Leaving a slot after only one obligation is a long lunch: a perk, the department\u2019s own more often than the rest (tap LONG LUNCH on the bar). The goal still moves on as if you had booked.'],
   ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there.'],
 ];
@@ -1548,11 +1554,16 @@ function mapConfirm() {
   if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()) {
     for (let n = mapSlotCap() - move.from.visits; n > 0; n--) guidedAdvanceCurve();
   }
+  // A two-slot tile is booked in its SECOND slot (mapPickMoves), so the slot it
+  // starts in is passed with nothing booked: it moves the curve a full slot.
+  if (t.span === 2 && move.after && (!move.from || move.after.set > move.from.set + 1)) {
+    for (let n = mapSlotCap(); n > 0; n--) guidedAdvanceCurve();
+  }
   if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
     // r706 (owner): a long lunch, one perk from js/skip-perks.js, the department's
-    // own most often (r673 paid the department's Standard reward).
+    // own more often (r673 paid the department's Standard reward).
     const said = (typeof longLunch === 'function') ? longLunch() : (coins += 10, updateCoinsUI?.(), '+10 credits');
     showMessage(`Long lunch · ${said}`, 'var(--gold)');
   }
@@ -1675,6 +1686,9 @@ function mapAfterLevel() {
   const done = () => mapOpen();
   if (!mapPos) { done(); return; }   // resumed pre-map edge: straight back to the map
   const t = mapTiles.find(x => x.id === mapPosTileId);
+  // r706: a round that fills its slot (Q1's whole-row opener) is that many
+  // bookings, so it moves the curve that many levels; the round itself took one.
+  if (t && !t._lvFill && mapTileBookings(t) > 1) { t._lvFill = true; level += mapTileBookings(t) - 1; }
   // An audit (js/challenge-round.js) pays no prize grid (owner, r666). crTakePrize
   // is still called so the round's state is cleared.
   if (typeof crTakePrize === 'function') crTakePrize();

@@ -123,7 +123,7 @@ const PROB_TABLES = [
     how: '0 switches the share off. The offer lean is on top of the matches a plain draw already finds.',
     rows: () => _ptObjRows(DEPT_CFG, { eventPct: 'Events from its pool, %', leanPct: 'Offers leaning to its focus, %' }).filter(r => r.k === 'eventPct' || r.k === 'leanPct') },
   { id: 'lunch', group: 'Schedule map', type: 'w', title: 'Long lunch perks',
-    desc: 'What leaving a Schedule slot after one obligation pays (js/skip-perks.js), rolled when you leave. A perk that cannot land right now is not rolled. The quarter\u2019s department makes its own perk "Department\u2019s own, x" times as likely (Accounting credits, HR charges, Operations stock, IT path, R&D permaprime, Marketing card buffs, Legal a picked improvement, Sales a random improvement).',
+    desc: 'What leaving a Schedule slot after one obligation pays (js/skip-perks.js), rolled when you leave. A perk that cannot land right now is not rolled. The quarter\u2019s department makes its own perk more likely (Department leans, "Own long lunch perk, x") (Accounting credits, HR charges, Operations stock, IT path, R&D permaprime, Marketing card buffs, Legal a picked improvement, Sales a random improvement).',
     how: 'Ratios. The player sees only the department\u2019s perk and its chance, never this table.',
     rows: () => _ptObjRows(LUNCH_W, { charges: '+5 Sleight charges', permaprime: 'Permaprime a random Trick', stock: '+1 swap, +1 discard for good',
       path: '+2 path, next grid', cardbuff: '3 deck cards buffed', improve: 'A random improvement', credits: '+10 to 20 credits', pick: 'An improvement you pick' }) },

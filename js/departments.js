@@ -116,5 +116,5 @@ function deptHelpRow() {
     ? `Up to ${MAP_REWARD_MAX} ${deptTileWord(d)} obligations` : `More ${deptTileWord(d)} obligations`;
   return [d.name, `This quarter's department. ${tiles}, and offers lean to ${d.focusWord}. `
     + `Challenge cards: ${crrSay(d.pay.std, 0)}. Hard ones: ${crrSay(d.pay.hard, 0)}.`
-    + (mapSlotCap() > 1 && typeof lunchLikely === 'function' && lunchLikely() ? ` Long lunch: most often ${lunchLikely().say}.` : '')];
+    + (mapSlotCap() > 1 && typeof lunchLikely === 'function' && lunchLikely() ? ` Long lunch: ${lunchLikely().say} is its own perk.` : '')];
 }

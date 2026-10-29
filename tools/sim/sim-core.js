@@ -367,8 +367,8 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
       }
     }
     // boss: the fixed review level (r706), as the game asks it (the quota alone)
-    const per = (typeof MAP_REVIEW_LEVEL !== 'undefined') ? MAP_REVIEW_LEVEL.wide : 8;
-    roundGoal = Math.round(goalFn(per * q) * (bossMult || 1) / 500) * 500;
+    const lv = (typeof mapReviewLevel === 'function') ? mapReviewLevel(q) : 8 + 9 * (q - 1);
+    roundGoal = bossMult ? Math.round(goalFn(lv) * bossMult / 500) * 500 : goalFn(lv);
     const res = SIM_playRound();
     if (!res.cleared) return { win: false, diedLevel: level, boss: true, diag: SIM_diag(res) };
     // prize grid

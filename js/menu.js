@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r705 · the tall Schedule's reviews need four; a mystery counts for both";
+const BUILD = "2026-10-29 · r706 · reviews at a fixed level, the long lunch, permaprime, Restructuring, Cost-Benefit and Benefits Package";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -101,6 +101,8 @@ function inseparableFuse(pair) {
   const fused = { ...def };
   if (Object.keys(carry).length) fused._carry = carry;
   if (Object.keys(countAdj).length) fused._countAdj = countAdj;
+  // r706: a permaprime (`_rank`) is for good, so the fused Trick keeps both parts'.
+  const rk = (pa._rank || 0) + (pb._rank || 0); if (rk) fused._rank = rk;
   trickTray.splice(at, 0, fused);
   // A fused line Trick keeps the line of the part that had one (the first by tray order).
   const lineOf = (typeof POSITION_ASSIGN_IDS !== 'undefined' && POSITION_ASSIGN_IDS.includes(fused.id)) ? [pa, pb].find(x => x && x._posAxis != null) : null;

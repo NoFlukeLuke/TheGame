@@ -29,6 +29,7 @@ function _lunchTricks() { return (typeof trickTray !== 'undefined' ? trickTray :
 
 const LUNCH_PERKS = {
   charges: {
+    noun: `+${LUNCH_CHARGES} Sleight charges`,
     say: `+${LUNCH_CHARGES} Sleight charges`, short: `+${LUNCH_CHARGES} CHARGES`,
     can: () => _lunchSleights().some(c => (c._usesLeft || 0) < sleightCapOf(c)),
     // One at a time to the Sleight with the fewest left, never past its cap.
@@ -46,6 +47,7 @@ const LUNCH_PERKS = {
     },
   },
   permaprime: {
+    noun: 'a permaprime',
     say: 'a random Trick is permaprimed', short: 'PERMAPRIME',
     can: () => _lunchTricks().length > 0,
     give() {
@@ -55,6 +57,7 @@ const LUNCH_PERKS = {
     },
   },
   stock: {
+    noun: '+1 swap and +1 discard for good',
     say: '+1 swap and +1 discard every round', short: '+1 SWAP +1 DISCARD',
     can: () => ['swaps', 'discards'].some(id => limits[id] && limits[id].current < limits[id].max),
     // Permanent: the two limits. A two-limit grant knocks on once (Knock-On).
@@ -64,22 +67,26 @@ const LUNCH_PERKS = {
     },
   },
   path: {
+    noun: '+2 path on the next grid',
     get say() { return `+2 path on your next ${gridName('reward')}`; }, short: '+2 PATH',
     // Never stacks: one waiting bonus at a time.
     can: () => typeof crGridBonus === 'undefined' || crGridBonus <= 0,
     give() { return crrGrant('grid', 1, { live: false }); },
   },
   cardbuff: {
+    noun: '3 card buffs',
     say: '3 random deck cards take a buff', short: '3 BUFFS',
     can: () => CRR.cardbuff.can(0),
     give() { return crrGrant('cardbuff', 0, { live: false }); },
   },
   improve: {
+    noun: 'a random improvement',
     say: 'a random improvement', short: '+1 TIER',
     can: () => CRR.improve.can(0),
     give() { return crrGrant('improve', 0, { live: false }); },
   },
   credits: {
+    noun: `${LUNCH_CREDITS[0]} to ${LUNCH_CREDITS[1]} credits`,
     say: `+${LUNCH_CREDITS[0]} to ${LUNCH_CREDITS[1]} credits`, short: `+${creditsTxt(LUNCH_CREDITS[0])}-${LUNCH_CREDITS[1]}`,
     can: () => true,
     give() {
@@ -89,6 +96,7 @@ const LUNCH_PERKS = {
     },
   },
   pick: {
+    noun: 'an improvement of your choice',
     say: 'an improvement of your choice', short: '+1 TIER (PICK)',
     can: () => CRR.improve.can(1),
     give() { return crrGrant('improve', 1, { live: false }); },
@@ -103,14 +111,20 @@ function lunchWeights() {
   return w;
 }
 // The department's perk and its chance, as the bar and the ? card print it.
+// Its chance is over the perks that can land right now (what longLunch rolls).
 function lunchLikely() {
   const own = lunchDeptPerk(); if (!own) return null;
-  const w = lunchWeights(), sum = Object.values(w).reduce((a, b) => a + b, 0);
-  return { id: own, say: LUNCH_PERKS[own].say, short: LUNCH_PERKS[own].short, pct: Math.round(100 * w[own] / sum) };
+  const w = lunchWeights(), can = id => LUNCH_PERKS[id].can();
+  const sum = Object.keys(LUNCH_PERKS).filter(can).reduce((a, id) => a + (w[id] || 0), 0);
+  const ok = can(own);
+  return { id: own, say: LUNCH_PERKS[own].noun, short: LUNCH_PERKS[own].short, ok, pct: ok && sum ? Math.round(100 * w[own] / sum) : 0 };
 }
 function lunchLikelySay() {
   const L = lunchLikely();
-  return L ? `Long lunch in ${mapDept().name}: most often ${L.say} (${L.pct}%).` : 'Long lunch: a random perk.';
+  if (!L) return 'Long lunch: a random perk.';
+  const name = mapDept().name;
+  return L.ok ? `Long lunch in ${name}: ${L.say}, ${L.pct}% of the time.`
+              : `Long lunch in ${name}: ${L.say} cannot happen now, so a random perk.`;
 }
 
 // Roll and pay. Returns the line the notice prints.

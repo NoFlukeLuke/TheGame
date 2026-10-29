@@ -27,6 +27,8 @@ function render() {
   // over the shelves: the owner's "the cards peek through the shop". renderShopGrid is
   // the only thing that paints there; the buttons and counts below are the shop's too.
   if (typeof shopGridActive !== 'undefined' && shopGridActive) return;
+  // r706: nor does it draw cards under the Schedule (its gridRows x gridCols are the map's).
+  if (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) return;
   // r675: a rule Sleight that has just landed goes inert and states its rule,
   // before the faces are drawn (rule_ranks prints its named ranks).
   if (typeof chgScan === 'function') chgScan();   // r676: a Floater that lands unchanged changes now
