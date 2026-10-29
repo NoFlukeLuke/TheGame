@@ -419,3 +419,32 @@ match their names.
    to build?
 3. The foreign phrases: names in their own script, romanized, or English with the original
    in the tooltip?
+
+---
+
+## 9. The owner's answers (r714) and the review sheet
+
+**RENAMES.xlsx** (root) is the review sheet, built from the live game at r713: every Trick
+(167 plus 23 fused), Knack (87) and Sleight (53) with its current name, a proposed name, a second
+choice, a foreign option where one fits, and yellow YOUR PICK / NOTES columns; the fused pairs
+with their verdict and proposed bonus (BUILD THE BONUS? YES / NO); the 60 foreign phrases with a
+pronunciation each. Sections 4 to 6 above are superseded by the sheet where they differ (r712
+renamed or reworked several Tricks: One Twain, To The Nines, Nickel Saved, Cornery, To the Clouds).
+
+1. **Knacks and Sleights are in.** Knacks (Certs) lean on skills, traits and trainings
+   (Delegation, Decisiveness, Lateral Thinking, Stretch Goal). Sleights (Vendors) take realish
+   80s company names built from real words (Copymatic, Holdco, QuikCash, Savings & Loan). Harvest
+   and Trade Winds keep their names.
+2. **The four line pairs keep both lines.** Fusion bonuses are welcome; a change to how pauses
+   work is not one, so Flood's proposal is now a 1s rewind on each pause it makes. The two loose
+   pairs (Relativity, Working Class) are replaced after the names settle.
+3. **Foreign names are shown in their own script, with the English pronunciation in the tooltip.**
+4. **A wording pass:** descriptions that say "Trick" should read Utility (or **Util.** where the
+   space is tight) in the corporate wording. Today `lexProse` swaps only pips and mult. The plan:
+   add trick / sleight / knack to the corporate prose swaps (Utility / Vendor / Cert), guard the
+   entity names that contain the words (Old Tricks, Magician's text), and use Util. where a
+   measured box is short.
+
+Order from here: the owner fills the sheet; the names land (display strings, v6 names, every
+text that prints an old name); the approved fusion bonuses and both-lines rule are built; the
+wording pass; the loose pairs are replaced; then the id sweep (section 7).

@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r713 · boss briefs state the mechanic and stop";
+const BUILD = "2026-10-29 · r714 · RENAMES.xlsx: the rename review sheet (Tricks, Knacks, Sleights, fused pairs, foreign phrases)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
