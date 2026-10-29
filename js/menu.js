@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r709 · every Trick undiscovered, One Trick away, win tokens, a tracked goal on the printer, Crowns and Crescents";
+const BUILD = "2026-10-29 · r710 · the preview button is SPEED UP then SKIP (the blast); the Tricks tray stays in its box";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

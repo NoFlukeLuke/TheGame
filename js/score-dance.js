@@ -305,7 +305,8 @@ let dncGoalLive = false;
 // The goal hand's animation is the longest thing in the game - a two-second
 // jitter, the blast, the fly-in, and then the whole tally - and a player on
 // their tenth run has already seen it. `#dnc-ff` is mounted into the hand
-// preview for the GOAL HAND ONLY and skips the rest of it.
+// preview for the GOAL HAND ONLY and skips the rest of it. (Since the owner's
+// SPEED UP / SKIP pass every hand has it; see dncButtonPress below.)
 //
 // **IT IS NOT AN ABORT, and that is the whole design.** cancelDance() cuts the
 // presentation and leaves handleDanceAbort to pick up the pieces, which for a
@@ -321,7 +322,33 @@ let dncGoalLive = false;
 // Both are emptied per dance by dncResetFF, so nothing leaks into the next hand.
 let dncFFWaiters = [];
 let dncFFCuts = [];
-function dncResetFF(){ dncFF = false; dncFFWaiters = []; dncFFCuts = []; }
+function dncResetFF(){ dncFF = false; dncFFWaiters = []; dncFFCuts = []; dncUserPace = 1; dncSkipReq = false; dncBeatsDone = false; }
+// ── SPEED UP, then SKIP (owner) ──────────────────────────────────────────────
+// Every hand's preview carries the button. The first press doubles this hand's
+// pace (dncUserPace, read by dncPace). The second press SKIPS: while the card
+// beats are still to come it cuts them, and the hand blasts (js/score-blast.js,
+// the look a hand in front of a waiting winner plays); a fly-in or a winner's
+// jitter still running is landed at once first. After the beats, or with the
+// blast off, it is the old fast forward (dncRequestFF).
+let dncUserPace = 1, dncSkipReq = false, dncBeatsDone = false;
+function dncUserBoost(){ return dncUserPace; }
+function dncButtonPress(){
+  const btn = document.getElementById('dnc-ff');
+  if(dncUserPace === 1 && !dncFF && !dncSkipReq){
+    dncUserPace = 2;
+    if(btn){ btn.classList.add('ff-fast'); btn.innerHTML = '<span class="ff-gl">\u25B6\u25B6|</span><span class="ff-lab">SKIP</span>'; btn.title = 'Skip the rest of this hand'; }
+    return;
+  }
+  if(dncBeatsDone || !(typeof blastOn === 'function' && blastOn())){ dncRequestFF(); return; }
+  if(dncSkipReq) return;
+  dncSkipReq = true;
+  if(btn) btn.classList.add('ff-on');
+  // Land what is in the air (a fly-in, the winners' trip) without the fast forward's speed.
+  const cuts = dncFFCuts; dncFFCuts = [];
+  cuts.forEach(fn => { try{ fn(); }catch(e){} });
+  const waits = dncFFWaiters; dncFFWaiters = [];
+  waits.forEach(res => { try{ res(); }catch(e){} });
+}
 function dncFFSignal(){ return dncFF ? Promise.resolve() : new Promise(res => dncFFWaiters.push(res)); }
 // Registering AFTER the button has been pressed runs the cut immediately - that
 // is what makes the finale's steps safe to write in order without each one
@@ -347,9 +374,10 @@ function dncRequestFF(){
 function dncMountFF(stage){
   if(!stage || document.getElementById('dnc-ff')) return;
   const b = document.createElement('button');
-  b.id = 'dnc-ff'; b.type = 'button'; b.title = 'Skip the rest of this animation';
-  b.innerHTML = '<span class="ff-gl">▶▶</span><span class="ff-lab">SKIP</span>';
-  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); dncRequestFF(); });
+  b.id = 'dnc-ff'; b.type = 'button'; b.title = 'Score this hand twice as fast';
+  b.innerHTML = '<span class="ff-gl">▶▶</span><span class="ff-lab">SPEED UP</span>';
+  if(dncFF) b.classList.add('ff-on');
+  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); dncButtonPress(); });
   stage.appendChild(b);
 }
 
@@ -1299,10 +1327,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
   dncQueueLayout();   // r661: the queue's strips anchor on this hand's first card
   dncRealEls = entityEls.slice();
-  // The goal hand gets a SKIP in the preview, live from the first frame of the
-  // jitter (r280). Only the goal hand: it is the one animation long enough to be
-  // worth skipping, and the one that ends the round.
-  if(isGoalHand) dncMountFF(stage);
+  // Every hand gets SPEED UP / SKIP in the preview, live from its first frame (owner;
+  // r280 gave the goal hand alone a SKIP).
+  dncMountFF(stage);
   // Settings -> Skip (r380). The SAME dance at the skip speed - dncRequestFF is
   // the goal hand's own SKIP, which lands the same numbers in the same order.
   if (typeof skipOn === 'function' && (skipOn('scoring') || (isGoalHand && skipOn('finale')))) dncRequestFF();
@@ -1344,7 +1371,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     //    first, so the board empties outward and fills back inward.
     //    A fast forward taken during the jitter skips the blast outright rather
     //    than starting one and cancelling it a frame later.
-    if(!dncFF){
+    if(!dncFF && !dncSkipReq){
       sfxWinExplode();
       const C = WIN_BLAST_CFG;
       // dncPace() IS the Scoring speed setting at this point, which is why the
@@ -1402,7 +1429,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
       const go = dur => { if(aborted()) return; flyGridCardToSlot(gEl, slot, dur, i); };
-      if(dncFF){ go(0); return; }                       // already skipping: straight into the slot
+      if(dncFF || dncSkipReq){ go(0); return; }         // already skipping: straight into the slot
       const entry={ go };
       entry.t=setTimeout(()=>{ const k=flyQueue.indexOf(entry); if(k>=0) flyQueue.splice(k,1); go(GF_DUR); }, GF_LEAD + i*GF_STEP);
       flyQueue.push(entry);
@@ -1635,7 +1662,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // r670: a hand in front of a waiting winner (dncGoalJump) skips the rest of its beats:
   // the chips land on their totals below, then it fuses, throws and climbs at the skip speed.
   // r691: a deep queue (four hands in the system) cuts the beats the same way; the cut hand blasts.
-  const flushed = () => !isGoalHand && (!!dncGoalJumpState || (typeof blastQueueDeep === 'function' && blastQueueDeep()));
+  // The preview's SKIP (dncSkipReq) cuts them on any hand, the winning hand included.
+  const flushed = () => dncSkipReq || (!isGoalHand && (!!dncGoalJumpState || (typeof blastQueueDeep === 'function' && blastQueueDeep())));
   let beatsCut = false;
   for(let si=0; !skipBeats && si<steps.length; si++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -1716,6 +1744,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     }
   }
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  dncBeatsDone = true;   // from here the preview's SKIP is the fast forward
 
   // Nothing should still be jittering - entities pop and settle now rather than
   // rattling through the hand - but clear it defensively in case a dance was cut

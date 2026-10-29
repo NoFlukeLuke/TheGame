@@ -109,7 +109,8 @@ function dncBumpAccel(n = 1) {
 // Every duration in the dance divides by THIS, never by dncSpeed directly.
 // r661: hands waiting in the scoring queue double the pace each (dncQueuePace, js/score-dance.js).
 // r691 (owner): Focus and the queue do NOT stack: whichever lifts the pace more is the lift.
+// The preview's SPEED UP (dncUserBoost, js/score-dance.js) doubles it on top.
 function dncBoost() { return Math.max(dncFocusPace || 1, typeof dncQueuePace === 'function' ? dncQueuePace() : 1); }
-function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncBoost(); }
+function dncPace() { return (typeof dncSpeed === 'number' ? dncSpeed : 1) * dncAccel * dncBoost() * (typeof dncUserBoost === 'function' ? dncUserBoost() : 1); }
 // The pace without Focus: for lengths that already carry Focus (the card fly, cardFlyMs).
 function dncPaceNoFocus() { return dncPace() / (dncFocusPace || 1); }

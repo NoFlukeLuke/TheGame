@@ -75,4 +75,7 @@ html.skin-machine:not(.stock-bulbs) #cabinet #cab-screen #stage #btn-discard #di
 
 /* r691: the Trick row drawn inside its tray, behind the chips (js/stock-bulbs.js) */
 .sb-grp.sb-in { z-index: -1; }
-#stage #trick-tray-area:has(> .sb-in) { position: relative; isolation: isolate; }
+/* Only a phone's tray needs a box made for it: the desktop tray is already absolute, and
+   'relative' there turned its stage placement into an offset that pushed it under the keys. */
+#stage #trick-tray-area:has(> .sb-in) { isolation: isolate; }
+#stage:not(.landscape) #trick-tray-area:has(> .sb-in) { position: relative; }

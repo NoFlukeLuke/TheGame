@@ -137,6 +137,8 @@ body.reduced-motion .dnc-particle .pt-box{ box-shadow:none; }
 }
 #dnc-ff:hover { opacity: 1; color: var(--phosphor, #ffb02e); border-color: var(--phosphor, #ffb02e); }
 #dnc-ff .ff-gl { font-size: 7px; line-height: 1; }
+/* SPEED UP taken: lit, and it reads SKIP for the second press. */
+#dnc-ff.ff-fast { opacity: 1; color: var(--phosphor, #ffb02e); border-color: var(--phosphor, #ffb02e); }
 /* Pressed: it has done its one job, so it goes quiet and stops taking taps
    rather than disappearing - a control vanishing under the finger reads as a
    misfire. */
@@ -144,6 +146,9 @@ body.reduced-motion .dnc-particle .pt-box{ box-shadow:none; }
   opacity: 0.4; pointer-events: none;
   color: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b);
 }
+/* The hand-name band lies over the preview's top edge (z 61, console mode a full-width band)
+   and took the button's taps. It is a label with no handlers, so taps go through it. */
+#hand-name { pointer-events: none; }
 #stage:not(.landscape) #dnc-ff { right: 2px; top: 1px; padding: 2px 4px; font-size: 6px; letter-spacing: 1px; }
 body.reduced-motion #dnc-ff { transition: none; }
 

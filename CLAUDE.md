@@ -3681,3 +3681,23 @@ goal; Restructuring with one and two Tricks; no page errors.
 - MONEY_AND_SELLING.md: the money and selling entities we have, Balatro / Slay the Spire / Luck
   be a Landlord's versions, ten ideas for each. Nothing built.
 
+## r710 - SPEED UP, then SKIP; the Tricks tray stays in its box (owner)
+- **Every hand's preview has the button** (`#dnc-ff`, `dncMountFF`, js/score-dance.js; was the goal
+  hand only). It reads SPEED UP: the first press doubles this hand's pace (`dncUserPace`, read by
+  `dncPace` through `dncUserBoost`, js/dance-clock.js). It then reads SKIP: while the card beats are
+  still to come, the second press cuts them (`dncSkipReq`, read by the walk's `flushed()`, the winning
+  hand included) and the hand BLASTS in the chosen look (r691, `scoreBlast`; the owner's is Reels),
+  first landing a fly-in or a winner's jitter still running. After the beats (`dncBeatsDone`), or with
+  the blast off, SKIP is the old fast forward (`dncRequestFF`). Each queued hand gets a fresh button.
+- **`#hand-name` takes no taps** (css/dance.css): the console mode's hand-name band lay over the
+  button (z 61), so even r280's goal-hand SKIP could not be clicked there.
+- **The desktop Tricks tray was pushed under RECORDS / PAUSE** whenever the Trick stock squares sat in
+  it: css/stock-bulbs.css (r691) gave `#trick-tray-area:has(> .sb-in)` `position: relative`, which
+  beat the landscape tray's `absolute`, so its 68% top became an offset from its flow position
+  (measured at 1440x820: tray top 680, height 175, past the window's foot). That rule is portrait only now;
+  the tray isolates in both. Measured: tray 556 to 731, clear of the keys; the phone unchanged.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks on the button: pace 1.1 -> 2.2
+on SPEED UP; SKIP blasted once and the score landed on the banked total; a winning hand blasted and the
+round ended; SPEED UP alone took a tally from ~9.5s to ~4.3s; with the blast off SKIP fast-forwarded;
+a queued hand came up reading SPEED UP. No page errors, no timeline drift.
+
