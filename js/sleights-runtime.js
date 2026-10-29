@@ -204,6 +204,7 @@ function sleightLifeTick() {
 // (the pile keeps it dormant, js/deck-grid.js) instead of being nulled out of the run.
 function consumeSleightCharge(card, r, c) {
   if (!card || card._usesLeft === 'infinite') return;
+  if (typeof ulBump === 'function') ulBump('sleights');   // r706
   card._usesLeft = Math.max(0, card._usesLeft - sleightSpendCount(card));
   if (card._usesLeft <= 0) {
     if (r >= 0 && c >= 0 && !greenStationKeeps()) gridData[r][c] = null;
@@ -699,6 +700,7 @@ function magnetCountDiscards(cards) {
   const count = cards.length;
   if (!count) return;
   cardsDiscardedTotal += count;
+  if (typeof ulBump === 'function') ulBump('discards', count);   // r706
   cardsDiscardedRound += count;
   discardsUsedRound += count;
   if (hasTrick('fives_discard')) bonusMult_fives += cards.filter(c => rkHas('fives_discard', c.rank)).length * BAL.fives_discard.pips_per_five;

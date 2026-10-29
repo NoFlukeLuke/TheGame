@@ -1079,6 +1079,7 @@ function shopGridBuySelection() {
     if (p && !p._sold && typeof p.buy === 'function') {
       try { p.buy(); } catch (e) { console.error('[SHOP] buy failed', e); }
       p._sold = true; bought.push([r, c, p]);
+      if (typeof ulBump === 'function') ulBump('shopbuys');   // r706
       // Buying from a row PINS its category: a reroll keeps the row, refills it.
       if (r >= 1 && shopGridRowMeta[r - 1]) shopGridRowMeta[r - 1].pinned = true;
     }

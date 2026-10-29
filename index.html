@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="css/improve-anim.css">
 <link rel="stylesheet" href="css/board-screen.css">
 <link rel="stylesheet" href="css/inseparable.css">
+<link rel="stylesheet" href="css/unlocks.css">
 <link rel="stylesheet" href="css/tray-zigzag.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/climb.css">
@@ -549,6 +550,29 @@
     <div class="dev-row">
       <button class="dev-btn" onclick="devDiscoverAll()">Mark all discovered</button>
       <button class="dev-btn" onclick="devForgetAll()">Forget all</button>
+    </div>
+  </div>
+
+  <!-- TRICK UNLOCKS (r706) -->
+  <div class="dev-section" data-group="tools bonuses">
+    <div class="dev-section-title">Trick unlocks</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      Locked Tricks are never offered. Goals in js/data/unlocks.js, listed in UNLOCKS.md. Lore comes every 50th event.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
+      <input id="dev-unlock-all" type="checkbox" onchange="unlockDevAll(this.checked); devSyncUnlocks()" style="accent-color:var(--gold);">
+      Every Trick unlocked (dev)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">
+      <input id="dev-meta-legend" type="checkbox" onchange="metaSet('legendary_find', this.checked); devSyncUnlocks()" style="accent-color:var(--gold);">
+      Meta: legendaries easier to find
+    </label>
+    <div id="dev-unlock-count" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:2px;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="unlockDevReset(); devSyncUnlocks()">Reset unlocks and counts</button>
+      <button class="dev-btn" onclick="evmForceLore = true; devSyncUnlocks()">Next event is lore</button>
+      <button class="dev-btn" onclick="devTriggerEvent('licensing')">Open Licensing</button>
+      <button class="dev-btn" onclick="devTriggerEvent('lore')">Open lore</button>
     </div>
   </div>
 
@@ -1639,12 +1663,15 @@
 <script src="js/data/tags.js"></script>
 <script src="js/data/tricks.js"></script>
 <script src="js/data/inseparable.js"></script>
+<script src="js/data/unlocks.js"></script>
+<script src="js/data/lore.js"></script>
 <script src="js/data/icons.js"></script>
 <script src="js/data/card-faces.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/fit-text.js"></script>
 <script src="js/entity-tile.js"></script>
 <script src="js/discovery.js"></script>
+<script src="js/unlocks.js"></script>
 <script src="js/keywords.js"></script>
 <script src="js/entity-tooltip.js"></script>
 <script src="js/float-anim.js"></script>
@@ -1737,6 +1764,7 @@
 <script src="js/events-pairs.js"></script>
 <script src="js/events-flip.js"></script>
 <script src="js/events-extra.js"></script>
+<script src="js/events-meta.js"></script>
 <script src="js/rank-editor.js"></script>
 <script src="js/interlude.js"></script>
 <script src="js/level-up.js"></script>

@@ -289,6 +289,7 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  if (typeof _ulRunLive !== 'undefined') _ulRunLive = false;   // r706: the opening balance is not earned credits
   // Dolly the camera in onto the CRT (js/camera.js). A run starting is the only
   // thing that means "we are at the machine now" - the way back out is driven off
   // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
@@ -717,6 +718,8 @@ function startGame() {
   // Poker Squares: same shape as the map's hook - stop the round startTimers
   // just armed (there is no clock here) and take the board over.
   if (typeof squaresActive === 'function' && squaresActive()) squaresBeginRun();
+  // r706: counting starts (js/unlocks.js); a restore overwrites unlockRun from its save right after.
+  if (typeof unlockRunStarted === 'function') unlockRunStarted();
 }
 
 // ══════════════════════════════════════════════

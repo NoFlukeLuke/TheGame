@@ -651,6 +651,7 @@ function crCollect(cd) {
   const q = cd.cr;
   if (q.done || q.banked < 0) return;
   q.done = 'won';
+  if (typeof ulBump === 'function') ulBump('challenges');   // r706
   crRepaint(cd); crFxSolve(cd);
   const cardEl = crCardEl(cd);
   // r677 'take': the plate leaves from the figure it pays.

@@ -77,7 +77,8 @@ const FLOWR_DEF  = {
   // share is `trick` below, and these weights split the rest in their ratios.
   // r441: PICK 3 is the most common of the rest (owner), the SHOP is a reward
   // at 10. A `tricks` key here is ignored.
-  odds: { pick3: 25, shop: 10, cards: 7, deck: 7, sleights: 8, limits: 8, improve: 4, knacks: 6 },
+  // r706 (owner): an EVENT can take a reward screen's place, at `event`.
+  odds: { pick3: 25, shop: 10, cards: 7, deck: 7, sleights: 8, limits: 8, improve: 4, knacks: 6, event: 5 },
   // r548 (owner): TRICKS take a share of every screen set by the TRAY, not the
   // table. The run's first reward is a Tricks screen `first`% of the time, and
   // a miss makes the next level-up's first reward one. After that the share is
@@ -125,6 +126,7 @@ const FLOWR_KINDS = {
   knacks:   { label: () => flowrEntityWord('knack', true),    short: () => flowrEntityWord('knack', true),   color: '#ff6fa5' },
   tricks:   { label: () => flowrEntityWord('trick', true),    short: () => flowrEntityWord('trick', true),   color: '#e8dd54' },
   shop:     { label: () => 'SHOP',       short: 'SHOP',     color: '#ff9a3d' },
+  event:    { label: () => 'EVENT',      short: 'EVENT',    color: '#6fc3ff' },
   // r409: the post-boss PRIZE GRID as a chain step. It is never ROLLED - it is
   // only ever placed first in a boss chain - so it is kept out of
   // FLOWR_KIND_IDS, which is what the odds tables and the dev panel walk.
@@ -132,6 +134,9 @@ const FLOWR_KINDS = {
   // r677: a challenge card's Card buffs stage 2 (js/challenge-rewards.js). Never rolled either.
   cardpick: { label: () => 'BUFF CARDS', short: 'BUFF',     color: '#9be36b' },
 };
+// Events a Flow chain cannot host: they take the board for grids of their own,
+// and the chain is holding it (r706).
+const FLOWR_EVENT_OUT = new Set(['hot_streak', 'prize_ladder', 'call_it', 'overtime']);
 const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize' && k !== 'cardpick');
 
 // ══════════════════════════════════════════════
@@ -584,6 +589,7 @@ function flowrKindViable(kind) {
     if (kind === 'improve')  return ['trick', 'knack', 'sleight'].some(t => ownedImprovable(t).length);
     if (kind === 'deck')     return true; // the board always holds ordinary cards
     if (kind === 'shop')     return typeof triggerShop === 'function';
+    if (kind === 'event')    return typeof openEvent === 'function' && eligibleEventIds(liveEventIds().filter(id => !FLOWR_EVENT_OUT.has(id))).some(eventEligible);
     if (kind === 'cards')    return flowrPackRanks().length > 0;
     if (kind === 'knacks')   return survivalBuildPools().knack.length > 0;
     // The tray is a HARD CAP (r277) - a Trick you have no room for is REFUSED,
@@ -792,6 +798,7 @@ function flowrShowStep() {
   if (kind === 'deck')  { flowrShowDeckPick(); return; }
   if (kind === 'cards') { flowrShowCardsPick(); return; }
   if (kind === 'shop')  { flowrShopStep = true; triggerShop(); return; }
+  if (kind === 'event') { openEvent(() => flowrAfterStep(), { exclude: FLOWR_EVENT_OUT }); return; }
   if (kind === 'cardpick') { crrCardPick(() => flowrAfterStep()); return; }
   flowrShowEntityStep(kind);
 }

@@ -720,3 +720,13 @@ prime / odd / even / highest / lowest / "6 and below" (families, not named ranks
 (Spectrum), The Queen Sleight (its own rank). **Feelin Lucky** is the one special case: its 5
 rolled ranks become 3 chosen ones, fixed for good (no more sell-to-reroll, never offered again).
 In console mode it is a screen on the board like every event (r672): PLAY reads EDIT · 12 CREDITS.
+
+## r706 - Licensing and the lore event (js/events-meta.js, UNLOCKS.md)
+`licensing`, "Buy a Trick's license. It can be offered from then on, every run." Three locked
+Tricks that only a license unlocks (`TRICK_UNLOCKS` rows with `buy: 1`), any number of them, by
+tier (`BAL.licensing` through `priceOf`: rare 20, epic 32 on screen). Offered only when one is
+affordable. `lore` is never drawn: it replaces every 50th event opened, counted over every run and
+mode, while a legendary is left in `LORE_ORDER`; then 1% of events. A single `?` line takes one
+word, types the answer (`js/data/lore.js`, placeholders until the owner's document) and offers that
+visit's legendary: Take or Leave.
+

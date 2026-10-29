@@ -206,6 +206,7 @@ const BAL = {
   reschedule: { price: 8, step: 1, rolls: 10, skip_pay: 10 },   // r590: 16, +2 a reroll, up to 10; skipping pays 20 (all through priceOf)
   luck_dice: { skip_cost: 10 },                                  // r590: skipping costs 20 through priceOf
   state_change: { common: 4, rare: 6, epic: 8, legendary: 12 },   // r580: by the state's tier, through priceOf
+  licensing:    { common: 6, rare: 10, epic: 16, legendary: 24 },   // r706: a Trick license, by its tier, through priceOf (js/events-meta.js)
   editor: { price: 6 },                                            // r698: the Editor, through priceOf (12 on screen)
   rewire: { junk: 2 },                                             // r580: junk cards into the deck   // r579: through priceOf (16 on screen)
   flip_events: { reflip: 10, keep_cap: 15, ladder_focus: 5 },   // r578: reflip and keep_cap through priceOf (20 / 30 on screen)   // r576: scaling only; both_price runs through priceOf
@@ -370,7 +371,11 @@ const BAL = {
 // colour no stylesheet defines. Its weight is folded into legendary, so the
 // effective spread is unchanged.
 const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary'];
-const ENTITY_TIER_W  = [71, 22, 5.5, 1.5];
+// r706 (owner): legendaries are found 1% of the time or less (was 1.5). The meta
+// unlock "Legendaries are easier to find" (metaFlag('legendary_find'), js/unlocks.js;
+// parked with the meta shop, dev toggle only) puts back META_LEGENDARY_W.
+const ENTITY_TIER_W  = [71, 22, 5.5, 0.9];
+const META_LEGENDARY_W = 1.5;
 
 // The post-boss PRIZE (boss) grid. It used to cut commons out of every pool and
 // draw the remaining three tiers, which is a different thing from a table: the

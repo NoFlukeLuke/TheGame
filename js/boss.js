@@ -1204,6 +1204,7 @@ function endBoss(success, opts) {
     setTimeout(() => resultEl.classList.remove('show'), 1500);
   }
 
+  if (success && typeof ulBump === 'function') ulBump('bosses');   // r706
   if (success) {
     // Arriving from the dance (opts.presented), the board is the one the finale
     // left standing: the winners have flown into the preview and everything else

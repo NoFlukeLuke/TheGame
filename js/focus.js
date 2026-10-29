@@ -365,6 +365,7 @@ function addFocus(amount, srcId, srcSource) {
 // *drop* is deferred ~260ms so the fill-to-max animation plays first (a visible
 // "discharge" beat) and we never call removeFocus() while addFocus's queue is mid-flight.
 function onFocusMaxed() {
+  if (typeof ulBump === 'function') ulBump('focusmax');   // r706
   // Immediate grants; any Focus DROP or cap change is deferred ~260ms so the fill-to-max
   // animation plays first and we never mutate focusNodes while addFocus's queue is in flight.
   let keepFrac = null; // smallest "fraction of cap to keep" across active droppers (min wins)

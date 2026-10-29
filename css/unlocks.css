@@ -1,0 +1,26 @@
+/* ══ UNLOCKS, THE REVEAL, THE COLLECTION EVENTS (r706) ══════════════════════
+   js/unlocks.js, js/discovery.js (iaPlayReveal), js/events-meta.js. */
+
+/* the reveal: the old name is struck before the real one types over it */
+.rv-scene .ia-tile { filter: drop-shadow(0 10px 18px #000c); }
+.rv-name .rv-old { color: var(--wf-dim, #8a7a55); letter-spacing: .08em; }
+.rv-name .rv-old.rv-struck { text-decoration: line-through; text-decoration-thickness: 2px; color: #ff6a52; }
+
+/* the lore event: one command line, a question mark and one word */
+.lore-term { font-family: 'VT323 Local', 'VT323', monospace; color: #ffb648; padding: 8px 4px; min-height: 120px; }
+.lore-line { display: flex; align-items: baseline; gap: .4em; font-size: 34px; line-height: 1; }
+.lore-q { text-shadow: 0 0 10px #ffb64899; }
+.lore-in { flex: 1; min-width: 0; background: transparent; border: none; border-bottom: 1px solid #ffb64855; outline: none;
+  color: #ffd58a; font: inherit; font-size: 28px; text-transform: lowercase; caret-color: #ffb648; padding: 0 2px; }
+.lore-in:disabled { border-bottom-color: transparent; color: #ffb648; }
+.lore-out { margin-top: 12px; font-size: 22px; line-height: 1.25; white-space: pre-wrap; }
+.lore-out .lore-ans { min-height: 1.25em; margin-bottom: 12px; }
+.lore-out .lore-offer { margin-top: 6px; }
+
+/* Builds: a locked record's goal, and the collection count */
+.bv-goal { color: #ffb648; font-size: 11px; margin-top: 3px; }
+.bv-goal b { color: #ffd58a; font-weight: normal; }
+.bv-coll { color: var(--cream-dim, #b8ab8c); font-size: 12px; white-space: nowrap; }
+.bv-coll b { color: #ffd58a; font-weight: normal; }
+.bv-pair { color: #ff8a7a; font-size: 11px; margin-top: 3px; }
+.bv-pair .bv-pair-ico { display: inline-flex; gap: 3px; vertical-align: middle; }

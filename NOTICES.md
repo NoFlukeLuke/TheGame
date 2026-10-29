@@ -400,3 +400,4 @@ r627: the paper corner at the top edge (mouse near the top, or always faint on t
 | play-hand.js (scalingCount) |  + Suggestive primed ${t.name} (quiet, r646) |
 | play-hand.js (scalingCount) |  ¢ Coin and the Sword +${paid} credits (quiet, r646) |
 | play-hand.js (scalingCount) |  Separation Anxiety primed beside ${t.name} (quiet, r651) |
+| unlocks.js (unlockAnnounce) |  UNLOCKED: ${name} / UNLOCKED: a new ${tier} Trick (printed, r706: a goal met or a license bought; one slip per moment) |

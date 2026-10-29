@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r705 · the tall Schedule's reviews need four; a mystery counts for both";
+const BUILD = "2026-10-29 · r706 · Trick unlocks, the reveal, the collection count, Licensing and the lore event, Flow events";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

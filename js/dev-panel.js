@@ -82,6 +82,7 @@ function openDevPanel() {
   devSyncNs();
   devSyncCcSliders();
   devSyncDisco();
+  if (typeof devSyncUnlocks === 'function') devSyncUnlocks();   // r706
   devSyncFullscreen();
   devSyncSaveSection();
   renderSpectrumDev();
@@ -790,7 +791,7 @@ function devTriggerEvent(eventId) {
       activeEventId = eventId;
       eventState = {};
       renderEventShell(eventId);
-      document.getElementById('event-overlay').classList.add('show');
+      if (typeof evShow === 'function') evShow(); else document.getElementById('event-overlay').classList.add('show');   // r706: on the board in console mode, like a real event
     }
   }
 }

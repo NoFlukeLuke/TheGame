@@ -83,7 +83,7 @@ async function improveAnimFlush() {
       while (_iaQueue.length) {
         const e = _iaQueue.shift();
         if (_iaSkip || iaOff()) continue;
-        try { await ((e.kind === 'fuse' && typeof iaPlayFuse === 'function') ? iaPlayFuse(e) : iaPlay(e)); } catch (err) { console.error('[IMPROVE-ANIM]', err); }   // r646: a fusion (js/inseparable.js) rides the same queue
+        try { await ((e.kind === 'fuse' && typeof iaPlayFuse === 'function') ? iaPlayFuse(e) : (e.kind === 'reveal' && typeof iaPlayReveal === 'function') ? iaPlayReveal(e) : iaPlay(e)); } catch (err) { console.error('[IMPROVE-ANIM]', err); }   // r646: a fusion (js/inseparable.js) rides the same queue
       }
     } finally { _iaRunning = false; _iaSkip = false; iaTeardown(); _done(); }
   })();
