@@ -1234,7 +1234,6 @@ function mapHelpRows() {
   if (d) rows.unshift(d);
   return rows;
 }
-// r673 (owner): leaving a slot early pays the department's Standard reward, first tier.
 // r706: leaving early is a LONG LUNCH (js/skip-perks.js). The bar names it and,
 // on a tap or a hover, the department's most likely perk; never the whole table.
 function mapSkipShort() { return 'LONG LUNCH'; }

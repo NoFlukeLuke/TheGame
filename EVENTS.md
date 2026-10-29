@@ -720,3 +720,10 @@ prime / odd / even / highest / lowest / "6 and below" (families, not named ranks
 (Spectrum), The Queen Sleight (its own rank). **Feelin Lucky** is the one special case: its 5
 rolled ranks become 3 chosen ones, fixed for good (no more sell-to-reroll, never offered again).
 In console mode it is a screen on the board like every event (r672): PLAY reads EDIT · 12 CREDITS.
+
+## r706 - Restructuring
+`restructure`, "One Trick is permaprimed. Two others are cut." Offered when a Trick has at least
+two other Tricks that can be cut (one an Investment has locked cannot). The Trick is drawn when the
+screen opens and shown; on confirm two other Tricks, at random, leave the tray and the shown one is
+permaprimed (`_rank` + 1: every time it fires, it fires again, for good). In HR's event pool.
+Extra Rep's Echo upgrade grants the same thing and is now called Permaprime.

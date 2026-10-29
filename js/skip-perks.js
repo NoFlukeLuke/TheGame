@@ -64,7 +64,7 @@ const LUNCH_PERKS = {
     },
   },
   path: {
-    say: '+2 path on your next reward grid', short: '+2 PATH',
+    get say() { return `+2 path on your next ${gridName('reward')}`; }, short: '+2 PATH',
     // Never stacks: one waiting bonus at a time.
     can: () => typeof crGridBonus === 'undefined' || crGridBonus <= 0,
     give() { return crrGrant('grid', 1, { live: false }); },

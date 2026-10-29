@@ -3555,3 +3555,34 @@ kind away. Split kept as rounds (incl. priority, audit, 1-on-1) vs everything el
 raises, incentives). Measured, 1,000 random walks: A 46% / B 13% / hidden 41% (at 3 it was 65 / 35 / 0);
 0 strands. The ? card, the locked tile's line, the dev input and the handbook say four.
 
+## r706 - chunk 3: fixed review levels, the long lunch, permaprime, Restructuring, the grids renamed (owner)
+- **Reviews ask a fixed level** (`MAP_REVIEW_LEVEL`, `mapReviewLevel(q)`, js/map-mode.js): quarter q's
+  review is `mapGoalForLevel(8q)` on the 4 x 4 and `7q` on the 3 x 6 (times `lift`, 1), set at map build
+  after the layout. Events and tiles that move a review still apply. `MAP_BOSS_LEVELS` / `MAP_BOSS_SCALE`
+  are gone. Measured: 4 x 4 reviews 5,000 / 18,000 / 67,500 / 254,000 (were 6,500 / 23,500 / 106,000 /
+  470,000 with eight bookings a quarter); 3 x 6 4,000 / 13,000 / 41,000 / 131,000. Dev -> Schedule has the
+  three numbers. tools/sim asks the same quota.
+- **Leaving early moves the curve** (`mapConfirm`): one `guidedAdvanceCurve` per booking left behind,
+  Crunch included, so a skip never lowers a later goal. `mapTileSoonest` counts `mapSlotCap()` levels a
+  slot passed; the previews read it.
+- **LONG LUNCH** (`js/skip-perks.js`): what a skip pays, rolled when you leave (`longLunch`). `LUNCH_PERKS`:
+  +5 Sleight charges (one at a time to the emptiest, to the cap), permaprime a random Trick, +1 swap and +1
+  discard limit (Knock-On once), +2 path on the next grid (never stacks), 3 deck cards buffed, a random
+  improvement, 10-20 credits, an improvement you pick. `LUNCH_W` 25 permaprime, 5 pick, the rest even (in
+  PROB_TABLES 'lunch'). A perk that cannot land is not rolled. Each department has its own (`lunch` on
+  `DEPARTMENTS`) at `DEPT_CFG.lunchMult` (4)x: Accounting credits, HR charges, Operations stock, IT path,
+  R&D permaprime (57%), Marketing card buffs, Legal pick (17%), Sales improvement (35% for the rest). The
+  bar's LONG LUNCH chip prints `lunchLikelySay()` on tap / hover; the ? card's department row says it too.
+  The table itself is never shown (owner). r673's department Standard reward on a skip is gone.
+- **Permaprime** (`permaprimeTrick`): `_rank` + 1, a Trick fires once more every time, for good. The
+  primed pill is gold while `_rank` is set (`cd-b-perma`). Measured: Face Value on three Kings 540, with
+  one permaprime 900 (no Trick 180).
+- **Restructuring** (event `restructure`, js/events.js, EVENTS.md).
+- **Grid names** (`GRID_NAMES` / `gridName(kind, opts)`, js/labels.js): the reward grid is the
+  **Cost-Benefit grid**, the prize grid the **Benefits Package**. Every player-facing mention reads the
+  helper; ids stay frozen. `sqTrickBanned` searches the description for `gridName('reward')`.
+  `flowrLocFitName` fits a long name in Flow's location tile.
+- **Fixes:** `allOwnedSleightCards` / `everyDeckCard` walk gridData's own rows (on the Schedule screen
+  gridRows x gridCols are the map's 5 x 4, so wider boards lost their right-hand cards). Improving a fused
+  Trick while its fusion scene was still queued crashed `improveAnimNote` (the 'fuse' entry has no steps).
+

@@ -109,7 +109,10 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
 3. **Skip perks** (idea 3). A word for the self-care perk of leaving a slot early; the perk
    table (a Sleight charge, a random improvement, rarely an improvement of your choice, +2
    selection on the next reward grid); balance so skipping never beats playing. Also new
-   names for the reward grid (it has pros and cons) and the prize grid.
+   names for the reward grid (it has pros and cons) and the prize grid. **Built r706:** LONG LUNCH (js/skip-perks.js),
+   the review at a fixed level a quarter, the curve step on a skip, Permaprime, Restructuring,
+   Cost-Benefit and Benefits Package (pun candidates for the first: Balance Sheet, Cell-Benefit,
+   Debits & Credits, Ledger; the name is one line in js/labels.js).
 4. **Side projects** (idea 5). Two linked tiles framed together: book both under a cost, clear
    both for a reward. Five ways to show it; twenty rewards and costs.
 5. **The Schedule's difficulty ladder** (ideas 6, 7, 9). Tier 1 any tile; tier 2 adjacent moves

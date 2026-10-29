@@ -283,7 +283,7 @@ const MODE_META = {
   crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
               blurb: 'The schedule, played on one clock for the whole quarter. Rounds use it up as you play, and every obligation that is not a round costs a flat amount of time. The review is played on what is left. At zero the run ends.' },
   map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
-              blurb: `Each quarter is a schedule: four time slots, top to bottom, then a review. Every obligation you book happens: a round, a shop, ${gridName('reward', { a: true })}, an event and more. Up to two obligations per slot. Leaving a slot after one pays credits. Clearing a round offers a pick of three.` },
+              blurb: `Each quarter is a schedule: four time slots, top to bottom, then a review. Every obligation you book happens: a round, a shop, ${gridName('reward', { a: true })}, an event and more. Up to two obligations per slot. Leaving a slot after one is a long lunch: a perk. Clearing a round offers a pick of three.` },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: `Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, ${gridName('reward', { a: true })}, a pick of three or an event. Rounds are free. Most other offers cost credits. The goal rises with every slot.` },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
