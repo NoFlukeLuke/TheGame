@@ -31,19 +31,17 @@ function markDiscovered(id) {
 }
 function isDiscovered(id) { return discoveredIds.has(id); }
 
-// r651 (owner): a rare or epic Trick, and every fused (INSEPARABLE) Trick, keeps
-// its NAME to itself until it has been taken once: offers, tooltips and Builds
-// print UNDISCOVERED_NAME instead. The description still shows, so a buy is a
-// known thing with an unknown name. Commons, legendaries, Sleights and Knacks
-// print their names. Dev reveal (devRevealAll) shows everything.
+// r651 (owner): a Trick keeps its NAME to itself until it has been taken once:
+// offers, tooltips and Builds print UNDISCOVERED_NAME instead. The description
+// still shows, so a buy is a known thing with an unknown name. r709: every Trick,
+// commons and legendaries too (was rare, epic and fused only). Sleights and
+// Knacks print their names. Dev reveal (devRevealAll) shows everything.
 const UNDISCOVERED_NAME = 'UNDISCOVERED';
 function nameHidden(def, type) {
   if (!def || !def.id) return false;
   if (typeof devRevealAll !== 'undefined' && devRevealAll) return false;
   if ((type || 'trick') !== 'trick') return false;
-  const tier = def.tier || def.rarity;
-  if (!(def.fused || tier === 'rare' || tier === 'epic')) return false;
-  return !isDiscovered(def.id);
+  return !isDiscovered(def.id);   // r709 (owner): every Trick, any tier, until taken once
 }
 function shownEntityName(def, type) { return nameHidden(def, type) ? UNDISCOVERED_NAME : (def && def.name) || ''; }
 

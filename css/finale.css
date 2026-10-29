@@ -6,6 +6,9 @@
 .bs-screen.fn-screen.fn-won .bs-head { color: #94ecb0; text-shadow: 0 0 8px rgba(148,236,176,.55); }
 .bs-screen.fn-screen .fn-close { font-size: 16px; line-height: 1.2; letter-spacing: 1px; }
 .bs-screen.fn-screen .fn-close b { color: var(--am-hi); font-weight: normal; }
+.bs-screen.fn-screen .fn-token { margin-top: 3px; color: #7fe0a0; font-size: 15px; letter-spacing: 1px; }
+.bs-screen.fn-screen .fn-away { margin-top: 3px; color: #ff8a7a; font-size: 15px; letter-spacing: 1px; }
+.bs-screen.fn-screen .fn-away b { color: #ffb0a4; font-weight: normal; }
 .bs-screen.fn-screen .fn-records { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 12px; color: #ffe066; font-size: 15px; letter-spacing: 1px; }
 .bs-screen.fn-screen .fn-stats { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 9px 6px; margin-top: 6px; }
 .bs-screen.fn-screen .fn-stat { cursor: default; padding: 10px 4px 4px; min-height: 44px; display: flex; flex-direction: column; align-items: center; text-align: center; }

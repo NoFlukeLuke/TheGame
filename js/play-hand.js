@@ -1076,6 +1076,8 @@ function scalingCount(hand, handCells, reps) {
     .filter(x => x.card);
   // Scaling card buffs (permPipsGrow / permMultGrow): grow once per time scored.
   if (typeof growCardScaling === 'function') growCardScaling(_cells.map(x => x.card), _cells.map(x => x.n));
+  // Crowns and Crescents (r709, js/suit-packs.js): their rolls, once per scoring.
+  if (typeof suitPackOnScore === 'function') { try { suitPackOnScore(_cells); } catch (e) { console.error('[SUIT PACK]', e); } }
   // Suggestive (r646, owner): each card scored in its marked line has `chance` (its second
   // line: chance2) of PRIMING the Trick in the tray slot of that line's number, once per
   // replay. Primes are spent here, not in calcScore (read-only), so this is a real roll.

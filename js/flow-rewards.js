@@ -2832,6 +2832,8 @@ function flowrBuildPacks() {
     const v    = flowrValRoll(op.buff.range);
     out.push({ suit, ranks: win.slice(), op, value: v, label: flowrBuffLabel(op.buff, v) });
   }
+  // r709: the last offer may be a pack of a new suit (js/suit-packs.js).
+  if (out.length && typeof suitPackRoll === 'function' && Math.random() < SUIT_PACK_CHANCE) out[out.length - 1] = suitPackRoll();
   return out;
 }
 
@@ -2860,9 +2862,9 @@ function flowrShowCardsPick() {
   flowrStepActions = () => [rerollAct(), ...flowrCommonActions()];
   const tiles = () => _flowrPacks.map((p, i) => ({
     entity: 'cardpack', id: 'pack' + i, artKind: 'pack', artHTML: flowrPackArtHTML(p),
-    icon: p.suit, emoji: p.suit, rarity: flowrOpRarity(p.op), tag: 'CARDS',   // r590: the buff it carries
-    label: `${p.ranks[0]}-${p.ranks[p.ranks.length - 1]} ${p.suit}`,
-    desc: `${p.ranks.length} cards join your deck: ${p.ranks.map(r => r + p.suit).join(', ')}. `
+    icon: p.suit, emoji: p.suit, rarity: p.special ? 'epic' : flowrOpRarity(p.op), tag: p.special ? 'NEW SUIT' : 'CARDS',   // r590: the buff it carries
+    label: p.special ? p.label : `${p.ranks[0]}-${p.ranks[p.ranks.length - 1]} ${p.suit}`,
+    desc: p.special ? suitPackDesc(p) : `${p.ranks.length} cards join your deck: ${p.ranks.map(r => r + p.suit).join(', ')}. `
         + `Each one ${flowrBuffDoes(p.op.buff, p.value)}.`,
   }));
   openGridPick({
@@ -2885,7 +2887,7 @@ function flowrGrantPack(pack) {
     // deck can legitimately hold another 7 of spades and this must not buff it.
     const card = (typeof copyCardToDeck === 'function') ? copyCardToDeck({ rank, suit: pack.suit }) : null;
     if (!card) return;
-    try { enhanceCardKey(cardId(card), { [pack.op.buff.key]: pack.value }); } catch (e) {}
+    if (pack.op) try { enhanceCardKey(cardId(card), { [pack.op.buff.key]: pack.value }); } catch (e) {}
     made++;
   });
   if (typeof updateDeckHud === 'function') updateDeckHud();

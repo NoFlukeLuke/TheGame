@@ -108,3 +108,9 @@ body.big-text .pt-line { font-size: calc(var(--fpx, 21px) * 1.15); }
 .pt-drawer .pt-head { color: var(--c-yellow, #ffce2b); letter-spacing: 2px; border-bottom: 1px dashed #ffffff22; margin-bottom: 2px; }
 .pt-drawer .pt-quiet { color: #8a8273; text-shadow: none; }
 body.reduced-motion .pt-drawer { animation: none; }
+
+/* r709: the tracked goal (js/unlocks.js goalTrackLine), on the drawer's top line
+   and on its own slip under the corner while the mouse is on it. */
+.pt-line.pt-goal-line { --ink: #ffd58a; color: #ffd58a; letter-spacing: 1px; }
+.pt-drawer .pt-goal-line { border-bottom: 1px dashed #ffd58a44; margin-bottom: 2px; }
+#pt-goal { pointer-events: none; }

@@ -3651,3 +3651,33 @@ UNLOCKS.md is the whole write-up. `js/unlocks.js` + `js/data/unlocks.js`.
 Measured in headless Chromium at 1440x820 and 420x900, both shapes, 500 maps each: no row of 2+
 rounds with 0 or all bumped; a booked opener and a booked slot-2 round dealt exactly their tile's
 goal; Restructuring with one and two Tricks; no page errors.
+
+## r709 - every Trick undiscovered; One Trick away; win tokens; a tracked goal on the printer; Crowns and Crescents (owner)
+- **Every Trick is undiscovered until taken** (`nameHidden`, js/discovery.js): commons and
+  legendaries too, so the reveal plays for each first take. Locked (r706) is still the separate
+  "never offered" state. The lore event's offer prints the hidden name too.
+- **One Trick away** (`finaleOneAway`, js/finale.js): a Trick held at the end that is half of an
+  Inseparable pair whose other half was not held prints "ONE TRICK AWAY · Cascade + ????" (two at
+  most). The partner is never named.
+- **Win tokens** (js/unlocks.js `tokenEarn` / `tokenOffers` / `tokenSpend`, `TOKEN_MODES` normal /
+  flow / map, `TOKENS_PER_MODE` 3, in `lethe.meta.v1`): 1 a won run from `unlockRunEnded`, which is
+  once a run and paused in tours and test drives. The finale's `.fn-token` line; Builds' rail
+  UNLOCKS screen (`bvUnlocksHTML`) and the pick (`bvTokenPick`, `#bv-token-pick`).
+- **The tracked goal** (`goalTrackId` / `goalTrackSet` / `goalTrackLine`, `lethe.goalTrack.v1`):
+  TRACK GOAL on a locked record (`bvGoalKeyHTML`). The printer shows it: `ptGoalShow` on the
+  corner's pointerenter (mouse), and the drawer's top line (`.pt-goal-line`). Cleared by
+  `unlockTrick` when met.
+- **The printer**: a pointerdown anywhere but a pin pulls the hanging slip (a capture listener
+  in `ptTabBuild`); pinned slips stay.
+- **Crowns ♛ and Crescents ☾** (js/suit-packs.js): the six-suit deck's two extra glyphs as packs
+  of a new suit on the card pack screen, `SUIT_PACK_CHANCE` (25%, dev -> Probabilities) of the
+  last offer: six random face cards, or six random ranks, no buff. A Crown scored rolls
+  `CROWN_RANK_UP` (2%) to raise one neighbour not in the hand a rank; a Crescent rolls
+  `CRESCENT_CREDIT` (5%) for 1 credit and `CRESCENT_BUFF` (1%) to buff one neighbour
+  (`rollEditorBuff`), per scoring, Luck-scaled, in `scalingCount` (`suitPackOnScore`). The rule
+  belongs to the suit, so it holds in the six-suit deck too. ACTIVE_SUITS is untouched (nothing
+  else starts dealing them); `flushSuits()` lets the flush check and the wild flush proxy accept
+  them, and `deckSuitsShown(cards)` gives Records and the deck view their rows.
+- MONEY_AND_SELLING.md: the money and selling entities we have, Balatro / Slay the Spire / Luck
+  be a Landlord's versions, ten ideas for each. Nothing built.
+

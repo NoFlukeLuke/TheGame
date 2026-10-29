@@ -231,12 +231,14 @@ Ideas raised and deliberately not built, kept because they are still good:
 - **Meta shop: parked.** Ideas so far: a Knack pick of three at the start of each round (an
   unlock, its list ours to choose); finding and taking a legendary pays a token (owner's
   favourite); "Legendaries are easier to find" (built as `metaFlag('legendary_find')`, dev only).
-- **Unique unlock goals:** 45 proposals in UNLOCKS.md await the owner's verdicts (44 live as
-  written, Middle Man licensed instead).
-- **Mode wins:** the first win of each of five modes opens a pick of 1 from 3 locked Tricks
-  (proposed in UNLOCKS.md, not built). No dailies.
+- **Unique unlock goals:** shipped as written (r709, owner: "ship the goals"); Middle Man is
+  licensed instead.
+- **Mode wins:** built r709 as win tokens: Classic, Flow and the Schedule pay 1 a win, 3 a mode
+  until difficulties exist; Custom and Poker Squares pay none. No dailies. A token unlocks one
+  of 3 locked Tricks (Builds). The meta shop may spend them too once it exists.
 - **The lore document:** the owner will supply it; `LORE_ANSWERS` in js/data/lore.js holds
   placeholders. `LORE_ORDER` is a guess at the order the legendaries are offered.
 - **Money Tricks:** we need at least two or three more Tricks that pay or use credits.
 - **Selling:** we need at least three entities that interact with selling things (owner: "I love that").
+  MONEY_AND_SELLING.md (r709) lists what exists and ten ideas for each, for the owner to pick.
 

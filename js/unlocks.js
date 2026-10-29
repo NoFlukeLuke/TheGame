@@ -123,6 +123,7 @@ function unlockTrick(id, quiet) {
   // the live pool takes it at once (TRICK_POOL drops locked Tricks, js/data/tricks.js)
   if (typeof applyModeEntityFilter === 'function' && typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) { try { applyModeEntityFilter(); } catch (e) {} }
   if (!quiet) unlockAnnounce(id);
+  if (goalTrackId() === id) goalTrackSet(null);   // a tracked goal ends when it is met
   if (typeof dbgEvent === 'function') dbgEvent(`[UNLOCK] ${id}`);
   return true;
 }
@@ -260,10 +261,61 @@ function unlockCoinsChanged(d, v) {
 function unlockRunStarted() { unlockRunReset(); unlockRun.c0 = collectionCounts(); _ulRunLive = true; }
 // Once per run: a won run continued into Endless ends again later, and is still one run.
 function unlockRunEnded(won) {
-  if (unlockRun.ended) return;
+  if (unlockRun.ended || unlockPaused()) return;
   unlockRun.ended = 1;
   ulBump('runs');
-  if (won) ulBump('wins');
+  if (won) { ulBump('wins'); tokenEarn(); }
+}
+
+// ── win tokens (r709, owner) ────────────────────────────────────────────────
+// A won run in Classic, Flow or the Schedule pays 1 token, at most
+// TOKENS_PER_MODE a mode (until difficulties exist). Custom, Poker Squares and
+// the hidden modes pay none. A token unlocks a Trick: Builds offers 3 locked
+// Tricks (goal-locked, not licensed), pick 1. Kept in lethe.meta.v1.
+const TOKEN_MODES = { normal: 'CLASSIC', flow: 'FLOW', map: 'SCHEDULE' };
+const TOKENS_PER_MODE = 3, TOKEN_PICK = 3;
+function tokenStore() { metaStore.tokens = metaStore.tokens || { earned: {}, spent: 0 }; return metaStore.tokens; }
+function tokensLeft() { const t = tokenStore(); return Object.values(t.earned).reduce((a, b) => a + b, 0) - t.spent; }
+function tokenEarn() {
+  const id = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.id : '';
+  if (!TOKEN_MODES[id]) return;
+  const t = tokenStore(), n = t.earned[id] || 0;
+  if (n >= TOKENS_PER_MODE) { unlockRun.token = { id, n, full: true }; return; }
+  t.earned[id] = n + 1; metaSave();
+  unlockRun.token = { id, n: n + 1 };
+}
+// The offer: TOKEN_PICK locked Tricks that a goal unlocks.
+function tokenOffers() {
+  if (typeof TRICK_POOL_ALL === 'undefined') return [];
+  const pool = TRICK_POOL_ALL.filter(t => t && !t.retired && !t.fused && trickLocked(t.id) && (trickUnlockRule(t.id) || {}).s);
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, TOKEN_PICK);
+}
+function tokenSpend(id) {
+  if (tokensLeft() <= 0 || !trickLocked(id)) return false;
+  tokenStore().spent++; metaSave();
+  if (goalTrackId() === id) goalTrackSet(null);
+  return unlockTrick(id, true);
+}
+
+// ── the tracked goal (r709, owner) ──────────────────────────────────────────
+// One locked Trick's goal, chosen in Builds, read off the printer: hovering or
+// tapping the paper corner shows it with its progress (js/print-toast.js). It
+// stays until another is chosen, it is met, or Builds turns it off.
+const GOAL_TRACK_KEY = 'lethe.goalTrack.v1';
+let _goalTrack = (() => { try { return localStorage.getItem(GOAL_TRACK_KEY) || null; } catch (e) { return null; } })();
+function goalTrackId() { return (_goalTrack && trickUnlockRule(_goalTrack) && !trickUnlocked(_goalTrack)) ? _goalTrack : null; }
+function goalTrackSet(id) {
+  _goalTrack = id || null;
+  try { if (_goalTrack) localStorage.setItem(GOAL_TRACK_KEY, _goalTrack); else localStorage.removeItem(GOAL_TRACK_KEY); } catch (e) {}
+}
+// "RARE TRICK · Discard 30 cards · 12 / 30" (a locked Trick's name is never known yet).
+function goalTrackLine() {
+  const id = goalTrackId(); if (!id) return '';
+  const def = (typeof TRICK_POOL_ALL !== 'undefined') ? TRICK_POOL_ALL.find(t => t.id === id) : null; if (!def) return '';
+  const hidden = typeof nameHidden === 'function' && nameHidden(def, 'trick');
+  const who = hidden ? `${(typeof tierLabel === 'function' ? tierLabel('trick', def.tier) : def.tier)} ${(typeof entityLabel === 'function' ? entityLabel('trick', false) : 'Trick')}`.toUpperCase() : def.name;
+  return `${who} · ${unlockGoalText(id, true)}`;
 }
 
 // ── meta flags (r706): the parked meta shop's switches, one store ─────────────
@@ -271,6 +323,7 @@ function unlockRunEnded(won) {
 const META_KEY = 'lethe.meta.v1';
 let metaStore = (() => { try { return JSON.parse(localStorage.getItem(META_KEY) || '{}') || {}; } catch (e) { return {}; } })();
 function metaFlag(id) { return !!metaStore[id]; }
+function metaSave() { try { localStorage.setItem(META_KEY, JSON.stringify(metaStore)); } catch (e) {} }
 function metaSet(id, on) {
   if (on) metaStore[id] = 1; else delete metaStore[id];
   try { localStorage.setItem(META_KEY, JSON.stringify(metaStore)); } catch (e) {}

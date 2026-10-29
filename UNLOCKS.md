@@ -13,8 +13,15 @@ answers and the order legendaries are offered in).
   "UNLOCKED: name" (or "UNLOCKED: a new Rare Trick" while its name is still hidden) and the Trick
   can be offered from that moment, the same run included.
 - A Trick that has been taken once is unlocked whatever its goal says (old saves keep what they found).
-- **Locked is not the same as undiscovered.** Undiscovered (r651) = offered, name hidden until
-  taken. Locked = not offered at all.
+- **Locked is not the same as undiscovered.** Undiscovered = offered, name hidden until taken,
+  and since r709 that is EVERY Trick, commons and legendaries included. Locked = not offered at
+  all. A Trick that starts unlocked is still undiscovered until you take it.
+- **The reveal** plays the first time each Trick is taken (FILE FOUND, the name types over
+  UNDISCOVERED).
+- **Tracking a goal** (r709): a locked Trick's Builds record has TRACK GOAL. During a run,
+  pointing at the printer's paper corner shows that goal and its progress on a slip, and the
+  drawer (tap or click the corner) prints it on its top line. One goal at a time; it ends when
+  it is met, when another is tracked, or with STOP TRACKING in Builds' UNLOCKS screen.
 - The tours, labs and a Builds test drive lock nothing.
 - Dev -> Tools -> Trick unlocks: every Trick unlocked, reset unlocks and counts, the meta
   legendary switch, "next event is lore", open Licensing, open lore.
@@ -55,11 +62,10 @@ you do not hold.
 dev -> Flow). Events that take the board for grids of their own are left out
 (`FLOWR_EVENT_OUT`: Hot Streak, Prize Ladder, Call It, Overtime).
 
-## The unique goals, for the owner's verdict
+## The unique goals (shipped)
 
-45 proposals (the r706 workflow: three drafting lenses, a merge, two critics). 44 are live as
-written below; Middle Man is licensed instead, with its proposal kept. Fill the Verdict column
-(keep / change to... / cut) and the next pass writes it in.
+45 proposals (the r706 workflow: three drafting lenses, a merge, two critics). The owner
+shipped them as written (r709). Middle Man is licensed instead, its proposal kept below.
 
 | Trick | Tier | Goal (live) | Why | Verdict |
 |---|---|---|---|---|
@@ -109,11 +115,13 @@ written below; Middle Man is licensed instead, with its proposal kept. Fill the 
 | Undertow | epic | Play 20 Run hands of 4 or more cards | Undertow pays more for every card past 3 in a Run, and a Run of 4 shows that without needing Selection Size 5. | |
 | What are The Odds | epic | Score 700 odd-ranked cards | What are The Odds multiplies odd ranks, and a lifetime count stays fair across short and long modes. | |
 
-## Mode wins (proposed, not built)
+## Win tokens (r709)
 
-The owner's rule from the meta-progression talk: the first win of each mode pays once. Proposed:
-the first win in each of five modes (Classic, Flow, the Schedule, Custom, Poker Squares'
-Patience run) opens a pick of 1 from 3 locked Tricks, unlocked for good. Five wins, five picks.
+A won run in Classic, Flow or the Schedule pays 1 token, at most 3 a mode (owner: until
+difficulties exist). Custom, Poker Squares and the hidden modes pay none; a test drive pays
+none; a run continued into Endless pays once. The finale prints "+1 TOKEN · FLOW 1/3". Builds'
+UNLOCKS screen shows the tokens and SPEND A TOKEN: three locked Tricks with a goal (not the
+licensed ones), unlock one; KEEP THE TOKEN closes it. Kept in `lethe.meta.v1` (`tokens`).
 No daily seeds (owner).
 
 ## Every Trick

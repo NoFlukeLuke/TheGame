@@ -322,10 +322,31 @@ function ptTabBuild(layer) {
   _ptTab.addEventListener('pointerup', up); _ptTab.addEventListener('pointercancel', up);
   _ptTab.addEventListener('click', e => e.stopPropagation());
   document.addEventListener('pointerdown', e => { if (_ptDrawer && !e.target.closest('#pt-drawer, #pt-tab')) ptDrawerClose(); }, true);
+  // r709 (owner): a tap or a swipe anywhere but on a pin pulls the hanging slip.
+  document.addEventListener('pointerdown', e => { if (_ptSlip && !_ptSlip.pinned && !e.target.closest('.pt-pin')) ptPull(_ptSlip); }, true);
+  // r709: pointing at the corner shows the tracked goal (js/unlocks.js goalTrackLine).
+  _ptTab.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') ptGoalShow(true); });
+  _ptTab.addEventListener('pointerleave', () => ptGoalShow(false));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && _ptDrawer) ptDrawerClose(); });
+}
+// The tracked goal on its own small slip under the corner, while the mouse is on it.
+let _ptGoal = null;
+function ptGoalShow(on) {
+  const line = on && !_ptDrawer && typeof goalTrackLine === 'function' ? goalTrackLine() : '';
+  if (!line) { if (_ptGoal) { _ptGoal.remove(); _ptGoal = null; } return; }
+  if (!_ptGoal) {
+    _ptGoal = document.createElement('div');
+    _ptGoal.id = 'pt-goal'; _ptGoal.className = 'pt-slip pt-goal';
+    _ptGoal.innerHTML = '<div class="pt-paper"><div class="pt-lines"><div class="pt-line pt-goal-line"><span class="pt-t"></span></div></div></div>';
+    _ptGoal.style.setProperty('--ptw', PT_CFG.width + 'px');
+    ptLayer().appendChild(_ptGoal);
+  }
+  _ptGoal.style.top = ptPinBottom() + 'px';
+  _ptGoal.querySelector('.pt-t').textContent = 'GOAL · ' + line;
 }
 function ptDrawerOpen() {
   if (_ptDrawer) return;
+  ptGoalShow(false);
   const layer = ptLayer();
   if (_ptSlip) ptPull(_ptSlip);
   const el = document.createElement('div');
@@ -336,9 +357,11 @@ function ptDrawerOpen() {
   const lines = rows.length
     ? rows.map(h => `<div class="pt-line${h.quiet ? ' pt-quiet' : ''}" style="--ink:${h.ink || 'var(--cream, #f0e2c0)'}"><span class="pt-t"></span>${h.n > 1 ? `<span class="pt-x">x${h.n}</span>` : ''}</div>`).join('')
     : '<div class="pt-line pt-quiet"><span class="pt-t">no notices yet</span></div>';
-  el.innerHTML = `<div class="pt-paper"><div class="pt-lines"><div class="pt-line pt-head"><span class="pt-t">RECENT NOTICES</span></div>${lines}</div></div>`;
+  const goal = (typeof goalTrackLine === 'function') ? goalTrackLine() : '';
+  el.innerHTML = `<div class="pt-paper"><div class="pt-lines">${goal ? '<div class="pt-line pt-goal-line"><span class="pt-t"></span></div>' : ''}<div class="pt-line pt-head"><span class="pt-t">RECENT NOTICES</span></div>${lines}</div></div>`;
+  if (goal) el.querySelector('.pt-goal-line .pt-t').textContent = 'GOAL · ' + goal;
   // the texts go in as text, never as markup
-  const ts = el.querySelectorAll('.pt-line:not(.pt-head) .pt-t');
+  const ts = el.querySelectorAll('.pt-line:not(.pt-head):not(.pt-goal-line) .pt-t');
   rows.forEach((h, i) => { if (ts[i]) ts[i].textContent = h.text; });
   el.addEventListener('pointerdown', e => e.stopPropagation());
   el.addEventListener('click', e => { e.stopPropagation(); ptDrawerClose(); });

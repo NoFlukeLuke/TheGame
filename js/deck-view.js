@@ -37,7 +37,7 @@ function showDeck() {
       if (!bySuit[card.suit]) bySuit[card.suit] = [];
       bySuit[card.suit].push(card);
     });
-    const SUIT_DISPLAY_ORDER = [...ACTIVE_SUITS];
+    const SUIT_DISPLAY_ORDER = (typeof deckSuitsShown === 'function') ? deckSuitsShown(cards) : [...ACTIVE_SUITS];   // r709
     return SUIT_DISPLAY_ORDER.filter(s => bySuit[s]).map(s => {
       const chips = bySuit[s].map(c => makeChip(c, state)).join('');
       return `<div class="deck-suit-row">

@@ -370,7 +370,7 @@ function _handShape(cells) {
   const _anyWild  = wilds > 0;
   // r578: the Wild Cards event (wildsFlushOn) lets a wild stand in for any suit.
   const _wildSuit = _anyWild && typeof wildsFlushOn === 'function' && wildsFlushOn();
-  const allSameSuitStrict = !_anyWhite && (!_anyWild || _wildSuit) && ACTIVE_SUITS.some(s =>
+  const allSameSuitStrict = !_anyWhite && (!_anyWild || _wildSuit) && (typeof flushSuits === 'function' ? flushSuits() : ACTIVE_SUITS).some(s =>   // r709: Crowns / Crescents flush too
     cards.every(c => isWarehouseCard(c) || (_wildSuit && isWildCard(c)) || c.suit === s || c.suit2 === s)
   );
 

@@ -366,6 +366,7 @@ function renderBuildsCanvas() {
   canvas.querySelectorAll('.bv-entity').forEach(el => {
     const x = bvFind(el.dataset.type, el.dataset.id);
     el.querySelector('.bv-add')?.addEventListener('click', e => { e.stopPropagation(); toggleDraftEntity(x.type, x.id); });
+    el.querySelector('.bv-goal-k')?.addEventListener('click', e => { e.stopPropagation(); goalTrackSet(goalTrackId() === x.id ? null : x.id); renderBuildsCanvas(); renderBuildsRail(); });
     el.querySelector('.bv-lad')?.addEventListener('click', e => { e.stopPropagation(); bvLadders.has(x.id) ? bvLadders.delete(x.id) : bvLadders.add(x.id); renderBuildsCanvas(); });
     el.addEventListener('click', () => { if (!bv.syn) return; bvPinned = bvPinned === x.id ? null : x.id; bvPaintSynergy(); });
   });
@@ -413,7 +414,7 @@ function bvRecordHTML(x) {
       <div class="bv-note">FILE MISSING<small>take it in a run to read it</small></div>${bvPairHTML(x)}</div>`;
   if (x.state === 'classified')
     return `<div class="${cls}" data-type="${x.type}" data-id="${x.id}">${head}
-      <div class="bv-note bv-note-red">LOCKED<small>${lockTaskFor(x.id) || 'clearance pending'}</small></div></div>`;
+      <div class="bv-note bv-note-red">LOCKED<small>${lockTaskFor(x.id) || 'clearance pending'}</small></div>${bvGoalKeyHTML(x)}</div>`;
   let extra = '';
   if (bv.odds) { const o = bvOdds(x); extra += `<div class="bv-line bv-odds">1 in ${o.oneIn} ${entityLabel(x.type, false)} offers <i>(${tierLabel(x.type, x.rar)} ${o.tierPct}% over ${o.peers})</i></div>`; }
   if (bv.stats) { const s = bvStatsFor(x); extra += `<div class="bv-line bv-stats">${s ? `taken in ${s.runs} run${s.runs === 1 ? '' : 's'} · ${s.wins} won · best ${s.best.toLocaleString()}` : 'never taken'}</div>`; }
@@ -425,6 +426,50 @@ function bvRecordHTML(x) {
       <button class="bv-key bv-add ${inDraft ? 'on' : ''}">${inDraft ? '&#10003; IN DRAFT' : '+ DRAFT'}</button>
       <button class="bv-key bv-lad ${bvLadders.has(x.id) ? 'on' : ''}" title="improvement tiers">v2..v5</button>
     </div></div>`;
+}
+
+// r709 (owner): a locked Trick with a goal can be TRACKED: its goal and progress
+// show on the printer during a run (js/unlocks.js goalTrackLine, js/print-toast.js).
+function bvGoalKeyHTML(x) {
+  if (x.type !== 'trick' || typeof trickUnlockRule !== 'function' || !(trickUnlockRule(x.id) || {}).s) return '';
+  const on = typeof goalTrackId === 'function' && goalTrackId() === x.id;
+  return `<div class="bv-keys"><button class="bv-key bv-goal-k ${on ? 'on' : ''}" title="Show this goal on the printer during a run">${on ? '&#10003; TRACKING GOAL' : 'TRACK GOAL'}</button></div>`;
+}
+// r709: the unlocks screen in the rail: the tracked goal, and win tokens.
+function bvUnlocksHTML() {
+  if (typeof tokensLeft !== 'function') return '';
+  const t = tokenStore(), left = tokensLeft();
+  const per = Object.keys(TOKEN_MODES).map(id => `${TOKEN_MODES[id]} ${t.earned[id] || 0}/${TOKENS_PER_MODE}`).join(' · ');
+  const goal = goalTrackLine();
+  return `<div class="bv-screen">
+      <div class="bv-pt">UNLOCKS</div>
+      <div class="bv-ul-line">${goal ? `GOAL · ${goal}` : 'No goal tracked. Track one on a locked Trick.'}</div>
+      ${goal ? '<button class="bv-key" id="bv-goal-off">STOP TRACKING</button>' : ''}
+      <div class="bv-ul-line">TOKENS <b>${left}</b> · ${per}</div>
+      <div class="bv-ul-sub">A won run pays a token, ${TOKENS_PER_MODE} a mode. A token unlocks one of ${TOKEN_PICK} locked Tricks.</div>
+      <button class="bv-key bv-drive" id="bv-token" ${left > 0 ? '' : 'disabled'}>SPEND A TOKEN</button>
+    </div>`;
+}
+// The pick: three locked Tricks, take one.
+function bvTokenPick() {
+  const offers = tokenOffers();
+  if (!offers.length || tokensLeft() <= 0) { showBuildsToast(offers.length ? 'No tokens' : 'No locked Tricks left'); return; }
+  document.getElementById('bv-token-pick')?.remove();
+  const el = document.createElement('div');
+  el.id = 'bv-token-pick';
+  el.innerHTML = `<div class="bv-tp-panel"><div class="bv-pt">SPEND A TOKEN · TAKE ONE</div><div class="bv-tp-row">${offers.map(t => {
+      const nm = (typeof shownEntityName === 'function') ? shownEntityName(t, 'trick') : t.name;
+      return `<div class="bv-tp-opt r-${tierId(t.tier)}" data-id="${t.id}"><div class="bv-tile">${entityTileHTML({ entity: 'trick', emoji: trickEmoji(t), label: nm }, tierId(t.tier), { tip: false })}</div>
+        <div class="bv-name">${nm}</div><div class="bv-rar">${tierLabel('trick', tierId(t.tier))}</div><div class="bv-desc">${highlightKeywords(t.desc || '')}</div>
+        <button class="bv-key bv-drive">UNLOCK</button></div>`; }).join('')}</div>
+      <button class="bv-key" id="bv-tp-cancel">KEEP THE TOKEN</button></div>`;
+  document.getElementById('builds-overlay').appendChild(el);
+  el.querySelector('#bv-tp-cancel').onclick = () => el.remove();
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  el.querySelectorAll('.bv-tp-opt').forEach(o => o.querySelector('button').onclick = () => {
+    if (tokenSpend(o.dataset.id)) { const d = TRICK_POOL_ALL.find(t => t.id === o.dataset.id); showBuildsToast(`Unlocked: a new ${tierLabel('trick', tierId(d.tier))} ${entityLabel('trick', false)}`); }
+    el.remove(); bvBuildCatalogue(); renderBuildsRail(); renderBuildsCanvas();
+  });
 }
 
 // r706 (owner): a fused Trick names its two parts once that pair has been made;
@@ -527,6 +572,7 @@ function renderBuildsRail() {
         <button class="bv-key bv-clear-b" id="bv-clear-draft">CLEAR</button>
       </div>
     </div>
+    ${bvUnlocksHTML()}
     <div class="bv-screen" id="bv-saved"></div>
     <div class="bv-screen"><button class="bv-key bv-compare-k" id="bv-compare-k" title="Score one hand with several builds">COMPARE BUILDS</button></div>
     <div class="bv-screen">
@@ -545,6 +591,8 @@ function renderBuildsRail() {
   el.querySelector('#bv-load').onclick = pasteBuildShareCode;
   el.querySelector('#bv-clear-draft').onclick = () => { draftBuild = { name: '', tricks: [], sleights: [], knacks: [] }; renderBuildsRail(); renderBuildsCanvas(); };
   el.querySelector('#bv-compare-k').onclick = () => { if (typeof bcOpen === 'function') bcOpen(); };
+  const _gOff = el.querySelector('#bv-goal-off'); if (_gOff) _gOff.onclick = () => { goalTrackSet(null); renderBuildsRail(); renderBuildsCanvas(); };
+  const _tok = el.querySelector('#bv-token'); if (_tok) _tok.onclick = bvTokenPick;
   const tog = (id, key, after) => { el.querySelector('#' + id).onchange = e => { bv[key] = e.target.checked; bvSave(); if (!bv.syn) bvPinned = null; renderBuildsRail(); after(); }; };
   tog('bv-syn', 'syn', bvPaintSynergy);
   tog('bv-odds', 'odds', renderBuildsCanvas);

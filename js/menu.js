@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r708 · every Schedule round asks a fixed level, R&R, the Balance Sheet, Restructuring with one Trick";
+const BUILD = "2026-10-29 · r709 · every Trick undiscovered, One Trick away, win tokens, a tracked goal on the printer, Crowns and Crescents";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

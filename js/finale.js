@@ -39,6 +39,16 @@ function finaleTile(e, type) {
 }
 function finaleClock(sec) { const m = Math.floor(sec / 60), s = sec % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; }
 
+// r709 (owner): a Trick held at the end that is one half of an Inseparable pair
+// whose other half was not held. Only the held half is named: the player learns
+// it belongs to a pair, not what completes it. Two at most.
+function finaleOneAway(tricks) {
+  if (typeof inseparablePartOf !== 'function') return [];
+  const ids = new Set((tricks || []).map(t => t && t.id));
+  return (tricks || []).filter(t => { const p = t && !t.fused && inseparablePartOf(t.id); return p && !ids.has(p.id) && !p.parts.every(x => ids.has(x)); })
+    .slice(0, 2).map(t => t.name);
+}
+
 // Everything the screen and the share image print, in one place.
 function finaleFacts(kind) {
   if (typeof testDriveActive === 'function' && testDriveActive()) kind = 'drive';
@@ -99,6 +109,8 @@ function finaleFacts(kind) {
     discarded: typeof cardsDiscardedTotal === 'number' ? cardsDiscardedTotal : 0,
     records, firstRun: !hist.length,
     coll: (typeof collectionGained === 'function') ? collectionGained() : null,   // r706
+    oneAway: finaleOneAway(owned.tricks),   // r709
+    token: (won && typeof unlockRun !== 'undefined' && unlockRun && unlockRun.token) || null,   // r709: a win token
     seed: (typeof runSeed === 'string' && runSeed) ? runSeed : null,
     date: new Date().toLocaleDateString(),
   };
@@ -114,7 +126,7 @@ function finaleBodyHTML(F) {
     : `${F.far} · ROUND ${F.lvl}${F.goal ? ` · <b>${F.sc.toLocaleString()}</b> of <b>${F.goal.toLocaleString()}</b>` : ''} · ${finaleClock(F.secs)}`;
   const n = F.owned.tricks.length + F.owned.knacks.length + F.owned.sleights.length;
   return `
-    <div class="bs-note fn-close">${closeLine}${F.records.length ? `<div class="fn-records">${F.records.map(x => `<span>★ ${x}</span>`).join('')}</div>` : ''}</div>
+    <div class="bs-note fn-close">${closeLine}${F.records.length ? `<div class="fn-records">${F.records.map(x => `<span>★ ${x}</span>`).join('')}</div>` : ''}${(F.oneAway || []).map(n => `<div class="fn-away">ONE TRICK AWAY · <b>${n}</b> + ????</div>`).join('')}${F.token ? `<div class="fn-token">${F.token.full ? `${TOKEN_MODES[F.token.id]} TOKENS ${TOKENS_PER_MODE}/${TOKENS_PER_MODE}` : `+1 TOKEN · ${TOKEN_MODES[F.token.id]} ${F.token.n}/${TOKENS_PER_MODE} · spend it in Builds`}</div>` : ''}</div>
     <div class="bs-lines fn-stats">
       ${box('SCORE', F.total.toLocaleString(), '', r.includes('BEST SCORE'))}
       ${box('BEST HAND', F.bestHand || '·', F.bestHandScore ? F.bestHandScore.toLocaleString() : '', r.includes('BEST HAND'))}

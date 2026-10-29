@@ -77,6 +77,10 @@ const PROB_TABLES = [
     desc: 'When a Second Suit or Second Rank operation is applied, the chance each selected card actually takes it. Luck raises it.',
     how: '100% means every selected card always takes it. Lower it to make dual cards rarer.',
     rows: () => [{ k: 'v', label: 'Chance per card', get: () => FLOWR_DUAL_CHANCE, set: v => { FLOWR_DUAL_CHANCE = v; } }] },
+  { id: 'suitpack', group: 'Deck editing', type: 'p1', title: 'Crowns / Crescents pack chance',
+    desc: 'On a card pack screen, the chance the last offer is a pack of a new suit: six Crowns (face cards) or six Crescents (any ranks), half and half.',
+    how: '0 turns them off. At 25% about one card pack screen in four shows one.',
+    rows: () => [{ k: 'v', label: 'Chance per screen', get: () => SUIT_PACK_CHANCE, set: v => { SUIT_PACK_CHANCE = v; } }] },
 
   { id: 'leveltype', group: 'Levels', type: 'p1', title: 'Flow shaped level chance',
     desc: 'From level 3, the chance a Flow level is Line Quotas (marked lines, each with its own goal; clearing it pays at least 3 rewards) or a Relay (three goals in a row) instead of a plain goal. Rolled once per level, Line Quotas first.',

@@ -150,8 +150,9 @@ async function loreAsk(word) {
   if (activeEventId !== 'lore') return;
   const def = s.loreDef;
   if (!def) { setEventConfirm(true); return; }
-  const el = makeChoiceEl({ rarity: def.tier, name: def.name, desc: def.desc,
-    tile: { entity: 'trick', id: def.id, emoji: trickEmoji(def), label: def.name } });
+  const nm = (typeof shownEntityName === 'function') ? shownEntityName(def, 'trick') : def.name;
+  const el = makeChoiceEl({ rarity: def.tier, name: nm, desc: def.desc,
+    tile: { entity: 'trick', id: def.id, emoji: trickEmoji(def), label: nm } });
   el.classList.add('selected', 'lore-offer');
   out.appendChild(el);
   if (typeof evReveal === 'function') evReveal(el);

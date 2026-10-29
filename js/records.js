@@ -143,7 +143,7 @@ function recordsDeckWhere() {
 }
 
 function recordsRenderDeckCards() {
-  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  const suits = (typeof deckSuitsShown === 'function') ? deckSuitsShown(everyDeckCard()) : (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;   // r709
   const whereOf = recordsDeckWhere();
   const all = everyDeckCard();
   const rankIdx = rk => { const i = ACTIVE_RANKS.indexOf(rk); return i < 0 ? 99 : i; };
@@ -220,7 +220,7 @@ window.addEventListener('resize', () => { if (recordsOpen && recordsTab === 'dec
 function recordsRenderDeck() {
   if (recordsDeckView === 'cards') return recordsRenderDeckCards();
   const where = recordsDeckCensus();
-  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  const suits = (typeof deckSuitsShown === 'function') ? deckSuitsShown(everyDeckCard()) : (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;   // r709: a Crown / Crescent row
   const counts = { draw: 0, grid: 0, played: 0 };
   Object.values(where).forEach(cell => { if (counts[cell.where] !== undefined) counts[cell.where] += cell.n; });
 

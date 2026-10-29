@@ -138,7 +138,7 @@ function standInProxies(components) {
   (components || []).forEach(k => {
     if (!flushNames.includes(k.name)) return;
     const nat = k.cells.map(at).filter(c => c && c.suit && !isWildCard(c) && !isWarehouseCard(c));
-    const suit = (typeof ACTIVE_SUITS !== 'undefined' ? ACTIVE_SUITS : []).find(s => nat.length && nat.every(c => c.suit === s || c.suit2 === s));
+    const suit = (typeof flushSuits === 'function' ? flushSuits() : typeof ACTIVE_SUITS !== 'undefined' ? ACTIVE_SUITS : []).find(s => nat.length && nat.every(c => c.suit === s || c.suit2 === s));
     if (!suit) return;
     k.cells.forEach(cl => { if (isWildCard(at(cl)) && !out[cl[0] + '-' + cl[1]]) out[cl[0] + '-' + cl[1]] = proxy(at(cl), '2', suit); });
   });
