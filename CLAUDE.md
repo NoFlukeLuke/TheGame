@@ -3545,3 +3545,13 @@ tick) are no longer listed in `AUDIO_MANIFEST.music`, so Settings -> Music playl
 Kevin MacLeod tracks (Your Call, Eternity, Presenterator, Delightful D on the menu and in a run; Digital
 Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech in a run). The recordings stay in
 `assets/ambience/` unplayed; a stored on/off choice for an `amb_` id is ignored (no row reads it).
+
+## r705 - the tall Schedule's reviews need four; a mystery counts for both (owner)
+`MAP_BOSS_NEED.kinds` 3 -> 4. On the tall shape a booked mystery counts toward the OTHERS review
+whatever it was, and toward the ROUNDS review too when it turns out to be a round (owner: a treat for
+a disappointing mystery). `mapBossCounts(b, t, guess)`: `guess` (used only by `mapBossReachable`)
+counts a still-hidden mystery for both, so whether the hidden review shows never gives a mystery's
+kind away. Split kept as rounds (incl. priority, audit, 1-on-1) vs everything else (shops, events,
+raises, incentives). Measured, 1,000 random walks: A 46% / B 13% / hidden 41% (at 3 it was 65 / 35 / 0);
+0 strands. The ? card, the locked tile's line, the dev input and the handbook say four.
+

@@ -93,7 +93,7 @@ const MAP_KIND_CAP = 2;
 // them; on the tall shape one unlocks at `kinds` rounds booked, the other at
 // `kinds` other obligations. Neither unlocked, and neither still reachable: a
 // random manager (`hidden`, drawn at build, unnamed until taken).
-const MAP_BOSS_NEED = { lanes: 5, kinds: 3 };
+const MAP_BOSS_NEED = { lanes: 5, kinds: 4 };
 function mapBossRule() { return mapSlotCap() === 1 ? 'kinds' : 'lanes'; }
 function mapBossTiles() { return mapTiles.filter(t => t.kind === 'boss'); }
 function mapTileIsRound(t) { return t.kind === 'level' || t.kind === 'challenge'; }
@@ -103,13 +103,20 @@ function mapBossPreset(t) {
   const id = (t.slot === 'a' || !t.slot) ? ((typeof actBossId !== 'undefined' && actBossId) || t.presetId) : t.presetId;
   return (typeof BOSS_PRESETS !== 'undefined' && BOSS_PRESETS.find(p => p.id === id)) || null;
 }
-// Does a booked obligation count toward this review?
-function mapBossCounts(b, t) {
+// Does a booked obligation count toward this review? On the tall shape a
+// mystery counts as an other obligation, and also as a round if it turns out
+// to be one (owner, r705). `guess` is for tiles not booked yet: a mystery that
+// is still hidden might be a round, so it counts for both (never leaks its kind).
+function mapBossCounts(b, t, guess) {
   if (t.kind === 'boss' || t.kind === 'blank') return false;
   if (mapBossRule() === 'lanes') {
     const lanes = b.lanes || [];
     for (let l = t.lane; l < t.lane + (t.cols || 1); l++) if (lanes.includes(l)) return true;
     return false;
+  }
+  if (t.mystery && (t.revealed || guess)) {
+    if (b.slot !== 'a') return true;
+    return t.revealed ? mapTileIsRound(t) : true;
   }
   return b.slot === 'a' ? mapTileIsRound(t) : !mapTileIsRound(t);
 }
@@ -124,7 +131,7 @@ function mapBossReachable(b) {
   const from = mapPos ? mapPos.set : 0;
   const here = mapPos ? Math.max(0, cap - mapVisits) : cap;
   const left = here + cap * Math.max(0, (MAP_SETS - 1) - from);
-  const avail = mapTiles.filter(t => !t.visited && mapBossCounts(b, t) && t.set >= from && !(t.set === from && here <= 0)).length;
+  const avail = mapTiles.filter(t => !t.visited && mapBossCounts(b, t, true) && t.set >= from && !(t.set === from && here <= 0)).length;
   return mapBossProgress(b) + Math.min(left, avail) >= mapBossNeed(b);
 }
 // Which review tiles the funnel may book: the unlocked ones; with none unlocked
@@ -151,7 +158,7 @@ function mapBossCondSay(b) {
   const n = mapBossProgress(b), need = mapBossNeed(b);
   const what = mapBossRule() === 'lanes'
     ? `${need} bookings in lanes ${b.lanes.map(l => l + 1).join(' and ')}`
-    : `${need} ${b.slot === 'a' ? 'rounds' : 'obligations that are not rounds'}`;
+    : `${need} ${b.slot === 'a' ? 'rounds' : 'obligations that are not rounds (a mystery counts, and counts as a round too if it is one)'}`;
   return mapBossUnlocked(b) ? `Unlocked: ${what}.` : `Unlocks at ${what} (${n} so far${mapBossReachable(b) ? '' : ', out of reach now'}).`;
 }
 // The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
@@ -1227,7 +1234,7 @@ function mapHelpRows() {
   // r702: the two reviews.
   rows.push(['Two reviews', mapBossRule() === 'lanes'
     ? `Each review unlocks at ${MAP_BOSS_NEED.lanes} bookings in its two lanes. Neither unlocked: a random manager.`
-    : `One review unlocks at ${MAP_BOSS_NEED.kinds} rounds booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. Neither: a random manager.`]);
+    : `One review unlocks at ${MAP_BOSS_NEED.kinds} rounds booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. A mystery counts as another obligation, and as a round too if it is one. Neither: a random manager.`]);
   const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
   if (d) rows.unshift(d);
   return rows;

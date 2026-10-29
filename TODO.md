@@ -104,7 +104,7 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    are. Option A to start (columns change what shows up, not how a round plays). New tiles
    TRAINING, FILING, CALENDAR SYNC (slots 1-2 only). Decisions and the draft lists: `DEPARTMENTS.md`.
 2. **Two bosses a quarter, and a hidden third** (idea 2). Built r702: each review owns two lanes
-   (wide) or a kind of booking (tall); 5 bookings in its lanes / 3 of its kind unlock it; neither,
+   (wide) or a kind of booking (tall); 5 bookings in its lanes / 4 of its kind unlock it (r705: a mystery counts as both if it is a round); neither,
    a hidden third.
 3. **Skip perks** (idea 3). A word for the self-care perk of leaving a slot early; the perk
    table (a Sleight charge, a random improvement, rarely an improvement of your choice, +2
