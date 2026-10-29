@@ -12,9 +12,9 @@
 // Survival pick as well. An old save carrying limits.reroll is harmless - the
 // contents are copied key by key and nothing reads it.
 const LIMITS_DEF = [
-  { id: 'selection',   label: 'Selection Size',  icon: '🎴', desc: 'Cards selectable at once (play grid AND reward grid).', base: 3, max: 9, min: 3, hideMax: true },
-  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7, min: 3 },
-  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7, min: 3 },
+  { id: 'selection',   label: 'Selection Size',  icon: '🎴', desc: `Cards selectable at once (play grid AND ${gridName('reward')}).`, base: 3, max: 9, min: 3, hideMax: true },
+  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: `Rows in the playing grid (and ${gridName('reward')})`,    base: 4,   max: 7, min: 3 },
+  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: `Columns in the playing grid (and ${gridName('reward')})`, base: 4,   max: 7, min: 3 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
   { id: 'round_time',  label: 'Starting Time',    icon: '⏱', desc: 'Seconds you START each round with (rewinds can carry you above it)', base: 180, max: 300, min: 60, step: 15 },

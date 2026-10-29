@@ -255,10 +255,10 @@ const CRR = {
   },
   grid: {
     n: [1, 2], face: ['+1', '+2', 'PATH'],
-    say: t => `+${CRR.grid.n[t]} to your next reward grid's path`,
+    say: t => `+${CRR.grid.n[t]} to your next ${gridName('reward')}'s path`,
     can: () => true,
     give(t, ctx) { crGridBonus += this.n[t]; if (ctx.el) crrFly(ctx.el, null, `+${this.n[t]} PATH`); return ''; },
-    penSay: "-1 to your next reward grid's path", penLabel: '-1 PATH',
+    penSay: `-1 to your next ${gridName('reward')}'s path`, penLabel: '-1 PATH',
     penCan: () => true,
     take() { crGridBonus -= 1; },
   },

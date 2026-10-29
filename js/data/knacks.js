@@ -28,7 +28,7 @@ const KNACK_POOL = [
   { id:'carry_discards',  emoji:'📦',  name:'Collector',        rarity:'common', desc:'Unused discards carry over to the next round (max 8).', tags:['stock','other','level'] },
   { id:'carry_time',      emoji:'🕰️',  name:'Clock Tower',      rarity:'rare',   desc:'The next round starts with the seconds this round ends with (max 60s).', tags:['time','other','level','clock'] },
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the round goal, the round goes on with 30s on the clock instead of failing.', tags:['shield','time','other','level'] },
-  { id:'last_swap',       emoji:'🔀',  name:'Last Swap',        rarity:'rare',   desc:'End a round with exactly one swap left and you can trade two touching tiles on the reward grid. Double-tap a tile, then tap its neighbour. Uses the swap.', tags:['other','reward','level','cost'] },
+  { id:'last_swap',       emoji:'🔀',  name:'Last Swap',        rarity:'rare',   desc:'End a round with exactly one swap left and you can trade two touching tiles on the ' + gridName('reward') + '. Double-tap a tile, then tap its neighbour. Uses the swap.', tags:['other','reward','level','cost'] },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       rarity:'rare',   desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.', tags:['stock','other','swap','cost'] },
   { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your tricks is primed: it fires an extra time on your next hand.', tags:['retrigger','other','clock','tricks'] },
   { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a round a card on the board is marked. Score it and it takes a random buff.', tags:['deck','card','position','scaling','chance'] },
@@ -70,7 +70,7 @@ const KNACK_POOL = [
   { id:'kick_in',        emoji:'🪙',  name:'Pip In',         rarity:'rare',   desc:'Kickers cost nothing, and score their pips and fire Tricks as though they were in the hand. They do not change the hand type.', tags:['pips','card','scores'] },
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you take raises your Focus limit by 1.', tags:['focus','other','reward','scaling'] },
-  { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.', tags:['other','reward'] },
+  { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:`+2 selection size in the ${gridName('reward')} - grab more tiles at once.`, tags:['other','reward'] },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.', tags:['credits','stock','other'] },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.', tags:['other','sleights','chance','charges','start'] },
   // r677 (owner; named r685): buffs cards on the grid when a level is cleared (js/touch-up.js)

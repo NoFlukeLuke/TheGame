@@ -376,10 +376,10 @@ const MAP_KIND_META = {
   level:      { icon: '▶\uFE0E', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
                 blurb: 'An ordinary round. Clear it and take a pick of three.' },
   challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
-                blurb: 'A round with a raised goal and one extra ask. Pays credits and a reward grid.' },
+                blurb: `A round with a raised goal and one extra ask. Pays credits and ${gridName('reward', { a: true })}.` },
   // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
   mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
-                blurb: 'A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and a reward grid.' },
+                blurb: `A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and ${gridName('reward', { a: true })}.` },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
@@ -387,7 +387,7 @@ const MAP_KIND_META = {
   shop:       { icon: '$', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
   reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
-                blurb: 'A board of rewards. Pick a connected path across it.' },
+                blurb: `${gridName('reward', { a: 'A' })}. Pick a connected path across it.` },
   event:      { icon: '✧', name: 'EVENT',     full: 'Event',            cls: 'mk-event',
                 blurb: 'One screen, one decision. The tile names which.' },
   limitbreak: { icon: '▲', name: 'RAISE',     full: 'Raise Request',    cls: 'mk-limit',
@@ -423,9 +423,9 @@ function mapTileDesc(t, legalIds) {
     case 'level':      return `Play a round.${goal} Clear it for the payout and a pick of three.`;
     case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
-      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and a reward grid (a path of up to ${mapRewardPath()}).`;
+      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`;
     case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
-    case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} board of rewards. Take a connected path of up to ${mapRewardPath()} tiles.`;
+    case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} ${gridName('reward')}. Take a connected path of up to ${mapRewardPath()} tiles.`;
     case 'event':      return t.eventFlavor || 'Something happens.';
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss': {

@@ -540,7 +540,7 @@ const DESC_TEMPLATES = {
   kindling: 'Same-hand streaks score +{mult_per_streak} mult × the streak count',
   even_score: 'Even-ranked cards score +{pips_per_card} pips',
   rowcol_mult: 'Cards scored in a marked row or column score +{mult} mult',
-  more_better: 'Each reward grid where you select {min_tiles}+ tiles permanently adds +{mult} mult to this trick',
+  more_better: 'Each ' + gridName('reward') + ' where you select {min_tiles}+ tiles permanently adds +{mult} mult to this trick',
   tunnel_vision: 'Start each round with {focus} Focus',
   rhythm: 'Each hand played adds {focus} additional Focus',
   down_and_back_in: 'Discarding a card of the grid’s highest rank grants +{grant} discards or +{grant} swaps (alternating) and +{coins} credits.',

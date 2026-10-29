@@ -35,7 +35,7 @@
     'meditation', 'deep_breath', 'frozen_moment', 'cuckoo', 'phoenix', 'patient_rulers']);
   // What the board cannot show. Printed under the description.
   const OFF_BOARD = {
-    more_better: 'Pays on a reward grid. Not seen here.',
+    more_better: `Pays on ${gridName('reward', { a: true })}. Not seen here.`,
     tunnel_vision: 'Pays at the start of a round. REFILL resets Focus; the next real round shows it.',
     first_wind: 'Holds Focus decay for the first 45s of a round. Run the clock from a REFILL.',
     five_fodder: 'Select a 5-card hand and press DISCARD.',

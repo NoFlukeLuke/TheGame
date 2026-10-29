@@ -240,7 +240,7 @@ const INFO_TOPICS = [
       'The Contributions view on the same screen breaks the round down by what earned it.',
     ] },
 
-  { id: 'reward_grid', group: 'between', title: 'The reward grid',
+  { id: 'reward_grid', group: 'between', title: `The ${gridName('reward')}`,
     body: [
       'A board of rewards and liabilities. You pick a CONNECTED PATH through it and take EVERYTHING on that path.',
       'Tapping a tile you cannot reach shows its description. Tapping one you can reach picks it and shows its description.',
@@ -283,9 +283,9 @@ const INFO_TOPICS = [
       'Then an optional SECOND pick, which costs you something off a short list drawn at that moment. JUST THE ONE always walks away with the free pick and no price.',
     ] },
 
-  { id: 'prize_grid', group: 'between', title: 'The prize grid',
+  { id: 'prize_grid', group: 'between', title: `The ${gridName('prize')}`,
     body: [
-      'Beating a review opens a prize grid INSTEAD of an ordinary reward grid. It is smaller, every single cell is a reward with no liabilities at all, and nothing common is on it.',
+      `Beating a review opens ${gridName('prize', { a: true })} INSTEAD of ${gridName('reward', { a: true })}. It is smaller, every single cell is a reward with no liabilities at all, and nothing common is on it.`,
     ] },
 
   { id: 'quarter', group: 'between', title: 'Quarters',
@@ -351,7 +351,7 @@ const INFO_TOPICS = [
 
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
-      'A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement. Clearing it pays a reward grid; meeting the requirement pays credits too.',
+      `A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement. Clearing it pays ${gridName('reward', { a: true })}; meeting the requirement pays credits too.`,
       'A one-on-one is a priority account whose requirement is a review\u2019s modifier at half strength. Clearing it is meeting it.',
       'Missing the requirement is not failing the round. Clear the raised {GOAL} and the round passes as normal; meet the requirement too and you also take the bonus.',
     ] },
@@ -368,10 +368,10 @@ const INFO_TOPICS = [
     body: [
       () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review. Two managers wait at the end: each unlocks on what you booked (five obligations in its two lanes; on the tall schedule, four rounds for one and four other obligations for the other, a mystery counting as both if it turns out to be a round). Unlock one and face it; unlock both and choose; unlock neither and a random manager holds the review.`,
       'Every step activates the obligation you land on. You can take any two obligations in a slot. Leaving a slot after one pays the department\u2019s reward.',
-      'Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (reward grids).',
-      'An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or a reward grid. You find out when you commit to it.',
+      `Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
+      `An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays a reward grid instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
+      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays ${gridName('reward', { a: true })} instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [
@@ -384,15 +384,15 @@ const INFO_TOPICS = [
   { id: 'mode_guided', group: 'modes', title: 'Guided',
     body: [
       () => `Each quarter is ${typeof GUIDED_SLOTS_PER_ACT !== 'undefined' ? GUIDED_SLOTS_PER_ACT : 8} slots, then the manager review.`,
-      'Before each slot you choose one of four offers: a round, a hard round, a reward grid, the shop, a pick of three or an event. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
+      'Before each slot you choose one of four offers: a round, a hard round, ' + gridName('reward', { a: true }) + ', the shop, a pick of three or an event. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
       'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
       () => `Pick of three odds per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''}.`,
     ] },
   { id: 'mode_normal', group: 'modes', title: 'Classic',
     body: [
       () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
-      'Reach each round\'s {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the reward grid. The reward grid can lead to the shop or an event.',
-      'Passing a review opens the prize grid.',
+      `Reach each round's {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the ${gridName('reward')}. The ${gridName('reward')} can lead to the shop or an event.`,
+      `Passing a review opens the ${gridName('prize')}.`,
     ] },
   { id: 'mode_spectrum', group: 'modes', title: 'Spectrum',
     body: [

@@ -330,7 +330,7 @@ function renderPrizeLadder() {
 function renderCallIt() {
   const body = evBodyEl();
   const n = limits.selection.current;
-  body.appendChild(evNote(`A reward grid. Take a path of exactly <b>${n}</b> tiles, no skipping. Then call heads or tails: right, and you get every reward on the path. Wrong, and you get every penalty.`));
+  body.appendChild(evNote(`${gridName('reward', { a: 'A' })}. Take a path of exactly <b>${n}</b> tiles, no skipping. Then call heads or tails: right, and you get every reward on the path. Wrong, and you get every penalty.`));
   evConfirmBtn('OPEN THE GRID', true);
 }
 function confirmCallIt() {
