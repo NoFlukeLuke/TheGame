@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r712 · the owner's Trick triage: four Knacks, To the Clouds, Cornery, Eye of the Storm, Focus resolves in MULT";
+const BUILD = "2026-10-29 · r713 · boss briefs state the mechanic and stop";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

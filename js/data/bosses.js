@@ -10,7 +10,7 @@ const BOSS_PRESETS = [
     name: 'THE STONE LORD',
     flavor: 'Your deck turns to rubble',
     objective: { type: 'score' },
-    brief: 'Stones land on the board when the round starts, scaled to the board\'s size, and about a fifth of your deck is rubble for the rest of the round. A stone cannot be selected, played, swapped or discarded, and holds its cell until something clears it.',
+    brief: 'Stones land on the board when the round starts, and about a fifth of your deck turns to stone for the round. A stone cannot be selected, played, swapped or discarded.',
     modifiers: ['inject_stones'],
     // r216: stoneInjectCount is dead. The board dose is derived from the grid and
     // the deck dose from the real deck size (see inject_stones in js/boss.js).
@@ -20,7 +20,7 @@ const BOSS_PRESETS = [
     id: 'voidwright',
     name: 'THE VOIDWRIGHT',
     flavor: 'Two of your Tricks at a time',
-    brief: 'Two of your Tricks are switched off for the first half of the round. Those two come back and two different ones go off for the second half. The briefing lists both pairs. A switched-off Trick is greyed out in your tray and in Records.',
+    brief: 'Two of your Tricks are off for the first half of the round, and two others for the second half.',
     objective: { type: 'score' },
     modifiers: ['trick_pool_split'],
     params: { perPhase: 2 }
@@ -29,7 +29,7 @@ const BOSS_PRESETS = [
     id: 'hand_of_famine',
     name: 'THE HAND OF FAMINE',
     flavor: 'A withered deck offers little',
-    brief: 'Your draw pile is reordered to put the low cards near the top. No cards are added or removed.',
+    brief: 'Your draw pile is reordered with the low cards near the top.',
     objective: { type: 'hand', handName: 'Flush', count: 2 },
     modifiers: ['low_card_infusion'],
     // r216: this no longer rewrites the rank of a drawn card (which invented
@@ -41,7 +41,7 @@ const BOSS_PRESETS = [
     name: 'THE CORNERLESS KING',
     flavor: 'The edges hold no salvation',
     objective: { type: 'score' },
-    brief: 'The corners of the grid have been removed, along with half your swaps and half your discards, rounded in your favour.',
+    brief: 'The grid\'s corners are removed, and your swaps and discards are halved, rounded up.',
     modifiers: ['void_corners', 'ration_half'],
     params: {}
   },
@@ -49,7 +49,7 @@ const BOSS_PRESETS = [
     id: 'the_hollow',
     name: 'THE HOLLOW',
     flavor: 'Cards crumble into nothing',
-    brief: 'Every 7 seconds one card is taken off the board and shuffled back into your deck. Another falls in to replace it.',
+    brief: 'Every 7 seconds one card on the board is shuffled back into your deck and replaced.',
     objective: { type: 'score' },
     // r213: the hole is REFILLED now (see periodic_null in js/boss.js), so this
     // is board churn rather than board destruction. 6s -> 7s alongside that,
@@ -67,7 +67,7 @@ const BOSS_PRESETS = [
     id: 'the_metronome',
     name: 'TIME DILATION',   // r561 (owner): was THE METRONOME, which clashed with the Metronome knack
     flavor: 'It keeps your time now',
-    brief: 'The clock runs at your Focus multiplier. At ×3 Focus, three seconds leave the clock every second.',
+    brief: 'The clock runs at your Focus multiplier.',
     objective: { type: 'score' },
     modifiers: ['time_scales_with_focus'],
     params: {}
@@ -76,7 +76,7 @@ const BOSS_PRESETS = [
     id: 'the_tollman',
     name: 'THE TOLLMAN',
     flavor: 'Every touch is billed',
-    brief: 'Swaps and discards cost double. Playing a hand costs 5 seconds, on top of anything it already cost. The hand scores before the clock is charged.',
+    brief: 'Swaps and discards cost double. Playing a hand costs 5 seconds.',
     objective: { type: 'score' },
     modifiers: ['interact_surcharge'],
     params: { costMult: 2, playCostAdd: 5 }
@@ -94,7 +94,7 @@ const BOSS_PRESETS = [
     id: 'the_quarantine',
     name: 'THE QUARANTINE',
     flavor: 'The board is being condemned, cell by cell',
-    brief: 'Every 15 seconds a cell is marked with a cross. Ten seconds later it goes dark: cards still fall into it, but nothing there can be selected, played, swapped or discarded. Dark cells stay dark for the rest of the round.',
+    brief: 'Every 15 seconds a cell is marked. Ten seconds later it goes dark for the rest of the round: cards still fall into it, but nothing there can be selected, played, swapped or discarded.',
     objective: { type: 'score' },
     modifiers: ['cell_quarantine'],
     params: { everySecs: 15 }
@@ -103,7 +103,7 @@ const BOSS_PRESETS = [
     id: 'the_hold',
     name: 'THE HOLD',
     flavor: 'That one stays where it is',
-    brief: 'Every 13 seconds two cards are held for 15 seconds each. A held card shows its countdown and cannot be selected, played, swapped or discarded.',
+    brief: 'Every 13 seconds two cards are held for 15 seconds. A held card cannot be selected, played, swapped or discarded.',
     objective: { type: 'score' },
     modifiers: ['card_hold'],
     params: { everySecs: 13, holdSecs: 15, count: 2 }
@@ -112,7 +112,7 @@ const BOSS_PRESETS = [
     id: 'the_censor',
     name: 'THE CENSOR',
     flavor: 'Your paperwork is under review',
-    brief: 'Every 35 seconds one of your Tricks is suspended for 45 seconds. The windows overlap, so two are down at once for 10 seconds of every cycle.',
+    brief: 'Every 35 seconds one of your Tricks is suspended for 45 seconds.',
     objective: { type: 'score' },
     modifiers: ['trick_blackout'],
     params: { everySecs: 35, holdSecs: 45 }
@@ -121,7 +121,7 @@ const BOSS_PRESETS = [
     id: 'the_blight',
     name: 'THE BLIGHT',
     flavor: 'It spreads through the board',
-    brief: 'Every 20 seconds three more cells are contaminated for the rest of the round. A card scored from a contaminated cell pays half its pips and may fail to trigger a Trick.',
+    brief: 'Every 20 seconds three more cells are contaminated for the rest of the round. A card scored from one pays half its pips and may fail to trigger a Trick.',
     objective: { type: 'score' },
     modifiers: ['cell_blight'],
     params: { everySecs: 20, count: 3 }
@@ -130,7 +130,7 @@ const BOSS_PRESETS = [
     id: 'the_recall',
     name: 'THE RECALL',
     flavor: 'That rank has been withdrawn',
-    brief: 'Three ranks are withdrawn at a time. Those cards stay on the board but cannot be played, swapped or discarded, and they carry a countdown. Every 45 seconds they are reinstated and three different ranks are withdrawn.',
+    brief: 'Three ranks are withdrawn: those cards cannot be played, swapped or discarded. Every 45 seconds three different ranks are withdrawn instead.',
     objective: { type: 'score' },
     modifiers: ['rank_recall'],
     // r213: ONE rank froze 1.23 cards of 16 on average and hit nothing at all 22%
@@ -142,7 +142,7 @@ const BOSS_PRESETS = [
     id: 'the_auditor',
     name: 'THE AUDITOR',
     flavor: 'Your allowances are under revision',
-    brief: 'Every 30 seconds one swap or one discard is taken off your allowance for this round.',
+    brief: 'Every 30 seconds you lose one swap or one discard for the round.',
     objective: { type: 'score' },
     modifiers: ['ration_cut'],
     params: { everySecs: 30 }
@@ -151,7 +151,7 @@ const BOSS_PRESETS = [
     id: 'the_ratchet',
     name: 'THE RATCHET',
     flavor: 'The bar only moves one way',
-    brief: 'Every swap and every discard raises the goal by 5%. It does not come back down.',
+    brief: 'Every swap and every discard raises the goal by 5%.',
     objective: { type: 'score' },
     modifiers: ['goal_ratchet'],
     params: { rate: 0.05 }
@@ -160,7 +160,7 @@ const BOSS_PRESETS = [
     id: 'the_turnstile',
     name: 'THE TURNSTILE',
     flavor: 'Access is metered',
-    brief: 'Every swap and every discard costs 5 credits. Below 5 credits you cannot swap or discard at all.',
+    brief: 'Every swap and every discard costs 5 credits.',
     objective: { type: 'score' },
     modifiers: ['interact_fee'],
     params: { fee: 5 }
@@ -169,7 +169,7 @@ const BOSS_PRESETS = [
     id: 'the_marker',
     name: 'THE MARKER',
     flavor: 'Some of these are no good',
-    brief: 'One card in every ten is marked, and nothing shows which. Playing a marked card discards it instead of scoring it, along with every other marked card in that hand, and the hand does not score.',
+    brief: 'One card in ten is secretly marked. A hand with a marked card does not score, and its marked cards are discarded.',
     objective: { type: 'score' },
     modifiers: ['discard_curse'],
     params: { everyNthCard: 10 }
@@ -178,7 +178,7 @@ const BOSS_PRESETS = [
     id: 'the_redaction',
     name: 'THE REDACTION',
     flavor: 'That hand is no longer recognised',
-    brief: 'One family of hands - sets, runs or flushes - scores a quarter of its normal value. Every 90 seconds a different family is marked down instead.',
+    brief: 'One family of hands (sets, runs or flushes) scores a quarter of its value. Every 90 seconds a different family is marked down.',
     objective: { type: 'score' },
     modifiers: ['redact_hand'],
     params: { mult: 0.25, holdSecs: 90 }
@@ -196,7 +196,7 @@ const BOSS_PRESETS = [
     id: 'the_quota',
     name: 'THE QUOTA',
     flavor: 'Show your work, or start again',
-    brief: 'Three deadlines inside the round: a fifth of the goal by the first third, two fifths by the second, three fifths by the third. Miss one and your score returns to zero. The last stretch has no deadline.',
+    brief: 'Three deadlines: a fifth of the goal by the first third of the round, two fifths by the second, three fifths by the third. Miss one and your score returns to zero.',
     objective: { type: 'score' },
     modifiers: ['score_quota'],
     params: { shares: [0.2, 0.4, 0.6] }
@@ -205,7 +205,7 @@ const BOSS_PRESETS = [
     id: 'the_tax_man',
     name: 'THE TAX MAN',
     flavor: 'One credit a card, payable on play',
-    brief: 'Every hand costs credits equal to the number of cards in it. The hand scores before the bill is charged. Run out of credits and the round ends.',
+    brief: 'Every hand costs 1 credit per card. Run out of credits and the round ends.',
     objective: { type: 'score' },
     modifiers: ['play_fee_credits'],
     params: { perCard: 1 }
@@ -214,7 +214,7 @@ const BOSS_PRESETS = [
     id: 'the_grind',
     name: 'THE GRIND',
     flavor: 'It worked the first time',
-    brief: 'A hand type pays 15% less each time you repeat it. It resets after you play five other hands.',
+    brief: 'A hand type pays 15% less each time you repeat it, until you play five other hands.',
     objective: { type: 'score' },
     modifiers: ['repeat_decay'],
     params: { rate: 0.15, window: 5 }
@@ -223,7 +223,7 @@ const BOSS_PRESETS = [
     id: 'the_drought',
     name: 'THE DROUGHT',
     flavor: 'Everything you learned, forgotten',
-    brief: 'Natural Scaling pays nothing this round. The bonuses your hands have earned are kept and return when the round ends.',
+    brief: 'Natural Scaling pays nothing this round.',
     objective: { type: 'score' },
     modifiers: ['no_natural_scaling'],
     params: {}
@@ -232,7 +232,7 @@ const BOSS_PRESETS = [
     id: 'the_inspector',
     name: 'THE INSPECTOR',
     flavor: 'One hand, on the record, regularly',
-    brief: 'One hand type is named at the start of the round and must be played at least every 45 seconds. Miss a check and you lose a fifth of your score.',
+    brief: 'One hand type is named. Play it at least every 45 seconds or lose a fifth of your score.',
     objective: { type: 'score' },
     modifiers: ['hand_inspection'],
     params: { everySecs: 45, penalty: 0.2 }
@@ -241,7 +241,7 @@ const BOSS_PRESETS = [
     id: 'the_ledger',
     name: 'THE LEDGER',
     flavor: 'The number keeps being revised',
-    brief: 'Every 30 seconds the goal rises by 15% of what it started at. It does not compound.',
+    brief: 'Every 30 seconds the goal rises by 15% of its starting value.',
     objective: { type: 'score' },
     modifiers: ['goal_creep'],
     params: { rate: 0.15, everySecs: 30 }
@@ -250,7 +250,7 @@ const BOSS_PRESETS = [
     id: 'short_fuse',
     name: 'SHORT FUSE',
     flavor: 'Ninety seconds. Go.',
-    brief: 'Ninety seconds instead of the usual round, and half the usual goal.',
+    brief: 'A 90-second round with half the usual goal.',
     objective: { type: 'score' },
     modifiers: ['short_window'],
     params: { seconds: 90, goalMult: 0.5 }
@@ -259,7 +259,7 @@ const BOSS_PRESETS = [
     id: 'the_sommelier',
     name: 'THE SOMMELIER',
     flavor: 'Only one of these is acceptable',
-    brief: 'Three suits at a time score 60% of their pips. Every 60 seconds a different three are marked down. The suit paying full is never the same one twice running.',
+    brief: 'Three suits at a time score 60% of their pips. Every 60 seconds a different three are marked down.',
     objective: { type: 'score' },
     modifiers: ['suit_markdown'],
     params: { mult: 0.6, holdSecs: 60, count: 3 }
@@ -277,7 +277,7 @@ const BOSS_PRESETS = [
     id: 'the_fog',
     name: 'THE FOG',
     flavor: 'You will have to look',
-    brief: 'Card ranks are hidden until the card is selected. Suits stay visible.',
+    brief: 'Card ranks are hidden until the card is selected.',
     objective: { type: 'score' },
     modifiers: ['hide_ranks'],
     params: {}
@@ -286,7 +286,7 @@ const BOSS_PRESETS = [
     id: 'the_gradient',
     name: 'THE GRADIENT',
     flavor: 'Where you play is worth something',
-    brief: 'Cards score from half pips at one edge of the board to one and a half times at the opposite edge, scaled evenly across the cells in between. The paying edge moves a quarter turn every 40 seconds. Cards are drawn larger where they pay more and smaller where they pay less.',
+    brief: 'Cards score from half pips at one edge of the board to 1.5x at the opposite edge. The paying edge turns a quarter every 40 seconds.',
     objective: { type: 'score' },
     modifiers: ['score_gradient'],
     params: { lo: 0.5, hi: 1.5, everySecs: 40 }
@@ -304,7 +304,7 @@ const BOSS_PRESETS = [
     id: 'the_bookkeeper',
     name: 'THE BOOKKEEPER',
     flavor: 'One column for both',
-    brief: 'Swaps and discards share one pool of four for the whole round, and it does not refill. Anything that grants a swap or a discard adds to the same pool.',
+    brief: 'Swaps and discards share one pool of four for the round, with no refill. Anything that grants a swap or a discard adds to it.',
     objective: { type: 'score' },
     modifiers: ['shared_pool'],
     params: { pool: 4 }
@@ -313,7 +313,7 @@ const BOSS_PRESETS = [
     id: 'the_rerun',
     name: 'THE RERUN',
     flavor: 'Half of it does not take',
-    brief: 'Replays, pauses and rewinds each have a 50% chance of not happening. A miss is shown on screen.',
+    brief: 'Replays, pauses and rewinds each have a 50% chance of not happening.',
     objective: { type: 'score' },
     modifiers: ['effect_miss'],
     params: { chance: 0.5 }
@@ -322,7 +322,7 @@ const BOSS_PRESETS = [
     id: 'the_magpie',
     name: 'THE MAGPIE',
     flavor: 'It takes the shiny ones',
-    brief: 'Every 20 seconds the two highest cards on the board are taken. The board refills straight away.',
+    brief: 'Every 20 seconds the two highest cards on the board are taken and replaced.',
     objective: { type: 'score' },
     modifiers: ['steal_high'],
     params: { everySecs: 20, count: 2 }
@@ -331,7 +331,7 @@ const BOSS_PRESETS = [
     id: 'stale_deck',
     name: 'THE STALE DECK',
     flavor: 'Bottom of the box first',
-    brief: 'Your deck is reordered least-played first. No cards are added or removed.',
+    brief: 'Your deck is reordered least-played first.',
     objective: { type: 'score' },
     modifiers: ['stale_order'],
     params: {}
