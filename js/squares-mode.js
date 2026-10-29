@@ -872,7 +872,7 @@ function sqTrickBanned(t) {
   if (/\b2 cards|two cards|2-card/.test(d)) return true;                        // a line is five
   if (/all cards.*(row|column)|only one (row|column)|same row|same column/.test(d)) return true;
   if (/discard/.test(d)) return true;                                           // discards buy tiles, not score
-  if (d.includes(gridName('reward').toLowerCase())) return true;               // no Cost-Benefit grid in this mode
+  if (d.includes(gridName('reward').toLowerCase())) return true;               // no Balance Sheet in this mode
   return false;
 }
 

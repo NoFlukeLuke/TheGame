@@ -132,7 +132,8 @@ function triggerLevelUp() {
   // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
   // survival curve in Survival/Flow and applies Zen's doubling, and it is what
   // the dev panel's Goals group retunes live.
-  roundGoal = goalForLevel(level);
+  // r708: a Schedule round asks its tile's fixed level (js/map-mode.js), not the walk's.
+  roundGoal = goalForLevel((typeof mapRoundGoalLevel === 'function' && mapRoundGoalLevel()) || level);
   // Quota Revision (reward-grid penalty): every future goal is permanently raised.
   // Applied AFTER the curve rather than inside it - the curve is r197's to tune,
   // and this lifts whatever it produced. Rounded to 50 so the number on the HUD

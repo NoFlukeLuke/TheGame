@@ -1395,18 +1395,16 @@ function confirmRehearsal() {
 // ─── EVENT: RESTRUCTURING (r707, owner) ───
 // One random Trick is permaprimed (it fires again every time it fires, for good:
 // `_rank`, js/skip-perks.js), and two OTHER Tricks are cut, at random. The Trick
-// is picked when the screen opens, the two cut only on confirm. Needs three
-// Tricks (one to promote, two to cut); a Trick The Investment has locked is
-// never cut.
+// is picked when the screen opens, the two cut only on confirm. r708 (owner): one
+// Trick is enough; with fewer than two others it cuts what there is (luck). A
+// Trick The Investment has locked is never cut.
 function restructureCuttable(keep) {
   return (trickTray || []).filter(t => t && t !== keep && !(typeof altarTrickLocked === 'function' && altarTrickLocked(t.id)));
 }
-function restructureOfferable() {
-  return (trickTray || []).some(t => restructureCuttable(t).length >= 2);
-}
+function restructureOfferable() { return (trickTray || []).some(t => t && t.id); }
 function renderRestructure() {
   const body = document.getElementById('event-body');
-  const pool = (trickTray || []).filter(t => restructureCuttable(t).length >= 2);
+  const pool = (trickTray || []).filter(t => t && t.id);
   const t = pool[Math.floor(Math.random() * pool.length)];
   eventState.rsKeep = t || null;
   if (!t) { body.innerHTML = evEmptyHTML('Not enough Tricks to restructure.'); setEventConfirm(false); return; }
@@ -1418,7 +1416,8 @@ function renderRestructure() {
     desc: 'Every time it fires, it fires again. For good.', cls: 'rs-keep selected', onClick: () => {} }));
   body.appendChild(evLabel('CUT', true));
   const nOther = restructureCuttable(t).length;
-  body.appendChild(evNote(nOther === 2 ? 'Your other two Tricks.' : `Two of your other ${nOther} Tricks, at random.`));
+  body.appendChild(evNote(nOther === 0 ? 'Nothing: no other Trick to cut.' : nOther === 1 ? 'Your other Trick.'
+    : nOther === 2 ? 'Your other two Tricks.' : `Two of your other ${nOther} Tricks, at random.`));
   setEventConfirm(true);
 }
 function confirmRestructure() {
@@ -1430,7 +1429,7 @@ function confirmRestructure() {
       const a = acquiredTricks.findIndex(b => b.id === c.id); if (a >= 0) acquiredTricks.splice(a, 1);
     });
     permaprimeTrick(t);
-    showMessage(`${t.name} is permaprimed · cut: ${cut.map(c => c.name).join(', ')}`, 'var(--gold)');
+    showMessage(`${t.name} is permaprimed` + (cut.length ? ` · cut: ${cut.map(c => c.name).join(', ')}` : ''), 'var(--gold)');
     if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }

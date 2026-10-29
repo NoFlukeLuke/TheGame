@@ -736,3 +736,5 @@ two other Tricks that can be cut (one an Investment has locked cannot). The Tric
 screen opens and shown; on confirm two other Tricks, at random, leave the tray and the shown one is
 permaprimed (`_rank` + 1: every time it fires, it fires again, for good). In HR's event pool.
 Extra Rep's Echo upgrade grants the same thing and is now called Permaprime.
+**r708 (owner):** offered with any one Trick. Up to two others are cut: with one other Trick it
+goes, with none nothing is cut and the Trick is still permaprimed. The screen says which.

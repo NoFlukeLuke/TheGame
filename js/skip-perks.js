@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════════════════════════════════════
-// LONG LUNCH (r707, owner): what leaving a Schedule slot early pays.
+// R&R (r707 as LONG LUNCH; r708 renamed, owner): what leaving a Schedule slot early pays.
 //
-// Leaving a slot after one booking (wide shape only) still moves the curve one
-// step for each booking left behind (mapConfirm), so a skip never lowers a later
-// goal. What it buys is one perk from LUNCH_PERKS, rolled when you leave. The
+// Leaving a slot after one booking (wide shape only). Every round asks its slot's
+// fixed level (r708), so a skip changes no goal. What it buys is one perk from
+// LUNCH_PERKS, rolled when you leave. The
 // quarter's department makes its own perk DEPT_CFG.lunchMult (4) times as
 // likely; that perk is what the bar and the ? card name ("usually ..."). The
 // whole table is never shown to the player (owner).
@@ -13,10 +13,12 @@
 // pay through CRR (js/challenge-rewards.js) with the same words.
 // ══════════════════════════════════════════════════════════════════════════
 
-// Owner's table: Permaprime 25%, an improvement of your choice 5%, the rest share
-// what is left evenly (a random improvement as likely as the others).
-const LUNCH_W = { charges: 70 / 6, permaprime: 25, stock: 70 / 6, path: 70 / 6,
-                  cardbuff: 70 / 6, improve: 70 / 6, credits: 70 / 6, pick: 5 };
+// Owner's table (r708): an improvement of your choice 5%, the permaprime row 5 points
+// above the rest, the rest share what is left evenly (12.9% each, permaprime 17.9%).
+// The permaprime row itself lands 1 time in 4 (LUNCH_PERMA_CHANCE); the other 3 pay nothing.
+const LUNCH_W = { charges: 90 / 7, permaprime: 90 / 7 + 5, stock: 90 / 7, path: 90 / 7,
+                  cardbuff: 90 / 7, improve: 90 / 7, credits: 90 / 7, pick: 5 };
+const LUNCH_PERMA_CHANCE = 0.25;
 const LUNCH_CHARGES = 5;
 const LUNCH_CREDITS = [10, 20];
 
@@ -47,10 +49,11 @@ const LUNCH_PERKS = {
     },
   },
   permaprime: {
-    noun: 'a permaprime',
-    say: 'a random Trick is permaprimed', short: 'PERMAPRIME',
+    noun: 'a 1 in 4 chance at a permaprime',
+    say: 'a 1 in 4 chance a random Trick is permaprimed', short: 'PERMAPRIME?',
     can: () => _lunchTricks().length > 0,
     give() {
+      if (Math.random() >= LUNCH_PERMA_CHANCE) return 'no permaprime this time';
       const ts = _lunchTricks(), t = ts[Math.floor(Math.random() * ts.length)];
       permaprimeTrick(t);
       return `${t.name} is permaprimed`;
@@ -121,10 +124,10 @@ function lunchLikely() {
 }
 function lunchLikelySay() {
   const L = lunchLikely();
-  if (!L) return 'Long lunch: a random perk.';
+  if (!L) return 'R&R: a random perk.';
   const name = mapDept().name;
-  return L.ok ? `Long lunch in ${name}: ${L.say}, ${L.pct}% of the time.`
-              : `Long lunch in ${name}: ${L.say} cannot happen now, so a random perk.`;
+  return L.ok ? `R&R in ${name}: ${L.say}, ${L.pct}% of the time.`
+              : `R&R in ${name}: ${L.say} cannot happen now, so a random perk.`;
 }
 
 // Roll and pay. Returns the line the notice prints.

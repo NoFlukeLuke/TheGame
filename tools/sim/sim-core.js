@@ -346,8 +346,7 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   // hand read a row gridData does not have and every run crashed. Clock in.
   if (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) mapCloseScreen();
   roundGoal = goalFn(1);
-  // r707: the review asks the goal of a fixed level a quarter (MAP_REVIEW_LEVEL);
-  // bossMult, if given, lifts it.
+  // r708: rounds and reviews ask fixed levels (MAP_REVIEW_LEVEL); bossMult, if given, lifts the review.
   for (let q = 1; q <= quarters; q++) {
     // r655: a sched json's "tiles" replaces the walk; the default is an 8-booking 4 x 4 quarter.
     // r690: the reward tile is IT's alone; a priority account ('hard') pays the reward
@@ -355,8 +354,13 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
     // and three challenge cards' credits (the bot plays no cards), no pick of three.
     const tiles = (typeof SIM_SCHED_TILES !== 'undefined' && SIM_SCHED_TILES)
       || ['level','level','level','hard','shop','event','level','event'];
-    for (const t of tiles) {
+    // r708: every round asks its slot's fixed level (two bookings a slot on the 4 x 4),
+    // a harder round of a pair one level more (taken as a coin flip here).
+    const qlen = (typeof mapQuarterLen === 'function') ? mapQuarterLen() : 9;
+    for (let k = 0; k < tiles.length; k++) {
+      const t = tiles[k];
       if (t === 'level' || t === 'hard' || t === 'audit') {
+        roundGoal = goalFn((q - 1) * qlen + 1 + 2 * Math.floor(k / 2) + (Math.random() < 0.5 ? 1 : 0));
         if (t === 'hard') roundGoal = Math.round(roundGoal * 1.25);
         const res = SIM_playRound();
         if (!res.cleared) return { win: false, diedLevel: level, boss: false, diag: SIM_diag(res) };
@@ -372,8 +376,8 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
         level++; roundGoal = goalFn(level);
       }
     }
-    // boss: the fixed review level (r707), as the game asks it (the quota alone)
-    const lv = (typeof mapReviewLevel === 'function') ? mapReviewLevel(q) : 8 + 9 * (q - 1);
+    // boss: the fixed review level (r708), as the game asks it (the quota alone)
+    const lv = (typeof mapReviewLevel === 'function') ? mapReviewLevel(q) : 9 * q;
     roundGoal = bossMult ? Math.round(goalFn(lv) * bossMult / 500) * 500 : goalFn(lv);
     const res = SIM_playRound();
     if (!res.cleared) return { win: false, diedLevel: level, boss: true, diag: SIM_diag(res) };

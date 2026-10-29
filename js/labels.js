@@ -110,14 +110,15 @@ function creditsTxt(n) { return CREDIT_SYM + n; }
 // in both vocabularies.
 //   reward - the buff / debuff checkerboard after a round (rewardGridMode 'normal')
 //   prize  - the all-buff grid after a review or a won challenge round ('prize')
-// `noun` is what a sentence puts after the name ("the Cost-Benefit grid"); a name
-// that is already a noun ("the Benefits Package") has none.
+// `noun` is what a sentence puts after the name (a bare adjective would need
+// "grid"); a name that is already a noun ("the Balance Sheet") has none.
+// r708 (owner): the reward grid is the Balance Sheet (r707's Cost-Benefit).
 const GRID_NAMES = {
-  reward: { name: 'Cost-Benefit',     noun: 'grid' },
+  reward: { name: 'Balance Sheet',    noun: ''     },
   prize:  { name: 'Benefits Package', noun: ''     },
 };
-// gridName('reward')                 'Cost-Benefit grid'   (in a sentence)
-// gridName('reward', { bare: true }) 'Cost-Benefit'        (a title, the HUD)
+// gridName('reward')                 'Balance Sheet'       (in a sentence)
+// gridName('reward', { bare: true }) 'Balance Sheet'       (a title, the HUD; differs only with a noun)
 // opts.plural adds an s, opts.caps upper-cases it, opts.a puts 'a' / 'an' in front
 // ('A' / 'An' to start a sentence: { a: 'A' }).
 function gridName(kind, opts) {

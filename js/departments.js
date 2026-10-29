@@ -34,7 +34,7 @@ const DEPARTMENTS = [
     pay: { std: 'cardbuff', hard: 'tricks' },      events: ['grid_spinner', 'the_payline', 'the_floor', 'line_shift'] },
 ];
 // Tuned live from dev -> Probabilities (js/prob-tables.js).
-// lunchMult (r707): the department's own Long Lunch perk is this many times as likely (js/skip-perks.js).
+// lunchMult (r707): the department's own R&R perk is this many times as likely (js/skip-perks.js).
 const DEPT_CFG = { tileMult: 1.5, favMult: 2, eventPct: 60, leanPct: 33, lunchMult: 4 };
 // The words a department's tile kind goes by (MAP_KIND_META names, read at draw time).
 const DEPT_TILE_KIND = { level: 'level', event: 'event', shop: 'shop', limitbreak: 'limitbreak', reward: 'reward',
@@ -116,5 +116,5 @@ function deptHelpRow() {
     ? `Up to ${MAP_REWARD_MAX} ${deptTileWord(d)} obligations` : `More ${deptTileWord(d)} obligations`;
   return [d.name, `This quarter's department. ${tiles}, and offers lean to ${d.focusWord}. `
     + `Challenge cards: ${crrSay(d.pay.std, 0)}. Hard ones: ${crrSay(d.pay.hard, 0)}.`
-    + (mapSlotCap() > 1 && typeof lunchLikely === 'function' && lunchLikely() ? ` Long lunch: ${lunchLikely().say} is its own perk.` : '')];
+    + (mapSlotCap() > 1 && typeof lunchLikely === 'function' && lunchLikely() ? ` R&R: its own perk is ${lunchLikely().say}.` : '')];
 }

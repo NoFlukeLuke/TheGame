@@ -1011,10 +1011,11 @@
       <label>rounds / others (3x6) <input type="number" min="1" max="6" style="width:44px" value="4" onchange="MAP_BOSS_NEED.kinds = +this.value || 4"></label>
     </div>
     <div style="display:flex;gap:10px;align-items:center;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);">
-      <span>Review level per quarter (r707, next map):</span>
-      <label>4x4 <input type="number" min="1" max="20" style="width:44px" value="8" onchange="MAP_REVIEW_LEVEL.wide = +this.value || 8"></label>
-      <label>3x6 <input type="number" min="1" max="20" style="width:44px" value="7" onchange="MAP_REVIEW_LEVEL.tall = +this.value || 7"></label>
-      <label>lift <input type="number" min="0.5" max="3" step="0.05" style="width:52px" value="1" onchange="MAP_REVIEW_LEVEL.lift = +this.value || 1"></label>
+      <span>Fixed levels (r708, next map):</span>
+      <label>slot step 4x4 <input type="number" min="1" max="6" style="width:40px" value="2" onchange="MAP_REVIEW_LEVEL.wide = +this.value || 2"></label>
+      <label>3x6 <input type="number" min="1" max="6" style="width:40px" value="1" onchange="MAP_REVIEW_LEVEL.tall = +this.value || 1"></label>
+      <label>harder round + <input type="number" min="0" max="4" style="width:40px" value="1" onchange="MAP_REVIEW_LEVEL.bump = +this.value || 0"></label>
+      <label>review + <input type="number" min="0" max="6" style="width:40px" value="1" onchange="MAP_REVIEW_LEVEL.review = +this.value || 0"></label>
     </div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch (old rule only): move out from ANY tile you have already taken, not only the one you are standing on.</div>
     <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor: var(--cur-pointer, pointer);">

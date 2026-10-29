@@ -437,8 +437,10 @@ function unspentPayoutDesc() {
 function interestPayoutDesc(credits, mult, creditsHTML) {
   const R = _payoutRes();
   const shown = creditsHTML != null ? creditsHTML : credits;
-  return `10% of ${shown}` + ((mult || 1) > 1 ? ` × ${mult} (Idol)` : '')
-       + _payoutCapNote(interestCap(), (mult || 1) > 1 ? ' before the Idol' : '');
+  // r708: the multiplier is the Idol's, a doubled-interest reward's, or both; name only the Idol.
+  const idol = typeof hasSleightOnGrid === 'function' && hasSleightOnGrid('idol');
+  return `10% of ${shown}` + ((mult || 1) > 1 ? ` × ${mult}${idol ? ' (Idol)' : ''}` : '')
+       + _payoutCapNote(interestCap(), (mult || 1) > 1 ? ' before the ×' + mult : '');
 }
 function _payoutCapNote(cap, extra) {
   if (cap == null) return '';

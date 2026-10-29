@@ -3627,3 +3627,27 @@ UNLOCKS.md is the whole write-up. `js/unlocks.js` + `js/data/unlocks.js`.
   Trick while its fusion scene was still queued crashed `improveAnimNote` (a 'fuse' or 'reveal' scene has no steps; only an entry with no `kind` is an improvement).
   `render()` returns while the Schedule screen is up (a limit raised there drew a Keeper's kept cards over it).
 
+
+## r708 - every Schedule round asks a fixed level; R&R; the Balance Sheet (owner)
+- **Every round's goal is its tile's level** (`mapTileLevel(t, q)`, js/map-mode.js; supersedes
+  r707's curve-only rounds). A row asks `MAP_REVIEW_LEVEL.wide` (2) levels more than the row above
+  it (`tall` 1 on the 3 x 6, one booking a slot); in a row with 2+ rounds (level or challenge) 1 or
+  2 of them, never all, ask `bump` (1) more (`mapDealBumps`, at map build, `t.lvBump`). The review
+  sits `review` (1) above the last row's harder round: 4 x 4 rows 1/2, 3/4, 5/6, 7/8, review 9, then
+  18 / 27 / 36 (`mapQuarterLen()` 9); 3 x 6 rows 1..7, review 8 / 16 / 24 / 32. `triggerLevelUp` asks
+  `mapRoundGoalLevel()` (the booked round's level; null off the Schedule, at a review, or for a
+  non-round tile) before `level`; `mapStartRound` does the same for the first round. The preview
+  (`mapGoalPreview`) reads the same level, so stakes print without "+". `level` still counts as before
+  (r707's curve step on a skip stays) for Tricks and payouts. Dev -> Schedule "Fixed levels". The sim
+  asks the same levels.
+- **R&R** is LONG LUNCH's name (`mapSkipShort`, notices, the ? card, handbook, tips). Weights
+  (`LUNCH_W`): the permaprime row 5 points above the even rows (17.9% against 12.9%), pick 5%. The
+  permaprime row lands 1 time in 4 (`LUNCH_PERMA_CHANCE`); the other 3 print "no permaprime this time".
+  Measured, 8,000 rolls: no department 4.4% permaprimed + 13.5% missed; R&D (own perk x4) 11.7% + 34.8%.
+- **The reward grid is the Balance Sheet** (`GRID_NAMES.reward`). HUD label fits at both sizes.
+- **Restructuring** needs one Trick (cuts up to two others, none if there are none).
+- **Interest's description** names (Idol) only when the Idol is on the grid. Gross Pay already paid
+  doubled interest past the cap (the double is applied after the cap Gross Pay lifts): no change.
+Measured in headless Chromium at 1440x820 and 420x900, both shapes, 500 maps each: no row of 2+
+rounds with 0 or all bumped; a booked opener and a booked slot-2 round dealt exactly their tile's
+goal; Restructuring with one and two Tricks; no page errors.

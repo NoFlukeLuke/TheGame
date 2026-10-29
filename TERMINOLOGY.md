@@ -101,7 +101,7 @@ player-facing mention prints through `gridName(kind, opts)`.
 
 | screen | code id (frozen) | player word | in a sentence | HUD |
 |---|---|---|---|---|
-| buff / debuff path pick after a round | `rewardGridMode 'normal'`, `openRewardGrid`, handbook / tip id `reward_grid` | **Cost-Benefit** | the Cost-Benefit grid | COST-BENEFIT |
+| buff / debuff path pick after a round | `rewardGridMode 'normal'`, `openRewardGrid`, handbook / tip id `reward_grid` | **Balance Sheet** | the Balance Sheet | BALANCE SHEET |
 | all-buff path pick after a review or a won challenge round | `rewardGridMode 'prize'`, `openPrizeGrid`, handbook / tip id `prize_grid` | **Benefits Package** | the Benefits Package | BENEFITS PACKAGE |
 
 `gridName('reward')` is the sentence form, `{ bare: true }` the name alone (titles,
@@ -216,7 +216,7 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 | Knave for the People (trick `knave_power`) | **Jackpot** (the old Jackpot trick, `big_win`, was removed) |
 | Dazed & Confused (sleight `dazed`) | **Fresh Start** |
 | Three's a Crowd (trick `threes_crowd`, retired r361) | **Three's a Crowd**, now a Knack (`threes_crowd_k`) |
-| reward grid / REWARDS (the screen) | **Cost-Benefit** grid (r707) |
+| reward grid / REWARDS (the screen) | **Balance Sheet** (r708; Cost-Benefit grid r707) |
 | prize grid / PRIZE | **Benefits Package** (r707) |
 
 ## New ids from the 9.24 balance pass (r359-r361)

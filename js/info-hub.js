@@ -318,10 +318,10 @@ const INFO_TOPICS = [
         : 'A move that would strand you is refused rather than allowed: the bar tells you a path dead-ends instead of letting you walk into it.',
     ] },
 
-  { id: 'skip_cost', group: 'schedule', title: 'Long lunch',
+  { id: 'skip_cost', group: 'schedule', title: 'R&R',
     body: [
-      'Leave a slot after taking only one obligation and you take a long lunch: one perk, the department\'s own more often than the rest. Tap LONG LUNCH on the bar to see which. The goal still moves on as if you had booked the slot.',
-      'The perks: Sleight charges, a permaprime (a Trick fires twice every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
+      'Leave a slot after taking only one obligation and you earn R&R: one perk, the department\'s own more often than the rest. Tap R&R on the bar to see which.',
+      'The perks: Sleight charges, a chance at a permaprime (a Trick fires twice every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
     ] },
 
   { id: 'departments', group: 'schedule', title: 'Departments',
@@ -368,7 +368,7 @@ const INFO_TOPICS = [
   { id: 'mode_map', group: 'modes', title: 'The Schedule',
     body: [
       () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review. Two managers wait at the end: each unlocks on what you booked (five obligations in its two lanes; on the tall schedule, four rounds for one and four other obligations for the other, a mystery counting as both if it turns out to be a round). Unlock one and face it; unlock both and choose; unlock neither and a random manager holds the review.`,
-      'Every step activates the obligation you land on. You can take any two obligations in a slot. Leaving a slot after one is a long lunch: a perk.',
+      'Every step activates the obligation you land on. You can take any two obligations in a slot. Leaving a slot after one earns R&R: a perk.',
       `Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
       `An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
