@@ -69,7 +69,7 @@ function bvBuildCatalogue() {
     tags: Array.isArray(e.tags) ? e.tags : [],
     act: type === 'sleight' ? (e.activation || '') : '',
     state: fileState(e.id),
-    lc: ((e.name || '') + ' ' + (e.desc || '')).toLowerCase(),
+    lc: (((type === 'trick' && typeof shownEntityName === 'function') ? shownEntityName(e, 'trick') : (e.name || '')) + ' ' + (e.desc || '')).toLowerCase(),   // r706: a hidden name is not searchable
   });
   bvAll = [
     ...TRICK_POOL_ALL.filter(t => !t.retired && (!t.fused || (typeof anyPairDiscovered === 'function' && anyPairDiscovered()))).map(t => wrap(t, 'trick')),
@@ -238,6 +238,7 @@ function ensureBuildsOverlay() {
       <button class="bv-key bv-back" onclick="closeBuilds()">&#9664; MENU</button>
       <span class="bv-title">BUILDS</span>
       <span class="bv-sub" id="bv-count"></span>
+      <span class="bv-coll" id="bv-coll"></span>
       <label class="bv-search"><span>&#9906;</span><input id="bv-q" type="search" placeholder="search by name or words" autocomplete="off" spellcheck="false"></label>
       <button class="bv-key bv-rail-btn" id="bv-rail-btn">DRAFT</button>
       <button class="bv-key bv-compare-btn" id="bv-compare-btn" title="Score one hand with several builds">COMPARE</button>
@@ -353,8 +354,9 @@ function renderBuildsCanvas() {
   const canvas = document.getElementById('bv-canvas'); if (!canvas) return;
   canvas.style.zoom = bv.zoom;
   const shown = bvShown();
-  const open = bvAll.filter(x => x.state === 'open').length;
-  document.getElementById('bv-count').textContent = `${shown.length} of ${bvAll.length} shown · ${open} found`;
+  document.getElementById('bv-count').textContent = `${shown.length} of ${bvAll.length} shown`;
+  const coll = document.getElementById('bv-coll');   // r706: the collection count
+  if (coll && typeof collectionCounts === 'function') { const c = collectionCounts(); coll.innerHTML = `TRICKS <b>${c.found}</b>/${c.all} found · <b>${c.unlocked}</b> unlocked${c.pairsAll ? ` · PAIRS <b>${c.pairs}</b>/${c.pairsAll}` : ''}`; coll.title = collectionLine(); }
   const groups = bvGroupsOf(shown);
   canvas.innerHTML = groups.length
     ? groups.map(g => `<section class="bv-group">
@@ -408,7 +410,7 @@ function bvRecordHTML(x) {
       <span class="bv-rar">${tierLabel(x.type, x.rar)} ${entityLabel(x.type, false)}${x.act ? ' · ' + BV_ACT_LABEL[x.act] : ''}</span></span></div>`;
   if (x.state === 'missing')
     return `<div class="${cls}" data-type="${x.type}" data-id="${x.id}">${head}
-      <div class="bv-note">FILE MISSING<small>take it in a run to read it</small></div></div>`;
+      <div class="bv-note">FILE MISSING<small>take it in a run to read it</small></div>${bvPairHTML(x)}</div>`;
   if (x.state === 'classified')
     return `<div class="${cls}" data-type="${x.type}" data-id="${x.id}">${head}
       <div class="bv-note bv-note-red">LOCKED<small>${lockTaskFor(x.id) || 'clearance pending'}</small></div></div>`;
@@ -418,11 +420,23 @@ function bvRecordHTML(x) {
   const ladder = bvLadders.has(x.id) ? bvLadderHTML(x) : '';
   return `<div class="${cls}" data-type="${x.type}" data-id="${x.id}">${head}
     <div class="bv-desc">${highlightKeywords(x.desc)}</div>
-    <div class="bv-chips">${bvTagChips(x)}</div>${extra}${ladder}
+    <div class="bv-chips">${bvTagChips(x)}</div>${bvPairHTML(x)}${extra}${ladder}
     <div class="bv-keys">
       <button class="bv-key bv-add ${inDraft ? 'on' : ''}">${inDraft ? '&#10003; IN DRAFT' : '+ DRAFT'}</button>
       <button class="bv-key bv-lad ${bvLadders.has(x.id) ? 'on' : ''}" title="improvement tiers">v2..v5</button>
     </div></div>`;
+}
+
+// r706 (owner): a fused Trick names its two parts once that pair has been made;
+// before that it shows the parts' two icons and no names.
+function bvPairHTML(x) {
+  if (!x.fused || typeof inseparableDef !== 'function') return '';
+  const p = inseparableDef(x.id); if (!p) return '';
+  const a = inseparableRow(p.parts[0]), b = inseparableRow(p.parts[1]); if (!a || !b) return '';
+  const ico = r => (typeof emGlyph === 'function' && typeof trickEmoji === 'function') ? emGlyph(trickEmoji(r)) : '';
+  if (typeof pairDiscovered === 'function' && pairDiscovered(x.id))
+    return `<div class="bv-pair">MADE FROM: <b>${a.name}</b> + <b>${b.name}</b></div>`;
+  return `<div class="bv-pair">MADE FROM: <span class="bv-pair-ico">${ico(a)}${ico(b)}</span> ???? + ????</div>`;
 }
 
 // The improvement ladder (js/improve.js): the description at tiers 1 to 4,

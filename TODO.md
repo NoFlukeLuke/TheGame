@@ -109,7 +109,7 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
 3. **Skip perks** (idea 3). A word for the self-care perk of leaving a slot early; the perk
    table (a Sleight charge, a random improvement, rarely an improvement of your choice, +2
    selection on the next reward grid); balance so skipping never beats playing. Also new
-   names for the reward grid (it has pros and cons) and the prize grid. **Built r706:** LONG LUNCH (js/skip-perks.js),
+   names for the reward grid (it has pros and cons) and the prize grid. **Built r707:** LONG LUNCH (js/skip-perks.js),
    the review at a fixed level a quarter, the curve step on a skip, Permaprime, Restructuring,
    Cost-Benefit and Benefits Package (pun candidates for the first: Balance Sheet, Cell-Benefit,
    Debits & Credits, Ledger; the name is one line in js/labels.js).
@@ -221,3 +221,20 @@ Ideas raised and deliberately not built, kept because they are still good:
   missing. Largely Map mode's job.
 - **A mid-act landmark.** Eight slots with no midpoint is flat; a fixed mini-boss at slot 4
   would give the act a shape. Also largely Map mode's job.
+
+---
+
+## 8. THE r707 LIST (owner's chat on unlocks and meta progression)
+
+- **Meta shop: parked.** Ideas so far: a Knack pick of three at the start of each round (an
+  unlock, its list ours to choose); finding and taking a legendary pays a token (owner's
+  favourite); "Legendaries are easier to find" (built as `metaFlag('legendary_find')`, dev only).
+- **Unique unlock goals:** 45 proposals in UNLOCKS.md await the owner's verdicts (44 live as
+  written, Middle Man licensed instead).
+- **Mode wins:** the first win of each of five modes opens a pick of 1 from 3 locked Tricks
+  (proposed in UNLOCKS.md, not built). No dailies.
+- **The lore document:** the owner will supply it; `LORE_ANSWERS` in js/data/lore.js holds
+  placeholders. `LORE_ORDER` is a guess at the order the legendaries are offered.
+- **Money Tricks:** we need at least two or three more Tricks that pay or use credits.
+- **Selling:** we need at least three entities that interact with selling things (owner: "I love that").
+

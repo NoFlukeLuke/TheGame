@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// LONG LUNCH (r706, owner): what leaving a Schedule slot early pays.
+// LONG LUNCH (r707, owner): what leaving a Schedule slot early pays.
 //
 // Leaving a slot after one booking (wide shape only) still moves the curve one
 // step for each booking left behind (mapConfirm), so a skip never lowers a later

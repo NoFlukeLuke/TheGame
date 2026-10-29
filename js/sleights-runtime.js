@@ -204,6 +204,7 @@ function sleightLifeTick() {
 // (the pile keeps it dormant, js/deck-grid.js) instead of being nulled out of the run.
 function consumeSleightCharge(card, r, c) {
   if (!card || card._usesLeft === 'infinite') return;
+  if (typeof ulBump === 'function') ulBump('sleights');   // r706
   card._usesLeft = Math.max(0, card._usesLeft - sleightSpendCount(card));
   if (card._usesLeft <= 0) {
     if (r >= 0 && c >= 0 && !greenStationKeeps()) gridData[r][c] = null;
@@ -450,7 +451,7 @@ function sleightBaseCharges(def) {
 // Every Sleight the run currently holds, wherever it is - board, draw or played.
 function allOwnedSleightCards() {
   const out = [];
-  // r706: the board's own rows, not gridRows x gridCols: a screen laid over the
+  // r707: the board's own rows, not gridRows x gridCols: a screen laid over the
   // board (the Schedule is 5 x 4) resizes those while gridData keeps the play board.
   (gridData || []).forEach(row => (row || []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); }));
   (typeof drawPile   !== 'undefined' ? drawPile   : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
@@ -698,6 +699,7 @@ function magnetCountDiscards(cards) {
   const count = cards.length;
   if (!count) return;
   cardsDiscardedTotal += count;
+  if (typeof ulBump === 'function') ulBump('discards', count);   // r706
   cardsDiscardedRound += count;
   discardsUsedRound += count;
   if (hasTrick('fives_discard')) bonusMult_fives += cards.filter(c => rkHas('fives_discard', c.rank)).length * BAL.fives_discard.pips_per_five;

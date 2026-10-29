@@ -98,6 +98,7 @@ function finaleFacts(kind) {
     scored: typeof cardsScoredTotal === 'number' ? cardsScoredTotal : 0,
     discarded: typeof cardsDiscardedTotal === 'number' ? cardsDiscardedTotal : 0,
     records, firstRun: !hist.length,
+    coll: (typeof collectionGained === 'function') ? collectionGained() : null,   // r706
     seed: (typeof runSeed === 'string' && runSeed) ? runSeed : null,
     date: new Date().toLocaleDateString(),
   };
@@ -120,9 +121,10 @@ function finaleBodyHTML(F) {
       ${box('MOST PLAYED', F.hand || '·', F.hand ? `${F.handCount} time${F.handCount === 1 ? '' : 's'}` : '')}
       ${box('MOST USED', F.mostDef ? F.mostDef.name : '·', F.mostDef ? `fired in ${F.mostCount} hand${F.mostCount === 1 ? '' : 's'}` : 'no Trick fired')}
       ${box('HANDS', F.hands, '', r.includes('MOST HANDS'))}
-      ${box('CREDITS', F.credits + ' &#9670;')}
+      ${box('CREDITS', (typeof creditsTxt === 'function') ? creditsTxt(F.credits) : F.credits)}
       ${box('CARDS', F.scored, `${F.discarded} discarded`)}
       ${box('TIME', finaleClock(F.secs))}
+      ${F.coll ? box('COLLECTION', `${F.coll.now.found} / ${F.coll.now.all}`, [F.coll.found ? `+${F.coll.found} found` : '', F.coll.unlocked ? `+${F.coll.unlocked} unlocked` : '', F.coll.pairs ? `+${F.coll.pairs} inseparable` : ''].filter(Boolean).join(' · ') || 'Tricks found') : ''}
     </div>
     <div class="fn-load"><div class="bs-sub">THE BUILD · ${n}</div>
       <div class="fn-load-row">${F.owned.tricks.map(t => finaleTile(t, 'trick')).join('')}${F.owned.knacks.map(k => finaleTile(k, 'knack')).join('')}${F.owned.sleights.map(s => finaleTile(s, 'sleight')).join('')}${n ? '' : '<i>nothing held</i>'}</div>

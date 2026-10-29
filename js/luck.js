@@ -113,6 +113,9 @@ function luckRollDet(p, id, salt) {
 const LUCK_TIER_STEP = [0, 0.5, 1, 1.5];   // common, rare, epic, legendary
 
 function luckTierWeights(weights) {
+  // r706: the parked meta unlock lifts the legendary weight back to its pre-r706 value.
+  if (weights === ENTITY_TIER_W && typeof metaFlag === 'function' && metaFlag('legendary_find'))
+    weights = weights.map((w, i) => i === 3 ? Math.max(w, META_LEGENDARY_W) : w);
   const L = luckTotal();
   if (!L) return weights;
   return weights.map((w, i) => Math.max(0, w * (1 + (L / 100) * (LUCK_TIER_STEP[i] ?? 0))));
@@ -143,7 +146,7 @@ function pickEntityByRarity(pool, tierOf, weights, tiers) {
   return x;
 }
 function _pickEntityByRarity(pool, tierOf, weights, tiers) {
-  if (pool && pool.length) pool = pool.filter(x => !(x && x.fused));   // r646: a fused Trick is never drawn
+  if (pool && pool.length) pool = pool.filter(x => !(x && x.fused) && !(x && x.tier && typeof trickLocked === 'function' && trickLocked(x.id)));   // r646: a fused Trick is never drawn; r706: nor a locked one
   if (!pool || !pool.length) return null;
   const T = tiers   || ENTITY_TIERS;
   const W = luckTierWeights(weights || ENTITY_TIER_W).slice();

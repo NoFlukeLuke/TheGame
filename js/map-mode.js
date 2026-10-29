@@ -35,7 +35,7 @@
 // - Every tile advances the difficulty curve (Guided's load-bearing rule):
 //   levels through triggerLevelUp, everything else through guidedAdvanceCurve.
 // - The boss goal is FIXED at map build: a set level of the curve for each
-//   quarter (MAP_REVIEW_LEVEL, r706), previewable from the map before you can
+//   quarter (MAP_REVIEW_LEVEL, r707), previewable from the map before you can
 //   reach it.
 //
 // ── DEAD ENDS ARE REFUSED, NOT DISCOVERED ────────────────────────────────────
@@ -225,11 +225,11 @@ function mapRollBlanks() {
   }
   return MAP_BLANKS_MAX;
 }
-// r706 (owner): a review asks a FIXED level of the curve: Q1's review is level
+// r707 (owner): a review asks a FIXED level of the curve: Q1's review is level
 // `wide` (8) on the 4 x 4 and `tall` (7) on the 3 x 6, later quarters step on with
 // the walk (mapReviewLevel), whatever the walk did. Events and tiles that move a review (a Boss goal
 // reward, Overtime's tough reviews) still apply on top. `lift` multiplies the goal
-// (1 = the plain level goal). Before r706 the quota was the opening level's goal
+// (1 = the plain level goal). Before r707 the quota was the opening level's goal
 // x 1.30^5.5, so every booking skipped made every later review cheaper.
 const MAP_REVIEW_LEVEL = { wide: 8, tall: 7, lift: 1 };
 // Q1 is the owner's number; every later quarter adds one quarter of the walk
@@ -453,7 +453,7 @@ function mapAltarNextMult() {
 // Bookings from now until this tile, at the soonest: 1 if it is bookable now,
 // otherwise one for each slot in between (a slot cannot be skipped). Null for a
 // tile behind you.
-// r706: leaving a slot early still moves the curve one step for each booking left
+// r707: leaving a slot early still moves the curve one step for each booking left
 // in it, so every slot passed is worth mapSlotCap() levels whatever was booked.
 function mapTileSoonest(t, legalIds) {
   if (t.visited) return null;
@@ -1240,7 +1240,7 @@ function mapHelpRows() {
   if (d) rows.unshift(d);
   return rows;
 }
-// r706: leaving early is a LONG LUNCH (js/skip-perks.js). The bar names it and,
+// r707: leaving early is a LONG LUNCH (js/skip-perks.js). The bar names it and,
 // on a tap or a hover, the department's most likely perk; never the whole table.
 function mapSkipShort() { return 'LONG LUNCH'; }
 function mapSkipSay() { return (typeof lunchLikelySay === 'function') ? lunchLikelySay() : 'Long lunch: a random perk.'; }
@@ -1549,7 +1549,7 @@ function mapConfirm() {
   // In Crunch the skip pays nothing at all: moving on early already saves you
   // the obligation's time fee, which is the whole currency of that mode, and
   // paying credits as well would reward the same decision twice.
-  // r706 (owner): leaving early still moves the curve, one step a booking left
+  // r707 (owner): leaving early still moves the curve, one step a booking left
   // behind, so a skip never lowers a later goal (Crunch included).
   if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()) {
     for (let n = mapSlotCap() - move.from.visits; n > 0; n--) guidedAdvanceCurve();
@@ -1562,7 +1562,7 @@ function mapConfirm() {
   if (move.from && move.after.set > move.from.set && move.from.visits < mapSlotCap()
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
-    // r706 (owner): a long lunch, one perk from js/skip-perks.js, the department's
+    // r707 (owner): a long lunch, one perk from js/skip-perks.js, the department's
     // own more often (r673 paid the department's Standard reward).
     const said = (typeof longLunch === 'function') ? longLunch() : (coins += 10, updateCoinsUI?.(), '+10 credits');
     showMessage(`Long lunch · ${said}`, 'var(--gold)');
@@ -1686,7 +1686,7 @@ function mapAfterLevel() {
   const done = () => mapOpen();
   if (!mapPos) { done(); return; }   // resumed pre-map edge: straight back to the map
   const t = mapTiles.find(x => x.id === mapPosTileId);
-  // r706: a round that fills its slot (Q1's whole-row opener) is that many
+  // r707: a round that fills its slot (Q1's whole-row opener) is that many
   // bookings, so it moves the curve that many levels; the round itself took one.
   if (t && !t._lvFill && mapTileBookings(t) > 1) { t._lvFill = true; level += mapTileBookings(t) - 1; }
   // An audit (js/challenge-round.js) pays no prize grid (owner, r666). crTakePrize

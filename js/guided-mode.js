@@ -309,6 +309,7 @@ function guidedOpenNamedEvent(id, afterFn) {
   activeEventId = id;
   recentEventIds.push(id);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
+  if (typeof evmScheduled === 'function') { activeEventId = evmScheduled(id); id = activeEventId; }
   eventState = {};
   renderEventShell(id);
   if (typeof evShow === 'function') evShow(); else document.getElementById('event-overlay').classList.add('show');

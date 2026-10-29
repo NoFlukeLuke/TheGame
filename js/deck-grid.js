@@ -674,7 +674,7 @@ const DURABLE_CARD_FIELDS = [
 // the deck at all, and hit every copy of it if it was.
 function everyDeckCard() {
   const out = [];
-  // r706: the board's own rows (see allOwnedSleightCards).
+  // r707: the board's own rows (see allOwnedSleightCards).
   (gridData || []).forEach(row => (row || []).forEach(cd => {
     if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
   }));

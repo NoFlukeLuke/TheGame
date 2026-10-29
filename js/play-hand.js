@@ -364,6 +364,7 @@ function playHand() {
   const _bankContrib = [], _bankLedger = {};
   const finalScore = Math.max(0, calcScore(hand, handCells, _bankContrib, _bankLedger) - penaltyPips - _tagPips);
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
+  _ulLastHand = { score: finalScore, pips: _bankLedger.finalPips, mult: _bankLedger.finalMult };   // r706: max:handscore etc. (js/unlocks.js)
   result._bankContrib = _bankContrib;
   result._bankLedger = _bankLedger;
   // Hard Labour (r461): this hand's club scores, advanced in scalingCount after the
@@ -1068,6 +1069,8 @@ function cloudNineCheck() {
 }
 
 function scalingCount(hand, handCells, reps) {
+  // r706: the unlock counters read the hand here, once, board intact (js/unlocks.js).
+  if (typeof unlockNoteHand === 'function') { try { unlockNoteHand(hand, handCells, reps); } catch (e) { console.error('[UNLOCK]', e); } }
   const _n = (r, c) => (reps && reps[r + '-' + c]) || 1;
   const _cells = handCells.map(([r, c]) => ({ r, c, card: gridData[r]?.[c], n: _n(r, c) }))
     .filter(x => x.card);

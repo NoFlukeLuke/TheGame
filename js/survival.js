@@ -232,6 +232,8 @@ function survivalTickBossClock() {
 function survivalEntityBanned(id) {
   // r646: a fused (INSEPARABLE) Trick exists only through its pair, never as an offer.
   if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
+  // r706: a locked Trick is never offered (js/unlocks.js).
+  if (typeof trickLocked === 'function' && trickLocked(id)) return true;
   // r651: Separation Anxiety is offered only with a fused Trick in the tray.
   if (id === 'separation_anxiety' && !(typeof trickTray !== 'undefined' && trickTray.some(t => t && t.fused))) return true;
   // The reward-grid-only entities are dead picks wherever the MODE never opens

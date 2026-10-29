@@ -163,6 +163,7 @@ function SIM_playRound() {
           const [[r1, c1], [r2, c2]] = sw.pair;
           const a = gridData[r1][c1]; gridData[r1][c1] = gridData[r2][c2]; gridData[r2][c2] = a;
           swaps--; clock = SIM_spend(8 + 4); acted = true;
+          if (typeof ulBump === 'function') ulBump('swaps');
         }
       }
       if (!acted && discards > 0) {
@@ -172,6 +173,7 @@ function SIM_playRound() {
           if (gridData[r][c] && !gridData[r][c]._isSleight && !gridData[r][c]._isStone) live.push([r, c]);
         live.sort((a, b) => cardPips(gridData[a[0]][a[1]].rank) - cardPips(gridData[b[0]][b[1]].rank));
         SIM_removeAndRefill(live.slice(0, 3));
+        if (typeof ulBump === 'function') ulBump('discards', 3);
         clock = SIM_spend(9 + 4); acted = true;
       }
       if (!acted) clock = SIM_spend(6);
@@ -190,11 +192,15 @@ function SIM_playRound() {
     let s = 0;
     try { s = calcScore(best.hand, best.cells); } catch (e) {}
     score += s;
+    // r706: the unlock counters (js/unlocks.js) read the hand the same way playHand does,
+    // so a measuring run can size the unlock goals (tools/unlocks/measure.js).
+    if (typeof unlockNoteHand === 'function') { try { _ulLastHand = { score: s, pips: lastCalcPips, mult: lastCalcMult }; unlockNoteHand(best.hand, best.cells, _lastRetrigByCell); } catch (e) {} }
     hands++; handsPlayed++; handsPlayedRound++;
     try { recordNaturalScale(best.hand, best.cells); } catch (e) {}
     SIM_removeAndRefill(best.cells);
     clock = roundSeconds;
   }
+  if (score >= roundGoal && typeof ulBump === 'function') ulBump('rounds');
   return { cleared: score >= roundGoal, score, hands, timeLeft: Math.max(0, clock),
     dryActs, reshuffles, stalled: dry > 10, avgFocus: hands ? +(fmSum / hands).toFixed(2) : 1, scorePct: +(score / Math.max(1, roundGoal) * 100).toFixed(0) };
 }
@@ -340,7 +346,7 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   // hand read a row gridData does not have and every run crashed. Clock in.
   if (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) mapCloseScreen();
   roundGoal = goalFn(1);
-  // r706: the review asks the goal of a fixed level a quarter (MAP_REVIEW_LEVEL);
+  // r707: the review asks the goal of a fixed level a quarter (MAP_REVIEW_LEVEL);
   // bossMult, if given, lifts it.
   for (let q = 1; q <= quarters; q++) {
     // r655: a sched json's "tiles" replaces the walk; the default is an 8-booking 4 x 4 quarter.
@@ -366,7 +372,7 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
         level++; roundGoal = goalFn(level);
       }
     }
-    // boss: the fixed review level (r706), as the game asks it (the quota alone)
+    // boss: the fixed review level (r707), as the game asks it (the quota alone)
     const lv = (typeof mapReviewLevel === 'function') ? mapReviewLevel(q) : 8 + 9 * (q - 1);
     roundGoal = bossMult ? Math.round(goalFn(lv) * bossMult / 500) * 500 : goalFn(lv);
     const res = SIM_playRound();

@@ -178,7 +178,7 @@ function cdPaint(el, info) {
   // v2.0 in the opposite corner.
   const num = b.querySelector('.cd-num');
   b.classList.toggle('cd-b-count', info.left == null && info.count != null);
-  // r706: a permaprime (`_rank`) is permanent, so its pill is gold, not violet.
+  // r707: a permaprime (`_rank`) is permanent, so its pill is gold, not violet.
   b.classList.toggle('cd-b-perma', !!info.perma);
   if (info.left == null) {
     num.textContent = info.count != null ? ('+' + info.count) : '·';

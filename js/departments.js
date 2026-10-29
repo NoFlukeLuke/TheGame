@@ -34,7 +34,7 @@ const DEPARTMENTS = [
     pay: { std: 'cardbuff', hard: 'tricks' },      events: ['grid_spinner', 'the_payline', 'the_floor', 'line_shift'] },
 ];
 // Tuned live from dev -> Probabilities (js/prob-tables.js).
-// lunchMult (r706): the department's own Long Lunch perk is this many times as likely (js/skip-perks.js).
+// lunchMult (r707): the department's own Long Lunch perk is this many times as likely (js/skip-perks.js).
 const DEPT_CFG = { tileMult: 1.5, favMult: 2, eventPct: 60, leanPct: 33, lunchMult: 4 };
 // The words a department's tile kind goes by (MAP_KIND_META names, read at draw time).
 const DEPT_TILE_KIND = { level: 'level', event: 'event', shop: 'shop', limitbreak: 'limitbreak', reward: 'reward',

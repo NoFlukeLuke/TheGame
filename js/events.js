@@ -1392,7 +1392,7 @@ function confirmRehearsal() {
   closeEvent();
 }
 
-// ─── EVENT: RESTRUCTURING (r706, owner) ───
+// ─── EVENT: RESTRUCTURING (r707, owner) ───
 // One random Trick is permaprimed (it fires again every time it fires, for good:
 // `_rank`, js/skip-perks.js), and two OTHER Tricks are cut, at random. The Trick
 // is picked when the screen opens, the two cut only on confirm. Needs three

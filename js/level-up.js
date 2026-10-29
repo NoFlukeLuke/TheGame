@@ -50,6 +50,7 @@ function triggerLevelUp() {
   // The new XP-grid level-up (Step 2) will replace this entirely; for now,
   // we just skip the old round-reset to avoid disrupting the boss.
   if (bossActive) return;
+  if (typeof unlockRoundCleared === 'function') unlockRoundCleared();   // r706
   clearInterval(roundInterval);
   roundInterval = null;
   // One vertical line on the clock per level-up, on the clocks that SPAN

@@ -340,6 +340,7 @@ function applyModeEntityFilter() {
   // draws and scores it, never offered again (Stand Up duplicated Stand-Up).
   const keep = TRICK_POOL_ALL.filter(t =>
     !t.retired && !(banned && banned.has(t.id)) && (!t.modes || t.modes.some(id => tags.has(id)))
+    && !(typeof trickLocked === 'function' && trickLocked(t.id))   // r706: a locked Trick is never offered
   );
   TRICK_POOL.length = 0;
   keep.forEach(t => TRICK_POOL.push(t));

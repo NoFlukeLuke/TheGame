@@ -57,9 +57,10 @@ function improveAnimRunning() { return !!_iaRunning; }
 function improveAnimNote(id, fromTier, toTier, descBefore, descAfter) {
   if (!id || toTier === fromTier) return;
   const down = toTier < fromTier, d = down ? -1 : 1;
-  // r706: a queued fusion scene (kind 'fuse', js/inseparable.js) has the same id and no
-  // steps; improving the fused Trick before it played crashed here.
-  let e = _iaQueue.find(x => x.id === id && !!x.down === down && x.kind !== 'fuse');
+  // r707: other scenes share this queue with the same id and no steps (a fusion,
+  // kind 'fuse', js/inseparable.js; a reveal, kind 'reveal', js/discovery.js);
+  // improving that Trick before its scene played crashed here.
+  let e = _iaQueue.find(x => x.id === id && !!x.down === down && !x.kind);
   if (!e) { e = { id, from: fromTier, to: toTier, before: descBefore, steps: [], down }; _iaQueue.push(e); }
   for (let t = fromTier + d; down ? t >= toTier : t <= toTier; t += d) e.steps.push({ tier: t, desc: descAfter });
   e.to = toTier;
@@ -85,7 +86,7 @@ async function improveAnimFlush() {
       while (_iaQueue.length) {
         const e = _iaQueue.shift();
         if (_iaSkip || iaOff()) continue;
-        try { await ((e.kind === 'fuse' && typeof iaPlayFuse === 'function') ? iaPlayFuse(e) : iaPlay(e)); } catch (err) { console.error('[IMPROVE-ANIM]', err); }   // r646: a fusion (js/inseparable.js) rides the same queue
+        try { await ((e.kind === 'fuse' && typeof iaPlayFuse === 'function') ? iaPlayFuse(e) : (e.kind === 'reveal' && typeof iaPlayReveal === 'function') ? iaPlayReveal(e) : iaPlay(e)); } catch (err) { console.error('[IMPROVE-ANIM]', err); }   // r646: a fusion (js/inseparable.js) rides the same queue
       }
     } finally { _iaRunning = false; _iaSkip = false; iaTeardown(); _done(); }
   })();

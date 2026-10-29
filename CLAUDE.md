@@ -31,6 +31,7 @@ superseded is history, not current code. The other reference docs:
 | `TODO.md` | parked work |
 | `SCHEDULE_IDEAS.md` | ten researched ideas for the Schedule (r655), none built |
 | `DEPARTMENTS.md` | the Schedule's departments (chunk 1): decisions, focuses, every tile; draft |
+| `UNLOCKS.md` | every Trick's unlock goal, the Licensing and lore events, the unique goals awaiting the owner's verdict (r706) |
 | `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round, the challenge knacks; built r671-r685 |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
@@ -3555,7 +3556,39 @@ kind away. Split kept as rounds (incl. priority, audit, 1-on-1) vs everything el
 raises, incentives). Measured, 1,000 random walks: A 46% / B 13% / hidden 41% (at 3 it was 65 / 35 / 0);
 0 strands. The ? card, the locked tile's line, the dev input and the handbook say four.
 
-## r706 - chunk 3: fixed review levels, the long lunch, permaprime, Restructuring, the grids renamed (owner)
+## r706 - Trick unlocks; the reveal; the collection; Licensing and lore; Flow events (owner)
+UNLOCKS.md is the whole write-up. `js/unlocks.js` + `js/data/unlocks.js`.
+- **Locked Tricks are never offered.** `trickLocked(id)` (a row in `TRICK_UNLOCKS`, not met, not
+  taken before, not a tour / lab / test drive: `unlockPaused`). Filtered at the root
+  (`applyModeEntityFilter` keeps them out of TRICK_POOL) and again in `pickEntityByRarity` and
+  `survivalEntityBanned`. An id with no row is unlocked. Starting state: 20 commons, 13 rares,
+  5 epics; legendaries unlock with a won run; 5 Tricks only through Licensing (`buy: 1`).
+- **Counters** (`lethe.unlocks.v1`: `s` lifetime, `rb` best in one run, `m` best values, `u`
+  unlocked ids): `ulBump(key, n)` / `ulMax(key, v)`. `unlockNoteHand` (from `scalingCount`, so
+  replays are known) counts the hand, its layers (`h:`), families (`fam:`), size, cards by rank /
+  suit / edge / corner / line, replays, shapes and a dozen derived counts; the rest are bumped at
+  their site (discards, swaps, pauses, rewinds, Focus fills, rounds via `unlockRoundCleared`, bosses,
+  challenges, sells, shop buys, improves, Sleight uses, credits through the `coins` setter, events).
+  A new goal: add its counter if missing, a phrase in `UL_STAT_TEXT`, a row in `TRICK_UNLOCKS`;
+  `node tools/unlocks/list.js` checks every live Trick has a rule and every stat has words.
+  `unlockRun` is in SAVE_VARS. The sim counts too (`tools/unlocks/measure.js`).
+- **Legendaries are 0.9%** of offers (`ENTITY_TIER_W`); `metaFlag('legendary_find')`
+  (`lethe.meta.v1`, the parked meta shop's switch) restores 1.5.
+- **The reveal**: the first take of a hidden-name Trick plays `iaPlayReveal` (js/discovery.js) on
+  the improvement animation's queue (`kind: 'reveal'`, from `revealNote` in `injectTrickAfterReward`).
+- **The collection**: `collectionCounts()` (found / unlocked / pairs made). Builds' bar prints it
+  (`#bv-coll`); the finale's COLLECTION box prints what the run added (`unlockRun.c0`). A fused
+  Trick's Builds record names its two parts once the pair is made, else two icons and ????
+  (`bvPairHTML`). A hidden name is no longer searchable in Builds.
+- **Licensing** (event): buy locked `buy` Tricks' licenses for credits (`BAL.licensing`).
+  **Lore** (event, never drawn, `EVENT_SCHEDULED`): every 50th opened event while `LORE_ORDER` has
+  a legendary left, then 1% of events; `evmScheduled(id)` in `openEvent` / `guidedOpenNamedEvent`
+  counts and swaps. One typed word, an answer from `LORE_ANSWERS` (placeholders), a legendary.
+- **Flow can roll an EVENT reward step** (`FLOWR_DEF.odds.event` 5; `openEvent(after, { exclude })`
+  leaves out `FLOWR_EVENT_OUT`). The dev panel's event buttons open events on the board (`evShow`).
+- The finale's CREDITS box reads L¢ (it still printed the ◆).
+
+## r707 - chunk 3: fixed review levels, the long lunch, permaprime, Restructuring, the grids renamed (owner)
 - **Reviews ask a fixed level** (`MAP_REVIEW_LEVEL`, `mapReviewLevel(q)`, js/map-mode.js): Q1's review
   is the owner's level (8 on the 4 x 4, 7 on the 3 x 6) and each later quarter adds one quarter of the
   walk (bookings + the review's own level-up: 9 / 7), so 8 / 17 / 26 / 35 and 7 / 14 / 21 / 28: the review
@@ -3591,6 +3624,6 @@ raises, incentives). Measured, 1,000 random walks: A 46% / B 13% / hidden 41% (a
   `flowrLocFitName` fits a long name in Flow's location tile.
 - **Fixes:** `allOwnedSleightCards` / `everyDeckCard` walk gridData's own rows (on the Schedule screen
   gridRows x gridCols are the map's 5 x 4, so wider boards lost their right-hand cards). Improving a fused
-  Trick while its fusion scene was still queued crashed `improveAnimNote` (the 'fuse' entry has no steps).
+  Trick while its fusion scene was still queued crashed `improveAnimNote` (a 'fuse' or 'reveal' scene has no steps; only an entry with no `kind` is an improvement).
   `render()` returns while the Schedule screen is up (a limit raised there drew a Keeper's kept cards over it).
 

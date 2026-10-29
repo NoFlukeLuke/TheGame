@@ -22,6 +22,7 @@ function sellTrick(trick) {
   if (!trick) return;
   if (typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id)) { refuse('That Trick is locked by The Investment'); return; }
   if (typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(trick)) { if (typeof hideTrickTooltip === 'function') hideTrickTooltip(); return; }
+  if (typeof ulBump === 'function') ulBump('sells');   // r706: a sale that went through
   const idx = trickTray.findIndex(b => b.id === trick.id);
   if (idx >= 0) trickTray.splice(idx, 1);
   const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
@@ -36,6 +37,7 @@ function sellTrick(trick) {
 
 function sellKnack(knack) {
   if (!knack) return;
+  if (typeof ulBump === 'function') ulBump('sells');   // r706
   const aidx = acquiredKnacks.findIndex(t => t.id === knack.id);
   if (aidx >= 0) acquiredKnacks.splice(aidx, 1);
   const v = knackSellValue();

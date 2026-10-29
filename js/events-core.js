@@ -29,7 +29,10 @@ const EVENT_ARCHIVED = new Set([
   'crossroads',   // The Trade: the same
   'wager',        // the old Coin Flip, replaced by the r576 flip events
 ]);
-function liveEventIds() { return Object.keys(EVENT_META).filter(id => !EVENT_ARCHIVED.has(id)); }
+// Scheduled events (r706) are never DRAWN: the lore event replaces an opened event
+// on its own schedule (evmScheduled, js/events-meta.js).
+const EVENT_SCHEDULED = new Set(['lore']);
+function liveEventIds() { return Object.keys(EVENT_META).filter(id => !EVENT_ARCHIVED.has(id) && !EVENT_SCHEDULED.has(id)); }
 
 // ══════════════════════════════════════════════
 // EVENT ELIGIBILITY (r248) - an event you cannot use is never OFFERED
@@ -65,7 +68,7 @@ const EVENT_REQUIRES = {
   // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
   crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
   rehearsal:    () => (trickTray || []).length > 0,
-  // r706: one Trick to permaprime and two others to cut (js/events.js, Restructuring).
+  // r707: one Trick to permaprime and two others to cut (js/events.js, Restructuring).
   restructure:  () => restructureOfferable(),
   reassignment: () => (trickTray || []).length > 0,
   // Tray ORDER is the whole screen, so one Trick is not a decision.
@@ -99,6 +102,7 @@ const EVENT_REQUIRES = {
   keep_it:      () => { const p = guidedPickPools(); return p.knack.length + p.sleight.length + (trickTrayFull() ? 0 : p.trick.length) > 0; },
   wager:        () => allDeckCards().length > 0,
   // Needs a liability on the record to clear.
+  licensing:    () => licensingEligible(),
   clean_slate:  () => CLEAN_SLATE_FIXES.some(f => { try { return f.has(); } catch (e) { return false; } }),
 };
 
@@ -120,9 +124,11 @@ function eligibleEventIds(ids) {
   return ok.length ? ok : list;
 }
 
-function openEvent(afterFn) {
+// opts.exclude: ids this caller cannot host (Flow's chain, r706: events that take the board).
+function openEvent(afterFn, opts) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = liveEventIds();
+  const ex = (opts && opts.exclude) || null;
+  const pool = liveEventIds().filter(id => !ex || !ex.has(id));
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const usable = eligibleEventIds(pool);
   const fresh = usable.filter(id => !recentEventIds.includes(id));
@@ -130,6 +136,7 @@ function openEvent(afterFn) {
   activeEventId = draw[Math.floor(Math.random() * draw.length)];
   recentEventIds.push(activeEventId);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
+  if (typeof evmScheduled === 'function') activeEventId = evmScheduled(activeEventId);
   eventState = {};
   renderEventShell(activeEventId);
   evShow();
@@ -156,6 +163,7 @@ function closeEvent() {
 const EVENT_SKIP = {
   reschedule: { label: () => `Face them · +${priceOf(BAL.reschedule.skip_pay)} credits`,
                 run: () => { if (eventState.rsRolls) return; coins += priceOf(BAL.reschedule.skip_pay); updateCoinsUI?.(); } },
+  lore:       { label: () => 'Leave', run: () => loreSpend() },
   luck_dice:  { label: () => `Skip · ${priceOf(BAL.luck_dice.skip_cost)} credits`,
                 run: () => { coins = Math.max(0, coins - priceOf(BAL.luck_dice.skip_cost)); updateCoinsUI?.(); } },
 };
@@ -213,6 +221,8 @@ function confirmEvent() {
     luck_dice:   confirmLuckDice,
     state_change: confirmStateChange,
     rewire:      confirmRewire,
+    licensing:   confirmLicensing,
+    lore:        confirmLore,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -271,6 +281,9 @@ const EVENT_META = {
   // r580: the structural events
   state_change:{ name:'State Change',    flavor:'Buy a card state and choose the card it goes on.' },
   rewire:      { name:'Rewire',          flavor:'A replay, a second suit or a second rank. Up to three times.' },
+  // r706: the collection events (js/events-meta.js)
+  licensing:   { name:'Licensing',       flavor:'Buy a Trick\'s license. It can be offered from then on, every run.' },
+  lore:        { name:'?',               flavor:'' },
 };
 
 function renderEventShell(id) {
@@ -327,6 +340,8 @@ function renderEventShell(id) {
     luck_dice:   renderLuckDice,
     state_change: renderStateChange,
     rewire:      renderRewire,
+    licensing:   renderLicensing,
+    lore:        renderLore,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it

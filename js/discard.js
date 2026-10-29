@@ -148,6 +148,7 @@ function doDiscard() {
   // Track discard counts
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
+  if (typeof ulBump === 'function') { ulBump('discards', count); if (pipeTimerPaused) ulBump('pausediscards', count); }   // r706
   cardsDiscardedRound += count;
   discardsUsedRound += _procrastinated ? 2 : 1;   // r647: Procrastinate counts as 2 discards
   if (_procrastinated && BAL.procrastinate.discards) { discards += BAL.procrastinate.discards; noteMessage(`Procrastinate: +${BAL.procrastinate.discards} discards`); }
@@ -325,6 +326,7 @@ function rewindCeiling() { return Infinity; }
 // `srcId` / `srcSource` name the entity that caused the rewind, when the caller
 // knows it, so the FX can fly the symbol from that entity's tray tile (js/payout-fx.js).
 function rewindTime(seconds, label, srcId, srcSource) {
+  if (seconds > 0 && typeof ulBump === 'function') { ulBump('rewinds'); ulBump('rewindsecs', seconds); unlockTimeTouched(seconds); }   // r706
   // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
   // ever reached from playHand and the round tick, never from calcScore.
   // Overtime's Unreliable clock (r562) misses the same way, on its own coin.
@@ -459,6 +461,7 @@ function pauseRound(seconds, srcId, srcSource) {
   // an unowned Trick's pause arrives here - and without this guard it would still
   // count toward Hummingbird (+mult per pause triggered) and the Time popup's tally.
   if (!seconds || seconds <= 0) return;
+  if (typeof ulBump === 'function') { ulBump('pauses'); ulBump('pausesecs', seconds); unlockTimeTouched(seconds); }   // r706
   // The Rerun (boss): a coin flip on every pause, rolled before Time Slip so a
   // missed pause cannot become a rewind through the back door.
   if ((typeof bossRerunMisses === 'function' && bossRerunMisses())

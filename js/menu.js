@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r706 · reviews at a fixed level, the long lunch, permaprime, Restructuring, Cost-Benefit and Benefits Package";
+const BUILD = "2026-10-29 · r707 · reviews at a fixed level, the long lunch, permaprime, Restructuring, Cost-Benefit and Benefits Package (merges main r706)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

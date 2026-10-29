@@ -102,7 +102,7 @@ const LEXICONS = {
 const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }
 
-// r706 (owner): the two path-pick grids have names. Every player-facing mention
+// r707 (owner): the two path-pick grids have names. Every player-facing mention
 // prints from here. DISPLAY STRINGS ONLY: the code ids (`rewardGridMode` 'normal' /
 // 'prize', openRewardGrid / openPrizeGrid, the reward-* CSS classes, store keys, the
 // handbook and tip ids 'reward_grid' / 'prize_grid') stay frozen. Not part of the
