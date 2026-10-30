@@ -42,6 +42,10 @@ const PROB_TABLES = [
     desc: `The same tier roll for the ${gridName('prize')} that follows a manager review. It is its own table so a review can pay better than an ordinary round.`,
     how: `Rare is the point of ${gridName('prize', { a: true })}; keep it the biggest share. Raise Epic/Legendary to make reviews feel more rewarding.`,
     rows: () => _ptArrRows(PRIZE_TIER_W, _PT_TIERS) },
+  { id: 'improve', group: 'Rarity', type: 'w', title: 'Improvement target rarity',
+    desc: 'Which of your own Tricks, Knacks or Sleights an improvement lands on: every improve tile, the shop\'s improvement and Flow\'s Improve screen. A tier you own is rolled first, then one of yours in that tier.',
+    how: 'Only the ratios matter. Tiers you own nothing in are skipped, so a lone entity in your lowest tier still takes that tier\'s whole share.',
+    rows: () => _ptArrRows(IMPROVE_TIER_W, _PT_TIERS) },
   { id: 'luck', group: 'Rarity', type: 'n', title: 'Luck tilt per tier',
     desc: 'How hard the Luck stat pushes the two rarity tables above. At L Luck, each tier\'s weight is multiplied by 1 + (L / 100) x this number. Common is always 0, so it is what everything shifts away from.',
     how: 'A bigger number makes Luck matter more for that tier. At 1.5, 100 Luck makes Legendary 2.5x as likely as at 0. Keep the numbers rising from Rare to Legendary or Luck starts favouring the middle.',
@@ -131,10 +135,14 @@ const PROB_TABLES = [
     how: 'Ratios. The player sees only the department\u2019s perk and its chance, never this table.',
     rows: () => _ptObjRows(LUNCH_W, { charges: '+5 Sleight charges', permaprime: 'Permaprime a random Trick', stock: '+1 swap, +1 discard for good',
       path: '+2 path, next grid', cardbuff: '3 deck cards buffed', improve: 'A random improvement', credits: '+10 to 20 credits', pick: 'An improvement you pick' }) },
-  { id: 'offerneed', group: 'Rarity', type: 'p', title: 'Tricks for hands you cannot play yet',
+  { id: 'offerneed', group: 'Rarity', type: 'n', title: 'Tricks for hands you cannot play yet',
     desc: 'A Trick that needs a bigger hand than your Selection Size allows, or a flush before flushes are unlocked (TRICK_NEEDS), is still offered, at this share of its usual weight within its tier.',
     how: '100 offers them as often as any other Trick of the tier; 0 never offers them until the hand is playable.',
     rows: () => _ptObjRows(OFFER_NEED_W, { unplayable: 'Weight, % of normal' }) },
+  { id: 'offerrecent', group: 'Rarity', type: 'n', title: 'Offers you were just shown',
+    desc: 'A Trick, Knack or Sleight shown on one of your last few pick screens (rerolls count) is offered at this share of its usual weight within its tier. Owned ones are not affected.',
+    how: '100 turns it off; 0 never shows a recent offer again while others are left. Screens is how many recent screens are remembered.',
+    rows: () => _ptObjRows(OFFER_RECENT_W, { weight: 'Weight, % of normal', screens: 'Screens remembered' }) },
 ];
 
 // The shipped values, taken before any override lands.

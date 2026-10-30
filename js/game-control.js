@@ -289,6 +289,7 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  if (typeof offerRecent !== 'undefined') offerRecent = [];   // r716: a new run remembers no offers
   if (typeof _ulRunLive !== 'undefined') _ulRunLive = false;   // r706: the opening balance is not earned credits
   // Dolly the camera in onto the CRT (js/camera.js). A run starting is the only
   // thing that means "we are at the machine now" - the way back out is driven off

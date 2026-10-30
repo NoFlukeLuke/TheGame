@@ -1,4 +1,4 @@
-const BUILD = "2026-10-29 · r715 · design draft: Self-Improvement, the meta shop (SELF_IMPROVEMENT.md + .xlsx)";
+const BUILD = "2026-10-30 · r716 · improvements land on any rarity more evenly (40/30/20/10); offers you were just shown come back less often";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

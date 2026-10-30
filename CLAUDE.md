@@ -3736,3 +3736,17 @@ a queued hand came up reading SPEED UP. No page errors, no timeline drift.
   126, 378, 1,134, 3,402 and the score landed on 3,402, console and slide, 1440x820 and 420x900; a
   6-hand burst with the queue and the blast ended with no copies left, no drift, no page errors.
 - tools/verify-tags.js stubs `gridName` (it had failed since r707).
+
+## r716 - improvement targets roll their own table; recent offers are damped (owner)
+- **`IMPROVE_TIER_W`** (js/data/balance.js) `[40, 30, 20, 10]` picks which of your own things an
+  improvement lands on (`pickImproveTarget`: improve tiles, the shop, card states; Flow's Improve
+  screen). It rolled on `ENTITY_TIER_W`, so the one common in a tray of rares took 71% of
+  improvements (3 improve tiles on one grid all the same 36.5%; now 40% and 7.9%). Still Luck-tilted;
+  a lone entity in your lowest owned tier still takes that tier's share. Repeats on one grid allowed.
+- **Recent offers** (`OFFER_RECENT_W` `{ weight: 35, screens: 2 }`, js/luck.js): a Trick, Knack or
+  Sleight on one of the last 2 pick screens (`offerRecentNote`, from `openGridPick` and
+  `gridPickRefresh`, so rerolls count; a repaint of the same offers is not a new screen) weighs 35%
+  within its tier in `offerWeightMult`. Owned entities are not damped. `startGame` clears it. Flow,
+  three Tricks screens in a row: one Trick on all three 3.0% -> 0.44%, any repeat 62% -> 31%.
+- Dev -> Probabilities: "Improvement target rarity" and "Offers you were just shown". "Tricks for hands
+  you cannot play yet" is type `'n'` now: as `'p'` it showed 5000% and saved a fraction the code read as 0.5%.

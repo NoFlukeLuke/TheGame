@@ -174,12 +174,30 @@ function _pickEntityByRarity(pool, tierOf, weights, tiers) {
 // at OFFER_NEED_W.unplayable % of its usual weight. TRICK_NEEDS (js/data/tricks.js)
 // says which Tricks need what. Anything else in the pool weighs 1.
 const OFFER_NEED_W = { unplayable: 50 };
+// r716 (owner): what you were just shown comes back less often, never never. A Trick,
+// Knack or Sleight on one of the last OFFER_RECENT_W.screens pick screens weighs
+// OFFER_RECENT_W.weight % within its tier. Noted by openGridPick / gridPickRefresh
+// (rerolls included), cleared by startGame. Owned things are not damped, so an
+// improvement still lands on what you own as often as before.
+const OFFER_RECENT_W = { weight: 35, screens: 2 };
+let offerRecent = [];   // one id list per recent screen, newest last
+function offerRecentNote(offers) {
+  const ids = (offers || []).filter(o => o && o.id && !o._improve && /^(trick|knack|sleight)$/.test(o.entity)).map(o => o.id);
+  if (!ids.length) return;
+  const last = offerRecent[offerRecent.length - 1];
+  if (last && last.join() === ids.join()) return;   // the same screen repainted
+  offerRecent.push(ids);
+  while (offerRecent.length > Math.max(0, OFFER_RECENT_W.screens | 0)) offerRecent.shift();
+}
 function offerWeightMult(x) {
+  let m = 1;
+  if (x && x.id && offerRecent.some(ids => ids.includes(x.id))
+      && !(typeof entityOwnedNow === 'function' && entityOwnedNow(x.id))) m = OFFER_RECENT_W.weight / 100;
   const need = x && x.id && typeof TRICK_NEEDS !== 'undefined' ? TRICK_NEEDS[x.id] : null;
-  if (!need) return 1;
+  if (!need) return m;
   const sel = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5;
   const short = (need.size && need.size > sel) || (need.hand && typeof handIsActive === 'function' && !handIsActive(need.hand));
-  return short ? OFFER_NEED_W.unplayable / 100 : 1;
+  return short ? m * OFFER_NEED_W.unplayable / 100 : m;
 }
 function offerWeightedPick(list) {
   const w = list.map(offerWeightMult), total = w.reduce((a, b) => a + b, 0);

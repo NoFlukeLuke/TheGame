@@ -552,7 +552,7 @@ function pickImproveTarget(type) {
   const pool = ownedImprovable(type);
   if (!pool.length) return null;
   if (typeof pickEntityByRarity === 'function') {
-    const hit = pickEntityByRarity(pool, e => e.rarity);
+    const hit = pickEntityByRarity(pool, e => e.rarity, IMPROVE_TIER_W);
     if (hit) return hit;
   }
   return pool[Math.floor(Math.random() * pool.length)];

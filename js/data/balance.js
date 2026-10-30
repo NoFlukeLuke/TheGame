@@ -387,6 +387,10 @@ const META_LEGENDARY_W = 1.5;
 // what it says is what it draws. A common is a third of the tiles and the
 // middle of the ladder is where a prize grid pays: RARE is more than half.
 const PRIZE_TIER_W   = [30, 55, 12, 3];
+// r716 (owner): which of YOUR OWN things an improvement lands on. It rolled on
+// ENTITY_TIER_W, so the one common in a tray of rares took 71% of improvements.
+// Read by pickImproveTarget and Flow's Improve screen.
+const IMPROVE_TIER_W = [40, 30, 20, 10];
 
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',

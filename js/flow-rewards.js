@@ -1837,7 +1837,7 @@ function flowrBuildOffers(kind) {
       const used = new Set();
       for (let i = 0; i < 3 && used.size < pool.length; i++) {
         const avail = pool.filter(e => !used.has(e.id));
-        const pick = pickEntityByRarity(avail, e => e.rarity || 'common') || avail[0];
+        const pick = pickEntityByRarity(avail, e => e.rarity || 'common', IMPROVE_TIER_W) || avail[0];
         if (!pick) break;
         used.add(pick.id);
         const delta = (typeof improveDeltaFor === 'function' ? improveDeltaFor(pick.id) : null)
