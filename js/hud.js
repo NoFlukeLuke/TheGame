@@ -316,10 +316,10 @@ function updateKnackList() {
   }
   // Chips live in a marquee track so the row can slowly auto-scroll when it
   // overflows (no arrows / no scrollbar - r113).
-  el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
+  el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map((t, i) =>
     // r391: the chip draws the SAME diamond the pick screens draw (entity-tile.js),
     // so a Knack looks like one object whether offered or owned.
-    `<div class="knack-chip kc-obj rar-${t.rarity || 'common'}${t.id === 'challenge_dial' ? (challengeDial < 0 ? ' kc-dial-down' : ' kc-dial-up') : ''}" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}"><div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(t.emoji)}</span></div></div>`
+    `<div class="knack-chip kc-obj${i % 2 ? ' kc-lo' : ' kc-hi'}${acquiredKnacks.length % 2 && i === acquiredKnacks.length - 1 ? ' kc-end' : ''} rar-${t.rarity || 'common'}${t.id === 'challenge_dial' ? (challengeDial < 0 ? ' kc-dial-down' : ' kc-dial-up') : ''}" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}"><div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(t.emoji)}</span></div></div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
   // Landscape scrolls the row by hand (no scrollbar - css) since r237; the

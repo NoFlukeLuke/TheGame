@@ -478,10 +478,16 @@ document.getElementById('btn-play').addEventListener('click', () => {
   cancelAutoSubmit();
   playHand();
 });
+let _lastDiscardArm = 0;
 document.getElementById('btn-discard').addEventListener('click', () => {
   // Drag to play (r409): DISCARD with nothing selected arms (or disarms) the
   // next drag to discard. With a selection it discards as it always has.
   if (selected.length === 0 && typeof dragControlsLive === 'function' && dragControlsLive()) {
+    // r717: a phone can fire one tap's click twice ~150-200ms apart (PLAY has the
+    // same guard); the second toggled the arm straight back off.
+    const _now = Date.now();
+    if (_now - _lastDiscardArm < 400) return;
+    _lastDiscardArm = _now;
     setDragDiscardArmed(!dragDiscardArmed);
     showMessage(dragDiscardArmed ? 'Drag to discard' : 'Discard cancelled', 'var(--cream-dim)');
     return;

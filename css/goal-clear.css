@@ -121,5 +121,5 @@ body.reduced-motion #goal-banner .gb-ring { display: none; }
 @keyframes gbg-hold { 0% { opacity: 0; clip-path: inset(50% 0 50% 0); } 10% { opacity: 1; clip-path: inset(0 0 0 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
 #gb-grid .gbg-k { font-size: 13px; letter-spacing: 3px; color: var(--am-dim); line-height: 1; }
 #gb-grid.gb-boss .gbg-k { color: #ff9a8a; }
-#gb-grid .gbg-l { font-size: 22px; letter-spacing: 1px; line-height: 26px; min-height: 26px; color: var(--am-hi); white-space: pre; }
+#gb-grid .gbg-l { font-size: 22px; letter-spacing: 1px; line-height: 26px; min-height: 52px; color: var(--am-hi); white-space: pre-wrap; }
 body.reduced-motion #gb-grid.show { animation: none; opacity: 1; clip-path: none; }

@@ -10,7 +10,6 @@ function ctlNum(id, dflt) {
   const v = typeof SETTINGS !== 'undefined' ? Number(SETTINGS[id]) : NaN;
   return Number.isFinite(v) ? v : dflt;
 }
-function ctlAutoPlayMs()  { return ctlNum('ctlAutoPlay', AUTO_SUBMIT_DELAY); }
 function ctlDragGraceMs() { return ctlNum('ctlDragGrace', 0); }
 
 // The live board, with no takeover screen borrowing #grid or the buttons.

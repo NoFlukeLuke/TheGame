@@ -215,6 +215,7 @@ function musicPlay() {
   const p = musicEl().play();
   if (p && p.catch) p.catch(() => { /* autoplay blocked - armMusicAutostart retries on the next gesture */ });
   if (typeof renderPlaylist === 'function') renderPlaylist();
+  return p;
 }
 
 function musicPause() {
@@ -273,18 +274,28 @@ function musicSetScene(scene) {
 // One listener, removed once it has fired. It also unlocks the AudioContext and
 // warms the sound-effect samples, so the first coin sound is not a download.
 let musicAutoStarted = false;
+// r717 (owner: "music won't play on mobile"): a FINGER's pointerdown is not a gesture
+// a phone lets media start from (only a mouse's is; for touch it is pointerup /
+// touchend / click), and this listener used to remove itself on the first
+// pointerdown whatever play() said, so on a phone the music never started. It now
+// listens to the release events too and stays armed until play() actually succeeds.
+const MUSIC_GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
 function armMusicAutostart() {
-  const go = () => {
-    if (musicAutoStarted) return;
-    musicAutoStarted = true;
-    window.removeEventListener('pointerdown', go, true);
-    window.removeEventListener('keydown', go, true);
-    try { getAudioCtx(); } catch (e) {}
-    try { prewarmSfxSamples(); } catch (e) {}
-    if (AUDIO_PREFS.musicOn && musicPlayableIndexes().length) musicPlay();
-  };
-  window.addEventListener('pointerdown', go, true);
-  window.addEventListener('keydown', go, true);
+  let warmed = false, trying = false;
+  const done = () => MUSIC_GESTURES.forEach(ev => window.removeEventListener(ev, go, true));
+  function go() {
+    if (musicAutoStarted) { done(); return; }
+    try { const c = getAudioCtx(); if (c && c.state === 'suspended') c.resume(); } catch (e) {}
+    if (!warmed) { warmed = true; try { prewarmSfxSamples(); } catch (e) {} }
+    if (!AUDIO_PREFS.musicOn || !musicPlayableIndexes().length) { musicAutoStarted = true; done(); return; }
+    if (trying) return;
+    trying = true;
+    const p = musicPlay();
+    const ok = () => { trying = false; musicAutoStarted = true; done(); };
+    if (p && p.then) p.then(ok, () => { trying = false; });
+    else if (musicIsPlaying()) ok(); else trying = false;
+  }
+  MUSIC_GESTURES.forEach(ev => window.addEventListener(ev, go, true));
 }
 armMusicAutostart();
 

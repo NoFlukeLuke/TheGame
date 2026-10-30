@@ -9,10 +9,12 @@ const AUTO_SUBMIT_DELAY_FAST = 350;  // ms - autoPlayHands: steering, not choosi
 // A valid hand has always submitted itself on a timer; `autoPlayHands` only sets
 // how long that timer is. That is deliberately ALL it does - a separate auto-play
 // path would be a second way into playHand to keep in step with this one.
+// r717 (owner): a TAPPED hand never plays itself; it waits for PLAY. Only a drag
+// plays on its own (Drag to play, after Settings > Controls > After a drag). The
+// Auto-play setting is gone; a mode with autoPlayHands keeps its fast timer.
 function autoSubmitDelay() {
   return (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.autoPlayHands)
-    ? AUTO_SUBMIT_DELAY_FAST
-    : (typeof ctlAutoPlayMs === 'function' ? ctlAutoPlayMs() : AUTO_SUBMIT_DELAY);
+    ? AUTO_SUBMIT_DELAY_FAST : 0;
 }
 let autoSubmitTimer = null;
 let handReadyForSubmit = false; // true once an invalid card is hit mid-swipe
@@ -104,7 +106,7 @@ function scheduleAutoSubmit() {
   if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) return;
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
-  if (autoSubmitDelay() <= 0) return;   // Settings > Controls > Auto-play: Off
+  if (autoSubmitDelay() <= 0) return;   // r717: taps never auto-play
   // Tutorial: the early steps teach "select, look at the preview, then press
   // PLAY". A 2s auto-play would fire the hand out from under the lesson, so the
   // countdown is suppressed while those steps are up (the pulse still shows).

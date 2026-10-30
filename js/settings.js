@@ -104,6 +104,11 @@ const SETTINGS_DEF = [
   { group: 'Motion', id: 'reducedMotion', label: 'Reduced motion', hint: 'Cuts drifting, shaking and idle flourishes. Scoring still animates.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('reduced-motion', !!v) },
+  // r717 (owner): the screen that plays when a Trick is first taken, improved, or two
+  // Tricks fuse (js/improve-anim.js iaOff reads this). Off by default.
+  { group: 'Motion', id: 'trickAnims', label: 'Trick animations',
+    hint: 'The screen that names a Trick the first time you take it, shows an improvement, or fuses two Tricks. Off: they happen at once.',
+    type: 'toggle', default: false },
   { group: 'Motion', id: 'noShake', label: 'No screen shake', hint: 'Disables impact shake on big scores and boss hits.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-shake', !!v) },
@@ -145,7 +150,7 @@ const SETTINGS_DEF = [
     type: 'select', default: 'tap', options: [['tap','Tap and PLAY'], ['drag','Drag to play']],
     apply: v => { if (typeof setControlMode === 'function') setControlMode(v); } },
   { group: 'Controls', id: 'ctlDragGrace', label: 'After a drag',
-    hint: 'Only with Drag to play. After you let go, the hand waits this long before it plays. Tap another card during the wait to add it.',
+    hint: 'Only with Drag to play. After you let go, the hand waits this long, then plays itself. Tap another card during the wait to add it. A hand you tap together never plays itself: press PLAY.',
     type: 'select', default: '0', options: [['0','Play at once'], ['500','Wait 0.5s'], ['1000','Wait 1s'], ['1500','Wait 1.5s']] },
   { group: 'Controls', id: 'ctlDragBack', label: 'Drag back to unselect',
     hint: 'While dragging, move back onto the card you just left to unselect the newest card. A T shape crosses one card twice, so drag the straight part, then tap the last card. With Drag to play, that tap only works if After a drag is set to a wait.',
@@ -153,9 +158,7 @@ const SETTINGS_DEF = [
   { group: 'Controls', id: 'ctlDoubleTapPlay', label: 'Double-tap to play',
     hint: 'Tap a selected card twice quickly to play your selection. Double-tapping a card that is not selected still picks it up to swap, as normal.',
     type: 'toggle', default: false },
-  { group: 'Controls', id: 'ctlAutoPlay', label: 'Auto-play',
-    hint: 'A selection that makes a hand plays by itself after this long. Off: hands play only when you press PLAY, or through Drag to play or Double-tap to play.',
-    type: 'select', default: '2000', options: [['0','Off'], ['1000','1s'], ['2000','2s'], ['4000','4s']] },
+  // r717 (owner): the Auto-play row is gone. A tapped hand waits for PLAY; a drag plays itself.
   { group: 'Controls', id: 'ctlWheelSwap', label: 'Wheel to swap',
     hint: 'Select two cards side by side, then turn the mouse wheel once over the board to swap them. Uses a swap, same as pressing SWAP.',
     type: 'toggle', default: true },

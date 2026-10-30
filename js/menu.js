@@ -1,4 +1,4 @@
-const BUILD = "2026-10-30 · r716 · improvements land on any rarity more evenly (40/30/20/10); offers you were just shown come back less often";
+const BUILD = "2026-10-30 · r717 · Schedule: done slots grey, done items ticked, current slot blinks; taps never auto-play; Trick animations off; Knack diamonds fit and zigzag on a phone; music starts on a phone";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

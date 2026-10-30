@@ -153,6 +153,12 @@ function mapBossCondShort(b) {
   if (mapBossRule() === 'lanes') return `LANES ${b.lanes.map(l => l + 1).join('-')} · ${Math.min(n, need)}/${need}`;
   return `${b.slot === 'a' ? 'ROUNDS' : 'OTHERS'} · ${Math.min(n, need)}/${need}`;
 }
+// r717 (owner): a counter on the review tile, one box per booking it needs.
+function mapBossPips(b) {
+  if (b.hidden || b.visited) return '';
+  const n = Math.min(mapBossProgress(b), mapBossNeed(b)), need = mapBossNeed(b);
+  return `<span class="mt-pips">${Array.from({ length: need }, (_, i) => `<i${i < n ? ' class="on"' : ''}></i>`).join('')}</span>`;
+}
 function mapBossCondSay(b) {
   if (b.hidden) return 'Neither review was unlocked, so a random manager holds it.';
   const n = mapBossProgress(b), need = mapBossNeed(b);
@@ -1051,6 +1057,9 @@ function mapRender(animateIn) {
   const doomedIds = new Set(legal.filter(m => m.doomed).map(m => m.tile.id));
   // The slot the player is in: its row is lit and its gutter says how full it is.
   const curSet = mapPos ? Math.min(mapPos.set, MAP_SETS) : 0;
+  // r717 (owner): the slot you are working in. A slot booked full is done, so the
+  // next one is lit; every slot above it is greyed out and every one below stays bright.
+  const nowSet = Math.min(MAP_SETS, curSet + (mapPos && curSet < MAP_SETS && mapVisits >= mapSlotCap() ? 1 : 0));
 
   // ── THE SCREEN (r655, owner): the schedule is a TO-DO LIST on a terminal ──
   // One amber glass over the whole board box, laid out by CSS grid rather than
@@ -1070,11 +1079,11 @@ function mapRender(animateIn) {
   for (let s = 0; s <= MAP_SETS; s++) {
     const isReview = s === MAP_SETS;
     const row = document.createElement('div');
-    row.className = 'mtm-row' + (s === curSet && !mapBossArmed ? ' now' : '') + (isReview ? ' mtm-review' : '');
+    row.className = 'mtm-row' + (s === nowSet && !mapBossArmed ? ' now' : '') + (mapPos && s < nowSet ? ' past' : '') + (isReview ? ' mtm-review' : '');
     row.style.gridRow = String(s + 1);
     list.appendChild(row);
     const time = document.createElement('div');
-    time.className = 'mtm-time' + (s === curSet ? ' now' : '');
+    time.className = 'mtm-time' + (s === nowSet ? ' now' : '') + (mapPos && s < nowSet ? ' past' : '');
     time.style.gridRow = String(s + 1);
     const booked = (s === curSet && mapPos && !isReview && mapSlotCap() > 1) ? `<i>${mapVisits}/${mapSlotCap()}</i>` : '';
     // r702: the review row's gutter carries the quota (the two review tiles have no room for it).
@@ -1097,6 +1106,7 @@ function mapRender(animateIn) {
       + (missed ? ' mt-missed' : '')
       + (mapSelected === t.id ? ' mt-selected' : '')
       + (mapPosTileId === t.id ? ' mt-here' : '')
+      + (mapPos && t.set + (t.span === 2 ? 1 : 0) < nowSet ? ' mt-past' : '')
       + (t.span === 2 ? ' mt-span' : '')
       + (t.cols > 1 ? ((t.cols >= MAP_LANES) ? ' mt-wide' : ' mt-pair') : '');
     div.style.gridRow = (t.set + 1) + (t.span === 2 ? ' / span 2' : '');
@@ -1154,7 +1164,8 @@ function mapRender(animateIn) {
     div.innerHTML =
       `<span class="mt-line"><span class="mt-box">[${box}]</span><span class="mt-icon">${MAP_KIND_META.boss.icon}</span>`
       + `<span class="mt-name">${p ? p.name : '???'}</span></span>`
-      + `<span class="mt-cond">${mapBossCondShort(t)}</span>`;
+      + `<span class="mt-cond">${mapBossCondShort(t)}</span>`
+      + mapBossPips(t);
     div.title = 'Manager Review - ' + mapTileDesc(t, legalIds);
     div.onclick = () => mapTileTap(t);
     div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };

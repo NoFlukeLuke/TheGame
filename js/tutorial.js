@@ -384,7 +384,7 @@ const TUTORIAL_STEPS = [
     id: 'play', anchor: () => tutEl('#btn-play'), side: 'left', gate: true, hold: true, noAutoPlay: true,
     eyebrow: 'Scoring',
     title: 'Playing a hand',
-    body: `Press <b>PLAY</b>.<br><br>A valid selection also plays itself after two seconds if you leave it alone.`,
+    body: `Press <b>PLAY</b>.`,
     // PLAY is disabled without a valid selection and a gated step exposes only
     // PLAY - so if the selection was lost, restore it rather than strand the
     // player on a dead button.

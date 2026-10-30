@@ -1064,6 +1064,17 @@
   }
   #stage:not(.landscape) #knack-list { gap: 7px; max-height: 72px; margin-bottom: 8px; }
   #stage:not(.landscape) .knack-chip { width: 42px; height: 42px; font-size: 23px; }
+  /* r717 (owner): side by side on a phone, the Knacks ZIGZAG (alternate up and down,
+     interlocking), so about twice as many show before the row has to scroll. The
+     row is set by the chip's own class (kc-hi / kc-lo, js/hud.js), so the marquee's
+     copies keep it. */
+  body:not(.pt-stacked) #stage:not(.landscape) #knack-list { max-height: none; overflow: visible; margin-bottom: 4px; }
+  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .chip-marquee { gap: 0; height: 80px; padding-right: 18px; }
+  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip { margin-right: -18px; }
+  /* An odd count puts two top-row chips side by side where the marquee loops. */
+  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-end { margin-right: 6px; }
+  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-hi { translate: 0 -18px; }
+  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-lo { translate: 0 18px; }
 
   /* The swap button. Deliberately small and quiet - it is a view toggle, not an
      action, so it must not read as a third button next to PLAY / DISCARD. */
@@ -3559,7 +3570,12 @@
   .reward-cell.entity-knack .rwd-diamond { width: calc(min(100cqw, 100cqh) * .64); }
   /* r391: the owned-Knack chip wears the pick screen's diamond. */
   .knack-chip.kc-obj { background: none !important; border: none !important; box-shadow: none !important; overflow: visible; }
-  .knack-chip.kc-obj .rwd-diamond { width: 70%; }
+  /* r717 (owner): the turned square's points reach 1.41x its side, so at 70% of the
+     chip's WIDTH they touched the chip's edges and the tray clipped them (top and
+     bottom on a phone, left and right on a desktop). Sized off the chip's shorter
+     side now, its points sit 7% inside it with room for the ring and the hover lift. */
+  .knack-chip.kc-obj { container-type: size; }
+  .knack-chip.kc-obj .rwd-diamond { width: calc(min(100cqw, 100cqh) * .6); }
   .knack-chip.rar-common    { --rc: var(--c-mint); }
   .knack-chip.rar-rare      { --rc: var(--c-cyan); }
   .knack-chip.rar-epic      { --rc: var(--c-purple); }

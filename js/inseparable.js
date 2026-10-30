@@ -216,5 +216,6 @@ async function inseparablePreview() {
   const a = inseparableRow(pair.parts[0]), b = inseparableRow(pair.parts[1]), f = inseparableRow(pair.id);
   if (!a || !b || !f) return;
   _iaQueue.push({ kind: 'fuse', id: f.id, parts: [a.id, b.id], names: [a.name, b.name], desc: f.desc });
-  await improveAnimFlush();
+  _iaPreview = true;
+  try { await improveAnimFlush(); } finally { _iaPreview = false; }
 }

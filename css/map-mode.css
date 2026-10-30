@@ -37,7 +37,16 @@
   margin: -2px 0 0; border-top: 1px dashed rgba(154,111,42,.5);
 }
 #grid .mtm-row:first-child { border-top-color: transparent; }
-#grid .mtm-row.now { background: rgba(255,176,46,.07); box-shadow: inset 2px 0 0 var(--am); }
+/* r717 (owner): the slot you are in is lit about 10% with a blinking bar at its
+   left edge; slots already done are greyed out; slots to come stay bright. */
+#grid .mtm-row { position: relative; }
+#grid .mtm-row.now { background: rgba(255,176,46,.10); }
+#grid .mtm-row.now::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--am-hi); box-shadow: 0 0 6px var(--am); animation: mbBlink 1.06s steps(1) infinite;
+}
+#grid .mtm-row.past { background: rgba(0,0,0,.28); }
+#grid .mtm-time.past { color: #5a554a; text-shadow: none; }
 #grid .mtm-time {
   grid-column: 1; z-index: 1; min-width: 0;
   display: flex; flex-direction: column; justify-content: center; gap: 2px;
@@ -97,7 +106,7 @@
 /* States. A LEGAL item is lit and framed; the SELECTED one prints in reverse;
    a DONE one is ticked and struck through; a MISSED one is struck and faint;
    a future one is simply dimmer - information, plainly not on offer. */
-#grid .map-tile:not(.mt-legal):not(.mt-visited):not(.mk-blank):not(.mt-selected) { opacity: .5; }
+#grid .map-tile:not(.mt-legal):not(.mt-visited):not(.mk-blank):not(.mt-selected) { opacity: .82; }
 #grid .map-tile.mt-legal { border-color: color-mix(in srgb, var(--rc) 75%, transparent); }
 #grid .map-tile.mt-legal:hover { background: color-mix(in srgb, var(--rc) 14%, transparent); }
 #grid .map-tile.mt-selected {
@@ -111,6 +120,20 @@
 #grid .map-tile:is(.mt-visited, .mt-missed) .mt-name { text-decoration: line-through; text-decoration-thickness: 1px; }
 #grid .map-tile.mt-missed { opacity: .3 !important; border-color: transparent; cursor: var(--cur-default, default); }
 #grid .map-tile.mt-doomed .mt-box { color: #ff7656; }
+/* r717 (owner): a DONE item gets a big thick check mark over a dimmed face; an item
+   in a slot already passed and not done is plain grey. */
+#grid .map-tile.mt-visited { opacity: 1; }
+#grid .map-tile.mt-visited > :not(.mt-pips) { opacity: .32; }
+#grid .map-tile.mt-visited::after {
+  content: ''; position: absolute; left: 50%; top: 44%; pointer-events: none;
+  width: min(18px, 22cqmin); height: min(36px, 46cqmin);
+  border: solid #94ecb0; border-width: 0 max(4px, min(8px, 9cqmin)) max(4px, min(8px, 9cqmin)) 0;
+  transform: translate(-50%, -50%) rotate(40deg);
+  filter: drop-shadow(0 0 4px rgba(148,236,176,.8));
+}
+#grid .map-tile.mt-past:not(.mt-visited) { --rc: #6f6a5c; opacity: .38 !important; filter: grayscale(1); text-shadow: none; }
+#grid .map-tile.mt-past:not(.mt-visited) .mt-box { color: #6f6a5c; }
+#grid .map-tile.mt-past.mt-visited { --rc: #8a8473; background: rgba(0,0,0,.2); text-shadow: none; }
 #grid .map-tile.mk-blank { border: 1px dotted rgba(154,111,42,.35); cursor: var(--cur-default, default); align-items: center; }
 /* r679: a round across the WHOLE row reads as one bar: box, glyph and word in a
    row, its goal at the right. A half-row round (.mt-pair) keeps the item layout. */
@@ -154,6 +177,12 @@
 #grid .mtm-reviews .mt-review.mt-missed { opacity: .3 !important; }
 #grid .mtm-reviews .mt-review.mt-missed .mt-name { text-decoration: line-through; }
 #grid .mtm-reviews .mt-review.mt-hidden .mt-name { color: var(--am-hi); }
+/* r717 (owner): the review's counter, a box per booking it needs. */
+#grid .mtm-reviews .mt-review .mt-pips { display: flex; gap: 2px; max-width: 100%; }
+#grid .mtm-reviews .mt-review .mt-pips i { flex: 0 1 8px; height: 6px; min-width: 3px; border: 1px solid var(--rc); box-sizing: border-box; }
+#grid .mtm-reviews .mt-review .mt-pips i.on { background: var(--rc); box-shadow: 0 0 4px var(--rc); }
+#grid .mtm-reviews .mt-review.mt-selected .mt-pips i { border-color: var(--am-ink); }
+#grid .mtm-reviews .mt-review.mt-selected .mt-pips i.on { background: var(--am-ink); }
 #grid .mtm-reviews .mt-review.mt-selected .mt-cond { color: var(--am-ink); }
 @keyframes map-boss-breath {
   0%, 100% { box-shadow: 0 0 4px -2px var(--rc); }
@@ -239,6 +268,9 @@
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 #map-bar .mb-info i { font-style: normal; color: var(--am); }
+/* r717 (owner): on a phone the tapped item's description was cut at two lines. It
+   prints whole; the list above gives up the room (and scrolls if it must). */
+#grid .map-term.mtm-port #map-bar .mb-info { display: block; -webkit-line-clamp: unset; overflow-y: auto; max-height: 7.8em; }
 /* The rules card opens over the list, above the toolbar, so it never moves it. */
 #map-bar .mb-help {
   display: none; position: absolute; left: 0; right: 0; bottom: calc(100% + 4px);
