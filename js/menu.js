@@ -1,4 +1,4 @@
-const BUILD = "2026-10-30 · r717 · Schedule: done slots grey, done items ticked, current slot blinks; taps never auto-play; Trick animations off; Knack diamonds fit and zigzag on a phone; music starts on a phone";
+const BUILD = "2026-10-30 · r718 · phone lag pass: the screen door is a still image when nothing moves, fewer per-frame reads, lighter reward-grid confirm";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

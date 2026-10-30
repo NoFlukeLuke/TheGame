@@ -92,6 +92,7 @@ function dbgLines(entries) {
 let _dbgRenderQueued = false;
 function _devLogRender() {
   if (_dbgRenderQueued) return;
+  if (!_dv(() => devPanelOpen, false)) return;   // r717 (perf): offsetParent below forced a layout on every logged event
   const el = document.getElementById('dev-event-log');
   if (!el || !el.offsetParent) return;                // the dev panel is closed: nothing to draw
   _dbgRenderQueued = true;

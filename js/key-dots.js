@@ -241,6 +241,12 @@ function kdSync(el, instant) {
   const W = Math.max(1, Math.round(wCss * s)), H = Math.max(1, Math.round(hCss * s));
   const sized = st.W !== W || st.H !== H || st.s !== s;
   if (sized) { st.c.width = W; st.c.height = H; st.c.style.width = wCss + 'px'; st.c.style.height = hCss + 'px'; st.W = W; st.H = H; st.s = s; instant = true; }
+  // r717 (perf): reading the words back is a Range per character. The 600ms check and
+  // every class / style change on the key (a press, the fitter) asked for it; when the
+  // key's markup and box are what they were, nothing it draws can have moved.
+  const quick = el.className + '|' + (el.getAttribute('style') || '') + '|' + el.innerHTML;
+  if (!instant && quick === st.quick) return;
+  st.quick = quick;
   const read = kdRead(el, z);
   const L = read.lines.map(l => ({ ...l, cx: l.cx - inset, cy: l.cy - inset }));
   const blocks = read.blocks.map(b => ({ top: b.top - inset, bot: b.bot - inset }));

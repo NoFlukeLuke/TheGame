@@ -595,6 +595,7 @@ CARD_ANIM_RUN.idle.ripple = async ({ cards, board }) => {
 // card turns, just barely, to the newest one and holds there.
 let _gazeBoard = null, _gazePt = null, _gazeRaf = 0, _gazeWatch = false, _gazeWanderT = 0;
 const CA_GAZE_FIX_MAX = 9, CA_GAZE_WANDER = [2, 5], CA_GAZE_WANDER_MS = 1300;
+const CA_GAZE_WANDER_N = (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches) ? 2 : 4;
 const caGazeSkip = el => el.classList.contains('selected') || el.classList.contains('ca-standin');
 function caGazeWander() {
   const b = _gazeBoard;
@@ -602,9 +603,14 @@ function caGazeWander() {
   _gazeWanderT = setTimeout(caGazeWander, CA_GAZE_WANDER_MS * caSlow());
   if (document.hidden || caGazeFocusEl(b)) return;
   b.classList.add('ca-wander'); b.classList.remove('ca-fixed');
-  b.querySelectorAll('.card').forEach(el => {
-    if (caGazeSkip(el)) { el.style.rotate = ''; return; }
-    if (el.style.rotate && caRnd() < .4) return;            // not every card moves at once
+  // r717 (perf): a few cards turn each tick, not the whole board. Every card on a
+  // 6x6 board sliding a 3D turn at once kept style and paint busy for most of every
+  // second on a phone; with CA_GAZE_WANDER_N movers a tick the board still looks alive.
+  const cards = [...b.querySelectorAll('.card')];
+  cards.forEach(el => { if (caGazeSkip(el)) el.style.rotate = ''; });
+  const movers = cards.filter(el => !caGazeSkip(el));
+  for (let i = movers.length - 1; i > 0; i--) { const j = Math.floor(caRnd() * (i + 1)); [movers[i], movers[j]] = [movers[j], movers[i]]; }
+  movers.slice(0, CA_GAZE_WANDER_N).forEach(el => {
     const th = caRnd() * Math.PI * 2, ang = CA_GAZE_WANDER[0] + caRnd() * (CA_GAZE_WANDER[1] - CA_GAZE_WANDER[0]);
     el.style.rotate = `${Math.cos(th).toFixed(3)} ${Math.sin(th).toFixed(3)} 0 ${ang.toFixed(1)}deg`;
   });

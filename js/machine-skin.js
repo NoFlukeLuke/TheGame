@@ -59,10 +59,15 @@ function mcFlyMask() {
   s.webkitMaskSize = s.maskSize = sizes.join(', ');
   s.webkitMaskPosition = s.maskPosition = pos.join(', ');
 }
-function mcFlyTick() {
+// r717 (perf): the mask is re-read at most every MC_MASK_MS while something flies,
+// not every frame. It reads 17 boxes (a forced layout), and a reward grid's confirm
+// flew tiles for seconds at 40-130ms a frame on a throttled phone. Screens rarely move.
+const MC_MASK_MS = 150;
+let _mcMaskAt = 0;
+function mcFlyTick(t) {
   _mcFlyRaf = 0;
   if (!_mcFly || !_mcFly.childElementCount) return;   // nothing flying: stop
-  mcFlyMask();                                          // screens can slide while something flies
+  if (!t || t - _mcMaskAt >= MC_MASK_MS) { _mcMaskAt = t || 0; mcFlyMask(); }   // screens can slide while something flies
   _mcFlyRaf = requestAnimationFrame(mcFlyTick);
 }
 function mcIsFlier(el) {

@@ -172,7 +172,7 @@ function sbApply() {
   document.documentElement.classList.toggle('stock-bulbs', sbOn());
   const a = document.getElementById('dev-sb-on'); if (a) a.value = sbCfg.on ? sbCfg.trick : 'off';
   clearInterval(_sbTimer); _sbTimer = 0;
-  if (sbOn()) _sbTimer = setInterval(() => sbPaint(false), 150);
+  if (sbOn()) _sbTimer = setInterval(() => sbPaint(false), 400);   // r717 (perf): 150 -> 400; a selection change paints at once (below)
   sbPaint(true);
 }
 function sbChoose(v) { if (v === 'off') sbSet('on', 0); else { sbCfg.trick = v; sbSet('on', 1); } }

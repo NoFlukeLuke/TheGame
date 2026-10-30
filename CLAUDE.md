@@ -3750,3 +3750,37 @@ a queued hand came up reading SPEED UP. No page errors, no timeline drift.
   three Tricks screens in a row: one Trick on all three 3.0% -> 0.44%, any repeat 62% -> 31%.
 - Dev -> Probabilities: "Improvement target rarity" and "Offers you were just shown". "Tricks for hands
   you cannot play yet" is type `'n'` now: as `'p'` it showed 5000% and saved a fraction the code read as 0.5%.
+
+## r717 / r718 - Schedule progress marks; no tap auto-play; Trick animations off; the phone lag pass (owner)
+- **Schedule** (js/map-mode.js): `nowSet` is the slot being worked (the next one once the
+  current slot is booked full). Its row is lit ~10% with a blinking left bar; slots above are
+  `.past` (greyed); a done item keeps full opacity under a big green check (`.mt-visited::after`),
+  a passed item not done is grey (`.mt-past`); slots to come rest at 82%. Review tiles carry a box
+  counter (`mapBossPips`). Portrait: the toolbar description is not clamped.
+- **Goal banner on the grid** prints the figure on its own line.
+- **Controls:** the Auto-play setting is gone. `autoSubmitDelay()` is 0 unless the mode has
+  `autoPlayHands`: a tapped hand waits for PLAY; Drag to play still plays after "After a drag".
+  The DISCARD arm ignores a second click within 400ms (a phone's doubled click disarmed it).
+- **Trick animations** (Settings -> Motion, `trickAnims`, default off): `iaOff()` skips the
+  improvement, reveal and fusion screens; dev previews set `_iaPreview`.
+- **Knack chips:** the diamond is 60% of the chip's SHORTER side (container units) so its points
+  are not clipped. Phone, side by side: zigzag (`kc-hi` / `kc-lo`, `kc-end` on an odd last chip).
+- **Music on a phone** (js/music.js): a touch pointerdown is not a media gesture; autostart now
+  also listens to pointerup / touchend / click and stays armed until `play()` resolves.
+- **Perf, r718** (measured at 420x900 DPR 3, 4x CPU, a 6x6 mid-run board): idle 24 -> ~40 fps, scoring
+  15 -> ~30 fps, frames over 50ms while scoring 319 -> ~100. No leak was found (7 rounds).
+  - **Screen door** (js/screen-door.js): elements found every 500ms, boxes read every 100ms (was
+    every frame); a phone (`pointer: coarse`, `html.sd-plain`) draws no grille and no blend. The
+    big one: a live full-display canvas is re-produced by the compositor every frame, so the
+    canvas is shown only while the lines change and `SD_SETTLE_MS` after the last change it is
+    copied into `#sd-door-img`, which replaces it. A new overlay of that size must be an image.
+  - **Watch idle:** `CA_GAZE_WANDER_N` cards turn a tick (2 on a phone, 4 elsewhere), not the board.
+  - **Focus:** the passive decay drops nodes `quiet` (no falling copies, which console mode
+    adopts as fliers); the jitter writes only when it moves; the media query is cached.
+  - **Console fliers:** `mcFlyTick` re-reads the screen mask every `MC_MASK_MS` (150), not every frame.
+  - **Key dot words:** `kdSync` skips the per-character read when the key's class, style and
+    markup are unchanged (the 600ms check and every press asked for it).
+  - **Reward grid confirm:** `rewardDealing` holds through the payload applies, so a payload's
+    `render()` (Dead Drop) no longer redraws and re-fits every tile of the closing grid.
+  - Event log (js/devlog.js) no longer forces a layout per event while the dev panel is closed;
+    stock bulbs re-place every 400ms (was 150).

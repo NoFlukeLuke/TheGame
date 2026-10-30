@@ -272,9 +272,9 @@ function focusJitterFrac() {
   const p = denom > 0 ? Math.max(0, Math.min(1, (focusNodes - FOCUS_THRESHOLD) / denom)) : 0;
   return Math.pow(p, FOCUS_FX.jitterCurve);
 }
-function focusReduceMotion() {
-  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-}
+// r717 (perf): one media query, kept; the jitter loop asks every frame.
+const _focusRmq = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+function focusReduceMotion() { return !!(_focusRmq && _focusRmq.matches); }
 // Glow: subtle early, blooming to glowMaxPx at full. Driven via CSS vars so the bezel
 // keeps its own inset shadows (see #focus-bar-outer box-shadow in style.css).
 function applyFocusGlow() {
@@ -311,9 +311,9 @@ function focusFxLoop(ts) {
         _focusJX = (Math.random() * 2 - 1) * amp;
         _focusJY = (Math.random() * 2 - 1) * amp;
         _focusJitterLast = ts;
-      }
-      outer.style.transform = 'translate(' + _focusJX.toFixed(2) + 'px,' + _focusJY.toFixed(2) + 'px)';
-      _focusJitterOn = true;
+        outer.style.transform = 'translate(' + _focusJX.toFixed(2) + 'px,' + _focusJY.toFixed(2) + 'px)';
+      } else if (!_focusJitterOn) outer.style.transform = 'translate(' + _focusJX.toFixed(2) + 'px,' + _focusJY.toFixed(2) + 'px)';
+      _focusJitterOn = true;   // r717: written only when the shake moves, not every frame
     } else if (_focusJitterOn) {
       outer.style.transform = 'translate(0,0)';
       _focusJitterOn = false;
@@ -456,7 +456,10 @@ function spawnFocusFallClone(srcEl, opts = {}) {
 }
 
 // Remove `amount` nodes from the top of the bar with a sideways-pop-and-fall animation.
-function removeFocus(amount) {
+// r717 (perf): `quiet` drops the nodes without the falling copies. The passive decay
+// ticks every couple of seconds for the whole run, and each copy is a body-level flier
+// that console mode puts under the housing, which keeps its mask loop running.
+function removeFocus(amount, quiet) {
   if (!amount || amount <= 0) return;
 
   const cap = focusCapNodes();
@@ -470,7 +473,7 @@ function removeFocus(amount) {
     if (n) nodesToFall.push(n);
   }
   const NODE_STAGGER = 30; // ms between nodes
-  nodesToFall.forEach((n, i) => spawnFocusFallClone(n, { delay: i * NODE_STAGGER }));
+  if (!quiet) nodesToFall.forEach((n, i) => spawnFocusFallClone(n, { delay: i * NODE_STAGGER }));
 
   // Mutate state and re-render. The real DOM nodes go dark immediately;
   // the temp clones continue their fall on body.
@@ -535,7 +538,7 @@ function focusDecayTick() {
     if (focusDecayBuffer < 2) { focusDecayBuffer++; return; }
   }
   focusDecayBuffer = 0;
-  removeFocus(1);
+  removeFocus(1, true);
 }
 
 // The live decay interval, with any boss squeeze folded in. Every site that arms

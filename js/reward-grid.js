@@ -1908,7 +1908,6 @@ async function confirmRewardPath() {
   if (typeof improveAnimHold === 'function') improveAnimHold(true);
   rewardDealing = true;   // block re-render from clobbering the flying tiles
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
-  rewardDealing = false;
   const _picks = rewardSelected.size; // captured before closeRewardGrid clears the set (More Better)
   let _negThisGrid = 0;               // negative (debuff) tiles taken this grid - risk entities
   rewardSelected.forEach(key => {
@@ -1920,6 +1919,9 @@ async function confirmRewardPath() {
     try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
+  // r717 (perf): held through the applies too. A payload that calls render() (Dead
+  // Drop) used to redraw and re-fit every tile of a grid that is about to close.
+  rewardDealing = false;
   if (typeof improveAnimHold === 'function') { improveAnimHold(false); try { await improveAnimFlush(); } catch (e) {} }
   // More Better: every reward grid confirmed with 3+ tiles (all tiles count) permanently grows the trick.
   if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles && !penaltyGridActive()) {
