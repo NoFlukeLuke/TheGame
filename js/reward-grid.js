@@ -1848,7 +1848,9 @@ async function animateRewardResolve() {
   const tiles = [...gridEl.querySelectorAll('.reward-cell.on-grid')];
   // Clear the lingering deal-in animations (fill:'both') so they don't override
   // the resolve transforms - WAAPI animations outrank CSS ones.
-  tiles.forEach(t => t.getAnimations().forEach(a => a.cancel()));
+  // r717 (perf): one style flush for the grid, not one per tile (getAnimations flushes).
+  const _tileSet = new Set(tiles);
+  gridEl.getAnimations({ subtree: true }).forEach(a => { if (_tileSet.has(a.effect && a.effect.target)) a.cancel(); });
   const claimed = [], rest = [];
   tiles.forEach(t => (rewardSelected.has(`${t.dataset.r}-${t.dataset.c}`) ? claimed : rest).push(t));
   // r527: tiles that add Trick slots land first, so a Trick in the same path has room.

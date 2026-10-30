@@ -1,4 +1,4 @@
-const BUILD = "2026-10-30 · r718 · phone lag pass: the screen door is a still image when nothing moves, fewer per-frame reads, lighter reward-grid confirm";
+const BUILD = "2026-10-30 · r719 · lighter reward-grid confirm; a slow first frame no longer leaves the screen zoomed in";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

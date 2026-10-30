@@ -79,8 +79,12 @@ function mcIsFlier(el) {
 // A flier passes under the screen door like anything else on a screen (js/screen-door.js).
 function mcAdopt(el) {
   const layer = mcFlyLayer();
+  const idle = !layer.childElementCount;
   layer.appendChild(el);   // fixed stays fixed: a mask makes no containing block
-  _mcMaskKey = ''; mcFlyMask();
+  // r717 (perf): the mask is re-read when the layer wakes, not for every flier that joins
+  // a flight already under way (a reward grid's tiles adopt one each, 17 box reads each).
+  const now = performance.now();
+  if (idle || now - _mcMaskAt >= MC_MASK_MS) { _mcMaskKey = ''; _mcMaskAt = now; mcFlyMask(); }
   if (!_mcFlyRaf) _mcFlyRaf = requestAnimationFrame(mcFlyTick);
 }
 // An element that flies OUT of a screen (a reward tile going to its tray) lives inside

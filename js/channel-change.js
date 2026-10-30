@@ -113,7 +113,13 @@ function channelChange(swapFn, opts = {}) {
   return new Promise(resolve => {
     function frame(now) {
       const t = now - t0;
-      if (t >= TOTAL) { settle(); resolve(); return; }
+      // r717: a first frame that arrives after TOTAL (a busy phone, a run starting from a
+      // New Run reload) used to settle WITHOUT the swap, so the office photo's push stayed
+      // on the camera for good (the whole stage zoomed 1.6x). The swap always runs.
+      if (t >= TOTAL) {
+        if (!swapped) { swapped = true; try { if (typeof swapFn === 'function') swapFn(); } catch (e) { console.error('[CC] swap failed', e); } }
+        settle(); resolve(); return;
+      }
 
       const pIn  = Math.min(1, t / tearOut);
       const pOut = t < tearOut + HOLD ? 0 : Math.min(1, (t - tearOut - HOLD) / (D - tearOut));

@@ -3784,3 +3784,10 @@ a queued hand came up reading SPEED UP. No page errors, no timeline drift.
     `render()` (Dead Drop) no longer redraws and re-fits every tile of the closing grid.
   - Event log (js/devlog.js) no longer forces a layout per event while the dev panel is closed;
     stock bulbs re-place every 400ms (was 150).
+- **r719:** the reward grid's resolve cancels the tiles' deal-in animations with one
+  `getAnimations({ subtree: true })` (one style flush, was one per tile); `mcAdopt` re-reads
+  the housing mask only when the flier layer wakes or the mask is `MC_MASK_MS` old. Measured
+  at 4x: long-frame time in the 10s after CONFIRM 8.1s -> 6.8s before these two, the last
+  hitch 633 -> 433ms. **Channel change:** a first frame later than the whole effect (a busy
+  phone, a New Run reload) settled without running the swap, so the office photo's push stayed
+  on `#camera` and the stage sat zoomed 1.64x for the run; the swap now always runs.
