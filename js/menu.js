@@ -1,4 +1,4 @@
-const BUILD = "2026-10-30 · r719 · lighter reward-grid confirm; a slow first frame no longer leaves the screen zoomed in";
+const BUILD = "2026-10-30 · r720 · the scoring rework starts: the golden test (tools/scoring-golden, SCORING_REWORK.md)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

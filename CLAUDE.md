@@ -35,6 +35,7 @@ superseded is history, not current code. The other reference docs:
 | `CHALLENGE_REWARDS.md` | rule Sleights, a department a quarter, two-stage challenges and their rewards, a Trick and a Sleight that change every round, the challenge knacks; built r671-r685 |
 | `RENAMES.md` | the corporate rename sweep (r711, r714): phrase bank, six languages, proposed names, the Inseparable synergy review, the id sweep plan, the owner's answers. `RENAMES.xlsx` is the review sheet; draft |
 | `SELF_IMPROVEMENT.md` + `.xlsx` | the meta shop (r715): token tree, Morning Routine / Breakfast / Lunch picks, base nerfs; draft, the sheet is for the owner to fill in |
+| `SCORING_REWORK.md` | moving Tricks from `hasTrick` checks inside calcScore to per-Trick behaviours walked in tray order (the Godot shape); the stages, the golden test, the owner's open calls (r720, in progress) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `docs/archive/` | finished design docs, kept for reference |
@@ -3791,3 +3792,18 @@ a queued hand came up reading SPEED UP. No page errors, no timeline drift.
   hitch 633 -> 433ms. **Channel change:** a first frame later than the whole effect (a busy
   phone, a New Run reload) settled without running the swap, so the office photo's push stayed
   on `#camera` and the stage sat zoomed 1.64x for the run; the swap now always runs.
+
+## r720 - the scoring rework starts: the golden test (`tools/scoring-golden/`, SCORING_REWORK.md)
+Owner: rework scoring into per-Trick behaviours walked in tray order (second copies, per-copy
+beats, the Godot shape); the "offer owned entities" Knack waits for it; every improvement ladder
+stays as it is. Stage 1 is built, no game code changed: `node tools/scoring-golden/golden.js
+--check` scores 10 hands on a fixed board through the real calcScore for every live Trick (190)
+at v1 and v6 in two states, plus 40 seeded five-Trick trays (802 cases, ~13s), and compares score,
+pips, mult and fingerprints of the timeline and contributions against `baseline.json`. Run it
+before and after any scoring change; a deliberate balance change rewrites the baseline (no
+`--check`) in its own commit. `--only <id>`, `--show <id@1a/hand>`, `--coverage` (114 of 190 Tricks
+change something; the other 76 pay outside calcScore, stage 1b). Harness traps it had to handle:
+`startGame` puts the native `Math.random` back (reseed after it), printed notices need the page
+(stub `printToast`), and a Trick must be granted as a COPY (`{ ...row }`): a pickup writes its line
+and rolls onto the object it is given, so a pool row granted twice keeps the first grant's state.
+
