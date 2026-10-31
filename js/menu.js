@@ -1,4 +1,4 @@
-const BUILD = "2026-10-30 · r720 · the scoring rework starts: the golden test (tools/scoring-golden, SCORING_REWORK.md)";
+const BUILD = "2026-10-31 · r721 · score merge: Rise and four more carry looks, ends in MIDDLE or FOCUS; PIPS · MULT · FOCUS share one screen";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

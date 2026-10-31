@@ -749,8 +749,14 @@
     <div class="dev-subtitle">Score merge (how PIPS x MULT x FOCUS become the score)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The chips fuse by
-      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (hold in console mode, slide elsewhere)</option><option value="slide">slide (two steps, the chips melt together)</option><option value="hold">hold (two steps, nothing moves: the next screen takes the number)</option><option value="one">one step (all three at once)</option></select>
+      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (Rise)</option><option value="rise">Rise (each number rises and flies into the next tray, gone as it lands)</option><option value="stamp">Stamp (lifts, slams down into the next tray)</option><option value="stream">Stream (its digits pour across; the tray counts up)</option><option value="zap">Zap (a bolt jumps across; the tray scrambles, then locks)</option><option value="roll">Roll (slides along the foot; the tray rolls like an odometer)</option><option value="hold">hold (nothing moves: the next screen takes the number)</option><option value="slide">melt (two steps, the chips melt together)</option><option value="one">one step (all three at once)</option></select>
       <button class="dev-btn" onclick="pmfPreview()">Preview</button>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Rise, Stamp, Stream, Zap and Roll end in
+      <button class="dev-btn" data-pmf-resolve="mid" onclick="setPmfResolve('mid')">MIDDLE (MULT)</button>
+      <button class="dev-btn" data-pmf-resolve="focus" onclick="setPmfResolve('focus')">FOCUS</button>
+      <button class="dev-btn" onclick="location.href='index.html?merge'">Open the lab</button>
     </label>
 
     <div class="dev-subtitle">Tray look</div>

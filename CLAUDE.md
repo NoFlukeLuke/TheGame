@@ -3807,3 +3807,28 @@ change something; the other 76 pay outside calcScore, stage 1b). Harness traps i
 (stub `printToast`), and a Trick must be granted as a COPY (`{ ...row }`): a pickup writes its line
 and rolls onto the object it is given, so a pool row granted twice keeps the first grant's state.
 
+
+## r721 - the carry looks; PIPS · MULT · FOCUS share one screen (owner)
+- **Rise** (the default; `auto` is Rise in every skin): at the fuse PIPS rises off its tray and flies
+  to MULT, fading out completely as it arrives; MULT then reads pips x mult. Focus does the same,
+  once per application (r712's copies first, then the figure). Four more **carry looks**
+  (`PMF_CARRY`, `PMF_FLIGHT` in js/pmf-merge.js): **Stamp** (lifts large, slams down, the tray shakes),
+  **Stream** (the digits pour along an arc, the tray counts up), **Zap** (a bolt in the number's colour,
+  the tray scrambles then locks), **Roll** (slides along the foot, the tray rolls like an odometer).
+  The carried number is a copy (`.pmf-carry`) inside `#score-subboxes`; the value it left goes dark.
+  `_pmfCarry` saves and restores the three texts like Hold; a reset bumps `_pmfGen` and lets go of a
+  Stream / Zap wait, so a cut hand never hangs the dance or writes afterwards.
+- **Ends in MIDDLE or FOCUS** (`pmfResolve`, `lethe.pmfResolve.v1`, stored only when FOCUS): MIDDLE
+  carries Focus into MULT; FOCUS carries MULT's product into FOCUS, then each copy into the figure.
+  The fused number flies to SCORE from whichever tray holds it.
+- **Choosing:** dev -> Aesthetics -> Score merge (look, MIDDLE / FOCUS, Open the lab) and
+  **`index.html?merge`** (`pmfLabOpen`: a Classic run, a key per look on the real row, MIDDLE / FOCUS,
+  Focus x1 / x2 / x3, USE THIS). `pmfPreview(look, { pips, mult, focus, focusN })`.
+- **Console mode: one screen for the three numbers** (css/skin-machine.css). `#score-subboxes` is the
+  glass; the three boxes (and the location readout) are clear zones on it; the × separators are bands
+  of live static (`mc-static-band`). No housing between them in either orientation. `MC_SCREENS` and
+  the screen door list `score-subboxes` instead of the three boxes. The pit look is unchanged.
+Measured in headless Chromium at 1440x820 and 420x900: every look in the lab, both ends, Focus x1 and
+x3; the carried copy is the value's size (69 / 69 px desktop, 23 / 26 phone); real hands through
+`playHand` with Rise, Stamp, Stream, Roll and Zap, a 5-hand burst, a hand cut mid-Stream and a
+round-ending hand: no copy left, the three values back at full opacity, no page errors.

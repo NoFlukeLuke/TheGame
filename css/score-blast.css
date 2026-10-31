@@ -16,19 +16,24 @@
   background-size: 100% 100%, 100% 300%;
 }
 .blast-static.blast-static-snap { background: #fff8e6; mix-blend-mode: normal; }
-/* the lab page (index.html?blast) */
-#blast-lab {
+/* the lab pages (index.html?blast, and r721's index.html?merge for js/pmf-merge.js) */
+#blast-lab, #pmf-lab {
   position: fixed; left: 8px; bottom: 8px; z-index: 650; max-width: 44vw;
   padding: 8px 10px; border-radius: 6px; background: rgba(12,10,6,.94); border: 1px solid #c9a84c;
   font-family: 'VT323 Local', 'VT323', monospace; color: #f0e6c8; font-size: 15px;
 }
-@media (max-width: 700px) { #blast-lab { left: 6px; right: 6px; max-width: none; bottom: 6px; } }
-#blast-lab .bl-head { color: #ffce2b; letter-spacing: 2px; margin-bottom: 5px; }
-#blast-lab .bl-now { color: #8a7d60; letter-spacing: 0; margin-left: 8px; }
-#blast-lab .bl-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
-#blast-lab .bl-b { font: inherit; font-size: 14px; padding: 5px 9px; border-radius: 4px; cursor: pointer; color: #f0e6c8;
+@media (max-width: 700px) { #blast-lab, #pmf-lab { left: 6px; right: 6px; max-width: none; bottom: 6px; } }
+:is(#blast-lab, #pmf-lab) .bl-head { color: #ffce2b; letter-spacing: 2px; margin-bottom: 5px; }
+:is(#blast-lab, #pmf-lab) .bl-now { color: #8a7d60; letter-spacing: 0; margin-left: 8px; }
+:is(#blast-lab, #pmf-lab) .bl-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+:is(#blast-lab, #pmf-lab) .bl-b { font: inherit; font-size: 14px; padding: 5px 9px; border-radius: 4px; cursor: pointer; color: #f0e6c8;
   background: #1a1510; border: 1px solid #5a4e34; }
-#blast-lab .bl-b.bl-last { border-color: #ffce2b; }
-#blast-lab .bl-b.bl-on { background: #ffce2b; color: #1a1510; }
-#blast-lab .bl-use { border-color: #35d59b; color: #35d59b; }
-#blast-lab .bl-note { color: #8a7d60; font-size: 13px; }
+:is(#blast-lab, #pmf-lab) .bl-b.bl-last { border-color: #ffce2b; }
+:is(#blast-lab, #pmf-lab) .bl-b.bl-on { background: #ffce2b; color: #1a1510; }
+:is(#blast-lab, #pmf-lab) .bl-use { border-color: #35d59b; color: #35d59b; }
+:is(#blast-lab, #pmf-lab) .bl-note { color: #8a7d60; font-size: 13px; }
+#pmf-lab .bl-row { align-items: center; }
+#pmf-lab .bl-lab { color: #8a7d60; font-size: 13px; margin: 0 2px 0 6px; }
+#pmf-lab .bl-lab:first-child { margin-left: 0; }
+#pmf-lab .bl-b { cursor: var(--cur-pointer, pointer); }
+#pmf-lab .bl-b.on { background: #35d59b; border-color: #35d59b; color: #10140f; }
