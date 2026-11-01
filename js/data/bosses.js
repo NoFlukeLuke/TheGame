@@ -7,14 +7,16 @@
 const BOSS_PRESETS = [
   {
     id: 'stone_lord',
-    name: 'THE STONE LORD',
-    flavor: 'Your deck turns to rubble',
+    name: 'THE ANVIL',
+    flavor: 'Heavy cuts, from the top down',
     objective: { type: 'score' },
-    brief: 'Stones land on the board when the round starts, and about a fifth of your deck turns to stone for the round. A stone cannot be selected, played, swapped or discarded.',
+    // r722 (owner): the stones are ANVILS and they move (js/anvil.js). The deck dose
+    // is about a tenth (was 0.18): every anvil now crushes its way down a column.
+    brief: 'Anvils land on the board when the round starts, and more are shuffled into your deck. Every 15 seconds an anvil drops a row and crushes the card under it. At the bottom it falls out after 30 seconds. An anvil can be swapped, never selected, played or discarded.',
     modifiers: ['inject_stones'],
     // r216: stoneInjectCount is dead. The board dose is derived from the grid and
     // the deck dose from the real deck size (see inject_stones in js/boss.js).
-    params: { deckStoneFraction: 0.18 }
+    params: { deckStoneFraction: 0.10 }
   },
   {
     id: 'voidwright',

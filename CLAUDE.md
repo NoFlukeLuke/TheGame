@@ -38,6 +38,7 @@ superseded is history, not current code. The other reference docs:
 | `SCORING_REWORK.md` | moving Tricks from `hasTrick` checks inside calcScore to per-Trick behaviours walked in tray order (the Godot shape); the stages, the golden test, the owner's open calls (r720, in progress) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
+| `CURSE_CARDS.md` | curse cards: the two curse systems, the consolidation plan, ten curse card ideas (r722); draft, awaiting the owner |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -144,7 +145,7 @@ and clock from JS because the board moves.
   Leaves the board through `discardSleightAfterUse` / `discardToPlayed` (which keeps charges);
   `discardToDrawPile` silently drops Sleights.
 - **Knack**: not a card. `acquiredKnacks[]`, `hasKnack(id)`.
-- **Stone**, **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
+- **Stone** (shown as the **Anvil** since r722, see below), **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
   challenge round's card, `_isStone` + `_isChallenge`, falls and renders only; see below).
 - `cardCan(card, action)` gates select/swap/discard/fall/render.
 
@@ -3808,4 +3809,36 @@ change something; the other 76 pay outside calcScore, stage 1b). Harness traps i
 `startGame` puts the native `Math.random` back (reseed after it), printed notices need the page
 (stub `printToast`), and a Trick must be granted as a COPY (`{ ...row }`): a pickup writes its line
 and rolls onto the object it is given, so a pool row granted twice keeps the first grant's state.
+
+## r722 - the Anvil; a Sleight's discard pierces; Bomb clears the board (owner)
+- **The Anvil** (`js/anvil.js`, `css/anvil.css`): the boss stone's display name (ids frozen:
+  `_isStone`, suit 'stone', `makeStoneCard`, boss `stone_lord` is **THE ANVIL**). `isAnvil(card)` is
+  the test (not junk, curse, challenge or Reshuffle cards). Every `ANVIL_CFG.drop` (15) seconds it
+  drops one row and crushes the card under it to the played pile (`anvilToPlayed`, which lets a
+  Snared card through); the card under it shakes for the last `warn` (10) seconds, harder as the drop
+  nears (`anvilPaint`, from the tick and render's tail: `.anvil-doom` + `--doom`). At the bottom it
+  rests `rest` (30) seconds, then drops out of the board and is gone. It waits (timer held full) over
+  a card it cannot crush: another anvil, a challenge card, the Reshuffle card, an aim fixture. Timers
+  are on the board card (`_anvT`, `_anvRest`), so they save with gridData and follow a swap. Ticked
+  from the round tick (`anvilTick`, js/round-timers.js), acting only when the board is still; one
+  `removeAndFall(cells, 'anvil')` per tick (the exit look is `anvilExit`: pressed flat, or out the
+  bottom). The face is black with a white edge and the pixel anvil (`ANVIL_ICON` '⚒', lorc/anvil on the
+  sheet, 159 icons, the first 158 unchanged). The boss's deck dose is 10% (was 18%). Reward-grid,
+  Mystery, Pairs and 1-on-1 stones are anvils too.
+- **Pierce** (owner, a default rule): a Sleight that discards cards takes the ones a curse or a boss
+  holds in place: anvils, junk and curse cards, Snared and Recalled cards, held and quarantined cells
+  (`pierceCanTake(cd, r, c)`), each routed by `pierceRoute` (an anvil is gone, a Sleight cycles with its
+  charges, the rest go to the back of the draw pile). Procrastinate, Magnet, Photocopier, Fresh Start
+  and Bomb use it. **A new Sleight that discards cards asks `pierceCanTake` and routes through
+  `pierceRoute`**, never `cardCan(cd, 'discard')` / `discardToDrawPile`.
+- **Bomb**: every card on the grid gains +3 pips (as before), then every card on the grid goes with
+  the discard (`bombCarry`, from doDiscard beside `procrastinateCarry`): cards, Sleights, curse cards,
+  junk, anvils. Carried cards cost no time or stock; a carried Sleight cycles with its charges and does
+  not fire its own discard effect (or Martyr).
+Measured in headless Chromium at 1440x820 and 420x900: three anvils on a 4x4 counted 15s, the cards
+under them shook from 10s (--doom .09 to .82), both crushed onto the played pile and the anvils moved
+down a row; the bottom anvil counted its 30s. Bomb by real tap and DISCARD on a board with an anvil,
+a curse card, junk, a Snared Q, Cash Out: no card left, anvil gone, curse card / junk / the Q in the
+draw pile (the Q with +3 pips), Cash Out in the played pile with its 3 charges. Procrastinate took an
+anvil and a curse card beside it; Fresh Start redealt both. No page errors.
 

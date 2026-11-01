@@ -629,7 +629,8 @@ function magnetCluster(mr, mc, rank) {
   const targets = [[mr, mc]];
   getNeighborsOrtho(mr, mc).forEach(([r, c]) => {
     const cd = gridData[r]?.[c];
-    if (ordinary(cd) && cd.rank !== rank && cardCan(cd, 'discard') && !isCellBlocked(r, c)) targets.push([r, c]);
+    // r722: a Sleight's discard pierces (js/anvil.js): anvils, curse cards, Snared and held cards are taken too.
+    if (cd && !cd._isSleight && cd.rank !== rank && pierceCanTake(cd, r, c)) targets.push([r, c]);
   });
   const isT = (r, c) => targets.some(([a, b]) => a === r && b === c);
   const sources = [];
@@ -660,7 +661,7 @@ function magnetCluster(mr, mc, rank) {
   displaced.forEach(([r, c]) => {
     const cd = gridData[r][c];
     if (cd === magnet) { if (typeof cd._usesLeft === 'number') cd._usesLeft--; discardToPlayed(cd); }
-    else discardToDrawPile(cd);
+    else pierceRoute(cd);
   });
   magnetCountDiscards(displaced.map(([r, c]) => gridData[r][c]).filter(cd => cd !== magnet));
   render();
@@ -770,7 +771,8 @@ function applySleightGridEffect(id, r, c) {
             _cnt++;
           }
         }
-      showMessage(`💣 Bomb - ${_cnt} cards +3 pips!`, '#ffd700'); render(); break;
+      // r722: the whole board goes with the discard (bombCarry, js/anvil.js, from doDiscard).
+      showMessage(`💣 Bomb - ${_cnt} cards +${BAL.the_bomb.pips} pips, the board is cleared`, '#ffd700'); break;
     }
     case 'the_legacy':
       sleightLegacyMult = true;
@@ -821,9 +823,9 @@ function freshStartDrain() {
   freshStartPending = false;
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const cd = gridData[r]?.[c];
-    if (!cd || !cd.rank || cd._isSleight || cd._isStone || cd._isTrick) continue;
-    if (typeof isCellBlocked === 'function' && isCellBlocked(r, c)) continue;
-    discardToDrawPile(cd);
+    // r722: pierces (js/anvil.js): anvils, curse cards, Snared and held cards are redealt too.
+    if (!cd || cd._isSleight || !pierceCanTake(cd, r, c)) continue;
+    pierceRoute(cd);
     gridData[r][c] = null;
   }
   drawPile = deckShuffle(drawPile);

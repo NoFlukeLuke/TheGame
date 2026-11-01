@@ -36,9 +36,10 @@ function renderCardAppearance(card, r, c, {
       className: `card stone-card junk-card${isSwapPending ? ' swap-pending' : ''}`,
       innerHTML: `<div class="junk-glyph">✕</div><div class="junk-word">JUNK</div>`,
     };
+    // r722: the boss stone is the ANVIL (js/anvil.js, css/anvil.css): black, a white edge, a big anvil.
     return {
-      className: `card stone-card${isSwapPending ? ' swap-pending' : ''}`,
-      innerHTML: `<div class="stone-glyph">✦</div>`,
+      className: `card stone-card anvil-card${isSwapPending ? ' swap-pending' : ''}`,
+      innerHTML: `<div class="anvil-ico">${emGlyph(ANVIL_ICON)}</div>`,
     };
   }
 
@@ -393,7 +394,11 @@ async function removeAndFall(removingCells, mode = 'play') {
   const visibleLeaving = leaving.filter(el => { const o = el.style.opacity; if (o !== '' && +o === 0) { el.remove(); return false; } return true; });
   let leaveMs = 0;
   if (visibleLeaving.length) {
-    if (mode === 'discard' && typeof cardAnimExit === 'function') {
+    if (mode === 'anvil' && typeof anvilExit === 'function') {
+      // r722 (js/anvil.js): the crushed card is pressed flat, a leaving anvil drops out the bottom.
+      visibleLeaving.forEach(el => { el.style.transition = 'none'; const ms = anvilExit(el); setTimeout(() => el.remove(), ms); });
+      leaveMs = 180;
+    } else if (mode === 'discard' && typeof cardAnimExit === 'function') {
       visibleLeaving.forEach(el => { el.style.transition = 'none'; });
       leaveMs = 200;
       Promise.resolve(cardAnimExit('discard', visibleLeaving, targetRect)).catch(() => {}).then(() => visibleLeaving.forEach(el => el.remove()));

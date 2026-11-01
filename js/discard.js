@@ -69,6 +69,9 @@ function doDiscard() {
   // Procrastinate (r647): its 8 neighbours join the discard. They are CARRIED: no
   // seconds and no stock of their own, and the discard counts as 2 (discardsUsedRound).
   const _carried = procrastinateCarry(), _procrastinated = _carried.procs > 0;
+  // Bomb (r722): the whole board goes with it, pierced (js/anvil.js). Carried like Procrastinate's.
+  const _bombed = (typeof bombCarry === 'function') ? bombCarry() : new Set();
+  _bombed.forEach(cd => _carried.add(cd));
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => rkHas('lucky_sevens', c?.rank)).length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
@@ -81,7 +84,7 @@ function doDiscard() {
   _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
   selected.forEach(([r,c]) => {
     const card = gridData[r]?.[c];
-    if (card?._isSleight) {
+    if (card?._isSleight && !_carried.has(card)) {   // r722: a Sleight a Bomb carried does not fire
       const def = sleightDef(card);
       if (def?.activation === 'on_discard') {
         applySleightGridEffect(def.id, r, c);
@@ -115,8 +118,9 @@ function doDiscard() {
     if (!_dc || _sieve) return;
     // Cloud Nine (r539): a 9 thrown away while it is held is destroyed, not reshuffled.
     if (rkHas('nines_mult', _dc.rank) && !_dc._isSleight && !isWildCard(_dc) && hasTrick('nines_mult')) _dc._nineSpent = true;
-    if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
-    else if (shredderVictims.has(_dc)) { expectedDeckTotal--; updateDeckHud(); }   // Shredder (r647): gone for good
+    if (shredderVictims.has(_dc)) { expectedDeckTotal--; updateDeckHud(); }   // Shredder (r647): gone for good
+    else if (_carried.has(_dc) && typeof pierceRoute === 'function') pierceRoute(_dc);   // r722: carried cards are pierced
+    else if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
     else discardToDrawPile(_dc);
   });
   shredderVictims.clear();
@@ -187,7 +191,7 @@ function doDiscard() {
     }
   }
   // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight
-  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && sleightDef(c)?.activation !== 'on_discard')) {
+  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && !_carried.has(c) && sleightDef(c)?.activation !== 'on_discard')) {
     let _restored = 0;
     for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
       const _sc = gridData[_r]?.[_c];
@@ -628,7 +632,8 @@ function procrastinateCarry() {
   live.forEach(([pr, pc]) => {
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
       const r = pr + dr, c = pc + dc, k = r + '-' + c, cd = gridData[r]?.[c];
-      if ((!dr && !dc) || inSel.has(k) || !cd || cd._isSleight || !cardCan(cd, 'discard') || isCellBlocked(r, c)) continue;
+      // r722: a Sleight's discard PIERCES (js/anvil.js): anvils, curse cards, Snared and held cards go too.
+      if ((!dr && !dc) || inSel.has(k) || !cd || cd._isSleight || !pierceCanTake(cd, r, c)) continue;
       if (typeof crDiscardLocked === 'function' && crDiscardLocked([[r, c]])) continue;
       inSel.add(k); selected.push([r, c]); out.add(cd);
     }

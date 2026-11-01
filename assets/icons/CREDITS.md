@@ -169,6 +169,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - ⚖️ scales
 - 🫅 queen-crown
 - 🏆 trophy
+- ⚒ anvil
 
 ## priorblue
 

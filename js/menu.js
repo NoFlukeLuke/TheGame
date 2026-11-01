@@ -1,4 +1,4 @@
-const BUILD = "2026-11-01 · r721 · Trick screens are back on; the phone tray's Tricks no longer take turns coming forward";
+const BUILD = "2026-11-01 · r722 · The Anvil: anvils drop a row every 15s and crush the card under them; a Sleight discard pierces curses and anvils; Bomb clears the board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -471,7 +471,7 @@ const DESC_TEMPLATES = {
   pivot: 'Cards touching Pivot swap for free. Swap two of its neighbours together and both gain +{mult} permanent mult, then Pivot leaves the board. (3 charges)',
   the_naturalist: 'Play this: each other scored card permanently gains +{pips} pips.',
   bellhop: 'Play this: gain +{swaps} swaps and +{discards} discards. (5 charges)',
-  the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips. (2 charges)',
+  the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips, then every card on the grid is discarded with it, Sleights, curse cards and anvils too. (2 charges)',
   cash_out: 'Discard this: gain {coins} credits. (3 charges)',
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
   the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',

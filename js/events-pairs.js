@@ -71,7 +71,7 @@ function _pairsPayText(t) {
   if (t.kind === 'rank') return `${t.card.rank}${t.card.suit} and its match join the deck, buffs and all`;
   if (t.kind === 'op') return `${t.op.name} lands on your deck`;
   if (t.pen === 'A') return `${CURSE_DEFS[t.curse].name} on one of your cards`;
-  return 'Two stones in your deck until the next boss';
+  return 'Two anvils in your deck until the next boss';
 }
 
 function renderPairs() {
@@ -256,7 +256,7 @@ function _pairsPay(a, t) {
     if (cd) { cardCurses[cardId(cd)] = { id: a.curse, left: CURSE_DEFS[a.curse].liftAfter }; noteMessage(`Pairs: ${CURSE_DEFS[a.curse].name} on ${cd.rank}${cd.suit}`, 'var(--red)'); }
     return;
   }
-  if (typeof injectStonesIntoDeck === 'function') { injectStonesIntoDeck(2); noteMessage('Pairs: two stones in the deck', 'var(--red)'); }
+  if (typeof injectStonesIntoDeck === 'function') { injectStonesIntoDeck(2); noteMessage('Pairs: two anvils in the deck', 'var(--red)'); }
 }
 
 function confirmPairs() { closeEvent(); }

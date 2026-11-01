@@ -208,9 +208,9 @@ function _generateRewardContent() {
     { weight: 8, perm: false, icon: '💸', label: 'Pickpocket', tier: 'penalty',
       desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
       apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); noteMessage('-10 coins', 'var(--red)'); } },
-    { weight: 8, perm: true, icon: '🪨', label: 'Stones', tier: 'penalty',
-      desc: 'Two Stones are shuffled into your deck. They block cells until purged.',
-      apply: () => { injectStonesIntoDeck(2); noteMessage('2 Stones added to deck', 'var(--red)'); } },
+    { weight: 8, perm: true, icon: '⚒', label: 'Anvils', tier: 'penalty',
+      desc: 'Two Anvils are shuffled into your deck until the next boss is over.',
+      apply: () => { injectStonesIntoDeck(2); noteMessage('2 Anvils added to deck', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⏳', label: 'Slow Start', tier: 'penalty',
       desc: 'Next round starts with 20 fewer seconds.',
       apply: () => { nextRoundSecondsDelta -= 20; noteMessage('-20s next round', 'var(--red)'); } },
@@ -882,8 +882,8 @@ function rollRewardMystery(goodChance) {
     apply:()=>{ nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); } };
   if (roll === 2) return { good, icon:'☁', label:'-15s Round', flyTo:'clock', desc:'Next round starts with 15 fewer seconds.',
     apply:()=>{ nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); } };
-  if (roll === 3) return { good, icon:'🪨', label:'Stone', flyTo:'deck', desc:'A Stone slips into your deck. It blocks a cell until purged.',
-    apply:()=>{ injectStonesIntoDeck(1); showMessage('Mystery: a Stone slips into your deck…', 'var(--red)'); } };
+  if (roll === 3) return { good, icon:'⚒', label:'Anvil', flyTo:'deck', desc:'An Anvil slips into your deck until the next boss is over.',
+    apply:()=>{ injectStonesIntoDeck(1); showMessage('Mystery: an Anvil slips into your deck…', 'var(--red)'); } };
   return { good, icon:'🩸', label:'Curse', flyTo:'deck', desc:'A random card in your deck is cursed.',
     apply:()=>{ const v = curseRandomCard(); showMessage(v ? `Mystery: ${v.rank}${v.suit} cursed (${CURSE_DEFS[v.curse].name})…` : 'Mystery: …nothing?', '#9b59b6'); } };
 }

@@ -192,6 +192,7 @@ const ICONS = [
   { glyph: '⬍', icon: 'delapouite/vertical-flip',   color: 'cyan'   },  // Grid Rows
   { glyph: '⬌', icon: 'delapouite/horizontal-flip', color: 'cyan'   },  // Grid Columns
   { glyph: '💾', icon: 'delapouite/save',            color: 'gold'   },  // Trick Slots (a floppy, like the Tricks)
+  { glyph: '⚒', icon: 'lorc/anvil',                 color: 'white'  },  // the Anvil (boss card, r722)
 ];
 
 module.exports = { PALETTE, ICONS };

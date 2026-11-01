@@ -13,9 +13,10 @@
 // fit go into the deck. A wild is copied only while Stand-In is owned. The 5th
 // improvement makes BAL.photocopier.permanent of them permanent.
 function photocopierTakes(r, c) {
-  if (isCellVoid(r, c) || isCellBlocked(r, c)) return false;
+  if (isCellVoid(r, c)) return false;
   const cd = gridData[r]?.[c];
-  return !cd || (!!cd.rank && !cd._isSleight && !cd._isStone && !cd._isTrick && cardCan(cd, 'discard'));
+  // r722: its discard pierces (js/anvil.js): anvils, curse cards, Snared and held cards are replaced too.
+  return !cd || (!cd._isSleight && pierceCanTake(cd, r, c));
 }
 function photocopierUse(card, r, c) {
   const dim = { color: 'var(--cream-dim)' };
@@ -51,7 +52,7 @@ function photocopierUse(card, r, c) {
   gone.forEach(officeGhostToDiscard);
   placed.forEach(([rr, cc], i) => {
     const old = gridData[rr][cc];
-    if (old) discardToDrawPile(old);
+    if (old) pierceRoute(old);
     gridData[rr][cc] = copies[i];
   });
   copies.slice(placed.length).forEach(cp => drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, cp));
