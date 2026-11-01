@@ -139,9 +139,11 @@ function zzRestAll() {
   zzApplyZ(chips);
 }
 
+// r721 (owner): the Tricks no longer take turns coming forward. The zigzag layout stays;
+// zzStart only cancels a loop still running. zzLoop is kept for a later look.
 function zzStart() {
-  const g = ++_zzGen;
-  setTimeout(() => zzLoop(g), 600);
+  ++_zzGen;
+  zzRestAll();
 }
 async function zzLoop(g) {
   while (g === _zzGen) {

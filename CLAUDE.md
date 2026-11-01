@@ -3762,8 +3762,10 @@ a queued hand came up reading SPEED UP. No page errors, no timeline drift.
 - **Controls:** the Auto-play setting is gone. `autoSubmitDelay()` is 0 unless the mode has
   `autoPlayHands`: a tapped hand waits for PLAY; Drag to play still plays after "After a drag".
   The DISCARD arm ignores a second click within 400ms (a phone's doubled click disarmed it).
-- **Trick animations** (Settings -> Motion, `trickAnims`, default off): `iaOff()` skips the
-  improvement, reveal and fusion screens; dev previews set `_iaPreview`.
+- **Trick screens** (Settings -> Motion, `trickScreens`, default ON since r721; r717 shipped it off
+  as `trickAnims`): off, `iaOff()` skips the improvement, reveal and fusion screens; dev previews
+  set `_iaPreview`. **r721 (owner):** what the owner meant was the phone's zigzag tray, where Tricks
+  take turns coming forward: `zzStart` (js/tray-zigzag.js) no longer runs `zzLoop`; the layout stays.
 - **Knack chips:** the diamond is 60% of the chip's SHORTER side (container units) so its points
   are not clipped. Phone, side by side: zigzag (`kc-hi` / `kc-lo`, `kc-end` on an odd last chip).
 - **Music on a phone** (js/music.js): a touch pointerdown is not a media gesture; autostart now

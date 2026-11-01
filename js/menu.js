@@ -1,4 +1,4 @@
-const BUILD = "2026-10-30 · r720 · the scoring rework starts: the golden test (tools/scoring-golden, SCORING_REWORK.md)";
+const BUILD = "2026-11-01 · r721 · Trick screens are back on; the phone tray's Tricks no longer take turns coming forward";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

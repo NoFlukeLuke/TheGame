@@ -49,7 +49,7 @@ function iaMs(ms) { return Math.max(1, ms / (iaCfg.speed || 1)); }
 
 // ── The queue ───────────────────────────────────────────────────────────────
 let _iaQueue = [], _iaHold = 0, _iaTimer = 0, _iaRunning = false, _iaSkip = false, _iaCurrent = null;
-let _iaPreview = false;   // r717: the dev previews play with Trick animations off
+let _iaPreview = false;   // r717: the dev previews play with Trick screens off
 function improveAnimRunning() { return !!_iaRunning; }
 // improveEntity calls this BEFORE and AFTER applying a tier: `before` captures
 // the printed text, `after` closes the step. Consecutive steps of one entity
@@ -94,7 +94,7 @@ async function improveAnimFlush() {
   await run;
 }
 function iaOff() {
-  if (typeof SETTINGS !== 'undefined' && !SETTINGS.trickAnims && !_iaPreview) return true;   // r717: Settings -> Motion -> Trick animations
+  if (typeof SETTINGS !== 'undefined' && SETTINGS.trickScreens === false && !_iaPreview) return true;   // r721: Settings -> Motion -> Trick screens
   return (typeof skipOn === 'function' && skipOn('transitions')) || document.body.classList.contains('reduced-motion') || iaCfg.look === 'none';
 }
 // FAST FORWARD: the running look ends at once and the rest of the queue is dropped.

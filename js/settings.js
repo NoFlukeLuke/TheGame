@@ -104,11 +104,12 @@ const SETTINGS_DEF = [
   { group: 'Motion', id: 'reducedMotion', label: 'Reduced motion', hint: 'Cuts drifting, shaking and idle flourishes. Scoring still animates.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('reduced-motion', !!v) },
-  // r717 (owner): the screen that plays when a Trick is first taken, improved, or two
-  // Tricks fuse (js/improve-anim.js iaOff reads this). Off by default.
-  { group: 'Motion', id: 'trickAnims', label: 'Trick animations',
+  // r721 (owner): the screen that plays when a Trick is first taken, improved, or two
+  // Tricks fuse (js/improve-anim.js iaOff reads this). On by default; r717 shipped it off as
+  // `trickAnims`, so the id is new and a stored r717 false is not carried over.
+  { group: 'Motion', id: 'trickScreens', label: 'Trick screens',
     hint: 'The screen that names a Trick the first time you take it, shows an improvement, or fuses two Tricks. Off: they happen at once.',
-    type: 'toggle', default: false },
+    type: 'toggle', default: true },
   { group: 'Motion', id: 'noShake', label: 'No screen shake', hint: 'Disables impact shake on big scores and boss hits.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-shake', !!v) },
