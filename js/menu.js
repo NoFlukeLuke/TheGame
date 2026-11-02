@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r724 · The four horsemen, Severance Package and the discard fling, merged with the money and selling pass";
+const BUILD = "2026-11-02 · r725 · The scoring golden baseline takes Severance Package (199 Tricks)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
