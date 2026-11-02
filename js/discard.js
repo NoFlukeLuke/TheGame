@@ -129,20 +129,22 @@ function doDiscard() {
   const _own = discardedCards.filter(c => !_carried.has(c));   // r647: carried cards pay nothing
   const _fodderN = _freeHand ? _own.length : ((typeof cardIsFodder === 'function') ? _own.filter(cardIsFodder).length : 0);
   if (!hasKnack('hoarder') && _fodderN < _own.length) discards--;
-  // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
+  // Discard time cost: the difficulty tier's flat figure (r727; it was 3s PER CARD).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
   // knack ("costs no time") still charged the flat 3s. One charge only now.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
-  let perCardCost = BAL._resources.discard_seconds_per_card;
-  if (hasKnack('free_discards')) perCardCost = 0;
-  else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
-  const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
+  // r727 (owner): the cost is FLAT, the difficulty tier's figure (discardSecondsBase,
+  // js/difficulty.js), whatever the count; the reward-grid penalty adds to it.
+  let flatCost = discardSecondsBase();
+  if (hasKnack('free_discards')) flatCost = 0;
+  else { if (hasKnack('hoarder')) flatCost = hoarderDiscardSecs(); flatCost += (discardCostThisRound || 0); }
+  const usingFreeDiscard = flatCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
   // interactTimeCostMult() is 0 when the mode does not bill the clock at all and
   // Flow's half rate when it does, so this site needs no second test (r326).
-  // r567: a Fodder card bills no seconds; the others pay their per-card cost.
-  const timeCost = usingFreeDiscard ? 0 : Math.round((_own.length - _fodderN) * perCardCost * bossInteractMult() * interactTimeCostMult());
+  // r567: a discard of Fodder alone bills no seconds.
+  const timeCost = (usingFreeDiscard || _own.length - _fodderN <= 0) ? 0 : Math.round(flatCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);

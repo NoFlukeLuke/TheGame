@@ -20,6 +20,17 @@ const BOSS_PRESETS = [
   },
   // r723 (owner): the horsemen's bosses (js/horsemen.js).
   {
+    // r727: the top difficulty's last boss (js/difficulty.js). Never in the bag.
+    id: 'the_four_horsemen',
+    name: 'THE FOUR HORSEMEN',
+    flavor: 'All of them',
+    objective: { type: 'score' },
+    brief: 'The round starts with one of each curse card on the grid: War, Death, Famine and Pestilence.',
+    modifiers: ['inject_horsemen'],
+    params: {},
+    final: true
+  },
+  {
     id: 'the_reaper',
     name: 'THE REAPER',
     flavor: 'Heads will roll',

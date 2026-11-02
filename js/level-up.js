@@ -11,6 +11,7 @@ function drainLevelUpQueue() {
 // and Records print it (r562; they used to work it out on their own).
 function startingTimeSeconds() {
   const dur = Math.round(modeRoundDuration() * ((typeof overtimeLenMult === 'function') ? overtimeLenMult() : 1));
+  // (r727: the difficulty tier's cut is inside modeRoundDuration, so round 1, the clock bar and this agree.)
   return Math.max(10, dur - (roundPenaltySeconds || 0) + (limits.round_time.current - limits.round_time.base));
 }
 function computeRoundResources() {
@@ -51,6 +52,7 @@ function triggerLevelUp() {
   // we just skip the old round-reset to avoid disrupting the boss.
   if (bossActive) return;
   if (typeof unlockRoundCleared === 'function') unlockRoundCleared();   // r706
+  if (typeof hmRoundsSettle === 'function') hmRoundsSettle();   // r727: a deck horseman's rounds on the grid, counted at the round's end
   clearInterval(roundInterval);
   roundInterval = null;
   // One vertical line on the clock per level-up, on the clocks that SPAN

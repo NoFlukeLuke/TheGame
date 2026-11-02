@@ -358,6 +358,13 @@ function applyBossModifiers(preset) {
       case 'inject_death':
         bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('death'); });
         break;
+      // r727 (owner): THE FOUR HORSEMEN, the top difficulty's last boss. One of each
+      // curse card as the clock starts: War, Death, Famine, Pestilence. Nothing after.
+      case 'inject_horsemen': {
+        let _n = 0;
+        bossSchedule(3600, () => { if (_n++ === 0) hmSpawnAll(); });
+        break;
+      }
       // THE SHORTAGE: one Famine card when the clock starts, another every everySecs.
       case 'inject_famine':
         bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('famine'); });
@@ -618,7 +625,8 @@ function peekNextActBoss() {
   // place the run's length is written down.
   if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun)) return null;
   if (!nextActBossId) {
-    const p = nextBossPreset();
+    // r727: at the top difficulty the last quarter's boss is THE FOUR HORSEMEN.
+    const p = (typeof difficultyFinalBossDue === 'function' && difficultyFinalBossDue(actNumber + 1)) ? difficultyFinalBossPreset() : nextBossPreset();
     nextActBossId = p ? p.id : null;
   }
   return BOSS_PRESETS.find(p => p.id === nextActBossId) || null;
@@ -644,6 +652,8 @@ function drawActBoss() {
     nextActBossId = null;
     if (p && !bossPresetIsLive(p)) p = null;
   }
+  // r727: at the top difficulty the last quarter's boss is THE FOUR HORSEMEN, whatever was named.
+  if (typeof difficultyFinalBossDue === 'function' && difficultyFinalBossDue(actNumber)) p = difficultyFinalBossPreset() || p;
   if (!p) p = nextBossPreset();
   actBossId = p ? p.id : null;
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
@@ -693,7 +703,7 @@ function peekBossPreset() {
     const held = BOSS_PRESETS.find(p => p.id === actBossId);
     if (held) return held;
   }
-  if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+  if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.filter(p => !p.final).map(p => p.id));
   const id = bossBag.find(bid => {
     const p = BOSS_PRESETS.find(x => x.id === bid);
     return p && bossPresetIsLive(p);
@@ -727,7 +737,7 @@ function nextBossPreset() {
   // live (very early run, no Tricks yet) take the front of the bag anyway rather
   // than loop forever.
   for (let refill = 0; refill < 2; refill++) {
-    if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+    if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.filter(p => !p.final).map(p => p.id));   // r727: the final boss is never in the bag
     const liveIdx = bossBag.findIndex(id => {
       const p = BOSS_PRESETS.find(x => x.id === id);
       return p && bossPresetIsLive(p);
@@ -812,6 +822,10 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // Not in Crunch, whose boss is fought on whatever the quarter's bank has left.
   if (typeof overtimeBossMult === 'function' && !(typeof crunchActive === 'function' && crunchActive()))
     bossWindowDuration = Math.max(10, Math.round(bossWindowDuration * overtimeBossMult()));
+  // r727: the difficulty tier's cut applies to a boss round like any round (not Flow,
+  // whose cut is on the session clock, and not Crunch's bank).
+  if (typeof difficultyTimeCut === 'function' && !(ACTIVE_MODE && ACTIVE_MODE.flow) && !(typeof crunchActive === 'function' && crunchActive()))
+    bossWindowDuration = Math.max(10, bossWindowDuration - difficultyTimeCut());
   roundSeconds = bossWindowDuration;
   if (typeof overtimeBossGoalMult === 'function' && overtimeBossGoalMult() !== 1) roundGoal = Math.ceil(roundGoal * overtimeBossGoalMult());
   if (typeof crrBossGoalApply === 'function') roundGoal = crrBossGoalApply(roundGoal);   // r671: a challenge's Boss goal reward or penalty

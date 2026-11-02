@@ -345,15 +345,15 @@ function dealerStartLoop() {
 
 // ── costs ────────────────────────────────────────
 function dealerSwapSeconds() {
-  let t = BAL._resources.swap_seconds;
+  let t = swapSecondsBase();
   if (hasKnack('free_swaps')) t = 0;
-  else if (hasKnack('steady_hand')) t = BAL.steady_hand.swap_seconds;
+  else if (hasKnack('steady_hand')) t = steadyHandSwapSecs();
   return Math.round(t * bossInteractMult() * interactTimeCostMult());
 }
 function dealerDiscardSeconds() {
-  let t = BAL._resources.discard_seconds_per_card;
+  let t = discardSecondsBase();
   if (hasKnack('free_discards')) t = 0;
-  else { if (hasKnack('hoarder')) t = BAL.hoarder.discard_seconds_per_card; t += (discardCostThisRound || 0); }
+  else { if (hasKnack('hoarder')) t = hoarderDiscardSecs(); t += (discardCostThisRound || 0); }
   return Math.round(t * bossInteractMult() * interactTimeCostMult());
 }
 function dealerBill(sec) {

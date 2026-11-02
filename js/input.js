@@ -224,13 +224,14 @@ function doSwap(r1, c1, r2, c2) {
   if (typeof ulBump === 'function') ulBump('swaps');   // r706
   swapsUsedGame++;    // r651: Landfill counts swaps this game
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
-  // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
+  // Swap time cost: the difficulty tier's figure (r727; it was a flat 8s), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
   // flat spendRoundTime(SWAP_TIME_COST) on top of this, which made the 3rd swap of
   // a round cost 14s while the UI said 4s. One charge only now.
-  let swapTimeCost = BAL._resources.swap_seconds;
+  // r727: the seconds are the difficulty tier's (swapSecondsBase, js/difficulty.js).
+  let swapTimeCost = swapSecondsBase();
   if (freeThisSwap || _fodderSwap || hasKnack('free_swaps')) swapTimeCost = 0;
-  else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
+  else if (hasKnack('steady_hand')) swapTimeCost = steadyHandSwapSecs();
   swapTimeCost = Math.round(swapTimeCost * bossInteractMult() * interactTimeCostMult());
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);

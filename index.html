@@ -226,6 +226,21 @@
     </div>
   </div>
 
+  <!-- Difficulty (r727) -->
+  <div class="dev-section" data-group="game">
+    <div class="dev-section-title">Difficulty</div>
+    <div class="dev-row">
+      <label>Tier for the NEXT run (a live run keeps its own)
+        <select id="dev-difficulty" onchange="difficultySet(this.value)" onclick="event.stopPropagation()">
+          <option value="1">1 · ENTRY LEVEL: horsemen last 4 rounds, swaps and discards cost no time</option>
+          <option value="2">2 · SENIOR: horsemen last 6 rounds, a swap costs 3s, a discard 5s</option>
+          <option value="3">3 · EXECUTIVE: horsemen stay until removed, rounds start 30s shorter</option>
+          <option value="4">4 · C-SUITE: the last boss is THE FOUR HORSEMEN</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
   <!-- QRL (r484) -->
   <div class="dev-section" data-group="game">
     <div class="dev-section-title">Quarter resource limits</div>
@@ -1115,8 +1130,8 @@
   <div id="interact-costs" class="time-popup" style="display:none">
     <div class="ic-h">Interact Cost</div>
     <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
-    <div class="ic-r"><span>Discard</span><span id="ic-discard">3s</span></div>
-    <div class="ic-r"><span>Swap</span><span id="ic-swap">4s</span></div>
+    <div class="ic-r"><span>Discard</span><span id="ic-discard">0s</span></div>
+    <div class="ic-r"><span>Swap</span><span id="ic-swap">0s</span></div>
     <div class="ic-sep"></div>
     <div class="ic-r"><span>Starting Time</span><span id="ic-maxtime">3:00</span></div>
     <div class="ic-r"><span>Paused</span><span id="ic-paused">0×</span></div>
@@ -1699,6 +1714,7 @@
 <script src="js/qrl.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
+<script src="js/difficulty.js"></script>
 <script src="js/improve.js"></script>
 <script src="js/natural-scaling.js"></script>
   <script src="js/scoring.js"></script>

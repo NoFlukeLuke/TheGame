@@ -65,7 +65,8 @@ function finaleFacts(kind) {
   const owned = finaleOwned();
   const title = drive ? (cleared ? 'TEST DRIVE CLEARED' : 'TEST DRIVE OVER')
     : won ? 'VICTORY' : endless ? 'ENDLESS OVER' : kind === 'timeup' ? "TIME'S UP" : 'GAME OVER';
-  const mode = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.name : '';
+  let mode = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.name : '';
+  if (typeof difficultyTier === 'function' && difficultyTier() > 1) mode += ` · ${difficultyName()}`;   // r727
   // How far: a quarter mode counts quarters (a won run closed its last one), Flow its bosses.
   let far = '';
   if (drive) far = 'ONE ROUND';

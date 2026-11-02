@@ -51,6 +51,7 @@ function recordRunToHistory(outcome) {
     outcome:   outcome || 'loss',
     mode:      (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.name : '·',
     modeId:    (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.id : '',
+    difficulty: (typeof difficultyTier === 'function') ? difficultyTier() : 1,   // r727
     // `score` is the round in progress; totalScore banks the rounds already cleared.
     score:     (typeof totalScore === 'number' ? totalScore : 0) + (typeof score === 'number' ? score : 0),
     level:     typeof level === 'number' ? level : 0,

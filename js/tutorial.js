@@ -275,8 +275,14 @@ function tutRoundLive() {
 // with Flow now the first mode most players meet, quoting the full rate there
 // would be the one number in the walkthrough that is wrong.
 function _tutCostMult() { try { return (typeof interactTimeCostMult === 'function') ? interactTimeCostMult() : 1; } catch (e) { return 1; } }
-function tutSwapCost()    { return +((((BAL._resources && BAL._resources.swap_seconds) || 8) * _tutCostMult()).toFixed(1)); }
-function tutDiscardCost() { return +((((BAL._resources && BAL._resources.discard_seconds_per_card) || 3) * _tutCostMult()).toFixed(1)); }
+// r727: at a tier where neither costs time the line says so, in one sentence.
+function tutCostLine(where = '') {
+  const s = tutSwapCost(), d = tutDiscardCost();
+  if (s <= 0 && d <= 0) return `Swaps and discards cost no time${where}.`;
+  return `A swap costs <b>${s}s</b>${where}. A discard costs <b>${d}s</b>${where}.`;
+}
+function tutSwapCost()    { return Math.round(swapSecondsBase() * _tutCostMult()); }     // rounded as the charge is
+function tutDiscardCost() { return Math.round(discardSecondsBase() * _tutCostMult()); }
 // Flow has no round clock and no failed round, so the opening lines that say
 // otherwise branch on it. r380: Flow is first in the carousel now.
 function tutIsFlow() { try { return tutModeTags().has('flow'); } catch (e) { return false; } }
@@ -431,7 +437,7 @@ const TUTORIAL_STEPS = [
     not: ['noclock', 'crunch'],
     eyebrow: 'The clock',
     title: 'The clock',
-    body: () => `Run out before the {GOAL} and the run is over.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card.<br><br>Time left when you clear the round is paid out in credits.`,
+    body: () => `Run out before the {GOAL} and the run is over.<br><br>Playing a hand is free. ${tutCostLine()}<br><br>Time left when you clear the round is paid out in credits.`,
   },
   {
     // Crunch's clock is the QUARTER's, so the step above is wrong here twice
@@ -441,13 +447,13 @@ const TUTORIAL_STEPS = [
     only: 'crunch',
     eyebrow: 'The clock',
     title: 'One clock, all quarter',
-    body: () => `This is the whole quarter's time, not this round's. It does not refill.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card. Booking anything that is not a round costs a flat fee.<br><br>Clear a round under <b>${formatTime(CRUNCH_PAR_SECONDS)}</b> and you are paid for every ${efficiencySecondsPerCoin()}s you came in under.<br><br>The manager review is fought on whatever is left. Run the clock to zero and the run is over.`,
+    body: () => `This is the whole quarter's time, not this round's. It does not refill.<br><br>Playing a hand is free. ${tutCostLine()} Booking anything that is not a round costs a flat fee.<br><br>Clear a round under <b>${formatTime(CRUNCH_PAR_SECONDS)}</b> and you are paid for every ${efficiencySecondsPerCoin()}s you came in under.<br><br>The manager review is fought on whatever is left. Run the clock to zero and the run is over.`,
   },
   {
     id: 'flow-clock', only: 'flow', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
     eyebrow: 'The clock',
     title: 'Time until the review',
-    body: () => `This clock does not reset between levels. When it reaches zero, the <b>review</b> starts. The skull at the end of the bar shows which one.<br><br>Missing a {GOAL} does not end the run. Clear as many as you can before then.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b> off this clock and a discard <b>${tutDiscardCost()}s</b> per card.`,
+    body: () => `This clock does not reset between levels. When it reaches zero, the <b>review</b> starts. The skull at the end of the bar shows which one.<br><br>Missing a {GOAL} does not end the run. Clear as many as you can before then.<br><br>Playing a hand is free. ${tutCostLine(' off this clock')}`,
   },
   {
     // Interactive. The board was audited at deal time to guarantee an exchange
@@ -459,7 +465,7 @@ const TUTORIAL_STEPS = [
     when: () => tutRoundLive(),
     eyebrow: 'The clock',
     title: 'Swapping two cards',
-    body: () => `Two touching cards can trade places. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>Swap the two highlighted cards. It makes a hand that is not on the board yet.<br><br>Costs <b>${tutSwapCost()}s</b> and one swap.`,
+    body: () => `Two touching cards can trade places. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>Swap the two highlighted cards. It makes a hand that is not on the board yet.<br><br>Costs ${tutSwapCost() > 0 ? '<b>' + tutSwapCost() + 's</b> and ' : ''}one swap.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialSwapPlan = tutorialFindSwap();

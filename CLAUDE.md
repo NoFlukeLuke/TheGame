@@ -40,6 +40,7 @@ superseded is history, not current code. The other reference docs:
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
+| `DIFFICULTY.md` | the difficulty tiers (r727): the four built, what follows from them, the knobs recommended for more |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -3964,3 +3965,41 @@ Pestilence card stayed with its clock back at 30; at 0 it spread (2 on the board
 move it changed cells; at 65s unspread it left to the played pile with the audit matched; THE
 SHORTAGE opened with one temp Famine card; the Cleanse tile removed a curse card. Golden: all match.
 
+
+## r727 - difficulty tiers (`js/difficulty.js`, owner)
+DIFFICULTY.md is the write-up. `DIFF_TIERS` (four rows, takes six): Settings -> Run -> Difficulty
+and dev -> Change the game now set `lethe.difficulty.v1` (stored only off tier 1) for the NEXT
+run; `startGame` copies it into `runDifficulty` (SAVE_VARS), and **every reader asks
+`difficultyTier()`**. Each tier keeps the ones below it. 1 ENTRY LEVEL: a deck horseman leaves
+after 4 rounds on the grid; swaps and discards cost no time. 2 SENIOR: 6 rounds; a swap 3s, a
+discard 5s FLAT. 3 EXECUTIVE: horsemen stay until removed; every round 30s shorter. 4 C-SUITE:
+the last boss is THE FOUR HORSEMEN.
+- **The swap and discard seconds are the tier's** (`swapSecondsBase()` / `discardSecondsBase()`;
+  `BAL._resources.swap_seconds` and `discard_seconds_per_card` are gone). The five sites (doSwap,
+  doDiscard, the Time pop-up, the held stack, the walkthrough's `tutCostLine`) read them; a
+  discard is one flat charge whatever the count (a discard of Fodder alone pays nothing). Steady
+  Hand is `BAL.steady_hand.swap_mult` (2) x the base, Spoiled `BAL.hoarder.discard_mult` (2) x;
+  Free Swaps / Free Discards are banned from offers where the base is 0 (`difficultyOfferBanned`,
+  in `survivalEntityBanned`). The first two discards of a round are still free of time
+  (`freeDiscardsLeft`), and Flow still halves (`FLOW_INTERACT_TIME_MULT`).
+- **The 30s cut is inside `modeRoundDuration()`** (not Flow, not Crunch), so round 1, later rounds
+  (`startingTimeSeconds`), the clock bar and the Time pop-up agree; Flow's is in
+  `flowSessionSeconds()`; a boss window takes it in `triggerBoss` (not Flow / Crunch).
+- **Horsemen rounds** (js/horsemen.js): `hmSeen` (id -> 1) is marked by the tick and every render
+  for a non-temp horseman on the board; `hmRoundsSettle()` (from `triggerLevelUp`) adds the round
+  to `hmRounds` (id -> n) and `hmRemoveById` takes a card at the limit out of the piles or the
+  board (`expectedDeckTotal--`, "Death leaves the deck"). Both in SAVE_VARS, reset in startGame.
+  The face prints rounds left top-left (`.hm-left`) when finite.
+- **THE FOUR HORSEMEN** (`the_four_horsemen`, `final: true`, modifier `inject_horsemen` ->
+  `hmSpawnAll`: a temp War stone `hmSpawnWar` plus Death, Famine, Pestilence). Never in the bag
+  (both bag fills filter `final`). `difficultyFinalBossDue(n)` says whether boss / quarter n is
+  the run's last (not Endless); `drawActBoss` and `peekNextActBoss` (Classic, the Schedule),
+  `mapDrawReviewPresets` (every seat of Q4's review row) and `flowTriggerBoss` (boss 4) read it.
+- The finale's header and the run history carry the tier (`difficultyName()`, `entry.difficulty`).
+Measured in headless Chromium at 1440x820 and 420x900 by real calls: tier 1 pop-up 0s / 0s, a
+discard and a swap took 0s, Free Swaps / Free Discards banned; a Death card in the deck read 4,
+then 3, a round in the pile did not count, left after its 4th round with the audit matched; tier 2
+pop-up 3s / 5s, the third discard of a round (3 cards) took 5s, a swap 3s, Steady Hand / Spoiled
+quoted 6s / 10s; tier 3 round 1 opened at 150, Flow's session at 270; tier 4 Advance Notice named
+THE FOUR HORSEMEN for Q4 only, Q4 drew it, PROCEED put a War stone, Death, Famine and Pestilence on
+the grid; Flow's boss 4 was it. Golden: all match. No page errors.

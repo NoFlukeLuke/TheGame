@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r726 · Pestilence is played to hold it off; every horseman in the debuff places; THE SHORTAGE";
+const BUILD = "2026-11-02 · r727 · difficulty tiers: horsemen last 4 / 6 / forever rounds, swap and discard seconds, shorter rounds, THE FOUR HORSEMEN";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

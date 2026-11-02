@@ -357,15 +357,15 @@ const BAL = {
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
-  steady_hand: { swap_seconds: 20 },
-  hoarder: { discard_seconds_per_card: 6 },
+  steady_hand: { swap_mult: 2 },        // r727: a multiple of the tier's swap seconds (js/difficulty.js)
+  hoarder: { discard_mult: 2 },         // r727: a multiple of the tier's discard seconds
   extra_swaps: { swaps: 2 },
   extra_discards: { discards: 2 },
   carry_swaps: { max: 8 },
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { unspent_credits: 2, unspent_cap: 10, interest_cap: 10, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
+  _resources: { unspent_credits: 2, unspent_cap: 10, interest_cap: 10 },   // play is free by default; swap and discard seconds are the difficulty tier's (r727, js/difficulty.js)
 };
 
 // ── Description templates - keep tooltip text in sync with BAL numbers ──
@@ -567,8 +567,8 @@ const DESC_TEMPLATES = {
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds}s.',
   piggy_bank: 'Double-tap: gain {coins} credits, once per round. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)',
-  steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
-  hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
+  steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_mult}x the time.',
+  hoarder: 'Discards no longer count against the discard limit, but cost {discard_mult}x the time.',
   king_guard: 'Kings and Jacks score +{pips} pips and +{mult} mult',
   full_color: 'Hands with four unique suits score x{mult_mult} mult per card',
   knave_power: 'Score ×{per_jack} pips for each Jack on the grid',

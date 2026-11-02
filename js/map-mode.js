@@ -556,6 +556,8 @@ function mapDrawReviewPresets() {
     for (let k = 0; k < 8; k++) { p = nextBossPreset(); if (p && !not.includes(p.id)) break; }
     return p ? p.id : null;
   };
+  // r727: the top difficulty's last quarter has one review, THE FOUR HORSEMEN, in every seat.
+  if (typeof difficultyFinalBossDue === 'function' && difficultyFinalBossDue(actNumber) && a === DIFF_FINAL_BOSS_ID) return { a, b: a, x: a };
   const b = draw([a]);
   const x = draw([a, b]);
   return { a, b, x };

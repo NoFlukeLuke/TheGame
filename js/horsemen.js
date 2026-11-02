@@ -30,6 +30,14 @@
 //
 // SEVERANCE PACKAGE (legendary Trick): double-tap any curse card or stone to
 // discard it for BAL.severance_package.swaps swaps and .discards discards.
+//
+// HOW LONG A DECK HORSEMAN LASTS (r727, owner): difficultyHorsemanRounds()
+// rounds (4 / 6 / for good by tier, js/difficulty.js), counting only the rounds
+// in which the card came onto the grid at all. `hmSeen` (card id -> 1) is marked
+// by the tick and by every render while the card is on the board; triggerLevelUp
+// calls hmRoundsSettle, which adds the round to `hmRounds` (card id -> rounds)
+// and takes a spent card out of the run. Both are SAVE_VARS. A boss's temp
+// horseman is never counted (it goes at the round's end anyway).
 const HM = {
   death:  { timer: 30, warn: 5, flyMs: 240 },
   famine: { timer: 30, warn: 5, secs: 20, mute: 20 },
@@ -38,7 +46,46 @@ const HM = {
 const HM_DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];   // up, right, down, left
 const HM_ARROW = ['↑', '→', '↓', '←'];
 
+let hmRounds = {};   // card id -> rounds on the grid so far (SAVE_VARS, reset in startGame)
+let hmSeen = {};     // card id -> 1, the deck horsemen that came onto the grid THIS round
+
 function isHorseman(c) { return !!(c && c._curseCard && (c._curseCard === 'death' || c._curseCard === 'famine' || c._curseCard === 'pest')); }
+// A deck horseman on the board this round. Called from the tick and from every render.
+function hmRoundsNote(cd) { if (cd && !cd._temp && cd._id != null && isHorseman(cd)) hmSeen[cd._id] = 1; }
+// Rounds left before a deck horseman leaves (Infinity: it stays until removed).
+function hmRoundsLeft(cd) {
+  const lim = (typeof difficultyHorsemanRounds === 'function') ? difficultyHorsemanRounds() : Infinity;
+  if (!isFinite(lim) || !cd || cd._temp) return Infinity;
+  return Math.max(0, lim - (hmRounds[cd._id] || 0));
+}
+// The round's end (triggerLevelUp): every horseman seen this round has one more
+// round on it; one at the tier's limit leaves the run, wherever it sits.
+function hmRoundsSettle() {
+  const lim = (typeof difficultyHorsemanRounds === 'function') ? difficultyHorsemanRounds() : Infinity;
+  const ids = Object.keys(hmSeen || {});
+  hmSeen = {};
+  if (!ids.length) return;
+  ids.forEach(id => {
+    hmRounds[id] = (hmRounds[id] || 0) + 1;
+    if (!isFinite(lim) || hmRounds[id] < lim) return;
+    delete hmRounds[id];
+    const gone = hmRemoveById(id);
+    if (gone) showMessage(`${CURSE_CARD_DEFS[gone._curseCard]?.icon || ''} ${CURSE_CARD_DEFS[gone._curseCard]?.name || 'Curse card'} leaves the deck`, 'var(--cream-dim)');
+  });
+}
+// One deck horseman out of the run by id: the piles, then the board (the cell refills). Returns the card.
+function hmRemoveById(id) {
+  const key = String(id);
+  for (const p of [drawPile, playedPile]) {
+    const i = p.findIndex(c => c && String(c._id) === key && c._curseCard);
+    if (i >= 0) { const c = p.splice(i, 1)[0]; expectedDeckTotal--; updateDeckHud(); return c; }
+  }
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd && String(cd._id) === key && cd._curseCard && !cd._temp) { gridData[r][c] = drawCard() || null; expectedDeckTotal--; updateDeckHud(); return cd; }
+  }
+  return null;
+}
 function hmKind(c) { return isHorseman(c) ? c._curseCard : null; }
 // A curse card the player may swap: Famine always, Death until its first flight.
 function curseCardSwappable(c) {
@@ -77,6 +124,7 @@ function horsemenTick() {
     const cd = gridData[r]?.[c];
     if (!isHorseman(cd)) continue;
     hmEnsure(cd, r, c);
+    hmRoundsNote(cd);
     if (cd._hmT > 0) cd._hmT--;
     if (cd._curseCard === 'pest') { cd._hmSpread++; if (cd._hmMove > 0) cd._hmMove--; if (cd._hmMove <= 0 || cd._hmSpread >= HM.pest.life) fires.push([r, c, cd]); }
     if (cd._hmT <= 0) fires.push([r, c, cd]);
@@ -104,6 +152,7 @@ function horsemenPaint() {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const cd = gridData[r]?.[c];
     if (!isHorseman(cd)) continue;
+    hmRoundsNote(cd);
     const el = gridEl.querySelector(`[data-card-id="${cd._id}"]`);
     if (!el) continue;
     const bar = el.querySelector('.hm-bar');
@@ -130,7 +179,10 @@ function horsemenFaceHTML(cd) {
   const k = cd._curseCard;
   const bar = `<div class="hm-bar" style="--hb:${hmBarFrac(cd).toFixed(3)}"></div>`;
   const arrow = k === 'death' ? `<div class="hm-arrow hm-d${cd._dir ?? 0}">${HM_ARROW[cd._dir ?? 0]}</div>` : '';
-  return `${bar}<div class="hm-ico">${emGlyph(d.icon)}</div>${arrow}<div class="hm-word">${d.name.toUpperCase()}</div>`;
+  // r727: rounds left on a deck horseman (top-left), none when it stays for good.
+  const left = hmRoundsLeft(cd);
+  const rounds = isFinite(left) ? `<div class="hm-left" title="Rounds left">${left}</div>` : '';
+  return `${bar}${rounds}<div class="hm-ico">${emGlyph(d.icon)}</div>${arrow}<div class="hm-word">${d.name.toUpperCase()}</div>`;
 }
 function horsemenFaceClass(cd) {
   return ` hm-card hm-${cd._curseCard}${cd._flown ? ' hm-stuck' : ''}${hmJittering(cd) ? ' hm-jit' : ''}`;
@@ -370,6 +422,27 @@ function hmSpawnRandom(kind, tries) {
   const el = document.querySelector(`#grid [data-card-id="${nc._id}"]`);
   if (el) el.animate([{ scale: '1.3', filter: 'brightness(2.4)', opacity: 0 }, { scale: '1', filter: 'brightness(1)', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
   showMessage(`${CURSE_CARD_DEFS[kind].icon} ${CURSE_CARD_DEFS[kind].name} lands`, 'var(--red)');
+  return true;
+}
+// r727: THE FOUR HORSEMEN's opening: one of each. War is a temp stone on the board.
+function hmSpawnAll() {
+  hmSpawnWar();
+  ['death', 'famine', 'pest'].forEach(k => hmSpawnRandom(k));
+}
+function hmSpawnWar(tries) {
+  if (animating || falling || (typeof dealPhase !== 'undefined' && dealPhase)) { if ((tries || 0) < 20) setTimeout(() => hmSpawnWar((tries || 0) + 1), 400); return false; }
+  if (typeof roundEnded !== 'undefined' && roundEnded) return false;
+  const cells = hmFreeCells({ notSelected: true });
+  if (!cells.length) return false;
+  const [r, c] = cells[Math.floor(Math.random() * cells.length)];
+  const old = gridData[r][c];
+  if (old && old.rank) { if (old._isSleight) discardToPlayed(old); else if (!old._isStone) discardToDrawPile(old); }
+  const st = stampId(makeStoneCard()); st._temp = true;
+  gridData[r][c] = st;
+  render();
+  const el = document.querySelector(`#grid [data-card-id="${st._id}"]`);
+  if (el) el.animate([{ scale: '1.3', filter: 'brightness(2.4)', opacity: 0 }, { scale: '1', filter: 'brightness(1)', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  showMessage(`${ANVIL_ICON} War lands`, 'var(--red)');
   return true;
 }
 // Pestilence's opening: two, in opposite corners (the nearest free cells to them).

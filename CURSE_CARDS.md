@@ -26,6 +26,11 @@ tile (a curse card first, then a card curse), Clean Up / Clean Slate, Severance 
 Sleight's discard. The card curses (Leaden / Taxing / Snared) are no longer handed out anywhere;
 they stay in the code for saved runs and the Cleanse tile.
 
+**How long a deck horseman lasts (r727):** the difficulty tier's rounds (DIFFICULTY.md): 4 at
+tier 1, 6 at tier 2, until removed from tier 3. Only a round in which the card came onto the grid
+counts; the card shows its rounds left. Tier 4's last boss, THE FOUR HORSEMEN, opens with one of
+each on the grid.
+
 **Severance Package** (legendary Trick): double-tap a curse card or a stone to discard it for
 1 swap and 1 discard. With it in the tray the double-tap lifts no stone for a swap (lift the
 other card and tap the stone instead).
