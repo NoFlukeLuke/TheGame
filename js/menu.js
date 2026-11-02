@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r722 · Money and selling: 8 Tricks, 4 Knacks, 3 Sleights; Time and a Half pays late hands";
+const BUILD = "2026-11-02 · r723 · The scoring golden baseline takes the eight money Tricks";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
