@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r725 · The scoring golden baseline takes Severance Package (199 Tricks)";
+const BUILD = "2026-11-02 · r726 · Pestilence is played to hold it off; every horseman in the debuff places; THE SHORTAGE";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

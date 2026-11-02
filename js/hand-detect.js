@@ -51,6 +51,8 @@ function isConnected(cells) {
   return visited.size === cells.length;
 }
 
+// How many selected cards count toward the Selection Size (r726: a Pestilence card does not).
+function selCountForCap() { return selected.filter(([r, c]) => gridData[r]?.[c]?._curseCard !== 'pest').length; }
 function getReachable() {
   if (selected.length === 0) return null; // all reachable
   const reachable = new Set(selected.map(([r,c])=>`${r}-${c}`));
@@ -59,7 +61,7 @@ function getReachable() {
     const card = gridData[nr]?.[nc];
     if (!card) return;                    // empty cells unreachable (and cells off a mis-sized board)
     if (isCellBlocked(nr, nc)) return;    // voids unreachable
-    if (card._isStone) return;            // stones unreachable for selection
+    if (card._isStone && !cardCan(card, 'select')) return;   // stones unreachable for selection (r726: a Pestilence card can be selected)
     reachable.add(`${nr}-${nc}`);
   }));
   return reachable;
@@ -225,6 +227,7 @@ function bestWildSuit(normalCards) {
 function findBestHand(cells) {
   // Filter out any null cells (challenge card position)
   cells = cells.filter(([r,c]) => gridData[r][c] !== null);
+  cells = cells.filter(([r,c]) => gridData[r][c]._curseCard !== 'pest');   // r726: Pestilence rides along, never in the hand (js/horsemen.js)
   if (cells.length < 2) return null;
 
   // Sleights: wild sleights get a temporary rank/suit and join detection; a

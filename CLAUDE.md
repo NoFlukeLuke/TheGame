@@ -3938,3 +3938,29 @@ Severance Package by real clicks discarded a Pestilence card and a War stone for
 discard each and refused with no swaps. THE REAPER opened with one Death card (temp) and a forced
 flight over a 2 and a 3 cost 3s. The fling's leaving cards rose 27px then dropped. No page errors.
 
+## r726 - Pestilence is played to hold it off; every horseman in the debuff places; THE SHORTAGE (owner)
+- **Pestilence, option (c)** (js/horsemen.js): `_hmT` counts to its next spread (`HM.pest.spread`
+  30s; `pestSpread`: a random neighbour to the played pile, a temp Pestilence in its cell, cap
+  `HM.pest.max`), `_hmMove` to its next move (`HM.pest.swap` 15s, `pestMove`), `_hmSpread` since
+  its last spread (`HM.pest.life` 65s, then `pestLeave`). **Playing it resets `_hmT`**: `cardCan`
+  lets a `pest` card be SELECTED, `getReachable` lets a selectable stone through, it takes no
+  Selection Size slot (`selCountForCap`, js/hand-detect.js, read at both add sites in input.js),
+  `findBestHand` drops it before detection (so the preview and the hand never see it), and
+  `playHand` pulls it out of `selected` before the minimum check (`_pestSel`), gives it back on
+  a refused play, and hands it to `pestPlayed` once the hand commits. It is never in `playedCells`
+  or `toRemove`, so it stays on the grid. The r723 "sat still beside it" watch is gone.
+- **The debuff places hand out horsemen**: the Balance Sheet's curse tile (a random horseman curse
+  card into the deck, `addCurseCardsToDeck(1, kind)`), the Mystery's bad roll, Pairs' penalty A
+  (its tile draws the pixel icon; penalty B reads War). The card curses (Leaden / Taxing / Snared)
+  are offered nowhere now; `cardCurses` and the Cleanse tile's lift stay for saved runs. The
+  Cleanse tile removes a curse card first (`clearOneCurseCard`, js/boss.js) and is offered while
+  the deck holds one.
+- **THE SHORTAGE** (boss `the_shortage`, `inject_famine`): one Famine card at the start, another every
+  45s. `hmSpawnRandom` / `hmSpawnCorners` retry every 400ms (20 tries) while the board is busy, so a
+  boss's opening card is not lost to a fall.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks: Q, Pestilence, Q, Q tapped in
+a row selected all four (Selection Size 3), the label read SET OF 3, PLAY scored 270 and the
+Pestilence card stayed with its clock back at 30; at 0 it spread (2 on the board, 1 temp); at its
+move it changed cells; at 65s unspread it left to the played pile with the audit matched; THE
+SHORTAGE opened with one temp Famine card; the Cleanse tile removed a curse card. Golden: all match.
+

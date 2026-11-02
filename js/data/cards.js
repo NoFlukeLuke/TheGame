@@ -482,6 +482,7 @@ function cardCan(card, action) {
     // the deck at the round's end instead of deleting it like a stone. It still
     // cannot be SELECTED, so the player has no way to discard it by hand.
     if (card._junk && action === 'discard') return true;
+    if (card._curseCard === 'pest' && action === 'select') return true;   // r726: Pestilence is played to hold it off (js/horsemen.js)
     if (card._curseCard && action === 'swap') return typeof curseCardSwappable === 'function' && curseCardSwappable(card);   // r723: Famine, and Death before its first flight
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';
   }

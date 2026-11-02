@@ -343,7 +343,8 @@ function deselect(r, c) {
 function tryAddToSelection(r, c) {
   const _card = gridData[r]?.[c];
   const _cs = dbgCardStr(_card);
-  if (selected.length >= limits.selection.current) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
+  // r726: a Pestilence card rides along outside the hand (js/horsemen.js), so it takes no Selection Size slot.
+  if (selCountForCap() >= limits.selection.current && !(gridData[r]?.[c]?._curseCard === 'pest')) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
   if (isCellBlocked(r, c)) { dbgEvent('warn', `add blocked: cell blocked [${r},${c}]`); return false; }
   if (!cardCan(gridData[r]?.[c], 'select')) { dbgEvent('warn', `add blocked: cardCan=false [${r},${c}] ${_cs}`); return false; }
   const key = `${r}-${c}`;
@@ -670,7 +671,7 @@ gridEl2.addEventListener('pointermove', e => {
         swipeStopped = true;
         return;
       }
-      if (selected.length < limits.selection.current) {
+      if (selCountForCap() < limits.selection.current) {
         selected.push([r, c]);
         (ps.added || (ps.added = [])).push(key);
         dbgEvent('info', `swipe-add [${r},${c}] (total:${selected.length})`);

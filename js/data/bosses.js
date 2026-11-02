@@ -33,9 +33,18 @@ const BOSS_PRESETS = [
     name: 'THE PLAGUE',
     flavor: 'It gets around',
     objective: { type: 'score' },
-    brief: 'The round starts with two Pestilence cards in opposite corners and another lands every minute. A card that sits still beside one for 20 seconds becomes one.',
+    brief: 'The round starts with two Pestilence cards in opposite corners and another lands every minute. Every 30 seconds a Pestilence card turns a neighbour into one unless it was played since.',
     modifiers: ['inject_pestilence'],
     params: { everySecs: 60 }
+  },
+  {
+    id: 'the_shortage',
+    name: 'THE SHORTAGE',
+    flavor: 'Make do',
+    objective: { type: 'score' },
+    brief: 'The round starts with a Famine card on the grid and another lands every 45 seconds. Swap a Famine card every 30 seconds or it takes a swap, a discard, 20 seconds, a Trick for 20 seconds or every Sleight on the grid.',
+    modifiers: ['inject_famine'],
+    params: { everySecs: 45 }
   },
   {
     id: 'voidwright',

@@ -116,7 +116,7 @@ const CURSE_CARD_LIFE = 120;
 const CURSE_CARD_DEFS = {
   death:  { name: 'Death',      icon: '⚰', desc: 'Every 30s it flies the way it faces. Every card in its path goes to the played pile. It sticks where it stops.' },
   famine: { name: 'Famine',     icon: '🥣', desc: 'Swap it every 30s or it takes a swap, a discard, 20s, a Trick for 20s or every Sleight on the grid.' },
-  pest:   { name: 'Pestilence', icon: '☣', desc: 'Changes places with a neighbour every 15s. A card that sits still beside it for 20s becomes one.' },
+  pest:   { name: 'Pestilence', icon: '☣', desc: 'Every 30s a neighbour becomes one. Playing it in a hand resets that clock; it scores nothing and stays on the grid. Changes places with a neighbour every 15s.' },
   leech: { name: 'Leech', icon: '🩸', desc: 'Playing a hand next to it costs 2s.', secs: 2, retired: true },
   smog:  { name: 'Smog',  icon: '☁',  desc: 'Hands next to it score ×0.8 mult.', mult: 0.8, retired: true },
 };
@@ -127,8 +127,8 @@ function makeCurseCard(kind) {
   return stampId({ rank: '?', suit: 'junk', _isStone: true, _junk: true, _curseCard: k });
 }
 function isCurseCard(c) { return !!(c && c._curseCard); }
-function addCurseCardsToDeck(n) {
-  for (let i = 0; i < n; i++) drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, makeCurseCard());
+function addCurseCardsToDeck(n, kind) {
+  for (let i = 0; i < n; i++) drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, makeCurseCard(kind));
   expectedDeckTotal += n;
   updateDeckHud();
 }
@@ -137,6 +137,12 @@ function curseCardsAll() {
   [drawPile, playedPile].forEach(p => p.forEach(c => { if (isCurseCard(c)) out.push(c); }));
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData[r]?.[c])) out.push(gridData[r][c]);
   return out;
+}
+// One curse card out of the run: the piles first, then the board (the cell refills).
+function clearOneCurseCard() {
+  for (const p of [drawPile, playedPile]) for (let i = p.length - 1; i >= 0; i--) if (isCurseCard(p[i])) { p.splice(i, 1); expectedDeckTotal--; updateDeckHud(); return true; }
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData[r]?.[c])) { const t = gridData[r][c]._temp; gridData[r][c] = drawCard() || null; if (!t) expectedDeckTotal--; updateDeckHud(); return true; }
+  return false;
 }
 function clearCurseCards() {
   let n = 0;
@@ -351,6 +357,10 @@ function applyBossModifiers(preset) {
       // call), another every everySecs. Its time rule is in deathBossSeconds (js/horsemen.js).
       case 'inject_death':
         bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('death'); });
+        break;
+      // THE SHORTAGE: one Famine card when the clock starts, another every everySecs.
+      case 'inject_famine':
+        bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('famine'); });
         break;
       // THE PLAGUE: two Pestilence cards in opposite corners, then one every everySecs.
       case 'inject_pestilence': {

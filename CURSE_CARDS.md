@@ -11,12 +11,20 @@ Severance Package removes it.
 | **War** | the boss stone (`isAnvil`), a sword | every 15s drops a row and crushes the card under it to the played pile; rests 30s at the bottom, then drops out. Swappable. |
 | **Death** | curse card `death`, a spinning scythe with an arrow | every 30s flies the way the arrow points; every card in its path goes to the played pile (the deck editor's cut look); it embeds where it stops and rolls a new direction. Falls and can be swapped until its first flight, then neither. |
 | **Famine** | curse card `famine` | a 30s clock, reset by swapping it. At 0 one of: a swap or a discard of stock, 20s off the clock, a Trick muted for 20s, every Sleight on the grid discarded (charges kept). |
-| **Pestilence** | curse card `pest` (DRAFT, see below) | every 15s changes places with a neighbour; a card that sat still beside it for 20s is infected (that card to the played pile, a temp Pestilence in its cell; at most 4 on the board); one that has not spread for 65s leaves. |
+| **Pestilence** | curse card `pest` | every 30s a neighbour becomes one (that card to the played pile, a temp Pestilence in its cell; at most 4 on the board). Playing it in a hand resets that clock: it can be selected, takes no Selection Size slot, scores nothing and stays on the grid. Every 15s it changes places with a neighbour. One that has not spread for 65s leaves. |
 
 Bosses: **WAR** (the old Stone Lord), **THE REAPER** (one Death card at the start, another every
 45s; cards the scythe takes cost half their rank in seconds), **THE PLAGUE** (two Pestilence cards
-in opposite corners, another every minute). Famine has no boss yet. A boss's horseman is a temp
-card: never in the deck, gone at the round's end.
+in opposite corners, another every minute), **THE SHORTAGE** (one Famine card at the start, another
+every 45s). A boss's horseman is a temp card: never in the deck, gone at the round's end.
+
+**Where they are met outside a boss (r726):** the Balance Sheet's curse tile, the Mystery tile's
+bad roll, Pairs' penalty A and the Rehearsal event each put a random horseman curse card (Death,
+Famine or Pestilence) into the deck; the Balance Sheet's War tile, the Mystery, Pairs' penalty B
+and the 1-on-1 put War in. A deck horseman comes back every round until it is removed: the Cleanse
+tile (a curse card first, then a card curse), Clean Up / Clean Slate, Severance Package, or a
+Sleight's discard. The card curses (Leaden / Taxing / Snared) are no longer handed out anywhere;
+they stay in the code for saved runs and the Cleanse tile.
 
 **Severance Package** (legendary Trick): double-tap a curse card or a stone to discard it for
 1 swap and 1 discard. With it in the tray the double-tap lifts no stone for a swap (lift the
@@ -24,18 +32,10 @@ other card and tap the stone instead).
 
 Every number is in `HM` (js/horsemen.js) and `ANVIL_CFG` (js/anvil.js).
 
-### Pestilence, the open call (owner: "let's chat about that one")
+### Pestilence: the owner picked option (c)
 
-Built as the owner's first sketch. The alternatives raised:
-
-1. **As built:** spreads onto a neighbour that sat still 20s; moves itself every 15s; leaves
-   after 65s without spreading. Readable, and the counterplay (keep the cards around it moving)
-   is on the board.
-2. **Play it to hold it:** it must be included in a hand every N seconds or it spreads; playing
-   it does not remove it (it stays in its cell, scores nothing). A hand with a dead card in it
-   is a real cost. It would need the selection rules to allow a card that scores nothing (a
-   kicker that is not billed), which is a change to hand detection.
-3. **Both:** it spreads on a clock; playing it resets the clock.
+Of the three shapes raised (spread onto a still neighbour / play it to hold it / both), the owner
+took both: it spreads on a 30s clock, and playing it in a hand resets the clock. Built in r726.
 
 ### The parked conditions (owner's four)
 

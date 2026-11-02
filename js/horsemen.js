@@ -15,15 +15,15 @@
 //   seconds, every Sleight on the grid discarded (charges kept). Then it starts
 //   again. Can be swapped, never discarded by hand.
 //
-//   PESTILENCE (draft, owner to settle): every HM.pest.swap seconds it changes
-//   places with a random neighbour. A neighbour that has sat still beside it for
-//   HM.pest.spread seconds is infected: that card goes to the played pile and a
-//   TEMP Pestilence takes its cell (at most HM.pest.max on the board). One that
-//   has not spread for HM.pest.life seconds leaves (a deck card to the played
-//   pile, a temp one for good). Never swapped or discarded by hand.
+//   PESTILENCE (owner's option c): every HM.pest.spread seconds a neighbour is
+//   infected (that card goes to the played pile, a TEMP Pestilence takes its cell,
+//   at most HM.pest.max on the board). Playing it in a hand resets that clock: it
+//   can be selected, scores nothing and stays on the grid. Every HM.pest.swap
+//   seconds it changes places with a neighbour. One that has not spread for
+//   HM.pest.life seconds leaves. Never swapped or discarded by hand.
 //
 // Timers live on the board card (`_hmT`, `_dir`, `_flown`, `_fixed`, `_hmSpread`,
-// `_hmLast`), so they save with gridData and are dropped by recycleCard when the
+// `_hmMove`), so they save with gridData and are dropped by recycleCard when the
 // card leaves the board. `horsemenTick` runs from the round tick, counts every
 // second and acts only while the board is still (the r213 rule). A boss-spawned
 // horseman is `_temp` (never joins the deck, gone at the round's end).
@@ -33,7 +33,7 @@
 const HM = {
   death:  { timer: 30, warn: 5, flyMs: 240 },
   famine: { timer: 30, warn: 5, secs: 20, mute: 20 },
-  pest:   { swap: 15, spread: 20, life: 65, max: 4 },
+  pest:   { swap: 15, spread: 30, life: 65, max: 4, warn: 5 },
 };
 const HM_DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];   // up, right, down, left
 const HM_ARROW = ['↑', '→', '↓', '←'];
@@ -64,8 +64,8 @@ function hmRollDir(cd, r, c) {
 function hmEnsure(cd, r, c) {
   if (!isHorseman(cd)) return;
   if (cd._curseCard === 'death' && cd._dir == null) hmRollDir(cd, r, c);
-  if (cd._hmT == null) cd._hmT = cd._curseCard === 'death' ? HM.death.timer : cd._curseCard === 'famine' ? HM.famine.timer : HM.pest.swap;
-  if (cd._curseCard === 'pest' && cd._hmSpread == null) cd._hmSpread = 0;
+  if (cd._hmT == null) cd._hmT = cd._curseCard === 'death' ? HM.death.timer : cd._curseCard === 'famine' ? HM.famine.timer : HM.pest.spread;
+  if (cd._curseCard === 'pest') { if (cd._hmSpread == null) cd._hmSpread = 0; if (cd._hmMove == null) cd._hmMove = HM.pest.swap; }
 }
 
 function horsemenTick() {
@@ -78,7 +78,7 @@ function horsemenTick() {
     if (!isHorseman(cd)) continue;
     hmEnsure(cd, r, c);
     if (cd._hmT > 0) cd._hmT--;
-    if (cd._curseCard === 'pest') { cd._hmSpread++; pestWatch(cd, r, c); }
+    if (cd._curseCard === 'pest') { cd._hmSpread++; if (cd._hmMove > 0) cd._hmMove--; if (cd._hmMove <= 0 || cd._hmSpread >= HM.pest.life) fires.push([r, c, cd]); }
     if (cd._hmT <= 0) fires.push([r, c, cd]);
   }
   famineMuteTick();
@@ -87,7 +87,11 @@ function horsemenTick() {
       if (gridData[r]?.[c] !== cd) continue;   // an earlier strike moved it
       if (cd._curseCard === 'death') { if (deathFly(r, c)) return; }
       else if (cd._curseCard === 'famine') famineFire(r, c);
-      else if (cd._curseCard === 'pest') { if (pestAct(r, c)) return; }
+      else if (cd._curseCard === 'pest') {
+        if (cd._hmSpread >= HM.pest.life) { if (pestLeave(r, c)) return; continue; }
+        if (cd._hmT <= 0) pestSpread(r, c);
+        if (cd._hmMove <= 0) pestMove(r, c);
+      }
     }
   }
   horsemenPaint();
@@ -108,13 +112,14 @@ function horsemenPaint() {
   }
 }
 function hmBarFrac(cd) {
-  const full = cd._curseCard === 'death' ? HM.death.timer : cd._curseCard === 'famine' ? HM.famine.timer : HM.pest.swap;
+  const full = cd._curseCard === 'death' ? HM.death.timer : cd._curseCard === 'famine' ? HM.famine.timer : HM.pest.spread;
   return Math.max(0, Math.min(1, (cd._hmT == null ? full : cd._hmT) / full));
 }
 function hmJittering(cd) {
   if (cd._hmT == null) return false;
   if (cd._curseCard === 'death') return cd._hmT <= HM.death.warn;
   if (cd._curseCard === 'famine') return cd._hmT <= HM.famine.warn;
+  if (cd._curseCard === 'pest') return cd._hmT <= HM.pest.warn;
   return false;
 }
 
@@ -243,74 +248,68 @@ function horsemenOnSwap(cells) {
   (cells || []).forEach(([r, c]) => { const cd = gridData[r]?.[c]; if (cd && cd._curseCard === 'famine') cd._hmT = HM.famine.timer; });
 }
 
-// ── PESTILENCE ──
-// Each neighbour's time sat still beside this card, by card id (board-local).
-function pestWatch(cd, r, c) {
-  const w = cd._hmLast || (cd._hmLast = {});
-  const seen = new Set();
-  HM_DIRS.forEach(([dr, dc]) => {
-    const rr = r + dr, cc = c + dc, v = gridData[rr]?.[cc];
-    if (!v || !v.rank || v._isStone || v._isSleight || v._isTrick || isCellBlocked(rr, cc)) return;
-    const k = String(v._id); seen.add(k);
-    const pos = rr * 1000 + cc;
-    if (!w[k] || w[k].pos !== pos) w[k] = { pos, secs: 0 };
-    w[k].secs++;
-  });
-  for (const k in w) if (!seen.has(k)) delete w[k];
-}
+// ── PESTILENCE (owner's option c, r726) ──
+// Two clocks on the card: `_hmT` to its next spread (HM.pest.spread), reset by
+// PLAYING it in a hand (it stays on the grid and scores nothing); `_hmMove` to
+// its next move (HM.pest.swap: it changes places with a neighbour so it never
+// sinks out of reach). `_hmSpread` counts seconds since it last spread; at
+// HM.pest.life it leaves (a deck card to the played pile, a temp one for good).
 function pestCount() { let n = 0; for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c]?._curseCard === 'pest') n++; return n; }
-// Its moment: spread onto a neighbour that sat still long enough, else swap with a
-// neighbour; leave after HM.pest.life seconds without a spread. Returns true when
-// the board moved (a fall started).
-function pestAct(r, c) {
-  const cd = gridData[r][c];
-  cd._hmT = HM.pest.swap;
-  const d = CURSE_CARD_DEFS.pest;
-  // Spread.
-  const w = cd._hmLast || {};
+// playHand (js/play-hand.js): the Pestilence cards in the selection are pulled out
+// before the hand is read and handed here once it commits.
+function pestPlayed(cells) {
+  (cells || []).forEach(([r, c]) => { const cd = gridData[r]?.[c]; if (cd && cd._curseCard === 'pest') cd._hmT = HM.pest.spread; });
+  if (cells && cells.length) noteMessage(`${CURSE_CARD_DEFS.pest.icon} Pestilence held off`);
+}
+function pestSpread(r, c) {
+  const cd = gridData[r][c], d = CURSE_CARD_DEFS.pest;
+  cd._hmT = HM.pest.spread;
+  if (pestCount() >= HM.pest.max) return;
   const ripe = [];
-  HM_DIRS.forEach(([dr, dc]) => { const rr = r + dr, cc = c + dc, v = gridData[rr]?.[cc]; if (v && w[String(v._id)] && w[String(v._id)].secs >= HM.pest.spread && anvilCrushable(v) && !v._isStone) ripe.push([rr, cc]); });
-  if (ripe.length && pestCount() < HM.pest.max) {
-    const [rr, cc] = ripe[Math.floor(Math.random() * ripe.length)];
-    const v = gridData[rr][cc];
-    anvilToPlayed(v);
-    const nc = makeCurseCard('pest'); nc._temp = true;
-    gridData[rr][cc] = nc; hmEnsure(nc, rr, cc);
-    cd._hmSpread = 0; delete w[String(v._id)];
-    showMessage(`${d.icon} Pestilence spreads`, 'var(--red)');
-    if (typeof dbgEvent === 'function') dbgEvent('info', 'pestilence spread', { at: [rr, cc] });
-    render();
-    const el = document.querySelector(`#grid [data-card-id="${nc._id}"]`);
-    if (el) el.animate([{ scale: '1.25', filter: 'brightness(2.2)' }, { scale: '1', filter: 'brightness(1)' }], { duration: 360, easing: 'cubic-bezier(.2,.8,.2,1)' });
-    try { if (typeof sfxChallengeTap === 'function') sfxChallengeTap(); } catch (e) {}
-    return false;
-  }
-  // Leave.
-  if (cd._hmSpread >= HM.pest.life) {
-    if (!cd._temp) playedPile.push(recycleCard(cd));
-    gridData[r][c] = null;
-    showMessage(`${d.icon} Pestilence leaves`, 'var(--cream-dim)');
-    removeAndFall([], 'anvil');
-    return true;
-  }
-  // Swap places with a neighbour.
+  HM_DIRS.forEach(([dr, dc]) => { const rr = r + dr, cc = c + dc, v = gridData[rr]?.[cc]; if (v && v.rank && !v._isStone && anvilCrushable(v) && !isCellBlocked(rr, cc)) ripe.push([rr, cc]); });
+  if (!ripe.length) return;
+  const [rr, cc] = ripe[Math.floor(Math.random() * ripe.length)];
+  const v = gridData[rr][cc];
+  anvilToPlayed(v);
+  const nc = makeCurseCard('pest'); nc._temp = true;
+  gridData[rr][cc] = nc; hmEnsure(nc, rr, cc);
+  cd._hmSpread = 0;
+  selected = selected.filter(([sr, sc]) => !(sr === rr && sc === cc));
+  showMessage(`${d.icon} Pestilence spreads`, 'var(--red)');
+  if (typeof dbgEvent === 'function') dbgEvent('info', 'pestilence spread', { at: [rr, cc] });
+  render();
+  const el = document.querySelector(`#grid [data-card-id="${nc._id}"]`);
+  if (el) el.animate([{ scale: '1.25', filter: 'brightness(2.2)' }, { scale: '1', filter: 'brightness(1)' }], { duration: 360, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  try { if (typeof sfxChallengeTap === 'function') sfxChallengeTap(); } catch (e) {}
+}
+// Leaves after HM.pest.life seconds without a spread. Returns true when a fall started.
+function pestLeave(r, c) {
+  const cd = gridData[r][c];
+  if (!cd._temp) playedPile.push(recycleCard(cd));
+  gridData[r][c] = null;
+  selected = selected.filter(([sr, sc]) => !(sr === r && sc === c));
+  showMessage(`${CURSE_CARD_DEFS.pest.icon} Pestilence leaves`, 'var(--cream-dim)');
+  removeAndFall([], 'anvil');
+  return true;
+}
+// Changes places with a random neighbour.
+function pestMove(r, c) {
+  const cd = gridData[r][c];
+  cd._hmMove = HM.pest.swap;
   const near = [];
   HM_DIRS.forEach(([dr, dc]) => { const rr = r + dr, cc = c + dc, v = gridData[rr]?.[cc]; if (v && !v._fixed && !v._isChallenge && !v._isReshuffle && !v._isTrick && !isCellBlocked(rr, cc) && !isCellVoid(rr, cc) && !(v._isSleight && AIM_SLEIGHTS.has(sleightDef(v)?.id))) near.push([rr, cc]); });
-  if (!near.length) return false;
+  if (!near.length) return;
   const [rr, cc] = near[Math.floor(Math.random() * near.length)];
   const v = gridData[rr][cc];
   const dx = cellLeft(cc) + cardColOffset(cc) - cellLeft(c) - cardColOffset(c);
   const dy = cellTop(rr) + cardRowOffset(rr) - cellTop(r) - cardRowOffset(r);
   gridData[r][c] = v; gridData[rr][cc] = cd;
-  // The watch follows the card: the neighbour it just changed places with is not "still".
-  if (cd._hmLast) delete cd._hmLast[String(v._id)];
   selected = selected.map(([sr, sc]) => (sr === r && sc === c) ? [rr, cc] : (sr === rr && sc === cc) ? [r, c] : [sr, sc]);
   if (swapPending && swapPending[0] === rr && swapPending[1] === cc) swapPending = [r, c];
   render();
   const g = document.getElementById('grid');
   const e1 = g?.querySelector(`[data-card-id="${cd._id}"]`), e2 = g?.querySelector(`[data-card-id="${v._id}"]`);
   if (e1 && e2 && typeof cardAnimSwap === 'function') cardAnimSwap(e1, e2, dx, dy);
-  return false;
 }
 
 // ── SEVERANCE PACKAGE (legendary Trick) ──
@@ -359,8 +358,10 @@ function hmFreeCells(opts = {}) {
   return out;
 }
 // One horseman on a random live cell. From a boss tick: only while the board is still.
-function hmSpawnRandom(kind) {
-  if (animating || falling) return false;
+function hmSpawnRandom(kind, tries) {
+  // The board is busy (a fall, a swap): try again shortly rather than skip the card.
+  if (animating || falling || (typeof dealPhase !== 'undefined' && dealPhase)) { if ((tries || 0) < 20) setTimeout(() => hmSpawnRandom(kind, (tries || 0) + 1), 400); return false; }
+  if (typeof roundEnded !== 'undefined' && roundEnded) return false;
   const cells = hmFreeCells({ notSelected: true });
   if (!cells.length) return false;
   const [r, c] = cells[Math.floor(Math.random() * cells.length)];
@@ -372,7 +373,8 @@ function hmSpawnRandom(kind) {
   return true;
 }
 // Pestilence's opening: two, in opposite corners (the nearest free cells to them).
-function hmSpawnCorners(kind) {
+function hmSpawnCorners(kind, tries) {
+  if (animating || falling || (typeof dealPhase !== 'undefined' && dealPhase)) { if ((tries || 0) < 20) setTimeout(() => hmSpawnCorners(kind, (tries || 0) + 1), 400); return; }
   const cells = hmFreeCells();
   if (!cells.length) return;
   const pairs = [[[0, 0], [gridRows - 1, gridCols - 1]], [[0, gridCols - 1], [gridRows - 1, 0]]];
