@@ -302,6 +302,23 @@ const BAL = {
   touch_up: { cards: 3, max: 0, kinds: 1 },   // r677 knack: cards buffed at a level clear; max = buffed cards allowed on the grid; kinds 1 / 2 / 3
   trophy_case: { epic: 0, legend: 0, starts: 1 },   // r685 knack: completed challenge cards become Sleights; starts = the version they arrive at
   stacked: { chance: 0.25, seconds: 30 },          // r685 knack: each Sleight on the grid may prime its column's Trick every N seconds
+  // r722 (owner): money and selling (js/money.js, MONEY_AND_SELLING.md)
+  small_change: { pay: 1, chance: 0, extra: 1, replays: 0, fours: 0, fives: 0 },   // 2s and 3s scored pay credits
+  gold_standard: { pips: 1, per: 4 },          // a diamond scores +pips for every `per` credits held
+  bonus_structure: { per10: 2, flat: 0 },      // a clear pays per10 for every 10% over the goal, plus flat
+  expense_account: { mult_per: 1 },            // +mult per credit gained or spent this level and last
+  insurance_policy: { per_credit: 3 },         // replay chance: 1% a credit of sell value + per_credit % a credit moved this level
+  fire_sale: { mult_per: 0.25 },               // +mult per credit spent or lost, for the run
+  trade_in: { cost: 10 },                      // credits a trade costs
+  four_oh_one: { step: 0.2, both: 0 },         // each sale: +x step mult or pips (both at v6)
+  time_and_a_half: { window: 0.333, pay: 1, chance: 0, extra: 1, replays: 0 },   // knack (r722): late hands pay per card
+  excursion_fund: { credits: 5 },              // knack: each event opened
+  hedge_fund: { pct: 10 },                     // knack: a level cleared without a swap pays pct of credits held
+  king_pawn: { pct: 100 },                     // knack: Tricks sell for pct of the shop price
+  buyback: { pct: 100 },                       // knack: the sold Trick's buyback price, pct of what it sold for
+  nest_egg: { gain: 5, bonus: 0.35, flat: 0 }, // Sleight: sell value + gain each landing; a mid-round sale pays bonus more
+  loan_shark: { grant: 25, pips: 30, mult: 25, cost_add: 2 },   // Sleight: the loan; while on the grid; each landing takes levels held + cost_add
+  bogo: { charges: 3, per_credits: 15, extra: 0 },               // Sleight: copies = max(credits / per_credits, credit gains this level) + extra
   very_rewarding: { times: 2, bonus: 0, hard: 0, stage: 0 },   // r685 knack: challenge rewards paid N times, then a bonus reward
   deluxe_subscription: { chance: 0.15, chance2: 0 },   // knack: an offered Trick / Sleight comes improved; chance2 (5th improvement) rolls each further one
   yoked: { mult: 2 },   // knack: card buffs gained are x this (an x buff's bonus); js/yoked.js
@@ -502,6 +519,22 @@ const DESC_TEMPLATES = {
   touch_up: '[[max<1:If there are no buffed cards]][[max:If no more than {max} buffed cards are]] on the grid when you complete a level, {cards} random cards on the grid take a buff: [[kinds<2:+pips or +mult]][[kinds>1:+pips, +mult, ×pips[[kinds<3: or ×mult]][[kinds>2:, ×mult, a second rank or a second suit]]]].[[max: Unbuffed cards first.]]',
   trophy_case: 'Completed challenge cards turn into a random Sleight ([[legend<1:[[epic<1:common or rare]][[epic:common, rare or epic]]]][[legend:any rarity]]) instead of paying their reward.[[starts>1: It arrives at v{starts}.0.]]',
   stacked: 'Every {seconds}s, each Sleight on the grid has a {chance_pct}% chance to prime the Trick in the tray slot of its column.',
+  small_change: '2s[[fours<1: and 3s]][[fours:, 3s[[fives<1: and 4s]][[fives:, 4s and 5s]]]] scored pay {pay} credit[[pay>1:s]] each[[chance:, with a {chance_pct}% chance of 1 more]].[[replays<1: Replays do not pay.]][[replays: Replays pay too.]]',
+  gold_standard: 'Diamonds score +{pips} pips for every {per} credits you hold.',
+  bonus_structure: 'Clearing a goal pays {per10} credits for every 10% your score is over it[[flat:, plus {flat}]].',
+  expense_account: 'Each hand scores +{mult_per} mult for every credit gained or spent this round and last.',
+  insurance_policy: 'Each card scored may replay: a 1% chance for every credit your Tricks and Sleights would sell for, +{per_credit}% for every credit gained or lost this round. Up to 100%.',
+  fire_sale: 'Every credit you spend or lose gives this +{mult_per} mult, for the run.',
+  trade_in: 'Selling another common or rare Trick puts a random Trick one rarity higher in its slot. [[cost:It costs {cost} credits instead of paying.]][[cost<1:It pays nothing.]] Epic Tricks sell as usual.',
+  four_oh_one: 'Each Trick, Knack or Sleight you sell adds ×{step} [[both<1:mult or ×{step} pips, at random,]][[both:mult and ×{step} pips]] to this.',
+  time_and_a_half: 'Hands played in the last [[window<0.4:third]][[window>0.4:[[window<0.6:half]][[window>0.6:two thirds]]]] of the round pay {pay} credit[[pay>1:s]] a card[[chance:, with a {chance_pct}% chance of 1 more]].[[replays<1: Replays do not pay.]][[replays: Replays pay too.]] In Flow the round is the session up to the boss.',
+  excursion_fund: 'Each event you go to pays {credits} credits.',
+  hedge_fund: 'Clearing a level without a swap pays {pct}% of the credits you hold.',
+  king_pawn: 'Tricks sell for [[pct<101:the price the shop asks for them]][[pct>101:{pct}% of the price the shop asks for them]].',
+  buyback: 'The last Trick you sold waits on the next shop\'s first shelf, improvements kept, for [[pct>99:what it sold for]][[pct<99:{pct}% of what it sold for]].',
+  nest_egg: 'Each time it is drawn, it sells for {gain} more. While it is on the grid, selling a Trick or Knack mid-round pays {bonus_pct}% more.[[flat: Sells for {flat} more.]] Inert: it cannot be swapped or discarded, only played.',
+  loan_shark: 'Pays {grant} credits when you take it. While it is on the grid, every hand scores +{pips} pips and +{mult} mult. Each time it is drawn it takes {cost_add} credits, +1 for every level you have held it. Sells for nothing. Inert: it cannot be swapped or discarded, only played.',
+  bogo: 'Double-tap: copies of a random card beside it replace cards in its row, one for every {per_credits} credits you hold or one for each time you gained credits this round, whichever is more[[extra:, plus {extra}]]. The copies are temp. ({charges} charges)',
   very_rewarding: 'Challenge cards pay their reward [[times<3:twice]][[times>2:{times} times]][[bonus:, plus a random [[hard<1:easy]][[hard:hard]] card’s stage [[stage<1:1]][[stage:2]] reward]].',
   deluxe_subscription: 'Tricks and Sleights you are offered have a {chance_pct}% chance to come improved[[chance2:, then a {chance2_pct}% chance of each further improvement]].',
   green_station: 'Sleights have a {chance_pct}% chance to get a charge back at the end of each round[[chance2:, then a {chance2_pct}% chance of one more]]. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.',

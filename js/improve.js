@@ -212,6 +212,23 @@ const IMPROVE_PLAN = {
   trophy_case:      t => ({ epic: t >= 1 ? 1 : 0, legend: t >= 4 ? 1 : 0, starts: [1, 1, 2, 3, 3, 5][t] }),
   // Stacked alternates +10% and -10s; v6 both, the time stopping at 5s
   stacked:          t => ({ chance: [0.25, 0.35, 0.35, 0.45, 0.45, 0.55][t], seconds: [30, 30, 20, 20, 10, 5][t] }),
+  // r722 (owner): money and selling.
+  small_change:     t => ({ pay: [1, 1, 2, 2, 2, 3][t], chance: [0, 0.5, 0, 0, 0.5, 0][t], replays: t >= 3 ? 1 : 0, fours: t >= 3 ? 1 : 0, fives: t >= 5 ? 1 : 0 }),
+  time_and_a_half:  t => ({ pay: [1, 1, 1, 1, 2, 2][t], chance: [0, 0.5, 0.5, 0.5, 0, 0][t], replays: t >= 2 ? 1 : 0, window: [0.333, 0.333, 0.333, 0.5, 0.5, 0.667][t] }),
+  bonus_structure:  t => ({ per10: [2, 3, 4, 4, 4, 5][t], flat: [0, 0, 0, 5, 10, 15][t] }),
+  gold_standard:    t => ({ per: [4, 3, 3, 2, 2, 1][t], pips: [1, 1, 2, 2, 3, 4][t] }),
+  expense_account:  t => ({ mult_per: [1, 1.25, 1.5, 1.75, 2, 3][t] }),
+  insurance_policy: t => ({ per_credit: [3, 4, 5, 6, 7, 10][t] }),
+  fire_sale:        t => ({ mult_per: [0.25, 0.35, 0.45, 0.55, 0.65, 1][t] }),
+  trade_in:         t => ({ cost: [10, 8, 6, 4, 2, 0][t] }),
+  four_oh_one:      t => ({ step: [0.2, 0.25, 0.3, 0.35, 0.4, 0.4][t], both: t >= 5 ? 1 : 0 }),
+  excursion_fund:   t => ({ credits: [5, 7, 9, 11, 13, 20][t] }),
+  hedge_fund:       t => ({ pct: [10, 12, 14, 16, 18, 25][t] }),
+  king_pawn:        t => ({ pct: [100, 110, 120, 130, 140, 175][t] }),
+  buyback:          t => ({ pct: [100, 90, 80, 70, 60, 40][t] }),
+  nest_egg:         t => ({ gain: [5, 8, 8, 11, 11, 14][t], bonus: [0.35, 0.35, 0.5, 0.5, 0.65, 0.8][t], flat: t >= 5 ? 20 : 0 }),
+  loan_shark:       t => ({ pips: [30, 40, 50, 60, 70, 100][t], mult: [25, 32, 39, 46, 53, 74][t] }),
+  bogo:             t => ({ charges: [3, 4, 4, 5, 5, 6][t], extra: [0, 0, 1, 1, 2, 3][t] }),
   // Very Rewarding: v2 three times; v3 a bonus easy stage 1 reward, v4 easy stage 2, v5 hard stage 1, v6 hard stage 2
   very_rewarding:   t => ({ times: t >= 1 ? 3 : 2, bonus: t >= 2 ? 1 : 0, stage: (t === 3 || t === 5) ? 1 : 0, hard: t >= 4 ? 1 : 0 }),
   green_station:    t => ({ chance: 0.3 + 0.1 * [0, 1, 2, 3, 4, 4][t], chance2: t >= 5 ? 0.3 : 0 }),
@@ -242,6 +259,7 @@ const IMPROVE_HOOKS = {
   assembly_line: () => { if (BAL.assembly_line.lines > 1 && typeof markExtraLine === 'function') markExtraLine('assembly_line'); },
   // r647: a Sleight's owned copies take its new charges (a refill where the 5th says so)
   procrastinate: tier => sleightTierCharges('procrastinate', tier),
+  bogo: tier => sleightTierCharges('bogo', tier),
   retake: tier => sleightTierCharges('retake', tier, tier >= 5),
   shredder: tier => sleightTierCharges('shredder', tier, tier >= 5),
   logistics_assistant: tier => sleightTierCharges('logistics_assistant', tier),

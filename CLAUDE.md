@@ -36,6 +36,7 @@ superseded is history, not current code. The other reference docs:
 | `RENAMES.md` | the corporate rename sweep (r711, r714): phrase bank, six languages, proposed names, the Inseparable synergy review, the id sweep plan, the owner's answers. `RENAMES.xlsx` is the review sheet; draft |
 | `SELF_IMPROVEMENT.md` + `.xlsx` | the meta shop (r715): token tree, Morning Routine / Breakfast / Lunch picks, base nerfs; draft, the sheet is for the owner to fill in |
 | `SCORING_REWORK.md` | moving Tricks from `hasTrick` checks inside calcScore to per-Trick behaviours walked in tray order (the Godot shape); the stages, the golden test, the owner's open calls (r720, in progress) |
+| `FLOW_TIME_TRICKS.md` | what "the round" is in Flow, and every entity that reads the round clock, with a recommendation each (r722) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
@@ -3810,7 +3811,58 @@ change something; the other 76 pay outside calcScore, stage 1b). Harness traps i
 (stub `printToast`), and a Trick must be granted as a COPY (`{ ...row }`): a pickup writes its line
 and rolls onto the object it is given, so a pool row granted twice keeps the first grant's state.
 
-## r722 - the Anvil; a Sleight's discard pierces; Bomb clears the board (owner)
+
+## r722 - money and selling (`js/money.js`, owner)
+MONEY_AND_SELLING.md's list as the owner set it. Credit flow: the `coins` setter calls
+`moneyOnCredits(d)` (not on a restore or before `unlockRunStarted`). A "round" for these is a
+LEVEL: `moneyFlow.cur` (credits gained or spent, both count) and `.earnN` (gains) count to the
+level being played, its payout and shop included; the next level's first change rolls `cur`
+into `prev` (`moneyRoll`). `moneyFlow`, `fireSaleMult`, `buybackItem` are in SAVE_VARS, reset
+by `moneyResetRun` at the end of startGame. Payouts go through `moneyPay` (plate + contributions).
+- **Tricks:** Small Change (common: 2s and 3s pay 1, no replays; v2 50% of 2, v3 2, v4 replays
+  and 4s, v5 50% of 3, v6 5s and 3; scalingCount via `moneyOnHand`). Gold Standard (common: a
+  diamond +1 pip per 4 credits held, a `PER_CARD_PAYERS` row). Bonus Structure (rare: a clear
+  pays 2 per 10% over the goal, +1 a tier to 4, flat 5 / 10 from v4, v6 5 and 15; `moneyOnClear`
+  from `captureGoalHand` and the challenge round's exits). Expense Account (epic: +1 mult per
+  credit moved this level and last). Insurance Policy (epic: a replay source `ins`, chance = 1%
+  per credit of sell value of your Tricks and Sleights + 3% per credit moved this level, max 100%,
+  `luckRollDet`). Firesale (rare: +0.25 mult per credit spent or lost, for the run, from the pick).
+  Trade In (rare: selling another common / rare Trick costs 10 and puts a random Trick one rarity
+  up in its slot; an epic, or too few credits, sells as usual; `tradeInIntercept` in both sell
+  doors). 401 (rare: each sale of anything adds x0.2 mult or x0.2 pips to it, on the tray object
+  `_k401m` / `_k401p`; v6 both). Unlock rows in js/data/unlocks.js (Small Change starts).
+- **Knacks:** Time and a Half no longer halves the Early Finish interval: hands in the last third
+  of the round pay 1 credit a card, no replays (v2 50% of 2, v3 replays, v4 last half, v5 2,
+  v6 last two thirds). It reads `moneyRoundLeft()`: **in Flow the round is the session**, because
+  `roundFractionRemaining()` restarts at every Flow level-up (FLOW_TIME_TRICKS.md). Excursion
+  Fund (+5 per event opened, `moneyOnEvent` in openEvent / guidedOpenNamedEvent). Hedge Fund (a
+  level cleared with no swap pays 10% of credits held). King Pawn (`trickSellValue` reads the shop
+  price). Buyback (the last Trick sold, tier kept, waits on the first Trick shelf at its sale price,
+  `buybackPayload` in `shopgTrickPayloads`; held until bought or replaced by a later sale).
+- **Sleights:** Nest Egg (rare, passive, inert on landing: +5 sell value each landing, `_eggValue`
+  durable; while on the grid a tray sale mid-round pays 35% more, `moneySalePrice`). Loan Shark
+  (rare, passive, inert: +25 credits when granted (`moneySleightGranted` in grantSleight, `_loanFrom`
+  durable), +30 pips +25 mult a hand while on the grid (the Queen's pattern, source sleight), each
+  landing takes levels held + 2, sells for 0). BOGO (epic, double_tap, 3 charges: temp copies of a
+  random neighbour replace cards in its row, max(credits / 15, gains this level) of them, at least
+  1; `bogoUse`). `moneySleightsScan` runs beside `ruleSleightsScan`. `moneySleightSellValue` is read
+  by `sleightSellValue`.
+- **Sales:** `moneySalePrice(base)` and `moneyAfterSale(kind, ent, paid)` are called by `sellTrick`,
+  `sellKnack` and `doShopSell`. A new sell door calls both.
+Measured in headless Chromium at 1440x820 and 420x900: every ladder's v1 and v6 sentence; Small
+Change 2 then 8 (v4) on 2 2 3 4 K; Time and a Half 0 early, 3 late; a 35%-over clear paid 6 + 5 Hedge
+Fund; Expense +14 mult on 14 credits moved; Gold Standard +10 a diamond at 40 credits; 401 x1.4 / x1.2;
+King Pawn sold for 10 (shop price); Trade In -10 and a rare in the slot; Buyback offered at 6 and came
+back at v3; Nest Egg landed inert, sold for 23 and lifted a sale 6 -> 8; Loan Shark +25, took 5 at 3
+levels held, +30 / +25 in the contributions; BOGO 2 copies; real hands through PLAY: no drift, no
+errors. The golden test's 802 old cases all match with the 8 new Tricks held out; the baseline is
+rewritten in r723 for the new ones.
+
+## r722-r724 numbering
+Two sessions shipped r722 and r723 in parallel: the money and selling pass (above, on main) and
+the anvil / horsemen pass (below). The merge that joined them is r724.
+
+## r722 (horsemen branch) - the Anvil; a Sleight's discard pierces; Bomb clears the board (owner)
 - **The Anvil** (`js/anvil.js`, `css/anvil.css`): the boss stone's display name (ids frozen:
   `_isStone`, suit 'stone', `makeStoneCard`, boss `stone_lord` is **THE ANVIL**). `isAnvil(card)` is
   the test (not junk, curse, challenge or Reshuffle cards). Every `ANVIL_CFG.drop` (15) seconds it
@@ -3842,7 +3894,7 @@ a curse card, junk, a Snared Q, Cash Out: no card left, anvil gone, curse card /
 draw pile (the Q with +3 pips), Cash Out in the played pile with its 3 charges. Procrastinate took an
 anvil and a curse card beside it; Fresh Start redealt both. No page errors.
 
-## r723 - the four horsemen; Severance Package; the discard fling (owner)
+## r723 (horsemen branch) - the four horsemen; Severance Package; the discard fling (owner)
 CURSE_CARDS.md has the table. `js/horsemen.js`, `css/horsemen.css`; the stone stays in `js/anvil.js`.
 - **War** is r722's anvil renamed (boss `stone_lord` reads **WAR**, `ANVIL_ICON` is a sword; the
   anvil icon stays on the sheet). Nothing else about it changed; `isAnvil` and `.anvil-card` are

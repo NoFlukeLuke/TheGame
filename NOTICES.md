@@ -402,3 +402,4 @@ r627: the paper corner at the top edge (mouse near the top, or always faint on t
 | play-hand.js (scalingCount) |  Separation Anxiety primed beside ${t.name} (quiet, r651) |
 | unlocks.js (unlockAnnounce) |  UNLOCKED: ${name} / UNLOCKED: a new ${tier} Trick (printed, r706: a goal met or a license bought; one slip per moment) |
 | suit-packs.js (suitPackOnScore) |  ♛ Crown: N cards up a rank / ☾ Crescent: N cards buffed (printed, r709); ☾ Crescent: +N credits (quiet) |
+| money.js (r722) |  Loan Shark: +L¢25 now / Loan Shark takes L¢N, Trade In: Name for a rare Trick · -L¢10 (printed: a cost the player did not press for); Small Change / Time and a Half / Bonus Structure / Hedge Fund / Excursion Fund +L¢N, Nest Egg +N, 401: +x0.2 mult, BOGO: N copies of Q♦ (quiet) |

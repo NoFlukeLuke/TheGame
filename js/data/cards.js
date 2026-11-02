@@ -364,13 +364,12 @@ const ROUND_DURATION = 180;
 // cannot drift. r213 doubled it to 5; r278 puts it back to 10 (owner's call - the
 // player was ending runs drowning in credits, and this paid in every mode). r546
 // halves it again, 10 -> 20 (owner: Classic paid too much; Flow does not use it).
-// The Time and a Half knack halves the interval, i.e. doubles the payout.
+// (r722: Time and a Half no longer touches this; it pays late hands, js/money.js.)
 const EFFICIENCY_SECONDS_PER_COIN = 20;
 // Every reader goes through this, never the raw constant, so the knack reaches
 // the payout figure, the printed labels, the count-up tick and Survival at once.
 function efficiencySecondsPerCoin() {
-  const base = (typeof hasKnack === 'function' && hasKnack('time_and_a_half'))
-    ? EFFICIENCY_SECONDS_PER_COIN / 2 : EFFICIENCY_SECONDS_PER_COIN;
+  const base = EFFICIENCY_SECONDS_PER_COIN;   // r722: Time and a Half no longer halves it (it pays late hands, js/money.js)
   // Overtime's Early finish docked (r562): the line pays a quarter, so a credit takes 4x the seconds.
   return base * ((typeof overtimeLeftoverMult === 'function') ? overtimeLeftoverMult() : 1);
 }

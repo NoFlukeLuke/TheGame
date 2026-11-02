@@ -660,6 +660,8 @@ const DURABLE_CARD_FIELDS = [
   '_whetMult', '_vulturePause',
   // a Floater (r676, js/changing.js) stays one whatever it has become
   '_floater', '_floatSeen',
+  // r722: Nest Egg's grown sell value, the level a Loan Shark was taken at (js/money.js)
+  '_eggValue', '_loanFrom',
   // Climb mode (r398): the rank the card started the run at, for the reset.
   '_climbBase',
   // A TEMP card (r278, js/card-states.js) exists for this level only. It is
@@ -819,7 +821,8 @@ function discardToPlayed(card) {
       _pile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
                    _usesLeft: card._usesLeft === 'infinite' ? 'infinite' : Math.max(0, card._usesLeft), _faceMark: card._faceMark, _playable: card._playable,
                    _adjPlays: card._adjPlays || 0, _whetMult: card._whetMult || 0, _drawFired: false,
-                   _floater: card._floater || undefined, _floatSeen: card._floatSeen || undefined });   // r676: a Floater stays one (js/changing.js)
+                   _floater: card._floater || undefined, _floatSeen: card._floatSeen || undefined,
+                   _eggValue: card._eggValue || undefined, _loanFrom: card._loanFrom ?? undefined });   // r722 (js/money.js)   // r676: a Floater stays one (js/changing.js)
       updateDeckHud();
     }
     return;
@@ -888,6 +891,7 @@ let goalHandHeld = [];      // lifted off the board, not yet back in the deck
 function captureGoalHand(cells) {
   goalHandCards = (cells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
   if (typeof touchUpOnClear === 'function') touchUpOnClear(cells);   // r677: a level is cleared (js/touch-up.js)
+  if (typeof moneyOnClear === 'function') moneyOnClear();             // r722: Bonus Structure, Hedge Fund (js/money.js)
 }
 function liftGoalHand() {
   if (!goalHandCards || !goalHandCards.length) { goalHandCards = null; return 0; }

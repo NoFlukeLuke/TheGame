@@ -1087,6 +1087,8 @@ function scalingCount(hand, handCells, reps) {
   if (typeof growCardScaling === 'function') growCardScaling(_cells.map(x => x.card), _cells.map(x => x.n));
   // Crowns and Crescents (r709, js/suit-packs.js): their rolls, once per scoring.
   if (typeof suitPackOnScore === 'function') { try { suitPackOnScore(_cells); } catch (e) { console.error('[SUIT PACK]', e); } }
+  // Small Change, Time and a Half (r722, js/money.js): credits per card, once per scoring where replays count.
+  if (typeof moneyOnHand === 'function') { try { moneyOnHand(_cells); } catch (e) { console.error('[MONEY]', e); } }
   // Suggestive (r646, owner): each card scored in its marked line has `chance` (its second
   // line: chance2) of PRIMING the Trick in the tray slot of that line's number, once per
   // replay. Primes are spent here, not in calcScore (read-only), so this is a real roll.

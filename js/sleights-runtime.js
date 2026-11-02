@@ -106,6 +106,7 @@ function grantSleight(def) {
     _id: 80000 + (Date.now() % 10000) + Math.floor(Math.random()*100),
     _usesLeft: sleightBaseCharges(def),
   };
+  if (typeof moneySleightGranted === 'function') moneySleightGranted(card);   // r722: Loan Shark pays its loan
   drawPile.push(card);
   grantedSleightIds.add(def.id);
   updateDeckHud?.();

@@ -22,15 +22,17 @@ function sellTrick(trick) {
   if (!trick) return;
   if (typeof altarTrickLocked === 'function' && altarTrickLocked(trick.id)) { refuse('That Trick is locked by The Investment'); return; }
   if (typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(trick)) { if (typeof hideTrickTooltip === 'function') hideTrickTooltip(); return; }
+  if (typeof tradeInIntercept === 'function' && tradeInIntercept(trick)) { if (typeof hideTrickTooltip === 'function') hideTrickTooltip(); shopOrBoardRepaint(); return; }   // r722
   if (typeof ulBump === 'function') ulBump('sells');   // r706: a sale that went through
   const idx = trickTray.findIndex(b => b.id === trick.id);
   if (idx >= 0) trickTray.splice(idx, 1);
   const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
   if (aidx >= 0) acquiredTricks.splice(aidx, 1);
-  const v = trickSellValue(trick);   // read before focusGrowerSold clears the ledger
+  const v = (typeof moneySalePrice === 'function') ? moneySalePrice(trickSellValue(trick)) : trickSellValue(trick);   // read before focusGrowerSold clears the ledger; r722 Nest Egg
   if (typeof focusGrowerSold === 'function') focusGrowerSold(trick);   // r708: Expanse / Quick Draw keep half
   coins += v; updateCoinsUI();
   noteMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
+  if (typeof moneyAfterSale === 'function') moneyAfterSale('trick', trick, v);   // r722: 401, Buyback
   if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
   if (typeof renderTrickTray === 'function') renderTrickTray();
   shopOrBoardRepaint();
@@ -41,9 +43,10 @@ function sellKnack(knack) {
   if (typeof ulBump === 'function') ulBump('sells');   // r706
   const aidx = acquiredKnacks.findIndex(t => t.id === knack.id);
   if (aidx >= 0) acquiredKnacks.splice(aidx, 1);
-  const v = knackSellValue();
+  const v = (typeof moneySalePrice === 'function') ? moneySalePrice(knackSellValue()) : knackSellValue();   // r722: Nest Egg
   coins += v; updateCoinsUI();
   noteMessage(`Sold ${knack.name} · +${v} credits`, 'var(--gold)');
+  if (typeof moneyAfterSale === 'function') moneyAfterSale('knack', knack, v);   // r722: 401
   if (typeof hideKnackTooltip === 'function') hideKnackTooltip();
   if (typeof updateKnackList === 'function') updateKnackList();
   shopOrBoardRepaint();

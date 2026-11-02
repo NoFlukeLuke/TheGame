@@ -887,6 +887,7 @@ function crOnClockOut() {
     crRound.over = true;
     goalReachedThisRound = true; roundEnded = true;
     if (typeof touchUpOnClear === 'function') touchUpOnClear([]);
+    if (typeof moneyOnClear === 'function') moneyOnClear();
     clearInterval(roundInterval); roundInterval = null;
     gameTimerPaused = true; frozenRoundSeconds = roundSeconds;
     if (typeof flashRoundEnd === 'function') flashRoundEnd();
@@ -898,6 +899,7 @@ function crOnClockOut() {
   crRound.result = 'lost';
   goalReachedThisRound = true;
   if (typeof touchUpOnClear === 'function') touchUpOnClear([]);
+    if (typeof moneyOnClear === 'function') moneyOnClear();
   roundEnded = true;
   clearInterval(roundInterval); roundInterval = null;
   gameTimerPaused = true;

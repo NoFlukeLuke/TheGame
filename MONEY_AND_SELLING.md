@@ -1,7 +1,13 @@
 # Money Tricks and selling: what we have, what others do, twenty ideas (r709)
 
 The owner's list from the r706 chat: we need two or three more money Tricks and at least
-three entities that interact with selling. Nothing here is built.
+three entities that interact with selling.
+
+**Built r722 (js/money.js), as the owner set them:** Small Change, Gold Standard, Bonus
+Structure, Expense Account, Insurance Policy, Firesale, Trade In and 401 (Tricks); Time and a
+Half reworked, Excursion Fund, Hedge Fund, King Pawn and Buyback (Knacks); Nest Egg, Loan Shark
+and BOGO (Sleights). Several differ from the ideas below; CLAUDE.md's r722 section is what
+shipped.
 
 ## What we have
 

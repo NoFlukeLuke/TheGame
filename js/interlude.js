@@ -244,7 +244,7 @@ async function showPayoutUI() {
   // left on it would pay for time the player has not finished spending (and pay
   // it again every level). The line becomes PAR instead: credits for every
   // efficiencySecondsPerCoin() seconds this round came in under CRUNCH_PAR_SECONDS.
-  // Same rate, so Time and a Half still doubles it without knowing this mode exists.
+  // Same rate everywhere (r722: Time and a Half no longer changes it).
   const efficiencyCoins = _withheld ? 0 : earlyFinishCredits(frozenRoundSeconds);
   // Unspent (r218): swaps and discards you did NOT use pay out. Until this, a
   // round ended with leftover manipulates worth exactly nothing, so spending them

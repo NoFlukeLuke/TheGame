@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r723 · The four horsemen: Death, Famine, Pestilence and War; Severance Package; the discard fling";
+const BUILD = "2026-11-02 · r724 · The four horsemen, Severance Package and the discard fling, merged with the money and selling pass";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

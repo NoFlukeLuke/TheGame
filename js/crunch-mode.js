@@ -156,7 +156,7 @@ function crunchRoundElapsed() {
 function crunchUnderPar() { return Math.max(0, CRUNCH_PAR_SECONDS - crunchRoundElapsed()); }
 
 // Credits for beating par, at the same rate leftover time always paid - so the
-// Time and a Half knack still doubles it without knowing this mode exists.
+// (r722: Time and a Half no longer changes this rate.)
 function crunchParCredits() {
   return Math.floor(crunchUnderPar() / efficiencySecondsPerCoin());
 }
