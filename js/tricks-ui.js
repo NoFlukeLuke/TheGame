@@ -395,6 +395,8 @@ function selectTrick(trick, fromTrickFlow = false) {
   if (trick.id === 'rising_tide') risingTideMult = 0;    // r539: counts from the pick
   if (trick.id === 'assembly_line') asmLine = { prev: null, cur: 0 };   // r646: counts from the pick; this round stands in until one ends
   if (trick.id === 'middle_man') middleManMult = 0;      // r649: likewise
+  if (trick.id === 'fire_sale') fireSaleMult = 0;        // r722: counts from the pick
+  if (trick.id === 'four_oh_one') { trick._k401m = 0; trick._k401p = 0; }   // r722: sales count from the pick
   if (typeof deluxeTake === 'function') deluxeTake(trick.id);   // Deluxe Subscription: arrives at the tier its offer showed
 
   updateTrickList();

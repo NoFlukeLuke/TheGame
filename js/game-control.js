@@ -721,6 +721,7 @@ function startGame() {
   if (typeof squaresActive === 'function' && squaresActive()) squaresBeginRun();
   // r706: counting starts (js/unlocks.js); a restore overwrites unlockRun from its save right after.
   if (typeof unlockRunStarted === 'function') unlockRunStarted();
+  if (typeof moneyResetRun === 'function') moneyResetRun();   // r722: credit flow, Firesale, Buyback (js/money.js)
 }
 
 // ══════════════════════════════════════════════

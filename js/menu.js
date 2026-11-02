@@ -1,4 +1,4 @@
-const BUILD = "2026-11-01 · r721 · Trick screens are back on; the phone tray's Tricks no longer take turns coming forward";
+const BUILD = "2026-11-02 · r722 · Money and selling: 8 Tricks, 4 Knacks, 3 Sleights; Time and a Half pays late hands";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

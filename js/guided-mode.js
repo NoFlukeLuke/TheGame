@@ -310,6 +310,7 @@ function guidedOpenNamedEvent(id, afterFn) {
   recentEventIds.push(id);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   if (typeof evmScheduled === 'function') { activeEventId = evmScheduled(id); id = activeEventId; }
+  if (typeof moneyOnEvent === 'function') moneyOnEvent();   // r722: Excursion Fund
   eventState = {};
   renderEventShell(id);
   if (typeof evShow === 'function') evShow(); else document.getElementById('event-overlay').classList.add('show');

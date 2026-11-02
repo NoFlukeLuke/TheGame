@@ -368,6 +368,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // one gate in this table that the player cannot see coming while choosing.
     { id:'even_score',    cond:() => true,                            pays:c => _rankIsEvenRank(c.rank) ? ({ pip:  TB('even_score').pips_per_card }) : null },
     { id:'odd_squad',     cond:() => true,                            pays:c => _rankIsOddRank(c.rank)  ? ({ mult: TB('odd_squad').mult_per_card })  : null },
+    { id:'gold_standard', cond:() => true,                            pays:c => c.suit === '♦' ? (n => n > 0 ? ({ pip: n }) : null)(goldStandardPips()) : null },   // r722 (js/money.js)
     { id:'men_of_means',  cond:() => true,                            pays:c => rkHas('men_of_means', c.rank) ? ({ pip: BAL.men_of_means.pips, mult: BAL.men_of_means.mult }) : null },   // r651 fused: Men of Repute + Face Value
     // Quake / Shock pay per card in the LARGEST matching rank group.
     { id:'kindred',       cond:x => x.maxCount >= 2,                  pays:(c,x) => x.topRanks.has(c.rank) ? ({ mult: BAL.kindred.mult_per_card }) : null },
@@ -435,6 +436,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _wfiFlow = typeof flowActive === 'function' && flowActive();
   const _wfiOn = hasTrick('wait_for_it') || (typeof hasKnack === 'function' && hasKnack('wait_for_it'));
   const _wfiChance = !_wfiOn ? 0 : _wfiFlow ? (typeof flowrSingleRewards !== 'undefined' ? flowrSingleRewards : 0) * BAL.wait_for_it.flow_per : negativeTilesTakenRun * BAL.wait_for_it.chance_per;
+  const _insChance = (typeof insuranceChance === 'function') ? insuranceChance() : 0;   // r722: Insurance Policy, read once a hand (js/money.js)
   const _wfiRoll = (p, id, salt) => { if (!_wfiFlow) return luckRollDet(p, id, salt); let n = Math.floor(p); if (_detReplayRand(id, salt) < p - n) n++; return n; };
   // High Roller (knack): each card has (credits + Luck)% chance to replay. Luck
   // ADDS to the percent (50 coins + 20 luck = 70%), it does not scale it, so this
@@ -630,12 +632,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // ledger rows below never bill it. Layered-hand replays are not a source.
     let _enc = !!_encoreCells && _encoreCells.has(_cKey) && _rankIsOddRank(baseRank), _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
     let _rule = (!_G && typeof ruleRankReplays === 'function') ? ruleRankReplays(baseRank) : 0;   // r675: the rank rule Sleight
+    let _ins = (!_G && _insChance > 0) ? Math.min(1, luckRollDet(_insChance, (card._id || 0) + 8317, handsPlayedRound)) : 0;   // r722: Insurance Policy
     const _srcs = [
       ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _ptN], ['res', _res ? 2 : 0], ['rip', _rip], ['evb', _evb], ['wod', _wod], ['twn', _twn],
       ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? 1 : 0], ['re', _re],
       ['rne', _rne ? 1 : 0], ['ech', _ech ? 1 : 0], ['wp', _wp ? BAL.woodpecker.retrigger_count + ((BAL.woodpecker.chance_extra > 0 && _detReplayRand((card._id || 0) + 7971, handsPlayedRound) < BAL.woodpecker.chance_extra) ? 1 : 0) : 0], ['hnm', _hnm ? 1 : 0],
       ['wfi', _wfi], ['hr', _hr], ['enc', _enc ? 1 : 0], ['lab', _lab ? 1 : 0], ['cb', _cb ? 1 : 0],
-      ['3c', _3c ? BAL.third_charm.extra_replays : 0], ['rule', _rule],
+      ['3c', _3c ? BAL.third_charm.extra_replays : 0], ['rule', _rule], ['ins', _ins],
     ].filter(x => x[1] > 0);
     const _qL = _G ? Infinity : qrlLimit();
     if (_srcs.length > _qL) {
@@ -648,7 +651,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_cutIds.has('rne')) _rne = false; if (_cutIds.has('ech')) _ech = false; if (_cutIds.has('wp')) _wp = false;
       if (_cutIds.has('hnm')) _hnm = false; if (_cutIds.has('wfi')) _wfi = 0;    if (_cutIds.has('hr')) _hr = 0;
       if (_cutIds.has('enc')) _enc = false; if (_cutIds.has('lab')) _lab = false; if (_cutIds.has('cb')) _cb = false;
-      if (_cutIds.has('3c')) _3c = false;   if (_cutIds.has('rule')) _rule = 0;
+      if (_cutIds.has('3c')) _3c = false;   if (_cutIds.has('rule')) _rule = 0;   if (_cutIds.has('ins')) _ins = 0;
       _qrlReplayCut = true;
     }
     _srcs.forEach(x => { _retrig += x[1]; });
@@ -716,6 +719,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_evb) bPipQ('even_better', _pre, 1);
       else if (_wod) bPipQ('what_odds', _pre, 1);
       else if (_twn) bPipQ('twinners', _pre, 1);
+      else if (_ins) bPipQ('insurance_policy', _pre, 1);
     }
     // The Blight, applied. A muted card falls back to its RAW pip value (plus any
     // permanent per-card buff, which is a property of the card rather than a
@@ -1023,6 +1027,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
   if (middleManBonus > 0) { mult += middleManBonus; bMult('middle_man', middleManBonus); }
+  // r722 (js/money.js): Expense Account (credits moved this level and last), Firesale (credits spent, for the run).
+  if (hasTrick('expense_account')) { const _a = expenseAccountMult(); if (_a) { mult += _a; bMult('expense_account', _a); } }
+  if (hasTrick('fire_sale') && fireSaleMult > 0) { const _a = Math.round(fireSaleMult * 100) / 100; mult += _a; bMult('fire_sale', _a); }
   // Second Hand's mult outcome, accrued as the clock passed 10s marks.
   if (pendingHandMult > 0) { mult += pendingHandMult; bMult('second_hand', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
@@ -1133,6 +1140,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   totalPips += _queenP; mult += _queenM;
   _ev('the_queen', 'pip+',  _queenP, 'sleight');
   _ev('the_queen', 'mult+', _queenM, 'sleight');
+  // Loan Shark (r722, js/money.js): while it is on the grid, every hand.
+  const _loan = (typeof loanSharkAdds === 'function') ? loanSharkAdds() : null;
+  const _loanP = _loan ? _loan.pips : 0, _loanM = _loan ? _loan.mult : 0;
+  totalPips += _loanP; mult += _loanM;
+  _ev('loan_shark', 'pip+',  _loanP, 'sleight');
+  _ev('loan_shark', 'mult+', _loanM, 'sleight');
   let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
   let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
   let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
@@ -1193,6 +1206,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_pcPips.even_score) { bPipQ('even_score', _pcPips.even_score, 1); }
   if (_pcMult.odd_squad) { bMultQ('odd_squad', _pcMult.odd_squad, 1); }
   if (_pcPips.men_of_means) { bPipQ('men_of_means', _pcPips.men_of_means, 1); }
+  if (_pcPips.gold_standard) { bPipQ('gold_standard', _pcPips.gold_standard, 1); }
   if (_pcMult.men_of_means) { bMultQ('men_of_means', _pcMult.men_of_means, 1); }
   if (_pcMult.hyper_focus) { bMultQ('hyper_focus', _pcMult.hyper_focus, 1); }
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
@@ -1277,6 +1291,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('interest') && coins > 0) {
     const _m = Math.min(TB('interest').max_pip_mult, 1 + Math.floor(coins / 10) * TB('interest').pip_mult_per_10_credits);
     if (_m > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('interest', _m, totalPips - _pre); }
+  }
+  // 401 (r722, js/money.js): the x mult and x pips its sales built.
+  if (hasTrick('four_oh_one')) {
+    const _f = fourOhOneFactors();
+    if (_f.p > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _f.p); bPipX('four_oh_one', _f.p, totalPips - _pre); }
+    if (_f.m > 1) { const _pre = mult; mult = Math.round(mult * _f.m * 10) / 10; bMultX('four_oh_one', _f.m, mult - _pre); }
   }
   // Portfolio: ×mult per card ON THE GRID carrying a permanent pip/mult buff - it
   // grows as the run invests in its deck, and shrinks as those cards cycle away.
@@ -1611,6 +1631,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_whetM  > 0) contrib.push({type:'mult',source:'sleight',id:'whetstone', delta:Math.round(_whetM*10)/10});
     if (_queenP > 0) contrib.push({type:'pip',source:'sleight',id:'the_queen', delta:_queenP});
     if (_queenM > 0) contrib.push({type:'mult',source:'sleight',id:'the_queen', delta:_queenM});
+    if (_loanP > 0) contrib.push({type:'pip',source:'sleight',id:'loan_shark', delta:_loanP});
+    if (_loanM > 0) contrib.push({type:'mult',source:'sleight',id:'loan_shark', delta:_loanM});
     if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
     if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
     if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});

@@ -496,6 +496,7 @@ function onCardTap(r, c) {
       if (jdef.id === 'dealers_choice') { dealerOpen(jcard, r, c); return; }
       // r647 (js/office-sleights.js): both leave through discardSleightAfterUse themselves.
       if (jdef.id === 'photocopier') { photocopierUse(jcard, r, c); return; }
+      if (jdef.id === 'bogo') { bogoUse(jcard, r, c); return; }   // r722 (js/money.js)
       if (jdef.id === 'logistics_assistant') { logisticsStart(jcard, r, c); return; }
       if (jdef.id === 'magnet') {
         magnetArmed = { r, c, card: jcard };

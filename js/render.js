@@ -33,6 +33,7 @@ function render() {
   // before the faces are drawn (rule_ranks prints its named ranks).
   if (typeof chgScan === 'function') chgScan();   // r676: a Floater that lands unchanged changes now
   if (typeof ruleSleightsScan === 'function') ruleSleightsScan();
+  if (typeof moneySleightsScan === 'function') moneySleightsScan();   // r722: Nest Egg, Loan Shark land
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing

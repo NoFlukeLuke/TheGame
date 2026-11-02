@@ -154,6 +154,15 @@ const TRICK_POOL = [
   // ── Level scaling ──
   // r676 (owner; CHALLENGE_REWARDS.md section 7): becomes a random Trick each round (js/changing.js). Working name.
   { id:'changeling',     name:'Temp',                tier:'epic',    desc:'At the start of each round, becomes a random Trick of any rarity. Improvements apply to the Trick it becomes.', tags:['other','chance','start'] },
+  // r722: the money and selling Tricks (MONEY_AND_SELLING.md, owner). Descriptions from DESC_TEMPLATES.
+  { id:'small_change',     name:'Small Change',     tier:'common', desc:'', tags:['credits','card','rank'] },
+  { id:'gold_standard',    name:'Gold Standard',    tier:'common', desc:'', tags:['pips','card','suit','held','scores'] },
+  { id:'bonus_structure',  name:'Bonus Structure',  tier:'rare',   desc:'', tags:['credits','other','level'] },
+  { id:'expense_account',  name:'Expense Account',  tier:'epic',   desc:'', tags:['mult','hand','scores','scaling'] },
+  { id:'insurance_policy', name:'Insurance Policy', tier:'epic',   desc:'', tags:['replay','card','scores','chance','held'] },
+  { id:'fire_sale',        name:'Firesale',         tier:'rare',   desc:'', tags:['mult','hand','shop','scores','scaling'] },
+  { id:'trade_in',         name:'Trade In',         tier:'rare',   desc:'', tags:['tricks','other','shop','cost'] },
+  { id:'four_oh_one',      name:'401',              tier:'rare',   desc:'', tags:['xmult','xpips','hand','shop','scores','scaling'] },
   { id:'middle_man',     name:'Middle Man',          tier:'rare',    desc:'Each time you gain or lose credits during a round, this gains +3 mult', tags:['mult','hand','scores','scaling'] },
   { id:'rising_tide',    name:'Rising Tide',         tier:'rare',    desc:'Each level you pass while holding this adds +5 to +10 mult to it', tags:['mult','hand','level','scores','scaling','chance'] },
   // ── Accumulating ──
@@ -263,6 +272,13 @@ const TRICK_CATEGORIES = [
   { emoji:'⚗️', ids:['well_adjusted','love_of_money','penny_perfect','to_the_clouds','cornery','hurricane','riptide','erosion','seabird','flood','relativity','men_of_means','omega_prime','stranger_still','can_even','working_class'] }, // r651: the rest of the fused Tricks (their tiles draw both parts' icons, js/inseparable.js)
   { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','clean_sweep','temporal_rift','stand_up','double_jeopardy','line_xpips','line_xmult','obligatory','suggestive','coin_sword','lie_up','right_place_time','short_circuit','advanced_interrogation','lidar','serenity'] }, // Position
   { emoji:'📈', ids:['rising_tide'] }, // Level scaling
+  { emoji:'🪙', ids:['small_change','gold_standard'] }, // r722 money
+  { emoji:'💵', ids:['bonus_structure'] },
+  { emoji:'🧾', ids:['expense_account'] },
+  { emoji:'🛡️', ids:['insurance_policy'] },
+  { emoji:'💸', ids:['fire_sale'] },
+  { emoji:'🔄', ids:['trade_in'] },
+  { emoji:'🏦', ids:['four_oh_one'] },
   { emoji:'🧮', ids:['middle_man','interest','portfolio','compound_mult','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions

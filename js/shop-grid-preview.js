@@ -90,9 +90,15 @@ function shopEffPrice(p) {
 
 // ── Sell-back values (owner spec) ──
 // knacks 30% of price · tricks 60% (floored) · sleights .75 × price × (charges left / max).
-function trickSellValue(t)   { return Math.floor((SHOP_TRICK_PRICES[t.tier] || 8) * 0.60) + (typeof focusGrowerSellBonus === 'function' ? focusGrowerSellBonus(t) : 0); }
+function trickSellValue(t)   {
+  // r722: King Pawn sells at the shop's price (BAL.king_pawn.pct of it).
+  const share = (typeof hasKnack === 'function' && hasKnack('king_pawn') && BAL.king_pawn) ? BAL.king_pawn.pct / 100 : 0.60;
+  return Math.floor((SHOP_TRICK_PRICES[t.tier] || 8) * share) + (typeof focusGrowerSellBonus === 'function' ? focusGrowerSellBonus(t) : 0);
+}
 function knackSellValue()    { return Math.round(SHOP_KNACK_PRICE * 0.30); }
 function sleightSellValue(card, def) {
+  const _own = typeof moneySleightSellValue === 'function' ? moneySleightSellValue(card) : null;   // r722: Nest Egg, Loan Shark
+  if (_own != null) return _own;
   const price = SHOP_SLEIGHT_PRICES[def.rarity] || 12;
   const max   = (def.durability === 'infinite' || def.durability == null) ? null : def.durability;
   const frac  = (max && typeof card._usesLeft === 'number') ? (card._usesLeft / max) : 1;
@@ -232,9 +238,11 @@ function shopgKnackPayloads(n) {
 }
 function shopgTrickPayloads(n) {
   const owned = new Set(acquiredTricks.map(b => b.id));
-  return shuffle(TRICK_POOL.filter(b => !owned.has(b.id))).slice(0, n)
+  const bb = (typeof buybackPayload === 'function') ? buybackPayload() : null;   // r722: Buyback takes the first shelf
+  const out = shuffle(TRICK_POOL.filter(b => !owned.has(b.id) && !(bb && b.id === buybackItem.id))).slice(0, bb ? n - 1 : n)
     .map(t => ({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
                  price: SHOP_TRICK_PRICES[t.tier] || 8, buy: () => injectTrickAfterReward(t) }));
+  return bb && n > 0 ? [bb, ...out] : out;
 }
 function shopgSleightPayloads(n) {
   return pickSleightByRarity(n, _grantedSleightSet())
@@ -1117,10 +1125,15 @@ function doShopSell(r, c) {
   if (p.trick && typeof feelinLuckyIntercept === 'function' && feelinLuckyIntercept(p.trick)) {
     shopGridItems = buildShopSellStock(); renderShopGrid(); return;
   }
-  coins += p.price; updateCoinsUI();
+  if (p.trick && typeof tradeInIntercept === 'function' && tradeInIntercept(p.trick)) {   // r722: Trade In takes the sale
+    shopGridItems = buildShopSellStock(); renderShopGrid(); return;
+  }
+  const paid = typeof moneySalePrice === 'function' ? moneySalePrice(p.price) : p.price;
+  coins += paid; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
   try { sfxRewardGood?.(); } catch (e) {}
-  noteMessage(`Sold ${p.label} - +${creditsTxt(p.price)}`, 'var(--gold)');
+  noteMessage(`Sold ${p.label} - +${creditsTxt(paid)}`, 'var(--gold)');
+  if (typeof moneyAfterSale === 'function') moneyAfterSale(p.entity, p.trick || null, paid);   // r722: 401, Buyback
   shopGridItems = buildShopSellStock();   // refresh owned view
   renderShopGrid();
 }

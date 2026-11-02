@@ -22,7 +22,7 @@ const KNACK_POOL = [
   { id:'short_change',    emoji:'🤏',  name:'Short Change',     rarity:'common', desc:'Each hand you play with fewer cards than your hand size earns 1 credit.', tags:['credits','hand','size'] },
   { id:'bulk_buyer',      emoji:'🛒',  name:'Bulk Buyer',       rarity:'rare',   desc:'The shop multi-buy discount is 5% per extra item instead of 3%.', tags:['credits','other','shop'] },
   { id:'haggler',         emoji:'🤝',  name:'Haggler',          rarity:'rare',   desc:'Shop prices are 5% lower.', tags:['credits','other','shop'] },
-  { id:'time_and_a_half', emoji:'🕰️',  name:'Time and a Half',  rarity:'rare',   desc:'Leftover round time pays double: 1 credit per 10 seconds remaining instead of 20.', tags:['credits','other','level','clock'] },
+  { id:'time_and_a_half', emoji:'🕰️',  name:'Time and a Half',  rarity:'rare',   desc:'', tags:['credits','card','clock'] },   // r722: late hands pay (js/money.js)
   { id:'gross_pay',       emoji:'🧾',  name:'Gross Pay',        rarity:'rare',   desc:'Your payout lines are uncapped. Interest and unused stock pay in full.', tags:['credits','other','level'] },
   { id:'high_roller',     emoji:'🎰',  name:'High Roller',      rarity:'epic',   desc:'Each scored card has a chance to replay equal to your credits plus your Luck, as a percent. Over 100% guarantees a replay and rolls the remainder for another.', tags:['replay','card','scores','chance','held'] },
   { id:'combo_keeper',    emoji:'🔥',  name:'Combo Keeper',     rarity:'rare',   desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.', tags:['other','streak'] },
@@ -97,6 +97,11 @@ const KNACK_POOL = [
   { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back - alternating swap, then discard.', tags:['stock','other','clock','cost'] },
   { id:'jury_rig',        emoji:'🔧',  name:'Jury-Rig',         rarity:'rare', desc:'Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight.', tags:['other','sleights','position','swap','discard','chance','charges'] },
   // ── Focus-payout knacks (r123): fire when you reach max Focus ──
+  // r722 (owner): money and selling Knacks. Descriptions from DESC_TEMPLATES.
+  { id:'excursion_fund', emoji:'🎟️', name:'Excursion Fund', rarity:'common', desc:'', tags:['credits','other','reward'] },
+  { id:'hedge_fund',     emoji:'⚖️', name:'Hedge Fund',     rarity:'rare',   desc:'', tags:['credits','other','level','swap','held'] },
+  { id:'king_pawn',      emoji:'🤝', name:'King Pawn',      rarity:'rare',   desc:'', tags:['credits','other','shop'] },
+  { id:'buyback',        emoji:'🛒', name:'Buyback',        rarity:'rare',   desc:'', tags:['tricks','other','shop'] },
   { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you hit your Focus limit, gain 8 credits, then Focus resets to a third of the limit.', tags:['credits','other','cost'] },
   { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your Focus limit is 10 lower. At the end of each round, gain credits equal to half your current Focus.', tags:['credits','focus','other','level','cost'] },
   { id:'knock_on',     emoji:'🔗',  name:'Knock-On',      rarity:'rare', desc:'Whenever a limit other than Focus Cap goes up, another random limit goes up too.', tags:['limit','other'] },
