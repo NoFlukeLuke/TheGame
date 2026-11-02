@@ -44,6 +44,7 @@ const TRICK_POOL = [
   { id:'face_value',     name:'Face Value',          tier:'common',    desc:'Face cards (J/Q/K) score +20 pips', tags:['pips','card','rank','scores'] },
   { id:'king_guard',     name:'Men of Repute',       tier:'common',    desc:'Kings and Jacks score +8 pips and +8 mult', tags:['pips','mult','card','rank','scores'] },
   { id:'knave_power',    name:'Jackpot',              tier:'legendary', desc:'Score ×1.5 pips for each Jack on the grid', tags:['xpips','hand','rank','scores'] },
+  { id:'severance_package', name:'Severance Package', tier:'legendary', desc:'Double-tap a curse card or a stone: spend 1 swap and 1 discard to discard it.', tags:['board','other','swap','discard','cost'] },
   { id:'humble_roots',   name:'Every Day Essentials', tier:'common',   desc:'Rank-6-and-below cards score their rank ×3 pips', tags:['pips','card','rank','scores'] },
   { id:'before_the_tide', name:'Gnomes',             tier:'epic',      desc:'Each rank 5 or lower card scored adds its rank in Focus', tags:['focus','card','rank'] },
   { id:'royal_trio',     name:'Heads of State',      tier:'epic',      desc:'A hand containing a King and one other Royal scores ×2 mult', tags:['xmult','hand','rank','scores'] },
@@ -274,7 +275,7 @@ const TRICK_CATEGORIES = [
   { emoji:'4️⃣', ids:['four_eyes','four_horseman','wait_four_it'] }, // 4-card hands
   { emoji:'5️⃣', ids:['five_stack','five_fodder','five_second','little_guys'] }, // 5-card hands
   { emoji:'🪄', ids:['magician','scalper'] }, // Sleights
-  { emoji:'🗑️', ids:['landfill'] }, // Discards and swaps
+  { emoji:'🗑️', ids:['landfill','severance_package'] }, // Discards and swaps
   { emoji:'🦎', ids:['changeling'] }, // r676: changes every round (its tile shows the form's icon while it has one)
 ];
 const TRICK_EMOJI = {};

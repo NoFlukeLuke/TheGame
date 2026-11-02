@@ -1,0 +1,58 @@
+/* ── The four horsemen (r723, js/horsemen.js) ──────────────────────────────
+   Death, Famine and Pestilence are curse cards on the junk card's box. A black
+   card with a coloured edge, a clock bar draining behind a big icon. War is the
+   stone (css/anvil.css). */
+#grid .stone-card.junk-card.curse-card.hm-card {
+  background: #08080a; color: #fff;
+  border-color: var(--hmc, #f4f4f4) !important;   /* beats the curse card's red edge (css/event-toys.css) */
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, 0 3px 6px rgba(0,0,0,.6);
+  flex-direction: column; gap: 0; justify-content: center; overflow: hidden; isolation: isolate;
+}
+#grid .hm-card.hm-death  { --hmc: #f4f4f4; --hmb: #3a3a44; }
+#grid .hm-card.hm-famine { --hmc: #f08a2c; --hmb: #4a2a08; }
+#grid .hm-card.hm-pest   { --hmc: #6fcf5a; --hmb: #163a12; }
+#grid .hm-card.swap-pending { border-color: var(--gold) !important; box-shadow: 0 0 0 1px #000, 0 0 16px rgba(232,184,75,.7); }
+/* The clock: fills the card at the start, drains to the floor. */
+#grid .hm-card .hm-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: -1; pointer-events: none;
+  height: calc(var(--hb, 1) * 100%); background: var(--hmb, #333);
+  transition: height .9s linear;
+}
+#grid .hm-card.hm-jit .hm-bar { background: #5a1414; }
+#grid .hm-card .hm-ico { line-height: 0; pointer-events: none; font-size: calc(min(var(--card-w, 57px), var(--card-h, 75px)) * .62); }
+#grid .hm-card .hm-ico .rwd-em { display: block; }
+#grid .hm-card .hm-ico .px-ico.px-light { filter: none; }
+#grid .hm-card .hm-word { font-family: 'Share Tech Mono', monospace; font-size: calc(var(--card-h, 75px) * .11); letter-spacing: 1px; color: var(--hmc, #fff); opacity: .85; pointer-events: none; }
+/* Death: the scythe turns; a small arrow says where it flies. */
+#grid .hm-death .hm-ico .rwd-em { animation: hm-spin 3.2s linear infinite; }
+@keyframes hm-spin { to { rotate: 360deg; } }
+#grid .hm-card .hm-arrow {
+  position: absolute; top: 2px; right: 3px; pointer-events: none;
+  font-family: 'Share Tech Mono', monospace; font-weight: 700; line-height: 1;
+  font-size: calc(var(--card-h, 75px) * .2); color: #fff; text-shadow: 0 0 3px #000, 0 0 1px #000;
+}
+/* Embedded: it does not fall. Drawn over the cards that fall past it. */
+#grid .hm-card.hm-stuck { z-index: 6; rotate: -5deg; border-color: #bbb; }
+#grid .hm-card.hm-stuck .hm-arrow { animation: hm-blink 1s steps(2) infinite; }
+@keyframes hm-blink { 50% { opacity: .25; } }
+/* The last seconds: a jitter. */
+#grid .hm-card.hm-jit { animation: hm-jit .14s linear infinite; }
+@keyframes hm-jit {
+  0%   { translate: 0 0; }
+  25%  { translate: 2px -1px; }
+  50%  { translate: -2px 1px; }
+  75%  { translate: 1px 2px; }
+  100% { translate: 0 0; }
+}
+#grid .hm-card.hm-stuck.hm-jit { animation: hm-jit-stuck .14s linear infinite; }
+@keyframes hm-jit-stuck {
+  0%   { translate: 0 0; rotate: -5deg; }
+  50%  { translate: -2px 1px; rotate: -3deg; }
+  100% { translate: 0 0; rotate: -5deg; }
+}
+/* Pestilence breathes. */
+#grid .hm-pest .hm-ico .rwd-em { animation: hm-breathe 1.8s ease-in-out infinite; }
+@keyframes hm-breathe { 50% { scale: 1.12; filter: brightness(1.4); } }
+@media (prefers-reduced-motion: reduce) {
+  #grid .hm-card, #grid .hm-card.hm-stuck, #grid .hm-card .rwd-em, #grid .hm-card .hm-arrow { animation: none !important; }
+}

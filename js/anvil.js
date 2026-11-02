@@ -21,7 +21,7 @@
 // and Recalled cards, held and quarantined cells. `pierceCanTake` is the test,
 // `pierceRoute` where each one goes.
 const ANVIL_CFG = { drop: 15, warn: 10, rest: 30 };
-const ANVIL_ICON = '⚒';   // drawn as the pixel anvil (tools/icons/manifest.js, lorc/anvil)
+const ANVIL_ICON = '🗡';   // r723: WAR, a sword (tools/icons/manifest.js, lorc/broadsword); '⚒' was r722's anvil
 
 function isAnvil(c) { return !!(c && c._isStone && c.suit === 'stone' && !c._junk && !c._isChallenge && !c._isReshuffle && !c._isTrick); }
 
@@ -36,6 +36,7 @@ function anvilBelow(r, c) {
 function anvilCrushable(cd) {
   if (!cd) return true;
   if (isAnvil(cd) || cd._isChallenge || cd._isReshuffle || cd._isTrick) return false;
+  if (typeof isHorseman === 'function' && isHorseman(cd)) return false;   // r723: a horseman is never crushed or cut
   if (cd._isSleight && typeof AIM_SLEIGHTS !== 'undefined' && AIM_SLEIGHTS.has(sleightDef(cd)?.id)) return false;
   return true;
 }

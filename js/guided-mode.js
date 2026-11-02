@@ -405,7 +405,7 @@ const CHALLENGE_DEFS = [
   // round's clock starts, torn down by miniBossClear at the settle.
   // test: () => true because the settle only ever runs on a cleared round.
   { id:'mini_stones', goalMult:1.20, credits:26, mini: { modifier: '_stones' },
-    label:'Anvils land on the board.',
+    label:'War cards land on the board.',
     test: () => true },
   { id:'mini_toll',   goalMult:1.20, credits:24,
     mini: { modifier: 'interact_surcharge', params: { costMult: 1.5, playCostAdd: 2 } },

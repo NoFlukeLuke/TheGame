@@ -483,7 +483,7 @@ function cardCan(card, action) {
     // the deck at the round's end instead of deleting it like a stone. It still
     // cannot be SELECTED, so the player has no way to discard it by hand.
     if (card._junk && action === 'discard') return true;
-    if (card._curseCard && action === 'swap') return false;   // r590: a curse card stays where it lands
+    if (card._curseCard && action === 'swap') return typeof curseCardSwappable === 'function' && curseCardSwappable(card);   // r723: Famine, and Death before its first flight
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';
   }
   if (card._isSleight) {

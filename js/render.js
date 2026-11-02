@@ -381,7 +381,8 @@ function render() {
   if (typeof renderLineMarkers === 'function') renderLineMarkers();
   if (typeof renderQuotaLines === 'function') renderQuotaLines();
   if (typeof crPaintLocks === 'function') crPaintLocks();
-  if (typeof anvilPaint === 'function') anvilPaint();   // r722: the card under an anvil shakes   // fall-type challenge cards' locked lines
+  if (typeof anvilPaint === 'function') anvilPaint();   // r722: the card under an anvil shakes
+  if (typeof horsemenPaint === 'function') horsemenPaint();   // r723: the horsemen's clock bars   // fall-type challenge cards' locked lines
   if (typeof sweepPaint === 'function') sweepPaint();       // r572: All Hands's picked hands
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.

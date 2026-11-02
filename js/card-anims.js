@@ -36,6 +36,7 @@ const CARD_ANIM_KINDS = [
       { id: 'toss',    name: 'A · Toss', step: 6, desc: 'Flicked off the board with a spin.' },
       { id: 'crumple', name: 'B · Crumple', step: 6, desc: 'Squashed into a ball that drops away.' },
       { id: 'sink',    name: 'C · Sink', step: 6, desc: 'Tips onto one corner and sinks into the table with a slight spin; the cards above fall in over it.' },
+      { id: 'fling',   name: 'D · Fling', desc: 'A short lift toward the top of the board, then flung down hard and out of the bottom.' },
       { id: 'mech',    name: 'T · Filed', desc: 'Terminal look: pulled straight down into a slot below the board. No spin.' },
     ] },
   { id: 'cut', label: 'Cut from deck', note: 'A card removed from the run for good.',
@@ -74,7 +75,7 @@ const CARD_ANIM_KEY = 'lethe.cardAnims.v1';
 let _cardAnimPick = (() => { try { return JSON.parse(localStorage.getItem(CARD_ANIM_KEY)) || {}; } catch (e) { return {}; } })();
 
 // The owner's picks (r468). The store holds only choices that differ from these.
-const CARD_ANIM_DEFAULT = { swap: 'leapfrog', fly: 'pinball', discard: 'sink', cut: 'snip', buff: 'stamp', boss: 'static', idle: 'watch' };
+const CARD_ANIM_DEFAULT = { swap: 'leapfrog', fly: 'pinball', discard: 'fling', cut: 'snip', buff: 'stamp', boss: 'static', idle: 'watch' };
 // Which look a kind uses. A look that is not built yet reads as 'current'.
 function cardAnimChoice(kind) {
   let id = _cardAnimPick[kind] || CARD_ANIM_DEFAULT[kind] || 'current';
@@ -315,7 +316,7 @@ function caAim(el, target) {
 }
 const caZ = el => { el.style.zIndex = '20'; };
 const caRnd = () => (typeof fxRandom === 'function' ? fxRandom() : Math.random());
-const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 200, mech: 220 }, cut: { current: 280, burn: 620, snip: 600, deep: 520, mech: 260 } };
+const CARD_EXIT_MS = { discard: { current: 280, toss: 440, crumple: 480, sink: 200, mech: 220, fling: 300 }, cut: { current: 280, burn: 620, snip: 600, deep: 520, mech: 260 } };
 // Sink (r468): the board waits only CARD_EXIT_MS for it. The card itself is a
 // stand-in copy that keeps sinking for CA_SINK_MS while the cards above fall in
 // over it, so it is drawn under its neighbours and carries no card id.
@@ -382,6 +383,17 @@ CARD_ANIM_RUN.discard.sink = async ({ cards, lab }) => {
     return caSinkInto(c, caRnd() < .5 ? -1 : 1, CA_SINK_MS, i * 40);
   });
   await (lab ? Promise.all(done) : caWait(CARD_EXIT_MS.discard.sink + (cards.length - 1) * 40));
+};
+
+// D (r723, owner, the default): a short lift toward the top of the board, then flung down hard.
+CARD_ANIM_RUN.discard.fling = async ({ cards }) => {
+  await Promise.all(cards.map((el, i) => { caZ(el); const h = el.offsetHeight, side = caRnd() < .5 ? -1 : 1;
+    return caKeep(el, [
+      { translate: '0px 0px', rotate: '0deg', scale: '1', opacity: 1 },
+      { translate: caT(side * 2, -h * .22), rotate: `${side * -4}deg`, scale: '1.04', opacity: 1, offset: .22 },
+      { translate: caT(side * 6, h * 2.4), rotate: `${side * 14}deg`, scale: '.86', opacity: 1, offset: .85 },
+      { translate: caT(side * 8, h * 3.2), rotate: `${side * 18}deg`, scale: '.8', opacity: 0 }],
+      { duration: CARD_EXIT_MS.discard.fling, delay: i * 30, easing: 'cubic-bezier(.55,0,.95,.45)' }); }));
 };
 
 // T: the Terminal look. A 3px dip (the solenoid grabbing it), then pulled

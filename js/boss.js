@@ -111,12 +111,19 @@ function isJunkCard(c) { return !!(c && c._junk && !c._curseCard); }
 // into the deck (curseCardTick, js/card-states.js). Only undoing a curse removes
 // it (Clean Slate, Clean Up). Extra Rep is the first thing that costs them.
 const CURSE_CARD_LIFE = 120;
+// r723 (owner): the curse cards are the horsemen (js/horsemen.js). Leech and Smog are
+// retired: never drawn, kept so a saved run that holds one still works.
 const CURSE_CARD_DEFS = {
-  leech: { name: 'Leech', icon: '🩸', desc: 'Playing a hand next to it costs 2s.', secs: 2 },
-  smog:  { name: 'Smog',  icon: '☁',  desc: 'Hands next to it score ×0.8 mult.', mult: 0.8 },
+  death:  { name: 'Death',      icon: '⚰', desc: 'Every 30s it flies the way it faces. Every card in its path goes to the played pile. It sticks where it stops.' },
+  famine: { name: 'Famine',     icon: '🥣', desc: 'Swap it every 30s or it takes a swap, a discard, 20s, a Trick for 20s or every Sleight on the grid.' },
+  pest:   { name: 'Pestilence', icon: '☣', desc: 'Changes places with a neighbour every 15s. A card that sits still beside it for 20s becomes one.' },
+  leech: { name: 'Leech', icon: '🩸', desc: 'Playing a hand next to it costs 2s.', secs: 2, retired: true },
+  smog:  { name: 'Smog',  icon: '☁',  desc: 'Hands next to it score ×0.8 mult.', mult: 0.8, retired: true },
 };
+function curseCardKinds() { return Object.keys(CURSE_CARD_DEFS).filter(k => !CURSE_CARD_DEFS[k].retired); }
 function makeCurseCard(kind) {
-  const k = kind || Object.keys(CURSE_CARD_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_CARD_DEFS).length)];
+  const _ks = curseCardKinds();
+  const k = kind || _ks[Math.floor(Math.random() * _ks.length)];
   return stampId({ rank: '?', suit: 'junk', _isStone: true, _junk: true, _curseCard: k });
 }
 function isCurseCard(c) { return !!(c && c._curseCard); }
@@ -202,11 +209,12 @@ function placeStonesOnGrid(count) {
 function purgeStonesFromDeck() {
   // Remove all stones from drawPile, playedPile, and grid
   // Junk (r576) is yours, not the boss's: it stays.
-  drawPile = drawPile.filter(c => !c._isStone || c._junk);
-  playedPile = playedPile.filter(c => !c._isStone || c._junk);
+  // r723: a boss's horseman is a TEMP curse card; it goes with the stones.
+  drawPile = drawPile.filter(c => !c._isStone || (c._junk && !c._temp));
+  playedPile = playedPile.filter(c => !c._isStone || (c._junk && !c._temp));
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
-      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge && !gridData[r][c]._junk) {
+      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge && (!gridData[r][c]._junk || (gridData[r][c]._temp && gridData[r][c]._curseCard))) {
         gridData[r][c] = drawCard() || null; // refill with a real card
       }
     }
@@ -337,6 +345,17 @@ function applyBossModifiers(preset) {
                                  * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
         placeStonesOnGrid(_onBoard);
         injectStonesIntoDeck(_inDeck);
+        break;
+      }
+      // r723 (owner): THE REAPER. One Death card when the clock starts (the opening
+      // call), another every everySecs. Its time rule is in deathBossSeconds (js/horsemen.js).
+      case 'inject_death':
+        bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('death'); });
+        break;
+      // THE PLAGUE: two Pestilence cards in opposite corners, then one every everySecs.
+      case 'inject_pestilence': {
+        let _n = 0;
+        bossSchedule(preset.params.everySecs || 60, () => { if (_n++ === 0) hmSpawnCorners('pest'); else hmSpawnRandom('pest'); });
         break;
       }
       case 'void_corners':
@@ -515,6 +534,7 @@ function maybeFamineDrawSwap(card) { return card; }
 function isTrickDisabledByBoss(trickId) {
   // r590: The Investment can lock Tricks too. Every "is this Trick switched off" read goes through here.
   if (typeof altarTrickLocked === 'function' && altarTrickLocked(trickId)) return true;
+  if (typeof famineMutedTrick === 'function' && famineMutedTrick(trickId)) return true;   // r723: Famine's mute
   if (!bossActive) return false;
   if (hasSleightOnGrid('fight_power')) return false; // Fight the Power ignores boss effects
   if (typeof bossTrickBlackedOut === 'function' && bossTrickBlackedOut(trickId)) return true; // The Censor

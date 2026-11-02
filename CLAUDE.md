@@ -38,7 +38,7 @@ superseded is history, not current code. The other reference docs:
 | `SCORING_REWORK.md` | moving Tricks from `hasTrick` checks inside calcScore to per-Trick behaviours walked in tray order (the Godot shape); the stages, the golden test, the owner's open calls (r720, in progress) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
-| `CURSE_CARDS.md` | curse cards: the two curse systems, the consolidation plan, ten curse card ideas (r722); draft, awaiting the owner |
+| `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -145,7 +145,7 @@ and clock from JS because the board moves.
   Leaves the board through `discardSleightAfterUse` / `discardToPlayed` (which keeps charges);
   `discardToDrawPile` silently drops Sleights.
 - **Knack**: not a card. `acquiredKnacks[]`, `hasKnack(id)`.
-- **Stone** (shown as the **Anvil** since r722, see below), **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
+- **Stone** (shown as **War** since r723, see below), **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
   challenge round's card, `_isStone` + `_isChallenge`, falls and renders only; see below).
 - `cardCan(card, action)` gates select/swap/discard/fall/render.
 
@@ -3841,4 +3841,48 @@ down a row; the bottom anvil counted its 30s. Bomb by real tap and DISCARD on a 
 a curse card, junk, a Snared Q, Cash Out: no card left, anvil gone, curse card / junk / the Q in the
 draw pile (the Q with +3 pips), Cash Out in the played pile with its 3 charges. Procrastinate took an
 anvil and a curse card beside it; Fresh Start redealt both. No page errors.
+
+## r723 - the four horsemen; Severance Package; the discard fling (owner)
+CURSE_CARDS.md has the table. `js/horsemen.js`, `css/horsemen.css`; the stone stays in `js/anvil.js`.
+- **War** is r722's anvil renamed (boss `stone_lord` reads **WAR**, `ANVIL_ICON` is a sword; the
+  anvil icon stays on the sheet). Nothing else about it changed; `isAnvil` and `.anvil-card` are
+  the code names.
+- **Death, Famine, Pestilence** are curse cards (`CURSE_CARD_DEFS` in js/boss.js: `death`,
+  `famine`, `pest`; Leech and Smog are `retired`, never drawn, `curseCardKinds()`).
+  `isHorseman(card)`; `hmEnsure` rolls a card's timer and direction the first time the board sees
+  it. Timers live on the board card (`_hmT`, `_dir`, `_flown`, `_fixed`, `_hmSpread`, `_hmLast`),
+  ticked by `horsemenTick` from the round tick (counts always, acts only while the board is
+  still); `curseCardTick`'s 120s return skips them. `horsemenPaint` (the tick and render's tail)
+  writes each face's clock bar (`--hb`) and jitter. A boss's horseman is `_temp` (`hmSpawnAt`).
+  **Death** (`deathFly`): the cut cards leave through the deck editor's cut look
+  (`cardAnimExit('cut')`, ids stripped first), it moves in data, `removeAndFall([], 'anvil')`
+  refills, and its element is flipped from its old cell. **A `_fixed` card keeps its cell**:
+  `cardFixedAt(r, c)` is read by `removeAndFall`'s two playable-row loops and `fillGridHoles`, so
+  cards fall PAST it (its cell is left out like a void). `cardCan` swap for a curse card asks
+  `curseCardSwappable` (Famine always, Death until `_flown`). **Famine** (`famineFire`): one of
+  stock / time / a Trick muted (`famineMuted`, read by `isTrickDisabledByBoss` ahead of the boss
+  tests, so the chip greys) / every Sleight on the grid (`pierceRoute`); `horsemenOnSwap` (doSwap,
+  after the data swap) resets its clock. **Pestilence** (`pestWatch` / `pestAct`): a draft; the
+  owner has not settled it.
+- **Bosses** (js/data/bosses.js, modifiers in applyBossModifiers): `the_reaper` (`inject_death`:
+  `bossSchedule`'s opening call places the first, then one every 45s, `hmSpawnRandom`; the cards
+  the scythe takes cost half their rank in seconds, `deathBossSeconds`) and `the_plague`
+  (`inject_pestilence`: `hmSpawnCorners`, then one a minute). `purgeStonesFromDeck` also drops a
+  temp curse card. `anvilCrushable` refuses a horseman, so they never take each other.
+- **Severance Package** (legendary Trick `severance_package`, `BAL.severance_package`, unlocks with a
+  won run): `severanceTap(r, c)` runs in `onCardTap` ahead of the cardCan gate with its own
+  double-tap timer; spends the stock, `pierceRoute`, `removeAndFall('discard')`. With it in the
+  tray a double-tap no longer lifts a stone for a swap.
+- **The discard look is Fling** (`CARD_ANIM_DEFAULT.discard`, js/card-anims.js): a short lift
+  toward the top of the board, then flung down hard and out of the bottom, 300ms. Sink stays in
+  the lab.
+Measured in headless Chromium at 1440x820 and 420x900: a Death card facing right flew from (1,1)
+to (1,3) taking the two cards on the way to the played pile (+2), fixed, a new direction and a
+fresh 30s; two cards below it discarded, it stayed at (1,3) and the column fell past it; its face
+read the arrow, the bar at 0.1 and the jitter class in the last 5s. Famine at 0 took a swap; a
+real double-tap-and-tap swap moved it and reset its clock (29). Pestilence with a neighbour still
+for 20s infected it (2 on the board, 1 temp) and at its moment changed places with a neighbour.
+Severance Package by real clicks discarded a Pestilence card and a War stone for 1 swap + 1
+discard each and refused with no swaps. THE REAPER opened with one Death card (temp) and a forced
+flight over a 2 and a 3 cost 3s. The fling's leaving cards rose 27px then dropped. No page errors.
 

@@ -437,6 +437,7 @@ function curseCardTick() {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const cd = gridData[r]?.[c];
     if (!cd || !cd._curseCard) continue;
+    if (typeof isHorseman === 'function' && isHorseman(cd)) continue;   // r723: the horsemen keep their own time (js/horsemen.js)
     const k = cardId(cd); live.add(k);
     curseCardSecs[k] = (curseCardSecs[k] || 0) + 1;
     if (curseCardSecs[k] >= CURSE_CARD_LIFE) due.push([r, c]);

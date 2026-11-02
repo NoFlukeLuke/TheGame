@@ -1,4 +1,4 @@
-const BUILD = "2026-11-01 · r722 · The Anvil: anvils drop a row every 15s and crush the card under them; a Sleight discard pierces curses and anvils; Bomb clears the board";
+const BUILD = "2026-11-02 · r723 · The four horsemen: Death, Famine, Pestilence and War; Severance Package; the discard fling";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

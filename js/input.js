@@ -199,6 +199,7 @@ function doSwap(r1, c1, r2, c2) {
   const tmp = gridData[r1][c1];
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
+  if (typeof horsemenOnSwap === 'function') horsemenOnSwap([[r1, c1], [r2, c2]]);   // r723: a swap resets Famine's clock
 
   // Pivot payout: both swapped cards take +5 permanent mult, keyed by card identity
   // (cardId), so the buff follows that one physical card through the deck. The Pivot
@@ -419,6 +420,8 @@ function onCardTap(r, c) {
       return;
     }
   }
+  // r723: Severance Package (js/horsemen.js): a double-tap on a curse card or stone discards it for stock.
+  if (typeof severanceTap === 'function' && severanceTap(r, c)) return;
   if (!cardCan(gridData[r]?.[c], 'select') && !cardCan(gridData[r]?.[c], 'swap')) { dbgEvent('warn', `tap blocked: cardCan=false`, { card: _cardStr }); return; }
 
   const now = Date.now();

@@ -96,6 +96,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - ⬍ vertical-flip
 - ⬌ horizontal-flip
 - 💾 save
+- 🥣 grain
 
 ## faithtoken
 
@@ -170,6 +171,9 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🫅 queen-crown
 - 🏆 trophy
 - ⚒ anvil
+- 🗡 broadsword
+- ☣ biohazard
+- ⚰ scythe
 
 ## priorblue
 

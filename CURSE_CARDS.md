@@ -1,4 +1,52 @@
-# CURSE CARDS - consolidating curses, ten ideas (r722, draft for the owner)
+# CURSE CARDS - the four horsemen (r723), the parked conditions, the ten ideas
+
+## Built (r723)
+
+Four curse cards, one a horseman each (`js/horsemen.js`, `js/anvil.js`). A curse card sits
+on the board, cannot be selected, played or discarded by hand, and a Sleight's discard or
+Severance Package removes it.
+
+| horseman | card | does |
+|---|---|---|
+| **War** | the boss stone (`isAnvil`), a sword | every 15s drops a row and crushes the card under it to the played pile; rests 30s at the bottom, then drops out. Swappable. |
+| **Death** | curse card `death`, a spinning scythe with an arrow | every 30s flies the way the arrow points; every card in its path goes to the played pile (the deck editor's cut look); it embeds where it stops and rolls a new direction. Falls and can be swapped until its first flight, then neither. |
+| **Famine** | curse card `famine` | a 30s clock, reset by swapping it. At 0 one of: a swap or a discard of stock, 20s off the clock, a Trick muted for 20s, every Sleight on the grid discarded (charges kept). |
+| **Pestilence** | curse card `pest` (DRAFT, see below) | every 15s changes places with a neighbour; a card that sat still beside it for 20s is infected (that card to the played pile, a temp Pestilence in its cell; at most 4 on the board); one that has not spread for 65s leaves. |
+
+Bosses: **WAR** (the old Stone Lord), **THE REAPER** (one Death card at the start, another every
+45s; cards the scythe takes cost half their rank in seconds), **THE PLAGUE** (two Pestilence cards
+in opposite corners, another every minute). Famine has no boss yet. A boss's horseman is a temp
+card: never in the deck, gone at the round's end.
+
+**Severance Package** (legendary Trick): double-tap a curse card or a stone to discard it for
+1 swap and 1 discard. With it in the tray the double-tap lifts no stone for a swap (lift the
+other card and tap the stone instead).
+
+Every number is in `HM` (js/horsemen.js) and `ANVIL_CFG` (js/anvil.js).
+
+### Pestilence, the open call (owner: "let's chat about that one")
+
+Built as the owner's first sketch. The alternatives raised:
+
+1. **As built:** spreads onto a neighbour that sat still 20s; moves itself every 15s; leaves
+   after 65s without spreading. Readable, and the counterplay (keep the cards around it moving)
+   is on the board.
+2. **Play it to hold it:** it must be included in a hand every N seconds or it spreads; playing
+   it does not remove it (it stays in its cell, scores nothing). A hand with a dead card in it
+   is a real cost. It would need the selection rules to allow a card that scores nothing (a
+   kicker that is not billed), which is a change to hand detection.
+3. **Both:** it spreads on a clock; playing it resets the clock.
+
+### The parked conditions (owner's four)
+
+Named but not built: **Dead** (scores nothing, fires no Tricks), **Starved** (cannot form a hand:
+a kicker), **Scarred**, **Spoiled**. The owner's note: Starved is the better fit for "becomes a
+kicker"; Famine's starving carries the stock / time / Sleight loss; Spoiled as "discards cards
+around it" is the weakest. Each would be given by its horseman. Leaden / Taxing / Snared stay in
+the game until these replace them. Leech and Smog are retired (never drawn; a saved run keeps
+them).
+
+## The r722 survey (kept for the record)
 
 Owner's direction: one or two more kinds of curse CARD, then remove the other
 curse effects, so curse cards turn up often enough to build entities around

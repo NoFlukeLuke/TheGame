@@ -30,6 +30,10 @@ function renderCardAppearance(card, r, c, {
   if (!isChallenge && card._isStone) {
     if (card._curseCard && typeof CURSE_CARD_DEFS !== 'undefined' && CURSE_CARD_DEFS[card._curseCard]) {   // r590: a curse card
       const d = CURSE_CARD_DEFS[card._curseCard];
+      if (typeof isHorseman === 'function' && isHorseman(card)) {   // r723: the horsemen (js/horsemen.js, css/horsemen.css)
+        hmEnsure(card, r, c);
+        return { className: 'card stone-card junk-card curse-card' + horsemenFaceClass(card) + (isSwapPending ? ' swap-pending' : ''), innerHTML: horsemenFaceHTML(card) };
+      }
       return { className: 'card stone-card junk-card curse-card', innerHTML: `<div class="junk-glyph">${d.icon}</div><div class="junk-word">${d.name.toUpperCase()}</div>` };
     }
     if (card._junk) return {   // r576: junk, an empty card that stays in your deck
@@ -428,7 +432,8 @@ async function removeAndFall(removingCells, mode = 'play') {
   const newCards = [];
   for (let col = 0; col < gridCols; col++) {
     const playableRows = [];
-    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col)) playableRows.push(r);
+    // r723: a FIXED card (an embedded Death card, js/horsemen.js) keeps its cell; the others fall past it.
+    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col) && !cardFixedAt(r, col)) playableRows.push(r);
     if (playableRows.length === 0) continue;
     const survivors = [];
     for (const r of playableRows) {
@@ -474,7 +479,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
   for (let col = 0; col < gridCols; col++) {
     const playableRows = [];
-    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col)) playableRows.push(r);
+    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col) && !cardFixedAt(r, col)) playableRows.push(r);
     const survivors = [];
     for (const r of playableRows) {
       if (gridData[r][col] !== null) survivors.push(gridData[r][col]);
