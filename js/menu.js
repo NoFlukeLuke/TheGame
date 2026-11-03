@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r723 · The scoring golden baseline takes the eight money Tricks";
+const BUILD = "2026-11-03 · r724 · The bot spends what a hand spends; the milestone probes";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

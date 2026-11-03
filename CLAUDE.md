@@ -36,6 +36,7 @@ superseded is history, not current code. The other reference docs:
 | `RENAMES.md` | the corporate rename sweep (r711, r714): phrase bank, six languages, proposed names, the Inseparable synergy review, the id sweep plan, the owner's answers. `RENAMES.xlsx` is the review sheet; draft |
 | `SELF_IMPROVEMENT.md` + `.xlsx` | the meta shop (r715): token tree, Morning Routine / Breakfast / Lunch picks, base nerfs; draft, the sheet is for the owner to fill in |
 | `SCORING_REWORK.md` | moving Tricks from `hasTrick` checks inside calcScore to per-Trick behaviours walked in tray order (the Godot shape); the stages, the golden test, the owner's open calls (r720, in progress) |
+| `MILESTONES.md` | how the sim bot plays and where it is weak, the r724 probes (pace, Tricks held, natural scaling's share, Schedule and Flow round by round), the forum research, and the owner's open questions on the goal curve, specialisation and 6-7 card hands |
 | `FLOW_TIME_TRICKS.md` | what "the round" is in Flow, and every entity that reads the round clock, with a recommendation each (r722) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
