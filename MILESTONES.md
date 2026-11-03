@@ -399,3 +399,39 @@ component rule generalised). Flush as a flat second payout, as the owner said.
   JSON. Paste it into a message or a file in the repo and the next pass reads it.
 - **The `named` tag** (above).
 - **The build sweep** (`tools/sim/probes/build-sweep.js`): section 8d.
+
+### 8d. The build sweep: what each reward type adds (4,000 random builds, 9s a hand)
+
+`tools/sim/probes/build-sweep.js`: one 3-minute round at level 1 under a random build, then a
+regression of log(score) on each factor (r² 0.68; the rest is WHICH Tricks were drawn). Read
+"per unit" as the multiplier one more of that thing puts on the round's score, everything else
+held equal. Sleights are out (the bot cannot use them); Focus stays near x1 at 9s a hand.
+
+| reward type | per unit | typical amount in the sweep | lift at that amount |
+|---|---|---|---|
+| a Trick (random, any rarity) | x1.23 | 4 | x2.3 |
+| Selection Size +1 (to 4, to 5) | x1.6 | 1.5 | x2.1 |
+| a scaling rung (15 plays of a family: +2 mult, +1 pip a card) | x1.14 | 10 | x3.6 |
+| an improvement (random, on what is owned) | x1.07 | 4.7 | x1.35 |
+| a buffed deck card (one deck-editor buff) | x1.004 | 7.5 | x1.03 |
+| a row or column | x1.01 | 1.5 | x1.0 |
+| a Knack (random) | x0.97 | 2 | x0.95 |
+| +1 swap or +1 discard | x1.0 | 2 | x1.0 |
+
+Medians by count, for the shape: Tricks 0 / 2 / 4 / 6 / 8 -> 103k / 189k / 347k / 384k / 454k;
+Selection 3 / 4 / 5 -> 102k / 227k / 417k (a 6th card is not searched by the bot, so +3 reads as
++2); rungs 0 / 5 / 10 / 15 / 20 -> 38k / 127k / 233k / 459k / 582k; improvements 0 / 5 / 10 ->
+151k / 213k / 367k.
+
+Against the owner's shares (Tricks 30 to 40%, scaling at least 10%, each lever able to carry
+25%+): Tricks and scaling are already the two biggest levers and roughly in the owner's order.
+**Selection Size is the hidden third:** two steps of it are worth four Tricks, because under
+the card ladder the 4th and 5th card pay 4 and 5 mult each. **Improvements are a quarter lever
+only if a run gets 8 to 10 of them** (x1.35 at the typical 5); at the v6-in-25%-of-runs target
+the owner set, that is about right. **Buffed cards, rows / columns, swaps / discards and Knacks
+read as nothing for this bot** and that is the bot, not the game: it never builds a hand with a
+swap or a discard, plays the same number of hands on any board size, and uses no Knack that
+asks for a decision. Those four are what the recording has to calibrate before the sweep can
+price them. The deck-editor buff values themselves are small against the ladder (a +10 pip
+card is one rung's worth on one card); if buffed cards are to be a 25% lever, the buff values
+or the count of buffs a run can gather have to grow.
