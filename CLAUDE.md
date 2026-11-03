@@ -4003,3 +4003,31 @@ pop-up 3s / 5s, the third discard of a round (3 cards) took 5s, a swap 3s, Stead
 quoted 6s / 10s; tier 3 round 1 opened at 150, Flow's session at 270; tier 4 Advance Notice named
 THE FOUR HORSEMEN for Q4 only, Q4 drew it, PROCEED put a War stone, Death, Famine and Pestilence on
 the grid; Flow's boss 4 was it. Golden: all match. No page errors.
+
+## r728 - the skip keys belong to their screens; five payout coins (owner)
+- **One skip key** (`css/screen-skip.css`, `skipKeyHTML(label, bar)` in js/labels.js): the scoring
+  preview's SPEED UP / SKIP (`#dnc-ff`) and the payout's SKIP (`#po-ff`) are the same small key printed
+  on the glass in its screen's phosphor (`--sk`: amber on the preview, cyan on the payout), VT323, stepped
+  pixel corners, pixel triangles drawn as rects (a ▶ turns into an emoji on a phone). Idle outlined,
+  SPEED UP taken lit solid, done faint. **Placement rule: the right end of its screen's header line**,
+  inset by the header's margin: the preview's hand-name band (landscape), the payout's title tile
+  (moved into it; the title is left-aligned now so the subtitle cannot run under the key). On a phone
+  the preview has no header line (its name is centred under the cards), so `dncMountFF` mounts the key
+  on `#hand-preview-area` in its free top-left corner (the Knacks toggle has the top right) and
+  `dncStageClear` removes it from there. The payout's key hides once Valued. shows (`.ss-gone`).
+- **Payout coins** (`js/coin-sounds.js`, Settings -> Audio -> Payout coin, `SETTINGS.payoutCoin`):
+  `PAYOUT_COINS` pack (the sound pack's coin, what played before), arcade (8-bit pickup), register
+  (Ka-ching), stack (Coin stack), chip (Credit chip, default), jar (Tip jar), built from js/audio-dsp.js.
+  Only the payout count-up plays them: `sfxPayoutCoin(k, n)` (catalog `payout_coin`, event bus,
+  `D_FREQUENT` 0.20) with k the sound's place in its line and n the line's sounds; the new coins climb a
+  pentatonic step a sound and the line's last rings longer. Each has a `level` so it sits within about
+  1.5 dB of the pack coin over its first 300ms (measured offline). A choice in Settings plays the coin
+  (only inside a user gesture, `navigator.userActivation`). **`coin-preview.html`** loads the real
+  js/audio-dsp.js and js/coin-sounds.js (the pack coin is a copy of `vgCoin`): one coin or a whole
+  payout (Interest, Early Finish Bonus, Unspent at the game's own `payoutCoinMs` / `coinStride`), three
+  sizes, volume. Published for the owner as an artifact.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks and taps: SPEED UP then SKIP on a
+hand (pace 1.1 -> 2.2, the blast), SKIP on the payout (Valued. 0.1-0.3s later, key hidden); the keys sit
+level with the hand name / the payout title in console and pit, and the phone key clears the cards;
+all six coins play through the wrapper with no warnings; no page errors, no drift.
+

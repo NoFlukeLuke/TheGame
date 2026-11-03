@@ -102,6 +102,14 @@ const LEXICONS = {
 const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }
 
+// r721: the inside of a screen's skip key (css/screen-skip.css): pixel triangles drawn as
+// rects (a ▶ glyph turns into an emoji on a phone), a bar after them for a skip.
+function skipKeyHTML(label, bar) {
+  const tri = x => `<rect x="${x}" y="0" width="1" height="7"/><rect x="${x + 1}" y="1" width="1" height="5"/><rect x="${x + 2}" y="2" width="1" height="3"/><rect x="${x + 3}" y="3" width="1" height="1"/>`;
+  const w = bar ? 10 : 8;
+  return `<svg class="ss-gl" viewBox="0 0 ${w} 7" width="${w}" height="7" shape-rendering="crispEdges" aria-hidden="true">${tri(0)}${tri(4)}${bar ? '<rect x="9" y="0" width="1" height="7"/>' : ''}</svg><span class="ss-lab">${label}</span>`;
+}
+
 // r707 (owner): the two path-pick grids have names. Every player-facing mention
 // prints from here. DISPLAY STRINGS ONLY: the code ids (`rewardGridMode` 'normal' /
 // 'prize', openRewardGrid / openPrizeGrid, the reward-* CSS classes, store keys, the

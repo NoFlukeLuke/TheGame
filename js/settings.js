@@ -66,6 +66,12 @@ const SETTINGS_DEF = [
   { group: 'Audio', id: 'musicClock', label: 'Music follows the clock',
     hint: () => `In a run the track plays faster as the round clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
     type: 'select', default: 'tempo', options: [['off', 'Off'], ['tempo', 'Tempo'], ['tape', 'Tape']] },
+  // r721: the payout's coin (js/coin-sounds.js). Read at every coin; a change plays it.
+  { group: 'Audio', id: 'payoutCoin', label: 'Payout coin',
+    hint: 'The coin you hear as the payout counts up.',
+    type: 'select', default: (typeof PAYOUT_COIN_DEFAULT !== 'undefined') ? PAYOUT_COIN_DEFAULT : 'pack',
+    options: (typeof payoutCoinOptions === 'function') ? payoutCoinOptions() : [['pack', 'Pack coin']],
+    apply: () => { if (typeof sfxPayoutCoin === 'function' && navigator.userActivation && navigator.userActivation.isActive) sfxPayoutCoin(2, 3); } },
   // Sound source (r186). Files beat packs beat classic - see the resolution order
   // in js/audio-assets.js. Both rows are read there rather than applied from here,
   // so there is no `apply` to keep in step.

@@ -1,0 +1,80 @@
+/* ══════════════════════════════════════════════
+   SCREEN SKIP KEYS (r721, owner) - the scoring preview's SPEED UP / SKIP (#dnc-ff)
+   and the payout's SKIP (#po-ff)
+   ══════════════════════════════════════════════
+   One component: a small key printed on its screen's glass, in that screen's own
+   phosphor (--sk: amber on the preview, whose hand name is amber; cyan on the
+   payout, whose title is cyan). VT323, stepped pixel corners, pixel triangles
+   (skipKeyHTML, js/labels.js). Placement rule: a screen's skip sits at the RIGHT
+   END OF ITS HEADER LINE, level with the header's words and inset by the header's
+   own margin: the preview's hand-name band, the payout's title tile. On a phone the
+   preview has no header line (its name is centred under the cards), so the key
+   takes that screen's free top-left corner.
+   States: idle (outlined, dim glow), hover (lit), .ff-fast (SPEED UP taken: reverse
+   video, reads SKIP), .ff-on / :disabled (done: faint, no taps), .ss-gone (hidden).
+   Loads last of the stylesheets and carries two ids where the older rules
+   (css/dance.css, css/payout-grid.css, css/boss.css) set theirs with !important. */
+
+.scr-skip {
+  --sk: #ffb02e; --sk-rgb: 255, 176, 46; --sk-ink: #0a0d06;
+  --sk-h: 13px; --sk-step: 2px;
+  position: absolute; z-index: 8;
+  display: inline-flex !important; align-items: center; gap: 4px;
+  height: var(--sk-h) !important; width: auto !important; min-width: 0;
+  margin: 0; padding: 0 6px 0 5px !important;
+  font-family: 'VT323 Local', 'VT323', 'Share Tech Mono', monospace !important;
+  font-size: 12px !important; line-height: 1 !important; font-weight: 400;
+  letter-spacing: 1px !important; text-transform: uppercase; white-space: nowrap;
+  font-size-adjust: none !important;
+  color: rgb(var(--sk-rgb)) !important;
+  text-shadow: 0 0 4px rgba(var(--sk-rgb), 0.55);
+  background: rgba(var(--sk-rgb), 0.08) !important;
+  border: 0 !important; border-radius: 0 !important;
+  /* a 1px outline that follows the stepped corners: an inset ring clipped by the same shape */
+  box-shadow: inset 0 0 0 1px rgba(var(--sk-rgb), 0.55) !important;
+  clip-path: polygon(var(--sk-step) 0, calc(100% - var(--sk-step)) 0, 100% var(--sk-step),
+    100% calc(100% - var(--sk-step)), calc(100% - var(--sk-step)) 100%, var(--sk-step) 100%,
+    0 calc(100% - var(--sk-step)), 0 var(--sk-step));
+  opacity: 0.85;
+  cursor: var(--cur-pointer, pointer);
+  transition: background .12s, color .12s, opacity .12s, box-shadow .12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.scr-skip .ss-gl { height: 7px; width: auto; flex: none; fill: currentColor; filter: drop-shadow(0 0 2px rgba(var(--sk-rgb), 0.6)); }
+.scr-skip .ss-lab { display: block; transform: translateY(0.5px); }
+@media (hover: hover) {
+  .scr-skip:hover { opacity: 1; background: rgba(var(--sk-rgb), 0.2) !important;
+    box-shadow: inset 0 0 0 1px rgb(var(--sk-rgb)) !important; }
+}
+.scr-skip:is(:active, .key-dn) { background: rgba(var(--sk-rgb), 0.32) !important; }
+/* SPEED UP taken: the key is lit solid and reads SKIP. */
+.scr-skip.ff-fast { opacity: 1; color: var(--sk-ink) !important; text-shadow: none;
+  background: rgb(var(--sk-rgb)) !important; box-shadow: 0 0 8px rgba(var(--sk-rgb), 0.6) !important; }
+.scr-skip.ff-fast .ss-gl { filter: none; }
+/* Done: it stays where it was, faint, so nothing vanishes under the finger. */
+.scr-skip.ff-on, .scr-skip:disabled { opacity: 0.32 !important; pointer-events: none;
+  color: rgb(var(--sk-rgb)) !important; background: transparent !important; text-shadow: none; }
+.scr-skip.ss-gone { visibility: hidden; pointer-events: none; }
+body.reduced-motion .scr-skip { transition: none; }
+
+/* ── The preview: the right end of the hand-name band ──────────────────────
+   The band is 15px at the preview's top with 10px side margins in console mode
+   (css/skin-machine.css); the key takes the same margin and sits on the band. */
+#stage #selected-cards #dnc-ff.scr-skip { top: 2px; right: 8px; bottom: auto; left: auto; }
+html.skin-machine #stage.landscape #selected-cards #dnc-ff.scr-skip { top: 2px; right: 10px; }
+/* A phone: the hand name is centred under the cards, so the key takes the screen's free
+   top-left corner, above the cards (the Knacks toggle has the top right). */
+#stage:not(.landscape) #hand-preview-area > #dnc-ff.scr-skip { top: 4px; left: 8px; right: auto; --sk-h: 12px; font-size: 10px !important; letter-spacing: 0.5px !important; gap: 3px; padding: 0 4px !important; z-index: 61; }
+
+/* ── The payout: the right end of the title tile, centred on its line ─────── */
+/* The title is the header's left end, like the preview's hand name, so the key has its right end. */
+#payout-overlay .po-tile-title { position: relative; justify-content: flex-start !important; padding-left: 12px !important; padding-right: 0 !important; }
+#payout-overlay .po-tile-title .payout-title { text-align: left; }
+#payout-overlay #po-ff.scr-skip {
+  --sk: #16c8d8; --sk-rgb: 22, 200, 216;
+  top: calc(50% - var(--sk-h) / 2) !important; right: 10px !important; bottom: auto !important; left: auto !important;
+  z-index: 2;
+}
+#stage:not(.landscape) #payout-overlay #po-ff.scr-skip { right: 8px !important; }
+/* The pre-r257 panel: the panel's own top-right corner. */
+#payout-overlay:not(.po-tiled) > #po-ff.scr-skip { top: 12px !important; }

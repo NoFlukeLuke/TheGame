@@ -87,6 +87,7 @@ const SFX_MIX = {
 
   // ── event ──
   coin:          { bus: 'event' },
+  payout_coin:   { bus: 'event' },
   shop_open:     { bus: 'event', gain: 0.90 },
   round_start:   { bus: 'event' },
   countdown:     { bus: 'event' },

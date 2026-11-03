@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r727 · difficulty tiers: horsemen last 4 / 6 / forever rounds, swap and discard seconds, shorter rounds, THE FOUR HORSEMEN";
+const BUILD = "2026-11-03 · r728 · the skip keys are console keys on their screen's header; five payout coins to choose from";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

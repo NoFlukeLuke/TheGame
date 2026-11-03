@@ -99,7 +99,7 @@ function dRoute(node, verb) {
 const D_FREQUENT = {
   particle_pip: 0.11, particle_mult: 0.13, score_tick: 0.06, clock_tick: 0.06,
   card_select: 0.09,  card_pop: 0.11,     focus_pop: 0.10,  focus_drop: 0.10,
-  coin: 0.20,         reward_select: 0.09, m3_match: 0.13,  m3_pop: 0.11,
+  coin: 0.20,         payout_coin: 0.20,  reward_select: 0.09, m3_match: 0.13,  m3_pop: 0.11,
   card_discard: 0.13, flip_shuffle: 0.13,
 };
 function dVerbCap(v) {
