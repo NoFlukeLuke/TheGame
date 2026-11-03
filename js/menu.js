@@ -1,4 +1,4 @@
-const BUILD = "2026-11-03 · r728 · the skip keys are console keys on their screen's header; five payout coins to choose from";
+const BUILD = "2026-11-03 · r729 · the winning hand waits for its own climb; the odometer rests only on whole digits";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

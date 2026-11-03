@@ -623,6 +623,7 @@ function playHand() {
     goalReachedThisRound = true;
     roundEnded = true;
     clearInterval(roundInterval); roundInterval = null;
+    if (typeof scoreRiseHold === 'function') scoreRiseHold(scoreBeforeHand);   // r729: the winning hand waits for its own climb
     const toRemove = [...selected];
     selected = [];
     // Survival/Flow keep-board (r324): the goal hand's cells, so survivalDealNext
@@ -645,6 +646,7 @@ function playHand() {
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
+    if (typeof scoreRiseHold === 'function') scoreRiseHold(scoreBeforeHand);   // r729: the winning hand waits for its own climb
     // Stop the round clock the instant the goal is met (unless a challenge is
     // still pending - that path keeps its own timer running). This freezes the
     // clock as a clear "goal reached" signal AND prevents a late timer tick from

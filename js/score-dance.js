@@ -1809,6 +1809,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   }
 
   // ── SCORE climb ──
+  // r729: the rising score held at the total before the winning hand; its climb takes the box now.
+  if(isGoalHand && typeof scoreRiseYield==='function') scoreRiseYield(scoreBefore);
   if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreBefore.toLocaleString();
   const climb = skipBeats ? 140
               : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncPace()));

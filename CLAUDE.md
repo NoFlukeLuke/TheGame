@@ -4031,3 +4031,20 @@ hand (pace 1.1 -> 2.2, the blast), SKIP on the payout (Valued. 0.1-0.3s later, k
 level with the hand name / the payout title in console and pit, and the phone key clears the cards;
 all six coins play through the wrapper with no warnings; no page errors, no drift.
 
+
+## r729 - the winning hand waits; the odometer rests on whole digits (owner)
+- **The winning hand is not added to SCORE until its own climb** (js/score-rise.js): playHand's two
+  goal branches call `scoreRiseHold(scoreBeforeHand)`, which caps the rising score at the total
+  before that hand (`rise.cap`, `riseGoal()`); hands still rolling land there and the box holds,
+  owned, until the goal hand's dance reaches its SCORE climb and calls `scoreRiseYield(scoreBefore)`
+  (js/score-dance.js), which hands the box back at that number for the climb to write. With nothing
+  rolling the hold hands back at once. A cut dance still snaps to the whole total.
+- **A wheel only rests on a whole digit.** The higher wheels turned over the last tenth of the WHOLE
+  number below them (the thousands wheel sat half way for 100 points of roll); now a wheel turns only
+  on the carry, while every wheel below it reads 9. A units step slower than `RISE_SPIN_MS` (33ms)
+  rolls in its last `RISE_ROLL_MS` (90, at most 60% of the step), eased, and sits whole for the rest;
+  faster steps spin. The target is rounded, so a roll never lands between digits.
+Measured in headless Chromium at 1440x820 and 420x900: a 3-point roll showed a half digit for at most
+50ms at a time (was 717ms), 9 points 67ms (was 1,000ms); a winning hand played behind another held the
+box at 260 until its climb (was 270 within 0.9s of PLAY); a winning first hand stayed at 0 until its
+climb and the round went to the interlude; no page errors.
