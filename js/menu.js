@@ -1,4 +1,4 @@
-const BUILD = "2026-11-03 · r724 · The bot spends what a hand spends; the milestone probes";
+const BUILD = "2026-11-03 · r725 · The growing Balance Sheet, record mode, the named tag, the build sweep";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

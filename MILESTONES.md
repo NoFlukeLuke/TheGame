@@ -286,3 +286,116 @@ These are the owner's own questions, distilled. Each one, answered, unblocks a c
 
 A note on order: A and B come first. C and D are design calls that do not need the recording.
 E is independent of all of it and can wait for the itch build if the owner prefers.
+
+## 8. The owner's answers (r725) and what they changed
+
+**Who the curve is for:** a 9s-a-hand player. Clear rates per review: Q1 85%, Q2 75%, Q3 70%,
+Q4 65%, for the first difficulty. Goals need not grow by the same step each level.
+
+**What grows a run after the tray is full:** finding synergies first (most of the run), natural
+scaling on top once a group is locked. The owner's shares: natural scaling at least 10% of any
+build, Tricks 30 to 40%, the rest open: Sleights, buffed cards, a big grid, improvements. Each
+lever should be able to carry 25%+ of a run on its own if leaned on. Improvements are in-run
+scaling and must be able to reach v6 (about 25% of runs, never over 50%; two v6 items 4 to 5%).
+
+**Natural scaling** stays family based (it already is) and stays a count of hands played: fast
+play earns Focus and climbs the ladder, both on purpose.
+
+**Specialising:** no legendary Trick ever names a single hand type (legendaries are for
+families); new named-hand Tricks are rare or epic and generic. The `named` tag (TAGS.md r725)
+marks the six that exist: Bedrock, Aftershock, Richter (one hand each), `double_bloom`,
+`high_pair`, `two_pair_mult` (hands containing a pair).
+
+**Six and seven card hands:** the owner's lean is "every standalone sub-hand of 4+ cards counts",
+paying the family ladder for each (and replays, or the mult ladder without the replays), with
+flushes as a second payout instead of a replay of every card, and a cap of three layers. See the
+math below before deciding.
+
+**Reward odds:** no leaning the odds toward what you have taken; random is fine as long as every
+reward type can carry its 25%. A Knack or a common event that lets the player ask for more of a
+reward type is the acceptable form, if one is wanted. Trick Slots stay random (a run with 8
+slots solving itself is a feature).
+
+### 8a. The goal table a 9s bot suggests (Schedule, 40 full-round runs)
+
+The bot plays every round to the clock, so its percentile at round N is the score a player with
+those rewards and that pace reaches in 3 minutes. The owner's clear rates set the percentile:
+Q1 the 15th, Q2 the 25th, Q3 the 30th, Q4 the 35th.
+
+| round | today's goal | the 9s bot's goal | ratio |
+|---|---|---|---|
+| Q1 round 1 | 1,500 to 2,000 | 1,100 to 1,450 | 0.6 to 1.0 |
+| Q1 round 3 | 2,500 | 2,300 | 0.9 |
+| Q1 hard round | 2,500 | 3,750 | 1.5 |
+| Q1 round 4 | 4,000 | 7,200 | 1.8 |
+| Q1 review (lv 9) | 5,500 | 9,900 | 1.8 |
+| Q2 rounds | 8,000 to 9,500 | 15,000 to 18,000 | 1.9 to 2.1 |
+| Q2 review (lv 18) | 25,000 | 28,600 | 1.1 |
+| Q3 rounds | 35,000 to 94,000 | 38,000 to 78,500 | 0.8 to 1.2 |
+| Q3 review (lv 27) | 111,000 | 69,500 | 0.6 |
+| Q4 rounds | 131,000 to 417,000 | 93,000 to 128,000 | 0.3 to 0.8 |
+| Q4 review (lv 36) | 492,000 | 159,000 | 0.3 |
+
+Reading it: the shape is wrong in both directions. Q1 is too easy once the first Trick lands
+(the bot would take 1.8x the goal) and too hard before it (round 1 at 1,500 is a coin flip for a
+9s player with no Focus); Q3 and Q4 run away from the bot. A curve that fits the owner's clear
+rates is flatter: about x1.5 to x2 a quarter after Q1, not x4.5. **These are the bot's numbers,
+not the curve to ship:** the bot plays to the clock (29 hands a round; a player who clears a
+round plays 10 to 15 and climbs the ladder slower), never sells, never uses Sleights or the deck
+editor. The recording (section 5) fixes the first; the rest stay as caveats.
+
+### 8b. Layer math for six and seven card hands
+
+Brute force over every rank pattern of n cards (13 ranks, at most 4 of each; suits ignored
+except that a flush is all or nothing). A subset is a hand if its ranks split into sets (2+ of a
+rank) and runs (3+ consecutive) with no card left over. Three counting rules:
+
+- **(a) every subset** of size m or more that is a hand (the owner's "all sub-hands count");
+- **(b) every distinct hand** (a set of 4 inside a set of 6 counts once, not 15 times);
+- **(c) today's rule:** disjoint parts of the whole hand, each at least m cards (a card in two
+  parts replays).
+
+| cards | min layer | typical hand (a) / (b) | most layers (a) | most layers (b) | most parts (c) |
+|---|---|---|---|---|---|
+| 5 | 3 | 4.2 / 2.7 | 6 (A A 2 3 4) | 3 (A A A 2 2) | 1 |
+| 5 | 4 | 2.7 / 1.6 | 4 (A A A 2 2) | 2 | 1 |
+| 6 | 3 | 9.3 / 3.8 | 18 (A A A 2 2 2) | 6 (A A A A 2 2) | 2 (A A A A 2 3) |
+| 6 | 4 | 6.9 / 3.0 | 16 (A A A 2 2 2) | 5 (A A A A 2 2) | 1 |
+| 6 | 5 | 3.3 / 1.9 | 7 | 3 | 1 |
+| 7 | 3 | 16.9 / 5.9 | 50 (A A A A 2 2 2) | 11 (A A A A 2 3 4) | 2 |
+| 7 | 4 | 13.8 / 4.6 | 45 (A A A A 2 2 2) | 9 (A A A A 2 3 4) | 1 |
+| 7 | 5 | 8.2 / 3.4 | 26 | 6 (A A A A 2 2 2) | 1 |
+
+So:
+- **The owner's example is right in spirit and low in number.** A set of 6 (six-suit deck or
+  wilds) holds not 3 but 15 different sets of 4, 6 sets of 5 and the set of 6: 22 sub-hands
+  under rule (a). Two sets of 3 holds 18 (nine Full Houses, two sets of 3, six Two Pairs...).
+  Four of a kind plus a set of 3 at 7 cards holds 50. Rule (a) is the one that breaks the game:
+  a TYPICAL 7-card hand already has 14 layers at min 4.
+- **Rule (b), distinct hands, stays in range:** typical 3 to 5 at 6 cards, 5 to 6 at 7, a
+  ceiling of 11. With a cap of three layers it is tame everywhere.
+- **Today's rule (c) with min 4 collapses to one part** at every size: a 7-card hand cannot be
+  split into two parts of 4+. Min 4 only makes sense with overlapping layers (a or b).
+- The hand that maxes rule (b) at 7 cards is **A A A A 2 3 4**: the set of 4, Full Houses with
+  each pair inside the set, the run A 2 3 4 using any Ace, A 2 3 4 + a pair, and so on.
+  Legal with the normal deck.
+- A **run of 6** holds 3 runs of 4, 2 of 5 and itself: 6 under (a), 3 under (b). A run of 7: 10
+  / 4. A **run with a duplicate** (3 4 5 5 6 7 8) gets the second run the owner described under
+  either rule: both runs of 6 count, plus the Pair.
+
+Recommendation for the decision: rule (b) with a cap of 3, each layer paying its family's ladder
+step and, if replays stay, each card replaying once per EXTRA layer it sits in (which is today's
+component rule generalised). Flush as a flat second payout, as the owner said.
+
+### 8c. What shipped in r725
+
+- **The growing Balance Sheet** (js/reward-grid.js, Classic only, 50% of ordinary grids): opens
+  as three tiles, every 650ms a roll adds a row or a column (65%) or stops; the path is picked on
+  what showed. `RG_GROW_OPEN` / `RG_GROW_STEP` in dev -> Probabilities.
+- **Record mode** (`index.html?record`, js/record-mode.js): section 5's spec. A 4 x 5 board, 3
+  swaps, 3 discards, Focus from 10, no Tricks; rounds 1 to 8 are 1:00 and 9 to 16 are 3:00 (the
+  panel's keys change the next one); every tap, play, swap, discard and Reshuffle is logged with
+  its clock second, cells, faces and the board; COPY LOG puts the session on the clipboard as
+  JSON. Paste it into a message or a file in the repo and the next pass reads it.
+- **The `named` tag** (above).
+- **The build sweep** (`tools/sim/probes/build-sweep.js`): section 8d.

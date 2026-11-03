@@ -58,7 +58,7 @@ now spends them after every scored hand and `SIM_resetCharges` zeroes them at ev
 start. Printed notices are stubbed (a Cloud Nine pickup threw in `ptNewSlip`). This is the likely
 cause of the r690 note about identical batches disagreeing.
 
-The milestone probes (MILESTONES.md) are `probes/`, run from this folder (`node probes/trick-count.js 150 6`, `node probes/schedule-rounds.js 40 6 nson out.json`, `node probes/flow-levels.js 40 6`): a
+The milestone probes (MILESTONES.md) are `probes/`, run from this folder (`node probes/trick-count.js 150 6`, `node probes/schedule-rounds.js 40 6 nson out.json`, `node probes/flow-levels.js 40 6`, `node probes/build-sweep.js 4000 9` for the random-build regression): a
 3-minute round at level 1 with N random Tricks, a Schedule run playing every round to the clock
 with the score recorded per level, and a Flow run logging each level's time to clear.
 

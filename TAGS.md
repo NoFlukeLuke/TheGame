@@ -344,6 +344,14 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | shorthand | Shorthand | Hands generate 1.5× their listed Focus. | focus other |
 | core_memories | Core Memories | Each Event you attend raises your Focus limit by 2. | focus other scaling |
 
+## r725: the `named` tag (owner)
+
+WHEN gains `named`: a Trick that names ONE hand type (Pair, Two Pair, Four of a Kind...) rather
+than a family. Six rows carry it: Bedrock (`rare_bloom`), Aftershock (`pair_pips`), Richter,
+`double_bloom`, `high_pair`, `two_pair_mult`. The family tags (`set`, `run`, `flush`) stay on them
+too. Owner's rule for new ones: a named-hand Trick is rare or epic and generic (play the hand,
+get the bonus, no second condition); legendaries are for families only.
+
 ## DECISIONS (owner, r635)
 
 - A Focus payer that makes Focus APPLY more times is `scores` (Phoenix, Kaleidoscope, Marathon,

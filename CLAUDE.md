@@ -3857,3 +3857,33 @@ back at v3; Nest Egg landed inert, sold for 23 and lifted a sale 6 -> 8; Loan Sh
 levels held, +30 / +25 in the contributions; BOGO 2 copies; real hands through PLAY: no drift, no
 errors. The golden test's 802 old cases all match with the 8 new Tricks held out; the baseline is
 rewritten in r723 for the new ones.
+
+## r724 / r725 - the milestone probes; the growing Balance Sheet; record mode; the named tag (owner)
+MILESTONES.md is the write-up (sections 1 to 8). Measured on the sim bot after two bot fixes
+(r724: the bot now spends what a hand spends, `SIM_afterHand` / `SIM_resetCharges`; Second Hand
+had scored 1.4M a round and leaked between runs): pace is the first-order term (6s a hand 5,900 in
+a level-1 round, 9s 1,400: the Focus speed bonus stops at 8s); each random Trick multiplies a
+round about x1.4 through Trick 6 (the taper is the tray cap of 5, not diminishing returns);
+natural scaling is 2x of the Q1 review and 8x of Q4 for a bot that plays to the clock; Schedule
+goals are 2x under a 9s bot in Q1-Q2 and 2-3x over it in Q4. The owner's answers (section 8): the
+first difficulty is for a **9s player**, clear rates Q1 85 / Q2 75 / Q3 70 / Q4 65; natural
+scaling stays family based and hand-counted; no legendary names one hand type.
+- **Probes** (`tools/sim/probes/`, run from tools/sim): `trick-count.js` (N random Tricks, one
+  round), `schedule-rounds.js` (every round to the clock, score per level, `nson` / `nsoff`),
+  `flow-levels.js`, `build-sweep.js` (random builds, a regression of log score on each reward
+  type: section 8d).
+- **The growing Balance Sheet** (js/reward-grid.js, `rewardGrow`): in Classic (not Guided, the
+  Schedule, the walkthrough or a test drive) an ordinary grid has `RG_GROW_OPEN` (50%) of opening
+  as three tiles; every `RG_GROW_MS` a roll adds a row or a column (`RG_GROW_STEP` 65%) or stops;
+  tiles outside the window are not drawn, selectable or counted (`rewardHidden`); taps wait while
+  it rolls. `renderRewardTiles(animateIn)` takes a Set of keys to deal in only those. Dev ->
+  Probabilities "Growing Balance Sheet". The owner's experiment: odds and feel are open (TODO 4a).
+- **Record mode** (`index.html?record`, js/record-mode.js, before bootstrap): a 4 x 5 Classic
+  board, 3 swaps, 3 discards, Focus from 10, no Tricks, the goal out of reach; rounds 1-8 are
+  1:00 and 9-16 are 3:00; `onCardTap` / `playHand` / `doSwap` / `doDiscard` / `reshuffleTap` are
+  wrapped (window properties, like the chance counts) and logged with the clock second, cells,
+  faces and the board; the round ends at 0:01 inside the mode (never a clock-out), NEXT ROUND
+  deals; COPY LOG is the session as JSON. Nothing stored.
+- **`named`** (js/data/tags.js, WHEN): a Trick that names one hand type; six rows carry it.
+- Layer math for 6-7 card hands is MILESTONES.md 8b: "every sub-hand counts" explodes (a typical
+  7-card hand has 14 layers at min 4); "every distinct hand" stays at 3-6 with a ceiling of 11.
