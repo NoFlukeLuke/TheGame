@@ -1,0 +1,248 @@
+/* ── EVENT TOYS (r576) - js/event-toys.js ─────────────────────────────────
+   Inside #event-panel, so every px is a stage px. */
+.evt-host { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 6px auto; }
+.evt-row  { display: flex; gap: 18px; justify-content: center; align-items: flex-start; flex-wrap: wrap; width: 100%; }
+
+/* coin (r590): a disc with a rim, tossed over its own shadow */
+.evt-coin-stage { position: relative; perspective: 380px; width: 120px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
+.evt-coin-shadow { position: absolute; bottom: 4px; left: 50%; width: 62px; height: 12px; margin-left: -31px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.75), rgba(0,0,0,0) 70%); transform-origin: 50% 50%; }
+.evt-coin-lift { position: relative; width: 66px; height: 66px; margin-bottom: 10px; transform-style: preserve-3d; }
+.evt-coin { position: relative; width: 66px; height: 66px; transform-style: preserve-3d; }
+.evt-edge { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(180deg, #8a6206, #5d4103 55%, #3b2902); }
+.evt-face {
+  position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 26px;
+}
+.evt-heads { background: radial-gradient(circle at 35% 30%, #fff4c4, var(--c-yellow) 42%, #b4830f 78%, #8a6206 100%); color: #5a3d00;
+  box-shadow: inset 0 0 0 3px rgba(255,236,170,.55), inset 0 0 0 6px rgba(120,80,0,.4), inset 0 -6px 10px rgba(80,50,0,.35); }
+.evt-tails { background: radial-gradient(circle at 35% 30%, #ffffff, #c7d0db 42%, #7d8794 78%, #5d6672 100%); color: #26303a;
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.6), inset 0 0 0 6px rgba(40,50,60,.35), inset 0 -6px 10px rgba(20,30,40,.3); }
+.evt-face span { text-shadow: 0 1px 0 rgba(255,255,255,.5), 0 -1px 0 rgba(0,0,0,.25); }
+.evt-coin-cap { min-height: 15px; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px; color: var(--cream); }
+.evt-coin-cap.win  { color: var(--c-mint); }
+.evt-coin-cap.lose { color: var(--c-red); }
+.evt-land { animation: evt-land .32s ease-out; }
+@keyframes evt-land { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* wheel */
+.evt-wheel-wrap { position: relative; width: 150px; height: 150px; }
+.evt-wheel { position: absolute; inset: 0; border-radius: 50%;
+  box-shadow: 0 0 0 3px #2b2840, 0 0 0 5px rgba(255,255,255,.12), 0 6px 18px rgba(0,0,0,.55); }
+.evt-wl { position: absolute; inset: 0; }
+.evt-wl span { position: absolute; left: 50%; top: 9px; transform: translateX(-50%);
+  font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 11px; white-space: nowrap; }
+.evt-hub { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4ecd6, #6b6280); box-shadow: 0 2px 5px rgba(0,0,0,.6); }
+.evt-pointer { position: absolute; left: 50%; top: -9px; width: 0; height: 0; margin-left: -9px; z-index: 2;
+  border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 16px solid var(--cream);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+.evt-wheel-title { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--cream-dim); text-transform: uppercase; }
+.evt-won .evt-wheel { animation: evt-land .32s ease-out; }
+
+/* die */
+.evt-die { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #fffaf0, #d9cdb0); color: #1d5f45;
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.7), 0 5px 12px rgba(0,0,0,.55);
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; }
+.evt-die.neg { color: var(--c-red); }
+.evt-die-faces { display: flex; gap: 3px; }
+.evt-die-faces i { font-style: normal; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--c-mint);
+  padding: 1px 3px; border: 1px solid rgba(53,213,155,.35); border-radius: 3px; }
+.evt-die-faces i.neg { color: var(--c-red); border-color: rgba(255,75,62,.35); }
+
+/* plinko */
+.evt-plinko { position: relative; margin: 0 auto; }
+.evt-peg { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
+  background: #8b83a8; box-shadow: 0 0 4px rgba(154,108,255,.5); }
+.evt-ball { position: absolute; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; z-index: 2;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--c-yellow) 55%, #a8780d); box-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.evt-bins { position: absolute; left: 0; right: 0; display: flex; }
+.evt-bin { height: 30px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-direction: column;
+  font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 9px; line-height: 1.1; text-align: center;
+  border: 1px solid rgba(255,255,255,.12); border-top: 0; border-radius: 0 0 5px 5px; color: var(--cream); }
+.evt-bin.good { background: rgba(53,213,155,.16); color: var(--c-mint); }
+.evt-bin.bad  { background: rgba(255,75,62,.16);  color: var(--c-red); }
+.evt-bin.evt-hit { animation: evt-land .32s ease-out; box-shadow: 0 0 0 2px currentColor, 0 0 14px currentColor; }
+
+/* stopper */
+.evt-stop-grid { display: grid; gap: 6px; }
+.evt-stop-cell { width: 50px; height: 66px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(170deg, #f7f0dc, #ddd2b4); color: #1a1730; cursor: var(--cur-pointer, pointer);
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 22px; transition: transform .05s;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 3px 6px rgba(0,0,0,.4); }
+.evt-stop-cell { transition: transform .05s, box-shadow .22s ease-out, background-color .22s ease-out; }
+.evt-stop-cell.lit { box-shadow: 0 0 0 3px var(--c-yellow), 0 0 16px var(--c-yellow); transform: translateY(-2px); transition: none; }
+.evt-stop-cell:has(.evt-stone) { background: linear-gradient(170deg, #7a7486, #4b4656); }
+.evt-rank.evt-stone { font-size: 10px; letter-spacing: 1px; color: #e9e2cc; }
+.evt-stop-cell.won { box-shadow: 0 0 0 3px var(--c-mint), 0 0 22px var(--c-mint); animation: evt-land .32s ease-out; }
+.evt-stopped .evt-stop-cell:not(.won) { opacity: .45; }
+.evt-stop-btn { margin-top: 8px; }
+
+/* shared event bits the r576 events use */
+.evt-big { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 1px; color: var(--cream); text-align: center; }
+.evt-big.win  { color: var(--c-mint); }
+.evt-big.lose { color: var(--c-red); }
+.evt-ladder { display: flex; gap: 4px; justify-content: center; width: 100%; margin: 4px 0; }
+.evt-rung { flex: 1; max-width: 86px; min-height: 52px; border-radius: 6px; padding: 4px; box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03); text-align: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim); line-height: 1.25; }
+.evt-rung b { display: block; font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--cream); margin-bottom: 2px; }
+.evt-rung.on   { border-color: var(--c-mint); background: rgba(53,213,155,.10); color: var(--c-mint); }
+.evt-rung.on b { color: var(--c-mint); }
+.evt-rung.lost { border-color: var(--c-red); background: rgba(255,75,62,.10); color: var(--c-red); text-decoration: line-through; }
+.evt-rung.next { border-color: var(--c-yellow); }
+.evt-btnrow { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
+.ev-btn.evt-alt { border-color: #6b6280; background: linear-gradient(180deg, #4a4462, #2d2940); color: var(--cream);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.18), 0 3px 0 #1a1726, 0 6px 12px rgba(0,0,0,.45); }
+.ev-btn:disabled { opacity: .32; cursor: var(--cur-no, not-allowed); box-shadow: none; }
+
+/* ── junk card (r576, js/boss.js makeJunkCard) - an empty card that stays in the deck ── */
+.stone-card.junk-card {
+  background: repeating-linear-gradient(135deg, #3b3a44 0 6px, #2f2e37 6px 12px);
+  border-color: #4c4a58; flex-direction: column; gap: 2px;
+}
+.junk-card .junk-glyph { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: calc(var(--card-h, 75px) * .3); color: #77738a; line-height: 1; }
+.junk-card .junk-word  { font-family: 'Share Tech Mono', monospace; font-size: calc(var(--card-h, 75px) * .13); letter-spacing: 2px; color: #8c88a0; }
+
+/* ── Card Market (r576) - the offer grid ── */
+.mk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; margin: 6px 0; }
+.mk-card { border-radius: 6px; padding: 5px 3px 4px; min-height: 66px; box-sizing: border-box; cursor: var(--cur-pointer, pointer);
+  background: linear-gradient(170deg, #f7f0dc, #ddd2b4); color: #1a1730; text-align: center;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 3px 6px rgba(0,0,0,.4); transition: transform .08s; }
+.mk-card.red { color: #b0261a; }
+.mk-card.mk-buffed { box-shadow: 0 0 0 2px var(--c-purple), 0 3px 8px rgba(154,108,255,.4); }
+.mk-card.picked { transform: translateY(-3px); box-shadow: 0 0 0 3px var(--c-mint), 0 0 14px var(--c-mint); }
+.mk-face { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; line-height: 1.1; }
+.mk-face span { font-size: 13px; margin-left: 1px; }
+.mk-buffs { font-family: 'Share Tech Mono', monospace; font-size: 9px; line-height: 1.25; color: #4b2f8f; margin-top: 3px; }
+.mk-plain { color: #8a7d60; }
+
+/* r579: two toys side by side (Static Bonus wheels, Luck Dice), the spinner's rank cards */
+.evt-pair { display: flex; gap: 22px; justify-content: center; align-items: flex-start; flex-wrap: wrap; width: 100%; }
+.evt-pair .evt-host { margin: 0; }
+.evt-rank { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #1a1622; }
+#rs-list.evt-fresh { animation: evt-land .4s ease-out; }
+
+/* r590: the Gamble's chosen door is unmistakable: raised, gold, tagged, the others dimmed */
+.door-pick { display: none; position: absolute; top: 6px; left: 0; right: 0; text-align: center; z-index: 3;
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 8px; letter-spacing: 1.5px; color: #1a1408; }
+.door-pick::before { content: ''; position: absolute; inset: -3px 10px; background: var(--c-yellow, #f0c040); border-radius: 3px; z-index: -1; }
+.event-door.chosen .door-pick { display: block; }
+.event-door.chosen { transform: translateY(-6px) scale(1.06); }
+.event-door.chosen:not(.revealed) { border-color: var(--c-yellow, #f0c040);
+  box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 22px -2px var(--c-yellow, #f0c040), inset 0 0 16px -6px var(--c-yellow, #f0c040); }
+.door-row.has-pick .event-door:not(.chosen) { opacity: .5; }
+.door-row.has-pick .event-door.revealed:not(.chosen) { opacity: .75; }
+.evt-die-faces b { font-family: 'Share Tech Mono', monospace; font-size: 9px; font-weight: 400; color: var(--cream-dim); margin-right: 2px; align-self: center; }
+
+/* ── r590: the deck picker (js/event-picker.js): one column per suit, a rank to a row ── */
+.edp { width: 100%; max-width: 420px; margin: 4px auto; }
+.edp-head, .edp-row { display: grid; grid-template-columns: repeat(var(--edp-cols, 4), 1fr); gap: 4px; }
+.edp-head { padding: 0 26px 3px 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; text-align: center; color: #e9e2cc; }
+.edp-head .red { color: #ff6a5c; }
+.edp-wrap { position: relative; display: flex; gap: 4px; }
+.edp-view { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scroll-snap-type: y proximity;
+  border: 1px solid #3a3352; border-radius: 6px; padding: 4px; background: rgba(8,7,14,.6); }
+.edp-row { padding: 2px 0; scroll-snap-align: start; }
+.edp-cell { display: flex; gap: 2px; justify-content: center; min-height: 22px; }
+.edp-cell.empty::before { content: '·'; color: #3d3756; align-self: center; }
+.edp-wilds { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; border-top: 1px dashed #3a3352; margin-top: 2px; padding-top: 4px; }
+.edp-card { position: relative; min-width: 30px; padding: 4px 4px; border-radius: 4px; background: #f4efe2; color: #1a1a1a;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; line-height: 1; text-align: center;
+  border: 1.5px solid rgba(255,255,255,.35); box-shadow: 0 2px 4px rgba(0,0,0,.45); cursor: var(--cur-pointer, pointer); user-select: none;
+  transition: transform .1s ease, box-shadow .14s ease, border-color .14s ease; }
+.edp-card.red { color: #c0392b; }
+.edp-card.wild { background: linear-gradient(160deg, #f4efe2, #d8cde9); color: #4b2f88; }
+.edp-card.buffed::after, .edp-card.cursed::before { content: ''; position: absolute; top: -1px; width: 0; height: 0; border-style: solid; }
+.edp-card.buffed::after { right: -1px; border-width: 0 7px 7px 0; border-color: transparent var(--c-yellow, #f0c040) transparent transparent; }
+.edp-card.cursed::before { left: -1px; border-width: 7px 7px 0 0; border-color: #ff4d5e transparent transparent transparent; }
+.edp-card:hover { transform: translateY(-1px); }
+.edp-card.picked { border-color: var(--c-yellow, #f0c040); box-shadow: 0 0 0 2px var(--c-yellow, #f0c040), 0 0 12px -2px var(--c-yellow, #f0c040); transform: translateY(-1px); }
+.edp-card.picked[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -7px; right: -6px; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--c-yellow, #f0c040); color: #1a1408; font-size: 8px; line-height: 13px; border: 0; }
+.edp-card.blocked { opacity: .3; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }
+.edp-arrows { display: none; flex-direction: column; gap: 4px; width: 22px; }
+.edp-scrolls .edp-arrows { display: flex; }
+.edp-arrows button { flex: 1; min-height: 24px; padding: 0; border-radius: 5px; border: 1px solid #4b4370; background: #1d1930; color: #e9e2cc; font-size: 9px; cursor: var(--cur-pointer, pointer); }
+
+/* r590: scenes fade in the event body (Keep It); a secured rung wears a lock */
+.evt-scene { display: flex; flex-direction: column; gap: 8px; transition: opacity .26s ease, transform .26s ease; }
+.evt-scene-out { opacity: 0; transform: translateY(-6px); }
+.evt-scene-in  { opacity: 0; transform: translateY(6px); }
+.evt-rung.secured { border-color: var(--c-yellow, #f0c040); background: rgba(240,192,64,.10); color: var(--c-yellow, #f0c040); text-decoration: none; }
+.evt-rung.secured b::after { content: ' 🔒'; font-size: 9px; }
+.evt-cols4 .evt-stop-cell { width: 44px; height: 54px; font-size: 19px; }
+.evt-cols4 .evt-stop-grid { gap: 5px; }
+/* r590: Trick Gamble - the deleted Trick fades away, the winner's new art pops in */
+.event-choice.tg-gone { opacity: 0; transform: scale(.92); filter: grayscale(1); transition: opacity .7s ease, transform .7s ease, filter .4s ease; pointer-events: none; }
+.ec-tile.tg-up { animation: tg-up .6s cubic-bezier(.2,1.6,.4,1); }
+@keyframes tg-up { 0% { transform: scale(.7); filter: brightness(2.2); } 60% { transform: scale(1.12); filter: brightness(1.4); } 100% { transform: scale(1); filter: none; } }
+/* r590: Plinko's drop point - slide the ball along a short track before the drop */
+.evt-drop-track { position: absolute; top: 12px; height: 2px; background: rgba(233,226,204,.25); border-radius: 1px; }
+.evt-drop-track::before, .evt-drop-track::after { content: ''; position: absolute; top: -3px; width: 2px; height: 8px; background: rgba(233,226,204,.35); }
+.evt-drop-track::before { left: 0; } .evt-drop-track::after { right: 0; }
+.evt-ball-drag { cursor: var(--cur-pointer, grab); touch-action: none; box-shadow: 0 0 0 3px rgba(240,192,64,.35), 0 0 12px rgba(240,192,64,.6); }
+.evt-drop-hint { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--cream-dim); }
+/* r590: Clean Up's peek at the last grid */
+.spring-peek { display: grid; grid-template-columns: repeat(var(--sp-cols, 4), auto); gap: 4px; justify-content: center; margin: 4px auto 8px; }
+.spring-peek .edp-card { cursor: var(--cur-default, default); }
+.spring-peek .sp-empty { color: #3d3756; text-align: center; align-self: center; }
+/* r590: a curse card is junk with a red edge and its curse named */
+.stone-card.junk-card.curse-card { border-color: #a8323d !important; box-shadow: inset 0 0 0 1px rgba(255,77,94,.35), 0 0 10px -3px #ff4d5e; }
+.curse-card .junk-glyph { font-size: calc(var(--card-h, 75px) * .26); }
+.curse-card .junk-word { color: #ff8a8a; }
+
+/* ── r590: the slot machine (js/event-slot-machine.js) ── */
+.evt-slot-cab { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+  background: linear-gradient(180deg, #2a2236, #17121f); border: 2px solid #4a3d5e;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.4), 0 6px 14px rgba(0,0,0,.55); }
+.evt-slot-window { position: relative; display: flex; gap: 6px; padding: 6px; border-radius: 8px; background: #08070c;
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.9), 0 0 0 2px #0d0b12; }
+.evt-reel { position: relative; width: var(--sl-w); height: calc(var(--sl-h) * 3); overflow: hidden; border-radius: 5px;
+  background: linear-gradient(180deg, #cfc6b0 0%, #f5efdf 22%, #fffaf0 50%, #f5efdf 78%, #cfc6b0 100%); }
+.evt-reel-strip { will-change: transform; }
+.evt-reel-strip.evt-reel-blur { filter: blur(1.4px); }
+.evt-sym { height: var(--sl-h); display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  border-bottom: 1px solid rgba(0,0,0,.08); font-family: 'Orbitron', sans-serif; font-weight: 900; color: #1a1622; }
+.evt-sym.evt-sym-win { background: radial-gradient(circle, rgba(240,192,64,.85), rgba(240,192,64,.25)); animation: evt-win-blink .45s ease-in-out 4; }
+@keyframes evt-win-blink { 50% { filter: brightness(1.6); } }
+.evt-reel-land { animation: evt-reel-land .18s ease-out; }
+@keyframes evt-reel-land { 0% { transform: translateY(2px); } 100% { transform: none; } }
+.evt-payline { position: absolute; left: 2px; right: 2px; top: calc(6px + var(--sl-h)); height: var(--sl-h); pointer-events: none;
+  border-top: 2px solid rgba(240,192,64,.85); border-bottom: 2px solid rgba(240,192,64,.85);
+  box-shadow: 0 0 12px rgba(240,192,64,.45), inset 0 0 14px rgba(240,192,64,.18); }
+.evt-slot-glass { position: absolute; inset: 6px; pointer-events: none; border-radius: 5px;
+  background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 74%, rgba(0,0,0,.55) 100%),
+              linear-gradient(115deg, rgba(255,255,255,.12) 0 18%, rgba(255,255,255,0) 30%); }
+.evt-tease .evt-reel:last-child { box-shadow: 0 0 0 2px #ff5a4e, 0 0 16px #ff5a4e; }
+.evt-slot-won .evt-slot-cab { border-color: #f0c040; box-shadow: 0 0 22px rgba(240,192,64,.55), inset 0 2px 0 rgba(255,255,255,.08); }
+/* the lever: a slot, an arm that shortens toward you as it comes down, a red ball */
+.evt-lever { position: relative; width: 52px; height: 140px; perspective: 220px; }
+.evt-lever-slot { position: absolute; left: 50%; top: 62px; width: 14px; height: 16px; margin-left: -7px; border-radius: 4px; background: #08070c; box-shadow: inset 0 2px 4px #000, 0 0 0 2px #3a3046; }
+.evt-lever-arm { --lv: 0; position: absolute; left: 50%; top: 14px; width: 6px; height: 56px; margin-left: -3px; transform-origin: 50% 100%;
+  transform: rotateX(calc(var(--lv) * -165deg)); transform-style: preserve-3d;
+  background: linear-gradient(90deg, #8d8f99, #e8eaf0 45%, #6b6d77); border-radius: 3px; }
+.evt-lever-knob { position: absolute; top: -13px; left: 50%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffb3aa, #e53b2c 45%, #7a140c 100%); box-shadow: 0 3px 6px rgba(0,0,0,.6);
+  transform: rotateX(calc(var(--lv) * 165deg)); cursor: var(--cur-pointer, grab); touch-action: none; }
+.evt-lever.off .evt-lever-knob { filter: grayscale(.8) brightness(.6); cursor: var(--cur-no, not-allowed); }
+.evt-lever-cap { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; line-height: 1.4; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--cream-dim); }
+.evt-lever:not(.off) .evt-lever-cap { color: var(--c-yellow, #f0c040); }
+/* card ranks and entity tiles on the reels */
+.evt-sym .sl-rank { font-size: 24px; }
+.evt-sym .sl-rank.red { color: #c0392b; }
+.evt-sym .sl-ent { pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.evt-sym .sl-ent .reward-cell { position: relative; width: 42px; height: 56px; margin: 0; }
+.evt-sym .sl-ent .entity-knack { zoom: .8; }
+
+/* Screen to screen (r596): the event panel sinks out, and rises back in over the board. */
+#event-overlay.ev-out { animation: ev-ov-out .28s ease-in forwards; pointer-events: none; }
+#event-overlay.ev-out #event-panel { animation: ev-panel-out .28s ease-in forwards; }
+#event-overlay.ev-in { animation: ev-ov-in .28s ease-out; }
+#event-overlay.ev-in #event-panel { animation: ev-panel-in .28s cubic-bezier(.2,1.2,.4,1); }
+@keyframes ev-ov-out { to { opacity: 0; } }
+@keyframes ev-ov-in { from { opacity: 0; } }
+@keyframes ev-panel-out { to { transform: translateY(14px) scale(.96); } }
+@keyframes ev-panel-in { from { transform: translateY(18px) scale(.95); } }

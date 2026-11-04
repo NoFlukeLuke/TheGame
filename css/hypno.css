@@ -1,0 +1,22 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   css/hypno.css   ·   THE CRT'S FLOOR
+   The turning board pattern that lived here (r409, Settings > Display > Board
+   pattern, `#board-hypno` inside #grid) is gone (r646, owner). What is left is
+   the floor under the game.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── THE CRT'S FLOOR (r391) ──────────────────────────────────────────────────
+   #hypno-screen used to carry the screen half of the whole-screen pattern. Its
+   pattern is gone; its FLOOR stays, because #stage's wash went translucent
+   (rgba .82, css/style.css) to let that pattern show through, and an opaque floor
+   under it is what keeps the office photograph from ever showing through the
+   game. Inset to #cab-screen's content box, which is exactly where #stage sits,
+   and overridden the same way when the photograph takes the bezel away
+   (css/office-photo.css). */
+#hypno-screen {
+  position: absolute;
+  inset: 12px;
+  border-radius: 8px;
+  background-color: #0b0906;
+  pointer-events: none;
+}

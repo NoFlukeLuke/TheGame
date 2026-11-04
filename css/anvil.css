@@ -1,0 +1,28 @@
+/* ── The Anvil (r722, js/anvil.js) ──────────────────────────────────────────
+   The boss stone: a black card, a white edge, the pixel anvil large. Built on
+   .stone-card for size and placement. The card under an anvil shakes for the
+   last 10s before the drop (`.anvil-doom`, --doom 0..1 from anvilPaint). */
+#grid .stone-card.anvil-card {
+  background: #08080a;
+  border: 2px solid #f4f4f4;
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, 0 3px 6px rgba(0,0,0,.6);
+  color: #fff;
+}
+#grid .stone-card.anvil-card.swap-pending { border-color: var(--gold); box-shadow: 0 0 0 1px #000, 0 0 16px rgba(232,184,75,.7); }
+#grid .anvil-card .anvil-ico { line-height: 0; pointer-events: none; font-size: calc(min(var(--card-w, 57px), var(--card-h, 75px)) * .78); }
+#grid .anvil-card .anvil-ico .rwd-em { display: block; }
+#grid .anvil-card .anvil-ico .px-ico.px-light { filter: none; }
+
+/* The doomed card. --da is how far it shakes, faster as the drop nears. */
+#grid .card.anvil-doom {
+  --da: calc(0.4px + 2.6px * var(--doom, 0));
+  animation: anvil-doom calc(0.26s - 0.17s * var(--doom, 0)) linear infinite;
+}
+@keyframes anvil-doom {
+  0%   { translate: 0 0;                                     rotate: 0deg; }
+  25%  { translate: var(--da) calc(var(--da) * -0.4);        rotate: calc(var(--doom, 0) * 1.6deg); }
+  50%  { translate: calc(var(--da) * -0.8) calc(var(--da) * 0.3); rotate: calc(var(--doom, 0) * -1.2deg); }
+  75%  { translate: calc(var(--da) * 0.6) calc(var(--da) * 0.2); rotate: calc(var(--doom, 0) * 0.9deg); }
+  100% { translate: 0 0;                                     rotate: 0deg; }
+}
+@media (prefers-reduced-motion: reduce) { #grid .card.anvil-doom { animation: none; } }

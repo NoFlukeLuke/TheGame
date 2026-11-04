@@ -1,0 +1,13 @@
+/* r474: ?blank - every glyph transparent, layout untouched (js/blank-ui.js). */
+/* :is() takes the specificity of its strongest argument, so the dummy id list
+   lifts this above the game's own id-scoped !important text rules. */
+body.blank-ui :is(*, #_b#_b#_b#_b), body.blank-ui :is(*, #_b#_b#_b#_b)::before, body.blank-ui :is(*, #_b#_b#_b#_b)::after {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+  caret-color: transparent !important;
+}
+body.blank-ui #tip-layer, body.blank-ui #toast-layer, body.blank-ui .dnc-particle,
+body.blank-ui #entity-tip, body.blank-ui #reward-tooltip, body.blank-ui #trick-tooltip,
+body.blank-ui #knack-tooltip, body.blank-ui #goal-banner { display: none !important; }

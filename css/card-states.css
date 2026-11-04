@@ -1,0 +1,96 @@
+/* ══════════════════════════════════════════════
+   CARD STATES (r278) - js/card-states.js
+   ══════════════════════════════════════════════
+   Two things to say on a 57px card, and they are different questions:
+
+     "this card is CHARGED"   -> .card-state-badge, top-left, in the state's colour
+     "this card is TEMPORARY" -> .card-temp, the whole card's edge
+
+   The fuse countdown is NOT drawn here. It rides the shared cooldown ring
+   (js/cooldown.js) in `primed` mode, which is the one mode that does not grey
+   its host - a fuse is the opposite of unavailable. */
+
+/* ── The charge badge ─────────────────────────────────────────────────────
+   TOP-LEFT is the only genuinely free corner on a playing card: top-centre is
+   the per-card FX mark, top-right the curse badge and the combined-card label,
+   both bottom corners the +Np / +Nm buff figures, bottom-centre the scaling
+   arrow and bottom-right the cooldown ring. `.sel-num` also lives top-left and
+   deliberately paints OVER this: a selected card is one you have already
+   decided to play, so the charge has done its job. */
+.card .card-state-badge {
+  position: absolute;
+  top: 1px; left: 1px;
+  min-width: 11px; height: 11px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; line-height: 1;
+  border-radius: 3px;
+  color: #14100a;
+  background: var(--csc, #c9a84c);
+  border: 1px solid rgba(0,0,0,0.45);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--csc, #c9a84c) 75%, transparent);
+  pointer-events: none;
+  z-index: 6;
+}
+.card .card-state-badge .cs-n {
+  margin-left: 1px;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: 700;
+  font-size: 7px;
+}
+.card .sel-num { z-index: 8; }
+
+/* A charged card gets a faint ring in no particular colour. The BADGE says which
+   state; this only says "there is something on this card", which is what wants
+   to be readable from across the board. */
+.card.card-stated {
+  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.55), 0 0 7px rgba(201,168,76,0.22);
+}
+
+/* ── Temp cards ───────────────────────────────────────────────────────────
+   A dashed edge and a wash of diagonal hatching: the card is drafted in rather
+   than printed. It must read at a glance, because "this will not be here next
+   round" is the one fact that changes whether you build a plan around it.
+
+   The hatch is an ::after overlay rather than a background, because the card's
+   own background carries the suit colour, the Spectrum face and the selection
+   states - all of which have to keep working underneath. */
+.card.card-temp {
+  border-style: dashed !important;
+  border-color: rgba(122,196,255,0.85) !important;
+}
+.card.card-temp::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(122,196,255,0.14) 0 3px,
+    rgba(122,196,255,0.00) 3px 7px);
+  pointer-events: none;
+  z-index: 1;
+}
+/* .card.rc-woodpecker already owns ::after on a card, so it wins there and the
+   temp card keeps only its dashed edge. That is the right way round: a marked
+   cell is the rarer and more urgent fact. */
+.card.rc-woodpecker.card-temp::after { background: none; }
+
+/* Selection has to stay louder than the hatch, or a selected temp card reads as
+   half-picked. */
+.card.card-temp.selected { border-style: solid !important; }
+.card.card-temp.selected::after { opacity: 0.4; }
+
+/* ── Per-state accents ────────────────────────────────────────────────────
+   Only the two that change how the card BEHAVES get one. Fleeting is leaving on
+   its own schedule and Deadline deletes itself, so both are worth spotting
+   without reading a badge; the other five all resolve into something and the
+   badge is enough. */
+.card.cs-fleeting { border-color: rgba(216,71,75,0.8) !important; }
+.card.cs-deadline { box-shadow: inset 0 0 0 1px rgba(232,161,58,0.7), 0 0 9px rgba(232,161,58,0.3); }
+
+/* Reduced motion / high contrast: the hatch is the only thing here that could
+   read as texture noise, so it goes and the dashed edge carries the meaning. */
+body.high-contrast .card.card-temp::after { background: none; }
+body.high-contrast .card.card-temp { border-width: 2px !important; }

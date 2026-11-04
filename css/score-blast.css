@@ -1,0 +1,34 @@
+/* ══ SCORE BLAST (r691, js/score-blast.js) ═══════════════════════════════════
+   The preview clips the explosion to its own screen; the shockwave's ring. */
+#selected-cards.blast-clip { overflow: hidden !important; }
+.blast-ring {
+  position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px;
+  border-radius: 50%; pointer-events: none; z-index: 30;
+  border: 3px solid rgba(255,236,180,.95); box-shadow: 0 0 18px rgba(255,214,92,.8), inset 0 0 12px rgba(255,214,92,.5);
+}
+
+/* the overload look's static: scanlines and a rolling bright band over the preview */
+.blast-static {
+  position: absolute; inset: 0; z-index: 26; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.22) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, transparent 0%, rgba(255,240,200,.55) 8%, transparent 16%, transparent 100%);
+  background-size: 100% 100%, 100% 300%;
+}
+.blast-static.blast-static-snap { background: #fff8e6; mix-blend-mode: normal; }
+/* the lab page (index.html?blast) */
+#blast-lab {
+  position: fixed; left: 8px; bottom: 8px; z-index: 650; max-width: 44vw;
+  padding: 8px 10px; border-radius: 6px; background: rgba(12,10,6,.94); border: 1px solid #c9a84c;
+  font-family: 'VT323 Local', 'VT323', monospace; color: #f0e6c8; font-size: 15px;
+}
+@media (max-width: 700px) { #blast-lab { left: 6px; right: 6px; max-width: none; bottom: 6px; } }
+#blast-lab .bl-head { color: #ffce2b; letter-spacing: 2px; margin-bottom: 5px; }
+#blast-lab .bl-now { color: #8a7d60; letter-spacing: 0; margin-left: 8px; }
+#blast-lab .bl-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+#blast-lab .bl-b { font: inherit; font-size: 14px; padding: 5px 9px; border-radius: 4px; cursor: pointer; color: #f0e6c8;
+  background: #1a1510; border: 1px solid #5a4e34; }
+#blast-lab .bl-b.bl-last { border-color: #ffce2b; }
+#blast-lab .bl-b.bl-on { background: #ffce2b; color: #1a1510; }
+#blast-lab .bl-use { border-color: #35d59b; color: #35d59b; }
+#blast-lab .bl-note { color: #8a7d60; font-size: 13px; }

@@ -1,0 +1,14 @@
+/* ══ SCREEN CHANGE (r532) - js/screen-change.js ═════════════════════════════
+   See js/screen-change.js. */
+/* r692: the turn and the shutter are gone (owner: no sideways rotation). The fall and the
+   console command line remain. While either runs the board clips to its own box. */
+#grid.sc-falling { clip-path: inset(0) !important; overflow: clip; }
+.sc-cmd {
+  position: absolute; left: 8px; right: 8px; bottom: 6px; z-index: 35; pointer-events: none;
+  font-family: 'VT323 Local', 'VT323', monospace; font-size: 15px; letter-spacing: 1px; color: #ffcf6e;
+  text-shadow: 0 0 6px rgba(255,190,80,.6); white-space: nowrap; overflow: hidden;
+}
+.sc-cmd b { font-weight: normal; color: #ffe9a8; }
+.sc-cmd i { display: inline-block; width: .55em; height: .9em; margin-left: 2px; vertical-align: -2px; background: #ffcf6e; animation: scCur .8s steps(2) infinite; }
+.sc-cmd.sc-cmd-done { opacity: .55; transition: opacity .3s; }
+@keyframes scCur { 50% { opacity: 0; } }

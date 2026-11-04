@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finale Preview — TheGame</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#f5c042; --gold-dim:#c9a84c; --cream:#f4ead5; --cream-dim:#9a8f7a;
+    --red:#c0353e; --blue:#5a8fe0; --purple:#b07dea;
+    --panel:#1f1a12; --line:rgba(245,192,66,0.18);
+    --card-bg:#f5efe0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{margin:0;background:radial-gradient(circle at 50% 0%,#241d13,#0d0a06 70%);
+    color:var(--cream);font-family:'Cinzel',serif;display:flex;flex-direction:column;
+    align-items:center;padding:10px;overflow:hidden;}
+  h1{font-size:14px;letter-spacing:3px;color:var(--gold);margin:2px 0;font-weight:700;}
+  .sub{font-size:9px;letter-spacing:1px;color:var(--cream-dim);margin-bottom:8px;text-align:center;line-height:1.5;max-width:640px;}
+
+  .stage{position:relative;display:flex;gap:16px;align-items:flex-start;
+    background:rgba(0,0,0,0.28);border:1px solid var(--line);border-radius:14px;
+    padding:16px;width:760px;max-width:98vw;}
+
+  /* LEFT column — score + hand preview slot */
+  .left{flex:0 0 220px;display:flex;flex-direction:column;gap:10px;}
+  .score-strip{display:flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 8px;}
+  .sbox{display:flex;flex-direction:column;align-items:center;min-width:44px;}
+  .sbox .lbl{font-size:8px;letter-spacing:1px;color:var(--cream-dim);}
+  .sbox .val{font-size:20px;font-weight:700;line-height:1.1;}
+  #pips .val{color:var(--blue);} #mult .val{color:var(--red);}
+  .op{font-size:14px;color:var(--cream-dim);}
+  #score .lbl{color:var(--gold-dim);} #score .val{color:var(--gold);font-size:24px;}
+  .tick{animation:tick .18s ease;}
+  @keyframes tick{0%{transform:scale(1);}45%{transform:scale(1.3);}100%{transform:scale(1);}}
+
+  .preview-label{font-size:8px;letter-spacing:2px;color:var(--cream-dim);text-align:center;text-transform:uppercase;}
+  .preview-slot{position:relative;min-height:96px;display:flex;gap:5px;align-items:center;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;}
+
+  /* GRID */
+  .grid-wrap{flex:1;position:relative;}
+  .grid{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+    width:100%;min-height:300px;}
+  .cell{position:relative;height:74px;}
+
+  /* CARD */
+  .card{position:absolute;inset:0;border-radius:7px;background:var(--card-bg);color:#1a1a1a;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    box-shadow:0 3px 6px rgba(0,0,0,0.45);border:1px solid #d4c89a;
+    font-weight:700;will-change:transform,opacity;user-select:none;}
+  .card .r{font-size:20px;line-height:1;}
+  .card .s{font-size:15px;line-height:1;}
+  .card.red{color:#b02020;}
+  .card.win{box-shadow:0 0 18px 5px rgba(245,192,66,0.65),0 3px 6px rgba(0,0,0,0.5);
+    border-color:var(--gold);}
+
+  /* slight escalating jitter */
+  .jitter{animation:jit .12s linear infinite;}
+  @keyframes jit{
+    0%{transform:translate(0.6px,-0.5px) rotate(0.5deg);}
+    25%{transform:translate(-0.5px,0.6px) rotate(-0.6deg);}
+    50%{transform:translate(0.5px,0.5px) rotate(0.4deg);}
+    75%{transform:translate(-0.6px,-0.4px) rotate(-0.5deg);}
+    100%{transform:translate(0.5px,-0.6px) rotate(0.6deg);}
+  }
+
+  /* CONTROLS */
+  .controls{margin-top:12px;display:flex;gap:10px;align-items:center;}
+  button.ctl{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--gold);background:rgba(245,192,66,0.08);border:1px solid rgba(245,192,66,0.5);
+    padding:9px 18px;border-radius:8px;cursor:pointer;transition:.15s;}
+  button.ctl:hover{background:rgba(245,192,66,0.16);}
+  button.ctl:disabled{opacity:.35;cursor:default;}
+
+  /* Fast-forward button — appears during finale, floats over the stage */
+  #ff-btn{position:absolute;right:16px;bottom:16px;z-index:40;
+    font-family:'Cinzel',serif;font-size:13px;letter-spacing:1px;
+    color:#0d0a06;background:var(--gold);border:none;
+    width:auto;padding:8px 14px;border-radius:8px;cursor:pointer;
+    box-shadow:0 0 14px rgba(245,192,66,0.6);opacity:0;pointer-events:none;transition:opacity .2s;}
+  #ff-btn.show{opacity:1;pointer-events:auto;}
+  #ff-btn .spd{font-size:10px;opacity:.75;margin-left:5px;}
+
+  .note{font-size:9px;color:var(--cream-dim);margin-top:10px;text-align:center;max-width:640px;line-height:1.5;}
+</style>
+</head>
+<body>
+  <h1>WIN FINALE — ROUGH PREVIEW</h1>
+  <div class="sub">Rough mockup of the round-win moment for review — not yet wired into the game.
+    Winning cards fly to the preview; the rest explode out; new cards fall in; the score tallies alongside.</div>
+
+  <div class="stage" id="stage">
+    <div class="left">
+      <div class="score-strip">
+        <div class="sbox" id="pips"><span class="lbl">PIPS</span><span class="val">0</span></div>
+        <span class="op">×</span>
+        <div class="sbox" id="mult"><span class="lbl">MULT</span><span class="val">0</span></div>
+        <span class="op">=</span>
+        <div class="sbox" id="score"><span class="lbl">SCORE</span><span class="val">0</span></div>
+      </div>
+      <div class="preview-label">Winning Hand</div>
+      <div class="preview-slot" id="preview-slot"></div>
+    </div>
+    <div class="grid-wrap">
+      <div class="grid" id="grid"></div>
+    </div>
+    <button id="ff-btn">Fast&nbsp;Forward <span class="spd" id="ff-spd">1×</span></button>
+  </div>
+
+  <div class="controls">
+    <button class="ctl" id="play-btn">Play Winning Hand</button>
+    <button class="ctl" id="replay-btn" disabled>Replay</button>
+  </div>
+  <div class="note">Fast-Forward: 1st press → 3× · 2nd press → illegibly fast (finishes in ~1–2s). The button only affects the score tally speed.</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Rough finale preview. Self-contained: no game code, no assets.
+// ─────────────────────────────────────────────────────────────
+const COLS = 5, ROWS = 4;
+const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+const SUITS = [['♠',0],['♥',1],['♦',1],['♣',0]]; // [glyph, isRed]
+const gridEl = document.getElementById('grid');
+const previewSlot = document.getElementById('preview-slot');
+const ffBtn = document.getElementById('ff-btn');
+const ffSpdEl = document.getElementById('ff-spd');
+const playBtn = document.getElementById('play-btn');
+const replayBtn = document.getElementById('replay-btn');
+
+// The winning hand = these grid indices (a plausible 4-card hand cluster).
+const WIN_IDX = new Set([6, 7, 11, 12]);
+
+let cells = [];      // .cell wrappers
+let cardEls = [];    // current .card element in each cell (or null)
+let ffSpeed = 1;     // 1 → 3 → 12 (illegible)
+
+function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
+function makeCard(win){
+  const [s, red] = rnd(SUITS);
+  const card = document.createElement('div');
+  card.className = 'card' + (red ? ' red' : '') + (win ? ' win' : '');
+  card.innerHTML = `<span class="r">${rnd(RANKS)}</span><span class="s">${s}</span>`;
+  return card;
+}
+
+function buildGrid(){
+  gridEl.innerHTML = '';
+  previewSlot.innerHTML = '';
+  cells = []; cardEls = [];
+  const n = COLS * ROWS;
+  for (let i = 0; i < n; i++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const card = makeCard(WIN_IDX.has(i));
+    cell.appendChild(card);
+    gridEl.appendChild(cell);
+    cells.push(cell);
+    cardEls.push(card);
+  }
+}
+
+// ── Synthesized 80s-electronic explosion SFX (WebAudio, no asset) ──
+let actx = null;
+function sfxExplode(){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const t = actx.currentTime;
+    const master = actx.createGain();
+    master.gain.value = 0.9; master.connect(actx.destination);
+
+    // 1) Punchy descending synth "zap" (detuned saws sweeping down) — the 80s stab.
+    [0, 7].forEach((detune, k) => {
+      const o = actx.createOscillator();
+      o.type = 'sawtooth';
+      o.detune.value = detune;
+      o.frequency.setValueAtTime(880, t);
+      o.frequency.exponentialRampToValueAtTime(70, t + 0.42);
+      const g = actx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      // bright resonant filter for the analog-synth character
+      const f = actx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.setValueAtTime(3200, t);
+      f.frequency.exponentialRampToValueAtTime(400, t + 0.45); f.Q.value = 8;
+      o.connect(f); f.connect(g); g.connect(master);
+      o.start(t); o.stop(t + 0.55);
+    });
+
+    // 2) White-noise burst through a sweeping bandpass — the "crash" of the blast.
+    const dur = 0.5;
+    const buf = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1) * (1 - i/data.length);
+    const noise = actx.createBufferSource(); noise.buffer = buf;
+    const nf = actx.createBiquadFilter(); nf.type = 'bandpass';
+    nf.frequency.setValueAtTime(2000, t); nf.frequency.exponentialRampToValueAtTime(300, t + 0.4); nf.Q.value = 1.2;
+    const ng = actx.createGain();
+    ng.gain.setValueAtTime(0.5, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+    noise.connect(nf); nf.connect(ng); ng.connect(master);
+    noise.start(t); noise.stop(t + dur);
+
+    // 3) Sub thump for body.
+    const sub = actx.createOscillator(); sub.type = 'sine';
+    sub.frequency.setValueAtTime(120, t); sub.frequency.exponentialRampToValueAtTime(45, t + 0.3);
+    const sg = actx.createGain();
+    sg.gain.setValueAtTime(0.6, t); sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+    sub.connect(sg); sg.connect(master); sub.start(t); sub.stop(t + 0.38);
+  }catch(e){ /* audio optional */ }
+}
+function sfxTick(){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const t = actx.currentTime; const o = actx.createOscillator(); const g = actx.createGain();
+    o.type='square'; o.frequency.value=660; g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.07);
+  }catch(e){}
+}
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// ── The finale sequence ──
+async function runFinale(){
+  playBtn.disabled = true; replayBtn.disabled = true;
+  ffSpeed = 1; ffSpdEl.textContent = '1×';
+  ffBtn.classList.add('show');
+
+  // Kick off the score tally CONCURRENTLY (does not block the visual sequence).
+  const tally = runScoreTally(); // returns a promise; FF button speeds it up
+
+  // 1) Every card immediately starts to jitter slightly.
+  cardEls.forEach(c => c && c.classList.add('jitter'));
+  await wait(260);
+
+  // 2) Winning cards fly to the preview slot (staggered), losers keep jittering.
+  const slotRect = previewSlot.getBoundingClientRect();
+  const winCards = [];
+  let wi = 0;
+  for (let i = 0; i < cardEls.length; i++){
+    if (!WIN_IDX.has(i)) continue;
+    const card = cardEls[i];
+    card.classList.remove('jitter');
+    flyToPreview(card, slotRect, wi * 70, wi);
+    winCards.push(i); wi++;
+  }
+  await wait(360);
+
+  // 3) Remaining (non-winning) cards explode outward + 80s SFX.
+  sfxExplode();
+  const gridRect = gridEl.getBoundingClientRect();
+  const cx = gridRect.left + gridRect.width/2, cy = gridRect.top + gridRect.height/2;
+  for (let i = 0; i < cardEls.length; i++){
+    if (WIN_IDX.has(i)) continue;
+    explodeCard(cardEls[i], cx, cy);
+    cardEls[i] = null;
+  }
+
+  // 4) With NO delay, new cards fall in from above into every emptied cell.
+  //    (Same feel as the current deal/fall — but now it's the next round's cards.)
+  await wait(60);
+  dealNewCards();
+
+  // Wait for the score tally to finish (respecting whatever FF the player pressed).
+  await tally;
+
+  ffBtn.classList.remove('show');
+  replayBtn.disabled = false;
+}
+
+function flyToPreview(card, slotRect, delay, order){
+  const s = card.getBoundingClientRect();
+  // Lay out winners left-to-right inside the slot.
+  const targetX = slotRect.left + 12 + order * (s.width * 0.9);
+  const targetY = slotRect.top + slotRect.height/2 - s.height/2;
+  const dx = targetX - s.left, dy = targetY - s.top;
+  const sc = 0.86;
+  setTimeout(() => {
+    card.style.zIndex = 60;
+    const a = card.animate([
+      { transform:'translate(0,0) scale(1)' },
+      { transform:`translate(${dx}px,${dy}px) scale(${sc})` }
+    ], { duration:380, easing:'cubic-bezier(.34,1.3,.5,1)', fill:'forwards' });
+    a.onfinish = () => {
+      // Re-home the card visually inside the preview slot so it stays put.
+      card.style.transform = ''; card.style.position = 'relative'; card.style.inset = 'auto';
+      card.style.width = (s.width*sc)+'px'; card.style.height = (s.height*sc)+'px';
+      card.style.zIndex = '';
+      previewSlot.appendChild(card);
+    };
+  }, delay);
+}
+
+function explodeCard(card, cx, cy){
+  const r = card.getBoundingClientRect();
+  const bx = r.left + r.width/2, by = r.top + r.height/2;
+  let ax = bx - cx, ay = by - cy;
+  const len = Math.hypot(ax, ay) || 1;
+  ax /= len; ay /= len;
+  const dist = 420 + Math.random()*260;
+  const rot = (Math.random()*2-1) * 220;
+  card.classList.remove('jitter');
+  card.style.zIndex = 30;
+  const a = card.animate([
+    { transform:'translate(0,0) rotate(0) scale(1)', opacity:1 },
+    { transform:`translate(${ax*dist}px,${ay*dist}px) rotate(${rot}deg) scale(0.7)`, opacity:0 }
+  ], { duration:520, easing:'cubic-bezier(.2,.7,.3,1)', fill:'forwards' });
+  a.onfinish = () => card.remove();
+}
+
+function dealNewCards(){
+  for (let i = 0; i < cells.length; i++){
+    const card = makeCard(false);
+    card.style.opacity = '0';
+    cells[i].appendChild(card);
+    cardEls[i] = card;
+    const col = i % COLS, row = Math.floor(i / COLS);
+    const delay = col * 45 + row * 30;
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.animate([
+        { transform:'translateY(-260px)', opacity:0 },
+        { transform:'translateY(6px)', opacity:1, offset:0.82 },
+        { transform:'translateY(0)', opacity:1 }
+      ], { duration:440, easing:'cubic-bezier(.3,.8,.35,1)', fill:'forwards' });
+    }, delay);
+  }
+}
+
+// ── Concurrent score tally. Total duration scales with ffSpeed (1 / 3 / 12). ──
+function runScoreTally(){
+  const pipsEl = document.querySelector('#pips .val');
+  const multEl = document.querySelector('#mult .val');
+  const scoreEl = document.querySelector('#score .val');
+  const targetPips = 186, targetMult = 14, targetScore = targetPips * targetMult;
+  const BASE = 2600; // full-speed duration (ms) for the whole tally
+  return new Promise(resolve => {
+    const start = performance.now();
+    let elapsed = 0, last = start;
+    let lastTickPips = 0, lastTickMult = 0;
+    function frame(now){
+      // Advance a speed-scaled clock so pressing FF mid-tally takes effect live.
+      elapsed += (now - last) * ffSpeed; last = now;
+      const t = Math.min(elapsed / BASE, 1);
+      const e = 1 - Math.pow(1 - t, 3);
+      const p = Math.round(targetPips * Math.min(e*1.25,1));
+      const m = Math.round(targetMult * Math.min(Math.max(e*1.4-0.2,0),1));
+      const sc = Math.round(targetScore * e);
+      if (p !== lastTickPips){ pipsEl.textContent = p; pop(pipsEl); if(ffSpeed<12 && Math.random()<0.5) sfxTick(); lastTickPips = p; }
+      if (m !== lastTickMult){ multEl.textContent = m; pop(multEl); lastTickMult = m; }
+      scoreEl.textContent = sc.toLocaleString();
+      if (t < 1){ requestAnimationFrame(frame); }
+      else {
+        pipsEl.textContent = targetPips; multEl.textContent = targetMult;
+        scoreEl.textContent = targetScore.toLocaleString(); pop(scoreEl);
+        resolve();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+function pop(el){ el.classList.remove('tick'); void el.offsetWidth; el.classList.add('tick'); }
+
+// ── FF button: 1× → 3× → 12× (illegible, ~1–2s) ──
+ffBtn.addEventListener('click', () => {
+  ffSpeed = ffSpeed === 1 ? 3 : 12;
+  ffSpdEl.textContent = ffSpeed === 12 ? 'MAX' : ffSpeed + '×';
+});
+
+playBtn.addEventListener('click', () => runFinale());
+replayBtn.addEventListener('click', () => { buildGrid(); runFinale(); });
+
+buildGrid();
+</script>
+</body>
+</html>

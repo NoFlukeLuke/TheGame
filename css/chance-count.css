@@ -1,0 +1,6 @@
+/* Chance counts (r624, js/chance-count.js): how many times a chance Trick went off, on its chip. */
+.trick-tray-chip .ch-count { position: absolute; top: -4px; right: -4px; z-index: 6; min-width: 16px; height: 16px; padding: 0 4px;
+  box-sizing: border-box; border-radius: 8px; background: #f0c040; color: #1a1408; font: 700 11px/16px 'Orbitron', sans-serif;
+  text-align: center; pointer-events: none; box-shadow: 0 0 6px rgba(240, 192, 64, .7); }
+.trick-tray-chip .ch-count.ch-bump { animation: ch-bump .25s ease-out; }
+@keyframes ch-bump { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }

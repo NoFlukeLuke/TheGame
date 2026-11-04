@@ -1,0 +1,84 @@
+// ══════════════════════════════════════════════
+// AUDIO MANIFEST (r185) - the one file to edit when you add your own audio
+// ══════════════════════════════════════════════
+// Pure data, no logic. Drop files into assets/music/ or assets/sfx/, list them
+// here, and the game picks them up on the next load. Nothing else needs editing.
+//
+// The engine treats a listed file as an OVERRIDE: an id that appears in `sfx`
+// plays your file, an id that does not keeps the coded (synthesised) sound. So
+// you can replace the sounds you dislike one at a time and leave the rest.
+//
+// If a file is listed but missing or unplayable, the game logs it once and falls
+// back to the coded sound. A broken path never stops the game.
+
+const AUDIO_MANIFEST = {
+
+  // ── MUSIC ────────────────────────────────────────────────────────────────
+  // One entry per track. Order here is the playlist order.
+  //   id     - short unique name, no spaces (used to remember on/off)
+  //   title  - what the playlist shows
+  //   file   - path from the repo root
+  //   scene  - 'menu' (main menu only), 'game' (in a run only), 'any' (both)
+  //   artist - optional, shown under the title
+  //   off    - true to ship it switched OFF (the player turns it on)
+  //   ramp   - the track gets FASTER the longer it plays. `true` is every 20s,
+  //            +10%, capped at 2x; an object says something else. It compounds,
+  //            and it resets every time the track starts.
+  //              ramp: true
+  //              ramp: { every: 20, by: 0.10, max: 2.0, pitchUp: false }
+  //            pitchUp false = tempo only, the key is held (musical).
+  //            pitchUp true  = tape speed-up, the pitch rises with it.
+  //            A track WITHOUT `ramp` follows the round clock in a run instead
+  //            (Settings -> Audio -> Music follows the clock; js/music.js).
+  //
+  // Example:
+  //   { id: 'lobby',  title: 'Lobby Hum',   file: 'assets/music/lobby-hum.mp3', scene: 'menu' },
+  //   { id: 'grind',  title: 'Night Shift', file: 'assets/music/night-shift.mp3', scene: 'game' },
+  //   { id: 'panic',  title: 'Deadline',    file: 'assets/music/deadline.mp3',    scene: 'game', ramp: true },
+  music: [
+    // The playlist is music only (r704, owner). The r186 office recordings
+    // (drive whirr, typing, dial tone) are still in assets/ambience/ but are
+    // not listed here; nothing else plays them.
+    // ── The music (r694) ──
+    // Kevin MacLeod (incompetech.com), CC BY 4.0, human-composed pieces from 2006
+    // to 2020; the credit lines are in assets/music/CREDITS.md. Corporate on the
+    // surface, synths underneath. None of these carries `ramp`: in a run they
+    // follow the ROUND CLOCK instead (js/music.js, MUSIC_CLOCK), reaching
+    // MUSIC_CLOCK.max as the clock reaches 0:00. 'any' tracks also play on the
+    // menu, at 1x; 'game' tracks are the driving ones and wait for a run.
+    { id: 'your_call',    title: 'Your Call',              artist: 'Kevin MacLeod', file: 'assets/music/your-call.mp3',        scene: 'any' },
+    { id: 'eternity',     title: 'Eternity',               artist: 'Kevin MacLeod', file: 'assets/music/eternity.mp3',         scene: 'any' },
+    { id: 'presenterator',title: 'Presenterator',          artist: 'Kevin MacLeod', file: 'assets/music/presenterator.mp3',    scene: 'any' },
+    { id: 'delightful_d', title: 'Delightful D',           artist: 'Kevin MacLeod', file: 'assets/music/delightful-d.mp3',     scene: 'any' },
+    { id: 'lemonade',     title: 'Digital Lemonade',       artist: 'Kevin MacLeod', file: 'assets/music/digital-lemonade.mp3', scene: 'game' },
+    { id: 'newer_wave',   title: 'Newer Wave',             artist: 'Kevin MacLeod', file: 'assets/music/newer-wave.mp3',       scene: 'game' },
+    { id: 'getting_done', title: 'Getting it Done',        artist: 'Kevin MacLeod', file: 'assets/music/getting-it-done.mp3',  scene: 'game' },
+    { id: 'nowhere_land', title: 'Nowhere Land',           artist: 'Kevin MacLeod', file: 'assets/music/nowhere-land.mp3',     scene: 'game' },
+    { id: 'shiny_tech',   title: 'Shiny Tech',             artist: 'Kevin MacLeod', file: 'assets/music/shiny-tech.mp3',       scene: 'game' },
+  ],
+  // ── SOUND EFFECTS ────────────────────────────────────────────────────────
+  // id: 'path/to/file'. The ids are listed in Settings -> Sound effects, and in
+  // SFX_CATALOG in js/audio-assets.js.
+  //
+  // Example:
+  //   card_select: 'assets/sfx/card-select.wav',
+  //   coin:        'assets/sfx/coin.mp3',
+  sfx: {
+    // ── Your uploads (r186) ──
+    // Only the short one-shots are here; anything over about two seconds is a bed,
+    // not an effect, and lives in the music list above instead.
+    card_pop:      'assets/sfx/single-card.mp3',        // one card scoring
+    card_select:   'assets/sfx/card-select.mp3',        // tapping a card
+    flip_shuffle:  'assets/sfx/cards-falling.mp3',      // the hand flying to the preview
+    reward_select: 'assets/sfx/cork-pop.mp3',           // picking a reward-grid tile
+    round_start:   'assets/sfx/floppy-insert.mp3',      // a round begins
+
+    // A GUESS, easy to move: "good sound, pitch down" reads as the good sound
+    // pitched down for the bad outcome. If it is meant to be positive, change
+    // this key to reward_good.
+    reward_bad:    'assets/sfx/good-pitched-down.mp3',
+
+    // assets/sfx/spacebar-click.mp3 is unassigned - it did not obviously belong
+    // to any id. Point one at it whenever you decide which.
+  },
+};
