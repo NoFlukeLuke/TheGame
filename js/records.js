@@ -48,6 +48,7 @@ function openRecords(tab) {
   el.classList.add('show');
   // The card fan MEASURES its row, so it has to run once the panel is on screen.
   if (recordsTab === 'deck') recordsDeckAfterRender();
+  if (recordsTab === 'personnel' && recOwnedView === 'tray') recOwnedAlign();
 }
 
 function closeRecords() {
@@ -70,6 +71,7 @@ function renderRecords() {
   const tab = RECORDS_TABS.find(t => t.id === recordsTab) || RECORDS_TABS[0];
   bodyEl.innerHTML = tab.render();
   if (tab.id === 'deck') recordsDeckAfterRender();
+  if (tab.id === 'personnel' && recOwnedView === 'tray') recOwnedAlign();
 }
 
 // ══════════════════════════════════════════════
@@ -215,7 +217,10 @@ function recordsDeckAfterRender() {
   box.addEventListener('mouseleave', () => hideEntityTooltip());
 }
 
-window.addEventListener('resize', () => { if (recordsOpen && recordsTab === 'deck') recordsDeckAfterRender(); });
+window.addEventListener('resize', () => {
+  if (recordsOpen && recordsTab === 'deck') recordsDeckAfterRender();
+  if (recordsOpen && recordsTab === 'personnel' && recOwnedView === 'tray') recOwnedAlign();
+});
 
 function recordsRenderDeck() {
   if (recordsDeckView === 'cards') return recordsRenderDeckCards();
@@ -370,6 +375,39 @@ function recordsEntityTrayItem(e) {
       <div class="rec-ent-id"><div class="rec-ent-name">${e.name}</div>
         <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div></div></div>
     <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div>`;
+}
+
+// r733 (owner): in the tray view the text lines up with the object's drawn left edge. The
+// object is drawn inset in its frame (a floppy is centred in the frame and the owner's art is
+// letterboxed narrower inside the disc; the diamond and the card are centred too), so each tile
+// is pulled left by its own inset. Measured, because the inset depends on the art loaded.
+function recOwnedAlign() {
+  document.querySelectorAll('#records-body .rec-ent-tray').forEach(it => {
+    const mid = it.querySelector('.rec-ent-mid'), cell = mid && mid.querySelector('.reward-cell');
+    if (!cell) return;
+    mid.style.removeProperty('--ent-inset');
+    const cr = cell.getBoundingClientRect(), z = cell.offsetWidth ? cr.width / cell.offsetWidth : 1;
+    let inset = null;
+    const dia = cell.querySelector('.rwd-diamond');
+    if (dia) inset = (dia.getBoundingClientRect().left - cr.left) / z;
+    else {
+      const b = getComputedStyle(cell, '::before'), w = parseFloat(b.width), l = parseFloat(b.left);
+      if (isFinite(w) && isFinite(l)) {
+        const m = (b.transform || '').match(/matrix\(([^)]+)\)/);
+        const tx = m ? parseFloat(m[1].split(',')[4]) || 0 : 0;
+        let art = w;
+        // The owner's floppy art is drawn `contain` in the disc box: its width is --fa-<tier>-bs's first %.
+        const tier = [...cell.classList].find(c => c.startsWith('rar-'));
+        if (cell.classList.contains('entity-trick') && tier) {
+          const bs = getComputedStyle(document.documentElement).getPropertyValue('--fa-' + tier.slice(4) + '-bs');
+          const pct = parseFloat(bs);
+          if (document.documentElement.classList.contains('fa-' + tier.slice(4)) && isFinite(pct)) art = w * pct / 100;
+        }
+        inset = l + tx + (w - art) / 2;
+      }
+    }
+    if (inset != null && inset > 0.5) mid.style.setProperty('--ent-inset', inset.toFixed(1) + 'px');
+  });
 }
 
 function recordsRenderPersonnel() {

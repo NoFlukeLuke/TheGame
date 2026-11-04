@@ -330,15 +330,31 @@ function dncResetFF(){ dncFF = false; dncFFWaiters = []; dncFFCuts = []; dncUser
 // the look a hand in front of a waiting winner plays); a fly-in or a winner's
 // jitter still running is landed at once first. After the beats, or with the
 // blast off, it is the old fast forward (dncRequestFF).
-let dncUserPace = 1, dncSkipReq = false, dncBeatsDone = false;
+// r734 (owner): a press holds for the whole burst. dncCarry (1 SPEED UP, 2 SKIP) is
+// what every later hand of the burst starts with: the hands waiting in the queue, the
+// ones played into it meanwhile, the winning hand at the round's end. It goes when a
+// dance ends with nothing waiting (dncCarryEnd) or the queue is dropped (dncQueueClear).
+let dncUserPace = 1, dncSkipReq = false, dncBeatsDone = false, dncCarry = 0;
 function dncUserBoost(){ return dncUserPace; }
+function dncCarryEnd(){ dncCarry = 0; }
+// Run by each dance just after its key is mounted: it starts where the burst is.
+function dncCarryApply(){
+  if(!dncCarry) return;
+  const btn = document.getElementById('dnc-ff');
+  dncUserPace = 2;
+  if(btn){ btn.classList.add('ff-fast'); btn.innerHTML = skipKeyHTML('SKIP', true); btn.title = 'Skip the rest of this hand'; }
+  if(dncCarry < 2) return;
+  if(typeof blastOn === 'function' && blastOn()){ dncSkipReq = true; if(btn) btn.classList.add('ff-on'); }
+  else dncRequestFF();
+}
 function dncButtonPress(){
   const btn = document.getElementById('dnc-ff');
   if(dncUserPace === 1 && !dncFF && !dncSkipReq){
-    dncUserPace = 2;
+    dncUserPace = 2; dncCarry = Math.max(dncCarry, 1);
     if(btn){ btn.classList.add('ff-fast'); btn.innerHTML = skipKeyHTML('SKIP', true); btn.title = 'Skip the rest of this hand'; }
     return;
   }
+  dncCarry = 2;
   if(dncBeatsDone || !(typeof blastOn === 'function' && blastOn())){ dncRequestFF(); return; }
   if(dncSkipReq) return;
   dncSkipReq = true;
@@ -635,6 +651,7 @@ function dncFinishAbort(stage, isGoalHand, myGen){
   // If a newer dance has taken over (myGen behind the global), this dance was superseded:
   // do NOT touch the shared stage/score UI - the successor owns it now.
   if(myGen!==undefined && myGen!==dncGen) return;
+  dncCarryEnd();   // r734: a cut dance ends the burst
   if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
   if(stage){ stage.classList.remove('dnc-active'); dncStageClear(stage); } dncCleanupReal(); dncSettleBlast(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
 // Display name for a contribution entity, by source (Trick / Sleight / Knack).
@@ -1068,7 +1085,7 @@ function dncGoalJumpStop(keepGlow){
   return g;
 }
 function dncQueueClear(){
-  dncGoalJumpStop();
+  dncGoalJumpStop(); dncCarryEnd();
   if(!dncQueue.length) return;
   dbgEvent('info', 'scoring queue dropped (' + dncQueue.length + ')');
   dncQueue.forEach(e => { e.dead = true; const q = e.result._q; if(q && q.strip){ q.strip.remove(); q.strip = null; } });
@@ -1340,6 +1357,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Every hand gets SPEED UP / SKIP in the preview, live from its first frame (owner;
   // r280 gave the goal hand alone a SKIP).
   dncMountFF(stage);
+  dncCarryApply();   // r734: SPEED UP / SKIP pressed earlier in this burst holds for this hand too
   // Settings -> Skip (r380). The SAME dance at the skip speed - dncRequestFF is
   // the goal hand's own SKIP, which lands the same numbers in the same order.
   if (typeof skipOn === 'function' && (skipOn('scoring') || (isGoalHand && skipOn('finale')))) dncRequestFF();
@@ -1887,7 +1905,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     }
   }
   // r661: the next hand in the scoring queue takes the preview now.
-  if(!isGoalHand) dncQueueNext();
+  if(isGoalHand || !dncQueueNext()) dncCarryEnd();   // r734: the burst is over
 }
 
 // ══════════════════════════════════════════════

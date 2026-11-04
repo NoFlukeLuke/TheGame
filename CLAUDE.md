@@ -4105,11 +4105,25 @@ climb and the round went to the interlude; no page errors.
   (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
 - **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
   stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
-  tier bands and stamp show), name, tag and words on the right. Tray (r731, owner): each object 109 x 102 on the
-  left with its name and tag beside it, the words under both, in a wrapping grid. Both go Tricks, Knacks, Sleights.
+  tier bands and stamp show), name, tag and words on the right. Tray (r731, owner): each object 87 x 82 (r733) on the
+  left with its name and tag beside it, the words under both, in a wrapping grid. The tile is pulled
+  left by its drawn inset (`recOwnedAlign`, `--ent-inset`: the floppy's ::before box and the art's
+  `--fa-<tier>-bs` width, or the diamond's rect), so the object's left edge is the text's. Both go Tricks, Knacks, Sleights.
 Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
 both Hands views and both Owned views drawn, no element wider than its box, no page errors.
 
+## r734 - SPEED UP and SKIP hold for the whole burst (owner)
+A press on the preview's key (r710) now applies to every hand still to score in the burst:
+the hands waiting in the queue, hands played into it meanwhile, and the winning hand at the
+round's end. `dncCarry` (js/score-dance.js: 1 SPEED UP, 2 SKIP) is set by `dncButtonPress`
+and read by `dncCarryApply()` right after each dance mounts its key (pace 2x, the key reads
+SKIP; at 2 the hand's beats are cut and it blasts, or fast-forwards with the blast off). It
+is cleared by `dncCarryEnd()` when a dance ends with nothing waiting, a goal hand ends, a
+dance is cut (`dncFinishAbort`) or the queue is dropped (`dncQueueClear`), so the next lone
+hand starts at SPEED UP. Measured in headless Chromium at 1440x820 (click) and 420x900 (tap):
+four hands, SPEED UP once: all four at 2x; SPEED UP then SKIP: all four skipped; a winning
+hand behind a skipped one skipped too and the round ended; a hand after the burst read
+SPEED UP at 1x. No page errors, no timeline drift.
 ## r728-r732 numbering
 Two sessions shipped r728 in parallel: main's r728-r731 (the skip keys, payout coins, the odometer,
 Records) and the difficulty branch's r728 (below). The merge that joined them is r732.
