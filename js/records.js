@@ -25,7 +25,7 @@ function recordsOverlay() {
     el.id = 'records-overlay';
     el.innerHTML = `<div id="records-panel">
         <div id="records-head">
-          <div class="rec-brand"><span class="rec-dot"></span>RECORDS</div>
+          <div class="rec-brand">&gt; RECORDS<span class="rec-cur"></span></div>
           <button id="rec-close" onclick="closeRecords()">✕</button>
         </div>
         <div id="records-tabs"></div>
@@ -48,6 +48,7 @@ function openRecords(tab) {
   el.classList.add('show');
   // The card fan MEASURES its row, so it has to run once the panel is on screen.
   if (recordsTab === 'deck') recordsDeckAfterRender();
+  if (recordsTab === 'personnel' && recOwnedView === 'tray') recOwnedAlign();
 }
 
 function closeRecords() {
@@ -66,10 +67,11 @@ function renderRecords() {
   if (!tabsEl || !bodyEl) return;
   tabsEl.innerHTML = RECORDS_TABS.map(t =>
     `<button class="rec-tab${t.id === recordsTab ? ' active' : ''}" onclick="recordsSwitchTab('${t.id}')">
-       <span class="rec-tab-ico">${t.icon}</span>${t.label}</button>`).join('');
+       ${t.label}</button>`).join('');
   const tab = RECORDS_TABS.find(t => t.id === recordsTab) || RECORDS_TABS[0];
   bodyEl.innerHTML = tab.render();
   if (tab.id === 'deck') recordsDeckAfterRender();
+  if (tab.id === 'personnel' && recOwnedView === 'tray') recOwnedAlign();
 }
 
 // ══════════════════════════════════════════════
@@ -215,7 +217,10 @@ function recordsDeckAfterRender() {
   box.addEventListener('mouseleave', () => hideEntityTooltip());
 }
 
-window.addEventListener('resize', () => { if (recordsOpen && recordsTab === 'deck') recordsDeckAfterRender(); });
+window.addEventListener('resize', () => {
+  if (recordsOpen && recordsTab === 'deck') recordsDeckAfterRender();
+  if (recordsOpen && recordsTab === 'personnel' && recOwnedView === 'tray') recOwnedAlign();
+});
 
 function recordsRenderDeck() {
   if (recordsDeckView === 'cards') return recordsRenderDeckCards();
@@ -305,65 +310,122 @@ function recordsRenderDeck() {
 }
 
 // ══════════════════════════════════════════════
-// PERSONNEL FILE - every owned entity, description shown by default
+// OWNED - every owned entity, description shown by default
 // ══════════════════════════════════════════════
-// `rar` is the TIER ID, and it is what colours the card - not `cls`, which only
-// says what kind of thing it is. See css/records.css (r198).
-function recordsEntityCard(icon, name, tag, desc, cls, off, rar) {
-  const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
-  const rc = 'rar-' + (typeof tierId === 'function' ? tierId(rar) : 'common');
-  // The row leads with the OBJECT (r239): the same floppy / business card /
-  // cert diamond every offer surface draws, so what you read about here is
-  // visibly the thing in your tray. `cls` carries the kind (e-trick...).
-  const kind = cls === 'e-trick' ? 'trick' : cls === 'e-sleight' ? 'sleight' : cls === 'e-knack' ? 'knack' : null;
-  const art = (kind && typeof entityTileHTML === 'function')
-    ? `<span class="rec-ent-tilebox">${entityTileHTML({ entity: kind, emoji: icon, label: name },
-        typeof tierId === 'function' ? tierId(rar) : 'common')}</span>`
-    : `<span class="rec-ent-ico">${icon}</span>`;
-  return `<div class="rec-ent ${cls} ${rc}${off ? ' ent-off' : ''}">
-    <div class="rec-ent-top">${art}
-      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${off ? 'SWITCHED OFF' : tag}</span></div>
-    <div class="rec-ent-desc">${d}</div></div>`;
+// Two views (r721, owner), chosen from the tab's bar and kept per browser:
+//   list - one row each: the object large on the left, its words on the right.
+//   tray - the objects in a row near their tray size, the words under each;
+//          a row for Tricks, then Knacks, then Sleights.
+// `rar` is the TIER ID, and it is what colours the row - not the kind, which the
+// object's SHAPE already says (r198).
+const REC_OWNED_KEY = 'lethe.recOwnedView.v1';          // stored only when 'tray'
+let recOwnedView = (() => { try { return localStorage.getItem(REC_OWNED_KEY) === 'tray' ? 'tray' : 'list'; } catch (e) { return 'list'; } })();
+function recOwnedSet(v) {
+  recOwnedView = v === 'tray' ? 'tray' : 'list';
+  try { if (recOwnedView === 'tray') localStorage.setItem(REC_OWNED_KEY, 'tray'); else localStorage.removeItem(REC_OWNED_KEY); } catch (e) {}
+  renderRecords();
 }
 
-function recordsRenderPersonnel() {
-  // Tricks (side tray), Sleights (owned deck cards), Knacks (permanent).
-  const tricks = trickTray;
-  // Records is the screen you open mid-boss to work out what you still have, so a
-  // Trick a boss has switched off (Voidwright, Censor) reads as off here too.
+// One owned entity as plain data: { kind, id, emoji, name, rar, tag, desc, off }.
+function recordsOwnedLists() {
+  const _tid = r => (typeof tierId === 'function' ? tierId(r) : 'common');
   const _off = t => (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(t.id);
-  const _anyOff = tricks.some(_off);
-  const trickHTML = tricks.length ? tricks.map(t => recordsEntityCard(
-    (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'), t.name,
-    tierLabel('trick', t.tier).toUpperCase(),
-    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t), t.tier)).join('')
-    : `<div class="rec-empty">No ${entityLabel('trick', true)} on file.</div>`;
-
-  const owned = [];
-  const seen = new Set();
+  const tricks = trickTray.map(t => ({
+    kind: 'trick', id: t.id, emoji: (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'),
+    name: t.name,
+    rar: _tid(t.tier), tag: tierLabel('trick', t.tier).toUpperCase(),
+    desc: (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), off: _off(t) }));
+  const knacks = acquiredKnacks.map(k => ({
+    kind: 'knack', id: k.id, emoji: k.emoji || '🧿', name: k.name, rar: _tid(k.rarity),
+    tag: tierLabel('knack', k.rarity).toUpperCase(),
+    desc: (typeof knackLiveDesc === 'function' ? knackLiveDesc(k) : k.desc), off: false }));
+  const sleights = [], seen = new Set();
   const pushSleight = card => {
+    if (!card?._isSleight || seen.has(card._id)) return;
+    seen.add(card._id);
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     if (!def) return;
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
-    owned.push(recordsEntityCard(def.emoji || '🎴', def.name, `${tierLabel('sleight', def.rarity).toUpperCase()} · ${uses} left`, def.desc, 'e-sleight', false, def.rarity));
+    sleights.push({ kind: 'sleight', id: def.id, emoji: def.emoji || '🎴', name: def.name, rar: _tid(def.rarity),
+      tag: `${tierLabel('sleight', def.rarity).toUpperCase()} · ${uses} LEFT`, desc: def.desc, off: false });
   };
-  [...drawPile, ...playedPile].forEach(c => { if (c._isSleight && !seen.has(c._id)) { seen.add(c._id); pushSleight(c); } });
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) { const x = gridData[r]?.[c]; if (x?._isSleight && !seen.has(x._id)) { seen.add(x._id); pushSleight(x); } }
-  const sleightHTML = owned.length ? owned.join('') : `<div class="rec-empty">No ${entityLabel('sleight', true)} on file.</div>`;
+  [...drawPile, ...playedPile].forEach(pushSleight);
+  gridData.forEach(row => (row || []).forEach(pushSleight));
+  return { tricks, knacks, sleights };
+}
 
-  const knackHTML = acquiredKnacks.length ? acquiredKnacks.map(k => recordsEntityCard(
-    k.emoji || '🧿', k.name, tierLabel('knack', k.rarity).toUpperCase(), (typeof knackLiveDesc === 'function' ? knackLiveDesc(k) : k.desc), 'e-knack', false, k.rarity)).join('')
-    : `<div class="rec-empty">No ${entityLabel('knack', true)} on file.</div>`;
+function recordsEntityTile(e) {
+  return (typeof entityTileHTML === 'function')
+    ? entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rar, { tip: false })
+    : `<span class="rec-ent-ico">${e.emoji}</span>`;
+}
+function recordsEntityDesc(e) {
+  return (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(e.desc || '')) : (e.desc || '');
+}
+function recordsEntityRow(e) {
+  return `<div class="rec-ent rec-ent-row rar-${e.rar}${e.off ? ' ent-off' : ''}">
+    <div class="rec-ent-big">${recordsEntityTile(e)}</div>
+    <div class="rec-ent-text">
+      <div class="rec-ent-top"><span class="rec-ent-name">${e.name}</span><span class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</span></div>
+      <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div></div>`;
+}
+function recordsEntityTrayItem(e) {
+  return `<div class="rec-ent rec-ent-tray rar-${e.rar}${e.off ? ' ent-off' : ''}">
+    <div class="rec-ent-head"><div class="rec-ent-mid">${recordsEntityTile(e)}</div>
+      <div class="rec-ent-id"><div class="rec-ent-name">${e.name}</div>
+        <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div></div></div>
+    <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div>`;
+}
 
+// r733 (owner): in the tray view the text lines up with the object's drawn left edge. The
+// object is drawn inset in its frame (a floppy is centred in the frame and the owner's art is
+// letterboxed narrower inside the disc; the diamond and the card are centred too), so each tile
+// is pulled left by its own inset. Measured, because the inset depends on the art loaded.
+function recOwnedAlign() {
+  document.querySelectorAll('#records-body .rec-ent-tray').forEach(it => {
+    const mid = it.querySelector('.rec-ent-mid'), cell = mid && mid.querySelector('.reward-cell');
+    if (!cell) return;
+    mid.style.removeProperty('--ent-inset');
+    const cr = cell.getBoundingClientRect(), z = cell.offsetWidth ? cr.width / cell.offsetWidth : 1;
+    let inset = null;
+    const dia = cell.querySelector('.rwd-diamond');
+    if (dia) inset = (dia.getBoundingClientRect().left - cr.left) / z;
+    else {
+      const b = getComputedStyle(cell, '::before'), w = parseFloat(b.width), l = parseFloat(b.left);
+      if (isFinite(w) && isFinite(l)) {
+        const m = (b.transform || '').match(/matrix\(([^)]+)\)/);
+        const tx = m ? parseFloat(m[1].split(',')[4]) || 0 : 0;
+        let art = w;
+        // The owner's floppy art is drawn `contain` in the disc box: its width is --fa-<tier>-bs's first %.
+        const tier = [...cell.classList].find(c => c.startsWith('rar-'));
+        if (cell.classList.contains('entity-trick') && tier) {
+          const bs = getComputedStyle(document.documentElement).getPropertyValue('--fa-' + tier.slice(4) + '-bs');
+          const pct = parseFloat(bs);
+          if (document.documentElement.classList.contains('fa-' + tier.slice(4)) && isFinite(pct)) art = w * pct / 100;
+        }
+        inset = l + tx + (w - art) / 2;
+      }
+    }
+    if (inset != null && inset > 0.5) mid.style.setProperty('--ent-inset', inset.toFixed(1) + 'px');
+  });
+}
+
+function recordsRenderPersonnel() {
+  const L = recordsOwnedLists();
+  const anyOff = L.tricks.some(e => e.off);
+  const item = recOwnedView === 'tray' ? recordsEntityTrayItem : recordsEntityRow;
+  const box = recOwnedView === 'tray' ? 'rec-ents-tray' : 'rec-ents-list';
+  const sec = (kind, list, note) => `
+    <div class="rec-h">${entityLabel(kind, true)} <span class="rec-h-note">${note}</span></div>
+    ${list.length ? `<div class="${box}">${list.map(item).join('')}</div>`
+                  : `<div class="rec-empty">No ${entityLabel(kind, true)} on file.</div>`}`;
+  const chip = (v, txt) => `<button class="rec-chip${recOwnedView === v ? ' on' : ''}" onclick="recOwnedSet('${v}')">${txt}</button>`;
   return `
-    <div class="rec-note">Active personnel and equipment. Descriptions reflect current values - the clock is held while this file is open.</div>
-    <div class="rec-h">${entityLabel('trick', true)} <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${_anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}</span></div>
-    <div class="rec-ents">${trickHTML}</div>
-    <div class="rec-h">${entityLabel('sleight', true)} <span class="rec-h-note">${owned.length}</span></div>
-    <div class="rec-ents">${sleightHTML}</div>
-    <div class="rec-h">${entityLabel('knack', true)} <span class="rec-h-note">${acquiredKnacks.length}</span></div>
-    <div class="rec-ents">${knackHTML}</div>`;
+    <div class="rec-deck-bar"><span class="rec-bar-word">VIEW</span>${chip('list', 'List')}${chip('tray', 'Tray')}
+      <span class="rec-h-note">Numbers are live. The clock is held while this is open.</span></div>
+    ${sec('trick', L.tricks, `${L.tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}`)}
+    ${sec('knack', L.knacks, L.knacks.length)}
+    ${sec('sleight', L.sleights, L.sleights.length)}`;
 }
 
 // ══════════════════════════════════════════════
@@ -469,7 +531,8 @@ function _recHandsFootFull() {
 //
 // activeHands holds KEYS (run3, twopair) and both value tables are keyed by
 // NAME, so the reverse of HAND_KEY_TO_NAME is what joins them.
-function recordsRenderHands() {
+// The pre-r721 rate table: any scoring model but the card ladder with double scaling.
+function recordsRenderHandsTable() {
   const nameToKey = {};
   Object.entries(HAND_KEY_TO_NAME).forEach(([k, n]) => { nameToKey[n] = k; });
   const playable = name => { const k = nameToKey[name]; return !k || activeHands.has(k); };
@@ -517,6 +580,180 @@ function recordsRenderHands() {
     </div>
     <div class="rec-hands">${rows}</div>${more}
     <div class="rec-foot">${_recHandsFootFull()}</div>`;
+}
+
+// ── HANDS (r721, owner) ──
+// Under the card ladder with double scaling (the shipped game) a hand's TYPE does
+// not price it: every card pays its place in the hand as mult, and what grows is
+// the FAMILY (set / run / flush). Focus is the one thing that is per hand type.
+// So the tab has two views:
+//   SCORE - one example hand per family, as real cards, with what each card pays
+//           under it (place + the family's step as mult, the family's bonus pips),
+//           cards past the Hand Size dimmed, and how far the next step is.
+//   FOCUS - every hand type as a small hand of cards with the Focus it adds;
+//           hands bigger than the Hand Size, or not in this mode, are folded away.
+// Under both, one fold per hand with whatever is worth knowing about it.
+// Every number is read live (nsFamStep / nsFamPips / ns2 / HAND_FOCUS); a dev
+// model other than card ladder + double scaling falls back to the old table.
+let recHandsView = 'score';                // 'score' | 'focus'
+function recHandsSet(v) { recHandsView = v === 'focus' ? 'focus' : 'score'; renderRecords(); }
+
+const _RX = s => s.trim().split(/\s+/).map(t => [t.slice(0, -1), t.slice(-1)]);
+// Each family's example, long enough for a 7-card Hand Size. Read left to right,
+// each prefix is the family's hand of that size where one exists.
+const REC_FAMILIES = [
+  { id: 'set',   word: 'SETS',    ex: _RX('7♠ 7♥ 7♦ K♣ K♥ K♦ K♠') },
+  { id: 'run',   word: 'RUNS',    ex: _RX('5♠ 6♥ 7♦ 8♣ 9♥ 10♠ J♦') },
+  { id: 'flush', word: 'FLUSHES', ex: _RX('2♥ 5♥ 9♥ J♥ K♥ 4♥ Q♥') },
+];
+const REC_HAND_EX = {
+  'Pair': '7♠ 7♥', 'Three of a Kind': '7♠ 7♥ 7♦', 'Two Pair': '7♠ 7♥ K♣ K♦',
+  'Four of a Kind': '7♠ 7♥ 7♦ 7♣', 'Full House': '7♠ 7♥ 7♦ K♣ K♦',
+  'Five of a Kind': '7♠ 7♥ 7♦ 7♣ 7♠', 'Six of a Kind': '7♠ 7♥ 7♦ 7♣ 7♠ 7♥', 'Seven of a Kind': '7♠ 7♥ 7♦ 7♣ 7♠ 7♥ 7♦',
+  'Run of 3': '5♠ 6♥ 7♦', 'Run of 4': '5♠ 6♥ 7♦ 8♣', 'Straight': '5♠ 6♥ 7♦ 8♣ 9♥',
+  'Run of 6': '5♠ 6♥ 7♦ 8♣ 9♥ 10♠', 'Run of 7': '5♠ 6♥ 7♦ 8♣ 9♥ 10♠ J♦',
+  'Flush of 3': '2♥ 9♥ K♥', 'Flush of 4': '2♥ 5♥ 9♥ K♥', 'Flush': '2♥ 5♥ 9♥ J♥ K♥',
+  'Flush of 6': '2♥ 4♥ 5♥ 9♥ J♥ K♥', 'Flush of 7': '2♥ 4♥ 5♥ 9♥ J♥ Q♥ K♥',
+  'Straight Flush': '5♥ 6♥ 7♥ 8♥ 9♥',
+};
+const REC_FOCUS_GROUPS = [
+  { word: 'SETS',    hands: ['Pair', 'Three of a Kind', 'Two Pair', 'Four of a Kind', 'Full House', 'Five of a Kind', 'Six of a Kind', 'Seven of a Kind'] },
+  { word: 'RUNS',    hands: ['Run of 3', 'Run of 4', 'Straight', 'Run of 6', 'Run of 7'] },
+  { word: 'FLUSHES', hands: ['Flush of 3', 'Flush of 4', 'Flush', 'Flush of 6', 'Flush of 7'] },
+  { word: 'BOTH',    hands: ['Straight Flush'] },
+];
+
+function _recSel() { return (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5; }
+// The name the hand preview prints (HAND_LABEL, r611): SET OF 3, RUN OF 4, TWO PAIR.
+function recHandWord(name) {
+  const l = HAND_LABEL[name];
+  if (!l) return name.toUpperCase();
+  return /^\d+$/.test(l.size) ? `${l.fam} OF ${l.size}` : `${l.fam} ${l.size}`.trim();
+}
+// A real card face for a made-up card. The id is ours, so no store has anything on it.
+let _recFaceN = 0;
+function recCardFace(rank, suit) {
+  const card = { rank, suit, _id: 'rec-x-' + (++_recFaceN) };
+  const { className, innerHTML } = renderCardAppearance(card, -1, -1, { revealFog: true });
+  return `<div class="${className}">${innerHTML}</div>`;
+}
+function recHandLadderOn() {
+  return (typeof scoringModel !== 'undefined' && scoringModel === 'card_ladder')
+      && (typeof nsDoubleOn === 'function' && nsDoubleOn());
+}
+// n of every, as a strip of squares (the stock squares' look).
+function recProgress(have, every) {
+  const n = Math.max(1, every), k = have % n;
+  const segs = Math.min(n, 15);
+  const lit = Math.floor(k / n * segs);
+  return `<span class="rh-prog">${'<i class="on"></i>'.repeat(lit)}${'<i></i>'.repeat(segs - lit)}</span>`;
+}
+
+function recordsHandsScore() {
+  const sel = _recSel(), n = Math.min(7, Math.max(5, sel));
+  const rows = REC_FAMILIES.map(f => {
+    const step = nsFamStep(f.id), pips = nsFamPips(f.id), plays = (nsFamPlays || {})[f.id] || 0;
+    const cards = f.ex.slice(0, n).map(([rk, s], i) => {
+      const on = i < sel, m = i + 1 + step;
+      return `<div class="rh-slot${on ? '' : ' off'}">
+        <div class="rh-face">${recCardFace(rk, s)}</div>
+        <div class="rh-pay"><span class="rh-m"><b>${m}</b> MULT${step ? `<em>+${step}</em>` : ''}</span>
+          <span class="rh-p">${pips ? `<b>+${pips}</b> PIP${pips > 1 ? 'S' : ''}` : '&middot;'}</span></div></div>`;
+    }).join('');
+    const mLeft = ns2.multEvery - plays % ns2.multEvery, pLeft = ns2.pipsEvery - plays % ns2.pipsEvery;
+    return `<div class="rh-fam">
+      <div class="rh-fam-word">${f.word}</div>
+      <div class="rh-hand">${cards}</div>
+      <div class="rh-next">
+        <div class="rh-next-row"><span>PLAYED</span><b>${plays}</b></div>
+        <div class="rh-next-row">${recProgress(plays, ns2.multEvery)}<span><b>+${ns2.multStep}</b> MULT IN <b>${mLeft}</b></span></div>
+        <div class="rh-next-row">${recProgress(plays, ns2.pipsEvery)}<span><b>+${ns2.pipsPer}</b> PIP IN <b>${pLeft}</b></span></div>
+      </div></div>`;
+  }).join('');
+  const dim = n > sel ? ` Dim cards are past your Hand Size (${sel}).` : '';
+  return `<div class="rec-note">Each card pays its place in the hand as mult (the first card you pick is 1), again every time it replays. Playing a family moves all of its hands up.${dim}</div>
+    <div class="rh-fams">${rows}</div>
+    <div class="rec-note">A same-suit run is a run and a flush at once: every card scores twice, both families count the play, and it scores with the better family's bonus.</div>`;
+}
+
+function recFocusRow(name, why) {
+  const f = HAND_FOCUS[name] || 0;
+  const half = (typeof FOCUS_HALF_SPEED_HANDS !== 'undefined') && FOCUS_HALF_SPEED_HANDS.has(name);
+  const cards = _RX(REC_HAND_EX[name] || '').map(([rk, s]) => `<div class="rh-mini">${recCardFace(rk, s)}</div>`).join('');
+  return `<div class="rh-frow${why ? ' off' : ''}">
+    <div class="rh-mhand">${cards}</div>
+    <div class="rh-fname">${recHandWord(name)}${why ? `<small>${why}</small>` : half ? '<small>half the speed bonus</small>' : ''}</div>
+    <div class="rh-fval"><span class="rh-fbar">${'<i></i>'.repeat(Math.min(f, 14))}</span><b>${f}</b></div></div>`;
+}
+function recordsHandsFocus() {
+  const sel = _recSel();
+  const now = [], later = [];
+  REC_FOCUS_GROUPS.forEach(g => {
+    const a = [], b = [];
+    g.hands.forEach(h => {
+      if (!(h in HAND_FOCUS) || !HAND_CARD_COUNT[h]) return;
+      const size = HAND_CARD_COUNT[h];
+      if (!handIsActive(h)) b.push(recFocusRow(h, 'not unlocked'));
+      else if (size > sel) b.push(recFocusRow(h, `needs Hand Size ${size}`));
+      else a.push(recFocusRow(h));
+    });
+    if (a.length) now.push(`<div class="rh-fgroup"><div class="rh-fam-word">${g.word}</div>${a.join('')}</div>`);
+    if (b.length) later.push(`<div class="rh-fgroup"><div class="rh-fam-word">${g.word}</div>${b.join('')}</div>`);
+  });
+  return `<div class="rec-note">Focus belongs to the hand, not its cards. A hand adds this much to the meter, plus a bonus for playing it fast. A same-suit run adds the run's Focus only.</div>
+    <div class="rh-focus">${now.join('') || '<div class="rec-empty">None.</div>'}</div>
+    ${later.length ? `<details class="rec-fold"><summary>BIGGER AND LOCKED HANDS <span>need a larger Hand Size, or an unlock</span></summary><div class="rh-focus">${later.join('')}</div></details>` : ''}`;
+}
+
+// The owned Tricks and Knacks whose words name this hand. Longer names are taken
+// out first, so "Flush" does not find "Straight Flush" and "Pair" not "Two Pair".
+function recHandMentions(name) {
+  const names = Object.keys(HAND_CARD_COUNT).sort((a, b) => b.length - a.length);
+  const found = [];
+  const look = (ent, desc) => {
+    let d = String(desc || '').replace(/<[^>]+>/g, ' ');
+    let hit = false;
+    names.forEach(n => {
+      const re = new RegExp('\\b' + n.replace(/ /g, '\\s+') + '(e?s)?\\b', 'gi');
+      if (re.test(d)) { if (n === name) hit = true; d = d.replace(re, ' '); }
+    });
+    if (hit) found.push(ent.name);
+  };
+  trickTray.forEach(t => look(t, typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc));
+  acquiredKnacks.forEach(k => look(k, typeof knackLiveDesc === 'function' ? knackLiveDesc(k) : k.desc));
+  return found;
+}
+function recordsHandFiles() {
+  const sel = _recSel();
+  const plays = (typeof crHandPlays === 'object' && crHandPlays) || {};
+  const nameToKey = {};
+  Object.entries(HAND_KEY_TO_NAME).forEach(([k, n]) => { nameToKey[n] = k; });
+  const list = REC_FOCUS_GROUPS.flatMap(g => g.hands).filter(h => HAND_CARD_COUNT[h] && (HAND_CARD_COUNT[h] <= Math.max(5, sel) || handIsActive(h)));
+  const files = list.map(h => {
+    const size = HAND_CARD_COUNT[h], lines = [];
+    const fams = (NS_HAND_FAMILIES[h] || []).map(f => f.toUpperCase());
+    lines.push(`${size} cards · ${fams.join(' and ')}${fams.length > 1 ? ' (counts for both)' : ''}`);
+    const half = FOCUS_HALF_SPEED_HANDS.has(h);
+    lines.push(`Focus ${HAND_FOCUS[h] || 0}${half ? ', and half the speed bonus' : ''}`);
+    lines.push(`Played ${plays[h] || 0} time${plays[h] === 1 ? '' : 's'} this run`);
+    if (!handIsActive(h)) {
+      const u = (typeof UNLOCK_PROGRESS !== 'undefined') ? UNLOCK_PROGRESS.find(x => x.key === nameToKey[h]) : null;
+      lines.push(u ? 'Unlocks with ' + u.paths.map(p => `${p.label} ${typeof p.cur === 'function' ? p.cur() : p.cur}/${p.goal}`).join(', or ') : 'Not unlocked yet');
+    } else if (size > sel) lines.push(`Needs Hand Size ${size} (you have ${sel})`);
+    const m = recHandMentions(h);
+    if (m.length) lines.push(`Named by ${m.join(', ')}`);
+    return `<details class="rec-hf${handIsActive(h) && size <= sel ? '' : ' off'}"><summary>${recHandWord(h)}<span>${plays[h] || 0}</span></summary>
+      <div class="rec-hf-body">${lines.map(l => `<div>${l}</div>`).join('')}</div></details>`;
+  }).join('');
+  return `<details class="rec-fold"><summary>HAND FILES <span>one per hand</span></summary><div class="rec-hfs">${files}</div></details>`;
+}
+
+function recordsRenderHands() {
+  if (!recHandLadderOn()) return recordsRenderHandsTable();
+  const chip = (v, txt) => `<button class="rec-chip${recHandsView === v ? ' on' : ''}" onclick="recHandsSet('${v}')">${txt}</button>`;
+  return `<div class="rec-deck-bar"><span class="rec-bar-word">SHOW</span>${chip('score', 'Score')}${chip('focus', 'Focus')}</div>
+    ${recHandsView === 'focus' ? recordsHandsFocus() : recordsHandsScore()}
+    ${recordsHandFiles()}`;
 }
 
 function recordsRenderStats() {

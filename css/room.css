@@ -326,6 +326,11 @@
 #cabinet.landscape .mode-card-name    { font-size: 17px; letter-spacing: 2px; }
 #cabinet.landscape .mode-card-suits   { font-size: 19px; letter-spacing: 3px; }
 #cabinet.landscape .mode-card-blurb   { font-size: 9.5px; line-height: 1.5; }
+#cabinet.landscape .mode-card-diff    { gap: 4px; }
+#cabinet.landscape .mdf-arrow         { width: 24px; height: 24px; font-size: 16px; }
+#cabinet.landscape .mdf-dollars       { font-size: 13px; }
+#cabinet.landscape .mdf-name          { font-size: 9px; letter-spacing: 1px; }
+#cabinet.landscape .mode-card-diff-say { font-size: 8.5px; line-height: 1.35; min-height: 2.7em; }
 #cabinet.landscape .mode-card-play    { font-size: 13px; padding: 9px; }
 #cabinet.landscape .mode-arrow        { width: 34px; height: 34px; font-size: 20px; }
 #cabinet.landscape #mode-back-btn     { font-size: 11px; padding: 7px 18px; }

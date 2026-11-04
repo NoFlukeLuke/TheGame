@@ -52,7 +52,7 @@ function triggerLevelUp() {
   // we just skip the old round-reset to avoid disrupting the boss.
   if (bossActive) return;
   if (typeof unlockRoundCleared === 'function') unlockRoundCleared();   // r706
-  if (typeof hmRoundsSettle === 'function') hmRoundsSettle();   // r727: a deck horseman's rounds on the grid, counted at the round's end
+  if (typeof hmRoundsSettle === 'function') hmRoundsSettle(true);   // r727 / r728: the round is over; a deck horseman at its draw limit leaves
   clearInterval(roundInterval);
   roundInterval = null;
   // One vertical line on the clock per level-up, on the clocks that SPAN
@@ -224,7 +224,7 @@ function triggerLevelUp() {
   lastSwapRoundSeconds = null;
   lastHandRoundSeconds = null;
   firstHandThisRound = true;
-  freeDiscardsLeft = 2;
+  freeDiscardsLeft = 0;   // r728: no free discards
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
   discardsUsedRound = 0;

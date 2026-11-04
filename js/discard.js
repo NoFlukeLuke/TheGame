@@ -139,12 +139,10 @@ function doDiscard() {
   let flatCost = discardSecondsBase();
   if (hasKnack('free_discards')) flatCost = 0;
   else { if (hasKnack('hoarder')) flatCost = hoarderDiscardSecs(); flatCost += (discardCostThisRound || 0); }
-  const usingFreeDiscard = flatCost > 0 && freeDiscardsLeft > 0;
-  if (usingFreeDiscard) freeDiscardsLeft--;
-  // interactTimeCostMult() is 0 when the mode does not bill the clock at all and
-  // Flow's half rate when it does, so this site needs no second test (r326).
+  // interactTimeCostMult() is 0 when the mode does not bill the clock at all, so
+  // this site needs no second test (r326). r728: the two free discards a round are gone.
   // r567: a discard of Fodder alone bills no seconds.
-  const timeCost = (usingFreeDiscard || _own.length - _fodderN <= 0) ? 0 : Math.round(flatCost * bossInteractMult() * interactTimeCostMult());
+  const timeCost = (_own.length - _fodderN <= 0) ? 0 : Math.round(flatCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);

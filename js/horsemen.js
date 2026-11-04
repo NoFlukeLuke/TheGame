@@ -31,13 +31,14 @@
 // SEVERANCE PACKAGE (legendary Trick): double-tap any curse card or stone to
 // discard it for BAL.severance_package.swaps swaps and .discards discards.
 //
-// HOW LONG A DECK HORSEMAN LASTS (r727, owner): difficultyHorsemanRounds()
-// rounds (4 / 6 / for good by tier, js/difficulty.js), counting only the rounds
-// in which the card came onto the grid at all. `hmSeen` (card id -> 1) is marked
-// by the tick and by every render while the card is on the board; triggerLevelUp
-// calls hmRoundsSettle, which adds the round to `hmRounds` (card id -> rounds)
-// and takes a spent card out of the run. Both are SAVE_VARS. A boss's temp
-// horseman is never counted (it goes at the round's end anyway).
+// HOW LONG A DECK HORSEMAN LASTS (r727 / r728, owner): difficultyHorsemanDraws()
+// DRAWS (4 / 6 / for good by tier, js/difficulty.js). A draw is the card coming
+// onto the grid: `hmSeen` (card id -> 1) is set the first time the tick or a
+// render sees it on the board, and that sighting adds one to `hmRounds` (card id
+// -> draws so far); the tick clears the mark once the card has left the board, so
+// coming back is another draw. A card at the limit leaves the run when it next
+// leaves the board (hmRoundsSettle: the tick, and triggerLevelUp for the round's
+// end). Both are SAVE_VARS. A boss's temp horseman is never counted.
 const HM = {
   death:  { timer: 30, warn: 5, flyMs: 240 },
   famine: { timer: 30, warn: 5, secs: 20, mute: 20 },
@@ -50,24 +51,33 @@ let hmRounds = {};   // card id -> rounds on the grid so far (SAVE_VARS, reset i
 let hmSeen = {};     // card id -> 1, the deck horsemen that came onto the grid THIS round
 
 function isHorseman(c) { return !!(c && c._curseCard && (c._curseCard === 'death' || c._curseCard === 'famine' || c._curseCard === 'pest')); }
-// A deck horseman on the board this round. Called from the tick and from every render.
-function hmRoundsNote(cd) { if (cd && !cd._temp && cd._id != null && isHorseman(cd)) hmSeen[cd._id] = 1; }
-// Rounds left before a deck horseman leaves (Infinity: it stays until removed).
-function hmRoundsLeft(cd) {
-  const lim = (typeof difficultyHorsemanRounds === 'function') ? difficultyHorsemanRounds() : Infinity;
-  if (!isFinite(lim) || !cd || cd._temp) return Infinity;
-  return Math.max(0, lim - (hmRounds[cd._id] || 0));
+// A deck horseman seen on the board. Called from the tick and from every render;
+// the first sighting since it last left the board is a DRAW.
+function hmRoundsNote(cd) {
+  if (!cd || cd._temp || cd._id == null || !isHorseman(cd) || hmSeen[cd._id]) return;
+  hmSeen[cd._id] = 1;
+  hmRounds[cd._id] = (hmRounds[cd._id] || 0) + 1;
 }
-// The round's end (triggerLevelUp): every horseman seen this round has one more
-// round on it; one at the tier's limit leaves the run, wherever it sits.
-function hmRoundsSettle() {
-  const lim = (typeof difficultyHorsemanRounds === 'function') ? difficultyHorsemanRounds() : Infinity;
+// Draws left on a deck horseman, this one included (Infinity: it stays until removed).
+function hmRoundsLeft(cd) {
+  const lim = (typeof difficultyHorsemanDraws === 'function') ? difficultyHorsemanDraws() : Infinity;
+  if (!isFinite(lim) || !cd || cd._temp) return Infinity;
+  return Math.max(1, lim - (hmRounds[cd._id] || 0) + (hmSeen[cd._id] ? 1 : 0));
+}
+// Marked cards no longer on the board have left it: their mark is dropped (the
+// next sighting is a new draw) and one at the tier's limit leaves the run. From
+// the tick (`all` false: only cards off the board) and from triggerLevelUp (`all`
+// true: the round is over, every mark is dropped).
+function hmRoundsSettle(all) {
+  const lim = (typeof difficultyHorsemanDraws === 'function') ? difficultyHorsemanDraws() : Infinity;
   const ids = Object.keys(hmSeen || {});
-  hmSeen = {};
   if (!ids.length) return;
+  const onBoard = new Set();
+  if (!all) for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) { const cd = gridData[r]?.[c]; if (cd && cd._id != null) onBoard.add(String(cd._id)); }
   ids.forEach(id => {
-    hmRounds[id] = (hmRounds[id] || 0) + 1;
-    if (!isFinite(lim) || hmRounds[id] < lim) return;
+    if (!all && onBoard.has(String(id))) return;
+    delete hmSeen[id];
+    if (!isFinite(lim) || (hmRounds[id] || 0) < lim) return;
     delete hmRounds[id];
     const gone = hmRemoveById(id);
     if (gone) showMessage(`${CURSE_CARD_DEFS[gone._curseCard]?.icon || ''} ${CURSE_CARD_DEFS[gone._curseCard]?.name || 'Curse card'} leaves the deck`, 'var(--cream-dim)');
@@ -130,6 +140,7 @@ function horsemenTick() {
     if (cd._hmT <= 0) fires.push([r, c, cd]);
   }
   famineMuteTick();
+  hmRoundsSettle(false);   // r728: a marked card off the board has left it
   if (!busy) {
     for (const [r, c, cd] of fires) {
       if (gridData[r]?.[c] !== cd) continue;   // an earlier strike moved it
@@ -181,7 +192,7 @@ function horsemenFaceHTML(cd) {
   const arrow = k === 'death' ? `<div class="hm-arrow hm-d${cd._dir ?? 0}">${HM_ARROW[cd._dir ?? 0]}</div>` : '';
   // r727: rounds left on a deck horseman (top-left), none when it stays for good.
   const left = hmRoundsLeft(cd);
-  const rounds = isFinite(left) ? `<div class="hm-left" title="Rounds left">${left}</div>` : '';
+  const rounds = isFinite(left) ? `<div class="hm-left" title="Draws left">${left}</div>` : '';
   return `${bar}${rounds}<div class="hm-ico">${emGlyph(d.icon)}</div>${arrow}<div class="hm-word">${d.name.toUpperCase()}</div>`;
 }
 function horsemenFaceClass(cd) {

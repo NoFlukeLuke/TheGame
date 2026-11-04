@@ -1,7 +1,11 @@
 /* ══════════════════════════════════════════════
-   RECORDS - combined info hub (r155)
+   RECORDS - combined info hub (r155), the console look (r721)
    Lives OUTSIDE #stage (appended to body) for the same reason as the dev panel and
    the pop-ups: inside the stage it would inherit the cabinet's CSS `zoom`.
+   The panel is one amber glass like the board screens (css/board-screen.css):
+   VT323, wireframe boxes, the event lab's phosphors (EGL_PALETTE) as --r-*.
+   The scan lines come from the one screen door (js/screen-door.js lists
+   #records-overlay), never from a gradient here.
    ══════════════════════════════════════════════ */
 
 #records-overlay {
@@ -9,296 +13,312 @@
   position: fixed; inset: 0; z-index: 400;
   align-items: center; justify-content: center;
   padding: 3vh 2vw;
-  background:
-    radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.94) 0%, rgba(11,10,28,0.97) 72%);
+  background: rgba(3, 5, 2, 0.86);
 }
 #records-overlay.show { display: flex; }
 
 #records-panel {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06; --am-bg: #0e150a;
+  --r-cream: #fff1d8; --r-gold: #ffe066; --r-coral: #ff7656; --r-rose: #ff8fb8; --r-violet: #d6a8ff;
+  --r-sky: #a4c6ff; --r-teal: #82dccb; --r-mint: #94ecb0; --r-sage: #cde37e;
   width: 100%; max-width: 980px; max-height: 94vh;
   display: flex; flex-direction: column;
-  border-radius: 16px; overflow: hidden;
-  background: linear-gradient(180deg, rgba(20,16,11,0.97), rgba(11,9,6,0.98));
-  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 6px #17120c, 0 24px 60px rgba(0,0,0,0.65);
+  border-radius: 8px; overflow: hidden; border: 1px solid #000;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55),
+              inset 0 0 0 4px rgba(76,107,47,.24), 0 0 0 2px #0008, 0 24px 60px rgba(0,0,0,0.65);
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am);
+  text-shadow: 0 0 6px rgba(255,176,46,.45);
+  scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
 }
+#records-panel * { scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent; }
 
 /* ── header ── */
 #records-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-bottom: 1px solid rgba(183,172,147,0.22);
-  background: linear-gradient(180deg, rgba(255,206,43,0.07), transparent);
+  padding: 8px 12px 4px;
 }
-.rec-brand {
-  display: flex; align-items: center; gap: 8px;
-  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; letter-spacing: 4px;
-  color: var(--c-yellow, #ffce2b); text-transform: uppercase;
-}
-.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-mint, #35d59b); box-shadow: 0 0 8px var(--c-mint, #35d59b); }
+.rec-brand { display: flex; align-items: center; font-size: 24px; letter-spacing: 2px; color: var(--am-hi); }
+.rec-cur { display: inline-block; width: .5em; height: .9em; margin-left: 4px; background: currentColor; box-shadow: 0 0 6px currentColor; animation: bsBlink 1.06s steps(1) infinite; }
 #rec-close {
-  cursor: var(--cur-pointer, pointer); border-radius: 8px; padding: 5px 11px; font-size: 14px;
-  color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.05);
-  border: 1.5px solid var(--plastic-lo, #b7ac93); transition: all 0.12s ease;
+  cursor: var(--cur-pointer, pointer); padding: 2px 10px 1px; font: inherit; font-size: 20px; line-height: 1;
+  color: var(--am); background: transparent; border: 1px solid var(--am-dim); border-radius: 3px; text-shadow: inherit;
 }
-#rec-close:hover { border-color: var(--c-coral, #ff6a3c); color: var(--c-coral, #ff6a3c); }
+#rec-close:hover { background: rgba(255,176,46,.14); border-color: var(--am); }
 
-/* ── tabs ── */
-#records-tabs {
-  display: flex; gap: 5px; padding: 9px 12px 0;
-  border-bottom: 1px solid rgba(183,172,147,0.22); flex-wrap: wrap;
-}
+/* ── tabs: a row of keys, the open one lit ── */
+#records-tabs { display: flex; gap: 6px; padding: 4px 12px 8px; flex-wrap: wrap; border-bottom: 1px dashed var(--am-dim); }
 .rec-tab {
-  display: flex; align-items: center; gap: 6px;
-  cursor: var(--cur-pointer, pointer); padding: 8px 14px; border-radius: 9px 9px 0 0;
-  font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
-  text-transform: uppercase; color: var(--cream-dim, #8a7d60);
-  background: rgba(255,255,255,0.03); border: 1px solid transparent; border-bottom: none;
-  transition: all 0.12s ease;
+  cursor: var(--cur-pointer, pointer); padding: 4px 12px 3px;
+  font: inherit; font-size: 19px; letter-spacing: 1px; line-height: 1; text-transform: uppercase;
+  color: var(--am); background: transparent; border: 1px solid var(--am-dim); border-radius: 3px; text-shadow: inherit;
 }
-.rec-tab:hover { color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.06); }
-.rec-tab.active {
-  color: #0e0c0a; font-weight: 700;
-  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b));
-}
-.rec-tab-ico { font-size: 13px; }
+.rec-tab:hover { background: rgba(255,176,46,.12); border-color: var(--am); }
+.rec-tab.active { background: var(--am); color: var(--am-ink); border-color: var(--am-hi); text-shadow: none; }
 
 /* ── body ── */
-#records-body { padding: 14px 16px 18px; overflow-y: auto; flex: 1; }
-.rec-note {
-  font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5;
-  color: var(--cream-dim, #8a7d60); margin-bottom: 10px;
-}
+#records-body { padding: 10px 14px 16px; overflow-y: auto; flex: 1; font-size: 18px; line-height: 1.15; }
+.rec-note { font-size: 17px; line-height: 1.15; color: var(--am); margin: 0 0 10px; padding: 4px 8px; border: 3px double var(--am-dim); }
 .rec-h {
-  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px;
-  color: var(--c-mint, #35d59b); text-transform: uppercase;
-  margin: 14px 0 7px; padding-bottom: 4px; border-bottom: 1px solid rgba(183,172,147,0.2);
-  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 20px; letter-spacing: 2px; color: var(--am-hi); text-transform: uppercase;
+  margin: 14px 0 6px; padding-bottom: 2px; border-bottom: 1px dashed var(--am-dim);
+  display: flex; align-items: baseline; gap: 8px;
 }
+.rec-h::before { content: '>'; color: var(--am-dim); }
+.rec-h > .rec-h-note { margin-left: auto; }
 #records-body > .rec-h:first-child { margin-top: 0; }
-.rec-h-note { color: var(--cream-dim, #8a7d60); letter-spacing: 1px; text-transform: none; font-size: 10px; }
-.rec-empty { font-family: 'Crimson Pro', serif; font-size: 12px; color: var(--cream-dim, #8a7d60); padding: 6px 0; }
+.rec-h-note { color: var(--am-dim); letter-spacing: 1px; text-transform: none; font-size: 16px; }
+.rec-empty { font-size: 17px; color: var(--am-dim); padding: 4px 0; }
 
 .rec-cols { display: flex; gap: 16px; flex-wrap: wrap; }
 .rec-col { flex: 1; min-width: 210px; }
 .rec-col-wide { flex: 2.2; min-width: 320px; }
 
-/* summary stat tiles */
-.rec-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+/* summary stat boxes: the figure in its box, the label on the top border */
+.rec-summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 12px; }
 .rec-stat {
-  flex: 1; min-width: 88px; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 9px 6px; border-radius: 10px;
-  background: rgba(255,255,255,0.035); border: 1px solid rgba(183,172,147,0.22);
+  flex: 1; min-width: 88px; display: flex; flex-direction: column-reverse; align-items: center; gap: 0;
+  padding: 2px 6px 4px; border: 1px solid var(--am-dim); border-radius: 2px;
 }
-.rec-stat-v { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 17px; color: var(--c-yellow, #ffce2b); }
-.rec-stat-l { font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1.5px; color: var(--cream-dim, #8a7d60); text-transform: uppercase; text-align: center; }
+.rec-stat-v { font-size: 28px; line-height: 1; color: var(--r-gold); text-shadow: 0 0 6px rgba(255,224,102,.45); }
+.rec-stat-l { font-size: 14px; letter-spacing: 1px; color: var(--am-dim); text-transform: uppercase; text-align: center; }
+
+/* bars of buttons: VIEW / SHOW and toggles */
+.rec-deck-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; }
+.rec-bar-word { font-size: 16px; letter-spacing: 1px; color: var(--am-dim); }
+.rec-chip {
+  font: inherit; font-size: 17px; line-height: 1; padding: 3px 10px 2px; border-radius: 3px; cursor: var(--cur-pointer, pointer);
+  background: transparent; color: var(--am); border: 1px solid var(--am-dim); text-shadow: inherit;
+}
+.rec-chip:hover { background: rgba(255,176,46,.12); border-color: var(--am); }
+.rec-chip.on { background: var(--am); color: var(--am-ink); border-color: var(--am-hi); text-shadow: none; }
+.rec-deck-bar .rec-h-note { margin-left: 4px; }
 
 /* ── deck map ── */
 .rec-deck-grid { display: flex; flex-direction: column; gap: 3px; }
 .rec-deck-row { display: flex; gap: 3px; align-items: center; }
 .rec-deck-head { margin-bottom: 1px; }
-.rec-deck-corner { width: 34px; flex: 0 0 34px; }
-.rec-deck-rank {
-  flex: 1; min-width: 0; text-align: center;
-  font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim, #8a7d60);
-}
-.rec-deck-suit {
-  width: 34px; flex: 0 0 34px; display: flex; align-items: center; justify-content: space-between;
-  font-size: 13px; padding-right: 3px;
-}
-.rec-deck-suit b { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim, #8a7d60); }
+.rec-deck-corner { width: 38px; flex: 0 0 38px; }
+.rec-deck-rank { flex: 1; min-width: 0; text-align: center; font-size: 15px; color: var(--am-dim); }
+.rec-deck-suit { width: 38px; flex: 0 0 38px; display: flex; align-items: center; justify-content: space-between; font-size: 18px; padding-right: 3px; }
+.rec-deck-suit b { font-weight: normal; font-size: 15px; color: var(--am-dim); }
 .rec-deck-cell {
   position: relative; flex: 1; min-width: 0; height: 26px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 10px;
-  border: 1px solid transparent; cursor: var(--cur-default, default);
+  border-radius: 2px; font-size: 16px; border: 1px solid transparent; cursor: var(--cur-default, default);
 }
-.rec-deck-cell.w-draw   { background: rgba(53,213,155,0.16); color: #b8f2dc; border-color: rgba(53,213,155,0.4); }
-.rec-deck-cell.w-grid   { background: rgba(255,206,43,0.2);  color: #ffe9a8; border-color: rgba(255,206,43,0.55); }
-.rec-deck-cell.w-played { background: rgba(255,255,255,0.05); color: #6f6754; border-color: rgba(183,172,147,0.2); }
-.rec-deck-cell.w-gone   { background: transparent; color: #3a352c; border-color: rgba(183,172,147,0.1); }
-.rec-m { position: absolute; top: 2px; width: 4px; height: 4px; border-radius: 50%; }
-.rec-m-p { right: 2px; background: #8fb7ff; }
-.rec-m-m { right: 8px; background: #ff8f8f; }
-.rec-deck-cell.has-pip.has-mult .rec-m-m { right: 8px; }
+.rec-deck-cell.w-draw   { color: var(--r-mint); border-color: rgba(148,236,176,.55); background: rgba(148,236,176,.08); }
+.rec-deck-cell.w-grid   { color: var(--am-ink); border-color: var(--am-hi); background: var(--am); text-shadow: none; }
+.rec-deck-cell.w-played { color: var(--am-dim); border-color: rgba(154,111,42,.45); }
+.rec-deck-cell.w-gone   { color: rgba(154,111,42,.35); border-color: rgba(154,111,42,.15); }
+.rec-m { position: absolute; top: 2px; width: 4px; height: 4px; }
+.rec-m-p { right: 2px; background: var(--r-sky); }
+.rec-m-m { right: 8px; background: var(--r-coral); }
 /* A card carrying a SCALING buff (r209) - it may have no flat pips or mult yet,
    so it needs its own dot or the matrix would show it as an ordinary card. */
-.rec-m-g { right: 14px; background: #6fe0a8; }
-.rec-legend {
-  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 9px;
-  font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim, #8a7d60);
-}
+.rec-m-g { right: 14px; background: var(--r-mint); }
+.rec-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 9px; font-size: 15px; color: var(--am-dim); }
 .rec-legend span { display: flex; align-items: center; gap: 4px; }
 .rec-legend .rec-m { position: static; }
-.rec-key { width: 10px; height: 10px; border-radius: 3px; display: inline-block; border: 1px solid; }
-.rec-key.w-draw   { background: rgba(53,213,155,0.16); border-color: rgba(53,213,155,0.4); }
-.rec-key.w-grid   { background: rgba(255,206,43,0.2);  border-color: rgba(255,206,43,0.55); }
-.rec-key.w-played { background: rgba(255,255,255,0.05); border-color: rgba(183,172,147,0.2); }
+.rec-key { width: 10px; height: 10px; display: inline-block; border: 1px solid; }
+.rec-key.w-draw   { border-color: rgba(148,236,176,.55); background: rgba(148,236,176,.08); }
+.rec-key.w-grid   { border-color: var(--am-hi); background: var(--am); }
+.rec-key.w-played { border-color: rgba(154,111,42,.45); }
+/* Spectrum: the colourless values (9/10/11) read as white in their colour's row. */
+.rec-deck-cell.rec-white { color: var(--r-cream); border-color: rgba(255,241,216,.5); }
+.rec-deck-cell.rec-white.w-gone { background: transparent; }
+/* A rank+suit that exists more than once in the run (the shop's Duplicate service). */
+.rec-deck-cell .rec-dup { position: absolute; right: 1px; bottom: -1px; font-size: 11px; font-style: normal; color: var(--r-gold); }
 
-/* bars (remaining by rank, limit progress) */
+/* bars (remaining by rank, limit progress): pixel squares, not a smooth fill */
 .rec-bars { display: flex; flex-direction: column; gap: 3px; }
 .rec-bar { display: flex; align-items: center; gap: 6px; }
-.rec-bar-l { width: 20px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--cream-dim, #8a7d60); }
-.rec-bar-track { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
-.rec-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--c-mint, #35d59b), var(--c-cyan, #16c8d8)); }
-.rec-bar-v { width: 14px; text-align: right; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--cream, #f0e6c8); }
+.rec-bar-l { width: 22px; font-size: 16px; color: var(--am-dim); }
+.rec-bar-track { flex: 1; height: 8px; border: 1px solid var(--am-dim); overflow: hidden; }
+.rec-bar-fill { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--am) 0 6px, transparent 6px 8px); box-shadow: 0 0 6px rgba(255,176,46,.5); }
+.rec-bar-v { width: 18px; text-align: right; font-size: 16px; color: var(--am-hi); }
 
-/* sleight rows */
+/* sleight rows (deck map) */
 .rec-sl-list { display: flex; flex-direction: column; gap: 4px; }
-.rec-sl {
-  display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 8px;
-  background: rgba(192,122,238,0.07); border: 1px solid rgba(192,122,238,0.28);
-  font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--cream, #f0e6c8);
-}
+.rec-sl { display: flex; align-items: center; gap: 9px; padding: 3px 8px; border: 1px solid var(--am-dim); font-size: 17px; color: var(--am); }
 .rec-sl-ico { font-size: 15px; }
 .rec-sl-name { flex: 1; }
-.rec-sl-where { font-family: 'Share Tech Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
-.rec-sl-where.w-draw { color: var(--c-mint, #35d59b); }
-.rec-sl-where.w-grid { color: var(--c-yellow, #ffce2b); }
-.rec-sl-where.w-played { color: var(--cream-dim, #8a7d60); }
-.rec-sl-uses { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: #c07aee; min-width: 18px; text-align: right; }
+.rec-sl-where { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; }
+.rec-sl-where.w-draw { color: var(--r-mint); }
+.rec-sl-where.w-grid { color: var(--am-hi); }
+.rec-sl-where.w-played { color: var(--am-dim); }
+.rec-sl-uses { font-size: 17px; color: var(--r-violet); min-width: 18px; text-align: right; }
 
-/* ── personnel entity cards ── */
-.rec-ents { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
-.rec-ent {
-  padding: 9px 11px; border-radius: 10px;
-  background: rgba(255,255,255,0.035); border-left: 3px solid var(--e-accent, var(--c-yellow, #ffce2b));
-  border-top: 1px solid rgba(183,172,147,0.16); border-right: 1px solid rgba(183,172,147,0.16);
-  border-bottom: 1px solid rgba(183,172,147,0.16);
-}
-/* Accent is RARITY, never entity type (r198). It used to be one colour per
-   type - yellow tricks, purple sleights, cyan knacks - so every Trick you owned
-   looked identical no matter what tier it was, and the tier pill printed on that
-   same flat colour. Type is carried by the tile's SHAPE; colour is the ladder.
-   Same four colours as the reward grid, so the spine is learned once. */
-.rec-ent.rar-common    { --e-accent: var(--c-mint,    #35d59b); }
-.rec-ent.rar-rare      { --e-accent: var(--c-cyan,    #16c8d8); }
-.rec-ent.rar-epic      { --e-accent: var(--c-purple,  #9a6cff); }
-.rec-ent.rar-legendary { --e-accent: var(--c-magenta, #ff2f8e); }
-.rec-ent-top { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
-.rec-ent-ico { font-size: 16px; }
-/* The object itself, at a small fixed frame (r239). The tile letterboxes its
-   own shape inside it, so the disc and the card keep their ratios here too. */
-.rec-ent-tilebox { flex: 0 0 auto; display: flex; pointer-events: none; }
-.rec-ent-tilebox .reward-cell { position: relative; width: 34px; height: 44px; margin: 0; }
-/* 34px wide: the row states the name. Three classes - the object rule sets
-   display:flex at the same depth, so this must outrank it. */
-.rec-ent-tilebox .reward-cell .rwd-name { display: none; }
-.rec-ent-top { align-items: flex-start; }
-.rec-ent-top .rec-ent-name { align-self: center; }
-.rec-ent-top .rec-ent-tag { align-self: center; }
-.rec-ent-name { flex: 1; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; color: var(--cream, #f0e6c8); }
+/* ── OWNED: two views (r721). Colour is RARITY (r198): the box edge and the tag. ── */
+.rec-ent.rar-common    { --e-accent: var(--r-mint); }
+.rec-ent.rar-rare      { --e-accent: var(--r-teal); }
+.rec-ent.rar-epic      { --e-accent: var(--r-violet); }
+.rec-ent.rar-legendary { --e-accent: var(--r-rose); }
+.rec-ent { --e-accent: var(--am); border: 1px solid var(--am-dim); border-left: 3px solid var(--e-accent); border-radius: 2px; }
+.rec-ent-name { font-size: 20px; line-height: 1.05; color: var(--am-hi); letter-spacing: .5px; }
 .rec-ent-tag {
-  font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 1px;
-  padding: 2px 6px; border-radius: 999px; color: #0e0c0a; background: var(--e-accent); font-weight: 700;
+  font-size: 14px; letter-spacing: 1px; line-height: 1; padding: 2px 5px 1px; white-space: nowrap;
+  color: var(--am-ink); background: var(--e-accent); text-shadow: none;
 }
-.rec-ent-desc { font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.4; color: var(--cream-dim, #8a7d60); }
+.rec-ent-desc { font-size: 17px; line-height: 1.15; color: var(--am); }
+/* The object, drawn by entityTileHTML at a fixed frame: it letterboxes its own shape. */
+.rec-ent .reward-cell { position: relative; margin: 0; pointer-events: none; }
+.rec-ent .reward-cell .rwd-name { display: none; }
+.rec-ent-ico { font-size: 34px; }
+/* list: the object large on the left, the words on the right */
+.rec-ents-list { display: flex; flex-direction: column; gap: 6px; }
+.rec-ent-row { display: flex; gap: 12px; align-items: center; padding: 6px 10px 6px 8px; }
+.rec-ent-big { flex: 0 0 auto; display: flex; }
+.rec-ent-big .reward-cell { width: 96px; height: 92px; }
+.rec-ent-text { flex: 1; min-width: 0; }
+.rec-ent-row .rec-ent-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.rec-ent-row .rec-ent-name { flex: 1; }
+/* tray: the objects in a row near their tray size, the words under each */
+/* r731 (owner): the object on the left, its name and tier to its right. r733: 20% smaller (87 x 82),
+   and pulled left by its own inset (--ent-inset, recOwnedAlign) so the drawn object's left edge
+   is the text's left edge. */
+.rec-ents-tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.rec-ent-tray { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; border-left-width: 1px; border-top: 3px solid var(--e-accent); }
+.rec-ent-head { display: flex; align-items: center; gap: 10px; }
+.rec-ent-mid { flex: 0 0 auto; display: flex; }
+.rec-ent-mid { margin-left: calc(-1 * var(--ent-inset, 0px)); }
+.rec-ent-mid .reward-cell { width: 87px; height: 82px; }
+.rec-ent-id { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.rec-ent-tray .rec-ent-name { font-size: 20px; }
+.rec-ent-tray .rec-ent-desc { font-size: 16px; text-align: left; align-self: stretch; }
+/* A Trick a boss has switched off (Voidwright, the Censor): Records answers it like the tray. */
+.rec-ent.ent-off { opacity: 0.5; filter: saturate(0.2); border-style: dashed; }
+.rec-ent.ent-off .rec-ent-tag { background: var(--r-coral); }
+.rec-off-note { color: var(--r-coral); font-weight: normal; }
 
-/* ── limits / time rows ── */
+/* ── limits / time rows: wireframe boxes ── */
 .rec-lims { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
-.rec-lim { padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,0.035); border: 1px solid rgba(183,172,147,0.18); }
-.rec-lim.maxed { border-color: rgba(53,213,155,0.5); background: rgba(53,213,155,0.07); }
-.rec-lim-top {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 5px;
-  font-family: 'Crimson Pro', serif; font-size: 13.5px; color: var(--cream, #f0e6c8);
-}
+.rec-lim { padding: 4px 8px 6px; border: 1px solid var(--am-dim); border-radius: 2px; }
+.rec-lim.maxed { border-color: var(--r-mint); box-shadow: inset 0 0 0 1px rgba(148,236,176,.3); }
+.rec-lim-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; font-size: 19px; color: var(--am-hi); }
 .rec-lim-ico { margin-right: 6px; }
-.rec-lim-v { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--c-yellow, #ffce2b); white-space: nowrap; }
-.rec-lim-v b { color: var(--c-mint, #35d59b); font-size: 9px; }
-.rec-lim-max { color: var(--cream-dim, #8a7d60); }
-.rec-lim-desc { font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.35; color: var(--cream-dim, #8a7d60); margin-top: 5px; }
+.rec-lim-v { font-size: 19px; color: var(--r-gold); white-space: nowrap; }
+.rec-lim-v b { color: var(--r-mint); font-weight: normal; font-size: 15px; }
+.rec-lim-max { color: var(--am-dim); }
+.rec-lim-desc { font-size: 16px; line-height: 1.15; color: var(--am); margin-top: 4px; }
 
 /* ── generic rows (performance tab) ── */
-.rec-row {
-  display: flex; justify-content: space-between; gap: 10px; padding: 4px 0;
-  font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--cream, #f0e6c8);
-  border-bottom: 1px solid rgba(183,172,147,0.1);
-}
-.rec-row.locked { color: var(--cream-dim, #8a7d60); }
-.rec-row-v { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--c-yellow, #ffce2b); text-align: right; }
-.rec-row-v i { color: var(--cream-dim, #8a7d60); font-size: 9px; font-style: normal; }
+.rec-row { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 17px; color: var(--am); border-bottom: 1px dashed rgba(154,111,42,.4); }
+.rec-row.locked { color: var(--am-dim); }
+.rec-row-v { font-size: 17px; color: var(--r-gold); text-align: right; }
+.rec-row-v i { color: var(--am-dim); font-size: 14px; font-style: normal; }
 
-  /* Spectrum: the colourless values (9/10/11). They live in the row of the colour
-     that owns them — each is its own card — but they read as white. */
-  .rec-deck-cell.rec-white { background: rgba(239,231,214,0.16); border-color: rgba(239,231,214,0.45); color: #efe7d6; }
-  .rec-deck-cell.rec-white.w-gone { background: transparent; }
-/* ── Hands tab: pips / mult / focus per hand type ──
-   Column widths are in ch so they track the font instead of guessing pixels,
-   which is what keeps the name column readable down to a 360px phone. */
-.rec-hand {
-  display: grid; grid-template-columns: minmax(0, 1fr) 4.5ch 4.5ch 4ch 6ch;
-  gap: 8px; align-items: baseline; padding: 4px 6px;
-  border-bottom: 1px solid rgba(58, 48, 32, 0.5);
+/* ── folds (the HAND FILES, bigger hands) ── */
+.rec-fold { margin-top: 12px; border-top: 1px dashed var(--am-dim); padding-top: 6px; }
+.rec-fold > summary, .rec-hf > summary {
+  list-style: none; cursor: var(--cur-pointer, pointer); display: flex; align-items: baseline; gap: 10px;
+  font-size: 20px; letter-spacing: 2px; color: var(--am-hi);
 }
+.rec-fold > summary::-webkit-details-marker, .rec-hf > summary::-webkit-details-marker { display: none; }
+.rec-fold > summary::before, .rec-hf > summary::before { content: '[+]'; color: var(--am-dim); letter-spacing: 0; }
+.rec-fold[open] > summary::before, .rec-hf[open] > summary::before { content: '[-]'; }
+.rec-fold > summary span { font-size: 16px; letter-spacing: 1px; color: var(--am-dim); }
+.rec-fold > :not(summary) { margin-top: 8px; }
+.rec-hfs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; align-items: start; }
+.rec-hf { border: 1px solid var(--am-dim); border-radius: 2px; padding: 3px 8px; }
+.rec-hf > summary { font-size: 18px; letter-spacing: 1px; color: var(--am); }
+.rec-hf > summary span { margin-left: auto; color: var(--am-dim); }
+.rec-hf > summary span::after { content: ' PLAYED'; font-size: 14px; }
+.rec-hf.off > summary { color: var(--am-dim); }
+.rec-hf-body { padding: 4px 0 3px 30px; font-size: 16px; line-height: 1.15; color: var(--am); display: flex; flex-direction: column; gap: 2px; }
+
+/* ── HANDS: SCORE view (r721) - one example hand a family, what each card pays under it ── */
+.rh-fams { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; --card-w: 52px; --card-h: 70px; }
+.rh-fam { display: grid; grid-template-columns: 82px minmax(0, 1fr) 190px; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--am-dim); border-radius: 2px; }
+.rh-fam-word { font-size: 22px; letter-spacing: 2px; color: var(--am-hi); }
+.rh-hand { display: flex; gap: 6px; min-width: 0; }
+.rh-slot { flex: 0 0 var(--card-w); display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rh-face { position: relative; width: var(--card-w); height: var(--card-h); }
+.rh-face .card, .rh-mini .card { position: relative !important; top: 0; left: 0; cursor: var(--cur-default, default); transition: none; text-shadow: none; }
+.rh-pay { display: flex; flex-direction: column; align-items: center; line-height: 1; font-size: 15px; white-space: nowrap; }
+.rh-pay b { font-weight: normal; font-size: 20px; }
+.rh-m { color: var(--r-coral); text-shadow: 0 0 6px rgba(255,118,86,.45); }
+.rh-m em { font-style: normal; font-size: 13px; color: var(--r-mint); margin-left: 2px; vertical-align: super; }
+.rh-p { color: var(--r-sky); text-shadow: 0 0 6px rgba(164,198,255,.4); }
+.rh-slot.off { opacity: .28; filter: saturate(.3); }
+.rh-next { display: flex; flex-direction: column; gap: 4px; padding-left: 10px; border-left: 1px dashed var(--am-dim); font-size: 16px; }
+.rh-next-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--am-dim); white-space: nowrap; }
+.rh-next-row b { font-weight: normal; color: var(--am-hi); }
+.rh-next-row:first-child b { font-size: 22px; line-height: 1; }
+.rh-prog { display: inline-flex; gap: 1px; }
+.rh-prog i { width: 5px; height: 8px; border: 1px solid var(--am-dim); }
+.rh-prog i.on { background: var(--am); border-color: var(--am); box-shadow: 0 0 4px rgba(255,176,46,.6); }
+
+/* ── HANDS: FOCUS view - every hand type as a small hand, with its Focus ── */
+.rh-focus { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; align-items: start; --card-w: 26px; --card-h: 35px; }
+.rh-fgroup { border: 1px solid var(--am-dim); border-radius: 2px; padding: 4px 8px 6px; display: flex; flex-direction: column; gap: 4px; }
+.rh-fgroup > .rh-fam-word { font-size: 18px; }
+.rh-frow { display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.rh-mhand { display: flex; gap: 2px; }
+.rh-mini { position: relative; width: var(--card-w); height: var(--card-h); flex: 0 0 auto; }
+.rh-fname { font-size: 18px; line-height: 1; color: var(--am); }
+.rh-fname small { display: block; font-size: 14px; color: var(--am-dim); margin-top: 1px; }
+.rh-fval { display: flex; align-items: center; gap: 6px; color: var(--r-violet); text-shadow: 0 0 6px rgba(214,168,255,.45); }
+.rh-fval b { font-weight: normal; font-size: 24px; min-width: 2ch; text-align: right; }
+.rh-fbar { display: inline-flex; gap: 1px; }
+.rh-fbar i { width: 5px; height: 10px; background: var(--r-violet); box-shadow: 0 0 4px rgba(214,168,255,.6); }
+.rh-frow.off .rh-mhand, .rh-frow.off .rh-fval { opacity: .35; }
+
+/* ── the pre-r721 rate table (dev scoring models only) ── */
+.rec-hand { display: grid; grid-template-columns: minmax(0, 1fr) 4.5ch 4.5ch 4ch 6ch; gap: 8px; align-items: baseline; padding: 2px 6px; border-bottom: 1px dashed rgba(154,111,42,.4); font-size: 17px; }
 .rec-hand:last-child { border-bottom: none; }
-.rec-hand .rh-n { font-family: 'Cinzel', serif; font-size: 12px; color: var(--cream);
-                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rec-hand .rh-v { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-align: right; }
-.rec-hand .rh-p { color: #8fb7ff; }
-.rec-hand .rh-m { color: #ff8f8f; }
-/* Natural Scaling: what THIS RUN has earned on top of the printed value, shown
-   beside the live number so the rate card reads as one figure plus its gain. */
-.rec-hand .rh-ns { color: #6fcf97; font-size: 0.78em; margin-left: 3px; vertical-align: super; }
-.rec-hand .rh-f { color: var(--c-purple, #b07dff); }
-.rec-hand .rh-b { color: var(--gold); font-weight: 700; }
-/* Not scored in this mode. The row stays so the absence is visible, but it
-   carries no numbers to compare against, so it spans the value columns. */
-.rec-hand.off .rh-n { color: var(--cream-dim); }
+.rec-hand .rh-n { color: var(--am); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-hand .rh-v { text-align: right; }
+.rec-hand .rh-p { color: var(--r-sky); }
+.rec-hand .rh-m { color: var(--r-coral); }
+.rec-hand .rh-ns { color: var(--r-mint); font-size: 0.78em; margin-left: 3px; vertical-align: super; }
+.rec-hand .rh-f { color: var(--r-violet); }
+.rec-hand .rh-b { color: var(--r-gold); }
+.rec-hand.off .rh-n { color: var(--am-dim); }
 .rec-hand.off { grid-template-columns: minmax(0, 1fr) auto; }
-.rec-hand .rh-off {
-  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--cream-dim); opacity: 0.75; text-align: right;
-}
-.rec-hand-head { border-bottom: 1px solid var(--gold-dim); margin-bottom: 2px; }
-.rec-hand-head span {
-  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--gold-dim);
-}
+.rec-hand .rh-off { font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--am-dim); text-align: right; }
+.rec-hand-head { border-bottom: 1px solid var(--am-dim); margin-bottom: 2px; }
+.rec-hand-head span { font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--am-dim); }
 .rec-hands { display: flex; flex-direction: column; }
-.rec-foot {
-  margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(58, 48, 32, 0.6);
-  font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.4; color: var(--cream-dim);
-}
-
-
-/* A Trick a boss has switched off (Voidwright's halves, the Censor's suspension).
-   Records is the screen you open mid-boss to work out what you still have, so it
-   answers that question the same way the tray does. */
-.rec-ent.ent-off { opacity: 0.5; filter: saturate(0.2); border-style: dashed; }
-.rec-ent.ent-off .rec-ent-tag { color: #ff5a5a; border-color: rgba(255,90,90,0.5); }
-.rec-off-note { color: #ff5a5a; }
-
-  /* A rank+suit that exists more than once in the run (the shop's Duplicate
-     service). The matrix cell is one face, so it says how many cards wear it. */
-  .rec-deck-cell .rec-dup {
-    position: absolute; right: 1px; bottom: 0;
-    font-family: 'Share Tech Mono', monospace; font-size: 7px; font-style: normal;
-    color: var(--gold); opacity: 0.9;
-  }
+.rec-foot { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--am-dim); font-size: 16px; line-height: 1.15; color: var(--am-dim); }
 
 /* ── Deck tab: the CARDS view (r399) - real card faces, one row per suit ── */
-.rec-deck-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 10px; }
-.rec-chip {
-  font-family: 'Share Tech Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 5px; cursor: var(--cur-pointer, pointer);
-  background: rgba(255,255,255,0.04); color: var(--cream-dim, #8a7d60); border: 1px solid rgba(183,172,147,0.3);
-}
-.rec-chip.on { color: #ffe9a8; border-color: rgba(255,206,43,0.6); background: rgba(255,206,43,0.12); }
 .rec-card-rows { display: flex; flex-direction: column; gap: 8px; --card-w: 46px; --card-h: 61px; }
 .rec-card-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.rec-card-suit {
-  flex: 0 0 30px; display: flex; flex-direction: column; align-items: center; font-size: 18px; line-height: 1;
-}
-.rec-card-suit b { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim, #8a7d60); margin-top: 3px; }
+.rec-card-suit { flex: 0 0 30px; display: flex; flex-direction: column; align-items: center; font-size: 22px; line-height: 1; }
+.rec-card-suit b { font-weight: normal; font-size: 15px; color: var(--am-dim); margin-top: 3px; }
 .rec-card-fan { flex: 1; min-width: 0; display: flex; padding: 6px 0 2px; }
-.rec-card-slot { position: relative; flex: 0 0 var(--card-w); height: var(--card-h); cursor: var(--cur-pointer, pointer);
-  transition: transform .12s ease; }
+.rec-card-slot { position: relative; flex: 0 0 var(--card-w); height: var(--card-h); cursor: var(--cur-pointer, pointer); transition: transform .12s ease; text-shadow: none; }
 .rec-card-slot + .rec-card-slot { margin-left: var(--rc-gap, 4px); }
 .rec-card-slot .card { position: relative !important; top: 0; left: 0; cursor: var(--cur-pointer, pointer); transition: none; }
 .rec-card-slot:hover { transform: translateY(-6px); z-index: 50; }
 .rec-card-slot.w-played { filter: brightness(0.42) saturate(0.4); }
 .rec-card-slot.w-played:hover { filter: brightness(0.75) saturate(0.7); }
-.rec-card-rows.show-grid .rec-card-slot.w-grid .card { outline: 2px solid #ffce2b; outline-offset: 1px; }
+.rec-card-rows.show-grid .rec-card-slot.w-grid .card { outline: 2px solid var(--am-hi); outline-offset: 1px; }
 .rec-card-rows.show-grid .rec-card-slot.w-grid::after {
   content: ''; position: absolute; top: -5px; left: 50%; width: 6px; height: 6px; margin-left: -3px;
-  border-radius: 50%; background: #ffce2b; box-shadow: 0 0 6px #ffce2b;
+  background: var(--am-hi); box-shadow: 0 0 6px var(--am-hi);
 }
-.rec-wild { color: #b58cff; }
-@media (max-width: 600px) { .rec-card-rows { --card-w: 36px; --card-h: 48px; } }
+.rec-wild { color: var(--r-rose); }
+
+/* ── a phone ── */
+@media (max-width: 600px) {
+  .rec-card-rows { --card-w: 36px; --card-h: 48px; }
+  #records-body { padding: 8px 8px 12px; }
+  .rec-tab { font-size: 17px; padding: 3px 8px 2px; }
+  .rh-fams { --card-w: 40px; --card-h: 54px; }
+  .rh-fam { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 6px; }
+  .rh-hand { gap: 3px; }
+  .rh-pay { font-size: 12px; }
+  .rh-pay b { font-size: 16px; }
+  .rh-next { padding-left: 0; border-left: 0; border-top: 1px dashed var(--am-dim); padding-top: 4px; }
+  .rh-focus { grid-template-columns: minmax(0, 1fr); --card-w: 20px; --card-h: 27px; }
+  .rh-frow { grid-template-columns: 148px minmax(0, 1fr) auto; }
+  .rh-fbar { display: none; }
+  .rec-ent-big .reward-cell { width: 66px; height: 63px; }
+  .rec-ents-tray { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .rec-fold > summary { flex-wrap: wrap; row-gap: 0; }
+  .rec-fold > summary span { flex-basis: 100%; padding-left: 34px; }
+}

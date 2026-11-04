@@ -290,7 +290,7 @@ let firstHandThisRound = true;
 // DEAD as of r151 - the "first 2 swaps of a round are free" exemption was part of
 // the old double-charge tangle and contradicted the flat 8s the UI now quotes.
 // Still reset each round so restoring it is a one-line change in doSwap.
-let freeDiscardsLeft = 2;   // free (no time cost) discards remaining this round
+let freeDiscardsLeft = 0;   // r728 (owner): no discard is free of time any more; kept at 0 for old saves
 let levelupTimer = null;
 let levelupSeconds = 0;
 

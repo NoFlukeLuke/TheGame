@@ -580,7 +580,7 @@ function startGame() {
   runStreak          = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
-  freeDiscardsLeft = 2;
+  freeDiscardsLeft = 0;   // r728: the two free discards a round are gone
   cardsDiscardedRound = 0;
   swapsUsedRound = 0;
   swapsUsedGame  = 0;   // r651: Landfill's game count
@@ -728,6 +728,7 @@ function startGame() {
   // r706: counting starts (js/unlocks.js); a restore overwrites unlockRun from its save right after.
   if (typeof unlockRunStarted === 'function') unlockRunStarted();
   if (typeof moneyResetRun === 'function') moneyResetRun();   // r722: credit flow, Firesale, Buyback (js/money.js)
+  if (typeof difficultyRunSetup === 'function') difficultyRunSetup();   // r728: the tier's starting curse card (the deck is built by now)
 }
 
 // ══════════════════════════════════════════════

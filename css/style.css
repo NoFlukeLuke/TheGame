@@ -4413,6 +4413,18 @@
             mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
   }
   .mode-card-blurb::-webkit-scrollbar { display: none; }
+  /* r728: the difficulty tier (js/menu.js modeDiffHTML). */
+  .mode-card-diff { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .mdf-arrow {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05); color: var(--cream); font-size: 20px; line-height: 1; cursor: var(--cur-pointer, pointer);
+  }
+  .mdf-arrow:hover { background: rgba(255,255,255,0.1); }
+  .mdf-arrow.mdf-off { opacity: .3; }
+  .mdf-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .mdf-dollars { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 1px; color: var(--mode-accent); line-height: 1; }
+  .mdf-name { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: var(--cream); white-space: nowrap; }
+  .mode-card-diff-say { font-family: 'Share Tech Mono', monospace; font-size: 10px; line-height: 1.4; color: var(--cream-dim); min-height: 2.8em; }
   .mode-card-play {
     width: 100%; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 4px;
     color: #3a2a08; text-transform: uppercase; cursor: var(--cur-pointer, pointer); border: none; border-radius: 10px; padding: 12px;

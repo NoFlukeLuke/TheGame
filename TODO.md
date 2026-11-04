@@ -153,6 +153,16 @@ method for this kind of audit.
 
 ---
 
+### 2a. r725 notes from the milestones session (owner)
+- **Shop prices up about 20%.** The owner's guess, not applied: "there's a lot of gold in the game".
+  Measure credits earned per quarter (the bot does not shop) before moving the table.
+- **Going to the shop should feel like an event.** In Flow it is a reward kind the chain can roll
+  (r560: needs 25+ credits). The owner does not like it being reachable at any time; no design yet.
+- **Improvements must be able to reach v6 in about 25% of runs, never more than 50%; two v6 items
+  in 4 to 5% of runs.** Measure improvement count per run (the sim's `SIM_improveRandomOwned` is a
+  stand-in); if short, raise improve tiles or pay one as a challenge reward. An improvement quota
+  after each boss is on the table if the measurement says so.
+
 ## 3. ELITES AS MINI-BOSSES
 
 Challenge levels (raised goal + an extra requirement) are the first version. The other half
@@ -184,6 +194,19 @@ shows one thing and then hands over another is worse than none.
 
 Events are already named on the tile, and the hard round already prints its
 requirement, so those two halves of the ask are done.
+
+## 4a. THE GROWING BALANCE SHEET (owner, r725) - shipped as an experiment, Classic only
+Half of Classic's ordinary grids open as three tiles and roll for more (`RG_GROW_OPEN`, `RG_GROW_STEP`,
+dev -> Probabilities). Left for the owner's play: the odds, whether the first three should hold a
+Trick (today they are whatever the top-left of the generated grid is), whether the growth should be a
+roll the player sees (a die, a lever) rather than a timer, the sound, and whether the Schedule's
+priority accounts and Flow get it.
+
+## 4b. RECORD MODE (`index.html?record`, r725)
+Built for MILESTONES.md section 5. Not built yet: the bot reading the log (a pace model per hand size
+and clock, a swap / discard policy from the moves actually made, a hand-size preference), then the
+three probes rerun with that bot and the goal table per mode at the owner's clear rates
+(Q1 85 / Q2 75 / Q3 70 / Q4 65 for a 9s player).
 
 ## 5. KNOWN GAPS IN THE ENGINE
 

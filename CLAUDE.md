@@ -36,11 +36,12 @@ superseded is history, not current code. The other reference docs:
 | `RENAMES.md` | the corporate rename sweep (r711, r714): phrase bank, six languages, proposed names, the Inseparable synergy review, the id sweep plan, the owner's answers. `RENAMES.xlsx` is the review sheet; draft |
 | `SELF_IMPROVEMENT.md` + `.xlsx` | the meta shop (r715): token tree, Morning Routine / Breakfast / Lunch picks, base nerfs; draft, the sheet is for the owner to fill in |
 | `SCORING_REWORK.md` | moving Tricks from `hasTrick` checks inside calcScore to per-Trick behaviours walked in tray order (the Godot shape); the stages, the golden test, the owner's open calls (r720, in progress) |
+| `MILESTONES.md` | how the sim bot plays and where it is weak, the r724 probes (pace, Tricks held, natural scaling's share, Schedule and Flow round by round), the forum research, and the owner's open questions on the goal curve, specialisation and 6-7 card hands |
 | `FLOW_TIME_TRICKS.md` | what "the round" is in Flow, and every entity that reads the round clock, with a recommendation each (r722) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
-| `DIFFICULTY.md` | the difficulty tiers (r727): the four built, what follows from them, the knobs recommended for more |
+| `DIFFICULTY.md` | the eight difficulty tiers (r728), what follows from them, and whether the ladder is spaced well |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -3859,6 +3860,37 @@ levels held, +30 / +25 in the contributions; BOGO 2 copies; real hands through P
 errors. The golden test's 802 old cases all match with the 8 new Tricks held out; the baseline is
 rewritten in r723 for the new ones.
 
+## r724 / r725 - the milestone probes; the growing Balance Sheet; record mode; the named tag (owner)
+MILESTONES.md is the write-up (sections 1 to 8). Measured on the sim bot after two bot fixes
+(r724: the bot now spends what a hand spends, `SIM_afterHand` / `SIM_resetCharges`; Second Hand
+had scored 1.4M a round and leaked between runs): pace is the first-order term (6s a hand 5,900 in
+a level-1 round, 9s 1,400: the Focus speed bonus stops at 8s); each random Trick multiplies a
+round about x1.4 through Trick 6 (the taper is the tray cap of 5, not diminishing returns);
+natural scaling is 2x of the Q1 review and 8x of Q4 for a bot that plays to the clock; Schedule
+goals are 2x under a 9s bot in Q1-Q2 and 2-3x over it in Q4. The owner's answers (section 8): the
+first difficulty is for a **9s player**, clear rates Q1 85 / Q2 75 / Q3 70 / Q4 65; natural
+scaling stays family based and hand-counted; no legendary names one hand type.
+- **Probes** (`tools/sim/probes/`, run from tools/sim): `trick-count.js` (N random Tricks, one
+  round), `schedule-rounds.js` (every round to the clock, score per level, `nson` / `nsoff`),
+  `flow-levels.js`, `build-sweep.js` (random builds, a regression of log score on each reward
+  type: section 8d).
+- **The growing Balance Sheet** (js/reward-grid.js, `rewardGrow`): in Classic (not Guided, the
+  Schedule, the walkthrough or a test drive) an ordinary grid has `RG_GROW_OPEN` (50%) of opening
+  as three tiles; every `RG_GROW_MS` a roll adds a row or a column (`RG_GROW_STEP` 65%) or stops;
+  tiles outside the window are not drawn, selectable or counted (`rewardHidden`); taps wait while
+  it rolls. `renderRewardTiles(animateIn)` takes a Set of keys to deal in only those. Dev ->
+  Probabilities "Growing Balance Sheet". The owner's experiment: odds and feel are open (TODO 4a).
+- **Record mode** (`index.html?record`, js/record-mode.js, before bootstrap): a 4 x 5 Classic
+  board, 3 swaps, 3 discards, Focus from 10, no Tricks, the goal out of reach; rounds 1-8 are
+  1:00 and 9-16 are 3:00; `onCardTap` / `playHand` / `doSwap` / `doDiscard` / `reshuffleTap` are
+  wrapped (window properties, like the chance counts) and logged with the clock second, cells,
+  faces and the board; the round ends at 0:01 inside the mode (never a clock-out), NEXT ROUND
+  deals; COPY LOG is the session as JSON. Nothing stored.
+  r731: rounds 17-20 are 3:00 on a 5 x 6 board (`PLAN` rows carry `len` and `grid`; the panel's
+  4x5 / 5x6 keys override the next round). Deployed to main at r732.
+- **`named`** (js/data/tags.js, WHEN): a Trick that names one hand type; six rows carry it.
+- Layer math for 6-7 card hands is MILESTONES.md 8b: "every sub-hand counts" explodes (a typical
+  7-card hand has 14 layers at min 4); "every distinct hand" stays at 3-6 with a ceiling of 11.
 ## r722-r724 numbering
 Two sessions shipped r722 and r723 in parallel: the money and selling pass (above, on main) and
 the anvil / horsemen pass (below). The merge that joined them is r724.
@@ -4049,6 +4081,98 @@ Measured in headless Chromium at 1440x820 and 420x900: a 3-point roll showed a h
 box at 260 until its climb (was 270 within 0.9s of PLAY); a winning first hand stayed at 0 until its
 climb and the round went to the interlude; no page errors.
 
+## r730 - Records in the console look; the Hands tab by family; Owned has two views (owner)
+- **The whole panel is amber glass** (css/records.css rewritten): VT323, the board screens' glass
+  and colours (`--am*`, the event lab's phosphors as `--r-*`, scoped to `#records-panel`), tabs and
+  toggles as wireframe keys, stat boxes, pixel-square bars, `[+]` folds. No tab icons. The screen
+  door already lists `#records-overlay`. Class names are unchanged, so every tab took the look.
+- **Hands** (js/records.js, `recordsRenderHands`), when the scoring model is the card ladder with
+  double scaling (`recHandLadderOn`; any other dev model keeps the old table,
+  `recordsRenderHandsTable`). **SCORE** (`recordsHandsScore`): one example hand per family
+  (`REC_FAMILIES`: 7 7 7 K K..., 5 6 7 8 9..., hearts), max(5, Hand Size) cards, real faces from
+  `renderCardAppearance` on made-up cards (`rec-x-` ids, no store has them), cards past the Hand
+  Size dimmed; under each card the mult it pays (place + `nsFamStep`) and its bonus pips
+  (`nsFamPips`); on the right plays this run and two square bars to the next mult step and pip.
+  **FOCUS** (`recordsHandsFocus`): every hand type as a small hand (`REC_HAND_EX`) with
+  `HAND_FOCUS` as squares and a figure, grouped SETS / RUNS / FLUSHES / BOTH, hands over the Hand
+  Size or not unlocked folded under BIGGER AND LOCKED HANDS. Names are the preview's
+  (`recHandWord`, from `HAND_LABEL`). **HAND FILES** (`recordsHandFiles`): one fold per hand: size
+  and families, Focus (and half the speed bonus), plays this run (`crHandPlays`), what it needs,
+  unlock paths, and the owned Tricks / Knacks whose words name it (`recHandMentions`: longer hand
+  names are taken out first, so "Flush" does not find "Straight Flush").
+- Facts the tab states (checked in code): a same-suit run credits both families' play counts,
+  every card scores twice, and it takes the BETTER family's step and pips, not the sum
+  (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
+- **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
+  stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
+  tier bands and stamp show), name, tag and words on the right. Tray (r731, owner): each object 87 x 82 (r733) on the
+  left with its name and tag beside it, the words under both, in a wrapping grid. The tile is pulled
+  left by its drawn inset (`recOwnedAlign`, `--ent-inset`: the floppy's ::before box and the art's
+  `--fa-<tier>-bs` width, or the diamond's rect), so the object's left edge is the text's. Both go Tricks, Knacks, Sleights.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
+both Hands views and both Owned views drawn, no element wider than its box, no page errors.
+
+## r734 - SPEED UP and SKIP hold for the whole burst (owner)
+A press on the preview's key (r710) now applies to every hand still to score in the burst:
+the hands waiting in the queue, hands played into it meanwhile, and the winning hand at the
+round's end. `dncCarry` (js/score-dance.js: 1 SPEED UP, 2 SKIP) is set by `dncButtonPress`
+and read by `dncCarryApply()` right after each dance mounts its key (pace 2x, the key reads
+SKIP; at 2 the hand's beats are cut and it blasts, or fast-forwards with the blast off). It
+is cleared by `dncCarryEnd()` when a dance ends with nothing waiting, a goal hand ends, a
+dance is cut (`dncFinishAbort`) or the queue is dropped (`dncQueueClear`), so the next lone
+hand starts at SPEED UP. Measured in headless Chromium at 1440x820 (click) and 420x900 (tap):
+four hands, SPEED UP once: all four at 2x; SPEED UP then SKIP: all four skipped; a winning
+hand behind a skipped one skipped too and the round ended; a hand after the burst read
+SPEED UP at 1x. No page errors, no timeline drift.
+## r728-r732 numbering
+Two sessions shipped r728 in parallel: main's r728-r731 (the skip keys, payout coins, the odometer,
+Records) and the difficulty branch's r728 (below). The merge that joined them is r732.
+## r728 (difficulty branch) - eight difficulty tiers, chosen on the mode cards (owner)
+DIFFICULTY.md is the write-up; r727's four-tier table and Settings row are superseded. `DIFF_TIERS`
+(js/difficulty.js) has eight rows: INTERN (no modifiers), ENTRY LEVEL (a starting curse card that
+goes after 4 draws; swaps 3s, discards 5s), SPECIALIST (rounds / Flow's quarters start 30s shorter),
+MIDDLE MANAGER (forced penalty picks), SENIOR MANAGER (6 draws; 6s / 9s), EXECUTIVE (penalties all
+permanent, the serious ones x2; Flow's chance of 2+ rewards 10 points lower), C-SUITE (the card lasts
+until removed; goals x1.15), THE BOARD (goals x1.3; THE FOUR HORSEMEN). Each tier keeps the ones below.
+- **Per mode, on the card** (`modeDiffHTML` / `modeDiffBind`, js/menu.js; `.mode-card-diff`): sideways
+  keys, `$` x tier, the name, `difficultySay(tier, modeId)` (Flow's wording where it differs: `sayFlow`,
+  `flowExtra`). Store `lethe.difficulty.v2` { modeId: tier }, `lethe.difficultyMax.v1` { modeId: highest
+  unlocked }; a won run (`difficultyOnWin`, from onGameWin, not in tours / test drives) unlocks the next
+  tier for its mode; the right key dims at the max and a tap on it says what to win. The carousel's
+  'picker' card is `custom`. Dev -> Change the game now: a select that sets and unlocks every mode
+  (`difficultySetAll`) and an Unlock-every-tier button.
+- **The starting curse card**: `difficultyRunSetup()` at the end of startGame adds a random horseman
+  to the deck (`addCurseCardsToDeck(1)`). **Draws** (js/horsemen.js): `hmRoundsNote` counts a draw
+  the first time the board sees a deck horseman since it last left the board (`hmSeen`), the tick's
+  `hmRoundsSettle(false)` drops the mark once the card is off the board and removes a card at the
+  limit (`difficultyHorsemanDraws`), `triggerLevelUp` calls `hmRoundsSettle(true)`. The face shows
+  draws left, this one included.
+- **Gone (owner):** the two free discards a round (`freeDiscardsLeft` 0 everywhere, the branch in
+  doDiscard removed) and Flow's half rate (`FLOW_INTERACT_TIME_MULT` 1).
+- **The penalty table is one function**: `rewardDebuffList()` (js/reward-grid.js, the block that
+  lived inside `_generateRewardContent`; `REWARD_LUCK_STEPS` / `rewardLuckAmt` / `rewardLuckTier`
+  with it). Rows carry `perm` and now `serious`; at a harsh tier only permanent rows are returned
+  with the serious ones at double weight. The two discard rows read as flat costs.
+- **The forced penalty pick** (`openPenaltyPick(done)`, js/difficulty.js): three weighted rows from
+  that table as pick tiles (`label` / `rarity: 'penalty'` -> `.gp-penalty`, red; `gridPickTileHTML`),
+  no onSkip and no actions, so the DISCARD key reads nothing (`gridPickTakeButtons`). Flow: a `penalty`
+  row in `FLOWR_KINDS` (out of `FLOWR_KIND_IDS`), appended to the level-up queue by
+  `difficultyPenaltyStepRolled()` (15%) in `flowrMaybeStart`, shown by `flowrShowStep`. The Schedule:
+  `mapAfterLevel` wraps the pick of three's `done` in `difficultyPenaltyMaybe` (20%). Classic: none.
+- **Goals**: `difficultyGoalMult()` inside `classicGoalForLevel`, `mapGoalForLevel` and
+  `survivalGoalForLevel` (after the Endless term). Flow's multi cut: `flowrMultiChance` subtracts
+  `difficultyMultiCut()` / 100 from p.
+Measured in headless Chromium at 1440x820 and 420x900: the Classic card stepped $ -> $$ -> $$$ and
+refused $$$$ with "Win a run at SPECIALIST to unlock MIDDLE MANAGER", the store read {normal:3}, the
+Flow card at tier 3 said quarter and at tier 6 added the rewards line; a tier 2 Classic run started
+with a Death card in the deck, pop-up 3s / 5s, the first discard took 5s and a swap 3s; the card read
+4, 3, 2, 1 across four draws (a tick with it still on the board added nothing) and left the run with
+the deck audit matched; tier 5 quoted 6s / 9s and 6 draws; tier 6 returned 11 penalty rows, all
+permanent, the seven serious ones doubled; tier 7 goal 5 4,500 -> 5,000, tier 8 6,000 and the final
+boss due at Q4; a win at tier 2 unlocked 3 for Flow; the forced pick by real clicks took -5s Round
+Cap and closed; a real Flow level-up at tier 4 queued [tricks, penalty], the PENALTY step opened on
+the location screen, a penalty applied, and level 2 dealt with the clock running; tier 4 Flow rolled
+the step 15.0% over 2,000 draws, tier 6 Flow p 0.67 -> 0.57. Golden: all match. No page errors.
 ## r730 - STACKED: the whole deck on the board, nothing falls (`js/stack-mode.js`, `css/stack-mode.css`, owner)
 Mode id `stacks`, flag `stacked: true` (`stackedActive()`); `js/stacked.js` is the r685 KNACK, a
 different thing. The carousel card's PLAY opens a one-question start screen on the picker overlay
@@ -4125,7 +4249,7 @@ the shape and scores as a pass of its own, where a dual card's ghost pays no pip
   pulled card of another suit out of that suit's flush, and `rankHandForGroup` lets ONE cell be a
   group when it has pulled cards (four 9s in a stack are a Four of a Kind, the cell beside it the
   kicker).
-- **Scoring (superseded by r736):** a pulled card was an extra pass at the surface cell with no
+- **Scoring (superseded by r737):** a pulled card was an extra pass at the surface cell with no
   ledger card of its own, invisible to hand-level Tricks and absent from the preview.
 - **Commit:** `stkCommit(handCells)` at `handsPlayed++`: the pulled cards leave their stacks to the
   played pile; the surface leaves as before. **Look:** the surface card's list lights the pulled
@@ -4141,7 +4265,7 @@ FULL HOUSE (3 pulled); 9♠/9♥/9♦/9♣ beside 2♣/2♦ FOUR OF A KIND with 
 Full House's 380); 2♠/J♠, 9♠/Q♠/3♥, K♠ a FLUSH with the 3♥ left down; 4♣/J♦ beside 8♥/Q♣ no hand.
 The golden test's 838 cases match (Classic scoring untouched).
 
-## r736 - STACKED: a pulled card is a cell of the hand (owner)
+## r737 - STACKED: a pulled card is a cell of the hand (owner)
 Owner: Tricks must read the pulled cards, and each pulled card is a card of its own in the preview.
 - **The pulled cell** (`js/hand-detect.js`): a card pulled from under a surface card rides in the
   hand's cell list as `[r, c, card]`, the surface cell's position with the card as a third element.

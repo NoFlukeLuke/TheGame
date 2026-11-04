@@ -14,6 +14,8 @@ var SIM_CFG = {
 // r683: no run is a walkthrough. A mode's first run pins the walkthrough's seed
 // (tutorialRunSeed), so the first run of every batch was the same deal.
 if (typeof SETTINGS !== 'undefined') SETTINGS.walkthrough = false;
+// r724: a printed notice needs the page (Cloud Nine's pickup threw in ptNewSlip).
+if (typeof printToast === 'function') printToast = function () {};
 
 // connected subsets of live cells, sizes 2..maxSize (bitmask enumeration)
 function SIM_connectedSubsets(maxSize) {
@@ -133,6 +135,24 @@ function SIM_tryReshuffle(stuck) {
   return true;
 }
 
+// r724: what playHand spends after a hand that calcScore only READS. The bot
+// scored through calcScore alone, so Second Hand's and Minute Hand's charges,
+// a prime, Amplifier and Siphon paid on every hand after they were earned, and
+// Second Hand alone scored 1.4 million in one 3-minute round. The pending charges
+// also leaked from one run into the next (startGame does not reset them), which
+// inflated every run after a Second Hand run in the same batch.
+function SIM_afterHand() {
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  if (typeof minuteHandCharges !== 'undefined') minuteHandCharges = 0;
+  if (typeof sleightAmplifierMult !== 'undefined') sleightAmplifierMult = 0;
+  if (typeof siphonMultX !== 'undefined' && siphonMultX > 1) siphonMultX = 1;
+  try { trickTray.forEach(t => { if (t._primed > 0) { t._primed = 0; t._primeSrc = []; } }); } catch (e) {}
+}
+function SIM_resetCharges() {
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  if (typeof minuteHandCharges !== 'undefined') minuteHandCharges = 0;
+}
+
 function SIM_spend(secs) {
   // burn clock while firing clock marks per second; honours mark-driven rewinds
   let clock = roundSeconds;
@@ -192,6 +212,7 @@ function SIM_playRound() {
     let s = 0;
     try { s = calcScore(best.hand, best.cells); } catch (e) {}
     score += s;
+    SIM_afterHand();
     // r706: the unlock counters (js/unlocks.js) read the hand the same way playHand does,
     // so a measuring run can size the unlock goals (tools/unlocks/measure.js).
     if (typeof unlockNoteHand === 'function') { try { _ulLastHand = { score: s, pips: lastCalcPips, mult: lastCalcMult }; unlockNoteHand(best.hand, best.cells, _lastRetrigByCell); } catch (e) {} }
@@ -304,6 +325,7 @@ function SIM_levelUp(goalFn) {
   swaps = rr.swaps; discards = rr.discards;
   roundSeconds = (typeof flowActive === 'function' && flowActive()) ? flowNextRoundSeconds(roundSeconds) : rr.seconds;
   try { resetFocusMeter(); recomputeFocusDecayInterval(); } catch (e) {}
+  SIM_resetCharges();
   try { initGridData(); } catch (e) {}
 }
 
@@ -314,7 +336,7 @@ function SIM_diag(res) {
 
 // ── full runs per mode. goalFn(level) -> goal. Returns {win, diedLevel, log} ──
 function SIM_runClassic(goalFn, quarters) {
-  ACTIVE_MODE = MODES.normal; startGame();
+  ACTIVE_MODE = MODES.normal; startGame(); SIM_resetCharges();
   roundGoal = goalFn(1);
   let gridsSeen = 0;
   for (let q = 1; q <= quarters; q++) {
@@ -345,6 +367,7 @@ function SIM_runSchedule(goalFn, quarters, bossMult) {
   // schedule (5 x 4 since r655) over the 4 x 4 play board, so the bot's first
   // hand read a row gridData does not have and every run crashed. Clock in.
   if (typeof mapScreenOpen !== 'undefined' && mapScreenOpen) mapCloseScreen();
+  SIM_resetCharges();
   roundGoal = goalFn(1);
   // r708: rounds and reviews ask fixed levels (MAP_REVIEW_LEVEL); bossMult, if given, lifts the review.
   for (let q = 1; q <= quarters; q++) {
@@ -408,7 +431,7 @@ function SIM_flowReward(kind) {
   return false;
 }
 function SIM_runFlow(goalFn) {
-  ACTIVE_MODE = MODES.flow; startGame();
+  ACTIVE_MODE = MODES.flow; startGame(); SIM_resetCharges();
   roundGoal = goalFn(1);
   for (let guard = 0; guard < 400; guard++) {
     const res = SIM_playRound();

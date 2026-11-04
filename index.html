@@ -232,14 +232,19 @@
   <div class="dev-section" data-group="game">
     <div class="dev-section-title">Difficulty</div>
     <div class="dev-row">
-      <label>Tier for the NEXT run (a live run keeps its own)
-        <select id="dev-difficulty" onchange="difficultySet(this.value)" onclick="event.stopPropagation()">
-          <option value="1">1 · ENTRY LEVEL: horsemen last 4 rounds, swaps and discards cost no time</option>
-          <option value="2">2 · SENIOR: horsemen last 6 rounds, a swap costs 3s, a discard 5s</option>
-          <option value="3">3 · EXECUTIVE: horsemen stay until removed, rounds start 30s shorter</option>
-          <option value="4">4 · C-SUITE: the last boss is THE FOUR HORSEMEN</option>
+      <label>Tier for EVERY mode's next run (unlocks it too; a live run keeps its own)
+        <select id="dev-difficulty" onchange="difficultySetAll(this.value)" onclick="event.stopPropagation()">
+          <option value="1">1 · INTERN</option>
+          <option value="2">2 · ENTRY LEVEL: a starting curse card (4 draws), swaps 3s, discards 5s</option>
+          <option value="3">3 · SPECIALIST: rounds / quarters start 30s shorter</option>
+          <option value="4">4 · MIDDLE MANAGER: forced penalty picks</option>
+          <option value="5">5 · SENIOR MANAGER: curse card 6 draws, swaps 6s, discards 9s</option>
+          <option value="6">6 · EXECUTIVE: penalties permanent and serious; Flow pays fewer multi rewards</option>
+          <option value="7">7 · C-SUITE: curse card until removed, goals x1.15</option>
+          <option value="8">8 · THE BOARD: goals x1.3, THE FOUR HORSEMEN</option>
         </select>
       </label>
+      <button class="dev-btn" onclick="difficultyUnlockAll(); noteMessage('Every difficulty tier unlocked')">Unlock every tier for every mode</button>
     </div>
   </div>
 
@@ -1873,6 +1878,7 @@
 <script src="js/trick-tour.js"></script>
 <script src="js/event-grid-lab.js"></script>
 <script src="js/cr-fx-lab.js"></script>
+<script src="js/record-mode.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
 
