@@ -1723,7 +1723,8 @@ function mapAfterLevel() {
   if (typeof crTakePrize === 'function') crTakePrize();
   if (t && t.kind === 'challenge' && !t.audit) { rewardGridContext = 'interlude'; openRewardGrid(); return; }
   if (t && t.kind === 'challenge') { done(); return; }
-  guidedOpenPickThree(done);
+  // r728: at difficulty tier 4+ the pick of three is followed by a forced penalty pick DIFF_PENALTY_MAP % of the time.
+  guidedOpenPickThree(() => (typeof difficultyPenaltyMaybe === 'function') ? difficultyPenaltyMaybe(done) : done());
 }
 
 // ── Run entry ────────────────────────────────────────────────────────────────

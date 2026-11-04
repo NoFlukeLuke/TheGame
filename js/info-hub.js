@@ -352,11 +352,9 @@ const INFO_TOPICS = [
 
   { id: 'difficulty', group: 'pressure', title: 'Difficulty',
     body: [
-      'Settings sets the tier for the next run; a run keeps the tier it started on. Each tier keeps the changes below it.',
-      '1 ENTRY LEVEL: a horseman curse card in your deck leaves after 4 rounds in which it came onto the grid. Swaps and discards cost no time.',
-      '2 SENIOR: horsemen last 6 rounds. A swap costs 3s and a discard 5s, whatever the count.',
-      '3 EXECUTIVE: horsemen stay until removed. Every round starts 30s shorter (Flow: every quarter).',
-      '4 C-SUITE: the run\u2019s last boss is THE FOUR HORSEMEN, which opens with one of each curse card on the grid.',
+      'Each mode has its own tier, set on its card with the sideways keys: a $ per tier. Winning a run opens the next tier for that mode. A run keeps the tier it started on. Each tier keeps the changes below it.',
+      '1 INTERN: no modifiers. 2 ENTRY LEVEL: you start with a curse card; it goes away after 4 draws. Swaps cost 3s, discards cost 5s. 3 SPECIALIST: every round starts with 30 fewer seconds (Flow: every quarter). 4 MIDDLE MANAGER: forced penalties can appear in rewards.',
+      '5 SENIOR MANAGER: the starting curse card lasts 6 draws. Swaps cost 6s, discards cost 9s. 6 EXECUTIVE: penalties are more punishing (all permanent, the serious ones more often; in Flow, more than one reward is rarer). 7 C-SUITE: the curse card lasts until removed. Score requirements are higher. 8 THE BOARD: score requirements are higher still. Face the final boss.',
     ] },
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [

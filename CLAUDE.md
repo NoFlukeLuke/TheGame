@@ -40,7 +40,7 @@ superseded is history, not current code. The other reference docs:
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
-| `DIFFICULTY.md` | the difficulty tiers (r727): the four built, what follows from them, the knobs recommended for more |
+| `DIFFICULTY.md` | the eight difficulty tiers (r728), what follows from them, and whether the ladder is spaced well |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -4003,3 +4003,50 @@ pop-up 3s / 5s, the third discard of a round (3 cards) took 5s, a swap 3s, Stead
 quoted 6s / 10s; tier 3 round 1 opened at 150, Flow's session at 270; tier 4 Advance Notice named
 THE FOUR HORSEMEN for Q4 only, Q4 drew it, PROCEED put a War stone, Death, Famine and Pestilence on
 the grid; Flow's boss 4 was it. Golden: all match. No page errors.
+
+## r728 - eight difficulty tiers, chosen on the mode cards (owner)
+DIFFICULTY.md is the write-up; r727's four-tier table and Settings row are superseded. `DIFF_TIERS`
+(js/difficulty.js) has eight rows: INTERN (no modifiers), ENTRY LEVEL (a starting curse card that
+goes after 4 draws; swaps 3s, discards 5s), SPECIALIST (rounds / Flow's quarters start 30s shorter),
+MIDDLE MANAGER (forced penalty picks), SENIOR MANAGER (6 draws; 6s / 9s), EXECUTIVE (penalties all
+permanent, the serious ones x2; Flow's chance of 2+ rewards 10 points lower), C-SUITE (the card lasts
+until removed; goals x1.15), THE BOARD (goals x1.3; THE FOUR HORSEMEN). Each tier keeps the ones below.
+- **Per mode, on the card** (`modeDiffHTML` / `modeDiffBind`, js/menu.js; `.mode-card-diff`): sideways
+  keys, `$` x tier, the name, `difficultySay(tier, modeId)` (Flow's wording where it differs: `sayFlow`,
+  `flowExtra`). Store `lethe.difficulty.v2` { modeId: tier }, `lethe.difficultyMax.v1` { modeId: highest
+  unlocked }; a won run (`difficultyOnWin`, from onGameWin, not in tours / test drives) unlocks the next
+  tier for its mode; the right key dims at the max and a tap on it says what to win. The carousel's
+  'picker' card is `custom`. Dev -> Change the game now: a select that sets and unlocks every mode
+  (`difficultySetAll`) and an Unlock-every-tier button.
+- **The starting curse card**: `difficultyRunSetup()` at the end of startGame adds a random horseman
+  to the deck (`addCurseCardsToDeck(1)`). **Draws** (js/horsemen.js): `hmRoundsNote` counts a draw
+  the first time the board sees a deck horseman since it last left the board (`hmSeen`), the tick's
+  `hmRoundsSettle(false)` drops the mark once the card is off the board and removes a card at the
+  limit (`difficultyHorsemanDraws`), `triggerLevelUp` calls `hmRoundsSettle(true)`. The face shows
+  draws left, this one included.
+- **Gone (owner):** the two free discards a round (`freeDiscardsLeft` 0 everywhere, the branch in
+  doDiscard removed) and Flow's half rate (`FLOW_INTERACT_TIME_MULT` 1).
+- **The penalty table is one function**: `rewardDebuffList()` (js/reward-grid.js, the block that
+  lived inside `_generateRewardContent`; `REWARD_LUCK_STEPS` / `rewardLuckAmt` / `rewardLuckTier`
+  with it). Rows carry `perm` and now `serious`; at a harsh tier only permanent rows are returned
+  with the serious ones at double weight. The two discard rows read as flat costs.
+- **The forced penalty pick** (`openPenaltyPick(done)`, js/difficulty.js): three weighted rows from
+  that table as pick tiles (`label` / `rarity: 'penalty'` -> `.gp-penalty`, red; `gridPickTileHTML`),
+  no onSkip and no actions, so the DISCARD key reads nothing (`gridPickTakeButtons`). Flow: a `penalty`
+  row in `FLOWR_KINDS` (out of `FLOWR_KIND_IDS`), appended to the level-up queue by
+  `difficultyPenaltyStepRolled()` (15%) in `flowrMaybeStart`, shown by `flowrShowStep`. The Schedule:
+  `mapAfterLevel` wraps the pick of three's `done` in `difficultyPenaltyMaybe` (20%). Classic: none.
+- **Goals**: `difficultyGoalMult()` inside `classicGoalForLevel`, `mapGoalForLevel` and
+  `survivalGoalForLevel` (after the Endless term). Flow's multi cut: `flowrMultiChance` subtracts
+  `difficultyMultiCut()` / 100 from p.
+Measured in headless Chromium at 1440x820 and 420x900: the Classic card stepped $ -> $$ -> $$$ and
+refused $$$$ with "Win a run at SPECIALIST to unlock MIDDLE MANAGER", the store read {normal:3}, the
+Flow card at tier 3 said quarter and at tier 6 added the rewards line; a tier 2 Classic run started
+with a Death card in the deck, pop-up 3s / 5s, the first discard took 5s and a swap 3s; the card read
+4, 3, 2, 1 across four draws (a tick with it still on the board added nothing) and left the run with
+the deck audit matched; tier 5 quoted 6s / 9s and 6 draws; tier 6 returned 11 penalty rows, all
+permanent, the seven serious ones doubled; tier 7 goal 5 4,500 -> 5,000, tier 8 6,000 and the final
+boss due at Q4; a win at tier 2 unlocked 3 for Flow; the forced pick by real clicks took -5s Round
+Cap and closed; a real Flow level-up at tier 4 queued [tricks, penalty], the PENALTY step opened on
+the location screen, a penalty applied, and level 2 dealt with the clock running; tier 4 Flow rolled
+the step 15.0% over 2,000 draws, tier 6 Flow p 0.67 -> 0.57. Golden: all match. No page errors.

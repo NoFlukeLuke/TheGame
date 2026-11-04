@@ -1,4 +1,4 @@
-const BUILD = "2026-11-02 · r727 · difficulty tiers: horsemen last 4 / 6 / forever rounds, swap and discard seconds, shorter rounds, THE FOUR HORSEMEN";
+const BUILD = "2026-11-04 · r728 · eight difficulty tiers on the mode cards: starting curse card by draws, costs, forced penalties, harsher penalties, goals, THE BOARD";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -378,6 +378,7 @@ function buildModeCard(id) {
   card.innerHTML =
     `<div class="mode-card-name">${modeDisplayName(id)}</div>` +
     `<div class="mode-card-suits">${open ? (meta.suits || '') : '\u{1F512}'}</div>` +
+    (open ? modeDiffHTML(id) : '') +
     `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}` +
       (typeof infoTopic === 'function' && infoTopic('mode_' + id)
         ? ` <a class="mode-card-more" href="#">Read more in the handbook.</a>` : '') +
@@ -386,10 +387,49 @@ function buildModeCard(id) {
           : `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(modeUnlockedBy(id))}</b> to unlock</div>`);
   const more = card.querySelector('.mode-card-more');
   if (more) more.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openInfoHub('mode_' + id); };
+  if (open) modeDiffBind(card, id);
   if (open) {
     card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : chooseMode(id);
   }
   return card;
+}
+
+// ── The difficulty tier on a mode's card (r728, owner; js/difficulty.js) ──
+// Sideways keys step the tier, a $ per tier, the tier's name and what it does.
+// A tier opens for a mode by winning a run of that mode at the tier below it;
+// the right key dims at the highest tier unlocked and a tap on it says why.
+function modeDiffHTML(id) {
+  const t = difficultySetting(id), max = difficultyMax(id);
+  return `<div class="mode-card-diff">` +
+    `<button class="mdf-arrow mdf-l${t <= 1 ? ' mdf-off' : ''}" aria-label="Easier">\u2039</button>` +
+    `<div class="mdf-mid"><div class="mdf-dollars">${difficultyDollars(t)}</div><div class="mdf-name">${difficultyName(t)}</div></div>` +
+    `<button class="mdf-arrow mdf-r${t >= max ? ' mdf-off' : ''}" aria-label="Harder">\u203a</button>` +
+    `</div><div class="mode-card-diff-say">${difficultySay(t, id)}</div>`;
+}
+function modeDiffBind(card, id) {
+  const paint = () => {
+    const t = difficultySetting(id), max = difficultyMax(id);
+    card.querySelector('.mdf-dollars').textContent = difficultyDollars(t);
+    card.querySelector('.mdf-name').textContent = difficultyName(t);
+    card.querySelector('.mode-card-diff-say').textContent = difficultySay(t, id);
+    card.querySelector('.mdf-l').classList.toggle('mdf-off', t <= 1);
+    card.querySelector('.mdf-r').classList.toggle('mdf-off', t >= max);
+  };
+  const step = (dir) => {
+    const t = difficultySetting(id), max = difficultyMax(id), want = t + dir;
+    if (want < 1) return;
+    if (want > max) {
+      const say = card.querySelector('.mode-card-diff-say');
+      say.textContent = `Win a run at ${difficultyName(max)} to unlock ${difficultyName(Math.min(max + 1, DIFF_TIERS.length))}.`;
+      if (typeof refuse === 'function') { try { refuse(); } catch (e) {} }
+      return;
+    }
+    difficultySet(want, id);
+    paint();
+    try { if (typeof sfxKeyClick === 'function') sfxKeyClick('down'); } catch (e) {}
+  };
+  card.querySelector('.mdf-l').onclick = (e) => { e.stopPropagation(); step(-1); };
+  card.querySelector('.mdf-r').onclick = (e) => { e.stopPropagation(); step(1); };
 }
 
 // One card standing in for the whole finale group, with two backing layers so

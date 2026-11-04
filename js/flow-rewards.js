@@ -133,11 +133,13 @@ const FLOWR_KINDS = {
   prize:    { label: () => gridName('prize', { caps: true }), short: () => gridName('prize', { bare: true, caps: true }), color: '#ffc94a' },
   // r677: a challenge card's Card buffs stage 2 (js/challenge-rewards.js). Never rolled either.
   cardpick: { label: () => 'BUFF CARDS', short: 'BUFF',     color: '#9be36b' },
+  // r728: a forced penalty (difficulty tier 4+, js/difficulty.js); never rolled from the odds table.
+  penalty:  { label: () => 'PENALTY',    short: 'PENALTY',  color: '#e0523a' },
 };
 // Events a Flow chain cannot host: they take the board for grids of their own,
 // and the chain is holding it (r706).
 const FLOWR_EVENT_OUT = new Set(['hot_streak', 'prize_ladder', 'call_it', 'overtime']);
-const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize' && k !== 'cardpick');
+const FLOWR_KIND_IDS = Object.keys(FLOWR_KINDS).filter(k => k !== 'prize' && k !== 'cardpick' && k !== 'penalty');
 
 // ══════════════════════════════════════════════
 // FLOW ECONOMY (r441) - dev panel -> Flow
@@ -462,7 +464,9 @@ function flowrMultiChance() {
   const ls = (typeof luckScale === 'function') ? luckScale() : 1;
   const ww = w.map((v, i) => Math.max(0, v || 0) * (i > 0 ? ls : 1));
   const tot = ww.reduce((a, b) => a + b, 0);
-  return { p: tot > 0 ? 1 - ww[0] / tot : 0, ww };
+  // r728: at difficulty tier 6+ the chance of more than one reward is DIFF_MULTI_CUT points lower.
+  const cut = (typeof difficultyMultiCut === 'function') ? difficultyMultiCut() / 100 : 0;
+  return { p: tot > 0 ? Math.max(0, 1 - ww[0] / tot - cut) : 0, ww };
 }
 function flowrRollCount(state) {
   const st = state || { get m() { return flowrPrdMisses; }, set m(v) { flowrPrdMisses = v; } };
@@ -636,6 +640,8 @@ function flowrMaybeStart() {
   flowrFirstTrickSlot(queue, odds, taken);
   flowrQueueFloors = queue.map(() => null);
   _crs.forEach(st => { queue.push(st.kind); flowrQueueFloors.push(st.floor || null); });
+  // r728: at difficulty tier 4+ a level-up's chain ends on a forced penalty DIFF_PENALTY_FLOW % of the time.
+  if (typeof difficultyPenaltyStepRolled === 'function' && difficultyPenaltyStepRolled()) { queue.push('penalty'); flowrQueueFloors.push(null); }
   queue.forEach(flowrNoteSeen);
   // One reward and it is the ordinary pick: today's behaviour, no ceremony.
   if (queue.length <= 1 && queue[0] === 'pick3') { flowrQueueFloors = null; return false; }
@@ -800,6 +806,7 @@ function flowrShowStep() {
   if (kind === 'shop')  { flowrShopStep = true; triggerShop(); return; }
   if (kind === 'event') { openEvent(() => flowrAfterStep(), { exclude: FLOWR_EVENT_OUT }); return; }
   if (kind === 'cardpick') { crrCardPick(() => flowrAfterStep()); return; }
+  if (kind === 'penalty') { openPenaltyPick(() => flowrAfterStep()); return; }   // r728
   flowrShowEntityStep(kind);
 }
 

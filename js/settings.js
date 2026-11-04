@@ -17,14 +17,7 @@ const SETTINGS_DEF = [
   // row live. A module keeping its own copy of a settings-backed flag is the
   // r244 payout-pick trap: loadSettings applies every row's stored value OR its
   // default at boot, so a second store gets stamped back over on the next load.
-  // r727: the difficulty tier (js/difficulty.js). A view of its own store; the
-  // next run takes it, a live run keeps the tier it started on.
-  { group: 'Run', id: 'difficulty', label: 'Difficulty',
-    hint: 'For the next run. 1: horsemen last 4 rounds, swaps and discards cost no time. 2: horsemen last 6 rounds, a swap costs 3s, a discard 5s. 3: horsemen stay until removed, every round starts 30s shorter. 4: the last boss is THE FOUR HORSEMEN.',
-    type: 'select', default: '1',
-    options: (typeof DIFF_TIERS !== 'undefined') ? DIFF_TIERS.map(t => [String(t.tier), `${t.tier} · ${t.name}`]) : [['1', '1']],
-    get: () => String((typeof difficultySetting === 'function') ? difficultySetting() : 1),
-    apply: v => { if (typeof difficultySet === 'function') difficultySet(v); } },
+  // r728: the difficulty tier is chosen on each mode's card in the carousel (js/menu.js), not here.
   { group: 'Help', id: 'handbook', type: 'action',
     label: 'Handbook', hint: 'How everything works, in more detail than the game stops to explain.',
     buttons: () => [{ label: 'Open the handbook', fn: 'openInfoHubFromSettings()', primary: true }] },

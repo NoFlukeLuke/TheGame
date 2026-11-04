@@ -282,7 +282,7 @@ function interactTimeCostsOn() {
 // This is the ONE multiplier, and it returns 0 when costs are off - so a caller
 // that multiplies by it needs no second test, and the quote in the Time pop-up
 // reads the same number the charge does.
-const FLOW_INTERACT_TIME_MULT = 0.5;
+const FLOW_INTERACT_TIME_MULT = 1;   // r728: was 0.5
 function interactTimeCostMult() {
   // The Flow deck editor's swaps and discards are free of the CLOCK (r395) -
   // that screen sits between rounds, so it spends the round's leftover STOCK
@@ -291,6 +291,7 @@ function interactTimeCostMult() {
   // read, so the quote and the charge cannot drift (r326).
   if (typeof deckEditFreeInteract === 'function' && deckEditFreeInteract()) return 0;
   if (!interactTimeCostsOn()) return 0;
+  // r728 (owner): Flow pays the full price now; FLOW_INTERACT_TIME_MULT (r326's half rate) is 1.
   if (typeof flowActive === 'function' && flowActive()) return FLOW_INTERACT_TIME_MULT;
   return 1;
 }

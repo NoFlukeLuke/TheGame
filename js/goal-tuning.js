@@ -91,6 +91,7 @@ function classicGoalForLevel(lv) {
   const e2 = Math.max(0, lv - (shift - 1));              // steps at the late rate
   let g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(early, e1) * Math.pow(late, e2);
   if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, lv >= shift ? late : early);   // r680
+  if (typeof difficultyGoalMult === 'function') g *= difficultyGoalMult();   // r728: tiers 7 and 8
   if (lv <= 1) return Math.max(1, Math.round(g));
   return Math.max(step, Math.round(Math.round(g) / step) * step);
 }
@@ -103,6 +104,7 @@ function mapGoalForLevel(lv) {
   const scale = 1 + goalTune('mapGrowth') / 100;
   let g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
   if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, scale);   // r680
+  if (typeof difficultyGoalMult === 'function') g *= difficultyGoalMult();   // r728: tiers 7 and 8
   if (lv <= 1) return Math.max(1, Math.round(g));
   return Math.max(step, Math.round(Math.round(g) / step) * step);
 }

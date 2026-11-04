@@ -156,6 +156,7 @@ function survivalGoalForLevel(lv) {
     const fast = 1 + (scale - 1) * goalTune('endlessAccel');
     g *= Math.pow(fast, lv - survivalEndlessFromLevel);
   }
+  if (typeof difficultyGoalMult === 'function') g *= difficultyGoalMult();   // r728: tiers 7 and 8
   return Math.max(step, Math.round(g / step) * step);
 }
 let survivalEndlessFromLevel = Infinity; // level at which endless acceleration begins

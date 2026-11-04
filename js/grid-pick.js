@@ -286,9 +286,9 @@ function gridPickTileHTML(p, i) {
   // They are wrappers rather than four loose children because the halves have
   // to be SIZED against the tile (css/grid-pick.css): a flat child list can only
   // be centred as one group, which pooled the tile's slack at its foot.
-  return `<div class="gp-opt gp-art-${kind} rar-${rar}" data-gp="${i}" data-et="${tip}">`
+  return `<div class="gp-opt gp-art-${kind} rar-${rar}${p.rarity === 'penalty' ? ' gp-penalty' : ''}" data-gp="${i}" data-et="${tip}">`
     + `<div class="gp-head">`
-    + (p.tag ? `<div class="gp-tag rar-${rar}">${p.tag}</div>` : '')
+    + (p.tag ? `<div class="gp-tag rar-${rar}${p.rarity === 'penalty' ? ' gp-penalty' : ''}">${p.tag}</div>` : '')
     + `<div class="gp-art" data-float-key="gp-${i}-${p.id || p.label || ''}">${art}</div>`
     + `<div class="gp-name">${p.label || ''}</div>`
     + `</div>`
@@ -345,7 +345,8 @@ function gridPickTakeButtons() {
   const swap = document.getElementById('swap-indicator');
   if (!_gpBtnSaved) _gpBtnSaved = { play: play.innerHTML, disc: disc.innerHTML, swap: swap ? swap.innerHTML : null };
   play.classList.add('reward-buy'); play.innerHTML = 'C<br>O<br>N<br>F<br>I<br>R<br>M';
-  disc.classList.add('reward-clear'); disc.innerHTML = 'S<br>K<br>I<br>P';
+  // r728: a pick with no onSkip (the forced penalty pick) is not skippable, so the key says nothing.
+  disc.classList.add('reward-clear'); disc.innerHTML = (gridPickState && !gridPickState.onSkip && !gridPickState.actions.length) ? '' : 'S<br>K<br>I<br>P';
   // r441: Flow's split rerolls. DISCARD rerolls the OPTIONS and shrinks; SWAP
   // rerolls the reward TYPE and grows (css/grid-pick.css, #stage.gp-split).
   const split = gpSplit();

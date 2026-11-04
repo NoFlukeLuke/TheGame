@@ -42,6 +42,7 @@
 #grid .gp-opt.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
 #grid .gp-opt.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
 #grid .gp-opt.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+#grid .gp-opt.gp-penalty    { --rc: #e0523a; }   /* r728: a forced penalty (js/difficulty.js) */
 #grid .gp-opt :is(.gp-head, .gp-body) {
   box-sizing: border-box; width: 100%; border-radius: 8px; overflow: hidden;
   border: 1.5px solid color-mix(in srgb, var(--rc, #b7ac93) 45%, #1a1712);
@@ -87,6 +88,7 @@
 .gp-tag.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
 .gp-tag.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
 .gp-tag.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+.gp-tag.gp-penalty    { --rc: #e0523a; }   /* r728: after the rarity rules, so it wins */
 
 /* THE OBJECT. The art box is given the OBJECT'S OWN ASPECT, so the object
    fills it rather than letterboxing inside a taller box and leaving a gap
